@@ -1,5 +1,7 @@
+import sys
 from typing import List, Optional
 from rich import print
+
 
 """
 https://leetcode.com/problems/two-sum-ii-input-array-is-sorted/description/
@@ -431,6 +433,69 @@ root1 = TreeNode(1, TreeNode(2, TreeNode(3)))
 root2 = TreeNode(3, TreeNode(2), TreeNode(1))
 assert sol.leafSimilar(root1, root2) == False
 
+"""
+https://leetcode.com/problems/greatest-common-divisor-of-strings/description
+
+1071. Greatest Common Divisor of Strings
+Easy
+For two strings s and t, we say "t divides s" if and only if s = t + t + t + ... + t + t (i.e., t is concatenated with itself one or more times).
+
+Given two strings str1 and str2, return the largest string x such that x divides both str1 and str2.
+
+Example 1:
+
+Input: str1 = "ABCABC", str2 = "ABC"
+Output: "ABC"
+Example 2:
+
+Input: str1 = "ABABAB", str2 = "ABAB"
+Output: "AB"
+Example 3:
+
+Input: str1 = "LEET", str2 = "CODE"
+Output: ""
+
+Constraints:
+
+1 <= str1.length, str2.length <= 1000
+str1 and str2 consist of English uppercase letters.
+
+"""
+
+from itertools import zip_longest
+
+
+class Solution:
+    def gcdOfStrings(self, str1: str, str2: str) -> str:
+        def batched(s, n=1):
+            r = list(range(0, len(s), n))
+            return [s[a:b] for a, b in zip_longest(r, r[1:])]
+
+        batch_match = lambda x: all([a == b for a, b in zip(x, x[1:])])
+
+        for n in range(len(str2), 0, -1):
+            b1, b2 = batched(str1, n), batched(str2, n)
+            if b1[0] == b2[0] and batch_match(b1) and batch_match(b2):
+                return b1[0]
+
+        return ""
+
+
+sol = Solution()
+
+assert sol.gcdOfStrings(str1="ABCABC", str2="ABC") == "ABC"
+assert sol.gcdOfStrings(str1="ABABAB", str2="ABAB") == "AB"
+assert sol.gcdOfStrings(str1="LEET", str2="CODE") == ""
+assert sol.gcdOfStrings(str1="A", str2="A") == "A"
+assert sol.gcdOfStrings(str1="A", str2="B") == ""
+assert sol.gcdOfStrings(str1="A", str2="AAA") == "A"
+assert sol.gcdOfStrings(str1="AAAA", str2="AA") == "AA"
+assert sol.gcdOfStrings(str1="AAA", str2="AA") == "A"
+assert sol.gcdOfStrings(str1="ABCDEF", str2="ABC") == ""
+assert sol.gcdOfStrings(str1="ABC", str2="ABC") == "ABC"
+assert sol.gcdOfStrings(str1="AB", str2="ABABAB") == "AB"
+assert sol.gcdOfStrings(str1="ABAB", str2="BABA") == ""
+assert sol.gcdOfStrings(str1="ABCABCABCABC", str2="ABCABCABC") == "ABC"
 
 """
 https://leetcode.com/problems/shuffle-the-array/
@@ -663,3 +728,89 @@ assert sol.numWaterBottles(3, 2) == 5
 assert sol.numWaterBottles(50, 5) == 62
 assert sol.numWaterBottles(20, 6) == 23
 assert sol.numWaterBottles(8, 4) == 10
+
+"""
+https://leetcode.com/problems/greatest-common-divisor-of-strings/description/
+
+1768. Merge Strings Alternately
+Easy
+You are given two strings word1 and word2. Merge the strings by adding letters in alternating order, starting with word1. If a string is longer than the other, append the additional letters onto the end of the merged string.
+
+Return the merged string.
+
+Example 1:
+
+Input: word1 = "abc", word2 = "pqr"
+Output: "apbqcr"
+Explanation: The merged string will be merged as so:
+word1:  a   b   c
+word2:    p   q   r
+merged: a p b q c r
+Example 2:
+
+Input: word1 = "ab", word2 = "pqrs"
+Output: "apbqrs"
+Explanation: Notice that as word2 is longer, "rs" is appended to the end.
+word1:  a   b 
+word2:    p   q   r   s
+merged: a p b q   r   s
+Example 3:
+
+Input: word1 = "abcd", word2 = "pq"
+Output: "apbqcd"
+Explanation: Notice that as word1 is longer, "cd" is appended to the end.
+word1:  a   b   c   d
+word2:    p   q 
+merged: a p b q c   d
+ 
+
+Constraints:
+
+1 <= word1.length, word2.length <= 100
+word1 and word2 consist of lowercase English letters.
+"""
+
+from itertools import zip_longest
+
+
+class Solution:
+    def mergeAlternately(self, word1: str, word2: str) -> str:
+        return "".join((a or "") + (b or "") for a, b in zip_longest(word1, word2))
+
+
+sol = Solution()
+
+# Existing test cases
+assert sol.mergeAlternately(word1="abc", word2="pqr") == "apbqcr"
+assert sol.mergeAlternately(word1="ab", word2="pqrs") == "apbqrs"
+assert sol.mergeAlternately(word1="abcd", word2="pq") == "apbqcd"
+
+# Edge case: Both minimum length (1)
+assert sol.mergeAlternately(word1="a", word2="b") == "ab"
+
+# Edge case: word1 minimum, word2 longer
+assert sol.mergeAlternately(word1="a", word2="bcdef") == "abcdef"
+
+# Edge case: word2 minimum, word1 longer
+assert sol.mergeAlternately(word1="abcde", word2="f") == "afbcde"
+
+# Edge case: All identical letters, equal length
+assert sol.mergeAlternately(word1="aaa", word2="bbb") == "ababab"
+
+# Edge case: All identical letters, word1 shorter
+assert sol.mergeAlternately(word1="aa", word2="bbbb") == "ababbb"
+
+# Edge case: All identical letters, word2 shorter
+assert sol.mergeAlternately(word1="aaaa", word2="bb") == "ababaa"
+
+# Edge case: Maximum length, equal
+assert sol.mergeAlternately(word1="a" * 100, word2="b" * 100) == ("ab" * 100)
+
+# Edge case: Maximum length word1, minimum word2
+assert sol.mergeAlternately(word1="a" * 100, word2="b") == ("a" + "b" + "a" * 99)
+
+# Edge case: Maximum length word2, minimum word1
+assert sol.mergeAlternately(word1="a", word2="b" * 100) == ("a" + "b" * 100)
+
+# Edge case: Uneven lengths with patterns
+assert sol.mergeAlternately(word1="xyz", word2="12345") == "x1y2z345"
