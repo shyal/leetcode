@@ -73,6 +73,81 @@ assert sol.twoSum(numbers=[-2, -1, 4], target=2) == [1, 3]
 assert sol.twoSum(numbers=[999, 1000], target=1999) == [1, 2]
 assert sol.twoSum(numbers=[-1, 0, 0, 1], target=0) == [1, 4]  # -1 + 1 = 0
 
+"""
+345. Reverse Vowels of a String
+Easy
+Given a string s, reverse only all the vowels in the string and return it.
+
+The vowels are 'a', 'e', 'i', 'o', and 'u', and they can appear in both lower and upper cases, more than once.
+
+Example 1:
+
+Input: s = "IceCreAm"
+
+Output: "AceCreIm"
+
+Explanation:
+
+The vowels in s are ['I', 'e', 'e', 'A']. On reversing the vowels, s becomes "AceCreIm".
+
+Example 2:
+
+Input: s = "leetcode"
+
+Output: "leotcede"
+
+
+Constraints:
+
+1 <= s.length <= 3 * 105
+s consist of printable ASCII characters.
+"""
+
+
+class Solution:
+    def reverseVowels(self, s: str) -> str:
+        s = list(s)
+        v = set("aeiouAEIOU")
+        left = 0
+        right = len(s) - 1
+        while left <= right:
+            left_is_vowel = s[left] in v
+            right_is_vowel = s[right] in v
+            if left_is_vowel and right_is_vowel:
+                s[left], s[right] = s[right], s[left]
+                left += 1
+                right -= 1
+                continue
+            if not left_is_vowel:
+                left += 1
+            if not right_is_vowel:
+                right -= 1
+        return "".join(s)
+
+
+sol = Solution()
+
+assert sol.reverseVowels(s="IceCreAm") == "AceCreIm"
+assert sol.reverseVowels(s="") == ""
+assert sol.reverseVowels(s="a") == "a"
+assert sol.reverseVowels(s="avi") == "iva"
+assert sol.reverseVowels(s="aviz") == "ivaz"
+assert sol.reverseVowels(s="foobar") == "faobor"
+assert sol.reverseVowels(s="leetcode") == "leotcede"
+assert sol.reverseVowels(s="hello") == "holle"
+assert sol.reverseVowels(s="AEIOU") == "UOIEA"
+assert sol.reverseVowels(s="why") == "why"
+assert sol.reverseVowels(s="a!e") == "e!a"
+assert sol.reverseVowels(s="aaee") == "eeaa"
+assert sol.reverseVowels(s="bcdfg") == "bcdfg"
+assert sol.reverseVowels(s="b") == "b"
+assert sol.reverseVowels(s="123aei456ou789") == "123uoi456ea789"
+assert sol.reverseVowels(s="AaEeIiOoUu") == "uUoOiIeEaA"
+assert (
+    sol.reverseVowels(s="A man a plan a canal: Panama")
+    == "a man a plan a canal: PanamA"
+)
+
 
 """
 498. Diagonal Traverse
@@ -290,44 +365,18 @@ assert sol.canPlaceFlowers(flowerbed=[1, 0, 0, 0, 1], n=2) == False
 assert sol.canPlaceFlowers(flowerbed=[1, 0, 0, 0, 0, 0, 0, 1], n=2) == True
 assert sol.canPlaceFlowers(flowerbed=[1, 0, 0, 1, 0, 0, 0, 1], n=1) == True
 assert sol.canPlaceFlowers(flowerbed=[0, 1, 0, 1, 0, 0, 0, 1, 0, 1], n=1) == True
-
-# Edge case: Single empty plot, n=1
 assert sol.canPlaceFlowers(flowerbed=[0], n=1) == True
-
-# Edge case: Single empty plot, n=0
 assert sol.canPlaceFlowers(flowerbed=[0], n=0) == True
-
-# Edge case: Single planted plot, n=0
 assert sol.canPlaceFlowers(flowerbed=[1], n=0) == True
-
-# Edge case: Single planted plot, n=1
 assert sol.canPlaceFlowers(flowerbed=[1], n=1) == False
-
-# Edge case: All empty, length 3, max placements
 assert sol.canPlaceFlowers(flowerbed=[0, 0, 0], n=2) == True
-
-# Edge case: All empty, length 3, less than max
 assert sol.canPlaceFlowers(flowerbed=[0, 0, 0], n=1) == True
-
-# Edge case: All empty, length 3, more than max
 assert sol.canPlaceFlowers(flowerbed=[0, 0, 0], n=3) == False
-
-# Edge case: Placements at beginning and end
 assert sol.canPlaceFlowers(flowerbed=[0, 0, 1, 0, 0], n=2) == True
-
-# Edge case: Less than max for mixed
 assert sol.canPlaceFlowers(flowerbed=[0, 0, 1, 0, 0], n=1) == True
-
-# Edge case: All empty, length 5, max=3
 assert sol.canPlaceFlowers(flowerbed=[0] * 5, n=3) == True
-
-# Edge case: All empty, length 5, less than max
 assert sol.canPlaceFlowers(flowerbed=[0] * 5, n=2) == True
-
-# Edge case: No possible placements, n=0
 assert sol.canPlaceFlowers(flowerbed=[1, 0, 1, 0, 1], n=0) == True
-
-# Edge case: No possible placements, n=1
 assert sol.canPlaceFlowers(flowerbed=[1, 0, 1, 0, 1], n=1) == False
 
 
@@ -636,7 +685,6 @@ sol = Solution()
 true = True
 false = False
 
-# Existing test cases
 assert sol.kidsWithCandies(candies=[2, 3, 5, 1, 3], extraCandies=3) == [
     True,
     True,
@@ -652,34 +700,18 @@ assert sol.kidsWithCandies(candies=[4, 2, 1, 1, 2], extraCandies=1) == [
     False,
 ]
 assert sol.kidsWithCandies(candies=[12, 1, 12], extraCandies=10) == [True, False, True]
-
-# Edge case: Minimum n=2, equal candies, minimal extra
 assert sol.kidsWithCandies(candies=[1, 1], extraCandies=1) == [True, True]
-
-# Edge case: Minimum n=2, different candies, extra insufficient for smaller
 assert sol.kidsWithCandies(candies=[1, 100], extraCandies=1) == [False, True]
-
-# Edge case: All candies equal, extra=1
 assert sol.kidsWithCandies(candies=[50, 50, 50, 50], extraCandies=1) == [
     True,
     True,
     True,
     True,
 ]
-
-# Edge case: All candies minimal (1), extra maximal (50)
 assert sol.kidsWithCandies(candies=[1, 1, 1], extraCandies=50) == [True, True, True]
-
-# Edge case: Candies maximal (100), extra minimal (1)
 assert sol.kidsWithCandies(candies=[100, 100], extraCandies=1) == [True, True]
-
-# Edge case: Extra makes all able to reach or exceed max
 assert sol.kidsWithCandies(candies=[1, 2, 3], extraCandies=2) == [True, True, True]
-
-# Edge case: Extra insufficient for some, sufficient for others
 assert sol.kidsWithCandies(candies=[1, 2, 3], extraCandies=1) == [False, True, True]
-
-# Edge case: Multiple max values, extra=1
 assert sol.kidsWithCandies(candies=[5, 3, 5, 4], extraCandies=1) == [
     True,
     False,
@@ -971,37 +1003,16 @@ class Solution:
 
 sol = Solution()
 
-# Existing test cases
 assert sol.mergeAlternately(word1="abc", word2="pqr") == "apbqcr"
 assert sol.mergeAlternately(word1="ab", word2="pqrs") == "apbqrs"
 assert sol.mergeAlternately(word1="abcd", word2="pq") == "apbqcd"
-
-# Edge case: Both minimum length (1)
 assert sol.mergeAlternately(word1="a", word2="b") == "ab"
-
-# Edge case: word1 minimum, word2 longer
 assert sol.mergeAlternately(word1="a", word2="bcdef") == "abcdef"
-
-# Edge case: word2 minimum, word1 longer
 assert sol.mergeAlternately(word1="abcde", word2="f") == "afbcde"
-
-# Edge case: All identical letters, equal length
 assert sol.mergeAlternately(word1="aaa", word2="bbb") == "ababab"
-
-# Edge case: All identical letters, word1 shorter
 assert sol.mergeAlternately(word1="aa", word2="bbbb") == "ababbb"
-
-# Edge case: All identical letters, word2 shorter
 assert sol.mergeAlternately(word1="aaaa", word2="bb") == "ababaa"
-
-# Edge case: Maximum length, equal
 assert sol.mergeAlternately(word1="a" * 100, word2="b" * 100) == ("ab" * 100)
-
-# Edge case: Maximum length word1, minimum word2
 assert sol.mergeAlternately(word1="a" * 100, word2="b") == ("a" + "b" + "a" * 99)
-
-# Edge case: Maximum length word2, minimum word1
 assert sol.mergeAlternately(word1="a", word2="b" * 100) == ("a" + "b" * 100)
-
-# Edge case: Uneven lengths with patterns
 assert sol.mergeAlternately(word1="xyz", word2="12345") == "x1y2z345"
