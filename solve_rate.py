@@ -81,7 +81,7 @@ def main():
 
     current_time = datetime.now(timezone.utc)
 
-    periods = [(1, "1 day"), (3, "3 days"), (7, "1 week"), (30, "1 month")]
+    periods = [(1, "1 day"), (2, "2 days"), (7, "1 week"), (30, "1 month")]
 
     print(f"Solved so far: {solved}")
     print(f"Remaining: {remaining}")
