@@ -63,7 +63,6 @@ assert (
 )
 assert sol.reverseWords(s="a") == "a"
 assert sol.reverseWords(s="word1                    word2") == "word2 word1"
-
 """
 https://leetcode.com/problems/two-sum-ii-input-array-is-sorted/description/
 
@@ -102,6 +101,38 @@ numbers is sorted in non-decreasing order.
 -1000 <= target <= 1000
 The tests are generated such that there is exactly one solution.
 """
+
+
+class Solution:
+    def twoSum(self, numbers: List[int], target: int) -> List[int]:
+        left = 0
+        right = len(numbers) - 1
+        while left < right:
+            total = numbers[left] + numbers[right]
+            if total == target:
+                return [left + 1, right + 1]
+            if total < target:
+                left += 1
+            else:
+                right -= 1
+
+
+sol = Solution()
+
+assert sol.twoSum(numbers=[2, 7, 11, 15], target=9) == [1, 2]
+assert sol.twoSum(numbers=[2, 3, 4], target=6) == [1, 3]
+assert sol.twoSum(numbers=[-1, 0], target=-1) == [1, 2]
+assert sol.twoSum(numbers=[3, 3], target=6) == [1, 2]
+assert sol.twoSum(numbers=[-1000, -1000], target=-2000) == [1, 2]
+assert sol.twoSum(numbers=[-10, 10], target=0) == [1, 2]
+assert sol.twoSum(numbers=[0, 0, 1, 2], target=0) == [1, 2]
+assert sol.twoSum(numbers=[-5, -3, 0, 1], target=-8) == [1, 2]
+assert sol.twoSum(numbers=[1, 2, 3, 4, 5], target=9) == [4, 5]
+assert sol.twoSum(numbers=[1, 3, 5, 8], target=9) == [1, 4]
+assert sol.twoSum(numbers=[-2, -1, 4], target=2) == [1, 3]
+assert sol.twoSum(numbers=[999, 1000], target=1999) == [1, 2]
+assert sol.twoSum(numbers=[-1, 0, 0, 1], target=0) == [1, 4]  # -1 + 1 = 0
+
 
 """
 238. Product of Array Except Self
@@ -147,36 +178,6 @@ sol = Solution()
 sol.productExceptSelf(nums=[1, 2, 3, 4])
 assert sol.productExceptSelf(nums=[1, 2, 3, 4]) == [24, 12, 8, 6]
 
-
-class Solution:
-    def twoSum(self, numbers: List[int], target: int) -> List[int]:
-        left = 0
-        right = len(numbers) - 1
-        while left < right:
-            total = numbers[left] + numbers[right]
-            if total == target:
-                return [left + 1, right + 1]
-            if total < target:
-                left += 1
-            else:
-                right -= 1
-
-
-sol = Solution()
-
-assert sol.twoSum(numbers=[2, 7, 11, 15], target=9) == [1, 2]
-assert sol.twoSum(numbers=[2, 3, 4], target=6) == [1, 3]
-assert sol.twoSum(numbers=[-1, 0], target=-1) == [1, 2]
-assert sol.twoSum(numbers=[3, 3], target=6) == [1, 2]
-assert sol.twoSum(numbers=[-1000, -1000], target=-2000) == [1, 2]
-assert sol.twoSum(numbers=[-10, 10], target=0) == [1, 2]
-assert sol.twoSum(numbers=[0, 0, 1, 2], target=0) == [1, 2]
-assert sol.twoSum(numbers=[-5, -3, 0, 1], target=-8) == [1, 2]
-assert sol.twoSum(numbers=[1, 2, 3, 4, 5], target=9) == [4, 5]
-assert sol.twoSum(numbers=[1, 3, 5, 8], target=9) == [1, 4]
-assert sol.twoSum(numbers=[-2, -1, 4], target=2) == [1, 3]
-assert sol.twoSum(numbers=[999, 1000], target=1999) == [1, 2]
-assert sol.twoSum(numbers=[-1, 0, 0, 1], target=0) == [1, 4]  # -1 + 1 = 0
 
 """
 283. Move Zeroes
@@ -1234,6 +1235,50 @@ assert sol.gcdOfStrings(str1="ABAB", str2="BABA") == ""
 assert sol.gcdOfStrings(str1="ABCABCABCABC", str2="ABCABCABC") == "ABC"
 
 """
+https://leetcode.com/problems/unique-number-of-occurrences/description
+
+1207. Unique Number of Occurrences
+Easy
+Given an array of integers arr, return true if the number of occurrences of each value in the array is unique or false otherwise.
+
+Example 1:
+
+Input: arr = [1,2,2,1,1,3]
+Output: true
+Explanation: The value 1 has 3 occurrences, 2 has 2 and 3 has 1. No two values have the same number of occurrences.
+Example 2:
+
+Input: arr = [1,2]
+Output: false
+Example 3:
+
+Input: arr = [-3,0,1,-3,1,1,1,-3,10,0]
+Output: true
+ 
+
+Constraints:
+
+1 <= arr.length <= 1000
+-1000 <= arr[i] <= 1000
+"""
+
+from collections import Counter
+
+
+class Solution:
+    def uniqueOccurrences(self, arr: List[int]) -> bool:
+        occurrences = [count for val, count in Counter(arr).items()]
+        return len(occurrences) == len(set(occurrences))
+
+
+sol = Solution()
+sol.uniqueOccurrences([1, 2, 2, 1, 1, 3]) == True
+sol.uniqueOccurrences([1, 2]) == False
+sol.uniqueOccurrences([-3, 0, 1, -3, 1, 1, 1, -3, 10, 0]) == True
+sol.uniqueOccurrences([1]) == True
+sol.uniqueOccurrences([1, 1]) == True
+
+"""
 1431. Kids With the Greatest Number of Candies
 Easy
 There are n kids with candies. You are given an integer array candies, where each candies[i] represents the number of candies the ith kid has, and an integer extraCandies, denoting the number of extra candies that you have.
@@ -1320,6 +1365,68 @@ assert sol.kidsWithCandies(candies=[5, 3, 5, 4], extraCandies=1) == [
     True,
 ]
 
+
+"""
+https://leetcode.com/problems/maximum-number-of-vowels-in-a-substring-of-given-length/description/
+
+1456. Maximum Number of Vowels in a Substring of Given Length
+Medium
+Given a string s and an integer k, return the maximum number of vowel letters in any substring of s with length k.
+
+Vowel letters in English are 'a', 'e', 'i', 'o', and 'u'.
+
+Example 1:
+
+Input: s = "abciiidef", k = 3
+Output: 3
+Explanation: The substring "iii" contains 3 vowel letters.
+Example 2:
+
+Input: s = "aeiou", k = 2
+Output: 2
+Explanation: Any substring of length 2 contains 2 vowels.
+Example 3:
+
+Input: s = "leetcode", k = 3
+Output: 2
+Explanation: "lee", "eet" and "ode" contain 2 vowels.
+ 
+
+Constraints:
+
+1 <= s.length <= 105
+s consists of lowercase English letters.
+1 <= k <= s.length
+"""
+
+
+class Solution:
+    def maxVowels(self, s: str, k: int) -> int:
+        v = set("aeiou")
+        _max = sum([x in v for x in s[:k]])
+        count = _max
+        for i in range(k, len(s)):
+            count -= s[i - k] in v
+            count += s[i] in v
+            _max = max(_max, count)
+        return _max
+
+
+sol = Solution()
+assert sol.maxVowels(s="tryhard", k=4) == 1
+assert sol.maxVowels(s="abciiidef", k=3) == 3
+assert sol.maxVowels(s="aeiou", k=2) == 2
+assert sol.maxVowels(s="leetcode", k=3) == 2
+assert sol.maxVowels(s="a", k=1) == 1
+assert sol.maxVowels(s="b", k=1) == 0
+assert sol.maxVowels(s="aeiou", k=5) == 5
+assert sol.maxVowels(s="aeiou", k=3) == 3
+assert sol.maxVowels(s="consonants", k=4) == 2
+assert sol.maxVowels(s="abcdeiou", k=3) == 3
+assert sol.maxVowels(s="leetcode", k=1) == 1
+assert sol.maxVowels(s="rhythms", k=3) == 0
+assert sol.maxVowels(s="tryhard", k=2) == 1
+assert sol.maxVowels(s="weallloveyou", k=7) == 4
 
 """
 https://leetcode.com/problems/shuffle-the-array/
@@ -1418,141 +1525,6 @@ assert sol.shuffle(nums=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], n=5) == [
 assert sol.shuffle(nums=[50, 51, 52, 53], n=2) == [50, 52, 51, 53]
 assert sol.shuffle(nums=[1000, 999, 998, 1, 2, 3], n=3) == [1000, 1, 999, 2, 998, 3]
 assert sol.shuffle(nums=[7, 14], n=1) == [7, 14]
-
-"""
-https://leetcode.com/problems/valid-boomerang/
-
-1037 - Valid Boomerang
-
-Given an array points where points[i] = [xi, yi] represents a point on the X-Y plane, return true if these points are a boomerang.
-A boomerang is a set of three points that are all distinct and not in a straight line.
-
-Example 1:
-
-Input: points = [[1,1],[2,3],[3,2]]
-Output: true
-Example 2:
-
-Input: points = [[1,1],[2,2],[3,3]]
-Output: false
-
-
-Constraints:
-
-points.length == 3
-points[i].length == 2
-0 <= xi, yi <= 100
-
-
-# Notes:
-
-This isn't the slop, it's the inverse. 
-
-Todo: Revisit with cross multiplication.
-
-"""
-
-
-class Solution:
-    def isBoomerang(self, points: List[List[int]]) -> bool:
-        non_overlapping = all(a != b for a, b in zip(points, points[1:]))
-
-        def get_slope(a, b):
-            if a[0] == b[0]:
-                return float("-inf")
-            elif a[1] == b[1]:
-                return float("inf")
-            else:
-                return (a[0] - b[0]) / (a[1] - b[1])
-
-        slopes = [get_slope(a, b) for a, b in zip(points, points[1:])]
-        return non_overlapping and slopes[0] != slopes[1]
-
-
-sol = Solution()
-assert sol.isBoomerang([[1, 1], [2, 3], [3, 2]]) == True
-assert sol.isBoomerang([[1, 1], [2, 2], [3, 3]]) == False
-assert sol.isBoomerang([[0, 1], [0, 2], [1, 2]]) == True
-assert sol.isBoomerang([[0, 2], [2, 1], [0, 0]]) == True
-assert sol.isBoomerang([[0, 0], [0, 0], [1, 1]]) == False
-assert sol.isBoomerang([[0, 0], [0, 0], [0, 0]]) == False
-assert sol.isBoomerang([[0, 0], [1, 0], [0, 0]]) == False
-assert sol.isBoomerang([[0, 0], [0, 1], [0, 2]]) == False
-assert sol.isBoomerang([[0, 0], [1, 0], [2, 0]]) == False
-assert sol.isBoomerang([[0, 0], [1, 1], [2, 2]]) == False
-assert sol.isBoomerang([[1, 2], [3, 4], [5, 6]]) == False
-assert sol.isBoomerang([[-1, 0], [0, 0], [1, 0]]) == False
-assert sol.isBoomerang([[0, 0], [1, 1], [2, 3]]) == True
-assert sol.isBoomerang([[0, 0], [0, 1], [1, 0]]) == True
-assert sol.isBoomerang([[1, 1], [2, 2], [3, 4]]) == True
-assert sol.isBoomerang([[-1, -1], [0, 0], [1, 2]]) == True
-assert sol.isBoomerang([[100, 100], [200, 200], [300, 301]]) == True
-assert sol.isBoomerang([[0, 1], [1, 0], [2, 0]]) == True
-assert sol.isBoomerang([[1, 0], [1, 1], [1, 2]]) == False
-assert sol.isBoomerang([[2, 2], [3, 3], [1, 1]]) == False
-
-
-"""
-https://leetcode.com/problems/maximum-number-of-vowels-in-a-substring-of-given-length/description/
-
-1456. Maximum Number of Vowels in a Substring of Given Length
-Medium
-Given a string s and an integer k, return the maximum number of vowel letters in any substring of s with length k.
-
-Vowel letters in English are 'a', 'e', 'i', 'o', and 'u'.
-
-Example 1:
-
-Input: s = "abciiidef", k = 3
-Output: 3
-Explanation: The substring "iii" contains 3 vowel letters.
-Example 2:
-
-Input: s = "aeiou", k = 2
-Output: 2
-Explanation: Any substring of length 2 contains 2 vowels.
-Example 3:
-
-Input: s = "leetcode", k = 3
-Output: 2
-Explanation: "lee", "eet" and "ode" contain 2 vowels.
- 
-
-Constraints:
-
-1 <= s.length <= 105
-s consists of lowercase English letters.
-1 <= k <= s.length
-"""
-
-
-class Solution:
-    def maxVowels(self, s: str, k: int) -> int:
-        v = set("aeiou")
-        _max = sum([x in v for x in s[:k]])
-        count = _max
-        for i in range(k, len(s)):
-            count -= s[i - k] in v
-            count += s[i] in v
-            _max = max(_max, count)
-        return _max
-
-
-sol = Solution()
-assert sol.maxVowels(s="tryhard", k=4) == 1
-assert sol.maxVowels(s="abciiidef", k=3) == 3
-assert sol.maxVowels(s="aeiou", k=2) == 2
-assert sol.maxVowels(s="leetcode", k=3) == 2
-assert sol.maxVowels(s="a", k=1) == 1
-assert sol.maxVowels(s="b", k=1) == 0
-assert sol.maxVowels(s="aeiou", k=5) == 5
-assert sol.maxVowels(s="aeiou", k=3) == 3
-assert sol.maxVowels(s="consonants", k=4) == 2
-assert sol.maxVowels(s="abcdeiou", k=3) == 3
-assert sol.maxVowels(s="leetcode", k=1) == 1
-assert sol.maxVowels(s="rhythms", k=3) == 0
-assert sol.maxVowels(s="tryhard", k=2) == 1
-assert sol.maxVowels(s="weallloveyou", k=7) == 4
 
 """
 1493. Longest Subarray of 1's After Deleting One Element
