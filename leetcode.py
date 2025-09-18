@@ -1945,3 +1945,69 @@ sol.findDifference(nums1=[1, 2, 3], nums2=[2, 4, 6]) == [[1, 3], [4, 6]]
 sol.findDifference(nums1=[1, 2, 3, 3], nums2=[1, 1, 2, 2]) == [[3], []]
 sol.findDifference(nums1=[], nums2=[]) == [[], []]
 sol.findDifference(nums1=[1], nums2=[]) == [[1], []]
+
+"""
+2352. Equal Row and Column Pairs
+Medium
+Given a 0-indexed n x n integer matrix grid, return the number of pairs (ri, cj) such that row ri and column cj are equal.
+
+A row and column pair is considered equal if they contain the same elements in the same order (i.e., an equal array).
+
+ 
+
+Example 1:
+
+
+Input: grid = [[3,2,1],[1,7,6],[2,7,7]]
+Output: 1
+Explanation: There is 1 equal row and column pair:
+- (Row 2, Column 1): [2,7,7]
+Example 2:
+
+
+Input: grid = [[3,1,2,2],[1,4,4,5],[2,4,2,2],[2,4,2,2]]
+Output: 3
+Explanation: There are 3 equal row and column pairs:
+- (Row 0, Column 0): [3,1,2,2]
+- (Row 2, Column 2): [2,4,2,2]
+- (Row 3, Column 2): [2,4,2,2]
+ 
+
+Constraints:
+
+n == grid.length == grid[i].length
+1 <= n <= 200
+1 <= grid[i][j] <= 105
+"""
+
+from collections import Counter
+
+
+class Solution:
+    def equalPairs(self, grid: List[List[int]]) -> int:
+        grid = [tuple(row) for row in grid]
+        get_col = lambda col: tuple(grid[row][col] for row in range(len(grid)))
+        cols = [get_col(col) for col in range(len(grid))]
+        rows_counter = dict(Counter(grid))
+        cols_counter = dict(Counter(cols))
+        count = 0
+        for row in rows_counter:
+            count += rows_counter[row] * cols_counter.get(row, 0)
+        return count
+
+
+sol = Solution()
+assert sol.equalPairs([[3, 2, 1], [1, 7, 6], [2, 7, 7]]) == 1
+assert sol.equalPairs([[3, 1, 2, 2], [1, 4, 4, 5], [2, 4, 2, 2], [2, 4, 2, 2]]) == 3
+assert sol.equalPairs([[1]]) == 1
+assert sol.equalPairs([[1, 2], [3, 4]]) == 0
+assert sol.equalPairs([[5, 5], [5, 5]]) == 4
+assert sol.equalPairs([[1, 2, 3], [4, 5, 6], [7, 8, 9]]) == 0
+assert sol.equalPairs([[3, 1, 2], [1, 4, 4], [2, 4, 2]]) == 3
+assert sol.equalPairs([[1, 2], [2, 1]]) == 2
+assert (
+    sol.equalPairs(
+        [[100000, 100000, 100000], [100000, 100000, 100000], [100000, 100000, 100000]]
+    )
+    == 9
+)
