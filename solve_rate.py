@@ -1,3 +1,5 @@
+# solve_rate.py
+
 import subprocess
 import re
 from datetime import datetime, timedelta, timezone
@@ -5,6 +7,36 @@ import argparse
 import math
 from rich import print
 from rich.table import Table
+import parse  # Import the modified parse.py for code reuse
+import itertools
+
+
+def is_stub(section_lines):
+    in_class = False
+    in_def = False
+    indent_level = 0
+    body = []
+    for line in section_lines:
+        if not line.strip():
+            continue
+        indent = len(line) - len(line.lstrip())
+        if not in_class and line.strip().startswith("class Solution"):
+            in_class = True
+            indent_level = indent
+            continue
+        if in_class and not in_def and line.strip().startswith("def "):
+            in_def = True
+            indent_level = indent
+            continue
+        if in_def:
+            if indent > indent_level:
+                stripped = line.strip()
+                if stripped and stripped != "pass" and not stripped.startswith("#"):
+                    body.append(stripped)
+            else:
+                # end of def if indent decreases
+                break
+    return len(body) == 0
 
 
 def get_git_log():
@@ -45,7 +77,10 @@ def parse_commits(log_output):
 
 
 def is_problem_commit(message):
-    return re.match(r"^\d+\.", message.strip()) is not None
+    message = message.strip().lower()
+    if "stub" in message:
+        return False
+    return re.match(r"^\d+\.", message) is not None
 
 
 def parse_date(date_str):
@@ -85,6 +120,12 @@ def main():
         default=8,
         help="Local timezone offset from UTC in hours, e.g., 8 for UTC+8",
     )
+    parser.add_argument(
+        "--task",
+        action="append",
+        default=[],
+        help="Tasks to intersperse into the schedule",
+    )
     args = parser.parse_args()
 
     total = args.total
@@ -93,14 +134,14 @@ def main():
         print("Total must be a positive integer.")
         exit(1)
 
-    log_output = get_git_log()
-    commits = parse_commits(log_output)
-
+    # Parse the current leetcode.py to get solved problems, ignoring stubs
+    with open("leetcode.py", "r") as f:
+        lines = f.readlines()
+    _, sections = parse.extract_sections(lines)
     solved_problems = set()
-    for commit in commits:
-        m = re.match(r"^(\d+)\.", commit["message"].strip())
-        if m:
-            solved_problems.add(int(m.group(1)))
+    for number, section_lines in sections:
+        if not is_stub(section_lines):
+            solved_problems.add(number)
 
     solved = len(solved_problems)
     remaining = total - solved
@@ -110,6 +151,9 @@ def main():
 
     remaining_problems = [i for i in range(1, total + 1) if i not in solved_problems]
     remaining_problems.sort()
+
+    log_output = get_git_log()
+    commits = parse_commits(log_output)
 
     local_tz = timezone(timedelta(hours=args.tz_offset))
     current_time = datetime.now(local_tz)
@@ -209,7 +253,7 @@ def main():
                         m = re.match(r"^(\d+)\.\s*(.*)", commit["message"].strip())
                         if m:
                             prob_num = int(m.group(1))
-                            msg = commit["message"].strip()
+                            msg = m.group(2)
                             solved_today.append((prob_num, msg, commit_time))
                 except ValueError:
                     continue
@@ -218,37 +262,53 @@ def main():
             target_per_day = math.ceil(daily_rate)
             num_to_do_today = max(0, target_per_day - num_solved_today)
 
+            tasks = args.task
+            num_tasks = len(tasks)
+            total_planned = num_to_do_today + num_tasks
+
             day_end = datetime.combine(current_time.date(), end_time, tzinfo=local_tz)
+            all_todays = list(solved_today)
             if current_time > day_end:
                 print("Past end time for today.")
             else:
-                todays_planned = (
-                    remaining_problems[:num_to_do_today] if num_to_do_today > 0 else []
-                )
-                all_todays = list(solved_today)
-
-                if num_to_do_today > 0:
+                if total_planned > 0:
                     remaining_time = day_end - current_time
-                    slot_duration = remaining_time / num_to_do_today
-                    for i, prob in enumerate(todays_planned):
+                    slot_duration = remaining_time / total_planned
+                    planned_problems = (
+                        remaining_problems[:num_to_do_today]
+                        if num_to_do_today > 0
+                        else []
+                    )
+                    planned_tasks = tasks
+                    interleaved = [
+                        item
+                        for item in itertools.chain.from_iterable(
+                            itertools.zip_longest(planned_problems, planned_tasks)
+                        )
+                        if item is not None
+                    ]
+                    for i, activity in enumerate(interleaved):
                         start_slot = current_time + timedelta(
                             seconds=i * slot_duration.total_seconds()
                         )
-                        all_todays.append((prob, "", start_slot))
+                        if isinstance(activity, int):  # problem
+                            all_todays.append((activity, "", start_slot))
+                        else:  # task
+                            all_todays.append(("Task", activity, start_slot))
 
-                if all_todays:
-                    all_todays.sort(key=lambda x: x[2])
-                    table2 = Table(title="Today's Solves")
-                    table2.add_column("Problem", justify="left")
-                    table2.add_column("Commit Message", justify="left")
-                    table2.add_column("Time of Day", justify="left")
-                    for item in all_todays:
-                        prob, msg, t = item
-                        time_str = t.strftime("%I:%M %p")
-                        table2.add_row(str(prob), msg, time_str)
-                    print(table2)
-                else:
-                    print("No solves planned or done today.")
+            if all_todays:
+                all_todays.sort(key=lambda x: x[2])
+                table2 = Table(title="Today's Solves")
+                table2.add_column("Problem", justify="left")
+                table2.add_column("Commit Message", justify="left")
+                table2.add_column("Time of Day", justify="left")
+                for item in all_todays:
+                    prob, msg, t = item
+                    time_str = t.strftime("%I:%M %p")
+                    table2.add_row(str(prob), msg, time_str)
+                print(table2)
+            else:
+                print("No solves planned or done today.")
 
 
 if __name__ == "__main__":
