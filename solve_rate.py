@@ -126,6 +126,12 @@ def main():
         default=[],
         help="Tasks to intersperse into the schedule",
     )
+    parser.add_argument(
+        "--break_minutes",
+        type=int,
+        default=10,
+        help="Minutes for a break between activities (default: 10, set to 0 to disable)",
+    )
     args = parser.parse_args()
 
     total = args.total
@@ -268,33 +274,104 @@ def main():
 
             day_end = datetime.combine(current_time.date(), end_time, tzinfo=local_tz)
             all_todays = list(solved_today)
-            if current_time > day_end:
+
+            # Compute interleaved without breaks first
+            planned_problems = (
+                remaining_problems[:num_to_do_today] if num_to_do_today > 0 else []
+            )
+            planned_tasks = tasks
+            interleaved = [
+                item
+                for item in itertools.chain.from_iterable(
+                    itertools.zip_longest(planned_problems, planned_tasks)
+                )
+                if item is not None
+            ]
+
+            # Compute planned_start
+            if solved_today:
+                solved_today.sort(key=lambda x: x[2])
+                last_done_time = solved_today[-1][2]
+                if (
+                    args.break_minutes > 0
+                    and interleaved
+                    and isinstance(interleaved[0], int)
+                ):
+                    planned_start = last_done_time + timedelta(
+                        minutes=args.break_minutes
+                    )
+                else:
+                    planned_start = last_done_time
+                planned_start = max(planned_start, current_time)
+            else:
+                planned_start = current_time
+
+            planned_items = []
+            if planned_start >= day_end:
                 print("Past end time for today.")
             else:
                 if total_planned > 0:
-                    remaining_time = day_end - current_time
-                    slot_duration = remaining_time / total_planned
-                    planned_problems = (
-                        remaining_problems[:num_to_do_today]
-                        if num_to_do_today > 0
-                        else []
+                    remaining_time = day_end - planned_start
+
+                    # Insert breaks if enabled, only after problems if next is also a problem
+                    break_minutes = args.break_minutes
+                    if break_minutes > 0 and total_planned > 1:
+                        with_breaks = []
+                        for i, activity in enumerate(interleaved):
+                            with_breaks.append(activity)
+                            if (
+                                i < len(interleaved) - 1
+                                and isinstance(activity, int)
+                                and isinstance(interleaved[i + 1], int)
+                            ):
+                                with_breaks.append("Break")
+                        interleaved = with_breaks
+
+                    total_slots = len(interleaved)
+                    num_breaks = total_slots - total_planned if break_minutes > 0 else 0
+                    total_break_time = num_breaks * timedelta(minutes=break_minutes)
+                    if total_break_time > remaining_time:
+                        print(
+                            f"Warning: Not enough time for all breaks; skipping breaks."
+                        )
+                        interleaved = [item for item in interleaved if item != "Break"]
+                        total_slots = len(interleaved)
+                        num_breaks = 0
+                        total_break_time = timedelta(0)
+                        work_time = remaining_time
+                    else:
+                        work_time = remaining_time - total_break_time
+
+                    activity_duration = (
+                        work_time / total_planned if total_planned > 0 else timedelta(0)
                     )
-                    planned_tasks = tasks
-                    interleaved = [
-                        item
-                        for item in itertools.chain.from_iterable(
-                            itertools.zip_longest(planned_problems, planned_tasks)
-                        )
-                        if item is not None
-                    ]
-                    for i, activity in enumerate(interleaved):
-                        start_slot = current_time + timedelta(
-                            seconds=i * slot_duration.total_seconds()
-                        )
-                        if isinstance(activity, int):  # problem
-                            all_todays.append((activity, "", start_slot))
-                        else:  # task
-                            all_todays.append(("Task", activity, start_slot))
+
+                    # Assign start times
+                    current_slot_start = planned_start
+                    for activity in interleaved:
+                        if activity == "Break":
+                            duration = timedelta(minutes=break_minutes)
+                            planned_items.append(
+                                (
+                                    "Break",
+                                    f"{break_minutes} min break",
+                                    current_slot_start,
+                                    duration,
+                                )
+                            )
+                        else:
+                            duration = activity_duration
+                            if isinstance(activity, int):  # problem
+                                planned_items.append(
+                                    (activity, "", current_slot_start, duration)
+                                )
+                            else:  # task
+                                planned_items.append(
+                                    ("Task", activity, current_slot_start, duration)
+                                )
+                        current_slot_start += duration
+
+            all_todays += planned_items
 
             if all_todays:
                 all_todays.sort(key=lambda x: x[2])
@@ -303,9 +380,18 @@ def main():
                 table2.add_column("Commit Message", justify="left")
                 table2.add_column("Time of Day", justify="left")
                 for item in all_todays:
-                    prob, msg, t = item
+                    if len(item) == 3:
+                        prob, msg, t = item
+                        duration = None
+                    else:
+                        prob, msg, t, duration = item
                     time_str = t.strftime("%I:%M %p")
-                    table2.add_row(str(prob), msg, time_str)
+                    style = (
+                        "bold yellow"
+                        if duration is not None and (t <= current_time < t + duration)
+                        else None
+                    )
+                    table2.add_row(str(prob), msg, time_str, style=style)
                 print(table2)
             else:
                 print("No solves planned or done today.")
