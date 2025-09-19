@@ -270,6 +270,21 @@ def main():
 
             tasks = args.task
             num_tasks = len(tasks)
+
+            done_tasks = set()
+            try:
+                with open("done_tasks.txt", "r") as f:
+                    for line in f:
+                        done_task = line.strip()
+                        if done_task:
+                            done_tasks.add(done_task)
+            except FileNotFoundError:
+                pass  # File doesn't exist, assume no tasks done
+
+            # Filter tasks to ignore those already done
+            planned_tasks = [task for task in tasks if task not in done_tasks]
+            num_tasks = len(planned_tasks)
+
             total_planned = num_to_do_today + num_tasks
 
             day_end = datetime.combine(current_time.date(), end_time, tzinfo=local_tz)
@@ -279,7 +294,6 @@ def main():
             planned_problems = (
                 remaining_problems[:num_to_do_today] if num_to_do_today > 0 else []
             )
-            planned_tasks = tasks
             interleaved = [
                 item
                 for item in itertools.chain.from_iterable(
