@@ -7,8 +7,22 @@ import argparse
 import math
 from rich import print
 from rich.table import Table
+from rich.live import Live
+from rich.panel import Panel
+import time
 import parse  # Import the modified parse.py for code reuse
 import itertools
+import pyfiglet
+
+
+def render_big_time(secs: int, font_name: str, width: int = 200) -> str:
+    if secs <= 0:
+        return pyfiglet.figlet_format("TIME'S UP!", font=font_name, width=width)
+    hh = secs // 3600
+    mm = (secs // 60) % 60
+    ss = secs % 60
+    time_str = f"{hh:02d}:{mm:02d}:{ss:02d}"
+    return pyfiglet.figlet_format(time_str, font=font_name, width=width)
 
 
 def is_stub(section_lines):
@@ -101,6 +115,19 @@ def parse_time(time_str):
         raise ValueError("Invalid time format. Use like '5pm'")
 
 
+def get_available_start(proposed_start, duration, task_intervals):
+    current_start = proposed_start
+    while True:
+        overlap = False
+        for task_start, task_end in task_intervals:
+            if current_start < task_end and task_start < current_start + duration:
+                current_start = max(current_start, task_end)
+                overlap = True
+                break  # Restart check after shifting
+        if not overlap:
+            return current_start
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Predict time to solve remaining LeetCode questions based on past solve rate."
@@ -121,16 +148,23 @@ def main():
         help="Local timezone offset from UTC in hours, e.g., 8 for UTC+8",
     )
     parser.add_argument(
-        "--task",
-        action="append",
-        default=[],
-        help="Tasks to intersperse into the schedule",
-    )
-    parser.add_argument(
         "--break_minutes",
         type=int,
         default=10,
         help="Minutes for a break between activities (default: 10, set to 0 to disable)",
+    )
+    parser.add_argument(
+        "--timer-font",
+        type=str,
+        choices=["doh", "ogre", "doom", "big", "slant", "term"],
+        default="doh",
+        help="Figlet font for the timer (requires pyfiglet installed)",
+    )
+    parser.add_argument(
+        "--timer-width",
+        type=int,
+        default=200,
+        help="Width for the timer rendering to prevent wrapping (default: 200)",
     )
     args = parser.parse_args()
 
@@ -268,9 +302,6 @@ def main():
             target_per_day = math.ceil(daily_rate)
             num_to_do_today = max(0, target_per_day - num_solved_today)
 
-            tasks = args.task
-            num_tasks = len(tasks)
-
             done_tasks = set()
             try:
                 with open("done_tasks.txt", "r") as f:
@@ -281,134 +312,201 @@ def main():
             except FileNotFoundError:
                 pass  # File doesn't exist, assume no tasks done
 
-            # Filter tasks to ignore those already done
-            planned_tasks = [task for task in tasks if task not in done_tasks]
-            num_tasks = len(planned_tasks)
+            all_tasks = []
+            try:
+                with open("tasks.txt", "r") as f:
+                    for line in f:
+                        parts = [p.strip() for p in line.strip().split("|")]
+                        if len(parts) == 2:
+                            all_tasks.append(parts)
+            except FileNotFoundError:
+                all_tasks = []
 
+            planned_tasks = []
+            done_task_items = []
+            early_time = today_start - timedelta(hours=1)
+            for task_name, time_str in all_tasks:
+                try:
+                    task_time_obj = parse_time(time_str)
+                    task_time = datetime.combine(
+                        current_time.date(), task_time_obj, tzinfo=local_tz
+                    )
+                    if task_name in done_tasks:
+                        done_task_items.append(
+                            ("Task", task_name + " (done)", early_time, None)
+                        )
+                    else:
+                        planned_time = max(task_time, current_time)
+                        planned_tasks.append((task_name, planned_time))
+                except ValueError:
+                    print(f"Invalid time for task '{task_name}': {time_str}")
+                    continue
+
+            num_tasks = len(planned_tasks)
             total_planned = num_to_do_today + num_tasks
 
             day_end = datetime.combine(current_time.date(), end_time, tzinfo=local_tz)
             all_todays = list(solved_today)
 
-            # Compute interleaved without breaks first
-            planned_problems = (
-                remaining_problems[:num_to_do_today] if num_to_do_today > 0 else []
-            )
-            interleaved = [
-                item
-                for item in itertools.chain.from_iterable(
-                    itertools.zip_longest(planned_problems, planned_tasks)
-                )
-                if item is not None
-            ]
-
-            # Compute planned_start
-            if solved_today:
-                solved_today.sort(key=lambda x: x[2])
-                last_done_time = solved_today[-1][2]
-                if (
-                    args.break_minutes > 0
-                    and interleaved
-                    and isinstance(interleaved[0], int)
-                ):
-                    planned_start = last_done_time + timedelta(
-                        minutes=args.break_minutes
-                    )
-                else:
-                    planned_start = last_done_time
-                planned_start = max(planned_start, current_time)
-            else:
-                planned_start = current_time
-
             planned_items = []
-            if planned_start >= day_end:
-                print("Past end time for today.")
-            else:
-                if total_planned > 0:
+            if total_planned > 0:
+                # Compute planned_start
+                if solved_today:
+                    solved_today.sort(key=lambda x: x[2])
+                    last_done_time = solved_today[-1][2]
+                    if args.break_minutes > 0 and num_to_do_today > 0:
+                        planned_start = last_done_time + timedelta(
+                            minutes=args.break_minutes
+                        )
+                    else:
+                        planned_start = last_done_time
+                    planned_start = max(planned_start, current_time)
+                else:
+                    planned_start = current_time
+
+                if planned_start >= day_end:
+                    print("Past end time for today.")
+                else:
                     remaining_time = day_end - planned_start
-
-                    # Insert breaks if enabled, only after problems if next is also a problem
                     break_minutes = args.break_minutes
-                    if break_minutes > 0 and total_planned > 1:
-                        with_breaks = []
-                        for i, activity in enumerate(interleaved):
-                            with_breaks.append(activity)
-                            if (
-                                i < len(interleaved) - 1
-                                and isinstance(activity, int)
-                                and isinstance(interleaved[i + 1], int)
-                            ):
-                                with_breaks.append("Break")
-                        interleaved = with_breaks
-
-                    total_slots = len(interleaved)
-                    num_breaks = total_slots - total_planned if break_minutes > 0 else 0
+                    num_breaks = max(0, num_to_do_today - 1) if break_minutes > 0 else 0
                     total_break_time = num_breaks * timedelta(minutes=break_minutes)
                     if total_break_time > remaining_time:
                         print(
-                            f"Warning: Not enough time for all breaks; skipping breaks."
+                            "Warning: Not enough time for all breaks; skipping breaks."
                         )
-                        interleaved = [item for item in interleaved if item != "Break"]
-                        total_slots = len(interleaved)
                         num_breaks = 0
                         total_break_time = timedelta(0)
-                        work_time = remaining_time
-                    else:
-                        work_time = remaining_time - total_break_time
 
-                    activity_duration = (
-                        work_time / total_planned if total_planned > 0 else timedelta(0)
+                    task_duration = timedelta(hours=1)
+                    estimated_task_seconds = num_tasks * 3600
+                    estimated_break_seconds = total_break_time.total_seconds()
+                    total_estimated_seconds = (
+                        estimated_task_seconds + estimated_break_seconds
                     )
+                    if total_estimated_seconds > remaining_time.total_seconds():
+                        print(
+                            "Warning: Not enough time for tasks and breaks; adjusting durations."
+                        )
 
-                    # Assign start times
-                    current_slot_start = planned_start
-                    for activity in interleaved:
-                        if activity == "Break":
-                            duration = timedelta(minutes=break_minutes)
-                            planned_items.append(
-                                (
-                                    "Break",
-                                    f"{break_minutes} min break",
-                                    current_slot_start,
-                                    duration,
-                                )
-                            )
-                        else:
-                            duration = activity_duration
-                            if isinstance(activity, int):  # problem
-                                planned_items.append(
-                                    (activity, "", current_slot_start, duration)
-                                )
-                            else:  # task
-                                planned_items.append(
-                                    ("Task", activity, current_slot_start, duration)
-                                )
-                        current_slot_start += duration
+                    if num_to_do_today > 0:
+                        work_seconds = (
+                            remaining_time.total_seconds() - total_estimated_seconds
+                        )
+                        if work_seconds < 0:
+                            work_seconds = 0
+                        activity_duration = timedelta(
+                            seconds=work_seconds / num_to_do_today
+                        )
+                    else:
+                        activity_duration = timedelta(0)
 
-            all_todays += planned_items
+                    # Planned problems
+                    planned_problems = (
+                        remaining_problems[:num_to_do_today]
+                        if num_to_do_today > 0
+                        else []
+                    )
+                    task_intervals = [
+                        (task_start, task_start + task_duration)
+                        for _, task_start in planned_tasks
+                    ]
+                    planned_problem_items = []
+                    current = planned_start
+                    for i, prob in enumerate(planned_problems):
+                        start_time = get_available_start(
+                            current, activity_duration, task_intervals
+                        )
+                        if start_time + activity_duration > day_end:
+                            print(f"Cannot schedule problem {prob}: exceeds end time.")
+                            break
+                        planned_problem_items.append(
+                            (prob, "", start_time, activity_duration)
+                        )
+                        next_current = start_time + activity_duration
+                        if i < len(planned_problems) - 1 and break_minutes > 0:
+                            next_current += timedelta(minutes=break_minutes)
+                        current = next_current
+
+                    # Planned tasks
+                    task_planned_items = []
+                    for task_name, task_start in planned_tasks:
+                        task_end = task_start + task_duration
+                        if task_end > day_end:
+                            print(f"Warning: Task '{task_name}' exceeds end time.")
+                        task_planned_items.append(
+                            ("Task", task_name, task_start, task_duration)
+                        )
+
+                    planned_items = planned_problem_items + task_planned_items
+
+            all_todays += done_task_items + planned_items
 
             if all_todays:
                 all_todays.sort(key=lambda x: x[2])
-                table2 = Table(title="Today's Solves")
-                table2.add_column("Problem", justify="left")
-                table2.add_column("Commit Message", justify="left")
+                table2 = Table(title="Today's Schedule")
+                table2.add_column("Activity", justify="left")
+                table2.add_column("Details", justify="left")
                 table2.add_column("Time of Day", justify="left")
                 for item in all_todays:
                     if len(item) == 3:
-                        prob, msg, t = item
+                        activity, details, t = item
                         duration = None
                     else:
-                        prob, msg, t, duration = item
-                    time_str = t.strftime("%I:%M %p")
-                    style = (
-                        "bold yellow"
-                        if duration is not None and (t <= current_time < t + duration)
-                        else None
+                        activity, details, t, duration = item
+                    if activity == "Task" and t < today_start:
+                        time_str = "Done"
+                    else:
+                        time_str = t.strftime("%I:%M %p")
+                    style = None
+                    if duration and t <= current_time < (t + duration):
+                        style = "bold yellow"
+                    table2.add_row(
+                        str(activity) if isinstance(activity, int) else activity,
+                        details,
+                        time_str,
+                        style=style,
                     )
-                    table2.add_row(str(prob), msg, time_str, style=style)
                 print(table2)
             else:
-                print("No solves planned or done today.")
+                print("No activities planned or done today.")
+
+            # Check for ongoing task and start countdown if applicable
+            ongoing_activity = None
+            for item in all_todays:
+                if len(item) == 4 and isinstance(item[0], str) and item[0] == "Task":
+                    activity, details, start_t, dur = item
+                    if dur and start_t <= current_time < (start_t + dur):
+                        ongoing_activity = (details, start_t + dur)
+                        break
+
+            if ongoing_activity:
+                task_name, end_time = ongoing_activity
+
+                def make_display(now):
+                    remaining_td = end_time - now
+                    if remaining_td <= timedelta(0):
+                        art = pyfiglet.figlet_format(
+                            "TIME'S UP!", font=args.timer_font, width=args.timer_width
+                        )
+                        return Panel(
+                            art + f"\n\nTask completed: {task_name}",
+                            title="Timer",
+                            style="bold red",
+                        )
+                    secs = int(remaining_td.total_seconds())
+                    art = render_big_time(secs, args.timer_font, args.timer_width)
+                    return Panel(
+                        art, title=f"Remaining for {task_name}", style="bold cyan"
+                    )
+
+                now = datetime.now(local_tz)
+                initial_display = make_display(now)
+                with Live(initial_display, screen=True, refresh_per_second=1) as live:
+                    while datetime.now(local_tz) < end_time:
+                        time.sleep(1)
+                        now = datetime.now(local_tz)
+                        live.update(make_display(now))
 
 
 if __name__ == "__main__":

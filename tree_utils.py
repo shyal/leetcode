@@ -1,4 +1,6 @@
 from typing import List, Optional
+from PrettyPrint import PrettyPrintTree
+from colorama import Fore, Style
 
 
 class TreeNode:
@@ -36,3 +38,41 @@ def build_tree(arr: List[Optional[int]]) -> Optional[TreeNode]:
         i += 1
 
     return root
+
+
+def draw_tree(root: Optional[TreeNode]) -> None:
+    """
+    Utility function to draw a binary tree in the terminal using PrettyPrintTree.
+    Requires 'PrettyPrintTree' library: pip install PrettyPrintTree
+    For colors, requires 'colorama': pip install colorama
+    Supports node.color attribute for coloring the node value (e.g., 'blue', 'red', etc.).
+    Uses horizontal orientation for a wider (bigger) print.
+    """
+    if not root:
+        print("Empty tree")
+        return
+
+    print("\n")
+
+    def get_value(node: TreeNode) -> str:
+        val_str = str(node.val)
+        if hasattr(node, "color"):
+            color = node.color.lower()
+            color_map = {
+                "black": Fore.BLACK,
+                "red": Fore.RED,
+                "green": Fore.GREEN,
+                "yellow": Fore.YELLOW,
+                "blue": Fore.BLUE,
+                "magenta": Fore.MAGENTA,
+                "cyan": Fore.CYAN,
+                "white": Fore.WHITE,
+            }
+            if color in color_map:
+                val_str = color_map[color] + val_str + Style.RESET_ALL
+        return val_str
+
+    pt = PrettyPrintTree(
+        lambda x: [c for c in (x.left, x.right) if c], get_value, border=True
+    )
+    pt(root)
