@@ -16,6 +16,14 @@ class TreeNode:
         self.right = right
 
 
+def find_node(root, val):
+    if not root:
+        return
+    if root.val == val:
+        return root
+    return find_node(root.left, val) or find_node(root.right, val)
+
+
 def build_tree(arr: List[Optional[int]]) -> Optional[TreeNode]:
     """
     Utility function to build a binary tree from a level-order list representation.
