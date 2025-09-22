@@ -1218,6 +1218,82 @@ assert sol.convertToBase7(1000000) == "11333311"
 assert sol.convertToBase7(-1000000) == "-11333311"
 
 """
+URL: https://leetcode.com/problems/number-of-provinces/description/?envType=study-plan-v2&envId=leetcode-75
+
+547. Number of Provinces
+
+There are n cities. Some of them are connected, while some are not. If city a is connected directly with city b, and city b is connected directly with city c, then city a is connected indirectly with city c.
+
+A province is a group of directly or indirectly connected cities and no other cities outside of the group.
+
+You are given an n x n matrix isConnected where isConnected[i][j] = 1 if the ith city and the jth city are directly connected, and isConnected[i][j] = 0 otherwise.
+
+Return the total number of provinces.
+
+
+Example 1:
+
+Input: isConnected = [[1,1,0],[1,1,0],[0,0,1]]
+Output: 2
+
+Example 2:
+
+Input: isConnected = [[1,0,0],[0,1,0],[0,0,1]]
+Output: 3
+
+
+Constraints:
+
+        1 <= n <= 200
+        n == isConnected.length
+        n == isConnected[i].length
+        isConnected[i][j] is 1 or 0.
+        isConnected[i][i] == 1
+        isConnected[i][j] == isConnected[j][i]
+"""
+
+from typing import List
+
+
+class Solution:
+    def findCircleNum(self, isConnected: List[List[int]]) -> int:
+        def dfs(city):
+            if city in seen:
+                return 0
+            seen.add(city)
+            visited = 1
+            for c in range(len(isConnected[city])):
+                if isConnected[city][c]:
+                    visited += dfs(c)
+            return visited
+
+        seen = set([])
+
+        count = 0
+        for i in range(len(isConnected)):
+            visited = dfs(i)
+            count += visited > 0
+
+        return count
+
+
+sol = Solution()
+res = sol.findCircleNum([[1, 1, 0], [1, 1, 0], [0, 0, 1]])
+assert res == 2
+
+
+sol = Solution()
+res = sol.findCircleNum([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+assert res == 3
+
+assert sol.findCircleNum([[1]]) == 1
+assert sol.findCircleNum([[1, 1], [1, 1]]) == 1
+assert sol.findCircleNum([[1, 0], [0, 1]]) == 2
+assert sol.findCircleNum([[1, 1, 1], [1, 1, 1], [1, 1, 1]]) == 1
+assert sol.findCircleNum([[1, 1, 0, 0], [1, 1, 0, 0], [0, 0, 1, 1], [0, 0, 1, 1]]) == 2
+assert sol.findCircleNum([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) == 4
+assert sol.findCircleNum([[1, 1, 0], [1, 1, 1], [0, 1, 1]]) == 1
+"""
 https://leetcode.com/problems/can-place-flowers/description
 
 605. Can Place Flowers
@@ -1573,6 +1649,76 @@ assert res == [1, 0, 0]
 
 res = sol.dailyTemperatures(temperatures=[90, 80])
 assert res == [0, 0]
+"""
+URL: https://leetcode.com/problems/keys-and-rooms/description/?envType=study-plan-v2&envId=leetcode-75
+
+841. Keys and Rooms
+
+There are n rooms labeled from 0 to n - 1 and all the rooms are locked except for room 0. Your goal is to visit all the rooms. However, you cannot enter a locked room without having its key.
+
+When you visit a room, you may find a set of distinct keys in it. Each key has a number on it, denoting which room it unlocks, and you can take all of them with you to unlock the other rooms.
+
+Given an array rooms where rooms[i] is the set of keys that you can obtain if you visited room i, return true if you can visit all the rooms, or false otherwise.
+
+
+Example 1:
+
+Input: rooms = [[1],[2],[3],[]]
+Output: true
+Explanation:
+We visit room 0 and pick up key 1.
+We then visit room 1 and pick up key 2.
+We then visit room 2 and pick up key 3.
+We then visit room 3.
+Since we were able to visit every room, we return true.
+
+Example 2:
+
+Input: rooms = [[1,3],[3,0,1],[2],[0]]
+Output: false
+Explanation: We can not enter room number 2 since the only key that unlocks it is in that room.
+
+
+Constraints:
+
+        n == rooms.length
+        2 <= n <= 1000
+        0 <= rooms[i].length <= 1000
+        1 <= sum(rooms[i].length) <= 3000
+        0 <= rooms[i][j] < n
+        All the values of rooms[i] are unique.
+"""
+
+from typing import List
+
+
+class Solution:
+    def canVisitAllRooms(self, rooms: List[List[int]]) -> bool:
+        def open(i):
+            if i in seen:
+                return 0
+            seen.add(i)
+            keys = rooms[i]
+            visited = 1
+            for room in keys:
+                visited += open(room)
+            return visited
+
+        seen = set([])
+        return open(0) == len(rooms)
+
+
+sol = Solution()
+assert sol.canVisitAllRooms(rooms=[[1], []]) == True
+assert sol.canVisitAllRooms(rooms=[[], [0]]) == False
+assert sol.canVisitAllRooms(rooms=[[1, 2, 3], [], [], []]) == True
+assert sol.canVisitAllRooms(rooms=[[1], [2], [], [3]]) == False
+assert sol.canVisitAllRooms(rooms=[[2], [], [1]]) == True
+assert sol.canVisitAllRooms(rooms=[[1], [0]]) == True
+assert sol.canVisitAllRooms(rooms=[[1, 2], [3], [], [4], []]) == True
+assert sol.canVisitAllRooms(rooms=[[1], [], [2], [4], []]) == False
+assert sol.canVisitAllRooms(rooms=[[3, 1], [2], [], [0]]) == True
+
 """
 https://leetcode.com/problems/transpose-matrix/description/
 
@@ -3412,74 +3558,3 @@ assert sol.removeStars("abc***") == ""
 assert sol.removeStars("abcd***") == "a"
 assert sol.removeStars("aa*bb*cc*") == "abc"
 assert sol.removeStars("ab*cdef**") == "acd"
-
-
-"""
-URL: https://leetcode.com/problems/keys-and-rooms/description/?envType=study-plan-v2&envId=leetcode-75
-
-841. Keys and Rooms
-
-There are n rooms labeled from 0 to n - 1 and all the rooms are locked except for room 0. Your goal is to visit all the rooms. However, you cannot enter a locked room without having its key.
-
-When you visit a room, you may find a set of distinct keys in it. Each key has a number on it, denoting which room it unlocks, and you can take all of them with you to unlock the other rooms.
-
-Given an array rooms where rooms[i] is the set of keys that you can obtain if you visited room i, return true if you can visit all the rooms, or false otherwise.
-
-
-Example 1:
-
-Input: rooms = [[1],[2],[3],[]]
-Output: true
-Explanation:
-We visit room 0 and pick up key 1.
-We then visit room 1 and pick up key 2.
-We then visit room 2 and pick up key 3.
-We then visit room 3.
-Since we were able to visit every room, we return true.
-
-Example 2:
-
-Input: rooms = [[1,3],[3,0,1],[2],[0]]
-Output: false
-Explanation: We can not enter room number 2 since the only key that unlocks it is in that room.
-
-
-Constraints:
-
-        n == rooms.length
-        2 <= n <= 1000
-        0 <= rooms[i].length <= 1000
-        1 <= sum(rooms[i].length) <= 3000
-        0 <= rooms[i][j] < n
-        All the values of rooms[i] are unique.
-"""
-
-from typing import List
-
-
-class Solution:
-    def canVisitAllRooms(self, rooms: List[List[int]]) -> bool:
-        def open(i):
-            if i in seen:
-                return 0
-            seen.add(i)
-            keys = rooms[i]
-            visited = 1
-            for room in keys:
-                visited += open(room)
-            return visited
-
-        seen = set([])
-        return open(0) == len(rooms)
-
-
-sol = Solution()
-assert sol.canVisitAllRooms(rooms=[[1], []]) == True
-assert sol.canVisitAllRooms(rooms=[[], [0]]) == False
-assert sol.canVisitAllRooms(rooms=[[1, 2, 3], [], [], []]) == True
-assert sol.canVisitAllRooms(rooms=[[1], [2], [], [3]]) == False
-assert sol.canVisitAllRooms(rooms=[[2], [], [1]]) == True
-assert sol.canVisitAllRooms(rooms=[[1], [0]]) == True
-assert sol.canVisitAllRooms(rooms=[[1, 2], [3], [], [4], []]) == True
-assert sol.canVisitAllRooms(rooms=[[1], [], [2], [4], []]) == False
-assert sol.canVisitAllRooms(rooms=[[3, 1], [2], [], [0]]) == True
