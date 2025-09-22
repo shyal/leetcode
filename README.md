@@ -24,3 +24,17 @@ assert sol....() == [test case]
 This approach is straight forward, and means i can easily review past solutions when scrolling. When i get stuck on a problem i check it into a branch.
 
 I'm considering move the tests into a separate file, but have to weigh the pros and cons of that carefully.
+
+# Dependencies
+
+```
+python3 -m venv .venv
+. .venv/bin/activate
+
+# for graphviz support in the termina (OSX instructions)
+brew install aalib
+brew install cmake pkg-config cairo pango gd librsvg expat gts
+
+# Other requirements
+pip3 install requirements.txt
+```
