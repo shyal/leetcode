@@ -495,6 +495,81 @@ trie.insert("hello")
 assert trie.startsWith("helloworld") == False
 assert trie.search("helloworld") == False
 """
+URL: https://leetcode.com/problems/kth-largest-element-in-an-array/description/?envType=study-plan-v2&envId=leetcode-75
+
+215. Kth Largest Element in an Array
+
+Given an integer array nums and an integer k, return the kth largest element in the array.
+
+Note that it is the kth largest element in the sorted order, not the kth distinct element.
+
+Can you solve it without sorting?
+
+
+Example 1:
+Input: nums = [3,2,1,5,6,4], k = 2
+Output: 5
+Example 2:
+Input: nums = [3,2,3,1,2,4,5,5,6], k = 4
+Output: 4
+
+
+Constraints:
+
+        1 <= k <= nums.length <= 105
+        -104 <= nums[i] <= 104
+"""
+
+from collections import deque
+from typing import List
+
+"""
+If the list is empty, add and continue
+if num is greater or equal to the right element:
+    append right
+    pop left is N > k
+else if num is greater than or equal to the smallest element:
+    if the list is not fully populated
+        keep = pop left
+        add left
+        add keep to left
+    else:
+        pop left
+        add left
+else if the queue is not fully populated
+    add it to the left
+"""
+
+
+class Solution:
+    def findKthLargest(self, nums: List[int], k: int) -> int:
+        nums.sort()
+        return nums[-k]
+
+
+sol = Solution()
+assert sol.findKthLargest([1], 1) == 1
+assert sol.findKthLargest([3, 2, 1], 1) == 3
+assert sol.findKthLargest([1, 2, 3], 3) == 1
+assert sol.findKthLargest([1, 2, 3, 4, 5, 6], 2) == 5
+assert sol.findKthLargest([1, 3, 3, 2], 2) == 3
+assert sol.findKthLargest([-3, -1, 0, 2], 2) == 0
+assert sol.findKthLargest([1, 4, 2, 3], 3) == 2
+assert sol.findKthLargest([1, 5, 3], 3) == 1
+assert sol.findKthLargest([1, 100, 2, 50], 3) == 2
+assert sol.findKthLargest([-5, 10, -3, 2], 3) == -3
+assert sol.findKthLargest([0, -10, 5, -1], 2) == 0
+assert sol.findKthLargest([8, 7, 6, 5, 4, 3], 4) == 5
+assert sol.findKthLargest([5, 5, 5, 5], 2) == 5
+assert sol.findKthLargest([6, 5, 4, 3, 2, 1], 3) == 4
+assert sol.findKthLargest([1, 2, 3, 4, 5, 6], 3) == 4
+assert sol.findKthLargest([-1, -2, 3, 0], 2) == 0
+assert sol.findKthLargest([2, 2, 1, 2, 3], 3) == 2
+assert sol.findKthLargest([-1, -2, -3, -4], 2) == -2
+assert sol.findKthLargest([10, 20, 30, 40, 50, -10, 0], 4) == 20
+assert sol.findKthLargest([99, 1, 2, 3, 4], 1) == 99
+assert sol.findKthLargest([5, 2, 4, 1, 3, 6, 0], 4) == 3
+"""
 238. Product of Array Except Self
 Medium
 Given an integer array nums, return an array answer such that answer[i] is equal to the product of all the elements of nums except nums[i].
@@ -2003,6 +2078,113 @@ recentCounter6 = sol.main()()
 assert recentCounter6.ping(1) == 1
 assert recentCounter6.ping(3002) == 1
 assert recentCounter6.ping(6003) == 1
+"""
+URL: https://leetcode.com/problems/rotting-oranges/description/?envType=study-plan-v2&envId=leetcode-75
+
+994. Rotting Oranges
+
+You are given an m x n grid where each cell can have one of three values:
+
+        0 representing an empty cell,
+        1 representing a fresh orange, or
+        2 representing a rotten orange.
+
+Every minute, any fresh orange that is 4-directionally adjacent to a rotten orange becomes rotten.
+
+Return the minimum number of minutes that must elapse until no cell has a fresh orange. If this is impossible, return -1.
+
+
+Example 1:
+
+Input: grid = [[2,1,1],[1,1,0],[0,1,1]]
+Output: 4
+
+Example 2:
+
+Input: grid = [[2,1,1],[0,1,1],[1,0,1]]
+Output: -1
+Explanation: The orange in the bottom left corner (row 2, column 0) is never rotten, because rotting only happens 4-directionally.
+
+Example 3:
+
+Input: grid = [[0,2]]
+Output: 0
+Explanation: Since there are already no fresh oranges at minute 0, the answer is just 0.
+
+
+Constraints:
+
+        m == grid.length
+        n == grid[i].length
+        1 <= m, n <= 10
+        grid[i][j] is 0, 1, or 2.
+"""
+
+"""
+Notes:
+
+One solution is to linearly search for all rotten oranges, load them onto a deque
+and perform a BFS. Let's handle the case where we begin with multiple rotten oranges
+because 
+
+
+
+"""
+
+from collections import deque
+from typing import List
+from itertools import chain
+
+
+class Solution:
+    def orangesRotting(self, grid: List[List[int]]) -> int:
+        D = deque()
+        for i in range(len(grid)):
+            for j in range(len(grid[0])):
+                if grid[i][j] == 2:
+                    D.append((i, j, 0))
+
+        time = 0
+        while D:
+            ri, rj, s = D.popleft()
+            time = max(time, s)
+            val = grid[ri][rj]
+            if ri - 1 >= 0 and grid[ri - 1][rj] == 1:
+                grid[ri - 1][rj] = 2
+                D.append([ri - 1, rj, s + 1])
+            if ri + 1 < len(grid) and grid[ri + 1][rj] == 1:
+                grid[ri + 1][rj] = 2
+                D.append([ri + 1, rj, s + 1])
+            if rj - 1 >= 0 and grid[ri][rj - 1] == 1:
+                grid[ri][rj - 1] = 2
+                D.append([ri, rj - 1, s + 1])
+            if rj + 1 < len(grid[0]) and grid[ri][rj + 1] == 1:
+                grid[ri][rj + 1] = 2
+                D.append([ri, rj + 1, s + 1])
+
+        has_ones = any(x == 1 for x in chain(*grid))
+        return -1 if has_ones else time
+
+
+sol = Solution()
+
+test_cases = [
+    ([[2, 1, 1], [1, 1, 0], [0, 1, 1]], 4),
+    ([[2, 1, 1], [0, 1, 1], [1, 0, 1]], -1),
+    ([[0, 2]], 0),
+    ([[0]], 0),
+    ([[1]], -1),
+    ([[2]], 0),
+    ([[2, 1], [1, 0]], 1),
+    ([[2, 1, 1, 1]], 3),
+    ([[2, 1, 0], [0, 1, 2]], 1),
+    ([[1, 0, 1], [0, 2, 0]], -1),
+]
+
+for i, (grid, expected) in enumerate(test_cases, 1):
+    actual = sol.orangesRotting(grid)
+    assert actual == expected
+
 """
 1004. Max Consecutive Ones III
 Medium
@@ -13996,109 +14178,3 @@ assert sol.removeStars("aa*bb*cc*") == "abc"
 assert sol.removeStars("ab*cdef**") == "acd"
 
 
-"""
-URL: https://leetcode.com/problems/rotting-oranges/description/?envType=study-plan-v2&envId=leetcode-75
-
-994. Rotting Oranges
-
-You are given an m x n grid where each cell can have one of three values:
-
-        0 representing an empty cell,
-        1 representing a fresh orange, or
-        2 representing a rotten orange.
-
-Every minute, any fresh orange that is 4-directionally adjacent to a rotten orange becomes rotten.
-
-Return the minimum number of minutes that must elapse until no cell has a fresh orange. If this is impossible, return -1.
-
-
-Example 1:
-
-Input: grid = [[2,1,1],[1,1,0],[0,1,1]]
-Output: 4
-
-Example 2:
-
-Input: grid = [[2,1,1],[0,1,1],[1,0,1]]
-Output: -1
-Explanation: The orange in the bottom left corner (row 2, column 0) is never rotten, because rotting only happens 4-directionally.
-
-Example 3:
-
-Input: grid = [[0,2]]
-Output: 0
-Explanation: Since there are already no fresh oranges at minute 0, the answer is just 0.
-
-
-Constraints:
-
-        m == grid.length
-        n == grid[i].length
-        1 <= m, n <= 10
-        grid[i][j] is 0, 1, or 2.
-"""
-
-"""
-Notes:
-
-One solution is to linearly search for all rotten oranges, load them onto a deque
-and perform a BFS. Let's handle the case where we begin with multiple rotten oranges
-because 
-
-
-
-"""
-
-from collections import deque
-from typing import List
-from itertools import chain
-
-
-class Solution:
-    def orangesRotting(self, grid: List[List[int]]) -> int:
-        D = deque()
-        for i in range(len(grid)):
-            for j in range(len(grid[0])):
-                if grid[i][j] == 2:
-                    D.append((i, j, 0))
-
-        time = 0
-        while D:
-            ri, rj, s = D.popleft()
-            time = max(time, s)
-            val = grid[ri][rj]
-            if ri - 1 >= 0 and grid[ri - 1][rj] == 1:
-                grid[ri - 1][rj] = 2
-                D.append([ri - 1, rj, s + 1])
-            if ri + 1 < len(grid) and grid[ri + 1][rj] == 1:
-                grid[ri + 1][rj] = 2
-                D.append([ri + 1, rj, s + 1])
-            if rj - 1 >= 0 and grid[ri][rj - 1] == 1:
-                grid[ri][rj - 1] = 2
-                D.append([ri, rj - 1, s + 1])
-            if rj + 1 < len(grid[0]) and grid[ri][rj + 1] == 1:
-                grid[ri][rj + 1] = 2
-                D.append([ri, rj + 1, s + 1])
-
-        has_ones = any(x == 1 for x in chain(*grid))
-        return -1 if has_ones else time
-
-
-sol = Solution()
-
-test_cases = [
-    ([[2, 1, 1], [1, 1, 0], [0, 1, 1]], 4),
-    ([[2, 1, 1], [0, 1, 1], [1, 0, 1]], -1),
-    ([[0, 2]], 0),
-    ([[0]], 0),
-    ([[1]], -1),
-    ([[2]], 0),
-    ([[2, 1], [1, 0]], 1),
-    ([[2, 1, 1, 1]], 3),
-    ([[2, 1, 0], [0, 1, 2]], 1),
-    ([[1, 0, 1], [0, 2, 0]], -1),
-]
-
-for i, (grid, expected) in enumerate(test_cases, 1):
-    actual = sol.orangesRotting(grid)
-    assert actual == expected
