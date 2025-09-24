@@ -1,5 +1,5 @@
 def draw_interval(interval):
-    if interval[1] > 0 and interval[1] < 1e4:
+    if interval[1] < 0 or interval[1] > 1e4:
         return
     for i in range(interval[1] + 1):
         if i < interval[0]:
