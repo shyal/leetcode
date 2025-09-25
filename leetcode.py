@@ -2243,6 +2243,112 @@ assert res == [1, 0, 0]
 res = sol.dailyTemperatures(temperatures=[90, 80])
 assert res == [0, 0]
 """
+URL: https://leetcode.com/problems/min-cost-climbing-stairs/description/?envType=study-plan-v2&envId=leetcode-75
+
+746. Min Cost Climbing Stairs
+
+You are given an integer array cost where cost[i] is the cost of ith step on a staircase. Once you pay the cost, you can either climb one or two steps.
+
+You can either start from the step with index 0, or the step with index 1.
+
+Return the minimum cost to reach the top of the floor.
+
+
+Example 1:
+
+Input: cost = [10,15,20]
+Output: 15
+Explanation: You will start at index 1.
+- Pay 15 and climb two steps to reach the top.
+The total cost is 15.
+
+Example 2:
+
+Input: cost = [1,100,1,1,1,100,1,1,100,1]
+Output: 6
+Explanation: You will start at index 0.
+- Pay 1 and climb two steps to reach index 2.
+- Pay 1 and climb two steps to reach index 4.
+- Pay 1 and climb two steps to reach index 6.
+- Pay 1 and climb one step to reach index 7.
+- Pay 1 and climb two steps to reach index 9.
+- Pay 1 and climb one step to reach the top.
+The total cost is 6.
+
+
+Constraints:
+
+        2 <= cost.length <= 1000
+        0 <= cost[i] <= 999
+"""
+
+from typing import List
+
+
+class Solution:
+    def minCostClimbingStairs(self, cost: List[int]) -> int:
+        n = len(cost)
+        for i in range(len(cost) - 3, -1, -1):
+            cost[i] = cost[i] + min(cost[i + 1], cost[i + 2])
+        return min(cost[0], cost[1])
+
+
+sol = Solution()
+
+res = sol.minCostClimbingStairs([10, 15, 20])
+assert res == 15
+
+res = sol.minCostClimbingStairs([1, 100, 1, 1, 100, 1, 1, 1, 100, 1])
+assert res == 6
+
+res = sol.minCostClimbingStairs([10, 15, 20])
+assert res == 15
+
+res = sol.minCostClimbingStairs([1, 100, 1, 1, 1, 100, 1, 1, 100, 1])
+assert res == 6
+
+res = sol.minCostClimbingStairs([1, 2])
+assert res == 1
+
+res = sol.minCostClimbingStairs([2, 1])
+assert res == 1
+
+res = sol.minCostClimbingStairs([0, 0])
+assert res == 0
+
+res = sol.minCostClimbingStairs([1, 0])
+assert res == 0
+
+res = sol.minCostClimbingStairs([0, 1])
+assert res == 0
+
+res = sol.minCostClimbingStairs([1, 100, 1])
+assert res == 2
+
+res = sol.minCostClimbingStairs([100, 1, 100])
+assert res == 1
+
+res = sol.minCostClimbingStairs([1, 2, 3, 4, 5])
+assert res == 6
+
+res = sol.minCostClimbingStairs([5, 5, 5, 5])
+assert res == 10
+
+res = sol.minCostClimbingStairs([1, 1, 1, 1, 1])
+assert res == 2
+
+res = sol.minCostClimbingStairs([10, 1, 1, 10])
+assert res == 2
+
+res = sol.minCostClimbingStairs([0, 0, 0, 0, 0])
+assert res == 0
+
+res = sol.minCostClimbingStairs([999, 999, 999])
+assert res == 999
+
+res = sol.minCostClimbingStairs([3, 2, 1])
+assert res == 2
+"""
 URL: https://leetcode.com/problems/keys-and-rooms/description/?envType=study-plan-v2&envId=leetcode-75
 
 841. Keys and Rooms
@@ -2833,6 +2939,167 @@ assert sol.gcdOfStrings(str1="ABC", str2="ABC") == "ABC"
 assert sol.gcdOfStrings(str1="AB", str2="ABABAB") == "AB"
 assert sol.gcdOfStrings(str1="ABAB", str2="BABA") == ""
 assert sol.gcdOfStrings(str1="ABCABCABCABC", str2="ABCABCABC") == "ABC"
+
+"""
+URL: https://leetcode.com/problems/n-th-tribonacci-number/description/?envType=study-plan-v2&envId=leetcode-75
+
+1137. N-th Tribonacci Number
+
+The Tribonacci sequence Tn is defined as follows:
+
+T0 = 0, T1 = 1, T2 = 1, and Tn+3 = Tn + Tn+1 + Tn+2 for n >= 0.
+
+Given n, return the value of Tn.
+
+
+Example 1:
+
+Input: n = 4
+Output: 4
+Explanation:
+T_3 = 0 + 1 + 1 = 2
+T_4 = 1 + 1 + 2 = 4
+
+Example 2:
+
+Input: n = 25
+Output: 1389537
+
+
+Constraints:
+
+        0 <= n <= 37
+        The answer is guaranteed to fit within a 32-bit integer, ie. answer <= 2^31 - 1.
+"""
+
+from functools import cache
+
+
+class Solution:
+    @cache
+    def tribonacci(self, n: int) -> int:
+        if n <= 1:
+            return n
+        elif n == 2:
+            return 1
+        return self.tribonacci(n - 3) + self.tribonacci(n - 2) + self.tribonacci(n - 1)
+
+
+sol = Solution()
+
+result = sol.tribonacci(0)
+assert result == 0
+
+result = sol.tribonacci(1)
+assert result == 1
+
+result = sol.tribonacci(2)
+assert result == 1
+
+result = sol.tribonacci(3)
+assert result == 2
+
+result = sol.tribonacci(4)
+assert result == 4
+
+result = sol.tribonacci(5)
+assert result == 7
+
+result = sol.tribonacci(6)
+assert result == 13
+
+result = sol.tribonacci(7)
+assert result == 24
+
+result = sol.tribonacci(8)
+assert result == 44
+
+result = sol.tribonacci(9)
+assert result == 81
+
+result = sol.tribonacci(10)
+assert result == 149
+
+result = sol.tribonacci(11)
+assert result == 274
+
+result = sol.tribonacci(12)
+assert result == 504
+
+result = sol.tribonacci(13)
+assert result == 927
+
+result = sol.tribonacci(14)
+assert result == 1705
+
+result = sol.tribonacci(15)
+assert result == 3136
+
+result = sol.tribonacci(16)
+assert result == 5768
+
+result = sol.tribonacci(17)
+assert result == 10609
+
+result = sol.tribonacci(18)
+assert result == 19513
+
+result = sol.tribonacci(19)
+assert result == 35890
+
+result = sol.tribonacci(20)
+assert result == 66012
+
+result = sol.tribonacci(21)
+assert result == 121415
+
+result = sol.tribonacci(22)
+assert result == 223317
+
+result = sol.tribonacci(23)
+assert result == 410744
+
+result = sol.tribonacci(24)
+assert result == 755476
+
+result = sol.tribonacci(25)
+assert result == 1389537
+
+result = sol.tribonacci(26)
+assert result == 2555757
+
+result = sol.tribonacci(27)
+assert result == 4700770
+
+result = sol.tribonacci(28)
+assert result == 8646064
+
+result = sol.tribonacci(29)
+assert result == 15902591
+
+result = sol.tribonacci(30)
+assert result == 29249425
+
+result = sol.tribonacci(31)
+assert result == 53798080
+
+result = sol.tribonacci(32)
+assert result == 98950096
+
+result = sol.tribonacci(33)
+assert result == 181997601
+
+result = sol.tribonacci(34)
+assert result == 334745777
+
+result = sol.tribonacci(35)
+assert result == 615693474
+
+result = sol.tribonacci(36)
+assert result == 1132436852
+
+result = sol.tribonacci(37)
+assert result == 2082876103
 
 """
 https://leetcode.com/problems/unique-number-of-occurrences/description
@@ -4488,163 +4755,3 @@ assert sol.removeStars("aa*bb*cc*") == "abc"
 assert sol.removeStars("ab*cdef**") == "acd"
 
 
-"""
-URL: https://leetcode.com/problems/n-th-tribonacci-number/description/?envType=study-plan-v2&envId=leetcode-75
-
-1137. N-th Tribonacci Number
-
-The Tribonacci sequence Tn is defined as follows:
-
-T0 = 0, T1 = 1, T2 = 1, and Tn+3 = Tn + Tn+1 + Tn+2 for n >= 0.
-
-Given n, return the value of Tn.
-
-
-Example 1:
-
-Input: n = 4
-Output: 4
-Explanation:
-T_3 = 0 + 1 + 1 = 2
-T_4 = 1 + 1 + 2 = 4
-
-Example 2:
-
-Input: n = 25
-Output: 1389537
-
-
-Constraints:
-
-        0 <= n <= 37
-        The answer is guaranteed to fit within a 32-bit integer, ie. answer <= 2^31 - 1.
-"""
-
-from functools import cache
-
-
-class Solution:
-    @cache
-    def tribonacci(self, n: int) -> int:
-        if n <= 1:
-            return n
-        elif n == 2:
-            return 1
-        return self.tribonacci(n - 3) + self.tribonacci(n - 2) + self.tribonacci(n - 1)
-
-
-sol = Solution()
-
-result = sol.tribonacci(0)
-assert result == 0
-
-result = sol.tribonacci(1)
-assert result == 1
-
-result = sol.tribonacci(2)
-assert result == 1
-
-result = sol.tribonacci(3)
-assert result == 2
-
-result = sol.tribonacci(4)
-assert result == 4
-
-result = sol.tribonacci(5)
-assert result == 7
-
-result = sol.tribonacci(6)
-assert result == 13
-
-result = sol.tribonacci(7)
-assert result == 24
-
-result = sol.tribonacci(8)
-assert result == 44
-
-result = sol.tribonacci(9)
-assert result == 81
-
-result = sol.tribonacci(10)
-assert result == 149
-
-result = sol.tribonacci(11)
-assert result == 274
-
-result = sol.tribonacci(12)
-assert result == 504
-
-result = sol.tribonacci(13)
-assert result == 927
-
-result = sol.tribonacci(14)
-assert result == 1705
-
-result = sol.tribonacci(15)
-assert result == 3136
-
-result = sol.tribonacci(16)
-assert result == 5768
-
-result = sol.tribonacci(17)
-assert result == 10609
-
-result = sol.tribonacci(18)
-assert result == 19513
-
-result = sol.tribonacci(19)
-assert result == 35890
-
-result = sol.tribonacci(20)
-assert result == 66012
-
-result = sol.tribonacci(21)
-assert result == 121415
-
-result = sol.tribonacci(22)
-assert result == 223317
-
-result = sol.tribonacci(23)
-assert result == 410744
-
-result = sol.tribonacci(24)
-assert result == 755476
-
-result = sol.tribonacci(25)
-assert result == 1389537
-
-result = sol.tribonacci(26)
-assert result == 2555757
-
-result = sol.tribonacci(27)
-assert result == 4700770
-
-result = sol.tribonacci(28)
-assert result == 8646064
-
-result = sol.tribonacci(29)
-assert result == 15902591
-
-result = sol.tribonacci(30)
-assert result == 29249425
-
-result = sol.tribonacci(31)
-assert result == 53798080
-
-result = sol.tribonacci(32)
-assert result == 98950096
-
-result = sol.tribonacci(33)
-assert result == 181997601
-
-result = sol.tribonacci(34)
-assert result == 334745777
-
-result = sol.tribonacci(35)
-assert result == 615693474
-
-result = sol.tribonacci(36)
-assert result == 1132436852
-
-result = sol.tribonacci(37)
-assert result == 2082876103
