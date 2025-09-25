@@ -1,6 +1,10 @@
 from typing import List, Optional, Dict, Any
 from PrettyPrint import PrettyPrintTree
 from colorama import Fore, Style
+import TreeFormatter
+from PrettyPrint import PrintTree
+
+PrintTree.TreePrinter.TreeFormatter = TreeFormatter.TreeFormatter
 
 
 class Node:
