@@ -198,7 +198,17 @@ def main():
     local_tz = timezone(timedelta(hours=args.tz_offset))
     current_time = datetime.now(local_tz)
 
-    periods = [(1, "1 day"), (2, "2 days"), (7, "1 week"), (30, "1 month")]
+    periods = [
+        (1, "1 day"),
+        (2, "2 days"),
+        (3, "3 days"),
+        (4, "4 days"),
+        (5, "5 days"),
+        (6, "6 days"),
+        (7, "1 week"),
+        (30, "1 month"),
+        (365, "1 year"),
+    ]
 
     print(f"Solved so far: {solved}")
     print(f"Remaining: {remaining}")
