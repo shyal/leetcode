@@ -1925,7 +1925,6 @@ Constraints:
 
 Follow up: Could you solve it with time complexity O(height of tree)?
 """
-
 from bst_utils import generate_and_print_random_bst, is_valid_bst, tree_to_list
 from tree_utils import build_tree, draw_tree, TreeNode
 from typing import Optional, List
@@ -1935,24 +1934,23 @@ import random
 class Solution:
 
     def deleteNode(self, root: Optional[TreeNode], key: int) -> Optional[TreeNode]:
-        def find_rightmost_leaf(root):
-            if root and root.right:
-                return find_rightmost_leaf(root.right)
-            return root
+        def graft(left_sub, right_sub):
+            if left_sub:
+                if left_sub.right:
+                    graft(left_sub.right, right_sub)
+                else:
+                    left_sub.right = right_sub
 
         def helper(parent, node, key):
             if node:
                 if node.val == key:
-                    if rightmost := find_rightmost_leaf(node.left) or node.left:
-                        rightmost.right = node.right
+                    graft(node.left, node.right)
                     if node == parent.left:
                         parent.left = node.left or node.right
                     else:
                         parent.right = node.left or node.right
-                elif key < node.val:
-                    helper(node, node.left, key)
-                elif key > node.val:
-                    helper(node, node.right, key)
+                else:
+                    helper(node, (node.left, node.right)[key > node.val], key)
 
         dummy = TreeNode(-1e10, right=root)
         helper(dummy, root, key)
