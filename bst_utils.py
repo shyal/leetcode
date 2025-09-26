@@ -23,10 +23,12 @@ def insert(root: Optional[TreeNode], val: int) -> TreeNode:
     return root
 
 
-def generate_random_bst(n: int) -> Optional[TreeNode]:
+def generate_random_bst(n: int, seed: int = None) -> Optional[TreeNode]:
     """Generate a random BST with values 1..n inserted in random order."""
     if n <= 0:
         return None
+    if seed:
+        random.seed(seed)
     values = list(range(1, n + 1))
     random.shuffle(values)
     root = None
@@ -67,9 +69,13 @@ def is_valid_bst(root: Optional[TreeNode]) -> bool:
     return all(vals[i] < vals[i + 1] for i in range(len(vals) - 1))
 
 
-def generate_and_print_random_bst(n: int) -> None:
-    root = generate_random_bst(n)
-    draw_tree(root)
-    lst = tree_to_list(root)
-    print(lst)
-    print("Valid BST:", is_valid_bst(root))
+def generate_and_print_random_bst(n: int, seed=None, verbose=True) -> None:
+    root = generate_random_bst(n, seed)
+    valid = is_valid_bst(root)
+    assert valid
+    if verbose:
+        draw_tree(root)
+        lst = tree_to_list(root)
+        print(lst)
+        print("Valid BST:", valid)
+    return root
