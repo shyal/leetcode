@@ -1467,6 +1467,58 @@ result = s.combinationSum3(10, 45)
 expected = []
 assert sorted(map(tuple, result)) == sorted(map(tuple, expected))
 """
+URL: https://leetcode.com/problems/contains-duplicate/description/
+
+217. Contains Duplicate
+
+Given an integer array nums, return true if any value appears at least twice in the array, and return false if every element is distinct.
+
+
+Example 1:
+
+Input: nums = [1,2,3,1]
+
+Output: true
+
+Explanation:
+
+The element 1 occurs at the indices 0 and 3.
+
+Example 2:
+
+Input: nums = [1,2,3,4]
+
+Output: false
+
+Explanation:
+
+All elements are distinct.
+
+Example 3:
+
+Input: nums = [1,1,1,3,3,4,3,2,4,2]
+
+Output: true
+
+
+Constraints:
+
+        1 <= nums.length <= 105
+        -109 <= nums[i] <= 109
+"""
+
+
+class Solution:
+    def containsDuplicate(self, nums: List[int]) -> bool:
+        return len(nums) != len(set(nums))
+
+
+sol = Solution()
+assert sol.containsDuplicate([1, 2, 3, 1]) == True
+assert sol.containsDuplicate([1]) == False
+assert sol.containsDuplicate([1, 2]) == False
+assert sol.containsDuplicate([1, 1]) == True
+"""
 238. Product of Array Except Self
 Medium
 Given an integer array nums, return an array answer such that answer[i] is equal to the product of all the elements of nums except nums[i].
