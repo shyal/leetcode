@@ -3,6 +3,8 @@ from PrettyPrint import PrettyPrintTree
 from colorama import Fore, Style
 import TreeFormatter
 from PrettyPrint import PrintTree
+from Types import TreeNode
+import sys
 
 PrintTree.TreePrinter.TreeFormatter = TreeFormatter.TreeFormatter
 
@@ -11,13 +13,6 @@ class Node:
     def __init__(self, val: Any, children: Dict[Any, "Node"] = {}):
         self.val = val
         self.children = children
-
-
-class TreeNode:
-    def __init__(self, val=0, left=None, right=None):
-        self.val = val
-        self.left = left
-        self.right = right
 
 
 def find_node(root, val):
