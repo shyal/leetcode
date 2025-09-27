@@ -3,6 +3,111 @@ from typing import List, Optional
 from rich import print
 
 """
+URL: https://leetcode.com/problems/container-with-most-water/description/?envType=study-plan-v2&envId=leetcode-75
+
+11. Container With Most Water
+
+You are given an integer array height of length n. There are n vertical lines drawn such that the two endpoints of the ith line are (i, 0) and (i, height[i]).
+
+Find two lines that together with the x-axis form a container, such that the container contains the most water.
+
+Return the maximum amount of water a container can store.
+
+Notice that you may not slant the container.
+
+
+Example 1:
+
+Input: height = [1,8,6,2,5,4,8,3,7]
+Output: 49
+Explanation: The above vertical lines are represented by array [1,8,6,2,5,4,8,3,7]. In this case, the max area of water (blue section) the container can contain is 49.
+
+Example 2:
+
+Input: height = [1,1]
+Output: 1
+
+
+Constraints:
+
+        n == height.length
+        2 <= n <= 105
+        0 <= height[i] <= 104
+"""
+
+
+class Solution:
+    def maxArea(self, height: List[int]) -> int:
+        L, R = 0, len(height) - 1
+        _max = 0
+        while L < R:
+            h = min(height[L], height[R])
+            area = h * (R - L)
+            _max = max(_max, area)
+            if height[L] < height[R]:
+                L += 1
+            else:
+                R -= 1
+        return _max
+
+
+sol = Solution()
+
+res = sol.maxArea(height=[1, 8, 6, 2, 5, 4, 8, 3, 7])
+assert res == 49
+
+res = sol.maxArea(height=[1, 1])
+assert res == 1
+
+res = sol.maxArea(height=[1, 8, 6, 2, 5, 4, 8, 3, 7])
+assert res == 49
+
+res = sol.maxArea(height=[1, 1])
+assert res == 1
+
+res = sol.maxArea(height=[0, 0])
+assert res == 0
+
+res = sol.maxArea(height=[0, 1])
+assert res == 0
+
+res = sol.maxArea(height=[1, 0])
+assert res == 0
+
+res = sol.maxArea(height=[1, 0, 1])
+assert res == 2
+
+res = sol.maxArea(height=[4, 3, 2, 1])
+assert res == 4
+
+res = sol.maxArea(height=[1, 2, 3, 4])
+assert res == 4
+
+res = sol.maxArea(height=[5, 5, 5])
+assert res == 10
+
+res = sol.maxArea(height=[1, 100, 1])
+assert res == 2
+
+res = sol.maxArea(height=[5, 1, 1, 5])
+assert res == 15
+
+res = sol.maxArea(height=[1, 2, 4, 3])
+assert res == 4
+
+res = sol.maxArea(height=[2, 3, 10, 5, 7, 8, 9])
+assert res == 36
+
+res = sol.maxArea(height=[1, 3, 2, 5, 25, 24, 5])
+assert res == 24
+
+res = sol.maxArea(height=[10000, 10000])
+assert res == 10000
+
+res = sol.maxArea(height=[4, 0, 3])
+assert res == 6
+
+"""
 URL: https://leetcode.com/problems/letter-combinations-of-a-phone-number/description/?envType=study-plan-v2&envId=leetcode-75
 
 17. Letter Combinations of a Phone Number
@@ -259,6 +364,88 @@ assert sol.maxDepth(tree9) == 4
 
 tree10 = build_tree([1, None, 2, None, 3])
 assert sol.maxDepth(tree10) == 3
+"""
+URL: https://leetcode.com/problems/path-sum/description/
+
+112. Path Sum
+
+Given the root of a binary tree and an integer targetSum, return true if the tree has a root-to-leaf path such that adding up all the values along the path equals targetSum.
+
+A leaf is a node with no children.
+
+
+Example 1:
+
+Input: root = [5,4,8,11,None,13,4,7,2,None,None,None,1], targetSum = 22
+Output: true
+Explanation: The root-to-leaf path with the target sum is shown.
+
+Example 2:
+
+Input: root = [1,2,3], targetSum = 5
+Output: false
+Explanation: There are two root-to-leaf paths in the tree:
+(1 --> 2): The sum is 3.
+(1 --> 3): The sum is 4.
+There is no root-to-leaf path with sum = 5.
+
+Example 3:
+
+Input: root = [], targetSum = 0
+Output: false
+Explanation: Since the tree is empty, there are no root-to-leaf paths.
+
+
+Constraints:
+
+        The number of nodes in the tree is in the range [0, 5000].
+        -1000 <= Node.val <= 1000
+        -1000 <= targetSum <= 1000
+"""
+
+
+class Solution:
+    def hasPathSum(self, root: Optional[TreeNode], targetSum: int) -> bool:
+        def dfs(prefix, node):
+            if not node:
+                return False
+            is_leaf = node.left is None and node.right is None
+            return (
+                prefix + node.val == targetSum
+                if is_leaf
+                else dfs(prefix + node.val, node.left)
+                or dfs(prefix + node.val, node.right)
+            )
+
+        return dfs(0, root)
+
+
+sol = Solution()
+
+tree = build_tree([5, 4, 8, 11, None, 13, 4, 7, 2, None, None, None, 1])
+print(tree)
+res = sol.hasPathSum(tree, 22)
+assert res == True
+
+tree = build_tree([1, 2, 3])
+print(tree)
+res = sol.hasPathSum(tree, 5)
+assert res == False
+
+tree = build_tree([1, 2, 3])
+print(tree)
+res = sol.hasPathSum(tree, 4)
+assert res == True
+
+tree = build_tree([1])
+print(tree)
+res = sol.hasPathSum(tree, 1)
+assert res == True
+
+tree = build_tree([])
+print(tree)
+res = sol.hasPathSum(tree, 0)
+assert res == False
 """
 URL: https://leetcode.com/problems/single-number/description/?envType=study-plan-v2&envId=leetcode-75
 
@@ -5715,107 +5902,3 @@ assert sol.removeStars("aa*bb*cc*") == "abc"
 assert sol.removeStars("ab*cdef**") == "acd"
 
 
-"""
-URL: https://leetcode.com/problems/container-with-most-water/description/?envType=study-plan-v2&envId=leetcode-75
-
-11. Container With Most Water
-
-You are given an integer array height of length n. There are n vertical lines drawn such that the two endpoints of the ith line are (i, 0) and (i, height[i]).
-
-Find two lines that together with the x-axis form a container, such that the container contains the most water.
-
-Return the maximum amount of water a container can store.
-
-Notice that you may not slant the container.
-
-
-Example 1:
-
-Input: height = [1,8,6,2,5,4,8,3,7]
-Output: 49
-Explanation: The above vertical lines are represented by array [1,8,6,2,5,4,8,3,7]. In this case, the max area of water (blue section) the container can contain is 49.
-
-Example 2:
-
-Input: height = [1,1]
-Output: 1
-
-
-Constraints:
-
-        n == height.length
-        2 <= n <= 105
-        0 <= height[i] <= 104
-"""
-
-
-class Solution:
-    def maxArea(self, height: List[int]) -> int:
-        L, R = 0, len(height) - 1
-        _max = 0
-        while L < R:
-            h = min(height[L], height[R])
-            area = h * (R - L)
-            _max = max(_max, area)
-            if height[L] < height[R]:
-                L += 1
-            else:
-                R -= 1
-        return _max
-
-
-sol = Solution()
-
-res = sol.maxArea(height=[1, 8, 6, 2, 5, 4, 8, 3, 7])
-assert res == 49
-
-res = sol.maxArea(height=[1, 1])
-assert res == 1
-
-res = sol.maxArea(height=[1, 8, 6, 2, 5, 4, 8, 3, 7])
-assert res == 49
-
-res = sol.maxArea(height=[1, 1])
-assert res == 1
-
-res = sol.maxArea(height=[0, 0])
-assert res == 0
-
-res = sol.maxArea(height=[0, 1])
-assert res == 0
-
-res = sol.maxArea(height=[1, 0])
-assert res == 0
-
-res = sol.maxArea(height=[1, 0, 1])
-assert res == 2
-
-res = sol.maxArea(height=[4, 3, 2, 1])
-assert res == 4
-
-res = sol.maxArea(height=[1, 2, 3, 4])
-assert res == 4
-
-res = sol.maxArea(height=[5, 5, 5])
-assert res == 10
-
-res = sol.maxArea(height=[1, 100, 1])
-assert res == 2
-
-res = sol.maxArea(height=[5, 1, 1, 5])
-assert res == 15
-
-res = sol.maxArea(height=[1, 2, 4, 3])
-assert res == 4
-
-res = sol.maxArea(height=[2, 3, 10, 5, 7, 8, 9])
-assert res == 36
-
-res = sol.maxArea(height=[1, 3, 2, 5, 25, 24, 5])
-assert res == 24
-
-res = sol.maxArea(height=[10000, 10000])
-assert res == 10000
-
-res = sol.maxArea(height=[4, 0, 3])
-assert res == 6
