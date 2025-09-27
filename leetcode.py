@@ -208,6 +208,74 @@ assert res == [
 ]
 
 """
+URL: https://leetcode.com/problems/length-of-last-word/description/
+
+58. Length of Last Word
+
+Given a string s consisting of words and spaces, return the length of the last word in the string.
+
+A word is a maximal substring consisting of non-space characters only.
+
+
+Example 1:
+
+Input: s = "Hello World"
+Output: 5
+Explanation: The last word is "World" with length 5.
+
+Example 2:
+
+Input: s = "   fly me   to   the moon  "
+Output: 4
+Explanation: The last word is "moon" with length 4.
+
+Example 3:
+
+Input: s = "luffy is still joyboy"
+Output: 6
+Explanation: The last word is "joyboy" with length 6.
+
+
+Constraints:
+
+        1 <= s.length <= 104
+        s consists of only English letters and spaces ' '.
+        There will be at least one word in s.
+"""
+
+
+class Solution:
+    def lengthOfLastWord(self, s: str) -> int:
+        if not s:
+            return 0
+        first_non_space = None
+        first_space_after_non_space = None
+        _len = 0
+        for i in range(len(s) - 1, -1, -1):
+            if first_non_space is None and s[i] != " ":
+                first_non_space = i
+                _len += 1
+            elif first_non_space is not None and s[i] != " ":
+                _len += 1
+            elif first_non_space is not None and s[i] == " ":
+                break
+        return _len
+
+
+sol = Solution()
+assert sol.lengthOfLastWord("Hello World") == 5
+assert sol.lengthOfLastWord("Hello World ") == 5
+assert sol.lengthOfLastWord("Hello World                ") == 5
+assert sol.lengthOfLastWord("   fly me   to   the moon  ") == 4
+assert sol.lengthOfLastWord("luffy is still joyboy") == 6
+assert sol.lengthOfLastWord("") == 0
+assert sol.lengthOfLastWord("asdf") == 4
+assert sol.lengthOfLastWord("    asdf") == 4
+assert sol.lengthOfLastWord("    a") == 1
+assert sol.lengthOfLastWord("    ") == 0
+
+
+"""
 URL: https://leetcode.com/problems/edit-distance/description/?envType=study-plan-v2&envId=leetcode-75
 
 72. Edit Distance
@@ -3212,6 +3280,60 @@ assert res == 999
 res = sol.minCostClimbingStairs([3, 2, 1])
 assert res == 2
 """
+URL: https://leetcode.com/problems/rotate-string/description/
+
+796. Rotate String
+
+Given two strings s and goal, return true if and only if s can become goal after some number of shifts on s.
+
+A shift on s consists of moving the leftmost character of s to the rightmost position.
+
+        For example, if s = "abcde", then it will be "bcdea" after one shift.
+
+
+Example 1:
+Input: s = "abcde", goal = "cdeab"
+Output: true
+Example 2:
+Input: s = "abcde", goal = "abced"
+Output: false
+
+
+Constraints:
+
+        1 <= s.length, goal.length <= 100
+        s and goal consist of lowercase English letters.
+"""
+
+from itertools import islice, chain
+
+
+class Solution:
+    def rotateString(self, s: str, goal: str) -> bool:
+        if s == goal:
+            return True
+
+        if len(s) != len(goal):
+            return False
+
+        def rotate(s, r):
+            return chain(islice(s, r, None), islice(s, None, r))
+
+        for shift in range(len(s)):
+            r = rotate(s, shift)
+            if all(a == b for a, b in zip(r, goal)):
+                return True
+
+        return False
+
+
+sol = Solution()
+assert sol.rotateString(s="abcde", goal="cdeab") == True
+assert sol.rotateString(s="abcd", goal="cdeab") == False
+assert sol.rotateString(s="123", goal="124") == False
+assert sol.rotateString(s="", goal="") == True
+assert sol.rotateString(s="hello", goal="lohel") == True
+"""
 URL: https://leetcode.com/problems/keys-and-rooms/description/?envType=study-plan-v2&envId=leetcode-75
 
 841. Keys and Rooms
@@ -5898,69 +6020,3 @@ assert sol.removeStars("aa*bb*cc*") == "abc"
 assert sol.removeStars("ab*cdef**") == "acd"
 
 
-"""
-URL: https://leetcode.com/problems/length-of-last-word/description/
-
-58. Length of Last Word
-
-Given a string s consisting of words and spaces, return the length of the last word in the string.
-
-A word is a maximal substring consisting of non-space characters only.
-
-
-Example 1:
-
-Input: s = "Hello World"
-Output: 5
-Explanation: The last word is "World" with length 5.
-
-Example 2:
-
-Input: s = "   fly me   to   the moon  "
-Output: 4
-Explanation: The last word is "moon" with length 4.
-
-Example 3:
-
-Input: s = "luffy is still joyboy"
-Output: 6
-Explanation: The last word is "joyboy" with length 6.
-
-
-Constraints:
-
-        1 <= s.length <= 104
-        s consists of only English letters and spaces ' '.
-        There will be at least one word in s.
-"""
-
-
-class Solution:
-    def lengthOfLastWord(self, s: str) -> int:
-        if not s:
-            return 0
-        first_non_space = None
-        first_space_after_non_space = None
-        _len = 0
-        for i in range(len(s) - 1, -1, -1):
-            if first_non_space is None and s[i] != " ":
-                first_non_space = i
-                _len += 1
-            elif first_non_space is not None and s[i] != " ":
-                _len += 1
-            elif first_non_space is not None and s[i] == " ":
-                break
-        return _len
-
-
-sol = Solution()
-assert sol.lengthOfLastWord("Hello World") == 5
-assert sol.lengthOfLastWord("Hello World ") == 5
-assert sol.lengthOfLastWord("Hello World                ") == 5
-assert sol.lengthOfLastWord("   fly me   to   the moon  ") == 4
-assert sol.lengthOfLastWord("luffy is still joyboy") == 6
-assert sol.lengthOfLastWord("") == 0
-assert sol.lengthOfLastWord("asdf") == 4
-assert sol.lengthOfLastWord("    asdf") == 4
-assert sol.lengthOfLastWord("    a") == 1
-assert sol.lengthOfLastWord("    ") == 0
