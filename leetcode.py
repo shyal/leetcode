@@ -423,29 +423,25 @@ class Solution:
 sol = Solution()
 
 tree = build_tree([5, 4, 8, 11, None, 13, 4, 7, 2, None, None, None, 1])
-print(tree)
 res = sol.hasPathSum(tree, 22)
 assert res == True
 
 tree = build_tree([1, 2, 3])
-print(tree)
 res = sol.hasPathSum(tree, 5)
 assert res == False
 
 tree = build_tree([1, 2, 3])
-print(tree)
 res = sol.hasPathSum(tree, 4)
 assert res == True
 
 tree = build_tree([1])
-print(tree)
 res = sol.hasPathSum(tree, 1)
 assert res == True
 
 tree = build_tree([])
-print(tree)
 res = sol.hasPathSum(tree, 0)
 assert res == False
+
 """
 URL: https://leetcode.com/problems/single-number/description/?envType=study-plan-v2&envId=leetcode-75
 
@@ -5902,3 +5898,69 @@ assert sol.removeStars("aa*bb*cc*") == "abc"
 assert sol.removeStars("ab*cdef**") == "acd"
 
 
+"""
+URL: https://leetcode.com/problems/length-of-last-word/description/
+
+58. Length of Last Word
+
+Given a string s consisting of words and spaces, return the length of the last word in the string.
+
+A word is a maximal substring consisting of non-space characters only.
+
+
+Example 1:
+
+Input: s = "Hello World"
+Output: 5
+Explanation: The last word is "World" with length 5.
+
+Example 2:
+
+Input: s = "   fly me   to   the moon  "
+Output: 4
+Explanation: The last word is "moon" with length 4.
+
+Example 3:
+
+Input: s = "luffy is still joyboy"
+Output: 6
+Explanation: The last word is "joyboy" with length 6.
+
+
+Constraints:
+
+        1 <= s.length <= 104
+        s consists of only English letters and spaces ' '.
+        There will be at least one word in s.
+"""
+
+
+class Solution:
+    def lengthOfLastWord(self, s: str) -> int:
+        if not s:
+            return 0
+        first_non_space = None
+        first_space_after_non_space = None
+        _len = 0
+        for i in range(len(s) - 1, -1, -1):
+            if first_non_space is None and s[i] != " ":
+                first_non_space = i
+                _len += 1
+            elif first_non_space is not None and s[i] != " ":
+                _len += 1
+            elif first_non_space is not None and s[i] == " ":
+                break
+        return _len
+
+
+sol = Solution()
+assert sol.lengthOfLastWord("Hello World") == 5
+assert sol.lengthOfLastWord("Hello World ") == 5
+assert sol.lengthOfLastWord("Hello World                ") == 5
+assert sol.lengthOfLastWord("   fly me   to   the moon  ") == 4
+assert sol.lengthOfLastWord("luffy is still joyboy") == 6
+assert sol.lengthOfLastWord("") == 0
+assert sol.lengthOfLastWord("asdf") == 4
+assert sol.lengthOfLastWord("    asdf") == 4
+assert sol.lengthOfLastWord("    a") == 1
+assert sol.lengthOfLastWord("    ") == 0
