@@ -30,38 +30,11 @@ I'm considering move the tests into a separate file, but have to weigh the pros 
 ```
 python3 -m venv .venv
 . .venv/bin/activate
-
-# for graphviz support in the termina (OSX instructions)
-brew install aalib
-brew install cmake pkg-config cairo pango gd librsvg expat gts
-
-# Other requirements
 pip3 install requirements.txt
 ```
 
-# sitecustomize.py
+# Running
 
-I'm adding some pretty printing functionality, so if you want to use this repo as a template, then make sure you install sitecustomize.py where it should reside (`.venv/lib/pythonX.X/site-packages/sitecustomize.py`).
-
-```python
-import builtins
-from typing import List, Optional
-from rich import print as rich_print
-from tabulate import tabulate
-
-def _print(*args, **kwargs):
-    is_table = all(type(x) is list for x in args[0])
-    if is_table:
-        kwargs['numalign'] = kwargs.get('numalign', 'center')
-        kwargs['stralign'] = kwargs.get('stralign', 'center')
-        kwargs['headers'] = kwargs.get('headers', [str(k) for k in range(len(args[0]))])
-        kwargs['showindex'] = kwargs.get('showindex', range(len(args[0])))
-        rich_print(tabulate(*args, **kwargs))
-    else:
-        rich_print(*args, **kwargs)
-
-builtins.print = _print
-builtins.List = List
-builtins.Optional = Optional
-builtins.print_table = _print
+```
+PYTHONPATH=./utils:${PYTHONPATH} python3 utils/runner.py
 ```

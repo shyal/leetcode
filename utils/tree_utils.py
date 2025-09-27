@@ -141,3 +141,20 @@ def draw_general_tree(root: Optional[Node]) -> None:
 
     pt = PrettyPrintTree(get_children, get_value, get_label=get_label, border=True)
     pt(_Wrapper(root))
+
+
+def generate_full_binary_tree(height: int) -> Optional[TreeNode]:
+    """
+    Generates a full (perfect) binary tree of the given height.
+    Height 0 returns a single node.
+    Node values are assigned sequentially from 1 in level-order.
+    """
+    if height < 0:
+        return None
+
+    # Calculate the total number of nodes in a perfect binary tree of height h: 2^(h+1) - 1
+    num_nodes = (1 << (height + 1)) - 1
+    # Create a level-order list of node values
+    arr = list(range(1, num_nodes + 1))
+    # Use the provided build_tree utility to construct the tree
+    return build_tree(arr)
