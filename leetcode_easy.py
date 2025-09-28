@@ -947,374 +947,404 @@ assert sol.isSubsequence(s=big_s, t=big_t) == False
 
 
 """
-2390. Removing Stars From a String
-Medium
-Topics
-premium lock icon
-Companies
-Hint
-You are given a string s, which contains stars *.
+URL: https://leetcode.com/problems/rotate-string/description/
 
-In one operation, you can:
+796. Rotate String
 
-Choose a star in s.
-Remove the closest non-star character to its left, as well as remove the star itself.
-Return the string after all stars have been removed.
+Given two strings s and goal, return true if and only if s can become goal after some number of shifts on s.
 
-Note:
+A shift on s consists of moving the leftmost character of s to the rightmost position.
 
-The input will be generated such that the operation is always possible.
-It can be shown that the resulting string will always be unique.
- 
+        For example, if s = "abcde", then it will be "bcdea" after one shift.
+
 
 Example 1:
-
-Input: s = "leet**cod*e"
-Output: "lecoe"
-Explanation: Performing the removals from left to right:
-- The closest character to the 1st star is 't' in "leet**cod*e". s becomes "lee*cod*e".
-- The closest character to the 2nd star is 'e' in "lee*cod*e". s becomes "lecod*e".
-- The closest character to the 3rd star is 'd' in "lecod*e". s becomes "lecoe".
-There are no more stars, so we return "lecoe".
-Example 2:
-
-Input: s = "erase*****"
-Output: ""
-Explanation: The entire string is removed, so we return an empty string.
- 
-
-Constraints:
-
-1 <= s.length <= 105
-s consists of lowercase English letters and stars *.
-The operation above can be performed on s.
-"""
-
-
-class Solution:
-    def removeStars(self, s: str) -> str:
-        stack = []
-        for c in s:
-            if c != "*":
-                stack.append(c)
-            else:
-                if stack:
-                    stack.pop()
-        return "".join(stack)
-
-
-sol = Solution()
-assert sol.removeStars(s="leet**cod*e") == "lecoe"
-assert sol.removeStars(s="erase*****") == ""
-assert sol.removeStars("a") == "a"
-assert sol.removeStars("a*") == ""
-assert sol.removeStars("ab*") == "a"
-assert sol.removeStars("a*b*") == ""
-assert sol.removeStars("abc") == "abc"
-assert sol.removeStars("abc***") == ""
-assert sol.removeStars("abcd***") == "a"
-assert sol.removeStars("aa*bb*cc*") == "abc"
-assert sol.removeStars("ab*cdef**") == "acd"
-
-
-"""
-https://leetcode.com/problems/find-the-difference-of-two-arrays/description
-
-2215. Find the Difference of Two Arrays
-Easy
-Given two 0-indexed integer arrays nums1 and nums2, return a list answer of size 2 where:
-
-answer[0] is a list of all distinct integers in nums1 which are not present in nums2.
-answer[1] is a list of all distinct integers in nums2 which are not present in nums1.
-Note that the integers in the lists may be returned in any order.
-
-Example 1:
-
-Input: nums1 = [1,2,3], nums2 = [2,4,6]
-Output: [[1,3],[4,6]]
-Explanation:
-For nums1, nums1[1] = 2 is present at index 0 of nums2, whereas nums1[0] = 1 and nums1[2] = 3 are not present in nums2. Therefore, answer[0] = [1,3].
-For nums2, nums2[0] = 2 is present at index 1 of nums1, whereas nums2[1] = 4 and nums2[2] = 6 are not present in nums1. Therefore, answer[1] = [4,6].
-Example 2:
-
-Input: nums1 = [1,2,3,3], nums2 = [1,1,2,2]
-Output: [[3],[]]
-Explanation:
-For nums1, nums1[2] and nums1[3] are not present in nums2. Since nums1[2] == nums1[3], their value is only included once and answer[0] = [3].
-Every integer in nums2 is present in nums1. Therefore, answer[1] = [].
- 
-
-Constraints:
-
-1 <= nums1.length, nums2.length <= 1000
--1000 <= nums1[i], nums2[i] <= 1000
-"""
-
-
-class Solution:
-    def findDifference(self, nums1: List[int], nums2: List[int]) -> List[List[int]]:
-        nums1 = set(nums1)
-        nums2 = set(nums2)
-        return [list(nums1 - nums2), list(nums2 - nums1)]
-
-
-sol = Solution()
-sol.findDifference(nums1=[1, 2, 3], nums2=[2, 4, 6]) == [[1, 3], [4, 6]]
-sol.findDifference(nums1=[1, 2, 3, 3], nums2=[1, 1, 2, 2]) == [[3], []]
-sol.findDifference(nums1=[], nums2=[]) == [[], []]
-sol.findDifference(nums1=[1], nums2=[]) == [[1], []]
-
-
-"""
-https://leetcode.com/problems/greatest-common-divisor-of-strings/description/
-
-1768. Merge Strings Alternately
-Easy
-You are given two strings word1 and word2. Merge the strings by adding letters in alternating order, starting with word1. If a string is longer than the other, append the additional letters onto the end of the merged string.
-
-Return the merged string.
-
-Example 1:
-
-Input: word1 = "abc", word2 = "pqr"
-Output: "apbqcr"
-Explanation: The merged string will be merged as so:
-word1:  a   b   c
-word2:    p   q   r
-merged: a p b q c r
-Example 2:
-
-Input: word1 = "ab", word2 = "pqrs"
-Output: "apbqrs"
-Explanation: Notice that as word2 is longer, "rs" is appended to the end.
-word1:  a   b 
-word2:    p   q   r   s
-merged: a p b q   r   s
-Example 3:
-
-Input: word1 = "abcd", word2 = "pq"
-Output: "apbqcd"
-Explanation: Notice that as word1 is longer, "cd" is appended to the end.
-word1:  a   b   c   d
-word2:    p   q 
-merged: a p b q c   d
- 
-
-Constraints:
-
-1 <= word1.length, word2.length <= 100
-word1 and word2 consist of lowercase English letters.
-"""
-
-from itertools import zip_longest
-
-
-class Solution:
-    def mergeAlternately(self, word1: str, word2: str) -> str:
-        return "".join((a or "") + (b or "") for a, b in zip_longest(word1, word2))
-
-
-sol = Solution()
-
-assert sol.mergeAlternately(word1="abc", word2="pqr") == "apbqcr"
-assert sol.mergeAlternately(word1="ab", word2="pqrs") == "apbqrs"
-assert sol.mergeAlternately(word1="abcd", word2="pq") == "apbqcd"
-assert sol.mergeAlternately(word1="a", word2="b") == "ab"
-assert sol.mergeAlternately(word1="a", word2="bcdef") == "abcdef"
-assert sol.mergeAlternately(word1="abcde", word2="f") == "afbcde"
-assert sol.mergeAlternately(word1="aaa", word2="bbb") == "ababab"
-assert sol.mergeAlternately(word1="aa", word2="bbbb") == "ababbb"
-assert sol.mergeAlternately(word1="aaaa", word2="bb") == "ababaa"
-assert sol.mergeAlternately(word1="a" * 100, word2="b" * 100) == ("ab" * 100)
-assert sol.mergeAlternately(word1="a" * 100, word2="b") == ("a" + "b" + "a" * 99)
-assert sol.mergeAlternately(word1="a", word2="b" * 100) == ("a" + "b" * 100)
-assert sol.mergeAlternately(word1="xyz", word2="12345") == "x1y2z345"
-
-
-"""
-https://leetcode.com/problems/find-the-highest-altitude/description
-
-1732. Find the Highest Altitude
-Easy
-Topics
-premium lock icon
-Companies
-Hint
-There is a biker going on a road trip. The road trip consists of n + 1 points at different altitudes. The biker starts his trip on point 0 with altitude equal 0.
-
-You are given an integer array gain of length n where gain[i] is the net gain in altitude between points i​​​​​​ and i + 1 for all (0 <= i < n). Return the highest altitude of a point.
-
- 
-
-Example 1:
-
-Input: gain = [-5,1,5,0,-7]
-Output: 1
-Explanation: The altitudes are [0,-5,-4,1,1,-6]. The highest is 1.
-Example 2:
-
-Input: gain = [-4,-3,-2,-1,4,3,2]
-Output: 0
-Explanation: The altitudes are [0,-4,-7,-9,-10,-6,-3,-1]. The highest is 0.
- 
-
-Constraints:
-
-n == gain.length
-1 <= n <= 100
--100 <= gain[i] <= 100
-"""
-
-
-class Solution:
-    def largestAltitude(self, gain: List[int]) -> int:
-        altitude = 0
-        _max = 0
-        for g in gain:
-            altitude += g
-            _max = max(altitude, _max)
-        return _max
-
-
-sol = Solution()
-assert sol.largestAltitude([-5, 1, 5, 0, -7]) == 1
-assert sol.largestAltitude([-4, -3, -2, -1, 4, 3, 2]) == 0
-assert sol.largestAltitude([10]) == 10
-assert sol.largestAltitude([0]) == 0
-assert sol.largestAltitude([-10]) == 0
-
-
-"""
-1431. Kids With the Greatest Number of Candies
-Easy
-There are n kids with candies. You are given an integer array candies, where each candies[i] represents the number of candies the ith kid has, and an integer extraCandies, denoting the number of extra candies that you have.
-
-Return a boolean array result of length n, where result[i] is true if, after giving the ith kid all the extraCandies, they will have the greatest number of candies among all the kids, or false otherwise.
-
-Note that multiple kids can have the greatest number of candies.
-
- 
-
-Example 1:
-
-Input: candies = [2,3,5,1,3], extraCandies = 3
-Output: [true,true,true,false,true] 
-Explanation: If you give all extraCandies to:
-- Kid 1, they will have 2 + 3 = 5 candies, which is the greatest among the kids.
-- Kid 2, they will have 3 + 3 = 6 candies, which is the greatest among the kids.
-- Kid 3, they will have 5 + 3 = 8 candies, which is the greatest among the kids.
-- Kid 4, they will have 1 + 3 = 4 candies, which is not the greatest among the kids.
-- Kid 5, they will have 3 + 3 = 6 candies, which is the greatest among the kids.
-Example 2:
-
-Input: candies = [4,2,1,1,2], extraCandies = 1
-Output: [true,false,false,false,false] 
-Explanation: There is only 1 extra candy.
-Kid 1 will always have the greatest number of candies, even if a different kid is given the extra candy.
-Example 3:
-
-Input: candies = [12,1,12], extraCandies = 10
-Output: [true,false,true]
- 
-
-Constraints:
-
-n == candies.length
-2 <= n <= 100
-1 <= candies[i] <= 100
-1 <= extraCandies <= 50
-"""
-
-
-class Solution:
-    def kidsWithCandies(self, candies: List[int], extraCandies: int) -> List[bool]:
-        _max = max(candies)
-        return [x + extraCandies >= _max for x in candies]
-
-
-sol = Solution()
-
-true = True
-false = False
-
-assert sol.kidsWithCandies(candies=[2, 3, 5, 1, 3], extraCandies=3) == [
-    True,
-    True,
-    True,
-    False,
-    True,
-]
-assert sol.kidsWithCandies(candies=[4, 2, 1, 1, 2], extraCandies=1) == [
-    True,
-    False,
-    False,
-    False,
-    False,
-]
-assert sol.kidsWithCandies(candies=[12, 1, 12], extraCandies=10) == [True, False, True]
-assert sol.kidsWithCandies(candies=[1, 1], extraCandies=1) == [True, True]
-assert sol.kidsWithCandies(candies=[1, 100], extraCandies=1) == [False, True]
-assert sol.kidsWithCandies(candies=[50, 50, 50, 50], extraCandies=1) == [
-    True,
-    True,
-    True,
-    True,
-]
-assert sol.kidsWithCandies(candies=[1, 1, 1], extraCandies=50) == [True, True, True]
-assert sol.kidsWithCandies(candies=[100, 100], extraCandies=1) == [True, True]
-assert sol.kidsWithCandies(candies=[1, 2, 3], extraCandies=2) == [True, True, True]
-assert sol.kidsWithCandies(candies=[1, 2, 3], extraCandies=1) == [False, True, True]
-assert sol.kidsWithCandies(candies=[5, 3, 5, 4], extraCandies=1) == [
-    True,
-    False,
-    True,
-    True,
-]
-
-"""
-https://leetcode.com/problems/unique-number-of-occurrences/description
-
-1207. Unique Number of Occurrences
-Easy
-Given an array of integers arr, return true if the number of occurrences of each value in the array is unique or false otherwise.
-
-Example 1:
-
-Input: arr = [1,2,2,1,1,3]
+Input: s = "abcde", goal = "cdeab"
 Output: true
-Explanation: The value 1 has 3 occurrences, 2 has 2 and 3 has 1. No two values have the same number of occurrences.
 Example 2:
-
-Input: arr = [1,2]
+Input: s = "abcde", goal = "abced"
 Output: false
-Example 3:
 
-Input: arr = [-3,0,1,-3,1,1,1,-3,10,0]
-Output: true
- 
 
 Constraints:
 
-1 <= arr.length <= 1000
--1000 <= arr[i] <= 1000
+        1 <= s.length, goal.length <= 100
+        s and goal consist of lowercase English letters.
+"""
+
+from itertools import islice, chain
+
+
+class Solution:
+    def rotateString(self, s: str, goal: str) -> bool:
+        if s == goal:
+            return True
+
+        if len(s) != len(goal):
+            return False
+
+        def rotate(s, r):
+            return chain(islice(s, r, None), islice(s, None, r))
+
+        for shift in range(len(s)):
+            r = rotate(s, shift)
+            if all(a == b for a, b in zip(r, goal)):
+                return True
+
+        return False
+
+
+sol = Solution()
+assert sol.rotateString(s="abcde", goal="cdeab") == True
+assert sol.rotateString(s="abcd", goal="cdeab") == False
+assert sol.rotateString(s="123", goal="124") == False
+assert sol.rotateString(s="", goal="") == True
+assert sol.rotateString(s="hello", goal="lohel") == True
+"""
+URL: https://leetcode.com/problems/most-common-word/description/
+
+819. Most Common Word
+
+Given a string paragraph and a string array of the banned words banned, return the most frequent word that is not banned. It is guaranteed there is at least one word that is not banned, and that the answer is unique.
+
+The words in paragraph are case-insensitive and the answer should be returned in lowercase.
+
+Note that words can not contain punctuation symbols.
+
+
+Example 1:
+
+Input: paragraph = "Bob hit a ball, the hit BALL flew far after it was hit.", banned = ["hit"]
+Output: "ball"
+Explanation:
+"hit" occurs 3 times, but it is a banned word.
+"ball" occurs twice (and no other word does), so it is the most frequent non-banned word in the paragraph.
+Note that words in the paragraph are not case sensitive,
+that punctuation is ignored (even if adjacent to words, such as "ball,"),
+and that "hit" isn't the answer even though it occurs more because it is banned.
+
+Example 2:
+
+Input: paragraph = "a.", banned = []
+Output: "a"
+
+
+Constraints:
+
+        1 <= paragraph.length <= 1000
+        paragraph consists of English letters, space ' ', or one of the symbols: "!?',;.".
+        0 <= banned.length <= 100
+        1 <= banned[i].length <= 10
+        banned[i] consists of only lowercase English letters.
 """
 
 from collections import Counter
 
+rem = set("!?',;.")
+
 
 class Solution:
-    def uniqueOccurrences(self, arr: List[int]) -> bool:
-        occurrences = [count for val, count in Counter(arr).items()]
-        return len(occurrences) == len(set(occurrences))
+    def mostCommonWord(self, paragraph: str, banned: List[str]) -> str:
+        banned = set(banned)
+        tmp = []
+        for c in paragraph:
+            if c in rem:
+                tmp.append(" ")
+            else:
+                tmp.append(c.lower())
+        count = dict(Counter("".join(tmp).split()))
+        res = next(
+            iter(max(count.items(), key=lambda x: x[1] if x[0] not in banned else 0)),
+            "",
+        )
+        return res if res not in banned else ""
 
 
 sol = Solution()
-sol.uniqueOccurrences([1, 2, 2, 1, 1, 3]) == True
-sol.uniqueOccurrences([1, 2]) == False
-sol.uniqueOccurrences([-3, 0, 1, -3, 1, 1, 1, -3, 10, 0]) == True
-sol.uniqueOccurrences([1]) == True
-sol.uniqueOccurrences([1, 1]) == True
 
+res = sol.mostCommonWord(paragraph="a, a, a, a, b,b,b,c, c", banned=["a"])
+assert res == "b"
+
+res = sol.mostCommonWord(
+    paragraph="Bob hit a ball, the hit BALL flew far after it was hit.", banned=["hit"]
+)
+assert res == "ball"
+
+res = sol.mostCommonWord(paragraph="a.", banned=[])
+assert res == "a"
+
+res = sol.mostCommonWord(paragraph="foo", banned=["foo"])
+assert res == ""
+
+res = sol.mostCommonWord(paragraph="foo foo foo", banned=["foo"])
+assert res == ""
+
+res = sol.mostCommonWord(paragraph="f f f f b b b c c", banned=["f"])
+assert res == "b"
+
+"""
+URL: https://leetcode.com/problems/positions-of-large-groups/description/
+
+830. Positions of Large Groups
+
+In a string s of lowercase letters, these letters form consecutive groups of the same character.
+
+For example, a string like s = "abbxxxxzyy" has the groups "a", "bb", "xxxx", "z", and "yy".
+
+A group is identified by an interval [start, end], where start and end denote the start and end indices (inclusive) of the group. In the above example, "xxxx" has the interval [3,6].
+
+A group is considered large if it has 3 or more characters.
+
+Return the intervals of every large group sorted in increasing order by start index.
+
+
+Example 1:
+
+Input: s = "abbxxxxzzy"
+Output: [[3,6]]
+Explanation: "xxxx" is the only large group with start index 3 and end index 6.
+
+Example 2:
+
+Input: s = "abc"
+Output: []
+Explanation: We have groups "a", "b", and "c", none of which are large groups.
+
+Example 3:
+
+Input: s = "abcdddeeeeaabbbcd"
+Output: [[3,5],[6,9],[12,14]]
+Explanation: The large groups are "ddd", "eeee", and "bbb".
+
+
+Constraints:
+
+        1 <= s.length <= 1000
+        s contains lowercase English letters only.
+"""
+
+from itertools import groupby
+from collections import namedtuple
+
+
+class Solution:
+    def largeGroupPositions(self, s: str) -> List[List[int]]:
+        G = groupby(s)
+        Interval = namedtuple("Interval", ["chars", "interval"])
+        intervals = []
+        i = 0
+        for letter, it in G:
+            val = "".join(it)
+            if len(val) >= 3:
+                interval = Interval(val, [i, i + len(val) - 1])
+                intervals.append(interval)
+            i += len(val)
+        intervals.sort(key=lambda x: x.interval[0])
+        return [interval.interval for interval in intervals]
+
+
+sol = Solution()
+
+res = sol.largeGroupPositions(s="abbxxxxzzy")
+assert res == [[3, 6]]
+
+res = sol.largeGroupPositions(s="abc")
+assert res == []
+
+res = sol.largeGroupPositions(s="abcdddeeeeaabbbcd")
+assert res == [[3, 5], [6, 9], [12, 14]]
+
+res = sol.largeGroupPositions(s="")
+assert res == []
+
+res = sol.largeGroupPositions(s="abcabcabcabcabcabcabcabcabcabcabcabcabcaaa")
+assert res == [[39, 41]]
+"""
+https://leetcode.com/problems/transpose-matrix/description/
+
+867. Transpose Matrix
+Easy
+Given a 2D integer array matrix, return the transpose of matrix.
+
+The transpose of a matrix is the matrix flipped over its main diagonal, switching the matrix's row and column indices.
+
+Example 1:
+
+Input: matrix = [[1,2,3],[4,5,6],[7,8,9]]
+Output: [[1,4,7],[2,5,8],[3,6,9]]
+Example 2:
+
+Input: matrix = [[1,2,3],[4,5,6]]
+Output: [[1,4],[2,5],[3,6]]
+ 
+
+Constraints:
+
+m == matrix.length
+n == matrix[i].length
+1 <= m, n <= 1000
+1 <= m * n <= 105
+-109 <= matrix[i][j] <= 109
+"""
+
+"""
+1 2 3
+4 5 6
+7 8 9
+
+
+"""
+
+
+class Solution:
+    def transpose(self, matrix: List[List[int]]) -> List[List[int]]:
+        return [list(x) for x in zip(*matrix)]
+
+
+sol = Solution()
+assert sol.transpose(matrix=[[1, 2, 3], [4, 5, 6], [7, 8, 9]]) == [
+    [1, 4, 7],
+    [2, 5, 8],
+    [3, 6, 9],
+]
+
+assert sol.transpose(matrix=[[1, 2, 3], [4, 5, 6]]) == [[1, 4], [2, 5], [3, 6]]
+assert sol.transpose(matrix=[[1]]) == [[1]]
+assert sol.transpose(matrix=[[1, 2], [3, 4]]) == [[1, 3], [2, 4]]
+assert sol.transpose(matrix=[[5]]) == [[5]]
+assert sol.transpose(matrix=[[1, 2, 3, 4]]) == [[1], [2], [3], [4]]
+assert sol.transpose(matrix=[[1], [2], [3], [4]]) == [[1, 2, 3, 4]]
+assert sol.transpose(matrix=[[0, 0, 0], [0, 0, 0], [0, 0, 0]]) == [
+    [0, 0, 0],
+    [0, 0, 0],
+    [0, 0, 0],
+]
+assert sol.transpose(matrix=[[1, 2], [3, 4], [5, 6]]) == [[1, 3, 5], [2, 4, 6]]
+assert sol.transpose(matrix=[[1, 3, 5], [2, 4, 6]]) == [[1, 2], [3, 4], [5, 6]]
+assert sol.transpose(matrix=[[-1, -2], [-3, -4]]) == [[-1, -3], [-2, -4]]
+assert sol.transpose(matrix=[[10, 20, 30], [40, 50, 60]]) == [
+    [10, 40],
+    [20, 50],
+    [30, 60],
+]
+assert sol.transpose(matrix=[[7, 8, 9], [1, 2, 3], [4, 5, 6]]) == [
+    [7, 1, 4],
+    [8, 2, 5],
+    [9, 3, 6],
+]
+assert sol.transpose(matrix=[[2]]) == [[2]]
+assert sol.transpose(matrix=[[1, 2, 3]]) == [[1], [2], [3]]
+assert sol.transpose(matrix=[[1], [2], [3]]) == [[1, 2, 3]]
+assert sol.transpose(matrix=[[0]]) == [[0]]
+
+"""
+https://leetcode.com/problems/leaf-similar-trees/description/
+
+872. Leaf-Similar Trees
+Consider all the leaves of a binary tree, from left to right order, the values of those leaves form a leaf value sequence.
+
+For example, in the given tree above, the leaf value sequence is (6, 7, 4, 9, 8).
+
+Two binary trees are considered leaf-similar if their leaf value sequence is the same.
+
+Return true if and only if the two given trees with head nodes root1 and root2 are leaf-similar.
+
+Example 1:
+
+Input: root1 = [3,5,1,6,2,9,8,null,null,7,4], root2 = [3,5,1,6,7,4,2,null,null,null,null,null,null,9,8]
+Output: true
+Example 2:
+
+Input: root1 = [1,2,3], root2 = [1,3,2]
+Output: false
+
+Constraints:
+
+The number of nodes in each tree will be in the range [1, 200].
+Both of the given trees will have values in the range [0, 200].
+"""
+
+
+# Definition for a binary tree node.
+class TreeNode:
+    def __init__(self, val=0, left=None, right=None):
+        self.val = val
+        self.left = left
+        self.right = right
+
+
+class Solution:
+    def leafSimilar(self, root1: Optional[TreeNode], root2: Optional[TreeNode]) -> bool:
+
+        def dfs(node, leaves):
+            if not node:
+                return
+            is_leaf = node.left == node.right == None
+            if is_leaf:
+                leaves.append(node.val)
+                return
+            dfs(node.left, leaves)
+            dfs(node.right, leaves)
+
+        leaves1 = []
+        leaves2 = []
+        dfs(root1, leaves1)
+        dfs(root2, leaves2)
+        return leaves1 == leaves2
+
+
+sol = Solution()
+
+root1 = TreeNode(
+    3,
+    TreeNode(5, TreeNode(6), TreeNode(2, TreeNode(7), TreeNode(4))),
+    TreeNode(1, TreeNode(9), TreeNode(8)),
+)
+root2 = TreeNode(
+    3,
+    TreeNode(5, TreeNode(6), TreeNode(7)),
+    TreeNode(1, TreeNode(4), TreeNode(2, TreeNode(9), TreeNode(8))),
+)
+assert sol.leafSimilar(root1, root2) == True
+root1 = TreeNode(1, TreeNode(2), TreeNode(3))
+root2 = TreeNode(1, TreeNode(3), TreeNode(2))
+assert sol.leafSimilar(root1, root2) == False
+root1 = TreeNode(1)
+root2 = TreeNode(1)
+assert sol.leafSimilar(root1, root2) == True
+root1 = TreeNode(1)
+root2 = TreeNode(2)
+assert sol.leafSimilar(root1, root2) == False
+root1 = TreeNode(1, TreeNode(2))
+root2 = TreeNode(1, None, TreeNode(2))
+assert sol.leafSimilar(root1, root2) == True
+root1 = TreeNode(1, TreeNode(2))
+root2 = TreeNode(1, None, TreeNode(3))
+assert sol.leafSimilar(root1, root2) == False
+root1 = TreeNode(1, TreeNode(2, TreeNode(4), TreeNode(5)), TreeNode(3))
+root2 = TreeNode(1, TreeNode(2), TreeNode(3, TreeNode(4), TreeNode(5)))
+assert sol.leafSimilar(root1, root2) == False
+root1 = TreeNode(1, TreeNode(2, TreeNode(4), TreeNode(5)), TreeNode(3))
+root2 = TreeNode(1, TreeNode(2), TreeNode(3, TreeNode(4)))
+assert sol.leafSimilar(root1, root2) == False
+root1 = TreeNode(0, TreeNode(1), TreeNode(1))
+root2 = TreeNode(0, TreeNode(1), TreeNode(1))
+assert sol.leafSimilar(root1, root2) == True
+root1 = TreeNode(0, TreeNode(1, TreeNode(3)))
+root2 = TreeNode(3)
+assert sol.leafSimilar(root1, root2) == True
+root1 = TreeNode(0, TreeNode(0))
+root2 = TreeNode(0, None, TreeNode(0))
+assert sol.leafSimilar(root1, root2) == True
+root1 = TreeNode(200, TreeNode(0, TreeNode(0), TreeNode(0)), TreeNode(0))
+root2 = TreeNode(100, TreeNode(0), TreeNode(0, TreeNode(0), TreeNode(0)))
+assert sol.leafSimilar(root1, root2) == True
+root1 = TreeNode(1, None, TreeNode(2, TreeNode(3)))
+root2 = TreeNode(1, TreeNode(2, None, TreeNode(3)))
+assert sol.leafSimilar(root1, root2) == True
+root1 = TreeNode(1, TreeNode(2, TreeNode(3)))
+root2 = TreeNode(3, TreeNode(2), TreeNode(1))
+assert sol.leafSimilar(root1, root2) == False
 
 """
 URL: https://leetcode.com/problems/n-th-tribonacci-number/description/?envType=study-plan-v2&envId=leetcode-75
@@ -1479,270 +1509,372 @@ assert result == 2082876103
 
 
 """
-https://leetcode.com/problems/leaf-similar-trees/description/
+https://leetcode.com/problems/unique-number-of-occurrences/description
 
-872. Leaf-Similar Trees
-Consider all the leaves of a binary tree, from left to right order, the values of those leaves form a leaf value sequence.
-
-For example, in the given tree above, the leaf value sequence is (6, 7, 4, 9, 8).
-
-Two binary trees are considered leaf-similar if their leaf value sequence is the same.
-
-Return true if and only if the two given trees with head nodes root1 and root2 are leaf-similar.
-
-Example 1:
-
-Input: root1 = [3,5,1,6,2,9,8,null,null,7,4], root2 = [3,5,1,6,7,4,2,null,null,null,null,null,null,9,8]
-Output: true
-Example 2:
-
-Input: root1 = [1,2,3], root2 = [1,3,2]
-Output: false
-
-Constraints:
-
-The number of nodes in each tree will be in the range [1, 200].
-Both of the given trees will have values in the range [0, 200].
-"""
-
-
-# Definition for a binary tree node.
-class TreeNode:
-    def __init__(self, val=0, left=None, right=None):
-        self.val = val
-        self.left = left
-        self.right = right
-
-
-class Solution:
-    def leafSimilar(self, root1: Optional[TreeNode], root2: Optional[TreeNode]) -> bool:
-
-        def dfs(node, leaves):
-            if not node:
-                return
-            is_leaf = node.left == node.right == None
-            if is_leaf:
-                leaves.append(node.val)
-                return
-            dfs(node.left, leaves)
-            dfs(node.right, leaves)
-
-        leaves1 = []
-        leaves2 = []
-        dfs(root1, leaves1)
-        dfs(root2, leaves2)
-        return leaves1 == leaves2
-
-
-sol = Solution()
-
-root1 = TreeNode(
-    3,
-    TreeNode(5, TreeNode(6), TreeNode(2, TreeNode(7), TreeNode(4))),
-    TreeNode(1, TreeNode(9), TreeNode(8)),
-)
-root2 = TreeNode(
-    3,
-    TreeNode(5, TreeNode(6), TreeNode(7)),
-    TreeNode(1, TreeNode(4), TreeNode(2, TreeNode(9), TreeNode(8))),
-)
-assert sol.leafSimilar(root1, root2) == True
-root1 = TreeNode(1, TreeNode(2), TreeNode(3))
-root2 = TreeNode(1, TreeNode(3), TreeNode(2))
-assert sol.leafSimilar(root1, root2) == False
-root1 = TreeNode(1)
-root2 = TreeNode(1)
-assert sol.leafSimilar(root1, root2) == True
-root1 = TreeNode(1)
-root2 = TreeNode(2)
-assert sol.leafSimilar(root1, root2) == False
-root1 = TreeNode(1, TreeNode(2))
-root2 = TreeNode(1, None, TreeNode(2))
-assert sol.leafSimilar(root1, root2) == True
-root1 = TreeNode(1, TreeNode(2))
-root2 = TreeNode(1, None, TreeNode(3))
-assert sol.leafSimilar(root1, root2) == False
-root1 = TreeNode(1, TreeNode(2, TreeNode(4), TreeNode(5)), TreeNode(3))
-root2 = TreeNode(1, TreeNode(2), TreeNode(3, TreeNode(4), TreeNode(5)))
-assert sol.leafSimilar(root1, root2) == False
-root1 = TreeNode(1, TreeNode(2, TreeNode(4), TreeNode(5)), TreeNode(3))
-root2 = TreeNode(1, TreeNode(2), TreeNode(3, TreeNode(4)))
-assert sol.leafSimilar(root1, root2) == False
-root1 = TreeNode(0, TreeNode(1), TreeNode(1))
-root2 = TreeNode(0, TreeNode(1), TreeNode(1))
-assert sol.leafSimilar(root1, root2) == True
-root1 = TreeNode(0, TreeNode(1, TreeNode(3)))
-root2 = TreeNode(3)
-assert sol.leafSimilar(root1, root2) == True
-root1 = TreeNode(0, TreeNode(0))
-root2 = TreeNode(0, None, TreeNode(0))
-assert sol.leafSimilar(root1, root2) == True
-root1 = TreeNode(200, TreeNode(0, TreeNode(0), TreeNode(0)), TreeNode(0))
-root2 = TreeNode(100, TreeNode(0), TreeNode(0, TreeNode(0), TreeNode(0)))
-assert sol.leafSimilar(root1, root2) == True
-root1 = TreeNode(1, None, TreeNode(2, TreeNode(3)))
-root2 = TreeNode(1, TreeNode(2, None, TreeNode(3)))
-assert sol.leafSimilar(root1, root2) == True
-root1 = TreeNode(1, TreeNode(2, TreeNode(3)))
-root2 = TreeNode(3, TreeNode(2), TreeNode(1))
-assert sol.leafSimilar(root1, root2) == False
-
-"""
-https://leetcode.com/problems/transpose-matrix/description/
-
-867. Transpose Matrix
+1207. Unique Number of Occurrences
 Easy
-Given a 2D integer array matrix, return the transpose of matrix.
-
-The transpose of a matrix is the matrix flipped over its main diagonal, switching the matrix's row and column indices.
+Given an array of integers arr, return true if the number of occurrences of each value in the array is unique or false otherwise.
 
 Example 1:
 
-Input: matrix = [[1,2,3],[4,5,6],[7,8,9]]
-Output: [[1,4,7],[2,5,8],[3,6,9]]
+Input: arr = [1,2,2,1,1,3]
+Output: true
+Explanation: The value 1 has 3 occurrences, 2 has 2 and 3 has 1. No two values have the same number of occurrences.
 Example 2:
 
-Input: matrix = [[1,2,3],[4,5,6]]
-Output: [[1,4],[2,5],[3,6]]
+Input: arr = [1,2]
+Output: false
+Example 3:
+
+Input: arr = [-3,0,1,-3,1,1,1,-3,10,0]
+Output: true
  
 
 Constraints:
 
-m == matrix.length
-n == matrix[i].length
-1 <= m, n <= 1000
-1 <= m * n <= 105
--109 <= matrix[i][j] <= 109
-"""
-
-"""
-1 2 3
-4 5 6
-7 8 9
-
-
-"""
-
-
-class Solution:
-    def transpose(self, matrix: List[List[int]]) -> List[List[int]]:
-        return [list(x) for x in zip(*matrix)]
-
-
-sol = Solution()
-assert sol.transpose(matrix=[[1, 2, 3], [4, 5, 6], [7, 8, 9]]) == [
-    [1, 4, 7],
-    [2, 5, 8],
-    [3, 6, 9],
-]
-
-assert sol.transpose(matrix=[[1, 2, 3], [4, 5, 6]]) == [[1, 4], [2, 5], [3, 6]]
-assert sol.transpose(matrix=[[1]]) == [[1]]
-assert sol.transpose(matrix=[[1, 2], [3, 4]]) == [[1, 3], [2, 4]]
-assert sol.transpose(matrix=[[5]]) == [[5]]
-assert sol.transpose(matrix=[[1, 2, 3, 4]]) == [[1], [2], [3], [4]]
-assert sol.transpose(matrix=[[1], [2], [3], [4]]) == [[1, 2, 3, 4]]
-assert sol.transpose(matrix=[[0, 0, 0], [0, 0, 0], [0, 0, 0]]) == [
-    [0, 0, 0],
-    [0, 0, 0],
-    [0, 0, 0],
-]
-assert sol.transpose(matrix=[[1, 2], [3, 4], [5, 6]]) == [[1, 3, 5], [2, 4, 6]]
-assert sol.transpose(matrix=[[1, 3, 5], [2, 4, 6]]) == [[1, 2], [3, 4], [5, 6]]
-assert sol.transpose(matrix=[[-1, -2], [-3, -4]]) == [[-1, -3], [-2, -4]]
-assert sol.transpose(matrix=[[10, 20, 30], [40, 50, 60]]) == [
-    [10, 40],
-    [20, 50],
-    [30, 60],
-]
-assert sol.transpose(matrix=[[7, 8, 9], [1, 2, 3], [4, 5, 6]]) == [
-    [7, 1, 4],
-    [8, 2, 5],
-    [9, 3, 6],
-]
-assert sol.transpose(matrix=[[2]]) == [[2]]
-assert sol.transpose(matrix=[[1, 2, 3]]) == [[1], [2], [3]]
-assert sol.transpose(matrix=[[1], [2], [3]]) == [[1, 2, 3]]
-assert sol.transpose(matrix=[[0]]) == [[0]]
-
-"""
-URL: https://leetcode.com/problems/most-common-word/description/
-
-819. Most Common Word
-
-Given a string paragraph and a string array of the banned words banned, return the most frequent word that is not banned. It is guaranteed there is at least one word that is not banned, and that the answer is unique.
-
-The words in paragraph are case-insensitive and the answer should be returned in lowercase.
-
-Note that words can not contain punctuation symbols.
-
-
-Example 1:
-
-Input: paragraph = "Bob hit a ball, the hit BALL flew far after it was hit.", banned = ["hit"]
-Output: "ball"
-Explanation:
-"hit" occurs 3 times, but it is a banned word.
-"ball" occurs twice (and no other word does), so it is the most frequent non-banned word in the paragraph.
-Note that words in the paragraph are not case sensitive,
-that punctuation is ignored (even if adjacent to words, such as "ball,"),
-and that "hit" isn't the answer even though it occurs more because it is banned.
-
-Example 2:
-
-Input: paragraph = "a.", banned = []
-Output: "a"
-
-
-Constraints:
-
-        1 <= paragraph.length <= 1000
-        paragraph consists of English letters, space ' ', or one of the symbols: "!?',;.".
-        0 <= banned.length <= 100
-        1 <= banned[i].length <= 10
-        banned[i] consists of only lowercase English letters.
+1 <= arr.length <= 1000
+-1000 <= arr[i] <= 1000
 """
 
 from collections import Counter
 
-rem = set("!?',;.")
+
+class Solution:
+    def uniqueOccurrences(self, arr: List[int]) -> bool:
+        occurrences = [count for val, count in Counter(arr).items()]
+        return len(occurrences) == len(set(occurrences))
+
+
+sol = Solution()
+sol.uniqueOccurrences([1, 2, 2, 1, 1, 3]) == True
+sol.uniqueOccurrences([1, 2]) == False
+sol.uniqueOccurrences([-3, 0, 1, -3, 1, 1, 1, -3, 10, 0]) == True
+sol.uniqueOccurrences([1]) == True
+sol.uniqueOccurrences([1, 1]) == True
+
+
+"""
+1431. Kids With the Greatest Number of Candies
+Easy
+There are n kids with candies. You are given an integer array candies, where each candies[i] represents the number of candies the ith kid has, and an integer extraCandies, denoting the number of extra candies that you have.
+
+Return a boolean array result of length n, where result[i] is true if, after giving the ith kid all the extraCandies, they will have the greatest number of candies among all the kids, or false otherwise.
+
+Note that multiple kids can have the greatest number of candies.
+
+ 
+
+Example 1:
+
+Input: candies = [2,3,5,1,3], extraCandies = 3
+Output: [true,true,true,false,true] 
+Explanation: If you give all extraCandies to:
+- Kid 1, they will have 2 + 3 = 5 candies, which is the greatest among the kids.
+- Kid 2, they will have 3 + 3 = 6 candies, which is the greatest among the kids.
+- Kid 3, they will have 5 + 3 = 8 candies, which is the greatest among the kids.
+- Kid 4, they will have 1 + 3 = 4 candies, which is not the greatest among the kids.
+- Kid 5, they will have 3 + 3 = 6 candies, which is the greatest among the kids.
+Example 2:
+
+Input: candies = [4,2,1,1,2], extraCandies = 1
+Output: [true,false,false,false,false] 
+Explanation: There is only 1 extra candy.
+Kid 1 will always have the greatest number of candies, even if a different kid is given the extra candy.
+Example 3:
+
+Input: candies = [12,1,12], extraCandies = 10
+Output: [true,false,true]
+ 
+
+Constraints:
+
+n == candies.length
+2 <= n <= 100
+1 <= candies[i] <= 100
+1 <= extraCandies <= 50
+"""
 
 
 class Solution:
-    def mostCommonWord(self, paragraph: str, banned: List[str]) -> str:
-        banned = set(banned)
-        tmp = []
-        for c in paragraph:
-            if c in rem:
-                tmp.append(" ")
-            else:
-                tmp.append(c.lower())
-        count = dict(Counter("".join(tmp).split()))
-        res = next(
-            iter(max(count.items(), key=lambda x: x[1] if x[0] not in banned else 0)),
-            "",
-        )
-        return res if res not in banned else ""
+    def kidsWithCandies(self, candies: List[int], extraCandies: int) -> List[bool]:
+        _max = max(candies)
+        return [x + extraCandies >= _max for x in candies]
 
 
 sol = Solution()
 
-res = sol.mostCommonWord(paragraph="a, a, a, a, b,b,b,c, c", banned=["a"])
-assert res == "b"
+true = True
+false = False
 
-res = sol.mostCommonWord(
-    paragraph="Bob hit a ball, the hit BALL flew far after it was hit.", banned=["hit"]
-)
-assert res == "ball"
+assert sol.kidsWithCandies(candies=[2, 3, 5, 1, 3], extraCandies=3) == [
+    True,
+    True,
+    True,
+    False,
+    True,
+]
+assert sol.kidsWithCandies(candies=[4, 2, 1, 1, 2], extraCandies=1) == [
+    True,
+    False,
+    False,
+    False,
+    False,
+]
+assert sol.kidsWithCandies(candies=[12, 1, 12], extraCandies=10) == [True, False, True]
+assert sol.kidsWithCandies(candies=[1, 1], extraCandies=1) == [True, True]
+assert sol.kidsWithCandies(candies=[1, 100], extraCandies=1) == [False, True]
+assert sol.kidsWithCandies(candies=[50, 50, 50, 50], extraCandies=1) == [
+    True,
+    True,
+    True,
+    True,
+]
+assert sol.kidsWithCandies(candies=[1, 1, 1], extraCandies=50) == [True, True, True]
+assert sol.kidsWithCandies(candies=[100, 100], extraCandies=1) == [True, True]
+assert sol.kidsWithCandies(candies=[1, 2, 3], extraCandies=2) == [True, True, True]
+assert sol.kidsWithCandies(candies=[1, 2, 3], extraCandies=1) == [False, True, True]
+assert sol.kidsWithCandies(candies=[5, 3, 5, 4], extraCandies=1) == [
+    True,
+    False,
+    True,
+    True,
+]
 
-res = sol.mostCommonWord(paragraph="a.", banned=[])
-assert res == "a"
+"""
+https://leetcode.com/problems/find-the-highest-altitude/description
 
-res = sol.mostCommonWord(paragraph="foo", banned=["foo"])
-assert res == ""
+1732. Find the Highest Altitude
+Easy
+Topics
+premium lock icon
+Companies
+Hint
+There is a biker going on a road trip. The road trip consists of n + 1 points at different altitudes. The biker starts his trip on point 0 with altitude equal 0.
 
-res = sol.mostCommonWord(paragraph="foo foo foo", banned=["foo"])
-assert res == ""
+You are given an integer array gain of length n where gain[i] is the net gain in altitude between points i​​​​​​ and i + 1 for all (0 <= i < n). Return the highest altitude of a point.
 
-res = sol.mostCommonWord(paragraph="f f f f b b b c c", banned=["f"])
-assert res == "b"
+ 
+
+Example 1:
+
+Input: gain = [-5,1,5,0,-7]
+Output: 1
+Explanation: The altitudes are [0,-5,-4,1,1,-6]. The highest is 1.
+Example 2:
+
+Input: gain = [-4,-3,-2,-1,4,3,2]
+Output: 0
+Explanation: The altitudes are [0,-4,-7,-9,-10,-6,-3,-1]. The highest is 0.
+ 
+
+Constraints:
+
+n == gain.length
+1 <= n <= 100
+-100 <= gain[i] <= 100
+"""
+
+
+class Solution:
+    def largestAltitude(self, gain: List[int]) -> int:
+        altitude = 0
+        _max = 0
+        for g in gain:
+            altitude += g
+            _max = max(altitude, _max)
+        return _max
+
+
+sol = Solution()
+assert sol.largestAltitude([-5, 1, 5, 0, -7]) == 1
+assert sol.largestAltitude([-4, -3, -2, -1, 4, 3, 2]) == 0
+assert sol.largestAltitude([10]) == 10
+assert sol.largestAltitude([0]) == 0
+assert sol.largestAltitude([-10]) == 0
+
+
+"""
+https://leetcode.com/problems/greatest-common-divisor-of-strings/description/
+
+1768. Merge Strings Alternately
+Easy
+You are given two strings word1 and word2. Merge the strings by adding letters in alternating order, starting with word1. If a string is longer than the other, append the additional letters onto the end of the merged string.
+
+Return the merged string.
+
+Example 1:
+
+Input: word1 = "abc", word2 = "pqr"
+Output: "apbqcr"
+Explanation: The merged string will be merged as so:
+word1:  a   b   c
+word2:    p   q   r
+merged: a p b q c r
+Example 2:
+
+Input: word1 = "ab", word2 = "pqrs"
+Output: "apbqrs"
+Explanation: Notice that as word2 is longer, "rs" is appended to the end.
+word1:  a   b 
+word2:    p   q   r   s
+merged: a p b q   r   s
+Example 3:
+
+Input: word1 = "abcd", word2 = "pq"
+Output: "apbqcd"
+Explanation: Notice that as word1 is longer, "cd" is appended to the end.
+word1:  a   b   c   d
+word2:    p   q 
+merged: a p b q c   d
+ 
+
+Constraints:
+
+1 <= word1.length, word2.length <= 100
+word1 and word2 consist of lowercase English letters.
+"""
+
+from itertools import zip_longest
+
+
+class Solution:
+    def mergeAlternately(self, word1: str, word2: str) -> str:
+        return "".join((a or "") + (b or "") for a, b in zip_longest(word1, word2))
+
+
+sol = Solution()
+
+assert sol.mergeAlternately(word1="abc", word2="pqr") == "apbqcr"
+assert sol.mergeAlternately(word1="ab", word2="pqrs") == "apbqrs"
+assert sol.mergeAlternately(word1="abcd", word2="pq") == "apbqcd"
+assert sol.mergeAlternately(word1="a", word2="b") == "ab"
+assert sol.mergeAlternately(word1="a", word2="bcdef") == "abcdef"
+assert sol.mergeAlternately(word1="abcde", word2="f") == "afbcde"
+assert sol.mergeAlternately(word1="aaa", word2="bbb") == "ababab"
+assert sol.mergeAlternately(word1="aa", word2="bbbb") == "ababbb"
+assert sol.mergeAlternately(word1="aaaa", word2="bb") == "ababaa"
+assert sol.mergeAlternately(word1="a" * 100, word2="b" * 100) == ("ab" * 100)
+assert sol.mergeAlternately(word1="a" * 100, word2="b") == ("a" + "b" + "a" * 99)
+assert sol.mergeAlternately(word1="a", word2="b" * 100) == ("a" + "b" * 100)
+assert sol.mergeAlternately(word1="xyz", word2="12345") == "x1y2z345"
+
+
+"""
+https://leetcode.com/problems/find-the-difference-of-two-arrays/description
+
+2215. Find the Difference of Two Arrays
+Easy
+Given two 0-indexed integer arrays nums1 and nums2, return a list answer of size 2 where:
+
+answer[0] is a list of all distinct integers in nums1 which are not present in nums2.
+answer[1] is a list of all distinct integers in nums2 which are not present in nums1.
+Note that the integers in the lists may be returned in any order.
+
+Example 1:
+
+Input: nums1 = [1,2,3], nums2 = [2,4,6]
+Output: [[1,3],[4,6]]
+Explanation:
+For nums1, nums1[1] = 2 is present at index 0 of nums2, whereas nums1[0] = 1 and nums1[2] = 3 are not present in nums2. Therefore, answer[0] = [1,3].
+For nums2, nums2[0] = 2 is present at index 1 of nums1, whereas nums2[1] = 4 and nums2[2] = 6 are not present in nums1. Therefore, answer[1] = [4,6].
+Example 2:
+
+Input: nums1 = [1,2,3,3], nums2 = [1,1,2,2]
+Output: [[3],[]]
+Explanation:
+For nums1, nums1[2] and nums1[3] are not present in nums2. Since nums1[2] == nums1[3], their value is only included once and answer[0] = [3].
+Every integer in nums2 is present in nums1. Therefore, answer[1] = [].
+ 
+
+Constraints:
+
+1 <= nums1.length, nums2.length <= 1000
+-1000 <= nums1[i], nums2[i] <= 1000
+"""
+
+
+class Solution:
+    def findDifference(self, nums1: List[int], nums2: List[int]) -> List[List[int]]:
+        nums1 = set(nums1)
+        nums2 = set(nums2)
+        return [list(nums1 - nums2), list(nums2 - nums1)]
+
+
+sol = Solution()
+sol.findDifference(nums1=[1, 2, 3], nums2=[2, 4, 6]) == [[1, 3], [4, 6]]
+sol.findDifference(nums1=[1, 2, 3, 3], nums2=[1, 1, 2, 2]) == [[3], []]
+sol.findDifference(nums1=[], nums2=[]) == [[], []]
+sol.findDifference(nums1=[1], nums2=[]) == [[1], []]
+
+
+"""
+2390. Removing Stars From a String
+Medium
+Topics
+premium lock icon
+Companies
+Hint
+You are given a string s, which contains stars *.
+
+In one operation, you can:
+
+Choose a star in s.
+Remove the closest non-star character to its left, as well as remove the star itself.
+Return the string after all stars have been removed.
+
+Note:
+
+The input will be generated such that the operation is always possible.
+It can be shown that the resulting string will always be unique.
+ 
+
+Example 1:
+
+Input: s = "leet**cod*e"
+Output: "lecoe"
+Explanation: Performing the removals from left to right:
+- The closest character to the 1st star is 't' in "leet**cod*e". s becomes "lee*cod*e".
+- The closest character to the 2nd star is 'e' in "lee*cod*e". s becomes "lecod*e".
+- The closest character to the 3rd star is 'd' in "lecod*e". s becomes "lecoe".
+There are no more stars, so we return "lecoe".
+Example 2:
+
+Input: s = "erase*****"
+Output: ""
+Explanation: The entire string is removed, so we return an empty string.
+ 
+
+Constraints:
+
+1 <= s.length <= 105
+s consists of lowercase English letters and stars *.
+The operation above can be performed on s.
+"""
+
+
+class Solution:
+    def removeStars(self, s: str) -> str:
+        stack = []
+        for c in s:
+            if c != "*":
+                stack.append(c)
+            else:
+                if stack:
+                    stack.pop()
+        return "".join(stack)
+
+
+sol = Solution()
+assert sol.removeStars(s="leet**cod*e") == "lecoe"
+assert sol.removeStars(s="erase*****") == ""
+assert sol.removeStars("a") == "a"
+assert sol.removeStars("a*") == ""
+assert sol.removeStars("ab*") == "a"
+assert sol.removeStars("a*b*") == ""
+assert sol.removeStars("abc") == "abc"
+assert sol.removeStars("abc***") == ""
+assert sol.removeStars("abcd***") == "a"
+assert sol.removeStars("aa*bb*cc*") == "abc"
+assert sol.removeStars("ab*cdef**") == "acd"
+
+
