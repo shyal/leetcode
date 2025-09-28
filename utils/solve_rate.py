@@ -174,9 +174,10 @@ def main():
         print("Total must be a positive integer.")
         exit(1)
 
-    # Parse the current leetcode.py to get solved problems, ignoring stubs
     with open("leetcode.py", "r") as f:
         lines = f.readlines()
+    with open("leetcode_easy.py", "r") as f:
+        lines.extend(f.readlines())
     _, sections = parse.extract_sections(lines)
     solved_problems = set()
     for number, section_lines in sections:

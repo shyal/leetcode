@@ -2,7 +2,17 @@
 
 I've recently decided to track my leetcode progress using a git repo, as it seems this is a common approach with serious leetcoders.
 
-For now, all solutions are in `leetcode.py`, the general format is:
+Currently organizing solutions into:
+
+```
+leetcode_easy.py
+leetcode_medium.py
+leetcode_hard.py
+```
+
+`Easy`, `Medium` and `Hard` ratings are my own, not leetcode's.
+
+The general format is:
 
 ```
 """
@@ -30,6 +40,7 @@ I'm considering move the tests into a separate file, but have to weigh the pros 
 ```
 python3 -m venv .venv
 . .venv/bin/activate
+cp utils/sitecustomize.py .venv/lib/python3.10/site-packages/
 pip3 install requirements.txt
 ```
 

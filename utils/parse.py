@@ -1,5 +1,3 @@
-# parse.py
-
 import re
 
 
@@ -14,20 +12,17 @@ def extract_sections(lines):
             if first_section_start is None:
                 first_section_start = i
                 preamble = lines[:i]
-            # start of docstring
             section_start = i
             doc_lines = []
             i += 1
             while i < len(lines) and not lines[i].strip().startswith('"""'):
                 doc_lines.append(lines[i])
                 i += 1
-            i += 1  # skip the closing """
-            # now find class Solution
+            i += 1
             while i < len(lines) and not lines[i].strip().startswith("class Solution"):
                 i += 1
             if i >= len(lines):
                 break
-            # now at class Solution, continue to collect until next """ or end
             j = i
             while j < len(lines):
                 if lines[j].strip() == '"""' or lines[j].strip().startswith('"""'):
@@ -35,7 +30,6 @@ def extract_sections(lines):
                 j += 1
             section_end = j
             section_lines = lines[section_start:section_end]
-            # extract number
             number = None
             title = None
             for dline in doc_lines:
@@ -47,7 +41,6 @@ def extract_sections(lines):
                         title = dline
                         break
             if number is None:
-                # check for url then next line
                 for k in range(len(doc_lines)):
                     if doc_lines[k].strip().startswith("https://"):
                         if k + 1 < len(doc_lines):
@@ -65,20 +58,19 @@ def extract_sections(lines):
     return preamble, sections
 
 
-if __name__ == "__main__":
-    with open("leetcode.py", "r") as f:
+def parse(fn):
+    with open(fn, "r") as f:
         lines = f.readlines()
 
     preamble, sections = extract_sections(lines)
-
-    # sort sections by number
     sections.sort(key=lambda x: x[0])
-
-    # flatten sorted section lines
     sorted_section_lines = []
     for _, sec in sections:
         sorted_section_lines.extend(sec)
-
-    # write back to file
-    with open("leetcode.py", "w") as f:
+    with open(fn, "w") as f:
         f.writelines(preamble + sorted_section_lines)
+
+
+if __name__ == "__main__":
+    parse("leetcode.py")
+    parse("leetcode_easy.py")
