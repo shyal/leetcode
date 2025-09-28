@@ -74,3 +74,5 @@ def parse(fn):
 if __name__ == "__main__":
     parse("leetcode.py")
     parse("leetcode_easy.py")
+    parse("leetcode_medium.py")
+    parse("leetcode_hard.py")
