@@ -33,10 +33,12 @@ problems = ["URL: " + ex.strip() for ex in today if ex.strip()]
 for problem_text in problems:
     lines = problem_text.splitlines()
     number = None
+    problem_title = None
     for line in lines:
         match = re.match(r"(\d+)\. ", line.strip())
         if match:
             number = match.group(1)
+            problem_title = line.strip()
             break
     if not number:
         print(f"Could not find exercise number in: {problem_text[:100]}...")
@@ -151,4 +153,9 @@ Output only the Python code for the stub, nothing else. Do not enclose your outp
 
     print(f"Saved stub to {file_name}")
 
+    run_git(["checkout", "-b", number])
+    run_git(["add", "."])
+    run_git(["commit", "-m", problem_title])
+
+    # only process the first one, and exit.
     break
