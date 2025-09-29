@@ -10,6 +10,9 @@ import builtins
 from Types import TreeNode
 from typing import List, Optional
 
+# shortcuts
+from itertools import *
+
 # utils
 from tree_utils import *
 from bst_utils import *
@@ -39,3 +42,5 @@ builtins.find_node = find_node
 builtins.get_inorder = get_inorder
 builtins.is_balanced = is_balanced
 builtins.is_valid_bst = is_valid_bst
+builtins.groupby = groupby
+builtins.combinations = combinations

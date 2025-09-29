@@ -31,6 +31,7 @@ with open("today.txt") as f:
 problems = ["URL: " + ex.strip() for ex in today if ex.strip()]
 
 for problem_text in problems:
+    run_git(["checkout", "master"])
     lines = problem_text.splitlines()
     number = None
     problem_title = None
@@ -156,6 +157,3 @@ Output only the Python code for the stub, nothing else. Do not enclose your outp
     run_git(["checkout", "-b", number])
     run_git(["add", "."])
     run_git(["commit", "-m", problem_title])
-
-    # only process the first one, and exit.
-    break
