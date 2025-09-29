@@ -1,5 +1,6 @@
 import subprocess
 import sys
+from datetime import datetime
 
 
 def run_git(cmd):
@@ -16,52 +17,50 @@ def run_git(cmd):
 
 
 def main(branch_name):
-    if not branch_name:
-        print("Usage: python script.py <branch_name>")
-        sys.exit(1)
-
-    # Checkout the branch
     run_git(["checkout", branch_name])
-
-    # Rebase the branch onto master
     run_git(["rebase", "master"])
-
-    # Get the commits unique to the branch (after rebase, on top of master)
-    commits = run_git(["rev-list", "master.." + branch_name]).splitlines()
-    # Reverse to process from oldest to newest
+    commits_output = run_git(["rev-list", "master.." + branch_name])
+    if not commits_output:
+        print("No commits unique to the branch.")
+        sys.exit(1)
+    commits = commits_output.splitlines()
     commits.reverse()
-
-    # Collect messages from non-fixup commits
-    message_parts = []
+    initial_hash = commits[0]
+    initial_msg = run_git(["log", "-1", "--format=%s", initial_hash])
+    start_date = None
+    end_date = None
     for commit_hash in commits:
         subject = run_git(["log", "-1", "--format=%s", commit_hash])
-        if not (subject.startswith("fixup! ") or subject.startswith("squash! ")):
-            body = run_git(["log", "-1", "--format=%b", commit_hash])
-            full_msg = subject
-            if body:
-                full_msg += "\n\n" + body
-            message_parts.append(full_msg)
-
-    if not message_parts:
-        print("No non-fixup commits found on the branch.")
+        date_str = run_git(["log", "-1", "--format=%aI", commit_hash])
+        date = datetime.strptime(date_str, "%Y-%m-%dT%H:%M:%S%z")
+        if subject == "started":
+            start_date = date
+        if subject == "solved":
+            end_date = date
+    if start_date is None:
+        start_date_str = run_git(["log", "-1", "--format=%aI", initial_hash])
+        start_date = datetime.strptime(start_date_str, "%Y-%m-%dT%H:%M:%S%z")
+    if end_date is None:
+        print("No 'solved' commit found.")
         sys.exit(1)
-
-    final_message = "\n\n".join(message_parts)
-
-    # Checkout master
+    delta = end_date - start_date
+    total_sec = int(delta.total_seconds())
+    minutes = total_sec // 60
+    seconds = total_sec % 60
+    solve_time_str = f"{minutes}m {seconds}s"
+    final_message = f"{initial_msg}\n\nsolve time: {solve_time_str}"
     run_git(["checkout", "master"])
-
-    # Perform the squash merge
     run_git(["merge", "--squash", branch_name])
-
-    # Commit with the constructed message
     subprocess.check_call(["git", "commit", "-m", final_message])
-
-    print("Squash commit created on master with non-fixup messages.")
+    print("Squash commit created on master with initial message and solve time.")
 
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python script.py <branch_name>")
+        branch_name = run_git(["branch", "--show-current"]).strip()
+    else:
+        branch_name = sys.argv[1]
+    if not branch_name:
+        print("Could not determine branch name.")
         sys.exit(1)
-    main(sys.argv[1])
+    main(branch_name)
