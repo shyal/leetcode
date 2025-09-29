@@ -1,10 +1,3 @@
-"""
-sitecustomize.py enables to add or override builtins. This is useful
-for calling utility functions without having to import them.
-
-This is not clean, but useful in the context of trying to solve quickly.
-"""
-
 import sys
 import os
 
