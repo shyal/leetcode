@@ -1051,6 +1051,76 @@ assert sol.twoSum(numbers=[-1, 0, 0, 1], target=0) == [1, 4]  # -1 + 1 = 0
 
 
 """
+URL: https://leetcode.com/problems/excel-sheet-column-title/description/
+
+168. Excel Sheet Column Title
+
+Given an integer columnNumber, return its corresponding column title as it appears in an Excel sheet.
+
+For example:
+
+A -> 1
+B -> 2
+C -> 3
+...
+Z -> 26
+AA -> 27
+AB -> 28
+...
+
+
+Example 1:
+
+Input: columnNumber = 1
+Output: "A"
+
+Example 2:
+
+Input: columnNumber = 28
+Output: "AB"
+
+Example 3:
+
+Input: columnNumber = 701
+Output: "ZY"
+
+
+Constraints:
+
+    1 <= columnNumber <= 231 - 1
+"""
+
+from string import ascii_uppercase
+
+
+class Solution:
+    def convertToTitle(self, columnNumber: int) -> str:
+        res = ""
+        while columnNumber:
+            columnNumber -= 1
+            mod = columnNumber % 26
+            res = ascii_uppercase[mod] + res
+            columnNumber //= 26
+        return res
+
+
+sol = Solution()
+assert sol.convertToTitle(1) == "A"
+assert sol.convertToTitle(28) == "AB"
+assert sol.convertToTitle(701) == "ZY"
+assert sol.convertToTitle(26) == "Z"
+assert sol.convertToTitle(27) == "AA"
+assert sol.convertToTitle(52) == "AZ"
+assert sol.convertToTitle(53) == "BA"
+assert sol.convertToTitle(676) == "YZ"
+assert sol.convertToTitle(677) == "ZA"
+assert sol.convertToTitle(702) == "ZZ"
+assert sol.convertToTitle(703) == "AAA"
+assert sol.convertToTitle(321272406) == "ZZZZZZ"
+assert sol.convertToTitle(321272407) == "AAAAAAA"
+assert sol.convertToTitle(2147483647) == "FXSHRXW"
+
+"""
 URL: https://leetcode.com/problems/binary-tree-right-side-view/description/?envType=study-plan-v2&envId=leetcode-75
 
 199. Binary Tree Right Side View
@@ -1196,6 +1266,76 @@ res = sol.rightSideView(tree)
 assert res == [0, 100, 50]
 
 
+"""
+URL: https://leetcode.com/problems/happy-number/description/
+
+202. Happy Number
+
+Write an algorithm to determine if a number n is happy.
+
+A happy number is a number defined by the following process:
+
+        Starting with any positive integer, replace the number by the sum of the squares of its digits.
+        Repeat the process until the number equals 1 (where it will stay), or it loops endlessly in a cycle which does not include 1.
+        Those numbers for which this process ends in 1 are happy.
+
+Return true if n is a happy number, and false if not.
+
+
+Example 1:
+
+Input: n = 19
+Output: true
+Explanation:
+1^2 + 9^2 = 82
+8^2 + 2^2 = 68
+6^2 + 8^2 = 100
+1^2 + 0^2 + 02 = 1
+
+Example 2:
+
+Input: n = 2
+Output: false
+
+
+Constraints:
+
+        1 <= n <= 231 - 1
+"""
+
+from functools import reduce
+
+
+class Solution:
+    def isHappy(self, n: int) -> bool:
+        nums = set([])
+        while n != 1:
+            digits = [int(x) for x in str(n)]
+            n = reduce(lambda acc, v: acc + v * v, digits, 0)
+            nums_size = len(nums)
+            nums.add(n)
+            if nums_size == len(nums):
+                break
+        return n == 1
+
+
+sol = Solution()
+
+assert sol.isHappy(19) == True
+assert sol.isHappy(2) == False
+assert sol.isHappy(19) == True
+assert sol.isHappy(2) == False
+assert sol.isHappy(1) == True
+assert sol.isHappy(7) == True
+assert sol.isHappy(4) == False
+assert sol.isHappy(10) == True
+assert sol.isHappy(1111111) == True
+assert sol.isHappy(9999999) == False
+assert sol.isHappy(2147483647) == False
+assert sol.isHappy(1000000000) == True
+assert sol.isHappy(13) == True
+assert sol.isHappy(11) == False
+assert sol.isHappy(44) == True
 """
 URL: https://leetcode.com/problems/contains-duplicate/description/
 
@@ -2507,72 +2647,3 @@ assert sol.removeStars("aa*bb*cc*") == "abc"
 assert sol.removeStars("ab*cdef**") == "acd"
 
 
-"""
-URL: https://leetcode.com/problems/excel-sheet-column-title/description/
-
-168. Excel Sheet Column Title
-
-Given an integer columnNumber, return its corresponding column title as it appears in an Excel sheet.
-
-For example:
-
-A -> 1
-B -> 2
-C -> 3
-...
-Z -> 26
-AA -> 27
-AB -> 28
-...
-
-
-Example 1:
-
-Input: columnNumber = 1
-Output: "A"
-
-Example 2:
-
-Input: columnNumber = 28
-Output: "AB"
-
-Example 3:
-
-Input: columnNumber = 701
-Output: "ZY"
-
-
-Constraints:
-
-    1 <= columnNumber <= 231 - 1
-"""
-
-from string import ascii_uppercase
-
-
-class Solution:
-    def convertToTitle(self, columnNumber: int) -> str:
-        res = ""
-        while columnNumber:
-            columnNumber -= 1
-            mod = columnNumber % 26
-            res = ascii_uppercase[mod] + res
-            columnNumber //= 26
-        return res
-
-
-sol = Solution()
-assert sol.convertToTitle(1) == "A"
-assert sol.convertToTitle(28) == "AB"
-assert sol.convertToTitle(701) == "ZY"
-assert sol.convertToTitle(26) == "Z"
-assert sol.convertToTitle(27) == "AA"
-assert sol.convertToTitle(52) == "AZ"
-assert sol.convertToTitle(53) == "BA"
-assert sol.convertToTitle(676) == "YZ"
-assert sol.convertToTitle(677) == "ZA"
-assert sol.convertToTitle(702) == "ZZ"
-assert sol.convertToTitle(703) == "AAA"
-assert sol.convertToTitle(321272406) == "ZZZZZZ"
-assert sol.convertToTitle(321272407) == "AAAAAAA"
-assert sol.convertToTitle(2147483647) == "FXSHRXW"
