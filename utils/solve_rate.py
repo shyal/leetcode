@@ -166,6 +166,13 @@ def main():
         default=200,
         help="Width for the timer rendering to prevent wrapping (default: 200)",
     )
+    parser.add_argument(
+        "--mode",
+        type=str,
+        choices=["rolling", "cal-days"],
+        default="rolling",
+        help="Mode for period calculation: 'rolling' for rolling windows from now, 'cal-days' for calendar days from midnight (default: rolling)",
+    )
     args = parser.parse_args()
 
     total = args.total
@@ -213,7 +220,8 @@ def main():
     print(f"Solved so far: {solved}")
     print(f"Remaining: {remaining}")
 
-    table = Table(title="Predictions Based on Past Periods")
+    mode_title = f"Predictions Based on Past Periods ({args.mode} mode)"
+    table = Table(title=mode_title)
     table.add_column("Period", justify="left")
     table.add_column("Solve Rate (prob/day)", justify="right")
     table.add_column("Days", justify="right")
@@ -223,7 +231,13 @@ def main():
     table.add_column("Completion Date", justify="left")
 
     for past_days, label in periods:
-        since_time = current_time - timedelta(days=past_days)
+        if args.mode == "rolling":
+            since_time = current_time - timedelta(days=past_days)
+        else:  # cal-days
+            since_date = current_time.date() - timedelta(days=past_days - 1)
+            since_time = datetime.combine(
+                since_date, datetime.min.time(), tzinfo=local_tz
+            )
 
         solve_count = 0
         for commit in commits:

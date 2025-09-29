@@ -1,10 +1,6 @@
+from PrettyPrint import PrettyPrintLinkedList
 from rich import print
-
-
-class ListNode:
-    def __init__(self, val=0, next=None):
-        self.val = val
-        self.next = next
+from Types import ListNode
 
 
 def build_linked_list(vals):
@@ -29,3 +25,16 @@ def get_list_values(head):
         ret.append(head.val)
         head = head.next
     return ret
+
+
+def draw_linked_list(head):
+    if not head:
+        print("Empty linked list")
+        return
+    pt = PrettyPrintLinkedList(
+        lambda x: x.val,
+        lambda x: x.next,
+        lambda x: None,
+        orientation=PrettyPrintLinkedList.Horizontal,
+    )
+    pt(head)

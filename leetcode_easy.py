@@ -1,3 +1,5 @@
+draw_linked_list = lambda x: None
+
 """
 URL: https://leetcode.com/problems/container-with-most-water/description/?envType=study-plan-v2&envId=leetcode-75
 
@@ -1337,6 +1339,73 @@ assert sol.isHappy(13) == True
 assert sol.isHappy(11) == False
 assert sol.isHappy(44) == True
 """
+URL: https://leetcode.com/problems/remove-linked-list-elements/description/?envType=problem-list-v2&envId=vn57k9wr
+
+203. Remove Linked List Elements
+
+Given the head of a linked list and an integer val, remove all the nodes of the linked list that has Node.val == val, and return the new head.
+
+
+Example 1:
+
+Input: head = [1,2,6,3,4,5,6], val = 6
+Output: [1,2,3,4,5]
+
+Example 2:
+
+Input: head = [], val = 1
+Output: []
+
+Example 3:
+
+Input: head = [7,7,7,7], val = 7
+Output: []
+
+
+Constraints:
+
+        The number of nodes in the list is in the range [0, 104].
+        1 <= Node.val <= 50
+        0 <= val <= 50
+"""
+
+
+class Solution:
+    def removeElements(self, head: Optional[ListNode], val: int) -> Optional[ListNode]:
+        dummy_head = ListNode(None, head)
+        it = dummy_head
+        while it.next:
+            if it.next.val == val:
+                it.next = it.next.next
+            else:
+                it = it.next
+        return dummy_head.next
+
+
+sol = Solution()
+head = build_linked_list([1, 2, 6, 3, 4, 5, 6])
+draw_linked_list(head)
+assert get_list_values(sol.removeElements(head, 6)) == [1, 2, 3, 4, 5]
+draw_linked_list(head)
+
+head = build_linked_list([])
+draw_linked_list(head)
+assert get_list_values(sol.removeElements(head, 1)) == []
+
+head = build_linked_list([7, 7, 7, 7])
+draw_linked_list(head)
+assert get_list_values(sol.removeElements(head, 7)) == []
+
+head = build_linked_list([1, 2, 3, 4, 5, 5, 5, 5])
+draw_linked_list(head)
+assert get_list_values(sol.removeElements(head, 5)) == [1, 2, 3, 4]
+draw_linked_list(head)
+
+head = build_linked_list([5, 5, 5, 5, 1, 2, 3, 4])
+draw_linked_list(head)
+assert get_list_values(sol.removeElements(head, 5)) == [1, 2, 3, 4]
+draw_linked_list(head)
+"""
 URL: https://leetcode.com/problems/contains-duplicate/description/
 
 217. Contains Duplicate
@@ -1438,6 +1507,168 @@ assert sol.containsNearbyDuplicate([1, 2, 3, 1], 3) == True
 assert sol.containsNearbyDuplicate([1, 0, 1, 1], 1) == True
 assert sol.containsNearbyDuplicate([1, 2, 3, 1, 2, 3], 2) == False
 assert sol.containsNearbyDuplicate(range(-30000, 30000), 35000) == False
+"""
+URL: https://leetcode.com/problems/implement-stack-using-queues/description/?envType=problem-list-v2&envId=vn57k9wr
+
+225. Implement Stack using Queues
+
+Implement a last-in-first-out (LIFO) stack using only two queues. The implemented stack should support all the functions of a normal stack (push, top, pop, and empty).
+
+Implement the MyStack class:
+
+        void push(int x) Pushes element x to the top of the stack.
+        int pop() Removes the element on the top of the stack and returns it.
+        int top() Returns the element on the top of the stack.
+        boolean empty() Returns true if the stack is empty, false otherwise.
+
+Notes:
+
+        You must use only standard operations of a queue, which means that only push to back, peek/pop from front, size and is empty operations are valid.
+        Depending on your language, the queue may not be supported natively. You may simulate a queue using a list or deque (double-ended queue) as long as you use only a queue's standard operations.
+
+
+Example 1:
+
+Input
+["MyStack", "push", "push", "top", "pop", "empty"]
+[[], [1], [2], [], [], []]
+Output
+[null, null, null, 2, 2, false]
+
+Explanation
+MyStack myStack = new MyStack();
+myStack.push(1);
+myStack.push(2);
+myStack.top(); // return 2
+myStack.pop(); // return 2
+myStack.empty(); // return False
+
+
+Constraints:
+
+        1 <= x <= 9
+        At most 100 calls will be made to push, pop, top, and empty.
+        All the calls to pop and top are valid.
+
+
+Follow-up: Can you implement the stack using only one queue?
+"""
+
+from collections import deque
+
+
+class Solution:
+
+    def func():
+        pass
+
+
+class MyStack:
+
+    def __init__(self):
+        self.q = deque()
+
+    def push(self, x: int) -> None:
+        # Pushes element x to the top of the stack.
+        self.q.append(x)
+
+    def pop(self) -> int:
+        # Removes the element on the top of the stack and returns it.
+        return self.q.pop()
+
+    def top(self) -> int:
+        # Returns the element on the top of the stack.
+        return self.q[-1]
+
+    def empty(self) -> bool:
+        return len(self.q) == 0
+
+
+myStack = MyStack()
+myStack.push(1)
+myStack.push(2)
+assert myStack.top() == 2
+assert myStack.pop() == 2
+assert myStack.empty() == False
+"""
+URL: https://leetcode.com/problems/invert-binary-tree/description/?envType=problem-list-v2&envId=vn57k9wr
+
+226. Invert Binary Tree
+
+Given the root of a binary tree, invert the tree, and return its root.
+
+
+Example 1:
+
+Input: root = [4,2,7,1,3,6,9]
+Output: [4,7,2,9,6,3,1]
+
+Example 2:
+
+Input: root = [2,1,3]
+Output: [2,3,1]
+
+Example 3:
+
+Input: root = []
+Output: []
+
+
+Constraints:
+
+        The number of nodes in the tree is in the range [0, 100].
+        -100 <= Node.val <= 100
+
+"""
+
+
+class Solution:
+    def invertTree(self, root: Optional[TreeNode]) -> Optional[TreeNode]:
+        def dfs(node):
+            if not node:
+                return
+            dfs(node.left)
+            dfs(node.right)
+            node.right, node.left = node.left, node.right
+
+        dfs(root)
+        return root
+
+
+sol = Solution()
+tree = build_tree([4, 2, 7, 1, 3, 6, 9])
+inverted = sol.invertTree(tree)
+assert inverted is tree
+assert inverted.val == 4
+assert inverted.left.val == 7
+assert inverted.right.val == 2
+assert inverted.left.left.val == 9
+assert inverted.left.right.val == 6
+assert inverted.right.left.val == 3
+assert inverted.right.right.val == 1
+assert inverted.left.left.left is None
+assert inverted.left.left.right is None
+assert inverted.left.right.left is None
+assert inverted.left.right.right is None
+assert inverted.right.left.left is None
+assert inverted.right.left.right is None
+assert inverted.right.right.left is None
+assert inverted.right.right.right is None
+
+tree = build_tree([2, 1, 3])
+inverted = sol.invertTree(tree)
+assert inverted is tree
+assert inverted.val == 2
+assert inverted.left.val == 3
+assert inverted.right.val == 1
+assert inverted.left.left is None
+assert inverted.left.right is None
+assert inverted.right.left is None
+assert inverted.right.right is None
+
+tree = build_tree([])
+inverted = sol.invertTree(tree)
+assert inverted is None
 """
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -1609,170 +1840,6 @@ assert sol.isUgly(27) == True
 assert sol.isUgly(30) == True
 assert sol.isUgly(2147483647) == False
 
-"""
-URL: https://leetcode.com/problems/invert-binary-tree/description/?envType=problem-list-v2&envId=vn57k9wr
-
-226. Invert Binary Tree
-
-Given the root of a binary tree, invert the tree, and return its root.
-
-
-Example 1:
-
-Input: root = [4,2,7,1,3,6,9]
-Output: [4,7,2,9,6,3,1]
-
-Example 2:
-
-Input: root = [2,1,3]
-Output: [2,3,1]
-
-Example 3:
-
-Input: root = []
-Output: []
-
-
-Constraints:
-
-        The number of nodes in the tree is in the range [0, 100].
-        -100 <= Node.val <= 100
-
-"""
-
-
-class Solution:
-    def invertTree(self, root: Optional[TreeNode]) -> Optional[TreeNode]:
-        def dfs(node):
-            if not node:
-                return
-            dfs(node.left)
-            dfs(node.right)
-            node.right, node.left = node.left, node.right
-
-        dfs(root)
-        return root
-
-
-sol = Solution()
-tree = build_tree([4, 2, 7, 1, 3, 6, 9])
-inverted = sol.invertTree(tree)
-assert inverted is tree
-assert inverted.val == 4
-assert inverted.left.val == 7
-assert inverted.right.val == 2
-assert inverted.left.left.val == 9
-assert inverted.left.right.val == 6
-assert inverted.right.left.val == 3
-assert inverted.right.right.val == 1
-assert inverted.left.left.left is None
-assert inverted.left.left.right is None
-assert inverted.left.right.left is None
-assert inverted.left.right.right is None
-assert inverted.right.left.left is None
-assert inverted.right.left.right is None
-assert inverted.right.right.left is None
-assert inverted.right.right.right is None
-
-tree = build_tree([2, 1, 3])
-inverted = sol.invertTree(tree)
-assert inverted is tree
-assert inverted.val == 2
-assert inverted.left.val == 3
-assert inverted.right.val == 1
-assert inverted.left.left is None
-assert inverted.left.right is None
-assert inverted.right.left is None
-assert inverted.right.right is None
-
-tree = build_tree([])
-inverted = sol.invertTree(tree)
-assert inverted is None
-"""
-||||||| parent of 8aa7d60 (parse)
-=======
-URL: https://leetcode.com/problems/implement-stack-using-queues/description/?envType=problem-list-v2&envId=vn57k9wr
-
-225. Implement Stack using Queues
-
-Implement a last-in-first-out (LIFO) stack using only two queues. The implemented stack should support all the functions of a normal stack (push, top, pop, and empty).
-
-Implement the MyStack class:
-
-        void push(int x) Pushes element x to the top of the stack.
-        int pop() Removes the element on the top of the stack and returns it.
-        int top() Returns the element on the top of the stack.
-        boolean empty() Returns true if the stack is empty, false otherwise.
-
-Notes:
-
-        You must use only standard operations of a queue, which means that only push to back, peek/pop from front, size and is empty operations are valid.
-        Depending on your language, the queue may not be supported natively. You may simulate a queue using a list or deque (double-ended queue) as long as you use only a queue's standard operations.
-
-
-Example 1:
-
-Input
-["MyStack", "push", "push", "top", "pop", "empty"]
-[[], [1], [2], [], [], []]
-Output
-[null, null, null, 2, 2, false]
-
-Explanation
-MyStack myStack = new MyStack();
-myStack.push(1);
-myStack.push(2);
-myStack.top(); // return 2
-myStack.pop(); // return 2
-myStack.empty(); // return False
-
-
-Constraints:
-
-        1 <= x <= 9
-        At most 100 calls will be made to push, pop, top, and empty.
-        All the calls to pop and top are valid.
-
-
-Follow-up: Can you implement the stack using only one queue?
-"""
-
-from collections import deque
-
-
-class Solution:
-
-    def func():
-        pass
-
-
-class MyStack:
-
-    def __init__(self):
-        self.q = deque()
-
-    def push(self, x: int) -> None:
-        # Pushes element x to the top of the stack.
-        self.q.append(x)
-
-    def pop(self) -> int:
-        # Removes the element on the top of the stack and returns it.
-        return self.q.pop()
-
-    def top(self) -> int:
-        # Returns the element on the top of the stack.
-        return self.q[-1]
-
-    def empty(self) -> bool:
-        return len(self.q) == 0
-
-
-myStack = MyStack()
-myStack.push(1)
-myStack.push(2)
-assert myStack.top() == 2
-assert myStack.pop() == 2
-assert myStack.empty() == False
 """
 >>>>>>> 8aa7d60 (parse)
 283. Move Zeroes
@@ -3029,5 +3096,3 @@ assert sol.removeStars("abc***") == ""
 assert sol.removeStars("abcd***") == "a"
 assert sol.removeStars("aa*bb*cc*") == "abc"
 assert sol.removeStars("ab*cdef**") == "acd"
-
-
