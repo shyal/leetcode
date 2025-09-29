@@ -207,8 +207,7 @@ def main():
         (5, "5 days"),
         (6, "6 days"),
         (7, "1 week"),
-        (30, "1 month"),
-        (365, "1 year"),
+        (7 * 2, "2 weeks"),
     ]
 
     print(f"Solved so far: {solved}")
