@@ -18,8 +18,10 @@ from tree_utils import (
     draw_general_tree,
     generate_full_binary_tree,
     find_node,
+    get_inorder,
+    is_balanced,
 )
-from bst_utils import generate_and_print_random_bst
+from bst_utils import generate_and_print_random_bst, is_valid_bst
 import builtins
 from typing import List, Optional
 from rich import print as rich_print
@@ -72,3 +74,6 @@ builtins.draw_general_tree = draw_general_tree
 builtins.generate_and_print_random_bst = generate_and_print_random_bst
 builtins.generate_full_binary_tree = generate_full_binary_tree
 builtins.find_node = find_node
+builtins.get_inorder = get_inorder
+builtins.is_balanced = is_balanced
+builtins.is_valid_bst = is_valid_bst

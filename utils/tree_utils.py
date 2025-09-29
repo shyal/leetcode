@@ -158,3 +158,29 @@ def generate_full_binary_tree(height: int) -> Optional[TreeNode]:
     arr = list(range(1, num_nodes + 1))
     # Use the provided build_tree utility to construct the tree
     return build_tree(arr)
+
+
+def get_inorder(root: Optional[TreeNode]) -> List[int]:
+    def inorder(node: Optional[TreeNode]) -> List[int]:
+        if not node:
+            return []
+        return inorder(node.left) + [node.val] + inorder(node.right)
+
+    return inorder(root)
+
+
+def is_balanced(root: Optional[TreeNode]) -> bool:
+    def check_height(node: Optional[TreeNode]) -> int:
+        if not node:
+            return 0
+        left = check_height(node.left)
+        if left == -1:
+            return -1
+        right = check_height(node.right)
+        if right == -1:
+            return -1
+        if abs(left - right) > 1:
+            return -1
+        return max(left, right) + 1
+
+    return check_height(root) != -1
