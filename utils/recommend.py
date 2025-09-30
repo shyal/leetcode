@@ -1,3 +1,4 @@
+from rich.console import Console
 import subprocess
 import os
 import re
@@ -5,6 +6,8 @@ import sys
 from datetime import datetime
 from xai_sdk import Client
 from xai_sdk.chat import system, user
+
+console = Console()
 
 
 def run_git(cmd):
@@ -118,7 +121,8 @@ Keep the response concise, structured, and encouraging. Do not recommend hard pr
         )
         response = chat.sample()
         recommendation = response.content
-        print(recommendation)
+        md = Markdown(recommendation)
+        console.print(md)
     except Exception as e:
         print(f"Error calling xAI API: {e}")
         sys.exit(1)
