@@ -29,6 +29,7 @@ def main(branch_name):
     initial_msg = run_git(["log", "-1", "--format=%s", initial_hash])
     start_date = None
     end_date = None
+    solved_body = ""
     for commit_hash in commits:
         subject = run_git(["log", "-1", "--format=%s", commit_hash])
         date_str = run_git(["log", "-1", "--format=%aI", commit_hash])
@@ -37,6 +38,7 @@ def main(branch_name):
             start_date = date
         if subject == "solved":
             end_date = date
+            solved_body = run_git(["log", "-1", "--format=%b", commit_hash]).strip()
     if start_date is None:
         start_date_str = run_git(["log", "-1", "--format=%aI", initial_hash])
         start_date = datetime.strptime(start_date_str, "%Y-%m-%dT%H:%M:%S%z")
@@ -49,10 +51,14 @@ def main(branch_name):
     seconds = total_sec % 60
     solve_time_str = f"{minutes}m {seconds}s"
     final_message = f"{initial_msg}\n\nsolve time: {solve_time_str}"
+    if solved_body:
+        final_message += f"\n\n{solved_body}"
     run_git(["checkout", "master"])
     run_git(["merge", "--squash", branch_name])
     subprocess.check_call(["git", "commit", "-m", final_message])
-    print("Squash commit created on master with initial message and solve time.")
+    print(
+        "Squash commit created on master with initial message, solve time, and notes."
+    )
 
 
 if __name__ == "__main__":

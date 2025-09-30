@@ -134,7 +134,7 @@ Now, for this problem:
 
 {problem_text}
 
-Output only the Python code for the stub, nothing else. Do not enclose your output in triple backticks (```)"""
+Output only the Python code for the stub, nothing else. Do not enclose your output in triple backticks (```). Indents are 4 spaces."""
 
     chat = client.chat.create(
         model="grok-4-0709",
