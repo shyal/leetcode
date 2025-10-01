@@ -42,11 +42,22 @@ def main():
     with open("current.py", "r") as f:
         content = f.read()
 
+    # Prompt for notes
+    notes = input("notes: ").strip()
+
+    # Append to target file
     with open(target_file, "a") as f:
         f.write(content + "\n\n")  # Add some separation
 
+    # Clear current.py
     with open("current.py", "w") as f:
         f.write("")
+
+    # Prepare commit message
+    if notes:
+        commit_message = f"solved\n\n{notes}"
+    else:
+        commit_message = "solved"
 
     try:
         subprocess.run(["git", "add", "."], check=True)
@@ -55,7 +66,7 @@ def main():
         return
 
     try:
-        subprocess.run(["git", "commit", "-m", "solved"], check=True)
+        subprocess.run(["git", "commit", "-m", commit_message], check=True)
     except subprocess.CalledProcessError as e:
         print(f"Error running git commit: {e}")
         return
