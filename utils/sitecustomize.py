@@ -61,3 +61,4 @@ builtins.ceil = ceil
 builtins.pairwise = pairwise
 builtins.zip_longest = zip_longest
 builtins.reduce = reduce
+builtins.takewhile = takewhile
