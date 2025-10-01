@@ -1,0 +1,168 @@
+#!/usr/bin/env python3
+
+import subprocess
+import os
+import time
+import re
+from datetime import datetime, timezone
+
+
+def parse_current(file_path="current.py"):
+    with open(file_path, "r") as f:
+        content = f.read()
+
+    # Find the first docstring
+    match = re.search(r'"""(.*?)"""', content, re.DOTALL)
+    if not match:
+        return None, None, ""
+
+    docstring = match.group(1).strip()
+    lines = docstring.split("\n")
+
+    num = None
+    title = None
+    for line in lines:
+        line = line.strip()
+        if line:
+            prob_match = re.match(r"(\d+)\.\s*(.+)", line)
+            if prob_match:
+                num = int(prob_match.group(1))
+                title = prob_match.group(2).strip()
+                break
+
+    if num is None:
+        # If not in first line, check after url
+        for i, line in enumerate(lines):
+            if line.strip().startswith("https://"):
+                if i + 1 < len(lines):
+                    next_line = lines[i + 1].strip()
+                    prob_match = re.match(r"(\d+)\.\s*(.+)", next_line)
+                    if prob_match:
+                        num = int(prob_match.group(1))
+                        title = prob_match.group(2).strip()
+                        break
+
+    return num, title, content
+
+
+def main():
+    # Find the start time
+    # First, check for commit with message "started"
+    result = subprocess.run(
+        ["git", "log", "-1", "--grep=^started$", "--format=%ct"],
+        capture_output=True,
+        text=True,
+    )
+    output = result.stdout.strip()
+
+    if output:
+        start_time = int(output)
+    else:
+        # Get the last commit time
+        result = subprocess.run(
+            ["git", "log", "-1", "--format=%ct"], capture_output=True, text=True
+        )
+        if result.returncode != 0 or not result.stdout.strip():
+            print("No commits found. Using current time as start.")
+            start_time = time.time()
+        else:
+            start_time = int(result.stdout.strip())
+
+    current_time = time.time()
+    delta_seconds = current_time - start_time
+    minutes = int(delta_seconds // 60)
+    seconds = int(delta_seconds % 60)
+    solve_time = f"{minutes}m {seconds}s"
+
+    if not os.path.exists("current.py"):
+        print("current.py does not exist. Exiting.")
+        return
+
+    num, title, content = parse_current()
+    if num is None or title is None:
+        print("Could not parse problem number and title from current.py. Exiting.")
+        return
+
+    # Prompt for notes
+    notes = input("notes: ").strip()
+
+    # Save to ./solved
+    clean_title = re.sub(r"[^\w\s-]", "", title).strip().replace(" ", "_")
+    utc_now = datetime.now(timezone.utc)
+    iso = utc_now.isoformat() + "Z"
+    sanitized = re.sub(r"[^\w]", "_", iso)
+    filename = f"p{num}_{clean_title}_{sanitized}.py"
+    output_dir = "./solved"
+    os.makedirs(output_dir, exist_ok=True)
+    filepath = os.path.join(output_dir, filename)
+
+    with open(filepath, "w") as f:
+        f.write(content)
+
+    # Clear current.py
+    with open("current.py", "w") as f:
+        f.write("")
+
+    # Prepare commit message
+    commit_message = (
+        f"{num}. {title}\n\nunsolved time: {solve_time}\nstill learning - reschedule"
+    )
+    if notes:
+        commit_message += f"\n\n{notes}"
+
+    try:
+        subprocess.run(["git", "add", "."], check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Error running git add: {e}")
+        return
+
+    try:
+        subprocess.run(["git", "commit", "-m", commit_message], check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Error running git commit: {e}")
+        return
+
+    # Get current branch
+    try:
+        current_branch = (
+            subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"])
+            .decode()
+            .strip()
+        )
+    except subprocess.CalledProcessError as e:
+        print(f"Error getting current branch: {e}")
+        return
+
+    # Checkout master
+    try:
+        subprocess.run(["git", "checkout", "master"], check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Error checking out master: {e}")
+        return
+
+    # Squash merge the branch
+    try:
+        subprocess.run(["git", "merge", "--squash", current_branch], check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Error squash merging: {e}")
+        return
+
+    # Commit with the solve time message
+    try:
+        subprocess.run(["git", "commit", "-m", commit_message], check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Error committing squash merge: {e}")
+        return
+
+    # Delete the feature branch
+    try:
+        subprocess.run(["git", "branch", "-D", current_branch], check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Error deleting branch: {e}")
+        return
+
+    print("Operations completed successfully.")
+
+
+if __name__ == "__main__":
+    main()
