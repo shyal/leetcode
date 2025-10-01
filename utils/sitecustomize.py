@@ -12,6 +12,7 @@ from Types import ListNode
 from typing import List, Optional
 
 # shortcuts
+from functools import *
 from itertools import *
 from math import log10, log2, floor, ceil
 
@@ -59,3 +60,4 @@ builtins.floor = floor
 builtins.ceil = ceil
 builtins.pairwise = pairwise
 builtins.zip_longest = zip_longest
+builtins.reduce = reduce
