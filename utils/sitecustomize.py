@@ -57,3 +57,5 @@ builtins.log10 = log10
 builtins.log2 = log2
 builtins.floor = floor
 builtins.ceil = ceil
+builtins.pairwise = pairwise
+builtins.zip_longest = zip_longest
