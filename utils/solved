@@ -55,6 +55,12 @@ def main():
     with open("current.py", "w") as f:
         f.write("")
 
+    try:
+        subprocess.run(["make", "parse"], check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Error running make parse: {e}")
+        return
+
     # Prepare commit message
     if notes:
         commit_message = f"solved\n\n{notes}"

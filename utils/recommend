@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from typing import List, Tuple
 from rich.console import Console
 from rich.markdown import Markdown
 import subprocess
@@ -9,6 +10,8 @@ import sys
 from datetime import datetime
 from xai_sdk import Client
 from xai_sdk.chat import system, user
+from parse import get_solutions
+from history_builder import get_solved_problems, parse_content
 
 console = Console()
 
@@ -33,66 +36,23 @@ if not api_key:
 client = Client(api_key=api_key)
 
 
-def get_solved_problems():
-    log_output = run_git(["log", "--pretty=format:%H%n%an%n%ad%n%B%n---"])
-    blocks = log_output.strip().split("---\n")
-    solved = []
-    for block in blocks:
-        if not block.strip():
-            continue
-        lines = block.split("\n")
-        if len(lines) < 3:
-            continue
-        commit_hash = lines[0].strip()
-        author = lines[1].strip()
-        date_str = lines[2].strip()
-        message_lines = lines[3:]
-        message = "\n".join(message_lines).strip()
-
-        # Parse problem from first matching line
-        prob_num = None
-        prob_title = None
-        for line in message_lines:
-            stripped = line.strip()
-            if stripped:
-                m = re.match(r"(\d+)\.\s*(.*)", stripped)
-                if m:
-                    prob_num = int(m.group(1))
-                    prob_title = m.group(2).strip()
-                    break
-
-        if prob_num is None or prob_title is None:
-            continue
-
-        # Parse solve time if present
-        solve_time_match = re.search(
-            r"solve time:\s*([\d\sm ]+)", message, re.IGNORECASE
-        )
-        solve_time = solve_time_match.group(1).strip() if solve_time_match else None
-
-        try:
-            commit_date = datetime.strptime(date_str, "%a %b %d %H:%M:%S %Y %z")
-        except ValueError:
-            print(
-                f"Warning: Could not parse date '{date_str}' for commit {commit_hash}"
-            )
-            continue
-
-        solved.append((prob_num, prob_title, commit_date, solve_time))
-
-    solved.sort(key=lambda x: x[2])  # Sort by date ascending
-    return solved
-
-
 def main():
     solved_problems = get_solved_problems()
+    solutions = get_solutions()
 
     if not solved_problems:
         history_str = "No previous solves recorded."
     else:
         history_str = "\n".join(
             [
-                f"{p[2].strftime('%Y-%m-%d %H:%M')}: {p[0]}. {p[1]}{f' (time: {p[3]})' if p[3] else ''}"
+                f"{p[2].strftime('%Y-%m-%d %H:%M')}: {p[0]}. {p[1]}{f' (time: {p[3]})' if p[3] else ''}:"
+                + f"\n\n"
+                + (
+                    lambda content: (
+                        lambda notes, code: code + (f"\n\n{notes}" if notes else "")
+                    )(*parse_content(content))
+                )("".join(solutions.get(p[0], [])))
+                + f"\n"
                 for p in solved_problems
             ]
         )
@@ -106,6 +66,11 @@ This is to build confidence.
 Then for the middle (N / 3) solves, pick a mix of easy and medium questions that will reinforce gaps in his fundamentals knowledge. Alternate between something the user can solve, and something that'll be more challening or needs revisiting.
 For the last (N / 3) solves, pick easy questions again, that haven't already been solved, so he can wrap up the day nicely.
 
+Generally favour new problems. Only revisit problems, after some time, if the user seems to really struggle with them.
+
+Examine very carefully how the user is solving questions, and think about what he seems great at, versus what he seems to struggle with.
+Maybe he's great at functional programming, but seems to fall over because he's skipping the pseudocode phase, or not fleshing out things enough before hand.
+
 For your recommendation, specify:
 - Problem number and full title (e.g., "1. Two Sum").
 - Difficulty: Easy or Medium.
@@ -115,6 +80,13 @@ For your recommendation, specify:
 Keep the response concise, structured, and encouraging. Do not recommend hard problems."""
 
     user_prompt = f"""Here is my LeetCode solve history (most recent last):\n\n{history_str}\n\nBased on this, recommend my next problem."""
+
+    with open("_recommendation_prompt.txt", "w") as w:
+        w.write(user_prompt)
+
+    print(user_prompt)
+
+    exit()
 
     try:
         chat = client.chat.create(

@@ -1,0 +1,87 @@
+#!/usr/bin/env python3
+
+from typing import List, Tuple
+from rich.console import Console
+from rich.markdown import Markdown
+import subprocess
+import os
+import re
+import sys
+from datetime import datetime
+from xai_sdk import Client
+from xai_sdk.chat import system, user
+from parse import get_solutions
+from history_builder import get_solved_problems, parse_content
+
+console = Console()
+
+
+def run_git(cmd):
+    """Run a git command and return its output."""
+    try:
+        return (
+            subprocess.check_output(["git"] + cmd, stderr=subprocess.STDOUT)
+            .decode()
+            .strip()
+        )
+    except subprocess.CalledProcessError as e:
+        print(f"Git command failed: {' '.join(cmd)}\nOutput: {e.output.decode()}")
+        sys.exit(1)
+
+
+api_key = os.getenv("GROK_API_KEY")
+if not api_key:
+    raise ValueError("GROK_API_KEY environment variable not set")
+
+client = Client(api_key=api_key)
+
+
+def main():
+    solved_problems = get_solved_problems()
+    solutions = get_solutions()
+
+    if not solved_problems:
+        history_str = "No previous solves recorded."
+    else:
+        history_str = "\n".join(
+            [
+                f"{p[2].strftime('%Y-%m-%d %H:%M')}: {p[0]}. {p[1]}{f' (time: {p[3]})' if p[3] else ''}:"
+                + f"\n\n"
+                + (
+                    lambda content: (
+                        lambda notes, code: code + (f"\n\n{notes}" if notes else "")
+                    )(*parse_content(content))
+                )("".join(solutions.get(p[0], [])))
+                + f"\n"
+                for p in solved_problems
+            ]
+        )
+
+    system_prompt = """You are an expert LeetCode coach specializing in assessing candidate readiness."""
+
+    user_prompt = f"""Here is my LeetCode solve history (most recent last):\n\n{history_str}\n\nBased on this, estimate when i'll be ready to join contests and do well, or interview at any FAANG company and get hired."""
+
+    with open("_estimate_prompt.txt", "w") as w:
+        w.write(user_prompt)
+
+    print(user_prompt)
+
+    try:
+        chat = client.chat.create(
+            model="grok-4-0709",
+            messages=[
+                system(system_prompt),
+                user(user_prompt),
+            ],
+        )
+        response = chat.sample()
+        recommendation = response.content
+        md = Markdown(recommendation)
+        console.print(md)
+    except Exception as e:
+        print(f"Error calling xAI API: {e}")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

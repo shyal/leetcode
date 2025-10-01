@@ -1,8 +1,9 @@
 import re
+from rich import print
 
 
 def extract_sections(lines):
-    sections = []
+    sections = {}
     preamble = []
     i = 0
     first_section_start = None
@@ -51,28 +52,50 @@ def extract_sections(lines):
                                 title = next_line
                                 break
             if number is not None:
-                sections.append((number, section_lines))
+                sections[number] = section_lines
             i = section_end
         else:
             i += 1
     return preamble, sections
 
 
-def parse(fn):
+files = [f"leetcode{x}.py" for x in ["", "_easy", "_medium", "_hard"]]
+
+
+def read_file(fn):
     with open(fn, "r") as f:
         lines = f.readlines()
+    return extract_sections(lines)
 
-    preamble, sections = extract_sections(lines)
-    sections.sort(key=lambda x: x[0])
+
+def parse(fn):
+    preamble, sections = read_file(fn)
     sorted_section_lines = []
-    for _, sec in sections:
-        sorted_section_lines.extend(sec)
+    for k in sorted(sections):
+        sorted_section_lines.extend(sections[k])
     with open(fn, "w") as f:
         f.writelines(preamble + sorted_section_lines)
 
 
+def get_all_sections():
+    sections = {}
+    for f in files:
+        sections.update(read_file(f)[1])
+    return sections
+
+
+def parse_all():
+    for f in files:
+        parse(f)
+
+
+def get_solutions(numbers=None):
+    sections = get_all_sections()
+    if numbers:
+        numbers = set(numbers)
+        return {k: v for k, v in sections.items() if k in numbers}
+    return sections
+
+
 if __name__ == "__main__":
-    parse("leetcode.py")
-    parse("leetcode_easy.py")
-    parse("leetcode_medium.py")
-    parse("leetcode_hard.py")
+    parse_all()

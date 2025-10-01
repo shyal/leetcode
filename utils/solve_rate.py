@@ -187,8 +187,8 @@ def main():
         lines.extend(f.readlines())
     _, sections = parse.extract_sections(lines)
     solved_problems = set()
-    for number, section_lines in sections:
-        if not is_stub(section_lines):
+    for number in sections:
+        if not is_stub(sections[number]):
             solved_problems.add(number)
 
     solved = len(solved_problems)
