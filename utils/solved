@@ -3,6 +3,46 @@
 import subprocess
 import os
 import time
+import re
+from datetime import datetime, timezone
+
+
+def parse_current(file_path="current.py"):
+    with open(file_path, "r") as f:
+        content = f.read()
+
+    # Find the first docstring
+    match = re.search(r'"""(.*?)"""', content, re.DOTALL)
+    if not match:
+        return None, None, ""
+
+    docstring = match.group(1).strip()
+    lines = docstring.split("\n")
+
+    num = None
+    title = None
+    for line in lines:
+        line = line.strip()
+        if line:
+            prob_match = re.match(r"(\d+)\.\s*(.+)", line)
+            if prob_match:
+                num = int(prob_match.group(1))
+                title = prob_match.group(2).strip()
+                break
+
+    if num is None:
+        # If not in first line, check after url
+        for i, line in enumerate(lines):
+            if line.strip().startswith("https://"):
+                if i + 1 < len(lines):
+                    next_line = lines[i + 1].strip()
+                    prob_match = re.match(r"(\d+)\.\s*(.+)", next_line)
+                    if prob_match:
+                        num = int(prob_match.group(1))
+                        title = prob_match.group(2).strip()
+                        break
+
+    return num, title, content
 
 
 def main():
@@ -18,54 +58,55 @@ def main():
     if output:
         start_time = int(output)
     else:
-        # Get the first commit on the branch
+        # Get the last commit time
         result = subprocess.run(
-            ["git", "log", "--reverse", "--format=%ct"], capture_output=True, text=True
+            ["git", "log", "-1", "--format=%ct"], capture_output=True, text=True
         )
         if result.returncode != 0 or not result.stdout.strip():
-            print("No commits found. Exiting.")
-            return
-        start_time = int(result.stdout.splitlines()[0].strip())
+            print("No commits found. Using current time as start.")
+            start_time = time.time()
+        else:
+            start_time = int(result.stdout.strip())
 
     current_time = time.time()
     delta_seconds = current_time - start_time
-
-    if delta_seconds < 600:  # < 10 minutes
-        target_file = "leetcode_easy.py"
-    elif delta_seconds < 1800:  # < 30 minutes
-        target_file = "leetcode_medium.py"
-    else:
-        target_file = "leetcode_hard.py"
+    minutes = int(delta_seconds // 60)
+    seconds = int(delta_seconds % 60)
+    solve_time = f"{minutes}m {seconds}s"
 
     if not os.path.exists("current.py"):
         print("current.py does not exist. Exiting.")
         return
 
-    with open("current.py", "r") as f:
-        content = f.read()
+    num, title, content = parse_current()
+    if num is None or title is None:
+        print("Could not parse problem number and title from current.py. Exiting.")
+        return
 
     # Prompt for notes
     notes = input("notes: ").strip()
 
-    # Append to target file
-    with open(target_file, "a") as f:
-        f.write(content + "\n\n")  # Add some separation
+    # Save to ./solved
+    clean_title = re.sub(r"[^\w\s-]", "", title).strip().replace(" ", "_")
+    utc_now = datetime.now(timezone.utc)
+    iso = utc_now.isoformat() + "Z"
+    sanitized = re.sub(r"[^\w]", "_", iso)
+    filename = f"p{num}_{clean_title}_{sanitized}.py"
+    output_dir = "./solved"
+    os.makedirs(output_dir, exist_ok=True)
+    filepath = os.path.join(output_dir, filename)
+
+    with open(filepath, "w") as f:
+        f.write(content)
 
     # Clear current.py
     with open("current.py", "w") as f:
         f.write("")
 
-    try:
-        subprocess.run(["make", "parse"], check=True)
-    except subprocess.CalledProcessError as e:
-        print(f"Error running make parse: {e}")
-        return
-
     # Prepare commit message
+    commit_message = f"{num}. {title}\n\nsolve time: {solve_time}"
     if notes:
-        commit_message = f"solved\n\n{notes}"
-    else:
-        commit_message = "solved"
+        commit_message += f"\n\n{notes}"
 
     try:
         subprocess.run(["git", "add", "."], check=True)

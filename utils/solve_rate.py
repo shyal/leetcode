@@ -10,7 +10,6 @@ from rich.table import Table
 from rich.live import Live
 from rich.panel import Panel
 import time
-import parse  # Import the modified parse.py for code reuse
 import itertools
 import pyfiglet
 
@@ -23,34 +22,6 @@ def render_big_time(secs: int, font_name: str, width: int = 200) -> str:
     ss = secs % 60
     time_str = f"{hh:02d}:{mm:02d}:{ss:02d}"
     return pyfiglet.figlet_format(time_str, font=font_name, width=width)
-
-
-def is_stub(section_lines):
-    in_class = False
-    in_def = False
-    indent_level = 0
-    body = []
-    for line in section_lines:
-        if not line.strip():
-            continue
-        indent = len(line) - len(line.lstrip())
-        if not in_class and line.strip().startswith("class Solution"):
-            in_class = True
-            indent_level = indent
-            continue
-        if in_class and not in_def and line.strip().startswith("def "):
-            in_def = True
-            indent_level = indent
-            continue
-        if in_def:
-            if indent > indent_level:
-                stripped = line.strip()
-                if stripped and stripped != "pass" and not stripped.startswith("#"):
-                    body.append(stripped)
-            else:
-                # end of def if indent decreases
-                break
-    return len(body) == 0
 
 
 def get_git_log():
@@ -88,6 +59,13 @@ def parse_commits(log_output):
                 }
             )
     return commits
+
+
+def get_problem_number(message):
+    match = re.match(r"^(\d+)\.", message.strip())
+    if match:
+        return int(match.group(1))
+    return None
 
 
 def is_problem_commit(message):
@@ -181,27 +159,34 @@ def main():
         print("Total must be a positive integer.")
         exit(1)
 
-    with open("leetcode.py", "r") as f:
-        lines = f.readlines()
-    with open("leetcode_easy.py", "r") as f:
-        lines.extend(f.readlines())
-    _, sections = parse.extract_sections(lines)
-    solved_problems = set()
-    for number in sections:
-        if not is_stub(sections[number]):
-            solved_problems.add(number)
+    log_output = get_git_log()
+    commits = parse_commits(log_output)
 
-    solved = len(solved_problems)
+    # Filter solve commits
+    solve_commits = []
+    for commit in commits:
+        num = get_problem_number(commit["message"])
+        if num and is_problem_commit(commit["message"]):
+            solve_commits.append({**commit, "number": num})
+
+    # Sort by date ascending to take the earliest commit for each problem
+    solve_commits.sort(
+        key=lambda c: datetime.strptime(c["date_str"], "%a %b %d %H:%M:%S %Y %z")
+    )
+
+    unique_solves = {}
+    for c in solve_commits:
+        if c["number"] not in unique_solves:
+            unique_solves[c["number"]] = c
+
+    solved = len(unique_solves)
     remaining = total - solved
     if remaining <= 0:
         print(f"You have solved {solved} out of {total}, so no remaining questions.")
         exit(0)
 
-    remaining_problems = [i for i in range(1, total + 1) if i not in solved_problems]
+    remaining_problems = [i for i in range(1, total + 1) if i not in unique_solves]
     remaining_problems.sort()
-
-    log_output = get_git_log()
-    commits = parse_commits(log_output)
 
     local_tz = timezone(timedelta(hours=args.tz_offset))
     current_time = datetime.now(local_tz)
@@ -240,16 +225,16 @@ def main():
             )
 
         solve_count = 0
-        for commit in commits:
+        for num, c in unique_solves.items():
             try:
                 commit_time = datetime.strptime(
-                    commit["date_str"], "%a %b %d %H:%M:%S %Y %z"
+                    c["date_str"], "%a %b %d %H:%M:%S %Y %z"
                 ).astimezone(local_tz)
-                if commit_time >= since_time and is_problem_commit(commit["message"]):
+                if commit_time >= since_time:
                     solve_count += 1
             except ValueError:
                 print(
-                    f"Warning: Invalid date format in commit {commit['hash']}: {commit['date_str']}"
+                    f"Warning: Invalid date format in commit {c['hash']}: {c['date_str']}"
                 )
                 continue
 
@@ -306,15 +291,13 @@ def main():
             today_start = current_time.replace(
                 hour=0, minute=0, second=0, microsecond=0
             )
-            for commit in commits:
+            for c in unique_solves.values():
                 try:
                     commit_time = datetime.strptime(
-                        commit["date_str"], "%a %b %d %H:%M:%S %Y %z"
+                        c["date_str"], "%a %b %d %H:%M:%S %Y %z"
                     ).astimezone(local_tz)
-                    if commit_time >= today_start and is_problem_commit(
-                        commit["message"]
-                    ):
-                        m = re.match(r"^(\d+)\.\s*(.*)", commit["message"].strip())
+                    if commit_time >= today_start:
+                        m = re.match(r"^(\d+)\.\s*(.*)", c["message"].strip())
                         if m:
                             prob_num = int(m.group(1))
                             msg = m.group(2)

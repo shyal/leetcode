@@ -1,8 +1,11 @@
+# history_builder.py
+
 from datetime import datetime
 
 import re
 from typing import List, Tuple
 import subprocess
+import sys
 
 
 def run_git(cmd):
