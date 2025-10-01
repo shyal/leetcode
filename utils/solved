@@ -126,6 +126,52 @@ def main():
         print(f"Error running make rebase: {e}")
         return
 
+    # Get current branch
+    result = subprocess.run(
+        ["git", "branch", "--show-current"], capture_output=True, text=True
+    )
+    current_branch = result.stdout.strip()
+
+    if current_branch == "master":
+        print("Already on master branch. No squash merge needed.")
+        return
+
+    # Get the last commit message from the branch
+    result = subprocess.run(
+        ["git", "log", "-1", "--format=%B", current_branch],
+        capture_output=True,
+        text=True,
+    )
+    squash_message = result.stdout.strip()
+
+    # Checkout master
+    try:
+        subprocess.run(["git", "checkout", "master"], check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Error checking out master: {e}")
+        return
+
+    # Merge squash
+    try:
+        subprocess.run(["git", "merge", "--squash", current_branch], check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Error during squash merge: {e}")
+        return
+
+    # Commit with the squash message (only the solve time message)
+    try:
+        subprocess.run(["git", "commit", "-m", squash_message], check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Error committing squash merge: {e}")
+        return
+
+    # Delete the branch
+    try:
+        subprocess.run(["git", "branch", "-D", current_branch], check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Error deleting branch: {e}")
+        return
+
     print("Operations completed successfully.")
 
 
