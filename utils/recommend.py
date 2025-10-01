@@ -99,9 +99,10 @@ def main():
 
 Recommend EXACTLY ONE next problem to solve. 
 Your goal is for the user to hit his average number of solves over the last few days.
-To do that, try to sandwich the day: for the first N / 3 solves (where N is the average over the last few days), start with easy questions that he can solve easily. This is to build confidence.
-Then for the middle (N / 3) solves, pick a mix of easy and medium questions that will reinforce gaps in his fundamentals knowledge.
-For the last (N / 3) solves, pick easy questions again so he can wrap up the day nicely.
+To do that, try to sandwich the day: for the first N / 3 solves (where N is the average over the last few days), start with easy questions that he can solve easily, and have haven't already been solved.
+This is to build confidence.
+Then for the middle (N / 3) solves, pick a mix of easy and medium questions that will reinforce gaps in his fundamentals knowledge. Alternate between something the user can solve, and something that'll be more challening or needs revisiting.
+For the last (N / 3) solves, pick easy questions again, that haven't already been solved, so he can wrap up the day nicely.
 
 For your recommendation, specify:
 - Problem number and full title (e.g., "1. Two Sum").

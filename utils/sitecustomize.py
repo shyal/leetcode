@@ -13,6 +13,7 @@ from typing import List, Optional
 
 # shortcuts
 from itertools import *
+from math import log10, log2, floor, ceil
 
 # utils
 from tree_utils import *
@@ -52,3 +53,7 @@ builtins.is_balanced = is_balanced
 builtins.is_valid_bst = is_valid_bst
 builtins.groupby = groupby
 builtins.combinations = combinations
+builtins.log10 = log10
+builtins.log2 = log2
+builtins.floor = floor
+builtins.ceil = ceil
