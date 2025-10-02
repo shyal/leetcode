@@ -15,6 +15,7 @@ from typing import List, Optional
 from functools import *
 from itertools import *
 from math import log10, log2, floor, ceil, prod
+from collections import defaultdict
 
 # utils
 from tree_utils import *
@@ -63,3 +64,4 @@ builtins.zip_longest = zip_longest
 builtins.reduce = reduce
 builtins.takewhile = takewhile
 builtins.prod = prod
+builtins.defaultdict = defaultdict
