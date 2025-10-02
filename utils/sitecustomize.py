@@ -69,3 +69,4 @@ builtins.defaultdict = defaultdict
 builtins.accumulate = accumulate
 builtins.bisect_left = bisect.bisect_left
 builtins.bisect_right = bisect.bisect_right
+builtins.chain = chain
