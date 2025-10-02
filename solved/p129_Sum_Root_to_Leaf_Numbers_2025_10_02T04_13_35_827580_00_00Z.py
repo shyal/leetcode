@@ -67,7 +67,6 @@ assert sol.sumNumbers(tree) == 1
 tree = build_tree([0])
 assert sol.sumNumbers(tree) == 0
 tree = build_tree([1, 2])
-draw_tree(tree)
 assert sol.sumNumbers(tree) == 12
 tree = build_tree([1, 0])
 assert sol.sumNumbers(tree) == 10
