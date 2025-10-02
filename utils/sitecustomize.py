@@ -4,6 +4,7 @@ import os
 sys.path.insert(0, os.getcwd())
 sys.path.insert(0, os.path.join(os.getcwd(), "utils"))
 
+import bisect
 import builtins
 
 # types
@@ -66,3 +67,5 @@ builtins.takewhile = takewhile
 builtins.prod = prod
 builtins.defaultdict = defaultdict
 builtins.accumulate = accumulate
+builtins.bisect_left = bisect.bisect_left
+builtins.bisect_right = bisect.bisect_right
