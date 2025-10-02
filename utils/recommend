@@ -9,7 +9,7 @@ import subprocess
 import os
 import re
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from xai_sdk import Client
 from xai_sdk.chat import system, user
 from history_builder import get_solved_problems, parse_content
@@ -54,9 +54,11 @@ def main():
     if not solved_problems:
         history_str = "No previous solves recorded."
     else:
+        manila_tz = timezone(timedelta(hours=8))
+
         history_str = "\n".join(
             [
-                f"{p[2].strftime('%Y-%m-%d %H:%M')}: {p[0]}. {p[1]}{f' (time: {p[3]})' if p[3] else ''}:"
+                f"{p[2].astimezone(manila_tz).strftime('%Y-%m-%d %H:%M')}: {p[0]}. {p[1]}{f' (time: {p[3]})' if p[3] else ''}:"
                 + f"\n\n"
                 + (
                     lambda content: (
