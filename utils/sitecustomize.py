@@ -65,3 +65,4 @@ builtins.reduce = reduce
 builtins.takewhile = takewhile
 builtins.prod = prod
 builtins.defaultdict = defaultdict
+builtins.accumulate = accumulate
