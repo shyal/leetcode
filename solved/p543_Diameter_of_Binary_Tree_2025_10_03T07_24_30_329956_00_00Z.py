@@ -41,17 +41,19 @@ and and the right subtree. This definition works recursively.
 
 class Solution:
     def diameterOfBinaryTree(self, root: Optional[TreeNode]) -> int:
-        def dfs(node, res):
+        # not my solution
+        self.diam = 0
+
+        def dfs(node):
             if not node:
                 return 0
-            left = dfs(node.left, res)
-            right = dfs(node.right, res)
-            res[0] = max(res[0], left + right)
+            left = dfs(node.left)
+            right = dfs(node.right)
+            self.diam = max(self.diam, left + right)
             return max(left, right) + 1
 
-        res = [0]
-        dfs(root, res)
-        return res[0]
+        dfs(root)
+        return self.diam
 
 
 sol = Solution()
