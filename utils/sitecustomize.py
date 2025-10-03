@@ -16,7 +16,7 @@ from typing import List, Optional
 from functools import *
 from itertools import *
 from math import log10, log2, floor, ceil, prod
-from collections import defaultdict
+from collections import defaultdict, Counter
 
 # utils
 from tree_utils import *
@@ -72,3 +72,4 @@ builtins.accumulate = accumulate
 builtins.bisect_left = bisect.bisect_left
 builtins.bisect_right = bisect.bisect_right
 builtins.chain = chain
+builtins.Counter = Counter
