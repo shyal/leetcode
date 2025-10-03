@@ -36,9 +36,5 @@ class Solution:
 
 sol = Solution()
 
-
-print(sol.smallestEvenMultiple(5))
-print(sol.smallestEvenMultiple(6))
-
 assert sol.smallestEvenMultiple(5) == 10
 assert sol.smallestEvenMultiple(6) == 6
