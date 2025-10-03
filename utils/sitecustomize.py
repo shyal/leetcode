@@ -17,6 +17,7 @@ from functools import *
 from itertools import *
 from math import log10, log2, floor, ceil, prod
 from collections import defaultdict, Counter
+import operator
 
 # utils
 from tree_utils import *
@@ -73,3 +74,4 @@ builtins.bisect_left = bisect.bisect_left
 builtins.bisect_right = bisect.bisect_right
 builtins.chain = chain
 builtins.Counter = Counter
+builtins.add = operator.add
