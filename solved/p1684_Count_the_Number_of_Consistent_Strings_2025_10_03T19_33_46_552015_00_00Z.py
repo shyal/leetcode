@@ -47,8 +47,6 @@ sol = Solution()
 
 res = sol.countConsistentStrings("ab", ["ad", "bd", "aaab", "baa", "badab"])
 
-print(res)
-
 assert res == 2
 assert sol.countConsistentStrings("abc", ["a", "b", "c", "ab", "ac", "bc", "abc"]) == 7
 assert (

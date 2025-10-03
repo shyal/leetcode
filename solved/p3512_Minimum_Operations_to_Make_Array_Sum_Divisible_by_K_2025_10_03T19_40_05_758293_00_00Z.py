@@ -58,8 +58,6 @@ class Solution:
 
 sol = Solution()
 
-print(sol.minOperations([3, 9, 7], 5))
-
 assert sol.minOperations([3, 9, 7], 5) == 4
 assert sol.minOperations([4, 1, 3], 4) == 0
 assert sol.minOperations([3, 2], 6) == 5
