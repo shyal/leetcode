@@ -92,6 +92,6 @@ assert sol.diameterOfBinaryTree(build_tree([1, 2, 3])) == 2
 assert sol.diameterOfBinaryTree(build_tree([1, 2, 3, 4])) == 3
 tree = build_tree([1, 2, None, 3, 4, 5, 6, 7, 8])
 res = sol.diameterOfBinaryTree(tree)
-draw_tree(tree)
+# draw_tree(tree)
 assert res == 4
 assert sol.diameterOfBinaryTree(build_tree([1, None, 2])) == 1

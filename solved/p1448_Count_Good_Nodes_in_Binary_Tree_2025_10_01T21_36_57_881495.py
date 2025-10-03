@@ -27,16 +27,6 @@ Output: 1
 Explanation: Root is considered as good.
 """
 
-from typing import List, Optional
-from tree_utils import build_tree, draw_tree
-
-
-class TreeNode:
-    def __init__(self, val=0, left=None, right=None):
-        self.val = val
-        self.left = left
-        self.right = right
-
 
 class Solution:
     def goodNodes(self, root: Optional[TreeNode]) -> int:

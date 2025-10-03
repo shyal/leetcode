@@ -41,9 +41,6 @@ Constraints:
         1 <= Node.val <= 100
 """
 
-from typing import List, Optional
-from tree_utils import build_tree, draw_tree
-
 
 class TreeNode:
     def __init__(self, val=0, left=None, right=None):
@@ -108,4 +105,3 @@ assert sol.longestZigZag(tree12) == 4
 
 tree13 = build_tree([1, 1, None, None, 1, 1, None, None, 1])
 assert sol.longestZigZag(tree13) == 4
-

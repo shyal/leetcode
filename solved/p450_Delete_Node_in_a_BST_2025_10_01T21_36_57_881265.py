@@ -91,12 +91,5 @@ for i in range(10):
     delete = [*range(15)]
     random.shuffle(delete)
     for d in delete:
-        verbose = False
-        if verbose:
-            print("about to delete node", d)
         tree = sol.deleteNode(tree, d)
-        if verbose:
-            draw_tree(tree)
-            print(tree_to_list(tree))
-            print("done")
         assert is_valid_bst(tree)
