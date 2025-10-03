@@ -46,27 +46,29 @@ def parse_current(file_path="current.py"):
 
 
 def main():
-    # Find the start time
-    # First, check for commit with message "started"
+    # Get current branch early
+    try:
+        current_branch = (
+            subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"])
+            .decode()
+            .strip()
+        )
+    except subprocess.CalledProcessError as e:
+        print(f"Error getting current branch: {e}")
+        return
+
+    # Find the start time: earliest commit on the current branch
     result = subprocess.run(
-        ["git", "log", "-1", "--grep=^started$", "--format=%ct"],
+        ["git", "log", "--reverse", "--format=%ct", current_branch],
         capture_output=True,
         text=True,
     )
-    output = result.stdout.strip()
-
-    if output:
-        start_time = int(output)
+    if result.returncode != 0 or not result.stdout.strip():
+        print("No commits found on branch. Using current time as start.")
+        start_time = time.time()
     else:
-        # Get the last commit time
-        result = subprocess.run(
-            ["git", "log", "-1", "--format=%ct"], capture_output=True, text=True
-        )
-        if result.returncode != 0 or not result.stdout.strip():
-            print("No commits found. Using current time as start.")
-            start_time = time.time()
-        else:
-            start_time = int(result.stdout.strip())
+        output_lines = result.stdout.strip().splitlines()
+        start_time = int(output_lines[0])
 
     current_time = time.time()
     delta_seconds = current_time - start_time
@@ -105,7 +107,7 @@ def main():
 
     # Prepare commit message
     commit_message = (
-        f"{num}. {title}\n\nunsolved time: {solve_time}\nstill learning - reschedule"
+        f"{num}. {title}\n\nsolve time: {solve_time}\nstill learning - reschedule"
     )
     if notes:
         commit_message += f"\n\n{notes}"
@@ -120,17 +122,6 @@ def main():
         subprocess.run(["git", "commit", "-m", commit_message], check=True)
     except subprocess.CalledProcessError as e:
         print(f"Error running git commit: {e}")
-        return
-
-    # Get current branch
-    try:
-        current_branch = (
-            subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"])
-            .decode()
-            .strip()
-        )
-    except subprocess.CalledProcessError as e:
-        print(f"Error getting current branch: {e}")
         return
 
     # Checkout master

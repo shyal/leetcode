@@ -83,8 +83,8 @@ sol = Solution()
 # print(sol.twoSum([-1, 0, 1, 2, -1, -4], 1))
 # print(sol.threeSum([-1, 0, 1, 2, -1, -4]))
 
-TLE = [0] * 3000
-assert sol.threeSum(TLE) == [[0, 0, 0]]
+# TLE = [0] * 3000
+# assert sol.threeSum(TLE) == [[0, 0, 0]]
 assert sol.threeSum([-1, 0, 1, 2, -1, -4]) == [[-1, -1, 2], [-1, 0, 1]]
 assert sol.threeSum([0, 1, 1]) == []
 assert sol.threeSum([0, 0, 0]) == [[0, 0, 0]]

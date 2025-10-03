@@ -7,10 +7,10 @@ import subprocess
 import os
 import re
 import sys
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+import json
 from xai_sdk import Client
 from xai_sdk.chat import system, user
-from parse import get_solutions
 from history_builder import get_solved_problems, parse_content
 
 console = Console()
@@ -29,6 +29,17 @@ def run_git(cmd):
         sys.exit(1)
 
 
+def get_problem_content(num: int, title: str, dt: datetime) -> str:
+    """Get the content of the solved problem file based on number."""
+    solved_dir = "./solved"
+    for filename in os.listdir(solved_dir):
+        if filename.startswith(f"p{num}_") and filename.endswith(".py"):
+            filepath = os.path.join(solved_dir, filename)
+            with open(filepath, "r") as f:
+                return f.read()
+    return ""
+
+
 api_key = os.getenv("GROK_API_KEY")
 if not api_key:
     raise ValueError("GROK_API_KEY environment variable not set")
@@ -38,33 +49,52 @@ client = Client(api_key=api_key)
 
 def main():
     solved_problems = get_solved_problems()
-    solutions = get_solutions()
 
     if not solved_problems:
         history_str = "No previous solves recorded."
     else:
+        manila_tz = timezone(timedelta(hours=8))
+
         history_str = "\n".join(
             [
-                f"{p[2].strftime('%Y-%m-%d %H:%M')}: {p[0]}. {p[1]}{f' (time: {p[3]})' if p[3] else ''}:"
+                f"{p[2].astimezone(manila_tz).strftime('%Y-%m-%d %H:%M')}: {p[0]}. {p[1]}{f' (time: {p[3]})' if p[3] else ''}:"
                 + f"\n\n"
                 + (
                     lambda content: (
                         lambda notes, code: code + (f"\n\n{notes}" if notes else "")
                     )(*parse_content(content))
-                )("".join(solutions.get(p[0], [])))
+                )(get_problem_content(p[0], p[1], p[2]))
                 + f"\n"
                 for p in solved_problems
             ]
         )
 
-    system_prompt = """You are an expert LeetCode coach specializing in assessing candidate readiness."""
+    system_prompt = """You are an expert LeetCode coach specializing in assessing candidate readiness.
 
-    user_prompt = f"""Here is my LeetCode solve history (most recent last):\n\n{history_str}\n\nBased on this, estimate when i'll be ready to join contests and do well, or interview at any FAANG company and get hired."""
+Based on the user's solve history, estimate two future dates:
+
+1. Contest Readiness Date: When the user will be ready to join LeetCode contests and perform well (e.g., top 50%).
+
+2. FAANG Interview Date: When the user will be ready to interview at FAANG companies and get hired.
+
+Output ONLY a JSON object like:
+
+{
+
+"contest_readiness": "YYYY-MM-DD",
+
+"faang_interview": "YYYY-MM-DD"
+
+}
+
+Use realistic dates based on progress, assuming continued daily practice."""
+
+    user_prompt = f"""Here is my LeetCode solve history (most recent last):\n\n{history_str}\n\nBased on this, estimate my readiness dates."""
 
     with open("_estimate_prompt.txt", "w") as w:
         w.write(user_prompt)
 
-    print(user_prompt)
+    # print(user_prompt)
 
     try:
         chat = client.chat.create(
@@ -75,12 +105,42 @@ def main():
             ],
         )
         response = chat.sample()
-        recommendation = response.content
-        md = Markdown(recommendation)
-        console.print(md)
+        recommendation = response.content.strip()
+        estimates = json.loads(recommendation)
+    except json.JSONDecodeError as e:
+        print(f"Failed to parse JSON from API response: {e}")
+        print(f"Response: {recommendation}")
+        sys.exit(1)
     except Exception as e:
         print(f"Error calling xAI API: {e}")
         sys.exit(1)
+
+    manila_tz = timezone(timedelta(hours=8))
+    today = datetime.now(manila_tz).strftime("%Y-%m-%d")
+
+    data = []
+    if os.path.exists("readiness.json"):
+        try:
+            with open("readiness.json", "r") as f:
+                data = json.load(f)
+            if not isinstance(data, list):
+                data = []
+        except json.JSONDecodeError:
+            data = []
+
+    new_entry = {
+        "run_date": today,
+        "contest_readiness": estimates["contest_readiness"],
+        "faang_interview": estimates["faang_interview"],
+    }
+    data.append(new_entry)
+
+    with open("readiness.json", "w") as f:
+        json.dump(data, f, indent=2)
+
+    console.print(f"[bold]Run date:[/bold] {today}")
+    console.print(f"[bold]Contest readiness:[/bold] {estimates['contest_readiness']}")
+    console.print(f"[bold]FAANG interview:[/bold] {estimates['faang_interview']}")
 
 
 if __name__ == "__main__":
