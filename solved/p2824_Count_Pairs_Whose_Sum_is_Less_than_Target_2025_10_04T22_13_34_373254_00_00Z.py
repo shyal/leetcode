@@ -51,11 +51,9 @@ sol = Solution()
 
 nums = [-1, 1, 2, 3, 1]
 target = 2
-print(sol.countPairs(nums, target))
 
 assert sol.countPairs(nums, target) == 3
 
 nums = [-6, 2, 5, -2, -7, -1, 3]
 target = -2
-print(sol.countPairs(nums, target))
 assert sol.countPairs(nums, target) == 10
