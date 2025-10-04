@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import sys
 import subprocess
 import os
 import re
@@ -107,9 +108,6 @@ sol = Solution()
 tree = build_tree([1, None, 2, 3])
 draw_tree(tree)
 
-# then generate the rest of the examples, with prints / draws etc. and asserts so i can uncomment them
-# when i'm running to run assertions
-
 # assert sol.preorderTraversal(tree) == [1, 2, 3]
 
 # tree = build_tree([1, 2, 3, 4, 5, None, 8, None, None, 6, 7, 9])
@@ -125,7 +123,7 @@ draw_tree(tree)
 # assert sol.preorderTraversal(tree) == [1]
 '''
 
-    user_prompt = f"""Please generate a usable stub for the following LeetCode problem. The stub should include the problem description as a docstring, the Solution class with the method signature and pass, then instantiate sol = Solution(), and add assert statements for each example.
+    user_prompt = f"""Please generate a usable stub for the following LeetCode problem. The stub should include the problem description as a docstring, the Solution class with the method signature and pass, then instantiate sol = Solution(). The first example is invoked with a print() (or draw_tree, tabulate etc. if special printing functions apply). This is so the user can run the code and see output without asserting. Then generate all the examples as commented out assert statements.
 
 Here is an example of how the stub should look:
 
