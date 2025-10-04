@@ -64,9 +64,5 @@ class Solution:
 
 sol = Solution()
 
-s = "abc"
-assert sol.reverseDegree(s) == 148
-
-s = "zaza"
-print(sol.reverseDegree(s))
-assert sol.reverseDegree(s) == 160
+assert sol.reverseDegree(s="abc") == 148
+assert sol.reverseDegree(s="zaza") == 160
