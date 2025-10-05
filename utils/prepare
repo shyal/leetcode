@@ -1,11 +1,21 @@
 #!/usr/bin/env python3
 
+import argparse
 import sys
 import subprocess
 import os
 import re
 from xai_sdk import Client
 from xai_sdk.chat import system, user
+import re
+
+
+def extract_exercise_title(text, problem_number):
+    pattern = rf"{problem_number}\.\s*(.+)"
+    match = re.search(pattern, text, re.MULTILINE)
+    if match:
+        return match.group(1).strip()
+    return None
 
 
 def run_git(cmd):
@@ -27,29 +37,18 @@ if not api_key:
 
 client = Client(api_key=api_key)
 
-with open("current.py") as f:
-    content = f.read()
-    today = content.split("URL: ")
+run_git(["checkout", "master"])
 
-problems = ["URL: " + ex.strip() for ex in today if ex.strip()]
 
-for problem_text in problems:
-    run_git(["checkout", "master"])
-    lines = problem_text.splitlines()
-    number = None
-    problem_title = None
-    for line in lines:
-        match = re.match(r"(\d+)\. ", line.strip())
-        if match:
-            number = match.group(1)
-            problem_title = line.strip()
-            break
-    if not number:
-        print(f"Could not find exercise number in: {problem_text[:100]}...")
-        continue
+parser = argparse.ArgumentParser(description="Prepare a leetcode question.")
+parser.add_argument(
+    "--number", type=int, required=True, help="The number of the leetcode question."
+)
 
-    # Prepare the prompt
-    example_stub = '''
+args = parser.parse_args()
+
+
+example_stub = '''
 """
 URL: https://leetcode.com/problems/binary-tree-preorder-traversal/description/
 
@@ -123,7 +122,13 @@ draw_tree(tree)
 # assert sol.preorderTraversal(tree) == [1]
 '''
 
-    user_prompt = f"""Please generate a usable stub for the following LeetCode problem. The stub should include the problem description as a docstring, the Solution class with the method signature and pass, then instantiate sol = Solution(). The first example is invoked with a print() (or draw_tree, tabulate etc. if special printing functions apply). This is so the user can run the code and see output without asserting. Then generate all the examples as commented out assert statements.
+user_prompt = f"""Please generate a usable stub for LeetCode problem {args.number}.
+The stub should include the problem description as a docstring,
+the Solution class with the method signature and pass, then instantiate sol = Solution().
+The first example is invoked with a print() (or draw_tree, tabulate etc
+if special printing functions apply).
+This is so the user can run the code and see output without asserting.
+Then generate all the examples as commented out assert statements.
 
 Here is an example of how the stub should look:
 
@@ -133,30 +138,39 @@ Here is the `sitecustomize.py`. Use builtins when necessary.
 
 {open('utils/sitecustomize.py').read()}
 
-Now, for this problem:
 
-{problem_text}
+Output only the Python code for the stub, nothing else. Do not enclose your output in triple backticks (```). Indents are 4 spaces.
 
-Output only the Python code for the stub, nothing else. Do not enclose your output in triple backticks (```). Indents are 4 spaces."""
+For the asserts, please generate tests in assert form, in python for the given problem.
+Think of edges cases. The goal is to test whether the solution computing the correct result as per the problem description, not to make sure tests pass.
 
-    chat = client.chat.create(
-        model="grok-4-0709",
-        messages=[
-            system(
-                "You are a helpful assistant that generates Python stubs for LeetCode problems."
-            ),
-            user(user_prompt),
-        ],
-    )
-    response = chat.sample()
-    code = response.content
+Do not generate comments, or a test function. Just asserts. Run the tests before outputing them, to make sure they're valid.
+If they're not valid, then modify them until they are.
+No need to output the solution itself, make sure that remains a stub only (with a 'pass' statement and nothing else).
+"""
 
-    file_name = f"current.py"
-    with open(file_name, "w") as f:
-        f.write(code)
+chat = client.chat.create(
+    model="grok-4-0709",
+    messages=[
+        system(
+            "You are a helpful assistant that generates Python stubs for LeetCode problems."
+        ),
+        user(user_prompt),
+    ],
+)
+response = chat.sample()
+code = response.content
 
-    print(f"Saved stub to {file_name}")
+title = extract_exercise_title(code, args.number)
+print("title", title)
+problem_title = f"{args.number}. {title}"
+print("problem_title", problem_title)
+file_name = f"current.py"
+with open(file_name, "w") as f:
+    f.write(code)
 
-    run_git(["checkout", "-b", number])
-    run_git(["add", "."])
-    run_git(["commit", "-m", problem_title])
+print(f"Saved stub to {file_name}")
+
+run_git(["checkout", "-b", str(args.number)])
+run_git(["add", "."])
+run_git(["commit", "-m", problem_title])
