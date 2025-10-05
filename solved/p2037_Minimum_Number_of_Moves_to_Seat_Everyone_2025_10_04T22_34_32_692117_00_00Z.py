@@ -76,8 +76,6 @@ class Solution:
 
 sol = Solution()
 
-print(sol.minMovesToSeat([3, 1, 5], [2, 7, 4]))
-
 assert sol.minMovesToSeat([3, 1, 5], [2, 7, 4]) == 4
 assert sol.minMovesToSeat([4, 1, 5, 9], [1, 3, 2, 6]) == 7
 assert sol.minMovesToSeat([2, 2, 6, 6], [1, 3, 2, 6]) == 4

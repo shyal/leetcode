@@ -57,26 +57,21 @@ class Solution:
 sol = Solution()
 
 tree = build_tree([5, 4, 8, 11, None, 13, 4, 7, 2, None, None, None, 1])
-# print(tree)
 res = sol.hasPathSum(tree, 22)
 assert res == True
 
 tree = build_tree([1, 2, 3])
-# print(tree)
 res = sol.hasPathSum(tree, 5)
 assert res == False
 
 tree = build_tree([1, 2, 3])
-# print(tree)
 res = sol.hasPathSum(tree, 4)
 assert res == True
 
 tree = build_tree([1])
-# print(tree)
 res = sol.hasPathSum(tree, 1)
 assert res == True
 
 tree = build_tree([])
-# print(tree)
 res = sol.hasPathSum(tree, 0)
 assert res == False

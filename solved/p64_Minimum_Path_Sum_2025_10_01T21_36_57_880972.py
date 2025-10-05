@@ -48,17 +48,13 @@ class Solution:
 
 sol = Solution()
 grid = [[1, 3, 1], [1, 5, 1], [4, 2, 1]]
-# rich_print(tabulate(grid))
 assert sol.minPathSum(grid) == 7
 
 grid = [[1, 2, 3], [4, 5, 6]]
-# rich_print(tabulate(grid))
 assert sol.minPathSum(grid) == 12
 
 grid = [[1], [1]]
-# rich_print(tabulate(grid))
 assert sol.minPathSum(grid) == 2
 
 grid = [[1]]
-# rich_print(tabulate(grid))
 assert sol.minPathSum(grid) == 1

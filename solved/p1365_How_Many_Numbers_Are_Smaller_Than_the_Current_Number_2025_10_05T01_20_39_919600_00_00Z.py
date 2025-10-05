@@ -51,7 +51,6 @@ class Solution:
 sol = Solution()
 
 nums = [8, 1, 2, 2, 3]
-print(sol.smallerNumbersThanCurrent(nums))
 
 assert sol.smallerNumbersThanCurrent(nums) == [4, 0, 1, 1, 3]
 

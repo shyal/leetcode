@@ -55,12 +55,6 @@ from itertools import product
 from typing import List
 
 
-def draw_maze(maze):
-    print("=" * 10)
-    for row in maze:
-        print(row)
-
-
 def ij_in_maze(i, j, maze):
     return 0 <= i < len(maze) and 0 <= j < len(maze[0])
 
@@ -76,7 +70,6 @@ class Solution:
             is_h_edge = curr[1] == 0 or curr[1] == len(maze[0]) - 1
             if (is_h_edge or is_v_edge) and curr != entrance:
                 return dist
-            # draw_maze(maze)
             prod = [
                 [curr[0] - 1, curr[1]],
                 [curr[0] + 1, curr[1]],
