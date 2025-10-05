@@ -75,3 +75,4 @@ builtins.bisect_right = bisect.bisect_right
 builtins.chain = chain
 builtins.Counter = Counter
 builtins.add = operator.add
+builtins.xor = operator.xor
