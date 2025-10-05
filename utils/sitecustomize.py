@@ -18,6 +18,7 @@ from itertools import *
 from math import log10, log2, floor, ceil, prod
 from collections import defaultdict, Counter
 import operator
+import heapq
 
 # utils
 from tree_utils import *
@@ -76,3 +77,8 @@ builtins.chain = chain
 builtins.Counter = Counter
 builtins.add = operator.add
 builtins.xor = operator.xor
+builtins.heapify = heapq.heapify
+builtins.heappop = heapq.heappop
+builtins.heappush = heapq.heappush
+builtins.nlargest = heapq.nlargest
+builtins.nsmallest = heapq.nsmallest
