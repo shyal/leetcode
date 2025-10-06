@@ -1,0 +1,72 @@
+"""
+URL: https://leetcode.com/problems/count-of-matches-in-tournament/description/
+
+1688. Count of Matches in Tournament
+
+You are given an integer n, the number of teams in a tournament that has strange rules:
+
+- If the current number of teams is even, each team gets paired with another team. A total of n / 2 matches are played, and n / 2 teams advance to the next round.
+
+- If the current number of teams is odd, one team randomly advances in the tournament, and the rest gets paired. A total of (n - 1) / 2 matches are played, and (n - 1) / 2 + 1 teams advance to the next round.
+
+The process continues until there is only one team left. Return the number of matches played in the tournament until a winner is decided.
+
+
+Example 1:
+
+Input: n = 7
+Output: 6
+Explanation: Details of the tournament:
+- 1st Round: Teams = 7, Matches = 3, Teams left = 4
+- 2nd Round: Teams = 4, Matches = 2, Teams left = 2
+- 3rd Round: Teams = 2, Matches = 1, Teams left = 1
+Total Matches = 3 + 2 + 1 = 6.
+
+Example 2:
+
+Input: n = 14
+Output: 13
+Explanation: Details of the tournament:
+- 1st Round: Teams = 14, Matches = 7, Teams left = 7
+- 2nd Round: Teams = 7, Matches = 3, Teams left = 4
+- 3rd Round: Teams = 4, Matches = 2, Teams left = 2
+- 4th Round: Teams = 2, Matches = 1, Teams left = 1
+Total Matches = 7 + 3 + 2 + 1 = 13.
+
+
+Constraints:
+
+    1 <= n <= 200
+
+"""
+
+
+class Solution:
+    def numberOfMatches(self, n: int) -> int:
+        matches_played = 0
+        while n != 1:
+            if n % 2 == 0:
+                matches = n // 2
+                advance = n // 2
+                n = advance
+                matches_played += matches
+            else:
+                matches = (n - 1) // 2
+                advance = (n - 1) // 2 + 1
+                n = advance
+                matches_played += matches
+        return matches_played
+
+
+sol = Solution()
+
+assert sol.numberOfMatches(7) == 6
+assert sol.numberOfMatches(14) == 13
+assert sol.numberOfMatches(1) == 0
+assert sol.numberOfMatches(2) == 1
+assert sol.numberOfMatches(3) == 2
+assert sol.numberOfMatches(4) == 3
+assert sol.numberOfMatches(5) == 4
+assert sol.numberOfMatches(6) == 5
+assert sol.numberOfMatches(199) == 198
+assert sol.numberOfMatches(200) == 199

@@ -48,8 +48,6 @@ class Solution:
 
 sol = Solution()
 
-print(sol.truncateSentence("Hello how are you Contestant", 4))  # "Hello how are you"
-
 assert sol.truncateSentence("Hello how are you Contestant", 4) == "Hello how are you"
 assert (
     sol.truncateSentence("What is the solution to this problem", 4)
