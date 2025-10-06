@@ -55,4 +55,4 @@ class Solution:
 
 sol = Solution()
 
-print(sol.numberOfPairs([1, 3, 4], [1, 3, 4], 1))
+assert sol.numberOfPairs([1, 3, 4], [1, 3, 4], 1) == 5

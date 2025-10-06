@@ -45,6 +45,19 @@ def parse_current(file_path="current.py"):
     return num, title, content
 
 
+def comment_out_prints(content):
+    lines = content.split("\n")
+    new_lines = []
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("print(") or stripped.startswith("print ("):
+            leading_whitespace = line[: line.index(stripped[0])]
+            new_lines.append(leading_whitespace + "# " + stripped)
+        else:
+            new_lines.append(line)
+    return "\n".join(new_lines)
+
+
 def main():
     # Find the start time
     # First, check for commit with message "started"
@@ -82,6 +95,9 @@ def main():
     if num is None or title is None:
         print("Could not parse problem number and title from current.py. Exiting.")
         return
+
+    # Comment out print statements
+    content = comment_out_prints(content)
 
     # Prompt for notes
     notes = input("notes: ").strip()

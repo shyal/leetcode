@@ -40,8 +40,6 @@ class Solution:
 
 sol = Solution()
 
-print(sol.minimumSum(2932))  # 52
-
 assert sol.minimumSum(2932) == 52
 assert sol.minimumSum(4009) == 13
 assert sol.minimumSum(1000) == 1
