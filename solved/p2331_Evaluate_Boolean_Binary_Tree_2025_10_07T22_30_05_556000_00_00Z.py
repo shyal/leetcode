@@ -65,7 +65,7 @@ class Solution:
 sol = Solution()
 
 tree = build_tree([2, 1, 3, None, None, 0, 1])
-draw_tree(tree)
+# draw_tree(tree)
 # print(sol.evaluateTree(tree))  # True
 
 assert sol.evaluateTree(build_tree([2, 1, 3, None, None, 0, 1])) == True
