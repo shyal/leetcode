@@ -33,16 +33,16 @@ class Solution:
 
 sol = Solution()
 
-# print(sol.harshadNumber(18))  # 9
+# print(sol.sumOfTheDigitsOfHarshadNumber(18))  # 9
 
-assert sol.harshadNumber(18) == 9
-assert sol.harshadNumber(23) == -1
-assert sol.harshadNumber(1) == 1
-assert sol.harshadNumber(9) == 9
-assert sol.harshadNumber(10) == 1
-assert sol.harshadNumber(11) == -1
-assert sol.harshadNumber(20) == 2
-assert sol.harshadNumber(22) == -1
-assert sol.harshadNumber(81) == 9
-assert sol.harshadNumber(99) == -1
-assert sol.harshadNumber(100) == 1
+assert sol.sumOfTheDigitsOfHarshadNumber(18) == 9
+assert sol.sumOfTheDigitsOfHarshadNumber(23) == -1
+assert sol.sumOfTheDigitsOfHarshadNumber(1) == 1
+assert sol.sumOfTheDigitsOfHarshadNumber(9) == 9
+assert sol.sumOfTheDigitsOfHarshadNumber(10) == 1
+assert sol.sumOfTheDigitsOfHarshadNumber(11) == -1
+assert sol.sumOfTheDigitsOfHarshadNumber(20) == 2
+assert sol.sumOfTheDigitsOfHarshadNumber(22) == -1
+assert sol.sumOfTheDigitsOfHarshadNumber(81) == 9
+assert sol.sumOfTheDigitsOfHarshadNumber(99) == -1
+assert sol.sumOfTheDigitsOfHarshadNumber(100) == 1

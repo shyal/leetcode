@@ -1,3 +1,4 @@
+import re
 import sys
 import os
 
@@ -90,3 +91,4 @@ builtins.nsmallest = heapq.nsmallest
 builtins.ascii_letters = ascii_letters
 builtins.ascii_lowercase = ascii_lowercase
 builtins.ascii_uppercase = ascii_uppercase
+builtins.match = re.match
