@@ -1,9 +1,16 @@
 import sys
 import os
 
-sys.path.insert(0, os.getcwd())
-sys.path.insert(0, os.path.join(os.getcwd(), "utils"))
+# Derive absolute project root from this file's location (robust to cwd changes)
+site_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.abspath(
+    os.path.join(site_dir, "..", "..", "..", "..")
+)  # Adjust levels: site-packages -> python3.10 -> lib -> .venv -> root
 
+sys.path.insert(0, project_root)
+sys.path.insert(0, os.path.join(project_root, "utils"))
+
+# Rest of your imports and code...
 import bisect
 import builtins
 
