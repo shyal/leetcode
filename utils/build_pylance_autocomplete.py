@@ -67,7 +67,7 @@ Based on the sitecustomize.py, which adds various shortcuts, types, and utils to
 The .pyi file should include:
 - Necessary imports for typing and the custom modules.
 - TypeVar definitions as needed.
-- Type aliases for Any, Callable, Dict, Generic, Iterable, Iterator, List, Optional, Tuple, TypeVar, Union, overload
+- Type aliases for Any, Callable, Dict, Generic, Iterable, Iterator, List, Optional, Tuple, TypeVar, Union, overload, you MUST use from typing import List as List etc.
 - Function stubs for all the shortcuts from itertools, math, collections, etc.
 - Class stubs for Counter, defaultdict, etc.
 - Function stubs for the pretty printing (tabulate, rich_print).
