@@ -71,6 +71,7 @@ builtins.zip_longest = zip_longest
 builtins.reduce = reduce
 builtins.takewhile = takewhile
 builtins.prod = prod
+builtins.product = product
 builtins.defaultdict = defaultdict
 builtins.dd = defaultdict
 builtins.enumr = enumerate
