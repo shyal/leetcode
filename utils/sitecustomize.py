@@ -1,16 +1,12 @@
 import sys
 import os
 
-# Derive absolute project root from this file's location (robust to cwd changes)
 site_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.abspath(
-    os.path.join(site_dir, "..", "..", "..", "..")
-)  # Adjust levels: site-packages -> python3.10 -> lib -> .venv -> root
+project_root = os.path.abspath(os.path.join(site_dir, "..", "..", "..", ".."))
 
 sys.path.insert(0, project_root)
 sys.path.insert(0, os.path.join(project_root, "utils"))
 
-# Rest of your imports and code...
 import bisect
 import builtins
 
@@ -26,6 +22,7 @@ from math import log10, log2, floor, ceil, prod
 from collections import defaultdict, Counter
 import operator
 import heapq
+from string import ascii_letters, ascii_lowercase, ascii_uppercase
 
 # utils
 from tree_utils import *
@@ -89,3 +86,6 @@ builtins.heappop = heapq.heappop
 builtins.heappush = heapq.heappush
 builtins.nlargest = heapq.nlargest
 builtins.nsmallest = heapq.nsmallest
+builtins.ascii_letters = ascii_letters
+builtins.ascii_lowercase = ascii_lowercase
+builtins.ascii_uppercase = ascii_uppercase
