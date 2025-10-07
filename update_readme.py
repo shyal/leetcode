@@ -264,7 +264,7 @@ readme = readme.replace("<!-- FAANG_PROGRESS -->", faang_progress_block)
 with open("README.md", "w") as f:
     f.write(readme)
 
-repo.git.add("README.md")
-repo.index.commit("Update charts from full git log and readiness.json via mpl_ascii")
+# repo.git.add("README.md")
+# repo.index.commit("Update charts from full git log and readiness.json via mpl_ascii")
 print("README updated!")
 print(f"Total solves: {sum(solves_data)}")  # Bonus: Print total for verification
