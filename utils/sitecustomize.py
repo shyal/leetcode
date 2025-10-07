@@ -14,7 +14,23 @@ import builtins
 # types
 from Types import TreeNode
 from Types import ListNode
-from typing import List, Optional
+
+# Type aliases
+from typing import (
+    List as List,
+    Optional as Optional,
+    Dict as Dict,
+    Tuple as Tuple,
+    Any as Any,
+    Callable as Callable,
+    Generic as Generic,
+    Iterable as Iterable,
+    Iterator as Iterator,
+    TypeVar as TypeVar,
+    Union as Union,
+    overload as overload,
+)
+
 
 # shortcuts
 from functools import *
@@ -93,3 +109,5 @@ builtins.ascii_lowercase = ascii_lowercase
 builtins.ascii_uppercase = ascii_uppercase
 builtins.match = re.match
 builtins.permutations = permutations
+builtins.or_ = operator.or_
+builtins.and_ = operator.and_
