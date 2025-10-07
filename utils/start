@@ -1,0 +1,22 @@
+#!/usr/bin/env python3
+
+import sys
+import subprocess
+
+
+def run_git(cmd):
+    """Run a git command and return its output."""
+    try:
+        return (
+            subprocess.check_output(["git"] + cmd, stderr=subprocess.STDOUT)
+            .decode()
+            .strip()
+        )
+    except subprocess.CalledProcessError as e:
+        print(f"Git command failed: {' '.join(cmd)}\nOutput: {e.output.decode()}")
+        sys.exit(1)
+
+
+subprocess.check_output(["touch", "current.py"])
+run_git(["add", "."])
+run_git(["commit", "-am", "started"])

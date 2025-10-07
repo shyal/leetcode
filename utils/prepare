@@ -7,7 +7,7 @@ import os
 import re
 from xai_sdk import Client
 from xai_sdk.chat import system, user
-import re
+import threading
 
 
 def strip_triple_ticks(text: str) -> str:
@@ -58,16 +58,12 @@ if not api_key:
 
 client = Client(api_key=api_key)
 
-run_git(["checkout", "master"])
-
-
-parser = argparse.ArgumentParser(description="Prepare a leetcode question.")
+parser = argparse.ArgumentParser(description="Prepare leetcode questions.")
 parser.add_argument(
-    "--number", type=int, required=True, help="The number of the leetcode question."
+    "numbers", type=int, nargs="+", help="The numbers of the leetcode questions."
 )
 
 args = parser.parse_args()
-
 
 example_stub = '''
 """
@@ -114,7 +110,11 @@ assert sol.smallestEvenMultiple(5) == 10
 assert sol.smallestEvenMultiple(6) == 6
 '''
 
-user_prompt = f"""Please generate a usable solution for LeetCode problem {args.number}.
+lock = threading.Lock()
+
+
+def process_problem(num):
+    user_prompt = f"""Please generate a usable solution for LeetCode problem {num}.
 The solution should include the problem description as a docstring,
 the Solution class with the method signature and any passable solution, then instantiate sol = Solution().
 The first example is invoked with a print() (or draw_tree, tabulate etc
@@ -133,9 +133,9 @@ Here is the `sitecustomize.py`. Use builtins when necessary.
 Output only the description doctstring, the Python code for the stub, and asserts. Indents are 4 spaces.
 """
 
-code = grok(user_prompt)
+    code = grok(user_prompt)
 
-asserts_prompt = f"""
+    asserts_prompt = f"""
 Please generate output in the same format as input (description in docstring, solution, instantiation, and asserts). Your
 goal is to generate more asserts that handle edge cases, and ensure full coverage of the solution, not to make sure
 the solution passes.
@@ -149,9 +149,9 @@ Now the content:
 
 """
 
-code = grok(asserts_prompt)
+    code = grok(asserts_prompt)
 
-clean_up_prompt = f"""
+    clean_up_prompt = f"""
 Please generate output in the same format as input (description in docstring, solution, instantiation, and asserts). Your
 goal is to strip out the actual solution method body, so a candidate can use your output as a stub.
 
@@ -164,17 +164,29 @@ Now the content:
 
 """
 
-code = grok(clean_up_prompt)
-title = extract_exercise_title(code, args.number)
-print("title", title)
-problem_title = f"{args.number}. {title}"
-print("problem_title", problem_title)
-file_name = f"current.py"
-with open(file_name, "w") as f:
-    f.write(code)
+    code = grok(clean_up_prompt)
+    title = extract_exercise_title(code, num)
+    print("title", title)
+    problem_title = f"{num}. {title}"
+    print("problem_title", problem_title)
+    file_name = f"current.py"
 
-print(f"Saved stub to {file_name}")
+    with lock:
+        run_git(["checkout", "master"])
+        with open(file_name, "w") as f:
+            f.write(code)
 
-run_git(["checkout", "-b", str(args.number)])
-run_git(["add", "."])
-run_git(["commit", "-m", problem_title])
+        print(f"Saved stub to {file_name}")
+        run_git(["checkout", "-b", str(num)])
+        run_git(["add", "."])
+        run_git(["commit", "-m", problem_title])
+
+
+threads = []
+for num in args.numbers:
+    t = threading.Thread(target=process_problem, args=(num,))
+    t.start()
+    threads.append(t)
+
+for t in threads:
+    t.join()
