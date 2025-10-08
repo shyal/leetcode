@@ -1,3 +1,6 @@
+# tree_utils.py
+
+from collections import deque
 from typing import List, Optional, Dict, Any
 from PrettyPrint import PrettyPrintTree
 from colorama import Fore, Style
@@ -184,3 +187,20 @@ def is_balanced(root: Optional[TreeNode]) -> bool:
         return max(left, right) + 1
 
     return check_height(root) != -1
+
+
+def get_level_order(root: Optional[TreeNode]) -> List[Optional[int]]:
+    if not root:
+        return []
+    result = []
+    queue = deque([root])
+    while queue:
+        node = queue.popleft()
+        result.append(node.val if node else None)
+        if node:
+            queue.append(node.left)
+            queue.append(node.right)
+    # Trim trailing Nones
+    while result and result[-1] is None:
+        result.pop()
+    return result

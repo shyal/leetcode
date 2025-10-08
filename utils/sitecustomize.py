@@ -62,6 +62,7 @@ builtins.rich_print = rich_print
 builtins.draw_tree = draw_tree
 builtins.draw_linked_list = draw_linked_list
 builtins.draw_general_tree = draw_general_tree
+builtins.get_level_order = get_level_order
 
 # building
 builtins.build_tree = build_tree
