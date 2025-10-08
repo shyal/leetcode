@@ -60,7 +60,7 @@ class Solution(object):
 
 sol = Solution()
 
-print(sol.findDuplicate([1, 3, 4, 2, 2]))  # 2
+# print(sol.findDuplicate([1, 3, 4, 2, 2]))  # 2
 
 assert sol.findDuplicate([1, 3, 4, 2, 2]) == 2
 assert sol.findDuplicate([3, 1, 3, 4, 2]) == 3
