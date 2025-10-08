@@ -10,7 +10,6 @@ from rich.table import Table
 from rich.live import Live
 from rich.panel import Panel
 import time
-import itertools
 import pyfiglet
 
 
@@ -27,7 +26,7 @@ def render_big_time(secs: int, font_name: str, width: int = 200) -> str:
 def get_git_log():
     try:
         result = subprocess.run(
-            ["git", "log", "--pretty=format:%H%n%an%n%ad%n%s%n---"],
+            ["git", "log", "--pretty=format:%H%n%an%n%ad%n%B%n---"],
             capture_output=True,
             text=True,
             check=True,
@@ -62,17 +61,18 @@ def parse_commits(log_output):
 
 
 def get_problem_number(message):
-    match = re.match(r"^(\d+)\.", message.strip())
+    first_line = message.split("\n")[0].strip()
+    match = re.match(r"^(\d+)\.", first_line)
     if match:
         return int(match.group(1))
     return None
 
 
 def is_problem_commit(message):
-    message = message.strip().lower()
-    if "stub" in message:
+    first_line = message.split("\n")[0].strip().lower()
+    if "stub" in first_line:
         return False
-    return re.match(r"^\d+\.", message) is not None
+    return re.match(r"^\d+\.", first_line) is not None
 
 
 def parse_date(date_str):
@@ -104,6 +104,38 @@ def get_available_start(proposed_start, duration, task_intervals):
                 break  # Restart check after shifting
         if not overlap:
             return current_start
+
+
+def parse_solve_time(time_str):
+    if not time_str:
+        return timedelta(0)
+    parts = re.findall(r"(\d+)\s*([hms])", time_str.lower())
+    total = timedelta(0)
+    for num, unit in parts:
+        num = int(num)
+        if unit == "h":
+            total += timedelta(hours=num)
+        elif unit == "m":
+            total += timedelta(minutes=num)
+        elif unit == "s":
+            total += timedelta(seconds=num)
+    return total
+
+
+def format_timedelta(td):
+    if td == timedelta(0):
+        return ""
+    hours = int(td.total_seconds() // 3600)
+    minutes = int((td.total_seconds() % 3600) // 60)
+    seconds = int(td.total_seconds() % 60)
+    parts = []
+    if hours:
+        parts.append(f"{hours}h")
+    if minutes:
+        parts.append(f"{minutes}m")
+    if seconds:
+        parts.append(f"{seconds}s")
+    return " ".join(parts)
 
 
 def main():
@@ -206,7 +238,7 @@ def main():
     print(f"Remaining: {remaining}")
 
     mode_title = f"Predictions Based on Past Periods ({args.mode} mode)"
-    table = Table(title=mode_title)
+    table = Table(title=mode_title, highlight=True)
     table.add_column("Period", justify="left")
     table.add_column("Solve Rate (prob/day)", justify="right")
     table.add_column("Days", justify="right")
@@ -297,11 +329,21 @@ def main():
                         c["date_str"], "%a %b %d %H:%M:%S %Y %z"
                     ).astimezone(local_tz)
                     if commit_time >= today_start:
-                        m = re.match(r"^(\d+)\.\s*(.*)", c["message"].strip())
+                        first_line = c["message"].split("\n")[0].strip()
+                        m = re.match(r"^(\d+)\.\s*(.*)", first_line)
                         if m:
                             prob_num = int(m.group(1))
                             msg = m.group(2)
-                            solved_today.append((prob_num, msg, commit_time))
+                            solve_time_str = None
+                            for line in c["message"].split("\n"):
+                                if line.strip().startswith("solve time:"):
+                                    solve_time_str = (
+                                        line.strip().split(":", 1)[1].strip()
+                                    )
+                                    break
+                            solved_today.append(
+                                (prob_num, msg, commit_time, None, solve_time_str)
+                            )
                 except ValueError:
                     continue
 
@@ -340,7 +382,7 @@ def main():
                     )
                     if task_name in done_tasks:
                         done_task_items.append(
-                            ("Task", task_name + " (done)", early_time, None)
+                            ("Task", task_name + " (done)", early_time, None, None)
                         )
                     else:
                         planned_time = max(task_time, current_time)
@@ -353,7 +395,7 @@ def main():
             total_planned = num_to_do_today + num_tasks
 
             day_end = datetime.combine(current_time.date(), end_time, tzinfo=local_tz)
-            all_todays = list(solved_today)
+            all_todays = solved_today + done_task_items
 
             planned_items = []
             if total_planned > 0:
@@ -428,7 +470,7 @@ def main():
                             print(f"Cannot schedule problem {prob}: exceeds end time.")
                             break
                         planned_problem_items.append(
-                            (prob, "", start_time, activity_duration)
+                            (prob, "", start_time, activity_duration, None)
                         )
                         next_current = start_time + activity_duration
                         if i < len(planned_problems) - 1 and break_minutes > 0:
@@ -442,25 +484,24 @@ def main():
                         if task_end > day_end:
                             print(f"Warning: Task '{task_name}' exceeds end time.")
                         task_planned_items.append(
-                            ("Task", task_name, task_start, task_duration)
+                            ("Task", task_name, task_start, task_duration, None)
                         )
 
                     planned_items = planned_problem_items + task_planned_items
 
-            all_todays += done_task_items + planned_items
+            all_todays += planned_items
 
             if all_todays:
                 all_todays.sort(key=lambda x: x[2])
-                table2 = Table(title="Today's Schedule")
+                table2 = Table(title="Today's Schedule", highlight=True)
                 table2.add_column("Activity", justify="left")
                 table2.add_column("Details", justify="left")
                 table2.add_column("Time of Day", justify="left")
+                table2.add_column("Solve Time", justify="right")
+                table2.add_column("Cumulative Time", justify="right")
+                cumulative = timedelta(0)
                 for item in all_todays:
-                    if len(item) == 3:
-                        activity, details, t = item
-                        duration = None
-                    else:
-                        activity, details, t, duration = item
+                    activity, details, t, duration, solve_time = item
                     if activity == "Task" and t < today_start:
                         time_str = "Done"
                     else:
@@ -468,10 +509,17 @@ def main():
                     style = None
                     if duration and t <= current_time < (t + duration):
                         style = "bold yellow"
+                    cum_str = ""
+                    if solve_time:
+                        delta = parse_solve_time(solve_time)
+                        cumulative += delta
+                    cum_str = format_timedelta(cumulative)
                     table2.add_row(
                         str(activity) if isinstance(activity, int) else activity,
                         details,
                         time_str,
+                        solve_time or "",
+                        cum_str,
                         style=style,
                     )
                 print(table2)
@@ -481,8 +529,8 @@ def main():
             # Check for ongoing task and start countdown if applicable
             ongoing_activity = None
             for item in all_todays:
-                if len(item) == 4 and isinstance(item[0], str) and item[0] == "Task":
-                    activity, details, start_t, dur = item
+                if len(item) == 5 and isinstance(item[0], str) and item[0] == "Task":
+                    activity, details, start_t, dur, _ = item
                     if dur and start_t <= current_time < (start_t + dur):
                         ongoing_activity = (details, start_t + dur)
                         break
