@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 
+# start.py
+
 import sys
 import subprocess
+import os
+import time
+import pyfiglet
 
 
 def run_git(cmd):
@@ -17,6 +22,43 @@ def run_git(cmd):
         sys.exit(1)
 
 
+# Create current.py if it doesn't exist
 subprocess.check_output(["touch", "current.py"])
 run_git(["add", "."])
 run_git(["commit", "-am", "started"])
+
+# Check for time limit argument
+time_limit_minutes = None
+if len(sys.argv) > 1:
+    arg = sys.argv[1]
+    if arg.endswith("m"):
+        try:
+            time_limit_minutes = int(arg[:-1])
+        except ValueError:
+            print("Invalid time limit format. Use something like '50m'.")
+            sys.exit(1)
+    else:
+        print("Time limit must end with 'm', e.g., '50m'.")
+        sys.exit(1)
+
+# If time limit provided, start countdown
+if time_limit_minutes:
+    total_seconds = time_limit_minutes * 60
+    try:
+        for remaining in range(total_seconds, 0, -1):
+            os.system(
+                "clear"
+            )  # Clear the screen (works on Unix-like systems; for Windows, use 'cls')
+            mins = remaining // 60
+            secs = remaining % 60
+            time_str = f"{mins:02d}:{secs:02d}"
+            print(
+                pyfiglet.figlet_format(time_str, font="slant")
+            )  # Using 'slant' font for variety
+            time.sleep(1)
+
+        # If countdown completes without interruption
+        subprocess.run(["make", "learning"])
+    except KeyboardInterrupt:
+        print("\nCountdown interrupted. Not committing as learning.")
+        sys.exit(0)
