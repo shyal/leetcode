@@ -1,5 +1,3 @@
-from typing import List
-
 """
 URL: https://leetcode.com/problems/cells-in-a-range-on-an-excel-sheet/description/
 
