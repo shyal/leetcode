@@ -53,8 +53,8 @@ class Solution:
 sol = Solution()
 
 # print(
-    get_list_values(sol.partition(build_linked_list([1, 4, 3, 2, 5, 2]), 3))
-)  # [1, 2, 2, 4, 3, 5]
+# get_list_values(sol.partition(build_linked_list([1, 4, 3, 2, 5, 2]), 3))
+# )  # [1, 2, 2, 4, 3, 5]
 
 assert get_list_values(sol.partition(build_linked_list([1, 4, 3, 2, 5, 2]), 3)) == [
     1,
