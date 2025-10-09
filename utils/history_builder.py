@@ -66,7 +66,21 @@ def get_solved_problems():
             )
             continue
 
-        solved.append((prob_num, prob_title, commit_date, solve_time))
+        # Get changed files for this commit
+        files_output = run_git(
+            ["diff-tree", "--no-commit-id", "--name-only", "-r", commit_hash]
+        )
+        files = files_output.split("\n") if files_output else []
+
+        # Find matching file
+        matching_file = None
+        expected_prefix = f"solved/p{prob_num}_{prob_title.replace(' ', '_')}_"
+        for f in files:
+            if f.startswith(expected_prefix):
+                matching_file = f
+                break
+
+        solved.append((prob_num, prob_title, commit_date, solve_time, matching_file))
 
     solved.sort(key=lambda x: x[2])  # Sort by date ascending
     return solved

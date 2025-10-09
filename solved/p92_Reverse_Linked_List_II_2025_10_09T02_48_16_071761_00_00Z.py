@@ -65,9 +65,9 @@ class Solution:
 
 sol = Solution()
 
-print(
-    get_list_values(sol.reverseBetween(build_linked_list([1, 2, 3, 4, 5]), 2, 4))
-)  # [1, 4, 3, 2, 5]
+# print(
+#     get_list_values(sol.reverseBetween(build_linked_list([1, 2, 3, 4, 5]), 2, 4))
+# )  # [1, 4, 3, 2, 5]
 
 assert get_list_values(
     sol.reverseBetween(build_linked_list([1, 2, 3, 4, 5]), 2, 4)
