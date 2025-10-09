@@ -32,6 +32,7 @@ def build_tree(arr: List[Optional[int]]) -> Optional[TreeNode]:
     Null/None values are skipped for node creation.
     """
     if not arr or arr[0] is None:
+        # should this be [] ?
         return None
 
     root = TreeNode(arr[0])
