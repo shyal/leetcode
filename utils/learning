@@ -57,9 +57,9 @@ def main():
         print(f"Error getting current branch: {e}")
         return
 
-    # Find the start time: earliest commit on the current branch
+    # Find the start time: earliest commit on the current branch or commit with "started"
     result = subprocess.run(
-        ["git", "log", "--reverse", "--format=%ct", current_branch],
+        ["git", "log", "--reverse", "--format=%H %ct %s", current_branch],
         capture_output=True,
         text=True,
     )
@@ -68,7 +68,17 @@ def main():
         start_time = time.time()
     else:
         output_lines = result.stdout.strip().splitlines()
-        start_time = int(output_lines[0])
+        start_time = None
+        for line in output_lines:
+            parts = line.split(" ", 2)
+            if len(parts) < 3:
+                continue
+            timestamp, message = int(parts[1]), parts[2]
+            if "started" in message.lower():
+                start_time = timestamp
+                break
+        if start_time is None:
+            start_time = int(output_lines[0].split(" ")[1])
 
     current_time = time.time()
     delta_seconds = current_time - start_time
