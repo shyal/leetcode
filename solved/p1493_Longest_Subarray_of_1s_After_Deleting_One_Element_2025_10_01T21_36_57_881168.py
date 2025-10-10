@@ -20,7 +20,7 @@ Example 3:
 Input: nums = [1,1,1]
 Output: 2
 Explanation: You must delete one element.
- 
+
 
 Constraints:
 
@@ -38,13 +38,12 @@ class Solution:  # stub
         pass
 
 
-if False:
-    sol = Solution()
-    assert sol.longestSubarray(nums=[1, 1, 0, 1]) == 3
-    assert sol.longestSubarray(nums=[0, 1, 1, 1, 0, 1, 1, 0, 1]) == 5
-    assert sol.longestSubarray(nums=[1, 1, 1]) == 2
-    assert sol.longestSubarray(nums=[1]) == 0
-    assert sol.longestSubarray(nums=[1, 1, 1, 1, 0]) == 4
-    assert sol.longestSubarray(nums=[1, 1, 0, 1, 1]) == 4
-    assert sol.longestSubarray(nums=[1, 1, 0, 0, 1, 1]) == 2
+sol = Solution()
 
+# assert sol.longestSubarray(nums=[1, 1, 0, 1]) == 3
+# assert sol.longestSubarray(nums=[0, 1, 1, 1, 0, 1, 1, 0, 1]) == 5
+# assert sol.longestSubarray(nums=[1, 1, 1]) == 2
+# assert sol.longestSubarray(nums=[1]) == 0
+# assert sol.longestSubarray(nums=[1, 1, 1, 1, 0]) == 4
+# assert sol.longestSubarray(nums=[1, 1, 0, 1, 1]) == 4
+# assert sol.longestSubarray(nums=[1, 1, 0, 0, 1, 1]) == 2

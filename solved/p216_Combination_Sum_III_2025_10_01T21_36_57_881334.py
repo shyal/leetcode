@@ -43,8 +43,6 @@ Constraints:
         1 <= n <= 60
 """
 
-from typing import List
-
 
 class Solution:
 

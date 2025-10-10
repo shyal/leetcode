@@ -4,18 +4,18 @@ from datetime import datetime, timedelta, date
 from collections import defaultdict
 import matplotlib as mpl
 
-mpl.use("module://mpl_ascii")  # Set backend before importing pyplot
+mpl.use("module://mpl_ascii")
 import matplotlib.pyplot as plt
 import sys
 import io
 import json
 
 repo = git.Repo(".")
-commits = list(repo.iter_commits("HEAD"))  # Fetch ALL commits since repo start
+commits = list(repo.iter_commits("HEAD"))
 
 solves_per_day = defaultdict(int)
 uniques_per_day = defaultdict(set)
-all_problem_dates = set()  # For full timeline from problem commits
+all_problem_dates = set()
 
 for commit in commits:
     msg = commit.message.strip()
@@ -24,15 +24,13 @@ for commit in commits:
 
     date_str = commit.committed_datetime.strftime("%Y-%m-%d")
 
-    # Check if it's a problem commit: starts with number. Title
     prob_match = re.match(r"(\d+)\.\s+(.+)", msg)
     if not prob_match:
-        continue  # Skip non-problem commits
+        continue
 
     prob_num = prob_match.group(1)
     all_problem_dates.add(date_str)
 
-    # Check for unsolved or stub
     is_unsolved = (
         "unsolved" in msg.lower()
         or "still learning" in msg.lower()
@@ -44,7 +42,6 @@ for commit in commits:
         solves_per_day[date_str] += 1
         uniques_per_day[date_str].add(prob_num)
 
-# Get timeline from earliest to latest problem commit date (with zeros on quiet days)
 if all_problem_dates:
     min_date_str = min(all_problem_dates)
     max_date_str = max(all_problem_dates)
@@ -65,24 +62,21 @@ else:
     uniques_data = []
 
 
-# Function to capture ASCII from plt.show()
 def capture_ascii_plot():
     old_stdout = sys.stdout
     sys.stdout = mystdout = io.StringIO()
     plt.show()
     sys.stdout = old_stdout
-    return mystdout.getvalue().strip()  # Strip extra newlines
+    return mystdout.getvalue().strip()
 
 
-# Common logic for x-ticks (numerical indices, sparse date labels)
 if dates_for_plot:
     x = list(range(len(dates_for_plot)))
-    label_step = max(1, len(dates_for_plot) // 10)  # ~10 labels for readability
+    label_step = max(1, len(dates_for_plot) // 10)
     tick_positions = x[::label_step]
     tick_labels = dates_for_plot[::label_step]
 
-# Generate Solves Per Day (line chart)
-fig, ax = plt.subplots(figsize=(12, 5))  # Size affects ASCII density
+fig, ax = plt.subplots(figsize=(12, 5))
 if dates_for_plot:
     ax.plot(x, solves_data, marker="o")
     ax.set_xticks(tick_positions)
@@ -93,7 +87,6 @@ ax.set_ylabel("Solves")
 solves_ascii = capture_ascii_plot()
 plt.close()
 
-# Generate Unique Problems Solved Daily (bar chart)
 fig, ax = plt.subplots(figsize=(12, 5))
 if dates_for_plot:
     ax.bar(x, uniques_data)
@@ -105,23 +98,19 @@ ax.set_ylabel("Unique Solves")
 uniques_ascii = capture_ascii_plot()
 plt.close()
 
-# Load readiness.json and generate variance charts
 with open("readiness.json", "r") as f:
     readiness_data = json.load(f)
 
-# Sort by run_date
 readiness_data.sort(key=lambda item: item["run_date"])
 
 run_dates = [item["run_date"] for item in readiness_data]
 contest_readiness = [item["contest_readiness"] for item in readiness_data]
 faang_readiness = [item["faang_interview"] for item in readiness_data]
 
-# Convert to datetime objects
 run_dt = [datetime.strptime(d, "%Y-%m-%d") for d in run_dates]
 contest_dt = [datetime.strptime(d, "%Y-%m-%d") for d in contest_readiness]
 faang_dt = [datetime.strptime(d, "%Y-%m-%d") for d in faang_readiness]
 
-# For contest variance chart
 contest_variance_ascii = ""
 if run_dates:
     min_run = min(run_dt)
@@ -129,12 +118,10 @@ if run_dates:
     x_num = [(dt - min_run).days for dt in run_dt]
     y_num = [(dt - min_contest).days for dt in contest_dt]
 
-    # x ticks
     label_step = max(1, len(run_dates) // 10)
     tick_pos_x = x_num[::label_step]
     tick_labels_x = run_dates[::label_step]
 
-    # y ticks: unique sorted dates
     unique_contest = sorted(set(contest_dt))
     tick_pos_y = [(dt - min_contest).days for dt in unique_contest]
     tick_labels_y = [dt.strftime("%Y-%m-%d") for dt in unique_contest]
@@ -151,7 +138,6 @@ if run_dates:
     contest_variance_ascii = capture_ascii_plot()
     plt.close()
 
-# For FAANG variance chart
 faang_variance_ascii = ""
 if run_dates:
     min_faang = min(faang_dt)
@@ -173,20 +159,15 @@ if run_dates:
     faang_variance_ascii = capture_ascii_plot()
     plt.close()
 
-# Get last readiness values
 if readiness_data:
-    last_readiness = readiness_data[-1]  # After sorting, last is latest
+    last_readiness = readiness_data[-1]
     contest_end_str = last_readiness["contest_readiness"]
     faang_end_str = last_readiness["faang_interview"]
 
-    # Start date from repo
     if all_problem_dates:
         start_dt = datetime.strptime(min_date_str, "%Y-%m-%d")
-        current_dt = datetime.combine(
-            date.today(), datetime.min.time()
-        )  # Fix: make current_dt a datetime
+        current_dt = datetime.combine(date.today(), datetime.min.time())
 
-        # Contest progress
         contest_end_dt = datetime.strptime(contest_end_str, "%Y-%m-%d")
         total_days_contest = (contest_end_dt - start_dt).days
         elapsed_days_contest = (current_dt - start_dt).days
@@ -212,7 +193,6 @@ if readiness_data:
         contest_progress_ascii = capture_ascii_plot()
         plt.close()
 
-        # FAANG progress
         faang_end_dt = datetime.strptime(faang_end_str, "%Y-%m-%d")
         total_days_faang = (faang_end_dt - start_dt).days
         elapsed_days_faang = (current_dt - start_dt).days
@@ -239,23 +219,20 @@ else:
     contest_progress_ascii = "No readiness data."
     faang_progress_ascii = "No readiness data."
 
-with open("README.md.template", "r") as f:  # Use a template file
+with open("README.md.template", "r") as f:
     readme = f.read()
 
-# Replace placeholders with Markdown code blocks for ASCII
 solves_block = f"```\n{solves_ascii}\n```"
 uniques_block = f"```\n{uniques_ascii}\n```"
 readme = readme.replace("<!-- SOLVES_CHART -->", solves_block)
 readme = readme.replace("<!-- UNIQUES_CHART -->", uniques_block)
 
-# Add readiness charts (assume placeholders like <!-- CONTEST_VARIANCE_CHART --> and <!-- FAANG_VARIANCE_CHART --> in template)
 if run_dates:
     contest_block = f"```\n{contest_variance_ascii}\n```"
     faang_block = f"```\n{faang_variance_ascii}\n```"
     readme = readme.replace("<!-- CONTEST_VARIANCE_CHART -->", contest_block)
     readme = readme.replace("<!-- FAANG_VARIANCE_CHART -->", faang_block)
 
-# Add progress bars (assume placeholders <!-- CONTEST_PROGRESS --> and <!-- FAANG_PROGRESS -->)
 contest_progress_block = f"```\n{contest_progress_ascii}\n```"
 faang_progress_block = f"```\n{faang_progress_ascii}\n```"
 readme = readme.replace("<!-- CONTEST_PROGRESS -->", contest_progress_block)
@@ -264,7 +241,5 @@ readme = readme.replace("<!-- FAANG_PROGRESS -->", faang_progress_block)
 with open("README.md", "w") as f:
     f.write(readme)
 
-# repo.git.add("README.md")
-# repo.index.commit("Update charts from full git log and readiness.json via mpl_ascii")
 print("README updated!")
-print(f"Total solves: {sum(solves_data)}")  # Bonus: Print total for verification
+print(f"Total solves: {sum(solves_data)}")

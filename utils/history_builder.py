@@ -1,28 +1,19 @@
 # history_builder.py
 
-from datetime import datetime
 
+import os
 import re
-from typing import List, Tuple
-import subprocess
 import sys
-
-
-def run_git(cmd):
-    """Run a git command and return its output."""
-    try:
-        return (
-            subprocess.check_output(["git"] + cmd, stderr=subprocess.STDOUT)
-            .decode()
-            .strip()
-        )
-    except subprocess.CalledProcessError as e:
-        print(f"Git command failed: {' '.join(cmd)}\nOutput: {e.output.decode()}")
-        sys.exit(1)
+from datetime import timezone, timedelta
+from datetime import datetime
+from git import Repo, GitCommandError
 
 
 def get_solved_problems():
-    log_output = run_git(["log", "--pretty=format:%H%n%an%n%ad%n%B%n---"])
+    repo = Repo(os.getcwd())
+    git = repo.git
+    log_output = git.log("--pretty=format:%H%n%an%n%ad%n%B%n---").strip()
+
     blocks = log_output.strip().split("---\n")
     solved = []
     for block in blocks:
@@ -32,12 +23,10 @@ def get_solved_problems():
         if len(lines) < 3:
             continue
         commit_hash = lines[0].strip()
-        author = lines[1].strip()
         date_str = lines[2].strip()
         message_lines = lines[3:]
         message = "\n".join(message_lines).strip()
 
-        # Parse problem from first matching line
         prob_num = None
         prob_title = None
         for line in message_lines:
@@ -52,7 +41,6 @@ def get_solved_problems():
         if prob_num is None or prob_title is None:
             continue
 
-        # Parse solve time if present
         solve_time_match = re.search(
             r"solve time:\s*([\d\sm ]+)", message, re.IGNORECASE
         )
@@ -66,55 +54,139 @@ def get_solved_problems():
             )
             continue
 
-        # Get changed files for this commit
-        files_output = run_git(
-            ["diff-tree", "--no-commit-id", "--name-only", "-r", commit_hash]
-        )
+        try:
+            files_output = git.diff_tree(
+                "--no-commit-id", "--name-only", "-r", commit_hash
+            ).strip()
+        except GitCommandError as e:
+            print(
+                f"Git command failed: diff-tree --no-commit-id --name-only -r {commit_hash}\nOutput: {e.stdout}\nError: {e.stderr}"
+            )
+            sys.exit(1)
+
         files = files_output.split("\n") if files_output else []
 
-        # Find matching file
         matching_file = None
-        expected_prefix = f"solved/p{prob_num}_{prob_title.replace(' ', '_')}_"
+        prob_title = prob_title.replace(" ", "_").replace("'", "")
+        expected_prefix = f"solved/p{prob_num}_{prob_title}_"
         for f in files:
             if f.startswith(expected_prefix):
                 matching_file = f
                 break
 
-        solved.append((prob_num, prob_title, commit_date, solve_time, matching_file))
+        for F in os.listdir("./solved"):
+            F = f"solved/{F}"
+            if F.startswith(expected_prefix):
+                matching_file = F
+                break
+
+        if commit_hash in [
+            "64e894ff464bf9da48d109173c73b2c162f41401",
+            "940c3eb4cabff002ef5b4f85bc1290b74309d262",
+            "a10feb0e416afe998eef468f3cb59b424fbe896e",
+            "17e20cbe3d01e559a62d49243494af145e638559",
+        ]:
+            continue
+
+        if not matching_file:
+            pass
+
+        solved.append(
+            (
+                prob_num,
+                prob_title,
+                commit_date,
+                solve_time,
+                matching_file,
+                open(matching_file).read(),
+            )
+        )
 
     solved.sort(key=lambda x: x[2])  # Sort by date ascending
     return solved
 
 
-def parse_content(content: str) -> Tuple[str, str]:
-    """
-    Parses the given content to extract notes and user code.
+import ast
 
-    :param content: The string content to parse.
-    :return: A tuple (notes, code)
-    """
-    if not content.startswith('"""'):
-        return "", content  # If no docstring, assume all is code, no notes
 
-    end_doc = content.find('"""', 3)
-    if end_doc == -1:
-        return "", content  # Incomplete docstring
+def parse_content(content: str) -> tuple[str, str]:
+    module = ast.parse(content)
 
-    docstring = content[3:end_doc].strip()
-    code_part = content[end_doc + 3 :].strip()
-
-    # Extract notes: anything after ---
-    if "---" in docstring:
-        _, notes = docstring.split("---", 1)
-        notes = "notes: \n\n" + notes.strip()
-    else:
+    # Extract and process docstring for notes
+    doc = ast.get_docstring(module)
+    if doc is None:
         notes = ""
-
-    # Extract code: everything before 'sol = Solution()'
-    sol_index = code_part.find("sol = Solution()")
-    if sol_index != -1:
-        code = code_part[:sol_index].strip()
     else:
-        code = code_part  # If no marker, take all code_part
+        if "---" in doc:
+            _, notes_part = doc.split("---", 1)
+            notes = "notes: \n\n" + notes_part.strip()
+        else:
+            notes = ""
+
+    # Collect defined class names
+    class_names = {node.name for node in module.body if isinstance(node, ast.ClassDef)}
+
+    # Find the start of tests: the first top-level assign like var = ClassName(...) where ClassName is defined
+    test_start = len(module.body)
+    for i, node in enumerate(module.body):
+        if (
+            isinstance(node, ast.Assign)
+            and len(node.targets) == 1
+            and isinstance(node.targets[0], ast.Name)
+            and isinstance(node.value, ast.Call)
+            and isinstance(node.value.func, ast.Name)
+            and node.value.func.id in class_names
+        ):
+            test_start = i
+            break
+
+    # Build solution body: exclude docstring if present, and exclude tests
+    body_start = (
+        1
+        if (
+            module.body
+            and isinstance(module.body[0], ast.Expr)
+            and isinstance(module.body[0].value, ast.Constant)
+            and isinstance(module.body[0].value.value, str)
+        )
+        else 0
+    )
+    solution_body = module.body[body_start:test_start]
+
+    # Unparse back to code string
+    code_ast = ast.Module(body=solution_body, type_ignores=[])
+    code = ast.unparse(code_ast).strip()
 
     return notes, code
+
+
+def get_history_string():
+    solved_problems = get_solved_problems()
+
+    if not solved_problems:
+        history_str = "No previous solves recorded."
+    else:
+        manila_tz = timezone(timedelta(hours=8))
+
+        history_str = "\n".join(
+            [
+                f"# {p[2].astimezone(manila_tz).strftime('%Y-%m-%d %H:%M')}: {p[0]}. {p[1]}{f' (time: {p[3]})' if p[3] else ''}:"
+                + f"\n\n"
+                + (
+                    lambda content: (
+                        lambda notes, code: code
+                        + (f"\n\n## notes: {notes}" if notes else "")
+                    )(*parse_content(content))
+                )(p[5])
+                + f"\n\n---------------------\n\n"
+                for p in solved_problems
+            ]
+        )
+
+        return history_str
+
+
+if __name__ == "__main__":
+    res = get_solved_problems()
+    rich_print(res)
+    print(len(res))

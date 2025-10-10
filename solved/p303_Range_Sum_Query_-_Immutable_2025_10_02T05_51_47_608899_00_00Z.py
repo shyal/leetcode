@@ -44,11 +44,6 @@ even figured out a neat trick to avoid bounds checking.
 """
 
 
-class Solution:
-    def dummy(self):
-        pass
-
-
 class NumArray:
 
     def __init__(self, nums: List[int]):

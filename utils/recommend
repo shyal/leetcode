@@ -2,49 +2,15 @@
 
 # recommend
 
-from typing import List, Tuple
 from rich.console import Console
 from rich.markdown import Markdown
-import subprocess
 import os
-import re
 import sys
-from datetime import datetime, timezone, timedelta
 from xai_sdk import Client
 from xai_sdk.chat import system, user
-from history_builder import get_solved_problems, parse_content
+from history_builder import get_history_string
 
 console = Console()
-
-
-def run_git(cmd):
-    """Run a git command and return its output."""
-    try:
-        return (
-            subprocess.check_output(["git"] + cmd, stderr=subprocess.STDOUT)
-            .decode()
-            .strip()
-        )
-    except subprocess.CalledProcessError as e:
-        print(f"Git command failed: {' '.join(cmd)}\nOutput: {e.output.decode()}")
-        sys.exit(1)
-
-
-def get_problem_content(num: int, title: str, dt: datetime, path) -> str:
-    """Get the content of the solved problem file based on number."""
-
-    if path and os.path.exists(path):
-        with open(path) as f:
-            return f.read()
-
-    solved_dir = "./solved"
-    for filename in os.listdir(solved_dir):
-        if filename.startswith(f"p{num}_") and filename.endswith(".py"):
-            filepath = os.path.join(solved_dir, filename)
-            with open(filepath, "r") as f:
-                return f.read()
-    return ""
-
 
 api_key = os.getenv("GROK_API_KEY")
 if not api_key:
@@ -54,26 +20,8 @@ client = Client(api_key=api_key)
 
 
 def main():
-    solved_problems = get_solved_problems()
 
-    if not solved_problems:
-        history_str = "No previous solves recorded."
-    else:
-        manila_tz = timezone(timedelta(hours=8))
-
-        history_str = "\n".join(
-            [
-                f"{p[2].astimezone(manila_tz).strftime('%Y-%m-%d %H:%M')}: {p[0]}. {p[1]}{f' (time: {p[3]})' if p[3] else ''}:"
-                + f"\n\n"
-                + (
-                    lambda content: (
-                        lambda notes, code: code + (f"\n\n{notes}" if notes else "")
-                    )(*parse_content(content))
-                )(get_problem_content(p[0], p[1], p[2], p[4]))
-                + f"\n"
-                for p in solved_problems
-            ]
-        )
+    history_str = get_history_string()
 
     system_prompt = """You are an expert LeetCode coach specializing in building strong fundamentals. Analyze the user's solve history to identify patterns in topics covered (e.g., arrays, strings, linked lists, trees, graphs, stacks/queues, dynamic programming, sorting/searching, etc.), difficulties attempted, and potential weak areas (e.g., topics rarely or never attempted, or where solve times were unusually long if provided). 
 

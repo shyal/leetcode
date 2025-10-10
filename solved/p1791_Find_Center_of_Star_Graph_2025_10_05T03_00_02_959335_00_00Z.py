@@ -1,5 +1,3 @@
-from typing import List
-
 """
 URL: https://leetcode.com/problems/find-center-of-star-graph/description/
 

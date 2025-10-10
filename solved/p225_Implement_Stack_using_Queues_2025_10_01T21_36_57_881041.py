@@ -1,6 +1,4 @@
 """
-||||||| parent of 8aa7d60 (parse)
-=======
 URL: https://leetcode.com/problems/implement-stack-using-queues/description/?envType=problem-list-v2&envId=vn57k9wr
 
 225. Implement Stack using Queues
@@ -47,13 +45,13 @@ Constraints:
 Follow-up: Can you implement the stack using only one queue?
 """
 
-from collections import deque
-
 
 class Solution:
-
     def func():
         pass
+
+
+from collections import deque
 
 
 class MyStack:
