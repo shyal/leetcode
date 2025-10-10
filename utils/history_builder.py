@@ -1,6 +1,6 @@
 # history_builder.py
-
-
+from functools import cache
+import ast
 import os
 import re
 import sys
@@ -9,6 +9,7 @@ from datetime import datetime
 from git import Repo, GitCommandError
 
 
+@cache
 def get_solved_problems():
     repo = Repo(os.getcwd())
     git = repo.git
@@ -16,6 +17,7 @@ def get_solved_problems():
 
     blocks = log_output.strip().split("---\n")
     solved = []
+    manila_tz = timezone(timedelta(hours=8))
     for block in blocks:
         if not block.strip():
             continue
@@ -48,6 +50,7 @@ def get_solved_problems():
 
         try:
             commit_date = datetime.strptime(date_str, "%a %b %d %H:%M:%S %Y %z")
+            commit_date = commit_date.astimezone(manila_tz)
         except ValueError:
             print(
                 f"Warning: Could not parse date '{date_str}' for commit {commit_hash}"
@@ -106,7 +109,12 @@ def get_solved_problems():
     return solved
 
 
-import ast
+def get_today_solves():
+    solved = get_solved_problems()
+    manila_tz = timezone(timedelta(hours=8))
+    today = datetime.now(manila_tz).date()
+    today_solves = [p for p in solved if p[2].date() == today]
+    return today_solves
 
 
 def parse_content(content: str) -> tuple[str, str]:
@@ -166,11 +174,9 @@ def get_history_string():
     if not solved_problems:
         history_str = "No previous solves recorded."
     else:
-        manila_tz = timezone(timedelta(hours=8))
-
         history_str = "\n".join(
             [
-                f"# {p[2].astimezone(manila_tz).strftime('%Y-%m-%d %H:%M')}: {p[0]}. {p[1]}{f' (time: {p[3]})' if p[3] else ''}:"
+                f"# {p[2].strftime('%Y-%m-%d %H:%M')}: {p[0]}. {p[1]}{f' (time: {p[3]})' if p[3] else ''}:"
                 + f"\n\n"
                 + (
                     lambda content: (
