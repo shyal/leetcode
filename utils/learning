@@ -45,40 +45,41 @@ def parse_current(file_path="current.py"):
     return num, title, content
 
 
-def main():
-    # Get current branch early
-    try:
-        current_branch = (
-            subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"])
-            .decode()
-            .strip()
-        )
-    except subprocess.CalledProcessError as e:
-        print(f"Error getting current branch: {e}")
-        return
+def comment_out_prints(content):
+    lines = content.split("\n")
+    new_lines = []
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("print(") or stripped.startswith("print ("):
+            leading_whitespace = line[: line.index(stripped[0])]
+            new_lines.append(leading_whitespace + "# " + stripped)
+        else:
+            new_lines.append(line)
+    return "\n".join(new_lines)
 
-    # Find the start time: earliest commit on the current branch or commit with "started"
+
+def main():
+    # Find the start time
+    # First, check for commit with message "started"
     result = subprocess.run(
-        ["git", "log", "--reverse", "--format=%H %ct %s", current_branch],
+        ["git", "log", "-1", "--grep=^started$", "--format=%ct"],
         capture_output=True,
         text=True,
     )
-    if result.returncode != 0 or not result.stdout.strip():
-        print("No commits found on branch. Using current time as start.")
-        start_time = time.time()
+    output = result.stdout.strip()
+
+    if output:
+        start_time = int(output)
     else:
-        output_lines = result.stdout.strip().splitlines()
-        start_time = None
-        for line in output_lines:
-            parts = line.split(" ", 2)
-            if len(parts) < 3:
-                continue
-            timestamp, message = int(parts[1]), parts[2]
-            if "started" in message.lower():
-                start_time = timestamp
-                break
-        if start_time is None:
-            start_time = int(output_lines[0].split(" ")[1])
+        # Get the last commit time
+        result = subprocess.run(
+            ["git", "log", "-1", "--format=%ct"], capture_output=True, text=True
+        )
+        if result.returncode != 0 or not result.stdout.strip():
+            print("No commits found. Using current time as start.")
+            start_time = time.time()
+        else:
+            start_time = int(result.stdout.strip())
 
     current_time = time.time()
     delta_seconds = current_time - start_time
@@ -94,6 +95,9 @@ def main():
     if num is None or title is None:
         print("Could not parse problem number and title from current.py. Exiting.")
         return
+
+    # Comment out print statements
+    content = comment_out_prints(content)
 
     # Prompt for notes
     notes = input("notes: ").strip()
@@ -132,6 +136,17 @@ def main():
         subprocess.run(["git", "commit", "-m", commit_message], check=True)
     except subprocess.CalledProcessError as e:
         print(f"Error running git commit: {e}")
+        return
+
+    # Get current branch
+    try:
+        current_branch = (
+            subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"])
+            .decode()
+            .strip()
+        )
+    except subprocess.CalledProcessError as e:
+        print(f"Error getting current branch: {e}")
         return
 
     # Checkout master
