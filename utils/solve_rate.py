@@ -1,5 +1,3 @@
-# solve_rate.py
-
 import subprocess
 import re
 from datetime import datetime, timedelta, timezone
@@ -11,6 +9,7 @@ from rich.live import Live
 from rich.panel import Panel
 import time
 import pyfiglet
+import json
 
 
 def render_big_time(secs: int, font_name: str, width: int = 200) -> str:
@@ -85,6 +84,14 @@ def parse_date(date_str):
         raise ValueError("Invalid date format. Use like '1st of August 2026'")
 
 
+def parse_json_date(date_str):
+    try:
+        dt = datetime.strptime(date_str, "%Y-%m-%d")
+        return dt.date()
+    except ValueError:
+        raise ValueError("Invalid JSON date format. Use like '2025-11-15'")
+
+
 def parse_time(time_str):
     try:
         dt = datetime.strptime(time_str, "%I%p")
@@ -101,7 +108,7 @@ def get_available_start(proposed_start, duration, task_intervals):
             if current_start < task_end and task_start < current_start + duration:
                 current_start = max(current_start, task_end)
                 overlap = True
-                break  # Restart check after shifting
+                break
         if not overlap:
             return current_start
 
@@ -136,6 +143,23 @@ def format_timedelta(td):
     if seconds:
         parts.append(f"{seconds}s")
     return " ".join(parts)
+
+
+def load_readiness_data():
+    try:
+        with open("readiness.json", "r") as f:
+            data = json.load(f)
+        # Get the latest entry based on run_date
+        latest = max(data, key=lambda x: parse_json_date(x["run_date"]))
+        contest_date = parse_json_date(latest["contest_readiness"])
+        faang_date = parse_json_date(latest["faang_interview"])
+        return contest_date, faang_date
+    except FileNotFoundError:
+        print("readiness.json not found.")
+        exit(1)
+    except ValueError as e:
+        print(f"Error parsing readiness.json: {e}")
+        exit(1)
 
 
 def main():
@@ -222,6 +246,12 @@ def main():
 
     local_tz = timezone(timedelta(hours=args.tz_offset))
     current_time = datetime.now(local_tz)
+    current_date = current_time.date()
+
+    # Load readiness data
+    contest_date, faang_date = load_readiness_data()
+    days_to_contest = (contest_date - current_date).days
+    days_to_faang = (faang_date - current_date).days
 
     periods = [
         (1, "1 day"),
@@ -271,7 +301,6 @@ def main():
                 continue
 
         if solve_count == 0:
-            table.add_row(label, "N/A", "N/A", "N/A", "N/A", "N/A", "N/A")
             continue
 
         rate = solve_count / past_days
@@ -359,7 +388,7 @@ def main():
                         if done_task:
                             done_tasks.add(done_task)
             except FileNotFoundError:
-                pass  # File doesn't exist, assume no tasks done
+                pass
 
             all_tasks = []
             try:
@@ -399,7 +428,6 @@ def main():
 
             planned_items = []
             if total_planned > 0:
-                # Compute planned_start
                 if solved_today:
                     solved_today.sort(key=lambda x: x[2])
                     last_done_time = solved_today[-1][2]
@@ -450,7 +478,6 @@ def main():
                     else:
                         activity_duration = timedelta(0)
 
-                    # Planned problems
                     planned_problems = (
                         remaining_problems[:num_to_do_today]
                         if num_to_do_today > 0
@@ -477,7 +504,6 @@ def main():
                             next_current += timedelta(minutes=break_minutes)
                         current = next_current
 
-                    # Planned tasks
                     task_planned_items = []
                     for task_name, task_start in planned_tasks:
                         task_end = task_start + task_duration
@@ -526,7 +552,10 @@ def main():
             else:
                 print("No activities planned or done today.")
 
-            # Check for ongoing task and start countdown if applicable
+            print(f"Days until contest ready: {days_to_contest}")
+            print(f"Days until FAANG ready: {days_to_faang}")
+            print("")
+
             ongoing_activity = None
             for item in all_todays:
                 if len(item) == 5 and isinstance(item[0], str) and item[0] == "Task":
