@@ -55,12 +55,12 @@ class Solution:
             and i < len(arr)
         )
 
-        for i in range(1, len(arr) - 1):
-            print(i)
-            print(f"increasing: {is_increasing(i)}")
-            print(f"peak: {is_peak(i)}")
-            print(f"decreasing: {is_decreasing(i)}")
-            print("------")
+        # for i in range(1, len(arr) - 1):
+        #     print(i)
+        #     print(f"increasing: {is_increasing(i)}")
+        #     print(f"peak: {is_peak(i)}")
+        #     print(f"decreasing: {is_decreasing(i)}")
+        #     print("------")
 
 
 sol = Solution()

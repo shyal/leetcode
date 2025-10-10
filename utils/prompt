@@ -69,7 +69,9 @@ def main():
             ]
         )
 
-    system_prompt = """You are an expert LeetCode coach specializing in assessing candidate readiness.
+    system_prompt = (
+        input("system prompt: ").strip()
+        or """You are an expert LeetCode coach specializing in assessing candidate readiness.
 
 Based on the user's solve history, provide him with some feedback:
 
@@ -82,6 +84,7 @@ needs further improvements.
 
 Assume the candidate will continue solving daily at their similar average pace.
 """
+    )
 
     user_prompt = (
         f"""Here is my LeetCode solve history (most recent last):\n\n{history_str}\n."""
