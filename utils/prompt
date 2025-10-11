@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import datetime
 from rich.console import Console
 from rich.markdown import Markdown
 import os
@@ -22,8 +23,10 @@ client = Client(api_key=api_key)
 def main():
     history_str = get_history_string()
 
+    user_input = input("system prompt: ").strip()
+
     system_prompt = (
-        input("system prompt: ").strip()
+        user_input
         or """You are an expert LeetCode coach specializing in assessing candidate readiness.
 
 Based on the user's solve history, provide him with some feedback:
@@ -53,7 +56,6 @@ Assume the candidate will continue solving daily at their similar average pace.
         )
         response = chat.sample()
         recommendation = response.content.strip()
-        estimates = json.loads(recommendation)
     except json.JSONDecodeError as e:
         print(f"Failed to parse JSON from API response: {e}")
         print(f"Response: {recommendation}")
@@ -62,7 +64,12 @@ Assume the candidate will continue solving daily at their similar average pace.
         print(f"Error calling xAI API: {e}")
         sys.exit(1)
 
-    rich_print(estimates)
+    md = Markdown(recommendation)
+    console.print(md)
+    with open(
+        f'misc/prompts/{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S.md")}', "w"
+    ) as w:
+        w.write(f"# Question: {user_input}\n\n# Answer:\n\n{recommendation}")
 
 
 if __name__ == "__main__":

@@ -172,24 +172,36 @@ def get_history_string():
     solved_problems = get_solved_problems()
 
     if not solved_problems:
-        history_str = "No previous solves recorded."
-    else:
-        history_str = "\n".join(
-            [
-                f"# {p[2].strftime('%Y-%m-%d %H:%M')}: {p[0]}. {p[1]}{f' (time: {p[3]})' if p[3] else ''}:"
-                + f"\n\n"
-                + (
-                    lambda content: (
-                        lambda notes, code: code
-                        + (f"\n\n## notes: {notes}" if notes else "")
-                    )(*parse_content(content))
-                )(p[5])
-                + f"\n\n---------------------\n\n"
-                for p in solved_problems
-            ]
-        )
+        return "No previous solves recorded."
 
-        return history_str
+    def format_problem_entry(problem):
+        # Extract problem details
+        timestamp = problem[2].strftime("%Y-%m-%d %H:%M")
+        problem_id = problem[0]
+        problem_title = problem[1]
+        solve_time = problem[3]
+        content = problem[5]
+
+        # Format time if available
+        time_str = f" (time: {solve_time})" if solve_time else ""
+
+        # Parse content into notes and code
+        notes, code = parse_content(content)
+
+        # Build problem entry
+        entry = f"# {timestamp}: {problem_id}. {problem_title}{time_str}:\n\n"
+        entry += f"```python3\n{code}\n```"
+        if notes:
+            entry += f"\n\n## {notes}"
+        entry += "\n\n---------------------\n\n"
+
+        return entry
+
+    history_str = "\n".join(
+        format_problem_entry(problem) for problem in solved_problems
+    )
+
+    return history_str
 
 
 if __name__ == "__main__":
