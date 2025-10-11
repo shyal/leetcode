@@ -46,6 +46,7 @@ from tree_utils import *
 from bst_utils import *
 from linked_list_utils import *
 from bs_utils import *
+from debug_utils import *
 
 # pretty printing
 from rich import print as rich_print
@@ -64,6 +65,8 @@ builtins.draw_tree = draw_tree
 builtins.draw_linked_list = draw_linked_list
 builtins.draw_general_tree = draw_general_tree
 builtins.get_level_order = get_level_order
+builtins.debug_var = debug_var
+builtins.debug_vars = debug_vars
 builtins.viz_binary_search = viz_binary_search
 
 # building
