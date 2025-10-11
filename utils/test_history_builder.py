@@ -21,3 +21,7 @@ def test_all_files_present():
         if "assert" in parsed_content[1]:
             print(parsed_content)
             assert False, f"Parsing issue in {matching_file}"
+
+
+if __name__ == "__main__":
+    test_all_files_present()
