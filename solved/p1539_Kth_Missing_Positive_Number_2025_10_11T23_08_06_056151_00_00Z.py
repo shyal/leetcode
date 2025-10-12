@@ -66,7 +66,7 @@ class Solution:
 
 sol = Solution()
 
-print(sol.findKthPositive([2, 3, 4, 7, 11], 5))
+# print(sol.findKthPositive([2, 3, 4, 7, 11], 5))
 
 # assert sol.findKthPositive([2, 3, 4, 7, 11], 5) == 9
 # assert sol.findKthPositive([1,2,3,4], 2) == 6

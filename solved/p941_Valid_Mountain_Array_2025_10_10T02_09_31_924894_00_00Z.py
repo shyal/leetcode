@@ -65,7 +65,7 @@ class Solution:
 
 sol = Solution()
 
-print(sol.validMountainArray([2, 1, 0]))  # False
+# print(sol.validMountainArray([2, 1, 0]))  # False
 
 # assert sol.validMountainArray([2, 1]) == False
 # assert sol.validMountainArray([3, 5, 5]) == False
