@@ -24,17 +24,15 @@ Constraints:
         -104 <= nums[i] <= 104
 """
 
-from typing import List
-import heapq
-
 
 class Solution:
     def findKthLargest(self, nums: List[int], k: int) -> int:
         heap = []
         for n in nums:
-            heapq.heappush(heap, n)
+            heappush(heap, n)
+            # draw_heap(heap)
             if len(heap) > k:
-                heapq.heappop(heap)
+                heappop(heap)
         return heap[0]
 
 

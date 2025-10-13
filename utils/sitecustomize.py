@@ -50,6 +50,7 @@ from bst_utils import *
 from linked_list_utils import *
 from bs_utils import *
 from debug_utils import *
+from heap_utils import *
 
 # pretty printing
 from rich import print as rich_print
@@ -75,6 +76,7 @@ builtins.viz_binary_search = viz_binary_search
 builtins.draw_ascii_graph = draw_ascii_graph
 builtins.draw_graphviz = draw_graphviz
 builtins.draw_graph = draw_graph
+builtins.draw_heap = draw_heap
 
 # building
 builtins.build_tree = build_tree
