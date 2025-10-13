@@ -1,4 +1,3 @@
-# history_builder.py
 from functools import cache
 import ast
 import os
@@ -7,6 +6,7 @@ import sys
 from datetime import timezone, timedelta
 from datetime import datetime
 from git import Repo, GitCommandError
+import glob
 
 
 @cache
@@ -170,37 +170,64 @@ def parse_content(content: str) -> tuple[str, str]:
 
 def get_history_string():
     solved_problems = get_solved_problems()
+    manila_tz = timezone(timedelta(hours=8))
 
     if not solved_problems:
         return "No previous solves recorded."
 
-    def format_problem_entry(problem):
-        # Extract problem details
-        timestamp = problem[2].strftime("%Y-%m-%d %H:%M")
-        problem_id = problem[0]
-        problem_title = problem[1]
-        solve_time = problem[3]
-        content = problem[5]
+    # Collect review notes if the directory exists
+    notes_dir = "./misc/review_notes/"
+    notes_list = []
+    if os.path.exists(notes_dir):
+        notes_files = glob.glob(os.path.join(notes_dir, "*.md"))
+        for f in notes_files:
+            base = os.path.basename(f)
+            dt_str = base[:-3]  # remove .md
+            try:
+                note_dt = datetime.strptime(dt_str, "%Y-%m-%d_%H-%M-%S")
+                note_dt = note_dt.replace(tzinfo=manila_tz)
+            except ValueError:
+                print(f"Warning: Could not parse date from filename '{base}'")
+                continue
+            content = open(f).read().strip()
+            notes_list.append((note_dt, content))
 
-        # Format time if available
-        time_str = f" (time: {solve_time})" if solve_time else ""
+    # Combine solves and notes into events
+    events = []
+    for prob in solved_problems:
+        events.append(("solve", prob[2], prob))
+    for note in notes_list:
+        events.append(("note", note[0], note[1]))
 
-        # Parse content into notes and code
-        notes, code = parse_content(content)
+    # Sort events by timestamp ascending
+    events.sort(key=lambda x: x[1])
 
-        # Build problem entry
-        entry = f"# {timestamp}: {problem_id}. {problem_title}{time_str}:\n\n"
-        entry += f"```python3\n{code}\n```"
-        if notes:
-            entry += f"\n\n## {notes}"
-        entry += "\n\n---------------------\n\n"
+    # Build the history string
+    history_parts = []
+    for event_type, ts, data in events:
+        ts_str = ts.strftime("%Y-%m-%d %H:%M")
+        if event_type == "solve":
+            problem = data
+            problem_id = problem[0]
+            problem_title = problem[1]
+            solve_time = problem[3]
+            content = problem[5]
 
-        return entry
+            time_str = f" (time: {solve_time})" if solve_time else ""
 
-    history_str = "\n".join(
-        format_problem_entry(problem) for problem in solved_problems
-    )
+            notes, code = parse_content(content)
 
+            entry = f"# {ts_str}: {problem_id}. {problem_title}{time_str}:\n\n"
+            entry += f"```python3\n{code}\n```"
+            if notes:
+                entry += f"\n\n## {notes}"
+            entry += "\n\n---------------------\n\n"
+            history_parts.append(entry)
+        elif event_type == "note":
+            entry = f"# {ts_str}: Review Notes\n\n{data}\n\n---------------------\n\n"
+            history_parts.append(entry)
+
+    history_str = "".join(history_parts)  # Join without extra newlines between entries
     return history_str
 
 

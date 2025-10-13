@@ -131,3 +131,4 @@ builtins.match = re.match
 builtins.permutations = permutations
 builtins.or_ = operator.or_
 builtins.and_ = operator.and_
+builtins.islice = islice
