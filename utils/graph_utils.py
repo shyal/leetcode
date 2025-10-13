@@ -1,4 +1,8 @@
-from typing import Dict, Any
+# graph_utils.py
+
+from Types import GraphNode
+from typing import List
+from typing import Dict, Any, Optional
 from collections import defaultdict
 from colorama import Fore, Style
 
@@ -184,3 +188,38 @@ def draw_ascii_graph(G: Dict[Any, Dict[Any, Any]]) -> None:
         for src in sorted(G):
             neighbors = [f"{dst}({G[src][dst]})" for dst in sorted(G[src])]
             print(f"{src}: {', '.join(neighbors)}")
+
+
+def build_graph(adj: List[List[int]]) -> Optional[GraphNode]:
+    if not adj:
+        return None
+    n = len(adj)
+    nodes = [GraphNode(i + 1) for i in range(n)]
+    for i in range(n):
+        for nb in adj[i]:
+            nodes[i].neighbors.append(nodes[nb - 1])
+    return nodes[0]
+
+
+def get_adj_list(node: Optional[GraphNode]) -> List[List[int]]:
+    if not node:
+        return []
+    node_map = {}
+    queue = deque([node])
+    visited = set([node])
+    max_val = 0
+    while queue:
+        cur = queue.popleft()
+        node_map[cur.val] = cur
+        max_val = max(max_val, cur.val)
+        for nb in cur.neighbors:
+            if nb not in visited:
+                visited.add(nb)
+                queue.append(nb)
+    adj = []
+    for i in range(1, max_val + 1):
+        cur = node_map.get(i)
+        if cur:
+            neighbors = sorted([nb.val for nb in cur.neighbors])
+            adj.append(neighbors)
+    return adj

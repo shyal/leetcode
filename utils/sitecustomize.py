@@ -14,6 +14,7 @@ import builtins
 # types
 from Types import TreeNode
 from Types import ListNode
+from Types import GraphNode
 
 # Type aliases
 from typing import (
@@ -39,9 +40,11 @@ from math import log10, log2, floor, ceil, prod
 from collections import defaultdict, Counter
 import operator
 import heapq
+from collections import deque
 from string import ascii_letters, ascii_lowercase, ascii_uppercase
 
 # utils
+from graph_utils import *
 from tree_utils import *
 from bst_utils import *
 from linked_list_utils import *
@@ -57,6 +60,7 @@ builtins.List = List
 builtins.Optional = Optional
 builtins.TreeNode = TreeNode
 builtins.ListNode = ListNode
+builtins.GraphNode = GraphNode
 
 # pretty printing
 builtins.tabulate = tabulate
@@ -68,6 +72,9 @@ builtins.get_level_order = get_level_order
 builtins.debug_var = debug_var
 builtins.debug_vars = debug_vars
 builtins.viz_binary_search = viz_binary_search
+builtins.draw_ascii_graph = draw_ascii_graph
+builtins.draw_graphviz = draw_graphviz
+builtins.draw_graph = draw_graph
 
 # building
 builtins.build_tree = build_tree
@@ -75,7 +82,9 @@ builtins.generate_and_print_random_bst = generate_and_print_random_bst
 builtins.generate_full_binary_tree = generate_full_binary_tree
 
 # utilities
-
+builtins.deque = deque
+builtins.get_adj_list = get_adj_list
+builtins.build_graph = build_graph
 builtins.get_list_values = get_list_values
 builtins.print_linked_list = print_linked_list
 builtins.build_linked_list = build_linked_list
