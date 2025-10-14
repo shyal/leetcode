@@ -134,3 +134,11 @@ builtins.and_ = operator.and_
 builtins.islice = islice
 builtins.compress = compress
 builtins.sqrt = sqrt
+
+
+def batched(s, n=1):
+    r = list(range(0, len(s), n))
+    return [s[a:b] for a, b in zip_longest(r, r[1:])]
+
+
+builtins.batched = batched
