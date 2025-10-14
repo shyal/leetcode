@@ -82,7 +82,7 @@ sol = Solution()
 
 
 res = sol.leastInterval(tasks=["B", "C", "D", "A", "A", "A", "A", "G"], n=1)
-print(res)
+
 assert res == 8
 
 res = sol.leastInterval(tasks=["A", "A", "A", "B", "B", "B"], n=2)
