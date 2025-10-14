@@ -1,0 +1,88 @@
+#!/usr/bin/env python3
+
+from rich import print
+from rich.console import Console
+import os
+import sys
+from datetime import datetime, timezone, timedelta
+import json
+from xai_sdk import Client
+from xai_sdk.chat import system, user
+from history_builder import get_history_string
+
+console = Console()
+
+api_key = os.getenv("GROK_API_KEY")
+if not api_key:
+    raise ValueError("GROK_API_KEY environment variable not set")
+
+client = Client(api_key=api_key)
+
+
+def main():
+    history_str = get_history_string()
+    assert history_str
+
+    system_prompt = """You are an expert LeetCode coach specializing in assessing candidate readiness.
+
+Based on the user's solve history, estimate readiness per topic:
+
+{
+    "binary_search": 0.5, # floating point value as fraction of readiness (50%)
+    "heaps": 0.3, # floating point value as fraction of readiness (30%)
+    "two_pointer": 0.7, # floating point value as fraction of readiness (70%)
+    etc.
+}
+
+The goal is to be leetcode contest ready by 2025-11-15. Generate valid JSON and nothing else.
+"""
+
+    user_prompt = f"""Here is my LeetCode solve history (most recent last):\n\n{history_str}\n\nBased on this, estimate my readiness percentages."""
+
+    with open("_estimate_prompt.txt", "w") as w:
+        w.write(user_prompt)
+
+    try:
+        chat = client.chat.create(
+            model="grok-4-0709",
+            messages=[
+                system(system_prompt),
+                user(user_prompt),
+            ],
+        )
+        response = chat.sample()
+        recommendation = response.content.strip()
+        estimates = json.loads(recommendation)
+        print(estimates)
+    except json.JSONDecodeError as e:
+        print(f"Failed to parse JSON from API response: {e}")
+        print(f"Response: {recommendation}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error calling xAI API: {e}")
+        sys.exit(1)
+
+    manila_tz = timezone(timedelta(hours=8))
+    today = datetime.now(manila_tz).strftime("%Y-%m-%d")
+
+    data = []
+    if os.path.exists("readiness.json"):
+        try:
+            with open("readiness.json", "r") as f:
+                data = json.load(f)
+            if not isinstance(data, list):
+                data = []
+        except json.JSONDecodeError:
+            data = []
+
+    new_entry = {"run_date": today, "contest_topics_readiness": estimates}
+    data.append(new_entry)
+
+    rich_print(data)
+
+    with open("readiness.json", "w") as f:
+        json.dump(data, f, indent=2)
+
+
+if __name__ == "__main__":
+    main()
