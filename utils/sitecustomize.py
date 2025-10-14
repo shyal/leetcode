@@ -36,7 +36,7 @@ from typing import (
 # shortcuts
 from functools import *
 from itertools import *
-from math import log10, log2, floor, ceil, prod
+from math import log10, log2, floor, ceil, prod, sqrt
 from collections import defaultdict, Counter
 import operator
 import heapq
@@ -133,3 +133,4 @@ builtins.or_ = operator.or_
 builtins.and_ = operator.and_
 builtins.islice = islice
 builtins.compress = compress
+builtins.sqrt = sqrt
