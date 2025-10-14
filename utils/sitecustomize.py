@@ -119,6 +119,7 @@ builtins.iadd = operator.iadd
 builtins.sub = operator.sub
 builtins.isub = operator.isub
 builtins.xor = operator.xor
+builtins.ixor = operator.ixor
 builtins.heapify = heapq.heapify
 builtins.heappop = heapq.heappop
 builtins.heappush = heapq.heappush
@@ -134,6 +135,7 @@ builtins.and_ = operator.and_
 builtins.islice = islice
 builtins.compress = compress
 builtins.sqrt = sqrt
+builtins.starmap = starmap
 
 
 def batched(s, n=1):
