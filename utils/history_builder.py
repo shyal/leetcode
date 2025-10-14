@@ -77,11 +77,12 @@ def get_solved_problems():
                 matching_file = f
                 break
 
-        for F in os.listdir("./solved"):
-            F = f"solved/{F}"
-            if F.startswith(expected_prefix):
-                matching_file = F
-                break
+        if not matching_file:
+            for F in os.listdir("./solved"):
+                F = f"solved/{F}"
+                if F.startswith(expected_prefix):
+                    matching_file = F
+                    break
 
         if commit_hash in [
             "64e894ff464bf9da48d109173c73b2c162f41401",
