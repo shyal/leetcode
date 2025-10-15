@@ -25,11 +25,18 @@ def main():
 
     problems_solved_today = len(get_today_solves())
 
-    system_prompt = f"""You are an expert LeetCode coach specializing in building strong fundamentals. Analyze the user's solve history to identify weak areas.
+    system_prompt = f"""You are an expert LeetCode coach specializing in building strong fundamentals.
+    
+Analyze the user's solve history to identify weak areas.
 
 Recommend EXACTLY ONE next problem to solve. 
 
 Examine very carefully how the user is solving questions, and think about what his weaknesses are. Recommend exercises to work on his weakest areas.
+
+After the solve, it will be added to the solve history, and you'll be given the opportunity to make more recommendations. As such, this is
+a feedback loop: you make a recommendation, the user works on it, you get the history and get to make more recommendations. You can thus
+build theories about why the user is struggling in a certain area, and learn as you go whether your recommendations are
+help the candidate improve over time.
 
 For your recommendation, specify:
 - Problem number and full title (e.g., "1. Two Sum").
