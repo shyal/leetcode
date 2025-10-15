@@ -119,8 +119,10 @@ class Solution:
         return False
 
 
+sol = Solution()
+
 assert (
-    Solution().searchMatrix(
+    sol.searchMatrix(
         [
             [1, 4, 7, 11, 15],
             [2, 5, 8, 12, 19],
@@ -133,7 +135,7 @@ assert (
     == True
 )
 assert (
-    Solution().searchMatrix(
+    sol.searchMatrix(
         [
             [1, 4, 7, 11, 15],
             [2, 5, 8, 12, 19],
@@ -146,7 +148,7 @@ assert (
     == False
 )
 assert (
-    Solution().searchMatrix(
+    sol.searchMatrix(
         [
             [1, 4, 7, 11, 15],
             [2, 5, 8, 12, 19],
@@ -159,7 +161,7 @@ assert (
     == True
 )
 assert (
-    Solution().searchMatrix(
+    sol.searchMatrix(
         [
             [1, 4, 7, 11, 15],
             [2, 5, 8, 12, 19],
@@ -173,7 +175,7 @@ assert (
 )
 
 assert (
-    Solution().searchMatrix(
+    sol.searchMatrix(
         [
             [1, 4, 7, 11, 15],
             [2, 5, 8, 12, 19],
@@ -186,7 +188,7 @@ assert (
     == True
 )
 assert (
-    Solution().searchMatrix(
+    sol.searchMatrix(
         [
             [1, 4, 7, 11, 15],
             [2, 5, 8, 12, 19],
@@ -199,7 +201,7 @@ assert (
     == True
 )
 assert (
-    Solution().searchMatrix(
+    sol.searchMatrix(
         [
             [1, 4, 7, 11, 15],
             [2, 5, 8, 12, 19],
@@ -212,7 +214,7 @@ assert (
     == False
 )
 assert (
-    Solution().searchMatrix(
+    sol.searchMatrix(
         [
             [1, 4, 7, 11, 15],
             [2, 5, 8, 12, 19],
@@ -225,7 +227,7 @@ assert (
     == False
 )
 assert (
-    Solution().searchMatrix(
+    sol.searchMatrix(
         [
             [1, 4, 7, 11, 15],
             [2, 5, 8, 12, 19],
@@ -238,7 +240,7 @@ assert (
     == True
 )
 assert (
-    Solution().searchMatrix(
+    sol.searchMatrix(
         [
             [1, 4, 7, 11, 15],
             [2, 5, 8, 12, 19],
@@ -250,30 +252,31 @@ assert (
     )
     == False
 )
-assert Solution().searchMatrix([[5]], 5) == True
-assert Solution().searchMatrix([[5]], 6) == False
-assert Solution().searchMatrix([[1, 2, 3, 4, 5]], 3) == True
-assert Solution().searchMatrix([[1, 2, 3, 4, 5]], 0) == False
-assert Solution().searchMatrix([[1, 2, 3, 4, 5]], 6) == False
-assert Solution().searchMatrix([[1], [2], [3], [4], [5]], 3) == True
-assert Solution().searchMatrix([[1], [2], [3], [4], [5]], 0) == False
-assert Solution().searchMatrix([[1], [2], [3], [4], [5]], 6) == False
-assert Solution().searchMatrix([[-5]], -5) == True
-assert Solution().searchMatrix([[-5]], -6) == False
-assert Solution().searchMatrix([[-1, 3]], -1) == True
-assert Solution().searchMatrix([[-1, 3]], 3) == True
-assert Solution().searchMatrix([[-1, 3]], 0) == False
-assert Solution().searchMatrix([[1, 2], [3, 4]], 4) == True
-assert Solution().searchMatrix([[1, 2], [3, 4]], 5) == False
-assert Solution().searchMatrix([[1, 2], [3, 4]], 0) == False
-assert Solution().searchMatrix([[1, 2], [3, 4]], 2) == True
-assert Solution().searchMatrix([[-10, -8], [-5, -3]], -8) == True
-assert Solution().searchMatrix([[-10, -8], [-5, -3]], -10) == True
-assert Solution().searchMatrix([[-10, -8], [-5, -3]], -3) == True
-assert Solution().searchMatrix([[-10, -8], [-5, -3]], -4) == False
-assert Solution().searchMatrix([[1, 1], [1, 1]], 1) == True
-assert Solution().searchMatrix([[1, 1], [1, 1]], 2) == False
-assert Solution().searchMatrix([[1, 1, 1], [1, 2, 3], [1, 4, 5]], 1) == True
-assert Solution().searchMatrix([[1, 1, 1], [1, 2, 3], [1, 4, 5]], 4) == True
-assert Solution().searchMatrix([[1, 1, 1], [1, 2, 3], [1, 4, 5]], 0) == False
-assert Solution().searchMatrix([[1, 1, 1], [1, 2, 3], [1, 4, 5]], 6) == False
+
+assert sol.searchMatrix([[5]], 5) == True
+assert sol.searchMatrix([[5]], 6) == False
+assert sol.searchMatrix([[1, 2, 3, 4, 5]], 3) == True
+assert sol.searchMatrix([[1, 2, 3, 4, 5]], 0) == False
+assert sol.searchMatrix([[1, 2, 3, 4, 5]], 6) == False
+assert sol.searchMatrix([[1], [2], [3], [4], [5]], 3) == True
+assert sol.searchMatrix([[1], [2], [3], [4], [5]], 0) == False
+assert sol.searchMatrix([[1], [2], [3], [4], [5]], 6) == False
+assert sol.searchMatrix([[-5]], -5) == True
+assert sol.searchMatrix([[-5]], -6) == False
+assert sol.searchMatrix([[-1, 3]], -1) == True
+assert sol.searchMatrix([[-1, 3]], 3) == True
+assert sol.searchMatrix([[-1, 3]], 0) == False
+assert sol.searchMatrix([[1, 2], [3, 4]], 4) == True
+assert sol.searchMatrix([[1, 2], [3, 4]], 5) == False
+assert sol.searchMatrix([[1, 2], [3, 4]], 0) == False
+assert sol.searchMatrix([[1, 2], [3, 4]], 2) == True
+assert sol.searchMatrix([[-10, -8], [-5, -3]], -8) == True
+assert sol.searchMatrix([[-10, -8], [-5, -3]], -10) == True
+assert sol.searchMatrix([[-10, -8], [-5, -3]], -3) == True
+assert sol.searchMatrix([[-10, -8], [-5, -3]], -4) == False
+assert sol.searchMatrix([[1, 1], [1, 1]], 1) == True
+assert sol.searchMatrix([[1, 1], [1, 1]], 2) == False
+assert sol.searchMatrix([[1, 1, 1], [1, 2, 3], [1, 4, 5]], 1) == True
+assert sol.searchMatrix([[1, 1, 1], [1, 2, 3], [1, 4, 5]], 4) == True
+assert sol.searchMatrix([[1, 1, 1], [1, 2, 3], [1, 4, 5]], 0) == False
+assert sol.searchMatrix([[1, 1, 1], [1, 2, 3], [1, 4, 5]], 6) == False

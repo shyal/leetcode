@@ -34,6 +34,7 @@ from typing import (
 
 
 # shortcuts
+from sys import maxsize
 from functools import *
 from itertools import *
 from math import log10, log2, floor, ceil, prod, sqrt
@@ -137,6 +138,7 @@ builtins.islice = islice
 builtins.compress = compress
 builtins.sqrt = sqrt
 builtins.starmap = starmap
+builtins.maxsize = maxsize
 
 
 def batched(s, n=1):

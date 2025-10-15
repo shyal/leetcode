@@ -2948,6 +2948,7 @@ def nsmallest(
 ascii_letters: str
 ascii_lowercase: str
 ascii_uppercase: str
+max_size: int
 
 def match(pattern: str, string: str, flags: int = 0) -> Optional[Any]: ...
 def enumr(iterable: Iterable[_T], start: int = 0) -> Iterator[Tuple[int, _T]]: ...
