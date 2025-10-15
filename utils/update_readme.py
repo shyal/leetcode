@@ -271,7 +271,9 @@ def main():
         contest_topics_img = ""
         if "contest_topics_readiness" in last_readiness:
             topics_data = last_readiness["contest_topics_readiness"]
-            topics = sorted(topics_data.keys())
+            topics = sorted(
+                topics_data.keys(), key=lambda x: topics_data[x], reverse=True
+            )
             scores = [topics_data[topic] for topic in topics]
 
             fig, ax = plt.subplots(figsize=(10, len(topics) * 0.5))
