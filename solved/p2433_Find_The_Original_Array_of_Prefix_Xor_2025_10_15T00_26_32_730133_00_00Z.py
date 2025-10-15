@@ -59,5 +59,5 @@ class Solution:
 
 
 sol = Solution()
-res = sol.findArray(pref=["a", "b", "c", "d", "e"])
+# res = sol.findArray(pref=["a", "b", "c", "d", "e"])
 # print(res)
