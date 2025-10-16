@@ -25,7 +25,7 @@ def main():
 
     system_prompt = """You are an expert LeetCode coach specializing in assessing candidate readiness.
 
-Based on the user's solve history, estimate readiness per topic:
+Based on the user's solve history and previous estimates (if provided), estimate readiness per topic:
 
 {
     "binary_search": 0.5, # floating point value as fraction of readiness (50%)
@@ -34,10 +34,33 @@ Based on the user's solve history, estimate readiness per topic:
     etc.
 }
 
-The goal is to be leetcode contest ready by 2025-11-15. Generate valid JSON and nothing else.
+The goal is to be leetcode contest ready by 2025-11-15. If previous estimates are provided, use them as a baseline and adjust based on new information. Generate valid JSON and nothing else.
 """
 
+    # Load existing data to find previous estimates
+    data = []
+    previous_estimates = None
+    if os.path.exists("readiness.json"):
+        try:
+            with open("readiness.json", "r") as f:
+                data = json.load(f)
+            if not isinstance(data, list):
+                data = []
+        except json.JSONDecodeError:
+            data = []
+
+        # Sort by run_date descending to find the latest with contest_topics_readiness
+        data.sort(key=lambda x: x.get("run_date", "0000-00-00"), reverse=True)
+        for entry in data:
+            if "contest_topics_readiness" in entry:
+                previous_estimates = entry["contest_topics_readiness"]
+                break
+
     user_prompt = f"""Here is my LeetCode solve history (most recent last):\n\n{history_str}\n\nBased on this, estimate my readiness percentages."""
+    if previous_estimates:
+        user_prompt += (
+            f"\n\nPrevious topic estimates:\n{json.dumps(previous_estimates, indent=2)}"
+        )
 
     with open("_estimate_prompt.txt", "w") as w:
         w.write(user_prompt)
@@ -65,20 +88,13 @@ The goal is to be leetcode contest ready by 2025-11-15. Generate valid JSON and 
     manila_tz = timezone(timedelta(hours=8))
     today = datetime.now(manila_tz).strftime("%Y-%m-%d")
 
-    data = []
-    if os.path.exists("readiness.json"):
-        try:
-            with open("readiness.json", "r") as f:
-                data = json.load(f)
-            if not isinstance(data, list):
-                data = []
-        except json.JSONDecodeError:
-            data = []
-
     new_entry = {"run_date": today, "contest_topics_readiness": estimates}
     data.append(new_entry)
 
-    rich_print(data)
+    # Resort the data by run_date ascending before saving
+    data.sort(key=lambda x: x.get("run_date", "0000-00-00"))
+
+    print(data)
 
     with open("readiness.json", "w") as f:
         json.dump(data, f, indent=2)

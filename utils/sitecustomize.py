@@ -10,6 +10,8 @@ sys.path.insert(0, os.path.join(project_root, "utils"))
 
 import bisect
 import builtins
+from rich.console import Console
+from rich.markdown import Markdown
 
 # types
 from Types import TreeNode
@@ -55,7 +57,25 @@ from heap_utils import *
 
 # pretty printing
 from rich import print as rich_print
-from tabulate import tabulate
+from tabulate import tabulate as tabulate_orig
+
+console = Console()
+
+
+def tabulate(tabular_data, headers=(), row_labels=(), tablefmt="github"):
+    if row_labels:
+        if len(row_labels) != len(tabular_data):
+            raise ValueError("Number of row labels must match number of rows")
+        tabular_data = [
+            [row_label] + row for row_label, row in zip(row_labels, tabular_data)
+        ]
+        headers = [""] + list(headers)
+
+    t = tabulate_orig(tabular_data, headers, tablefmt=tablefmt)
+    md = Markdown(t)
+    console.print(md)
+    return md
+
 
 # types
 builtins.List = List
@@ -139,6 +159,7 @@ builtins.compress = compress
 builtins.sqrt = sqrt
 builtins.starmap = starmap
 builtins.maxsize = maxsize
+builtins.cache = cache
 
 
 def batched(s, n=1):
