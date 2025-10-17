@@ -73,5 +73,4 @@ class Solution:
 
 sol = Solution()
 res = sol.combinationSum(candidates=[2, 3, 5], target=8)
-print(res)
 # assert res == [[2, 2, 3], [7]]
