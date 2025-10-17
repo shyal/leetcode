@@ -6,6 +6,7 @@ def main():
     import matplotlib as mpl
     import boto3
     import numpy as np
+    import math
 
     mpl.use("Agg")
     import matplotlib.pyplot as plt
@@ -35,7 +36,7 @@ def main():
         if not prob_match:
             continue
 
-        prob_num = prob_match.group(1)
+        prob_num = prob_match.group(1)  # Keep as str for consistency
         all_problem_dates.add(date_str)
 
         is_unsolved = (
@@ -330,6 +331,79 @@ def main():
         faang_progress_img = "No readiness data."
         contest_topics_img = "No readiness data."
 
+    # New animation: Problem grid
+    grid_anim_img = ""
+    if dates_for_plot:
+        total_problems = 3302
+        grid_size = math.ceil(math.sqrt(total_problems))
+        problem_ids = [str(i) for i in range(1, total_problems + 1)]
+        all_positions = []
+        for idx in range(total_problems):
+            row = idx // grid_size
+            col = idx % grid_size
+            all_positions.append(
+                (col, grid_size - row - 1)
+            )  # Invert y for top-left start
+
+        all_x = [pos[0] for pos in all_positions]
+        all_y = [pos[1] for pos in all_positions]
+
+        problem_solve_dates = {}
+        for date_str, probs in uniques_per_day.items():
+            for prob in probs:
+                problem_solve_dates[prob] = date_str
+
+        solve_dates = {}
+        for prob, date_str in problem_solve_dates.items():
+            solve_dates[prob] = datetime.strptime(date_str, "%Y-%m-%d")
+
+        dates_dt = [datetime.strptime(d, "%Y-%m-%d") for d in dates_for_plot]
+
+        fig, ax = plt.subplots(figsize=(8, 8))
+        ax.set_xlim(-0.5, grid_size - 0.5)
+        ax.set_ylim(-0.5, grid_size - 0.5)
+        ax.set_axis_off()
+        ax.set_aspect("equal")
+
+        # Static unsolved dots in dark grey
+        ax.scatter(all_x, all_y, s=10, c="darkgray", marker="s")
+
+        # Animated solved dots in dark green
+        scat = ax.scatter([], [], s=10, c="darkgreen", marker="s")
+
+        date_text = ax.text(0.5, -0.05, "", transform=ax.transAxes, ha="center")
+
+        def update(frame):
+            current_dt = dates_dt[frame]
+            filled_x = []
+            filled_y = []
+            for i, prob in enumerate(problem_ids):
+                solve_dt = solve_dates.get(prob)
+                if solve_dt and solve_dt <= current_dt:
+                    x, y = all_positions[i]
+                    filled_x.append(x)
+                    filled_y.append(y)
+            scat.set_offsets(np.c_[filled_x, filled_y])
+            date_text.set_text(dates_for_plot[frame])
+            return scat, date_text
+
+        anim = FuncAnimation(fig, update, frames=len(dates_dt), blit=True)
+        local_path = "/tmp/problem_grid.gif"
+        anim.save(local_path, writer="pillow", fps=10)
+        s3_key_grid = f"problem_grid_{timestamp}.gif"
+        s3.upload_file(
+            local_path,
+            bucket_name,
+            s3_key_grid,
+            ExtraArgs={"ContentType": "image/gif"},
+        )
+        plt.close(fig)
+        grid_anim_img = (
+            f"![Problem Grid Animation](https://shyal.s3.amazonaws.com/{s3_key_grid})"
+        )
+    else:
+        grid_anim_img = "No data for problem grid animation."
+
     with open("README.md.template", "r") as f:
         readme = f.read()
 
@@ -343,6 +417,9 @@ def main():
     readme = readme.replace("<!-- CONTEST_PROGRESS -->", contest_progress_img)
     readme = readme.replace("<!-- FAANG_PROGRESS -->", faang_progress_img)
     readme = readme.replace("<!-- CONTEST_TOPICS_CHART -->", contest_topics_img)
+    readme = readme.replace(
+        "<!-- GRID_ANIM -->", grid_anim_img
+    )  # Add this to your template
 
     with open("README.md", "w") as f:
         f.write(readme)

@@ -5,6 +5,7 @@ from history_builder import *
 def test_all_files_present():
     solved = get_solved_problems()
     missing = []
+    seen = set([])
     for (
         prob_num,
         prob_title,
@@ -16,6 +17,12 @@ def test_all_files_present():
         if matching_file is None:
             print(prob_num, "missing files")
             assert False, "Missing files"
+
+        if matching_file in seen:
+            print(prob_num, matching_file, "is not unique")
+            # assert False, "Not unique"
+
+        seen.add(matching_file)
 
         parsed_content = parse_content(file_content)
         if "assert" in parsed_content[1]:

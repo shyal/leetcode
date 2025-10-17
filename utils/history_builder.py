@@ -9,6 +9,41 @@ from git import Repo, GitCommandError
 import glob
 
 
+def parse_timestamp(ts_str):
+    pattern = (
+        r"(\d{4})_(\d{2})_(\d{2})T(\d{2})_(\d{2})_(\d{2})_(\d{6})(_(\d{2})_(\d{2})Z)?"
+    )
+    match = re.match(pattern, ts_str)
+    if not match:
+        return None
+    year, month, day, hour, minute, second, micro, offset_group, offset_h, offset_m = (
+        match.groups()
+    )
+    micro = int(micro)
+    if offset_group:
+        oh = int(offset_h) if offset_h else 0
+        om = int(offset_m) if offset_m else 0
+        offset = timedelta(hours=oh, minutes=om)
+    else:
+        offset = timedelta(0)  # assume UTC
+    tz = timezone(offset)
+    try:
+        dt = datetime(
+            int(year),
+            int(month),
+            int(day),
+            int(hour),
+            int(minute),
+            int(second),
+            microsecond=micro,
+            tzinfo=tz,
+        )
+        manila_tz = timezone(timedelta(hours=8))
+        return dt.astimezone(manila_tz)
+    except ValueError:
+        return None
+
+
 @cache
 def get_solved_problems():
     repo = Repo(os.getcwd())
@@ -18,6 +53,7 @@ def get_solved_problems():
     blocks = log_output.strip().split("---\n")
     solved = []
     manila_tz = timezone(timedelta(hours=8))
+    seen = set([])
     for block in blocks:
         if not block.strip():
             continue
@@ -57,33 +93,6 @@ def get_solved_problems():
             )
             continue
 
-        try:
-            files_output = git.diff_tree(
-                "--no-commit-id", "--name-only", "-r", commit_hash
-            ).strip()
-        except GitCommandError as e:
-            print(
-                f"Git command failed: diff-tree --no-commit-id --name-only -r {commit_hash}\nOutput: {e.stdout}\nError: {e.stderr}"
-            )
-            sys.exit(1)
-
-        files = files_output.split("\n") if files_output else []
-
-        matching_file = None
-        prob_title = prob_title.replace(" ", "_").replace("'", "")
-        expected_prefix = f"solved/p{prob_num}_{prob_title}_"
-        for f in files:
-            if f.startswith(expected_prefix):
-                matching_file = f
-                break
-
-        if not matching_file:
-            for F in os.listdir("./solved"):
-                F = f"solved/{F}"
-                if F.startswith(expected_prefix):
-                    matching_file = F
-                    break
-
         if commit_hash in [
             "64e894ff464bf9da48d109173c73b2c162f41401",
             "940c3eb4cabff002ef5b4f85bc1290b74309d262",
@@ -92,19 +101,41 @@ def get_solved_problems():
         ]:
             continue
 
-        if not matching_file:
-            pass
+        prob_title_clean = prob_title.replace(" ", "_").replace("'", "")
+        expected_prefix = f"p{prob_num}_{prob_title_clean}_"
+        candidates = [
+            f
+            for f in os.listdir("./solved")
+            if f.startswith(expected_prefix) and f.endswith(".py")
+        ]
 
-        solved.append(
-            (
-                prob_num,
-                prob_title,
-                commit_date,
-                solve_time,
-                matching_file,
-                open(matching_file).read(),
+        matching_file = None
+        if candidates:
+            min_delta = float("inf")
+            closest_file = None
+            for cand in candidates:
+                timestamp_str = cand[len(expected_prefix) : -3]  # remove .py
+                file_dt = parse_timestamp(timestamp_str)
+                if file_dt:
+                    delta = abs((commit_date - file_dt).total_seconds())
+                    if delta < min_delta:
+                        min_delta = delta
+                        closest_file = cand
+            if closest_file:
+                matching_file = f"solved/{closest_file}"
+
+        if matching_file:
+            content = open(matching_file).read()
+            solved.append(
+                (
+                    prob_num,
+                    prob_title,
+                    commit_date,
+                    solve_time,
+                    matching_file,
+                    content,
+                )
             )
-        )
 
     solved.sort(key=lambda x: x[2])  # Sort by date ascending
     return solved
