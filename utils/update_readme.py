@@ -9,12 +9,13 @@ def main():
 
     mpl.use("Agg")
     import matplotlib.pyplot as plt
+    from matplotlib.animation import FuncAnimation
     import json
 
     s3 = boto3.client("s3")
     bucket_name = "shyal"
 
-    cache_buster = datetime.now().strftime("%Y%m%d%H%M%S")
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
 
     repo = git.Repo(".")
     commits = list(repo.iter_commits("HEAD"))
@@ -83,14 +84,15 @@ def main():
     ax.set_ylabel("Solves")
     local_path = "/tmp/solves_per_day.png"
     fig.savefig(local_path)
+    s3_key_solves = f"solves_per_day_{timestamp}.png"
     s3.upload_file(
         local_path,
         bucket_name,
-        "solves_per_day.png",
+        s3_key_solves,
         ExtraArgs={"ContentType": "image/png"},
     )
     plt.close(fig)
-    solves_img = f"![Solves Per Day (Full Repo History)](https://shyal.s3.amazonaws.com/solves_per_day.png?v={cache_buster})"
+    solves_img = f"![Solves Per Day (Full Repo History)](https://shyal.s3.amazonaws.com/{s3_key_solves})"
 
     fig, ax = plt.subplots(figsize=(12, 5))
     if dates_for_plot:
@@ -102,14 +104,15 @@ def main():
     ax.set_ylabel("Unique Solves")
     local_path = "/tmp/uniques_per_day.png"
     fig.savefig(local_path)
+    s3_key_uniques = f"uniques_per_day_{timestamp}.png"
     s3.upload_file(
         local_path,
         bucket_name,
-        "uniques_per_day.png",
+        s3_key_uniques,
         ExtraArgs={"ContentType": "image/png"},
     )
     plt.close(fig)
-    uniques_img = f"![Unique Problems Solved Daily (Full Repo History)](https://shyal.s3.amazonaws.com/uniques_per_day.png?v={cache_buster})"
+    uniques_img = f"![Unique Problems Solved Daily (Full Repo History)](https://shyal.s3.amazonaws.com/{s3_key_uniques})"
 
     with open("readiness.json", "r") as f:
         readiness_data = json.load(f)
@@ -150,14 +153,15 @@ def main():
         ax.set_ylabel("Projected Readiness Date")
         local_path = "/tmp/contest_variance.png"
         fig.savefig(local_path)
+        s3_key_contest_variance = f"contest_variance_{timestamp}.png"
         s3.upload_file(
             local_path,
             bucket_name,
-            "contest_variance.png",
+            s3_key_contest_variance,
             ExtraArgs={"ContentType": "image/png"},
         )
         plt.close(fig)
-        contest_variance_img = f"![Contest Readiness Projection Over Time](https://shyal.s3.amazonaws.com/contest_variance.png?v={cache_buster})"
+        contest_variance_img = f"![Contest Readiness Projection Over Time](https://shyal.s3.amazonaws.com/{s3_key_contest_variance})"
 
     faang_variance_img = ""
     if run_dates:
@@ -179,14 +183,15 @@ def main():
         ax.set_ylabel("Projected Readiness Date")
         local_path = "/tmp/faang_variance.png"
         fig.savefig(local_path)
+        s3_key_faang_variance = f"faang_variance_{timestamp}.png"
         s3.upload_file(
             local_path,
             bucket_name,
-            "faang_variance.png",
+            s3_key_faang_variance,
             ExtraArgs={"ContentType": "image/png"},
         )
         plt.close(fig)
-        faang_variance_img = f"![FAANG Interview Readiness Projection Over Time](https://shyal.s3.amazonaws.com/faang_variance.png?v={cache_buster})"
+        faang_variance_img = f"![FAANG Interview Readiness Projection Over Time](https://shyal.s3.amazonaws.com/{s3_key_faang_variance})"
 
     if readiness_data:
         last_readiness = readiness_data[-1]
@@ -221,14 +226,15 @@ def main():
             ax.set_title(f"Contest Readiness Progress (Ready by {contest_end_str})")
             local_path = "/tmp/contest_progress.png"
             fig.savefig(local_path)
+            s3_key_contest_progress = f"contest_progress_{timestamp}.png"
             s3.upload_file(
                 local_path,
                 bucket_name,
-                "contest_progress.png",
+                s3_key_contest_progress,
                 ExtraArgs={"ContentType": "image/png"},
             )
             plt.close(fig)
-            contest_progress_img = f"![Contest Readiness Progress (Ready by {contest_end_str})](https://shyal.s3.amazonaws.com/contest_progress.png?v={cache_buster})"
+            contest_progress_img = f"![Contest Readiness Progress (Ready by {contest_end_str})](https://shyal.s3.amazonaws.com/{s3_key_contest_progress})"
 
             faang_end_dt = datetime.strptime(faang_end_str, "%Y-%m-%d")
             total_days_faang = (faang_end_dt - start_dt).days
@@ -256,42 +262,68 @@ def main():
             )
             local_path = "/tmp/faang_progress.png"
             fig.savefig(local_path)
+            s3_key_faang_progress = f"faang_progress_{timestamp}.png"
             s3.upload_file(
                 local_path,
                 bucket_name,
-                "faang_progress.png",
+                s3_key_faang_progress,
                 ExtraArgs={"ContentType": "image/png"},
             )
             plt.close(fig)
-            faang_progress_img = f"![FAANG Interview Readiness Progress (Ready by {faang_end_str})](https://shyal.s3.amazonaws.com/faang_progress.png?v={cache_buster})"
+            faang_progress_img = f"![FAANG Interview Readiness Progress (Ready by {faang_end_str})](https://shyal.s3.amazonaws.com/{s3_key_faang_progress})"
         else:
             contest_progress_img = "No repo history for progress calculation."
             faang_progress_img = "No repo history for progress calculation."
 
+        historical_topics = [
+            item for item in readiness_data if "contest_topics_readiness" in item
+        ]
         contest_topics_img = ""
-        if "contest_topics_readiness" in last_readiness:
-            topics_data = last_readiness["contest_topics_readiness"]
+        if historical_topics:
+            all_topics = set()
+            for item in historical_topics:
+                all_topics.update(item["contest_topics_readiness"].keys())
+            last_topics_data = historical_topics[-1]["contest_topics_readiness"]
             topics = sorted(
-                topics_data.keys(), key=lambda x: topics_data[x], reverse=True
+                all_topics, key=lambda x: last_topics_data.get(x, 0), reverse=True
             )
-            scores = [topics_data[topic] for topic in topics]
+            dates_with_data = [item["run_date"] for item in historical_topics]
+            scores_over_time = []
+            for item in historical_topics:
+                scores = [
+                    item["contest_topics_readiness"].get(topic, 0) for topic in topics
+                ]
+                scores_over_time.append(scores)
 
             fig, ax = plt.subplots(figsize=(10, len(topics) * 0.5))
             colors = plt.cm.tab20(np.linspace(0, 1, len(topics)))
-            ax.barh(topics, scores, color=colors)
+            bars = ax.barh(topics, [0] * len(topics), color=colors)
             ax.set_xlim(0, 1)
             ax.set_xlabel("Readiness Score")
-            ax.set_title("Contest Topics Readiness")
-            local_path = "/tmp/contest_topics_readiness.png"
-            fig.savefig(local_path)
+            ax.set_title("Contest Topics Readiness Over Time")
+            date_text = ax.text(0.5, 1.01, "", transform=ax.transAxes, ha="center")
+
+            def update(frame):
+                scores = scores_over_time[frame]
+                for bar, height in zip(bars, scores):
+                    bar.set_width(height)
+                date_text.set_text(dates_with_data[frame])
+                return list(bars) + [date_text]
+
+            anim = FuncAnimation(fig, update, frames=len(scores_over_time), blit=True)
+            local_path = "/tmp/contest_topics_readiness.gif"
+            anim.save(local_path, writer="pillow", fps=1)
+            s3_key_contest_topics = f"contest_topics_readiness_{timestamp}.gif"
             s3.upload_file(
                 local_path,
                 bucket_name,
-                "contest_topics_readiness.png",
-                ExtraArgs={"ContentType": "image/png"},
+                s3_key_contest_topics,
+                ExtraArgs={"ContentType": "image/gif"},
             )
             plt.close(fig)
-            contest_topics_img = f"![Contest Topics Readiness](https://shyal.s3.amazonaws.com/contest_topics_readiness.png?v={cache_buster})"
+            contest_topics_img = f"![Contest Topics Readiness Over Time](https://shyal.s3.amazonaws.com/{s3_key_contest_topics})"
+        else:
+            contest_topics_img = "No contest topics data."
 
     else:
         contest_progress_img = "No readiness data."
@@ -315,7 +347,7 @@ def main():
     with open("README.md", "w") as f:
         f.write(readme)
 
-    print("README updated with S3 image links and cache buster!")
+    print("README updated with S3 image links!")
     print(f"Total solves: {sum(solves_data)}")
 
 

@@ -42,9 +42,15 @@ Assume the candidate will continue solving daily at their similar average pace.
 """
     )
 
-    user_prompt = (
-        f"""Here is my LeetCode solve history (most recent last):\n\n{history_str}\n."""
-    )
+    user_prompt = f"""Here is my LeetCode solve history (most recent last):
+
+{history_str}
+
+Here is my readiness estimates:
+
+{open('readiness.json', 'r').read()}
+
+"""
 
     try:
         chat = client.chat.create(
