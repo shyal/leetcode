@@ -30,6 +30,7 @@ def test_solved(module_name):
 
 
 def test_current():
+    print("")
     import current
 
 
