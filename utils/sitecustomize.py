@@ -12,6 +12,7 @@ import bisect
 import builtins
 from rich.console import Console
 from rich.markdown import Markdown
+from math import gcd
 
 # types
 from Types import TreeNode
@@ -160,6 +161,7 @@ builtins.sqrt = sqrt
 builtins.starmap = starmap
 builtins.maxsize = maxsize
 builtins.cache = cache
+builtins.gcd = gcd
 
 
 def batched(s, n=1):
