@@ -4,43 +4,43 @@
 
 Here are some little charts, generated from the git log.
 
-![Problem Grid Animation](https://shyal.s3.amazonaws.com/problem_grid_20251018030739.gif)
+![Problem Grid Animation](https://shyal.s3.amazonaws.com/problem_grid_20251019042029.gif)
 
 ## Solve rate
 
 This is the daily solve rate.
 
-![Solves Per Day (Full Repo History)](https://shyal.s3.amazonaws.com/solves_per_day_20251018030739.png)
+![Solves Per Day (Full Repo History)](https://shyal.s3.amazonaws.com/solves_per_day_20251019042029.png)
 
 ## Unique solve rate
 
 This is the daily unique solve rate. This is because as complexity ramps up, questions will need to be revisited.
 
-![Unique Problems Solved Daily (Full Repo History)](https://shyal.s3.amazonaws.com/uniques_per_day_20251018030739.png)
+![Unique Problems Solved Daily (Full Repo History)](https://shyal.s3.amazonaws.com/uniques_per_day_20251019042029.png)
 
 ## Contest progress
 
 Grok estimates when i'll be ready to take part in leetcode contests.
 
-![Contest Readiness Progress (Ready by 2025-11-30)](https://shyal.s3.amazonaws.com/contest_progress_20251018030739.png)
+![Contest Readiness Progress (Ready by 2026-01-15)](https://shyal.s3.amazonaws.com/contest_progress_20251019042029.png)
 
 ## FAANG progress
 
 Grok estimates when i'll be ready to pass FAANG mock interviews. Currently the focus of this repo is just fun, but this is an interesting metric regardless.
 
-![FAANG Interview Readiness Progress (Ready by 2026-02-15)](https://shyal.s3.amazonaws.com/faang_progress_20251018030739.png)
+![FAANG Interview Readiness Progress (Ready by 2026-04-01)](https://shyal.s3.amazonaws.com/faang_progress_20251019042029.png)
 
 ## Estimate dates variance charts
 
 I'm curious to see the amount of variance in the estimates, i.e whether they're stable over time.
 
-![Contest Readiness Projection Over Time](https://shyal.s3.amazonaws.com/contest_variance_20251018030739.png)
+![Contest Readiness Projection Over Time](https://shyal.s3.amazonaws.com/contest_variance_20251019042029.png)
 
-![FAANG Interview Readiness Projection Over Time](https://shyal.s3.amazonaws.com/faang_variance_20251018030739.png)
+![FAANG Interview Readiness Projection Over Time](https://shyal.s3.amazonaws.com/faang_variance_20251019042029.png)
 
 ## Contest topics readines chart
 
-![Contest Topics Readiness Over Time](https://shyal.s3.amazonaws.com/contest_topics_readiness_20251018030739.gif)
+![Contest Topics Readiness Over Time](https://shyal.s3.amazonaws.com/contest_topics_readiness_20251019042029.gif)
 
 # Leetcode flavoured environment
 
