@@ -97,12 +97,10 @@ def draw_tree(root: Optional[TreeNode]) -> None:
 
 def draw_general_tree(root: Optional[Node]) -> None:
     """
-    Utility function to draw a general tree (with dictionary children) in the terminal using PrettyPrintTree.
-    Requires 'PrettyPrintTree' library: pip install PrettyPrintTree
-    For colors, requires 'colorama': pip install colorama
-    Supports node.color attribute for coloring the node value (e.g., 'blue', 'red', etc.).
-    Displays edge labels based on the keys in the children dictionary.
-    Uses horizontal orientation for a wider (bigger) print.
+    Draws a general tree (each node may have multiple children).
+    Each node has:
+        - .label: str
+        - .children: List[Node]
     """
     if not root:
         print("Empty tree")
@@ -111,39 +109,16 @@ def draw_general_tree(root: Optional[Node]) -> None:
     print("\n")
 
     class _Wrapper:
-        def __init__(self, node: Node, label: Any = None):
+        def __init__(self, node: Node):
             self.node = node
-            self.label = None
 
-    def get_children(w: _Wrapper) -> List[_Wrapper]:
-        return [
-            _Wrapper(child, key) for key, child in sorted(w.node.children.items())
-        ]  # Sorted for consistent order if keys comparable
+    def get_children(w: _Wrapper):
+        return [_Wrapper(child) for child in w.node.children]
 
-    def get_value(w: _Wrapper) -> str:
-        val_str = str(w.node.val)
-        if hasattr(w.node, "color"):
-            color = w.node.color.lower()
-            color_map = {
-                "black": Fore.BLACK,
-                "red": Fore.RED,
-                "green": Fore.GREEN,
-                "yellow": Fore.YELLOW,
-                "blue": Fore.BLUE,
-                "magenta": Fore.MAGENTA,
-                "cyan": Fore.CYAN,
-                "white": Fore.WHITE,
-            }
-            if color in color_map:
-                val_str = color_map[color] + val_str + Style.RESET_ALL
-        return val_str
+    def get_value(w: _Wrapper):
+        return str(w.node.label)
 
-    def get_label(w: _Wrapper) -> Optional[str]:
-        if w.label is not None:
-            return str(w.label)
-        return None
-
-    pt = PrettyPrintTree(get_children, get_value, get_label=get_label, border=True)
+    pt = PrettyPrintTree(get_children, get_value, border=True)
     pt(_Wrapper(root))
 
 
