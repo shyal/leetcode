@@ -162,6 +162,7 @@ builtins.starmap = starmap
 builtins.maxsize = maxsize
 builtins.cache = cache
 builtins.gcd = gcd
+builtins.dropwhile = dropwhile
 
 
 def batched(s, n=1):
