@@ -122,7 +122,7 @@ class Solution:
         dp[1] = 1
 
         for i in range(2, n + 1):
-            one_digit = int(s[i - 1])
+            one_digit = int(s[i - 1 : i])
             two_digits = int(s[i - 2 : i])
 
             if one_digit != 0:
@@ -135,5 +135,6 @@ class Solution:
 
 
 sol = Solution()
-res = sol.numDecodings("12123")
-# print(res)
+assert sol.numDecodings("12") == 2
+assert sol.numDecodings("226") == 3
+assert sol.numDecodings("06") == 0
