@@ -1,12 +1,26 @@
+# history_builder.py
+
 from functools import cache
 import ast
 import os
 import re
-import sys
 from datetime import timezone, timedelta
 from datetime import datetime
-from git import Repo, GitCommandError
+from git import Repo
 import glob
+from dataclasses import dataclass
+from collections import defaultdict
+
+
+@dataclass
+class SolvedProblem:
+    num: int
+    title: str
+    date: datetime
+    solve_time: str | None
+    file: str
+    content: str
+    status: str
 
 
 def parse_timestamp(ts_str):
@@ -84,6 +98,12 @@ def get_solved_problems():
         )
         solve_time = solve_time_match.group(1).strip() if solve_time_match else None
 
+        status = (
+            "learning"
+            if re.search(r"still learning", message, re.IGNORECASE)
+            else "solved"
+        )
+
         try:
             commit_date = datetime.strptime(date_str, "%a %b %d %H:%M:%S %Y %z")
             commit_date = commit_date.astimezone(manila_tz)
@@ -127,17 +147,18 @@ def get_solved_problems():
         if matching_file:
             content = open(matching_file).read()
             solved.append(
-                (
-                    prob_num,
-                    prob_title,
-                    commit_date,
-                    solve_time,
-                    matching_file,
-                    content,
+                SolvedProblem(
+                    num=prob_num,
+                    title=prob_title,
+                    date=commit_date,
+                    solve_time=solve_time,
+                    file=matching_file,
+                    content=content,
+                    status=status,
                 )
             )
 
-    solved.sort(key=lambda x: x[2])  # Sort by date ascending
+    solved.sort(key=lambda x: x.date)  # Sort by date ascending
     return solved
 
 
@@ -145,8 +166,23 @@ def get_today_solves():
     solved = get_solved_problems()
     manila_tz = timezone(timedelta(hours=8))
     today = datetime.now(manila_tz).date()
-    today_solves = [p for p in solved if p[2].date() == today]
+    today_solves = [p for p in solved if p.date.date() == today]
     return today_solves
+
+
+def get_learning():
+    all_problems = get_solved_problems()
+    groups = defaultdict(list)
+    for p in all_problems:
+        groups[p.num].append(p)
+    learning = []
+    for num, probs in groups.items():
+        probs.sort(key=lambda x: x.date, reverse=True)  # latest first
+        latest = probs[0]
+        if latest.status == "learning":
+            learning.append(latest)
+    learning.sort(key=lambda x: x.date)  # Sort by date ascending
+    return learning
 
 
 def parse_content(content: str) -> tuple[str, str]:
@@ -227,7 +263,7 @@ def get_history_string():
     # Combine solves and notes into events
     events = []
     for prob in solved_problems:
-        events.append(("solve", prob[2], prob))
+        events.append(("solve", prob.date, prob))
     for note in notes_list:
         events.append(("note", note[0], note[1]))
 
@@ -240,16 +276,20 @@ def get_history_string():
         ts_str = ts.strftime("%Y-%m-%d %H:%M")
         if event_type == "solve":
             problem = data
-            problem_id = problem[0]
-            problem_title = problem[1]
-            solve_time = problem[3]
-            content = problem[5]
+            problem_id = problem.num
+            problem_title = problem.title
+            solve_time = problem.solve_time
+            content = problem.content
+            status = problem.status
 
             time_str = f" (time: {solve_time})" if solve_time else ""
+            status_str = f" - {status}" if status != "solved" else ""
 
             notes, code = parse_content(content)
 
-            entry = f"# {ts_str}: {problem_id}. {problem_title}{time_str}:\n\n"
+            entry = (
+                f"# {ts_str}: {problem_id}. {problem_title}{status_str}{time_str}:\n\n"
+            )
             entry += f"```python3\n{code}\n```"
             if notes:
                 entry += f"\n\n## {notes}"
@@ -264,6 +304,4 @@ def get_history_string():
 
 
 if __name__ == "__main__":
-    res = get_solved_problems()
-    rich_print(res)
-    print(len(res))
+    rich_print(get_learning())

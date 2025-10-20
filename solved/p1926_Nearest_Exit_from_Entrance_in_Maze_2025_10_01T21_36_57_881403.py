@@ -50,17 +50,12 @@ Constraints:
         entrance will always be an empty cell.
 """
 
-from collections import deque
-from itertools import product
-from typing import List
-
-
-def ij_in_maze(i, j, maze):
-    return 0 <= i < len(maze) and 0 <= j < len(maze[0])
-
 
 class Solution:
     def nearestExit(self, maze: List[List[str]], entrance: List[int]) -> int:
+        def ij_in_maze(i, j, maze):
+            return 0 <= i < len(maze) and 0 <= j < len(maze[0])
+
         D = deque()
         D.append((entrance, 0))
         maze[entrance[0]][entrance[1]] = "+"

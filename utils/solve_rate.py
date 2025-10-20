@@ -1,3 +1,5 @@
+# solve_rate.py
+
 import subprocess
 import re
 from datetime import datetime, timedelta, timezone
@@ -10,6 +12,8 @@ from rich.panel import Panel
 import time
 import pyfiglet
 import json
+from history_builder import get_solved_problems, get_learning
+from collections import defaultdict
 
 
 def render_big_time(secs: int, font_name: str, width: int = 200) -> str:
@@ -20,58 +24,6 @@ def render_big_time(secs: int, font_name: str, width: int = 200) -> str:
     ss = secs % 60
     time_str = f"{hh:02d}:{mm:02d}:{ss:02d}"
     return pyfiglet.figlet_format(time_str, font=font_name, width=width)
-
-
-def get_git_log():
-    try:
-        result = subprocess.run(
-            ["git", "log", "--pretty=format:%H%n%an%n%ad%n%B%n---"],
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        return result.stdout
-    except subprocess.CalledProcessError as e:
-        print(f"Error running git log: {e}")
-        exit(1)
-
-
-def parse_commits(log_output):
-    commits = []
-    blocks = log_output.strip().split("---\n")
-    for block in blocks:
-        if not block.strip():
-            continue
-        lines = block.strip().split("\n")
-        if len(lines) >= 4:
-            commit_hash = lines[0]
-            author = lines[1]
-            date_str = lines[2]
-            message = "\n".join(lines[3:]).strip()
-            commits.append(
-                {
-                    "hash": commit_hash,
-                    "author": author,
-                    "date_str": date_str,
-                    "message": message,
-                }
-            )
-    return commits
-
-
-def get_problem_number(message):
-    first_line = message.split("\n")[0].strip()
-    match = re.match(r"^(\d+)\.", first_line)
-    if match:
-        return int(match.group(1))
-    return None
-
-
-def is_problem_commit(message):
-    first_line = message.split("\n")[0].strip().lower()
-    if "stub" in first_line:
-        return False
-    return re.match(r"^\d+\.", first_line) is not None
 
 
 def parse_date(date_str):
@@ -215,25 +167,19 @@ def main():
         print("Total must be a positive integer.")
         exit(1)
 
-    log_output = get_git_log()
-    commits = parse_commits(log_output)
+    all_solves = get_solved_problems()
 
-    # Filter solve commits
-    solve_commits = []
-    for commit in commits:
-        num = get_problem_number(commit["message"])
-        if num and is_problem_commit(commit["message"]):
-            solve_commits.append({**commit, "number": num})
-
-    # Sort by date ascending to take the earliest commit for each problem
-    solve_commits.sort(
-        key=lambda c: datetime.strptime(c["date_str"], "%a %b %d %H:%M:%S %Y %z")
-    )
+    # Group solved commits (status == "solved") and take earliest date for each problem
+    groups = defaultdict(list)
+    for p in all_solves:
+        if p.status == "solved":
+            groups[p.num].append(p)
 
     unique_solves = {}
-    for c in solve_commits:
-        if c["number"] not in unique_solves:
-            unique_solves[c["number"]] = c
+    for num, probs in groups.items():
+        if probs:
+            probs.sort(key=lambda x: x.date)  # ascending for earliest
+            unique_solves[num] = probs[0]
 
     solved = len(unique_solves)
     remaining = total - solved
@@ -289,18 +235,10 @@ def main():
             )
 
         solve_count = 0
-        for num, c in unique_solves.items():
-            try:
-                commit_time = datetime.strptime(
-                    c["date_str"], "%a %b %d %H:%M:%S %Y %z"
-                ).astimezone(local_tz)
-                if commit_time >= since_time:
-                    solve_count += 1
-            except ValueError:
-                print(
-                    f"Warning: Invalid date format in commit {c['hash']}: {c['date_str']}"
-                )
-                continue
+        for num, p in unique_solves.items():
+            commit_time = p.date
+            if commit_time >= since_time:
+                solve_count += 1
 
         if solve_count == 0:
             continue
@@ -326,6 +264,21 @@ def main():
         )
 
     print(table)
+
+    # New table for learning problems
+    learning_problems = get_learning()
+    if learning_problems:
+        table_learning = Table(title="Problems in Learning Status", highlight=True)
+        table_learning.add_column("Num", justify="right")
+        table_learning.add_column("Title", justify="left")
+        table_learning.add_column("Date", justify="left")
+        table_learning.add_column("Solve Time", justify="right")
+        for p in learning_problems:
+            date_str = p.date.strftime("%Y-%m-%d %H:%M")
+            table_learning.add_row(str(p.num), p.title, date_str, p.solve_time or "")
+        print(table_learning)
+    else:
+        print("No problems in learning status.")
 
     if args.end_date:
         try:
@@ -354,29 +307,9 @@ def main():
             today_start = current_time.replace(
                 hour=0, minute=0, second=0, microsecond=0
             )
-            for c in unique_solves.values():
-                try:
-                    commit_time = datetime.strptime(
-                        c["date_str"], "%a %b %d %H:%M:%S %Y %z"
-                    ).astimezone(local_tz)
-                    if commit_time >= today_start:
-                        first_line = c["message"].split("\n")[0].strip()
-                        m = re.match(r"^(\d+)\.\s*(.*)", first_line)
-                        if m:
-                            prob_num = int(m.group(1))
-                            msg = m.group(2)
-                            solve_time_str = None
-                            for line in c["message"].split("\n"):
-                                if line.strip().startswith("solve time:"):
-                                    solve_time_str = (
-                                        line.strip().split(":", 1)[1].strip()
-                                    )
-                                    break
-                            solved_today.append(
-                                (prob_num, msg, commit_time, None, solve_time_str)
-                            )
-                except ValueError:
-                    continue
+            for p in all_solves:
+                if p.date >= today_start and p.status == "solved":
+                    solved_today.append((p.num, p.title, p.date, None, p.solve_time))
 
             num_solved_today = len(solved_today)
             target_per_day = math.ceil(daily_rate)
