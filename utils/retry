@@ -58,25 +58,28 @@ if doc and "---" in doc:
 else:
     desc = doc.strip() if doc else ""
 
-# Update docstring in AST if present
-if (
+# Update or remove docstring in AST
+has_docstring = (
     module.body
     and isinstance(module.body[0], ast.Expr)
     and isinstance(module.body[0].value, ast.Constant)
     and isinstance(module.body[0].value.value, str)
-):
-    module.body[0].value.value = desc
+)
+if has_docstring:
+    if desc:
+        new_desc = f"\n{desc}\n"
+        module.body[0].value.value = new_desc
+    else:
+        module.body.pop(0)
 
 # Strip method bodies in class defs
 for node in ast.walk(module):
     if isinstance(node, ast.ClassDef):
-        for subnode in node.body:
-            if isinstance(subnode, ast.FunctionDef) or isinstance(
-                subnode, ast.AsyncFunctionDef
-            ):
-                subnode.body = [ast.Pass()]
+        for i, subnode in enumerate(node.body):
+            if isinstance(subnode, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                node.body[i].body = [ast.Pass()]
 
-# Find test_start
+# Find the start of tests: the first top-level assign like var = ClassName(...) where ClassName is defined
 class_names = {node.name for node in module.body if isinstance(node, ast.ClassDef)}
 test_start = len(module.body)
 for i, node in enumerate(module.body):
@@ -91,7 +94,7 @@ for i, node in enumerate(module.body):
         test_start = i
         break
 
-# Unparse prefix (up to tests, with stripped bodies)
+# Build solution body: exclude tests
 prefix_ast = ast.Module(body=module.body[:test_start], type_ignores=[])
 prefix_code = ast.unparse(prefix_ast).strip()
 
@@ -99,15 +102,29 @@ prefix_code = ast.unparse(prefix_ast).strip()
 tests_ast = ast.Module(body=module.body[test_start:], type_ignores=[])
 tests_code = ast.unparse(tests_ast).strip()
 
-# Comment out assert lines in tests
+# Comment out assert statements, handling multi-line
 if tests_code:
-    tests_lines = tests_code.split("\n")
+    lines = tests_code.split("\n")
     commented_tests = []
-    for line in tests_lines:
-        if line.strip().startswith("assert "):
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        stripped = line.strip()
+        if stripped.startswith("assert "):
+            # Start of assert block
+            indent = len(line) - len(line.lstrip())
             commented_tests.append("# " + line)
+            i += 1
+            while i < len(lines):
+                next_line = lines[i]
+                next_indent = len(next_line) - len(next_line.lstrip())
+                if next_indent <= indent:
+                    break
+                commented_tests.append("# " + next_line)
+                i += 1
         else:
             commented_tests.append(line)
+            i += 1
     tests_code = "\n".join(commented_tests)
 
 # Combine
