@@ -1,0 +1,127 @@
+#!/usr/bin/env python3
+
+# retry.py
+
+import argparse
+import sys
+import subprocess
+import os
+import re
+import ast
+from history_builder import get_solved_problems
+
+
+def extract_exercise_title(text, problem_number):
+    pattern = rf"{problem_number}\.\s*(.+)"
+    match = re.search(pattern, text, re.MULTILINE)
+    if match:
+        return match.group(1).strip()
+    return None
+
+
+def run_git(cmd):
+    """Run a git command and return its output."""
+    try:
+        return (
+            subprocess.check_output(["git"] + cmd, stderr=subprocess.STDOUT)
+            .decode()
+            .strip()
+        )
+    except subprocess.CalledProcessError as e:
+        print(f"Git command failed: {' '.join(cmd)}\nOutput: {e.output.decode()}")
+        sys.exit(1)
+
+
+parser = argparse.ArgumentParser(description="Retry a leetcode question from history.")
+parser.add_argument("number", type=int, help="The number of the leetcode question.")
+
+args = parser.parse_args()
+num = args.number
+
+solved = get_solved_problems()
+problems = [p for p in solved if p.num == num]
+if not problems:
+    print(f"Problem {num} not found in history.")
+    sys.exit(1)
+
+problems.sort(key=lambda x: x.date, reverse=True)
+problem = problems[0]
+content = problem.content
+
+module = ast.parse(content)
+
+# Extract and clean docstring (remove notes if present)
+doc = ast.get_docstring(module)
+if doc and "---" in doc:
+    desc, _ = doc.split("---", 1)
+    desc = desc.strip()
+else:
+    desc = doc.strip() if doc else ""
+
+# Update docstring in AST if present
+if (
+    module.body
+    and isinstance(module.body[0], ast.Expr)
+    and isinstance(module.body[0].value, ast.Constant)
+    and isinstance(module.body[0].value.value, str)
+):
+    module.body[0].value.value = desc
+
+# Strip method bodies in class defs
+for node in ast.walk(module):
+    if isinstance(node, ast.ClassDef):
+        for subnode in node.body:
+            if isinstance(subnode, ast.FunctionDef) or isinstance(
+                subnode, ast.AsyncFunctionDef
+            ):
+                subnode.body = [ast.Pass()]
+
+# Find test_start
+class_names = {node.name for node in module.body if isinstance(node, ast.ClassDef)}
+test_start = len(module.body)
+for i, node in enumerate(module.body):
+    if (
+        isinstance(node, ast.Assign)
+        and len(node.targets) == 1
+        and isinstance(node.targets[0], ast.Name)
+        and isinstance(node.value, ast.Call)
+        and isinstance(node.value.func, ast.Name)
+        and node.value.func.id in class_names
+    ):
+        test_start = i
+        break
+
+# Unparse prefix (up to tests, with stripped bodies)
+prefix_ast = ast.Module(body=module.body[:test_start], type_ignores=[])
+prefix_code = ast.unparse(prefix_ast).strip()
+
+# Unparse tests
+tests_ast = ast.Module(body=module.body[test_start:], type_ignores=[])
+tests_code = ast.unparse(tests_ast).strip()
+
+# Comment out assert lines in tests
+if tests_code:
+    tests_lines = tests_code.split("\n")
+    commented_tests = []
+    for line in tests_lines:
+        if line.strip().startswith("assert "):
+            commented_tests.append("# " + line)
+        else:
+            commented_tests.append(line)
+    tests_code = "\n".join(commented_tests)
+
+# Combine
+code = prefix_code + ("\n\n" + tests_code if tests_code else "")
+
+title = extract_exercise_title(code, num) or problem.title
+problem_title = f"{num}. {title}"
+file_name = f"current.py"
+
+with open(file_name, "w") as f:
+    f.write(code)
+
+print(f"Saved stub to {file_name}")
+run_git(["checkout", "master"])
+run_git(["checkout", "-b", str(num)])
+run_git(["add", "."])
+run_git(["commit", "-m", problem_title])
