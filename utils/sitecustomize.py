@@ -45,7 +45,7 @@ from collections import defaultdict, Counter
 import operator
 import heapq
 from collections import deque
-from string import ascii_letters, ascii_lowercase, ascii_uppercase
+from string import ascii_letters, ascii_lowercase, ascii_uppercase, digits
 
 # utils
 from graph_utils import *
@@ -150,6 +150,7 @@ builtins.nsmallest = heapq.nsmallest
 builtins.ascii_letters = ascii_letters
 builtins.ascii_lowercase = ascii_lowercase
 builtins.ascii_uppercase = ascii_uppercase
+builtins.digits = digits
 builtins.match = re.match
 builtins.permutations = permutations
 builtins.or_ = operator.or_

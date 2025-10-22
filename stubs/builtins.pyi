@@ -2933,6 +2933,7 @@ maxsize: int
 ascii_letters: str
 ascii_lowercase: str
 ascii_uppercase: str
+digits: str
 
 # Function stubs for math
 def log10(x: float) -> float: ...
