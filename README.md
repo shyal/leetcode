@@ -16,25 +16,25 @@ This approach can be applied to learning any topic.
 
 Here are some little charts, generated from the git log.
 
-![Problem Grid Animation](https://shyal.s3.amazonaws.com/problem_grid_20251022142205.gif)
+![Problem Grid Animation](https://shyal.s3.amazonaws.com/problem_grid_20251023071552.gif)
 
 ## Solve rate
 
 This is the daily solve rate.
 
-![Solves Per Day (Full Repo History)](https://shyal.s3.amazonaws.com/solves_per_day_20251022142205.png)
+![Solves Per Day (Full Repo History)](https://shyal.s3.amazonaws.com/solves_per_day_20251023071552.png)
 
 ## Unique solve rate
 
 This is the daily unique solve rate. This is because as complexity ramps up, questions will need to be revisited.
 
-![Unique Problems Solved Daily (Full Repo History)](https://shyal.s3.amazonaws.com/uniques_per_day_20251022142205.png)
+![Unique Problems Solved Daily (Full Repo History)](https://shyal.s3.amazonaws.com/uniques_per_day_20251023071552.png)
 
 ## Contest progress
 
 Grok estimates when i'll be ready to take part in leetcode contests.
 
-![Contest Readiness Progress (Ready by 2025-11-22)](https://shyal.s3.amazonaws.com/contest_progress_20251022142205.png)
+![Contest Readiness Progress (Ready by 2025-11-15)](https://shyal.s3.amazonaws.com/contest_progress_20251023071552.png)
 
 Update: 20-Oct-2025
 
@@ -48,19 +48,19 @@ In other words, these estimate variance charts are excellent indicators for comp
 
 Grok estimates when i'll be ready to pass FAANG mock interviews. Currently the focus of this repo is just fun, but this is an interesting metric regardless.
 
-![FAANG Interview Readiness Progress (Ready by 2026-01-22)](https://shyal.s3.amazonaws.com/faang_progress_20251022142205.png)
+![FAANG Interview Readiness Progress (Ready by 2025-12-15)](https://shyal.s3.amazonaws.com/faang_progress_20251023071552.png)
 
 ## Estimate dates variance charts
 
 I'm curious to see the amount of variance in the estimates, i.e whether they're stable over time.
 
-![Contest Readiness Projection Over Time](https://shyal.s3.amazonaws.com/contest_variance_20251022142205.png)
+![Contest Readiness Projection Over Time](https://shyal.s3.amazonaws.com/contest_variance_20251023071552.png)
 
-![FAANG Interview Readiness Projection Over Time](https://shyal.s3.amazonaws.com/faang_variance_20251022142205.png)
+![FAANG Interview Readiness Projection Over Time](https://shyal.s3.amazonaws.com/faang_variance_20251023071552.png)
 
 ## Contest topics readines chart
 
-![Contest Topics Readiness Over Time](https://shyal.s3.amazonaws.com/contest_topics_readiness_20251022142205.gif)
+![Contest Topics Readiness Over Time](https://shyal.s3.amazonaws.com/contest_topics_readiness_20251023071552.gif)
 
 # Leetcode flavoured environment
 
