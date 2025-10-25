@@ -11,7 +11,16 @@ class ListNode:
         self.next = next
 
     def __repr__(self):
-        return str(self.val)
+        vals = []
+        it = self
+        seen = set()
+        while it:
+            if it in seen:
+                break
+            seen.add(it)
+            vals.append(str(it.val))
+            it = it.next
+        return "->".join(vals)
 
 
 class GraphNode:
