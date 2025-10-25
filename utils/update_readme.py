@@ -7,23 +7,65 @@ def main():
     import boto3
     import numpy as np
     import math
+    import requests
+    import json
+    import os
 
     mpl.use("Agg")
     import matplotlib.pyplot as plt
     from matplotlib.animation import FuncAnimation
-    import json
 
     s3 = boto3.client("s3")
     bucket_name = "shyal"
 
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
 
+    def get_problems_metadata():
+        METADATA_FILE = ".problems_metadata.json"
+        if os.path.exists(METADATA_FILE):
+            os.remove(METADATA_FILE)  # Force refetch for debug
+            print("Debug: Removed old metadata file to force refetch.")
+
+        url = "https://leetcode.com/api/problems/all/"
+        response = requests.get(url)
+
+        if response.status_code == 200:
+            data = response.json()
+            problems = {}
+            for stat in data["stat_status_pairs"]:
+                s = stat["stat"]
+                num = s["frontend_question_id"]
+                title = s["question__title"]
+                slug = s["question__title_slug"]
+                diff = stat["difficulty"]["level"]  # 1,2,3
+                diff_str = {1: "Easy", 2: "Medium", 3: "Hard"}[diff]
+                problems[num] = {"title": title, "slug": slug, "difficulty": diff_str}
+
+            with open(METADATA_FILE, "w") as f:
+                json.dump(problems, f)
+
+            return problems
+        else:
+            raise ValueError("Failed to fetch problems metadata")
+
+    metadata = get_problems_metadata()
+    print(f"Debug: Metadata loaded with {len(metadata)} problems")
+    print(
+        f"Debug: Example problem 1 difficulty: {metadata.get(1, {}).get('difficulty', 'Not found')}"
+    )
+    print(
+        f"Debug: Example problem 2 difficulty: {metadata.get(2, {}).get('difficulty', 'Not found')}"
+    )
+
     repo = git.Repo(".")
     commits = list(repo.iter_commits("HEAD"))
 
     solves_per_day = defaultdict(int)
     uniques_per_day = defaultdict(set)
+    uniques_per_day_diff = defaultdict(lambda: defaultdict(set))
     all_problem_dates = set()
+    diff_counts = defaultdict(int)
+    sample_probs = []
 
     for commit in commits:
         msg = commit.message.strip()
@@ -36,7 +78,7 @@ def main():
         if not prob_match:
             continue
 
-        prob_num = prob_match.group(1)  # Keep as str for consistency
+        prob_num = int(prob_match.group(1))  # int for metadata lookup
         all_problem_dates.add(date_str)
 
         is_unsolved = (
@@ -49,6 +91,14 @@ def main():
         if not is_unsolved:
             solves_per_day[date_str] += 1
             uniques_per_day[date_str].add(prob_num)
+            diff = metadata.get(prob_num, {}).get("difficulty", "Unknown")
+            uniques_per_day_diff[date_str][diff].add(prob_num)
+            diff_counts[diff] += 1
+            if len(sample_probs) < 10:
+                sample_probs.append(f"Prob {prob_num}: {diff}")
+
+    print("Debug: Difficulty counts for solved problems: " + str(dict(diff_counts)))
+    print("Debug: Sample problem difficulties: " + ", ".join(sample_probs))
 
     if all_problem_dates:
         min_date_str = min(all_problem_dates)
@@ -63,11 +113,31 @@ def main():
             current += timedelta(days=1)
         solves_data = [solves_per_day.get(d, 0) for d in all_dates]
         uniques_data = [len(uniques_per_day.get(d, set())) for d in all_dates]
+        uniques_easy = [
+            len(uniques_per_day_diff[d].get("Easy", set())) for d in all_dates
+        ]
+        uniques_medium = [
+            len(uniques_per_day_diff[d].get("Medium", set())) for d in all_dates
+        ]
+        uniques_hard = [
+            len(uniques_per_day_diff[d].get("Hard", set())) for d in all_dates
+        ]
+        uniques_unknown = [
+            len(uniques_per_day_diff[d].get("Unknown", set())) for d in all_dates
+        ]
         dates_for_plot = all_dates
+        print(f"Debug: Total Easy uniques: {sum(uniques_easy)}")
+        print(f"Debug: Total Medium uniques: {sum(uniques_medium)}")
+        print(f"Debug: Total Hard uniques: {sum(uniques_hard)}")
+        print(f"Debug: Total Unknown uniques: {sum(uniques_unknown)}")
     else:
         dates_for_plot = []
         solves_data = []
         uniques_data = []
+        uniques_easy = []
+        uniques_medium = []
+        uniques_hard = []
+        uniques_unknown = []
 
     if dates_for_plot:
         x = list(range(len(dates_for_plot)))
@@ -75,11 +145,36 @@ def main():
         tick_positions = x[::label_step]
         tick_labels = dates_for_plot[::label_step]
 
+    # Compute 7-day moving averages for solves
+    ma_solves = []
+    for i in range(len(solves_data)):
+        if i < 6:
+            ma_solves.append(sum(solves_data[: i + 1]) / (i + 1))
+        else:
+            ma_solves.append(sum(solves_data[i - 6 : i + 1]) / 7)
+
+    # Compute 7-day moving averages for uniques
+    ma_uniques = []
+    for i in range(len(uniques_data)):
+        if i < 6:
+            ma_uniques.append(sum(uniques_data[: i + 1]) / (i + 1))
+        else:
+            ma_uniques.append(sum(uniques_data[i - 6 : i + 1]) / 7)
+
     fig, ax = plt.subplots(figsize=(12, 5))
     if dates_for_plot:
-        ax.plot(x, solves_data, marker="o")
+        ax.plot(
+            x,
+            solves_data,
+            marker="o",
+            label="Daily Solves",
+            color="#1f77b4",
+            linestyle="-",
+        )
+        ax.plot(x, ma_solves, label="7-Day MA", color="#ff7f0e", linestyle="--")
         ax.set_xticks(tick_positions)
         ax.set_xticklabels(tick_labels, rotation=45)
+        ax.legend()
     ax.set_title("Solves Per Day (Full Repo History)")
     ax.set_xlabel("Date")
     ax.set_ylabel("Solves")
@@ -97,9 +192,18 @@ def main():
 
     fig, ax = plt.subplots(figsize=(12, 5))
     if dates_for_plot:
-        ax.bar(x, uniques_data)
+        bottom = np.zeros(len(x))
+        ax.bar(x, uniques_easy, label="Easy", color="#00FF00", bottom=bottom)
+        bottom += np.array(uniques_easy)
+        ax.bar(x, uniques_medium, label="Medium", color="#FFA500", bottom=bottom)
+        bottom += np.array(uniques_medium)
+        ax.bar(x, uniques_hard, label="Hard", color="#FF0000", bottom=bottom)
+        bottom += np.array(uniques_hard)
+        ax.bar(x, uniques_unknown, label="Unknown", color="#808080", bottom=bottom)
+        ax.plot(x, ma_uniques, label="7-Day MA", color="#000000", linestyle="--")
         ax.set_xticks(tick_positions)
         ax.set_xticklabels(tick_labels, rotation=45)
+        ax.legend()
     ax.set_title("Unique Problems Solved Daily (Full Repo History)")
     ax.set_xlabel("Date")
     ax.set_ylabel("Unique Solves")
@@ -135,6 +239,14 @@ def main():
         x_num = [(dt - min_run).days for dt in run_dt]
         y_num = [(dt - min_contest).days for dt in contest_dt]
 
+        # Compute 7-point moving averages for contest y_num
+        ma_y_contest = []
+        for i in range(len(y_num)):
+            if i < 6:
+                ma_y_contest.append(sum(y_num[: i + 1]) / (i + 1))
+            else:
+                ma_y_contest.append(sum(y_num[i - 6 : i + 1]) / 7)
+
         label_step = max(1, len(run_dates) // 10)
         tick_pos_x = x_num[::label_step]
         tick_labels_x = run_dates[::label_step]
@@ -144,7 +256,17 @@ def main():
         tick_labels_y = [dt.strftime("%Y-%m-%d") for dt in unique_contest]
 
         fig, ax = plt.subplots(figsize=(12, 5))
-        ax.plot(x_num, y_num, marker="o")
+        ax.plot(
+            x_num,
+            y_num,
+            marker="o",
+            label="Projected Days",
+            color="#1f77b4",
+            linestyle="-",
+        )
+        ax.plot(
+            x_num, ma_y_contest, label="7-Point MA", color="#ff7f0e", linestyle="--"
+        )
         ax.set_xticks(tick_pos_x)
         ax.set_xticklabels(tick_labels_x, rotation=45)
         ax.set_yticks(tick_pos_y)
@@ -152,6 +274,7 @@ def main():
         ax.set_title("Contest Readiness Projection Over Time")
         ax.set_xlabel("Run Date")
         ax.set_ylabel("Projected Readiness Date")
+        ax.legend()
         local_path = "/tmp/contest_variance.png"
         fig.savefig(local_path)
         s3_key_contest_variance = f"contest_variance_{timestamp}.png"
@@ -169,12 +292,28 @@ def main():
         min_faang = min(faang_dt)
         y_num_faang = [(dt - min_faang).days for dt in faang_dt]
 
+        # Compute 7-point moving averages for faang y_num_faang
+        ma_y_faang = []
+        for i in range(len(y_num_faang)):
+            if i < 6:
+                ma_y_faang.append(sum(y_num_faang[: i + 1]) / (i + 1))
+            else:
+                ma_y_faang.append(sum(y_num_faang[i - 6 : i + 1]) / 7)
+
         unique_faang = sorted(set(faang_dt))
         tick_pos_y_faang = [(dt - min_faang).days for dt in unique_faang]
         tick_labels_y_faang = [dt.strftime("%Y-%m-%d") for dt in unique_faang]
 
         fig, ax = plt.subplots(figsize=(12, 5))
-        ax.plot(x_num, y_num_faang, marker="o")
+        ax.plot(
+            x_num,
+            y_num_faang,
+            marker="o",
+            label="Projected Days",
+            color="#1f77b4",
+            linestyle="-",
+        )
+        ax.plot(x_num, ma_y_faang, label="7-Point MA", color="#ff7f0e", linestyle="--")
         ax.set_xticks(tick_pos_x)
         ax.set_xticklabels(tick_labels_x, rotation=45)
         ax.set_yticks(tick_pos_y_faang)
@@ -182,6 +321,7 @@ def main():
         ax.set_title("FAANG Interview Readiness Projection Over Time")
         ax.set_xlabel("Run Date")
         ax.set_ylabel("Projected Readiness Date")
+        ax.legend()
         local_path = "/tmp/faang_variance.png"
         fig.savefig(local_path)
         s3_key_faang_variance = f"faang_variance_{timestamp}.png"
@@ -219,7 +359,7 @@ def main():
             )
 
             fig, ax = plt.subplots(figsize=(10, 2))
-            ax.barh([0], [progress_contest * 100], height=0.5)
+            ax.barh([0], [progress_contest * 100], height=0.5, color="#00FF00")
             ax.set_yticks([0])
             ax.set_yticklabels(["Progress"])
             ax.set_xlim(0, 100)
@@ -253,7 +393,7 @@ def main():
             )
 
             fig, ax = plt.subplots(figsize=(10, 2))
-            ax.barh([0], [progress_faang * 100], height=0.5)
+            ax.barh([0], [progress_faang * 100], height=0.5, color="#00FF00")
             ax.set_yticks([0])
             ax.set_yticklabels(["Progress"])
             ax.set_xlim(0, 100)
@@ -336,7 +476,7 @@ def main():
     if dates_for_plot:
         total_problems = 3302
         grid_size = math.ceil(math.sqrt(total_problems))
-        problem_ids = [str(i) for i in range(1, total_problems + 1)]
+        problem_ids = list(range(1, total_problems + 1))  # Use ints for consistency
         all_positions = []
         for idx in range(total_problems):
             row = idx // grid_size
@@ -344,9 +484,6 @@ def main():
             all_positions.append(
                 (col, grid_size - row - 1)
             )  # Invert y for top-left start
-
-        all_x = [pos[0] for pos in all_positions]
-        all_y = [pos[1] for pos in all_positions]
 
         problem_solve_dates = {}
         for date_str, probs in uniques_per_day.items():
@@ -365,27 +502,55 @@ def main():
         ax.set_axis_off()
         ax.set_aspect("equal")
 
-        # Static unsolved dots in dark grey
-        ax.scatter(all_x, all_y, s=10, c="darkgray", marker="s")
+        colors = {
+            "Easy": "#00FF00",
+            "Medium": "#FFA500",
+            "Hard": "#FF0000",
+            "Unknown": "#A9A9A9",  # Different from grey for unsolved if needed
+        }
 
-        # Animated solved dots in dark green
-        scat = ax.scatter([], [], s=10, c="darkgreen", marker="s")
+        all_positions_x, all_positions_y = (
+            zip(*all_positions) if all_positions else ([], [])
+        )
+
+        grey_scatter = ax.scatter(
+            all_positions_x, all_positions_y, s=10, c="#808080", marker="s"
+        )
+
+        solved_scatters = {}
+        for diff in colors:
+            solved_scatters[diff] = ax.scatter([], [], s=10, c=colors[diff], marker="s")
 
         date_text = ax.text(0.5, -0.05, "", transform=ax.transAxes, ha="center")
 
         def update(frame):
             current_dt = dates_dt[frame]
-            filled_x = []
-            filled_y = []
+            solved_positions = defaultdict(list)
+            unsolved_positions = []
             for i, prob in enumerate(problem_ids):
                 solve_dt = solve_dates.get(prob)
+                pos = all_positions[i]
                 if solve_dt and solve_dt <= current_dt:
-                    x, y = all_positions[i]
-                    filled_x.append(x)
-                    filled_y.append(y)
-            scat.set_offsets(np.c_[filled_x, filled_y])
+                    num = prob
+                    diff = metadata.get(num, {}).get("difficulty", "Unknown")
+                    solved_positions[diff].append(pos)
+                else:
+                    unsolved_positions.append(pos)
+            # Update unsolved (grey)
+            if unsolved_positions:
+                ux, uy = zip(*unsolved_positions)
+                grey_scatter.set_offsets(np.c_[ux, uy])
+            else:
+                grey_scatter.set_offsets(np.empty((0, 2)))
+            # Update solved
+            for diff, positions in solved_positions.items():
+                if positions:
+                    sx, sy = zip(*positions)
+                    solved_scatters[diff].set_offsets(np.c_[sx, sy])
+                else:
+                    solved_scatters[diff].set_offsets(np.empty((0, 2)))
             date_text.set_text(dates_for_plot[frame])
-            return scat, date_text
+            return [grey_scatter] + list(solved_scatters.values()) + [date_text]
 
         anim = FuncAnimation(fig, update, frames=len(dates_dt), blit=True)
         local_path = "/tmp/problem_grid.gif"

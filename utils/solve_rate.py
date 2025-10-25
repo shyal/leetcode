@@ -1,6 +1,4 @@
-# solve_rate.py
-
-import subprocess
+import os
 import re
 from datetime import datetime, timedelta, timezone
 import argparse
@@ -14,6 +12,36 @@ import pyfiglet
 import json
 from history_builder import get_solved_problems, get_learning
 from collections import defaultdict
+import requests
+
+
+def get_problems_metadata():
+    METADATA_FILE = ".problems_metadata.json"
+    if os.path.exists(METADATA_FILE):
+        with open(METADATA_FILE, "r") as f:
+            return json.load(f)
+
+    url = "https://leetcode.com/api/problems/all/"
+    response = requests.get(url)
+
+    if response.status_code == 200:
+        data = response.json()
+        problems = {}
+        for stat in data["stat_status_pairs"]:
+            s = stat["stat"]
+            num = s["frontend_question_id"]
+            title = s["question__title"]
+            slug = s["question__title_slug"]
+            diff = stat["difficulty"]["level"]  # 1,2,3
+            diff_str = {1: "Easy", 2: "Medium", 3: "Hard"}[diff]
+            problems[num] = {"title": title, "slug": slug, "difficulty": diff_str}
+
+        with open(METADATA_FILE, "w") as f:
+            json.dump(problems, f)
+
+        return problems
+    else:
+        raise ValueError("Failed to fetch problems metadata")
 
 
 def render_big_time(secs: int, font_name: str, width: int = 200) -> str:
@@ -167,6 +195,8 @@ def main():
         print("Total must be a positive integer.")
         exit(1)
 
+    metadata = get_problems_metadata()
+
     all_solves = get_solved_problems()
 
     # Group solved commits (status == "solved") and take earliest date for each problem
@@ -273,9 +303,25 @@ def main():
         table_learning.add_column("Title", justify="left")
         table_learning.add_column("Date", justify="left")
         table_learning.add_column("Solve Time", justify="right")
+        table_learning.add_column("Difficulty", justify="right")
         for p in learning_problems:
             date_str = p.date.strftime("%Y-%m-%d %H:%M")
-            table_learning.add_row(str(p.num), p.title, date_str, p.solve_time or "")
+            if p.difficulty == "Easy":
+                style = "green"
+            elif p.difficulty == "Medium":
+                style = "orange1"
+            elif p.difficulty == "Hard":
+                style = "red"
+            else:
+                style = None
+            table_learning.add_row(
+                str(p.num),
+                p.title,
+                date_str,
+                p.solve_time or "",
+                p.difficulty,
+                style=style,
+            )
         print(table_learning)
     else:
         print("No problems in learning status.")
@@ -309,7 +355,9 @@ def main():
             )
             for p in all_solves:
                 if p.date >= today_start and p.status == "solved":
-                    solved_today.append((p.num, p.title, p.date, None, p.solve_time))
+                    solved_today.append(
+                        (p.num, p.title, p.date, None, p.solve_time, p.difficulty)
+                    )
 
             num_solved_today = len(solved_today)
             target_per_day = math.ceil(daily_rate)
@@ -346,7 +394,14 @@ def main():
                     )
                     if task_name in done_tasks:
                         done_task_items.append(
-                            ("Task", task_name + " (done)", early_time, None, None)
+                            (
+                                "Task",
+                                task_name + " (done)",
+                                early_time,
+                                None,
+                                None,
+                                None,
+                            )
                         )
                     else:
                         planned_time = max(task_time, current_time)
@@ -431,8 +486,17 @@ def main():
                         if start_time + activity_duration > day_end:
                             print(f"Cannot schedule problem {prob}: exceeds end time.")
                             break
+                        title = metadata.get(prob, {}).get("title", "Unknown")
+                        difficulty = metadata.get(prob, {}).get("difficulty", "Unknown")
                         planned_problem_items.append(
-                            (prob, "", start_time, activity_duration, None)
+                            (
+                                prob,
+                                title,
+                                start_time,
+                                activity_duration,
+                                None,
+                                difficulty,
+                            )
                         )
                         next_current = start_time + activity_duration
                         if i < len(planned_problems) - 1 and break_minutes > 0:
@@ -445,7 +509,7 @@ def main():
                         if task_end > day_end:
                             print(f"Warning: Task '{task_name}' exceeds end time.")
                         task_planned_items.append(
-                            ("Task", task_name, task_start, task_duration, None)
+                            ("Task", task_name, task_start, task_duration, None, None)
                         )
 
                     planned_items = planned_problem_items + task_planned_items
@@ -459,17 +523,27 @@ def main():
                 table2.add_column("Details", justify="left")
                 table2.add_column("Time of Day", justify="left")
                 table2.add_column("Solve Time", justify="right")
+                table2.add_column("Difficulty", justify="right")
                 table2.add_column("Cumulative Time", justify="right")
                 cumulative = timedelta(0)
                 for item in all_todays:
-                    activity, details, t, duration, solve_time = item
+                    activity, details, t, duration, solve_time, difficulty = item
                     if activity == "Task" and t < today_start:
                         time_str = "Done"
                     else:
                         time_str = t.strftime("%I:%M %p")
                     style = None
+                    if difficulty == "Easy":
+                        style = "green"
+                    elif difficulty == "Medium":
+                        style = "orange1"
+                    elif difficulty == "Hard":
+                        style = "red"
                     if duration and t <= current_time < (t + duration):
-                        style = "bold yellow"
+                        if style:
+                            style += " bold yellow"
+                        else:
+                            style = "bold yellow"
                     cum_str = ""
                     if solve_time:
                         delta = parse_solve_time(solve_time)
@@ -480,6 +554,7 @@ def main():
                         details,
                         time_str,
                         solve_time or "",
+                        difficulty or "",
                         cum_str,
                         style=style,
                     )
@@ -493,8 +568,8 @@ def main():
 
             ongoing_activity = None
             for item in all_todays:
-                if len(item) == 5 and isinstance(item[0], str) and item[0] == "Task":
-                    activity, details, start_t, dur, _ = item
+                if len(item) == 6 and isinstance(item[0], str) and item[0] == "Task":
+                    activity, details, start_t, dur, _, _ = item
                     if dur and start_t <= current_time < (start_t + dur):
                         ongoing_activity = (details, start_t + dur)
                         break

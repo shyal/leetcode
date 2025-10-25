@@ -1,5 +1,3 @@
-# history_builder.py
-
 from functools import cache
 import ast
 import os
@@ -10,6 +8,8 @@ from git import Repo
 import glob
 from dataclasses import dataclass
 from collections import defaultdict
+import requests
+import json
 
 
 @dataclass
@@ -21,6 +21,33 @@ class SolvedProblem:
     file: str
     content: str
     status: str
+    difficulty: str
+
+
+def get_leetcode_difficulty(title_slug):
+    url = "https://leetcode.com/graphql/"
+    headers = {
+        "Content-Type": "application/json",
+    }
+    query = """
+    query getQuestionDetail($titleSlug: String!) {
+        question(titleSlug: $titleSlug) {
+            difficulty
+        }
+    }
+    """
+    variables = {"titleSlug": title_slug}
+    payload = {"query": query, "variables": variables}
+
+    response = requests.post(url, headers=headers, data=json.dumps(payload))
+
+    if response.status_code == 200:
+        data = response.json()
+        if "errors" in data:
+            raise ValueError(f"GraphQL error: {data['errors']}")
+        return data["data"]["question"]["difficulty"]
+    else:
+        raise ValueError(f"HTTP error: {response.status_code} - {response.text}")
 
 
 def parse_timestamp(ts_str):
@@ -60,6 +87,13 @@ def parse_timestamp(ts_str):
 
 @cache
 def get_solved_problems():
+    METADATA_FILE = ".metadata.json"
+    if os.path.exists(METADATA_FILE):
+        with open(METADATA_FILE, "r") as f:
+            metadata = json.load(f)
+    else:
+        metadata = {}
+
     repo = Repo(os.getcwd())
     git = repo.git
     log_output = git.log("--pretty=format:%H%n%an%n%ad%n%B%n---").strip()
@@ -146,6 +180,19 @@ def get_solved_problems():
 
         if matching_file:
             content = open(matching_file).read()
+
+            title_slug = re.sub(r"[^a-z0-9]+", "-", prob_title.lower()).strip("-")
+            if title_slug in metadata:
+                difficulty = metadata[title_slug]
+            else:
+                try:
+                    difficulty = get_leetcode_difficulty(title_slug)
+                except Exception:
+                    difficulty = "Unknown"
+                metadata[title_slug] = difficulty
+                with open(METADATA_FILE, "w") as f:
+                    json.dump(metadata, f)
+
             solved.append(
                 SolvedProblem(
                     num=prob_num,
@@ -155,6 +202,7 @@ def get_solved_problems():
                     file=matching_file,
                     content=content,
                     status=status,
+                    difficulty=difficulty,
                 )
             )
 
@@ -281,15 +329,14 @@ def get_history_string():
             solve_time = problem.solve_time
             content = problem.content
             status = problem.status
+            difficulty = problem.difficulty
 
             time_str = f" (time: {solve_time})" if solve_time else ""
             status_str = f" - {status}" if status != "solved" else ""
 
             notes, code = parse_content(content)
 
-            entry = (
-                f"# {ts_str}: {problem_id}. {problem_title}{status_str}{time_str}:\n\n"
-            )
+            entry = f"# {ts_str}: {problem_id}. {problem_title} ({difficulty}){status_str}{time_str}:\n\n"
             entry += f"```python3\n{code}\n```"
             if notes:
                 entry += f"\n\n## {notes}"
@@ -304,4 +351,6 @@ def get_history_string():
 
 
 if __name__ == "__main__":
+    from rich import print as rich_print
+
     rich_print(get_learning())
