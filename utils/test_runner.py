@@ -1,6 +1,7 @@
 import pytest
 import os
 import time
+import subprocess
 
 
 class StatsPlugin:
@@ -39,19 +40,33 @@ if __name__ == "__main__":
 
     start_time = time.perf_counter()
 
+    try:
+        current_branch = (
+            subprocess.check_output(["git", "branch", "--show-current"])
+            .decode()
+            .strip()
+        )
+    except Exception:
+        current_branch = "unknown"
+
+    args = [
+        __file__,
+        solved_dir,
+        "-s",
+        "-q",
+        "-c",
+        os.devnull,
+        "--override-ini",
+        "python_files=*.py",
+        "-p",
+        "no:cacheprovider",
+    ]
+
+    if current_branch != "master":
+        args.extend(["-k", "test_current"])
+
     pytest.main(
-        [
-            __file__,
-            solved_dir,
-            "-s",
-            "-q",
-            "-c",
-            os.devnull,
-            "--override-ini",
-            "python_files=*.py",
-            "-p",
-            "no:cacheprovider",
-        ],
+        args,
         plugins=[stats],
     )
 
