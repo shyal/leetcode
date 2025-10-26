@@ -157,6 +157,7 @@ builtins.permutations = permutations
 builtins.or_ = operator.or_
 builtins.ior = operator.ior
 builtins.and_ = operator.and_
+builtins.mul = operator.mul
 builtins.islice = islice
 builtins.compress = compress
 builtins.sqrt = sqrt
