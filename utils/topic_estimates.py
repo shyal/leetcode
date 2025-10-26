@@ -20,7 +20,7 @@ client = Client(api_key=api_key)
 
 
 def main():
-    history_str = get_history_string()
+    history_str = get_history_string(0)
     assert history_str
 
     system_prompt = """You are an expert LeetCode coach specializing in assessing candidate readiness.

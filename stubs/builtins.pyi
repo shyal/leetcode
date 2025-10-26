@@ -2931,6 +2931,7 @@ class deque(_deque[T]): ...
 # Constants
 maxsize: int
 ascii_letters: str
+hexdigits: str
 ascii_lowercase: str
 ascii_uppercase: str
 digits: str

@@ -45,7 +45,7 @@ from collections import defaultdict, Counter
 import operator
 import heapq
 from collections import deque
-from string import ascii_letters, ascii_lowercase, ascii_uppercase, digits
+from string import ascii_letters, ascii_lowercase, ascii_uppercase, digits, hexdigits
 
 # utils
 from graph_utils import *
@@ -148,6 +148,7 @@ builtins.heappush = heapq.heappush
 builtins.nlargest = heapq.nlargest
 builtins.nsmallest = heapq.nsmallest
 builtins.ascii_letters = ascii_letters
+builtins.hexdigits = hexdigits
 builtins.ascii_lowercase = ascii_lowercase
 builtins.ascii_uppercase = ascii_uppercase
 builtins.digits = digits
