@@ -8,8 +8,13 @@ from git import Repo
 import glob
 from dataclasses import dataclass
 from collections import defaultdict
-import requests
 import json
+import os
+import re
+from xai_sdk import Client
+from xai_sdk.chat import system, user
+
+from metadata import get_problems_metadata
 
 
 @dataclass
@@ -24,30 +29,32 @@ class SolvedProblem:
     difficulty: str
 
 
-def get_leetcode_difficulty(title_slug):
-    url = "https://leetcode.com/graphql/"
-    headers = {
-        "Content-Type": "application/json",
-    }
-    query = """
-    query getQuestionDetail($titleSlug: String!) {
-        question(titleSlug: $titleSlug) {
-            difficulty
-        }
-    }
-    """
-    variables = {"titleSlug": title_slug}
-    payload = {"query": query, "variables": variables}
+def strip_triple_ticks(text: str) -> str:
+    pattern = r"^```(?:\w+)?\n|```$"
+    result = re.sub(pattern, "", text, flags=re.MULTILINE)
+    return result.strip()
 
-    response = requests.post(url, headers=headers, data=json.dumps(payload))
 
-    if response.status_code == 200:
-        data = response.json()
-        if "errors" in data:
-            raise ValueError(f"GraphQL error: {data['errors']}")
-        return data["data"]["question"]["difficulty"]
-    else:
-        raise ValueError(f"HTTP error: {response.status_code} - {response.text}")
+def grok(user_prompt):
+    chat = client.chat.create(
+        model="grok-4-0709",
+        messages=[
+            system(
+                "You are a helpful assistant that generates concise summaries for LeetCode problem solutions, including key ideas from the code and notes."
+            ),
+            user(user_prompt),
+        ],
+    )
+    response = chat.sample()
+    summary = response.content
+    return strip_triple_ticks(summary)
+
+
+api_key = os.getenv("GROK_API_KEY")
+if not api_key:
+    raise ValueError("GROK_API_KEY environment variable not set")
+
+client = Client(api_key=api_key)
 
 
 def parse_timestamp(ts_str):
@@ -87,12 +94,12 @@ def parse_timestamp(ts_str):
 
 @cache
 def get_solved_problems():
-    METADATA_FILE = ".metadata.json"
+    METADATA_FILE = ".problems_metadata.json"
     if os.path.exists(METADATA_FILE):
         with open(METADATA_FILE, "r") as f:
             metadata = json.load(f)
     else:
-        metadata = {}
+        metadata = get_problems_metadata()
 
     repo = Repo(os.getcwd())
     git = repo.git
@@ -181,17 +188,7 @@ def get_solved_problems():
         if matching_file:
             content = open(matching_file).read()
 
-            title_slug = re.sub(r"[^a-z0-9]+", "-", prob_title.lower()).strip("-")
-            if title_slug in metadata:
-                difficulty = metadata[title_slug]
-            else:
-                try:
-                    difficulty = get_leetcode_difficulty(title_slug)
-                except Exception:
-                    difficulty = "Unknown"
-                metadata[title_slug] = difficulty
-                with open(METADATA_FILE, "w") as f:
-                    json.dump(metadata, f)
+            difficulty = metadata.get(str(prob_num), {}).get("difficulty", "Unknown")
 
             solved.append(
                 SolvedProblem(
@@ -284,7 +281,7 @@ def parse_content(content: str) -> tuple[str, str]:
     return notes, code
 
 
-def get_history_string():
+def get_history_string(compress_older_than: int = 10):
     solved_problems = get_solved_problems()
     manila_tz = timezone(timedelta(hours=8))
 
@@ -318,6 +315,25 @@ def get_history_string():
     # Sort events by timestamp ascending
     events.sort(key=lambda x: x[1])
 
+    # Determine recent solves if compression is enabled
+    if compress_older_than > 0:
+        solve_events = [e for e in events if e[0] == "solve"]
+        recent_solves = (
+            set(id(e[2]) for e in solve_events[-compress_older_than:])
+            if solve_events
+            else set()
+        )
+    else:
+        recent_solves = set()
+
+    # Load or initialize summaries
+    SUMMARIES_FILE = ".summaries.json"
+    if os.path.exists(SUMMARIES_FILE):
+        with open(SUMMARIES_FILE, "r") as f:
+            summaries = json.load(f)
+    else:
+        summaries = {}
+
     # Build the history string
     history_parts = []
     for event_type, ts, data in events:
@@ -336,11 +352,24 @@ def get_history_string():
 
             notes, code = parse_content(content)
 
-            entry = f"# {ts_str}: {problem_id}. {problem_title} ({difficulty}){status_str}{time_str}:\n\n"
-            entry += f"```python3\n{code}\n```"
-            if notes:
-                entry += f"\n\n## {notes}"
-            entry += "\n\n---------------------\n\n"
+            if compress_older_than > 0 and id(problem) not in recent_solves:
+                key = problem.file
+                if key in summaries:
+                    summary = summaries[key]
+                else:
+                    user_prompt = f"Generate a 10 words max summary of the solution the candidate wrote for problem {problem.num}. {problem.title}.\n\nCode:\n{code}\n\nNotes:\n{notes}."
+                    print(user_prompt)
+                    summary = grok(user_prompt)
+                    summaries[key] = summary
+                    with open(SUMMARIES_FILE, "w") as f:
+                        json.dump(summaries, f)
+                entry = f"# {ts_str}: {problem_id}. {problem_title} ({difficulty}){status_str}{time_str} (compressed):\n\n{summary}\n\n---------------------\n\n"
+            else:
+                entry = f"# {ts_str}: {problem_id}. {problem_title} ({difficulty}){status_str}{time_str}:\n\n"
+                entry += f"```python3\n{code}\n```"
+                if notes:
+                    entry += f"\n\n## {notes}"
+                entry += "\n\n---------------------\n\n"
             history_parts.append(entry)
         elif event_type == "note":
             entry = f"# {ts_str}: Review Notes\n\n{data}\n\n---------------------\n\n"

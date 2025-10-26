@@ -7,9 +7,8 @@ def main():
     import boto3
     import numpy as np
     import math
-    import requests
     import json
-    import os
+    from metadata import get_problems_metadata
 
     mpl.use("Agg")
     import matplotlib.pyplot as plt
@@ -19,34 +18,6 @@ def main():
     bucket_name = "shyal"
 
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-
-    def get_problems_metadata():
-        METADATA_FILE = ".problems_metadata.json"
-        if os.path.exists(METADATA_FILE):
-            os.remove(METADATA_FILE)  # Force refetch for debug
-            print("Debug: Removed old metadata file to force refetch.")
-
-        url = "https://leetcode.com/api/problems/all/"
-        response = requests.get(url)
-
-        if response.status_code == 200:
-            data = response.json()
-            problems = {}
-            for stat in data["stat_status_pairs"]:
-                s = stat["stat"]
-                num = s["frontend_question_id"]
-                title = s["question__title"]
-                slug = s["question__title_slug"]
-                diff = stat["difficulty"]["level"]  # 1,2,3
-                diff_str = {1: "Easy", 2: "Medium", 3: "Hard"}[diff]
-                problems[num] = {"title": title, "slug": slug, "difficulty": diff_str}
-
-            with open(METADATA_FILE, "w") as f:
-                json.dump(problems, f)
-
-            return problems
-        else:
-            raise ValueError("Failed to fetch problems metadata")
 
     metadata = get_problems_metadata()
     print(f"Debug: Metadata loaded with {len(metadata)} problems")
