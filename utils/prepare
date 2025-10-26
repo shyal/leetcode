@@ -10,6 +10,8 @@ import re
 from xai_sdk import Client
 from xai_sdk.chat import system, user
 import threading
+import requests
+import json
 
 
 def strip_triple_ticks(text: str) -> str:
@@ -33,14 +35,6 @@ def grok(user_prompt):
     return strip_triple_ticks(code)
 
 
-def extract_exercise_title(text, problem_number):
-    pattern = rf"{problem_number}\.\s*(.+)"
-    match = re.search(pattern, text, re.MULTILINE)
-    if match:
-        return match.group(1).strip()
-    return None
-
-
 def run_git(cmd):
     """Run a git command and return its output."""
     try:
@@ -52,6 +46,93 @@ def run_git(cmd):
     except subprocess.CalledProcessError as e:
         print(f"Git command failed: {' '.join(cmd)}\nOutput: {e.output.decode()}")
         sys.exit(1)
+
+
+def get_question_info(num):
+    url = "https://leetcode.com/graphql/"
+    headers = {"Content-Type": "application/json"}
+
+    # First query to get title, slug, difficulty using problemsetQuestionList
+    query1 = """
+    query problemsetQuestionList($categorySlug: String, $limit: Int, $skip: Int, $filters: QuestionListFilterInput) {
+      problemsetQuestionList: questionList(
+        categorySlug: $categorySlug
+        limit: $limit
+        skip: $skip
+        filters: $filters
+      ) {
+        questions: data {
+          difficulty
+          frontendQuestionId: questionFrontendId
+          paidOnly: isPaidOnly
+          title
+          titleSlug
+        }
+      }
+    }
+    """
+    variables1 = {"categorySlug": "", "limit": 1, "skip": num - 1, "filters": {}}
+    response1 = requests.post(
+        url, headers=headers, json={"query": query1, "variables": variables1}
+    )
+    if response1.status_code != 200:
+        raise ValueError(
+            f"Failed to fetch question list: {response1.status_code} - {response1.text}"
+        )
+    data1 = response1.json()
+    if "errors" in data1:
+        raise ValueError(f"GraphQL error: {data1['errors']}")
+    questions = data1["data"]["problemsetQuestionList"]["questions"]
+    if not questions:
+        raise ValueError(f"No question found for number {num}")
+    q = questions[0]
+    if q["frontendQuestionId"] != str(num):
+        raise ValueError(
+            f"Question frontend ID mismatch: expected {num}, got {q['frontendQuestionId']}"
+        )
+    if q["paidOnly"]:
+        raise ValueError(f"Question {num} is paid only")
+    title = q["title"]
+    slug = q["titleSlug"]
+    difficulty = q["difficulty"]
+
+    # Second query to get details
+    query2 = """
+    query questionDetails($titleSlug: String!) {
+      question(titleSlug: $titleSlug) {
+        content
+        exampleTestcases
+        codeSnippets {
+          lang
+          langSlug
+          code
+        }
+      }
+    }
+    """
+    variables2 = {"titleSlug": slug}
+    response2 = requests.post(
+        url, headers=headers, json={"query": query2, "variables": variables2}
+    )
+    if response2.status_code != 200:
+        raise ValueError(
+            f"Failed to fetch question details: {response2.status_code} - {response2.text}"
+        )
+    data2 = response2.json()
+    if "errors" in data2:
+        raise ValueError(f"GraphQL error: {data2['errors']}")
+    q2 = data2["data"]["question"]
+    content = q2["content"]
+    example_testcases = q2["exampleTestcases"]
+    code_snippets = q2["codeSnippets"]
+
+    python_stub = next(
+        (sn["code"] for sn in code_snippets if sn["langSlug"] == "python3"), None
+    )
+    if not python_stub:
+        raise ValueError("No Python3 code snippet found")
+
+    return title, slug, difficulty, content, example_testcases, python_stub
 
 
 api_key = os.getenv("GROK_API_KEY")
@@ -116,11 +197,48 @@ lock = threading.Lock()
 
 
 def process_problem(num):
-    user_prompt = f"""Please generate a usable solution for LeetCode problem {num}.
-The solution should include the problem description as a docstring,
-the Solution class with the method signature and any passable solution, then instantiate sol = Solution().
-The first example is invoked with a print() (or draw_tree, tabulate etc
-if special printing functions apply), with the expected result commented out.
+    title, slug, difficulty, content, example_testcases, python_stub = (
+        get_question_info(num)
+    )
+
+    problem_url = f"https://leetcode.com/problems/{slug}/description/?envType=problem-list-v2&envId=vn57k9wr"
+
+    user_prompt = f"""Please generate a usable solution for LeetCode problem {num}. {title}.
+
+Use the following accurate data from LeetCode API:
+
+Difficulty: {difficulty}
+
+Content (HTML, please clean and format it nicely for the docstring):
+
+{content}
+
+Example inputs (newline-separated):
+
+{example_testcases}
+
+Python3 code snippet (use this for the Solution class and method signature):
+
+{python_stub}
+
+Parse the content to extract the problem statement, examples (including inputs, outputs, explanations), and constraints.
+Format them properly in the docstring, removing HTML tags.
+
+The docstring should start with:
+URL: {problem_url}
+
+{num}. {title}
+
+Then the cleaned problem statement.
+
+Then the examples.
+
+Then the constraints.
+
+The solution should include this docstring,
+the Solution class with the method implemented with a passable solution (generate one),
+then instantiate sol = Solution().
+The first example is invoked with a print() (or draw_tree, tabulate etc if special printing functions apply), with the expected result commented out.
 This is so the user can run the code and see output without asserting.
 Then generate all the examples as assert statements.
 
@@ -155,7 +273,7 @@ Here are utility functions:
 You can directly use the custom function for tree building, linked lists. No need to re-implement them unless
 no utility function exists for what needs doing.
 
-Output only the description doctstring, the Python code for the stub, and asserts. Indents are 4 spaces.
+Output only the description docstring, the Python code for the stub, and asserts. Indents are 4 spaces.
 """
 
     code = grok(user_prompt)
@@ -190,8 +308,6 @@ Now the content:
 """
 
     code = grok(clean_up_prompt)
-    title = extract_exercise_title(code, num)
-    print("title", title)
     problem_title = f"{num}. {title}"
     print("problem_title", problem_title)
     file_name = f"current.py"
