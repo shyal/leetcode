@@ -18,6 +18,8 @@ from math import gcd
 from Types import TreeNode
 from Types import ListNode
 from Types import GraphNode
+from Types import Node
+
 
 # Type aliases
 from typing import (
@@ -84,6 +86,7 @@ builtins.Optional = Optional
 builtins.TreeNode = TreeNode
 builtins.ListNode = ListNode
 builtins.GraphNode = GraphNode
+builtins.Node = Node
 
 # pretty printing
 builtins.tabulate = tabulate

@@ -1,3 +1,6 @@
+from typing import List, Optional, Dict, Any
+
+
 class TreeNode:
     def __init__(self, val=0, left=None, right=None):
         self.val = val
@@ -30,3 +33,9 @@ class GraphNode:
 
     def __repr__(self):
         return f"{self.val} -> ..."
+
+
+class Node:
+    def __init__(self, val: Any, children: Dict[Any, "Node"] = {}):
+        self.val = val
+        self.children = children
