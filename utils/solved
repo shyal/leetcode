@@ -99,9 +99,6 @@ def main():
     # Comment out print statements
     content = comment_out_prints(content)
 
-    # Prompt for notes
-    notes = input("notes: ").strip()
-
     # Save to ./solved
     clean_title = re.sub(r"[^\w\s-]", "", title).strip().replace(" ", "_")
     utc_now = datetime.now(timezone.utc)
@@ -121,8 +118,6 @@ def main():
 
     # Prepare commit message
     commit_message = f"{num}. {title}\n\nsolve time: {solve_time}"
-    if notes:
-        commit_message += f"\n\n{notes}"
 
     try:
         subprocess.run(["git", "add", "."], check=True)
