@@ -25,24 +25,10 @@ Constraints:
 
 ---
 
+Consulted Grok for a better way to deal with duplicates.
 
-                                                        dfs(0)
-                                                        |
-                                    swap 0, 0        swap 0, 1      swap 0, 2
-                                    [1, 1, 2]        [1, 1, 2]      [2, 1, 1]
-
-                            dfs(1)                    dfs(1)                    dfs(1)
-
-swap 1, 1     swap 1, 2
-[1, 1, 2]     [1, 2, 1]
-
-
-swap 2, 2     swap 2, 2
-[1, 1, 2]     [1, 2, 1]
-
-[1, 1, 2].    [1, 2, 1]
-
-Hmm this feels like it's not the right solution, since i had to resort to using a set.
+It seems sorting, and checking on the previous adjacent j does it, which seems obvious
+with hindsight.
 
 """
 
@@ -51,22 +37,22 @@ class Solution:
     def permuteUnique(self, nums: List[int]) -> List[List[int]]:
         def dfs(i):
             if i == len(nums):
-                res.add(tuple(nums[:]))
+                res.append(nums[:])
                 return
             for j in range(i, len(nums)):
-                if i != j and nums[i] == nums[j]:
+                if j > i and nums[j - 1] == nums[j]:
                     continue
                 nums[i], nums[j] = nums[j], nums[i]
                 dfs(i + 1)
                 nums[i], nums[j] = nums[j], nums[i]
 
-        res = set()
+        nums.sort()
+        res = []
         dfs(0)
-        return list(map(list, res))
+        return res
 
 
 sol = Solution()
-
 assert set(map(tuple, sol.permuteUnique([1, 1, 2]))) == set(
     map(tuple, [[1, 1, 2], [1, 2, 1], [2, 1, 1]])
 )
