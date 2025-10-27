@@ -2,6 +2,7 @@
 
 # recommend
 
+import argparse
 from rich.console import Console
 from rich.markdown import Markdown
 import os
@@ -20,16 +21,26 @@ client = Client(api_key=api_key)
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Recommend a leetcode question.")
+    parser.add_argument("--contest", action="store_true", help="recommend for contest.")
+    parser.add_argument(
+        "--fundamentals", action="store_true", help="recommend for fundamentals."
+    )
+    parser.add_argument("--review", action="store_true", help="recommend for review.")
 
-    history_str = get_history_string()
+    args = parser.parse_args()
 
-    problems_solved_today = len(get_today_solves())
+    speciality = "analyzing ther candidate's solve history"
+    extra = ""
 
-    system_prompt = f"""You are an expert LeetCode coach specializing in building strong fundamentals.
-    
+    if args.contest:
+        speciality = "getting a candidate contest ready"
+    elif args.fundamentals:
+        speciality = "strengthening a candidate's fundamentals"
+    elif args.review:
+        speciality = "helping a candidate review hard solves that may need solidifying"
+        extra = """
 Analyze the user's solve history to identify weak areas.
-
-Recommend EXACTLY ONE next problem to solve.
 
 Examine very carefully how the user is solving questions, and think about what his weaknesses are. To strengthen
 his skills, think about areas he's working on, and areas he's good at, and think of how to combine those various
@@ -37,11 +48,22 @@ aspects in novel ways with new problems.
 
 Sometimes it's good to re-inforce an existing skill. Sometimes it's good to challenge it by mixing it with a new
 skill the user is currently acquiring, and seeing those skills in various juxtapositions.
+"""
 
-After the solve, it will be added to the solve history, and you'll be given the opportunity to make more recommendations. As such, this is
-a feedback loop: you make a recommendation, the user works on it, you get the history and get to make more recommendations. You can thus
-build theories about why the user is struggling in a certain area, and learn as you go whether your recommendations are
-help the candidate improve over time.
+    history_str = get_history_string(filter_out_easy=True)
+
+    problems_solved_today = len(get_today_solves())
+
+    system_prompt = f"""You are an expert LeetCode coach specializing in {speciality}.
+    
+Recommend EXACTLY ONE next problem to solve.
+
+{extra}
+
+After the solve, it will be added to the solve history, and you'll be given the opportunity to make more recommendations.
+As such, this is a feedback loop: you make a recommendation, the user works on it, you get the history and get to make more
+recommendations. You can thus build theories about why the user is struggling in a certain area, and learn as you go whether
+your recommendations are help the candidate improve over time.
 
 For your recommendation, specify:
 - Problem number and full title (e.g., "1. Two Sum").

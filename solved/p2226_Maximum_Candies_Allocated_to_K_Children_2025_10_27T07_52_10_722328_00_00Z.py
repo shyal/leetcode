@@ -1,0 +1,84 @@
+"""
+URL: https://leetcode.com/problems/maximum-candies-allocated-to-k-children/description/?envType=problem-list-v2&envId=vn57k9wr
+
+2226. Maximum Candies Allocated to K Children
+
+You are given a 0-indexed integer array candies. Each element in the array denotes a pile of candies of size candies[i]. You can divide each pile into any number of sub piles, but you cannot merge two piles together.
+
+You are also given an integer k. You should allocate piles of candies to k children such that each child gets the same number of candies. Each child can be allocated candies from only one pile of candies and some piles of candies may go unused.
+
+Return the maximum number of candies each child can get.
+
+Example 1:
+
+Input: candies = [5,8,6], k = 3
+Output: 5
+Explanation: We can divide candies[1] into 2 piles of size 5 and 3, and candies[2] into 2 piles of size 5 and 1. We now have five piles of candies of sizes 5, 5, 3, 5, and 1. We can allocate the 3 piles of size 5 to 3 children. It can be proven that each child cannot receive more than 5 candies.
+
+Example 2:
+
+Input: candies = [2,5], k = 11
+Output: 0
+Explanation: There are 11 children but only 7 candies in total, so it is impossible to ensure each child receives at least one candy. Thus, each child gets no candy and the answer is 0.
+
+Constraints:
+
+    1 <= candies.length <= 10^5
+    1 <= candies[i] <= 10^7
+    1 <= k <= 10^12
+
+---
+
+Took longer than it should. Post lunch brain fog.
+
+"""
+
+
+class Solution:
+
+    def tryPiles(self, candies, size):
+        return sum(x // size for x in candies)
+
+    # @viz_binary_search()
+    def maximumCandies(self, candies: List[int], k: int) -> int:
+        low = 1
+        high = max(candies)
+        result = 0
+        is_minimization = False
+
+        while low <= high:
+            mid = low + (high - low) // 2
+            num_kids = self.tryPiles(candies, mid)
+            if num_kids >= k:
+                result = mid
+                if is_minimization:
+                    high = mid - 1
+                else:
+                    low = mid + 1
+            else:
+                if is_minimization:
+                    low = mid + 1
+                else:
+                    high = mid - 1
+
+        return result
+
+
+sol = Solution()
+
+assert sol.tryPiles([1, 1, 1], 1) == 3
+assert sol.tryPiles([5, 8, 6], 5) == 3
+assert sol.tryPiles([5, 8, 6], 4) == 4
+assert sol.tryPiles([2, 5], 11) == 0
+assert sol.maximumCandies([5, 8, 6], 3) == 5
+assert sol.maximumCandies([2, 5], 11) == 0
+assert sol.maximumCandies([1], 1) == 1
+assert sol.maximumCandies([1], 2) == 0
+assert sol.maximumCandies([10], 3) == 3
+assert sol.maximumCandies([1, 1, 1, 1], 3) == 1
+assert sol.maximumCandies([10000000], 1) == 10000000
+assert sol.maximumCandies([2, 2, 2, 2, 2], 5) == 2
+assert sol.maximumCandies([3, 3], 2) == 3
+assert sol.maximumCandies([1, 100], 1) == 100
+assert sol.maximumCandies([9], 5) == 1
+assert sol.maximumCandies([1], 1000000000000) == 0

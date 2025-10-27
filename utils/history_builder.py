@@ -281,7 +281,7 @@ def parse_content(content: str) -> tuple[str, str]:
     return notes, code
 
 
-def get_history_string(compress_older_than: int = 10):
+def get_history_string(compress_older_than: int = 10, filter_out_easy: bool = False):
     solved_problems = get_solved_problems()
     manila_tz = timezone(timedelta(hours=8))
 
@@ -340,6 +340,8 @@ def get_history_string(compress_older_than: int = 10):
         ts_str = ts.strftime("%Y-%m-%d %H:%M")
         if event_type == "solve":
             problem = data
+            if filter_out_easy and problem.difficulty.lower() == "easy":
+                continue
             problem_id = problem.num
             problem_title = problem.title
             solve_time = problem.solve_time

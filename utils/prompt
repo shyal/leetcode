@@ -21,7 +21,7 @@ client = Client(api_key=api_key)
 
 
 def main():
-    history_str = get_history_string()
+    history_str = get_history_string(0)
 
     user_input = sys.stdin.read()
 
@@ -51,6 +51,9 @@ Here is my readiness estimates:
 {open('readiness.json', 'r').read()}
 
 """
+
+    with open("prompt.md", "w") as w:
+        w.write(system_prompt + "\n\n" + user_prompt)
 
     try:
         chat = client.chat.create(
