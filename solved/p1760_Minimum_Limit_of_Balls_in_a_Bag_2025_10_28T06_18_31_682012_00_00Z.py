@@ -97,55 +97,36 @@ number of bags, so it's encouraging us to do a bs.
 Hmm i give up because i've overtime. I think i was very close.. but in check_condition, it's not a matter
 of subtracting the penalty from the max.
 
+Not my solution.
+
 """
 
 
 class Solution:
-
-    def check_condition(self, nums, penalty, operations):
-        nums = [-x for x in nums]
-        for _ in range(operations):
-            _max = -heappop(nums)
-            if _max == penalty:
-                return True
-            rem = _max - penalty
-            heappush(nums, -rem)
-            heappush(nums, -penalty)
-        return -heappop(nums) == penalty
+    def check_condition(self, nums, penalty, max_operations):
+        ceil_div = lambda a, b: (a + b - 1) // b
+        total_ops = 0
+        for x in nums:
+            total_ops += ceil_div(x, penalty) - 1
+            if total_ops > max_operations:
+                return False
+        return total_ops <= max_operations
 
     def minimumSize(self, nums: List[int], maxOperations: int) -> int:
-        # decorator:
-        # @viz_binary_search
         low = 1
         high = max(nums)
         result = -1
-        is_minimization = True
-        heapify(nums)
-
         while low <= high:
             mid = low + (high - low) // 2
             if self.check_condition(nums, mid, maxOperations):
                 result = mid
-                if is_minimization:
-                    high = mid - 1
-                else:
-                    low = mid + 1
+                high = mid - 1
             else:
-                if is_minimization:
-                    low = mid + 1
-                else:
-                    high = mid - 1
-
+                low = mid + 1
         return result
 
 
 sol = Solution()
-
-
-# print(sol.check_condition(nums=[10, 10], penalty=2, operations=5))
-
-
-# print(sol.minimumSize([9], 2))
 
 assert sol.minimumSize([9], 2) == 3
 assert sol.minimumSize([2, 4, 8, 2], 4) == 2
