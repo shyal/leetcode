@@ -12,7 +12,7 @@ import bisect
 import builtins
 from rich.console import Console
 from rich.markdown import Markdown
-from math import gcd
+from math import gcd, isclose
 
 # types
 from Types import TreeNode
@@ -168,6 +168,7 @@ builtins.starmap = starmap
 builtins.maxsize = maxsize
 builtins.cache = cache
 builtins.gcd = gcd
+builtins.isclose = isclose
 builtins.dropwhile = dropwhile
 
 
@@ -176,4 +177,27 @@ def batched(s, n=1):
     return [s[a:b] for a, b in zip_longest(r, r[1:])]
 
 
+def ceil_div(a: int, b: int) -> int:
+    """
+    Computes the ceiling of a / b for positive integers a and b > 0,
+    using integer arithmetic to avoid floating-point precision issues.
+
+    Args:
+        a: The numerator (dividend).
+        b: The denominator (divisor), must be > 0.
+
+    Returns:
+        The smallest integer >= a / b.
+
+    Raises:
+        ValueError: If b <= 0 or if a < 0 (assuming positive inputs).
+    """
+    if b <= 0:
+        raise ValueError("Denominator b must be positive.")
+    if a < 0:
+        raise ValueError("Numerator a must be non-negative.")
+    return (a + b - 1) // b
+
+
 builtins.batched = batched
+builtins.ceil_div = ceil_div
