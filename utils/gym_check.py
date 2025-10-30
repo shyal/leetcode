@@ -6,7 +6,7 @@ from rich.table import Table
 from rich.console import Console
 import math
 
-filename = "stronglifts/StrongLifts20251029.csv"
+filename = "stronglifts/StrongLifts20251030.csv"
 rows = []
 
 with open(filename, "r", newline="") as csvfile:
@@ -18,8 +18,8 @@ with open(filename, "r", newline="") as csvfile:
 
 def check_gym_frequency(start_date, end_date, rows):
     """
-    Checks if the user has gone to the gym at least 3 times per week on average since the start date.
-    Returns True if frequency is >= 3 per week, False otherwise.
+    Checks if the user has gone to the gym at least 3 times in the last 7 days (including end_date).
+    Returns True if workouts >= 3 in that window, False otherwise.
     """
     unique_dates = set()
     for row in rows:
@@ -31,17 +31,12 @@ def check_gym_frequency(start_date, end_date, rows):
             continue
 
     if not unique_dates:
-        return True  # No data, assume compliant or skip banner
+        return True
 
-    sorted_dates = sorted(unique_dates)
-    first_date = sorted_dates[0]
-    last_date = sorted_dates[-1]
-    total_days = (last_date - first_date).days + 1
-    total_weeks = math.ceil(total_days / 7.0)  # Use ceil to count partial weeks
-    total_workouts = len(unique_dates)
-    average_per_week = total_workouts / total_weeks
+    window_start = end_date - datetime.timedelta(days=6)
+    recent_workouts = [d for d in unique_dates if window_start <= d <= end_date]
 
-    return average_per_week >= 3
+    return len(recent_workouts) >= 3
 
 
 def print_banner():
