@@ -4,6 +4,8 @@ from history_builder import *
 from flask import Flask, render_template_string
 import math
 import html
+from datetime import datetime
+from collections import defaultdict
 
 
 def parse_solve_time(s: str | None) -> int | None:
@@ -47,20 +49,31 @@ def home():
         groups[p.num].append(p)
 
     problem_data = []
+    time_now = datetime.now()
     for num, probs in groups.items():
         probs.sort(key=lambda x: x.date)
         count_learning = sum(1 for p in probs if p.status == "learning")
-        solve_times = []
-        for p in probs:
-            if p.solve_time:
-                time_sec = parse_solve_time(p.solve_time)
-                if time_sec is not None:
-                    solve_times.append(time_sec)
+        solve_times_raw = [
+            parse_solve_time(p.solve_time) for p in probs if p.solve_time
+        ]
+        solve_times = [t for t in solve_times_raw if t is not None]
         cumulative_time = sum(solve_times) if solve_times else 0
-        score = count_learning * (
-            cumulative_time + 1
-        )  # +1 to avoid zero multiplication issues
+        avg_time = (
+            cumulative_time / len(solve_times) if solve_times else 300
+        )  # default 5min if no times
         latest = probs[-1]
+        last_time = (
+            parse_solve_time(latest.solve_time) if latest.solve_time else avg_time
+        )
+        time_diff = time_now - latest.date.replace(tzinfo=None)
+        time_since_days = max(0, time_diff.total_seconds() / 86400)
+        # Spaced repetition inspired score: higher if struggled more, longer ago, slower last time
+        score = (
+            count_learning
+            * (cumulative_time + 1)
+            * (time_since_days + 0.1)
+            * ((last_time / 60) + 1)
+        )
         problem_data.append(
             {
                 "num": num,
