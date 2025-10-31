@@ -159,6 +159,7 @@ def get_solved_problems():
             "940c3eb4cabff002ef5b4f85bc1290b74309d262",
             "a10feb0e416afe998eef468f3cb59b424fbe896e",
             "17e20cbe3d01e559a62d49243494af145e638559",
+            "8420b5a5255242000e7e767cffe90e1c3d4afcf4",
         ]:
             continue
 
@@ -379,9 +380,3 @@ def get_history_string(compress_older_than: int = 10, filter_out_easy: bool = Fa
 
     history_str = "".join(history_parts)  # Join without extra newlines between entries
     return history_str
-
-
-if __name__ == "__main__":
-    from rich import print as rich_print
-
-    rich_print(get_learning())
