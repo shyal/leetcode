@@ -1,4 +1,4 @@
-How did i do today? I kept it simple because i had some other work to do. Sadly.
+i'm thinking of changing my strategy, and want to discuss with you about this. currently my goal is to solve 7 a day, and of course review questions on my learning queue. i use anki but sporadically. i'm thinking of changing to emphasizing quality over quantity. So you could generate say 5 or 10 cards a day which i'd remember 100% faultlessly, and we could plan reviews, or varations. like you could prepare a list of problems for me to tackle on any given day, not necessarily covering new questions, but more reinforcing what i know, and general problem solving. thoughts? 
 
 
 Here is my LeetCode solve history (most recent last):
@@ -11133,6 +11133,376 @@ class Solution:
 
 ---------------------
 
+# 2025-10-30 09:26: 3726. Remove Zeros in Decimal Representation (Easy) (time: 6m 25):
+
+```python3
+class Solution:
+
+    def getDigits(self, num):
+        digits = []
+        while num:
+            digits.append(num % 10)
+            num //= 10
+        return digits
+
+    def removeZeros(self, n: int) -> int:
+        res = 0
+        digits = self.getDigits(n)
+        for x in [x for x in digits[::-1] if x != 0]:
+            res = res * 10 + x
+        return res
+```
+
+---------------------
+
+# 2025-10-30 09:40: 1742. Maximum Number of Balls in a Box (Easy) (time: 6m 33):
+
+```python3
+class Solution:
+
+    def getDigits(self, num):
+        digits = []
+        while num:
+            digits.append(num % 10)
+            num //= 10
+        return digits
+
+    def countBalls(self, lowLimit: int, highLimit: int) -> int:
+        boxes = defaultdict(int)
+        for ball in range(lowLimit, highLimit + 1):
+            numBalls = sum(self.getDigits(ball))
+            boxes[numBalls] += 1
+        return max(boxes.values())
+```
+
+---------------------
+
+# 2025-10-30 09:56: 3079. Find the Sum of Encrypted Integers (Easy) (time: 5m 40):
+
+```python3
+class Solution:
+
+    def getDigits(self, num):
+        digits = []
+        while num:
+            digits.append(num % 10)
+            num //= 10
+        return digits
+
+    def encrypt(self, digits):
+        _max = max(digits)
+        digits = [_max] * len(digits)
+        res = 0
+        for d in digits:
+            res = res * 10 + d
+        return res
+
+    def sumOfEncryptedInt(self, nums: List[int]) -> int:
+        res = 0
+        for n in nums:
+            res += self.encrypt(self.getDigits(n))
+        return res
+```
+
+---------------------
+
+# 2025-10-30 10:09: 3432. Count Partitions with Even Sum Difference (Easy) (time: 8m 37):
+
+```python3
+class Solution:
+
+    def countPartitions(self, nums: List[int]) -> int:
+        right_partition = sum(nums)
+        left_partition = 0
+        res = 0
+        for i in range(len(nums)):
+            left_partition += nums[i]
+            right_partition -= nums[i]
+            if i != 0 and (right_partition - left_partition) % 2 == 0:
+                res += 1
+        return res
+```
+
+---------------------
+
+# 2025-10-30 11:11: 1030. Matrix Cells in Distance Order (Easy) (time: 23m 20):
+
+```python3
+class Solution:
+
+    def allCellsDistOrder(self, rows: int, cols: int, rCenter: int, cCenter: int) -> List[List[int]]:
+        res = []
+        for row in range(rows):
+            for col in range(cols):
+                res.append([row, col])
+        res.sort(key=lambda x: abs(x[0] - rCenter) + abs(x[1] - cCenter))
+        return res
+```
+
+## notes: 
+
+Terribly written question.
+
+---------------------
+
+# 2025-10-30 15:17: 1870. Minimum Speed to Arrive on Time (Medium) (time: 24m 20):
+
+```python3
+class Solution:
+
+    def travelTime(self, dist, speed):
+        ceil_div = lambda a, b: (a + b - 1) // b
+        time = 0
+        for (i, d) in enumerate(dist):
+            if i < len(dist) - 1:
+                time += ceil_div(d, speed)
+            else:
+                time += d / speed
+        return time
+
+    def minSpeedOnTime(self, dist: List[int], hour: float) -> int:
+        low = 1
+        result = -1
+        high = 10 ** 7
+        while low <= high:
+            speed = (low + high) // 2
+            travelTime = self.travelTime(dist, speed)
+            if travelTime <= hour:
+                result = speed
+                high = speed - 1
+            else:
+                low = speed + 1
+        return result
+```
+
+## notes: 
+
+The precision constraints in this problem made me feel sad.
+
+Input: dist = [1,3,2], hour = 2.7
+
+This wasn't 2.7... and rounding lead to everything else breaking.
+
+Anyway.
+
+---------------------
+
+# 2025-10-30 16:52: 1760. Minimum Limit of Balls in a Bag (Medium) (time: 26m 27):
+
+```python3
+class Solution:
+
+    def check_condition(self, nums, penalty):
+        res = 0
+        for n in nums:
+            if n > penalty:
+                res += ceil_div(n, penalty) - 1
+        return res
+
+    def minimumSize(self, nums: List[int], maxOperations: int) -> int:
+        low = 1
+        high = max(nums)
+        res = -1
+        if maxOperations == 0:
+            return high
+        while low <= high:
+            mid = (low + high) // 2
+            ops = self.check_condition(nums, mid)
+            if ops <= maxOperations:
+                res = mid
+                high = mid - 1
+            else:
+                low = mid + 1
+        return res
+```
+
+---------------------
+
+# 2025-10-30 17:29: 410. Split Array Largest Sum (Hard) - learning (time: 20m 51):
+
+```python3
+class Solution:
+
+    def count_smaller_subarrays(self, nums, max_sum):
+        res = 0
+        prefix = 0
+        for n in nums:
+            prefix += n
+            if prefix >= max_sum:
+                res += 1
+                prefix = 0
+        return res
+
+    def can_split(self, nums, max_sum, m):
+        prefix = 0
+        for n in sorted(nums, reverse=True):
+            prefix += n
+            smaller_subs = self.count_smaller_subarrays(nums)
+
+    def splitArray(self, nums: List[int], k: int) -> int:
+        low = 1
+        high = sum(nums)
+        res = -1
+        while low <= high:
+            max_sum = (low + high) // 2
+            can_split = self.can_split(nums, max_sum, k)
+            if can_split:
+                res = max_sum
+                low = max_sum + 1
+            else:
+                high = max_sum - 1
+        return res
+```
+
+## notes: 
+
+I give up.
+
+---------------------
+
+# 2025-10-31 06:26: 91. Decode Ways (Medium) - learning (time: 21m 10):
+
+```python3
+class Solution:
+
+    def numDecodings(self, s: str) -> int:
+
+        @cache
+        def dfs(i):
+            if i < 0:
+                return 1
+            ways = 0
+            if '1' <= s[i] <= '9':
+                ways += dfs(i - 1)
+            if i >= 1 and '10' <= s[i - 1:i + 1] <= '26':
+                ways += dfs(i - 2)
+            return ways
+        res = dfs(len(s) - 1)
+        return res
+```
+
+## notes: 
+
+Had to look up a solution. Still feels like magic.
+
+---------------------
+
+# 2025-10-31 07:48: 1974. Minimum Time to Type Word Using Special Typewriter (Easy) - learning (time: 22m 27):
+
+```python3
+class Solution:
+
+    def minTimeToType(self, word: str) -> int:
+        (cnt, prev) = (len(word), 'a')
+        for cur in word:
+            diff = abs(ord(cur) - ord(prev))
+            cnt += min(diff, 26 - diff)
+            prev = cur
+        return cnt
+```
+
+## notes: 
+
+Couldn'f figure this out.
+
+---------------------
+
+# 2025-10-31 08:13: 2913. Subarrays Distinct Element Sum of Squares I (Easy) - learning (time: 11m 18):
+
+```python3
+class Solution:
+
+    def sumCounts(self, nums: List[int]) -> int:
+
+        def powerset(i):
+            if sub:
+                res.append(sub[:])
+            for j in range(i, len(nums)):
+                sub.append(nums[j])
+                powerset(j + 1)
+                sub.pop()
+        sub = []
+        res = []
+        powerset(0)
+        return res
+```
+
+## notes: 
+
+I know how to compute the powerset, but this is different. It's asking for
+all subarrays of all sizes.....
+
+no clue.
+
+---------------------
+
+# 2025-10-31 08:49: 1827. Minimum Operations to Make the Array Increasing (Easy) (time: 6m 25):
+
+```python3
+class Solution:
+
+    def minOperations(self, nums: List[int]) -> int:
+        res = 0
+        for (i, n) in enumerate(nums):
+            if i > 0:
+                if n <= nums[i - 1]:
+                    res += nums[i - 1] - n + 1
+                    nums[i] = nums[i - 1] + 1
+        return res
+```
+
+---------------------
+
+# 2025-10-31 09:03: 3168. Minimum Number of Chairs in a Waiting Room (Easy) (time: 2m 56):
+
+```python3
+class Solution:
+
+    def minimumChairs(self, s: str) -> int:
+        chairs = 0
+        max_needed = 0
+        for e in s:
+            if e == 'E':
+                chairs += 1
+            else:
+                chairs -= 1
+            max_needed = max(max_needed, chairs)
+        return max_needed
+```
+
+---------------------
+
+# 2025-10-31 10:41: 1374. Generate a String With Characters That Have Odd Counts (Easy) (time: 2m 33):
+
+```python3
+class Solution:
+
+    def generateTheString(self, n: int) -> str:
+        if n % 2 != 0:
+            return 'p' * n
+        else:
+            return 'p' * (n - 1) + 'z'
+```
+
+---------------------
+
+# 2025-10-31 10:58: 3258. Count Substrings That Satisfy K-Constraint I (Easy) (time: 7m 30):
+
+```python3
+class Solution:
+
+    def countKConstraintSubstrings(self, s: str, k: int) -> int:
+        count = 0
+        for i in range(len(s)):
+            for j in range(i, len(s)):
+                satisfies_k = lambda x: x.count('1') <= k or x.count('0') <= k
+                sat = satisfies_k(s[i:j + 1])
+                count += sat
+        return count
+```
+
+---------------------
+
 
 
 Here is my readiness estimates:
@@ -12173,6 +12543,77 @@ Here is my readiness estimates:
       "design": 0.4,
       "backtracking": 0.85,
       "memoization": 0.7,
+      "quickselect": 0.3,
+      "bucket_sort": 0.3,
+      "minimum_spanning_tree": 0.2,
+      "counting_sort": 0.4,
+      "shell": 0.1,
+      "line_sweep": 0.2,
+      "reservoir_sampling": 0.1,
+      "strongly_connected_component": 0.1,
+      "eulerian_circuit": 0.1,
+      "radix_sort": 0.2,
+      "rejection_sampling": 0.1,
+      "biconnected_component": 0.1
+    }
+  },
+  {
+    "run_date": "2025-10-30",
+    "contest_readiness": "2025-12-15",
+    "faang_interview": "2026-03-15",
+    "contest_topics_readiness": {
+      "arrays": 0.95,
+      "strings": 0.95,
+      "hash_table": 0.9,
+      "dynamic_programming": 0.8,
+      "math": 0.9,
+      "sorting": 0.9,
+      "greedy": 0.85,
+      "depth_first_search": 0.9,
+      "binary_search": 1.0,
+      "breadth_first_search": 0.85,
+      "tree": 0.95,
+      "matrix": 0.9,
+      "two_pointers": 0.95,
+      "bit_manipulation": 0.9,
+      "stack": 0.9,
+      "heap": 0.95,
+      "graph": 0.8,
+      "prefix_sum": 0.95,
+      "simulation": 0.8,
+      "counting": 0.9,
+      "sliding_window": 0.9,
+      "union_find": 0.3,
+      "linked_list": 0.95,
+      "monotonic_stack": 0.5,
+      "recursion": 0.85,
+      "trie": 0.4,
+      "divide_and_conquer": 0.5,
+      "bitmask": 0.45,
+      "queue": 0.8,
+      "topological_sort": 0.3,
+      "segment_tree": 0.2,
+      "game_theory": 0.2,
+      "hash_function": 0.3,
+      "binary_indexed_tree": 0.2,
+      "string_matching": 0.5,
+      "rolling_hash": 0.2,
+      "shortest_path": 0.3,
+      "number_theory": 0.4,
+      "interactive": 0.1,
+      "brainteaser": 0.5,
+      "randomized": 0.2,
+      "monotonic_queue": 0.4,
+      "merge_sort": 0.5,
+      "iterator": 0.3,
+      "concurrency": 0.1,
+      "probability_and_statistics": 0.2,
+      "geometry": 0.3,
+      "ordered_set": 0.3,
+      "database": 0.2,
+      "design": 0.4,
+      "backtracking": 0.8,
+      "memoization": 0.75,
       "quickselect": 0.3,
       "bucket_sort": 0.3,
       "minimum_spanning_tree": 0.2,
