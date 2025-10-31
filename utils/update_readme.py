@@ -424,7 +424,7 @@ def main():
 
             anim = FuncAnimation(fig, update, frames=len(scores_over_time), blit=True)
             local_path = "/tmp/contest_topics_readiness.gif"
-            anim.save(local_path, writer="pillow", fps=1)
+            anim.save(local_path, writer="pillow", fps=5)
             s3_key_contest_topics = f"contest_topics_readiness_{timestamp}.gif"
             s3.upload_file(
                 local_path,
