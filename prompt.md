@@ -1,4 +1,5 @@
-i'm thinking of changing my strategy, and want to discuss with you about this. currently my goal is to solve 7 a day, and of course review questions on my learning queue. i use anki but sporadically. i'm thinking of changing to emphasizing quality over quantity. So you could generate say 5 or 10 cards a day which i'd remember 100% faultlessly, and we could plan reviews, or varations. like you could prepare a list of problems for me to tackle on any given day, not necessarily covering new questions, but more reinforcing what i know, and general problem solving. thoughts? 
+I'm going to be AFK this afternoon, so can you generate a worksheet for me to study through, while i'm AFK (i'll put it on my ipad). Make it lengthy. 
+
 
 
 Here is my LeetCode solve history (most recent last):
@@ -3260,33 +3261,6 @@ I botched this one... because i didn't notice the requirements was for unique
 values rather than unique indices.
 
 I'd rather revisit it later.
-
----------------------
-
-# 2025-10-03 11:25: 974. Subarray Sums Divisible by K (Medium) - learning (time: 25723m 50):
-
-```python3
-class Solution:
-
-    def subarraysDivByK(self, nums: List[int], k: int) -> int:
-        D = defaultdict(int)
-        D[0] = 1
-        prefix_mod = 0
-        res = 0
-        for n in nums:
-            prefix_mod = (prefix_mod + n) % k
-            res += D[prefix_mod]
-            D[prefix_mod] += 1
-        return res
-```
-
-## notes: 
-
-This feels like magic to me. I barely remembered the subarray sum == k solution,
-which i get when i step through it but still feels a touch like magic (starting to get it
-but keep forgetting).
-
-This solution however i had to look up, and feels entirely magical.
 
 ---------------------
 
@@ -11503,6 +11477,78 @@ class Solution:
 
 ---------------------
 
+# 2025-10-31 11:28: 3042. Count Prefix and Suffix Pairs I (Easy) (time: 5m 13):
+
+```python3
+class Solution:
+
+    def isPrefixAndSuffix(self, a, b):
+        return b.startswith(a) and b.endswith(a)
+
+    def countPrefixSuffixPairs(self, words: List[str]) -> int:
+        return sum((self.isPrefixAndSuffix(a, b) for (a, b) in combinations(words, 2)))
+```
+
+---------------------
+
+# 2025-10-31 11:35: 1351. Count Negative Numbers in a Sorted Matrix (Easy) (time: 2m 45):
+
+```python3
+class Solution:
+
+    def countNegatives(self, grid: List[List[int]]) -> int:
+        count = 0
+        for i in range(len(grid) - 1, -1, -1):
+            for j in range(len(grid[i]) - 1, -1, -1):
+                if grid[i][j] < 0:
+                    count += 1
+                else:
+                    break
+        return count
+```
+
+---------------------
+
+# 2025-10-31 11:48: 961. N-Repeated Element in Size 2N Array (Easy) (time: 7m 31):
+
+```python3
+class Solution:
+
+    def repeatedNTimes(self, nums: List[int]) -> int:
+        return next(iter(next(iter(sorted(Counter(nums).items(), reverse=True, key=lambda x: x[1])))))
+```
+
+---------------------
+
+# 2025-10-31 12:38: 91. Decode Ways (Medium) (time: 9m 4):
+
+```python3
+class Solution:
+
+    def numDecodings(self, s: str) -> int:
+
+        @cache
+        def dfs(i):
+            if i <= 0:
+                return 1
+            ways = 0
+            if i > 0 and '1' <= s[i] <= '9':
+                ways += dfs(i - 1)
+            if '10' <= s[i - 1:i + 1] <= '26':
+                ways += dfs(i - 2)
+            return ways
+        if s[0] == '0':
+            return 0
+        return dfs(len(s) - 1)
+```
+
+## notes: 
+
+I was able to solve this because i tried again earlier today. Need
+to revisit at a later date.
+
+---------------------
+
 
 
 Here is my readiness estimates:
@@ -12613,6 +12659,77 @@ Here is my readiness estimates:
       "database": 0.2,
       "design": 0.4,
       "backtracking": 0.8,
+      "memoization": 0.75,
+      "quickselect": 0.3,
+      "bucket_sort": 0.3,
+      "minimum_spanning_tree": 0.2,
+      "counting_sort": 0.4,
+      "shell": 0.1,
+      "line_sweep": 0.2,
+      "reservoir_sampling": 0.1,
+      "strongly_connected_component": 0.1,
+      "eulerian_circuit": 0.1,
+      "radix_sort": 0.2,
+      "rejection_sampling": 0.1,
+      "biconnected_component": 0.1
+    }
+  },
+  {
+    "run_date": "2025-10-31",
+    "contest_readiness": "2025-12-15",
+    "faang_interview": "2026-02-28",
+    "contest_topics_readiness": {
+      "arrays": 0.95,
+      "strings": 0.95,
+      "hash_table": 0.9,
+      "dynamic_programming": 0.7,
+      "math": 0.85,
+      "sorting": 0.9,
+      "greedy": 0.85,
+      "depth_first_search": 0.9,
+      "binary_search": 0.95,
+      "breadth_first_search": 0.85,
+      "tree": 0.95,
+      "matrix": 0.9,
+      "two_pointers": 0.95,
+      "bit_manipulation": 0.9,
+      "stack": 0.9,
+      "heap": 0.95,
+      "graph": 0.8,
+      "prefix_sum": 0.95,
+      "simulation": 0.8,
+      "counting": 0.9,
+      "sliding_window": 0.9,
+      "union_find": 0.3,
+      "linked_list": 0.95,
+      "monotonic_stack": 0.5,
+      "recursion": 0.85,
+      "trie": 0.4,
+      "divide_and_conquer": 0.5,
+      "bitmask": 0.45,
+      "queue": 0.8,
+      "topological_sort": 0.3,
+      "segment_tree": 0.2,
+      "game_theory": 0.2,
+      "hash_function": 0.3,
+      "binary_indexed_tree": 0.2,
+      "string_matching": 0.5,
+      "rolling_hash": 0.2,
+      "shortest_path": 0.3,
+      "number_theory": 0.4,
+      "interactive": 0.1,
+      "brainteaser": 0.5,
+      "randomized": 0.2,
+      "monotonic_queue": 0.4,
+      "merge_sort": 0.5,
+      "iterator": 0.3,
+      "concurrency": 0.1,
+      "probability_and_statistics": 0.2,
+      "geometry": 0.3,
+      "ordered_set": 0.3,
+      "database": 0.2,
+      "design": 0.4,
+      "backtracking": 0.75,
       "memoization": 0.75,
       "quickselect": 0.3,
       "bucket_sort": 0.3,
