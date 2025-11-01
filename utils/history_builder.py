@@ -291,6 +291,8 @@ def get_history_string(
     if not solved_problems:
         return "No previous solves recorded."
 
+    events = []
+
     if include_notes:
         # Collect review notes if the directory exists
         notes_dir = "./misc/review_notes/"
@@ -311,7 +313,6 @@ def get_history_string(
         for note in notes_list:
             events.append(("note", note[0], note[1]))
 
-    events = []
     for prob in solved_problems:
         events.append(("solve", prob.date, prob))
 
