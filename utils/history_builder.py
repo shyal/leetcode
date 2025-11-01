@@ -282,36 +282,38 @@ def parse_content(content: str) -> tuple[str, str]:
     return notes, code
 
 
-def get_history_string(compress_older_than: int = 10, filter_out_easy: bool = False):
+def get_history_string(
+    compress_older_than: int = 10, filter_out_easy: bool = False, include_notes=True
+):
     solved_problems = get_solved_problems()
     manila_tz = timezone(timedelta(hours=8))
 
     if not solved_problems:
         return "No previous solves recorded."
 
-    # Collect review notes if the directory exists
-    notes_dir = "./misc/review_notes/"
-    notes_list = []
-    if os.path.exists(notes_dir):
-        notes_files = glob.glob(os.path.join(notes_dir, "*.md"))
-        for f in notes_files:
-            base = os.path.basename(f)
-            dt_str = base[:-3]  # remove .md
-            try:
-                note_dt = datetime.strptime(dt_str, "%Y-%m-%d_%H-%M-%S")
-                note_dt = note_dt.replace(tzinfo=manila_tz)
-            except ValueError:
-                print(f"Warning: Could not parse date from filename '{base}'")
-                continue
-            content = open(f).read().strip()
-            notes_list.append((note_dt, content))
+    if include_notes:
+        # Collect review notes if the directory exists
+        notes_dir = "./misc/review_notes/"
+        notes_list = []
+        if os.path.exists(notes_dir):
+            notes_files = glob.glob(os.path.join(notes_dir, "*.md"))
+            for f in notes_files:
+                base = os.path.basename(f)
+                dt_str = base[:-3]  # remove .md
+                try:
+                    note_dt = datetime.strptime(dt_str, "%Y-%m-%d_%H-%M-%S")
+                    note_dt = note_dt.replace(tzinfo=manila_tz)
+                except ValueError:
+                    print(f"Warning: Could not parse date from filename '{base}'")
+                    continue
+                content = open(f).read().strip()
+                notes_list.append((note_dt, content))
+        for note in notes_list:
+            events.append(("note", note[0], note[1]))
 
-    # Combine solves and notes into events
     events = []
     for prob in solved_problems:
         events.append(("solve", prob.date, prob))
-    for note in notes_list:
-        events.append(("note", note[0], note[1]))
 
     # Sort events by timestamp ascending
     events.sort(key=lambda x: x[1])

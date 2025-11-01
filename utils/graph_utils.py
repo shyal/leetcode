@@ -1,5 +1,7 @@
 # graph_utils.py
 
+import os
+import subprocess
 from Types import GraphNode
 from typing import List
 from typing import Dict, Any, Optional
@@ -85,13 +87,16 @@ def draw_graph(G: Dict[Any, Dict[Any, Any]]) -> None:
     )
 
 
-def draw_graphviz(G: Dict[Any, Dict[Any, Any]]) -> None:
+def draw_graphviz(
+    G: Dict[Any, Dict[Any, Any]], png_filename: str = "graph.png"
+) -> None:
     """
     Utility function to draw a graph (stored as dict of dicts) using Graphviz.
-    Outputs ASCII art if supported, otherwise saves a PNG file.
+    Outputs ASCII art if supported, otherwise saves a PNG file and displays it in the terminal using timg.
     Requires 'graphviz' library: pip install graphviz
     And the Graphviz executable installed on the system.
     For ASCII output, Graphviz must be built with AAlib support (not always default).
+    Also requires 'timg' installed for terminal PNG display (e.g., via brew install timg on macOS, or apt install timg on Ubuntu).
     """
     try:
         from graphviz import Digraph
@@ -133,16 +138,18 @@ def draw_graphviz(G: Dict[Any, Dict[Any, Any]]) -> None:
     try:
         # Try to get ASCII output
         ascii_output = dot.pipe(format="ascii", encoding="utf-8")
-        print(ascii_output.decode("utf-8"))
+        print(ascii_output)
     except Exception:
-        print(
-            "ASCII output not supported (requires Graphviz with AAlib). Saving PNG instead."
-        )
         try:
-            dot.render("graph", format="png", cleanup=True, view=False)
-            print("Graph visualization saved as 'graph.png'")
+            dot.render(
+                png_filename[:-4], format="png", cleanup=True, view=False
+            )  # Render without .png extension in temp name
+            # Run timg directly without capturing output
+            result = os.system(f"timg {png_filename}")
+            if result != 0:
+                raise RuntimeError("timg failed to run (is it installed?)")
         except Exception as e:
-            print(f"Failed to render PNG: {e}")
+            print(f"Failed to render/display PNG: {e}")
             # Fallback: print DOT source
             print("\nDOT source:\n")
             print(dot.source)
