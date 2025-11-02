@@ -1,5 +1,4 @@
-I'm going to be AFK this afternoon, so can you generate a worksheet for me to study through, while i'm AFK (i'll put it on my ipad). Make it lengthy. 
-
+Why did my contest readiness estimate date jump up by 1 month today?
 
 
 Here is my LeetCode solve history (most recent last):
@@ -11549,6 +11548,463 @@ to revisit at a later date.
 
 ---------------------
 
+# 2025-10-31 18:04: 91. Decode Ways (Medium) (time: 3m 46):
+
+```python3
+class Solution:
+
+    def numDecodings(self, s: str) -> int:
+
+        @cache
+        def dfs(i):
+            if i <= 0:
+                return 1
+            ways = 0
+            if i > 0 and '1' <= s[i] <= '9':
+                ways += dfs(i - 1)
+            if '10' <= s[i - 1:i + 1] <= '26':
+                ways += dfs(i - 2)
+            return ways
+        if s[0] == '0':
+            return 0
+        return dfs(len(s) - 1)
+```
+
+---------------------
+
+# 2025-10-31 18:20: 162. Find Peak Element (Medium) - learning (time: 7m 33):
+
+```python3
+class Solution:
+
+    def findPeakElement(self, nums: list[int]) -> int:
+        (low, high) = (0, len(nums) - 1)
+        while low < high:
+            mid = (low + high) // 2
+            if nums[mid] < nums[mid + 1]:
+                low = mid + 1
+            else:
+                high = mid
+        return low
+```
+
+## notes: 
+
+- Why is it low < high instead of low <= high?
+- Why is it nums[mid] < nums[mid + 1] instead of nums[mid - 1] < nums[mid] ?
+- Why do we return low instead of mid?
+
+So many question.. so arbitrary. Such magic.
+
+---------------------
+
+# 2025-11-01 06:57: 2089. Find Target Indices After Sorting Array (Easy) (time: 1m 5):
+
+```python3
+class Solution:
+
+    def targetIndices(self, nums: List[int], target: int) -> List[int]:
+        nums.sort()
+        return [i for (i, v) in enumerate(nums) if v == target]
+```
+
+---------------------
+
+# 2025-11-01 07:31: 3423. Maximum Difference Between Adjacent Elements in a Circular Array (Easy) (time: 2m 59):
+
+```python3
+class Solution:
+
+    def maxAdjacentDistance(self, nums: List[int]) -> int:
+        return max([abs(a - b) for (a, b) in pairwise(nums)] + [abs(nums[0] - nums[-1])])
+```
+
+---------------------
+
+# 2025-11-01 08:33: 1332. Remove Palindromic Subsequences (Easy) (time: 7m 11):
+
+```python3
+class Solution:
+
+    def isPalindrome(self, s):
+        return all((s[i] == s[~i] for i in range(len(s))))
+
+    def removePalindromeSub(self, s: str) -> int:
+        if not len(s):
+            return 0
+        elif self.isPalindrome(s):
+            return 1
+        else:
+            return 2
+```
+
+## notes: 
+
+This would be a difficult question were it not for a subsequence.
+
+- if the string is empty, then the minimum number of steps to get an empty string is 0.
+- if it's a palindrome, then return 1
+- else return 2
+
+The key insight is that if it's not a palindrome, we can remove a subsequence of as and a subsequence of bs.
+
+Keys to solving the question:
+
+- read the question carefully. Pay attention to each word and constraint:
+    - the word 'subsequence' mattered a lot
+    - the fact it's only as and bs was very important
+    - think of the min and max possible output
+
+---------------------
+
+# 2025-11-01 08:54: 1598. Crawler Log Folder (Easy) (time: 2m 21):
+
+```python3
+class Solution:
+
+    def minOperations(self, logs: List[str]) -> int:
+        curr = []
+        for l in logs:
+            if l == '../':
+                if curr:
+                    curr.pop()
+                else:
+                    pass
+            elif l == './':
+                pass
+            else:
+                curr.append(l)
+        return len(curr)
+```
+
+---------------------
+
+# 2025-11-01 10:20: 1552. Magnetic Force Between Two Balls (Medium) (time: 45m 43):
+
+```python3
+class Solution:
+
+    def canPlaceBalls(self, position, min_dist, num_balls):
+        position = position[:]
+        heapify(position)
+        placements = []
+        while position:
+            top = heappop(position)
+            if not placements:
+                placements.append(top)
+            else:
+                dist = top - placements[-1]
+                if dist >= min_dist:
+                    placements.append(top)
+            if len(placements) >= num_balls:
+                return True
+        return len(placements) >= num_balls
+
+    def maxDistance(self, position: List[int], m: int) -> int:
+        low = 1
+        high = max(position)
+        result = -1
+        is_minimization = False
+        while low <= high:
+            min_dist = low + (high - low) // 2
+            if self.canPlaceBalls(position, min_dist, m):
+                result = min_dist
+                if is_minimization:
+                    high = min_dist - 1
+                else:
+                    low = min_dist + 1
+            elif is_minimization:
+                low = min_dist + 1
+            else:
+                high = min_dist - 1
+        return result
+```
+
+## notes: 
+
+Tricky problem. I think the first step is to place the balls in an equidistant manner. Let's illustrate to see if this helps.
+
+o     o     o
+- - - -     -
+1 2 3 4     7
+
+So by placing the balls in 1, 4 and 7, they're equidistant. The min is the min distance between any two balls.
+We could verify this by checking the distance between any 2 balls.
+
+Now to place the balls, we could think of an approach where, for example, we place a ball at P[0], then at P[-1],
+then at the equidistant position between 1 and 7, which happens to be a free slot (4).
+
+Placing the balls will be difficult, but since we know we're looking for the maximum minimum distance,
+we can try placing a guess, i.e use binary search.
+
+# a dist a 4 cannot fit
+assert sol.canPlaceBalls(position=[1, 2, 3, 4, 7], min_dist=4, num_balls=3) == False
+
+# a dist of 3, and 2 fit, and clearly 3 > 2
+assert sol.canPlaceBalls(position=[1, 2, 3, 4, 7], min_dist=3, num_balls=3) == True
+assert sol.canPlaceBalls(position=[1, 2, 3, 4, 7], min_dist=2, num_balls=3) == True
+
+Great so if we turn the positions into a heap, we can efficiently greedily place
+the balls.
+
+Hmm tried submitting, sadly not the right answer. For some reason the template
+is not maximizing properly.
+
+Solved! Just needed to choose generous bounds.
+
+---------------------
+
+# 2025-11-01 13:11: 684. Redundant Connection (Medium) - learning (time: 15m 51):
+
+```python3
+class Solution:
+
+    def findRedundantConnection(self, edges: List[List[int]]) -> List[int]:
+        n = len(edges)
+        parent = [i for i in range(n + 1)]
+
+        def find(x: int) -> int:
+            if parent[x] != x:
+                parent[x] = find(parent[x])
+            return parent[x]
+
+        def union(x: int, y: int) -> None:
+            rootX = find(x)
+            rootY = find(y)
+            if rootX != rootY:
+                parent[rootX] = rootY
+        for (u, v) in edges:
+            if find(u) == find(v):
+                return [u, v]
+            union(u, v)
+```
+
+## notes: 
+
+I'm totally new to union find, so setting this to learning for now. Will start with a cycle detection question, then return to this question.
+
+---------------------
+
+# 2025-11-01 13:23: 261. Graph Valid Tree (Medium) - learning (time: 5m 2):
+
+```python3
+class Solution:
+
+    def graphValidTree(self, n: int, edges: List[List[int]]) -> bool:
+        if len(edges) != n - 1:
+            return False
+        parent = [i for i in range(n)]
+
+        def find(x: int) -> int:
+            if parent[x] != x:
+                parent[x] = find(parent[x])
+            return parent[x]
+
+        def union(x: int, y: int) -> None:
+            rootX = find(x)
+            rootY = find(y)
+            if rootX != rootY:
+                parent[rootX] = rootY
+        for (u, v) in edges:
+            if find(u) == find(v):
+                return False
+            union(u, v)
+        return True
+```
+
+## notes: 
+
+Another union find question... i'm looking for something simpler for now.
+
+---------------------
+
+# 2025-11-02 11:23: 2257. Count Unguarded Cells in the Grid (Medium) (time: 34m 18):
+
+```python3
+class Solution:
+
+    def countUnguarded(self, m: int, n: int, guards: List[List[int]], walls: List[List[int]]) -> int:
+
+        class Cardinals:
+            north = 0
+            south = 1
+            east = 2
+            west = 3
+        grid = []
+        for _ in range(m):
+            grid.append(['.'] * n)
+        for (grow, gcol) in guards:
+            grid[grow][gcol] = 'g'
+        for (grow, gcol) in walls:
+            grid[grow][gcol] = 'w'
+        for (grow, gcol) in guards:
+            for cardinal in [Cardinals.north, Cardinals.south, Cardinals.east, Cardinals.west]:
+                if cardinal == Cardinals.north:
+                    for i in range(grow - 1, -1, -1):
+                        if grid[i][gcol] == 'w' or grid[i][gcol] == 'g':
+                            break
+                        grid[i][gcol] = 'x'
+                if cardinal == Cardinals.south:
+                    for i in range(grow + 1, m):
+                        if grid[i][gcol] == 'w' or grid[i][gcol] == 'g':
+                            break
+                        grid[i][gcol] = 'x'
+                if cardinal == Cardinals.east:
+                    for i in range(gcol + 1, n):
+                        if grid[grow][i] == 'w' or grid[grow][i] == 'g':
+                            break
+                        grid[grow][i] = 'x'
+                if cardinal == Cardinals.west:
+                    for i in range(gcol - 1, -1, -1):
+                        if grid[grow][i] == 'w' or grid[grow][i] == 'g':
+                            break
+                        grid[grow][i] = 'x'
+        unguarded = sum((x.count('.') for x in grid))
+        return unguarded
+```
+
+## notes: 
+
+Interesting.. using a defaultdict lead to a TLE, but using a 2d array didn't.
+
+That's a big difference in performance.
+
+---------------------
+
+# 2025-11-02 12:17: 1716. Calculate Money in Leetcode Bank (Easy) (time: 16m 54):
+
+```python3
+class Solution:
+
+    def totalMoney(self, n: int) -> int:
+        amount = 0
+        total = 0
+        start = 0
+        for i in range(n):
+            if i % 7 == 0:
+                start += 1
+                amount = start
+            else:
+                amount += 1
+            total += amount
+        return total
+```
+
+---------------------
+
+# 2025-11-02 14:12: 162. Find Peak Element (Medium) (time: 9m 41):
+
+```python3
+class Solution:
+
+    def findPeakElement(self, nums: list[int]) -> int:
+        left = 0
+        right = len(nums) - 1
+        while left < right:
+            mid = (left + right) // 2
+            if nums[mid] < nums[mid + 1]:
+                left = mid + 1
+            else:
+                right = mid
+        return left
+```
+
+## notes: 
+
+This question is bs, and the solution is arbitrary. I'm adding this to Anki
+and will just have to memorize the solution.
+
+---------------------
+
+# 2025-11-02 14:25: 684. Redundant Connection (Medium) (time: 8m 34):
+
+```python3
+class Solution:
+
+    def findRedundantConnection(self, edges: List[List[int]]) -> List[int]:
+        parents = [x for x in range(len(edges) + 1)]
+
+        def find(x):
+            if x != parents[x]:
+                parents[x] = find(parents[x])
+            return parents[x]
+
+        def union(x, y):
+            rootx = find(x)
+            rooty = find(y)
+            if rootx != rooty:
+                parents[rootx] = rooty
+        dupe = []
+        for (x, y) in edges:
+            rootx = find(x)
+            rooty = find(y)
+            if rootx == rooty:
+                dupe.append([x, y])
+            union(x, y)
+        return dupe[-1]
+```
+
+## notes: 
+
+Once you know union find, solving this problem is trivial.
+
+---------------------
+
+# 2025-11-02 14:30: 261. Graph Valid Tree (Medium) (time: 3m 42):
+
+```python3
+class Solution:
+
+    def graphValidTree(self, n: int, edges: List[List[int]]) -> bool:
+        if len(edges) != n - 1:
+            return False
+        parents = [i for i in range(n)]
+
+        def find(x):
+            if x != parents[x]:
+                parents[x] = find(parents[x])
+            return parents[x]
+        for (x, y) in edges:
+            (rootx, rooty) = (find(x), find(y))
+            if rootx == rooty:
+                return False
+            parents[rootx] = rooty
+        return True
+```
+
+---------------------
+
+# 2025-11-02 15:56: 2733. Neither Minimum nor Maximum (Easy) (time: 2m 18):
+
+```python3
+class Solution:
+
+    def findNonMinOrMax(self, nums: List[int]) -> int:
+        nums = set(nums)
+        _min = set([min(nums)])
+        _max = set([max(nums)])
+        return next(iter(nums - _min - _max), -1)
+```
+
+---------------------
+
+# 2025-11-02 16:01: 2138. Divide a String Into Groups of Size k (Easy) (time: 2m 27):
+
+```python3
+class Solution:
+
+    def divideString(self, s: str, k: int, fill: str) -> List[str]:
+
+        def batched(s, n=1):
+            r = list(range(0, len(s), n))
+            return [s[a:b] for (a, b) in zip_longest(r, r[1:])]
+        batches = batched(s, k)
+        batches[-1] += fill * (k - len(batches[-1]))
+        return batches
+```
+
+---------------------
+
 
 
 Here is my readiness estimates:
@@ -12730,6 +13186,148 @@ Here is my readiness estimates:
       "database": 0.2,
       "design": 0.4,
       "backtracking": 0.75,
+      "memoization": 0.75,
+      "quickselect": 0.3,
+      "bucket_sort": 0.3,
+      "minimum_spanning_tree": 0.2,
+      "counting_sort": 0.4,
+      "shell": 0.1,
+      "line_sweep": 0.2,
+      "reservoir_sampling": 0.1,
+      "strongly_connected_component": 0.1,
+      "eulerian_circuit": 0.1,
+      "radix_sort": 0.2,
+      "rejection_sampling": 0.1,
+      "biconnected_component": 0.1
+    }
+  },
+  {
+    "run_date": "2025-11-01",
+    "contest_readiness": "2025-12-15",
+    "faang_interview": "2026-03-01",
+    "contest_topics_readiness": {
+      "arrays": 0.95,
+      "strings": 0.95,
+      "hash_table": 0.9,
+      "dynamic_programming": 0.75,
+      "math": 0.85,
+      "sorting": 0.9,
+      "greedy": 0.85,
+      "depth_first_search": 0.9,
+      "binary_search": 0.95,
+      "breadth_first_search": 0.85,
+      "tree": 0.95,
+      "matrix": 0.9,
+      "two_pointers": 0.95,
+      "bit_manipulation": 0.9,
+      "stack": 0.9,
+      "heap": 0.95,
+      "graph": 0.8,
+      "prefix_sum": 0.95,
+      "simulation": 0.8,
+      "counting": 0.9,
+      "sliding_window": 0.9,
+      "union_find": 0.4,
+      "linked_list": 0.95,
+      "monotonic_stack": 0.5,
+      "recursion": 0.85,
+      "trie": 0.4,
+      "divide_and_conquer": 0.5,
+      "bitmask": 0.45,
+      "queue": 0.8,
+      "topological_sort": 0.3,
+      "segment_tree": 0.2,
+      "game_theory": 0.2,
+      "hash_function": 0.3,
+      "binary_indexed_tree": 0.2,
+      "string_matching": 0.5,
+      "rolling_hash": 0.2,
+      "shortest_path": 0.3,
+      "number_theory": 0.4,
+      "interactive": 0.1,
+      "brainteaser": 0.5,
+      "randomized": 0.2,
+      "monotonic_queue": 0.4,
+      "merge_sort": 0.5,
+      "iterator": 0.3,
+      "concurrency": 0.1,
+      "probability_and_statistics": 0.2,
+      "geometry": 0.3,
+      "ordered_set": 0.3,
+      "database": 0.2,
+      "design": 0.4,
+      "backtracking": 0.8,
+      "memoization": 0.75,
+      "quickselect": 0.3,
+      "bucket_sort": 0.3,
+      "minimum_spanning_tree": 0.2,
+      "counting_sort": 0.4,
+      "shell": 0.1,
+      "line_sweep": 0.2,
+      "reservoir_sampling": 0.1,
+      "strongly_connected_component": 0.1,
+      "eulerian_circuit": 0.1,
+      "radix_sort": 0.2,
+      "rejection_sampling": 0.1,
+      "biconnected_component": 0.1
+    }
+  },
+  {
+    "run_date": "2025-11-02",
+    "contest_readiness": "2026-01-15",
+    "faang_interview": "2026-04-01",
+    "contest_topics_readiness": {
+      "arrays": 0.95,
+      "strings": 0.95,
+      "hash_table": 0.9,
+      "dynamic_programming": 0.75,
+      "math": 0.85,
+      "sorting": 0.9,
+      "greedy": 0.85,
+      "depth_first_search": 0.9,
+      "binary_search": 0.95,
+      "breadth_first_search": 0.85,
+      "tree": 0.95,
+      "matrix": 0.9,
+      "two_pointers": 0.95,
+      "bit_manipulation": 0.9,
+      "stack": 0.9,
+      "heap": 0.95,
+      "graph": 0.85,
+      "prefix_sum": 0.95,
+      "simulation": 0.8,
+      "counting": 0.9,
+      "sliding_window": 0.9,
+      "union_find": 0.5,
+      "linked_list": 0.95,
+      "monotonic_stack": 0.5,
+      "recursion": 0.85,
+      "trie": 0.4,
+      "divide_and_conquer": 0.5,
+      "bitmask": 0.45,
+      "queue": 0.8,
+      "topological_sort": 0.3,
+      "segment_tree": 0.2,
+      "game_theory": 0.2,
+      "hash_function": 0.3,
+      "binary_indexed_tree": 0.2,
+      "string_matching": 0.5,
+      "rolling_hash": 0.2,
+      "shortest_path": 0.3,
+      "number_theory": 0.4,
+      "interactive": 0.1,
+      "brainteaser": 0.5,
+      "randomized": 0.2,
+      "monotonic_queue": 0.4,
+      "merge_sort": 0.5,
+      "iterator": 0.3,
+      "concurrency": 0.1,
+      "probability_and_statistics": 0.2,
+      "geometry": 0.3,
+      "ordered_set": 0.3,
+      "database": 0.2,
+      "design": 0.4,
+      "backtracking": 0.85,
       "memoization": 0.75,
       "quickselect": 0.3,
       "bucket_sort": 0.3,
