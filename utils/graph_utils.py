@@ -1,12 +1,9 @@
 # graph_utils.py
 
 import os
-import subprocess
 from Types import GraphNode
 from typing import List
-from typing import Dict, Any, Optional
-from collections import defaultdict
-from colorama import Fore, Style
+from typing import Dict, Any, Optional, Union
 
 try:
     from tabulate import tabulate
@@ -27,9 +24,9 @@ except ImportError:
     PHART_AVAILABLE = False
 
 
-def draw_graph(G: Dict[Any, Dict[Any, Any]]) -> None:
+def draw_graph(G: Dict[Any, Union[Dict[Any, Any], Any]]) -> None:
     """
-    Utility function to draw a graph (stored as dict of dicts) in the terminal as a colored adjacency matrix.
+    Utility function to draw a graph (stored as dict of dicts or dict with (row, col) tuples as keys) in the terminal as a colored adjacency matrix.
     Requires 'tabulate' library: pip install tabulate
     For colors, requires 'colorama': pip install colorama
     Colors edges based on values (e.g., 1 in red, 0 in blue).
@@ -41,16 +38,35 @@ def draw_graph(G: Dict[Any, Dict[Any, Any]]) -> None:
         print("Please install tabulate: pip install tabulate")
         return
 
+    try:
+        from colorama import Fore, Style
+    except ImportError:
+        print("Please install colorama: pip install colorama")
+        return
+
     if not G:
         print("Empty graph")
         return
 
     print("\n")
 
+    # Determine the graph format
+    is_tuple_key = False
+    if G:
+        first_key = next(iter(G))
+        if isinstance(first_key, tuple) and len(first_key) == 2:
+            is_tuple_key = True
+
     # Get all nodes
-    all_nodes = set(G.keys())
-    for neighbors in G.values():
-        all_nodes.update(neighbors.keys())
+    all_nodes = set()
+    if is_tuple_key:
+        for src, dst in G:
+            all_nodes.add(src)
+            all_nodes.add(dst)
+    else:
+        all_nodes.update(G.keys())
+        for neighbors in G.values():
+            all_nodes.update(neighbors.keys())
     nodes = sorted(all_nodes)
 
     # Create table data
@@ -60,8 +76,16 @@ def draw_graph(G: Dict[Any, Dict[Any, Any]]) -> None:
     for src in nodes:
         row = []
         for dst in nodes:
-            if src in G and dst in G[src]:
-                val = G[src][dst]
+            val = None
+            if is_tuple_key:
+                key = (src, dst)
+                if key in G:
+                    val = G[key]
+            else:
+                if src in G and dst in G[src]:
+                    val = G[src][dst]
+
+            if val is not None:
                 val_str = str(val)
                 # Example coloring based on value
                 if val == 1:
@@ -74,13 +98,13 @@ def draw_graph(G: Dict[Any, Dict[Any, Any]]) -> None:
                 row.append("")
         table.append(row)
 
-    # Use tabulate to print the table with headers
+    # Use tabulate to print the table with headers and row labels
     print(
         tabulate(
             table,
             headers=headers,
             tablefmt="grid",
-            showindex=range(len(nodes)),
+            showindex=headers,  # Use node labels for rows as well
             numalign="center",
             stralign="center",
         )
