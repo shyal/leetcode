@@ -1,4 +1,4 @@
-Why did my contest readiness estimate date jump up by 1 month today?
+Please prepare my study plan for today. My main goal is to try and claw back the contest readiness date. I can solve learning / new problems. I can write / explain things in a markdown file, that will appear in my history tomorrow. i can add notes to anki. make a detailed plan and i'll follow it to a t.
 
 
 Here is my LeetCode solve history (most recent last):
@@ -12001,6 +12001,163 @@ class Solution:
         batches = batched(s, k)
         batches[-1] += fill * (k - len(batches[-1]))
         return batches
+```
+
+---------------------
+
+# 2025-11-02 19:07: 1319. Number of Operations to Make Network Connected (Medium) - learning (time: 41m 22):
+
+```python3
+class Solution:
+
+    def makeConnected(self, n: int, connections: List[List[int]]) -> int:
+        parent = [i for i in range(n)]
+        missing = set((i for i in range(n)))
+        for c in chain(*connections):
+            if c in missing:
+                missing.remove(c)
+        if not connections:
+            if n == 1:
+                return 0
+            else:
+                return -1
+
+        def find(x: int) -> int:
+            if parent[x] != x:
+                parent[x] = find(parent[x])
+            return parent[x]
+
+        def union(x: int, y: int) -> None:
+            rootX = find(x)
+            rootY = find(y)
+            if rootX != rootY:
+                parent[rootX] = rootY
+
+        def count_cycles():
+            cycles = 0
+            for (u, v) in connections:
+                if find(u) == find(v):
+                    cycles += 1
+                union(u, v)
+            return cycles
+        cycles = count_cycles()
+        clusters = set()
+        for (x, y) in connections:
+            clusters.add(find(y))
+        if len(clusters) > 1:
+            return len(clusters) - 1 if cycles >= len(clusters) - 1 else -1
+        return len(missing) if cycles >= len(missing) else -1
+```
+
+## notes: 
+
+Interesting problem. I guess the first task is to detect cycles
+and remove them.
+
+I'm close but some tests are not passing.
+
+---------------------
+
+# 2025-11-03 08:04: 2341. Maximum Number of Pairs in Array (Easy) (time: 9m 12):
+
+```python3
+class Solution:
+
+    def numberOfPairs(self, nums: List[int]) -> List[int]:
+        pairs = 0
+        remaining = 0
+        for count in Counter(nums).values():
+            if count == 1:
+                remaining += 1
+            elif count % 2 == 0:
+                pairs += count // 2
+            else:
+                pairs += (count - 1) // 2
+                remaining += 1
+        return [pairs, remaining]
+```
+
+---------------------
+
+# 2025-11-03 08:19: 2913. Subarrays Distinct Element Sum of Squares I (Easy) (time: 11m 15):
+
+```python3
+class Solution:
+
+    def sumCounts(self, nums: List[int]) -> int:
+
+        def get_subarrays_of_size(n):
+            subs = []
+            for i in range(len(nums)):
+                if i + n == len(nums) + 1:
+                    break
+                subs.append(nums[i:i + n])
+            return subs
+        return sum((len(set(x)) ** 2 for x in chain(*[get_subarrays_of_size(i) for i in range(1, len(nums) + 1)])))
+```
+
+---------------------
+
+# 2025-11-03 08:31: 1460. Make Two Arrays Equal by Reversing Subarrays (Easy) (time: 0m 37):
+
+```python3
+class Solution:
+
+    def canBeEqual(self, target: List[int], arr: List[int]) -> bool:
+        target.sort()
+        arr.sort()
+        return arr == target
+```
+
+---------------------
+
+# 2025-11-03 08:38: 1394. Find Lucky Integer in an Array (Easy) (time: 3m 57):
+
+```python3
+class Solution:
+
+    def findLucky(self, arr: List[int]) -> int:
+        return next(iter([val for (val, count) in sorted(Counter(arr).items(), reverse=True) if val == count]), -1)
+```
+
+---------------------
+
+# 2025-11-03 08:59: 1122. Relative Sort Array (Easy) (time: 11m 33):
+
+```python3
+class Solution:
+
+    def relativeSortArray(self, arr1: List[int], arr2: List[int]) -> List[int]:
+        counts = Counter(arr1)
+        res = []
+        for n in arr2:
+            if n in counts:
+                res.extend([n] * counts[n])
+                del counts[n]
+        return res + [*chain(*sorted(([n] * count for (n, count) in counts.items())))]
+```
+
+---------------------
+
+# 2025-11-03 09:12: 2200. Find All K-Distant Indices in an Array (Easy) (time: 4m 7):
+
+```python3
+class Solution:
+
+    def findKDistantIndices(self, nums: List[int], key: int, k: int) -> List[int]:
+        key_indices = [i for (i, v) in enumerate(nums) if v == key]
+        return [i for (i, n) in enumerate(nums) if min((abs(i - j) for j in key_indices)) <= k]
+```
+
+---------------------
+
+# 2025-11-03 09:29: 1876. Substrings of Size Three with Distinct Characters (Easy) (time: 2m 0):
+
+```python3
+class Solution:
+
+    def countGoodSubstrings(self, s: str) -> int:
+        return sum((len(s[i:i + 3]) == len(set(s[i:i + 3])) for i in range(len(s) - 2)))
 ```
 
 ---------------------

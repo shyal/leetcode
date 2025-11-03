@@ -1,5 +1,53 @@
 [![Run Tests](https://github.com/shyal/leetcode/actions/workflows/run-tests.yml/badge.svg)](https://github.com/shyal/leetcode/actions/workflows/run-tests.yml)
 
+## Estimate dates variance charts
+
+Update 03/Nov/2025:
+
+I'm changing my strategy. Up until now i'd set my sights on 7 new solves a day. After 420 unique solves, i'm switching to optimizing for hitting the 'contest readiness' estimate date.
+
+This changes the ritual to starting each day with the same prompt:
+
+> Please prepare my study plan for today. Optimize for contest readiness. I can:
+>
+> - Re-solve problems (with or without the 'learning' tag).
+> - Write / explain contepts in a markdown file (<todays_date.md>), that will appear in my history tomorrow.
+> - Add notes to anki.
+>
+> Create a detailed plan and i'll follow it to a t.
+>
+> This is essentially fully embracing Grok-driven tutoring for DSA / leetcode contest preparedness
+
+If this new strategy works, we should see the contest readiness date start trending down.
+
+![Contest Readiness Projection Over Time](https://shyal.s3.amazonaws.com/contest_variance_20251103110224.png)
+
+![FAANG Interview Readiness Projection Over Time](https://shyal.s3.amazonaws.com/faang_variance_20251103110224.png)
+
+## Contest progress
+
+Grok estimates when i'll be ready to take part in leetcode contests.
+
+![Contest Readiness Progress (Ready by 2025-12-15)](https://shyal.s3.amazonaws.com/contest_progress_20251103110224.png)
+
+Update: 20-Oct-2025
+
+Initially i was quite stunned by the estimator's tendency to output the exact same dates (without prior knowledge of its previous estimates). Then estimate dates started increasing dramatically. I investigated, and it appears that the estimator heavily weighs recent solves. Initially i was mixing easy and medium questions. The estimates started jumping because i stumbled on quite a few mediums in a row, then focussed on easy questions due to scheduling, and the model assumed this was a sign that my progress on mediums had completely plateaued.
+
+I opted to tackle some of the 'learning' mediums in my history, and this appears to have had a dramatic effect in terms of clawing back those estimate dates.
+
+In other words, these estimate variance charts are excellent indicators for complacency; if i start slacking by doing too many easies, or not tackling my 'learning' queue, estimates go up which is the clearest signal i could hope for.
+
+## FAANG progress
+
+Grok estimates when i'll be ready to pass FAANG mock interviews. Currently the focus of this repo is just fun, but this is an interesting metric regardless.
+
+![FAANG Interview Readiness Progress (Ready by 2026-03-15)](https://shyal.s3.amazonaws.com/faang_progress_20251103110224.png)
+
+## Contest topics readines chart
+
+![Contest Topics Readiness Over Time](https://shyal.s3.amazonaws.com/contest_topics_readiness_20251103110224.gif)
+
 # Leetcode grind
 
 This repo contains a log of my >= 2025 leetcode solves. I was clobbering together the helper scripts for this repo between my solves, so solve times don't go all the way back. Likewise for readiness and topic estimates, they don't go all the way back, however enough data should get collected for progress charts to get increasingly interesting as time goes on.
@@ -16,51 +64,19 @@ This approach can be applied to learning any topic.
 
 Here are some little charts, generated from the git log.
 
-![Problem Grid Animation](https://shyal.s3.amazonaws.com/problem_grid_20251102080317.gif)
+![Problem Grid Animation](https://shyal.s3.amazonaws.com/problem_grid_20251103110224.gif)
 
 ## Solve rate
 
 This is the daily solve rate.
 
-![Solves Per Day (Full Repo History)](https://shyal.s3.amazonaws.com/solves_per_day_20251102080317.png)
+![Solves Per Day (Full Repo History)](https://shyal.s3.amazonaws.com/solves_per_day_20251103110224.png)
 
 ## Unique solve rate
 
 This is the daily unique solve rate. This is because as complexity ramps up, questions will need to be revisited.
 
-![Unique Problems Solved Daily (Full Repo History)](https://shyal.s3.amazonaws.com/uniques_per_day_20251102080317.png)
-
-## Contest progress
-
-Grok estimates when i'll be ready to take part in leetcode contests.
-
-![Contest Readiness Progress (Ready by 2026-01-15)](https://shyal.s3.amazonaws.com/contest_progress_20251102080317.png)
-
-Update: 20-Oct-2025
-
-Initially i was quite stunned by the estimator's tendency to output the exact same dates (without prior knowledge of its previous estimates). Then estimate dates started increasing dramatically. I investigated, and it appears that the estimator heavily weighs recent solves. Initially i was mixing easy and medium questions. The estimates started jumping because i stumbled on quite a few mediums in a row, then focussed on easy questions due to scheduling, and the model assumed this was a sign that my progress on mediums had completely plateaued.
-
-I opted to tackle some of the 'learning' mediums in my history, and this appears to have had a dramatic effect in terms of clawing back those estimate dates.
-
-In other words, these estimate variance charts are excellent indicators for complacency; if i start slacking by doing too many easies, or not tackling my 'learning' queue, estimates go up which is the clearest signal i could hope for.
-
-## FAANG progress
-
-Grok estimates when i'll be ready to pass FAANG mock interviews. Currently the focus of this repo is just fun, but this is an interesting metric regardless.
-
-![FAANG Interview Readiness Progress (Ready by 2026-04-01)](https://shyal.s3.amazonaws.com/faang_progress_20251102080317.png)
-
-## Estimate dates variance charts
-
-I'm curious to see the amount of variance in the estimates, i.e whether they're stable over time.
-
-![Contest Readiness Projection Over Time](https://shyal.s3.amazonaws.com/contest_variance_20251102080317.png)
-
-![FAANG Interview Readiness Projection Over Time](https://shyal.s3.amazonaws.com/faang_variance_20251102080317.png)
-
-## Contest topics readines chart
-
-![Contest Topics Readiness Over Time](https://shyal.s3.amazonaws.com/contest_topics_readiness_20251102080317.gif)
+![Unique Problems Solved Daily (Full Repo History)](https://shyal.s3.amazonaws.com/uniques_per_day_20251103110224.png)
 
 # Leetcode flavoured environment
 
