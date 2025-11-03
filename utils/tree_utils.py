@@ -116,7 +116,7 @@ def draw_general_tree(root: Optional[Node]) -> None:
         return [_Wrapper(child) for child in w.node.children]
 
     def get_value(w: _Wrapper):
-        return str(w.node.label)
+        return str(w.node.label) if hasattr(w.node, "label") else str(w.node.val)
 
     pt = PrettyPrintTree(get_children, get_value, border=True)
     pt(_Wrapper(root))

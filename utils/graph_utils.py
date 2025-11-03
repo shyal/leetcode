@@ -111,17 +111,29 @@ def draw_graph(G: Dict[Any, Union[Dict[Any, Any], Any]]) -> None:
     )
 
 
+def build_graph_from_edge_list(edges):
+    G = defaultdict(dict)
+    for u, v in edges:
+        G[u][v] = 1
+        G[v][u] = 0
+    return G
+
+
+def is_edge_list(edges):
+    if type(edges) is list:
+        if all(len(x) == 2 and type(x) is list for x in edges):
+            return True
+    return False
+
+
 def draw_graphviz(
     G: Dict[Any, Dict[Any, Any]], png_filename: str = "graph.png"
 ) -> None:
-    """
-    Utility function to draw a graph (stored as dict of dicts) using Graphviz.
-    Outputs ASCII art if supported, otherwise saves a PNG file and displays it in the terminal using timg.
-    Requires 'graphviz' library: pip install graphviz
-    And the Graphviz executable installed on the system.
-    For ASCII output, Graphviz must be built with AAlib support (not always default).
-    Also requires 'timg' installed for terminal PNG display (e.g., via brew install timg on macOS, or apt install timg on Ubuntu).
-    """
+
+    # duck typing, auto convert edge list to graph
+    if is_edge_list(G):
+        G = build_graph_from_edge_list(G)
+
     try:
         from graphviz import Digraph
     except ImportError:
@@ -140,15 +152,16 @@ def draw_graphviz(
         all_nodes.update(neighbors.keys())
     nodes = sorted(all_nodes, key=str)  # Sort for consistent order
 
-    # Create directed graph (since dict of dicts implies direction)
     dot = Digraph(comment="The Graph")
-    dot.attr(rankdir="LR")  # Horizontal layout for wider terminal view
+    dot.attr(rankdir="TB")
+    dot.attr(bgcolor="transparent")
+    dot.node_attr.update(
+        style="filled", fillcolor="transparent", color="white", fontcolor="white"
+    )
 
-    # Add nodes
     for node in nodes:
         dot.node(str(node))
 
-    # Add edges
     for src in G:
         for dst, weight in G[src].items():
             label = str(weight) if weight not in (0, 1) else None
