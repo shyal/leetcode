@@ -171,4 +171,4 @@ def strength_gains_since(start_date_str):
     console.print(table)
 
 
-strength_gains_since("2025/09/20")
+# strength_gains_since("2025/09/20")

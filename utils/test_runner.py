@@ -4,6 +4,7 @@ import pytest
 import os
 import time
 import subprocess
+import contextlib
 
 
 class StatsPlugin:
@@ -29,7 +30,8 @@ for filename in os.listdir(solved_dir):
 
 @pytest.mark.parametrize("module_name", modules)
 def test_solved(module_name):
-    __import__(f"solved.{module_name}")
+    with open(os.devnull, "w") as f, contextlib.redirect_stdout(f):
+        __import__(f"solved.{module_name}")
 
 
 def test_current():
@@ -51,9 +53,11 @@ if __name__ == "__main__":
     except Exception:
         current_branch = "unknown"
 
+    if current_branch == "master":
+        os.environ["RUNNING_TESTS"] = "True"
+
     args = [
         __file__,
-        solved_dir,
         "-s",
         "-q",
         "-c",

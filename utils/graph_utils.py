@@ -1,6 +1,9 @@
 # graph_utils.py
 
 import os
+import json
+import hashlib
+
 from Types import GraphNode
 from typing import List
 from typing import Dict, Any, Optional, Union
@@ -127,12 +130,30 @@ def is_edge_list(edges):
 
 
 def draw_graphviz(
-    G: Dict[Any, Dict[Any, Any]], png_filename: str = "graph.png"
+    G: Dict[Any, Dict[Any, Any]], png_filename: str = None, n=None
 ) -> None:
+
+    if os.environ.get("RUNNING_TESTS") == "True":
+        return
 
     # duck typing, auto convert edge list to graph
     if is_edge_list(G):
         G = build_graph_from_edge_list(G)
+
+    if png_filename is None:
+        # Compute deterministic hash for caching
+        sorted_G = {
+            str(k): {
+                str(kk): vv for kk, vv in sorted(v.items(), key=lambda x: str(x[0]))
+            }
+            for k, v in sorted(G.items(), key=lambda x: str(x[0]))
+        }
+        data = {"G": sorted_G, "n": n}
+        serialized = json.dumps(data, sort_keys=True)
+        graph_hash = hashlib.sha256(serialized.encode()).hexdigest()[
+            :16
+        ]  # Shorten hash for filename
+        png_filename = f"/tmp/graph_{graph_hash}.png"
 
     try:
         from graphviz import Digraph
@@ -150,6 +171,10 @@ def draw_graphviz(
     all_nodes = set(G.keys())
     for neighbors in G.values():
         all_nodes.update(neighbors.keys())
+
+    if n is not None:
+        all_nodes.update(range(n))
+
     nodes = sorted(all_nodes, key=str)  # Sort for consistent order
 
     dot = Digraph(comment="The Graph")
@@ -178,10 +203,11 @@ def draw_graphviz(
         print(ascii_output)
     except Exception:
         try:
-            dot.render(
-                png_filename[:-4], format="png", cleanup=True, view=False
-            )  # Render without .png extension in temp name
-            # Run timg directly without capturing output
+            base_name = png_filename[:-4]
+            if os.path.exists(png_filename):
+                pass
+            else:
+                dot.render(base_name, format="png", cleanup=True, view=False)
             result = os.system(f"timg {png_filename}")
             if result != 0:
                 raise RuntimeError("timg failed to run (is it installed?)")
