@@ -1,10 +1,18 @@
 # test_runner.py
 
+import argparse
 import pytest
 import os
 import time
 import subprocess
 import contextlib
+
+parser = argparse.ArgumentParser(description="Test leetcode codebase.")
+parser.add_argument(
+    "--viz", action="store_true", required=False, help="Enable visualizations"
+)
+
+args = parser.parse_args()
 
 
 class StatsPlugin:
@@ -30,7 +38,10 @@ for filename in os.listdir(solved_dir):
 
 @pytest.mark.parametrize("module_name", modules)
 def test_solved(module_name):
-    with open(os.devnull, "w") as f, contextlib.redirect_stdout(f):
+    if not args.viz:
+        with open(os.devnull, "w") as f, contextlib.redirect_stdout(f):
+            __import__(f"solved.{module_name}")
+    else:
         __import__(f"solved.{module_name}")
 
 
@@ -40,6 +51,7 @@ def test_current():
 
 
 if __name__ == "__main__":
+
     stats = StatsPlugin()
 
     start_time = time.perf_counter()
@@ -53,7 +65,7 @@ if __name__ == "__main__":
     except Exception:
         current_branch = "unknown"
 
-    if current_branch == "master":
+    if current_branch == "master" and not args.viz:
         os.environ["RUNNING_TESTS"] = "True"
 
     args = [

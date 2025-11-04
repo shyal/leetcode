@@ -59,20 +59,20 @@ class Solution:
 sol = Solution()
 p = build_tree([1, 2, 3])
 q = build_tree([1, 2, 3])
-# draw_tree(p)
-# draw_tree(q)
+draw_tree(p)
+draw_tree(q)
 assert sol.isSameTree(p, q) == True
 
 sol = Solution()
 p = build_tree([1, 2])
 q = build_tree([1, None, 2])
-# draw_tree(p)
-# draw_tree(q)
+draw_tree(p)
+draw_tree(q)
 assert sol.isSameTree(p, q) == False
 
 sol = Solution()
 p = build_tree([1, 2, 1])
 q = build_tree([1, 1, 2])
-# draw_tree(p)
-# draw_tree(q)
+draw_tree(p)
+draw_tree(q)
 assert sol.isSameTree(p, q) == False

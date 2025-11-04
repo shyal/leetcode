@@ -128,13 +128,13 @@ def to_list(root: Optional[TreeNode]) -> List[Optional[int]]:
 sol = Solution()
 
 tree = sol.buildTree([3, 9, 20], [9, 3, 20])
-# draw_tree(tree)
+draw_tree(tree)
 to_list(tree) == [3, 9, 20]
 
 tree = sol.buildTree([3, 9, 20, 15, 7], [9, 3, 15, 20, 7])
-# draw_tree(tree)
+draw_tree(tree)
 assert to_list(tree) == [3, 9, 20, None, None, 15, 7]
 
 tree = sol.buildTree([-1], [-1])
-# draw_tree(tree)
+draw_tree(tree)
 assert to_list(tree) == [-1]

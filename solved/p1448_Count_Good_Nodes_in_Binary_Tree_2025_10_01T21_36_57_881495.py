@@ -49,44 +49,44 @@ sol = Solution()
 tree1 = build_tree([3, 1, 4, 3, None, 1, 5])
 res = sol.goodNodes(tree1)
 assert res == 4
-# draw_tree(tree1)
+draw_tree(tree1)
 
 tree1 = build_tree([3, 3, None, 4, 2])
 res = sol.goodNodes(tree1)
 assert res == 3
-# draw_tree(tree1)
+draw_tree(tree1)
 
 tree1 = build_tree([1])
 res = sol.goodNodes(tree1)
 assert res == 1
-# draw_tree(tree1)
+draw_tree(tree1)
 
 tree1 = build_tree([3, 1, 5])
 res = sol.goodNodes(tree1)
 assert res == 2
-# draw_tree(tree1)
+draw_tree(tree1)
 
 tree1 = build_tree([-1, 5, -2, 4, 7, 3, -8])
 res = sol.goodNodes(tree1)
 assert res == 4
-# draw_tree(tree1)
+draw_tree(tree1)
 
 tree1 = build_tree([1, None, 2, None, 3])
 res = sol.goodNodes(tree1)
 assert res == 3
-# draw_tree(tree1)
+draw_tree(tree1)
 
 tree1 = build_tree([4, 4, 4, 4, 4, 4, 4])
 res = sol.goodNodes(tree1)
 assert res == 7
-# draw_tree(tree1)
+draw_tree(tree1)
 
 tree1 = build_tree([5, 4, 3])
 res = sol.goodNodes(tree1)
 assert res == 1
-# draw_tree(tree1)
+draw_tree(tree1)
 
 tree1 = build_tree([])
 res = sol.goodNodes(tree1)
 assert res == 0
-# draw_tree(tree1)
+draw_tree(tree1)

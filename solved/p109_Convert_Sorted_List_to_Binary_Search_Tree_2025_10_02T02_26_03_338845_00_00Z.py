@@ -65,19 +65,19 @@ class Solution:
 
 sol = Solution()
 head = build_linked_list([-10, -3, 0, 5, 9])
-# draw_linked_list(head)
+draw_linked_list(head)
 values = get_list_values(head)
 tree = sol.sortedListToBST(head)
-# draw_tree(tree)
+draw_tree(tree)
 assert get_inorder(tree) == values
 assert is_valid_bst(tree)
 assert is_balanced(tree)
 
 head = build_linked_list([])
-# draw_linked_list(head)
+draw_linked_list(head)
 values = get_list_values(head)
 tree = sol.sortedListToBST(head)
-# draw_tree(tree)
+draw_tree(tree)
 assert get_inorder(tree) == values
 assert is_valid_bst(tree)
 assert is_balanced(tree)

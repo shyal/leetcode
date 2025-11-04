@@ -67,7 +67,7 @@ sol = Solution()
 inorder = [9, 3, 15, 20, 7]
 postorder = [9, 15, 7, 20, 3]
 tree = sol.buildTree(inorder, postorder)
-# draw_tree(tree)
+draw_tree(tree)
 assert tree.val == 3
 assert tree.left.val == 9
 assert tree.right.val == 20
@@ -84,7 +84,7 @@ sol = Solution()
 inorder = [-1]
 postorder = [-1]
 tree = sol.buildTree(inorder, postorder)
-# draw_tree(tree)
+draw_tree(tree)
 assert tree.val == -1
 assert tree.left is None
 assert tree.right is None

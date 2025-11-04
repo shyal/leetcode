@@ -60,7 +60,7 @@ class Solution:
 
         d = TreeNode(float("-inf"), root)
         dfs(d.left, d)
-        # draw_tree(d)
+        draw_tree(d)
         return d.left
 
 
@@ -73,7 +73,7 @@ sol = Solution()
 
 root = build_tree([])
 result = sol.insertIntoBST(root, 5)
-# draw_tree(result)
+draw_tree(result)
 
 # root = build_tree([5, None, 14, 10, 77, None, None, None, 95, None, None])
 # result = sol.insertIntoBST(root, 4)

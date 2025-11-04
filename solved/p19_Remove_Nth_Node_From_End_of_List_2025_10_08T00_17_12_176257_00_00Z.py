@@ -55,10 +55,10 @@ class Solution:
 
 sol = Solution()
 
-# ll = build_linked_list([1, 2, 3, 4, 5])
-# draw_linked_list(ll)
-# res = sol.removeNthFromEnd(ll, 2)
-# draw_linked_list(res)  # [1, 2, 3, 5]
+ll = build_linked_list([1, 2, 3, 4, 5])
+draw_linked_list(ll)
+res = sol.removeNthFromEnd(ll, 2)
+draw_linked_list(res)  # [1, 2, 3, 5]
 
 assert get_list_values(sol.removeNthFromEnd(build_linked_list([1, 2, 3, 4, 5]), 2)) == [
     1,

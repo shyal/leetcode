@@ -44,24 +44,24 @@ class Solution:
 
 sol = Solution()
 head = build_linked_list([1, 2, 6, 3, 4, 5, 6])
-# draw_linked_list(head)
+draw_linked_list(head)
 assert get_list_values(sol.removeElements(head, 6)) == [1, 2, 3, 4, 5]
-# draw_linked_list(head)
+draw_linked_list(head)
 
 head = build_linked_list([])
-# draw_linked_list(head)
+draw_linked_list(head)
 assert get_list_values(sol.removeElements(head, 1)) == []
 
 head = build_linked_list([7, 7, 7, 7])
-# draw_linked_list(head)
+draw_linked_list(head)
 assert get_list_values(sol.removeElements(head, 7)) == []
 
 head = build_linked_list([1, 2, 3, 4, 5, 5, 5, 5])
-# draw_linked_list(head)
+draw_linked_list(head)
 assert get_list_values(sol.removeElements(head, 5)) == [1, 2, 3, 4]
-# draw_linked_list(head)
+draw_linked_list(head)
 
 head = build_linked_list([5, 5, 5, 5, 1, 2, 3, 4])
-# draw_linked_list(head)
+draw_linked_list(head)
 assert get_list_values(sol.removeElements(head, 5)) == [1, 2, 3, 4]
-# draw_linked_list(head)
+draw_linked_list(head)

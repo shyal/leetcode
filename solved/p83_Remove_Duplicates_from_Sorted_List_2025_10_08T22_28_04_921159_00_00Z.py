@@ -38,8 +38,8 @@ class Solution:
 
 sol = Solution()
 
-# ll = build_linked_list([1, 1, 2])
-# draw_linked_list(ll)
+ll = build_linked_list([1, 1, 2])
+draw_linked_list(ll)
 # print(get_list_values(sol.deleteDuplicates(ll)))  # [1,2]
 
 assert get_list_values(sol.deleteDuplicates(build_linked_list([1, 1, 2]))) == [1, 2]

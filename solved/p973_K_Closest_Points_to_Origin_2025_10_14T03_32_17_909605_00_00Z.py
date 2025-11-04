@@ -45,7 +45,7 @@ class Solution:
                 if d > heap[0][0]:
                     heappop(heap)
                     heappush(heap, (d, [x, y]))
-        # draw_heap(heap)
+        draw_heap(heap)
         return [x[1] for x in nlargest(k, heap)]
 
 

@@ -49,7 +49,7 @@ class Solution:
 sol = Solution()
 
 tree = build_tree([3, 9, 20, None, None, 15, 7])
-# draw_tree(tree)
+draw_tree(tree)
 # print(sol.levelOrder(tree))  # [[3],[9,20],[15,7]]
 
 assert sol.levelOrder(build_tree([3, 9, 20, None, None, 15, 7])) == [

@@ -54,10 +54,10 @@ sol = Solution()
 
 t1 = build_tree([1, 3, 2, 5])
 t2 = build_tree([2, 1, 3, None, 4, None, 7])
-# draw_tree(t1)
-# draw_tree(t2)
+draw_tree(t1)
+draw_tree(t2)
 res = sol.mergeTrees(t1, t2)
-# draw_tree(res)
+draw_tree(res)
 
 # print(get_level_order(res))
 

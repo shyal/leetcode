@@ -49,7 +49,7 @@ class Solution:
 sol = Solution()
 
 ll = build_linked_list([1, 2, 3, 4, 5])
-# draw_linked_list(ll)
+draw_linked_list(ll)
 # print(get_list_values(sol.oddEvenList(ll)))  # [1,3,5,2,4]
 
 assert get_list_values(sol.oddEvenList(build_linked_list([1, 2, 3, 4, 5]))) == [

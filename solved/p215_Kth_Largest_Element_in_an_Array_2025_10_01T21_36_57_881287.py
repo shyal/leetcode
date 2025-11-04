@@ -30,7 +30,7 @@ class Solution:
         heap = []
         for n in nums:
             heappush(heap, n)
-            # draw_heap(heap)
+            draw_heap(heap)
             if len(heap) > k:
                 heappop(heap)
         return heap[0]

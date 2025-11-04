@@ -40,22 +40,22 @@ class Solution:
 sol = Solution()
 
 head = build_linked_list([1, 2, 3, 4, 5])
-# draw_linked_list(head)
+draw_linked_list(head)
 assert get_list_values(sol.middleNode(head)) == [3, 4, 5]
 
 head = build_linked_list([1, 2, 3, 4, 5, 6])
-# draw_linked_list(head)
+draw_linked_list(head)
 assert get_list_values(sol.middleNode(head)) == [4, 5, 6]
 
 head = build_linked_list([1, 2, 3])
-# draw_linked_list(head)
+draw_linked_list(head)
 assert get_list_values(sol.middleNode(head)) == [2, 3]
 
 head = build_linked_list([1, 2])
-# draw_linked_list(head)
+draw_linked_list(head)
 assert get_list_values(sol.middleNode(head)) == [2]
 
 
 head = build_linked_list([1, 2, 3, 4, 5, 6, 7])
-# draw_linked_list(head)
+draw_linked_list(head)
 assert get_list_values(sol.middleNode(head)) == [4, 5, 6, 7]

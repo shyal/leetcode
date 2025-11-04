@@ -50,28 +50,28 @@ class Solution:
 sol = Solution()
 
 head = build_linked_list([1, 2, 2, 1])
-# draw_linked_list(head)
+draw_linked_list(head)
 assert sol.isPalindrome(head) == True
 
 head = build_linked_list([1, 2])
-# draw_linked_list(head)
+draw_linked_list(head)
 assert sol.isPalindrome(head) == False
 
 head = build_linked_list([1, 2, 1])
-# draw_linked_list(head)
+draw_linked_list(head)
 assert sol.isPalindrome(head) == True
 
 
 head = build_linked_list([1, 2, 3, 2, 1])
-# draw_linked_list(head)
+draw_linked_list(head)
 assert sol.isPalindrome(head) == True
 
 
 head = build_linked_list([1, 1, 3, 2, 1])
-# draw_linked_list(head)
+draw_linked_list(head)
 assert sol.isPalindrome(head) == False
 
 
 head = build_linked_list([1, 1, 1, 1, 1, 1, 1, 1])
-# draw_linked_list(head)
+draw_linked_list(head)
 assert sol.isPalindrome(head) == True

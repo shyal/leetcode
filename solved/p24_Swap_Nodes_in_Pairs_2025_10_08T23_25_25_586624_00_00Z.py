@@ -52,8 +52,8 @@ class Solution:
 
 sol = Solution()
 
-# ll = build_linked_list([1, 2, 3, 4])
-# draw_linked_list(ll)
+ll = build_linked_list([1, 2, 3, 4])
+draw_linked_list(ll)
 # print(get_list_values(sol.swapPairs(ll)))  # [2,1,4,3]
 
 assert get_list_values(sol.swapPairs(build_linked_list([1, 2, 3, 4]))) == [2, 1, 4, 3]

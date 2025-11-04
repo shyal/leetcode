@@ -53,8 +53,8 @@ class Solution:
         second_half = d.next
         d.next = None
 
-        # draw_linked_list(head)
-        # draw_linked_list(second_half)
+        draw_linked_list(head)
+        draw_linked_list(second_half)
 
         it = d
 
@@ -77,7 +77,7 @@ class Solution:
                 it2 = it2.next if it2 else None
             i += 1
 
-        # draw_linked_list(d.next)
+        draw_linked_list(d.next)
         # print("---")
 
         return d.next

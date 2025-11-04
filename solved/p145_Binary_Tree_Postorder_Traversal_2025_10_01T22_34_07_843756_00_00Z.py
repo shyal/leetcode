@@ -61,20 +61,20 @@ class Solution:
 
 sol = Solution()
 tree = build_tree([1, None, 2, 3])
-# draw_tree(tree)
+draw_tree(tree)
 assert sol.postorderTraversal(tree) == [3, 2, 1]
 
 sol = Solution()
 tree = build_tree([1, 2, 3, 4, 5, None, 8, None, None, 6, 7, 9])
-# draw_tree(tree)
+draw_tree(tree)
 assert sol.postorderTraversal(tree) == [4, 6, 7, 5, 2, 9, 8, 3, 1]
 
 sol = Solution()
 tree = build_tree([])
-# draw_tree(tree)
+draw_tree(tree)
 assert sol.postorderTraversal(tree) == []
 
 sol = Solution()
 tree = build_tree([1])
-# draw_tree(tree)
+draw_tree(tree)
 assert sol.postorderTraversal(tree) == [1]

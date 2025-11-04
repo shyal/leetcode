@@ -73,21 +73,21 @@ class Solution:
 sol = Solution()
 list1 = build_linked_list([1, 2, 4])
 list2 = build_linked_list([1, 3, 4])
-# draw_linked_list(list1)
-# draw_linked_list(list2)
+draw_linked_list(list1)
+draw_linked_list(list2)
 res = sol.mergeTwoLists(list1, list2)
 assert get_list_values(sol.mergeTwoLists(list1, list2)) == [1, 1, 2, 3, 4, 4]
 
 sol = Solution()
 list1 = build_linked_list([])
 list2 = build_linked_list([])
-# draw_linked_list(list1)
-# draw_linked_list(list2)
+draw_linked_list(list1)
+draw_linked_list(list2)
 assert get_list_values(sol.mergeTwoLists(list1, list2)) == []
 
 sol = Solution()
 list1 = build_linked_list([])
 list2 = build_linked_list([0])
-# draw_linked_list(list1)
-# draw_linked_list(list2)
+draw_linked_list(list1)
+draw_linked_list(list2)
 assert get_list_values(sol.mergeTwoLists(list1, list2)) == [0]

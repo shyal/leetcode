@@ -41,15 +41,15 @@ class Solution:
         res, c = [], Counter(S)
         pq = [(-value, key) for key, value in c.items()]
         heapify(pq)
-        # draw_heap(pq)
+        draw_heap(pq)
         prev_count, prev_char = 0, ""
         while pq:
             count, char = heappop(pq)
-            # draw_heap(pq)
+            draw_heap(pq)
             res += [char]
             if prev_count < 0:
                 heappush(pq, (prev_count, prev_char))
-                # draw_heap(pq)
+                draw_heap(pq)
             count += 1
             prev_count, prev_char = count, char
         res = "".join(res)

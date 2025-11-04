@@ -76,7 +76,7 @@ class Solution:
         for n in nums:
             if len(heap) < k:
                 heappush(heap, n)
-                # draw_heap(heap)
+                draw_heap(heap)
                 continue
             else:
                 if n > heap[0]:
@@ -87,7 +87,7 @@ class Solution:
                     pop = heappop(heap)
                     # print(f"so popping {pop}, and pushing {n}")
                     heappush(heap, n)
-                    # draw_heap(heap)
+                    draw_heap(heap)
         return heap[0]
 
 

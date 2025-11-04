@@ -42,11 +42,11 @@ class Solution:
             else:
                 it = it.next
 
-        # draw_linked_list(d)
-        # draw_linked_list(gt_head)
+        draw_linked_list(d)
+        draw_linked_list(gt_head)
 
         it.next = gt_head.next
-        # draw_linked_list(d)
+        draw_linked_list(d)
         return d.next
 
 

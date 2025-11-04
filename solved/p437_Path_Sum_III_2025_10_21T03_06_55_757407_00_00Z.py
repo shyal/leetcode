@@ -59,11 +59,11 @@ class Solution:
 sol = Solution()
 
 tree = build_tree([10, 5, -3, 3, 2, None, 11, 3, -2, None, 1])
-# draw_tree(tree)
+draw_tree(tree)
 res = sol.pathSum(tree, 8)
 # print(res)
 assert res == 3
 
 tree = build_tree([5, 4, 8, 11, None, 13, 4, 7, 2, None, None, 5, 1])
-# draw_tree(tree)
+draw_tree(tree)
 assert sol.pathSum(tree, 22) == 3

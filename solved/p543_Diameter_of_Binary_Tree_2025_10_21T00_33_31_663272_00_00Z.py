@@ -82,7 +82,7 @@ tree = build_tree(
     ]
 )
 res = sol.diameterOfBinaryTree(tree)
-# draw_tree(tree)
+draw_tree(tree)
 # print(res)
 assert res == 7
 assert sol.diameterOfBinaryTree(build_tree([1])) == 0

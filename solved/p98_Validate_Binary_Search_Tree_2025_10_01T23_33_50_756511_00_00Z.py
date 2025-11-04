@@ -61,21 +61,21 @@ sol = Solution()
 
 
 tree = build_tree([3, 1, 5, 0, 2, 4, 6])
-# draw_tree(tree)
+draw_tree(tree)
 assert sol.isValidBST(tree) == True
 
 tree = build_tree([5, 4, 6, None, None, 3, 7])
-# draw_tree(tree)
+draw_tree(tree)
 assert sol.isValidBST(tree) == False
 
 tree = build_tree([2, 1, 3])
-# draw_tree(tree)
+draw_tree(tree)
 assert sol.isValidBST(tree) == True
 
 tree = build_tree([5, 1, 4, None, None, 3, 6])
-# draw_tree(tree)
+draw_tree(tree)
 assert sol.isValidBST(tree) == False
 
 tree = build_tree([])
-# draw_tree(tree)
+draw_tree(tree)
 assert sol.isValidBST(tree) == True

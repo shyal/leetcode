@@ -92,7 +92,7 @@ assert actual == []
 
 sol = Solution()
 tree = build_tree([0])
-# draw_tree(tree)
+draw_tree(tree)
 sol.flatten(tree)
 actual = []
 curr = tree

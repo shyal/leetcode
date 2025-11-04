@@ -42,7 +42,7 @@ class Solution:
     def lastStoneWeight(self, stones: List[int]) -> int:
         stones = [-x for x in stones]
         heapify(stones)
-        # draw_heap(stones)
+        draw_heap(stones)
         while True:
             if len(stones) == 1:
                 return -stones[0]
