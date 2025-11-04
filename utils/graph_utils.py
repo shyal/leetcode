@@ -35,6 +35,11 @@ def draw_graph(G: Dict[Any, Union[Dict[Any, Any], Any]]) -> None:
     Colors edges based on values (e.g., 1 in red, 0 in blue).
     Assumes nodes are comparable for sorting.
     """
+
+    # duck typing, auto convert edge list to graph
+    if is_edge_list(G):
+        G = build_graph_from_edge_list(G)
+
     try:
         from tabulate import tabulate
     except ImportError:
@@ -117,7 +122,7 @@ def draw_graph(G: Dict[Any, Union[Dict[Any, Any], Any]]) -> None:
 def build_graph_from_edge_list(edges):
     G = defaultdict(dict)
     for u, v in edges:
-        G[u][v] = 1
+        G[u][v] = 0
         G[v][u] = 0
     return G
 
