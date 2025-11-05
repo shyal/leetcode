@@ -119,11 +119,12 @@ def draw_graph(G: Dict[Any, Union[Dict[Any, Any], Any]]) -> None:
     )
 
 
-def build_graph_from_edge_list(edges):
+def build_graph_from_edge_list(edges, type="undirected"):
     G = defaultdict(dict)
     for u, v in edges:
         G[u][v] = 0
-        G[v][u] = 0
+        if type == "undirected":
+            G[v][u] = 0
     return G
 
 
@@ -135,7 +136,10 @@ def is_edge_list(edges):
 
 
 def draw_graphviz(
-    G: Dict[Any, Dict[Any, Any]], png_filename: str = None, n=None
+    G: Dict[Any, Union[Dict[Any, Any], List[Any]]],
+    png_filename: str = None,
+    n=None,
+    type="undirected",
 ) -> None:
 
     if os.environ.get("RUNNING_TESTS") == "True":
@@ -143,14 +147,22 @@ def draw_graphviz(
 
     # duck typing, auto convert edge list to graph
     if is_edge_list(G):
-        G = build_graph_from_edge_list(G)
+        G = build_graph_from_edge_list(G, type)
 
     if png_filename is None:
         # Compute deterministic hash for caching
+        def get_items(neighbors):
+            if isinstance(neighbors, dict):
+                return neighbors.items()
+            elif isinstance(neighbors, (list, tuple, set)):
+                return [(dst, None) for dst in neighbors]
+            else:
+                raise ValueError("Invalid graph format")
+
         sorted_G = {
-            str(k): {
-                str(kk): vv for kk, vv in sorted(v.items(), key=lambda x: str(x[0]))
-            }
+            str(k): sorted(
+                [(str(dst), weight) for dst, weight in get_items(v)], key=lambda x: x[0]
+            )
             for k, v in sorted(G.items(), key=lambda x: str(x[0]))
         }
         data = {"G": sorted_G, "n": n}
@@ -161,7 +173,7 @@ def draw_graphviz(
         png_filename = f"/tmp/graph_{graph_hash}.png"
 
     try:
-        from graphviz import Digraph
+        from graphviz import Digraph, Graph
     except ImportError:
         print("Please install graphviz: pip install graphviz")
         return
@@ -175,29 +187,46 @@ def draw_graphviz(
     # Collect all nodes
     all_nodes = set(G.keys())
     for neighbors in G.values():
-        all_nodes.update(neighbors.keys())
+        if isinstance(neighbors, dict):
+            all_nodes.update(neighbors.keys())
+        elif isinstance(neighbors, (list, tuple, set)):
+            all_nodes.update(neighbors)
+        else:
+            raise ValueError("Invalid graph format")
 
     if n is not None:
         all_nodes.update(range(n))
 
     nodes = sorted(all_nodes, key=str)  # Sort for consistent order
 
-    dot = Digraph(comment="The Graph")
+    if type == "directed":
+        dot = Digraph(comment="The Graph")
+    else:
+        dot = Graph(comment="The Graph")
     dot.attr(rankdir="TB")
     dot.attr(bgcolor="transparent")
     dot.node_attr.update(
         style="filled", fillcolor="transparent", color="white", fontcolor="white"
     )
+    dot.edge_attr.update(color="blue")
 
     for node in nodes:
         dot.node(str(node))
 
     for src in G:
-        for dst, weight in G[src].items():
-            label = str(weight) if weight not in (0, 1) else None
-            edge_attr = (
-                {"color": "red" if weight == 1 else "blue"} if weight in (0, 1) else {}
-            )
+        neighbors = G[src]
+        if isinstance(neighbors, dict):
+            items = neighbors.items()
+        elif isinstance(neighbors, (list, tuple, set)):
+            items = [(dst, None) for dst in neighbors]
+        else:
+            raise ValueError("Invalid graph format")
+        for dst, weight in items:
+            label = str(weight) if weight is not None and weight not in (0, 1) else None
+            if weight is not None and weight in (0, 1):
+                edge_attr = {"color": "red" if weight == 1 else "blue"}
+            else:
+                edge_attr = {}
             if label:
                 edge_attr["label"] = label
             dot.edge(str(src), str(dst), **edge_attr)

@@ -45,28 +45,15 @@ class Solution:
 
     def xsum(self, nums, x):
         counts = [[count, item] for item, count in Counter(nums).items()]
-        counts.sort(reverse=True)
         if len(counts) < x:
             return sum(nums)
-        s = 0
-        i = 0
-        for count, item in counts:
-            if i >= x:
-                break
-            s += count * item
-            i += 1
-        return s
+        return sum(c * i for c, i in islice(sorted(counts, reverse=True), 0, x))
 
     def findXSum(self, nums: List[int], k: int, x: int) -> List[int]:
-        res = []
-        for i in range(len(nums) - k + 1):
-            res.append(self.xsum(nums[i : i + k], x))
-        return res
+        return [self.xsum(nums[i : i + k], x) for i in range(len(nums) - k + 1)]
 
 
 sol = Solution()
-
-# print(sol.findXSum([1, 1, 2, 2, 3, 4, 2, 3], 6, 2))  # [6,10,12]
 
 assert sol.findXSum([1, 1, 2, 2, 3, 4, 2, 3], 6, 2) == [6, 10, 12]
 assert sol.findXSum([3, 8, 7, 8, 7, 5], 2, 2) == [11, 15, 15, 15, 12]
