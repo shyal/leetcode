@@ -1,4 +1,4 @@
-Please prepare my study plan for today. My main goal is to try and claw back the contest readiness date. I can solve learning / new problems. I can write / explain things in a markdown file, that will appear in my history tomorrow. i can add notes to anki. make a detailed plan and i'll follow it to a t.
+i've noticed that codeforces uses a different rating than leetcode for difficulty, e.g a number 800, or 3500 etc. what would you estimate is a good difficulty rating for me? e.g so i can get 4 solves and maybe one 1 fail on average 
 
 
 Here is my LeetCode solve history (most recent last):
@@ -1107,6 +1107,7 @@ class Solution:
         heap = []
         for n in nums:
             heappush(heap, n)
+            draw_heap(heap)
             if len(heap) > k:
                 heappop(heap)
         return heap[0]
@@ -1403,6 +1404,7 @@ class Solution:
         heap = []
         for n in nums:
             heappush(heap, n)
+            draw_heap(heap)
             if len(heap) > k:
                 heappop(heap)
         return heap[0]
@@ -5273,6 +5275,8 @@ class Solution:
             (d.next, h.next, h) = (h, d.next, h.next)
         second_half = d.next
         d.next = None
+        draw_linked_list(head)
+        draw_linked_list(second_half)
         it = d
         it1 = head
         it2 = second_half
@@ -5292,6 +5296,7 @@ class Solution:
                 it1 = it1.next if it1 else None
                 it2 = it2.next if it2 else None
             i += 1
+        draw_linked_list(d.next)
         return d.next
 ```
 
@@ -5316,7 +5321,10 @@ class Solution:
                 gt_it.next = None
             else:
                 it = it.next
+        draw_linked_list(d)
+        draw_linked_list(gt_head)
         it.next = gt_head.next
+        draw_linked_list(d)
         return d.next
 ```
 
@@ -5431,6 +5439,7 @@ class Solution:
                 node.left = TreeNode(val)
         d = TreeNode(float('-inf'), root)
         dfs(d.left, d)
+        draw_tree(d)
         return d.left
 ```
 
@@ -6302,6 +6311,7 @@ class Solution:
     def lastStoneWeight(self, stones: List[int]) -> int:
         stones = [-x for x in stones]
         heapify(stones)
+        draw_heap(stones)
         while True:
             if len(stones) == 1:
                 return -stones[0]
@@ -6545,10 +6555,12 @@ class Solution:
         for n in nums:
             if len(heap) < k:
                 heappush(heap, n)
+                draw_heap(heap)
                 continue
             elif n > heap[0]:
                 pop = heappop(heap)
                 heappush(heap, n)
+                draw_heap(heap)
         return heap[0]
 ```
 
@@ -6604,12 +6616,15 @@ class Solution:
         (res, c) = ([], Counter(S))
         pq = [(-value, key) for (key, value) in c.items()]
         heapify(pq)
+        draw_heap(pq)
         (prev_count, prev_char) = (0, '')
         while pq:
             (count, char) = heappop(pq)
+            draw_heap(pq)
             res += [char]
             if prev_count < 0:
                 heappush(pq, (prev_count, prev_char))
+                draw_heap(pq)
             count += 1
             (prev_count, prev_char) = (count, char)
         res = ''.join(res)
@@ -6644,6 +6659,7 @@ class Solution:
             elif d > heap[0][0]:
                 heappop(heap)
                 heappush(heap, (d, [x, y]))
+        draw_heap(heap)
         return [x[1] for x in nlargest(k, heap)]
 ```
 
@@ -12162,6 +12178,509 @@ class Solution:
 
 ---------------------
 
+# 2025-11-03 10:30: Review Notes
+
+## Union find cycle detection
+
+We can use union find to detect cycles in graphs. To do so, we initialize a `parent` array where each index represents the i'th node in the graph. We can then create our `find` function which traverses the tree upwards (and can also update `parent` to flatten the tree). The find function returns the ultimate parent of each node in the graph.
+
+We can also create a `union` function which finds the parent of x and y, and sets the parent of x to the parent of y (or vice versa) if they're not equal.
+
+We can now simply iterate over the connections, get the respective parents of x and y connection pairs, and if they their parents are the same, that means a cycle has been detected.
+
+## Why Greedy approaches fail for the coin change problem
+
+When computing coin change, a greedy approach can fail due to something called "non-uniformity". That is, when coins are not multiples of one another. Example with denominations `1, 3, 4`, using a greedy method to find change for `6` leads to 4 (remainder 2), then 1, 1. 3 was greater than the remainder. The optimal solution is 3,3.
+
+## BS template
+
+I'm using a template for BS minimization / maximization problems:
+
+```python
+low = min_possible
+high = max_possible
+result = -1
+is_minimization = True
+
+while low <= high:
+    mid = low + (high - low) // 2
+    if check_condition():
+        result = mid
+        if is_minimization:
+            high = mid - 1
+        else:
+            low = mid + 1
+    else:
+        if is_minimization:
+            low = mid + 1
+        else:
+            high = mid - 1
+
+return result
+```
+
+I can simply pull it in, and alter it to fit the problem. In the case of 'Minimum Speed to Arrive on Time', as always, the first step is to compute the condition. In this case, we used ceiled division on each train journey, as trains depart on the hour, but not on the last since that's our arrival time. In the BS body we then minimize the speed that will allow us to arrive on time.
+
+```python
+class Solution:
+
+    def travelTime(self, dist, speed):
+        ceil_div = lambda a, b: (a + b - 1) // b
+        time = 0
+        for i, d in enumerate(dist):
+            if i < len(dist) - 1:
+                time += ceil_div(d, speed)
+            else:
+                time += d / speed
+        return time
+
+    def minSpeedOnTime(self, dist: List[int], hour: float) -> int:
+        low = 1
+        result = -1
+        high = 10**7
+        while low <= high:
+            speed = (low + high) // 2
+            travelTime = self.travelTime(dist, speed)
+            if travelTime <= hour:
+                result = speed
+                high = speed - 1
+            else:
+                low = speed + 1
+        return result
+```
+
+---------------------
+
+# 2025-11-03 12:19: 91. Decode Ways (Medium) (time: 3m 53):
+
+```python3
+class Solution:
+
+    def numDecodings(self, s: str) -> int:
+
+        @cache
+        def dfs(i):
+            if i <= 0:
+                return 1
+            ways = 0
+            if i > 0 and '1' <= s[i] <= '9':
+                ways += dfs(i - 1)
+            if '10' <= s[i - 1:i + 1] <= '26':
+                ways += dfs(i - 2)
+            return ways
+        if s[0] == '0':
+            return 0
+        return dfs(len(s) - 1)
+```
+
+---------------------
+
+# 2025-11-03 21:00: 3028. Ant on the Boundary (Easy) (time: 9m 28):
+
+```python3
+class Solution:
+
+    def returnToBoundaryCount(self, nums: List[int]) -> int:
+        (pos, crosses) = (0, 0)
+        for n in nums:
+            pos += n
+            if pos == 0:
+                crosses += 1
+        return crosses
+```
+
+---------------------
+
+# 2025-11-03 21:04: 2255. Count Prefixes of a Given String (Easy) (time: 1m 5):
+
+```python3
+class Solution:
+
+    def countPrefixes(self, words: List[str], s: str) -> int:
+        return sum((s.startswith(x) for x in words))
+```
+
+---------------------
+
+# 2025-11-04 06:14: 2496. Maximum Value of a String in an Array (Easy) (time: 3m 5):
+
+```python3
+class Solution:
+
+    def maximumValue(self, strs: List[str]) -> int:
+        is_digits = lambda s: all(('0' <= x <= '9' for x in s))
+        val = lambda s: int(s) if is_digits(s) else len(s)
+        return max((val(x) for x in strs))
+```
+
+---------------------
+
+# 2025-11-04 09:14: 1319. Number of Operations to Make Network Connected (Medium) - learning (time: 81m 26):
+
+```python3
+class Solution:
+
+    def makeConnected(self, n: int, connections: List[List[int]]) -> int:
+        parent = list(range(n))
+        self.num_networks = n
+        self.redundant_cables = 0
+
+        def find(x):
+            if x != parent[x]:
+                parent[x] = find(parent[x])
+            return parent[x]
+
+        def union(x, y):
+            rootx = find(x)
+            rooty = find(y)
+            if rootx != rooty:
+                parent[rootx] = rooty
+                self.num_networks -= 1
+            else:
+                self.redundant_cables += 1
+        for (x, y) in connections:
+            union(x, y)
+        if self.redundant_cables >= self.num_networks - 1:
+            return self.num_networks - 1
+        else:
+            return -1
+```
+
+## notes: 
+
+Revisiting as i didn't successfully solve this last time. So the key insight in this solve, is that
+we can count the number of disjoint sets with self.count = n, and decrementing it each time
+we merge two sets. Great!
+
+---------------------
+
+# 2025-11-04 11:21: 207. Course Schedule (Medium) (time: 28m 43):
+
+```python3
+class Solution:
+
+    def canFinish(self, numCourses: int, prerequisites: List[List[int]]) -> bool:
+
+        @cache
+        def dfs(i, count):
+            if count > numCourses:
+                return False
+            for req in G[i]:
+                if not dfs(req, count + 1):
+                    return False
+            return True
+        G = defaultdict(list)
+        for (x, y) in prerequisites:
+            G[x].append(y)
+        for i in range(numCourses):
+            res = dfs(i, 0)
+            if not res:
+                return False
+        return True
+```
+
+## notes: 
+
+I'm guessing / hoping this can be solved using a union find. Hmm not so successful with union find,
+so let's try something different. let's do a dfs and see if we have a cyclical dependency.
+
+Yay! this passed. Pretty slow solution though, and i'm sure not a great way to do this. Maxed out on luck.
+
+---------------------
+
+# 2025-11-04 16:32: 1450. Number of Students Doing Homework at a Given Time (Easy) (time: 5m 41):
+
+```python3
+class Solution:
+
+    def busyStudent(self, startTime: List[int], endTime: List[int], queryTime: int) -> int:
+        res = 0
+        for (start, end) in zip(startTime, endTime):
+            if start <= queryTime and end >= queryTime:
+                res += 1
+        return res
+```
+
+---------------------
+
+# 2025-11-04 16:42: 2670. Find the Distinct Difference Array (Easy) (time: 4m 26):
+
+```python3
+class Solution:
+
+    def distinctDifferenceArray(self, nums: List[int]) -> List[int]:
+        s = set()
+        distinct = [0] * len(nums)
+        for (i, n) in enumerate(nums):
+            distinct[i] = len(set(nums[:i + 1])) - len(set(nums[i + 1:]))
+        return distinct
+```
+
+---------------------
+
+# 2025-11-04 16:58: 2788. Split Strings by Separator (Easy) (time: 1m 57):
+
+```python3
+class Solution:
+
+    def splitWordsBySeparator(self, words: List[str], separator: str) -> List[str]:
+        return [x for x in chain(*[x.split(separator) for x in words]) if x]
+```
+
+---------------------
+
+# 2025-11-04 17:15: 1945. Sum of Digits of String After Convert (Easy) (time: 12m 2):
+
+```python3
+class Solution:
+
+    def getDigits(self, num):
+        digits = []
+        while num:
+            digits.append(num % 10)
+            num //= 10
+        return digits
+
+    def sumDigits(self, s):
+        return sum(self.getDigits(s))
+
+    def getLucky(self, s: str, k: int) -> int:
+        digit = ''
+        for c in s:
+            digit += str(ord(c) - ord('a') + 1)
+        digit = int(digit)
+        for _ in range(k):
+            digit = self.sumDigits(digit)
+        return digit
+```
+
+---------------------
+
+# 2025-11-04 17:19: 2951. Find the Peaks (Easy) (time: 1m 8):
+
+```python3
+from typing import List
+'\n    URL: https://leetcode.com/problems/find-the-peaks/description/?envType=problem-list-v2&envId=vn57k9wr\n\n    2951. Find the Peaks\n\n    You are given a 0-indexed array mountain. Your task is to find all the peaks in the mountain array.\n\n    Return an array that consists of indices of peaks in the given array in any order.\n\n    Notes:\n\n    - A peak is defined as an element that is strictly greater than its neighboring elements.\n    - The first and last elements of the array are not a peak.\n\n\n    Example 1:\n\n    Input: mountain = [2,4,4]\n    Output: []\n    Explanation: mountain[0] and mountain[2] can not be a peak because they are first and last elements of the array.\n    mountain[1] also can not be a peak because it is not strictly greater than mountain[2].\n    So the answer is [].\n\n    Example 2:\n\n    Input: mountain = [1,4,3,8,5]\n    Output: [1,3]\n    Explanation: mountain[0] and mountain[4] can not be a peak because they are first and last elements of the array.\n    mountain[2] also can not be a peak because it is not strictly greater than mountain[3] and mountain[1].\n    But mountain [1] and mountain[3] are strictly greater than their neighboring elements.\n    So the answer is [1,3].\n\n\n    Constraints:\n\n        3 <= mountain.length <= 100\n        1 <= mountain[i] <= 100\n'
+
+class Solution:
+
+    def findPeaks(self, mountain: List[int]) -> List[int]:
+        return [i for i in range(1, len(mountain) - 1) if mountain[i - 1] < mountain[i] > mountain[i + 1]]
+```
+
+---------------------
+
+# 2025-11-05 01:55: 657. Robot Return to Origin (Easy) (time: 1m 36):
+
+```python3
+class Solution:
+
+    def judgeCircle(self, moves: str) -> bool:
+        return moves.count('L') == moves.count('R') and moves.count('U') == moves.count('D')
+```
+
+---------------------
+
+# 2025-11-05 02:13: 1957. Delete Characters to Make Fancy String (Easy) (time: 12m 49):
+
+```python3
+class Solution:
+
+    def makeFancyString(self, s: str) -> str:
+        s = list(s)
+        count = 1
+        keep = [True]
+        for i in range(1, len(s)):
+            if s[i] == s[i - 1]:
+                count += 1
+            else:
+                count = 1
+            keep.append(count < 3)
+        res = ''.join(compress(s, keep))
+        return res
+```
+
+---------------------
+
+# 2025-11-05 02:44: 3318. Find X-Sum of All K-Long Subarrays I (Easy) (time: 21m 10):
+
+```python3
+class Solution:
+
+    def xsum(self, nums, x):
+        counts = [[count, item] for (item, count) in Counter(nums).items()]
+        if len(counts) < x:
+            return sum(nums)
+        return sum((c * i for (c, i) in islice(sorted(counts, reverse=True), 0, x)))
+
+    def findXSum(self, nums: List[int], k: int, x: int) -> List[int]:
+        return [self.xsum(nums[i:i + k], x) for i in range(len(nums) - k + 1)]
+```
+
+---------------------
+
+# 2025-11-05 02:52: 1880. Check if Word Equals Summation of Two Words (Easy) (time: 2m 18):
+
+```python3
+class Solution:
+
+    def isSumEqual(self, firstWord: str, secondWord: str, targetWord: str) -> bool:
+        to_int = lambda x: int(''.join([str(ord(c) - ord('a')) for c in x]))
+        return to_int(firstWord) + to_int(secondWord) == to_int(targetWord)
+```
+
+---------------------
+
+# 2025-11-05 03:31: 1710. Maximum Units on a Truck (Easy) (time: 6m 53):
+
+```python3
+class Solution:
+
+    def maximumUnits(self, boxTypes: List[List[int]], truckSize: int) -> int:
+        boxTypes.sort(key=lambda x: x[1], reverse=True)
+        numUnits = 0
+        for (numBoxes, units) in boxTypes:
+            boxesToUse = min(numBoxes, truckSize)
+            if boxesToUse == 0:
+                break
+            numUnits += boxesToUse * units
+            truckSize -= boxesToUse
+        return numUnits
+```
+
+---------------------
+
+# 2025-11-05 03:39: 2643. Row With Maximum Ones (Easy) (time: 3m 14):
+
+```python3
+class Solution:
+
+    def rowAndMaximumOnes(self, mat: List[List[int]]) -> List[int]:
+        counts = [[row.count(1), -i] for (i, row) in enumerate(mat)]
+        counts.sort(reverse=True)
+        res = next(iter(counts))
+        return [-res[1], res[0]]
+```
+
+---------------------
+
+# 2025-11-05 04:30: 3731. Find Missing Elements (Easy) (time: 2m 1):
+
+```python3
+class Solution:
+
+    def findMissingElements(self, nums: List[int]) -> List[int]:
+        if not nums:
+            return []
+        return [*sorted(list(set(range(min(nums), max(nums) + 1)) - set(nums)))]
+```
+
+---------------------
+
+# 2025-11-05 06:05: 1319. Number of Operations to Make Network Connected (Medium) (time: 6m 34):
+
+```python3
+class Solution:
+
+    def makeConnected(self, n: int, connections: List[List[int]]) -> int:
+        parent = list(range(n))
+        self.networks = n
+        self.redundant = 0
+
+        def find(x):
+            if parent[x] != x:
+                parent[x] = find(parent[x])
+            return parent[x]
+
+        def union(x, y):
+            rootx = find(x)
+            rooty = find(y)
+            if rootx != rooty:
+                parent[rootx] = rooty
+                self.networks -= 1
+            else:
+                self.redundant += 1
+        for (x, y) in connections:
+            union(x, y)
+        if self.redundant >= self.networks - 1:
+            return self.networks - 1
+        return -1
+```
+
+---------------------
+
+# 2025-11-05 07:13: 947. Most Stones Removed with Same Row or Column (Medium) (time: 22m 43):
+
+```python3
+class Solution:
+
+    def removeStones(self, stones: List[List[int]]) -> int:
+        parent = list(range(len(stones)))
+        self.can_remove = 0
+
+        def find(x):
+            if x != parent[x]:
+                parent[x] = find(parent[x])
+            return parent[x]
+
+        def union(x, y):
+            rootx = find(x)
+            rooty = find(y)
+            if rootx != rooty:
+                parent[rootx] = rooty
+                self.can_remove += 1
+        edges = []
+        for i in range(len(stones)):
+            for j in range(i + 1, len(stones)):
+                a = stones[i]
+                b = stones[j]
+                if a[0] == b[0] or a[1] == b[1]:
+                    union(i, j)
+                    edges.append([i, j])
+        draw_graphviz(edges)
+        return self.can_remove
+```
+
+---------------------
+
+# 2025-11-05 08:38: 210. Course Schedule II (Medium) - learning (time: 56m 8):
+
+```python3
+class Solution:
+
+    def findOrder(self, numCourses: int, prerequisites: List[List[int]]) -> List[int]:
+
+        def dfs(i, path, visiting):
+            if i in seen:
+                return True
+            if i in visiting:
+                return False
+            visiting.add(i)
+            for pre in G[i]:
+                if not dfs(pre, path, visiting):
+                    return False
+            visiting.remove(i)
+            seen.add(i)
+            path.append(i)
+            return True
+        G = defaultdict(list)
+        for course in range(numCourses):
+            G[course] = []
+        for (x, y) in prerequisites:
+            G[x].append(y)
+        draw_graphviz(G)
+        seen = set()
+        visiting = set()
+        path = []
+        for course in range(numCourses):
+            if course not in seen:
+                if not dfs(course, path, visiting):
+                    return []
+        return path
+```
+
+---------------------
+
 
 
 Here is my readiness estimates:
@@ -13456,6 +13975,219 @@ Here is my readiness estimates:
       "counting": 0.9,
       "sliding_window": 0.9,
       "union_find": 0.5,
+      "linked_list": 0.95,
+      "monotonic_stack": 0.5,
+      "recursion": 0.85,
+      "trie": 0.4,
+      "divide_and_conquer": 0.5,
+      "bitmask": 0.45,
+      "queue": 0.8,
+      "topological_sort": 0.3,
+      "segment_tree": 0.2,
+      "game_theory": 0.2,
+      "hash_function": 0.3,
+      "binary_indexed_tree": 0.2,
+      "string_matching": 0.5,
+      "rolling_hash": 0.2,
+      "shortest_path": 0.3,
+      "number_theory": 0.4,
+      "interactive": 0.1,
+      "brainteaser": 0.5,
+      "randomized": 0.2,
+      "monotonic_queue": 0.4,
+      "merge_sort": 0.5,
+      "iterator": 0.3,
+      "concurrency": 0.1,
+      "probability_and_statistics": 0.2,
+      "geometry": 0.3,
+      "ordered_set": 0.3,
+      "database": 0.2,
+      "design": 0.4,
+      "backtracking": 0.85,
+      "memoization": 0.75,
+      "quickselect": 0.3,
+      "bucket_sort": 0.3,
+      "minimum_spanning_tree": 0.2,
+      "counting_sort": 0.4,
+      "shell": 0.1,
+      "line_sweep": 0.2,
+      "reservoir_sampling": 0.1,
+      "strongly_connected_component": 0.1,
+      "eulerian_circuit": 0.1,
+      "radix_sort": 0.2,
+      "rejection_sampling": 0.1,
+      "biconnected_component": 0.1
+    }
+  },
+  {
+    "run_date": "2025-11-03",
+    "contest_readiness": "2025-12-15",
+    "faang_interview": "2026-03-15",
+    "contest_topics_readiness": {
+      "arrays": 0.95,
+      "strings": 0.95,
+      "hash_table": 0.9,
+      "dynamic_programming": 0.8,
+      "math": 0.9,
+      "sorting": 0.9,
+      "greedy": 0.85,
+      "depth_first_search": 0.9,
+      "binary_search": 0.95,
+      "breadth_first_search": 0.85,
+      "tree": 0.95,
+      "matrix": 0.9,
+      "two_pointers": 0.95,
+      "bit_manipulation": 0.9,
+      "stack": 0.9,
+      "heap": 0.95,
+      "graph": 0.9,
+      "prefix_sum": 0.95,
+      "simulation": 0.8,
+      "counting": 0.9,
+      "sliding_window": 0.9,
+      "union_find": 0.7,
+      "linked_list": 0.95,
+      "monotonic_stack": 0.5,
+      "recursion": 0.85,
+      "trie": 0.4,
+      "divide_and_conquer": 0.5,
+      "bitmask": 0.45,
+      "queue": 0.8,
+      "topological_sort": 0.3,
+      "segment_tree": 0.2,
+      "game_theory": 0.2,
+      "hash_function": 0.3,
+      "binary_indexed_tree": 0.2,
+      "string_matching": 0.5,
+      "rolling_hash": 0.2,
+      "shortest_path": 0.3,
+      "number_theory": 0.4,
+      "interactive": 0.1,
+      "brainteaser": 0.5,
+      "randomized": 0.2,
+      "monotonic_queue": 0.4,
+      "merge_sort": 0.5,
+      "iterator": 0.3,
+      "concurrency": 0.1,
+      "probability_and_statistics": 0.2,
+      "geometry": 0.3,
+      "ordered_set": 0.3,
+      "database": 0.2,
+      "design": 0.4,
+      "backtracking": 0.85,
+      "memoization": 0.75,
+      "quickselect": 0.3,
+      "bucket_sort": 0.3,
+      "minimum_spanning_tree": 0.2,
+      "counting_sort": 0.4,
+      "shell": 0.1,
+      "line_sweep": 0.2,
+      "reservoir_sampling": 0.1,
+      "strongly_connected_component": 0.1,
+      "eulerian_circuit": 0.1,
+      "radix_sort": 0.2,
+      "rejection_sampling": 0.1,
+      "biconnected_component": 0.1
+    }
+  },
+  {
+    "run_date": "2025-11-04",
+    "contest_readiness": "2025-11-20",
+    "faang_interview": "2025-12-15",
+    "contest_topics_readiness": {
+      "arrays": 0.95,
+      "strings": 0.95,
+      "hash_table": 0.9,
+      "dynamic_programming": 0.8,
+      "math": 0.9,
+      "sorting": 0.9,
+      "greedy": 0.85,
+      "depth_first_search": 0.9,
+      "binary_search": 0.95,
+      "breadth_first_search": 0.85,
+      "tree": 0.95,
+      "matrix": 0.9,
+      "two_pointers": 0.95,
+      "bit_manipulation": 0.9,
+      "stack": 0.9,
+      "heap": 0.95,
+      "graph": 0.9,
+      "prefix_sum": 0.95,
+      "simulation": 0.85,
+      "counting": 0.9,
+      "sliding_window": 0.9,
+      "union_find": 0.75,
+      "linked_list": 0.95,
+      "monotonic_stack": 0.5,
+      "recursion": 0.85,
+      "trie": 0.4,
+      "divide_and_conquer": 0.5,
+      "bitmask": 0.45,
+      "queue": 0.8,
+      "topological_sort": 0.3,
+      "segment_tree": 0.2,
+      "game_theory": 0.2,
+      "hash_function": 0.3,
+      "binary_indexed_tree": 0.2,
+      "string_matching": 0.5,
+      "rolling_hash": 0.2,
+      "shortest_path": 0.3,
+      "number_theory": 0.4,
+      "interactive": 0.1,
+      "brainteaser": 0.5,
+      "randomized": 0.2,
+      "monotonic_queue": 0.4,
+      "merge_sort": 0.5,
+      "iterator": 0.3,
+      "concurrency": 0.1,
+      "probability_and_statistics": 0.2,
+      "geometry": 0.3,
+      "ordered_set": 0.3,
+      "database": 0.2,
+      "design": 0.4,
+      "backtracking": 0.85,
+      "memoization": 0.75,
+      "quickselect": 0.3,
+      "bucket_sort": 0.3,
+      "minimum_spanning_tree": 0.2,
+      "counting_sort": 0.4,
+      "shell": 0.1,
+      "line_sweep": 0.2,
+      "reservoir_sampling": 0.1,
+      "strongly_connected_component": 0.1,
+      "eulerian_circuit": 0.1,
+      "radix_sort": 0.2,
+      "rejection_sampling": 0.1,
+      "biconnected_component": 0.1
+    }
+  },
+  {
+    "run_date": "2025-11-05",
+    "contest_readiness": "2026-01-15",
+    "faang_interview": "2026-05-15",
+    "contest_topics_readiness": {
+      "arrays": 0.95,
+      "strings": 0.95,
+      "hash_table": 0.9,
+      "dynamic_programming": 0.85,
+      "math": 0.9,
+      "sorting": 0.9,
+      "greedy": 0.85,
+      "depth_first_search": 0.9,
+      "binary_search": 0.95,
+      "breadth_first_search": 0.85,
+      "tree": 0.95,
+      "matrix": 0.9,
+      "two_pointers": 0.95,
+      "bit_manipulation": 0.9,
+      "stack": 0.9,
+      "heap": 0.95,
+      "graph": 0.9,
+      "prefix_sum": 0.95,
+      "simulation": 0.85,
+      "counting": 0.9,
+      "sliding_window": 0.9,
+      "union_find": 0.8,
       "linked_list": 0.95,
       "monotonic_stack": 0.5,
       "recursion": 0.85,

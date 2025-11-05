@@ -96,7 +96,6 @@ Constraints:
 1 ≤ n ≤ 1000
 """
 
-
 def main():
     n = int(input())
     count = 0
@@ -106,37 +105,14 @@ def main():
             count += 1
     print(count)
 
-
-if __name__ == "__main__":
-    main()
-
-
-import sys
-from io import StringIO
-
-
-def run_with_input(input_str):
-    original_stdin = sys.stdin
-    sys.stdin = StringIO(input_str)
-    original_stdout = sys.stdout
-    output = StringIO()
-    sys.stdout = output
-    try:
-        main()
-        return output.getvalue().strip()
-    finally:
-        sys.stdin = original_stdin
-        sys.stdout = original_stdout
-
-
 input1 = """3
 1 1 0
 1 1 1
 1 0 0
 """
-print(run_with_input(input1))  # 2
+print(run_with_input(input1, main))  # 2
 
-assert run_with_input(input1) == "2"
+assert run_with_input(input1, main) == "2"
 '''
 
 lock = threading.Lock()

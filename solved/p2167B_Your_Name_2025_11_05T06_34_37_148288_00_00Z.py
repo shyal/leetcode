@@ -58,8 +58,6 @@ Constraints:
 - s and t are distinct
 """
 
-from collections import Counter
-
 
 def solve(n: int, s: str, t: str) -> str:
     return ["NO", "YES"][Counter(s) == Counter(t)]
@@ -71,28 +69,6 @@ def main():
         n = int(input())
         s, t = input().split()
         print(solve(n, s, t))
-
-
-if __name__ == "__main__":
-    # main()
-    pass
-
-import sys
-from io import StringIO
-
-
-def run_with_input(input_str):
-    original_stdin = sys.stdin
-    sys.stdin = StringIO(input_str)
-    original_stdout = sys.stdout
-    output = StringIO()
-    sys.stdout = output
-    try:
-        main()
-        return output.getvalue().strip()
-    finally:
-        sys.stdin = original_stdin
-        sys.stdout = original_stdout
 
 
 input1 = """5
@@ -107,29 +83,29 @@ nezuqo nezuko
 6
 misaka mikasa
 """
-# print(run_with_input(input1))
-assert run_with_input(input1) == "YES\nYES\nNO\nNO\nYES"
+# print(run_with_input(input1, main))
+assert run_with_input(input1, main) == "YES\nYES\nNO\nNO\nYES"
 
 input2 = """1
 1
 a b
 """
-# print(run_with_input(input2))
-assert run_with_input(input2) == "NO"
+# print(run_with_input(input2, main))
+assert run_with_input(input2, main) == "NO"
 
 input3 = """1
 2
 ab ba
 """
-# print(run_with_input(input3))
-assert run_with_input(input3) == "YES"
+# print(run_with_input(input3, main))
+assert run_with_input(input3, main) == "YES"
 
 input4 = """1
 2
 aa ab
 """
-# print(run_with_input(input4))
-assert run_with_input(input4) == "NO"
+# print(run_with_input(input4, main))
+assert run_with_input(input4, main) == "NO"
 
 input5 = """2
 3
@@ -137,28 +113,28 @@ abc acb
 3
 abc abd
 """
-# print(run_with_input(input5))
-assert run_with_input(input5) == "YES\nNO"
+# print(run_with_input(input5, main))
+assert run_with_input(input5, main) == "YES\nNO"
 
 input6 = """1
 20
 abcdefghijklmnopqrst abcdefghijklmnopqrts
 """
-# print(run_with_input(input6))
-assert run_with_input(input6) == "YES"
+# print(run_with_input(input6, main))
+assert run_with_input(input6, main) == "YES"
 
 input7 = """1
 5
 aaabb ababa
 """
-# print(run_with_input(input7))
-assert run_with_input(input7) == "YES"
+# print(run_with_input(input7, main))
+assert run_with_input(input7, main) == "YES"
 
 input8 = """1
 5
 aaabb aaaab
 """
-# print(run_with_input(input8))
-assert run_with_input(input8) == "NO"
+# print(run_with_input(input8, main))
+assert run_with_input(input8, main) == "NO"
 
 print("All tests passed")

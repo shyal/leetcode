@@ -179,20 +179,6 @@ def batched(s, n=1):
 
 
 def ceil_div(a: int, b: int) -> int:
-    """
-    Computes the ceiling of a / b for positive integers a and b > 0,
-    using integer arithmetic to avoid floating-point precision issues.
-
-    Args:
-        a: The numerator (dividend).
-        b: The denominator (divisor), must be > 0.
-
-    Returns:
-        The smallest integer >= a / b.
-
-    Raises:
-        ValueError: If b <= 0 or if a < 0 (assuming positive inputs).
-    """
     if b <= 0:
         raise ValueError("Denominator b must be positive.")
     if a < 0:
@@ -202,3 +188,24 @@ def ceil_div(a: int, b: int) -> int:
 
 builtins.batched = batched
 builtins.ceil_div = ceil_div
+
+
+import sys
+from io import StringIO
+
+
+def run_with_input(input_str, main):
+    original_stdin = sys.stdin
+    sys.stdin = StringIO(input_str)
+    original_stdout = sys.stdout
+    output = StringIO()
+    sys.stdout = output
+    try:
+        main()
+        return output.getvalue().strip()
+    finally:
+        sys.stdin = original_stdin
+        sys.stdout = original_stdout
+
+
+builtins.run_with_input = run_with_input
