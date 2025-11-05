@@ -19,30 +19,30 @@ def parse_current(file_path="current.py"):
     docstring = match.group(1).strip()
     lines = docstring.split("\n")
 
-    num = None
+    problem_id = None
     title = None
     for line in lines:
         line = line.strip()
         if line:
-            prob_match = re.match(r"(\d+)\.\s*(.+)", line)
+            prob_match = re.match(r"(\d+[a-zA-Z]?)\.\s*(.+)", line)
             if prob_match:
-                num = int(prob_match.group(1))
+                problem_id = prob_match.group(1).strip()
                 title = prob_match.group(2).strip()
                 break
 
-    if num is None:
+    if problem_id is None:
         # If not in first line, check after url
         for i, line in enumerate(lines):
             if line.strip().startswith("https://"):
                 if i + 1 < len(lines):
                     next_line = lines[i + 1].strip()
-                    prob_match = re.match(r"(\d+)\.\s*(.+)", next_line)
+                    prob_match = re.match(r"(\d+[a-zA-Z]?)\.\s*(.+)", next_line)
                     if prob_match:
-                        num = int(prob_match.group(1))
+                        problem_id = prob_match.group(1).strip()
                         title = prob_match.group(2).strip()
                         break
 
-    return num, title, content
+    return problem_id, title, content
 
 
 def comment_out_prints(content):
@@ -91,9 +91,9 @@ def main():
         print("current.py does not exist. Exiting.")
         return
 
-    num, title, content = parse_current()
-    if num is None or title is None:
-        print("Could not parse problem number and title from current.py. Exiting.")
+    problem_id, title, content = parse_current()
+    if problem_id is None or title is None:
+        print("Could not parse problem id and title from current.py. Exiting.")
         return
 
     # Comment out print statements
@@ -104,7 +104,7 @@ def main():
     utc_now = datetime.now(timezone.utc)
     iso = utc_now.isoformat() + "Z"
     sanitized = re.sub(r"[^\w]", "_", iso)
-    filename = f"p{num}_{clean_title}_{sanitized}.py"
+    filename = f"p{problem_id}_{clean_title}_{sanitized}.py"
     output_dir = "./solved"
     os.makedirs(output_dir, exist_ok=True)
     filepath = os.path.join(output_dir, filename)
@@ -117,7 +117,7 @@ def main():
         f.write("")
 
     # Prepare commit message
-    commit_message = f"{num}. {title}\n\nsolve time: {solve_time}"
+    commit_message = f"{problem_id}. {title}\n\nsolve time: {solve_time}"
 
     try:
         subprocess.run(["git", "add", "."], check=True)
