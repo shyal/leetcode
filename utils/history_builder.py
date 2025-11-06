@@ -11,8 +11,16 @@ from collections import defaultdict
 import json
 import os
 import re
-from xai_sdk import Client
-from xai_sdk.chat import system, user
+
+grok_available = None
+
+try:
+    from xai_sdk import Client
+    from xai_sdk.chat import system, user
+
+    grok_available = True
+except:
+    grok_available = False
 
 from metadata import get_problems_metadata
 
@@ -50,11 +58,11 @@ def grok(user_prompt):
     return strip_triple_ticks(summary)
 
 
-api_key = os.getenv("GROK_API_KEY")
-if not api_key:
-    raise ValueError("GROK_API_KEY environment variable not set")
-
-client = Client(api_key=api_key)
+if grok_available:
+    api_key = os.getenv("GROK_API_KEY")
+    if not api_key:
+        raise ValueError("GROK_API_KEY environment variable not set")
+    client = Client(api_key=api_key)
 
 
 def parse_timestamp(ts_str):
@@ -358,7 +366,11 @@ def get_history_string(
 
             notes, code = parse_content(content)
 
-            if compress_older_than > 0 and id(problem) not in recent_solves:
+            if (
+                grok_available
+                and compress_older_than > 0
+                and id(problem) not in recent_solves
+            ):
                 key = problem.file
                 if key in summaries:
                     summary = summaries[key]
