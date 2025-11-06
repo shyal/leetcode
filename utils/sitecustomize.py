@@ -171,6 +171,7 @@ builtins.cache = cache
 builtins.gcd = gcd
 builtins.isclose = isclose
 builtins.dropwhile = dropwhile
+builtins.build_nary_tree = build_nary_tree
 
 
 def batched(s, n=1):

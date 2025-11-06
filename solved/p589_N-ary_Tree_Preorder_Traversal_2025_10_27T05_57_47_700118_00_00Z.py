@@ -27,31 +27,6 @@ Follow up: Recursive solution is trivial, could you do it iteratively?
 """
 
 
-class Node:
-    def __init__(
-        self, val: Optional[int] = None, children: Optional[List["Node"]] = None
-    ):
-        self.val = val
-        self.children = children if children is not None else []
-
-
-def build_nary_tree(data: List[Optional[int]]) -> Optional[Node]:
-    if not data or data[0] is None:
-        return None
-    root = Node(data[0])
-    queue = deque([root])
-    i = 2  # Skip root and first null
-    while queue and i < len(data):
-        parent = queue.popleft()
-        while i < len(data) and data[i] is not None:
-            child = Node(data[i])
-            parent.children.append(child)
-            queue.append(child)
-            i += 1
-        i += 1  # Skip the null
-    return root
-
-
 class Solution:
     def preorder(self, root: "Node") -> List[int]:
         def dfs(node):

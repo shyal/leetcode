@@ -180,3 +180,20 @@ def get_level_order(root: Optional[TreeNode]) -> List[Optional[int]]:
     while result and result[-1] is None:
         result.pop()
     return result
+
+
+def build_nary_tree(arr: List[Optional[int]]) -> Optional[Node]:
+    if not arr or arr[0] is None:
+        return None
+    root = Node(arr[0], children=[])
+    queue = deque([root])
+    i = 2  # skip the first null at index 1
+    while queue and i < len(arr):
+        node = queue.popleft()
+        while i < len(arr) and arr[i] is not None:
+            child = Node(arr[i], children=[])
+            node.children.append(child)
+            queue.append(child)
+            i += 1
+        i += 1  # skip the null
+    return root

@@ -39,3 +39,11 @@ class Node:
     def __init__(self, val: Any, children: Dict[Any, "Node"] = {}):
         self.val = val
         self.children = children
+
+
+# class Node:
+#     def __init__(
+#         self, val: Optional[int] = None, children: Optional[List["Node"]] = None
+#     ):
+#         self.val = val
+#         self.children = children if children is not None else []
