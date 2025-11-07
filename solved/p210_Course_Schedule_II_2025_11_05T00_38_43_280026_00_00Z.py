@@ -38,9 +38,6 @@ Constraints:
 - ai != bi
 - All the pairs [ai, bi] are distinct.
 
-
-Not my solution.
-
 """
 
 
@@ -76,6 +73,30 @@ class Solution:
                 if not dfs(course, path, visiting):
                     return []
         return path
+
+
+# variation using Node class
+# class Solution:
+#     def findOrder(self, numCourses: int, prerequisites: List[List[int]]) -> List[int]:
+#         nodes = {i: Node(i, children=[]) for i in range(numCourses)}
+#         for n in nodes:
+#             nodes[n].indegree = 0
+#         for dependent, upstream in prerequisites:
+#             nodes[upstream].children.append(nodes[dependent])
+#             nodes[dependent].indegree += 1
+
+#         queue = deque([node for node in nodes.values() if node.indegree == 0])
+#         order = []
+
+#         while queue:
+#             curr = queue.popleft()
+#             order.append(curr.val)
+#             for dependent in curr.children:
+#                 dependent.indegree -= 1
+#                 if dependent.indegree == 0:
+#                     queue.append(dependent)
+
+#         return order if len(order) == numCourses else []
 
 
 sol = Solution()
