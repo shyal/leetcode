@@ -1,4 +1,4 @@
-i've noticed that codeforces uses a different rating than leetcode for difficulty, e.g a number 800, or 3500 etc. what would you estimate is a good difficulty rating for me? e.g so i can get 4 solves and maybe one 1 fail on average 
+How's my progress. I'm wondering whether i should change my approach. currently i'm aiming to solve 7 problems a day.. i try some new mediums or hards in areas i need to learn (recommended by grok) and when time is running out i switch to super easy questions to reach my quota. to progress on stuff i find difficult i have detailed conversations with grok. i'm wondering if doing the easies is a waste of my attention. should i switch to only working on questions that make my knowledge progress? or should i just put all the solutions in anki and memorize as much as possible in the hopes that memorizing solutions transfers to new questions? or should i just study hard questions in the hopes that the knowledge will transfer over to mediums? what can i change to be ready sooner, if anything?
 
 
 Here is my LeetCode solve history (most recent last):
@@ -6364,91 +6364,6 @@ class Solution:
 
 ---------------------
 
-# 2025-10-13 16:57: 1792. Maximize Score After N Operations (Medium) - learning (time: 34m 16):
-
-```python3
-from typing import List
-from math import gcd
-from itertools import islice
-
-class Solution:
-
-    def maxScore(self, nums: List[int]) -> int:
-        combs = [*combinations(nums, 2)]
-        combs.sort(key=lambda x: gcd(*x), reverse=True)
-        groups = islice(sorted([gcd(*x) for x in combs], reverse=True), 0, len(nums) // 2)
-        groups = [*groups][::-1]
-        return sum((x[0] * x[1] for x in enumerate(groups, start=1)))
-```
-
-## notes: 
-
-Hm the not so simple here is deciding which elements to pick from the array to maximize
-the result.
-
-Let's run through some options by hand, and see whether we can spot a pattern.
-
-[3,4,6,8]
-
-Here are all the options we have for GCD
-
-gcd(3, 4) -> 1
-gcd(3, 6) -> 3
-gcd(3, 8) -> 1
-gcd(4, 6) -> 2
-gcd(4, 8) -> 4
-gcd(6, 8) -> 2
-
-The best picks are, and we note they have the greatest GCDs:
-
-gcd(3, 6) -> 3
-gcd(4, 8) -> 4
-
-I'm not really sure what the whole 'n' business is about, since we don't get passed an n. Maybe they
-mean that n = len(nums) // 2.
-
-Looking at the provided hints:
-
-Hint 1
-Find every way to split the array until n groups of 2. Brute force recursion is acceptable.
-Hint 2
-Calculate the gcd of every pair and greedily multiply the largest gcds.
-
-I'm not really clear what hint 1 means. If we want groups of 2, we don't get to choose how many groups we get.
-
-For example: `[*combinations(nums, 2)]` gives us:
-
-[(3, 4), (3, 6), (3, 8), (4, 6), (4, 8), (6, 8)]
-
-We can take their gcds:
-
-[1, 3, 1, 2, 4, 2]
-
-sort it and take the two largest numbers.
-
-groups = islice(
-    sorted([gcd(*x) for x in combinations(nums, 2)], reverse=True),
-    0,
-    len(nums) // 2,
-)
-groups = [*groups][::-1]
-return sum(x[0] * x[1] for x in enumerate(groups, start=1))
-
-This works for the given example. But it might be by chance. Let's try others.
-
-Works on many values, but not on:
-
-# assert sol.maxScore([1, 2, 3, 6]) == 7
-# assert sol.maxScore([9, 3, 6, 2]) == 8
-# assert sol.maxScore([1, 2, 3, 4, 5, 6]) == 14
-
-ok i can see what the problem is. The problem is, combinations leads to repeats, which breaks the constraints.
-So i'd need to write a recursive function which breaks up the array into groups of two, without repeats.
-
-I'm a bit rusty with this.. very similar to knapsack in a way. Will revisit this soon.
-
----------------------
-
 # 2025-10-13 20:13: 506. Relative Ranks (Easy) (time: 6m 9):
 
 ```python3
@@ -10400,28 +10315,6 @@ class Solution:
 # 2025-10-27 13:57: 589. N-ary Tree Preorder Traversal (Easy) (time: 4m 43):
 
 ```python3
-class Node:
-
-    def __init__(self, val: Optional[int]=None, children: Optional[List['Node']]=None):
-        self.val = val
-        self.children = children if children is not None else []
-
-def build_nary_tree(data: List[Optional[int]]) -> Optional[Node]:
-    if not data or data[0] is None:
-        return None
-    root = Node(data[0])
-    queue = deque([root])
-    i = 2
-    while queue and i < len(data):
-        parent = queue.popleft()
-        while i < len(data) and data[i] is not None:
-            child = Node(data[i])
-            parent.children.append(child)
-            queue.append(child)
-            i += 1
-        i += 1
-    return root
-
 class Solution:
 
     def preorder(self, root: 'Node') -> List[int]:
@@ -12681,6 +12574,600 @@ class Solution:
 
 ---------------------
 
+# 2025-11-05 16:36: 1769. Minimum Number of Operations to Move All Balls to Each Box (Medium) (time: 3m 34):
+
+```python3
+class Solution:
+
+    def minOperations(self, boxes: str) -> List[int]:
+        ones = set([i for i in range(len(boxes)) if boxes[i] == '1'])
+        return [sum((abs(i - x) for x in ones)) for i in range(len(boxes))]
+```
+
+---------------------
+
+# 2025-11-05 16:49: 2161. Partition Array According to Given Pivot (Medium) (time: 6m 5):
+
+```python3
+class Solution:
+
+    def pivotArray(self, nums: List[int], pivot: int) -> List[int]:
+        nums.sort(key=lambda x: -maxsize if x < pivot else x if x == pivot else maxsize)
+        return nums
+```
+
+---------------------
+
+# 2025-11-05 17:16: 2396. Strictly Palindromic Number (Medium) (time: 11m 12):
+
+```python3
+class Solution:
+
+    def isStrictlyPalindromic(self, n: int) -> bool:
+        return False
+```
+
+---------------------
+
+# 2025-11-05 18:18: 802. Find Eventual Safe States (Medium) (time: 25m 13):
+
+```python3
+class Solution:
+
+    def eventualSafeNodes(self, graph: List[List[int]]) -> List[int]:
+        G = defaultdict(list)
+        terminal = set()
+        for i in range(len(graph)):
+            G[i] = graph[i]
+            if not graph[i]:
+                terminal.add(i)
+        draw_graphviz(G)
+
+        @cache
+        def dfs(i):
+            if i in terminal:
+                return True
+            if i in seen:
+                return False
+            seen.add(i)
+            for connection in G[i]:
+                if not dfs(connection):
+                    return False
+            return True
+        safe = []
+        seen = set()
+        for node in range(len(graph)):
+            if not dfs(node):
+                continue
+            safe.append(node)
+        return safe
+```
+
+---------------------
+
+# 2025-11-06 10:23: 3607. Power Grid Maintenance (Medium) - learning (time: 19m 28):
+
+```python3
+class CheckType:
+    maintenance_check = 1
+    go_offline = 2
+
+class Solution:
+
+    def processQueries(self, c: int, connections: List[List[int]], queries: List[List[int]]) -> List[int]:
+        G = defaultdict(dict)
+        for i in range(1, c + 1):
+            G[i] = dict()
+        for (x, y) in connections:
+            G[x][y] = 1
+            G[y][x] = 1
+        draw_graphviz(G)
+        is_online = {i: True for i in range(1, c + 1)}
+
+        def maintenance_check(check_type, i):
+            if check_type == CheckType.maintenance_check:
+                if is_online[i]:
+                    return i
+                else:
+                    pass
+            elif check_type == CheckType.go_offline:
+                is_online[i] = False
+                return
+        res = []
+        for query in queries:
+            r = maintenance_check(*query)
+            if r is not None:
+                res.append(r)
+```
+
+## notes: 
+
+Too hard. Will revisit later.
+
+---------------------
+
+# 2025-11-06 11:17: 1584. Min Cost to Connect All Points (Medium) - learning (time: 25m 48):
+
+```python3
+class Solution:
+
+    def minCostConnectPoints(self, p: List[List[int]]) -> int:
+        edges = sorted([(abs(p[i][0] - p[j][0]) + abs(p[i][1] - p[j][1]), i, j) for (i, j) in combinations(range(len(p)), 2)])
+        parent = list(range(len(p)))
+
+        def find(x):
+            if parent[x] != x:
+                parent[x] = find(parent[x])
+            return parent[x]
+
+        def union(x, y):
+            (px, py) = (find(x), find(y))
+            if px == py:
+                return False
+            parent[py] = px
+            return True
+        total_cost = 0
+        edges_used = 0
+        for (dist, u, v) in edges:
+            if union(u, v):
+                total_cost += dist
+                edges_used += 1
+                if edges_used == len(p) - 1:
+                    break
+        return total_cost
+```
+
+---------------------
+
+# 2025-11-06 12:26: 743. Network Delay Time (Medium) - learning (time: 22m 55):
+
+```python3
+class Solution:
+
+    def networkDelayTime(self, times: List[List[int]], n: int, k: int) -> int:
+        graph = defaultdict(dict)
+        for i in range(1, n + 1):
+            graph[i]
+        for (source, target, time) in times:
+            graph[source][target] = time
+        draw_graphviz(graph)
+        dist = [maxsize] * (n + 1)
+        dist[k] = 0
+        pq = [(0, k)]
+        while pq:
+            (d, u) = heappop(pq)
+            if d > dist[u]:
+                continue
+            for (v, w) in graph[u].items():
+                if dist[v] > dist[u] + w:
+                    dist[v] = dist[u] + w
+                    heappush(pq, (dist[v], v))
+        max_dist = max(dist[1:])
+        return max_dist if max_dist != maxsize else -1
+```
+
+---------------------
+
+# 2025-11-06 14:14: 3069. Distribute Elements Into Two Arrays I (Easy) (time: 3m 45):
+
+```python3
+class Solution:
+
+    def resultArray(self, nums: List[int]) -> List[int]:
+        nums = nums[::-1]
+        (arr1, arr2) = ([nums.pop()], [nums.pop()])
+        while nums:
+            if arr1[-1] > arr2[-1]:
+                arr1.append(nums.pop())
+            else:
+                arr2.append(nums.pop())
+        return arr1 + arr2
+```
+
+---------------------
+
+# 2025-11-06 14:17: 2278. Percentage of Letter in String (Easy) (time: 1m 25):
+
+```python3
+class Solution:
+
+    def percentageLetter(self, s: str, letter: str) -> int:
+        n = len(s)
+        count = s.count(letter)
+        return int(count / n * 100)
+```
+
+---------------------
+
+# 2025-11-06 14:23: 2441. Largest Positive Integer That Exists With Its Negative (Easy) (time: 2m 38):
+
+```python3
+class Solution:
+
+    def findMaxK(self, nums: List[int]) -> int:
+        _max = 0
+        nums = set(nums)
+        for n in nums:
+            if -n in nums:
+                _max = max(_max, n)
+        return _max or -1
+```
+
+---------------------
+
+# 2025-11-06 14:32: 2586. Count the Number of Vowel Strings in Range (Easy) (time: 5m 34):
+
+```python3
+class Solution:
+
+    def vowelStrings(self, words: List[str], left: int, right: int) -> int:
+        vowels = set('aeiou')
+        count = 0
+        for x in words[left:right + 1]:
+            count += x[0] in vowels and x[-1] in vowels
+        return count
+```
+
+---------------------
+
+# 2025-11-06 14:42: 1403. Minimum Subsequence in Non-Increasing Order (Easy) (time: 5m 52):
+
+```python3
+class Solution:
+
+    def minSubsequence(self, nums: List[int]) -> List[int]:
+        nums.sort()
+        s = 0
+        _sum = sum(nums)
+        ss = []
+        while nums and s <= _sum:
+            e = nums.pop()
+            s += e
+            _sum -= e
+            ss.append(e)
+        return ss
+```
+
+---------------------
+
+# 2025-11-06 14:57: 559. Maximum Depth of N-ary Tree (Easy) (time: 1m 59):
+
+```python3
+from typing import Optional, List
+from collections import deque
+'\nURL: https://leetcode.com/problems/maximum-depth-of-n-ary-tree/description/?envType=problem-list-v2&envId=vn57k9wr\n\n559. Maximum Depth of N-ary Tree\n\nGiven a n-ary tree, find its maximum depth.\n\nThe maximum depth is the number of nodes along the longest path from the root node down to the farthest leaf node.\n\nNary-Tree input serialization is represented in their level order traversal, each group of children is separated by the null value (See examples).\n\nExample 1:\n\nInput: root = [1,null,3,2,4,null,5,6]\nOutput: 3\n\nExample 2:\n\nInput: root = [1,null,2,3,4,5,null,null,6,7,null,8,null,9,10,null,null,11,null,12,null,13,null,null,14]\nOutput: 5\n\nConstraints:\n\n    The total number of nodes is in the range [0, 10^4].\n    The depth of the n-ary tree is less than or equal to 1000.\n'
+
+class Solution:
+
+    def maxDepth(self, root: 'Node') -> int:
+
+        def dfs(node, depth=0):
+            if not node:
+                return
+            self.max = max(self.max, depth)
+            for n in node.children:
+                dfs(n, depth + 1)
+        self.max = 0
+        dfs(root, 1)
+        return self.max
+```
+
+---------------------
+
+# 2025-11-06 15:07: 1302. Deepest Leaves Sum (Medium) (time: 6m 23):
+
+```python3
+class Solution:
+
+    def deepestLeavesSum(self, root: Optional[TreeNode]) -> int:
+
+        def dfs(node, depth=0):
+            if not node:
+                return
+            self.max_depth = max(self.max_depth, depth)
+            dfs(node.left, depth + 1)
+            dfs(node.right, depth + 1)
+            if not node.left and (not node.right):
+                self.leaves[depth].append(node.val)
+        self.max_depth = 0
+        self.leaves = defaultdict(list)
+        dfs(root)
+        return sum(self.leaves[self.max_depth]) if self.leaves[self.max_depth] else 0
+```
+
+---------------------
+
+# 2025-11-06 19:21: 1689. Partitioning Into Minimum Number Of Deci-Binary Numbers (Medium) (time: 6m 28):
+
+```python3
+class Solution:
+
+    def minPartitions(self, n: str) -> int:
+        return int(max(n))
+```
+
+---------------------
+
+# 2025-11-06 19:29: 2545. Sort the Students by Their Kth Score (Medium) (time: 3m 31):
+
+```python3
+class Solution:
+
+    def sortTheStudents(self, score: List[List[int]], k: int) -> List[List[int]]:
+        score.sort(key=lambda x: x[k], reverse=True)
+        return score
+```
+
+---------------------
+
+# 2025-11-07 07:02: 310. Minimum Height Trees (Medium) - learning (time: 22m 34):
+
+```python3
+class Solution:
+
+    def findMinHeightTrees(self, n: int, edges: List[List[int]]) -> List[int]:
+        if n <= 2:
+            return list(range(n))
+        graph = defaultdict(list)
+        degrees = [0] * n
+        for (a, b) in edges:
+            graph[a].append(b)
+            graph[b].append(a)
+            degrees[a] += 1
+            degrees[b] += 1
+        queue = deque([i for i in range(n) if degrees[i] == 1])
+        remaining = n
+        while remaining > 2:
+            level_size = len(queue)
+            remaining -= level_size
+            for _ in range(level_size):
+                leaf = queue.popleft()
+                for neighbor in graph[leaf]:
+                    degrees[neighbor] -= 1
+                    if degrees[neighbor] == 1:
+                        queue.append(neighbor)
+        return list(queue)
+```
+
+---------------------
+
+# 2025-11-07 12:38: 410. Split Array Largest Sum (Hard) - learning (time: 16m 2):
+
+```python3
+class Solution:
+
+    def count_smaller_subarrays(self, nums, max_sum):
+        prefix = 0
+        cuts = 0
+        for n in nums:
+            if n > max_sum:
+                return False
+            prefix += n
+            if prefix > max_sum:
+                cuts += 1
+                prefix = n
+        return cuts + 1
+
+    def can_split(self, nums, max_sum, m):
+        return self.count_smaller_subarrays(nums, max_sum) <= m
+
+    def splitArray(self, nums: List[int], k: int) -> int:
+        low = max(nums)
+        high = sum(nums)
+        result = 0
+        while low <= high:
+            mid = (low + high) // 2
+            if self.can_split(nums, mid, k):
+                result = mid
+                high = mid - 1
+            else:
+                low = mid + 1
+        return result
+```
+
+---------------------
+
+# 2025-11-07 13:16: 210. Course Schedule II (Medium) (time: 12m 4):
+
+```python3
+class Solution:
+
+    def findOrder(self, numCourses: int, prerequisites: List[List[int]]) -> List[int]:
+        G = defaultdict(list)
+        for i in range(numCourses):
+            G[i] = list()
+        degrees = [0] * numCourses
+        for (a, b) in prerequisites:
+            G[a].append(b)
+            degrees[b] += 1
+        Q = deque([c for c in range(numCourses) if degrees[c] == 0])
+        res = []
+        while Q:
+            curr = Q.popleft()
+            res.append(curr)
+            for dep in G[curr]:
+                degrees[dep] -= 1
+                if degrees[dep] == 0:
+                    Q.append(dep)
+        if len(res) == numCourses:
+            return res[::-1]
+        else:
+            return []
+```
+
+---------------------
+
+# 2025-11-07 16:42: 410. Split Array Largest Sum (Hard) (time: 6m 51):
+
+```python3
+class Solution:
+
+    def count_subarrays_for_max_subarray_sum(self, nums, max_sum):
+        prefix = 0
+        cuts = 0
+        for n in nums:
+            prefix += n
+            if prefix > max_sum:
+                prefix = n
+                cuts += 1
+        return cuts + 1
+
+    def can_split(self, nums, max_sum, m):
+        cuts = self.count_subarrays_for_max_subarray_sum(nums, max_sum)
+        return cuts <= m
+
+    def splitArray(self, nums: List[int], k: int) -> int:
+        low = max(nums)
+        high = sum(nums)
+        result = 0
+        while low <= high:
+            mid = (low + high) // 2
+            if self.can_split(nums, mid, k):
+                result = mid
+                high = mid - 1
+            else:
+                low = mid + 1
+        return result
+```
+
+## notes: 
+
+Attempted so often i ended up solving it by memory (not good).
+
+---------------------
+
+# 2025-11-07 17:13: 310. Minimum Height Trees (Medium) - learning (time: 23m 32):
+
+```python3
+class Solution:
+
+    def findMinHeightTrees(self, n: int, edges: List[List[int]]) -> List[int]:
+        G = defaultdict(dict)
+        degrees = [0] * n
+        for (a, b) in edges:
+            G[a][b] = 1
+            G[b][a] = 1
+            degrees[a] += 1
+            degrees[b] += 1
+        draw_graphviz(G)
+        d = []
+        for i in range(n):
+            d.append([degrees[i], i])
+        heapify(d)
+        remaining = n
+        while remaining > 2:
+            curr = heappop(d)
+            remaining -= 1
+        return [x[1] for x in d]
+```
+
+## notes: 
+
+Close! But i can't quite remember how to decide whether to return one or two roots.
+
+---------------------
+
+# 2025-11-07 19:01: 2506. Count Pairs Of Similar Strings (Easy) (time: 2m 57):
+
+```python3
+class Solution:
+
+    def similarPairs(self, words: List[str]) -> int:
+        words = [set(x) for x in words]
+        return sum((a == b for (a, b) in combinations(words, 2)))
+```
+
+---------------------
+
+# 2025-11-07 19:25: 2595. Number of Even and Odd 1-Bits (Easy) (time: 9m 55):
+
+```python3
+class Solution:
+
+    def toBase(self, n, k):
+        res = []
+        while n:
+            (n, m) = divmod(n, k)
+            res = [m] + res
+        return res
+
+    def evenOddBit(self, n: int) -> List[int]:
+        bits = self.toBase(n, 2)[::-1]
+        (even, odd) = (0, 0)
+        for (i, b) in enumerate(bits):
+            if i % 2 == 0 and b:
+                even += 1
+            elif i % 2 == 1 and b:
+                odd += 1
+        return [even, odd]
+```
+
+---------------------
+
+# 2025-11-07 19:32: 2475. Number of Unequal Triplets in Array (Easy) (time: 2m 10):
+
+```python3
+class Solution:
+
+    def unequalTriplets(self, nums: List[int]) -> int:
+        return sum((i != j and i != k and (j != k) for (i, j, k) in combinations(nums, 3)))
+```
+
+---------------------
+
+# 2025-11-07 19:39: 2085. Count Common Words With One Occurrence (Easy) (time: 3m 10):
+
+```python3
+class Solution:
+
+    def countWords(self, words1: List[str], words2: List[str]) -> int:
+        get_1_appearances = lambda x: set((word for (word, count) in Counter(x).items() if count == 1))
+        (words1, words2) = (get_1_appearances(words1), get_1_appearances(words2))
+        return len(words1.intersection(words2))
+```
+
+---------------------
+
+# 2025-11-07 19:54: 2923. Find Champion I (Easy) (time: 10m 53):
+
+```python3
+class Solution:
+
+    def findChampion(self, grid: List[List[int]]) -> int:
+        scores = defaultdict(int)
+        for team in range(len(grid)):
+            for match in range(len(grid[team])):
+                if grid[team][match]:
+                    scores[team] += 1
+        return next(iter(next(iter(sorted(scores.items(), key=lambda x: x[1], reverse=True)))))
+```
+
+## notes: 
+
+### Examples
+
+```python
+Input: grid = [[0,1],[0,0]]
+Output: 0
+# Team 0 beats team 1 → team 0 is champion
+
+Input: grid = [[0,0,1],[1,0,1],[0,0,0]]
+Output: 1
+# Team 1 beats team 0 and team 2 → team 1 is champion
+```
+
+---
+
+### Constraints
+
+- `2 <= n <= 100`
+- `grid[i][j]` is `0` or `1`
+- `grid[i][i] == 0`
+- `grid[i][j] != grid[j][i]` for `i != j`
+- The input guarantees **transitivity**: if A beats B and B beats C, then A beats C.
+
+---------------------
+
 
 
 Here is my readiness estimates:
@@ -14217,6 +14704,148 @@ Here is my readiness estimates:
       "database": 0.2,
       "design": 0.4,
       "backtracking": 0.85,
+      "memoization": 0.75,
+      "quickselect": 0.3,
+      "bucket_sort": 0.3,
+      "minimum_spanning_tree": 0.2,
+      "counting_sort": 0.4,
+      "shell": 0.1,
+      "line_sweep": 0.2,
+      "reservoir_sampling": 0.1,
+      "strongly_connected_component": 0.1,
+      "eulerian_circuit": 0.1,
+      "radix_sort": 0.2,
+      "rejection_sampling": 0.1,
+      "biconnected_component": 0.1
+    }
+  },
+  {
+    "run_date": "2025-11-06",
+    "contest_readiness": "2026-01-15",
+    "faang_interview": "2026-04-15",
+    "contest_topics_readiness": {
+      "arrays": 0.95,
+      "strings": 0.95,
+      "hash_table": 0.9,
+      "dynamic_programming": 0.85,
+      "math": 0.9,
+      "sorting": 0.9,
+      "greedy": 0.85,
+      "depth_first_search": 0.9,
+      "binary_search": 0.95,
+      "breadth_first_search": 0.85,
+      "tree": 0.95,
+      "matrix": 0.9,
+      "two_pointers": 0.95,
+      "bit_manipulation": 0.9,
+      "stack": 0.9,
+      "heap": 0.95,
+      "graph": 0.95,
+      "prefix_sum": 0.95,
+      "simulation": 0.85,
+      "counting": 0.9,
+      "sliding_window": 0.9,
+      "union_find": 0.9,
+      "linked_list": 0.95,
+      "monotonic_stack": 0.5,
+      "recursion": 0.85,
+      "trie": 0.4,
+      "divide_and_conquer": 0.5,
+      "bitmask": 0.45,
+      "queue": 0.8,
+      "topological_sort": 0.3,
+      "segment_tree": 0.2,
+      "game_theory": 0.2,
+      "hash_function": 0.3,
+      "binary_indexed_tree": 0.2,
+      "string_matching": 0.5,
+      "rolling_hash": 0.2,
+      "shortest_path": 0.3,
+      "number_theory": 0.4,
+      "interactive": 0.1,
+      "brainteaser": 0.5,
+      "randomized": 0.2,
+      "monotonic_queue": 0.4,
+      "merge_sort": 0.5,
+      "iterator": 0.3,
+      "concurrency": 0.1,
+      "probability_and_statistics": 0.2,
+      "geometry": 0.3,
+      "ordered_set": 0.3,
+      "database": 0.2,
+      "design": 0.4,
+      "backtracking": 0.9,
+      "memoization": 0.75,
+      "quickselect": 0.3,
+      "bucket_sort": 0.3,
+      "minimum_spanning_tree": 0.2,
+      "counting_sort": 0.4,
+      "shell": 0.1,
+      "line_sweep": 0.2,
+      "reservoir_sampling": 0.1,
+      "strongly_connected_component": 0.1,
+      "eulerian_circuit": 0.1,
+      "radix_sort": 0.2,
+      "rejection_sampling": 0.1,
+      "biconnected_component": 0.1
+    }
+  },
+  {
+    "run_date": "2025-11-07",
+    "contest_readiness": "2026-01-15",
+    "faang_interview": "2026-04-01",
+    "contest_topics_readiness": {
+      "arrays": 0.95,
+      "strings": 0.95,
+      "hash_table": 0.9,
+      "dynamic_programming": 0.8,
+      "math": 0.85,
+      "sorting": 0.9,
+      "greedy": 0.85,
+      "depth_first_search": 0.9,
+      "binary_search": 0.9,
+      "breadth_first_search": 0.85,
+      "tree": 0.95,
+      "matrix": 0.9,
+      "two_pointers": 0.95,
+      "bit_manipulation": 0.9,
+      "stack": 0.9,
+      "heap": 0.9,
+      "graph": 0.85,
+      "prefix_sum": 0.95,
+      "simulation": 0.85,
+      "counting": 0.9,
+      "sliding_window": 0.9,
+      "union_find": 0.85,
+      "linked_list": 0.95,
+      "monotonic_stack": 0.5,
+      "recursion": 0.85,
+      "trie": 0.4,
+      "divide_and_conquer": 0.5,
+      "bitmask": 0.45,
+      "queue": 0.8,
+      "topological_sort": 0.3,
+      "segment_tree": 0.2,
+      "game_theory": 0.2,
+      "hash_function": 0.3,
+      "binary_indexed_tree": 0.2,
+      "string_matching": 0.5,
+      "rolling_hash": 0.2,
+      "shortest_path": 0.3,
+      "number_theory": 0.4,
+      "interactive": 0.1,
+      "brainteaser": 0.5,
+      "randomized": 0.2,
+      "monotonic_queue": 0.4,
+      "merge_sort": 0.5,
+      "iterator": 0.3,
+      "concurrency": 0.1,
+      "probability_and_statistics": 0.2,
+      "geometry": 0.3,
+      "ordered_set": 0.3,
+      "database": 0.2,
+      "design": 0.4,
+      "backtracking": 0.9,
       "memoization": 0.75,
       "quickselect": 0.3,
       "bucket_sort": 0.3,
