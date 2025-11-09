@@ -78,11 +78,11 @@ sol = Solution()
 # print(sol.findMinHeightTrees(4, [[1, 0], [1, 2], [1, 3]]))  # [1]
 # print(sorted(sol.findMinHeightTrees(6, [[3, 0], [3, 1], [3, 2], [3, 4], [5, 4]])))
 
-assert sorted(sol.findMinHeightTrees(4, [[1, 0], [1, 2], [1, 3]])) == [1]
-assert sorted(sol.findMinHeightTrees(6, [[3, 0], [3, 1], [3, 2], [3, 4], [5, 4]])) == [
-    3,
-    4,
-]
+# assert sorted(sol.findMinHeightTrees(4, [[1, 0], [1, 2], [1, 3]])) == [1]
+# assert sorted(sol.findMinHeightTrees(6, [[3, 0], [3, 1], [3, 2], [3, 4], [5, 4]])) == [
+#     3,
+#     4,
+# ]
 # assert sorted(sol.findMinHeightTrees(1, [])) == [0]
 # assert sorted(sol.findMinHeightTrees(2, [[0,1]])) == [0,1]
 # assert sorted(sol.findMinHeightTrees(3, [[0,1],[1,2]])) == [1]

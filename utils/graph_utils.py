@@ -140,6 +140,7 @@ def draw_graphviz(
     png_filename: str = None,
     n=None,
     type="undirected",
+    show_weights: bool = False,
 ) -> None:
 
     if os.environ.get("RUNNING_TESTS") == "True":
@@ -208,7 +209,7 @@ def draw_graphviz(
     dot.node_attr.update(
         style="filled", fillcolor="transparent", color="white", fontcolor="white"
     )
-    dot.edge_attr.update(color="blue")
+    dot.edge_attr.update(color="blue", fontcolor="white")
 
     for node in nodes:
         dot.node(str(node))
@@ -222,7 +223,12 @@ def draw_graphviz(
         else:
             raise ValueError("Invalid graph format")
         for dst, weight in items:
-            label = str(weight) if weight is not None and weight not in (0, 1) else None
+            label = None
+            if weight is not None:
+                if show_weights:
+                    label = str(weight)
+                elif weight not in (0, 1):
+                    label = str(weight)
             if weight is not None and weight in (0, 1):
                 edge_attr = {"color": "red" if weight == 1 else "blue"}
             else:
