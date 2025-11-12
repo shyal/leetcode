@@ -4,9 +4,9 @@ from collections import defaultdict
 import datetime
 from rich.table import Table
 from rich.console import Console
-import math
+import os
 
-filename = "stronglifts/StrongLifts20251030.csv"
+filename = "stronglifts/" + next(iter(sorted(os.listdir("stronglifts/"), reverse=True)))
 rows = []
 
 with open(filename, "r", newline="") as csvfile:
@@ -169,6 +169,3 @@ def strength_gains_since(start_date_str):
 
     console = Console()
     console.print(table)
-
-
-# strength_gains_since("2025/09/20")
