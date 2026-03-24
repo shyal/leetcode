@@ -15,7 +15,6 @@ import json
 from history_builder import get_solved_problems, get_learning
 from collections import defaultdict
 import requests
-from gym_check import strength_gains_since
 
 
 def get_problems_metadata():
@@ -604,9 +603,6 @@ def main():
                         time.sleep(1)
                         now = datetime.now(local_tz)
                         live.update(make_display(now))
-
-            strength_gains_since("2025/09/20")
-
 
 if __name__ == "__main__":
     main()
