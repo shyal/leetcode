@@ -12,15 +12,9 @@ import json
 import os
 import re
 
-grok_available = None
+import subprocess as _subprocess
 
-try:
-    from xai_sdk import Client
-    from xai_sdk.chat import system, user
-
-    grok_available = True
-except:
-    grok_available = False
+claude_available = True
 
 from metadata import get_problems_metadata
 
@@ -43,26 +37,13 @@ def strip_triple_ticks(text: str) -> str:
     return result.strip()
 
 
-def grok(user_prompt):
-    chat = client.chat.create(
-        model="grok-4-0709",
-        messages=[
-            system(
-                "You are a helpful assistant that generates concise summaries for LeetCode problem solutions, including key ideas from the code and notes."
-            ),
-            user(user_prompt),
-        ],
+def claude(user_prompt):
+    result = _subprocess.run(
+        ["claude", "-p", user_prompt, "--system-prompt",
+         "You are a helpful assistant that generates concise summaries for LeetCode problem solutions, including key ideas from the code and notes."],
+        capture_output=True, text=True,
     )
-    response = chat.sample()
-    summary = response.content
-    return strip_triple_ticks(summary)
-
-
-if grok_available:
-    api_key = os.getenv("GROK_API_KEY")
-    if not api_key:
-        raise ValueError("GROK_API_KEY environment variable not set")
-    client = Client(api_key=api_key)
+    return strip_triple_ticks(result.stdout.strip())
 
 
 def parse_timestamp(ts_str):
@@ -368,7 +349,7 @@ def get_history_string(
             notes, code = parse_content(content)
 
             if (
-                grok_available
+                claude_available
                 and compress_older_than > 0
                 and id(problem) not in recent_solves
             ):
@@ -378,7 +359,7 @@ def get_history_string(
                 else:
                     user_prompt = f"Generate a 10 words max summary of the solution the candidate wrote for problem {problem.num}. {problem.title}.\n\nCode:\n{code}\n\nNotes:\n{notes}."
                     print(user_prompt)
-                    summary = grok(user_prompt)
+                    summary = claude(user_prompt)
                     summaries[key] = summary
                     with open(SUMMARIES_FILE, "w") as f:
                         json.dump(summaries, f, indent=4)

@@ -6,17 +6,10 @@ import os
 import sys
 from datetime import datetime, timezone, timedelta
 import json
-from xai_sdk import Client
-from xai_sdk.chat import system, user
+import subprocess as _subprocess
 from history_builder import get_history_string
 
 console = Console()
-
-api_key = os.getenv("GROK_API_KEY")
-if not api_key:
-    raise ValueError("GROK_API_KEY environment variable not set")
-
-client = Client(api_key=api_key)
 
 
 def main():
@@ -66,15 +59,11 @@ The goal is to be leetcode contest ready by 2025-11-15. If previous estimates ar
         w.write(user_prompt)
 
     try:
-        chat = client.chat.create(
-            model="grok-4-0709",
-            messages=[
-                system(system_prompt),
-                user(user_prompt),
-            ],
+        result = _subprocess.run(
+            ["claude", "-p", user_prompt, "--system-prompt", system_prompt],
+            capture_output=True, text=True,
         )
-        response = chat.sample()
-        recommendation = response.content.strip()
+        recommendation = result.stdout.strip()
         estimates = json.loads(recommendation)
         print(estimates)
     except json.JSONDecodeError as e:

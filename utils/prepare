@@ -7,8 +7,7 @@ import sys
 import subprocess
 import os
 import re
-from xai_sdk import Client
-from xai_sdk.chat import system, user
+import subprocess as _subprocess
 import threading
 import requests
 
@@ -19,19 +18,13 @@ def strip_triple_ticks(text: str) -> str:
     return result.strip()
 
 
-def grok(user_prompt):
-    chat = client.chat.create(
-        model="grok-4-0709",
-        messages=[
-            system(
-                "You are a helpful assistant that generates Python stubs for LeetCode problems."
-            ),
-            user(user_prompt),
-        ],
+def claude(user_prompt):
+    result = _subprocess.run(
+        ["claude", "-p", user_prompt, "--system-prompt",
+         "You are a helpful assistant that generates Python stubs for LeetCode problems."],
+        capture_output=True, text=True,
     )
-    response = chat.sample()
-    code = response.content
-    return strip_triple_ticks(code)
+    return strip_triple_ticks(result.stdout.strip())
 
 
 def run_git(cmd):
@@ -133,12 +126,6 @@ def get_question_info(num):
 
     return title, slug, difficulty, content, example_testcases, python_stub
 
-
-api_key = os.getenv("GROK_API_KEY")
-if not api_key:
-    raise ValueError("GROK_API_KEY environment variable not set")
-
-client = Client(api_key=api_key)
 
 parser = argparse.ArgumentParser(description="Prepare leetcode questions.")
 parser.add_argument(
@@ -276,7 +263,7 @@ get_list_values, build_tree, or any other utility that already exists. Do NOT ad
 Output only the description docstring, the Python code for the stub, and asserts. Indents are 4 spaces.
 """
 
-    code = grok(user_prompt)
+    code = claude(user_prompt)
 
     asserts_prompt = f"""
 Please generate output in the same format as input (description in docstring, solution, instantiation, and asserts). Your
@@ -292,7 +279,7 @@ Now the content:
 
 """
 
-    code = grok(asserts_prompt)
+    code = claude(asserts_prompt)
 
     clean_up_prompt = f"""
 Please generate output in the same format as input (description in docstring, solution, instantiation, and asserts). Your
@@ -307,7 +294,7 @@ Now the content:
 
 """
 
-    code = grok(clean_up_prompt)
+    code = claude(clean_up_prompt)
     problem_title = f"{num}. {title}"
     print("problem_title", problem_title)
     file_name = f"current.py"

@@ -8,17 +8,10 @@ from rich.console import Console
 from rich.markdown import Markdown
 import os
 import sys
-from xai_sdk import Client
-from xai_sdk.chat import system, user
+import subprocess as _subprocess
 from history_builder import get_history_string, get_today_solves
 
 console = Console()
-
-api_key = os.getenv("GROK_API_KEY")
-if not api_key:
-    raise ValueError("GROK_API_KEY environment variable not set")
-
-client = Client(api_key=api_key)
 
 
 def main():
@@ -100,19 +93,15 @@ Keep the response concise, structured, and encouraging. output a time limit for 
     # exit()
 
     try:
-        chat = client.chat.create(
-            model="grok-4-0709",
-            messages=[
-                system(system_prompt),
-                user(user_prompt),
-            ],
+        result = _subprocess.run(
+            ["claude", "-p", user_prompt, "--system-prompt", system_prompt],
+            capture_output=True, text=True,
         )
-        response = chat.sample()
-        recommendation = response.content
+        recommendation = result.stdout.strip()
         md = Markdown(recommendation)
         console.print(md)
     except Exception as e:
-        print(f"Error calling xAI API: {e}")
+        print(f"Error calling Claude CLI: {e}")
         sys.exit(1)
 
 

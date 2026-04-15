@@ -1,7 +1,6 @@
 import os
 import re
-from xai_sdk import Client
-from xai_sdk.chat import system, user
+import subprocess as _subprocess
 
 
 def strip_triple_ticks(text: str) -> str:
@@ -10,23 +9,13 @@ def strip_triple_ticks(text: str) -> str:
     return result.strip()
 
 
-def grok(user_prompt):
-    chat = client.chat.create(
-        model="grok-4-0709",
-        messages=[
-            system(
-                "You are a helpful assistant that generates Python stubs for LeetCode problems."
-            ),
-            user(user_prompt),
-        ],
+def claude(user_prompt):
+    result = _subprocess.run(
+        ["claude", "-p", user_prompt, "--system-prompt",
+         "You are a helpful assistant that generates Python stubs for LeetCode problems."],
+        capture_output=True, text=True,
     )
-    response = chat.sample()
-    code = response.content
-    return strip_triple_ticks(code)
-
-
-api_key = os.getenv("GROK_API_KEY")
-client = Client(api_key)
+    return strip_triple_ticks(result.stdout.strip())
 
 # Read the file contents
 sitecustomize_content = open("utils/sitecustomize.py", "r").read()
@@ -35,7 +24,7 @@ tree_utils_content = open("utils/tree_utils.py", "r").read()
 bst_utils_content = open("utils/bst_utils.py", "r").read()
 linked_list_utils_content = open("utils/linked_list_utils.py", "r").read()
 
-# Construct the prompt for Grok
+# Construct the prompt for Claude
 user_prompt = f"""
 Here is the content of utils/sitecustomize.py:
 ```python
@@ -78,8 +67,8 @@ Do not include standard builtins definitions; only the custom additions.
 Provide the complete content of the .pyi file, wrapped in ```python ... ``` for easy extraction.
 """
 
-# Call Grok to get the updated custom_builtins.pyi
-updated_custom_pyi = grok(user_prompt)
+# Call Claude to get the updated custom_builtins.pyi
+updated_custom_pyi = claude(user_prompt)
 
 # Save to stubs/custom_builtins.pyi
 with open("stubs/custom_builtins.pyi", "w") as f:
