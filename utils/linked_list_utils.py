@@ -15,15 +15,24 @@ def build_linked_list(vals):
 
 
 def print_linked_list(head):
+    seen = set()
     while head:
+        if id(head) in seen:
+            print(f" -> [{head.val}] (cycle)")
+            break
+        seen.add(id(head))
         print(head.val, end=(" -> " if head.next else ""))
         head = head.next
     print("")
 
 
 def get_list_values(head):
+    seen = set()
     ret = []
     while head:
+        if id(head) in seen:
+            break
+        seen.add(id(head))
         ret.append(head.val)
         head = head.next
     return ret
