@@ -43,7 +43,7 @@ from sys import maxsize
 from functools import *
 from itertools import *
 from math import log10, log2, floor, ceil, prod, sqrt
-from collections import defaultdict, Counter
+from collections import defaultdict, Counter, OrderedDict
 import operator
 import heapq
 from collections import deque
@@ -140,6 +140,7 @@ builtins.bisect_left = bisect.bisect_left
 builtins.bisect_right = bisect.bisect_right
 builtins.chain = chain
 builtins.Counter = Counter
+builtins.OrderedDict = OrderedDict
 builtins.add = operator.add
 builtins.iadd = operator.iadd
 builtins.sub = operator.sub
