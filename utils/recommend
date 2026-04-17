@@ -21,6 +21,11 @@ def main():
         "--fundamentals", action="store_true", help="recommend for fundamentals."
     )
     parser.add_argument("--review", action="store_true", help="recommend for review.")
+    parser.add_argument(
+        "--include-easy",
+        action="store_true",
+        help="include easy problems in the solve history sent to the coach.",
+    )
 
     args = parser.parse_args()
 
@@ -60,7 +65,9 @@ Sometimes it's good to re-inforce an existing skill. Sometimes it's good to chal
 skill the user is currently acquiring, and seeing those skills in various juxtapositions.
 """
 
-    history_str = get_history_string(filter_out_easy=True, include_notes=include_notes)
+    history_str = get_history_string(
+        filter_out_easy=not args.include_easy, include_notes=include_notes
+    )
 
     problems_solved_today = len(get_today_solves())
 
@@ -74,6 +81,14 @@ After the solve, it will be added to the solve history, and you'll be given the 
 As such, this is a feedback loop: you make a recommendation, the user works on it, you get the history and get to make more
 recommendations. You can thus build theories about why the user is struggling in a certain area, and learn as you go whether
 your recommendations are help the candidate improve over time.
+
+Older solves in the history are compressed to a one-line summary and annotated with their source file, e.g.
+"(compressed, file: solved/pXYZ_Title_...py)". If a compressed summary is too vague for you to judge the
+candidate's approach — e.g. you want to see which pattern they used, whether they used the canonical template, or
+what notes they wrote — use the Read tool to open the file directly. Prefer reading at most 2-3 files per
+recommendation; don't read every compressed solve. Glob/Grep are also available if you want to search the
+./solved/ directory by topic or pattern. Do not recommend a problem the candidate has already solved unless you
+are specifically recommending a review re-solve.
 
 For your recommendation, specify:
 - Problem number and full title (e.g., "1. Two Sum").
@@ -93,13 +108,71 @@ Keep the response concise, structured, and encouraging. output a time limit for 
     # exit()
 
     try:
-        result = _subprocess.run(
-            ["claude", "-p", user_prompt, "--system-prompt", system_prompt],
-            capture_output=True, text=True,
+        proc = _subprocess.Popen(
+            [
+                "claude",
+                "-p",
+                user_prompt,
+                "--system-prompt",
+                system_prompt,
+                "--allowedTools",
+                "Read",
+                "Glob",
+                "Grep",
+                "--permission-mode",
+                "bypassPermissions",
+                "--output-format",
+                "stream-json",
+                "--verbose",
+            ],
+            stdout=_subprocess.PIPE,
+            stderr=_subprocess.PIPE,
+            text=True,
+            bufsize=1,
         )
-        recommendation = result.stdout.strip()
-        md = Markdown(recommendation)
-        console.print(md)
+
+        final_text = ""
+        tool_calls = 0
+        assert proc.stdout is not None
+        for raw in proc.stdout:
+            raw = raw.strip()
+            if not raw:
+                continue
+            try:
+                event = json.loads(raw)
+            except json.JSONDecodeError:
+                continue
+            etype = event.get("type")
+            if etype == "assistant":
+                for block in event.get("message", {}).get("content", []):
+                    if block.get("type") != "tool_use":
+                        continue
+                    tool_calls += 1
+                    name = block.get("name", "")
+                    inp = block.get("input", {}) or {}
+                    if name == "Read":
+                        detail = inp.get("file_path", "")
+                    elif name in ("Glob", "Grep"):
+                        detail = inp.get("pattern", "")
+                        path = inp.get("path")
+                        if path:
+                            detail = f"{detail} in {path}"
+                    else:
+                        detail = json.dumps(inp)[:120]
+                    console.print(f"[dim]→ {name} {detail}[/dim]")
+            elif etype == "result":
+                final_text = event.get("result", "") or final_text
+
+        proc.wait()
+        if proc.returncode != 0:
+            stderr = proc.stderr.read() if proc.stderr else ""
+            print(f"claude exited with {proc.returncode}: {stderr}")
+            sys.exit(proc.returncode)
+
+        console.print(f"\n[dim]({tool_calls} tool call{'s' if tool_calls != 1 else ''})[/dim]\n")
+        if final_text:
+            md = Markdown(final_text)
+            console.print(md)
     except Exception as e:
         print(f"Error calling Claude CLI: {e}")
         sys.exit(1)

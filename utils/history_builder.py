@@ -363,7 +363,7 @@ def get_history_string(
                     summaries[key] = summary
                     with open(SUMMARIES_FILE, "w") as f:
                         json.dump(summaries, f, indent=4)
-                entry = f"# {ts_str}: {problem_id}. {problem_title} ({difficulty}){status_str}{time_str} (compressed):\n\n{summary}\n\n---------------------\n\n"
+                entry = f"# {ts_str}: {problem_id}. {problem_title} ({difficulty}){status_str}{time_str} (compressed, file: {problem.file}):\n\n{summary}\n\n---------------------\n\n"
             else:
                 entry = f"# {ts_str}: {problem_id}. {problem_title} ({difficulty}){status_str}{time_str}:\n\n"
                 entry += f"```python3\n{code}\n```"
