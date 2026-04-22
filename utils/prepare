@@ -6,25 +6,27 @@ import argparse
 import sys
 import subprocess
 import os
-import re
 import subprocess as _subprocess
 import threading
 import requests
 
 
-def strip_triple_ticks(text: str) -> str:
-    pattern = r"^```(?:\w+)?\n|```$"
-    result = re.sub(pattern, "", text, flags=re.MULTILINE)
-    return result.strip()
-
-
 def claude(user_prompt):
     result = _subprocess.run(
-        ["claude", "-p", user_prompt, "--system-prompt",
-         "You are a helpful assistant that generates Python stubs for LeetCode problems."],
+        [
+            "claude", "-p", user_prompt,
+            "--system-prompt",
+            "You are a helpful assistant that generates Python stubs for "
+            "LeetCode problems. Output ONLY the raw Python source code for "
+            "the stub — no explanations, no markdown fences, no preamble, "
+            "no postamble. Do NOT attempt to use any tools; the caller "
+            "writes your stdout straight to disk.",
+            "--disallowedTools", "Write,Edit,Read,Bash,NotebookEdit",
+            "--output-format", "text",
+        ],
         capture_output=True, text=True,
     )
-    return strip_triple_ticks(result.stdout.strip())
+    return result.stdout.strip()
 
 
 def run_git(cmd):
@@ -256,9 +258,24 @@ Here are utility functions:
 {open('utils/graph_utils.py').read()}
 
 
-IMPORTANT: Use the existing utility functions (build_linked_list, get_list_values, build_tree, etc.) directly —
-they are already available as builtins via sitecustomize.py. Do NOT redefine ListNode, TreeNode, build_linked_list,
-get_list_values, build_tree, or any other utility that already exists. Do NOT add imports for them — they are builtins.
+IMPORTANT: sitecustomize.py injects a large set of names into `builtins`. Do NOT import ANY of these —
+they are already available without imports:
+- Typing: List, Optional, Dict, Tuple, Any, Callable, Iterable, Iterator, TypeVar, Union
+- Collections: Counter, defaultdict, OrderedDict, deque
+- Functools/itertools: cache, reduce, chain, combinations, permutations, product, accumulate,
+  groupby, pairwise, zip_longest, takewhile, dropwhile, starmap, islice, compress
+- Math: gcd, isclose, log2, log10, floor, ceil, prod, sqrt, maxsize
+- Heapq: heapify, heappop, heappush, nlargest, nsmallest
+- Bisect: bisect_left, bisect_right
+- Strings: ascii_letters, ascii_lowercase, ascii_uppercase, digits, hexdigits
+- Types: TreeNode, ListNode, GraphNode, Node
+- Utilities: build_tree, build_linked_list, get_list_values, build_graph, draw_tree,
+  draw_linked_list, tabulate, rich_print, and the rest of the helpers above.
+
+Do NOT emit `from typing import ...`, `from collections import ...`, `from functools import ...`,
+`from itertools import ...`, `from math import ...`, `from heapq import ...`, `from bisect import ...`,
+or `from string import ...`. The stub should have ZERO import statements unless it genuinely needs
+something not listed above.
 
 Output only the description docstring, the Python code for the stub, and asserts. Indents are 4 spaces.
 """
