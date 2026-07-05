@@ -136,20 +136,29 @@ def main():
     console.print(table)
 
     # Warm-up prescription: the target's own refs + drill, and any rusty prereqs.
-    def drill_line(node_id):
+    # Best warm-up is a real leetcode problem whose walk needs ONLY the rusty
+    # node (everything else SOLID); then a bank drill; then the improvised one.
+    def warmup_for(node_id):
+        cands = [c for c in carriers_for(node_id, problems, statuses, nodes) if c != pnum]
+        if cands:
+            cands.sort(key=lambda c: (last_solved(c, evidence), len(problems[c]["moves"]), c))
+            c = cands[0]
+            when = last_solved(c, evidence)
+            spaced = f" (spaced re-solve, last {when})" if when else " (never solved)"
+            return f"solve [bold]{c}. {problems[c]['title']}[/bold]{spaced}"
         if os.path.isdir(os.path.join("drills", node_id)):
             return f"`make drill {node_id}`"
-        return nodes[node_id]["drill"]
+        return f"drill: {nodes[node_id]['drill']}"
 
     prep = []
     for pre in nodes[target].get("prereqs", []):
         s, d = statuses[pre]
         if s != SOLID:
-            prep.append(f"prereq [bold]{pre}[/bold] is [{STATUS_STYLE[s]}]{s}[/{STATUS_STYLE[s]}] ({d}) — drill: {drill_line(pre)}")
+            prep.append(f"prereq [bold]{pre}[/bold] is [{STATUS_STYLE[s]}]{s}[/{STATUS_STYLE[s]}] ({d}) — {warmup_for(pre)}")
     for ref in nodes[target].get("refs", []):
         prep.append(f"review your own [bold]{ref}[/bold]")
     if target_status in (FRAGILE, MISSING):
-        prep.append(f"drill [bold]{target}[/bold] before the problem: {drill_line(target)}")
+        prep.append(f"warm up [bold]{target}[/bold] before the problem — {warmup_for(target)}")
     if prep:
         console.print("\n[bold]Warm up first:[/bold]")
         for line in prep:
