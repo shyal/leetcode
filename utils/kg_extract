@@ -59,6 +59,7 @@ Rules:
 - Verdicts: "clean" (executed correctly), "struggled" (bugs/confusion visible in code or notes, e.g. notes saying looked-up/hints/TLE/failed), "avoided" (canonical move sidestepped).
 - Only include moves with real evidence in this code. 1-6 moves is typical.
 - If a required move has no taxonomy node, put a 3-8 word description in "unmapped".
+- If the file has no working solution (skeleton body, abandoned attempt), still return the JSON with "moves": {{}} and a note like "abandoned attempt" — never prose.
 
 Output STRICT JSON only:
 {{"problem": "<number>", "title": "<title>", "moves": {{"<node-id>": "clean|struggled|avoided"}}, "unmapped": [], "note": "<one line, only if noteworthy>"}}"""
