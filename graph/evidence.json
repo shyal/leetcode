@@ -1,0 +1,1024 @@
+{
+  "_comment": "Per solve-file: which moves the ACTUAL code exercised, with a verdict. Verdicts: clean (executed correctly unaided), struggled (needed correction/hints), avoided (solved the problem via an alternative walk, so this move went undrilled - record it on the move that the canonical walk teaches). Keyed by filename like .summaries.json; utils/kg_extract appends, never rewrites. Mastery is derived from this file at query time: clean within ~6 weeks = SOLID; older = STALE; only-once-or-struggled = FRAGILE; absent = MISSING.",
+  "evidence": {
+    "solved/p242_Valid_Anagram_2026_07_04T01_37_43_997584_00_00Z.py": {
+      "date": "2026-07-04",
+      "problem": "242",
+      "moves": {
+        "counter-build": "clean",
+        "counter-multiset-ops": "clean"
+      },
+      "note": "Two Counters + ==. Called it 'set' comparison; corrected to multiset."
+    },
+    "solved/p383_Ransom_Note_2026_07_04T01_48_52_856608_00_00Z.py": {
+      "date": "2026-07-04",
+      "problem": "383",
+      "moves": {
+        "counter-build": "clean",
+        "counter-multiset-ops": "clean"
+      },
+      "note": "Hand-rolled the <= loop correctly; dead 'l not in r' membership check (typo for m, harmless via Counter default-0)."
+    },
+    "solved/p350_Intersection_of_Two_Arrays_II_2026_07_04T02_01_26_288992_00_00Z.py": {
+      "date": "2026-07-04",
+      "problem": "350",
+      "moves": {
+        "counter-build": "clean",
+        "counter-multiset-ops": "clean"
+      },
+      "note": "Found & operator but recomputed min() the intersection already held."
+    },
+    "solved/p771_Jewels_and_Stones_2026_07_04T02_09_04_163650_00_00Z.py": {
+      "date": "2026-07-04",
+      "problem": "771",
+      "moves": {
+        "counter-build": "clean",
+        "set-membership": "struggled"
+      },
+      "note": "Correct, but used Counter where set sufficed and an unnecessary & filter - tool-choice not yet automatic at this point in the session."
+    },
+    "solved/p1207_Unique_Number_of_Occurrences_2026_07_04T02_16_02_733695_00_00Z.py": {
+      "date": "2026-07-04",
+      "problem": "1207",
+      "moves": {
+        "counter-build": "clean",
+        "counts-as-data": "clean"
+      },
+      "note": "Distilled first try: len(values) == len(set(values))."
+    },
+    "solved/p2215_Find_the_Difference_of_Two_Arrays_2026_07_04T02_22_32_322063_00_00Z.py": {
+      "date": "2026-07-04",
+      "problem": "2215",
+      "moves": {
+        "set-algebra": "clean"
+      },
+      "note": "Read 'distinct' as the set hint unprompted. Asserts relied on set ordering (flagged)."
+    },
+    "solved/p219_Contains_Duplicate_II_2026_07_04T02_38_56_854749_00_00Z.py": {
+      "date": "2026-07-04",
+      "problem": "219",
+      "moves": {
+        "streaming-ask-then-record": "clean",
+        "dict-arbitrary-value": "clean"
+      },
+      "note": "First-try clean, including the overwrite-with-latest-index insight."
+    },
+    "solved/p1512_Number_of_Good_Pairs_2026_07_04T23_25_50_412582_00_00Z.py": {
+      "date": "2026-07-05",
+      "problem": "1512",
+      "moves": {
+        "counter-build": "clean",
+        "pair-count-formula": "clean",
+        "streaming-accumulate-pairs": "avoided"
+      },
+      "note": "Solved via batch C(n,2) - the streaming rung went undrilled. Scanning version then written as a rep; 'streaming vs batch' label unlocked it."
+    },
+    "current.py@2006-attempt-2026-07-05": {
+      "date": "2026-07-05",
+      "problem": "2006",
+      "moves": {
+        "streaming-ask-then-record": "clean",
+        "streaming-accumulate-pairs": "clean",
+        "solve-pair-condition": "struggled",
+        "derived-key-lookup": "struggled"
+      },
+      "note": "Skeleton flawless; used abs(n-k) as the lookup key - the |p-n|=k two-branch algebra was an untrained node. Fix derived in chat, not yet applied to current.py."
+    },
+    "solved/p409_Longest_Palindrome_2026_04_21T08_19_21_157044_00_00Z.py": {
+      "date": "2026-04-21",
+      "problem": "409",
+      "moves": {
+        "counter-build": "clean",
+        "counts-as-data": "clean"
+      }
+    },
+    "solved/p389_Find_the_Difference_2026_04_21T07_38_38_127637_00_00Z.py": {
+      "date": "2026-04-21",
+      "problem": "389",
+      "moves": {
+        "xor-cancellation": "clean"
+      }
+    },
+    "solved/p387_First_Unique_Character_in_a_String_2026_04_21T06_49_56_110478_00_00Z.py": {
+      "date": "2026-04-21",
+      "problem": "387",
+      "moves": {
+        "counter-build": "clean",
+        "counts-as-data": "clean"
+      }
+    },
+    "solved/p121_Best_Time_to_Buy_and_Sell_Stock_2026_04_21T06_35_47_732646_00_00Z.py": {
+      "date": "2026-04-21",
+      "problem": "121",
+      "moves": {
+        "running-extreme": "clean"
+      },
+      "note": "Single-pass O(n) scan tracking the minimum price seen, computing profit at each step, and keeping the maximum profit."
+    },
+    "solved/p704_Binary_Search_2026_03_25T03_25_36_494963_00_00Z.py": {
+      "date": "2026-03-25",
+      "problem": "704",
+      "moves": {
+        "binary-search-index": "clean"
+      }
+    },
+    "solved/p643_Maximum_Average_Subarray_I_2026_04_17T03_58_40_081749_00_00Z.py": {
+      "date": "2026-04-17",
+      "problem": "643",
+      "moves": {
+        "sliding-window-fixed": "clean",
+        "running-sum": "clean",
+        "running-extreme": "clean"
+      },
+      "note": "Clean fixed-window implementation; slow vs optimized versions shown; all test cases pass."
+    },
+    "solved/p125_Valid_Palindrome_2026_03_24T03_20_40_211487_00_00Z.py": {
+      "date": "2026-03-24",
+      "problem": "125",
+      "moves": {
+        "string-build-transform": "clean",
+        "two-pointers-converging": "avoided"
+      },
+      "note": "Filters alphanumerics and reverses instead of converging pointers; correct but sidestepped the pointer technique."
+    },
+    "solved/p392_Is_Subsequence_2026_03_24T03_30_24_311566_00_00Z.py": {
+      "date": "2026-03-24",
+      "problem": "392",
+      "moves": {
+        "streaming-ask-then-record": "clean"
+      },
+      "note": "Unused `counts` variable incremented but never referenced; core algorithm correct"
+    },
+    "solved/p3_Longest_Substring_Without_Repeating_Characters_2026_04_16T04_07_48_400978_00_00Z.py": {
+      "date": "2026-04-16",
+      "problem": "3",
+      "moves": {
+        "dict-arbitrary-value": "clean",
+        "sliding-window-variable": "clean"
+      },
+      "note": "Unconventional sliding-window: deletes characters by filtering instead of two-pointer movement, but correct."
+    },
+    "solved/p232_Implement_Queue_using_Stacks_2026_04_14T23_36_51_355215_00_00Z.py": {
+      "date": "2026-04-14",
+      "problem": "232",
+      "moves": {},
+      "note": "Avoided stacks entirely; used list with O(n) pop via slicing",
+      "unmapped": [
+        "Two-stack queue amortized pattern"
+      ]
+    },
+    "solved/p205_Isomorphic_Strings_2026_04_22T06_07_45_136793_00_00Z.py": {
+      "date": "2026-04-22",
+      "problem": "205",
+      "moves": {
+        "dict-arbitrary-value": "clean",
+        "bijection-check": "avoided"
+      },
+      "note": "Uses position pattern matching instead of canonical two-dict bijection check."
+    },
+    "solved/p141_Linked_List_Cycle_2026_04_15T00_32_31_487699_00_00Z.py": {
+      "date": "2026-04-15",
+      "problem": "141",
+      "moves": {
+        "fast-slow-pointers": "struggled"
+      },
+      "note": "Implements Floyd's cycle detection with value comparison (slow.val == fast.val) instead of pointer identity (slow is fast) \u2014 conceptually wrong but passes tests by coincidence (pointers meet at same node, so values match)."
+    },
+    "solved/p383_Ransom_Note_2026_03_23T07_24_32_264066_00_00Z.py": {
+      "date": "2026-03-23",
+      "problem": "383",
+      "moves": {
+        "counter-build": "clean",
+        "counter-multiset-ops": "clean"
+      },
+      "note": "Elegant use of Counter subtraction to check sub-multiset containment; all assertions pass cleanly."
+    },
+    "solved/p20_Valid_Parentheses_2026_03_24T02_53_40_159211_00_00Z.py": {
+      "date": "2026-03-24",
+      "problem": "20",
+      "moves": {
+        "stack-matching": "clean"
+      },
+      "note": "Textbook stack-matching: push opens, pop on matching close; final empty-stack check."
+    },
+    "solved/p136_Single_Number_2026_03_21T00_04_47_690613_00_00Z.py": {
+      "date": "2026-03-21",
+      "problem": "136",
+      "moves": {
+        "xor-cancellation": "clean"
+      }
+    },
+    "solved/p347_Top_K_Frequent_Elements_2026_03_21T23_46_35_197705_00_00Z.py": {
+      "date": "2026-03-21",
+      "problem": "347",
+      "moves": {
+        "counter-build": "clean",
+        "sort-by-custom-key": "clean",
+        "heap-top-k": "avoided"
+      },
+      "note": "Sorting approach is correct but O(n log n) vs canonical O(n log k) heap solution."
+    },
+    "solved/p26_Remove_Duplicates_from_Sorted_Array_2026_03_24T02_39_37_225427_00_00Z.py": {
+      "date": "2026-03-24",
+      "problem": "26",
+      "moves": {
+        "two-pointers-read-write": "clean"
+      }
+    },
+    "solved/p1_Two_Sum_2026_03_21T00_51_17_596658_00_00Z.py": {
+      "date": "2026-03-21",
+      "problem": "1",
+      "moves": {
+        "streaming-ask-then-record": "clean",
+        "derived-key-lookup": "clean",
+        "dict-arbitrary-value": "clean"
+      },
+      "note": "Missing import for dd (defaultdict); algorithm correct"
+    },
+    "solved/p49_Group_Anagrams_2026_03_21T22_54_37_495693_00_00Z.py": {
+      "date": "2026-03-21",
+      "problem": "49",
+      "moves": {
+        "derived-key-lookup": "clean",
+        "dict-arbitrary-value": "clean"
+      },
+      "note": "Solution correctly derives sorted tuple as canonical key; groups via dict values. All tests pass."
+    },
+    "solved/p169_Majority_Element_2026_03_22T00_37_20_854841_00_00Z.py": {
+      "date": "2026-03-22",
+      "problem": "169",
+      "moves": {
+        "counter-build": "clean",
+        "counts-as-data": "clean"
+      },
+      "note": "Counter approach; alternative to Boyer-Moore voting algorithm (trades O(1) space for simplicity)."
+    },
+    "solved/p1496_Path_Crossing_2025_11_15T10_19_36_685746_00_00Z.py": {
+      "date": "2025-11-15",
+      "problem": "1496",
+      "moves": {
+        "set-membership": "clean",
+        "seen-state-cycle-detect": "clean",
+        "streaming-ask-then-record": "clean"
+      }
+    },
+    "solved/p1018_Binary_Prefix_Divisible_By_5_2025_11_26T17_22_18_298824_00_00Z.py": {
+      "date": "2025-11-26",
+      "problem": "1018",
+      "moves": {
+        "running-sum": "clean",
+        "streaming-ask-then-record": "clean"
+      },
+      "note": "Accumulates binary prefix without modulo reduction; Python handles arbitrary precision integers correctly."
+    },
+    "solved/p3536_Maximum_Product_of_Two_Digits_2025_12_03T17_21_00_479841_00_00Z.py": {
+      "date": "2025-12-03",
+      "problem": "3536",
+      "moves": {
+        "divmod-decompose": "clean"
+      },
+      "note": "Missing import for combinations; code won't execute"
+    },
+    "solved/p217_Contains_Duplicate_2026_03_20T23_40_49_877028_00_00Z.py": {
+      "date": "2026-03-20",
+      "problem": "217",
+      "moves": {
+        "set-membership": "clean",
+        "streaming-ask-then-record": "avoided"
+      },
+      "note": "Avoids streaming early-exit pattern; uses batch set construction instead."
+    },
+    "solved/p1584_Min_Cost_to_Connect_All_Points_2025_11_12T10_56_49_098989_00_00Z.py": {
+      "date": "2025-11-12",
+      "problem": "1584",
+      "moves": {
+        "graph-adjacency-build": "clean",
+        "heap-simulation": "clean",
+        "running-extreme": "clean",
+        "seen-state-cycle-detect": "clean"
+      },
+      "note": "Prim's algorithm for MST: builds complete graph, uses min-heap to extract min-cost edges, tracks minimum distances to each node, visited set prevents reprocessing."
+    },
+    "solved/p242_Valid_Anagram_2026_03_20T23_34_39_694350_00_00Z.py": {
+      "date": "2026-03-20",
+      "problem": "242",
+      "moves": {
+        "counter-build": "avoided",
+        "counter-multiset-ops": "avoided"
+      },
+      "note": "Solution uses sorting instead of frequency counting and multiset comparison."
+    },
+    "solved/p268_Missing_Number_2026_03_20T23_57_57_288663_00_00Z.py": {
+      "date": "2026-03-20",
+      "problem": "268",
+      "moves": {
+        "set-membership": "clean"
+      }
+    },
+    "solved/p3271_Hash_Divided_String_2025_11_12T11_40_15_365215_00_00Z.py": {
+      "date": "2025-11-12",
+      "problem": "3271",
+      "moves": {
+        "dict-arbitrary-value": "struggled",
+        "string-build-transform": "struggled",
+        "modular-cycle": "struggled"
+      },
+      "note": "Missing import statement for ascii_lowercase from string module; code will not run."
+    },
+    "solved/p2657_Find_the_Prefix_Common_Array_of_Two_Arrays_2025_11_12T12_19_01_116821_00_00Z.py": {
+      "date": "2025-11-12",
+      "problem": "2657",
+      "moves": {
+        "set-algebra": "clean",
+        "streaming-ask-then-record": "avoided"
+      },
+      "note": "Recomputes set intersections from scratch each iteration instead of maintaining running sets."
+    },
+    "solved/p1544_Make_The_String_Great_2025_11_12T11_10_57_424242_00_00Z.py": {
+      "date": "2025-11-12",
+      "problem": "1544",
+      "moves": {
+        "string-build-transform": "clean",
+        "stack-matching": "avoided"
+      },
+      "note": "Correct solution but inefficient O(n\u00b2); canonical approach uses a stack for O(n) single-pass."
+    },
+    "solved/p812_Largest_Triangle_Area_2025_11_12T10_37_50_991734_00_00Z.py": {
+      "date": "2025-11-12",
+      "problem": "812",
+      "moves": {
+        "running-extreme": "clean"
+      },
+      "note": "Brute-force enumeration of all triplets; shoelace formula applied correctly; max tracking is clean."
+    },
+    "solved/p2706_Buy_Two_Chocolates_2025_11_11T13_05_53_402153_00_00Z.py": {
+      "date": "2025-11-11",
+      "problem": "2706",
+      "moves": {
+        "sort-then-adjacent": "clean"
+      },
+      "note": "Greedy: sort to expose the two smallest prices as front neighbors, check affordability."
+    },
+    "solved/p917_Reverse_Only_Letters_2025_11_11T13_17_26_070443_00_00Z.py": {
+      "date": "2025-11-11",
+      "problem": "917",
+      "moves": {
+        "set-membership": "clean",
+        "two-pointers-converging": "avoided"
+      },
+      "note": "Uses extract-reverse-reinsert instead of canonical two-pointer convergence from opposite ends."
+    },
+    "solved/p1200_Minimum_Absolute_Difference_2025_11_11T11_13_30_590395_00_00Z.py": {
+      "date": "2025-11-11",
+      "problem": "1200",
+      "moves": {
+        "sort-then-adjacent": "clean",
+        "running-extreme": "clean",
+        "streaming-accumulate-pairs": "clean"
+      },
+      "note": "O(n log n) solution exploits the fact that minimum difference must occur between adjacent elements after sorting."
+    },
+    "solved/p3074_Apple_Redistribution_into_Boxes_2025_11_11T12_46_47_284448_00_00Z.py": {
+      "date": "2025-11-11",
+      "problem": "3074",
+      "moves": {
+        "running-sum": "clean",
+        "greedy-sort-take": "clean"
+      }
+    },
+    "solved/p3228_Maximum_Number_of_Operations_to_Move_Ones_to_the_End_2025_11_13T10_09_25_743728_00_00Z.py": {
+      "date": "2025-11-13",
+      "problem": "3228",
+      "moves": {
+        "streaming-ask-then-record": "clean"
+      }
+    },
+    "solved/p812_Largest_Triangle_Area_2025_11_10T00_48_57_659370_00_00Z.py": {
+      "date": "2025-11-10",
+      "problem": "812",
+      "moves": {
+        "running-extreme": "struggled"
+      },
+      "note": "Critical bug: returns last area computed instead of maximum; line should be 'return _max' not 'return area'"
+    },
+    "solved/p2180_Count_Integers_With_Even_Digit_Sum_2025_11_10T16_00_48_831997_00_00Z.py": {
+      "date": "2025-11-10",
+      "problem": "2180",
+      "moves": {
+        "divmod-decompose": "clean"
+      },
+      "note": "Brute force iteration through all numbers; divmod correctly extracts digits, but solution avoids parity-pattern optimization"
+    },
+    "solved/p2562_Find_the_Array_Concatenation_Value_2025_11_10T15_34_55_127964_00_00Z.py": {
+      "date": "2025-11-10",
+      "problem": "2562",
+      "moves": {
+        "two-pointers-converging": "clean",
+        "running-sum": "clean"
+      },
+      "note": "Deque for O(1) double-ended access; log10 for digit-shift concatenation."
+    },
+    "solved/p2639_Find_the_Width_of_Columns_of_a_Grid_2025_11_11T12_25_12_364253_00_00Z.py": {
+      "date": "2025-11-11",
+      "problem": "2639",
+      "moves": {
+        "running-extreme": "clean"
+      },
+      "note": "Uses log10 to compute digit count as optimization; finds max width per column via iteration."
+    },
+    "solved/p3692_Majority_Frequency_Characters_2025_11_11T13_38_32_168462_00_00Z.py": {
+      "date": "2025-11-11",
+      "problem": "3692",
+      "moves": {
+        "counter-build": "clean",
+        "counts-as-data": "clean",
+        "sort-by-custom-key": "clean"
+      }
+    },
+    "solved/p1502_Can_Make_Arithmetic_Progression_From_Sequence_2025_11_10T14_52_39_575880_00_00Z.py": {
+      "date": "2025-11-10",
+      "problem": "1502",
+      "moves": {
+        "sort-then-adjacent": "clean"
+      },
+      "note": "Sorts array, checks consecutive differences are uniform via set cardinality. All tests pass."
+    },
+    "solved/p476_Number_Complement_2025_11_10T15_46_33_961960_00_00Z.py": {
+      "date": "2025-11-10",
+      "problem": "476",
+      "moves": {
+        "bit-iterate": "struggled"
+      },
+      "note": "Code missing imports: from math import floor, log2 \u2014 assertions will crash.",
+      "unmapped": [
+        "Mathematical MSB detection via log2"
+      ]
+    },
+    "solved/p1299_Replace_Elements_with_Greatest_Element_on_Right_Side_2025_11_09T15_03_31_128365_00_00Z.py": {
+      "date": "2025-11-09",
+      "problem": "1299",
+      "moves": {
+        "running-extreme": "clean"
+      }
+    },
+    "solved/p1160_Find_Words_That_Can_Be_Formed_by_Characters_2025_11_10T08_19_06_103226_00_00Z.py": {
+      "date": "2025-11-10",
+      "problem": "1160",
+      "moves": {
+        "counter-build": "clean",
+        "counter-multiset-ops": "clean"
+      },
+      "note": "Straightforward Counter-based solution; manually implements multiset subset check (equivalent to Counter.__le__)."
+    },
+    "solved/p1584_Min_Cost_to_Connect_All_Points_2025_11_09T09_20_08_818826_00_00Z.py": {
+      "date": "2025-11-09",
+      "problem": "1584",
+      "moves": {
+        "graph-adjacency-build": "clean"
+      },
+      "note": "Incomplete; core MST algorithm (greedy edge selection / Prim's loop) commented out, unexecuted."
+    },
+    "solved/p310_Minimum_Height_Trees_2025_11_10T09_02_24_023743_00_00Z.py": {
+      "date": "2025-11-10",
+      "problem": "310",
+      "moves": {
+        "graph-adjacency-build": "clean",
+        "topological-order": "clean"
+      }
+    },
+    "solved/p310_Minimum_Height_Trees_2025_11_09T08_25_21_052230_00_00Z.py": {
+      "date": "2025-11-09",
+      "problem": "310",
+      "moves": {
+        "graph-adjacency-build": "clean",
+        "counter-build": "clean",
+        "topological-order": "clean"
+      },
+      "note": "Uses Kahn's algorithm (in-degree queue) for iterative leaf-peeling; undefined draw_graphviz() call would error."
+    },
+    "solved/p1925_Count_Square_Sum_Triples_2025_11_10T14_48_16_739781_00_00Z.py": {
+      "date": "2025-11-10",
+      "problem": "1925",
+      "moves": {
+        "set-membership": "avoided",
+        "derived-key-lookup": "avoided"
+      },
+      "note": "Brute-force combinations enumeration sidesteps efficient set-lookup or derived-key computation."
+    },
+    "solved/p1550_Three_Consecutive_Odds_2025_11_10T15_51_28_215611_00_00Z.py": {
+      "date": "2025-11-10",
+      "problem": "1550",
+      "moves": {
+        "derived-key-lookup": "clean"
+      },
+      "note": "groupby pattern with parity key; avoids canonical sliding-window"
+    },
+    "solved/p762_Prime_Number_of_Set_Bits_in_Binary_Representation_2025_11_09T14_52_01_339287_00_00Z.py": {
+      "date": "2025-11-09",
+      "problem": "762",
+      "moves": {
+        "divmod-decompose": "clean",
+        "bit-iterate": "avoided"
+      },
+      "note": "Correct solution; uses divmod-based binary conversion instead of canonical bit-level counting."
+    },
+    "solved/p2154_Keep_Multiplying_Found_Values_by_Two_2025_11_08T10_16_16_913498_00_00Z.py": {
+      "date": "2025-11-08",
+      "problem": "2154",
+      "moves": {
+        "set-membership": "clean"
+      },
+      "note": "Converts nums to a set for O(1) membership checks inside the multiplication loop; no other techniques."
+    },
+    "solved/p2283_Check_if_Number_Has_Equal_Digit_Count_and_Digit_Value_2025_11_08T09_27_06_800261_00_00Z.py": {
+      "date": "2025-11-08",
+      "problem": "2283",
+      "moves": {
+        "counter-build": "clean"
+      },
+      "note": "Straightforward counter-based validation. Code correctly builds a frequency map and checks the constraint that counts[i] == num[i] for all indices."
+    },
+    "solved/p500_Keyboard_Row_2025_11_09T07_50_47_309875_00_00Z.py": {
+      "date": "2025-11-09",
+      "problem": "500",
+      "moves": {
+        "set-membership": "clean",
+        "set-algebra": "clean",
+        "string-build-transform": "clean"
+      }
+    },
+    "solved/p2085_Count_Common_Words_With_One_Occurrence_2025_11_07T11_39_05_771992_00_00Z.py": {
+      "date": "2025-11-07",
+      "problem": "2085",
+      "moves": {
+        "counter-build": "clean",
+        "counts-as-data": "clean",
+        "set-algebra": "clean"
+      },
+      "note": "Clean, concise solution: counts occurrences, filters by count==1, intersects the resulting sets."
+    },
+    "solved/p2923_Find_Champion_I_2025_11_07T11_54_57_377641_00_00Z.py": {
+      "date": "2025-11-07",
+      "problem": "2923",
+      "moves": {
+        "counter-build": "clean",
+        "sort-by-custom-key": "clean"
+      },
+      "note": "Solution is correct but return statement is unnecessarily convoluted (double iter/next wrapping instead of direct indexing)"
+    },
+    "solved/p2309_Greatest_English_Letter_in_Upper_and_Lower_Case_2025_11_08T10_11_48_309639_00_00Z.py": {
+      "date": "2025-11-08",
+      "problem": "2309",
+      "moves": {
+        "set-membership": "clean"
+      },
+      "note": "Sorts uppercase letters descending; first match is guaranteed greatest by iteration order."
+    },
+    "solved/p2022_Convert_1D_Array_Into_2D_Array_2025_11_08T10_03_34_221580_00_00Z.py": {
+      "date": "2025-11-08",
+      "problem": "2022",
+      "moves": {},
+      "note": "Missing 'from itertools import zip_longest'; uses only array slicing and validation."
+    },
+    "solved/p2124_Check_if_All_As_Appears_Before_All_Bs_2025_11_08T09_46_53_711782_00_00Z.py": {
+      "date": "2025-11-08",
+      "problem": "2124",
+      "moves": {
+        "string-build-transform": "clean"
+      },
+      "note": "Decomposes string into runs of consecutive identical characters via groupby, then checks if structure is valid (\u22642 runs, first='a')",
+      "unmapped": [
+        "groupby-based run-length encoding and structural analysis"
+      ]
+    },
+    "solved/p2057_Smallest_Index_With_Equal_Value_2025_11_08T09_33_19_334736_00_00Z.py": {
+      "date": "2025-11-08",
+      "problem": "2057",
+      "moves": {},
+      "note": "Straightforward O(n) check; no algorithmic complexity required.",
+      "unmapped": [
+        "linear scan checking index against modulo condition"
+      ]
+    },
+    "solved/p410_Split_Array_Largest_Sum_2025_11_07T08_42_23_938865_00_00Z.py": {
+      "date": "2025-11-07",
+      "problem": "410",
+      "moves": {
+        "binary-search-on-answer": "clean",
+        "running-sum": "clean"
+      },
+      "note": "Canonical greedy-feasibility-check binary search: answers from max(nums) to sum(nums); mid feasibility tested via greedy subarray counting."
+    },
+    "solved/p2595_Number_of_Even_and_Odd_1-Bits_2025_11_07T11_25_32_517630_00_00Z.py": {
+      "date": "2025-11-07",
+      "problem": "2595",
+      "moves": {
+        "divmod-decompose": "clean"
+      },
+      "note": "Uses divmod base conversion to extract bits; avoids bitwise iteration (shift/AND); all tests pass."
+    },
+    "solved/p2042_Check_if_Numbers_Are_Ascending_in_a_Sentence_2025_11_08T09_57_44_391467_00_00Z.py": {
+      "date": "2025-11-08",
+      "problem": "2042",
+      "moves": {
+        "string-build-transform": "clean",
+        "streaming-ask-then-record": "avoided"
+      },
+      "note": "Pairwise + all() functional approach replaces traditional streaming state tracking"
+    },
+    "solved/p310_Minimum_Height_Trees_2025_11_07T09_13_20_081069_00_00Z.py": {
+      "date": "2025-11-07",
+      "problem": "310",
+      "moves": {
+        "graph-adjacency-build": "clean",
+        "topological-order": "struggled"
+      },
+      "note": "Attempted degree-based leaf removal (like Kahn's algorithm) but missing the critical step: neighbor degrees are never updated when nodes are removed."
+    },
+    "solved/p410_Split_Array_Largest_Sum_2025_11_07T04_38_53_035451_00_00Z.py": {
+      "date": "2025-11-07",
+      "problem": "410",
+      "moves": {
+        "binary-search-on-answer": "clean",
+        "running-sum": "clean"
+      }
+    },
+    "solved/p2545_Sort_the_Students_by_Their_Kth_Score_2025_11_06T11_29_44_050417_00_00Z.py": {
+      "date": "2025-11-06",
+      "problem": "2545",
+      "moves": {
+        "sort-by-custom-key": "clean"
+      },
+      "note": "Straightforward use of lambda to extract the kth column as sort key; all test cases pass."
+    },
+    "solved/p2475_Number_of_Unequal_Triplets_in_Array_2025_11_07T11_32_03_402631_00_00Z.py": {
+      "date": "2025-11-07",
+      "problem": "2475",
+      "moves": {
+        "pair-count-formula": "clean"
+      },
+      "note": "Batch enumeration of all C(n,3) triplets with filtering; avoids mathematical formula approach."
+    },
+    "solved/p210_Course_Schedule_II_2025_11_07T05_16_13_854533_00_00Z.py": {
+      "date": "2025-11-07",
+      "problem": "210",
+      "moves": {
+        "graph-adjacency-build": "clean",
+        "topological-order": "clean"
+      },
+      "note": "Kahn's algorithm on reversed DAG; correctly detects cycles via result length check."
+    },
+    "solved/p210_Course_Schedule_II_2025_11_05T00_38_43_280026_00_00Z.py": {
+      "date": "2025-11-05",
+      "problem": "210",
+      "moves": {
+        "graph-adjacency-build": "clean",
+        "graph-dfs-visited": "clean",
+        "topological-order": "clean"
+      },
+      "note": "DFS postorder approach; commented Kahn's algorithm shows alternative (BFS indegree) not exercised."
+    },
+    "solved/p2167B_Your_Name_2025_11_05T06_34_37_148288_00_00Z.py": {
+      "date": "2025-11-05",
+      "problem": "2167B",
+      "moves": {
+        "counter-build": "clean",
+        "counter-multiset-ops": "clean"
+      },
+      "note": "Minimal, direct solution; both moves executed correctly with zero struggling."
+    },
+    "solved/p1689_Partitioning_Into_Minimum_Number_Of_Deci-Binary_Numbers_2025_11_06T11_21_27_170864_00_00Z.py": {
+      "date": "2025-11-06",
+      "problem": "1689",
+      "moves": {
+        "running-extreme": "clean"
+      },
+      "note": "One-liner recognizing maximum digit = answer; bypasses simulation by discovering the bottleneck."
+    },
+    "solved/p2162a_Beautiful_Average_2025_11_05T07_39_21_047069_00_00Z.py": {
+      "date": "2025-11-05",
+      "problem": "2162a",
+      "moves": {},
+      "note": "Solution is trivial: calls max() directly, bypassing all algorithmic techniques."
+    },
+    "solved/p98_Validate_Binary_Search_Tree_2025_10_01T23_33_50_756511_00_00Z.py": {
+      "date": "2025-10-01",
+      "problem": "98",
+      "moves": {
+        "tree-dfs-recursive": "clean",
+        "tree-carry-down": "clean",
+        "bst-invariant": "clean"
+      }
+    },
+    "solved/p965_Univalued_Binary_Tree_2025_10_22T14_20_11_283657_00_00Z.py": {
+      "date": "2025-10-22",
+      "problem": "965",
+      "moves": {
+        "set-membership": "clean",
+        "tree-dfs-recursive": "clean"
+      },
+      "note": "Uses a set to cache the first value seen, then checks membership; simpler canonical: pass expected value down via tree-carry-down."
+    },
+    "solved/p98_Validate_Binary_Search_Tree_2025_10_21T01_29_55_837524_00_00Z.py": {
+      "date": "2025-10-21",
+      "problem": "98",
+      "moves": {
+        "tree-dfs-recursive": "clean",
+        "tree-carry-down": "struggled",
+        "bst-invariant": "clean"
+      },
+      "note": "Undefined `maxsize` variable causes NameError at runtime; should be `float('inf')`"
+    },
+    "solved/p974_Subarray_Sums_Divisible_by_K_2025_10_23T01_49_21_969369_00_00Z.py": {
+      "date": "2025-10-23",
+      "problem": "974",
+      "moves": {
+        "prefix-sum-hashmap": "clean",
+        "running-sum": "clean",
+        "counter-build": "clean",
+        "streaming-ask-then-record": "clean",
+        "derived-key-lookup": "clean"
+      },
+      "note": "Correctly applies prefix-remainder lookup: ps[j] % k == ps[i] % k \u27f9 subarray (i, j] divisible by k. Python's modulo handles negative remainders correctly."
+    },
+    "solved/p310_Minimum_Height_Trees_2025_11_06T23_02_24_700072_00_00Z.py": {
+      "date": "2025-11-06",
+      "problem": "310",
+      "moves": {
+        "graph-adjacency-build": "clean",
+        "topological-order": "clean"
+      },
+      "note": "Kahn's in-degree queue adapted for iterative leaf removal to find tree center"
+    },
+    "solved/p961_N-Repeated_Element_in_Size_2N_Array_2025_10_31T03_48_12_975467_00_00Z.py": {
+      "date": "2025-10-31",
+      "problem": "961",
+      "moves": {
+        "counter-build": "clean",
+        "counts-as-data": "clean",
+        "sort-by-custom-key": "clean"
+      },
+      "note": "Solves correctly via Counter + sort; simpler max(Counter, key=...) would be more direct for finding single maximum."
+    },
+    "solved/p94_Binary_Tree_Inorder_Traversal_2025_10_01T22_16_16_075595_00_00Z.py": {
+      "date": "2025-10-01",
+      "problem": "94",
+      "moves": {
+        "tree-dfs-recursive": "clean"
+      },
+      "note": "Classic recursive inorder traversal; visit placement (left, process, right) correct."
+    },
+    "solved/p2089_Find_Target_Indices_After_Sorting_Array_2025_10_31T22_57_48_255644_00_00Z.py": {
+      "date": "2025-10-31",
+      "problem": "2089",
+      "moves": {
+        "sort-then-adjacent": "clean"
+      }
+    },
+    "solved/p1607C_Minimum_Extraction_2025_11_06T10_28_06_123383_00_00Z.py": {
+      "date": "2025-11-06",
+      "problem": "1607",
+      "moves": {
+        "streaming-ask-then-record": "clean"
+      }
+    },
+    "solved/p941_Valid_Mountain_Array_2025_10_10T02_09_31_924894_00_00Z.py": {
+      "date": "2025-10-10",
+      "problem": "941",
+      "moves": {},
+      "note": "Solution incomplete; only helper predicate definitions present. Boundary check bug in is_peak (i+1 access before bounds validation)."
+    },
+    "solved/p973_K_Closest_Points_to_Origin_2025_10_14T03_32_17_909605_00_00Z.py": {
+      "date": "2025-10-14",
+      "problem": "973",
+      "moves": {
+        "heap-top-k": "clean"
+      },
+      "note": "Undefined draw_heap prevents execution; algorithm logic is sound."
+    },
+    "solved/p941_Valid_Mountain_Array_2025_10_25T08_29_52_862434_00_00Z.py": {
+      "date": "2025-10-25",
+      "problem": "941",
+      "moves": {
+        "two-pointers-converging": "clean"
+      }
+    },
+    "solved/p92_Reverse_Linked_List_II_2025_10_25T07_06_00_057054_00_00Z.py": {
+      "date": "2025-10-25",
+      "problem": "92",
+      "moves": {
+        "ll-dummy-splice": "clean",
+        "ll-pointer-reversal": "clean"
+      },
+      "note": "Isolates sublist before reversal; three-way swap achieves pointer-flip without explicit prev/curr bookkeeping."
+    },
+    "solved/p947_Most_Stones_Removed_with_Same_Row_or_Column_2025_11_04T23_13_11_644520_00_00Z.py": {
+      "date": "2025-11-04",
+      "problem": "947",
+      "moves": {
+        "union-find": "struggled"
+      },
+      "note": "Union-find logic is correct, but undefined draw_graphviz() call causes NameError; code does not execute"
+    },
+    "solved/p942_DI_String_Match_2025_10_18T02_11_41_392568_00_00Z.py": {
+      "date": "2025-10-18",
+      "problem": "942",
+      "moves": {
+        "two-pointers-converging": "clean"
+      }
+    },
+    "solved/p91_Decode_Ways_2025_10_31T04_38_27_377241_00_00Z.py": {
+      "date": "2025-10-31",
+      "problem": "91",
+      "moves": {
+        "memoize-recursion": "clean",
+        "dp-state-formulate": "clean"
+      }
+    },
+    "solved/p91_Decode_Ways_2025_10_16T05_01_40_250628_00_00Z.py": {
+      "date": "2025-10-16",
+      "problem": "91",
+      "moves": {
+        "dp-state-formulate": "clean",
+        "dp-1d-rolling": "clean"
+      },
+      "note": "Straightforward 1D DP; state is clearly dp[i]=ways to decode first i chars; base cases dp[0]=1, dp[1]=1; recurrence adds dp[i-1] or dp[i-2] when valid digit/pair found."
+    },
+    "solved/p91_Decode_Ways_2025_10_25T01_12_31_708699_00_00Z.py": {
+      "date": "2025-10-25",
+      "problem": "91",
+      "moves": {
+        "dp-state-formulate": "clean",
+        "dp-1d-rolling": "clean"
+      },
+      "note": "Textbook DP solution; state is dp[i] = ways to decode s[0:i], filled forward with correct base cases and recurrence."
+    },
+    "solved/p91_Decode_Ways_2025_10_25T20_54_47_940797_00_00Z.py": {
+      "date": "2025-10-25",
+      "problem": "91",
+      "moves": {
+        "memoize-recursion": "clean",
+        "dp-state-formulate": "clean"
+      }
+    },
+    "solved/p91_Decode_Ways_2025_11_03T04_19_44_728427_00_00Z.py": {
+      "date": "2025-11-03",
+      "problem": "91",
+      "moves": {
+        "memoize-recursion": "clean",
+        "dp-state-formulate": "clean"
+      },
+      "note": "Top-down DP with correct base case (i\u22640\u21921) and valid transitions for single/double-digit codes. All assertions pass."
+    },
+    "solved/p91_Decode_Ways_2025_10_31T10_04_43_575971_00_00Z.py": {
+      "date": "2025-10-31",
+      "problem": "91",
+      "moves": {
+        "memoize-recursion": "clean",
+        "dp-state-formulate": "clean"
+      }
+    },
+    "solved/p876_Middle_of_the_Linked_List_2025_10_01T21_36_57_880987.py": {
+      "date": "2025-10-01",
+      "problem": "876",
+      "moves": {
+        "fast-slow-pointers": "clean"
+      }
+    },
+    "solved/p91_Decode_Ways_2025_10_30T22_26_53_452652_00_00Z.py": {
+      "date": "2025-10-30",
+      "problem": "91",
+      "moves": {
+        "memoize-recursion": "clean",
+        "dp-state-formulate": "clean"
+      },
+      "note": "Top-down DP with @cache; validates single (1-9) and two-digit (10-26) codes backward from string end."
+    },
+    "solved/p883_Projection_Area_of_3D_Shapes_2025_10_29T03_36_31_360006_00_00Z.py": {
+      "date": "2025-10-29",
+      "problem": "883",
+      "moves": {},
+      "note": "Problem decomposed into three independent 2D projections; no advanced data structures or algorithms exercised."
+    },
+    "solved/p897_Increasing_Order_Search_Tree_2025_10_27T04_14_36_236977_00_00Z.py": {
+      "date": "2025-10-27",
+      "problem": "897",
+      "moves": {
+        "tree-dfs-recursive": "clean"
+      }
+    },
+    "solved/p875_Koko_Eating_Bananas_2025_10_16T00_13_02_716176_00_00Z.py": {
+      "date": "2025-10-16",
+      "problem": "875",
+      "moves": {
+        "divmod-decompose": "clean",
+        "binary-search-on-answer": "clean",
+        "binary-search-boundary": "clean"
+      },
+      "note": "is_minimization flag hardcoded to True; unused but doesn't affect correctness"
+    },
+    "solved/p86_Partition_List_2025_10_09T20_38_35_470961_00_00Z.py": {
+      "date": "2025-10-09",
+      "problem": "86",
+      "moves": {
+        "ll-dummy-splice": "clean"
+      },
+      "note": "Textbook two-list splicing with dummy nodes; no special cases at head."
+    },
+    "solved/p82_Remove_Duplicates_from_Sorted_List_II_2025_10_25T06_07_10_835264_00_00Z.py": {
+      "date": "2025-10-25",
+      "problem": "82",
+      "moves": {
+        "set-membership": "clean",
+        "streaming-ask-then-record": "clean",
+        "ll-dummy-splice": "clean"
+      },
+      "note": "Two-pass approach: first identifies duplicates (any value appearing consecutively), then filters them out. All tests pass."
+    },
+    "solved/p90_Subsets_II_2025_10_17T02_53_32_897092_00_00Z.py": {
+      "date": "2025-10-17",
+      "problem": "90",
+      "moves": {
+        "backtracking-choose-undo": "clean",
+        "sort-then-adjacent": "clean"
+      }
+    },
+    "solved/p81_Search_in_Rotated_Sorted_Array_II_2025_10_11T04_40_17_811038_00_00Z.py": {
+      "date": "2025-10-11",
+      "problem": "81",
+      "moves": {
+        "binary-search-index": "clean"
+      }
+    },
+    "solved/p852_Peak_Index_in_a_Mountain_Array_2025_10_11T22_03_24_033985_00_00Z.py": {
+      "date": "2025-10-11",
+      "problem": "852",
+      "moves": {
+        "binary-search-index": "clean"
+      }
+    },
+    "solved/p78_Subsets_2025_10_17T01_47_41_989265_00_00Z.py": {
+      "date": "2025-10-17",
+      "problem": "78",
+      "moves": {
+        "backtracking-choose-undo": "clean",
+        "tree-dfs-recursive": "clean"
+      }
+    },
+    "solved/p821_Shortest_Distance_to_a_Character_2025_10_26T07_32_53_551844_00_00Z.py": {
+      "date": "2025-10-26",
+      "problem": "821",
+      "moves": {
+        "streaming-ask-then-record": "struggled"
+      },
+      "note": "Undefined 'maxsize' causes NameError; missing sys import or should use float('inf'). Algorithm correct but code won't run."
+    },
+    "solved/p77_Combinations_2025_10_17T01_58_19_409776_00_00Z.py": {
+      "date": "2025-10-17",
+      "problem": "77",
+      "moves": {
+        "backtracking-choose-undo": "clean"
+      }
+    },
+    "solved/p83_Remove_Duplicates_from_Sorted_List_2025_10_08T22_28_04_921159_00_00Z.py": {
+      "date": "2025-10-08",
+      "problem": "83",
+      "moves": {
+        "ll-dummy-splice": "clean"
+      }
+    },
+    "solved/p78_Subsets_2025_10_14T10_01_36_236998_00_00Z.py": {
+      "date": "2025-10-14",
+      "problem": "78",
+      "moves": {
+        "backtracking-choose-undo": "avoided"
+      },
+      "note": "Uses itertools.combinations to sidestep canonical backtracking/enumeration techniques"
+    },
+    "solved/p74_Search_a_2D_Matrix_2025_10_10T19_53_36_125707_00_00Z.py": {
+      "date": "2025-10-10",
+      "problem": "74",
+      "moves": {
+        "divmod-decompose": "clean",
+        "binary-search-index": "clean"
+      },
+      "note": "MatToList wrapper uses divmod to treat 2D matrix as flattened 1D for binary search."
+    },
+    "solved/p767_Reorganize_String_2025_10_25T08_57_12_585848_00_00Z.py": {
+      "date": "2025-10-25",
+      "problem": "767",
+      "moves": {
+        "counter-build": "clean",
+        "heap-simulation": "clean"
+      }
+    },
+    "solved/p744_Find_Smallest_Letter_Greater_Than_Target_2025_10_11T04_50_29_926439_00_00Z.py": {
+      "date": "2025-10-11",
+      "problem": "744",
+      "moves": {
+        "binary-search-boundary": "clean"
+      },
+      "note": "is_minimization flag unused; always True \u2014 dead code but logic correct"
+    }
+  }
+}

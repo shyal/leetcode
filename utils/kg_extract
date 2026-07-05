@@ -1,0 +1,127 @@
+#!/usr/bin/env python3
+
+# kg_extract — populate graph/evidence.json (and problems.json) from solved/ files.
+#
+# For each solve file not already in evidence.json: ONE small claude call
+# (taxonomy + that file's code — no history) extracting which moves the
+# actual code exercised, with verdicts. Incremental and resumable: results
+# are written back after every file, so interrupting is always safe.
+#
+#   utils/kg_extract --limit 5          # trial run on the 5 newest unprocessed
+#   utils/kg_extract                    # process everything unprocessed
+#   utils/kg_extract --model sonnet     # default is haiku (cheap/fast)
+
+import argparse
+import glob
+import os
+import re
+import sys
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from rich.console import Console
+
+from kg_lib import (
+    load_nodes, load_problems, load_evidence,
+    save_problems, save_evidence, claude_json, taxonomy_summary,
+)
+
+console = Console()
+
+FNAME_RE = re.compile(r"p(\d+)_(.+?)_\d{4}_\d{2}_\d{2}T")
+DATE_RE = re.compile(r"_(\d{4})_(\d{2})_(\d{2})T")
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Extract move evidence from solved files.")
+    parser.add_argument("--limit", type=int, default=0, help="max files this run (0 = all)")
+    parser.add_argument("--model", default="haiku", help="model for extraction calls")
+    parser.add_argument("--workers", type=int, default=8, help="concurrent extraction calls")
+    args = parser.parse_args()
+
+    nodes = load_nodes()
+    problems = load_problems()
+    evidence = load_evidence()
+    taxonomy = taxonomy_summary(nodes)
+
+    files = sorted(glob.glob("solved/*.py"), key=os.path.getmtime, reverse=True)
+    todo = [f for f in files if f not in evidence]
+    if args.limit:
+        todo = todo[: args.limit]
+    console.print(f"{len(files)} solve files, {len(todo)} to process this run.\n")
+
+    system = f"""You judge which atomic technique moves a candidate's LeetCode solution ACTUALLY exercised.
+
+Taxonomy (use ONLY these ids):
+{taxonomy}
+
+Rules:
+- Judge the code as written, not the problem's canonical solution. Batch math on a streaming-carrier problem means the streaming move was NOT exercised — if the canonical solution's central move was sidestepped by an alternative approach, record that move as "avoided".
+- Verdicts: "clean" (executed correctly), "struggled" (bugs/confusion visible in code or notes, e.g. notes saying looked-up/hints/TLE/failed), "avoided" (canonical move sidestepped).
+- Only include moves with real evidence in this code. 1-6 moves is typical.
+- If a required move has no taxonomy node, put a 3-8 word description in "unmapped".
+
+Output STRICT JSON only:
+{{"problem": "<number>", "title": "<title>", "moves": {{"<node-id>": "clean|struggled|avoided"}}, "unmapped": [], "note": "<one line, only if noteworthy>"}}"""
+
+    def extract_one(path):
+        """Read + claude call only — no shared state touched here."""
+        code = open(path).read()
+        # strip the problem statement docstring to keep the prompt small;
+        # keep code + any candidate notes below it
+        body = re.sub(r'^""".*?"""\s*', "", code, count=1, flags=re.S)[:6000]
+        prompt = f"File: {os.path.basename(path)}\n\n{body}"
+        return claude_json(prompt, system, model=args.model)
+
+    lock = threading.Lock()
+    done = failed = 0
+    with ThreadPoolExecutor(max_workers=args.workers) as pool:
+        futures = {pool.submit(extract_one, path): path for path in todo}
+        for fut in as_completed(futures):
+            path = futures[fut]
+            try:
+                result = fut.result()
+            except Exception as e:
+                failed += 1
+                console.print(f"[red]FAIL {path}: {str(e)[:200]}[/red]")
+                continue
+
+            m = FNAME_RE.search(os.path.basename(path))
+            dm = DATE_RE.search(os.path.basename(path))
+            solve_date = f"{dm.group(1)}-{dm.group(2)}-{dm.group(3)}" if dm else "1970-01-01"
+            moves = {k: v for k, v in result.get("moves", {}).items() if k in nodes}
+            rejected = [k for k in result.get("moves", {}) if k not in nodes]
+            entry = {
+                "date": solve_date,
+                "problem": result.get("problem") or (m.group(1) if m else "?"),
+                "moves": moves,
+            }
+            if result.get("note"):
+                entry["note"] = result["note"]
+            if result.get("unmapped") or rejected:
+                entry["unmapped"] = result.get("unmapped", []) + rejected
+
+            with lock:
+                evidence[path] = entry
+                save_evidence(evidence)
+                pnum = entry["problem"]
+                if pnum not in problems and moves:
+                    problems[pnum] = {
+                        "title": result.get("title", (m.group(2).replace("_", " ") if m else "")),
+                        "difficulty": "",
+                        "moves": list(moves.keys()),
+                        "source": "extracted",
+                    }
+                    save_problems(problems)
+                done += 1
+                console.print(
+                    f"[green]{done}/{len(todo)}[/green] {os.path.basename(path)[:60]} → {', '.join(moves) or '—'}"
+                )
+
+    console.print(
+        f"\nDone: {done} processed, {failed} failed (re-run to retry), "
+        f"evidence.json now has {len(evidence)} entries."
+    )
+
+
+if __name__ == "__main__":
+    main()
