@@ -1,0 +1,56 @@
+#!/usr/bin/env python3
+
+# kg_drill — record a micro-drill result as evidence in the technique graph.
+#
+#   utils/kg_drill solve-pair-condition clean --note "caught own sign slip via plug-in check"
+#   utils/kg_drill derived-key-lookup struggled
+#
+# Drills are the freshest evidence about the weakest nodes; a drill that
+# isn't recorded didn't happen, as far as the graph is concerned.
+
+import argparse
+import sys
+from datetime import date
+from rich.console import Console
+
+from kg_lib import load_nodes, load_evidence, save_evidence, node_status
+
+console = Console()
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Record a micro-drill result.")
+    parser.add_argument("node", help="node id from graph/nodes.json")
+    parser.add_argument("verdict", choices=["clean", "struggled"], help="how it went")
+    parser.add_argument("--note", default="", help="one-line context")
+    parser.add_argument("--date", default=str(date.today()), help="YYYY-MM-DD (default today)")
+    args = parser.parse_args()
+
+    nodes = load_nodes()
+    if args.node not in nodes:
+        console.print(f"[red]Unknown node id: {args.node}[/red]")
+        near = [n for n in nodes if args.node.split("-")[0] in n]
+        if near:
+            console.print(f"[dim]Did you mean: {', '.join(near)}[/dim]")
+        sys.exit(1)
+
+    evidence = load_evidence()
+    key = f"drill@{args.date}-{args.node}"
+    n = 2
+    while key in evidence:
+        key = f"drill@{args.date}-{args.node}-{n}"
+        n += 1
+
+    entry = {"date": args.date, "problem": "drill", "moves": {args.node: args.verdict}}
+    if args.note:
+        entry["note"] = args.note
+    evidence[key] = entry
+    save_evidence(evidence)
+
+    status, when = node_status(args.node, evidence)
+    console.print(f"Recorded [bold]{args.node}[/bold] = {args.verdict} ({key})")
+    console.print(f"Node status is now: [bold]{status}[/bold]")
+
+
+if __name__ == "__main__":
+    main()
