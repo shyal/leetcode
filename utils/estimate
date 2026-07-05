@@ -1,86 +1,109 @@
 #!/usr/bin/env python3
 
-from rich.console import Console
-import os
-import sys
-from datetime import datetime, timezone, timedelta
+# estimate — append a readiness snapshot to readiness.json.
+#
+# Topic scores are DERIVED from the technique graph (no LLM): per node group,
+# SOLID = 1.0, STALE = 0.5, FRAGILE = 0.25, MISSING = 0, averaged.
+# The two date projections come from ONE small claude call fed the graph
+# summary and recent velocity — never the raw solve history (see utils/preflight
+# for the same architecture).
+
 import json
-import subprocess as _subprocess
-from history_builder import get_history_string
+import os
+from collections import defaultdict
+from datetime import datetime, timedelta, timezone, date
+from rich.console import Console
+from rich.table import Table
+
+from kg_lib import load_nodes, load_evidence, node_status, claude_json, SOLID, STALE, FRAGILE, MISSING
 
 console = Console()
 
+WEIGHT = {SOLID: 1.0, STALE: 0.5, FRAGILE: 0.25, MISSING: 0.0}
+
 
 def main():
-    history_str = get_history_string(0)
-    assert history_str
+    nodes = load_nodes()
+    evidence = load_evidence()
 
-    system_prompt = """You are an expert LeetCode coach specializing in assessing candidate readiness.
+    statuses = {n: node_status(n, evidence) for n in nodes}
+    group_scores = defaultdict(list)
+    counts = defaultdict(int)
+    for node_id, node in nodes.items():
+        s, _ = statuses[node_id]
+        group_scores[node["group"]].append(WEIGHT[s])
+        counts[s] += 1
+    topics = {g: round(sum(v) / len(v), 2) for g, v in group_scores.items()}
 
-Based on the user's solve history, estimate two future dates:
+    today = date.today()
+    recent = defaultdict(int)
+    for rec in evidence.values():
+        try:
+            d = datetime.strptime(rec["date"], "%Y-%m-%d").date()
+        except (KeyError, ValueError):
+            continue
+        age = (today - d).days
+        if age <= 7:
+            recent["last_7_days"] += 1
+        if age <= 30:
+            recent["last_30_days"] += 1
 
-1. Contest Readiness Date: When the user will be ready to join LeetCode contests and perform well (e.g., top 50%).
+    summary = "\n".join(f"{g}: {score}" for g, score in sorted(topics.items(), key=lambda kv: -kv[1]))
+    status_line = f"{counts[SOLID]} SOLID, {counts[STALE]} STALE, {counts[FRAGILE]} FRAGILE, {counts[MISSING]} MISSING (of {len(nodes)} technique nodes)"
 
-2. FAANG Interview Date: When the user will be ready to interview at FAANG companies and get hired.
+    system_prompt = """You are an expert LeetCode coach estimating candidate readiness.
 
-Output ONLY a JSON object like:
+You are given a technique-graph summary: per-topic readiness scores (0-1, derived
+from evidence recency: solid moves score 1.0, stale 0.5, fragile 0.25, missing 0)
+plus current practice velocity. The user practices daily when active, but has a
+history of multi-week lapses; project realistically for consistent daily practice.
 
-{
+Output ONLY a JSON object: {"contest_readiness": "YYYY-MM-DD", "faang_interview": "YYYY-MM-DD"}
+- contest_readiness: ready to perform in the top 50% of a LeetCode contest
+- faang_interview: ready to pass FAANG-level interviews"""
 
-"contest_readiness": "YYYY-MM-DD",
+    user_prompt = f"""Today's date: {today}
 
-"faang_interview": "YYYY-MM-DD"
+Overall node statuses: {status_line}
+Evidence entries recorded in the last 7 days: {recent['last_7_days']}
+Evidence entries recorded in the last 30 days: {recent['last_30_days']}
 
-}
+Per-topic readiness (0-1):
+{summary}
 
-Use realistic dates based on progress, assuming continued daily practice."""
+Estimate the two readiness dates."""
 
-    user_prompt = f"""Here is my LeetCode solve history (most recent last):\n\n{history_str}\n\nBased on this, estimate my readiness dates."""
-
-    with open("_estimate_prompt.txt", "w") as w:
-        w.write(user_prompt)
-
-    try:
-        result = _subprocess.run(
-            ["claude", "-p", user_prompt, "--system-prompt", system_prompt],
-            capture_output=True, text=True,
-        )
-        recommendation = result.stdout.strip()
-        estimates = json.loads(recommendation)
-    except json.JSONDecodeError as e:
-        print(f"Failed to parse JSON from API response: {e}")
-        print(f"Response: {recommendation}")
-        sys.exit(1)
-    except Exception as e:
-        print(f"Error calling xAI API: {e}")
-        sys.exit(1)
+    estimates = claude_json(user_prompt, system_prompt)
 
     manila_tz = timezone(timedelta(hours=8))
-    today = datetime.now(manila_tz).strftime("%Y-%m-%d")
+    run_date = datetime.now(manila_tz).strftime("%Y-%m-%d")
 
     data = []
     if os.path.exists("readiness.json"):
         try:
-            with open("readiness.json", "r") as f:
+            with open("readiness.json") as f:
                 data = json.load(f)
             if not isinstance(data, list):
                 data = []
         except json.JSONDecodeError:
             data = []
 
-    new_entry = {
-        "run_date": today,
+    data = [e for e in data if e.get("run_date") != run_date]  # same-day rerun replaces
+    data.append({
+        "run_date": run_date,
         "contest_readiness": estimates["contest_readiness"],
         "faang_interview": estimates["faang_interview"],
-    }
-    data.append(new_entry)
-
+        "contest_topics_readiness": topics,
+    })
     with open("readiness.json", "w") as f:
         json.dump(data, f, indent=2)
 
-    console.print(f"[bold]Run date:[/bold] {today}")
-    console.print(f"[bold]Contest readiness:[/bold] {estimates['contest_readiness']}")
-    console.print(f"[bold]FAANG interview:[/bold] {estimates['faang_interview']}")
+    table = Table(show_header=False, box=None, padding=(0, 2))
+    table.add_row("Run date", run_date)
+    table.add_row("Node statuses", status_line)
+    table.add_row("Contest readiness", str(estimates["contest_readiness"]))
+    table.add_row("FAANG interview", str(estimates["faang_interview"]))
+    console.print(table)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,190 @@
+#!/usr/bin/env python3
+
+# kg_next — deterministically pick the next problem from the technique graph
+# and draw its full input tree (the problem's moves + every transitive
+# prerequisite) inline in the terminal.
+#
+#   utils/kg_next              # pick, print preflight table, draw the tree
+#   utils/kg_next --no-show    # same, without the drawing
+#
+# Picking rules (same preference order the /next coach uses):
+#   1. consolidate the oldest FRAGILE node, via the freshest READY carrier
+#   2. spaced re-solve of the oldest STALE node's latest carrier
+#   3. one new MISSING move whose prereqs are all SOLID
+# One-new-move rule is enforced: every other move in the walk must be SOLID.
+#
+# NOTE: the drawn tree names the walk's moves, i.e. it IS a hint by design —
+# this is the "show me the map" flow. The /next chat flow seals targets.
+
+import argparse
+import json
+import os
+from datetime import date
+from rich.console import Console
+from rich.table import Table
+
+from kg_lib import (
+    GRAPH_DIR, load_nodes, load_problems, load_evidence,
+    node_status, latest_carrier, SOLID, STALE, FRAGILE, MISSING,
+)
+from kg_render import make_digraph, status_node, render, display
+
+console = Console()
+
+STATUS_STYLE = {SOLID: "green", STALE: "yellow", FRAGILE: "red", MISSING: "dim"}
+
+
+def problem_url(pnum):
+    meta_path = os.path.join(os.path.dirname(GRAPH_DIR), ".problems_metadata.json")
+    try:
+        slug = json.load(open(meta_path))[str(pnum)]["slug"]
+        return f"https://leetcode.com/problems/{slug}/"
+    except Exception:
+        return f"https://leetcode.com/problemset/?search={pnum}"
+
+
+def last_solved(pnum, evidence):
+    dates = [r["date"] for r in evidence.values() if r.get("problem") == str(pnum)]
+    return max(dates) if dates else ""
+
+
+def carriers_for(target, problems, statuses, nodes):
+    """Problems containing the target move whose every OTHER move is SOLID."""
+    found = []
+    for pnum, p in problems.items():
+        moves = p.get("moves", [])
+        if target not in moves or not all(m in nodes for m in moves):
+            continue
+        if all(statuses[m][0] == SOLID for m in moves if m != target):
+            found.append(pnum)
+    return found
+
+
+def pick(nodes, problems, evidence, statuses):
+    """Return (target, status, pnum, reason) or None."""
+    fragile = sorted((n for n in nodes if statuses[n][0] == FRAGILE), key=lambda n: statuses[n][1])
+    stale = sorted((n for n in nodes if statuses[n][0] == STALE), key=lambda n: statuses[n][1])
+    missing = [n for n in nodes if statuses[n][0] == MISSING
+               and all(statuses[p][0] == SOLID for p in nodes[n].get("prereqs", []))]
+
+    for target in fragile:
+        cands = carriers_for(target, problems, statuses, nodes)
+        if cands:
+            cands.sort(key=lambda p: (last_solved(p, evidence), len(problems[p]["moves"]), int(p)))
+            return target, FRAGILE, cands[0], "consolidate a fragile move on a fresh carrier"
+
+    for target in stale:
+        cands = carriers_for(target, problems, statuses, nodes)
+        if not cands:
+            continue
+        carrier = latest_carrier(target, evidence)
+        pnum = carrier[2] if carrier and carrier[2] in cands else \
+            sorted(cands, key=lambda p: last_solved(p, evidence), reverse=True)[0]
+        return target, STALE, pnum, "spaced re-solve of a stale move's carrier"
+
+    for target in missing:
+        cands = carriers_for(target, problems, statuses, nodes)
+        if cands:
+            cands.sort(key=lambda p: (len(problems[p]["moves"]), int(p)))
+            return target, MISSING, cands[0], "one genuinely new move, prereqs all solid"
+
+    return None
+
+
+def input_tree(moves, nodes):
+    """Transitive prerequisite closure of a walk."""
+    seen = set()
+    stack = list(moves)
+    while stack:
+        n = stack.pop()
+        if n in seen or n not in nodes:
+            continue
+        seen.add(n)
+        stack.extend(nodes[n].get("prereqs", []))
+    return seen
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Pick the next problem and draw its input tree.")
+    parser.add_argument("--no-show", action="store_true", help="skip the drawing")
+    args = parser.parse_args()
+
+    nodes = load_nodes()
+    problems = load_problems()
+    evidence = load_evidence()
+    statuses = {n: node_status(n, evidence) for n in nodes}
+
+    choice = pick(nodes, problems, evidence, statuses)
+    if not choice:
+        console.print("[yellow]No READY carrier found for any frontier node — the graph needs new problems mapped.[/yellow]")
+        return
+    target, target_status, pnum, reason = choice
+    p = problems[pnum]
+
+    console.print(f"\n[bold]{pnum}. {p['title']}[/bold]")
+    console.print(problem_url(pnum))
+    when = last_solved(pnum, evidence)
+    console.print(f"[dim]{reason}" + (f" — you last solved this {when}[/dim]" if when else " — never solved[/dim]"))
+
+    table = Table(show_header=True, header_style="bold", box=None, padding=(0, 2))
+    table.add_column("Move")
+    table.add_column("Status")
+    table.add_column("Last evidence")
+    for m in p["moves"]:
+        s, d = statuses[m]
+        table.add_row(m, f"[{STATUS_STYLE[s]}]{s}[/{STATUS_STYLE[s]}]", str(d) if d else "—")
+    console.print(table)
+
+    # Warm-up prescription: the target's own refs + drill, and any rusty prereqs.
+    def drill_line(node_id):
+        if os.path.isdir(os.path.join("drills", node_id)):
+            return f"`make drill {node_id}`"
+        return nodes[node_id]["drill"]
+
+    prep = []
+    for pre in nodes[target].get("prereqs", []):
+        s, d = statuses[pre]
+        if s != SOLID:
+            prep.append(f"prereq [bold]{pre}[/bold] is [{STATUS_STYLE[s]}]{s}[/{STATUS_STYLE[s]}] ({d}) — drill: {drill_line(pre)}")
+    for ref in nodes[target].get("refs", []):
+        prep.append(f"review your own [bold]{ref}[/bold]")
+    if target_status in (FRAGILE, MISSING):
+        prep.append(f"drill [bold]{target}[/bold] before the problem: {drill_line(target)}")
+    if prep:
+        console.print("\n[bold]Warm up first:[/bold]")
+        for line in prep:
+            console.print(f"  • {line}")
+
+    if args.no_show:
+        return
+
+    tree = input_tree(p["moves"], nodes)
+    dot = make_digraph("input-tree")
+    for n in tree:
+        s, d = statuses[n]
+        status_node(dot, n, nodes[n], s, d, highlight=(n in p["moves"]))
+    for n in tree:
+        for pre in nodes[n].get("prereqs", []):
+            if pre in tree:
+                dot.edge(pre, n)
+    problem_node = f"problem_{pnum}"
+    dot.node(
+        problem_node,
+        label=f"{pnum}. {p['title']}",
+        shape="box",
+        style="filled",
+        fillcolor="#1f6feb",
+        color="#c9d1d9",
+        penwidth="2",
+        fontsize="13",
+        margin="0.2,0.12",
+        tooltip=problem_url(pnum),
+    )
+    for m in p["moves"]:
+        dot.edge(m, problem_node, penwidth="1.4")
+    logical_width = render(dot, "kg_next")
+    display("kg_next", logical_width)
+
+
+if __name__ == "__main__":
+    main()

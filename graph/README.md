@@ -15,6 +15,22 @@ and generate combination drills ("rote sheets").
 - **evidence.json** — per solve-file: which moves the actual code exercised, verdict
   `clean` / `struggled` / `avoided`. Append-only, keyed by filename like `.summaries.json`.
 
+## The drill bank (../drills/)
+
+`drills/<node-id>/*.py` is a growing bank of self-authored, leetcode-style drill files —
+statement, `Solution` skeleton, asserts — each targeting one node. The docstring headers
+route everything automatically:
+
+    DRILL: Next Greater Index      <- title (instead of "290. Word Pattern")
+    TRAINS: monotonic-stack        <- node id(s) this drill evidences
+
+Workflow is identical to leetcode problems: `make drill <node-id>` copies the
+least-recently-drilled file into current.py; solve; `make solved` files it as
+`solved/d_<title>_<ts>.py` and kg_extract records drill evidence against the TRAINS
+nodes (problem = "drill"; problems.json is never touched; leetcode solve stats ignore
+d-files). Every drill improvised in chat gets deposited here afterwards, so the rote
+sheet grows with every gap found.
+
 ## Rules
 
 1. **Mastery is derived, never stored.** Status comes from evidence dates at query time:

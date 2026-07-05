@@ -1,5 +1,5 @@
 {
-  "_comment": "Seed move taxonomy. A node = one atomic, drillable move (finer than a topic tag). Mastery is NEVER stored here — it is derived at query time from evidence.json dates. Split a node (fission) when a stumble reveals a hidden sub-move inside it.",
+  "_comment": "Seed move taxonomy. A node = one atomic, drillable move (finer than a topic tag). Mastery is NEVER stored here \u2014 it is derived at query time from evidence.json dates. Split a node (fission) when a stumble reveals a hidden sub-move inside it.",
   "nodes": [
     {
       "id": "set-membership",
@@ -14,7 +14,9 @@
       "group": "containers",
       "name": "Set algebra",
       "desc": "Union, intersection (&), difference (-), symmetric difference on sets.",
-      "prereqs": ["set-membership"],
+      "prereqs": [
+        "set-membership"
+      ],
       "drill": "Given two arrays, list distinct values in exactly one of them."
     },
     {
@@ -30,7 +32,9 @@
       "group": "containers",
       "name": "Counter as multiset",
       "desc": "==, <=, &, - and .elements() as multiset equality, sub-multiset, intersection, difference.",
-      "prereqs": ["counter-build"],
+      "prereqs": [
+        "counter-build"
+      ],
       "drill": "Solve 'can note be built from magazine letters?' in one expression."
     },
     {
@@ -38,15 +42,19 @@
       "group": "containers",
       "name": "Question the counts themselves",
       "desc": "Treat Counter.values() as the dataset (uniqueness of counts, sorted counts, count-of-counts).",
-      "prereqs": ["counter-build"],
+      "prereqs": [
+        "counter-build"
+      ],
       "drill": "Do all values in an array occur a distinct number of times?"
     },
     {
       "id": "dict-arbitrary-value",
       "group": "containers",
       "name": "Dict values beyond counts",
-      "desc": "Store indices, last-seen positions, or mappings as dict values — choose WHAT to remember.",
-      "prereqs": ["counter-build"],
+      "desc": "Store indices, last-seen positions, or mappings as dict values \u2014 choose WHAT to remember.",
+      "prereqs": [
+        "counter-build"
+      ],
       "drill": "For each value in an array, record the index where it last appeared."
     },
     {
@@ -54,7 +62,9 @@
       "group": "containers",
       "name": "Bijective mapping check",
       "desc": "Verify a one-to-one two-way mapping with two dicts (or dict + value-set).",
-      "prereqs": ["dict-arbitrary-value"],
+      "prereqs": [
+        "dict-arbitrary-value"
+      ],
       "drill": "Are two strings isomorphic?"
     },
     {
@@ -62,7 +72,9 @@
       "group": "streaming",
       "name": "Streaming ask-then-record",
       "desc": "Walk once; at each element QUERY the running summary of the past, THEN record the present. Order defines 'past'.",
-      "prereqs": ["dict-arbitrary-value"],
+      "prereqs": [
+        "dict-arbitrary-value"
+      ],
       "drill": "Return the first letter to appear twice in a string, one pass."
     },
     {
@@ -70,7 +82,10 @@
       "group": "streaming",
       "name": "Derived-key lookup",
       "desc": "Transform the in-hand value into the lookup key (target-n, n+k) instead of looking up the value itself.",
-      "prereqs": ["streaming-ask-then-record", "solve-pair-condition"],
+      "prereqs": [
+        "streaming-ask-then-record",
+        "solve-pair-condition"
+      ],
       "drill": "One pass: does any prior element equal current+5?"
     },
     {
@@ -86,7 +101,9 @@
       "group": "streaming",
       "name": "Accumulate pair matches",
       "desc": "pairs += (matches in the past) at each step, instead of returning on first match. Each pair counted at its second member.",
-      "prereqs": ["streaming-ask-then-record"],
+      "prereqs": [
+        "streaming-ask-then-record"
+      ],
       "drill": "Count equal pairs (i<j) in one pass without the C(n,2) formula."
     },
     {
@@ -110,7 +127,9 @@
       "group": "streaming",
       "name": "Seen-state cycle detection",
       "desc": "Store visited states in a set; revisit = cycle/repeat (happy number, path crossing).",
-      "prereqs": ["set-membership"],
+      "prereqs": [
+        "set-membership"
+      ],
       "drill": "Detect when iterating f(n) enters a loop."
     },
     {
@@ -118,7 +137,9 @@
       "group": "index-order",
       "name": "Prefix sums",
       "desc": "Precompute cumulative sums; any range sum = difference of two prefixes.",
-      "prereqs": ["running-sum"],
+      "prereqs": [
+        "running-sum"
+      ],
       "drill": "Answer 3 range-sum queries on a static array in O(1) each."
     },
     {
@@ -126,7 +147,11 @@
       "group": "index-order",
       "name": "Prefix-sum + hashmap",
       "desc": "Count subarrays summing to k by asking the past 'have you seen prefix-k?' (560 shape).",
-      "prereqs": ["prefix-sums", "derived-key-lookup", "streaming-accumulate-pairs"],
+      "prereqs": [
+        "prefix-sums",
+        "derived-key-lookup",
+        "streaming-accumulate-pairs"
+      ],
       "drill": "Count subarrays summing to 0 in one pass."
     },
     {
@@ -150,7 +175,9 @@
       "group": "index-order",
       "name": "Bucket by bounded value",
       "desc": "When the value domain is small, index an array by value instead of sorting.",
-      "prereqs": ["counter-build"],
+      "prereqs": [
+        "counter-build"
+      ],
       "drill": "Sort an array of values 0-100 in O(n) without sort()."
     },
     {
@@ -182,7 +209,9 @@
       "group": "pointers-windows",
       "name": "Fixed-size sliding window",
       "desc": "Window of size k: add the entering element, drop the leaving one, never recompute.",
-      "prereqs": ["running-sum"],
+      "prereqs": [
+        "running-sum"
+      ],
       "drill": "Max sum of any k consecutive elements, updating incrementally."
     },
     {
@@ -190,7 +219,9 @@
       "group": "pointers-windows",
       "name": "Variable sliding window",
       "desc": "Grow right; shrink left only while an invariant is violated.",
-      "prereqs": ["sliding-window-fixed"],
+      "prereqs": [
+        "sliding-window-fixed"
+      ],
       "drill": "Longest subarray of 1s allowing at most one 0 flip."
     },
     {
@@ -206,8 +237,13 @@
       "group": "stack-queue",
       "name": "Monotonic stack",
       "desc": "Keep the stack sorted; popping on violation reveals 'next greater/smaller' relationships.",
-      "prereqs": ["stack-matching"],
-      "drill": "For each element, index of the next greater element to its right."
+      "prereqs": [
+        "stack-matching"
+      ],
+      "drill": "For each element, index of the next greater element to its right.",
+      "refs": [
+        "dsa/monotonic_stack.py"
+      ]
     },
     {
       "id": "deque-recent-window",
@@ -230,7 +266,9 @@
       "group": "linked-lists",
       "name": "Pointer reversal",
       "desc": "Iteratively flip next pointers with prev/curr bookkeeping.",
-      "prereqs": ["ll-dummy-splice"],
+      "prereqs": [
+        "ll-dummy-splice"
+      ],
       "drill": "Reverse a linked list iteratively."
     },
     {
@@ -238,7 +276,9 @@
       "group": "linked-lists",
       "name": "Length/offset arithmetic",
       "desc": "Use lengths or a head-start gap between pointers (nth-from-end, list intersection).",
-      "prereqs": ["ll-dummy-splice"],
+      "prereqs": [
+        "ll-dummy-splice"
+      ],
       "drill": "Delete the nth node from the end in one structural pass."
     },
     {
@@ -254,7 +294,9 @@
       "group": "binary-search",
       "name": "Boundary binary search",
       "desc": "Find the FIRST index where a monotone predicate flips true (leftmost/rightmost variants).",
-      "prereqs": ["binary-search-index"],
+      "prereqs": [
+        "binary-search-index"
+      ],
       "drill": "First index where nums[i] >= target (insert position)."
     },
     {
@@ -262,7 +304,9 @@
       "group": "binary-search",
       "name": "Binary search on the answer",
       "desc": "Search the answer space; a feasibility check replaces the array (Koko, ship capacity).",
-      "prereqs": ["binary-search-boundary"],
+      "prereqs": [
+        "binary-search-boundary"
+      ],
       "drill": "Given a can_do(speed) checker, find minimum feasible speed."
     },
     {
@@ -278,7 +322,9 @@
       "group": "trees",
       "name": "Combine subtree returns",
       "desc": "Answer at node = f(left answer, right answer) (depth, same-tree, balance).",
-      "prereqs": ["tree-dfs-recursive"],
+      "prereqs": [
+        "tree-dfs-recursive"
+      ],
       "drill": "Max depth of a binary tree via one recursive expression."
     },
     {
@@ -286,7 +332,9 @@
       "group": "trees",
       "name": "Carry state down",
       "desc": "Pass accumulating state as recursion args (path sum so far, max on path, BST bounds).",
-      "prereqs": ["tree-dfs-recursive"],
+      "prereqs": [
+        "tree-dfs-recursive"
+      ],
       "drill": "Count nodes >= the max value seen on their root path."
     },
     {
@@ -294,7 +342,9 @@
       "group": "trees",
       "name": "Global answer across subtrees",
       "desc": "Return one thing up, but update a global best combining left+right at each node (diameter shape).",
-      "prereqs": ["tree-combine-returns"],
+      "prereqs": [
+        "tree-combine-returns"
+      ],
       "drill": "Diameter of a binary tree."
     },
     {
@@ -310,7 +360,9 @@
       "group": "trees",
       "name": "Exploit BST ordering",
       "desc": "left < node < right prunes half the tree per step (search, validate, insert).",
-      "prereqs": ["tree-dfs-recursive"],
+      "prereqs": [
+        "tree-dfs-recursive"
+      ],
       "drill": "Search a value in a BST touching O(h) nodes."
     },
     {
@@ -318,7 +370,9 @@
       "group": "trees",
       "name": "Rebuild tree from traversals",
       "desc": "Root from pre/postorder end, split inorder around it, recurse the slices.",
-      "prereqs": ["tree-combine-returns"],
+      "prereqs": [
+        "tree-combine-returns"
+      ],
       "drill": "Build the tree from preorder + inorder."
     },
     {
@@ -326,7 +380,9 @@
       "group": "graphs",
       "name": "Edges to adjacency",
       "desc": "Convert edge lists to adjacency dict/list, directed or not.",
-      "prereqs": ["dict-arbitrary-value"],
+      "prereqs": [
+        "dict-arbitrary-value"
+      ],
       "drill": "Build adjacency from an edge list; list neighbors of node 0."
     },
     {
@@ -334,7 +390,10 @@
       "group": "graphs",
       "name": "Graph DFS with visited set",
       "desc": "DFS + visited set; count components, check reachability.",
-      "prereqs": ["graph-adjacency-build", "seen-state-cycle-detect"],
+      "prereqs": [
+        "graph-adjacency-build",
+        "seen-state-cycle-detect"
+      ],
       "drill": "Count connected components in an undirected graph."
     },
     {
@@ -342,7 +401,10 @@
       "group": "graphs",
       "name": "BFS for shortest steps",
       "desc": "BFS layers = minimum moves; grid neighbors via delta offsets (maze, oranges).",
-      "prereqs": ["graph-adjacency-build", "tree-bfs-levels"],
+      "prereqs": [
+        "graph-adjacency-build",
+        "tree-bfs-levels"
+      ],
       "drill": "Min steps from corner to corner of a grid with walls."
     },
     {
@@ -358,7 +420,9 @@
       "group": "graphs",
       "name": "Topological ordering",
       "desc": "Order a DAG by dependencies (Kahn's in-degree queue or DFS postorder); cycle = impossible.",
-      "prereqs": ["graph-dfs-visited"],
+      "prereqs": [
+        "graph-dfs-visited"
+      ],
       "drill": "Order courses given prerequisite pairs, or report a cycle."
     },
     {
@@ -366,7 +430,9 @@
       "group": "recursion-dp",
       "name": "Choose, explore, un-choose",
       "desc": "Append candidate, recurse, pop; prune branches that can't succeed.",
-      "prereqs": ["tree-dfs-recursive"],
+      "prereqs": [
+        "tree-dfs-recursive"
+      ],
       "drill": "All combinations of k numbers from 1-9 summing to n."
     },
     {
@@ -382,7 +448,9 @@
       "group": "recursion-dp",
       "name": "Formulate DP state",
       "desc": "Name the state, write the recurrence and base cases BEFORE coding.",
-      "prereqs": ["memoize-recursion"],
+      "prereqs": [
+        "memoize-recursion"
+      ],
       "drill": "State + recurrence (no code) for house robber."
     },
     {
@@ -390,7 +458,9 @@
       "group": "recursion-dp",
       "name": "1D bottom-up DP",
       "desc": "Fill a 1D table (or two rolling vars) forward from base cases.",
-      "prereqs": ["dp-state-formulate"],
+      "prereqs": [
+        "dp-state-formulate"
+      ],
       "drill": "House robber with O(1) space."
     },
     {
@@ -398,7 +468,9 @@
       "group": "recursion-dp",
       "name": "2D table DP",
       "desc": "Grid/two-sequence DP: cell from neighbors (paths, edit distance, LCS).",
-      "prereqs": ["dp-1d-rolling"],
+      "prereqs": [
+        "dp-1d-rolling"
+      ],
       "drill": "Count grid paths with obstacles using one rolling row."
     },
     {
@@ -414,7 +486,9 @@
       "group": "heaps-greedy",
       "name": "Heap-driven simulation",
       "desc": "Repeatedly pop extreme, transform, push back (last stone weight).",
-      "prereqs": ["heap-top-k"],
+      "prereqs": [
+        "heap-top-k"
+      ],
       "drill": "Smash the two heaviest stones until <=1 remains."
     },
     {
@@ -422,7 +496,9 @@
       "group": "heaps-greedy",
       "name": "Sort then take greedily",
       "desc": "Sort by the exchange-argument key (often interval END), take while compatible.",
-      "prereqs": ["sort-by-custom-key"],
+      "prereqs": [
+        "sort-by-custom-key"
+      ],
       "drill": "Max number of non-overlapping intervals."
     },
     {
@@ -430,7 +506,9 @@
       "group": "heaps-greedy",
       "name": "Interval overlap predicate",
       "desc": "a.start <= b.end && b.start <= a.end; merge/count via sorted sweep.",
-      "prereqs": ["sort-then-adjacent"],
+      "prereqs": [
+        "sort-then-adjacent"
+      ],
       "drill": "Merge a list of possibly-overlapping intervals."
     },
     {
@@ -470,7 +548,9 @@
       "group": "bits-math",
       "name": "Closed-form pair counting",
       "desc": "C(n,2)=n(n-1)/2 per group; batch alternative to streaming pair accumulation.",
-      "prereqs": ["counter-build"],
+      "prereqs": [
+        "counter-build"
+      ],
       "drill": "Count equal pairs from a frequency map in one expression."
     },
     {
@@ -494,7 +574,9 @@
       "group": "strings",
       "name": "Trie build and walk",
       "desc": "Nested-dict character tree; insert and prefix-walk.",
-      "prereqs": ["dict-arbitrary-value"],
+      "prereqs": [
+        "dict-arbitrary-value"
+      ],
       "drill": "Insert 3 words; check a prefix and a full word."
     }
   ]

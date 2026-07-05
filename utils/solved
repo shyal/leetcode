@@ -24,6 +24,9 @@ def parse_current(file_path="current.py"):
     for line in lines:
         line = line.strip()
         if line:
+            drill_match = re.match(r"DRILL:\s*(.+)", line)
+            if drill_match:
+                return "drill", drill_match.group(1).strip(), content
             prob_match = re.match(r"(\d+[a-zA-Z]?)\.\s*(.+)", line)
             if prob_match:
                 problem_id = prob_match.group(1).strip()
@@ -104,7 +107,10 @@ def main():
     utc_now = datetime.now(timezone.utc)
     iso = utc_now.isoformat() + "Z"
     sanitized = re.sub(r"[^\w]", "_", iso)
-    filename = f"p{problem_id}_{clean_title}_{sanitized}.py"
+    if problem_id == "drill":
+        filename = f"d_{clean_title}_{sanitized}.py"
+    else:
+        filename = f"p{problem_id}_{clean_title}_{sanitized}.py"
     output_dir = "./solved"
     os.makedirs(output_dir, exist_ok=True)
     filepath = os.path.join(output_dir, filename)
@@ -117,7 +123,10 @@ def main():
         f.write("")
 
     # Prepare commit message
-    commit_message = f"{problem_id}. {title}\n\nsolve time: {solve_time}"
+    if problem_id == "drill":
+        commit_message = f"drill: {title}\n\nsolve time: {solve_time}"
+    else:
+        commit_message = f"{problem_id}. {title}\n\nsolve time: {solve_time}"
 
     try:
         subprocess.run(["git", "add", "."], check=True)
@@ -140,6 +149,10 @@ def main():
         )
     except subprocess.CalledProcessError as e:
         print(f"Error getting current branch: {e}")
+        return
+
+    if current_branch == "master":
+        print("Operations completed successfully.")
         return
 
     # Checkout master

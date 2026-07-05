@@ -29,6 +29,7 @@ console = Console()
 
 FNAME_RE = re.compile(r"p(\d+)_(.+?)_\d{4}_\d{2}_\d{2}T")
 DATE_RE = re.compile(r"_(\d{4})_(\d{2})_(\d{2})T")
+TRAINS_RE = re.compile(r"TRAINS:\s*([a-z0-9\-, ]+)")
 
 
 def main():
@@ -67,11 +68,21 @@ Output STRICT JSON only:
     def extract_one(path):
         """Read + claude call only — no shared state touched here."""
         code = open(path).read()
+        is_drill = os.path.basename(path).startswith("d_")
+        trains = []
+        if is_drill:
+            m = TRAINS_RE.search(code)
+            trains = [t.strip() for t in m.group(1).split(",")] if m else []
         # strip the problem statement docstring to keep the prompt small;
         # keep code + any candidate notes below it
         body = re.sub(r'^""".*?"""\s*', "", code, count=1, flags=re.S)[:6000]
         prompt = f"File: {os.path.basename(path)}\n\n{body}"
-        return claude_json(prompt, system, model=args.model)
+        if is_drill:
+            prompt = (
+                f"This is a DRILL file targeting these taxonomy nodes: {', '.join(trains) or 'unknown'}. "
+                f"Judge at least those moves.\n\n{prompt}"
+            )
+        return claude_json(prompt, system, model=args.model), is_drill
 
     lock = threading.Lock()
     done = failed = 0
@@ -80,7 +91,7 @@ Output STRICT JSON only:
         for fut in as_completed(futures):
             path = futures[fut]
             try:
-                result = fut.result()
+                result, is_drill = fut.result()
             except Exception as e:
                 failed += 1
                 console.print(f"[red]FAIL {path}: {str(e)[:200]}[/red]")
@@ -93,7 +104,7 @@ Output STRICT JSON only:
             rejected = [k for k in result.get("moves", {}) if k not in nodes]
             entry = {
                 "date": solve_date,
-                "problem": result.get("problem") or (m.group(1) if m else "?"),
+                "problem": "drill" if is_drill else (result.get("problem") or (m.group(1) if m else "?")),
                 "moves": moves,
             }
             if result.get("note"):
@@ -105,7 +116,7 @@ Output STRICT JSON only:
                 evidence[path] = entry
                 save_evidence(evidence)
                 pnum = entry["problem"]
-                if pnum not in problems and moves:
+                if not is_drill and pnum not in problems and moves:
                     problems[pnum] = {
                         "title": result.get("title", (m.group(2).replace("_", " ") if m else "")),
                         "difficulty": "",

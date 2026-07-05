@@ -1,0 +1,55 @@
+#!/usr/bin/env python3
+
+# kg_status — render the technique graph as a colored status grid.
+#
+#   utils/kg_status            # grid of all nodes by group
+#
+# Colors: green = SOLID, yellow = STALE, red = FRAGILE, dim = MISSING.
+# Derivation lives in kg_lib.node_status(); nothing is stored.
+
+from collections import Counter, defaultdict
+from rich.console import Console
+from rich.table import Table
+from rich.text import Text
+
+from kg_lib import load_nodes, load_evidence, node_status, SOLID, STALE, FRAGILE, MISSING
+
+console = Console()
+
+STYLE = {SOLID: "green", STALE: "yellow", FRAGILE: "red", MISSING: "dim"}
+
+
+def main():
+    nodes = load_nodes()
+    evidence = load_evidence()
+
+    groups = defaultdict(list)  # group -> [(node_id, status)]
+    counts = Counter()
+    for node_id, node in nodes.items():
+        status, _ = node_status(node_id, evidence)
+        groups[node["group"]].append((node_id, status))
+        counts[status] += 1
+
+    table = Table(title="Technique graph", title_style="bold", show_header=False, box=None, padding=(0, 1))
+    table.add_column("group", style="bold", no_wrap=True)
+    table.add_column("nodes")
+    for group, members in groups.items():
+        line = Text()
+        for i, (node_id, status) in enumerate(members):
+            if i:
+                line.append("  ")
+            line.append(node_id, style=STYLE[status])
+        table.add_row(group, line)
+
+    console.print(table)
+    summary = Text.assemble(
+        ("■ ", "green"), (f"{counts[SOLID]} solid   ", ""),
+        ("■ ", "yellow"), (f"{counts[STALE]} stale   ", ""),
+        ("■ ", "red"), (f"{counts[FRAGILE]} fragile   ", ""),
+        ("■ ", "dim"), (f"{counts[MISSING]} missing", ""),
+    )
+    console.print(summary, justify="center")
+
+
+if __name__ == "__main__":
+    main()

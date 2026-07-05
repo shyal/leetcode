@@ -13,15 +13,18 @@ class MonotonicStack:
         self.type = type
 
     def push(self, val):
+        res = []
         op = (lt, gt)[self.type]
         ope = (le, ge)[self.type]
 
-        if not self.data or ope(val, self.data[-1]):
+        if not self.data or ope(val[0], self.data[-1][0]):
             self.data.append(val)
         else:
-            while self.data and op(self.data[-1], val):
-                self.data.pop()
+            while self.data and op(self.data[-1][0], val[0]):
+                r = self.data.pop()
+                res.append(r)
             self.data.append(val)
+        return res
 
     def pop(self):
         if self.data:
@@ -36,19 +39,10 @@ class MonotonicStack:
 
 
 stack = MonotonicStack(Type.decreasing)
-stack.push(5)
-stack.push(4)
-stack.push(3)
-stack.push(2)
-stack.push(1)
-stack.push(3)
-assert stack.data == [5, 4, 3, 3]
-
-stack = MonotonicStack(Type.increasing)
-stack.push(1)
-stack.push(2)
-stack.push(3)
-stack.push(4)
-stack.push(5)
-stack.push(3)
-assert stack.data == [1, 2, 3, 3]
+vals = [5, 4, 3, 2, 1, 3]
+res = []
+for i, v in enumerate(vals):
+    r = stack.push((v, i))
+    res.extend(r)
+assert res == [(1, 4), (2, 3)] # these two got evicted by the last 3
+assert stack.data == [(5, 0), (4, 1), (3, 2), (3, 5)]

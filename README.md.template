@@ -4,9 +4,9 @@
 
 This repo contains a log of my >= 2025 leetcode solves. I was clobbering together the helper scripts for this repo between my solves, so solve times don't go all the way back. Likewise for readiness and topic estimates, they don't go all the way back, however enough data should get collected for progress charts to get increasingly interesting as time goes on.
 
-I can prompt Grok with my entire solve history. As such one of my main uses is to ask for recommdations on what to work on next. This establishes a feedback loop, where not only does it get to recommend what areas i should work on, but in the next round it also sees how well i did.
+Originally i prompted Grok with my entire solve history for recommendations, which established a feedback loop: it recommended what to work on, then saw how i did. That architecture has since been replaced by a technique knowledge graph (`graph/`): every solve is distilled (by Claude, once, at ingest) into evidence about which atomic *moves* the code actually exercised — `streaming-ask-then-record`, `monotonic-stack`, etc. A problem is a walk through the graph of moves; mastery is derived at query time from evidence dates, so skills go stale if i don't revisit them, exactly like real memory.
 
-In short, Grok is in charge of my progress, and gets complete transparency into my performance (code + solve time + notes). Grok keeps on commenting that my solving notes are "pure gold" because of the transparency it gets into my thought process during solves.
+Claude coaches on top of this: `make next` deterministically picks the next problem (consolidate fragile moves first, spaced re-solves second, one new move at a time), preflight-gates it so a problem never requires more than one untrained move, prescribes warm-up drills from a growing self-authored drill bank (`drills/`), and draws the problem's full dependency tree of techniques. The LLM judges code; the graph remembers; arithmetic decides what's next.
 
 I am thrilled with the use of LLMs as learning assistants. The recommendations are of extremely high quality, and the reasoning as to why i should work on what is extremely coherent.
 
@@ -32,9 +32,13 @@ This is the daily unique solve rate. This is because as complexity ramps up, que
 
 ## Contest progress
 
-Grok estimates when i'll be ready to take part in leetcode contests.
+The progress bar is derived from the technique graph: every move scores solid = 1.0, stale = 0.5, fragile = 0.25, missing = 0, averaged. Staleness (i.e. how much i forget over time) is baked in — the bar only moves when i actually re-earn moves, not when time passes. The projected date comes from a small Claude call fed the graph summary.
 
 <!-- CONTEST_PROGRESS -->
+
+Update: 05-Jul-2026
+
+Rebuilt the readiness layer on the technique graph. The old bars measured elapsed time against a predicted date, which meant they filled up by me merely existing (lapses included) — they read 90% after a 10-week break. The new bars measure current skill with decay, and dropped honestly to ~55% contest / ~19% FAANG. The old history below still stands as a record of the LLM-guess era.
 
 Update: 20-Oct-2025
 
@@ -46,7 +50,7 @@ In other words, these estimate variance charts are excellent indicators for comp
 
 ## FAANG progress
 
-Grok estimates when i'll be ready to pass FAANG mock interviews. Currently the focus of this repo is just fun, but this is an interesting metric regardless.
+Held to a stricter standard than contests: the bar is the fraction of technique moves that are fully SOLID (fresh evidence only — interviews demand instant recall, so stale doesn't count). Currently the focus of this repo is just fun, but this is an interesting metric regardless.
 
 <!-- FAANG_PROGRESS -->
 
@@ -58,7 +62,9 @@ I'm curious to see the amount of variance in the estimates, i.e whether they're 
 
 <!-- FAANG_VARIANCE_CHART -->
 
-## Contest topics readines chart
+## Topic readiness chart
+
+Per-family readiness derived from the technique graph (same solid/stale/fragile weighting, averaged per node group), sorted strongest first.
 
 <!-- CONTEST_TOPICS_CHART -->
 

@@ -311,33 +311,30 @@ def main():
         faang_end_str = last_readiness["faang_interview"]
 
         if all_problem_dates:
-            start_dt = datetime.strptime(min_date_str, "%Y-%m-%d")
-            current_dt = datetime.combine(date.today(), datetime.min.time())
+            # Progress = current skill measured by the technique graph, NOT elapsed
+            # time. SOLID = fresh evidence; STALE/FRAGILE discount for forgetting.
+            from kg_lib import load_nodes, load_evidence, node_status, SOLID, STALE, FRAGILE
 
-            contest_end_dt = datetime.strptime(contest_end_str, "%Y-%m-%d")
-            total_days_contest = (contest_end_dt - start_dt).days
-            elapsed_days_contest = (current_dt - start_dt).days
-            progress_contest = max(
-                0,
-                min(
-                    1,
-                    (
-                        elapsed_days_contest / total_days_contest
-                        if total_days_contest > 0
-                        else 0
-                    ),
-                ),
-            )
+            kg_nodes = load_nodes()
+            kg_evidence = load_evidence()
+            kg_statuses = {n: node_status(n, kg_evidence)[0] for n in kg_nodes}
+            status_weight = {SOLID: 1.0, STALE: 0.5, FRAGILE: 0.25}
+            progress_contest = sum(
+                status_weight.get(s, 0.0) for s in kg_statuses.values()
+            ) / len(kg_statuses)
+            progress_faang = sum(
+                1 for s in kg_statuses.values() if s == SOLID
+            ) / len(kg_statuses)
 
             fig, ax = plt.subplots(figsize=(10, 2))
             ax.barh([0], [progress_contest * 100], height=0.5, color="#00FF00")
             ax.set_yticks([0])
             ax.set_yticklabels(["Progress"])
             ax.set_xlim(0, 100)
-            ax.set_xlabel("Percentage Complete")
-            ax.set_title(f"Contest Readiness Progress (Ready by {contest_end_str})")
+            ax.set_xlabel("Graph-weighted skill %  (solid=1, stale=0.5, fragile=0.25)")
+            ax.set_title(f"Contest Readiness (projected ready {contest_end_str})")
             local_path = "/tmp/contest_progress.png"
-            fig.savefig(local_path)
+            fig.savefig(local_path, bbox_inches="tight")
             s3_key_contest_progress = f"contest_progress_{timestamp}.png"
             s3.upload_file(
                 local_path,
@@ -348,32 +345,17 @@ def main():
             plt.close(fig)
             contest_progress_img = f"![Contest Readiness Progress (Ready by {contest_end_str})](https://shyal.s3.amazonaws.com/{s3_key_contest_progress})"
 
-            faang_end_dt = datetime.strptime(faang_end_str, "%Y-%m-%d")
-            total_days_faang = (faang_end_dt - start_dt).days
-            elapsed_days_faang = (current_dt - start_dt).days
-            progress_faang = max(
-                0,
-                min(
-                    1,
-                    (
-                        elapsed_days_faang / total_days_faang
-                        if total_days_faang > 0
-                        else 0
-                    ),
-                ),
-            )
-
             fig, ax = plt.subplots(figsize=(10, 2))
             ax.barh([0], [progress_faang * 100], height=0.5, color="#00FF00")
             ax.set_yticks([0])
             ax.set_yticklabels(["Progress"])
             ax.set_xlim(0, 100)
-            ax.set_xlabel("Percentage Complete")
+            ax.set_xlabel("Fraction of technique nodes SOLID (fresh evidence only)")
             ax.set_title(
-                f"FAANG Interview Readiness Progress (Ready by {faang_end_str})"
+                f"FAANG Interview Readiness (projected ready {faang_end_str})"
             )
             local_path = "/tmp/faang_progress.png"
-            fig.savefig(local_path)
+            fig.savefig(local_path, bbox_inches="tight")
             s3_key_faang_progress = f"faang_progress_{timestamp}.png"
             s3.upload_file(
                 local_path,
@@ -392,48 +374,32 @@ def main():
         ]
         contest_topics_img = ""
         if historical_topics:
-            all_topics = set()
-            for item in historical_topics:
-                all_topics.update(item["contest_topics_readiness"].keys())
-            last_topics_data = historical_topics[-1]["contest_topics_readiness"]
-            topics = sorted(
-                all_topics, key=lambda x: last_topics_data.get(x, 0), reverse=True
-            )
-            dates_with_data = [item["run_date"] for item in historical_topics]
-            scores_over_time = []
-            for item in historical_topics:
-                scores = [
-                    item["contest_topics_readiness"].get(topic, 0) for topic in topics
-                ]
-                scores_over_time.append(scores)
+            # Static sorted snapshot of the LATEST scores only — older entries used
+            # a different topic vocabulary (LLM tags vs graph groups) and animating
+            # across the union reads as chaos.
+            last_entry = historical_topics[-1]
+            last_topics_data = last_entry["contest_topics_readiness"]
+            topics = sorted(last_topics_data, key=last_topics_data.get)  # barh: biggest on top
+            scores = [last_topics_data[t] for t in topics]
 
-            fig, ax = plt.subplots(figsize=(10, len(topics) * 0.5))
-            colors = plt.cm.tab20(np.linspace(0, 1, len(topics)))
-            bars = ax.barh(topics, [0] * len(topics), color=colors)
+            fig, ax = plt.subplots(figsize=(10, max(2, len(topics) * 0.4)))
+            bar_colors = ["#00AA00" if s >= 0.8 else "#FFA500" if s >= 0.5 else "#DD0000" for s in scores]
+            ax.barh(topics, scores, color=bar_colors)
             ax.set_xlim(0, 1)
-            ax.set_xlabel("Readiness Score")
-            ax.set_title("Contest Topics Readiness Over Time")
-            date_text = ax.text(0.5, 1.01, "", transform=ax.transAxes, ha="center")
-
-            def update(frame):
-                scores = scores_over_time[frame]
-                for bar, height in zip(bars, scores):
-                    bar.set_width(height)
-                date_text.set_text(dates_with_data[frame])
-                return list(bars) + [date_text]
-
-            anim = FuncAnimation(fig, update, frames=len(scores_over_time), blit=True)
-            local_path = "/tmp/contest_topics_readiness.gif"
-            anim.save(local_path, writer="pillow", fps=5)
-            s3_key_contest_topics = f"contest_topics_readiness_{timestamp}.gif"
+            ax.set_xlabel("Readiness Score (from technique graph)")
+            ax.set_title(f"Topic Readiness ({last_entry['run_date']})")
+            fig.tight_layout()
+            local_path = "/tmp/contest_topics_readiness.png"
+            fig.savefig(local_path)
+            s3_key_contest_topics = f"contest_topics_readiness_{timestamp}.png"
             s3.upload_file(
                 local_path,
                 bucket_name,
                 s3_key_contest_topics,
-                ExtraArgs={"ContentType": "image/gif"},
+                ExtraArgs={"ContentType": "image/png"},
             )
             plt.close(fig)
-            contest_topics_img = f"![Contest Topics Readiness Over Time](https://shyal.s3.amazonaws.com/{s3_key_contest_topics})"
+            contest_topics_img = f"![Topic Readiness](https://shyal.s3.amazonaws.com/{s3_key_contest_topics})"
         else:
             contest_topics_img = "No contest topics data."
 
@@ -445,7 +411,7 @@ def main():
     # New animation: Problem grid
     grid_anim_img = ""
     if dates_for_plot:
-        total_problems = 3302
+        total_problems = max(metadata) if metadata else 3302
         grid_size = math.ceil(math.sqrt(total_problems))
         problem_ids = list(range(1, total_problems + 1))  # Use ints for consistency
         all_positions = []
@@ -523,7 +489,12 @@ def main():
             date_text.set_text(dates_for_plot[frame])
             return [grey_scatter] + list(solved_scatters.values()) + [date_text]
 
-        anim = FuncAnimation(fig, update, frames=len(dates_dt), blit=True)
+        # cap the animation at ~150 frames — sample every k-th day on long histories
+        frame_step = max(1, len(dates_dt) // 150)
+        frame_indices = list(range(0, len(dates_dt), frame_step))
+        if frame_indices[-1] != len(dates_dt) - 1:
+            frame_indices.append(len(dates_dt) - 1)  # always end on today
+        anim = FuncAnimation(fig, update, frames=frame_indices, blit=True)
         local_path = "/tmp/problem_grid.gif"
         anim.save(local_path, writer="pillow", fps=10)
         s3_key_grid = f"problem_grid_{timestamp}.gif"

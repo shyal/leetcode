@@ -1,0 +1,72 @@
+#!/usr/bin/env python3
+
+# drill — load a drill from the bank (drills/<node-id>/*.py) into current.py.
+#
+#   utils/drill monotonic-stack        # least-recently-drilled file for that node
+#   utils/drill drills/monotonic-stack/next_greater_index.py
+#   utils/drill monotonic-stack --list
+#
+# The workflow then matches leetcode problems exactly: solve current.py,
+# run `make solved` — the DRILL/TRAINS docstring headers route it to a
+# d_-prefixed file in solved/ and drill evidence in the graph.
+
+import argparse
+import glob
+import os
+import sys
+from rich.console import Console
+
+from kg_lib import load_evidence
+
+console = Console()
+
+
+def last_drilled(slug, evidence):
+    """Latest date this bank drill was solved (matched by slug in d_ filenames)."""
+    dates = [r["date"] for k, r in evidence.items()
+             if os.path.basename(k).startswith("d_") and slug.lower() in os.path.basename(k).lower()]
+    return max(dates) if dates else ""
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Load a bank drill into current.py.")
+    parser.add_argument("target", help="node id (drills/<node>/) or a direct path to a drill file")
+    parser.add_argument("--list", action="store_true", help="list the node's drills and when last drilled")
+    args = parser.parse_args()
+
+    if os.path.isfile(args.target):
+        candidates = [args.target]
+    else:
+        candidates = sorted(glob.glob(os.path.join("drills", args.target, "*.py")))
+        if not candidates:
+            console.print(f"[red]No drills found under drills/{args.target}/[/red]")
+            existing = sorted(os.path.basename(d) for d in glob.glob("drills/*") if os.path.isdir(d))
+            if existing:
+                console.print(f"[dim]Nodes with drills: {', '.join(existing)}[/dim]")
+            sys.exit(1)
+
+    evidence = load_evidence()
+    slugged = [(os.path.splitext(os.path.basename(p))[0], p) for p in candidates]
+
+    if args.list:
+        for slug, path in slugged:
+            when = last_drilled(slug, evidence) or "never"
+            console.print(f"{path}  [dim]last drilled: {when}[/dim]")
+        return
+
+    # least-recently-drilled first; never-drilled sorts before everything
+    slug, path = sorted(slugged, key=lambda sp: last_drilled(sp[0], evidence))[0]
+
+    if os.path.exists("current.py") and open("current.py").read().strip():
+        console.print("[red]current.py is not empty — finish or clear it first.[/red]")
+        sys.exit(1)
+
+    with open(path) as src, open("current.py", "w") as dst:
+        dst.write(src.read())
+    when = last_drilled(slug, evidence) or "never"
+    console.print(f"Loaded [bold]{path}[/bold] into current.py  [dim](last drilled: {when})[/dim]")
+    console.print("Solve it, then `make solved` as usual.")
+
+
+if __name__ == "__main__":
+    main()
