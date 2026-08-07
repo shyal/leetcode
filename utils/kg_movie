@@ -1,0 +1,342 @@
+#!/usr/bin/env python3
+
+# kg_movie — animate the technique graph's history into graph/kg.mp4.
+#
+#   make movie                 # render + report
+#   utils/kg_movie --open      # render + open the mp4
+#
+# Statuses are derived, never stored, so the graph's state on any historical
+# date is just node_status() over the evidence recorded up to that date.
+# Date ticks are every evidence date plus weekly ticks between them — the
+# weekly ticks are what make decay visible: watch rooms dim to stale when
+# solving stops, not only light up when it resumes. Nodes whose status
+# changed since the previous tick get a bright border.
+#
+# Each solve flashes its problem number in gold next to every move its walk
+# exercised, then fades over ~2s. Solves replay in true within-day order
+# (filename timestamps, second granularity), staggered across the day's
+# tick — a marathon day is a cascade, not a burst. Output is 25fps (10
+# subframes per 0.4s date tick) so the fades are continuous, not steppy.
+# Label placement is chosen at spawn from ~20 candidate spots around the
+# node, overlapping NOTHING graphviz drew — nodes, edges, cluster borders
+# and titles, the header — nor any still-fading label; the spot is pinned
+# for the label's lifetime so nothing jumps between frames.
+
+import argparse
+import json
+import os
+import struct
+import subprocess
+import tempfile
+from collections import Counter, defaultdict
+from datetime import date, timedelta
+
+from PIL import Image, ImageDraw, ImageFont
+
+from kg_lib import GRAPH_DIR, load_nodes, load_evidence, node_status
+from kg_render import make_digraph, status_node, add_legend
+
+TICK_S = 0.4       # seconds per date tick
+SUBFRAMES = 10     # rendered frames per tick -> 25 fps output
+FPS_OUT = SUBFRAMES / TICK_S
+END_HOLD_S = 3     # freeze on the final state
+DPI = 144
+
+GOLD = (255, 215, 95)
+LABEL_LIFE_S = 2.0                 # solve labels fade over this long
+LABEL_PT = 19
+LABEL_GAP = 6                      # px between a node box and its label
+LABEL_FONT = "/System/Library/Fonts/Menlo.ttc"
+MAX_PROBS = 3                      # per node per day; the rest become "+k"
+
+
+def frame_dates(evidence):
+    solve_days = sorted({r["date"] for r in evidence.values()})
+    first, last = date.fromisoformat(solve_days[0]), date.fromisoformat(solve_days[-1])
+    days = {first - timedelta(days=1)}  # opening frame: the dark graph
+    days.update(date.fromisoformat(d) for d in solve_days)
+    tick = first
+    while tick < last:
+        days.add(tick)
+        tick += timedelta(days=7)
+    return sorted(days)
+
+
+def statuses_asof(nodes, evidence, day):
+    upto = {f: r for f, r in evidence.items() if r["date"] <= day.isoformat()}
+    return {n: node_status(n, upto, today=day) for n in nodes}
+
+
+def png_size(path):
+    with open(path, "rb") as f:
+        f.seek(16)
+        return struct.unpack(">II", f.read(8))
+
+
+def build_graph(nodes, statuses, changed, title):
+    dot = make_digraph("kg-frame", title=title)
+    dot.graph_attr["dpi"] = str(DPI)
+    dot.node_attr["penwidth"] = "2"  # constant width so highlights don't shift layout
+
+    groups = defaultdict(list)
+    for node_id, node in nodes.items():
+        groups[node["group"]].append(node_id)
+    for group, members in groups.items():
+        with dot.subgraph(name=f"cluster_{group}") as c:
+            c.attr(label=group, fontcolor="#8b949e", color="#30363d",
+                   style="rounded", fontname="Helvetica")
+            for node_id in members:
+                status, when = statuses[node_id]
+                status_node(c, node_id, nodes[node_id], status, when,
+                            highlight=node_id in changed)
+    for node_id, node in nodes.items():
+        for prereq in node.get("prereqs", []):
+            if prereq in nodes:
+                dot.edge(prereq, node_id)
+    add_legend(dot)
+    return dot
+
+
+def layout_geometry(dot, png_wh):
+    """One layout pass -> (node boxes, weighted obstacle rects) in pixel space.
+
+    Obstacles cover everything graphviz draws: node boxes (legend included),
+    cluster borders and titles, the header line, and every edge spline
+    rasterized into a corridor of small rects. Weights let the fallback
+    scoring prefer grazing a thin edge over covering text if no spot is free.
+    """
+    layout = json.loads(dot.pipe(format="json").decode())
+    bb = [float(v) for v in layout["bb"].split(",")]
+    pad = 4.0  # graphviz default margin, in points
+    pw, ph = png_wh
+    sx, sy = pw / (bb[2] + 2 * pad), ph / (bb[3] + 2 * pad)
+
+    def tf(x, y):
+        return (x + pad) * sx, ph - (y + pad) * sy
+
+    boxes, obstacles = {}, []
+
+    def add_text_ops(obj, weight):
+        for op in obj.get("_ldraw_", []):
+            if op.get("op") == "T":
+                x, y = tf(*op["pt"])
+                w = op["width"] * sx
+                h = 16 * sy  # about a line of the 14-16pt graphviz label fonts
+                x0 = x - w / 2 if op.get("align") == "c" else x
+                obstacles.append(((x0, y - h, x0 + w, y + 3), weight))
+
+    add_text_ops(layout, 5)  # the graph title / stat line
+    for obj in layout.get("objects", []):
+        name = obj.get("name", "")
+        if name.startswith("cluster"):
+            cx0, cy1 = tf(*(float(v) for v in obj["bb"].split(",")[:2]))
+            cx1, cy0 = tf(*(float(v) for v in obj["bb"].split(",")[2:]))
+            for strip in (  # the four rounded-border lines, as thin rects
+                (cx0 - 2, cy0 - 2, cx1 + 2, cy0 + 2), (cx0 - 2, cy1 - 2, cx1 + 2, cy1 + 2),
+                (cx0 - 2, cy0 - 2, cx0 + 2, cy1 + 2), (cx1 - 2, cy0 - 2, cx1 + 2, cy1 + 2),
+            ):
+                obstacles.append((strip, 2))
+            add_text_ops(obj, 5)
+            continue
+        if "pos" not in obj or "," not in obj.get("pos", ""):
+            continue
+        x, y = (float(v) for v in obj["pos"].split(","))
+        w, h = float(obj["width"]) * 72 * sx, float(obj["height"]) * 72 * sy
+        cx, cy = tf(x, y)
+        box = (cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2)
+        boxes[name] = box
+        obstacles.append((box, 5))  # legend nodes included — they're drawn too
+
+    for edge in layout.get("edges", []):
+        pts = []
+        for tok in edge.get("pos", "").split():
+            if tok[:2] in ("e,", "s,"):
+                tok = tok[2:]
+            ex, ey = (float(v) for v in tok.split(","))
+            pts.append(tf(ex, ey))
+        for (ax, ay), (bx_, by_) in zip(pts, pts[1:]):
+            steps = max(1, int(((bx_ - ax) ** 2 + (by_ - ay) ** 2) ** 0.5 // 14))
+            for k in range(steps + 1):
+                mx, my = ax + (bx_ - ax) * k / steps, ay + (by_ - ay) * k / steps
+                obstacles.append(((mx - 4, my - 4, mx + 4, my + 4), 1))
+
+    return boxes, obstacles
+
+
+def solves_by_day(evidence):
+    """date -> [(problem, moves)] in true within-day solve order.
+
+    Order comes from the filename timestamps (second granularity). Even the
+    migration-stamped files preserve their original sequence in the
+    microseconds, so marathon days replay in the order they happened.
+    """
+    import re
+
+    by_day = defaultdict(list)  # date -> [(ts, problem, moves)]
+    for fname, rec in evidence.items():
+        p = rec.get("problem", "")
+        if not p or not p[0].isdigit():
+            continue  # drills and misc entries carry no leetcode number
+        m = re.search(r"\d{4}_\d{2}_\d{2}T[\d_]+", fname)
+        by_day[rec["date"]].append((m.group(0) if m else "", p, list(rec.get("moves", {}))))
+    out = {}
+    for day, rows in by_day.items():
+        rows.sort()
+        seen, ordered = set(), []
+        for _, p, moves in rows:
+            if p not in seen:  # a same-day re-solve flashes once
+                seen.add(p)
+                ordered.append((p, moves))
+        out[day] = ordered
+    return out
+
+
+def overlaps(a, b):
+    return a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]
+
+
+def candidate_spots(node_box, w, h):
+    """Positions to try around a node: above > below > right > left, each with
+    center/left/right (or top/bottom) alignments, then a farther second ring."""
+    x0, y0, x1, y1 = node_box
+    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+    g = LABEL_GAP
+    xs = (cx - w / 2, x0, x1 - w)
+    spots = [(x, y0 - g - h) for x in xs] + [(x, y1 + g) for x in xs]
+    spots += [(x1 + g, y) for y in (cy - h / 2, y0, y1 - h)]
+    spots += [(x0 - g - w, y) for y in (cy - h / 2, y0, y1 - h)]
+    for ring in (20, 40):
+        spots += [(cx - w / 2, y0 - g - h - ring), (cx - w / 2, y1 + g + ring),
+                  (x1 + g + ring, cy - h / 2), (x0 - g - w - ring, cy - h / 2)]
+    return spots
+
+
+def place_label(node_box, block_options, obstacles, taken):
+    """Pick (rect, texts, line_h) touching nothing; least-weighted-overlap fallback.
+
+    block_options are (texts, (w, h), line_h) variants — vertical stack first,
+    single-line second. taken are rectangles of labels still fading: a dying
+    label keeps its ground until it is gone.
+    """
+    x0, y0, x1, y1 = node_box
+    vicinity = (x0 - 260, y0 - 260, x1 + 260, y1 + 260)
+    obstacles = [o for o in obstacles if overlaps(o[0], vicinity)]
+    weighted_taken = [(r, 5) for r in taken if overlaps(r, vicinity)]
+    best, best_bad = None, None
+    for texts, (w, h), line_h in block_options:
+        for lx, ly in candidate_spots(node_box, w, h):
+            rect = (lx, ly, lx + w, ly + h)
+            bad = sum(((min(r[2], rect[2]) - max(r[0], rect[0])) *
+                       (min(r[3], rect[3]) - max(r[1], rect[1]))) * wt
+                      for r, wt in obstacles + weighted_taken if overlaps(rect, r))
+            if bad == 0:
+                return rect, texts, line_h
+            if best_bad is None or bad < best_bad:
+                best, best_bad = (rect, texts, line_h), bad
+    return best
+
+
+def label_alpha(age_s):
+    if age_s < 0:
+        return 0  # not born yet — spawns are staggered within a tick
+    t = age_s / LABEL_LIFE_S
+    return 0 if t >= 1 else int(255 * (1 - t) ** 1.4)
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Animate the technique graph's history.")
+    parser.add_argument("--open", action="store_true", help="open the mp4 when done")
+    args = parser.parse_args()
+
+    nodes = load_nodes()
+    evidence = load_evidence()
+    days = frame_dates(evidence)
+    by_day = solves_by_day(evidence)
+    out = os.path.join(GRAPH_DIR, "kg.mp4")
+    try:
+        font = ImageFont.truetype(LABEL_FONT, LABEL_PT)
+    except OSError:
+        font = ImageFont.load_default()
+    line_h = LABEL_PT + 6
+
+    def block_options(text):
+        return [([text], (font.getbbox(text)[2], line_h), line_h)]
+
+    with tempfile.TemporaryDirectory() as tmp:
+        prev, boxes, obstacles = None, None, None
+        active = []  # {"node", "texts", "rect", "born"} — rect pinned at spawn
+        out_idx = 0
+        for i, day in enumerate(days):
+            statuses = statuses_asof(nodes, evidence, day)
+            changed = {n for n in nodes if prev and statuses[n][0] != prev[n][0]}
+            counts = Counter(s[0] for s in statuses.values())
+            title = (f"{day}   ·   {counts['SOLID']:2d} solid  {counts['STALE']:2d} stale  "
+                     f"{counts['FRAGILE']:2d} fragile  {counts['MISSING']:2d} missing")
+            dot = build_graph(nodes, statuses, changed, title)
+            dot.render(filename="base", directory=tmp, format="png", cleanup=True)
+            base_png = os.path.join(tmp, "base.png")
+            if boxes is None:
+                boxes, obstacles = layout_geometry(dot, png_size(base_png))
+
+            tick_t = i * TICK_S
+            active = [a for a in active if label_alpha(tick_t - a["born"]) > 0]
+            day_solves = by_day.get(day.isoformat(), [])
+            for k, (prob, moves) in enumerate(day_solves):
+                born = tick_t + k * TICK_S / len(day_solves)  # replay in solve order
+                for node_id in moves:
+                    if node_id not in boxes:
+                        continue
+                    alive_here = [a for a in active if a["node"] == node_id]
+                    if len(alive_here) >= MAX_PROBS:  # evict the oldest on a hot node
+                        active.remove(min(alive_here, key=lambda a: a["born"]))
+                    rect, texts, lh = place_label(boxes[node_id], block_options(prob),
+                                                  obstacles, [a["rect"] for a in active])
+                    active.append({"node": node_id, "texts": texts, "rect": rect,
+                                   "line_h": lh, "born": born})
+
+            base = Image.open(base_png).convert("RGBA")
+            clean_idx = None  # first label-free frame of this tick, for hardlink reuse
+            for s in range(SUBFRAMES):
+                t = tick_t + s * TICK_S / SUBFRAMES
+                live = [(a, label_alpha(t - a["born"])) for a in active]
+                live = [(a, al) for a, al in live if al > 0]
+                frame_path = os.path.join(tmp, f"f_{out_idx:05d}.jpg")
+                if live:
+                    layer = Image.new("RGBA", base.size, (0, 0, 0, 0))
+                    draw = ImageDraw.Draw(layer)
+                    for a, alpha in live:
+                        lx, ly = a["rect"][0], a["rect"][1]
+                        for k, text in enumerate(a["texts"]):
+                            draw.text((lx, ly + k * a["line_h"]), text, font=font,
+                                      fill=(*GOLD, alpha))
+                    Image.alpha_composite(base, layer).convert("RGB").save(
+                        frame_path, quality=92)
+                elif clean_idx is not None:
+                    os.link(os.path.join(tmp, f"f_{clean_idx:05d}.jpg"), frame_path)
+                else:
+                    base.convert("RGB").save(frame_path, quality=92)
+                    clean_idx = out_idx
+                out_idx += 1
+            print(f"\r{i + 1}/{len(days)} ticks", end="", flush=True)
+        print()
+
+        w, h = base.size
+        w, h = w + w % 2, h + h % 2
+        subprocess.run(
+            ["ffmpeg", "-y", "-loglevel", "error", "-framerate", str(FPS_OUT),
+             "-i", os.path.join(tmp, "f_%05d.jpg"),
+             "-vf", (f"scale={w}:{h}:force_original_aspect_ratio=decrease,"
+                     f"pad={w}:{h}:(ow-iw)/2:(oh-ih)/2:color=0x0d1117,"
+                     f"tpad=stop_mode=clone:stop_duration={END_HOLD_S},format=yuv420p"),
+             "-c:v", "libx264", "-crf", "20", out],
+            check=True,
+        )
+
+    dur = len(days) * TICK_S + END_HOLD_S
+    print(f"wrote {out} — {len(days)} ticks, {int(FPS_OUT)}fps, ~{dur:.0f}s")
+    if args.open:
+        subprocess.run(["open", out], check=False)
+
+
+if __name__ == "__main__":
+    main()
