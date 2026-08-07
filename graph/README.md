@@ -44,8 +44,11 @@ recorded on sleep: the code is the evidence, and there is no code yet.
 ## Rules
 
 1. **Mastery is derived, never stored.** Status comes from evidence dates at query time:
-   clean within ~6 weeks = SOLID · older = STALE · once-only or struggled = FRAGILE ·
-   no evidence = MISSING. Nothing goes stale by sitting in a file.
+   SOLID while the personal forgetting curve (`graph/curve.json`, refit with `make curve`)
+   predicts ≥90% recall — stability grows ~1.3× per clean rep, so windows expand with
+   repetition (1 rep ≈ 2 months, 5 reps ≈ 5+) · below that = STALE · once-only or
+   struggled = FRAGILE · no evidence = MISSING. Delete curve.json to fall back to a flat
+   42-day window. Nothing goes stale by sitting in a file.
 2. **One new move per assignment.** A problem is READY when at most one of its moves is
    non-SOLID — that move is the training target. Two or more → prep first: spaced re-solve
    for STALE, micro-drill for MISSING/FRAGILE.

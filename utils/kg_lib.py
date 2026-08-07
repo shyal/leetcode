@@ -52,8 +52,26 @@ def save_evidence(evidence):
         json.dump(data, f, indent=2)
 
 
+_curve_cache = None
+
+
+def _load_curve():
+    """graph/curve.json (fitted by utils/kg_curve), or None for the flat window."""
+    global _curve_cache
+    if _curve_cache is None:
+        path = os.path.join(GRAPH_DIR, "curve.json")
+        _curve_cache = json.load(open(path)) if os.path.exists(path) else False
+    return _curve_cache or None
+
+
 def node_status(node_id, evidence, today=None):
-    """Derive a node's mastery status from evidence entries."""
+    """Derive a node's mastery status from evidence entries.
+
+    SOLID vs STALE uses the personal forgetting curve (graph/curve.json) when
+    one has been fitted: predicted recall 2^(-gap/h) with a half-life that
+    grows with clean reps and shrinks with struggles, SOLID while predicted
+    recall >= the fitted target. Without a curve: flat SOLID_WINDOW_DAYS.
+    """
     today = today or date.today()
     entries = []  # (date, verdict)
     for rec in evidence.values():
@@ -71,6 +89,20 @@ def node_status(node_id, evidence, today=None):
         return FRAGILE, last_date
     if not clean_dates:
         return FRAGILE, last_date
+
+    curve = _load_curve()
+    if curve:
+        import math
+        p = curve["params"]
+        cleans = len(clean_dates)
+        struggles = sum(1 for _, v in entries if v == "struggled")
+        stability = math.exp(p["a"] + p["b"] * cleans - p["c"] * struggles)
+        stability = min(max(stability, 7), 3650)  # sanity clamp
+        gap = (today - clean_dates[-1]).days
+        if (1 + gap / stability) ** (-p["beta"]) >= curve["target_retention"]:
+            return SOLID, clean_dates[-1]
+        return STALE, clean_dates[-1]
+
     if today - clean_dates[-1] <= timedelta(days=SOLID_WINDOW_DAYS):
         return SOLID, clean_dates[-1]
     return STALE, clean_dates[-1]

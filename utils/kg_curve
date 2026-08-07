@@ -1,0 +1,192 @@
+#!/usr/bin/env python3
+
+# kg_curve — fit a personal forgetting curve from evidence.json and write
+# graph/curve.json, which kg_lib.node_status() uses instead of the flat
+# 42-day window (delete curve.json to fall back).
+#
+#   make curve                 # refit from current evidence + report
+#
+# Model: power-law forgetting with a slip rate.
+#   P(recall after gap Δ) = (1−slip) · (1 + Δ/s)^(−β)
+#   s = exp(a + b·cleans − c·struggles)     — memory stability, grows with reps
+# Power-law because real forgetting curves have heavy tails (Wixted), and an
+# exponential fitted to this data loses to a constant baseline; slip because
+# short-gap failures are retrieval noise, not forgetting — no curve pinned to
+# P(0)=1 can fit a 95% ceiling. Fit by maximum likelihood on recall trials:
+# a trial is the FIRST solve of a node on a day, when the node had at least
+# one prior clean — success if clean, failure if struggled. Within-day order
+# comes from filename timestamps, so a morning struggle followed by an
+# evening consolidation counts as the failure it was. 'avoided' verdicts are
+# neither success nor failure (the move went unused). Status uses the memory
+# component only: SOLID while (1 + Δ/s)^(−β) >= target_retention.
+
+import json
+import math
+import os
+import re
+from collections import defaultdict
+
+from kg_lib import GRAPH_DIR, load_evidence
+
+TARGET_RETENTION = 0.9   # node_status calls a node SOLID above this
+
+
+def extract_trials(evidence):
+    """[(gap_days, success, n_prior_cleans, n_prior_struggles)] across all nodes."""
+    events = defaultdict(list)  # node -> [(date, ts, verdict)]
+    for fname, rec in evidence.items():
+        m = re.search(r"\d{4}_\d{2}_\d{2}T[\d_]+", fname)
+        ts = m.group(0) if m else ""
+        for node, verdict in rec.get("moves", {}).items():
+            events[node].append((rec["date"], ts, verdict))
+
+    trials = []
+    for node, evs in events.items():
+        evs.sort()
+        days = defaultdict(list)
+        for d, _, v in evs:
+            days[d].append(v)
+        last_clean, cleans, struggles = None, 0, 0
+        for d in sorted(days):
+            first = days[d][0]
+            if last_clean is not None and first in ("clean", "struggled"):
+                gap = (_date(d) - _date(last_clean)).days
+                if gap >= 1:
+                    trials.append((gap, 1 if first == "clean" else 0, cleans, struggles))
+            for v in days[d]:
+                if v == "clean":
+                    cleans += 1
+                    last_clean = d
+                elif v == "struggled":
+                    struggles += 1
+    return trials
+
+
+def _date(s):
+    from datetime import date
+    return date.fromisoformat(s)
+
+
+def fit(trials, iters=8000, lr=0.05):
+    """MLE for (a, b, c, beta, slip) in P = (1−slip)·(1 + Δ/s)^(−beta)."""
+    try:
+        return _fit_numpy(trials, iters, lr)
+    except ImportError:
+        pass
+    a, b, c, beta, slip = math.log(60), 0.05, 0.05, 0.5, 0.05
+    n = len(trials)
+    for it in range(iters):
+        ga = gb = gc = gbeta = gslip = 0.0
+        for gap, sf, k, m in trials:
+            stab = math.exp(a + b * k - c * m)
+            u = gap / stab
+            mem = (1 + u) ** (-beta)
+            p = min(1 - 1e-9, max(1e-9, (1 - slip) * mem))
+            # E = dLL/dP scaled: success pulls P up, failure pushes it down
+            E = sf - (1 - sf) * p / (1 - p)
+            dlns = E * beta * u / (1 + u)          # dLL/d(ln stability)
+            ga += dlns
+            gb += dlns * k
+            gc += dlns * (-m)
+            gbeta += E * (-math.log(1 + u))
+            gslip += E * (-1 / (1 - slip))
+        step = lr / (1 + it / 2000)
+        a += step * ga / n
+        b = max(0.0, b + step * gb / n)            # reps should not shorten memory
+        c = max(0.0, c + step * gc / n)
+        beta = min(5.0, max(0.02, beta + step * gbeta / n))
+        slip = min(0.25, max(0.0, slip + step * gslip / n))
+    return a, b, c, beta, slip
+
+
+def _fit_numpy(trials, iters, lr):
+    import numpy as np
+
+    gap, sf, k, m = (np.array(x, dtype=float) for x in zip(*trials))
+    n = len(trials)
+    a, b, c, beta, slip = math.log(60), 0.05, 0.05, 0.5, 0.05
+    for it in range(iters):
+        u = gap / np.exp(a + b * k - c * m)
+        mem = (1 + u) ** (-beta)
+        p = np.clip((1 - slip) * mem, 1e-9, 1 - 1e-9)
+        E = sf - (1 - sf) * p / (1 - p)
+        dlns = E * beta * u / (1 + u)
+        step = lr / (1 + it / 2000) / n
+        a += step * dlns.sum()
+        b = max(0.0, b + step * (dlns * k).sum())
+        c = max(0.0, c + step * (-dlns * m).sum())
+        beta = min(5.0, max(0.02, beta + step * (-E * np.log1p(u)).sum()))
+        slip = min(0.25, max(0.0, slip + step * (-E / (1 - slip)).sum()))
+    return a, b, c, beta, slip
+
+
+def loglik(trials, pred):
+    return sum(math.log(max(1e-9, pred(g, k, m) if s else 1 - min(1 - 1e-9, pred(g, k, m))))
+               for g, s, k, m in trials) / len(trials)
+
+
+def main():
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Fit the personal forgetting curve.")
+    parser.add_argument("--if-stale", action="store_true",
+                        help="refit only when evidence.json is newer than curve.json")
+    args = parser.parse_args()
+
+    curve_path = os.path.join(GRAPH_DIR, "curve.json")
+    evidence_path = os.path.join(GRAPH_DIR, "evidence.json")
+    if (args.if_stale and os.path.exists(curve_path)
+            and os.path.getmtime(curve_path) >= os.path.getmtime(evidence_path)):
+        return  # curve already reflects current evidence
+
+    evidence = load_evidence()
+    trials = extract_trials(evidence)
+    a, b, c, beta, slip = fit(trials)
+
+    def stab(k, m):
+        return math.exp(a + b * k - c * m)
+
+    def pred(gap, k, m):
+        return (1 - slip) * (1 + gap / stab(k, m)) ** (-beta)
+
+    base_rate = sum(s for _, s, _, _ in trials) / len(trials)
+    ll_model = loglik(trials, pred)
+    ll_base = sum(math.log(base_rate if s else 1 - base_rate)
+                  for _, s, _, _ in trials) / len(trials)
+
+    curve = {
+        "_comment": "Personal forgetting curve fitted by utils/kg_curve. "
+        "P(recall) = (1-slip)*(1 + gap/s)^(-beta), s = exp(a + b*cleans - c*struggles). "
+        "node_status() calls a node SOLID while the memory component "
+        "(1 + gap/s)^(-beta) >= target_retention; delete this file to fall "
+        "back to the flat 42-day window.",
+        "model": "power-law-slip",
+        "params": {"a": round(a, 4), "b": round(b, 4), "c": round(c, 4),
+                   "beta": round(beta, 4), "slip": round(slip, 4)},
+        "target_retention": TARGET_RETENTION,
+        "fit": {"trials": len(trials), "loglik": round(ll_model, 4),
+                "baseline_loglik": round(ll_base, 4)},
+    }
+    with open(os.path.join(GRAPH_DIR, "curve.json"), "w") as f:
+        json.dump(curve, f, indent=2)
+
+    print(f"fitted on {len(trials)} trials: "
+          f"P = {1 - slip:.2f}·(1 + Δ/s)^(−{beta:.2f}), "
+          f"s = exp({a:.2f} + {b:.3f}·cleans − {c:.3f}·struggles)")
+    print(f"loglik/trial {ll_model:.4f} vs always-{base_rate:.0%} baseline {ll_base:.4f}")
+    print(f"{TARGET_RETENTION:.0%}-retention window by clean reps (no struggles):")
+    for k in (1, 2, 3, 5, 10, 20):
+        window = stab(k, 0) * (TARGET_RETENTION ** (-1 / beta) - 1)
+        print(f"  {k:2d} reps: stability {stab(k, 0):5.0f}d -> window ≈ {window:5.0f}d")
+    print("calibration (model mean vs observed clean-rate):")
+    for lo, hi in ((1, 7), (8, 21), (22, 42), (43, 90), (91, 180), (181, 400)):
+        rows = [(g, s, k, m) for g, s, k, m in trials if lo <= g <= hi]
+        if rows:
+            obs = sum(s for _, s, _, _ in rows) / len(rows)
+            mod = sum(pred(g, k, m) for g, _, k, m in rows) / len(rows)
+            print(f"  gap {lo:3d}-{hi:3d}d: model {mod:4.0%}  observed {obs:4.0%}  (n={len(rows)})")
+    print(f"wrote {os.path.join(GRAPH_DIR, 'curve.json')}")
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,17 @@
+{
+  "_comment": "Personal forgetting curve fitted by utils/kg_curve. P(recall) = (1-slip)*(1 + gap/s)^(-beta), s = exp(a + b*cleans - c*struggles). node_status() calls a node SOLID while the memory component (1 + gap/s)^(-beta) >= target_retention; delete this file to fall back to the flat 42-day window.",
+  "model": "power-law-slip",
+  "params": {
+    "a": 4.1842,
+    "b": 0.2563,
+    "c": 0.022,
+    "beta": 0.2021,
+    "slip": 0.0542
+  },
+  "target_retention": 0.9,
+  "fit": {
+    "trials": 510,
+    "loglik": -0.2293,
+    "baseline_loglik": -0.2345
+  }
+}
