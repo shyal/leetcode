@@ -1,0 +1,126 @@
+#!/usr/bin/env python3
+
+# kg_sleep — park the current problem for 24h and let it simmer.
+#
+#   make sleep            # mid-exercise: parks the problem on the current branch
+#   make sleep 108        # park an explicit problem number
+#   make sleep -- --list  # show sleep state (also printed by kg_status)
+#
+# Sleeping a problem tells kg_next not to offer it until the timer expires;
+# meanwhile the picker warms the rusty moves under it (rule 0 in kg_next),
+# and on expiry the problem jumps the queue for a fresh attempt. Mid-exercise,
+# the work in progress is committed on the problem branch ("sleeping: ...")
+# and you are returned to master — resume tomorrow from scratch (recommended),
+# with the old attempt still on the branch if you want to peek.
+#
+# One active sleep at a time: this is an incubation tool, not a snooze button.
+# Sleep when you are looping — no new idea in ~15 minutes — not when you are
+# merely uncomfortable; discomfort means retrieval is working.
+
+import argparse
+import subprocess
+import sys
+from datetime import datetime, timedelta
+
+from kg_lib import (
+    load_nodes, load_problems, load_evidence, load_sleep, save_sleep,
+    sleep_state, node_status, SOLID,
+)
+
+SLEEP_HOURS = 24
+
+
+def git(*cmd, check=True):
+    return subprocess.run(["git", *cmd], check=check, capture_output=True, text=True)
+
+
+def current_branch():
+    return git("rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
+
+
+def fought_so_far():
+    """Minutes since the 'started' commit, same clock utils/solved uses."""
+    out = git("log", "-1", "--grep=^started$", "--format=%ct", check=False).stdout.strip()
+    if not out:
+        return None
+    return int((datetime.now().timestamp() - int(out)) // 60)
+
+
+def walk_closure(moves, nodes):
+    seen, stack = set(), list(moves)
+    while stack:
+        n = stack.pop()
+        if n in seen or n not in nodes:
+            continue
+        seen.add(n)
+        stack.extend(nodes[n].get("prereqs", []))
+    return seen
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Park the current problem for 24h.")
+    parser.add_argument("problem", nargs="?", help="problem number (default: current branch)")
+    parser.add_argument("--list", action="store_true", help="show sleep state and exit")
+    args = parser.parse_args()
+
+    nodes = load_nodes()
+    problems = load_problems()
+    evidence = load_evidence()
+    sleeps = load_sleep()
+    asleep, woken = sleep_state(sleeps, evidence)
+
+    if args.list:
+        if not sleeps:
+            print("no sleeps recorded")
+        for pnum, rec in sleeps.items():
+            state = "asleep" if pnum in asleep else "woken" if pnum in woken else "resolved"
+            print(f"{pnum}. {rec.get('title', '?')} — {state} (until {rec['until'][:16]})")
+        return
+
+    # prune resolved entries while we are here
+    sleeps = {p: r for p, r in sleeps.items() if p in asleep or p in woken}
+
+    branch = current_branch()
+    pnum = args.problem or (branch if branch in problems else None)
+    if pnum is None or pnum not in problems:
+        sys.exit(f"can't tell which problem to sleep (branch {branch!r}); pass one: make sleep 108")
+    if pnum in asleep:
+        sys.exit(f"{pnum} is already sleeping (until {sleeps[pnum]['until'][:16]})")
+    if asleep:
+        other = asleep[0]
+        sys.exit(f"one sleep at a time — {other}. {sleeps[other].get('title','?')} is still "
+                 f"asleep (until {sleeps[other]['until'][:16]}). Solve or wake it first.")
+
+    now = datetime.now()
+    fought = fought_so_far() if branch == pnum else None
+    sleeps[pnum] = {
+        "title": problems[pnum]["title"],
+        "slept": now.isoformat(timespec="minutes"),
+        "until": (now + timedelta(hours=SLEEP_HOURS)).isoformat(timespec="minutes"),
+        **({"fought": f"{fought}m"} if fought is not None else {}),
+    }
+    save_sleep(sleeps)
+
+    # mid-exercise: park ONLY current.py on the branch, renamed <num>-slept (so a
+    # fresh `make prepare <num>` can recreate branch <num> tomorrow), return to
+    # master. Everything else (sleep.json, evidence, ...) stays in the working
+    # tree — sweeping bystanders onto the parked branch would strip them from
+    # master's checkout.
+    if branch == pnum:
+        git("add", "current.py")
+        git("commit", "-m", f"sleeping: {pnum}. {problems[pnum]['title']}", check=False)
+        git("branch", "-M", pnum, f"{pnum}-slept")
+        git("checkout", "master")
+        print(f"WIP parked on branch {pnum}-slept; back on master.")
+
+    statuses = {n: node_status(n, evidence) for n in nodes}
+    rusty = [n for n in walk_closure(problems[pnum]["moves"], nodes)
+             if statuses[n][0] != SOLID]
+    print(f"{pnum}. {problems[pnum]['title']} is sleeping until {sleeps[pnum]['until'][:16]}"
+          + (f" (fought {fought}m)" if fought else ""))
+    print("kg_next will warm meanwhile: " + (", ".join(sorted(rusty)) if rusty
+          else "nothing — its walk is already solid; the simmer alone is the treatment"))
+
+
+if __name__ == "__main__":
+    main()

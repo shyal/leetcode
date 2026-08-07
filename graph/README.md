@@ -31,6 +31,16 @@ nodes (problem = "drill"; problems.json is never touched; leetcode solve stats i
 d-files). Every drill improvised in chat gets deposited here afterwards, so the rote
 sheet grows with every gap found.
 
+## Sleep (`make sleep`)
+
+Stuck mid-exercise and looping — no new idea in ~15 minutes? `make sleep` parks the
+problem for 24h in `sleep.json`: kg_next won't offer it, warms its walk's rusty
+moves/prereqs meanwhile (via other carriers), and on expiry the problem jumps the
+queue for a fresh from-scratch attempt. Your half-written attempt is parked on branch
+`<num>-slept` if you want to peek. One active sleep at a time — it's an incubation
+tool for failed retrieval, not a snooze button for discomfort. No evidence is
+recorded on sleep: the code is the evidence, and there is no code yet.
+
 ## Rules
 
 1. **Mastery is derived, never stored.** Status comes from evidence dates at query time:

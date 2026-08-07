@@ -12,7 +12,10 @@ from rich.console import Console
 from rich.table import Table
 from rich.text import Text
 
-from kg_lib import load_nodes, load_evidence, node_status, SOLID, STALE, FRAGILE, MISSING
+from kg_lib import (
+    load_nodes, load_evidence, node_status, SOLID, STALE, FRAGILE, MISSING,
+    load_sleep, sleep_state,
+)
 
 console = Console()
 
@@ -49,6 +52,16 @@ def main():
         ("■ ", "dim"), (f"{counts[MISSING]} missing", ""),
     )
     console.print(summary, justify="center")
+
+    sleeps = load_sleep()
+    asleep, woken = sleep_state(sleeps, evidence)
+    for p in asleep:
+        console.print(f"💤 [bold]{p}. {sleeps[p].get('title','?')}[/bold] sleeping "
+                      f"until {sleeps[p]['until'][:16]} — kg_next is warming its ground",
+                      justify="center")
+    for p in woken:
+        console.print(f"⏰ [bold]{p}. {sleeps[p].get('title','?')}[/bold] is awake — "
+                      "it jumps the queue for a fresh attempt", justify="center")
 
 
 if __name__ == "__main__":

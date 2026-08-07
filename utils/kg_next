@@ -8,6 +8,10 @@
 #   utils/kg_next --no-show    # same, without the drawing
 #
 # Picking rules (same preference order the /next coach uses):
+#   0. sleep (graph/sleep.json, written by `make sleep`): a WOKEN problem —
+#      timer expired, not yet re-attempted — jumps the queue for a fresh try;
+#      while one is ASLEEP it is excluded everywhere and its walk's rusty
+#      moves/prereqs get warmed first, via other carriers
 #   1. consolidate the oldest FRAGILE node, via the freshest READY carrier
 #   2. spaced re-solve of the oldest STALE node's latest carrier — unless the
 #      move is DEEP stale (no clean solve within 2x the solid window): then the
@@ -29,7 +33,7 @@ from rich.table import Table
 from kg_lib import (
     GRAPH_DIR, load_nodes, load_problems, load_evidence,
     node_status, latest_carrier, SOLID, STALE, FRAGILE, MISSING,
-    SOLID_WINDOW_DAYS,
+    SOLID_WINDOW_DAYS, load_sleep, sleep_state,
 )
 
 DEEP_STALE_DAYS = 2 * SOLID_WINDOW_DAYS  # beyond this, a "re-solve" plays like a new problem
@@ -72,21 +76,40 @@ def carriers_for(target, problems, statuses, nodes):
     return found
 
 
-def pick(nodes, problems, evidence, statuses):
+def pick(nodes, problems, evidence, statuses, asleep=(), woken=()):
     """Return (target, status, pnum, reason) or None."""
+    # rule 0a: a woken problem jumps the queue for a fresh attempt
+    for pnum in woken:
+        moves = problems[pnum]["moves"]
+        target = next((m for m in moves if statuses[m][0] != SOLID), moves[0])
+        return target, statuses[target][0], pnum, "woken from sleep — fresh attempt, from scratch"
+
+    # rule 0b: while a problem sleeps, warm the rusty ground under it
+    for pnum in asleep:
+        closure = input_tree(problems[pnum]["moves"], nodes)
+        rusty = sorted((n for n in closure if statuses[n][0] != SOLID),
+                       key=lambda n: (statuses[n][1] is not None, statuses[n][1]))
+        for target in rusty:
+            cands = [c for c in carriers_for(target, problems, statuses, nodes)
+                     if c not in asleep]
+            if cands:
+                cands.sort(key=lambda p: (last_solved(p, evidence), len(problems[p]["moves"]), pnum_key(p)))
+                return target, statuses[target][0], cands[0], \
+                    f"warm the ground under sleeping {pnum} ({target})"
+
     fragile = sorted((n for n in nodes if statuses[n][0] == FRAGILE), key=lambda n: statuses[n][1])
     stale = sorted((n for n in nodes if statuses[n][0] == STALE), key=lambda n: statuses[n][1])
     missing = [n for n in nodes if statuses[n][0] == MISSING
                and all(statuses[p][0] == SOLID for p in nodes[n].get("prereqs", []))]
 
     for target in fragile:
-        cands = carriers_for(target, problems, statuses, nodes)
+        cands = [c for c in carriers_for(target, problems, statuses, nodes) if c not in asleep]
         if cands:
             cands.sort(key=lambda p: (last_solved(p, evidence), len(problems[p]["moves"]), pnum_key(p)))
             return target, FRAGILE, cands[0], "consolidate a fragile move on a fresh carrier"
 
     for target in stale:
-        cands = carriers_for(target, problems, statuses, nodes)
+        cands = [c for c in carriers_for(target, problems, statuses, nodes) if c not in asleep]
         if not cands:
             continue
         age = (date.today() - statuses[target][1]).days
@@ -100,7 +123,7 @@ def pick(nodes, problems, evidence, statuses):
         return target, STALE, pnum, "spaced re-solve of a stale move's carrier"
 
     for target in missing:
-        cands = carriers_for(target, problems, statuses, nodes)
+        cands = [c for c in carriers_for(target, problems, statuses, nodes) if c not in asleep]
         if cands:
             cands.sort(key=lambda p: (len(problems[p]["moves"]), pnum_key(p)))
             return target, MISSING, cands[0], "one genuinely new move, prereqs all solid"
@@ -130,8 +153,13 @@ def main():
     problems = load_problems()
     evidence = load_evidence()
     statuses = {n: node_status(n, evidence) for n in nodes}
+    sleeps = load_sleep()
+    asleep, woken = sleep_state(sleeps, evidence)
+    for pnum in asleep:
+        rec = sleeps[pnum]
+        console.print(f"[dim]💤 {pnum}. {rec.get('title','?')} sleeping until {rec['until'][:16]}[/dim]")
 
-    choice = pick(nodes, problems, evidence, statuses)
+    choice = pick(nodes, problems, evidence, statuses, asleep=asleep, woken=woken)
     if not choice:
         console.print("[yellow]No READY carrier found for any frontier node — the graph needs new problems mapped.[/yellow]")
         return
@@ -156,7 +184,8 @@ def main():
     # Best warm-up is a real leetcode problem whose walk needs ONLY the rusty
     # node (everything else SOLID); then a bank drill; then the improvised one.
     def warmup_for(node_id):
-        cands = [c for c in carriers_for(node_id, problems, statuses, nodes) if c != pnum]
+        cands = [c for c in carriers_for(node_id, problems, statuses, nodes)
+                 if c != pnum and c not in asleep]
         if cands:
             cands.sort(key=lambda c: (last_solved(c, evidence), len(problems[c]["moves"]), c))
             c = cands[0]

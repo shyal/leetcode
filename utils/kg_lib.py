@@ -87,6 +87,45 @@ def latest_carrier(node_id, evidence):
     return best
 
 
+def load_sleep():
+    """graph/sleep.json — problems parked by `make sleep`. Returns {} if absent."""
+    path = os.path.join(GRAPH_DIR, "sleep.json")
+    if not os.path.exists(path):
+        return {}
+    with open(path) as f:
+        return json.load(f).get("sleeps", {})
+
+
+def save_sleep(sleeps):
+    path = os.path.join(GRAPH_DIR, "sleep.json")
+    data = {
+        "_comment": "Problems parked mid-exercise by `make sleep`: excluded from kg_next "
+        "picks until `until`, their walk's rusty dependencies warmed meanwhile; on expiry "
+        "the problem jumps the queue for a fresh attempt. An entry is resolved (and later "
+        "pruned) once a solve is recorded on or after its slept date.",
+        "sleeps": sleeps,
+    }
+    with open(path, "w") as f:
+        json.dump(data, f, indent=2)
+
+
+def sleep_state(sleeps, evidence, now=None):
+    """Split sleep entries into (asleep, woken) problem-number lists.
+
+    Resolved entries — a solve recorded on/after the slept date — fall in neither.
+    """
+    from datetime import datetime
+
+    now = now or datetime.now()
+    asleep, woken = [], []
+    for pnum, rec in sleeps.items():
+        slept_day = rec["slept"][:10]
+        if any(r.get("problem") == pnum and r["date"] >= slept_day for r in evidence.values()):
+            continue
+        (asleep if now < datetime.fromisoformat(rec["until"]) else woken).append(pnum)
+    return asleep, woken
+
+
 def claude_json(prompt, system_prompt, model="sonnet"):
     """One non-interactive claude call; returns parsed JSON from the result text."""
     proc = subprocess.run(
