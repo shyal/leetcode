@@ -22,8 +22,10 @@ from rich.console import Console
 
 from kg_lib import (
     load_nodes, load_problems, load_evidence,
-    save_problems, save_evidence, claude_json, taxonomy_summary,
+    save_problems, save_evidence, claude_json, taxonomy_summary, node_status,
 )
+
+VERDICT_STYLE = {"clean": "green", "struggled": "red", "avoided": "yellow"}
 
 console = Console()
 
@@ -82,6 +84,18 @@ Output STRICT JSON only:
                 f"This is a DRILL file targeting these taxonomy nodes: {', '.join(trains) or 'unknown'}. "
                 f"Judge at least those moves.\n\n{prompt}"
             )
+        else:
+            # tell the judge what the canonical walk IS, so avoidance is
+            # detected against the map instead of by luck
+            fm = FNAME_RE.search(os.path.basename(path))
+            canon = problems.get(fm.group(1), {}).get("moves") if fm else None
+            if canon:
+                prompt = (
+                    f"This problem's canonical walk in our curated map: {', '.join(canon)}. "
+                    f"Judge EVERY one of those moves explicitly: 'clean' or 'struggled' if the "
+                    f"code exercises it, 'avoided' if the solution routes around it. Also add "
+                    f"any other moves the code actually exercises.\n\n{prompt}"
+                )
         return claude_json(prompt, system, model=args.model), is_drill
 
     lock = threading.Lock()
@@ -102,6 +116,12 @@ Output STRICT JSON only:
             solve_date = f"{dm.group(1)}-{dm.group(2)}-{dm.group(3)}" if dm else "1970-01-01"
             moves = {k: v for k, v in result.get("moves", {}).items() if k in nodes}
             rejected = [k for k in result.get("moves", {}) if k not in nodes]
+            if not is_drill and m:
+                # the map defines the checklist: a canonical move the judge
+                # didn't score was not exercised — that's 'avoided', structurally
+                for mv in problems.get(m.group(1), {}).get("moves", []):
+                    if mv in nodes and mv not in moves:
+                        moves[mv] = "avoided"
             entry = {
                 "date": solve_date,
                 "problem": "drill" if is_drill else (result.get("problem") or (m.group(1) if m else "?")),
@@ -116,6 +136,14 @@ Output STRICT JSON only:
                 evidence[path] = entry
                 save_evidence(evidence)
                 pnum = entry["problem"]
+                # a detected dodge IS a discovered alt walk — record it so the
+                # picker knows this carrier is escapable and can route around it
+                if not is_drill and any(v == "avoided" for v in moves.values()):
+                    taken = sorted(mv for mv, v in moves.items() if v == "clean")
+                    pentry = problems.get(pnum)
+                    if pentry and taken and taken not in pentry.get("alt_walks", []):
+                        pentry.setdefault("alt_walks", []).append(taken)
+                        save_problems(problems)
                 if not is_drill and pnum not in problems and moves:
                     problems[pnum] = {
                         "title": result.get("title", (m.group(2).replace("_", " ") if m else "")),
@@ -125,9 +153,30 @@ Output STRICT JSON only:
                     }
                     save_problems(problems)
                 done += 1
+                painted = ", ".join(
+                    f"[{VERDICT_STYLE.get(v, 'white')}]{mv}[/{VERDICT_STYLE.get(v, 'white')}]"
+                    for mv, v in moves.items())
                 console.print(
-                    f"[green]{done}/{len(todo)}[/green] {os.path.basename(path)[:60]} → {', '.join(moves) or '—'}"
+                    f"[green]{done}/{len(todo)}[/green] {os.path.basename(path)[:60]} → {painted or '—'}"
                 )
+                # the loud receipt: dodges and struggles change the graph — say so
+                before_ev = {k: v for k, v in evidence.items() if k != path}
+                dodged = False
+                for mv, verdict in moves.items():
+                    if verdict == "clean":
+                        continue
+                    b, _ = node_status(mv, before_ev)
+                    a, _ = node_status(mv, evidence)
+                    change = f"[red]{b} → {a}[/red]" if a != b else f"stays {a}"
+                    word, style = (("dodged", "yellow") if verdict == "avoided"
+                                   else ("struggled on", "red"))
+                    console.print(f"    [{style}]⚠ {word} [bold]{mv}[/bold][/{style}] ({change})")
+                    dodged = dodged or verdict == "avoided"
+                if dodged:
+                    console.print(
+                        "    [dim]path of least resistance recorded — the canonical move went "
+                        "undrilled. Cheapest fix: re-solve it canonically while it's warm; "
+                        "otherwise the picker will re-assign it.[/dim]")
 
     console.print(
         f"\nDone: {done} processed, {failed} failed (re-run to retry), "

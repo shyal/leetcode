@@ -64,6 +64,25 @@ def pnum_key(pnum):
     return (int(digits) if digits else 0, str(pnum))
 
 
+def dodged_nodes(evidence):
+    """Nodes whose most recent evidence is 'avoided' — the canonical move was
+    routed around. These get anti-dodge treatment: carriers chosen to resist
+    the escape, drills prescribed first (a drill cannot be dodged)."""
+    latest = {}
+    for fname, rec in evidence.items():
+        for node, verdict in rec.get("moves", {}).items():
+            key = (rec["date"], fname)
+            if node not in latest or key > latest[node][0]:
+                latest[node] = (key, verdict, rec.get("problem"))
+    return {n: pnum for n, (_, v, pnum) in latest.items() if v == "avoided"}
+
+
+def dodgeable(pnum, target, problems):
+    """True if a recorded alt walk lets this problem be solved without target."""
+    return any(target not in walk
+               for walk in problems.get(pnum, {}).get("alt_walks", []))
+
+
 def carriers_for(target, problems, statuses, nodes):
     """Problems containing the target move whose every OTHER move is SOLID."""
     found = []
@@ -102,9 +121,18 @@ def pick(nodes, problems, evidence, statuses, asleep=(), woken=()):
     missing = [n for n in nodes if statuses[n][0] == MISSING
                and all(statuses[p][0] == SOLID for p in nodes[n].get("prereqs", []))]
 
+    dodged = dodged_nodes(evidence)
     for target in fragile:
         cands = [c for c in carriers_for(target, problems, statuses, nodes) if c not in asleep]
         if cands:
+            if target in dodged:
+                # anti-dodge: prefer carriers with no recorded escape route and
+                # short walks (the target is load-bearing, not optional)
+                cands.sort(key=lambda p: (dodgeable(p, target, problems),
+                                          len(problems[p]["moves"]),
+                                          last_solved(p, evidence), pnum_key(p)))
+                return target, FRAGILE, cands[0], \
+                    f"you dodged this move on {dodged[target]} — carrier chosen to resist the dodge"
             cands.sort(key=lambda p: (last_solved(p, evidence), len(problems[p]["moves"]), pnum_key(p)))
             return target, FRAGILE, cands[0], "consolidate a fragile move on a fresh carrier"
 
@@ -204,6 +232,9 @@ def main():
     for ref in nodes[target].get("refs", []):
         prep.append(f"review your own [bold]{ref}[/bold]")
     if target_status in (FRAGILE, MISSING):
+        if target in dodged_nodes(evidence) and os.path.isdir(os.path.join("drills", target)):
+            prep.append(f"[yellow]this move was dodged — drill it FIRST, a drill can't "
+                        f"be dodged: `make drill {target}`[/yellow]")
         prep.append(f"warm up [bold]{target}[/bold] before the problem — {warmup_for(target)}")
     if prep:
         console.print("\n[bold]Warm up first:[/bold]")
