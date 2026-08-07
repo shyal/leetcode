@@ -1,0 +1,130 @@
+#!/usr/bin/env python3
+
+# kg_today — derive today's practice plan from the graph, the personal
+# forgetting curve, the sleep ledger, and the mock trajectory. Replaces the
+# static goals.json phase schedule in the default `make` — phases, daily
+# mix, and topic gaps are all derived state now, so the plan can never
+# desync from reality: skip a week and it rebalances toward maintenance
+# by itself.
+#
+#   make today                 # plan a 2h day
+#   make today 3               # plan a 3h day
+#
+# Cadence:
+#   every day  — curve maintenance first, then the picker's target,
+#                then new mediums aimed at the dimmest rooms
+#   Wed & Sat  — one hard, once the graph has no fragile/missing moves
+#   mocks      — deliberately OFF (MOCKS_ENABLED below): they need premium
+#                and, at the current stage, would mostly measure frustration.
+#                Flip on when screens feel plausible; until then the forecast
+#                carries recognition as an uncertainty band, which is fine.
+
+import os
+import sys
+from datetime import date
+from importlib.machinery import SourceFileLoader
+
+from rich.console import Console
+
+from kg_lib import (
+    GRAPH_DIR, load_nodes, load_problems, load_evidence, node_status,
+    latest_carrier, load_sleep, sleep_state, SOLID, FRAGILE, MISSING,
+)
+
+console = Console()
+UTILS = os.path.dirname(os.path.abspath(__file__))
+
+MAINT_COST, MEDIUM_COST, HARD_COST, MOCK_COST = 10, 23, 40, 95
+MOCK_DAYS, HARD_DAYS = (1, 4), (2, 5)  # Tue/Fri, Wed/Sat
+MOCKS_ENABLED = False  # needs leetcode premium + a stage where they motivate
+
+
+def main():
+    hours = float(sys.argv[1]) if len(sys.argv) > 1 else 2.0
+    budget = int(hours * 60)
+    nodes = load_nodes()
+    problems = load_problems()
+    evidence = load_evidence()
+    statuses = {n: node_status(n, evidence) for n in nodes}
+    kg_next = SourceFileLoader("kg_next", os.path.join(UTILS, "kg_next")).load_module()
+
+    weekday = date.today().weekday()
+    plan, t = [], 0
+
+    def slot(minutes, text):
+        nonlocal t
+        plan.append((t, minutes, text))
+        t += minutes
+
+    # sleep ledger first — a woken problem owns the session
+    sleeps = load_sleep()
+    asleep, woken = sleep_state(sleeps, evidence)
+    for pnum in asleep:
+        console.print(f"[dim]💤 {pnum}. {sleeps[pnum].get('title','?')} sleeping "
+                      f"until {sleeps[pnum]['until'][:16]}[/dim]")
+
+    # 1. curve maintenance: refresh what fades next (never more than a quarter
+    #    of the day — maintenance serves practice, not the other way round)
+    fading = []
+    for nid, (status, last) in statuses.items():
+        if status == SOLID and last:
+            carrier = latest_carrier(nid, evidence)
+            if carrier and carrier[2] and carrier[2] in problems:
+                fading.append((nid, carrier[2]))
+    # a node counts as fading when one more quiet week would tip it stale
+    from datetime import timedelta
+    soon = date.today() + timedelta(days=7)
+    fading = [(n, c) for n, c in fading
+              if node_status(n, evidence, today=soon)[0] != SOLID]
+    seen_carriers, maint = set(), []
+    for nid, carrier in fading:
+        if carrier not in seen_carriers:
+            seen_carriers.add(carrier)
+            maint.append((nid, carrier))
+    for nid, carrier in maint[:max(1, budget // 4 // MAINT_COST)]:
+        title = problems[carrier].get("title", "?")
+        slot(MAINT_COST, f"re-solve [bold]{carrier}. {title}[/bold] "
+                         f"[dim]({nid} fades within a week)[/dim]")
+
+    # 2. mock day / picker target
+    if woken:
+        pnum = woken[0]
+        slot(MEDIUM_COST * 2, f"⏰ woken: [bold]{pnum}. "
+             f"{sleeps[pnum].get('title','?')}[/bold] — fresh attempt, from scratch")
+    elif MOCKS_ENABLED and weekday in MOCK_DAYS:
+        slot(MOCK_COST, "🎯 [bold]timed mock, cold[/bold] — a leetcode company "
+             "assessment, no notes, no palace. Afterwards record every problem's "
+             "verdict honestly; this is the measurement the forecast needs")
+    else:
+        choice = kg_next.pick(nodes, problems, evidence, statuses,
+                              asleep=asleep, woken=woken)
+        if choice:
+            target, tstatus, pnum, reason = choice
+            cost = MEDIUM_COST * 2 if tstatus in (FRAGILE, MISSING) else MEDIUM_COST
+            slot(cost, f"picker target: [bold]{pnum}. "
+                 f"{problems[pnum].get('title','?')}[/bold] [dim]({reason})[/dim]")
+
+    # 3. hards / new mediums with the rest, aimed at the dimmest rooms
+    room_recall = {}
+    for nid, node in nodes.items():
+        room_recall.setdefault(node["group"], []).append(
+            1.0 if statuses[nid][0] == SOLID else 0.0)
+    dim = sorted(room_recall, key=lambda g: sum(room_recall[g]) / len(room_recall[g]))[:3]
+    graph_lit = all(s not in (FRAGILE, MISSING) for s, _ in statuses.values())
+    if weekday in HARD_DAYS and graph_lit and budget - t >= HARD_COST:
+        slot(HARD_COST, f"one [bold]Hard[/bold], timed 60m cap, from: {', '.join(dim[:2])}")
+    n_new = max(0, (budget - t) // MEDIUM_COST)
+    if n_new:
+        slot(n_new * MEDIUM_COST, f"{n_new} new medium{'s' if n_new > 1 else ''} "
+             f"from the dimmest rooms: [bold]{', '.join(dim)}[/bold]")
+
+    console.print(f"\n[bold]today · {date.today():%a %d %b} · {hours:g}h[/bold]")
+    for start, minutes, text in plan:
+        console.print(f"  {start // 60}:{start % 60:02d}  [{minutes:3d}m]  {text}")
+    if t < budget:
+        console.print(f"  [dim]{t // 60}:{t % 60:02d}  ({budget - t}m spare — "
+                      "stop early; consistency beats volume)[/dim]")
+
+
+if __name__ == "__main__":
+    main()

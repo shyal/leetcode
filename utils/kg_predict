@@ -1,0 +1,146 @@
+#!/usr/bin/env python3
+
+# kg_predict — simulate the road to interview-ready under the fitted curve.
+#
+#   make predict 2             # 2 hours/day; any hours value works (e.g. 1.5)
+#
+# Day-by-day simulation of how the picker would spend your hours: consolidate
+# fragile moves, acquire missing ones, re-solve whatever the personal
+# forgetting curve (graph/curve.json) says is about to go stale, and spend
+# the rest on new mediums (which refresh the least-repped moves they walk).
+# The taxonomy grows by fission as mediums accumulate. Ready = the graph
+# fully solid + MEDIUM_TARGET distinct mediums banked, then POLISH_DAYS of
+# timed sets and mocks on top. Solve costs are measured from your own git
+# history, not assumed.
+#
+# What this does NOT model: system design or behavioral prep, and — the
+# dominant real-world variable — whether the hours actually happen daily.
+# The two long ambers in your history moved dates more than any parameter
+# here. Constants below are editable and printed with the result.
+
+import json
+import math
+import os
+import re
+import statistics
+import subprocess
+import sys
+from datetime import date, timedelta
+
+from kg_lib import GRAPH_DIR, load_nodes, load_evidence, node_status, FRAGILE, MISSING
+
+MEDIUM_TARGET = 220        # distinct mediums banked = broad interview coverage
+POLISH_DAYS = 35           # timed sets, hards, mocks after the grind
+MAINT_COST = 10            # minutes to re-solve a known carrier
+CONSOLIDATE_COST = 18      # minutes to fix a fragile move on a fresh carrier
+ACQUIRE_COST = 30          # minutes to learn a missing move (drill + carrier)
+MEDIUM_OVERHEAD = 1.3      # review/struggle amortization on top of median time
+MEDIUM_FLOOR = 15          # minutes a practiced medium converges toward
+NODES_PER_MEDIUM = 3       # moves a medium's walk refreshes
+FISSION_EVERY = 8          # mediums per newly split node, up to NODE_CAP
+NODE_CAP = 95
+
+
+def measured_times():
+    log = subprocess.run(["git", "log", "--format=%ad|%s|%b~~~", "--date=short"],
+                         capture_output=True, text=True).stdout
+    meta_path = os.path.join(os.path.dirname(GRAPH_DIR), ".problems_metadata.json")
+    meta = json.load(open(meta_path)) if os.path.exists(meta_path) else {}
+    mediums, medium_times = set(), []
+    for block in log.split("~~~"):
+        m = re.search(r"\|(\d+)\. .*?solve time: (\d+)m (\d+)s", block, re.S)
+        if not m:
+            continue
+        num, mins = m.group(1), int(m.group(2)) + int(m.group(3)) / 60
+        if meta.get(num, {}).get("difficulty") == "Medium":
+            mediums.add(num)
+            if mins < 120:
+                medium_times.append(mins)
+    med = statistics.median(medium_times) if len(medium_times) >= 5 else 25
+    return len(mediums), med
+
+
+def main():
+    hours = float(sys.argv[1]) if len(sys.argv) > 1 else 2.0
+    nodes = load_nodes()
+    evidence = load_evidence()
+    curve = json.load(open(os.path.join(GRAPH_DIR, "curve.json")))
+    p = curve["params"]
+    target = curve["target_retention"]
+
+    mediums_banked, medium_median = measured_times()
+    mediums_needed = max(0, MEDIUM_TARGET - mediums_banked)
+
+    # node state: reps, days-since-clean, pending one-off cost (fragile/missing)
+    state = []
+    for nid in nodes:
+        status, last = node_status(nid, evidence)
+        cleans = sum(1 for r in evidence.values()
+                     if r.get("moves", {}).get(nid) == "clean")
+        gap = (date.today() - last).days if last else 0
+        pending = CONSOLIDATE_COST if status == FRAGILE else \
+            ACQUIRE_COST if status == MISSING else 0
+        state.append({"reps": max(cleans, 0), "gap": gap, "pending": pending})
+
+    def recall(n):
+        s = min(max(math.exp(p["a"] + p["b"] * n["reps"] - p["c"] * 0), 7), 3650)
+        return (1 + n["gap"] / s) ** (-p["beta"])
+
+    day, done_mediums, lit_day, maint_minutes = 0, 0, None, []
+    while day < 3650:
+        day += 1
+        budget = hours * 60
+        for n in state:
+            n["gap"] += 1
+        spent_maint = 0
+        # 1. one-off repairs: fragile consolidations, then missing acquisitions
+        for n in sorted(state, key=lambda n: n["pending"]):
+            if n["pending"] and budget >= n["pending"]:
+                budget -= n["pending"]
+                spent_maint += n["pending"]
+                n.update(pending=0, gap=0, reps=n["reps"] + 1)
+        # 2. curve-driven maintenance, most-faded first
+        for n in sorted((n for n in state if n["reps"] and not n["pending"]),
+                        key=recall):
+            if recall(n) >= target or budget < MAINT_COST:
+                break
+            budget -= MAINT_COST
+            spent_maint += MAINT_COST
+            n.update(gap=0, reps=n["reps"] + 1)
+        maint_minutes.append(spent_maint)
+        # 3. new mediums with whatever remains
+        cost = max(MEDIUM_FLOOR, medium_median * MEDIUM_OVERHEAD
+                   * (0.995 ** done_mediums))
+        while budget >= cost and done_mediums < mediums_needed:
+            budget -= cost
+            done_mediums += 1
+            for n in sorted((n for n in state if not n["pending"]),
+                            key=lambda n: (n["reps"], -n["gap"]))[:NODES_PER_MEDIUM]:
+                n.update(gap=0, reps=n["reps"] + 1)
+            if done_mediums % FISSION_EVERY == 0 and len(state) < NODE_CAP:
+                state.append({"reps": 1, "gap": 0, "pending": 0})
+        graph_lit = all(not n["pending"] and n["reps"] and recall(n) >= target
+                        for n in state)
+        if graph_lit and lit_day is None:
+            lit_day = day
+        if graph_lit and done_mediums >= mediums_needed:
+            break
+
+    ready = date.today() + timedelta(days=day + POLISH_DAYS)
+    print(f"at {hours:g}h/day, every day:")
+    print(f"  graph fully lit          ~ {date.today() + timedelta(days=lit_day or day)}")
+    print(f"  {mediums_needed} new mediums banked   ~ {date.today() + timedelta(days=day)}"
+          f"   (credit for {mediums_banked} already solved, median {medium_median:.0f}m)")
+    print(f"  + {POLISH_DAYS}d timed sets/mocks -> interview-ready ≈ "
+          f"{ready.strftime('%-d %b %Y')}  ({day + POLISH_DAYS} days)")
+    early = statistics.mean(maint_minutes[:14])
+    late = statistics.mean(maint_minutes[-14:])
+    print(f"  maintenance load: {early:.0f}m/day first fortnight -> {late:.0f}m/day last "
+          f"(the curve compounds; upkeep shrinks as reps stack)")
+    print(f"  taxonomy grows {len(nodes)} -> {len(state)} nodes by fission along the way")
+    print("assumes: coding rounds only (no system design), and the hours actually "
+          "happen — history says lapses, not pace, move this date.")
+
+
+if __name__ == "__main__":
+    main()
