@@ -9,7 +9,10 @@
 #
 # Picking rules (same preference order the /next coach uses):
 #   1. consolidate the oldest FRAGILE node, via the freshest READY carrier
-#   2. spaced re-solve of the oldest STALE node's latest carrier
+#   2. spaced re-solve of the oldest STALE node's latest carrier — unless the
+#      move is DEEP stale (no clean solve within 2x the solid window): then the
+#      memory is effectively gone, so re-enter on a gentle fresh carrier the way
+#      FRAGILE does, instead of a cold "re-solve" that plays like a new problem
 #   3. one new MISSING move whose prereqs are all SOLID
 # One-new-move rule is enforced: every other move in the walk must be SOLID.
 #
@@ -26,7 +29,10 @@ from rich.table import Table
 from kg_lib import (
     GRAPH_DIR, load_nodes, load_problems, load_evidence,
     node_status, latest_carrier, SOLID, STALE, FRAGILE, MISSING,
+    SOLID_WINDOW_DAYS,
 )
+
+DEEP_STALE_DAYS = 2 * SOLID_WINDOW_DAYS  # beyond this, a "re-solve" plays like a new problem
 from kg_render import make_digraph, status_node, render, display
 
 console = Console()
@@ -46,6 +52,12 @@ def problem_url(pnum):
 def last_solved(pnum, evidence):
     dates = [r["date"] for r in evidence.values() if r.get("problem") == str(pnum)]
     return max(dates) if dates else ""
+
+
+def pnum_key(pnum):
+    """Numeric sort that tolerates non-leetcode ids like '2167B'."""
+    digits = "".join(c for c in str(pnum) if c.isdigit())
+    return (int(digits) if digits else 0, str(pnum))
 
 
 def carriers_for(target, problems, statuses, nodes):
@@ -70,13 +82,18 @@ def pick(nodes, problems, evidence, statuses):
     for target in fragile:
         cands = carriers_for(target, problems, statuses, nodes)
         if cands:
-            cands.sort(key=lambda p: (last_solved(p, evidence), len(problems[p]["moves"]), int(p)))
+            cands.sort(key=lambda p: (last_solved(p, evidence), len(problems[p]["moves"]), pnum_key(p)))
             return target, FRAGILE, cands[0], "consolidate a fragile move on a fresh carrier"
 
     for target in stale:
         cands = carriers_for(target, problems, statuses, nodes)
         if not cands:
             continue
+        age = (date.today() - statuses[target][1]).days
+        if age > DEEP_STALE_DAYS:
+            cands.sort(key=lambda p: (last_solved(p, evidence), len(problems[p]["moves"]), pnum_key(p)))
+            return target, STALE, cands[0], \
+                f"re-enter a deep-stale move ({age}d since clean) on a gentle fresh carrier"
         carrier = latest_carrier(target, evidence)
         pnum = carrier[2] if carrier and carrier[2] in cands else \
             sorted(cands, key=lambda p: last_solved(p, evidence), reverse=True)[0]
@@ -85,7 +102,7 @@ def pick(nodes, problems, evidence, statuses):
     for target in missing:
         cands = carriers_for(target, problems, statuses, nodes)
         if cands:
-            cands.sort(key=lambda p: (len(problems[p]["moves"]), int(p)))
+            cands.sort(key=lambda p: (len(problems[p]["moves"]), pnum_key(p)))
             return target, MISSING, cands[0], "one genuinely new move, prereqs all solid"
 
     return None

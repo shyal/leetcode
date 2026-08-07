@@ -1,0 +1,320 @@
+{
+  "_comment": "Hand-crafted loci for the Technique Palace (utils/kg_palace). Room order is the fixed route - never reorder; loci depend on it. Station images/triggers are pegs: edit only deliberately.",
+  "rooms": [
+    {
+      "group": "containers",
+      "name": "The Pantry",
+      "flavor": "Jars, tallies, and pigeonholes — asking what a collection holds."
+    },
+    {
+      "group": "streaming",
+      "name": "The Conveyor Hall",
+      "flavor": "One pass, no going back: interrogate each item, then file it."
+    },
+    {
+      "group": "index-order",
+      "name": "The Sorting Office",
+      "flavor": "Mile markers and height lines — order and position do the work."
+    },
+    {
+      "group": "pointers-windows",
+      "name": "The Long Gallery",
+      "flavor": "Walkers and picture frames moving along one long wall."
+    },
+    {
+      "group": "stack-queue",
+      "name": "The Plate Room",
+      "flavor": "What was opened last, what crushes what, who gets evicted."
+    },
+    {
+      "group": "linked-lists",
+      "name": "The Train Shed",
+      "flavor": "Carriages, couplings, and a decoy engine."
+    },
+    {
+      "group": "binary-search",
+      "name": "The Halving Vault",
+      "flavor": "Every question throws away half of what remains."
+    },
+    {
+      "group": "trees",
+      "name": "The Arboretum",
+      "flavor": "Envelopes passed up, backpacks passed down."
+    },
+    {
+      "group": "graphs",
+      "name": "The Catacombs",
+      "flavor": "Chalk marks, ripples, and merging circles."
+    },
+    {
+      "group": "recursion-dp",
+      "name": "The Hall of Mirrors",
+      "flavor": "The same problem, smaller, in every reflection."
+    },
+    {
+      "group": "heaps-greedy",
+      "name": "The Banquet Hall",
+      "flavor": "Podiums, triage, and buffet strategy."
+    },
+    {
+      "group": "bits-math",
+      "name": "The Clockwork Room",
+      "flavor": "Switches, gears, and things that wrap around."
+    },
+    {
+      "group": "strings",
+      "name": "The Print Shop",
+      "flavor": "Type set letter by letter; corridors of lettered doors."
+    }
+  ],
+  "loci": {
+    "set-membership": {
+      "image": "A bouncer at the pantry door holds a guest list: one glance, in or out.",
+      "trigger": "“Have I seen this exact value?” — instant yes/no lookups."
+    },
+    "set-algebra": {
+      "image": "Two hula hoops overlap on the floor; you scoop what lies in the lens.",
+      "trigger": "What’s in both lists? In one but not the other?"
+    },
+    "counter-build": {
+      "image": "A turnstile clicker in your hand, clicking once per item that passes.",
+      "trigger": "“How many of each?”"
+    },
+    "counter-multiset-ops": {
+      "image": "Two grocery baskets: subtract basket B from A — nothing may be left over.",
+      "trigger": "Can A be assembled from B’s letters or parts?"
+    },
+    "counts-as-data": {
+      "image": "You turn the tally sheet sideways and study the tally marks themselves.",
+      "trigger": "The question is about the counts, not the items (all counts unique?)."
+    },
+    "dict-arbitrary-value": {
+      "image": "Pigeonholes stuffed with addresses and notes — not tallies.",
+      "trigger": "Remember something *about* each key: last index, mapped char."
+    },
+    "bijection-check": {
+      "image": "A dance floor where every dancer has exactly one partner — checked both ways.",
+      "trigger": "Do two sequences map one-to-one, both directions?"
+    },
+    "streaming-ask-then-record": {
+      "image": "Items ride a belt; you interrogate each one, *then* stamp it into the ledger.",
+      "trigger": "One pass: does my partner already exist? Ask first, then record me."
+    },
+    "derived-key-lookup": {
+      "image": "You compute each item’s nickname and file it under the nickname.",
+      "trigger": "File items under a computed alias (sorted letters, shape signature)."
+    },
+    "solve-pair-condition": {
+      "image": "An algebra mirror: you shuffle the equation until the partner’s face appears in it.",
+      "trigger": "Rearrange the pair condition until it reads “find my complement.”"
+    },
+    "streaming-accumulate-pairs": {
+      "image": "Each newcomer shakes hands with every matching earlier arrival; you tally handshakes.",
+      "trigger": "Count pairs in one pass — add matches-so-far *before* recording."
+    },
+    "running-extreme": {
+      "image": "A high-water mark creeping up the wall as the belt runs.",
+      "trigger": "Best-so-far while scanning (max, min)."
+    },
+    "running-sum": {
+      "image": "A snowball rolling along the belt, growing as it goes.",
+      "trigger": "Total-so-far at every step."
+    },
+    "seen-state-cycle-detect": {
+      "image": "A breadcrumb trail; you step on your own footprint and know you’re looping.",
+      "trigger": "An iterated process — does it settle or repeat forever?"
+    },
+    "prefix-sums": {
+      "image": "Mile markers along a road: any stretch is the difference of two markers.",
+      "trigger": "Many range-sum questions over a fixed array."
+    },
+    "prefix-sum-hashmap": {
+      "image": "A logbook of every odometer reading you’ve seen, and when.",
+      "trigger": "How many subarrays sum to k?"
+    },
+    "sort-then-adjacent": {
+      "image": "Everyone lines up by height; you only compare each person to their neighbor.",
+      "trigger": "Closest pair, duplicates-within-range — sort, then only neighbors matter."
+    },
+    "sort-by-custom-key": {
+      "image": "A judge sorting contestants by hat size, ignoring everything else.",
+      "trigger": "Order things by a derived property."
+    },
+    "counting-sort-buckets": {
+      "image": "Twenty-six labeled buckets; toss letters in, then read the buckets in order.",
+      "trigger": "Small fixed alphabet or range — bucket, don’t compare."
+    },
+    "two-pointers-converging": {
+      "image": "Two walkers start at opposite ends of the gallery and step inward by rule.",
+      "trigger": "Sorted array + pair target; container between two ends."
+    },
+    "two-pointers-read-write": {
+      "image": "Two cursors: a reader skims ahead, a writer inks the clean copy just behind.",
+      "trigger": "Filter or compact in place."
+    },
+    "fast-slow-pointers": {
+      "image": "Tortoise and hare on the gallery’s circular track — if it loops, they meet.",
+      "trigger": "Is there a cycle? Where is the middle?"
+    },
+    "sliding-window-fixed": {
+      "image": "A fixed picture frame slides along a mural: gain the new edge, lose the old.",
+      "trigger": "Best window of *exactly* k."
+    },
+    "sliding-window-variable": {
+      "image": "An accordion: stretch until the rule breaks, squeeze until it holds again.",
+      "trigger": "Longest / shortest stretch satisfying a condition."
+    },
+    "stack-matching": {
+      "image": "Nesting dolls: every lid must fit the most recently opened doll.",
+      "trigger": "Nested things that must close in reverse order (brackets)."
+    },
+    "monotonic-stack": {
+      "image": "A stack of plates where each new taller plate crushes every shorter one beneath it.",
+      "trigger": "Next greater / next smaller element; spans and horizons."
+    },
+    "deque-recent-window": {
+      "image": "A VIP queue with bouncers at *both* doors: the stale leave the front, the unworthy the back.",
+      "trigger": "Max or min over a sliding window."
+    },
+    "ll-dummy-splice": {
+      "image": "You couple a decoy carriage to the front of the train so surgery near the engine is safe.",
+      "trigger": "Deleting or inserting near the head."
+    },
+    "ll-pointer-reversal": {
+      "image": "Walking the train, uncoupling each carriage and re-hitching it to face backwards.",
+      "trigger": "Reverse the list; re-aim the links."
+    },
+    "ll-offset-arithmetic": {
+      "image": "Two runners hold a fixed gap; when the front one hits the buffer, the back one stands at the answer.",
+      "trigger": "Nth from the end; where two trains merge."
+    },
+    "binary-search-index": {
+      "image": "A dictionary: open dead middle, discard half, repeat.",
+      "trigger": "Find a target in something sorted."
+    },
+    "binary-search-boundary": {
+      "image": "The tide line: the exact grain of sand where wet turns dry.",
+      "trigger": "First / last position where a condition flips."
+    },
+    "binary-search-on-answer": {
+      "image": "A safe dial: guess a setting, ask “does it open?”, tighten the range.",
+      "trigger": "Least speed / capacity that still works — feasibility is monotone."
+    },
+    "tree-dfs-recursive": {
+      "image": "You descend the family tree trusting each child to report on their own branch.",
+      "trigger": "Visit every node; answer a per-node question."
+    },
+    "tree-combine-returns": {
+      "image": "Children hand up sealed envelopes; you merge them and pass one envelope up.",
+      "trigger": "Answer at a node = f(left’s answer, right’s answer)."
+    },
+    "tree-carry-down": {
+      "image": "A backpack of context handed down to each child at every fork.",
+      "trigger": "A child needs context from above: the path so far, the bounds."
+    },
+    "tree-global-across-subtrees": {
+      "image": "A bulletin board in the hall: every branch pins its best; records may span left and right.",
+      "trigger": "The best path may *bend* through a node (diameter)."
+    },
+    "tree-bfs-levels": {
+      "image": "Wedding photographs taken floor by floor of the greenhouse.",
+      "trigger": "Per-level output; level order."
+    },
+    "bst-invariant": {
+      "image": "The estate’s iron rule: smaller relatives in the west wing, larger in the east.",
+      "trigger": "It’s a BST — exploit left &lt; node &lt; right."
+    },
+    "tree-build-from-traversals": {
+      "image": "Reassembling a hanging mobile from two flat photographs of it.",
+      "trigger": "Rebuild the tree from preorder + inorder."
+    },
+    "graph-adjacency-build": {
+      "image": "Compiling the phone book: each person, then the list of their friends.",
+      "trigger": "Given edges — build neighbor lists before anything else."
+    },
+    "graph-dfs-visited": {
+      "image": "Chalk-marking every cave you enter so you never wander back in.",
+      "trigger": "Explore a region or component fully (islands)."
+    },
+    "graph-bfs-shortest": {
+      "image": "Ripples from a dropped stone — the first ripple to reach you took the shortest path.",
+      "trigger": "Fewest steps through an unweighted graph or grid."
+    },
+    "union-find": {
+      "image": "Circles at a party merging; each circle answers through one spokesperson.",
+      "trigger": "Dynamic “same group?” queries while things merge."
+    },
+    "topological-order": {
+      "image": "Getting dressed: socks before shoes — repeatedly take whatever has nothing pending.",
+      "trigger": "Prerequisites; schedule tasks in dependency order."
+    },
+    "backtracking-choose-undo": {
+      "image": "Trying outfits: put on, check the mirror, take off, try the next.",
+      "trigger": "Enumerate all combinations / permutations / placements."
+    },
+    "memoize-recursion": {
+      "image": "A diary nailed at the cave mouth: “asked before — answer inside.”",
+      "trigger": "The same subproblem keeps recurring — cache it."
+    },
+    "dp-state-formulate": {
+      "image": "Labeling every mirror with coordinates, so any reflection is known by its label alone.",
+      "trigger": "Name “where am I” so the future depends only on the label."
+    },
+    "dp-1d-rolling": {
+      "image": "Crossing stepping stones while holding only the last two stones’ numbers.",
+      "trigger": "f(i) from f(i−1) and f(i−2) — keep two variables, not an array."
+    },
+    "dp-2d-grid": {
+      "image": "Tiling a wall where every tile is computed from its upper and left neighbors.",
+      "trigger": "Grid paths, edit distance — each cell from up and left."
+    },
+    "heap-top-k": {
+      "image": "A podium with exactly k seats; each newcomer shoves off the weakest champion.",
+      "trigger": "k largest / smallest / most frequent."
+    },
+    "heap-simulation": {
+      "image": "Triage: always treat the most urgent patient, who may rejoin the queue.",
+      "trigger": "Repeatedly take the most extreme, transform it, put it back."
+    },
+    "greedy-sort-take": {
+      "image": "A buffet run: best dishes first, while the plate still holds.",
+      "trigger": "Sort by value; take while it fits."
+    },
+    "interval-overlap": {
+      "image": "Meeting cards laid on a timeline; overlapping cards stack into piles.",
+      "trigger": "Meetings and intervals — overlap, merge, minimum rooms."
+    },
+    "xor-cancellation": {
+      "image": "Paired dancers annihilate in puffs of smoke; the loner remains standing.",
+      "trigger": "Everything appears twice except one."
+    },
+    "bit-iterate": {
+      "image": "A row of thirty-two switches read one by one.",
+      "trigger": "Count or inspect the bits of a number."
+    },
+    "divmod-decompose": {
+      "image": "Making change: how many tens (div), and what’s left in your palm (mod).",
+      "trigger": "Split a number into digits, columns, or groups."
+    },
+    "gcd-reduction": {
+      "image": "Tiling a floor with the largest square that fits both walls exactly.",
+      "trigger": "Reduce a ratio; find the common measure."
+    },
+    "pair-count-formula": {
+      "image": "n glasses clinking: you *compute* the clinks — n(n−1)/2 — instead of counting them.",
+      "trigger": "Count pairs with arithmetic, not loops."
+    },
+    "modular-cycle": {
+      "image": "The clock face: thirteen o’clock is simply one.",
+      "trigger": "Wrap-around; repeats every k."
+    },
+    "string-build-transform": {
+      "image": "A letterpress: setting type into the compositor’s stick, one sort at a time.",
+      "trigger": "Build the output string character by character."
+    },
+    "trie-build-walk": {
+      "image": "A branching corridor where every door bears a letter; words are walks.",
+      "trigger": "Prefix queries over many words."
+    }
+  }
+}
