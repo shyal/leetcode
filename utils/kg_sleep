@@ -103,15 +103,19 @@ def main():
 
     # mid-exercise: park ONLY current.py on the branch, renamed <num>-slept (so a
     # fresh `make prepare <num>` can recreate branch <num> tomorrow), return to
-    # master. Everything else (sleep.json, evidence, ...) stays in the working
-    # tree — sweeping bystanders onto the parked branch would strip them from
-    # master's checkout.
+    # master. Other bystander files stay in the working tree — sweeping them onto
+    # the parked branch would strip them from master's checkout.
     if branch == pnum:
         git("add", "current.py")
         git("commit", "-m", f"sleeping: {pnum}. {problems[pnum]['title']}", check=False)
         git("branch", "-M", pnum, f"{pnum}-slept")
         git("checkout", "master")
         print(f"WIP parked on branch {pnum}-slept; back on master.")
+
+    # sleep state is graph state like evidence/curve: commit it on master so the
+    # picker agrees across clones and the file never lingers untracked.
+    git("add", "graph/sleep.json")
+    git("commit", "-m", f"sleep: {pnum}. {problems[pnum]['title']}", check=False)
 
     statuses = {n: node_status(n, evidence) for n in nodes}
     rusty = [n for n in walk_closure(problems[pnum]["moves"], nodes)
