@@ -23,6 +23,7 @@ from rich.console import Console
 from kg_lib import (
     load_nodes, load_problems, load_evidence,
     save_problems, save_evidence, claude_json, taxonomy_summary, node_status,
+    HARNESS_ENV_NOTE,
 )
 
 VERDICT_STYLE = {"clean": "green", "struggled": "red", "avoided": "yellow"}
@@ -58,6 +59,7 @@ Taxonomy (use ONLY these ids):
 {taxonomy}
 
 Rules:
+- {HARNESS_ENV_NOTE}
 - Judge the code as written, not the problem's canonical solution. Batch math on a streaming-carrier problem means the streaming move was NOT exercised — if the canonical solution's central move was sidestepped by an alternative approach, record that move as "avoided".
 - Verdicts: "clean" (executed correctly), "struggled" (bugs/confusion visible in code or notes, e.g. notes saying looked-up/hints/TLE/failed), "avoided" (canonical move sidestepped).
 - Only include moves with real evidence in this code. 1-6 moves is typical.

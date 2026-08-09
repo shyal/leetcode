@@ -14,6 +14,17 @@ from datetime import date, timedelta
 GRAPH_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "graph")
 SOLID_WINDOW_DAYS = 42
 
+# For any model prompt that judges solve code: the repo's utils/sitecustomize.py
+# mirrors LeetCode's judge, which preloads common imports (functools.reduce,
+# collections, typing names, heapq, ...) before user code runs. Bare use of
+# these names is valid in both environments.
+HARNESS_ENV_NOTE = (
+    "Environment: this code runs under a harness that (like LeetCode's judge) "
+    "preloads common imports — reduce, collections, typing names, heapq, etc. "
+    "Using such names without an import statement is VALID and NEVER a bug; "
+    "never mention missing imports in verdicts or notes."
+)
+
 SOLID, STALE, FRAGILE, MISSING = "SOLID", "STALE", "FRAGILE", "MISSING"
 
 
