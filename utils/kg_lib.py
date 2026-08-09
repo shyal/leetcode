@@ -119,6 +119,51 @@ def node_status(node_id, evidence, today=None):
     return STALE, clean_dates[-1]
 
 
+DEEP_STALE_DAYS = 2 * SOLID_WINDOW_DAYS  # beyond this, a "re-solve" plays like a new problem
+
+
+def last_solved(pnum, evidence):
+    dates = [r["date"] for r in evidence.values() if r.get("problem") == str(pnum)]
+    return max(dates) if dates else ""
+
+
+def pnum_key(pnum):
+    """Numeric sort that tolerates non-leetcode ids like '2167B'."""
+    digits = "".join(c for c in str(pnum) if c.isdigit())
+    return (int(digits) if digits else 0, str(pnum))
+
+
+def dodged_nodes(evidence):
+    """Nodes whose most recent evidence is 'avoided' — the canonical move was
+    routed around. These get anti-dodge treatment: carriers chosen to resist
+    the escape, drills prescribed first (a drill cannot be dodged)."""
+    latest = {}
+    for fname, rec in evidence.items():
+        for node, verdict in rec.get("moves", {}).items():
+            key = (rec["date"], fname)
+            if node not in latest or key > latest[node][0]:
+                latest[node] = (key, verdict, rec.get("problem"))
+    return {n: pnum for n, (_, v, pnum) in latest.items() if v == "avoided"}
+
+
+def dodgeable(pnum, target, problems):
+    """True if a recorded alt walk lets this problem be solved without target."""
+    return any(target not in walk
+               for walk in problems.get(pnum, {}).get("alt_walks", []))
+
+
+def carriers_for(target, problems, statuses, nodes):
+    """Problems containing the target move whose every OTHER move is SOLID."""
+    found = []
+    for pnum, p in problems.items():
+        moves = p.get("moves", [])
+        if target not in moves or not all(m in nodes for m in moves):
+            continue
+        if all(statuses[m][0] == SOLID for m in moves if m != target):
+            found.append(pnum)
+    return found
+
+
 def latest_carrier(node_id, evidence):
     """Most recent evidence file that exercised this node (for spaced re-solves)."""
     best = None

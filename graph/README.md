@@ -31,6 +31,18 @@ nodes (problem = "drill"; problems.json is never touched; leetcode solve stats i
 d-files). Every drill improvised in chat gets deposited here afterwards, so the rote
 sheet grows with every gap found.
 
+## Dive (`make dive`)
+
+`make next` is greedy and memoryless — each run picks the single globally-oldest rusty
+node, so consecutive sessions hop between unrelated topics. `make dive` answers "where
+should I spend a whole session?": rusty (non-SOLID) nodes are clustered by shared curated
+group or direct prereq edge, clusters are scored by urgency mass (FRAGILE 3 · STALE 2 ·
+MISSING 1), and the heaviest cluster becomes a themed session of up to 3 problems
+(`make dive 5` for a longer one, `make dive <group>` to override the pick). Prereqs are scheduled before
+dependents, and each pick is simulated as a clean solve so later carriers may stand on
+earlier targets; the one-new-move rule still gates every carrier. Solve top-down,
+`make solved` after each, re-run — the plan re-derives from fresh evidence.
+
 ## Sleep (`make sleep`)
 
 Stuck mid-exercise and looping — no new idea in ~15 minutes? `make sleep` parks the
