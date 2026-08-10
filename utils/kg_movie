@@ -16,8 +16,14 @@
 # Each solve flashes its problem number in gold next to every move its walk
 # exercised, then fades over ~2s. Solves replay in true within-day order
 # (filename timestamps, second granularity), staggered across the day's
-# tick — a marathon day is a cascade, not a burst. Output is 25fps (10
-# subframes per 0.4s date tick) so the fades are continuous, not steppy.
+# tick — a marathon day is a cascade, not a burst.
+#
+# Screen time is paced by solves, not by the calendar (--pace calendar for the
+# old behaviour): a tick's share of the runtime is proportional to how many
+# solves it carries, so the event rate stays roughly constant instead of
+# tracking how bursty the work actually was. Marathon days stretch out enough
+# to read; a 100-day dry spell still dims and still reads as a gap, but takes
+# a moment rather than half the film.
 # Label placement is chosen at spawn from ~20 candidate spots around the
 # node, overlapping NOTHING graphviz drew — nodes, edges, cluster borders
 # and titles, the header — nor any still-fading label; the spot is pinned
@@ -37,9 +43,7 @@ from PIL import Image, ImageDraw, ImageFont
 from kg_lib import GRAPH_DIR, load_nodes, load_evidence, node_status
 from kg_render import make_digraph, status_node, add_legend
 
-TICK_S = 0.4       # seconds per date tick
-SUBFRAMES = 10     # rendered frames per tick
-FPS_OUT = SUBFRAMES / TICK_S
+FPS_OUT = 25       # output framerate
 END_HOLD_S = 3     # freeze on the final state
 DPI = 144
 
@@ -49,7 +53,8 @@ TARGET_FPS = 60    # what we aim for when a total duration is requested
 MAX_FPS = 120      # past this a "movie" is a blur nothing can play properly
 GOP_S = 0.5        # seconds between encoded keyframes, so scrubbing lands close
 LABEL_LIFE_FRACTION = 0.04  # label fade as a share of runtime (2s in a 50s cut)
-HOLD_FRACTION = 0.15  # end freeze shrinks with short movies, never dominates
+HOLD_FRACTION = 0.08  # end freeze shrinks with short movies, never dominates
+LULL_WEIGHT = 0.25  # screen time a solve-less day gets, in units of one solve
 
 GOLD = (255, 215, 95)
 LABEL_LIFE_S = 2.0                 # solve labels fade over this long
@@ -258,35 +263,83 @@ def label_alpha(age_s):
     return 0 if t >= 1 else int(255 * (1 - t) ** 1.4)
 
 
-def retime(n_ticks, seconds, target_fps=TARGET_FPS):
-    """Fit n_ticks date ticks into a movie of exactly `seconds` total.
+def pace_weights(days, by_day, pace):
+    """Screen time each date tick deserves, in units of "one solve".
 
-    Returns (tick_s, subframes, fps, hold_s, label_life_s). The end freeze and
+    Calendar pacing gives every day an equal slice, so runtime tracks the
+    calendar: a 100-day dry spell costs 100 days of film and the movie stalls
+    in the middle of a history that is bursty in real life. Solve pacing
+    weights a tick by the solves it carries plus a small floor, so the event
+    rate is roughly constant — bursts stretch out enough to read, dry spells
+    compress to a brief dim that still registers as a gap.
+    """
+    if pace == "calendar":
+        return [1.0] * len(days)
+    return [len(by_day.get(day.isoformat(), ())) + LULL_WEIGHT for day in days]
+
+
+def allocate_frames(weights, total, floors):
+    """Split `total` frames across ticks by weight, honouring per-tick floors.
+
+    Allocation is cumulative rounding: a tick gets the frames between where the
+    running weight total rounds to before it and after it. That sums to exactly
+    `total`, so the movie lands on its requested length, and — unlike
+    largest-remainder, whose ties all break the same way and pile the spare
+    frames onto whichever end of the timeline sorts first — it spreads thin
+    weights evenly. Ten dry days worth a quarter-frame each become a frame on
+    every fourth day, which is what makes a compressed dry spell read as a
+    steady dim rather than one abrupt jump to stale.
+
+    The repair pass then lifts any tick below its floor by taking frames from
+    the best-funded ticks: a day something happened on always gets at least one
+    frame, while a day nothing happened on may get none and never be rendered.
+    """
+    total_w = sum(weights) or 1.0
+    frames, cum, mark = [], 0.0, 0
+    for w in weights:
+        cum += w
+        nxt = round(cum * total / total_w)
+        frames.append(nxt - mark)
+        mark = nxt
+    for i, floor in enumerate(floors):
+        while frames[i] < floor:
+            j = max(range(len(frames)), key=lambda k: frames[k] - floors[k])
+            if frames[j] - 1 < floors[j]:
+                raise SystemExit("not enough frames to show every day that happened")
+            frames[j] -= 1
+            frames[i] += 1
+    return frames
+
+
+def retime(weights, floors, seconds, target_fps=TARGET_FPS):
+    """Fit weighted date ticks into a movie of exactly `seconds` total.
+
+    Returns (frames_per_tick, fps, hold_s, label_life_s). The end freeze and
     the label fade are both fractions of the whole, so a short movie is neither
     mostly a still frame nor a flicker of unreadable gold — and crucially the
     fade tracks runtime rather than tick count, so making keyframes denser does
-    not make the problem numbers flash by faster. Frames-per-tick lands nearest
-    target_fps but never below 1 — past that point the fps rises instead, which
-    keeps the requested duration exact rather than dropping ticks.
+    not make the problem numbers flash by faster. Weights are already in solve
+    units, so aiming for one frame per unit of weight is what gives each solve
+    its own frame; the fps rises to buy that where target_fps is too slow.
     """
     hold = min(END_HOLD_S, seconds * HOLD_FRACTION)
     ticks_s = seconds - hold
-    subframes = max(1, round(ticks_s * target_fps / n_ticks)) if ticks_s > 0 else 1
-    fps = n_ticks * subframes / ticks_s if ticks_s > 0 else float("inf")
-    if fps > MAX_FPS:
-        # one frame per tick is the floor; below that the ticks themselves
-        # would have to be dropped, which silently rewrites the history
-        floor_s = (n_ticks / MAX_FPS) / (1 - HOLD_FRACTION)
+    fps = min(MAX_FPS, max(target_fps, sum(weights) / ticks_s)) if ticks_s > 0 else MAX_FPS
+    needed = sum(floors)
+    if ticks_s <= 0 or needed / ticks_s > MAX_FPS:
+        # every tick that carries a solve needs a frame of its own; below that
+        # the ticks themselves would be dropped, silently rewriting the history
+        floor_s = (needed / MAX_FPS) / (1 - HOLD_FRACTION)
         raise SystemExit(
-            f"{seconds:g}s is too short for {n_ticks} date ticks — it needs "
-            f"{fps:.0f}fps. Shortest sensible movie is ~{floor_s:.1f}s."
+            f"{seconds:g}s is too short for {needed} date ticks that carry "
+            f"solves. Shortest sensible movie is ~{floor_s:.1f}s."
         )
-    tick_s = ticks_s / n_ticks
-    return tick_s, subframes, fps, hold, seconds * LABEL_LIFE_FRACTION
+    frames = allocate_frames(weights, round(ticks_s * fps), floors)
+    return frames, fps, hold, seconds * LABEL_LIFE_FRACTION
 
 
 def main():
-    global TICK_S, SUBFRAMES, FPS_OUT, END_HOLD_S, LABEL_LIFE_S
+    global FPS_OUT, END_HOLD_S, LABEL_LIFE_S
 
     parser = argparse.ArgumentParser(description="Animate the technique graph's history.")
     parser.add_argument("seconds", nargs="?", type=float, default=DEFAULT_SECONDS,
@@ -295,15 +348,21 @@ def main():
                         help=f"days between interpolated keyframes (default: {TICK_DAYS})")
     parser.add_argument("--fps", type=float, default=TARGET_FPS,
                         help=f"target output framerate (default: {TARGET_FPS:g})")
+    parser.add_argument("--pace", choices=("solves", "calendar"), default="solves",
+                        help="spend runtime per solve (default) or per calendar day")
     parser.add_argument("--open", action="store_true", help="open the mp4 when done")
     args = parser.parse_args()
 
     nodes = load_nodes()
     evidence = load_evidence()
     days = frame_dates(evidence, max(1, args.tick_days))
-    TICK_S, SUBFRAMES, FPS_OUT, END_HOLD_S, LABEL_LIFE_S = retime(
-        len(days), args.seconds, args.fps)
     by_day = solves_by_day(evidence)
+    weights = pace_weights(days, by_day, args.pace)
+    # a day that happened is never skipped; the opening dark frame stays too
+    floors = [1 if i == 0 or by_day.get(day.isoformat()) else 0
+              for i, day in enumerate(days)]
+    tick_frames, FPS_OUT, END_HOLD_S, LABEL_LIFE_S = retime(
+        weights, floors, args.seconds, args.fps)
     out = os.path.join(GRAPH_DIR, "kg.mp4")
     try:
         font = ImageFont.truetype(LABEL_FONT, LABEL_PT)
@@ -317,8 +376,13 @@ def main():
     with tempfile.TemporaryDirectory() as tmp:
         prev, boxes, obstacles = None, None, None
         active = []  # {"node", "texts", "rect", "born"} — rect pinned at spawn
-        out_idx = 0
+        out_idx, tick_t = 0, 0.0
+        rendered = 0
         for i, day in enumerate(days):
+            subframes = tick_frames[i]
+            if not subframes:
+                continue  # a day nothing happened on, inside a compressed lull
+            tick_s = subframes / FPS_OUT
             statuses = statuses_asof(nodes, evidence, day)
             changed = {n for n in nodes if prev and statuses[n][0] != prev[n][0]}
             counts = Counter(s[0] for s in statuses.values())
@@ -330,11 +394,10 @@ def main():
             if boxes is None:
                 boxes, obstacles = layout_geometry(dot, png_size(base_png))
 
-            tick_t = i * TICK_S
             active = [a for a in active if label_alpha(tick_t - a["born"]) > 0]
             day_solves = by_day.get(day.isoformat(), [])
             for k, (prob, moves) in enumerate(day_solves):
-                born = tick_t + k * TICK_S / len(day_solves)  # replay in solve order
+                born = tick_t + k * tick_s / len(day_solves)  # replay in solve order
                 for node_id in moves:
                     if node_id not in boxes:
                         continue
@@ -348,8 +411,8 @@ def main():
 
             base = Image.open(base_png).convert("RGBA")
             clean_idx = None  # first label-free frame of this tick, for hardlink reuse
-            for s in range(SUBFRAMES):
-                t = tick_t + s * TICK_S / SUBFRAMES
+            for s in range(subframes):
+                t = tick_t + s / FPS_OUT
                 live = [(a, label_alpha(t - a["born"])) for a in active]
                 live = [(a, al) for a, al in live if al > 0]
                 frame_path = os.path.join(tmp, f"f_{out_idx:05d}.jpg")
@@ -369,6 +432,7 @@ def main():
                     base.convert("RGB").save(frame_path, quality=92)
                     clean_idx = out_idx
                 out_idx += 1
+            prev, tick_t, rendered = statuses, tick_t + tick_s, rendered + 1
             print(f"\r{i + 1}/{len(days)} ticks", end="", flush=True)
         print()
 
@@ -386,9 +450,9 @@ def main():
             check=True,
         )
 
-    dur = len(days) * TICK_S + END_HOLD_S
-    print(f"wrote {out} — {len(days)} ticks, {FPS_OUT:.6g}fps, {dur:.1f}s "
-          f"({END_HOLD_S:.1f}s end hold)")
+    dur = out_idx / FPS_OUT + END_HOLD_S
+    print(f"wrote {out} — {rendered}/{len(days)} ticks rendered, {FPS_OUT:.6g}fps, "
+          f"{dur:.1f}s ({END_HOLD_S:.1f}s end hold)")
     if args.open:
         subprocess.run(["open", out], check=False)
 
