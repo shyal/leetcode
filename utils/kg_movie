@@ -3,6 +3,7 @@
 # kg_movie — animate the technique graph's history into graph/kg.mp4.
 #
 #   make movie                 # render + report
+#   make movie 10              # render the whole history into 10 seconds
 #   utils/kg_movie --open      # render + open the mp4
 #
 # Statuses are derived, never stored, so the graph's state on any historical
@@ -37,10 +38,18 @@ from kg_lib import GRAPH_DIR, load_nodes, load_evidence, node_status
 from kg_render import make_digraph, status_node, add_legend
 
 TICK_S = 0.4       # seconds per date tick
-SUBFRAMES = 10     # rendered frames per tick -> 25 fps output
+SUBFRAMES = 10     # rendered frames per tick
 FPS_OUT = SUBFRAMES / TICK_S
 END_HOLD_S = 3     # freeze on the final state
 DPI = 144
+
+DEFAULT_SECONDS = 50  # fixed, so the movie stops growing as history does
+TICK_DAYS = 1      # gap between interpolated date ticks — daily keyframes
+TARGET_FPS = 60    # what we aim for when a total duration is requested
+MAX_FPS = 120      # past this a "movie" is a blur nothing can play properly
+GOP_S = 0.5        # seconds between encoded keyframes, so scrubbing lands close
+LABEL_LIFE_FRACTION = 0.04  # label fade as a share of runtime (2s in a 50s cut)
+HOLD_FRACTION = 0.15  # end freeze shrinks with short movies, never dominates
 
 GOLD = (255, 215, 95)
 LABEL_LIFE_S = 2.0                 # solve labels fade over this long
@@ -50,7 +59,13 @@ LABEL_FONT = "/System/Library/Fonts/Menlo.ttc"
 MAX_PROBS = 3                      # per node per day; the rest become "+k"
 
 
-def frame_dates(evidence):
+def frame_dates(evidence, tick_days=TICK_DAYS):
+    """Every solve date, plus a tick every `tick_days` between them.
+
+    The in-between ticks are what make decay visible — the graph dims on days
+    nothing was solved. Denser ticks mean more distinct states, so a dry spell
+    fades gradually instead of stepping down once a week.
+    """
     solve_days = sorted({r["date"] for r in evidence.values()})
     first, last = date.fromisoformat(solve_days[0]), date.fromisoformat(solve_days[-1])
     days = {first - timedelta(days=1)}  # opening frame: the dark graph
@@ -58,7 +73,7 @@ def frame_dates(evidence):
     tick = first
     while tick < last:
         days.add(tick)
-        tick += timedelta(days=7)
+        tick += timedelta(days=tick_days)
     return sorted(days)
 
 
@@ -243,14 +258,51 @@ def label_alpha(age_s):
     return 0 if t >= 1 else int(255 * (1 - t) ** 1.4)
 
 
+def retime(n_ticks, seconds, target_fps=TARGET_FPS):
+    """Fit n_ticks date ticks into a movie of exactly `seconds` total.
+
+    Returns (tick_s, subframes, fps, hold_s, label_life_s). The end freeze and
+    the label fade are both fractions of the whole, so a short movie is neither
+    mostly a still frame nor a flicker of unreadable gold — and crucially the
+    fade tracks runtime rather than tick count, so making keyframes denser does
+    not make the problem numbers flash by faster. Frames-per-tick lands nearest
+    target_fps but never below 1 — past that point the fps rises instead, which
+    keeps the requested duration exact rather than dropping ticks.
+    """
+    hold = min(END_HOLD_S, seconds * HOLD_FRACTION)
+    ticks_s = seconds - hold
+    subframes = max(1, round(ticks_s * target_fps / n_ticks)) if ticks_s > 0 else 1
+    fps = n_ticks * subframes / ticks_s if ticks_s > 0 else float("inf")
+    if fps > MAX_FPS:
+        # one frame per tick is the floor; below that the ticks themselves
+        # would have to be dropped, which silently rewrites the history
+        floor_s = (n_ticks / MAX_FPS) / (1 - HOLD_FRACTION)
+        raise SystemExit(
+            f"{seconds:g}s is too short for {n_ticks} date ticks — it needs "
+            f"{fps:.0f}fps. Shortest sensible movie is ~{floor_s:.1f}s."
+        )
+    tick_s = ticks_s / n_ticks
+    return tick_s, subframes, fps, hold, seconds * LABEL_LIFE_FRACTION
+
+
 def main():
+    global TICK_S, SUBFRAMES, FPS_OUT, END_HOLD_S, LABEL_LIFE_S
+
     parser = argparse.ArgumentParser(description="Animate the technique graph's history.")
+    parser.add_argument("seconds", nargs="?", type=float, default=DEFAULT_SECONDS,
+                        help=f"total movie length in seconds (default: {DEFAULT_SECONDS:g})")
+    parser.add_argument("--tick-days", type=int, default=TICK_DAYS,
+                        help=f"days between interpolated keyframes (default: {TICK_DAYS})")
+    parser.add_argument("--fps", type=float, default=TARGET_FPS,
+                        help=f"target output framerate (default: {TARGET_FPS:g})")
     parser.add_argument("--open", action="store_true", help="open the mp4 when done")
     args = parser.parse_args()
 
     nodes = load_nodes()
     evidence = load_evidence()
-    days = frame_dates(evidence)
+    days = frame_dates(evidence, max(1, args.tick_days))
+    TICK_S, SUBFRAMES, FPS_OUT, END_HOLD_S, LABEL_LIFE_S = retime(
+        len(days), args.seconds, args.fps)
     by_day = solves_by_day(evidence)
     out = os.path.join(GRAPH_DIR, "kg.mp4")
     try:
@@ -328,12 +380,15 @@ def main():
              "-vf", (f"scale={w}:{h}:force_original_aspect_ratio=decrease,"
                      f"pad={w}:{h}:(ow-iw)/2:(oh-ih)/2:color=0x0d1117,"
                      f"tpad=stop_mode=clone:stop_duration={END_HOLD_S},format=yuv420p"),
-             "-c:v", "libx264", "-crf", "20", out],
+             "-c:v", "libx264", "-crf", "20",
+             "-g", str(max(1, round(FPS_OUT * GOP_S))), "-keyint_min", "1",
+             "-force_key_frames", f"expr:gte(t,n_forced*{GOP_S})", out],
             check=True,
         )
 
     dur = len(days) * TICK_S + END_HOLD_S
-    print(f"wrote {out} — {len(days)} ticks, {int(FPS_OUT)}fps, ~{dur:.0f}s")
+    print(f"wrote {out} — {len(days)} ticks, {FPS_OUT:.6g}fps, {dur:.1f}s "
+          f"({END_HOLD_S:.1f}s end hold)")
     if args.open:
         subprocess.run(["open", out], check=False)
 
