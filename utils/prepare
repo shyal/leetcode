@@ -3,12 +3,34 @@
 # prepare.py
 
 import argparse
+import json
 import sys
 import subprocess
 import os
 import subprocess as _subprocess
 import threading
 import requests
+
+CACHE_DIR = ".prepare_cache"
+
+
+def cache_path(num):
+    return os.path.join(CACHE_DIR, f"{num}.json")
+
+
+def cache_load(num):
+    try:
+        with open(cache_path(num)) as f:
+            entry = json.load(f)
+        return entry["title"], entry["code"]
+    except (OSError, ValueError, KeyError):
+        return None
+
+
+def cache_save(num, title, code):
+    os.makedirs(CACHE_DIR, exist_ok=True)
+    with open(cache_path(num), "w") as f:
+        json.dump({"title": title, "code": code}, f)
 
 
 def claude(user_prompt):
@@ -185,6 +207,13 @@ lock = threading.Lock()
 
 
 def process_problem(num):
+    cached = cache_load(num)
+    if cached:
+        title, code = cached
+        print(f"Using cached stub for {num}. {title}")
+        finalize(num, title, code)
+        return
+
     title, slug, difficulty, content, example_testcases, python_stub = (
         get_question_info(num)
     )
@@ -314,6 +343,11 @@ Now the content:
 """
 
     code = claude(clean_up_prompt)
+    cache_save(num, title, code)
+    finalize(num, title, code)
+
+
+def finalize(num, title, code):
     problem_title = f"{num}. {title}"
     print("problem_title", problem_title)
     file_name = f"current.py"
