@@ -12,6 +12,18 @@ These node states are then used, with a memory decay curve, to recommend what to
 
 This leads to a bit too much jumping around from one topic to another, so `make dive` the weakest cluster of highly connected nodes, to create a coherent deep dive into one topic.
 
+## My forgetting curve
+
+A memory decay curve is computed (duolingo style). It's fitted (`make curve`) regularly.
+
+The model is power-law forgetting with a slip rate, P(recall) = (1−slip)·(1 + Δ/s)^(−β), where stability s grows with every clean rep and shrinks every time i struggle.
+
+<!-- CURVE_CHART -->
+
+The model also tracks its accuracy internally, by comparing its predictions with my actual performance.
+
+<!-- CURVE_CALIBRATION_CHART -->
+
 ## Solve rate
 
 This is the daily solve rate.
