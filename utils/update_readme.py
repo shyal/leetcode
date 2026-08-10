@@ -1,18 +1,18 @@
 def main():
     import git
+    import os
     import re
+    import subprocess
     from datetime import datetime, timedelta, date
     from collections import defaultdict
     import matplotlib as mpl
     import boto3
     import numpy as np
-    import math
     import json
     from metadata import get_problems_metadata
 
     mpl.use("Agg")
     import matplotlib.pyplot as plt
-    from matplotlib.animation import FuncAnimation
 
     s3 = boto3.client("s3")
     bucket_name = "shyal"
@@ -258,6 +258,43 @@ def main():
         plt.close(fig)
         contest_variance_img = f"![Contest Readiness Projection Over Time](https://shyal.s3.amazonaws.com/{s3_key_contest_variance})"
 
+    # Deterministic simulator (utils/kg_predict) projection over time — separate
+    # series from the LLM guess above; only entries that recorded faang_predict.
+    faang_predict_variance_img = ""
+    predict_entries = [e for e in readiness_data if "faang_predict" in e]
+    if predict_entries:
+        p_run_dt = [datetime.strptime(e["run_date"], "%Y-%m-%d") for e in predict_entries]
+        p_pred_dt = [datetime.strptime(e["faang_predict"], "%Y-%m-%d") for e in predict_entries]
+        p_min_run, p_min_pred = min(p_run_dt), min(p_pred_dt)
+        px = [(dt - p_min_run).days for dt in p_run_dt]
+        py = [(dt - p_min_pred).days for dt in p_pred_dt]
+
+        p_label_step = max(1, len(predict_entries) // 10)
+        unique_pred = sorted(set(p_pred_dt))
+
+        fig, ax = plt.subplots(figsize=(12, 5))
+        ax.plot(px, py, marker="o", label="Simulated Ready Date", color="#2ca02c", linestyle="-")
+        ax.set_xticks(px[::p_label_step])
+        ax.set_xticklabels([e["run_date"] for e in predict_entries][::p_label_step], rotation=45)
+        ax.set_yticks([(dt - p_min_pred).days for dt in unique_pred])
+        ax.set_yticklabels([dt.strftime("%Y-%m-%d") for dt in unique_pred])
+        ax.set_title("FAANG Readiness (Curve Simulator) Projection Over Time")
+        ax.set_xlabel("Run Date")
+        ax.set_ylabel("Simulated Readiness Date")
+        ax.legend()
+        fig.tight_layout()
+        local_path = "/tmp/faang_predict_variance.png"
+        fig.savefig(local_path)
+        s3_key_faang_predict = f"faang_predict_variance_{timestamp}.png"
+        s3.upload_file(
+            local_path,
+            bucket_name,
+            s3_key_faang_predict,
+            ExtraArgs={"ContentType": "image/png"},
+        )
+        plt.close(fig)
+        faang_predict_variance_img = f"![FAANG Readiness (Curve Simulator) Projection Over Time](https://shyal.s3.amazonaws.com/{s3_key_faang_predict})"
+
     faang_variance_img = ""
     if run_dates:
         min_faang = min(faang_dt)
@@ -308,7 +345,9 @@ def main():
     if readiness_data:
         last_readiness = readiness_data[-1]
         contest_end_str = last_readiness["contest_readiness"]
-        faang_end_str = last_readiness["faang_interview"]
+        # prefer the deterministic simulator's date over the LLM guess
+        faang_end_str = last_readiness.get("faang_predict", last_readiness["faang_interview"])
+        faang_hours = last_readiness.get("faang_predict_hours")
 
         if all_problem_dates:
             # Progress = current skill measured by the technique graph, NOT elapsed
@@ -351,9 +390,9 @@ def main():
             ax.set_yticklabels(["Progress"])
             ax.set_xlim(0, 100)
             ax.set_xlabel("Fraction of technique nodes SOLID (fresh evidence only)")
-            ax.set_title(
-                f"FAANG Interview Readiness (projected ready {faang_end_str})"
-            )
+            faang_title = f"FAANG Interview Readiness (simulated ready {faang_end_str}"
+            faang_title += f" at {faang_hours:g}h/day)" if faang_hours else ")"
+            ax.set_title(faang_title)
             local_path = "/tmp/faang_progress.png"
             fig.savefig(local_path, bbox_inches="tight")
             s3_key_faang_progress = f"faang_progress_{timestamp}.png"
@@ -408,108 +447,30 @@ def main():
         faang_progress_img = "No readiness data."
         contest_topics_img = "No readiness data."
 
-    # New animation: Problem grid
-    grid_anim_img = ""
-    if dates_for_plot:
-        total_problems = max(metadata) if metadata else 3302
-        grid_size = math.ceil(math.sqrt(total_problems))
-        problem_ids = list(range(1, total_problems + 1))  # Use ints for consistency
-        all_positions = []
-        for idx in range(total_problems):
-            row = idx // grid_size
-            col = idx % grid_size
-            all_positions.append(
-                (col, grid_size - row - 1)
-            )  # Invert y for top-left start
-
-        problem_solve_dates = {}
-        for date_str, probs in uniques_per_day.items():
-            for prob in probs:
-                problem_solve_dates[prob] = date_str
-
-        solve_dates = {}
-        for prob, date_str in problem_solve_dates.items():
-            solve_dates[prob] = datetime.strptime(date_str, "%Y-%m-%d")
-
-        dates_dt = [datetime.strptime(d, "%Y-%m-%d") for d in dates_for_plot]
-
-        fig, ax = plt.subplots(figsize=(8, 8))
-        ax.set_xlim(-0.5, grid_size - 0.5)
-        ax.set_ylim(-0.5, grid_size - 0.5)
-        ax.set_axis_off()
-        ax.set_aspect("equal")
-
-        colors = {
-            "Easy": "#00FF00",
-            "Medium": "#FFA500",
-            "Hard": "#FF0000",
-            "Unknown": "#A9A9A9",  # Different from grey for unsolved if needed
-        }
-
-        all_positions_x, all_positions_y = (
-            zip(*all_positions) if all_positions else ([], [])
-        )
-
-        grey_scatter = ax.scatter(
-            all_positions_x, all_positions_y, s=10, c="#808080", marker="s"
-        )
-
-        solved_scatters = {}
-        for diff in colors:
-            solved_scatters[diff] = ax.scatter([], [], s=10, c=colors[diff], marker="s")
-
-        date_text = ax.text(0.5, -0.05, "", transform=ax.transAxes, ha="center")
-
-        def update(frame):
-            current_dt = dates_dt[frame]
-            solved_positions = defaultdict(list)
-            unsolved_positions = []
-            for i, prob in enumerate(problem_ids):
-                solve_dt = solve_dates.get(prob)
-                pos = all_positions[i]
-                if solve_dt and solve_dt <= current_dt:
-                    num = prob
-                    diff = metadata.get(num, {}).get("difficulty", "Unknown")
-                    solved_positions[diff].append(pos)
-                else:
-                    unsolved_positions.append(pos)
-            # Update unsolved (grey)
-            if unsolved_positions:
-                ux, uy = zip(*unsolved_positions)
-                grey_scatter.set_offsets(np.c_[ux, uy])
-            else:
-                grey_scatter.set_offsets(np.empty((0, 2)))
-            # Update solved
-            for diff, positions in solved_positions.items():
-                if positions:
-                    sx, sy = zip(*positions)
-                    solved_scatters[diff].set_offsets(np.c_[sx, sy])
-                else:
-                    solved_scatters[diff].set_offsets(np.empty((0, 2)))
-            date_text.set_text(dates_for_plot[frame])
-            return [grey_scatter] + list(solved_scatters.values()) + [date_text]
-
-        # cap the animation at ~150 frames — sample every k-th day on long histories
-        frame_step = max(1, len(dates_dt) // 150)
-        frame_indices = list(range(0, len(dates_dt), frame_step))
-        if frame_indices[-1] != len(dates_dt) - 1:
-            frame_indices.append(len(dates_dt) - 1)  # always end on today
-        anim = FuncAnimation(fig, update, frames=frame_indices, blit=True)
-        local_path = "/tmp/problem_grid.gif"
-        anim.save(local_path, writer="pillow", fps=10)
-        s3_key_grid = f"problem_grid_{timestamp}.gif"
-        s3.upload_file(
-            local_path,
-            bucket_name,
-            s3_key_grid,
-            ExtraArgs={"ContentType": "image/gif"},
-        )
-        plt.close(fig)
-        grid_anim_img = (
-            f"![Problem Grid Animation](https://shyal.s3.amazonaws.com/{s3_key_grid})"
-        )
-    else:
-        grid_anim_img = "No data for problem grid animation."
+    # Technique-graph movie: GitHub strips <video>/HTML from READMEs, so ship
+    # graph/kg.mp4 as an optimized GIF on the same S3 pipeline as the charts.
+    kg_movie_img = ""
+    if os.path.exists("graph/kg.mp4"):
+        local_path = "/tmp/kg_movie.gif"
+        try:
+            subprocess.run(
+                ["ffmpeg", "-y", "-v", "error", "-i", "graph/kg.mp4",
+                 "-vf", "fps=20,scale=1280:-1:flags=lanczos,"
+                        "split[s0][s1];[s0]palettegen=max_colors=128[p];"
+                        "[s1][p]paletteuse=dither=bayer:bayer_scale=4",
+                 local_path],
+                check=True,
+            )
+            s3_key_kg_movie = f"kg_movie_{timestamp}.gif"
+            s3.upload_file(
+                local_path,
+                bucket_name,
+                s3_key_kg_movie,
+                ExtraArgs={"ContentType": "image/gif"},
+            )
+            kg_movie_img = f"![Technique graph growing solve by solve](https://shyal.s3.amazonaws.com/{s3_key_kg_movie})"
+        except (subprocess.CalledProcessError, FileNotFoundError) as e:
+            print(f"kg movie skipped: {e}")
 
     with open("README.md.template", "r") as f:
         readme = f.read()
@@ -520,13 +481,16 @@ def main():
     if run_dates:
         readme = readme.replace("<!-- CONTEST_VARIANCE_CHART -->", contest_variance_img)
         readme = readme.replace("<!-- FAANG_VARIANCE_CHART -->", faang_variance_img)
+    if faang_predict_variance_img:
+        readme = readme.replace(
+            "<!-- FAANG_PREDICT_VARIANCE_CHART -->", faang_predict_variance_img
+        )
+    if kg_movie_img:
+        readme = readme.replace("<!-- KG_MOVIE -->", kg_movie_img)
 
     readme = readme.replace("<!-- CONTEST_PROGRESS -->", contest_progress_img)
     readme = readme.replace("<!-- FAANG_PROGRESS -->", faang_progress_img)
     readme = readme.replace("<!-- CONTEST_TOPICS_CHART -->", contest_topics_img)
-    readme = readme.replace(
-        "<!-- GRID_ANIM -->", grid_anim_img
-    )  # Add this to your template
 
     with open("README.md", "w") as f:
         f.write(readme)

@@ -2,39 +2,33 @@
 
 # Leetcode grind
 
-This repo contains a log of my >= 2025 leetcode solves. I was clobbering together the helper scripts for this repo between my solves, so solve times don't go all the way back. Likewise for readiness and topic estimates, they don't go all the way back, however enough data should get collected for progress charts to get increasingly interesting as time goes on.
+This repo contains all my leetcode solves (and fails) since September 2025. My approach, back then, was terrible. I was churning through a very high volume of easies, which was fun but very suboptimal.
 
-Originally i prompted Grok with my entire solve history for recommendations, which established a feedback loop: it recommended what to work on, then saw how i did. That architecture has since been replaced by a technique knowledge graph (`graph/`): every solve is distilled (by Claude, once, at ingest) into evidence about which atomic *moves* the code actually exercised — `streaming-ask-then-record`, `monotonic-stack`, etc. A problem is a walk through the graph of moves; mastery is derived at query time from evidence dates, so skills go stale if i don't revisit them, exactly like real memory.
+I've now switched to a graph-based approach. Essentially the repo now contains a graph, where the nodes are core techniques, that map to all leetcode problems. On each solve, evidence is accumulated, and either strengthens or weakens nodes.
 
-Claude coaches on top of this: `make next` deterministically picks the next problem (consolidate fragile moves first, spaced re-solves second, one new move at a time), preflight-gates it so a problem never requires more than one untrained move, prescribes warm-up drills from a growing self-authored drill bank (`drills/`), and draws the problem's full dependency tree of techniques. The LLM judges code; the graph remembers; arithmetic decides what's next.
+These node states are then used, with a memory decay curve, to recommend what to work on next (`make next`).
 
-I am thrilled with the use of LLMs as learning assistants. The recommendations are of extremely high quality, and the reasoning as to why i should work on what is extremely coherent.
+![Technique graph growing solve by solve](https://shyal.s3.amazonaws.com/kg_movie_20260810041413.gif)
 
-I also could not be happier with the use of Git + Python + LLMs, and believe this workflow (for developers) is not only incredibly versatile, but also extremely powerful.
-
-This approach can be applied to learning any topic.
-
-Here are some little charts, generated from the git log.
-
-![Problem Grid Animation](https://shyal.s3.amazonaws.com/problem_grid_20260705093530.gif)
+This leads to a bit too much jumping around from one topic to another, so `make dive` the weakest cluster of highly connected nodes, to create a coherent deep dive into one topic.
 
 ## Solve rate
 
 This is the daily solve rate.
 
-![Solves Per Day (Full Repo History)](https://shyal.s3.amazonaws.com/solves_per_day_20260705093530.png)
+![Solves Per Day (Full Repo History)](https://shyal.s3.amazonaws.com/solves_per_day_20260810041413.png)
 
 ## Unique solve rate
 
 This is the daily unique solve rate. This is because as complexity ramps up, questions will need to be revisited.
 
-![Unique Problems Solved Daily (Full Repo History)](https://shyal.s3.amazonaws.com/uniques_per_day_20260705093530.png)
+![Unique Problems Solved Daily (Full Repo History)](https://shyal.s3.amazonaws.com/uniques_per_day_20260810041413.png)
 
 ## Contest progress
 
 The progress bar is derived from the technique graph: every move scores solid = 1.0, stale = 0.5, fragile = 0.25, missing = 0, averaged. Staleness (i.e. how much i forget over time) is baked in — the bar only moves when i actually re-earn moves, not when time passes. The projected date comes from a small Claude call fed the graph summary.
 
-![Contest Readiness Progress (Ready by 2026-08-16)](https://shyal.s3.amazonaws.com/contest_progress_20260705093530.png)
+![Contest Readiness Progress (Ready by 2026-08-30)](https://shyal.s3.amazonaws.com/contest_progress_20260810041413.png)
 
 Update: 05-Jul-2026
 
@@ -52,21 +46,27 @@ In other words, these estimate variance charts are excellent indicators for comp
 
 Held to a stricter standard than contests: the bar is the fraction of technique moves that are fully SOLID (fresh evidence only — interviews demand instant recall, so stale doesn't count). Currently the focus of this repo is just fun, but this is an interesting metric regardless.
 
-![FAANG Interview Readiness Progress (Ready by 2026-10-18)](https://shyal.s3.amazonaws.com/faang_progress_20260705093530.png)
+The projected date no longer comes from an LLM guess: `utils/kg_predict` runs a day-by-day simulation of how the picker would spend the hours — consolidate fragile moves, acquire missing ones, re-solve whatever the personal forgetting curve (`graph/curve.json`) says is about to go stale, then bank new mediums — with solve costs measured from my own git history. Ready = graph fully solid + enough distinct mediums banked + a polish block of timed sets and mocks.
+
+![FAANG Interview Readiness Progress (Ready by 2026-10-05)](https://shyal.s3.amazonaws.com/faang_progress_20260810041413.png)
 
 ## Estimate dates variance charts
 
 I'm curious to see the amount of variance in the estimates, i.e whether they're stable over time.
 
-![Contest Readiness Projection Over Time](https://shyal.s3.amazonaws.com/contest_variance_20260705093530.png)
+![Contest Readiness Projection Over Time](https://shyal.s3.amazonaws.com/contest_variance_20260810041413.png)
 
-![FAANG Interview Readiness Projection Over Time](https://shyal.s3.amazonaws.com/faang_variance_20260705093530.png)
+![FAANG Interview Readiness Projection Over Time](https://shyal.s3.amazonaws.com/faang_variance_20260810041413.png)
+
+The simulator's date gets its own series (recorded daily to `readiness.json` alongside the LLM's), so its stability can be compared against the LLM-guess era above:
+
+![FAANG Readiness (Curve Simulator) Projection Over Time](https://shyal.s3.amazonaws.com/faang_predict_variance_20260810041413.png)
 
 ## Topic readiness chart
 
 Per-family readiness derived from the technique graph (same solid/stale/fragile weighting, averaged per node group), sorted strongest first.
 
-![Topic Readiness](https://shyal.s3.amazonaws.com/contest_topics_readiness_20260705093530.png)
+![Topic Readiness](https://shyal.s3.amazonaws.com/contest_topics_readiness_20260810041413.png)
 
 # Leetcode flavoured environment
 

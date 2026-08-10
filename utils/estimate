@@ -10,6 +10,8 @@
 
 import json
 import os
+import subprocess
+import sys
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone, date
 from rich.console import Console
@@ -75,6 +77,19 @@ Estimate the two readiness dates."""
 
     estimates = claude_json(user_prompt, system_prompt)
 
+    # deterministic date from the curve simulator (utils/kg_predict), recorded
+    # alongside the LLM guess so both variance series accumulate
+    predict = None
+    try:
+        out = subprocess.run(
+            [sys.executable, os.path.join(os.path.dirname(__file__), "kg_predict"), "--json"],
+            capture_output=True, text=True, check=True,
+            env={**os.environ, "PYTHONPATH": os.path.dirname(__file__)},
+        ).stdout
+        predict = json.loads(out)
+    except (subprocess.CalledProcessError, json.JSONDecodeError) as e:
+        console.print(f"[yellow]kg_predict failed, no faang_predict recorded: {e}[/yellow]")
+
     manila_tz = timezone(timedelta(hours=8))
     run_date = datetime.now(manila_tz).strftime("%Y-%m-%d")
 
@@ -89,12 +104,16 @@ Estimate the two readiness dates."""
             data = []
 
     data = [e for e in data if e.get("run_date") != run_date]  # same-day rerun replaces
-    data.append({
+    entry = {
         "run_date": run_date,
         "contest_readiness": estimates["contest_readiness"],
         "faang_interview": estimates["faang_interview"],
         "contest_topics_readiness": topics,
-    })
+    }
+    if predict:
+        entry["faang_predict"] = predict["ready"]
+        entry["faang_predict_hours"] = predict["hours"]
+    data.append(entry)
     with open("readiness.json", "w") as f:
         json.dump(data, f, indent=2)
 
@@ -102,7 +121,9 @@ Estimate the two readiness dates."""
     table.add_row("Run date", run_date)
     table.add_row("Node statuses", status_line)
     table.add_row("Contest readiness", str(estimates["contest_readiness"]))
-    table.add_row("FAANG interview", str(estimates["faang_interview"]))
+    table.add_row("FAANG interview (LLM)", str(estimates["faang_interview"]))
+    if predict:
+        table.add_row("FAANG interview (simulated)", f"{predict['ready']} at {predict['hours']:g}h/day")
     console.print(table)
 
 
