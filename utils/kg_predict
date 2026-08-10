@@ -61,7 +61,9 @@ def measured_times():
 
 
 def main():
-    hours = float(sys.argv[1]) if len(sys.argv) > 1 else 2.0
+    json_mode = "--json" in sys.argv
+    args = [a for a in sys.argv[1:] if a != "--json"]
+    hours = float(args[0]) if args else 2.0
     nodes = load_nodes()
     evidence = load_evidence()
     curve = json.load(open(os.path.join(GRAPH_DIR, "curve.json")))
@@ -127,6 +129,15 @@ def main():
             break
 
     ready = date.today() + timedelta(days=day + POLISH_DAYS)
+    if json_mode:
+        print(json.dumps({
+            "run_date": date.today().isoformat(),
+            "hours": hours,
+            "ready": ready.isoformat(),
+            "days": day + POLISH_DAYS,
+            "graph_lit": (date.today() + timedelta(days=lit_day or day)).isoformat(),
+        }))
+        return
     print(f"at {hours:g}h/day, every day:")
     print(f"  graph fully lit          ~ {date.today() + timedelta(days=lit_day or day)}")
     print(f"  {mediums_needed} new mediums banked   ~ {date.today() + timedelta(days=day)}"
