@@ -23,7 +23,8 @@
 # solves it carries, so the event rate stays roughly constant instead of
 # tracking how bursty the work actually was. Marathon days stretch out enough
 # to read; a 100-day dry spell still dims and still reads as a gap, but takes
-# a moment rather than half the film.
+# a moment rather than half the film. The tail dissolves back into the opening
+# frame instead of freezing, so the GIF loops without dead frames at the seam.
 # Label placement is chosen at spawn from ~20 candidate spots around the
 # node, overlapping NOTHING graphviz drew — nodes, edges, cluster borders
 # and titles, the header — nor any still-fading label; the spot is pinned
@@ -44,7 +45,7 @@ from kg_lib import GRAPH_DIR, load_nodes, load_evidence, node_status
 from kg_render import make_digraph, status_node, add_legend
 
 FPS_OUT = 25       # output framerate
-END_HOLD_S = 3     # freeze on the final state
+END_FADE_S = 1.2   # dissolve from the final state back to the opening frame
 DPI = 144
 
 DEFAULT_SECONDS = 50  # fixed, so the movie stops growing as history does
@@ -53,7 +54,7 @@ TARGET_FPS = 60    # what we aim for when a total duration is requested
 MAX_FPS = 120      # past this a "movie" is a blur nothing can play properly
 GOP_S = 0.5        # seconds between encoded keyframes, so scrubbing lands close
 LABEL_LIFE_FRACTION = 0.04  # label fade as a share of runtime (2s in a 50s cut)
-HOLD_FRACTION = 0.08  # end freeze shrinks with short movies, never dominates
+FADE_FRACTION = 0.08  # loop-closing dissolve shrinks with short movies
 LULL_WEIGHT = 0.25  # screen time a solve-less day gets, in units of one solve
 
 GOLD = (255, 215, 95)
@@ -314,32 +315,33 @@ def allocate_frames(weights, total, floors):
 def retime(weights, floors, seconds, target_fps=TARGET_FPS):
     """Fit weighted date ticks into a movie of exactly `seconds` total.
 
-    Returns (frames_per_tick, fps, hold_s, label_life_s). The end freeze and
-    the label fade are both fractions of the whole, so a short movie is neither
-    mostly a still frame nor a flicker of unreadable gold — and crucially the
-    fade tracks runtime rather than tick count, so making keyframes denser does
-    not make the problem numbers flash by faster. Weights are already in solve
-    units, so aiming for one frame per unit of weight is what gives each solve
-    its own frame; the fps rises to buy that where target_fps is too slow.
+    Returns (frames_per_tick, fps, fade_s, label_life_s). The loop-closing
+    dissolve and the label fade are both fractions of the whole, so a short
+    movie is neither mostly a dissolve nor a flicker of unreadable gold — and
+    crucially the fade tracks runtime rather than tick count, so making
+    keyframes denser does not make the problem numbers flash by faster. Weights
+    are already in solve units, so aiming for one frame per unit of weight is
+    what gives each solve its own frame; the fps rises to buy that where
+    target_fps is too slow.
     """
-    hold = min(END_HOLD_S, seconds * HOLD_FRACTION)
-    ticks_s = seconds - hold
+    fade = min(END_FADE_S, seconds * FADE_FRACTION)
+    ticks_s = seconds - fade
     fps = min(MAX_FPS, max(target_fps, sum(weights) / ticks_s)) if ticks_s > 0 else MAX_FPS
     needed = sum(floors)
     if ticks_s <= 0 or needed / ticks_s > MAX_FPS:
         # every tick that carries a solve needs a frame of its own; below that
         # the ticks themselves would be dropped, silently rewriting the history
-        floor_s = (needed / MAX_FPS) / (1 - HOLD_FRACTION)
+        floor_s = (needed / MAX_FPS) / (1 - FADE_FRACTION)
         raise SystemExit(
             f"{seconds:g}s is too short for {needed} date ticks that carry "
             f"solves. Shortest sensible movie is ~{floor_s:.1f}s."
         )
     frames = allocate_frames(weights, round(ticks_s * fps), floors)
-    return frames, fps, hold, seconds * LABEL_LIFE_FRACTION
+    return frames, fps, fade, seconds * LABEL_LIFE_FRACTION
 
 
 def main():
-    global FPS_OUT, END_HOLD_S, LABEL_LIFE_S
+    global FPS_OUT, END_FADE_S, LABEL_LIFE_S
 
     parser = argparse.ArgumentParser(description="Animate the technique graph's history.")
     parser.add_argument("seconds", nargs="?", type=float, default=DEFAULT_SECONDS,
@@ -361,7 +363,7 @@ def main():
     # a day that happened is never skipped; the opening dark frame stays too
     floors = [1 if i == 0 or by_day.get(day.isoformat()) else 0
               for i, day in enumerate(days)]
-    tick_frames, FPS_OUT, END_HOLD_S, LABEL_LIFE_S = retime(
+    tick_frames, FPS_OUT, END_FADE_S, LABEL_LIFE_S = retime(
         weights, floors, args.seconds, args.fps)
     out = os.path.join(GRAPH_DIR, "kg.mp4")
     try:
@@ -374,8 +376,23 @@ def main():
         return [([text], (font.getbbox(text)[2], line_h), line_h)]
 
     with tempfile.TemporaryDirectory() as tmp:
-        prev, boxes, obstacles = None, None, None
+        prev, boxes, obstacles, opening = None, None, None, None
         active = []  # {"node", "texts", "rect", "born"} — rect pinned at spawn
+
+        def compose(bg, t):
+            """The graph at `bg` with every label still alive at time `t` on top."""
+            live = [(a, label_alpha(t - a["born"])) for a in active]
+            layer = Image.new("RGBA", bg.size, (0, 0, 0, 0))
+            draw = ImageDraw.Draw(layer)
+            for a, alpha in live:
+                if alpha <= 0:
+                    continue
+                lx, ly = a["rect"][0], a["rect"][1]
+                for j, text in enumerate(a["texts"]):
+                    draw.text((lx, ly + j * a["line_h"]), text, font=font,
+                              fill=(*GOLD, alpha))
+            return Image.alpha_composite(bg, layer).convert("RGB")
+
         out_idx, tick_t = 0, 0.0
         rendered = 0
         for i, day in enumerate(days):
@@ -410,22 +427,14 @@ def main():
                                    "line_h": lh, "born": born})
 
             base = Image.open(base_png).convert("RGBA")
+            if opening is None:
+                opening = base.copy()  # the dark graph the loop dissolves back to
             clean_idx = None  # first label-free frame of this tick, for hardlink reuse
             for s in range(subframes):
                 t = tick_t + s / FPS_OUT
-                live = [(a, label_alpha(t - a["born"])) for a in active]
-                live = [(a, al) for a, al in live if al > 0]
                 frame_path = os.path.join(tmp, f"f_{out_idx:05d}.jpg")
-                if live:
-                    layer = Image.new("RGBA", base.size, (0, 0, 0, 0))
-                    draw = ImageDraw.Draw(layer)
-                    for a, alpha in live:
-                        lx, ly = a["rect"][0], a["rect"][1]
-                        for k, text in enumerate(a["texts"]):
-                            draw.text((lx, ly + k * a["line_h"]), text, font=font,
-                                      fill=(*GOLD, alpha))
-                    Image.alpha_composite(base, layer).convert("RGB").save(
-                        frame_path, quality=92)
+                if any(label_alpha(t - a["born"]) > 0 for a in active):
+                    compose(base, t).save(frame_path, quality=92)
                 elif clean_idx is not None:
                     os.link(os.path.join(tmp, f"f_{clean_idx:05d}.jpg"), frame_path)
                 else:
@@ -436,6 +445,26 @@ def main():
             print(f"\r{i + 1}/{len(days)} ticks", end="", flush=True)
         print()
 
+        # Close the loop by dissolving the finished graph back into the opening
+        # frame rather than freezing on it. A freeze is dead frames, which is
+        # exactly what a looping GIF makes you stare at, and the cut from a fully
+        # lit graph to a dark one is jarring however long you hold it. The
+        # dissolve keeps moving and lands a hair short of frame 0, so the seam
+        # has nothing to catch on. Labels caught mid-fade keep fading through it.
+        if opening.size != base.size:
+            opening = opening.resize(base.size)
+        n_fade = max(1, round(END_FADE_S * FPS_OUT))
+        # Land on the opening frame a little before the end rather than exactly
+        # on it: the README GIF resamples this movie down to 20fps, so its last
+        # frame falls a few source frames short, and a dissolve that only
+        # completes on the very last one leaves the loop with a visible step.
+        settle = min(n_fade - 1, max(1, round(FPS_OUT / 12)))
+        for k in range(n_fade):
+            mix = Image.blend(base, opening, min(1.0, (k + 1) / (n_fade - settle)))
+            compose(mix, tick_t + k / FPS_OUT).save(
+                os.path.join(tmp, f"f_{out_idx:05d}.jpg"), quality=92)
+            out_idx += 1
+
         w, h = base.size
         w, h = w + w % 2, h + h % 2
         subprocess.run(
@@ -443,16 +472,15 @@ def main():
              "-i", os.path.join(tmp, "f_%05d.jpg"),
              "-vf", (f"scale={w}:{h}:force_original_aspect_ratio=decrease,"
                      f"pad={w}:{h}:(ow-iw)/2:(oh-ih)/2:color=0x0d1117,"
-                     f"tpad=stop_mode=clone:stop_duration={END_HOLD_S},format=yuv420p"),
+                     f"format=yuv420p"),
              "-c:v", "libx264", "-crf", "20",
              "-g", str(max(1, round(FPS_OUT * GOP_S))), "-keyint_min", "1",
              "-force_key_frames", f"expr:gte(t,n_forced*{GOP_S})", out],
             check=True,
         )
 
-    dur = out_idx / FPS_OUT + END_HOLD_S
     print(f"wrote {out} — {rendered}/{len(days)} ticks rendered, {FPS_OUT:.6g}fps, "
-          f"{dur:.1f}s ({END_HOLD_S:.1f}s end hold)")
+          f"{out_idx / FPS_OUT:.1f}s ({END_FADE_S:.1f}s loop dissolve)")
     if args.open:
         subprocess.run(["open", out], check=False)
 
