@@ -8,27 +8,39 @@ I've now switched to a graph-based approach. Essentially the repo now contains a
 
 These node states are then used, with a memory decay curve, to recommend what to work on next (`make next`).
 
-![Technique graph growing solve by solve](https://shyal.s3.amazonaws.com/kg_movie_20260810041413.gif)
+![Technique graph growing solve by solve](https://shyal.s3.amazonaws.com/kg_movie_20260810043114.gif)
 
 This leads to a bit too much jumping around from one topic to another, so `make dive` the weakest cluster of highly connected nodes, to create a coherent deep dive into one topic.
+
+## My forgetting curve
+
+A memory decay curve is computed (duolingo style). It's fitted (`make curve`) regularly.
+
+The model is power-law forgetting with a slip rate, P(recall) = (1−slip)·(1 + Δ/s)^(−β), where stability s grows with every clean rep and shrinks every time i struggle.
+
+![Fitted forgetting curve](https://shyal.s3.amazonaws.com/forgetting_curve_20260810043114.png)
+
+The model also tracks its accuracy internally, by comparing its predictions with my actual performance.
+
+![Curve calibration](https://shyal.s3.amazonaws.com/curve_calibration_20260810043114.png)
 
 ## Solve rate
 
 This is the daily solve rate.
 
-![Solves Per Day (Full Repo History)](https://shyal.s3.amazonaws.com/solves_per_day_20260810041413.png)
+![Solves Per Day (Full Repo History)](https://shyal.s3.amazonaws.com/solves_per_day_20260810043114.png)
 
 ## Unique solve rate
 
 This is the daily unique solve rate. This is because as complexity ramps up, questions will need to be revisited.
 
-![Unique Problems Solved Daily (Full Repo History)](https://shyal.s3.amazonaws.com/uniques_per_day_20260810041413.png)
+![Unique Problems Solved Daily (Full Repo History)](https://shyal.s3.amazonaws.com/uniques_per_day_20260810043114.png)
 
 ## Contest progress
 
 The progress bar is derived from the technique graph: every move scores solid = 1.0, stale = 0.5, fragile = 0.25, missing = 0, averaged. Staleness (i.e. how much i forget over time) is baked in — the bar only moves when i actually re-earn moves, not when time passes. The projected date comes from a small Claude call fed the graph summary.
 
-![Contest Readiness Progress (Ready by 2026-08-30)](https://shyal.s3.amazonaws.com/contest_progress_20260810041413.png)
+![Contest Readiness Progress (Ready by 2026-09-01)](https://shyal.s3.amazonaws.com/contest_progress_20260810043114.png)
 
 Update: 05-Jul-2026
 
@@ -48,25 +60,25 @@ Held to a stricter standard than contests: the bar is the fraction of technique 
 
 The projected date no longer comes from an LLM guess: `utils/kg_predict` runs a day-by-day simulation of how the picker would spend the hours — consolidate fragile moves, acquire missing ones, re-solve whatever the personal forgetting curve (`graph/curve.json`) says is about to go stale, then bank new mediums — with solve costs measured from my own git history. Ready = graph fully solid + enough distinct mediums banked + a polish block of timed sets and mocks.
 
-![FAANG Interview Readiness Progress (Ready by 2026-10-05)](https://shyal.s3.amazonaws.com/faang_progress_20260810041413.png)
+![FAANG Interview Readiness Progress (Ready by 2026-10-05)](https://shyal.s3.amazonaws.com/faang_progress_20260810043114.png)
 
 ## Estimate dates variance charts
 
 I'm curious to see the amount of variance in the estimates, i.e whether they're stable over time.
 
-![Contest Readiness Projection Over Time](https://shyal.s3.amazonaws.com/contest_variance_20260810041413.png)
+![Contest Readiness Projection Over Time](https://shyal.s3.amazonaws.com/contest_variance_20260810043114.png)
 
-![FAANG Interview Readiness Projection Over Time](https://shyal.s3.amazonaws.com/faang_variance_20260810041413.png)
+![FAANG Interview Readiness Projection Over Time](https://shyal.s3.amazonaws.com/faang_variance_20260810043114.png)
 
 The simulator's date gets its own series (recorded daily to `readiness.json` alongside the LLM's), so its stability can be compared against the LLM-guess era above:
 
-![FAANG Readiness (Curve Simulator) Projection Over Time](https://shyal.s3.amazonaws.com/faang_predict_variance_20260810041413.png)
+![FAANG Readiness (Curve Simulator) Projection Over Time](https://shyal.s3.amazonaws.com/faang_predict_variance_20260810043114.png)
 
 ## Topic readiness chart
 
 Per-family readiness derived from the technique graph (same solid/stale/fragile weighting, averaged per node group), sorted strongest first.
 
-![Topic Readiness](https://shyal.s3.amazonaws.com/contest_topics_readiness_20260810041413.png)
+![Topic Readiness](https://shyal.s3.amazonaws.com/contest_topics_readiness_20260810043114.png)
 
 # Leetcode flavoured environment
 

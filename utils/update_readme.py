@@ -8,6 +8,7 @@ def main():
     import matplotlib as mpl
     import boto3
     import numpy as np
+    import math
     import json
     from metadata import get_problems_metadata
 
@@ -447,6 +448,90 @@ def main():
         faang_progress_img = "No readiness data."
         contest_topics_img = "No readiness data."
 
+    # Personal forgetting curve (graph/curve.json): the fitted family of curves
+    # by rep count, plus a calibration check against the actual recall trials.
+    curve_img = ""
+    curve_calibration_img = ""
+    if os.path.exists("graph/curve.json"):
+        with open("graph/curve.json") as f:
+            curve = json.load(f)
+        cp = curve["params"]
+        target = curve["target_retention"]
+
+        gaps = np.arange(0, 181)
+        fig, ax = plt.subplots(figsize=(12, 5))
+        for k, color in zip((1, 2, 3, 5, 10),
+                            ("#DD0000", "#FF8800", "#BBBB00", "#00AA00", "#1f77b4")):
+            s = math.exp(cp["a"] + cp["b"] * k)
+            mem = (1 + gaps / s) ** (-cp["beta"])
+            window = s * (target ** (-1 / cp["beta"]) - 1)
+            ax.plot(gaps, mem, color=color,
+                    label=f"{k} clean rep{'s' if k > 1 else ''} — solid for ≈{window:.0f}d")
+        ax.axhline(target, color="#888888", linestyle=":",
+                   label=f"{target:.0%} retention = SOLID threshold")
+        ax.set_ylim(min(0.85, target - 0.05), 1.001)
+        ax.set_xlim(0, 180)
+        ax.set_xlabel("Days since last clean solve")
+        ax.set_ylabel("P(recall), memory component")
+        ax.set_title(f"Fitted forgetting curve ({curve['fit']['trials']} recall trials): "
+                     f"(1 + Δ/s)^(−{cp['beta']:.2f}),  s = exp({cp['a']:.2f} + {cp['b']:.2f}·reps)")
+        ax.legend()
+        fig.tight_layout()
+        local_path = "/tmp/forgetting_curve.png"
+        fig.savefig(local_path)
+        s3_key_curve = f"forgetting_curve_{timestamp}.png"
+        s3.upload_file(local_path, bucket_name, s3_key_curve,
+                       ExtraArgs={"ContentType": "image/png"})
+        plt.close(fig)
+        curve_img = f"![Fitted forgetting curve](https://shyal.s3.amazonaws.com/{s3_key_curve})"
+
+        # calibration: model vs observed clean-rate per gap bucket, over the
+        # same trials kg_curve fitted on
+        from importlib.machinery import SourceFileLoader
+        utils_dir = os.path.dirname(os.path.abspath(__file__))
+        kg_curve = SourceFileLoader("kg_curve", os.path.join(utils_dir, "kg_curve")).load_module()
+        from kg_lib import load_evidence
+
+        trials = kg_curve.extract_trials(load_evidence())
+
+        def pred(g, k, m):
+            s = math.exp(cp["a"] + cp["b"] * k - cp["c"] * m)
+            return (1 - cp["slip"]) * (1 + g / s) ** (-cp["beta"])
+
+        labels, model_rates, observed_rates, counts = [], [], [], []
+        for lo, hi in ((1, 7), (8, 21), (22, 42), (43, 90), (91, 180), (181, 400)):
+            rows = [t for t in trials if lo <= t[0] <= hi]
+            if not rows:
+                continue
+            labels.append(f"{lo}–{hi}d")
+            observed_rates.append(sum(s for _, s, _, _ in rows) / len(rows))
+            model_rates.append(sum(pred(g, k, m) for g, _, k, m in rows) / len(rows))
+            counts.append(len(rows))
+
+        if labels:
+            xb = np.arange(len(labels))
+            fig, ax = plt.subplots(figsize=(12, 5))
+            ax.bar(xb - 0.2, model_rates, 0.4, label="Model", color="#1f77b4")
+            ax.bar(xb + 0.2, observed_rates, 0.4, label="Observed", color="#00AA00")
+            for i, n in enumerate(counts):
+                ax.text(xb[i], max(model_rates[i], observed_rates[i]) + 0.02,
+                        f"n={n}", ha="center", fontsize=9)
+            ax.set_xticks(xb)
+            ax.set_xticklabels(labels)
+            ax.set_ylim(0, 1.1)
+            ax.set_xlabel("Gap since last clean solve")
+            ax.set_ylabel("Clean-recall rate")
+            ax.set_title("Calibration: model prediction vs observed recall, by gap")
+            ax.legend()
+            fig.tight_layout()
+            local_path = "/tmp/curve_calibration.png"
+            fig.savefig(local_path)
+            s3_key_calib = f"curve_calibration_{timestamp}.png"
+            s3.upload_file(local_path, bucket_name, s3_key_calib,
+                           ExtraArgs={"ContentType": "image/png"})
+            plt.close(fig)
+            curve_calibration_img = f"![Curve calibration](https://shyal.s3.amazonaws.com/{s3_key_calib})"
+
     # Technique-graph movie: GitHub strips <video>/HTML from READMEs, so ship
     # graph/kg.mp4 as an optimized GIF on the same S3 pipeline as the charts.
     kg_movie_img = ""
@@ -487,6 +572,10 @@ def main():
         )
     if kg_movie_img:
         readme = readme.replace("<!-- KG_MOVIE -->", kg_movie_img)
+    if curve_img:
+        readme = readme.replace("<!-- CURVE_CHART -->", curve_img)
+    if curve_calibration_img:
+        readme = readme.replace("<!-- CURVE_CALIBRATION_CHART -->", curve_calibration_img)
 
     readme = readme.replace("<!-- CONTEST_PROGRESS -->", contest_progress_img)
     readme = readme.replace("<!-- FAANG_PROGRESS -->", faang_progress_img)
