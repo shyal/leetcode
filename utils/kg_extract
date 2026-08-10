@@ -15,6 +15,7 @@ import argparse
 import glob
 import os
 import re
+import subprocess
 import sys
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -25,6 +26,63 @@ from kg_lib import (
     save_problems, save_evidence, claude_json, taxonomy_summary, node_status,
     HARNESS_ENV_NOTE,
 )
+
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+VENV_PY = os.path.join(REPO_ROOT, ".venv", "bin", "python3")
+RUN_TIMEOUT = 30
+
+
+def run_solve(path):
+    """Execute a solve file the way the candidate does and report what actually
+    happened. Static reading alone mistakes passing negative assertions
+    (`assert f(x) is False`) for failures and harness builtins for NameErrors —
+    the interpreter is the only authority on whether the solve works."""
+    env = dict(os.environ)
+    env["PYTHONPATH"] = os.path.join(REPO_ROOT, "utils") + os.pathsep + env.get("PYTHONPATH", "")
+    py = VENV_PY if os.path.exists(VENV_PY) else sys.executable
+    try:
+        p = subprocess.run(
+            [py, os.path.abspath(path)], cwd=REPO_ROOT, env=env,
+            capture_output=True, text=True, timeout=RUN_TIMEOUT,
+        )
+    except subprocess.TimeoutExpired:
+        return {"status": "timeout", "detail": f"exceeded {RUN_TIMEOUT}s — likely TLE or an infinite loop"}
+    except Exception as e:  # interpreter missing, unreadable file, ...
+        return {"status": "unknown", "detail": f"could not execute: {str(e)[:200]}"}
+    if p.returncode == 0:
+        return {"status": "passed", "detail": (p.stdout or "").strip()[-600:]}
+    return {"status": "failed", "detail": (p.stderr or p.stdout or "").strip()[-800:]}
+
+
+def runtime_note(res):
+    """One authoritative paragraph about the run, for the judge's prompt."""
+    if res["status"] == "passed":
+        return (
+            "RUNTIME RESULT (authoritative): the file was EXECUTED and exited 0 — every "
+            "active assertion passed and no exception was raised. The solution WORKS. Do "
+            "NOT report bugs, failing assertions, or undefined names; if you think you see "
+            "one, you have misread the code. Note that `assert f(x) is False` PASSES when "
+            "f(x) returns False — a negative expectation is not a failure. Judge only "
+            "WHICH technique moves the working code exercises."
+            + (f"\nProgram output:\n{res['detail']}" if res["detail"] else "")
+        )
+    if res["status"] == "failed":
+        return (
+            "RUNTIME RESULT (authoritative): the file was EXECUTED and exited NON-ZERO. "
+            "It genuinely fails. Use the traceback below as the evidence for any "
+            "'struggled' verdict, and quote the real error in the note.\n"
+            f"{res['detail']}"
+        )
+    if res["status"] == "timeout":
+        return (
+            "RUNTIME RESULT (authoritative): the file was EXECUTED and TIMED OUT "
+            f"({res['detail']}). Treat the move responsible for the complexity blowup as "
+            "'struggled'."
+        )
+    return (
+        "RUNTIME RESULT: the file could not be executed, so judge statically — but "
+        f"assume the code works unless a bug is unmistakable. ({res['detail']})"
+    )
 
 VERDICT_STYLE = {"clean": "green", "struggled": "red", "avoided": "yellow"}
 
@@ -60,6 +118,7 @@ Taxonomy (use ONLY these ids):
 
 Rules:
 - {HARNESS_ENV_NOTE}
+- Every file is EXECUTED for you before you see it, and the result is stated in the prompt. That result OUTWEIGHS your reading of the source in every case. If the run passed, the code is correct — no "struggled" for suspected bugs, and no note claiming a failure. Only a non-zero exit, a timeout, or the candidate's own notes (looked-up/hints/TLE/failed) justify "struggled".
 - Judge the code as written, not the problem's canonical solution. Batch math on a streaming-carrier problem means the streaming move was NOT exercised — if the canonical solution's central move was sidestepped by an alternative approach, record that move as "avoided".
 - Verdicts: "clean" (executed correctly), "struggled" (bugs/confusion visible in code or notes, e.g. notes saying looked-up/hints/TLE/failed), "avoided" (canonical move sidestepped).
 - Only include moves with real evidence in this code. 1-6 moves is typical.
@@ -80,7 +139,7 @@ Output STRICT JSON only:
         # strip the problem statement docstring to keep the prompt small;
         # keep code + any candidate notes below it
         body = re.sub(r'^""".*?"""\s*', "", code, count=1, flags=re.S)[:6000]
-        prompt = f"File: {os.path.basename(path)}\n\n{body}"
+        prompt = f"File: {os.path.basename(path)}\n\n{runtime_note(run_solve(path))}\n\n{body}"
         if is_drill:
             prompt = (
                 f"This is a DRILL file targeting these taxonomy nodes: {', '.join(trains) or 'unknown'}. "
