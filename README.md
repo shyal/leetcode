@@ -8,7 +8,7 @@ I've now switched to a graph-based approach. Essentially the repo now contains a
 
 These node states are then used, with a memory decay curve, to recommend what to work on next (`make next`).
 
-![Technique graph growing solve by solve](https://shyal.s3.amazonaws.com/kg_movie_20260810043114.gif)
+![Technique graph growing solve by solve](https://shyal.s3.amazonaws.com/kg_movie_20260810084156.gif)
 
 This leads to a bit too much jumping around from one topic to another, so `make dive` the weakest cluster of highly connected nodes, to create a coherent deep dive into one topic.
 
