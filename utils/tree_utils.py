@@ -13,9 +13,9 @@ PrintTree.TreePrinter.TreeFormatter = TreeFormatter.TreeFormatter
 
 
 class Node:
-    def __init__(self, val: Any, children: Dict[Any, "Node"] = {}):
+    def __init__(self, val: Any, children: Optional[Dict[Any, "Node"]] = None):
         self.val = val
-        self.children = children
+        self.children = children if children is not None else {}
 
 
 def find_node(root, val):
@@ -113,7 +113,10 @@ def draw_general_tree(root: Optional[Node]) -> None:
             self.node = node
 
     def get_children(w: _Wrapper):
-        return [_Wrapper(child) for child in w.node.children]
+        children = w.node.children
+        if isinstance(children, dict):
+            children = children.values()
+        return [_Wrapper(child) for child in children]
 
     def get_value(w: _Wrapper):
         return str(w.node.label) if hasattr(w.node, "label") else str(w.node.val)

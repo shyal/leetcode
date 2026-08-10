@@ -83,6 +83,16 @@ def tabulate(tabular_data, headers=(), row_labels=(), tablefmt="github"):
 # types
 builtins.List = List
 builtins.Optional = Optional
+builtins.Dict = Dict
+builtins.Tuple = Tuple
+builtins.Any = Any
+builtins.Callable = Callable
+builtins.Generic = Generic
+builtins.Iterable = Iterable
+builtins.Iterator = Iterator
+builtins.TypeVar = TypeVar
+builtins.Union = Union
+builtins.overload = overload
 builtins.TreeNode = TreeNode
 builtins.ListNode = ListNode
 builtins.GraphNode = GraphNode

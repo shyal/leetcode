@@ -36,9 +36,9 @@ class GraphNode:
 
 
 class Node:
-    def __init__(self, val: Any, children: Dict[Any, "Node"] = {}):
+    def __init__(self, val: Any, children: Optional[Dict[Any, "Node"]] = None):
         self.val = val
-        self.children = children
+        self.children = children if children is not None else {}
 
 
 # class Node:
