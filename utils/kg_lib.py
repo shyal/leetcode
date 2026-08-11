@@ -259,12 +259,14 @@ def claude_json(prompt, system_prompt, model="sonnet"):
     if proc.returncode != 0:
         raise RuntimeError(f"claude exited {proc.returncode}: {proc.stderr[:500]}")
     result = json.loads(proc.stdout).get("result", "")
-    # tolerate fences/preamble: parse the outermost {...} span
+    # tolerate fences/preamble/trailing junk (haiku sometimes emits the object
+    # twice): parse the FIRST valid {...} and ignore whatever follows
     text = result.strip()
-    start, end = text.find("{"), text.rfind("}")
-    if start == -1 or end <= start:
+    start = text.find("{")
+    if start == -1:
         raise ValueError(f"no JSON object in result: {text[:200]!r}")
-    return json.loads(text[start : end + 1])
+    obj, _ = json.JSONDecoder().raw_decode(text[start:])
+    return obj
 
 
 def taxonomy_summary(nodes):

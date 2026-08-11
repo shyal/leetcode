@@ -175,14 +175,19 @@ Output STRICT JSON only:
             m = FNAME_RE.search(os.path.basename(path))
             dm = DATE_RE.search(os.path.basename(path))
             solve_date = f"{dm.group(1)}-{dm.group(2)}-{dm.group(3)}" if dm else "1970-01-01"
-            moves = {k: v for k, v in result.get("moves", {}).items() if k in nodes}
+            judged = {k: v for k, v in result.get("moves", {}).items() if k in nodes}
             rejected = [k for k in result.get("moves", {}) if k not in nodes]
+            # free-mode evidence discipline: record only what the code DID
+            # (clean/struggled). A mapped move the solve routed around is not
+            # a verdict on the candidate — it only marks this problem as
+            # having an alternative walk. Style is enforced by `make force`,
+            # before the merge, never here.
+            moves = {k: v for k, v in judged.items() if v != "avoided"}
+            skipped = {k for k, v in judged.items() if v == "avoided"}
             if not is_drill and m:
-                # the map defines the checklist: a canonical move the judge
-                # didn't score was not exercised — that's 'avoided', structurally
                 for mv in problems.get(m.group(1), {}).get("moves", []):
-                    if mv in nodes and mv not in moves:
-                        moves[mv] = "avoided"
+                    if mv in nodes and mv not in judged:
+                        skipped.add(mv)
             entry = {
                 "date": solve_date,
                 "problem": "drill" if is_drill else (result.get("problem") or (m.group(1) if m else "?")),
@@ -197,9 +202,9 @@ Output STRICT JSON only:
                 evidence[path] = entry
                 save_evidence(evidence)
                 pnum = entry["problem"]
-                # a detected dodge IS a discovered alt walk — record it so the
-                # picker knows this carrier is escapable and can route around it
-                if not is_drill and any(v == "avoided" for v in moves.values()):
+                # a skipped mapped move IS a discovered alt walk — record it so
+                # the picker knows this carrier is escapable and routes around it
+                if not is_drill and skipped:
                     taken = sorted(mv for mv, v in moves.items() if v == "clean")
                     pentry = problems.get(pnum)
                     if pentry and taken and taken not in pentry.get("alt_walks", []):
@@ -220,24 +225,15 @@ Output STRICT JSON only:
                 console.print(
                     f"[green]{done}/{len(todo)}[/green] {os.path.basename(path)[:60]} → {painted or '—'}"
                 )
-                # the loud receipt: dodges and struggles change the graph — say so
+                # the receipt: struggles change the graph — say so
                 before_ev = {k: v for k, v in evidence.items() if k != path}
-                dodged = False
                 for mv, verdict in moves.items():
-                    if verdict == "clean":
+                    if verdict != "struggled":
                         continue
                     b, _ = node_status(mv, before_ev)
                     a, _ = node_status(mv, evidence)
                     change = f"[red]{b} → {a}[/red]" if a != b else f"stays {a}"
-                    word, style = (("dodged", "yellow") if verdict == "avoided"
-                                   else ("struggled on", "red"))
-                    console.print(f"    [{style}]⚠ {word} [bold]{mv}[/bold][/{style}] ({change})")
-                    dodged = dodged or verdict == "avoided"
-                if dodged:
-                    console.print(
-                        "    [dim]path of least resistance recorded — the canonical move went "
-                        "undrilled. Cheapest fix: re-solve it canonically while it's warm; "
-                        "otherwise the picker will re-assign it.[/dim]")
+                    console.print(f"    [red]⚠ struggled on [bold]{mv}[/bold][/red] ({change})")
 
     console.print(
         f"\nDone: {done} processed, {failed} failed (re-run to retry), "
