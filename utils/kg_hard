@@ -1,0 +1,371 @@
+#!/usr/bin/env python3
+
+# kg_hard — pick a summit Hard and plan the route of base camps to reach it.
+#
+#   make hard          # pick the most reachable valuable Hard and plan the route
+#   make hard 42       # plan the route to a specific problem
+#
+# kg_next and kg_dive work the rusty frontier bottom-up; kg_hard works
+# top-down from a summit: take a Hard problem's full input tree (walk +
+# transitive prereqs), find every non-SOLID node in it, and schedule one
+# base camp per gap — a carrier problem (chosen exactly the way kg_dive
+# chooses: spaced re-solve for shallow-stale, gentle fresh carrier for
+# fragile/deep-stale/missing, anti-dodge when dodged) or a drill when no
+# carrier is READY. Prereqs are scheduled before dependents and each camp
+# is simulated as a clean solve, so by the last camp the summit's whole
+# walk is SOLID and the summit itself is a pure combination rep at altitude.
+#
+# Summit picking (no argument): a curated shortlist of interview-classic
+# Hards is scored by route length — fewest gaps in the input tree wins,
+# camps that consolidate already-rusty moves breaking ties (a route that
+# firms up your frontier on the way beats one made of brand-new ground).
+# Unmapped candidates cost ONE claude call for the whole batch; mappings
+# are cached into problems.json (same convention as preflight), so
+# re-runs are deterministic and free.
+#
+# The route is an ordering, not a contract: solve top-down, `make solved`
+# after each camp, re-run `make hard <num>` — the route re-derives from
+# fresh evidence and shrinks as camps turn SOLID.
+
+import argparse
+import json
+import os
+import sys
+from datetime import date
+from rich.console import Console
+from rich.table import Table
+
+from kg_lib import (
+    GRAPH_DIR, load_nodes, load_problems, load_evidence, save_problems,
+    node_status, latest_carrier, SOLID, STALE, FRAGILE, MISSING,
+    DEEP_STALE_DAYS, load_sleep, sleep_state, last_solved, pnum_key,
+    dodged_nodes, dodgeable, carriers_for, claude_json, taxonomy_summary,
+)
+from kg_render import make_digraph, status_node, render, display
+
+console = Console()
+
+STATUS_STYLE = {SOLID: "green", STALE: "yellow", FRAGILE: "red", MISSING: "dim"}
+
+# Interview-classic Hards worth summiting: number -> why it's valuable.
+# Filtered against .problems_metadata.json difficulty at runtime, so a
+# mislabeled entry silently drops out rather than lying.
+CLASSICS = {
+    "4": "binary-search partitioning at its purest",
+    "23": "the canonical heap hard — k-way merge",
+    "25": "pointer surgery mastery — reverse in k-groups",
+    "32": "stack meets DP on parentheses",
+    "41": "in-place index cycling, O(1) space",
+    "42": "the most famous hard — prefix-max / two-pointer",
+    "76": "sliding window with need/have counters",
+    "84": "monotonic stack at full power",
+    "85": "84 lifted into 2-D",
+    "124": "global-vs-path tree DP",
+    "127": "implicit-graph BFS",
+    "212": "trie + backtracking",
+    "224": "expression parsing with a stack",
+    "239": "monotonic deque",
+    "295": "two-heap running median",
+    "297": "tree serialization round-trip",
+    "460": "layered data-structure design (LFU)",
+    "502": "greedy + heap",
+    "815": "BFS where routes are the nodes",
+    "895": "stacked frequency stacks",
+    "968": "greedy tree DP",
+    "1235": "sort + binary search + DP",
+    "2402": "two-heap simulation",
+}
+
+
+def load_metadata():
+    path = os.path.join(os.path.dirname(GRAPH_DIR), ".problems_metadata.json")
+    try:
+        return json.load(open(path))
+    except Exception:
+        return {}
+
+
+def problem_url(pnum, metadata):
+    slug = metadata.get(str(pnum), {}).get("slug")
+    return (f"https://leetcode.com/problems/{slug}/" if slug
+            else f"https://leetcode.com/problemset/?search={pnum}")
+
+
+def input_tree(moves, nodes):
+    """Transitive prerequisite closure of a walk (unknown ids skipped)."""
+    seen = set()
+    stack = list(moves)
+    while stack:
+        n = stack.pop()
+        if n in seen or n not in nodes:
+            continue
+        seen.add(n)
+        stack.extend(nodes[n].get("prereqs", []))
+    return seen
+
+
+def map_with_claude(unmapped, problems, nodes, metadata):
+    """One claude call mapping a batch of problems onto the taxonomy; results
+    cached into problems.json (same convention as preflight). Returns the
+    subset of `unmapped` that came back mapped."""
+    listing = "\n".join(
+        f"- {num}. {metadata.get(num, {}).get('title', '?')}" for num in unmapped)
+    system = f"""You are mapping LeetCode problems onto a fixed taxonomy of atomic technique moves.
+
+Taxonomy (use ONLY these ids):
+{taxonomy_summary(nodes)}
+
+For EACH problem below, determine the canonical clean solution and list every move a candidate must execute, including foundational micro-moves. Hard problems almost always hinge on a signature trick; if that trick has no matching node id, it MUST appear in "unmapped" — never paper over it with the nearest broader node. Output STRICT JSON, nothing else:
+{{"problems": [{{"num": "<number>", "title": "<full title>", "moves": ["<node-id>", ...], "unmapped": ["<short description of any required move with no matching node>"]}}, ...]}}
+
+Do not explain the solutions."""
+    result = claude_json(f"LeetCode problems:\n{listing}", system)
+    mapped = []
+    for entry in result.get("problems", []):
+        num = str(entry.get("num", ""))
+        if num not in unmapped or not entry.get("moves"):
+            continue
+        problems[num] = {
+            "title": entry.get("title", metadata.get(num, {}).get("title", num)),
+            "difficulty": metadata.get(num, {}).get("difficulty", "Hard"),
+            "moves": entry["moves"],
+        }
+        if entry.get("unmapped"):
+            problems[num]["unmapped"] = entry["unmapped"]
+            console.print(f"[orange3]{num}: proposed new nodes (review!): {entry['unmapped']}[/orange3]")
+        mapped.append(num)
+    if mapped:
+        save_problems(problems)
+    return mapped
+
+
+def route_gaps(pnum, problems, nodes, statuses):
+    """Non-SOLID nodes in the problem's input tree, and how many of them are
+    consolidation (FRAGILE/STALE — moves you once had) vs new ground.
+    Unmapped proposals count as gaps too: they are unroutable new territory,
+    so a walk carrying them is farther away than its mapped moves suggest."""
+    closure = input_tree(problems[pnum]["moves"], nodes)
+    gaps = [n for n in closure if statuses[n][0] != SOLID]
+    gap_count = len(gaps) + len(problems[pnum].get("unmapped", []))
+    consolidation = sum(1 for n in gaps if statuses[n][0] in (FRAGILE, STALE))
+    return gaps, gap_count, consolidation
+
+
+def pick_summit(problems, nodes, statuses, evidence, metadata):
+    """Most reachable valuable classic: fewest gaps, consolidation breaks ties."""
+    candidates = [num for num in CLASSICS
+                  if metadata.get(num, {}).get("difficulty") == "Hard"
+                  and not last_solved(num, evidence)]
+    unmapped = [n for n in candidates if n not in problems]
+    mapped = [n for n in candidates if n in problems]
+    if len(mapped) < 3 and unmapped:
+        console.print(f"[dim]Mapping {len(unmapped)} classic Hards onto the taxonomy "
+                      "— one claude call, cached after...[/dim]")
+        mapped += map_with_claude(unmapped, problems, nodes, metadata)
+    scored = []
+    for num in mapped:
+        _, gap_count, consolidation = route_gaps(num, problems, nodes, statuses)
+        scored.append((gap_count, -consolidation, pnum_key(num), num))
+    if not scored:
+        return None
+    scored.sort()
+    return scored[0][3]
+
+
+def choose_carrier(target, sim, problems, nodes, evidence, dodged, excluded):
+    """(pnum, reason) for the target under simulated statuses, or None.
+    Mirrors kg_dive — same preference order kg_next uses, per status — with
+    one route-specific twist: a base camp should never itself be a Hard when
+    anything gentler carries the move, so Hard carriers sort last."""
+    def is_hard(p):
+        return problems[p].get("difficulty") == "Hard"
+
+    cands = [c for c in carriers_for(target, problems, sim, nodes)
+             if c not in excluded]
+    if not cands:
+        return None
+    s, d = sim[target]
+    if s == FRAGILE and target in dodged:
+        cands.sort(key=lambda p: (is_hard(p), dodgeable(p, target, problems),
+                                  len(problems[p]["moves"]),
+                                  last_solved(p, evidence), pnum_key(p)))
+        return cands[0], f"dodged on {dodged[target]} — carrier resists the dodge"
+    if s == STALE:
+        age = (date.today() - d).days
+        if age <= DEEP_STALE_DAYS:
+            carrier = latest_carrier(target, evidence)
+            pnum = carrier[2] if carrier and carrier[2] in cands else \
+                sorted(cands, key=lambda p: (not is_hard(p), last_solved(p, evidence)), reverse=True)[0]
+            return pnum, "spaced re-solve"
+        cands.sort(key=lambda p: (is_hard(p), last_solved(p, evidence), len(problems[p]["moves"]), pnum_key(p)))
+        return cands[0], f"deep-stale ({age}d) — gentle fresh carrier"
+    cands.sort(key=lambda p: (is_hard(p), last_solved(p, evidence), len(problems[p]["moves"]), pnum_key(p)))
+    return cands[0], "consolidate on a fresh carrier" if s == FRAGILE else "new move, prereqs solid"
+
+
+def plan_route(summit, problems, nodes, statuses, evidence, asleep):
+    """One base camp per gap in the summit's input tree, prereqs before
+    dependents, each camp simulated as a clean solve. Returns
+    [(target, status, pnum_or_None, reason), ...] — the summit itself is
+    not a step; after the last camp its walk is all-SOLID."""
+    sim = dict(statuses)
+    dodged = dodged_nodes(evidence)
+    remaining = set(n for n in input_tree(problems[summit]["moves"], nodes)
+                    if statuses[n][0] != SOLID)
+    excluded = set(asleep) | {summit}
+    steps = []
+    while remaining:
+        ready = [x for x in remaining
+                 if not any(p in remaining for p in nodes[x].get("prereqs", []))]
+        pool = sorted(ready or remaining,
+                      key=lambda x: (statuses[x][1] is None, statuses[x][1] or date.max, x))
+        target = pool[0]
+        choice = choose_carrier(target, sim, problems, nodes, evidence, dodged, excluded)
+        if choice:
+            pnum, reason = choice
+            steps.append((target, sim[target][0], pnum, reason))
+            excluded.add(pnum)
+        else:
+            steps.append((target, sim[target][0], None, "no ready carrier — drill it"))
+        sim[target] = (SOLID, date.today())
+        remaining.discard(target)
+    return steps
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Pick a summit Hard and plan the route to it.")
+    parser.add_argument("problem", nargs="?", help="problem number (omit to auto-pick a classic)")
+    parser.add_argument("--route", action="store_true",
+                        help="show the route: classic blurb, move table, camps, graph. "
+                             "Omitted by default — all of it names the technique.")
+    parser.add_argument("--no-show", action="store_true", help="skip the drawing")
+    # `make hard route` / `make hard 23 route` — make hands us bare goal words.
+    args = parser.parse_args(["--route" if a == "route" else a for a in sys.argv[1:]])
+
+    nodes = load_nodes()
+    problems = load_problems()
+    evidence = load_evidence()
+    metadata = load_metadata()
+    statuses = {n: node_status(n, evidence) for n in nodes}
+    asleep, _ = sleep_state(load_sleep(), evidence)
+
+    if args.problem:
+        summit = args.problem.strip().rstrip(".")
+        if summit not in problems:
+            title = metadata.get(summit, {}).get("title")
+            if not title:
+                console.print(f"[red]unknown problem {summit!r}[/red]")
+                return
+            console.print(f"[dim]Mapping {summit}. {title} onto the taxonomy — one claude call, cached after...[/dim]")
+            if summit not in map_with_claude([summit], problems, nodes, metadata):
+                console.print(f"[red]claude returned no mapping for {summit}[/red]")
+                return
+    else:
+        summit = pick_summit(problems, nodes, statuses, evidence, metadata)
+        if not summit:
+            console.print("[yellow]No classic Hard could be mapped — try `make hard <num>`.[/yellow]")
+            return
+
+    p = problems[summit]
+    difficulty = p.get("difficulty") or metadata.get(summit, {}).get("difficulty", "")
+    console.print(f"\n[bold]⛰  {summit}. {p['title']}[/bold]"
+                  + (f" — {difficulty}" if difficulty else ""))
+    console.print(problem_url(summit, metadata))
+    if args.route and summit in CLASSICS:
+        console.print(f"[dim]{CLASSICS[summit]}[/dim]")
+    if difficulty and difficulty != "Hard":
+        console.print(f"[yellow]note: this is a {difficulty}, not a Hard — routing anyway[/yellow]")
+
+    steps = plan_route(summit, problems, nodes, statuses, evidence, asleep)
+
+    # Blind mode: verdict only. Every line below this branch names moves.
+    if not args.route:
+        if not steps:
+            console.print("\n[bold green]Your walk is ready for this one. "
+                          "Go claim the summit.[/bold green]")
+        else:
+            camps = "1 base camp" if len(steps) == 1 else f"{len(steps)} base camps"
+            console.print(f"\n[yellow]Not ready — {camps} to build first.[/yellow]")
+            console.print(f"[dim]`make hard {summit} route` to see the route "
+                          f"(names the moves).[/dim]")
+        return
+
+    unknown = [m for m in p["moves"] if m not in nodes]
+    table = Table(show_header=True, header_style="bold", box=None, padding=(0, 2))
+    table.add_column("Move")
+    table.add_column("Status")
+    table.add_column("Last evidence")
+    for m in p["moves"]:
+        if m in nodes:
+            s, d = statuses[m]
+            table.add_row(m, f"[{STATUS_STYLE[s]}]{s}[/{STATUS_STYLE[s]}]", str(d) if d else "—")
+        else:
+            table.add_row(m, "[red]unknown node[/red]", "—")
+    console.print(table)
+    if unknown:
+        console.print(f"[orange3]unmapped territory (not routable until curated into "
+                      f"nodes.json): {', '.join(unknown)}[/orange3]")
+    for desc in p.get("unmapped", []):
+        console.print(f"[orange3]new territory (proposed node, review!): {desc}[/orange3]")
+
+    if not steps:
+        console.print("\n[bold green]The whole input tree is SOLID — no camps needed. "
+                      "Go claim the summit.[/bold green]")
+    else:
+        camps = "base camp" if len(steps) == 1 else f"{len(steps)} base camps"
+        console.print(f"\n[bold]Route ({camps}):[/bold]")
+        dodged = dodged_nodes(evidence)
+        for i, (target, status, pnum, reason) in enumerate(steps, 1):
+            style = STATUS_STYLE[status]
+            if pnum:
+                console.print(f"  {i}. [bold]{pnum}. {problems[pnum]['title']}[/bold] — "
+                              f"[{style}]{status}[/{style}] [bold]{target}[/bold] ({reason})")
+            else:
+                if os.path.isdir(os.path.join("drills", target)):
+                    console.print(f"  {i}. `make drill {target}` — "
+                                  f"[{style}]{status}[/{style}] [bold]{target}[/bold] ({reason})")
+                else:
+                    console.print(f"  {i}. drill: {nodes[target].get('drill', 'improvise a <5min drill')} — "
+                                  f"[{style}]{status}[/{style}] [bold]{target}[/bold]")
+            if pnum and target in dodged and os.path.isdir(os.path.join("drills", target)):
+                console.print(f"     [yellow]drill FIRST — a drill can't be dodged: "
+                              f"`make drill {target}`[/yellow]")
+        console.print(f"  ⛰  [bold]{summit}. {p['title']}[/bold] — summit: walk all "
+                      "SOLID after the camps above, a pure combination rep")
+        console.print(f"\n[dim]Work top-down; `make solved` after each camp, then re-run "
+                      f"`make hard {summit}` — the route re-derives and shrinks as camps turn SOLID.[/dim]")
+
+    if args.no_show:
+        return
+
+    tree = input_tree(p["moves"], nodes)
+    dot = make_digraph("kg_hard")
+    for n in tree:
+        s, d = statuses[n]
+        status_node(dot, n, nodes[n], s, d, highlight=(n in p["moves"]))
+    for n in tree:
+        for pre in nodes[n].get("prereqs", []):
+            if pre in tree:
+                dot.edge(pre, n)
+    summit_node = f"problem_{summit}"
+    dot.node(
+        summit_node,
+        label=f"⛰ {summit}. {p['title']}",
+        shape="box",
+        style="filled",
+        fillcolor="#1f6feb",
+        color="#c9d1d9",
+        penwidth="2",
+        fontsize="13",
+        margin="0.2,0.12",
+        tooltip=problem_url(summit, metadata),
+    )
+    for m in p["moves"]:
+        if m in tree:
+            dot.edge(m, summit_node, penwidth="1.4")
+    logical_width = render(dot, "kg_hard")
+    display("kg_hard", logical_width)
+
+
+if __name__ == "__main__":
+    main()
