@@ -174,7 +174,11 @@ def main():
         cands = [c for c in carriers_for(node_id, problems, statuses, nodes)
                  if c != pnum and c not in asleep]
         if cands:
-            cands.sort(key=lambda c: (last_solved(c, evidence), len(problems[c]["moves"]), c))
+            # familiar first: a spaced re-solve beats a never-seen problem as a
+            # warm-up; "" (never solved) must sort last, then oldest solve first
+            cands.sort(key=lambda c: (last_solved(c, evidence) == "",
+                                      last_solved(c, evidence),
+                                      len(problems[c]["moves"]), c))
             c = cands[0]
             when = last_solved(c, evidence)
             spaced = f" (spaced re-solve, last {when})" if when else " (never solved)"
