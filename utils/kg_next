@@ -140,9 +140,6 @@ def main():
     statuses = {n: node_status(n, evidence) for n in nodes}
     sleeps = load_sleep()
     asleep, woken = sleep_state(sleeps, evidence)
-    for pnum in asleep:
-        rec = sleeps[pnum]
-        console.print(f"[dim]💤 {pnum}. {rec.get('title','?')} sleeping until {rec['until'][:16]}[/dim]")
 
     choice = pick(nodes, problems, evidence, statuses, asleep=asleep, woken=woken)
     if not choice:
@@ -155,8 +152,6 @@ def main():
     console.print(problem_url(pnum))
     if p.get("note"):
         console.print(f"[yellow]⚠ {p['note']}[/yellow]")
-    when = last_solved(pnum, evidence)
-    console.print(f"[dim]{reason}" + (f" — you last solved this {when}[/dim]" if when else " — never solved[/dim]"))
 
     table = Table(show_header=True, header_style="bold", box=None, padding=(0, 2))
     table.add_column("Move")
@@ -166,43 +161,6 @@ def main():
         s, d = statuses[m]
         table.add_row(m, f"[{STATUS_STYLE[s]}]{s}[/{STATUS_STYLE[s]}]", str(d) if d else "—")
     console.print(table)
-
-    # Warm-up prescription: the target's own refs + drill, and any rusty prereqs.
-    # Best warm-up is a real leetcode problem whose walk needs ONLY the rusty
-    # node (everything else SOLID); then a bank drill; then the improvised one.
-    def warmup_for(node_id):
-        cands = [c for c in carriers_for(node_id, problems, statuses, nodes)
-                 if c != pnum and c not in asleep]
-        if cands:
-            # familiar first: a spaced re-solve beats a never-seen problem as a
-            # warm-up; "" (never solved) must sort last, then oldest solve first
-            cands.sort(key=lambda c: (last_solved(c, evidence) == "",
-                                      last_solved(c, evidence),
-                                      len(problems[c]["moves"]), c))
-            c = cands[0]
-            when = last_solved(c, evidence)
-            spaced = f" (spaced re-solve, last {when})" if when else " (never solved)"
-            return f"solve [bold]{c}. {problems[c]['title']}[/bold]{spaced}"
-        if os.path.isdir(os.path.join("drills", node_id)):
-            return f"`make drill {node_id}`"
-        return f"drill: {nodes[node_id]['drill']}"
-
-    prep = []
-    for pre in nodes[target].get("prereqs", []):
-        s, d = statuses[pre]
-        if s != SOLID:
-            prep.append(f"prereq [bold]{pre}[/bold] is [{STATUS_STYLE[s]}]{s}[/{STATUS_STYLE[s]}] ({d}) — {warmup_for(pre)}")
-    for ref in nodes[target].get("refs", []):
-        prep.append(f"review your own [bold]{ref}[/bold]")
-    if target_status in (FRAGILE, MISSING):
-        if target in dodged_nodes(evidence) and os.path.isdir(os.path.join("drills", target)):
-            prep.append(f"[yellow]this move was dodged — drill it FIRST, a drill can't "
-                        f"be dodged: `make drill {target}`[/yellow]")
-        prep.append(f"warm up [bold]{target}[/bold] before the problem — {warmup_for(target)}")
-    if prep:
-        console.print("\n[bold]Warm up first:[/bold]")
-        for line in prep:
-            console.print(f"  • {line}")
 
     if args.no_show:
         return
