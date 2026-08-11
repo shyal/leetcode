@@ -153,6 +153,8 @@ def main():
 
     console.print(f"\n[bold]{pnum}. {p['title']}[/bold]")
     console.print(problem_url(pnum))
+    if p.get("note"):
+        console.print(f"[yellow]⚠ {p['note']}[/yellow]")
     when = last_solved(pnum, evidence)
     console.print(f"[dim]{reason}" + (f" — you last solved this {when}[/dim]" if when else " — never solved[/dim]"))
 

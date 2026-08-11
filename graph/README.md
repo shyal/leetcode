@@ -11,7 +11,11 @@ and generate combination drills ("rote sheets").
   carries prerequisite edges and a <5-minute micro-drill for when it's missing.
 - **problems.json** — problem → the list of nodes its clean solution walks. `alt_walks`
   records legitimate alternative solutions (e.g. 1512 batch-math vs streaming) — a solve
-  only evidences the walk it actually took.
+  only evidences the walk it actually took. An optional `note` field flags poorly stated
+  problems (statement clarifications, disambiguating test cases, real-vs-tagged
+  difficulty); `make next` and `make preflight` print it with the assignment so the
+  ambiguity is defused before the timer starts. Notes clarify the *statement* only —
+  never the walk.
 - **evidence.json** — per solve-file: which moves the actual code exercised, verdict
   `clean` / `struggled` / `avoided`. Append-only, keyed by filename like `.summaries.json`.
 
