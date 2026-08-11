@@ -31,11 +31,12 @@ STATUS_STYLE = {SOLID: "green", STALE: "yellow", FRAGILE: "orange3", MISSING: "r
 
 def resolve_moves(problem_key, problems, nodes):
     if problem_key in problems:
-        return problems[problem_key]["moves"], problems[problem_key].get("title", ""), False
+        p = problems[problem_key]
+        return p["moves"], p.get("title", ""), p.get("note"), False
     # try matching by title fragment
     for key, p in problems.items():
         if problem_key.lower() in p.get("title", "").lower():
-            return p["moves"], p["title"], False
+            return p["moves"], p["title"], p.get("note"), False
 
     console.print("[dim]Problem not in graph/problems.json — one claude call to map it (cached after)...[/dim]")
     system = f"""You are mapping a LeetCode problem onto a fixed taxonomy of atomic technique moves.
@@ -58,7 +59,7 @@ List every move a candidate must execute, including foundational micro-moves (al
         problems[problem_key]["unmapped"] = result["unmapped"]
         console.print(f"[orange3]Proposed new nodes (review!): {result['unmapped']}[/orange3]")
     save_problems(problems)
-    return moves, result.get("title", ""), True
+    return moves, result.get("title", ""), None, True
 
 
 def main():
@@ -71,7 +72,9 @@ def main():
     problems = load_problems()
     evidence = load_evidence()
 
-    moves, title, _ = resolve_moves(problem_key, problems, nodes)
+    moves, title, note, _ = resolve_moves(problem_key, problems, nodes)
+    if note:
+        console.print(f"[yellow]⚠ {note}[/yellow]")
 
     table = Table(title=f"Preflight: {problem_key}. {title}")
     table.add_column("Move")
