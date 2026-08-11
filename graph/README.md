@@ -43,6 +43,21 @@ dependents, and each pick is simulated as a clean solve so later carriers may st
 earlier targets; the one-new-move rule still gates every carrier. Solve top-down,
 `make solved` after each, re-run — the plan re-derives from fresh evidence.
 
+## Hard (`make hard`)
+
+`make next`/`make dive` work the rusty frontier bottom-up; `make hard` works top-down
+from a summit. `make hard 42` takes that problem's full input tree (walk + transitive
+prereqs), finds every non-SOLID node in it, and plans one base camp per gap — a carrier
+problem chosen the way kg_dive chooses (spaced re-solve / gentle fresh carrier /
+anti-dodge; Hard carriers sort last — a camp is never itself a summit), or a drill when
+no carrier is READY. Camps are simulated as clean solves, so after the last camp the
+summit's walk is all-SOLID and the summit is a pure combination rep. `make hard` with no
+argument scores a curated shortlist of interview-classic Hards by route length (fewest
+gaps; unmapped-node proposals count as gaps — unroutable territory is distance) and
+routes to the closest one. Unmapped candidates cost one claude call, cached into
+problems.json like preflight. Solve top-down, `make solved` after each camp, re-run —
+the route re-derives and shrinks.
+
 ## Sleep (`make sleep`)
 
 Stuck mid-exercise and looping — no new idea in ~15 minutes? `make sleep` parks the
