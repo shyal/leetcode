@@ -1,4 +1,4 @@
-.PHONY: all parse learning prepare recommend preflight kg-extract kg-status kg-viz movie next dive drill hard readme sleep solved test viz
+.PHONY: all parse learning prepare recommend force unforce preflight kg-extract kg-status kg-viz movie next dive drill hard readme sleep solved test viz
 
 all:
 	@cp utils/sitecustomize.py .venv/lib/python3.10/site-packages/
@@ -22,6 +22,12 @@ prepare:
 
 recommend:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_next
+
+force:
+	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_force $(filter-out $@,$(MAKECMDGOALS))
+
+unforce:
+	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_force --clear
 
 preflight:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/preflight $(filter-out $@,$(MAKECMDGOALS))
@@ -52,6 +58,7 @@ sleep:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_sleep $(filter-out $@,$(MAKECMDGOALS))
 
 solved:
+	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_force --check
 	@.venv/bin/python3 utils/solved
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_extract
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_curve --if-stale

@@ -75,6 +75,16 @@ queue for a fresh from-scratch attempt. Your half-written attempt is parked on b
 tool for failed retrieval, not a snooze button for discomfort. No evidence is
 recorded on sleep: the code is the evidence, and there is no code yet.
 
+## Force (`make force <n>`)
+
+`make prepare <n>` is freestyle: solve however you like; evidence records what the code
+actually did and nothing else. `make force <n>` prepares the same stub but arms a style
+judge: the problem's mapped walk is spelled out in plain English at the top of
+current.py, and `make solved` REJECTS the merge (the way LeetCode rejects `bin()` on
+a count-the-bits problem) if the solve routes around it. `make unforce` drops the
+constraint and files freestyle. The constraint lives in `.force.json` (untracked) and
+goes stale automatically if a different problem is prepared.
+
 ## Rules
 
 1. **Mastery is derived, never stored.** Status comes from evidence dates at query time:
@@ -87,8 +97,11 @@ recorded on sleep: the code is the evidence, and there is no code yet.
    non-SOLID — that move is the training target. Two or more → prep first: spaced re-solve
    for STALE, micro-drill for MISSING/FRAGILE.
 3. **Evidence discipline.** A topic tag or problem title is not evidence; the code is.
-   Solving a streaming-carrier problem with batch math records `avoided` on the streaming
-   move, not `clean`.
+   Evidence records only what the code actually exercised (`clean`/`struggled`). A mapped
+   move the solve routed around is recorded as a discovered `alt_walk` on the PROBLEM
+   (this carrier is escapable) — never as a verdict on the candidate. Style is enforced
+   only in force mode, before the merge; historic `avoided` entries remain but no new
+   ones are written.
 4. **Node fission.** When a stumble reveals a hidden sub-move inside a node (2006 exposed
    `solve-pair-condition` hiding inside `derived-key-lookup`), split the node rather than
    widening it. The taxonomy is expected to grow at the frontier of whatever is being drilled.

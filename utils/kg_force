@@ -1,0 +1,141 @@
+#!/usr/bin/env python3
+
+# kg_force — constrained solve mode.
+#
+#   utils/kg_force <problem>    # `make prepare` + arm the style judge: the
+#                               # solve must exercise the problem's mapped
+#                               # walk, spelled out as a human-readable blurb
+#   utils/kg_force --check      # gate for `make solved`: exits 1 (blocking
+#                               # the merge) if a forced move went unexercised
+#   utils/kg_force --clear      # drop the constraint (`make unforce`)
+#
+# Free mode is just `make prepare`: solve however you like, evidence records
+# what you actually did, no style verdicts.
+
+import argparse
+import json
+import os
+import re
+import subprocess
+import sys
+
+from rich.console import Console
+
+from kg_lib import load_nodes, load_problems, claude_json
+
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+FORCE_FILE = os.path.join(REPO_ROOT, ".force.json")
+VENV_PY = os.path.join(REPO_ROOT, ".venv", "bin", "python3")
+
+console = Console()
+
+
+def blurb(move, nodes):
+    n = nodes[move]
+    return f"{n['name']}: {n['desc']}"
+
+
+def current_branch():
+    return subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"],
+                          capture_output=True, text=True, cwd=REPO_ROOT).stdout.strip()
+
+
+def arm(num):
+    nodes = load_nodes()
+    problems = load_problems()
+    p = problems.get(num)
+    if not p:
+        console.print(f"[red]{num} is not mapped in graph/problems.json — "
+                      f"run `make preflight {num}` first.[/red]")
+        sys.exit(1)
+    moves = [m for m in p["moves"] if m in nodes]
+
+    r = subprocess.run([VENV_PY, "utils/prepare", num], cwd=REPO_ROOT)
+    if r.returncode != 0:
+        sys.exit(r.returncode)
+
+    header = ["# FORCED STYLE — `make solved` will reject this solve unless it uses:"]
+    for m in moves:
+        header.append(f"#   • {blurb(m, nodes)}")
+    header.append("# (`make unforce` drops the constraint)")
+    cur = os.path.join(REPO_ROOT, "current.py")
+    with open(cur) as f:
+        body = f.read()
+    with open(cur, "w") as f:
+        f.write("\n".join(header) + "\n\n" + body)
+
+    with open(FORCE_FILE, "w") as f:
+        json.dump({"problem": num, "moves": moves}, f)
+
+    console.print("\n[bold]Forced style:[/bold]")
+    for m in moves:
+        console.print(f"  • {blurb(m, nodes)}")
+
+
+def check():
+    if not os.path.exists(FORCE_FILE):
+        return
+    force = json.load(open(FORCE_FILE))
+    if current_branch() != str(force["problem"]):
+        os.remove(FORCE_FILE)  # stale: a different problem was prepared since
+        return
+    nodes = load_nodes()
+    moves = [m for m in force["moves"] if m in nodes]
+
+    cur = os.path.join(REPO_ROOT, "current.py")
+    env = dict(os.environ)
+    env["PYTHONPATH"] = os.path.join(REPO_ROOT, "utils") + os.pathsep + env.get("PYTHONPATH", "")
+    try:
+        run = subprocess.run([VENV_PY, cur], cwd=REPO_ROOT, env=env,
+                             capture_output=True, text=True, timeout=30)
+    except subprocess.TimeoutExpired:
+        console.print("[red]⛔ forced solve timed out when executed — fix it before `make solved`.[/red]")
+        sys.exit(1)
+    if run.returncode != 0:
+        console.print("[red]⛔ forced solve fails when executed — fix it before `make solved`.[/red]")
+        sys.exit(1)
+
+    body = re.sub(r'^(#[^\n]*\n)+', "", open(cur).read())
+    body = re.sub(r'^\s*""".*?"""\s*', "", body, count=1, flags=re.S)[:6000]
+    required = "\n".join(f"- {m}: {blurb(m, nodes)}" for m in moves)
+    system = """You judge whether a working LeetCode solution genuinely exercises each required technique.
+The code was executed and passed; judge only WHICH techniques it uses, strictly.
+A technique counts only if the code actually performs it — routing around it with a different approach does not count.
+Output STRICT JSON only: {"<id>": true|false, ...} with exactly one key per required technique."""
+    prompt = f"Required techniques:\n{required}\n\nCode:\n{body}"
+    result = claude_json(prompt, system, model="haiku")
+
+    missing = [m for m in moves if not result.get(m)]
+    if not missing:
+        console.print("[green]✓ forced style satisfied[/green]")
+        os.remove(FORCE_FILE)
+        return
+    console.print("[red]⛔ REJECTED — solve works, but the forced style was not used:[/red]")
+    for m in missing:
+        console.print(f"  [red]•[/red] {blurb(m, nodes)}")
+    console.print("[dim]rework current.py and run `make solved` again, or `make unforce` to file it freestyle.[/dim]")
+    sys.exit(1)
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Constrained solve mode.")
+    parser.add_argument("problem", nargs="?", help="problem number to prepare with a forced style")
+    parser.add_argument("--check", action="store_true", help="gate for make solved")
+    parser.add_argument("--clear", action="store_true", help="drop the constraint")
+    args = parser.parse_args()
+
+    if args.clear:
+        if os.path.exists(FORCE_FILE):
+            os.remove(FORCE_FILE)
+            console.print("constraint dropped — freestyle solve.")
+        return
+    if args.check:
+        check()
+        return
+    if not args.problem:
+        parser.error("problem number required (or --check/--clear)")
+    arm(args.problem.strip().rstrip("."))
+
+
+if __name__ == "__main__":
+    main()
