@@ -181,11 +181,12 @@ def dodgeable(pnum, target, problems):
 
 
 def carriers_for(target, problems, statuses, nodes):
-    """Problems containing the target move whose every OTHER move is SOLID."""
+    """Problems containing the target move whose every OTHER move is SOLID.
+    Banned problems ("banned": true) are never offered as carriers."""
     found = []
     for pnum, p in problems.items():
         moves = p.get("moves", [])
-        if target not in moves or not all(m in nodes for m in moves):
+        if p.get("banned") or target not in moves or not all(m in nodes for m in moves):
             continue
         if all(statuses[m][0] == SOLID for m in moves if m != target):
             found.append(pnum)

@@ -15,7 +15,10 @@ and generate combination drills ("rote sheets").
   problems (statement clarifications, disambiguating test cases, real-vs-tagged
   difficulty); `make next` and `make preflight` print it with the assignment so the
   ambiguity is defused before the timer starts. Notes clarify the *statement* only —
-  never the walk.
+  never the walk. An optional `"banned": true` blacklists a problem from ever being
+  offered as a carrier (all pickers route through `carriers_for`) — for problems whose
+  training value is buried under busywork. The move still gets trained, just via a
+  different carrier; preflight still audits banned problems and labels them ⛔.
 - **evidence.json** — per solve-file: which moves the actual code exercised, verdict
   `clean` / `struggled` / `avoided`. Append-only, keyed by filename like `.summaries.json`.
 
