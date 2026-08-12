@@ -532,6 +532,71 @@ def main():
             plt.close(fig)
             curve_calibration_img = f"![Curve calibration](https://shyal.s3.amazonaws.com/{s3_key_calib})"
 
+    # P(pass) history — the headline "how good am i" line: replay the technique
+    # graph week by week (evidence filtered to each date, recall from the fitted
+    # curve) and run kg_mock's cold-mock Monte Carlo on every snapshot. The
+    # bands span the cold-recognition scenarios — the one parameter solve
+    # history cannot identify; only real mocks collapse it.
+    pass_prob_img = ""
+    if os.path.exists("graph/curve.json") and os.path.exists("graph/evidence.json"):
+        import random
+        from collections import Counter
+        from importlib.machinery import SourceFileLoader
+        from kg_lib import load_nodes, load_problems, load_evidence
+
+        utils_dir = os.path.dirname(os.path.abspath(__file__))
+        kg_mock = SourceFileLoader("kg_mock", os.path.join(utils_dir, "kg_mock")).load_module()
+
+        kg_nodes = load_nodes()
+        kg_evidence = load_evidence()
+        with open("graph/curve.json") as f:
+            kg_curve_data = json.load(f)
+        move_freq = Counter(mv for v in load_problems().values()
+                            if isinstance(v, dict) for mv in v.get("moves", []))
+        first_ev = date.fromisoformat(min(r["date"] for r in kg_evidence.values()))
+        weeks = []
+        wd = first_ev
+        while wd < date.today():
+            weeks.append(wd)
+            wd += timedelta(days=7)
+        weeks.append(date.today())
+        series = {name: {"screen": [], "onsite": []} for name in kg_mock.SCENARIOS}
+        for wd in weeks:
+            ev_d = {k: r for k, r in kg_evidence.items() if r["date"] <= wd.isoformat()}
+            recall = kg_mock.current_recall(kg_nodes, ev_d, kg_curve_data, today=wd)
+            for name, r_base in kg_mock.SCENARIOS.items():
+                _, onsite, screen, _ = kg_mock.pass_rates(
+                    recall, move_freq, kg_mock.OFF_GRAPH0, r_base,
+                    (0, 0, 0), random.Random(42), 4000)
+                series[name]["screen"].append(screen * 100)
+                series[name]["onsite"].append(onsite * 100)
+
+        fig, ax = plt.subplots(figsize=(12, 5))
+        for kind, color, label in (("screen", "#1f77b4", "phone screen (both mediums)"),
+                                   ("onsite", "#ff7f0e", "onsite (2E + 2M + ≥1 hard)")):
+            ax.fill_between(weeks, series["cautious"][kind], series["optimistic"][kind],
+                            color=color, alpha=0.15, linewidth=0)
+            ax.plot(weeks, series["central"][kind], color=color, linewidth=2, label=label)
+            ax.annotate(f"{series['central'][kind][-1]:.0f}%",
+                        (weeks[-1], series["central"][kind][-1]),
+                        xytext=(6, 0), textcoords="offset points",
+                        color="#333333", fontweight="bold", va="center")
+        ax.axhline(50, color="#888888", linestyle=":", linewidth=1)
+        ax.set_ylim(0, 100)
+        ax.set_xlim(weeks[0], weeks[-1] + timedelta(days=14))
+        ax.set_ylabel("P(pass), walking in cold, %")
+        ax.set_title("P(pass a mock, cold), weekly replay of the technique graph "
+                     "(band = recognition scenarios)")
+        ax.legend(loc="upper left")
+        fig.tight_layout()
+        local_path = "/tmp/pass_probability.png"
+        fig.savefig(local_path)
+        s3_key_pass = f"pass_probability_{timestamp}.png"
+        s3.upload_file(local_path, bucket_name, s3_key_pass,
+                       ExtraArgs={"ContentType": "image/png"})
+        plt.close(fig)
+        pass_prob_img = f"![P(pass a mock) over time](https://shyal.s3.amazonaws.com/{s3_key_pass})"
+
     # Technique-graph movie: GitHub strips <video>/HTML from READMEs, so ship
     # graph/kg.mp4 as an optimized GIF on the same S3 pipeline as the charts.
     kg_movie_img = ""
@@ -576,6 +641,8 @@ def main():
         readme = readme.replace("<!-- CURVE_CHART -->", curve_img)
     if curve_calibration_img:
         readme = readme.replace("<!-- CURVE_CALIBRATION_CHART -->", curve_calibration_img)
+    if pass_prob_img:
+        readme = readme.replace("<!-- PASS_PROB_CHART -->", pass_prob_img)
 
     readme = readme.replace("<!-- CONTEST_PROGRESS -->", contest_progress_img)
     readme = readme.replace("<!-- FAANG_PROGRESS -->", faang_progress_img)
