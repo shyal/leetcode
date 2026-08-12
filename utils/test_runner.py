@@ -12,7 +12,10 @@ parser.add_argument(
     "--viz", action="store_true", required=False, help="Enable visualizations"
 )
 
-args = parser.parse_args()
+# parse_args() at import time made a bare `pytest` (i.e. `make test`) abort with
+# an INTERNALERROR on collection, since pytest's own argv is not ours. Only take
+# argv when run as a script; under collection, fall back to the defaults.
+args = parser.parse_args() if __name__ == "__main__" else parser.parse_args([])
 
 
 class StatsPlugin:
