@@ -53,12 +53,16 @@ def extract_trials(evidence):
         last_clean, cleans, struggles, assisted = None, 0, 0, 0.0
         for d in sorted(days):
             verdict, assist = days[d][0]
-            if last_clean is not None and verdict in ("clean", "struggled"):
+            # a spoiled solve is CENSORED, not failed: the candidate never
+            # attempted the recall, so this day says nothing about whether the
+            # memory was still there. It earns no rep either way (below).
+            if (last_clean is not None and verdict in ("clean", "struggled")
+                    and assist != "spoiled"):
                 gap = (_date(d) - _date(last_clean)).days
                 if gap >= 1:
-                    # unaided recall is the only success; a walked-through or
-                    # spoiled solve produced code, not a retrieval
-                    success = int(verdict == "clean" and assist in ("none", "hint"))
+                    # the trial asks "did you retrieve this unaided?" — needing
+                    # a nudge or a walkthrough answers no, however clean the code
+                    success = int(verdict == "clean" and assist == "none")
                     trials.append((gap, success, cleans, struggles, assisted))
             for v, a in days[d]:
                 if v == "clean" and a != "spoiled":
