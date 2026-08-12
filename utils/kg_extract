@@ -24,7 +24,7 @@ from rich.console import Console
 from kg_lib import (
     load_nodes, load_problems, load_evidence,
     save_problems, save_evidence, claude_json, taxonomy_summary, node_status,
-    HARNESS_ENV_NOTE,
+    ASSIST_WEIGHT, HARNESS_ENV_NOTE,
 )
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -121,12 +121,13 @@ Rules:
 - Every file is EXECUTED for you before you see it, and the result is stated in the prompt. That result OUTWEIGHS your reading of the source in every case. If the run passed, the code is correct — no "struggled" for suspected bugs, and no note claiming a failure. Only a non-zero exit, a timeout, or the candidate's own notes (looked-up/hints/TLE/failed) justify "struggled".
 - Judge the code as written, not the problem's canonical solution. Batch math on a streaming-carrier problem means the streaming move was NOT exercised — if the canonical solution's central move was sidestepped by an alternative approach, record that move as "avoided".
 - Verdicts: "clean" (executed correctly), "struggled" (bugs/confusion visible in code or notes, e.g. notes saying looked-up/hints/TLE/failed), "avoided" (canonical move sidestepped).
+- "assist" is a SEPARATE axis from the verdict, read ONLY from the candidate's own notes — never inferred from how the code looks. A confident-looking solve with a note saying it was walked through is "walkthrough"; a messy solve with no note is "none". Levels: "none" (no note claiming help), "hint" (a nudge, a question, a pointer at the wrong branch), "walkthrough" (the approach/recurrence was talked through before the code existed), "spoiled" (saw a solution). An explicit `ASSIST: <level>` line in the notes overrides your reading.
 - Only include moves with real evidence in this code. 1-6 moves is typical.
 - If a required move has no taxonomy node, put a 3-8 word description in "unmapped".
 - If the file has no working solution (skeleton body, abandoned attempt), still return the JSON with "moves": {{}} and a note like "abandoned attempt" — never prose.
 
 Output STRICT JSON only:
-{{"problem": "<number>", "title": "<title>", "moves": {{"<node-id>": "clean|struggled|avoided"}}, "unmapped": [], "note": "<one line, only if noteworthy>"}}"""
+{{"problem": "<number>", "title": "<title>", "moves": {{"<node-id>": "clean|struggled|avoided"}}, "assist": "none|hint|walkthrough|spoiled", "unmapped": [], "note": "<one line, only if noteworthy>"}}"""
 
     def extract_one(path):
         """Read + claude call only — no shared state touched here."""
@@ -193,6 +194,9 @@ Output STRICT JSON only:
                 "problem": "drill" if is_drill else (result.get("problem") or (m.group(1) if m else "?")),
                 "moves": moves,
             }
+            assist = result.get("assist", "none")
+            if assist in ASSIST_WEIGHT and assist != "none":
+                entry["assist"] = assist
             if result.get("note"):
                 entry["note"] = result["note"]
             if result.get("unmapped") or rejected:
@@ -222,8 +226,9 @@ Output STRICT JSON only:
                 painted = ", ".join(
                     f"[{VERDICT_STYLE.get(v, 'white')}]{mv}[/{VERDICT_STYLE.get(v, 'white')}]"
                     for mv, v in moves.items())
+                tag = f" [yellow](assist: {entry['assist']})[/yellow]" if "assist" in entry else ""
                 console.print(
-                    f"[green]{done}/{len(todo)}[/green] {os.path.basename(path)[:60]} → {painted or '—'}"
+                    f"[green]{done}/{len(todo)}[/green] {os.path.basename(path)[:60]} → {painted or '—'}{tag}"
                 )
                 # the receipt: struggles change the graph — say so
                 before_ev = {k: v for k, v in evidence.items() if k != path}
