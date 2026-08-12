@@ -571,7 +571,17 @@ def main():
                 series[name]["screen"].append(screen * 100)
                 series[name]["onsite"].append(onsite * 100)
 
-        fig, ax = plt.subplots(figsize=(12, 5))
+        # weekly solve volume (all evidence entries, drills included) as a
+        # recessive strip under the probability panel: same x, own axis
+        week_counts = []
+        for i, wd in enumerate(weeks):
+            lo = weeks[i - 1].isoformat() if i else ""
+            week_counts.append(sum(1 for r in kg_evidence.values()
+                                   if lo < r["date"] <= wd.isoformat()))
+
+        fig, (ax, axv) = plt.subplots(
+            2, 1, figsize=(12, 6), sharex=True,
+            gridspec_kw={"height_ratios": [4, 1], "hspace": 0.08})
         for kind, color, label in (("screen", "#1f77b4", "phone screen (both mediums)"),
                                    ("onsite", "#ff7f0e", "onsite (2E + 2M + ≥1 hard)")):
             ax.fill_between(weeks, series["cautious"][kind], series["optimistic"][kind],
@@ -582,12 +592,32 @@ def main():
                         xytext=(6, 0), textcoords="offset points",
                         color="#333333", fontweight="bold", va="center")
         ax.axhline(50, color="#888888", linestyle=":", linewidth=1)
+        # the oct/nov '25 plateau, and the arrow showing the break above it now
+        plateau_era = [v for wd, v in zip(weeks, series["central"]["screen"])
+                       if date(2025, 10, 1) <= wd <= date(2025, 11, 30)]
+        if plateau_era:
+            plateau = max(plateau_era)
+            now = series["central"]["screen"][-1]
+            ax.hlines(plateau, date(2025, 10, 1), weeks[-1],
+                      color="#1f77b4", linestyle="--", linewidth=1, alpha=0.55)
+            ax.annotate("oct/nov '25 plateau", (date(2025, 12, 20), plateau),
+                        xytext=(0, 5), textcoords="offset points",
+                        color="#1f77b4", fontsize=9, alpha=0.8)
+            if now > plateau:
+                ax.annotate("", xy=(weeks[-1], now + 14), xytext=(weeks[-1], now + 3),
+                            arrowprops=dict(arrowstyle="-|>", color="#2ca02c",
+                                            linewidth=2, mutation_scale=16))
+                ax.annotate("breaking the plateau ", (weeks[-1], now + 15),
+                            ha="right", va="bottom", color="#2ca02c",
+                            fontsize=9, fontweight="bold")
         ax.set_ylim(0, 100)
         ax.set_xlim(weeks[0], weeks[-1] + timedelta(days=14))
         ax.set_ylabel("P(pass), walking in cold, %")
         ax.set_title("P(pass a mock, cold), weekly replay of the technique graph "
                      "(band = recognition scenarios)")
         ax.legend(loc="upper left")
+        axv.bar(weeks, week_counts, width=-6, align="edge", color="#aaaaaa")
+        axv.set_ylabel("solves/wk")
         fig.tight_layout()
         local_path = "/tmp/pass_probability.png"
         fig.savefig(local_path)
@@ -622,31 +652,42 @@ def main():
         except (subprocess.CalledProcessError, FileNotFoundError) as e:
             print(f"kg movie skipped: {e}")
 
-    with open("README.md.template", "r") as f:
+    # README.md is the single source of truth: prose is edited there directly,
+    # and each generated block lives between <!-- NAME --> ... <!-- /NAME -->
+    # markers (invisible on GitHub). fill() rewrites only the inside of a
+    # region, so the script is idempotent and never touches the prose. Empty
+    # content leaves a region as-is (same semantics as the old conditionals).
+    with open("README.md", "r") as f:
         readme = f.read()
 
-    readme = readme.replace("<!-- SOLVES_CHART -->", solves_img)
-    readme = readme.replace("<!-- UNIQUES_CHART -->", uniques_img)
+    def fill(text, name, content):
+        # keep the region's existing whitespace padding (formatters like to
+        # put blank lines around the content; don't fight them)
+        pat = re.compile(rf"<!-- {name} -->(\s*).*?(\s*)<!-- /{name} -->", re.S)
+        if not content:
+            return text
+        m = pat.search(text)
+        if not m:
+            print(f"WARNING: no <!-- {name} --> region in README.md, skipped")
+            return text
+        lead = m.group(1) if "\n" in m.group(1) else "\n"
+        trail = m.group(2) if "\n" in m.group(2) else "\n"
+        return pat.sub(
+            lambda _: f"<!-- {name} -->{lead}{content}{trail}<!-- /{name} -->", text)
 
+    readme = fill(readme, "SOLVES_CHART", solves_img)
+    readme = fill(readme, "UNIQUES_CHART", uniques_img)
     if run_dates:
-        readme = readme.replace("<!-- CONTEST_VARIANCE_CHART -->", contest_variance_img)
-        readme = readme.replace("<!-- FAANG_VARIANCE_CHART -->", faang_variance_img)
-    if faang_predict_variance_img:
-        readme = readme.replace(
-            "<!-- FAANG_PREDICT_VARIANCE_CHART -->", faang_predict_variance_img
-        )
-    if kg_movie_img:
-        readme = readme.replace("<!-- KG_MOVIE -->", kg_movie_img)
-    if curve_img:
-        readme = readme.replace("<!-- CURVE_CHART -->", curve_img)
-    if curve_calibration_img:
-        readme = readme.replace("<!-- CURVE_CALIBRATION_CHART -->", curve_calibration_img)
-    if pass_prob_img:
-        readme = readme.replace("<!-- PASS_PROB_CHART -->", pass_prob_img)
-
-    readme = readme.replace("<!-- CONTEST_PROGRESS -->", contest_progress_img)
-    readme = readme.replace("<!-- FAANG_PROGRESS -->", faang_progress_img)
-    readme = readme.replace("<!-- CONTEST_TOPICS_CHART -->", contest_topics_img)
+        readme = fill(readme, "CONTEST_VARIANCE_CHART", contest_variance_img)
+        readme = fill(readme, "FAANG_VARIANCE_CHART", faang_variance_img)
+    readme = fill(readme, "FAANG_PREDICT_VARIANCE_CHART", faang_predict_variance_img)
+    readme = fill(readme, "KG_MOVIE", kg_movie_img)
+    readme = fill(readme, "CURVE_CHART", curve_img)
+    readme = fill(readme, "CURVE_CALIBRATION_CHART", curve_calibration_img)
+    readme = fill(readme, "PASS_PROB_CHART", pass_prob_img)
+    readme = fill(readme, "CONTEST_PROGRESS", contest_progress_img)
+    readme = fill(readme, "FAANG_PROGRESS", faang_progress_img)
+    readme = fill(readme, "CONTEST_TOPICS_CHART", contest_topics_img)
 
     with open("README.md", "w") as f:
         f.write(readme)
