@@ -112,18 +112,21 @@ def measured_first_contact(evidence):
     return sum(1 for _, v in first.values() if v == "clean") / len(first)
 
 
-def current_recall(nodes, evidence, curve):
+def current_recall(nodes, evidence, curve, today=None):
+    """Predicted recall per node. Pass `today` (and evidence filtered to
+    entries on or before it) to replay a historical snapshot."""
+    today = today or date.today()
     p = curve["params"]
     out = {}
     for nid in nodes:
-        status, last = node_status(nid, evidence)
+        status, last = node_status(nid, evidence, today=today)
         cleans = sum(1 for r in evidence.values()
                      if r.get("moves", {}).get(nid) == "clean")
         if status == MISSING or not last:
             out[nid] = 0.25
             continue
         s = min(max(math.exp(p["a"] + p["b"] * cleans), 7), 3650)
-        rec = (1 + (date.today() - last).days / s) ** (-p["beta"])
+        rec = (1 + (today - last).days / s) ** (-p["beta"])
         out[nid] = rec * 0.5 if status == FRAGILE else rec
     return out
 
