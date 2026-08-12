@@ -21,6 +21,7 @@ import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from rich.console import Console
 
+from history_builder import parse_content
 from kg_lib import (
     load_nodes, load_problems, load_evidence,
     save_problems, save_evidence, claude_json, taxonomy_summary, node_status,
@@ -37,15 +38,16 @@ def strip_statement(code):
     notes. `make prepare` writes the statement as a module docstring and the
     candidate appends notes to it below a `---` rule, so a blanket docstring
     strip silently discarded every note ever written — the one place a peek,
-    a hint, or a TLE is ever recorded."""
-    m = re.match(r'^"""(.*?)"""\s*', code, flags=re.S)
-    if not m:
-        return code
-    rest = code[m.end():]
-    parts = re.split(r"\n-{3,}\n", m.group(1), maxsplit=1)
-    if len(parts) < 2 or not parts[1].strip():
-        return rest
-    return f"CANDIDATE'S OWN NOTES:\n{parts[1].strip()}\n\n{rest}"
+    a hint, or a TLE is ever recorded. Notes are split out by the AST parser
+    in history_builder (tested by utils/test_history_builder.py) rather than
+    by a second, private regex; the body stays raw so inline comments — also
+    candidate notes — survive into the judge's prompt."""
+    body = re.sub(r'^""".*?"""\s*', "", code, count=1, flags=re.S)
+    try:
+        notes, _ = parse_content(code)
+    except SyntaxError:  # abandoned attempt / half-typed file
+        return body
+    return f"{notes}\n\n{body}" if notes.strip() else body
 
 
 def run_solve(path):
