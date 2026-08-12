@@ -494,8 +494,8 @@ def main():
 
         trials = kg_curve.extract_trials(load_evidence())
 
-        def pred(g, k, m):
-            s = math.exp(cp["a"] + cp["b"] * k - cp["c"] * m)
+        def pred(g, k, m, x=0.0):
+            s = math.exp(cp["a"] + cp["b"] * k - cp["c"] * m - cp.get("d", 0.0) * x)
             return (1 - cp["slip"]) * (1 + g / s) ** (-cp["beta"])
 
         labels, model_rates, observed_rates, counts = [], [], [], []
@@ -504,8 +504,8 @@ def main():
             if not rows:
                 continue
             labels.append(f"{lo}–{hi}d")
-            observed_rates.append(sum(s for _, s, _, _ in rows) / len(rows))
-            model_rates.append(sum(pred(g, k, m) for g, _, k, m in rows) / len(rows))
+            observed_rates.append(sum(s for _, s, _, _, _ in rows) / len(rows))
+            model_rates.append(sum(pred(g, k, m, x) for g, _, k, m, x in rows) / len(rows))
             counts.append(len(rows))
 
         if labels:

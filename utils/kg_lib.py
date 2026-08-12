@@ -55,6 +55,24 @@ HARNESS_ENV_NOTE = _harness_env_note()
 
 SOLID, STALE, FRAGILE, MISSING = "SOLID", "STALE", "FRAGILE", "MISSING"
 
+# How much outside help a solve had, recorded per evidence entry alongside the
+# verdict. A verdict says whether the code worked; assist says how much of it
+# was the candidate's own recall. They are independent: clean-but-walked-through
+# is a real solve that is NOT a real rep, so it earns evidence but shrinks the
+# fitted half-life instead of extending it.
+#   none        unaided
+#   hint        a nudge (a question, a pointer to the branch that was wrong)
+#   walkthrough the shape was talked through before the code existed
+#   spoiled     saw the solution — no recall happened; `make sleep` re-queues it
+ASSIST_LEVELS = ("none", "hint", "walkthrough", "spoiled")
+ASSIST_WEIGHT = {"none": 0.0, "hint": 0.5, "walkthrough": 1.0, "spoiled": 2.0}
+
+
+def assist_of(rec):
+    """The assist level on an evidence record; absent field means unaided."""
+    a = rec.get("assist", "none")
+    return a if a in ASSIST_WEIGHT else "none"
+
 
 def _load(name):
     with open(os.path.join(GRAPH_DIR, name)) as f:
@@ -108,20 +126,24 @@ def node_status(node_id, evidence, today=None):
 
     SOLID vs STALE uses the personal forgetting curve (graph/curve.json) when
     one has been fitted: predicted recall 2^(-gap/h) with a half-life that
-    grows with clean reps and shrinks with struggles, SOLID while predicted
-    recall >= the fitted target. Without a curve: flat SOLID_WINDOW_DAYS.
+    grows with clean reps and shrinks with struggles and assistance, SOLID
+    while predicted recall >= the fitted target. Without a curve: flat
+    SOLID_WINDOW_DAYS.
+
+    A spoiled solve is not recall evidence at all — it neither counts as a
+    clean rep nor keeps the node SOLID.
     """
     today = today or date.today()
-    entries = []  # (date, verdict)
+    entries = []  # (date, verdict, assist)
     for rec in evidence.values():
         verdict = rec.get("moves", {}).get(node_id)
         if verdict:
-            entries.append((date.fromisoformat(rec["date"]), verdict))
+            entries.append((date.fromisoformat(rec["date"]), verdict, assist_of(rec)))
     if not entries:
         return MISSING, None
     entries.sort()
-    last_date, last_verdict = entries[-1]
-    clean_dates = [d for d, v in entries if v == "clean"]
+    last_date, last_verdict, _ = entries[-1]
+    clean_dates = [d for d, v, a in entries if v == "clean" and a != "spoiled"]
     if last_verdict in ("struggled", "avoided") and not (
         clean_dates and clean_dates[-1] >= last_date
     ):
@@ -134,8 +156,10 @@ def node_status(node_id, evidence, today=None):
         import math
         p = curve["params"]
         cleans = len(clean_dates)
-        struggles = sum(1 for _, v in entries if v == "struggled")
-        stability = math.exp(p["a"] + p["b"] * cleans - p["c"] * struggles)
+        struggles = sum(1 for _, v, _ in entries if v == "struggled")
+        assisted = sum(ASSIST_WEIGHT[a] for _, _, a in entries)
+        stability = math.exp(p["a"] + p["b"] * cleans - p["c"] * struggles
+                             - p.get("d", 0.0) * assisted)
         stability = min(max(stability, 7), 3650)  # sanity clamp
         gap = (today - clean_dates[-1]).days
         if (1 + gap / stability) ** (-p["beta"]) >= curve["target_retention"]:

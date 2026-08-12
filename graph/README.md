@@ -21,6 +21,21 @@ and generate combination drills ("rote sheets").
   different carrier; preflight still audits banned problems and labels them ⛔.
 - **evidence.json** — per solve-file: which moves the actual code exercised, verdict
   `clean` / `struggled` / `avoided`. Append-only, keyed by filename like `.summaries.json`.
+  An optional `assist` field records how much outside help the solve had — a second
+  axis, independent of the verdict, read by kg_extract from your own notes in the
+  solve file (an explicit `ASSIST: <level>` line overrides its reading):
+
+      none         unaided — the field is omitted
+      hint         a nudge: a question, a pointer at the branch that was wrong
+      walkthrough  the shape/recurrence was talked through before the code existed
+      spoiled      saw a solution
+
+  The verdict says whether the code worked; `assist` says how much of it was your
+  own recall. Clean-but-walked-through is a real solve that is *not* a real rep, so
+  it still earns evidence while shrinking the fitted half-life (the `- d*assist`
+  term in curve.json) instead of extending it. A `spoiled` solve doesn't count as a
+  clean rep at all — the node falls back to its previous clean date, which is what
+  `make sleep` then re-queues.
 
 ## The drill bank (../drills/)
 
@@ -91,8 +106,10 @@ goes stale automatically if a different problem is prepared.
    SOLID while the personal forgetting curve (`graph/curve.json`, refit with `make curve`)
    predicts ≥90% recall — stability grows ~1.3× per clean rep, so windows expand with
    repetition (1 rep ≈ 2 months, 5 reps ≈ 5+) · below that = STALE · once-only or
-   struggled = FRAGILE · no evidence = MISSING. Delete curve.json to fall back to a flat
-   42-day window. Nothing goes stale by sitting in a file.
+   struggled = FRAGILE · no evidence = MISSING. Struggles and assistance both shrink
+   stability, so a helped rep buys a shorter window than an unaided one. Delete
+   curve.json to fall back to a flat 42-day window. Nothing goes stale by sitting in
+   a file.
 2. **One new move per assignment.** A problem is READY when at most one of its moves is
    non-SOLID — that move is the training target. Two or more → prep first: spaced re-solve
    for STALE, micro-drill for MISSING/FRAGILE.
