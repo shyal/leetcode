@@ -39,6 +39,8 @@ from typing import (
 
 
 # shortcuts
+import random
+from random import randint, randrange, choice, choices, shuffle, sample, uniform, getrandbits
 from sys import maxsize
 from functools import *
 from itertools import *
@@ -183,6 +185,17 @@ builtins.gcd = gcd
 builtins.isclose = isclose
 builtins.dropwhile = dropwhile
 builtins.build_nary_tree = build_nary_tree
+
+# random, as leetcode preloads it: the module by name plus the common functions bare
+builtins.random = random
+builtins.randint = randint
+builtins.randrange = randrange
+builtins.choice = choice
+builtins.choices = choices
+builtins.shuffle = shuffle
+builtins.sample = sample
+builtins.uniform = uniform
+builtins.getrandbits = getrandbits
 
 
 def batched(s, n=1):

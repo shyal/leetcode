@@ -13,6 +13,21 @@ class ListNode:
         self.val = val
         self.next = next
 
+    # Ordering by val, so heaps/sorts of nodes work like a ListNode.__lt__
+    # override does on leetcode. No __eq__/__hash__: those must stay identity,
+    # or seen-sets and cycle detection break on duplicate vals.
+    def __lt__(self, other):
+        return self.val < other.val
+
+    def __le__(self, other):
+        return self.val <= other.val
+
+    def __gt__(self, other):
+        return self.val > other.val
+
+    def __ge__(self, other):
+        return self.val >= other.val
+
     def __repr__(self):
         vals = []
         it = self
