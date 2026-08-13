@@ -36,7 +36,7 @@ from kg_lib import (
     DEEP_STALE_DAYS, load_sleep, sleep_state,
     last_solved, pnum_key, dodged_nodes, dodgeable, carriers_for,
 )
-from kg_render import make_digraph, status_node, render, display
+from kg_render import make_digraph, status_node, render, display, animate
 
 console = Console()
 
@@ -52,10 +52,12 @@ def problem_url(pnum):
         return f"https://leetcode.com/problemset/?search={pnum}"
 
 
-def pick(nodes, problems, evidence, statuses, asleep=(), woken=()):
+def pick(nodes, problems, evidence, statuses, asleep=(), woken=(), exclude=()):
     """Return (target, status, pnum, reason) or None."""
     # rule 0a: a woken problem jumps the queue for a fresh attempt
     for pnum in woken:
+        if pnum in exclude:
+            continue
         moves = problems[pnum]["moves"]
         target = next((m for m in moves if statuses[m][0] != SOLID), moves[0])
         return target, statuses[target][0], pnum, "woken from sleep — fresh attempt, from scratch"
@@ -67,7 +69,7 @@ def pick(nodes, problems, evidence, statuses, asleep=(), woken=()):
                        key=lambda n: (statuses[n][1] is not None, statuses[n][1]))
         for target in rusty:
             cands = [c for c in carriers_for(target, problems, statuses, nodes)
-                     if c not in asleep]
+                     if c not in asleep and c not in exclude]
             if cands:
                 cands.sort(key=lambda p: (last_solved(p, evidence), len(problems[p]["moves"]), pnum_key(p)))
                 return target, statuses[target][0], cands[0], \
@@ -80,7 +82,7 @@ def pick(nodes, problems, evidence, statuses, asleep=(), woken=()):
 
     dodged = dodged_nodes(evidence)
     for target in fragile:
-        cands = [c for c in carriers_for(target, problems, statuses, nodes) if c not in asleep]
+        cands = [c for c in carriers_for(target, problems, statuses, nodes) if c not in asleep and c not in exclude]
         if cands:
             if target in dodged:
                 # anti-dodge: prefer carriers with no recorded escape route and
@@ -94,7 +96,7 @@ def pick(nodes, problems, evidence, statuses, asleep=(), woken=()):
             return target, FRAGILE, cands[0], "consolidate a fragile move on a fresh carrier"
 
     for target in stale:
-        cands = [c for c in carriers_for(target, problems, statuses, nodes) if c not in asleep]
+        cands = [c for c in carriers_for(target, problems, statuses, nodes) if c not in asleep and c not in exclude]
         if not cands:
             continue
         age = (date.today() - statuses[target][1]).days
@@ -108,7 +110,7 @@ def pick(nodes, problems, evidence, statuses, asleep=(), woken=()):
         return target, STALE, pnum, "spaced re-solve of a stale move's carrier"
 
     for target in missing:
-        cands = [c for c in carriers_for(target, problems, statuses, nodes) if c not in asleep]
+        cands = [c for c in carriers_for(target, problems, statuses, nodes) if c not in asleep and c not in exclude]
         if cands:
             cands.sort(key=lambda p: (len(problems[p]["moves"]), pnum_key(p)))
             return target, MISSING, cands[0], "one genuinely new move, prereqs all solid"
@@ -131,6 +133,8 @@ def input_tree(moves, nodes):
 
 def main():
     parser = argparse.ArgumentParser(description="Pick the next problem and draw its input tree.")
+    parser.add_argument("n", nargs="?", type=int, default=1,
+                        help="show the Nth recommendation (skip the first N-1)")
     parser.add_argument("--no-show", action="store_true", help="skip the drawing")
     args = parser.parse_args()
 
@@ -141,17 +145,21 @@ def main():
     sleeps = load_sleep()
     asleep, woken = sleep_state(sleeps, evidence)
 
-    choice = pick(nodes, problems, evidence, statuses, asleep=asleep, woken=woken)
+    exclude = set()
+    choice = None
+    for _ in range(max(1, args.n)):
+        choice = pick(nodes, problems, evidence, statuses, asleep=asleep, woken=woken, exclude=exclude)
+        if not choice:
+            break
+        exclude.add(choice[2])
     if not choice:
-        console.print("[yellow]No READY carrier found for any frontier node — the graph needs new problems mapped.[/yellow]")
+        if exclude:
+            console.print(f"[yellow]Only {len(exclude)} recommendation(s) available — nothing left to skip to.[/yellow]")
+        else:
+            console.print("[yellow]No READY carrier found for any frontier node — the graph needs new problems mapped.[/yellow]")
         return
     target, target_status, pnum, reason = choice
     p = problems[pnum]
-
-    console.print(f"\n[bold]{pnum}. {p['title']}[/bold]")
-    console.print(problem_url(pnum))
-    if p.get("note"):
-        console.print(f"[yellow]⚠ {p['note']}[/yellow]")
 
     table = Table(show_header=True, header_style="bold", box=None, padding=(0, 2))
     table.add_column("Move")
@@ -160,9 +168,16 @@ def main():
     for m in p["moves"]:
         s, d = statuses[m]
         table.add_row(m, f"[{STATUS_STYLE[s]}]{s}[/{STATUS_STYLE[s]}]", str(d) if d else "—")
-    console.print(table)
+
+    with console.capture() as cap:
+        console.print(f"\n[bold]{pnum}. {p['title']}[/bold]")
+        console.print(problem_url(pnum))
+        if p.get("note"):
+            console.print(f"[yellow]⚠ {p['note']}[/yellow]")
+        console.print(table)
 
     if args.no_show:
+        animate(cap.get())
         return
 
     tree = input_tree(p["moves"], nodes)
@@ -191,6 +206,7 @@ def main():
         dot.edge(m, problem_node, penwidth="1.4")
     logical_width = render(dot, "kg_next")
     display("kg_next", logical_width)
+    animate(cap.get())
 
 
 if __name__ == "__main__":

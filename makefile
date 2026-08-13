@@ -77,7 +77,7 @@ viz:
 %:
 	@:
 next:
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_next
+	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_next $(filter-out $@,$(MAKECMDGOALS))
 
 dive:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_dive $(filter-out $@,$(MAKECMDGOALS))
