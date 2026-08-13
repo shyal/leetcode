@@ -217,6 +217,27 @@ def carriers_for(target, problems, statuses, nodes):
     return found
 
 
+def input_tree(moves, nodes):
+    """Transitive prerequisite closure of a walk (unknown ids skipped)."""
+    seen = set()
+    stack = list(moves)
+    while stack:
+        n = stack.pop()
+        if n in seen or n not in nodes:
+            continue
+        seen.add(n)
+        stack.extend(nodes[n].get("prereqs", []))
+    return seen
+
+
+def tree_size(pnum, problems, nodes):
+    """Carrier gentleness for sort keys: (input-tree size, walk length).
+    After freshness, the picker proposes the smallest composition that still
+    exercises the target — fewest concepts in the room, not just fewest moves."""
+    moves = problems[pnum]["moves"]
+    return (len(input_tree(moves, nodes)), len(moves))
+
+
 def latest_carrier(node_id, evidence):
     """Most recent evidence file that exercised this node (for spaced re-solves)."""
     best = None

@@ -40,6 +40,7 @@ from kg_lib import (
     node_status, latest_carrier, SOLID, STALE, FRAGILE, MISSING,
     DEEP_STALE_DAYS, load_sleep, sleep_state, last_solved, pnum_key,
     dodged_nodes, dodgeable, carriers_for, claude_json, taxonomy_summary,
+    input_tree, tree_size,
 )
 from kg_render import make_digraph, status_node, render, display, animate
 
@@ -90,19 +91,6 @@ def problem_url(pnum, metadata):
     slug = metadata.get(str(pnum), {}).get("slug")
     return (f"https://leetcode.com/problems/{slug}/" if slug
             else f"https://leetcode.com/problemset/?search={pnum}")
-
-
-def input_tree(moves, nodes):
-    """Transitive prerequisite closure of a walk (unknown ids skipped)."""
-    seen = set()
-    stack = list(moves)
-    while stack:
-        n = stack.pop()
-        if n in seen or n not in nodes:
-            continue
-        seen.add(n)
-        stack.extend(nodes[n].get("prereqs", []))
-    return seen
 
 
 def map_with_claude(unmapped, problems, nodes, metadata):
@@ -188,7 +176,7 @@ def choose_carrier(target, sim, problems, nodes, evidence, dodged, excluded):
     s, d = sim[target]
     if s == FRAGILE and target in dodged:
         cands.sort(key=lambda p: (is_hard(p), dodgeable(p, target, problems),
-                                  len(problems[p]["moves"]),
+                                  tree_size(p, problems, nodes),
                                   last_solved(p, evidence), pnum_key(p)))
         return cands[0], f"dodged on {dodged[target]} — carrier resists the dodge"
     if s == STALE:
@@ -198,9 +186,9 @@ def choose_carrier(target, sim, problems, nodes, evidence, dodged, excluded):
             pnum = carrier[2] if carrier and carrier[2] in cands else \
                 sorted(cands, key=lambda p: (not is_hard(p), last_solved(p, evidence)), reverse=True)[0]
             return pnum, "spaced re-solve"
-        cands.sort(key=lambda p: (is_hard(p), last_solved(p, evidence), len(problems[p]["moves"]), pnum_key(p)))
+        cands.sort(key=lambda p: (is_hard(p), last_solved(p, evidence), tree_size(p, problems, nodes), pnum_key(p)))
         return cands[0], f"deep-stale ({age}d) — gentle fresh carrier"
-    cands.sort(key=lambda p: (is_hard(p), last_solved(p, evidence), len(problems[p]["moves"]), pnum_key(p)))
+    cands.sort(key=lambda p: (is_hard(p), last_solved(p, evidence), tree_size(p, problems, nodes), pnum_key(p)))
     return cands[0], "consolidate on a fresh carrier" if s == FRAGILE else "new move, prereqs solid"
 
 
