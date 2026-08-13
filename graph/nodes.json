@@ -578,6 +578,16 @@
         "dict-arbitrary-value"
       ],
       "drill": "Insert 3 words; check a prefix and a full word."
+    },
+    {
+      "id": "heap-lazy-eviction",
+      "group": "heaps-greedy",
+      "name": "Lazy eviction from a heap",
+      "desc": "Leave stale entries in the heap; on peek/pop, discard tops that fail a validity check (index left the window, value outdated) until the top is live.",
+      "prereqs": [
+        "heap-simulation"
+      ],
+      "drill": "Sliding window max via max-heap of (val, idx): pop while the top's idx is outside the window."
     }
   ]
 }
