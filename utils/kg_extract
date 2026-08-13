@@ -13,6 +13,7 @@
 
 import argparse
 import glob
+import json
 import os
 import re
 import subprocess
@@ -48,6 +49,16 @@ def strip_statement(code):
     except SyntaxError:  # abandoned attempt / half-typed file
         return body
     return f"{notes}\n\n{body}" if notes.strip() else body
+
+
+def lookup_difficulty(pnum):
+    """Difficulty from the repo's .problems_metadata.json cache (the same file
+    the readme updater reads); empty string when the cache lacks the problem."""
+    try:
+        with open(os.path.join(REPO_ROOT, ".problems_metadata.json")) as f:
+            return json.load(f).get(str(pnum), {}).get("difficulty", "")
+    except OSError:
+        return ""
 
 
 def run_solve(path):
@@ -236,7 +247,7 @@ Output STRICT JSON only:
                 if not is_drill and pnum not in problems and moves:
                     problems[pnum] = {
                         "title": result.get("title", (m.group(2).replace("_", " ") if m else "")),
-                        "difficulty": "",
+                        "difficulty": lookup_difficulty(pnum),
                         "moves": list(moves.keys()),
                         "source": "extracted",
                     }
