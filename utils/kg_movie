@@ -94,7 +94,7 @@ def png_size(path):
         return struct.unpack(">II", f.read(8))
 
 
-def build_graph(nodes, statuses, changed, title):
+def build_graph(nodes, statuses, changed, title, hidden=frozenset()):
     dot = make_digraph("kg-frame", title=title)
     dot.graph_attr["dpi"] = str(DPI)
     dot.node_attr["penwidth"] = "2"  # constant width so highlights don't shift layout
@@ -107,13 +107,22 @@ def build_graph(nodes, statuses, changed, title):
             c.attr(label=group, fontcolor="#8b949e", color="#30363d",
                    style="rounded", fontname="Helvetica")
             for node_id in members:
+                if node_id in hidden:
+                    # not introduced yet — same label so the box keeps its size,
+                    # invis so the layout is pinned for the whole movie and the
+                    # node simply materializes on its `added` date
+                    c.node(node_id, label=node_id.replace("-", "-\n", 1), style="invis")
+                    continue
                 status, when = statuses[node_id]
                 status_node(c, node_id, nodes[node_id], status, when,
                             highlight=node_id in changed)
     for node_id, node in nodes.items():
         for prereq in node.get("prereqs", []):
             if prereq in nodes:
-                dot.edge(prereq, node_id)
+                if node_id in hidden or prereq in hidden:
+                    dot.edge(prereq, node_id, style="invis")
+                else:
+                    dot.edge(prereq, node_id)
     add_legend(dot)
     return dot
 
@@ -395,17 +404,25 @@ def main():
 
         out_idx, tick_t = 0, 0.0
         rendered = 0
+        prev_hidden = None
         for i, day in enumerate(days):
             subframes = tick_frames[i]
             if not subframes:
                 continue  # a day nothing happened on, inside a compressed lull
             tick_s = subframes / FPS_OUT
             statuses = statuses_asof(nodes, evidence, day)
+            # nodes appear when they were actually introduced (`added`, clamped
+            # back to first evidence at backfill time); no field = always there
+            hidden = {n for n, node in nodes.items()
+                      if node.get("added", "") > day.isoformat()}
             changed = {n for n in nodes if prev and statuses[n][0] != prev[n][0]}
-            counts = Counter(s[0] for s in statuses.values())
+            if prev_hidden is not None:
+                changed |= prev_hidden - hidden  # newly introduced: bright border
+            changed -= hidden
+            counts = Counter(s[0] for n, s in statuses.items() if n not in hidden)
             title = (f"{day}   ·   {counts['SOLID']:2d} solid  {counts['STALE']:2d} stale  "
                      f"{counts['FRAGILE']:2d} fragile  {counts['MISSING']:2d} missing")
-            dot = build_graph(nodes, statuses, changed, title)
+            dot = build_graph(nodes, statuses, changed, title, hidden)
             dot.render(filename="base", directory=tmp, format="png", cleanup=True)
             base_png = os.path.join(tmp, "base.png")
             if boxes is None:
@@ -441,7 +458,8 @@ def main():
                     base.convert("RGB").save(frame_path, quality=92)
                     clean_idx = out_idx
                 out_idx += 1
-            prev, tick_t, rendered = statuses, tick_t + tick_s, rendered + 1
+            prev, prev_hidden = statuses, hidden
+            tick_t, rendered = tick_t + tick_s, rendered + 1
             print(f"\r{i + 1}/{len(days)} ticks", end="", flush=True)
         print()
 

@@ -8,7 +8,9 @@ and generate combination drills ("rote sheets").
 
 - **nodes.json** — the curated move taxonomy. A node is one atomic, drillable move
   (`streaming-ask-then-record`), finer than a LeetCode topic tag (`hash_table`). Each node
-  carries prerequisite edges and a <5-minute micro-drill for when it's missing.
+  carries prerequisite edges, a <5-minute micro-drill for when it's missing, and an
+  `added` date — when it entered the taxonomy (clamped back to its earliest evidence),
+  so kg_movie can introduce nodes when they actually appeared. Set it when adding a node.
 - **problems.json** — problem → the list of nodes its clean solution walks. `alt_walks`
   records legitimate alternative solutions (e.g. 1512 batch-math vs streaming) — a solve
   only evidences the walk it actually took. An optional `note` field flags poorly stated
