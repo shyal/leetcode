@@ -282,7 +282,8 @@ def main():
             console.print(f"[yellow]note: this is a {difficulty}, not a Hard — routing anyway[/yellow]")
     out.append(cap.get())
 
-    # Blind mode: verdict only. Every line below this branch names moves.
+    # Blind mode: verdict only in the text — the tree still draws (it names
+    # moves, same deal as kg_next: the map IS the hint).
     if not args.route:
         with console.capture() as cap:
             if not steps:
@@ -294,6 +295,8 @@ def main():
                 console.print(f"[dim]`make hard {summit} route` to see the route "
                               f"(names the moves).[/dim]")
         out.append(cap.get())
+        if not args.no_show:
+            draw_tree(summit, p, nodes, statuses, metadata)
         animate("".join(out), effect=HARD_EFFECT)
         return
 
@@ -345,35 +348,39 @@ def main():
     out.append(cap.get())
 
     if not args.no_show:
-        tree = input_tree(p["moves"], nodes)
-        dot = make_digraph("kg_hard")
-        for n in tree:
-            s, d = statuses[n]
-            status_node(dot, n, nodes[n], s, d, highlight=(n in p["moves"]))
-        for n in tree:
-            for pre in nodes[n].get("prereqs", []):
-                if pre in tree:
-                    dot.edge(pre, n)
-        summit_node = f"problem_{summit}"
-        dot.node(
-            summit_node,
-            label=f"⛰ {summit}. {p['title']}",
-            shape="box",
-            style="filled",
-            fillcolor="#1f6feb",
-            color="#c9d1d9",
-            penwidth="2",
-            fontsize="13",
-            margin="0.2,0.12",
-            tooltip=problem_url(summit, metadata),
-        )
-        for m in p["moves"]:
-            if m in tree:
-                dot.edge(m, summit_node, penwidth="1.4")
-        logical_width = render(dot, "kg_hard")
-        display("kg_hard", logical_width)
+        draw_tree(summit, p, nodes, statuses, metadata)
 
     animate("".join(out), effect=HARD_EFFECT)
+
+
+def draw_tree(summit, p, nodes, statuses, metadata):
+    tree = input_tree(p["moves"], nodes)
+    dot = make_digraph("kg_hard")
+    for n in tree:
+        s, d = statuses[n]
+        status_node(dot, n, nodes[n], s, d, highlight=(n in p["moves"]))
+    for n in tree:
+        for pre in nodes[n].get("prereqs", []):
+            if pre in tree:
+                dot.edge(pre, n)
+    summit_node = f"problem_{summit}"
+    dot.node(
+        summit_node,
+        label=f"⛰ {summit}. {p['title']}",
+        shape="box",
+        style="filled",
+        fillcolor="#1f6feb",
+        color="#c9d1d9",
+        penwidth="2",
+        fontsize="13",
+        margin="0.2,0.12",
+        tooltip=problem_url(summit, metadata),
+    )
+    for m in p["moves"]:
+        if m in tree:
+            dot.edge(m, summit_node, penwidth="1.4")
+    logical_width = render(dot, "kg_hard")
+    display("kg_hard", logical_width)
 
 
 if __name__ == "__main__":
