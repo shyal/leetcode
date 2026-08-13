@@ -588,6 +588,58 @@
         "heap-simulation"
       ],
       "drill": "Sliding window max via max-heap of (val, idx): pop while the top's idx is outside the window."
+    },
+    {
+      "id": "multi-source-bfs",
+      "group": "graphs",
+      "name": "Multi-source BFS",
+      "desc": "Seed the BFS queue with every source at distance 0, then expand in rings; each cell's first visit is its distance to the nearest source.",
+      "prereqs": [
+        "graph-bfs-shortest"
+      ],
+      "drill": "Grid of 0s and 1s: fill each 1 with its distance to the nearest 0."
+    },
+    {
+      "id": "prefix-suffix-two-pass",
+      "group": "index-order",
+      "name": "Prefix/suffix two-pass",
+      "desc": "Scan left-to-right recording a running quantity, scan right-to-left recording its mirror, then combine the two per index.",
+      "prereqs": [
+        "running-sum",
+        "running-extreme"
+      ],
+      "drill": "Given heights, output min(max left of i, max right of i) for each i in two passes."
+    },
+    {
+      "id": "stack-nested-eval",
+      "group": "stack-queue",
+      "name": "Stack of partial state",
+      "desc": "Entering a nested scope or higher-precedence region, push the partial result and context; when it closes, pop and combine.",
+      "prereqs": [
+        "stack-matching"
+      ],
+      "drill": "Evaluate '3+2*2-1' with a stack of signed terms, summing at the end."
+    },
+    {
+      "id": "event-sweep",
+      "group": "index-order",
+      "name": "Event sweep",
+      "desc": "Turn intervals into +1/-1 boundary events, sort them, sweep once keeping a running count (or heap) of what's active.",
+      "prereqs": [
+        "sort-by-custom-key",
+        "running-sum"
+      ],
+      "drill": "Given meeting intervals, find the max number happening at once via +1/-1 events."
+    },
+    {
+      "id": "rotated-array-pivot",
+      "group": "binary-search",
+      "name": "Rotated-array half-pick",
+      "desc": "At each binary-search step, compare mid against an end to decide which half is sorted, then pick the half that can contain the target/min.",
+      "prereqs": [
+        "binary-search-index"
+      ],
+      "drill": "Find the index of the minimum in a rotated sorted array without a linear scan."
     }
   ]
 }
