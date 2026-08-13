@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1670 750" font-family="'Segoe Print','Comic Sans MS','Chalkboard SE',cursive">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#2979ff"/>
+    </marker>
+    <marker id="rec" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#e06ac0"/>
+    </marker>
+    <marker id="ptr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#7ee787"/>
+    </marker>
+  </defs>
+
+  <!-- k -->
+  <text x="1480" y="70" fill="#e8d44d" font-size="42" letter-spacing="6">k = 3</text>
+
+  <!-- the two subarrays summing to k: intro flash, then redrawn at discovery -->
+  <g fill="none" stroke-width="3.5">
+    <!-- [1,2] idx 0-1: discovered by arrow 1 -->
+    <rect x="425" y="170" width="230" height="85" rx="14" stroke="#7ee787">
+      <animate attributeName="opacity" values="0;0;1;1;0;0;1;1" keyTimes="0;0.0278;0.0361;0.1667;0.1806;0.5611;0.5694;1" dur="36s" repeatCount="indefinite"/></rect>
+    <!-- [1,2,0] idx 0-2: discovered by arrow 2 -->
+    <rect x="408" y="155" width="415" height="115" rx="16" stroke="#56b6c2">
+      <animate attributeName="opacity" values="0;0;1;1;0;0;1;1" keyTimes="0;0.0556;0.0639;0.1667;0.1806;0.7556;0.7639;1" dur="36s" repeatCount="indefinite"/></rect>
+  </g>
+
+  <!-- iteration pointer -->
+  <g>
+    <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.2222;0.2333;0.8333;0.8472;1" dur="36s" repeatCount="indefinite"/>
+    <animateTransform attributeName="transform" type="translate" dur="36s" repeatCount="indefinite" calcMode="linear"
+      values="0 0;0 0;145 0;145 0;290 0;290 0"
+      keyTimes="0;0.4444;0.4583;0.6389;0.6528;1"/>
+    <line x1="465" y1="105" x2="465" y2="150" stroke="#7ee787" stroke-width="5" stroke-linecap="round" marker-end="url(#ptr)"/>
+  </g>
+
+  <!-- nums row (static input) -->
+  <text x="60" y="215" fill="#e8963c" font-size="34" letter-spacing="8">NUMS</text>
+  <g fill="#e8963c" font-size="44" text-anchor="middle">
+    <text x="465" y="215">1</text>
+    <text x="610" y="215">2</text>
+    <text x="755" y="215">0</text>
+  </g>
+  <g fill="#e8d44d" font-size="22" text-anchor="middle">
+    <text x="492" y="240">0</text>
+    <text x="637" y="240">1</text>
+    <text x="782" y="240">2</text>
+  </g>
+
+  <!-- prefix row -->
+  <text x="60" y="310" fill="#e06a6a" font-size="30" letter-spacing="6">PREFIX</text>
+  <g fill="#e06a6a" font-size="36" text-anchor="middle">
+    <text x="320" y="312">0<animate attributeName="opacity" values="0;0;1;1" keyTimes="0;0.1944;0.2028;1" dur="36s" repeatCount="indefinite"/></text>
+    <text x="465" y="312">1<animate attributeName="opacity" values="0;0;1;1" keyTimes="0;0.2889;0.2972;1" dur="36s" repeatCount="indefinite"/></text>
+    <text x="610" y="312">3<animate attributeName="opacity" values="0;0;1;1" keyTimes="0;0.4833;0.4917;1" dur="36s" repeatCount="indefinite"/></text>
+    <text x="755" y="312">3<animate attributeName="opacity" values="0;0;1;1" keyTimes="0;0.6778;0.6861;1" dur="36s" repeatCount="indefinite"/></text>
+  </g>
+
+  <!-- D row (counts under first occurrence of each prefix value) -->
+  <text x="110" y="382" fill="#e06a6a" font-size="32">D :</text>
+  <g fill="#e06a6a" font-size="34" text-anchor="middle">
+    <text x="320" y="384">1<animate attributeName="opacity" values="0;0;1;1" keyTimes="0;0.1944;0.2028;1" dur="36s" repeatCount="indefinite"/></text>
+    <text x="465" y="384">1<animate attributeName="opacity" values="0;0;1;1" keyTimes="0;0.4056;0.4139;1" dur="36s" repeatCount="indefinite"/></text>
+    <!-- D[3]: 1 then 2 -->
+    <text x="610" y="384">1<animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.60;0.6083;0.7944;0.8028;1" dur="36s" repeatCount="indefinite"/></text>
+    <text x="610" y="384">2<animate attributeName="opacity" values="0;0;1;1" keyTimes="0;0.7944;0.8028;1" dur="36s" repeatCount="indefinite"/></text>
+  </g>
+
+  <!-- record arrow: repeated prefix 3 goes into the existing bucket -->
+  <g stroke="#e06ac0" stroke-width="4" stroke-dasharray="10 8" fill="none" marker-end="url(#rec)" stroke-linecap="round">
+    <g><animate attributeName="opacity" values="0;0;1;1" keyTimes="0;0.7944;0.8028;1" dur="36s" repeatCount="indefinite"/>
+      <path d="M 738 337 C 700 385, 675 393, 650 390"/></g>
+  </g>
+
+  <!-- lookup arrows: prefix-k value found in D -->
+  <g stroke="#2979ff" stroke-width="5" fill="none" marker-end="url(#arrow)" stroke-linecap="round">
+    <g><animate attributeName="opacity" values="0;0;1;1" keyTimes="0;0.5611;0.5694;1" dur="36s" repeatCount="indefinite"/>
+      <path d="M 595 615 C 470 560, 360 490, 323 410"/>
+      <text x="470" y="545" fill="#2979ff" stroke="none" font-size="28">+1</text></g>
+    <g><animate attributeName="opacity" values="0;0;1;1" keyTimes="0;0.7556;0.7639;1" dur="36s" repeatCount="indefinite"/>
+      <path d="M 740 618 C 600 560, 400 500, 326 412"/>
+      <text x="560" y="550" fill="#2979ff" stroke="none" font-size="28">+1</text></g>
+  </g>
+
+  <!-- prefix - k row -->
+  <text x="90" y="660" fill="#e06a6a" font-size="30" letter-spacing="4">PREFIX - k</text>
+  <g fill="#e06a6a" font-size="36" text-anchor="middle">
+    <text x="465" y="662">-2<animate attributeName="opacity" values="0;0;1;1" keyTimes="0;0.3278;0.3361;1" dur="36s" repeatCount="indefinite"/></text>
+    <text x="610" y="662">0<animate attributeName="opacity" values="0;0;1;1" keyTimes="0;0.5222;0.5306;1" dur="36s" repeatCount="indefinite"/></text>
+    <text x="755" y="662">0<animate attributeName="opacity" values="0;0;1;1" keyTimes="0;0.7167;0.725;1" dur="36s" repeatCount="indefinite"/></text>
+  </g>
+</svg>
