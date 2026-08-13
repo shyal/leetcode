@@ -41,11 +41,12 @@ from kg_lib import (
     DEEP_STALE_DAYS, load_sleep, sleep_state, last_solved, pnum_key,
     dodged_nodes, dodgeable, carriers_for, claude_json, taxonomy_summary,
 )
-from kg_render import make_digraph, status_node, render, display
+from kg_render import make_digraph, status_node, render, display, animate
 
 console = Console()
 
 STATUS_STYLE = {SOLID: "green", STALE: "yellow", FRAGILE: "red", MISSING: "dim"}
+HARD_EFFECT = ("laseretch",)
 
 # Interview-classic Hards worth summiting: number -> why it's valuable.
 # Filtered against .problems_metadata.json difficulty at runtime, so a
@@ -268,26 +269,32 @@ def main():
 
     p = problems[summit]
     difficulty = p.get("difficulty") or metadata.get(summit, {}).get("difficulty", "")
-    console.print(f"\n[bold]⛰  {summit}. {p['title']}[/bold]"
-                  + (f" — {difficulty}" if difficulty else ""))
-    console.print(problem_url(summit, metadata))
-    if args.route and summit in CLASSICS:
-        console.print(f"[dim]{CLASSICS[summit]}[/dim]")
-    if difficulty and difficulty != "Hard":
-        console.print(f"[yellow]note: this is a {difficulty}, not a Hard — routing anyway[/yellow]")
-
     steps = plan_route(summit, problems, nodes, statuses, evidence, asleep)
+
+    out = []
+    with console.capture() as cap:
+        console.print(f"\n[bold]⛰  {summit}. {p['title']}[/bold]"
+                      + (f" — {difficulty}" if difficulty else ""))
+        console.print(problem_url(summit, metadata))
+        if args.route and summit in CLASSICS:
+            console.print(f"[dim]{CLASSICS[summit]}[/dim]")
+        if difficulty and difficulty != "Hard":
+            console.print(f"[yellow]note: this is a {difficulty}, not a Hard — routing anyway[/yellow]")
+    out.append(cap.get())
 
     # Blind mode: verdict only. Every line below this branch names moves.
     if not args.route:
-        if not steps:
-            console.print("\n[bold green]Your walk is ready for this one. "
-                          "Go claim the summit.[/bold green]")
-        else:
-            camps = "1 base camp" if len(steps) == 1 else f"{len(steps)} base camps"
-            console.print(f"\n[yellow]Not ready — {camps} to build first.[/yellow]")
-            console.print(f"[dim]`make hard {summit} route` to see the route "
-                          f"(names the moves).[/dim]")
+        with console.capture() as cap:
+            if not steps:
+                console.print("\n[bold green]Your walk is ready for this one. "
+                              "Go claim the summit.[/bold green]")
+            else:
+                camps = "1 base camp" if len(steps) == 1 else f"{len(steps)} base camps"
+                console.print(f"\n[yellow]Not ready — {camps} to build first.[/yellow]")
+                console.print(f"[dim]`make hard {summit} route` to see the route "
+                              f"(names the moves).[/dim]")
+        out.append(cap.get())
+        animate("".join(out), effect=HARD_EFFECT)
         return
 
     unknown = [m for m in p["moves"] if m not in nodes]
@@ -301,70 +308,72 @@ def main():
             table.add_row(m, f"[{STATUS_STYLE[s]}]{s}[/{STATUS_STYLE[s]}]", str(d) if d else "—")
         else:
             table.add_row(m, "[red]unknown node[/red]", "—")
-    console.print(table)
-    if unknown:
-        console.print(f"[orange3]unmapped territory (not routable until curated into "
-                      f"nodes.json): {', '.join(unknown)}[/orange3]")
-    for desc in p.get("unmapped", []):
-        console.print(f"[orange3]new territory (proposed node, review!): {desc}[/orange3]")
+    with console.capture() as cap:
+        console.print(table)
+        if unknown:
+            console.print(f"[orange3]unmapped territory (not routable until curated into "
+                          f"nodes.json): {', '.join(unknown)}[/orange3]")
+        for desc in p.get("unmapped", []):
+            console.print(f"[orange3]new territory (proposed node, review!): {desc}[/orange3]")
 
-    if not steps:
-        console.print("\n[bold green]The whole input tree is SOLID — no camps needed. "
-                      "Go claim the summit.[/bold green]")
-    else:
-        camps = "base camp" if len(steps) == 1 else f"{len(steps)} base camps"
-        console.print(f"\n[bold]Route ({camps}):[/bold]")
-        dodged = dodged_nodes(evidence)
-        for i, (target, status, pnum, reason) in enumerate(steps, 1):
-            style = STATUS_STYLE[status]
-            if pnum:
-                console.print(f"  {i}. [bold]{pnum}. {problems[pnum]['title']}[/bold] — "
-                              f"[{style}]{status}[/{style}] [bold]{target}[/bold] ({reason})")
-            else:
-                if os.path.isdir(os.path.join("drills", target)):
-                    console.print(f"  {i}. `make drill {target}` — "
+        if not steps:
+            console.print("\n[bold green]The whole input tree is SOLID — no camps needed. "
+                          "Go claim the summit.[/bold green]")
+        else:
+            camps = "base camp" if len(steps) == 1 else f"{len(steps)} base camps"
+            console.print(f"\n[bold]Route ({camps}):[/bold]")
+            dodged = dodged_nodes(evidence)
+            for i, (target, status, pnum, reason) in enumerate(steps, 1):
+                style = STATUS_STYLE[status]
+                if pnum:
+                    console.print(f"  {i}. [bold]{pnum}. {problems[pnum]['title']}[/bold] — "
                                   f"[{style}]{status}[/{style}] [bold]{target}[/bold] ({reason})")
                 else:
-                    console.print(f"  {i}. drill: {nodes[target].get('drill', 'improvise a <5min drill')} — "
-                                  f"[{style}]{status}[/{style}] [bold]{target}[/bold]")
-            if pnum and target in dodged and os.path.isdir(os.path.join("drills", target)):
-                console.print(f"     [yellow]drill FIRST — a drill can't be dodged: "
-                              f"`make drill {target}`[/yellow]")
-        console.print(f"  ⛰  [bold]{summit}. {p['title']}[/bold] — summit: walk all "
-                      "SOLID after the camps above, a pure combination rep")
-        console.print(f"\n[dim]Work top-down; `make solved` after each camp, then re-run "
-                      f"`make hard {summit}` — the route re-derives and shrinks as camps turn SOLID.[/dim]")
+                    if os.path.isdir(os.path.join("drills", target)):
+                        console.print(f"  {i}. `make drill {target}` — "
+                                      f"[{style}]{status}[/{style}] [bold]{target}[/bold] ({reason})")
+                    else:
+                        console.print(f"  {i}. drill: {nodes[target].get('drill', 'improvise a <5min drill')} — "
+                                      f"[{style}]{status}[/{style}] [bold]{target}[/bold]")
+                if pnum and target in dodged and os.path.isdir(os.path.join("drills", target)):
+                    console.print(f"     [yellow]drill FIRST — a drill can't be dodged: "
+                                  f"`make drill {target}`[/yellow]")
+            console.print(f"  ⛰  [bold]{summit}. {p['title']}[/bold] — summit: walk all "
+                          "SOLID after the camps above, a pure combination rep")
+            console.print(f"\n[dim]Work top-down; `make solved` after each camp, then re-run "
+                          f"`make hard {summit}` — the route re-derives and shrinks as camps turn SOLID.[/dim]")
+    out.append(cap.get())
 
-    if args.no_show:
-        return
+    if not args.no_show:
+        tree = input_tree(p["moves"], nodes)
+        dot = make_digraph("kg_hard")
+        for n in tree:
+            s, d = statuses[n]
+            status_node(dot, n, nodes[n], s, d, highlight=(n in p["moves"]))
+        for n in tree:
+            for pre in nodes[n].get("prereqs", []):
+                if pre in tree:
+                    dot.edge(pre, n)
+        summit_node = f"problem_{summit}"
+        dot.node(
+            summit_node,
+            label=f"⛰ {summit}. {p['title']}",
+            shape="box",
+            style="filled",
+            fillcolor="#1f6feb",
+            color="#c9d1d9",
+            penwidth="2",
+            fontsize="13",
+            margin="0.2,0.12",
+            tooltip=problem_url(summit, metadata),
+        )
+        for m in p["moves"]:
+            if m in tree:
+                dot.edge(m, summit_node, penwidth="1.4")
+        logical_width = render(dot, "kg_hard")
+        display("kg_hard", logical_width)
 
-    tree = input_tree(p["moves"], nodes)
-    dot = make_digraph("kg_hard")
-    for n in tree:
-        s, d = statuses[n]
-        status_node(dot, n, nodes[n], s, d, highlight=(n in p["moves"]))
-    for n in tree:
-        for pre in nodes[n].get("prereqs", []):
-            if pre in tree:
-                dot.edge(pre, n)
-    summit_node = f"problem_{summit}"
-    dot.node(
-        summit_node,
-        label=f"⛰ {summit}. {p['title']}",
-        shape="box",
-        style="filled",
-        fillcolor="#1f6feb",
-        color="#c9d1d9",
-        penwidth="2",
-        fontsize="13",
-        margin="0.2,0.12",
-        tooltip=problem_url(summit, metadata),
-    )
-    for m in p["moves"]:
-        if m in tree:
-            dot.edge(m, summit_node, penwidth="1.4")
-    logical_width = render(dot, "kg_hard")
-    display("kg_hard", logical_width)
+    animate("".join(out), effect=HARD_EFFECT)
 
 
 if __name__ == "__main__":

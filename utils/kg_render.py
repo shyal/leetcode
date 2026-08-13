@@ -5,6 +5,7 @@
 
 import base64
 import os
+import shutil
 import struct
 import subprocess
 import sys
@@ -78,6 +79,22 @@ def render(dot, basename, min_width_px=2000):
         dot.graph_attr["dpi"] = str(int(96 * min_width_px / logical_width) + 1)
         dot.render(filename=basename, directory=GRAPH_DIR, format="png", cleanup=True)
     return logical_width
+
+
+def animate(text, effect=("decrypt", "--typing-speed", "20")):
+    """Play text through a ttfx effect on a tty; plain write otherwise.
+
+    Runs ttfx against the real terminal so it can't swallow anything written
+    around it (the inline-image escape in particular).
+    """
+    exe = shutil.which("ttfx")
+    if not exe or not sys.stdout.isatty():
+        sys.stdout.write(text)
+        sys.stdout.flush()
+        return
+    subprocess.run(
+        [exe, "--frame-rate", "360", "--existing-color-handling", "always", *effect],
+        input=text.encode(), check=False)
 
 
 def show_inline(png_path, display_width_px=None):
