@@ -1,9 +1,10 @@
 {
-  "_comment": "Seed move taxonomy. A node = one atomic, drillable move (finer than a topic tag). Mastery is NEVER stored here \u2014 it is derived at query time from evidence.json dates. Split a node (fission) when a stumble reveals a hidden sub-move inside it.",
+  "_comment": "Seed move taxonomy. A node = one atomic, drillable move (finer than a topic tag). Mastery is NEVER stored here \u2014 it is derived at query time from evidence.json dates. Split a node (fission) when a stumble reveals a hidden sub-move inside it. `added` = the date the node entered the taxonomy (first commit, clamped back to its earliest evidence).",
   "nodes": [
     {
       "id": "set-membership",
       "group": "containers",
+      "added": "2025-09-17",
       "name": "Set membership test",
       "desc": "Build a set, ask 'is this value in it?' in O(1).",
       "prereqs": [],
@@ -12,6 +13,7 @@
     {
       "id": "set-algebra",
       "group": "containers",
+      "added": "2025-09-18",
       "name": "Set algebra",
       "desc": "Union, intersection (&), difference (-), symmetric difference on sets.",
       "prereqs": [
@@ -22,6 +24,7 @@
     {
       "id": "counter-build",
       "group": "containers",
+      "added": "2025-09-18",
       "name": "Frequency map",
       "desc": "Build value->count with Counter/defaultdict(int).",
       "prereqs": [],
@@ -30,6 +33,7 @@
     {
       "id": "counter-multiset-ops",
       "group": "containers",
+      "added": "2025-09-29",
       "name": "Counter as multiset",
       "desc": "==, <=, &, - and .elements() as multiset equality, sub-multiset, intersection, difference.",
       "prereqs": [
@@ -40,6 +44,7 @@
     {
       "id": "counts-as-data",
       "group": "containers",
+      "added": "2025-09-18",
       "name": "Question the counts themselves",
       "desc": "Treat Counter.values() as the dataset (uniqueness of counts, sorted counts, count-of-counts).",
       "prereqs": [
@@ -50,6 +55,7 @@
     {
       "id": "dict-arbitrary-value",
       "group": "containers",
+      "added": "2025-10-01",
       "name": "Dict values beyond counts",
       "desc": "Store indices, last-seen positions, or mappings as dict values \u2014 choose WHAT to remember.",
       "prereqs": [
@@ -60,6 +66,7 @@
     {
       "id": "bijection-check",
       "group": "containers",
+      "added": "2025-10-03",
       "name": "Bijective mapping check",
       "desc": "Verify a one-to-one two-way mapping with two dicts (or dict + value-set).",
       "prereqs": [
@@ -70,6 +77,7 @@
     {
       "id": "streaming-ask-then-record",
       "group": "streaming",
+      "added": "2025-09-17",
       "name": "Streaming ask-then-record",
       "desc": "Walk once; at each element QUERY the running summary of the past, THEN record the present. Order defines 'past'.",
       "prereqs": [
@@ -80,6 +88,7 @@
     {
       "id": "derived-key-lookup",
       "group": "streaming",
+      "added": "2025-09-15",
       "name": "Derived-key lookup",
       "desc": "Transform the in-hand value into the lookup key (target-n, n+k) instead of looking up the value itself.",
       "prereqs": [
@@ -91,6 +100,7 @@
     {
       "id": "solve-pair-condition",
       "group": "streaming",
+      "added": "2025-10-01",
       "name": "Solve pair condition for the partner",
       "desc": "Given a pair predicate f(p, n), solve for p algebraically; the solution count = number of lookups needed.",
       "prereqs": [],
@@ -99,6 +109,7 @@
     {
       "id": "streaming-accumulate-pairs",
       "group": "streaming",
+      "added": "2025-10-03",
       "name": "Accumulate pair matches",
       "desc": "pairs += (matches in the past) at each step, instead of returning on first match. Each pair counted at its second member.",
       "prereqs": [
@@ -109,6 +120,7 @@
     {
       "id": "running-extreme",
       "group": "streaming",
+      "added": "2025-09-17",
       "name": "Running min/max",
       "desc": "Track best-so-far while scanning; answer via current vs best (stock profit shape).",
       "prereqs": [],
@@ -117,6 +129,7 @@
     {
       "id": "running-sum",
       "group": "streaming",
+      "added": "2025-09-15",
       "name": "Running accumulation",
       "desc": "Accumulate a total/state while scanning (altitude, balance, depth counters).",
       "prereqs": [],
@@ -125,6 +138,7 @@
     {
       "id": "seen-state-cycle-detect",
       "group": "streaming",
+      "added": "2025-09-29",
       "name": "Seen-state cycle detection",
       "desc": "Store visited states in a set; revisit = cycle/repeat (happy number, path crossing).",
       "prereqs": [
@@ -135,6 +149,7 @@
     {
       "id": "prefix-sums",
       "group": "index-order",
+      "added": "2025-10-02",
       "name": "Prefix sums",
       "desc": "Precompute cumulative sums; any range sum = difference of two prefixes.",
       "prereqs": [
@@ -145,6 +160,7 @@
     {
       "id": "prefix-sum-hashmap",
       "group": "index-order",
+      "added": "2025-10-02",
       "name": "Prefix-sum + hashmap",
       "desc": "Count subarrays summing to k by asking the past 'have you seen prefix-k?' (560 shape).",
       "prereqs": [
@@ -157,6 +173,7 @@
     {
       "id": "sort-then-adjacent",
       "group": "index-order",
+      "added": "2025-09-29",
       "name": "Sort, then adjacent pairs",
       "desc": "Sorting makes the answer a property of neighbors (min abs difference, arithmetic check).",
       "prereqs": [],
@@ -165,6 +182,7 @@
     {
       "id": "sort-by-custom-key",
       "group": "index-order",
+      "added": "2025-09-24",
       "name": "Custom sort keys",
       "desc": "key=lambda with tuples for multi-criteria / derived ordering.",
       "prereqs": [],
@@ -173,6 +191,7 @@
     {
       "id": "counting-sort-buckets",
       "group": "index-order",
+      "added": "2026-07-05",
       "name": "Bucket by bounded value",
       "desc": "When the value domain is small, index an array by value instead of sorting.",
       "prereqs": [
@@ -183,6 +202,7 @@
     {
       "id": "two-pointers-converging",
       "group": "pointers-windows",
+      "added": "2025-09-16",
       "name": "Converging two pointers",
       "desc": "Pointers from both ends move inward by a rule (sorted two-sum, palindrome, container).",
       "prereqs": [],
@@ -191,6 +211,7 @@
     {
       "id": "two-pointers-read-write",
       "group": "pointers-windows",
+      "added": "2025-09-17",
       "name": "Read/write pointers in-place",
       "desc": "Slow pointer = write position, fast = scan; overwrite in place (remove duplicates, move zeroes).",
       "prereqs": [],
@@ -199,6 +220,7 @@
     {
       "id": "fast-slow-pointers",
       "group": "pointers-windows",
+      "added": "2025-09-18",
       "name": "Fast/slow pointers",
       "desc": "Two speeds on the same sequence: cycle detection, find middle.",
       "prereqs": [],
@@ -207,6 +229,7 @@
     {
       "id": "sliding-window-fixed",
       "group": "pointers-windows",
+      "added": "2025-09-17",
       "name": "Fixed-size sliding window",
       "desc": "Window of size k: add the entering element, drop the leaving one, never recompute.",
       "prereqs": [
@@ -217,6 +240,7 @@
     {
       "id": "sliding-window-variable",
       "group": "pointers-windows",
+      "added": "2025-09-18",
       "name": "Variable sliding window",
       "desc": "Grow right; shrink left only while an invariant is violated.",
       "prereqs": [
@@ -227,6 +251,7 @@
     {
       "id": "stack-matching",
       "group": "stack-queue",
+      "added": "2025-09-18",
       "name": "Stack for matching/undo",
       "desc": "Push opens/candidates, pop on the matching close (parens, stars, collisions).",
       "prereqs": [],
@@ -235,6 +260,7 @@
     {
       "id": "monotonic-stack",
       "group": "stack-queue",
+      "added": "2025-09-21",
       "name": "Monotonic stack",
       "desc": "Keep the stack sorted; popping on violation reveals 'next greater/smaller' relationships.",
       "prereqs": [
@@ -248,6 +274,7 @@
     {
       "id": "deque-recent-window",
       "group": "stack-queue",
+      "added": "2025-09-18",
       "name": "Deque for a time window",
       "desc": "Append new events, popleft expired ones (recent calls shape).",
       "prereqs": [],
@@ -256,6 +283,7 @@
     {
       "id": "ll-dummy-splice",
       "group": "linked-lists",
+      "added": "2025-09-26",
       "name": "Dummy head + splice",
       "desc": "Dummy node in front; walk and re-link to delete/insert without head special-cases.",
       "prereqs": [],
@@ -264,6 +292,7 @@
     {
       "id": "ll-pointer-reversal",
       "group": "linked-lists",
+      "added": "2025-09-19",
       "name": "Pointer reversal",
       "desc": "Iteratively flip next pointers with prev/curr bookkeeping.",
       "prereqs": [
@@ -274,6 +303,7 @@
     {
       "id": "ll-offset-arithmetic",
       "group": "linked-lists",
+      "added": "2025-10-08",
       "name": "Length/offset arithmetic",
       "desc": "Use lengths or a head-start gap between pointers (nth-from-end, list intersection).",
       "prereqs": [
@@ -284,6 +314,7 @@
     {
       "id": "binary-search-index",
       "group": "binary-search",
+      "added": "2025-09-23",
       "name": "Binary search for an index",
       "desc": "Classic halving on a sorted array; the while/mid/move template.",
       "prereqs": [],
@@ -292,6 +323,7 @@
     {
       "id": "binary-search-boundary",
       "group": "binary-search",
+      "added": "2025-09-24",
       "name": "Boundary binary search",
       "desc": "Find the FIRST index where a monotone predicate flips true (leftmost/rightmost variants).",
       "prereqs": [
@@ -302,6 +334,7 @@
     {
       "id": "binary-search-on-answer",
       "group": "binary-search",
+      "added": "2025-09-26",
       "name": "Binary search on the answer",
       "desc": "Search the answer space; a feasibility check replaces the array (Koko, ship capacity).",
       "prereqs": [
@@ -312,6 +345,7 @@
     {
       "id": "tree-dfs-recursive",
       "group": "trees",
+      "added": "2025-09-16",
       "name": "Recursive tree DFS",
       "desc": "Visit node, recurse children; pre/in/post order as placement of the visit.",
       "prereqs": [],
@@ -320,6 +354,7 @@
     {
       "id": "tree-combine-returns",
       "group": "trees",
+      "added": "2025-09-19",
       "name": "Combine subtree returns",
       "desc": "Answer at node = f(left answer, right answer) (depth, same-tree, balance).",
       "prereqs": [
@@ -330,6 +365,7 @@
     {
       "id": "tree-carry-down",
       "group": "trees",
+      "added": "2025-09-16",
       "name": "Carry state down",
       "desc": "Pass accumulating state as recursion args (path sum so far, max on path, BST bounds).",
       "prereqs": [
@@ -340,6 +376,7 @@
     {
       "id": "tree-global-across-subtrees",
       "group": "trees",
+      "added": "2025-10-03",
       "name": "Global answer across subtrees",
       "desc": "Return one thing up, but update a global best combining left+right at each node (diameter shape).",
       "prereqs": [
@@ -350,6 +387,7 @@
     {
       "id": "tree-bfs-levels",
       "group": "trees",
+      "added": "2025-10-08",
       "name": "Level-order BFS",
       "desc": "Queue of nodes processed level by level; depth = layer count.",
       "prereqs": [],
@@ -358,6 +396,7 @@
     {
       "id": "bst-invariant",
       "group": "trees",
+      "added": "2025-09-25",
       "name": "Exploit BST ordering",
       "desc": "left < node < right prunes half the tree per step (search, validate, insert).",
       "prereqs": [
@@ -368,6 +407,7 @@
     {
       "id": "tree-build-from-traversals",
       "group": "trees",
+      "added": "2025-10-02",
       "name": "Rebuild tree from traversals",
       "desc": "Root from pre/postorder end, split inorder around it, recurse the slices.",
       "prereqs": [
@@ -378,6 +418,7 @@
     {
       "id": "graph-adjacency-build",
       "group": "graphs",
+      "added": "2025-09-22",
       "name": "Edges to adjacency",
       "desc": "Convert edge lists to adjacency dict/list, directed or not.",
       "prereqs": [
@@ -388,6 +429,7 @@
     {
       "id": "graph-dfs-visited",
       "group": "graphs",
+      "added": "2025-09-22",
       "name": "Graph DFS with visited set",
       "desc": "DFS + visited set; count components, check reachability.",
       "prereqs": [
@@ -399,6 +441,7 @@
     {
       "id": "graph-bfs-shortest",
       "group": "graphs",
+      "added": "2025-09-23",
       "name": "BFS for shortest steps",
       "desc": "BFS layers = minimum moves; grid neighbors via delta offsets (maze, oranges).",
       "prereqs": [
@@ -410,6 +453,7 @@
     {
       "id": "union-find",
       "group": "graphs",
+      "added": "2025-11-01",
       "name": "Union-Find",
       "desc": "parent[] with find + union; components and cycle detection without traversal.",
       "prereqs": [],
@@ -418,6 +462,7 @@
     {
       "id": "topological-order",
       "group": "graphs",
+      "added": "2025-11-05",
       "name": "Topological ordering",
       "desc": "Order a DAG by dependencies (Kahn's in-degree queue or DFS postorder); cycle = impossible.",
       "prereqs": [
@@ -428,6 +473,7 @@
     {
       "id": "backtracking-choose-undo",
       "group": "recursion-dp",
+      "added": "2025-09-24",
       "name": "Choose, explore, un-choose",
       "desc": "Append candidate, recurse, pop; prune branches that can't succeed.",
       "prereqs": [
@@ -438,6 +484,7 @@
     {
       "id": "memoize-recursion",
       "group": "recursion-dp",
+      "added": "2025-09-25",
       "name": "Memoized recursion",
       "desc": "@cache on a pure recurrence turns exponential into linear (fib, climbing stairs).",
       "prereqs": [],
@@ -446,6 +493,7 @@
     {
       "id": "dp-state-formulate",
       "group": "recursion-dp",
+      "added": "2025-09-25",
       "name": "Formulate DP state",
       "desc": "Name the state, write the recurrence and base cases BEFORE coding.",
       "prereqs": [
@@ -456,6 +504,7 @@
     {
       "id": "dp-1d-rolling",
       "group": "recursion-dp",
+      "added": "2025-09-25",
       "name": "1D bottom-up DP",
       "desc": "Fill a 1D table (or two rolling vars) forward from base cases.",
       "prereqs": [
@@ -466,6 +515,7 @@
     {
       "id": "dp-2d-grid",
       "group": "recursion-dp",
+      "added": "2025-10-16",
       "name": "2D table DP",
       "desc": "Grid/two-sequence DP: cell from neighbors (paths, edit distance, LCS).",
       "prereqs": [
@@ -476,6 +526,7 @@
     {
       "id": "heap-top-k",
       "group": "heaps-greedy",
+      "added": "2025-09-23",
       "name": "Heap for top-k",
       "desc": "Min-heap of size k holds the k largest; root is the kth.",
       "prereqs": [],
@@ -484,6 +535,7 @@
     {
       "id": "heap-simulation",
       "group": "heaps-greedy",
+      "added": "2025-10-05",
       "name": "Heap-driven simulation",
       "desc": "Repeatedly pop extreme, transform, push back (last stone weight).",
       "prereqs": [
@@ -494,6 +546,7 @@
     {
       "id": "greedy-sort-take",
       "group": "heaps-greedy",
+      "added": "2025-09-24",
       "name": "Sort then take greedily",
       "desc": "Sort by the exchange-argument key (often interval END), take while compatible.",
       "prereqs": [
@@ -504,6 +557,7 @@
     {
       "id": "interval-overlap",
       "group": "heaps-greedy",
+      "added": "2025-09-24",
       "name": "Interval overlap predicate",
       "desc": "a.start <= b.end && b.start <= a.end; merge/count via sorted sweep.",
       "prereqs": [
@@ -514,6 +568,7 @@
     {
       "id": "xor-cancellation",
       "group": "bits-math",
+      "added": "2025-09-20",
       "name": "XOR cancellation",
       "desc": "x^x=0, x^0=x: duplicates vanish under XOR reduction.",
       "prereqs": [],
@@ -522,6 +577,7 @@
     {
       "id": "bit-iterate",
       "group": "bits-math",
+      "added": "2025-09-20",
       "name": "Walk the bits",
       "desc": "Shift/AND to visit bits; popcount; compare numbers bitwise.",
       "prereqs": [],
@@ -530,6 +586,7 @@
     {
       "id": "divmod-decompose",
       "group": "bits-math",
+      "added": "2025-09-15",
       "name": "Digit/base decomposition",
       "desc": "divmod loops to peel digits or convert bases.",
       "prereqs": [],
@@ -538,6 +595,7 @@
     {
       "id": "gcd-reduction",
       "group": "bits-math",
+      "added": "2025-09-17",
       "name": "GCD/LCM reasoning",
       "desc": "Euclid's gcd and where divisibility structure hides (gcd of array, common factors).",
       "prereqs": [],
@@ -546,6 +604,7 @@
     {
       "id": "pair-count-formula",
       "group": "bits-math",
+      "added": "2025-10-03",
       "name": "Closed-form pair counting",
       "desc": "C(n,2)=n(n-1)/2 per group; batch alternative to streaming pair accumulation.",
       "prereqs": [
@@ -556,6 +615,7 @@
     {
       "id": "modular-cycle",
       "group": "bits-math",
+      "added": "2025-09-16",
       "name": "Modulo for circularity",
       "desc": "% for wraparound indexing, cyclic distance, periodic schedules.",
       "prereqs": [],
@@ -564,6 +624,7 @@
     {
       "id": "string-build-transform",
       "group": "strings",
+      "added": "2025-09-15",
       "name": "Split/transform/join",
       "desc": "Decompose string, transform parts, reassemble (words, prefixes, normalization).",
       "prereqs": [],
@@ -572,6 +633,7 @@
     {
       "id": "trie-build-walk",
       "group": "strings",
+      "added": "2025-09-20",
       "name": "Trie build and walk",
       "desc": "Nested-dict character tree; insert and prefix-walk.",
       "prereqs": [
@@ -582,6 +644,7 @@
     {
       "id": "heap-lazy-eviction",
       "group": "heaps-greedy",
+      "added": "2026-08-13",
       "name": "Lazy eviction from a heap",
       "desc": "Leave stale entries in the heap; on peek/pop, discard tops that fail a validity check (index left the window, value outdated) until the top is live.",
       "prereqs": [
@@ -592,6 +655,7 @@
     {
       "id": "multi-source-bfs",
       "group": "graphs",
+      "added": "2026-08-13",
       "name": "Multi-source BFS",
       "desc": "Seed the BFS queue with every source at distance 0, then expand in rings; each cell's first visit is its distance to the nearest source.",
       "prereqs": [
@@ -602,6 +666,7 @@
     {
       "id": "prefix-suffix-two-pass",
       "group": "index-order",
+      "added": "2026-08-13",
       "name": "Prefix/suffix two-pass",
       "desc": "Scan left-to-right recording a running quantity, scan right-to-left recording its mirror, then combine the two per index.",
       "prereqs": [
@@ -613,6 +678,7 @@
     {
       "id": "stack-nested-eval",
       "group": "stack-queue",
+      "added": "2026-08-13",
       "name": "Stack of partial state",
       "desc": "Entering a nested scope or higher-precedence region, push the partial result and context; when it closes, pop and combine.",
       "prereqs": [
@@ -623,6 +689,7 @@
     {
       "id": "event-sweep",
       "group": "index-order",
+      "added": "2026-08-13",
       "name": "Event sweep",
       "desc": "Turn intervals into +1/-1 boundary events, sort them, sweep once keeping a running count (or heap) of what's active.",
       "prereqs": [
@@ -634,6 +701,7 @@
     {
       "id": "rotated-array-pivot",
       "group": "binary-search",
+      "added": "2026-08-13",
       "name": "Rotated-array half-pick",
       "desc": "At each binary-search step, compare mid against an end to decide which half is sorted, then pick the half that can contain the target/min.",
       "prereqs": [
