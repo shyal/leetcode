@@ -112,9 +112,12 @@ goes stale automatically if a different problem is prepared.
    stability, so a helped rep buys a shorter window than an unaided one. Delete
    curve.json to fall back to a flat 42-day window. Nothing goes stale by sitting in
    a file.
-2. **One new move per assignment.** A problem is READY when at most one of its moves is
-   non-SOLID — that move is the training target. Two or more → prep first: spaced re-solve
-   for STALE, micro-drill for MISSING/FRAGILE.
+2. **One new move per assignment; summits take zero.** An easy/medium is READY when at
+   most one of its moves is non-SOLID — that move is the training target. A Hard is READY
+   only when its whole walk is SOLID: hards are summits (pure combination reps), never
+   refresh carriers — you don't carry rusty gear up the Himalayas. Any gap → prep first:
+   spaced re-solve for STALE, micro-drill for MISSING/FRAGILE (`make hard <num>` plans
+   the basecamp route).
 3. **Evidence discipline.** A topic tag or problem title is not evidence; the code is.
    Evidence records only what the code actually exercised (`clean`/`struggled`). A mapped
    move the solve routed around is recorded as a discovered `alt_walk` on the PROBLEM
