@@ -1,0 +1,248 @@
+#!/usr/bin/env python3
+
+# kg_positions_svg — animated SVG replaying the full evidence history on the
+# forgetting-curve axes, written to graph/positions.svg for the README
+# pipeline.
+#
+#   make readme                # regenerates it and embeds it via S3
+#
+# The replay runs the calendar from the first clean rep to today, looping.
+# Each node's dot ages rightward along its current personal curve; every
+# review (clean rep) snaps it back to gap zero AND onto a flatter curve,
+# because stability grows with reps. Dots turn amber whenever they sag below
+# the 90% solid threshold and green again when a review rescues them. A
+# month ticker runs top-right. Pure SMIL (no CSS/JS), so it plays inside
+# GitHub's camo/<img> pipeline and loops indefinitely.
+
+import json
+import math
+import os
+from collections import defaultdict
+from datetime import date
+
+from kg_lib import ASSIST_WEIGHT, GRAPH_DIR, assist_of, load_evidence
+
+OUT = os.path.join(GRAPH_DIR, "positions.svg")
+
+W, H = 1200, 700
+ML, MR, MT, MB = 70, 30, 78, 56          # margins
+PW, PH = W - ML - MR, H - MT - MB
+GAP_MAX = 700.0
+Y_LO, Y_HI = 0.70, 1.02
+DUR = 24.0                               # seconds per loop
+TAIL = 0.94                              # calendar ends here; 6% end-of-loop hold
+THR = 0.9
+
+SURFACE = "#17181c"
+INK = "#e8e6e3"
+INK_MUTED = "#9a978f"
+GRID = "#2a2c33"
+GOOD = "#57c785"
+WARN = "#e8b33c"
+CURVE = "#4a4d55"
+
+
+def X(g):
+    return ML + math.log10(max(g, 1.0)) / math.log10(GAP_MAX) * PW
+
+
+def Y(p):
+    return MT + (Y_HI - p) / (Y_HI - Y_LO) * PH
+
+
+def node_events(evidence):
+    """node -> chronological [(date, verdict, assist)]"""
+    events = defaultdict(list)
+    for _, rec in evidence.items():
+        assist = assist_of(rec)
+        for node, verdict in rec.get("moves", {}).items():
+            events[node].append((rec["date"], verdict, assist))
+    for evs in events.values():
+        evs.sort()
+    return events
+
+
+def main():
+    with open(os.path.join(GRAPH_DIR, "curve.json")) as f:
+        P = json.load(f)["params"]
+
+    today = date.today()
+    events = node_events(load_evidence())
+
+    def mem(g, s):
+        return (1 + g / s) ** (-P["beta"])
+
+    # per node: clean-rep segments [(start_day, length_days, stability)]
+    all_first = []
+    tracks = {}
+    for node, evs in events.items():
+        cleans = struggles = 0
+        assisted = 0.0
+        reps = []  # (date, stability_after)
+        for d, v, a in evs:
+            if v == "clean" and a != "spoiled":
+                cleans += 1
+                assisted += ASSIST_WEIGHT[a]
+                s = math.exp(P["a"] + P["b"] * cleans - P["c"] * struggles - P["d"] * assisted)
+                reps.append((date.fromisoformat(d), s))
+            else:
+                if v == "struggled":
+                    struggles += 1
+                assisted += ASSIST_WEIGHT[a]
+        if reps:
+            tracks[node] = reps
+            all_first.append(reps[0][0])
+
+    t0 = min(all_first)
+    span = max((today - t0).days, 1)
+
+    def frac(day_offset):
+        return day_offset / span * TAIL
+
+    svg = []
+    svg.append(
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" '
+        f'font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif">')
+    svg.append(f'<rect width="{W}" height="{H}" fill="{SURFACE}"/>')
+
+    svg.append(f'<text x="{ML}" y="30" fill="{INK}" font-size="19">'
+               'Technique nodes living on their forgetting curves</text>')
+    svg.append(f'<text x="{ML}" y="52" fill="{INK_MUTED}" font-size="12">'
+               'calendar replay, looping: dots age to the right, every review snaps them back '
+               'to day zero on a flatter curve; amber = below the 90% solid threshold</text>')
+
+    # grid + axes
+    for p in (0.75, 0.80, 0.85, 0.90, 0.95, 1.00):
+        y = Y(p)
+        svg.append(f'<line x1="{ML}" y1="{y:.1f}" x2="{W - MR}" y2="{y:.1f}" '
+                   f'stroke="{GRID}" stroke-width="1"/>')
+        svg.append(f'<text x="{ML - 8}" y="{y + 4:.1f}" fill="{INK_MUTED}" '
+                   f'font-size="11" text-anchor="end">{p:.0%}</text>')
+    for g, lab in ((1, "1d"), (3, "3d"), (7, "1w"), (14, "2w"), (30, "1m"),
+                   (60, "2m"), (120, "4m"), (250, "8m"), (500, "16m")):
+        x = X(g)
+        svg.append(f'<line x1="{x:.1f}" y1="{MT + PH}" x2="{x:.1f}" y2="{MT + PH + 5}" '
+                   f'stroke="{INK_MUTED}" stroke-width="1"/>')
+        svg.append(f'<text x="{x:.1f}" y="{MT + PH + 20}" fill="{INK_MUTED}" '
+                   f'font-size="11" text-anchor="middle">{lab}</text>')
+    svg.append(f'<text x="{ML + PW / 2}" y="{H - 10}" fill="{INK_MUTED}" font-size="12" '
+               f'text-anchor="middle">days since last clean rep (log)</text>')
+
+    y90 = Y(THR)
+    svg.append(f'<line x1="{ML}" y1="{y90:.1f}" x2="{W - MR}" y2="{y90:.1f}" '
+               f'stroke="{INK_MUTED}" stroke-width="1.2" stroke-dasharray="7 5"/>')
+    svg.append(f'<text x="{ML + PW * 0.42:.1f}" y="{y90 + 16:.1f}" fill="{INK_MUTED}" '
+               f'font-size="11">90% — solid above, stale below</text>')
+
+    # month ticker, top right
+    months = []
+    m = date(t0.year, t0.month, 1)
+    while m <= today:
+        months.append(m)
+        m = date(m.year + (m.month == 12), m.month % 12 + 1, 1)
+    for i, m in enumerate(months):
+        fs = frac(max((m - t0).days, 0))
+        nxt = months[i + 1] if i + 1 < len(months) else None
+        fe = frac((nxt - t0).days) if nxt else 1.0
+        lab = m.strftime("%b '%y").lower()
+        vals, times = ("0;1;0", f"0;{fs:.4f};{fe:.4f}") if fs > 0 else ("1;0", f"0;{fe:.4f}")
+        if not nxt:
+            vals, times = ("0;1", f"0;{fs:.4f}") if fs > 0 else ("1", "0")
+        svg.append(f'<text x="{W - MR}" y="30" fill="{INK}" font-size="16" '
+                   f'text-anchor="end" opacity="0">{lab}'
+                   f'<animate attributeName="opacity" calcMode="discrete" values="{vals}" '
+                   f'keyTimes="{times}" dur="{DUR}s" repeatCount="indefinite"/></text>')
+
+    # faint static curves at final stability, for the rails
+    for node, reps in tracks.items():
+        s = reps[-1][1]
+        pts = [f"{X(g):.1f},{Y(mem(g, s)):.1f}"
+               for g in (10 ** (i / 40 * math.log10(GAP_MAX)) for i in range(41))]
+        svg.append(f'<polyline points="{" ".join(pts)}" fill="none" '
+                   f'stroke="{CURVE}" stroke-width="0.8" opacity="0.3"/>')
+
+    # animated dots
+    n_stale = 0
+    stale_now = []
+    for node in sorted(tracks):
+        reps = tracks[node]
+        first_day = (reps[0][0] - t0).days
+
+        times, xs, ys = [0.0], [f"{X(1):.1f}"], [f"{Y(1.0):.1f}"]
+        color_times, color_vals = [0.0], [GOOD]
+        eps = 0.0006
+        for i, (rd, s) in enumerate(reps):
+            seg_start = (rd - t0).days
+            seg_end = (reps[i + 1][0] - t0).days if i + 1 < len(reps) else span
+            length = max(seg_end - seg_start, 0)
+            t_jump = frac(seg_start)
+            if times[-1] >= t_jump:
+                t_jump = times[-1] + eps
+            times.append(t_jump)
+            xs.append(f"{X(1):.1f}")
+            ys.append(f"{Y(1.0):.1f}")
+            if i > 0:
+                color_times.append(t_jump)
+                color_vals.append(GOOD)
+
+            n = min(length, 24) or 1
+            sampled = sorted({max(1, round(length * j / n)) for j in range(1, n + 1)}) if length else []
+            for g in sampled:
+                times.append(frac(seg_start + g))
+                xs.append(f"{X(g):.1f}")
+                ys.append(f"{Y(mem(g, s)):.1f}")
+
+            g90 = s * (THR ** (-1 / P["beta"]) - 1)
+            if g90 < length:
+                color_times.append(frac(seg_start + max(g90, 1)))
+                color_vals.append(WARN)
+
+        times.append(1.0)
+        xs.append(xs[-1])
+        ys.append(ys[-1])
+
+        p_final = mem(max((today - reps[-1][0]).days, 1), reps[-1][1])
+        is_stale = p_final < THR
+        n_stale += is_stale
+        if is_stale:
+            stale_now.append((node, float(xs[-2]), float(ys[-2])))
+
+        kt = ";".join(f"{t:.4f}" for t in times)
+        f_first = frac(first_day)
+        op_vals, op_times = ("0;1", f"0;{f_first:.4f}") if f_first > 0 else ("1", "0")
+        ckt = ";".join(f"{t:.4f}" for t in color_times)
+        svg.append(
+            f'<circle r="{6 if is_stale else 4.5}" fill="{GOOD}" opacity="0" '
+            f'stroke="{SURFACE}" stroke-width="1">'
+            f'<animate attributeName="opacity" calcMode="discrete" values="{op_vals}" '
+            f'keyTimes="{op_times}" dur="{DUR}s" repeatCount="indefinite"/>'
+            f'<animate attributeName="cx" values="{";".join(xs)}" keyTimes="{kt}" '
+            f'calcMode="linear" dur="{DUR}s" repeatCount="indefinite"/>'
+            f'<animate attributeName="cy" values="{";".join(ys)}" keyTimes="{kt}" '
+            f'calcMode="linear" dur="{DUR}s" repeatCount="indefinite"/>'
+            f'<animate attributeName="fill" calcMode="discrete" values="{";".join(color_vals)}" '
+            f'keyTimes="{ckt}" dur="{DUR}s" repeatCount="indefinite"/>'
+            f'</circle>')
+
+    # static labels marking where the stale nodes end each cycle (today)
+    for node, lx, ly in stale_now:
+        svg.append(f'<text x="{lx + 10:.1f}" y="{ly + 4:.1f}" fill="{INK}" '
+                   f'font-size="12">{node}</text>')
+
+    # legend
+    svg.append(f'<circle cx="{ML + 10}" cy="{H - 38}" r="4.5" fill="{GOOD}"/>')
+    svg.append(f'<text x="{ML + 22}" y="{H - 34}" fill="{INK}" font-size="12">'
+               f'solid today ({len(tracks) - n_stale})</text>')
+    svg.append(f'<circle cx="{ML + 140}" cy="{H - 38}" r="6" fill="{WARN}"/>')
+    svg.append(f'<text x="{ML + 152}" y="{H - 34}" fill="{INK}" font-size="12">'
+               f'stale today ({n_stale})</text>')
+
+    svg.append("</svg>")
+    with open(OUT, "w") as f:
+        f.write("\n".join(svg) + "\n")
+    print(f"wrote {OUT} ({len(tracks)} nodes, {n_stale} stale, "
+          f"{span}d replay looping every {DUR:.0f}s)")
+
+
+if __name__ == "__main__":
+    main()

@@ -1,4 +1,4 @@
-.PHONY: all parse learning prepare recommend force unforce preflight kg-extract kg-status kg-viz movie next dive drill hard readme sleep solved test viz
+.PHONY: all parse learning prepare recommend force unforce preflight kg-extract kg-status kg-viz movie next dive drill hard readme residuals sleep solved test viz
 
 all:
 	@cp utils/sitecustomize.py .venv/lib/python3.10/site-packages/
@@ -44,6 +44,10 @@ kg-viz:
 
 curve:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_curve
+	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_residuals
+
+residuals:
+	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_residuals
 
 mock:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_mock $(filter-out $@,$(MAKECMDGOALS))
@@ -90,4 +94,5 @@ drill:
 
 readme:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/estimate
+	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_positions_svg
 	@AWS_PROFILE=root PYTHONPATH=./utils .venv/bin/python3 utils/update_readme.py
