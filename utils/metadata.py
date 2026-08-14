@@ -22,6 +22,9 @@ def get_problems_metadata():
             diff = stat["difficulty"]["level"]  # 1,2,3
             diff_str = {1: "Easy", 2: "Medium", 3: "Hard"}[diff]
             problems[num] = {"title": title, "slug": slug, "difficulty": diff_str}
+            if s.get("total_submitted"):
+                problems[num]["acceptance"] = round(
+                    100 * s["total_acs"] / s["total_submitted"], 1)
 
         with open(METADATA_FILE, "w") as f:
             json.dump(problems, f)
