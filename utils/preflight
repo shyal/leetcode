@@ -9,9 +9,10 @@
 # problems.json.
 #
 # Verdict: READY when at most one move is non-SOLID (that move is the
-# training target). Otherwise PREP FIRST, with one prep step per weak move:
-# STALE -> spaced re-solve of its most recent carrier; FRAGILE/MISSING ->
-# the node's micro-drill.
+# training target). Hards are summits: READY only when EVERY move in the
+# walk is SOLID — rusty gear stays at basecamp. Otherwise PREP FIRST, with
+# one prep step per weak move: STALE -> spaced re-solve of its most recent
+# carrier; FRAGILE/MISSING -> the node's micro-drill.
 
 import argparse
 import sys
@@ -97,15 +98,23 @@ def main():
 
     console.print(table)
 
-    if len(weak) <= 1:
+    is_hard = meta.get("difficulty") == "Hard"
+    tolerance = 0 if is_hard else 1
+    if len(weak) <= tolerance:
         console.print("\n[bold green]Verdict: READY[/bold green]")
         if weak:
             console.print(f"Training target: [bold]{weak[0][0]}[/bold] ({weak[0][1]})")
+        elif is_hard:
+            console.print("[dim]Walk is all green — summit is a pure combination rep at altitude.[/dim]")
         else:
             console.print("[dim]No new moves — this is a pure combination/consolidation rep.[/dim]")
         return
 
-    console.print("\n[bold red]Verdict: PREP FIRST[/bold red] — more than one non-SOLID move.\n")
+    if is_hard:
+        console.print("\n[bold red]Verdict: PREP FIRST[/bold red] — summits demand an all-SOLID walk"
+                      f" (rusty gear stays at basecamp; `make hard {problem_key}` plans the route).\n")
+    else:
+        console.print("\n[bold red]Verdict: PREP FIRST[/bold red] — more than one non-SOLID move.\n")
     step = 1
     for move, status in weak:
         node = nodes[move]
