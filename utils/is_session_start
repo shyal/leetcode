@@ -1,0 +1,55 @@
+#!/usr/bin/env python3
+
+# is_session_start — predicate: is this the start of the session?
+#
+# True when fewer than THRESHOLD solves have been authored since local
+# midnight (Asia/Manila — git stamps are UTC, and the evidence-folding
+# amend rewrites commit dates, so it counts by AUTHOR date of commits
+# that ADD files under solved/ or drills/; meta and tooling commits
+# never count).
+#
+# Prints true/false; exit code 0/1 to match.
+#
+#   make is_session_start
+
+import os
+import subprocess
+import sys
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+from kg_lib import GRAPH_DIR
+
+MANILA = ZoneInfo("Asia/Manila")
+THRESHOLD = 2
+
+
+def solves_today():
+    """Solve files authored since local midnight (added, not just touched).
+    Author date, not commit date: a solve committed or amended hours later
+    still belongs to the sitting where it was actually solved."""
+    midnight = datetime.now(tz=MANILA).replace(hour=0, minute=0, second=0,
+                                               microsecond=0)
+    out = subprocess.run(
+        ["git", "log", "--since=3.days", "--diff-filter=A", "--format=@%at",
+         "--name-only", "--", "solved/", "drills/"],
+        capture_output=True, text=True,
+        cwd=os.path.dirname(GRAPH_DIR)).stdout.split()
+    solves, today = set(), False
+    for tok in out:
+        if tok.startswith("@"):
+            authored = datetime.fromtimestamp(int(tok[1:]), tz=MANILA)
+            today = authored >= midnight
+        elif today:
+            solves.add(tok)
+    return sorted(solves)
+
+
+def main():
+    start = len(solves_today()) < THRESHOLD
+    print("true" if start else "false")
+    sys.exit(0 if start else 1)
+
+
+if __name__ == "__main__":
+    main()

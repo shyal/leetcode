@@ -1,8 +1,7 @@
-.PHONY: all parse learning prepare recommend force unforce preflight kg-extract kg-status kg-viz movie next dive drill hard readme residuals sleep solved test viz warmup
+.PHONY: all parse learning prepare recommend force unforce preflight kg-extract kg-status kg-viz movie next dive drill hard is_session_start readme residuals sleep solved test viz
 
 all:
 	@cp utils/sitecustomize.py .venv/lib/python3.10/site-packages/
-	@if [ "$$(git rev-parse --abbrev-ref HEAD)" = "master" ]; then PYTHONPATH=./utils .venv/bin/python3 utils/kg_warmup; fi
 	@if [ "$$(git rev-parse --abbrev-ref HEAD)" = "master" ]; then PYTHONPATH=./utils .venv/bin/python3 utils/kg_today; fi
 	@PYTHONPATH=./utils:${PYTHONPATH} .venv/bin/python3 utils/test_runner.py
 
@@ -12,8 +11,8 @@ goals:
 today:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_today $(filter-out $@,$(MAKECMDGOALS))
 
-warmup:
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_warmup
+is_session_start:
+	@PYTHONPATH=./utils .venv/bin/python3 utils/is_session_start || true
 
 parse:
 	@.venv/bin/python3 utils/parse.py
