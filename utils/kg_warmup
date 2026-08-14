@@ -1,0 +1,86 @@
+#!/usr/bin/env python3
+
+# kg_warmup — momentum laps, gated by the clock.
+#
+# Detects the start of a session: if no solve has landed in solved/ or
+# drills/ within the last START_GAP_HOURS (git stamps are UTC; the gap is
+# what matters, but times print in the operator's Asia/Manila), prescribe
+# 2 dead-easy warmup laps before the assignment: all-SOLID easies with
+# tiny walks and high acceptance. Momentum, not tests, not training —
+# nothing worse than stalling first thing in the morning. A fresh morning
+# and a long mid-day break both count as session starts; quiet while
+# solves are landing.
+#
+#   make warmup    # also runs automatically at the top of `make`
+
+import json
+import os
+import subprocess
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
+
+from rich.console import Console
+
+from kg_lib import (
+    GRAPH_DIR, load_nodes, load_problems, load_evidence, node_status,
+    acceptance, tree_size, last_solved, SOLID,
+)
+
+MANILA = ZoneInfo("Asia/Manila")
+LAPS = 2
+START_GAP_HOURS = 3
+
+console = Console()
+
+
+def last_solve_time():
+    """Timestamp of the most recent solve commit, or None."""
+    out = subprocess.run(
+        ["git", "log", "-1", "--format=%ct", "--", "solved/", "drills/"],
+        capture_output=True, text=True,
+        cwd=os.path.dirname(GRAPH_DIR)).stdout.strip()
+    return datetime.fromtimestamp(int(out), tz=timezone.utc) if out else None
+
+
+def problem_url(pnum):
+    meta_path = os.path.join(os.path.dirname(GRAPH_DIR), ".problems_metadata.json")
+    try:
+        slug = json.load(open(meta_path))[str(pnum)]["slug"]
+        return f"https://leetcode.com/problems/{slug}/"
+    except Exception:
+        return f"https://leetcode.com/problemset/?search={pnum}"
+
+
+def pick_laps(problems, nodes, evidence, n=LAPS):
+    statuses = {m: node_status(m, evidence) for m in nodes}
+    cands = []
+    for pnum, p in problems.items():
+        moves = p.get("moves", [])
+        if p.get("banned") or p.get("difficulty") != "Easy" or not moves:
+            continue
+        if not all(m in nodes and statuses[m][0] == SOLID for m in moves):
+            continue
+        cands.append((tree_size(pnum, problems, nodes), -acceptance(pnum),
+                      last_solved(pnum, evidence), pnum))
+    cands.sort()
+    return [c[3] for c in cands[:n]]
+
+
+def main():
+    last = last_solve_time()
+    now = datetime.now(tz=timezone.utc)
+    if last and (now - last).total_seconds() < START_GAP_HOURS * 3600:
+        return  # mid-session — solves are landing, no laps needed
+    problems = load_problems()
+    laps = pick_laps(problems, load_nodes(), load_evidence())
+    if not laps:
+        return
+    since = f"last solve {last.astimezone(MANILA):%a %H:%M}" if last else "no solves yet"
+    console.print(f"[bold]Warmup — session start[/bold] [dim]({since})[/dim] — "
+                  f"{len(laps)} momentum laps before the assignment:")
+    for i, pnum in enumerate(laps, 1):
+        console.print(f"  {i}. {pnum}. {problems[pnum]['title']}  [dim]{problem_url(pnum)}[/dim]")
+
+
+if __name__ == "__main__":
+    main()
