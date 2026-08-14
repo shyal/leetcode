@@ -2,21 +2,21 @@
 
 # kg_warmup — momentum laps, gated by the clock.
 #
-# Detects the start of a session: if no solve has landed in solved/ or
-# drills/ within the last START_GAP_HOURS (git stamps are UTC; the gap is
-# what matters, but times print in the operator's Asia/Manila), prescribe
-# 2 dead-easy warmup laps before the assignment: all-SOLID easies with
-# tiny walks and high acceptance. Momentum, not tests, not training —
-# nothing worse than stalling first thing in the morning. A fresh morning
-# and a long mid-day break both count as session starts; quiet while
-# solves are landing.
+# Detects the start of the day: count the solves committed since local
+# midnight (Asia/Manila — git stamps are UTC, so the midnight cutoff is
+# passed to git with its +08:00 offset) — solve commits only, meaning
+# files added under solved/ or drills/, never meta/tooling commits.
+# Fewer than LAPS solves so far -> still in the warmup: prescribe the
+# remaining laps, dead-easy first — all-SOLID easies with tiny walks and
+# high acceptance. Momentum, not tests, not training — nothing worse
+# than stalling first thing in the morning. Quiet from lap LAPS onward.
 #
 #   make warmup    # also runs automatically at the top of `make`
 
 import json
 import os
 import subprocess
-from datetime import datetime, timezone
+from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from rich.console import Console
@@ -28,18 +28,20 @@ from kg_lib import (
 
 MANILA = ZoneInfo("Asia/Manila")
 LAPS = 2
-START_GAP_HOURS = 3
 
 console = Console()
 
 
-def last_solve_time():
-    """Timestamp of the most recent solve commit, or None."""
+def solves_today():
+    """Solve files committed since local midnight (added, not just touched)."""
+    midnight = datetime.now(tz=MANILA).replace(hour=0, minute=0, second=0,
+                                               microsecond=0)
     out = subprocess.run(
-        ["git", "log", "-1", "--format=%ct", "--", "solved/", "drills/"],
+        ["git", "log", f"--since={midnight.isoformat()}", "--diff-filter=A",
+         "--name-only", "--format=", "--", "solved/", "drills/"],
         capture_output=True, text=True,
-        cwd=os.path.dirname(GRAPH_DIR)).stdout.strip()
-    return datetime.fromtimestamp(int(out), tz=timezone.utc) if out else None
+        cwd=os.path.dirname(GRAPH_DIR)).stdout.split()
+    return sorted(set(out))
 
 
 def problem_url(pnum):
@@ -67,17 +69,16 @@ def pick_laps(problems, nodes, evidence, n=LAPS):
 
 
 def main():
-    last = last_solve_time()
-    now = datetime.now(tz=timezone.utc)
-    if last and (now - last).total_seconds() < START_GAP_HOURS * 3600:
-        return  # mid-session — solves are landing, no laps needed
+    done = solves_today()
+    remaining = LAPS - len(done)
+    if remaining <= 0:
+        return  # warmed up — the day is on
     problems = load_problems()
-    laps = pick_laps(problems, load_nodes(), load_evidence())
+    laps = pick_laps(problems, load_nodes(), load_evidence(), n=remaining)
     if not laps:
         return
-    since = f"last solve {last.astimezone(MANILA):%a %H:%M}" if last else "no solves yet"
-    console.print(f"[bold]Warmup — session start[/bold] [dim]({since})[/dim] — "
-                  f"{len(laps)} momentum laps before the assignment:")
+    console.print(f"[bold]Warmup — {len(done)}/{LAPS} solves today.[/bold] "
+                  f"{len(laps)} momentum lap{'s'[:len(laps) > 1]} before the assignment:")
     for i, pnum in enumerate(laps, 1):
         console.print(f"  {i}. {pnum}. {problems[pnum]['title']}  [dim]{problem_url(pnum)}[/dim]")
 
