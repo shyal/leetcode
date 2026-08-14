@@ -38,7 +38,7 @@ from kg_lib import (
     SOLID, STALE, FRAGILE, MISSING, DEEP_STALE_DAYS,
     load_sleep, sleep_state,
     last_solved, pnum_key, dodged_nodes, dodgeable, carriers_for,
-    tree_size,
+    tree_size, gentleness,
 )
 
 console = Console()
@@ -130,9 +130,9 @@ def choose_carrier(target, sim, problems, nodes, evidence, dodged, excluded):
             pnum = carrier[2] if carrier and carrier[2] in cands else \
                 sorted(cands, key=lambda p: last_solved(p, evidence), reverse=True)[0]
             return pnum, "spaced re-solve"
-        cands.sort(key=lambda p: (last_solved(p, evidence), tree_size(p, problems, nodes), pnum_key(p)))
+        cands.sort(key=lambda p: (gentleness(p, problems, nodes), last_solved(p, evidence), pnum_key(p)))
         return cands[0], f"deep-stale ({age}d) — gentle fresh carrier"
-    cands.sort(key=lambda p: (last_solved(p, evidence), tree_size(p, problems, nodes), pnum_key(p)))
+    cands.sort(key=lambda p: (gentleness(p, problems, nodes), last_solved(p, evidence), pnum_key(p)))
     return cands[0], "consolidate on a fresh carrier" if s == FRAGILE else "new move, prereqs solid"
 
 

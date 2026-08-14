@@ -34,7 +34,7 @@ from kg_lib import (
     GRAPH_DIR, load_nodes, load_problems, load_evidence,
     node_status, latest_carrier, SOLID, STALE, FRAGILE, MISSING,
     DEEP_STALE_DAYS, load_sleep, sleep_state,
-    last_solved, pnum_key, dodged_nodes, dodgeable, carriers_for,
+    last_solved, pnum_key, dodged_nodes, dodgeable, carriers_for, gentleness,
     input_tree, tree_size,
 )
 from kg_render import make_digraph, status_node, render, display, animate
@@ -93,7 +93,7 @@ def pick(nodes, problems, evidence, statuses, asleep=(), woken=(), exclude=()):
                                           last_solved(p, evidence), pnum_key(p)))
                 return target, FRAGILE, cands[0], \
                     f"you dodged this move on {dodged[target]} — carrier chosen to resist the dodge"
-            cands.sort(key=lambda p: (last_solved(p, evidence), tree_size(p, problems, nodes), pnum_key(p)))
+            cands.sort(key=lambda p: (gentleness(p, problems, nodes), last_solved(p, evidence), pnum_key(p)))
             return target, FRAGILE, cands[0], "consolidate a fragile move on a fresh carrier"
 
     for target in stale:
@@ -102,7 +102,7 @@ def pick(nodes, problems, evidence, statuses, asleep=(), woken=(), exclude=()):
             continue
         age = (date.today() - statuses[target][1]).days
         if age > DEEP_STALE_DAYS:
-            cands.sort(key=lambda p: (last_solved(p, evidence), tree_size(p, problems, nodes), pnum_key(p)))
+            cands.sort(key=lambda p: (gentleness(p, problems, nodes), last_solved(p, evidence), pnum_key(p)))
             return target, STALE, cands[0], \
                 f"re-enter a deep-stale move ({age}d since clean) on a gentle fresh carrier"
         carrier = latest_carrier(target, evidence)
@@ -113,7 +113,7 @@ def pick(nodes, problems, evidence, statuses, asleep=(), woken=(), exclude=()):
     for target in missing:
         cands = [c for c in carriers_for(target, problems, statuses, nodes) if c not in asleep and c not in exclude]
         if cands:
-            cands.sort(key=lambda p: (tree_size(p, problems, nodes), pnum_key(p)))
+            cands.sort(key=lambda p: (gentleness(p, problems, nodes), pnum_key(p)))
             return target, MISSING, cands[0], "one genuinely new move, prereqs all solid"
 
     return None
