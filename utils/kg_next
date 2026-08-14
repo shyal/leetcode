@@ -26,6 +26,8 @@
 import argparse
 import json
 import os
+import subprocess
+import sys
 from datetime import date
 from rich.console import Console
 from rich.table import Table
@@ -35,13 +37,38 @@ from kg_lib import (
     node_status, latest_carrier, SOLID, STALE, FRAGILE, MISSING,
     DEEP_STALE_DAYS, load_sleep, sleep_state,
     last_solved, pnum_key, dodged_nodes, dodgeable, carriers_for, gentleness,
-    input_tree, tree_size,
+    input_tree, tree_size, acceptance,
 )
 from kg_render import make_digraph, status_node, render, display, animate
 
 console = Console()
 
+UTILS = os.path.dirname(os.path.abspath(__file__))
+
 STATUS_STYLE = {SOLID: "green", STALE: "yellow", FRAGILE: "red", MISSING: "dim"}
+
+
+def is_session_start():
+    """Exit code of the is_session_start script: 0 = still in the window."""
+    return subprocess.run(
+        [sys.executable, os.path.join(UTILS, "is_session_start")],
+        capture_output=True).returncode == 0
+
+
+def trivial_easies(problems, nodes, evidence, statuses):
+    """The gentlest all-SOLID easies: tiny walks, high acceptance. Session-
+    start picks — juice, not training, so nothing rusty and nothing new."""
+    cands = []
+    for pnum, p in problems.items():
+        moves = p.get("moves", [])
+        if p.get("banned") or p.get("difficulty") != "Easy" or not moves:
+            continue
+        if not all(m in nodes and statuses[m][0] == SOLID for m in moves):
+            continue
+        cands.append((tree_size(pnum, problems, nodes), -acceptance(pnum),
+                      last_solved(pnum, evidence), pnum))
+    cands.sort()
+    return [c[3] for c in cands]
 
 
 def problem_url(pnum):
@@ -53,8 +80,16 @@ def problem_url(pnum):
         return f"https://leetcode.com/problemset/?search={pnum}"
 
 
-def pick(nodes, problems, evidence, statuses, asleep=(), woken=(), exclude=()):
+def pick(nodes, problems, evidence, statuses, asleep=(), woken=(), exclude=(),
+         session_start=False):
     """Return (target, status, pnum, reason) or None."""
+    # rule -1: inside the session-start window, a trivial easy comes first
+    if session_start:
+        for pnum in trivial_easies(problems, nodes, evidence, statuses):
+            if pnum not in asleep and pnum not in exclude:
+                return problems[pnum]["moves"][0], SOLID, pnum, \
+                    "session start — trivial easy to get the juices flowing"
+
     # rule 0a: a woken problem jumps the queue for a fresh attempt
     for pnum in woken:
         if pnum in exclude:
@@ -133,10 +168,13 @@ def main():
     sleeps = load_sleep()
     asleep, woken = sleep_state(sleeps, evidence)
 
+    session_start = is_session_start()
+
     exclude = set()
     choice = None
     for _ in range(max(1, args.n)):
-        choice = pick(nodes, problems, evidence, statuses, asleep=asleep, woken=woken, exclude=exclude)
+        choice = pick(nodes, problems, evidence, statuses, asleep=asleep, woken=woken,
+                      exclude=exclude, session_start=session_start)
         if not choice:
             break
         exclude.add(choice[2])
