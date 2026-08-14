@@ -627,6 +627,20 @@ def main():
         plt.close(fig)
         pass_prob_img = f"![P(pass a mock) over time](https://shyal.s3.amazonaws.com/{s3_key_pass})"
 
+    # Animated SVG (utils/kg_positions_svg): every node sliding down its
+    # personal forgetting curve. SMIL animation survives GitHub's camo/<img>
+    # pipeline, so it ships as-is with an svg content type.
+    positions_svg_img = ""
+    if os.path.exists("graph/positions.svg"):
+        s3_key_positions = f"positions_{timestamp}.svg"
+        s3.upload_file(
+            "graph/positions.svg",
+            bucket_name,
+            s3_key_positions,
+            ExtraArgs={"ContentType": "image/svg+xml"},
+        )
+        positions_svg_img = f"![Nodes sliding down their forgetting curves](https://shyal.s3.amazonaws.com/{s3_key_positions})"
+
     # Technique-graph movie: GitHub strips <video>/HTML from READMEs, so ship
     # graph/kg.mp4 as an optimized GIF on the same S3 pipeline as the charts.
     kg_movie_img = ""
@@ -683,6 +697,7 @@ def main():
     readme = fill(readme, "FAANG_PREDICT_VARIANCE_CHART", faang_predict_variance_img)
     readme = fill(readme, "KG_MOVIE", kg_movie_img)
     readme = fill(readme, "CURVE_CHART", curve_img)
+    readme = fill(readme, "POSITIONS_SVG", positions_svg_img)
     readme = fill(readme, "CURVE_CALIBRATION_CHART", curve_calibration_img)
     readme = fill(readme, "PASS_PROB_CHART", pass_prob_img)
     readme = fill(readme, "CONTEST_PROGRESS", contest_progress_img)
