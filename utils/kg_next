@@ -55,6 +55,19 @@ def is_session_start():
         capture_output=True).returncode == 0
 
 
+def solved_today_pnums():
+    """Problems already solved today — never re-offered, whatever the rule."""
+    from importlib.machinery import SourceFileLoader
+    mod = SourceFileLoader("_iss", os.path.join(UTILS, "is_session_start")).load_module()
+    pnums = set()
+    for f in mod.solves_today():
+        name = os.path.basename(f)
+        num = name[1:].split("_", 1)[0]
+        if name.startswith("p") and num.isdigit():
+            pnums.add(num)
+    return pnums
+
+
 def trivial_easies(problems, nodes, evidence, statuses):
     """The gentlest all-SOLID easies: tiny walks, high acceptance. Session-
     start picks — juice, not training, so nothing rusty and nothing new."""
@@ -170,7 +183,7 @@ def main():
 
     session_start = is_session_start()
 
-    exclude = set()
+    exclude = set(solved_today_pnums())
     choice = None
     for _ in range(max(1, args.n)):
         choice = pick(nodes, problems, evidence, statuses, asleep=asleep, woken=woken,
