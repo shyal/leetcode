@@ -10,7 +10,7 @@ So, here's my new approach: i wondered, how about thinking of the core technique
 
 <!-- KG_MOVIE -->
 
-![Technique graph growing solve by solve](https://shyal.s3.amazonaws.com/kg_movie_20260815010144.gif)
+![Technique graph growing solve by solve](https://shyal.s3.amazonaws.com/kg_movie_20260815071855.gif)
 
 <!-- /KG_MOVIE -->
 
@@ -20,7 +20,7 @@ Looking at my last leetcode grind, roughly October and November 2025, i plateaue
 
 <!-- PASS_PROB_CHART -->
 
-![P(pass a mock) over time](https://shyal.s3.amazonaws.com/pass_probability_20260815010144.png)
+![P(pass a mock) over time](https://shyal.s3.amazonaws.com/pass_probability_20260815071855.png)
 
 <!-- /PASS_PROB_CHART -->
 
@@ -56,19 +56,19 @@ The model is power-law forgetting with a slip rate, P(recall) = (1−slip)·(1 +
 
 <!-- CURVE_CHART -->
 
-![Fitted forgetting curve](https://shyal.s3.amazonaws.com/forgetting_curve_20260815010144.png)
+![Fitted forgetting curve](https://shyal.s3.amazonaws.com/forgetting_curve_20260815071855.png)
 
 <!-- /CURVE_CHART -->
 
 <!-- POSITIONS_SVG -->
-![Nodes sliding down their forgetting curves](https://shyal.s3.amazonaws.com/positions_20260815010144.svg)
+![Nodes sliding down their forgetting curves](https://shyal.s3.amazonaws.com/positions_20260815071855.svg)
 <!-- /POSITIONS_SVG -->
 
 The model also tracks its accuracy internally, by comparing its predictions with my actual performance.
 
 <!-- CURVE_CALIBRATION_CHART -->
 
-![Curve calibration](https://shyal.s3.amazonaws.com/curve_calibration_20260815010144.png)
+![Curve calibration](https://shyal.s3.amazonaws.com/curve_calibration_20260815071855.png)
 
 <!-- /CURVE_CALIBRATION_CHART -->
 
@@ -78,7 +78,7 @@ This is the daily solve rate.
 
 <!-- SOLVES_CHART -->
 
-![Solves Per Day (Full Repo History)](https://shyal.s3.amazonaws.com/solves_per_day_20260815010144.png)
+![Solves Per Day (Full Repo History)](https://shyal.s3.amazonaws.com/solves_per_day_20260815071855.png)
 
 <!-- /SOLVES_CHART -->
 
@@ -88,7 +88,7 @@ This is the daily unique solve rate. This is because as complexity ramps up, que
 
 <!-- UNIQUES_CHART -->
 
-![Unique Problems Solved Daily (Full Repo History)](https://shyal.s3.amazonaws.com/uniques_per_day_20260815010144.png)
+![Unique Problems Solved Daily (Full Repo History)](https://shyal.s3.amazonaws.com/uniques_per_day_20260815071855.png)
 
 <!-- /UNIQUES_CHART -->
 
@@ -98,7 +98,7 @@ The progress bar is derived from the technique graph: every move scores solid = 
 
 <!-- CONTEST_PROGRESS -->
 
-![Contest Readiness Progress (Ready by 2026-08-29)](https://shyal.s3.amazonaws.com/contest_progress_20260815010144.png)
+![Contest Readiness Progress (Ready by 2026-08-29)](https://shyal.s3.amazonaws.com/contest_progress_20260815071855.png)
 
 <!-- /CONTEST_PROGRESS -->
 
@@ -122,7 +122,7 @@ The projected date no longer comes from an LLM guess: `utils/kg_predict` runs a 
 
 <!-- FAANG_PROGRESS -->
 
-![FAANG Interview Readiness Progress (Ready by 2026-10-09)](https://shyal.s3.amazonaws.com/faang_progress_20260815010144.png)
+![FAANG Interview Readiness Progress (Ready by 2026-10-09)](https://shyal.s3.amazonaws.com/faang_progress_20260815071855.png)
 
 <!-- /FAANG_PROGRESS -->
 
@@ -132,13 +132,13 @@ I'm curious to see the amount of variance in the estimates, i.e whether they're 
 
 <!-- CONTEST_VARIANCE_CHART -->
 
-![Contest Readiness Projection Over Time](https://shyal.s3.amazonaws.com/contest_variance_20260815010144.png)
+![Contest Readiness Projection Over Time](https://shyal.s3.amazonaws.com/contest_variance_20260815071855.png)
 
 <!-- /CONTEST_VARIANCE_CHART -->
 
 <!-- FAANG_VARIANCE_CHART -->
 
-![FAANG Interview Readiness Projection Over Time](https://shyal.s3.amazonaws.com/faang_variance_20260815010144.png)
+![FAANG Interview Readiness Projection Over Time](https://shyal.s3.amazonaws.com/faang_variance_20260815071855.png)
 
 <!-- /FAANG_VARIANCE_CHART -->
 
@@ -146,7 +146,7 @@ The simulator's date gets its own series (recorded daily to `readiness.json` alo
 
 <!-- FAANG_PREDICT_VARIANCE_CHART -->
 
-![FAANG Readiness (Curve Simulator) Projection Over Time](https://shyal.s3.amazonaws.com/faang_predict_variance_20260815010144.png)
+![FAANG Readiness (Curve Simulator) Projection Over Time](https://shyal.s3.amazonaws.com/faang_predict_variance_20260815071855.png)
 
 <!-- /FAANG_PREDICT_VARIANCE_CHART -->
 
@@ -156,7 +156,7 @@ Per-family readiness derived from the technique graph (same solid/stale/fragile 
 
 <!-- CONTEST_TOPICS_CHART -->
 
-![Topic Readiness](https://shyal.s3.amazonaws.com/contest_topics_readiness_20260815010144.png)
+![Topic Readiness](https://shyal.s3.amazonaws.com/contest_topics_readiness_20260815071855.png)
 
 <!-- /CONTEST_TOPICS_CHART -->
 
