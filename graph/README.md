@@ -48,12 +48,19 @@ route everything automatically:
     DRILL: Next Greater Index      <- title (instead of "290. Word Pattern")
     TRAINS: monotonic-stack        <- node id(s) this drill evidences
 
-Workflow is identical to leetcode problems: `make drill <node-id>` copies the
-least-recently-drilled file into current.py; solve; `make solved` files it as
+Workflow is identical to leetcode problems: `make drill <node-id>` (or
+`make prepare <node-id>` — prepare routes non-numeric targets here) copies the
+least-recently-drilled file into current.py and commits it on a branch named
+after the node, off master; solve; `make solved` files it as
 `solved/d_<title>_<ts>.py` and kg_extract records drill evidence against the TRAINS
 nodes (problem = "drill"; problems.json is never touched; leetcode solve stats ignore
 d-files). Every drill improvised in chat gets deposited here afterwards, so the rote
 sheet grows with every gap found.
+
+Drills also surface in `make next` itself: when a gap node has no READY carrier
+(kg_lib.due_drill), the pick falls back to its least-recently-drilled bank file
+instead of silently skipping the node — same rule kg_hard/kg_dive already use. A
+drill already solved today is not due again.
 
 ## Dive (`make dive`)
 

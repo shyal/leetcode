@@ -6,26 +6,23 @@
 #   utils/drill drills/monotonic-stack/next_greater_index.py
 #   utils/drill monotonic-stack --list
 #
-# The workflow then matches leetcode problems exactly: solve current.py,
+# The workflow then matches leetcode problems exactly: a branch named after
+# the node is created off master with the stub committed; solve current.py,
 # run `make solved` — the DRILL/TRAINS docstring headers route it to a
-# d_-prefixed file in solved/ and drill evidence in the graph.
+# d_-prefixed file in solved/ and drill evidence in the graph, and the branch
+# squash-merges into master like any problem branch.
 
 import argparse
 import glob
 import os
+import re
+import subprocess
 import sys
 from rich.console import Console
 
-from kg_lib import load_evidence
+from kg_lib import load_evidence, last_drilled
 
 console = Console()
-
-
-def last_drilled(slug, evidence):
-    """Latest date this bank drill was solved (matched by slug in d_ filenames)."""
-    dates = [r["date"] for k, r in evidence.items()
-             if os.path.basename(k).startswith("d_") and slug.lower() in os.path.basename(k).lower()]
-    return max(dates) if dates else ""
 
 
 def main():
@@ -61,10 +58,23 @@ def main():
         console.print("[red]current.py is not empty — finish or clear it first.[/red]")
         sys.exit(1)
 
-    with open(path) as src, open("current.py", "w") as dst:
-        dst.write(src.read())
+    content = open(path).read()
+    m = re.search(r"^\s*DRILL:\s*(.+)$", content, flags=re.M)
+    title = m.group(1).strip() if m else slug
+    node_id = os.path.basename(os.path.dirname(path))
+
+    # same branch flow as prepare: stub committed on a branch off master,
+    # which `make solved` later squash-merges back and deletes
+    subprocess.run(["git", "checkout", "master"], check=True, capture_output=True)
+    with open("current.py", "w") as dst:
+        dst.write(content)
+    subprocess.run(["git", "checkout", "-b", node_id], check=True, capture_output=True)
+    subprocess.run(["git", "add", "."], check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-m", f"drill: {title}"], check=True, capture_output=True)
+
     when = last_drilled(slug, evidence) or "never"
-    console.print(f"Loaded [bold]{path}[/bold] into current.py  [dim](last drilled: {when})[/dim]")
+    console.print(f"Loaded [bold]{path}[/bold] into current.py on branch [bold]{node_id}[/bold]  "
+                  f"[dim](last drilled: {when})[/dim]")
     console.print("Solve it, then `make solved` as usual.")
 
 

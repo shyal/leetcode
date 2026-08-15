@@ -151,12 +151,16 @@ def get_question_info(num):
     return title, slug, difficulty, content, example_testcases, python_stub
 
 
-parser = argparse.ArgumentParser(description="Prepare leetcode questions.")
+parser = argparse.ArgumentParser(description="Prepare leetcode questions or bank drills.")
 parser.add_argument(
-    "numbers", type=int, nargs="+", help="The numbers of the leetcode questions."
+    "targets", nargs="+",
+    help="Leetcode question numbers, or drill node ids (drills/<node-id>/).",
 )
 
 args = parser.parse_args()
+
+numbers = [int(t) for t in args.targets if str(t).isdigit()]
+node_ids = [t for t in args.targets if not str(t).isdigit()]
 
 example_stub = '''
 """
@@ -363,8 +367,19 @@ def finalize(num, title, code):
         run_git(["commit", "-m", problem_title])
 
 
+# a node id routes to the drill bank picker — same flow as `make drill <node-id>`
+for nid in node_ids:
+    env = dict(os.environ)
+    env["PYTHONPATH"] = "utils" + os.pathsep + env.get("PYTHONPATH", "")
+    r = subprocess.run(
+        [sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "drill"), nid],
+        env=env,
+    )
+    if r.returncode:
+        sys.exit(r.returncode)
+
 threads = []
-for num in args.numbers:
+for num in numbers:
     t = threading.Thread(target=process_problem, args=(num,))
     t.start()
     threads.append(t)
