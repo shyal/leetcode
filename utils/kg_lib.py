@@ -274,10 +274,26 @@ def gentleness(pnum, problems, nodes):
     return (tier, tree_size(pnum, problems, nodes), -acceptance(pnum))
 
 
-def last_drilled(slug, evidence):
-    """Latest date this bank drill was solved (matched by slug in d_ filenames)."""
+def drill_solved_stem(path):
+    """The d_-filename stem `make solved` writes for this drill file: its
+    DRILL title cleaned exactly the way utils/solved cleans it. Falls back
+    to the bank filename slug if the header is missing."""
+    try:
+        with open(path) as f:
+            m = re.search(r"^\s*DRILL:\s*(.+)$", f.read(), flags=re.M)
+    except OSError:
+        m = None
+    title = m.group(1).strip() if m else os.path.splitext(os.path.basename(path))[0]
+    return re.sub(r"[^\w\s-]", "", title).strip().replace(" ", "_")
+
+
+def last_drilled(path, evidence):
+    """Latest date this bank drill file was solved. Matched on the DRILL
+    title (what d_ solved filenames are built from), not the bank filename —
+    the two rarely coincide."""
+    key = f"d_{drill_solved_stem(path)}_".lower()
     dates = [r["date"] for k, r in evidence.items()
-             if os.path.basename(k).startswith("d_") and slug.lower() in os.path.basename(k).lower()]
+             if os.path.basename(k).lower().startswith(key)]
     return max(dates) if dates else ""
 
 
@@ -290,10 +306,8 @@ def due_drill(node_id, evidence, today=None):
     candidates = sorted(glob.glob(os.path.join(DRILLS_DIR, node_id, "*.py")))
     if not candidates:
         return None
-    slugged = sorted(((os.path.splitext(os.path.basename(p))[0], p) for p in candidates),
-                     key=lambda sp: last_drilled(sp[0], evidence))
-    slug, path = slugged[0]
-    return None if last_drilled(slug, evidence) >= today else path
+    path = min(candidates, key=lambda p: last_drilled(p, evidence))
+    return None if last_drilled(path, evidence) >= today else path
 
 
 def latest_carrier(node_id, evidence):
