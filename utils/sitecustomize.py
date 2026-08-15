@@ -28,7 +28,6 @@ from typing import (
     Dict as Dict,
     Tuple as Tuple,
     Any as Any,
-    Callable as Callable,
     Generic as Generic,
     Iterable as Iterable,
     Iterator as Iterator,
@@ -36,6 +35,7 @@ from typing import (
     Union as Union,
     overload as overload,
 )
+from collections.abc import Callable as Callable
 
 
 # shortcuts

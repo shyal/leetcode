@@ -1,6 +1,5 @@
 from typing import (
     Any as Any,
-    Callable as Collable,
     Dict as Dict,
     Generic as Generic,
     Iterable as Iterable,
@@ -12,6 +11,7 @@ from typing import (
     Union as Union,
     overload as overload,
 )
+from collections.abc import Callable as Callable
 from collections import (
     Counter as _Counter,
     defaultdict as _defaultdict,
