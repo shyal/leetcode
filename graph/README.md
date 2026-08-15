@@ -57,10 +57,12 @@ nodes (problem = "drill"; problems.json is never touched; leetcode solve stats i
 d-files). Every drill improvised in chat gets deposited here afterwards, so the rote
 sheet grows with every gap found.
 
-Drills also surface in `make next` itself: when a gap node has no READY carrier
-(kg_lib.due_drill), the pick falls back to its least-recently-drilled bank file
-instead of silently skipping the node — same rule kg_hard/kg_dive already use. A
-drill already solved today is not due again.
+Drills also surface in `make next` itself (kg_lib.due_drill picks the node's
+least-recently-drilled bank file; a drill already solved today is not due again).
+Precedence follows rule 2: for MISSING and FRAGILE targets — and deep-stale ones,
+which re-enter like FRAGILE — a due drill is offered BEFORE any carrier (warm the
+move, then combine it); ordinary STALE keeps the spaced re-solve on its carrier,
+with the drill only as fallback when no carrier is READY.
 
 ## Dive (`make dive`)
 
