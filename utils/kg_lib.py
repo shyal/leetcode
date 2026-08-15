@@ -6,6 +6,7 @@
 #   FRAGILE most recent evidence is struggled/avoided, or struggles only
 #   MISSING no evidence at all
 
+import glob
 import json
 import os
 import re
@@ -13,6 +14,7 @@ import subprocess
 from datetime import date, timedelta
 
 GRAPH_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "graph")
+DRILLS_DIR = os.path.join(os.path.dirname(GRAPH_DIR), "drills")
 SOLID_WINDOW_DAYS = 42
 
 SITECUSTOMIZE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sitecustomize.py")
@@ -270,6 +272,28 @@ def gentleness(pnum, problems, nodes):
     within same-tier same-size candidates — never dominates."""
     tier = DIFF_RANK.get(problems.get(str(pnum), {}).get("difficulty"), 1)
     return (tier, tree_size(pnum, problems, nodes), -acceptance(pnum))
+
+
+def last_drilled(slug, evidence):
+    """Latest date this bank drill was solved (matched by slug in d_ filenames)."""
+    dates = [r["date"] for k, r in evidence.items()
+             if os.path.basename(k).startswith("d_") and slug.lower() in os.path.basename(k).lower()]
+    return max(dates) if dates else ""
+
+
+def due_drill(node_id, evidence, today=None):
+    """Least-recently-drilled bank file for a node, or None if the bank is
+    empty or that file was already drilled today. The no-carrier fallback:
+    a gap node with no READY carrier gets its drill offered instead of being
+    silently skipped — a drill cannot be dodged and needs no carrier."""
+    today = (today or date.today()).isoformat()
+    candidates = sorted(glob.glob(os.path.join(DRILLS_DIR, node_id, "*.py")))
+    if not candidates:
+        return None
+    slugged = sorted(((os.path.splitext(os.path.basename(p))[0], p) for p in candidates),
+                     key=lambda sp: last_drilled(sp[0], evidence))
+    slug, path = slugged[0]
+    return None if last_drilled(slug, evidence) >= today else path
 
 
 def latest_carrier(node_id, evidence):

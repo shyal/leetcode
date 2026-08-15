@@ -37,7 +37,7 @@ from kg_lib import (
     node_status, latest_carrier, SOLID, STALE, FRAGILE, MISSING,
     DEEP_STALE_DAYS, load_sleep, sleep_state,
     last_solved, pnum_key, dodged_nodes, dodgeable, carriers_for, gentleness,
-    input_tree, tree_size, acceptance,
+    input_tree, tree_size, acceptance, due_drill,
 )
 from kg_render import make_digraph, status_node, render, display, animate
 
@@ -84,6 +84,16 @@ def trivial_easies(problems, nodes, evidence, statuses):
     return [c[3] for c in cands]
 
 
+def drill_title(path):
+    """The DRILL: header of a bank drill file (falls back to the filename)."""
+    import re
+    for line in open(path):
+        m = re.match(r"\s*DRILL:\s*(.+)", line)
+        if m:
+            return m.group(1).strip()
+    return os.path.splitext(os.path.basename(path))[0]
+
+
 def problem_url(pnum):
     meta_path = os.path.join(os.path.dirname(GRAPH_DIR), ".problems_metadata.json")
     try:
@@ -123,6 +133,10 @@ def pick(nodes, problems, evidence, statuses, asleep=(), woken=(), exclude=(),
                 cands.sort(key=lambda p: (last_solved(p, evidence), tree_size(p, problems, nodes), pnum_key(p)))
                 return target, statuses[target][0], cands[0], \
                     f"warm the ground under sleeping {pnum} ({target})"
+            drill_id = f"drill:{target}"
+            if drill_id not in exclude and due_drill(target, evidence):
+                return target, statuses[target][0], drill_id, \
+                    f"warm the ground under sleeping {pnum} — no READY carrier, drill {target}"
 
     fragile = sorted((n for n in nodes if statuses[n][0] == FRAGILE), key=lambda n: statuses[n][1])
     stale = sorted((n for n in nodes if statuses[n][0] == STALE), key=lambda n: statuses[n][1])
@@ -143,6 +157,9 @@ def pick(nodes, problems, evidence, statuses, asleep=(), woken=(), exclude=(),
                     f"you dodged this move on {dodged[target]} — carrier chosen to resist the dodge"
             cands.sort(key=lambda p: (gentleness(p, problems, nodes), last_solved(p, evidence), pnum_key(p)))
             return target, FRAGILE, cands[0], "consolidate a fragile move on a fresh carrier"
+        drill_id = f"drill:{target}"
+        if drill_id not in exclude and due_drill(target, evidence):
+            return target, FRAGILE, drill_id, "fragile move with no READY carrier — drill it"
 
     for target in stale:
         cands = [c for c in carriers_for(target, problems, statuses, nodes) if c not in asleep and c not in exclude]
@@ -163,6 +180,9 @@ def pick(nodes, problems, evidence, statuses, asleep=(), woken=(), exclude=(),
         if cands:
             cands.sort(key=lambda p: (gentleness(p, problems, nodes), pnum_key(p)))
             return target, MISSING, cands[0], "one genuinely new move, prereqs all solid"
+        drill_id = f"drill:{target}"
+        if drill_id not in exclude and due_drill(target, evidence):
+            return target, MISSING, drill_id, "new move with no READY carrier — drill it"
 
     return None
 
@@ -198,6 +218,48 @@ def main():
             console.print("[yellow]No READY carrier found for any frontier node — the graph needs new problems mapped.[/yellow]")
         return
     target, target_status, pnum, reason = choice
+
+    if str(pnum).startswith("drill:"):
+        path = due_drill(target, evidence)
+        title = drill_title(path)
+        s, d = statuses[target]
+        table = Table(show_header=True, header_style="bold", box=None, padding=(0, 2))
+        table.add_column("Move")
+        table.add_column("Status")
+        table.add_column("Last evidence")
+        table.add_row(target, f"[{STATUS_STYLE[s]}]{s}[/{STATUS_STYLE[s]}]", str(d) if d else "—")
+        with console.capture() as cap:
+            console.print(f"\n[bold]drill: {title}[/bold]")
+            console.print(path)
+            console.print(table)
+            console.print(f"`make prepare {target}`")
+        if not args.no_show:
+            tree = input_tree([target], nodes)
+            dot = make_digraph("input-tree")
+            for n in tree:
+                s, d = statuses[n]
+                status_node(dot, n, nodes[n], s, d, highlight=(n == target))
+            for n in tree:
+                for pre in nodes[n].get("prereqs", []):
+                    if pre in tree:
+                        dot.edge(pre, n)
+            dot.node(
+                "drill_box",
+                label=f"drill: {title}",
+                shape="box",
+                style="filled",
+                fillcolor="#1f6feb",
+                color="#c9d1d9",
+                penwidth="2",
+                fontsize="13",
+                margin="0.2,0.12",
+            )
+            dot.edge(target, "drill_box", penwidth="1.4")
+            logical_width = render(dot, "kg_next")
+            display("kg_next", logical_width)
+        animate(cap.get())
+        return
+
     p = problems[pnum]
 
     table = Table(show_header=True, header_style="bold", box=None, padding=(0, 2))
