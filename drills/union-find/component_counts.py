@@ -18,10 +18,20 @@ Explanation:
     [0,2] -> {0,1,2} {3}          -> 2 components
     [1,2] -> already connected    -> still 2
 
+    0
+   / \\
+  1---2      3
+
+Triangle 0-1-2, node 3 alone.
+
 Example 2:
 
 Input: n = 3, edges = [[0,1],[1,2]]
 Output: [2, 1]
+
+  0---1---2
+
+A chain, all one component.
 
 Constraints:
 
