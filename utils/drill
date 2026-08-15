@@ -43,16 +43,15 @@ def main():
             sys.exit(1)
 
     evidence = load_evidence()
-    slugged = [(os.path.splitext(os.path.basename(p))[0], p) for p in candidates]
 
     if args.list:
-        for slug, path in slugged:
-            when = last_drilled(slug, evidence) or "never"
+        for path in candidates:
+            when = last_drilled(path, evidence) or "never"
             console.print(f"{path}  [dim]last drilled: {when}[/dim]")
         return
 
     # least-recently-drilled first; never-drilled sorts before everything
-    slug, path = sorted(slugged, key=lambda sp: last_drilled(sp[0], evidence))[0]
+    path = min(candidates, key=lambda p: last_drilled(p, evidence))
 
     if os.path.exists("current.py") and open("current.py").read().strip():
         console.print("[red]current.py is not empty — finish or clear it first.[/red]")
@@ -60,7 +59,7 @@ def main():
 
     content = open(path).read()
     m = re.search(r"^\s*DRILL:\s*(.+)$", content, flags=re.M)
-    title = m.group(1).strip() if m else slug
+    title = m.group(1).strip() if m else os.path.splitext(os.path.basename(path))[0]
     node_id = os.path.basename(os.path.dirname(path))
 
     # same branch flow as prepare: stub committed on a branch off master,
@@ -72,7 +71,7 @@ def main():
     subprocess.run(["git", "add", "."], check=True, capture_output=True)
     subprocess.run(["git", "commit", "-m", f"drill: {title}"], check=True, capture_output=True)
 
-    when = last_drilled(slug, evidence) or "never"
+    when = last_drilled(path, evidence) or "never"
     console.print(f"Loaded [bold]{path}[/bold] into current.py on branch [bold]{node_id}[/bold]  "
                   f"[dim](last drilled: {when})[/dim]")
     console.print("Solve it, then `make solved` as usual.")
