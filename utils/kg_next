@@ -106,6 +106,19 @@ def problem_url(pnum):
 def pick(nodes, problems, evidence, statuses, asleep=(), woken=(), exclude=(),
          session_start=False):
     """Return (target, status, pnum, reason) or None."""
+    def drill_first(target):
+        """Rule 2: micro-drill for MISSING/FRAGILE — and deep-stale re-enters
+        like FRAGILE. Only ordinary STALE keeps the spaced re-solve carrier."""
+        s, d = statuses[target]
+        if s == STALE and d and (date.today() - d).days <= DEEP_STALE_DAYS:
+            return False
+        return True
+
+    def due(target):
+        """The drill pseudo-pick for a node, or None if none is due."""
+        drill_id = f"drill:{target}"
+        return drill_id if drill_id not in exclude and due_drill(target, evidence) else None
+
     # rule -1: inside the session-start window, a trivial easy comes first
     if session_start:
         for pnum in trivial_easies(problems, nodes, evidence, statuses):
@@ -127,15 +140,17 @@ def pick(nodes, problems, evidence, statuses, asleep=(), woken=(), exclude=(),
         rusty = sorted((n for n in closure if statuses[n][0] != SOLID),
                        key=lambda n: (statuses[n][1] is not None, statuses[n][1]))
         for target in rusty:
+            if drill_first(target) and due(target):
+                return target, statuses[target][0], due(target), \
+                    f"warm the ground under sleeping {pnum} — drill {target} first"
             cands = [c for c in carriers_for(target, problems, statuses, nodes)
                      if c not in asleep and c not in exclude]
             if cands:
                 cands.sort(key=lambda p: (last_solved(p, evidence), tree_size(p, problems, nodes), pnum_key(p)))
                 return target, statuses[target][0], cands[0], \
                     f"warm the ground under sleeping {pnum} ({target})"
-            drill_id = f"drill:{target}"
-            if drill_id not in exclude and due_drill(target, evidence):
-                return target, statuses[target][0], drill_id, \
+            if due(target):
+                return target, statuses[target][0], due(target), \
                     f"warm the ground under sleeping {pnum} — no READY carrier, drill {target}"
 
     fragile = sorted((n for n in nodes if statuses[n][0] == FRAGILE), key=lambda n: statuses[n][1])
@@ -145,6 +160,8 @@ def pick(nodes, problems, evidence, statuses, asleep=(), woken=(), exclude=(),
 
     dodged = dodged_nodes(evidence)
     for target in fragile:
+        if due(target):
+            return target, FRAGILE, due(target), "fragile move — drill first, carrier next"
         cands = [c for c in carriers_for(target, problems, statuses, nodes) if c not in asleep and c not in exclude]
         if cands:
             if target in dodged:
@@ -157,15 +174,15 @@ def pick(nodes, problems, evidence, statuses, asleep=(), woken=(), exclude=(),
                     f"you dodged this move on {dodged[target]} — carrier chosen to resist the dodge"
             cands.sort(key=lambda p: (gentleness(p, problems, nodes), last_solved(p, evidence), pnum_key(p)))
             return target, FRAGILE, cands[0], "consolidate a fragile move on a fresh carrier"
-        drill_id = f"drill:{target}"
-        if drill_id not in exclude and due_drill(target, evidence):
-            return target, FRAGILE, drill_id, "fragile move with no READY carrier — drill it"
 
     for target in stale:
+        age = (date.today() - statuses[target][1]).days
+        if age > DEEP_STALE_DAYS and due(target):
+            return target, STALE, due(target), \
+                f"re-enter a deep-stale move ({age}d since clean) — drill first, carrier next"
         cands = [c for c in carriers_for(target, problems, statuses, nodes) if c not in asleep and c not in exclude]
         if not cands:
             continue
-        age = (date.today() - statuses[target][1]).days
         if age > DEEP_STALE_DAYS:
             cands.sort(key=lambda p: (gentleness(p, problems, nodes), last_solved(p, evidence), pnum_key(p)))
             return target, STALE, cands[0], \
@@ -176,13 +193,12 @@ def pick(nodes, problems, evidence, statuses, asleep=(), woken=(), exclude=(),
         return target, STALE, pnum, "spaced re-solve of a stale move's carrier"
 
     for target in missing:
+        if due(target):
+            return target, MISSING, due(target), "new move — drill first, carrier next"
         cands = [c for c in carriers_for(target, problems, statuses, nodes) if c not in asleep and c not in exclude]
         if cands:
             cands.sort(key=lambda p: (gentleness(p, problems, nodes), pnum_key(p)))
             return target, MISSING, cands[0], "one genuinely new move, prereqs all solid"
-        drill_id = f"drill:{target}"
-        if drill_id not in exclude and due_drill(target, evidence):
-            return target, MISSING, drill_id, "new move with no READY carrier — drill it"
 
     return None
 
