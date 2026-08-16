@@ -534,18 +534,15 @@ def main():
 
     # P(pass) history — the headline "how good am i" line: replay the technique
     # graph week by week (evidence filtered to each date, recall from the fitted
-    # curve) and run kg_mock's cold-mock Monte Carlo on every snapshot. The
+    # curve) and run kg_lib's cold-mock Monte Carlo on every snapshot. The
     # bands span the cold-recognition scenarios — the one parameter solve
     # history cannot identify; only real mocks collapse it.
     pass_prob_img = ""
     if os.path.exists("graph/curve.json") and os.path.exists("graph/evidence.json"):
         import random
         from collections import Counter
-        from importlib.machinery import SourceFileLoader
+        import kg_lib
         from kg_lib import load_nodes, load_problems, load_evidence
-
-        utils_dir = os.path.dirname(os.path.abspath(__file__))
-        kg_mock = SourceFileLoader("kg_mock", os.path.join(utils_dir, "kg_mock")).load_module()
 
         kg_nodes = load_nodes()
         kg_evidence = load_evidence()
@@ -560,13 +557,13 @@ def main():
             weeks.append(wd)
             wd += timedelta(days=7)
         weeks.append(date.today())
-        series = {name: {"screen": [], "onsite": []} for name in kg_mock.SCENARIOS}
+        series = {name: {"screen": [], "onsite": []} for name in kg_lib.SCENARIOS}
         for wd in weeks:
             ev_d = {k: r for k, r in kg_evidence.items() if r["date"] <= wd.isoformat()}
-            recall = kg_mock.current_recall(kg_nodes, ev_d, kg_curve_data, today=wd)
-            for name, r_base in kg_mock.SCENARIOS.items():
-                _, onsite, screen, _ = kg_mock.pass_rates(
-                    recall, move_freq, kg_mock.OFF_GRAPH0, r_base,
+            recall = kg_lib.current_recall(kg_nodes, ev_d, kg_curve_data, today=wd)
+            for name, r_base in kg_lib.SCENARIOS.items():
+                _, onsite, screen, _ = kg_lib.pass_rates(
+                    recall, move_freq, kg_lib.OFF_GRAPH0, r_base,
                     (0, 0, 0), random.Random(42), 4000)
                 series[name]["screen"].append(screen * 100)
                 series[name]["onsite"].append(onsite * 100)

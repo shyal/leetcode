@@ -1,6 +1,6 @@
 .PHONY: all parse learning prepare recommend force unforce preflight kg-extract kg-status kg-viz movie next dive drill hard is_session_start readme residuals sleep solved test viz
 
-all:
+all: mock
 	@cp utils/sitecustomize.py .venv/lib/python3.10/site-packages/
 	@if [ "$$(git rev-parse --abbrev-ref HEAD)" = "master" ]; then PYTHONPATH=./utils .venv/bin/python3 utils/kg_status --summary; fi
 	@PYTHONPATH=./utils:${PYTHONPATH} .venv/bin/python3 utils/test_runner.py
@@ -52,8 +52,15 @@ curve:
 residuals:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_residuals
 
-mock:
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_mock $(filter-out $@,$(MAKECMDGOALS))
+# make mock is implemented in Rust (utils/test_mock.py guards it); the shared
+# model math also lives in kg_lib.py for the README chart — change them together
+MOCK_BIN := utils/kg_mock_rs/target/release/kg_mock
+
+$(MOCK_BIN): utils/kg_mock_rs/src/main.rs utils/kg_mock_rs/Cargo.toml
+	@cargo build --release --quiet --manifest-path utils/kg_mock_rs/Cargo.toml
+
+mock: $(MOCK_BIN)
+	@$(MOCK_BIN) $(filter-out $@,$(MAKECMDGOALS))
 
 predict:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_predict $(filter-out $@,$(MAKECMDGOALS))
