@@ -8,6 +8,10 @@
 #   utils/kg_next --no-show    # same, without the drawing
 #
 # Picking rules (same preference order the /next coach uses):
+#   -1. session start (fewer than 2 solves since Manila midnight): the
+#       gentlest all-SOLID easy (tiny walk, high acceptance) that has not
+#       been solved inside WARMUP_COOLDOWN_DAYS — juice, not a rerun of
+#       Thursday. Normal rules resume from the day's second solve onward.
 #   0. sleep (graph/sleep.json, written by `make sleep`): a WOKEN problem —
 #      timer expired, not yet re-attempted — jumps the queue for a fresh try;
 #      while one is ASLEEP it is excluded everywhere and its walk's rusty
@@ -47,6 +51,11 @@ UTILS = os.path.dirname(os.path.abspath(__file__))
 
 STATUS_STYLE = {SOLID: "green", STALE: "yellow", FRAGILE: "red", MISSING: "dim"}
 
+# Session-start juice: a problem solved this recently is muscle memory, not a
+# warmup. Recent ones sink below the rest; they only surface if the cool pool
+# is empty.
+WARMUP_COOLDOWN_DAYS = 14
+
 
 def is_session_start():
     """Exit code of the is_session_start script: 0 = still in the window."""
@@ -68,9 +77,19 @@ def solved_today_pnums():
     return pnums
 
 
+def _warmup_hot(pnum, evidence, today=None):
+    """True if this problem was solved inside the warmup cooldown."""
+    last = last_solved(pnum, evidence)
+    if not last:
+        return False
+    today = today or date.today()
+    return (today - date.fromisoformat(last)).days < WARMUP_COOLDOWN_DAYS
+
+
 def trivial_easies(problems, nodes, evidence, statuses):
-    """The gentlest all-SOLID easies: tiny walks, high acceptance. Session-
-    start picks — juice, not training, so nothing rusty and nothing new."""
+    """The gentlest all-SOLID easies: tiny walks, high acceptance, not done
+    in the last WARMUP_COOLDOWN_DAYS. Session-start picks — juice, not
+    training, so nothing rusty, nothing new, and nothing from Thursday."""
     cands = []
     for pnum, p in problems.items():
         moves = p.get("moves", [])
@@ -78,10 +97,13 @@ def trivial_easies(problems, nodes, evidence, statuses):
             continue
         if not all(m in nodes and statuses[m][0] == SOLID for m in moves):
             continue
-        cands.append((tree_size(pnum, problems, nodes), -acceptance(pnum),
+        # Hot (recently solved) sorts after cool. Size and acceptance only
+        # rank inside that band, so 0.8% acceptance cannot beat a 2-day gap.
+        cands.append((int(_warmup_hot(pnum, evidence)),
+                      tree_size(pnum, problems, nodes), -acceptance(pnum),
                       last_solved(pnum, evidence), pnum))
     cands.sort()
-    return [c[3] for c in cands]
+    return [c[-1] for c in cands]
 
 
 def drill_title(path):
