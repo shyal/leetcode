@@ -34,6 +34,7 @@
 import argparse
 import json
 import os
+import random
 import subprocess
 import sys
 from datetime import date
@@ -47,7 +48,7 @@ from kg_lib import (
     last_solved, pnum_key, dodged_nodes, dodgeable, carriers_for, gentleness,
     input_tree, tree_size, acceptance, due_drill,
 )
-from kg_render import make_digraph, status_node, render, display, animate
+from kg_render import make_digraph, status_node, render, display, animate, STATUS_FACE
 
 console = Console()
 
@@ -272,7 +273,8 @@ def main():
         table.add_column("Move")
         table.add_column("Status")
         table.add_column("Last evidence")
-        table.add_row(target, f"[{STATUS_STYLE[s]}]{s}[/{STATUS_STYLE[s]}]", str(d) if d else "—")
+        label = target if labeled else random.choice(STATUS_FACE[s])
+        table.add_row(label, f"[{STATUS_STYLE[s]}]{s}[/{STATUS_STYLE[s]}]", str(d) if d else "—")
         with console.capture() as cap:
             console.print(f"\n[bold]drill: {title}[/bold]")
             console.print(path)
@@ -314,7 +316,8 @@ def main():
     table.add_column("Last evidence")
     for m in p["moves"]:
         s, d = statuses[m]
-        table.add_row(m, f"[{STATUS_STYLE[s]}]{s}[/{STATUS_STYLE[s]}]", str(d) if d else "—")
+        label = m if labeled else random.choice(STATUS_FACE[s])
+        table.add_row(label, f"[{STATUS_STYLE[s]}]{s}[/{STATUS_STYLE[s]}]", str(d) if d else "—")
 
     with console.capture() as cap:
         console.print(f"\n[bold]{pnum}. {p['title']}[/bold]")
