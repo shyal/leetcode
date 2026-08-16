@@ -4,8 +4,10 @@
 # and draw its full input tree (the problem's moves + every transitive
 # prerequisite) inline in the terminal.
 #
-#   utils/kg_next              # pick, print preflight table, draw the tree
+#   utils/kg_next              # pick, print preflight table, draw status+emoji tree
+#   utils/kg_next --graph      # same, with node labels (the map)
 #   utils/kg_next --no-show    # same, without the drawing
+#   make next graph            # makefile form of --graph (make eats dashed args)
 #
 # Picking rules (same preference order the /next coach uses):
 #   -1. session start (fewer than 2 solves since Manila midnight): the
@@ -24,8 +26,10 @@
 #   3. one new MISSING move whose prereqs are all SOLID
 # One-new-move rule is enforced: every other move in the walk must be SOLID.
 #
-# NOTE: the drawn tree names the walk's moves, i.e. it IS a hint by design —
-# this is the "show me the map" flow. The /next chat flow seals targets.
+# NOTE: the default drawing writes only status + a random face from that
+# status's pool (SOLID 💪, STALE 😐, ...) — no move names — so the tree
+# can be used for pattern recognition. --graph names the walk: that is
+# the "show me the map" flow. The /next chat flow seals targets.
 
 import argparse
 import json
@@ -229,8 +233,11 @@ def main():
     parser = argparse.ArgumentParser(description="Pick the next problem and draw its input tree.")
     parser.add_argument("n", nargs="?", type=int, default=1,
                         help="show the Nth recommendation (skip the first N-1)")
+    parser.add_argument("--graph", action="store_true",
+                        help="label tree nodes with move names (default: shape only)")
     parser.add_argument("--no-show", action="store_true", help="skip the drawing")
     args = parser.parse_args()
+    labeled = args.graph
 
     nodes = load_nodes()
     problems = load_problems()
@@ -276,7 +283,8 @@ def main():
             dot = make_digraph("input-tree")
             for n in tree:
                 s, d = statuses[n]
-                status_node(dot, n, nodes[n], s, d, highlight=(n == target))
+                status_node(dot, n, nodes[n], s, d, highlight=(n == target),
+                            labeled=labeled)
             for n in tree:
                 for pre in nodes[n].get("prereqs", []):
                     if pre in tree:
@@ -323,7 +331,8 @@ def main():
     dot = make_digraph("input-tree")
     for n in tree:
         s, d = statuses[n]
-        status_node(dot, n, nodes[n], s, d, highlight=(n in p["moves"]))
+        status_node(dot, n, nodes[n], s, d, highlight=(n in p["moves"]),
+                    labeled=labeled)
     for n in tree:
         for pre in nodes[n].get("prereqs", []):
             if pre in tree:

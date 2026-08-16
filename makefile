@@ -2,7 +2,7 @@
 
 all:
 	@cp utils/sitecustomize.py .venv/lib/python3.10/site-packages/
-	@if [ "$$(git rev-parse --abbrev-ref HEAD)" = "master" ]; then PYTHONPATH=./utils .venv/bin/python3 utils/kg_today; fi
+	@if [ "$$(git rev-parse --abbrev-ref HEAD)" = "master" ]; then PYTHONPATH=./utils .venv/bin/python3 utils/kg_status --summary; fi
 	@PYTHONPATH=./utils:${PYTHONPATH} .venv/bin/python3 utils/test_runner.py
 
 goals:
@@ -84,13 +84,13 @@ viz:
 %:
 	@:
 next:
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_next $(filter-out $@,$(MAKECMDGOALS))
+	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_next $(patsubst graph,--graph,$(filter-out $@,$(MAKECMDGOALS)))
 
 dive:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_dive $(filter-out $@,$(MAKECMDGOALS))
 
 hard:
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_hard $(filter-out $@,$(MAKECMDGOALS))
+	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_hard $(patsubst graph,--graph,$(filter-out $@,$(MAKECMDGOALS)))
 
 drill:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/drill $(filter-out $@,$(MAKECMDGOALS))

@@ -2,8 +2,10 @@
 
 # kg_hard — pick a summit Hard and plan the route of base camps to reach it.
 #
-#   make hard          # pick the most reachable valuable Hard and plan the route
-#   make hard 42       # plan the route to a specific problem
+#   make hard          # pick a summit, verdict only, status+emoji tree
+#   make hard 42       # same, for a specific problem
+#   make hard graph    # label the tree with move names
+#   make hard route    # named route + labeled tree (the map)
 #
 # kg_next and kg_dive work the rusty frontier bottom-up; kg_hard works
 # top-down from a summit: take a Hard problem's full input tree (walk +
@@ -227,9 +229,16 @@ def main():
     parser.add_argument("--route", action="store_true",
                         help="show the route: classic blurb, move table, camps, graph. "
                              "Omitted by default — all of it names the technique.")
+    parser.add_argument("--graph", action="store_true",
+                        help="label tree nodes with move names (default: status + face)")
     parser.add_argument("--no-show", action="store_true", help="skip the drawing")
-    # `make hard route` / `make hard 23 route` — make hands us bare goal words.
-    args = parser.parse_args(["--route" if a == "route" else a for a in sys.argv[1:]])
+    # `make hard route` / `make hard graph` / `make hard 23 graph` —
+    # make hands us bare goal words.
+    args = parser.parse_args([
+        "--route" if a == "route" else "--graph" if a == "graph" else a
+        for a in sys.argv[1:]
+    ])
+    labeled = args.graph or args.route
 
     nodes = load_nodes()
     problems = load_problems()
@@ -270,8 +279,8 @@ def main():
             console.print(f"[yellow]note: this is a {difficulty}, not a Hard — routing anyway[/yellow]")
     out.append(cap.get())
 
-    # Blind mode: verdict only in the text — the tree still draws (it names
-    # moves, same deal as kg_next: the map IS the hint).
+    # Blind mode: verdict only in the text. The tree is status+face unless
+    # --graph / --route names the walk (same deal as kg_next).
     if not args.route:
         with console.capture() as cap:
             if not steps:
@@ -284,7 +293,7 @@ def main():
                               f"(names the moves).[/dim]")
         out.append(cap.get())
         if not args.no_show:
-            draw_tree(summit, p, nodes, statuses, metadata)
+            draw_tree(summit, p, nodes, statuses, metadata, labeled=labeled)
         animate("".join(out), effect=HARD_EFFECT)
         return
 
@@ -336,17 +345,18 @@ def main():
     out.append(cap.get())
 
     if not args.no_show:
-        draw_tree(summit, p, nodes, statuses, metadata)
+        draw_tree(summit, p, nodes, statuses, metadata, labeled=labeled)
 
     animate("".join(out), effect=HARD_EFFECT)
 
 
-def draw_tree(summit, p, nodes, statuses, metadata):
+def draw_tree(summit, p, nodes, statuses, metadata, labeled=False):
     tree = input_tree(p["moves"], nodes)
     dot = make_digraph("kg_hard")
     for n in tree:
         s, d = statuses[n]
-        status_node(dot, n, nodes[n], s, d, highlight=(n in p["moves"]))
+        status_node(dot, n, nodes[n], s, d, highlight=(n in p["moves"]),
+                    labeled=labeled)
     for n in tree:
         for pre in nodes[n].get("prereqs", []):
             if pre in tree:

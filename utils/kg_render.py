@@ -5,6 +5,7 @@
 
 import base64
 import os
+import random
 import shutil
 import struct
 import subprocess
@@ -14,6 +15,14 @@ import graphviz
 from kg_lib import GRAPH_DIR, SOLID, STALE, FRAGILE, MISSING
 
 FILL = {SOLID: "#238636", STALE: "#bb8009", FRAGILE: "#da3633", MISSING: "#6e7681"}
+
+# Random face per node, drawn from the status's vibe — never the move name.
+STATUS_FACE = {
+    SOLID:   ["😄", "💪", "😎", "✨", "💎", "🟢"],
+    STALE:   ["😐", "🫤", "😑", "😴", "🥀", "⌛"],
+    FRAGILE: ["😰", "🫠", "🥲", "😬", "💔", "😵"],
+    MISSING: ["👻", "❔", "😶", "🫥", "🕳️"],
+}
 
 
 def make_digraph(name, title=None):
@@ -43,12 +52,16 @@ def make_digraph(name, title=None):
     )
 
 
-def status_node(g, node_id, node, status, when, highlight=False):
+def status_node(g, node_id, node, status, when, highlight=False, labeled=True):
     tooltip = f"{node['name']} — {status}" + (f" ({when})" if when else "")
     attrs = {"fillcolor": FILL[status], "tooltip": tooltip}
     if highlight:
         attrs.update({"color": "#c9d1d9", "penwidth": "2"})
-    g.node(node_id, label=node_id.replace("-", "-\n", 1), **attrs)
+    if labeled:
+        g.node(node_id, label=node_id.replace("-", "-\n", 1), **attrs)
+        return
+    face = random.choice(STATUS_FACE[status])
+    g.node(node_id, label=f"{status} {face}", **attrs)
 
 
 def add_legend(dot):
