@@ -83,7 +83,7 @@ def parse_timestamp(ts_str):
 
 @cache
 def get_solved_problems():
-    METADATA_FILE = ".problems_metadata.json"
+    METADATA_FILE = "data/problems_metadata.json"
     if os.path.exists(METADATA_FILE):
         with open(METADATA_FILE, "r") as f:
             metadata = json.load(f)
@@ -321,7 +321,7 @@ def get_history_string(
         recent_solves = set()
 
     # Load or initialize summaries
-    SUMMARIES_FILE = ".summaries.json"
+    SUMMARIES_FILE = "data/summaries.json"
     if os.path.exists(SUMMARIES_FILE):
         with open(SUMMARIES_FILE, "r") as f:
             summaries = json.load(f)

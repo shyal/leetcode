@@ -22,7 +22,7 @@ and generate combination drills ("rote sheets").
   training value is buried under busywork. The move still gets trained, just via a
   different carrier; preflight still audits banned problems and labels them ⛔.
 - **evidence.json** — per solve-file: which moves the actual code exercised, verdict
-  `clean` / `struggled` / `avoided`. Append-only, keyed by filename like `.summaries.json`.
+  `clean` / `struggled` / `avoided`. Append-only, keyed by filename like `data/summaries.json`.
   An optional `assist` field records how much outside help the solve had — a second
   axis, independent of the verdict, read by kg_extract from your own notes in the
   solve file (an explicit `ASSIST: <level>` line overrides its reading):

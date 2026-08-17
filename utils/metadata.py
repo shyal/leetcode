@@ -7,7 +7,7 @@ import requests
 
 
 def get_problems_metadata():
-    METADATA_FILE = ".problems_metadata.json"
+    METADATA_FILE = "data/problems_metadata.json"
     url = "https://leetcode.com/api/problems/all/"
     response = requests.get(url)
 

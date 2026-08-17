@@ -52,10 +52,10 @@ def strip_statement(code):
 
 
 def lookup_difficulty(pnum):
-    """Difficulty from the repo's .problems_metadata.json cache (the same file
+    """Difficulty from the repo's data/problems_metadata.json cache (the same file
     the readme updater reads); empty string when the cache lacks the problem."""
     try:
-        with open(os.path.join(REPO_ROOT, ".problems_metadata.json")) as f:
+        with open(os.path.join(REPO_ROOT, "data/problems_metadata.json")) as f:
             return json.load(f).get(str(pnum), {}).get("difficulty", "")
     except OSError:
         return ""

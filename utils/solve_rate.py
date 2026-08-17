@@ -19,7 +19,7 @@ import requests
 
 
 def get_problems_metadata():
-    METADATA_FILE = ".problems_metadata.json"
+    METADATA_FILE = "data/problems_metadata.json"
     if os.path.exists(METADATA_FILE):
         with open(METADATA_FILE, "r") as f:
             return json.load(f)
@@ -64,8 +64,8 @@ def progress_bar(current, target, width=20):
 
 
 def count_topics_solved(unique_solves):
-    """Count unique problems solved per topic using .solve_topics.json."""
-    topic_file = ".solve_topics.json"
+    """Count unique problems solved per topic using data/solve_topics.json."""
+    topic_file = "data/solve_topics.json"
     if not os.path.exists(topic_file):
         return {}
 
@@ -517,7 +517,7 @@ def format_timedelta(td):
 
 def load_readiness_data():
     try:
-        with open("readiness.json", "r") as f:
+        with open("data/readiness.json", "r") as f:
             data = json.load(f)
         # Get the latest entry based on run_date
         latest = max(data, key=lambda x: parse_json_date(x["run_date"]))
@@ -525,10 +525,10 @@ def load_readiness_data():
         faang_date = parse_json_date(latest["faang_interview"])
         return contest_date, faang_date
     except FileNotFoundError:
-        print("readiness.json not found.")
+        print("data/readiness.json not found.")
         exit(1)
     except ValueError as e:
-        print(f"Error parsing readiness.json: {e}")
+        print(f"Error parsing data/readiness.json: {e}")
         exit(1)
 
 
@@ -537,7 +537,7 @@ def main():
         description="Predict time to solve remaining LeetCode questions based on past solve rate."
     )
     parser.add_argument(
-        "--goals", type=str, help="Path to goals.json for FAANG-focused dashboard."
+        "--goals", type=str, help="Path to data/goals.json for FAANG-focused dashboard."
     )
     parser.add_argument(
         "--total", type=int, help="Total number of questions (legacy mode)."

@@ -203,7 +203,7 @@ def main():
     plt.close(fig)
     uniques_img = f"![Unique Problems Solved Daily (Full Repo History)](https://shyal.s3.amazonaws.com/{s3_key_uniques})"
 
-    with open("readiness.json", "r") as f:
+    with open("data/readiness.json", "r") as f:
         readiness_data = json.load(f)
 
     readiness_data.sort(key=lambda item: item["run_date"])

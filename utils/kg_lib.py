@@ -247,12 +247,12 @@ _METADATA = None
 
 
 def acceptance(pnum):
-    """Community acceptance rate in percent from .problems_metadata.json
+    """Community acceptance rate in percent from data/problems_metadata.json
     (refreshed by metadata.get_problems_metadata). 50.0 = neutral when the
     problem is unknown or the metadata predates the acceptance field."""
     global _METADATA
     if _METADATA is None:
-        path = os.path.join(os.path.dirname(GRAPH_DIR), ".problems_metadata.json")
+        path = os.path.join(os.path.dirname(GRAPH_DIR), "data/problems_metadata.json")
         try:
             with open(path) as f:
                 _METADATA = json.load(f)

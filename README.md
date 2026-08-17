@@ -4,9 +4,9 @@
 
 I've recently come to the realization that leetcode was never about solving the problems, as i was trying to do in the past, but was always about cracking leetcode itself. Leetcoders often complain about only being able to remember a fixed number of solves and techniques, and their memory essentially functioning as an LRU cache.
 
-My solution to this problem, in the past, was the use of Anki, and while Anki helped a lot, it created a problem of its own: it meant keeping a separate asset, and constantly having to work with both Anki and the actual learning + solving.
+My solution to this problem, in the past, was the use of Anki, and while Anki helped a lot, it created a problem of its own: it meant keeping a separate asset, and constantly having to work with both Anki and the actual learning + solving. This approach felt heavy. In November 2025, i started dumping my solve history in an LLM's context, and asking for what to work on next. This was a leaner approach, however in retrospect, although the scheduling felt good, it wasn't.
 
-So, here's my new approach: i wondered, how about thinking of the core techniques behind each solve, and treating those like the key asset that needs to be kept solid, via spaced repetition. With the repo's tooling, can now run `make next` which scans my solve graph and evidence, finds fragile or stale nodes, and recommends what to work on next.
+So, here's my new approach: i decided on a new thesis: to focus on the core techniques behind each solve, and treat those like the key asset that needs to be kept solid, via spaced repetition. With the repo's tooling, i can now run `make next` which scans my solve graph and evidence, finds fragile or stale nodes, and recommends what to work on next.
 
 <!-- KG_MOVIE -->
 
@@ -14,11 +14,11 @@ So, here's my new approach: i wondered, how about thinking of the core technique
 
 <!-- /KG_MOVIE -->
 
-All the solves before the blue section of the timeline were done with no scheduling aid. The inefficiency is evidenced by the nodes turning stale (orange) and fragile (red) like a Christmas tree. Then, once we enter the blue section of the timeline, they all turn green within a matter of a week.
+All the solves before the blue section of the timeline were done with poor scheduling. The inefficiency is evidenced by the nodes turning stale (orange) and fragile (red) like a Christmas tree. Then, once we enter the blue section of the timeline, they all turn green within a matter of a week.
 
 ## It seems to be working
 
-Looking at my last leetcode grind, roughly October and November 2025, i plateaued quickly, because i was doing high volume, and picking what to work on poorly. Now, since my latest resumption (August 2026) my volume is much smaller, yet i appear to have already broken my plateau. These are still early days, but it seems to be working.
+Looking at my last leetcode grind, roughly October and November 2025, i plateaued quickly, because i was doing high volume, and picking what to work on poorly. Now, since my latest resumption (August 2026), my volume is much smaller, yet i appear to have already broken my plateau. These are still early days, but it seems to be working.
 
 <!-- PASS_PROB_CHART -->
 
@@ -29,25 +29,28 @@ Looking at my last leetcode grind, roughly October and November 2025, i plateaue
 <!-- MOCK_DIST_CHART -->
 
 ![Simulated mock outcomes over time](https://shyal.s3.amazonaws.com/mock_dist_20260817120406.svg)
+
 <!-- /MOCK_DIST_CHART -->
 
 <!-- MOCK_SWARM_CHART -->
 
 ![Individual simulated mocks over time](https://shyal.s3.amazonaws.com/mock_swarm_20260817120406.svg)
+
 <!-- /MOCK_SWARM_CHART -->
 
 <!-- MOCK_BLAME_CHART -->
 
 ![Why simulated mocks fail, over time](https://shyal.s3.amazonaws.com/mock_blame_20260817120406.svg)
+
 <!-- /MOCK_BLAME_CHART -->
 
-The scheduler really is fantastic. It has a constraint i really like: it only recommends a problem with a single fragile node in its (input) dependency graph. This is what Vygotsky calleds the "Zone of proximal development", while in language acquisition it is Krashen's "i+1" (comprehensible input one step beyond current level).
+The scheduler really is fantastic. It has a constraint i really like: it only recommends a problem with a single fragile node in its (input) dependency graph. This is what Vygotsky called the "Zone of proximal development", while in language acquisition it is Krashen's "i+1" (comprehensible input one step beyond current level).
 
-The condition is the same for each solve: a foundation of solid techniques, with one fragile or sale node. The problem exists only to reinforce the fragile or stale node.
+The condition is the same for each solve: a foundation of solid techniques, with one fragile or stale node. The problem exists only to reinforce the fragile or stale node.
 
 ## My forgetting curve
 
-A memory decay curve is computed (duolingo style). It's fitted (`make curve`) regularly.
+A memory decay curve is computed (Duolingo style). It's fitted (`make curve`) regularly.
 
 The model is power-law forgetting with a slip rate, P(recall) = (1−slip)·(1 + Δ/s)^(−β), where stability s grows with every clean rep and shrinks every time i struggle.
 
@@ -68,6 +71,7 @@ The model also tracks its accuracy internally, by comparing its predictions with
 <!-- REVIEW_TIMING_CHART -->
 
 ![Was each review on time?](https://shyal.s3.amazonaws.com/review_timing_20260817120406.svg)
+
 <!-- /REVIEW_TIMING_CHART -->
 
 ## The zone of proximal development
@@ -102,7 +106,7 @@ This is the daily solve rate.
 
 ## Unique solve rate
 
-This is the daily unique solve rate. This is because as complexity ramps up, questions will need to be revisited.
+This is the daily unique solve rate, tracked separately because as complexity ramps up, questions will need to be revisited.
 
 <!-- UNIQUES_CHART -->
 
@@ -112,7 +116,7 @@ This is the daily unique solve rate. This is because as complexity ramps up, que
 
 ## Contest progress
 
-The progress bar is derived from the technique graph: every move scores solid = 1.0, stale = 0.5, fragile = 0.25, missing = 0, averaged. Staleness (i.e. how much i forget over time) is baked in — the bar only moves when i actually re-earn moves, not when time passes. The projected date comes from a small Claude call fed the graph summary.
+The progress bar is derived from the technique graph: every move scores solid = 1.0, stale = 0.5, fragile = 0.25, missing = 0, averaged. Staleness (i.e. how much i forget over time) is baked in - the bar only moves when i actually re-earn moves, not when time passes. The projected date comes from a small Claude call fed the graph summary.
 
 <!-- CONTEST_PROGRESS -->
 
@@ -122,21 +126,21 @@ The progress bar is derived from the technique graph: every move scores solid = 
 
 Update: 05-Jul-2026
 
-Rebuilt the readiness layer on the technique graph. The old bars measured elapsed time against a predicted date, which meant they filled up by me merely existing (lapses included) — they read 90% after a 10-week break. The new bars measure current skill with decay, and dropped honestly to ~55% contest / ~19% FAANG. The old history below still stands as a record of the LLM-guess era.
+Rebuilt the readiness layer on the technique graph. The old bars measured elapsed time against a predicted date, which meant they filled up by me merely existing (lapses included) - they read 90% after a 10-week break. The new bars measure current skill with decay, and dropped honestly to ~55% contest / ~19% FAANG. The old history below still stands as a record of the LLM-guess era.
 
 Update: 20-Oct-2025
 
-Initially i was quite stunned by the estimator's tendency to output the exact same dates (without prior knowledge of its previous estimates). Then estimate dates started increasing dramatically. I investigated, and it appears that the estimator heavily weighs recent solves. Initially i was mixing easy and medium questions. The estimates started jumping because i stumbled on quite a few mediums in a row, then focussed on easy questions due to scheduling, and the model assumed this was a sign that my progress on mediums had completely plateaued.
+Initially i was quite stunned by the estimator's tendency to output the exact same dates (without prior knowledge of its previous estimates). Then estimate dates started increasing dramatically. I investigated, and it appears that the estimator heavily weighs recent solves. Initially i was mixing easy and medium questions. The estimates started jumping because i stumbled on quite a few mediums in a row, then focused on easy questions due to scheduling, and the model assumed this was a sign that my progress on mediums had completely plateaued.
 
 I opted to tackle some of the 'learning' mediums in my history, and this appears to have had a dramatic effect in terms of clawing back those estimate dates.
 
-In other words, these estimate variance charts are excellent indicators for complacency; if i start slacking by doing too many easies, or not tackling my 'learning' queue, estimates go up which is the clearest signal i could hope for.
+In other words, these estimate variance charts are excellent indicators for complacency; if i start slacking by doing too many easies, or not tackling my 'learning' queue, estimates go up, which is the clearest signal i could hope for.
 
 ## FAANG progress
 
-Held to a stricter standard than contests: the bar is the fraction of technique moves that are fully SOLID (fresh evidence only — interviews demand instant recall, so stale doesn't count). Currently the focus of this repo is just fun, but this is an interesting metric regardless.
+Held to a stricter standard than contests: the bar is the fraction of technique moves that are fully SOLID (fresh evidence only - interviews demand instant recall, so stale doesn't count). Currently the focus of this repo is just fun, but this is an interesting metric regardless.
 
-The projected date no longer comes from an LLM guess: `utils/kg_predict` runs a day-by-day simulation of how the picker would spend the hours — consolidate fragile moves, acquire missing ones, re-solve whatever the personal forgetting curve (`graph/curve.json`) says is about to go stale, then bank new mediums — with solve costs measured from my own git history. Ready = graph fully solid + enough distinct mediums banked + a polish block of timed sets and mocks.
+The projected date no longer comes from an LLM guess: `utils/kg_predict` runs a day-by-day simulation of how the picker would spend the hours - consolidate fragile moves, acquire missing ones, re-solve whatever the personal forgetting curve (`graph/curve.json`) says is about to go stale, then bank new mediums - with solve costs measured from my own git history. Ready = graph fully solid + enough distinct mediums banked + a polish block of timed sets and mocks.
 
 <!-- FAANG_PROGRESS -->
 
@@ -146,7 +150,7 @@ The projected date no longer comes from an LLM guess: `utils/kg_predict` runs a 
 
 ## Estimate dates variance charts
 
-I'm curious to see the amount of variance in the estimates, i.e whether they're stable over time.
+I'm curious to see the amount of variance in the estimates, i.e. whether they're stable over time.
 
 <!-- CONTEST_VARIANCE_CHART -->
 
@@ -160,7 +164,7 @@ I'm curious to see the amount of variance in the estimates, i.e whether they're 
 
 <!-- /FAANG_VARIANCE_CHART -->
 
-The simulator's date gets its own series (recorded daily to `readiness.json` alongside the LLM's), so its stability can be compared against the LLM-guess era above:
+The simulator's date gets its own series (recorded daily to `data/readiness.json` alongside the LLM's), so its stability can be compared against the LLM-guess era above:
 
 <!-- FAANG_PREDICT_VARIANCE_CHART -->
 
@@ -180,7 +184,7 @@ Per-family readiness derived from the technique graph (same solid/stale/fragile 
 
 # Leetcode flavoured environment
 
-Leetcode's python environment is non-standard: it seems to have pretty much everyhing in modules like `itertools`, `functools`, `bisect`, `operator` etc. readily avialble without the need for imports.
+Leetcode's python environment is non-standard: it seems to have pretty much everything in modules like `itertools`, `functools`, `bisect`, `operator` etc. readily available without the need for imports.
 
 This is really great as it makes writing solutions way faster, without the need to import anything.
 
@@ -192,7 +196,7 @@ This repo tries to reproduce this same environment with `utils/sitecustomize.py`
 python3 -m venv .venv
 . .venv/bin/activate
 cp utils/sitecustomize.py .venv/lib/python3.10/site-packages/
-pip3 install requirements.txt
+pip3 install -r requirements.txt
 ```
 
 # Running
@@ -203,8 +207,8 @@ PYTHONPATH=./utils:${PYTHONPATH} python3 utils/runner.py
 
 # Disclaimer
 
-The utility scripts in this repo (for git log reports etc.), solve rate computations etc are LLM generated, so not production quality code (throw away scripts).
+The utility scripts in this repo (for git log reports etc.), solve rate computations etc. are LLM generated, so not production quality code (throw away scripts).
 
-Some of the data generated i.e contest readiness dates, topics etc. is also LLM generated.
+Some of the data generated, i.e. contest readiness dates, topics etc., is also LLM generated.
 
-Solves are all mine. When they're not, i.e 'learning' commits etc. then credit to the author is given (which can include LLM generated solves, credit also given).
+Solves are all mine. When they're not, i.e. 'learning' commits etc., then credit to the author is given (which can include LLM generated solves, credit also given).

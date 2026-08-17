@@ -33,9 +33,9 @@ The goal is to be leetcode contest ready by 2025-11-15. If previous estimates ar
     # Load existing data to find previous estimates
     data = []
     previous_estimates = None
-    if os.path.exists("readiness.json"):
+    if os.path.exists("data/readiness.json"):
         try:
-            with open("readiness.json", "r") as f:
+            with open("data/readiness.json", "r") as f:
                 data = json.load(f)
             if not isinstance(data, list):
                 data = []
@@ -85,7 +85,7 @@ The goal is to be leetcode contest ready by 2025-11-15. If previous estimates ar
 
     print(data)
 
-    with open("readiness.json", "w") as f:
+    with open("data/readiness.json", "w") as f:
         json.dump(data, f, indent=2)
 
 
