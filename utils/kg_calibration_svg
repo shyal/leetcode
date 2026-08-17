@@ -1,0 +1,190 @@
+#!/usr/bin/env python3
+
+# kg_calibration_svg — the forgetting-curve calibration check, animated into
+# graph/calibration.svg for the README pipeline (replacing the static
+# matplotlib chart update_readme.py used to render).
+#
+# A daily replay: at each day, the trials recorded so far are bucketed by
+# gap and the model's predicted clean-rate is drawn next to the observed
+# one — the bar pairs jitter while the sample is thin and settle together as
+# evidence accumulates. Predictions use the final fitted params
+# (graph/curve.json), so what moves is the accumulating trial mix. The y axis
+# spans the data's own min..max, not 0..1, so the convergence is readable.
+# Clock is kg_lib.MovieClock, so it plays in sync with kg_movie.svg,
+# kg_pass.svg and positions.svg. Pure SMIL; non-SMIL viewers see the final
+# frame as a still.
+
+import json
+import math
+import os
+from datetime import date, timedelta
+from importlib.machinery import SourceFileLoader
+
+from kg_lib import GRAPH_DIR, MovieClock, era_banner, load_evidence
+
+kg_curve = SourceFileLoader(
+    "kg_curve", os.path.join(os.path.dirname(os.path.abspath(__file__)), "kg_curve")).load_module()
+
+OUT = os.path.join(GRAPH_DIR, "calibration.svg")
+
+W, H = 1200, 430
+ML, MR = 48, 24
+PT, PB = 56, 360                         # main panel
+BUCKETS = ((1, 7), (8, 21), (22, 42), (43, 90), (91, 180), (181, 400))
+
+BG = "#0d1117"
+INK = "#c9d1d9"
+MUTED = "#8b949e"
+GRID = "#21262d"
+MODEL_C = "#1f77b4"
+OBS_C = "#3fb950"
+
+
+def discrete(attr, pairs, dur):
+    """<animate> holding each value from its keyTime on; consecutive repeats
+    collapsed. pairs = [(frac, value_str)], first frac must be 0."""
+    vals, times = [], []
+    for t, v in pairs:
+        if vals and v == vals[-1]:
+            continue
+        vals.append(v)
+        times.append(t)
+    if len(vals) < 2:
+        return ""
+    return (f'<animate attributeName="{attr}" calcMode="discrete" values="{";".join(vals)}" '
+            f'keyTimes="{";".join(f"{t:.4f}" for t in times)}" dur="{dur}s" repeatCount="indefinite"/>')
+
+
+def main():
+    with open(os.path.join(GRAPH_DIR, "curve.json")) as f:
+        cp = json.load(f)["params"]
+
+    evidence = load_evidence()
+    clock = MovieClock(evidence)
+    trials = kg_curve.extract_trials(evidence, with_date=True)
+
+    def pred(g, k, m, x):
+        s = math.exp(cp["a"] + cp["b"] * k - cp["c"] * m - cp.get("d", 0.0) * x)
+        return (1 - cp["slip"]) * (1 + g / s) ** (-cp["beta"])
+
+    # daily stations, trials folded in incrementally as their date arrives;
+    # per bucket: [(day_frac, model_rate, observed_rate, n)]
+    trials.sort(key=lambda t: t[5])
+    series = [[] for _ in BUCKETS]
+    sums = [[0, 0.0, 0.0] for _ in BUCKETS]  # n, observed_sum, model_sum
+    ti = 0
+    for i in range(clock.n_ticks):
+        d = clock.first + timedelta(days=i)
+        while ti < len(trials) and trials[ti][5] <= d:
+            g, s, k, m, x, _ = trials[ti]
+            for bi, (lo, hi) in enumerate(BUCKETS):
+                if lo <= g <= hi:
+                    sums[bi][0] += 1
+                    sums[bi][1] += s
+                    sums[bi][2] += pred(g, k, m, x)
+                    break
+            ti += 1
+        f = clock.frac(i)
+        for bi, (n, obs_sum, model_sum) in enumerate(sums):
+            if n:
+                series[bi].append((f, model_sum / n, obs_sum / n, n))
+            else:
+                series[bi].append((f, 0.0, 0.0, 0))
+
+    # y axis spans the data, padded down a grid step so the minimum stays
+    # visible above the baseline
+    rates = [v for s in series for _, mdl, obs, n in s if n for v in (mdl, obs)]
+    y_lo = max(0.0, math.floor(min(rates) * 20) / 20 - 0.05)
+    y_hi = min(1.0, math.ceil(max(rates) * 20) / 20)
+
+    def y_of(rate):
+        return PB - (rate - y_lo) / (y_hi - y_lo) * (PB - PT)
+
+    def geom(rate, n):
+        """bar top and height; no data = no bar"""
+        if not n:
+            return PB, 0.0
+        return y_of(rate), (rate - y_lo) / (y_hi - y_lo) * (PB - PT)
+
+    svg = []
+    svg.append(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" '
+               f'font-family="Helvetica,sans-serif">')
+    svg.append(f'<rect width="{W}" height="{H}" fill="{BG}"/>')
+    svg.append(f'<text x="{W / 2:.0f}" y="24" text-anchor="middle" font-size="14" fill="{INK}">'
+               'Calibration — model prediction vs observed clean-recall by gap, daily replay</text>')
+
+    svg.extend(era_banner(clock, ML, 48, 24))
+
+    # grid + y axis
+    for i in range(6):
+        v = y_lo + (y_hi - y_lo) * i / 5
+        y = y_of(v)
+        svg.append(f'<line x1="{ML}" y1="{y:.1f}" x2="{W - MR}" y2="{y:.1f}" '
+                   f'stroke="{GRID}" stroke-width="1"/>')
+        svg.append(f'<text x="{ML - 6}" y="{y + 4:.1f}" text-anchor="end" font-size="11" '
+                   f'fill="{MUTED}">{v:.0%}</text>')
+
+    # bars: per bucket a model/observed pair, heights stepping week by week;
+    # static attrs are the final frame for non-SMIL viewers
+    group_w = (W - ML - MR) / len(BUCKETS)
+    bar_w = group_w * 0.28
+    final_frac = clock.frac_date(clock.last)
+    for bi, (lo, hi) in enumerate(BUCKETS):
+        gx = ML + bi * group_w + group_w / 2
+        for off, color, col in ((-1.0, MODEL_C, 1), (0.0, OBS_C, 2)):
+            x = gx + off * bar_w + (off + 0.5) * 4
+            fin_y, fin_h = geom(series[bi][-1][col], series[bi][-1][3])
+            y_pairs = [(p[0], f"{geom(p[col], p[3])[0]:.1f}") for p in series[bi]]
+            h_pairs = [(p[0], f"{geom(p[col], p[3])[1]:.1f}") for p in series[bi]]
+            svg.append(f'<rect x="{x:.1f}" y="{fin_y:.1f}" width="{bar_w:.1f}" '
+                       f'height="{fin_h:.1f}" fill="{color}">'
+                       f'{discrete("y", y_pairs, clock.dur)}'
+                       f'{discrete("height", h_pairs, clock.dur)}'
+                       f'</rect>')
+        # bucket label + final sample size (pops in on the last tick)
+        svg.append(f'<text x="{gx:.1f}" y="{PB + 18}" text-anchor="middle" font-size="12" '
+                   f'fill="{MUTED}">{lo}-{hi}d</text>')
+        n_fin = series[bi][-1][3]
+        top = min(geom(series[bi][-1][1], n_fin)[0], geom(series[bi][-1][2], n_fin)[0])
+        svg.append(f'<text x="{gx:.1f}" y="{top - 6:.1f}" text-anchor="middle" font-size="10" '
+                   f'fill="{MUTED}" opacity="1">n={n_fin}'
+                   f'<animate attributeName="opacity" calcMode="discrete" values="0;1" '
+                   f'keyTimes="0;{final_frac:.4f}" dur="{clock.dur}s" repeatCount="indefinite"/></text>')
+
+    # legend, top right where even the longest-gap bars stay low
+    for i, (color, label) in enumerate(((MODEL_C, "model"), (OBS_C, "observed"))):
+        y = PT + 4 + i * 18
+        svg.append(f'<rect x="{W - MR - 110}" y="{y - 9}" width="14" height="10" fill="{color}"/>')
+        svg.append(f'<text x="{W - MR - 90}" y="{y}" font-size="12" fill="{INK}">{label}</text>')
+    svg.append(f'<text x="{W / 2:.0f}" y="{H - 8}" text-anchor="middle" font-size="12" '
+               f'fill="{MUTED}">gap since last clean solve</text>')
+
+    # month ticker, top right, same style as positions.svg
+    months = []
+    m = date(clock.first.year, clock.first.month, 1)
+    while m <= clock.last:
+        months.append(m)
+        m = date(m.year + (m.month == 12), m.month % 12 + 1, 1)
+    for i, m in enumerate(months):
+        fs = clock.frac(max((m - clock.first).days, 0))
+        nxt = months[i + 1] if i + 1 < len(months) else None
+        fe = clock.frac((nxt - clock.first).days) if nxt else 1.0
+        lab = m.strftime("%b '%y").lower()
+        vals, times = ("0;1;0", f"0;{fs:.4f};{fe:.4f}") if fs > 0 else ("1;0", f"0;{fe:.4f}")
+        if not nxt:
+            vals, times = ("0;1", f"0;{fs:.4f}") if fs > 0 else ("1", "0")
+        svg.append(f'<text x="{W - MR}" y="24" fill="{INK}" font-size="14" '
+                   f'text-anchor="end" opacity="0">{lab}'
+                   f'<animate attributeName="opacity" calcMode="discrete" values="{vals}" '
+                   f'keyTimes="{times}" dur="{clock.dur}s" repeatCount="indefinite"/></text>')
+
+    svg.append(clock.dissolve_rect(W, H, BG))
+    svg.append("</svg>")
+    with open(OUT, "w") as f:
+        f.write("\n".join(svg) + "\n")
+    print(f"wrote {OUT} ({len(trials)} trials over {clock.n_ticks} days, "
+          f"y {y_lo:.0%}-{y_hi:.0%}, synced to the {clock.dur:.0f}s loop)")
+
+
+if __name__ == "__main__":
+    main()

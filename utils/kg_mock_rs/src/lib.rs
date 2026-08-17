@@ -254,7 +254,14 @@ pub const OFF_GRAPH0: [f64; 3] = [0.02, 0.10, 0.45];
 pub const REC_POWER: [f64; 3] = [0.5, 1.0, 1.6];
 pub const SCENARIOS: [(&str, f64); 3] = [("cautious", 0.75), ("central", 0.85), ("optimistic", 0.95)];
 
-pub fn pass_rates(
+// The simulation loop itself: n_mc mock interviews on a random 2E+2M+2H set,
+// each problem's walk multiplying move recalls; on_sim sees every simulated
+// mock's per-difficulty solved counts plus, per problem of the set, the
+// weakest move in its walk (index into mv_recall; usize::MAX when the
+// weakest link was an off-graph move at the derive rate) and whether the
+// problem failed. pass_rates and outcome_hist are thin tallies over this —
+// the RNG stream is identical for identical inputs.
+pub fn run_mocks(
     mv_recall: &[Option<f64>],
     weights: &[f64],
     off: &[f64; 3],
@@ -262,7 +269,8 @@ pub fn pass_rates(
     practice: (i64, i64, i64),
     rng: &mut PyRandom,
     n_mc: usize,
-) -> (f64, f64, f64, f64) {
+    mut on_sim: impl FnMut(&[i32; 3], &[(usize, bool); 6]),
+) {
     let (mediums, mocks, hards) = practice;
     let grow = 1.0 - (-(mediums as f64) / 120.0).exp();
     let time_f = [
@@ -287,15 +295,16 @@ pub fn pass_rates(
     let total = cum[cum.len() - 1] + 0.0;
     let hi_idx = cum.len() - 1;
 
-    let (mut full, mut onsite, mut screen, mut h_solved) = (0i64, 0i64, 0i64, 0i64);
     for _ in 0..n_mc {
         let mut solved = [0i32; 3];
-        for &dif in &[0usize, 0, 1, 1, 2, 2] {
+        let mut probs = [(usize::MAX, false); 6];
+        for (pi, &dif) in [0usize, 0, 1, 1, 2, 2].iter().enumerate() {
             let mut p = base_p[dif];
             if rng.random() < off[dif] {
                 p *= derive;
             }
             let k = rng.randint(WALK_LEN[dif].0, WALK_LEN[dif].1);
+            let (mut min_v, mut min_i) = (f64::INFINITY, usize::MAX);
             for _ in 0..k {
                 let x = rng.random() * total;
                 let (mut lo, mut hi) = (0usize, hi_idx);
@@ -307,21 +316,62 @@ pub fn pass_rates(
                         lo = mid + 1;
                     }
                 }
+                if mv_val[lo] < min_v {
+                    min_v = mv_val[lo];
+                    min_i = if mv_recall[lo].is_some() { lo } else { usize::MAX };
+                }
                 p *= mv_val[lo];
             }
-            if rng.random() < p {
-                solved[dif] += 1;
-            }
+            let ok = rng.random() < p;
+            solved[dif] += ok as i32;
+            probs[pi] = (min_i, !ok);
         }
+        on_sim(&solved, &probs);
+    }
+}
+
+pub fn pass_rates(
+    mv_recall: &[Option<f64>],
+    weights: &[f64],
+    off: &[f64; 3],
+    r_base: f64,
+    practice: (i64, i64, i64),
+    rng: &mut PyRandom,
+    n_mc: usize,
+) -> (f64, f64, f64, f64) {
+    let (mut full, mut onsite, mut screen, mut h_solved) = (0i64, 0i64, 0i64, 0i64);
+    run_mocks(mv_recall, weights, off, r_base, practice, rng, n_mc, |solved, _| {
         full += (solved[0] == 2 && solved[1] == 2 && solved[2] == 2) as i64;
         onsite += (solved[0] == 2 && solved[1] == 2 && solved[2] >= 1) as i64;
         screen += (solved[1] == 2) as i64;
         h_solved += solved[2] as i64;
-    }
+    });
     (
         full as f64 / n_mc as f64,
         onsite as f64 / n_mc as f64,
         screen as f64 / n_mc as f64,
         h_solved as f64 / (2 * n_mc) as f64,
     )
+}
+
+// Per-mock outcome distribution behind pass_rates' aggregates: share of the
+// n_mc simulated mocks that solved 0..=6 problems, plus the share of each bin
+// that clears the onsite bar (2E + 2M + >=1 hard — only 5s and 6s can).
+pub fn outcome_hist(
+    mv_recall: &[Option<f64>],
+    weights: &[f64],
+    off: &[f64; 3],
+    r_base: f64,
+    practice: (i64, i64, i64),
+    rng: &mut PyRandom,
+    n_mc: usize,
+) -> ([f64; 7], [f64; 7]) {
+    let (mut hist, mut onsite_hist) = ([0i64; 7], [0i64; 7]);
+    run_mocks(mv_recall, weights, off, r_base, practice, rng, n_mc, |solved, _| {
+        let t = (solved[0] + solved[1] + solved[2]) as usize;
+        hist[t] += 1;
+        onsite_hist[t] += (solved[0] == 2 && solved[1] == 2 && solved[2] >= 1) as i64;
+    });
+    let norm = |a: [i64; 7]| a.map(|v| v as f64 / n_mc as f64);
+    (norm(hist), norm(onsite_hist))
 }

@@ -1,0 +1,152 @@
+#!/usr/bin/env python3
+
+# kg_timing_svg — was each review on time? Animated into graph/timing.svg
+# for the README pipeline.
+#
+# Every recall trial (a clean-or-struggled return to a node, from
+# kg_curve.extract_trials) plotted on the calendar: y is the gap since the
+# node's last clean solve divided by its predicted solid window at that
+# moment (log scale). Below the 1.0 line = reviewed while the model still
+# called it solid; far below = early, the rep bought little; above = the
+# model says it had already gone stale on arrival. Green dots recalled
+# clean unaided, red struggled or needed help — if the forgetting model is
+# right, red concentrates above the line, and if the scheduler works, the
+# graph-era dots hug the line from below. Dots pop in on their date, on the
+# shared MovieClock, with a playhead sweeping the calendar like kg_pass's.
+
+import json
+import math
+import os
+from datetime import date, timedelta
+from importlib.machinery import SourceFileLoader
+
+from kg_lib import ERA_SWITCH, GRAPH_DIR, MovieClock, era_banner, load_evidence
+
+kg_curve = SourceFileLoader(
+    "kg_curve", os.path.join(os.path.dirname(os.path.abspath(__file__)), "kg_curve")).load_module()
+
+OUT = os.path.join(GRAPH_DIR, "timing.svg")
+
+W, H = 1200, 430
+ML, MR = 70, 24
+PT, PB = 56, 370
+Y_SPAN = 4.0                             # log2 ratio axis: 1/16x .. 16x
+
+BG = "#0d1117"
+INK = "#c9d1d9"
+MUTED = "#8b949e"
+GRID = "#21262d"
+GOOD = "#3fb950"
+BAD = "#f85149"
+ERA_INK = "#58a6ff"
+
+
+def main():
+    with open(os.path.join(GRAPH_DIR, "curve.json")) as f:
+        curve = json.load(f)
+    cp = curve["params"]
+    target = curve["target_retention"]
+
+    evidence = load_evidence()
+    clock = MovieClock(evidence)
+    trials = kg_curve.extract_trials(evidence, with_date=True)
+
+    def x_of(d):
+        return ML + (d - clock.first).days / max((clock.last - clock.first).days, 1) * (W - ML - MR)
+
+    def y_of(log2_ratio):
+        return PT + (Y_SPAN - log2_ratio) / (2 * Y_SPAN) * (PB - PT)
+
+    # ratio of actual gap to the solid window the curve predicted at the time
+    dots = []
+    for g, success, k, m, x, d in trials:
+        s = math.exp(cp["a"] + cp["b"] * k - cp["c"] * m - cp["d"] * x)
+        window = s * (target ** (-1 / cp["beta"]) - 1)
+        r = max(min(math.log2(g / window), Y_SPAN), -Y_SPAN)
+        dots.append((d, r, success))
+
+    n_late = sum(1 for _, r, _ in dots if r > 0)
+    svg = []
+    svg.append(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" '
+               f'font-family="Helvetica,sans-serif">')
+    svg.append(f'<rect width="{W}" height="{H}" fill="{BG}"/>')
+    svg.append(f'<text x="{W / 2:.0f}" y="24" text-anchor="middle" font-size="13" fill="{INK}">'
+               'Was each review on time? — gap since last clean solve vs the predicted solid window, '
+               'green = clean unaided, red = struggled or helped</text>')
+
+    # grid: powers of two around the on-time line
+    for e in range(-int(Y_SPAN), int(Y_SPAN) + 1):
+        y = y_of(e)
+        if e == 0:
+            svg.append(f'<line x1="{ML}" y1="{y:.1f}" x2="{W - MR}" y2="{y:.1f}" '
+                       f'stroke="{MUTED}" stroke-width="1.2" stroke-dasharray="7 5"/>')
+            lab = "on time"
+        else:
+            svg.append(f'<line x1="{ML}" y1="{y:.1f}" x2="{W - MR}" y2="{y:.1f}" '
+                       f'stroke="{GRID}" stroke-width="1"/>')
+            lab = f"{2 ** abs(e)}× {'late' if e > 0 else 'early'}"
+        svg.append(f'<text x="{ML - 8}" y="{y + 4:.1f}" text-anchor="end" font-size="11" '
+                   f'fill="{MUTED}">{lab}</text>')
+    svg.append(f'<text x="{ML + 6}" y="{y_of(0) - 8:.1f}" font-size="11" fill="{MUTED}">'
+               'stale on arrival above this line</text>')
+
+    # month ticks along the bottom
+    months = []
+    m = date(clock.first.year, clock.first.month, 1)
+    while m <= clock.last:
+        months.append(m)
+        m = date(m.year + (m.month == 12), m.month % 12 + 1, 1)
+    for i, mo in enumerate(months):
+        if mo < clock.first:
+            continue
+        x = x_of(mo)
+        svg.append(f'<line x1="{x:.1f}" y1="{PB}" x2="{x:.1f}" y2="{PB + 4}" '
+                   f'stroke="{MUTED}" stroke-width="1"/>')
+        nxt = months[i + 1] if i + 1 < len(months) else clock.last
+        if x_of(min(nxt, clock.last)) - x >= 34:
+            lab = mo.strftime("jan '%y" if mo.month == 1 else "%b").lower()
+            svg.append(f'<text x="{x:.1f}" y="{PB + 17}" text-anchor="middle" font-size="11" '
+                       f'fill="{MUTED}">{lab}</text>')
+
+    # era switch, same date as the movie's banner flip
+    if clock.first < ERA_SWITCH < clock.last:
+        x = x_of(ERA_SWITCH)
+        svg.append(f'<line x1="{x:.1f}" y1="{PT}" x2="{x:.1f}" y2="{PB}" stroke="{ERA_INK}" '
+                   f'stroke-width="1.2" stroke-dasharray="5 4" opacity="0.6"/>')
+    svg.extend(era_banner(clock, W - MR - 6, PT + 24, 24, anchor="end", halo=BG))
+
+    # legend
+    for i, (color, label) in enumerate(((GOOD, "recalled clean, unaided"),
+                                        (BAD, "struggled or needed help"))):
+        y = PT + 14 + i * 17
+        svg.append(f'<circle cx="{ML + 14}" cy="{y - 4:.1f}" r="4" fill="{color}"/>')
+        svg.append(f'<text x="{ML + 24}" y="{y}" font-size="12" fill="{INK}">{label}</text>')
+
+    # the trials, popping in on their date
+    for d, r, success in sorted(dots):
+        f = clock.frac_date(d)
+        op = ("0;1", f"0;{f:.4f}") if f > 0 else ("1", "0")
+        svg.append(f'<circle cx="{x_of(d):.1f}" cy="{y_of(r):.1f}" r="4" '
+                   f'fill="{GOOD if success else BAD}" fill-opacity="0.85" opacity="1">'
+                   f'<animate attributeName="opacity" calcMode="discrete" values="{op[0]}" '
+                   f'keyTimes="{op[1]}" dur="{clock.dur}s" repeatCount="indefinite"/></circle>')
+
+    # playhead sweeping the calendar on the shared clock
+    # linear keyTimes must end exactly at 1: hold at the right edge
+    days_x = [f"{x_of(clock.first + timedelta(days=i)):.1f}" for i in range(clock.n_ticks)]
+    xs = ";".join(days_x + [days_x[-1]])
+    kt = ";".join([f"{clock.frac(i):.4f}" for i in range(clock.n_ticks)] + ["1"])
+    svg.append(f'<rect x="{W - MR:.1f}" y="{PT}" width="1.5" height="{PB - PT}" fill="{INK}" '
+               f'opacity="0.75"><animate attributeName="x" calcMode="linear" values="{xs}" '
+               f'keyTimes="{kt}" dur="{clock.dur}s" repeatCount="indefinite"/></rect>')
+
+    svg.append(clock.dissolve_rect(W, H, BG))
+    svg.append("</svg>")
+    with open(OUT, "w") as f:
+        f.write("\n".join(svg) + "\n")
+    print(f"wrote {OUT} ({len(dots)} trials, {n_late} arrived stale, "
+          f"synced to the {clock.dur:.0f}s loop)")
+
+
+if __name__ == "__main__":
+    main()

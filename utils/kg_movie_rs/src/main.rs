@@ -16,11 +16,13 @@
 //
 // Statuses are derived, never stored, so the graph's state on any historical
 // date is just node_status() (kept in lockstep with utils/kg_lib.py) over the
-// evidence recorded up to that date. Screen time is linear calendar time
-// (--pace solves for event-rate pacing instead), so the replay runs at the
-// same constant speed as the P(pass) chart's linear x-axis and the two stay
-// in step. The tail dissolves into the background so the loop has no dead
-// frames at the seam. Label placement is chosen at spawn
+// evidence recorded up to that date. Screen time is event-rate paced: each
+// day earns its solve count plus LULL_WEIGHT, so long solve-less stretches
+// fast-forward (--pace calendar for constant-speed calendar time instead).
+// The P(pass) chart's reveal follows the same tick clock over its linear
+// x-axis, so the two stay in step; kg_lib.py's MovieClock mirrors this exact
+// pacing for the Python-rendered SVGs — change them together. The tail dissolves into the background so
+// the loop has no dead frames at the seam. Label placement is chosen at spawn
 // from ~20 candidate spots around the node, overlapping nothing graphviz
 // drew — nodes, edges, cluster borders and titles — nor any still-fading
 // label; the spot is pinned for the label's lifetime.
@@ -33,9 +35,9 @@ use std::process::{Command, Stdio};
 use chrono::{Datelike, Duration, NaiveDate};
 use serde_json::Value;
 
-use kg_mock::{current_recall, pass_rates, EvRec, PyRandom, OFF_GRAPH0, SCENARIOS};
+use kg_mock::{current_recall, pass_rates, run_mocks, EvRec, PyRandom, OFF_GRAPH0, SCENARIOS};
 
-const DEFAULT_SECONDS: f64 = 50.0;
+const DEFAULT_SECONDS: f64 = 10.0;
 const END_FADE_S: f64 = 1.2; // loop-closing dissolve, capped by FADE_FRACTION
 const FADE_FRACTION: f64 = 0.08; // dissolve shrinks with short movies
 const LABEL_LIFE_FRACTION: f64 = 0.04; // label fade as a share of runtime
@@ -57,7 +59,9 @@ const SOLID_WINDOW_DAYS: i64 = 42; // flat fallback when curve.json is absent
 // "Technique graph tooling: viz, deterministic picker, drill bank, honest
 // readiness"). Everything before it was hand-scheduled; the header names
 // the era so the switch reads as the story beat it was.
-const ERA_SWITCH: &str = "2026-07-05";
+// the tooling landed 2026-07-05, but the july solves were building/testing
+// it; sustained picker-driven solving starts here
+const ERA_SWITCH: &str = "2026-08-07";
 const ERA_PRE: &str = "pre graph scheduling era";
 const ERA_GRAPH: &str = "graph scheduling era";
 const ERA_PRE_INK: &str = "#8b949e";
@@ -393,6 +397,45 @@ fn animate(attr_name: &str, calc: &str, values: &[String], key_times: &[f64], du
     )
 }
 
+// The era banner every chart carries: big bold label flipping from the grey
+// pre-graph era to the blue graph-scheduling era on the switch date's tick.
+// era_frac None = the whole replay is one era (static label). halo draws a
+// background-colored outline for banners placed over chart ink.
+fn era_banner(x: f64, y: f64, size: f64, anchor: &str, era_frac: Option<f64>, switch_exists: bool, halo: &str, dur: f64) -> String {
+    let halo_attr = if halo.is_empty() {
+        String::new()
+    } else {
+        format!(" stroke=\"{halo}\" stroke-width=\"{:.0}\" paint-order=\"stroke\" stroke-linejoin=\"round\"", (size / 7.0).max(3.0))
+    };
+    let mut s = String::new();
+    for (label, ink, show, is_pre) in [
+        (ERA_PRE, ERA_PRE_INK, era_frac != Some(0.0), true),
+        (ERA_GRAPH, ERA_GRAPH_INK, switch_exists, false),
+    ] {
+        if !show {
+            continue;
+        }
+        let track = match era_frac {
+            Some(f) if f > 0.0 => {
+                let mut times = vec![0.0];
+                push_key(&mut times, f);
+                let values = if is_pre {
+                    vec!["1".to_string(), "0".to_string()]
+                } else {
+                    vec!["0".to_string(), "1".to_string()]
+                };
+                animate("opacity", "discrete", &values, &times, dur)
+            }
+            _ => String::new(),
+        };
+        s.push_str(&format!(
+            "<text x=\"{x:.0}\" y=\"{y:.0}\" text-anchor=\"{anchor}\" font-family=\"Helvetica,sans-serif\" font-size=\"{size:.0}\" font-weight=\"bold\" fill=\"{ink}\"{halo_attr} opacity=\"{}\">{label}{track}</text>\n",
+            if is_pre && era_frac.is_some() { 0 } else { 1 }
+        ));
+    }
+    s
+}
+
 // One discrete animation from a per-tick value sequence, compressed to its
 // change points. None when the value never changes.
 fn discrete_track(seq: &[String], tick_frac: &[f64], attr_name: &str, dur: f64) -> Option<String> {
@@ -412,13 +455,13 @@ fn discrete_track(seq: &[String], tick_frac: &[f64], attr_name: &str, dur: f64) 
 fn main() {
     let mut seconds = DEFAULT_SECONDS;
     let mut open_after = false;
-    let mut pace_calendar = true;
+    let mut pace_calendar = false;
     let mut args = std::env::args().skip(1);
     while let Some(a) = args.next() {
         match a.as_str() {
             "--open" => open_after = true,
             "--pace" => {
-                pace_calendar = !matches!(args.next().as_deref(), Some("solves"));
+                pace_calendar = matches!(args.next().as_deref(), Some("calendar"));
             }
             s => match s.parse::<f64>() {
                 Ok(v) if v > 0.0 => seconds = v,
@@ -924,38 +967,16 @@ fn main() {
     // graph-scheduled after — one flip, pinned to the switch date's tick
     let switch = days.iter().position(|d| d.to_string().as_str() >= ERA_SWITCH);
     let era_frac = switch.map(|i| tick_frac[i]);
-    for (label, ink, show) in [
-        (ERA_PRE, ERA_PRE_INK, era_frac != Some(0.0)),
-        (ERA_GRAPH, ERA_GRAPH_INK, switch.is_some()),
-    ] {
-        if !show {
-            continue;
-        }
-        let track = match era_frac {
-            Some(f) if f > 0.0 => {
-                let mut times = vec![0.0];
-                push_key(&mut times, f);
-                let values = if label == ERA_PRE {
-                    vec!["1".to_string(), "0".to_string()]
-                } else {
-                    vec!["0".to_string(), "1".to_string()]
-                };
-                animate("opacity", "discrete", &values, &times, dur)
-            }
-            _ => String::new(), // the whole movie is one era: static label
-        };
-        writeln!(
-            out_svg,
-            "<text x=\"20\" y=\"44\" font-family=\"Helvetica,sans-serif\" font-size=\"34\" font-weight=\"bold\" fill=\"{ink}\" opacity=\"{}\">{label}{track}</text>",
-            if label == ERA_PRE && era_frac.is_some() { 0 } else { 1 }
-        )
-        .unwrap();
-    }
+    out_svg.push_str(&era_banner(20.0, 56.0, 52.0, "start", era_frac, switch.is_some(), "", dur));
 
-    // era strip: the loop's own timeline along the top edge — grey for the
+    // era strip: the history's calendar along the top edge — grey for the
     // hand-scheduled stretch, blue once the graph picker takes over, a
-    // playhead sweeping across so the switch reads at any thumbnail size
-    let split_x = era_frac.map_or(width, |f| f * width);
+    // playhead sweeping across so the switch reads at any thumbnail size.
+    // Both the split and the playhead are date-true (the playhead rides the
+    // warped tick clock), so the strip stays in step with the P(pass)
+    // chart's playhead and positions.svg under event-rate pacing.
+    let cal_x = |i: usize| i as f64 / (n_ticks - 1).max(1) as f64 * width;
+    let split_x = switch.map_or(width, &cal_x);
     if split_x > 0.0 {
         writeln!(out_svg, "<rect x=\"0\" y=\"0\" width=\"{split_x:.1}\" height=\"{ERA_STRIP_H}\" fill=\"{ERA_PRE_INK}\" opacity=\"0.55\"/>").unwrap();
     }
@@ -967,11 +988,15 @@ fn main() {
         )
         .unwrap();
     }
+    let mut head_x: Vec<String> = (0..n_ticks).map(|i| format!("{:.1}", cal_x(i) - 2.0)).collect();
+    let mut head_t = tick_frac.clone();
+    head_x.push(head_x.last().unwrap().clone());
+    push_key(&mut head_t, 1.0);
     writeln!(
         out_svg,
-        "<rect x=\"-2\" y=\"0\" width=\"4\" height=\"{:.0}\" fill=\"{INK}\"><animate attributeName=\"x\" calcMode=\"linear\" values=\"-2;{:.1}\" keyTimes=\"0;1\" dur=\"{dur}s\" repeatCount=\"indefinite\"/></rect>",
+        "<rect x=\"-2\" y=\"0\" width=\"4\" height=\"{:.0}\" fill=\"{INK}\">{}</rect>",
         ERA_STRIP_H + 8.0,
-        width - 2.0
+        animate("x", "linear", &head_x, &head_t, dur)
     )
     .unwrap();
 
@@ -1130,45 +1155,20 @@ fn main() {
     .unwrap();
     writeln!(c, "<rect width=\"{CW:.0}\" height=\"{CH:.0}\" fill=\"{BG}\"/>").unwrap();
 
-    // era banner strip + swapping era label, same split tick as the movie's
-    let split_x = era_frac.map_or(CW, |f| f * CW);
+    // era banner strip + swapping era label, same split tick as the movie's;
+    // date-true split so the two strips mirror each other
+    let split_x = switch.map_or(CW, |i| i as f64 / (n_ticks - 1).max(1) as f64 * CW);
     if split_x > 0.0 {
         writeln!(c, "<rect x=\"0\" y=\"0\" width=\"{split_x:.1}\" height=\"3\" fill=\"{ERA_PRE_INK}\" opacity=\"0.55\"/>").unwrap();
     }
     if switch.is_some() && split_x < CW {
         writeln!(c, "<rect x=\"{split_x:.1}\" y=\"0\" width=\"{:.1}\" height=\"3\" fill=\"{ERA_GRAPH_INK}\" opacity=\"0.9\"/>", CW - split_x).unwrap();
     }
-    for (label, ink, show) in [
-        (ERA_PRE, ERA_PRE_INK, era_frac != Some(0.0)),
-        (ERA_GRAPH, ERA_GRAPH_INK, switch.is_some()),
-    ] {
-        if !show {
-            continue;
-        }
-        let track = match era_frac {
-            Some(f) if f > 0.0 => {
-                let mut times = vec![0.0];
-                push_key(&mut times, f);
-                let values = if label == ERA_PRE {
-                    vec!["1".to_string(), "0".to_string()]
-                } else {
-                    vec!["0".to_string(), "1".to_string()]
-                };
-                animate("opacity", "discrete", &values, &times, dur)
-            }
-            _ => String::new(),
-        };
-        writeln!(
-            c,
-            "<text x=\"12\" y=\"19\" font-size=\"14\" font-weight=\"bold\" fill=\"{ink}\" opacity=\"{}\">{label}{track}</text>",
-            if label == ERA_PRE && era_frac.is_some() { 0 } else { 1 }
-        )
-        .unwrap();
-    }
+    c.push_str(&era_banner(12.0, 26.0, 24.0, "start", era_frac, switch.is_some(), "", dur));
     writeln!(
         c,
         "<text x=\"{:.0}\" y=\"19\" text-anchor=\"middle\" font-size=\"13\" fill=\"{INK}\">P(pass a mock, cold) — weekly replay of the technique graph (band = recognition scenarios)</text>",
-        CW / 2.0
+        CW / 2.0 + 100.0
     )
     .unwrap();
 
@@ -1320,5 +1320,456 @@ fn main() {
         weeks.len(),
         seconds,
         c.len() as f64 / 1024.0
+    );
+
+    // ---- mock outcome distribution: graph/kg_dist.svg --------------------
+    // The mass behind the P(pass) central line: per DAY (weekly steps read as
+    // jitter), how the 4000 simulated mocks distribute over problems solved
+    // (0..=6 of the 2E+2M+2H set), stepping tick for tick on the shared
+    // clock. The slice of each bin that clears the onsite bar (2E+2M+>=1
+    // hard — only 5s and 6s can) is lit in the onsite color, so the pass
+    // rate reads as the lit mass. Same seed and inputs as the central
+    // pass_rates call, so on kg_pass's weekly stations they agree exactly.
+    // The swarm chart tracks the first SWARM_N of those sims individually.
+    // Every day re-runs seed 42, so sim i rolls the SAME dice each day
+    // (common random numbers): its dot moves only when the day's improved
+    // recall actually flips one of its problems.
+    const SWARM_N: usize = 150;
+    // blame: failed problems attributed to the weakest move in their walk,
+    // rolled up by technique group; last band = off-graph moves
+    let n_groups = groups.len();
+    let mf_group: Vec<usize> = mf_keys
+        .iter()
+        .map(|key| {
+            node_index
+                .get(key.as_str())
+                .and_then(|&ni| groups.iter().position(|(g, _)| *g == nodes[ni].group))
+                .unwrap_or(n_groups)
+        })
+        .collect();
+    let mut dists: Vec<([f64; 7], [f64; 7])> = Vec::with_capacity(n_ticks);
+    let mut swarm: Vec<Vec<(usize, bool)>> = Vec::with_capacity(n_ticks); // (solved, onsite) per sim
+    let mut blame_days: Vec<Vec<u32>> = Vec::with_capacity(n_ticks);
+    for day in &days {
+        let d_s = day.to_string();
+        let k = ev_recs.partition_point(|r| r.date.as_str() <= d_s.as_str());
+        let recall = current_recall(&node_ids, &ev_recs[..k], &mcurve, *day);
+        let rmap: HashMap<&str, f64> =
+            node_ids.iter().map(String::as_str).zip(recall.iter().copied()).collect();
+        let mv_recall: Vec<Option<f64>> =
+            mf_keys.iter().map(|k| rmap.get(k.as_str()).copied()).collect();
+        let (mut hist, mut onsite_hist) = ([0i64; 7], [0i64; 7]);
+        let mut sims = Vec::with_capacity(SWARM_N);
+        let mut blame = vec![0u32; n_groups + 1];
+        run_mocks(
+            &mv_recall, &mf_weights, &OFF_GRAPH0, SCENARIOS[1].1, (0, 0, 0),
+            &mut PyRandom::new(42), 4000,
+            |solved, probs| {
+                let t = (solved[0] + solved[1] + solved[2]) as usize;
+                let onsite = solved[0] == 2 && solved[1] == 2 && solved[2] >= 1;
+                hist[t] += 1;
+                onsite_hist[t] += onsite as i64;
+                if sims.len() < SWARM_N {
+                    sims.push((t, onsite));
+                }
+                for &(wi, failed) in probs {
+                    if failed {
+                        blame[if wi == usize::MAX { n_groups } else { mf_group[wi] }] += 1;
+                    }
+                }
+            },
+        );
+        dists.push((hist.map(|v| v as f64 / 4000.0), onsite_hist.map(|v| v as f64 / 4000.0)));
+        swarm.push(sims);
+        blame_days.push(blame);
+    }
+    const DH: f64 = 430.0;
+    const DML: f64 = 48.0;
+    const DMR: f64 = 24.0;
+    const DPT: f64 = 56.0;
+    const DPB: f64 = 360.0;
+    let y_max = dists
+        .iter()
+        .flat_map(|(h, _)| h.iter().copied())
+        .fold(0.0f64, f64::max)
+        .mul_add(10.0, 0.999)
+        .floor()
+        / 10.0;
+    let dy_of = |share: f64| DPB - share / y_max * (DPB - DPT);
+    let collapse = |vals: &[String], attr: &str| -> String {
+        discrete_track(vals, &tick_frac, attr, dur).unwrap_or_default()
+    };
+
+    let mut ds = String::with_capacity(32 * 1024);
+    writeln!(ds, "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>").unwrap();
+    writeln!(ds, "<svg width=\"{CW:.0}pt\" height=\"{DH:.0}pt\" viewBox=\"0 0 {CW:.0} {DH:.0}\" xmlns=\"http://www.w3.org/2000/svg\" font-family=\"Helvetica,sans-serif\">").unwrap();
+    writeln!(ds, "<rect width=\"{CW:.0}\" height=\"{DH:.0}\" fill=\"{BG}\"/>").unwrap();
+    writeln!(ds, "<text x=\"{:.0}\" y=\"24\" text-anchor=\"middle\" font-size=\"13\" fill=\"{INK}\">The Monte Carlo mass behind P(pass) — 4000 simulated mocks/week by problems solved, central scenario</text>", CW / 2.0).unwrap();
+    ds.push_str(&era_banner(DML, 48.0, 26.0, "start", era_frac, switch.is_some(), "", dur));
+
+    for p in [0.0, 0.25, 0.5, 0.75, 1.0] {
+        let share = p * y_max;
+        let y = dy_of(share);
+        writeln!(ds, "<line x1=\"{DML}\" y1=\"{y:.1}\" x2=\"{:.1}\" y2=\"{y:.1}\" stroke=\"{GRID}\" stroke-width=\"1\"/>", CW - DMR).unwrap();
+        writeln!(ds, "<text x=\"{:.0}\" y=\"{:.1}\" text-anchor=\"end\" font-size=\"11\" fill=\"{MUTED}\">{:.0}%</text>", DML - 6.0, y + 4.0, share * 100.0).unwrap();
+    }
+
+    let group_w = (CW - DML - DMR) / 7.0;
+    let bar_w = group_w * 0.5;
+    for bin in 0..7usize {
+        let bx = DML + bin as f64 * group_w + (group_w - bar_w) / 2.0;
+        let (fin_h, fin_o) = (dists.last().unwrap().0[bin], dists.last().unwrap().1[bin]);
+        // rest of the bin above, onsite-clearing slice grounded at the axis
+        let rest_y: Vec<String> = dists.iter().map(|(h, _)| format!("{:.1}", dy_of(h[bin]))).collect();
+        let rest_h: Vec<String> =
+            dists.iter().map(|(h, o)| format!("{:.1}", (h[bin] - o[bin]) / y_max * (DPB - DPT))).collect();
+        let pass_y: Vec<String> = dists.iter().map(|(_, o)| format!("{:.1}", dy_of(o[bin]))).collect();
+        let pass_h: Vec<String> =
+            dists.iter().map(|(_, o)| format!("{:.1}", o[bin] / y_max * (DPB - DPT))).collect();
+        writeln!(
+            ds,
+            "<rect x=\"{bx:.1}\" y=\"{:.1}\" width=\"{bar_w:.1}\" height=\"{:.1}\" fill=\"{SCREEN_C}\" opacity=\"0.85\">{}{}</rect>",
+            dy_of(fin_h),
+            (fin_h - fin_o) / y_max * (DPB - DPT),
+            collapse(&rest_y, "y"),
+            collapse(&rest_h, "height")
+        )
+        .unwrap();
+        writeln!(
+            ds,
+            "<rect x=\"{bx:.1}\" y=\"{:.1}\" width=\"{bar_w:.1}\" height=\"{:.1}\" fill=\"{ONSITE_C}\">{}{}</rect>",
+            dy_of(fin_o),
+            fin_o / y_max * (DPB - DPT),
+            collapse(&pass_y, "y"),
+            collapse(&pass_h, "height")
+        )
+        .unwrap();
+        writeln!(
+            ds,
+            "<text x=\"{:.1}\" y=\"{:.0}\" text-anchor=\"middle\" font-size=\"12\" fill=\"{MUTED}\">{bin} solved</text>",
+            bx + bar_w / 2.0,
+            DPB + 18.0
+        )
+        .unwrap();
+    }
+
+    // legend + threshold note, top right where the low bins live early on
+    for (i, (color, label)) in [
+        (SCREEN_C, "share of simulated mocks"),
+        (ONSITE_C, "clears the onsite bar (2E+2M+\u{2265}1H)"),
+    ]
+    .iter()
+    .enumerate()
+    {
+        let y = DPT + 4.0 + i as f64 * 18.0;
+        writeln!(ds, "<rect x=\"{:.0}\" y=\"{:.1}\" width=\"14\" height=\"10\" fill=\"{color}\"/>", CW - DMR - 260.0, y - 9.0).unwrap();
+        writeln!(ds, "<text x=\"{:.0}\" y=\"{y:.1}\" font-size=\"12\" fill=\"{INK}\">{label}</text>", CW - DMR - 240.0).unwrap();
+    }
+
+    // month ticker on the movie's tick, like the python-rendered charts
+    let mut m = NaiveDate::from_ymd_opt(days[0].year(), days[0].month(), 1).unwrap();
+    let mut month_starts = vec![];
+    while m <= today {
+        month_starts.push(m);
+        m = NaiveDate::from_ymd_opt(m.year() + (m.month() == 12) as i32, m.month() % 12 + 1, 1).unwrap();
+    }
+    for (i, m) in month_starts.iter().enumerate() {
+        let fs = tick_frac[((*m - days[0]).num_days().max(0) as usize).min(n_ticks - 1)];
+        let fe = month_starts
+            .get(i + 1)
+            .map_or(1.0, |n| tick_frac[((*n - days[0]).num_days() as usize).min(n_ticks - 1)]);
+        let lab = format!("{} '{:02}", MONTHS[m.month0() as usize], m.year() % 100);
+        let (values, times) = if fs > 0.0 {
+            if i + 1 < month_starts.len() {
+                (vec!["0".to_string(), "1".into(), "0".into()], vec![0.0, fs, fe])
+            } else {
+                (vec!["0".to_string(), "1".into()], vec![0.0, fs])
+            }
+        } else {
+            (vec!["1".to_string(), "0".into()], vec![0.0, fe])
+        };
+        writeln!(
+            ds,
+            "<text x=\"{:.0}\" y=\"24\" text-anchor=\"end\" font-size=\"14\" fill=\"{INK}\" opacity=\"0\">{lab}{}</text>",
+            CW - DMR,
+            animate("opacity", "discrete", &values, &times, dur)
+        )
+        .unwrap();
+    }
+
+    writeln!(
+        ds,
+        "<rect x=\"0\" y=\"0\" width=\"{CW:.0}\" height=\"{DH:.0}\" fill=\"{BG}\" opacity=\"0\" pointer-events=\"none\">{}</rect>",
+        animate("opacity", "linear", &["0".into(), "0".into(), "1".into()], &[0.0, fade_from, 1.0], dur)
+    )
+    .unwrap();
+    writeln!(ds, "</svg>").unwrap();
+
+    let dist_path = graph.join("kg_dist.svg");
+    std::fs::write(&dist_path, &ds).unwrap();
+    println!(
+        "wrote {} — {} daily distributions, synced to the {:.0}s loop, {:.0}KB",
+        dist_path.display(),
+        dists.len(),
+        seconds,
+        ds.len() as f64 / 1024.0
+    );
+
+    // ---- swarm: graph/kg_swarm.svg ---------------------------------------
+    // The same simulation, dot by dot: SWARM_N individual mocks re-taken
+    // daily with the same dice, packing into their solved-count bins. A dot
+    // lights up in the onsite color the day its fixed luck plus current
+    // skill clears the onsite bar. Companion to kg_dist.svg: that chart is
+    // the mass, this one is the dice.
+    const SH: f64 = 340.0;
+    const SPB: f64 = 270.0;
+    let sgroup = (CW - DML - DMR) / 7.0;
+    let per_row = 10usize;
+    let dot_step = 13.0;
+    let n_dots = swarm[0].len();
+    let mut dot_x: Vec<Vec<String>> = vec![Vec::with_capacity(n_ticks); n_dots];
+    let mut dot_y: Vec<Vec<String>> = vec![Vec::with_capacity(n_ticks); n_dots];
+    let mut dot_c: Vec<Vec<String>> = vec![Vec::with_capacity(n_ticks); n_dots];
+    for sims in &swarm {
+        let mut counts = [0usize; 7];
+        for (i, &(bin, onsite)) in sims.iter().enumerate() {
+            let slot = counts[bin];
+            counts[bin] += 1;
+            let (row, col) = (slot / per_row, slot % per_row);
+            let x = DML
+                + bin as f64 * sgroup
+                + (sgroup - per_row as f64 * dot_step) / 2.0
+                + col as f64 * dot_step
+                + dot_step / 2.0;
+            let y = SPB - 7.0 - row as f64 * dot_step;
+            dot_x[i].push(format!("{x:.0}"));
+            dot_y[i].push(format!("{y:.0}"));
+            dot_c[i].push((if onsite { ONSITE_C } else { SCREEN_C }).to_string());
+        }
+    }
+
+    let mut sw = String::with_capacity(64 * 1024);
+    writeln!(sw, "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>").unwrap();
+    writeln!(sw, "<svg width=\"{CW:.0}pt\" height=\"{SH:.0}pt\" viewBox=\"0 0 {CW:.0} {SH:.0}\" xmlns=\"http://www.w3.org/2000/svg\" font-family=\"Helvetica,sans-serif\">").unwrap();
+    writeln!(sw, "<rect width=\"{CW:.0}\" height=\"{SH:.0}\" fill=\"{BG}\"/>").unwrap();
+    writeln!(sw, "<text x=\"{:.0}\" y=\"24\" text-anchor=\"middle\" font-size=\"13\" fill=\"{INK}\">The dice themselves — {n_dots} of the simulated mocks, same rolls every day: a dot hops bins only when skill flips one of its problems</text>", CW / 2.0).unwrap();
+    sw.push_str(&era_banner(DML, 60.0, 26.0, "start", era_frac, switch.is_some(), "", dur));
+
+    writeln!(sw, "<line x1=\"{DML}\" y1=\"{SPB}\" x2=\"{:.1}\" y2=\"{SPB}\" stroke=\"{GRID}\" stroke-width=\"1\"/>", CW - DMR).unwrap();
+    for bin in 0..7usize {
+        writeln!(
+            sw,
+            "<text x=\"{:.1}\" y=\"{:.0}\" text-anchor=\"middle\" font-size=\"12\" fill=\"{MUTED}\">{bin} solved</text>",
+            DML + (bin as f64 + 0.5) * sgroup,
+            SPB + 18.0
+        )
+        .unwrap();
+    }
+    for (i, (color, label)) in
+        [(SCREEN_C, "one simulated mock"), (ONSITE_C, "clears the onsite bar (2E+2M+\u{2265}1H)")]
+            .iter()
+            .enumerate()
+    {
+        let y = 52.0 + i as f64 * 18.0;
+        writeln!(sw, "<circle cx=\"{:.0}\" cy=\"{:.1}\" r=\"5\" fill=\"{color}\"/>", CW - DMR - 254.0, y - 4.0).unwrap();
+        writeln!(sw, "<text x=\"{:.0}\" y=\"{y:.1}\" font-size=\"12\" fill=\"{INK}\">{label}</text>", CW - DMR - 240.0).unwrap();
+    }
+
+    for i in 0..n_dots {
+        writeln!(
+            sw,
+            "<circle cx=\"{}\" cy=\"{}\" r=\"5\" fill=\"{}\">{}{}{}</circle>",
+            dot_x[i].last().unwrap(),
+            dot_y[i].last().unwrap(),
+            dot_c[i].last().unwrap(),
+            discrete_track(&dot_x[i], &tick_frac, "cx", dur).unwrap_or_default(),
+            discrete_track(&dot_y[i], &tick_frac, "cy", dur).unwrap_or_default(),
+            discrete_track(&dot_c[i], &tick_frac, "fill", dur).unwrap_or_default()
+        )
+        .unwrap();
+    }
+
+    for (i, m) in month_starts.iter().enumerate() {
+        let fs = tick_frac[((*m - days[0]).num_days().max(0) as usize).min(n_ticks - 1)];
+        let fe = month_starts
+            .get(i + 1)
+            .map_or(1.0, |n| tick_frac[((*n - days[0]).num_days() as usize).min(n_ticks - 1)]);
+        let lab = format!("{} '{:02}", MONTHS[m.month0() as usize], m.year() % 100);
+        let (values, times) = if fs > 0.0 {
+            if i + 1 < month_starts.len() {
+                (vec!["0".to_string(), "1".into(), "0".into()], vec![0.0, fs, fe])
+            } else {
+                (vec!["0".to_string(), "1".into()], vec![0.0, fs])
+            }
+        } else {
+            (vec!["1".to_string(), "0".into()], vec![0.0, fe])
+        };
+        writeln!(
+            sw,
+            "<text x=\"{:.0}\" y=\"24\" text-anchor=\"end\" font-size=\"14\" fill=\"{INK}\" opacity=\"0\">{lab}{}</text>",
+            CW - DMR,
+            animate("opacity", "discrete", &values, &times, dur)
+        )
+        .unwrap();
+    }
+
+    writeln!(
+        sw,
+        "<rect x=\"0\" y=\"0\" width=\"{CW:.0}\" height=\"{SH:.0}\" fill=\"{BG}\" opacity=\"0\" pointer-events=\"none\">{}</rect>",
+        animate("opacity", "linear", &["0".into(), "0".into(), "1".into()], &[0.0, fade_from, 1.0], dur)
+    )
+    .unwrap();
+    writeln!(sw, "</svg>").unwrap();
+
+    let swarm_path = graph.join("kg_swarm.svg");
+    std::fs::write(&swarm_path, &sw).unwrap();
+    println!(
+        "wrote {} — {} dots over {} days, synced to the {:.0}s loop, {:.0}KB",
+        swarm_path.display(),
+        n_dots,
+        n_ticks,
+        seconds,
+        sw.len() as f64 / 1024.0
+    );
+
+    // ---- blame: graph/kg_blame.svg ---------------------------------------
+    // WHY the simulated mocks fail: every failed problem blamed on the
+    // weakest move in its walk, rolled up by technique group, stacked over
+    // the calendar and revealed on the movie's clock (same axis, reveal and
+    // playhead as kg_pass.svg). The y axis is the ABSOLUTE share of all
+    // simulated problems failing — not normalized to 100% — so the whole
+    // mountain sinking IS the improvement, and the bands are who's to blame
+    // for what remains. Top groups get their own band; the rest pool into
+    // "other"; moves not on the graph yet are the off-graph band on top.
+    const BPT: f64 = 66.0;
+    const BPB: f64 = 380.0;
+    const N_TOP: usize = 7;
+    let mut totals = vec![0u64; n_groups + 1];
+    for day in &blame_days {
+        for (b, v) in day.iter().enumerate() {
+            totals[b] += *v as u64;
+        }
+    }
+    let mut top: Vec<usize> = (0..n_groups).collect();
+    top.sort_by_key(|&g| std::cmp::Reverse(totals[g]));
+    top.truncate(N_TOP);
+    // bands, bottom to top: top groups by total blame, other, off-graph
+    let mut bands: Vec<(String, Vec<usize>)> =
+        top.iter().map(|&g| (groups[g].0.to_string(), vec![g])).collect();
+    let rest: Vec<usize> = (0..n_groups).filter(|g| !top.contains(g)).collect();
+    if !rest.is_empty() {
+        bands.push(("other groups".into(), rest));
+    }
+    bands.push(("off-graph moves".into(), vec![n_groups]));
+    const BAND_C: [&str; 9] =
+        ["#f85149", "#ff7f0e", "#e3b341", "#3fb950", "#1f77b4", "#a371f7", "#58a6ff", "#8b949e", "#484f58"];
+    let n_bands = bands.len();
+    let band_color = |bi: usize| {
+        if bi + 2 == n_bands && n_bands == 9 { BAND_C[7] }        // other
+        else if bi + 1 == n_bands { BAND_C[8] }                    // off-graph
+        else { BAND_C[bi.min(6)] }
+    };
+
+    // per day: cumulative failure-rate boundaries (share of ALL simulated
+    // problems, 6 per mock), bottom band first
+    let n_problems = 4000.0 * 6.0;
+    let mut cum_shares: Vec<Vec<f64>> = Vec::with_capacity(n_ticks); // per day, len n_bands+1
+    for day in &blame_days {
+        let mut cum = vec![0.0];
+        for (_, members) in &bands {
+            let s: f64 = members.iter().map(|&b| day[b] as f64).sum::<f64>() / n_problems;
+            cum.push(cum.last().unwrap() + s);
+        }
+        cum_shares.push(cum);
+    }
+    let by_max = cum_shares
+        .iter()
+        .map(|c| *c.last().unwrap())
+        .fold(0.0f64, f64::max)
+        .mul_add(20.0, 0.999)
+        .floor()
+        / 20.0;
+    let by_of = |share: f64| BPB - share / by_max * (BPB - BPT);
+
+    let mut bl = String::with_capacity(128 * 1024);
+    writeln!(bl, "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>").unwrap();
+    writeln!(bl, "<svg width=\"{CW:.0}pt\" height=\"{CH:.0}pt\" viewBox=\"0 0 {CW:.0} {CH:.0}\" xmlns=\"http://www.w3.org/2000/svg\" font-family=\"Helvetica,sans-serif\">").unwrap();
+    writeln!(bl, "<rect width=\"{CW:.0}\" height=\"{CH:.0}\" fill=\"{BG}\"/>").unwrap();
+    writeln!(bl, "<text x=\"{:.0}\" y=\"19\" text-anchor=\"middle\" font-size=\"13\" fill=\"{INK}\">Why the simulated mocks fail — share of all simulated problems failing, blamed on the weakest move in the walk: down = fewer fails</text>", CW / 2.0).unwrap();
+    bl.push_str(&era_banner(CML + 10.0, BPT + 34.0, 30.0, "start", era_frac, switch.is_some(), BG, dur));
+
+    // legend: one row of swatches under the title
+    let mut lx = CML;
+    for (bi, (name, _)) in bands.iter().enumerate() {
+        writeln!(bl, "<rect x=\"{lx:.0}\" y=\"30\" width=\"12\" height=\"12\" fill=\"{}\"/>", band_color(bi)).unwrap();
+        writeln!(bl, "<text x=\"{:.0}\" y=\"40\" font-size=\"12\" fill=\"{INK}\">{name}</text>", lx + 16.0).unwrap();
+        lx += 16.0 + 8.0 + 7.2 * name.len() as f64 + 14.0;
+    }
+
+    for p in [0.0, 0.25, 0.5, 0.75, 1.0] {
+        let share = p * by_max;
+        let y = by_of(share);
+        writeln!(bl, "<line x1=\"{CML}\" y1=\"{y:.1}\" x2=\"{:.1}\" y2=\"{y:.1}\" stroke=\"{GRID}\" stroke-width=\"1\"/>", CW - CMR).unwrap();
+        writeln!(bl, "<text x=\"{:.0}\" y=\"{:.1}\" text-anchor=\"end\" font-size=\"11\" fill=\"{MUTED}\">{:.0}%</text>", CML - 6.0, y + 4.0, share * 100.0).unwrap();
+    }
+    let mut m = NaiveDate::from_ymd_opt(x0.year(), x0.month(), 1).unwrap();
+    while m <= xend {
+        let nxt = NaiveDate::from_ymd_opt(m.year() + (m.month() == 12) as i32, m.month() % 12 + 1, 1).unwrap();
+        if m >= x0 {
+            let x = x_of(m);
+            writeln!(bl, "<line x1=\"{x:.1}\" y1=\"{BPB}\" x2=\"{x:.1}\" y2=\"{:.0}\" stroke=\"{MUTED}\" stroke-width=\"1\"/>", BPB + 4.0).unwrap();
+            if x_of(nxt.min(xend)) - x >= 34.0 {
+                let lab = if m.month() == 1 {
+                    format!("jan '{:02}", m.year() % 100)
+                } else {
+                    MONTHS[m.month0() as usize].to_string()
+                };
+                writeln!(bl, "<text x=\"{x:.1}\" y=\"{:.0}\" text-anchor=\"middle\" font-size=\"11\" fill=\"{MUTED}\">{lab}</text>", BPB + 17.0).unwrap();
+            }
+        }
+        m = nxt;
+    }
+
+    let breveal_anim = animate("width", "linear", &reveal_x, &reveal_t, dur);
+    writeln!(bl, "<clipPath id=\"breveal\"><rect x=\"0\" y=\"0\" width=\"{CW:.0}\" height=\"{CH:.0}\">{breveal_anim}</rect></clipPath>").unwrap();
+    writeln!(bl, "<g clip-path=\"url(#breveal)\">").unwrap();
+    for bi in 0..n_bands {
+        let mut pts = String::new();
+        for (di, day) in days.iter().enumerate() {
+            write!(pts, "{:.1},{:.1} ", x_of(*day).clamp(CML, CW - CMR), by_of(cum_shares[di][bi + 1])).unwrap();
+        }
+        for (di, day) in days.iter().enumerate().rev() {
+            write!(pts, "{:.1},{:.1} ", x_of(*day).clamp(CML, CW - CMR), by_of(cum_shares[di][bi])).unwrap();
+        }
+        writeln!(bl, "<polygon points=\"{}\" fill=\"{}\" opacity=\"0.9\"/>", pts.trim_end(), band_color(bi)).unwrap();
+    }
+    writeln!(bl, "</g>").unwrap();
+
+    if let Ok(sw_d) = NaiveDate::parse_from_str(ERA_SWITCH, "%Y-%m-%d") {
+        if sw_d > x0 && sw_d < xend {
+            let x = x_of(sw_d);
+            writeln!(bl, "<line x1=\"{x:.1}\" y1=\"{BPT}\" x2=\"{x:.1}\" y2=\"{BPB}\" stroke=\"{ERA_GRAPH_INK}\" stroke-width=\"1.2\" stroke-dasharray=\"5 4\" opacity=\"0.6\"/>").unwrap();
+        }
+    }
+    let bhead_anim = animate("x", "linear", &reveal_x, &reveal_t, dur);
+    writeln!(bl, "<rect x=\"{:.1}\" y=\"{BPT}\" width=\"1.5\" height=\"{:.0}\" fill=\"{INK}\" opacity=\"0.75\">{bhead_anim}</rect>", CW - CMR, BPB - BPT).unwrap();
+
+    writeln!(
+        bl,
+        "<rect x=\"0\" y=\"0\" width=\"{CW:.0}\" height=\"{CH:.0}\" fill=\"{BG}\" opacity=\"0\" pointer-events=\"none\">{}</rect>",
+        animate("opacity", "linear", &["0".into(), "0".into(), "1".into()], &[0.0, fade_from, 1.0], dur)
+    )
+    .unwrap();
+    writeln!(bl, "</svg>").unwrap();
+
+    let blame_path = graph.join("kg_blame.svg");
+    std::fs::write(&blame_path, &bl).unwrap();
+    println!(
+        "wrote {} — {} bands over {} days, synced to the {:.0}s loop, {:.0}KB",
+        blame_path.display(),
+        n_bands,
+        n_ticks,
+        seconds,
+        bl.len() as f64 / 1024.0
     );
 }
