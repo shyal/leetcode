@@ -18,7 +18,9 @@ def test_all_files_present():
         seen.add(p.file)
 
         parsed_content = parse_content(p.content)
-        if "assert" in parsed_content[1]:
+        # test code leaking into the solution body shows up as top-level asserts;
+        # asserts inside methods are legit (e.g. cross-checking two variants)
+        if any(isinstance(node, ast.Assert) for node in ast.parse(parsed_content[1]).body):
             print(parsed_content)
             assert False, f"Parsing issue in {p.file}"
 
