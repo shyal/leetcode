@@ -86,6 +86,30 @@ def test_onsite_ready_milestone_matches_a_row():
     assert re.search(rf"^  {short} ", out, re.M), f"milestone {short} has no table row"
 
 
+def test_json_mode():
+    # the contract utils/estimate depends on: milestone dates (or null) plus
+    # today's central rates, matching what the human tables print
+    import json
+
+    data = json.loads(run_mock(["--json"]))
+    assert set(data) == {
+        "hours", "screen", "onsite", "hard",
+        "hards_workable", "hard_competent", "onsite_ready",
+    }
+    for k in ("screen", "onsite", "hard"):
+        assert 0.0 <= data[k] <= 1.0, k
+    for k in ("hards_workable", "hard_competent", "onsite_ready"):
+        assert data[k] is None or re.fullmatch(r"\d{4}-\d{2}-\d{2}", data[k]), k
+    # the JSON dates and the human output's milestone lines agree
+    out = run_mock()
+    m = re.search(r"onsite-ready \(central P\(onsite\) >=50%\) ~ (\d{1,2} \w{3} \d{4})", out)
+    if m and data["onsite_ready"]:
+        from datetime import datetime
+
+        human = datetime.strptime(m.group(1), "%d %b %Y").date().isoformat()
+        assert human == data["onsite_ready"]
+
+
 def test_speed():
     # a regression guard, not a benchmark: the sim sits ~0.1s on a laptop and
     # ~0.12s on CI runners, so the ceiling only trips on order-of-magnitude

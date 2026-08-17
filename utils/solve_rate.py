@@ -521,8 +521,16 @@ def load_readiness_data():
             data = json.load(f)
         # Get the latest entry based on run_date
         latest = max(data, key=lambda x: parse_json_date(x["run_date"]))
-        contest_date = parse_json_date(latest["contest_readiness"])
-        faang_date = parse_json_date(latest["faang_interview"])
+        # mock milestones are the current source; old snapshots fall back to
+        # kg_predict, then the retired LLM-guess fields
+        contest_date = parse_json_date(
+            latest.get("mock_hard_competent") or latest["contest_readiness"]
+        )
+        faang_date = parse_json_date(
+            latest.get("mock_onsite_ready")
+            or latest.get("faang_predict")
+            or latest["faang_interview"]
+        )
         return contest_date, faang_date
     except FileNotFoundError:
         print("data/readiness.json not found.")
