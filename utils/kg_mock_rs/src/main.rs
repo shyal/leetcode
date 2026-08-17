@@ -363,7 +363,9 @@ fn main() {
         Some(p) => p.to_path_buf(),
         None => PathBuf::from("."),
     };
-    let (hours, source): (f64, &str) = match std::env::args().nth(1) {
+    let argv: Vec<String> = std::env::args().skip(1).collect();
+    let json_mode = argv.iter().any(|a| a == "--json");
+    let (hours, source): (f64, &str) = match argv.iter().find(|a| a.as_str() != "--json") {
         Some(s) => (
             s.parse().unwrap_or_else(|_| {
                 eprintln!("could not convert string to float: '{}'", s);
@@ -603,6 +605,46 @@ fn main() {
 
     let results = run_all(&tasks);
 
+    let mut rows: Vec<(i64, (i64, i64, i64), usize, f64, Vec<(f64, f64, f64, f64)>)> = Vec::new();
+    // workable, competent, onsite-ready (the faang-readiness line)
+    let mut milestones: [Option<i64>; 3] = [None, None, None];
+    for (i, &(day, practice, n_nodes, offh)) in snaps.iter().enumerate() {
+        let spread: Vec<(f64, f64, f64, f64)> = results[3 + 3 * i..6 + 3 * i].to_vec();
+        let ph_c = spread[1].3;
+        let onsite_c = spread[1].1;
+        rows.push((day, practice, n_nodes, offh, spread));
+        for (slot, lvl) in [(0usize, 0.25), (1, 0.5)] {
+            if ph_c >= lvl && milestones[slot].is_none() {
+                milestones[slot] = Some(day);
+            }
+        }
+        if onsite_c >= 0.5 && milestones[2].is_none() {
+            milestones[2] = Some(day);
+        }
+    }
+
+    // --json: today's central rates + the milestone dates, for utils/estimate
+    // to record into data/readiness.json (same contract as kg_predict --json)
+    if json_mode {
+        let (_, onsite_t, screen_t, ph_t) = results[1];
+        let m_date = |slot: usize| {
+            milestones[slot]
+                .map(|d| Value::String((today + Duration::days(d)).to_string()))
+                .unwrap_or(Value::Null)
+        };
+        let obj = serde_json::json!({
+            "hours": hours,
+            "screen": screen_t,
+            "onsite": onsite_t,
+            "hard": ph_t,
+            "hards_workable": m_date(0),
+            "hard_competent": m_date(1),
+            "onsite_ready": m_date(2),
+        });
+        println!("{}", obj);
+        return;
+    }
+
     println!("{}", styled("today, cold, on a random 2E+2M+2H set:", "bold", color));
     let today_rows: Vec<Vec<Cell>> = SCENARIOS
         .iter()
@@ -640,24 +682,6 @@ fn main() {
             color
         )
     );
-
-    let mut rows: Vec<(i64, (i64, i64, i64), usize, f64, Vec<(f64, f64, f64, f64)>)> = Vec::new();
-    // workable, competent, onsite-ready (the faang-readiness line)
-    let mut milestones: [Option<i64>; 3] = [None, None, None];
-    for (i, &(day, practice, n_nodes, offh)) in snaps.iter().enumerate() {
-        let spread: Vec<(f64, f64, f64, f64)> = results[3 + 3 * i..6 + 3 * i].to_vec();
-        let ph_c = spread[1].3;
-        let onsite_c = spread[1].1;
-        rows.push((day, practice, n_nodes, offh, spread));
-        for (slot, lvl) in [(0usize, 0.25), (1, 0.5)] {
-            if ph_c >= lvl && milestones[slot].is_none() {
-                milestones[slot] = Some(day);
-            }
-        }
-        if onsite_c >= 0.5 && milestones[2].is_none() {
-            milestones[2] = Some(day);
-        }
-    }
 
     println!();
     println!(

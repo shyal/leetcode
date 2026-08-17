@@ -208,227 +208,98 @@ def main():
 
     readiness_data.sort(key=lambda item: item["run_date"])
 
-    run_dates = [item["run_date"] for item in readiness_data]
-    contest_readiness = [item["contest_readiness"] for item in readiness_data]
-    faang_readiness = [item["faang_interview"] for item in readiness_data]
-
-    run_dt = [datetime.strptime(d, "%Y-%m-%d") for d in run_dates]
-    contest_dt = [datetime.strptime(d, "%Y-%m-%d") for d in contest_readiness]
-    faang_dt = [datetime.strptime(d, "%Y-%m-%d") for d in faang_readiness]
-
-    contest_variance_img = ""
-    if run_dates:
-        min_run = min(run_dt)
-        min_contest = min(contest_dt)
-        x_num = [(dt - min_run).days for dt in run_dt]
-        y_num = [(dt - min_contest).days for dt in contest_dt]
-
-        # Compute 7-point moving averages for contest y_num
-        ma_y_contest = []
-        for i in range(len(y_num)):
-            if i < 6:
-                ma_y_contest.append(sum(y_num[: i + 1]) / (i + 1))
-            else:
-                ma_y_contest.append(sum(y_num[i - 6 : i + 1]) / 7)
-
-        label_step = max(1, len(run_dates) // 10)
-        tick_pos_x = x_num[::label_step]
-        tick_labels_x = run_dates[::label_step]
-
-        unique_contest = sorted(set(contest_dt))
-        tick_pos_y = [(dt - min_contest).days for dt in unique_contest]
-        tick_labels_y = [dt.strftime("%Y-%m-%d") for dt in unique_contest]
-
-        fig, ax = plt.subplots(figsize=(12, 5))
-        ax.plot(
-            x_num,
-            y_num,
-            marker="o",
-            label="Projected Days",
-            color="#1f77b4",
-            linestyle="-",
-        )
-        ax.plot(
-            x_num, ma_y_contest, label="7-Point MA", color="#ff7f0e", linestyle="--"
-        )
-        ax.set_xticks(tick_pos_x)
-        ax.set_xticklabels(tick_labels_x, rotation=45)
-        ax.set_yticks(tick_pos_y)
-        ax.set_yticklabels(tick_labels_y)
-        ax.set_title("Contest Readiness Projection Over Time")
+    # One projection-stability chart: each model's projected ready date over
+    # run date. Headline series are the Monte-Carlo mock milestones; kg_predict's
+    # work-done date rides along for comparison. The retired LLM-guess series
+    # (contest_readiness / faang_interview) stays in the data but isn't charted.
+    projection_img = ""
+    proj_series = [
+        ("mock_hard_competent", "contest: mock hard-competent", "#1f77b4"),
+        ("mock_onsite_ready", "onsite: mock P(onsite)>=50%", "#ff7f0e"),
+        ("faang_predict", "work done: kg_predict", "#2ca02c"),
+    ]
+    fig, ax = plt.subplots(figsize=(12, 5))
+    plotted_any = False
+    for key, label, color in proj_series:
+        pts = [(e["run_date"], e[key]) for e in readiness_data if e.get(key)]
+        if not pts:
+            continue
+        xs = [datetime.strptime(x, "%Y-%m-%d") for x, _ in pts]
+        ys = [datetime.strptime(y, "%Y-%m-%d") for _, y in pts]
+        ax.plot(xs, ys, marker="o", label=label, color=color)
+        plotted_any = True
+    if plotted_any:
+        ax.set_title("Projected Ready Dates Over Time")
         ax.set_xlabel("Run Date")
-        ax.set_ylabel("Projected Readiness Date")
+        ax.set_ylabel("Projected Ready Date")
         ax.legend()
-        local_path = "/tmp/contest_variance.png"
-        fig.savefig(local_path)
-        s3_key_contest_variance = f"contest_variance_{timestamp}.png"
-        queue_upload(local_path, s3_key_contest_variance, {"ContentType": "image/png"})
-        plt.close(fig)
-        contest_variance_img = f"![Contest Readiness Projection Over Time](https://shyal.s3.amazonaws.com/{s3_key_contest_variance})"
-
-    # Deterministic simulator (utils/kg_predict) projection over time — separate
-    # series from the LLM guess above; only entries that recorded faang_predict.
-    faang_predict_variance_img = ""
-    predict_entries = [e for e in readiness_data if "faang_predict" in e]
-    if predict_entries:
-        p_run_dt = [datetime.strptime(e["run_date"], "%Y-%m-%d") for e in predict_entries]
-        p_pred_dt = [datetime.strptime(e["faang_predict"], "%Y-%m-%d") for e in predict_entries]
-        p_min_run, p_min_pred = min(p_run_dt), min(p_pred_dt)
-        px = [(dt - p_min_run).days for dt in p_run_dt]
-        py = [(dt - p_min_pred).days for dt in p_pred_dt]
-
-        p_label_step = max(1, len(predict_entries) // 10)
-        unique_pred = sorted(set(p_pred_dt))
-
-        fig, ax = plt.subplots(figsize=(12, 5))
-        ax.plot(px, py, marker="o", label="Simulated Ready Date", color="#2ca02c", linestyle="-")
-        ax.set_xticks(px[::p_label_step])
-        ax.set_xticklabels([e["run_date"] for e in predict_entries][::p_label_step], rotation=45)
-        ax.set_yticks([(dt - p_min_pred).days for dt in unique_pred])
-        ax.set_yticklabels([dt.strftime("%Y-%m-%d") for dt in unique_pred])
-        ax.set_title("FAANG Readiness (Curve Simulator) Projection Over Time")
-        ax.set_xlabel("Run Date")
-        ax.set_ylabel("Simulated Readiness Date")
-        ax.legend()
+        fig.autofmt_xdate()
         fig.tight_layout()
-        local_path = "/tmp/faang_predict_variance.png"
+        local_path = "/tmp/readiness_projection.png"
         fig.savefig(local_path)
-        s3_key_faang_predict = f"faang_predict_variance_{timestamp}.png"
-        queue_upload(local_path, s3_key_faang_predict, {"ContentType": "image/png"})
-        plt.close(fig)
-        faang_predict_variance_img = f"![FAANG Readiness (Curve Simulator) Projection Over Time](https://shyal.s3.amazonaws.com/{s3_key_faang_predict})"
-
-    faang_variance_img = ""
-    if run_dates:
-        min_faang = min(faang_dt)
-        y_num_faang = [(dt - min_faang).days for dt in faang_dt]
-
-        # Compute 7-point moving averages for faang y_num_faang
-        ma_y_faang = []
-        for i in range(len(y_num_faang)):
-            if i < 6:
-                ma_y_faang.append(sum(y_num_faang[: i + 1]) / (i + 1))
-            else:
-                ma_y_faang.append(sum(y_num_faang[i - 6 : i + 1]) / 7)
-
-        unique_faang = sorted(set(faang_dt))
-        tick_pos_y_faang = [(dt - min_faang).days for dt in unique_faang]
-        tick_labels_y_faang = [dt.strftime("%Y-%m-%d") for dt in unique_faang]
-
-        fig, ax = plt.subplots(figsize=(12, 5))
-        ax.plot(
-            x_num,
-            y_num_faang,
-            marker="o",
-            label="Projected Days",
-            color="#1f77b4",
-            linestyle="-",
-        )
-        ax.plot(x_num, ma_y_faang, label="7-Point MA", color="#ff7f0e", linestyle="--")
-        ax.set_xticks(tick_pos_x)
-        ax.set_xticklabels(tick_labels_x, rotation=45)
-        ax.set_yticks(tick_pos_y_faang)
-        ax.set_yticklabels(tick_labels_y_faang)
-        ax.set_title("FAANG Interview Readiness Projection Over Time")
-        ax.set_xlabel("Run Date")
-        ax.set_ylabel("Projected Readiness Date")
-        ax.legend()
-        local_path = "/tmp/faang_variance.png"
-        fig.savefig(local_path)
-        s3_key_faang_variance = f"faang_variance_{timestamp}.png"
-        queue_upload(local_path, s3_key_faang_variance, {"ContentType": "image/png"})
-        plt.close(fig)
-        faang_variance_img = f"![FAANG Interview Readiness Projection Over Time](https://shyal.s3.amazonaws.com/{s3_key_faang_variance})"
+        s3_key_projection = f"readiness_projection_{timestamp}.png"
+        queue_upload(local_path, s3_key_projection, {"ContentType": "image/png"})
+        projection_img = f"![Projected ready dates over time](https://shyal.s3.amazonaws.com/{s3_key_projection})"
+    plt.close(fig)
 
     if readiness_data:
         last_readiness = readiness_data[-1]
-        contest_end_str = last_readiness["contest_readiness"]
-        # prefer the deterministic simulator's date over the LLM guess
-        faang_end_str = last_readiness.get("faang_predict", last_readiness["faang_interview"])
-        faang_hours = last_readiness.get("faang_predict_hours")
+        # headline dates come from the Monte-Carlo mock milestones (contest =
+        # hard-competent, onsite = central P(onsite) >= 50%); kg_predict's
+        # work-done date is the only fallback (the LLM guess is retired)
+        contest_end_str = last_readiness.get("mock_hard_competent")
+        faang_end_str = last_readiness.get("mock_onsite_ready") or last_readiness.get("faang_predict")
+        faang_hours = last_readiness.get("mock_hours") or last_readiness.get("faang_predict_hours")
 
-        if all_problem_dates:
-            # Progress = current skill measured by the technique graph, NOT elapsed
-            # time. SOLID = fresh evidence; STALE/FRAGILE discount for forgetting.
-            from kg_lib import load_nodes, load_evidence, node_status, SOLID, STALE, FRAGILE
-
-            kg_nodes = load_nodes()
-            kg_evidence = load_evidence()
-            kg_statuses = {n: node_status(n, kg_evidence)[0] for n in kg_nodes}
-            status_weight = {SOLID: 1.0, STALE: 0.5, FRAGILE: 0.25}
-            progress_contest = sum(
-                status_weight.get(s, 0.0) for s in kg_statuses.values()
-            ) / len(kg_statuses)
-            progress_faang = sum(
-                1 for s in kg_statuses.values() if s == SOLID
-            ) / len(kg_statuses)
-
+        # The bars plot the SAME quantity the projected dates are defined by:
+        # today's central Monte-Carlo pass rate, against the 50% ready mark.
+        # A 9% bar next to a 2027 date is coherent; the old graph-solidity
+        # bars (90%+ next to a far date) were not.
+        def prob_bar(p, ready_date, title, xlabel, color, fname, s3_prefix, alt):
             fig, ax = plt.subplots(figsize=(10, 2))
-            ax.barh([0], [progress_contest * 100], height=0.5, color="#00FF00")
-            ax.set_yticks([0])
-            ax.set_yticklabels(["Progress"])
+            ax.barh([0], [p * 100], height=0.5, color=color)
+            ax.axvline(50, color="#DD0000", linestyle="--", linewidth=1.5)
+            ax.text(51, 0.18, "ready = 50%", color="#DD0000", fontsize=9)
+            ax.text(p * 100 + 1, 0, f"{p * 100:.0f}%", va="center", fontweight="bold")
+            ax.set_yticks([])
             ax.set_xlim(0, 100)
-            ax.set_xlabel("Graph-weighted skill %  (solid=1, stale=0.5, fragile=0.25)")
-            ax.set_title(f"Contest Readiness (projected ready {contest_end_str})")
-            local_path = "/tmp/contest_progress.png"
+            ax.set_xlabel(xlabel)
+            note = f" (projected ready {ready_date})" if ready_date else ""
+            ax.set_title(title + note)
+            local_path = f"/tmp/{fname}.png"
             fig.savefig(local_path, bbox_inches="tight")
-            s3_key_contest_progress = f"contest_progress_{timestamp}.png"
-            queue_upload(local_path, s3_key_contest_progress, {"ContentType": "image/png"})
+            s3_key = f"{s3_prefix}_{timestamp}.png"
+            queue_upload(local_path, s3_key, {"ContentType": "image/png"})
             plt.close(fig)
-            contest_progress_img = f"![Contest Readiness Progress (Ready by {contest_end_str})](https://shyal.s3.amazonaws.com/{s3_key_contest_progress})"
+            alt_note = f" (Ready by {ready_date})" if ready_date else ""
+            return f"![{alt}{alt_note}](https://shyal.s3.amazonaws.com/{s3_key})"
 
-            fig, ax = plt.subplots(figsize=(10, 2))
-            ax.barh([0], [progress_faang * 100], height=0.5, color="#00FF00")
-            ax.set_yticks([0])
-            ax.set_yticklabels(["Progress"])
-            ax.set_xlim(0, 100)
-            ax.set_xlabel("Fraction of technique nodes SOLID (fresh evidence only)")
-            faang_title = f"FAANG Interview Readiness (simulated ready {faang_end_str}"
-            faang_title += f" at {faang_hours:g}h/day)" if faang_hours else ")"
-            ax.set_title(faang_title)
-            local_path = "/tmp/faang_progress.png"
-            fig.savefig(local_path, bbox_inches="tight")
-            s3_key_faang_progress = f"faang_progress_{timestamp}.png"
-            queue_upload(local_path, s3_key_faang_progress, {"ContentType": "image/png"})
-            plt.close(fig)
-            faang_progress_img = f"![FAANG Interview Readiness Progress (Ready by {faang_end_str})](https://shyal.s3.amazonaws.com/{s3_key_faang_progress})"
-        else:
-            contest_progress_img = "No repo history for progress calculation."
-            faang_progress_img = "No repo history for progress calculation."
-
-        historical_topics = [
-            item for item in readiness_data if "contest_topics_readiness" in item
-        ]
-        contest_topics_img = ""
-        if historical_topics:
-            # Static sorted snapshot of the LATEST scores only — older entries used
-            # a different topic vocabulary (LLM tags vs graph groups) and animating
-            # across the union reads as chaos.
-            last_entry = historical_topics[-1]
-            last_topics_data = last_entry["contest_topics_readiness"]
-            topics = sorted(last_topics_data, key=last_topics_data.get)  # barh: biggest on top
-            scores = [last_topics_data[t] for t in topics]
-
-            fig, ax = plt.subplots(figsize=(10, max(2, len(topics) * 0.4)))
-            bar_colors = ["#00AA00" if s >= 0.8 else "#FFA500" if s >= 0.5 else "#DD0000" for s in scores]
-            ax.barh(topics, scores, color=bar_colors)
-            ax.set_xlim(0, 1)
-            ax.set_xlabel("Readiness Score (from technique graph)")
-            ax.set_title(f"Topic Readiness ({last_entry['run_date']})")
-            fig.tight_layout()
-            local_path = "/tmp/contest_topics_readiness.png"
-            fig.savefig(local_path)
-            s3_key_contest_topics = f"contest_topics_readiness_{timestamp}.png"
-            queue_upload(local_path, s3_key_contest_topics, {"ContentType": "image/png"})
-            plt.close(fig)
-            contest_topics_img = f"![Topic Readiness](https://shyal.s3.amazonaws.com/{s3_key_contest_topics})"
-        else:
-            contest_topics_img = "No contest topics data."
+        mock_hard = last_readiness.get("mock_hard")
+        mock_onsite = last_readiness.get("mock_onsite")
+        contest_progress_img = ""
+        faang_progress_img = ""
+        if mock_hard is not None:
+            contest_progress_img = prob_bar(
+                mock_hard, contest_end_str,
+                "Contest Readiness",
+                "today's central P(clear a single hard), %",
+                "#1f77b4", "contest_progress", "contest_progress",
+                "Contest Readiness Progress",
+            )
+        if mock_onsite is not None:
+            if faang_end_str and faang_hours:
+                faang_end_str = f"{faang_end_str} at {faang_hours:g}h/day"
+            faang_progress_img = prob_bar(
+                mock_onsite, faang_end_str,
+                "FAANG Interview Readiness",
+                "today's central P(pass onsite: 2E + 2M + >=1 hard), %",
+                "#ff7f0e", "faang_progress", "faang_progress",
+                "FAANG Interview Readiness Progress",
+            )
 
     else:
         contest_progress_img = "No readiness data."
         faang_progress_img = "No readiness data."
-        contest_topics_img = "No readiness data."
 
     # Forgetting-curve calibration (utils/kg_calibration_svg): model vs
     # observed clean-recall by gap, replayed weekly as a SMIL SVG on the
@@ -539,10 +410,7 @@ def main():
 
     readme = fill(readme, "SOLVES_CHART", solves_img)
     readme = fill(readme, "UNIQUES_CHART", uniques_img)
-    if run_dates:
-        readme = fill(readme, "CONTEST_VARIANCE_CHART", contest_variance_img)
-        readme = fill(readme, "FAANG_VARIANCE_CHART", faang_variance_img)
-    readme = fill(readme, "FAANG_PREDICT_VARIANCE_CHART", faang_predict_variance_img)
+    readme = fill(readme, "READINESS_PROJECTION_CHART", projection_img)
     readme = fill(readme, "KG_MOVIE", kg_movie_img)
     readme = fill(readme, "MOCK_DIST_CHART", mock_dist_img)
     readme = fill(readme, "MOCK_SWARM_CHART", mock_swarm_img)
@@ -553,7 +421,6 @@ def main():
     readme = fill(readme, "PASS_PROB_CHART", pass_prob_img)
     readme = fill(readme, "CONTEST_PROGRESS", contest_progress_img)
     readme = fill(readme, "FAANG_PROGRESS", faang_progress_img)
-    readme = fill(readme, "CONTEST_TOPICS_CHART", contest_topics_img)
 
     with open("README.md", "w") as f:
         f.write(readme)
