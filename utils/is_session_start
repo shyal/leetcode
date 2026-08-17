@@ -13,6 +13,7 @@
 #   make is_session_start
 
 import os
+import re
 import subprocess
 import sys
 from datetime import datetime
@@ -43,6 +44,29 @@ def solves_today():
         elif today:
             solves.add(tok)
     return sorted(solves)
+
+
+def solve_seconds_today():
+    """Total seconds of recorded solving since local midnight, from the
+    'solve time: Xm Ys' trailer `make solved` writes into each solve commit.
+    Same commit set as solves_today: author date, adds under solved/drills."""
+    midnight = datetime.now(tz=MANILA).replace(hour=0, minute=0, second=0,
+                                               microsecond=0)
+    out = subprocess.run(
+        ["git", "log", "--since=3.days", "--diff-filter=A",
+         "--format=%x01%at%x01%B", "--", "solved/", "drills/"],
+        capture_output=True, text=True,
+        cwd=os.path.dirname(GRAPH_DIR)).stdout
+    parts = out.split("\x01")[1:]
+    total = 0
+    for ts, body in zip(parts[::2], parts[1::2]):
+        authored = datetime.fromtimestamp(int(ts), tz=MANILA)
+        if authored < midnight:
+            continue
+        m = re.search(r"solve time: (\d+)m (\d+)s", body)
+        if m:
+            total += int(m.group(1)) * 60 + int(m.group(2))
+    return total
 
 
 def main():
