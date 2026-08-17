@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# estimate — append a readiness snapshot to readiness.json.
+# estimate — append a readiness snapshot to data/readiness.json.
 #
 # Topic scores are DERIVED from the technique graph (no LLM): per node group,
 # SOLID = 1.0, STALE = 0.5, FRAGILE = 0.25, MISSING = 0, averaged.
@@ -79,9 +79,9 @@ Estimate the two readiness dates."""
     run_date = datetime.now(manila_tz).strftime("%Y-%m-%d")
 
     data = []
-    if os.path.exists("readiness.json"):
+    if os.path.exists("data/readiness.json"):
         try:
-            with open("readiness.json") as f:
+            with open("data/readiness.json") as f:
                 data = json.load(f)
             if not isinstance(data, list):
                 data = []
@@ -126,7 +126,7 @@ Estimate the two readiness dates."""
         entry["faang_predict"] = predict["ready"]
         entry["faang_predict_hours"] = predict["hours"]
     data.append(entry)
-    with open("readiness.json", "w") as f:
+    with open("data/readiness.json", "w") as f:
         json.dump(data, f, indent=2)
 
     table = Table(show_header=False, box=None, padding=(0, 2))

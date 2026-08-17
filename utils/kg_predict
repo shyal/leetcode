@@ -44,7 +44,7 @@ NODE_CAP = 95
 def measured_times():
     log = subprocess.run(["git", "log", "--format=%ad|%s|%b~~~", "--date=short"],
                          capture_output=True, text=True).stdout
-    meta_path = os.path.join(os.path.dirname(GRAPH_DIR), ".problems_metadata.json")
+    meta_path = os.path.join(os.path.dirname(GRAPH_DIR), "data/problems_metadata.json")
     meta = json.load(open(meta_path)) if os.path.exists(meta_path) else {}
     mediums, medium_times = set(), []
     for block in log.split("~~~"):

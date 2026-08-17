@@ -52,7 +52,7 @@ STATUS_STYLE = {SOLID: "green", STALE: "yellow", FRAGILE: "red", MISSING: "dim"}
 HARD_EFFECT = ("laseretch",)
 
 # Interview-classic Hards worth summiting: number -> why it's valuable.
-# Filtered against .problems_metadata.json difficulty at runtime, so a
+# Filtered against data/problems_metadata.json difficulty at runtime, so a
 # mislabeled entry silently drops out rather than lying.
 CLASSICS = {
     "4": "binary-search partitioning at its purest",
@@ -82,7 +82,7 @@ CLASSICS = {
 
 
 def load_metadata():
-    path = os.path.join(os.path.dirname(GRAPH_DIR), ".problems_metadata.json")
+    path = os.path.join(os.path.dirname(GRAPH_DIR), "data/problems_metadata.json")
     try:
         return json.load(open(path))
     except Exception:

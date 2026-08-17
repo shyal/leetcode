@@ -129,7 +129,7 @@ def drill_title(path):
 
 
 def problem_url(pnum):
-    meta_path = os.path.join(os.path.dirname(GRAPH_DIR), ".problems_metadata.json")
+    meta_path = os.path.join(os.path.dirname(GRAPH_DIR), "data/problems_metadata.json")
     try:
         slug = json.load(open(meta_path))[str(pnum)]["slug"]
         return f"https://leetcode.com/problems/{slug}/"

@@ -6,7 +6,7 @@ all:
 	@PYTHONPATH=./utils:${PYTHONPATH} .venv/bin/python3 utils/test_runner.py
 
 goals:
-	@.venv/bin/python3 utils/solve_rate.py --goals goals.json --timer-font=doh
+	@.venv/bin/python3 utils/solve_rate.py --goals data/goals.json --timer-font=doh
 
 today:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_today $(filter-out $@,$(MAKECMDGOALS))
