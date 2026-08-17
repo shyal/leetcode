@@ -8,6 +8,7 @@ import sys
 import subprocess
 import os
 import subprocess as _subprocess
+import tempfile
 import threading
 import requests
 
@@ -49,6 +50,28 @@ def claude(user_prompt):
         capture_output=True, text=True,
     )
     return result.stdout.strip()
+
+
+def validate(code):
+    """Execute a solution+asserts stub. Returns (ok, combined output)."""
+    os.makedirs(CACHE_DIR, exist_ok=True)
+    with tempfile.NamedTemporaryFile(
+        "w", suffix=".py", delete=False, dir=CACHE_DIR
+    ) as f:
+        f.write(code)
+        path = f.name
+    env = dict(os.environ)
+    env["PYTHONPATH"] = "utils" + os.pathsep + env.get("PYTHONPATH", "")
+    try:
+        r = subprocess.run(
+            [sys.executable, path],
+            capture_output=True, text=True, env=env, timeout=60,
+        )
+        return r.returncode == 0, (r.stdout + r.stderr).strip()
+    except subprocess.TimeoutExpired:
+        return False, "Timed out after 60s (likely an infinite loop)."
+    finally:
+        os.unlink(path)
 
 
 def run_git(cmd):
@@ -320,8 +343,8 @@ Please generate output in the same format as input (description in docstring, so
 goal is to generate more asserts that handle edge cases, and ensure full coverage of the solution, not to make sure
 the solution passes.
 
-Run the code with new asserts to make sure they're valid, and correctly test expected outputs. Do not generate
-comments for the tests.
+You cannot execute code, so derive each expected value carefully by hand; the caller will execute all asserts
+and reject the output if any fail. Do not generate comments for the tests.
 
 Now the content:
 
@@ -330,6 +353,32 @@ Now the content:
 """
 
     code = claude(asserts_prompt)
+
+    # The generator can't execute anything, so its asserts are unverified.
+    # Actually run solution+asserts here and loop failures back until green.
+    for attempt in range(3):
+        ok, output = validate(code)
+        if ok:
+            break
+        print(f"{num}: validation attempt {attempt + 1} failed, asking for a fix")
+        code = claude(f"""
+The following LeetCode stub (solution + asserts) FAILED when executed. Fix it:
+if an assert's expected value is wrong, correct the expected value; if the
+solution itself is buggy, fix the solution. Keep the format identical
+(description in docstring, solution, instantiation, print of first example,
+asserts). Output only the raw Python source.
+
+Execution output:
+
+{output}
+
+The code:
+
+{code}
+""")
+    else:
+        print(f"{num}: could not produce a passing solution+asserts, skipping.\nLast output:\n{output}")
+        return
 
     clean_up_prompt = f"""
 Please generate output in the same format as input (description in docstring, solution, instantiation, and asserts). Your
@@ -347,6 +396,11 @@ Now the content:
 """
 
     code = claude(clean_up_prompt)
+    try:
+        compile(code, f"{num}.py", "exec")
+    except SyntaxError as e:
+        print(f"{num}: stripped stub has a syntax error, skipping.\n{e}")
+        return
     cache_save(num, title, code)
     finalize(num, title, code)
 

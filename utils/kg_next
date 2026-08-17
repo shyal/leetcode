@@ -7,7 +7,10 @@
 #   utils/kg_next              # pick, print preflight table, draw status+emoji tree
 #   utils/kg_next --graph      # same, with node labels (the map)
 #   utils/kg_next --no-show    # same, without the drawing
+#   utils/kg_next --prepare    # same, then run `make prepare` on the pick
 #   make next graph            # makefile form of --graph (make eats dashed args)
+#   make next -- --prepare     # makefile form of --prepare (-- stops make's
+#                              # option parsing; %: swallows the extra goal)
 #
 # Picking rules (same preference order the /next coach uses):
 #   -1. session start (fewer than 2 solves since Manila midnight): the
@@ -69,10 +72,14 @@ def is_session_start():
         capture_output=True).returncode == 0
 
 
+def _iss():
+    from importlib.machinery import SourceFileLoader
+    return SourceFileLoader("_iss", os.path.join(UTILS, "is_session_start")).load_module()
+
+
 def solved_today_pnums():
     """Problems already solved today — never re-offered, whatever the rule."""
-    from importlib.machinery import SourceFileLoader
-    mod = SourceFileLoader("_iss", os.path.join(UTILS, "is_session_start")).load_module()
+    mod = _iss()
     pnums = set()
     for f in mod.solves_today():
         name = os.path.basename(f)
@@ -237,8 +244,20 @@ def main():
     parser.add_argument("--graph", action="store_true",
                         help="label tree nodes with move names (default: shape only)")
     parser.add_argument("--no-show", action="store_true", help="skip the drawing")
+    parser.add_argument("--prepare", action="store_true",
+                        help="run `make prepare` on the pick (stub + branch — the solve clock starts)")
     args = parser.parse_args()
     labeled = args.graph
+
+    def prepare(target):
+        if not args.prepare:
+            return
+        cur = os.path.join(os.path.dirname(UTILS), "current.py")
+        if os.path.exists(cur) and open(cur).read().strip():
+            console.print("[yellow]current.py is not empty — record it (make solved) before preparing the next one.[/yellow]")
+            sys.exit(1)
+        subprocess.run([sys.executable, os.path.join(UTILS, "prepare"), str(target)],
+                       cwd=os.path.dirname(UTILS))
 
     nodes = load_nodes()
     problems = load_problems()
@@ -248,6 +267,12 @@ def main():
     asleep, woken = sleep_state(sleeps, evidence)
 
     session_start = is_session_start()
+
+    secs = _iss().solve_seconds_today()
+    if secs:
+        h, m = divmod(secs // 60, 60)
+        clock = f"{h}h {m:02d}m" if h else f"{m}m"
+        console.print(f"[dim]today: {clock} solving[/dim]")
 
     exclude = set(solved_today_pnums())
     choice = None
@@ -306,6 +331,7 @@ def main():
             logical_width = render(dot, "kg_next")
             display("kg_next", logical_width)
         animate(cap.get())
+        prepare(target)
         return
 
     p = problems[pnum]
@@ -328,6 +354,7 @@ def main():
 
     if args.no_show:
         animate(cap.get())
+        prepare(pnum)
         return
 
     tree = input_tree(p["moves"], nodes)
@@ -358,6 +385,7 @@ def main():
     logical_width = render(dot, "kg_next")
     display("kg_next", logical_width)
     animate(cap.get())
+    prepare(pnum)
 
 
 if __name__ == "__main__":

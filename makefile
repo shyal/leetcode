@@ -1,4 +1,4 @@
-.PHONY: all parse learning prepare recommend force unforce preflight kg-extract kg-status kg-viz movie next dive drill hard is_session_start readme residuals sleep solved test viz
+.PHONY: all parse learning prepare recommend force unforce preflight kg-extract kg-status kg-viz movie next dive drill hard is_session_start readme residuals sleep solved failed test viz
 
 all:
 	@cp utils/sitecustomize.py .venv/lib/python3.10/site-packages/
@@ -77,6 +77,16 @@ solved:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_extract
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_curve --if-stale
 	@# fold the solve's own evidence/curve into its commit (only if HEAD is fresh)
+	@if ! git diff --quiet graph/ && [ $$(( $$(date +%s) - $$(git log -1 --format=%ct) )) -lt 600 ]; then \
+		git add graph/ && git commit --amend --no-edit --quiet && echo "evidence folded into $$(git log -1 --format=%h)"; \
+	fi
+
+# file the current attempt as a FAILED one: same flow as solved (archive,
+# solve-time trailer, extraction -> struggled evidence), honest label
+failed:
+	@.venv/bin/python3 utils/solved --failed
+	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_extract
+	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_curve --if-stale
 	@if ! git diff --quiet graph/ && [ $$(( $$(date +%s) - $$(git log -1 --format=%ct) )) -lt 600 ]; then \
 		git add graph/ && git commit --amend --no-edit --quiet && echo "evidence folded into $$(git log -1 --format=%h)"; \
 	fi

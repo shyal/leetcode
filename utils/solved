@@ -2,9 +2,16 @@
 
 import subprocess
 import os
+import sys
 import time
 import re
 from datetime import datetime, timezone
+
+# --failed: file the attempt as a FAILED one (make failed). Same flow —
+# same folder, same solve-time trailer, same extraction — but the filename,
+# commit message and an appended note say it was abandoned, so the judge
+# records struggled evidence instead of a solve.
+FAILED = "--failed" in sys.argv
 
 
 def parse_current(file_path="current.py"):
@@ -107,10 +114,17 @@ def main():
     utc_now = datetime.now(timezone.utc)
     iso = utc_now.isoformat() + "Z"
     sanitized = re.sub(r"[^\w]", "_", iso)
+    marker = "_FAILED" if FAILED else ""
     if problem_id == "drill":
-        filename = f"d_{clean_title}_{sanitized}.py"
+        filename = f"d_{clean_title}{marker}_{sanitized}.py"
     else:
-        filename = f"p{problem_id}_{clean_title}_{sanitized}.py"
+        filename = f"p{problem_id}_{clean_title}{marker}_{sanitized}.py"
+
+    if FAILED:
+        content += (
+            f"\n\n# FAILED: walked away after {solve_time}; no working solution."
+            "\n# Judge the moves actually attempted as struggled, not clean.\n"
+        )
     output_dir = "./solved"
     os.makedirs(output_dir, exist_ok=True)
     filepath = os.path.join(output_dir, filename)
@@ -127,6 +141,8 @@ def main():
         commit_message = f"drill: {title}\n\nsolve time: {solve_time}"
     else:
         commit_message = f"{problem_id}. {title}\n\nsolve time: {solve_time}"
+    if FAILED:
+        commit_message = "failed: " + commit_message
 
     try:
         subprocess.run(["git", "add", "."], check=True)
