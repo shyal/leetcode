@@ -452,3 +452,91 @@ def current_recall(nodes, evidence, curve, today=None):
         rec = (1 + (today - last).days / s) ** (-p["beta"])
         out[nid] = rec * 0.5 if status == FRAGILE else rec
     return out
+
+
+# --- the replay clock (utils/kg_movie_rs) ----------------------------------
+# Python mirror of kg_movie's pacing, bit-for-bit: ticks run from the day
+# before the first evidence entry to the last one, each day's screen time is
+# its unique leetcode solve count + LULL_WEIGHT (long solve-less stretches
+# fast-forward), and the loop closes with a dissolve. Every animated SVG that
+# wants to play in sync with kg_movie.svg / kg_pass.svg builds its keyTimes
+# from this. Change the pacing here and in kg_movie_rs/src/main.rs together.
+
+MOVIE_SECONDS = 10.0        # kg_movie's DEFAULT_SECONDS
+MOVIE_END_FADE_S = 1.2      # loop-closing dissolve, capped by the fraction
+MOVIE_FADE_FRACTION = 0.08
+MOVIE_LULL_WEIGHT = 0.25    # screen time a solve-less day gets, in solves
+
+
+class MovieClock:
+    def __init__(self, evidence, seconds=MOVIE_SECONDS):
+        from collections import defaultdict
+
+        all_dates = sorted(rec["date"] for rec in evidence.values())
+        self.first = date.fromisoformat(all_dates[0]) - timedelta(days=1)
+        self.last = date.fromisoformat(all_dates[-1])
+        self.n_ticks = (self.last - self.first).days + 1
+        self.dur = seconds
+        self.fade_s = min(MOVIE_END_FADE_S, seconds * MOVIE_FADE_FRACTION)
+        self.ticks_end = (seconds - self.fade_s) / seconds
+
+        # kg_movie's solves_by_day: unique leetcode-numbered problems per day
+        by_day = defaultdict(set)
+        for rec in evidence.values():
+            p = rec.get("problem", "")
+            if p[:1].isdigit():
+                by_day[rec["date"]].add(p)
+        self.weights = [
+            len(by_day[(self.first + timedelta(days=i)).isoformat()]) + MOVIE_LULL_WEIGHT
+            for i in range(self.n_ticks)
+        ]
+        self.total_w = sum(self.weights)
+        self.cum = [0.0]
+        for w in self.weights:
+            self.cum.append(self.cum[-1] + w)  # cum[i] = tick i's start
+
+    def frac(self, day_offset):
+        """Loop fraction of a day offset from `first`; fractional offsets
+        interpolate within the day's own tick length."""
+        i = min(int(day_offset), self.n_ticks - 1)
+        c = self.cum[i] + self.weights[i] * (day_offset - i)
+        return min(c / self.total_w, 1.0) * self.ticks_end
+
+    def frac_date(self, d):
+        return self.frac((d - self.first).days)
+
+    def dissolve_rect(self, w, h, fill):
+        """The loop-closing cover fade, identical to kg_movie's."""
+        return (f'<rect width="{w}" height="{h}" fill="{fill}" opacity="0" pointer-events="none">'
+                f'<animate attributeName="opacity" calcMode="linear" values="0;0;1" '
+                f'keyTimes="0;{self.ticks_end:.4f};1" dur="{self.dur}s" repeatCount="indefinite"/></rect>')
+
+
+# era banner shared by the animated SVGs: the one flip that is the point of
+# all of them. Mirrors kg_movie_rs's ERA_SWITCH / labels / inks.
+ERA_SWITCH = date(2026, 8, 7)
+ERA_PRE_LABEL = "pre graph scheduling era"
+ERA_GRAPH_LABEL = "graph scheduling era"
+ERA_PRE_INK = "#8b949e"
+ERA_GRAPH_INK = "#58a6ff"
+
+
+def era_banner(clock, x, y, size, anchor="start", halo=None):
+    """Two <text> layers flipping grey -> blue on the switch date's tick;
+    non-SMIL viewers see today's era. halo outlines the text in a background
+    color for banners placed over chart ink."""
+    halo_attr = (f' stroke="{halo}" stroke-width="{max(size // 7, 3)}" '
+                 f'paint-order="stroke" stroke-linejoin="round"') if halo else ""
+    common = f'y="{y}" text-anchor="{anchor}" font-size="{size}" font-weight="bold"'
+    if not (clock.first < ERA_SWITCH <= clock.last):
+        label, ink = ((ERA_PRE_LABEL, ERA_PRE_INK) if clock.last < ERA_SWITCH
+                      else (ERA_GRAPH_LABEL, ERA_GRAPH_INK))
+        return [f'<text x="{x}" {common} fill="{ink}"{halo_attr}>{label}</text>']
+    f = clock.frac((ERA_SWITCH - clock.first).days)
+    out = []
+    for label, ink, vals, init in ((ERA_PRE_LABEL, ERA_PRE_INK, "1;0", 0),
+                                   (ERA_GRAPH_LABEL, ERA_GRAPH_INK, "0;1", 1)):
+        out.append(f'<text x="{x}" {common} fill="{ink}"{halo_attr} opacity="{init}">{label}'
+                   f'<animate attributeName="opacity" calcMode="discrete" values="{vals}" '
+                   f'keyTimes="0;{f:.4f}" dur="{clock.dur}s" repeatCount="indefinite"/></text>')
+    return out

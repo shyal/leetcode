@@ -34,8 +34,9 @@ from kg_lib import ASSIST_WEIGHT, GRAPH_DIR, assist_of, load_evidence
 TARGET_RETENTION = 0.9   # node_status calls a node SOLID above this
 
 
-def extract_trials(evidence):
-    """[(gap_days, success, prior_cleans, prior_struggles, prior_assist)] per node."""
+def extract_trials(evidence, with_date=False):
+    """[(gap_days, success, prior_cleans, prior_struggles, prior_assist)] per
+    node; with_date=True appends the trial's date as a 6th element."""
     events = defaultdict(list)  # node -> [(date, ts, verdict, assist)]
     for fname, rec in evidence.items():
         m = re.search(r"\d{4}_\d{2}_\d{2}T[\d_]+", fname)
@@ -63,7 +64,8 @@ def extract_trials(evidence):
                     # the trial asks "did you retrieve this unaided?" — needing
                     # a nudge or a walkthrough answers no, however clean the code
                     success = int(verdict == "clean" and assist == "none")
-                    trials.append((gap, success, cleans, struggles, assisted))
+                    row = (gap, success, cleans, struggles, assisted)
+                    trials.append(row + (_date(d),) if with_date else row)
             for v, a in days[d]:
                 if v == "clean" and a != "spoiled":
                     cleans += 1

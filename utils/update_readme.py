@@ -8,7 +8,6 @@ def main():
     import matplotlib as mpl
     import boto3
     import numpy as np
-    import math
     import json
     from metadata import get_problems_metadata
 
@@ -25,9 +24,10 @@ def main():
     def queue_upload(local, key, extra):
         upload_jobs.append((local, key, extra))
 
-    # The two synced SMIL animations (kg_movie / kg_pass) go up gzipped with a
-    # Content-Encoding header — camo passes it through, and near-equal transfer
-    # sizes keep their independent SMIL clocks starting in near-lockstep.
+    # The four synced SMIL animations (kg_movie / kg_pass / positions /
+    # calibration) go up gzipped with a Content-Encoding header — camo passes
+    # it through, and near-equal transfer sizes keep their independent SMIL
+    # clocks starting in near-lockstep.
     def upload_svg_gz(path, key):
         import gzip
 
@@ -430,87 +430,23 @@ def main():
         faang_progress_img = "No readiness data."
         contest_topics_img = "No readiness data."
 
-    # Personal forgetting curve (graph/curve.json): the fitted family of curves
-    # by rep count, plus a calibration check against the actual recall trials.
-    curve_img = ""
+    # Forgetting-curve calibration (utils/kg_calibration_svg): model vs
+    # observed clean-recall by gap, replayed weekly as a SMIL SVG on the
+    # shared clock — the fourth synced animation.
     curve_calibration_img = ""
-    if os.path.exists("graph/curve.json"):
-        with open("graph/curve.json") as f:
-            curve = json.load(f)
-        cp = curve["params"]
-        target = curve["target_retention"]
+    if os.path.exists("graph/calibration.svg"):
+        s3_key_calib = f"curve_calibration_{timestamp}.svg"
+        upload_svg_gz("graph/calibration.svg", s3_key_calib)
+        curve_calibration_img = f"![Curve calibration](https://shyal.s3.amazonaws.com/{s3_key_calib})"
 
-        gaps = np.arange(0, 181)
-        fig, ax = plt.subplots(figsize=(12, 5))
-        for k, color in zip((1, 2, 3, 5, 10),
-                            ("#DD0000", "#FF8800", "#BBBB00", "#00AA00", "#1f77b4")):
-            s = math.exp(cp["a"] + cp["b"] * k)
-            mem = (1 + gaps / s) ** (-cp["beta"])
-            window = s * (target ** (-1 / cp["beta"]) - 1)
-            ax.plot(gaps, mem, color=color,
-                    label=f"{k} clean rep{'s' if k > 1 else ''} — solid for ≈{window:.0f}d")
-        ax.axhline(target, color="#888888", linestyle=":",
-                   label=f"{target:.0%} retention = SOLID threshold")
-        ax.set_ylim(min(0.85, target - 0.05), 1.001)
-        ax.set_xlim(0, 180)
-        ax.set_xlabel("Days since last clean solve")
-        ax.set_ylabel("P(recall), memory component")
-        ax.set_title(f"Fitted forgetting curve ({curve['fit']['trials']} recall trials): "
-                     f"(1 + Δ/s)^(−{cp['beta']:.2f}),  s = exp({cp['a']:.2f} + {cp['b']:.2f}·reps)")
-        ax.legend()
-        fig.tight_layout()
-        local_path = "/tmp/forgetting_curve.png"
-        fig.savefig(local_path)
-        s3_key_curve = f"forgetting_curve_{timestamp}.png"
-        queue_upload(local_path, s3_key_curve, {"ContentType": "image/png"})
-        plt.close(fig)
-        curve_img = f"![Fitted forgetting curve](https://shyal.s3.amazonaws.com/{s3_key_curve})"
-
-        # calibration: model vs observed clean-rate per gap bucket, over the
-        # same trials kg_curve fitted on
-        from importlib.machinery import SourceFileLoader
-        utils_dir = os.path.dirname(os.path.abspath(__file__))
-        kg_curve = SourceFileLoader("kg_curve", os.path.join(utils_dir, "kg_curve")).load_module()
-        from kg_lib import load_evidence
-
-        trials = kg_curve.extract_trials(load_evidence())
-
-        def pred(g, k, m, x=0.0):
-            s = math.exp(cp["a"] + cp["b"] * k - cp["c"] * m - cp.get("d", 0.0) * x)
-            return (1 - cp["slip"]) * (1 + g / s) ** (-cp["beta"])
-
-        labels, model_rates, observed_rates, counts = [], [], [], []
-        for lo, hi in ((1, 7), (8, 21), (22, 42), (43, 90), (91, 180), (181, 400)):
-            rows = [t for t in trials if lo <= t[0] <= hi]
-            if not rows:
-                continue
-            labels.append(f"{lo}–{hi}d")
-            observed_rates.append(sum(s for _, s, _, _, _ in rows) / len(rows))
-            model_rates.append(sum(pred(g, k, m, x) for g, _, k, m, x in rows) / len(rows))
-            counts.append(len(rows))
-
-        if labels:
-            xb = np.arange(len(labels))
-            fig, ax = plt.subplots(figsize=(12, 5))
-            ax.bar(xb - 0.2, model_rates, 0.4, label="Model", color="#1f77b4")
-            ax.bar(xb + 0.2, observed_rates, 0.4, label="Observed", color="#00AA00")
-            for i, n in enumerate(counts):
-                ax.text(xb[i], max(model_rates[i], observed_rates[i]) + 0.02,
-                        f"n={n}", ha="center", fontsize=9)
-            ax.set_xticks(xb)
-            ax.set_xticklabels(labels)
-            ax.set_ylim(0, 1.1)
-            ax.set_xlabel("Gap since last clean solve")
-            ax.set_ylabel("Clean-recall rate")
-            ax.set_title("Calibration: model prediction vs observed recall, by gap")
-            ax.legend()
-            fig.tight_layout()
-            local_path = "/tmp/curve_calibration.png"
-            fig.savefig(local_path)
-            s3_key_calib = f"curve_calibration_{timestamp}.png"
-            queue_upload(local_path, s3_key_calib, {"ContentType": "image/png"})
-            plt.close(fig)
-            curve_calibration_img = f"![Curve calibration](https://shyal.s3.amazonaws.com/{s3_key_calib})"
+    # Review timing (utils/kg_timing_svg): every recall trial's gap vs the
+    # predicted solid window — the scheduler's report card, on the shared
+    # clock.
+    review_timing_img = ""
+    if os.path.exists("graph/timing.svg"):
+        s3_key_timing = f"review_timing_{timestamp}.svg"
+        upload_svg_gz("graph/timing.svg", s3_key_timing)
+        review_timing_img = f"![Was each review on time?](https://shyal.s3.amazonaws.com/{s3_key_timing})"
 
     # P(pass) history — the headline "how good am i" line, now rendered by
     # utils/kg_movie_rs (`make movie`) as a SMIL-animated SVG synced with the
@@ -523,13 +459,38 @@ def main():
         upload_svg_gz("graph/kg_pass.svg", s3_key_pass)
         pass_prob_img = f"![P(pass a mock) over time](https://shyal.s3.amazonaws.com/{s3_key_pass})"
 
+    # Mock outcome distribution (utils/kg_movie_rs, same binary): the Monte
+    # Carlo mass behind the P(pass) central line, stepping weekly on the
+    # shared clock.
+    mock_dist_img = ""
+    if os.path.exists("graph/kg_dist.svg"):
+        s3_key_dist = f"mock_dist_{timestamp}.svg"
+        upload_svg_gz("graph/kg_dist.svg", s3_key_dist)
+        mock_dist_img = f"![Simulated mock outcomes over time](https://shyal.s3.amazonaws.com/{s3_key_dist})"
+
+    # Its dot-level companion (same binary): individual simulated mocks with
+    # fixed dice, hopping bins as skill improves.
+    mock_swarm_img = ""
+    if os.path.exists("graph/kg_swarm.svg"):
+        s3_key_swarm = f"mock_swarm_{timestamp}.svg"
+        upload_svg_gz("graph/kg_swarm.svg", s3_key_swarm)
+        mock_swarm_img = f"![Individual simulated mocks over time](https://shyal.s3.amazonaws.com/{s3_key_swarm})"
+
+    # And the failure-attribution view (same binary): failed simulated
+    # problems blamed on the weakest move in their walk, by technique group.
+    mock_blame_img = ""
+    if os.path.exists("graph/kg_blame.svg"):
+        s3_key_blame = f"mock_blame_{timestamp}.svg"
+        upload_svg_gz("graph/kg_blame.svg", s3_key_blame)
+        mock_blame_img = f"![Why simulated mocks fail, over time](https://shyal.s3.amazonaws.com/{s3_key_blame})"
+
     # Animated SVG (utils/kg_positions_svg): every node sliding down its
-    # personal forgetting curve. SMIL animation survives GitHub's camo/<img>
-    # pipeline, so it ships as-is with an svg content type.
+    # personal forgetting curve, replaying the same history on the same clock
+    # as the two SVGs above.
     positions_svg_img = ""
     if os.path.exists("graph/positions.svg"):
         s3_key_positions = f"positions_{timestamp}.svg"
-        queue_upload("graph/positions.svg", s3_key_positions, {"ContentType": "image/svg+xml"})
+        upload_svg_gz("graph/positions.svg", s3_key_positions)
         positions_svg_img = f"![Nodes sliding down their forgetting curves](https://shyal.s3.amazonaws.com/{s3_key_positions})"
 
     # Technique-graph movie (utils/kg_movie_rs, `make movie`): the history
@@ -583,9 +544,12 @@ def main():
         readme = fill(readme, "FAANG_VARIANCE_CHART", faang_variance_img)
     readme = fill(readme, "FAANG_PREDICT_VARIANCE_CHART", faang_predict_variance_img)
     readme = fill(readme, "KG_MOVIE", kg_movie_img)
-    readme = fill(readme, "CURVE_CHART", curve_img)
+    readme = fill(readme, "MOCK_DIST_CHART", mock_dist_img)
+    readme = fill(readme, "MOCK_SWARM_CHART", mock_swarm_img)
+    readme = fill(readme, "MOCK_BLAME_CHART", mock_blame_img)
     readme = fill(readme, "POSITIONS_SVG", positions_svg_img)
     readme = fill(readme, "CURVE_CALIBRATION_CHART", curve_calibration_img)
+    readme = fill(readme, "REVIEW_TIMING_CHART", review_timing_img)
     readme = fill(readme, "PASS_PROB_CHART", pass_prob_img)
     readme = fill(readme, "CONTEST_PROGRESS", contest_progress_img)
     readme = fill(readme, "FAANG_PROGRESS", faang_progress_img)
