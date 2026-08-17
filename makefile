@@ -119,8 +119,11 @@ hard:
 drill:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/drill $(filter-out $@,$(MAKECMDGOALS))
 
+# the two SVG renders run alongside estimate (whose claude call dominates when
+# it isn't cached); "make readme fresh" forces a new LLM estimate today
 readme: $(MOVIE_BIN)
-	@PYTHONPATH=./utils .venv/bin/python3 utils/estimate
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_positions_svg
-	@$(MOVIE_BIN)
+	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_positions_svg & p1=$$!; \
+	$(MOVIE_BIN) & p2=$$!; \
+	PYTHONPATH=./utils .venv/bin/python3 utils/estimate $(patsubst fresh,--fresh,$(filter-out $@,$(MAKECMDGOALS))); s=$$?; \
+	wait $$p1 && wait $$p2 && [ $$s -eq 0 ]
 	@AWS_PROFILE=root PYTHONPATH=./utils .venv/bin/python3 utils/update_readme.py
