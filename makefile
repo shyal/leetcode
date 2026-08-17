@@ -65,8 +65,15 @@ mock: $(MOCK_BIN)
 predict:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_predict $(filter-out $@,$(MAKECMDGOALS))
 
-movie:
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_movie $(filter-out $@,$(MAKECMDGOALS))
+# make movie is implemented in Rust: one pinned graphviz layout, the history
+# replayed as SMIL animation into graph/kg_movie.svg (embedded by make readme)
+MOVIE_BIN := utils/kg_movie_rs/target/release/kg_movie
+
+$(MOVIE_BIN): utils/kg_movie_rs/src/main.rs utils/kg_movie_rs/Cargo.toml
+	@cargo build --release --quiet --manifest-path utils/kg_movie_rs/Cargo.toml
+
+movie: $(MOVIE_BIN)
+	@$(MOVIE_BIN) $(filter-out $@,$(MAKECMDGOALS))
 
 sleep:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_sleep $(filter-out $@,$(MAKECMDGOALS))
@@ -112,7 +119,8 @@ hard:
 drill:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/drill $(filter-out $@,$(MAKECMDGOALS))
 
-readme:
+readme: $(MOVIE_BIN)
 	@PYTHONPATH=./utils .venv/bin/python3 utils/estimate
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_positions_svg
+	@$(MOVIE_BIN)
 	@AWS_PROFILE=root PYTHONPATH=./utils .venv/bin/python3 utils/update_readme.py
