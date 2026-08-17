@@ -10,7 +10,7 @@ So, here's my new approach: i wondered, how about thinking of the core technique
 
 <!-- KG_MOVIE -->
 
-![Technique graph growing solve by solve](https://shyal.s3.amazonaws.com/kg_movie_20260817024114.svg)
+![Technique graph growing solve by solve](https://shyal.s3.amazonaws.com/kg_movie_20260817032734.svg)
 
 <!-- /KG_MOVIE -->
 
@@ -20,11 +20,33 @@ Looking at my last leetcode grind, roughly October and November 2025, i plateaue
 
 <!-- PASS_PROB_CHART -->
 
-![P(pass a mock) over time](https://shyal.s3.amazonaws.com/pass_probability_20260817021158.png)
+![P(pass a mock) over time](https://shyal.s3.amazonaws.com/pass_probability_20260817032954.svg)
 
 <!-- /PASS_PROB_CHART -->
 
 The scheduler really is fantastic. It has a constraint i really like: it only recommends a problem with a single fragile node in its (input) dependency graph. This is what Vygotsky calleds the "Zone of proximal development", while in language acquisition it is Krashen's "i+1" (comprehensible input one step beyond current level).
+
+The condition is the same for each solve: a foundation of solid techniques, with one fragile or sale node. The problem exists only to reinforce the fragile or stale node.
+
+## My forgetting curve
+
+A memory decay curve is computed (duolingo style). It's fitted (`make curve`) regularly.
+
+The model is power-law forgetting with a slip rate, P(recall) = (1−slip)·(1 + Δ/s)^(−β), where stability s grows with every clean rep and shrinks every time i struggle.
+
+<!-- POSITIONS_SVG -->
+
+![Nodes sliding down their forgetting curves](https://shyal.s3.amazonaws.com/positions_20260817021158.svg)
+
+<!-- /POSITIONS_SVG -->
+
+The model also tracks its accuracy internally, by comparing its predictions with my actual performance.
+
+<!-- CURVE_CALIBRATION_CHART -->
+
+![Curve calibration](https://shyal.s3.amazonaws.com/curve_calibration_20260817021158.png)
+
+<!-- /CURVE_CALIBRATION_CHART -->
 
 ## The zone of proximal development
 
@@ -45,32 +67,6 @@ https://leetcode.com/problems/subarray-sum-equals-k/
 ```
 
 ![560 input tree, one stale node](https://shyal.s3.amazonaws.com/zpd_560_input_tree.png)
-
-The condition is the same for each solve: a foundation of solid techniques, with one fragile or sale node. The problem exists only to reinforce the fragile or stale node.
-
-## My forgetting curve
-
-A memory decay curve is computed (duolingo style). It's fitted (`make curve`) regularly.
-
-The model is power-law forgetting with a slip rate, P(recall) = (1−slip)·(1 + Δ/s)^(−β), where stability s grows with every clean rep and shrinks every time i struggle.
-
-<!-- CURVE_CHART -->
-
-![Fitted forgetting curve](https://shyal.s3.amazonaws.com/forgetting_curve_20260817021158.png)
-
-<!-- /CURVE_CHART -->
-
-<!-- POSITIONS_SVG -->
-![Nodes sliding down their forgetting curves](https://shyal.s3.amazonaws.com/positions_20260817021158.svg)
-<!-- /POSITIONS_SVG -->
-
-The model also tracks its accuracy internally, by comparing its predictions with my actual performance.
-
-<!-- CURVE_CALIBRATION_CHART -->
-
-![Curve calibration](https://shyal.s3.amazonaws.com/curve_calibration_20260817021158.png)
-
-<!-- /CURVE_CALIBRATION_CHART -->
 
 ## Solve rate
 
