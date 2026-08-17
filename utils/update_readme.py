@@ -638,30 +638,19 @@ def main():
         )
         positions_svg_img = f"![Nodes sliding down their forgetting curves](https://shyal.s3.amazonaws.com/{s3_key_positions})"
 
-    # Technique-graph movie: GitHub strips <video>/HTML from READMEs, so ship
-    # graph/kg.mp4 as an optimized GIF on the same S3 pipeline as the charts.
+    # Technique-graph movie (utils/kg_movie_rs, `make movie`): the history
+    # replayed as a SMIL-animated SVG. Like positions.svg it survives GitHub's
+    # camo/<img> pipeline as-is with an svg content type.
     kg_movie_img = ""
-    if os.path.exists("graph/kg.mp4"):
-        local_path = "/tmp/kg_movie.gif"
-        try:
-            subprocess.run(
-                ["ffmpeg", "-y", "-v", "error", "-i", "graph/kg.mp4",
-                 "-vf", "fps=20,scale=1280:-1:flags=lanczos,"
-                        "split[s0][s1];[s0]palettegen=max_colors=128[p];"
-                        "[s1][p]paletteuse=dither=bayer:bayer_scale=4",
-                 local_path],
-                check=True,
-            )
-            s3_key_kg_movie = f"kg_movie_{timestamp}.gif"
-            s3.upload_file(
-                local_path,
-                bucket_name,
-                s3_key_kg_movie,
-                ExtraArgs={"ContentType": "image/gif"},
-            )
-            kg_movie_img = f"![Technique graph growing solve by solve](https://shyal.s3.amazonaws.com/{s3_key_kg_movie})"
-        except (subprocess.CalledProcessError, FileNotFoundError) as e:
-            print(f"kg movie skipped: {e}")
+    if os.path.exists("graph/kg_movie.svg"):
+        s3_key_kg_movie = f"kg_movie_{timestamp}.svg"
+        s3.upload_file(
+            "graph/kg_movie.svg",
+            bucket_name,
+            s3_key_kg_movie,
+            ExtraArgs={"ContentType": "image/svg+xml"},
+        )
+        kg_movie_img = f"![Technique graph growing solve by solve](https://shyal.s3.amazonaws.com/{s3_key_kg_movie})"
 
     # README.md is the single source of truth: prose is edited there directly,
     # and each generated block lives between <!-- NAME --> ... <!-- /NAME -->

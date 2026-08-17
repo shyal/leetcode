@@ -10,7 +10,7 @@ So, here's my new approach: i wondered, how about thinking of the core technique
 
 <!-- KG_MOVIE -->
 
-![Technique graph growing solve by solve](https://shyal.s3.amazonaws.com/kg_movie_20260817021158.gif)
+![Technique graph growing solve by solve](https://shyal.s3.amazonaws.com/kg_movie_20260817024114.svg)
 
 <!-- /KG_MOVIE -->
 
