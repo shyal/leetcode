@@ -75,7 +75,32 @@ Per-topic readiness (0-1):
 
 Estimate the two readiness dates."""
 
-    estimates = claude_json(user_prompt, system_prompt)
+    manila_tz = timezone(timedelta(hours=8))
+    run_date = datetime.now(manila_tz).strftime("%Y-%m-%d")
+
+    data = []
+    if os.path.exists("readiness.json"):
+        try:
+            with open("readiness.json") as f:
+                data = json.load(f)
+            if not isinstance(data, list):
+                data = []
+        except json.JSONDecodeError:
+            data = []
+
+    # the LLM dates are a coarse guess; one call per day is plenty. Same-day
+    # reruns reuse them (--fresh forces a new call); the simulator below still
+    # recomputes every run.
+    cached = next((e for e in data if e.get("run_date") == run_date), None)
+    if cached and "--fresh" not in sys.argv:
+        estimates = {
+            "contest_readiness": cached["contest_readiness"],
+            "faang_interview": cached["faang_interview"],
+        }
+        llm_note = " (cached)"
+    else:
+        estimates = claude_json(user_prompt, system_prompt)
+        llm_note = ""
 
     # deterministic date from the curve simulator (utils/kg_predict), recorded
     # alongside the LLM guess so both variance series accumulate
@@ -89,19 +114,6 @@ Estimate the two readiness dates."""
         predict = json.loads(out)
     except (subprocess.CalledProcessError, json.JSONDecodeError) as e:
         console.print(f"[yellow]kg_predict failed, no faang_predict recorded: {e}[/yellow]")
-
-    manila_tz = timezone(timedelta(hours=8))
-    run_date = datetime.now(manila_tz).strftime("%Y-%m-%d")
-
-    data = []
-    if os.path.exists("readiness.json"):
-        try:
-            with open("readiness.json") as f:
-                data = json.load(f)
-            if not isinstance(data, list):
-                data = []
-        except json.JSONDecodeError:
-            data = []
 
     data = [e for e in data if e.get("run_date") != run_date]  # same-day rerun replaces
     entry = {
@@ -120,8 +132,8 @@ Estimate the two readiness dates."""
     table = Table(show_header=False, box=None, padding=(0, 2))
     table.add_row("Run date", run_date)
     table.add_row("Node statuses", status_line)
-    table.add_row("Contest readiness", str(estimates["contest_readiness"]))
-    table.add_row("FAANG interview (LLM)", str(estimates["faang_interview"]))
+    table.add_row("Contest readiness", str(estimates["contest_readiness"]) + llm_note)
+    table.add_row("FAANG interview (LLM)", str(estimates["faang_interview"]) + llm_note)
     if predict:
         table.add_row("FAANG interview (simulated)", f"{predict['ready']} at {predict['hours']:g}h/day")
     console.print(table)

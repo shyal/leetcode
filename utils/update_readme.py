@@ -18,6 +18,13 @@ def main():
     s3 = boto3.client("s3")
     bucket_name = "shyal"
 
+    # every chart lands in a unique local path, so uploads can be queued as
+    # they're produced and pushed concurrently at the end
+    upload_jobs = []
+
+    def queue_upload(local, key, extra):
+        upload_jobs.append((local, key, extra))
+
     # The two synced SMIL animations (kg_movie / kg_pass) go up gzipped with a
     # Content-Encoding header — camo passes it through, and near-equal transfer
     # sizes keep their independent SMIL clocks starting in near-lockstep.
@@ -27,11 +34,10 @@ def main():
         local = f"/tmp/{os.path.basename(key)}.gz"
         with open(path, "rb") as f, gzip.open(local, "wb", compresslevel=9) as g:
             g.write(f.read())
-        s3.upload_file(
+        queue_upload(
             local,
-            bucket_name,
             key,
-            ExtraArgs={"ContentType": "image/svg+xml", "ContentEncoding": "gzip"},
+            {"ContentType": "image/svg+xml", "ContentEncoding": "gzip"},
         )
 
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
@@ -169,12 +175,7 @@ def main():
     local_path = "/tmp/solves_per_day.png"
     fig.savefig(local_path)
     s3_key_solves = f"solves_per_day_{timestamp}.png"
-    s3.upload_file(
-        local_path,
-        bucket_name,
-        s3_key_solves,
-        ExtraArgs={"ContentType": "image/png"},
-    )
+    queue_upload(local_path, s3_key_solves, {"ContentType": "image/png"})
     plt.close(fig)
     solves_img = f"![Solves Per Day (Full Repo History)](https://shyal.s3.amazonaws.com/{s3_key_solves})"
 
@@ -198,12 +199,7 @@ def main():
     local_path = "/tmp/uniques_per_day.png"
     fig.savefig(local_path)
     s3_key_uniques = f"uniques_per_day_{timestamp}.png"
-    s3.upload_file(
-        local_path,
-        bucket_name,
-        s3_key_uniques,
-        ExtraArgs={"ContentType": "image/png"},
-    )
+    queue_upload(local_path, s3_key_uniques, {"ContentType": "image/png"})
     plt.close(fig)
     uniques_img = f"![Unique Problems Solved Daily (Full Repo History)](https://shyal.s3.amazonaws.com/{s3_key_uniques})"
 
@@ -266,12 +262,7 @@ def main():
         local_path = "/tmp/contest_variance.png"
         fig.savefig(local_path)
         s3_key_contest_variance = f"contest_variance_{timestamp}.png"
-        s3.upload_file(
-            local_path,
-            bucket_name,
-            s3_key_contest_variance,
-            ExtraArgs={"ContentType": "image/png"},
-        )
+        queue_upload(local_path, s3_key_contest_variance, {"ContentType": "image/png"})
         plt.close(fig)
         contest_variance_img = f"![Contest Readiness Projection Over Time](https://shyal.s3.amazonaws.com/{s3_key_contest_variance})"
 
@@ -303,12 +294,7 @@ def main():
         local_path = "/tmp/faang_predict_variance.png"
         fig.savefig(local_path)
         s3_key_faang_predict = f"faang_predict_variance_{timestamp}.png"
-        s3.upload_file(
-            local_path,
-            bucket_name,
-            s3_key_faang_predict,
-            ExtraArgs={"ContentType": "image/png"},
-        )
+        queue_upload(local_path, s3_key_faang_predict, {"ContentType": "image/png"})
         plt.close(fig)
         faang_predict_variance_img = f"![FAANG Readiness (Curve Simulator) Projection Over Time](https://shyal.s3.amazonaws.com/{s3_key_faang_predict})"
 
@@ -350,12 +336,7 @@ def main():
         local_path = "/tmp/faang_variance.png"
         fig.savefig(local_path)
         s3_key_faang_variance = f"faang_variance_{timestamp}.png"
-        s3.upload_file(
-            local_path,
-            bucket_name,
-            s3_key_faang_variance,
-            ExtraArgs={"ContentType": "image/png"},
-        )
+        queue_upload(local_path, s3_key_faang_variance, {"ContentType": "image/png"})
         plt.close(fig)
         faang_variance_img = f"![FAANG Interview Readiness Projection Over Time](https://shyal.s3.amazonaws.com/{s3_key_faang_variance})"
 
@@ -392,12 +373,7 @@ def main():
             local_path = "/tmp/contest_progress.png"
             fig.savefig(local_path, bbox_inches="tight")
             s3_key_contest_progress = f"contest_progress_{timestamp}.png"
-            s3.upload_file(
-                local_path,
-                bucket_name,
-                s3_key_contest_progress,
-                ExtraArgs={"ContentType": "image/png"},
-            )
+            queue_upload(local_path, s3_key_contest_progress, {"ContentType": "image/png"})
             plt.close(fig)
             contest_progress_img = f"![Contest Readiness Progress (Ready by {contest_end_str})](https://shyal.s3.amazonaws.com/{s3_key_contest_progress})"
 
@@ -413,12 +389,7 @@ def main():
             local_path = "/tmp/faang_progress.png"
             fig.savefig(local_path, bbox_inches="tight")
             s3_key_faang_progress = f"faang_progress_{timestamp}.png"
-            s3.upload_file(
-                local_path,
-                bucket_name,
-                s3_key_faang_progress,
-                ExtraArgs={"ContentType": "image/png"},
-            )
+            queue_upload(local_path, s3_key_faang_progress, {"ContentType": "image/png"})
             plt.close(fig)
             faang_progress_img = f"![FAANG Interview Readiness Progress (Ready by {faang_end_str})](https://shyal.s3.amazonaws.com/{s3_key_faang_progress})"
         else:
@@ -448,12 +419,7 @@ def main():
             local_path = "/tmp/contest_topics_readiness.png"
             fig.savefig(local_path)
             s3_key_contest_topics = f"contest_topics_readiness_{timestamp}.png"
-            s3.upload_file(
-                local_path,
-                bucket_name,
-                s3_key_contest_topics,
-                ExtraArgs={"ContentType": "image/png"},
-            )
+            queue_upload(local_path, s3_key_contest_topics, {"ContentType": "image/png"})
             plt.close(fig)
             contest_topics_img = f"![Topic Readiness](https://shyal.s3.amazonaws.com/{s3_key_contest_topics})"
         else:
@@ -496,8 +462,7 @@ def main():
         local_path = "/tmp/forgetting_curve.png"
         fig.savefig(local_path)
         s3_key_curve = f"forgetting_curve_{timestamp}.png"
-        s3.upload_file(local_path, bucket_name, s3_key_curve,
-                       ExtraArgs={"ContentType": "image/png"})
+        queue_upload(local_path, s3_key_curve, {"ContentType": "image/png"})
         plt.close(fig)
         curve_img = f"![Fitted forgetting curve](https://shyal.s3.amazonaws.com/{s3_key_curve})"
 
@@ -543,8 +508,7 @@ def main():
             local_path = "/tmp/curve_calibration.png"
             fig.savefig(local_path)
             s3_key_calib = f"curve_calibration_{timestamp}.png"
-            s3.upload_file(local_path, bucket_name, s3_key_calib,
-                           ExtraArgs={"ContentType": "image/png"})
+            queue_upload(local_path, s3_key_calib, {"ContentType": "image/png"})
             plt.close(fig)
             curve_calibration_img = f"![Curve calibration](https://shyal.s3.amazonaws.com/{s3_key_calib})"
 
@@ -565,12 +529,7 @@ def main():
     positions_svg_img = ""
     if os.path.exists("graph/positions.svg"):
         s3_key_positions = f"positions_{timestamp}.svg"
-        s3.upload_file(
-            "graph/positions.svg",
-            bucket_name,
-            s3_key_positions,
-            ExtraArgs={"ContentType": "image/svg+xml"},
-        )
+        queue_upload("graph/positions.svg", s3_key_positions, {"ContentType": "image/svg+xml"})
         positions_svg_img = f"![Nodes sliding down their forgetting curves](https://shyal.s3.amazonaws.com/{s3_key_positions})"
 
     # Technique-graph movie (utils/kg_movie_rs, `make movie`): the history
@@ -581,6 +540,18 @@ def main():
         s3_key_kg_movie = f"kg_movie_{timestamp}.svg"
         upload_svg_gz("graph/kg_movie.svg", s3_key_kg_movie)
         kg_movie_img = f"![Technique graph growing solve by solve](https://shyal.s3.amazonaws.com/{s3_key_kg_movie})"
+
+    # push everything queued above concurrently; boto3 clients are thread-safe.
+    # Any failure raises here, before the README is touched.
+    from concurrent.futures import ThreadPoolExecutor
+
+    with ThreadPoolExecutor(max_workers=10) as pool:
+        futures = [
+            pool.submit(s3.upload_file, local, bucket_name, key, ExtraArgs=extra)
+            for local, key, extra in upload_jobs
+        ]
+        for f in futures:
+            f.result()
 
     # README.md is the single source of truth: prose is edited there directly,
     # and each generated block lives between <!-- NAME --> ... <!-- /NAME -->
