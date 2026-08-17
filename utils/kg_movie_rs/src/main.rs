@@ -16,11 +16,11 @@
 //
 // Statuses are derived, never stored, so the graph's state on any historical
 // date is just node_status() (kept in lockstep with utils/kg_lib.py) over the
-// evidence recorded up to that date. Screen time is paced by solves, not by
-// the calendar (--pace calendar for the old behaviour): marathon days stretch
-// out enough to read, a 100-day dry spell still dims but takes a moment
-// rather than half the film. The tail dissolves into the background so the
-// loop has no dead frames at the seam. Label placement is chosen at spawn
+// evidence recorded up to that date. Screen time is linear calendar time
+// (--pace solves for event-rate pacing instead), so the replay runs at the
+// same constant speed as the P(pass) chart's linear x-axis and the two stay
+// in step. The tail dissolves into the background so the loop has no dead
+// frames at the seam. Label placement is chosen at spawn
 // from ~20 candidate spots around the node, overlapping nothing graphviz
 // drew — nodes, edges, cluster borders and titles — nor any still-fading
 // label; the spot is pinned for the label's lifetime.
@@ -30,8 +30,10 @@ use std::fmt::Write as _;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
-use chrono::{Duration, NaiveDate};
+use chrono::{Datelike, Duration, NaiveDate};
 use serde_json::Value;
+
+use kg_mock::{current_recall, pass_rates, EvRec, PyRandom, OFF_GRAPH0, SCENARIOS};
 
 const DEFAULT_SECONDS: f64 = 50.0;
 const END_FADE_S: f64 = 1.2; // loop-closing dissolve, capped by FADE_FRACTION
@@ -39,7 +41,8 @@ const FADE_FRACTION: f64 = 0.08; // dissolve shrinks with short movies
 const LABEL_LIFE_FRACTION: f64 = 0.04; // label fade as a share of runtime
 const LULL_WEIGHT: f64 = 0.25; // screen time a solve-less day gets, in solves
 
-const HEADER_H: f64 = 30.0;
+const HEADER_H: f64 = 56.0;
+const ERA_STRIP_H: f64 = 6.0; // era timeline along the very top edge
 const BG: &str = "#0d1117";
 const GOLD: &str = "#ffd75f";
 const INK: &str = "#c9d1d9";
@@ -49,6 +52,16 @@ const LABEL_GAP: f64 = 4.0; // px between a node box and its label
 const MAX_PROBS: usize = 3; // live labels per node; the oldest gets evicted
 
 const SOLID_WINDOW_DAYS: i64 = 42; // flat fallback when curve.json is absent
+
+// The day the technique graph took over problem picking (commit 54377d3,
+// "Technique graph tooling: viz, deterministic picker, drill bank, honest
+// readiness"). Everything before it was hand-scheduled; the header names
+// the era so the switch reads as the story beat it was.
+const ERA_SWITCH: &str = "2026-07-05";
+const ERA_PRE: &str = "pre graph scheduling era";
+const ERA_GRAPH: &str = "graph scheduling era";
+const ERA_PRE_INK: &str = "#8b949e";
+const ERA_GRAPH_INK: &str = "#58a6ff";
 
 const SOLID: usize = 0;
 const STALE: usize = 1;
@@ -362,8 +375,17 @@ fn push_key(times: &mut Vec<f64>, t: f64) {
     times.push(t.min(1.0));
 }
 
+// 4 decimals (5ms at a 50s loop), trailing zeros trimmed: keyTimes are the
+// bulk of the file, and the movie must stay small so it loads (and starts
+// its SMIL clock) nearly in step with the chart svg beside it in the README.
+fn fmt_frac(t: f64) -> String {
+    let s = format!("{t:.4}");
+    let s = s.trim_end_matches('0').trim_end_matches('.');
+    if s.is_empty() { "0".to_string() } else { s.to_string() }
+}
+
 fn animate(attr_name: &str, calc: &str, values: &[String], key_times: &[f64], dur: f64) -> String {
-    let kt: Vec<String> = key_times.iter().map(|t| format!("{t:.5}")).collect();
+    let kt: Vec<String> = key_times.iter().map(|t| fmt_frac(*t)).collect();
     format!(
         "<animate attributeName=\"{attr_name}\" calcMode=\"{calc}\" values=\"{}\" keyTimes=\"{}\" dur=\"{dur}s\" repeatCount=\"indefinite\"/>",
         values.join(";"),
@@ -390,13 +412,13 @@ fn discrete_track(seq: &[String], tick_frac: &[f64], attr_name: &str, dur: f64) 
 fn main() {
     let mut seconds = DEFAULT_SECONDS;
     let mut open_after = false;
-    let mut pace_calendar = false;
+    let mut pace_calendar = true;
     let mut args = std::env::args().skip(1);
     while let Some(a) = args.next() {
         match a.as_str() {
             "--open" => open_after = true,
             "--pace" => {
-                pace_calendar = matches!(args.next().as_deref(), Some("calendar"));
+                pace_calendar = !matches!(args.next().as_deref(), Some("solves"));
             }
             s => match s.parse::<f64>() {
                 Ok(v) if v > 0.0 => seconds = v,
@@ -799,8 +821,18 @@ fn main() {
     }
     out_svg.push_str(&svg[pos..body_end]);
 
-    // gold solve labels, inside the graph transform so they share node coords
-    for l in &labels {
+    // gold solve labels, inside the graph transform so they share node coords.
+    // Shared styling lives on the outer group, and every label of one solve
+    // (same problem, same birth, one per exercised move) shares a single
+    // fade animation on an inner group — 1000+ labels, every byte repeats.
+    writeln!(out_svg, "<g font-family=\"Menlo,monospace\" font-size=\"{LABEL_PT:.0}\" fill=\"{GOLD}\">").unwrap();
+    let mut li = 0;
+    while li < labels.len() {
+        let l = &labels[li];
+        let mut lj = li + 1;
+        while lj < labels.len() && labels[lj].born == l.born && labels[lj].text == l.text {
+            lj += 1;
+        }
         let lb = l.born / dur;
         let lf = label_life / dur;
         let mut times = vec![];
@@ -828,20 +860,27 @@ fn main() {
             times.insert(0, 0.0);
             values.insert(0, "0".to_string());
         }
-        writeln!(
+        write!(
             out_svg,
-            "<text x=\"{:.1}\" y=\"{:.1}\" font-family=\"Menlo,monospace\" font-size=\"{LABEL_PT:.2}\" fill=\"{GOLD}\" opacity=\"0\">{}{}</text>",
-            l.rect.0,
-            l.rect.3 - 3.0,
-            l.text,
+            "<g opacity=\"0\">{}",
             animate("opacity", "linear", &values, &times, dur)
         )
         .unwrap();
+        for l in &labels[li..lj] {
+            write!(out_svg, "<text x=\"{:.0}\" y=\"{:.0}\">{}</text>", l.rect.0, l.rect.3 - 3.0, l.text).unwrap();
+        }
+        out_svg.push_str("</g>\n");
+        li = lj;
     }
-    out_svg.push_str("</g>\n");
+    out_svg.push_str("</g>\n</g>\n");
 
     // header: the date and status counts, one flashcard per tick like the mp4's
     // title line — outside the graph transform, in plain canvas coordinates
+    writeln!(
+        out_svg,
+        "<g text-anchor=\"middle\" font-family=\"Helvetica,sans-serif\" font-size=\"20\" fill=\"{INK}\">"
+    )
+    .unwrap();
     let mut hidden_counts = 0;
     for i in 0..n_ticks {
         let mut counts = [0usize; 4];
@@ -872,13 +911,69 @@ fn main() {
         };
         writeln!(
             out_svg,
-            "<text x=\"{:.1}\" y=\"20\" text-anchor=\"middle\" font-family=\"Helvetica,sans-serif\" font-size=\"15\" fill=\"{INK}\" opacity=\"0\">{title_text}{}</text>",
+            "<text x=\"{:.0}\" y=\"44\" opacity=\"0\">{title_text}{}</text>",
             width / 2.0,
             animate("opacity", "discrete", &values, &times, dur)
         )
         .unwrap();
     }
+    out_svg.push_str("</g>\n");
     let _ = hidden_counts;
+
+    // era label, top left: hand-scheduled until the graph tooling landed,
+    // graph-scheduled after — one flip, pinned to the switch date's tick
+    let switch = days.iter().position(|d| d.to_string().as_str() >= ERA_SWITCH);
+    let era_frac = switch.map(|i| tick_frac[i]);
+    for (label, ink, show) in [
+        (ERA_PRE, ERA_PRE_INK, era_frac != Some(0.0)),
+        (ERA_GRAPH, ERA_GRAPH_INK, switch.is_some()),
+    ] {
+        if !show {
+            continue;
+        }
+        let track = match era_frac {
+            Some(f) if f > 0.0 => {
+                let mut times = vec![0.0];
+                push_key(&mut times, f);
+                let values = if label == ERA_PRE {
+                    vec!["1".to_string(), "0".to_string()]
+                } else {
+                    vec!["0".to_string(), "1".to_string()]
+                };
+                animate("opacity", "discrete", &values, &times, dur)
+            }
+            _ => String::new(), // the whole movie is one era: static label
+        };
+        writeln!(
+            out_svg,
+            "<text x=\"20\" y=\"44\" font-family=\"Helvetica,sans-serif\" font-size=\"34\" font-weight=\"bold\" fill=\"{ink}\" opacity=\"{}\">{label}{track}</text>",
+            if label == ERA_PRE && era_frac.is_some() { 0 } else { 1 }
+        )
+        .unwrap();
+    }
+
+    // era strip: the loop's own timeline along the top edge — grey for the
+    // hand-scheduled stretch, blue once the graph picker takes over, a
+    // playhead sweeping across so the switch reads at any thumbnail size
+    let split_x = era_frac.map_or(width, |f| f * width);
+    if split_x > 0.0 {
+        writeln!(out_svg, "<rect x=\"0\" y=\"0\" width=\"{split_x:.1}\" height=\"{ERA_STRIP_H}\" fill=\"{ERA_PRE_INK}\" opacity=\"0.55\"/>").unwrap();
+    }
+    if switch.is_some() && split_x < width {
+        writeln!(
+            out_svg,
+            "<rect x=\"{split_x:.1}\" y=\"0\" width=\"{:.1}\" height=\"{ERA_STRIP_H}\" fill=\"{ERA_GRAPH_INK}\" opacity=\"0.9\"/>",
+            width - split_x
+        )
+        .unwrap();
+    }
+    writeln!(
+        out_svg,
+        "<rect x=\"-2\" y=\"0\" width=\"4\" height=\"{:.0}\" fill=\"{INK}\"><animate attributeName=\"x\" calcMode=\"linear\" values=\"-2;{:.1}\" keyTimes=\"0;1\" dur=\"{dur}s\" repeatCount=\"indefinite\"/></rect>",
+        ERA_STRIP_H + 8.0,
+        width - 2.0
+    )
+    .unwrap();
 
     // Close the loop by dissolving into the background rather than freezing:
     // dead frames are exactly what a looping animation makes you stare at, and
@@ -914,4 +1009,316 @@ fn main() {
     if open_after {
         let _ = Command::new("open").arg(&out_path).status();
     }
+
+    // ---- P(pass) history chart: graph/kg_pass.svg ------------------------
+    // The README's "It seems to be working" chart, animated: the same weekly
+    // replay update_readme.py used to render with matplotlib (kg_lib math,
+    // Random(42), 4000 samples — reproduced bit-for-bit by the kg_mock lib),
+    // drawn as SMIL that reveals left-to-right on the SAME clock as
+    // kg_movie.svg, so the two loops tell one story in sync. A playhead
+    // line sweeps the calendar axis at the movie's current date; the era
+    // banner and label flip on the same tick as the movie's.
+    let Some(cv) = curve.as_ref() else {
+        println!("no graph/curve.json — kg_pass.svg skipped");
+        return;
+    };
+    let mcurve = kg_mock::Curve { a: cv.a, b: cv.b, c: cv.c, d: cv.d, beta: cv.beta, target: cv.target };
+    let mut ev_recs: Vec<EvRec> = evidence
+        .iter()
+        .map(|(f, r)| EvRec {
+            fname: f.clone(),
+            date: r["date"].as_str().unwrap().to_string(),
+            moves: r
+                .get("moves")
+                .and_then(Value::as_object)
+                .map(|m| {
+                    m.iter()
+                        .map(|(k, v)| (k.clone(), v.as_str().unwrap_or("").to_string()))
+                        .collect()
+                })
+                .unwrap_or_default(),
+            assist: assist_of(r).to_string(),
+        })
+        .collect();
+    ev_recs.sort_by(|a, b| a.date.cmp(&b.date));
+
+    // move frequency over problems.json walks, first-seen order — the same
+    // Counter order the Python chart fed pass_rates, so the RNG stream matches
+    let problems_v = load_json(&graph.join("problems.json"));
+    let mut mf_keys: Vec<String> = vec![];
+    let mut mf_count: HashMap<String, f64> = HashMap::new();
+    for (_p, v) in problems_v["problems"].as_object().unwrap() {
+        let Some(obj) = v.as_object() else { continue };
+        let Some(mvs) = obj.get("moves").and_then(Value::as_array) else { continue };
+        for m in mvs {
+            let s = m.as_str().unwrap().to_string();
+            if !mf_count.contains_key(&s) {
+                mf_keys.push(s.clone());
+            }
+            *mf_count.entry(s).or_insert(0.0) += 1.0;
+        }
+    }
+    let mf_weights: Vec<f64> = mf_keys.iter().map(|k| mf_count[k]).collect();
+    let node_ids: Vec<String> = nodes.iter().map(|n| n.id.clone()).collect();
+
+    // weekly replay: evidence filtered to each date, recall from the curve,
+    // Monte Carlo per recognition scenario ("today" = last recorded evidence)
+    let today = *days.last().unwrap();
+    let mut weeks = vec![];
+    let mut wd = first;
+    while wd < today {
+        weeks.push(wd);
+        wd += Duration::days(7);
+    }
+    weeks.push(today);
+    // per week, per scenario (cautious/central/optimistic): (screen%, onsite%)
+    let mut series: Vec<[(f64, f64); 3]> = vec![];
+    let mut week_counts: Vec<usize> = vec![];
+    for (i, wd) in weeks.iter().enumerate() {
+        let wd_s = wd.to_string();
+        let k = ev_recs.partition_point(|r| r.date.as_str() <= wd_s.as_str());
+        let recall = current_recall(&node_ids, &ev_recs[..k], &mcurve, *wd);
+        let rmap: HashMap<&str, f64> =
+            node_ids.iter().map(String::as_str).zip(recall.iter().copied()).collect();
+        let mv_recall: Vec<Option<f64>> =
+            mf_keys.iter().map(|k| rmap.get(k.as_str()).copied()).collect();
+        let mut row = [(0.0, 0.0); 3];
+        for (si, (_name, r_base)) in SCENARIOS.iter().enumerate() {
+            let (_full, onsite, screen, _h) = pass_rates(
+                &mv_recall, &mf_weights, &OFF_GRAPH0, *r_base, (0, 0, 0),
+                &mut PyRandom::new(42), 4000,
+            );
+            row[si] = (screen * 100.0, onsite * 100.0);
+        }
+        series.push(row);
+        let lo = if i == 0 { String::new() } else { weeks[i - 1].to_string() };
+        week_counts.push(
+            ev_recs.iter().filter(|r| lo.as_str() < r.date.as_str() && r.date.as_str() <= wd_s.as_str()).count(),
+        );
+    }
+    if std::env::var("KG_MOVIE_DEBUG").is_ok() {
+        for (wd, row) in weeks.iter().zip(&series) {
+            eprintln!("{wd} central screen={:.4} onsite={:.4}", row[1].0, row[1].1);
+        }
+    }
+
+    // ---- draw --------------------------------------------------------------
+    const CW: f64 = 1200.0;
+    const CH: f64 = 430.0;
+    const CML: f64 = 48.0; // left margin
+    const CMR: f64 = 56.0; // the axis's two-week tail hosts the end labels
+    const CPT: f64 = 34.0; // main panel top
+    const CPB: f64 = 334.0; // main panel bottom
+    const CVT: f64 = 344.0; // volume panel top
+    const CVB: f64 = 404.0; // volume panel bottom
+    const GRID: &str = "#21262d";
+    const MUTED: &str = "#8b949e";
+    const SCREEN_C: &str = "#1f77b4";
+    const ONSITE_C: &str = "#ff7f0e";
+    let x0 = weeks[0];
+    let xend = *weeks.last().unwrap() + Duration::days(14);
+    let span = (xend - x0).num_days() as f64;
+    let x_of = |d: NaiveDate| CML + (d - x0).num_days() as f64 / span * (CW - CML - CMR);
+    let y_of = |p: f64| CPB - p / 100.0 * (CPB - CPT);
+
+    let mut c = String::with_capacity(64 * 1024);
+    writeln!(c, "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>").unwrap();
+    writeln!(
+        c,
+        "<svg width=\"{CW:.0}pt\" height=\"{CH:.0}pt\" viewBox=\"0 0 {CW:.0} {CH:.0}\" xmlns=\"http://www.w3.org/2000/svg\" font-family=\"Helvetica,sans-serif\">"
+    )
+    .unwrap();
+    writeln!(c, "<rect width=\"{CW:.0}\" height=\"{CH:.0}\" fill=\"{BG}\"/>").unwrap();
+
+    // era banner strip + swapping era label, same split tick as the movie's
+    let split_x = era_frac.map_or(CW, |f| f * CW);
+    if split_x > 0.0 {
+        writeln!(c, "<rect x=\"0\" y=\"0\" width=\"{split_x:.1}\" height=\"3\" fill=\"{ERA_PRE_INK}\" opacity=\"0.55\"/>").unwrap();
+    }
+    if switch.is_some() && split_x < CW {
+        writeln!(c, "<rect x=\"{split_x:.1}\" y=\"0\" width=\"{:.1}\" height=\"3\" fill=\"{ERA_GRAPH_INK}\" opacity=\"0.9\"/>", CW - split_x).unwrap();
+    }
+    for (label, ink, show) in [
+        (ERA_PRE, ERA_PRE_INK, era_frac != Some(0.0)),
+        (ERA_GRAPH, ERA_GRAPH_INK, switch.is_some()),
+    ] {
+        if !show {
+            continue;
+        }
+        let track = match era_frac {
+            Some(f) if f > 0.0 => {
+                let mut times = vec![0.0];
+                push_key(&mut times, f);
+                let values = if label == ERA_PRE {
+                    vec!["1".to_string(), "0".to_string()]
+                } else {
+                    vec!["0".to_string(), "1".to_string()]
+                };
+                animate("opacity", "discrete", &values, &times, dur)
+            }
+            _ => String::new(),
+        };
+        writeln!(
+            c,
+            "<text x=\"12\" y=\"19\" font-size=\"14\" font-weight=\"bold\" fill=\"{ink}\" opacity=\"{}\">{label}{track}</text>",
+            if label == ERA_PRE && era_frac.is_some() { 0 } else { 1 }
+        )
+        .unwrap();
+    }
+    writeln!(
+        c,
+        "<text x=\"{:.0}\" y=\"19\" text-anchor=\"middle\" font-size=\"13\" fill=\"{INK}\">P(pass a mock, cold) — weekly replay of the technique graph (band = recognition scenarios)</text>",
+        CW / 2.0
+    )
+    .unwrap();
+
+    // static furniture: grid, axes, month ticks
+    for p in [0.0, 25.0, 50.0, 75.0, 100.0] {
+        let y = y_of(p);
+        let (stroke, dash) = if p == 50.0 { (MUTED, " stroke-dasharray=\"2 4\"") } else { (GRID, "") };
+        writeln!(c, "<line x1=\"{CML}\" y1=\"{y:.1}\" x2=\"{:.1}\" y2=\"{y:.1}\" stroke=\"{stroke}\" stroke-width=\"1\"{dash}/>", CW - CMR).unwrap();
+        writeln!(c, "<text x=\"{:.0}\" y=\"{:.1}\" text-anchor=\"end\" font-size=\"11\" fill=\"{MUTED}\">{p:.0}%</text>", CML - 6.0, y + 4.0).unwrap();
+    }
+    let mut m = NaiveDate::from_ymd_opt(x0.year(), x0.month(), 1).unwrap();
+    const MONTHS: [&str; 12] = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+    while m <= xend {
+        let nxt = NaiveDate::from_ymd_opt(m.year() + (m.month() == 12) as i32, m.month() % 12 + 1, 1).unwrap();
+        if m >= x0 {
+            let x = x_of(m);
+            writeln!(c, "<line x1=\"{x:.1}\" y1=\"{CVB}\" x2=\"{x:.1}\" y2=\"{:.0}\" stroke=\"{MUTED}\" stroke-width=\"1\"/>", CVB + 4.0).unwrap();
+            // the warped axis crams quiet months together — a label only
+            // where its month is wide enough to own it
+            if x_of(nxt.min(xend)) - x >= 34.0 {
+                let lab = if m.month() == 1 {
+                    format!("jan '{:02}", m.year() % 100)
+                } else {
+                    MONTHS[m.month0() as usize].to_string()
+                };
+                writeln!(c, "<text x=\"{x:.1}\" y=\"{:.0}\" text-anchor=\"middle\" font-size=\"11\" fill=\"{MUTED}\">{lab}</text>", CVB + 17.0).unwrap();
+            }
+        }
+        m = nxt;
+    }
+    writeln!(c, "<text x=\"{:.0}\" y=\"{:.0}\" font-size=\"10\" fill=\"{MUTED}\">solves/wk</text>", CML + 4.0, CVT + 10.0).unwrap();
+
+    // era switch on the calendar axis itself
+    if let Ok(sw) = NaiveDate::parse_from_str(ERA_SWITCH, "%Y-%m-%d") {
+        if sw > x0 && sw < xend {
+            let x = x_of(sw);
+            writeln!(c, "<line x1=\"{x:.1}\" y1=\"{CPT}\" x2=\"{x:.1}\" y2=\"{CVB}\" stroke=\"{ERA_GRAPH_INK}\" stroke-width=\"1.2\" stroke-dasharray=\"5 4\" opacity=\"0.6\"/>").unwrap();
+        }
+    }
+
+    // legend
+    for (i, (color, label)) in [
+        (SCREEN_C, "phone screen (both mediums)"),
+        (ONSITE_C, "onsite (2E + 2M + ≥1 hard)"),
+    ]
+    .iter()
+    .enumerate()
+    {
+        let y = CPT + 14.0 + i as f64 * 18.0;
+        writeln!(c, "<line x1=\"{:.0}\" y1=\"{y:.1}\" x2=\"{:.0}\" y2=\"{y:.1}\" stroke=\"{color}\" stroke-width=\"2.5\"/>", CML + 10.0, CML + 32.0).unwrap();
+        writeln!(c, "<text x=\"{:.0}\" y=\"{:.1}\" font-size=\"12\" fill=\"{INK}\">{label}</text>", CML + 38.0, y + 4.0).unwrap();
+    }
+
+    // the reveal: everything data-driven clips to a rect whose right edge
+    // tracks the movie's current date, tick for tick — under calendar pacing
+    // that's one constant-speed sweep, and it stays date-true under --pace
+    // solves too; it holds through the loop-closing fade
+    let mut reveal_x: Vec<String> = days
+        .iter()
+        .map(|d| format!("{:.1}", x_of(*d).clamp(CML, CW - CMR)))
+        .collect();
+    let mut reveal_t: Vec<f64> = tick_frac.clone();
+    reveal_x.push(reveal_x.last().unwrap().clone());
+    push_key(&mut reveal_t, 1.0);
+    let reveal_anim = animate("width", "linear", &reveal_x, &reveal_t, dur);
+    writeln!(c, "<clipPath id=\"reveal\"><rect x=\"0\" y=\"0\" width=\"{CW:.0}\" height=\"{CH:.0}\">{reveal_anim}</rect></clipPath>").unwrap();
+    writeln!(c, "<g clip-path=\"url(#reveal)\">").unwrap();
+
+    // bands (cautious..optimistic) and central lines
+    for (kind, color) in [(0usize, SCREEN_C), (1usize, ONSITE_C)] {
+        let get = |si: usize, i: usize| if kind == 0 { series[i][si].0 } else { series[i][si].1 };
+        let mut band = String::new();
+        for (i, wd) in weeks.iter().enumerate() {
+            write!(band, "{:.1},{:.1} ", x_of(*wd), y_of(get(0, i))).unwrap();
+        }
+        for (i, wd) in weeks.iter().enumerate().rev() {
+            write!(band, "{:.1},{:.1} ", x_of(*wd), y_of(get(2, i))).unwrap();
+        }
+        writeln!(c, "<polygon points=\"{}\" fill=\"{color}\" opacity=\"0.15\"/>", band.trim_end()).unwrap();
+        let line: Vec<String> = weeks
+            .iter()
+            .enumerate()
+            .map(|(i, wd)| format!("{:.1},{:.1}", x_of(*wd), y_of(get(1, i))))
+            .collect();
+        writeln!(c, "<polyline points=\"{}\" fill=\"none\" stroke=\"{color}\" stroke-width=\"2\"/>", line.join(" ")).unwrap();
+    }
+
+    // the oct/nov '25 plateau, and the note when the line breaks above it
+    let central_screen: Vec<f64> = series.iter().map(|r| r[1].0).collect();
+    let plateau = weeks
+        .iter()
+        .zip(&central_screen)
+        .filter(|(wd, _)| {
+            **wd >= NaiveDate::from_ymd_opt(2025, 10, 1).unwrap()
+                && **wd <= NaiveDate::from_ymd_opt(2025, 11, 30).unwrap()
+        })
+        .map(|(_, v)| *v)
+        .fold(f64::NAN, f64::max);
+    if plateau.is_finite() {
+        let py = y_of(plateau);
+        writeln!(c, "<line x1=\"{:.1}\" y1=\"{py:.1}\" x2=\"{:.1}\" y2=\"{py:.1}\" stroke=\"{SCREEN_C}\" stroke-width=\"1\" stroke-dasharray=\"6 4\" opacity=\"0.55\"/>", x_of(NaiveDate::from_ymd_opt(2025, 10, 1).unwrap()), CW - CMR).unwrap();
+        writeln!(c, "<text x=\"{:.1}\" y=\"{:.1}\" font-size=\"11\" fill=\"{SCREEN_C}\" opacity=\"0.8\">oct/nov '25 plateau</text>", x_of(NaiveDate::from_ymd_opt(2025, 12, 20).unwrap()), py - 5.0).unwrap();
+    }
+
+    // weekly solve volume, its own little axis under the main panel
+    let vmax = week_counts.iter().copied().max().unwrap_or(1).max(1) as f64;
+    for (wd, n) in weeks.iter().zip(&week_counts) {
+        if *n == 0 {
+            continue;
+        }
+        let x1 = x_of(*wd - Duration::days(6));
+        let h = *n as f64 / vmax * (CVB - CVT - 6.0);
+        writeln!(c, "<rect x=\"{x1:.1}\" y=\"{:.1}\" width=\"{:.1}\" height=\"{h:.1}\" fill=\"#484f58\"/>", CVB - h, (x_of(*wd) - x1).max(1.0)).unwrap();
+    }
+    writeln!(c, "</g>").unwrap();
+
+    // end-of-line labels sit to the RIGHT of the finished reveal, so they get
+    // their own entrance: pop in on the movie's final tick, when the sweep
+    // reaches today — not clipped (never uncovered), not static (spoilers)
+    let mut finale_times = vec![0.0];
+    push_key(&mut finale_times, *tick_frac.last().unwrap());
+    let finale = animate("opacity", "discrete", &["0".into(), "1".into()], &finale_times, dur);
+    let lx = x_of(*weeks.last().unwrap());
+    for (color, v) in [(SCREEN_C, series.last().unwrap()[1].0), (ONSITE_C, series.last().unwrap()[1].1)] {
+        writeln!(c, "<text x=\"{:.1}\" y=\"{:.1}\" font-size=\"12\" font-weight=\"bold\" fill=\"{color}\" opacity=\"1\">{v:.0}%{finale}</text>", lx + 8.0, y_of(v) + 4.0).unwrap();
+    }
+    if plateau.is_finite() && *central_screen.last().unwrap() > plateau {
+        writeln!(c, "<text x=\"{:.1}\" y=\"{:.1}\" text-anchor=\"end\" font-size=\"12\" font-weight=\"bold\" fill=\"#3fb950\" opacity=\"1\">breaking the plateau ↑{finale}</text>", CW - CMR - 4.0, y_of(*central_screen.last().unwrap()) - 24.0).unwrap();
+    }
+
+    // the playhead: the movie's current date swept across the calendar
+    let head_anim = animate("x", "linear", &reveal_x, &reveal_t, dur);
+    writeln!(c, "<rect x=\"{:.1}\" y=\"{CPT}\" width=\"1.5\" height=\"{:.0}\" fill=\"{INK}\" opacity=\"0.75\">{head_anim}</rect>", CW - CMR, CVB - CPT).unwrap();
+
+    // same loop-closing dissolve window as the movie
+    writeln!(
+        c,
+        "<rect x=\"0\" y=\"0\" width=\"{CW:.0}\" height=\"{CH:.0}\" fill=\"{BG}\" opacity=\"0\" pointer-events=\"none\">{}</rect>",
+        animate("opacity", "linear", &["0".into(), "0".into(), "1".into()], &[0.0, fade_from, 1.0], dur)
+    )
+    .unwrap();
+    writeln!(c, "</svg>").unwrap();
+
+    let chart_path = graph.join("kg_pass.svg");
+    std::fs::write(&chart_path, &c).unwrap();
+    println!(
+        "wrote {} — {} weeks replayed, synced to the {:.0}s loop, {:.0}KB",
+        chart_path.display(),
+        weeks.len(),
+        seconds,
+        c.len() as f64 / 1024.0
+    );
 }

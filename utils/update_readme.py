@@ -18,6 +18,22 @@ def main():
     s3 = boto3.client("s3")
     bucket_name = "shyal"
 
+    # The two synced SMIL animations (kg_movie / kg_pass) go up gzipped with a
+    # Content-Encoding header — camo passes it through, and near-equal transfer
+    # sizes keep their independent SMIL clocks starting in near-lockstep.
+    def upload_svg_gz(path, key):
+        import gzip
+
+        local = f"/tmp/{os.path.basename(key)}.gz"
+        with open(path, "rb") as f, gzip.open(local, "wb", compresslevel=9) as g:
+            g.write(f.read())
+        s3.upload_file(
+            local,
+            bucket_name,
+            key,
+            ExtraArgs={"ContentType": "image/svg+xml", "ContentEncoding": "gzip"},
+        )
+
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
 
     metadata = get_problems_metadata()
@@ -532,96 +548,15 @@ def main():
             plt.close(fig)
             curve_calibration_img = f"![Curve calibration](https://shyal.s3.amazonaws.com/{s3_key_calib})"
 
-    # P(pass) history — the headline "how good am i" line: replay the technique
-    # graph week by week (evidence filtered to each date, recall from the fitted
-    # curve) and run kg_lib's cold-mock Monte Carlo on every snapshot. The
-    # bands span the cold-recognition scenarios — the one parameter solve
-    # history cannot identify; only real mocks collapse it.
+    # P(pass) history — the headline "how good am i" line, now rendered by
+    # utils/kg_movie_rs (`make movie`) as a SMIL-animated SVG synced with the
+    # technique-graph movie: the same weekly replay + kg_lib cold-mock Monte
+    # Carlo (the kg_mock lib reproduces the math bit-for-bit), revealed
+    # left-to-right on the movie's clock.
     pass_prob_img = ""
-    if os.path.exists("graph/curve.json") and os.path.exists("graph/evidence.json"):
-        import random
-        from collections import Counter
-        import kg_lib
-        from kg_lib import load_nodes, load_problems, load_evidence
-
-        kg_nodes = load_nodes()
-        kg_evidence = load_evidence()
-        with open("graph/curve.json") as f:
-            kg_curve_data = json.load(f)
-        move_freq = Counter(mv for v in load_problems().values()
-                            if isinstance(v, dict) for mv in v.get("moves", []))
-        first_ev = date.fromisoformat(min(r["date"] for r in kg_evidence.values()))
-        weeks = []
-        wd = first_ev
-        while wd < date.today():
-            weeks.append(wd)
-            wd += timedelta(days=7)
-        weeks.append(date.today())
-        series = {name: {"screen": [], "onsite": []} for name in kg_lib.SCENARIOS}
-        for wd in weeks:
-            ev_d = {k: r for k, r in kg_evidence.items() if r["date"] <= wd.isoformat()}
-            recall = kg_lib.current_recall(kg_nodes, ev_d, kg_curve_data, today=wd)
-            for name, r_base in kg_lib.SCENARIOS.items():
-                _, onsite, screen, _ = kg_lib.pass_rates(
-                    recall, move_freq, kg_lib.OFF_GRAPH0, r_base,
-                    (0, 0, 0), random.Random(42), 4000)
-                series[name]["screen"].append(screen * 100)
-                series[name]["onsite"].append(onsite * 100)
-
-        # weekly solve volume (all evidence entries, drills included) as a
-        # recessive strip under the probability panel: same x, own axis
-        week_counts = []
-        for i, wd in enumerate(weeks):
-            lo = weeks[i - 1].isoformat() if i else ""
-            week_counts.append(sum(1 for r in kg_evidence.values()
-                                   if lo < r["date"] <= wd.isoformat()))
-
-        fig, (ax, axv) = plt.subplots(
-            2, 1, figsize=(12, 6), sharex=True,
-            gridspec_kw={"height_ratios": [4, 1], "hspace": 0.08})
-        for kind, color, label in (("screen", "#1f77b4", "phone screen (both mediums)"),
-                                   ("onsite", "#ff7f0e", "onsite (2E + 2M + ≥1 hard)")):
-            ax.fill_between(weeks, series["cautious"][kind], series["optimistic"][kind],
-                            color=color, alpha=0.15, linewidth=0)
-            ax.plot(weeks, series["central"][kind], color=color, linewidth=2, label=label)
-            ax.annotate(f"{series['central'][kind][-1]:.0f}%",
-                        (weeks[-1], series["central"][kind][-1]),
-                        xytext=(6, 0), textcoords="offset points",
-                        color="#333333", fontweight="bold", va="center")
-        ax.axhline(50, color="#888888", linestyle=":", linewidth=1)
-        # the oct/nov '25 plateau, and the arrow showing the break above it now
-        plateau_era = [v for wd, v in zip(weeks, series["central"]["screen"])
-                       if date(2025, 10, 1) <= wd <= date(2025, 11, 30)]
-        if plateau_era:
-            plateau = max(plateau_era)
-            now = series["central"]["screen"][-1]
-            ax.hlines(plateau, date(2025, 10, 1), weeks[-1],
-                      color="#1f77b4", linestyle="--", linewidth=1, alpha=0.55)
-            ax.annotate("oct/nov '25 plateau", (date(2025, 12, 20), plateau),
-                        xytext=(0, 5), textcoords="offset points",
-                        color="#1f77b4", fontsize=9, alpha=0.8)
-            if now > plateau:
-                ax.annotate("", xy=(weeks[-1], now + 14), xytext=(weeks[-1], now + 3),
-                            arrowprops=dict(arrowstyle="-|>", color="#2ca02c",
-                                            linewidth=2, mutation_scale=16))
-                ax.annotate("breaking the plateau ", (weeks[-1], now + 15),
-                            ha="right", va="bottom", color="#2ca02c",
-                            fontsize=9, fontweight="bold")
-        ax.set_ylim(0, 100)
-        ax.set_xlim(weeks[0], weeks[-1] + timedelta(days=14))
-        ax.set_ylabel("P(pass), walking in cold, %")
-        ax.set_title("P(pass a mock, cold), weekly replay of the technique graph "
-                     "(band = recognition scenarios)")
-        ax.legend(loc="upper left")
-        axv.bar(weeks, week_counts, width=-6, align="edge", color="#aaaaaa")
-        axv.set_ylabel("solves/wk")
-        fig.tight_layout()
-        local_path = "/tmp/pass_probability.png"
-        fig.savefig(local_path)
-        s3_key_pass = f"pass_probability_{timestamp}.png"
-        s3.upload_file(local_path, bucket_name, s3_key_pass,
-                       ExtraArgs={"ContentType": "image/png"})
-        plt.close(fig)
+    if os.path.exists("graph/kg_pass.svg"):
+        s3_key_pass = f"pass_probability_{timestamp}.svg"
+        upload_svg_gz("graph/kg_pass.svg", s3_key_pass)
         pass_prob_img = f"![P(pass a mock) over time](https://shyal.s3.amazonaws.com/{s3_key_pass})"
 
     # Animated SVG (utils/kg_positions_svg): every node sliding down its
@@ -644,12 +579,7 @@ def main():
     kg_movie_img = ""
     if os.path.exists("graph/kg_movie.svg"):
         s3_key_kg_movie = f"kg_movie_{timestamp}.svg"
-        s3.upload_file(
-            "graph/kg_movie.svg",
-            bucket_name,
-            s3_key_kg_movie,
-            ExtraArgs={"ContentType": "image/svg+xml"},
-        )
+        upload_svg_gz("graph/kg_movie.svg", s3_key_kg_movie)
         kg_movie_img = f"![Technique graph growing solve by solve](https://shyal.s3.amazonaws.com/{s3_key_kg_movie})"
 
     # README.md is the single source of truth: prose is edited there directly,
