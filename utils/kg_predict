@@ -41,49 +41,38 @@ FISSION_EVERY = 8          # mediums per newly split node, up to NODE_CAP
 NODE_CAP = 95
 
 
-def measured_times():
+def medium_log():
+    """Every timed Medium solve in the git log, as (commit date, minutes).
+    Parsed once so banked counts can be asked for any as-of date."""
     log = subprocess.run(["git", "log", "--format=%ad|%s|%b~~~", "--date=short"],
                          capture_output=True, text=True).stdout
     meta_path = os.path.join(os.path.dirname(GRAPH_DIR), "data/problems_metadata.json")
     meta = json.load(open(meta_path)) if os.path.exists(meta_path) else {}
-    mediums, medium_times = set(), []
+    entries = []
     for block in log.split("~~~"):
+        block = block.strip()
         m = re.search(r"\|(\d+)\. .*?solve time: (\d+)m (\d+)s", block, re.S)
         if not m:
             continue
         num, mins = m.group(1), int(m.group(2)) + int(m.group(3)) / 60
         if meta.get(num, {}).get("difficulty") == "Medium":
-            mediums.add(num)
-            if mins < 120:
-                medium_times.append(mins)
+            entries.append((block[:10], num, mins))
+    return entries
+
+
+def measured_times(entries, as_of):
+    mediums, medium_times = set(), []
+    for when, num, mins in entries:
+        if when > as_of:
+            continue
+        mediums.add(num)
+        if mins < 120:
+            medium_times.append(mins)
     med = statistics.median(medium_times) if len(medium_times) >= 5 else 25
     return len(mediums), med
 
 
-def main():
-    json_mode = "--json" in sys.argv
-    args = [a for a in sys.argv[1:] if a != "--json"]
-    hours = float(args[0]) if args else 2.0
-    nodes = load_nodes()
-    evidence = load_evidence()
-    curve = json.load(open(os.path.join(GRAPH_DIR, "curve.json")))
-    p = curve["params"]
-    target = curve["target_retention"]
-
-    mediums_banked, medium_median = measured_times()
-    mediums_needed = max(0, MEDIUM_TARGET - mediums_banked)
-
-    # node state: reps, days-since-clean, pending one-off cost (fragile/missing)
-    state = []
-    for nid in nodes:
-        status, last = node_status(nid, evidence)
-        cleans = sum(1 for r in evidence.values()
-                     if r.get("moves", {}).get(nid) == "clean")
-        gap = (date.today() - last).days if last else 0
-        pending = CONSOLIDATE_COST if status == FRAGILE else \
-            ACQUIRE_COST if status == MISSING else 0
-        state.append({"reps": max(cleans, 0), "gap": gap, "pending": pending})
-
+def simulate(state, mediums_needed, medium_median, hours, p, target):
     def recall(n):
         s = min(max(math.exp(p["a"] + p["b"] * n["reps"] - p["c"] * 0), 7), 3650)
         return (1 + n["gap"] / s) ** (-p["beta"])
@@ -127,6 +116,69 @@ def main():
             lit_day = day
         if graph_lit and done_mediums >= mediums_needed:
             break
+    return day, lit_day, maint_minutes
+
+
+def node_state(nodes, evidence, as_of):
+    # node state: reps, days-since-clean, pending one-off cost (fragile/missing)
+    state = []
+    for nid in nodes:
+        status, last = node_status(nid, evidence, today=as_of)
+        cleans = sum(1 for r in evidence.values()
+                     if r.get("moves", {}).get(nid) == "clean")
+        gap = (as_of - last).days if last else 0
+        pending = CONSOLIDATE_COST if status == FRAGILE else \
+            ACQUIRE_COST if status == MISSING else 0
+        state.append({"reps": max(cleans, 0), "gap": gap, "pending": pending})
+    return state
+
+
+def main():
+    json_mode = "--json" in sys.argv
+    history_mode = "--history-json" in sys.argv
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    hours = float(args[0]) if args else 2.0
+    nodes = load_nodes()
+    evidence = load_evidence()
+    curve = json.load(open(os.path.join(GRAPH_DIR, "curve.json")))
+    p = curve["params"]
+    target = curve["target_retention"]
+    mediums = medium_log()
+
+    # --history-json: replay the projection for every day since the first
+    # evidence record, from the evidence and git log visible on that day.
+    # Feeds the README's "Projected Ready Dates Over Time" chart.
+    if history_mode:
+        ev_dates = sorted(r["date"] for r in evidence.values())
+        if not ev_dates:
+            print("[]")
+            return
+        out = []
+        d = date.fromisoformat(ev_dates[0])
+        while d <= date.today():
+            d_iso = d.isoformat()
+            ev = {f: r for f, r in evidence.items() if r["date"] <= d_iso}
+            banked, med = measured_times(mediums, d_iso)
+            needed = max(0, MEDIUM_TARGET - banked)
+            day, lit_day, _ = simulate(node_state(nodes, ev, d), needed, med,
+                                       hours, p, target)
+            out.append({
+                "run_date": d_iso,
+                "hours": hours,
+                "ready": (d + timedelta(days=day + POLISH_DAYS)).isoformat(),
+                "days": day + POLISH_DAYS,
+                "graph_lit": (d + timedelta(days=lit_day or day)).isoformat(),
+            })
+            d += timedelta(days=1)
+        print(json.dumps(out))
+        return
+
+    mediums_banked, medium_median = measured_times(mediums, date.today().isoformat())
+    mediums_needed = max(0, MEDIUM_TARGET - mediums_banked)
+
+    state = node_state(nodes, evidence, date.today())
+    day, lit_day, maint_minutes = simulate(state, mediums_needed, medium_median,
+                                           hours, p, target)
 
     ready = date.today() + timedelta(days=day + POLISH_DAYS)
     if json_mode:

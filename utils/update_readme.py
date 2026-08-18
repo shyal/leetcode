@@ -3,6 +3,7 @@ def main():
     import os
     import re
     import subprocess
+    import sys
     from datetime import datetime, timedelta, date
     from collections import defaultdict
     import matplotlib as mpl
@@ -203,30 +204,38 @@ def main():
     plt.close(fig)
     uniques_img = f"![Unique Problems Solved Daily (Full Repo History)](https://shyal.s3.amazonaws.com/{s3_key_uniques})"
 
-    with open("data/readiness.json", "r") as f:
-        readiness_data = json.load(f)
-
-    readiness_data.sort(key=lambda item: item["run_date"])
-
     # One projection-stability chart: each model's projected ready date over
-    # run date. Headline series are the Monte-Carlo mock milestones; kg_predict's
-    # work-done date rides along for comparison. The retired LLM-guess series
-    # (contest_readiness / faang_interview) stays in the data but isn't charted.
+    # run date, recomputed on the fly for EVERY day since the first evidence
+    # record (no stored snapshots): kg_mock --history-json replays the
+    # Monte-Carlo mock milestones, kg_predict --history-json the work-done
+    # simulator. Each day's point uses only the evidence and git log visible
+    # on that day; the math is today's model throughout.
+    mock_bin = "utils/kg_mock_rs/target/release/kg_mock"
+    mock_history = json.loads(
+        subprocess.run([mock_bin, "--history-json"],
+                       capture_output=True, text=True, check=True).stdout
+    )
+    predict_history = json.loads(
+        subprocess.run([sys.executable, "utils/kg_predict", "--history-json"],
+                       capture_output=True, text=True, check=True,
+                       env={**os.environ, "PYTHONPATH": "utils"}).stdout
+    )
+
     projection_img = ""
     proj_series = [
-        ("mock_hard_competent", "contest: mock hard-competent", "#1f77b4"),
-        ("mock_onsite_ready", "onsite: mock P(onsite)>=50%", "#ff7f0e"),
-        ("faang_predict", "work done: kg_predict", "#2ca02c"),
+        (mock_history, "hard_competent", "contest: mock hard-competent", "#1f77b4"),
+        (mock_history, "onsite_ready", "onsite: mock P(onsite)>=50%", "#ff7f0e"),
+        (predict_history, "ready", "work done: kg_predict", "#2ca02c"),
     ]
     fig, ax = plt.subplots(figsize=(12, 5))
     plotted_any = False
-    for key, label, color in proj_series:
-        pts = [(e["run_date"], e[key]) for e in readiness_data if e.get(key)]
+    for series, key, label, color in proj_series:
+        pts = [(e["run_date"], e[key]) for e in series if e.get(key)]
         if not pts:
             continue
         xs = [datetime.strptime(x, "%Y-%m-%d") for x, _ in pts]
         ys = [datetime.strptime(y, "%Y-%m-%d") for _, y in pts]
-        ax.plot(xs, ys, marker="o", label=label, color=color)
+        ax.plot(xs, ys, label=label, color=color)
         plotted_any = True
     if plotted_any:
         ax.set_title("Projected Ready Dates Over Time")
@@ -242,14 +251,28 @@ def main():
         projection_img = f"![Projected ready dates over time](https://shyal.s3.amazonaws.com/{s3_key_projection})"
     plt.close(fig)
 
-    if readiness_data:
-        last_readiness = readiness_data[-1]
+    if mock_history:
+        last_readiness = mock_history[-1]
         # headline dates come from the Monte-Carlo mock milestones (contest =
         # hard-competent, onsite = central P(onsite) >= 50%); kg_predict's
-        # work-done date is the only fallback (the LLM guess is retired)
-        contest_end_str = last_readiness.get("mock_hard_competent")
-        faang_end_str = last_readiness.get("mock_onsite_ready") or last_readiness.get("faang_predict")
-        faang_hours = last_readiness.get("mock_hours") or last_readiness.get("faang_predict_hours")
+        # work-done date is the only fallback
+        contest_date_str = last_readiness.get("hard_competent")
+        faang_date_str = last_readiness.get("onsite_ready") or predict_history[-1]["ready"]
+        faang_hours = last_readiness.get("hours")
+        run_day = datetime.strptime(last_readiness["run_date"], "%Y-%m-%d")
+
+        def days_out(d_str):
+            return (datetime.strptime(d_str, "%Y-%m-%d") - run_day).days
+
+        contest_end_str = (
+            f"{contest_date_str}, in {days_out(contest_date_str)} days"
+            if contest_date_str else None
+        )
+        faang_end_str = faang_date_str
+        if faang_end_str:
+            if faang_hours:
+                faang_end_str = f"{faang_end_str} at {faang_hours:g}h/day"
+            faang_end_str = f"{faang_end_str}, in {days_out(faang_date_str)} days"
 
         # The bars plot the SAME quantity the projected dates are defined by:
         # today's central Monte-Carlo pass rate, against the 50% ready mark.
@@ -274,8 +297,8 @@ def main():
             alt_note = f" (Ready by {ready_date})" if ready_date else ""
             return f"![{alt}{alt_note}](https://shyal.s3.amazonaws.com/{s3_key})"
 
-        mock_hard = last_readiness.get("mock_hard")
-        mock_onsite = last_readiness.get("mock_onsite")
+        mock_hard = last_readiness.get("hard")
+        mock_onsite = last_readiness.get("onsite")
         contest_progress_img = ""
         faang_progress_img = ""
         if mock_hard is not None:
@@ -287,8 +310,6 @@ def main():
                 "Contest Readiness Progress",
             )
         if mock_onsite is not None:
-            if faang_end_str and faang_hours:
-                faang_end_str = f"{faang_end_str} at {faang_hours:g}h/day"
             faang_progress_img = prob_bar(
                 mock_onsite, faang_end_str,
                 "FAANG Interview Readiness",

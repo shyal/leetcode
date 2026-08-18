@@ -69,21 +69,31 @@ def test_measured_pace_default():
     out = run_mock()
     m = re.search(r"forward at (\d+(?:\.\d+)?)h/day \((.*?)hards from day", out)
     assert m, out
-    # either a measured week (with the source note) or the empty-week 2h fallback
+    # either a measured window (with the source note) or the empty-window 2h fallback
     if m.group(2):
-        assert m.group(2) == "avg of last 7 days; "
+        assert m.group(2) == "avg of the current streak; "
     else:
         assert m.group(1) == "2"
 
 
-def test_onsite_ready_milestone_matches_a_row():
+def test_onsite_ready_milestone_within_a_row_month():
+    # milestones are bisected to the exact crossing day, so the date no longer
+    # lands on a monthly table row — but it must fall within the 30 days
+    # ending at some row (the checkpoint that bracketed the crossing)
     out = run_mock()
     m = re.search(
-        r"onsite-ready \(central P\(onsite\) >=50%\) ~ (\d{1,2}) (\w{3}) (\d{4})", out)
+        r"onsite-ready \(central P\(onsite\) >=50%\) ~ (\d{1,2} \w{3} \d{4})", out)
     if not m:
         pytest.skip("central P(onsite) never crosses 50% inside the horizon")
-    short = f"{m.group(1)} {m.group(2)} {m.group(3)[2:]}"
-    assert re.search(rf"^  {short} ", out, re.M), f"milestone {short} has no table row"
+    from datetime import datetime
+
+    milestone = datetime.strptime(m.group(1), "%d %b %Y").date()
+    rows = [
+        datetime.strptime(r, "%d %b %y").date()
+        for r in re.findall(r"^  (\d{1,2} \w{3} \d{2}) ", out, re.M)
+    ]
+    assert any(0 <= (r - milestone).days < 30 for r in rows), \
+        f"milestone {milestone} not within a month of any table row"
 
 
 def test_json_mode():

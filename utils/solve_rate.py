@@ -2,6 +2,7 @@
 
 import os
 import re
+import subprocess
 from datetime import datetime, timedelta, timezone
 import argparse
 import math
@@ -516,27 +517,25 @@ def format_timedelta(td):
 
 
 def load_readiness_data():
+    # recomputed live by the Monte-Carlo mock model (utils/kg_mock_rs) —
+    # contest = hard-competent, faang = central P(onsite) >= 50%
+    mock_bin = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "kg_mock_rs", "target", "release", "kg_mock",
+    )
     try:
-        with open("data/readiness.json", "r") as f:
-            data = json.load(f)
-        # Get the latest entry based on run_date
-        latest = max(data, key=lambda x: parse_json_date(x["run_date"]))
-        # mock milestones are the current source; old snapshots fall back to
-        # kg_predict, then the retired LLM-guess fields
-        contest_date = parse_json_date(
-            latest.get("mock_hard_competent") or latest["contest_readiness"]
-        )
-        faang_date = parse_json_date(
-            latest.get("mock_onsite_ready")
-            or latest.get("faang_predict")
-            or latest["faang_interview"]
-        )
+        out = subprocess.run(
+            [mock_bin, "--json"], capture_output=True, text=True, check=True
+        ).stdout
+        mock = json.loads(out)
+        contest_date = parse_json_date(mock["hard_competent"])
+        faang_date = parse_json_date(mock["onsite_ready"])
         return contest_date, faang_date
-    except FileNotFoundError:
-        print("data/readiness.json not found.")
+    except (OSError, subprocess.CalledProcessError, json.JSONDecodeError) as e:
+        print(f"kg_mock failed (build it with `make mock`): {e}")
         exit(1)
-    except ValueError as e:
-        print(f"Error parsing data/readiness.json: {e}")
+    except (TypeError, ValueError) as e:
+        print(f"Error parsing kg_mock output: {e}")
         exit(1)
 
 
