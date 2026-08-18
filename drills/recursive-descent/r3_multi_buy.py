@@ -3,63 +3,96 @@ DRILL: Multi-Buy
 TRAINS: recursive-descent
 
 A market stall tots up a customer's order as one string, e.g. "2+3*4/6".
-'+' and '-' separate the items bought and returned; '*' and '/' express
-multi-buys and per-unit splits inside a single item, and bind tighter:
-"2+3*4" is one item of 2 and one item of 3*4, never (2+3)*4. Division is
-integer division, truncating (all running values stay non-negative, so
-floor and truncate agree). There are no parentheses.
+'+' and '-' separate the items; '*' and '/' express multi-buys and
+per-unit splits inside a single item, and bind tighter: "2+3*4" is an
+item of 2 and an item of 3*4, never (2+3)*4. The stall's ledger keeps
+the order as a tree: amounts are leaves, operators are nodes, and a
+whole multi-buy hangs together as one subtree under the '+' or '-' that
+attaches it.
 
-Return the total. It may be negative.
+Build the tree and return its root.
 
-The grammar has three levels now - write it first, then one function per
-rule. The only hint: a new rule sits between the sum level and the number
-level, and it owns '*' and '/'.
+Already installed (inherited from dsa.recursive_descent.Parser):
+`number` reads a digit run into a TreeNode leaf, `atom` fetches one
+part, and `expr` chains parts with '+' and '-' - but between the two,
+`expr` asks `term` for each part, and `term` is where '*' and '/' live.
+You write `term` and nothing else.
 
-Example 1:
+The grammar:
+
+    expr   := term (('+' | '-') term)*
+    term   := atom (('*' | '/') atom)*
+    atom   := number         (already installed)
+    number := digit+         (already installed)
+
+Example:
 
 Input: S = "2+3*4/6"
-Output: 4
-Explanation: 3*4/6 = 2, and 2+2 = 4.
+Output: the root of
 
-Example 2:
-
-Input: S = "10-2*3"
-Output: 4
-
-Example 3:
-
-Input: S = "20/3"
-Output: 6
+      [+]
+   ┌───┴───┐
+  [2]     [/]
+        ┌──┴──┐
+       [*]   [6]
+      ┌─┴─┐
+     [3] [4]
 
 Constraints:
 
     1 <= len(S) <= 10^5
     S contains only digits, '+', '-', '*' and '/'. No spaces.
     S starts with a digit; operators are always followed by a number.
-    No division by zero; '*' and '/' chains evaluate left to right.
+    '*' and '/' chains build left to right.
 
-    REQUIRED: one function per grammar rule, sharing one cursor into S.
-    No eval, no split, no regex, no int() on slices.
-    The sum-level function never touches '*' or '/' - it asks the level
-    below for a finished value and only ever sees '+' and '-'.
+    REQUIRED: `term` reads its parts by calling self.atom(), never a
+    digit directly. One loop that claims only '*' and '/': read the
+    operator, read the next part, weld an operator node with the term
+    so far on the left and the fresh part on the right. The moment the
+    next character is '+', '-' or the end, the term is finished - hand
+    it back and leave the rest alone.
 """
 
+from dsa.recursive_descent import Parser
 
-class Solution:
-    def total(self, S: str) -> int:
+
+class Solution(Parser):
+    def term(self) -> TreeNode:
         pass
 
 
-sol = Solution()
+p = Solution("2+3*4/6")
+t = p.expr()
 
-assert sol.total("2+3*4/6") == 4
-assert sol.total("10-2*3") == 4
-assert sol.total("20/3") == 6
-assert sol.total("100/10/5") == 2
-assert sol.total("3*4-2*5") == 2
-assert sol.total("1+2*3+4") == 11
-assert sol.total("2*2*2-16/2") == 0
-assert sol.total("7") == 7
-assert sol.total("1-10*10") == -99
+draw_tree(t)
+
+assert t.val == "+"
+assert t.left.val == 2
+assert t.right.val == "/" and t.right.right.val == 6
+assert t.right.left.val == "*"
+assert t.right.left.left.val == 3 and t.right.left.right.val == 4
+assert p.i == len(p.S)
+
+p = Solution("10-2*3")
+t = p.expr()
+assert t.val == "-" and t.left.val == 10
+assert t.right.val == "*"
+assert t.right.left.val == 2 and t.right.right.val == 3
+
+p = Solution("100/10/5")
+t = p.expr()
+assert t.val == "/" and t.right.val == 5
+assert t.left.val == "/"
+assert t.left.left.val == 100 and t.left.right.val == 10
+
+p = Solution("3*4-2*5")
+t = p.expr()
+assert t.val == "-"
+assert t.left.val == "*" and t.left.left.val == 3 and t.left.right.val == 4
+assert t.right.val == "*" and t.right.left.val == 2 and t.right.right.val == 5
+
+p = Solution("7")
+t = p.expr()
+assert t.val == 7 and t.left is None and t.right is None
 
 print("All tests passed!")
