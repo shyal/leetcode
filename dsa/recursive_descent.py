@@ -26,6 +26,13 @@ class Parser:
             val = node
         return val
 
+    def advance(self):
+        self.i += 1
+
+    @property
+    def ended(self):
+        return self.i == len(self.S)
+
     @property
     def curr(self):
         return self.S[self.i]
