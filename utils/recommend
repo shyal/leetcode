@@ -37,17 +37,24 @@ def main():
     if args.contest:
         include_notes = False
         speciality = "getting a candidate contest ready"
-        with open("data/readiness.json") as r:
-            readiness = json.loads(r.read())
-            by_run_date = {}
-            for entry in readiness:
-                by_run_date[entry["run_date"]] = entry
-            latest_run_date = next(iter(sorted(by_run_date, reverse=True)))
-            extra = f"""
+        # topic scores derived live from the technique graph, per node group:
+        # SOLID = 1.0, STALE = 0.5, FRAGILE = 0.25, MISSING = 0, averaged
+        from collections import defaultdict
+        from kg_lib import load_nodes, load_evidence, node_status, SOLID, STALE, FRAGILE, MISSING
+
+        weight = {SOLID: 1.0, STALE: 0.5, FRAGILE: 0.25, MISSING: 0.0}
+        nodes = load_nodes()
+        evidence = load_evidence()
+        group_scores = defaultdict(list)
+        for nid, node in nodes.items():
+            s, _ = node_status(nid, evidence)
+            group_scores[node["group"]].append(weight[s])
+        topics = {g: round(sum(v) / len(v), 2) for g, v in group_scores.items()}
+        extra = f"""
 
 These are the candidate's contest topic readiness estimates:
 
-{json.dumps(by_run_date[latest_run_date], indent=4)}
+{json.dumps(topics, indent=4)}
 
 """
     elif args.fundamentals:

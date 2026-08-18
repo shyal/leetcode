@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
 
-# estimate — append a readiness snapshot to data/readiness.json. No LLM.
+# estimate — print today's readiness snapshot. No LLM, and nothing stored:
+# every consumer (README chart, progress bars, dashboard) recomputes these
+# numbers on the fly from git + the technique graph, so this is display only.
 #
-# Topic scores are DERIVED from the technique graph: per node group,
-# SOLID = 1.0, STALE = 0.5, FRAGILE = 0.25, MISSING = 0, averaged.
 # The projected dates come from the Monte-Carlo mock model (utils/kg_mock_rs):
 # contest = hard-competent (central P(single hard) >= 50%), onsite = central
-# P(onsite) >= 50%. kg_predict's work-done date is recorded alongside for
-# comparison. (The old LLM-guess dates are retired; their historical series
-# stays untouched in the data.)
+# P(onsite) >= 50%. kg_predict's work-done date rides along for comparison.
 
 import json
 import os
@@ -23,36 +21,21 @@ from kg_lib import load_nodes, load_evidence, node_status, SOLID, STALE, FRAGILE
 
 console = Console()
 
-WEIGHT = {SOLID: 1.0, STALE: 0.5, FRAGILE: 0.25, MISSING: 0.0}
-
 
 def main():
     nodes = load_nodes()
     evidence = load_evidence()
 
     statuses = {n: node_status(n, evidence) for n in nodes}
-    group_scores = defaultdict(list)
     counts = defaultdict(int)
-    for node_id, node in nodes.items():
+    for node_id in nodes:
         s, _ = statuses[node_id]
-        group_scores[node["group"]].append(WEIGHT[s])
         counts[s] += 1
-    topics = {g: round(sum(v) / len(v), 2) for g, v in group_scores.items()}
 
     status_line = f"{counts[SOLID]} SOLID, {counts[STALE]} STALE, {counts[FRAGILE]} FRAGILE, {counts[MISSING]} MISSING (of {len(nodes)} technique nodes)"
 
     manila_tz = timezone(timedelta(hours=8))
     run_date = datetime.now(manila_tz).strftime("%Y-%m-%d")
-
-    data = []
-    if os.path.exists("data/readiness.json"):
-        try:
-            with open("data/readiness.json") as f:
-                data = json.load(f)
-            if not isinstance(data, list):
-                data = []
-        except json.JSONDecodeError:
-            data = []
 
     # work-done date from the curve simulator (utils/kg_predict): when the
     # graph would be fully solid + enough mediums banked + a polish block
@@ -65,7 +48,7 @@ def main():
         ).stdout
         predict = json.loads(out)
     except (subprocess.CalledProcessError, json.JSONDecodeError) as e:
-        console.print(f"[yellow]kg_predict failed, no faang_predict recorded: {e}[/yellow]")
+        console.print(f"[yellow]kg_predict failed, no work-done date: {e}[/yellow]")
 
     # Monte-Carlo milestone dates from `make mock` (utils/kg_mock_rs): contest =
     # hard-competent (central P(single hard) >= 50%), onsite = central
@@ -78,28 +61,7 @@ def main():
         ).stdout
         mock = json.loads(out)
     except (OSError, subprocess.CalledProcessError, json.JSONDecodeError) as e:
-        console.print(f"[yellow]kg_mock failed, no mock milestones recorded: {e}[/yellow]")
-
-    data = [e for e in data if e.get("run_date") != run_date]  # same-day rerun replaces
-    entry = {
-        "run_date": run_date,
-        "contest_topics_readiness": topics,
-    }
-    if predict:
-        entry["faang_predict"] = predict["ready"]
-        entry["faang_predict_hours"] = predict["hours"]
-    if mock:
-        entry["mock_hard_competent"] = mock["hard_competent"]
-        entry["mock_onsite_ready"] = mock["onsite_ready"]
-        entry["mock_hours"] = mock["hours"]
-        # today's central rates — the README progress bars plot these against
-        # the same 50% ready mark the milestone dates are defined by
-        entry["mock_hard"] = mock["hard"]
-        entry["mock_onsite"] = mock["onsite"]
-        entry["mock_screen"] = mock["screen"]
-    data.append(entry)
-    with open("data/readiness.json", "w") as f:
-        json.dump(data, f, indent=2)
+        console.print(f"[yellow]kg_mock failed, no mock milestones: {e}[/yellow]")
 
     table = Table(show_header=False, box=None, padding=(0, 2))
     table.add_row("Run date", run_date)

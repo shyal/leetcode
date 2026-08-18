@@ -10,7 +10,7 @@ So, here's my new approach: i decided on a new thesis: to focus on the core tech
 
 <!-- KG_MOVIE -->
 
-![Technique graph growing solve by solve](https://shyal.s3.amazonaws.com/kg_movie_20260818023634.svg)
+![Technique graph growing solve by solve](https://shyal.s3.amazonaws.com/kg_movie_20260818034228.svg)
 
 <!-- /KG_MOVIE -->
 
@@ -22,25 +22,25 @@ Looking at my last leetcode grind, roughly October and November 2025, i plateaue
 
 <!-- PASS_PROB_CHART -->
 
-![P(pass a mock) over time](https://shyal.s3.amazonaws.com/pass_probability_20260818023634.svg)
+![P(pass a mock) over time](https://shyal.s3.amazonaws.com/pass_probability_20260818034228.svg)
 
 <!-- /PASS_PROB_CHART -->
 
 <!-- MOCK_DIST_CHART -->
 
-![Simulated mock outcomes over time](https://shyal.s3.amazonaws.com/mock_dist_20260818023634.svg)
+![Simulated mock outcomes over time](https://shyal.s3.amazonaws.com/mock_dist_20260818034228.svg)
 
 <!-- /MOCK_DIST_CHART -->
 
 <!-- MOCK_SWARM_CHART -->
 
-![Individual simulated mocks over time](https://shyal.s3.amazonaws.com/mock_swarm_20260818023634.svg)
+![Individual simulated mocks over time](https://shyal.s3.amazonaws.com/mock_swarm_20260818034228.svg)
 
 <!-- /MOCK_SWARM_CHART -->
 
 <!-- MOCK_BLAME_CHART -->
 
-![Why simulated mocks fail, over time](https://shyal.s3.amazonaws.com/mock_blame_20260818023634.svg)
+![Why simulated mocks fail, over time](https://shyal.s3.amazonaws.com/mock_blame_20260818034228.svg)
 
 <!-- /MOCK_BLAME_CHART -->
 
@@ -56,7 +56,7 @@ The model is power-law forgetting with a slip rate, P(recall) = (1−slip)·(1 +
 
 <!-- POSITIONS_SVG -->
 
-![Nodes sliding down their forgetting curves](https://shyal.s3.amazonaws.com/positions_20260818023634.svg)
+![Nodes sliding down their forgetting curves](https://shyal.s3.amazonaws.com/positions_20260818034228.svg)
 
 <!-- /POSITIONS_SVG -->
 
@@ -64,13 +64,13 @@ The model also tracks its accuracy internally, by comparing its predictions with
 
 <!-- CURVE_CALIBRATION_CHART -->
 
-![Curve calibration](https://shyal.s3.amazonaws.com/curve_calibration_20260818023634.svg)
+![Curve calibration](https://shyal.s3.amazonaws.com/curve_calibration_20260818034228.svg)
 
 <!-- /CURVE_CALIBRATION_CHART -->
 
 <!-- REVIEW_TIMING_CHART -->
 
-![Was each review on time?](https://shyal.s3.amazonaws.com/review_timing_20260818023634.svg)
+![Was each review on time?](https://shyal.s3.amazonaws.com/review_timing_20260818034228.svg)
 
 <!-- /REVIEW_TIMING_CHART -->
 
@@ -100,7 +100,7 @@ This is the daily solve rate.
 
 <!-- SOLVES_CHART -->
 
-![Solves Per Day (Full Repo History)](https://shyal.s3.amazonaws.com/solves_per_day_20260818023634.png)
+![Solves Per Day (Full Repo History)](https://shyal.s3.amazonaws.com/solves_per_day_20260818034228.png)
 
 <!-- /SOLVES_CHART -->
 
@@ -110,19 +110,19 @@ This is the daily unique solve rate, tracked separately because as complexity ra
 
 <!-- UNIQUES_CHART -->
 
-![Unique Problems Solved Daily (Full Repo History)](https://shyal.s3.amazonaws.com/uniques_per_day_20260818023634.png)
+![Unique Problems Solved Daily (Full Repo History)](https://shyal.s3.amazonaws.com/uniques_per_day_20260818034228.png)
 
 <!-- /UNIQUES_CHART -->
 
 ## Readiness
 
-Everything here comes from the Monte Carlo behind the mock charts up top. Ready means a 50% central pass rate; each bar shows today's rate against that mark, and the date in the title is when the forward simulation crosses it. The old LLM date guesses are retired - they were garbage - though their history stays in `data/readiness.json`.
+Everything here comes from the Monte Carlo behind the mock charts up top. Ready means a 50% central pass rate; each bar shows today's rate against that mark, and the date in the title is when the forward simulation crosses it. Nothing is stored: the projection chart replays every day since the repo started from the evidence visible on that day. The old LLM date guesses are retired - they were garbage - and their stored snapshots are gone with them (git history has the file if anyone cares).
 
 Contest bar: today's central P(clear a single hard).
 
 <!-- CONTEST_PROGRESS -->
 
-![Contest Readiness Progress (Ready by 2027-01-15)](https://shyal.s3.amazonaws.com/contest_progress_20260818023634.png)
+![Contest Readiness Progress (Ready by 2027-01-15)](https://shyal.s3.amazonaws.com/contest_progress_20260818034228.png)
 
 <!-- /CONTEST_PROGRESS -->
 
@@ -130,7 +130,7 @@ FAANG bar: today's central P(pass a full onsite: 2 easies + 2 mediums + at least
 
 <!-- FAANG_PROGRESS -->
 
-![FAANG Interview Readiness Progress (Ready by 2027-07-14 at 1.9h/day)](https://shyal.s3.amazonaws.com/faang_progress_20260818023634.png)
+![FAANG Interview Readiness Progress (Ready by 2027-07-14 at 1.9h/day)](https://shyal.s3.amazonaws.com/faang_progress_20260818034228.png)
 
 <!-- /FAANG_PROGRESS -->
 
@@ -138,9 +138,19 @@ Every projected date is recorded daily, so one chart tracks whether the projecti
 
 <!-- READINESS_PROJECTION_CHART -->
 
-![Projected ready dates over time](https://shyal.s3.amazonaws.com/readiness_projection_20260818023634.png)
+![Projected ready dates over time](https://shyal.s3.amazonaws.com/readiness_projection_20260818034228.png)
 
 <!-- /READINESS_PROJECTION_CHART -->
+
+As you can see, these readiness projections are currently highly unreliable. The first issue is the inconsistency in practice (with a huge gap between September 2025 and August 2026), and secondly it's because the monte carlo simulation tries to guess my progress. It's rolling dice with an incomplete picture.
+
+Getting a more accurate picture would mean generating solutions for all leetcode problems, and building the currently unbuilt portions of the graph for it, something that can be done, but would not be _my_ graph, so would be a rather pointless activity.
+
+Towards the end of August, these prediction variance lines should flatten out, on average, but will continue to whiplash.
+
+This is because the projections use two noisy inputs: the hours assumption is my mean pace in the last 28 days, extrapolated forever. Secondly, since my resumption in August the window is refilling with consistent days, so by the end of the month that input settles.
+
+I find the predictions to be honest. At 2 hours of solving a day, a 50% pass rate for a FAANG mock at any company feels both correct and realistic. This is a much taller hill to climb than picking one company's mock exam, and cramming the solutions. This is a prediction for any 2 easy 2 medium and 1 hard mock exam, with questions picked at random.
 
 # Leetcode flavoured environment
 
@@ -169,6 +179,6 @@ PYTHONPATH=./utils:${PYTHONPATH} python3 utils/runner.py
 
 The utility scripts in this repo (for git log reports etc.), solve rate computations etc. are LLM generated, so not production quality code (throw away scripts).
 
-Some of the historical data in `data/readiness.json` (the retired readiness-date series) was LLM generated; everything currently charted is measured or simulated.
+Everything currently charted is measured or simulated; the retired LLM-guessed readiness dates only survive in git history.
 
 Solves are all mine. When they're not, i.e. 'learning' commits etc., then credit to the author is given (which can include LLM generated solves, credit also given).

@@ -41,35 +41,68 @@ fn measured_first_contact(evidence: &[EvRec]) -> f64 {
     clean as f64 / first.len() as f64
 }
 
-// Mirrors kg_mock's measured_week_pace: average hours/day over the last 7
-// calendar days from `solve time: Xm Ys` trailers in git commits, rounded to
-// 0.1h; None when the week has no timed solves.
-fn measured_week_pace(repo_root: &PathBuf, today: NaiveDate) -> Option<f64> {
-    let out = std::process::Command::new("git")
+// Every `solve time: Xm Ys` trailer in the git log, as (commit date, minutes).
+// Parsed once so pace can be asked for any as-of date without re-running git.
+fn solve_log(repo_root: &PathBuf) -> Vec<(NaiveDate, f64)> {
+    let Ok(out) = std::process::Command::new("git")
         .args(["log", "--format=%ad|%B~~~", "--date=short"])
         .current_dir(repo_root)
         .output()
-        .ok()?;
+    else {
+        return Vec::new();
+    };
     let log = String::from_utf8_lossy(&out.stdout).into_owned();
-    let start = today - Duration::days(6);
-    let mut minutes = 0.0f64;
+    let mut entries = Vec::new();
     for block in log.split("~~~") {
         let block = block.trim();
         let Some(head) = block.get(..10) else { continue };
         let Ok(when) = NaiveDate::parse_from_str(head, "%Y-%m-%d") else { continue };
-        if !(start <= when && when <= today) {
-            continue;
-        }
         let mut rest = block;
         while let Some(pos) = rest.find("solve time: ") {
             rest = &rest[pos + 12..];
             if let Some((m, s, consumed)) = parse_solve_trailer(rest) {
-                minutes += m as f64 + s as f64 / 60.0;
+                entries.push((when, m as f64 + s as f64 / 60.0));
                 rest = &rest[consumed..];
             }
         }
     }
-    let h: f64 = format!("{:.1}", minutes / 7.0 / 60.0).parse().unwrap();
+    entries
+}
+
+// Current-streak pace: average hours/day since the current practice streak
+// began (a streak is broken by 7+ consecutive zero days), with the averaging
+// window clamped to [7, 28] days ending at `today`. Rounded to 0.1h; None
+// when the window has no timed solves. The forward sim extrapolates this
+// number forever and the projected dates are ~(work left)/hours, so the old
+// 7-day average let one heavy day entering or leaving the window whiplash the
+// projections by months — while a flat 28-day average made a fresh streak
+// drag a dead month behind it. Streak-aware clamping avoids both.
+fn week_pace(log: &[(NaiveDate, f64)], today: NaiveDate) -> Option<f64> {
+    let mut mins = [0.0f64; 28]; // mins[i] = minutes solved on `today - i`
+    for (when, m) in log {
+        let i = (today - *when).num_days();
+        if (0..28).contains(&i) {
+            mins[i as usize] += m;
+        }
+    }
+    // walk back until a full dead week; the streak is the days before it
+    let mut window = 28usize;
+    let mut run = 0usize;
+    for (i, &m) in mins.iter().enumerate() {
+        if m == 0.0 {
+            run += 1;
+            if run == 7 {
+                window = i + 1 - run;
+                break;
+            }
+        } else {
+            run = 0;
+        }
+    }
+    // the floor only ever adds days inside the dead week, which are zero
+    let window = window.max(7);
+    let minutes: f64 = mins[..window].iter().sum();
+    let h: f64 = format!("{:.1}", minutes / window as f64 / 60.0).parse().unwrap();
     if h == 0.0 {
         None
     } else {
@@ -153,6 +186,282 @@ fn run_all(tasks: &[Task]) -> Vec<(f64, f64, f64, f64)> {
         }
     });
     results.into_inner().unwrap()
+}
+
+// One monthly snapshot of the forward simulation; its pass_rates tasks sit at
+// tasks[task_start..task_start + scenarios.len()], in SCENARIOS order.
+struct Snap {
+    day: i64,
+    practice: (i64, i64, i64),
+    n_nodes: usize,
+    offh: f64,
+    task_start: usize,
+}
+
+// The forward practice simulation as a steppable state machine, so a
+// pass-rate check can be taken at ANY simulated day: the monthly scan and the
+// milestone bisection both drive it.
+struct SimState<'a> {
+    cv: &'a Curve,
+    teach: f64,
+    hours: f64,
+    hards_per_week: f64,
+    median_w: f64,
+    reps: Vec<i64>,
+    gaps: Vec<i64>,
+    off: [f64; 3],
+    unknown_m: f64,
+    unknown_h: f64,
+    freq_now: Vec<f64>,
+    freq_node_idx: Vec<Option<usize>>,
+    mediums_done: i64,
+    mocks_done: i64,
+    hards_done: i64,
+    syn: i64,
+    day: i64,
+}
+
+impl<'a> SimState<'a> {
+    #[allow(clippy::too_many_arguments)]
+    fn new(
+        hours: f64,
+        teach: f64,
+        reps: Vec<i64>,
+        gaps: Vec<i64>,
+        cv: &'a Curve,
+        median_w: f64,
+        freq_weights: &[f64],
+        freq_node_idx_init: &[Option<usize>],
+    ) -> Self {
+        SimState {
+            cv,
+            teach,
+            hours,
+            hards_per_week: (HARDS_PER_WEEK * hours / 2.0).min(6.0),
+            median_w,
+            reps,
+            gaps,
+            off: OFF_GRAPH0,
+            unknown_m: UNKNOWN_POOL_M,
+            unknown_h: UNKNOWN_POOL_H,
+            freq_now: freq_weights.to_vec(),
+            freq_node_idx: freq_node_idx_init.to_vec(),
+            mediums_done: 0,
+            mocks_done: 0,
+            hards_done: 0,
+            syn: 0,
+            day: 0,
+        }
+    }
+
+    fn learn_ideas(&mut self, dif: usize, encounters: i64) {
+        let learned = self.teach * self.off[dif] * encounters as f64;
+        let (unknown, pool) = if dif == 1 {
+            self.unknown_m = (self.unknown_m - learned).max(0.0);
+            (self.unknown_m, UNKNOWN_POOL_M)
+        } else {
+            self.unknown_h = (self.unknown_h - learned).max(0.0);
+            (self.unknown_h, UNKNOWN_POOL_H)
+        };
+        self.off[dif] = OFF_FLOOR[dif] + (OFF_GRAPH0[dif] - OFF_FLOOR[dif]) * unknown / pool;
+        while (self.syn as f64)
+            < UNKNOWN_POOL_M + UNKNOWN_POOL_H - self.unknown_m - self.unknown_h - 0.5
+        {
+            self.syn += 1;
+            self.reps.push(1);
+            self.gaps.push(0);
+            self.freq_now.push(self.median_w);
+            self.freq_node_idx.push(Some(self.reps.len() - 1));
+        }
+    }
+
+    // one simulated day of practice
+    fn step(&mut self) {
+        self.day += 1;
+        let mut budget = self.hours * 60.0;
+        for g in self.gaps.iter_mut() {
+            *g += 1;
+        }
+        let mut order: Vec<usize> = (0..self.gaps.len()).collect();
+        order.sort_by(|&x, &y| self.gaps[y].cmp(&self.gaps[x]));
+        for &n in &order {
+            let s = (self.cv.a + self.cv.b * self.reps[n] as f64)
+                .exp()
+                .max(7.0)
+                .min(3650.0);
+            if (1.0 + self.gaps[n] as f64 / s).powf(-self.cv.beta) < self.cv.target
+                && budget >= 10.0
+            {
+                budget -= 10.0;
+                self.gaps[n] = 0;
+                self.reps[n] += 1;
+            }
+        }
+        while budget >= 23.0 {
+            if self.day > HARDS_START
+                && (self.hards_done as f64)
+                    < (self.day - HARDS_START) as f64 / 7.0 * self.hards_per_week
+            {
+                budget -= 40.0;
+                self.hards_done += 1;
+                self.learn_ideas(2, 1);
+            } else if self.day > MOCKS_START
+                && (self.mocks_done as f64)
+                    < (self.day - MOCKS_START) as f64 / 7.0 * MOCKS_PER_WEEK
+            {
+                budget -= 90.0;
+                self.mocks_done += 1;
+            } else {
+                budget -= 23.0;
+                self.mediums_done += 1;
+                self.learn_ideas(1, 1);
+            }
+            let mut ord2: Vec<usize> = (0..self.gaps.len()).collect();
+            ord2.sort_by_key(|&n| (self.reps[n], -self.gaps[n]));
+            for &n in ord2.iter().take(3) {
+                self.gaps[n] = 0;
+                self.reps[n] += 1;
+            }
+        }
+    }
+
+    fn practice(&self) -> (i64, i64, i64) {
+        (self.mediums_done, self.mocks_done, self.hards_done)
+    }
+
+    fn mv_recall(&self) -> Vec<Option<f64>> {
+        let rec_now: Vec<f64> = (0..self.gaps.len())
+            .map(|n| {
+                let s = (self.cv.a + self.cv.b * self.reps[n] as f64)
+                    .exp()
+                    .max(7.0)
+                    .min(3650.0);
+                (1.0 + self.gaps[n] as f64 / s).powf(-self.cv.beta)
+            })
+            .collect();
+        self.freq_node_idx.iter().map(|o| o.map(|i| rec_now[i])).collect()
+    }
+
+    fn task(&self, r: f64, n_mc: usize) -> Task {
+        Task {
+            mv_recall: Arc::new(self.mv_recall()),
+            weights: Arc::new(self.freq_now.clone()),
+            off: self.off,
+            r,
+            practice: self.practice(),
+            n_mc,
+        }
+    }
+
+    // pass_rates at the current simulated day — bit-identical to running the
+    // equivalent Task through run_all (same params, same fresh seed)
+    fn rates(&self, r: f64, n_mc: usize) -> (f64, f64, f64, f64) {
+        pass_rates(
+            &self.mv_recall(),
+            &self.freq_now,
+            &self.off,
+            r,
+            self.practice(),
+            &mut PyRandom::new(42),
+            n_mc,
+        )
+    }
+}
+
+// Forward practice simulation from a given start state (reps/gaps as of the
+// run date): day-by-day budget spending, a snapshot every 30 days fanning one
+// pass_rates task per scenario into `tasks`.
+#[allow(clippy::too_many_arguments)]
+fn forward_sim(
+    hours: f64,
+    teach: f64,
+    reps: Vec<i64>,
+    gaps: Vec<i64>,
+    cv: &Curve,
+    median_w: f64,
+    freq_weights: &[f64],
+    freq_node_idx_init: &[Option<usize>],
+    scenarios: &[f64],
+    n_mc: usize,
+    tasks: &mut Vec<Task>,
+) -> Vec<Snap> {
+    let mut st = SimState::new(hours, teach, reps, gaps, cv, median_w, freq_weights, freq_node_idx_init);
+    let mut snaps: Vec<Snap> = Vec::new();
+    while st.day < 540 {
+        st.step();
+        if st.day % 30 == 0 {
+            let task_start = tasks.len();
+            for &r in scenarios {
+                tasks.push(st.task(r, n_mc));
+            }
+            snaps.push(Snap {
+                day: st.day,
+                practice: st.practice(),
+                n_nodes: st.gaps.len(),
+                offh: st.off[2],
+                task_start,
+            });
+        }
+    }
+    snaps
+}
+
+// Exact crossing day for a milestone the monthly scan bracketed at checkpoint
+// `hi0`: bisect (hi0 - 30, hi0], replaying the deterministic sim to each probe
+// day and running the same central check (6000 sims, seed 42) the checkpoints
+// use. The metric only rises with simulated practice, so ~5 probes pin the
+// crossing to the day instead of the month. `use_onsite` picks the metric.
+fn refine_day<'a, F: Fn() -> SimState<'a>>(
+    mk_state: &F,
+    r: f64,
+    thr: f64,
+    use_onsite: bool,
+    hi0: i64,
+) -> i64 {
+    let (mut lo, mut hi) = ((hi0 - 30).max(0), hi0);
+    while hi - lo > 1 {
+        let mid = (lo + hi) / 2;
+        let mut st = mk_state();
+        while st.day < mid {
+            st.step();
+        }
+        let (_, onsite, _, ph) = st.rates(r, 6000);
+        let v = if use_onsite { onsite } else { ph };
+        if v >= thr {
+            hi = mid;
+        } else {
+            lo = mid;
+        }
+    }
+    hi
+}
+
+// reps (clean-rep counts) and gaps (days since last evidence) per node, from
+// the evidence visible as of `as_of`.
+fn init_state(
+    node_ids: &[String],
+    evidence: &[EvRec],
+    as_of: NaiveDate,
+    cv: &Curve,
+) -> (Vec<i64>, Vec<i64>) {
+    let reps = node_ids
+        .iter()
+        .map(|nid| {
+            let c = evidence
+                .iter()
+                .filter(|r| r.moves.get(nid.as_str()).map(String::as_str) == Some("clean"))
+                .count() as i64;
+            c.max(1)
+        })
+        .collect();
+    let gaps = node_ids
+        .iter()
+        .map(|nid| {
+            let (_, last) = node_status(nid, evidence, as_of, cv);
+            last.map_or(0, |l| (as_of - l).num_days())
+        })
+        .collect();
+    (reps, gaps)
 }
 
 // -------------------------------------------------------------- rendering --
@@ -365,19 +674,13 @@ fn main() {
     };
     let argv: Vec<String> = std::env::args().skip(1).collect();
     let json_mode = argv.iter().any(|a| a == "--json");
-    let (hours, source): (f64, &str) = match argv.iter().find(|a| a.as_str() != "--json") {
-        Some(s) => (
-            s.parse().unwrap_or_else(|_| {
-                eprintln!("could not convert string to float: '{}'", s);
-                std::process::exit(1);
-            }),
-            "",
-        ),
-        None => match measured_week_pace(&repo_root, today) {
-            Some(p) => (p, "avg of last 7 days; "),
-            None => (2.0, ""),
-        },
-    };
+    let history_mode = argv.iter().any(|a| a == "--history-json");
+    let hours_arg: Option<f64> = argv.iter().find(|a| !a.starts_with("--")).map(|s| {
+        s.parse().unwrap_or_else(|_| {
+            eprintln!("could not convert string to float: '{}'", s);
+            std::process::exit(1);
+        })
+    });
 
     let nodes_v = load_json(&graph.join("nodes.json"));
     let node_ids: Vec<String> = nodes_v["nodes"]
@@ -391,7 +694,7 @@ fn main() {
     let problems = problems_v["problems"].as_object().expect("problems.json: problems{}");
 
     let evidence_v = load_json(&graph.join("evidence.json"));
-    let evidence: Vec<EvRec> = evidence_v["evidence"]
+    let mut evidence: Vec<EvRec> = evidence_v["evidence"]
         .as_object()
         .expect("evidence.json: evidence{}")
         .iter()
@@ -416,6 +719,9 @@ fn main() {
             }
         })
         .collect();
+    // chronological, so a historical replay date is just a prefix slice; every
+    // downstream computation is order-independent
+    evidence.sort_by(|a, b| a.date.cmp(&b.date));
 
     let curve_v = load_json(&graph.join("curve.json"));
     let p = &curve_v["params"];
@@ -460,17 +766,148 @@ fn main() {
 
     let node_index: HashMap<&str, usize> =
         node_ids.iter().enumerate().map(|(i, n)| (n.as_str(), i)).collect();
+    let freq_weights_arc = Arc::new(freq_weights.clone());
+    let freq_node_idx0: Vec<Option<usize>> = freq_names
+        .iter()
+        .map(|n| node_index.get(n.as_str()).copied())
+        .collect();
+    let mv_recall_of = |recall: &[f64]| -> Arc<Vec<Option<f64>>> {
+        Arc::new(
+            freq_names
+                .iter()
+                .map(|n| node_index.get(n.as_str()).map(|&i| recall[i]))
+                .collect(),
+        )
+    };
+
+    // --history-json: replay the whole history — for every day since the
+    // first evidence record, recompute that day's central rates and milestone
+    // projection from the evidence visible on that day (same math and seeds,
+    // central scenario only). Feeds the README's "Projected Ready Dates Over
+    // Time" chart; the last element agrees with --json.
+    if history_mode {
+        if evidence.is_empty() {
+            println!("[]");
+            return;
+        }
+        let pace_log = solve_log(&repo_root);
+        let central_r = SCENARIOS[1].1;
+        let first = parse_date(&evidence[0].date);
+        let n_days = ((today - first).num_days() + 1).max(0) as usize;
+        // per-date evidence prefix lengths, precomputed once
+        let mut prefix_len = vec![0usize; n_days];
+        {
+            let mut k = 0usize;
+            for (i, p) in prefix_len.iter_mut().enumerate() {
+                let d = first + Duration::days(i as i64);
+                while k < evidence.len() && parse_date(&evidence[k].date) <= d {
+                    k += 1;
+                }
+                *p = k;
+            }
+        }
+        // Each date's whole pipeline (today's rates, monthly scan, milestone
+        // bisection) runs synchronously in one worker; dates fan out across
+        // cores. The checks are bit-identical to the single-run path (same
+        // params, same fresh seeds), so the last element agrees with --json.
+        let cursor = AtomicUsize::new(0);
+        let out = Mutex::new(vec![Value::Null; n_days]);
+        let workers = std::thread::available_parallelism()
+            .map(|c| c.get())
+            .unwrap_or(4)
+            .min(n_days.max(1));
+        std::thread::scope(|s| {
+            for _ in 0..workers {
+                s.spawn(|| loop {
+                    let i = cursor.fetch_add(1, Ordering::Relaxed);
+                    if i >= n_days {
+                        break;
+                    }
+                    let d = first + Duration::days(i as i64);
+                    let ev = &evidence[..prefix_len[i]];
+                    let hours_d = hours_arg.or_else(|| week_pace(&pace_log, d)).unwrap_or(2.0);
+                    let teach_d = (measured_first_contact(ev) * 0.8).min(0.85);
+                    let recall_d = current_recall(&node_ids, ev, &cv, d);
+                    let (_, onsite_t, screen_t, ph_t) = pass_rates(
+                        &mv_recall_of(&recall_d),
+                        &freq_weights,
+                        &OFF_GRAPH0,
+                        central_r,
+                        (0, 0, 0),
+                        &mut PyRandom::new(42),
+                        N_MC,
+                    );
+                    let (reps0, gaps0) = init_state(&node_ids, ev, d, &cv);
+                    let mk_state = || {
+                        SimState::new(
+                            hours_d,
+                            teach_d,
+                            reps0.clone(),
+                            gaps0.clone(),
+                            &cv,
+                            median_w,
+                            &freq_weights,
+                            &freq_node_idx0,
+                        )
+                    };
+                    // monthly scan for crossing brackets, then bisect each to
+                    // its exact day
+                    let mut checkpoints: [Option<i64>; 3] = [None, None, None];
+                    let mut st = mk_state();
+                    while st.day < 540 {
+                        st.step();
+                        if st.day % 30 == 0 {
+                            let (_, onsite_c, _, ph_c) = st.rates(central_r, 6000);
+                            for (slot, lvl) in [(0usize, 0.25), (1, 0.5)] {
+                                if ph_c >= lvl && checkpoints[slot].is_none() {
+                                    checkpoints[slot] = Some(st.day);
+                                }
+                            }
+                            if onsite_c >= 0.5 && checkpoints[2].is_none() {
+                                checkpoints[2] = Some(st.day);
+                            }
+                            if checkpoints.iter().all(Option::is_some) {
+                                break;
+                            }
+                        }
+                    }
+                    let refine = |slot: usize, thr: f64, use_onsite: bool| {
+                        checkpoints[slot]
+                            .map(|hi| refine_day(&mk_state, central_r, thr, use_onsite, hi))
+                            .map(|dd| Value::String((d + Duration::days(dd)).to_string()))
+                            .unwrap_or(Value::Null)
+                    };
+                    let entry = serde_json::json!({
+                        "run_date": d.to_string(),
+                        "hours": hours_d,
+                        "screen": screen_t,
+                        "onsite": onsite_t,
+                        "hard": ph_t,
+                        "hards_workable": refine(0, 0.25, false),
+                        "hard_competent": refine(1, 0.5, false),
+                        "onsite_ready": refine(2, 0.5, true),
+                    });
+                    out.lock().unwrap()[i] = entry;
+                });
+            }
+        });
+        println!("{}", Value::Array(out.into_inner().unwrap()));
+        return;
+    }
+
+    let (hours, source): (f64, &str) = match hours_arg {
+        Some(h) => (h, ""),
+        None => match week_pace(&solve_log(&repo_root), today) {
+            Some(p) => (p, "avg of the current streak; "),
+            None => (2.0, ""),
+        },
+    };
+
     let recall_today = current_recall(&node_ids, &evidence, &cv, today);
     let mfc = measured_first_contact(&evidence);
     let teach = (mfc * 0.8).min(0.85);
 
-    let mv_recall_today: Arc<Vec<Option<f64>>> = Arc::new(
-        freq_names
-            .iter()
-            .map(|n| node_index.get(n.as_str()).map(|&i| recall_today[i]))
-            .collect(),
-    );
-    let freq_weights_arc = Arc::new(freq_weights.clone());
+    let mv_recall_today = mv_recall_of(&recall_today);
     let mut tasks: Vec<Task> = SCENARIOS
         .iter()
         .map(|&(_, r)| Task {
@@ -484,151 +921,73 @@ fn main() {
         .collect();
 
     // forward: practice within the graph AND growth of the graph itself
-    let mut reps: Vec<i64> = node_ids
-        .iter()
-        .map(|nid| {
-            let c = evidence
-                .iter()
-                .filter(|r| r.moves.get(nid.as_str()).map(String::as_str) == Some("clean"))
-                .count() as i64;
-            c.max(1)
-        })
-        .collect();
-    let mut gaps: Vec<i64> = node_ids
-        .iter()
-        .map(|nid| {
-            let (_, last) = node_status(nid, &evidence, today, &cv);
-            last.map_or(0, |l| (today - l).num_days())
-        })
-        .collect();
-    let mut off = OFF_GRAPH0;
-    let (mut unknown_m, mut unknown_h) = (UNKNOWN_POOL_M, UNKNOWN_POOL_H);
-    let mut freq_now = freq_weights.clone();
-    let mut freq_node_idx: Vec<Option<usize>> = freq_names
-        .iter()
-        .map(|n| node_index.get(n.as_str()).copied())
-        .collect();
-    let (mut mediums_done, mut mocks_done, mut hards_done) = (0i64, 0i64, 0i64);
-    let mut syn = 0i64;
-    let mut snaps: Vec<(i64, (i64, i64, i64), usize, f64)> = Vec::new();
-    let mut day = 0i64;
-    let hards_per_week = (HARDS_PER_WEEK * hours / 2.0).min(6.0);
-
-    macro_rules! learn_ideas {
-        ($dif:expr, $encounters:expr) => {{
-            let dif: usize = $dif;
-            let learned = teach * off[dif] * $encounters as f64;
-            let (unknown, pool) = if dif == 1 {
-                unknown_m = (unknown_m - learned).max(0.0);
-                (unknown_m, UNKNOWN_POOL_M)
-            } else {
-                unknown_h = (unknown_h - learned).max(0.0);
-                (unknown_h, UNKNOWN_POOL_H)
-            };
-            off[dif] = OFF_FLOOR[dif] + (OFF_GRAPH0[dif] - OFF_FLOOR[dif]) * unknown / pool;
-            while (syn as f64)
-                < UNKNOWN_POOL_M + UNKNOWN_POOL_H - unknown_m - unknown_h - 0.5
-            {
-                syn += 1;
-                reps.push(1);
-                gaps.push(0);
-                freq_now.push(median_w);
-                freq_node_idx.push(Some(reps.len() - 1));
-            }
-        }};
-    }
-
-    while day < 540 {
-        day += 1;
-        let mut budget = hours * 60.0;
-        for g in gaps.iter_mut() {
-            *g += 1;
-        }
-        let mut order: Vec<usize> = (0..gaps.len()).collect();
-        order.sort_by(|&x, &y| gaps[y].cmp(&gaps[x]));
-        for &n in &order {
-            let s = (cv.a + cv.b * reps[n] as f64).exp().max(7.0).min(3650.0);
-            if (1.0 + gaps[n] as f64 / s).powf(-cv.beta) < cv.target && budget >= 10.0 {
-                budget -= 10.0;
-                gaps[n] = 0;
-                reps[n] += 1;
-            }
-        }
-        while budget >= 23.0 {
-            if day > HARDS_START
-                && (hards_done as f64) < (day - HARDS_START) as f64 / 7.0 * hards_per_week
-            {
-                budget -= 40.0;
-                hards_done += 1;
-                learn_ideas!(2, 1i64);
-            } else if day > MOCKS_START
-                && (mocks_done as f64) < (day - MOCKS_START) as f64 / 7.0 * MOCKS_PER_WEEK
-            {
-                budget -= 90.0;
-                mocks_done += 1;
-            } else {
-                budget -= 23.0;
-                mediums_done += 1;
-                learn_ideas!(1, 1i64);
-            }
-            let mut ord2: Vec<usize> = (0..gaps.len()).collect();
-            ord2.sort_by_key(|&n| (reps[n], -gaps[n]));
-            for &n in ord2.iter().take(3) {
-                gaps[n] = 0;
-                reps[n] += 1;
-            }
-        }
-        if day % 30 == 0 {
-            let rec_now: Vec<f64> = (0..gaps.len())
-                .map(|n| {
-                    let s = (cv.a + cv.b * reps[n] as f64).exp().max(7.0).min(3650.0);
-                    (1.0 + gaps[n] as f64 / s).powf(-cv.beta)
-                })
-                .collect();
-            let practice = (mediums_done, mocks_done, hards_done);
-            let mv_recall: Arc<Vec<Option<f64>>> =
-                Arc::new(freq_node_idx.iter().map(|o| o.map(|i| rec_now[i])).collect());
-            let weights = Arc::new(freq_now.clone());
-            for &(_, r) in &SCENARIOS {
-                tasks.push(Task {
-                    mv_recall: mv_recall.clone(),
-                    weights: weights.clone(),
-                    off,
-                    r,
-                    practice,
-                    n_mc: 6000,
-                });
-            }
-            snaps.push((day, practice, gaps.len(), off[2]));
-        }
-    }
+    let scenario_rs: Vec<f64> = SCENARIOS.iter().map(|&(_, r)| r).collect();
+    let (reps0, gaps0) = init_state(&node_ids, &evidence, today, &cv);
+    let snaps = forward_sim(
+        hours,
+        teach,
+        reps0.clone(),
+        gaps0.clone(),
+        &cv,
+        median_w,
+        &freq_weights,
+        &freq_node_idx0,
+        &scenario_rs,
+        6000,
+        &mut tasks,
+    );
 
     let results = run_all(&tasks);
 
     let mut rows: Vec<(i64, (i64, i64, i64), usize, f64, Vec<(f64, f64, f64, f64)>)> = Vec::new();
     // workable, competent, onsite-ready (the faang-readiness line)
     let mut milestones: [Option<i64>; 3] = [None, None, None];
-    for (i, &(day, practice, n_nodes, offh)) in snaps.iter().enumerate() {
-        let spread: Vec<(f64, f64, f64, f64)> = results[3 + 3 * i..6 + 3 * i].to_vec();
+    for s in &snaps {
+        let spread: Vec<(f64, f64, f64, f64)> =
+            results[s.task_start..s.task_start + SCENARIOS.len()].to_vec();
         let ph_c = spread[1].3;
         let onsite_c = spread[1].1;
-        rows.push((day, practice, n_nodes, offh, spread));
+        rows.push((s.day, s.practice, s.n_nodes, s.offh, spread));
         for (slot, lvl) in [(0usize, 0.25), (1, 0.5)] {
             if ph_c >= lvl && milestones[slot].is_none() {
-                milestones[slot] = Some(day);
+                milestones[slot] = Some(s.day);
             }
         }
         if onsite_c >= 0.5 && milestones[2].is_none() {
-            milestones[2] = Some(day);
+            milestones[2] = Some(s.day);
         }
     }
 
-    // --json: today's central rates + the milestone dates, for utils/estimate
-    // to record into data/readiness.json (same contract as kg_predict --json)
+    // exact-day refine: bisect within each crossed checkpoint's month, so the
+    // reported dates (and the README replay chart) move daily instead of in
+    // 30-day steps. The forward table stays monthly; its highlight marks the
+    // crossing checkpoint row (`milestones`), while the printed milestone
+    // lines and --json use the refined days.
+    let central_r = SCENARIOS[1].1;
+    let mk_state = || {
+        SimState::new(
+            hours,
+            teach,
+            reps0.clone(),
+            gaps0.clone(),
+            &cv,
+            median_w,
+            &freq_weights,
+            &freq_node_idx0,
+        )
+    };
+    let milestone_days: [Option<i64>; 3] = [
+        milestones[0].map(|hi| refine_day(&mk_state, central_r, 0.25, false, hi)),
+        milestones[1].map(|hi| refine_day(&mk_state, central_r, 0.5, false, hi)),
+        milestones[2].map(|hi| refine_day(&mk_state, central_r, 0.5, true, hi)),
+    ];
+
+    // --json: today's central rates + the milestone dates, consumed live by
+    // utils/estimate and the dashboard (same contract as kg_predict --json)
     if json_mode {
         let (_, onsite_t, screen_t, ph_t) = results[1];
         let m_date = |slot: usize| {
-            milestones[slot]
+            milestone_days[slot]
                 .map(|d| Value::String((today + Duration::days(d)).to_string()))
                 .unwrap_or(Value::Null)
         };
@@ -752,7 +1111,7 @@ fn main() {
         (1, "hard-competent", "P >=50%"),
         (2, "onsite-ready", "central P(onsite) >=50%"),
     ] {
-        if let Some(d) = milestones[slot] {
+        if let Some(d) = milestone_days[slot] {
             let when = fmt_date_long(today + Duration::days(d));
             println!(
                 "  {} ({}) ~ {}",
