@@ -3,63 +3,91 @@ DRILL: Bundle Refunds
 TRAINS: recursive-descent
 
 A warehouse settles its account as one long string of credits and debits,
-e.g. "12-(3+4-(2))". A '+' means money in, a '-' means money out. Related
-items are grouped in parentheses: subtracting a bundle means the whole
-bundle's value goes out. Bundles nest.
+e.g. "12-(3+4-(2))". Related items are grouped in parentheses: a bundle
+is bought or refunded as a whole, and bundles nest. The auditors want the
+account filed as a tree: amounts are leaves, each '+' or '-' is a node
+with everything settled so far on the left and the newest part on the
+right, and a bundle hangs off its operator as a single subtree.
 
-Return the final balance. It may be negative. Only '+' and '-' exist;
-there is no multiplication.
+Build the tree and return its root.
+
+Already installed (inherited from dsa.recursive_descent.Parser): `number`
+reads a digit run into a TreeNode leaf, and `expr` chains parts with '+'
+and '-' - but `expr` doesn't fetch its parts itself, it calls `atom` for
+each one. You write `atom` and nothing else.
 
 The grammar:
 
-    expr := atom (('+' | '-') atom)*
-    atom := number | '(' expr ')'
+    expr   := atom (('+' | '-') atom)*
+    atom   := number | '(' expr ')'
+    number := digit+        (already installed)
 
-Example 1:
+Example:
 
-Input: S = "12-(3+4-(2))"
-Output: 7
-Explanation: the inner bundle is 2, so the outer bundle is 3+4-2 = 5,
-and 12-5 = 7.
+Input: S = "12-(3+4)"
+Output: the root of
 
-Example 2:
-
-Input: S = "10-(2+3)+1"
-Output: 6
-
-Example 3:
-
-Input: S = "((7))"
-Output: 7
+      [-]
+   ┌───┴───┐
+  [12]    [+]
+        ┌──┴──┐
+       [3]   [4]
 
 Constraints:
 
     1 <= len(S) <= 10^5
     S contains only digits, '+', '-', '(' and ')'. No spaces.
-    Parentheses are balanced; every '(' is eventually closed.
-    Every bundle and the whole string start with a number or a '('.
+    Parentheses are balanced; every bundle and the whole string start
+    with a number or a '('.
 
-    REQUIRED: one function per grammar rule, sharing one cursor into S.
-    No eval, no split, no regex, no int() on slices.
-    The '(' branch of `atom` is a recursive call back to `expr`;
-    after it returns, the cursor must be sitting on the ')' - consume it.
+    REQUIRED: `atom` peeks at one character. A digit means the part is a
+    plain amount. A '(' means the part is a whole bundle: step inside,
+    let the machine build it, and step over the ')' on the way out -
+    `atom` must leave the cursor after the bundle it consumed.
 """
 
+from dsa.recursive_descent import Parser
 
-class Solution:
-    def settle(self, S: str) -> int:
+
+class Solution(Parser):
+    def atom(self) -> TreeNode:
         pass
 
 
-sol = Solution()
+p = Solution("12-(3+4)")
+t = p.expr()
 
-assert sol.settle("12-(3+4-(2))") == 7
-assert sol.settle("10-(2+3)+1") == 6
-assert sol.settle("((7))") == 7
-assert sol.settle("(1+2)") == 3
-assert sol.settle("2-(3)") == -1
-assert sol.settle("1-(2-(3-(4)))") == -2
-assert sol.settle("100-(20+30)-(10-5)") == 45
-assert sol.settle("42") == 42
+draw_tree(t)
+
+assert t.val == "-"
+assert t.left.val == 12
+assert t.right.val == "+"
+assert t.right.left.val == 3 and t.right.right.val == 4
+assert p.i == len(p.S)
+
+p = Solution("12-(3+4-(2))")
+t = p.expr()
+assert t.val == "-"
+assert t.left.val == 12
+inner = t.right
+assert inner.val == "-" and inner.right.val == 2
+assert inner.left.val == "+"
+assert inner.left.left.val == 3 and inner.left.right.val == 4
+
+p = Solution("((7))")
+t = p.expr()
+assert t.val == 7 and t.left is None and t.right is None
+assert p.i == len(p.S)
+
+p = Solution("10-(2+3)+1")
+t = p.expr()
+assert t.val == "+" and t.right.val == 1
+assert t.left.val == "-" and t.left.left.val == 10
+assert t.left.right.val == "+"
+assert t.left.right.left.val == 2 and t.left.right.right.val == 3
+
+p = Solution("42")
+t = p.expr()
+assert t.val == 42 and t.left is None and t.right is None
 
 print("All tests passed!")
