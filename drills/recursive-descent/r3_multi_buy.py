@@ -1,34 +1,38 @@
 """
-DRILL: Multi-Buy
-TRAINS: recursive-descent
+**DRILL: Multi-Buy**  
+**Trains:** Recursive-descent parsing
 
-A market stall tots up a customer's order as one string, e.g. "2+3*4/6".
-'+' and '-' separate the items; '*' and '/' express multi-buys and
-per-unit splits inside a single item, and bind tighter: "2+3*4" is an
-item of 2 and an item of 3*4, never (2+3)*4. The stall's ledger keeps
-the order as a tree: amounts are leaves, operators are nodes, and a
-whole multi-buy hangs together as one subtree under the '+' or '-' that
-attaches it.
+A market stall totals a customer's order given as a single string, for example `"2+3*4/6"`.
 
-Build the tree and return its root.
+- The operators `+` and `-` separate distinct items.  
+- The operators `*` and `/` express multi-buys and per-unit splits *inside* a single item; they bind more tightly than `+` and `-`.  
+  Consequently `"2+3*4"` is an item of 2 plus an item of `3*4`, never `(2+3)*4`.
 
-Already installed (inherited from dsa.recursive_descent.Parser):
-`number` reads a digit run into a TreeNode leaf, `atom` fetches one
-part, and `expr` chains parts with '+' and '-' - but between the two,
-`expr` asks `term` for each part, and `term` is where '*' and '/' live.
-You write `term` and nothing else.
+The stall's ledger records the whole order as a binary tree:
+- numeric amounts are leaves,
+- operators are internal nodes,
+- a multi-buy (a chain of `*` / `/`) forms a single subtree that is attached by a surrounding `+` or `-`.
 
-The grammar:
+Your task is to build that tree and return its root.
 
-    expr   := term (('+' | '-') term)*
-    term   := atom (('*' | '/') atom)*
-    atom   := number         (already installed)
-    number := digit+         (already installed)
+### Already provided (inherited from `dsa.recursive_descent.Parser`)
+- `number` - reads a consecutive run of digits and returns a `TreeNode` leaf  
+- `atom` - obtains one atomic part  
+- `expr` - chains parts with `+` and `-`  
 
-Example:
+Between those two methods, `expr` asks `term` for each part.  
+**You implement only `term`.**
 
-Input: S = "2+3*4/6"
-Output: the root of
+### Grammar
+expr  := term (('+' | '-') term)*
+term  := atom (('*' | '/') atom)*
+atom  := number          (already installed)
+number := digit+         (already installed)
+
+### Example
+**Input:** `S = "2+3*4/6"`  
+
+**Output:** the root of the tree  
 
       [+]
    ┌───┴───┐
@@ -38,34 +42,32 @@ Output: the root of
       ┌─┴─┐
      [3] [4]
 
-Constraints:
+### Constraints
+- `1 ≤ len(S) ≤ 10⁵`
+- `S` contains only digits, `+`, `-`, `*` and `/`. No spaces.
+- `S` always starts with a digit; every operator is followed by a number.
+- Chains of `*` and `/` associate left-to-right.
 
-    1 <= len(S) <= 10^5
-    S contains only digits, '+', '-', '*' and '/'. No spaces.
-    S starts with a digit; operators are always followed by a number.
-    '*' and '/' chains build left to right.
+### Required implementation discipline for `term`
+- Obtain every part by calling `self.atom()` (never read digits yourself).  
+- Use a single loop that claims only `*` and `/`:  
+  1. read the operator,  
+  2. read the next atom,  
+  3. create a new operator node whose left child is the term built so far and whose right child is the newly read atom.  
+- The moment the next character is `+`, `-` or the end of the string, the term is complete—return it and leave the remaining input untouched.
 
-    REQUIRED: `term` reads its parts by calling self.atom(), never a
-    digit directly. One loop that claims only '*' and '/': read the
-    operator, read the next part, weld an operator node with the term
-    so far on the left and the fresh part on the right. The moment the
-    next character is '+', '-' or the end, the term is finished - hand
-    it back and leave the rest alone.
 """
 
-from dsa.recursive_descent import Parser
 
+from dsa.recursive_descent import Parser
 
 class Solution(Parser):
     def term(self) -> TreeNode:
         pass
 
-
 p = Solution("2+3*4/6")
 t = p.expr()
-
 draw_tree(t)
-
 assert t.val == "+"
 assert t.left.val == 2
 assert t.right.val == "/" and t.right.right.val == 6
