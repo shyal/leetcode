@@ -26,6 +26,10 @@ class Parser:
             val = node
         return val
 
+    @property
+    def curr(self):
+        return self.S[self.i]
+
 class RecursiveDescent(Parser):
     def evaluate(self, node):
         if node.left is None:
