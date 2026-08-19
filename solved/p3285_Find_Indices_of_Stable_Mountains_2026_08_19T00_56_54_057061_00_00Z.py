@@ -1,0 +1,75 @@
+"""
+URL: https://leetcode.com/problems/find-indices-of-stable-mountains/description/?envType=problem-list-v2&envId=vn57k9wr
+
+3285. Find Indices of Stable Mountains
+
+There are n mountains in a row, and each mountain has a height. You are given
+an integer array height where height[i] represents the height of mountain i,
+and an integer threshold.
+
+A mountain is called stable if the mountain just before it (if it exists) has
+a height strictly greater than threshold. Note that mountain 0 is not stable.
+
+Return an array containing the indices of all stable mountains in any order.
+
+
+Example 1:
+
+Input: height = [1,2,3,4,5], threshold = 2
+Output: [3,4]
+Explanation:
+    - Mountain 3 is stable because height[2] == 3 is greater than threshold == 2.
+    - Mountain 4 is stable because height[3] == 4 is greater than threshold == 2.
+
+Example 2:
+
+Input: height = [10,1,10,1,10], threshold = 3
+Output: [1,3]
+
+Example 3:
+
+Input: height = [10,1,10,1,10], threshold = 10
+Output: []
+
+
+Constraints:
+
+    2 <= n == height.length <= 100
+    1 <= height[i] <= 100
+    1 <= threshold <= 100
+"""
+
+
+class Solution:
+    def stableMountains(self, height: List[int], threshold: int) -> List[int]:
+        prev_gt_threshold = False
+        stable = []
+        for i in range(len(height)):
+            if i > 0 and prev_gt_threshold:
+                stable.append(i)
+            prev_gt_threshold = height[i] > threshold
+        return stable
+
+            
+
+
+sol = Solution()
+
+print(sol.stableMountains([1, 2, 3, 4, 5], 2))  # [3, 4]
+
+assert sol.stableMountains([1, 2, 3, 4, 5], 2) == [3, 4]
+assert sol.stableMountains([10, 1, 10, 1, 10], 3) == [1, 3]
+assert sol.stableMountains([10, 1, 10, 1, 10], 10) == []
+assert sol.stableMountains([1, 2], 1) == []
+assert sol.stableMountains([2, 2], 2) == []
+assert sol.stableMountains([5, 1], 4) == [1]
+assert sol.stableMountains([1, 5], 4) == []
+assert sol.stableMountains([100, 100], 99) == [1]
+assert sol.stableMountains([100, 100], 100) == []
+assert sol.stableMountains([5, 5, 5], 4) == [1, 2]
+assert sol.stableMountains([3, 3, 3], 3) == []
+assert sol.stableMountains([1, 100, 1, 100], 50) == [2]
+assert sol.stableMountains([1, 2, 3], 1) == [2]
+assert sol.stableMountains([5, 4, 3, 2, 1], 3) == [1, 2]
+assert sol.stableMountains([1, 1, 1, 1], 1) == []
+assert sol.stableMountains([2, 1, 2, 1], 1) == [1, 3]
