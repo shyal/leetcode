@@ -10,7 +10,7 @@ So, here's my new approach: i decided on a new thesis: to focus on the core tech
 
 <!-- KG_MOVIE -->
 
-![Technique graph growing solve by solve](https://shyal.s3.amazonaws.com/kg_movie_20260819023626.svg)
+![Technique graph growing solve by solve](https://shyal.s3.amazonaws.com/kg_movie_20260819031148.svg)
 
 <!-- /KG_MOVIE -->
 
@@ -22,25 +22,25 @@ Looking at my last leetcode grind, roughly October and November 2025, i plateaue
 
 <!-- PASS_PROB_CHART -->
 
-![P(pass a mock) over time](https://shyal.s3.amazonaws.com/pass_probability_20260819023626.svg)
+![P(pass a mock) over time](https://shyal.s3.amazonaws.com/pass_probability_20260819031148.svg)
 
 <!-- /PASS_PROB_CHART -->
 
 <!-- MOCK_DIST_CHART -->
 
-![Simulated mock outcomes over time](https://shyal.s3.amazonaws.com/mock_dist_20260819023626.svg)
+![Simulated mock outcomes over time](https://shyal.s3.amazonaws.com/mock_dist_20260819031148.svg)
 
 <!-- /MOCK_DIST_CHART -->
 
 <!-- MOCK_SWARM_CHART -->
 
-![Individual simulated mocks over time](https://shyal.s3.amazonaws.com/mock_swarm_20260819023626.svg)
+![Individual simulated mocks over time](https://shyal.s3.amazonaws.com/mock_swarm_20260819031148.svg)
 
 <!-- /MOCK_SWARM_CHART -->
 
 <!-- MOCK_BLAME_CHART -->
 
-![Why simulated mocks fail, over time](https://shyal.s3.amazonaws.com/mock_blame_20260819023626.svg)
+![Why simulated mocks fail, over time](https://shyal.s3.amazonaws.com/mock_blame_20260819031148.svg)
 
 <!-- /MOCK_BLAME_CHART -->
 
@@ -56,7 +56,7 @@ The model is power-law forgetting with a slip rate, P(recall) = (1−slip)·(1 +
 
 <!-- POSITIONS_SVG -->
 
-![Nodes sliding down their forgetting curves](https://shyal.s3.amazonaws.com/positions_20260819023626.svg)
+![Nodes sliding down their forgetting curves](https://shyal.s3.amazonaws.com/positions_20260819031148.svg)
 
 <!-- /POSITIONS_SVG -->
 
@@ -64,15 +64,22 @@ The model also tracks its accuracy internally, by comparing its predictions with
 
 <!-- CURVE_CALIBRATION_CHART -->
 
-![Curve calibration](https://shyal.s3.amazonaws.com/curve_calibration_20260819023626.svg)
+![Curve calibration](https://shyal.s3.amazonaws.com/curve_calibration_20260819031148.svg)
 
 <!-- /CURVE_CALIBRATION_CHART -->
 
 <!-- REVIEW_TIMING_CHART -->
 
-![Was each review on time?](https://shyal.s3.amazonaws.com/review_timing_20260819023626.svg)
+![Was each review on time?](https://shyal.s3.amazonaws.com/review_timing_20260819031148.svg)
 
 <!-- /REVIEW_TIMING_CHART -->
+
+The payoff metric is problems in reach: a problem is in reach when every move in its walk is currently solid. This replays today's walked problems against each day's historical node states, so the curve measures my skill moving under a fixed yardstick, not the catalog growing.
+
+<!-- REACH_CHART -->
+
+![Problems in reach](https://shyal.s3.amazonaws.com/reach_20260819031148.svg)
+<!-- /REACH_CHART -->
 
 ## The zone of proximal development
 
@@ -100,7 +107,7 @@ This is the daily solve rate.
 
 <!-- SOLVES_CHART -->
 
-![Solves Per Day (Full Repo History)](https://shyal.s3.amazonaws.com/solves_per_day_20260819023626.png)
+![Solves Per Day (Full Repo History)](https://shyal.s3.amazonaws.com/solves_per_day_20260819031148.png)
 
 <!-- /SOLVES_CHART -->
 
@@ -110,7 +117,7 @@ This is the daily unique solve rate, tracked separately because as complexity ra
 
 <!-- UNIQUES_CHART -->
 
-![Unique Problems Solved Daily (Full Repo History)](https://shyal.s3.amazonaws.com/uniques_per_day_20260819023626.png)
+![Unique Problems Solved Daily (Full Repo History)](https://shyal.s3.amazonaws.com/uniques_per_day_20260819031148.png)
 
 <!-- /UNIQUES_CHART -->
 
@@ -122,7 +129,7 @@ Contest bar: today's central P(clear a single hard).
 
 <!-- CONTEST_PROGRESS -->
 
-![Contest Readiness Progress (Ready by 2027-01-05, in 139 days)](https://shyal.s3.amazonaws.com/contest_progress_20260819023626.png)
+![Contest Readiness Progress (Ready by 2027-01-05, in 139 days)](https://shyal.s3.amazonaws.com/contest_progress_20260819031148.png)
 
 <!-- /CONTEST_PROGRESS -->
 
@@ -130,7 +137,7 @@ FAANG bar: today's central P(pass a full onsite: 2 easies + 2 mediums + at least
 
 <!-- FAANG_PROGRESS -->
 
-![FAANG Interview Readiness Progress (Ready by 2027-10-04 at 1.8h/day, in 411 days)](https://shyal.s3.amazonaws.com/faang_progress_20260819023626.png)
+![FAANG Interview Readiness Progress (Ready by 2027-10-04 at 1.8h/day, in 411 days)](https://shyal.s3.amazonaws.com/faang_progress_20260819031148.png)
 
 <!-- /FAANG_PROGRESS -->
 
@@ -138,7 +145,7 @@ Every projected date is recorded daily, so one chart tracks whether the projecti
 
 <!-- READINESS_PROJECTION_CHART -->
 
-![Projected ready dates over time](https://shyal.s3.amazonaws.com/readiness_projection_20260819023626.png)
+![Projected ready dates over time](https://shyal.s3.amazonaws.com/readiness_projection_20260819031148.png)
 
 <!-- /READINESS_PROJECTION_CHART -->
 

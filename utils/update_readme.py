@@ -340,6 +340,14 @@ def main():
         upload_svg_gz("graph/timing.svg", s3_key_timing)
         review_timing_img = f"![Was each review on time?](https://shyal.s3.amazonaws.com/{s3_key_timing})"
 
+    # Problems in reach (utils/kg_reach_svg): today's walked frontier replayed
+    # against historical node states - the payoff curve, on the shared clock.
+    reach_img = ""
+    if os.path.exists("graph/reach.svg"):
+        s3_key_reach = f"reach_{timestamp}.svg"
+        upload_svg_gz("graph/reach.svg", s3_key_reach)
+        reach_img = f"![Problems in reach](https://shyal.s3.amazonaws.com/{s3_key_reach})"
+
     # P(pass) history — the headline "how good am i" line, now rendered by
     # utils/kg_movie_rs (`make movie`) as a SMIL-animated SVG synced with the
     # technique-graph movie: the same weekly replay + kg_lib cold-mock Monte
@@ -439,6 +447,7 @@ def main():
     readme = fill(readme, "POSITIONS_SVG", positions_svg_img)
     readme = fill(readme, "CURVE_CALIBRATION_CHART", curve_calibration_img)
     readme = fill(readme, "REVIEW_TIMING_CHART", review_timing_img)
+    readme = fill(readme, "REACH_CHART", reach_img)
     readme = fill(readme, "PASS_PROB_CHART", pass_prob_img)
     readme = fill(readme, "CONTEST_PROGRESS", contest_progress_img)
     readme = fill(readme, "FAANG_PROGRESS", faang_progress_img)

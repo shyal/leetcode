@@ -1,0 +1,213 @@
+#!/usr/bin/env python3
+
+# kg_reach_svg - problems in reach, animated into graph/reach.svg for the
+# README pipeline.
+#
+# The payoff variable of the whole graph: a walked problem (graph/problems.json)
+# is "in reach" on a day when every move in its walk was SOLID that day. The
+# frontier is TODAY'S problems.json held fixed, replayed against historical
+# node states - so the curve measures skill moving under a constant yardstick,
+# not the walk catalog growing. Statuses are derived, never stored: each day is
+# node_status() over the evidence recorded up to that date, with the final
+# fitted curve (same convention as calibration.svg). Two panels on a shared
+# calendar: the in-reach count on top, the node-state composition (stacked)
+# below - cause under effect. Clock is kg_lib.MovieClock, so it plays in sync
+# with the other animated SVGs. Pure SMIL; non-SMIL viewers see today as a
+# still.
+
+import os
+from datetime import date, timedelta
+
+from kg_lib import (
+    FRAGILE,
+    GRAPH_DIR,
+    MISSING,
+    SOLID,
+    STALE,
+    ERA_SWITCH,
+    MovieClock,
+    era_banner,
+    load_evidence,
+    load_nodes,
+    load_problems,
+    node_status,
+)
+
+OUT = os.path.join(GRAPH_DIR, "reach.svg")
+
+W, H = 1200, 560
+ML, MR = 70, 24
+PT1, PB1 = 56, 300                       # in-reach panel
+PT2, PB2 = 330, 500                      # node-state panel
+
+BG = "#0d1117"
+INK = "#c9d1d9"
+MUTED = "#8b949e"
+GRID = "#21262d"
+REACH_C = "#58a6ff"
+STATE_C = {SOLID: "#238636", STALE: "#bb8009", FRAGILE: "#da3633", MISSING: "#6e7681"}
+STACK_ORDER = (SOLID, STALE, FRAGILE, MISSING)
+
+
+def main():
+    nodes = load_nodes()
+    problems = load_problems()
+    evidence = load_evidence()
+    clock = MovieClock(evidence)
+
+    added = {nid: date.fromisoformat(n["added"]) for nid, n in nodes.items()}
+    move_ids = sorted(set(nodes) | {m for p in problems.values() for m in p["moves"]})
+
+    # daily replay: evidence grows a day at a time, statuses re-derived on it
+    by_day = {}
+    for fname, rec in evidence.items():
+        by_day.setdefault(rec["date"], {})[fname] = rec
+    ev_t = {}
+    reach = []                           # per tick: in-reach count
+    stacks = []                          # per tick: {state: count} over added nodes
+    for i in range(clock.n_ticks):
+        d = clock.first + timedelta(days=i)
+        ev_t.update(by_day.get(d.isoformat(), {}))
+        statuses = {m: node_status(m, ev_t, today=d)[0] for m in move_ids}
+        reach.append(sum(1 for p in problems.values()
+                         if all(statuses[m] == SOLID for m in p["moves"])))
+        counts = dict.fromkeys(STACK_ORDER, 0)
+        for nid in nodes:
+            if added[nid] <= d:
+                counts[statuses[nid]] += 1
+        stacks.append(counts)
+
+    frontier = len(problems)
+    y1_hi = frontier + 3
+    n_hi = max(sum(c.values()) for c in stacks) + 2
+
+    def x_of(d):
+        return ML + (d - clock.first).days / max((clock.last - clock.first).days, 1) * (W - ML - MR)
+
+    def y1(v):
+        return PB1 - v / y1_hi * (PB1 - PT1)
+
+    def y2(v):
+        return PB2 - v / n_hi * (PB2 - PT2)
+
+    svg = []
+    svg.append(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" '
+               f'font-family="Helvetica,sans-serif">')
+    svg.append(f'<rect width="{W}" height="{H}" fill="{BG}"/>')
+    svg.append(f'<text x="{W / 2:.0f}" y="24" text-anchor="middle" font-size="13" fill="{INK}">'
+               f"Problems in reach - of today's {frontier} walked problems, how many had every move "
+               'in their walk SOLID on that day, daily replay</text>')
+
+    # grids + axes
+    for v in range(0, frontier + 1, 100):
+        y = y1(v)
+        svg.append(f'<line x1="{ML}" y1="{y:.1f}" x2="{W - MR}" y2="{y:.1f}" '
+                   f'stroke="{GRID}" stroke-width="1"/>')
+        svg.append(f'<text x="{ML - 8}" y="{y + 4:.1f}" text-anchor="end" font-size="11" '
+                   f'fill="{MUTED}">{v}</text>')
+    yf = y1(frontier)
+    svg.append(f'<line x1="{ML}" y1="{yf:.1f}" x2="{W - MR}" y2="{yf:.1f}" '
+               f'stroke="{MUTED}" stroke-width="1" stroke-dasharray="7 5"/>')
+    svg.append(f'<text x="{ML + 6}" y="{yf - 6:.1f}" font-size="11" fill="{MUTED}">'
+               f'the whole walked frontier ({frontier})</text>')
+    for v in range(0, n_hi, 20):
+        y = y2(v)
+        svg.append(f'<line x1="{ML}" y1="{y:.1f}" x2="{W - MR}" y2="{y:.1f}" '
+                   f'stroke="{GRID}" stroke-width="1"/>')
+        svg.append(f'<text x="{ML - 8}" y="{y + 4:.1f}" text-anchor="end" font-size="11" '
+                   f'fill="{MUTED}">{v}</text>')
+    svg.append(f'<text x="{ML}" y="{PT2 - 8}" font-size="12" fill="{INK}">'
+               'node states (the cause: taxonomy nodes by mastery status)</text>')
+
+    # month ticks along the bottom
+    months = []
+    m = date(clock.first.year, clock.first.month, 1)
+    while m <= clock.last:
+        months.append(m)
+        m = date(m.year + (m.month == 12), m.month % 12 + 1, 1)
+    for i, mo in enumerate(months):
+        if mo < clock.first:
+            continue
+        x = x_of(mo)
+        svg.append(f'<line x1="{x:.1f}" y1="{PB2}" x2="{x:.1f}" y2="{PB2 + 4}" '
+                   f'stroke="{MUTED}" stroke-width="1"/>')
+        nxt = months[i + 1] if i + 1 < len(months) else clock.last
+        if x_of(min(nxt, clock.last)) - x >= 34:
+            lab = mo.strftime("jan '%y" if mo.month == 1 else "%b").lower()
+            svg.append(f'<text x="{x:.1f}" y="{PB2 + 17}" text-anchor="middle" font-size="11" '
+                       f'fill="{MUTED}">{lab}</text>')
+
+    # era switch line through both panels, same date as the movie's banner flip
+    if clock.first < ERA_SWITCH < clock.last:
+        x = x_of(ERA_SWITCH)
+        svg.append(f'<line x1="{x:.1f}" y1="{PT1}" x2="{x:.1f}" y2="{PB2}" stroke="{REACH_C}" '
+                   f'stroke-width="1.2" stroke-dasharray="5 4" opacity="0.6"/>')
+    svg.extend(era_banner(clock, W - MR - 6, PB1 - 12, 18, anchor="end", halo=BG))
+
+    # the data, drawn final and revealed by a clip sweeping with the playhead
+    days_x = [x_of(clock.first + timedelta(days=i)) for i in range(clock.n_ticks)]
+    widths = ";".join([f"{x - ML:.1f}" for x in days_x] + [f"{days_x[-1] - ML:.1f}"])
+    kt = ";".join([f"{clock.frac(i):.4f}" for i in range(clock.n_ticks)] + ["1"])
+    svg.append(f'<clipPath id="reveal"><rect x="{ML}" y="0" width="{W - ML - MR}" height="{H}">'
+               f'<animate attributeName="width" calcMode="linear" values="{widths}" '
+               f'keyTimes="{kt}" dur="{clock.dur}s" repeatCount="indefinite"/></rect></clipPath>')
+    svg.append('<g clip-path="url(#reveal)">')
+
+    # stacked node states, bottom-up in mastery order, banded with a BG seam;
+    # zero-height stretches are skipped so they leave no antialiased hairline
+    base = [0.0] * clock.n_ticks
+    for state in STACK_ORDER:
+        top = [base[i] + stacks[i][state] for i in range(clock.n_ticks)]
+        i = 0
+        while i < clock.n_ticks:
+            if not stacks[i][state]:
+                i += 1
+                continue
+            j = i
+            while j < clock.n_ticks and stacks[j][state]:
+                j += 1
+            lo, hi = max(i - 1, 0), min(j + 1, clock.n_ticks)
+            pts = [f"{days_x[k]:.1f},{y2(top[k]):.1f}" for k in range(lo, hi)]
+            pts += [f"{days_x[k]:.1f},{y2(base[k]):.1f}" for k in reversed(range(lo, hi))]
+            svg.append(f'<polygon points="{" ".join(pts)}" fill="{STATE_C[state]}" '
+                       f'stroke="{BG}" stroke-width="1.5"/>')
+            i = j
+        base = top
+
+    # the in-reach line
+    line = " ".join(f"{days_x[i]:.1f},{y1(reach[i]):.1f}" for i in range(clock.n_ticks))
+    svg.append(f'<polyline points="{line}" fill="none" stroke="{REACH_C}" stroke-width="2.5"/>')
+    svg.append('</g>')
+
+    # final-value label rides outside the clip, popping in at the end
+    fx, fy = days_x[-1], y1(reach[-1])
+    svg.append(f'<circle cx="{fx:.1f}" cy="{fy:.1f}" r="4" fill="{REACH_C}" opacity="1">'
+               f'<animate attributeName="opacity" calcMode="discrete" values="0;1" '
+               f'keyTimes="0;{clock.frac_date(clock.last):.4f}" dur="{clock.dur}s" '
+               f'repeatCount="indefinite"/></circle>')
+    svg.append(f'<text x="{fx - 8:.1f}" y="{fy + 20:.1f}" text-anchor="end" font-size="15" '
+               f'font-weight="bold" fill="{INK}">{reach[-1]} in reach'
+               f'<animate attributeName="opacity" calcMode="discrete" values="0;1" '
+               f'keyTimes="0;{clock.frac_date(clock.last):.4f}" dur="{clock.dur}s" '
+               f'repeatCount="indefinite"/></text>')
+
+    # legend (the top panel is a single series - the title names it)
+    lx = ML + 6
+    for state in STACK_ORDER:
+        n_fin = stacks[-1][state]
+        svg.append(f'<rect x="{lx}" y="{PT2 + 6}" width="10" height="10" '
+                   f'fill="{STATE_C[state]}"/>')
+        lab = f'{state.lower()} ({n_fin})'
+        svg.append(f'<text x="{lx + 15}" y="{PT2 + 15}" font-size="12" fill="{INK}">{lab}</text>')
+        lx += 30 + 7 * len(lab)
+
+    svg.append(clock.dissolve_rect(W, H, BG))
+    svg.append("</svg>")
+    with open(OUT, "w") as f:
+        f.write("\n".join(svg) + "\n")
+    print(f"wrote {OUT} ({reach[-1]}/{frontier} in reach today, "
+          f"{clock.n_ticks} days, synced to the {clock.dur:.0f}s loop)")
+
+
+if __name__ == "__main__":
+    main()
