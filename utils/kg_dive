@@ -38,7 +38,7 @@ from kg_lib import (
     SOLID, STALE, FRAGILE, MISSING, DEEP_STALE_DAYS,
     load_sleep, sleep_state,
     last_solved, pnum_key, dodged_nodes, dodgeable, carriers_for,
-    tree_size, gentleness,
+    tree_size, gentleness, drill_gated,
 )
 
 console = Console()
@@ -151,8 +151,14 @@ def plan_dive(cluster, statuses, problems, nodes, evidence, asleep, n):
         pool = sorted(ready or remaining, key=lambda x: urgency_key(x, sim))
         scheduled = False
         for target in pool:
-            choice = choose_carrier(target, sim, problems, nodes, evidence, dodged, excluded)
             status = sim[target][0]
+            if drill_gated(target, *sim[target]):
+                steps.append((target, status, None, "drill until clean — carrier stays held"))
+                sim[target] = (SOLID, date.today())
+                remaining.discard(target)
+                scheduled = True
+                break
+            choice = choose_carrier(target, sim, problems, nodes, evidence, dodged, excluded)
             if choice:
                 pnum, reason = choice
                 steps.append((target, status, pnum, reason))

@@ -28,6 +28,9 @@
 #      FRAGILE does, instead of a cold "re-solve" that plays like a new problem
 #   3. one new MISSING move whose prereqs are all SOLID
 # One-new-move rule is enforced: every other move in the walk must be SOLID.
+# Drill-success gate (kg_lib.drill_gated): a MISSING/FRAGILE/deep-stale target
+# with a drill bank gets ONLY its drill until a clean rep clears the status —
+# a struggled drill holds the carrier instead of unlocking it.
 #
 # NOTE: the default drawing writes only status + a random face from that
 # status's pool (SOLID 💪, STALE 😐, ...) — no move names — so the tree
@@ -49,7 +52,7 @@ from kg_lib import (
     node_status, latest_carrier, SOLID, STALE, FRAGILE, MISSING,
     DEEP_STALE_DAYS, load_sleep, sleep_state,
     last_solved, pnum_key, dodged_nodes, dodgeable, carriers_for, gentleness,
-    input_tree, tree_size, acceptance, due_drill,
+    input_tree, tree_size, acceptance, due_drill, drill_gated,
 )
 from kg_render import make_digraph, status_node, render, display, animate, STATUS_FACE
 
@@ -140,14 +143,6 @@ def problem_url(pnum):
 def pick(nodes, problems, evidence, statuses, asleep=(), woken=(), exclude=(),
          session_start=False):
     """Return (target, status, pnum, reason) or None."""
-    def drill_first(target):
-        """Rule 2: micro-drill for MISSING/FRAGILE — and deep-stale re-enters
-        like FRAGILE. Only ordinary STALE keeps the spaced re-solve carrier."""
-        s, d = statuses[target]
-        if s == STALE and d and (date.today() - d).days <= DEEP_STALE_DAYS:
-            return False
-        return True
-
     def due(target):
         """The drill pseudo-pick for a node, or None if none is due."""
         drill_id = f"drill:{target}"
@@ -174,9 +169,11 @@ def pick(nodes, problems, evidence, statuses, asleep=(), woken=(), exclude=(),
         rusty = sorted((n for n in closure if statuses[n][0] != SOLID),
                        key=lambda n: (statuses[n][1] is not None, statuses[n][1]))
         for target in rusty:
-            if drill_first(target) and due(target):
-                return target, statuses[target][0], due(target), \
-                    f"warm the ground under sleeping {pnum} — drill {target} first"
+            if drill_gated(target, *statuses[target]):
+                if due(target):
+                    return target, statuses[target][0], due(target), \
+                        f"warm the ground under sleeping {pnum} — drill {target} first"
+                continue  # drilled today, still not clean — carrier stays held
             cands = [c for c in carriers_for(target, problems, statuses, nodes)
                      if c not in asleep and c not in exclude]
             if cands:
@@ -194,8 +191,10 @@ def pick(nodes, problems, evidence, statuses, asleep=(), woken=(), exclude=(),
 
     dodged = dodged_nodes(evidence)
     for target in fragile:
-        if due(target):
-            return target, FRAGILE, due(target), "fragile move — drill first, carrier next"
+        if drill_gated(target, *statuses[target]):
+            if due(target):
+                return target, FRAGILE, due(target), "fragile move — drill until clean, carrier after"
+            continue  # drilled today, still not clean — carrier stays held
         cands = [c for c in carriers_for(target, problems, statuses, nodes) if c not in asleep and c not in exclude]
         if cands:
             if target in dodged:
@@ -211,9 +210,11 @@ def pick(nodes, problems, evidence, statuses, asleep=(), woken=(), exclude=(),
 
     for target in stale:
         age = (date.today() - statuses[target][1]).days
-        if age > DEEP_STALE_DAYS and due(target):
-            return target, STALE, due(target), \
-                f"re-enter a deep-stale move ({age}d since clean) — drill first, carrier next"
+        if drill_gated(target, *statuses[target]):
+            if due(target):
+                return target, STALE, due(target), \
+                    f"re-enter a deep-stale move ({age}d since clean) — drill until clean, carrier after"
+            continue  # drilled today, still not clean — carrier stays held
         cands = [c for c in carriers_for(target, problems, statuses, nodes) if c not in asleep and c not in exclude]
         if not cands:
             continue
@@ -227,8 +228,10 @@ def pick(nodes, problems, evidence, statuses, asleep=(), woken=(), exclude=(),
         return target, STALE, pnum, "spaced re-solve of a stale move's carrier"
 
     for target in missing:
-        if due(target):
-            return target, MISSING, due(target), "new move — drill first, carrier next"
+        if drill_gated(target, *statuses[target]):
+            if due(target):
+                return target, MISSING, due(target), "new move — drill until clean, carrier after"
+            continue  # drilled today, still not clean — carrier stays held
         cands = [c for c in carriers_for(target, problems, statuses, nodes) if c not in asleep and c not in exclude]
         if cands:
             cands.sort(key=lambda p: (gentleness(p, problems, nodes), pnum_key(p)))

@@ -59,10 +59,19 @@ sheet grows with every gap found.
 
 Drills also surface in `make next` itself (kg_lib.due_drill picks the node's
 least-recently-drilled bank file; a drill already solved today is not due again).
-Precedence follows rule 2: for MISSING and FRAGILE targets — and deep-stale ones,
-which re-enter like FRAGILE — a due drill is offered BEFORE any carrier (warm the
-move, then combine it); ordinary STALE keeps the spaced re-solve on its carrier,
-with the drill only as fallback when no carrier is READY.
+Precedence follows rule 2, and the drill is a GATE, not just an opener
+(`kg_lib.drill_gated`): a MISSING/FRAGILE target — and deep-stale ones, which
+re-enter like FRAGILE — whose node has a drill bank trains on the drill ONLY.
+No carrier fires for it until a clean rep lifts the node out of the gated
+state; since mastery is derived, the gate clears itself the moment the drill
+goes clean. A struggled drill holds the carrier (the drill re-offers next
+day) — previously mere drill-recency unlocked the carrier the same day, which
+is how 227 fired over two struggled drills. The gate is node-side, so
+alt walks are unaffected: they change which walk a solve evidences, never
+whether a cold move gets a carrier. Nodes with no bank file keep the old
+behavior — depositing a drill is what arms the gate. Ordinary STALE keeps
+the spaced re-solve on its carrier, with the drill only as fallback when no
+carrier is READY.
 
 ## Dive (`make dive`)
 
