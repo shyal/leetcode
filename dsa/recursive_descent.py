@@ -10,20 +10,27 @@ class Parser:
         return TreeNode(n)
 
     def atom(self):
+        if self.curr == "(":
+            self.advance()
+            val = self.expr()
+            self.advance()
+            return val
         return self.number()
 
     def term(self):
-        return self.atom()
+        val = self.atom()
+        while not self.ended and self.curr in "*/":
+            op = self.curr
+            self.i += 1
+            val = TreeNode(left=val, val=op, right=self.atom())
+        return val
 
     def expr(self):
         val = self.term()
-        while self.i < len(self.S) and self.S[self.i] in "+-":
-            op = self.S[self.i]
+        while not self.ended and self.curr in "+-":
+            op = self.curr
             self.i += 1
-            rhs = self.term()
-            node = TreeNode(op)
-            node.left, node.right = val, rhs
-            val = node
+            val = TreeNode(left=val, val=op, right=self.term())
         return val
 
     def advance(self):
@@ -42,7 +49,13 @@ class RecursiveDescent(Parser):
         if node.left is None:
             return node.val
         l, r = self.evaluate(node.left), self.evaluate(node.right)
-        return l + r if node.val == "+" else l - r
+        Op = {
+            '+': add,
+            '-': sub,
+            '*': mul,
+            '/': truediv
+        }
+        return Op[node.val](l, r)
 
     def draw(self, node):
         draw_tree(node)
@@ -67,5 +80,8 @@ if __name__ == "__main__":
     assert sol.tally("10-100+1000") == 910
     assert sol.tally("5-3-3") == -1
     assert sol.tally("999999+1") == 1000000
+    assert sol.tally("3*10") == 30
+    assert sol.tally("10/2") == 5
+    assert sol.tally("3*10+5") == 35
 
     print("All tests passed!")
