@@ -33,7 +33,9 @@ pytest.register_assert_rewrite("current")
 solved_dir = "./solved"
 modules = []
 for filename in os.listdir(solved_dir):
-    if filename.endswith(".py"):
+    # _FAILED archives preserve abandoned attempts verbatim — broken by
+    # definition, never part of the green suite
+    if filename.endswith(".py") and "_FAILED" not in filename:
         module_name = filename[:-3]  # Remove .py extension
         pytest.register_assert_rewrite(f"solved.{module_name}")
         modules.append(module_name)
