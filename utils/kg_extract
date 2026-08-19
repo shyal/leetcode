@@ -67,7 +67,11 @@ def run_solve(path):
     (`assert f(x) is False`) for failures and harness builtins for NameErrors —
     the interpreter is the only authority on whether the solve works."""
     env = dict(os.environ)
-    env["PYTHONPATH"] = os.path.join(REPO_ROOT, "utils") + os.pathsep + env.get("PYTHONPATH", "")
+    # REPO_ROOT must be importable too: python puts the SCRIPT's dir (solved/)
+    # at sys.path[0], not the cwd, so without this `from dsa...` imports that
+    # pass under `make` blow up only here and read as false struggles.
+    env["PYTHONPATH"] = os.pathsep.join(
+        [REPO_ROOT, os.path.join(REPO_ROOT, "utils"), env.get("PYTHONPATH", "")])
     py = VENV_PY if os.path.exists(VENV_PY) else sys.executable
     try:
         p = subprocess.run(
@@ -161,7 +165,13 @@ Output STRICT JSON only:
     def extract_one(path):
         """Read + claude call only — no shared state touched here."""
         code = open(path).read()
-        is_drill = os.path.basename(path).startswith("d_")
+        # a drill is a drill even when its filename lacks the d_ prefix
+        # (p1_read_the_operator): the DRILL: header is authoritative —
+        # without this, the p<digit> prefix reads as a leetcode number and
+        # the drill's evidence and alt_walks land on that problem (Two Sum
+        # once grew a recursive-descent alt walk this way)
+        is_drill = os.path.basename(path).startswith("d_") \
+            or bool(re.search(r"^\s*\**DRILL:", code, flags=re.M))
         trains = []
         if is_drill:
             m = TRAINS_RE.search(code)
