@@ -5633,34 +5633,6 @@
       "assist": "walkthrough",
       "note": "Cursor-based number parsing; avoids recursion in favor of iteration"
     },
-    "solved/d_Tape_Reader_2026_08_18T01_19_35_071070_00_00Z.py": {
-      "date": "2026-08-18",
-      "problem": "drill",
-      "moves": {
-        "recursive-descent": "struggled"
-      },
-      "assist": "walkthrough",
-      "note": "ModuleNotFoundError importing dsa.recursive_descent \u2014 code does not execute"
-    },
-    "solved/d_Bundle_Refunds_2026_08_18T01_37_39_188377_00_00Z.py": {
-      "date": "2026-08-18",
-      "problem": "drill",
-      "moves": {
-        "recursive-descent": "struggled"
-      },
-      "assist": "walkthrough",
-      "note": "ModuleNotFoundError: dsa.recursive_descent missing; base Parser class unavailable. Code structure shows intent (atom() method, recursive expr() calls) but cannot execute."
-    },
-    "solved/p1_read_the_operator_2026_08_18T02_16_21_437387_00_00Z.py": {
-      "date": "2026-08-18",
-      "problem": "drill: multi-buy",
-      "moves": {
-        "streaming-ask-then-record": "struggled",
-        "recursive-descent": "struggled"
-      },
-      "assist": "walkthrough",
-      "note": "ModuleNotFoundError on dsa.recursive_descent import prevents execution; code structure shows streaming query loop in term() while-condition and recursive-descent grammar hierarchy, but fails before any test runs."
-    },
     "solved/p3285_Find_Indices_of_Stable_Mountains_2026_08_18T02_25_26_223332_00_00Z.py": {
       "date": "2026-08-18",
       "problem": "3285",
@@ -5709,16 +5681,6 @@
         "tree-combine-returns": "clean"
       }
     },
-    "solved/p1_read_the_operator_FAILED_2026_08_19T00_48_57_047623_00_00Z.py": {
-      "date": "2026-08-19",
-      "problem": "1",
-      "moves": {
-        "streaming-ask-then-record": "struggled",
-        "recursive-descent": "struggled"
-      },
-      "assist": "walkthrough",
-      "note": "ModuleNotFoundError: dsa.recursive_descent.Parser not found; abandoned after 25m"
-    },
     "solved/p3285_Find_Indices_of_Stable_Mountains_2026_08_19T00_56_54_057061_00_00Z.py": {
       "date": "2026-08-19",
       "problem": "3285",
@@ -5726,14 +5688,50 @@
         "streaming-ask-then-record": "clean"
       }
     },
+    "solved/d_Bundle_Refunds_2026_08_18T01_37_39_188377_00_00Z.py": {
+      "date": "2026-08-18",
+      "problem": "drill",
+      "moves": {
+        "recursive-descent": "clean"
+      },
+      "assist": "walkthrough",
+      "note": "Recursive descent parser: atom() is a grammar rule; parenthesized sub-expressions trigger recursive expr() calls; shared cursor self.i"
+    },
+    "solved/p1_read_the_operator_2026_08_18T02_16_21_437387_00_00Z.py": {
+      "date": "2026-08-18",
+      "problem": "drill",
+      "moves": {
+        "recursive-descent": "clean",
+        "stack-nested-eval": "clean"
+      },
+      "assist": "walkthrough",
+      "note": "Recursive descent parsing avoids canonical iterative/streaming precedence-climbing moves"
+    },
+    "solved/d_Tape_Reader_2026_08_18T01_19_35_071070_00_00Z.py": {
+      "date": "2026-08-18",
+      "problem": "drill",
+      "moves": {
+        "recursive-descent": "clean"
+      },
+      "assist": "walkthrough"
+    },
+    "solved/p1_read_the_operator_FAILED_2026_08_19T00_48_57_047623_00_00Z.py": {
+      "date": "2026-08-19",
+      "problem": "drill",
+      "moves": {
+        "streaming-ask-then-record": "clean",
+        "recursive-descent": "clean"
+      },
+      "assist": "walkthrough",
+      "note": "Recursive descent parser walks the string once, querying the current operator and building the AST; bypasses the canonical dict-based approach."
+    },
     "solved/p1_read_the_operator_2026_08_19T01_00_48_765027_00_00Z.py": {
       "date": "2026-08-19",
-      "problem": "1",
+      "problem": "drill",
       "moves": {
-        "streaming-ask-then-record": "struggled",
-        "recursive-descent": "struggled"
+        "recursive-descent": "clean"
       },
-      "note": "ModuleNotFoundError: No module named 'dsa' at line 62 \u2014 missing base class import"
+      "note": "Uses recursive descent with operator precedence via grammar structure; canonical streaming/dict/algebraic approaches not employed."
     }
   }
 }
