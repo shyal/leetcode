@@ -297,6 +297,29 @@ def last_drilled(path, evidence):
     return max(dates) if dates else ""
 
 
+def has_drill_bank(node_id):
+    """True when drills/<node-id>/ holds at least one bank file."""
+    return bool(glob.glob(os.path.join(DRILLS_DIR, node_id, "*.py")))
+
+
+def drill_gated(node_id, status, last, today=None):
+    """The drill-success gate: a MISSING/FRAGILE — or deep-stale — target
+    with a drill bank trains on its drill ONLY; no carrier fires for it
+    until a clean rep lifts the node out of the gated state. Mastery is
+    derived, so the gate clears itself: a clean drill changes the status,
+    a struggled one keeps the carrier held (drill-recency alone used to
+    unlock it — that was the 227 hole). Ordinary STALE is ungated: its
+    spaced re-solve IS the rep. Node-side on purpose: alt walks change
+    which walk a solve evidences, never whether a cold move gets a carrier."""
+    if status in (FRAGILE, MISSING):
+        return has_drill_bank(node_id)
+    if status == STALE and last:
+        today = today or date.today()
+        if (today - last).days > DEEP_STALE_DAYS:
+            return has_drill_bank(node_id)
+    return False
+
+
 def due_drill(node_id, evidence, today=None):
     """Least-recently-drilled bank file for a node, or None if the bank is
     empty or that file was already drilled today. The no-carrier fallback:
