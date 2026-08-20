@@ -1,38 +1,35 @@
 """
-**DRILL: Multi-Buy**  
-**Trains:** Recursive-descent parsing
+DRILL: Multi-Buy
+TRAINS: recursive-descent
 
-A market stall totals a customer's order given as a single string, for example `"2+3*4/6"`.
+A market stall totals an order given as one string, e.g. "2+3*4/6". The
+operators '+' and '-' separate distinct items. The operators '*' and '/'
+are multi-buys and per-unit splits inside a single item, so they bind
+more tightly: "2+3*4" is an item of 2 plus an item of 3*4, never
+(2+3)*4.
 
-- The operators `+` and `-` separate distinct items.  
-- The operators `*` and `/` express multi-buys and per-unit splits *inside* a single item; they bind more tightly than `+` and `-`.  
-  Consequently `"2+3*4"` is an item of 2 plus an item of `3*4`, never `(2+3)*4`.
+The stall files the order as a tree: amounts are leaves, operators are
+inner nodes, and a run of '*' and '/' forms one subtree that hangs off
+the surrounding '+' or '-'.
 
-The stall's ledger records the whole order as a binary tree:
-- numeric amounts are leaves,
-- operators are internal nodes,
-- a multi-buy (a chain of `*` / `/`) forms a single subtree that is attached by a surrounding `+` or `-`.
+Build the tree and return its root.
 
-Your task is to build that tree and return its root.
+Already installed (inherited from dsa.recursive_descent.Parser): `number`
+reads a digit run into a TreeNode leaf, `atom` fetches one part, and
+`expr` chains parts with '+' and '-'. But `expr` no longer asks `atom`
+for its parts, it asks `term`. You write `term` and nothing else.
 
-### Already provided (inherited from `dsa.recursive_descent.Parser`)
-- `number` - reads a consecutive run of digits and returns a `TreeNode` leaf  
-- `atom` - obtains one atomic part  
-- `expr` - chains parts with `+` and `-`  
+The grammar:
 
-Between those two methods, `expr` asks `term` for each part.  
-**You implement only `term`.**
+    expr   := term (('+' | '-') term)*
+    term   := atom (('*' | '/') atom)*
+    atom   := number        (already installed)
+    number := digit+        (already installed)
 
-### Grammar
-expr  := term (('+' | '-') term)*
-term  := atom (('*' | '/') atom)*
-atom  := number          (already installed)
-number := digit+         (already installed)
+Example:
 
-### Example
-**Input:** `S = "2+3*4/6"`  
-
-**Output:** the root of the tree  
+Input: S = "2+3*4/6"
+Output: the root of
 
       [+]
    ┌───┴───┐
@@ -42,20 +39,20 @@ number := digit+         (already installed)
       ┌─┴─┐
      [3] [4]
 
-### Constraints
-- `1 ≤ len(S) ≤ 10⁵`
-- `S` contains only digits, `+`, `-`, `*` and `/`. No spaces.
-- `S` always starts with a digit; every operator is followed by a number.
-- Chains of `*` and `/` associate left-to-right.
+Constraints:
 
-### Required implementation discipline for `term`
-- Obtain every part by calling `self.atom()` (never read digits yourself).  
-- Use a single loop that claims only `*` and `/`:  
-  1. read the operator,  
-  2. read the next atom,  
-  3. create a new operator node whose left child is the term built so far and whose right child is the newly read atom.  
-- The moment the next character is `+`, `-` or the end of the string, the term is complete—return it and leave the remaining input untouched.
+    1 <= len(S) <= 10^5
+    S contains only digits, '+', '-', '*' and '/'. No spaces.
+    S starts with a digit; every operator is followed by a number.
+    Runs of '*' and '/' associate left to right.
 
+    REQUIRED: `term` never touches a digit - every part is fetched by
+    calling self.atom(). One loop, claiming only '*' and '/': read the
+    operator, read the next atom, weld a new operator node with the term
+    so far on the left and the fresh atom on the right. `term` must stop
+    the moment it sees '+', '-' or the end of the string, and leave that
+    character unread. Consuming it is what makes the multi-buy swallow
+    the rest of the order.
 """
 
 
