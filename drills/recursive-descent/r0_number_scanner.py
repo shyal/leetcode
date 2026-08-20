@@ -20,10 +20,16 @@ The grammar it implements:
 
 Constraints:
 
+    1 <= len(S) <= 10^5
     S contains digits and other characters.
-    No int() on slices, no regex - the head sees one character at a time.
-    The tests slide the head across a label and check both the amounts
-    returned and where the head comes to rest.
+    `number` is only ever called while the head is parked on a digit.
+
+    REQUIRED: one pass over the digit run, O(1) extra space. NO int() on
+    a slice, NO regex, NO lookahead - the head sees one character at a
+    time and builds the amount as it slides. Where the head comes to
+    rest is half the job: it must stop ON the first character that is
+    not a digit, never one past it. Every later rung resumes from self.i,
+    so a head that overshoots by one silently corrupts the whole parse.
 """
 
 
