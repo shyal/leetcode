@@ -222,6 +222,61 @@ def carriers_for(target, problems, statuses, nodes):
     return found
 
 
+# Interview-classic Hards worth summiting: number -> why it's valuable.
+# Filtered against data/problems_metadata.json difficulty at runtime, so a
+# mislabeled entry silently drops out rather than lying. Lives here rather
+# than in kg_hard because `make next` serves summits too, and the two must
+# never name different problems.
+CLASSICS = {
+    "4": "binary-search partitioning at its purest",
+    "23": "the canonical heap hard — k-way merge",
+    "25": "pointer surgery mastery — reverse in k-groups",
+    "32": "stack meets DP on parentheses",
+    "41": "in-place index cycling, O(1) space",
+    "42": "the most famous hard — prefix-max / two-pointer",
+    "76": "sliding window with need/have counters",
+    "84": "monotonic stack at full power",
+    "85": "84 lifted into 2-D",
+    "124": "global-vs-path tree DP",
+    "127": "implicit-graph BFS",
+    "212": "trie + backtracking",
+    "224": "expression parsing with a stack",
+    "239": "monotonic deque",
+    "295": "two-heap running median",
+    "297": "tree serialization round-trip",
+    "460": "layered data-structure design (LFU)",
+    "502": "greedy + heap",
+    "815": "BFS where routes are the nodes",
+    "895": "stacked frequency stacks",
+    "968": "greedy tree DP",
+    "1235": "sort + binary search + DP",
+    "2402": "two-heap simulation",
+}
+
+
+def route_gaps(pnum, problems, nodes, statuses):
+    """Non-SOLID nodes in the problem's input tree, and how many of them are
+    consolidation (FRAGILE/STALE — moves you once had) vs new ground.
+    Unmapped proposals count as gaps too: they are unroutable new territory,
+    so a walk carrying them is farther away than its mapped moves suggest."""
+    closure = input_tree(problems[pnum]["moves"], nodes)
+    gaps = [n for n in closure if statuses[n][0] != SOLID]
+    gap_count = len(gaps) + len(problems[pnum].get("unmapped", []))
+    consolidation = sum(1 for n in gaps if statuses[n][0] in (FRAGILE, STALE))
+    return gaps, gap_count, consolidation
+
+
+def rank_summits(candidates, problems, nodes, statuses):
+    """Candidate Hards ordered by reachability: fewest gaps first, then the
+    one whose gaps are mostly consolidation (moves you once had) rather than
+    new ground. The single ordering `make hard` and `make next` share, so a
+    summit cannot be named differently depending on which one you ran."""
+    scored = [(route_gaps(p, problems, nodes, statuses)[1:], pnum_key(p), p)
+              for p in candidates if p in problems]
+    scored.sort(key=lambda s: (s[0][0], -s[0][1], s[1]))
+    return [p for _, _, p in scored]
+
+
 def input_tree(moves, nodes):
     """Transitive prerequisite closure of a walk (unknown ids skipped)."""
     seen = set()
