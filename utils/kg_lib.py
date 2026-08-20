@@ -267,11 +267,12 @@ DIFF_RANK = {"Easy": 0, "Medium": 1, "Hard": 2}
 
 def gentleness(pnum, problems, nodes):
     """Gentler-first key for fresh-carrier sorts: difficulty tier, then
-    input-tree size, then community friction (lower acceptance = rougher).
-    Acceptance is a noisy, popularity-skewed proxy, so it only breaks ties
-    within same-tier same-size candidates — never dominates."""
+    input-tree size. Community friction (acceptance) is deliberately NOT
+    part of this key — it is a noisy, popularity-skewed proxy, so callers
+    append -acceptance(p) as their FINAL tiebreak, after freshness
+    (last_solved), never before it."""
     tier = DIFF_RANK.get(problems.get(str(pnum), {}).get("difficulty"), 1)
-    return (tier, tree_size(pnum, problems, nodes), -acceptance(pnum))
+    return (tier, tree_size(pnum, problems, nodes))
 
 
 def drill_solved_stem(path):
