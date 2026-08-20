@@ -1,0 +1,558 @@
+"""The picker is the one piece of tooling that decides what gets solved, and
+until now nothing pinned its rules down. Every regression it has shipped was
+a sort key quietly outranking a more important one, or a frontier node that
+fell through every branch and left `make next` saying nothing at all.
+
+These tests run `pick()` against synthetic graphs — a handful of nodes and
+problems built in the test itself — so each rule is asserted in isolation,
+with no dependency on the real graph/*.json (which changes every solve).
+
+pick() takes nodes/problems/evidence/statuses as arguments, so the graph is
+pure input. The three things it still reaches out to disk for — the drill
+bank (drill_gated, due_drill) and the acceptance metadata — are stubbed by
+the `picker` fixture, which is also where a test overrides them to put a
+drill in the bank.
+"""
+
+import os
+from datetime import date, timedelta
+from importlib.machinery import SourceFileLoader
+
+import pytest
+
+UTILS = os.path.dirname(os.path.abspath(__file__))
+kg_next = SourceFileLoader("kg_next", os.path.join(UTILS, "kg_next")).load_module()
+
+from kg_lib import SOLID, STALE, FRAGILE, MISSING, DEEP_STALE_DAYS  # noqa: E402
+
+
+def ago(days):
+    return date.today() - timedelta(days=days)
+
+
+def iso(days):
+    return ago(days).isoformat()
+
+
+def node(nid, prereqs=()):
+    return {"id": nid, "name": nid, "prereqs": list(prereqs)}
+
+
+def nodes(*specs):
+    """nodes("a", ("b", ["a"])) -> {id: node}, prereqs optional per entry."""
+    out = {}
+    for s in specs:
+        nid, prereqs = s if isinstance(s, tuple) else (s, ())
+        out[nid] = node(nid, prereqs)
+    return out
+
+
+def problem(moves, difficulty="Medium", **extra):
+    return {"title": f"synthetic {difficulty}", "difficulty": difficulty,
+            "moves": list(moves), **extra}
+
+
+def solve(pnum, moves, days_ago=0, assist=None):
+    """One evidence record. `moves` maps node -> clean/struggled/avoided."""
+    rec = {"date": iso(days_ago), "problem": str(pnum), "moves": dict(moves)}
+    if assist:
+        rec["assist"] = assist
+    return {f"solved/p{pnum}_{days_ago}.py": rec}
+
+
+def evidence(*records):
+    merged = {}
+    for r in records:
+        merged.update(r)
+    return merged
+
+
+@pytest.fixture
+def picker(monkeypatch):
+    """pick() with its three disk reads stubbed: no drill bank anywhere and a
+    neutral acceptance for every problem. Tests that care override them via
+    the returned control object."""
+    ctl = type("Ctl", (), {"bank": set(), "drilled_today": set(), "acceptance": {}})()
+
+    monkeypatch.setattr(kg_next, "drill_gated",
+                        lambda nid, status, last, today=None:
+                        nid in ctl.bank and status in (FRAGILE, MISSING))
+    monkeypatch.setattr(kg_next, "due_drill",
+                        lambda nid, ev, today=None:
+                        f"drills/{nid}/one.py"
+                        if nid in ctl.bank and nid not in ctl.drilled_today else None)
+    monkeypatch.setattr(kg_next, "acceptance", lambda p: ctl.acceptance.get(str(p), 50.0))
+    monkeypatch.setattr(kg_next, "has_drill_bank", lambda nid: nid in ctl.bank)
+
+    def run(nodes, problems, ev, statuses, **kw):
+        return kg_next.pick(nodes, problems, ev, statuses, **kw)
+
+    def blocked(nodes, problems, ev, statuses, **kw):
+        return kg_next.blocked_frontier(nodes, problems, ev, statuses, **kw)
+
+    ctl.run = run
+    ctl.blocked = blocked
+    def summits(ns, problems, ev, statuses):
+        return kg_next.ready_hards(problems, ns, ev, statuses)
+
+    ctl.summits = summits
+    return ctl
+
+
+# --------------------------------------------------------------------------
+# rule 1: consolidate a FRAGILE move on a READY carrier
+# --------------------------------------------------------------------------
+
+def test_fragile_move_is_served_on_a_ready_carrier(picker):
+    ns = nodes("bsearch", "pivot")
+    ps = {"33": problem(["bsearch", "pivot"])}
+    st = {"bsearch": (SOLID, ago(1)), "pivot": (FRAGILE, ago(1))}
+    assert picker.run(ns, ps, {}, st)[:3] == ("pivot", FRAGILE, "33")
+
+
+def test_fragile_beats_stale_and_missing(picker):
+    """Preference order is fragile, then stale, then missing — a rusty move
+    is repaired before a cold one is re-entered or a new one introduced."""
+    ns = nodes("frag", "stale", "new")
+    ps = {"1": problem(["frag"]), "2": problem(["stale"]), "3": problem(["new"])}
+    st = {"frag": (FRAGILE, ago(1)), "stale": (STALE, ago(50)), "new": (MISSING, None)}
+    assert picker.run(ns, ps, {}, st)[0] == "frag"
+
+
+def test_oldest_fragile_goes_first(picker):
+    ns = nodes("recent", "ancient")
+    ps = {"1": problem(["recent"]), "2": problem(["ancient"])}
+    st = {"recent": (FRAGILE, ago(2)), "ancient": (FRAGILE, ago(200))}
+    assert picker.run(ns, ps, {}, st)[0] == "ancient"
+
+
+# --------------------------------------------------------------------------
+# the one-new-move rule, and who is allowed to be a carrier
+# --------------------------------------------------------------------------
+
+def test_carrier_needs_every_other_move_solid(picker):
+    """A carrier that would introduce a second rusty move is not a carrier:
+    the ZPD constraint is one fragile/stale node per assignment."""
+    ns = nodes("target", "alsorusty", "solid")
+    ps = {"1": problem(["target", "alsorusty"]),   # two rusty moves — never
+          "2": problem(["target", "solid"])}       # one rusty move — this one
+    st = {"target": (FRAGILE, ago(1)), "alsorusty": (STALE, ago(90)),
+          "solid": (SOLID, ago(1))}
+    assert picker.run(ns, ps, {}, st)[2] == "2"
+
+
+def test_hards_are_never_carriers(picker):
+    """Himalayas rule: a Hard is a summit attempted all-green, never the
+    place a rusty move gets its rep. With the move rusty the Hard is not
+    servable at all, as a carrier or as a summit."""
+    ns = nodes("target")
+    ps = {"41": problem(["target"], difficulty="Hard")}
+    st = {"target": (FRAGILE, ago(1))}
+    assert picker.run(ns, ps, {}, st) is None
+
+
+def test_a_rusty_move_is_repaired_before_a_summit_is_offered(picker):
+    """Summits are the LAST rule: an all-green Hard waits until there is
+    nothing rusty left to train."""
+    ns = nodes("frag", "solid")
+    ps = {"1": problem(["frag"]), "76": problem(["solid"], difficulty="Hard")}
+    st = {"frag": (FRAGILE, ago(1)), "solid": (SOLID, ago(1))}
+    assert picker.run(ns, ps, {}, st)[2] == "1"
+
+
+def test_banned_problems_are_never_carriers(picker):
+    ns = nodes("target")
+    ps = {"1": problem(["target"], banned=True)}
+    st = {"target": (FRAGILE, ago(1))}
+    assert picker.run(ns, ps, {}, st) is None
+
+
+def test_problems_solved_today_are_excluded(picker):
+    ns = nodes("target")
+    ps = {"1": problem(["target"]), "2": problem(["target"])}
+    st = {"target": (FRAGILE, ago(1))}
+    assert picker.run(ns, ps, {}, st, exclude={"1"})[2] == "2"
+
+
+def test_sleeping_problems_are_not_offered(picker):
+    ns = nodes("target")
+    ps = {"1": problem(["target"]), "2": problem(["target"])}
+    st = {"target": (FRAGILE, ago(1))}
+    assert picker.run(ns, ps, {}, st, asleep={"1"})[2] == "2"
+
+
+# --------------------------------------------------------------------------
+# carrier sort keys — the 153-before-33 regression
+# --------------------------------------------------------------------------
+
+def test_freshness_outranks_acceptance(picker):
+    """The bug this suite was started for: 153 (55% acceptance, failed
+    yesterday) kept being served ahead of 33 (45%, untouched for months)
+    because acceptance was baked into the gentleness key and decided before
+    last_solved was ever compared. Acceptance is the LAST tiebreak."""
+    ns = nodes("bsearch", "pivot")
+    ps = {"33": problem(["bsearch", "pivot"]), "153": problem(["bsearch", "pivot"])}
+    picker.acceptance = {"33": 45.5, "153": 55.2}
+    ev = evidence(solve("33", {"bsearch": "clean"}, days_ago=300),
+                  solve("153", {"bsearch": "clean", "pivot": "struggled"}, days_ago=1))
+    st = {"bsearch": (SOLID, ago(1)), "pivot": (FRAGILE, ago(1))}
+    assert picker.run(ns, ps, ev, st)[2] == "33"
+
+
+def test_acceptance_still_breaks_a_genuine_tie(picker):
+    """Same tier, same tree, neither ever solved: the gentler problem (higher
+    acceptance = less community friction) sorts first, since nothing more
+    meaningful separates them."""
+    ns = nodes("target")
+    ps = {"1": problem(["target"]), "2": problem(["target"])}
+    picker.acceptance = {"1": 70.0, "2": 30.0}
+    st = {"target": (FRAGILE, ago(1))}
+    assert picker.run(ns, ps, {}, st)[2] == "1"
+
+
+def test_easier_carrier_wins_over_a_harder_one(picker):
+    ns = nodes("target", "extra")
+    ps = {"1": problem(["target", "extra"], difficulty="Medium"),
+          "2": problem(["target", "extra"], difficulty="Easy")}
+    st = {"target": (FRAGILE, ago(1)), "extra": (SOLID, ago(1))}
+    assert picker.run(ns, ps, {}, st)[2] == "2"
+
+
+def test_smaller_input_tree_wins_within_a_tier(picker):
+    """Gentleness after difficulty is fewest concepts in the room, counted
+    over the transitive prereq closure, not just the walk length."""
+    ns = nodes("target", "plain", ("deep", ["p1"]), ("p1", ["p2"]), "p2")
+    ps = {"1": problem(["target", "deep"]), "2": problem(["target", "plain"])}
+    st = {"target": (FRAGILE, ago(1)), "deep": (SOLID, ago(1)),
+          "plain": (SOLID, ago(1)), "p1": (SOLID, ago(1)), "p2": (SOLID, ago(1))}
+    assert picker.run(ns, ps, {}, st)[2] == "2"
+
+
+# --------------------------------------------------------------------------
+# STALE: spaced re-solve vs deep-stale re-entry
+# --------------------------------------------------------------------------
+
+def test_stale_move_reuses_its_latest_carrier(picker):
+    """An ordinary stale move is a spaced repetition: the same problem comes
+    back, because the rep IS the re-solve."""
+    ns = nodes("target")
+    ps = {"1": problem(["target"]), "2": problem(["target"])}
+    ev = evidence(solve("2", {"target": "clean"}, days_ago=50))
+    st = {"target": (STALE, ago(50))}
+    assert picker.run(ns, ps, ev, st)[:3] == ("target", STALE, "2")
+
+
+def test_deep_stale_move_re_enters_on_a_fresh_carrier(picker):
+    """Past 2x the solid window the memory is gone, so a cold 're-solve'
+    would play like a new problem. Re-enter on a gentle carrier instead."""
+    old = DEEP_STALE_DAYS + 30
+    ns = nodes("target")
+    ps = {"1": problem(["target"], difficulty="Easy"),
+          "2": problem(["target"], difficulty="Medium")}
+    ev = evidence(solve("2", {"target": "clean"}, days_ago=old))
+    st = {"target": (STALE, ago(old))}
+    target, status, pnum, reason = picker.run(ns, ps, ev, st)
+    assert (target, status, pnum) == ("target", STALE, "1")
+    assert "deep-stale" in reason
+
+
+# --------------------------------------------------------------------------
+# MISSING: one genuinely new move, prereqs all solid
+# --------------------------------------------------------------------------
+
+def test_missing_move_needs_solid_prereqs(picker):
+    """A new move whose prereq is itself rusty is not on the frontier —
+    the prereq gets served instead."""
+    ns = nodes("prereq", ("new", ["prereq"]))
+    ps = {"1": problem(["new"]), "2": problem(["prereq"])}
+    st = {"prereq": (FRAGILE, ago(1)), "new": (MISSING, None)}
+    assert picker.run(ns, ps, {}, st)[0] == "prereq"
+
+
+def test_missing_move_with_solid_prereqs_is_introduced(picker):
+    ns = nodes("prereq", ("new", ["prereq"]))
+    ps = {"1": problem(["new", "prereq"])}
+    st = {"prereq": (SOLID, ago(1)), "new": (MISSING, None)}
+    assert picker.run(ns, ps, {}, st)[:3] == ("new", MISSING, "1")
+
+
+# --------------------------------------------------------------------------
+# the drill-success gate
+# --------------------------------------------------------------------------
+
+def test_fragile_move_with_a_drill_bank_drills_instead_of_solving(picker):
+    """drill_gated: a fragile move that HAS a bank trains on the drill only.
+    The carrier is held until a clean rep clears the status."""
+    ns = nodes("target")
+    ps = {"1": problem(["target"])}
+    picker.bank = {"target"}
+    st = {"target": (FRAGILE, ago(1))}
+    assert picker.run(ns, ps, {}, st)[2] == "drill:target"
+
+
+def test_a_drill_already_done_today_holds_the_carrier(picker):
+    """Drilled today and still not clean: the carrier stays held rather than
+    unlocking on drill recency alone (the 227 hole)."""
+    ns = nodes("target", "other")
+    ps = {"1": problem(["target"]), "2": problem(["other"])}
+    picker.bank = {"target"}
+    picker.drilled_today = {"target"}
+    st = {"target": (FRAGILE, ago(1)), "other": (STALE, ago(50))}
+    assert picker.run(ns, ps, {}, st)[0] == "other"
+
+
+def test_missing_move_with_no_carrier_falls_back_to_its_drill(picker):
+    """A frontier node whose only walk is a Hard has no carrier at all. Its
+    drill is offered instead of the node being silently skipped."""
+    ns = nodes("target")
+    ps = {"41": problem(["target"], difficulty="Hard")}
+    picker.bank = {"target"}
+    st = {"target": (MISSING, None)}
+    assert picker.run(ns, ps, {}, st)[2] == "drill:target"
+
+
+# --------------------------------------------------------------------------
+# sleep
+# --------------------------------------------------------------------------
+
+def test_woken_problem_jumps_the_queue(picker):
+    ns = nodes("target", "other")
+    ps = {"1": problem(["target"]), "2": problem(["other"])}
+    st = {"target": (FRAGILE, ago(1)), "other": (FRAGILE, ago(200))}
+    target, status, pnum, reason = picker.run(ns, ps, {}, st, woken=["1"])
+    assert pnum == "1"
+    assert "sleep" in reason
+
+
+def test_ground_under_a_sleeping_problem_is_warmed_elsewhere(picker):
+    """While a problem sleeps it is excluded everywhere, but its walk's rusty
+    moves still get reps — through a different carrier."""
+    ns = nodes("rusty", "solid")
+    ps = {"1": problem(["rusty", "solid"]), "2": problem(["rusty"])}
+    st = {"rusty": (FRAGILE, ago(1)), "solid": (SOLID, ago(1))}
+    target, status, pnum, reason = picker.run(ns, ps, {}, st, asleep=["1"])
+    assert (target, pnum) == ("rusty", "2")
+    assert "sleeping" in reason
+
+
+# --------------------------------------------------------------------------
+# session start
+# --------------------------------------------------------------------------
+
+def test_session_start_serves_a_trivial_easy(picker):
+    """Inside the session-start window the first pick is juice: an all-SOLID
+    easy, nothing rusty and nothing new."""
+    ns = nodes("solid", "rusty")
+    ps = {"1": problem(["solid"], difficulty="Easy"), "2": problem(["rusty"])}
+    st = {"solid": (SOLID, ago(1)), "rusty": (FRAGILE, ago(1))}
+    target, status, pnum, reason = picker.run(ns, ps, {}, st, session_start=True)
+    assert (pnum, status) == ("1", SOLID)
+    assert "session start" in reason
+
+
+def test_session_start_skips_a_warmup_done_this_week(picker):
+    """A problem solved inside the cooldown is muscle memory, not a warmup."""
+    ns = nodes("solid")
+    ps = {"1": problem(["solid"], difficulty="Easy"),
+          "2": problem(["solid"], difficulty="Easy")}
+    ev = evidence(solve("1", {"solid": "clean"}, days_ago=2))
+    st = {"solid": (SOLID, ago(1))}
+    assert picker.run(ns, ps, ev, st, session_start=True)[2] == "2"
+
+
+def test_session_start_falls_through_when_no_easy_qualifies(picker):
+    """No trivial easy in the bank must not swallow the pick — normal rules
+    resume in the same call."""
+    ns = nodes("rusty")
+    ps = {"1": problem(["rusty"])}
+    st = {"rusty": (FRAGILE, ago(1))}
+    assert picker.run(ns, ps, {}, st, session_start=True)[:3] == ("rusty", FRAGILE, "1")
+
+
+# --------------------------------------------------------------------------
+# anti-dodge
+# --------------------------------------------------------------------------
+
+def test_dodged_move_gets_a_carrier_that_resists_the_dodge(picker):
+    """When the last evidence for a move says it was routed around, the
+    carrier is chosen for having no recorded escape route."""
+    ns = nodes("target", "solid")
+    ps = {"1": problem(["target", "solid"], alt_walks=[["solid"]]),  # escapable
+          "2": problem(["target", "solid"])}                        # not
+    ev = evidence(solve("9", {"target": "avoided"}, days_ago=3))
+    st = {"target": (FRAGILE, ago(3)), "solid": (SOLID, ago(1))}
+    target, status, pnum, reason = picker.run(ns, ps, ev, st)
+    assert pnum == "2"
+    assert "dodge" in reason
+
+
+# --------------------------------------------------------------------------
+# exhaustion — the case that made `make next` go quiet
+# --------------------------------------------------------------------------
+
+def test_an_all_solid_graph_serves_a_summit(picker):
+    """`make next` was never about basecamps: with nothing rusty left, the
+    answer to "what now" is an all-green Hard, served as a normal pick."""
+    ns = nodes("a")
+    ps = {"1": problem(["a"], difficulty="Easy"), "76": problem(["a"], difficulty="Hard")}
+    st = {"a": (SOLID, ago(1))}
+    target, status, pnum, reason = picker.run(ns, ps, {}, st)
+    assert (pnum, status) == ("76", SOLID)
+    assert "summit" in reason
+
+
+def test_the_most_reachable_summit_goes_first(picker):
+    """Fewest gaps on the route wins — not the shortest walk. 76 carries an
+    unmapped trick, so 4 is closer even with the longer walk."""
+    ns = nodes("a", "b", "c")
+    ps = {"4": problem(["a", "b", "c"], difficulty="Hard"),
+          "76": problem(["a"], difficulty="Hard", unmapped=["a trick with no node"])}
+    st = {n: (SOLID, ago(1)) for n in "abc"}
+    assert picker.run(ns, ps, {}, st)[2] == "4"
+
+
+def test_a_summited_hard_is_not_offered_again(picker):
+    ns = nodes("a")
+    ps = {"76": problem(["a"], difficulty="Hard")}
+    st = {"a": (SOLID, ago(1))}
+    ev = evidence(solve("76", {"a": "clean"}, days_ago=30))
+    assert picker.run(ns, ps, ev, st) is None
+
+
+def test_nothing_to_pick_returns_none_when_no_summit_is_green(picker):
+    """Every node solid, every Hard already summited: there is genuinely
+    nothing to serve, and None is the honest answer."""
+    ns = nodes("a")
+    ps = {"1": problem(["a"])}
+    st = {"a": (SOLID, ago(1))}
+    assert picker.run(ns, ps, {}, st) is None
+
+
+def test_a_node_walked_only_by_hards_is_reported_as_blocked(picker):
+    """The real state of the graph on 2026-08-20: counting-sort-buckets is
+    MISSING, its only walk is a Hard (so no carrier can exist), and it has no
+    drill bank — so every pick() branch fell through and `make next` printed
+    nothing about the one node still standing between here and an all-solid
+    graph. pick() still returns None, but the blockage is now nameable."""
+    ns = nodes("counting-sort-buckets")
+    ps = {"41": problem(["counting-sort-buckets"], difficulty="Hard")}
+    st = {"counting-sort-buckets": (MISSING, None)}
+    assert picker.run(ns, ps, {}, st) is None
+
+    (nid, status, why), = picker.blocked(ns, ps, {}, st)
+    assert (nid, status) == ("counting-sort-buckets", MISSING)
+    assert "Hard" in why and "41" in why
+    assert "no drill exists" in why
+
+
+def test_an_all_solid_graph_has_no_blocked_frontier(picker):
+    """Nothing due and nothing blocked are different answers: only the second
+    one is a to-do, so an all-solid graph must report an empty frontier."""
+    ns = nodes("a")
+    ps = {"1": problem(["a"])}
+    st = {"a": (SOLID, ago(1))}
+    assert picker.blocked(ns, ps, {}, st) == []
+
+
+def test_a_servable_node_is_not_called_blocked(picker):
+    """pick() preferring something else is not a blockage."""
+    ns = nodes("frag", "stale")
+    ps = {"1": problem(["frag"]), "2": problem(["stale"])}
+    st = {"frag": (FRAGILE, ago(1)), "stale": (STALE, ago(50))}
+    assert picker.blocked(ns, ps, {}, st) == []
+
+
+def test_a_node_whose_carriers_are_all_spent_today_is_blocked(picker):
+    """A move with a real carrier that has already been solved today is
+    blocked for today only — the reason has to say so rather than claiming
+    the bank is missing something."""
+    ns = nodes("target")
+    ps = {"1": problem(["target"])}
+    st = {"target": (FRAGILE, ago(1))}
+    (nid, _, why), = picker.blocked(ns, ps, {}, st, exclude={"1"})
+    assert nid == "target"
+    assert "already solved today" in why
+
+
+def test_a_node_blocked_only_by_a_second_rusty_move_says_so(picker):
+    """Its carrier exists and is not a Hard — it just needs another move made
+    solid first. That is a different to-do from writing a drill."""
+    ns = nodes("target", "alsorusty")
+    ps = {"1": problem(["target", "alsorusty"])}
+    st = {"target": (FRAGILE, ago(1)), "alsorusty": (FRAGILE, ago(1))}
+    reasons = {nid: why for nid, _, why in picker.blocked(ns, ps, {}, st)}
+    assert "second rusty move" in reasons["target"]
+
+
+def test_an_all_green_hard_is_offered_as_the_summit(picker):
+    """When basecamp is dry the answer to "what now" is a summit."""
+    ns = nodes("a", "b")
+    ps = {"76": problem(["a", "b"], difficulty="Hard"),
+          "1": problem(["a"], difficulty="Easy")}
+    st = {"a": (SOLID, ago(1)), "b": (SOLID, ago(1))}
+    assert picker.summits(ns, ps, {}, st) == ["76"]
+
+
+def test_a_hard_with_a_rusty_move_is_not_ready(picker):
+    ns = nodes("a", "b")
+    ps = {"76": problem(["a", "b"], difficulty="Hard")}
+    st = {"a": (SOLID, ago(1)), "b": (FRAGILE, ago(1))}
+    assert picker.summits(ns, ps, {}, st) == []
+
+
+def test_a_hard_with_a_rusty_PREREQ_is_not_ready(picker):
+    """Reachability is the whole input tree, not just the walk: a solid move
+    resting on a rusty prereq is still a gap on the route."""
+    ns = nodes(("a", ["deep"]), "deep")
+    ps = {"76": problem(["a"], difficulty="Hard")}
+    st = {"a": (SOLID, ago(1)), "deep": (STALE, ago(200))}
+    assert picker.summits(ns, ps, {}, st) == []
+
+
+def test_a_hard_with_an_unmapped_move_is_not_ready(picker):
+    """295 was being served as all-green while carrying "balance two heaps to
+    maintain a running median" — a trick with no node in the taxonomy. An
+    unmapped move is unroutable new ground, so it counts as a gap."""
+    ns = nodes("a")
+    ps = {"295": problem(["a"], difficulty="Hard",
+                         unmapped=["balance two heaps for a running median"])}
+    st = {"a": (SOLID, ago(1))}
+    assert picker.summits(ns, ps, {}, st) == []
+
+
+def test_an_already_summited_hard_is_not_offered_again(picker):
+    ns = nodes("a")
+    ps = {"76": problem(["a"], difficulty="Hard")}
+    st = {"a": (SOLID, ago(1))}
+    ev = evidence(solve("76", {"a": "clean"}, days_ago=30))
+    assert picker.summits(ns, ps, ev, st) == []
+
+
+def test_summits_are_ranked_by_reachability_then_number(picker):
+    """rank_summits is the ordering `make hard` uses, and `make next` shares
+    it so the two can never name different summits."""
+    ns = nodes("a")
+    ps = {"212": problem(["a"], difficulty="Hard"),
+          "76": problem(["a"], difficulty="Hard"),
+          "4": problem(["a"], difficulty="Hard")}
+    st = {"a": (SOLID, ago(1))}
+    assert picker.summits(ns, ps, {}, st) == ["4", "76", "212"]
+
+
+def test_a_classic_summit_outranks_a_non_classic_one(picker):
+    """`make hard` only ever offers interview classics, so `make next` puts
+    them first rather than serving a summit `make hard` would never name."""
+    ns = nodes("a")
+    ps = {"76": problem(["a"], difficulty="Hard"),      # a CLASSIC
+          "3000": problem(["a"], difficulty="Hard")}    # not
+    st = {"a": (SOLID, ago(1))}
+    assert picker.summits(ns, ps, {}, st) == ["76"]
+
+
+def test_a_missing_node_behind_a_rusty_prereq_is_not_on_the_frontier(picker):
+    """It is not blocked, it is simply not up yet — reporting it would turn
+    the frontier list into noise."""
+    ns = nodes("prereq", ("new", ["prereq"]))
+    ps = {"1": problem(["new"], difficulty="Hard"), "2": problem(["prereq"])}
+    st = {"prereq": (FRAGILE, ago(1)), "new": (MISSING, None)}
+    assert [nid for nid, _, _ in picker.blocked(ns, ps, {}, st)] == []

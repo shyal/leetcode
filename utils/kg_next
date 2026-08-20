@@ -27,6 +27,10 @@
 #      memory is effectively gone, so re-enter on a gentle fresh carrier the way
 #      FRAGILE does, instead of a cold "re-solve" that plays like a new problem
 #   3. one new MISSING move whose prereqs are all SOLID
+#   4. nothing rusty and nothing new: a summit — the gentlest unsolved Hard
+#      whose whole walk is already SOLID. A Hard is never a CARRIER (not where
+#      a rusty move gets its rep), but once it is all-green it is exactly what
+#      to work on next, so it is picked here rather than behind `make hard`.
 # One-new-move rule is enforced: every other move in the walk must be SOLID.
 # Drill-success gate (kg_lib.drill_gated): a MISSING/FRAGILE/deep-stale target
 # with a drill bank gets ONLY its drill until a clean rep clears the status —
@@ -52,7 +56,8 @@ from kg_lib import (
     node_status, latest_carrier, SOLID, STALE, FRAGILE, MISSING,
     DEEP_STALE_DAYS, load_sleep, sleep_state,
     last_solved, pnum_key, dodged_nodes, dodgeable, carriers_for, gentleness,
-    input_tree, tree_size, acceptance, due_drill, drill_gated,
+    input_tree, tree_size, acceptance, due_drill, drill_gated, has_drill_bank,
+    CLASSICS, route_gaps, rank_summits,
 )
 from kg_render import make_digraph, status_node, render, display, animate, STATUS_FACE
 
@@ -237,7 +242,87 @@ def pick(nodes, problems, evidence, statuses, asleep=(), woken=(), exclude=(),
             cands.sort(key=lambda p: (gentleness(p, problems, nodes), -acceptance(p), pnum_key(p)))
             return target, MISSING, cands[0], "one genuinely new move, prereqs all solid"
 
+    # rule 4: nothing rusty and nothing new — take a summit. A Hard is never a
+    # CARRIER (it is not where a rusty move gets its rep), but once its walk is
+    # gap-free it is exactly what to work on next, so it belongs in the same
+    # pick as everything else rather than behind a second command.
+    summits = [p for p in ready_hards(problems, nodes, evidence, statuses)
+               if p not in asleep and p not in exclude]
+    if summits:
+        pnum = rank_summits(summits, problems, nodes, statuses)[0]
+        return problems[pnum]["moves"][0], SOLID, pnum, \
+            "summit — its walk has no gaps left"
+
     return None
+
+
+def ready_hards(problems, nodes, evidence, statuses):
+    """Unsolved Hards with no gaps left in their route: every node in the
+    transitive input tree SOLID, and no `unmapped` move (a trick the taxonomy
+    has no node for yet — unroutable new ground, so the walk is farther away
+    than its mapped moves suggest).
+
+    Classics come first, and the whole list is ranked by kg_lib.rank_summits,
+    so `make next` and `make hard` cannot name different summits."""
+    solved = {r["problem"] for r in evidence.values() if r.get("problem")}
+    out = []
+    for pnum, p in problems.items():
+        if p.get("difficulty") != "Hard" or p.get("banned") or pnum in solved \
+                or not p.get("moves"):
+            continue
+        if route_gaps(pnum, problems, nodes, statuses)[1] == 0:
+            out.append(pnum)
+    classics = [p for p in out if p in CLASSICS]
+    pool = classics or out
+    return rank_summits(pool, problems, nodes, statuses)
+
+
+def blocked_frontier(nodes, problems, evidence, statuses, asleep=(), exclude=()):
+    """The frontier nodes pick() had to walk past, each with the reason it
+    could not be served: [(node, status, why), ...].
+
+    pick() returning None is two different answers wearing the same face —
+    "nothing is due" and "something is due but the bank cannot carry it" —
+    and only the second one is a to-do. A node with no READY carrier and no
+    drill bank fell through every branch silently, which is how the last
+    MISSING node in the graph stayed invisible while `make next` printed
+    nothing at all."""
+    out = []
+    for nid in nodes:
+        status, _ = statuses[nid]
+        if status == SOLID:
+            continue
+        if status == MISSING and not all(statuses[p][0] == SOLID
+                                         for p in nodes[nid].get("prereqs", [])
+                                         if p in statuses):
+            continue  # a prereq is still rusty — not on the frontier yet
+        ready = carriers_for(nid, problems, statuses, nodes)
+        if [c for c in ready if c not in asleep and c not in exclude]:
+            continue  # servable — pick() just preferred something else
+        if due_drill(nid, evidence):
+            continue  # its drill is available and pick() would offer it
+
+        walks = [p for p, v in problems.items() if nid in v.get("moves", [])]
+        usable = [p for p in walks if not problems[p].get("banned")
+                  and problems[p].get("difficulty") != "Hard"]
+        listed = ", ".join(sorted(walks, key=pnum_key))
+        if not walks:
+            why = "no problem in the graph uses this move"
+        elif not usable:
+            why = (f"the only problem using it is {listed}, a Hard or banned one "
+                   "(hards are summits, never used to introduce a move)"
+                   if len(walks) == 1 else
+                   f"every problem using it ({listed}) is a Hard or banned")
+        elif not ready:
+            why = "every problem using it also needs a second rusty move made solid first"
+        else:
+            why = "every problem using it is asleep or already solved today"
+        if has_drill_bank(nid):
+            why += ", and its drill is done for today"
+        else:
+            why += ", and no drill exists for it"
+        out.append((nid, status, why))
+    return out
 
 
 def main():
@@ -247,6 +332,9 @@ def main():
     parser.add_argument("--graph", action="store_true",
                         help="label tree nodes with move names (default: shape only)")
     parser.add_argument("--no-show", action="store_true", help="skip the drawing")
+    parser.add_argument("--why", action="store_true",
+                        help="when there is nothing to serve, name the frontier "
+                             "nodes the bank cannot carry, and why")
     parser.add_argument("--prepare", action="store_true",
                         help="run `make prepare` on the pick (stub + branch — the solve clock starts)")
     args = parser.parse_args()
@@ -279,17 +367,37 @@ def main():
 
     exclude = set(solved_today_pnums())
     choice = None
+    shown = 0
     for _ in range(max(1, args.n)):
         choice = pick(nodes, problems, evidence, statuses, asleep=asleep, woken=woken,
                       exclude=exclude, session_start=session_start)
         if not choice:
             break
+        shown += 1
         exclude.add(choice[2])
     if not choice:
-        if exclude:
-            console.print(f"[yellow]Only {len(exclude)} recommendation(s) available — nothing left to skip to.[/yellow]")
+        # Zero friction: time worked, and what to work on next. Nothing else.
+        # Basecamp running dry is the expected end state, not a fault — it
+        # means the summits are the only thing left, so say so in one line.
+        # The diagnosis of WHY a frontier node could not be served is real
+        # but it is bank maintenance, not the answer to "what now": it lives
+        # behind --why.
+        if shown:
+            console.print(f"[yellow]Only {shown} recommendation(s) available.[/yellow]")
         else:
-            console.print("[yellow]No READY carrier found for any frontier node — the graph needs new problems mapped.[/yellow]")
+            console.print("\nNothing to serve — the graph needs new problems mapped.")
+
+        if args.why:
+            blocked = blocked_frontier(nodes, problems, evidence, statuses, asleep, exclude)
+            if blocked:
+                table = Table(show_header=True, header_style="bold", box=None, padding=(0, 2))
+                table.add_column("Move")
+                table.add_column("Status")
+                table.add_column("Why it can't be served")
+                for nid, status, why in blocked:
+                    table.add_row(nid, f"[{STATUS_STYLE[status]}]{status}[/{STATUS_STYLE[status]}]", why)
+                console.print()
+                console.print(table)
         return
     target, target_status, pnum, reason = choice
 
@@ -348,8 +456,12 @@ def main():
         label = m if labeled else random.choice(STATUS_FACE[s])
         table.add_row(label, f"[{STATUS_STYLE[s]}]{s}[/{STATUS_STYLE[s]}]", str(d) if d else "—")
 
+    # A summit reads differently from a basecamp problem — it is a test, taken
+    # all-green — so it gets kg_hard's mountain rather than a word of prose.
+    summit = "⛰  " if p.get("difficulty") == "Hard" else ""
+
     with console.capture() as cap:
-        console.print(f"\n[bold]{pnum}. {p['title']}[/bold]")
+        console.print(f"\n[bold]{summit}{pnum}. {p['title']}[/bold]")
         console.print(problem_url(pnum))
         if p.get("note"):
             console.print(f"[yellow]⚠ {p['note']}[/yellow]")

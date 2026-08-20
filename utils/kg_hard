@@ -43,6 +43,7 @@ from kg_lib import (
     DEEP_STALE_DAYS, load_sleep, sleep_state, last_solved, pnum_key,
     dodged_nodes, dodgeable, carriers_for, gentleness, claude_json, taxonomy_summary,
     input_tree, tree_size, acceptance, drill_gated,
+    CLASSICS, route_gaps, rank_summits,
 )
 from kg_render import make_digraph, status_node, render, display, animate
 
@@ -50,36 +51,6 @@ console = Console()
 
 STATUS_STYLE = {SOLID: "green", STALE: "yellow", FRAGILE: "red", MISSING: "dim"}
 HARD_EFFECT = ("laseretch",)
-
-# Interview-classic Hards worth summiting: number -> why it's valuable.
-# Filtered against data/problems_metadata.json difficulty at runtime, so a
-# mislabeled entry silently drops out rather than lying.
-CLASSICS = {
-    "4": "binary-search partitioning at its purest",
-    "23": "the canonical heap hard — k-way merge",
-    "25": "pointer surgery mastery — reverse in k-groups",
-    "32": "stack meets DP on parentheses",
-    "41": "in-place index cycling, O(1) space",
-    "42": "the most famous hard — prefix-max / two-pointer",
-    "76": "sliding window with need/have counters",
-    "84": "monotonic stack at full power",
-    "85": "84 lifted into 2-D",
-    "124": "global-vs-path tree DP",
-    "127": "implicit-graph BFS",
-    "212": "trie + backtracking",
-    "224": "expression parsing with a stack",
-    "239": "monotonic deque",
-    "295": "two-heap running median",
-    "297": "tree serialization round-trip",
-    "460": "layered data-structure design (LFU)",
-    "502": "greedy + heap",
-    "815": "BFS where routes are the nodes",
-    "895": "stacked frequency stacks",
-    "968": "greedy tree DP",
-    "1235": "sort + binary search + DP",
-    "2402": "two-heap simulation",
-}
-
 
 def load_metadata():
     path = os.path.join(os.path.dirname(GRAPH_DIR), "data/problems_metadata.json")
@@ -130,18 +101,6 @@ Do not explain the solutions."""
     return mapped
 
 
-def route_gaps(pnum, problems, nodes, statuses):
-    """Non-SOLID nodes in the problem's input tree, and how many of them are
-    consolidation (FRAGILE/STALE — moves you once had) vs new ground.
-    Unmapped proposals count as gaps too: they are unroutable new territory,
-    so a walk carrying them is farther away than its mapped moves suggest."""
-    closure = input_tree(problems[pnum]["moves"], nodes)
-    gaps = [n for n in closure if statuses[n][0] != SOLID]
-    gap_count = len(gaps) + len(problems[pnum].get("unmapped", []))
-    consolidation = sum(1 for n in gaps if statuses[n][0] in (FRAGILE, STALE))
-    return gaps, gap_count, consolidation
-
-
 def pick_summit(problems, nodes, statuses, evidence, metadata):
     """Most reachable valuable classic: fewest gaps, consolidation breaks ties."""
     candidates = [num for num in CLASSICS
@@ -153,14 +112,8 @@ def pick_summit(problems, nodes, statuses, evidence, metadata):
         console.print(f"[dim]Mapping {len(unmapped)} classic Hards onto the taxonomy "
                       "— one claude call, cached after...[/dim]")
         mapped += map_with_claude(unmapped, problems, nodes, metadata)
-    scored = []
-    for num in mapped:
-        _, gap_count, consolidation = route_gaps(num, problems, nodes, statuses)
-        scored.append((gap_count, -consolidation, pnum_key(num), num))
-    if not scored:
-        return None
-    scored.sort()
-    return scored[0][3]
+    ranked = rank_summits(mapped, problems, nodes, statuses)
+    return ranked[0] if ranked else None
 
 
 def choose_carrier(target, sim, problems, nodes, evidence, dodged, excluded):
