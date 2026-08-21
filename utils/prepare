@@ -4,6 +4,7 @@
 
 import argparse
 import json
+import queue
 import sys
 import subprocess
 import os
@@ -11,6 +12,8 @@ import subprocess as _subprocess
 import tempfile
 import threading
 import requests
+
+from stub_utils import sanitize, strip_solution, structure_problems
 
 CACHE_DIR = ".prepare_cache"
 
@@ -23,33 +26,75 @@ def cache_load(num):
     try:
         with open(cache_path(num)) as f:
             entry = json.load(f)
-        return entry["title"], entry["code"]
+        # "solution" is absent on entries cached before it was kept
+        return entry["title"], entry["code"], entry.get("solution")
     except (OSError, ValueError, KeyError):
         return None
 
 
-def cache_save(num, title, code):
+def cache_save(num, title, code, solution):
     os.makedirs(CACHE_DIR, exist_ok=True)
     with open(cache_path(num), "w") as f:
-        json.dump({"title": title, "code": code}, f)
+        json.dump({"title": title, "code": code, "solution": solution}, f)
+
+
+SYSTEM_PROMPT = (
+    "You are a helpful assistant that generates Python stubs for "
+    "LeetCode problems. Output ONLY the raw Python source code for "
+    "the stub — no explanations, no markdown fences, no preamble, "
+    "no postamble. Do NOT attempt to use any tools; the caller "
+    "writes your stdout straight to disk."
+)
+
+
+def strip_fences(out):
+    # some models wrap output in markdown fences despite the system prompt
+    if out.startswith("```"):
+        lines = out.splitlines()[1:]
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+        out = "\n".join(lines).strip()
+    return out
+
+
+def openai_llm(user_prompt):
+    key = open(os.path.expanduser("~/.openai_key_leet")).read().strip()
+    r = requests.post(
+        "https://api.openai.com/v1/chat/completions",
+        headers={"Authorization": "Bearer " + key},
+        json={
+            "model": args.model,
+            "messages": [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt},
+            ],
+            # reasoning models (gpt-5*, o*) only accept the default temperature
+            **({"temperature": 0.2} if args.model.startswith("gpt-4") else {}),
+        },
+        timeout=600,
+    )
+    r.raise_for_status()
+    return strip_fences(r.json()["choices"][0]["message"]["content"].strip())
 
 
 def claude(user_prompt):
     result = _subprocess.run(
         [
             "claude", "-p", user_prompt,
-            "--system-prompt",
-            "You are a helpful assistant that generates Python stubs for "
-            "LeetCode problems. Output ONLY the raw Python source code for "
-            "the stub — no explanations, no markdown fences, no preamble, "
-            "no postamble. Do NOT attempt to use any tools; the caller "
-            "writes your stdout straight to disk.",
+            *(["--model", args.model] if args.model else []),
+            "--system-prompt", SYSTEM_PROMPT,
             "--disallowedTools", "Write,Edit,Read,Bash,NotebookEdit",
             "--output-format", "text",
         ],
         capture_output=True, text=True,
     )
-    return result.stdout.strip()
+    return strip_fences(result.stdout.strip())
+
+
+def llm(user_prompt):
+    if args.model and args.model.startswith(("gpt-", "o3", "o4")):
+        return openai_llm(user_prompt)
+    return claude(user_prompt)
 
 
 def validate(code):
@@ -72,6 +117,53 @@ def validate(code):
         return False, "Timed out after 60s (likely an infinite loop)."
     finally:
         os.unlink(path)
+
+
+def append_computed_asserts(code, exprs_text):
+    """Evaluate model-proposed test expressions against the validated
+    solution and append `assert expr == <computed value>` lines for the ones
+    that yield a stable literal. Anything that fails to parse, raises, or
+    returns a non-literal is silently dropped."""
+    import ast
+
+    exprs = []
+    for line in exprs_text.splitlines():
+        line = line.strip().rstrip(",")
+        if not line or line.startswith("#") or line.startswith("```"):
+            continue
+        try:
+            compile(line, "<expr>", "eval")
+        except SyntaxError:
+            continue
+        exprs.append(line)
+    if not exprs:
+        return code
+
+    harness = [code, ""]
+    for i, e in enumerate(exprs):
+        harness.append(
+            f"try:\n"
+            f"    print('@@EXPR', {i}, repr(({e})))\n"
+            f"except Exception:\n"
+            f"    pass"
+        )
+    ok, output = validate("\n".join(harness))
+    results = {}
+    for line in output.splitlines():
+        if line.startswith("@@EXPR "):
+            _, idx, rep = line.split(" ", 2)
+            if len(rep) > 400:
+                continue  # a wall of output makes a useless, bloated assert
+            try:
+                value = ast.literal_eval(rep)
+            except (ValueError, SyntaxError):
+                continue  # reprs like <TreeNode ...> can't be asserted against
+            if value is not None:
+                results[int(idx)] = rep
+    new = [f"assert {exprs[i]} == {results[i]}" for i in sorted(results)]
+    if not new:
+        return code
+    return code.rstrip() + "\n\n" + "\n".join(new) + "\n"
 
 
 def run_git(cmd):
@@ -179,6 +271,18 @@ parser.add_argument(
     "targets", nargs="+",
     help="Leetcode question numbers, or drill node ids (drills/<node-id>/).",
 )
+parser.add_argument(
+    "--warm", action="store_true",
+    help="Only populate .prepare_cache; skip the git branch/commit step.",
+)
+parser.add_argument(
+    "--jobs", type=int, default=4,
+    help="Max problems generated concurrently (default 4).",
+)
+parser.add_argument(
+    "--model", default=None,
+    help="Model for the claude calls (default: your CLI default).",
+)
 
 args = parser.parse_args()
 
@@ -236,9 +340,10 @@ lock = threading.Lock()
 def process_problem(num):
     cached = cache_load(num)
     if cached:
-        title, code = cached
+        title, code, _solution = cached
         print(f"Using cached stub for {num}. {title}")
-        finalize(num, title, code)
+        if not args.warm:
+            finalize(num, title, code)
         return
 
     title, slug, difficulty, content, example_testcases, python_stub = (
@@ -247,48 +352,10 @@ def process_problem(num):
 
     problem_url = f"https://leetcode.com/problems/{slug}/description/?envType=problem-list-v2&envId=vn57k9wr"
 
-    user_prompt = f"""Please generate a usable solution for LeetCode problem {num}. {title}.
-
-Use the following accurate data from LeetCode API:
-
-Difficulty: {difficulty}
-
-Content (HTML, please clean and format it nicely for the docstring):
-
-{content}
-
-Example inputs (newline-separated):
-
-{example_testcases}
-
-Python3 code snippet (use this for the Solution class and method signature):
-
-{python_stub}
-
-Parse the content to extract the problem statement, examples (including inputs, outputs, explanations), and constraints.
-Format them properly in the docstring, removing HTML tags.
-
-The docstring should start with:
-URL: {problem_url}
-
-{num}. {title}
-
-Then the cleaned problem statement.
-
-Then the examples.
-
-Then the constraints.
-
-The solution should include this docstring,
-the Solution class with the method implemented with a passable solution (generate one),
-then instantiate sol = Solution().
-The first example is invoked with a print() (or draw_tree, tabulate etc if special printing functions apply), with the expected result commented out.
-This is so the user can run the code and see output without asserting.
-Then generate all the examples as assert statements.
-
-Here is an example of how the stub should look:
-
-{example_stub}
+    # the static preamble (environment + rules) comes FIRST and is identical
+    # for every problem, so API-side prefix caching can bill it at the cached
+    # rate; everything problem-specific comes after it.
+    user_prompt = f"""You generate LeetCode solution files. The environment and rules below are FIXED and identical for every request; the problem comes at the end.
 
 Here is the `sitecustomize.py`. Use builtins when necessary.
 
@@ -330,29 +397,62 @@ they are already available without imports:
 
 Do NOT emit `from typing import ...`, `from collections import ...`, `from functools import ...`,
 `from itertools import ...`, `from math import ...`, `from heapq import ...`, `from bisect import ...`,
-or `from string import ...`. The stub should have ZERO import statements unless it genuinely needs
+or `from string import ...`. The file should have ZERO import statements unless it genuinely needs
 something not listed above.
 
-Output only the description docstring, the Python code for the stub, and asserts. Indents are 4 spaces.
+Parse the content to extract the problem statement, examples (including inputs, outputs, explanations), and constraints.
+Format them properly in the docstring, removing HTML tags.
+
+The docstring should start with the URL line given with the problem, then:
+
+<num>. <title>
+
+Then the cleaned problem statement.
+
+Then the examples.
+
+Then the constraints.
+
+The solution should include this docstring,
+the Solution class with the method implemented with a passable solution (generate one),
+then instantiate sol = Solution().
+The first example is invoked with a print() (or draw_tree, tabulate etc if special printing functions apply), with the expected result commented out.
+This is so the user can run the code and see output without asserting.
+Then generate all the examples as assert statements. ONLY the official examples
+given in the problem content - do NOT invent additional test cases; their
+expected values would be guesses, and extra coverage is added by a later stage
+that computes expected values by execution.
+
+Here is an example of how the file should look:
+
+{example_stub}
+
+Output only the description docstring, the Python code for the solution, and asserts. Indents are 4 spaces.
+
+Now the problem. Please generate a usable solution for LeetCode problem {num}. {title}.
+
+Use the following accurate data from LeetCode API:
+
+Difficulty: {difficulty}
+
+URL line for the docstring:
+
+URL: {problem_url}
+
+Content (HTML, please clean and format it nicely for the docstring):
+
+{content}
+
+Example inputs (newline-separated):
+
+{example_testcases}
+
+Python3 code snippet (use this for the Solution class and method signature):
+
+{python_stub}
 """
 
-    code = claude(user_prompt)
-
-    asserts_prompt = f"""
-Please generate output in the same format as input (description in docstring, solution, instantiation, and asserts). Your
-goal is to generate more asserts that handle edge cases, and ensure full coverage of the solution, not to make sure
-the solution passes.
-
-You cannot execute code, so derive each expected value carefully by hand; the caller will execute all asserts
-and reject the output if any fail. Do not generate comments for the tests.
-
-Now the content:
-
-{code}
-
-"""
-
-    code = claude(asserts_prompt)
+    code = llm(user_prompt)
 
     # The generator can't execute anything, so its asserts are unverified.
     # Actually run solution+asserts here and loop failures back until green.
@@ -361,12 +461,15 @@ Now the content:
         if ok:
             break
         print(f"{num}: validation attempt {attempt + 1} failed, asking for a fix")
-        code = claude(f"""
-The following LeetCode stub (solution + asserts) FAILED when executed. Fix it:
-if an assert's expected value is wrong, correct the expected value; if the
-solution itself is buggy, fix the solution. Keep the format identical
-(description in docstring, solution, instantiation, print of first example,
-asserts). Output only the raw Python source.
+        code = llm(f"""
+The following LeetCode stub (solution + asserts) FAILED when executed. Fix the
+SOLUTION. The asserts encode the official examples from the problem statement:
+their expected values are ground truth and must NOT be changed (only fix an
+expected value if it plainly contradicts the Output shown in the docstring's
+examples). If an assert is NOT one of the official examples, DELETE it rather
+than guessing its value. Keep the format identical (description in docstring, solution,
+instantiation, print of first example, asserts). Output only the raw Python
+source.
 
 Execution output:
 
@@ -380,29 +483,77 @@ The code:
         print(f"{num}: could not produce a passing solution+asserts, skipping.\nLast output:\n{output}")
         return
 
-    clean_up_prompt = f"""
-Please generate output in the same format as input (description in docstring, solution, instantiation, and asserts). Your
-goal is to strip out the actual solution method body, so a candidate can use your output as a stub.
+    # Enforce the house format: first deterministically (drop redundant
+    # imports / helper-class redefinitions), then one corrective call if the
+    # file is still structurally wrong. sanitize can remove a class the file
+    # genuinely needs (e.g. a quad-tree Node shadowing the injected graph
+    # Node), so it only stands if the file still runs afterwards.
+    sanitized = sanitize(code)
+    if sanitized != code:
+        ok, _ = validate(sanitized)
+        if ok:
+            code = sanitized
+    flaws = structure_problems(code)
+    if flaws:
+        print(f"{num}: fixing structure ({'; '.join(flaws)})")
+        code = llm(f"""
+The following file works but violates the required format:
+{chr(10).join('- ' + f for f in flaws)}
 
-IMPORTANT rules:
-- Keep the URL line at the top of the docstring exactly as-is.
-- Keep the print() call for the first example UNCOMMENTED (so the user can run the file and see output).
-- Comment out all the assert statements.
-
-Now the content:
+Fix ONLY those violations. Keep the solution, docstring content, prints and asserts
+otherwise identical. Output only the raw Python source.
 
 {code}
+""")
+        code = sanitize(code)
+        ok, _ = validate(code)
+        if not ok or structure_problems(code):
+            print(f"{num}: structure fix failed, skipping.")
+            return
 
-"""
+    # Edge-case coverage: the model proposes test EXPRESSIONS only; the
+    # validated solution computes each expected value locally, so no
+    # hand-derived (and possibly wrong) value ever lands in an assert.
+    exprs = llm(f"""
+The file below contains a correct, validated solution. Propose extra edge-case test
+expressions for it: ONE Python expression per line, nothing else. Each expression must
+call the solution and evaluate to a plain comparable value (wrap structure results with
+helpers like get_level_order / get_list_values as the existing asserts do). Do NOT write
+assert statements, expected values, comments, or blank lines. Cover boundary sizes,
+duplicates, negatives, and constraint extremes. At most 12 lines.
 
-    code = claude(clean_up_prompt)
+{code}
+""")
+    with_edges = append_computed_asserts(code, exprs)
+    if with_edges is not code:
+        ok, _ = validate(with_edges)
+        if ok:
+            code = with_edges
+    # current.py is derived from it, deterministically, at write time.
+    # both cache fields are stored black-formatted.
+    solution = code
     try:
-        compile(code, f"{num}.py", "exec")
+        import black
+        solution = black.format_str(solution, mode=black.Mode())
+    except ImportError:
+        pass
+    except Exception as e:
+        print(f"{num}: black failed ({e}), storing unformatted")
+    try:
+        stub = strip_solution(solution)
     except SyntaxError as e:
-        print(f"{num}: stripped stub has a syntax error, skipping.\n{e}")
+        print(f"{num}: could not strip the solution, skipping.\n{e}")
         return
-    cache_save(num, title, code)
-    finalize(num, title, code)
+    try:
+        import black
+        stub = black.format_str(stub, mode=black.Mode())
+    except Exception:
+        pass
+    cache_save(num, title, stub, solution)
+    if args.warm:
+        print(f"{num}: cached.")
+    else:
+        finalize(num, title, stub)
 
 
 def finalize(num, title, code):
@@ -432,11 +583,28 @@ for nid in node_ids:
     if r.returncode:
         sys.exit(r.returncode)
 
-threads = []
+work = queue.Queue()
 for num in numbers:
-    t = threading.Thread(target=process_problem, args=(num,))
-    t.start()
-    threads.append(t)
+    work.put(num)
 
+
+def worker():
+    while True:
+        try:
+            num = work.get_nowait()
+        except queue.Empty:
+            return
+        try:
+            process_problem(num)
+        except Exception as e:
+            print(f"{num}: failed ({e})")
+
+
+threads = [
+    threading.Thread(target=worker)
+    for _ in range(min(args.jobs, len(numbers)) or 1)
+]
+for t in threads:
+    t.start()
 for t in threads:
     t.join()
