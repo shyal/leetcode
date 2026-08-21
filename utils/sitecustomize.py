@@ -159,6 +159,23 @@ builtins.sub = operator.sub
 builtins.isub = operator.isub
 builtins.xor = operator.xor
 builtins.ixor = operator.ixor
+# the module objects themselves, mirroring leetcode's preloaded imports
+import math as _math
+import functools as _functools
+import itertools as _itertools
+import collections as _collections
+import string as _string
+
+builtins.math = _math
+builtins.functools = _functools
+builtins.itertools = _itertools
+builtins.collections = _collections
+builtins.string = _string
+builtins.bisect = bisect
+builtins.re = re
+builtins.operator = operator
+
+builtins.heapq = heapq
 builtins.heapify = heapq.heapify
 builtins.heappop = heapq.heappop
 builtins.heappush = heapq.heappush
