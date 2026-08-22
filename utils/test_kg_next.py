@@ -72,11 +72,13 @@ def picker(monkeypatch):
     """pick() with its three disk reads stubbed: no drill bank anywhere and a
     neutral acceptance for every problem. Tests that care override them via
     the returned control object."""
-    ctl = type("Ctl", (), {"bank": set(), "drilled_today": set(), "acceptance": {}})()
+    ctl = type("Ctl", (), {"bank": set(), "drilled_today": set(), "acceptance": {},
+                           "unlocks": {}})()
 
     monkeypatch.setattr(kg_next, "drill_gated",
                         lambda nid, status, last, today=None:
                         nid in ctl.bank and status in (FRAGILE, MISSING))
+    monkeypatch.setattr(kg_next, "unlocks", lambda statuses, problems: ctl.unlocks)
     monkeypatch.setattr(kg_next, "due_drill",
                         lambda nid, ev, today=None:
                         f"drills/{nid}/one.py"
@@ -124,6 +126,51 @@ def test_oldest_fragile_goes_first(picker):
     ps = {"1": problem(["recent"]), "2": problem(["ancient"])}
     st = {"recent": (FRAGILE, ago(2)), "ancient": (FRAGILE, ago(200))}
     assert picker.run(ns, ps, {}, st)[0] == "ancient"
+
+
+# --------------------------------------------------------------------------
+# reachability-aware ordering (PLAN.md phase 1): unlock count ranks the due
+# nodes; evidence age breaks ties
+# --------------------------------------------------------------------------
+
+def test_higher_unlock_fragile_outranks_an_older_one(picker):
+    ns = nodes("old_dud", "young_key")
+    ps = {"1": problem(["old_dud"]), "2": problem(["young_key"])}
+    st = {"old_dud": (FRAGILE, ago(200)), "young_key": (FRAGILE, ago(2))}
+    picker.unlocks = {"young_key": 12, "old_dud": 1}
+    assert picker.run(ns, ps, {}, st)[0] == "young_key"
+
+
+def test_age_breaks_an_unlock_tie(picker):
+    ns = nodes("recent", "ancient")
+    ps = {"1": problem(["recent"]), "2": problem(["ancient"])}
+    st = {"recent": (FRAGILE, ago(2)), "ancient": (FRAGILE, ago(200))}
+    picker.unlocks = {"recent": 5, "ancient": 5}
+    assert picker.run(ns, ps, {}, st)[0] == "ancient"
+
+
+def test_highest_unlock_missing_move_is_introduced_first(picker):
+    ns = nodes("a", "b")
+    ps = {"1": problem(["a"]), "2": problem(["b"])}
+    st = {"a": (MISSING, None), "b": (MISSING, None)}
+    picker.unlocks = {"b": 10, "a": 2}
+    assert picker.run(ns, ps, {}, st)[:2] == ("b", MISSING)
+
+
+def test_unlocks_counts_only_problems_blocked_by_exactly_one_node():
+    from kg_lib import unlocks
+    st = {"a": (SOLID, ago(1)), "b": (FRAGILE, ago(1)), "c": (MISSING, None)}
+    problems = {"1": problem(["a"])}          # already solved, never counted
+    predicted = {
+        "1": {"walks": [{"moves": ["a", "b"]}]},           # solved: skipped
+        "2": {"walks": [{"moves": ["a", "b"]}]},           # blocked only by b
+        "3": {"walks": [{"moves": ["b", "c"]}]},           # two gaps: nobody
+        "4": {"walks": [{"moves": ["a"]}]},                # in reach: skipped
+        "5": {"walks": [{"moves": ["a", "b"], "missing": ["segment-tree"]},
+                        {"moves": ["a", "c"]}]},           # only clean walk -> c
+        "6": {"walks": [{"moves": ["a"]}, {"moves": ["a", "b"]}]},  # in reach
+    }
+    assert unlocks(st, problems, predicted) == {"b": 1, "c": 1}
 
 
 # --------------------------------------------------------------------------
