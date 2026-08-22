@@ -400,6 +400,13 @@ Do NOT emit `from typing import ...`, `from collections import ...`, `from funct
 or `from string import ...`. The file should have ZERO import statements unless it genuinely needs
 something not listed above.
 
+Likewise do NOT redefine any injected helper or class (build_tree, get_level_order,
+build_linked_list, get_list_values, draw_tree, TreeNode, ListNode, ...) — call the builtins.
+The ONLY exception is a problem-specific class the problem statement itself defines (e.g. a
+Node with a random pointer, graph neighbors, or quad-tree fields), which must shadow the
+injected name. Same for helpers: if the builtin's signature does not fit the problem (e.g.
+level order of a FOREST), define the variant locally rather than reshaping the builtin.
+
 Parse the content to extract the problem statement, examples (including inputs, outputs, explanations), and constraints.
 Format them properly in the docstring, removing HTML tags.
 
