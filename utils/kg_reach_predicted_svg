@@ -1,0 +1,180 @@
+#!/usr/bin/env python3
+
+# kg_reach_predicted_svg - predicted reach over the whole catalog, animated
+# into graph/reach_predicted.svg.
+#
+# The phase 2 chart (PLAN.md): the measured reach curve (graph/reach.svg)
+# never mixes in guesses, so the predicted tier gets its own chart. Frontier
+# here = every problem with any walk: the evidenced walks in problems.json
+# plus the LLM-drafted walks in predicted.json. A problem is in predicted
+# reach on a day when ANY of its walks had every move SOLID that day. A
+# drafted walk that asked for a move the taxonomy lacks (missing:) can never
+# be all-solid; empty drafts don't count as walks. The evidenced-frontier
+# curve is replotted on the same axis for scale. Same daily replay, clock and
+# SMIL conventions as reach.svg.
+
+import json
+import os
+from datetime import date, timedelta
+
+from kg_lib import (
+    GRAPH_DIR,
+    SOLID,
+    ERA_SWITCH,
+    MovieClock,
+    era_banner,
+    load_evidence,
+    load_nodes,
+    load_problems,
+)
+from kg_lib import node_status
+
+OUT = os.path.join(GRAPH_DIR, "reach_predicted.svg")
+
+W, H = 1200, 420
+ML, MR = 70, 24
+PT, PB = 56, 360
+
+BG = "#0d1117"
+INK = "#c9d1d9"
+MUTED = "#8b949e"
+GRID = "#21262d"
+MEASURED_C = "#58a6ff"
+PREDICTED_C = "#bc8cff"
+
+
+def load_predicted():
+    path = os.path.join(GRAPH_DIR, "predicted.json")
+    return json.load(open(path))["problems"]
+
+
+def main():
+    nodes = load_nodes()
+    problems = load_problems()
+    predicted = load_predicted()
+    evidence = load_evidence()
+    clock = MovieClock(evidence)
+
+    # frontier = every problem with any walk record, even one that can never
+    # be all-solid (empty draft, or a draft needing a move the taxonomy
+    # lacks); those stay in the denominator as the taxonomy's blind spots.
+    # walks = only the move lists that CAN be all-solid.
+    walks = {num: [] for num in problems}
+    walks.update({num: walks.get(num, []) for num in predicted})
+    for num, p in problems.items():
+        walks[num].append(p["moves"])
+    for num, p in predicted.items():
+        for w in p["walks"]:
+            if w["moves"] and not w.get("missing"):
+                walks[num].append(w["moves"])
+    catalog = len(walks)
+    move_ids = sorted(set(nodes) | {m for ws in walks.values() for w in ws for m in w})
+
+    by_day = {}
+    for fname, rec in evidence.items():
+        by_day.setdefault(rec["date"], {})[fname] = rec
+    ev_t = {}
+    pred_reach, meas_reach = [], []
+    for i in range(clock.n_ticks):
+        d = clock.first + timedelta(days=i)
+        ev_t.update(by_day.get(d.isoformat(), {}))
+        statuses = {m: node_status(m, ev_t, today=d)[0] for m in move_ids}
+        pred_reach.append(sum(1 for ws in walks.values()
+                              if any(all(statuses[m] == SOLID for m in w) for w in ws)))
+        meas_reach.append(sum(1 for p in problems.values()
+                              if all(statuses[m] == SOLID for m in p["moves"])))
+
+    y_hi = catalog + 60
+
+    def x_of(d):
+        return ML + (d - clock.first).days / max((clock.last - clock.first).days, 1) * (W - ML - MR)
+
+    def y(v):
+        return PB - v / y_hi * (PB - PT)
+
+    svg = []
+    svg.append(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" '
+               f'font-family="Helvetica,sans-serif">')
+    svg.append(f'<rect width="{W}" height="{H}" fill="{BG}"/>')
+    svg.append(f'<text x="{W / 2:.0f}" y="24" text-anchor="middle" font-size="13" fill="{INK}">'
+               f"Predicted reach - of all {catalog} walked problems (LLM-drafted walks included), "
+               'how many had some walk all-SOLID on that day</text>')
+    svg.append(f'<text x="{W / 2:.0f}" y="42" text-anchor="middle" font-size="11" fill="{MUTED}">'
+               'predicted tier: gpt-5-mini drafts vs 50 evidenced walks: '
+               'precision 0.80, recall 0.75, exact 25/50</text>')
+
+    for v in range(0, catalog + 1, 500):
+        yy = y(v)
+        svg.append(f'<line x1="{ML}" y1="{yy:.1f}" x2="{W - MR}" y2="{yy:.1f}" '
+                   f'stroke="{GRID}" stroke-width="1"/>')
+        svg.append(f'<text x="{ML - 8}" y="{yy + 4:.1f}" text-anchor="end" font-size="11" '
+                   f'fill="{MUTED}">{v}</text>')
+    yf = y(catalog)
+    svg.append(f'<line x1="{ML}" y1="{yf:.1f}" x2="{W - MR}" y2="{yf:.1f}" '
+               f'stroke="{MUTED}" stroke-width="1" stroke-dasharray="7 5"/>')
+    svg.append(f'<text x="{ML + 6}" y="{yf - 6:.1f}" font-size="11" fill="{MUTED}">'
+               f'every walked problem ({catalog})</text>')
+
+    months = []
+    m = date(clock.first.year, clock.first.month, 1)
+    while m <= clock.last:
+        months.append(m)
+        m = date(m.year + (m.month == 12), m.month % 12 + 1, 1)
+    for i, mo in enumerate(months):
+        if mo < clock.first:
+            continue
+        x = x_of(mo)
+        svg.append(f'<line x1="{x:.1f}" y1="{PB}" x2="{x:.1f}" y2="{PB + 4}" '
+                   f'stroke="{MUTED}" stroke-width="1"/>')
+        nxt = months[i + 1] if i + 1 < len(months) else clock.last
+        if x_of(min(nxt, clock.last)) - x >= 34:
+            lab = mo.strftime("jan '%y" if mo.month == 1 else "%b").lower()
+            svg.append(f'<text x="{x:.1f}" y="{PB + 17}" text-anchor="middle" font-size="11" '
+                       f'fill="{MUTED}">{lab}</text>')
+
+    if clock.first < ERA_SWITCH < clock.last:
+        x = x_of(ERA_SWITCH)
+        svg.append(f'<line x1="{x:.1f}" y1="{PT}" x2="{x:.1f}" y2="{PB}" stroke="{PREDICTED_C}" '
+                   f'stroke-width="1.2" stroke-dasharray="5 4" opacity="0.6"/>')
+    svg.extend(era_banner(clock, W - MR - 6, PT + 16, 18, anchor="end", halo=BG))
+
+    days_x = [x_of(clock.first + timedelta(days=i)) for i in range(clock.n_ticks)]
+    widths = ";".join([f"{x - ML:.1f}" for x in days_x] + [f"{days_x[-1] - ML:.1f}"])
+    kt = ";".join([f"{clock.frac(i):.4f}" for i in range(clock.n_ticks)] + ["1"])
+    svg.append(f'<clipPath id="reveal"><rect x="{ML}" y="0" width="{W - ML - MR}" height="{H}">'
+               f'<animate attributeName="width" calcMode="linear" values="{widths}" '
+               f'keyTimes="{kt}" dur="{clock.dur}s" repeatCount="indefinite"/></rect></clipPath>')
+    svg.append('<g clip-path="url(#reveal)">')
+    for series, color in ((meas_reach, MEASURED_C), (pred_reach, PREDICTED_C)):
+        line = " ".join(f"{days_x[i]:.1f},{y(series[i]):.1f}" for i in range(clock.n_ticks))
+        svg.append(f'<polyline points="{line}" fill="none" stroke="{color}" stroke-width="2.5"/>')
+    svg.append('</g>')
+
+    fx, fy = days_x[-1], y(pred_reach[-1])
+    svg.append(f'<circle cx="{fx:.1f}" cy="{fy:.1f}" r="4" fill="{PREDICTED_C}">'
+               f'<animate attributeName="opacity" calcMode="discrete" values="0;1" '
+               f'keyTimes="0;{clock.frac_date(clock.last):.4f}" dur="{clock.dur}s" '
+               f'repeatCount="indefinite"/></circle>')
+    svg.append(f'<text x="{fx - 8:.1f}" y="{fy - 10:.1f}" text-anchor="end" font-size="15" '
+               f'font-weight="bold" fill="{INK}">{pred_reach[-1]} in predicted reach'
+               f'<animate attributeName="opacity" calcMode="discrete" values="0;1" '
+               f'keyTimes="0;{clock.frac_date(clock.last):.4f}" dur="{clock.dur}s" '
+               f'repeatCount="indefinite"/></text>')
+
+    lx = ML + 6
+    for lab, color, val in ((f"predicted reach ({pred_reach[-1]})", PREDICTED_C, None),
+                            (f"evidenced frontier only ({meas_reach[-1]})", MEASURED_C, None)):
+        svg.append(f'<rect x="{lx}" y="{PT + 26}" width="10" height="10" fill="{color}"/>')
+        svg.append(f'<text x="{lx + 15}" y="{PT + 35}" font-size="12" fill="{INK}">{lab}</text>')
+        lx += 30 + 7 * len(lab)
+
+    svg.append(clock.dissolve_rect(W, H, BG))
+    svg.append("</svg>")
+    with open(OUT, "w") as f:
+        f.write("\n".join(svg) + "\n")
+    print(f"wrote {OUT} ({pred_reach[-1]}/{catalog} in predicted reach today, "
+          f"{clock.n_ticks} days)")
+
+
+if __name__ == "__main__":
+    main()
