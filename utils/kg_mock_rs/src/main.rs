@@ -134,23 +134,19 @@ fn parse_solve_trailer(s: &str) -> Option<(u64, u64, usize)> {
 
 // ------------------------------------------------------------- pass_rates --
 
-const OFF_FLOOR: [f64; 3] = [0.01, 0.04, 0.15];
-const UNKNOWN_POOL_M: f64 = 12.0;
-const UNKNOWN_POOL_H: f64 = 35.0;
 const HARDS_START: i64 = 45;
 const MOCKS_START: i64 = 90;
 const MOCKS_PER_WEEK: f64 = 2.0;
 const HARDS_PER_WEEK: f64 = 3.0;
 const N_MC: usize = 20000;
 
-// mv_recall: per move (in Counter order) the node's recall, or None -> derive.
+// mv_recall: per move of the bank universe the recall, or None -> derive.
 
 // Every pass_rates call is independent (fresh seeded RNG), so the whole
 // Monte-Carlo load fans out over a thread pool; results land by task index.
 struct Task {
     mv_recall: Arc<Vec<Option<f64>>>,
-    weights: Arc<Vec<f64>>,
-    off: [f64; 3],
+    bank: Arc<Bank>,
     r: f64,
     practice: (i64, i64, i64),
     n_mc: usize,
@@ -174,8 +170,7 @@ fn run_all(tasks: &[Task]) -> Vec<(f64, f64, f64, f64)> {
                 let t = &tasks[i];
                 let r = pass_rates(
                     &t.mv_recall,
-                    &t.weights,
-                    &t.off,
+                    &t.bank.pools,
                     t.r,
                     t.practice,
                     &mut PyRandom::new(42),
@@ -201,77 +196,99 @@ struct Snap {
 // The forward practice simulation as a steppable state machine, so a
 // pass-rate check can be taken at ANY simulated day: the monthly scan and the
 // milestone bisection both drive it.
+//
+// The taxonomy's growth is no longer an abstract unknown-idea pool: the bank
+// knows exactly which extra moves the drafted walks want and which problems
+// each one blocks. Learning absorbs them in mention-rank order (the order
+// drilling would prioritize); each learned extra becomes a real node in the
+// spaced-repetition loop and unblocks its specific problems.
 struct SimState<'a> {
     cv: &'a Curve,
     teach: f64,
     hours: f64,
     hards_per_week: f64,
-    median_w: f64,
+    bank: Arc<Bank>,
     reps: Vec<i64>,
     gaps: Vec<i64>,
-    off: [f64; 3],
-    unknown_m: f64,
-    unknown_h: f64,
-    freq_now: Vec<f64>,
-    freq_node_idx: Vec<Option<usize>>,
+    learned: Vec<Option<usize>>, // extra id -> reps/gaps index once learned
+    walk_unlearned: Vec<u32>,    // per walk gid: extras still unlearned
+    clean_walks: [Vec<u32>; 3],  // per (dif, prob): walks with 0 unlearned
+    blocked: [usize; 3],         // per dif: problems with no clean walk
+    learn_ptr: usize,
+    learn_credit: f64,
     mediums_done: i64,
     mocks_done: i64,
     hards_done: i64,
-    syn: i64,
     day: i64,
 }
 
 impl<'a> SimState<'a> {
-    #[allow(clippy::too_many_arguments)]
     fn new(
         hours: f64,
         teach: f64,
         reps: Vec<i64>,
         gaps: Vec<i64>,
         cv: &'a Curve,
-        median_w: f64,
-        freq_weights: &[f64],
-        freq_node_idx_init: &[Option<usize>],
+        bank: Arc<Bank>,
     ) -> Self {
+        let walk_unlearned: Vec<u32> =
+            bank.walk_extras.iter().map(|e| e.len() as u32).collect();
+        let mut clean_walks: [Vec<u32>; 3] =
+            [0, 1, 2].map(|d| vec![0u32; bank.pools[d].len()]);
+        for (gid, &(dif, pi)) in bank.walk_prob.iter().enumerate() {
+            if walk_unlearned[gid] == 0 {
+                clean_walks[dif][pi] += 1;
+            }
+        }
+        let blocked =
+            [0, 1, 2].map(|d| clean_walks[d].iter().filter(|&&c| c == 0).count());
         SimState {
             cv,
             teach,
             hours,
             hards_per_week: (HARDS_PER_WEEK * hours / 2.0).min(6.0),
-            median_w,
+            learned: vec![None; bank.n_extras()],
+            walk_unlearned,
+            clean_walks,
+            blocked,
+            bank,
             reps,
             gaps,
-            off: OFF_GRAPH0,
-            unknown_m: UNKNOWN_POOL_M,
-            unknown_h: UNKNOWN_POOL_H,
-            freq_now: freq_weights.to_vec(),
-            freq_node_idx: freq_node_idx_init.to_vec(),
+            learn_ptr: 0,
+            learn_credit: 0.0,
             mediums_done: 0,
             mocks_done: 0,
             hards_done: 0,
-            syn: 0,
             day: 0,
         }
     }
 
+    // share of difficulty-dif problems whose every walk still needs an
+    // unlearned extra move — the measured replacement for the old off dial
+    fn off_now(&self, dif: usize) -> f64 {
+        self.blocked[dif] as f64 / self.bank.pools[dif].len().max(1) as f64
+    }
+
     fn learn_ideas(&mut self, dif: usize, encounters: i64) {
-        let learned = self.teach * self.off[dif] * encounters as f64;
-        let (unknown, pool) = if dif == 1 {
-            self.unknown_m = (self.unknown_m - learned).max(0.0);
-            (self.unknown_m, UNKNOWN_POOL_M)
-        } else {
-            self.unknown_h = (self.unknown_h - learned).max(0.0);
-            (self.unknown_h, UNKNOWN_POOL_H)
-        };
-        self.off[dif] = OFF_FLOOR[dif] + (OFF_GRAPH0[dif] - OFF_FLOOR[dif]) * unknown / pool;
-        while (self.syn as f64)
-            < UNKNOWN_POOL_M + UNKNOWN_POOL_H - self.unknown_m - self.unknown_h - 0.5
-        {
-            self.syn += 1;
+        self.learn_credit += self.teach * self.off_now(dif) * encounters as f64;
+        while self.learn_credit >= 1.0 && self.learn_ptr < self.bank.n_extras() {
+            self.learn_credit -= 1.0;
+            let e = self.learn_ptr;
+            self.learn_ptr += 1;
+            self.learned[e] = Some(self.reps.len());
             self.reps.push(1);
             self.gaps.push(0);
-            self.freq_now.push(self.median_w);
-            self.freq_node_idx.push(Some(self.reps.len() - 1));
+            for gi in 0..self.bank.extra_walks[e].len() {
+                let gid = self.bank.extra_walks[e][gi];
+                self.walk_unlearned[gid] -= 1;
+                if self.walk_unlearned[gid] == 0 {
+                    let (d, pi) = self.bank.walk_prob[gid];
+                    self.clean_walks[d][pi] += 1;
+                    if self.clean_walks[d][pi] == 1 {
+                        self.blocked[d] -= 1;
+                    }
+                }
+            }
         }
     }
 
@@ -339,14 +356,21 @@ impl<'a> SimState<'a> {
                 (1.0 + self.gaps[n] as f64 / s).powf(-self.cv.beta)
             })
             .collect();
-        self.freq_node_idx.iter().map(|o| o.map(|i| rec_now[i])).collect()
+        (0..self.bank.move_names.len())
+            .map(|i| {
+                if i < self.bank.n_known {
+                    Some(rec_now[i])
+                } else {
+                    self.learned[i - self.bank.n_known].map(|j| rec_now[j])
+                }
+            })
+            .collect()
     }
 
     fn task(&self, r: f64, n_mc: usize) -> Task {
         Task {
             mv_recall: Arc::new(self.mv_recall()),
-            weights: Arc::new(self.freq_now.clone()),
-            off: self.off,
+            bank: self.bank.clone(),
             r,
             practice: self.practice(),
             n_mc,
@@ -358,8 +382,7 @@ impl<'a> SimState<'a> {
     fn rates(&self, r: f64, n_mc: usize) -> (f64, f64, f64, f64) {
         pass_rates(
             &self.mv_recall(),
-            &self.freq_now,
-            &self.off,
+            &self.bank.pools,
             r,
             self.practice(),
             &mut PyRandom::new(42),
@@ -378,14 +401,12 @@ fn forward_sim(
     reps: Vec<i64>,
     gaps: Vec<i64>,
     cv: &Curve,
-    median_w: f64,
-    freq_weights: &[f64],
-    freq_node_idx_init: &[Option<usize>],
+    bank: Arc<Bank>,
     scenarios: &[f64],
     n_mc: usize,
     tasks: &mut Vec<Task>,
 ) -> Vec<Snap> {
-    let mut st = SimState::new(hours, teach, reps, gaps, cv, median_w, freq_weights, freq_node_idx_init);
+    let mut st = SimState::new(hours, teach, reps, gaps, cv, bank);
     let mut snaps: Vec<Snap> = Vec::new();
     while st.day < 540 {
         st.step();
@@ -398,7 +419,7 @@ fn forward_sim(
                 day: st.day,
                 practice: st.practice(),
                 n_nodes: st.gaps.len(),
-                offh: st.off[2],
+                offh: st.off_now(2),
                 task_start,
             });
         }
@@ -691,7 +712,6 @@ fn main() {
         .collect();
 
     let problems_v = load_json(&graph.join("problems.json"));
-    let problems = problems_v["problems"].as_object().expect("problems.json: problems{}");
 
     let evidence_v = load_json(&graph.join("evidence.json"));
     let mut evidence: Vec<EvRec> = evidence_v["evidence"]
@@ -734,48 +754,16 @@ fn main() {
         target: curve_v["target_retention"].as_f64().unwrap(),
     };
 
-    // move_freq: Counter over every problem walk, first-appearance order
-    let mut freq_names: Vec<String> = Vec::new();
-    let mut freq_weights: Vec<f64> = Vec::new();
-    let mut freq_index: HashMap<String, usize> = HashMap::new();
-    for (_pnum, v) in problems {
-        let Some(obj) = v.as_object() else { continue };
-        let Some(mvs) = obj.get("moves").and_then(Value::as_array) else { continue };
-        for mv in mvs {
-            let name = mv.as_str().unwrap();
-            match freq_index.get(name) {
-                Some(&i) => freq_weights[i] += 1.0,
-                None => {
-                    freq_index.insert(name.to_string(), freq_names.len());
-                    freq_names.push(name.to_string());
-                    freq_weights.push(1.0);
-                }
-            }
-        }
-    }
-    let median_w = {
-        let mut v = freq_weights.clone();
-        v.sort_by(|a, b| a.partial_cmp(b).unwrap());
-        let n = v.len();
-        if n % 2 == 1 {
-            v[n / 2]
-        } else {
-            (v[n / 2 - 1] + v[n / 2]) / 2.0
-        }
-    };
+    // the bank: real per-difficulty problem pools from evidenced + drafted
+    // walks, one move universe (nodes first, then off-taxonomy extras)
+    let predicted_v = load_json(&graph.join("predicted.json"));
+    let metadata_v = load_json(&repo_root.join("data/problems_metadata.json"));
+    let bank = Arc::new(Bank::build(&problems_v, &predicted_v, &metadata_v, &node_ids));
 
-    let node_index: HashMap<&str, usize> =
-        node_ids.iter().enumerate().map(|(i, n)| (n.as_str(), i)).collect();
-    let freq_weights_arc = Arc::new(freq_weights.clone());
-    let freq_node_idx0: Vec<Option<usize>> = freq_names
-        .iter()
-        .map(|n| node_index.get(n.as_str()).copied())
-        .collect();
     let mv_recall_of = |recall: &[f64]| -> Arc<Vec<Option<f64>>> {
         Arc::new(
-            freq_names
-                .iter()
-                .map(|n| node_index.get(n.as_str()).map(|&i| recall[i]))
+            (0..bank.move_names.len())
+                .map(|i| if i < bank.n_known { Some(recall[i]) } else { None })
                 .collect(),
         )
     };
@@ -830,8 +818,7 @@ fn main() {
                     let recall_d = current_recall(&node_ids, ev, &cv, d);
                     let (_, onsite_t, screen_t, ph_t) = pass_rates(
                         &mv_recall_of(&recall_d),
-                        &freq_weights,
-                        &OFF_GRAPH0,
+                        &bank.pools,
                         central_r,
                         (0, 0, 0),
                         &mut PyRandom::new(42),
@@ -845,9 +832,7 @@ fn main() {
                             reps0.clone(),
                             gaps0.clone(),
                             &cv,
-                            median_w,
-                            &freq_weights,
-                            &freq_node_idx0,
+                            bank.clone(),
                         )
                     };
                     // monthly scan for crossing brackets, then bisect each to
@@ -912,8 +897,7 @@ fn main() {
         .iter()
         .map(|&(_, r)| Task {
             mv_recall: mv_recall_today.clone(),
-            weights: freq_weights_arc.clone(),
-            off: OFF_GRAPH0,
+            bank: bank.clone(),
             r,
             practice: (0, 0, 0),
             n_mc: N_MC,
@@ -929,9 +913,7 @@ fn main() {
         reps0.clone(),
         gaps0.clone(),
         &cv,
-        median_w,
-        &freq_weights,
-        &freq_node_idx0,
+        bank.clone(),
         &scenario_rs,
         6000,
         &mut tasks,
@@ -971,9 +953,7 @@ fn main() {
             reps0.clone(),
             gaps0.clone(),
             &cv,
-            median_w,
-            &freq_weights,
-            &freq_node_idx0,
+            bank.clone(),
         )
     };
     let milestone_days: [Option<i64>; 3] = [
@@ -1122,9 +1102,10 @@ fn main() {
         }
     }
     print_wrapped(
-        "measured: solve times, forgetting curve, 84% first-contact absorption. assumed: \
-         unknown-idea pools (M 12, H 35), off-graph floors, recognition scenarios, mock \
-         start day. The band collapses as real data arrives.",
+        "measured: solve times, forgetting curve, first-contact absorption, and the \
+         problem bank itself (real walks, LLM-drafted for unsolved problems; drafts \
+         score P 0.80 / R 0.75 vs 50 evidenced walks). assumed: recognition scenarios, \
+         mock start day, derive rate. The band collapses as real data arrives.",
         "dim",
         color,
         80,
