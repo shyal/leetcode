@@ -215,6 +215,83 @@ def node_status(node_id, evidence, today=None):
 
 DEEP_STALE_DAYS = 2 * SOLID_WINDOW_DAYS  # beyond this, a "re-solve" plays like a new problem
 
+# A SOLID badge earned in one burst of drills is not yet load-bearing: six
+# clean reps crammed into two days look identical to a node held for months,
+# and nothing in node_status measures spacing or what kind of evidence it was.
+MATURE_SPACING_DAYS = 5
+
+
+def carry_earnable(node_id, problems):
+    """True when carry proof can actually be earned at a basecamp: some
+    non-banned, non-Hard, real (numeric) problem carries the move in any
+    recorded walk — primary or alt. When it cannot, mature() waives the
+    carry-proof signal and spacing alone decides: a gate nobody can open
+    is a deadlock, not a standard."""
+    for pnum, p in problems.items():
+        if not str(pnum)[:1].isdigit() or p.get("banned") \
+                or p.get("difficulty") == "Hard":
+            continue
+        if node_id in p.get("moves", []) \
+                or any(node_id in w for w in p.get("alt_walks", [])):
+            return True
+    return False
+
+
+def mature(node_id, evidence, problems):
+    """True when a node's mastery is proven enough to carry a Hard.
+
+    Two signals, both required:
+      spacing      clean (non-spoiled) reps on two days at least
+                   MATURE_SPACING_DAYS apart — the badge survived a gap,
+                   not just a same-week burst
+      carry proof  at least one clean rep on a real leetcode problem
+                   (numeric id; drills record problem="drill") — drill
+                   green is not trigger wired. Required only while
+                   carry_earnable(); otherwise waived (see there).
+
+    Gates SUMMITS ONLY. Easies/mediums are the proving ground where a young
+    node earns both signals, so gating them would block the very reps that
+    mature it. Callers fold immature nodes into route_gaps: an immature move
+    is a camp on the route, not a servable summit."""
+    clean = [(date.fromisoformat(rec["date"]), str(rec.get("problem", "")))
+             for rec in evidence.values()
+             if rec.get("moves", {}).get(node_id) == "clean"
+             and assist_of(rec) != "spoiled"]
+    if not clean:
+        return False
+    dates = sorted(d for d, _ in clean)
+    if (dates[-1] - dates[0]).days < MATURE_SPACING_DAYS:
+        return False
+    return any(p[:1].isdigit() for _, p in clean) \
+        or not carry_earnable(node_id, problems)
+
+
+def immature_nodes(nodes, evidence, problems):
+    """The nodes mature() rejects — precomputed once per run so route_gaps
+    and rank_summits stay pure sort keys."""
+    return frozenset(n for n in nodes if not mature(n, evidence, problems))
+
+
+def proving_carriers(target, problems, statuses, nodes):
+    """Carriers that can give an immature move its carry proof: non-banned,
+    non-Hard, real (numeric) problems carrying the target in ANY recorded
+    walk whose every OTHER move is SOLID. Wider than carriers_for — primary
+    carriers for a young move are often the very Hards it gates, so the
+    proving camp lives on an alt walk (solve the medium VIA the young move;
+    kg_extract records the walk actually taken)."""
+    found = []
+    for pnum, p in problems.items():
+        if not str(pnum)[:1].isdigit() or p.get("banned") \
+                or p.get("difficulty") == "Hard":
+            continue
+        walks = [p.get("moves", [])] + list(p.get("alt_walks", []))
+        for walk in walks:
+            if target in walk and all(m in nodes for m in walk) \
+                    and all(statuses[m][0] == SOLID for m in walk if m != target):
+                found.append(pnum)
+                break
+    return found
+
 
 def last_solved(pnum, evidence):
     dates = [r["date"] for r in evidence.values() if r.get("problem") == str(pnum)]
@@ -294,24 +371,24 @@ CLASSICS = {
 }
 
 
-def route_gaps(pnum, problems, nodes, statuses):
-    """Non-SOLID nodes in the problem's input tree, and how many of them are
-    consolidation (FRAGILE/STALE — moves you once had) vs new ground.
+def route_gaps(pnum, problems, nodes, statuses, immature=frozenset()):
+    """Non-SOLID — or SOLID-but-immature — nodes in the problem's input tree,
+    and how many of them are consolidation (moves you once had) vs new ground.
     Unmapped proposals count as gaps too: they are unroutable new territory,
     so a walk carrying them is farther away than its mapped moves suggest."""
     closure = input_tree(problems[pnum]["moves"], nodes)
-    gaps = [n for n in closure if statuses[n][0] != SOLID]
+    gaps = [n for n in closure if statuses[n][0] != SOLID or n in immature]
     gap_count = len(gaps) + len(problems[pnum].get("unmapped", []))
-    consolidation = sum(1 for n in gaps if statuses[n][0] in (FRAGILE, STALE))
+    consolidation = sum(1 for n in gaps if statuses[n][0] != MISSING)
     return gaps, gap_count, consolidation
 
 
-def rank_summits(candidates, problems, nodes, statuses):
+def rank_summits(candidates, problems, nodes, statuses, immature=frozenset()):
     """Candidate Hards ordered by reachability: fewest gaps first, then the
     one whose gaps are mostly consolidation (moves you once had) rather than
     new ground. The single ordering `make hard` and `make next` share, so a
     summit cannot be named differently depending on which one you ran."""
-    scored = [(route_gaps(p, problems, nodes, statuses)[1:], pnum_key(p), p)
+    scored = [(route_gaps(p, problems, nodes, statuses, immature)[1:], pnum_key(p), p)
               for p in candidates if p in problems]
     scored.sort(key=lambda s: (s[0][0], -s[0][1], s[1]))
     return [p for _, _, p in scored]
