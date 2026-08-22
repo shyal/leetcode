@@ -475,8 +475,6 @@ def taxonomy_summary(nodes):
 # utils/kg_mock_rs) and the README's P(pass) history chart. The Rust port keeps
 # this exact math (same RNG stream, same float-op order); change them together.
 
-WALK_LEN = {"E": (1, 2), "M": (2, 4), "H": (4, 6)}
-OFF_GRAPH0 = {"E": 0.02, "M": 0.10, "H": 0.45}  # today's off-taxonomy rates
 REC_POWER = {"E": 0.5, "M": 1.0, "H": 1.6}
 SCENARIOS = {"cautious": 0.75, "central": 0.85, "optimistic": 0.95}
 
@@ -486,8 +484,15 @@ def recognition(base, mocks_done):
     return base + (0.98 - base) * (1 - math.exp(-mocks_done / 8))
 
 
-def pass_rates(node_recall, move_freq, off, r_base, practice, rng, n_mc=20000):
-    """(full clear, onsite 2E+2M+>=1H, screen both-M, single-hard P)."""
+def pass_rates(node_recall, pools, r_base, practice, rng, n_mc=20000):
+    """(full clear, onsite 2E+2M+>=1H, screen both-M, single-hard P).
+
+    pools: {"E"/"M"/"H": [problem, ...]}, each problem a list of walks, each
+    walk a list of move names — real problems (evidenced + drafted walks, the
+    Rust Bank), not fabricated ones. A problem is drawn uniformly from its
+    difficulty pool and scored by its BEST walk's recall product; a move
+    without recall (off-taxonomy) costs the derive rate. Same draw order as
+    the Rust port (randrange then random), so the RNG streams match."""
     import math
     mediums, mocks, hards = practice
     grow = 1 - math.exp(-mediums / 120)
@@ -495,16 +500,16 @@ def pass_rates(node_recall, move_freq, off, r_base, practice, rng, n_mc=20000):
               "H": 0.40 + 0.42 * (1 - math.exp(-hards / 15))}
     derive = 0.25 + 0.20 * (1 - math.exp(-(mocks + hards) / 30))
     rec = recognition(r_base, mocks)
-    moves, weights = zip(*move_freq.items())
     full = onsite = screen = h_solved = 0
     for _ in range(n_mc):
         solved = {"E": 0, "M": 0, "H": 0}
         for dif in ("E", "E", "M", "M", "H", "H"):
-            p = time_f[dif] * rec ** REC_POWER[dif]
-            if rng.random() < off[dif]:
-                p *= derive
-            for mv in rng.choices(moves, weights, k=rng.randint(*WALK_LEN[dif])):
-                p *= node_recall.get(mv, derive)
+            prob = pools[dif][rng.randrange(len(pools[dif]))]
+            best = max(
+                math.prod(node_recall.get(mv, derive) for mv in walk)
+                for walk in prob
+            )
+            p = time_f[dif] * rec ** REC_POWER[dif] * best
             solved[dif] += rng.random() < p
         full += solved["E"] == 2 and solved["M"] == 2 and solved["H"] == 2
         onsite += solved["E"] == 2 and solved["M"] == 2 and solved["H"] >= 1

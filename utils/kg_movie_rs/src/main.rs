@@ -35,7 +35,7 @@ use std::process::{Command, Stdio};
 use chrono::{Datelike, Duration, NaiveDate};
 use serde_json::Value;
 
-use kg_mock::{current_recall, pass_rates, run_mocks, EvRec, PyRandom, OFF_GRAPH0, SCENARIOS};
+use kg_mock::{current_recall, pass_rates, run_mocks, Bank, EvRec, PyRandom, SCENARIOS};
 
 const DEFAULT_SECONDS: f64 = 10.0;
 const END_FADE_S: f64 = 1.2; // loop-closing dissolve, capped by FADE_FRACTION
@@ -1067,24 +1067,14 @@ fn main() {
         .collect();
     ev_recs.sort_by(|a, b| a.date.cmp(&b.date));
 
-    // move frequency over problems.json walks, first-seen order — the same
-    // Counter order the Python chart fed pass_rates, so the RNG stream matches
-    let problems_v = load_json(&graph.join("problems.json"));
-    let mut mf_keys: Vec<String> = vec![];
-    let mut mf_count: HashMap<String, f64> = HashMap::new();
-    for (_p, v) in problems_v["problems"].as_object().unwrap() {
-        let Some(obj) = v.as_object() else { continue };
-        let Some(mvs) = obj.get("moves").and_then(Value::as_array) else { continue };
-        for m in mvs {
-            let s = m.as_str().unwrap().to_string();
-            if !mf_count.contains_key(&s) {
-                mf_keys.push(s.clone());
-            }
-            *mf_count.entry(s).or_insert(0.0) += 1.0;
-        }
-    }
-    let mf_weights: Vec<f64> = mf_keys.iter().map(|k| mf_count[k]).collect();
+    // the bank: real per-difficulty problem pools (evidenced + drafted
+    // walks), shared with kg_mock so the charts and `make mock` agree
     let node_ids: Vec<String> = nodes.iter().map(|n| n.id.clone()).collect();
+    let problems_v = load_json(&graph.join("problems.json"));
+    let predicted_v = load_json(&graph.join("predicted.json"));
+    let repo_root = graph.parent().map(|p| p.to_path_buf()).unwrap_or_else(|| PathBuf::from("."));
+    let metadata_v = load_json(&repo_root.join("data/problems_metadata.json"));
+    let bank = Bank::build(&problems_v, &predicted_v, &metadata_v, &node_ids);
 
     // weekly replay: evidence filtered to each date, recall from the curve,
     // Monte Carlo per recognition scenario ("today" = last recorded evidence)
@@ -1103,14 +1093,13 @@ fn main() {
         let wd_s = wd.to_string();
         let k = ev_recs.partition_point(|r| r.date.as_str() <= wd_s.as_str());
         let recall = current_recall(&node_ids, &ev_recs[..k], &mcurve, *wd);
-        let rmap: HashMap<&str, f64> =
-            node_ids.iter().map(String::as_str).zip(recall.iter().copied()).collect();
-        let mv_recall: Vec<Option<f64>> =
-            mf_keys.iter().map(|k| rmap.get(k.as_str()).copied()).collect();
+        let mv_recall: Vec<Option<f64>> = (0..bank.move_names.len())
+            .map(|i| if i < bank.n_known { Some(recall[i]) } else { None })
+            .collect();
         let mut row = [(0.0, 0.0); 3];
         for (si, (_name, r_base)) in SCENARIOS.iter().enumerate() {
             let (_full, onsite, screen, _h) = pass_rates(
-                &mv_recall, &mf_weights, &OFF_GRAPH0, *r_base, (0, 0, 0),
+                &mv_recall, &bank.pools, *r_base, (0, 0, 0),
                 &mut PyRandom::new(42), 4000,
             );
             row[si] = (screen * 100.0, onsite * 100.0);
@@ -1338,7 +1327,8 @@ fn main() {
     // blame: failed problems attributed to the weakest move in their walk,
     // rolled up by technique group; last band = off-graph moves
     let n_groups = groups.len();
-    let mf_group: Vec<usize> = mf_keys
+    let mf_group: Vec<usize> = bank
+        .move_names
         .iter()
         .map(|key| {
             node_index
@@ -1354,15 +1344,14 @@ fn main() {
         let d_s = day.to_string();
         let k = ev_recs.partition_point(|r| r.date.as_str() <= d_s.as_str());
         let recall = current_recall(&node_ids, &ev_recs[..k], &mcurve, *day);
-        let rmap: HashMap<&str, f64> =
-            node_ids.iter().map(String::as_str).zip(recall.iter().copied()).collect();
-        let mv_recall: Vec<Option<f64>> =
-            mf_keys.iter().map(|k| rmap.get(k.as_str()).copied()).collect();
+        let mv_recall: Vec<Option<f64>> = (0..bank.move_names.len())
+            .map(|i| if i < bank.n_known { Some(recall[i]) } else { None })
+            .collect();
         let (mut hist, mut onsite_hist) = ([0i64; 7], [0i64; 7]);
         let mut sims = Vec::with_capacity(SWARM_N);
         let mut blame = vec![0u32; n_groups + 1];
         run_mocks(
-            &mv_recall, &mf_weights, &OFF_GRAPH0, SCENARIOS[1].1, (0, 0, 0),
+            &mv_recall, &bank.pools, SCENARIOS[1].1, (0, 0, 0),
             &mut PyRandom::new(42), 4000,
             |solved, probs| {
                 let t = (solved[0] + solved[1] + solved[2]) as usize;

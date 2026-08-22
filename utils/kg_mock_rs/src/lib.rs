@@ -249,22 +249,48 @@ pub fn ts_match(s: &str) -> String {
     String::new()
 }
 
-pub const WALK_LEN: [(u32, u32); 3] = [(1, 2), (2, 4), (4, 6)];
-pub const OFF_GRAPH0: [f64; 3] = [0.02, 0.10, 0.45];
 pub const REC_POWER: [f64; 3] = [0.5, 1.0, 1.6];
 pub const SCENARIOS: [(&str, f64); 3] = [("cautious", 0.75), ("central", 0.85), ("optimistic", 0.95)];
 
+// ---------------------------------------------------------------- the bank --
+// Real problems replace the old fabricated walks (guessed WALK_LEN /
+// OFF_GRAPH0 / i.i.d. move-frequency draws): every problem with a walk —
+// evidenced in problems.json or LLM-drafted in predicted.json — sits in a
+// per-difficulty pool, its walks stored as indices into one move-name
+// universe. Universe layout: [0, n_known) are nodes.json ids (recall comes
+// from evidence); [n_known, ..) are "extras" — moves the taxonomy lacks
+// (missing: suggestions, ranked by how many walks want them, plus stray
+// evidenced move names) — recall None until the forward sim learns them.
+// brute-force* suggestions are dropped: they mean "no technique needed".
+pub struct Bank {
+    pub move_names: Vec<String>,
+    pub n_known: usize,
+    // pools[dif][prob] = walks; a walk = move indices (known + extras mixed)
+    pub pools: [Vec<Vec<Vec<usize>>>; 3],
+    // flat walk table for the forward sim's learning bookkeeping
+    pub walk_prob: Vec<(usize, usize)>, // walk gid -> (dif, prob index)
+    pub walk_extras: Vec<Vec<usize>>,   // walk gid -> extra ids (0-based past n_known)
+    pub extra_walks: Vec<Vec<usize>>,   // extra id -> walk gids that want it
+}
+
+impl Bank {
+    pub fn n_extras(&self) -> usize {
+        self.move_names.len() - self.n_known
+    }
+}
+
 // The simulation loop itself: n_mc mock interviews on a random 2E+2M+2H set,
-// each problem's walk multiplying move recalls; on_sim sees every simulated
-// mock's per-difficulty solved counts plus, per problem of the set, the
-// weakest move in its walk (index into mv_recall; usize::MAX when the
-// weakest link was an off-graph move at the derive rate) and whether the
-// problem failed. pass_rates and outcome_hist are thin tallies over this —
-// the RNG stream is identical for identical inputs.
+// each problem drawn uniformly from its difficulty pool and scored by the
+// BEST of its real walks (recall product; an extra move costs the derive
+// rate). on_sim sees every simulated mock's per-difficulty solved counts
+// plus, per problem of the set, the weakest move in the walk that was used
+// (index into mv_recall; usize::MAX when the weakest link had no recall —
+// an off-graph move at the derive rate) and whether the problem failed.
+// pass_rates and outcome_hist are thin tallies over this — the RNG stream
+// is identical for identical inputs.
 pub fn run_mocks(
     mv_recall: &[Option<f64>],
-    weights: &[f64],
-    off: &[f64; 3],
+    pools: &[Vec<Vec<Vec<usize>>>; 3],
     r_base: f64,
     practice: (i64, i64, i64),
     rng: &mut PyRandom,
@@ -286,61 +312,162 @@ pub fn run_mocks(
         time_f[2] * rec.powf(REC_POWER[2]),
     ];
     let mv_val: Vec<f64> = mv_recall.iter().map(|o| o.unwrap_or(derive)).collect();
-    let mut cum = Vec::with_capacity(weights.len());
-    let mut acc = 0.0;
-    for w in weights {
-        acc += w;
-        cum.push(acc);
-    }
-    let total = cum[cum.len() - 1] + 0.0;
-    let hi_idx = cum.len() - 1;
 
     for _ in 0..n_mc {
         let mut solved = [0i32; 3];
         let mut probs = [(usize::MAX, false); 6];
         for (pi, &dif) in [0usize, 0, 1, 1, 2, 2].iter().enumerate() {
-            let mut p = base_p[dif];
-            if rng.random() < off[dif] {
-                p *= derive;
-            }
-            let k = rng.randint(WALK_LEN[dif].0, WALK_LEN[dif].1);
-            let (mut min_v, mut min_i) = (f64::INFINITY, usize::MAX);
-            for _ in 0..k {
-                let x = rng.random() * total;
-                let (mut lo, mut hi) = (0usize, hi_idx);
-                while lo < hi {
-                    let mid = (lo + hi) / 2;
-                    if x < cum[mid] {
-                        hi = mid;
-                    } else {
-                        lo = mid + 1;
+            let pool = &pools[dif];
+            let prob = &pool[rng.randbelow(pool.len() as u32) as usize];
+            // best walk: highest recall product; its weakest factor is blame
+            let (mut best_p, mut best_min_i) = (-1.0f64, usize::MAX);
+            for walk in prob {
+                let mut prod = 1.0;
+                let (mut min_v, mut min_i) = (f64::INFINITY, usize::MAX);
+                for &mv in walk {
+                    let v = mv_val[mv];
+                    if v < min_v {
+                        min_v = v;
+                        min_i = if mv_recall[mv].is_some() { mv } else { usize::MAX };
                     }
+                    prod *= v;
                 }
-                if mv_val[lo] < min_v {
-                    min_v = mv_val[lo];
-                    min_i = if mv_recall[lo].is_some() { lo } else { usize::MAX };
+                if prod > best_p {
+                    best_p = prod;
+                    best_min_i = min_i;
                 }
-                p *= mv_val[lo];
             }
+            let p = base_p[dif] * best_p;
             let ok = rng.random() < p;
             solved[dif] += ok as i32;
-            probs[pi] = (min_i, !ok);
+            probs[pi] = (best_min_i, !ok);
         }
         on_sim(&solved, &probs);
     }
 }
 
+impl Bank {
+    // problems.json (evidenced walks, has difficulty), predicted.json
+    // (drafted walks + missing: suggestions), problems_metadata.json
+    // (difficulty for problems only the drafts know).
+    pub fn build(problems: &serde_json::Value, predicted: &serde_json::Value,
+                 metadata: &serde_json::Value, node_ids: &[String]) -> Bank {
+        use serde_json::Value;
+        let norm = |s: &str| s.trim().to_lowercase().replace(' ', "-");
+        let dif_of = |num: &str, obj: &serde_json::Map<String, Value>| -> Option<usize> {
+            let d = obj.get("difficulty").and_then(Value::as_str).or_else(|| {
+                metadata.get(num).and_then(|m| m["difficulty"].as_str())
+            })?;
+            match d {
+                "Easy" => Some(0),
+                "Medium" => Some(1),
+                "Hard" => Some(2),
+                _ => None,
+            }
+        };
+        let probs = problems["problems"].as_object().expect("problems.json: problems{}");
+        let preds = predicted["problems"].as_object().expect("predicted.json: problems{}");
+
+        // universe: node ids first, then extras ranked by walk mentions
+        let mut index: HashMap<String, usize> = HashMap::new();
+        let mut move_names: Vec<String> = node_ids.to_vec();
+        for (i, n) in node_ids.iter().enumerate() {
+            index.insert(n.clone(), i);
+        }
+        let n_known = move_names.len();
+        let mut mention: HashMap<String, f64> = HashMap::new();
+        let walk_of = |v: &Value, mention: &mut HashMap<String, f64>| -> Vec<String> {
+            let mut w: Vec<String> = v["moves"]
+                .as_array()
+                .map(|a| a.iter().filter_map(Value::as_str).map(String::from).collect())
+                .unwrap_or_default();
+            for m in v.get("missing").and_then(Value::as_array).unwrap_or(&vec![]) {
+                let name = norm(m.as_str().unwrap_or(""));
+                if name.is_empty() || name.starts_with("brute-force") {
+                    continue;
+                }
+                w.push(name);
+            }
+            for m in &w {
+                if !index.contains_key(m.as_str()) {
+                    *mention.entry(m.clone()).or_insert(0.0) += 1.0;
+                }
+            }
+            w
+        };
+        // collect raw walks per problem first, so extras can be ranked before
+        // indices are assigned
+        let mut raw: HashMap<String, (usize, Vec<Vec<String>>)> = HashMap::new();
+        for (num, v) in probs {
+            let Some(obj) = v.as_object() else { continue };
+            let Some(dif) = dif_of(num, obj) else { continue };
+            let w = walk_of(v, &mut mention);
+            if !w.is_empty() {
+                raw.entry(num.clone()).or_insert((dif, vec![])).1.push(w);
+            }
+        }
+        for (num, v) in preds {
+            let Some(obj) = v.as_object() else { continue };
+            let Some(dif) = dif_of(num, obj) else { continue };
+            for wv in v["walks"].as_array().unwrap_or(&vec![]) {
+                let w = walk_of(wv, &mut mention);
+                if !w.is_empty() {
+                    raw.entry(num.clone()).or_insert((dif, vec![])).1.push(w);
+                }
+            }
+        }
+        let mut extras: Vec<(String, f64)> = mention.into_iter().collect();
+        extras.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap().then(a.0.cmp(&b.0)));
+        for (name, _) in &extras {
+            index.insert(name.clone(), move_names.len());
+            move_names.push(name.clone());
+        }
+
+        let mut bank = Bank {
+            move_names,
+            n_known,
+            pools: [vec![], vec![], vec![]],
+            walk_prob: vec![],
+            walk_extras: vec![],
+            extra_walks: vec![Vec::new(); extras.len()],
+        };
+        let mut nums: Vec<&String> = raw.keys().collect();
+        nums.sort(); // deterministic pool order -> deterministic RNG stream
+        for num in nums {
+            let (dif, walks) = &raw[num];
+            let pi = bank.pools[*dif].len();
+            let mut iw: Vec<Vec<usize>> = vec![];
+            for w in walks {
+                let gid = bank.walk_prob.len();
+                let ids: Vec<usize> = w.iter().map(|m| index[m.as_str()]).collect();
+                let ex: Vec<usize> = ids
+                    .iter()
+                    .filter(|&&i| i >= n_known)
+                    .map(|&i| i - n_known)
+                    .collect();
+                for &e in &ex {
+                    bank.extra_walks[e].push(gid);
+                }
+                bank.walk_prob.push((*dif, pi));
+                bank.walk_extras.push(ex);
+                iw.push(ids);
+            }
+            bank.pools[*dif].push(iw);
+        }
+        bank
+    }
+}
+
 pub fn pass_rates(
     mv_recall: &[Option<f64>],
-    weights: &[f64],
-    off: &[f64; 3],
+    pools: &[Vec<Vec<Vec<usize>>>; 3],
     r_base: f64,
     practice: (i64, i64, i64),
     rng: &mut PyRandom,
     n_mc: usize,
 ) -> (f64, f64, f64, f64) {
     let (mut full, mut onsite, mut screen, mut h_solved) = (0i64, 0i64, 0i64, 0i64);
-    run_mocks(mv_recall, weights, off, r_base, practice, rng, n_mc, |solved, _| {
+    run_mocks(mv_recall, pools, r_base, practice, rng, n_mc, |solved, _| {
         full += (solved[0] == 2 && solved[1] == 2 && solved[2] == 2) as i64;
         onsite += (solved[0] == 2 && solved[1] == 2 && solved[2] >= 1) as i64;
         screen += (solved[1] == 2) as i64;
@@ -359,15 +486,14 @@ pub fn pass_rates(
 // that clears the onsite bar (2E + 2M + >=1 hard — only 5s and 6s can).
 pub fn outcome_hist(
     mv_recall: &[Option<f64>],
-    weights: &[f64],
-    off: &[f64; 3],
+    pools: &[Vec<Vec<Vec<usize>>>; 3],
     r_base: f64,
     practice: (i64, i64, i64),
     rng: &mut PyRandom,
     n_mc: usize,
 ) -> ([f64; 7], [f64; 7]) {
     let (mut hist, mut onsite_hist) = ([0i64; 7], [0i64; 7]);
-    run_mocks(mv_recall, weights, off, r_base, practice, rng, n_mc, |solved, _| {
+    run_mocks(mv_recall, pools, r_base, practice, rng, n_mc, |solved, _| {
         let t = (solved[0] + solved[1] + solved[2]) as usize;
         hist[t] += 1;
         onsite_hist[t] += (solved[0] == 2 && solved[1] == 2 && solved[2] >= 1) as i64;
