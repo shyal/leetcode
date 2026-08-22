@@ -76,6 +76,8 @@ The model also tracks its accuracy internally, by comparing its predictions with
 
 The payoff metric is problems in reach: a problem is in reach when every move in its walk is currently solid. This replays today's walked problems against each day's historical node states, so the curve measures my skill moving under a fixed yardstick, not the catalog growing.
 
+Two lines now. The blue one counts only evidenced walks: walks extracted from code i actually wrote. The purple one is the whole bank of 3092 free problems, using LLM-drafted walks for everything i haven't solved yet (drafts score precision 0.80 / recall 0.75 against 50 evidenced walks, so the purple line runs a little optimistic). Guesses never mix into the blue line. The dip in the middle is the point of the whole repo: reach isn't a ratchet, volume without defense bleeds out at catalog scale.
+
 <!-- REACH_CHART -->
 
 ![Problems in reach](https://shyal.s3.amazonaws.com/reach_20260821012441.svg)
