@@ -93,6 +93,46 @@ def load_evidence():
     return _load("evidence.json")["evidence"]
 
 
+def load_predicted():
+    """graph/predicted.json (LLM-drafted walks); {} before it exists."""
+    try:
+        return _load("predicted.json")["problems"]
+    except OSError:
+        return {}
+
+
+def unlocks(statuses, problems, predicted=None):
+    """node -> how many unsolved bank problems are blocked ONLY by it.
+
+    A problem counts for node n when it is not already solved (a key in
+    problems.json means a walk was evidenced), no drafted walk of it is fully
+    solid yet, and some walk needs nothing but n: every other move SOLID and
+    no missing: suggestion. This is the reachability payoff of servicing n,
+    counted against the whole drafted catalog (PLAN.md phase 1)."""
+    if predicted is None:
+        predicted = load_predicted()
+    counts = {}
+    for num, prob in predicted.items():
+        if num in problems:
+            continue
+        walks = [w["moves"] for w in prob["walks"]
+                 if w["moves"] and not w.get("missing")]
+        if not walks:
+            continue
+        solid = {m for w in walks for m in w
+                 if statuses.get(m, (None,))[0] == SOLID}
+        if any(all(m in solid for m in w) for w in walks):
+            continue
+        blockers = set()
+        for w in walks:
+            gaps = [m for m in w if m not in solid]
+            if len(gaps) == 1:
+                blockers.add(gaps[0])
+        for b in blockers:
+            counts[b] = counts.get(b, 0) + 1
+    return counts
+
+
 def save_problems(problems):
     path = os.path.join(GRAPH_DIR, "problems.json")
     with open(path) as f:

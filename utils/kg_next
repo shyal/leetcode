@@ -21,12 +21,16 @@
 #      timer expired, not yet re-attempted — jumps the queue for a fresh try;
 #      while one is ASLEEP it is excluded everywhere and its walk's rusty
 #      moves/prereqs get warmed first, via other carriers
-#   1. consolidate the oldest FRAGILE node, via the freshest READY carrier
-#   2. spaced re-solve of the oldest STALE node's latest carrier — unless the
+#   1. consolidate the FRAGILE node with the highest unlock count (bank
+#      problems blocked only by it; oldest evidence breaks ties), via the
+#      freshest READY carrier
+#   2. spaced re-solve of the STALE node's latest carrier, same unlock-count
+#      order — unless the
 #      move is DEEP stale (no clean solve within 2x the solid window): then the
 #      memory is effectively gone, so re-enter on a gentle fresh carrier the way
 #      FRAGILE does, instead of a cold "re-solve" that plays like a new problem
-#   3. one new MISSING move whose prereqs are all SOLID
+#   3. one new MISSING move whose prereqs are all SOLID — the one that
+#      unlocks the most bank problems first
 #   4. nothing rusty and nothing new: a summit — the gentlest unsolved Hard
 #      whose whole walk is already SOLID. A Hard is never a CARRIER (not where
 #      a rusty move gets its rep), but once it is all-green it is exactly what
@@ -55,7 +59,7 @@ from kg_lib import (
     GRAPH_DIR, load_nodes, load_problems, load_evidence,
     node_status, latest_carrier, SOLID, STALE, FRAGILE, MISSING,
     DEEP_STALE_DAYS, load_sleep, sleep_state,
-    last_solved, pnum_key, dodged_nodes, dodgeable, carriers_for, gentleness,
+    last_solved, pnum_key, dodged_nodes, dodgeable, carriers_for, gentleness, unlocks,
     input_tree, tree_size, acceptance, due_drill, drill_gated, has_drill_bank,
     CLASSICS, route_gaps, rank_summits,
 )
@@ -189,10 +193,18 @@ def pick(nodes, problems, evidence, statuses, asleep=(), woken=(), exclude=(),
                 return target, statuses[target][0], due(target), \
                     f"warm the ground under sleeping {pnum} — no READY carrier, drill {target}"
 
-    fragile = sorted((n for n in nodes if statuses[n][0] == FRAGILE), key=lambda n: statuses[n][1])
-    stale = sorted((n for n in nodes if statuses[n][0] == STALE), key=lambda n: statuses[n][1])
-    missing = [n for n in nodes if statuses[n][0] == MISSING
-               and all(statuses[p][0] == SOLID for p in nodes[n].get("prereqs", []))]
+    # reachability-aware ordering (PLAN.md phase 1): among the due nodes,
+    # service the one that unblocks the most bank problems first; evidence
+    # age breaks ties. Deep-stale re-entry still backstops anything left
+    # waiting. The ZPD constraint is untouched.
+    unl = unlocks(statuses, problems)
+    fragile = sorted((n for n in nodes if statuses[n][0] == FRAGILE),
+                     key=lambda n: (-unl.get(n, 0), statuses[n][1]))
+    stale = sorted((n for n in nodes if statuses[n][0] == STALE),
+                   key=lambda n: (-unl.get(n, 0), statuses[n][1]))
+    missing = sorted((n for n in nodes if statuses[n][0] == MISSING
+                      and all(statuses[p][0] == SOLID for p in nodes[n].get("prereqs", []))),
+                     key=lambda n: (-unl.get(n, 0), n))
 
     dodged = dodged_nodes(evidence)
     for target in fragile:
