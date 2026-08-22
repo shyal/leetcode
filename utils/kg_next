@@ -32,7 +32,10 @@
 #   3. one new MISSING move whose prereqs are all SOLID — the one that
 #      unlocks the most bank problems first
 #   4. nothing rusty and nothing new: a summit — the gentlest unsolved Hard
-#      whose whole walk is already SOLID. A Hard is never a CARRIER (not where
+#      whose whole walk is already SOLID and mature (kg_lib.mature: spaced
+#      clean reps + a real-problem carry proof — a badge earned in one burst
+#      of drills does not yet carry a Hard).
+#      A Hard is never a CARRIER (not where
 #      a rusty move gets its rep), but once it is all-green it is exactly what
 #      to work on next, so it is picked here rather than behind `make hard`.
 # One-new-move rule is enforced: every other move in the walk must be SOLID.
@@ -61,7 +64,7 @@ from kg_lib import (
     DEEP_STALE_DAYS, load_sleep, sleep_state,
     last_solved, pnum_key, dodged_nodes, dodgeable, carriers_for, gentleness, unlocks,
     input_tree, tree_size, acceptance, due_drill, drill_gated, has_drill_bank,
-    CLASSICS, route_gaps, rank_summits,
+    CLASSICS, route_gaps, rank_summits, immature_nodes,
 )
 from kg_render import make_digraph, status_node, render, display, animate, STATUS_FACE
 
@@ -270,23 +273,25 @@ def pick(nodes, problems, evidence, statuses, asleep=(), woken=(), exclude=(),
 
 def ready_hards(problems, nodes, evidence, statuses):
     """Unsolved Hards with no gaps left in their route: every node in the
-    transitive input tree SOLID, and no `unmapped` move (a trick the taxonomy
-    has no node for yet — unroutable new ground, so the walk is farther away
-    than its mapped moves suggest).
+    transitive input tree SOLID — and mature (kg_lib.mature: a young badge
+    from one burst of drills is not yet load-bearing) — and no `unmapped`
+    move (a trick the taxonomy has no node for yet — unroutable new ground,
+    so the walk is farther away than its mapped moves suggest).
 
     Classics come first, and the whole list is ranked by kg_lib.rank_summits,
     so `make next` and `make hard` cannot name different summits."""
     solved = {r["problem"] for r in evidence.values() if r.get("problem")}
+    immature = immature_nodes(nodes, evidence, problems)
     out = []
     for pnum, p in problems.items():
         if p.get("difficulty") != "Hard" or p.get("banned") or pnum in solved \
                 or not p.get("moves"):
             continue
-        if route_gaps(pnum, problems, nodes, statuses)[1] == 0:
+        if route_gaps(pnum, problems, nodes, statuses, immature)[1] == 0:
             out.append(pnum)
     classics = [p for p in out if p in CLASSICS]
     pool = classics or out
-    return rank_summits(pool, problems, nodes, statuses)
+    return rank_summits(pool, problems, nodes, statuses, immature)
 
 
 def blocked_frontier(nodes, problems, evidence, statuses, asleep=(), exclude=()):
