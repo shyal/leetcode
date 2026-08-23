@@ -12,12 +12,32 @@ import os
 import re
 import subprocess
 import time
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 # The system clock runs UTC but the operator lives in Manila (UTC+8);
 # "today" everywhere in the toolchain means the Manila calendar day.
 os.environ["TZ"] = "Asia/Manila"
 time.tzset()
+
+MANILA = timezone(timedelta(hours=8))
+
+# solved/ filenames are stamped in UTC (utils/solved) — same clock as git.
+# The Manila day starts at 16:00 UTC, so for any solve between 16:00 and
+# 24:00 UTC (midnight to 8am Manila, the usual session hours) the raw Y_M_D
+# in the filename is one day behind "today". Anything deriving a calendar
+# day from a filename must go through manila_date_from_filename, never
+# read the date digits straight out of the name.
+FNAME_TS_RE = re.compile(r"_(\d{4})_(\d{2})_(\d{2})T(\d{2})_(\d{2})_(\d{2})")
+
+
+def manila_date_from_filename(name):
+    """Manila calendar day (iso string) of the UTC timestamp embedded in a
+    solved/ filename, or None when the name carries no timestamp."""
+    m = FNAME_TS_RE.search(os.path.basename(name))
+    if not m:
+        return None
+    y, mo, d, h, mi, s = map(int, m.groups())
+    return datetime(y, mo, d, h, mi, s, tzinfo=timezone.utc).astimezone(MANILA).date().isoformat()
 
 GRAPH_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "graph")
 DRILLS_DIR = os.path.join(os.path.dirname(GRAPH_DIR), "drills")
