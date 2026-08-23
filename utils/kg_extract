@@ -26,6 +26,7 @@ from history_builder import parse_content
 from kg_lib import (
     load_nodes, load_problems, load_evidence,
     save_problems, save_evidence, claude_json, taxonomy_summary, node_status,
+    manila_date_from_filename,
     ASSIST_WEIGHT, HARNESS_ENV_NOTE,
 )
 
@@ -122,7 +123,6 @@ VERDICT_STYLE = {"clean": "green", "struggled": "red", "avoided": "yellow"}
 console = Console()
 
 FNAME_RE = re.compile(r"p(\d+)_(.+?)_\d{4}_\d{2}_\d{2}T")
-DATE_RE = re.compile(r"_(\d{4})_(\d{2})_(\d{2})T")
 TRAINS_RE = re.compile(r"TRAINS:\s*([a-z0-9\-, ]+)")
 
 
@@ -214,8 +214,10 @@ Output STRICT JSON only:
                 continue
 
             m = FNAME_RE.search(os.path.basename(path))
-            dm = DATE_RE.search(os.path.basename(path))
-            solve_date = f"{dm.group(1)}-{dm.group(2)}-{dm.group(3)}" if dm else "1970-01-01"
+            # Manila day, not the raw UTC digits in the name — a solve after
+            # Manila midnight (16:00Z) otherwise lands a day behind and its
+            # drill gets re-offered as un-drilled the same night.
+            solve_date = manila_date_from_filename(path) or "1970-01-01"
             judged = {k: v for k, v in result.get("moves", {}).items() if k in nodes}
             rejected = [k for k in result.get("moves", {}) if k not in nodes]
             # free-mode evidence discipline: record only what the code DID

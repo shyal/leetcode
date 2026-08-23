@@ -68,6 +68,18 @@ def comment_out_prints(content):
     return "\n".join(new_lines)
 
 
+def solved_filename(problem_id, title, failed=False, now=None):
+    """solved/ filename for a finished attempt. Stamped in UTC on purpose —
+    the same clock as git — and anything that needs the calendar day converts
+    with kg_lib.manila_date_from_filename rather than reading the digits."""
+    clean_title = re.sub(r"[^\w\s-]", "", title).strip().replace(" ", "_")
+    now = now or datetime.now(timezone.utc)
+    sanitized = re.sub(r"[^\w]", "_", now.isoformat() + "Z")
+    marker = "_FAILED" if failed else ""
+    prefix = "d" if problem_id == "drill" else f"p{problem_id}"
+    return f"{prefix}_{clean_title}{marker}_{sanitized}.py"
+
+
 def main():
     # Find the start time
     # First, check for commit with message "started"
@@ -110,15 +122,7 @@ def main():
     # content = comment_out_prints(content)
 
     # Save to ./solved
-    clean_title = re.sub(r"[^\w\s-]", "", title).strip().replace(" ", "_")
-    utc_now = datetime.now(timezone.utc)
-    iso = utc_now.isoformat() + "Z"
-    sanitized = re.sub(r"[^\w]", "_", iso)
-    marker = "_FAILED" if FAILED else ""
-    if problem_id == "drill":
-        filename = f"d_{clean_title}{marker}_{sanitized}.py"
-    else:
-        filename = f"p{problem_id}_{clean_title}{marker}_{sanitized}.py"
+    filename = solved_filename(problem_id, title, FAILED)
 
     if FAILED:
         content += (
