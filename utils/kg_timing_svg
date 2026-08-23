@@ -11,8 +11,9 @@
 # model says it had already gone stale on arrival. Green dots recalled
 # clean unaided, red struggled or needed help — if the forgetting model is
 # right, red concentrates above the line, and if the scheduler works, the
-# graph-era dots hug the line from below. Dots pop in on their date, on the
-# shared MovieClock, with a playhead sweeping the calendar like kg_pass's.
+# graph-era dots hug the line from below. All dots sit at half opacity from
+# the start and brighten to full on their date, on the shared MovieClock,
+# with a playhead sweeping the calendar like kg_pass's.
 
 import json
 import math
@@ -122,10 +123,11 @@ def main():
         svg.append(f'<circle cx="{ML + 14}" cy="{y - 4:.1f}" r="4" fill="{color}"/>')
         svg.append(f'<text x="{ML + 24}" y="{y}" font-size="12" fill="{INK}">{label}</text>')
 
-    # the trials, popping in on their date
+    # the trials, all visible from the start at half opacity, each
+    # brightening to full when the playhead reaches its date
     for d, r, success in sorted(dots):
         f = clock.frac_date(d)
-        op = ("0;1", f"0;{f:.4f}") if f > 0 else ("1", "0")
+        op = ("0.5;1", f"0;{f:.4f}") if f > 0 else ("1", "0")
         svg.append(f'<circle cx="{x_of(d):.1f}" cy="{y_of(r):.1f}" r="4" '
                    f'fill="{GOOD if success else BAD}" fill-opacity="0.85" opacity="1">'
                    f'<animate attributeName="opacity" calcMode="discrete" values="{op[0]}" '

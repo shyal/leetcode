@@ -3,26 +3,29 @@
 # kg_reach_svg - problems in reach, animated into graph/reach.svg for the
 # README pipeline.
 #
-# The payoff variable of the whole graph: a walked problem (graph/problems.json)
-# is "in reach" on a day when every move in its walk was SOLID that day. The
-# frontier is TODAY'S problems.json held fixed, replayed against historical
-# node states - so the curve measures skill moving under a constant yardstick,
-# not the walk catalog growing. Statuses are derived, never stored: each day is
-# node_status() over the evidence recorded up to that date, with the final
-# fitted curve (same convention as calibration.svg). Two panels on a shared
-# calendar: the in-reach count on top, the node-state composition (stacked)
-# below - cause under effect. Clock is kg_lib.MovieClock, so it plays in sync
-# with the other animated SVGs. Pure SMIL; non-SMIL viewers see today as a
-# still.
+# The payoff variable of the whole graph: each problem contributes the JOINT
+# probability of its walk - the product of per-move predicted recall from the
+# fitted curve (kg_lib.node_recall), so a 5-move walk of 0.9s counts ~0.59,
+# not 1. The lines are expected solvable counts, not tallies of a binary
+# all-SOLID test: per-node thresholds don't compose, and the old binary count
+# read as generous on long walks. The frontier is TODAY'S problems.json held
+# fixed, replayed against historical node states - so the curve measures
+# skill moving under a constant yardstick, not the walk catalog growing.
+# Recall is derived, never stored: each day is node_eval() over the evidence
+# recorded up to that date, with the final fitted curve (same convention as
+# calibration.svg). Two panels on a shared calendar: the expected-reach count
+# on top, the node-state composition (stacked) below - cause under effect.
+# Clock is kg_lib.MovieClock, so it plays in sync with the other animated
+# SVGs. Pure SMIL; non-SMIL viewers see today as a still.
 #
 # Two lines on the top panel, per the phase 2 invariant (PLAN.md): the
-# evidenced line counts only problems.json walks (what actually happened,
-# never mixed with guesses); the predicted line counts the whole catalog -
-# a problem is in predicted reach when ANY of its walks (evidenced, or
-# LLM-drafted in graph/predicted.json) was all-SOLID that day. A draft that
-# needs a move the taxonomy lacks (missing:) can never be all-solid, and an
-# empty draft is no walk at all, but both keep their problem in the
-# denominator: those are the taxonomy's blind spots.
+# evidenced line sums only problems.json walks (what actually happened,
+# never mixed with guesses); the predicted line sums the whole catalog -
+# a problem contributes its BEST walk's joint probability (evidenced, or
+# LLM-drafted in graph/predicted.json). A draft that needs a move the
+# taxonomy lacks (missing:) can never contribute, and an empty draft is no
+# walk at all, but both keep their problem in the denominator: those are
+# the taxonomy's blind spots.
 
 import json
 import os
@@ -40,7 +43,7 @@ from kg_lib import (
     load_evidence,
     load_nodes,
     load_problems,
-    node_status,
+    node_eval,
 )
 
 OUT = os.path.join(GRAPH_DIR, "reach.svg")
@@ -86,17 +89,25 @@ def main():
     for fname, rec in evidence.items():
         by_day.setdefault(rec["date"], {})[fname] = rec
     ev_t = {}
-    reach = []                           # per tick: evidenced in-reach count
-    pred_reach = []                      # per tick: any-walk in-reach count
+    reach = []                           # per tick: expected evidenced-solvable count
+    pred_reach = []                      # per tick: expected best-walk-solvable count
     stacks = []                          # per tick: {state: count} over added nodes
     for i in range(clock.n_ticks):
         d = clock.first + timedelta(days=i)
         ev_t.update(by_day.get(d.isoformat(), {}))
-        statuses = {m: node_status(m, ev_t, today=d)[0] for m in move_ids}
-        reach.append(sum(1 for p in problems.values()
-                         if all(statuses[m] == SOLID for m in p["moves"])))
-        pred_reach.append(sum(1 for ws in walks.values()
-                              if any(all(statuses[m] == SOLID for m in w) for w in ws)))
+        statuses, recalls = {}, {}
+        for m in move_ids:
+            statuses[m], _, recalls[m] = node_eval(m, ev_t, today=d)
+
+        def joint(w):
+            p = 1.0
+            for m in w:
+                p *= recalls[m]
+            return p
+
+        reach.append(sum(joint(p["moves"]) for p in problems.values()))
+        pred_reach.append(sum(max(map(joint, ws), default=0.0)
+                              for ws in walks.values()))
         counts = dict.fromkeys(STACK_ORDER, 0)
         for nid in nodes:
             if added[nid] <= d:
@@ -121,12 +132,12 @@ def main():
                f'font-family="Helvetica,sans-serif">')
     svg.append(f'<rect width="{W}" height="{H}" fill="{BG}"/>')
     svg.append(f'<text x="{W / 2:.0f}" y="24" text-anchor="middle" font-size="13" fill="{INK}">'
-               f"Problems in reach - how many problems had some walk with every move SOLID "
-               'on that day, daily replay</text>')
+               f"Problems in reach - expected solvable count: each problem weighs in at its "
+               "walk's joint probability (per-move predicted recall multiplied), daily replay</text>")
     svg.append(f'<text x="{W / 2:.0f}" y="41" text-anchor="middle" font-size="11" fill="{MUTED}">'
-               f'blue: the {frontier} evidenced walks only. purple: all {catalog} problems, '
-               'LLM-drafted walks included (gpt-5-mini, precision 0.80 / recall 0.75 '
-               'against 50 evidenced walks)</text>')
+               f'blue: the {frontier} evidenced walks only. purple: all {catalog} problems at '
+               'their best walk, LLM-drafted walks included (gpt-5-mini, precision 0.80 / '
+               'recall 0.75 against 50 evidenced walks)</text>')
 
     # grids + axes
     for v in range(0, catalog + 1, 500):
@@ -176,14 +187,19 @@ def main():
                    f'stroke-width="1.2" stroke-dasharray="5 4" opacity="0.6"/>')
     svg.extend(era_banner(clock, W - MR - 6, PB1 - 12, 18, anchor="end", halo=BG))
 
-    # the data, drawn final and revealed by a clip sweeping with the playhead
+    # the data, visible in full the whole time at half opacity, with the
+    # sweeping clip brightening it to 100% as the playhead passes
     days_x = [x_of(clock.first + timedelta(days=i)) for i in range(clock.n_ticks)]
     widths = ";".join([f"{x - ML:.1f}" for x in days_x] + [f"{days_x[-1] - ML:.1f}"])
     kt = ";".join([f"{clock.frac(i):.4f}" for i in range(clock.n_ticks)] + ["1"])
     svg.append(f'<clipPath id="reveal"><rect x="{ML}" y="0" width="{W - ML - MR}" height="{H}">'
                f'<animate attributeName="width" calcMode="linear" values="{widths}" '
                f'keyTimes="{kt}" dur="{clock.dur}s" repeatCount="indefinite"/></rect></clipPath>')
-    svg.append('<g clip-path="url(#reveal)">')
+    xs = ";".join([f"{x:.1f}" for x in days_x] + [f"{days_x[-1]:.1f}"])
+    svg.append(f'<clipPath id="rest"><rect x="{W - MR}" y="0" width="{W}" height="{H}">'
+               f'<animate attributeName="x" calcMode="linear" values="{xs}" '
+               f'keyTimes="{kt}" dur="{clock.dur}s" repeatCount="indefinite"/></rect></clipPath>')
+    data = []
 
     # stacked node states, bottom-up in mastery order, banded with a BG seam;
     # zero-height stretches are skipped so they leave no antialiased hairline
@@ -201,15 +217,23 @@ def main():
             lo, hi = max(i - 1, 0), min(j + 1, clock.n_ticks)
             pts = [f"{days_x[k]:.1f},{y2(top[k]):.1f}" for k in range(lo, hi)]
             pts += [f"{days_x[k]:.1f},{y2(base[k]):.1f}" for k in reversed(range(lo, hi))]
-            svg.append(f'<polygon points="{" ".join(pts)}" fill="{STATE_C[state]}" '
-                       f'stroke="{BG}" stroke-width="1.5"/>')
+            data.append(f'<polygon points="{" ".join(pts)}" fill="{STATE_C[state]}" '
+                        f'stroke="{BG}" stroke-width="1.5"/>')
             i = j
         base = top
 
     # the in-reach lines: evidenced (blue) under predicted (purple)
     for series, color in ((pred_reach, PREDICTED_C), (reach, REACH_C)):
         line = " ".join(f"{days_x[i]:.1f},{y1(series[i]):.1f}" for i in range(clock.n_ticks))
-        svg.append(f'<polyline points="{line}" fill="none" stroke="{color}" stroke-width="2.5"/>')
+        data.append(f'<polyline points="{line}" fill="none" stroke="{color}" stroke-width="2.5"/>')
+
+    # ahead of the playhead the data shows dimmed; the sweep brings it to
+    # full strength — the two clips share one animation, so they tile exactly
+    svg.append('<g clip-path="url(#rest)" opacity="0.5">')
+    svg.extend(data)
+    svg.append('</g>')
+    svg.append('<g clip-path="url(#reveal)">')
+    svg.extend(data)
     svg.append('</g>')
 
     # final-value labels ride outside the clip, popping in at the end
@@ -221,7 +245,7 @@ def main():
                    f'keyTimes="0;{clock.frac_date(clock.last):.4f}" dur="{clock.dur}s" '
                    f'repeatCount="indefinite"/></circle>')
         svg.append(f'<text x="{fx - 8:.1f}" y="{fy + dy:.1f}" text-anchor="end" font-size="15" '
-                   f'font-weight="bold" fill="{INK}">{series[-1]} {lab}'
+                   f'font-weight="bold" fill="{INK}">{series[-1]:.0f} {lab}'
                    f'<animate attributeName="opacity" calcMode="discrete" values="0;1" '
                    f'keyTimes="0;{clock.frac_date(clock.last):.4f}" dur="{clock.dur}s" '
                    f'repeatCount="indefinite"/></text>')
@@ -240,8 +264,8 @@ def main():
     svg.append("</svg>")
     with open(OUT, "w") as f:
         f.write("\n".join(svg) + "\n")
-    print(f"wrote {OUT} ({reach[-1]}/{frontier} evidenced, "
-          f"{pred_reach[-1]}/{catalog} predicted in reach today, "
+    print(f"wrote {OUT} ({reach[-1]:.1f}/{frontier} evidenced, "
+          f"{pred_reach[-1]:.1f}/{catalog} expected solvable today, "
           f"{clock.n_ticks} days, synced to the {clock.dur:.0f}s loop)")
 
 
