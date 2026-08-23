@@ -70,10 +70,12 @@ def evidence(*records):
 @pytest.fixture
 def picker(monkeypatch):
     """pick() with its three disk reads stubbed: no drill bank anywhere and a
-    neutral acceptance for every problem. Tests that care override them via
-    the returned control object."""
+    neutral acceptance for every problem. Maturity (the simmer rule) is
+    neutral too — every node mature — because it is derived from months of
+    real evidence these synthetic graphs don't carry. Tests that care
+    override any of it via the returned control object."""
     ctl = type("Ctl", (), {"bank": set(), "drilled_today": set(), "acceptance": {},
-                           "unlocks": {}})()
+                           "unlocks": {}, "immature": set()})()
 
     monkeypatch.setattr(kg_next, "drill_gated",
                         lambda nid, status, last, today=None:
@@ -85,6 +87,8 @@ def picker(monkeypatch):
                         if nid in ctl.bank and nid not in ctl.drilled_today else None)
     monkeypatch.setattr(kg_next, "acceptance", lambda p: ctl.acceptance.get(str(p), 50.0))
     monkeypatch.setattr(kg_next, "has_drill_bank", lambda nid: nid in ctl.bank)
+    monkeypatch.setattr(kg_next, "immature_nodes",
+                        lambda nodes, evidence, problems: frozenset(ctl.immature))
 
     def run(nodes, problems, ev, statuses, **kw):
         return kg_next.pick(nodes, problems, ev, statuses, **kw)
@@ -564,6 +568,17 @@ def test_a_hard_with_an_unmapped_move_is_not_ready(picker):
     ps = {"295": problem(["a"], difficulty="Hard",
                          unmapped=["balance two heaps for a running median"])}
     st = {"a": (SOLID, ago(1))}
+    assert picker.summits(ns, ps, {}, st) == []
+
+
+def test_a_hard_with_an_immature_move_is_not_ready(picker):
+    """The simmer rule: SOLID is not enough for a summit — a young badge from
+    one burst of drills has not proven it can carry a Hard yet, so an
+    immature move counts as a gap on the route."""
+    ns = nodes("a", "b")
+    ps = {"76": problem(["a", "b"], difficulty="Hard")}
+    st = {"a": (SOLID, ago(1)), "b": (SOLID, ago(1))}
+    picker.immature.add("b")
     assert picker.summits(ns, ps, {}, st) == []
 
 
