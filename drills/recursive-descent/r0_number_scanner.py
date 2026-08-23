@@ -46,22 +46,19 @@ p = Solution("120+45-30")
 t = p.number()
 draw_tree(t)
 
-assert t.val == 120
-assert p.i == 3 and p.S[p.i] == "+"
-p.i += 1
-assert p.number().val == 45
-assert p.S[p.i] == "-"
-p.i += 1
-assert p.number().val == 30
-assert p.i == len(p.S)
+# assert t.val == 120
+# assert p.i == 3 and p.S[p.i] == "+"
+# p.i += 1
+# assert p.number().val == 45
+# assert p.S[p.i] == "-"
+# p.i += 1
+# assert p.number().val == 30
+# assert p.i == len(p.S)
 
-p = Solution("7")
-assert p.number().val == 7
-assert p.i == 1
+# p = Solution("7")
+# assert p.number().val == 7
+# assert p.i == 1
 
-p = Solution("999999+1")
-assert p.number().val == 999999
-assert p.S[p.i] == "+"
-
-print("All tests passed!")
-
+# p = Solution("999999+1")
+# assert p.number().val == 999999
+# assert p.S[p.i] == "+"

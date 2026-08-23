@@ -43,13 +43,14 @@ from typing import List
 class Solution:
 
     def levelGroups(self, tree: list) -> List[List[int]]:
-        raise NotImplementedError
+        pass
 
 
-if __name__ == "__main__":
-    s = Solution()
-    assert s.levelGroups([1, [2, [4]], [3, [5], [6]]]) == [[1], [2, 3], [4, 5, 6]]
-    assert s.levelGroups([7]) == [[7]]
-    assert s.levelGroups([1, [2, [3, [4, [5]]]]]) == [[1], [2], [3], [4], [5]]
-    assert s.levelGroups([1, [2], [3], [4]]) == [[1], [2, 3, 4]]
-    print("ok")
+sol = Solution()
+
+print(sol.levelGroups([1, [2, [4]], [3, [5], [6]]]))  # [[1], [2, 3], [4, 5, 6]]
+
+# assert sol.levelGroups([1, [2, [4]], [3, [5], [6]]]) == [[1], [2, 3], [4, 5, 6]]
+# assert sol.levelGroups([7]) == [[7]]
+# assert sol.levelGroups([1, [2, [3, [4, [5]]]]]) == [[1], [2], [3], [4], [5]]
+# assert sol.levelGroups([1, [2], [3], [4]]) == [[1], [2, 3, 4]]

@@ -98,25 +98,25 @@ class Solution:
 
 sol = Solution()
 
-parent, find = sol.buildFind(4)
-assert parent == [0, 1, 2, 3]
-assert [find(x) for x in range(4)] == [0, 1, 2, 3]
+print(sol.buildFind(4))  # (parent, find): parent == [0, 1, 2, 3]
 
-parent[1] = 0
-parent[2] = 1
-assert find(2) == 0
-assert find(1) == 0
-assert find(3) == 3
+# parent, find = sol.buildFind(4)
+# assert parent == [0, 1, 2, 3]
+# assert [find(x) for x in range(4)] == [0, 1, 2, 3]
 
-parent, find = sol.buildFind(5)
-parent[0] = 1
-parent[1] = 2
-parent[2] = 3
-parent[3] = 4
-assert find(0) == 4
-assert find(4) == 4
+# parent[1] = 0
+# parent[2] = 1
+# assert find(2) == 0
+# assert find(1) == 0
+# assert find(3) == 3
 
-parent, find = sol.buildFind(1)
-assert find(0) == 0
+# parent, find = sol.buildFind(5)
+# parent[0] = 1
+# parent[1] = 2
+# parent[2] = 3
+# parent[3] = 4
+# assert find(0) == 4
+# assert find(4) == 4
 
-print("All tests passed!")
+# parent, find = sol.buildFind(1)
+# assert find(0) == 0

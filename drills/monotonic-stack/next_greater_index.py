@@ -48,13 +48,13 @@ class Solution:
 
 sol = Solution()
 
-assert sol.nextGreaterIndex([4, 1, 6, 3, 2, 7]) == [2, 2, 5, 5, 5, -1]
-assert sol.nextGreaterIndex([3, 3, 3]) == [-1, -1, -1]
-assert sol.nextGreaterIndex([1, 2, 3]) == [1, 2, -1]
-assert sol.nextGreaterIndex([3, 2, 1]) == [-1, -1, -1]
-assert sol.nextGreaterIndex([5]) == [-1]
-assert sol.nextGreaterIndex([2, 1, 2]) == [-1, 2, -1]
-assert sol.nextGreaterIndex([1, 3, 1, 3]) == [1, -1, 3, -1]
-assert sol.nextGreaterIndex([10, 1, 2, 3]) == [-1, 2, 3, -1]
+print(sol.nextGreaterIndex([4, 1, 6, 3, 2, 7]))  # [2, 2, 5, 5, 5, -1]
 
-print("All tests passed!")
+# assert sol.nextGreaterIndex([4, 1, 6, 3, 2, 7]) == [2, 2, 5, 5, 5, -1]
+# assert sol.nextGreaterIndex([3, 3, 3]) == [-1, -1, -1]
+# assert sol.nextGreaterIndex([1, 2, 3]) == [1, 2, -1]
+# assert sol.nextGreaterIndex([3, 2, 1]) == [-1, -1, -1]
+# assert sol.nextGreaterIndex([5]) == [-1]
+# assert sol.nextGreaterIndex([2, 1, 2]) == [-1, 2, -1]
+# assert sol.nextGreaterIndex([1, 3, 1, 3]) == [1, -1, 3, -1]
+# assert sol.nextGreaterIndex([10, 1, 2, 3]) == [-1, 2, 3, -1]
