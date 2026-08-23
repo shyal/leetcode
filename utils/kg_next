@@ -54,17 +54,42 @@ import os
 import random
 import subprocess
 import sys
-from datetime import date
+from datetime import date, datetime
 from rich.console import Console
 from rich.table import Table
 
 from kg_lib import (
-    GRAPH_DIR, load_nodes, load_problems, load_evidence,
-    node_status, latest_carrier, SOLID, STALE, FRAGILE, MISSING,
-    DEEP_STALE_DAYS, load_sleep, sleep_state,
-    last_solved, pnum_key, dodged_nodes, dodgeable, carriers_for, gentleness, unlocks,
-    input_tree, tree_size, acceptance, due_drill, drill_gated, has_drill_bank,
-    CLASSICS, route_gaps, rank_summits, immature_nodes,
+    GRAPH_DIR,
+    DRILLS_DIR,
+    load_nodes,
+    load_problems,
+    load_evidence,
+    node_status,
+    latest_carrier,
+    SOLID,
+    STALE,
+    FRAGILE,
+    MISSING,
+    DEEP_STALE_DAYS,
+    load_sleep,
+    sleep_state,
+    last_solved,
+    pnum_key,
+    dodged_nodes,
+    dodgeable,
+    carriers_for,
+    gentleness,
+    unlocks,
+    input_tree,
+    tree_size,
+    acceptance,
+    due_drill,
+    drill_gated,
+    has_drill_bank,
+    CLASSICS,
+    route_gaps,
+    rank_summits,
+    immature_nodes,
 )
 from kg_render import make_digraph, status_node, render, display, animate, STATUS_FACE
 
@@ -82,14 +107,21 @@ WARMUP_COOLDOWN_DAYS = 14
 
 def is_session_start():
     """Exit code of the is_session_start script: 0 = still in the window."""
-    return subprocess.run(
-        [sys.executable, os.path.join(UTILS, "is_session_start")],
-        capture_output=True).returncode == 0
+    return (
+        subprocess.run(
+            [sys.executable, os.path.join(UTILS, "is_session_start")],
+            capture_output=True,
+        ).returncode
+        == 0
+    )
 
 
 def _iss():
     from importlib.machinery import SourceFileLoader
-    return SourceFileLoader("_iss", os.path.join(UTILS, "is_session_start")).load_module()
+
+    return SourceFileLoader(
+        "_iss", os.path.join(UTILS, "is_session_start")
+    ).load_module()
 
 
 def solved_today_pnums():
@@ -126,9 +158,15 @@ def trivial_easies(problems, nodes, evidence, statuses):
             continue
         # Hot (recently solved) sorts after cool. Size and acceptance only
         # rank inside that band, so 0.8% acceptance cannot beat a 2-day gap.
-        cands.append((int(_warmup_hot(pnum, evidence)),
-                      tree_size(pnum, problems, nodes), -acceptance(pnum),
-                      last_solved(pnum, evidence), pnum))
+        cands.append(
+            (
+                int(_warmup_hot(pnum, evidence)),
+                tree_size(pnum, problems, nodes),
+                -acceptance(pnum),
+                last_solved(pnum, evidence),
+                pnum,
+            )
+        )
     cands.sort()
     return [c[-1] for c in cands]
 
@@ -136,6 +174,7 @@ def trivial_easies(problems, nodes, evidence, statuses):
 def drill_title(path):
     """The DRILL: header of a bank drill file (falls back to the filename)."""
     import re
+
     for line in open(path):
         m = re.match(r"\s*DRILL:\s*(.+)", line)
         if m:
@@ -152,20 +191,37 @@ def problem_url(pnum):
         return f"https://leetcode.com/problemset/?search={pnum}"
 
 
-def pick(nodes, problems, evidence, statuses, asleep=(), woken=(), exclude=(),
-         session_start=False):
+def pick(
+    nodes,
+    problems,
+    evidence,
+    statuses,
+    asleep=(),
+    woken=(),
+    exclude=(),
+    session_start=False,
+):
     """Return (target, status, pnum, reason) or None."""
+
     def due(target):
         """The drill pseudo-pick for a node, or None if none is due."""
         drill_id = f"drill:{target}"
-        return drill_id if drill_id not in exclude and due_drill(target, evidence) else None
+        return (
+            drill_id
+            if drill_id not in exclude and due_drill(target, evidence)
+            else None
+        )
 
     # rule -1: inside the session-start window, a trivial easy comes first
     if session_start:
         for pnum in trivial_easies(problems, nodes, evidence, statuses):
             if pnum not in asleep and pnum not in exclude:
-                return problems[pnum]["moves"][0], SOLID, pnum, \
-                    "session start — trivial easy to get the juices flowing"
+                return (
+                    problems[pnum]["moves"][0],
+                    SOLID,
+                    pnum,
+                    "session start — trivial easy to get the juices flowing",
+                )
 
     # rule 0a: a woken problem jumps the queue for a fresh attempt
     for pnum in woken:
@@ -173,100 +229,217 @@ def pick(nodes, problems, evidence, statuses, asleep=(), woken=(), exclude=(),
             continue
         moves = problems[pnum]["moves"]
         target = next((m for m in moves if statuses[m][0] != SOLID), moves[0])
-        return target, statuses[target][0], pnum, "woken from sleep — fresh attempt, from scratch"
+        return (
+            target,
+            statuses[target][0],
+            pnum,
+            "woken from sleep — fresh attempt, from scratch",
+        )
 
     # rule 0b: while a problem sleeps, warm the rusty ground under it
     for pnum in asleep:
         closure = input_tree(problems[pnum]["moves"], nodes)
-        rusty = sorted((n for n in closure if statuses[n][0] != SOLID),
-                       key=lambda n: (statuses[n][1] is not None, statuses[n][1]))
+        rusty = sorted(
+            (n for n in closure if statuses[n][0] != SOLID),
+            key=lambda n: (statuses[n][1] is not None, statuses[n][1]),
+        )
         for target in rusty:
             if drill_gated(target, *statuses[target]):
                 if due(target):
-                    return target, statuses[target][0], due(target), \
-                        f"warm the ground under sleeping {pnum} — drill {target} first"
+                    return (
+                        target,
+                        statuses[target][0],
+                        due(target),
+                        f"warm the ground under sleeping {pnum} — drill {target} first",
+                    )
                 continue  # drilled today, still not clean — carrier stays held
-            cands = [c for c in carriers_for(target, problems, statuses, nodes)
-                     if c not in asleep and c not in exclude]
+            cands = [
+                c
+                for c in carriers_for(target, problems, statuses, nodes)
+                if c not in asleep and c not in exclude
+            ]
             if cands:
-                cands.sort(key=lambda p: (last_solved(p, evidence), tree_size(p, problems, nodes), pnum_key(p)))
-                return target, statuses[target][0], cands[0], \
-                    f"warm the ground under sleeping {pnum} ({target})"
+                cands.sort(
+                    key=lambda p: (
+                        last_solved(p, evidence),
+                        tree_size(p, problems, nodes),
+                        pnum_key(p),
+                    )
+                )
+                return (
+                    target,
+                    statuses[target][0],
+                    cands[0],
+                    f"warm the ground under sleeping {pnum} ({target})",
+                )
             if due(target):
-                return target, statuses[target][0], due(target), \
-                    f"warm the ground under sleeping {pnum} — no READY carrier, drill {target}"
+                return (
+                    target,
+                    statuses[target][0],
+                    due(target),
+                    f"warm the ground under sleeping {pnum} — no READY carrier, drill {target}",
+                )
 
     # reachability-aware ordering (PLAN.md phase 1): among the due nodes,
     # service the one that unblocks the most bank problems first; evidence
     # age breaks ties. Deep-stale re-entry still backstops anything left
     # waiting. The ZPD constraint is untouched.
     unl = unlocks(statuses, problems)
-    fragile = sorted((n for n in nodes if statuses[n][0] == FRAGILE),
-                     key=lambda n: (-unl.get(n, 0), statuses[n][1]))
-    stale = sorted((n for n in nodes if statuses[n][0] == STALE),
-                   key=lambda n: (-unl.get(n, 0), statuses[n][1]))
-    missing = sorted((n for n in nodes if statuses[n][0] == MISSING
-                      and all(statuses[p][0] == SOLID for p in nodes[n].get("prereqs", []))),
-                     key=lambda n: (-unl.get(n, 0), n))
+    fragile = sorted(
+        (n for n in nodes if statuses[n][0] == FRAGILE),
+        key=lambda n: (-unl.get(n, 0), statuses[n][1]),
+    )
+    stale = sorted(
+        (n for n in nodes if statuses[n][0] == STALE),
+        key=lambda n: (-unl.get(n, 0), statuses[n][1]),
+    )
+    missing = sorted(
+        (
+            n
+            for n in nodes
+            if statuses[n][0] == MISSING
+            and all(statuses[p][0] == SOLID for p in nodes[n].get("prereqs", []))
+        ),
+        key=lambda n: (-unl.get(n, 0), n),
+    )
 
     dodged = dodged_nodes(evidence)
     for target in fragile:
         if drill_gated(target, *statuses[target]):
             if due(target):
-                return target, FRAGILE, due(target), "fragile move — drill until clean, carrier after"
+                return (
+                    target,
+                    FRAGILE,
+                    due(target),
+                    "fragile move — drill until clean, carrier after",
+                )
             continue  # drilled today, still not clean — carrier stays held
-        cands = [c for c in carriers_for(target, problems, statuses, nodes) if c not in asleep and c not in exclude]
+        cands = [
+            c
+            for c in carriers_for(target, problems, statuses, nodes)
+            if c not in asleep and c not in exclude
+        ]
         if cands:
             if target in dodged:
                 # anti-dodge: prefer carriers with no recorded escape route and
                 # short walks (the target is load-bearing, not optional)
-                cands.sort(key=lambda p: (dodgeable(p, target, problems),
-                                          tree_size(p, problems, nodes),
-                                          last_solved(p, evidence), pnum_key(p)))
-                return target, FRAGILE, cands[0], \
-                    f"you dodged this move on {dodged[target]} — carrier chosen to resist the dodge"
-            cands.sort(key=lambda p: (gentleness(p, problems, nodes), last_solved(p, evidence), -acceptance(p), pnum_key(p)))
-            return target, FRAGILE, cands[0], "consolidate a fragile move on a fresh carrier"
+                cands.sort(
+                    key=lambda p: (
+                        dodgeable(p, target, problems),
+                        tree_size(p, problems, nodes),
+                        last_solved(p, evidence),
+                        pnum_key(p),
+                    )
+                )
+                return (
+                    target,
+                    FRAGILE,
+                    cands[0],
+                    f"you dodged this move on {dodged[target]} — carrier chosen to resist the dodge",
+                )
+            cands.sort(
+                key=lambda p: (
+                    gentleness(p, problems, nodes),
+                    last_solved(p, evidence),
+                    -acceptance(p),
+                    pnum_key(p),
+                )
+            )
+            return (
+                target,
+                FRAGILE,
+                cands[0],
+                "consolidate a fragile move on a fresh carrier",
+            )
 
     for target in stale:
         age = (date.today() - statuses[target][1]).days
         if drill_gated(target, *statuses[target]):
             if due(target):
-                return target, STALE, due(target), \
-                    f"re-enter a deep-stale move ({age}d since clean) — drill until clean, carrier after"
+                return (
+                    target,
+                    STALE,
+                    due(target),
+                    f"re-enter a deep-stale move ({age}d since clean) — drill until clean, carrier after",
+                )
             continue  # drilled today, still not clean — carrier stays held
-        cands = [c for c in carriers_for(target, problems, statuses, nodes) if c not in asleep and c not in exclude]
+        cands = [
+            c
+            for c in carriers_for(target, problems, statuses, nodes)
+            if c not in asleep and c not in exclude
+        ]
         if not cands:
             continue
         if age > DEEP_STALE_DAYS:
-            cands.sort(key=lambda p: (gentleness(p, problems, nodes), last_solved(p, evidence), -acceptance(p), pnum_key(p)))
-            return target, STALE, cands[0], \
-                f"re-enter a deep-stale move ({age}d since clean) on a gentle fresh carrier"
+            cands.sort(
+                key=lambda p: (
+                    gentleness(p, problems, nodes),
+                    last_solved(p, evidence),
+                    -acceptance(p),
+                    pnum_key(p),
+                )
+            )
+            return (
+                target,
+                STALE,
+                cands[0],
+                f"re-enter a deep-stale move ({age}d since clean) on a gentle fresh carrier",
+            )
         carrier = latest_carrier(target, evidence)
-        pnum = carrier[2] if carrier and carrier[2] in cands else \
-            sorted(cands, key=lambda p: last_solved(p, evidence), reverse=True)[0]
+        pnum = (
+            carrier[2]
+            if carrier and carrier[2] in cands
+            else sorted(cands, key=lambda p: last_solved(p, evidence), reverse=True)[0]
+        )
         return target, STALE, pnum, "spaced re-solve of a stale move's carrier"
 
     for target in missing:
         if drill_gated(target, *statuses[target]):
             if due(target):
-                return target, MISSING, due(target), "new move — drill until clean, carrier after"
+                return (
+                    target,
+                    MISSING,
+                    due(target),
+                    "new move — drill until clean, carrier after",
+                )
             continue  # drilled today, still not clean — carrier stays held
-        cands = [c for c in carriers_for(target, problems, statuses, nodes) if c not in asleep and c not in exclude]
+        cands = [
+            c
+            for c in carriers_for(target, problems, statuses, nodes)
+            if c not in asleep and c not in exclude
+        ]
         if cands:
-            cands.sort(key=lambda p: (gentleness(p, problems, nodes), -acceptance(p), pnum_key(p)))
-            return target, MISSING, cands[0], "one genuinely new move, prereqs all solid"
+            cands.sort(
+                key=lambda p: (
+                    gentleness(p, problems, nodes),
+                    -acceptance(p),
+                    pnum_key(p),
+                )
+            )
+            return (
+                target,
+                MISSING,
+                cands[0],
+                "one genuinely new move, prereqs all solid",
+            )
 
     # rule 4: nothing rusty and nothing new — take a summit. A Hard is never a
     # CARRIER (it is not where a rusty move gets its rep), but once its walk is
     # gap-free it is exactly what to work on next, so it belongs in the same
     # pick as everything else rather than behind a second command.
-    summits = [p for p in ready_hards(problems, nodes, evidence, statuses)
-               if p not in asleep and p not in exclude]
+    summits = [
+        p
+        for p in ready_hards(problems, nodes, evidence, statuses)
+        if p not in asleep and p not in exclude
+    ]
     if summits:
         pnum = rank_summits(summits, problems, nodes, statuses)[0]
-        return problems[pnum]["moves"][0], SOLID, pnum, \
-            "summit — its walk has no gaps left"
+        return (
+            problems[pnum]["moves"][0],
+            SOLID,
+            pnum,
+            "summit — its walk has no gaps left",
+        )
 
     return None
 
@@ -284,8 +457,12 @@ def ready_hards(problems, nodes, evidence, statuses):
     immature = immature_nodes(nodes, evidence, problems)
     out = []
     for pnum, p in problems.items():
-        if p.get("difficulty") != "Hard" or p.get("banned") or pnum in solved \
-                or not p.get("moves"):
+        if (
+            p.get("difficulty") != "Hard"
+            or p.get("banned")
+            or pnum in solved
+            or not p.get("moves")
+        ):
             continue
         if route_gaps(pnum, problems, nodes, statuses, immature)[1] == 0:
             out.append(pnum)
@@ -309,9 +486,11 @@ def blocked_frontier(nodes, problems, evidence, statuses, asleep=(), exclude=())
         status, _ = statuses[nid]
         if status == SOLID:
             continue
-        if status == MISSING and not all(statuses[p][0] == SOLID
-                                         for p in nodes[nid].get("prereqs", [])
-                                         if p in statuses):
+        if status == MISSING and not all(
+            statuses[p][0] == SOLID
+            for p in nodes[nid].get("prereqs", [])
+            if p in statuses
+        ):
             continue  # a prereq is still rusty — not on the frontier yet
         ready = carriers_for(nid, problems, statuses, nodes)
         if [c for c in ready if c not in asleep and c not in exclude]:
@@ -320,18 +499,25 @@ def blocked_frontier(nodes, problems, evidence, statuses, asleep=(), exclude=())
             continue  # its drill is available and pick() would offer it
 
         walks = [p for p, v in problems.items() if nid in v.get("moves", [])]
-        usable = [p for p in walks if not problems[p].get("banned")
-                  and problems[p].get("difficulty") != "Hard"]
+        usable = [
+            p
+            for p in walks
+            if not problems[p].get("banned") and problems[p].get("difficulty") != "Hard"
+        ]
         listed = ", ".join(sorted(walks, key=pnum_key))
         if not walks:
             why = "no problem in the graph uses this move"
         elif not usable:
-            why = (f"the only problem using it is {listed}, a Hard or banned one "
-                   "(hards are summits, never used to introduce a move)"
-                   if len(walks) == 1 else
-                   f"every problem using it ({listed}) is a Hard or banned")
+            why = (
+                f"the only problem using it is {listed}, a Hard or banned one "
+                "(hards are summits, never used to introduce a move)"
+                if len(walks) == 1
+                else f"every problem using it ({listed}) is a Hard or banned"
+            )
         elif not ready:
-            why = "every problem using it also needs a second rusty move made solid first"
+            why = (
+                "every problem using it also needs a second rusty move made solid first"
+            )
         else:
             why = "every problem using it is asleep or already solved today"
         if has_drill_bank(nid):
@@ -342,18 +528,72 @@ def blocked_frontier(nodes, problems, evidence, statuses, asleep=(), exclude=())
     return out
 
 
+def load_plan():
+    """Today's frozen study plan (data/study_plan/<date>.json, built by
+    `make today`), or None. The plan is the determinism boundary: judgment ran
+    once at build time; serving it is a pure function of (plan, evidence)."""
+    path = os.path.join(
+        os.path.dirname(GRAPH_DIR), "data", "study_plan", f"{date.today().isoformat()}.json"
+    )
+    try:
+        with open(path) as f:
+            return json.load(f)
+    except OSError:
+        return None
+
+
+def plan_item_done(item, evidence, plan):
+    """Self-clearing, the way sleep entries resolve: a matching rep on or
+    after the plan date marks the item done. create-drill clears when a new
+    bank file lands after the plan was generated."""
+    kind = item["kind"]
+    if kind == "create-drill":
+        import glob
+
+        gen = datetime.fromisoformat(plan["generated"]).timestamp()
+        return any(
+            os.path.getmtime(p) >= gen
+            for p in glob.glob(os.path.join(DRILLS_DIR, item["node"], "*.py"))
+        )
+    if kind == "drill":
+        return any(
+            r["date"] >= plan["date"] and item["node"] in r.get("moves", {})
+            for r in evidence.values()
+        )
+    return any(
+        r.get("problem") == str(item["problem"]) and r["date"] >= plan["date"]
+        for r in evidence.values()
+    )
+
+
 def main():
-    parser = argparse.ArgumentParser(description="Pick the next problem and draw its input tree.")
-    parser.add_argument("n", nargs="?", type=int, default=1,
-                        help="show the Nth recommendation (skip the first N-1)")
-    parser.add_argument("--graph", action="store_true",
-                        help="label tree nodes with move names (default: shape only)")
+    parser = argparse.ArgumentParser(
+        description="Pick the next problem and draw its input tree."
+    )
+    parser.add_argument(
+        "n",
+        nargs="?",
+        type=int,
+        default=1,
+        help="show the Nth recommendation (skip the first N-1)",
+    )
+    parser.add_argument(
+        "--graph",
+        action="store_true",
+        help="label tree nodes with move names (default: shape only)",
+    )
     parser.add_argument("--no-show", action="store_true", help="skip the drawing")
-    parser.add_argument("--why", action="store_true",
-                        help="when there is nothing to serve, name the frontier "
-                             "nodes the bank cannot carry, and why")
-    parser.add_argument("--prepare", action="store_true",
-                        help="run `make prepare` on the pick (stub + branch — the solve clock starts)")
+    parser.add_argument(
+        "--why",
+        action="store_true",
+        help="when there is nothing to serve, name the frontier "
+        "nodes the bank cannot carry, and why",
+    )
+    parser.add_argument(
+        "--prepare",
+        action="store_true",
+        help="run `make prepare` on the pick (stub + branch — the solve clock starts)",
+    )
     args = parser.parse_args()
     labeled = args.graph
 
@@ -362,15 +602,26 @@ def main():
             return
         cur = os.path.join(os.path.dirname(UTILS), "current.py")
         if os.path.exists(cur) and open(cur).read().strip():
-            console.print("[yellow]current.py is not empty — record it (make solved) before preparing the next one.[/yellow]")
+            console.print(
+                "[yellow]current.py is not empty — record it (make solved) before preparing the next one.[/yellow]"
+            )
             sys.exit(1)
-        subprocess.run([sys.executable, os.path.join(UTILS, "prepare"), str(target)],
-                       cwd=os.path.dirname(UTILS))
+        subprocess.run(
+            [sys.executable, os.path.join(UTILS, "prepare"), str(target)],
+            cwd=os.path.dirname(UTILS),
+        )
 
     nodes = load_nodes()
     problems = load_problems()
     evidence = load_evidence()
     statuses = {n: node_status(n, evidence) for n in nodes}
+    immature = immature_nodes(nodes, evidence, problems)
+
+    def maturity_cell(n):
+        # the simmer rule made visible: SOLID says you can recall it today,
+        # mature says the badge survived a gap and a real problem
+        return "[yellow]young[/yellow]" if n in immature else "[dim]mature[/dim]"
+
     sleeps = load_sleep()
     asleep, woken = sleep_state(sleeps, evidence)
 
@@ -385,13 +636,66 @@ def main():
     exclude = set(solved_today_pnums())
     choice = None
     shown = 0
-    for _ in range(max(1, args.n)):
-        choice = pick(nodes, problems, evidence, statuses, asleep=asleep, woken=woken,
-                      exclude=exclude, session_start=session_start)
-        if not choice:
-            break
-        shown += 1
-        exclude.add(choice[2])
+    plan_note = None
+
+    # Today's frozen plan comes first: serve its pending items in order,
+    # transparently — same rendering, same commands. Items self-clear from
+    # evidence; an exhausted or absent plan falls through to the normal rules.
+    plan = load_plan()
+    if plan:
+        pending = [
+            it
+            for it in plan["items"]
+            if not plan_item_done(it, evidence, plan)
+            and str(it.get("problem", "")) not in exclude
+            and it.get("problem") not in asleep
+        ]
+        idx = max(1, args.n) - 1
+        if idx < len(pending):
+            item = pending[idx]
+            if item["kind"] == "create-drill":
+                with console.capture() as cap:
+                    console.print(f"\n[bold]create drill: {item['node']}[/bold]")
+                    if item.get("spec"):
+                        console.print(item["spec"])
+                    console.print(
+                        "[dim]plan item — clears when a new bank file lands in "
+                        f"drills/{item['node']}/[/dim]"
+                    )
+                animate(cap.get())
+                return
+            if item["kind"] == "drill":
+                if due_drill(item["node"], evidence):
+                    choice = (
+                        item["node"],
+                        statuses[item["node"]][0],
+                        f"drill:{item['node']}",
+                        f"plan: {item.get('why', '')}",
+                    )
+            elif str(item.get("problem", "")) in problems:
+                pnum = str(item["problem"])
+                moves = problems[pnum]["moves"]
+                target = next((m for m in moves if statuses[m][0] != SOLID), moves[0])
+                plan_note = item.get("note")
+                choice = (target, statuses[target][0], pnum, f"plan: {item['kind']}")
+            shown = 1 if choice else 0
+
+    if not choice:
+        for _ in range(max(1, args.n)):
+            choice = pick(
+                nodes,
+                problems,
+                evidence,
+                statuses,
+                asleep=asleep,
+                woken=woken,
+                exclude=exclude,
+                session_start=session_start,
+            )
+            if not choice:
+                break
+            shown += 1
+            exclude.add(choice[2])
     if not choice:
         # Zero friction: time worked, and what to work on next. Nothing else.
         # Basecamp running dry is the expected end state, not a fault — it
@@ -405,14 +709,22 @@ def main():
             console.print("\nNothing to serve — the graph needs new problems mapped.")
 
         if args.why:
-            blocked = blocked_frontier(nodes, problems, evidence, statuses, asleep, exclude)
+            blocked = blocked_frontier(
+                nodes, problems, evidence, statuses, asleep, exclude
+            )
             if blocked:
-                table = Table(show_header=True, header_style="bold", box=None, padding=(0, 2))
+                table = Table(
+                    show_header=True, header_style="bold", box=None, padding=(0, 2)
+                )
                 table.add_column("Move")
                 table.add_column("Status")
                 table.add_column("Why it can't be served")
                 for nid, status, why in blocked:
-                    table.add_row(nid, f"[{STATUS_STYLE[status]}]{status}[/{STATUS_STYLE[status]}]", why)
+                    table.add_row(
+                        nid,
+                        f"[{STATUS_STYLE[status]}]{status}[/{STATUS_STYLE[status]}]",
+                        why,
+                    )
                 console.print()
                 console.print(table)
         return
@@ -425,9 +737,15 @@ def main():
         table = Table(show_header=True, header_style="bold", box=None, padding=(0, 2))
         table.add_column("Move")
         table.add_column("Status")
+        table.add_column("Maturity")
         table.add_column("Last evidence")
         label = target if labeled else random.choice(STATUS_FACE[s])
-        table.add_row(label, f"[{STATUS_STYLE[s]}]{s}[/{STATUS_STYLE[s]}]", str(d) if d else "—")
+        table.add_row(
+            label,
+            f"[{STATUS_STYLE[s]}]{s}[/{STATUS_STYLE[s]}]",
+            maturity_cell(target),
+            str(d) if d else "—",
+        )
         with console.capture() as cap:
             console.print(f"\n[bold]drill: {title}[/bold]")
             console.print(path)
@@ -438,8 +756,9 @@ def main():
             dot = make_digraph("input-tree")
             for n in tree:
                 s, d = statuses[n]
-                status_node(dot, n, nodes[n], s, d, highlight=(n == target),
-                            labeled=labeled)
+                status_node(
+                    dot, n, nodes[n], s, d, highlight=(n == target), labeled=labeled
+                )
             for n in tree:
                 for pre in nodes[n].get("prereqs", []):
                     if pre in tree:
@@ -467,11 +786,17 @@ def main():
     table = Table(show_header=True, header_style="bold", box=None, padding=(0, 2))
     table.add_column("Move")
     table.add_column("Status")
+    table.add_column("Maturity")
     table.add_column("Last evidence")
     for m in p["moves"]:
         s, d = statuses[m]
         label = m if labeled else random.choice(STATUS_FACE[s])
-        table.add_row(label, f"[{STATUS_STYLE[s]}]{s}[/{STATUS_STYLE[s]}]", str(d) if d else "—")
+        table.add_row(
+            label,
+            f"[{STATUS_STYLE[s]}]{s}[/{STATUS_STYLE[s]}]",
+            maturity_cell(m),
+            str(d) if d else "—",
+        )
 
     # A summit reads differently from a basecamp problem — it is a test, taken
     # all-green — so it gets kg_hard's mountain rather than a word of prose.
@@ -482,6 +807,8 @@ def main():
         console.print(problem_url(pnum))
         if p.get("note"):
             console.print(f"[yellow]⚠ {p['note']}[/yellow]")
+        if plan_note:
+            console.print(f"[yellow]{plan_note}[/yellow]")
         console.print(table)
 
     if args.no_show:
@@ -493,8 +820,9 @@ def main():
     dot = make_digraph("input-tree")
     for n in tree:
         s, d = statuses[n]
-        status_node(dot, n, nodes[n], s, d, highlight=(n in p["moves"]),
-                    labeled=labeled)
+        status_node(
+            dot, n, nodes[n], s, d, highlight=(n in p["moves"]), labeled=labeled
+        )
     for n in tree:
         for pre in nodes[n].get("prereqs", []):
             if pre in tree:
