@@ -4,9 +4,8 @@ class Parser:
 
     def number(self):
         n = 0
-        while self.i < len(self.S) and self.S[self.i].isdigit():
-            n = n * 10 + int(self.S[self.i])
-            self.i += 1
+        while not self.ended and self.S[self.i].isdigit():
+            n = n * 10 + int(self.next)
         return TreeNode(n)
 
     def atom(self):
@@ -20,17 +19,13 @@ class Parser:
     def term(self):
         val = self.atom()
         while not self.ended and self.curr in "*/":
-            op = self.curr
-            self.i += 1
-            val = TreeNode(left=val, val=op, right=self.atom())
+            val = TreeNode(left=val, val=self.next, right=self.atom())
         return val
 
     def expr(self):
         val = self.term()
         while not self.ended and self.curr in "+-":
-            op = self.curr
-            self.i += 1
-            val = TreeNode(left=val, val=op, right=self.term())
+            val = TreeNode(left=val, val=self.next, right=self.term())
         return val
 
     def advance(self):
@@ -44,25 +39,27 @@ class Parser:
     def curr(self):
         return self.S[self.i]
 
+    @property
+    def next(self):
+        val = self.S[self.i]
+        self.i += 1
+        return val
+
+
 class RecursiveDescent(Parser):
     def evaluate(self, node):
         if node.left is None:
             return node.val
         l, r = self.evaluate(node.left), self.evaluate(node.right)
-        Op = {
-            '+': add,
-            '-': sub,
-            '*': mul,
-            '/': truediv
-        }
+        Op = {"+": add, "-": sub, "*": mul, "/": truediv}
         return Op[node.val](l, r)
 
     def draw(self, node):
         draw_tree(node)
 
 
-
 if __name__ == "__main__":
+
     class Solution:
         def tally(self, S: str) -> int:
             rd = RecursiveDescent(S)
