@@ -1224,7 +1224,12 @@ fn main() {
     push_key(&mut reveal_t, 1.0);
     let reveal_anim = animate("width", "linear", &reveal_x, &reveal_t, dur);
     writeln!(c, "<clipPath id=\"reveal\"><rect x=\"0\" y=\"0\" width=\"{CW:.0}\" height=\"{CH:.0}\">{reveal_anim}</rect></clipPath>").unwrap();
-    writeln!(c, "<g clip-path=\"url(#reveal)\">").unwrap();
+    // the complement: everything RIGHT of the playhead, so the not-yet-swept
+    // data can sit dimmed underneath — same animation values, so the two
+    // clips tile exactly at the playhead
+    let rest_anim = animate("x", "linear", &reveal_x, &reveal_t, dur);
+    writeln!(c, "<clipPath id=\"rest\"><rect x=\"{:.1}\" y=\"0\" width=\"{CW:.0}\" height=\"{CH:.0}\">{rest_anim}</rect></clipPath>", CW - CMR).unwrap();
+    let mut dg = String::new();
 
     // bands (cautious..optimistic) and central lines
     for (kind, color) in [(0usize, SCREEN_C), (1usize, ONSITE_C)] {
@@ -1236,13 +1241,13 @@ fn main() {
         for (i, wd) in weeks.iter().enumerate().rev() {
             write!(band, "{:.1},{:.1} ", x_of(*wd), y_of(get(2, i))).unwrap();
         }
-        writeln!(c, "<polygon points=\"{}\" fill=\"{color}\" opacity=\"0.15\"/>", band.trim_end()).unwrap();
+        writeln!(dg, "<polygon points=\"{}\" fill=\"{color}\" opacity=\"0.15\"/>", band.trim_end()).unwrap();
         let line: Vec<String> = weeks
             .iter()
             .enumerate()
             .map(|(i, wd)| format!("{:.1},{:.1}", x_of(*wd), y_of(get(1, i))))
             .collect();
-        writeln!(c, "<polyline points=\"{}\" fill=\"none\" stroke=\"{color}\" stroke-width=\"2\"/>", line.join(" ")).unwrap();
+        writeln!(dg, "<polyline points=\"{}\" fill=\"none\" stroke=\"{color}\" stroke-width=\"2\"/>", line.join(" ")).unwrap();
     }
 
     // the oct/nov '25 plateau, and the note when the line breaks above it
@@ -1258,8 +1263,8 @@ fn main() {
         .fold(f64::NAN, f64::max);
     if plateau.is_finite() {
         let py = y_of(plateau);
-        writeln!(c, "<line x1=\"{:.1}\" y1=\"{py:.1}\" x2=\"{:.1}\" y2=\"{py:.1}\" stroke=\"{SCREEN_C}\" stroke-width=\"1\" stroke-dasharray=\"6 4\" opacity=\"0.55\"/>", x_of(NaiveDate::from_ymd_opt(2025, 10, 1).unwrap()), CW - CMR).unwrap();
-        writeln!(c, "<text x=\"{:.1}\" y=\"{:.1}\" font-size=\"11\" fill=\"{SCREEN_C}\" opacity=\"0.8\">oct/nov '25 plateau</text>", x_of(NaiveDate::from_ymd_opt(2025, 12, 20).unwrap()), py - 5.0).unwrap();
+        writeln!(dg, "<line x1=\"{:.1}\" y1=\"{py:.1}\" x2=\"{:.1}\" y2=\"{py:.1}\" stroke=\"{SCREEN_C}\" stroke-width=\"1\" stroke-dasharray=\"6 4\" opacity=\"0.55\"/>", x_of(NaiveDate::from_ymd_opt(2025, 10, 1).unwrap()), CW - CMR).unwrap();
+        writeln!(dg, "<text x=\"{:.1}\" y=\"{:.1}\" font-size=\"11\" fill=\"{SCREEN_C}\" opacity=\"0.8\">oct/nov '25 plateau</text>", x_of(NaiveDate::from_ymd_opt(2025, 12, 20).unwrap()), py - 5.0).unwrap();
     }
 
     // weekly solve volume, its own little axis under the main panel
@@ -1270,9 +1275,11 @@ fn main() {
         }
         let x1 = x_of(*wd - Duration::days(6));
         let h = *n as f64 / vmax * (CVB - CVT - 6.0);
-        writeln!(c, "<rect x=\"{x1:.1}\" y=\"{:.1}\" width=\"{:.1}\" height=\"{h:.1}\" fill=\"#484f58\"/>", CVB - h, (x_of(*wd) - x1).max(1.0)).unwrap();
+        writeln!(dg, "<rect x=\"{x1:.1}\" y=\"{:.1}\" width=\"{:.1}\" height=\"{h:.1}\" fill=\"#484f58\"/>", CVB - h, (x_of(*wd) - x1).max(1.0)).unwrap();
     }
-    writeln!(c, "</g>").unwrap();
+    // dimmed ahead of the playhead, full strength behind it
+    writeln!(c, "<g clip-path=\"url(#rest)\" opacity=\"0.5\">\n{dg}</g>").unwrap();
+    writeln!(c, "<g clip-path=\"url(#reveal)\">\n{dg}</g>").unwrap();
 
     // end-of-line labels sit to the RIGHT of the finished reveal, so they get
     // their own entrance: pop in on the movie's final tick, when the sweep
@@ -1721,7 +1728,9 @@ fn main() {
 
     let breveal_anim = animate("width", "linear", &reveal_x, &reveal_t, dur);
     writeln!(bl, "<clipPath id=\"breveal\"><rect x=\"0\" y=\"0\" width=\"{CW:.0}\" height=\"{CH:.0}\">{breveal_anim}</rect></clipPath>").unwrap();
-    writeln!(bl, "<g clip-path=\"url(#breveal)\">").unwrap();
+    let brest_anim = animate("x", "linear", &reveal_x, &reveal_t, dur);
+    writeln!(bl, "<clipPath id=\"brest\"><rect x=\"{:.1}\" y=\"0\" width=\"{CW:.0}\" height=\"{CH:.0}\">{brest_anim}</rect></clipPath>", CW - CMR).unwrap();
+    let mut bd = String::new();
     for bi in 0..n_bands {
         let mut pts = String::new();
         for (di, day) in days.iter().enumerate() {
@@ -1730,9 +1739,11 @@ fn main() {
         for (di, day) in days.iter().enumerate().rev() {
             write!(pts, "{:.1},{:.1} ", x_of(*day).clamp(CML, CW - CMR), by_of(cum_shares[di][bi])).unwrap();
         }
-        writeln!(bl, "<polygon points=\"{}\" fill=\"{}\" opacity=\"0.9\"/>", pts.trim_end(), band_color(bi)).unwrap();
+        writeln!(bd, "<polygon points=\"{}\" fill=\"{}\" opacity=\"0.9\"/>", pts.trim_end(), band_color(bi)).unwrap();
     }
-    writeln!(bl, "</g>").unwrap();
+    // dimmed ahead of the playhead, full strength behind it
+    writeln!(bl, "<g clip-path=\"url(#brest)\" opacity=\"0.5\">\n{bd}</g>").unwrap();
+    writeln!(bl, "<g clip-path=\"url(#breveal)\">\n{bd}</g>").unwrap();
 
     if let Ok(sw_d) = NaiveDate::parse_from_str(ERA_SWITCH, "%Y-%m-%d") {
         if sw_d > x0 && sw_d < xend {

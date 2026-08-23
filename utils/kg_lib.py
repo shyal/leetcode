@@ -201,6 +201,24 @@ def node_status(node_id, evidence, today=None):
     A spoiled solve is not recall evidence at all — it neither counts as a
     clean rep nor keeps the node SOLID.
     """
+    status, last, _ = node_eval(node_id, evidence, today)
+    return status, last
+
+
+def node_recall(node_id, evidence, today=None):
+    """Predicted recall probability in [0, 1] for a node today.
+
+    The curve's full fitted model (1-slip)*(1 + gap/s)^(-beta) — node_status
+    thresholds just the memory component into SOLID/STALE; this returns the
+    probability itself so callers can multiply it across a walk. MISSING and
+    FRAGILE nodes have no recall to predict (0.0). Without a fitted curve the
+    flat window makes it binary."""
+    return node_eval(node_id, evidence, today)[2]
+
+
+def node_eval(node_id, evidence, today=None):
+    """(status, last_relevant_date, predicted_recall) in one evidence scan —
+    node_status and node_recall are views of this."""
     today = today or date.today()
     entries = []  # (date, verdict, assist)
     for rec in evidence.values():
@@ -208,16 +226,16 @@ def node_status(node_id, evidence, today=None):
         if verdict:
             entries.append((date.fromisoformat(rec["date"]), verdict, assist_of(rec)))
     if not entries:
-        return MISSING, None
+        return MISSING, None, 0.0
     entries.sort()
     last_date, last_verdict, _ = entries[-1]
     clean_dates = [d for d, v, a in entries if v == "clean" and a != "spoiled"]
     if last_verdict in ("struggled", "avoided") and not (
         clean_dates and clean_dates[-1] >= last_date
     ):
-        return FRAGILE, last_date
+        return FRAGILE, last_date, 0.0
     if not clean_dates:
-        return FRAGILE, last_date
+        return FRAGILE, last_date, 0.0
 
     curve = _load_curve()
     if curve:
@@ -229,14 +247,15 @@ def node_status(node_id, evidence, today=None):
         stability = math.exp(p["a"] + p["b"] * cleans - p["c"] * struggles
                              - p.get("d", 0.0) * assisted)
         stability = min(max(stability, 7), 3650)  # sanity clamp
-        gap = (today - clean_dates[-1]).days
-        if (1 + gap / stability) ** (-p["beta"]) >= curve["target_retention"]:
-            return SOLID, clean_dates[-1]
-        return STALE, clean_dates[-1]
+        gap = max((today - clean_dates[-1]).days, 0)
+        memory = (1 + gap / stability) ** (-p["beta"])
+        recall = (1 - p.get("slip", 0.0)) * memory
+        status = SOLID if memory >= curve["target_retention"] else STALE
+        return status, clean_dates[-1], recall
 
     if today - clean_dates[-1] <= timedelta(days=SOLID_WINDOW_DAYS):
-        return SOLID, clean_dates[-1]
-    return STALE, clean_dates[-1]
+        return SOLID, clean_dates[-1], 1.0
+    return STALE, clean_dates[-1], 0.0
 
 
 DEEP_STALE_DAYS = 2 * SOLID_WINDOW_DAYS  # beyond this, a "re-solve" plays like a new problem
