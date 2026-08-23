@@ -11,7 +11,13 @@ import json
 import os
 import re
 import subprocess
+import time
 from datetime import date, timedelta
+
+# The system clock runs UTC but the operator lives in Manila (UTC+8);
+# "today" everywhere in the toolchain means the Manila calendar day.
+os.environ["TZ"] = "Asia/Manila"
+time.tzset()
 
 GRAPH_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "graph")
 DRILLS_DIR = os.path.join(os.path.dirname(GRAPH_DIR), "drills")
