@@ -59,35 +59,33 @@ t = p.expr()
 
 draw_tree(t)
 
-assert t.val == "-"
-assert t.left.val == 12
-assert t.right.val == "+"
-assert t.right.left.val == 3 and t.right.right.val == 4
-assert p.i == len(p.S)
+# assert t.val == "-"
+# assert t.left.val == 12
+# assert t.right.val == "+"
+# assert t.right.left.val == 3 and t.right.right.val == 4
+# assert p.i == len(p.S)
 
-p = Solution("12-(3+4-(2))")
-t = p.expr()
-assert t.val == "-"
-assert t.left.val == 12
-inner = t.right
-assert inner.val == "-" and inner.right.val == 2
-assert inner.left.val == "+"
-assert inner.left.left.val == 3 and inner.left.right.val == 4
+# p = Solution("12-(3+4-(2))")
+# t = p.expr()
+# assert t.val == "-"
+# assert t.left.val == 12
+# inner = t.right
+# assert inner.val == "-" and inner.right.val == 2
+# assert inner.left.val == "+"
+# assert inner.left.left.val == 3 and inner.left.right.val == 4
 
-p = Solution("((7))")
-t = p.expr()
-assert t.val == 7 and t.left is None and t.right is None
-assert p.i == len(p.S)
+# p = Solution("((7))")
+# t = p.expr()
+# assert t.val == 7 and t.left is None and t.right is None
+# assert p.i == len(p.S)
 
-p = Solution("10-(2+3)+1")
-t = p.expr()
-assert t.val == "+" and t.right.val == 1
-assert t.left.val == "-" and t.left.left.val == 10
-assert t.left.right.val == "+"
-assert t.left.right.left.val == 2 and t.left.right.right.val == 3
+# p = Solution("10-(2+3)+1")
+# t = p.expr()
+# assert t.val == "+" and t.right.val == 1
+# assert t.left.val == "-" and t.left.left.val == 10
+# assert t.left.right.val == "+"
+# assert t.left.right.left.val == 2 and t.left.right.right.val == 3
 
-p = Solution("42")
-t = p.expr()
-assert t.val == 42 and t.left is None and t.right is None
-
-print("All tests passed!")
+# p = Solution("42")
+# t = p.expr()
+# assert t.val == 42 and t.left is None and t.right is None

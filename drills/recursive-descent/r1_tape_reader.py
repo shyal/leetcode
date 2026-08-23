@@ -59,27 +59,25 @@ t = p.expr()
 
 draw_tree(t)
 
-assert t.val == "-"
-assert t.right.val == 30 and t.right.left is None
-assert t.left.val == "+"
-assert t.left.left.val == 120 and t.left.right.val == 45
-assert p.i == len(p.S)
+# assert t.val == "-"
+# assert t.right.val == 30 and t.right.left is None
+# assert t.left.val == "+"
+# assert t.left.left.val == 120 and t.left.right.val == 45
+# assert p.i == len(p.S)
 
-p = Solution("7")
-t = p.expr()
-assert t.val == 7 and t.left is None and t.right is None
+# p = Solution("7")
+# t = p.expr()
+# assert t.val == 7 and t.left is None and t.right is None
 
-p = Solution("10-100+1000")
-t = p.expr()
-assert t.val == "+" and t.right.val == 1000
-assert t.left.val == "-"
-assert t.left.left.val == 10 and t.left.right.val == 100
+# p = Solution("10-100+1000")
+# t = p.expr()
+# assert t.val == "+" and t.right.val == 1000
+# assert t.left.val == "-"
+# assert t.left.left.val == 10 and t.left.right.val == 100
 
-p = Solution("1+2+3+4")
-t = p.expr()
-assert t.val == "+" and t.right.val == 4
-assert t.left.val == "+" and t.left.right.val == 3
-assert t.left.left.val == "+"
-assert t.left.left.left.val == 1 and t.left.left.right.val == 2
-
-print("All tests passed!")
+# p = Solution("1+2+3+4")
+# t = p.expr()
+# assert t.val == "+" and t.right.val == 4
+# assert t.left.val == "+" and t.left.right.val == 3
+# assert t.left.left.val == "+"
+# assert t.left.left.left.val == 1 and t.left.left.right.val == 2

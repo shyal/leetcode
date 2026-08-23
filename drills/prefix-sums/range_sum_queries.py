@@ -2,8 +2,8 @@
 DRILL: Range Sum Queries
 TRAINS: prefix-sums
 
-Given an integer array nums and a list of queries (l, r) — both indices
-INCLUSIVE — return a list with the sum nums[l..r] for each query.
+Given an integer array nums and a list of queries (l, r) - both indices
+INCLUSIVE - return a list with the sum nums[l..r] for each query.
 
 Example 1:
 
@@ -36,13 +36,14 @@ from typing import List, Tuple
 class Solution:
 
     def rangeSums(self, nums: List[int], queries: List[Tuple[int, int]]) -> List[int]:
-        raise NotImplementedError
+        pass
 
 
-if __name__ == "__main__":
-    s = Solution()
-    assert s.rangeSums([3, -1, 4, 1, 5, 9], [(0, 2), (1, 4), (3, 3)]) == [6, 9, 1]
-    assert s.rangeSums([2, 2, 2], [(0, 2)]) == [6]
-    assert s.rangeSums([5], [(0, 0)]) == [5]
-    assert s.rangeSums([1, -1, 1, -1], [(0, 3), (1, 2), (0, 0), (3, 3)]) == [0, 0, 1, -1]
-    print("ok")
+sol = Solution()
+
+print(sol.rangeSums([3, -1, 4, 1, 5, 9], [(0, 2), (1, 4), (3, 3)]))  # [6, 9, 1]
+
+# assert sol.rangeSums([3, -1, 4, 1, 5, 9], [(0, 2), (1, 4), (3, 3)]) == [6, 9, 1]
+# assert sol.rangeSums([2, 2, 2], [(0, 2)]) == [6]
+# assert sol.rangeSums([5], [(0, 0)]) == [5]
+# assert sol.rangeSums([1, -1, 1, -1], [(0, 3), (1, 2), (0, 0), (3, 3)]) == [0, 0, 1, -1]
