@@ -321,7 +321,7 @@ def immature_nodes(nodes, evidence, problems):
     return frozenset(n for n in nodes if not mature(n, evidence, problems))
 
 
-def proving_carriers(target, problems, statuses, nodes):
+def proving_carriers(target, problems, statuses, nodes, evidence):
     """Carriers that can give an immature move its carry proof: non-banned,
     non-Hard, real (numeric) problems carrying the target in ANY recorded
     walk whose every OTHER move is SOLID. Wider than carriers_for — primary
@@ -334,7 +334,8 @@ def proving_carriers(target, problems, statuses, nodes):
     found = []
     for pnum, p in problems.items():
         if not str(pnum)[:1].isdigit() or p.get("banned") \
-                or p.get("difficulty") == "Hard":
+                or p.get("difficulty") == "Hard" \
+                or held_behind(pnum, problems, evidence):
             continue
         if kind == "medium" and p.get("difficulty") != "Medium":
             continue
@@ -350,6 +351,37 @@ def proving_carriers(target, problems, statuses, nodes):
 def last_solved(pnum, evidence):
     dates = [r["date"] for r in evidence.values() if r.get("problem") == str(pnum)]
     return max(dates) if dates else ""
+
+
+def last_clean_solve(pnum, evidence):
+    """Latest date this problem was solved with every walked move clean and
+    no spoiling assist - the bar a predecessor must meet to release the
+    problems declared "after" it."""
+    dates = [r["date"] for r in evidence.values()
+             if r.get("problem") == str(pnum) and r.get("moves")
+             and all(v == "clean" for v in r["moves"].values())
+             and assist_of(r) != "spoiled"]
+    return max(dates) if dates else ""
+
+
+def held_behind(pnum, problems, evidence, today=None):
+    """The predecessor problem this one must wait for, or None.
+
+    A problem may declare "after": ["46"] - problems whose walk its own
+    builds on (47 is 46's loop plus the dedup rule). While a predecessor is
+    due - never solved clean, or its last clean solve has aged out of the
+    solid window - this problem stays out of carrier pools so the picker
+    serves the predecessor first. A banned predecessor holds nothing back.
+    """
+    today = today or date.today()
+    for pred in problems.get(str(pnum), {}).get("after", []):
+        pred = str(pred)
+        if problems.get(pred, {}).get("banned"):
+            continue
+        last = last_clean_solve(pred, evidence)
+        if not last or (today - date.fromisoformat(last)).days > SOLID_WINDOW_DAYS:
+            return pred
+    return None
 
 
 def pnum_key(pnum):
@@ -377,18 +409,21 @@ def dodgeable(pnum, target, problems):
                for walk in problems.get(pnum, {}).get("alt_walks", []))
 
 
-def carriers_for(target, problems, statuses, nodes):
+def carriers_for(target, problems, statuses, nodes, evidence):
     """Problems containing the target move whose every OTHER move is SOLID.
     Banned problems ("banned": true) are never offered as carriers.
     Hards are summits, never refresh carriers — rusty moves get their reps
-    at basecamps (easies/mediums); a Hard is attempted only all-green."""
+    at basecamps (easies/mediums); a Hard is attempted only all-green.
+    A problem declaring "after" waits until its predecessor is warm
+    (held_behind), so 46 is served before 47."""
     found = []
     for pnum, p in problems.items():
         moves = p.get("moves", [])
         if p.get("banned") or p.get("difficulty") == "Hard" or target not in moves \
                 or not all(m in nodes for m in moves):
             continue
-        if all(statuses[m][0] == SOLID for m in moves if m != target):
+        if all(statuses[m][0] == SOLID for m in moves if m != target) \
+                and not held_behind(pnum, problems, evidence):
             found.append(pnum)
     return found
 

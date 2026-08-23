@@ -618,3 +618,51 @@ def test_a_missing_node_behind_a_rusty_prereq_is_not_on_the_frontier(picker):
     ps = {"1": problem(["new"], difficulty="Hard"), "2": problem(["prereq"])}
     st = {"prereq": (FRAGILE, ago(1)), "new": (MISSING, None)}
     assert [nid for nid, _, _ in picker.blocked(ns, ps, {}, st)] == []
+
+
+# --------------------------------------------------------------------------
+# "after" edges: a problem waits for the problem its walk builds on
+# --------------------------------------------------------------------------
+
+def test_a_problem_waits_for_its_due_predecessor(picker):
+    """47 declares "after": ["46"]. With both cold, plain freshness sorting
+    would serve 47 (older last solve) - the hold flips it to 46, the core
+    the variation builds on."""
+    ns = nodes("bt")
+    ps = {"46": problem(["bt"]), "47": problem(["bt"], after=["46"])}
+    ev = evidence(solve("46", {"bt": "clean"}, days_ago=299),
+                  solve("47", {"bt": "clean"}, days_ago=300))
+    st = {"bt": (STALE, ago(299))}
+    assert picker.run(ns, ps, ev, st)[:3] == ("bt", STALE, "46")
+
+
+def test_a_warm_predecessor_releases_the_problem(picker):
+    """Once 46 has a clean solve inside the solid window, 47 rejoins the
+    pool and wins on freshness (least recently solved)."""
+    ns = nodes("bt")
+    ps = {"46": problem(["bt"]), "47": problem(["bt"], after=["46"])}
+    ev = evidence(solve("46", {"bt": "clean"}, days_ago=3),
+                  solve("47", {"bt": "clean"}, days_ago=300))
+    st = {"bt": (STALE, ago(300))}
+    assert picker.run(ns, ps, ev, st)[:3] == ("bt", STALE, "47")
+
+
+def test_a_spoiled_predecessor_solve_does_not_release(picker):
+    """A spoiled rep is not recall evidence anywhere else either."""
+    ns = nodes("bt")
+    ps = {"46": problem(["bt"]), "47": problem(["bt"], after=["46"])}
+    ev = evidence(solve("46", {"bt": "clean"}, days_ago=3, assist="spoiled"),
+                  solve("46", {"bt": "clean"}, days_ago=299),
+                  solve("47", {"bt": "clean"}, days_ago=300))
+    st = {"bt": (STALE, ago(299))}
+    assert picker.run(ns, ps, ev, st)[:3] == ("bt", STALE, "46")
+
+
+def test_a_banned_predecessor_holds_nothing_back(picker):
+    """If the predecessor can never be offered, the hold would deadlock -
+    a banned one releases the edge."""
+    ns = nodes("bt")
+    ps = {"46": problem(["bt"], banned=True), "47": problem(["bt"], after=["46"])}
+    ev = evidence(solve("47", {"bt": "clean"}, days_ago=300))
+    st = {"bt": (STALE, ago(300))}
+    assert picker.run(ns, ps, ev, st)[:3] == ("bt", STALE, "47")

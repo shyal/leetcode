@@ -113,7 +113,7 @@ def urgency_key(n, statuses):
 
 def choose_carrier(target, sim, problems, nodes, evidence, dodged, excluded):
     """(pnum, reason) for the target under simulated statuses, or None."""
-    cands = [c for c in carriers_for(target, problems, sim, nodes)
+    cands = [c for c in carriers_for(target, problems, sim, nodes, evidence)
              if c not in excluded]
     if not cands:
         return None

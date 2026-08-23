@@ -126,7 +126,7 @@ def review_items(nodes, problems, evidence, statuses, taken):
             items.append({"kind": "drill", "node": target,
                           "why": "rusty move with a drill bank — drill until clean"})
             continue
-        cands = [c for c in carriers_for(target, problems, statuses, nodes)
+        cands = [c for c in carriers_for(target, problems, statuses, nodes, evidence)
                  if c not in taken]
         if not cands:
             continue

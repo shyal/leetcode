@@ -131,14 +131,14 @@ def choose_carrier(target, sim, problems, nodes, evidence, dodged, excluded):
         # camp is a proving rep. Primary carriers for a young move are often
         # the very Hards it gates, so widen to alt-walk carriers — the point
         # is a clean solve VIA this move on a real problem.
-        cands = [c for c in proving_carriers(target, problems, sim, nodes)
+        cands = [c for c in proving_carriers(target, problems, sim, nodes, evidence)
                  if c not in excluded]
         if not cands:
             return None
         cands.sort(key=lambda p: (gentleness(p, problems, nodes),
                                   last_solved(p, evidence), -acceptance(p), pnum_key(p)))
         return cands[0], "young move — prove it: solve this one VIA the move"
-    cands = [c for c in carriers_for(target, problems, sim, nodes)
+    cands = [c for c in carriers_for(target, problems, sim, nodes, evidence)
              if c not in excluded]
     if not cands:
         return None
