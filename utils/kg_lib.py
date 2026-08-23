@@ -221,20 +221,36 @@ DEEP_STALE_DAYS = 2 * SOLID_WINDOW_DAYS  # beyond this, a "re-solve" plays like 
 MATURE_SPACING_DAYS = 5
 
 
-def carry_earnable(node_id, problems):
-    """True when carry proof can actually be earned at a basecamp: some
-    non-banned, non-Hard, real (numeric) problem carries the move in any
-    recorded walk — primary or alt. When it cannot, mature() waives the
-    carry-proof signal and spacing alone decides: a gate nobody can open
-    is a deadlock, not a standard."""
+MATURE_CARRY_MEDIUMS = 2
+
+
+def carry_bar(node_id, problems):
+    """The carry-proof bar the bank can actually hold this node to.
+
+    ("medium", MATURE_CARRY_MEDIUMS)  a non-banned Medium carries the move in
+                                      some walk: proof means clean reps at
+                                      Medium+ altitude — easy cleans are
+                                      dilution, not proof (a share would
+                                      punish warmups; a count is monotone)
+    ("real", 1)                       only easies carry it (micro-moves that
+                                      genuinely live inside easies): one clean
+                                      on any real problem suffices
+    ("none", 0)                       no real problem carries it at all:
+                                      spacing alone decides — a gate nobody
+                                      can open is a deadlock, not a standard"""
+    kinds = set()
     for pnum, p in problems.items():
         if not str(pnum)[:1].isdigit() or p.get("banned") \
                 or p.get("difficulty") == "Hard":
             continue
         if node_id in p.get("moves", []) \
                 or any(node_id in w for w in p.get("alt_walks", [])):
-            return True
-    return False
+            kinds.add(p.get("difficulty"))
+    if "Medium" in kinds:
+        return "medium", MATURE_CARRY_MEDIUMS
+    if kinds:
+        return "real", 1
+    return "none", 0
 
 
 def mature(node_id, evidence, problems):
@@ -244,10 +260,11 @@ def mature(node_id, evidence, problems):
       spacing      clean (non-spoiled) reps on two days at least
                    MATURE_SPACING_DAYS apart — the badge survived a gap,
                    not just a same-week burst
-      carry proof  at least one clean rep on a real leetcode problem
-                   (numeric id; drills record problem="drill") — drill
-                   green is not trigger wired. Required only while
-                   carry_earnable(); otherwise waived (see there).
+      carry proof  clean reps on real leetcode problems (numeric id; drills
+                   record problem="drill") at the altitude the bank can hold
+                   the node to — see carry_bar(). Drill green is not trigger
+                   wired, and for a node with medium carriers, easy green is
+                   not altitude proof either.
 
     Gates SUMMITS ONLY. Easies/mediums are the proving ground where a young
     node earns both signals, so gating them would block the very reps that
@@ -262,8 +279,14 @@ def mature(node_id, evidence, problems):
     dates = sorted(d for d, _ in clean)
     if (dates[-1] - dates[0]).days < MATURE_SPACING_DAYS:
         return False
-    return any(p[:1].isdigit() for _, p in clean) \
-        or not carry_earnable(node_id, problems)
+    kind, need = carry_bar(node_id, problems)
+    if kind == "medium":
+        return sum(1 for _, p in clean if p[:1].isdigit()
+                   and problem_difficulty(p, problems) in ("Medium", "Hard")
+                   ) >= need
+    if kind == "real":
+        return any(p[:1].isdigit() for _, p in clean)
+    return True
 
 
 def immature_nodes(nodes, evidence, problems):
@@ -278,11 +301,16 @@ def proving_carriers(target, problems, statuses, nodes):
     walk whose every OTHER move is SOLID. Wider than carriers_for — primary
     carriers for a young move are often the very Hards it gates, so the
     proving camp lives on an alt walk (solve the medium VIA the young move;
-    kg_extract records the walk actually taken)."""
+    kg_extract records the walk actually taken). Held to the node's own
+    carry bar: for a medium-bar node only Mediums count — an easy rep would
+    be a camp that moves the route no closer to the summit."""
+    kind, _ = carry_bar(target, problems)
     found = []
     for pnum, p in problems.items():
         if not str(pnum)[:1].isdigit() or p.get("banned") \
                 or p.get("difficulty") == "Hard":
+            continue
+        if kind == "medium" and p.get("difficulty") != "Medium":
             continue
         walks = [p.get("moves", [])] + list(p.get("alt_walks", []))
         for walk in walks:
@@ -418,10 +446,7 @@ def tree_size(pnum, problems, nodes):
 _METADATA = None
 
 
-def acceptance(pnum):
-    """Community acceptance rate in percent from data/problems_metadata.json
-    (refreshed by metadata.get_problems_metadata). 50.0 = neutral when the
-    problem is unknown or the metadata predates the acceptance field."""
+def _metadata():
     global _METADATA
     if _METADATA is None:
         path = os.path.join(os.path.dirname(GRAPH_DIR), "data/problems_metadata.json")
@@ -430,8 +455,22 @@ def acceptance(pnum):
                 _METADATA = json.load(f)
         except Exception:
             _METADATA = {}
-    v = _METADATA.get(str(pnum), {}).get("acceptance")
+    return _METADATA
+
+
+def acceptance(pnum):
+    """Community acceptance rate in percent from data/problems_metadata.json
+    (refreshed by metadata.get_problems_metadata). 50.0 = neutral when the
+    problem is unknown or the metadata predates the acceptance field."""
+    v = _metadata().get(str(pnum), {}).get("acceptance")
     return v if isinstance(v, (int, float)) else 50.0
+
+
+def problem_difficulty(pnum, problems):
+    """Difficulty of a real problem: problems.json first (the curated truth
+    for mapped ones), metadata as fallback for evidence-only references."""
+    return problems.get(str(pnum), {}).get("difficulty") \
+        or _metadata().get(str(pnum), {}).get("difficulty", "")
 
 
 DIFF_RANK = {"Easy": 0, "Medium": 1, "Hard": 2}
