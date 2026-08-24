@@ -359,6 +359,23 @@ def main():
         upload_svg_gz("graph/kg_pass.svg", s3_key_pass)
         pass_prob_img = f"![P(pass a mock) over time](https://shyal.s3.amazonaws.com/{s3_key_pass})"
 
+    # Yield chart (utils/kg_movie_rs, same binary): P(pass) against
+    # cumulative solves instead of time - a plateau is a long flat slog,
+    # consolidation a near-vertical climb, segments colored by re-solve share.
+    yield_img = ""
+    if os.path.exists("graph/kg_yield.svg"):
+        s3_key_yield = f"yield_{timestamp}.svg"
+        upload_svg_gz("graph/kg_yield.svg", s3_key_yield)
+        yield_img = f"![What a solve buys](https://shyal.s3.amazonaws.com/{s3_key_yield})"
+
+    # Its calendar twin (same binary): the P(pass) lines over each week's
+    # composition (new problems vs re-solves) - the two kinds of sideways.
+    yield_time_img = ""
+    if os.path.exists("graph/kg_yield_time.svg"):
+        s3_key_yield_time = f"yield_time_{timestamp}.svg"
+        upload_svg_gz("graph/kg_yield_time.svg", s3_key_yield_time)
+        yield_time_img = f"![Two kinds of sideways](https://shyal.s3.amazonaws.com/{s3_key_yield_time})"
+
     # Mock outcome distribution (utils/kg_movie_rs, same binary): the Monte
     # Carlo mass behind the P(pass) central line, stepping weekly on the
     # shared clock.
@@ -449,6 +466,8 @@ def main():
     readme = fill(readme, "REVIEW_TIMING_CHART", review_timing_img)
     readme = fill(readme, "REACH_CHART", reach_img)
     readme = fill(readme, "PASS_PROB_CHART", pass_prob_img)
+    readme = fill(readme, "YIELD_CHART", yield_img)
+    readme = fill(readme, "YIELD_TIME_CHART", yield_time_img)
     readme = fill(readme, "CONTEST_PROGRESS", contest_progress_img)
     readme = fill(readme, "FAANG_PROGRESS", faang_progress_img)
 

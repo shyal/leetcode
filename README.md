@@ -10,7 +10,7 @@ So, here's my new approach: i decided on a new thesis: to focus on the core tech
 
 <!-- KG_MOVIE -->
 
-![Technique graph growing solve by solve](https://shyal.s3.amazonaws.com/kg_movie_20260823235357.svg)
+![Technique graph growing solve by solve](https://shyal.s3.amazonaws.com/kg_movie_20260824022835.svg)
 
 <!-- /KG_MOVIE -->
 
@@ -22,25 +22,41 @@ Looking at my last leetcode grind, roughly October and November 2025, i plateaue
 
 <!-- PASS_PROB_CHART -->
 
-![P(pass a mock) over time](https://shyal.s3.amazonaws.com/pass_probability_20260823235357.svg)
+![P(pass a mock) over time](https://shyal.s3.amazonaws.com/pass_probability_20260824022835.svg)
 
 <!-- /PASS_PROB_CHART -->
 
+The same story with effort as the x axis. A plateau is a long flat slog: hundreds of new problems that buy nothing, because they only exercise ground i already hold. A consolidation is a short, nearly vertical climb: far fewer solves, mostly re-solves, repairing stale ground.
+
+<!-- YIELD_CHART -->
+
+![What a solve buys](https://shyal.s3.amazonaws.com/yield_20260824022835.svg)
+
+<!-- /YIELD_CHART -->
+
+The green bars in the chart below show **consolidation** periods: times when P is either flat, wobbly, or sloping downwards, with many resolves, as well as drills being either added or reviewed. These are periods spent building the foundations rather than trying to cover new solving ground. These periods, IFF sustained with optimal scheduling, should precede P moving up violently.
+
+<!-- YIELD_TIME_CHART -->
+
+![Two kinds of sideways](https://shyal.s3.amazonaws.com/yield_time_20260824022835.svg)
+
+<!-- /YIELD_TIME_CHART -->
+
 <!-- MOCK_DIST_CHART -->
 
-![Simulated mock outcomes over time](https://shyal.s3.amazonaws.com/mock_dist_20260823235357.svg)
+![Simulated mock outcomes over time](https://shyal.s3.amazonaws.com/mock_dist_20260824022835.svg)
 
 <!-- /MOCK_DIST_CHART -->
 
 <!-- MOCK_SWARM_CHART -->
 
-![Individual simulated mocks over time](https://shyal.s3.amazonaws.com/mock_swarm_20260823235357.svg)
+![Individual simulated mocks over time](https://shyal.s3.amazonaws.com/mock_swarm_20260824022835.svg)
 
 <!-- /MOCK_SWARM_CHART -->
 
 <!-- MOCK_BLAME_CHART -->
 
-![Why simulated mocks fail, over time](https://shyal.s3.amazonaws.com/mock_blame_20260823235357.svg)
+![Why simulated mocks fail, over time](https://shyal.s3.amazonaws.com/mock_blame_20260824022835.svg)
 
 <!-- /MOCK_BLAME_CHART -->
 
@@ -56,7 +72,7 @@ The model is power-law forgetting with a slip rate, P(recall) = (1−slip)·(1 +
 
 <!-- POSITIONS_SVG -->
 
-![Nodes sliding down their forgetting curves](https://shyal.s3.amazonaws.com/positions_20260823235357.svg)
+![Nodes sliding down their forgetting curves](https://shyal.s3.amazonaws.com/positions_20260824022835.svg)
 
 <!-- /POSITIONS_SVG -->
 
@@ -64,13 +80,13 @@ The model also tracks its accuracy internally, by comparing its predictions with
 
 <!-- CURVE_CALIBRATION_CHART -->
 
-![Curve calibration](https://shyal.s3.amazonaws.com/curve_calibration_20260823235357.svg)
+![Curve calibration](https://shyal.s3.amazonaws.com/curve_calibration_20260824022835.svg)
 
 <!-- /CURVE_CALIBRATION_CHART -->
 
 <!-- REVIEW_TIMING_CHART -->
 
-![Was each review on time?](https://shyal.s3.amazonaws.com/review_timing_20260823235357.svg)
+![Was each review on time?](https://shyal.s3.amazonaws.com/review_timing_20260824022835.svg)
 
 <!-- /REVIEW_TIMING_CHART -->
 
@@ -80,7 +96,8 @@ Two lines now. The blue one counts only evidenced walks: walks extracted from co
 
 <!-- REACH_CHART -->
 
-![Problems in reach](https://shyal.s3.amazonaws.com/reach_20260823235357.svg)
+![Problems in reach](https://shyal.s3.amazonaws.com/reach_20260824022835.svg)
+
 <!-- /REACH_CHART -->
 
 ## The zone of proximal development
@@ -109,7 +126,7 @@ This is the daily solve rate.
 
 <!-- SOLVES_CHART -->
 
-![Solves Per Day (Full Repo History)](https://shyal.s3.amazonaws.com/solves_per_day_20260823235357.png)
+![Solves Per Day (Full Repo History)](https://shyal.s3.amazonaws.com/solves_per_day_20260824022835.png)
 
 <!-- /SOLVES_CHART -->
 
@@ -119,7 +136,7 @@ This is the daily unique solve rate, tracked separately because as complexity ra
 
 <!-- UNIQUES_CHART -->
 
-![Unique Problems Solved Daily (Full Repo History)](https://shyal.s3.amazonaws.com/uniques_per_day_20260823235357.png)
+![Unique Problems Solved Daily (Full Repo History)](https://shyal.s3.amazonaws.com/uniques_per_day_20260824022835.png)
 
 <!-- /UNIQUES_CHART -->
 
@@ -131,7 +148,7 @@ Contest bar: today's central P(clear a single hard).
 
 <!-- CONTEST_PROGRESS -->
 
-![Contest Readiness Progress (Ready by 2026-11-21, in 90 days)](https://shyal.s3.amazonaws.com/contest_progress_20260823235357.png)
+![Contest Readiness Progress (Ready by 2026-11-23, in 91 days)](https://shyal.s3.amazonaws.com/contest_progress_20260824022835.png)
 
 <!-- /CONTEST_PROGRESS -->
 
@@ -139,7 +156,7 @@ FAANG bar: today's central P(pass a full onsite: 2 easies + 2 mediums + at least
 
 <!-- FAANG_PROGRESS -->
 
-![FAANG Interview Readiness Progress (Ready by 2027-01-03 at 1.9h/day, in 133 days)](https://shyal.s3.amazonaws.com/faang_progress_20260823235357.png)
+![FAANG Interview Readiness Progress (Ready by 2027-01-06 at 1.8h/day, in 135 days)](https://shyal.s3.amazonaws.com/faang_progress_20260824022835.png)
 
 <!-- /FAANG_PROGRESS -->
 
@@ -147,7 +164,7 @@ Every projected date is recorded daily, so one chart tracks whether the projecti
 
 <!-- READINESS_PROJECTION_CHART -->
 
-![Projected ready dates over time](https://shyal.s3.amazonaws.com/readiness_projection_20260823235357.png)
+![Projected ready dates over time](https://shyal.s3.amazonaws.com/readiness_projection_20260824022835.png)
 
 <!-- /READINESS_PROJECTION_CHART -->
 

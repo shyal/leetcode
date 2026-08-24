@@ -53,7 +53,8 @@ residuals:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_residuals
 
 # make mock is implemented in Rust (utils/test_mock.py guards it); the shared
-# model math also lives in kg_lib.py for the README chart — change them together
+# model math also lives in kg_lib.py for the README chart — change them
+# together (utils/test_golden.py diffs the two implementations)
 MOCK_BIN := utils/kg_mock_rs/target/release/kg_mock
 
 $(MOCK_BIN): utils/kg_mock_rs/src/main.rs utils/kg_mock_rs/Cargo.toml

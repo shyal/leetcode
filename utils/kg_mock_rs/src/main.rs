@@ -754,6 +754,55 @@ fn main() {
         target: curve_v["target_retention"].as_f64().unwrap(),
     };
 
+    // --golden-json: the lockstep contract with utils/kg_lib.py — node_status
+    // over the real evidence for every node id (plus every move name evidence
+    // mentions) and PyRandom sample streams, diffed bit-for-bit against the
+    // Python side by utils/test_golden.py. Not a user-facing mode.
+    if argv.iter().any(|a| a == "--golden-json") {
+        let status_name = |s: u8| match s {
+            SOLID => "SOLID",
+            STALE => "STALE",
+            FRAGILE => "FRAGILE",
+            _ => "MISSING",
+        };
+        let mut ids = node_ids.clone();
+        let known: std::collections::HashSet<&String> = node_ids.iter().collect();
+        let mut extra: Vec<String> = evidence
+            .iter()
+            .flat_map(|r| r.moves.keys())
+            .filter(|k| !known.contains(k))
+            .cloned()
+            .collect();
+        extra.sort();
+        extra.dedup();
+        ids.extend(extra);
+        let mut nodes = serde_json::Map::new();
+        for nid in &ids {
+            let (st, last) = node_status(nid, &evidence, today, &cv);
+            nodes.insert(
+                nid.clone(),
+                serde_json::json!({
+                    "status": status_name(st),
+                    "last": last.map(|d| d.format("%Y-%m-%d").to_string()),
+                }),
+            );
+        }
+        let mut rng = PyRandom::new(42);
+        let randoms: Vec<f64> = (0..20).map(|_| rng.random()).collect();
+        let mut rng = PyRandom::new(42);
+        let randints: Vec<u32> = (0..20).map(|_| rng.randint(1, 1000)).collect();
+        println!(
+            "{}",
+            serde_json::json!({
+                "today": today.format("%Y-%m-%d").to_string(),
+                "nodes": nodes,
+                "random": randoms,
+                "randint": randints,
+            })
+        );
+        return;
+    }
+
     // the bank: real per-difficulty problem pools from evidenced + drafted
     // walks, one move universe (nodes first, then off-taxonomy extras)
     let predicted_v = load_json(&graph.join("predicted.json"));
