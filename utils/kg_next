@@ -529,12 +529,18 @@ def blocked_frontier(nodes, problems, evidence, statuses, asleep=(), exclude=())
 
 
 def load_plan():
-    """Today's frozen study plan (data/study_plan/<date>.json, built by
-    `make today`), or None. The plan is the determinism boundary: judgment ran
-    once at build time; serving it is a pure function of (plan, evidence)."""
+    """Today's frozen study plan (data/study_plan/<date>.json). On the first
+    run of a new day the file does not exist yet, so build it — kg_today is
+    idempotent, and freezing at first serve keeps the determinism boundary:
+    judgment runs once, then serving is a pure function of (plan, evidence)."""
     path = os.path.join(
         os.path.dirname(GRAPH_DIR), "data", "study_plan", f"{date.today().isoformat()}.json"
     )
+    if not os.path.exists(path):
+        console.print("[dim]new day — freezing today's plan...[/dim]")
+        subprocess.run(
+            [sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "kg_today")]
+        )
     try:
         with open(path) as f:
             return json.load(f)
