@@ -1,5 +1,6 @@
 // kg_mock library: the shared cold-mock model — CPython-exact PyRandom,
-// node_status / current_recall (kept in lockstep with utils/kg_lib.py), and
+// node_status / current_recall (kept in lockstep with utils/kg_lib.py —
+// utils/test_golden.py diffs the two over the real graph/ data), and
 // the pass_rates Monte Carlo. Used by the kg_mock binary (`make mock`) and by
 // kg_movie_rs for the README's animated P(pass) history chart — the same
 // math kg_lib.py runs for that chart's Python era; change them together.
