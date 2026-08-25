@@ -2,17 +2,20 @@
   "_comment": "Personal forgetting curve fitted by utils/kg_curve. P(recall) = (1-slip)*(1 + gap/s)^(-beta), s = exp(a + b*cleans - c*struggles - d*assist + e*(conn - conn_mean)). conn is the node's log2 carrier count, frozen below at fit time; consumers that ignore e are assuming average connectivity. node_status() calls a node SOLID while the memory component (1 + gap/s)^(-beta) >= target_retention; delete this file to fall back to the flat 42-day window.",
   "model": "power-law-slip",
   "params": {
-    "a": 4.0484,
-    "b": 0.0,
-    "c": 0.4465,
-    "d": 0.5968,
-    "e": 0.5118,
-    "conn_mean": 4.3768,
-    "beta": 0.0872,
-    "slip": 0.043
+    "a": 4.0919,
+    "b": 0.01,
+    "c": 0.0793,
+    "d": 0.3541,
+    "e": 0.5017,
+    "conn_mean": 4.3445,
+    "beta": 0.0916,
+    "slip": 0.0476
   },
   "conn": {
     "backtracking-choose-undo": 3.7,
+    "backtracking-dedupe-siblings": 2.0,
+    "backtracking-mark-unmark": 2.322,
+    "backtracking-start-index": 2.807,
     "bijection-check": 1.585,
     "binary-search-boundary": 3.322,
     "binary-search-index": 3.7,
@@ -86,8 +89,8 @@
   },
   "target_retention": 0.9,
   "fit": {
-    "trials": 629,
-    "loglik": -0.247,
-    "baseline_loglik": -0.2617
+    "trials": 640,
+    "loglik": -0.2494,
+    "baseline_loglik": -0.2624
   }
 }

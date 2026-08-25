@@ -162,11 +162,16 @@ def main():
     items = []
     taken = set(asleep)
 
-    # warmups — the same two the session-start rule would serve
-    for pnum in kn.trivial_easies(problems, nodes, evidence, statuses)[:2]:
-        items.append({"kind": "warmup", "problem": pnum,
-                      "why": "session start — juice, not training"})
-        taken.add(pnum)
+    # warmups - the same two the session-start rule would serve, and only
+    # when that rule would actually fire. The morning build sees no solves
+    # and gets them; a rebuild after the day's second solve does not, or
+    # `--force` would inject two fresh easies on top of work already done
+    # (the ones already solved are hot by then, so they no longer sort in).
+    if kn.is_session_start():
+        for pnum in kn.trivial_easies(problems, nodes, evidence, statuses)[:2]:
+            items.append({"kind": "warmup", "problem": pnum,
+                          "why": "session start — juice, not training"})
+            taken.add(pnum)
 
     # reviews — capped slice of the rusty frontier
     items += review_items(nodes, problems, evidence, statuses, taken)
