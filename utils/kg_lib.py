@@ -244,8 +244,14 @@ def node_eval(node_id, evidence, today=None):
         cleans = len(clean_dates)
         struggles = sum(1 for _, v, _ in entries if v == "struggled")
         assisted = sum(ASSIST_WEIGHT[a] for _, _, a in entries)
+        # connectivity covariate: widely carried moves hold on longer. The
+        # node's log2 carrier count is frozen into curve.json at fit time;
+        # unknown nodes get the mean (a centered zero effect).
+        cmean = p.get("conn_mean", 0.0)
+        cn = curve.get("conn", {}).get(node_id, cmean)
         stability = math.exp(p["a"] + p["b"] * cleans - p["c"] * struggles
-                             - p.get("d", 0.0) * assisted)
+                             - p.get("d", 0.0) * assisted
+                             + p.get("e", 0.0) * (cn - cmean))
         stability = min(max(stability, 7), 3650)  # sanity clamp
         gap = max((today - clean_dates[-1]).days, 0)
         memory = (1 + gap / stability) ** (-p["beta"])
@@ -374,12 +380,13 @@ def last_solved(pnum, evidence):
 
 def last_clean_solve(pnum, evidence):
     """Latest date this problem was solved with every walked move clean and
-    no spoiling assist - the bar a predecessor must meet to release the
-    problems declared "after" it."""
+    no assist at all - the bar a predecessor must meet to release the
+    problems declared "after" it. An assisted clean is a real rep, but the
+    ladder advances on ownership: the unaided rep is what releases."""
     dates = [r["date"] for r in evidence.values()
              if r.get("problem") == str(pnum) and r.get("moves")
              and all(v == "clean" for v in r["moves"].values())
-             and assist_of(r) != "spoiled"]
+             and assist_of(r) == "none"]
     return max(dates) if dates else ""
 
 
@@ -426,6 +433,143 @@ def dodgeable(pnum, target, problems):
     """True if a recorded alt walk lets this problem be solved without target."""
     return any(target not in walk
                for walk in problems.get(pnum, {}).get("alt_walks", []))
+
+
+def mined_solve_times():
+    """(key, date, seconds) per timed successful solve commit, oldest first;
+    key is the problem number, or d:<title stem> for bank drills. Only
+    commits adding exactly ONE solve carry a truthful "solve time" trailer
+    (the day-one bulk import smeared a single trailer over 109 files).
+    FAILED files measure time-to-walking-away and >10h means a file left
+    open across days, so both are dropped."""
+    out = subprocess.run(
+        ["git", "log", "--diff-filter=A", "--format=%x01%at%x01%B%x02",
+         "--name-only", "--", "solved/"],
+        capture_output=True, text=True,
+        cwd=os.path.dirname(GRAPH_DIR)).stdout
+    parts = out.split("\x01")[1:]
+    reps = []
+    for at, rest in zip(parts[::2], parts[1::2]):
+        body, _, tail = rest.partition("\x02")
+        m = re.search(r"solve time: (\d+)m (\d+)s", body)
+        if not m:
+            continue
+        secs = int(m.group(1)) * 60 + int(m.group(2))
+        added = re.findall(r"^solved/(\S+\.py)$", tail, flags=re.M)
+        if len(added) != 1 or "FAILED" in added[0] or not 0 < secs < 36000:
+            continue
+        pm = re.match(r"p(\d+)_", added[0])
+        dm = re.match(r"d_(.+?)_\d{4}_", added[0])
+        key = pm.group(1) if pm else (f"d:{dm.group(1)}" if dm else None)
+        if key:
+            reps.append((key, datetime.fromtimestamp(int(at)).date(), secs))
+    return sorted(reps, key=lambda r: r[1])
+
+
+FORECAST_WARM_DAYS = 30
+
+
+def drill_forecast(path, today=None):
+    """(expect_min, hint_min, bail_min) for serving a bank drill file, from
+    the mined history — same shape as solve_forecast. First-time rungs fall
+    back to the median first-attempt time across all timed drills."""
+    import math
+    from statistics import median
+
+    today = today or date.today()
+    reps = mined_solve_times()
+    if not reps:
+        return None
+    key = f"d:{drill_solved_stem(path)}"
+    by_key = {}
+    for k, d, secs in reps:
+        by_key.setdefault(k, []).append((d, secs))
+    mine = by_key.get(key)
+    if mine:
+        ratios = {True: [], False: []}
+        for rs in by_key.values():
+            for (d0, s0), (d1, s1) in zip(rs, rs[1:]):
+                ratios[(d1 - d0).days <= FORECAST_WARM_DAYS].append(math.log2(s1 / s0))
+        d0, s0 = mine[-1]
+        warm = (today - d0).days <= FORECAST_WARM_DAYS
+        r = median(ratios[warm]) if ratios[warm] else 0.0
+        base = s0 / 60 * 2 ** r
+    else:
+        firsts = [rs[0][1] / 60 for k, rs in by_key.items() if k.startswith("d:")]
+        if len(firsts) < 8:
+            return None
+        base = median(firsts)
+    base = max(base, 1.0)
+    return base, base * 2, base * 4
+
+
+def solve_forecast(pnum, problems, today=None):
+    """(expect_min, hint_min, bail_min) for serving pnum now, from the mined
+    solve-time history, or None when there is nothing to base it on.
+
+    Seen before: the previous attempt's time scaled by the live warm/cold
+    re-solve ratio (2026-08-25 analysis: ~0.76x inside a month, ~0.93x
+    beyond). First meeting: the median first-attempt time of same-difficulty
+    problems in the same connectivity tercile. The hint and bail marks are
+    ~P70 and ~P90 of the observed spread (log2 sd ~1.5): base x2 and x4."""
+    import math
+    from statistics import median
+
+    today = today or date.today()
+    reps = mined_solve_times()
+    if not reps:
+        return None
+    by_key = {}
+    for key, d, secs in reps:
+        by_key.setdefault(key, []).append((d, secs))
+
+    mine = by_key.get(str(pnum))
+    if mine:
+        ratios = {True: [], False: []}
+        for rs in by_key.values():
+            for (d0, s0), (d1, s1) in zip(rs, rs[1:]):
+                ratios[(d1 - d0).days <= FORECAST_WARM_DAYS].append(math.log2(s1 / s0))
+        d0, s0 = mine[-1]
+        warm = (today - d0).days <= FORECAST_WARM_DAYS
+        r = median(ratios[warm]) if ratios[warm] else 0.0
+        base = s0 / 60 * 2 ** r
+    else:
+        conn = node_conn(problems)
+        my = problems.get(str(pnum), {})
+        if not my.get("moves"):
+            return None
+        def mean_conn(p):
+            mv = p.get("moves", [])
+            return sum(conn.get(m, 0.0) for m in mv) / len(mv) if mv else 0.0
+        firsts = [(mean_conn(problems[k]), rs[0][1] / 60)
+                  for k, rs in by_key.items()
+                  if k in problems and problems[k].get("difficulty") == my.get("difficulty")
+                  and problems[k].get("moves")]
+        if len(firsts) < 8:
+            return None
+        cs = sorted(c for c, _ in firsts)
+        t1, t2 = cs[len(cs) // 3], cs[2 * len(cs) // 3]
+        tier = lambda c: 0 if c <= t1 else (1 if c <= t2 else 2)
+        mine_tier = tier(mean_conn(my))
+        pool = [t for c, t in firsts if tier(c) == mine_tier]
+        base = median(pool if len(pool) >= 8 else [t for _, t in firsts])
+
+    base = max(base, 1.0)
+    return base, base * 2, base * 4
+
+
+def node_conn(problems):
+    """log2 carrier count per node — how many problems rehearse the move.
+    The forgetting curve's connectivity covariate (kg_curve): widely carried
+    moves hold on longer than their rep counts alone predict, because the
+    rest of the catalog keeps rehearsing them incidentally."""
+    import math
+
+    counts = {}
+    for p in problems.values():
+        for m in p.get("moves", []):
+            counts[m] = counts.get(m, 0) + 1
+    return {n: math.log2(1 + c) for n, c in counts.items()}
 
 
 def carriers_for(target, problems, statuses, nodes, evidence):
@@ -589,6 +733,24 @@ def last_drilled(path, evidence):
     return max(dates) if dates else ""
 
 
+def drill_warm(path, evidence, today=None):
+    """True when this rung's most recent rep is all-clean, not spoiled, and
+    inside the solid window — the bar it must meet to release the rung above
+    it. A drill is a problem we created, so this is held_behind's release
+    rule; latest-rep because a struggle after a clean means the rung is not
+    warm, whatever the graph once believed."""
+    key = f"d_{drill_solved_stem(path)}_".lower()
+    reps = sorted((r["date"], r) for k, r in evidence.items()
+                  if os.path.basename(k).lower().startswith(key))
+    if not reps:
+        return False
+    when, rec = reps[-1]
+    today = today or date.today()
+    return (rec.get("moves") and all(v == "clean" for v in rec["moves"].values())
+            and assist_of(rec) == "none"
+            and (today - date.fromisoformat(when)).days <= SOLID_WINDOW_DAYS)
+
+
 def has_drill_bank(node_id):
     """True when drills/<node-id>/ holds at least one bank file."""
     return bool(glob.glob(os.path.join(DRILLS_DIR, node_id, "*.py")))
@@ -612,16 +774,31 @@ def drill_gated(node_id, status, last, today=None):
     return False
 
 
+def released_rungs(candidates, evidence):
+    """The prefix of a drill ladder that is open to serve. The bank's
+    filename order is the ladder: a rung is held while the rung below it is
+    not warm — the same "after" rule that serves 46 before 47 (held_behind).
+    Holds cascade, so this is always a prefix."""
+    released = candidates[:1]
+    for below, rung in zip(candidates, candidates[1:]):
+        if not drill_warm(below, evidence):
+            break
+        released.append(rung)
+    return released
+
+
 def due_drill(node_id, evidence, today=None):
-    """Least-recently-drilled bank file for a node, or None if the bank is
-    empty or that file was already drilled today. The no-carrier fallback:
-    a gap node with no READY carrier gets its drill offered instead of being
-    silently skipped — a drill cannot be dodged and needs no carrier."""
+    """Least-recently-drilled RELEASED bank file for a node, or None if the
+    bank is empty or that file was already drilled today. The no-carrier
+    fallback: a gap node with no READY carrier gets its drill offered instead
+    of being silently skipped — a drill cannot be dodged and needs no
+    carrier."""
     today = (today or date.today()).isoformat()
     candidates = sorted(glob.glob(os.path.join(DRILLS_DIR, node_id, "*.py")))
     if not candidates:
         return None
-    path = min(candidates, key=lambda p: last_drilled(p, evidence))
+    path = min(released_rungs(candidates, evidence),
+               key=lambda p: last_drilled(p, evidence))
     return None if last_drilled(path, evidence) >= today else path
 
 

@@ -1,0 +1,190 @@
+#!/usr/bin/env python3
+
+# kg_solvetime_svg — what actually moves solve times? Rendered into
+# graph/solvetime.svg for the README pipeline.
+#
+# Solve times come from the "solve time: Xm Ys" trailer `make solved`
+# writes into each solve commit. Only commits that add exactly one solve
+# count: the day-one bulk import stamped 109 files with a single trailer,
+# and those times are fiction. FAILED attempts are excluded (their clock
+# measures time-to-walking-away), as is anything over 10 hours (a file
+# left open across days).
+#
+# Two panels, because the two real drivers found in the regression are
+# different shapes:
+#   left   same-problem repetition, paired within problem: each re-solve's
+#          time as a ratio of the SAME problem's previous attempt. Group
+#          medians lie here (problems that hurt come back sooner), the
+#          paired ratio does not.
+#   right  connectivity: median minutes by how many problems carry the
+#          walk's moves, in terciles, split by difficulty so the rating
+#          confound stays out of the bars.
+
+import json
+import math
+import os
+import re
+import subprocess
+from collections import defaultdict
+from datetime import datetime
+
+from kg_lib import GRAPH_DIR, mined_solve_times
+
+OUT = os.path.join(GRAPH_DIR, "solvetime.svg")
+
+W, H = 1200, 430
+BG = "#0d1117"
+INK = "#c9d1d9"
+MUTED = "#8b949e"
+GRID = "#21262d"
+WARM = "#3fb950"
+COLD = "#58a6ff"
+RAMP = ["#0e4429", "#26a641", "#39d353"]   # connectivity terciles, low to high
+WARM_DAYS = 30
+CAP_MIN = 600
+
+
+def mine_reps():
+    """(key, date, seconds) per timed successful solve commit — the shared
+    miner lives in kg_lib (kg_next's pace forecast uses it too)."""
+    return mined_solve_times()
+
+
+def median(xs):
+    xs = sorted(xs)
+    n = len(xs)
+    return (xs[n // 2] + xs[(n - 1) // 2]) / 2
+
+
+def main():
+    with open(os.path.join(GRAPH_DIR, "problems.json")) as f:
+        problems = json.load(f)["problems"]
+    carriers = defaultdict(int)
+    for p in problems.values():
+        for m in p.get("moves", []):
+            carriers[m] += 1
+
+    reps = mine_reps()
+
+    # left panel data: paired ratios, warm vs cold return
+    by_key = defaultdict(list)
+    for key, d, secs in reps:
+        by_key[key].append((d, secs))
+    pairs = {True: [], False: []}
+    for key, rs in by_key.items():
+        for (d0, s0), (d1, s1) in zip(rs, rs[1:]):
+            pairs[(d1 - d0).days <= WARM_DAYS].append(math.log2(s1 / s0))
+
+    # right panel data: connectivity terciles within difficulty, problems only
+    conn_rows = defaultdict(list)
+    for key, d, secs in reps:
+        moves = problems.get(key, {}).get("moves", [])
+        diff = problems.get(key, {}).get("difficulty")
+        if moves and diff in ("Easy", "Medium"):
+            conn_rows[diff].append((sum(carriers[m] for m in moves) / len(moves), secs / 60))
+    bars = {}
+    for diff, rows in conn_rows.items():
+        cs = sorted(c for c, _ in rows)
+        t1, t2 = cs[len(cs) // 3], cs[2 * len(cs) // 3]
+        bars[diff] = [
+            (median([t for c, t in rows if c <= t1]), t1),
+            (median([t for c, t in rows if t1 < c <= t2]), t2),
+            (median([t for c, t in rows if c > t2]), None),
+        ]
+
+    svg = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" '
+           f'font-family="Helvetica,sans-serif">',
+           f'<rect width="{W}" height="{H}" fill="{BG}"/>',
+           f'<text x="{W / 2:.0f}" y="24" text-anchor="middle" font-size="13" fill="{INK}">'
+           'The two drivers of solve time: meeting the same problem again soon, '
+           'and moves that many other problems keep warm</text>']
+
+    # ---- left panel: paired re-solve ratios -------------------------------
+    LX0, LX1, PT, PB = 70, 560, 66, 360
+    SPAN = 4.0
+
+    def ly(r):
+        return PT + (SPAN - r) / (2 * SPAN) * (PB - PT)
+
+    svg.append(f'<text x="{(LX0 + LX1) / 2:.0f}" y="{PT - 14}" text-anchor="middle" '
+               f'font-size="12" fill="{INK}">same problem, next rep: time vs my previous attempt</text>')
+    for e in range(-int(SPAN), int(SPAN) + 1):
+        y = ly(e)
+        if e == 0:
+            svg.append(f'<line x1="{LX0}" y1="{y:.1f}" x2="{LX1}" y2="{y:.1f}" '
+                       f'stroke="{MUTED}" stroke-width="1.2" stroke-dasharray="7 5"/>')
+            lab = "same speed"
+        else:
+            svg.append(f'<line x1="{LX0}" y1="{y:.1f}" x2="{LX1}" y2="{y:.1f}" '
+                       f'stroke="{GRID}" stroke-width="1"/>')
+            lab = f"{2 ** abs(e)}x {'slower' if e > 0 else 'faster'}"
+        svg.append(f'<text x="{LX0 - 8}" y="{y + 4:.1f}" text-anchor="end" font-size="11" '
+                   f'fill="{MUTED}">{lab}</text>')
+
+    cols = ((True, WARM, f"under {WARM_DAYS} days since my last attempt"),
+            (False, COLD, f"over {WARM_DAYS} days since my last attempt"))
+    for i, (warm, color, label) in enumerate(cols):
+        cx = LX0 + (0.28 + 0.44 * i) * (LX1 - LX0)
+        rs = pairs[warm]
+        # deterministic horizontal spread inside the column
+        for j, r in enumerate(sorted(rs)):
+            dx = ((j * 37) % 90) - 45
+            svg.append(f'<circle cx="{cx + dx:.1f}" cy="{ly(max(min(r, SPAN), -SPAN)):.1f}" '
+                       f'r="3.5" fill="{color}" fill-opacity="0.6"/>')
+        med = median(rs)
+        svg.append(f'<line x1="{cx - 58:.1f}" y1="{ly(med):.1f}" x2="{cx + 58:.1f}" '
+                   f'y2="{ly(med):.1f}" stroke="{color}" stroke-width="2.5"/>')
+        svg.append(f'<text x="{cx - 64:.1f}" y="{ly(med) + 4:.1f}" text-anchor="end" '
+                   f'font-size="12" fill="{color}">median {2 ** med:.2f}x</text>')
+        svg.append(f'<text x="{cx:.1f}" y="{PB + 18}" text-anchor="middle" font-size="12" '
+                   f'fill="{INK}">{label}</text>')
+        svg.append(f'<text x="{cx:.1f}" y="{PB + 33}" text-anchor="middle" font-size="11" '
+                   f'fill="{MUTED}">n={len(rs)}</text>')
+
+    # ---- right panel: connectivity terciles -------------------------------
+    RX0, RX1 = 680, W - 40
+    svg.append(f'<text x="{(RX0 + RX1) / 2:.0f}" y="{PT - 14}" text-anchor="middle" '
+               f'font-size="12" fill="{INK}">median minutes by how many problems share the walk\'s moves</text>')
+    max_t = max(t for tris in bars.values() for t, _ in tris) * 1.15
+
+    def ry(t):
+        return PB - t / max_t * (PB - PT - 20)
+
+    for gy in range(0, int(max_t) + 1, 5):
+        y = ry(gy)
+        svg.append(f'<line x1="{RX0}" y1="{y:.1f}" x2="{RX1}" y2="{y:.1f}" '
+                   f'stroke="{GRID}" stroke-width="1"/>')
+        svg.append(f'<text x="{RX0 - 8}" y="{y + 4:.1f}" text-anchor="end" font-size="11" '
+                   f'fill="{MUTED}">{gy}m</text>')
+
+    group_w = (RX1 - RX0) / 2
+    bar_w = 44
+    for gi, diff in enumerate(("Easy", "Medium")):
+        gx = RX0 + gi * group_w + group_w / 2
+        for ti, (t, _) in enumerate(bars[diff]):
+            bx = gx + (ti - 1) * (bar_w + 2) - bar_w / 2
+            y = ry(t)
+            svg.append(f'<rect x="{bx:.1f}" y="{y:.1f}" width="{bar_w}" '
+                       f'height="{PB - y:.1f}" rx="4" fill="{RAMP[ti]}"/>')
+            svg.append(f'<rect x="{bx:.1f}" y="{PB - 2:.1f}" width="{bar_w}" height="2" fill="{RAMP[ti]}"/>')
+            svg.append(f'<text x="{bx + bar_w / 2:.1f}" y="{y - 6:.1f}" text-anchor="middle" '
+                       f'font-size="11" fill="{INK}">{t:.1f}m</text>')
+        svg.append(f'<text x="{gx:.1f}" y="{PB + 18}" text-anchor="middle" font-size="12" '
+                   f'fill="{INK}">{diff.lower()}</text>')
+    # tercile legend
+    for i, lab in enumerate(("rare moves", "middle", "widely shared moves")):
+        lx = RX0 + 10 + i * 150
+        svg.append(f'<rect x="{lx}" y="{PB + 28}" width="12" height="12" rx="3" fill="{RAMP[i]}"/>')
+        svg.append(f'<text x="{lx + 18}" y="{PB + 38}" font-size="11" fill="{INK}">{lab}</text>')
+
+    svg.append("</svg>")
+    with open(OUT, "w") as f:
+        f.write("\n".join(svg) + "\n")
+    print(f"wrote {OUT} (warm {2 ** median(pairs[True]):.2f}x n={len(pairs[True])}, "
+          f"cold {2 ** median(pairs[False]):.2f}x n={len(pairs[False])}, "
+          f"conn terciles E {[round(t, 1) for t, _ in bars['Easy']]} "
+          f"M {[round(t, 1) for t, _ in bars['Medium']]})")
+
+
+if __name__ == "__main__":
+    main()

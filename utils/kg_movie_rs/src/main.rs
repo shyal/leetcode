@@ -90,6 +90,10 @@ struct Curve {
     b: f64,
     c: f64,
     d: f64,
+    // connectivity covariate (see kg_mock lib.rs): per-node conn lives on
+    // NodeReplay, frozen from curve.json's "conn" map at load time
+    e: f64,
+    conn_mean: f64,
     beta: f64,
     target: f64,
 }
@@ -149,6 +153,7 @@ struct NodeReplay {
     cleans: usize,
     struggles: usize,
     assisted: f64,
+    conn: Option<f64>, // log2 carriers from curve.json, None = use conn_mean
     last_clean: Option<NaiveDate>,
     last: Option<(NaiveDate, String)>,
 }
@@ -185,7 +190,8 @@ impl NodeReplay {
         match curve {
             Some(p) => {
                 let s = (p.a + p.b * self.cleans as f64 - p.c * self.struggles as f64
-                    - p.d * self.assisted)
+                    - p.d * self.assisted
+                    + p.e * (self.conn.unwrap_or(p.conn_mean) - p.conn_mean))
                     .exp()
                     .clamp(7.0, 3650.0);
                 if (1.0 + gap as f64 / s).powf(-p.beta) >= p.target {
@@ -479,6 +485,22 @@ fn main() {
     let graph = find_graph_dir();
     let nodes_v = load_json(&graph.join("nodes.json"));
     let evidence_v = load_json(&graph.join("evidence.json"));
+    let conn_map: std::collections::HashMap<String, f64> = {
+        let path = graph.join("curve.json");
+        if path.exists() {
+            load_json(&path)
+                .get("conn")
+                .and_then(Value::as_object)
+                .map(|m| {
+                    m.iter()
+                        .filter_map(|(k, v)| v.as_f64().map(|f| (k.clone(), f)))
+                        .collect()
+                })
+                .unwrap_or_default()
+        } else {
+            Default::default()
+        }
+    };
     let curve = {
         let path = graph.join("curve.json");
         path.exists().then(|| {
@@ -489,6 +511,8 @@ fn main() {
                 b: p["b"].as_f64().unwrap(),
                 c: p["c"].as_f64().unwrap(),
                 d: p.get("d").and_then(Value::as_f64).unwrap_or(0.0),
+                e: p.get("e").and_then(Value::as_f64).unwrap_or(0.0),
+                conn_mean: p.get("conn_mean").and_then(Value::as_f64).unwrap_or(0.0),
                 beta: p["beta"].as_f64().unwrap(),
                 target: v["target_retention"].as_f64().unwrap(),
             }
@@ -541,7 +565,8 @@ fn main() {
                 }
             }
             entries.sort();
-            NodeReplay { entries, idx: 0, cleans: 0, struggles: 0, assisted: 0.0, last_clean: None, last: None }
+            NodeReplay { entries, idx: 0, cleans: 0, struggles: 0, assisted: 0.0,
+                         conn: conn_map.get(&n.id).copied(), last_clean: None, last: None }
         })
         .collect();
 
@@ -1047,7 +1072,8 @@ fn main() {
         println!("no graph/curve.json — kg_pass.svg skipped");
         return;
     };
-    let mcurve = kg_mock::Curve { a: cv.a, b: cv.b, c: cv.c, d: cv.d, beta: cv.beta, target: cv.target };
+    let mcurve = kg_mock::Curve { a: cv.a, b: cv.b, c: cv.c, d: cv.d, e: cv.e,
+        conn_mean: cv.conn_mean, conn: conn_map.clone(), beta: cv.beta, target: cv.target };
     let mut ev_recs: Vec<EvRec> = evidence
         .iter()
         .map(|(f, r)| EvRec {

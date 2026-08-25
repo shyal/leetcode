@@ -29,14 +29,17 @@ import os
 import re
 from collections import defaultdict
 
-from kg_lib import ASSIST_WEIGHT, GRAPH_DIR, assist_of, load_evidence
+from kg_lib import ASSIST_WEIGHT, GRAPH_DIR, assist_of, load_evidence, load_problems, node_conn
 
 TARGET_RETENTION = 0.9   # node_status calls a node SOLID above this
 
 
-def extract_trials(evidence, with_date=False):
+def extract_trials(evidence, with_date=False, with_conn=False):
     """[(gap_days, success, prior_cleans, prior_struggles, prior_assist)] per
-    node; with_date=True appends the trial's date as a 6th element."""
+    node; with_date=True appends the trial's date as a 6th element,
+    with_conn=True appends the node's connectivity (log2 carriers) instead —
+    the covariate the fit uses (solve-time analysis 2026-08-25: well-carried
+    moves hold on longer than their rep counts alone predict)."""
     events = defaultdict(list)  # node -> [(date, ts, verdict, assist)]
     for fname, rec in evidence.items():
         m = re.search(r"\d{4}_\d{2}_\d{2}T[\d_]+", fname)
@@ -45,6 +48,7 @@ def extract_trials(evidence, with_date=False):
         for node, verdict in rec.get("moves", {}).items():
             events[node].append((rec["date"], ts, verdict, assist))
 
+    conn = node_conn(load_problems()) if with_conn else {}
     trials = []
     for node, evs in events.items():
         evs.sort()
@@ -65,6 +69,8 @@ def extract_trials(evidence, with_date=False):
                     # a nudge or a walkthrough answers no, however clean the code
                     success = int(verdict == "clean" and assist == "none")
                     row = (gap, success, cleans, struggles, assisted)
+                    if with_conn:
+                        row += (conn.get(node, 0.0),)
                     trials.append(row + (_date(d),) if with_date else row)
             for v, a in days[d]:
                 if v == "clean" and a != "spoiled":
@@ -82,17 +88,22 @@ def _date(s):
 
 
 def fit(trials, iters=8000, lr=0.05):
-    """MLE for (a, b, c, d, beta, slip) in P = (1−slip)·(1 + Δ/s)^(−beta)."""
+    """MLE for (a, b, c, d, e, conn_mean, beta, slip) in
+    P = (1−slip)·(1 + Δ/s)^(−beta), s = exp(a + b·k − c·m − d·x + e·(conn − conn_mean)).
+    Trials are 6-tuples (gap, success, cleans, struggles, assist, conn); the
+    conn term is centered so a/b/c/d keep their meaning and consumers that
+    ignore e are simply assuming average connectivity."""
     try:
         return _fit_numpy(trials, iters, lr)
     except ImportError:
         pass
-    a, b, c, d, beta, slip = math.log(60), 0.05, 0.05, 0.05, 0.5, 0.05
     n = len(trials)
+    conn_mean = sum(t[5] for t in trials) / n
+    a, b, c, d, e, beta, slip = math.log(60), 0.05, 0.05, 0.05, 0.0, 0.5, 0.05
     for it in range(iters):
-        ga = gb = gc = gd = gbeta = gslip = 0.0
-        for gap, sf, k, m, x in trials:
-            stab = math.exp(a + b * k - c * m - d * x)
+        ga = gb = gc = gd = ge = gbeta = gslip = 0.0
+        for gap, sf, k, m, x, cn in trials:
+            stab = math.exp(a + b * k - c * m - d * x + e * (cn - conn_mean))
             u = gap / stab
             mem = (1 + u) ** (-beta)
             p = min(1 - 1e-9, max(1e-9, (1 - slip) * mem))
@@ -103,6 +114,7 @@ def fit(trials, iters=8000, lr=0.05):
             gb += dlns * k
             gc += dlns * (-m)
             gd += dlns * (-x)
+            ge += dlns * (cn - conn_mean)
             gbeta += E * (-math.log(1 + u))
             gslip += E * (-1 / (1 - slip))
         step = lr / (1 + it / 2000)
@@ -110,19 +122,22 @@ def fit(trials, iters=8000, lr=0.05):
         b = max(0.0, b + step * gb / n)            # reps should not shorten memory
         c = max(0.0, c + step * gc / n)
         d = max(0.0, d + step * gd / n)            # nor should being helped
+        e += step * ge / n
         beta = min(5.0, max(0.02, beta + step * gbeta / n))
         slip = min(0.25, max(0.0, slip + step * gslip / n))
-    return a, b, c, d, beta, slip
+    return a, b, c, d, e, conn_mean, beta, slip
 
 
 def _fit_numpy(trials, iters, lr):
     import numpy as np
 
-    gap, sf, k, m, x = (np.array(v, dtype=float) for v in zip(*trials))
+    gap, sf, k, m, x, cn = (np.array(v, dtype=float) for v in zip(*trials))
     n = len(trials)
-    a, b, c, d, beta, slip = math.log(60), 0.05, 0.05, 0.05, 0.5, 0.05
+    conn_mean = float(cn.mean())
+    cnc = cn - conn_mean
+    a, b, c, d, e, beta, slip = math.log(60), 0.05, 0.05, 0.05, 0.0, 0.5, 0.05
     for it in range(iters):
-        u = gap / np.exp(a + b * k - c * m - d * x)
+        u = gap / np.exp(a + b * k - c * m - d * x + e * cnc)
         mem = (1 + u) ** (-beta)
         p = np.clip((1 - slip) * mem, 1e-9, 1 - 1e-9)
         E = sf - (1 - sf) * p / (1 - p)
@@ -132,14 +147,15 @@ def _fit_numpy(trials, iters, lr):
         b = max(0.0, b + step * (dlns * k).sum())
         c = max(0.0, c + step * (-dlns * m).sum())
         d = max(0.0, d + step * (-dlns * x).sum())
+        e += step * (dlns * cnc).sum()
         beta = min(5.0, max(0.02, beta + step * (-E * np.log1p(u)).sum()))
         slip = min(0.25, max(0.0, slip + step * (-E / (1 - slip)).sum()))
-    return a, b, c, d, beta, slip
+    return a, b, c, d, e, conn_mean, beta, slip
 
 
 def loglik(trials, pred):
-    return sum(math.log(max(1e-9, pred(g, k, m, x) if s else 1 - min(1 - 1e-9, pred(g, k, m, x))))
-               for g, s, k, m, x in trials) / len(trials)
+    return sum(math.log(max(1e-9, pred(g, k, m, x, cn) if s else 1 - min(1 - 1e-9, pred(g, k, m, x, cn))))
+               for g, s, k, m, x, cn in trials) / len(trials)
 
 
 def main():
@@ -157,30 +173,37 @@ def main():
         return  # curve already reflects current evidence
 
     evidence = load_evidence()
-    trials = extract_trials(evidence)
-    a, b, c, d, beta, slip = fit(trials)
+    trials = extract_trials(evidence, with_conn=True)
+    a, b, c, d, e, conn_mean, beta, slip = fit(trials)
+    conn = node_conn(load_problems())
 
-    def stab(k, m, x=0.0):
-        return math.exp(a + b * k - c * m - d * x)
+    def stab(k, m, x=0.0, cn=None):
+        cn = conn_mean if cn is None else cn
+        return math.exp(a + b * k - c * m - d * x + e * (cn - conn_mean))
 
-    def pred(gap, k, m, x=0.0):
-        return (1 - slip) * (1 + gap / stab(k, m, x)) ** (-beta)
+    def pred(gap, k, m, x=0.0, cn=None):
+        return (1 - slip) * (1 + gap / stab(k, m, x, cn)) ** (-beta)
 
-    base_rate = sum(s for _, s, _, _, _ in trials) / len(trials)
+    base_rate = sum(t[1] for t in trials) / len(trials)
     ll_model = loglik(trials, pred)
-    ll_base = sum(math.log(base_rate if s else 1 - base_rate)
-                  for _, s, _, _, _ in trials) / len(trials)
+    ll_base = sum(math.log(base_rate if t[1] else 1 - base_rate)
+                  for t in trials) / len(trials)
 
     curve = {
         "_comment": "Personal forgetting curve fitted by utils/kg_curve. "
         "P(recall) = (1-slip)*(1 + gap/s)^(-beta), "
-        "s = exp(a + b*cleans - c*struggles - d*assist). "
+        "s = exp(a + b*cleans - c*struggles - d*assist + e*(conn - conn_mean)). "
+        "conn is the node's log2 carrier count, frozen below at fit time; "
+        "consumers that ignore e are assuming average connectivity. "
         "node_status() calls a node SOLID while the memory component "
         "(1 + gap/s)^(-beta) >= target_retention; delete this file to fall "
         "back to the flat 42-day window.",
         "model": "power-law-slip",
         "params": {"a": round(a, 4), "b": round(b, 4), "c": round(c, 4),
-                   "d": round(d, 4), "beta": round(beta, 4), "slip": round(slip, 4)},
+                   "d": round(d, 4), "e": round(e, 4),
+                   "conn_mean": round(conn_mean, 4),
+                   "beta": round(beta, 4), "slip": round(slip, 4)},
+        "conn": {n: round(v, 3) for n, v in sorted(conn.items())},
         "target_retention": TARGET_RETENTION,
         "fit": {"trials": len(trials), "loglik": round(ll_model, 4),
                 "baseline_loglik": round(ll_base, 4)},
@@ -190,7 +213,8 @@ def main():
 
     print(f"fitted on {len(trials)} trials: "
           f"P = {1 - slip:.2f}·(1 + Δ/s)^(−{beta:.2f}), "
-          f"s = exp({a:.2f} + {b:.3f}·cleans − {c:.3f}·struggles − {d:.3f}·assist)")
+          f"s = exp({a:.2f} + {b:.3f}·cleans − {c:.3f}·struggles − {d:.3f}·assist "
+          f"+ {e:.3f}·conn)")
     print(f"loglik/trial {ll_model:.4f} vs always-{base_rate:.0%} baseline {ll_base:.4f}")
     print(f"{TARGET_RETENTION:.0%}-retention window by clean reps (no struggles, unaided):")
     for k in (1, 2, 3, 5, 10, 20):
@@ -203,10 +227,10 @@ def main():
         print(f"  {label:12s}: window ≈ {window:5.0f}d")
     print("calibration (model mean vs observed unaided-recall rate):")
     for lo, hi in ((1, 7), (8, 21), (22, 42), (43, 90), (91, 180), (181, 400)):
-        rows = [(g, s, k, m, x) for g, s, k, m, x in trials if lo <= g <= hi]
+        rows = [(g, s, k, m, x, cn) for g, s, k, m, x, cn in trials if lo <= g <= hi]
         if rows:
-            obs = sum(s for _, s, _, _, _ in rows) / len(rows)
-            mod = sum(pred(g, k, m, x) for g, _, k, m, x in rows) / len(rows)
+            obs = sum(s for _, s, _, _, _, _ in rows) / len(rows)
+            mod = sum(pred(g, k, m, x, cn) for g, _, k, m, x, cn in rows) / len(rows)
             print(f"  gap {lo:3d}-{hi:3d}d: model {mod:4.0%}  observed {obs:4.0%}  (n={len(rows)})")
     print(f"wrote {os.path.join(GRAPH_DIR, 'curve.json')}")
 
