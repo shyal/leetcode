@@ -750,6 +750,17 @@ fn main() {
         b: p["b"].as_f64().unwrap(),
         c: p["c"].as_f64().unwrap(),
         d: p.get("d").and_then(Value::as_f64).unwrap_or(0.0),
+        e: p.get("e").and_then(Value::as_f64).unwrap_or(0.0),
+        conn_mean: p.get("conn_mean").and_then(Value::as_f64).unwrap_or(0.0),
+        conn: curve_v
+            .get("conn")
+            .and_then(Value::as_object)
+            .map(|m| {
+                m.iter()
+                    .filter_map(|(k, v)| v.as_f64().map(|f| (k.clone(), f)))
+                    .collect()
+            })
+            .unwrap_or_default(),
         beta: p["beta"].as_f64().unwrap(),
         target: curve_v["target_retention"].as_f64().unwrap(),
     };

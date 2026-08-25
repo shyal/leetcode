@@ -133,6 +133,13 @@ pub struct Curve {
     pub b: f64,
     pub c: f64,
     pub d: f64,
+    // connectivity covariate: stability picks up e*(conn - conn_mean), where
+    // conn is the node's log2 carrier count frozen into curve.json at fit
+    // time. A node absent from the map gets conn_mean (zero effect), so old
+    // curve files and simulated nodes behave as before.
+    pub e: f64,
+    pub conn_mean: f64,
+    pub conn: HashMap<String, f64>,
     pub beta: f64,
     pub target: f64,
 }
@@ -188,7 +195,9 @@ pub fn node_status(node: &str, evidence: &[EvRec], today: NaiveDate, cv: &Curve)
     for (_, _, a) in &entries {
         assisted += assist_weight(a);
     }
-    let stability = (cv.a + cv.b * cleans - cv.c * struggles - cv.d * assisted)
+    let cn = cv.conn.get(node).copied().unwrap_or(cv.conn_mean);
+    let stability = (cv.a + cv.b * cleans - cv.c * struggles - cv.d * assisted
+        + cv.e * (cn - cv.conn_mean))
         .exp()
         .max(7.0)
         .min(3650.0);

@@ -340,6 +340,22 @@ def main():
         upload_svg_gz("graph/timing.svg", s3_key_timing)
         review_timing_img = f"![Was each review on time?](https://shyal.s3.amazonaws.com/{s3_key_timing})"
 
+    # Solve-time drivers (utils/kg_solvetime_svg): paired re-solve ratios
+    # warm vs cold, and median minutes by move connectivity.
+    solvetime_img = ""
+    if os.path.exists("graph/solvetime.svg"):
+        s3_key_solvetime = f"solvetime_{timestamp}.svg"
+        upload_svg_gz("graph/solvetime.svg", s3_key_solvetime)
+        solvetime_img = f"![The two drivers of solve time](https://shyal.s3.amazonaws.com/{s3_key_solvetime})"
+
+    # Connectivity zoom (utils/kg_connectivity_svg): every timed solve vs how
+    # many problems share its moves, running medians per difficulty.
+    connectivity_img = ""
+    if os.path.exists("graph/connectivity.svg"):
+        s3_key_conn = f"connectivity_{timestamp}.svg"
+        upload_svg_gz("graph/connectivity.svg", s3_key_conn)
+        connectivity_img = f"![Move connectivity vs solve time](https://shyal.s3.amazonaws.com/{s3_key_conn})"
+
     # Problems in reach (utils/kg_reach_svg): today's walked frontier replayed
     # against historical node states - the payoff curve, on the shared clock.
     reach_img = ""
@@ -464,6 +480,8 @@ def main():
     readme = fill(readme, "POSITIONS_SVG", positions_svg_img)
     readme = fill(readme, "CURVE_CALIBRATION_CHART", curve_calibration_img)
     readme = fill(readme, "REVIEW_TIMING_CHART", review_timing_img)
+    readme = fill(readme, "SOLVETIME_CHART", solvetime_img)
+    readme = fill(readme, "CONNECTIVITY_CHART", connectivity_img)
     readme = fill(readme, "REACH_CHART", reach_img)
     readme = fill(readme, "PASS_PROB_CHART", pass_prob_img)
     readme = fill(readme, "YIELD_CHART", yield_img)

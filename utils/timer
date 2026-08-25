@@ -1,0 +1,136 @@
+#!/usr/bin/env python3
+
+# timer — live pacing bars for the solve in current.py, branch-aware so it
+# can sit open in a terminal split all session.
+#
+#   make timer
+#
+# Idle on master. The moment `make prepare` / `make drill` cuts a solve
+# branch, the timer picks it up: three bars against the same forecast
+# `make next` printed — expected time, the hint mark (2x), and the stop
+# mark (4x — bank it, reinforce). The clock starts where `make solved`
+# will start it: the last "started" commit if one exists, else the last
+# commit (the stub the branch was cut with). When the branch merges away
+# the timer goes idle again and waits for the next one. Ctrl+C to quit;
+# it records nothing — `make solved` stays the only recorder.
+
+import glob
+import os
+import re
+import subprocess
+import sys
+import time
+from importlib.machinery import SourceFileLoader
+
+from rich.console import Console, Group
+from rich.live import Live
+from rich.progress import BarColumn, Progress, TextColumn
+from rich.text import Text
+
+from kg_lib import (DRILLS_DIR, load_problems, solve_forecast, drill_forecast,
+                    drill_solved_stem)
+
+UTILS = os.path.dirname(os.path.abspath(__file__))
+console = Console()
+
+
+def git(*args):
+    return subprocess.run(["git", *args], capture_output=True, text=True).stdout.strip()
+
+
+def start_time():
+    return int(git("log", "-1", "--grep=^started$", "--format=%ct")
+               or git("log", "-1", "--format=%ct")
+               or time.time())
+
+
+def forecast():
+    solved = SourceFileLoader("_solved", os.path.join(UTILS, "solved")).load_module()
+    pid, title, _ = solved.parse_current()
+    if pid is None:
+        return None, None
+    if pid == "drill":
+        stem = re.sub(r"[^\w\s-]", "", title).strip().replace(" ", "_")
+        path = next((p for p in glob.glob(os.path.join(DRILLS_DIR, "*", "*.py"))
+                     if drill_solved_stem(p) == stem), None)
+        return f"drill: {title}", (drill_forecast(path) if path else None)
+    return f"{pid}. {title}", solve_forecast(pid, load_problems())
+
+
+def clock(secs):
+    m, s = divmod(int(secs), 60)
+    return f"{m}m {s:02d}s"
+
+
+def active_branch():
+    """The solve branch, or None when idle (master, or no parseable stub)."""
+    branch = git("rev-parse", "--abbrev-ref", "HEAD")
+    if branch in ("", "master", "HEAD"):
+        return None
+    try:
+        if not open("current.py").read().strip():
+            return None
+    except OSError:
+        return None
+    return branch
+
+
+class Session:
+    """One timed solve: forecast and clock, cached until the branch changes."""
+
+    def __init__(self):
+        self.label, fc = forecast()
+        self.t0 = start_time()
+        self.marks = [("expected", fc[0] * 60, "green"),
+                      ("hint fair game", fc[1] * 60, "yellow"),
+                      ("stop, reinforce", fc[2] * 60, "red")] if fc else []
+        self.progress = Progress(
+            TextColumn("{task.description}"),
+            BarColumn(bar_width=40),
+            TextColumn("[dim]{task.fields[mark]}[/dim]"),
+            console=console,
+        )
+        self.tasks = [self.progress.add_task(f"[{c}]{name:15s}[/{c}]",
+                                             total=total, mark=clock(total))
+                      for name, total, c in self.marks]
+
+    def render(self):
+        elapsed = time.time() - self.t0
+        for t, (_, total, _c) in zip(self.tasks, self.marks):
+            self.progress.update(t, completed=min(elapsed, total))
+        header = Text.from_markup(f"[bold]{self.label}[/bold]  ·  {clock(elapsed)}")
+        if self.marks and elapsed > self.marks[2][1]:
+            header.append_text(Text.from_markup(
+                "  [red]past the stop mark — bank it, reinforce[/red]"))
+        elif self.marks and elapsed > self.marks[1][1]:
+            header.append_text(Text.from_markup("  [yellow]hint is fair game[/yellow]"))
+        elif not self.marks:
+            header.append_text(Text.from_markup("  [dim](no forecast — plain clock)[/dim]"))
+        return Group(header, self.progress) if self.marks else header
+
+
+def main():
+    branch = None
+    session = None
+    try:
+        with Live(console=console, refresh_per_second=2) as live:
+            while True:
+                b = active_branch()
+                if b != branch:
+                    branch = b
+                    session = Session() if b else None
+                if session:
+                    live.update(session.render())
+                else:
+                    live.update(Text.from_markup(
+                        "[dim]idle — waiting for a solve branch "
+                        "(`make next`, `make drill`)[/dim]"))
+                time.sleep(1.0)
+    except KeyboardInterrupt:
+        if session:
+            console.print(f"{session.label} — {clock(time.time() - session.t0)} "
+                          "on the clock. `make solved` when it lands.")
+
+
+if __name__ == "__main__":
+    main()

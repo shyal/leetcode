@@ -90,6 +90,8 @@ from kg_lib import (
     route_gaps,
     rank_summits,
     immature_nodes,
+    solve_forecast,
+    drill_forecast,
 )
 from kg_render import make_digraph, status_node, render, display, animate, STATUS_FACE
 
@@ -756,6 +758,11 @@ def main():
             console.print(f"\n[bold]drill: {title}[/bold]")
             console.print(path)
             console.print(table)
+            fc = drill_forecast(path)
+            if fc:
+                expect, hint, bail = (f"{round(v):d}m" for v in fc)
+                console.print(f"[dim]pace: ~{expect} expected · hint fair game after "
+                              f"{hint} · at {bail} stop, mark it, reinforce[/dim]")
             console.print(f"`make prepare {target}`")
         if not args.no_show:
             tree = input_tree([target], nodes)
@@ -816,6 +823,14 @@ def main():
         if plan_note:
             console.print(f"[yellow]{plan_note}[/yellow]")
         console.print(table)
+        # pacing forecast from the mined solve-time history: expected time,
+        # the point where a hint is fair game, and the point where the rep
+        # has become a grind — bank it and reinforce instead
+        fc = solve_forecast(pnum, problems)
+        if fc:
+            expect, hint, bail = (f"{round(v):d}m" for v in fc)
+            console.print(f"[dim]pace: ~{expect} expected · hint fair game after "
+                          f"{hint} · at {bail} stop, mark it, reinforce[/dim]")
 
     if args.no_show:
         animate(cap.get())

@@ -20,7 +20,7 @@ import subprocess
 import sys
 from rich.console import Console
 
-from kg_lib import load_evidence, last_drilled
+from kg_lib import load_evidence, last_drilled, released_rungs
 
 console = Console()
 
@@ -44,14 +44,20 @@ def main():
 
     evidence = load_evidence()
 
+    # the bank's filename order is the ladder: a rung is held while the rung
+    # below it is not warm (kg_lib.released_rungs). A direct file path
+    # bypasses the hold.
+    released = released_rungs(candidates, evidence)
+
     if args.list:
         for path in candidates:
             when = last_drilled(path, evidence) or "never"
-            console.print(f"{path}  [dim]last drilled: {when}[/dim]")
+            hold = "" if path in released else "  [yellow]held[/yellow]"
+            console.print(f"{path}  [dim]last drilled: {when}[/dim]{hold}")
         return
 
     # least-recently-drilled first; never-drilled sorts before everything
-    path = min(candidates, key=lambda p: last_drilled(p, evidence))
+    path = min(released, key=lambda p: last_drilled(p, evidence))
 
     if os.path.exists("current.py") and open("current.py").read().strip():
         console.print("[red]current.py is not empty — finish or clear it first.[/red]")

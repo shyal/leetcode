@@ -1,4 +1,4 @@
-.PHONY: all parse learning prepare recommend force unforce preflight kg-extract kg-status kg-viz movie next dive drill hard is_session_start readme residuals sleep solved failed test viz
+.PHONY: all parse learning prepare recommend force unforce preflight kg-extract kg-status kg-viz movie next dive drill hard is_session_start readme residuals sleep solved failed test timer viz
 
 all:
 	@cp utils/sitecustomize.py .venv/lib/python3.10/site-packages/
@@ -120,10 +120,13 @@ hard:
 drill:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/drill $(filter-out $@,$(MAKECMDGOALS))
 
+timer:
+	@PYTHONPATH=./utils .venv/bin/python3 utils/timer
+
 # the SVG renders run alongside estimate (all deterministic now — no LLM call)
 readme: $(MOVIE_BIN) $(MOCK_BIN)
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_positions_svg & p1=$$!; \
-	PYTHONPATH=./utils .venv/bin/python3 utils/kg_calibration_svg && PYTHONPATH=./utils .venv/bin/python3 utils/kg_timing_svg & p2=$$!; \
+	PYTHONPATH=./utils .venv/bin/python3 utils/kg_calibration_svg && PYTHONPATH=./utils .venv/bin/python3 utils/kg_timing_svg && PYTHONPATH=./utils .venv/bin/python3 utils/kg_solvetime_svg && PYTHONPATH=./utils .venv/bin/python3 utils/kg_connectivity_svg & p2=$$!; \
 	$(MOVIE_BIN) & p3=$$!; \
 	PYTHONPATH=./utils .venv/bin/python3 utils/kg_reach_svg & p4=$$!; \
 	PYTHONPATH=./utils .venv/bin/python3 utils/estimate; s=$$?; \
