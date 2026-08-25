@@ -901,7 +901,9 @@
       "problem": "90",
       "moves": {
         "backtracking-choose-undo": "clean",
-        "sort-then-adjacent": "clean"
+        "sort-then-adjacent": "clean",
+        "backtracking-start-index": "clean",
+        "backtracking-dedupe-siblings": "clean"
       }
     },
     "solved/p81_Search_in_Rotated_Sorted_Array_II_2025_10_11T04_40_17_811038_00_00Z.py": {
@@ -923,14 +925,16 @@
       "problem": "78",
       "moves": {
         "backtracking-choose-undo": "clean",
-        "tree-dfs-recursive": "clean"
+        "tree-dfs-recursive": "clean",
+        "backtracking-start-index": "clean"
       }
     },
     "solved/p77_Combinations_2025_10_17T01_58_19_409776_00_00Z.py": {
       "date": "2025-10-17",
       "problem": "77",
       "moves": {
-        "backtracking-choose-undo": "clean"
+        "backtracking-choose-undo": "clean",
+        "backtracking-start-index": "clean"
       }
     },
     "solved/p83_Remove_Duplicates_from_Sorted_List_2025_10_08T22_28_04_921159_00_00Z.py": {
@@ -944,7 +948,8 @@
       "date": "2025-10-14",
       "problem": "78",
       "moves": {
-        "backtracking-choose-undo": "avoided"
+        "backtracking-choose-undo": "avoided",
+        "backtracking-start-index": "avoided"
       },
       "note": "Uses itertools.combinations to sidestep canonical backtracking/enumeration techniques"
     },
@@ -1161,7 +1166,8 @@
       "date": "2025-10-28",
       "problem": "46",
       "moves": {
-        "backtracking-choose-undo": "clean"
+        "backtracking-choose-undo": "clean",
+        "backtracking-mark-unmark": "clean"
       },
       "note": "In-place swap-based backtracking; all 6 permutations of [1,2,3] generated correctly."
     },
@@ -1186,7 +1192,8 @@
       "problem": "46",
       "moves": {
         "backtracking-choose-undo": "clean",
-        "tree-dfs-recursive": "clean"
+        "tree-dfs-recursive": "clean",
+        "backtracking-mark-unmark": "clean"
       }
     },
     "solved/p518_Coin_Change_II_2025_10_22T02_27_58_281583_00_00Z.py": {
@@ -1212,7 +1219,9 @@
       "date": "2025-10-27",
       "problem": "47",
       "moves": {
-        "backtracking-choose-undo": "clean"
+        "backtracking-choose-undo": "clean",
+        "backtracking-mark-unmark": "clean",
+        "backtracking-dedupe-siblings": "clean"
       },
       "note": "Generates permutations via swap-recurse-unswap with pruning of equal-element swaps; uses set to deduplicate."
     },
@@ -1221,7 +1230,9 @@
       "problem": "47",
       "moves": {
         "backtracking-choose-undo": "clean",
-        "sort-then-adjacent": "clean"
+        "sort-then-adjacent": "clean",
+        "backtracking-mark-unmark": "clean",
+        "backtracking-dedupe-siblings": "clean"
       },
       "note": "Sort ensures duplicates are adjacent; deduplication check `if j > i and nums[j-1]==nums[j]` skips redundant branches."
     },
@@ -1283,7 +1294,8 @@
       "problem": "39",
       "moves": {
         "backtracking-choose-undo": "clean",
-        "tree-dfs-recursive": "clean"
+        "tree-dfs-recursive": "clean",
+        "backtracking-start-index": "clean"
       },
       "note": "Pure backtracking on implicit decision tree; clean append\u2192recurse\u2192pop pattern with DFS exploration"
     },
@@ -1293,7 +1305,9 @@
       "moves": {
         "backtracking-choose-undo": "clean",
         "running-sum": "clean",
-        "sort-then-adjacent": "clean"
+        "sort-then-adjacent": "clean",
+        "backtracking-start-index": "clean",
+        "backtracking-dedupe-siblings": "clean"
       },
       "note": "TLE on large inputs; redundant sorting at each solution and final result degrade performance despite correct logic."
     },
@@ -1324,8 +1338,10 @@
       "date": "2025-10-22",
       "problem": "40",
       "moves": {
-        "backtracking-choose-undo": "struggled",
-        "sort-then-adjacent": "struggled"
+        "backtracking-choose-undo": "clean",
+        "sort-then-adjacent": "struggled",
+        "backtracking-start-index": "clean",
+        "backtracking-dedupe-siblings": "struggled"
       },
       "note": "Non-standard return logic and duplicate prevention; TLE on large inputs. Relies on set deduplication instead of clean pruning."
     },
@@ -1333,7 +1349,8 @@
       "date": "2025-10-22",
       "problem": "46",
       "moves": {
-        "backtracking-choose-undo": "avoided"
+        "backtracking-choose-undo": "avoided",
+        "backtracking-mark-unmark": "avoided"
       },
       "note": "Sidesteps backtracking with iteration+combinations approach; missing combinations import and generates incomplete permutations (4/6 with duplicates)."
     },
@@ -1342,7 +1359,8 @@
       "problem": "39",
       "moves": {
         "backtracking-choose-undo": "clean",
-        "set-membership": "clean"
+        "set-membership": "clean",
+        "backtracking-start-index": "clean"
       },
       "note": "Commented assertion is incorrect ([2,2,3]=7, not 8; [7] is invalid). Code logic is sound."
     },
@@ -2084,7 +2102,8 @@
       "problem": "216",
       "moves": {
         "backtracking-choose-undo": "clean",
-        "running-sum": "clean"
+        "running-sum": "clean",
+        "backtracking-start-index": "clean"
       }
     },
     "solved/p2226_Maximum_Candies_Allocated_to_K_Children_2025_10_27T07_52_10_722328_00_00Z.py": {
@@ -2376,7 +2395,8 @@
         "sort-by-custom-key": "struggled",
         "greedy-sort-take": "struggled",
         "backtracking-choose-undo": "avoided",
-        "memoize-recursion": "avoided"
+        "memoize-recursion": "avoided",
+        "backtracking-mark-unmark": "avoided"
       },
       "note": "Missing combinations import prevents execution. Greedy selection of GCDs cannot solve this problem; requires backtracking with memoized state (used elements)."
     },
@@ -4847,7 +4867,8 @@
       "date": "2026-08-07",
       "problem": "77",
       "moves": {
-        "backtracking-choose-undo": "clean"
+        "backtracking-choose-undo": "clean",
+        "backtracking-start-index": "clean"
       },
       "note": "Clean backtracking solution; all test assertions pass"
     },
@@ -6002,7 +6023,8 @@
       "date": "2026-08-24",
       "problem": "212",
       "moves": {
-        "backtracking-choose-undo": "struggled"
+        "backtracking-choose-undo": "clean",
+        "backtracking-mark-unmark": "struggled"
       },
       "note": "No trie built; brute-force word-by-word search from each cell. Backtracking attempt doesn't properly undo visited state within branches (no removal when unwinding failed paths)."
     },
@@ -6016,7 +6038,8 @@
       "date": "2026-08-24",
       "problem": "46",
       "moves": {
-        "backtracking-choose-undo": "clean"
+        "backtracking-choose-undo": "clean",
+        "backtracking-mark-unmark": "clean"
       },
       "assist": "spoiled",
       "note": "Peeked at answer after confusing permutations with combinations in first attempt."
@@ -6040,7 +6063,8 @@
       "date": "2026-08-25",
       "problem": "77",
       "moves": {
-        "backtracking-choose-undo": "struggled"
+        "backtracking-choose-undo": "clean",
+        "backtracking-start-index": "struggled"
       },
       "note": "Attempted choose-undo backtracking pattern but used array swapping instead of a start index to control element availability; notes explicitly state failure."
     },

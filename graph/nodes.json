@@ -520,12 +520,48 @@
       "group": "recursion-dp",
       "added": "2025-09-24",
       "name": "Choose, explore, un-choose",
-      "desc": "Append candidate, recurse, pop; prune branches that can't succeed.",
-      "hint": "The undo (pop/unmark) after the recursive call is the signature.",
+      "desc": "Append candidate, recurse, pop; record a copy when the path is complete.",
+      "hint": "The undo after the recursive call is the signature. Which candidates are legal at a given depth is a different move.",
       "prereqs": [
         "tree-dfs-recursive"
       ],
-      "drill": "All combinations of k numbers from 1-9 summing to n."
+      "drill": "Given groups of letters, return every string taking one letter from each group."
+    },
+    {
+      "id": "backtracking-start-index",
+      "group": "recursion-dp",
+      "added": "2026-08-26",
+      "name": "Start-index availability",
+      "desc": "Candidates are the suffix from a start value; recurse at x+1 to use once, x to reuse.",
+      "hint": "Order does not matter, so an element passed over is gone for good. Combinations and subsets differ only in where you record.",
+      "prereqs": [
+        "backtracking-choose-undo"
+      ],
+      "drill": "Return every combination of k numbers from 1 to n."
+    },
+    {
+      "id": "backtracking-mark-unmark",
+      "group": "recursion-dp",
+      "added": "2026-08-26",
+      "name": "Mark and unmark availability",
+      "desc": "Candidates are everything not currently marked; raise the flag before recursing, lower it after.",
+      "hint": "Order matters, so every call loops from the start and skips only what is marked. A cell or index left marked poisons later branches.",
+      "prereqs": [
+        "backtracking-choose-undo"
+      ],
+      "drill": "Return every ordering of a list of distinct integers."
+    },
+    {
+      "id": "backtracking-dedupe-siblings",
+      "group": "recursion-dp",
+      "added": "2026-08-26",
+      "name": "Skip equal siblings",
+      "desc": "Sort, then skip a candidate equal to the one before it when its index is past this call's start value.",
+      "hint": "Comparing the index against 0 instead of the start value throws away legitimate repeats from different depths.",
+      "prereqs": [
+        "backtracking-start-index"
+      ],
+      "drill": "Return every distinct subset of an array that holds repeated values."
     },
     {
       "id": "memoize-recursion",
