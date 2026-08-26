@@ -30,13 +30,10 @@ Constraints:
     1 <= len(s) <= 10^5
     s contains lowercase English letters.
 
-    REQUIRED: O(n) overall. Write the at-most counter yourself, the one
-    from Count by Contribution, and call it twice. A window that tracks
-    "exactly k" on its own does not exist: growing such a window can
-    break the condition and later restore it, so there is no illegal
-    region to shrink out of and no single left position to count from.
-    Every direct attempt collapses back into listing substrings, which
-    is O(n^2) and the failure mode this drill exists to kill.
+    REQUIRED: O(n) overall. Any helper you lean on is written here, not
+    pasted from Count by Contribution. Listing the substrings and
+    counting them one by one is O(n^2) and the failure mode this drill
+    exists to kill.
 """
 
 

@@ -33,12 +33,10 @@ Constraints:
     1 <= target <= 40
     The values in nums are distinct and given in increasing order.
 
-    REQUIRED: one character separates this drill from Combinations. The
-    call made after choosing nums[x] starts at x, not x + 1, so the same
-    number is still available one level down while everything before it
-    is not. Stop a branch the moment the running sum passes target. NO
-    de-duplicating the answer at the end, NO counting how many times each
-    number was taken.
+    REQUIRED: [3, 2, 2] is never built, not built and discarded. Stop a
+    branch the moment the running sum passes target. NO de-duplicating
+    the answer at the end, NO counting how many times each number was
+    taken.
 """
 
 

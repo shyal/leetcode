@@ -22,12 +22,9 @@ Constraints:
     -10^9 <= nums[i] <= 10^9
     The values in nums are distinct.
 
-    REQUIRED: use the loop from Combinations unchanged - walk x from the
-    start value to the end of nums, choose nums[x], recurse from x + 1,
-    undo. The only change is where you record: every call records on the
-    way in, instead of one call recording at a fixed depth. There is no
-    size to stop at and no base case to write. NO take-it-or-leave-it
-    branch on one index, NO bitmask, NO itertools.
+    REQUIRED: one backtracking pass; every subset is recorded exactly
+    once, the moment it exists. NO take-it-or-leave-it branch on one
+    index, NO bitmask, NO itertools.
 """
 
 

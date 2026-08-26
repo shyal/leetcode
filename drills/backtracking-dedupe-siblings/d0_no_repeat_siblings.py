@@ -24,13 +24,10 @@ Constraints:
     1 <= len(nums) <= 12
     -10 <= nums[i] <= 10
 
-    REQUIRED: sort nums first, so equal values sit next to each other.
-    Inside the loop, skip a value when it equals the one before it AND
-    its index is past the start value for this call. The second half of
-    that test is the drill: comparing the index against 0 instead of the
-    start value throws away [2, 2], because the second 2 is then never
-    allowed to follow the first. NO set or tuple de-duplication of the
-    answer, NO Counter of the input.
+    REQUIRED: one backtracking pass. A subset joins the answer the
+    moment it is built, and no subset is ever built twice. NO set or
+    tuple de-duplication of the answer, NO Counter of the input, no
+    comparing a candidate against subsets already collected.
 """
 
 

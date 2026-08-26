@@ -32,10 +32,9 @@ Constraints:
 
     REQUIRED: one pass, O(n). Both ends of the window move forward only
     and never move backward. The window's counts are maintained by one
-    add and one remove, never rebuilt. One removal per character read is
-    NOT enough: reading a single character can leave a window that needs
-    several removals before it is legal again, and stopping after one
-    silently returns lengths that are too large.
+    add and one remove, never rebuilt. Measuring a window that is not
+    legal is the failure mode this drill exists to kill: the answers
+    come back silently too large.
 """
 
 

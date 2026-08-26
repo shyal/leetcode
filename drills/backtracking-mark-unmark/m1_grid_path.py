@@ -33,13 +33,11 @@ Constraints:
     1 <= len(word) <= 15
     grid and word hold lowercase English letters.
 
-    REQUIRED: mark a cell taken by writing over it in the grid itself,
-    then restore its letter after the recursive call returns. NO separate
-    visited set or visited grid. The restore is the whole drill: a cell
-    that is off-limits for the path currently being walked must be free
-    again for a path that starts somewhere else, and a cell left marked
-    turns later True answers into False. Return as soon as one path
-    spells the word.
+    REQUIRED: the grid itself is the only record of which cells the
+    current path holds - NO separate visited set or visited grid. Once a
+    path is abandoned the grid reads exactly as it did before that path
+    was tried; a cell left marked turns later True answers into False.
+    Return as soon as one path spells the word.
 """
 
 

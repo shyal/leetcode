@@ -32,11 +32,7 @@ Constraints:
     Amounts fit in a normal int; the answer may be negative.
 
     REQUIRED: one pass over the characters. No eval, no split, no regex,
-    no int() on slices — build each amount digit by digit as you walk.
-    Collect signed terms and sum them at the end.
-    Remember: the operator you act on is the one you saw BEFORE the
-    number, not after — and a number is only finished when you see
-    what follows it.
+    no int() on slices - build each amount digit by digit as you walk.
 """
 
 

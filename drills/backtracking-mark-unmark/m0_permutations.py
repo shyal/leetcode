@@ -22,13 +22,10 @@ Constraints:
     -10^9 <= nums[i] <= 10^9
     The values in nums are distinct.
 
-    REQUIRED: every call loops over ALL of nums, from index 0. A separate
-    list of flags, one per index, says which elements are already in the
-    ordering being built; a flagged element is skipped. Raise the flag
-    before the recursive call and lower it after, in the same place the
-    path is appended and popped. NO start index - order matters here, so
-    an element passed over at one depth must still be available at the
-    next. NO swapping elements of nums, NO removing them from the list.
+    REQUIRED: every call loops over ALL of nums, from index 0. Deciding
+    in O(1) whether an element is already in the ordering being built is
+    the drill. NO start index, NO swapping elements of nums, NO removing
+    them from the list, no scanning the ordering to test membership.
 """
 
 

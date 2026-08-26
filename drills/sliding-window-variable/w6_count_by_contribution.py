@@ -34,9 +34,7 @@ Constraints:
     REQUIRED: one pass, O(n). The window's counts are maintained by one
     add and one remove, never rebuilt. Listing the legal substrings and
     counting them one by one is O(n^2) and is the failure mode this drill
-    exists to kill. len(s) makes it a TLE. Each position the right end
-    reaches settles its own share of the total in O(1), without looking
-    at any substring.
+    exists to kill. len(s) makes it a TLE.
 """
 
 

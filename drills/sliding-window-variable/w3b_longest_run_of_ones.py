@@ -33,9 +33,8 @@ Constraints:
 
     REQUIRED: one pass, O(n), O(1) extra space. Two pointers, and left
     advances at most ONCE per element read: use `if`, NEVER `while`.
-    The answer is the final width, len(nums) - left, taken once after
-    the loop. A plain streak counter solves this problem while skipping
-    the slide, and the slide is the rep.
+    A plain streak counter solves this problem while skipping the
+    slide, and the slide is the rep.
 """
 
 
