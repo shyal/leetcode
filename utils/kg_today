@@ -36,7 +36,7 @@ from rich.console import Console
 from kg_lib import (
     GRAPH_DIR, DRILLS_DIR, load_nodes, load_problems, load_evidence,
     node_status, SOLID, STALE, FRAGILE, MISSING, load_sleep, sleep_state,
-    last_solved, pnum_key, carriers_for, gentleness, unlocks, acceptance,
+    last_solved, pnum_key, carriers_for, cooled, gentleness, unlocks, acceptance,
     drill_gated, has_drill_bank, claude_json, taxonomy_summary,
 )
 
@@ -127,7 +127,7 @@ def review_items(nodes, problems, evidence, statuses, taken):
                           "why": "rusty move with a drill bank — drill until clean"})
             continue
         cands = [c for c in carriers_for(target, problems, statuses, nodes, evidence)
-                 if c not in taken]
+                 if c not in taken and cooled(c, evidence)]
         if not cands:
             continue
         cands.sort(key=lambda p: (gentleness(p, problems, nodes),
