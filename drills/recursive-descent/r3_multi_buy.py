@@ -47,9 +47,7 @@ Constraints:
     Runs of '*' and '/' associate left to right.
 
     REQUIRED: `term` never touches a digit - every part is fetched by
-    calling self.atom(). One loop, claiming only '*' and '/': read the
-    operator, read the next atom, weld a new operator node with the term
-    so far on the left and the fresh atom on the right. `term` must stop
+    calling self.atom(). `term` claims only '*' and '/': it must stop
     the moment it sees '+', '-' or the end of the string, and leave that
     character unread. Consuming it is what makes the multi-buy swallow
     the rest of the order.

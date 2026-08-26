@@ -35,8 +35,7 @@ Constraints:
     rebuilt. A legal window can hold a shorter legal window inside it, so
     measuring a window the moment it first becomes legal is the failure
     mode this drill exists to kill: it silently returns lengths that are
-    too large. Note this is the mirror of Grow and Shrink, where the loop
-    runs while the window is ILLEGAL.
+    too large.
 """
 
 

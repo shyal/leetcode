@@ -40,10 +40,9 @@ Constraints:
     Parentheses are balanced; every bundle and the whole string start
     with a number or a '('.
 
-    REQUIRED: `atom` peeks at one character. A digit means the part is a
-    plain amount. A '(' means the part is a whole bundle: step inside,
-    let the machine build it, and step over the ')' on the way out -
-    `atom` must leave the cursor after the bundle it consumed.
+    REQUIRED: `atom` peeks at one character and consumes exactly one
+    part - a plain amount or a whole bundle - leaving the cursor just
+    past what it consumed, ')' included.
 """
 
 from dsa.recursive_descent import Parser

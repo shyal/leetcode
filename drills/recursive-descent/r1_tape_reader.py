@@ -40,10 +40,8 @@ Constraints:
     S starts with a digit; operators are always followed by a number.
 
     REQUIRED: `expr` never touches a digit - every amount is read by
-    calling self.number(). One loop: read the operator, read the next
-    amount, weld a new operator node with the tree so far on the left
-    and the fresh leaf on the right. When the tape ends the cursor is
-    at len(S) and the last node welded is the root.
+    calling self.number(). When the tape ends the cursor rests at
+    len(S).
 """
 
 from dsa.recursive_descent import Parser

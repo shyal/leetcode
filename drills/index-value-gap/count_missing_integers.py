@@ -23,7 +23,8 @@ Constraints:
     1 <= arr[i] <= 1000
     arr[i] < arr[j] for 1 <= i < j <= arr.length
 
-    REQUIRED: O(1), no loop. Index i should hold i+1; the gap is the answer.
+    REQUIRED: O(1), no loop. Walking arr and counting gaps one by one is
+    the failure mode this drill exists to kill.
 """
 
 

@@ -30,10 +30,9 @@ Constraints:
     1 <= total nodes <= 10^4
 
     REQUIRED: iterative, with a queue (collections.deque). NO recursion,
-    no depth bookkeeping carried on the nodes. Process one whole level
-    per outer-loop iteration: snapshot how many nodes the queue holds,
-    drain exactly that many, append their children behind them.
-    Depth is the count of layers you have drained - nothing else.
+    no depth bookkeeping carried on the nodes or beside them in the
+    queue. Mixing two depths in one output group is the failure mode
+    this drill exists to kill.
 """
 
 from collections import deque

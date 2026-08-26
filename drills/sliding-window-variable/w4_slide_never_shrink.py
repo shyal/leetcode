@@ -37,12 +37,9 @@ Constraints:
 
     REQUIRED: one pass, O(n), O(1) extra space. left advances at most
     ONCE per element read: use `if`, NEVER `while`. The width never
-    decreases, so the answer is the final width, len(nums) - left, and
-    no running maximum is needed. Shrinking back to a legal window on
-    every step is the failure mode this drill exists to kill: it is the
-    shape of Grow and Shrink, and writing it here means the drill was
-    not attempted. A window that is briefly illegal is fine, because a
-    wider legal one was already seen.
+    decreases. Shrinking back to a legal window on every step is the
+    failure mode this drill exists to kill: it is the shape of Grow and
+    Shrink, and writing it here means the drill was not attempted.
 """
 
 

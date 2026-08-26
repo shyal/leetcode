@@ -30,13 +30,11 @@ Constraints:
     1 <= n <= 20
     1 <= k <= n
 
-    REQUIRED: the recursion carries a start value, and the call made
-    after choosing x starts at x + 1. That single number is what keeps a
-    combination increasing and stops [2, 1] from ever being built. NO
+    REQUIRED: [2, 1] is never built, not built and discarded. NO
     swapping elements of a list to control which numbers are still
-    available, NO used or visited set, NO sorting or de-duplicating the
-    answer at the end. Availability is decided on the way down, not
-    repaired on the way out.
+    available, NO used or visited set, NO itertools, NO sorting or
+    de-duplicating the answer at the end. Availability is decided on
+    the way down, not repaired on the way out.
 """
 
 

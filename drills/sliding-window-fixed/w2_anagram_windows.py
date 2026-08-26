@@ -32,13 +32,11 @@ Constraints:
     s and t contain lowercase English letters.
 
     REQUIRED: one pass, O(len(s)). The window slides by one character
-    entering and one leaving, each O(1). Comparing two tallies per
-    window, with Counter(window) == Counter(t), or sorting the window,
-    is the failure mode this drill exists to kill: both cost O(k) or
-    worse at every position. Collapse the comparison to a single integer
-    that tracks how many characters of t currently sit at exactly the
-    amount t asks for. A window qualifies when that integer says every
-    character of t does.
+    entering and one leaving, each O(1), and deciding whether the window
+    qualifies is O(1) too. Comparing two tallies per window, with
+    Counter(window) == Counter(t), or sorting the window, is the failure
+    mode this drill exists to kill: both cost O(k) or worse at every
+    position.
 """
 
 

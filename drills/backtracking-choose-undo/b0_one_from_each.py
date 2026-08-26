@@ -25,11 +25,10 @@ Constraints:
     Every group holds distinct lowercase letters.
 
     REQUIRED: the candidates at depth d are the letters of groups[d] and
-    nothing else. No letter is ever unavailable, so the recursion carries
-    no state about what has been taken. One list holds the letters chosen
-    so far, for the whole run: append, recurse, pop. NO itertools, NO
-    `path + [x]`, NO building the string on the way down. Join the list
-    into a string only when the last group has been chosen from.
+    nothing else. One list holds the letters chosen so far, for the
+    whole run. NO itertools, NO `path + [x]`, NO building the string on
+    the way down. Join the list into a string only when the last group
+    has been chosen from.
 """
 
 
