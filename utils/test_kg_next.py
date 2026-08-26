@@ -651,11 +651,33 @@ def test_a_spoiled_predecessor_solve_does_not_release(picker):
     """A spoiled rep is not recall evidence anywhere else either."""
     ns = nodes("bt")
     ps = {"46": problem(["bt"]), "47": problem(["bt"], after=["46"])}
-    ev = evidence(solve("46", {"bt": "clean"}, days_ago=3, assist="spoiled"),
+    ev = evidence(solve("46", {"bt": "clean"}, days_ago=10, assist="spoiled"),
                   solve("46", {"bt": "clean"}, days_ago=299),
                   solve("47", {"bt": "clean"}, days_ago=300))
     st = {"bt": (STALE, ago(299))}
     assert picker.run(ns, ps, ev, st)[:3] == ("bt", STALE, "46")
+
+
+def test_a_carrier_solved_days_ago_is_not_a_spaced_review(picker):
+    """The move stayed rusty because the solve did not evidence it, but the
+    problem is still in working memory - the picker must not hand back
+    yesterday's problem this morning."""
+    ns = nodes("bt")
+    ps = {"46": problem(["bt"]), "47": problem(["bt"])}
+    ev = evidence(solve("46", {}, days_ago=1),
+                  solve("47", {"bt": "clean"}, days_ago=300))
+    st = {"bt": (STALE, ago(300))}
+    assert picker.run(ns, ps, ev, st)[:3] == ("bt", STALE, "47")
+
+
+def test_every_carrier_still_warm_serves_nothing(picker):
+    """When the whole pool is inside the cooldown the node waits its turn -
+    better an empty review slot than a rerun of this week's work."""
+    ns = nodes("bt")
+    ps = {"46": problem(["bt"]), "47": problem(["bt"])}
+    ev = evidence(solve("46", {}, days_ago=1), solve("47", {}, days_ago=2))
+    st = {"bt": (STALE, ago(300))}
+    assert picker.run(ns, ps, ev, st) is None
 
 
 def test_a_banned_predecessor_holds_nothing_back(picker):

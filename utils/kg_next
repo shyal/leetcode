@@ -78,6 +78,7 @@ from kg_lib import (
     dodged_nodes,
     dodgeable,
     carriers_for,
+    cooled,
     gentleness,
     unlocks,
     input_tree,
@@ -258,7 +259,7 @@ def pick(
             cands = [
                 c
                 for c in carriers_for(target, problems, statuses, nodes, evidence)
-                if c not in asleep and c not in exclude
+                if c not in asleep and c not in exclude and cooled(c, evidence)
             ]
             if cands:
                 cands.sort(
@@ -319,7 +320,7 @@ def pick(
         cands = [
             c
             for c in carriers_for(target, problems, statuses, nodes, evidence)
-            if c not in asleep and c not in exclude
+            if c not in asleep and c not in exclude and cooled(c, evidence)
         ]
         if cands:
             if target in dodged:
@@ -368,7 +369,7 @@ def pick(
         cands = [
             c
             for c in carriers_for(target, problems, statuses, nodes, evidence)
-            if c not in asleep and c not in exclude
+            if c not in asleep and c not in exclude and cooled(c, evidence)
         ]
         if not cands:
             continue
@@ -408,7 +409,7 @@ def pick(
         cands = [
             c
             for c in carriers_for(target, problems, statuses, nodes, evidence)
-            if c not in asleep and c not in exclude
+            if c not in asleep and c not in exclude and cooled(c, evidence)
         ]
         if cands:
             cands.sort(

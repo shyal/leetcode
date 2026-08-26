@@ -591,6 +591,24 @@ def carriers_for(target, problems, statuses, nodes, evidence):
     return found
 
 
+# A carrier solved within the last few days is not a spaced review: it reruns
+# a problem still sitting in working memory, and a rep that close cannot even
+# advance the node's maturity spacing (see MATURE_SPACING_DAYS). The picker
+# lands there whenever a solve fails to evidence its target move - the node
+# stays rusty, so the next morning's plan comes straight back to the same
+# problem. Composable predicate, applied where carriers are picked for spaced
+# review; deliberately NOT folded into carriers_for, which also answers "does
+# a servable carrier exist at all" for the route planners and diagnostics.
+CARRIER_COOLDOWN_DAYS = MATURE_SPACING_DAYS
+
+
+def cooled(pnum, evidence, days=CARRIER_COOLDOWN_DAYS):
+    """True when this problem's last solve is old enough to review again.
+    Never solved counts as cooled."""
+    last = last_solved(pnum, evidence)
+    return not last or (date.today() - date.fromisoformat(last)).days >= days
+
+
 # Interview-classic Hards worth summiting: number -> why it's valuable.
 # Filtered against data/problems_metadata.json difficulty at runtime, so a
 # mislabeled entry silently drops out rather than lying. Lives here rather
