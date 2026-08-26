@@ -86,3 +86,41 @@ def test_real_solves_with_notes_keep_them():
             assert first_line in out, f"notes dropped for {os.path.basename(path)}"
             checked += 1
     assert checked > 20, f"expected many noted solves in the corpus, saw {checked}"
+
+
+# --- alt walk recording ------------------------------------------------------
+# A solve that routes around a mapped move is the only evidence the map ever
+# gets that one of its edges is wrong. Dropping that write is how a fabricated
+# walk (3042's "pair-count-formula", withdrawn 2026-08-27) survived two solves
+# that both contradicted it.
+
+def test_an_alt_walk_is_recorded_when_a_mapped_move_is_skipped():
+    problems = {"1512": {"moves": ["streaming-accumulate-pairs"]}}
+    assert kg_extract.record_alt_walk(
+        problems, "1512", {"counter-build": "clean"}, {"streaming-accumulate-pairs"})
+    assert problems["1512"]["alt_walks"] == [["counter-build"]]
+
+
+def test_an_empty_alt_walk_is_still_recorded():
+    """The solve sidestepped the mapped move and used nothing else in the
+    taxonomy - the map contradicted outright, the case worth keeping most."""
+    problems = {"3042": {"moves": ["pair-count-formula"]}}
+    assert kg_extract.record_alt_walk(problems, "3042", {}, {"pair-count-formula"})
+    assert problems["3042"]["alt_walks"] == [[]]
+
+
+def test_the_same_alt_walk_is_not_recorded_twice():
+    problems = {"3042": {"moves": ["pair-count-formula"], "alt_walks": [[]]}}
+    assert not kg_extract.record_alt_walk(problems, "3042", {}, {"pair-count-formula"})
+    assert problems["3042"]["alt_walks"] == [[]]
+
+
+def test_nothing_is_recorded_when_no_mapped_move_was_skipped():
+    problems = {"1512": {"moves": ["streaming-accumulate-pairs"]}}
+    assert not kg_extract.record_alt_walk(
+        problems, "1512", {"streaming-accumulate-pairs": "clean"}, set())
+    assert "alt_walks" not in problems["1512"]
+
+
+def test_an_unmapped_problem_is_left_alone():
+    assert not kg_extract.record_alt_walk({}, "9999", {}, {"pair-count-formula"})
