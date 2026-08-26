@@ -812,19 +812,38 @@ def drill_gated(node_id, status, last, today=None):
     return False
 
 
-def drill_held(node_id, nodes, statuses, has_bank=None, pending=()):
+def owned(node_id, evidence):
+    """True when the node's most recent clean rep was unaided. An assisted
+    clean is a legit re-learning rep but it is not recall - the same
+    ownership bar last_clean_solve applies to problem release. Same-day
+    reps tie generously: one unaided clean that day is ownership."""
+    latest, ok = "", False
+    for rec in evidence.values():
+        if rec.get("moves", {}).get(node_id) != "clean":
+            continue
+        unaided = assist_of(rec) == "none"
+        if rec["date"] > latest:
+            latest, ok = rec["date"], unaided
+        elif rec["date"] == latest:
+            ok = ok or unaided
+    return ok
+
+
+def drill_held(node_id, nodes, statuses, evidence, has_bank=None, pending=()):
     """The cross-bank ladder: True while a prereq of node_id must train
-    first - the prereq has a drill bank of its own and is not SOLID, or its
-    drill item is still pending in today's plan. Interconnectivity is the
-    point: the dependent's drill lands on a warm base instead of re-deriving
-    the base mid-drill. A prereq without a bank never holds - nothing
-    servable would clear the hold, and a hold nothing can open is a
-    deadlock (same reasoning as banned predecessors in held_behind)."""
+    first - the prereq has a drill bank of its own and is not standing on
+    an unaided clean (not SOLID, or solid only through assisted reps), or
+    its drill item is still pending in today's plan. Interconnectivity is
+    the point: the dependent's drill lands on an owned base instead of
+    re-deriving the base mid-drill. A prereq without a bank never holds -
+    nothing servable would clear the hold, and a hold nothing can open is
+    a deadlock (same reasoning as banned predecessors in held_behind)."""
     has_bank = has_bank or has_drill_bank
     for p in nodes.get(node_id, {}).get("prereqs", []):
         if p in pending:
             return True
-        if has_bank(p) and p in statuses and statuses[p][0] != SOLID:
+        if has_bank(p) and p in statuses and (
+                statuses[p][0] != SOLID or not owned(p, evidence)):
             return True
     return False
 

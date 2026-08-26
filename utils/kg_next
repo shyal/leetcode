@@ -211,7 +211,7 @@ def pick(
         """The drill pseudo-pick for a node, or None if none is due. A drill
         held behind a rusty banked prereq is not due - the prereq trains
         first, and the carrier stays held with it."""
-        if drill_held(target, nodes, statuses, has_bank=has_drill_bank):
+        if drill_held(target, nodes, statuses, evidence, has_bank=has_drill_bank):
             return None
         drill_id = f"drill:{target}"
         return (
@@ -673,7 +673,7 @@ def main():
             it
             for it in pending
             if it["kind"] != "drill"
-            or not drill_held(it["node"], nodes, statuses,
+            or not drill_held(it["node"], nodes, statuses, evidence,
                               has_bank=has_drill_bank,
                               pending=plan_drills - {it["node"]})
         ]
