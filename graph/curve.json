@@ -2,14 +2,14 @@
   "_comment": "Personal forgetting curve fitted by utils/kg_curve. P(recall) = (1-slip)*(1 + gap/s)^(-beta), s = exp(a + b*cleans - c*struggles - d*assist + e*(conn - conn_mean)). conn is the node's log2 carrier count, frozen below at fit time; consumers that ignore e are assuming average connectivity. node_status() calls a node SOLID while the memory component (1 + gap/s)^(-beta) >= target_retention; delete this file to fall back to the flat 42-day window.",
   "model": "power-law-slip",
   "params": {
-    "a": 4.0722,
-    "b": 0.0093,
-    "c": 0.1496,
-    "d": 0.5337,
-    "e": 0.5856,
-    "conn_mean": 4.3308,
-    "beta": 0.0967,
-    "slip": 0.0464
+    "a": 4.0745,
+    "b": 0.0136,
+    "c": 0.1475,
+    "d": 0.5207,
+    "e": 0.5172,
+    "conn_mean": 4.3412,
+    "beta": 0.1007,
+    "slip": 0.0471
   },
   "conn": {
     "backtracking-choose-undo": 3.7,
@@ -31,8 +31,8 @@
     "dict-arbitrary-value": 4.755,
     "divmod-decompose": 5.044,
     "dp-1d-rolling": 3.585,
-    "dp-2d-grid": 1.0,
-    "dp-state-formulate": 3.459,
+    "dp-2d-grid": 2.322,
+    "dp-state-formulate": 3.807,
     "event-sweep": 1.585,
     "fast-slow-pointers": 3.0,
     "gcd-reduction": 2.585,
@@ -84,13 +84,14 @@
     "trie-build-walk": 2.0,
     "two-pointers-converging": 4.585,
     "two-pointers-read-write": 2.807,
+    "two-sequence-align": 2.585,
     "union-find": 2.322,
     "xor-cancellation": 3.17
   },
   "target_retention": 0.9,
   "fit": {
     "trials": 653,
-    "loglik": -0.2543,
+    "loglik": -0.2549,
     "baseline_loglik": -0.2703
   }
 }
