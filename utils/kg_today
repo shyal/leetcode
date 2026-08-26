@@ -3,7 +3,9 @@
 # kg_today — freeze today's study plan into data/study_plan/<date>.json.
 #
 #   make today            # build the plan if today's file does not exist
-#   make today -- --force # rebuild (deliberate regeneration, e.g. bad draft)
+#   make today rebuild    # regenerate deliberately, e.g. after a bad draft
+#                         # ("rebuild", not "force" - `force` is kg_force's
+#                         #  own target and make would run both goals)
 #
 # The plan file is the determinism boundary: judgment (one claude call that
 # reads the recent FAILED solves and turns them into consolidation work) runs
@@ -149,7 +151,7 @@ def main():
         plan = json.load(open(path))
         console.print(f"[dim]plan for {plan['date']} already exists "
                       f"({len(plan['items'])} items) — `make next` serves it; "
-                      f"--force to rebuild[/dim]")
+                      f"`make today rebuild` to regenerate[/dim]")
         return
 
     nodes = load_nodes()

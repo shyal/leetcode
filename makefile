@@ -9,7 +9,7 @@ goals:
 	@.venv/bin/python3 utils/solve_rate.py --goals data/goals.json --timer-font=doh
 
 today:
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_today $(patsubst force,--force,$(filter-out $@,$(MAKECMDGOALS)))
+	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_today $(patsubst rebuild,--force,$(filter-out $@,$(MAKECMDGOALS)))
 
 is_session_start:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/is_session_start || true
