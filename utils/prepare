@@ -14,6 +14,7 @@ import threading
 import requests
 
 from stub_utils import sanitize, strip_solution, structure_problems
+from kg_lib import clear_branch
 
 CACHE_DIR = ".prepare_cache"
 
@@ -569,6 +570,8 @@ def finalize(num, title, code):
     file_name = f"current.py"
 
     with lock:
+        if not clear_branch(str(num)):
+            return
         run_git(["checkout", "master"])
         with open(file_name, "w") as f:
             f.write(code)
