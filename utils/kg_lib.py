@@ -867,6 +867,10 @@ def due_drill(node_id, evidence, today=None):
     fallback: a gap node with no READY carrier gets its drill offered instead
     of being silently skipped — a drill cannot be dodged and needs no
     carrier."""
+    status, _ = node_status(node_id, evidence, today)
+    if status == SOLID and owned(node_id, evidence):
+        return None  # the curve says the node holds - a drill is a problem
+                     # we authored, and problems are not re-served while warm
     today = (today or date.today()).isoformat()
     candidates = sorted(glob.glob(os.path.join(DRILLS_DIR, node_id, "*.py")))
     if not candidates:

@@ -39,7 +39,7 @@ from kg_lib import (
     GRAPH_DIR, DRILLS_DIR, load_nodes, load_problems, load_evidence,
     node_status, SOLID, STALE, FRAGILE, MISSING, load_sleep, sleep_state,
     last_solved, pnum_key, carriers_for, cooled, gentleness, unlocks, acceptance,
-    drill_gated, drill_held, has_drill_bank, claude_json, taxonomy_summary,
+    drill_gated, drill_held, has_drill_bank, owned, claude_json, taxonomy_summary,
 )
 
 console = Console()
@@ -196,8 +196,14 @@ def main():
                           "note": it.get("note", ""), "why": it.get("why", "")})
             taken.add(str(it["problem"]))
     for it in analysis.get("drills", []):
-        if it.get("node") in nodes:
-            items.append({"kind": "drill", "node": it["node"],
+        nid = it.get("node")
+        # judgment names the gap, the curve schedules the rep: no drill
+        # item for a node that is SOLID on an unaided clean, and the
+        # cross-bank ladder applies here as it does in review_items
+        if nid in nodes and not (statuses[nid][0] == SOLID
+                                 and owned(nid, evidence)) \
+                and not drill_held(nid, nodes, statuses, evidence):
+            items.append({"kind": "drill", "node": nid,
                           "why": it.get("why", "")})
     for it in analysis.get("create_drills", []):
         if it.get("node") in nodes:

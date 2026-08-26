@@ -744,3 +744,18 @@ def test_a_pending_plan_drill_for_the_prereq_holds_the_dependent():
     no_bank = lambda nid: False
     assert drill_held("dep", ns, st, {}, has_bank=no_bank, pending={"base"})
     assert not drill_held("dep", ns, st, {}, has_bank=no_bank, pending=set())
+
+
+def test_a_solid_owned_node_has_no_drill_due(tmp_path, monkeypatch):
+    """Drills sit on the same forgetting curve as problems: a node SOLID on
+    an unaided clean is not re-served, whatever flagged it."""
+    import kg_lib
+    bank = tmp_path / "some-node"
+    bank.mkdir()
+    (bank / "d0.py").write_text("pass\n")
+    monkeypatch.setattr(kg_lib, "DRILLS_DIR", str(tmp_path))
+    ev = evidence(solve("7", {"some-node": "clean"}, days_ago=2))
+    assert kg_lib.due_drill("some-node", ev) is None
+    assisted = evidence(solve("7", {"some-node": "clean"}, days_ago=2,
+                              assist="walkthrough"))
+    assert kg_lib.due_drill("some-node", assisted) is not None
