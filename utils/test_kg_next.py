@@ -714,11 +714,25 @@ def test_a_prereq_without_a_bank_holds_nothing(picker):
 
 
 def test_a_solid_prereq_releases_the_drill(picker):
+    """SOLID standing on an unaided clean - the base is owned."""
     ns = nodes("base", ("dep", ["base"]))
     ps = {"1": problem(["dep"])}
     picker.bank = {"base", "dep"}
+    ev = evidence(solve("9", {"base": "clean"}, days_ago=1))
     st = {"dep": (FRAGILE, ago(1)), "base": (SOLID, ago(1))}
-    assert picker.run(ns, ps, {}, st)[2] == "drill:dep"
+    assert picker.run(ns, ps, ev, st)[2] == "drill:dep"
+
+
+def test_an_assisted_clean_on_the_prereq_still_holds(picker):
+    """If it got assisted then it's not clean: SOLID reached through a
+    walkthrough rep is re-learning, not ownership - the dependent waits
+    for the unaided rep."""
+    ns = nodes("base", ("dep", ["base"]))
+    ps = {"1": problem(["dep"])}
+    picker.bank = {"base", "dep"}
+    ev = evidence(solve("9", {"base": "clean"}, days_ago=1, assist="walkthrough"))
+    st = {"dep": (FRAGILE, ago(1)), "base": (SOLID, ago(1))}
+    assert picker.run(ns, ps, ev, st) is None
 
 
 def test_a_pending_plan_drill_for_the_prereq_holds_the_dependent():
@@ -728,5 +742,5 @@ def test_a_pending_plan_drill_for_the_prereq_holds_the_dependent():
     ns = nodes("base", ("dep", ["base"]))
     st = {"base": (SOLID, ago(1)), "dep": (STALE, ago(300))}
     no_bank = lambda nid: False
-    assert drill_held("dep", ns, st, has_bank=no_bank, pending={"base"})
-    assert not drill_held("dep", ns, st, has_bank=no_bank, pending=set())
+    assert drill_held("dep", ns, st, {}, has_bank=no_bank, pending={"base"})
+    assert not drill_held("dep", ns, st, {}, has_bank=no_bank, pending=set())

@@ -125,7 +125,7 @@ def review_items(nodes, problems, evidence, statuses, taken):
         if len(items) >= MAX_REVIEWS:
             break
         if drill_gated(target, *statuses[target]):
-            if not drill_held(target, nodes, statuses):
+            if not drill_held(target, nodes, statuses, evidence):
                 items.append({"kind": "drill", "node": target,
                               "why": "rusty move with a drill bank — drill until clean"})
             continue
