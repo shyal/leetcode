@@ -20,7 +20,7 @@ import subprocess
 import sys
 from rich.console import Console
 
-from kg_lib import load_evidence, last_drilled, released_rungs
+from kg_lib import load_evidence, last_drilled, released_rungs, clear_branch
 
 console = Console()
 
@@ -67,6 +67,9 @@ def main():
     m = re.search(r"^\s*DRILL:\s*(.+)$", content, flags=re.M)
     title = m.group(1).strip() if m else os.path.splitext(os.path.basename(path))[0]
     node_id = os.path.basename(os.path.dirname(path))
+
+    if not clear_branch(node_id):
+        return
 
     # same branch flow as prepare: stub committed on a branch off master,
     # which `make solved` later squash-merges back and deletes

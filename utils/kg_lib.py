@@ -11,6 +11,7 @@ import json
 import os
 import re
 import subprocess
+import sys
 import time
 from datetime import date, datetime, timedelta, timezone
 
@@ -433,6 +434,25 @@ def dodgeable(pnum, target, problems):
     """True if a recorded alt walk lets this problem be solved without target."""
     return any(target not in walk
                for walk in problems.get(pnum, {}).get("alt_walks", []))
+
+
+def clear_branch(name):
+    """True when no local branch `name` blocks a fresh checkout -b: either
+    none exists, or the user was asked and chose to delete it. Without a
+    TTY the branch is kept, never silently deleted."""
+    if subprocess.run(["git", "rev-parse", "--verify", "--quiet",
+                       "refs/heads/" + name], capture_output=True).returncode:
+        return True
+    last = subprocess.run(["git", "log", "-1", "--format=%s (%cs)", name],
+                          capture_output=True, text=True).stdout.strip()
+    if sys.stdin.isatty():
+        ans = input(f"branch '{name}' already exists - {last}. Delete it? [y/N] ")
+        if ans.strip().lower() in ("y", "yes"):
+            subprocess.run(["git", "branch", "-D", name],
+                           check=True, capture_output=True)
+            return True
+    print(f"kept branch '{name}' - `git checkout {name}` to resume it")
+    return False
 
 
 def mined_solve_times():
