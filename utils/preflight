@@ -55,13 +55,20 @@ Determine the canonical clean solution for the problem, then output STRICT JSON,
 List every move a candidate must execute, including foundational micro-moves (algebra steps, idioms). Do not explain the solution."""
     result = claude_json(f"LeetCode problem: {problem_key}", system)
     moves = result["moves"]
-    problems[problem_key] = {
+    # merge over any withdrawn entry rather than replacing it: alt_walks
+    # recorded against the old walk are evidence, and the re-derive must not
+    # eat them. The withdrawal note and source are superseded by the new walk.
+    entry = problems.setdefault(problem_key, {})
+    entry.pop("note", None)
+    entry.pop("source", None)
+    entry.pop("unmapped", None)
+    entry.update({
         "title": result.get("title", problem_key),
         "difficulty": result.get("difficulty", ""),
         "moves": moves,
-    }
+    })
     if result.get("unmapped"):
-        problems[problem_key]["unmapped"] = result["unmapped"]
+        entry["unmapped"] = result["unmapped"]
         console.print(f"[orange3]Proposed new nodes (review!): {result['unmapped']}[/orange3]")
     save_problems(problems)
     return moves, result.get("title", ""), problems[problem_key], True
