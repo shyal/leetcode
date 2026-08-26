@@ -5,6 +5,16 @@
 # Coaching
 
 - Don't tell the operator when to sleep / go to bed.
+- NEVER provide the answer unless explicitly asked. The answer includes the
+  recurrence, the invariant, the loop structure, the data structure, and the
+  pseudocode - not just code. Answer the question that was asked and STOP.
+  A question about an example ("what's the output for this input?") is a
+  comprehension question: answer it and stop. It is not an invitation to
+  explain the technique, and neither is the operator constructing his own
+  counterexample - that is him working it out, so shut up and let him
+  (settled 2026-08-26).
+- When he wants the technique, he asks: `/high-level-walkthrough`, "give me a
+  hint", "how does this work". No ask, no reveal.
 
 # Git
 
