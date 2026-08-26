@@ -118,6 +118,27 @@ def runtime_note(res):
         f"assume the code works unless a bug is unmistakable. ({res['detail']})"
     )
 
+
+def record_alt_walk(problems, pnum, moves, skipped):
+    """Record the walk this solve actually took as an alt walk on the problem,
+    when it routed around a mapped move. True if problems changed.
+
+    The walk may legitimately be EMPTY: the solve sidestepped the mapped move
+    and used nothing else in the taxonomy either (a plain nested loop where
+    the map claims a technique). That is the single most informative case —
+    it is the map being contradicted outright — and guarding the write on a
+    non-empty walk silently dropped exactly those, so a bad edge survived
+    every solve that disproved it. dodgeable() reads `target not in walk`,
+    which an empty walk satisfies, and the other two readers skip it.
+    """
+    taken = sorted(mv for mv, v in moves.items() if v == "clean")
+    pentry = problems.get(pnum)
+    if pentry is None or not skipped or taken in pentry.get("alt_walks", []):
+        return False
+    pentry.setdefault("alt_walks", []).append(taken)
+    return True
+
+
 VERDICT_STYLE = {"clean": "green", "struggled": "red", "avoided": "yellow"}
 
 console = Console()
@@ -250,12 +271,8 @@ Output STRICT JSON only:
                 pnum = entry["problem"]
                 # a skipped mapped move IS a discovered alt walk — record it so
                 # the picker knows this carrier is escapable and routes around it
-                if not is_drill and skipped:
-                    taken = sorted(mv for mv, v in moves.items() if v == "clean")
-                    pentry = problems.get(pnum)
-                    if pentry and taken and taken not in pentry.get("alt_walks", []):
-                        pentry.setdefault("alt_walks", []).append(taken)
-                        save_problems(problems)
+                if not is_drill and record_alt_walk(problems, pnum, moves, skipped):
+                    save_problems(problems)
                 if not is_drill and pnum not in problems and moves:
                     problems[pnum] = {
                         "title": result.get("title", (m.group(2).replace("_", " ") if m else "")),

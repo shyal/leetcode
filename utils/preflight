@@ -31,12 +31,16 @@ STATUS_STYLE = {SOLID: "green", STALE: "yellow", FRAGILE: "orange3", MISSING: "r
 
 
 def resolve_moves(problem_key, problems, nodes):
-    if problem_key in problems:
+    # an entry with an EMPTY walk is a withdrawn mapping, not a mapped
+    # problem: a bad edge was pulled and the walk still has to be re-derived.
+    # Falling through to the mapping call is what makes the withdrawal
+    # repairable instead of a dead end.
+    if problems.get(problem_key, {}).get("moves"):
         p = problems[problem_key]
         return p["moves"], p.get("title", ""), p, False
     # try matching by title fragment
     for key, p in problems.items():
-        if problem_key.lower() in p.get("title", "").lower():
+        if problem_key.lower() in p.get("title", "").lower() and p.get("moves"):
             return p["moves"], p["title"], p, False
 
     console.print("[dim]Problem not in graph/problems.json — one claude call to map it (cached after)...[/dim]")
