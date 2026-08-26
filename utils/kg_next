@@ -87,6 +87,7 @@ from kg_lib import (
     due_drill,
     drill_gated,
     drill_held,
+    owned,
     has_drill_bank,
     CLASSICS,
     route_gaps,
@@ -673,9 +674,15 @@ def main():
             it
             for it in pending
             if it["kind"] != "drill"
-            or not drill_held(it["node"], nodes, statuses, evidence,
-                              has_bank=has_drill_bank,
-                              pending=plan_drills - {it["node"]})
+            or (
+                # the curve outranks the flag: a SOLID, owned node's drill
+                # item is satisfied, whatever prescribed it
+                not (statuses[it["node"]][0] == SOLID
+                     and owned(it["node"], evidence))
+                and not drill_held(it["node"], nodes, statuses, evidence,
+                                   has_bank=has_drill_bank,
+                                   pending=plan_drills - {it["node"]})
+            )
         ]
         idx = max(1, args.n) - 1
         if idx < len(pending):
