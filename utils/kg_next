@@ -86,6 +86,7 @@ from kg_lib import (
     acceptance,
     due_drill,
     drill_gated,
+    drill_held,
     has_drill_bank,
     CLASSICS,
     route_gaps,
@@ -207,7 +208,11 @@ def pick(
     """Return (target, status, pnum, reason) or None."""
 
     def due(target):
-        """The drill pseudo-pick for a node, or None if none is due."""
+        """The drill pseudo-pick for a node, or None if none is due. A drill
+        held behind a rusty banked prereq is not due - the prereq trains
+        first, and the carrier stays held with it."""
+        if drill_held(target, nodes, statuses, has_bank=has_drill_bank):
+            return None
         drill_id = f"drill:{target}"
         return (
             drill_id
@@ -658,6 +663,19 @@ def main():
             if not plan_item_done(it, evidence, plan)
             and str(it.get("problem", "")) not in exclude
             and it.get("problem") not in asleep
+        ]
+        # a drill item waits while a prereq's own drill is pending in the
+        # same plan (or the prereq is rusty with a bank) - plan order is
+        # judgment output, not a dependency order, so the ladder is applied
+        # here. Self-clearing: the prereq's rep clears its item and the hold.
+        plan_drills = {it["node"] for it in pending if it["kind"] == "drill"}
+        pending = [
+            it
+            for it in pending
+            if it["kind"] != "drill"
+            or not drill_held(it["node"], nodes, statuses,
+                              has_bank=has_drill_bank,
+                              pending=plan_drills - {it["node"]})
         ]
         idx = max(1, args.n) - 1
         if idx < len(pending):

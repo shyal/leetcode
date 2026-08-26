@@ -688,3 +688,45 @@ def test_a_banned_predecessor_holds_nothing_back(picker):
     ev = evidence(solve("47", {"bt": "clean"}, days_ago=300))
     st = {"bt": (STALE, ago(300))}
     assert picker.run(ns, ps, ev, st)[:3] == ("bt", STALE, "47")
+
+
+# --------------------------------------------------------------------------
+# the cross-bank ladder: drills gate one another through node prereqs
+# --------------------------------------------------------------------------
+
+def test_a_drill_is_held_while_its_banked_prereq_is_not_solid(picker):
+    """The dedupe-siblings case: the dependent's drill waits and its carrier
+    stays held; the rusty base gets served instead."""
+    ns = nodes("base", ("dep", ["base"]))
+    ps = {"1": problem(["dep"]), "2": problem(["base"])}
+    picker.bank = {"base", "dep"}
+    st = {"dep": (FRAGILE, ago(1)), "base": (STALE, ago(50))}
+    assert picker.run(ns, ps, {}, st)[:3] == ("base", STALE, "2")
+
+
+def test_a_prereq_without_a_bank_holds_nothing(picker):
+    """A hold nothing can open is a deadlock - an unbanked prereq releases."""
+    ns = nodes("base", ("dep", ["base"]))
+    ps = {"1": problem(["dep"])}
+    picker.bank = {"dep"}
+    st = {"dep": (FRAGILE, ago(1)), "base": (STALE, ago(50))}
+    assert picker.run(ns, ps, {}, st)[2] == "drill:dep"
+
+
+def test_a_solid_prereq_releases_the_drill(picker):
+    ns = nodes("base", ("dep", ["base"]))
+    ps = {"1": problem(["dep"])}
+    picker.bank = {"base", "dep"}
+    st = {"dep": (FRAGILE, ago(1)), "base": (SOLID, ago(1))}
+    assert picker.run(ns, ps, {}, st)[2] == "drill:dep"
+
+
+def test_a_pending_plan_drill_for_the_prereq_holds_the_dependent():
+    """The plan-serving clause: judgment may order items freely, so a
+    dependent's drill item waits while the prereq's item is still pending."""
+    from kg_lib import drill_held
+    ns = nodes("base", ("dep", ["base"]))
+    st = {"base": (SOLID, ago(1)), "dep": (STALE, ago(300))}
+    no_bank = lambda nid: False
+    assert drill_held("dep", ns, st, has_bank=no_bank, pending={"base"})
+    assert not drill_held("dep", ns, st, has_bank=no_bank, pending=set())

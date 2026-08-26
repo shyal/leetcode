@@ -812,6 +812,23 @@ def drill_gated(node_id, status, last, today=None):
     return False
 
 
+def drill_held(node_id, nodes, statuses, has_bank=None, pending=()):
+    """The cross-bank ladder: True while a prereq of node_id must train
+    first - the prereq has a drill bank of its own and is not SOLID, or its
+    drill item is still pending in today's plan. Interconnectivity is the
+    point: the dependent's drill lands on a warm base instead of re-deriving
+    the base mid-drill. A prereq without a bank never holds - nothing
+    servable would clear the hold, and a hold nothing can open is a
+    deadlock (same reasoning as banned predecessors in held_behind)."""
+    has_bank = has_bank or has_drill_bank
+    for p in nodes.get(node_id, {}).get("prereqs", []):
+        if p in pending:
+            return True
+        if has_bank(p) and p in statuses and statuses[p][0] != SOLID:
+            return True
+    return False
+
+
 def released_rungs(candidates, evidence):
     """The prefix of a drill ladder that is open to serve. The bank's
     filename order is the ladder: a rung is held while the rung below it is
