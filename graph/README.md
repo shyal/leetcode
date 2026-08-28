@@ -75,6 +75,10 @@ carrier is READY.
 
 ## Dive (`make dive`)
 
+`make next <group>` (currently `make next sql`; `--group <g>` on kg_next for any group)
+runs the same rules 1-3 over one curated group only, skipping the sleep warm-up and the
+summit fallback, so a new ladder can be worked without the global frontier interrupting.
+
 `make next` is greedy and memoryless — each run picks the single globally-oldest rusty
 node, so consecutive sessions hop between unrelated topics. `make dive` answers "where
 should I spend a whole session?": rusty (non-SOLID) nodes are clustered by shared curated

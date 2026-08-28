@@ -1,0 +1,107 @@
+"""
+DRILL: Month Over Month Change
+TRAINS: sql-window-offset
+
+Given the table Revenue with one row per consecutive month, return month,
+amount and change: the amount minus the previous month's amount. The first
+month has no previous month and its change is NULL. Order by month.
+
+Table: Revenue
+
+    +-------------+---------+
+    | Column Name | Type    |
+    +-------------+---------+
+    | month       | varchar |
+    | amount      | int     |
+    +-------------+---------+
+    month is the primary key, formatted 'YYYY-MM'. Months are consecutive with no gaps.
+
+Example 1:
+
+Input:
+Revenue table:
++---------+--------+
+| month   | amount |
++---------+--------+
+| 2025-11 | 100    |
+| 2025-12 | 120    |
+| 2026-01 | 90     |
+| 2026-02 | 90     |
++---------+--------+
+Output:
++---------+--------+--------+
+| month   | amount | change |
++---------+--------+--------+
+| 2025-11 | 100    | null   |
+| 2025-12 | 120    | 20     |
+| 2026-01 | 90     | -30    |
+| 2026-02 | 90     | 0      |
++---------+--------+--------+
+Explanation: The year boundary between 2025-12 and 2026-01 is an ordinary previous month. Equal amounts give a change of 0.
+
+Example 2:
+
+Input:
+Revenue table:
++---------+--------+
+| month   | amount |
++---------+--------+
+| 2026-05 | 40     |
++---------+--------+
+Output:
++---------+--------+--------+
+| month   | amount | change |
++---------+--------+--------+
+| 2026-05 | 40     | null   |
++---------+--------+--------+
+Explanation: A single month: change is NULL.
+
+Constraints:
+
+    1 <= number of rows <= 10^4
+
+    REQUIRED: LAG(amount) OVER (ORDER BY month). A self-join on 'the month
+    before' needs date arithmetic on a string and breaks across the year
+    boundary; that is the failure mode this drill exists to kill. The first
+    row's change is NULL, not 0.
+
+    Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
+    || for concatenation, strftime()/julianday()/date() for dates.
+"""
+
+import sqlite3
+
+EXAMPLE_1 = """
+CREATE TABLE Revenue (month TEXT, amount INTEGER);
+INSERT INTO Revenue VALUES ('2025-11', 100);
+INSERT INTO Revenue VALUES ('2025-12', 120);
+INSERT INTO Revenue VALUES ('2026-01', 90);
+INSERT INTO Revenue VALUES ('2026-02', 90);
+"""
+
+EXAMPLE_2 = """
+CREATE TABLE Revenue (month TEXT, amount INTEGER);
+INSERT INTO Revenue VALUES ('2026-05', 40);
+"""
+
+
+class Solution:
+
+    def query(self) -> str:
+        return """
+
+        """
+
+
+def run(schema: str, sql: str) -> list[tuple]:
+    con = sqlite3.connect(":memory:")
+    con.executescript(schema)
+    return [tuple(row) for row in con.execute(sql).fetchall()]
+
+
+sol = Solution()
+
+print(run(EXAMPLE_1, sol.query()))  # [('2025-11', 100, None), ('2025-12', 120, 20), ('2026-01', 90, -30), ('2026-02', 90, 0)]
+
+# assert run(EXAMPLE_1, sol.query()) == [('2025-11', 100, None), ('2025-12', 120, 20), ('2026-01', 90, -30), ('2026-02', 90, 0)]
+# assert run(EXAMPLE_2, sol.query()) == [('2026-05', 40, None)]
