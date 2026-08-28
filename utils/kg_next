@@ -32,6 +32,16 @@
 #      FRAGILE does, instead of a cold "re-solve" that plays like a new problem
 #   3. one new MISSING move whose prereqs are all SOLID — the one that
 #      unlocks the most bank problems first
+#   3b. frontier mover (PLAN.md phase 4), inside rules 1-3: a due node the
+#      bank cannot carry AT ALL (a mapped carrier that is merely warm,
+#      asleep, or spent today is waited for, never routed around) promotes
+#      a drafted carrier — an unmapped easy/medium
+#      from graph/predicted.json whose predicted walk has the target as its
+#      only non-solid move and no missing-move flags. Ranked cheap-regime
+#      first (kg_lib.predicted_carrier: rarest supporting move's carrier
+#      mass, capped at the ~30-problem connectivity threshold), then
+#      gentleness. The promotion is in-memory; the solve's evidenced walk
+#      (kg_extract) is what maps the problem for real.
 #   4. nothing rusty and nothing new: a summit — the gentlest unsolved Hard
 #      whose whole walk is already SOLID and mature (kg_lib.mature: spaced
 #      clean reps + a real-problem carry proof — a badge earned in one burst
@@ -78,6 +88,7 @@ from kg_lib import (
     dodged_nodes,
     dodgeable,
     carriers_for,
+    predicted_carrier,
     cooled,
     gentleness,
     unlocks,
@@ -222,6 +233,22 @@ def pick(
             else None
         )
 
+    def promote(target, mapped):
+        """The frontier mover (PLAN.md phase 4): NO evidenced problem can
+        carry target — not "none today": a mapped carrier that is merely
+        warm, asleep, or spent outranks a drafted guess, so the node waits
+        for it instead. Only genuinely uncarried moves promote. The entry
+        is inserted in memory so rendering and forecasting see a normal
+        problem; problems.json is untouched — kg_extract maps the problem
+        from the actual solve."""
+        if mapped:
+            return None
+        promo = predicted_carrier(target, problems, statuses, nodes,
+                                  skip=set(asleep) | set(exclude))
+        if promo:
+            problems[promo[0]] = promo[1]
+        return promo
+
     # rule -1: inside the session-start window, a trivial easy comes first
     if session_start:
         for pnum in trivial_easies(problems, nodes, evidence, statuses):
@@ -324,9 +351,9 @@ def pick(
                     "fragile move — drill until clean, carrier after",
                 )
             continue  # drilled today, still not clean — carrier stays held
+        mapped = carriers_for(target, problems, statuses, nodes, evidence)
         cands = [
-            c
-            for c in carriers_for(target, problems, statuses, nodes, evidence)
+            c for c in mapped
             if c not in asleep and c not in exclude and cooled(c, evidence)
         ]
         if cands:
@@ -361,6 +388,14 @@ def pick(
                 cands[0],
                 "consolidate a fragile move on a fresh carrier",
             )
+        promo = promote(target, mapped)
+        if promo:
+            return (
+                target,
+                FRAGILE,
+                promo[0],
+                "no mapped carrier — promoted a drafted one (predicted walk)",
+            )
 
     for target in stale:
         age = (date.today() - statuses[target][1]).days
@@ -373,12 +408,20 @@ def pick(
                     f"re-enter a deep-stale move ({age}d since clean) — drill until clean, carrier after",
                 )
             continue  # drilled today, still not clean — carrier stays held
+        mapped = carriers_for(target, problems, statuses, nodes, evidence)
         cands = [
-            c
-            for c in carriers_for(target, problems, statuses, nodes, evidence)
+            c for c in mapped
             if c not in asleep and c not in exclude and cooled(c, evidence)
         ]
         if not cands:
+            promo = promote(target, mapped)
+            if promo:
+                return (
+                    target,
+                    STALE,
+                    promo[0],
+                    "no mapped carrier — promoted a drafted one (predicted walk)",
+                )
             continue
         if age > DEEP_STALE_DAYS:
             cands.sort(
@@ -413,9 +456,9 @@ def pick(
                     "new move — drill until clean, carrier after",
                 )
             continue  # drilled today, still not clean — carrier stays held
+        mapped = carriers_for(target, problems, statuses, nodes, evidence)
         cands = [
-            c
-            for c in carriers_for(target, problems, statuses, nodes, evidence)
+            c for c in mapped
             if c not in asleep and c not in exclude and cooled(c, evidence)
         ]
         if cands:
@@ -431,6 +474,14 @@ def pick(
                 MISSING,
                 cands[0],
                 "one genuinely new move, prereqs all solid",
+            )
+        promo = promote(target, mapped)
+        if promo:
+            return (
+                target,
+                MISSING,
+                promo[0],
+                "no mapped carrier — promoted a drafted one (predicted walk)",
             )
 
     # rule 4: nothing rusty and nothing new — take a summit. A Hard is never a
@@ -507,6 +558,9 @@ def blocked_frontier(nodes, problems, evidence, statuses, asleep=(), exclude=())
             continue  # servable — pick() just preferred something else
         if due_drill(nid, evidence):
             continue  # its drill is available and pick() would offer it
+        if not ready and predicted_carrier(nid, problems, statuses, nodes,
+                                           skip=set(asleep) | set(exclude)):
+            continue  # uncarried but servable — pick() promotes a draft
 
         walks = [p for p, v in problems.items() if nid in v.get("moves", [])]
         usable = [
@@ -534,6 +588,7 @@ def blocked_frontier(nodes, problems, evidence, statuses, asleep=(), exclude=())
             why += ", and its drill is done for today"
         else:
             why += ", and no drill exists for it"
+        why += ", and no drafted walk can carry it alone"
         out.append((nid, status, why))
     return out
 
@@ -844,6 +899,9 @@ def main():
     with console.capture() as cap:
         console.print(f"\n[bold]{summit}{pnum}. {p['title']}[/bold]")
         console.print(problem_url(pnum))
+        if p.get("predicted"):
+            console.print("[yellow]⚠ drafted walk, not yet evidenced — "
+                          "your solve is what maps this problem[/yellow]")
         if p.get("note"):
             console.print(f"[yellow]⚠ {p['note']}[/yellow]")
         if plan_note:

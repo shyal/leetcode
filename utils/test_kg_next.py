@@ -23,6 +23,7 @@ import pytest
 UTILS = os.path.dirname(os.path.abspath(__file__))
 kg_next = SourceFileLoader("kg_next", os.path.join(UTILS, "kg_next")).load_module()
 
+import kg_lib  # noqa: E402
 from kg_lib import SOLID, STALE, FRAGILE, MISSING, DEEP_STALE_DAYS  # noqa: E402
 
 
@@ -50,6 +51,14 @@ def nodes(*specs):
 def problem(moves, difficulty="Medium", **extra):
     return {"title": f"synthetic {difficulty}", "difficulty": difficulty,
             "moves": list(moves), **extra}
+
+
+def drafted(moves, missing=None):
+    """A graph/predicted.json-shaped entry with one drafted walk."""
+    w = {"moves": list(moves), "tier": "predicted"}
+    if missing:
+        w["missing"] = list(missing)
+    return {"title": "synthetic draft", "walks": [w]}
 
 
 def solve(pnum, moves, days_ago=0, assist=None):
@@ -86,6 +95,18 @@ def picker(monkeypatch):
                         f"drills/{nid}/one.py"
                         if nid in ctl.bank and nid not in ctl.drilled_today else None)
     monkeypatch.setattr(kg_next, "acceptance", lambda p: ctl.acceptance.get(str(p), 50.0))
+    # the predicted tier: empty by default (no drafted walks anywhere), so
+    # promotion is inert unless a test puts drafts in ctl.predicted and their
+    # difficulty in ctl.meta. Routed through the REAL kg_lib.predicted_carrier
+    # so its filters and ranking are what get asserted.
+    ctl.predicted = {}
+    ctl.meta = {}
+    monkeypatch.setattr(kg_lib, "_METADATA", ctl.meta)
+    monkeypatch.setattr(kg_next, "predicted_carrier",
+                        lambda target, problems, statuses, nodes, skip=():
+                        kg_lib.predicted_carrier(target, problems, statuses,
+                                                 nodes, predicted=ctl.predicted,
+                                                 skip=skip))
     monkeypatch.setattr(kg_next, "has_drill_bank", lambda nid: nid in ctl.bank)
     monkeypatch.setattr(kg_next, "immature_nodes",
                         lambda nodes, evidence, problems: frozenset(ctl.immature))
@@ -759,3 +780,131 @@ def test_a_solid_owned_node_has_no_drill_due(tmp_path, monkeypatch):
     assisted = evidence(solve("7", {"some-node": "clean"}, days_ago=2,
                               assist="walkthrough"))
     assert kg_lib.due_drill("some-node", assisted) is not None
+
+
+# --------------------------------------------------------------------------
+# the frontier mover (PLAN.md phase 4): a due node with no evidenced carrier
+# promotes a drafted problem from the predicted tier
+# --------------------------------------------------------------------------
+
+def test_a_missing_move_with_no_mapped_carrier_promotes_a_draft(picker):
+    """The 2026-08-28 dry basecamp: the frontier node's only mapped walk is
+    a Hard, but the predicted tier has an easy whose drafted walk needs
+    nothing but the target. Promote it instead of starving."""
+    ns = nodes("csb")
+    ps = {"41": problem(["csb"], difficulty="Hard")}
+    st = {"csb": (MISSING, None)}
+    picker.predicted["9001"] = drafted(["csb"])
+    picker.meta["9001"] = {"difficulty": "Easy"}
+    target, status, pnum, reason = picker.run(ns, ps, {}, st)
+    assert (target, status, pnum) == ("csb", MISSING, "9001")
+    assert "predicted" in reason
+    assert ps["9001"]["predicted"] is True  # in-memory entry for rendering
+    assert ps["9001"]["moves"] == ["csb"]
+
+
+def test_an_evidenced_carrier_outranks_promotion(picker):
+    """Drafts are 0.80/0.75 guesses; a mapped carrier is truth. Promotion
+    fires only when the evidenced bank has nothing."""
+    ns = nodes("m")
+    ps = {"1": problem(["m"])}
+    st = {"m": (FRAGILE, ago(1))}
+    picker.predicted["9001"] = drafted(["m"])
+    picker.meta["9001"] = {"difficulty": "Easy"}
+    assert picker.run(ns, ps, {}, st)[2] == "1"
+
+
+def test_a_warm_carrier_is_waited_out_not_promoted(picker):
+    """A mapped carrier inside the re-solve cooldown is "not today", not
+    "never": evidenced truth outranks a drafted guess, so the node waits
+    for its carrier to cool instead of promoting."""
+    ns = nodes("m")
+    ps = {"1": problem(["m"])}
+    ev = evidence(solve("1", {"m": "struggled"}, days_ago=1))
+    st = {"m": (FRAGILE, ago(1))}
+    picker.predicted["9001"] = drafted(["m"])
+    picker.meta["9001"] = {"difficulty": "Easy"}
+    got = picker.run(ns, ps, ev, st)
+    assert got is None or got[2] != "9001"
+
+
+def test_a_promoted_walk_obeys_the_one_new_move_rule(picker):
+    """A drafted walk with a second non-solid move is not a carrier — the
+    ZPD constraint applies to the predicted tier unchanged."""
+    ns = nodes("t", "alsorusty")
+    ps = {"41": problem(["t"], difficulty="Hard")}
+    st = {"t": (MISSING, None), "alsorusty": (STALE, ago(60))}
+    picker.predicted["9001"] = drafted(["t", "alsorusty"])
+    picker.meta["9001"] = {"difficulty": "Easy"}
+    pick = picker.run(ns, ps, {}, st)
+    assert pick is None or pick[2] != "9001"
+
+
+def test_a_drafted_hard_is_never_promoted(picker):
+    """Hards stay summits even in the predicted tier."""
+    ns = nodes("t")
+    ps = {}
+    st = {"t": (MISSING, None)}
+    picker.predicted["9001"] = drafted(["t"])
+    picker.meta["9001"] = {"difficulty": "Hard"}
+    assert picker.run(ns, ps, {}, st) is None
+
+
+def test_a_missing_flagged_draft_is_not_promoted(picker):
+    """A walk the taxonomy cannot express yet is not a carrier for anything:
+    its unexpressed move would ride along as a hidden second gap."""
+    ns = nodes("t")
+    ps = {}
+    st = {"t": (MISSING, None)}
+    picker.predicted["9001"] = drafted(["t"], missing=["fenwick-tree"])
+    picker.meta["9001"] = {"difficulty": "Easy"}
+    assert picker.run(ns, ps, {}, st) is None
+
+
+def test_promotion_prefers_the_heavily_rehearsed_walk(picker):
+    """Cheap regime first: between two qualifying drafts, the one whose
+    rarest supporting move has more problems rehearsing it wins (the
+    connectivity threshold finding), before problem-number order."""
+    ns = nodes("t", "common", "rare")
+    ps = {str(i): problem(["common"]) for i in range(1, 6)}
+    ps["10"] = problem(["rare"])
+    st = {"t": (MISSING, None), "common": (SOLID, ago(1)),
+          "rare": (SOLID, ago(1))}
+    picker.predicted["9001"] = drafted(["t", "rare"])
+    picker.predicted["9002"] = drafted(["t", "common"])
+    picker.meta["9001"] = {"difficulty": "Easy"}
+    picker.meta["9002"] = {"difficulty": "Easy"}
+    assert picker.run(ns, ps, {}, st)[2] == "9002"
+
+
+def test_a_stale_move_with_no_carrier_promotes_a_draft(picker):
+    """heap-lazy-eviction on 2026-08-28: STALE, only walk is a Hard. The
+    spaced re-solve is impossible, so the rep comes from a drafted carrier."""
+    ns = nodes("hle")
+    ps = {"218": problem(["hle"], difficulty="Hard")}
+    st = {"hle": (STALE, ago(50))}
+    picker.predicted["9001"] = drafted(["hle"])
+    picker.meta["9001"] = {"difficulty": "Medium"}
+    target, status, pnum, _ = picker.run(ns, ps, {}, st)
+    assert (target, status, pnum) == ("hle", STALE, "9001")
+
+
+def test_a_promotable_node_is_not_called_blocked(picker):
+    """pick() would promote a draft for it, so it is servable, not blocked."""
+    ns = nodes("t")
+    ps = {"41": problem(["t"], difficulty="Hard")}
+    st = {"t": (MISSING, None)}
+    picker.predicted["9001"] = drafted(["t"])
+    picker.meta["9001"] = {"difficulty": "Easy"}
+    assert picker.blocked(ns, ps, {}, st) == []
+
+
+def test_blocked_report_says_no_draft_can_carry(picker):
+    """With the predicted tier empty the blockage message must say the
+    drafts were considered and none qualified."""
+    ns = nodes("t")
+    ps = {"41": problem(["t"], difficulty="Hard")}
+    st = {"t": (MISSING, None)}
+    (nid, _, why), = picker.blocked(ns, ps, {}, st)
+    assert nid == "t"
+    assert "no drafted walk" in why
