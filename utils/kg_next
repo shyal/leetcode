@@ -9,6 +9,7 @@
 #   utils/kg_next --no-show    # same, without the drawing
 #   utils/kg_next --prepare    # same, then run `make prepare` on the pick
 #   make next graph            # makefile form of --graph (make eats dashed args)
+#   make next sql              # --group sql: rules 1-3 over one curated group only
 #   make next -- --prepare     # makefile form of --prepare (-- stops make's
 #                              # option parsing; %: swallows the extra goal)
 #
@@ -217,8 +218,15 @@ def pick(
     woken=(),
     exclude=(),
     session_start=False,
+    group=None,
 ):
-    """Return (target, status, pnum, reason) or None."""
+    """Return (target, status, pnum, reason) or None. With `group`, only
+    nodes of that curated group are candidates (rules 1-3); the sleep
+    warm-up and the summit fallback are skipped, since neither is about
+    the group."""
+
+    def in_scope(n):
+        return group is None or nodes[n].get("group") == group
 
     def due(target):
         """The drill pseudo-pick for a node, or None if none is due. A drill
@@ -274,7 +282,7 @@ def pick(
         )
 
     # rule 0b: while a problem sleeps, warm the rusty ground under it
-    for pnum in asleep:
+    for pnum in () if group else asleep:
         closure = input_tree(problems[pnum]["moves"], nodes)
         rusty = sorted(
             (n for n in closure if statuses[n][0] != SOLID),
@@ -323,11 +331,11 @@ def pick(
     # waiting. The ZPD constraint is untouched.
     unl = unlocks(statuses, problems)
     fragile = sorted(
-        (n for n in nodes if statuses[n][0] == FRAGILE),
+        (n for n in nodes if statuses[n][0] == FRAGILE and in_scope(n)),
         key=lambda n: (-unl.get(n, 0), statuses[n][1]),
     )
     stale = sorted(
-        (n for n in nodes if statuses[n][0] == STALE),
+        (n for n in nodes if statuses[n][0] == STALE and in_scope(n)),
         key=lambda n: (-unl.get(n, 0), statuses[n][1]),
     )
     missing = sorted(
@@ -335,6 +343,7 @@ def pick(
             n
             for n in nodes
             if statuses[n][0] == MISSING
+            and in_scope(n)
             and all(statuses[p][0] == SOLID for p in nodes[n].get("prereqs", []))
         ),
         key=lambda n: (-unl.get(n, 0), n),
@@ -488,7 +497,7 @@ def pick(
     # CARRIER (it is not where a rusty move gets its rep), but once its walk is
     # gap-free it is exactly what to work on next, so it belongs in the same
     # pick as everything else rather than behind a second command.
-    summits = [
+    summits = [] if group else [
         p
         for p in ready_hards(problems, nodes, evidence, statuses)
         if p not in asleep and p not in exclude
@@ -661,6 +670,12 @@ def main():
         "nodes the bank cannot carry, and why",
     )
     parser.add_argument(
+        "--group",
+        default=None,
+        help="restrict the pick to one curated group of nodes (e.g. sql); "
+        "makefile form: `make next sql`",
+    )
+    parser.add_argument(
         "--prepare",
         action="store_true",
         help="run `make prepare` on the pick (stub + branch — the solve clock starts)",
@@ -808,6 +823,7 @@ def main():
                 woken=woken,
                 exclude=exclude,
                 session_start=session_start,
+                group=args.group,
             )
             if not choice:
                 break
