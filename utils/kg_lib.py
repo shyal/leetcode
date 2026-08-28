@@ -629,6 +629,70 @@ def cooled(pnum, evidence, days=CARRIER_COOLDOWN_DAYS):
     return not last or (date.today() - date.fromisoformat(last)).days >= days
 
 
+# The connectivity discount on solve time is a threshold, not a gradient:
+# the running medians sit flat until a walk's moves are shared by roughly
+# thirty problems, then bend down (README, 2026-08-27 charts). Candidates at
+# or past the mass cap tie, and the gentleness keys decide between them.
+CONN_MASS_CAP = 30
+
+
+def predicted_carrier(target, problems, statuses, nodes,
+                      predicted=None, skip=()):
+    """The frontier mover (PLAN.md phase 4): when no evidenced problem can
+    carry `target`, promote the best drafted one. Returns (pnum, entry) or
+    None. `entry` is problems.json-shaped and flagged "predicted": True; it
+    lives in memory only — what maps the problem for real is the evidenced
+    walk kg_extract writes after the solve.
+
+    A candidate is an unmapped easy/medium with a drafted walk in which the
+    ONE non-solid move is the target — the one-new-move rule applied to the
+    predicted tier — and no missing-move flags (a walk the taxonomy cannot
+    express yet is not a carrier). Hards stay summits. Ranking is
+    cheap-regime-first: the walk whose rarest supporting move has the most
+    problems rehearsing it (capped at CONN_MASS_CAP), then the usual
+    gentleness and acceptance keys."""
+    if predicted is None:
+        predicted = load_predicted()
+    counts = {}
+    for p in problems.values():
+        for m in p.get("moves", []):
+            counts[m] = counts.get(m, 0) + 1
+    best = []
+    for num, prob in predicted.items():
+        if num in problems or num in skip:
+            continue
+        diff = problem_difficulty(num, problems)
+        if diff not in ("Easy", "Medium"):
+            continue
+        for w in prob.get("walks", []):
+            moves = w.get("moves", [])
+            if not moves or w.get("missing") or target not in moves:
+                continue
+            if any(m not in nodes for m in moves):
+                continue
+            if any(statuses[m][0] != SOLID for m in moves if m != target):
+                continue
+            others = [m for m in moves if m != target]
+            mass = min((counts.get(m, 0) for m in others),
+                       default=CONN_MASS_CAP)
+            best.append((num, moves, diff, min(mass, CONN_MASS_CAP)))
+            break
+    if not best:
+        return None
+    best.sort(key=lambda t: (
+        DIFF_RANK.get(t[2], 1),
+        -t[3],
+        (len(input_tree(t[1], nodes)), len(t[1])),
+        -acceptance(t[0]),
+        pnum_key(t[0]),
+    ))
+    num, moves, diff, _ = best[0]
+    title = predicted[num].get("title") \
+        or _metadata().get(str(num), {}).get("title", f"problem {num}")
+    return num, {"title": title, "difficulty": diff, "moves": list(moves),
+                 "predicted": True}
+
+
 # Interview-classic Hards worth summiting: number -> why it's valuable.
 # Filtered against data/problems_metadata.json difficulty at runtime, so a
 # mislabeled entry silently drops out rather than lying. Lives here rather
