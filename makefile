@@ -132,4 +132,4 @@ readme: $(MOVIE_BIN) $(MOCK_BIN)
 	PYTHONPATH=./utils .venv/bin/python3 utils/kg_reach_svg & p4=$$!; \
 	PYTHONPATH=./utils .venv/bin/python3 utils/estimate; s=$$?; \
 	wait $$p1 && wait $$p2 && wait $$p3 && wait $$p4 && [ $$s -eq 0 ]
-	@AWS_PROFILE=root PYTHONPATH=./utils .venv/bin/python3 utils/update_readme.py
+	@AWS_PROFILE=readme-uploader PYTHONPATH=./utils .venv/bin/python3 utils/update_readme.py
