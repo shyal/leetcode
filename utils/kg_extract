@@ -178,14 +178,18 @@ def serve_receipt(pnum, moves, pre_moves, was_mapped, nodes, problems,
                 if gained:
                     line += (f" — brings {gained} drafted problem"
                              f"{'s' if gained != 1 else ''} into reach")
+        elif moves:
+            line = (f"served for [bold]{t}[/bold] — the code went "
+                    f"{', '.join(moves)} instead; {t} stays {a}")
         else:
-            took = ", ".join(moves) or "nothing mapped"
-            line = (f"served for [bold]{t}[/bold] — the code went {took} "
-                    f"instead; {t} stays {a}")
+            line = (f"served for [bold]{t}[/bold] — the solve evidenced "
+                    f"no moves; {t} stays {a}")
         lines.append(line)
     if not was_mapped and drafted and moves:
+        # parentheses, not square brackets: these lines go through rich
+        # console.print, which eats [ ... ] as markup tags
         guess = ", ".join(dict.fromkeys(m for w in drafted for m in w))
-        lines.append(f"draft guessed [{guess}] → evidenced [{', '.join(moves)}]")
+        lines.append(f"draft guessed ({guess}) → evidenced ({', '.join(moves)})")
     return lines
 
 
