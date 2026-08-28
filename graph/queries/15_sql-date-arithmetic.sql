@@ -1,0 +1,22 @@
+-- QUERY: Days Ago
+-- TRAINS: sql-date-arithmetic
+--
+-- Tables:
+--
+--     solves
+--         file     TEXT
+--         date     TEXT
+--         problem  TEXT
+--         assist   TEXT
+--         note     TEXT
+--
+--     verdicts
+--         file     TEXT
+--         node_id  TEXT
+--         verdict  TEXT
+--
+-- Return every solve date and how many whole days ago it was.
+-- Columns: date, days_ago.
+--
+-- REQUIRED: julianday() or date(). NO string slicing on the date.
+

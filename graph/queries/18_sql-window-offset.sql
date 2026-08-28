@@ -1,0 +1,23 @@
+-- QUERY: Previous Date
+-- TRAINS: sql-window-offset
+--
+-- Tables:
+--
+--     solves
+--         file     TEXT
+--         date     TEXT
+--         problem  TEXT
+--         assist   TEXT
+--         note     TEXT
+--
+--     verdicts
+--         file     TEXT
+--         node_id  TEXT
+--         verdict  TEXT
+--
+-- Return every solve date next to the previous solve date, oldest
+-- first. The first row has NULL for prev_date.
+-- Columns: date, prev_date.
+--
+-- REQUIRED: LAG(). NO self-join.
+

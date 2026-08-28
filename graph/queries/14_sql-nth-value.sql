@@ -1,0 +1,16 @@
+-- QUERY: Second-Highest Rep Count
+-- TRAINS: sql-nth-value
+--
+-- Tables:
+--
+--     verdicts
+--         file     TEXT
+--         node_id  TEXT
+--         verdict  TEXT
+--
+-- Return the second-highest rep count across nodes (one number).
+-- Columns: second_reps.
+--
+-- REQUIRED: must return one row holding NULL, not zero rows, when there is
+-- no second value.
+

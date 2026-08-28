@@ -1,0 +1,24 @@
+-- QUERY: Cumulative Reps By Day
+-- TRAINS: sql-window-running
+--
+-- Tables:
+--
+--     solves
+--         file     TEXT
+--         date     TEXT
+--         problem  TEXT
+--         assist   TEXT
+--         note     TEXT
+--
+--     verdicts
+--         file     TEXT
+--         node_id  TEXT
+--         verdict  TEXT
+--
+-- Return every solve date with the number of solves that day and
+-- the running total up to and including that day, oldest first.
+-- Columns: date, reps, running.
+--
+-- REQUIRED: SUM() OVER (ORDER BY ...). A self-join on date <= date is the
+-- failure mode this kills.
+

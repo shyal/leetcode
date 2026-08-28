@@ -1,0 +1,28 @@
+-- QUERY: Number From Filename
+-- TRAINS: sql-string-functions
+--
+-- Tables:
+--
+--     solves
+--         file     TEXT
+--         date     TEXT
+--         problem  TEXT
+--         assist   TEXT
+--         note     TEXT
+--
+--     nodes
+--         id     TEXT
+--         name   TEXT
+--         group  TEXT
+--         added  TEXT
+--         desc   TEXT
+--         hint   TEXT
+--         drill  TEXT
+--
+-- Evidence filenames look like solved/p242_Valid_Anagram_2026_07_04T....py.
+-- Return, for every solve whose file starts with 'solved/p', the text
+-- between 'solved/p' and the first underscore.
+-- Columns: file, parsed.
+--
+-- REQUIRED: SUBSTR and INSTR. NO regex.
+

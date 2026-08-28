@@ -1,0 +1,17 @@
+-- QUERY: First Solve Per Problem
+-- TRAINS: sql-dedupe-keep-one
+--
+-- Tables:
+--
+--     solves
+--         file     TEXT
+--         date     TEXT
+--         problem  TEXT
+--         assist   TEXT
+--         note     TEXT
+--
+-- Return one row per solved problem: the date of its earliest solve.
+-- Columns: problem, first_date.
+--
+-- REQUIRED: exactly one row per problem.
+

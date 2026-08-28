@@ -1,0 +1,25 @@
+-- QUERY: Rank Within Group
+-- TRAINS: sql-window-rank
+--
+-- Tables:
+--
+--     nodes
+--         id     TEXT
+--         name   TEXT
+--         group  TEXT
+--         added  TEXT
+--         desc   TEXT
+--         hint   TEXT
+--         drill  TEXT
+--
+--     verdicts
+--         file     TEXT
+--         node_id  TEXT
+--         verdict  TEXT
+--
+-- Return every node with a verdict, ranked by rep count within its group.
+-- Columns: "group", node_id, reps, rnk.
+--
+-- REQUIRED: DENSE_RANK() OVER (PARTITION BY ... ORDER BY ...). A correlated
+-- count subquery is the failure mode this kills.
+

@@ -1,0 +1,19 @@
+-- QUERY: Longest Solving Streak
+-- TRAINS: sql-gaps-islands
+--
+-- Tables:
+--
+--     solves
+--         file     TEXT
+--         date     TEXT
+--         problem  TEXT
+--         assist   TEXT
+--         note     TEXT
+--
+-- Return the longest run of consecutive calendar days that each have at
+-- least one solve: its start date, end date and length in days.
+-- Columns: start_date, end_date, days.
+--
+-- REQUIRED: date minus ROW_NUMBER() as the island key, one GROUP BY on it.
+-- NO recursive CTE.
+
