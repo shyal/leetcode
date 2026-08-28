@@ -40,7 +40,7 @@ from rich.table import Table
 from kg_lib import (
     GRAPH_DIR, load_nodes, load_problems, load_evidence, save_problems,
     node_status, latest_carrier, SOLID, STALE, FRAGILE, MISSING,
-    DEEP_STALE_DAYS, load_sleep, sleep_state, last_solved, pnum_key,
+    DEEP_STALE_DAYS, sleep_state, last_solved, pnum_key,
     dodged_nodes, dodgeable, carriers_for, gentleness, claude_json, taxonomy_summary,
     input_tree, tree_size, acceptance, drill_gated,
     CLASSICS, route_gaps, rank_summits, immature_nodes, proving_carriers,
@@ -218,7 +218,7 @@ def main():
     evidence = load_evidence()
     metadata = load_metadata()
     statuses = {n: node_status(n, evidence) for n in nodes}
-    asleep, _ = sleep_state(load_sleep(), evidence)
+    asleep, _ = sleep_state(nodes, problems, evidence)
 
     if args.problem:
         summit = args.problem.strip().rstrip(".")

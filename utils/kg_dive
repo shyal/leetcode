@@ -36,7 +36,7 @@ from rich.table import Table
 from kg_lib import (
     load_nodes, load_problems, load_evidence, node_status, latest_carrier,
     SOLID, STALE, FRAGILE, MISSING, DEEP_STALE_DAYS,
-    load_sleep, sleep_state,
+    sleep_state,
     last_solved, pnum_key, dodged_nodes, dodgeable, carriers_for,
     tree_size, gentleness, acceptance, drill_gated,
 )
@@ -191,7 +191,7 @@ def main():
     problems = load_problems()
     evidence = load_evidence()
     statuses = {n: node_status(n, evidence) for n in nodes}
-    asleep, woken = sleep_state(load_sleep(), evidence)
+    asleep, woken = sleep_state(nodes, problems, evidence)
     if woken:
         console.print(f"[yellow]⏰ woken problem {woken[0]} is queue-jumping — run `make next` first[/yellow]")
 
