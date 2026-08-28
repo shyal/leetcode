@@ -1,6 +1,15 @@
 import re
 import sys
 import os
+import importlib.util
+
+# This file mirrors LeetCode's preloads for solves run inside the repo venv.
+# Any other interpreter that inherits PYTHONPATH=./utils (litecli, uv tools,
+# system python) lacks rich/tabulate and would print "Error in sitecustomize".
+# site.py swallows exactly one thing silently: an ImportError whose name is
+# 'sitecustomize'. Use it to opt out.
+if importlib.util.find_spec("rich") is None:
+    raise ImportError("not the leet venv; skipping sitecustomize", name="sitecustomize")
 
 site_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(site_dir, "..", "..", "..", ".."))

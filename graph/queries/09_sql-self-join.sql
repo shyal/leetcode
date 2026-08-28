@@ -1,0 +1,23 @@
+-- QUERY: Prereq Pairs By Name
+-- TRAINS: sql-self-join
+--
+-- Tables:
+--
+--     nodes
+--         id     TEXT
+--         name   TEXT
+--         group  TEXT
+--         added  TEXT
+--         desc   TEXT
+--         hint   TEXT
+--         drill  TEXT
+--
+--     prereqs
+--         node_id    TEXT
+--         prereq_id  TEXT
+--
+-- Return every prerequisite edge with the human name on both ends.
+-- Columns: node, needs.
+--
+-- REQUIRED: the nodes table joined to itself through prereqs, with two aliases.
+

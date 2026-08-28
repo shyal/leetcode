@@ -1,6 +1,6 @@
-.PHONY: all parse learning prepare recommend force unforce preflight kg-extract kg-status kg-viz movie next dive drill hard is_session_start readme residuals sleep wake solved failed test timer viz
+.PHONY: all parse learning mirror q prepare recommend force unforce preflight kg-extract kg-status kg-viz movie next dive drill hard is_session_start readme residuals sleep wake solved failed test timer viz
 
-all:
+all: graph/leet.db
 	@cp utils/sitecustomize.py .venv/lib/python3.10/site-packages/
 	@if [ "$$(git rev-parse --abbrev-ref HEAD)" = "master" ]; then PYTHONPATH=./utils .venv/bin/python3 utils/kg_status --summary; fi
 	@PYTHONPATH=./utils:${PYTHONPATH} .venv/bin/python3 utils/test_runner.py
@@ -111,6 +111,20 @@ viz:
 	@:
 next:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_next $(patsubst why,--why,$(patsubst graph,--graph,$(patsubst sql,--group=sql,$(patsubst cram,--cram,$(filter-out $@,$(MAKECMDGOALS))))))
+
+GRAPH_JSON = graph/nodes.json graph/problems.json graph/evidence.json
+
+graph/leet.db: $(GRAPH_JSON) utils/kg_mirror
+	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_mirror
+
+mirror: graph/leet.db
+
+q: graph/leet.db
+	@f="$(filter-out $@,$(MAKECMDGOALS))"; \
+	if [ -z "$$f" ]; then grep -H "^-- QUERY:" graph/queries/*.sql | sed 's|graph/queries/||; s|\.sql:-- QUERY:||'; exit 0; fi; \
+	m=$$(ls graph/queries/*.sql | grep -- "$$f" | head -1); \
+	if [ -z "$$m" ]; then echo "no query matching '$$f'"; exit 1; fi; \
+	echo "-- $$m"; sqlite3 -header -column graph/leet.db < "$$m"
 
 dive:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_dive $(filter-out $@,$(MAKECMDGOALS))

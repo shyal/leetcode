@@ -1,0 +1,16 @@
+-- QUERY: Above-Average Nodes
+-- TRAINS: sql-subquery
+--
+-- Tables:
+--
+--     verdicts
+--         file     TEXT
+--         node_id  TEXT
+--         verdict  TEXT
+--
+-- Return every node whose rep count is above the average rep count across
+-- nodes that have a verdict.
+-- Columns: node_id, reps.
+--
+-- REQUIRED: the average comes from a subquery. NO hardcoded number.
+

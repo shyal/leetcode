@@ -1,0 +1,22 @@
+-- QUERY: Every Node Any Walk Names
+-- TRAINS: sql-set-union
+--
+-- Tables:
+--
+--     steps
+--         num      TEXT
+--         pos      INTEGER
+--         node_id  TEXT
+--
+--     alt_steps
+--         num      TEXT
+--         walk     INTEGER
+--         pos      INTEGER
+--         node_id  TEXT
+--
+-- Return every (num, node_id) pair that appears in either the canonical steps
+-- (steps) or an alternative walk (alt_steps), no duplicates.
+-- Columns: num, node_id.
+--
+-- REQUIRED: UNION.
+
