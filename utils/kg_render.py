@@ -94,11 +94,25 @@ def render(dot, basename, min_width_px=2000):
     return logical_width
 
 
+def animation_console():
+    """rich Console for text that will pass through animate() — a few columns
+    narrower than the terminal, ON PURPOSE. ttfx pads every canvas row to the
+    widest input line and counts emoji as one cell, but the terminal draws
+    them two columns wide; capture at full pane width and the emoji rows
+    (status faces) overflow the pane, so every frame wraps and scrolls,
+    walking the canvas — and the tree image above it — down the screen and
+    leaving a tall blank gap under the graph."""
+    from rich.console import Console
+
+    return Console(width=max(shutil.get_terminal_size().columns - 8, 40))
+
+
 def animate(text, effect=("decrypt", "--typing-speed", "20")):
     """Play text through a ttfx effect on a tty; plain write otherwise.
 
     Runs ttfx against the real terminal so it can't swallow anything written
-    around it (the inline-image escape in particular).
+    around it (the inline-image escape in particular). Feed it only text
+    captured on animation_console(): see the width warning there.
     """
     exe = shutil.which("ttfx")
     if not exe or not sys.stdout.isatty():
