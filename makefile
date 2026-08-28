@@ -82,15 +82,15 @@ sleep:
 wake:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_sleep --wake $(filter-out $@,$(MAKECMDGOALS))
 
+# file phase (freezes the solve time) -> judge -> curve -> ONE commit at the
+# end carrying solve + evidence + curve, with the frozen time in the message.
+# Ctrl-C anywhere: re-run `make solved`, every step resumes (utils/solved).
 solved:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_force --check
 	@.venv/bin/python3 utils/solved
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_extract
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_curve --if-stale
-	@# fold the solve's own evidence/curve into its commit (only if HEAD is fresh)
-	@if ! git diff --quiet graph/ && [ $$(( $$(date +%s) - $$(git log -1 --format=%ct) )) -lt 600 ]; then \
-		git add graph/ && git commit --amend --no-edit --quiet && echo "evidence folded into $$(git log -1 --format=%h)"; \
-	fi
+	@.venv/bin/python3 utils/solved --commit
 
 # file the current attempt as a FAILED one: same flow as solved (archive,
 # solve-time trailer, extraction -> struggled evidence), honest label
@@ -98,9 +98,7 @@ failed:
 	@.venv/bin/python3 utils/solved --failed
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_extract
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_curve --if-stale
-	@if ! git diff --quiet graph/ && [ $$(( $$(date +%s) - $$(git log -1 --format=%ct) )) -lt 600 ]; then \
-		git add graph/ && git commit --amend --no-edit --quiet && echo "evidence folded into $$(git log -1 --format=%h)"; \
-	fi
+	@.venv/bin/python3 utils/solved --commit
 
 test:
 	@.venv/bin/pytest

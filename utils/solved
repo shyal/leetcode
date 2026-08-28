@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 
+import json
 import subprocess
 import os
+import signal
 import sys
 import re
 from datetime import datetime, timezone
@@ -9,11 +11,27 @@ from datetime import datetime, timezone
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from kg_lib import active_seconds
 
-# --failed: file the attempt as a FAILED one (make failed). Same flow —
-# same folder, same solve-time trailer, same extraction — but the filename,
-# commit message and an appended note say it was abandoned, so the judge
-# records struggled evidence instead of a solve.
+# Two phases, so a Ctrl-C anywhere in `make solved` loses nothing
+# (settled 2026-08-28, after an interrupt cut the judge off mid-ingest):
+#
+#   utils/solved            file phase: freeze the solve time NOW, archive
+#                           current.py into solved/, clear it, park the
+#                           frozen commit message in .solve_meta.json
+#                           (untracked, gitignored). No git.
+#   <the judge + curve run here, interruptible and resumable>
+#   utils/solved --commit   commit phase: ONE commit carrying the solve,
+#                           the evidence, and the curve together, with the
+#                           frozen solve time in the message; then the
+#                           squash-merge to master. SIGINT-immune — it is
+#                           about a second of git.
+#
+# Interrupted anywhere: re-run `make solved`. The file phase sees the meta
+# and skips itself, the judge skips files already in evidence, the commit
+# phase picks up the meta and finishes. Nothing is committed until
+# everything is in.
 FAILED = "--failed" in sys.argv
+COMMIT = "--commit" in sys.argv
+META = ".solve_meta.json"
 
 
 def parse_current(file_path="current.py"):
@@ -82,7 +100,15 @@ def solved_filename(problem_id, title, failed=False, now=None):
     return f"{prefix}_{clean_title}{marker}_{sanitized}.py"
 
 
-def main():
+def file_phase():
+    """Freeze the clock and archive the attempt. No git."""
+    if os.path.exists(META):
+        print("a filed solve is already staged — resuming its ingest and commit.")
+        return
+
+    # the clock stops when the operator runs `make solved`, not when the
+    # judge finishes minutes later: active time is computed here and frozen
+    # into the message the commit phase will use.
     # active time only: awake intervals on the branch, the sleeping:/woke:
     # marker commits (make sleep / make wake) subtracted out
     active, slept_seconds, sleeps = active_seconds()
@@ -98,15 +124,16 @@ def main():
         print("current.py does not exist. Exiting.")
         return
 
+    with open("current.py") as f:
+        if not f.read().strip():
+            print("current.py is empty — nothing to file.")
+            return
+
     problem_id, title, content = parse_current()
     if problem_id is None or title is None:
         print("Could not parse problem id and title from current.py. Exiting.")
         return
 
-    # Comment out print statements
-    # content = comment_out_prints(content)
-
-    # Save to ./solved
     filename = solved_filename(problem_id, title, FAILED)
 
     if FAILED:
@@ -121,17 +148,32 @@ def main():
     with open(filepath, "w") as f:
         f.write(content)
 
-    # Clear current.py
-    with open("current.py", "w") as f:
-        f.write("")
-
-    # Prepare commit message
     if problem_id == "drill":
         commit_message = f"drill: {title}\n\nsolve time: {solve_time}{slept_line}"
     else:
         commit_message = f"{problem_id}. {title}\n\nsolve time: {solve_time}{slept_line}"
     if FAILED:
         commit_message = "failed: " + commit_message
+
+    # the meta is written BEFORE current.py is cleared: a kill between the
+    # two re-runs into the staged branch above instead of filing twice
+    with open(META, "w") as f:
+        json.dump({"message": commit_message, "file": filepath}, f)
+
+    with open("current.py", "w") as f:
+        f.write("")
+
+    print(f"filed {filepath} ({solve_time}); the commit lands after the judge.")
+
+
+def commit_phase():
+    """ONE commit: the solve, its evidence, the refit curve — with the
+    frozen solve time in the message — then the squash-merge to master."""
+    if not os.path.exists(META):
+        print("nothing staged — no commit to make.")
+        return
+    with open(META) as f:
+        commit_message = json.load(f)["message"]
 
     try:
         subprocess.run(["git", "add", "."], check=True)
@@ -157,6 +199,7 @@ def main():
         return
 
     if current_branch == "master":
+        os.remove(META)
         print("Operations completed successfully.")
         return
 
@@ -188,7 +231,16 @@ def main():
         print(f"Error deleting branch: {e}")
         return
 
+    os.remove(META)
     print("Operations completed successfully.")
+
+
+def main():
+    # SIGINT off for both phases (children inherit it, so git is covered):
+    # each phase is a second of work, and the interruptible waiting happens
+    # between them, where a re-run of `make solved` resumes cleanly.
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
+    commit_phase() if COMMIT else file_phase()
 
 
 if __name__ == "__main__":
