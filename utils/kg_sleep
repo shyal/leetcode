@@ -89,7 +89,20 @@ def wake(args, nodes, problems, evidence):
     title = problems.get(pnum, {}).get("title", "?")
     git("branch", "-M", branch, pnum)
     git("checkout", pnum)
-    git("commit", "--allow-empty", "-m", f"woke: {pnum}. {title}")
+    # the woke marker is a MERGE from master: checking out an old park would
+    # otherwise time-travel the whole tree (Makefile, utils, graph data) back
+    # to the day it was cut. -X ours keeps the parked current.py; everything
+    # else comes forward to master. The merge commit's timestamp is the wake
+    # event active_seconds reads.
+    merged = git("merge", "-X", "ours", "-m", f"woke: {pnum}. {title}", "master",
+                 check=False)
+    if merged.returncode:
+        git("merge", "--abort", check=False)
+        print("could not sync with master — tree may be stale:\n"
+              + (merged.stderr or merged.stdout).strip())
+    if not git("log", "-1", "--format=%s").stdout.startswith("woke:"):
+        # master had nothing new (or the merge failed): stamp the wake anyway
+        git("commit", "--allow-empty", "-m", f"woke: {pnum}. {title}")
     active, slept, sleeps = active_seconds(pnum)
     print(f"{pnum}. {title} is awake on branch {pnum} — "
           f"{hm(active)} fought so far, {hm(slept)} slept over {sleeps} park(s). "
