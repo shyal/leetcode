@@ -1,4 +1,4 @@
-.PHONY: all parse learning prepare recommend force unforce preflight kg-extract kg-status kg-viz movie next dive drill hard is_session_start readme residuals sleep solved failed test timer viz
+.PHONY: all parse learning prepare recommend force unforce preflight kg-extract kg-status kg-viz movie next dive drill hard is_session_start readme residuals sleep wake solved failed test timer viz
 
 all:
 	@cp utils/sitecustomize.py .venv/lib/python3.10/site-packages/
@@ -78,6 +78,9 @@ movie: $(MOVIE_BIN)
 
 sleep:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_sleep $(filter-out $@,$(MAKECMDGOALS))
+
+wake:
+	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_sleep --wake $(filter-out $@,$(MAKECMDGOALS))
 
 solved:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_force --check

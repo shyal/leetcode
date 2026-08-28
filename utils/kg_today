@@ -37,7 +37,7 @@ from rich.console import Console
 
 from kg_lib import (
     GRAPH_DIR, DRILLS_DIR, load_nodes, load_problems, load_evidence,
-    node_status, SOLID, STALE, FRAGILE, MISSING, load_sleep, sleep_state,
+    node_status, SOLID, STALE, FRAGILE, MISSING, sleep_state,
     last_solved, pnum_key, carriers_for, cooled, gentleness, unlocks, acceptance,
     drill_gated, drill_held, has_drill_bank, owned, claude_json, taxonomy_summary,
 )
@@ -159,7 +159,7 @@ def main():
     problems = load_problems()
     evidence = load_evidence()
     statuses = {n: node_status(n, evidence) for n in nodes}
-    asleep, _ = sleep_state(load_sleep(), evidence)
+    asleep, _ = sleep_state(nodes, problems, evidence)
     kn = _kg_next()
 
     items = []

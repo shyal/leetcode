@@ -570,6 +570,11 @@ def finalize(num, title, code):
     file_name = f"current.py"
 
     with lock:
+        from kg_lib import load_problems, load_evidence, sleep_records
+        if str(num) in sleep_records(load_problems(), load_evidence()):
+            print(f"{num} is parked on branch {num}-slept - `make wake {num}` resumes it "
+                  "(delete the branch first for a truly fresh start)")
+            return
         if not clear_branch(str(num)):
             return
         run_git(["checkout", "master"])

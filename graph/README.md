@@ -100,15 +100,22 @@ routes to the closest one. Unmapped candidates cost one claude call, cached into
 problems.json like preflight. Solve top-down, `make solved` after each camp, re-run —
 the route re-derives and shrinks.
 
-## Sleep (`make sleep`)
+## Sleep (`make sleep` / `make wake`)
 
 Stuck mid-exercise and looping — no new idea in ~15 minutes? `make sleep` parks the
-problem for 24h in `sleep.json`: kg_next won't offer it, warms its walk's rusty
-moves/prereqs meanwhile (via other carriers), and on expiry the problem jumps the
-queue for a fresh from-scratch attempt. Your half-written attempt is parked on branch
-`<num>-slept` if you want to peek. One active sleep at a time — it's an incubation
-tool for failed retrieval, not a snooze button for discomfort. No evidence is
-recorded on sleep: the code is the evidence, and there is no code yet.
+attempt on branch `<num>-slept` and returns you to master. The branch IS the state —
+no metadata file: `sleeping:`/`woke:` marker commits on it carry the timestamps and
+the park count. Parked problems are the "not ready yet" signal: kg_next won't offer
+them, and warms their walks' rusty moves/prereqs meanwhile (via other carriers).
+
+No timers. A parked problem wakes when its whole walk closure is SOLID — the ground
+got warm — or under cap pressure: at most `MAX_ASLEEP` (kg_lib) may hide at once,
+and parking one more forces the oldest awake. A woken problem jumps the queue;
+`make wake <n>` resumes its branch where it left off, and sleep/wake can cycle any
+number of times. `make solved` records ACTIVE time only (awake intervals, the same
+`solve time:` trailer as ever) plus a `slept:` trailer for the parked stretch.
+It's an incubation tool for failed retrieval, not a snooze button for discomfort.
+No evidence is recorded on sleep: the code is the evidence, and there is no code yet.
 
 ## Force (`make force <n>`)
 

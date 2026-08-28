@@ -891,42 +891,119 @@ def latest_carrier(node_id, evidence):
     return best
 
 
-def load_sleep():
-    """graph/sleep.json — problems parked by `make sleep`. Returns {} if absent."""
-    path = os.path.join(GRAPH_DIR, "sleep.json")
-    if not os.path.exists(path):
-        return {}
-    with open(path) as f:
-        return json.load(f).get("sleeps", {})
+# Sleep is derived from git, never stored: a parked problem IS its
+# `<num>-slept` branch, `sleeping:` / `woke:` marker commits on it carry
+# the timestamps, and readiness (walk closure all SOLID) plus the cap
+# below decide when the picker offers it back. No timers.
+
+# parked problems that may hide from the picker at once
+MAX_ASLEEP = int(os.environ.get("MAX_ASLEEP", 3))
 
 
-def save_sleep(sleeps):
-    path = os.path.join(GRAPH_DIR, "sleep.json")
-    data = {
-        "_comment": "Problems parked mid-exercise by `make sleep`: excluded from kg_next "
-        "picks until `until`, their walk's rusty dependencies warmed meanwhile; on expiry "
-        "the problem jumps the queue for a fresh attempt. An entry is resolved (and later "
-        "pruned) once a solve is recorded on or after its slept date.",
-        "sleeps": sleeps,
-    }
-    with open(path, "w") as f:
-        json.dump(data, f, indent=2)
+def _git_out(*args):
+    return subprocess.run(["git", *args], capture_output=True, text=True).stdout
 
 
-def sleep_state(sleeps, evidence, now=None):
-    """Split sleep entries into (asleep, woken) problem-number lists.
+def branch_events(branch="HEAD"):
+    """Branch-only commits as (unix_ts, subject), oldest first — the
+    `started` / `sleeping:` / `woke:` markers sleep state and the solve
+    clock are derived from. Empty on master."""
+    out = _git_out("log", "--reverse", "--format=%ct%x09%s", branch, "--not", "master")
+    events = []
+    for line in out.splitlines():
+        ts, _, subj = line.partition("\t")
+        if ts.isdigit():
+            events.append((int(ts), subj))
+    return events
 
-    Resolved entries — a solve recorded on/after the slept date — fall in neither.
-    """
-    from datetime import datetime
 
-    now = now or datetime.now()
-    asleep, woken = [], []
-    for pnum, rec in sleeps.items():
-        slept_day = rec["slept"][:10]
-        if any(r.get("problem") == pnum and r["date"] >= slept_day for r in evidence.values()):
+def active_seconds(branch="HEAD", now=None):
+    """(active_s, slept_s, sleeps) for a solve branch: wall time since the
+    started commit, split into awake and parked intervals by the marker
+    commits. On a branch with no sleeps this is the plain started-to-now
+    clock `make solved` has always used."""
+    now = now or time.time()
+    events = branch_events(branch)
+    if not events:
+        out = _git_out("log", "-1", "--grep=^started$", "--format=%ct").strip()
+        t0 = int(out or _git_out("log", "-1", "--format=%ct").strip() or now)
+        return max(int(now - t0), 0), 0, 0
+    started = [ts for ts, subj in events if subj == "started"]
+    t0 = started[-1] if started else events[0][0]
+    active = slept = sleeps = 0
+    awake, last = True, t0
+    for ts, subj in events:
+        if ts < t0:
             continue
-        (asleep if now < datetime.fromisoformat(rec["until"]) else woken).append(pnum)
+        if subj.startswith("sleeping:") and awake:
+            active += ts - last
+            sleeps += 1
+            awake, last = False, ts
+        elif subj.startswith("woke") and not awake:
+            slept += ts - last
+            awake, last = True, ts
+    if awake:
+        active += now - last
+    else:
+        slept += now - last
+    return int(active), int(slept), sleeps
+
+
+def slept_branches():
+    """{problem_number: branch_name} for every local `<num>-slept` branch."""
+    out = _git_out("for-each-ref", "--format=%(refname:short)", "refs/heads/*-slept")
+    return {b[: -len("-slept")]: b for b in out.split()}
+
+
+def sleep_records(problems, evidence):
+    """Unresolved parked problems, scanned from the `-slept` branches:
+    {pnum: {branch, title, slept (unix ts of last park), cycles}}.
+
+    cycles counts the `sleeping:` commits — how many times the problem was
+    parked. A branch whose problem has a solve recorded on/after its last
+    park date is resolved: an archive, not a park, and is skipped."""
+    recs = {}
+    for pnum, branch in slept_branches().items():
+        if pnum not in problems:
+            continue
+        events = branch_events(branch)
+        marks = [ts for ts, subj in events if subj.startswith("sleeping:")]
+        ts = marks[-1] if marks else (events[-1][0] if events else None)
+        if ts is None:
+            continue
+        slept_day = datetime.fromtimestamp(ts).date().isoformat()
+        if any(r.get("problem") == pnum and r["date"] >= slept_day
+               for r in evidence.values()):
+            continue
+        recs[pnum] = {"branch": branch, "title": problems[pnum]["title"],
+                      "slept": ts, "cycles": max(len(marks), 1)}
+    return recs
+
+
+def sleep_ready(pnum, problems, statuses, nodes):
+    """A parked problem is ready to face when its whole walk closure is
+    SOLID — the ground the scheduler was warming under it is warm."""
+    return all(statuses.get(n, (None,))[0] == SOLID
+               for n in input_tree(problems[pnum]["moves"], nodes))
+
+
+def sleep_state(nodes, problems, evidence):
+    """Split parked problems into (asleep, woken) problem-number lists.
+
+    A parked problem WAKES when it is ready (sleep_ready) or under cap
+    pressure: at most MAX_ASLEEP may hide from the picker, and the oldest
+    parks overflow into woken — park an (N+1)th and you must face one.
+    woken is ordered oldest park first; asleep most-reslept first, so the
+    strongest not-ready signal gets its ground warmed first."""
+    recs = sleep_records(problems, evidence)
+    statuses = {n: node_status(n, evidence) for n in nodes}
+    woken = sorted((p for p in recs if sleep_ready(p, problems, statuses, nodes)),
+                   key=lambda p: recs[p]["slept"])
+    asleep = sorted((p for p in recs if p not in woken),
+                    key=lambda p: recs[p]["slept"])
+    while len(asleep) > MAX_ASLEEP:
+        woken.append(asleep.pop(0))
+    asleep.sort(key=lambda p: (-recs[p]["cycles"], recs[p]["slept"]))
     return asleep, woken
 
 
