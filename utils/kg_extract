@@ -26,8 +26,8 @@ from history_builder import parse_content
 from kg_lib import (
     load_nodes, load_problems, load_evidence,
     save_problems, save_evidence, claude_json, taxonomy_summary, node_status,
-    manila_date_from_filename,
-    ASSIST_WEIGHT, HARNESS_ENV_NOTE,
+    manila_date_from_filename, load_predicted, unlocks,
+    ASSIST_WEIGHT, HARNESS_ENV_NOTE, SOLID,
 )
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -145,6 +145,48 @@ console = Console()
 
 FNAME_RE = re.compile(r"p(\d+)_(.+?)_\d{4}_\d{2}_\d{2}T")
 TRAINS_RE = re.compile(r"TRAINS:\s*([a-z0-9\-, ]+)")
+
+
+def serve_receipt(pnum, moves, pre_moves, was_mapped, nodes, problems,
+                  evidence, before_ev, predicted=None):
+    """Rich-markup lines explaining what this solve meant to the graph.
+
+    What the problem was serving is derived, never stored (the same way
+    mastery is): the non-solid moves, before this solve, of its mapped walk
+    plus any drafted walk. For each such move: did it get its rep, and what
+    did that do to its status — plus the reachability payoff when it went
+    SOLID. For a promoted problem, how the evidenced walk corrected the
+    draft. Facts only: an alternative walk is stated as what happened,
+    never as a verdict on the candidate."""
+    if predicted is None:
+        predicted = load_predicted()
+    drafted = [w.get("moves", []) for w in
+               predicted.get(pnum, {}).get("walks", [])]
+    expected = list(dict.fromkeys(pre_moves + [m for w in drafted for m in w]))
+    targets = [m for m in expected if m in nodes
+               and node_status(m, before_ev)[0] != SOLID]
+    lines = []
+    for t in targets:
+        b, _ = node_status(t, before_ev)
+        a, _ = node_status(t, evidence)
+        if t in moves:
+            line = (f"served for [bold]{t}[/bold]: {b} → {a}" if a != b
+                    else f"served for [bold]{t}[/bold]: got its rep, stays {a}")
+            if a == SOLID and b != SOLID:
+                statuses_before = {n: node_status(n, before_ev) for n in nodes}
+                gained = unlocks(statuses_before, problems, predicted).get(t, 0)
+                if gained:
+                    line += (f" — brings {gained} drafted problem"
+                             f"{'s' if gained != 1 else ''} into reach")
+        else:
+            took = ", ".join(moves) or "nothing mapped"
+            line = (f"served for [bold]{t}[/bold] — the code went {took} "
+                    f"instead; {t} stays {a}")
+        lines.append(line)
+    if not was_mapped and drafted and moves:
+        guess = ", ".join(dict.fromkeys(m for w in drafted for m in w))
+        lines.append(f"draft guessed [{guess}] → evidenced [{', '.join(moves)}]")
+    return lines
 
 
 def main():
@@ -269,6 +311,8 @@ Output STRICT JSON only:
                 evidence[path] = entry
                 save_evidence(evidence)
                 pnum = entry["problem"]
+                was_mapped = pnum in problems
+                pre_moves = list(problems.get(pnum, {}).get("moves", []))
                 # a skipped mapped move IS a discovered alt walk — record it so
                 # the picker knows this carrier is escapable and routes around it
                 if not is_drill and record_alt_walk(problems, pnum, moves, skipped):
@@ -298,6 +342,11 @@ Output STRICT JSON only:
                     a, _ = node_status(mv, evidence)
                     change = f"[red]{b} → {a}[/red]" if a != b else f"stays {a}"
                     console.print(f"    [red]⚠ struggled on [bold]{mv}[/bold][/red] ({change})")
+                if not is_drill:
+                    for line in serve_receipt(pnum, list(moves), pre_moves,
+                                              was_mapped, nodes, problems,
+                                              evidence, before_ev):
+                        console.print(f"    [dim]{line}[/dim]")
 
     console.print(
         f"\nDone: {done} processed, {failed} failed (re-run to retry), "
