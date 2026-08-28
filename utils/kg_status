@@ -130,16 +130,15 @@ def print_sleep(nodes, problems, evidence):
     recs = sleep_records(problems, evidence)
     if not recs:
         return
-    asleep, woken = sleep_state(nodes, problems, evidence)
+    asleep, _ = sleep_state(nodes, problems, evidence)
     for p in asleep:
         rusty = sorted(n for n in input_tree(problems[p]["moves"], nodes)
                        if node_status(n, evidence)[0] != SOLID)
         cycles = f" (slept x{recs[p]['cycles']})" if recs[p]["cycles"] > 1 else ""
+        ground = (f"kg_next is warming: {', '.join(rusty)}" if rusty
+                  else "ground solid, simmering")
         console.print(f"💤 [bold]{p}. {recs[p]['title']}[/bold]{cycles} parked - "
-                      f"kg_next is warming: {', '.join(rusty) or '?'}")
-    for p in woken:
-        console.print(f"⏰ [bold]{p}. {recs[p]['title']}[/bold] is awake - "
-                      f"it jumps the queue (make wake {p})")
+                      f"{ground} - make wake {p} when you choose")
 
 
 def main():
