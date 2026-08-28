@@ -708,6 +708,34 @@ def main():
     shown = 0
     plan_note = None
 
+    def warn_dry(served):
+        """Starvation, surfaced without asking. The failure mode this kills:
+        two weeks of Aug 2026 the picker silently fell through to warmups
+        and summits while due moves expired, and it only showed in the
+        solve stats.
+
+        Scanned with an empty exclude so today's transient state (a carrier
+        solved today, the pick being served right now) reads as servable.
+        While something was served, only the structurally dry warn — moves
+        no mapped, drilled, or drafted problem can EVER carry as things
+        stand (keyed on blocked_frontier's own reason text). When nothing
+        was served, everything blocked is part of the answer. Nodes with a
+        drill bank stay quiet — their drill re-offers tomorrow."""
+        dry = [
+            nid for nid, _, why in blocked_frontier(
+                nodes, problems, evidence, statuses, asleep, ())
+            if not has_drill_bank(nid)
+            and (not served
+                 or "Hard or banned" in why
+                 or "no problem in the graph" in why)
+        ]
+        if dry:
+            names = ", ".join(dry)
+            console.print(
+                f"[yellow]⚠ dry on {names} — nothing can serve "
+                f"{'this move' if len(dry) == 1 else 'these moves'} "
+                f"(make next --why)[/yellow]")
+
     # Today's frozen plan comes first: serve its pending items in order,
     # transparently — same rendering, same commands. Items self-clear from
     # evidence; an exhausted or absent plan falls through to the normal rules.
@@ -797,6 +825,8 @@ def main():
         else:
             console.print("\nNothing to serve — the graph needs new problems mapped.")
 
+        if not args.why:
+            warn_dry(served=False)
         if args.why:
             blocked = blocked_frontier(
                 nodes, problems, evidence, statuses, asleep, exclude
@@ -872,6 +902,7 @@ def main():
             logical_width = render(dot, "kg_next")
             display("kg_next", logical_width)
         animate(cap.get())
+        warn_dry(served=True)
         prepare(target)
         return
 
@@ -918,6 +949,7 @@ def main():
 
     if args.no_show:
         animate(cap.get())
+        warn_dry(served=True)
         prepare(pnum)
         return
 
@@ -950,6 +982,7 @@ def main():
     logical_width = render(dot, "kg_next")
     display("kg_next", logical_width)
     animate(cap.get())
+    warn_dry(served=True)
     prepare(pnum)
 
 
