@@ -899,8 +899,11 @@ def main():
                 margin="0.2,0.12",
             )
             dot.edge(target, "drill_box", penwidth="1.4")
-            logical_width = render(dot, "kg_next")
-            display("kg_next", logical_width)
+            try:
+                logical_width = render(dot, "kg_next")
+                display("kg_next", logical_width)
+            except Exception as e:
+                console.print(f"[dim](tree drawing failed — {type(e).__name__}; cosmetic, pick unaffected)[/dim]")
         animate(cap.get())
         warn_dry(served=True)
         prepare(target)
@@ -979,8 +982,13 @@ def main():
     )
     for m in p["moves"]:
         dot.edge(m, problem_node, penwidth="1.4")
-    logical_width = render(dot, "kg_next")
-    display("kg_next", logical_width)
+    # the drawing is cosmetic: a font/graphviz hiccup (transient Pango emoji
+    # failures happen) must never kill the pick itself
+    try:
+        logical_width = render(dot, "kg_next")
+        display("kg_next", logical_width)
+    except Exception as e:
+        console.print(f"[dim](tree drawing failed — {type(e).__name__}; cosmetic, pick unaffected)[/dim]")
     animate(cap.get())
     warn_dry(served=True)
     prepare(pnum)
