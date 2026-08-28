@@ -110,7 +110,7 @@ viz:
 %:
 	@:
 next:
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_next $(patsubst why,--why,$(patsubst graph,--graph,$(patsubst sql,--group=sql,$(filter-out $@,$(MAKECMDGOALS)))))
+	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_next $(patsubst why,--why,$(patsubst graph,--graph,$(patsubst sql,--group=sql,$(patsubst cram,--cram,$(filter-out $@,$(MAKECMDGOALS))))))
 
 dive:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg_dive $(filter-out $@,$(MAKECMDGOALS))
