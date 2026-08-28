@@ -108,12 +108,12 @@ no metadata file: `sleeping:`/`woke:` marker commits on it carry the timestamps 
 the park count. Parked problems are the "not ready yet" signal: kg_next won't offer
 them, and warms their walks' rusty moves/prereqs meanwhile (via other carriers).
 
-No timers. A parked problem wakes when its whole walk closure is SOLID — the ground
-got warm — or under cap pressure: at most `MAX_ASLEEP` (kg_lib) may hide at once,
-and parking one more forces the oldest awake. A woken problem jumps the queue;
-`make wake <n>` resumes its branch where it left off, and sleep/wake can cycle any
-number of times. `make solved` records ACTIVE time only (awake intervals, the same
-`solve time:` trailer as ever) plus a `slept:` trailer for the parked stretch.
+No timers, no auto-wake (settled 2026-08-28): a park sleeps until YOU run
+`make wake <n>`, which resumes its branch where it left off, synced forward to
+master. Sleep/wake can cycle any number of times. The only pressure is the cap:
+at most `MAX_ASLEEP` (kg_lib) parks at once — at the cap, `make sleep` refuses
+until one is faced. `make solved` records ACTIVE time only (awake intervals, the
+same `solve time:` trailer as ever) plus a `slept:` trailer for the parked stretch.
 It's an incubation tool for failed retrieval, not a snooze button for discomfort.
 No evidence is recorded on sleep: the code is the evidence, and there is no code yet.
 

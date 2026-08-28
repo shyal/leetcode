@@ -893,10 +893,10 @@ def latest_carrier(node_id, evidence):
 
 # Sleep is derived from git, never stored: a parked problem IS its
 # `<num>-slept` branch, `sleeping:` / `woke:` marker commits on it carry
-# the timestamps, and readiness (walk closure all SOLID) plus the cap
-# below decide when the picker offers it back. No timers.
+# the timestamps. A park sleeps until `make wake` — no timers, no
+# readiness trigger, nothing auto-wakes (settled 2026-08-28).
 
-# parked problems that may hide from the picker at once
+# parked problems at once; past this, `make sleep` refuses until one is faced
 MAX_ASLEEP = int(os.environ.get("MAX_ASLEEP", 3))
 
 
@@ -980,31 +980,16 @@ def sleep_records(problems, evidence):
     return recs
 
 
-def sleep_ready(pnum, problems, statuses, nodes):
-    """A parked problem is ready to face when its whole walk closure is
-    SOLID — the ground the scheduler was warming under it is warm."""
-    return all(statuses.get(n, (None,))[0] == SOLID
-               for n in input_tree(problems[pnum]["moves"], nodes))
-
-
 def sleep_state(nodes, problems, evidence):
     """Split parked problems into (asleep, woken) problem-number lists.
 
-    A parked problem WAKES when it is ready (sleep_ready) or under cap
-    pressure: at most MAX_ASLEEP may hide from the picker, and the oldest
-    parks overflow into woken — park an (N+1)th and you must face one.
-    woken is ordered oldest park first; asleep most-reslept first, so the
-    strongest not-ready signal gets its ground warmed first."""
+    Every park is ASLEEP until the operator runs `make wake` — woken is
+    always empty; nothing wakes a problem automatically. asleep is ordered
+    most-reslept first, so the strongest not-ready signal gets its ground
+    warmed first (kg_next rule 0)."""
     recs = sleep_records(problems, evidence)
-    statuses = {n: node_status(n, evidence) for n in nodes}
-    woken = sorted((p for p in recs if sleep_ready(p, problems, statuses, nodes)),
-                   key=lambda p: recs[p]["slept"])
-    asleep = sorted((p for p in recs if p not in woken),
-                    key=lambda p: recs[p]["slept"])
-    while len(asleep) > MAX_ASLEEP:
-        woken.append(asleep.pop(0))
-    asleep.sort(key=lambda p: (-recs[p]["cycles"], recs[p]["slept"]))
-    return asleep, woken
+    asleep = sorted(recs, key=lambda p: (-recs[p]["cycles"], recs[p]["slept"]))
+    return asleep, []
 
 
 def claude_json(prompt, system_prompt, model="sonnet"):

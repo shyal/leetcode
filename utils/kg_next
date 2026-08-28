@@ -17,11 +17,11 @@
 #       gentlest all-SOLID easy (tiny walk, high acceptance) that has not
 #       been solved inside WARMUP_COOLDOWN_DAYS — juice, not a rerun of
 #       Thursday. Normal rules resume from the day's second solve onward.
-#   0. sleep (`<num>-slept` branches, written by `make sleep`): a WOKEN
-#      problem — its walk closure gone all-SOLID, or forced awake by the
-#      MAX_ASLEEP cap — jumps the queue (`make wake` resumes its branch);
-#      while one is ASLEEP it is excluded everywhere and its walk's rusty
-#      moves/prereqs get warmed first, via other carriers
+#   0. sleep (`<num>-slept` branches, written by `make sleep`): a parked
+#      problem is excluded everywhere until the operator runs `make wake` —
+#      nothing auto-wakes — and its walk's rusty moves/prereqs get warmed
+#      first, via other carriers (rule 0a fires only for a problem woken
+#      mid-run, which manual wake makes moot; it is kept for that path)
 #   1. consolidate the FRAGILE node with the highest unlock count (bank
 #      problems blocked only by it; oldest evidence breaks ties), via the
 #      freshest READY carrier
