@@ -2,14 +2,14 @@
   "_comment": "Personal forgetting curve fitted by utils/kg_curve. P(recall) = (1-slip)*(1 + gap/s)^(-beta), s = exp(a + b*cleans - c*struggles - d*assist + e*(conn - conn_mean)). conn is the node's log2 carrier count, frozen below at fit time; consumers that ignore e are assuming average connectivity. node_status() calls a node SOLID while the memory component (1 + gap/s)^(-beta) >= target_retention; delete this file to fall back to the flat 42-day window.",
   "model": "power-law-slip",
   "params": {
-    "a": 4.0494,
-    "b": 0.007,
-    "c": 0.1166,
-    "d": 0.3837,
-    "e": 0.5768,
-    "conn_mean": 4.3404,
+    "a": 4.0684,
+    "b": 0.0096,
+    "c": 0.1092,
+    "d": 0.3538,
+    "e": 0.5378,
+    "conn_mean": 4.3458,
     "beta": 0.0938,
-    "slip": 0.0479
+    "slip": 0.0507
   },
   "conn": {
     "backtracking-choose-undo": 3.7,
@@ -22,13 +22,13 @@
     "binary-search-on-answer": 3.907,
     "bit-iterate": 3.322,
     "bst-invariant": 2.322,
-    "counter-build": 5.755,
+    "counter-build": 5.781,
     "counter-multiset-ops": 3.0,
     "counting-sort-buckets": 1.0,
     "counts-as-data": 4.392,
     "deque-recent-window": 2.0,
     "derived-key-lookup": 4.17,
-    "dict-arbitrary-value": 4.858,
+    "dict-arbitrary-value": 4.907,
     "divmod-decompose": 5.044,
     "dp-1d-rolling": 3.585,
     "dp-2d-grid": 2.322,
@@ -90,8 +90,8 @@
   },
   "target_retention": 0.9,
   "fit": {
-    "trials": 675,
-    "loglik": -0.2569,
-    "baseline_loglik": -0.2715
+    "trials": 676,
+    "loglik": -0.2612,
+    "baseline_loglik": -0.2748
   }
 }
