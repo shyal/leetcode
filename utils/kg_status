@@ -22,7 +22,7 @@ from rich.text import Text
 from kg_lib import (
     load_nodes, load_problems, load_evidence, node_status,
     SOLID, STALE, FRAGILE, MISSING,
-    load_sleep, sleep_state,
+    sleep_records, sleep_state, input_tree,
 )
 
 console = Console()
@@ -126,15 +126,20 @@ def print_grid(groups):
     console.print(table)
 
 
-def print_sleep(evidence):
-    sleeps = load_sleep()
-    asleep, woken = sleep_state(sleeps, evidence)
+def print_sleep(nodes, problems, evidence):
+    recs = sleep_records(problems, evidence)
+    if not recs:
+        return
+    asleep, woken = sleep_state(nodes, problems, evidence)
     for p in asleep:
-        console.print(f"💤 [bold]{p}. {sleeps[p].get('title','?')}[/bold] sleeping "
-                      f"until {sleeps[p]['until'][:16]} - kg_next is warming its ground")
+        rusty = sorted(n for n in input_tree(problems[p]["moves"], nodes)
+                       if node_status(n, evidence)[0] != SOLID)
+        cycles = f" (slept x{recs[p]['cycles']})" if recs[p]["cycles"] > 1 else ""
+        console.print(f"💤 [bold]{p}. {recs[p]['title']}[/bold]{cycles} parked - "
+                      f"kg_next is warming: {', '.join(rusty) or '?'}")
     for p in woken:
-        console.print(f"⏰ [bold]{p}. {sleeps[p].get('title','?')}[/bold] is awake - "
-                      "it jumps the queue for a fresh attempt")
+        console.print(f"⏰ [bold]{p}. {recs[p]['title']}[/bold] is awake - "
+                      f"it jumps the queue (make wake {p})")
 
 
 def main():
@@ -158,7 +163,7 @@ def main():
                  remaining, pace)
     if not args.summary:
         print_grid(groups)
-    print_sleep(evidence)
+    print_sleep(nodes, load_problems(), evidence)
 
 
 if __name__ == "__main__":

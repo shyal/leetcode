@@ -3,9 +3,11 @@
 import subprocess
 import os
 import sys
-import time
 import re
 from datetime import datetime, timezone
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from kg_lib import active_seconds
 
 # --failed: file the attempt as a FAILED one (make failed). Same flow —
 # same folder, same solve-time trailer, same extraction — but the filename,
@@ -81,33 +83,16 @@ def solved_filename(problem_id, title, failed=False, now=None):
 
 
 def main():
-    # Find the start time
-    # First, check for commit with message "started"
-    result = subprocess.run(
-        ["git", "log", "-1", "--grep=^started$", "--format=%ct"],
-        capture_output=True,
-        text=True,
-    )
-    output = result.stdout.strip()
-
-    if output:
-        start_time = int(output)
-    else:
-        # Get the last commit time
-        result = subprocess.run(
-            ["git", "log", "-1", "--format=%ct"], capture_output=True, text=True
-        )
-        if result.returncode != 0 or not result.stdout.strip():
-            print("No commits found. Using current time as start.")
-            start_time = time.time()
-        else:
-            start_time = int(result.stdout.strip())
-
-    current_time = time.time()
-    delta_seconds = current_time - start_time
-    minutes = int(delta_seconds // 60)
-    seconds = int(delta_seconds % 60)
+    # active time only: awake intervals on the branch, the sleeping:/woke:
+    # marker commits (make sleep / make wake) subtracted out
+    active, slept_seconds, sleeps = active_seconds()
+    minutes = int(active // 60)
+    seconds = int(active % 60)
     solve_time = f"{minutes}m {seconds}s"
+    slept_line = ""
+    if sleeps:
+        sh, sm = divmod(int(slept_seconds) // 60, 60)
+        slept_line = f"\nslept: {sh}h {sm:02d}m over {sleeps} park(s)"
 
     if not os.path.exists("current.py"):
         print("current.py does not exist. Exiting.")
@@ -142,9 +127,9 @@ def main():
 
     # Prepare commit message
     if problem_id == "drill":
-        commit_message = f"drill: {title}\n\nsolve time: {solve_time}"
+        commit_message = f"drill: {title}\n\nsolve time: {solve_time}{slept_line}"
     else:
-        commit_message = f"{problem_id}. {title}\n\nsolve time: {solve_time}"
+        commit_message = f"{problem_id}. {title}\n\nsolve time: {solve_time}{slept_line}"
     if FAILED:
         commit_message = "failed: " + commit_message
 
