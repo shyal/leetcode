@@ -944,12 +944,14 @@ fn main() {
 
     // ---- the avatar: gource-style, one sprite gravitating to whatever is
     // being solved and firing a laser at every move the solve exercised.
+    // Off by default (AVATAR): the beams pull the eye away from the graph.
     // A shot = one solve (same birth), its targets the centers of the node
     // boxes it touched. The sprite hovers above the targets' centroid and
     // eases there from the previous shot (spline keySplines), so between
     // solves it is visibly travelling; the laser group flashes for LASER_S
     // (or until the next shot, whichever is sooner) and shares the label
     // clock exactly, keyTimes over the same loop.
+    const AVATAR: bool = false;
     const HOVER_DY: f64 = -34.0;
     struct Shot {
         born: f64,
@@ -977,7 +979,7 @@ fn main() {
         }
         li = lj;
     }
-    if !shots.is_empty() {
+    if AVATAR && !shots.is_empty() {
         // the sprite's path, simulated at a fixed step: the target is a
         // heavily averaged trail of the solve positions (an exponential
         // average, so a burst of solves in one cluster pulls it there and a
