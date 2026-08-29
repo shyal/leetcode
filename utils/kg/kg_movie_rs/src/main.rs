@@ -759,6 +759,11 @@ fn main() {
             let born = t0 + k as f64 * tick_len[i] / day_solves.len() as f64;
             for node_id in moves {
                 let Some(&node_box) = boxes.get(node_id) else { continue };
+                // a solve older than the node's `added` date must not light
+                // up a box that has not materialized yet
+                if node_index.get(node_id.as_str()).is_some_and(|&ni| i < first_vis[ni]) {
+                    continue;
+                }
                 let alive_here: Vec<usize> =
                     active.iter().copied().filter(|&li| &labels[li].node == node_id).collect();
                 if alive_here.len() >= MAX_PROBS {

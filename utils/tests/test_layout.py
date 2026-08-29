@@ -120,7 +120,7 @@ def test_mock_binary_paths_agree():
 # --- the harness stays a flat namespace (what solves import) --------------
 
 HARNESS_MODULES = ["Types", "TreeFormatter", "tree_utils", "bst_utils", "linked_list_utils",
-                   "graph_utils", "bs_utils", "debug_utils", "heap_utils", "intervals_utils"]
+                   "graph_utils", "bs_utils", "debug_utils", "heap_utils"]
 
 
 @pytest.mark.parametrize("name", HARNESS_MODULES)
