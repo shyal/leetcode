@@ -1,0 +1,171 @@
+#!/usr/bin/env python3
+
+# kg_solvecost — how long does one rep on a move cost me, and how does that
+# fall as i meet the move again? Fits a solve-time model on every timed solve
+# and writes graph/solvecost.json, which kg_mock and kg_predict read to price
+# each simulated refresh instead of charging a flat 10 minutes.
+#
+#   utils/kg/kg_solvecost              # refit and print the fit
+#   utils/kg/kg_solvecost --if-stale   # refit only when evidence.json is newer
+#
+# Model, per timed successful solve (minutes from the solve-time trailer,
+# kg_lib.mined_solve_times):
+#
+#   ln minutes = a
+#              + g_reps  * ln(1 + prior clean reps, averaged over the walk)
+#              + g_conn  * (conn - conn_mean)         log2 carriers, averaged
+#              + g_len   * ln(walk length)
+#              + g_assist * assist weight
+#              + kind[Easy | Medium | Hard | drill]
+#              + node effect
+#
+# Exposure (g_reps) and connectivity (g_conn) are the two drivers the README
+# regression found; the rest are controls so those two are not credited with
+# the difficulty or the drill format. Same-problem repetition (the README's
+# 0.76x) is deliberately NOT a separate term: a simulated refresh re-serves a
+# carrier or drill already met, so that speed-up is part of what exposure
+# has to carry. The node effect is the node's mean residual shrunk toward
+# zero (k = 3 pseudo-solves), so a move that is slow for me beyond what its
+# features say stays slow in the sim.
+#
+# The consumer prices a refresh of node n after r simulated clean reps as
+#   exp(a + g_reps * ln(1 + r) + g_conn * (conn_n - conn_mean) + kind_n + eff_n)
+# with kind_n = drill when the node has a bank (the picker serves the drill),
+# else Easy (the cheapest carrier), clamped to [MIN_COST, MAX_COST] minutes.
+# Everything else in the model is a property of one solve, not of the node,
+# and sits at its baseline. Extrapolation past my current rep counts rides
+# on g_reps alone, which is the honest part: more exposure, faster.
+
+import argparse
+import json
+import math
+import os
+import sys
+from collections import defaultdict
+from datetime import date
+
+from kg.kg_lib import (ASSIST_WEIGHT, GRAPH_DIR, assist_of, has_drill_bank,
+                       load_evidence, load_nodes, load_problems, mined_solve_times,
+                       node_conn)
+
+OUT = os.path.join(GRAPH_DIR, "solvecost.json")
+SHRINK = 3.0
+MIN_COST, MAX_COST = 1.0, 40.0
+KINDS = ("Easy", "Medium", "Hard", "drill")
+
+
+def rows(evidence, problems, conn, conn_mean):
+    """One feature row per timed solve that has an evidence record."""
+    prior_clean = defaultdict(int)          # node -> clean reps so far
+    out = []
+    for key, d, secs, fname in mined_solve_times(with_file=True):
+        rec = evidence.get(fname)
+        moves = list(rec.get("moves", {})) if rec else []
+        if not moves:
+            continue
+        kind = "drill" if key.startswith("d:") else problems.get(key, {}).get("difficulty")
+        if kind not in KINDS:
+            continue
+        reps = sum(prior_clean[m] for m in moves) / len(moves)
+        cn = sum(conn.get(m, 0.0) for m in moves) / len(moves) - conn_mean
+        x = [1.0, math.log1p(reps), cn, math.log(len(moves)), ASSIST_WEIGHT[assist_of(rec)]]
+        x += [1.0 if kind == k else 0.0 for k in KINDS[1:]]      # Easy is the baseline
+        out.append((x, math.log(secs / 60), moves))
+        for m, v in rec["moves"].items():
+            if v == "clean" and assist_of(rec) != "spoiled":
+                prior_clean[m] += 1
+    return out
+
+
+def ols(X, y):
+    import numpy as np
+    X, y = np.array(X), np.array(y)
+    beta, *_ = np.linalg.lstsq(X, y, rcond=None)
+    resid = y - X @ beta
+    r2 = 1 - float(resid @ resid) / float(((y - y.mean()) ** 2).sum())
+    return beta.tolist(), resid.tolist(), r2
+
+
+def fit():
+    evidence = load_evidence()
+    problems = load_problems()
+    nodes = load_nodes()
+    conn = node_conn(problems)
+    conn_mean = sum(conn.values()) / len(conn) if conn else 0.0
+    data = rows(evidence, problems, conn, conn_mean)
+    if len(data) < 30:
+        sys.exit(f"only {len(data)} timed solves with evidence; not fitting")
+    beta, resid, r2 = ols([x for x, _, _ in data], [y for _, y, _ in data])
+    names = ["a", "g_reps", "g_conn", "g_len", "g_assist",
+             "kind_Medium", "kind_Hard", "kind_drill"]
+    params = dict(zip(names, (round(b, 4) for b in beta)))
+    params["kind_Easy"] = 0.0
+    params["conn_mean"] = round(conn_mean, 4)
+    params["min_cost"] = MIN_COST
+    params["max_cost"] = MAX_COST
+
+    per_node = defaultdict(list)
+    for (_, _, moves), r in zip(data, resid):
+        for m in moves:
+            per_node[m].append(r)
+    out_nodes = {}
+    for n in nodes:
+        rs = per_node.get(n, [])
+        eff = sum(rs) / (len(rs) + SHRINK) if rs else 0.0
+        out_nodes[n] = {
+            "eff": round(eff, 4),
+            "conn": round(conn.get(n, 0.0), 3),
+            "kind": "drill" if has_drill_bank(n) else "Easy",
+            "n": len(rs),
+        }
+    return {
+        "_comment": ("Solve-time model fitted by utils/kg/kg_solvecost. ln minutes = a + "
+                     "g_reps*ln(1+reps) + g_conn*(conn-conn_mean) + g_len*ln(walk) + "
+                     "g_assist*assist + "
+                     "kind + node eff. A refresh of node n after r clean reps costs "
+                     "exp(a + g_reps*ln(1+r) + g_conn*(conn_n-conn_mean) + kind_n + eff_n) "
+                     "minutes, clamped to [min_cost, max_cost]. Delete this file to fall "
+                     "back to the flat 10-minute refresh."),
+        "fit": {"n": len(data), "r2": round(r2, 4), "date": date.today().isoformat()},
+        "params": params,
+        "nodes": out_nodes,
+    }
+
+
+def cost(model, node, reps):
+    """Minutes for one refresh of `node` after `reps` clean reps."""
+    p, n = model["params"], model["nodes"].get(node)
+    if n is None:
+        return 10.0
+    v = (p["a"] + p["g_reps"] * math.log1p(reps) + p["g_conn"] * (n["conn"] - p["conn_mean"])
+         + p["kind_" + n["kind"]] + n["eff"])
+    return min(max(math.exp(v), p["min_cost"]), p["max_cost"])
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--if-stale", action="store_true",
+                    help="refit only when evidence.json is newer than solvecost.json")
+    args = ap.parse_args()
+    ev_path = os.path.join(GRAPH_DIR, "evidence.json")
+    if args.if_stale and os.path.exists(OUT) and os.path.getmtime(OUT) >= os.path.getmtime(ev_path):
+        return
+    model = fit()
+    with open(OUT, "w") as f:
+        json.dump(model, f, indent=2)
+    p = model["params"]
+    print(f"fitted on {model['fit']['n']} timed solves, r2 {model['fit']['r2']:.3f}")
+    print(f"  exposure  g_reps  {p['g_reps']:+.3f}  (x{math.exp(p['g_reps'] * math.log(2)):.2f} per doubling of reps)")
+    print(f"  connect.  g_conn  {p['g_conn']:+.3f}  per log2 carrier")
+    print(f"  assist    g_assist {p['g_assist']:+.3f}   walk len g_len {p['g_len']:+.3f}")
+    print(f"  kind      Medium {p['kind_Medium']:+.2f}  Hard {p['kind_Hard']:+.2f}  drill {p['kind_drill']:+.2f}  (vs Easy)")
+    print("refresh cost, minutes, at 0 / 3 / 10 / 30 clean reps:")
+    sample = [n for n in ("two-pointers", "monotonic-stack", "sql-window-rank", "spark-join",
+                          "dp-2d-grid", "counter-build") if n in model["nodes"]]
+    for n in sample:
+        print(f"  {n:20} " + "  ".join(f"{cost(model, n, r):5.1f}" for r in (0, 3, 10, 30)))
+    print(f"wrote {OUT}")
+
+
+if __name__ == "__main__":
+    main()

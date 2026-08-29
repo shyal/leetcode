@@ -272,7 +272,66 @@ pub const SCENARIOS: [(&str, f64); 3] = [("cautious", 0.75), ("central", 0.85), 
 // (missing: suggestions, ranked by how many walks want them, plus stray
 // evidenced move names) — recall None until the forward sim learns them.
 // brute-force* suggestions are dropped: they mean "no technique needed".
+// Per-node refresh price from graph/solvecost.json (utils/kg/kg_solvecost):
+// ln minutes = a + g_reps*ln(1+reps) + g_conn*(conn-conn_mean) + kind + eff,
+// clamped to [min, max]. Exposure (reps) is what the forward sim grows, so a
+// node gets cheaper to maintain the more the sim has met it, at the rate the
+// timed solves actually show. None -> the flat 10-minute refresh.
+pub struct SolveCost {
+    pub a: f64,
+    pub g_reps: f64,
+    pub g_conn: f64,
+    pub conn_mean: f64,
+    pub min: f64,
+    pub max: f64,
+    pub nodes: Vec<Option<(f64, f64, f64)>>, // node index -> (eff, conn, kind intercept)
+}
+
+impl SolveCost {
+    pub fn load(v: &serde_json::Value, node_ids: &[String]) -> Option<SolveCost> {
+        let p = v.get("params")?;
+        let f = |k: &str| p.get(k).and_then(serde_json::Value::as_f64);
+        let nodes_v = v.get("nodes")?.as_object()?;
+        let nodes = node_ids
+            .iter()
+            .map(|nid| {
+                let n = nodes_v.get(nid)?;
+                let kind = n.get("kind")?.as_str()?;
+                Some((
+                    n.get("eff")?.as_f64()?,
+                    n.get("conn")?.as_f64()?,
+                    f(&format!("kind_{kind}"))?,
+                ))
+            })
+            .collect();
+        Some(SolveCost {
+            a: f("a")?,
+            g_reps: f("g_reps")?,
+            g_conn: f("g_conn")?,
+            conn_mean: f("conn_mean")?,
+            min: f("min_cost").unwrap_or(1.0),
+            max: f("max_cost").unwrap_or(40.0),
+            nodes,
+        })
+    }
+
+    pub fn minutes(&self, n: usize, reps: i64) -> f64 {
+        match self.nodes.get(n).copied().flatten() {
+            Some((eff, conn, kind)) => (self.a
+                + self.g_reps * (1.0 + reps.max(0) as f64).ln()
+                + self.g_conn * (conn - self.conn_mean)
+                + kind
+                + eff)
+                .exp()
+                .max(self.min)
+                .min(self.max),
+            None => 10.0,
+        }
+    }
+}
+
 pub struct Bank {
+    pub cost: Option<SolveCost>,
     pub move_names: Vec<String>,
     pub n_known: usize,
     // pools[dif][prob] = walks; a walk = move indices (known + extras mixed)
@@ -284,6 +343,11 @@ pub struct Bank {
 }
 
 impl Bank {
+    /// Minutes one refresh of node `n` costs after `reps` clean reps.
+    pub fn refresh_cost(&self, n: usize, reps: i64) -> f64 {
+        self.cost.as_ref().map_or(10.0, |c| c.minutes(n, reps))
+    }
+
     pub fn n_extras(&self) -> usize {
         self.move_names.len() - self.n_known
     }
@@ -434,6 +498,7 @@ impl Bank {
         }
 
         let mut bank = Bank {
+            cost: None,
             move_names,
             n_known,
             pools: [vec![], vec![], vec![]],
