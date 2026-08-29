@@ -1,8 +1,6 @@
 import os
 import sys
 
-collect_ignore = ["stubs.py"]
-
 # utils/ is the import root for the tooling packages (kg, history, readme) and
 # utils/harness is the flat LeetCode-style namespace (Types, tree_utils, ...).
 # The makefile passes both via PYTHONPATH; a bare `pytest` gets them here.

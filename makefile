@@ -1,4 +1,4 @@
-.PHONY: all learning mirror q prepare recommend force unforce preflight kg-extract kg-status kg-viz movie next dive drill hard is_session_start readme residuals sleep wake solved failed test timer viz
+.PHONY: all learning mirror q prepare force unforce preflight kg-extract kg-status kg-viz movie next dive drill hard is_session_start readme residuals sleep wake solved failed test timer viz
 
 all: graph/leet.db
 	@cp utils/harness/sitecustomize.py .venv/lib/python3.10/site-packages/
@@ -20,8 +20,6 @@ learning:
 prepare:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/prepare $(filter-out $@,$(MAKECMDGOALS))
 
-recommend:
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_next
 
 force:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_force $(filter-out $@,$(MAKECMDGOALS))
@@ -105,7 +103,7 @@ test:
 	@.venv/bin/pytest
 
 viz:
-	@.venv/bin/python3 misc/viz.py
+	@.venv/bin/python3 dsa/viz.py
 	@PYTHONPATH=./utils:${PYTHONPATH} .venv/bin/python3 utils/tests/test_runner.py --viz
 
 %:
