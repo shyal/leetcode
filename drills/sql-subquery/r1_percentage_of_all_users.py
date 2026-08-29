@@ -4,7 +4,7 @@ TRAINS: sql-subquery
 
 Given the tables Users and Register, return each contest_id with percentage:
 the share of all users registered in that contest, as a percentage rounded to
-2 decimal places. Order by percentage descending, then contest_id ascending.
+2 decimal places. Any row order.
 
 Table: Users
 
@@ -12,7 +12,6 @@ Table: Users
     | Column Name | Type    |
     +-------------+---------+
     | user_id     | int     |
-    | user_name   | varchar |
     +-------------+---------+
     user_id is the primary key.
 
@@ -30,13 +29,13 @@ Example 1:
 
 Input:
 Users table:
-+---------+-----------+
-| user_id | user_name |
-+---------+-----------+
-| 6       | Alice     |
-| 2       | Bob       |
-| 7       | Alex      |
-+---------+-----------+
++---------+
+| user_id |
++---------+
+| 6       |
+| 2       |
+| 7       |
++---------+
 Register table:
 +------------+---------+
 | contest_id | user_id |
@@ -70,14 +69,14 @@ Example 2:
 
 Input:
 Users table:
-+---------+-----------+
-| user_id | user_name |
-+---------+-----------+
-| 1       | Ann       |
-| 2       | Ben       |
-| 3       | Cal       |
-| 4       | Dee       |
-+---------+-----------+
++---------+
+| user_id |
++---------+
+| 1       |
+| 2       |
+| 3       |
+| 4       |
++---------+
 Register table:
 +------------+---------+
 | contest_id | user_id |
@@ -117,10 +116,10 @@ class Solution(SQLDrill):
 
 
 EXAMPLE_1 = """
-CREATE TABLE Users (user_id INTEGER, user_name TEXT);
-INSERT INTO Users VALUES (6, 'Alice');
-INSERT INTO Users VALUES (2, 'Bob');
-INSERT INTO Users VALUES (7, 'Alex');
+CREATE TABLE Users (user_id INTEGER);
+INSERT INTO Users VALUES (6);
+INSERT INTO Users VALUES (2);
+INSERT INTO Users VALUES (7);
 CREATE TABLE Register (contest_id INTEGER, user_id INTEGER);
 INSERT INTO Register VALUES (215, 6);
 INSERT INTO Register VALUES (209, 2);
@@ -137,11 +136,11 @@ INSERT INTO Register VALUES (210, 7);
 """
 
 EXAMPLE_2 = """
-CREATE TABLE Users (user_id INTEGER, user_name TEXT);
-INSERT INTO Users VALUES (1, 'Ann');
-INSERT INTO Users VALUES (2, 'Ben');
-INSERT INTO Users VALUES (3, 'Cal');
-INSERT INTO Users VALUES (4, 'Dee');
+CREATE TABLE Users (user_id INTEGER);
+INSERT INTO Users VALUES (1);
+INSERT INTO Users VALUES (2);
+INSERT INTO Users VALUES (3);
+INSERT INTO Users VALUES (4);
 CREATE TABLE Register (contest_id INTEGER, user_id INTEGER);
 INSERT INTO Register VALUES (100, 1);
 """
@@ -151,5 +150,5 @@ sol = Solution()
 
 sol.show(EXAMPLE_1)
 
-# assert sol.run(EXAMPLE_1) == [(208, 100.0), (209, 100.0), (210, 100.0), (215, 66.67), (207, 33.33)]
+# assert sol.run(EXAMPLE_1) == [(207, 33.33), (208, 100.0), (209, 100.0), (210, 100.0), (215, 66.67)]
 # assert sol.run(EXAMPLE_2) == [(100, 25.0)]

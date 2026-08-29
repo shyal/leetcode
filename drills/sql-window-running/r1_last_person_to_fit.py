@@ -11,27 +11,26 @@ Table: Queue
     +-------------+---------+
     | Column Name | Type    |
     +-------------+---------+
-    | person_id   | int     |
     | person_name | varchar |
     | weight      | int     |
     | turn        | int     |
     +-------------+---------+
-    person_id is the primary key. turn holds every integer from 1 to n exactly once.
+    turn holds every integer from 1 to n exactly once.
 
 Example 1:
 
 Input:
 Queue table:
-+-----------+-------------+--------+------+
-| person_id | person_name | weight | turn |
-+-----------+-------------+--------+------+
-| 5         | Alice       | 250    | 1    |
-| 4         | Bob         | 175    | 5    |
-| 3         | Alex        | 350    | 2    |
-| 6         | John Cena   | 400    | 3    |
-| 1         | Winston     | 500    | 6    |
-| 2         | Marie       | 200    | 4    |
-+-----------+-------------+--------+------+
++-------------+--------+------+
+| person_name | weight | turn |
++-------------+--------+------+
+| Alice       | 250    | 1    |
+| Bob         | 175    | 5    |
+| Alex        | 350    | 2    |
+| John Cena   | 400    | 3    |
+| Winston     | 500    | 6    |
+| Marie       | 200    | 4    |
++-------------+--------+------+
 Output:
 +-------------+
 | person_name |
@@ -44,12 +43,12 @@ Example 2:
 
 Input:
 Queue table:
-+-----------+-------------+--------+------+
-| person_id | person_name | weight | turn |
-+-----------+-------------+--------+------+
-| 1         | Ann         | 600    | 1    |
-| 2         | Ben         | 500    | 2    |
-+-----------+-------------+--------+------+
++-------------+--------+------+
+| person_name | weight | turn |
++-------------+--------+------+
+| Ann         | 600    | 1    |
+| Ben         | 500    | 2    |
++-------------+--------+------+
 Output:
 +-------------+
 | person_name |
@@ -84,19 +83,19 @@ class Solution(SQLDrill):
 
 
 EXAMPLE_1 = """
-CREATE TABLE Queue (person_id INTEGER, person_name TEXT, weight INTEGER, turn INTEGER);
-INSERT INTO Queue VALUES (5, 'Alice', 250, 1);
-INSERT INTO Queue VALUES (4, 'Bob', 175, 5);
-INSERT INTO Queue VALUES (3, 'Alex', 350, 2);
-INSERT INTO Queue VALUES (6, 'John Cena', 400, 3);
-INSERT INTO Queue VALUES (1, 'Winston', 500, 6);
-INSERT INTO Queue VALUES (2, 'Marie', 200, 4);
+CREATE TABLE Queue (person_name TEXT, weight INTEGER, turn INTEGER);
+INSERT INTO Queue VALUES ('Alice', 250, 1);
+INSERT INTO Queue VALUES ('Bob', 175, 5);
+INSERT INTO Queue VALUES ('Alex', 350, 2);
+INSERT INTO Queue VALUES ('John Cena', 400, 3);
+INSERT INTO Queue VALUES ('Winston', 500, 6);
+INSERT INTO Queue VALUES ('Marie', 200, 4);
 """
 
 EXAMPLE_2 = """
-CREATE TABLE Queue (person_id INTEGER, person_name TEXT, weight INTEGER, turn INTEGER);
-INSERT INTO Queue VALUES (1, 'Ann', 600, 1);
-INSERT INTO Queue VALUES (2, 'Ben', 500, 2);
+CREATE TABLE Queue (person_name TEXT, weight INTEGER, turn INTEGER);
+INSERT INTO Queue VALUES ('Ann', 600, 1);
+INSERT INTO Queue VALUES ('Ben', 500, 2);
 """
 
 

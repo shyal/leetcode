@@ -4,7 +4,7 @@ TRAINS: sql-gaps-islands
 
 Given the table Logins with one row per user per day they logged in, return
 user_id and streak: the length of that user's longest run of consecutive
-calendar days with a login. Order by user_id.
+calendar days with a login. Any row order.
 
 Table: Logins
 

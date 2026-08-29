@@ -3,8 +3,7 @@ DRILL: Unique Id Or Null
 TRAINS: sql-join-left-keep
 
 Given the tables Employees and EmployeeUNI, return the unique_id and name of
-every employee. Show NULL as the unique_id when the employee has none. Order
-by id.
+every employee. Show NULL as the unique_id when the employee has none. Any row order.
 
 Table: Employees
 
@@ -132,5 +131,5 @@ sol = Solution()
 
 sol.show(EXAMPLE_1)
 
-# assert sol.run(EXAMPLE_1) == [(None, 'Alice'), (1, 'Jonathan'), (None, 'Bob'), (2, 'Meir'), (3, 'Winston')]
+# assert sol.run(EXAMPLE_1) == [(1, 'Jonathan'), (2, 'Meir'), (3, 'Winston'), (None, 'Alice'), (None, 'Bob')]
 # assert sol.run(EXAMPLE_2) == [(None, 'Alice'), (None, 'Bob')]

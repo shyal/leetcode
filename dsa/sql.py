@@ -1,11 +1,19 @@
 import sqlite3
 
 
+def null_safe(row):
+    """Sort key that never compares NULL with a value."""
+    return [(v is None, v) for v in row]
+
+
 class SQLDrill:
     """Base for SQL drills: subclass, write `query()`, done.
 
-        sol.run(schema)   -> list of row tuples (what the asserts compare)
-        sol.show(schema)  -> prints the result as a +---+ table
+        sol.run(schema)                -> row tuples, sorted (row order is
+                                          not part of the drill)
+        sol.run(schema, ordered=True)  -> row tuples in engine order, for a
+                                          drill where ORDER BY is the move
+        sol.show(schema)               -> prints the result as a +---+ table
     """
 
     def query(self) -> str:
@@ -20,8 +28,9 @@ class SQLDrill:
         cols = [d[0] for d in cur.description]
         return cols, [tuple(row) for row in cur.fetchall()]
 
-    def run(self, schema: str) -> list[tuple]:
-        return self._execute(schema)[1]
+    def run(self, schema: str, ordered: bool = False) -> list[tuple]:
+        rows = self._execute(schema)[1]
+        return rows if ordered else sorted(rows, key=null_safe)
 
     def show(self, schema: str) -> None:
         cols, rows = self._execute(schema)

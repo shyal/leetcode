@@ -4,8 +4,7 @@ TRAINS: sql-window-rank
 
 Given the tables Employee and Department, return Department, Employee and
 Salary for every employee whose salary is among the three highest distinct
-salaries in their department. Order by Department, then Salary descending,
-then Employee.
+salaries in their department. Any row order.
 
 Table: Employee
 
@@ -150,5 +149,5 @@ sol = Solution()
 
 sol.show(EXAMPLE_1)
 
-# assert sol.run(EXAMPLE_1) == [('IT', 'Max', 90000), ('IT', 'Joe', 85000), ('IT', 'Randy', 85000), ('IT', 'Will', 70000), ('Sales', 'Henry', 80000), ('Sales', 'Sam', 60000)]
-# assert sol.run(EXAMPLE_2) == [('Ops', 'Dee', 40), ('Ops', 'Eve', 40), ('Ops', 'Cal', 30), ('Ops', 'Ben', 20)]
+# assert sol.run(EXAMPLE_1) == [('IT', 'Joe', 85000), ('IT', 'Max', 90000), ('IT', 'Randy', 85000), ('IT', 'Will', 70000), ('Sales', 'Henry', 80000), ('Sales', 'Sam', 60000)]
+# assert sol.run(EXAMPLE_2) == [('Ops', 'Ben', 20), ('Ops', 'Cal', 30), ('Ops', 'Dee', 40), ('Ops', 'Eve', 40)]

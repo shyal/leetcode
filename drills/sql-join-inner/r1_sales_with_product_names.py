@@ -3,7 +3,7 @@ DRILL: Sales With Product Names
 TRAINS: sql-join-inner
 
 Given the tables Sales and Product, return product_name, year and price for
-every sale. Order by sale_id.
+every sale. Any row order.
 
 Table: Sales
 
@@ -13,7 +13,6 @@ Table: Sales
     | sale_id     | int   |
     | product_id  | int   |
     | year        | int   |
-    | quantity    | int   |
     | price       | int   |
     +-------------+-------+
     (sale_id, year) is the primary key. product_id refers to Product.
@@ -32,13 +31,13 @@ Example 1:
 
 Input:
 Sales table:
-+---------+------------+------+----------+-------+
-| sale_id | product_id | year | quantity | price |
-+---------+------------+------+----------+-------+
-| 1       | 100        | 2008 | 10       | 5000  |
-| 2       | 100        | 2009 | 12       | 5000  |
-| 7       | 200        | 2011 | 15       | 9000  |
-+---------+------------+------+----------+-------+
++---------+------------+------+-------+
+| sale_id | product_id | year | price |
++---------+------------+------+-------+
+| 1       | 100        | 2008 | 5000  |
+| 2       | 100        | 2009 | 5000  |
+| 7       | 200        | 2011 | 9000  |
++---------+------------+------+-------+
 Product table:
 +------------+--------------+
 | product_id | product_name |
@@ -61,12 +60,12 @@ Example 2:
 
 Input:
 Sales table:
-+---------+------------+------+----------+-------+
-| sale_id | product_id | year | quantity | price |
-+---------+------------+------+----------+-------+
-| 1       | 100        | 2008 | 10       | 5000  |
-| 2       | 999        | 2009 | 1        | 10    |
-+---------+------------+------+----------+-------+
++---------+------------+------+-------+
+| sale_id | product_id | year | price |
++---------+------------+------+-------+
+| 1       | 100        | 2008 | 5000  |
+| 2       | 999        | 2009 | 10    |
++---------+------------+------+-------+
 Product table:
 +------------+--------------+
 | product_id | product_name |
@@ -105,10 +104,10 @@ class Solution(SQLDrill):
 
 
 EXAMPLE_1 = """
-CREATE TABLE Sales (sale_id INTEGER, product_id INTEGER, year INTEGER, quantity INTEGER, price INTEGER);
-INSERT INTO Sales VALUES (1, 100, 2008, 10, 5000);
-INSERT INTO Sales VALUES (2, 100, 2009, 12, 5000);
-INSERT INTO Sales VALUES (7, 200, 2011, 15, 9000);
+CREATE TABLE Sales (sale_id INTEGER, product_id INTEGER, year INTEGER, price INTEGER);
+INSERT INTO Sales VALUES (1, 100, 2008, 5000);
+INSERT INTO Sales VALUES (2, 100, 2009, 5000);
+INSERT INTO Sales VALUES (7, 200, 2011, 9000);
 CREATE TABLE Product (product_id INTEGER, product_name TEXT);
 INSERT INTO Product VALUES (100, 'Nokia');
 INSERT INTO Product VALUES (200, 'Apple');
@@ -116,9 +115,9 @@ INSERT INTO Product VALUES (300, 'Samsung');
 """
 
 EXAMPLE_2 = """
-CREATE TABLE Sales (sale_id INTEGER, product_id INTEGER, year INTEGER, quantity INTEGER, price INTEGER);
-INSERT INTO Sales VALUES (1, 100, 2008, 10, 5000);
-INSERT INTO Sales VALUES (2, 999, 2009, 1, 10);
+CREATE TABLE Sales (sale_id INTEGER, product_id INTEGER, year INTEGER, price INTEGER);
+INSERT INTO Sales VALUES (1, 100, 2008, 5000);
+INSERT INTO Sales VALUES (2, 999, 2009, 10);
 CREATE TABLE Product (product_id INTEGER, product_name TEXT);
 INSERT INTO Product VALUES (100, 'Nokia');
 """
@@ -128,5 +127,5 @@ sol = Solution()
 
 sol.show(EXAMPLE_1)
 
-# assert sol.run(EXAMPLE_1) == [('Nokia', 2008, 5000), ('Nokia', 2009, 5000), ('Apple', 2011, 9000)]
+# assert sol.run(EXAMPLE_1) == [('Apple', 2011, 9000), ('Nokia', 2008, 5000), ('Nokia', 2009, 5000)]
 # assert sol.run(EXAMPLE_2) == [('Nokia', 2008, 5000)]

@@ -2,8 +2,7 @@
 DRILL: Classes With At Least Five Students
 TRAINS: sql-having-filter-groups
 
-Given the table Courses, return every class with at least five students. Order
-by class.
+Given the table Courses, return every class with at least five students. Any row order.
 
 Table: Courses
 

@@ -4,7 +4,7 @@ TRAINS: sql-date-arithmetic
 
 Given the table Transactions, return for each month and country: trans_count,
 approved_count, trans_total_amount and approved_total_amount. month is the
-year and month as 'YYYY-MM'. Order by month, then country.
+year and month as 'YYYY-MM'. Any row order.
 
 Table: Transactions
 

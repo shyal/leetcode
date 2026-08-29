@@ -3,7 +3,7 @@ DRILL: Rising Temperature
 TRAINS: sql-date-arithmetic
 
 Given the table Weather, return the id of every day whose temperature is
-higher than the previous calendar day's. Order by id.
+higher than the previous calendar day's. Any row order.
 
 Table: Weather
 

@@ -3,7 +3,7 @@ DRILL: Latest Reading Per Sensor
 TRAINS: sql-window-rank
 
 Given the table Readings, return sensor_id, read_at and value of the most
-recent reading of every sensor. Order by sensor_id.
+recent reading of every sensor. Any row order.
 
 Table: Readings
 
