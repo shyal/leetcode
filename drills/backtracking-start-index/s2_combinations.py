@@ -1,6 +1,6 @@
 """
 DRILL: Combinations
-TRAINS: backtracking-choose-undo
+TRAINS: backtracking-start-index
 
 Given two integers n and k, return every combination of k distinct
 numbers drawn from 1 to n. Each combination lists its numbers in
