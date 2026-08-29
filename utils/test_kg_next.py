@@ -517,8 +517,8 @@ def test_a_node_walked_only_by_hards_is_reported_as_blocked(picker):
     st = {"counting-sort-buckets": (MISSING, None)}
     assert picker.run(ns, ps, {}, st) is None
 
-    (nid, status, why), = picker.blocked(ns, ps, {}, st)
-    assert (nid, status) == ("counting-sort-buckets", MISSING)
+    (nid, status, why, dry), = picker.blocked(ns, ps, {}, st)
+    assert (nid, status, dry) == ("counting-sort-buckets", MISSING, True)
     assert "Hard" in why and "41" in why
     assert "no drill exists" in why
 
@@ -547,8 +547,8 @@ def test_a_node_whose_carriers_are_all_spent_today_is_blocked(picker):
     ns = nodes("target")
     ps = {"1": problem(["target"])}
     st = {"target": (FRAGILE, ago(1))}
-    (nid, _, why), = picker.blocked(ns, ps, {}, st, exclude={"1"})
-    assert nid == "target"
+    (nid, _, why, dry), = picker.blocked(ns, ps, {}, st, exclude={"1"})
+    assert (nid, dry) == ("target", False)
     assert "already solved today" in why
 
 
@@ -558,7 +558,7 @@ def test_a_node_blocked_only_by_a_second_rusty_move_says_so(picker):
     ns = nodes("target", "alsorusty")
     ps = {"1": problem(["target", "alsorusty"])}
     st = {"target": (FRAGILE, ago(1)), "alsorusty": (FRAGILE, ago(1))}
-    reasons = {nid: why for nid, _, why in picker.blocked(ns, ps, {}, st)}
+    reasons = {nid: why for nid, _, why, _ in picker.blocked(ns, ps, {}, st)}
     assert "second rusty move" in reasons["target"]
 
 
@@ -644,7 +644,7 @@ def test_a_missing_node_behind_a_rusty_prereq_is_not_on_the_frontier(picker):
     ns = nodes("prereq", ("new", ["prereq"]))
     ps = {"1": problem(["new"], difficulty="Hard"), "2": problem(["prereq"])}
     st = {"prereq": (FRAGILE, ago(1)), "new": (MISSING, None)}
-    assert [nid for nid, _, _ in picker.blocked(ns, ps, {}, st)] == []
+    assert [nid for nid, _, _, _ in picker.blocked(ns, ps, {}, st)] == []
 
 
 # --------------------------------------------------------------------------
@@ -753,13 +753,69 @@ def test_a_solid_prereq_releases_the_drill(picker):
 def test_an_assisted_clean_on_the_prereq_still_holds(picker):
     """If it got assisted then it's not clean: SOLID reached through a
     walkthrough rep is re-learning, not ownership - the dependent waits
-    for the unaided rep."""
+    for the unaided rep. And that rep gets SERVED (rule 0c): the prereq is
+    SOLID, so rules 1-3 would never target it, and a hold nothing serves
+    is a deadlock - 18 nodes sat behind two such prereqs on 2026-08-29."""
     ns = nodes("base", ("dep", ["base"]))
     ps = {"1": problem(["dep"])}
     picker.bank = {"base", "dep"}
     ev = evidence(solve("9", {"base": "clean"}, days_ago=1, assist="walkthrough"))
     st = {"dep": (FRAGILE, ago(1)), "base": (SOLID, ago(1))}
+    target, status, pnum, why = picker.run(ns, ps, ev, st)
+    assert (target, status, pnum) == ("base", SOLID, "drill:base")
+    assert "own it unaided" in why
+    # the dependent is reported as waiting on it, not as a dry node
+    (nid, _, why, dry), = picker.blocked(ns, ps, ev, st)
+    assert (nid, dry) == ("dep", False)
+    assert "held behind base" in why
+
+
+def test_the_ownership_rep_releasing_the_most_held_moves_goes_first(picker):
+    ns = nodes("a", "b", ("d1", ["a"]), ("d2", ["a"]), ("d3", ["b"]))
+    ps = {}
+    picker.bank = {"a", "b", "d1", "d2", "d3"}
+    ev = evidence(solve("9", {"a": "clean", "b": "clean"}, days_ago=1, assist="hint"))
+    st = {"a": (SOLID, ago(1)), "b": (SOLID, ago(1)),
+          "d1": (MISSING, None), "d2": (MISSING, None), "d3": (MISSING, None)}
+    assert picker.run(ns, ps, ev, st)[2] == "drill:a"
+    # its drill done for today: the next prereq is served, never the dependents
+    picker.drilled_today = {"a"}
+    assert picker.run(ns, ps, ev, st)[2] == "drill:b"
+    picker.drilled_today = {"a", "b"}
     assert picker.run(ns, ps, ev, st) is None
+
+
+def test_cram_skips_the_ownership_rep(picker):
+    ns = nodes("base", ("dep", ["base"]))
+    ps = {}
+    picker.bank = {"base", "dep"}
+    ev = evidence(solve("9", {"base": "clean"}, days_ago=1, assist="hint"))
+    st = {"dep": (MISSING, None), "base": (SOLID, ago(1))}
+    assert picker.run(ns, ps, ev, st, cram=True)[2] == "drill:dep"
+
+
+def test_a_node_whose_only_carrier_is_cooling_is_waiting_not_dry(picker):
+    """The 2026-08-29 empty serve: pair-count-formula's one carrier was
+    solved three days ago, pick() skipped it as not cooled, and the old
+    blocked_frontier (which never applied cooled) called it servable - so
+    --why printed nothing and the headline claimed the bank was starved."""
+    ns = nodes("t")
+    ps = {"2475": problem(["t"], difficulty="Easy")}
+    ev = evidence(solve("2475", {"t": "clean"}, days_ago=3))
+    st = {"t": (STALE, ago(55))}
+    assert picker.run(ns, ps, ev, st) is None
+    (nid, _, why, dry), = picker.blocked(ns, ps, ev, st)
+    assert (nid, dry) == ("t", False)
+    assert "carrier 2475 cools " + iso(-2) in why
+
+
+def test_a_node_whose_carrier_is_asleep_names_the_park(picker):
+    ns = nodes("t")
+    ps = {"7": problem(["t"])}
+    st = {"t": (STALE, ago(55))}
+    (nid, _, why, dry), = picker.blocked(ns, ps, {}, st, asleep={"7"})
+    assert (nid, dry) == ("t", False)
+    assert "7 is asleep" in why and "make wake" in why
 
 
 def test_a_pending_plan_drill_for_the_prereq_holds_the_dependent():
@@ -825,8 +881,8 @@ def test_drafts_stop_promoting_after_two_misses(picker):
     ev = evidence(solve("1365", {"dav": "clean"}, days_ago=1),
                   solve("1893", {"sa": "clean"}, days_ago=0))
     assert picker.run(ns, ps, ev, st) is None
-    [(nid, status, why)] = picker.blocked(ns, ps, ev, st)
-    assert (nid, status) == ("csb", MISSING)
+    [(nid, status, why, dry)] = picker.blocked(ns, ps, ev, st)
+    assert (nid, status, dry) == ("csb", MISSING, True)
     assert "1365, 1893" in why and "without the move" in why
 
 
@@ -960,6 +1016,6 @@ def test_blocked_report_says_no_draft_can_carry(picker):
     ns = nodes("t")
     ps = {"41": problem(["t"], difficulty="Hard")}
     st = {"t": (MISSING, None)}
-    (nid, _, why), = picker.blocked(ns, ps, {}, st)
+    (nid, _, why, _), = picker.blocked(ns, ps, {}, st)
     assert nid == "t"
     assert "no drafted walk" in why

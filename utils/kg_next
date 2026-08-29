@@ -23,6 +23,11 @@
 #      nothing auto-wakes — and its walk's rusty moves/prereqs get warmed
 #      first, via other carriers (rule 0a fires only for a problem woken
 #      mid-run, which manual wake makes moot; it is kept for that path)
+#   0c. ownership rep: a held target's prereq that is SOLID only through
+#       assisted reps (kg_lib.owned is False) is never itself FRAGILE/STALE/
+#       MISSING, so rules 1-3 would never serve the unaided rep that clears
+#       the ladder hold (kg_lib.drill_held) - a deadlock, 18 nodes deep on
+#       2026-08-29. Serve that prereq's drill first.
 #   1. consolidate the FRAGILE node with the highest unlock count (bank
 #      problems blocked only by it; oldest evidence breaks ties), via the
 #      freshest READY carrier
@@ -70,7 +75,7 @@ import os
 import random
 import subprocess
 import sys
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from rich.console import Console
 from rich.table import Table
 
@@ -87,6 +92,7 @@ from kg_lib import (
     FRAGILE,
     MISSING,
     DEEP_STALE_DAYS,
+    CARRIER_COOLDOWN_DAYS,
     sleep_state,
     last_solved,
     pnum_key,
@@ -336,6 +342,36 @@ def pick(
                     f"warm the ground under sleeping {pnum} — no READY carrier, drill {target}",
                 )
 
+    # rule 0c: the ownership rep. drill_held parks a target behind a banked
+    # prereq that is SOLID but not owned (its latest clean was assisted).
+    # That prereq is not rusty, so rules 1-3 never target it, and the hold
+    # can only be cleared by a rep nobody serves. Serve it here: the prereq
+    # whose unaided rep releases the most held targets goes first.
+    if not cram:
+        releases = {}
+        for n in nodes:
+            if statuses[n][0] == SOLID or not in_scope(n):
+                continue
+            if not drill_held(n, nodes, statuses, evidence, has_bank=has_drill_bank):
+                continue
+            for pre in nodes[n].get("prereqs", []):
+                if (has_drill_bank(pre) and pre in statuses
+                        and statuses[pre][0] == SOLID
+                        and not owned(pre, evidence)):
+                    releases.setdefault(pre, []).append(n)
+        for pre in sorted(releases, key=lambda p: (-len(releases[p]), p)):
+            drill_id = f"drill:{pre}"
+            if drill_id in exclude or not due_drill(pre, evidence):
+                continue
+            held = len(releases[pre])
+            return (
+                pre,
+                SOLID,
+                drill_id,
+                f"own it unaided - {held} held move{'s' if held > 1 else ''} "
+                f"wait{'' if held > 1 else 's'} on it",
+            )
+
     # reachability-aware ordering (PLAN.md phase 1): among the due nodes,
     # service the one that unblocks the most bank problems first; evidence
     # age breaks ties. Deep-stale re-entry still backstops anything left
@@ -554,28 +590,50 @@ def ready_hards(problems, nodes, evidence, statuses):
 
 def blocked_frontier(nodes, problems, evidence, statuses, asleep=(), exclude=()):
     """The frontier nodes pick() had to walk past, each with the reason it
-    could not be served: [(node, status, why), ...].
+    could not be served: [(node, status, why, dry), ...].
 
-    pick() returning None is two different answers wearing the same face —
-    "nothing is due" and "something is due but the bank cannot carry it" —
-    and only the second one is a to-do. A node with no READY carrier and no
-    drill bank fell through every branch silently, which is how the last
-    MISSING node in the graph stayed invisible while `make next` printed
-    nothing at all."""
+    pick() returning None is two different answers wearing the same face -
+    "nothing is due" and "something is due but the bank cannot carry it" -
+    and only the second one is a to-do. `dry` separates them: True means no
+    mapped, drilled, or drafted problem can EVER carry the node as things
+    stand (bank maintenance); False means the node is merely waiting - a
+    carrier cooling, a prereq not yet owned, a drill done for today - and
+    the reason names what it waits for. The filters here mirror pick()'s
+    exactly (cooled, asleep, exclude, drill_held, drill_gated): a node this
+    function calls servable is one pick() would have served."""
     out = []
     for nid in nodes:
-        status, _ = statuses[nid]
+        status, last = statuses[nid]
         if status == SOLID:
             continue
-        if status == MISSING and not all(
-            statuses[p][0] == SOLID
-            for p in nodes[nid].get("prereqs", [])
-            if p in statuses
-        ):
-            continue  # a prereq is still rusty — not on the frontier yet
+        prereqs = [p for p in nodes[nid].get("prereqs", []) if p in statuses]
+        if status == MISSING and not all(statuses[p][0] == SOLID for p in prereqs):
+            continue  # a prereq is still rusty - not on the frontier yet
+
+        # the ladder hold: waits on an unaided rep of a banked prereq (rule 0c
+        # serves that rep, so this is never dry)
+        if drill_held(nid, nodes, statuses, evidence, has_bank=has_drill_bank):
+            holders = [
+                p for p in prereqs
+                if has_drill_bank(p)
+                and (statuses[p][0] != SOLID or not owned(p, evidence))
+            ]
+            out.append((
+                nid, status,
+                f"held behind {', '.join(holders)} (no unaided clean rep yet)",
+                False,
+            ))
+            continue
+
+        # the drill gate: trains on the drill only, and it is done for today
+        if drill_gated(nid, status, last) and not due_drill(nid, evidence):
+            out.append((nid, status, "drilled today, still not clean - holds until a clean rep", False))
+            continue
+
         ready = carriers_for(nid, problems, statuses, nodes, evidence)
-        if [c for c in ready if c not in asleep and c not in exclude]:
-            continue  # servable — pick() just preferred something else
+        live = [c for c in ready if c not in asleep and c not in exclude]
+        if [c for c in live if cooled(c, evidence)]:
+            continue  # servable - pick() just preferred something else
         if due_drill(nid, evidence):
             continue  # its drill is available and pick() would offer it
         misses = draft_misses(nid, evidence, nodes)
@@ -583,7 +641,18 @@ def blocked_frontier(nodes, problems, evidence, statuses, asleep=(), exclude=())
         if (not ready and not falsified
                 and predicted_carrier(nid, problems, statuses, nodes,
                                       skip=set(asleep) | set(exclude))):
-            continue  # uncarried but servable — pick() promotes a draft
+            continue  # uncarried but servable - pick() promotes a draft
+
+        if live:
+            # every live carrier is inside the review cooldown
+            soonest = min(live, key=lambda c: last_solved(c, evidence))
+            cools = date.fromisoformat(last_solved(soonest, evidence)) + timedelta(
+                days=CARRIER_COOLDOWN_DAYS)
+            why = f"carrier {soonest} cools {cools.isoformat()}"
+            if has_drill_bank(nid):
+                why += ", and its drill is done for today"
+            out.append((nid, status, why, False))
+            continue
 
         walks = [p for p, v in problems.items() if nid in v.get("moves", [])]
         usable = [
@@ -592,6 +661,7 @@ def blocked_frontier(nodes, problems, evidence, statuses, asleep=(), exclude=())
             if not problems[p].get("banned") and problems[p].get("difficulty") != "Hard"
         ]
         listed = ", ".join(sorted(walks, key=pnum_key))
+        dry = True
         if not walks:
             why = "no problem in the graph uses this move"
         elif not usable:
@@ -605,8 +675,15 @@ def blocked_frontier(nodes, problems, evidence, statuses, asleep=(), exclude=())
             why = (
                 "every problem using it also needs a second rusty move made solid first"
             )
+            dry = False
         else:
-            why = "every problem using it is asleep or already solved today"
+            parked = [c for c in ready if c in asleep]
+            why = (
+                f"its carrier {', '.join(parked)} is asleep (make wake)"
+                if parked
+                else "every problem using it is already solved today"
+            )
+            dry = False
         if has_drill_bank(nid):
             why += ", and its drill is done for today"
         else:
@@ -615,13 +692,36 @@ def blocked_frontier(nodes, problems, evidence, statuses, asleep=(), exclude=())
             listed = ", ".join(misses)
             why += (
                 f", and {len(misses)} drafted carriers ({listed}) were solved "
-                "without the move — the drafts are wrong about how you solve, "
+                "without the move - the drafts are wrong about how you solve, "
                 "so no more are promoted"
             )
         else:
             why += ", and no drafted walk can carry it alone"
-        out.append((nid, status, why))
+        out.append((nid, status, why, dry))
     return out
+
+
+def parked_summits(problems, nodes, evidence, statuses, asleep):
+    """Ready summits (rule 4 would serve them) that are asleep - the empty
+    serve must name them, since only `make wake` can bring them back."""
+    return [p for p in ready_hards(problems, nodes, evidence, statuses) if p in asleep]
+
+
+def unmapped_summits(problems, nodes, evidence, statuses):
+    """Unsolved Hards whose only gaps are unmapped proposals: all-green on
+    the map, unroutable off it. These are the "needs new problems mapped"
+    case - a node has to be added before the summit can be served."""
+    solved = {r["problem"] for r in evidence.values() if r.get("problem")}
+    immature = immature_nodes(nodes, evidence, problems)
+    out = []
+    for pnum, p in problems.items():
+        if (p.get("difficulty") != "Hard" or p.get("banned")
+                or pnum in solved or not p.get("moves") or not p.get("unmapped")):
+            continue
+        gaps, count, _ = route_gaps(pnum, problems, nodes, statuses, immature)
+        if not gaps and count:
+            out.append(pnum)
+    return sorted(out, key=pnum_key)
 
 
 def load_plan():
@@ -759,19 +859,14 @@ def main():
 
         Scanned with an empty exclude so today's transient state (a carrier
         solved today, the pick being served right now) reads as servable.
-        While something was served, only the structurally dry warn — moves
-        no mapped, drilled, or drafted problem can EVER carry as things
-        stand (keyed on blocked_frontier's own reason text). When nothing
-        was served, everything blocked is part of the answer. Nodes with a
-        drill bank stay quiet — their drill re-offers tomorrow."""
+        Only the structurally dry warn - moves no mapped, drilled, or
+        drafted problem can EVER carry as things stand (blocked_frontier's
+        dry flag); a node that is merely waiting is not a to-do. Nodes with
+        a drill bank stay quiet - their drill re-offers tomorrow."""
         dry = [
-            nid for nid, _, why in blocked_frontier(
+            nid for nid, _, why, is_dry in blocked_frontier(
                 nodes, problems, evidence, statuses, asleep, ())
-            if not has_drill_bank(nid)
-            and (not served
-                 or "Hard or banned" in why
-                 or "no problem in the graph" in why
-                 or "without the move" in why)
+            if is_dry and not has_drill_bank(nid)
         ]
         if dry:
             names = ", ".join(dry)
@@ -884,7 +979,33 @@ def main():
             else:
                 console.print("\nNothing to serve — the group is spent for today.")
         else:
-            console.print("\nNothing to serve — the graph needs new problems mapped.")
+            # "nothing due" and "the bank is starved" are different answers:
+            # say which one this is, and what the wait is on.
+            blocked = blocked_frontier(
+                nodes, problems, evidence, statuses, asleep, exclude
+            )
+            dry = [b for b in blocked if b[3]]
+            waiting = [b for b in blocked if not b[3]]
+            parked = parked_summits(problems, nodes, evidence, statuses, asleep)
+            unmapped = unmapped_summits(problems, nodes, evidence, statuses)
+            if dry:
+                console.print("\nNothing to serve — the graph needs new problems mapped.")
+            elif waiting or parked:
+                console.print("\nNothing due today.")
+            else:
+                console.print("\nNothing to serve — every mapped move is solid and every summit is climbed.")
+            if waiting:
+                n = len(waiting)
+                console.print(f"[dim]{n} move{'s' if n > 1 else ''} waiting (make next --why)[/dim]")
+            if parked:
+                for pnum in parked:
+                    console.print(
+                        f"⛰  {pnum}. {problems[pnum]['title']} is ready and asleep — "
+                        f"`make wake {pnum}`")
+            if unmapped:
+                console.print(
+                    f"[dim]summits blocked only by an unmapped move (needs a node): "
+                    f"{', '.join(unmapped)}[/dim]")
 
         if not args.why:
             warn_dry(served=False)
@@ -899,11 +1020,11 @@ def main():
                 table.add_column("Move")
                 table.add_column("Status")
                 table.add_column("Why it can't be served")
-                for nid, status, why in blocked:
+                for nid, status, why, is_dry in blocked:
                     table.add_row(
                         nid,
                         f"[{STATUS_STYLE[status]}]{status}[/{STATUS_STYLE[status]}]",
-                        why,
+                        ("[yellow]dry:[/yellow] " if is_dry else "") + why,
                     )
                 console.print()
                 console.print(table)
