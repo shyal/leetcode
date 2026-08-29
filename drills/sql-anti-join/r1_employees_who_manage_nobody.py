@@ -3,7 +3,7 @@ DRILL: Employees Who Manage Nobody
 TRAINS: sql-anti-join
 
 Given the table Employees, return the employee_id of every employee who is not
-the manager of anyone. Order by employee_id.
+the manager of anyone. Any row order.
 
 Table: Employees
 

@@ -13,7 +13,6 @@ Table: RequestAccepted
     +----------------+---------+
     | requester_id   | int     |
     | accepter_id    | int     |
-    | accept_date    | date    |
     +----------------+---------+
     (requester_id, accepter_id) is the primary key.
 
@@ -21,14 +20,14 @@ Example 1:
 
 Input:
 RequestAccepted table:
-+--------------+-------------+-------------+
-| requester_id | accepter_id | accept_date |
-+--------------+-------------+-------------+
-| 1            | 2           | 2016-06-03  |
-| 1            | 3           | 2016-06-08  |
-| 2            | 3           | 2016-06-08  |
-| 3            | 4           | 2016-06-09  |
-+--------------+-------------+-------------+
++--------------+-------------+
+| requester_id | accepter_id |
++--------------+-------------+
+| 1            | 2           |
+| 1            | 3           |
+| 2            | 3           |
+| 3            | 4           |
++--------------+-------------+
 Output:
 +----+-----+
 | id | num |
@@ -41,13 +40,13 @@ Example 2:
 
 Input:
 RequestAccepted table:
-+--------------+-------------+-------------+
-| requester_id | accepter_id | accept_date |
-+--------------+-------------+-------------+
-| 5            | 1           | 2016-06-03  |
-| 6            | 1           | 2016-06-04  |
-| 1            | 7           | 2016-06-05  |
-+--------------+-------------+-------------+
++--------------+-------------+
+| requester_id | accepter_id |
++--------------+-------------+
+| 5            | 1           |
+| 6            | 1           |
+| 1            | 7           |
++--------------+-------------+
 Output:
 +----+-----+
 | id | num |
@@ -81,18 +80,18 @@ class Solution(SQLDrill):
 
 
 EXAMPLE_1 = """
-CREATE TABLE RequestAccepted (requester_id INTEGER, accepter_id INTEGER, accept_date TEXT);
-INSERT INTO RequestAccepted VALUES (1, 2, '2016-06-03');
-INSERT INTO RequestAccepted VALUES (1, 3, '2016-06-08');
-INSERT INTO RequestAccepted VALUES (2, 3, '2016-06-08');
-INSERT INTO RequestAccepted VALUES (3, 4, '2016-06-09');
+CREATE TABLE RequestAccepted (requester_id INTEGER, accepter_id INTEGER);
+INSERT INTO RequestAccepted VALUES (1, 2);
+INSERT INTO RequestAccepted VALUES (1, 3);
+INSERT INTO RequestAccepted VALUES (2, 3);
+INSERT INTO RequestAccepted VALUES (3, 4);
 """
 
 EXAMPLE_2 = """
-CREATE TABLE RequestAccepted (requester_id INTEGER, accepter_id INTEGER, accept_date TEXT);
-INSERT INTO RequestAccepted VALUES (5, 1, '2016-06-03');
-INSERT INTO RequestAccepted VALUES (6, 1, '2016-06-04');
-INSERT INTO RequestAccepted VALUES (1, 7, '2016-06-05');
+CREATE TABLE RequestAccepted (requester_id INTEGER, accepter_id INTEGER);
+INSERT INTO RequestAccepted VALUES (5, 1);
+INSERT INTO RequestAccepted VALUES (6, 1);
+INSERT INTO RequestAccepted VALUES (1, 7);
 """
 
 

@@ -4,7 +4,7 @@ TRAINS: sql-window-offset
 
 Given the table Logs, return every num that appears at least three times in a
 row when the rows are ordered by id. Each qualifying num appears once in the
-result. Order by num.
+result. Any row order.
 
 Table: Logs
 

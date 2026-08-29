@@ -4,7 +4,7 @@ TRAINS: sql-window-rank
 
 Given the table Scores, return score and rank for every row, ranked from
 highest score to lowest. Equal scores share a rank, and the rank after a tie
-is the next consecutive integer: no holes. Order by score descending.
+is the next consecutive integer: no holes. Any row order.
 
 Table: Scores
 
@@ -109,5 +109,5 @@ sol = Solution()
 
 sol.show(EXAMPLE_1)
 
-# assert sol.run(EXAMPLE_1) == [(4.0, 1), (4.0, 1), (3.85, 2), (3.65, 3), (3.65, 3), (3.5, 4)]
+# assert sol.run(EXAMPLE_1) == [(3.5, 4), (3.65, 3), (3.65, 3), (3.85, 2), (4.0, 1), (4.0, 1)]
 # assert sol.run(EXAMPLE_2) == [(7.0, 1), (7.0, 1), (7.0, 1)]

@@ -3,8 +3,7 @@ DRILL: Sales In Each Product's First Year
 TRAINS: sql-subquery
 
 Given the table Sales, return product_id, first_year, quantity and price for
-every sale that happened in the first year its product was sold. Order by
-product_id, then sale_id.
+every sale that happened in the first year its product was sold. Any row order.
 
 Table: Sales
 

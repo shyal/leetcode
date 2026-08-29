@@ -102,5 +102,5 @@ sol = Solution()
 
 sol.show(EXAMPLE_1)
 
-# assert sol.run(EXAMPLE_1) == [(5, 'House card', 'Interesting', 9.1), (1, 'War', 'great 3D', 8.9)]
-# assert sol.run(EXAMPLE_2) == []
+# assert sol.run(EXAMPLE_1, ordered=True) == [(5, 'House card', 'Interesting', 9.1), (1, 'War', 'great 3D', 8.9)]
+# assert sol.run(EXAMPLE_2, ordered=True) == []

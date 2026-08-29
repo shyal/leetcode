@@ -4,7 +4,7 @@ TRAINS: sql-null-semantics
 
 Given the table Customer, return the name of every customer who was not
 referred by the customer with id 2. A customer with no referee counts as not
-referred by 2. Order by id.
+referred by 2. Any row order.
 
 Table: Customer
 
@@ -106,5 +106,5 @@ sol = Solution()
 
 sol.show(EXAMPLE_1)
 
-# assert sol.run(EXAMPLE_1) == [('Will',), ('Jane',), ('Bill',), ('Zack',)]
+# assert sol.run(EXAMPLE_1) == [('Bill',), ('Jane',), ('Will',), ('Zack',)]
 # assert sol.run(EXAMPLE_2) == [('Ann',), ('Ben',)]
