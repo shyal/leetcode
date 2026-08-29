@@ -12,6 +12,9 @@
 #   make next sql              # --group sql: rules 1-3 over one curated group only
 #   make next -- --prepare     # makefile form of --prepare (-- stops make's
 #                              # option parsing; %: swallows the extra goal)
+#   KG_NO_PLAN=1 make next     # skip today's frozen study plan (data/study_plan/)
+#                              # entirely: no freezing, no plan items - rules
+#                              # -1..4 only
 #
 # Picking rules (same preference order the /next coach uses):
 #   -1. session start (fewer than 2 solves since Manila midnight): the
@@ -729,7 +732,10 @@ def load_plan():
     """Today's frozen study plan (data/study_plan/<date>.json). On the first
     run of a new day the file does not exist yet, so build it — kg_today is
     idempotent, and freezing at first serve keeps the determinism boundary:
-    judgment runs once, then serving is a pure function of (plan, evidence)."""
+    judgment runs once, then serving is a pure function of (plan, evidence).
+    KG_NO_PLAN=1 disables the plan altogether (nothing is frozen either)."""
+    if os.environ.get("KG_NO_PLAN", "").strip() not in ("", "0"):
+        return None
     path = os.path.join(
         os.path.dirname(GRAPH_DIR), "data", "study_plan", f"{date.today().isoformat()}.json"
     )
