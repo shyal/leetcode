@@ -2,15 +2,15 @@
 
 # Cracking Leetcode
 
-I've recently come to the realization that leetcode was never about solving the problems, as i was trying to do in the past, but was always about cracking leetcode itself. Leetcoders often complain about only being able to remember a fixed number of solves and techniques, and their memory essentially functioning as an LRU cache.
+I've recently come to the realization that leetcode was never about solving the problems, as i was trying to do in the past, but was always about cracking leetcode itself. Leetcoders often complain about only being able to remember a fixed number of solves and techniques, and their memory essentially functioning as an LRU cache [[1]](https://leetcode.com/discuss/study-guide/3000556/Forget-the-logic-and-structure-of-a-problem-that-I-solved-before.) [[2]](https://leetcode.com/discuss/study-guide/3000556/Forget-the-logic-and-structure-of-a-problem-that-I-solved-before.) [[3]](https://leetcode.com/discuss/general-discussion/1592466/tips-on-how-to-not-forgetting-solutionsapproaches/) [[4]](https://leetcode.com/discuss/general-discussion/1099326/how-you-guys-remember-leetcode-questions-during-the-interview-any-tips/) [[5]](https://leetcode.com/discuss/general-discussion/451042/suggest-best-way-to-remember-a-solution) [[6]](https://leetcode.com/discuss/post/8345508/) [[7]](https://leetcode.com/discuss/post/8351692/) [[8]](https://www.quora.com/Even-if-I-solve-200-algorithm-questions-on-LeetCode-and-think-that-I-understood-solutions-after-2-months-without-solving-any-question-when-I-try-to-solve-them-again-I-cant-remember-some-of-the-solutions-What-should) [[9]](https://news.ycombinator.com/item?id=46203581) [[10]](https://dev.to/anjandutta/i-failed-5-coding-interviews-despite-solving-200-leetcode-problems-heres-what-fixed-it-4f5c) [[11]](https://dev.to/neelbansal/the-leetcode-amnesia-problem-and-how-i-fixed-it-4i7n) [[12]](https://dev.to/alex_hunter_44f4c9ed6671e/system-design-for-your-brain-architecting-a-scalable-leetcode-retention-strategy-3aah).
 
 My solution to this problem, in the past, was the use of Anki, and while Anki helped a lot, it created a problem of its own: it meant keeping a separate asset, and constantly having to work with both Anki and the actual learning + solving. This approach felt heavy. In November 2025, i started dumping my solve history in an LLM's context, and asking for what to work on next. This was a leaner approach, however in retrospect, although the scheduling felt good, it wasn't.
 
-So, here's my new approach: i decided on a new thesis: to focus on the core techniques behind each solve, and treat those like the key asset that needs to be kept solid, via spaced repetition. With the repo's tooling, i can now run `make next` which scans my solve graph and evidence, finds fragile or stale nodes, and recommends what to work on next.
+So, here's my new approach: i decided on a new thesis: to focus on the core techniques behind each solve, and treat those like the key asset that needs to be kept solid, via spaced repetition. Of course classifying thousands of solves into a personal knowledge graph was always the answer to pick the signal from the noise. It always is the answer. It's just that up until now, it wasn't feasible without significant resources. Well, now it is feasible, for a douzen dollars (i'll write up on the extraction process soon). So with the repo's tooling, i can now run `make next` which scans my solve graph and evidence, finds fragile or stale nodes, and recommends what to work on next.
 
 <!-- KG_MOVIE -->
 
-![Technique graph growing solve by solve](https://shyal.s3.amazonaws.com/kg_movie_20260829125617.svg)
+![Technique graph growing solve by solve](https://shyal.s3.amazonaws.com/kg_movie_20260829133733.svg)
 
 <!-- /KG_MOVIE -->
 
@@ -97,6 +97,7 @@ What the clock does see is two drivers, and they were my gut ranking before i ra
 <!-- SOLVETIME_CHART -->
 
 ![The two drivers of solve time](https://shyal.s3.amazonaws.com/solvetime_20260829125617.svg)
+
 <!-- /SOLVETIME_CHART -->
 
 The connectivity effect, zoomed in. Every timed solve as a dot, against how many problems in the bank share its moves. The scatter is honest about the size of the effect: the running medians sit flat until a walk's moves are shared by roughly thirty problems, then bend down. It isn't a smooth discount, it's a threshold: moves need a critical mass of carriers before the free rehearsal shows up in the clock.
@@ -104,6 +105,7 @@ The connectivity effect, zoomed in. Every timed solve as a dot, against how many
 <!-- CONNECTIVITY_CHART -->
 
 ![Move connectivity vs solve time](https://shyal.s3.amazonaws.com/connectivity_20260829125617.svg)
+
 <!-- /CONNECTIVITY_CHART -->
 
 The payoff metric is problems in reach: a problem is in reach when every move in its walk is currently solid. This replays today's walked problems against each day's historical node states, so the curve measures my skill moving under a fixed yardstick, not the catalog growing.
@@ -134,7 +136,11 @@ https://leetcode.com/problems/subarray-sum-equals-k/
 
 ```
 
-![560 input tree, one stale node](https://shyal.s3.amazonaws.com/zpd_560_input_tree.png)
+<!-- ZPD_SVG -->
+
+![The input tree of each of my last 50 solves, one per second](https://shyal.s3.amazonaws.com/zpd_20260829135029.svg)
+
+<!-- /ZPD_SVG -->
 
 ## Solve rate
 
@@ -143,6 +149,7 @@ Solves and drills per day, then the unique ones. Uniques are tracked separately 
 <!-- SOLVES_CHART -->
 
 ![Solves and drills per day](https://shyal.s3.amazonaws.com/rates_20260829125617.svg)
+
 <!-- /SOLVES_CHART -->
 
 ## Readiness

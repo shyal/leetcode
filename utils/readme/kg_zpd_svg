@@ -1,0 +1,146 @@
+#!/usr/bin/env python3
+
+# kg_zpd_svg — the zone of proximal development, one solve after another:
+# the input tree of each of the last N solves (leetcode problems and bank
+# drills alike; a drill is a solve we wrote ourselves), drawn exactly as
+# `make next` drew it at the time (node statuses as they stood right before
+# that solve), replayed as SMIL frames at one solve per second into
+# graph/zpd.svg for the README pipeline.
+#
+#   make readme                # regenerates it and embeds it via S3
+#
+# Each frame is a graphviz layout (kg_render styling, labeled nodes) of the
+# problem's transitive prerequisite closure, centred on a shared canvas. The
+# statuses are derived from the evidence that existed before the solve file
+# was written, evaluated on the solve's date, so a node the solve refreshed
+# still shows as STALE in its own frame. A problem's walk comes from
+# problems.json; a drill's walk is the moves its evidence record carries
+# (its TRAINS header), its title the d_ filename stem.
+# Pure SMIL, so it plays inside GitHub's camo/<img> pipeline and loops.
+
+import os
+import re
+import sys
+import xml.etree.ElementTree as ET
+from datetime import date
+
+from kg.kg_lib import GRAPH_DIR, input_tree, load_evidence, load_nodes, load_problems, node_status
+from kg.kg_render import make_digraph, status_node
+
+OUT = os.path.join(GRAPH_DIR, "zpd.svg")
+N_SOLVES = 50
+SECS_PER_FRAME = 1.0
+SURFACE = "#0d1117"
+INK_MUTED = "#8b949e"
+PAD = 24
+SVG_NS = "http://www.w3.org/2000/svg"
+XLINK_NS = "http://www.w3.org/1999/xlink"
+
+
+def walk_of(key, rec, problems):
+    """(title, moves) a solve record was the carrier for: the problem's
+    mapped walk, or the drill's trained moves. None when there is no walk."""
+    if key.startswith("solved/p"):
+        p = problems.get(rec["problem"])
+        if p and p.get("moves"):
+            return f"{rec['problem']}. {p['title']}", list(p["moves"])
+    elif key.startswith("solved/d_") and rec.get("moves"):
+        stem = re.sub(r"_\d{4}_\d{2}_\d{2}T.*$", "", os.path.basename(key)[2:])
+        return f"drill: {stem.replace('_', ' ')}", list(rec["moves"])
+    return None
+
+
+def last_solves(evidence, problems, n):
+    """The last n solve records (problems and drills) that have a walk,
+    oldest first, each with the evidence keys written before it."""
+    keys = [k for k in evidence if k.startswith("solved/")]
+    solves = []
+    for i, k in enumerate(keys):
+        walk = walk_of(k, evidence[k], problems)
+        if walk:
+            solves.append((k, walk, keys[:i]))
+    return solves[-n:]
+
+
+def frame_svg(title, moves, solve_date, prior, nodes):
+    """Render one input tree with graphviz; return the SVG source."""
+    tree = input_tree(moves, nodes)
+    dot = make_digraph("input-tree")
+    dot.graph_attr["bgcolor"] = "transparent"
+    for n in tree:
+        s, d = node_status(n, prior, today=solve_date)
+        status_node(dot, n, nodes[n], s, d, highlight=(n in moves), labeled=True)
+    for n in tree:
+        for pre in nodes[n].get("prereqs", []):
+            if pre in tree:
+                dot.edge(pre, n)
+    dot.node("carrier", label=title, shape="box", style="filled",
+             fillcolor="#1f6feb", color="#c9d1d9", penwidth="2", fontsize="13",
+             margin="0.2,0.12")
+    for m in moves:
+        if m in nodes:
+            dot.edge(m, "carrier", penwidth="1.4")
+    return dot.pipe(format="svg").decode()
+
+
+def parse_frame(svg_src):
+    """(width, height, inner_xml) of a graphviz SVG: the graph0 group with
+    its transform, minus the background polygon and the <title>s."""
+    ET.register_namespace("", SVG_NS)
+    ET.register_namespace("xlink", XLINK_NS)
+    root = ET.fromstring(svg_src)
+    vb = [float(v) for v in root.get("viewBox").split()]
+    g = root.find(f"{{{SVG_NS}}}g")
+    for child in list(g):
+        if child.tag in (f"{{{SVG_NS}}}polygon", f"{{{SVG_NS}}}title"):
+            g.remove(child)
+    for t in g.iter(f"{{{SVG_NS}}}title"):
+        t.text = ""
+    body = ET.tostring(g, encoding="unicode")
+    body = re.sub(r'\s+xmlns(:xlink)?="[^"]*"', "", body)
+    return vb[2], vb[3], body
+
+
+def main():
+    evidence = load_evidence()
+    problems = load_problems()
+    nodes = load_nodes()
+    solves = last_solves(evidence, problems, N_SOLVES)
+    if not solves:
+        print("kg_zpd_svg: no solves with mapped walks", file=sys.stderr)
+        return
+    frames = []
+    for key, (title, moves), before in solves:
+        prior = {k: evidence[k] for k in before}
+        d = date.fromisoformat(evidence[key]["date"])
+        w, h, body = parse_frame(frame_svg(title, moves, d, prior, nodes))
+        frames.append((w, h, body, title, d))
+
+    W = max(w for w, *_ in frames) + 2 * PAD
+    H = max(h for _, h, *_ in frames) + 2 * PAD + 28
+    n = len(frames)
+    dur = n * SECS_PER_FRAME
+    out = [
+        f'<svg xmlns="{SVG_NS}" xmlns:xlink="{XLINK_NS}" width="{W:.0f}" height="{H:.0f}" '
+        f'viewBox="0 0 {W:.0f} {H:.0f}">',
+        f'<rect width="100%" height="100%" fill="{SURFACE}"/>',
+    ]
+    for i, (w, h, body, _, d) in enumerate(frames):
+        t0, t1 = i / n, (i + 1) / n
+        vis = (f'<animate attributeName="visibility" calcMode="discrete" '
+               f'values="hidden;visible;hidden;hidden" keyTimes="0;{t0:.5f};{t1:.5f};1" '
+               f'dur="{dur}s" repeatCount="indefinite"/>')
+        x = (W - w) / 2
+        y = (H - 28 - h) / 2 + 28
+        out.append(f'<g visibility="hidden">{vis}'
+                   f'<text x="{PAD}" y="22" font-family="Helvetica,sans-serif" font-size="12" '
+                   f'fill="{INK_MUTED}">{d.isoformat()}  solve {i + 1}/{n}</text>'
+                   f'<g transform="translate({x:.2f} {y:.2f})">{body}</g></g>')
+    out.append("</svg>")
+    with open(OUT, "w") as f:
+        f.write("\n".join(out))
+    print(f"wrote {OUT}: {n} solves, {dur:.0f}s loop, {W:.0f}x{H:.0f}")
+
+
+if __name__ == "__main__":
+    main()
