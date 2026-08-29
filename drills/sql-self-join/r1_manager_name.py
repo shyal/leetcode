@@ -2,10 +2,9 @@
 DRILL: Manager Name
 TRAINS: sql-self-join
 
-Given the table Employees, return employee_id, name and manager_name for every
-employee who has a manager: manager_name is the name of the employee that
-reports_to points at. Employees with no manager do not appear. Order by
-employee_id.
+Given the table Employees, return name and manager_name for every employee
+who has a manager: manager_name is the name of the employee that reports_to
+points at. Employees with no manager do not appear. Any row order.
 
 Table: Employees
 
@@ -15,7 +14,6 @@ Table: Employees
     | employee_id | int      |
     | name        | varchar  |
     | reports_to  | int      |
-    | age         | int      |
     +-------------+----------+
     employee_id is the primary key. reports_to is the manager's employee_id, or NULL.
 
@@ -23,41 +21,41 @@ Example 1:
 
 Input:
 Employees table:
-+-------------+---------+------------+-----+
-| employee_id | name    | reports_to | age |
-+-------------+---------+------------+-----+
-| 9           | Hercy   | null       | 43  |
-| 6           | Alice   | 9          | 41  |
-| 4           | Bob     | 9          | 36  |
-| 2           | Winston | null       | 37  |
-+-------------+---------+------------+-----+
++-------------+---------+------------+
+| employee_id | name    | reports_to |
++-------------+---------+------------+
+| 9           | Hercy   | null       |
+| 6           | Alice   | 9          |
+| 4           | Bob     | 9          |
+| 2           | Winston | null       |
++-------------+---------+------------+
 Output:
-+-------------+-------+--------------+
-| employee_id | name  | manager_name |
-+-------------+-------+--------------+
-| 4           | Bob   | Hercy        |
-| 6           | Alice | Hercy        |
-+-------------+-------+--------------+
++-------+--------------+
+| name  | manager_name |
++-------+--------------+
+| Alice | Hercy        |
+| Bob   | Hercy        |
++-------+--------------+
 Explanation: Alice and Bob report to Hercy. Hercy and Winston have no manager.
 
 Example 2:
 
 Input:
 Employees table:
-+-------------+------+------------+-----+
-| employee_id | name | reports_to | age |
-+-------------+------+------------+-----+
-| 1           | Ann  | null       | 50  |
-| 2           | Bob  | 1          | 40  |
-| 3           | Cal  | 2          | 30  |
-+-------------+------+------------+-----+
++-------------+------+------------+
+| employee_id | name | reports_to |
++-------------+------+------------+
+| 1           | Ann  | null       |
+| 2           | Bob  | 1          |
+| 3           | Cal  | 2          |
++-------------+------+------------+
 Output:
-+-------------+------+--------------+
-| employee_id | name | manager_name |
-+-------------+------+--------------+
-| 2           | Bob  | Ann          |
-| 3           | Cal  | Bob          |
-+-------------+------+--------------+
++------+--------------+
+| name | manager_name |
++------+--------------+
+| Bob  | Ann          |
+| Cal  | Bob          |
++------+--------------+
 Explanation: A chain: Bob reports to Ann, Cal reports to Bob.
 
 Constraints:
@@ -84,18 +82,18 @@ class Solution(SQLDrill):
 
 
 EXAMPLE_1 = """
-CREATE TABLE Employees (employee_id INTEGER, name TEXT, reports_to INTEGER, age INTEGER);
-INSERT INTO Employees VALUES (9, 'Hercy', NULL, 43);
-INSERT INTO Employees VALUES (6, 'Alice', 9, 41);
-INSERT INTO Employees VALUES (4, 'Bob', 9, 36);
-INSERT INTO Employees VALUES (2, 'Winston', NULL, 37);
+CREATE TABLE Employees (employee_id INTEGER, name TEXT, reports_to INTEGER);
+INSERT INTO Employees VALUES (9, 'Hercy', NULL);
+INSERT INTO Employees VALUES (6, 'Alice', 9);
+INSERT INTO Employees VALUES (4, 'Bob', 9);
+INSERT INTO Employees VALUES (2, 'Winston', NULL);
 """
 
 EXAMPLE_2 = """
-CREATE TABLE Employees (employee_id INTEGER, name TEXT, reports_to INTEGER, age INTEGER);
-INSERT INTO Employees VALUES (1, 'Ann', NULL, 50);
-INSERT INTO Employees VALUES (2, 'Bob', 1, 40);
-INSERT INTO Employees VALUES (3, 'Cal', 2, 30);
+CREATE TABLE Employees (employee_id INTEGER, name TEXT, reports_to INTEGER);
+INSERT INTO Employees VALUES (1, 'Ann', NULL);
+INSERT INTO Employees VALUES (2, 'Bob', 1);
+INSERT INTO Employees VALUES (3, 'Cal', 2);
 """
 
 
@@ -103,5 +101,5 @@ sol = Solution()
 
 sol.show(EXAMPLE_1)
 
-# assert sol.run(EXAMPLE_1) == [(4, 'Bob', 'Hercy'), (6, 'Alice', 'Hercy')]
-# assert sol.run(EXAMPLE_2) == [(2, 'Bob', 'Ann'), (3, 'Cal', 'Bob')]
+# assert sorted(sol.run(EXAMPLE_1)) == [('Alice', 'Hercy'), ('Bob', 'Hercy')]
+# assert sorted(sol.run(EXAMPLE_2)) == [('Bob', 'Ann'), ('Cal', 'Bob')]
