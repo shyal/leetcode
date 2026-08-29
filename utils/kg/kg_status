@@ -1,0 +1,169 @@
+#!/usr/bin/env python3
+
+# kg_status — graph health report.
+#
+#   utils/kg/kg_status            # counts, then the named grid by group
+#   utils/kg/kg_status --summary  # counts only (what `make` on master prints)
+#
+# Days-to-all-green is remaining non-SOLID / nodes-turned-SOLID per day
+# over the last 7 calendar days (including today).
+#
+# Colors: green = SOLID, yellow = STALE, red = FRAGILE, dim = MISSING.
+# Derivation lives in kg_lib.node_status(); nothing is stored.
+
+import argparse
+import math
+from collections import Counter, defaultdict
+from datetime import date, timedelta
+from rich.console import Console
+from rich.table import Table
+from rich.text import Text
+
+from kg.kg_lib import (
+    load_nodes, load_problems, load_evidence, node_status,
+    SOLID, STALE, FRAGILE, MISSING,
+    sleep_records, sleep_state, input_tree,
+)
+
+console = Console()
+
+STYLE = {SOLID: "green", STALE: "yellow", FRAGILE: "red", MISSING: "dim"}
+ORDER = (SOLID, STALE, FRAGILE, MISSING)
+
+
+def fading_count(nodes, evidence):
+    soon = date.today() + timedelta(days=7)
+    n = 0
+    for node_id in nodes:
+        status, _ = node_status(node_id, evidence)
+        if status == SOLID and node_status(node_id, evidence, today=soon)[0] != SOLID:
+            n += 1
+    return n
+
+
+def _rec_date(rec):
+    try:
+        return date.fromisoformat(rec["date"])
+    except (KeyError, ValueError, TypeError):
+        return None
+
+
+def evidence_through(evidence, last):
+    """Evidence dated on or before `last`."""
+    out = {}
+    for key, rec in evidence.items():
+        d = _rec_date(rec)
+        if d is not None and d <= last:
+            out[key] = rec
+    return out
+
+
+def greened_per_day(nodes, evidence, days=7, today=None):
+    """Mean nodes that flipped to SOLID per calendar day over the last `days`."""
+    today = today or date.today()
+    greened = 0
+    for i in range(days - 1, -1, -1):
+        day = today - timedelta(days=i)
+        before = evidence_through(evidence, day - timedelta(days=1))
+        after = evidence_through(evidence, day)
+        for node_id in nodes:
+            if (node_status(node_id, before, today=day)[0] != SOLID
+                    and node_status(node_id, after, today=day)[0] == SOLID):
+                greened += 1
+    return greened / days
+
+
+def eta_line(remaining, pace):
+    """Human line for days-to-all-green at the trailing pace."""
+    if remaining <= 0:
+        return "all nodes green"
+    if pace <= 0:
+        return f"{remaining} to green · no greening in the last 7 days"
+    days = math.ceil(remaining / pace)
+    pace_txt = f"{pace:.1f} greened/day (last 7 days)"
+    if days <= 1:
+        return f"all green later today · {pace_txt}"
+    return f"~{days} days to all green · {pace_txt}"
+
+
+def print_report(counts, n_problems, n_fading, remaining, pace):
+    total = sum(counts.values())
+    console.print(f"\n[bold]Technique graph[/bold] · {total} nodes")
+    table = Table(show_header=False, box=None, padding=(0, 2))
+    table.add_column("swatch")
+    table.add_column("status")
+    table.add_column("n", justify="right")
+    table.add_column("pct", justify="right", style="dim")
+    for status in ORDER:
+        n = counts[status]
+        pct = f"{100 * n / total:.0f}%" if total else "-"
+        table.add_row(
+            Text("■", style=STYLE[status]),
+            Text(status, style=STYLE[status]),
+            str(n),
+            pct,
+        )
+    console.print(table)
+    extras = [f"{n_problems} problems mapped"]
+    if n_fading:
+        extras.append(f"{n_fading} fade within 7 days")
+    console.print("[dim]" + " · ".join(extras) + "[/dim]")
+    console.print(eta_line(remaining, pace))
+
+
+def print_grid(groups):
+    table = Table(title="by group", title_style="dim", show_header=False, box=None, padding=(0, 1))
+    table.add_column("group", style="bold", no_wrap=True)
+    table.add_column("nodes")
+    for group, members in groups.items():
+        line = Text()
+        for i, (node_id, status) in enumerate(members):
+            if i:
+                line.append("  ")
+            line.append(node_id, style=STYLE[status])
+        table.add_row(group, line)
+    console.print()
+    console.print(table)
+
+
+def print_sleep(nodes, problems, evidence):
+    recs = sleep_records(problems, evidence)
+    if not recs:
+        return
+    asleep, _ = sleep_state(nodes, problems, evidence)
+    for p in asleep:
+        rusty = sorted(n for n in input_tree(problems[p]["moves"], nodes)
+                       if node_status(n, evidence)[0] != SOLID)
+        cycles = f" (slept x{recs[p]['cycles']})" if recs[p]["cycles"] > 1 else ""
+        ground = (f"kg_next is warming: {', '.join(rusty)}" if rusty
+                  else "ground solid, simmering")
+        console.print(f"💤 [bold]{p}. {recs[p]['title']}[/bold]{cycles} parked - "
+                      f"{ground} - make wake {p} when you choose")
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Graph health report.")
+    parser.add_argument("--summary", action="store_true",
+                        help="counts only, no named grid")
+    args = parser.parse_args()
+
+    nodes = load_nodes()
+    evidence = load_evidence()
+    groups = defaultdict(list)
+    counts = Counter()
+    for node_id, node in nodes.items():
+        status, _ = node_status(node_id, evidence)
+        groups[node["group"]].append((node_id, status))
+        counts[status] += 1
+
+    remaining = counts[STALE] + counts[FRAGILE] + counts[MISSING]
+    pace = greened_per_day(nodes, evidence)
+    print_report(counts, len(load_problems()), fading_count(nodes, evidence),
+                 remaining, pace)
+    if not args.summary:
+        print_grid(groups)
+    print_sleep(nodes, load_problems(), evidence)
+
+
+if __name__ == "__main__":
+    main()
