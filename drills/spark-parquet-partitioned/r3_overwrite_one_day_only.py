@@ -53,10 +53,12 @@ Constraints:
 
 from pyspark.sql import functions as F
 
-from dsa.spark import SparkDrill, scratch_dir, spark_session
+from dsa.spark import SparkDrill, scratch_dir
 
 
 class Solution(SparkDrill):
+
+    engine = "jvm"  # dynamic partition overwrite needs real Spark
 
     def write(self, solves, path: str) -> None:
         pass
@@ -67,7 +69,7 @@ SOLVES = "file string, date string, problem string"
 
 def after_writes(*batches):
     path = scratch_dir()
-    spark = spark_session()
+    spark = sol.spark
     for rows in batches:
         sol.write(spark.createDataFrame(rows, SOLVES), path)
     try:

@@ -53,10 +53,12 @@ import io
 
 from pyspark.sql import functions as F
 
-from dsa.spark import SparkDrill, null_safe, scratch_dir, spark_session
+from dsa.spark import SparkDrill, null_safe, scratch_dir
 
 
 class Solution(SparkDrill):
+
+    engine = "jvm"  # PartitionFilters is Spark's own plan text
 
     def read(self, path: str, day: str):
         pass
@@ -76,7 +78,7 @@ class Solution(SparkDrill):
 
 
 def prepared_path():
-    spark = spark_session()
+    spark = sol.spark
     path = scratch_dir()
     rows = [("a.py", "2026-08-28", "1"), ("b.py", "2026-08-28", "42"),
             ("c.py", "2026-08-29", "1"), ("d.py", "2026-08-29", "76")]

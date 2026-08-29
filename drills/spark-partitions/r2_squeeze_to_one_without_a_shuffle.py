@@ -61,6 +61,8 @@ from dsa.spark import SparkDrill
 
 class Solution(SparkDrill):
 
+    engine = "jvm"  # df.rdd and the plan need real Spark
+
     def transform(self, solves):
         pass
 
