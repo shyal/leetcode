@@ -2,8 +2,8 @@
 DRILL: Latest Verdict Per Node
 TRAINS: spark-window-rank
 
-Given the DataFrame verdicts, return node_id, date and verdict of the most
-recent verdict on each node. Any row order.
+Given the DataFrame `verdicts`, return `node_id`, `date` and `verdict` of
+the most recent verdict on each node. No ordering required.
 
 DataFrame: verdicts
 

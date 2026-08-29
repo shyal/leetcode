@@ -2,9 +2,10 @@
 DRILL: Days Since Last Rep
 TRAINS: spark-window-offset
 
-Given the DataFrame verdicts, return every row with a new integer column
-gap: the number of days between this verdict and the previous verdict on
-the same node. The first verdict on a node gets a null gap. Any row order.
+Given the DataFrame `verdicts`, return every row with a new integer column
+`gap`: the number of days between this verdict and the previous verdict on
+the same `node_id`. The first verdict on a node gets a null `gap`. No
+ordering required.
 
 DataFrame: verdicts
 

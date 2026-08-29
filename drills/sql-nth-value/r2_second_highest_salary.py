@@ -2,9 +2,9 @@
 DRILL: Second Highest Salary
 TRAINS: sql-nth-value, sql-subquery
 
-Given the table Employee, return the second highest distinct salary as a
-single row with one column, SecondHighestSalary. If there is no second highest
-salary, return one row containing NULL.
+Given the table `Employee`, return the second highest distinct `salary` as
+a single row with one column, `SecondHighestSalary`. If there is no second
+highest salary, return one row containing NULL.
 
 Table: Employee
 

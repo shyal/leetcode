@@ -2,9 +2,9 @@
 DRILL: Percentage Of All Users Per Contest
 TRAINS: sql-subquery
 
-Given the tables Users and Register, return each contest_id with percentage:
-the share of all users registered in that contest, as a percentage rounded to
-2 decimal places. Any row order.
+Given the tables `Users` and `Register`, return each `contest_id` with
+`percentage`: the share of all users registered in that contest, as a
+percentage rounded to 2 decimal places. No ordering required.
 
 Table: Users
 

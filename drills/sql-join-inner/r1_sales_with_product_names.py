@@ -2,8 +2,8 @@
 DRILL: Sales With Product Names
 TRAINS: sql-join-inner
 
-Given the tables Sales and Product, return product_name, year and price for
-every sale. Any row order.
+Given the tables `Sales` and `Product`, return `product_name`, `year` and
+`price` for every sale. No ordering required.
 
 Table: Sales
 

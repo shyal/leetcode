@@ -2,9 +2,9 @@
 DRILL: Total Users Per Contest
 TRAINS: sql-subquery
 
-Given the tables Users and Register, return one row per contest_id with
-total_users: the number of rows in Users. The value is the same on every row.
-Any row order.
+Given the tables `Users` and `Register`, return one row per `contest_id`
+with `total_users`: the number of rows in `Users`. The value is the same on
+every row. No ordering required.
 
 Table: Users
 

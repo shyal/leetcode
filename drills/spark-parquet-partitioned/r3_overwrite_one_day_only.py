@@ -2,10 +2,10 @@
 DRILL: Overwrite One Day Only
 TRAINS: spark-parquet-partitioned
 
-Given the DataFrame solves and a path, write solves there as Parquet laid
-out one directory per date, replacing every date present in solves and
-leaving every other date already at path untouched. Running the same write
-twice must leave the data as after one run. Return nothing.
+Given the DataFrame `solves` and a `path`, write `solves` there as Parquet
+laid out one directory per `date`, replacing every date present in `solves`
+and leaving every other date already at `path` untouched. Running the same
+write twice must leave the data as after one run. Return nothing.
 
 DataFrame: solves
 

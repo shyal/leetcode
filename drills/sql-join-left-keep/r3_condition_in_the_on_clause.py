@@ -2,10 +2,11 @@
 DRILL: Average Selling Price With Date Ranges
 TRAINS: sql-join-left-keep, sql-group-aggregate
 
-Given the tables Prices and UnitsSold, return the average selling price of
-each product, rounded to 2 decimal places: total money taken divided by total
-units, where each unit is priced by the range its purchase_date falls in. A
-product with no units sold has an average price of 0. Any row order.
+Given the tables `Prices` and `UnitsSold`, return the average selling price
+of each product, rounded to 2 decimal places: total money taken divided by
+total units, where each unit is priced by the range its `purchase_date`
+falls in. A product with no units sold has an average price of 0. No
+ordering required.
 
 Table: Prices
 

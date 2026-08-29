@@ -2,8 +2,9 @@
 DRILL: Unique Id Or Null
 TRAINS: sql-join-left-keep
 
-Given the tables Employees and EmployeeUNI, return the unique_id and name of
-every employee. Show NULL as the unique_id when the employee has none. Any row order.
+Given the tables `Employees` and `EmployeeUNI`, return the `unique_id` and
+`name` of every employee. Show NULL as the `unique_id` when the employee has
+none. No ordering required.
 
 Table: Employees
 

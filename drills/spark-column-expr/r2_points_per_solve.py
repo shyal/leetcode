@@ -2,9 +2,9 @@
 DRILL: Points Per Solve
 TRAINS: spark-column-expr
 
-Given the DataFrame solves, return every row with a new integer column
-points: 3 when assist is 'none', 2 when 'hint', 1 when 'walkthrough', and 0
-for anything else. Any row order.
+Given the DataFrame `solves`, return every row with a new integer column
+`points`: 3 when `assist` is 'none', 2 when 'hint', 1 when 'walkthrough',
+and 0 for anything else. No ordering required.
 
 DataFrame: solves
 

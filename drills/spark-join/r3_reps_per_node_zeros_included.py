@@ -2,9 +2,9 @@
 DRILL: Reps Per Node, Zeros Included
 TRAINS: spark-join, spark-group-agg
 
-Given the DataFrames nodes and verdicts, return id and reps for every node,
-where reps is the number of verdicts on that node. A node with no verdict
-gets reps 0. Any row order.
+Given the DataFrames `nodes` and `verdicts`, return `id` and `reps` for
+every node, where `reps` is the number of verdicts on that node. A node with
+no verdict gets `reps` 0. No ordering required.
 
 DataFrame: nodes
 

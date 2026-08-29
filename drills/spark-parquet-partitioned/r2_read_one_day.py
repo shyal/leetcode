@@ -2,9 +2,9 @@
 DRILL: Read One Day
 TRAINS: spark-parquet-partitioned
 
-Given a path holding solves as Parquet laid out one directory per date,
-and a date string day, return file and problem for every solve on that day
-while reading only that day's directory. Any row order.
+Given a `path` holding solves as Parquet laid out one directory per `date`,
+and a date string `day`, return `file` and `problem` for every solve on that
+day while reading only that day's directory. No ordering required.
 
 Layout under path:
 

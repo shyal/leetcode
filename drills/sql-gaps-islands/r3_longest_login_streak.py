@@ -2,9 +2,9 @@
 DRILL: Longest Login Streak Per User
 TRAINS: sql-gaps-islands, sql-date-arithmetic
 
-Given the table Logins with one row per user per day they logged in, return
-user_id and streak: the length of that user's longest run of consecutive
-calendar days with a login. Any row order.
+Given the table `Logins` with one row per user per day they logged in,
+return `user_id` and `streak`: the length of that user's longest run of
+consecutive calendar days with a login. No ordering required.
 
 Table: Logins
 

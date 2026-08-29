@@ -2,9 +2,9 @@
 DRILL: Consecutive Numbers
 TRAINS: sql-window-offset
 
-Given the table Logs, return every num that appears at least three times in a
-row when the rows are ordered by id. Each qualifying num appears once in the
-result. Any row order.
+Given the table `Logs`, return every `num` that appears at least three
+times in a row when the rows are ordered by `id`. Each qualifying `num`
+appears once in the result. No ordering required.
 
 Table: Logs
 

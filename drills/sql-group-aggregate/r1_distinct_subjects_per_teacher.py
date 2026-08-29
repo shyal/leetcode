@@ -2,8 +2,8 @@
 DRILL: Distinct Subjects Per Teacher
 TRAINS: sql-group-aggregate
 
-Given the table Teacher, return each teacher_id with cnt, the number of
-distinct subjects they teach. Any row order.
+Given the table `Teacher`, return each `teacher_id` with `cnt`, the number
+of distinct subjects they teach. No ordering required.
 
 Table: Teacher
 

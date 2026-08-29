@@ -2,10 +2,11 @@
 DRILL: Seven Day Moving Average
 TRAINS: sql-window-running, sql-group-aggregate
 
-Given the table Customer, return for every day that has six earlier days of
-data: visited_on, amount (the total paid over that day and the six days before
-it) and average_amount (that total divided by 7, rounded to 2 decimal places).
-There is at least one customer every day. Any row order.
+Given the table `Customer`, return for every day that has six earlier days
+of data: `visited_on`, `amount` (the total paid over that day and the six
+days before it) and `average_amount` (that total divided by 7, rounded to 2
+decimal places). There is at least one customer every day. No ordering
+required.
 
 Table: Customer
 

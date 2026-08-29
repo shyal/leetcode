@@ -2,9 +2,9 @@
 DRILL: Squeeze To One Without A Shuffle
 TRAINS: spark-partitions
 
-Given the DataFrame solves, which arrives in two partitions, return the same
-rows in exactly one partition without a shuffle, so that a later write
-produces one file. Any row order.
+Given the DataFrame `solves`, which arrives in two partitions, return the
+same rows in exactly one partition without a shuffle, so that a later write
+produces one file. No ordering required.
 
 DataFrame: solves
 

@@ -2,8 +2,9 @@
 DRILL: Fix Names
 TRAINS: sql-string-functions
 
-Given the table Users, return user_id and name with the name fixed so that
-only the first character is upper case and the rest are lower case. Any row order.
+Given the table `Users`, return `user_id` and `name` with the name fixed so
+that only the first character is upper case and the rest are lower case. No
+ordering required.
 
 Table: Users
 

@@ -2,9 +2,10 @@
 DRILL: Top Two Per Difficulty
 TRAINS: spark-window-rank
 
-Given the DataFrame counts, return num, difficulty and solves for the two
-most solved problems of each difficulty. When two problems have the same
-solves, the smaller num (compared as a string) ranks first. Any row order.
+Given the DataFrame `counts`, return `num`, `difficulty` and `solves` for
+the two most solved problems of each `difficulty`. When two problems have
+the same `solves`, the smaller `num` (compared as a string) ranks first. No
+ordering required.
 
 DataFrame: counts
 

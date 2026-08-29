@@ -2,9 +2,9 @@
 DRILL: Not Referred By Customer Two
 TRAINS: sql-null-semantics
 
-Given the table Customer, return the name of every customer who was not
-referred by the customer with id 2. A customer with no referee counts as not
-referred by 2. Any row order.
+Given the table `Customer`, return the `name` of every customer who was not
+referred by the customer with `id` 2. A customer with no referee counts as
+not referred by 2. No ordering required.
 
 Table: Customer
 
