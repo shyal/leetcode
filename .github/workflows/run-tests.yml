@@ -18,6 +18,12 @@ jobs:
         with:
           python-version: "3.10"
 
+      - name: Set up Java (pyspark drills run a local JVM)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
       - name: Create virtual environment
         run: python -m venv venv
 
@@ -30,7 +36,7 @@ jobs:
       - name: Copy custom sitecustomize.py
         run: |
           source venv/bin/activate
-          cp utils/sitecustomize.py $(python -c "import site; print(site.getsitepackages()[0])")
+          cp utils/harness/sitecustomize.py $(python -c "import site; print(site.getsitepackages()[0])")
 
       - name: Run pytest via runner
         run: |

@@ -37,9 +37,13 @@ def _has_main_guard(path):
 # --- the makefile only names files that exist ------------------------------
 
 def test_makefile_paths_exist():
+    """Every utils/ path the makefile names exists, except cargo build
+    outputs under target/, which the makefile builds itself and a fresh
+    checkout (CI) does not have."""
     text = open(os.path.join(ROOT, "makefile")).read()
     missing = sorted({p for p in re.findall(r"utils/[\w./-]+", text)
-                      if not os.path.exists(os.path.join(ROOT, p.rstrip("/")))})
+                      if "/target/" not in p
+                      and not os.path.exists(os.path.join(ROOT, p.rstrip("/")))})
     assert missing == [], f"makefile points at files that do not exist: {missing}"
 
 
