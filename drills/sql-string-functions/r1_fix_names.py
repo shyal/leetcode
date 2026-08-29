@@ -57,9 +57,9 @@ Constraints:
     1 <= number of rows <= 10^4
     1 <= length of name <= 40
 
-    REQUIRED: the fixed name is built in SQL from the stored name. Doing the
-    case change in Python, or hard-coding names, is the failure mode this
-    drill exists to kill.
+    REQUIRED: the fixed name is built in SQL from the stored name.
+
+    FORBIDDEN: the case change in Python; hard-coded names.
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.

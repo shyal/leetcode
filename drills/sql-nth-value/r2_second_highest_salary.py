@@ -75,10 +75,11 @@ Constraints:
 
     1 <= number of rows <= 10^4
 
-    REQUIRED: salaries are compared DISTINCT. When there is no second
-    highest the result is one row containing NULL, not zero rows: ORDER BY
-    ... LIMIT 1 OFFSET 1 on its own returns no row, which is the failure
-    mode this drill exists to kill.
+    REQUIRED: salaries are compared DISTINCT; with no second highest, the
+    result is one row containing NULL.
+
+    FORBIDDEN: returning zero rows in that case (a bare skip-one query does
+    exactly that).
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.

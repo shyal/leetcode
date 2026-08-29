@@ -88,8 +88,9 @@ Constraints:
     0 <= rows in EmployeeUNI <= 10^4
 
     REQUIRED: every employee appears exactly once, with NULL where no
-    unique_id exists. An inner join, which drops the unmatched employees, is
-    the failure mode this drill exists to kill.
+    unique_id exists.
+
+    FORBIDDEN: an inner join (it drops the unmatched employees).
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.

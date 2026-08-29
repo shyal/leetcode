@@ -84,9 +84,10 @@ Constraints:
 
     1 <= rows in each table <= 10^4
 
-    REQUIRED: join the two tables on product_id. Listing both tables without a
-    join condition (a cross join filtered afterwards, or not at all) is the
-    failure mode this drill exists to kill.
+    REQUIRED: the two tables are joined on product_id.
+
+    FORBIDDEN: listing both tables without a join condition (a cross join,
+    filtered afterwards or not at all).
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.

@@ -63,9 +63,9 @@ Constraints:
     1 <= number of rows <= 10^4
 
     REQUIRED: one row per teacher, each subject counted once however many
-    rows it has. Counting rows instead of distinct subjects is the failure
-    mode this drill exists to kill: teacher 1 has three rows and two
-    subjects.
+    rows it has.
+
+    FORBIDDEN: counting rows (teacher 1 has three rows and two subjects).
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.

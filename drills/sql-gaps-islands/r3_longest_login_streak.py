@@ -65,9 +65,10 @@ Constraints:
     1 <= number of rows <= 10^5
 
     REQUIRED: one query, one row per user with the length of the longest
-    streak. Comparing each login to the previous day finds where streaks
-    break but not how long they are; a query that stops there is the failure
-    mode this drill exists to kill. NO Python.
+    streak.
+
+    FORBIDDEN: stopping at 'where does the streak break' (that gives breaks,
+    not lengths); Python.
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.

@@ -62,9 +62,11 @@ Constraints:
 
     1 <= number of rows <= 10^4
 
-    REQUIRED: one query over Employees, NO subquery. Employees with no
-    manager must NOT appear. A correlated subquery per row, or a name lookup
-    in Python, is the failure mode this drill exists to kill.
+    REQUIRED: one query over Employees; employees with no manager do not
+    appear.
+
+    FORBIDDEN: a subquery; a correlated lookup per row; a name lookup in
+    Python.
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.

@@ -62,9 +62,10 @@ Constraints:
     1 <= number of rows <= 10^4
     0.0 <= rating <= 10.0
 
-    REQUIRED: one SELECT with a WHERE and an ORDER BY. The filtering and the
-    ordering must happen in SQL; pulling rows into Python and filtering there
-    is the failure mode this drill exists to kill.
+    REQUIRED: one SELECT with a WHERE and an ORDER BY; filtering and
+    ordering happen in SQL.
+
+    FORBIDDEN: pulling rows into Python and filtering there.
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.

@@ -59,9 +59,10 @@ Constraints:
     1 <= number of rows <= 10^5
     1 <= weight <= 1000
 
-    REQUIRED: one pass over Queue with a window function; NO self-join, NO
-    correlated subquery. Summing the earlier rows again for every row is
-    O(n^2) and the failure mode this drill exists to kill.
+    REQUIRED: one pass over Queue with a window function.
+
+    FORBIDDEN: a self-join; a correlated subquery (summing the earlier rows
+    again for every row is O(n^2)).
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.

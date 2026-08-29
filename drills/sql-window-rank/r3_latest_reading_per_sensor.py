@@ -59,9 +59,10 @@ Constraints:
     1 <= number of rows <= 10^5
 
     REQUIRED: one row per sensor, with value taken from that sensor's latest
-    row. GROUP BY sensor_id with MAX(read_at) and a bare value column
-    returns an arbitrary value in most engines; that is the failure mode
-    this drill exists to kill.
+    row.
+
+    FORBIDDEN: GROUP BY sensor_id with MAX(read_at) and a bare value column
+    (an arbitrary value in most engines).
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.

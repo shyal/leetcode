@@ -61,9 +61,10 @@ Constraints:
 
     1 <= number of rows <= 10^4
 
-    REQUIRED: the result has exactly twice as many rows as the table.
-    Repeats must be kept: a query that drops them is the failure mode this
-    drill exists to kill. NO Python.
+    REQUIRED: the result has exactly twice as many rows as the table;
+    repeats are kept.
+
+    FORBIDDEN: anything that drops repeats; Python.
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.

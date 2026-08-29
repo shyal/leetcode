@@ -63,9 +63,9 @@ Constraints:
 
     1 <= number of rows <= 10^4
 
-    REQUIRED: one query over Employees, one row per manager. A subquery per
-    manager, or a name lookup in Python, is the failure mode this drill
-    exists to kill.
+    REQUIRED: one query over Employees, one row per manager.
+
+    FORBIDDEN: a subquery per manager; a name lookup in Python.
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.

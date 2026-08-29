@@ -65,8 +65,10 @@ Constraints:
     1 <= number of rows <= 10^4
 
     REQUIRED: products is built in SQL: distinct names, sorted, joined with
-    commas. Duplicates in the list (Mask twice), or an unsorted list, are
-    the failure mode this drill exists to kill. NO Python.
+    commas.
+
+    FORBIDDEN: duplicates in the list (Mask twice); an unsorted list;
+    Python.
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.

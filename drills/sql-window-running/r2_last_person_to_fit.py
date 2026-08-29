@@ -62,9 +62,10 @@ Constraints:
     1 <= number of rows <= 10^5
     1 <= weight <= 1000
 
-    REQUIRED: one pass over Queue. A self-join that sums all earlier turns
-    for every person is O(n^2) and the failure mode this drill exists to
-    kill. NO Python.
+    REQUIRED: one pass over Queue.
+
+    FORBIDDEN: a self-join that sums all earlier turns for every person
+    (O(n^2)); Python.
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.

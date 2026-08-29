@@ -62,9 +62,10 @@ Constraints:
 
     1 <= number of rows <= 10^4
 
-    REQUIRED: 'first year' is per product. Filtering on the single global
-    MIN(year) is the failure mode this drill exists to kill: product 200's
-    first year is 2011, not 2008.
+    REQUIRED: 'first year' is per product.
+
+    FORBIDDEN: filtering on the single global MIN(year) (product 200's first
+    year is 2011, not 2008).
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.

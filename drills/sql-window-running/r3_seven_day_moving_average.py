@@ -77,9 +77,10 @@ Constraints:
     1 <= number of rows <= 10^5
 
     REQUIRED: each output row covers exactly that day and the six days
-    before it, and two visits on one day are one day. A total that runs from
-    the first day, rather than a moving one, is the failure mode this drill
-    exists to kill. Rows without six preceding days are excluded.
+    before it; two visits on one day are one day; rows without six preceding
+    days are excluded.
+
+    FORBIDDEN: a total that runs from the first day instead of a moving one.
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.

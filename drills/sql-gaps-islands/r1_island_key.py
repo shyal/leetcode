@@ -69,9 +69,11 @@ Constraints:
     1 <= number of rows <= 10^5
     1 <= id <= 10^9
 
-    REQUIRED: one pass over Seats with a window function; NO self-join, NO
-    correlated subquery. Numbering rows by physical order instead of by id is
-    the failure mode this drill exists to kill.
+    REQUIRED: one pass over Seats with a window function, rows numbered by
+    id.
+
+    FORBIDDEN: a self-join; a correlated subquery; numbering by physical
+    order.
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.

@@ -59,9 +59,11 @@ Constraints:
 
     1 <= number of rows <= 10^4
 
-    REQUIRED: 'previous' means the previous calendar date, not the previous
-    row. Comparing with id - 1, or with the row before in physical order, is
-    the failure mode this drill exists to kill. NO Python.
+    REQUIRED: 'previous' is the previous calendar date, computed by the
+    engine.
+
+    FORBIDDEN: comparing with id - 1 or with the previous physical row;
+    Python.
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.
