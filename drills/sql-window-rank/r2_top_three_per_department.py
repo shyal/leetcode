@@ -2,107 +2,82 @@
 DRILL: Department Top Three Salaries
 TRAINS: sql-window-rank
 
-Given the tables Employee and Department, return Department, Employee and
-Salary for every employee whose salary is among the three highest distinct
-salaries in their department. Any row order.
+Given the table Employee, return departmentId, name and salary for every
+employee whose salary is among the three highest distinct salaries in their
+department. Any row order.
 
 Table: Employee
 
     +--------------+---------+
     | Column Name  | Type    |
     +--------------+---------+
-    | id           | int     |
     | name         | varchar |
     | salary       | int     |
     | departmentId | int     |
     +--------------+---------+
-    id is the primary key. departmentId refers to Department.
-
-    Table: Department
-
-    +-------------+---------+
-    | Column Name | Type    |
-    +-------------+---------+
-    | id          | int     |
-    | name        | varchar |
-    +-------------+---------+
-    id is the primary key.
+    Names are unique.
 
 Example 1:
 
 Input:
 Employee table:
-+----+-------+--------+--------------+
-| id | name  | salary | departmentId |
-+----+-------+--------+--------------+
-| 1  | Joe   | 85000  | 1            |
-| 2  | Henry | 80000  | 2            |
-| 3  | Sam   | 60000  | 2            |
-| 4  | Max   | 90000  | 1            |
-| 5  | Janet | 69000  | 1            |
-| 6  | Randy | 85000  | 1            |
-| 7  | Will  | 70000  | 1            |
-+----+-------+--------+--------------+
-Department table:
-+----+-------+
-| id | name  |
-+----+-------+
-| 1  | IT    |
-| 2  | Sales |
-+----+-------+
++-------+--------+--------------+
+| name  | salary | departmentId |
++-------+--------+--------------+
+| Joe   | 85000  | 1            |
+| Henry | 80000  | 2            |
+| Sam   | 60000  | 2            |
+| Max   | 90000  | 1            |
+| Janet | 69000  | 1            |
+| Randy | 85000  | 1            |
+| Will  | 70000  | 1            |
++-------+--------+--------------+
 Output:
-+------------+----------+--------+
-| Department | Employee | Salary |
-+------------+----------+--------+
-| IT         | Max      | 90000  |
-| IT         | Joe      | 85000  |
-| IT         | Randy    | 85000  |
-| IT         | Will     | 70000  |
-| Sales      | Henry    | 80000  |
-| Sales      | Sam      | 60000  |
-+------------+----------+--------+
-Explanation: IT's distinct top three are 90000, 85000, 70000; Joe and Randy both earn 85000 and both appear. Sales has only two salaries.
++--------------+-------+--------+
+| departmentId | name  | salary |
++--------------+-------+--------+
+| 1            | Max   | 90000  |
+| 1            | Joe   | 85000  |
+| 1            | Randy | 85000  |
+| 1            | Will  | 70000  |
+| 2            | Henry | 80000  |
+| 2            | Sam   | 60000  |
++--------------+-------+--------+
+Explanation: Department 1's distinct top three are 90000, 85000, 70000; Joe and Randy both earn 85000 and both appear. Department 2 has only two salaries.
 
 Example 2:
 
 Input:
 Employee table:
-+----+------+--------+--------------+
-| id | name | salary | departmentId |
-+----+------+--------+--------------+
-| 1  | Ann  | 10     | 1            |
-| 2  | Ben  | 20     | 1            |
-| 3  | Cal  | 30     | 1            |
-| 4  | Dee  | 40     | 1            |
-| 5  | Eve  | 40     | 1            |
-+----+------+--------+--------------+
-Department table:
-+----+------+
-| id | name |
-+----+------+
-| 1  | Ops  |
-+----+------+
++------+--------+--------------+
+| name | salary | departmentId |
++------+--------+--------------+
+| Ann  | 10     | 1            |
+| Ben  | 20     | 1            |
+| Cal  | 30     | 1            |
+| Dee  | 40     | 1            |
+| Eve  | 40     | 1            |
++------+--------+--------------+
 Output:
-+------------+----------+--------+
-| Department | Employee | Salary |
-+------------+----------+--------+
-| Ops        | Dee      | 40     |
-| Ops        | Eve      | 40     |
-| Ops        | Cal      | 30     |
-| Ops        | Ben      | 20     |
-+------------+----------+--------+
-Explanation: Distinct top three in Ops are 40, 30, 20; Dee and Eve tie at 40; Ann is out.
++--------------+------+--------+
+| departmentId | name | salary |
++--------------+------+--------+
+| 1            | Dee  | 40     |
+| 1            | Eve  | 40     |
+| 1            | Cal  | 30     |
+| 1            | Ben  | 20     |
++--------------+------+--------+
+Explanation: Distinct top three are 40, 30, 20; Dee and Eve tie at 40; Ann is out.
 
 Constraints:
 
-    1 <= rows in Employee <= 10^4
-    1 <= rows in Department <= 10^3
+    1 <= number of rows <= 10^4
 
-    REQUIRED: DENSE_RANK() OVER (PARTITION BY departmentId ORDER BY salary
-    DESC) in a CTE or subquery, then WHERE rk <= 3 outside it. A window
-    function cannot be referenced in the WHERE of the query that computes it
-    (windows run after WHERE); that is the failure mode this drill exists to
-    kill. ROW_NUMBER would drop Randy, who ties with Joe.
+    REQUIRED: the rank is computed per department by a window function and
+    filtered in an outer query or CTE; NO correlated subquery per row. A
+    window function cannot be referenced in the WHERE of the query that
+    computes it (windows run after WHERE), and a rank that breaks ties would
+    drop Randy; both are the failure mode this drill exists to kill.
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.
@@ -120,28 +95,23 @@ class Solution(SQLDrill):
 
 
 EXAMPLE_1 = """
-CREATE TABLE Employee (id INTEGER, name TEXT, salary INTEGER, departmentId INTEGER);
-INSERT INTO Employee VALUES (1, 'Joe', 85000, 1);
-INSERT INTO Employee VALUES (2, 'Henry', 80000, 2);
-INSERT INTO Employee VALUES (3, 'Sam', 60000, 2);
-INSERT INTO Employee VALUES (4, 'Max', 90000, 1);
-INSERT INTO Employee VALUES (5, 'Janet', 69000, 1);
-INSERT INTO Employee VALUES (6, 'Randy', 85000, 1);
-INSERT INTO Employee VALUES (7, 'Will', 70000, 1);
-CREATE TABLE Department (id INTEGER, name TEXT);
-INSERT INTO Department VALUES (1, 'IT');
-INSERT INTO Department VALUES (2, 'Sales');
+CREATE TABLE Employee (name TEXT, salary INTEGER, departmentId INTEGER);
+INSERT INTO Employee VALUES ('Joe', 85000, 1);
+INSERT INTO Employee VALUES ('Henry', 80000, 2);
+INSERT INTO Employee VALUES ('Sam', 60000, 2);
+INSERT INTO Employee VALUES ('Max', 90000, 1);
+INSERT INTO Employee VALUES ('Janet', 69000, 1);
+INSERT INTO Employee VALUES ('Randy', 85000, 1);
+INSERT INTO Employee VALUES ('Will', 70000, 1);
 """
 
 EXAMPLE_2 = """
-CREATE TABLE Employee (id INTEGER, name TEXT, salary INTEGER, departmentId INTEGER);
-INSERT INTO Employee VALUES (1, 'Ann', 10, 1);
-INSERT INTO Employee VALUES (2, 'Ben', 20, 1);
-INSERT INTO Employee VALUES (3, 'Cal', 30, 1);
-INSERT INTO Employee VALUES (4, 'Dee', 40, 1);
-INSERT INTO Employee VALUES (5, 'Eve', 40, 1);
-CREATE TABLE Department (id INTEGER, name TEXT);
-INSERT INTO Department VALUES (1, 'Ops');
+CREATE TABLE Employee (name TEXT, salary INTEGER, departmentId INTEGER);
+INSERT INTO Employee VALUES ('Ann', 10, 1);
+INSERT INTO Employee VALUES ('Ben', 20, 1);
+INSERT INTO Employee VALUES ('Cal', 30, 1);
+INSERT INTO Employee VALUES ('Dee', 40, 1);
+INSERT INTO Employee VALUES ('Eve', 40, 1);
 """
 
 
@@ -149,5 +119,5 @@ sol = Solution()
 
 sol.show(EXAMPLE_1)
 
-# assert sol.run(EXAMPLE_1) == [('IT', 'Joe', 85000), ('IT', 'Max', 90000), ('IT', 'Randy', 85000), ('IT', 'Will', 70000), ('Sales', 'Henry', 80000), ('Sales', 'Sam', 60000)]
-# assert sol.run(EXAMPLE_2) == [('Ops', 'Ben', 20), ('Ops', 'Cal', 30), ('Ops', 'Dee', 40), ('Ops', 'Eve', 40)]
+# assert sol.run(EXAMPLE_1) == [(1, 'Joe', 85000), (1, 'Max', 90000), (1, 'Randy', 85000), (1, 'Will', 70000), (2, 'Henry', 80000), (2, 'Sam', 60000)]
+# assert sol.run(EXAMPLE_2) == [(1, 'Ben', 20), (1, 'Cal', 30), (1, 'Dee', 40), (1, 'Eve', 40)]
