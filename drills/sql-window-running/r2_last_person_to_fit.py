@@ -1,6 +1,6 @@
 """
 DRILL: Last Person To Fit In The Bus
-TRAINS: sql-window-running
+TRAINS: sql-window-running, sql-subquery
 
 Given the table Queue, people board a bus in order of turn and the bus holds
 at most 1000 kilograms in total. Return person_name of the last person who can

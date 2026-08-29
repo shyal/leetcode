@@ -1,6 +1,6 @@
 """
 DRILL: Sales In Each Product's First Year
-TRAINS: sql-subquery
+TRAINS: sql-subquery, sql-group-aggregate
 
 Given the table Sales, return product_id, first_year, quantity and price for
 every sale that happened in the first year its product was sold. Any row order.

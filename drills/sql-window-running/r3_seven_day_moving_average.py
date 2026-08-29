@@ -1,6 +1,6 @@
 """
 DRILL: Seven Day Moving Average
-TRAINS: sql-window-running
+TRAINS: sql-window-running, sql-group-aggregate
 
 Given the table Customer, return for every day that has six earlier days of
 data: visited_on, amount (the total paid over that day and the six days before

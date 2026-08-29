@@ -1,6 +1,6 @@
 """
 DRILL: Human Traffic Of Stadium
-TRAINS: sql-gaps-islands
+TRAINS: sql-gaps-islands, sql-having-filter-groups
 
 Given the table Stadium, return id, visit_date and people for every row that
 belongs to a run of three or more rows with consecutive ids, each with people

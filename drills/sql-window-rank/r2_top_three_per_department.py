@@ -1,6 +1,6 @@
 """
 DRILL: Department Top Three Salaries
-TRAINS: sql-window-rank
+TRAINS: sql-window-rank, sql-subquery
 
 Given the table Employee, return departmentId, name and salary for every
 employee whose salary is among the three highest distinct salaries in their

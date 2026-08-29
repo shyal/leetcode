@@ -1,6 +1,6 @@
 """
 DRILL: Paid Orders Per Customer
-TRAINS: sql-join-left-keep
+TRAINS: sql-join-left-keep, sql-group-aggregate
 
 Given the tables Customers and Orders, return name and paid_orders for every
 customer: the number of that customer's orders whose status is 'paid'. A

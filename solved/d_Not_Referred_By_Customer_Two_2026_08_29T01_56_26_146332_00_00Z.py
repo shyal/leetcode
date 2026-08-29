@@ -108,5 +108,5 @@ sol = Solution()
 
 sol.show(EXAMPLE_1)
 
-assert sol.run(EXAMPLE_1) == [("Will",), ("Jane",), ("Bill",), ("Zack",)]
-assert sol.run(EXAMPLE_2) == [("Ann",), ("Ben",)]
+assert sol.run(EXAMPLE_1, ordered=True) == [("Will",), ("Jane",), ("Bill",), ("Zack",)]
+assert sol.run(EXAMPLE_2, ordered=True) == [("Ann",), ("Ben",)]

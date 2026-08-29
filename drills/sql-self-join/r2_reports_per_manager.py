@@ -1,6 +1,6 @@
 """
 DRILL: Reports Per Manager
-TRAINS: sql-self-join
+TRAINS: sql-self-join, sql-group-aggregate
 
 Given the table Employees, return employee_id, name, reports_count and
 average_age for every employee who has at least one direct report: the number

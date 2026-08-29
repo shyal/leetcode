@@ -905,7 +905,8 @@
    "hint": "The tell is 'every X, even those without Y'; a condition on the right table in WHERE is the classic bug.",
    "prereqs": [
     "sql-join-inner",
-    "sql-null-semantics"
+    "sql-null-semantics",
+    "sql-group-aggregate"
    ],
    "drill": "Every employee with their unique_id or NULL."
   },
@@ -1089,7 +1090,8 @@
    "hint": "'At least k consecutive' or 'longest streak': the row-number difference labels each island in one pass.",
    "prereqs": [
     "sql-window-rank",
-    "sql-window-offset"
+    "sql-window-offset",
+    "sql-having-filter-groups"
    ],
    "drill": "Stadium days with three or more consecutive busy ids; longest login streak per user."
   }
