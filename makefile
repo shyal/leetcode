@@ -35,6 +35,7 @@ preflight:
 kg-extract:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_extract $(filter-out $@,$(MAKECMDGOALS))
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_curve --if-stale
+	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_solvecost --if-stale
 
 kg-status:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_status
@@ -44,6 +45,7 @@ kg-viz:
 
 curve:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_curve
+	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_solvecost
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_residuals
 
 residuals:
@@ -87,6 +89,7 @@ solved:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/solved
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_extract
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_curve --if-stale
+	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_solvecost --if-stale
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/solved --commit
 
 # file the current attempt as a FAILED one: same flow as solved (archive,
@@ -95,6 +98,7 @@ failed:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/solved --failed
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_extract
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_curve --if-stale
+	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_solvecost --if-stale
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/solved --commit
 
 test:

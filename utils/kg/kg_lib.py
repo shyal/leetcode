@@ -457,9 +457,10 @@ def clear_branch(name):
     return False
 
 
-def mined_solve_times():
+def mined_solve_times(with_file=False):
     """(key, date, seconds) per timed successful solve commit, oldest first;
-    key is the problem number, or d:<title stem> for bank drills. Only
+    key is the problem number, or d:<title stem> for bank drills. With
+    with_file=True the solved/ filename is appended, to join evidence. Only
     commits adding exactly ONE solve carry a truthful "solve time" trailer
     (the day-one bulk import smeared a single trailer over 109 files).
     FAILED files measure time-to-walking-away and >10h means a file left
@@ -484,7 +485,8 @@ def mined_solve_times():
         dm = re.match(r"d_(.+?)_\d{4}_", added[0])
         key = pm.group(1) if pm else (f"d:{dm.group(1)}" if dm else None)
         if key:
-            reps.append((key, datetime.fromtimestamp(int(at)).date(), secs))
+            row = (key, datetime.fromtimestamp(int(at)).date(), secs)
+            reps.append(row + (f"solved/{added[0]}",) if with_file else row)
     return sorted(reps, key=lambda r: r[1])
 
 

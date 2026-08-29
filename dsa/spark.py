@@ -16,6 +16,7 @@ from pyspark.sql import DataFrame, SparkSession
 # drill is Spark's own behaviour: its physical plan text, df.rdd partition
 # counts, or dynamic partition overwrite, none of which Sail reproduces.
 _sessions: dict[str, SparkSession] = {}
+_stoppers: dict[str, callable] = {}
 
 
 def _free_port() -> int:
@@ -51,10 +52,12 @@ def _sail_session() -> SparkSession:
         except Exception:
             pass
         finally:
+            os.environ.pop("SPARK_CONNECT_MODE_ENABLED", None)
             proc.kill()
             proc.wait(timeout=5)
 
     atexit.register(stop)
+    _stoppers["sail"] = stop
     return spark
 
 
@@ -74,15 +77,23 @@ def _jvm_session() -> SparkSession:
         .getOrCreate()
     )
     spark.sparkContext.setLogLevel("ERROR")
+    _stoppers["jvm"] = spark.stop
     return spark
 
 
 def spark_session(engine: str = "sail") -> SparkSession:
-    """One session per engine per process. Sail falls back to the JVM when
-    the `sail` binary is not installed in the venv."""
+    """The session for `engine`, one at a time per process: PySpark routes
+    every Column and DataFrame call to either the classic or the Connect
+    implementation process-wide, so switching engines tears the other one
+    down first (the test suite imports every solved drill into one
+    process). Sail falls back to the JVM when the `sail` binary is not
+    installed in the venv."""
     if engine == "sail" and _sail_binary() is None:
         engine = "jvm"
     if engine not in _sessions:
+        for other in list(_sessions):
+            _stoppers.pop(other, lambda: None)()
+            del _sessions[other]
         _sessions[engine] = _sail_session() if engine == "sail" else _jvm_session()
     return _sessions[engine]
 

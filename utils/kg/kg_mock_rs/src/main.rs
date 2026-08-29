@@ -306,10 +306,11 @@ impl<'a> SimState<'a> {
                 .exp()
                 .max(7.0)
                 .min(3650.0);
+            let cost = self.bank.refresh_cost(n, self.reps[n]);
             if (1.0 + self.gaps[n] as f64 / s).powf(-self.cv.beta) < self.cv.target
-                && budget >= 10.0
+                && budget >= cost
             {
-                budget -= 10.0;
+                budget -= cost;
                 self.gaps[n] = 0;
                 self.reps[n] += 1;
             }
@@ -818,7 +819,28 @@ fn main() {
     // walks, one move universe (nodes first, then off-taxonomy extras)
     let predicted_v = load_json(&graph.join("predicted.json"));
     let metadata_v = load_json(&repo_root.join("data/problems_metadata.json"));
-    let bank = Arc::new(Bank::build(&problems_v, &predicted_v, &metadata_v, &node_ids));
+    let mut bank = Bank::build(&problems_v, &predicted_v, &metadata_v, &node_ids);
+    bank.cost = std::fs::read_to_string(graph.join("solvecost.json"))
+        .ok()
+        .and_then(|s| serde_json::from_str::<Value>(&s).ok())
+        .and_then(|v| SolveCost::load(&v, &node_ids));
+    if argv.iter().any(|a| a == "--cost") {
+        // per-node refresh prices the forward sim will charge, now and after
+        // ten more clean reps; "flat" when solvecost.json is absent
+        let (reps0, _) = init_state(&node_ids, &evidence, today, &cv);
+        for (i, nid) in node_ids.iter().enumerate() {
+            println!(
+                "{:28} {:5.1}m now ({} reps)  {:5.1}m after +10  {}",
+                nid,
+                bank.refresh_cost(i, reps0[i]),
+                reps0[i],
+                bank.refresh_cost(i, reps0[i] + 10),
+                if bank.cost.is_some() { "" } else { "flat" }
+            );
+        }
+        return;
+    }
+    let bank = Arc::new(bank);
 
     let mv_recall_of = |recall: &[f64]| -> Arc<Vec<Option<f64>>> {
         Arc::new(
