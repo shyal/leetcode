@@ -71,6 +71,15 @@ Constraints:
 
 from dsa.sql import SQLDrill
 
+
+class Solution(SQLDrill):
+
+    def query(self) -> str:
+        return """
+
+        """
+
+
 EXAMPLE_1 = """
 CREATE TABLE Revenue (month TEXT, amount INTEGER);
 INSERT INTO Revenue VALUES ('2025-11', 100);
@@ -83,14 +92,6 @@ EXAMPLE_2 = """
 CREATE TABLE Revenue (month TEXT, amount INTEGER);
 INSERT INTO Revenue VALUES ('2026-05', 40);
 """
-
-
-class Solution(SQLDrill):
-
-    def query(self) -> str:
-        return """
-
-        """
 
 
 sol = Solution()

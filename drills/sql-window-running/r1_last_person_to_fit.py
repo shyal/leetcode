@@ -74,6 +74,15 @@ Constraints:
 
 from dsa.sql import SQLDrill
 
+
+class Solution(SQLDrill):
+
+    def query(self) -> str:
+        return """
+
+        """
+
+
 EXAMPLE_1 = """
 CREATE TABLE Queue (person_id INTEGER, person_name TEXT, weight INTEGER, turn INTEGER);
 INSERT INTO Queue VALUES (5, 'Alice', 250, 1);
@@ -89,14 +98,6 @@ CREATE TABLE Queue (person_id INTEGER, person_name TEXT, weight INTEGER, turn IN
 INSERT INTO Queue VALUES (1, 'Ann', 600, 1);
 INSERT INTO Queue VALUES (2, 'Ben', 500, 2);
 """
-
-
-class Solution(SQLDrill):
-
-    def query(self) -> str:
-        return """
-
-        """
 
 
 sol = Solution()

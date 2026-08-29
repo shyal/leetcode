@@ -70,6 +70,15 @@ Constraints:
 
 from dsa.sql import SQLDrill
 
+
+class Solution(SQLDrill):
+
+    def query(self) -> str:
+        return """
+
+        """
+
+
 EXAMPLE_1 = """
 CREATE TABLE Readings (sensor_id INTEGER, read_at TEXT, value INTEGER);
 INSERT INTO Readings VALUES (1, '2026-08-01 10:00', 5);
@@ -82,14 +91,6 @@ EXAMPLE_2 = """
 CREATE TABLE Readings (sensor_id INTEGER, read_at TEXT, value INTEGER);
 INSERT INTO Readings VALUES (4, '2026-08-02 00:00', 1);
 """
-
-
-class Solution(SQLDrill):
-
-    def query(self) -> str:
-        return """
-
-        """
 
 
 sol = Solution()

@@ -78,6 +78,15 @@ Constraints:
 
 from dsa.sql import SQLDrill
 
+
+class Solution(SQLDrill):
+
+    def query(self) -> str:
+        return """
+
+        """
+
+
 EXAMPLE_1 = """
 CREATE TABLE Scores (id INTEGER, score REAL);
 INSERT INTO Scores VALUES (1, 3.5);
@@ -94,14 +103,6 @@ INSERT INTO Scores VALUES (1, 7.0);
 INSERT INTO Scores VALUES (2, 7.0);
 INSERT INTO Scores VALUES (3, 7.0);
 """
-
-
-class Solution(SQLDrill):
-
-    def query(self) -> str:
-        return """
-
-        """
 
 
 sol = Solution()

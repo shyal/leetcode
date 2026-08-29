@@ -72,6 +72,15 @@ Constraints:
 
 from dsa.sql import SQLDrill
 
+
+class Solution(SQLDrill):
+
+    def query(self) -> str:
+        return """
+
+        """
+
+
 EXAMPLE_1 = """
 CREATE TABLE Cinema (id INTEGER, movie TEXT, description TEXT, rating REAL);
 INSERT INTO Cinema VALUES (1, 'War', 'great 3D', 8.9);
@@ -87,14 +96,6 @@ INSERT INTO Cinema VALUES (2, 'Quiet', 'boring', 4.0);
 INSERT INTO Cinema VALUES (4, 'Loud', 'great', 7.0);
 INSERT INTO Cinema VALUES (7, 'Odd one', 'boring', 9.9);
 """
-
-
-class Solution(SQLDrill):
-
-    def query(self) -> str:
-        return """
-
-        """
 
 
 sol = Solution()

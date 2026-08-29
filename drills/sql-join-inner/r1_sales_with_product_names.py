@@ -95,6 +95,15 @@ Constraints:
 
 from dsa.sql import SQLDrill
 
+
+class Solution(SQLDrill):
+
+    def query(self) -> str:
+        return """
+
+        """
+
+
 EXAMPLE_1 = """
 CREATE TABLE Sales (sale_id INTEGER, product_id INTEGER, year INTEGER, quantity INTEGER, price INTEGER);
 INSERT INTO Sales VALUES (1, 100, 2008, 10, 5000);
@@ -113,14 +122,6 @@ INSERT INTO Sales VALUES (2, 999, 2009, 1, 10);
 CREATE TABLE Product (product_id INTEGER, product_name TEXT);
 INSERT INTO Product VALUES (100, 'Nokia');
 """
-
-
-class Solution(SQLDrill):
-
-    def query(self) -> str:
-        return """
-
-        """
 
 
 sol = Solution()

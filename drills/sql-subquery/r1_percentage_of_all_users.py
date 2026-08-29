@@ -107,6 +107,15 @@ Constraints:
 
 from dsa.sql import SQLDrill
 
+
+class Solution(SQLDrill):
+
+    def query(self) -> str:
+        return """
+
+        """
+
+
 EXAMPLE_1 = """
 CREATE TABLE Users (user_id INTEGER, user_name TEXT);
 INSERT INTO Users VALUES (6, 'Alice');
@@ -136,14 +145,6 @@ INSERT INTO Users VALUES (4, 'Dee');
 CREATE TABLE Register (contest_id INTEGER, user_id INTEGER);
 INSERT INTO Register VALUES (100, 1);
 """
-
-
-class Solution(SQLDrill):
-
-    def query(self) -> str:
-        return """
-
-        """
 
 
 sol = Solution()

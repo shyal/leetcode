@@ -75,6 +75,11 @@ Constraints:
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.
+
+---
+
+Assisted.. used having count(student > 5) instead of having count(student) > 5
+
 """
 
 from dsa.sql import SQLDrill
@@ -84,7 +89,10 @@ class Solution(SQLDrill):
 
     def query(self) -> str:
         return """
-
+        select class
+        from Courses
+        group by class
+        having count(student) > 5;
         """
 
 
