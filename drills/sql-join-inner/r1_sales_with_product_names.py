@@ -93,7 +93,7 @@ Constraints:
     || for concatenation, strftime()/julianday()/date() for dates.
 """
 
-import sqlite3
+from dsa.sql import SQLDrill
 
 EXAMPLE_1 = """
 CREATE TABLE Sales (sale_id INTEGER, product_id INTEGER, year INTEGER, quantity INTEGER, price INTEGER);
@@ -115,7 +115,7 @@ INSERT INTO Product VALUES (100, 'Nokia');
 """
 
 
-class Solution:
+class Solution(SQLDrill):
 
     def query(self) -> str:
         return """
@@ -123,15 +123,9 @@ class Solution:
         """
 
 
-def run(schema: str, sql: str) -> list[tuple]:
-    con = sqlite3.connect(":memory:")
-    con.executescript(schema)
-    return [tuple(row) for row in con.execute(sql).fetchall()]
-
-
 sol = Solution()
 
-print(run(EXAMPLE_1, sol.query()))  # [('Nokia', 2008, 5000), ('Nokia', 2009, 5000), ('Apple', 2011, 9000)]
+sol.show(EXAMPLE_1)
 
-# assert run(EXAMPLE_1, sol.query()) == [('Nokia', 2008, 5000), ('Nokia', 2009, 5000), ('Apple', 2011, 9000)]
-# assert run(EXAMPLE_2, sol.query()) == [('Nokia', 2008, 5000)]
+# assert sol.run(EXAMPLE_1) == [('Nokia', 2008, 5000), ('Nokia', 2009, 5000), ('Apple', 2011, 9000)]
+# assert sol.run(EXAMPLE_2) == [('Nokia', 2008, 5000)]

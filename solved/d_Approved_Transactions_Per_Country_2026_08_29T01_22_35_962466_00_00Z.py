@@ -91,7 +91,13 @@ class Solution(SQLDrill):
 
     def query(self) -> str:
         return """
-
+        select country,
+            count(id) as trans_count,
+            sum(case when state = 'approved' then 1 else 0 end) as approved_count,
+            sum(amount) as trans_total_amount,
+            sum(case when state = 'approved' then amount else 0 end) as approved_total_amount
+        from Transactions
+        group by country;
         """
 
 
@@ -99,5 +105,5 @@ sol = Solution()
 
 sol.show(EXAMPLE_1)
 
-# assert sol.run(EXAMPLE_1) == [('DE', 1, 1, 2000, 2000), ('US', 3, 2, 5000, 3000)]
-# assert sol.run(EXAMPLE_2) == [('FR', 2, 0, 1200, 0)]
+assert sol.run(EXAMPLE_1) == [("DE", 1, 1, 2000, 2000), ("US", 3, 2, 5000, 3000)]
+assert sol.run(EXAMPLE_2) == [("FR", 2, 0, 1200, 0)]

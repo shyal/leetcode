@@ -68,7 +68,7 @@ Constraints:
     || for concatenation, strftime()/julianday()/date() for dates.
 """
 
-import sqlite3
+from dsa.sql import SQLDrill
 
 EXAMPLE_1 = """
 CREATE TABLE Readings (sensor_id INTEGER, read_at TEXT, value INTEGER);
@@ -84,7 +84,7 @@ INSERT INTO Readings VALUES (4, '2026-08-02 00:00', 1);
 """
 
 
-class Solution:
+class Solution(SQLDrill):
 
     def query(self) -> str:
         return """
@@ -92,15 +92,9 @@ class Solution:
         """
 
 
-def run(schema: str, sql: str) -> list[tuple]:
-    con = sqlite3.connect(":memory:")
-    con.executescript(schema)
-    return [tuple(row) for row in con.execute(sql).fetchall()]
-
-
 sol = Solution()
 
-print(run(EXAMPLE_1, sol.query()))  # [(1, '2026-08-01 12:00', 7), (2, '2026-08-01 09:00', 3)]
+sol.show(EXAMPLE_1)
 
-# assert run(EXAMPLE_1, sol.query()) == [(1, '2026-08-01 12:00', 7), (2, '2026-08-01 09:00', 3)]
-# assert run(EXAMPLE_2, sol.query()) == [(4, '2026-08-02 00:00', 1)]
+# assert sol.run(EXAMPLE_1) == [(1, '2026-08-01 12:00', 7), (2, '2026-08-01 09:00', 3)]
+# assert sol.run(EXAMPLE_2) == [(4, '2026-08-02 00:00', 1)]

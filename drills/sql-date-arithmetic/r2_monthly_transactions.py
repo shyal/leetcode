@@ -72,7 +72,7 @@ Constraints:
     || for concatenation, strftime()/julianday()/date() for dates.
 """
 
-import sqlite3
+from dsa.sql import SQLDrill
 
 EXAMPLE_1 = """
 CREATE TABLE Transactions (id INTEGER, country TEXT, state TEXT, amount INTEGER, trans_date TEXT);
@@ -89,7 +89,7 @@ INSERT INTO Transactions VALUES (2, 'FR', 'approved', 400, '2020-02-29');
 """
 
 
-class Solution:
+class Solution(SQLDrill):
 
     def query(self) -> str:
         return """
@@ -97,15 +97,9 @@ class Solution:
         """
 
 
-def run(schema: str, sql: str) -> list[tuple]:
-    con = sqlite3.connect(":memory:")
-    con.executescript(schema)
-    return [tuple(row) for row in con.execute(sql).fetchall()]
-
-
 sol = Solution()
 
-print(run(EXAMPLE_1, sol.query()))  # [('2018-12', 'US', 2, 1, 3000, 1000), ('2019-01', 'DE', 1, 1, 2000, 2000), ('2019-01', 'US', 1, 1, 2000, 2000)]
+sol.show(EXAMPLE_1)
 
-# assert run(EXAMPLE_1, sol.query()) == [('2018-12', 'US', 2, 1, 3000, 1000), ('2019-01', 'DE', 1, 1, 2000, 2000), ('2019-01', 'US', 1, 1, 2000, 2000)]
-# assert run(EXAMPLE_2, sol.query()) == [('2020-02', 'FR', 2, 1, 700, 400)]
+# assert sol.run(EXAMPLE_1) == [('2018-12', 'US', 2, 1, 3000, 1000), ('2019-01', 'DE', 1, 1, 2000, 2000), ('2019-01', 'US', 1, 1, 2000, 2000)]
+# assert sol.run(EXAMPLE_2) == [('2020-02', 'FR', 2, 1, 700, 400)]
