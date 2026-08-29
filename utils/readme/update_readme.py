@@ -303,6 +303,14 @@ def main():
         s3_key_positions = upload_svg_gz("graph/positions.svg", "positions")
         positions_svg_img = f"![Nodes sliding down their forgetting curves](https://shyal.s3.amazonaws.com/{s3_key_positions})"
 
+    # Zone of proximal development (utils/readme/kg_zpd_svg): the input tree
+    # of each of the last 50 solves as `make next` drew it at the time, one
+    # solve per second, SMIL like the others.
+    zpd_svg_img = ""
+    if os.path.exists("graph/zpd.svg"):
+        s3_key_zpd = upload_svg_gz("graph/zpd.svg", "zpd")
+        zpd_svg_img = f"![The input tree of each of my last 50 solves, one per second](https://shyal.s3.amazonaws.com/{s3_key_zpd})"
+
     # Technique-graph movie (utils/kg/kg_movie_rs, `make movie`): the history
     # replayed as a SMIL-animated SVG. Like positions.svg it survives GitHub's
     # camo/<img> pipeline as-is with an svg content type.
@@ -351,6 +359,7 @@ def main():
     readme = fill(readme, "MOCK_SWARM_CHART", mock_swarm_img)
     readme = fill(readme, "MOCK_BLAME_CHART", mock_blame_img)
     readme = fill(readme, "POSITIONS_SVG", positions_svg_img)
+    readme = fill(readme, "ZPD_SVG", zpd_svg_img)
     readme = fill(readme, "CURVE_CALIBRATION_CHART", curve_calibration_img)
     readme = fill(readme, "REVIEW_TIMING_CHART", review_timing_img)
     readme = fill(readme, "SOLVETIME_CHART", solvetime_img)
