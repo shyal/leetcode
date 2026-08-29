@@ -1,6 +1,7 @@
 """
 DRILL: Approved Transactions Per Country
 TRAINS: sql-conditional-aggregate
+ASSIST: hint (CASE WHEN ... THEN ... ELSE ... END syntax)
 
 Given the table Transactions, return for each country: trans_count (all
 transactions), approved_count, trans_total_amount (sum of all amounts) and
