@@ -147,6 +147,15 @@ goes stale automatically if a different problem is prepared.
    refresh carriers — you don't carry rusty gear up the Himalayas. Any gap → prep first:
    spaced re-solve for STALE, micro-drill for MISSING/FRAGILE (`make hard <num>` plans
    the basecamp route).
+2b. **A hold must be servable.** The drill ladder (`kg_lib.drill_held`) parks a
+   dependent behind a banked prereq until that prereq has an unaided clean rep. A
+   prereq that is SOLID only through assisted reps is not rusty, so rules 1-3 never
+   target it; `make next` serves its drill anyway (the ownership rep, rule 0c in
+   kg_next) - a hold nothing can open is a deadlock, not a standard (18 nodes sat
+   behind two such prereqs on 2026-08-29). The empty serve tells "nothing due"
+   (carriers cooling, prereqs unowned, a ready summit asleep - `make next --why`
+   names each wait) apart from "the bank is dry" (no problem can ever carry the
+   move - map one).
 3. **Evidence discipline.** A topic tag or problem title is not evidence; the code is.
    Evidence records only what the code actually exercised (`clean`/`struggled`). A mapped
    move the solve routed around is recorded as a discovered `alt_walk` on the PROBLEM
