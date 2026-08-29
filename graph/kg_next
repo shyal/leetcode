@@ -1,0 +1,17 @@
+digraph "input-tree" {
+	graph [bgcolor="#0d1117" compound=true fontname=Helvetica nodesep=0.25 rankdir=TB ranksep=0.6]
+	node [color="#30363d" fontcolor=white fontname=Helvetica fontsize=11 margin="0.12,0.06" shape=box style="rounded,filled"]
+	edge [arrowsize=0.6 color="#8b949e"]
+	"sql-window-rank" [label="SOLID 💪" fillcolor="#238636" tooltip="Ranking windows — SOLID (2026-08-29)"]
+	"sql-subquery" [label="SOLID 💎" fillcolor="#238636" tooltip="Subqueries and CTEs — SOLID (2026-08-29)"]
+	"sql-window-running" [label="MISSING 🕳️" color="#c9d1d9" fillcolor="#6e7681" penwidth=2 tooltip="Running and moving aggregates — MISSING"]
+	"sql-group-aggregate" [label="SOLID 💎" fillcolor="#238636" tooltip="GROUP BY with aggregates — SOLID (2026-08-29)"]
+	"sql-filter-select" [label="SOLID ✨" fillcolor="#238636" tooltip="Filter, project, order — SOLID (2026-08-29)"]
+	"sql-group-aggregate" -> "sql-window-rank"
+	"sql-subquery" -> "sql-window-rank"
+	"sql-group-aggregate" -> "sql-subquery"
+	"sql-window-rank" -> "sql-window-running"
+	"sql-filter-select" -> "sql-group-aggregate"
+	drill_box [label="drill: Running Total" color="#c9d1d9" fillcolor="#1f6feb" fontsize=13 margin="0.2,0.12" penwidth=2 shape=box style=filled]
+	"sql-window-running" -> drill_box [penwidth=1.4]
+}
