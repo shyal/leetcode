@@ -2,9 +2,9 @@
 DRILL: Stack Both Sides
 TRAINS: sql-set-union
 
-Given the table RequestAccepted, return one column id holding every
-requester_id and every accepter_id, one row per appearance. A person who
-appears in three requests appears three times. Any row order.
+Given the table `RequestAccepted`, return one column `id` holding every
+`requester_id` and every `accepter_id`, one row per appearance. A person who
+appears in three requests appears three times. No ordering required.
 
 Table: RequestAccepted
 

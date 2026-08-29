@@ -2,9 +2,10 @@
 DRILL: Clean Rate Per Node
 TRAINS: spark-group-agg
 
-Given the DataFrame verdicts, return one row per node_id with reps, the
-number of verdicts, and clean_rate, the fraction of those verdicts equal to
-'clean', rounded to two decimals. Any row order.
+Given the DataFrame `verdicts`, return one row per `node_id` with the
+number of verdicts in the `reps` column and the fraction of those verdicts
+equal to 'clean', rounded to two decimals, in the `clean_rate` column. No
+ordering required.
 
 DataFrame: verdicts
 

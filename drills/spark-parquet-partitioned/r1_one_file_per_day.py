@@ -2,9 +2,9 @@
 DRILL: One File Per Day
 TRAINS: spark-parquet-partitioned
 
-Given the DataFrame solves and an empty directory path, write solves there
-as Parquet laid out one directory per date, with exactly one data file in
-each directory. Return nothing.
+Given the DataFrame `solves` and an empty directory `path`, write `solves`
+there as Parquet laid out one directory per `date`, with exactly one data
+file in each directory. Return nothing.
 
 DataFrame: solves
 

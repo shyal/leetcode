@@ -2,10 +2,10 @@
 DRILL: Approved Count Per Country
 TRAINS: sql-conditional-aggregate
 
-Given the table Transactions, return country and approved_count for every
-country: the number of that country's transactions whose state is
-'approved'. A country with no approved transaction shows 0, not NULL. Any row
-order.
+Given the table `Transactions`, return `country` and `approved_count` for
+every country: the number of that country's transactions whose `state` is
+'approved'. A country with no approved transaction shows 0, not NULL. No
+ordering required.
 
 Table: Transactions
 

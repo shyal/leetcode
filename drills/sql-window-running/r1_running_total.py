@@ -2,9 +2,9 @@
 DRILL: Running Total
 TRAINS: sql-window-running
 
-Given the table Queue, return turn and total for every row, where total is the
-sum of weight over every row whose turn is less than or equal to this row's
-turn. Any row order.
+Given the table `Queue`, return `turn` and `total` for every row, where
+`total` is the sum of `weight` over every row whose `turn` is less than or
+equal to this row's `turn`. No ordering required.
 
 Table: Queue
 

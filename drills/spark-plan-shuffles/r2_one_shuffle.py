@@ -2,10 +2,10 @@
 DRILL: One Shuffle
 TRAINS: spark-plan-shuffles
 
-Given the DataFrames verdicts and nodes, return name and reps for every node
-that has at least one verdict, where reps is the number of verdicts on that
-node. The physical plan of the result must contain exactly one Exchange.
-Any row order.
+Given the DataFrames `verdicts` and `nodes`, return `name` and `reps` for
+every node that has at least one verdict, where `reps` is the number of
+verdicts on that node. The physical plan of the result must contain exactly
+one Exchange. No ordering required.
 
 DataFrame: verdicts
 

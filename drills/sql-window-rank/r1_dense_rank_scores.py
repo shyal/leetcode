@@ -2,9 +2,9 @@
 DRILL: Dense Rank Scores
 TRAINS: sql-window-rank
 
-Given the table Scores, return score and rank for every row, ranked from
-highest score to lowest. Equal scores share a rank, and the rank after a tie
-is the next consecutive integer: no holes. Any row order.
+Given the table `Scores`, return `score` and `rank` for every row, ranked
+from highest `score` to lowest. Equal scores share a rank, and the rank
+after a tie is the next consecutive integer: no holes. No ordering required.
 
 Table: Scores
 

@@ -2,8 +2,8 @@
 DRILL: Spread To Eight
 TRAINS: spark-partitions
 
-Given the DataFrame solves, which arrives in two partitions, return the same
-rows spread evenly over exactly eight partitions. Any row order.
+Given the DataFrame `solves`, which arrives in two partitions, return the
+same rows spread evenly over exactly eight partitions. No ordering required.
 
 DataFrame: solves
 

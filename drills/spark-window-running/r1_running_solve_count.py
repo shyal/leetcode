@@ -2,9 +2,9 @@
 DRILL: Running Solve Count
 TRAINS: spark-window-running
 
-Given the DataFrame daily, return every row with a new column running: the
-total of solves for that difficulty on that date and every earlier date.
-Any row order.
+Given the DataFrame `daily`, return every row with a new column `running`:
+the total of `solves` for that `difficulty` on that `date` and every earlier
+date. No ordering required.
 
 DataFrame: daily
 

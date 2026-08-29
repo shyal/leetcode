@@ -2,9 +2,10 @@
 DRILL: Month Over Month Change
 TRAINS: sql-window-offset
 
-Given the table Revenue with one row per consecutive month, return month,
-amount and change: the amount minus the previous month's amount. The first
-month has no previous month and its change is NULL. Any row order.
+Given the table `Revenue` with one row per consecutive month, return
+`month`, `amount` and `change`: the `amount` minus the previous month's
+`amount`. The first month has no previous month and its `change` is NULL. No
+ordering required.
 
 Table: Revenue
 

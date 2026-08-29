@@ -2,9 +2,9 @@
 DRILL: Second Distinct Salary
 TRAINS: sql-nth-value
 
-Given the table Employee, return the second highest distinct salary as a
-single row with one column, SecondHighestSalary. The table always holds at
-least two distinct salaries.
+Given the table `Employee`, return the second highest distinct `salary` as
+a single row with one column, `SecondHighestSalary`. The table always holds
+at least two distinct salaries.
 
 Table: Employee
 

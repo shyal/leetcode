@@ -2,9 +2,9 @@
 DRILL: Solves Per Day
 TRAINS: spark-group-agg
 
-Given the DataFrame solves, return one row per date with the number of
-solves that day as solves and the number of distinct problems that day as
-problems. Any row order.
+Given the DataFrame `solves`, return one row per date with the number of
+solves that day in the `solves` column and the number of distinct problems
+that day in the `problems` column. No ordering required.
 
 DataFrame: solves
 

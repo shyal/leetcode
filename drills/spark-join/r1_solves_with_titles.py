@@ -2,8 +2,9 @@
 DRILL: Solves With Titles
 TRAINS: spark-join
 
-Given the DataFrames solves and problems, return file, title and difficulty
-for every solve whose problem exists in problems. Any row order.
+Given the DataFrames `solves` and `problems`, return `file`, `title` and
+`difficulty` for every solve whose `problem` exists in `problems`. No
+ordering required.
 
 DataFrame: solves
 

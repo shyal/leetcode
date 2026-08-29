@@ -2,10 +2,10 @@
 DRILL: Three Row Moving Average
 TRAINS: spark-window-running
 
-Given the DataFrame daily, return every row with a new column avg3: the
-average of solves over that row and the two rows before it within the same
-difficulty, in date order, rounded to two decimals. The first two rows of a
-difficulty average over the rows that exist. Any row order.
+Given the DataFrame `daily`, return every row with a new column `avg3`: the
+average of `solves` over that row and the two rows before it within the same
+`difficulty`, in `date` order, rounded to two decimals. The first two rows
+of a difficulty average over the rows that exist. No ordering required.
 
 DataFrame: daily
 

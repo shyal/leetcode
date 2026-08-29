@@ -2,8 +2,8 @@
 DRILL: Nodes Nobody Has Touched
 TRAINS: spark-join
 
-Given the DataFrames nodes and verdicts, return id and name for every node
-that has no verdict at all. Any row order.
+Given the DataFrames `nodes` and `verdicts`, return `id` and `name` for
+every node that has no verdict at all. No ordering required.
 
 DataFrame: nodes
 

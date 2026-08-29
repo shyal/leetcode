@@ -2,9 +2,10 @@
 DRILL: Monthly Transactions
 TRAINS: sql-date-arithmetic, sql-conditional-aggregate
 
-Given the table Transactions, return for each month and country: trans_count,
-approved_count, trans_total_amount and approved_total_amount. month is the
-year and month as 'YYYY-MM'. Any row order.
+Given the table `Transactions`, return for each `month` and `country`:
+`trans_count`, `approved_count`, `trans_total_amount` and
+`approved_total_amount`. `month` is the year and month as 'YYYY-MM'. No
+ordering required.
 
 Table: Transactions
 

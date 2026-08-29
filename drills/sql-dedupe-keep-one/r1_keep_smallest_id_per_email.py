@@ -2,8 +2,9 @@
 DRILL: Keep Smallest Id Per Email
 TRAINS: sql-dedupe-keep-one
 
-Given the table Person, return the id and email of the rows to keep after
-removing duplicate emails: for each email, the row with the smallest id. Any row order.
+Given the table `Person`, return the `id` and `email` of the rows to keep
+after removing duplicate emails: for each `email`, the row with the smallest
+`id`. No ordering required.
 
 Table: Person
 

@@ -2,9 +2,10 @@
 DRILL: Manager Name
 TRAINS: sql-self-join
 
-Given the table Employees, return name and manager_name for every employee
-who has a manager: manager_name is the name of the employee that reports_to
-points at. Employees with no manager do not appear. Any row order.
+Given the table `Employees`, return `name` and `manager_name` for every
+employee who has a manager: `manager_name` is the `name` of the employee
+that `reports_to` points at. Employees with no manager do not appear. No
+ordering required.
 
 Table: Employees
 

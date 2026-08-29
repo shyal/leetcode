@@ -2,10 +2,10 @@
 DRILL: Island Key
 TRAINS: sql-gaps-islands
 
-Given the table Seats, return id and grp for every row, where grp is the same
-number for every id in one run of consecutive ids and a different number for
-each run. Number the rows by id starting at 1; grp is the id minus that row
-number. Any row order.
+Given the table `Seats`, return `id` and `grp` for every row, where `grp`
+is the same number for every `id` in one run of consecutive ids and a
+different number for each run. Number the rows by `id` starting at 1; `grp`
+is the `id` minus that row number. No ordering required.
 
 Table: Seats
 

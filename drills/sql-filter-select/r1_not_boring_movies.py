@@ -2,8 +2,8 @@
 DRILL: Not Boring Movies
 TRAINS: sql-filter-select
 
-Given the table Cinema, return every row whose id is odd and whose description
-is not 'boring'. Order the result by rating, highest first.
+Given the table `Cinema`, return every row whose `id` is odd and whose
+`description` is not 'boring'. Order the result by `rating`, highest first.
 
 Table: Cinema
 

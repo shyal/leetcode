@@ -2,9 +2,10 @@
 DRILL: Last Person To Fit In The Bus
 TRAINS: sql-window-running, sql-subquery
 
-Given the table Queue, people board a bus in order of turn and the bus holds
-at most 1000 kilograms in total. Return person_name of the last person who can
-board without the total exceeding 1000. The first person always fits.
+Given the table `Queue`, people board a bus in order of `turn` and the bus
+holds at most 1000 kilograms in total. Return `person_name` of the last
+person who can board without the total exceeding 1000. The first person
+always fits.
 
 Table: Queue
 

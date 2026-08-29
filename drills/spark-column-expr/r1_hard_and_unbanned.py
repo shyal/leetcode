@@ -2,8 +2,9 @@
 DRILL: Hard And Unbanned
 TRAINS: spark-column-expr
 
-Given the DataFrame problems, return num and title for every problem whose
-difficulty is 'Hard' and whose banned flag is 0. Any row order.
+Given the DataFrame `problems`, return `num` and `title` for every problem
+whose `difficulty` is 'Hard' and whose `banned` flag is 0. No ordering
+required.
 
 DataFrame: problems
 

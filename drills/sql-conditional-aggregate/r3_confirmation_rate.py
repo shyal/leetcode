@@ -2,10 +2,10 @@
 DRILL: Confirmation Rate
 TRAINS: sql-conditional-aggregate, sql-join-left-keep
 
-Given the tables Signups and Confirmations, return each user_id with their
-confirmation_rate: the number of 'confirmed' messages divided by the number of
-confirmation messages they received, rounded to 2 decimal places. A user with
-no confirmation messages has a rate of 0. Any row order.
+Given the tables `Signups` and `Confirmations`, return each `user_id` with
+their `confirmation_rate`: the number of 'confirmed' messages divided by the
+number of confirmation messages they received, rounded to 2 decimal places.
+A user with no confirmation messages has a rate of 0. No ordering required.
 
 Table: Signups
 

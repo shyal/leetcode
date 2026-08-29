@@ -2,10 +2,10 @@
 DRILL: Approved Transactions Per Country
 TRAINS: sql-conditional-aggregate
 
-Given the table Transactions, return for each country: trans_count (all
-transactions), approved_count, trans_total_amount (sum of all amounts) and
-approved_total_amount (sum of approved amounts). Counts and sums must be 0,
-not NULL, when nothing is approved. Any row order.
+Given the table `Transactions`, return for each `country`: `trans_count`
+(all transactions), `approved_count`, `trans_total_amount` (sum of all
+amounts) and `approved_total_amount` (sum of approved amounts). Counts and
+sums must be 0, not NULL, when nothing is approved. No ordering required.
 
 Table: Transactions
 

@@ -2,9 +2,10 @@
 DRILL: No Shuffle
 TRAINS: spark-plan-shuffles
 
-Given the DataFrame solves, return file and date for every solve whose
-assist is 'none', with a third column points holding the integer 3. The
-physical plan of the result must contain no Exchange. Any row order.
+Given the DataFrame `solves`, return `file` and `date` for every solve
+whose `assist` is 'none', with a third column `points` holding the integer
+3. The physical plan of the result must contain no Exchange. No ordering
+required.
 
 DataFrame: solves
 
