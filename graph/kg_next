@@ -1,0 +1,20 @@
+digraph "input-tree" {
+	graph [bgcolor="#0d1117" compound=true fontname=Helvetica nodesep=0.25 rankdir=TB ranksep=0.6]
+	node [color="#30363d" fontcolor=white fontname=Helvetica fontsize=11 margin="0.12,0.06" shape=box style="rounded,filled"]
+	edge [arrowsize=0.6 color="#8b949e"]
+	"sql-self-join" [label="SOLID 🟢" fillcolor="#238636" tooltip="Join a table to itself — SOLID (2026-08-29)"]
+	"sql-conditional-aggregate" [label="SOLID ✨" fillcolor="#238636" tooltip="CASE inside an aggregate — SOLID (2026-08-29)"]
+	"sql-filter-select" [label="SOLID 💎" fillcolor="#238636" tooltip="Filter, project, order — SOLID (2026-08-29)"]
+	"sql-join-inner" [label="SOLID 💪" fillcolor="#238636" tooltip="Inner join on a key — SOLID (2026-08-29)"]
+	"sql-date-arithmetic" [label="MISSING 🕳️" color="#c9d1d9" fillcolor="#6e7681" penwidth=2 tooltip="Date arithmetic and buckets — MISSING"]
+	"sql-group-aggregate" [label="SOLID ✨" fillcolor="#238636" tooltip="GROUP BY with aggregates — SOLID (2026-08-29)"]
+	"sql-join-inner" -> "sql-self-join"
+	"sql-group-aggregate" -> "sql-self-join"
+	"sql-group-aggregate" -> "sql-conditional-aggregate"
+	"sql-filter-select" -> "sql-join-inner"
+	"sql-self-join" -> "sql-date-arithmetic"
+	"sql-conditional-aggregate" -> "sql-date-arithmetic"
+	"sql-filter-select" -> "sql-group-aggregate"
+	drill_box [label="drill: Next Day" color="#c9d1d9" fillcolor="#1f6feb" fontsize=13 margin="0.2,0.12" penwidth=2 shape=box style=filled]
+	"sql-date-arithmetic" -> drill_box [penwidth=1.4]
+}
