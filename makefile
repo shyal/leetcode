@@ -107,7 +107,7 @@ viz:
 %:
 	@:
 next:
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_next $(patsubst why,--why,$(patsubst graph,--graph,$(patsubst sql,--group=sql,$(patsubst cram,--cram,$(filter-out $@,$(MAKECMDGOALS))))))
+	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_next $(patsubst why,--why,$(patsubst graph,--graph,$(patsubst spark,--group=spark,$(patsubst sql,--group=sql,$(patsubst cram,--cram,$(filter-out $@,$(MAKECMDGOALS)))))))
 
 GRAPH_JSON = graph/nodes.json graph/problems.json graph/evidence.json
 

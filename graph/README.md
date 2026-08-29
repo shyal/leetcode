@@ -75,7 +75,7 @@ carrier is READY.
 
 ## Dive (`make dive`)
 
-`make next <group>` (currently `make next sql`; `--group <g>` on kg_next for any group)
+`make next <group>` (currently `make next sql` and `make next spark`; `--group <g>` on kg_next for any group)
 runs the same rules 1-3 over one curated group only, skipping the sleep warm-up and the
 summit fallback, so a new ladder can be worked without the global frontier interrupting.
 
