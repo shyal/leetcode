@@ -10,7 +10,7 @@ So, here's my new approach: i decided on a new thesis: to focus on the core tech
 
 <!-- KG_MOVIE -->
 
-![Technique graph growing solve by solve](https://shyal.s3.amazonaws.com/kg_movie_20260829101417.svg)
+![Technique graph growing solve by solve](https://shyal.s3.amazonaws.com/kg_movie_20260829125617.svg)
 
 <!-- /KG_MOVIE -->
 
@@ -22,7 +22,7 @@ Looking at my last leetcode grind, roughly October and November 2025, i plateaue
 
 <!-- PASS_PROB_CHART -->
 
-![P(pass a mock) over time](https://shyal.s3.amazonaws.com/pass_probability_20260829101417.svg)
+![P(pass a mock) over time](https://shyal.s3.amazonaws.com/pass_probability_20260829125617.svg)
 
 <!-- /PASS_PROB_CHART -->
 
@@ -30,7 +30,7 @@ The same story with effort as the x axis. A plateau is a long flat slog: hundred
 
 <!-- YIELD_CHART -->
 
-![What a solve buys](https://shyal.s3.amazonaws.com/yield_20260829101417.svg)
+![What a solve buys](https://shyal.s3.amazonaws.com/yield_20260829125617.svg)
 
 <!-- /YIELD_CHART -->
 
@@ -38,25 +38,25 @@ The green bars in the chart below show **consolidation** periods: times when P i
 
 <!-- YIELD_TIME_CHART -->
 
-![Two kinds of sideways](https://shyal.s3.amazonaws.com/yield_time_20260829101417.svg)
+![Two kinds of sideways](https://shyal.s3.amazonaws.com/yield_time_20260829125617.svg)
 
 <!-- /YIELD_TIME_CHART -->
 
 <!-- MOCK_DIST_CHART -->
 
-![Simulated mock outcomes over time](https://shyal.s3.amazonaws.com/mock_dist_20260829101417.svg)
+![Simulated mock outcomes over time](https://shyal.s3.amazonaws.com/mock_dist_20260829125617.svg)
 
 <!-- /MOCK_DIST_CHART -->
 
 <!-- MOCK_SWARM_CHART -->
 
-![Individual simulated mocks over time](https://shyal.s3.amazonaws.com/mock_swarm_20260829101417.svg)
+![Individual simulated mocks over time](https://shyal.s3.amazonaws.com/mock_swarm_20260829125617.svg)
 
 <!-- /MOCK_SWARM_CHART -->
 
 <!-- MOCK_BLAME_CHART -->
 
-![Why simulated mocks fail, over time](https://shyal.s3.amazonaws.com/mock_blame_20260829101417.svg)
+![Why simulated mocks fail, over time](https://shyal.s3.amazonaws.com/mock_blame_20260829125617.svg)
 
 <!-- /MOCK_BLAME_CHART -->
 
@@ -72,7 +72,7 @@ The model is power-law forgetting with a slip rate, P(recall) = (1−slip)·(1 +
 
 <!-- POSITIONS_SVG -->
 
-![Nodes sliding down their forgetting curves](https://shyal.s3.amazonaws.com/positions_20260829101417.svg)
+![Nodes sliding down their forgetting curves](https://shyal.s3.amazonaws.com/positions_20260829125617.svg)
 
 <!-- /POSITIONS_SVG -->
 
@@ -80,13 +80,13 @@ The model also tracks its accuracy internally, by comparing its predictions with
 
 <!-- CURVE_CALIBRATION_CHART -->
 
-![Curve calibration](https://shyal.s3.amazonaws.com/curve_calibration_20260829101417.svg)
+![Curve calibration](https://shyal.s3.amazonaws.com/curve_calibration_20260829125617.svg)
 
 <!-- /CURVE_CALIBRATION_CHART -->
 
 <!-- REVIEW_TIMING_CHART -->
 
-![Was each review on time?](https://shyal.s3.amazonaws.com/review_timing_20260829101417.svg)
+![Was each review on time?](https://shyal.s3.amazonaws.com/review_timing_20260829125617.svg)
 
 <!-- /REVIEW_TIMING_CHART -->
 
@@ -96,14 +96,14 @@ What the clock does see is two drivers, and they were my gut ranking before i ra
 
 <!-- SOLVETIME_CHART -->
 
-![The two drivers of solve time](https://shyal.s3.amazonaws.com/solvetime_20260829101417.svg)
+![The two drivers of solve time](https://shyal.s3.amazonaws.com/solvetime_20260829125617.svg)
 <!-- /SOLVETIME_CHART -->
 
 The connectivity effect, zoomed in. Every timed solve as a dot, against how many problems in the bank share its moves. The scatter is honest about the size of the effect: the running medians sit flat until a walk's moves are shared by roughly thirty problems, then bend down. It isn't a smooth discount, it's a threshold: moves need a critical mass of carriers before the free rehearsal shows up in the clock.
 
 <!-- CONNECTIVITY_CHART -->
 
-![Move connectivity vs solve time](https://shyal.s3.amazonaws.com/connectivity_20260829101417.svg)
+![Move connectivity vs solve time](https://shyal.s3.amazonaws.com/connectivity_20260829125617.svg)
 <!-- /CONNECTIVITY_CHART -->
 
 The payoff metric is problems in reach: a problem is in reach when every move in its walk is currently solid. This replays today's walked problems against each day's historical node states, so the curve measures my skill moving under a fixed yardstick, not the catalog growing.
@@ -112,7 +112,7 @@ Two lines now. The blue one counts only evidenced walks: walks extracted from co
 
 <!-- REACH_CHART -->
 
-![Problems in reach](https://shyal.s3.amazonaws.com/reach_20260829101417.svg)
+![Problems in reach](https://shyal.s3.amazonaws.com/reach_20260829125617.svg)
 
 <!-- /REACH_CHART -->
 
@@ -142,7 +142,7 @@ Solves and drills per day, then the unique ones. Uniques are tracked separately 
 
 <!-- SOLVES_CHART -->
 
-![Solves and drills per day](https://shyal.s3.amazonaws.com/rates_20260829101417.svg)
+![Solves and drills per day](https://shyal.s3.amazonaws.com/rates_20260829125617.svg)
 <!-- /SOLVES_CHART -->
 
 ## Readiness

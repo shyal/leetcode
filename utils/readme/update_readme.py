@@ -15,41 +15,83 @@ def main():
     mpl.use("Agg")
     import matplotlib.pyplot as plt
 
+    import hashlib
+    from concurrent.futures import ThreadPoolExecutor
+    from boto3.s3.transfer import TransferConfig
+
     s3 = boto3.client("s3")
     bucket_name = "shyal"
+    # single-part uploads only, so every object's ETag is the md5 of its
+    # bytes and the dedupe below can compare without downloading
+    transfer_config = TransferConfig(multipart_threshold=256 * 1024 * 1024)
+
+    # README.md is the single source of truth (see fill() below); it is also
+    # where the previous run's S3 keys live. Read it once up front and HEAD
+    # every timestamped key it links, so an unchanged chart keeps its link
+    # instead of landing on S3 again as a duplicate.
+    with open("README.md", "r") as f:
+        readme = f.read()
+    existing = {}  # prefix -> key currently linked from README.md
+    for key in re.findall(
+        r"https://shyal\.s3\.amazonaws\.com/([a-z_]+_\d{14}\.(?:svg|png))", readme
+    ):
+        existing[key.rsplit("_", 1)[0]] = key
+
+    def etag_of(key):
+        try:
+            return s3.head_object(Bucket=bucket_name, Key=key)["ETag"].strip('"')
+        except s3.exceptions.ClientError:
+            return None
+
+    with ThreadPoolExecutor(max_workers=10) as pool:
+        etags = dict(zip(existing, pool.map(etag_of, existing.values())))
+
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
 
     # every chart lands in a unique local path, so uploads can be queued as
-    # they're produced and pushed concurrently at the end
+    # they're produced and pushed concurrently at the end. Returns the S3 key
+    # to link: the existing one when the bytes are identical to what is
+    # already up there, else a fresh timestamped key queued for upload.
     upload_jobs = []
+    unchanged = []
 
-    def queue_upload(local, key, extra):
+    def queue_upload(local, prefix, ext, extra):
+        with open(local, "rb") as f:
+            md5 = hashlib.md5(f.read()).hexdigest()
+        if prefix in existing and etags.get(prefix) == md5:
+            unchanged.append(existing[prefix])
+            return existing[prefix]
+        key = f"{prefix}_{timestamp}.{ext}"
         upload_jobs.append((local, key, extra))
+        return key
 
     # The four synced SMIL animations (kg_movie / kg_pass / positions /
     # calibration) go up gzipped with a Content-Encoding header — camo passes
     # it through, and near-equal transfer sizes keep their independent SMIL
-    # clocks starting in near-lockstep.
-    def upload_svg_gz(path, key):
+    # clocks starting in near-lockstep. mtime=0 and no filename header keep
+    # the gzip bytes a pure function of the SVG, so the dedupe can see
+    # through the compression.
+    def upload_svg_gz(path, prefix):
         import gzip
 
-        local = f"/tmp/{os.path.basename(key)}.gz"
-        with open(path, "rb") as f, gzip.open(local, "wb", compresslevel=9) as g:
+        local = f"/tmp/{prefix}.svg.gz"
+        with open(path, "rb") as f, open(local, "wb") as raw, gzip.GzipFile(
+            filename="", fileobj=raw, mode="wb", compresslevel=9, mtime=0
+        ) as g:
             g.write(f.read())
-        queue_upload(
+        return queue_upload(
             local,
-            key,
+            prefix,
+            "svg",
             {"ContentType": "image/svg+xml", "ContentEncoding": "gzip"},
         )
-
-    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
 
     # Solve and drill rates (utils/readme/kg_rates_svg): one SVG, two
     # stacked panels (per day, unique per day), replacing the two matplotlib
     # PNGs that only knew about problems.
     rates_img = ""
     if os.path.exists("graph/rates.svg"):
-        s3_key_rates = f"rates_{timestamp}.svg"
-        upload_svg_gz("graph/rates.svg", s3_key_rates)
+        s3_key_rates = upload_svg_gz("graph/rates.svg", "rates")
         rates_img = f"![Solves and drills per day](https://shyal.s3.amazonaws.com/{s3_key_rates})"
 
     # One projection-stability chart: each model's projected ready date over
@@ -94,8 +136,8 @@ def main():
         fig.tight_layout()
         local_path = "/tmp/readiness_projection.png"
         fig.savefig(local_path)
-        s3_key_projection = f"readiness_projection_{timestamp}.png"
-        queue_upload(local_path, s3_key_projection, {"ContentType": "image/png"})
+        s3_key_projection = queue_upload(
+            local_path, "readiness_projection", "png", {"ContentType": "image/png"})
         projection_img = f"![Projected ready dates over time](https://shyal.s3.amazonaws.com/{s3_key_projection})"
     plt.close(fig)
 
@@ -139,8 +181,7 @@ def main():
             ax.set_title(title + note)
             local_path = f"/tmp/{fname}.png"
             fig.savefig(local_path, bbox_inches="tight")
-            s3_key = f"{s3_prefix}_{timestamp}.png"
-            queue_upload(local_path, s3_key, {"ContentType": "image/png"})
+            s3_key = queue_upload(local_path, s3_prefix, "png", {"ContentType": "image/png"})
             plt.close(fig)
             alt_note = f" (Ready by {ready_date})" if ready_date else ""
             return f"![{alt}{alt_note}](https://shyal.s3.amazonaws.com/{s3_key})"
@@ -175,8 +216,7 @@ def main():
     # shared clock — the fourth synced animation.
     curve_calibration_img = ""
     if os.path.exists("graph/calibration.svg"):
-        s3_key_calib = f"curve_calibration_{timestamp}.svg"
-        upload_svg_gz("graph/calibration.svg", s3_key_calib)
+        s3_key_calib = upload_svg_gz("graph/calibration.svg", "curve_calibration")
         curve_calibration_img = f"![Curve calibration](https://shyal.s3.amazonaws.com/{s3_key_calib})"
 
     # Review timing (utils/readme/kg_timing_svg): every recall trial's gap vs the
@@ -184,32 +224,28 @@ def main():
     # clock.
     review_timing_img = ""
     if os.path.exists("graph/timing.svg"):
-        s3_key_timing = f"review_timing_{timestamp}.svg"
-        upload_svg_gz("graph/timing.svg", s3_key_timing)
+        s3_key_timing = upload_svg_gz("graph/timing.svg", "review_timing")
         review_timing_img = f"![Was each review on time?](https://shyal.s3.amazonaws.com/{s3_key_timing})"
 
     # Solve-time drivers (utils/readme/kg_solvetime_svg): paired re-solve ratios
     # warm vs cold, and median minutes by move connectivity.
     solvetime_img = ""
     if os.path.exists("graph/solvetime.svg"):
-        s3_key_solvetime = f"solvetime_{timestamp}.svg"
-        upload_svg_gz("graph/solvetime.svg", s3_key_solvetime)
+        s3_key_solvetime = upload_svg_gz("graph/solvetime.svg", "solvetime")
         solvetime_img = f"![The two drivers of solve time](https://shyal.s3.amazonaws.com/{s3_key_solvetime})"
 
     # Connectivity zoom (utils/readme/kg_connectivity_svg): every timed solve vs how
     # many problems share its moves, running medians per difficulty.
     connectivity_img = ""
     if os.path.exists("graph/connectivity.svg"):
-        s3_key_conn = f"connectivity_{timestamp}.svg"
-        upload_svg_gz("graph/connectivity.svg", s3_key_conn)
+        s3_key_conn = upload_svg_gz("graph/connectivity.svg", "connectivity")
         connectivity_img = f"![Move connectivity vs solve time](https://shyal.s3.amazonaws.com/{s3_key_conn})"
 
     # Problems in reach (utils/readme/kg_reach_svg): today's walked frontier replayed
     # against historical node states - the payoff curve, on the shared clock.
     reach_img = ""
     if os.path.exists("graph/reach.svg"):
-        s3_key_reach = f"reach_{timestamp}.svg"
-        upload_svg_gz("graph/reach.svg", s3_key_reach)
+        s3_key_reach = upload_svg_gz("graph/reach.svg", "reach")
         reach_img = f"![Problems in reach](https://shyal.s3.amazonaws.com/{s3_key_reach})"
 
     # P(pass) history — the headline "how good am i" line, now rendered by
@@ -219,8 +255,7 @@ def main():
     # left-to-right on the movie's clock.
     pass_prob_img = ""
     if os.path.exists("graph/kg_pass.svg"):
-        s3_key_pass = f"pass_probability_{timestamp}.svg"
-        upload_svg_gz("graph/kg_pass.svg", s3_key_pass)
+        s3_key_pass = upload_svg_gz("graph/kg_pass.svg", "pass_probability")
         pass_prob_img = f"![P(pass a mock) over time](https://shyal.s3.amazonaws.com/{s3_key_pass})"
 
     # Yield chart (utils/kg/kg_movie_rs, same binary): P(pass) against
@@ -228,16 +263,14 @@ def main():
     # consolidation a near-vertical climb, segments colored by re-solve share.
     yield_img = ""
     if os.path.exists("graph/kg_yield.svg"):
-        s3_key_yield = f"yield_{timestamp}.svg"
-        upload_svg_gz("graph/kg_yield.svg", s3_key_yield)
+        s3_key_yield = upload_svg_gz("graph/kg_yield.svg", "yield")
         yield_img = f"![What a solve buys](https://shyal.s3.amazonaws.com/{s3_key_yield})"
 
     # Its calendar twin (same binary): the P(pass) lines over each week's
     # composition (new problems vs re-solves) - the two kinds of sideways.
     yield_time_img = ""
     if os.path.exists("graph/kg_yield_time.svg"):
-        s3_key_yield_time = f"yield_time_{timestamp}.svg"
-        upload_svg_gz("graph/kg_yield_time.svg", s3_key_yield_time)
+        s3_key_yield_time = upload_svg_gz("graph/kg_yield_time.svg", "yield_time")
         yield_time_img = f"![Two kinds of sideways](https://shyal.s3.amazonaws.com/{s3_key_yield_time})"
 
     # Mock outcome distribution (utils/kg/kg_movie_rs, same binary): the Monte
@@ -245,24 +278,21 @@ def main():
     # shared clock.
     mock_dist_img = ""
     if os.path.exists("graph/kg_dist.svg"):
-        s3_key_dist = f"mock_dist_{timestamp}.svg"
-        upload_svg_gz("graph/kg_dist.svg", s3_key_dist)
+        s3_key_dist = upload_svg_gz("graph/kg_dist.svg", "mock_dist")
         mock_dist_img = f"![Simulated mock outcomes over time](https://shyal.s3.amazonaws.com/{s3_key_dist})"
 
     # Its dot-level companion (same binary): individual simulated mocks with
     # fixed dice, hopping bins as skill improves.
     mock_swarm_img = ""
     if os.path.exists("graph/kg_swarm.svg"):
-        s3_key_swarm = f"mock_swarm_{timestamp}.svg"
-        upload_svg_gz("graph/kg_swarm.svg", s3_key_swarm)
+        s3_key_swarm = upload_svg_gz("graph/kg_swarm.svg", "mock_swarm")
         mock_swarm_img = f"![Individual simulated mocks over time](https://shyal.s3.amazonaws.com/{s3_key_swarm})"
 
     # And the failure-attribution view (same binary): failed simulated
     # problems blamed on the weakest move in their walk, by technique group.
     mock_blame_img = ""
     if os.path.exists("graph/kg_blame.svg"):
-        s3_key_blame = f"mock_blame_{timestamp}.svg"
-        upload_svg_gz("graph/kg_blame.svg", s3_key_blame)
+        s3_key_blame = upload_svg_gz("graph/kg_blame.svg", "mock_blame")
         mock_blame_img = f"![Why simulated mocks fail, over time](https://shyal.s3.amazonaws.com/{s3_key_blame})"
 
     # Animated SVG (utils/readme/kg_positions_svg): every node sliding down its
@@ -270,8 +300,7 @@ def main():
     # as the two SVGs above.
     positions_svg_img = ""
     if os.path.exists("graph/positions.svg"):
-        s3_key_positions = f"positions_{timestamp}.svg"
-        upload_svg_gz("graph/positions.svg", s3_key_positions)
+        s3_key_positions = upload_svg_gz("graph/positions.svg", "positions")
         positions_svg_img = f"![Nodes sliding down their forgetting curves](https://shyal.s3.amazonaws.com/{s3_key_positions})"
 
     # Technique-graph movie (utils/kg/kg_movie_rs, `make movie`): the history
@@ -279,29 +308,26 @@ def main():
     # camo/<img> pipeline as-is with an svg content type.
     kg_movie_img = ""
     if os.path.exists("graph/kg_movie.svg"):
-        s3_key_kg_movie = f"kg_movie_{timestamp}.svg"
-        upload_svg_gz("graph/kg_movie.svg", s3_key_kg_movie)
+        s3_key_kg_movie = upload_svg_gz("graph/kg_movie.svg", "kg_movie")
         kg_movie_img = f"![Technique graph growing solve by solve](https://shyal.s3.amazonaws.com/{s3_key_kg_movie})"
 
     # push everything queued above concurrently; boto3 clients are thread-safe.
     # Any failure raises here, before the README is touched.
-    from concurrent.futures import ThreadPoolExecutor
-
     with ThreadPoolExecutor(max_workers=10) as pool:
         futures = [
-            pool.submit(s3.upload_file, local, bucket_name, key, ExtraArgs=extra)
+            pool.submit(s3.upload_file, local, bucket_name, key,
+                        ExtraArgs=extra, Config=transfer_config)
             for local, key, extra in upload_jobs
         ]
         for f in futures:
             f.result()
+    print(f"uploaded {len(upload_jobs)}, unchanged {len(unchanged)}")
 
-    # README.md is the single source of truth: prose is edited there directly,
-    # and each generated block lives between <!-- NAME --> ... <!-- /NAME -->
-    # markers (invisible on GitHub). fill() rewrites only the inside of a
-    # region, so the script is idempotent and never touches the prose. Empty
-    # content leaves a region as-is (same semantics as the old conditionals).
-    with open("README.md", "r") as f:
-        readme = f.read()
+    # Prose is edited in README.md directly, and each generated block lives
+    # between <!-- NAME --> ... <!-- /NAME --> markers (invisible on GitHub).
+    # fill() rewrites only the inside of a region, so the script is idempotent
+    # and never touches the prose. Empty content leaves a region as-is (same
+    # semantics as the old conditionals).
 
     def fill(text, name, content):
         # keep the region's existing whitespace padding (formatters like to
