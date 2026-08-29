@@ -37,16 +37,23 @@ Constraints:
 class Solution:
 
     def sortBounded(self, nums: List[int]) -> List[int]:
-        pass
+        counts = [0] * 101
+        ret = []
+        for i, n in enumerate(nums):
+            counts[n] += 1
+        for i, c in enumerate(counts):
+            if c != 0:
+                ret.extend([i] * c)
+        return ret
 
 
 sol = Solution()
 
 print(sol.sortBounded([1, 3, 6, 9, 9, 3, 5, 9]))  # [1, 3, 3, 5, 6, 9, 9, 9]
 
-# assert sol.sortBounded([1, 3, 6, 9, 9, 3, 5, 9]) == [1, 3, 3, 5, 6, 9, 9, 9]
-# assert sol.sortBounded([100, 0, 100]) == [0, 100, 100]
-# assert sol.sortBounded([7]) == [7]
-# assert sol.sortBounded([0, 0, 0]) == [0, 0, 0]
-# assert sol.sortBounded([5, 4, 3, 2, 1, 0]) == [0, 1, 2, 3, 4, 5]
-# assert sol.sortBounded([50, 50, 49, 51]) == [49, 50, 50, 51]
+assert sol.sortBounded([1, 3, 6, 9, 9, 3, 5, 9]) == [1, 3, 3, 5, 6, 9, 9, 9]
+assert sol.sortBounded([100, 0, 100]) == [0, 100, 100]
+assert sol.sortBounded([7]) == [7]
+assert sol.sortBounded([0, 0, 0]) == [0, 0, 0]
+assert sol.sortBounded([5, 4, 3, 2, 1, 0]) == [0, 1, 2, 3, 4, 5]
+assert sol.sortBounded([50, 50, 49, 51]) == [49, 50, 50, 51]
