@@ -618,7 +618,7 @@ fn main() {
     let today_i = n_ticks - 1;
     let mut dot = String::new();
     dot.push_str("digraph kg {\n");
-    dot.push_str(" graph [rankdir=TB, bgcolor=\"#0d1117\", fontname=\"Helvetica\", compound=true, ranksep=\"0.6\", nodesep=\"0.25\"];\n");
+    dot.push_str(" graph [rankdir=LR, bgcolor=\"#0d1117\", fontname=\"Helvetica\", compound=true, ranksep=\"0.6\", nodesep=\"0.25\"];\n");
     dot.push_str(" node [shape=box, style=\"rounded,filled\", fontname=\"Helvetica\", fontsize=11, fontcolor=white, color=\"#30363d\", margin=\"0.12,0.06\", penwidth=2];\n");
     dot.push_str(" edge [color=\"#8b949e\", arrowsize=0.6];\n");
     for (group, members) in &groups {
@@ -940,13 +940,135 @@ fn main() {
         out_svg.push_str("</g>\n");
         li = lj;
     }
-    out_svg.push_str("</g>\n</g>\n");
+    out_svg.push_str("</g>\n");
+
+    // ---- the avatar: gource-style, one sprite gravitating to whatever is
+    // being solved and firing a laser at every move the solve exercised.
+    // A shot = one solve (same birth), its targets the centers of the node
+    // boxes it touched. The sprite hovers above the targets' centroid and
+    // eases there from the previous shot (spline keySplines), so between
+    // solves it is visibly travelling; the laser group flashes for LASER_S
+    // (or until the next shot, whichever is sooner) and shares the label
+    // clock exactly, keyTimes over the same loop.
+    const HOVER_DY: f64 = -34.0;
+    struct Shot {
+        born: f64,
+        hover: (f64, f64),
+        targets: Vec<(f64, f64)>,
+    }
+    let mut shots: Vec<Shot> = vec![];
+    let mut li = 0;
+    while li < labels.len() {
+        let l = &labels[li];
+        let mut lj = li + 1;
+        while lj < labels.len() && labels[lj].born == l.born && labels[lj].text == l.text {
+            lj += 1;
+        }
+        let targets: Vec<(f64, f64)> = labels[li..lj]
+            .iter()
+            .filter_map(|l| boxes.get(&l.node))
+            .map(|b| ((b.0 + b.2) / 2.0, (b.1 + b.3) / 2.0))
+            .collect();
+        if !targets.is_empty() {
+            let n = targets.len() as f64;
+            let cx = targets.iter().map(|t| t.0).sum::<f64>() / n;
+            let cy = targets.iter().map(|t| t.1).sum::<f64>() / n;
+            shots.push(Shot { born: l.born, hover: (cx, cy + HOVER_DY), targets });
+        }
+        li = lj;
+    }
+    if !shots.is_empty() {
+        // the sprite's path, simulated at a fixed step: the target is a
+        // heavily averaged trail of the solve positions (an exponential
+        // average, so a burst of solves in one cluster pulls it there and a
+        // stray one barely nudges it), and the sprite chases the target at a
+        // speed proportional to the distance, capped at SPRITE_VMAX, so it
+        // drifts rather than teleports. Beams fire from wherever the sprite
+        // is at the moment of the solve.
+        const STEP_S: f64 = 0.02;
+        const TARGET_ALPHA: f64 = 0.12; // per shot, share of the way toward it
+        const SPRITE_GAIN: f64 = 2.5; // per second: speed = gain * distance
+        const SPRITE_VMAX: f64 = 320.0; // px per second in graph units
+        let n_steps = (dur / STEP_S).ceil() as usize + 1;
+        let mut path: Vec<(f64, f64)> = Vec::with_capacity(n_steps);
+        let mut target = shots[0].hover;
+        let mut pos = shots[0].hover;
+        let mut si = 0;
+        for k in 0..n_steps {
+            let t = k as f64 * STEP_S;
+            while si < shots.len() && shots[si].born <= t {
+                target.0 += TARGET_ALPHA * (shots[si].hover.0 - target.0);
+                target.1 += TARGET_ALPHA * (shots[si].hover.1 - target.1);
+                si += 1;
+            }
+            let (dx, dy) = (target.0 - pos.0, target.1 - pos.1);
+            let dist = (dx * dx + dy * dy).sqrt();
+            if dist > 0.5 {
+                let step = (SPRITE_GAIN * dist).min(SPRITE_VMAX) * STEP_S;
+                let f = (step / dist).min(1.0);
+                pos.0 += dx * f;
+                pos.1 += dy * f;
+            }
+            path.push(pos);
+        }
+        let pos_at = |t: f64| path[((t / STEP_S).round() as usize).min(path.len() - 1)];
+
+        // beams: one group per shot, lines from the sprite to each hit, lit
+        // at the solve and fading out over BEAM_FADE_S so the eye can catch
+        // them; overlapping beams simply coexist
+        const BEAM_FADE_S: f64 = 0.7;
+        writeln!(out_svg, "<g stroke=\"#ff7b72\" stroke-width=\"2\" stroke-linecap=\"round\">").unwrap();
+        for sh in &shots {
+            let tb = sh.born / dur;
+            let te = (tb + BEAM_FADE_S / dur).min(1.0);
+            let from = pos_at(sh.born);
+            let mut times = vec![0.0];
+            let mut values = vec!["0".to_string()];
+            if tb > 0.0004 {
+                push_key(&mut times, tb - 0.0002);
+                values.push("0".to_string());
+            }
+            push_key(&mut times, tb.max(0.0));
+            values.push("1".to_string());
+            if te < 1.0 {
+                push_key(&mut times, te);
+                values.push("0".to_string());
+            }
+            push_key(&mut times, 1.0);
+            values.push("0".to_string());
+            write!(out_svg, "<g opacity=\"0\">{}", animate("opacity", "linear", &values, &times, dur)).unwrap();
+            for t in &sh.targets {
+                write!(
+                    out_svg,
+                    "<line x1=\"{:.0}\" y1=\"{:.0}\" x2=\"{:.0}\" y2=\"{:.0}\"/><circle cx=\"{:.0}\" cy=\"{:.0}\" r=\"5\" fill=\"#ff7b72\" stroke=\"none\"/>",
+                    from.0, from.1, t.0, t.1, t.0, t.1
+                )
+                .unwrap();
+            }
+            out_svg.push_str("</g>\n");
+        }
+        out_svg.push_str("</g>\n");
+
+        // the sprite itself, riding the simulated path (linear between steps)
+        let times: Vec<f64> = (0..path.len()).map(|k| (k as f64 * STEP_S / dur).min(1.0)).collect();
+        let values: Vec<String> = path.iter().map(|p| format!("{:.0},{:.0}", p.0, p.1)).collect();
+        let kt: Vec<String> = times.iter().map(|t| fmt_frac(*t)).collect();
+        writeln!(
+            out_svg,
+            "<g><animateTransform attributeName=\"transform\" type=\"translate\" calcMode=\"linear\" values=\"{}\" keyTimes=\"{}\" dur=\"{dur}s\" repeatCount=\"indefinite\"/>\
+<circle r=\"15\" fill=\"{GOLD}\" opacity=\"0.22\"/><circle r=\"8\" fill=\"{GOLD}\" stroke=\"{BG}\" stroke-width=\"2\"/><circle cx=\"3\" cy=\"-2\" r=\"2.2\" fill=\"{BG}\"/></g>",
+            values.join(";"),
+            kt.join(";")
+        )
+        .unwrap();
+    }
+    out_svg.push_str("</g>\n");
 
     // header: the date and status counts, one flashcard per tick like the mp4's
     // title line — outside the graph transform, in plain canvas coordinates
     writeln!(
         out_svg,
-        "<g text-anchor=\"middle\" font-family=\"Helvetica,sans-serif\" font-size=\"20\" fill=\"{INK}\">"
+        "<g text-anchor=\"end\" font-family=\"Helvetica,sans-serif\" font-size=\"20\" fill=\"{INK}\">"
     )
     .unwrap();
     let mut hidden_counts = 0;
@@ -980,7 +1102,7 @@ fn main() {
         writeln!(
             out_svg,
             "<text x=\"{:.0}\" y=\"44\" opacity=\"0\">{title_text}{}</text>",
-            width / 2.0,
+            width - 20.0,
             animate("opacity", "discrete", &values, &times, dur)
         )
         .unwrap();
@@ -992,7 +1114,7 @@ fn main() {
     // graph-scheduled after — one flip, pinned to the switch date's tick
     let switch = days.iter().position(|d| d.to_string().as_str() >= ERA_SWITCH);
     let era_frac = switch.map(|i| tick_frac[i]);
-    out_svg.push_str(&era_banner(20.0, 56.0, 52.0, "start", era_frac, switch.is_some(), "", dur));
+    out_svg.push_str(&era_banner(20.0, 48.0, 36.0, "start", era_frac, switch.is_some(), "", dur));
 
     // era strip: the history's calendar along the top edge — grey for the
     // hand-scheduled stretch, blue once the graph picker takes over, a
@@ -1048,10 +1170,11 @@ fn main() {
     let out_path = graph.join("kg_movie.svg");
     std::fs::write(&out_path, &out_svg).unwrap();
     println!(
-        "wrote {} — {} ticks, {} solve labels, {:.1}s loop ({:.1}s dissolve), {:.0}KB",
+        "wrote {} — {} ticks, {} solve labels, {} shots, {:.1}s loop ({:.1}s dissolve), {:.0}KB",
         out_path.display(),
         n_ticks,
         labels.len(),
+        shots.len(),
         seconds,
         fade_s,
         out_svg.len() as f64 / 1024.0
