@@ -43,166 +43,14 @@ def main():
 
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
 
-    metadata = get_problems_metadata()
-    print(f"Debug: Metadata loaded with {len(metadata)} problems")
-    print(
-        f"Debug: Example problem 1 difficulty: {metadata.get(1, {}).get('difficulty', 'Not found')}"
-    )
-    print(
-        f"Debug: Example problem 2 difficulty: {metadata.get(2, {}).get('difficulty', 'Not found')}"
-    )
-
-    repo = git.Repo(".")
-    commits = list(repo.iter_commits("HEAD"))
-
-    solves_per_day = defaultdict(int)
-    uniques_per_day = defaultdict(set)
-    uniques_per_day_diff = defaultdict(lambda: defaultdict(set))
-    all_problem_dates = set()
-    diff_counts = defaultdict(int)
-    sample_probs = []
-
-    for commit in commits:
-        msg = commit.message.strip()
-        if not msg:
-            continue
-
-        date_str = commit.committed_datetime.strftime("%Y-%m-%d")
-
-        prob_match = re.match(r"(\d+)\.\s+(.+)", msg)
-        if not prob_match:
-            continue
-
-        prob_num = int(prob_match.group(1))  # int for metadata lookup
-        all_problem_dates.add(date_str)
-
-        is_unsolved = (
-            "unsolved" in msg.lower()
-            or "still learning" in msg.lower()
-            or "stub" in msg.lower()
-            or "readme" in msg.lower()
-        )
-
-        if not is_unsolved:
-            solves_per_day[date_str] += 1
-            uniques_per_day[date_str].add(prob_num)
-            diff = metadata.get(prob_num, {}).get("difficulty", "Unknown")
-            uniques_per_day_diff[date_str][diff].add(prob_num)
-            diff_counts[diff] += 1
-            if len(sample_probs) < 10:
-                sample_probs.append(f"Prob {prob_num}: {diff}")
-
-    print("Debug: Difficulty counts for solved problems: " + str(dict(diff_counts)))
-    print("Debug: Sample problem difficulties: " + ", ".join(sample_probs))
-
-    if all_problem_dates:
-        min_date_str = min(all_problem_dates)
-        max_date_str = max(all_problem_dates)
-        start = datetime.strptime(min_date_str, "%Y-%m-%d")
-        end = datetime.strptime(max_date_str, "%Y-%m-%d")
-        all_dates = []
-        current = start
-        while current <= end:
-            d_str = current.strftime("%Y-%m-%d")
-            all_dates.append(d_str)
-            current += timedelta(days=1)
-        solves_data = [solves_per_day.get(d, 0) for d in all_dates]
-        uniques_data = [len(uniques_per_day.get(d, set())) for d in all_dates]
-        uniques_easy = [
-            len(uniques_per_day_diff[d].get("Easy", set())) for d in all_dates
-        ]
-        uniques_medium = [
-            len(uniques_per_day_diff[d].get("Medium", set())) for d in all_dates
-        ]
-        uniques_hard = [
-            len(uniques_per_day_diff[d].get("Hard", set())) for d in all_dates
-        ]
-        uniques_unknown = [
-            len(uniques_per_day_diff[d].get("Unknown", set())) for d in all_dates
-        ]
-        dates_for_plot = all_dates
-        print(f"Debug: Total Easy uniques: {sum(uniques_easy)}")
-        print(f"Debug: Total Medium uniques: {sum(uniques_medium)}")
-        print(f"Debug: Total Hard uniques: {sum(uniques_hard)}")
-        print(f"Debug: Total Unknown uniques: {sum(uniques_unknown)}")
-    else:
-        dates_for_plot = []
-        solves_data = []
-        uniques_data = []
-        uniques_easy = []
-        uniques_medium = []
-        uniques_hard = []
-        uniques_unknown = []
-
-    if dates_for_plot:
-        x = list(range(len(dates_for_plot)))
-        label_step = max(1, len(dates_for_plot) // 10)
-        tick_positions = x[::label_step]
-        tick_labels = dates_for_plot[::label_step]
-
-    # Compute 7-day moving averages for solves
-    ma_solves = []
-    for i in range(len(solves_data)):
-        if i < 6:
-            ma_solves.append(sum(solves_data[: i + 1]) / (i + 1))
-        else:
-            ma_solves.append(sum(solves_data[i - 6 : i + 1]) / 7)
-
-    # Compute 7-day moving averages for uniques
-    ma_uniques = []
-    for i in range(len(uniques_data)):
-        if i < 6:
-            ma_uniques.append(sum(uniques_data[: i + 1]) / (i + 1))
-        else:
-            ma_uniques.append(sum(uniques_data[i - 6 : i + 1]) / 7)
-
-    fig, ax = plt.subplots(figsize=(12, 5))
-    if dates_for_plot:
-        ax.plot(
-            x,
-            solves_data,
-            marker="o",
-            label="Daily Solves",
-            color="#1f77b4",
-            linestyle="-",
-        )
-        ax.plot(x, ma_solves, label="7-Day MA", color="#ff7f0e", linestyle="--")
-        ax.set_xticks(tick_positions)
-        ax.set_xticklabels(tick_labels, rotation=45)
-        ax.legend()
-    ax.set_title("Solves Per Day (Full Repo History)")
-    ax.set_xlabel("Date")
-    ax.set_ylabel("Solves")
-    local_path = "/tmp/solves_per_day.png"
-    fig.savefig(local_path)
-    s3_key_solves = f"solves_per_day_{timestamp}.png"
-    queue_upload(local_path, s3_key_solves, {"ContentType": "image/png"})
-    plt.close(fig)
-    solves_img = f"![Solves Per Day (Full Repo History)](https://shyal.s3.amazonaws.com/{s3_key_solves})"
-
-    fig, ax = plt.subplots(figsize=(12, 5))
-    if dates_for_plot:
-        bottom = np.zeros(len(x))
-        ax.bar(x, uniques_easy, label="Easy", color="#00FF00", bottom=bottom)
-        bottom += np.array(uniques_easy)
-        ax.bar(x, uniques_medium, label="Medium", color="#FFA500", bottom=bottom)
-        bottom += np.array(uniques_medium)
-        ax.bar(x, uniques_hard, label="Hard", color="#FF0000", bottom=bottom)
-        bottom += np.array(uniques_hard)
-        ax.bar(x, uniques_unknown, label="Unknown", color="#808080", bottom=bottom)
-        ax.plot(x, ma_uniques, label="7-Day MA", color="#000000", linestyle="--")
-        ax.set_xticks(tick_positions)
-        ax.set_xticklabels(tick_labels, rotation=45)
-        ax.legend()
-    ax.set_title("Unique Problems Solved Daily (Full Repo History)")
-    ax.set_xlabel("Date")
-    ax.set_ylabel("Unique Solves")
-    local_path = "/tmp/uniques_per_day.png"
-    fig.savefig(local_path)
-    s3_key_uniques = f"uniques_per_day_{timestamp}.png"
-    queue_upload(local_path, s3_key_uniques, {"ContentType": "image/png"})
-    plt.close(fig)
-    uniques_img = f"![Unique Problems Solved Daily (Full Repo History)](https://shyal.s3.amazonaws.com/{s3_key_uniques})"
+    # Solve and drill rates (utils/readme/kg_rates_svg): one SVG, two
+    # stacked panels (per day, unique per day), replacing the two matplotlib
+    # PNGs that only knew about problems.
+    rates_img = ""
+    if os.path.exists("graph/rates.svg"):
+        s3_key_rates = f"rates_{timestamp}.svg"
+        upload_svg_gz("graph/rates.svg", s3_key_rates)
+        rates_img = f"![Solves and drills per day](https://shyal.s3.amazonaws.com/{s3_key_rates})"
 
     # One projection-stability chart: each model's projected ready date over
     # run date, recomputed on the fly for EVERY day since the first evidence
@@ -470,8 +318,7 @@ def main():
         return pat.sub(
             lambda _: f"<!-- {name} -->{lead}{content}{trail}<!-- /{name} -->", text)
 
-    readme = fill(readme, "SOLVES_CHART", solves_img)
-    readme = fill(readme, "UNIQUES_CHART", uniques_img)
+    readme = fill(readme, "SOLVES_CHART", rates_img)
     readme = fill(readme, "READINESS_PROJECTION_CHART", projection_img)
     readme = fill(readme, "KG_MOVIE", kg_movie_img)
     readme = fill(readme, "MOCK_DIST_CHART", mock_dist_img)
@@ -493,7 +340,6 @@ def main():
         f.write(readme)
 
     print("README updated with S3 image links!")
-    print(f"Total solves: {sum(solves_data)}")
 
 
 if __name__ == "__main__":
