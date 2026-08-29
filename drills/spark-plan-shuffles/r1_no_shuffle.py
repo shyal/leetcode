@@ -67,6 +67,8 @@ from dsa.spark import SparkDrill
 
 class Solution(SparkDrill):
 
+    engine = "jvm"  # this drill reads Spark's own plan
+
     def transform(self, solves):
         pass
 

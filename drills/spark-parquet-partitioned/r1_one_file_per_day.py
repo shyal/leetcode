@@ -61,10 +61,12 @@ Constraints:
 
 from pyspark.sql import functions as F
 
-from dsa.spark import SparkDrill, scratch_dir, spark_session, tree
+from dsa.spark import SparkDrill, scratch_dir, tree
 
 
 class Solution(SparkDrill):
+
+    engine = "jvm"  # two input partitions per date needs real Spark
 
     def write(self, solves, path: str) -> None:
         pass
@@ -94,7 +96,7 @@ def layout(example):
     files = tree(path)
     if not files:
         return [], []
-    rows = sorted(tuple(r) for r in spark_session().read.parquet(path).collect())
+    rows = sorted(tuple(r) for r in sol.spark.read.parquet(path).collect())
     return files, rows
 
 
