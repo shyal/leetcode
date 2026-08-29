@@ -28,12 +28,12 @@ All under `research/` (gitignored, ~92MB):
 
 ## Community solutions (the Solutions tab, usually better than editorials)
 
-`utils/lc_solutions` hits leetcode's public graphql directly, no auth:
+`utils/kg/lc_solutions` hits leetcode's public graphql directly, no auth:
 
-    utils/lc_solutions 543                 # top-voted solution titles
-    utils/lc_solutions 543 --read 1-3      # full markdown of ranks 1 to 3
-    utils/lc_solutions 543 --tag python3   # filter by tag
-    utils/lc_solutions 543 --order HOT     # or MOST_RECENT
+    utils/kg/lc_solutions 543                 # top-voted solution titles
+    utils/kg/lc_solutions 543 --read 1-3      # full markdown of ranks 1 to 3
+    utils/kg/lc_solutions 543 --tag python3   # filter by tag
+    utils/kg/lc_solutions 543 --order HOT     # or MOST_RECENT
 
 Every --read is saved under `research/lc-solutions/<num>.<slug>/<topicId>.md`,
 so check there before refetching. Read a couple of top-voted writeups, not

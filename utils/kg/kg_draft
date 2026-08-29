@@ -1,0 +1,321 @@
+#!/usr/bin/env python3
+
+# kg_draft — draft predicted walks for cached problems with an LLM.
+#
+#   utils/kg/kg_draft --pilot 50                 # label N evidenced problems, score vs truth
+#   utils/kg/kg_draft --full                     # label every cached solution -> graph/predicted.json
+#
+# Closed-vocabulary labeling: the model picks move ids from nodes.json, it
+# never invents walk vocabulary. Few-shot examples come from evidenced walks
+# in problems.json, always excluding the problem being labeled. Responses are
+# cached per problem+model in .walk_cache/ so reruns are free.
+#
+# Predicted walks are a separate tier from evidence (see PLAN.md phase 2);
+# nothing here writes to problems.json.
+
+import argparse
+import json
+import os
+import random
+import re
+import sys
+import threading
+import queue
+
+import subprocess
+
+import requests
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from kg.kg_lib import GRAPH_DIR
+
+ROOT = os.path.dirname(GRAPH_DIR)
+PREPARE_CACHE = os.path.join(ROOT, ".prepare_cache")
+SOLVED = os.path.join(ROOT, "solved")
+WALK_CACHE = os.path.join(ROOT, ".walk_cache")
+PROMPT_VERSION = 3
+
+SYSTEM_PROMPT = (
+    "You label LeetCode solutions with the techniques they use, chosen from "
+    "a fixed move list. Output ONLY the move ids, comma-separated, on one "
+    "line. If the solution needs a technique that is not in the list, add "
+    "extra lines of the form 'missing: short-kebab-name'. No other text."
+)
+
+
+def load_nodes():
+    nodes = json.load(open(os.path.join(GRAPH_DIR, "nodes.json")))["nodes"]
+    return {n["id"]: n for n in nodes}
+
+
+def load_walks():
+    probs = json.load(open(os.path.join(GRAPH_DIR, "problems.json")))["problems"]
+    return {k: v for k, v in probs.items() if k.isdigit()}
+
+
+def load_solution(num):
+    """The operator's own latest solve if there is one (that is the code the
+    evidenced walk describes), else the validated cache solution."""
+    own = sorted(f for f in os.listdir(SOLVED)
+                 if re.match(rf"p{num}_.*\.py$", f))
+    if own:
+        return open(os.path.join(SOLVED, own[-1])).read()
+    try:
+        entry = json.load(open(os.path.join(PREPARE_CACHE, f"{num}.json")))
+        return entry.get("solution")
+    except (OSError, ValueError):
+        return None
+
+
+def build_prompt(nodes, walks, num, solution, examples):
+    lines = ["MOVE LIST (pick only from these ids):"]
+    for nid, n in nodes.items():
+        hint = " " + n["hint"] if n.get("hint") else ""
+        lines.append(f"- {nid}: {n['desc']}{hint}")
+    lines.append("")
+    lines.append("Examples of solutions and their move labels:")
+    for ex_num in examples:
+        ex_sol = load_solution(ex_num)
+        lines.append(f"\n### {ex_num}. {walks[ex_num]['title']}")
+        lines.append(ex_sol.strip())
+        lines.append("MOVES: " + ", ".join(walks[ex_num]["moves"]))
+    lines.append("\n### Now label this one:")
+    lines.append(solution.strip())
+    lines.append("MOVES:")
+    return "\n".join(lines)
+
+
+def call_openai(model, user_prompt):
+    key = open(os.path.expanduser("~/.openai_key_leet")).read().strip()
+    r = requests.post(
+        "https://api.openai.com/v1/chat/completions",
+        headers={"Authorization": "Bearer " + key},
+        json={
+            "model": model,
+            "messages": [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt},
+            ],
+            **({"temperature": 0.2} if model.startswith("gpt-4") else {}),
+        },
+        timeout=600,
+    )
+    r.raise_for_status()
+    return r.json()["choices"][0]["message"]["content"].strip()
+
+
+def call_claude(model, user_prompt):
+    result = subprocess.run(
+        [
+            "claude", "-p", user_prompt,
+            "--model", model,
+            "--system-prompt", SYSTEM_PROMPT,
+            "--disallowedTools", "Write,Edit,Read,Bash,NotebookEdit",
+            "--output-format", "text",
+        ],
+        capture_output=True, text=True,
+    )
+    return result.stdout.strip()
+
+
+def call_llm(model, user_prompt):
+    if model.startswith(("gpt-", "o3", "o4")):
+        return call_openai(model, user_prompt)
+    return call_claude(model, user_prompt)
+
+
+def parse_reply(reply, nodes):
+    """Returns (moves, missing, junk): known ids, missing: suggestions,
+    and anything claimed as a move that isn't in the taxonomy."""
+    moves, missing, junk = [], [], []
+    for line in reply.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        m = re.match(r"missing:\s*(.+)", line, re.I)
+        if m:
+            missing.append(m.group(1).strip())
+            continue
+        line = re.sub(r"^moves:\s*", "", line, flags=re.I)
+        for tok in line.split(","):
+            tok = tok.strip().strip("`.")
+            if not tok:
+                continue
+            if tok in nodes:
+                if tok not in moves:
+                    moves.append(tok)
+            else:
+                junk.append(tok)
+    return moves, missing, junk
+
+
+def draft(nodes, walks, num, solution, examples, model, source):
+    os.makedirs(WALK_CACHE, exist_ok=True)
+    cache = os.path.join(WALK_CACHE, f"{num}.{source}.{model}.v{PROMPT_VERSION}.json")
+    if os.path.exists(cache):
+        entry = json.load(open(cache))
+        moves, missing, junk = parse_reply(entry["reply"], nodes)
+        return {**entry, "moves": moves, "missing": missing, "junk": junk}
+    reply = call_llm(model, build_prompt(nodes, walks, num, solution, examples))
+    moves, missing, junk = parse_reply(reply, nodes)
+    entry = {"moves": moves, "missing": missing, "junk": junk, "reply": reply}
+    with open(cache, "w") as f:
+        json.dump(entry, f)
+    return entry
+
+
+def cache_solution(num):
+    """The validated cache solution only — the input for the predicted tier."""
+    try:
+        entry = json.load(open(os.path.join(PREPARE_CACHE, f"{num}.json")))
+        return entry.get("solution"), entry.get("title")
+    except (OSError, ValueError):
+        return None, None
+
+
+def save_predicted(drafts, model):
+    """graph/predicted.json: walks are a LIST per problem, each walk stamped
+    with tier and source. Alt walks accumulate; nothing here is evidence."""
+    path = os.path.join(GRAPH_DIR, "predicted.json")
+    try:
+        doc = json.load(open(path))
+    except (OSError, ValueError):
+        doc = {"_comment": "LLM-drafted walks. tier=predicted until an actual "
+                           "solve + kg_extract evidences them. A problem may "
+                           "hold alt walks; reach counts a problem in reach if "
+                           "ANY walk is all-solid.",
+               "problems": {}}
+    for num, (title, entry) in drafts.items():
+        prob = doc["problems"].setdefault(num, {"title": title, "walks": []})
+        walk = {"moves": entry["moves"], "tier": "predicted",
+                "source": "cache-solution", "model": model,
+                "prompt_version": PROMPT_VERSION}
+        if entry["missing"]:
+            walk["missing"] = entry["missing"]
+        if not any(w["moves"] == walk["moves"] for w in prob["walks"]):
+            prob["walks"].append(walk)
+    with open(path, "w") as f:
+        json.dump(doc, f, indent=1)
+    return path
+
+
+def full(args):
+    nodes = load_nodes()
+    walks = load_walks()
+    nums = sorted((f.split(".")[0] for f in os.listdir(PREPARE_CACHE)
+                   if f.endswith(".json")), key=int)
+    if args.limit:
+        nums = nums[:args.limit]
+    drafts, errors = {}, []
+    q = queue.Queue()
+    for num in nums:
+        q.put(num)
+    lock = threading.Lock()
+
+    def worker():
+        while True:
+            try:
+                num = q.get_nowait()
+            except queue.Empty:
+                return
+            sol, title = cache_solution(num)
+            if not sol:
+                continue
+            ex = pick_examples(walks, num, args.examples,
+                               random.Random(args.seed + int(num)))
+            try:
+                entry = draft(nodes, walks, num, sol, ex, args.model, "cache")
+                with lock:
+                    drafts[num] = (title, entry)
+                    if len(drafts) % 50 == 0:
+                        print(f"{len(drafts)}/{len(nums)}", file=sys.stderr)
+            except Exception as e:
+                errors.append((num, str(e)))
+
+    threads = [threading.Thread(target=worker) for _ in range(args.jobs)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    path = save_predicted(drafts, args.model)
+    print(f"drafted {len(drafts)} problems -> {path}   errors: {len(errors)}")
+    for num, e in errors[:10]:
+        print(f"  {num}: {e}")
+
+
+def pick_examples(walks, exclude, k, rng):
+    pool = sorted(n for n in walks if n != exclude and load_solution(n))
+    return rng.sample(pool, k)
+
+
+def pilot(args):
+    nodes = load_nodes()
+    walks = load_walks()
+    rng = random.Random(args.seed)
+    evidenced = sorted(n for n in walks if load_solution(n))
+    targets = rng.sample(evidenced, args.pilot)
+
+    results = {}
+    q = queue.Queue()
+    for num in targets:
+        q.put(num)
+
+    def worker():
+        while True:
+            try:
+                num = q.get_nowait()
+            except queue.Empty:
+                return
+            ex = pick_examples(walks, num, args.examples, random.Random(args.seed + int(num)))
+            try:
+                results[num] = draft(nodes, walks, num, load_solution(num), ex,
+                                     args.model, "own")
+            except Exception as e:
+                results[num] = {"error": str(e)}
+
+    threads = [threading.Thread(target=worker) for _ in range(min(args.jobs, len(targets)))]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    tp = fp = fn = exact = 0
+    print(f"model={args.model} examples={args.examples} seed={args.seed}\n")
+    for num in targets:
+        r = results[num]
+        if "error" in r:
+            print(f"{num:>5} ERROR {r['error']}")
+            continue
+        truth, pred = set(walks[num]["moves"]), set(r["moves"])
+        hit, extra, miss = truth & pred, pred - truth, truth - pred
+        tp += len(hit); fp += len(extra); fn += len(miss)
+        exact += truth == pred
+        flag = "=" if truth == pred else " "
+        print(f"{num:>5} {flag} {walks[num]['title'][:34]:<34} "
+              f"hit {sorted(hit)}  extra {sorted(extra)}  miss {sorted(miss)}"
+              + (f"  missing? {r['missing']}" if r["missing"] else "")
+              + (f"  junk {r['junk']}" if r["junk"] else ""))
+    n = len([r for r in results.values() if "error" not in r])
+    if tp + fp and tp + fn:
+        print(f"\nexact {exact}/{n}   "
+              f"precision {tp / (tp + fp):.2f}   recall {tp / (tp + fn):.2f}")
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--pilot", type=int, default=None,
+                    help="Label N random evidenced problems and score vs truth.")
+parser.add_argument("--full", action="store_true",
+                    help="Label every cached solution, write graph/predicted.json.")
+parser.add_argument("--limit", type=int, default=None,
+                    help="With --full: stop after N problems.")
+parser.add_argument("--model", default="gpt-5-mini")
+parser.add_argument("--examples", type=int, default=6,
+                    help="Few-shot examples per prompt.")
+parser.add_argument("--jobs", type=int, default=4)
+parser.add_argument("--seed", type=int, default=1)
+args = parser.parse_args()
+
+if args.full:
+    full(args)
+else:
+    pilot(args) if args.pilot else parser.print_help()

@@ -1,0 +1,249 @@
+#!/usr/bin/env python3
+
+# kg_dive — cluster the rusty frontier and plan a themed deep-dive session.
+#
+#   make dive           # rank clusters, plan a 3-problem dive in the top one
+#   make dive 5         # longer session
+#   make dive graphs    # dive a specific cluster instead of the top-scored one
+#
+# kg_next is greedy and memoryless: each run picks the single globally-oldest
+# rusty node, so consecutive sessions hop between unrelated topics. kg_dive
+# answers the other question — "where should I spend a whole session?":
+#
+#   1. Take every non-SOLID node (MISSING only if its prereqs are all SOLID —
+#      otherwise it isn't assignable yet and shouldn't attract the dive).
+#   2. Join them into clusters: same curated `group`, or a direct prereq edge
+#      (walk co-occurrence was measured and adds nothing — rusty nodes almost
+#      never co-occur in a single walk).
+#   3. Score each cluster by urgency mass: FRAGILE 3 · STALE 2 · MISSING 1,
+#      oldest evidence breaking ties. The heaviest cluster is the dive.
+#   4. Plan up to N problems INSIDE that cluster, prereqs scheduled before
+#      dependents, each pick simulated as a clean solve so later picks can
+#      stand on earlier ones. Carrier choice per target mirrors kg_next:
+#      fragile/deep-stale/missing get a gentle fresh carrier (anti-dodge if
+#      dodged), shallow-stale gets its latest carrier as a spaced re-solve.
+#      The one-new-move rule still gates every carrier.
+#
+# The plan is an ordering, not a contract: solve top-down, `make solved` after
+# each, and re-run — the plan re-derives from fresh evidence every time.
+
+import argparse
+import os
+from datetime import date
+from rich.console import Console
+from rich.table import Table
+
+from kg.kg_lib import (
+    load_nodes, load_problems, load_evidence, node_status, latest_carrier,
+    SOLID, STALE, FRAGILE, MISSING, DEEP_STALE_DAYS,
+    sleep_state,
+    last_solved, pnum_key, dodged_nodes, dodgeable, carriers_for,
+    tree_size, gentleness, acceptance, drill_gated,
+)
+
+console = Console()
+
+STATUS_STYLE = {SOLID: "green", STALE: "yellow", FRAGILE: "red", MISSING: "dim"}
+WEIGHT = {FRAGILE: 3, STALE: 2, MISSING: 1}
+
+
+def rusty_frontier(nodes, statuses):
+    """Non-SOLID nodes worth diving on. MISSING counts only when assignable
+    (all prereqs SOLID); an unreachable MISSING node can't anchor a session."""
+    out = []
+    for n in nodes:
+        s, _ = statuses[n]
+        if s in (FRAGILE, STALE):
+            out.append(n)
+        elif s == MISSING and all(
+            statuses[p][0] == SOLID for p in nodes[n].get("prereqs", [])
+        ):
+            out.append(n)
+    return out
+
+
+def clusters_of(rusty, nodes):
+    """Connected components over rusty nodes: same group or direct prereq edge."""
+    rusty = set(rusty)
+    parent = {n: n for n in rusty}
+
+    def find(n):
+        while parent[n] != n:
+            parent[n] = parent[parent[n]]
+            n = parent[n]
+        return n
+
+    def union(a, b):
+        parent[find(a)] = find(b)
+
+    by_group = {}
+    for n in rusty:
+        by_group.setdefault(nodes[n].get("group"), []).append(n)
+    for members in by_group.values():
+        for m in members[1:]:
+            union(members[0], m)
+    for n in rusty:
+        for p in nodes[n].get("prereqs", []):
+            if p in rusty:
+                union(p, n)
+
+    comps = {}
+    for n in rusty:
+        comps.setdefault(find(n), []).append(n)
+    return list(comps.values())
+
+
+def cluster_score(cluster, statuses):
+    return sum(WEIGHT[statuses[n][0]] for n in cluster)
+
+
+def cluster_label(cluster, nodes):
+    groups = {}
+    for n in cluster:
+        g = nodes[n].get("group", "?")
+        groups[g] = groups.get(g, 0) + 1
+    return "+".join(g for g, _ in sorted(groups.items(), key=lambda kv: -kv[1]))
+
+
+def urgency_key(n, statuses):
+    order = {FRAGILE: 0, STALE: 1, MISSING: 2}
+    s, d = statuses[n]
+    return (order[s], d or date.max, n)
+
+
+def choose_carrier(target, sim, problems, nodes, evidence, dodged, excluded):
+    """(pnum, reason) for the target under simulated statuses, or None."""
+    cands = [c for c in carriers_for(target, problems, sim, nodes, evidence)
+             if c not in excluded]
+    if not cands:
+        return None
+    s, d = sim[target]
+    if s == FRAGILE and target in dodged:
+        cands.sort(key=lambda p: (dodgeable(p, target, problems),
+                                  tree_size(p, problems, nodes),
+                                  last_solved(p, evidence), pnum_key(p)))
+        return cands[0], f"dodged on {dodged[target]} — carrier resists the dodge"
+    if s == STALE:
+        age = (date.today() - d).days
+        if age <= DEEP_STALE_DAYS:
+            carrier = latest_carrier(target, evidence)
+            pnum = carrier[2] if carrier and carrier[2] in cands else \
+                sorted(cands, key=lambda p: last_solved(p, evidence), reverse=True)[0]
+            return pnum, "spaced re-solve"
+        cands.sort(key=lambda p: (gentleness(p, problems, nodes), last_solved(p, evidence), -acceptance(p), pnum_key(p)))
+        return cands[0], f"deep-stale ({age}d) — gentle fresh carrier"
+    cands.sort(key=lambda p: (gentleness(p, problems, nodes), last_solved(p, evidence), -acceptance(p), pnum_key(p)))
+    return cands[0], "consolidate on a fresh carrier" if s == FRAGILE else "new move, prereqs solid"
+
+
+def plan_dive(cluster, statuses, problems, nodes, evidence, asleep, n):
+    """Up to n steps inside the cluster. Each step: (target, status, pnum, reason).
+    Picks simulate a clean solve so later carriers may stand on earlier targets."""
+    sim = dict(statuses)
+    dodged = dodged_nodes(evidence)
+    remaining = set(cluster)
+    excluded = set(asleep)
+    steps = []
+    while remaining and len(steps) < n:
+        # prereqs first: a node waits while a rusty prereq of it is still unscheduled
+        ready = [x for x in remaining
+                 if not any(p in remaining for p in nodes[x].get("prereqs", []))]
+        pool = sorted(ready or remaining, key=lambda x: urgency_key(x, sim))
+        scheduled = False
+        for target in pool:
+            status = sim[target][0]
+            if drill_gated(target, *sim[target]):
+                steps.append((target, status, None, "drill until clean — carrier stays held"))
+                sim[target] = (SOLID, date.today())
+                remaining.discard(target)
+                scheduled = True
+                break
+            choice = choose_carrier(target, sim, problems, nodes, evidence, dodged, excluded)
+            if choice:
+                pnum, reason = choice
+                steps.append((target, status, pnum, reason))
+                excluded.add(pnum)
+            else:
+                # no READY carrier — a drill still trains the node and can't be dodged
+                steps.append((target, status, None, "no ready carrier — drill it"))
+            sim[target] = (SOLID, date.today())
+            remaining.discard(target)
+            scheduled = True
+            break
+        if not scheduled:
+            break
+    return steps
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Cluster the rusty frontier and plan a deep-dive session.")
+    parser.add_argument("words", nargs="*",
+                        help="a number = session length (default 3), a word = cluster to dive")
+    args = parser.parse_args()
+    args.n, args.cluster = 3, None
+    for w in args.words:
+        if w.isdigit():
+            args.n = int(w)
+        else:
+            args.cluster = w
+
+    nodes = load_nodes()
+    problems = load_problems()
+    evidence = load_evidence()
+    statuses = {n: node_status(n, evidence) for n in nodes}
+    asleep, woken = sleep_state(nodes, problems, evidence)
+    if woken:
+        console.print(f"[yellow]⏰ woken problem {woken[0]} is queue-jumping — run `make next` first[/yellow]")
+
+    rusty = rusty_frontier(nodes, statuses)
+    if not rusty:
+        console.print("[green]Nothing rusty — the whole frontier is SOLID. Go learn a new move.[/green]")
+        return
+
+    ranked = sorted(clusters_of(rusty, nodes),
+                    key=lambda c: (-cluster_score(c, statuses),
+                                   min(statuses[n][1] or date.max for n in c),
+                                   cluster_label(c, nodes)))
+
+    table = Table(show_header=True, header_style="bold", box=None, padding=(0, 2))
+    table.add_column("Cluster")
+    table.add_column("Score", justify="right")
+    table.add_column("Rusty moves")
+    for c in ranked:
+        parts = [f"[{STATUS_STYLE[statuses[n][0]]}]{n}[/{STATUS_STYLE[statuses[n][0]]}]"
+                 for n in sorted(c, key=lambda x: urgency_key(x, statuses))]
+        table.add_row(cluster_label(c, nodes), str(cluster_score(c, statuses)), " ".join(parts))
+    console.print(table)
+
+    chosen = ranked[0]
+    if args.cluster:
+        named = [c for c in ranked if args.cluster in cluster_label(c, nodes).split("+")]
+        if not named:
+            console.print(f"[red]no rusty cluster named {args.cluster!r}[/red]")
+            return
+        chosen = named[0]
+
+    label = cluster_label(chosen, nodes)
+    console.print(f"\n[bold]Deep dive: {label}[/bold] — "
+                  f"{len(chosen)} rusty moves, score {cluster_score(chosen, statuses)}")
+
+    steps = plan_dive(chosen, statuses, problems, nodes, evidence, asleep, args.n)
+    dodged = dodged_nodes(evidence)
+    for i, (target, status, pnum, reason) in enumerate(steps, 1):
+        style = STATUS_STYLE[status]
+        if pnum:
+            p = problems[pnum]
+            console.print(f"  {i}. [bold]{pnum}. {p['title']}[/bold] — "
+                          f"[{style}]{status}[/{style}] [bold]{target}[/bold] ({reason})")
+        else:
+            console.print(f"  {i}. `make drill {target}` — "
+                          f"[{style}]{status}[/{style}] [bold]{target}[/bold] ({reason})")
+        if pnum and target in dodged and os.path.isdir(os.path.join("drills", target)):
+            console.print(f"     [yellow]drill FIRST — a drill can't be dodged: "
+                          f"`make drill {target}`[/yellow]")
+    console.print("\n[dim]Work top-down; `make solved` after each, then re-run `make dive` — "
+                  "the plan re-derives from fresh evidence.[/dim]")
+
+
+if __name__ == "__main__":
+    main()

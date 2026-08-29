@@ -176,7 +176,7 @@ FAANG bar: today's central P(pass a full onsite: 2 easies + 2 mediums + at least
 
 <!-- /FAANG_PROGRESS -->
 
-Every projected date is recorded daily, so one chart tracks whether the projections are stable. A flat line means the model isn't fooled by what i did that week; drift upward means i'm slacking. The third line is `utils/kg_predict`, a day-by-day simulation of how the picker would spend the hours; its date answers "when is the work done" (graph fully solid + enough mediums banked + a polish block), not "when would i pass", which is why it lands much earlier.
+Every projected date is recorded daily, so one chart tracks whether the projections are stable. A flat line means the model isn't fooled by what i did that week; drift upward means i'm slacking. The third line is `utils/kg/kg_predict`, a day-by-day simulation of how the picker would spend the hours; its date answers "when is the work done" (graph fully solid + enough mediums banked + a polish block), not "when would i pass", which is why it lands much earlier.
 
 <!-- READINESS_PROJECTION_CHART -->
 
@@ -200,21 +200,21 @@ Leetcode's python environment is non-standard: it seems to have pretty much ever
 
 This is really great as it makes writing solutions way faster, without the need to import anything.
 
-This repo tries to reproduce this same environment with `utils/sitecustomize.py`. It also has a `stubs/builtins.pyi` for autocomplete to handle this custom import scheme, as well as all the utilities for trees, linked lists, pretty printing etc.
+This repo tries to reproduce this same environment with `utils/harness/sitecustomize.py`. It also has a `stubs/builtins.pyi` for autocomplete to handle this custom import scheme, as well as all the utilities for trees, linked lists, pretty printing etc.
 
 # Dependencies
 
 ```
 python3 -m venv .venv
 . .venv/bin/activate
-cp utils/sitecustomize.py .venv/lib/python3.10/site-packages/
+cp utils/harness/sitecustomize.py .venv/lib/python3.10/site-packages/
 pip3 install -r requirements.txt
 ```
 
 # Running
 
 ```
-PYTHONPATH=./utils:${PYTHONPATH} python3 utils/runner.py
+PYTHONPATH=./utils:${PYTHONPATH} python3 utils/tests/test_runner.py
 ```
 
 # Disclaimer

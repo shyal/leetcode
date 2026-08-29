@@ -1,0 +1,73 @@
+#!/usr/bin/env python3
+
+import datetime
+from rich.console import Console
+from rich.markdown import Markdown
+import os
+import sys
+import json
+import subprocess as _subprocess
+from history_builder import get_history_string
+
+console = Console()
+
+
+def main():
+    history_str = get_history_string(0)
+
+    user_input = sys.stdin.read()
+
+    system_prompt = (
+        user_input
+        or """You are an expert LeetCode coach specializing in assessing candidate readiness.
+
+Based on the user's solve history, provide him with some feedback:
+
+1. Provide a brief overview of readiness in a variety of topics, as percentage complete to be considered strong / contest / fang ready.
+
+Pay special attention to problems attempted, solutions, solve dates, solve times, repeats etc.
+
+Think carefully about the candidates cognitive strenghts, and weaknesses. Provide short but detailed feedback on strengths, and what
+needs further improvements.
+
+Assume the candidate will continue solving daily at their similar average pace.
+"""
+    )
+
+    user_prompt = f"""Here is my LeetCode solve history (most recent last):
+
+{history_str}
+
+Here is my readiness estimates:
+
+{_subprocess.run(["utils/kg/kg_mock_rs/target/release/kg_mock", "--json"], capture_output=True, text=True).stdout}
+
+"""
+
+    with open("prompt.md", "w") as w:
+        w.write(system_prompt + "\n\n" + user_prompt)
+
+    try:
+        result = _subprocess.run(
+            ["claude", "-p", user_prompt, "--system-prompt", system_prompt],
+            capture_output=True, text=True,
+        )
+        recommendation = result.stdout.strip()
+    except json.JSONDecodeError as e:
+        print(f"Failed to parse JSON from API response: {e}")
+        print(f"Response: {recommendation}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error calling xAI API: {e}")
+        sys.exit(1)
+
+    md = Markdown(recommendation)
+    console.print(md)
+    with open(
+        f'misc/prompts/{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S.md")}', "w"
+    ) as w:
+        w.write(f"# Question: {user_input}\n\n# Answer:\n\n{recommendation}")
+
+
+if __name__ == "__main__":
+    main()

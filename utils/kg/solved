@@ -1,0 +1,247 @@
+#!/usr/bin/env python3
+
+import json
+import subprocess
+import os
+import signal
+import sys
+import re
+from datetime import datetime, timezone
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from kg.kg_lib import active_seconds
+
+# Two phases, so a Ctrl-C anywhere in `make solved` loses nothing
+# (settled 2026-08-28, after an interrupt cut the judge off mid-ingest):
+#
+#   utils/kg/solved            file phase: freeze the solve time NOW, archive
+#                           current.py into solved/, clear it, park the
+#                           frozen commit message in .solve_meta.json
+#                           (untracked, gitignored). No git.
+#   <the judge + curve run here, interruptible and resumable>
+#   utils/kg/solved --commit   commit phase: ONE commit carrying the solve,
+#                           the evidence, and the curve together, with the
+#                           frozen solve time in the message; then the
+#                           squash-merge to master. SIGINT-immune — it is
+#                           about a second of git.
+#
+# Interrupted anywhere: re-run `make solved`. The file phase sees the meta
+# and skips itself, the judge skips files already in evidence, the commit
+# phase picks up the meta and finishes. Nothing is committed until
+# everything is in.
+FAILED = "--failed" in sys.argv
+COMMIT = "--commit" in sys.argv
+META = ".solve_meta.json"
+
+
+def parse_current(file_path="current.py"):
+    with open(file_path, "r") as f:
+        content = f.read()
+
+    # Find the first docstring
+    match = re.search(r'"""(.*?)"""', content, re.DOTALL)
+    if not match:
+        return None, None, ""
+
+    docstring = match.group(1).strip()
+    lines = docstring.split("\n")
+
+    problem_id = None
+    title = None
+    for line in lines:
+        line = line.strip()
+        if line:
+            drill_match = re.match(r"DRILL:\s*(.+)", line)
+            if drill_match:
+                return "drill", drill_match.group(1).strip(), content
+            prob_match = re.match(r"(\d+[a-zA-Z]?)\.\s*(.+)", line)
+            if prob_match:
+                problem_id = prob_match.group(1).strip()
+                title = prob_match.group(2).strip()
+                break
+
+    if problem_id is None:
+        # If not in first line, check after url
+        for i, line in enumerate(lines):
+            if line.strip().startswith("https://"):
+                if i + 1 < len(lines):
+                    next_line = lines[i + 1].strip()
+                    prob_match = re.match(r"(\d+[a-zA-Z]?)\.\s*(.+)", next_line)
+                    if prob_match:
+                        problem_id = prob_match.group(1).strip()
+                        title = prob_match.group(2).strip()
+                        break
+
+    return problem_id, title, content
+
+
+def comment_out_prints(content):
+    lines = content.split("\n")
+    new_lines = []
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("print(") or stripped.startswith("print ("):
+            leading_whitespace = line[: line.index(stripped[0])]
+            new_lines.append(leading_whitespace + "# " + stripped)
+        else:
+            new_lines.append(line)
+    return "\n".join(new_lines)
+
+
+def solved_filename(problem_id, title, failed=False, now=None):
+    """solved/ filename for a finished attempt. Stamped in UTC on purpose —
+    the same clock as git — and anything that needs the calendar day converts
+    with kg_lib.manila_date_from_filename rather than reading the digits."""
+    clean_title = re.sub(r"[^\w\s-]", "", title).strip().replace(" ", "_")
+    now = now or datetime.now(timezone.utc)
+    sanitized = re.sub(r"[^\w]", "_", now.isoformat() + "Z")
+    marker = "_FAILED" if failed else ""
+    prefix = "d" if problem_id == "drill" else f"p{problem_id}"
+    return f"{prefix}_{clean_title}{marker}_{sanitized}.py"
+
+
+def file_phase():
+    """Freeze the clock and archive the attempt. No git."""
+    if os.path.exists(META):
+        print("a filed solve is already staged — resuming its ingest and commit.")
+        return
+
+    # the clock stops when the operator runs `make solved`, not when the
+    # judge finishes minutes later: active time is computed here and frozen
+    # into the message the commit phase will use.
+    # active time only: awake intervals on the branch, the sleeping:/woke:
+    # marker commits (make sleep / make wake) subtracted out
+    active, slept_seconds, sleeps = active_seconds()
+    minutes = int(active // 60)
+    seconds = int(active % 60)
+    solve_time = f"{minutes}m {seconds}s"
+    slept_line = ""
+    if sleeps:
+        sh, sm = divmod(int(slept_seconds) // 60, 60)
+        slept_line = f"\nslept: {sh}h {sm:02d}m over {sleeps} park(s)"
+
+    if not os.path.exists("current.py"):
+        print("current.py does not exist. Exiting.")
+        return
+
+    with open("current.py") as f:
+        if not f.read().strip():
+            print("current.py is empty — nothing to file.")
+            return
+
+    problem_id, title, content = parse_current()
+    if problem_id is None or title is None:
+        print("Could not parse problem id and title from current.py. Exiting.")
+        return
+
+    filename = solved_filename(problem_id, title, FAILED)
+
+    if FAILED:
+        content += (
+            f"\n\n# FAILED: walked away after {solve_time}; no working solution."
+            "\n# Judge the moves actually attempted as struggled, not clean.\n"
+        )
+    output_dir = "./solved"
+    os.makedirs(output_dir, exist_ok=True)
+    filepath = os.path.join(output_dir, filename)
+
+    with open(filepath, "w") as f:
+        f.write(content)
+
+    if problem_id == "drill":
+        commit_message = f"drill: {title}\n\nsolve time: {solve_time}{slept_line}"
+    else:
+        commit_message = f"{problem_id}. {title}\n\nsolve time: {solve_time}{slept_line}"
+    if FAILED:
+        commit_message = "failed: " + commit_message
+
+    # the meta is written BEFORE current.py is cleared: a kill between the
+    # two re-runs into the staged branch above instead of filing twice
+    with open(META, "w") as f:
+        json.dump({"message": commit_message, "file": filepath}, f)
+
+    with open("current.py", "w") as f:
+        f.write("")
+
+    print(f"filed {filepath} ({solve_time}); the commit lands after the judge.")
+
+
+def commit_phase():
+    """ONE commit: the solve, its evidence, the refit curve — with the
+    frozen solve time in the message — then the squash-merge to master."""
+    if not os.path.exists(META):
+        print("nothing staged — no commit to make.")
+        return
+    with open(META) as f:
+        commit_message = json.load(f)["message"]
+
+    try:
+        subprocess.run(["git", "add", "."], check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Error running git add: {e}")
+        return
+
+    try:
+        subprocess.run(["git", "commit", "-m", commit_message], check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Error running git commit: {e}")
+        return
+
+    # Get current branch
+    try:
+        current_branch = (
+            subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"])
+            .decode()
+            .strip()
+        )
+    except subprocess.CalledProcessError as e:
+        print(f"Error getting current branch: {e}")
+        return
+
+    if current_branch == "master":
+        os.remove(META)
+        print("Operations completed successfully.")
+        return
+
+    # Checkout master
+    try:
+        subprocess.run(["git", "checkout", "master"], check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Error checking out master: {e}")
+        return
+
+    # Squash merge the branch
+    try:
+        subprocess.run(["git", "merge", "--squash", current_branch], check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Error squash merging: {e}")
+        return
+
+    # Commit with the solve time message
+    try:
+        subprocess.run(["git", "commit", "-m", commit_message], check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Error committing squash merge: {e}")
+        return
+
+    # Delete the feature branch
+    try:
+        subprocess.run(["git", "branch", "-D", current_branch], check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Error deleting branch: {e}")
+        return
+
+    os.remove(META)
+    print("Operations completed successfully.")
+
+
+def main():
+    # SIGINT off for both phases (children inherit it, so git is covered):
+    # each phase is a second of work, and the interruptible waiting happens
+    # between them, where a re-run of `make solved` resumes cleanly.
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
+    commit_phase() if COMMIT else file_phase()
+
+
+if __name__ == "__main__":
+    main()

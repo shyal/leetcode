@@ -1,0 +1,439 @@
+#!/usr/bin/env python3
+
+# kg_palace — rebuild the Technique Palace (method-of-loci HTML) from the graph.
+#
+#   PYTHONPATH=./utils python3 utils/kg/kg_palace          # writes graph/palace.html
+#
+# Layout is generated from graph/nodes.json (rooms = groups along the fixed
+# route, stations = moves); hand-crafted loci (room names/flavor, station
+# images/triggers) live in graph/palace.json and are never invented here.
+# Lighting derives from evidence.json via kg_lib.node_status at build time.
+# Each station lists every carrier problem: four exemplar pegs visible, the
+# rest behind a "+N more" toggle, marked with difficulty and solved state.
+#
+# Publish: the page is the artifact "The Technique Palace" — republish the
+# generated file to the same artifact URL to update it in place.
+
+import html
+import json
+import os
+import re
+from collections import Counter
+from datetime import date
+
+from kg.kg_lib import GRAPH_DIR, load_nodes, load_problems, load_evidence, node_status
+
+ROUTE = [
+    "containers", "streaming", "index-order", "pointers-windows", "stack-queue",
+    "linked-lists", "binary-search", "trees", "graphs", "recursion-dp",
+    "heaps-greedy", "bits-math", "strings", "sql",
+]
+ROW_SPLIT = 7          # rooms 1..7 on the top row of the floor plan
+EXEMPLARS = 4          # carrier chips visible before the "+N more" toggle
+
+STATUS_WORD = {"SOLID": "lit", "STALE": "dusty", "FRAGILE": "flickering", "MISSING": "dark"}
+STATUS_ORDER = ["SOLID", "STALE", "FRAGILE", "MISSING"]
+MAJOR = "STNMRLJKFP"   # digit -> Major-system consonant
+
+
+def esc(s):
+    return html.escape(s, quote=True)
+
+
+def skeleton(num):
+    return "·".join(MAJOR[int(d)] for d in str(num) if d.isdigit())
+
+
+def solved_set():
+    solved_dir = os.path.join(os.path.dirname(GRAPH_DIR), "solved")
+    out = set()
+    for f in os.listdir(solved_dir):
+        m = re.match(r"p(\w+?)_", f)
+        if m:
+            out.add(m.group(1))
+    return out
+
+
+def load_palace():
+    with open(os.path.join(GRAPH_DIR, "palace.json")) as f:
+        return json.load(f)
+
+
+def load_lc_metadata():
+    path = os.path.join(os.path.dirname(GRAPH_DIR), "data/problems_metadata.json")
+    if not os.path.exists(path):
+        return {}
+    with open(path) as f:
+        return json.load(f)
+
+
+def difficulty(num, meta, lc_meta):
+    if meta.get("difficulty"):
+        return meta["difficulty"]
+    # fall back to the leetcode metadata cache, but only when the title agrees —
+    # problems.json also holds Codeforces entries whose numbers collide with LC ids
+    cached = lc_meta.get(str(num))
+    if cached and cached["title"].lower() == meta["title"].lower():
+        return cached["difficulty"]
+    return ""
+
+
+def prob_chip(num, meta, solved, lc_meta):
+    dif = difficulty(num, meta, lc_meta)[:1]
+    cls = "prob" if num in solved else "prob prob-un"
+    bits = [f"<b>{esc(str(num))}</b>", f"<i>{skeleton(num)}</i>", esc(meta["title"])]
+    if dif:
+        bits.append(f'<span class="dif dif-{dif}">{dif}</span>')
+    return f'<span class="{cls}">{"".join(bits)}</span>'
+
+
+def probs_para(carriers, solved, lc_meta):
+    head = [prob_chip(n, m, solved, lc_meta) for n, m in carriers[:EXEMPLARS]]
+    rest = [prob_chip(n, m, solved, lc_meta) for n, m in carriers[EXEMPLARS:]]
+    out = "".join(head)
+    if rest:
+        out += f'<span class="rest">{"".join(rest)}</span>'
+        out += (f'<button class="prob prob-more" aria-expanded="false">'
+                f"+{len(rest)} more</button>")
+    return f'<p class="probs">{out}</p>'
+
+
+def status_chip(status):
+    word = STATUS_WORD[status]
+    return (f'<span class="chip chip-{status.lower()}"><span class="chip-dot"></span>'
+            f"{status.lower()} · {word}</span>")
+
+
+def sum_phrase(statuses):
+    counts = Counter(statuses)
+    parts = [f"{counts[s]} {STATUS_WORD[s]}" for s in STATUS_ORDER if counts[s]]
+    return f"{len(statuses)} stations — " + " · ".join(parts)
+
+
+def station_dot(cx, cy, no, name, status):
+    cx = f"{cx:g}"
+    title = f"<title>{no}. {esc(name)} — {status.lower()} ({STATUS_WORD[status]})</title>"
+    if status == "SOLID":
+        return f'<circle cx="{cx}" cy="{cy}" r="6" class="g-solid">{title}</circle>'
+    if status == "STALE":
+        return (f'<g class="g-stale"><circle cx="{cx}" cy="{cy}" r="6" fill="none"/>'
+                f'<path d="M {float(cx) - 6:g} {cy} A 6 6 0 0 1 {float(cx) + 6:g} {cy} Z"/>{title}</g>')
+    cls = "g-fragile" if status == "FRAGILE" else "g-missing"
+    return f'<circle cx="{cx}" cy="{cy}" r="5.5" class="{cls}">{title}</circle>'
+
+
+def floor_plan(rooms):
+    # rooms: list of dicts {index, name, group, stations: [(no, name, status)]}
+    col_width = {4: 172, 3: 142, 2: 112, 1: 96}
+    placed, x = [], 24
+    for i, room in enumerate(rooms):
+        if i == ROW_SPLIT:
+            x = 24
+        cols = -(-len(room["stations"]) // 2)  # ceil
+        w = col_width[cols]
+        y = 24 if i < ROW_SPLIT else 246
+        placed.append((room, x, y, w, cols))
+        x += w + 16
+    vbw = max(x + w + 24 for _, x, y, w, _ in placed if y == 24)
+
+    route_pts = [f"M 10 103"]
+    route_pts += [f"L {x + w / 2:g} 103" for _, x, y, w, _ in placed if y == 24]
+    route_pts += [f"L {vbw - 20} 103", f"L {vbw - 20} 325"]
+    route_pts += [f"L {x + w / 2:g} 325" for _, x, y, w, _ in reversed(placed) if y == 246]
+    route_pts += ["L 10 325"]
+
+    svg = [f'<svg viewBox="0 0 {vbw} 428" role="img" '
+           f'aria-label="Palace floor plan: {len(rooms)} rooms along a snaking route" '
+           f'xmlns="http://www.w3.org/2000/svg">',
+           f'  <path d="{" ".join(route_pts)}" class="route"/>']
+    for room, x, y, w, cols in placed:
+        cx = x + w / 2
+        svg.append(f'  <a href="#room-{room["index"]}" class="room-link">\n'
+                   f'  <rect x="{x}" y="{y}" width="{w}" height="158" rx="7" class="room"/>\n'
+                   f'  <circle cx="{x + 20}" cy="{y + 22}" r="11" class="room-num-bg"/>\n'
+                   f'  <text x="{x + 20}" y="{y + 26.5}" class="room-num">{room["index"]}</text>\n'
+                   f'  <text x="{cx:g}" y="{y + 50}" class="room-name">{esc(room["name"].removeprefix("The "))}</text>\n'
+                   f'  <text x="{cx:g}" y="{y + 68}" class="room-id">{room["group"]}</text>')
+        dots = []
+        for j, (no, name, status) in enumerate(room["stations"]):
+            dx = cx - (cols - 1) * 15 + (j % cols) * 30
+            dy = y + 100 + (j // cols) * 24
+            dots.append(station_dot(dx, dy, no, name, status))
+        svg.append("  " + "".join(dots) + "\n</a>")
+    svg.append(f'  <text x="{vbw / 2:g}" y="218.0" class="corridor-label">'
+               f"— the corridor · walk 1 → {len(rooms)} —</text>")
+    svg.append("</svg>")
+    return "\n".join(svg)
+
+
+CSS = """
+:root {
+  --paper:#f7f6f3; --ink:#23222b; --ink-2:#5b5966; --ink-3:#8b8894;
+  --line:#dedbd4; --room:#efede7; --accent:#4c4788; --accent-ink:#413c74;
+  --card:#fdfcfa; --chipbg:#f1f0ec;
+  --solid:#3a7d44; --stale:#a97a12; --fragile:#c0452c; --missing:#85818f;
+  --solid-bg:#e7f1e9; --stale-bg:#f5ecd8; --fragile-bg:#f7e4de; --missing-bg:#ebeaee;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper:#1e1d27; --ink:#e8e6e0; --ink-2:#a8a5b2; --ink-3:#7c7987;
+  --line:#38364a; --room:#262532; --accent:#a9a3e0; --accent-ink:#bcb7ea;
+  --card:#252430; --chipbg:#2d2c3a;
+  --solid:#4e9e60; --stale:#b8873a; --fragile:#d16a50; --missing:#8f8b99;
+  --solid-bg:#233529; --stale-bg:#37301f; --fragile-bg:#3a2822; --missing-bg:#2c2b35;
+}}
+:root[data-theme="dark"] {
+  --paper:#1e1d27; --ink:#e8e6e0; --ink-2:#a8a5b2; --ink-3:#7c7987;
+  --line:#38364a; --room:#262532; --accent:#a9a3e0; --accent-ink:#bcb7ea;
+  --card:#252430; --chipbg:#2d2c3a;
+  --solid:#4e9e60; --stale:#b8873a; --fragile:#d16a50; --missing:#8f8b99;
+  --solid-bg:#233529; --stale-bg:#37301f; --fragile-bg:#3a2822; --missing-bg:#2c2b35;
+}
+:root[data-theme="light"] {
+  --paper:#f7f6f3; --ink:#23222b; --ink-2:#5b5966; --ink-3:#8b8894;
+  --line:#dedbd4; --room:#efede7; --accent:#4c4788; --accent-ink:#413c74;
+  --card:#fdfcfa; --chipbg:#f1f0ec;
+  --solid:#3a7d44; --stale:#a97a12; --fragile:#c0452c; --missing:#85818f;
+  --solid-bg:#e7f1e9; --stale-bg:#f5ecd8; --fragile-bg:#f7e4de; --missing-bg:#ebeaee;
+}
+* { box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior:auto; } }
+body {
+  background:var(--paper); color:var(--ink); margin:0;
+  font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  line-height:1.55; font-size:16.5px;
+}
+.wrap { max-width:1080px; margin:0 auto; padding:48px 28px 96px; }
+.eyebrow { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px;
+  letter-spacing:.18em; text-transform:uppercase; color:var(--accent-ink); margin:0 0 10px; }
+h1 { font-size:clamp(34px,5vw,52px); font-weight:600; letter-spacing:-.01em;
+  margin:0 0 14px; text-wrap:balance; }
+.lede { max-width:62ch; color:var(--ink-2); font-size:18px; margin:0 0 8px; }
+.method { max-width:62ch; color:var(--ink-2); margin:0; font-size:15.5px; }
+.method b { color:var(--ink); font-weight:600; }
+.statline { display:flex; flex-wrap:wrap; gap:10px 22px; margin:26px 0 10px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:13px; color:var(--ink-2); }
+.statline strong { color:var(--ink); font-size:15px; font-variant-numeric:tabular-nums; }
+.legend { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center;
+  margin:14px 0 8px; font-size:13.5px; color:var(--ink-2); }
+.legend .chip { font-size:12px; }
+.linklike { background:none; border:none; padding:0; font:inherit; font-size:13.5px;
+  color:var(--accent-ink); text-decoration:underline; text-decoration-style:dotted;
+  cursor:pointer; }
+.linklike:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+figure { margin:26px 0 10px; }
+.plan-scroll { overflow-x:auto; border:1px solid var(--line); border-radius:10px;
+  background:var(--card); padding:10px; }
+.plan-scroll svg { display:block; min-width:900px; width:100%; height:auto; }
+figcaption { font-size:13px; color:var(--ink-3); margin-top:8px; }
+
+/* svg */
+.room { fill:var(--room); stroke:var(--line); stroke-width:1.4; transition:stroke .15s; }
+.room-link { cursor:pointer; text-decoration:none; }
+.room-link:hover .room, .room-link:focus .room { stroke:var(--accent); stroke-width:2; }
+.room-num-bg { fill:var(--accent); }
+.room-num { fill:var(--paper); font:600 12px ui-monospace,Menlo,monospace; text-anchor:middle; }
+.room-name { fill:var(--ink); font:600 14px "Iowan Old Style",Palatino,Georgia,serif; text-anchor:middle; }
+.room-id { fill:var(--ink-3); font:11px ui-monospace,Menlo,monospace; text-anchor:middle; }
+.route { fill:none; stroke:var(--accent); stroke-width:1.6; stroke-dasharray:3 6;
+  stroke-linecap:round; opacity:.75; }
+.corridor-label { fill:var(--ink-3); font:italic 12.5px "Iowan Old Style",Palatino,Georgia,serif; text-anchor:middle; }
+.g-solid { fill:var(--solid); }
+.g-stale path { fill:var(--stale); } .g-stale circle { stroke:var(--stale); stroke-width:1.6; }
+.g-fragile { fill:none; stroke:var(--fragile); stroke-width:2.2; }
+.g-missing { fill:none; stroke:var(--missing); stroke-width:1.6; stroke-dasharray:2.5 3; }
+@media (prefers-reduced-motion: no-preference) {
+  .g-fragile { animation:flicker 2.8s ease-in-out infinite; }
+  @keyframes flicker { 0%,100%{opacity:1} 42%{opacity:1} 50%{opacity:.35} 58%{opacity:1} 76%{opacity:.6} 84%{opacity:1} }
+}
+
+/* walkthrough */
+.room-section { margin-top:64px; scroll-margin-top:24px; }
+.room-header { border-top:2px solid var(--ink); padding-top:14px; }
+.room-index { font-family:ui-monospace,Menlo,monospace; font-size:12px; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--accent-ink); }
+.room-header h3 { font-size:28px; font-weight:600; margin:4px 0 6px; }
+.flavor { color:var(--ink-2); font-style:italic; margin:0; max-width:75ch; }
+.room-sum { font-style:normal; font-family:ui-monospace,Menlo,monospace; font-size:12px;
+  color:var(--ink-3); margin-left:10px; white-space:nowrap; }
+.cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(310px,1fr));
+  gap:14px; margin-top:20px; }
+.card { background:var(--card); border:1px solid var(--line); border-radius:9px;
+  padding:16px 18px 14px; display:flex; flex-direction:column; gap:8px; }
+.card header { display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; }
+.card-no { font-family:ui-monospace,Menlo,monospace; font-size:12px; color:var(--paper);
+  background:var(--accent); border-radius:5px; padding:2px 7px; font-variant-numeric:tabular-nums; }
+.card h4 { font-size:17.5px; font-weight:600; margin:0; flex:1; }
+.chip { display:inline-flex; align-items:center; gap:6px; border-radius:99px;
+  padding:2px 10px; font-family:ui-monospace,Menlo,monospace; font-size:11.5px; white-space:nowrap; }
+.chip-dot { width:7px; height:7px; border-radius:99px; background:currentColor; }
+.chip-solid { color:var(--solid); background:var(--solid-bg); }
+.chip-stale { color:var(--stale); background:var(--stale-bg); }
+.chip-fragile { color:var(--fragile); background:var(--fragile-bg); }
+.chip-missing { color:var(--missing); background:var(--missing-bg); }
+.chip-missing .chip-dot { background:transparent; border:1.5px dashed currentColor; }
+.chip-fragile .chip-dot { background:transparent; border:2px solid currentColor; }
+.image { margin:0; font-style:italic; font-size:16px; color:var(--ink); }
+.trigger { margin:0; font-size:14px; color:var(--ink-2); }
+.lbl { font-family:ui-monospace,Menlo,monospace; font-style:normal; font-size:10.5px;
+  letter-spacing:.14em; text-transform:uppercase; color:var(--accent-ink); margin-right:8px; }
+.probs { margin:2px 0 0; display:flex; flex-wrap:wrap; gap:6px; }
+.prob { font-family:ui-monospace,Menlo,monospace; font-size:11.5px; color:var(--ink-2);
+  background:var(--chipbg); border:1px solid transparent; border-radius:5px;
+  padding:2.5px 8px; display:inline-flex; gap:6px; align-items:baseline; }
+.prob b { color:var(--ink); font-weight:600; }
+.prob i { color:var(--accent-ink); font-style:normal; letter-spacing:.06em; }
+.prob .dif { font-weight:700; }
+.dif-E { color:var(--solid); } .dif-M { color:var(--stale); } .dif-H { color:var(--fragile); }
+.prob-un { background:transparent; border:1px dashed var(--line); color:var(--ink-3); }
+.prob-un b { color:var(--ink-3); }
+.rest { display:none; } .rest.open { display:contents; }
+button.prob-more { color:var(--accent-ink); background:transparent;
+  border:1px dashed var(--line); cursor:pointer; }
+button.prob-more:hover { border-color:var(--accent); }
+button.prob-more:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+footer.colophon { margin-top:80px; border-top:1px solid var(--line); padding-top:16px;
+  font-size:13px; color:var(--ink-3); max-width:70ch; }
+a { color:var(--accent-ink); }
+"""
+
+JS = """
+(function(){
+  var LESS='\\u2212 fewer';
+  function setBtn(b, open){
+    var rest=b.parentElement.querySelector('.rest');
+    b.setAttribute('aria-expanded', open);
+    b.textContent = open ? LESS : '+'+rest.childElementCount+' more';
+  }
+  document.addEventListener('click', function(e){
+    var b=e.target.closest('button.prob-more'); if(!b) return;
+    var rest=b.parentElement.querySelector('.rest');
+    setBtn(b, rest.classList.toggle('open'));
+  });
+  var all=document.getElementById('toggle-all');
+  if(all) all.addEventListener('click', function(){
+    var opening = all.dataset.state!=='open';
+    document.querySelectorAll('.rest').forEach(function(r){ r.classList.toggle('open', opening); });
+    document.querySelectorAll('button.prob-more').forEach(function(b){ setBtn(b, opening); });
+    all.dataset.state = opening?'open':'closed';
+    all.textContent = opening?'collapse all stations':'expand all stations';
+  });
+})();
+"""
+
+
+def main():
+    nodes = load_nodes()           # id -> node, in nodes.json order
+    problems = load_problems()     # num -> meta, in problems.json order
+    evidence = load_evidence()
+    palace = load_palace()
+    solved = solved_set()
+    lc_meta = load_lc_metadata()
+    room_meta = {r["group"]: r for r in palace["rooms"]}
+    loci = palace["loci"]
+
+    carriers = {nid: [] for nid in nodes}
+    for num, meta in problems.items():
+        for move in meta["moves"]:
+            if move in carriers:
+                carriers[move].append((num, meta))
+
+    missing_loci = [nid for nid in nodes if nid not in loci]
+    if missing_loci:
+        print(f"WARNING: no locus for {missing_loci} — add images to graph/palace.json")
+
+    rooms, no = [], 0
+    for i, group in enumerate(ROUTE, 1):
+        stations = []
+        for node in (n for n in nodes.values() if n["group"] == group):
+            no += 1
+            status, _ = node_status(node["id"], evidence)
+            stations.append({"no": no, "node": node, "status": status})
+        rooms.append({"index": i, "group": group, "stations": stations,
+                      "name": room_meta[group]["name"], "flavor": room_meta[group]["flavor"]})
+
+    all_statuses = [s["status"] for r in rooms for s in r["stations"]]
+    counts = Counter(all_statuses)
+    plan = floor_plan([{**r, "stations": [(s["no"], s["node"]["name"], s["status"])
+                                          for s in r["stations"]]} for r in rooms])
+
+    sections = []
+    for room in rooms:
+        cards = []
+        for s in room["stations"]:
+            node, status = s["node"], s["status"]
+            locus = loci.get(node["id"], {"image": node["desc"], "trigger": node["desc"]})
+            cards.append(f'''<article class="card st-{status.lower()}">
+  <header><span class="card-no">{s["no"]}</span>
+    <h4>{esc(node["name"])}</h4>
+    {status_chip(status)}
+  </header>
+  <p class="image">{locus["image"]}</p>
+  <p class="trigger"><span class="lbl">Trigger</span>{locus["trigger"]}</p>
+  {probs_para(carriers[node["id"]], solved, lc_meta)}
+</article>''')
+        sections.append(f'''<section id="room-{room["index"]}" class="room-section">
+  <header class="room-header">
+    <span class="room-index">Room {room["index"]}</span>
+    <h3>{esc(room["name"])}</h3>
+    <p class="flavor">{room["flavor"]} <span class="room-sum">{sum_phrase([s["status"] for s in room["stations"]])}</span></p>
+  </header>
+  <div class="cards">{"".join(cards)}</div>
+</section>''')
+
+    today = date.today().isoformat()
+    page = f'''<title>The Technique Palace</title>
+<style>{CSS}</style>
+<div class="wrap">
+  <p class="eyebrow">Method of loci · leetcode technique graph</p>
+  <h1>The Technique Palace</h1>
+  <p class="lede">Thirteen rooms off one corridor, one station per atomic move — built from
+  <code>graph/nodes.json</code>, lit by <code>graph/evidence.json</code>. Walk it in order;
+  the route never changes.</p>
+  <p class="method"><b>How to use it:</b> when a problem appears, find the <b>room</b> first
+  (what kind of question is this?), then the <b>station</b> (which move answers it). Each
+  station has a fixed image to hang the move on, and its trigger — the cue that should fire
+  it. Problem numbers carry their Major-system consonant skeleton
+  (<span class="prob" style="font-size:11px"><b>217</b><i>N·T·K</i></span>) so you can peg
+  the canonical exemplars; 6 = J/SH/CH, 7 = K/G, 9 = P/B, as usual.</p>
+  <div class="statline">
+    <span><strong>{len(all_statuses)}</strong> stations</span><span><strong>{len(rooms)}</strong> rooms</span>
+    <span><strong>{counts["SOLID"]}</strong> lit (solid)</span> <span><strong>{counts["STALE"]}</strong> dusty (stale)</span> <span><strong>{counts["FRAGILE"]}</strong> flickering (fragile)</span> <span><strong>{counts["MISSING"]}</strong> dark (missing)</span>
+  </div>
+  <div class="legend">
+    <span class="chip chip-solid"><span class="chip-dot"></span>solid · lit</span>
+    <span class="chip chip-stale"><span class="chip-dot"></span>stale · dusty</span>
+    <span class="chip chip-fragile"><span class="chip-dot"></span>fragile · flickering</span>
+    <span class="chip chip-missing"><span class="chip-dot"></span>missing · dark</span>
+    <span>Lighting is derived from solve evidence, never stored — clean within ~6 weeks burns bright.</span>
+  </div>
+  <div class="legend">
+    <span>Every station now carries its full problem list: <b>+N more</b> unfolds it.
+    A dashed problem chip is unsolved; <span class="dif dif-E">E</span>/<span class="dif dif-M">M</span>/<span class="dif dif-H">H</span> is difficulty.</span>
+    <button id="toggle-all" class="linklike" data-state="closed">expand all stations</button>
+  </div>
+  <figure>
+    <div class="plan-scroll">{plan}</div>
+    <figcaption>The floor plan. Click a room to walk to it. Half-filled dots have gone dusty;
+    flickering outlines were struggled with or solved only once; dashed outlines are unlit.</figcaption>
+  </figure>
+  {"".join(sections)}
+  <footer class="colophon">
+    Generated from the technique graph on {today} by <code>utils/kg/kg_palace</code>.
+    Statuses re-derive from <code>evidence.json</code> each time this page is rebuilt —
+    the palace is a map of the territory, not the territory: knowing the room is not the
+    same as walking it cleanly. Rebuild after a session to watch rooms light up.
+  </footer>
+</div>
+<script>{JS}</script>
+'''
+
+    out_path = os.path.join(GRAPH_DIR, "palace.html")
+    with open(out_path, "w") as f:
+        f.write(page)
+    lit = " · ".join(f"{counts[s]} {STATUS_WORD[s]}" for s in STATUS_ORDER)
+    print(f"wrote {os.path.relpath(out_path)} — {len(all_statuses)} stations, {lit}")
+
+
+if __name__ == "__main__":
+    main()
