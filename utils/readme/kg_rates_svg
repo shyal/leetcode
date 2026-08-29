@@ -1,0 +1,162 @@
+#!/usr/bin/env python3
+
+# kg_rates_svg — daily solve and drill rates, rendered into graph/rates.svg
+# for the README pipeline. Replaces the two matplotlib PNGs (solves per day,
+# unique problems per day) with one SVG of two stacked panels:
+#
+#   top     solves + drills per day, stacked, with a 7-day moving average
+#           of the total
+#   bottom  unique problems + unique drills per day, stacked, same average;
+#           tracked separately because as the ladder ramps, problems and
+#           rungs get re-served, and the unique line is the part that is
+#           new ground
+#
+# A solve is a solved/p<num>_*.py file added by a commit, a drill a
+# solved/d_<stem>_*.py file. FAILED files are not solves. Commits adding more
+# than IMPORT_CAP solve files are bulk imports of older work (the day-one
+# import stamped 110 files) and are not that day's solving, so they are
+# skipped. Uniques are per problem number and per drill stem.
+
+import os
+import re
+import subprocess
+from collections import defaultdict
+from datetime import date, timedelta
+
+from kg.kg_lib import GRAPH_DIR
+
+OUT = os.path.join(GRAPH_DIR, "rates.svg")
+IMPORT_CAP = 5
+MA_DAYS = 7
+
+W, H = 1200, 560
+BG = "#0d1117"
+INK = "#c9d1d9"
+MUTED = "#8b949e"
+GRID = "#21262d"
+SOLVE = "#58a6ff"
+DRILL = "#3fb950"
+MA = "#f0f6fc"
+ML, MR = 62, 24
+
+
+def mine():
+    """date -> (solves, drills, unique problems, unique drills)."""
+    out = subprocess.run(
+        ["git", "log", "--diff-filter=A", "--name-only",
+         "--format=%x01%ad", "--date=short", "--", "solved/"],
+        capture_output=True, text=True, cwd=os.path.dirname(GRAPH_DIR)).stdout
+    solves, drills = defaultdict(int), defaultdict(int)
+    uprobs, udrills = defaultdict(set), defaultdict(set)
+    for block in out.split("\x01")[1:]:
+        lines = block.strip().splitlines()
+        d = lines[0][:10]
+        files = [l for l in lines[1:] if l.startswith("solved/") and "FAILED" not in l]
+        if len(files) > IMPORT_CAP:
+            continue
+        for f in files:
+            name = f[len("solved/"):]
+            pm = re.match(r"p(\d+)_", name)
+            dm = re.match(r"d_(.+?)_\d{4}_", name)
+            if pm:
+                solves[d] += 1
+                uprobs[d].add(pm.group(1))
+            elif dm:
+                drills[d] += 1
+                udrills[d].add(dm.group(1))
+    days = sorted(set(solves) | set(drills))
+    if not days:
+        return []
+    d0, d1 = date.fromisoformat(days[0]), date.fromisoformat(days[-1])
+    rows = []
+    while d0 <= d1:
+        k = d0.isoformat()
+        rows.append((d0, solves[k], drills[k], len(uprobs[k]), len(udrills[k])))
+        d0 += timedelta(days=1)
+    return rows
+
+
+def moving_average(xs):
+    out = []
+    for i in range(len(xs)):
+        lo = max(0, i - MA_DAYS + 1)
+        out.append(sum(xs[lo:i + 1]) / (i + 1 - lo))
+    return out
+
+
+def panel(svg, rows, a, b, top, bottom, title, x_of):
+    """Stacked areas of series a (bottom) and b (on top), MA of a+b."""
+    total = [p + q for p, q in zip(a, b)]
+    ymax = max(max(total), 1) * 1.08
+
+    def y_of(v):
+        return bottom - v / ymax * (bottom - top)
+
+    svg.append(f'<text x="{ML}" y="{top - 10}" font-size="12" fill="{INK}">{title}</text>')
+    step = 5 if ymax > 12 else 2 if ymax > 5 else 1
+    for g in range(0, int(ymax) + 1, step):
+        y = y_of(g)
+        svg.append(f'<line x1="{ML}" y1="{y:.1f}" x2="{W - MR}" y2="{y:.1f}" '
+                   f'stroke="{GRID}" stroke-width="1"/>')
+        svg.append(f'<text x="{ML - 8}" y="{y + 4:.1f}" text-anchor="end" font-size="11" '
+                   f'fill="{MUTED}">{g}</text>')
+    xs = [x_of(i) for i in range(len(rows))]
+
+    def area(lower, upper, color):
+        pts = [f"{x:.1f},{y_of(u):.1f}" for x, u in zip(xs, upper)]
+        pts += [f"{x:.1f},{y_of(l):.1f}" for x, l in zip(reversed(xs), reversed(lower))]
+        svg.append(f'<polygon points="{" ".join(pts)}" fill="{color}" fill-opacity="0.75"/>')
+
+    area([0] * len(a), a, SOLVE)
+    area(a, total, DRILL)
+    ma = moving_average(total)
+    svg.append('<polyline points="' + " ".join(f"{x:.1f},{y_of(v):.1f}" for x, v in zip(xs, ma))
+               + f'" fill="none" stroke="{MA}" stroke-width="1.6" stroke-dasharray="6 4"/>')
+
+
+def main():
+    rows = mine()
+    if not rows:
+        print("no solves found")
+        return
+    n = len(rows)
+
+    def x_of(i):
+        return ML + i / max(n - 1, 1) * (W - ML - MR)
+
+    svg = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" '
+           f'font-family="Helvetica,sans-serif">',
+           f'<rect width="{W}" height="{H}" fill="{BG}"/>',
+           f'<text x="{W / 2:.0f}" y="24" text-anchor="middle" font-size="13" fill="{INK}">'
+           f'Solves and drills per day, full repo history</text>']
+    P1T, P1B, P2T, P2B = 62, 270, 322, 500
+    panel(svg, rows, [r[1] for r in rows], [r[2] for r in rows], P1T, P1B,
+          "per day: solves (blue) + drills (green), stacked; dashed = 7-day average of the total",
+          x_of)
+    panel(svg, rows, [r[3] for r in rows], [r[4] for r in rows], P2T, P2B,
+          "unique per day: problems (blue) + drill rungs (green), stacked; dashed = 7-day average",
+          x_of)
+    # month ticks along the bottom
+    for i, r in enumerate(rows):
+        if r[0].day == 1:
+            x = x_of(i)
+            for top, bottom in ((P1T, P1B), (P2T, P2B)):
+                svg.append(f'<line x1="{x:.1f}" y1="{top}" x2="{x:.1f}" y2="{bottom}" '
+                           f'stroke="{GRID}" stroke-width="1"/>')
+            svg.append(f'<text x="{x:.1f}" y="{P2B + 18}" text-anchor="middle" font-size="11" '
+                       f'fill="{MUTED}">{r[0].strftime("%b %y")}</text>')
+    # legend
+    for i, (color, lab) in enumerate(((SOLVE, "solves"), (DRILL, "drills"))):
+        lx = W - MR - 170 + i * 85
+        svg.append(f'<rect x="{lx}" y="{P2B + 30}" width="12" height="12" rx="3" fill="{color}" fill-opacity="0.7"/>')
+        svg.append(f'<text x="{lx + 18}" y="{P2B + 40}" font-size="11" fill="{INK}">{lab}</text>')
+    svg.append("</svg>")
+    with open(OUT, "w") as f:
+        f.write("\n".join(svg) + "\n")
+    tot = [sum(r[i] for r in rows) for i in (1, 2, 3, 4)]
+    print(f"wrote {OUT} ({n} days: {tot[0]} solves, {tot[1]} drills, "
+          f"{tot[2]} unique problem-days, {tot[3]} unique rung-days)")
+
+
+if __name__ == "__main__":
+    main()
