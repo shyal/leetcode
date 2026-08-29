@@ -1,6 +1,6 @@
 """
 DRILL: Average Selling Price With Date Ranges
-TRAINS: sql-join-left-keep
+TRAINS: sql-join-left-keep, sql-group-aggregate
 
 Given the tables Prices and UnitsSold, return the average selling price of
 each product, rounded to 2 decimal places: total money taken divided by total

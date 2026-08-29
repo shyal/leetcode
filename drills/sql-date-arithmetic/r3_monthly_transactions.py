@@ -1,6 +1,6 @@
 """
 DRILL: Monthly Transactions
-TRAINS: sql-date-arithmetic
+TRAINS: sql-date-arithmetic, sql-conditional-aggregate
 
 Given the table Transactions, return for each month and country: trans_count,
 approved_count, trans_total_amount and approved_total_amount. month is the

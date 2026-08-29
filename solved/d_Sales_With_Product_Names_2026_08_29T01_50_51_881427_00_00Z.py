@@ -133,9 +133,9 @@ sol = Solution()
 
 sol.show(EXAMPLE_1)
 
-assert sol.run(EXAMPLE_1) == [
+assert sol.run(EXAMPLE_1, ordered=True) == [
     ("Nokia", 2008, 5000),
     ("Nokia", 2009, 5000),
     ("Apple", 2011, 9000),
 ]
-assert sol.run(EXAMPLE_2) == [("Nokia", 2008, 5000)]
+assert sol.run(EXAMPLE_2, ordered=True) == [("Nokia", 2008, 5000)]

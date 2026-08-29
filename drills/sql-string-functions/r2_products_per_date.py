@@ -1,6 +1,6 @@
 """
 DRILL: Products Sold Per Date
-TRAINS: sql-string-functions
+TRAINS: sql-string-functions, sql-group-aggregate
 
 Given the table Activities, return for each sell_date: num_sold, the number of
 distinct products sold that day, and products, the distinct product names

@@ -844,6 +844,32 @@ def test_a_solid_owned_node_has_no_drill_due(tmp_path, monkeypatch):
     assert kg_lib.due_drill("some-node", assisted) is not None
 
 
+def test_a_composite_rung_waits_for_every_move_it_combines(tmp_path, monkeypatch):
+    """A rung whose TRAINS lists a second node is a walk, not a move: it is
+    held until that node is owned (its own atomic rung clean, unaided), the
+    way a carrier waits for every other move in its walk to be SOLID. The
+    ladder below it still applies, and the first rung is never held."""
+    import kg_lib
+    bank = tmp_path / "left-keep"
+    bank.mkdir()
+    (bank / "r1.py").write_text('"""\nDRILL: R One\nTRAINS: left-keep\n"""\n')
+    (bank / "r2.py").write_text('"""\nDRILL: R Two\nTRAINS: left-keep, group-agg\n"""\n')
+    monkeypatch.setattr(kg_lib, "DRILLS_DIR", str(tmp_path))
+    r1, r2 = str(bank / "r1.py"), str(bank / "r2.py")
+    # r1 warm (clean, unaided, recent) but group-agg never owned: r2 stays held
+    ev = evidence({"solved/d_R_One_1.py": {"date": iso(3), "problem": "drill",
+                                           "moves": {"left-keep": "clean"}}})
+    assert kg_lib.released_rungs([r1, r2], ev, "left-keep") == [r1]
+    # group-agg owned only through a hinted rep: still held
+    ev2 = evidence(ev, solve("5", {"group-agg": "clean"}, days_ago=1, assist="hint"))
+    assert kg_lib.released_rungs([r1, r2], ev2, "left-keep") == [r1]
+    # an unaided clean on group-agg releases it
+    ev3 = evidence(ev, solve("5", {"group-agg": "clean"}, days_ago=1))
+    assert kg_lib.released_rungs([r1, r2], ev3, "left-keep") == [r1, r2]
+    # the first rung is never held by its own TRAINS list
+    assert kg_lib.released_rungs([r2, r1], ev, "left-keep") == [r2]
+
+
 # --------------------------------------------------------------------------
 # the frontier mover (PLAN.md phase 4): a due node with no evidenced carrier
 # promotes a drafted problem from the predicted tier

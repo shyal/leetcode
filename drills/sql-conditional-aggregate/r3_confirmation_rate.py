@@ -1,6 +1,6 @@
 """
 DRILL: Confirmation Rate
-TRAINS: sql-conditional-aggregate
+TRAINS: sql-conditional-aggregate, sql-join-left-keep
 
 Given the tables Signups and Confirmations, return each user_id with their
 confirmation_rate: the number of 'confirmed' messages divided by the number of

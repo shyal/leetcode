@@ -1,6 +1,6 @@
 """
 DRILL: Who Has The Most Friends
-TRAINS: sql-set-union
+TRAINS: sql-set-union, sql-group-aggregate
 
 Given the table RequestAccepted, return the id and num (number of friends) of
 the person with the most friends. An accepted request makes both people

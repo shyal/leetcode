@@ -140,11 +140,11 @@ sol = Solution()
 
 sol.show(EXAMPLE_1)
 
-assert sol.run(EXAMPLE_1) == [
+assert sol.run(EXAMPLE_1, ordered=True) == [
     (None, "Alice"),
     (1, "Jonathan"),
     (None, "Bob"),
     (2, "Meir"),
     (3, "Winston"),
 ]
-assert sol.run(EXAMPLE_2) == [(None, "Alice"), (None, "Bob")]
+assert sol.run(EXAMPLE_2, ordered=True) == [(None, "Alice"), (None, "Bob")]

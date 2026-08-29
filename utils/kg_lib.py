@@ -952,17 +952,35 @@ def drill_held(node_id, nodes, statuses, evidence, has_bank=None, pending=()):
     return False
 
 
-def released_rungs(candidates, evidence):
+def drill_trains(path):
+    """The node ids a bank drill evidences: its TRAINS header, comma
+    separated. A composite rung lists every move it combines, the way a
+    leetcode problem's walk does; the solve evidences all of them."""
+    try:
+        with open(path) as f:
+            m = re.search(r"^\s*TRAINS:\s*([a-z0-9\-, ]+)$", f.read(), flags=re.M)
+    except OSError:
+        m = None
+    return [t.strip() for t in m.group(1).split(",") if t.strip()] if m else []
+
+
+def released_rungs(candidates, evidence, node_id=None):
     """The prefix of a drill ladder that is open to serve. The bank's
     filename order is the ladder: a rung is held while the rung below it is
     not warm — the same "after" rule that serves 46 before 47 (held_behind).
-    Holds cascade, so this is always a prefix."""
-    released = candidates[:1]
-    for below, rung in zip(candidates, candidates[1:]):
-        if not drill_warm(below, evidence):
+    A composite rung (TRAINS lists other nodes) is also held until each of
+    those nodes is owned - its atomic rung clean and unaided - so the
+    combination lands on moves the operator has, instead of teaching two at
+    once. Holds cascade, so this is always a prefix."""
+    released = []
+    for i, rung in enumerate(candidates):
+        if i and not drill_warm(candidates[i - 1], evidence):
+            break
+        if any(not owned(t, evidence)
+               for t in drill_trains(rung) if t != node_id):
             break
         released.append(rung)
-    return released
+    return released or candidates[:1]
 
 
 def due_drill(node_id, evidence, today=None):
@@ -979,7 +997,7 @@ def due_drill(node_id, evidence, today=None):
     candidates = sorted(glob.glob(os.path.join(DRILLS_DIR, node_id, "*.py")))
     if not candidates:
         return None
-    path = min(released_rungs(candidates, evidence),
+    path = min(released_rungs(candidates, evidence, node_id),
                key=lambda p: last_drilled(p, evidence))
     return None if last_drilled(path, evidence) >= today else path
 
