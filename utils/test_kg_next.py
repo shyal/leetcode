@@ -107,6 +107,12 @@ def picker(monkeypatch):
                         kg_lib.predicted_carrier(target, problems, statuses,
                                                  nodes, predicted=ctl.predicted,
                                                  skip=skip))
+    monkeypatch.setattr(kg_next, "draft_misses",
+                        lambda target, ev, nodes=None, predicted=None:
+                        kg_lib.draft_misses(target, ev, nodes, ctl.predicted))
+    monkeypatch.setattr(kg_next, "drafts_falsified",
+                        lambda target, ev, nodes=None, predicted=None:
+                        kg_lib.drafts_falsified(target, ev, nodes, ctl.predicted))
     monkeypatch.setattr(kg_next, "has_drill_bank", lambda nid: nid in ctl.bank)
     monkeypatch.setattr(kg_next, "immature_nodes",
                         lambda nodes, evidence, problems: frozenset(ctl.immature))
@@ -801,6 +807,55 @@ def test_a_missing_move_with_no_mapped_carrier_promotes_a_draft(picker):
     assert "predicted" in reason
     assert ps["9001"]["predicted"] is True  # in-memory entry for rendering
     assert ps["9001"]["moves"] == ["csb"]
+
+
+def test_drafts_stop_promoting_after_two_misses(picker):
+    """The 2026-08-29 carousel: counting-sort-buckets had 56 drafts and the
+    mover served them one after another while every solve came back mapped
+    to some other move. Two drafted carriers solved without the target
+    falsify the tier for it: no third promotion, and the frontier names
+    the misses instead of "no drafted walk can carry it"."""
+    ns = nodes("csb")
+    ps = {"41": problem(["csb"], difficulty="Hard"),
+          "1365": problem(["dav"]), "1893": problem(["sa"])}
+    st = {"csb": (MISSING, None)}
+    for num in ("1365", "1893", "2149"):
+        picker.predicted[num] = drafted(["csb"])
+        picker.meta[num] = {"difficulty": "Easy"}
+    ev = evidence(solve("1365", {"dav": "clean"}, days_ago=1),
+                  solve("1893", {"sa": "clean"}, days_ago=0))
+    assert picker.run(ns, ps, ev, st) is None
+    [(nid, status, why)] = picker.blocked(ns, ps, ev, st)
+    assert (nid, status) == ("csb", MISSING)
+    assert "1365, 1893" in why and "without the move" in why
+
+
+def test_one_miss_still_promotes(picker):
+    """One draft coming back wrong is noise; the tier keeps serving."""
+    ns = nodes("csb")
+    ps = {"41": problem(["csb"], difficulty="Hard"), "1365": problem(["dav"])}
+    st = {"csb": (MISSING, None)}
+    for num in ("1365", "1893"):
+        picker.predicted[num] = drafted(["csb"])
+        picker.meta[num] = {"difficulty": "Easy"}
+    ev = evidence(solve("1365", {"dav": "clean"}, days_ago=1))
+    assert picker.run(ns, ps, ev, st)[2] == "1893"
+
+
+def test_a_solve_older_than_the_node_is_not_a_miss(picker):
+    """Evidence from before the node existed could not have tagged it
+    whatever the walk was, so it does not falsify the draft."""
+    ns = nodes("csb")
+    ns["csb"]["added"] = iso(10)
+    ps = {"41": problem(["csb"], difficulty="Hard"),
+          "1365": problem(["dav"]), "1893": problem(["sa"])}
+    st = {"csb": (MISSING, None)}
+    for num in ("1365", "1893", "2149"):
+        picker.predicted[num] = drafted(["csb"])
+        picker.meta[num] = {"difficulty": "Easy"}
+    ev = evidence(solve("1365", {"dav": "clean"}, days_ago=30),
+                  solve("1893", {"sa": "clean"}, days_ago=1))
+    assert picker.run(ns, ps, ev, st)[2] == "2149"
 
 
 def test_an_evidenced_carrier_outranks_promotion(picker):

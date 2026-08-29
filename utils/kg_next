@@ -42,7 +42,11 @@
 #      first (kg_lib.predicted_carrier: rarest supporting move's carrier
 #      mass, capped at the ~30-problem connectivity threshold), then
 #      gentleness. The promotion is in-memory; the solve's evidenced walk
-#      (kg_extract) is what maps the problem for real.
+#      (kg_extract) is what maps the problem for real. A promoted draft
+#      that comes back mapped to some other move is a MISS; after
+#      kg_lib.DRAFT_MISSES of them the target stops promoting (the drafts
+#      are wrong about how the operator solves) and the dry warning names
+#      it — otherwise the mover spins through every draft in the tier.
 #   4. nothing rusty and nothing new: a summit — the gentlest unsolved Hard
 #      whose whole walk is already SOLID and mature (kg_lib.mature: spaced
 #      clean reps + a real-problem carry proof — a badge earned in one burst
@@ -90,6 +94,8 @@ from kg_lib import (
     dodgeable,
     carriers_for,
     predicted_carrier,
+    draft_misses,
+    drafts_falsified,
     cooled,
     gentleness,
     unlocks,
@@ -254,7 +260,7 @@ def pick(
         is inserted in memory so rendering and forecasting see a normal
         problem; problems.json is untouched — kg_extract maps the problem
         from the actual solve."""
-        if mapped:
+        if mapped or drafts_falsified(target, evidence, nodes):
             return None
         promo = predicted_carrier(target, problems, statuses, nodes,
                                   skip=set(asleep) | set(exclude))
@@ -572,8 +578,11 @@ def blocked_frontier(nodes, problems, evidence, statuses, asleep=(), exclude=())
             continue  # servable — pick() just preferred something else
         if due_drill(nid, evidence):
             continue  # its drill is available and pick() would offer it
-        if not ready and predicted_carrier(nid, problems, statuses, nodes,
-                                           skip=set(asleep) | set(exclude)):
+        misses = draft_misses(nid, evidence, nodes)
+        falsified = drafts_falsified(nid, evidence, nodes)
+        if (not ready and not falsified
+                and predicted_carrier(nid, problems, statuses, nodes,
+                                      skip=set(asleep) | set(exclude))):
             continue  # uncarried but servable — pick() promotes a draft
 
         walks = [p for p, v in problems.items() if nid in v.get("moves", [])]
@@ -602,7 +611,15 @@ def blocked_frontier(nodes, problems, evidence, statuses, asleep=(), exclude=())
             why += ", and its drill is done for today"
         else:
             why += ", and no drill exists for it"
-        why += ", and no drafted walk can carry it alone"
+        if falsified:
+            listed = ", ".join(misses)
+            why += (
+                f", and {len(misses)} drafted carriers ({listed}) were solved "
+                "without the move — the drafts are wrong about how you solve, "
+                "so no more are promoted"
+            )
+        else:
+            why += ", and no drafted walk can carry it alone"
         out.append((nid, status, why))
     return out
 
@@ -753,7 +770,8 @@ def main():
             if not has_drill_bank(nid)
             and (not served
                  or "Hard or banned" in why
-                 or "no problem in the graph" in why)
+                 or "no problem in the graph" in why
+                 or "without the move" in why)
         ]
         if dry:
             names = ", ".join(dry)

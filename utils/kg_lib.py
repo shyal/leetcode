@@ -693,6 +693,46 @@ def predicted_carrier(target, problems, statuses, nodes,
                  "predicted": True}
 
 
+DRAFT_MISSES = 2  # drafted carriers solved without the move before drafts stop
+
+
+def draft_misses(target, evidence, nodes=None, predicted=None):
+    """Drafted carriers for `target` that were solved WITHOUT evidencing it,
+    sorted by problem number. Each one falsifies its draft: the walk the
+    LLM predicted is not the walk this operator takes. Only evidence from
+    on or after the node's `added` date counts - a solve older than the
+    node could not have evidenced it whatever the walk was.
+
+    The loop this kills (2026-08-29, counting-sort-buckets): the frontier
+    mover promoted 1365, 1854, 1893, 2149 one after another, each came back
+    mapped to some other move, the node stayed MISSING, and the mover
+    promoted the next of 56 drafts. Nothing counted the misses."""
+    if predicted is None:
+        predicted = load_predicted()
+    drafts = {
+        num for num, prob in predicted.items()
+        if any(target in w.get("moves", []) for w in prob.get("walks", []))
+    }
+    added = (nodes or {}).get(target, {}).get("added", "")
+    solved, hit = set(), set()
+    for rec in evidence.values():
+        pnum = str(rec.get("problem", ""))
+        if pnum not in drafts or rec.get("date", "") < added:
+            continue
+        solved.add(pnum)
+        if target in rec.get("moves", {}):
+            hit.add(pnum)
+    return sorted(solved - hit, key=pnum_key)
+
+
+def drafts_falsified(target, evidence, nodes=None, predicted=None):
+    """True once DRAFT_MISSES drafted carriers for `target` were solved
+    without it: the predicted tier is wrong about this move, so promoting
+    more of it is a carousel, not a carrier. The node needs a mapped
+    carrier or a drill bank, and the picker says so instead of spinning."""
+    return len(draft_misses(target, evidence, nodes, predicted)) >= DRAFT_MISSES
+
+
 # Interview-classic Hards worth summiting: number -> why it's valuable.
 # Filtered against data/problems_metadata.json difficulty at runtime, so a
 # mislabeled entry silently drops out rather than lying. Lives here rather
