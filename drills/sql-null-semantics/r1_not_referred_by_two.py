@@ -65,10 +65,11 @@ Constraints:
 
     1 <= number of rows <= 10^4
 
-    REQUIRED: rows with a NULL referee_id must appear. `referee_id != 2` on
-    its own silently drops them, because NULL compared with anything is
-    neither true nor false; that is the failure mode this drill exists to
-    kill.
+    REQUIRED: rows with a NULL referee_id appear in the result.
+
+    FORBIDDEN: a bare inequality against referee_id on its own (NULL
+    compared with anything is neither true nor false, so those rows silently
+    vanish).
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.

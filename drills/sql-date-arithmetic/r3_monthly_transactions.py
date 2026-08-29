@@ -64,8 +64,10 @@ Constraints:
     1 <= number of rows <= 10^4
 
     REQUIRED: one row per (month, country), with month derived from
-    trans_date in SQL. Grouping on the raw date, or building the month
-    bucket in Python, is the failure mode this drill exists to kill.
+    trans_date in SQL.
+
+    FORBIDDEN: grouping on the raw date; building the month bucket in
+    Python.
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.

@@ -60,9 +60,11 @@ Constraints:
 
     1 <= number of rows <= 10^4
 
-    REQUIRED: one query with ONE GROUP BY country and NO WHERE on state. A
-    WHERE state = 'approved' drops FR from the result entirely; that is the
-    failure mode this drill exists to kill.
+    REQUIRED: one query, one GROUP BY country; a country with nothing
+    approved shows 0.
+
+    FORBIDDEN: a WHERE on state (it drops the country entirely); a separate
+    query per state.
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.

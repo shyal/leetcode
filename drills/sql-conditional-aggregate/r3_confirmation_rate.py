@@ -90,9 +90,9 @@ Constraints:
     1 <= rows in Signups <= 10^4
     0 <= rows in Confirmations <= 10^4
 
-    REQUIRED: one query; users with no confirmation rows must show 0.00, NOT
-    NULL and NOT missing. An inner join, which drops those users, is the
-    failure mode this drill exists to kill.
+    REQUIRED: one query; a user with no confirmation rows shows 0.00.
+
+    FORBIDDEN: an inner join (it drops those users); a NULL rate.
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.

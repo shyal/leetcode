@@ -68,9 +68,10 @@ Constraints:
 
     1 <= number of rows <= 10^4
 
-    REQUIRED: the count condition must be a HAVING on the group. WHERE runs
-    before grouping and cannot see COUNT; a WHERE on the count, or counting in
-    Python, is the failure mode this drill exists to kill.
+    REQUIRED: the count condition is applied to the group, in SQL.
+
+    FORBIDDEN: a WHERE on the count (WHERE runs before grouping and cannot
+    see it); counting in Python.
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.

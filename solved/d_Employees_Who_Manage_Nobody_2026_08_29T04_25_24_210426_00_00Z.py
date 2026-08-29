@@ -62,14 +62,18 @@ Constraints:
 
     1 <= number of rows <= 10^4
 
-    REQUIRED: every employee who is nobody's manager is returned, and the
-    data contains NULL manager_ids.
-
-    FORBIDDEN: NOT IN against a list that can contain NULL: it returns
-    nothing, because x NOT IN (..., NULL) is never true.
+    REQUIRED: the query must return the right rows when manager_id contains
+    NULL. `employee_id NOT IN (SELECT manager_id FROM Employees)` returns
+    nothing once a single NULL is in that list, because x NOT IN (..., NULL)
+    is never true; that is the failure mode this drill exists to kill.
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.
+
+---
+
+Assisted. New to 'anti join' pattern.
+
 """
 
 from dsa.sql import SQLDrill
@@ -79,7 +83,11 @@ class Solution(SQLDrill):
 
     def query(self) -> str:
         return """
-
+        select
+            e.employee_id
+        from Employees as e
+        left join Employees as m on e.employee_id = m.manager_id
+        where m.manager_id is null;
         """
 
 
@@ -103,5 +111,5 @@ sol = Solution()
 
 sol.show(EXAMPLE_1)
 
-# assert sol.run(EXAMPLE_1) == [(2,), (4,), (5,)]
-# assert sol.run(EXAMPLE_2) == [(1,), (2,)]
+assert sol.run(EXAMPLE_1) == [(2,), (4,), (5,)]
+assert sol.run(EXAMPLE_2) == [(1,), (2,)]

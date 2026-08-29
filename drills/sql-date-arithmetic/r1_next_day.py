@@ -57,9 +57,11 @@ Constraints:
 
     1 <= number of rows <= 10^4
 
-    REQUIRED: next_day comes from the engine's date arithmetic on recordDate.
-    NO string slicing and NO adding 1 to the day number; both break at a month
-    end, which is the failure mode this drill exists to kill.
+    REQUIRED: next_day comes from the engine's date arithmetic on
+    recordDate.
+
+    FORBIDDEN: string slicing; adding 1 to the day number (both break at a
+    month end).
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.

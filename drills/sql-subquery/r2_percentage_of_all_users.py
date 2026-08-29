@@ -96,9 +96,11 @@ Constraints:
     1 <= rows in Users <= 10^4
     1 <= rows in Register <= 10^4
 
-    REQUIRED: the denominator is a scalar subquery over Users, evaluated once.
-    Hard-coding the user count, or joining Users into the grouped query and
-    counting its rows, is the failure mode this drill exists to kill.
+    REQUIRED: the denominator is the count of all users, computed once, in
+    SQL.
+
+    FORBIDDEN: a hard-coded user count; joining Users into the grouped query
+    and counting its rows.
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.

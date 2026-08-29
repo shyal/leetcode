@@ -83,9 +83,9 @@ Constraints:
 
     1 <= number of rows in each table <= 10^4
 
-    REQUIRED: every customer appears exactly once, and the status test must
-    NOT be in the WHERE clause. A WHERE status = 'paid' drops Bob and Cal
-    from the result; that is the failure mode this drill exists to kill.
+    REQUIRED: every customer appears exactly once, with 0 for no paid order.
+
+    FORBIDDEN: the status test in the WHERE clause (it drops Bob and Cal).
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.

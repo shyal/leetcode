@@ -74,10 +74,11 @@ Constraints:
     1 <= number of rows <= 10^4
 
     REQUIRED: the rank is computed per department by a window function and
-    filtered in an outer query or CTE; NO correlated subquery per row. A
-    window function cannot be referenced in the WHERE of the query that
-    computes it (windows run after WHERE), and a rank that breaks ties would
-    drop Randy; both are the failure mode this drill exists to kill.
+    filtered in an outer query or CTE.
+
+    FORBIDDEN: a correlated subquery per row; referencing the window in the
+    WHERE of the query that computes it (windows run after WHERE); a rank
+    that breaks ties (it drops Randy).
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.

@@ -65,9 +65,10 @@ Constraints:
 
     1 <= number of rows <= 10^5
 
-    REQUIRED: 'in a row' is by id, and each qualifying num appears once. A
-    window with an empty OVER () relies on physical row order and is the
-    failure mode this drill exists to kill. NO self-join.
+    REQUIRED: 'in a row' is by id; each qualifying num appears once.
+
+    FORBIDDEN: a window with an empty OVER () (it relies on physical row
+    order); a self-join.
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.

@@ -69,9 +69,10 @@ Constraints:
     1 <= number of rows <= 10^4
 
     REQUIRED: equal scores share a rank and the next rank is the next
-    integer. RANK() leaves holes after a tie (1, 1, 3) and ROW_NUMBER()
-    breaks ties (1, 2, 3); both are the failure mode this drill exists to
-    kill.
+    integer.
+
+    FORBIDDEN: RANK() (holes after a tie: 1, 1, 3); ROW_NUMBER() (breaks
+    ties: 1, 2, 3).
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.

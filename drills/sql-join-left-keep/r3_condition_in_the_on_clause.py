@@ -91,8 +91,9 @@ Constraints:
     price and units are integers; divide as a real number.
 
     REQUIRED: every product appears exactly once, with 0 when it has no
-    sales. Putting the date-range condition in WHERE drops those products;
-    that is the failure mode this drill exists to kill.
+    sales.
+
+    FORBIDDEN: the date-range condition in WHERE (it drops those products).
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.

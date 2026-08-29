@@ -61,9 +61,9 @@ Constraints:
     1 <= number of rows <= 10^4
 
     REQUIRED: one pass over Revenue; the first row's change is NULL, not 0.
-    A self-join on 'the month before' needs date arithmetic on a string and
-    breaks across the year boundary; that is the failure mode this drill
-    exists to kill.
+
+    FORBIDDEN: a self-join on 'the month before' (date arithmetic on a
+    string, breaks across the year boundary).
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.

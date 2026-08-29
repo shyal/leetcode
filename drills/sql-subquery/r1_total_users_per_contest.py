@@ -83,10 +83,11 @@ Constraints:
 
     1 <= number of rows in each table <= 10^4
 
-    REQUIRED: one query, one row per contest, and the user count must come
-    from Users at run time. NO hard-coded count, NO join of Users into the
-    grouped query (its row count is the registrations, not the users); both
-    are the failure mode this drill exists to kill.
+    REQUIRED: one query, one row per contest; the user count comes from
+    Users at run time.
+
+    FORBIDDEN: a hard-coded count; joining Users into the grouped query (its
+    row count is the registrations, not the users).
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.

@@ -56,9 +56,10 @@ Constraints:
 
     2 <= number of rows <= 10^4
 
-    REQUIRED: one query that skips past the highest distinct salary. Repeated
-    salaries must count once. NO self-join, NO MAX of the salaries below the
-    MAX; both are the failure mode this drill exists to kill.
+    REQUIRED: one query that skips past the highest distinct salary;
+    repeated salaries count once.
+
+    FORBIDDEN: a self-join; MAX of the salaries below the MAX.
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.
