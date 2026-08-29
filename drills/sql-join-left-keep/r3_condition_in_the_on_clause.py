@@ -90,10 +90,9 @@ Constraints:
     0 <= rows in UnitsSold <= 10^4
     price and units are integers; divide as a real number.
 
-    REQUIRED: the date-range condition belongs in the ON clause of a LEFT
-    JOIN. Putting it in WHERE turns the LEFT JOIN into an inner join and drops
-    products with no sales; that is the failure mode this drill exists to
-    kill.
+    REQUIRED: every product appears exactly once, with 0 when it has no
+    sales. Putting the date-range condition in WHERE drops those products;
+    that is the failure mode this drill exists to kill.
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.

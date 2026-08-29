@@ -63,10 +63,9 @@ Constraints:
 
     1 <= number of rows <= 10^4
 
-    REQUIRED: join Employees to itself: one alias is the report, the other the
-    manager, joined on report.reports_to = manager.employee_id, then GROUP BY
-    the manager. A subquery per manager, or a name lookup in Python, is the
-    failure mode this drill exists to kill.
+    REQUIRED: one query over Employees, one row per manager. A subquery per
+    manager, or a name lookup in Python, is the failure mode this drill
+    exists to kill.
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.

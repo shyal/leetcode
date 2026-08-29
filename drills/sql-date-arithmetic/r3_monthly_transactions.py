@@ -63,10 +63,9 @@ Constraints:
 
     1 <= number of rows <= 10^4
 
-    REQUIRED: group on a month bucket derived from the date: strftime('%Y-%m',
-    trans_date) in sqlite, DATE_FORMAT in MySQL, date_trunc in Postgres and
-    Presto. Grouping on the raw date, or building the bucket in Python, is the
-    failure mode this drill exists to kill.
+    REQUIRED: one row per (month, country), with month derived from
+    trans_date in SQL. Grouping on the raw date, or building the month
+    bucket in Python, is the failure mode this drill exists to kill.
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.

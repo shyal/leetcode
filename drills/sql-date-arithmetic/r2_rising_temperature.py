@@ -60,10 +60,8 @@ Constraints:
     1 <= number of rows <= 10^4
 
     REQUIRED: 'previous' means the previous calendar date, not the previous
-    row: join the table to itself on the date one day earlier. Comparing with
-    id - 1 is the failure mode this drill exists to kill. Dialect: sqlite
-    date(recordDate, '-1 day') or julianday(a) - julianday(b) = 1; MySQL
-    DATEDIFF; Postgres a - b = 1; Presto date_add('day', 1, b).
+    row. Comparing with id - 1, or with the row before in physical order, is
+    the failure mode this drill exists to kill. NO Python.
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.

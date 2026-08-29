@@ -65,11 +65,9 @@ Constraints:
 
     1 <= number of rows <= 10^5
 
-    REQUIRED: LAG(num) OVER (ORDER BY id) and LEAD(num) OVER (ORDER BY id),
-    then keep rows where both equal num, and DISTINCT. The window must ORDER
-    BY id; an empty OVER () relies on physical row order and is the failure
-    mode this drill exists to kill. (A double self-join on id - 1 and id + 1
-    is the pre-window form.)
+    REQUIRED: 'in a row' is by id, and each qualifying num appears once. A
+    window with an empty OVER () relies on physical row order and is the
+    failure mode this drill exists to kill. NO self-join.
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.
