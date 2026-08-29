@@ -62,9 +62,9 @@ Constraints:
 
     1 <= number of rows <= 10^4
 
-    REQUIRED: one GROUP BY country; every count and sum that depends on state
-    comes from a CASE (or a 0/1 flag) inside the aggregate. A separate query
-    per state, or a self-join, is the failure mode this drill exists to kill.
+    REQUIRED: one query with ONE GROUP BY country and NO WHERE on state. A
+    separate query per state, a self-join, or a NULL where a count or sum
+    should be 0 is the failure mode this drill exists to kill.
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.

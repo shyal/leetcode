@@ -65,9 +65,7 @@ Constraints:
     REQUIRED: the query must return the right rows when manager_id contains
     NULL. `employee_id NOT IN (SELECT manager_id FROM Employees)` returns
     nothing once a single NULL is in that list, because x NOT IN (..., NULL)
-    is never true; that is the failure mode this drill exists to kill. Use NOT
-    EXISTS, or a LEFT JOIN with IS NULL, or exclude the NULLs from the
-    subquery.
+    is never true; that is the failure mode this drill exists to kill.
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.

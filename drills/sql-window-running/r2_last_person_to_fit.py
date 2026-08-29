@@ -62,10 +62,9 @@ Constraints:
     1 <= number of rows <= 10^5
     1 <= weight <= 1000
 
-    REQUIRED: SUM(weight) OVER (ORDER BY turn) gives every prefix total in one
-    pass; keep totals <= 1000 and take the largest. A self-join that sums all
-    earlier turns for every person is O(n^2) and the failure mode this drill
-    exists to kill.
+    REQUIRED: one pass over Queue. A self-join that sums all earlier turns
+    for every person is O(n^2) and the failure mode this drill exists to
+    kill. NO Python.
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.

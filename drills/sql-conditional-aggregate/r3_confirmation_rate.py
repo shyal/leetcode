@@ -90,10 +90,9 @@ Constraints:
     1 <= rows in Signups <= 10^4
     0 <= rows in Confirmations <= 10^4
 
-    REQUIRED: a rate is the mean of a 0/1 flag: AVG(CASE WHEN action =
-    'confirmed' THEN 1.0 ELSE 0 END), or SUM over COUNT. Users with no
-    confirmation rows must show 0.00, so the join must be LEFT; an inner join,
-    or a NULL rate, is the failure mode this drill exists to kill.
+    REQUIRED: one query; users with no confirmation rows must show 0.00, NOT
+    NULL and NOT missing. An inner join, which drops those users, is the
+    failure mode this drill exists to kill.
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.

@@ -64,11 +64,9 @@ Constraints:
 
     1 <= number of rows <= 10^4
 
-    REQUIRED: string aggregation with DISTINCT and a defined order:
-    GROUP_CONCAT in sqlite and MySQL, STRING_AGG in Postgres,
-    ARRAY_JOIN(ARRAY_AGG()) in Presto. Feed the aggregate from a DISTINCT,
-    ordered subquery if the dialect cannot order inside it. Duplicates in the
-    list (Mask twice) are the failure mode this drill exists to kill.
+    REQUIRED: products is built in SQL: distinct names, sorted, joined with
+    commas. Duplicates in the list (Mask twice), or an unsorted list, are
+    the failure mode this drill exists to kill. NO Python.
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.

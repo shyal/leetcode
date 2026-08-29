@@ -58,11 +58,10 @@ Constraints:
 
     1 <= number of rows <= 10^5
 
-    REQUIRED: ROW_NUMBER() OVER (PARTITION BY sensor_id ORDER BY read_at
-    DESC), keep the rows numbered 1. GROUP BY sensor_id with MAX(read_at) and
-    a bare value column returns an arbitrary value in most engines; that is
-    the failure mode this drill exists to kill. This is the dedupe-keep-latest
-    step of every ingest pipeline.
+    REQUIRED: one row per sensor, with value taken from that sensor's latest
+    row. GROUP BY sensor_id with MAX(read_at) and a bare value column
+    returns an arbitrary value in most engines; that is the failure mode
+    this drill exists to kill.
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.

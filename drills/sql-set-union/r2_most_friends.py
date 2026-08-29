@@ -59,10 +59,9 @@ Constraints:
 
     1 <= number of rows <= 10^4
 
-    REQUIRED: a friendship counts for both sides: stack requester and accepter
-    with UNION ALL into one column, then GROUP BY and take the top row.
-    Counting only one column, or using UNION (which drops repeated ids before
-    counting), is the failure mode this drill exists to kill.
+    REQUIRED: a friendship counts for both sides. Counting only one column,
+    or dropping repeated ids before counting, is the failure mode this drill
+    exists to kill.
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.

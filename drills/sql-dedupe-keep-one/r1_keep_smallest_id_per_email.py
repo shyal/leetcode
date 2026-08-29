@@ -58,10 +58,10 @@ Constraints:
 
     1 <= number of rows <= 10^4
 
-    REQUIRED: one row per email, the one with MIN(id): GROUP BY email
-    selecting MIN(id) and the email. Selecting DISTINCT email loses the id,
-    and selecting a bare id alongside GROUP BY email returns an arbitrary row
-    in most engines; both are the failure mode this drill exists to kill.
+    REQUIRED: one query, one row per email, carrying that email's smallest
+    id. Selecting DISTINCT email loses the id, and selecting a bare id
+    alongside a grouped email returns an arbitrary row in most engines; both
+    are the failure mode this drill exists to kill.
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.

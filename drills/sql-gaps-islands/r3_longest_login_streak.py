@@ -64,14 +64,10 @@ Constraints:
 
     1 <= number of rows <= 10^5
 
-    REQUIRED: within each user, the date minus ROW_NUMBER() OVER (PARTITION BY
-    user_id ORDER BY login_date) is constant across a streak:
-    julianday(login_date) - rn in sqlite, login_date - rn in Postgres,
-    DATE_SUB in MySQL, date_add('day', -rn, ...) in Presto. Group on (user_id,
-    that difference), count each island, take the MAX per user. Comparing to
-    the previous day with LAG finds where streaks break but not how long they
-    are without a second running sum; the row-number difference does it in one
-    step.
+    REQUIRED: one query, one row per user with the length of the longest
+    streak. Comparing each login to the previous day finds where streaks
+    break but not how long they are; a query that stops there is the failure
+    mode this drill exists to kill. NO Python.
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.

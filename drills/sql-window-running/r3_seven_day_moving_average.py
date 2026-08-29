@@ -76,12 +76,10 @@ Constraints:
 
     1 <= number of rows <= 10^5
 
-    REQUIRED: aggregate per day first (two visits on one day are one day),
-    then a window with an explicit frame: SUM(amount) OVER (ORDER BY
-    visited_on ROWS BETWEEN 6 PRECEDING AND CURRENT ROW). The default frame
-    runs from the start of the partition, which gives a running total rather
-    than a moving one; that is the failure mode this drill exists to kill.
-    Rows without six preceding days are excluded.
+    REQUIRED: each output row covers exactly that day and the six days
+    before it, and two visits on one day are one day. A total that runs from
+    the first day, rather than a moving one, is the failure mode this drill
+    exists to kill. Rows without six preceding days are excluded.
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.

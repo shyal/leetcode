@@ -71,12 +71,10 @@ Constraints:
 
     1 <= number of rows <= 10^5
 
-    REQUIRED: filter people >= 100, then id - ROW_NUMBER() OVER (ORDER BY id)
-    is constant within a run of consecutive ids; group on that difference,
-    count, keep runs of three or more. A chain of self-joins for three
-    consecutive rows misses the fourth row of a longer run unless three
-    shifted copies are unioned; that is the failure mode this drill exists to
-    kill.
+    REQUIRED: one query that finds runs of ANY length three or more. A chain
+    of self-joins for three consecutive rows misses the fourth row of a
+    longer run unless three shifted copies are unioned; that is the failure
+    mode this drill exists to kill.
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.

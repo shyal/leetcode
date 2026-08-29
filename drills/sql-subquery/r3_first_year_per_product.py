@@ -62,10 +62,9 @@ Constraints:
 
     1 <= number of rows <= 10^4
 
-    REQUIRED: filter with (product_id, year) IN (SELECT product_id, MIN(year)
-    FROM Sales GROUP BY product_id), or an equivalent join on that grouped
-    subquery. Filtering on the single global MIN(year) is the failure mode
-    this drill exists to kill: product 200's first year is 2011, not 2008.
+    REQUIRED: 'first year' is per product. Filtering on the single global
+    MIN(year) is the failure mode this drill exists to kill: product 200's
+    first year is 2011, not 2008.
 
     Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
     || for concatenation, strftime()/julianday()/date() for dates.
