@@ -3,16 +3,13 @@ DRILL: Triples
 TRAINS: backtracking-start-index
 
 Given an integer n, return every triple [a, b, c] of distinct numbers
-drawn from 1 to n, with a < b < c. Two triples that hold the same
-numbers are the same triple, so return it once. The triples may come
-back in any order.
+drawn from 0 to n - 1, with a < b < c.
 
 Example 1:
 
-Input: n = 4
-Output: [[1, 2, 3], [1, 2, 4], [1, 3, 4], [2, 3, 4]]
-Explanation: [2, 1, 3] is not listed. It holds the same numbers as
-[1, 2, 3].
+Input: n = 5
+Output: [[0, 1, 2], [0, 1, 3], [0, 1, 4], [0, 2, 3], [0, 2, 4], [0, 3, 4],
+[1, 2, 3], [1, 2, 4], [1, 3, 4], [2, 3, 4]]
 
 Example 2:
 
@@ -24,10 +21,8 @@ Constraints:
 
     1 <= n <= 30
 
-    REQUIRED: [2, 1, 3] is never built, not built and discarded. NO
-    recursion, NO itertools, NO filtering a triple after it is built,
-    NO set or de-duplication of the answer. Which numbers are still
-    available is settled before the next number is chosen.
+REQUIRED: no recursion.
+
 """
 
 
@@ -38,17 +33,15 @@ class Solution:
 
 sol = Solution()
 
-print(sol.triples(4))  # 4 triples
+print(sol.triples(5))  # [[0, 1, 2], [0, 1, 3], [0, 1, 4], [0, 2, 3], [0, 2, 4], [0, 3, 4], [1, 2, 3], [1, 2, 4], [1, 3, 4], [2, 3, 4]]
 
-# assert sorted(map(tuple, sol.triples(4))) == [
-#     (1, 2, 3), (1, 2, 4), (1, 3, 4), (2, 3, 4)
+# assert sol.triples(5) == [
+#     [0, 1, 2], [0, 1, 3], [0, 1, 4], [0, 2, 3], [0, 2, 4], [0, 3, 4],
+#     [1, 2, 3], [1, 2, 4], [1, 3, 4], [2, 3, 4],
 # ]
 # assert sol.triples(2) == []
-# assert sol.triples(3) == [[1, 2, 3]]
-
-# res = sol.triples(10)
-# assert len(res) == 120 and len({tuple(t) for t in res}) == 120
-# assert all(1 <= a < b < c <= 10 for a, b, c in res)
+# assert sol.triples(3) == [[0, 1, 2]]
 
 # res = sol.triples(30)
 # assert len(res) == 4060 and len({tuple(t) for t in res}) == 4060
+# assert all(0 <= a < b < c < 30 for a, b, c in res)
