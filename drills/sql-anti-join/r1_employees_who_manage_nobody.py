@@ -75,6 +75,15 @@ Constraints:
 
 from dsa.sql import SQLDrill
 
+
+class Solution(SQLDrill):
+
+    def query(self) -> str:
+        return """
+
+        """
+
+
 EXAMPLE_1 = """
 CREATE TABLE Employees (employee_id INTEGER, name TEXT, manager_id INTEGER);
 INSERT INTO Employees VALUES (1, 'Ann', NULL);
@@ -89,14 +98,6 @@ CREATE TABLE Employees (employee_id INTEGER, name TEXT, manager_id INTEGER);
 INSERT INTO Employees VALUES (1, 'Ann', NULL);
 INSERT INTO Employees VALUES (2, 'Bob', NULL);
 """
-
-
-class Solution(SQLDrill):
-
-    def query(self) -> str:
-        return """
-
-        """
 
 
 sol = Solution()

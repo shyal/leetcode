@@ -70,6 +70,15 @@ Constraints:
 
 from dsa.sql import SQLDrill
 
+
+class Solution(SQLDrill):
+
+    def query(self) -> str:
+        return """
+
+        """
+
+
 EXAMPLE_1 = """
 CREATE TABLE Person (id INTEGER, email TEXT);
 INSERT INTO Person VALUES (1, 'john@example.com');
@@ -83,14 +92,6 @@ INSERT INTO Person VALUES (7, 'a@x.com');
 INSERT INTO Person VALUES (4, 'a@x.com');
 INSERT INTO Person VALUES (9, 'a@x.com');
 """
-
-
-class Solution(SQLDrill):
-
-    def query(self) -> str:
-        return """
-
-        """
 
 
 sol = Solution()

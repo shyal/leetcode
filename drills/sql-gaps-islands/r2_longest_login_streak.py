@@ -79,6 +79,15 @@ Constraints:
 
 from dsa.sql import SQLDrill
 
+
+class Solution(SQLDrill):
+
+    def query(self) -> str:
+        return """
+
+        """
+
+
 EXAMPLE_1 = """
 CREATE TABLE Logins (user_id INTEGER, login_date TEXT);
 INSERT INTO Logins VALUES (1, '2026-08-01');
@@ -97,14 +106,6 @@ INSERT INTO Logins VALUES (7, '2026-02-01');
 INSERT INTO Logins VALUES (7, '2026-02-10');
 INSERT INTO Logins VALUES (7, '2026-02-11');
 """
-
-
-class Solution(SQLDrill):
-
-    def query(self) -> str:
-        return """
-
-        """
 
 
 sol = Solution()

@@ -71,6 +71,15 @@ Constraints:
 
 from dsa.sql import SQLDrill
 
+
+class Solution(SQLDrill):
+
+    def query(self) -> str:
+        return """
+
+        """
+
+
 EXAMPLE_1 = """
 CREATE TABLE RequestAccepted (requester_id INTEGER, accepter_id INTEGER, accept_date TEXT);
 INSERT INTO RequestAccepted VALUES (1, 2, '2016-06-03');
@@ -85,14 +94,6 @@ INSERT INTO RequestAccepted VALUES (5, 1, '2016-06-03');
 INSERT INTO RequestAccepted VALUES (6, 1, '2016-06-04');
 INSERT INTO RequestAccepted VALUES (1, 7, '2016-06-05');
 """
-
-
-class Solution(SQLDrill):
-
-    def query(self) -> str:
-        return """
-
-        """
 
 
 sol = Solution()

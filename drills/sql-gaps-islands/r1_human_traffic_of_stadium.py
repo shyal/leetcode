@@ -84,6 +84,15 @@ Constraints:
 
 from dsa.sql import SQLDrill
 
+
+class Solution(SQLDrill):
+
+    def query(self) -> str:
+        return """
+
+        """
+
+
 EXAMPLE_1 = """
 CREATE TABLE Stadium (id INTEGER, visit_date TEXT, people INTEGER);
 INSERT INTO Stadium VALUES (1, '2017-01-01', 10);
@@ -104,14 +113,6 @@ INSERT INTO Stadium VALUES (3, '2018-01-03', 100);
 INSERT INTO Stadium VALUES (5, '2018-01-05', 100);
 INSERT INTO Stadium VALUES (6, '2018-01-06', 100);
 """
-
-
-class Solution(SQLDrill):
-
-    def query(self) -> str:
-        return """
-
-        """
 
 
 sol = Solution()

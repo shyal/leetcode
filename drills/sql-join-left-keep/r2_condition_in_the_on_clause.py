@@ -101,6 +101,15 @@ Constraints:
 
 from dsa.sql import SQLDrill
 
+
+class Solution(SQLDrill):
+
+    def query(self) -> str:
+        return """
+
+        """
+
+
 EXAMPLE_1 = """
 CREATE TABLE Prices (product_id INTEGER, start_date TEXT, end_date TEXT, price INTEGER);
 INSERT INTO Prices VALUES (1, '2019-02-17', '2019-02-28', 5);
@@ -120,14 +129,6 @@ CREATE TABLE Prices (product_id INTEGER, start_date TEXT, end_date TEXT, price I
 INSERT INTO Prices VALUES (1, '2020-01-01', '2020-12-31', 10);
 CREATE TABLE UnitsSold (product_id INTEGER, purchase_date TEXT, units INTEGER);
 """
-
-
-class Solution(SQLDrill):
-
-    def query(self) -> str:
-        return """
-
-        """
 
 
 sol = Solution()

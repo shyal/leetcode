@@ -101,6 +101,15 @@ Constraints:
 
 from dsa.sql import SQLDrill
 
+
+class Solution(SQLDrill):
+
+    def query(self) -> str:
+        return """
+
+        """
+
+
 EXAMPLE_1 = """
 CREATE TABLE Signups (user_id INTEGER, time_stamp TEXT);
 INSERT INTO Signups VALUES (3, '2020-03-21 10:16:13');
@@ -122,14 +131,6 @@ CREATE TABLE Signups (user_id INTEGER, time_stamp TEXT);
 INSERT INTO Signups VALUES (1, '2020-01-01 00:00:00');
 CREATE TABLE Confirmations (user_id INTEGER, time_stamp TEXT, action TEXT);
 """
-
-
-class Solution(SQLDrill):
-
-    def query(self) -> str:
-        return """
-
-        """
 
 
 sol = Solution()

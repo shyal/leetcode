@@ -74,6 +74,15 @@ Constraints:
 
 from dsa.sql import SQLDrill
 
+
+class Solution(SQLDrill):
+
+    def query(self) -> str:
+        return """
+
+        """
+
+
 EXAMPLE_1 = """
 CREATE TABLE Transactions (id INTEGER, country TEXT, state TEXT, amount INTEGER, trans_date TEXT);
 INSERT INTO Transactions VALUES (121, 'US', 'approved', 1000, '2018-12-18');
@@ -87,14 +96,6 @@ CREATE TABLE Transactions (id INTEGER, country TEXT, state TEXT, amount INTEGER,
 INSERT INTO Transactions VALUES (1, 'FR', 'declined', 300, '2020-02-01');
 INSERT INTO Transactions VALUES (2, 'FR', 'approved', 400, '2020-02-29');
 """
-
-
-class Solution(SQLDrill):
-
-    def query(self) -> str:
-        return """
-
-        """
 
 
 sol = Solution()

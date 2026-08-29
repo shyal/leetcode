@@ -69,6 +69,15 @@ Constraints:
 
 from dsa.sql import SQLDrill
 
+
+class Solution(SQLDrill):
+
+    def query(self) -> str:
+        return """
+
+        """
+
+
 EXAMPLE_1 = """
 CREATE TABLE Users (user_id INTEGER, name TEXT);
 INSERT INTO Users VALUES (1, 'aLice');
@@ -80,14 +89,6 @@ CREATE TABLE Users (user_id INTEGER, name TEXT);
 INSERT INTO Users VALUES (3, 'x');
 INSERT INTO Users VALUES (4, 'ZOE');
 """
-
-
-class Solution(SQLDrill):
-
-    def query(self) -> str:
-        return """
-
-        """
 
 
 sol = Solution()

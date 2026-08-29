@@ -77,6 +77,15 @@ Constraints:
 
 from dsa.sql import SQLDrill
 
+
+class Solution(SQLDrill):
+
+    def query(self) -> str:
+        return """
+
+        """
+
+
 EXAMPLE_1 = """
 CREATE TABLE Logs (id INTEGER, num INTEGER);
 INSERT INTO Logs VALUES (1, 1);
@@ -97,14 +106,6 @@ INSERT INTO Logs VALUES (4, 5);
 INSERT INTO Logs VALUES (5, 3);
 INSERT INTO Logs VALUES (6, 3);
 """
-
-
-class Solution(SQLDrill):
-
-    def query(self) -> str:
-        return """
-
-        """
 
 
 sol = Solution()
