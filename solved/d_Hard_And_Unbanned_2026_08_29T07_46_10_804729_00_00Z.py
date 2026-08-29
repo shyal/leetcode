@@ -60,6 +60,11 @@ Constraints:
 
     Runner: local PySpark, adaptive execution and auto-broadcast off. Row
     order is not part of the answer.
+
+---
+
+New to spark. Assisted with neutral examples.
+
 """
 
 from pyspark.sql import functions as F
@@ -70,7 +75,9 @@ from dsa.spark import SparkDrill
 class Solution(SparkDrill):
 
     def transform(self, problems):
-        pass
+        return problems.filter(
+            (F.col("difficulty") == "Hard") & (F.col("banned") == 0)
+        ).select("num", "title")
 
 
 PROBLEMS = "num string, title string, difficulty string, banned int"
@@ -101,5 +108,5 @@ sol = Solution()
 
 sol.show(EXAMPLE_1)
 
-# assert sol.run(EXAMPLE_1) == [("42", "Trapping Rain Water"), ("76", "Minimum Window")]
-# assert sol.run(EXAMPLE_2) == []
+assert sol.run(EXAMPLE_1) == [("42", "Trapping Rain Water"), ("76", "Minimum Window")]
+assert sol.run(EXAMPLE_2) == []
