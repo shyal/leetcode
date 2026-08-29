@@ -109,7 +109,7 @@ Constraints:
     || for concatenation, strftime()/julianday()/date() for dates.
 """
 
-import sqlite3
+from dsa.sql import SQLDrill
 
 EXAMPLE_1 = """
 CREATE TABLE Employee (id INTEGER, name TEXT, salary INTEGER, departmentId INTEGER);
@@ -137,7 +137,7 @@ INSERT INTO Department VALUES (1, 'Ops');
 """
 
 
-class Solution:
+class Solution(SQLDrill):
 
     def query(self) -> str:
         return """
@@ -145,15 +145,9 @@ class Solution:
         """
 
 
-def run(schema: str, sql: str) -> list[tuple]:
-    con = sqlite3.connect(":memory:")
-    con.executescript(schema)
-    return [tuple(row) for row in con.execute(sql).fetchall()]
-
-
 sol = Solution()
 
-print(run(EXAMPLE_1, sol.query()))  # [('IT', 'Max', 90000), ('IT', 'Joe', 85000), ('IT', 'Randy', 85000), ('IT', 'Will', 70000), ('Sales', 'Henry', 80000), ('Sales', 'Sam', 60000)]
+sol.show(EXAMPLE_1)
 
-# assert run(EXAMPLE_1, sol.query()) == [('IT', 'Max', 90000), ('IT', 'Joe', 85000), ('IT', 'Randy', 85000), ('IT', 'Will', 70000), ('Sales', 'Henry', 80000), ('Sales', 'Sam', 60000)]
-# assert run(EXAMPLE_2, sol.query()) == [('Ops', 'Dee', 40), ('Ops', 'Eve', 40), ('Ops', 'Cal', 30), ('Ops', 'Ben', 20)]
+# assert sol.run(EXAMPLE_1) == [('IT', 'Max', 90000), ('IT', 'Joe', 85000), ('IT', 'Randy', 85000), ('IT', 'Will', 70000), ('Sales', 'Henry', 80000), ('Sales', 'Sam', 60000)]
+# assert sol.run(EXAMPLE_2) == [('Ops', 'Dee', 40), ('Ops', 'Eve', 40), ('Ops', 'Cal', 30), ('Ops', 'Ben', 20)]

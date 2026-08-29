@@ -69,7 +69,7 @@ Constraints:
     || for concatenation, strftime()/julianday()/date() for dates.
 """
 
-import sqlite3
+from dsa.sql import SQLDrill
 
 EXAMPLE_1 = """
 CREATE TABLE Revenue (month TEXT, amount INTEGER);
@@ -85,7 +85,7 @@ INSERT INTO Revenue VALUES ('2026-05', 40);
 """
 
 
-class Solution:
+class Solution(SQLDrill):
 
     def query(self) -> str:
         return """
@@ -93,15 +93,9 @@ class Solution:
         """
 
 
-def run(schema: str, sql: str) -> list[tuple]:
-    con = sqlite3.connect(":memory:")
-    con.executescript(schema)
-    return [tuple(row) for row in con.execute(sql).fetchall()]
-
-
 sol = Solution()
 
-print(run(EXAMPLE_1, sol.query()))  # [('2025-11', 100, None), ('2025-12', 120, 20), ('2026-01', 90, -30), ('2026-02', 90, 0)]
+sol.show(EXAMPLE_1)
 
-# assert run(EXAMPLE_1, sol.query()) == [('2025-11', 100, None), ('2025-12', 120, 20), ('2026-01', 90, -30), ('2026-02', 90, 0)]
-# assert run(EXAMPLE_2, sol.query()) == [('2026-05', 40, None)]
+# assert sol.run(EXAMPLE_1) == [('2025-11', 100, None), ('2025-12', 120, 20), ('2026-01', 90, -30), ('2026-02', 90, 0)]
+# assert sol.run(EXAMPLE_2) == [('2026-05', 40, None)]

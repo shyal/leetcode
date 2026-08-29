@@ -70,7 +70,7 @@ Constraints:
     || for concatenation, strftime()/julianday()/date() for dates.
 """
 
-import sqlite3
+from dsa.sql import SQLDrill
 
 EXAMPLE_1 = """
 CREATE TABLE Cinema (id INTEGER, movie TEXT, description TEXT, rating REAL);
@@ -89,7 +89,7 @@ INSERT INTO Cinema VALUES (7, 'Odd one', 'boring', 9.9);
 """
 
 
-class Solution:
+class Solution(SQLDrill):
 
     def query(self) -> str:
         return """
@@ -97,15 +97,9 @@ class Solution:
         """
 
 
-def run(schema: str, sql: str) -> list[tuple]:
-    con = sqlite3.connect(":memory:")
-    con.executescript(schema)
-    return [tuple(row) for row in con.execute(sql).fetchall()]
-
-
 sol = Solution()
 
-print(run(EXAMPLE_1, sol.query()))  # [(5, 'House card', 'Interesting', 9.1), (1, 'War', 'great 3D', 8.9)]
+sol.show(EXAMPLE_1)
 
-# assert run(EXAMPLE_1, sol.query()) == [(5, 'House card', 'Interesting', 9.1), (1, 'War', 'great 3D', 8.9)]
-# assert run(EXAMPLE_2, sol.query()) == []
+# assert sol.run(EXAMPLE_1) == [(5, 'House card', 'Interesting', 9.1), (1, 'War', 'great 3D', 8.9)]
+# assert sol.run(EXAMPLE_2) == []

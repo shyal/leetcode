@@ -87,7 +87,7 @@ Constraints:
     || for concatenation, strftime()/julianday()/date() for dates.
 """
 
-import sqlite3
+from dsa.sql import SQLDrill
 
 EXAMPLE_1 = """
 CREATE TABLE Customer (customer_id INTEGER, name TEXT, visited_on TEXT, amount INTEGER);
@@ -116,7 +116,7 @@ INSERT INTO Customer VALUES (1, 'Ann', '2020-03-07', 10);
 """
 
 
-class Solution:
+class Solution(SQLDrill):
 
     def query(self) -> str:
         return """
@@ -124,15 +124,9 @@ class Solution:
         """
 
 
-def run(schema: str, sql: str) -> list[tuple]:
-    con = sqlite3.connect(":memory:")
-    con.executescript(schema)
-    return [tuple(row) for row in con.execute(sql).fetchall()]
-
-
 sol = Solution()
 
-print(run(EXAMPLE_1, sol.query()))  # [('2019-01-07', 860, 122.86), ('2019-01-08', 840, 120.0), ('2019-01-09', 840, 120.0), ('2019-01-10', 1000, 142.86)]
+sol.show(EXAMPLE_1)
 
-# assert run(EXAMPLE_1, sol.query()) == [('2019-01-07', 860, 122.86), ('2019-01-08', 840, 120.0), ('2019-01-09', 840, 120.0), ('2019-01-10', 1000, 142.86)]
-# assert run(EXAMPLE_2, sol.query()) == [('2020-03-07', 70, 10.0)]
+# assert sol.run(EXAMPLE_1) == [('2019-01-07', 860, 122.86), ('2019-01-08', 840, 120.0), ('2019-01-09', 840, 120.0), ('2019-01-10', 1000, 142.86)]
+# assert sol.run(EXAMPLE_2) == [('2020-03-07', 70, 10.0)]

@@ -76,7 +76,7 @@ Constraints:
     || for concatenation, strftime()/julianday()/date() for dates.
 """
 
-import sqlite3
+from dsa.sql import SQLDrill
 
 EXAMPLE_1 = """
 CREATE TABLE Scores (id INTEGER, score REAL);
@@ -96,7 +96,7 @@ INSERT INTO Scores VALUES (3, 7.0);
 """
 
 
-class Solution:
+class Solution(SQLDrill):
 
     def query(self) -> str:
         return """
@@ -104,15 +104,9 @@ class Solution:
         """
 
 
-def run(schema: str, sql: str) -> list[tuple]:
-    con = sqlite3.connect(":memory:")
-    con.executescript(schema)
-    return [tuple(row) for row in con.execute(sql).fetchall()]
-
-
 sol = Solution()
 
-print(run(EXAMPLE_1, sol.query()))  # [(4.0, 1), (4.0, 1), (3.85, 2), (3.65, 3), (3.65, 3), (3.5, 4)]
+sol.show(EXAMPLE_1)
 
-# assert run(EXAMPLE_1, sol.query()) == [(4.0, 1), (4.0, 1), (3.85, 2), (3.65, 3), (3.65, 3), (3.5, 4)]
-# assert run(EXAMPLE_2, sol.query()) == [(7.0, 1), (7.0, 1), (7.0, 1)]
+# assert sol.run(EXAMPLE_1) == [(4.0, 1), (4.0, 1), (3.85, 2), (3.65, 3), (3.65, 3), (3.5, 4)]
+# assert sol.run(EXAMPLE_2) == [(7.0, 1), (7.0, 1), (7.0, 1)]

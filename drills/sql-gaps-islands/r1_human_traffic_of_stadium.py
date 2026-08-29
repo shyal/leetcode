@@ -82,7 +82,7 @@ Constraints:
     || for concatenation, strftime()/julianday()/date() for dates.
 """
 
-import sqlite3
+from dsa.sql import SQLDrill
 
 EXAMPLE_1 = """
 CREATE TABLE Stadium (id INTEGER, visit_date TEXT, people INTEGER);
@@ -106,7 +106,7 @@ INSERT INTO Stadium VALUES (6, '2018-01-06', 100);
 """
 
 
-class Solution:
+class Solution(SQLDrill):
 
     def query(self) -> str:
         return """
@@ -114,15 +114,9 @@ class Solution:
         """
 
 
-def run(schema: str, sql: str) -> list[tuple]:
-    con = sqlite3.connect(":memory:")
-    con.executescript(schema)
-    return [tuple(row) for row in con.execute(sql).fetchall()]
-
-
 sol = Solution()
 
-print(run(EXAMPLE_1, sol.query()))  # [(5, '2017-01-05', 145), (6, '2017-01-06', 1455), (7, '2017-01-07', 199), (8, '2017-01-09', 188)]
+sol.show(EXAMPLE_1)
 
-# assert run(EXAMPLE_1, sol.query()) == [(5, '2017-01-05', 145), (6, '2017-01-06', 1455), (7, '2017-01-07', 199), (8, '2017-01-09', 188)]
-# assert run(EXAMPLE_2, sol.query()) == [(1, '2018-01-01', 100), (2, '2018-01-02', 100), (3, '2018-01-03', 100)]
+# assert sol.run(EXAMPLE_1) == [(5, '2017-01-05', 145), (6, '2017-01-06', 1455), (7, '2017-01-07', 199), (8, '2017-01-09', 188)]
+# assert sol.run(EXAMPLE_2) == [(1, '2018-01-01', 100), (2, '2018-01-02', 100), (3, '2018-01-03', 100)]

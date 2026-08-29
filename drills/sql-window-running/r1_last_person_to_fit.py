@@ -72,7 +72,7 @@ Constraints:
     || for concatenation, strftime()/julianday()/date() for dates.
 """
 
-import sqlite3
+from dsa.sql import SQLDrill
 
 EXAMPLE_1 = """
 CREATE TABLE Queue (person_id INTEGER, person_name TEXT, weight INTEGER, turn INTEGER);
@@ -91,7 +91,7 @@ INSERT INTO Queue VALUES (2, 'Ben', 500, 2);
 """
 
 
-class Solution:
+class Solution(SQLDrill):
 
     def query(self) -> str:
         return """
@@ -99,15 +99,9 @@ class Solution:
         """
 
 
-def run(schema: str, sql: str) -> list[tuple]:
-    con = sqlite3.connect(":memory:")
-    con.executescript(schema)
-    return [tuple(row) for row in con.execute(sql).fetchall()]
-
-
 sol = Solution()
 
-print(run(EXAMPLE_1, sol.query()))  # [('John Cena',)]
+sol.show(EXAMPLE_1)
 
-# assert run(EXAMPLE_1, sol.query()) == [('John Cena',)]
-# assert run(EXAMPLE_2, sol.query()) == [('Ann',)]
+# assert sol.run(EXAMPLE_1) == [('John Cena',)]
+# assert sol.run(EXAMPLE_2) == [('Ann',)]
