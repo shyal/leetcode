@@ -6848,6 +6848,16 @@
         "sql-date-arithmetic": "clean"
       },
       "summary": "The query uses SQLite's date(recordDate, '+1 day') function to compute the next calendar day, delegating month-end and year-boundary arithmetic to the engine. All assertions pass: regular increments, month transitions (01-31 \u2192 02-01), non-leap year handling (02-28 \u2192 03-01), and year-end (12-31 \u2192 01-01)."
+    },
+    "solved/d_Island_Key_2026_08_30T04_56_14_750189_00_00Z.py": {
+      "date": "2026-08-30",
+      "problem": "drill",
+      "moves": {
+        "sql-window-rank": "clean",
+        "sql-gaps-islands": "clean"
+      },
+      "note": "REQUIRED window function applied correctly; constant-key pattern for islands verified by output.",
+      "summary": "The query uses `row_number() over (order by id)` to number rows sequentially, then computes `id - row_number()` as a constant group key that identifies consecutive sequences (islands). Rows 1\u20133 yield 0, rows 5\u20136 yield 1, row 9 yields 3; the gap at id=4 breaks the sequence. The solution exercises sql-window-rank (the ROW_NUMBER window function) and sql-gaps-islands (the value-minus-rank technique for grouping consecutive runs)."
     }
   }
 }
