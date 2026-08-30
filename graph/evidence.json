@@ -6819,6 +6819,16 @@
       "assist": "spoiled",
       "note": "Solution provided directly; exact LAG syntax was supplied.",
       "summary": "Query calculates month-over-month revenue change using LAG(amount) OVER (ORDER BY month) to retrieve the prior month's amount, then subtracts it from the current month. The first row's change is NULL, as LAG returns NULL when no prior row exists. Exercises sql-window-offset by comparing each row with its chronological neighbor."
+    },
+    "solved/d_Running_Total_2026_08_30T04_43_03_766415_00_00Z.py": {
+      "date": "2026-08-30",
+      "problem": "drill",
+      "moves": {
+        "sql-window-running": "clean"
+      },
+      "assist": "hint",
+      "note": "Operator forgot syntax; assisted to recall sum(weight) over (order by turn).",
+      "summary": "The query computes a running total of weights ordered by turn using a single window function: `sum(weight) over (order by turn)`. This satisfies the requirement of one pass over the Queue table with a window function, and avoids the forbidden self-join and correlated subquery patterns. The operator initially forgot the window-running syntax and was reminded of it."
     }
   }
 }
