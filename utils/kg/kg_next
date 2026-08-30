@@ -116,6 +116,7 @@ from kg.kg_lib import (
     tree_size,
     acceptance,
     due_drill,
+    ladder_left,
     drill_gated,
     drill_held,
     owned,
@@ -264,6 +265,10 @@ def pick(
         if not cram and drill_held(
                 target, nodes, statuses, evidence, has_bank=has_drill_bank):
             return None
+        if early and any(
+                in_scope(p) and has_drill_bank(p) and ladder_left(p, evidence, early=True)
+                for p in nodes[target].get("prereqs", [])):
+            return None  # the early walk is depth first: atoms under it unseen
         drill_id = f"drill:{target}"
         return (
             drill_id
@@ -357,20 +362,16 @@ def pick(
 
     # rule 0d: the early review (`make next sql cram early`). The operator
     # asked for the whole group regardless of the curve, so the group is
-    # walked as a ladder, every node a rung at its place in the order:
-    # prereqs before dependents (smallest input tree first), a node repped
-    # today goes to the back so every node gets one rung before any gets
-    # its second. Status does not jump the queue - a MISSING dependent
-    # comes after the review of the SOLID prereqs under it, which is the
-    # point: the prereqs are jogged before the new move is met.
+    # walked as a ladder, prereqs before dependents (smallest input tree
+    # first), depth first: a node is held while an in-scope banked prereq
+    # still has an unseen rung, so every atom under a composition is met
+    # before the composition is. Status does not jump the queue - a MISSING
+    # dependent comes after the review of the SOLID prereqs under it, which
+    # is the point: the prereqs are jogged before the new move is met.
     if early:
         review = sorted(
             (n for n in nodes if in_scope(n)),
-            key=lambda n: (
-                statuses[n][1] == date.today(),
-                len(input_tree([n], nodes)),
-                n,
-            ),
+            key=lambda n: (len(input_tree([n], nodes)), n),
         )
         for target in review:
             if due(target):
@@ -378,7 +379,7 @@ def pick(
                     target,
                     statuses[target][0],
                     due(target),
-                    "early review - next rung of the ladder, prereqs first",
+                    "early review - next rung of the ladder, atoms first",
                 )
 
     # rule 0c: the ownership rep. drill_held parks a target behind a banked
