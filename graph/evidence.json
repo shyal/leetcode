@@ -6829,6 +6829,17 @@
       "assist": "hint",
       "note": "Operator forgot syntax; assisted to recall sum(weight) over (order by turn).",
       "summary": "The query computes a running total of weights ordered by turn using a single window function: `sum(weight) over (order by turn)`. This satisfies the requirement of one pass over the Queue table with a window function, and avoids the forbidden self-join and correlated subquery patterns. The operator initially forgot the window-running syntax and was reminded of it."
+    },
+    "solved/d_Employees_Who_Manage_Nobody_2026_08_30T04_49_33_226682_00_00Z.py": {
+      "date": "2026-08-30",
+      "problem": "drill",
+      "moves": {
+        "sql-anti-join": "clean",
+        "sql-self-join": "clean"
+      },
+      "assist": "hint",
+      "note": "Forgot HAVING keyword but logic and anti-join pattern were correct.",
+      "summary": "The solution finds employees who manage nobody by left-joining the Employees table to itself, grouping by employee, and filtering with HAVING to keep only those with no matches. The code exercises the anti-join and self-join techniques, though the candidate initially forgot the HAVING keyword and asked for clarification."
     }
   }
 }
