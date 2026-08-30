@@ -6781,6 +6781,15 @@
         "sql-nth-value": "clean"
       },
       "summary": "The code finds the second highest distinct salary via a single query: `SELECT DISTINCT salary ... ORDER BY salary DESC LIMIT 1 OFFSET 1`. It exercises sql-nth-value by using DISTINCT to make repeated salaries count once, ORDER BY to order them, and LIMIT/OFFSET to skip the highest and land on the Nth (second) distinct value."
+    },
+    "solved/d_Reports_Per_Manager_2026_08_30T02_09_57_363720_00_00Z.py": {
+      "date": "2026-08-30",
+      "problem": "drill",
+      "moves": {
+        "sql-self-join": "clean",
+        "sql-group-aggregate": "clean"
+      },
+      "summary": "The query joins Employees with itself (alias e for managers, r for reports) on e.employee_id = r.reports_to, grouping by manager to count direct reports and average their ages. Both self-join and group-aggregate are cleanly exercised; the solution passes all assertions."
     }
   }
 }
