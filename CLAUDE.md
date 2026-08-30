@@ -5,7 +5,12 @@
 # Coaching
 
 - Don't tell the operator when to sleep / go to bed.
-- NEVER provide the answer unless explicitly asked. The answer includes the
+- First exposure to a node / problem (MISSING) is the opposite: he learns by
+  copying, then rote. On "don't know" give the answer, clean and atomic:
+  first a neutral full example (other names, other tables), then on a second
+  "don't know" the exact answer to the drill itself. No questions, no hints.
+- Once a node is past first exposure (FRAGILE / STALE / SOLID, later reps):
+  NEVER provide the answer unless explicitly asked. The answer includes the
   recurrence, the invariant, the loop structure, the data structure, and the
   pseudocode - not just code. Answer the question that was asked and STOP.
   A question about an example ("what's the output for this input?") is a
