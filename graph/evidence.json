@@ -6951,6 +6951,16 @@
       "assist": "hint",
       "note": "Left join preserves unmatched nodes; F.count() skips NULLs to yield 0 for verdicts-only nodes.",
       "summary": "The transform performs a left join of nodes with verdicts on node_id, groups by node id, and counts verdicts per group using F.count(), which correctly returns 0 for unmatched nodes because COUNT() excludes NULLs. Both spark-join (left join semantics to keep all nodes) and spark-group-agg (groupBy with count aggregation) are exercised. The candidate was helped with understanding .agg() and .alias() behavior."
+    },
+    "solved/d_Dense_Rank_Per_Score_2026_08_30T07_46_36_075138_00_00Z.py": {
+      "date": "2026-08-30",
+      "problem": "drill",
+      "moves": {
+        "spark-window-rank": "clean"
+      },
+      "assist": "hint",
+      "note": "Assisted; drill specifies dense_rank() behavior (1,1,2,3,3,4 no gaps).",
+      "summary": "The solution creates a Spark Window ordered by score descending, then applies dense_rank().over(w) to assign sequential ranks where equal scores share the same rank and the next rank continues without gaps (1,1,2,3,3,4). The window-rank move is exercised cleanly; the output matches both examples."
     }
   }
 }
