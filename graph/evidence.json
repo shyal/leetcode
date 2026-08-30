@@ -6940,6 +6940,17 @@
         "spark-join": "clean"
       },
       "summary": "Spark left join on nodes.id == verdicts.node_id keeps all nodes, pairing each with its verdict file or NULL if unmatched. The select picks only id and file, dropping the extra join key. Clean execution of left-outer join semantics as required."
+    },
+    "solved/d_Reps_Per_Node_Zeros_Included_2026_08_30T07_19_47_538665_00_00Z.py": {
+      "date": "2026-08-30",
+      "problem": "drill",
+      "moves": {
+        "spark-join": "clean",
+        "spark-group-agg": "clean"
+      },
+      "assist": "hint",
+      "note": "Left join preserves unmatched nodes; F.count() skips NULLs to yield 0 for verdicts-only nodes.",
+      "summary": "The transform performs a left join of nodes with verdicts on node_id, groups by node id, and counts verdicts per group using F.count(), which correctly returns 0 for unmatched nodes because COUNT() excludes NULLs. Both spark-join (left join semantics to keep all nodes) and spark-group-agg (groupBy with count aggregation) are exercised. The candidate was helped with understanding .agg() and .alias() behavior."
     }
   }
 }
