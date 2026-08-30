@@ -6,6 +6,14 @@ Given the DataFrame `solves` and an empty directory `path`, write `solves`
 there as Parquet laid out one directory per `date`, with exactly one data
 file in each directory. Return nothing.
 
+Syntax:
+
+    orders.repartition("day").write.partitionBy("day").parquet(path)
+
+    Each in-memory partition writes its own file into every directory it has
+    rows for. repartition on the column first moves all rows of one day into
+    one partition, so each directory gets one file.
+
 DataFrame: solves
 
     +-------------+---------+

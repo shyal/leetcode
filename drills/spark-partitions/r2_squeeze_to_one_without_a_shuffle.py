@@ -6,6 +6,14 @@ Given the DataFrame `solves`, which arrives in two partitions, return the
 same rows in exactly one partition without a shuffle, so that a later write
 produces one file. No ordering required.
 
+Syntax:
+
+    orders.coalesce(1)
+
+    coalesce(n) merges existing partitions into n without moving rows
+    between machines, so no shuffle. It can only shrink: asked for more than
+    it has, it keeps the current count.
+
 DataFrame: solves
 
     +-------------+---------+

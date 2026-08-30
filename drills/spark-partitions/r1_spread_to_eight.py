@@ -5,6 +5,14 @@ TRAINS: spark-partitions
 Given the DataFrame `solves`, which arrives in two partitions, return the
 same rows spread evenly over exactly eight partitions. No ordering required.
 
+Syntax:
+
+    orders.repartition(8)
+    orders.rdd.getNumPartitions()
+
+    repartition(n) shuffles the rows evenly into n partitions, up or down.
+    getNumPartitions reports how many a frame has.
+
 DataFrame: solves
 
     +-------------+---------+

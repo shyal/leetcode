@@ -6,6 +6,14 @@ Given the DataFrames `solves` and `problems`, return `file`, `title` and
 `difficulty` for every solve whose `problem` exists in `problems`. No
 ordering required.
 
+Syntax:
+
+    orders.join(products, orders["product"] == products["id"]).select("customer", "title")
+
+    The condition names a column from each side. The joined frame holds
+    every column of both; select keeps the ones asked for. Rows with no match
+    on the other side are dropped.
+
 DataFrame: solves
 
     +-------------+---------+

@@ -5,6 +5,13 @@ TRAINS: spark-column-expr
 Given the DataFrame `problems`, return every row whose `difficulty` is
 'Hard'. No ordering required.
 
+Syntax:
+
+    employees.filter(F.col("dept") == "sales")
+
+    F.col names a column. == on it builds a condition, which is itself a
+    Column and holds no value yet. filter keeps the rows where it is true.
+
 DataFrame: problems
 
     +-------------+---------+

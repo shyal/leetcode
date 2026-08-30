@@ -6,6 +6,14 @@ Given the DataFrame `verdicts`, return one row per `node_id` with the
 fraction of its verdicts equal to 'clean', in the `clean_rate` column. A
 node with no clean verdict shows 0.0. No ordering required.
 
+Syntax:
+
+    orders.groupBy("customer").agg(
+        F.avg(F.when(F.col("status") == "paid", 1).otherwise(0)).alias("paid_rate")
+    )
+
+    avg of a 1/0 column is the fraction of rows that were 1.
+
 DataFrame: verdicts
 
     +-------------+---------+

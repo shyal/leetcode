@@ -5,6 +5,13 @@ TRAINS: spark-join
 Given the DataFrames `nodes` and `verdicts`, return `id` and `name` for
 every node that has no verdict at all. No ordering required.
 
+Syntax:
+
+    products.join(orders, products["id"] == orders["product"], "left_anti")
+
+    The third argument is the join type. left_anti keeps the left rows that
+    have no match, once each, and only the left frame's columns.
+
 DataFrame: nodes
 
     +-------------+---------+

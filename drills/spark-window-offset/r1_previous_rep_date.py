@@ -6,6 +6,15 @@ Given the DataFrame `verdicts`, return every row with a new date column
 `prev`: the `date` of the previous verdict on the same `node_id`. The first
 verdict on a node gets a null `prev`. No ordering required.
 
+Syntax:
+
+    w = Window.partitionBy("customer").orderBy("placed_at")
+    orders.withColumn("prev", F.lag("placed_at").over(w))
+
+    lag reads the value from the row before this one, in the window's order,
+    inside the same partition. The first row of a partition has no previous
+    row and gets null.
+
 DataFrame: verdicts
 
     +-------------+---------+

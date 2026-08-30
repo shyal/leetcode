@@ -5,6 +5,13 @@ TRAINS: spark-column-expr
 Given the DataFrame `problems`, return every row whose `difficulty` is
 'Hard' and whose `banned` flag is 0. No ordering required.
 
+Syntax:
+
+    employees.filter((F.col("dept") == "sales") & (F.col("age") > 30))
+
+    Conditions combine with & (and), | (or) and ~ (not), each condition in
+    its own parentheses. Python's and, or and not do not work on Columns.
+
 DataFrame: problems
 
     +-------------+---------+

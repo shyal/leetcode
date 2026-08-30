@@ -7,6 +7,13 @@ the two most solved problems of each `difficulty`. When two problems have
 the same `solves`, the smaller `num` (compared as a string) ranks first. No
 ordering required.
 
+Syntax:
+
+    w = Window.partitionBy("dept").orderBy(F.col("salary").desc(), F.col("name"))
+    employees.withColumn("rn", F.row_number().over(w)).filter(F.col("rn") <= 2)
+
+    orderBy takes several keys; the second breaks ties in the first.
+
 DataFrame: counts
 
     +-------------+---------+

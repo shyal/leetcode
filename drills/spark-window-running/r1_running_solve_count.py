@@ -6,6 +6,16 @@ Given the DataFrame `daily`, return every row with a new column `running`:
 the total of `solves` for that `difficulty` on that `date` and every earlier
 date. No ordering required.
 
+Syntax:
+
+    w = (Window.partitionBy("customer").orderBy("day")
+                .rowsBetween(Window.unboundedPreceding, Window.currentRow))
+    orders.withColumn("running", F.sum("amount").over(w))
+
+    rowsBetween sets the frame: which rows around this one the aggregate
+    sees. From the first row of the partition up to this row gives a running
+    total.
+
 DataFrame: daily
 
     +-------------+---------+

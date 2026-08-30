@@ -6,6 +6,14 @@ Given the DataFrames `nodes` and `verdicts`, return `id` and `reps` for
 every node, where `reps` is the number of verdicts on that node. A node with
 no verdict gets `reps` 0. No ordering required.
 
+Syntax:
+
+    (products.join(orders, products["id"] == orders["product"], "left")
+             .groupBy("id").agg(F.count("customer").alias("orders")))
+
+    F.count of a column skips nulls, so a product whose join row is all
+    nulls counts 0.
+
 DataFrame: nodes
 
     +-------------+---------+

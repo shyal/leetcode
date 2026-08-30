@@ -6,6 +6,12 @@ Given the DataFrame `solves`, return one row per date with the number of
 distinct problems solved that day in the `problems` column. No ordering
 required.
 
+Syntax:
+
+    orders.groupBy("customer").agg(F.countDistinct("product").alias("products"))
+
+    countDistinct counts each different value once.
+
 DataFrame: solves
 
     +-------------+---------+

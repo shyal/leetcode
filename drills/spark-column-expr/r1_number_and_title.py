@@ -5,6 +5,12 @@ TRAINS: spark-column-expr
 Given the DataFrame `problems`, return `num` and `title` of every problem.
 No ordering required.
 
+Syntax:
+
+    employees.select("name", "salary")
+
+    select keeps the named columns, in that order, and drops the rest.
+
 DataFrame: problems
 
     +-------------+---------+

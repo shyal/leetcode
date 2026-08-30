@@ -7,6 +7,14 @@ every node that has at least one verdict, where `reps` is the number of
 verdicts on that node. The physical plan of the result must contain exactly
 one Exchange. No ordering required.
 
+Syntax:
+
+    big.join(F.broadcast(small), big["key"] == small["id"])
+
+    F.broadcast copies the small frame whole to every task, so the join
+    runs inside each partition and adds no Exchange. Without it Spark shuffles
+    both sides.
+
 DataFrame: verdicts
 
     +-------------+---------+

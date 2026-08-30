@@ -5,6 +5,13 @@ TRAINS: spark-group-agg
 Given the DataFrame `solves`, return each `date` with the number of solves
 on that date in the `count` column. No ordering required.
 
+Syntax:
+
+    orders.groupBy("customer").count()
+
+    One output row per customer, two columns: customer and count. Every other
+    input column is gone.
+
 DataFrame: solves
 
     +-------------+---------+

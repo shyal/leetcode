@@ -6,6 +6,15 @@ Given the DataFrame `verdicts`, return one row per `node_id` with the
 number of its verdicts equal to 'clean', in the `clean` column. A node with
 no clean verdict shows 0. No ordering required.
 
+Syntax:
+
+    orders.groupBy("customer").agg(
+        F.sum(F.when(F.col("status") == "paid", 1).otherwise(0)).alias("paid")
+    )
+
+    when turns each row into 1 or 0 before the group collapses; sum adds
+    them per customer, so a customer with no paid order sums to 0.
+
 DataFrame: verdicts
 
     +-------------+---------+

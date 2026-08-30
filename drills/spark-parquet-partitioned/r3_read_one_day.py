@@ -6,6 +6,16 @@ Given a `path` holding solves as Parquet laid out one directory per `date`,
 and a date string `day`, return `file` and `problem` for every solve on that
 day while reading only that day's directory. No ordering required.
 
+Syntax:
+
+    (spark.read.parquet(path)
+          .filter(F.col("day") == "2026-01-01")
+          .select("id", "customer"))
+
+    spark.read.parquet turns the directory names back into a column. A filter
+    on that column shows in the plan as PartitionFilters and skips the other
+    directories entirely. spark here is self.spark.
+
 Layout under path:
 
     date=2026-08-28/part-....parquet
