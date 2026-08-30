@@ -225,9 +225,10 @@ Rules:
 - Only include moves with real evidence in this code. 1-6 moves is typical.
 - If a required move has no taxonomy node, put a 3-8 word description in "unmapped".
 - If the file has no working solution (skeleton body, abandoned attempt), still return the JSON with "moves": {{}} and a note like "abandoned attempt" — never prose.
+- "summary": 2-4 sentences of plain english for the candidate to read after filing: what the code does and how, which moves it exercised, and what the notes say happened (hints, look-ups, TLEs, dead ends) if anything. Facts only: no praise, no grading, no advice, no adjectives about the candidate. Refer to the code by its real names (its variables, clauses, functions).
 
 Output STRICT JSON only:
-{{"problem": "<number>", "title": "<title>", "moves": {{"<node-id>": "clean|struggled|avoided"}}, "assist": "none|hint|walkthrough|spoiled", "unmapped": [], "note": "<one line, only if noteworthy>"}}"""
+{{"problem": "<number>", "title": "<title>", "moves": {{"<node-id>": "clean|struggled|avoided"}}, "assist": "none|hint|walkthrough|spoiled", "unmapped": [], "note": "<one line, only if noteworthy>", "summary": "<2-4 sentences>"}}"""
 
     def extract_one(path):
         """Read + claude call only — no shared state touched here."""
@@ -308,6 +309,9 @@ Output STRICT JSON only:
                 entry["assist"] = assist
             if result.get("note"):
                 entry["note"] = result["note"]
+            # read back by `solved --commit`, the last step of `make solved`
+            if result.get("summary"):
+                entry["summary"] = str(result["summary"]).strip()
             if result.get("unmapped") or rejected:
                 entry["unmapped"] = result.get("unmapped", []) + rejected
 

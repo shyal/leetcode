@@ -7,9 +7,13 @@ import signal
 import sys
 import re
 from datetime import datetime, timezone
+from rich.console import Console
+from rich.panel import Panel
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from kg.kg_lib import active_seconds
+from kg.kg_lib import active_seconds, load_evidence
+
+console = Console()
 
 # Two phases, so a Ctrl-C anywhere in `make solved` loses nothing
 # (settled 2026-08-28, after an interrupt cut the judge off mid-ingest):
@@ -103,7 +107,7 @@ def solved_filename(problem_id, title, failed=False, now=None):
 def file_phase():
     """Freeze the clock and archive the attempt. No git."""
     if os.path.exists(META):
-        print("a filed solve is already staged — resuming its ingest and commit.")
+        console.print("[yellow]a filed solve is already staged — resuming its ingest and commit.[/yellow]")
         return
 
     # the clock stops when the operator runs `make solved`, not when the
@@ -121,17 +125,17 @@ def file_phase():
         slept_line = f"\nslept: {sh}h {sm:02d}m over {sleeps} park(s)"
 
     if not os.path.exists("current.py"):
-        print("current.py does not exist. Exiting.")
+        console.print("[red]current.py does not exist. Exiting.[/red]")
         return
 
     with open("current.py") as f:
         if not f.read().strip():
-            print("current.py is empty — nothing to file.")
+            console.print("[red]current.py is empty — nothing to file.[/red]")
             return
 
     problem_id, title, content = parse_current()
     if problem_id is None or title is None:
-        print("Could not parse problem id and title from current.py. Exiting.")
+        console.print("[red]Could not parse problem id and title from current.py. Exiting.[/red]")
         return
 
     filename = solved_filename(problem_id, title, FAILED)
@@ -163,28 +167,29 @@ def file_phase():
     with open("current.py", "w") as f:
         f.write("")
 
-    print(f"filed {filepath} ({solve_time}); the commit lands after the judge.")
+    console.print(f"[green]filed[/green] [bold]{filepath}[/bold] [cyan]({solve_time})[/cyan]; the commit lands after the judge.")
 
 
 def commit_phase():
     """ONE commit: the solve, its evidence, the refit curve — with the
     frozen solve time in the message — then the squash-merge to master."""
     if not os.path.exists(META):
-        print("nothing staged — no commit to make.")
+        console.print("[yellow]nothing staged — no commit to make.[/yellow]")
         return
     with open(META) as f:
-        commit_message = json.load(f)["message"]
+        meta = json.load(f)
+    commit_message = meta["message"]
 
     try:
         subprocess.run(["git", "add", "."], check=True)
     except subprocess.CalledProcessError as e:
-        print(f"Error running git add: {e}")
+        console.print(f"[red]Error running git add: {e}[/red]")
         return
 
     try:
         subprocess.run(["git", "commit", "-m", commit_message], check=True)
     except subprocess.CalledProcessError as e:
-        print(f"Error running git commit: {e}")
+        console.print(f"[red]Error running git commit: {e}[/red]")
         return
 
     # Get current branch
@@ -195,44 +200,55 @@ def commit_phase():
             .strip()
         )
     except subprocess.CalledProcessError as e:
-        print(f"Error getting current branch: {e}")
+        console.print(f"[red]Error getting current branch: {e}[/red]")
         return
 
     if current_branch == "master":
         os.remove(META)
-        print("Operations completed successfully.")
+        finish(meta)
         return
 
     # Checkout master
     try:
-        subprocess.run(["git", "checkout", "master"], check=True)
+        subprocess.run(["git", "checkout", "-q", "master"], check=True)
     except subprocess.CalledProcessError as e:
-        print(f"Error checking out master: {e}")
+        console.print(f"[red]Error checking out master: {e}[/red]")
         return
 
     # Squash merge the branch
     try:
-        subprocess.run(["git", "merge", "--squash", current_branch], check=True)
+        subprocess.run(["git", "merge", "-q", "--squash", current_branch], check=True)
     except subprocess.CalledProcessError as e:
-        print(f"Error squash merging: {e}")
+        console.print(f"[red]Error squash merging: {e}[/red]")
         return
 
     # Commit with the solve time message
     try:
         subprocess.run(["git", "commit", "-m", commit_message], check=True)
     except subprocess.CalledProcessError as e:
-        print(f"Error committing squash merge: {e}")
+        console.print(f"[red]Error committing squash merge: {e}[/red]")
         return
 
     # Delete the feature branch
     try:
-        subprocess.run(["git", "branch", "-D", current_branch], check=True)
+        subprocess.run(["git", "branch", "-q", "-D", current_branch], check=True)
     except subprocess.CalledProcessError as e:
-        print(f"Error deleting branch: {e}")
+        console.print(f"[red]Error deleting branch: {e}[/red]")
         return
 
     os.remove(META)
-    print("Operations completed successfully.")
+    finish(meta)
+
+
+def finish(meta):
+    """The last thing `make solved` prints: the judge's plain-english account
+    of the solve, read back from evidence.json (kg_extract keys it by the
+    solved/ path)."""
+    console.print("[green]✓ committed[/green] [bold]" + meta["message"].splitlines()[0] + "[/bold]")
+    key = os.path.normpath(meta.get("file", ""))
+    summary = load_evidence().get(key, {}).get("summary")
+    if summary:
+        console.print(Panel(summary, title="the solve", border_style="cyan", padding=(0, 1)))
 
 
 def main():
