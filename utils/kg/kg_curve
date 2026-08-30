@@ -320,6 +320,11 @@ def main():
     with open(os.path.join(GRAPH_DIR, "curve.json"), "w") as f:
         json.dump(curve, f, indent=2)
 
+    from rich.console import Console
+    console = Console(highlight=False)
+    print = lambda line: console.print(
+        f"[bold]{line}[/bold]" if line.startswith("fitted") or line.startswith("wrote")
+        else f"[dim]{line}[/dim]" if line.startswith("  ") else f"[cyan]{line}[/cyan]")
     print(f"fitted on {len(trials)} trials: "
           f"P = {1 - slip:.2f}·(1 + Δ/s)^(−{beta:.2f}), "
           f"s = exp({a:.2f} + {b:.3f}·cleans − {c:.3f}·struggles − {d:.3f}·assist "

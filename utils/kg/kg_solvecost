@@ -154,6 +154,11 @@ def main():
     with open(OUT, "w") as f:
         json.dump(model, f, indent=2)
     p = model["params"]
+    from rich.console import Console
+    console = Console(highlight=False)
+    print = lambda line: console.print(
+        f"[bold]{line}[/bold]" if line.startswith("fitted") or line.startswith("wrote")
+        else f"[dim]{line}[/dim]" if line.startswith("  ") else f"[cyan]{line}[/cyan]")
     print(f"fitted on {model['fit']['n']} timed solves, r2 {model['fit']['r2']:.3f}")
     print(f"  exposure  g_reps  {p['g_reps']:+.3f}  (x{math.exp(p['g_reps'] * math.log(2)):.2f} per doubling of reps)")
     print(f"  connect.  g_conn  {p['g_conn']:+.3f}  per log2 carrier")
