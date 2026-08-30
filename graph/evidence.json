@@ -6858,6 +6858,14 @@
       },
       "note": "REQUIRED window function applied correctly; constant-key pattern for islands verified by output.",
       "summary": "The query uses `row_number() over (order by id)` to number rows sequentially, then computes `id - row_number()` as a constant group key that identifies consecutive sequences (islands). Rows 1\u20133 yield 0, rows 5\u20136 yield 1, row 9 yields 3; the gap at id=4 breaks the sequence. The solution exercises sql-window-rank (the ROW_NUMBER window function) and sql-gaps-islands (the value-minus-rank technique for grouping consecutive runs)."
+    },
+    "solved/d_Hard_And_Unbanned_2026_08_30T05_21_28_315927_00_00Z.py": {
+      "date": "2026-08-30",
+      "problem": "drill",
+      "moves": {
+        "spark-column-expr": "clean"
+      },
+      "summary": "Filters problems for Hard difficulty and unbanned status, selecting num and title. Uses F.col() Column expressions in chained filters to build predicates that Spark evaluates, correctly avoiding Python boolean operators per REQUIRED."
     }
   }
 }
