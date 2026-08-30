@@ -11,8 +11,9 @@
 #   make next graph            # makefile form of --graph (make eats dashed args)
 #   make next sql              # --group sql: rules 1-3 over one curated group only
 #   make next sql cram early   # --early: review the whole group ahead of the
-#                              # curve - SOLID nodes get their next rung too,
-#                              # prereqs first; today's plan is skipped
+#                              # curve - every node gets its next rung, prereqs
+#                              # before dependents regardless of status;
+#                              # today's plan is skipped
 #   make next prepare          # makefile form of --prepare (the prepare
 #                              # target steps aside when next is the goal)
 #   KG_NO_PLAN=1 make next     # skip today's frozen study plan (data/study_plan/)
@@ -248,9 +249,9 @@ def pick(
     that is SOLID through an assisted rep is enough to serve the rung
     above it, so a group can be walked in one sitting instead of one
     unaided rep per day. With `early` (implies cram), the curve is off
-    too: after rules 1-3 find nothing rusty, every SOLID node in scope
-    with a rung left is served, prereqs first - the whole group reviewed
-    ahead of schedule."""
+    too: every node in scope with a rung left is served as a ladder,
+    prereqs before dependents, whatever its status - the whole group
+    reviewed ahead of schedule, SOLID prereqs jogged before a new move."""
     cram = cram or early
 
     def in_scope(n):
@@ -352,6 +353,32 @@ def pick(
                     statuses[target][0],
                     due(target),
                     f"warm the ground under sleeping {pnum} — no READY carrier, drill {target}",
+                )
+
+    # rule 0d: the early review (`make next sql cram early`). The operator
+    # asked for the whole group regardless of the curve, so the group is
+    # walked as a ladder, every node a rung at its place in the order:
+    # prereqs before dependents (smallest input tree first), a node repped
+    # today goes to the back so every node gets one rung before any gets
+    # its second. Status does not jump the queue - a MISSING dependent
+    # comes after the review of the SOLID prereqs under it, which is the
+    # point: the prereqs are jogged before the new move is met.
+    if early:
+        review = sorted(
+            (n for n in nodes if in_scope(n)),
+            key=lambda n: (
+                statuses[n][1] == date.today(),
+                len(input_tree([n], nodes)),
+                n,
+            ),
+        )
+        for target in review:
+            if due(target):
+                return (
+                    target,
+                    statuses[target][0],
+                    due(target),
+                    "early review - next rung of the ladder, prereqs first",
                 )
 
     # rule 0c: the ownership rep. drill_held parks a target behind a banked
@@ -551,30 +578,6 @@ def pick(
                 promo[0],
                 "no mapped carrier — promoted a drafted one (predicted walk)",
             )
-
-    # rule 3c: the early review. Nothing in scope is rusty or new, and the
-    # operator asked for the group ahead of the curve: serve the next rung
-    # of every SOLID node that still has one. Breadth first: a node repped
-    # today goes to the back, so every node gets one rung before any gets
-    # its second; within a day, prereqs before dependents (smallest input
-    # tree first).
-    if early:
-        review = sorted(
-            (n for n in nodes if statuses[n][0] == SOLID and in_scope(n)),
-            key=lambda n: (
-                statuses[n][1] or date.min,
-                len(input_tree([n], nodes)),
-                n,
-            ),
-        )
-        for target in review:
-            if due(target):
-                return (
-                    target,
-                    SOLID,
-                    due(target),
-                    "early review - not due yet, next rung of the ladder",
-                )
 
     # rule 4: nothing rusty and nothing new — take a summit. A Hard is never a
     # CARRIER (it is not where a rusty move gets its rep), but once its walk is
@@ -845,8 +848,9 @@ def main():
     parser.add_argument(
         "--early",
         action="store_true",
-        help="review the group ahead of the curve: SOLID nodes get their "
-        "next rung too, prereqs first; skips today's plan; implies --cram; "
+        help="review the group ahead of the curve: every node gets its next "
+        "rung, prereqs before dependents regardless of status; skips today's "
+        "plan; implies --cram; "
         "makefile form: `make next sql cram early`",
     )
     parser.add_argument(
