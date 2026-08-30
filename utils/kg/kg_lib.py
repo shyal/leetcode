@@ -879,6 +879,20 @@ def last_drilled(path, evidence):
     return max(dates) if dates else ""
 
 
+def drill_clean(path, evidence):
+    """True when this rung's most recent rep is all-clean, assisted or not:
+    the cram bar (`make next sql cram early`), where a hinted clean is a
+    legit rep and the ladder climbs in one sitting instead of waiting a
+    day per rung for the unaided one."""
+    key = f"d_{drill_solved_stem(path)}_".lower()
+    reps = sorted((r["date"], r) for k, r in evidence.items()
+                  if os.path.basename(k).lower().startswith(key))
+    if not reps:
+        return False
+    rec = reps[-1][1]
+    return bool(rec.get("moves")) and all(v == "clean" for v in rec["moves"].values())
+
+
 def drill_warm(path, evidence, today=None):
     """True when this rung's most recent rep is all-clean, not spoiled, and
     inside the solid window — the bar it must meet to release the rung above
@@ -968,17 +982,19 @@ def drill_trains(path):
     return [t.strip() for t in m.group(1).split(",") if t.strip()] if m else []
 
 
-def released_rungs(candidates, evidence, node_id=None):
+def released_rungs(candidates, evidence, node_id=None, early=False):
     """The prefix of a drill ladder that is open to serve. The bank's
     filename order is the ladder: a rung is held while the rung below it is
-    not warm — the same "after" rule that serves 46 before 47 (held_behind).
+    not warm — the same "after" rule that serves 46 before 47 (held_behind);
+    with `early` (the cram walk) an assisted clean below is enough.
     A composite rung (TRAINS lists other nodes) is also held until each of
     those nodes is owned - its atomic rung clean and unaided - so the
     combination lands on moves the operator has, instead of teaching two at
     once. Holds cascade, so this is always a prefix."""
+    below_ok = drill_clean if early else drill_warm
     released = []
     for i, rung in enumerate(candidates):
-        if i and not drill_warm(candidates[i - 1], evidence):
+        if i and not below_ok(candidates[i - 1], evidence):
             break
         if any(not owned(t, evidence)
                for t in drill_trains(rung) if t != node_id):
@@ -1003,9 +1019,20 @@ def due_drill(node_id, evidence, today=None, early=False):
     candidates = sorted(glob.glob(os.path.join(DRILLS_DIR, node_id, "*.py")))
     if not candidates:
         return None
-    path = min(released_rungs(candidates, evidence, node_id),
+    path = min(released_rungs(candidates, evidence, node_id, early=early),
                key=lambda p: last_drilled(p, evidence))
     return None if last_drilled(path, evidence) >= today else path
+
+
+def ladder_left(node_id, evidence, early=False):
+    """True while a released rung of the node's bank has never been drilled:
+    the atoms of this node are not all met yet. The early walk holds a
+    dependent behind it - a composition is not served while an atom under
+    it is still unseen (the 2026-08-30 spark serve, where the breadth-first
+    sweep reached plan-shuffles with five group-agg rungs untouched)."""
+    candidates = sorted(glob.glob(os.path.join(DRILLS_DIR, node_id, "*.py")))
+    return any(not last_drilled(p, evidence)
+               for p in released_rungs(candidates, evidence, node_id, early=early))
 
 
 def latest_carrier(node_id, evidence):

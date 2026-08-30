@@ -114,6 +114,9 @@ def picker(monkeypatch):
                         lambda target, ev, nodes=None, predicted=None:
                         kg_lib.drafts_falsified(target, ev, nodes, ctl.predicted))
     monkeypatch.setattr(kg_next, "has_drill_bank", lambda nid: nid in ctl.bank)
+    monkeypatch.setattr(kg_next, "ladder_left",
+                        lambda nid, ev, early=False:
+                        nid in ctl.bank and nid not in ctl.drilled_today)
     monkeypatch.setattr(kg_next, "immature_nodes",
                         lambda nodes, evidence, problems: frozenset(ctl.immature))
 
@@ -1081,3 +1084,49 @@ def test_blocked_report_says_no_draft_can_carry(picker):
     (nid, _, why, _), = picker.blocked(ns, ps, {}, st)
     assert nid == "t"
     assert "no drafted walk" in why
+
+
+def test_early_walks_one_ladder_to_the_top_before_the_node_above_it(picker):
+    """The 2026-08-30 spark serve: `make next spark cram early` swept one
+    rung per node, so plan-shuffles came round with five group-agg atoms
+    unseen. Early is depth first - a dependent waits while an in-scope
+    prereq's bank still has an undrilled released rung."""
+    ns = nodes("base", ("dep", ["base"]))
+    ps = {}
+    picker.bank = {"base", "dep"}
+    ev = evidence(solve("9", {"base": "clean"}, days_ago=1, assist="hint"))
+    st = {"base": (SOLID, ago(1)), "dep": (MISSING, None)}
+    ns["base"]["group"] = ns["dep"]["group"] = "g"
+    assert picker.run(ns, ps, ev, st, group="g", early=True)[2] == "drill:base"
+    # base repped today but its ladder not done: dep still waits, and the
+    # base has nothing due either - the serve is empty, not a skip ahead
+    picker.drilled_today = {"base"}
+    ladder = {"base"}
+    picker_ladder = lambda nid, ev, early=False: nid in ladder
+    kg_next.ladder_left = picker_ladder
+    assert picker.run(ns, ps, ev, st, group="g", early=True) is None
+    ladder.clear()
+    assert picker.run(ns, ps, ev, st, group="g", early=True)[2] == "drill:dep"
+
+
+def test_the_cram_ladder_climbs_on_an_assisted_clean(tmp_path, monkeypatch):
+    """Outside cram a rung releases the one above only on an unaided clean
+    (drill_warm). In the early walk a hinted clean is enough, so a ladder
+    is climbed in one sitting instead of one rung per day."""
+    from kg import kg_lib
+    bank = tmp_path / "group-agg"
+    bank.mkdir()
+    (bank / "r1.py").write_text('"""\nDRILL: R One\nTRAINS: group-agg\n"""\n')
+    (bank / "r2.py").write_text('"""\nDRILL: R Two\nTRAINS: group-agg\n"""\n')
+    monkeypatch.setattr(kg_lib, "DRILLS_DIR", str(tmp_path))
+    r1, r2 = str(bank / "r1.py"), str(bank / "r2.py")
+    ev = evidence({"solved/d_R_One_1.py": {"date": iso(0), "problem": "drill",
+                                           "moves": {"group-agg": "clean"},
+                                           "assist": "hint"}})
+    assert kg_lib.released_rungs([r1, r2], ev, "group-agg") == [r1]
+    assert kg_lib.released_rungs([r1, r2], ev, "group-agg", early=True) == [r1, r2]
+    assert kg_lib.due_drill("group-agg", ev, early=True) == r2
+    assert kg_lib.ladder_left("group-agg", ev, early=True)
+    ev2 = evidence(ev, {"solved/d_R_Two_1.py": {"date": iso(0), "problem": "drill",
+                                                "moves": {"group-agg": "clean"}}})
+    assert not kg_lib.ladder_left("group-agg", ev2, early=True)
