@@ -91,7 +91,7 @@ def picker(monkeypatch):
                         nid in ctl.bank and status in (FRAGILE, MISSING))
     monkeypatch.setattr(kg_next, "unlocks", lambda statuses, problems: ctl.unlocks)
     monkeypatch.setattr(kg_next, "due_drill",
-                        lambda nid, ev, today=None:
+                        lambda nid, ev, today=None, early=False:
                         f"drills/{nid}/one.py"
                         if nid in ctl.bank and nid not in ctl.drilled_today else None)
     monkeypatch.setattr(kg_next, "acceptance", lambda p: ctl.acceptance.get(str(p), 50.0))
@@ -792,6 +792,26 @@ def test_cram_skips_the_ownership_rep(picker):
     ev = evidence(solve("9", {"base": "clean"}, days_ago=1, assist="hint"))
     st = {"dep": (MISSING, None), "base": (SOLID, ago(1))}
     assert picker.run(ns, ps, ev, st, cram=True)[2] == "drill:dep"
+
+
+def test_early_reviews_solid_nodes_prereqs_first(picker):
+    """`make next sql cram early`: nothing rusty in the group, yet every
+    SOLID node with a rung left is served, base before dependent."""
+    ns = nodes("base", ("dep", ["base"]), "other")
+    ps = {}
+    picker.bank = {"base", "dep", "other"}
+    ev = evidence(solve("9", {"base": "clean", "dep": "clean"}, days_ago=1))
+    st = {"base": (SOLID, ago(1)), "dep": (SOLID, ago(1)),
+          "other": (SOLID, ago(1))}
+    ns["base"]["group"] = ns["dep"]["group"] = "g"
+    ns["base"]["group"] = ns["dep"]["group"] = "g"
+    ns["other"]["group"] = "elsewhere"
+    assert picker.run(ns, ps, ev, st, group="g") is None
+    assert picker.run(ns, ps, ev, st, group="g", early=True)[2] == "drill:base"
+    picker.drilled_today = {"base"}
+    assert picker.run(ns, ps, ev, st, group="g", early=True)[2] == "drill:dep"
+    picker.drilled_today = {"base", "dep"}
+    assert picker.run(ns, ps, ev, st, group="g", early=True) is None
 
 
 def test_a_node_whose_only_carrier_is_cooling_is_waiting_not_dry(picker):

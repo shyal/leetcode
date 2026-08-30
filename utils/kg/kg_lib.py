@@ -987,14 +987,16 @@ def released_rungs(candidates, evidence, node_id=None):
     return released or candidates[:1]
 
 
-def due_drill(node_id, evidence, today=None):
+def due_drill(node_id, evidence, today=None, early=False):
     """Least-recently-drilled RELEASED bank file for a node, or None if the
     bank is empty or that file was already drilled today. The no-carrier
     fallback: a gap node with no READY carrier gets its drill offered instead
     of being silently skipped — a drill cannot be dodged and needs no
-    carrier."""
+    carrier. With `early`, the curve is ignored: a SOLID, owned node still
+    gets its next rung (the cram review, `make next sql cram early`); the
+    ladder and the once-a-day rule still apply."""
     status, _ = node_status(node_id, evidence, today)
-    if status == SOLID and owned(node_id, evidence):
+    if status == SOLID and owned(node_id, evidence) and not early:
         return None  # the curve says the node holds - a drill is a problem
                      # we authored, and problems are not re-served while warm
     today = (today or date.today()).isoformat()
