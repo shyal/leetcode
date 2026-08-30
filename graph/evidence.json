@@ -6924,6 +6924,14 @@
       "assist": "hint",
       "note": "User was new to left_anti and was assisted to add it as the join argument.",
       "summary": "The solution uses a PySpark left_anti join between nodes and verdicts DataFrames to identify untouched nodes. It matches nodes.id == verdicts.node_id and keeps only left rows (nodes without matching verdicts), then selects the node columns. This directly exercises the spark-join move using the anti-join pattern to answer 'which nodes have no verdicts'."
+    },
+    "solved/d_Solves_With_Titles_2026_08_30T07_01_25_209254_00_00Z.py": {
+      "date": "2026-08-30",
+      "problem": "drill",
+      "moves": {
+        "spark-join": "clean"
+      },
+      "summary": "The solution joins two Spark DataFrames on differently named keys (problem and num) using .join() with an explicit equality condition, then selects the three required output columns without the join keys. The INNER join discards unmatched rows when their problem references don't exist in the problems table."
     }
   }
 }
