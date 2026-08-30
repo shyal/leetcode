@@ -1,4 +1,4 @@
-.PHONY: all learning mirror q prepare force unforce preflight kg-extract kg-status kg-viz movie next dive drill hard is_session_start readme residuals sleep wake solved failed test timer viz
+.PHONY: all learning mirror q prepare force unforce preflight kg-extract kg-status kg-viz movie next dive drill hard is_session_start readme residuals sleep wake solved failed test timer viz graph
 
 all: graph/leet.db
 	@cp utils/harness/sitecustomize.py .venv/lib/python3.10/site-packages/
@@ -18,7 +18,7 @@ learning:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/history/learning
 
 prepare:
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/prepare $(filter-out $@,$(MAKECMDGOALS))
+	@if [ "$(firstword $(MAKECMDGOALS))" != next ]; then PYTHONPATH=./utils .venv/bin/python3 utils/kg/prepare $(filter-out $@,$(MAKECMDGOALS)); fi
 
 
 force:
@@ -108,8 +108,10 @@ viz:
 
 %:
 	@:
+graph:
+	@:
 next:
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_next $(patsubst why,--why,$(patsubst graph,--graph,$(patsubst spark,--group=spark,$(patsubst sql,--group=sql,$(patsubst cram,--cram,$(filter-out $@,$(MAKECMDGOALS)))))))
+	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_next $(patsubst why,--why,$(patsubst graph,--graph,$(patsubst spark,--group=spark,$(patsubst sql,--group=sql,$(patsubst cram,--cram,$(patsubst early,--early,$(patsubst prepare,--prepare,$(filter-out $@,$(MAKECMDGOALS)))))))))
 
 GRAPH_JSON = graph/nodes.json graph/problems.json graph/evidence.json
 

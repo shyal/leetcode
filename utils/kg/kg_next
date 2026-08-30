@@ -10,8 +10,11 @@
 #   utils/kg/kg_next --prepare    # same, then run `make prepare` on the pick
 #   make next graph            # makefile form of --graph (make eats dashed args)
 #   make next sql              # --group sql: rules 1-3 over one curated group only
-#   make next -- --prepare     # makefile form of --prepare (-- stops make's
-#                              # option parsing; %: swallows the extra goal)
+#   make next sql cram early   # --early: review the whole group ahead of the
+#                              # curve - SOLID nodes get their next rung too,
+#                              # prereqs first; today's plan is skipped
+#   make next prepare          # makefile form of --prepare (the prepare
+#                              # target steps aside when next is the goal)
 #   KG_NO_PLAN=1 make next     # skip today's frozen study plan (data/study_plan/)
 #                              # entirely: no freezing, no plan items - rules
 #                              # -1..4 only
@@ -236,6 +239,7 @@ def pick(
     session_start=False,
     group=None,
     cram=False,
+    early=False,
 ):
     """Return (target, status, pnum, reason) or None. With `group`, only
     nodes of that curated group are candidates (rules 1-3); the sleep
@@ -243,7 +247,11 @@ def pick(
     the group. With `cram`, the cross-bank ladder hold is off: a prereq
     that is SOLID through an assisted rep is enough to serve the rung
     above it, so a group can be walked in one sitting instead of one
-    unaided rep per day."""
+    unaided rep per day. With `early` (implies cram), the curve is off
+    too: after rules 1-3 find nothing rusty, every SOLID node in scope
+    with a rung left is served, prereqs first - the whole group reviewed
+    ahead of schedule."""
+    cram = cram or early
 
     def in_scope(n):
         return group is None or nodes[n].get("group") == group
@@ -258,7 +266,7 @@ def pick(
         drill_id = f"drill:{target}"
         return (
             drill_id
-            if drill_id not in exclude and due_drill(target, evidence)
+            if drill_id not in exclude and due_drill(target, evidence, early=early)
             else None
         )
 
@@ -544,6 +552,30 @@ def pick(
                 "no mapped carrier — promoted a drafted one (predicted walk)",
             )
 
+    # rule 3c: the early review. Nothing in scope is rusty or new, and the
+    # operator asked for the group ahead of the curve: serve the next rung
+    # of every SOLID node that still has one. Breadth first: a node repped
+    # today goes to the back, so every node gets one rung before any gets
+    # its second; within a day, prereqs before dependents (smallest input
+    # tree first).
+    if early:
+        review = sorted(
+            (n for n in nodes if statuses[n][0] == SOLID and in_scope(n)),
+            key=lambda n: (
+                statuses[n][1] or date.min,
+                len(input_tree([n], nodes)),
+                n,
+            ),
+        )
+        for target in review:
+            if due(target):
+                return (
+                    target,
+                    SOLID,
+                    due(target),
+                    "early review - not due yet, next rung of the ladder",
+                )
+
     # rule 4: nothing rusty and nothing new — take a summit. A Hard is never a
     # CARRIER (it is not where a rusty move gets its rep), but once its walk is
     # gap-free it is exactly what to work on next, so it belongs in the same
@@ -811,6 +843,13 @@ def main():
         "makefile form: `make next sql cram`",
     )
     parser.add_argument(
+        "--early",
+        action="store_true",
+        help="review the group ahead of the curve: SOLID nodes get their "
+        "next rung too, prereqs first; skips today's plan; implies --cram; "
+        "makefile form: `make next sql cram early`",
+    )
+    parser.add_argument(
         "--prepare",
         action="store_true",
         help="run `make prepare` on the pick (stub + branch — the solve clock starts)",
@@ -885,7 +924,7 @@ def main():
     # Today's frozen plan comes first: serve its pending items in order,
     # transparently — same rendering, same commands. Items self-clear from
     # evidence; an exhausted or absent plan falls through to the normal rules.
-    plan = load_plan()
+    plan = None if args.early else load_plan()
     if plan:
         pending = [
             it
@@ -956,6 +995,7 @@ def main():
                 session_start=session_start,
                 group=args.group,
                 cram=args.cram,
+                early=args.early,
             )
             if not choice:
                 break
@@ -970,8 +1010,8 @@ def main():
         # behind --why.
         if shown:
             console.print(f"[yellow]Only {shown} recommendation(s) available.[/yellow]")
-        elif args.group and not args.cram:
-            held = sorted(
+        elif args.group:
+            held = [] if args.cram or args.early else sorted(
                 n for n in nodes
                 if nodes[n].get("group") == args.group
                 and statuses[n][0] != SOLID
@@ -1039,7 +1079,7 @@ def main():
     target, target_status, pnum, reason = choice
 
     if str(pnum).startswith("drill:"):
-        path = due_drill(target, evidence)
+        path = due_drill(target, evidence, early=args.early)
         title = drill_title(path)
         s, d = statuses[target]
         table = Table(show_header=True, header_style="bold", box=None, padding=(0, 2))
