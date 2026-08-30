@@ -1153,3 +1153,105 @@ def test_two_same_day_reps_of_one_drill_do_not_crash_the_ladder(tmp_path, monkey
                                             "moves": {"n": "clean"}}
     assert kg_lib.drill_clean(r1, ev)
     assert kg_lib.drill_warm(r1, ev)
+
+
+def grouped(ns, group, *ids):
+    for n in ids:
+        ns[n]["group"] = group
+    return ns
+
+
+def test_cram_keeps_the_curve(picker):
+    """`make next sql cram` lifts the cross-bank hold and nothing else: a
+    SOLID node owned by an unaided clean is still not re-served. That is
+    what `early` adds."""
+    ns = grouped(nodes("base"), "g", "base")
+    picker.bank = {"base"}
+    ev = evidence(solve("9", {"base": "clean"}, days_ago=1))
+    st = {"base": (SOLID, ago(1))}
+    picker.drilled_today = set()
+    # due_drill (stubbed) follows the real one: an owned SOLID node is not
+    # due outside early, so neither the curve nor cram serves it
+    monkeypatch_due = lambda nid, ev, today=None, early=False: (
+        f"drills/{nid}/one.py" if early else None)
+    kg_next.due_drill = monkeypatch_due
+    assert picker.run(ns, {}, ev, st, group="g", cram=True) is None
+    assert picker.run(ns, {}, ev, st, group="g", early=True)[2] == "drill:base"
+
+
+def test_cram_stays_inside_the_group(picker):
+    """The group scope survives cram: a held node in another group is not
+    what `make next sql cram` releases."""
+    ns = grouped(nodes("base", ("dep", ["base"]), ("far", ["base"])),
+                 "g", "base", "dep")
+    ns["far"]["group"] = "elsewhere"
+    picker.bank = {"base", "dep", "far"}
+    ev = evidence(solve("9", {"base": "clean"}, days_ago=1, assist="hint"))
+    st = {"base": (SOLID, ago(1)), "dep": (MISSING, None), "far": (MISSING, None)}
+    assert picker.run(ns, {}, ev, st, group="g", cram=True)[2] == "drill:dep"
+    picker.drilled_today = {"dep"}
+    assert picker.run(ns, {}, ev, st, group="g", cram=True) is None
+
+
+def test_cram_lifts_the_ownership_bar_not_the_solid_one(picker):
+    """Cram drops the "prereq owned by an unaided rep" hold only. A prereq
+    that is not SOLID at all is the more urgent gap: it is served first,
+    and the MISSING dependent still waits for it to turn SOLID - the ZPD
+    rule, which cram does not touch."""
+    ns = grouped(nodes("base", ("dep", ["base"])), "g", "base", "dep")
+    picker.bank = {"base", "dep"}
+    ev = evidence(solve("9", {"base": "struggled"}, days_ago=1))
+    st = {"base": (FRAGILE, ago(1)), "dep": (MISSING, None)}
+    assert picker.run(ns, {}, ev, st, group="g", cram=True)[2] == "drill:base"
+    picker.drilled_today = {"base"}
+    assert picker.run(ns, {}, ev, st, group="g", cram=True) is None
+    st["base"] = (SOLID, ago(0))
+    assert picker.run(ns, {}, ev, st, group="g", cram=True)[2] == "drill:dep"
+
+
+def test_early_walks_a_chain_bottom_up_one_ladder_at_a_time(picker):
+    """a -> b -> c in one group: a's whole ladder, then b's, then c's. c is
+    held by b's unfinished ladder even while a is done, so the walk never
+    skips a level."""
+    ns = grouped(nodes("a", ("b", ["a"]), ("c", ["b"])), "g", "a", "b", "c")
+    picker.bank = {"a", "b", "c"}
+    ev = evidence(solve("9", {"a": "clean", "b": "clean"}, days_ago=1))
+    st = {"a": (SOLID, ago(1)), "b": (SOLID, ago(1)), "c": (MISSING, None)}
+    ladder = {"a", "b", "c"}
+    kg_next.ladder_left = lambda nid, ev, early=False: nid in ladder
+    assert picker.run(ns, {}, ev, st, group="g", early=True)[2] == "drill:a"
+    picker.drilled_today = {"a"}
+    assert picker.run(ns, {}, ev, st, group="g", early=True) is None
+    ladder.discard("a")
+    assert picker.run(ns, {}, ev, st, group="g", early=True)[2] == "drill:b"
+    picker.drilled_today = {"a", "b"}
+    assert picker.run(ns, {}, ev, st, group="g", early=True) is None
+    ladder.discard("b")
+    assert picker.run(ns, {}, ev, st, group="g", early=True)[2] == "drill:c"
+
+
+def test_early_is_not_held_by_a_prereq_outside_the_group(picker):
+    """A spark node's sql prereqs are out of scope for `make next spark
+    cram early`: their unfinished ladders do not hold the spark walk, and
+    they are never served by it."""
+    ns = grouped(nodes("sql-base", ("spark-dep", ["sql-base"])), "spark", "spark-dep")
+    ns["sql-base"]["group"] = "sql"
+    picker.bank = {"sql-base", "spark-dep"}
+    ev = evidence(solve("9", {"sql-base": "clean"}, days_ago=1, assist="hint"))
+    st = {"sql-base": (SOLID, ago(1)), "spark-dep": (MISSING, None)}
+    kg_next.ladder_left = lambda nid, ev, early=False: True
+    assert picker.run(ns, {}, ev, st, group="spark", early=True)[2] == "drill:spark-dep"
+
+
+def test_early_with_two_picks_moves_on_to_the_next_ladder(picker):
+    """`make next sql cram early` with -n 2: the second pick excludes the
+    first drill and goes to the next node in ladder order, not the same
+    node twice."""
+    ns = grouped(nodes("a", "b"), "g", "a", "b")
+    picker.bank = {"a", "b"}
+    ev = evidence(solve("9", {"a": "clean", "b": "clean"}, days_ago=1))
+    st = {"a": (SOLID, ago(1)), "b": (SOLID, ago(1))}
+    first = picker.run(ns, {}, ev, st, group="g", early=True)
+    assert first[2] == "drill:a"
+    second = picker.run(ns, {}, ev, st, group="g", early=True, exclude={"drill:a"})
+    assert second[2] == "drill:b"
