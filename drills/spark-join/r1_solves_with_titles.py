@@ -78,7 +78,7 @@ Constraints:
     1 <= number of rows in each DataFrame <= 10^4
 
     REQUIRED: one join on the two differently named keys, and the output
-    must carry exactly the three columns named, neither key included.
+    has exactly the three columns named, neither key included.
     NO renaming a key column before the join, NO collect().
 
     Runner: local PySpark, adaptive execution and auto-broadcast off. Row

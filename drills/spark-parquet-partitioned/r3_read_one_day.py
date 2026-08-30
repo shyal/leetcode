@@ -40,8 +40,8 @@ Constraints:
     1 <= number of directories <= 1000
     1 <= number of rows per directory <= 10^4
 
-    REQUIRED: the plan must carry a PartitionFilters entry on date, so only
-    one directory is scanned; the output must carry only file and problem.
+    REQUIRED: the plan shows a PartitionFilters entry on date, so only
+    one directory is scanned; the output has only file and problem.
     NO listing directories in Python, NO collect() then filter.
 
     Runner: local PySpark, adaptive execution and auto-broadcast off. Row
