@@ -67,6 +67,11 @@ Constraints:
 
     Runner: local PySpark, adaptive execution and auto-broadcast off. Row
     order is not part of the answer.
+
+---
+
+Assisted.
+
 """
 
 from pyspark.sql import Window
@@ -78,7 +83,8 @@ from dsa.spark import SparkDrill
 class Solution(SparkDrill):
 
     def transform(self, verdicts):
-        pass
+        w = Window.partitionBy("node_id").orderBy(F.col("date").desc())
+        return verdicts.withColumn("rn", F.row_number().over(w))
 
 
 VERDICTS = "node_id string, date string, verdict string"
@@ -109,5 +115,10 @@ sol = Solution()
 
 sol.show(EXAMPLE_1)
 
-# assert sol.run(EXAMPLE_1) == [("monotonic-stack", "2026-08-01", "struggled", 3), ("monotonic-stack", "2026-08-10", "clean", 2), ("monotonic-stack", "2026-08-20", "clean", 1), ("two-pointers", "2026-08-05", "avoided", 1)]
-# assert sol.run(EXAMPLE_2) == [("two-pointers", "2026-08-05", "clean", 1)]
+assert sol.run(EXAMPLE_1) == [
+    ("monotonic-stack", "2026-08-01", "struggled", 3),
+    ("monotonic-stack", "2026-08-10", "clean", 2),
+    ("monotonic-stack", "2026-08-20", "clean", 1),
+    ("two-pointers", "2026-08-05", "avoided", 1),
+]
+assert sol.run(EXAMPLE_2) == [("two-pointers", "2026-08-05", "clean", 1)]

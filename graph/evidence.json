@@ -6961,6 +6961,16 @@
       "assist": "hint",
       "note": "Assisted; drill specifies dense_rank() behavior (1,1,2,3,3,4 no gaps).",
       "summary": "The solution creates a Spark Window ordered by score descending, then applies dense_rank().over(w) to assign sequential ranks where equal scores share the same rank and the next rank continues without gaps (1,1,2,3,3,4). The window-rank move is exercised cleanly; the output matches both examples."
+    },
+    "solved/d_Rep_Number_Per_Node_2026_08_30T08_03_52_055104_00_00Z.py": {
+      "date": "2026-08-30",
+      "problem": "drill",
+      "moves": {
+        "spark-window-rank": "clean",
+        "spark-column-expr": "clean"
+      },
+      "assist": "walkthrough",
+      "summary": "The solution adds a row_number column that restarts at 1 for each node_id, ordered by date descending (newest first). It exercises spark-window-rank via F.row_number().over(Window.partitionBy('node_id').orderBy(F.col('date').desc())) and spark-column-expr via F.col('date').desc(). The code is clean and handles all required constraints correctly."
     }
   }
 }
