@@ -6906,6 +6906,14 @@
       "moves": {},
       "note": "Uses groupBy().count() instead of groupBy().agg(F.count(...).alias('solves')); output column is 'count' not 'solves'.",
       "summary": "The code groups entries by date and counts them per group, producing correct output values. It sidesteps the spark-group-agg pattern by using the .count() convenience method instead of .agg(F.count(...).alias('solves')), and names the output column 'count' rather than 'solves' as specified in the REQUIRED constraint."
+    },
+    "solved/d_Solves_With_Titles_2026_08_30T06_52_36_416991_00_00Z.py": {
+      "date": "2026-08-30",
+      "problem": "drill",
+      "moves": {
+        "spark-join": "clean"
+      },
+      "summary": "The code joins two DataFrames on differently named keys (solves.problem == problems.num) using an inner join, then selects only the output columns [file, title, difficulty], excluding both key columns from the result. The inner join drops unmatched rows: d.py pointing to non-existent problem 999 in example 1, and a.py pointing to problem 7 in example 2."
     }
   }
 }
