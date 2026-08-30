@@ -6773,6 +6773,14 @@
       "assist": "hint",
       "note": "Received hints to wrap subquery in parentheses and add GROUP BY clause",
       "summary": "The solution counts total users per contest using a scalar subquery `(select user_id from Users)` inside the COUNT aggregate. GROUP BY contest_id groups results by contest. The operator received hints about syntax (parentheses wrapping) and the aggregate collapse behavior that requires GROUP BY."
+    },
+    "solved/d_Second_Distinct_Salary_2026_08_30T01_33_00_871932_00_00Z.py": {
+      "date": "2026-08-30",
+      "problem": "drill",
+      "moves": {
+        "sql-nth-value": "clean"
+      },
+      "summary": "The code finds the second highest distinct salary via a single query: `SELECT DISTINCT salary ... ORDER BY salary DESC LIMIT 1 OFFSET 1`. It exercises sql-nth-value by using DISTINCT to make repeated salaries count once, ORDER BY to order them, and LIMIT/OFFSET to skip the highest and land on the Nth (second) distinct value."
     }
   }
 }
