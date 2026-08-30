@@ -6,6 +6,13 @@ Given the DataFrames `nodes` and `verdicts`, return `id` and `file` for
 every verdict on every node, and one row with a null `file` for a node that
 has no verdict. No ordering required.
 
+Syntax:
+
+    products.join(orders, products["id"] == orders["product"], "left")
+
+    left keeps every left row. One without a match appears once, with null
+    in every column of the right frame.
+
 DataFrame: nodes
 
     +-------------+---------+

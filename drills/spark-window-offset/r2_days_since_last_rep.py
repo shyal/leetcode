@@ -7,6 +7,13 @@ Given the DataFrame `verdicts`, return every row with a new integer column
 the same `node_id`. The first verdict on a node gets a null `gap`. No
 ordering required.
 
+Syntax:
+
+    F.datediff(F.col("placed_at"), F.lag("placed_at").over(w))
+
+    datediff(later, earlier) is the whole number of days between two date
+    Columns; null in either side gives null.
+
 DataFrame: verdicts
 
     +-------------+---------+

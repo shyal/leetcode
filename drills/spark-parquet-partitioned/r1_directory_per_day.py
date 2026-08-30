@@ -5,6 +5,13 @@ TRAINS: spark-parquet-partitioned
 Given the DataFrame `solves` and an empty directory `path`, write `solves`
 there as Parquet laid out one directory per `date`. Return nothing.
 
+Syntax:
+
+    orders.write.partitionBy("day").parquet(path)
+
+    write.partitionBy makes one directory per value of day, named
+    day=<value>, and puts that value's rows inside it.
+
 DataFrame: solves
 
     +-------------+---------+

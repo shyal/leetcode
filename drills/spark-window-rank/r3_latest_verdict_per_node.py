@@ -5,6 +5,14 @@ TRAINS: spark-window-rank
 Given the DataFrame `verdicts`, return `node_id`, `date` and `verdict` of
 the most recent verdict on each node. No ordering required.
 
+Syntax:
+
+    (employees.withColumn("rn", F.row_number().over(w))
+              .filter(F.col("rn") == 1)
+              .drop("rn"))
+
+    Number the rows, keep the ones numbered 1, then drop the helper column.
+
 DataFrame: verdicts
 
     +-------------+---------+

@@ -7,6 +7,13 @@ whose `assist` is 'none', with a third column `points` holding the integer
 3. The physical plan of the result must contain no Exchange. No ordering
 required.
 
+Syntax:
+
+    df.explain()
+
+    explain prints the physical plan, read bottom-up. Each line starting
+    with Exchange is one shuffle. select, filter and withColumn never add one.
+
 DataFrame: solves
 
     +-------------+---------+

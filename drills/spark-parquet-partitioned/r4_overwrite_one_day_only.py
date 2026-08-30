@@ -7,6 +7,16 @@ laid out one directory per `date`, replacing every date present in `solves`
 and leaving every other date already at `path` untouched. Running the same
 write twice must leave the data as after one run. Return nothing.
 
+Syntax:
+
+    (orders.write.mode("overwrite")
+           .option("partitionOverwriteMode", "dynamic")
+           .partitionBy("day").parquet(path))
+
+    mode("overwrite") alone deletes the whole path first. With
+    partitionOverwriteMode dynamic it replaces only the directories the frame
+    writes and leaves the others in place.
+
 DataFrame: solves
 
     +-------------+---------+

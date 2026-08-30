@@ -5,6 +5,13 @@ TRAINS: spark-column-expr
 Given the DataFrame `solves`, return every row with a new integer column
 `points` holding 3. No ordering required.
 
+Syntax:
+
+    employees.withColumn("bonus", F.lit(100))
+
+    withColumn adds one column and keeps every other. A plain Python value
+    must be wrapped in F.lit to become a Column.
+
 DataFrame: solves
 
     +-------------+---------+

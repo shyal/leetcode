@@ -6,6 +6,18 @@ Given the DataFrame `solves`, return every row with a new integer column
 `points`: 3 when `assist` is 'none', 2 when 'hint', 1 when 'walkthrough',
 and 0 for anything else. No ordering required.
 
+Syntax:
+
+    employees.withColumn(
+        "band",
+        F.when(F.col("salary") >= 100, "high")
+         .when(F.col("salary") >= 50, "mid")
+         .otherwise("low"),
+    )
+
+    Branches are tried in order and the first true one wins. A row that
+    matches none gets the otherwise value, or null when otherwise is missing.
+
 DataFrame: solves
 
     +-------------+---------+

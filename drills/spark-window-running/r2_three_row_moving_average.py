@@ -7,6 +7,14 @@ average of `solves` over that row and the two rows before it within the same
 `difficulty`, in `date` order. The first two rows of a difficulty average
 over the rows that exist. No ordering required.
 
+Syntax:
+
+    w = Window.partitionBy("customer").orderBy("day").rowsBetween(-2, 0)
+    orders.withColumn("avg3", F.avg("amount").over(w))
+
+    Negative offsets count rows before this one, 0 is this row. -2 to 0 is a
+    three-row frame; at the start of a partition it holds fewer.
+
 DataFrame: daily
 
     +-------------+---------+

@@ -7,6 +7,16 @@ ranked from highest `score` to lowest. Equal scores share a rank, and the
 rank after a tie is the next consecutive integer: no holes. No ordering
 required.
 
+Syntax:
+
+    w = Window.orderBy(F.col("salary").desc())
+    employees.select("name", F.dense_rank().over(w).alias("rank"))
+
+    A window function computes a value for each row from the other rows,
+    without collapsing them. Window.orderBy says how those rows are lined up;
+    .over(w) attaches the window. dense_rank numbers along that line, equal
+    values share a number and the next value gets the next integer.
+
 DataFrame: scores
 
     +-------------+---------+

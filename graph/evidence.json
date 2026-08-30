@@ -6971,6 +6971,15 @@
       },
       "assist": "walkthrough",
       "summary": "The solution adds a row_number column that restarts at 1 for each node_id, ordered by date descending (newest first). It exercises spark-window-rank via F.row_number().over(Window.partitionBy('node_id').orderBy(F.col('date').desc())) and spark-column-expr via F.col('date').desc(). The code is clean and handles all required constraints correctly."
+    },
+    "solved/d_Rep_Number_Per_Node_2026_08_30T08_18_45_695686_00_00Z.py": {
+      "date": "2026-08-30",
+      "problem": "drill",
+      "moves": {
+        "spark-window-rank": "clean"
+      },
+      "assist": "walkthrough",
+      "summary": "Drill targeting spark-window-rank. The solution correctly partitions by node_id, orders by date descending, and assigns row numbers restarting at 1 per partition using F.row_number().over(Window.partitionBy().orderBy()). The operator implemented the pattern cleanly."
     }
   }
 }
