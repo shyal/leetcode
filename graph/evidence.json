@@ -6809,6 +6809,16 @@
       },
       "note": "First exposure drill with tag hint visible in the problem statement.",
       "summary": "The solution uses LEFT JOIN to select all employees from the Employees table while retrieving their unique_id from EmployeeUNI, joining on e.id = u.id in the ON clause. Rows with no match in EmployeeUNI appear with NULL for unique_id, satisfying the requirement that every employee appears exactly once."
+    },
+    "solved/d_Month_Over_Month_Change_2026_08_30T04_39_23_567815_00_00Z.py": {
+      "date": "2026-08-30",
+      "problem": "drill",
+      "moves": {
+        "sql-window-offset": "clean"
+      },
+      "assist": "spoiled",
+      "note": "Solution provided directly; exact LAG syntax was supplied.",
+      "summary": "Query calculates month-over-month revenue change using LAG(amount) OVER (ORDER BY month) to retrieve the prior month's amount, then subtracts it from the current month. The first row's change is NULL, as LAG returns NULL when no prior row exists. Exercises sql-window-offset by comparing each row with its chronological neighbor."
     }
   }
 }
