@@ -109,13 +109,14 @@ def animation_console():
 
 def animate(text, effect=("decrypt", "--typing-speed", "20")):
     """Play text through a ttfx effect on a tty; plain write otherwise.
+    LEET_NO_ANIMATE=1 in the environment forces the plain write.
 
     Runs ttfx against the real terminal so it can't swallow anything written
     around it (the inline-image escape in particular). Feed it only text
     captured on animation_console(): see the width warning there.
     """
     exe = shutil.which("ttfx")
-    if not exe or not sys.stdout.isatty():
+    if not exe or not sys.stdout.isatty() or os.environ.get("LEET_NO_ANIMATE"):
         sys.stdout.write(text)
         sys.stdout.flush()
         return
