@@ -1,4 +1,4 @@
-.PHONY: all learning mirror q prepare force unforce preflight kg-extract kg-status kg-viz movie next dive drill hard is_session_start readme residuals sleep wake solved failed test timer viz graph
+.PHONY: all drop learning mirror q prepare force unforce preflight kg-extract kg-status kg-viz movie next dive drill hard is_session_start readme residuals sleep wake solved failed test timer viz graph
 
 all: graph/leet.db
 	@cp utils/harness/sitecustomize.py .venv/lib/python3.10/site-packages/
@@ -78,6 +78,13 @@ sleep:
 
 wake:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_sleep --wake $(filter-out $@,$(MAKECMDGOALS))
+
+# nuke the current branch, no questions asked: discard the working tree,
+# switch to master, delete the branch. refuses on master.
+drop:
+	@b="$$(git rev-parse --abbrev-ref HEAD)"; \
+	if [ "$$b" = "master" ]; then echo "on master, nothing to drop"; exit 1; fi; \
+	git checkout -q -- . && git clean -qfd && git checkout -q master && git branch -D "$$b"
 
 # file phase (freezes the solve time) -> judge -> curve -> ONE commit at the
 # end carrying solve + evidence + curve, with the frozen time in the message.
