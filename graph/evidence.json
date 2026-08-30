@@ -6899,6 +6899,13 @@
         "spark-group-agg": "clean"
       },
       "summary": "Groups DataFrame rows by date and counts rows per group using groupBy().count(). Exercises spark-group-agg via the required .count() shorthand."
+    },
+    "solved/d_Solve_Count_Per_Day_2026_08_30T06_50_29_820967_00_00Z.py": {
+      "date": "2026-08-30",
+      "problem": "drill",
+      "moves": {},
+      "note": "Uses groupBy().count() instead of groupBy().agg(F.count(...).alias('solves')); output column is 'count' not 'solves'.",
+      "summary": "The code groups entries by date and counts them per group, producing correct output values. It sidesteps the spark-group-agg pattern by using the .count() convenience method instead of .agg(F.count(...).alias('solves')), and names the output column 'count' rather than 'solves' as specified in the REQUIRED constraint."
     }
   }
 }
