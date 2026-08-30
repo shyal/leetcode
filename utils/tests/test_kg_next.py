@@ -15,6 +15,7 @@ drill in the bank.
 """
 
 import os
+import sys
 from datetime import date, timedelta
 from importlib.machinery import SourceFileLoader
 
@@ -1255,3 +1256,39 @@ def test_early_with_two_picks_moves_on_to_the_next_ladder(picker):
     assert first[2] == "drill:a"
     second = picker.run(ns, {}, ev, st, group="g", early=True, exclude={"drill:a"})
     assert second[2] == "drill:b"
+
+
+def test_prepare_loads_the_exact_drill_file_the_pick_chose(monkeypatch, tmp_path):
+    """The 2026-08-30 spark-join circle: `make next spark cram early
+    prepare` printed r3 and then handed the NODE to utils/kg/drill, which
+    re-picked under the everyday ladder rule and loaded r1 again. Prepare
+    gets the file path the pick printed."""
+    ns = nodes("j")
+    ns["j"]["group"] = "g"
+    path = "drills/j/r3_third.py"
+    calls = []
+    for name, fn in {
+        "load_nodes": lambda: ns,
+        "load_problems": lambda: {},
+        "load_evidence": lambda: {},
+        "node_status": lambda n, ev, today=None: (SOLID, ago(1)),
+        "immature_nodes": lambda nodes, ev, problems: frozenset(),
+        "sleep_state": lambda nodes, problems, ev: ({}, {}),
+        "is_session_start": lambda: False,
+        "solved_today_pnums": lambda: [],
+        "pick": lambda *a, **k: ("j", SOLID, "drill:j", "early review"),
+        "due_drill": lambda nid, ev, today=None, early=False: path,
+        "drill_title": lambda p: "Third",
+        "drill_forecast": lambda p: None,
+        "animate": lambda text: None,
+    }.items():
+        monkeypatch.setattr(kg_next, name, fn)
+    monkeypatch.setattr(kg_next, "_iss",
+                        lambda: type("S", (), {"solve_seconds_today": lambda self: 0})())
+    monkeypatch.setattr(kg_next, "REPO_ROOT", str(tmp_path))  # empty current.py
+    monkeypatch.setattr(kg_next.subprocess, "run",
+                        lambda cmd, **kw: calls.append(cmd[-1]))
+    monkeypatch.setattr(sys, "argv",
+                        ["kg_next", "--group=g", "--early", "--prepare", "--no-show"])
+    kg_next.main()
+    assert calls == [path]
