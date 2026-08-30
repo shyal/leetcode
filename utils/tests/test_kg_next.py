@@ -1130,3 +1130,26 @@ def test_the_cram_ladder_climbs_on_an_assisted_clean(tmp_path, monkeypatch):
     ev2 = evidence(ev, {"solved/d_R_Two_1.py": {"date": iso(0), "problem": "drill",
                                                 "moves": {"group-agg": "clean"}}})
     assert not kg_lib.ladder_left("group-agg", ev2, early=True)
+
+
+def test_two_same_day_reps_of_one_drill_do_not_crash_the_ladder(tmp_path, monkeypatch):
+    """The 2026-08-30 `make next spark cram early` traceback: two reps of
+    one rung on the same date tied on the sort key and the comparison fell
+    through to the records. The later solved file (timestamp in its name)
+    is the latest rep."""
+    from kg import kg_lib
+    bank = tmp_path / "n"
+    bank.mkdir()
+    (bank / "r1.py").write_text('"""\nDRILL: R One\nTRAINS: n\n"""\n')
+    monkeypatch.setattr(kg_lib, "DRILLS_DIR", str(tmp_path))
+    r1 = str(bank / "r1.py")
+    ev = {"solved/d_R_One_2026_08_30T01.py": {"date": iso(0), "problem": "drill",
+                                             "moves": {"n": "clean"}},
+          "solved/d_R_One_2026_08_30T02.py": {"date": iso(0), "problem": "drill",
+                                             "moves": {"n": "struggled"}}}
+    assert not kg_lib.drill_clean(r1, ev)
+    assert not kg_lib.drill_warm(r1, ev)
+    ev["solved/d_R_One_2026_08_30T03.py"] = {"date": iso(0), "problem": "drill",
+                                            "moves": {"n": "clean"}}
+    assert kg_lib.drill_clean(r1, ev)
+    assert kg_lib.drill_warm(r1, ev)

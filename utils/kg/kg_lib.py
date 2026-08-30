@@ -879,17 +879,23 @@ def last_drilled(path, evidence):
     return max(dates) if dates else ""
 
 
+def latest_drill_rep(path, evidence):
+    """The most recent solved record of this bank drill, or None. Same-day
+    reps are ordered by the solved filename, which carries the timestamp."""
+    key = f"d_{drill_solved_stem(path)}_".lower()
+    reps = [(r["date"], os.path.basename(k), r) for k, r in evidence.items()
+            if os.path.basename(k).lower().startswith(key)]
+    return max(reps, key=lambda t: t[:2])[2] if reps else None
+
+
 def drill_clean(path, evidence):
     """True when this rung's most recent rep is all-clean, assisted or not:
     the cram bar (`make next sql cram early`), where a hinted clean is a
     legit rep and the ladder climbs in one sitting instead of waiting a
     day per rung for the unaided one."""
-    key = f"d_{drill_solved_stem(path)}_".lower()
-    reps = sorted((r["date"], r) for k, r in evidence.items()
-                  if os.path.basename(k).lower().startswith(key))
-    if not reps:
+    rec = latest_drill_rep(path, evidence)
+    if rec is None:
         return False
-    rec = reps[-1][1]
     return bool(rec.get("moves")) and all(v == "clean" for v in rec["moves"].values())
 
 
@@ -899,12 +905,10 @@ def drill_warm(path, evidence, today=None):
     it. A drill is a problem we created, so this is held_behind's release
     rule; latest-rep because a struggle after a clean means the rung is not
     warm, whatever the graph once believed."""
-    key = f"d_{drill_solved_stem(path)}_".lower()
-    reps = sorted((r["date"], r) for k, r in evidence.items()
-                  if os.path.basename(k).lower().startswith(key))
-    if not reps:
+    rec = latest_drill_rep(path, evidence)
+    if rec is None:
         return False
-    when, rec = reps[-1]
+    when = rec["date"]
     today = today or date.today()
     return (rec.get("moves") and all(v == "clean" for v in rec["moves"].values())
             and assist_of(rec) == "none"
