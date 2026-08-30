@@ -6888,9 +6888,10 @@
     "solved/d_Number_And_Title_2026_08_30T06_42_23_952609_00_00Z.py": {
       "date": "2026-08-30",
       "problem": "drill",
-      "moves": {},
-      "note": "Uses string column selection instead of F.col() expressions",
-      "summary": "The drill selects two columns (num, title) from a problems DataFrame. The solution uses `select([\"num\", \"title\"])` with string column names, which works correctly but avoids the explicit F.col() expression API that spark-column-expr teaches."
+      "moves": {
+        "spark-column-expr": "clean"
+      },
+      "summary": "Selects num and title from problems with select([\"num\", \"title\"]), the move the rung trains."
     },
     "solved/d_Rows_Per_Day_2026_08_30T06_43_36_708664_00_00Z.py": {
       "date": "2026-08-30",
