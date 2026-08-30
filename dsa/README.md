@@ -20,6 +20,6 @@ files are not referenced by anything, and that is fine: unreferenced is not dead
 - `monotonic_stack.py`, `monotonic_stack_problems/` - the stack, its problems, and a manim scene
 - `recursive_descent.py` - parser skeleton
 - `sliding_window.py`, `prims_algorithm.py` - the loops, as i remember them
-- `sql.py`, `spark.py` - query and dataframe idioms
+- `sql.py` - query idioms
 - `base_conversion.py`, `ceil_div/`, `union_find/` - small scratch solves kept for the idiom
 - `viz.py` - tour of the drawing helpers the harness injects (`make viz`)

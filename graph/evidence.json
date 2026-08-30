@@ -182,7 +182,7 @@
       "moves": {
         "fast-slow-pointers": "struggled"
       },
-      "note": "Implements Floyd's cycle detection with value comparison (slow.val == fast.val) instead of pointer identity (slow is fast) \u2014 conceptually wrong but passes tests by coincidence (pointers meet at same node, so values match)."
+      "note": "Implements Floyd's cycle detection with value comparison (slow.val == fast.val) instead of pointer identity (slow is fast) — conceptually wrong but passes tests by coincidence (pointers meet at same node, so values match)."
     },
     "solved/p383_Ransom_Note_2026_03_23T07_24_32_264066_00_00Z.py": {
       "date": "2026-03-23",
@@ -331,7 +331,7 @@
         "string-build-transform": "clean",
         "stack-matching": "avoided"
       },
-      "note": "Correct solution but inefficient O(n\u00b2); canonical approach uses a stack for O(n) single-pass."
+      "note": "Correct solution but inefficient O(n²); canonical approach uses a stack for O(n) single-pass."
     },
     "solved/p812_Largest_Triangle_Area_2025_11_12T10_37_50_991734_00_00Z.py": {
       "date": "2025-11-12",
@@ -565,7 +565,7 @@
       "moves": {
         "string-build-transform": "clean"
       },
-      "note": "Decomposes string into runs of consecutive identical characters via groupby, then checks if structure is valid (\u22642 runs, first='a')",
+      "note": "Decomposes string into runs of consecutive identical characters via groupby, then checks if structure is valid (≤2 runs, first='a')",
       "unmapped": [
         "groupby-based run-length encoding and structural analysis"
       ]
@@ -708,7 +708,7 @@
         "streaming-ask-then-record": "clean",
         "derived-key-lookup": "clean"
       },
-      "note": "Correctly applies prefix-remainder lookup: ps[j] % k == ps[i] % k \u27f9 subarray (i, j] divisible by k. Python's modulo handles negative remainders correctly."
+      "note": "Correctly applies prefix-remainder lookup: ps[j] % k == ps[i] % k ⟹ subarray (i, j] divisible by k. Python's modulo handles negative remainders correctly."
     },
     "solved/p310_Minimum_Height_Trees_2025_11_06T23_02_24_700072_00_00Z.py": {
       "date": "2025-11-07",
@@ -829,7 +829,7 @@
         "memoize-recursion": "clean",
         "dp-state-formulate": "clean"
       },
-      "note": "Top-down DP with correct base case (i\u22640\u21921) and valid transitions for single/double-digit codes. All assertions pass."
+      "note": "Top-down DP with correct base case (i≤0→1) and valid transitions for single/double-digit codes. All assertions pass."
     },
     "solved/p91_Decode_Ways_2025_10_31T10_04_43_575971_00_00Z.py": {
       "date": "2025-10-31",
@@ -976,7 +976,7 @@
       "moves": {
         "binary-search-boundary": "clean"
       },
-      "note": "is_minimization flag unused; always True \u2014 dead code but logic correct"
+      "note": "is_minimization flag unused; always True — dead code but logic correct"
     },
     "solved/p728_Self_Dividing_Numbers_2025_10_19T02_42_39_212811_00_00Z.py": {
       "date": "2025-10-19",
@@ -1297,7 +1297,7 @@
         "tree-dfs-recursive": "clean",
         "backtracking-start-index": "clean"
       },
-      "note": "Pure backtracking on implicit decision tree; clean append\u2192recurse\u2192pop pattern with DFS exploration"
+      "note": "Pure backtracking on implicit decision tree; clean append→recurse→pop pattern with DFS exploration"
     },
     "solved/p40_Combination_Sum_II_2025_10_23T02_29_38_787418_00_00Z.py": {
       "date": "2025-10-23",
@@ -1454,7 +1454,7 @@
         "graph-adjacency-build": "clean",
         "dict-arbitrary-value": "clean"
       },
-      "note": "Implementation incomplete\u2014maintenance_check for offline nodes contains only pass; BFS/DFS traversal to find reachable online nodes not attempted."
+      "note": "Implementation incomplete—maintenance_check for offline nodes contains only pass; BFS/DFS traversal to find reachable online nodes not attempted."
     },
     "solved/p3658_GCD_of_Odd_and_Even_Sums_2025_10_18T01_27_27_349325_00_00Z.py": {
       "date": "2025-10-18",
@@ -1462,7 +1462,7 @@
       "moves": {
         "gcd-reduction": "clean"
       },
-      "note": "Brute-force summation avoids closed-form insight: sum(odd)=n\u00b2, sum(even)=n(n+1), answer=n"
+      "note": "Brute-force summation avoids closed-form insight: sum(odd)=n², sum(even)=n(n+1), answer=n"
     },
     "solved/p33_Search_in_Rotated_Sorted_Array_2025_10_10T21_06_21_554920_00_00Z.py": {
       "date": "2025-10-11",
@@ -1523,7 +1523,7 @@
       "moves": {
         "solve-pair-condition": "avoided"
       },
-      "note": "Code brute-forces j from 0 to nums[i]\u22121 instead of solving x|(x+1)=target algebraically."
+      "note": "Code brute-forces j from 0 to nums[i]−1 instead of solving x|(x+1)=target algebraically."
     },
     "solved/p328_Odd_Even_Linked_List_2025_10_09T00_41_56_826154_00_00Z.py": {
       "date": "2025-10-09",
@@ -1540,7 +1540,7 @@
       "moves": {
         "sliding-window-variable": "avoided"
       },
-      "note": "Brute force O(n\u00b3) enumeration; sidesteps sliding-window optimization by recounting each substring independently."
+      "note": "Brute force O(n³) enumeration; sidesteps sliding-window optimization by recounting each substring independently."
     },
     "solved/p3304_Find_the_K-th_Character_in_String_Game_I_2025_10_12T04_04_02_824870_00_00Z.py": {
       "date": "2025-10-12",
@@ -1578,7 +1578,7 @@
         "solve-pair-condition": "avoided",
         "streaming-ask-then-record": "avoided"
       },
-      "note": "Brute-force O(n\u00b2) with combinations sidesteps canonical O(n) counter + complement-remainder lookup."
+      "note": "Brute-force O(n²) with combinations sidesteps canonical O(n) counter + complement-remainder lookup."
     },
     "solved/p3069_Distribute_Elements_Into_Two_Arrays_I_2025_11_06T06_14_17_610087_00_00Z.py": {
       "date": "2025-11-06",
@@ -1646,7 +1646,7 @@
       "moves": {
         "running-sum": "avoided"
       },
-      "note": "Correct but O(n\u00b2); avoids running accumulator counter in favor of explicit array modification"
+      "note": "Correct but O(n²); avoids running accumulator counter in favor of explicit array modification"
     },
     "solved/p322_Coin_Change_2025_10_15T04_32_49_187103_00_00Z.py": {
       "date": "2025-10-15",
@@ -1711,7 +1711,7 @@
       "moves": {
         "derived-key-lookup": "avoided"
       },
-      "note": "Brute force O(limit\u00b3) triple-nested loop avoids deriving k=n-i-j to reduce search to O(limit\u00b2)"
+      "note": "Brute force O(limit³) triple-nested loop avoids deriving k=n-i-j to reduce search to O(limit²)"
     },
     "solved/p287_Find_the_Duplicate_Number_2025_10_25T21_09_10_652750_00_00Z.py": {
       "date": "2025-10-26",
@@ -1808,7 +1808,7 @@
         "set-membership": "avoided",
         "streaming-ask-then-record": "avoided"
       },
-      "note": "Brute-force O(n\u00b2) enumeration bypasses the canonical O(n) streaming-with-set approach."
+      "note": "Brute-force O(n²) enumeration bypasses the canonical O(n) streaming-with-set approach."
     },
     "solved/p2656_Maximum_Sum_With_Exactly_K_Elements_2025_10_16T05_25_03_689198_00_00Z.py": {
       "date": "2025-10-16",
@@ -1865,7 +1865,7 @@
         "set-membership": "clean",
         "prefix-sums": "avoided"
       },
-      "note": "Unused variable s suggests incomplete streaming attempt; naive O(n\u00b2) recomputation instead of O(n) precomputed left/right distinct counts."
+      "note": "Unused variable s suggests incomplete streaming attempt; naive O(n²) recomputation instead of O(n) precomputed left/right distinct counts."
     },
     "solved/p261_Graph_Valid_Tree_2025_11_01T05_23_23_556869_00_00Z.py": {
       "date": "2025-11-01",
@@ -1943,7 +1943,7 @@
       "moves": {
         "xor-cancellation": "clean"
       },
-      "note": "Elegant O(n\u00b3)\u2192O(n) reduction: bit-by-bit analysis shows a bit is set in result iff an odd number of elements have it, so the answer is simply XOR of all inputs."
+      "note": "Elegant O(n³)→O(n) reduction: bit-by-bit analysis shows a bit is set in result iff an odd number of elements have it, so the answer is simply XOR of all inputs."
     },
     "solved/p2500_Delete_Greatest_Value_in_Each_Row_2025_10_13T07_54_37_696817_00_00Z.py": {
       "date": "2025-10-13",
@@ -1976,7 +1976,7 @@
       "moves": {
         "divmod-decompose": "avoided"
       },
-      "note": "Mathematical proof: no n\u22654 is palindromic in all bases 2..n-2; canonical base-conversion simulation completely bypassed."
+      "note": "Mathematical proof: no n≥4 is palindromic in all bases 2..n-2; canonical base-conversion simulation completely bypassed."
     },
     "solved/p240_Search_a_2D_Matrix_II_2025_10_15T02_13_45_659276_00_00Z.py": {
       "date": "2025-10-15",
@@ -2126,7 +2126,7 @@
       "moves": {
         "string-build-transform": "clean"
       },
-      "note": "Split by spaces, apply capitalization rule per word (lowercase if \u22642 chars, else title case), rejoin."
+      "note": "Split by spaces, apply capitalization rule per word (lowercase if ≤2 chars, else title case), rejoin."
     },
     "solved/p2200_Find_All_K-Distant_Indices_in_an_Array_2025_11_03T01_12_16_065852_00_00Z.py": {
       "date": "2025-11-03",
@@ -2312,7 +2312,7 @@
       "moves": {
         "divmod-decompose": "clean"
       },
-      "note": "Converts n to base k, encodes digits as decimal, extracts decimal digits, sums them\u2014indirect but functionally correct."
+      "note": "Converts n to base k, encodes digits as decimal, extracts decimal digits, sums them—indirect but functionally correct."
     },
     "solved/p1876_Substrings_of_Size_Three_with_Distinct_Characters_2025_11_03T01_29_55_784151_00_00Z.py": {
       "date": "2025-11-03",
@@ -2406,7 +2406,7 @@
       "moves": {
         "running-sum": "avoided"
       },
-      "note": "Brute force O(n\u00b2) approach avoids optimal running-sum technique; uses set for iteration rather than O(1) lookup"
+      "note": "Brute force O(n²) approach avoids optimal running-sum technique; uses set for iteration rather than O(1) lookup"
     },
     "solved/p1725_Number_Of_Rectangles_That_Can_Form_The_Largest_Square_2025_10_19T03_51_27_096287_00_00Z.py": {
       "date": "2025-10-19",
@@ -2492,7 +2492,7 @@
         "streaming-ask-then-record": "clean",
         "two-pointers-converging": "avoided"
       },
-      "note": "Hash set replaces canonical two-pointer technique; uses derived-key lookup (c = target \u2212 nums[j]) with streaming query-then-record."
+      "note": "Hash set replaces canonical two-pointer technique; uses derived-key lookup (c = target − nums[j]) with streaming query-then-record."
     },
     "solved/p1584_Min_Cost_to_Connect_All_Points_2025_11_06T03_17_33_763387_00_00Z.py": {
       "date": "2025-11-06",
@@ -2521,7 +2521,7 @@
       "moves": {
         "binary-search-boundary": "clean"
       },
-      "note": "Finds leftmost index where (arr[mid] - mid - 1 \u2265 k), then computes answer via left + k. All assertions pass."
+      "note": "Finds leftmost index where (arr[mid] - mid - 1 ≥ k), then computes answer via left + k. All assertions pass."
     },
     "solved/p1539_Kth_Missing_Positive_Number_2025_10_25T22_21_09_555829_00_00Z.py": {
       "date": "2025-10-26",
@@ -2563,7 +2563,7 @@
       "date": "2025-09-28",
       "problem": "1493",
       "moves": {},
-      "note": "Stub only \u2014 no implementation to evaluate"
+      "note": "Stub only — no implementation to evaluate"
     },
     "solved/p15_3Sum_2025_10_23T01_28_14_782125_00_00Z.py": {
       "date": "2025-10-23",
@@ -2608,7 +2608,7 @@
       "moves": {
         "monotonic-stack": "avoided"
       },
-      "note": "Brute force filter O(n\u00b2) avoids the canonical monotonic-stack O(n) approach."
+      "note": "Brute force filter O(n²) avoids the canonical monotonic-stack O(n) approach."
     },
     "solved/p1436_Destination_City_2025_10_20T05_32_03_930300_00_00Z.py": {
       "date": "2025-10-20",
@@ -2732,7 +2732,7 @@
       "moves": {
         "union-find": "clean"
       },
-      "note": "Union-Find with path compression correctly identifies components and detects redundant edges. Final check: can we connect k components with r spare cables (r \u2265 k\u22121). All test cases pass."
+      "note": "Union-Find with path compression correctly identifies components and detects redundant edges. Final check: can we connect k components with r spare cables (r ≥ k−1). All test cases pass."
     },
     "solved/p1332_Remove_Palindromic_Subsequences_2025_11_01T00_33_29_435082_00_00Z.py": {
       "date": "2025-11-01",
@@ -2995,7 +2995,7 @@
         "derived-key-lookup": "clean",
         "streaming-ask-then-record": "clean"
       },
-      "note": "TLE on [0]*3000; approach correct but O(n\u00b2-n\u00b3) for dense/repeated inputs"
+      "note": "TLE on [0]*3000; approach correct but O(n²-n³) for dense/repeated inputs"
     },
     "solved/p557_Reverse_Words_in_a_String_III_2025_10_07T04_09_34_714957_00_00Z.py": {
       "date": "2025-10-07",
@@ -3173,7 +3173,7 @@
         "running-sum": "clean",
         "derived-key-lookup": "clean"
       },
-      "note": "Straightforward implementation; could optimize with prefix-sum array (O(n\u00b2)\u2192O(n)), but current approach is correct and clean."
+      "note": "Straightforward implementation; could optimize with prefix-sum array (O(n²)→O(n)), but current approach is correct and clean."
     },
     "solved/p3264_Final_Array_State_After_K_Multiplication_Operations_I_2025_10_05T02_50_21_776161_00_00Z.py": {
       "date": "2025-10-05",
@@ -3224,7 +3224,7 @@
       "moves": {
         "sort-then-adjacent": "avoided"
       },
-      "note": "Brute-force simulation correct on all tests; avoids canonical O(n log n) sort approach in favor of O(n\u00b2) repeated min/remove."
+      "note": "Brute-force simulation correct on all tests; avoids canonical O(n log n) sort approach in favor of O(n²) repeated min/remove."
     },
     "solved/p3162_Find_the_Number_of_Good_Pairs_I_2025_10_06T21_20_32_450837_00_00Z.py": {
       "date": "2025-10-07",
@@ -3239,7 +3239,7 @@
         "dict-arbitrary-value": "clean",
         "bijection-check": "clean"
       },
-      "note": "Two-direction bijection verified: loop enforces char\u2192word consistency; final condition enforces word\u2192char uniqueness."
+      "note": "Two-direction bijection verified: loop enforces char→word consistency; final condition enforces word→char uniqueness."
     },
     "solved/p2828_Check_if_a_String_Is_an_Acronym_of_Words_2025_10_07T07_06_08_662272_00_00Z.py": {
       "date": "2025-10-07",
@@ -3255,7 +3255,7 @@
       "moves": {
         "two-pointers-converging": "avoided"
       },
-      "note": "Correct answer; avoids sorting + two-pointer convergence via O(n\u00b3) repeated min/max extraction."
+      "note": "Correct answer; avoids sorting + two-pointer convergence via O(n³) repeated min/max extraction."
     },
     "solved/p2859_Sum_of_Values_at_Indices_With_K_Set_Bits_2025_10_06T21_57_19_308694_00_00Z.py": {
       "date": "2025-10-07",
@@ -3271,7 +3271,7 @@
       "moves": {
         "set-membership": "clean"
       },
-      "note": "Correct but O(n\u00b2) via list membership checks; optimal approach uses sets for O(n+m)."
+      "note": "Correct but O(n²) via list membership checks; optimal approach uses sets for O(n+m)."
     },
     "solved/p2864_Maximum_Odd_Binary_Number_2025_10_07T07_48_22_576648_00_00Z.py": {
       "date": "2025-10-07",
@@ -3336,7 +3336,7 @@
       "moves": {
         "two-pointers-converging": "avoided"
       },
-      "note": "Brute-force O(n\u00b2) enumeration; avoids O(n log n) two-pointer after sort."
+      "note": "Brute-force O(n²) enumeration; avoids O(n log n) two-pointer after sort."
     },
     "solved/p2798_Number_of_Employees_Who_Met_the_Target_2025_10_04T22_01_55_381901_00_00Z.py": {
       "date": "2025-10-05",
@@ -3423,7 +3423,7 @@
       "moves": {
         "string-build-transform": "clean"
       },
-      "note": "Input string decomposed \u2192 parts transformed (ascii_uppercase slice, range) \u2192 reassembled via product + join."
+      "note": "Input string decomposed → parts transformed (ascii_uppercase slice, range) → reassembled via product + join."
     },
     "solved/p2114_Maximum_Number_of_Words_Found_in_Sentences_2025_10_05T23_41_26_278733_00_00Z.py": {
       "date": "2025-10-06",
@@ -3431,7 +3431,7 @@
       "moves": {
         "string-build-transform": "clean"
       },
-      "note": "Straightforward \u2014 decomposes each sentence via split() and returns max word count; no complex data structures or algorithms."
+      "note": "Straightforward — decomposes each sentence via split() and returns max word count; no complex data structures or algorithms."
     },
     "solved/p208_Implement_Trie_(Prefix_Tree)_2025_10_01T21_36_57_881457.py": {
       "date": "2025-09-20",
@@ -3479,7 +3479,7 @@
       "moves": {
         "streaming-ask-then-record": "clean"
       },
-      "note": "Cascades values rightward to end, then truncates\u2014O(n) vs canonical O(1) direct swap."
+      "note": "Cascades values rightward to end, then truncates—O(n) vs canonical O(1) direct swap."
     },
     "solved/p2160_Minimum_Sum_of_Four_Digit_Number_After_Splitting_Digits_2025_10_06T00_57_11_801801_00_00Z.py": {
       "date": "2025-10-06",
@@ -3487,7 +3487,7 @@
       "moves": {
         "string-build-transform": "clean"
       },
-      "note": "Greedy sort-and-pair: smallest digits via indices 0,1 \u2192 tens places; largest via 2,3 \u2192 units; minimizes sum."
+      "note": "Greedy sort-and-pair: smallest digits via indices 0,1 → tens places; largest via 2,3 → units; minimizes sum."
     },
     "solved/p2053_Kth_Distinct_String_in_an_Array_2025_10_07T21_37_10_771444_00_00Z.py": {
       "date": "2025-10-08",
@@ -3698,7 +3698,7 @@
       "moves": {
         "running-extreme": "avoided"
       },
-      "note": "Brute-force O(n\u00b2) enumeration of all pairs; avoids O(n) tracking of max and second-max"
+      "note": "Brute-force O(n²) enumeration of all pairs; avoids O(n) tracking of max and second-max"
     },
     "solved/p1389_Create_Target_Array_in_the_Given_Order_2025_10_06T00_28_30_942846_00_00Z.py": {
       "date": "2025-10-06",
@@ -3749,7 +3749,7 @@
       "date": "2025-10-05",
       "problem": "1365",
       "moves": {},
-      "note": "Brute-force O(n\u00b2) nested-loop approach; avoids canonical sorting or counting-sort-buckets techniques."
+      "note": "Brute-force O(n²) nested-loop approach; avoids canonical sorting or counting-sort-buckets techniques."
     },
     "solved/p1342_Number_of_Steps_to_Reduce_a_Number_to_Zero_2025_10_06T22_22_18_298121_00_00Z.py": {
       "date": "2025-10-07",
@@ -3923,7 +3923,7 @@
       "date": "2025-09-15",
       "problem": "867",
       "moves": {},
-      "note": "Solution uses zip(*matrix) unpacking\u2014trivial structural reorganization, no algorithmic techniques from taxonomy exercised."
+      "note": "Solution uses zip(*matrix) unpacking—trivial structural reorganization, no algorithmic techniques from taxonomy exercised."
     },
     "solved/p9_Palindrome_Number_2025_10_01T21_36_57_880924.py": {
       "date": "2025-10-02",
@@ -4261,7 +4261,7 @@
         "tree-carry-down": "clean",
         "tree-combine-returns": "clean"
       },
-      "note": "Detects perfect subtrees (equal left/right heights) and applies 2^(h+1)\u22121 formula for O(log\u00b2 n) solution."
+      "note": "Detects perfect subtrees (equal left/right heights) and applies 2^(h+1)−1 formula for O(log² n) solution."
     },
     "solved/p215_Kth_Largest_Element_in_an_Array_2025_10_01T21_36_57_881388.py": {
       "date": "2025-09-23",
@@ -4570,7 +4570,7 @@
         "string-build-transform": "clean",
         "gcd-reduction": "avoided"
       },
-      "note": "Brute-force divisor search (largest\u2192smallest) avoids canonical math.gcd(len()) approach"
+      "note": "Brute-force divisor search (largest→smallest) avoids canonical math.gcd(len()) approach"
     },
     "solved/p13_Roman_to_Integer_2025_10_01T21_36_57_880875.py": {
       "date": "2025-10-02",
@@ -4579,7 +4579,7 @@
         "dict-arbitrary-value": "struggled",
         "running-sum": "struggled"
       },
-      "note": "reduce used bare\u2014valid, harness/LeetCode preload it"
+      "note": "reduce used bare—valid, harness/LeetCode preload it"
     },
     "solved/p1004_Max_Consecutive_Ones_III_2025_10_01T21_36_57_881604.py": {
       "date": "2025-09-18",
@@ -4629,7 +4629,7 @@
       "date": "2025-10-02",
       "problem": "437",
       "moves": {},
-      "note": "Skeleton only \u2014 no implementation present to judge techniques."
+      "note": "Skeleton only — no implementation present to judge techniques."
     },
     "solved/p2006_Count_Number_of_Pairs_With_Absolute_Difference_K_2026_07_05T02_10_46_701483_00_00Z.py": {
       "date": "2026-07-05",
@@ -4707,7 +4707,7 @@
         "counter-build": "clean",
         "heap-top-k": "clean"
       },
-      "note": "Negated counts (\u2013count, word) tuple leverages heap's lexicographic comparison to handle both max-heap behavior and alphabetical tiebreaking in one pass."
+      "note": "Negated counts (–count, word) tuple leverages heap's lexicographic comparison to handle both max-heap behavior and alphabetical tiebreaking in one pass."
     },
     "solved/p15_3Sum_2025_10_23T02_48_57_349295_00_00Z.py": {
       "date": "2025-10-23",
@@ -4733,7 +4733,7 @@
       "date": "2025-10-26",
       "problem": "1552",
       "moves": {},
-      "note": "Code is unstarted (contains only `pass` \u2014 no solution yet)"
+      "note": "Code is unstarted (contains only `pass` — no solution yet)"
     },
     "solved/p802_Find_Eventual_Safe_States_2025_11_05T10_18_05_709286_00_00Z.py": {
       "date": "2025-11-05",
@@ -4812,7 +4812,7 @@
       "moves": {
         "monotonic-stack": "struggled"
       },
-      "note": "Full warm-up arc: upgraded own MonotonicStack class (pops returned + (val,tag) pairs, own API design), then next-greater-index driver. Needed heavy coaching on pop-must-write and res-indexed-by-position; final code correct \u2014 even caught a faulty assert the coach wrote. Type direction (decreasing for next-greater) was coached. Asked the amortized-O(n) question unprompted. ROOT CAUSE (user articulated post-solve): assumed iteration i must produce res[i] \u2014 synchronous answer production. The unlock: answers are written when the answerer arrives (res[popped], behind the cursor), never for the current position. Same deferred principle as pair-counted-at-second-member from streaming week."
+      "note": "Full warm-up arc: upgraded own MonotonicStack class (pops returned + (val,tag) pairs, own API design), then next-greater-index driver. Needed heavy coaching on pop-must-write and res-indexed-by-position; final code correct — even caught a faulty assert the coach wrote. Type direction (decreasing for next-greater) was coached. Asked the amortized-O(n) question unprompted. ROOT CAUSE (user articulated post-solve): assumed iteration i must produce res[i] — synchronous answer production. The unlock: answers are written when the answerer arrives (res[popped], behind the cursor), never for the current position. Same deferred principle as pair-counted-at-second-member from streaming week."
     },
     "solved/p771_Jewels_and_Stones_2026_08_07T09_19_34_811920_00_00Z.py": {
       "date": "2026-08-07",
@@ -4829,7 +4829,7 @@
         "counter-build": "clean",
         "counts-as-data": "clean"
       },
-      "note": "Uses Counter to count occurrences, checks if any count \u2265 2. Valid alternative to set-membership approach."
+      "note": "Uses Counter to count occurrences, checks if any count ≥ 2. Valid alternative to set-membership approach."
     },
     "solved/p2351_First_Letter_to_Appear_Twice_2026_08_07T09_29_52_086261_00_00Z.py": {
       "date": "2026-08-07",
@@ -5033,7 +5033,7 @@
         "streaming-ask-then-record": "clean",
         "running-extreme": "clean"
       },
-      "note": "Two-pass approach: L\u2192R queries past left-occurrence, R\u2192L queries past right-occurrence and tracks minimum."
+      "note": "Two-pass approach: L→R queries past left-occurrence, R→L queries past right-occurrence and tracks minimum."
     },
     "solved/p70_Climbing_Stairs_2025_10_16T01_39_44_762367_00_00Z.py": {
       "date": "2025-10-16",
@@ -5073,7 +5073,7 @@
       "moves": {
         "sort-by-custom-key": "clean"
       },
-      "note": "Elegant use of custom sort key mapping to buckets (\u2013maxsize, value, maxsize)."
+      "note": "Elegant use of custom sort key mapping to buckets (–maxsize, value, maxsize)."
     },
     "solved/p215_Kth_Largest_Element_in_an_Array_2025_10_13T23_55_00_633244_00_00Z.py": {
       "date": "2025-10-14",
@@ -5115,7 +5115,7 @@
         "derived-key-lookup": "avoided",
         "set-membership": "avoided"
       },
-      "note": "Brute-force combinations enumeration sidesteps canonical streaming-with-set approach; O(n\u00b3) instead of O(n)."
+      "note": "Brute-force combinations enumeration sidesteps canonical streaming-with-set approach; O(n³) instead of O(n)."
     },
     "solved/p3270_Find_the_Key_of_the_Numbers_2025_10_28T08_58_40_960732_00_00Z.py": {
       "date": "2025-10-28",
@@ -5148,7 +5148,7 @@
         "dict-arbitrary-value": "clean",
         "bijection-check": "avoided"
       },
-      "note": "Solution bypasses canonical bijection-check via pattern matching; verifies s and t have identical character occurrence patterns (index lists per char) rather than explicit s\u2194t mapping."
+      "note": "Solution bypasses canonical bijection-check via pattern matching; verifies s and t have identical character occurrence patterns (index lists per char) rather than explicit s↔t mapping."
     },
     "solved/p215_Kth_Largest_Element_in_an_Array_2026_08_10T03_56_16_322541_00_00Z.py": {
       "date": "2026-08-10",
@@ -5214,7 +5214,7 @@
         "dict-arbitrary-value": "avoided",
         "bijection-check": "clean"
       },
-      "note": "Hand-corrected: first-occurrence index canonicalization IS a bijection check (equal index patterns iff a bijection exists between the symbol sets), so the extractor's 'avoided' was wrong. dict-arbitrary-value genuinely avoided \u2014 no dicts used."
+      "note": "Hand-corrected: first-occurrence index canonicalization IS a bijection check (equal index patterns iff a bijection exists between the symbol sets), so the extractor's 'avoided' was wrong. dict-arbitrary-value genuinely avoided — no dicts used."
     },
     "solved/p136_Single_Number_2026_08_11T01_28_50_375713_00_00Z.py": {
       "date": "2026-08-11",
@@ -5280,7 +5280,7 @@
         "memoize-recursion": "clean"
       },
       "assist": "walkthrough",
-      "note": "Indirect approach: formulates edit-distance state, then converts to LCS via (len1+len2\u2212dd)/2 formula."
+      "note": "Indirect approach: formulates edit-distance state, then converts to LCS via (len1+len2−dd)/2 formula."
     },
     "solved/p124_Binary_Tree_Maximum_Path_Sum_2026_08_12T20_10_16_927378_00_00Z.py": {
       "date": "2026-08-13",
@@ -5361,7 +5361,7 @@
         "set-membership": "clean",
         "generate-and-test-neighbors": "clean"
       },
-      "note": "Generate 1..n, test each against the set \u2014 canonical generate-and-test-neighbors rep (extractor under-credited the day-old node)"
+      "note": "Generate 1..n, test each against the set — canonical generate-and-test-neighbors rep (extractor under-credited the day-old node)"
     },
     "solved/p560_Subarray_Sum_Equals_K_2026_08_13T21_34_46_453362_00_00Z.py": {
       "date": "2026-08-14",
@@ -5555,7 +5555,7 @@
         "sort-by-custom-key": "clean",
         "greedy-sort-take": "clean"
       },
-      "note": "sorts by units-per-box descending, then greedily fills the truck in priority order \u2014 both canonical moves exercised cleanly."
+      "note": "sorts by units-per-box descending, then greedily fills the truck in priority order — both canonical moves exercised cleanly."
     },
     "solved/p3289_The_Two_Sneaky_Numbers_of_Digitville_2026_08_16T23_23_00_633568_00_00Z.py": {
       "date": "2026-08-17",
@@ -5570,7 +5570,7 @@
       "moves": {
         "running-sum": "clean"
       },
-      "note": "Uses reduce to accumulate the sum of products (reversed alphabet position \u00d7 string position) in a single scan."
+      "note": "Uses reduce to accumulate the sum of products (reversed alphabet position × string position) in a single scan."
     },
     "solved/p283_Move_Zeroes_2026_08_16T23_36_31_889414_00_00Z.py": {
       "date": "2026-08-17",
@@ -5598,7 +5598,7 @@
       "date": "2026-08-17",
       "problem": "3258",
       "moves": {},
-      "note": "Brute force: O(n\u00b3) enumeration + recount; avoids sliding window's O(n) insight."
+      "note": "Brute force: O(n³) enumeration + recount; avoids sliding window's O(n) insight."
     },
     "solved/p1004_Max_Consecutive_Ones_III_2026_08_17T01_01_00_931297_00_00Z.py": {
       "date": "2026-08-17",
@@ -5772,7 +5772,7 @@
         "binary-search-index": "struggled",
         "rotated-array-pivot": "struggled"
       },
-      "note": "Both canonical moves attempted but with flawed logic; boundary checks and pivot detection don't correctly guide search to minimum \u2014 returns -1 instead of finding the actual minimum."
+      "note": "Both canonical moves attempted but with flawed logic; boundary checks and pivot detection don't correctly guide search to minimum — returns -1 instead of finding the actual minimum."
     },
     "solved/p704_Binary_Search_2026_08_19T02_22_33_209023_00_00Z.py": {
       "date": "2026-08-19",
@@ -5785,7 +5785,7 @@
       "date": "2026-08-20",
       "problem": "2824",
       "moves": {},
-      "note": "Brute-force O(n\u00b2) pair enumeration; avoids canonical sorted two-pointer technique."
+      "note": "Brute-force O(n²) pair enumeration; avoids canonical sorted two-pointer technique."
     },
     "solved/p1720_Decode_XORed_Array_2026_08_20T00_09_49_363709_00_00Z.py": {
       "date": "2026-08-20",
@@ -5906,7 +5906,7 @@
       "date": "2026-08-23",
       "problem": "85",
       "moves": {},
-      "note": "Abandoned attempt \u2014 skeleton with pass statement only; no implementation to judge."
+      "note": "Abandoned attempt — skeleton with pass statement only; no implementation to judge."
     },
     "solved/p297_Serialize_and_Deserialize_Binary_Tree_FAILED_2026_08_22T23_49_59_959102_00_00Z.py": {
       "date": "2026-08-23",
@@ -6619,56 +6619,6 @@
       "assist": "hint",
       "note": "Drill targets and cleanly exercises sql-window-running with SUM(weight) OVER (ORDER BY turn); meets all constraints (one-pass, no self-join/correlated subquery)"
     },
-    "solved/d_Hard_And_Unbanned_2026_08_29T07_46_10_804729_00_00Z.py": {
-      "date": "2026-08-29",
-      "problem": "drill",
-      "moves": {
-        "spark-column-expr": "clean"
-      },
-      "assist": "hint"
-    },
-    "solved/d_Solves_Per_Day_2026_08_29T08_14_18_645141_00_00Z.py": {
-      "date": "2026-08-29",
-      "problem": "drill",
-      "moves": {
-        "spark-group-agg": "clean"
-      },
-      "assist": "hint"
-    },
-    "solved/d_Solves_With_Titles_2026_08_29T08_20_48_088943_00_00Z.py": {
-      "date": "2026-08-29",
-      "problem": "drill",
-      "moves": {
-        "spark-join": "clean"
-      },
-      "assist": "hint"
-    },
-    "solved/d_No_Shuffle_2026_08_29T08_37_13_506085_00_00Z.py": {
-      "date": "2026-08-29",
-      "problem": "drill",
-      "moves": {
-        "spark-column-expr": "clean",
-        "spark-plan-shuffles": "clean"
-      },
-      "assist": "hint"
-    },
-    "solved/d_Spread_To_Eight_2026_08_29T08_46_33_732641_00_00Z.py": {
-      "date": "2026-08-29",
-      "problem": "drill",
-      "moves": {
-        "spark-partitions": "clean"
-      },
-      "assist": "hint",
-      "note": "Correctly uses repartition() to shuffle-grow from 2\u21928 partitions; getNumPartitions verifies result"
-    },
-    "solved/d_One_File_Per_Day_2026_08_29T09_14_08_648450_00_00Z.py": {
-      "date": "2026-08-29",
-      "problem": "drill",
-      "moves": {
-        "spark-parquet-partitioned": "clean"
-      },
-      "assist": "hint"
-    },
     "solved/p3190_Find_Minimum_Operations_to_Make_All_Elements_Divisible_by_Three_2026_08_29T22_56_44_402019_00_00Z.py": {
       "date": "2026-08-30",
       "problem": "3190",
@@ -6847,7 +6797,7 @@
       "moves": {
         "sql-date-arithmetic": "clean"
       },
-      "summary": "The query uses SQLite's date(recordDate, '+1 day') function to compute the next calendar day, delegating month-end and year-boundary arithmetic to the engine. All assertions pass: regular increments, month transitions (01-31 \u2192 02-01), non-leap year handling (02-28 \u2192 03-01), and year-end (12-31 \u2192 01-01)."
+      "summary": "The query uses SQLite's date(recordDate, '+1 day') function to compute the next calendar day, delegating month-end and year-boundary arithmetic to the engine. All assertions pass: regular increments, month transitions (01-31 → 02-01), non-leap year handling (02-28 → 03-01), and year-end (12-31 → 01-01)."
     },
     "solved/d_Island_Key_2026_08_30T04_56_14_750189_00_00Z.py": {
       "date": "2026-08-30",
@@ -6857,138 +6807,7 @@
         "sql-gaps-islands": "clean"
       },
       "note": "REQUIRED window function applied correctly; constant-key pattern for islands verified by output.",
-      "summary": "The query uses `row_number() over (order by id)` to number rows sequentially, then computes `id - row_number()` as a constant group key that identifies consecutive sequences (islands). Rows 1\u20133 yield 0, rows 5\u20136 yield 1, row 9 yields 3; the gap at id=4 breaks the sequence. The solution exercises sql-window-rank (the ROW_NUMBER window function) and sql-gaps-islands (the value-minus-rank technique for grouping consecutive runs)."
-    },
-    "solved/d_Hard_And_Unbanned_2026_08_30T05_21_28_315927_00_00Z.py": {
-      "date": "2026-08-30",
-      "problem": "drill",
-      "moves": {
-        "spark-column-expr": "clean"
-      },
-      "summary": "Filters problems for Hard difficulty and unbanned status, selecting num and title. Uses F.col() Column expressions in chained filters to build predicates that Spark evaluates, correctly avoiding Python boolean operators per REQUIRED."
-    },
-    "solved/d_Rows_Per_Day_2026_08_30T06_27_44_056537_00_00Z.py": {
-      "date": "2026-08-30",
-      "problem": "drill",
-      "moves": {
-        "spark-group-agg": "clean"
-      },
-      "assist": "hint",
-      "summary": "The code groups records by date and counts rows per group using Spark's groupBy().count() pattern. This straightforward application correctly exercises the group-aggregation move to produce the count per date. The candidate was assisted at hint level on first exposure to groupBy and count operations."
-    },
-    "solved/d_Solves_With_Titles_2026_08_30T06_33_25_203207_00_00Z.py": {
-      "date": "2026-08-30",
-      "problem": "drill",
-      "moves": {
-        "spark-join": "clean"
-      },
-      "assist": "walkthrough",
-      "summary": "The code joins two DataFrames on differently named keys (solves.problem == problems.num), then selects three columns (file, title, difficulty) without including the join keys, demonstrating the spark-join pattern. The inner join correctly excludes rows where a problem ID has no match in the problems table."
-    },
-    "solved/d_Number_And_Title_2026_08_30T06_42_23_952609_00_00Z.py": {
-      "date": "2026-08-30",
-      "problem": "drill",
-      "moves": {
-        "spark-column-expr": "clean"
-      },
-      "summary": "Selects num and title from problems with select([\"num\", \"title\"]), the move the rung trains."
-    },
-    "solved/d_Rows_Per_Day_2026_08_30T06_43_36_708664_00_00Z.py": {
-      "date": "2026-08-30",
-      "problem": "drill",
-      "moves": {
-        "spark-group-agg": "clean"
-      },
-      "summary": "Groups DataFrame rows by date and counts rows per group using groupBy().count(). Exercises spark-group-agg via the required .count() shorthand."
-    },
-    "solved/d_Solve_Count_Per_Day_2026_08_30T06_50_29_820967_00_00Z.py": {
-      "date": "2026-08-30",
-      "problem": "drill",
-      "moves": {},
-      "note": "Uses groupBy().count() instead of groupBy().agg(F.count(...).alias('solves')); output column is 'count' not 'solves'.",
-      "summary": "The code groups entries by date and counts them per group, producing correct output values. It sidesteps the spark-group-agg pattern by using the .count() convenience method instead of .agg(F.count(...).alias('solves')), and names the output column 'count' rather than 'solves' as specified in the REQUIRED constraint."
-    },
-    "solved/d_Solves_With_Titles_2026_08_30T06_52_36_416991_00_00Z.py": {
-      "date": "2026-08-30",
-      "problem": "drill",
-      "moves": {
-        "spark-join": "clean"
-      },
-      "summary": "The code joins two DataFrames on differently named keys (solves.problem == problems.num) using an inner join, then selects only the output columns [file, title, difficulty], excluding both key columns from the result. The inner join drops unmatched rows: d.py pointing to non-existent problem 999 in example 1, and a.py pointing to problem 7 in example 2."
-    },
-    "solved/d_Nodes_Nobody_Has_Touched_2026_08_30T06_58_33_805048_00_00Z.py": {
-      "date": "2026-08-30",
-      "problem": "drill",
-      "moves": {
-        "spark-join": "clean"
-      },
-      "assist": "hint",
-      "note": "User was new to left_anti and was assisted to add it as the join argument.",
-      "summary": "The solution uses a PySpark left_anti join between nodes and verdicts DataFrames to identify untouched nodes. It matches nodes.id == verdicts.node_id and keeps only left rows (nodes without matching verdicts), then selects the node columns. This directly exercises the spark-join move using the anti-join pattern to answer 'which nodes have no verdicts'."
-    },
-    "solved/d_Solves_With_Titles_2026_08_30T07_01_25_209254_00_00Z.py": {
-      "date": "2026-08-30",
-      "problem": "drill",
-      "moves": {
-        "spark-join": "clean"
-      },
-      "summary": "The solution joins two Spark DataFrames on differently named keys (problem and num) using .join() with an explicit equality condition, then selects the three required output columns without the join keys. The INNER join discards unmatched rows when their problem references don't exist in the problems table."
-    },
-    "solved/d_Nodes_With_Their_Verdicts_2026_08_30T07_11_54_524319_00_00Z.py": {
-      "date": "2026-08-30",
-      "problem": "drill",
-      "moves": {
-        "spark-join": "clean"
-      },
-      "summary": "Spark left join on nodes.id == verdicts.node_id keeps all nodes, pairing each with its verdict file or NULL if unmatched. The select picks only id and file, dropping the extra join key. Clean execution of left-outer join semantics as required."
-    },
-    "solved/d_Reps_Per_Node_Zeros_Included_2026_08_30T07_19_47_538665_00_00Z.py": {
-      "date": "2026-08-30",
-      "problem": "drill",
-      "moves": {
-        "spark-join": "clean",
-        "spark-group-agg": "clean"
-      },
-      "assist": "hint",
-      "note": "Left join preserves unmatched nodes; F.count() skips NULLs to yield 0 for verdicts-only nodes.",
-      "summary": "The transform performs a left join of nodes with verdicts on node_id, groups by node id, and counts verdicts per group using F.count(), which correctly returns 0 for unmatched nodes because COUNT() excludes NULLs. Both spark-join (left join semantics to keep all nodes) and spark-group-agg (groupBy with count aggregation) are exercised. The candidate was helped with understanding .agg() and .alias() behavior."
-    },
-    "solved/d_Dense_Rank_Per_Score_2026_08_30T07_46_36_075138_00_00Z.py": {
-      "date": "2026-08-30",
-      "problem": "drill",
-      "moves": {
-        "spark-window-rank": "clean"
-      },
-      "assist": "hint",
-      "note": "Assisted; drill specifies dense_rank() behavior (1,1,2,3,3,4 no gaps).",
-      "summary": "The solution creates a Spark Window ordered by score descending, then applies dense_rank().over(w) to assign sequential ranks where equal scores share the same rank and the next rank continues without gaps (1,1,2,3,3,4). The window-rank move is exercised cleanly; the output matches both examples."
-    },
-    "solved/d_Rep_Number_Per_Node_2026_08_30T08_03_52_055104_00_00Z.py": {
-      "date": "2026-08-30",
-      "problem": "drill",
-      "moves": {
-        "spark-window-rank": "clean",
-        "spark-column-expr": "clean"
-      },
-      "assist": "walkthrough",
-      "summary": "The solution adds a row_number column that restarts at 1 for each node_id, ordered by date descending (newest first). It exercises spark-window-rank via F.row_number().over(Window.partitionBy('node_id').orderBy(F.col('date').desc())) and spark-column-expr via F.col('date').desc(). The code is clean and handles all required constraints correctly."
-    },
-    "solved/d_Rep_Number_Per_Node_2026_08_30T08_18_45_695686_00_00Z.py": {
-      "date": "2026-08-30",
-      "problem": "drill",
-      "moves": {
-        "spark-window-rank": "clean"
-      },
-      "assist": "walkthrough",
-      "summary": "Drill targeting spark-window-rank. The solution correctly partitions by node_id, orders by date descending, and assigns row numbers restarting at 1 per partition using F.row_number().over(Window.partitionBy().orderBy()). The operator implemented the pattern cleanly."
-    },
-    "solved/d_Hard_Problems_2026_08_30T08_25_55_113406_00_00Z.py": {
-      "date": "2026-08-30",
-      "problem": "drill",
-      "moves": {
-        "spark-column-expr": "clean"
-      },
-      "summary": "The solution filters a Spark DataFrame using F.col(\"difficulty\") == \"Hard\" as a Column expression passed to filter(). This trains spark-column-expr by demonstrating how to build a condition from F.col() and apply it directly, meeting the REQUIRED constraint of using Column expressions without collect() or toPandas(). The code executed successfully with all assertions passing."
+      "summary": "The query uses `row_number() over (order by id)` to number rows sequentially, then computes `id - row_number()` as a constant group key that identifies consecutive sequences (islands). Rows 1–3 yield 0, rows 5–6 yield 1, row 9 yields 3; the gap at id=4 breaks the sequence. The solution exercises sql-window-rank (the ROW_NUMBER window function) and sql-gaps-islands (the value-minus-rank technique for grouping consecutive runs)."
     }
   }
 }
