@@ -814,6 +814,22 @@ def test_early_reviews_solid_nodes_prereqs_first(picker):
     assert picker.run(ns, ps, ev, st, group="g", early=True) is None
 
 
+def test_early_walks_the_ladder_missing_after_its_solid_prereqs(picker):
+    """The 2026-08-30 spark serve: `make next spark cram early` jumped
+    straight to the MISSING window node. Early means the whole group in
+    ladder order - the SOLID prereqs are jogged first, the new move after."""
+    ns = nodes("base", ("dep", ["base"]))
+    ps = {}
+    picker.bank = {"base", "dep"}
+    ev = evidence(solve("9", {"base": "clean"}, days_ago=1))
+    st = {"base": (SOLID, ago(1)), "dep": (MISSING, None)}
+    ns["base"]["group"] = ns["dep"]["group"] = "g"
+    assert picker.run(ns, ps, ev, st, group="g")[2] == "drill:dep"
+    assert picker.run(ns, ps, ev, st, group="g", early=True)[2] == "drill:base"
+    picker.drilled_today = {"base"}
+    assert picker.run(ns, ps, ev, st, group="g", early=True)[2] == "drill:dep"
+
+
 def test_a_node_whose_only_carrier_is_cooling_is_waiting_not_dry(picker):
     """The 2026-08-29 empty serve: pair-count-formula's one carrier was
     solved three days ago, pick() skipped it as not cooled, and the old
