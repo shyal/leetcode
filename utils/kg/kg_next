@@ -1140,7 +1140,11 @@ def main():
                 console.print(f"[dim](tree drawing failed — {type(e).__name__}; cosmetic, pick unaffected)[/dim]")
         animate(cap.get())
         warn_dry(served=True)
-        prepare(target)
+        # the exact file the pick chose, not the node: `utils/kg/drill <node>`
+        # re-picks with the everyday ladder rule (unaided-clean bar), which
+        # under `cram early` handed back r1 while the pick said r3
+        # (the 2026-08-30 spark-join circle)
+        prepare(path)
         return
 
     p = problems[pnum]
