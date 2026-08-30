@@ -6884,6 +6884,13 @@
       },
       "assist": "walkthrough",
       "summary": "The code joins two DataFrames on differently named keys (solves.problem == problems.num), then selects three columns (file, title, difficulty) without including the join keys, demonstrating the spark-join pattern. The inner join correctly excludes rows where a problem ID has no match in the problems table."
+    },
+    "solved/d_Number_And_Title_2026_08_30T06_42_23_952609_00_00Z.py": {
+      "date": "2026-08-30",
+      "problem": "drill",
+      "moves": {},
+      "note": "Uses string column selection instead of F.col() expressions",
+      "summary": "The drill selects two columns (num, title) from a problems DataFrame. The solution uses `select([\"num\", \"title\"])` with string column names, which works correctly but avoids the explicit F.col() expression API that spark-column-expr teaches."
     }
   }
 }
