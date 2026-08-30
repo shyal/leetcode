@@ -6914,6 +6914,16 @@
         "spark-join": "clean"
       },
       "summary": "The code joins two DataFrames on differently named keys (solves.problem == problems.num) using an inner join, then selects only the output columns [file, title, difficulty], excluding both key columns from the result. The inner join drops unmatched rows: d.py pointing to non-existent problem 999 in example 1, and a.py pointing to problem 7 in example 2."
+    },
+    "solved/d_Nodes_Nobody_Has_Touched_2026_08_30T06_58_33_805048_00_00Z.py": {
+      "date": "2026-08-30",
+      "problem": "drill",
+      "moves": {
+        "spark-join": "clean"
+      },
+      "assist": "hint",
+      "note": "User was new to left_anti and was assisted to add it as the join argument.",
+      "summary": "The solution uses a PySpark left_anti join between nodes and verdicts DataFrames to identify untouched nodes. It matches nodes.id == verdicts.node_id and keeps only left rows (nodes without matching verdicts), then selects the node columns. This directly exercises the spark-join move using the anti-join pattern to answer 'which nodes have no verdicts'."
     }
   }
 }
