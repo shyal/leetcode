@@ -6840,6 +6840,14 @@
       "assist": "hint",
       "note": "Forgot HAVING keyword but logic and anti-join pattern were correct.",
       "summary": "The solution finds employees who manage nobody by left-joining the Employees table to itself, grouping by employee, and filtering with HAVING to keep only those with no matches. The code exercises the anti-join and self-join techniques, though the candidate initially forgot the HAVING keyword and asked for clarification."
+    },
+    "solved/d_Next_Day_2026_08_30T04_53_17_514859_00_00Z.py": {
+      "date": "2026-08-30",
+      "problem": "drill",
+      "moves": {
+        "sql-date-arithmetic": "clean"
+      },
+      "summary": "The query uses SQLite's date(recordDate, '+1 day') function to compute the next calendar day, delegating month-end and year-boundary arithmetic to the engine. All assertions pass: regular increments, month transitions (01-31 \u2192 02-01), non-leap year handling (02-28 \u2192 03-01), and year-end (12-31 \u2192 01-01)."
     }
   }
 }
