@@ -64,7 +64,7 @@ Constraints:
 
     1 <= number of rows <= 10^4
 
-    REQUIRED: at most two rows per difficulty, and the output must carry
+    REQUIRED: at most two rows per difficulty, and the output has
     only the three columns named. A ranking that lets ties share a place
     returns three Easy rows on a three-way tie and fails. NO collect(),
     NO Python loop over difficulties.

@@ -58,7 +58,7 @@ Constraints:
     1 <= number of rows <= 10^4
 
     REQUIRED: exactly one row per node, chosen by date, with the other
-    columns of that same row; the output must carry only the three columns
+    columns of that same row; the output has only the three columns
     named. NO dropDuplicates (the survivor is arbitrary), NO groupBy max
     joined back, NO collect().
 
