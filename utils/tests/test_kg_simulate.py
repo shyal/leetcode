@@ -65,6 +65,19 @@ def test_rusty_nodes_bounded(run):
         f"(cap {RUSTY_CAP}); the picker is not repairing what goes rusty")
 
 
+def test_series_one_row_per_day(run):
+    """The README forecast chart (utils/readme/kg_forecast_svg) reads the
+    per-day series: one row per simulated day, the day's solves summing to
+    the run's totals, the last row's onsite the run's."""
+    s = run["series"]
+    assert len(s) == run["day"]
+    assert [d["day"] for d in s] == sorted(d["day"] for d in s)
+    for kind, n in run["per_kind"].items():
+        assert sum(d["solves"][kind] for d in s) == n
+    assert s[-1]["onsite"] == run["onsite"]
+    assert all(0 <= d[k] <= 1 for d in s for k in ("onsite", "screen", "hard"))
+
+
 def test_no_node_starves(run):
     assert not run["starved"], "rusty %d+ days in a row with nothing aimed at it: %s" % (
         kg_simulate.STARVED_DAYS,

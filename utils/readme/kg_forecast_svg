@@ -1,0 +1,290 @@
+#!/usr/bin/env python3
+
+# kg_forecast_svg - the history and the forecast on one time axis, rendered
+# into graph/forecast.svg for the README pipeline. Left of today, what
+# happened, from evidence.json day by day. Right of today, what
+# kg_simulate says happens next: the real picker (kg_next.pick) run
+# forward at the measured pace until central P(onsite) reaches 50%.
+#
+# Three lanes share the x axis (one time axis, no second y scale):
+#   volume   cumulative solves by kind (Easy, Medium, Hard, drill), stacked
+#   nodes    STALE and FRAGILE node counts at the end of each day
+#   pass     central P(onsite), with P(screen) and P(hard), and the 50% mark
+#
+# The past pass rates are the closed-form pass model kg_simulate reports
+# (PassExpectation on the evidence visible that day; today's curve and
+# pools; no practice credit, as `make mock` starts each run), so the line
+# is continuous at today. The forecast is one draw per seed: every seed in
+# SEEDS in the pass lane, SEEDS[0] alone in the other two lanes and in the
+# title. A measured pace of 0h/day (a lapse) leaves the forecast out and
+# says so in the title.
+
+import os
+import sys
+from datetime import date, timedelta
+from importlib.machinery import SourceFileLoader
+
+from kg.kg_lib import (
+    GRAPH_DIR, SCENARIOS, STALE, FRAGILE, load_nodes, load_problems,
+    load_evidence, load_predicted, node_status, current_recall,
+    problem_difficulty, mass_term, _load_curve,
+)
+
+KG = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "kg")
+kg_simulate = SourceFileLoader("kg_simulate", os.path.join(KG, "kg_simulate")).load_module()
+
+OUT = os.path.join(GRAPH_DIR, "forecast.svg")
+SEEDS = (1, 2, 3, 4, 5)
+KINDS = ("Easy", "Medium", "Hard", "drill")
+
+W, H = 1200, 780
+BG = "#0d1117"
+INK = "#c9d1d9"
+MUTED = "#8b949e"
+GRID = "#21262d"
+TODAY = "#f0f6fc"
+KIND_C = {"Easy": "#199e70", "Medium": "#3987e5", "Hard": "#d95926", "drill": "#9085e9"}
+STALE_C, FRAGILE_C = "#c98500", "#d55181"
+ONSITE_C, SCREEN_C, HARD_C = "#f0f6fc", "#3987e5", "#d95926"
+ML, MR = 62, 150
+LANES = {"volume": (64, 300), "nodes": (346, 470), "pass": (516, 720)}
+
+
+def history(nodes, problems, evidence, expect, r_base):
+    """One row per calendar day from the first evidence record to today:
+    (date, solves per kind, stale, fragile, onsite, screen, hard)."""
+    today = date.today()
+    d = date.fromisoformat(min(r["date"] for r in evidence.values()))
+    curve = _load_curve()
+    by_day = {}
+    for r in evidence.values():
+        kind = "drill" if r["problem"] == "drill" else problem_difficulty(r["problem"], problems)
+        if kind in KINDS:
+            by_day.setdefault(r["date"], {k: 0 for k in KINDS})[kind] += 1
+    rows = []
+    while d <= today:
+        k = d.isoformat()
+        seen = {f: r for f, r in evidence.items() if r["date"] <= k}
+        statuses = [node_status(n, seen, today=d)[0] for n in nodes]
+        recall = current_recall(nodes, seen, curve, today=d)
+        _, onsite, screen, hard = expect.rates(recall, (0, 0, 0), r_base)
+        rows.append((d, by_day.get(k, {kk: 0 for kk in KINDS}),
+                     statuses.count(STALE), statuses.count(FRAGILE), onsite, screen, hard))
+        d += timedelta(days=1)
+    return rows
+
+
+def forecast(seed):
+    try:
+        return kg_simulate.run(seed=seed, log=lambda *a: None)
+    except SystemExit as e:
+        print(f"no forecast: {e}")
+        return None
+
+
+def main():
+    nodes = load_nodes()
+    problems = load_problems()
+    evidence = load_evidence()
+    curve = _load_curve()
+    if not curve:
+        sys.exit("graph/curve.json missing - run make curve first")
+    pools = kg_simulate.build_pools(problems, load_predicted(), nodes)
+    expect = kg_simulate.PassExpectation(pools, list(nodes), mass_term(pools, problems, curve))
+    past = history(nodes, problems, evidence, expect, SCENARIOS["central"])
+    runs = [r for r in (forecast(s) for s in SEEDS) if r]
+    main_run = runs[0] if runs else None
+    P = len(past)  # past[P - 1] is today
+    horizon = max((r["day"] for r in runs), default=0)
+    N = P + horizon
+
+    def x_of(i):
+        return ML + i / max(N - 1, 1) * (W - ML - MR)
+
+    def path(pts, color, width, dash=None, opacity=1.0):
+        d = "M" + " L".join(f"{x:.1f},{y:.1f}" for x, y in pts)
+        extra = f' stroke-dasharray="{dash}"' if dash else ""
+        return (f'<path d="{d}" fill="none" stroke="{color}" stroke-width="{width}" '
+                f'stroke-opacity="{opacity}" stroke-linejoin="round"{extra}/>')
+
+    def text(x, y, s, size=11, color=INK, anchor="start"):
+        return (f'<text x="{x:.1f}" y="{y:.1f}" font-size="{size}" fill="{color}" '
+                f'text-anchor="{anchor}">{s}</text>')
+
+    def swatch(x, y, color, label):
+        return (f'<rect x="{x:.1f}" y="{y - 9:.1f}" width="10" height="10" rx="2" fill="{color}"/>'
+                + text(x + 15, y, label))
+
+    def grid(lane, ymax, step, fmt=str):
+        top, bottom = LANES[lane]
+        out = []
+        g = 0
+        while g <= ymax + 1e-9:
+            y = bottom - g / ymax * (bottom - top)
+            out.append(f'<line x1="{ML}" y1="{y:.1f}" x2="{W - MR}" y2="{y:.1f}" '
+                       f'stroke="{GRID}" stroke-width="1"/>')
+            out.append(text(ML - 8, y + 4, fmt(g), color=MUTED, anchor="end"))
+            g += step
+        return out
+
+    svg = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" '
+           f'font-family="Helvetica,sans-serif">',
+           f'<rect width="{W}" height="{H}" fill="{BG}"/>']
+    if main_run:
+        end = main_run["start"] + timedelta(days=main_run["day"])
+        total = sum(main_run["per_kind"].values())
+        reached = main_run["onsite"] >= kg_simulate.TARGET_ONSITE
+        title = (f"History, then the forecast: make simulate at {main_run['hours']:g}h/day "
+                 f"({main_run['source']}), seed {SEEDS[0]}: "
+                 + (f"P(onsite) 50% on {end.isoformat()}, day {main_run['day']}, "
+                    f"after {total} more solves"
+                    if reached else
+                    f"P(onsite) {main_run['onsite']:.0%} after {main_run['day']} days, not 50%"))
+    else:
+        title = "History; no forecast (measured pace 0h/day)"
+    svg.append(text(W / 2, 24, title, size=13, anchor="middle"))
+
+    # x positions and the today line
+    today_x = x_of(P - 1)
+    for top, bottom in LANES.values():
+        svg.append(f'<line x1="{today_x:.1f}" y1="{top}" x2="{today_x:.1f}" y2="{bottom}" '
+                   f'stroke="{TODAY}" stroke-width="1" stroke-dasharray="2 3"/>')
+    svg.append(text(today_x, LANES["volume"][0] - 8, "today", color=TODAY, anchor="middle"))
+    if main_run:
+        svg.append(text((today_x + W - MR) / 2, LANES["volume"][0] - 8, "forecast",
+                        color=MUTED, anchor="middle"))
+
+    # --- volume: cumulative solves by kind, stacked ---
+    cum = {k: [] for k in KINDS}
+    run_tot = {k: 0 for k in KINDS}
+    for _, solves, *_ in past:
+        for k in KINDS:
+            run_tot[k] += solves[k]
+            cum[k].append(run_tot[k])
+    past_tot = dict(run_tot)
+    if main_run:
+        for day in main_run["series"]:
+            for k in KINDS:
+                run_tot[k] += day["solves"][k]
+                cum[k].append(run_tot[k])
+    n_vol = len(cum["Easy"])
+    stack_max = max(sum(cum[k][-1] for k in KINDS), 1)
+    top, bottom = LANES["volume"]
+
+    def y_vol(v):
+        return bottom - v / (stack_max * 1.05) * (bottom - top)
+
+    step = 100 if stack_max > 400 else 50 if stack_max > 150 else 20
+    svg += grid("volume", stack_max * 1.05, step, lambda g: str(int(g)))
+    svg.append(text(ML, top - 8, "cumulative solves by kind, stacked (Easy at the bottom)"))
+    lower = [0] * n_vol
+    for k in KINDS:
+        upper = [l + c for l, c in zip(lower, cum[k])]
+        for lo, hi, op in ((0, P, 0.75), (P - 1, n_vol, 0.35)):
+            if hi - lo < 2:
+                continue
+            xs = [x_of(i) for i in range(lo, hi)]
+            pts = [f"{x:.1f},{y_vol(u):.1f}" for x, u in zip(xs, upper[lo:hi])]
+            pts += [f"{x:.1f},{y_vol(l):.1f}" for x, l in zip(reversed(xs), reversed(lower[lo:hi]))]
+            svg.append(f'<polygon points="{" ".join(pts)}" fill="{KIND_C[k]}" fill-opacity="{op}"/>')
+        svg.append(path([(x_of(i), y_vol(u)) for i, u in enumerate(upper)], BG, 2))
+        lower = upper
+    # direct labels: count so far, and the forecast's addition
+    y_prev = None
+    lower_end = 0
+    for k in KINDS:
+        top_end = lower_end + cum[k][-1]
+        y = y_vol((lower_end + top_end) / 2)
+        if y_prev is not None and y_prev - y < 13:
+            y = y_prev - 13
+        lab = f"{k} {past_tot[k]}"
+        if main_run:
+            lab += f" +{cum[k][-1] - past_tot[k]}"
+        svg.append(f'<rect x="{W - MR + 6}" y="{y - 9:.1f}" width="10" height="10" rx="2" fill="{KIND_C[k]}"/>')
+        svg.append(text(W - MR + 21, y, lab))
+        y_prev = y
+        lower_end = top_end
+
+    # --- nodes: STALE and FRAGILE counts at the end of each day ---
+    stale = [r[2] for r in past]
+    fragile = [r[3] for r in past]
+    if main_run:
+        stale += [d["stale"] for d in main_run["series"]]
+        fragile += [d["fragile"] for d in main_run["series"]]
+    top, bottom = LANES["nodes"]
+    nmax = max(max(stale), max(fragile), 5)
+
+    def y_nod(v):
+        return bottom - v / (nmax * 1.15) * (bottom - top)
+
+    svg += grid("nodes", nmax * 1.15, 5 if nmax > 12 else 2, lambda g: str(int(g)))
+    svg.append(text(ML, top - 8, f"nodes STALE and FRAGILE at the end of the day, of {len(nodes)}"))
+    for ys, color, lab in ((stale, STALE_C, "STALE"), (fragile, FRAGILE_C, "FRAGILE")):
+        svg.append(path([(x_of(i), y_nod(v)) for i, v in enumerate(ys[:P])], color, 2))
+        if len(ys) > P:
+            svg.append(path([(x_of(i), y_nod(v)) for i, v in enumerate(ys) if i >= P - 1],
+                            color, 2, dash="5 4"))
+    for i, (ys, color, lab) in enumerate(((stale, STALE_C, "STALE"), (fragile, FRAGILE_C, "FRAGILE"))):
+        svg.append(swatch(W - MR + 6, top + 14 + i * 16, color, f"{lab} {ys[P - 1]} today"))
+
+    # --- pass: P(onsite), P(screen), P(hard) ---
+    top, bottom = LANES["pass"]
+
+    def y_pct(v):
+        return bottom - v / 1.0 * (bottom - top)
+
+    svg += grid("pass", 1.0, 0.25, lambda g: f"{g:.0%}")
+    svg.append(text(ML, top - 8, "central pass rates, closed form of the mock model: "
+                    "P(onsite: 2 Easy + 2 Medium + at least 1 Hard), P(screen: 2 Medium), P(one Hard)"))
+    y50 = y_pct(0.5)
+    svg.append(f'<line x1="{ML}" y1="{y50:.1f}" x2="{W - MR}" y2="{y50:.1f}" '
+               f'stroke="{INK}" stroke-width="1" stroke-dasharray="6 4"/>')
+    svg.append(text(ML + 6, y50 - 5, "ready = 50%", color=INK))
+    for idx, color, width in ((6, HARD_C, 1.4), (5, SCREEN_C, 1.4), (4, ONSITE_C, 2.4)):
+        svg.append(path([(x_of(i), y_pct(r[idx])) for i, r in enumerate(past)], color, width))
+    key = {4: "onsite", 5: "screen", 6: "hard"}
+    for run in runs:
+        primary = run is main_run
+        for idx, color, width in ((6, HARD_C, 1.4), (5, SCREEN_C, 1.4), (4, ONSITE_C, 2.4)):
+            if not primary and idx != 4:
+                continue
+            pts = [(x_of(P - 1), y_pct(past[-1][idx]))]
+            pts += [(x_of(P - 1 + j + 1), y_pct(d[key[idx]])) for j, d in enumerate(run["series"])]
+            svg.append(path(pts, color, width if primary else 1,
+                            dash="5 4" if primary else None,
+                            opacity=1.0 if primary else 0.35))
+    if main_run and main_run["onsite"] >= kg_simulate.TARGET_ONSITE:
+        cx, cy = x_of(P - 1 + main_run["day"]), y_pct(main_run["onsite"])
+        svg.append(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="5" fill="{ONSITE_C}" stroke="{BG}" stroke-width="2"/>')
+        end = main_run["start"] + timedelta(days=main_run["day"])
+        svg.append(text(cx - 9, cy - 10, f"{end.isoformat()}, day {main_run['day']}", color=INK, anchor="end"))
+    labels = ((ONSITE_C, f"P(onsite) {past[-1][4]:.0%} today"),
+              (SCREEN_C, f"P(screen) {past[-1][5]:.0%}"),
+              (HARD_C, f"P(hard) {past[-1][6]:.0%}"))
+    for i, (color, lab) in enumerate(labels):
+        svg.append(swatch(W - MR + 6, top + 14 + i * 16, color, lab))
+    if len(runs) > 1:
+        svg.append(text(W - MR + 6, top + 14 + 3 * 16 + 4,
+                        f"thin: seeds {', '.join(str(s) for s in SEEDS[1:])}", color=MUTED))
+
+    # month ticks along the bottom; the forecast's dates continue the axis
+    d0 = past[0][0]
+    for i in range(N):
+        d = d0 + timedelta(days=i)
+        if d.day == 1:
+            x = x_of(i)
+            for top, bottom in LANES.values():
+                svg.append(f'<line x1="{x:.1f}" y1="{top}" x2="{x:.1f}" y2="{bottom}" '
+                           f'stroke="{GRID}" stroke-width="1"/>')
+            svg.append(text(x, LANES["pass"][1] + 18, d.strftime("%b %y"), color=MUTED, anchor="middle"))
+    svg.append(text(ML, H - 14, "solid: history from graph/evidence.json. dashed and faded: "
+                    "the forecast, one draw of the real picker per seed (utils/kg/kg_simulate).",
+                    color=MUTED))
+    svg.append("</svg>")
+    with open(OUT, "w") as f:
+        f.write("\n".join(svg) + "\n")
+    print(f"wrote {OUT} ({P} days of history, {horizon} forecast days, {len(runs)} seeds)")
+
+
+if __name__ == "__main__":
+    main()

@@ -10,7 +10,7 @@ So, here's my new approach: i decided on a new thesis: to focus on the core tech
 
 <!-- KG_MOVIE -->
 
-![Technique graph growing solve by solve](https://shyal.s3.amazonaws.com/kg_movie_20260831074502.svg)
+![Technique graph growing solve by solve](https://shyal.s3.amazonaws.com/kg_movie_20260831105738.svg)
 
 <!-- /KG_MOVIE -->
 
@@ -22,7 +22,7 @@ Looking at my last leetcode grind, roughly October and November 2025, i plateaue
 
 <!-- PASS_PROB_CHART -->
 
-![P(pass a mock) over time](https://shyal.s3.amazonaws.com/pass_probability_20260831074502.svg)
+![P(pass a mock) over time](https://shyal.s3.amazonaws.com/pass_probability_20260831105738.svg)
 
 <!-- /PASS_PROB_CHART -->
 
@@ -30,7 +30,7 @@ The same story with effort as the x axis. A plateau is a long flat slog: hundred
 
 <!-- YIELD_CHART -->
 
-![What a solve buys](https://shyal.s3.amazonaws.com/yield_20260831074502.svg)
+![What a solve buys](https://shyal.s3.amazonaws.com/yield_20260831105738.svg)
 
 <!-- /YIELD_CHART -->
 
@@ -38,25 +38,25 @@ The green bars in the chart below show **consolidation** periods: times when P i
 
 <!-- YIELD_TIME_CHART -->
 
-![Two kinds of sideways](https://shyal.s3.amazonaws.com/yield_time_20260831074502.svg)
+![Two kinds of sideways](https://shyal.s3.amazonaws.com/yield_time_20260831105738.svg)
 
 <!-- /YIELD_TIME_CHART -->
 
 <!-- MOCK_DIST_CHART -->
 
-![Simulated mock outcomes over time](https://shyal.s3.amazonaws.com/mock_dist_20260831074502.svg)
+![Simulated mock outcomes over time](https://shyal.s3.amazonaws.com/mock_dist_20260831105738.svg)
 
 <!-- /MOCK_DIST_CHART -->
 
 <!-- MOCK_SWARM_CHART -->
 
-![Individual simulated mocks over time](https://shyal.s3.amazonaws.com/mock_swarm_20260831074502.svg)
+![Individual simulated mocks over time](https://shyal.s3.amazonaws.com/mock_swarm_20260831105738.svg)
 
 <!-- /MOCK_SWARM_CHART -->
 
 <!-- MOCK_BLAME_CHART -->
 
-![Why simulated mocks fail, over time](https://shyal.s3.amazonaws.com/mock_blame_20260831074502.svg)
+![Why simulated mocks fail, over time](https://shyal.s3.amazonaws.com/mock_blame_20260831105738.svg)
 
 <!-- /MOCK_BLAME_CHART -->
 
@@ -72,7 +72,7 @@ The model is power-law forgetting with a slip rate, P(recall) = (1−slip)·(1 +
 
 <!-- POSITIONS_SVG -->
 
-![Nodes sliding down their forgetting curves](https://shyal.s3.amazonaws.com/positions_20260831074502.svg)
+![Nodes sliding down their forgetting curves](https://shyal.s3.amazonaws.com/positions_20260831105738.svg)
 
 <!-- /POSITIONS_SVG -->
 
@@ -80,13 +80,13 @@ The model also tracks its accuracy internally, by comparing its predictions with
 
 <!-- CURVE_CALIBRATION_CHART -->
 
-![Curve calibration](https://shyal.s3.amazonaws.com/curve_calibration_20260831074502.svg)
+![Curve calibration](https://shyal.s3.amazonaws.com/curve_calibration_20260831105738.svg)
 
 <!-- /CURVE_CALIBRATION_CHART -->
 
 <!-- REVIEW_TIMING_CHART -->
 
-![Was each review on time?](https://shyal.s3.amazonaws.com/review_timing_20260831074502.svg)
+![Was each review on time?](https://shyal.s3.amazonaws.com/review_timing_20260831105738.svg)
 
 <!-- /REVIEW_TIMING_CHART -->
 
@@ -114,7 +114,7 @@ Two lines now. The blue one counts only evidenced walks: walks extracted from co
 
 <!-- REACH_CHART -->
 
-![Problems in reach](https://shyal.s3.amazonaws.com/reach_20260831074502.svg)
+![Problems in reach](https://shyal.s3.amazonaws.com/reach_20260831105738.svg)
 
 <!-- /REACH_CHART -->
 
@@ -138,7 +138,7 @@ https://leetcode.com/problems/subarray-sum-equals-k/
 
 <!-- ZPD_SVG -->
 
-![The input tree of each of my last 50 solves, one per second](https://shyal.s3.amazonaws.com/zpd_20260831074502.svg)
+![The input tree of each of my last 50 solves, one per second](https://shyal.s3.amazonaws.com/zpd_20260831105812.svg)
 
 <!-- /ZPD_SVG -->
 
@@ -148,7 +148,7 @@ Solves and drills per day, then the unique ones. Uniques are tracked separately 
 
 <!-- SOLVES_CHART -->
 
-![Solves and drills per day](https://shyal.s3.amazonaws.com/rates_20260831074502.svg)
+![Solves and drills per day](https://shyal.s3.amazonaws.com/rates_20260831105738.svg)
 
 <!-- /SOLVES_CHART -->
 
@@ -158,7 +158,7 @@ Cumulative commits of each kind. A solve commit adds a file to `solved/`, proble
 
 <!-- COMMITS_CHART -->
 
-![Tooling commits versus solves](https://shyal.s3.amazonaws.com/commits_20260831074502.svg)
+![Tooling commits versus solves](https://shyal.s3.amazonaws.com/commits_20260831105738.svg)
 
 <!-- /COMMITS_CHART -->
 
@@ -182,11 +182,18 @@ FAANG bar: today's central P(pass a full onsite: 2 easies + 2 mediums + at least
 
 <!-- /FAANG_PROGRESS -->
 
+The chart below puts the history and the forecast on one time axis. Left of today: cumulative solves by kind, how many nodes were STALE or FRAGILE at the end of each day, and the same pass model evaluated on the evidence visible that day. Right of today: `make simulate`, which runs the real picker (`kg_next.pick`, the function behind `make next`) forward one day at a time at my measured pace, draws each solve from the fitted forgetting curve, and stops when central P(onsite) reaches 50%. The bar above gets its date from the Monte Carlo, which simulates a policy of its own; this date comes from the policy that actually serves me, so the two differ by a week or two. The thin lines are other seeds of the same run.
+
+<!-- FORECAST_CHART -->
+
+![History and forecast to a 50% pass rate](https://shyal.s3.amazonaws.com/forecast_20260831105738.svg)
+<!-- /FORECAST_CHART -->
+
 Every projected date is recorded daily, so one chart tracks whether the projections are stable. A flat line means the model isn't fooled by what i did that week; drift upward means i'm slacking. The third line is `utils/kg/kg_predict`, a day-by-day simulation of how the picker would spend the hours; its date answers "when is the work done" (graph fully solid + enough mediums banked + a polish block), not "when would i pass", which is why it lands much earlier.
 
 <!-- READINESS_PROJECTION_CHART -->
 
-![Projected ready dates over time](https://shyal.s3.amazonaws.com/readiness_projection_20260831074502.png)
+![Projected ready dates over time](https://shyal.s3.amazonaws.com/readiness_projection_20260831105738.png)
 
 <!-- /READINESS_PROJECTION_CHART -->
 
