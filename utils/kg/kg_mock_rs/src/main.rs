@@ -172,6 +172,7 @@ fn run_all(tasks: &[Task]) -> Vec<(f64, f64, f64, f64)> {
                 let r = pass_rates(
                     &t.mv_recall,
                     &t.bank.pools,
+                    &t.bank.mass,
                     t.r,
                     t.practice,
                     &mut PyRandom::new(42),
@@ -394,6 +395,7 @@ impl<'a> SimState<'a> {
         pass_rates(
             &self.mv_recall(),
             &self.bank.pools,
+            &self.bank.mass,
             r,
             self.practice(),
             &mut PyRandom::new(42),
@@ -826,6 +828,11 @@ fn main() {
     let predicted_v = load_json(&graph.join("predicted.json"));
     let metadata_v = load_json(&repo_root.join("data/problems_metadata.json"));
     let mut bank = Bank::build(&problems_v, &predicted_v, &metadata_v, &node_ids);
+    bank.mass.beta = curve_v
+        .get("mass")
+        .and_then(|m| m.get("beta"))
+        .and_then(Value::as_f64)
+        .unwrap_or(0.0);
     bank.cost = std::fs::read_to_string(graph.join("solvecost.json"))
         .ok()
         .and_then(|s| serde_json::from_str::<Value>(&s).ok())
@@ -907,6 +914,7 @@ fn main() {
                     let (_, onsite_t, screen_t, ph_t) = pass_rates(
                         &mv_recall_of(&recall_d),
                         &bank.pools,
+                        &bank.mass,
                         central_r,
                         (0, 0, 0),
                         &mut PyRandom::new(42),

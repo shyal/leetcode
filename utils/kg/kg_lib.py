@@ -1619,7 +1619,49 @@ def recognition(base, mocks_done):
     return base + (0.98 - base) * (1 - math.exp(-mocks_done / MOCK_SAT))
 
 
-def pass_rates(node_recall, pools, r_base, practice, rng, n_mc=20000):
+def carrier_counts(problems):
+    """move -> how many evidenced problems walk it (problems.json primary
+    walks). The rehearsal mass of a walk is the count of its rarest move."""
+    counts = {}
+    for p in problems.values():
+        for m in p.get("moves", []):
+            counts[m] = counts.get(m, 0) + 1
+    return counts
+
+
+def walk_mass(walk, counts):
+    """x = log(1 + mass) of a walk: mass is the carrier count of its rarest
+    move; a move nothing evidenced carries (off-taxonomy) counts 0."""
+    return math.log1p(min((counts.get(m, 0) for m in walk), default=0))
+
+
+def mass_term(pools, problems, curve=None):
+    """The per-walk rehearsal-mass adjustment for pass_rates over these
+    pools: {"beta", "ref": {dif: pool mean x}, "x": {dif: [[x per walk]]}}.
+    beta is fitted by kg_curve (curve.json "mass"); 0 when unfitted, which
+    makes the term inert. The reference is the pool mean, so a problem
+    drawn uniformly keeps the model's average and only the spread between
+    rehearsed and rare walks changes."""
+    curve = _load_curve() if curve is None else curve
+    beta = (curve or {}).get("mass", {}).get("beta", 0.0) if curve else 0.0
+    counts = carrier_counts(problems)
+    x = {dif: [[walk_mass(w, counts) for w in prob] for prob in probs]
+         for dif, probs in pools.items()}
+    ref = {dif: (sum(max(xs) for xs in xp) / len(xp) if xp else 0.0)
+           for dif, xp in x.items()}
+    return {"beta": beta, "ref": ref, "x": x}
+
+
+def mass_adjust(p, x, ref, beta):
+    """p on the logit scale shifted by beta * (x - ref); p clamped away
+    from 0 and 1 so the shift is finite. Same arithmetic as the Rust port."""
+    if not beta:
+        return p
+    p = min(max(p, 1e-9), 1 - 1e-9)
+    return 1 / (1 + math.exp(-(math.log(p / (1 - p)) + beta * (x - ref))))
+
+
+def pass_rates(node_recall, pools, r_base, practice, rng, n_mc=20000, mass=None):
     """(full clear, onsite 2E+2M+>=1H, screen both-M, single-hard P).
 
     pools: {"E"/"M"/"H": [problem, ...]}, each problem a list of walks, each
@@ -1629,18 +1671,25 @@ def pass_rates(node_recall, pools, r_base, practice, rng, n_mc=20000):
     second. A problem is drawn uniformly from its
     difficulty pool and scored by its BEST walk's recall product; a move
     without recall (off-taxonomy) costs the derive rate. Same draw order as
-    the Rust port (randrange then random), so the RNG streams match."""
+    the Rust port (randrange then random), so the RNG streams match. With
+    `mass` (mass_term), the drawn problem's best walk also carries its
+    rehearsal-mass adjustment (mass_adjust)."""
     time_f, rec, derive = practice_factors(practice, r_base)
     full = onsite = screen = h_solved = 0
     for _ in range(n_mc):
         solved = {"E": 0, "M": 0, "H": 0}
         for dif in ("E", "E", "M", "M", "H", "H"):
-            prob = pools[dif][rng.randrange(len(pools[dif]))]
-            best = max(
-                math.prod(node_recall.get(mv, derive) for mv in walk)
-                for walk in prob
-            )
+            i = rng.randrange(len(pools[dif]))
+            prob = pools[dif][i]
+            best, best_w = -1.0, 0
+            for wi, walk in enumerate(prob):
+                prod = math.prod(node_recall.get(mv, derive) for mv in walk)
+                if prod > best:
+                    best, best_w = prod, wi
             p = time_f[dif] * rec ** REC_POWER[dif] * best
+            if mass:
+                p = mass_adjust(p, mass["x"][dif][i][best_w], mass["ref"][dif],
+                                mass["beta"])
             solved[dif] += rng.random() < p
         full += solved["E"] == 2 and solved["M"] == 2 and solved["H"] == 2
         onsite += solved["E"] == 2 and solved["M"] == 2 and solved["H"] >= 1
