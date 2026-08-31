@@ -18,7 +18,7 @@
 #   review       FRAGILE/STALE targets with their carriers (rules 1-2)
 #   consolidate  re-attempts / drills the failure analysis prescribes —
 #                failures must account for something, not get hopped over
-#   create-drill a rung the bank lacks; `make next` just SAYS to create it
+#   create-drill a drill the bank lacks; `make next` just SAYS to create it
 #   new          rule 3/4 material, only when nothing above needs the day
 #
 # `make next` marks items done from evidence (a matching solve/drill rep on
@@ -100,7 +100,7 @@ Nodes that already have a drill bank: {', '.join(banked)}
 For each failure decide what converts it into a wired skill:
 - a re-attempt of the same problem, unaided, once enough days passed ("consolidate")
 - reps on an EXISTING drill bank ("drill")
-- a NEW drill worth creating because the bank lacks the rung ("create_drill") — say exactly what the rung trains, in 1-2 sentences
+- a NEW drill worth creating because the bank lacks the drill ("create_drill") — say exactly what the new drill trains, in 1-2 sentences
 
 Rules:
 - Diagnose from the code: recognition (did not see the technique), mechanics (saw it, could not execute), or endurance. A blank file is recognition; near-working code is mechanics.
@@ -111,7 +111,7 @@ Rules:
 Output STRICT JSON, nothing else:
 {{"consolidate": [{{"problem": "<num>", "note": "<non-spoiling one-liner>", "why": "<diagnosis>"}}],
  "drills": [{{"node": "<node-id>", "why": "<diagnosis>"}}],
- "create_drills": [{{"node": "<node-id>", "spec": "<what the new rung trains>", "why": "<diagnosis>"}}]}}"""
+ "create_drills": [{{"node": "<node-id>", "spec": "<what the new drill trains>", "why": "<diagnosis>"}}]}}"""
     return claude_json("Recent failures:\n\n" + "\n\n".join(digests), system)
 
 
@@ -200,7 +200,7 @@ def main():
         nid = it.get("node")
         # judgment names the gap, the curve schedules the rep: no drill
         # item for a node that is SOLID on an unaided clean, and the
-        # cross-bank ladder applies here as it does in review_items
+        # cross-bank hold applies here as it does in review_items
         if nid in nodes and not (statuses[nid][0] == SOLID
                                  and owned(nid, evidence)) \
                 and not drill_held(nid, nodes, statuses, evidence):

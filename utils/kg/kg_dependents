@@ -1,0 +1,91 @@
+#!/usr/bin/env python3
+
+# kg_dependents — what an id gates, to act on right after finishing it.
+#
+#   utils/kg/kg_dependents d26            # a drill
+#   utils/kg/kg_dependents 46             # a problem
+#   utils/kg/kg_dependents d26 prepare    # cut a branch for each open one, easiest first
+#
+# One row per problem or drill whose "after" list names the id: its id and
+# title, its kind, its status today, and what else still holds it. A row
+# with nothing else holding it is servable the moment the id is warm:
+# `make prepare <id>`.
+
+import argparse
+import os
+import subprocess
+import sys
+from rich.console import Console
+from rich.table import Table
+
+from kg.kg_lib import (load_problems, load_evidence, drills, dependents, vertex_kind,
+                       vertex_status, easiest_first, SOLID, STALE, FRAGILE, MISSING)
+
+console = Console()
+STYLE = {SOLID: "green", STALE: "yellow", FRAGILE: "red", MISSING: "dim"}
+
+
+def main():
+    parser = argparse.ArgumentParser(description="List what a problem or drill gates.")
+    parser.add_argument("id", help="a drill id (d26), a problem number (46), or a node id")
+    parser.add_argument("action", nargs="?", choices=["prepare"],
+                        help="prepare: `make prepare` every dependent nothing else holds, "
+                             "easiest first (drills, Easy, Medium, Hard)")
+    args = parser.parse_args()
+
+    problems, evidence, drill_map = load_problems(), load_evidence(), drills()
+    vid = args.id
+    kind = vertex_kind(vid, problems)
+    if kind is None:
+        console.print(f"[red]nothing in the graph is called {vid}[/red]")
+        raise SystemExit(1)
+    if kind == "problem":
+        head = f"{vid}. {problems[vid]['title']}"
+    elif kind == "drill":
+        head = f"{vid}. {drill_map[vid]['title']}"
+    else:
+        head = vid
+    if kind != "node":
+        st = vertex_status(vid, problems, evidence)
+        head += f"  [{STYLE[st]}]{st}[/{STYLE[st]}]"
+    console.print(f"[bold]{head}[/bold]")
+    if kind != "node" and st != SOLID:
+        console.print(f"[dim]{vid} is not warm yet; these open once it is[/dim]")
+
+    rows = dependents(vid, problems, evidence, drill_map)
+    if not rows:
+        console.print("[dim]gates nothing[/dim]")
+        return
+    table = Table(show_header=True, header_style="bold", box=None, padding=(0, 2))
+    for col in ("id", "title", "kind", "status", "then"):
+        table.add_column(col)
+    for r in rows:
+        st = r["status"]
+        then = (f"held by {', '.join(r['held_by'])}" if r["held_by"]
+                else f"make prepare {r['id']}")
+        table.add_row(r["id"], r["title"], r["kind"],
+                      f"[{STYLE[st]}]{st}[/{STYLE[st]}]", then)
+    console.print(table)
+
+    if args.action == "prepare":
+        order = [r for r in easiest_first(rows) if not r["held_by"]]
+        skipped = [r["id"] for r in rows if r["held_by"]]
+        if skipped:
+            console.print(f"[dim]skipped, held by something else: {', '.join(skipped)}[/dim]")
+        if not order:
+            console.print("[dim]nothing to prepare[/dim]")
+            return
+        console.print(f"[bold]make prepare {' '.join(r['id'] for r in order)}[/bold]")
+        env = dict(os.environ)
+        env["PYTHONPATH"] = "utils" + os.pathsep + env.get("PYTHONPATH", "")
+        # one at a time: prepare's workers would otherwise cut the branches in
+        # whatever order the cache answers, and the last one cut is the one
+        # left checked out
+        r = subprocess.run([sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                                         "prepare"), "--jobs", "1"]
+                           + [r["id"] for r in order], env=env)
+        raise SystemExit(r.returncode)
+
+
+if __name__ == "__main__":
+    main()
