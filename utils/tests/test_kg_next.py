@@ -90,7 +90,10 @@ def picker(monkeypatch):
     monkeypatch.setattr(kg_next, "drill_gated",
                         lambda nid, status, last, today=None:
                         nid in ctl.bank and status in (FRAGILE, MISSING))
-    monkeypatch.setattr(kg_next, "unlocks", lambda statuses, problems: ctl.unlocks)
+    monkeypatch.setattr(kg_next, "unlocks",
+                        lambda statuses, problems, immature=():
+                        ctl.gain if immature else ctl.unlocks)
+    ctl.gain = {}  # the reach rule's counts: young node -> drafted problems waiting
     monkeypatch.setattr(kg_next, "due_drill",
                         lambda nid, ev, today=None, early=False, assisted=False:
                         f"drills/{nid}/one.py"
@@ -104,10 +107,11 @@ def picker(monkeypatch):
     ctl.meta = {}
     monkeypatch.setattr(kg_lib, "_METADATA", ctl.meta)
     monkeypatch.setattr(kg_next, "predicted_carrier",
-                        lambda target, problems, statuses, nodes, skip=():
+                        lambda target, problems, statuses, nodes, skip=(),
+                        difficulties=("Easy", "Medium"):
                         kg_lib.predicted_carrier(target, problems, statuses,
                                                  nodes, predicted=ctl.predicted,
-                                                 skip=skip))
+                                                 skip=skip, difficulties=difficulties))
     monkeypatch.setattr(kg_next, "draft_misses",
                         lambda target, ev, nodes=None, predicted=None:
                         kg_lib.draft_misses(target, ev, nodes, ctl.predicted))
@@ -1465,3 +1469,92 @@ def test_prepare_loads_the_exact_drill_file_the_pick_chose(monkeypatch, tmp_path
                         ["kg_next", "--group=g", "--early", "--prepare", "--no-show"])
     kg_next.main()
     assert calls == [path]
+
+
+# --------------------------------------------------------------------------
+# rule 5: widen reach - a young move is proved on a real problem
+# --------------------------------------------------------------------------
+
+def test_a_young_move_is_proved_when_nothing_else_is_due(picker):
+    """Every node SOLID, no summit ready, so the picker used to say nothing.
+    Reach against the drafted catalog says otherwise: `b` is SOLID but
+    young, and drafted problems wait on it. Serve the Medium that carries
+    it with every other move SOLID - the rep that matures it."""
+    ns = nodes("a", "b")
+    ps = {"1": problem(["a", "b"]), "2": problem(["a"])}
+    st = {"a": (SOLID, ago(1)), "b": (SOLID, ago(1))}
+    picker.immature.add("b")
+    picker.gain = {"b": 40}
+    target, status, pnum, reason = picker.run(ns, ps, {}, st)
+    assert (target, status, pnum) == ("b", SOLID, "1")
+    assert "40" in reason
+
+
+def test_the_young_move_with_the_most_reach_goes_first(picker):
+    ns = nodes("a", "b", "c")
+    ps = {"1": problem(["a", "b"]), "2": problem(["a", "c"])}
+    st = {n: (SOLID, ago(1)) for n in ns}
+    picker.immature |= {"b", "c"}
+    picker.gain = {"b": 5, "c": 90}
+    assert picker.run(ns, ps, {}, st)[2] == "2"
+
+
+def test_a_young_move_nobody_waits_on_is_not_served(picker):
+    ns = nodes("a", "b")
+    ps = {"1": problem(["a", "b"])}
+    st = {"a": (SOLID, ago(1)), "b": (SOLID, ago(1))}
+    picker.immature.add("b")
+    picker.gain = {}
+    assert picker.run(ns, ps, {}, st) is None
+
+
+def test_a_summit_still_outranks_the_reach_rule(picker):
+    ns = nodes("a", "b")
+    ps = {"1": problem(["a", "b"]), "76": problem(["a"], difficulty="Hard")}
+    st = {"a": (SOLID, ago(1)), "b": (SOLID, ago(1))}
+    picker.immature.add("b")
+    picker.gain = {"b": 40}
+    assert picker.run(ns, ps, {}, st)[2] == "76"
+
+
+def test_a_medium_bar_young_move_promotes_a_drafted_medium_not_an_easy(picker):
+    """The only evidenced carrier of `b` is a Medium, so its bar is Medium;
+    that carrier is warm, so the rule widens to the drafted tier - and an
+    easy there is not proof at the bar, so the Medium draft is promoted."""
+    ns = nodes("a", "b")
+    ps = {"1": problem(["a", "b"])}
+    st = {"a": (SOLID, ago(1)), "b": (SOLID, ago(1))}
+    ev = evidence(solve("1", {"a": "clean", "b": "clean"}, days_ago=1))
+    picker.immature.add("b")
+    picker.gain = {"b": 40}
+    picker.predicted["9001"] = drafted(["a", "b"])
+    picker.meta["9001"] = {"difficulty": "Easy"}
+    picker.predicted["9002"] = drafted(["a", "b"])
+    picker.meta["9002"] = {"difficulty": "Medium"}
+    target, status, pnum, reason = picker.run(ns, ps, ev, st)
+    assert (target, pnum) == ("b", "9002")
+    assert ps["9002"]["predicted"] is True
+    assert "drafted" in reason
+
+
+def test_a_young_move_with_falsified_drafts_is_skipped(picker):
+    ns = nodes("a", "b")
+    ps = {"1": problem(["a", "b"])}
+    st = {"a": (SOLID, ago(1)), "b": (SOLID, ago(1))}
+    picker.immature.add("b")
+    picker.gain = {"b": 40}
+    for n in ("9001", "9002", "9003"):
+        picker.predicted[n] = drafted(["a", "b"])
+        picker.meta[n] = {"difficulty": "Medium"}
+    # 9001 and 9002 solved without b: the drafts are wrong about this move
+    ev = evidence(solve("1", {"a": "clean", "b": "clean"}, days_ago=1),
+                  solve("9001", {"a": "clean"}, days_ago=3),
+                  solve("9002", {"a": "clean"}, days_ago=4))
+    assert picker.run(ns, ps, ev, st) is None
+
+
+def test_unlocks_counts_a_young_move_as_a_gap():
+    st = {"a": (SOLID, ago(1)), "b": (SOLID, ago(1))}
+    pred = {"9001": drafted(["a", "b"]), "9002": drafted(["a"])}
+    assert kg_lib.unlocks(st, {}, predicted=pred) == {}
+    assert kg_lib.unlocks(st, {}, predicted=pred, immature={"b"}) == {"b": 1}

@@ -128,6 +128,8 @@ from kg.kg_lib import (
     route_gaps,
     rank_summits,
     immature_nodes,
+    carry_bar,
+    proving_carriers,
     solve_forecast,
     drill_forecast,
 )
@@ -611,6 +613,49 @@ def pick(
             "summit — its walk has no gaps left",
         )
 
+    # rule 5: nothing rusty, nothing new, no summit ready - widen reach.
+    # Reach is counted against the drafted catalog, and a node is in reach
+    # only when it is mature (SOLID and proven on a real problem at its
+    # bar, kg_lib.mature). The young node blocking the most unsolved drafted
+    # problems is served first, on a proving carrier: an evidenced problem
+    # that carries it at the bar, else a drafted one at the bar. Each rep
+    # is one step toward maturity, so the count is the payoff of the rep.
+    immature = immature_nodes(nodes, evidence, problems)
+    gain = unlocks(statuses, problems, immature=immature)
+    young = sorted(
+        (n for n in immature if in_scope(n) and gain.get(n, 0)
+         and statuses[n][0] == SOLID),
+        key=lambda n: (-gain[n], n),
+    )
+    for target in young:
+        why = f"widen reach - prove {target} on a real problem; " \
+              f"{gain[target]} drafted problems wait on it"
+        cands = [
+            c for c in proving_carriers(target, problems, statuses, nodes, evidence)
+            if c not in asleep and c not in exclude and cooled(c, evidence)
+        ]
+        if cands:
+            cands.sort(
+                key=lambda p: (
+                    gentleness(p, problems, nodes),
+                    last_solved(p, evidence),
+                    -acceptance(p),
+                    pnum_key(p),
+                )
+            )
+            return target, SOLID, cands[0], why
+        if drafts_falsified(target, evidence, nodes):
+            continue
+        kind, _ = carry_bar(target, problems)
+        promo = predicted_carrier(
+            target, problems, statuses, nodes,
+            skip=set(asleep) | set(exclude),
+            difficulties=("Medium",) if kind == "medium" else ("Easy", "Medium"),
+        )
+        if promo:
+            problems[promo[0]] = promo[1]
+            return target, SOLID, promo[0], why + " (drafted carrier)"
+
     return None
 
 
@@ -1091,6 +1136,18 @@ def main():
                 console.print(
                     f"[dim]summits blocked only by an unmapped move (needs a node): "
                     f"{', '.join(unmapped)}[/dim]")
+            # the reach rule found no carrier for any of these today
+            young = sorted(
+                ((n, g) for n, g in
+                 unlocks(statuses, problems, immature=immature).items()
+                 if n in immature and statuses[n][0] == SOLID),
+                key=lambda t: (-t[1], t[0]),
+            )[:3]
+            if young:
+                console.print(
+                    "[dim]young moves with no proving carrier today, by drafted "
+                    "problems waiting: "
+                    + ", ".join(f"{n} ({g})" for n, g in young) + "[/dim]")
 
         if not args.why:
             warn_dry(served=False)
