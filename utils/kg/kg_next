@@ -10,6 +10,9 @@
 #   utils/kg/kg_next --prepare    # same, then run `make prepare` on the pick
 #   make next graph            # makefile form of --graph (make eats dashed args)
 #   make next sql              # --group sql: rules 1-3 over one curated group only
+#                              # (any group name works: trees, graphs, sql, ...)
+#   make next sql assisted     # --assisted: only drills whose latest rep was
+#                              # assisted - the unaided rep each is waiting for
 #   make next sql cram early   # --early: review the whole group ahead of the
 #                              # curve - every node gets its next rung, prereqs
 #                              # before dependents regardless of status;
@@ -242,6 +245,7 @@ def pick(
     group=None,
     cram=False,
     early=False,
+    assisted=False,
 ):
     """Return (target, status, pnum, reason) or None. With `group`, only
     nodes of that curated group are candidates (rules 1-3); the sleep
@@ -252,7 +256,10 @@ def pick(
     unaided rep per day. With `early` (implies cram), the curve is off
     too: every node in scope with a rung left is served as a ladder,
     prereqs before dependents, whatever its status - the whole group
-    reviewed ahead of schedule, SOLID prereqs jogged before a new move."""
+    reviewed ahead of schedule, SOLID prereqs jogged before a new move.
+    With `assisted` (implies early), the same walk restricted to drills
+    whose latest rep was assisted: the unaided rep each is waiting for."""
+    early = early or assisted
     cram = cram or early
 
     def in_scope(n):
@@ -272,7 +279,8 @@ def pick(
         drill_id = f"drill:{target}"
         return (
             drill_id
-            if drill_id not in exclude and due_drill(target, evidence, early=early)
+            if drill_id not in exclude
+            and due_drill(target, evidence, early=early, assisted=assisted)
             else None
         )
 
@@ -379,6 +387,8 @@ def pick(
                     target,
                     statuses[target][0],
                     due(target),
+                    "assisted review - the unaided rep this drill is waiting for"
+                    if assisted else
                     "early review - next rung of the ladder, atoms first",
                 )
 
@@ -820,11 +830,12 @@ def main():
         description="Pick the next problem and draw its input tree."
     )
     parser.add_argument(
-        "n",
-        nargs="?",
-        type=int,
-        default=1,
-        help="show the Nth recommendation (skip the first N-1)",
+        "words",
+        nargs="*",
+        metavar="WORD",
+        help="an integer N (show the Nth recommendation, skipping the first "
+        "N-1) and/or a group name (sql, trees, graphs, ...) to restrict the "
+        "pick to; makefile form: `make next sql 2`",
     )
     parser.add_argument(
         "--graph",
@@ -859,11 +870,28 @@ def main():
         "makefile form: `make next sql cram early`",
     )
     parser.add_argument(
+        "--assisted",
+        action="store_true",
+        help="review only the drills whose latest rep was assisted (hint, "
+        "walkthrough, spoiled): the unaided rep each is waiting for; "
+        "implies --early; makefile form: `make next sql assisted`",
+    )
+    parser.add_argument(
         "--prepare",
         action="store_true",
         help="run `make prepare` on the pick (stub + branch — the solve clock starts)",
     )
-    args = parser.parse_args()
+    args = parser.parse_intermixed_args()
+    args.n = 1
+    groups = {n.get("group") for n in load_nodes().values()} - {None}
+    for w in args.words:
+        if w.isdigit():
+            args.n = int(w)
+        elif w in groups:
+            args.group = w
+        else:
+            parser.error(f"{w!r} is not a number or a group "
+                         f"({', '.join(sorted(groups))})")
     labeled = args.graph
 
     def prepare(target):
@@ -933,7 +961,7 @@ def main():
     # Today's frozen plan comes first: serve its pending items in order,
     # transparently — same rendering, same commands. Items self-clear from
     # evidence; an exhausted or absent plan falls through to the normal rules.
-    plan = None if args.early else load_plan()
+    plan = None if args.early or args.assisted else load_plan()
     if plan:
         pending = [
             it
@@ -1005,6 +1033,7 @@ def main():
                 group=args.group,
                 cram=args.cram,
                 early=args.early,
+                assisted=args.assisted,
             )
             if not choice:
                 break
@@ -1020,7 +1049,7 @@ def main():
         if shown:
             console.print(f"[yellow]Only {shown} recommendation(s) available.[/yellow]")
         elif args.group:
-            held = [] if args.cram or args.early else sorted(
+            held = [] if args.cram or args.early or args.assisted else sorted(
                 n for n in nodes
                 if nodes[n].get("group") == args.group
                 and statuses[n][0] != SOLID
@@ -1088,7 +1117,7 @@ def main():
     target, target_status, pnum, reason = choice
 
     if str(pnum).startswith("drill:"):
-        path = due_drill(target, evidence, early=args.early)
+        path = due_drill(target, evidence, early=args.early, assisted=args.assisted)
         title = drill_title(path)
         s, d = statuses[target]
         table = Table(show_header=True, header_style="bold", box=None, padding=(0, 2))

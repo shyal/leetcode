@@ -939,6 +939,17 @@ def drill_clean(path, evidence):
     return bool(rec.get("moves")) and all(v == "clean" for v in rec["moves"].values())
 
 
+def drill_assisted(path, evidence):
+    """True when this drill's most recent rep exists and was not an unaided
+    clean: a hint, a walkthrough, a spoil, or a struggle. The drill has been
+    met but is not owned; the unaided rep is what it is waiting for."""
+    rec = latest_drill_rep(path, evidence)
+    if rec is None:
+        return False
+    return not (rec.get("moves") and all(v == "clean" for v in rec["moves"].values())
+                and assist_of(rec) == "none")
+
+
 def drill_warm(path, evidence, today=None):
     """True when this rung's most recent rep is all-clean, not spoiled, and
     inside the solid window — the bar it must meet to release the rung above
@@ -1050,16 +1061,19 @@ def released_rungs(candidates, evidence, node_id=None, early=False):
     return released or candidates[:1]
 
 
-def due_drill(node_id, evidence, today=None, early=False):
+def due_drill(node_id, evidence, today=None, early=False, assisted=False):
     """Least-recently-drilled RELEASED bank file for a node, or None if the
     bank is empty or that file was already drilled today. The no-carrier
     fallback: a gap node with no READY carrier gets its drill offered instead
     of being silently skipped — a drill cannot be dodged and needs no
     carrier. With `early`, the curve is ignored: a SOLID, owned node still
     gets its next rung (the cram review, `make next sql cram early`); the
-    ladder and the once-a-day rule still apply."""
+    ladder and the once-a-day rule still apply. With `assisted`, only drills
+    whose latest rep was assisted are candidates (`make next sql assisted`):
+    the ladder is moot, since a drill with a rep is already released, and
+    the curve is off as under `early`."""
     status, _ = node_status(node_id, evidence, today)
-    if (status == SOLID and owned(node_id, evidence) and not early
+    if (status == SOLID and owned(node_id, evidence) and not early and not assisted
             and not ladder_left(node_id, evidence)):
         return None  # the curve says the node holds - a drill is a problem
                      # we authored, and problems are not re-served while warm.
@@ -1068,10 +1082,13 @@ def due_drill(node_id, evidence, today=None, early=False):
                      # clean released the dedupe drill with subsets undone)
     today = (today or date.today()).isoformat()
     candidates = sorted(glob.glob(os.path.join(DRILLS_DIR, node_id, "*.py")))
+    if assisted:
+        candidates = [p for p in candidates if drill_assisted(p, evidence)]
     if not candidates:
         return None
-    path = min(released_rungs(candidates, evidence, node_id, early=early),
-               key=lambda p: last_drilled(p, evidence))
+    pool = candidates if assisted else released_rungs(
+        candidates, evidence, node_id, early=early)
+    path = min(pool, key=lambda p: last_drilled(p, evidence))
     return None if last_drilled(path, evidence) >= today else path
 
 
