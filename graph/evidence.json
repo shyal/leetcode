@@ -6967,6 +6967,20 @@
       },
       "note": "Assisted: learned that dense_rank() takes no argument.",
       "summary": "The query applies dense_rank() over score in descending order, assigning the same rank to equal scores and skipping no integers between rank values. The window function syntax correctly expresses the requirement that ties share a rank and the next rank is the next integer."
+    },
+    "solved/d_Employees_Who_Manage_Nobody_2026_08_31T07_30_08_355787_00_00Z.py": {
+      "date": "2026-08-31",
+      "problem": "drill",
+      "moves": {
+        "sql-anti-join": "clean",
+        "sql-self-join": "clean"
+      },
+      "assist": {
+        "sql-anti-join": "hint",
+        "sql-self-join": "hint"
+      },
+      "note": "Assisted on join condition and WHERE column selection.",
+      "summary": "The query finds employees who manage nobody by left-joining Employees to itself on e.employee_id = m.manager_id, then filtering for unmatched rows with IS NULL. This exercises self-join and anti-join patterns. The candidate was guided on correcting the join condition and WHERE clause."
     }
   }
 }
