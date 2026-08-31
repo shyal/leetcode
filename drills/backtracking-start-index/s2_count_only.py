@@ -2,14 +2,15 @@
 DRILL: Count Only
 TRAINS: backtracking-start-index
 
-Given two integers n and k, return how many combinations of k distinct
-numbers can be drawn from 1 to n.
+Given two integers n and k, return the number of ways to choose k
+distinct integers from 1 to n.
 
 Example 1:
 
 Input: n = 4, k = 2
 Output: 6
-Explanation: [1, 2], [1, 3], [1, 4], [2, 3], [2, 4], [3, 4].
+Explanation: The six choices are [1, 2], [1, 3], [1, 4], [2, 3], [2, 4],
+and [3, 4].
 
 Example 2:
 
@@ -21,8 +22,9 @@ Constraints:
     1 <= n <= 16
     1 <= k <= n
 
-REQUIRED: NO math.comb, NO factorial formula, NO Pascal table, NO
-itertools, NO list of chosen numbers.
+    REQUIRED: count the choices by enumerating them. NO math.comb, NO
+    factorial formula, NO Pascal table, NO itertools, NO list of the
+    chosen integers.
 
 """
 
@@ -34,7 +36,7 @@ class Solution:
 
 sol = Solution()
 
-print(sol.count(4, 2))
+print(sol.count(4, 2))  # 6
 
 # assert sol.count(4, 2) == 6
 # assert sol.count(5, 3) == 10

@@ -3,23 +3,22 @@ DRILL: Reuse Allowed
 TRAINS: backtracking-start-index
 
 Given an array nums of distinct positive integers and an integer target,
-return every combination of numbers from nums that sums to target. A
-number may be taken any number of times. Each combination lists its
-numbers in non-decreasing order, and two combinations holding the same
-numbers the same number of times are the same combination.
+return every combination of elements of nums whose sum is target. The
+same element can be used any number of times. List each combination in
+non-decreasing order, and return each combination once.
 
 Example 1:
 
 Input: nums = [2, 3, 6, 7], target = 7
 Output: [[2, 2, 3], [7]]
-Explanation: [3, 2, 2] is not listed. It holds the same numbers as
-[2, 2, 3].
+Explanation: The list [3, 2, 2] is the same combination as [2, 2, 3], so
+it does not appear.
 
 Example 2:
 
 Input: nums = [2], target = 1
 Output: []
-Explanation: no number of 2s sums to 1.
+Explanation: No sum of 2s equals 1.
 
 Example 3:
 
@@ -31,12 +30,11 @@ Constraints:
     1 <= len(nums) <= 30
     1 <= nums[i] <= 40
     1 <= target <= 40
-    The values in nums are distinct and given in increasing order.
+    The elements of nums are distinct and given in increasing order.
 
-    REQUIRED: [3, 2, 2] is never built, not built and discarded. Stop a
-    branch the moment the running sum passes target. NO de-duplicating
-    the answer at the end, NO counting how many times each number was
-    taken.
+    REQUIRED: never build [3, 2, 2], not even to discard it. Never extend
+    a partial sum that already exceeds target. NO de-duplicating the
+    answer at the end, NO counting how many times each element is used.
 """
 
 

@@ -2,9 +2,9 @@
 DRILL: Record Every Node
 TRAINS: backtracking-start-index
 
-Given an array nums of distinct integers, return every subset of nums.
-A subset lists its elements in the order they appear in nums. The subsets
-may come back in any order, and the empty subset counts.
+Given an array nums of distinct integers, return every subset of nums,
+including the empty subset. List each subset in the order its elements
+appear in nums. The subsets themselves can be returned in any order.
 
 Example 1:
 
@@ -20,11 +20,11 @@ Constraints:
 
     1 <= len(nums) <= 16
     -10^9 <= nums[i] <= 10^9
-    The values in nums are distinct.
+    The elements of nums are distinct.
 
-    REQUIRED: one backtracking pass; every subset is recorded exactly
-    once, the moment it exists. NO take-it-or-leave-it branch on one
-    index, NO bitmask, NO itertools.
+    REQUIRED: one recursive pass that records every subset exactly once,
+    when it is built. NO include-or-exclude branch per element, NO
+    bitmask, NO itertools.
 """
 
 
@@ -35,7 +35,7 @@ class Solution:
 
 sol = Solution()
 
-print(sol.subsets([1, 2, 3]))  # 8 subsets
+print(sol.subsets([1, 2, 3]))  # [[], [1], [1, 2], [1, 2, 3], [1, 3], [2], [2, 3], [3]]
 
 # assert sorted(map(tuple, sol.subsets([1, 2, 3]))) == [
 #     (), (1,), (1, 2), (1, 2, 3), (1, 3), (2,), (2, 3), (3,)

@@ -2,8 +2,8 @@
 DRILL: Triples
 TRAINS: backtracking-start-index
 
-Given an integer n, return every triple [a, b, c] of distinct numbers
-drawn from 0 to n - 1, with a < b < c.
+Given an integer n, return every triple [a, b, c] of integers with
+0 <= a < b < c < n. List the triples in lexicographic order.
 
 Example 1:
 
@@ -15,13 +15,13 @@ Example 2:
 
 Input: n = 2
 Output: []
-Explanation: there are only two numbers to draw from.
+Explanation: Only 0 and 1 are available, and a triple needs three integers.
 
 Constraints:
 
     1 <= n <= 30
 
-REQUIRED: no recursion.
+    REQUIRED: NO recursion.
 
 """
 
