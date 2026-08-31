@@ -125,7 +125,39 @@ pub struct EvRec {
     pub fname: String,
     pub date: String,
     pub moves: HashMap<String, String>,
-    pub assist: String,
+    /// per-move assist level, "none" when absent (kg_lib.assist_of(rec, node))
+    pub assist: HashMap<String, String>,
+}
+
+impl EvRec {
+    pub fn assist_for(&self, node: &str) -> &str {
+        self.assist.get(node).map(String::as_str).unwrap_or("none")
+    }
+}
+
+/// Mirror of kg_lib.assist_of's two shapes: a bare string taints every move
+/// in the walk, a {move: level} dict names the moves the help touched.
+pub fn assist_map(rec: &serde_json::Value) -> HashMap<String, String> {
+    let valid = |a: &str| ["hint", "walkthrough", "spoiled"].contains(&a);
+    let mut out = HashMap::new();
+    match rec.get("assist") {
+        Some(serde_json::Value::String(a)) if valid(a) => {
+            if let Some(m) = rec.get("moves").and_then(serde_json::Value::as_object) {
+                for k in m.keys() {
+                    out.insert(k.clone(), a.clone());
+                }
+            }
+        }
+        Some(serde_json::Value::Object(d)) => {
+            for (k, v) in d {
+                if let Some(a) = v.as_str().filter(|a| valid(a)) {
+                    out.insert(k.clone(), a.to_string());
+                }
+            }
+        }
+        _ => {}
+    }
+    out
 }
 
 pub struct Curve {
@@ -167,7 +199,7 @@ pub fn node_status(node: &str, evidence: &[EvRec], today: NaiveDate, cv: &Curve)
     for rec in evidence {
         if let Some(v) = rec.moves.get(node) {
             if !v.is_empty() {
-                entries.push((rec.date.as_str(), v.as_str(), rec.assist.as_str()));
+                entries.push((rec.date.as_str(), v.as_str(), rec.assist_for(node)));
             }
         }
     }
