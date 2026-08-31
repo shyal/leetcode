@@ -1,0 +1,343 @@
+#!/usr/bin/env python3
+
+# kg_3d_svg - the technique graph laid out in three dimensions, slowly turning
+# while the evidence history replays over it, written to graph/kg_3d.svg.
+#
+#   make readme                # regenerates it (see the makefile)
+#   utils/readme/kg_3d_svg 12  # 12 s history loop; the turn takes 3x that
+#
+# Layout: a force layout in R^3. Group centres sit on a sphere; each node is
+# pulled to its group's centre and along its prerequisite edges, and pushed
+# away from every other node. Each node is a <g> whose translate and
+# scale are keyframed once per rotation frame (perspective projection of the
+# turning layout); each edge is a <path> whose d is keyframed the same way.
+# Colour follows kg_lib.node_status day by day on the shared MovieClock, so
+# this, kg_movie and the other replays show the same history at the same
+# moment. Pure SMIL, so it animates inside GitHub's <img> pipeline.
+
+import math
+import os
+import re
+import sys
+from datetime import timedelta
+
+from kg.kg_lib import (FRAGILE, GRAPH_DIR, MISSING, SOLID, STALE, MovieClock, era_banner,
+                       load_evidence, load_nodes, node_status)
+
+OUT = os.path.join(GRAPH_DIR, "kg_3d.svg")
+
+W, H = 1000, 640
+CX, CY = W / 2, H / 2 + 24
+FRAMES = 96              # keyframes per turn (linear interpolation between)
+TURNS_PER_LOOP = 3       # one turn lasts this many history loops
+TILT = math.radians(22)  # camera looks down at the axis by this much
+CAMERA = 3.4             # camera distance from the origin, in layout units
+SCALE = 275.0            # layout unit -> px at depth 0
+NODE_R = 7.0
+LABEL_LIFE_FRACTION = 0.04  # a solve label's fade, as a share of the loop (kg_movie)
+MAX_PROBS = 3               # live labels per node; the oldest is evicted (kg_movie)
+LABEL_PT = 9.0              # in node units, so it scales with depth like the node
+LAYOUT_SEED = 7
+
+BG = "#0d1117"
+INK = "#c9d1d9"
+MUTED = "#8b949e"
+EDGE = "#30363d"
+EDGE_LIT = "#58a6ff"
+GOLD = "#ffd75f"
+FILL = {SOLID: "#238636", STALE: "#bb8009", FRAGILE: "#da3633", MISSING: "#6e7681"}
+
+
+def layout(nodes):
+    """id -> (x, y, z) in a unit ball. Group centres sit on a sphere; each
+    node is pulled to its group's centre and along its prerequisite edges,
+    and pushed away from every other node."""
+    import numpy as np
+    rng = np.random.default_rng(LAYOUT_SEED)
+    ids = sorted(nodes)
+    groups = sorted({n["group"] for n in nodes.values()})
+    # group centres: a Fibonacci spiral on a sphere of radius 0.7
+    centre = {}
+    for i, g in enumerate(groups):
+        y = 1 - 2 * (i + 0.5) / len(groups)
+        r = math.sqrt(1 - y * y)
+        phi = i * math.pi * (3 - math.sqrt(5))
+        centre[g] = 0.7 * np.array([r * math.cos(phi), y, r * math.sin(phi)])
+    idx = {nid: i for i, nid in enumerate(ids)}
+    P = np.array([centre[nodes[nid]["group"]] for nid in ids]) + rng.normal(0, 0.15, (len(ids), 3))
+    C = np.array([centre[nodes[nid]["group"]] for nid in ids])
+    E = [(idx[nid], idx[p]) for nid in ids for p in nodes[nid].get("prereqs", []) if p in idx]
+    for it in range(400):
+        d = P[:, None, :] - P[None, :, :]
+        dist = np.linalg.norm(d, axis=2) + np.eye(len(ids))
+        rep = (d / dist[:, :, None] ** 3 * 0.004).sum(axis=1)
+        att = (C - P) * 0.05
+        for a, b in E:
+            v = (P[b] - P[a]) * 0.03
+            att[a] += v
+            att[b] -= v
+        step = 1.0 - it / 400
+        P += (rep + att) * step
+    P -= P.mean(axis=0)
+    P /= np.linalg.norm(P, axis=1).max()
+    return {nid: tuple(P[idx[nid]]) for nid in ids}
+
+
+def project(p, theta):
+    """Screen (x, y, scale) of layout point p turned by theta about the
+    vertical axis, seen from a camera tilted TILT above the equator."""
+    x, y, z = p
+    ct, st = math.cos(theta), math.sin(theta)
+    x, z = x * ct - z * st, x * st + z * ct
+    cy, sy = math.cos(TILT), math.sin(TILT)
+    y, z = y * cy - z * sy, y * sy + z * cy
+    f = CAMERA / (CAMERA - z)
+    return CX + x * SCALE * f, CY - y * SCALE * f, f
+
+
+def frames(p):
+    """The FRAMES+1 projections of p over one full turn (last = first)."""
+    return [project(p, 2 * math.pi * i / FRAMES) for i in range(FRAMES + 1)]
+
+
+def depth_alpha(f):
+    """Opacity from the perspective factor: near 1 at the front, faint at the back."""
+    lo, hi = CAMERA / (CAMERA + 1), CAMERA / (CAMERA - 1)
+    t = (f - lo) / (hi - lo)
+    return 0.25 + 0.75 * max(0.0, min(1.0, t)) ** 1.5
+
+
+def anim(attr, values, dur, extra=""):
+    return (f'<animate attributeName="{attr}" calcMode="linear" values="{";".join(values)}" '
+            f'dur="{dur}s" repeatCount="indefinite"{extra}/>')
+
+
+def status_track(days, clock):
+    """(values, keyTimes) of a discrete track over the loop from a per-day list."""
+    vals, times = [days[0]], [0.0]
+    for i in range(1, len(days)):
+        if days[i] != days[i - 1]:
+            vals.append(days[i])
+            times.append(clock.frac(i))
+    return ";".join(vals), ";".join(f"{t:.4f}" for t in times)
+
+
+def solves_by_day(evidence):
+    """date -> [(problem, [moves])] in within-day solve order, first solve of
+    a same-day re-solve only; drills carry no leetcode number and are skipped."""
+    by_day = {}
+    for fname, rec in evidence.items():
+        p = rec.get("problem", "")
+        if not p[:1].isdigit():
+            continue
+        m = re.search(r"\d{4}_\d{2}_\d{2}T[\d_]+", fname)
+        by_day.setdefault(rec["date"], []).append((m.group(0) if m else "", p, list(rec.get("moves", {}))))
+    out = {}
+    for day, rows in by_day.items():
+        seen, ordered = set(), []
+        for _, p, moves in sorted(rows):
+            if p not in seen:
+                seen.add(p)
+                ordered.append((p, moves))
+        out[day] = ordered
+    return out
+
+
+def push_key(times, t):
+    """Strictly increasing keyTimes, or Chrome discards the whole animation."""
+    if times and t <= times[-1]:
+        t = times[-1] + 1e-5
+    times.append(min(t, 1.0))
+
+
+def label_fade(born, clock):
+    """The opacity track of a solve label born at loop fraction `born`:
+    kg_movie's (1 - t)^1.4 fade over LABEL_LIFE_FRACTION, piecewise linear."""
+    lf = LABEL_LIFE_FRACTION * clock.ticks_end
+    times, values = [], []
+    if born > 0.0004:
+        times.append(0.0)
+        values.append("0")
+        push_key(times, born - 0.0002)
+        values.append("0")
+    push_key(times, max(born, 0.0))
+    values.append("1")
+    for u, a in ((0.25, "0.669"), (0.5, "0.379"), (0.75, "0.144"), (1.0, "0")):
+        t = born + u * lf
+        if t >= 1.0:
+            break
+        push_key(times, t)
+        values.append(a)
+    push_key(times, 1.0)
+    age = (1.0 - born) / lf
+    values.append("0" if age >= 1 else f"{(1 - age) ** 1.4:.3f}")
+    if times[0] != 0.0:
+        times.insert(0, 0.0)
+        values.insert(0, "0")
+    return (f'<animate attributeName="opacity" calcMode="linear" values="{";".join(values)}" '
+            f'keyTimes="{";".join(f"{t:.4f}".rstrip("0").rstrip(".") or "0" for t in times)}" '
+            f'dur="{clock.dur}s" repeatCount="indefinite"/>')
+
+
+# the spots a label can take around a node, in node units; a node's labels
+# cycle through them so up to MAX_PROBS live ones never sit on each other
+LABEL_SPOTS = [(0, -NODE_R - 6, "middle"), (0, NODE_R + 13, "middle"),
+               (-NODE_R - 4, 3.5, "end"), (0, -NODE_R - 18, "middle")]
+
+
+def gate(days, clock):
+    """A <g ...> opening a group whose opacity is 1 on the days the flag holds."""
+    v, t = status_track(["1" if d else "0" for d in days], clock)
+    if ";" not in v:
+        return f'<g opacity="{v}">'
+    return (f'<g opacity="{v[0]}"><animate attributeName="opacity" calcMode="discrete" '
+            f'values="{v}" keyTimes="{t}" dur="{clock.dur}s" repeatCount="indefinite"/>')
+
+
+def main():
+    seconds = float(sys.argv[1]) if len(sys.argv) > 1 else None
+    nodes = load_nodes()
+    evidence = load_evidence()
+    clock = MovieClock(evidence, seconds) if seconds else MovieClock(evidence)
+    turn = clock.dur * TURNS_PER_LOOP
+    pts = layout(nodes)
+
+    # per-node status for every tick of the replay. node_status reads every
+    # record it is given, so feed it the prefix of the history up to each day
+    # (the same dict grown in place, which ev_index extends incrementally).
+    by_date = sorted(evidence.items(), key=lambda kv: kv[1]["date"])
+    seen, k = {}, 0
+    status = {nid: [] for nid in nodes}
+    for i in range(clock.n_ticks):
+        day = clock.first + timedelta(days=i)
+        while k < len(by_date) and by_date[k][1]["date"] <= day.isoformat():
+            seen[by_date[k][0]] = by_date[k][1]
+            k += 1
+        for nid in nodes:
+            status[nid].append(node_status(nid, seen, day)[0])
+    # a node is drawn only from the day it entered the taxonomy
+    present = {nid: [(clock.first + timedelta(days=i)).isoformat() >= n.get("added", "")
+                     for i in range(clock.n_ticks)] for nid, n in nodes.items()}
+
+    # solve labels: the problem number by every move the solve exercised,
+    # born at the solve's moment within its day; at most MAX_PROBS live per
+    # node, the oldest evicted; skipped while the node has not appeared yet
+    by_day = solves_by_day(evidence)
+    lf = LABEL_LIFE_FRACTION * clock.ticks_end
+    labels = {nid: [] for nid in nodes}       # nid -> [(born, text, spot)]
+    live = {nid: [] for nid in nodes}         # nid -> [(born, spot)] still fading
+    for i in range(clock.n_ticks):
+        day = (clock.first + timedelta(days=i)).isoformat()
+        solves = by_day.get(day, ())
+        for k, (prob, moves) in enumerate(solves):
+            born = clock.frac(i + k / len(solves))
+            for nid in moves:
+                if nid not in nodes or not present[nid][i]:
+                    continue
+                live[nid] = [(b, sp) for b, sp in live[nid] if born - b < lf]
+                if len(live[nid]) >= MAX_PROBS:
+                    live[nid].remove(min(live[nid]))
+                spot = next(j for j in range(len(LABEL_SPOTS)) if j not in {sp for _, sp in live[nid]})
+                live[nid].append((born, spot))
+                labels[nid].append((born, prob, spot))
+    n_labels = sum(len(v) for v in labels.values())
+
+    proj = {nid: frames(p) for nid, p in pts.items()}
+    # draw order: back to front at the first frame; the order is fixed for
+    # the whole turn, which is the price of doing this without a z-buffer
+    order = sorted(nodes, key=lambda nid: proj[nid][0][2])
+
+    svg = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" '
+           f'viewBox="0 0 {W} {H}" font-family="Helvetica, Arial, sans-serif">',
+           f'<rect width="{W}" height="{H}" fill="{BG}"/>',
+           f'<text x="24" y="34" fill="{INK}" font-size="20" font-weight="bold">technique graph</text>',
+           f'<text x="24" y="56" fill="{MUTED}" font-size="13">{len(nodes)} moves, '
+           f'{sum(len(n.get("prereqs", [])) for n in nodes.values())} prerequisite edges; '
+           f'colour is the status derived from evidence.json on that day</text>']
+
+    # month ticker, top right
+    from datetime import date
+    months, m = [], date(clock.first.year, clock.first.month, 1)
+    while m <= clock.last:
+        months.append(m)
+        m = date(m.year + (m.month == 12), m.month % 12 + 1, 1)
+    for i, m in enumerate(months):
+        fs = clock.frac(max((m - clock.first).days, 0))
+        nxt = months[i + 1] if i + 1 < len(months) else None
+        fe = clock.frac((nxt - clock.first).days) if nxt else 1.0
+        lab = m.strftime("%b '%y").lower()
+        vals, times = ("0;1;0", f"0;{fs:.4f};{fe:.4f}") if fs > 0 else ("1;0", f"0;{fe:.4f}")
+        if not nxt:
+            vals, times = ("0;1", f"0;{fs:.4f}") if fs > 0 else ("1", "0")
+        svg.append(f'<text x="{W - 24}" y="34" fill="{INK}" font-size="16" '
+                   f'text-anchor="end" opacity="0">{lab}'
+                   f'<animate attributeName="opacity" calcMode="discrete" values="{vals}" '
+                   f'keyTimes="{times}" dur="{clock.dur}s" repeatCount="indefinite"/></text>')
+    svg.extend(era_banner(clock, W - 24, 60, 18, anchor="end"))
+
+    # edges: back to front by the mean depth of their endpoints
+    edges = [(p, nid) for nid, n in nodes.items() for p in n.get("prereqs", []) if p in nodes]
+    edges.sort(key=lambda e: proj[e[0]][0][2] + proj[e[1]][0][2])
+    for a, b in edges:
+        d = [f"M{fa[0]:.1f},{fa[1]:.1f}L{fb[0]:.1f},{fb[1]:.1f}"
+             for fa, fb in zip(proj[a], proj[b])]
+        op = [f"{depth_alpha((fa[2] + fb[2]) / 2) * 0.7:.2f}" for fa, fb in zip(proj[a], proj[b])]
+        lit = [EDGE_LIT if sa != MISSING and sb != MISSING else EDGE
+               for sa, sb in zip(status[a], status[b])]
+        lv, lt = status_track(lit, clock)
+        both = [pa and pb for pa, pb in zip(present[a], present[b])]
+        svg.append(gate(both, clock)
+                   + f'<path fill="none" stroke="{EDGE}" stroke-width="1.2" d="{d[0]}">'
+                   + anim("d", d, turn) + anim("opacity", op, turn)
+                   + f'<animate attributeName="stroke" calcMode="discrete" values="{lv}" '
+                   f'keyTimes="{lt}" dur="{clock.dur}s" repeatCount="indefinite"/></path></g>')
+
+    # nodes (the gold solve labels inherit the monospace face from this group)
+    svg.append(f'<g font-family="Menlo, monospace" font-size="{LABEL_PT:.0f}" fill="{GOLD}">')
+    for nid in order:
+        fr = proj[nid]
+        tr = [f"{x:.1f},{y:.1f}" for x, y, _ in fr]
+        sc = [f"{f:.3f}" for _, _, f in fr]
+        op = [f"{depth_alpha(f):.2f}" for _, _, f in fr]
+        lab_op = [f"{max(0.0, (depth_alpha(f) - 0.72) / 0.28):.2f}" for _, _, f in fr]
+        sv, st = status_track([FILL[s] for s in status[nid]], clock)
+        svg.append(
+            gate(present[nid], clock)
+            + f'<g transform="translate({tr[0]}) scale({sc[0]})">'
+            f'<animateTransform attributeName="transform" type="translate" calcMode="linear" '
+            f'values="{";".join(tr)}" dur="{turn}s" repeatCount="indefinite"/>'
+            f'<animateTransform attributeName="transform" type="scale" additive="sum" '
+            f'calcMode="linear" values="{";".join(sc)}" dur="{turn}s" repeatCount="indefinite"/>'
+            + anim("opacity", op, turn)
+            + f'<circle r="{NODE_R * 1.9:.1f}" fill="{FILL[status[nid][0]]}" opacity="0.22">'
+            f'<animate attributeName="fill" calcMode="discrete" values="{sv}" keyTimes="{st}" '
+            f'dur="{clock.dur}s" repeatCount="indefinite"/></circle>'
+            f'<circle r="{NODE_R}" fill="{FILL[status[nid][0]]}" stroke="{BG}" stroke-width="1.2">'
+            f'<animate attributeName="fill" calcMode="discrete" values="{sv}" keyTimes="{st}" '
+            f'dur="{clock.dur}s" repeatCount="indefinite"/></circle>'
+            f'<text x="{NODE_R + 3:.0f}" y="3.5" fill="{INK}" font-family="Helvetica, Arial, sans-serif" '
+            f'font-size="8.5" opacity="{lab_op[0]}">{nid}'
+            + anim("opacity", lab_op, turn) + '</text>'
+            + "".join(f'<text x="{LABEL_SPOTS[sp][0]}" y="{LABEL_SPOTS[sp][1]}" '
+                      f'text-anchor="{LABEL_SPOTS[sp][2]}" opacity="0">{prob}{label_fade(b, clock)}</text>'
+                      for b, prob, sp in labels[nid])
+            + '</g></g>')
+
+    svg.append("</g>")
+
+    # legend
+    x = 24
+    for s in (SOLID, STALE, FRAGILE, MISSING):
+        svg.append(f'<circle cx="{x + 5}" cy="{H - 24}" r="5" fill="{FILL[s]}"/>')
+        svg.append(f'<text x="{x + 16}" y="{H - 20}" fill="{MUTED}" font-size="12">{s.lower()}</text>')
+        x += 80
+    svg.append(clock.dissolve_rect(W, H, BG))
+    svg.append("</svg>")
+    with open(OUT, "w") as f:
+        f.write("\n".join(svg) + "\n")
+    print(f"wrote {OUT} ({len(nodes)} nodes, {len(edges)} edges, {n_labels} solve labels, {clock.n_ticks} ticks "
+          f"on the {clock.dur:.0f}s loop, one turn per {turn:.0f}s, {os.path.getsize(OUT) // 1024} KB)")
+
+
+if __name__ == "__main__":
+    main()

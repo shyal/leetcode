@@ -1175,7 +1175,7 @@ fn main() {
     let out_path = graph.join("kg_movie.svg");
     std::fs::write(&out_path, &out_svg).unwrap();
     println!(
-        "wrote {} — {} ticks, {} solve labels, {} shots, {:.1}s loop ({:.1}s dissolve), {:.0}KB",
+        "wrote {} - {} ticks, {} solve labels, {} shots, {:.1}s loop ({:.1}s dissolve), {:.0}KB",
         out_path.display(),
         n_ticks,
         labels.len(),
@@ -1197,7 +1197,7 @@ fn main() {
     // line sweeps the calendar axis at the movie's current date; the era
     // banner and label flip on the same tick as the movie's.
     let Some(cv) = curve.as_ref() else {
-        println!("no graph/curve.json — kg_pass.svg skipped");
+        println!("no graph/curve.json - kg_pass.svg skipped");
         return;
     };
     let mcurve = kg_mock::Curve { a: cv.a, b: cv.b, c: cv.c, d: cv.d, e: cv.e,
@@ -1260,7 +1260,7 @@ fn main() {
         let mut row = [(0.0, 0.0); 3];
         for (si, (_name, r_base)) in SCENARIOS.iter().enumerate() {
             let (_full, onsite, screen, _h) = pass_rates(
-                &mv_recall, &bank.pools, *r_base, (0, 0, 0),
+                &mv_recall, &bank.pools, &bank.mass, *r_base, (0, 0, 0),
                 &mut PyRandom::new(42), 4000,
             );
             row[si] = (screen * 100.0, onsite * 100.0);
@@ -1271,7 +1271,7 @@ fn main() {
             .map(|i| if i < bank.n_known { Some(recall_s[i]) } else { None })
             .collect();
         let (_full, onsite_s, screen_s, _h) = pass_rates(
-            &mv_recall_s, &bank.pools, SCENARIOS[1].1, (0, 0, 0),
+            &mv_recall_s, &bank.pools, &bank.mass, SCENARIOS[1].1, (0, 0, 0),
             &mut PyRandom::new(42), 4000,
         );
         shelf.push((screen_s * 100.0, onsite_s * 100.0));
@@ -1279,72 +1279,6 @@ fn main() {
         week_counts.push(
             ev_recs.iter().filter(|r| lo.as_str() < r.date.as_str() && r.date.as_str() <= wd_s.as_str()).count(),
         );
-    }
-    // each week's volume split by problem NOVELTY — new problems vs
-    // re-solves — feeds the yield chart (kg_yield.svg below): new problems
-    // under a flat line mean grinding through what is already known (the
-    // oct/nov '25 plateau: ~100 new problems/week, line going nowhere);
-    // re-solves under a rising line are consolidation paying out.
-    // Model-free: only problem numbers and dates.
-    let mut week_new = vec![0usize; weeks.len()];
-    let mut week_re = vec![0usize; weeks.len()];
-    // drill work per week: reviews (evidence records with problem="drill")
-    // plus bank files created (first git add under drills/) — the foundation
-    // being poured during consolidation
-    let mut week_drill = vec![0usize; weeks.len()];
-    {
-        let mut by_date: Vec<(&str, &str)> = evidence
-            .iter()
-            .filter_map(|(_, r)| {
-                Some((r["date"].as_str()?, r.get("problem").and_then(Value::as_str)?))
-            })
-            .collect();
-        by_date.sort();
-        let mut seen: std::collections::HashSet<&str> = std::collections::HashSet::new();
-        for (ds, pnum) in by_date {
-            let d = NaiveDate::parse_from_str(ds, "%Y-%m-%d").unwrap();
-            let wi = ((((d - first).num_days() + 6) / 7).max(0) as usize).min(weeks.len() - 1);
-            if pnum == "drill" {
-                week_drill[wi] += 1;
-            }
-            if seen.insert(pnum) {
-                week_new[wi] += 1;
-            } else {
-                week_re[wi] += 1;
-            }
-        }
-        if let Ok(out) = Command::new("git")
-            .args(["log", "--diff-filter=A", "--date=short", "--format=C %ad", "--name-only", "--", "drills/"])
-            .current_dir(&repo_root)
-            .output()
-        {
-            let mut cur: Option<NaiveDate> = None;
-            for line in String::from_utf8_lossy(&out.stdout).lines() {
-                if let Some(ds) = line.strip_prefix("C ") {
-                    cur = NaiveDate::parse_from_str(ds, "%Y-%m-%d").ok();
-                } else if line.starts_with("drills/") {
-                    if let Some(d) = cur {
-                        if d >= first {
-                            let wi = ((((d - first).num_days() + 6) / 7) as usize).min(weeks.len() - 1);
-                            week_drill[wi] += 1;
-                        }
-                    }
-                }
-            }
-        }
-    }
-    if std::env::var("KG_MOVIE_DEBUG").is_ok() {
-        for (((wd, row), sh), (nn, nr)) in weeks
-            .iter()
-            .zip(&series)
-            .zip(&shelf)
-            .zip(week_new.iter().zip(&week_re))
-        {
-            eprintln!(
-                "{wd} central screen={:.4} onsite={:.4} shelf screen={:.4} onsite={:.4} new={nn} re={nr}",
-                row[1].0, row[1].1, sh.0, sh.1
-            );
-        }
     }
 
     // ---- draw --------------------------------------------------------------
@@ -1387,7 +1321,7 @@ fn main() {
     c.push_str(&era_banner(12.0, 26.0, 24.0, "start", era_frac, switch.is_some(), "", dur));
     writeln!(
         c,
-        "<text x=\"{:.0}\" y=\"19\" text-anchor=\"middle\" font-size=\"13\" fill=\"{INK}\">P(pass a mock, cold) — weekly replay of the technique graph (band = recognition scenarios)</text>",
+        "<text x=\"{:.0}\" y=\"19\" text-anchor=\"middle\" font-size=\"13\" fill=\"{INK}\">P(pass a mock, cold): weekly replay of the technique graph (band = recognition scenarios)</text>",
         CW / 2.0 + 100.0
     )
     .unwrap();
@@ -1433,7 +1367,7 @@ fn main() {
     for (i, (color, label, dash)) in [
         (SCREEN_C, "phone screen (both mediums)", ""),
         (ONSITE_C, "onsite (2E + 2M + ≥1 hard)", ""),
-        (MUTED, "dashed: after a 90-day break — the durable floor under each line", " stroke-dasharray=\"5 4\""),
+        (MUTED, "dashed: after a 90-day break, the durable floor under each line", " stroke-dasharray=\"5 4\""),
     ]
     .iter()
     .enumerate()
@@ -1561,411 +1495,21 @@ fn main() {
     let chart_path = graph.join("kg_pass.svg");
     std::fs::write(&chart_path, &c).unwrap();
     println!(
-        "wrote {} — {} weeks replayed, synced to the {:.0}s loop, {:.0}KB",
+        "wrote {} - {} weeks replayed, synced to the {:.0}s loop, {:.0}KB",
         chart_path.display(),
         weeks.len(),
         seconds,
         c.len() as f64 / 1024.0
     );
 
-    // ---- yield chart: graph/kg_yield.svg ---------------------------------
-    // P(pass) against CUMULATIVE SOLVES instead of time: effort is the
-    // x-axis, so a plateau is a long flat slog to the right - hundreds of
-    // solves buying nothing, and extending that slope it never breaks -
-    // while consolidation is a near-vertical climb: few solves, mostly
-    // re-solves, big lift. Segment color = the week's re-solve share (gray
-    // new-problem churn, green re-solves). Same weekly replay and reveal
-    // clock as kg_pass.svg.
-    {
-        let cum: Vec<f64> = weeks
-            .iter()
-            .map(|wd| {
-                let s = wd.to_string();
-                ev_recs.partition_point(|r| r.date.as_str() <= s.as_str()) as f64
-            })
-            .collect();
-        let scr: Vec<f64> = series.iter().map(|r| r[1].0).collect();
-        let cum_total = cum.last().unwrap().max(1.0);
-        let ymax = (scr.iter().fold(0.0f64, |a, &b| a.max(b)) * 1.2 / 5.0).ceil() * 5.0;
-        const YML: f64 = 52.0;
-        const YMR: f64 = 46.0;
-        const YPT: f64 = 58.0;
-        const YPB: f64 = 386.0;
-        let yx = |s: f64| YML + s / cum_total * (CW - YML - YMR);
-        let yy = |p: f64| YPB - p / ymax * (YPB - YPT);
-        let px_per_solve = (CW - YML - YMR) / cum_total;
-
-        let mut y = String::with_capacity(32 * 1024);
-        writeln!(y, "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>").unwrap();
-        writeln!(
-            y,
-            "<svg width=\"{CW:.0}pt\" height=\"{CH:.0}pt\" viewBox=\"0 0 {CW:.0} {CH:.0}\" xmlns=\"http://www.w3.org/2000/svg\" font-family=\"Helvetica,sans-serif\">"
-        )
-        .unwrap();
-        writeln!(y, "<rect width=\"{CW:.0}\" height=\"{CH:.0}\" fill=\"{BG}\"/>").unwrap();
-        if split_x > 0.0 {
-            writeln!(y, "<rect x=\"0\" y=\"0\" width=\"{split_x:.1}\" height=\"3\" fill=\"{ERA_PRE_INK}\" opacity=\"0.55\"/>").unwrap();
-        }
-        if switch.is_some() && split_x < CW {
-            writeln!(y, "<rect x=\"{split_x:.1}\" y=\"0\" width=\"{:.1}\" height=\"3\" fill=\"{ERA_GRAPH_INK}\" opacity=\"0.9\"/>", CW - split_x).unwrap();
-        }
-        y.push_str(&era_banner(12.0, 26.0, 24.0, "start", era_frac, switch.is_some(), "", dur));
-        writeln!(
-            y,
-            "<text x=\"{:.0}\" y=\"19\" text-anchor=\"middle\" font-size=\"13\" fill=\"{INK}\">what does a solve buy? - P(pass a phone screen) vs total solves</text>",
-            CW / 2.0 + 100.0
-        )
-        .unwrap();
-        writeln!(
-            y,
-            "<text x=\"{:.0}\" y=\"36\" text-anchor=\"middle\" font-size=\"11\" fill=\"{MUTED}\">flat = a plateau more grinding will not break; vertical = consolidation paying out</text>",
-            CW / 2.0 + 100.0
-        )
-        .unwrap();
-
-        // furniture: y grid every 10 pts, x grid every 100 solves
-        let mut p = 0.0;
-        while p <= ymax {
-            let gy = yy(p);
-            writeln!(y, "<line x1=\"{YML}\" y1=\"{gy:.1}\" x2=\"{:.1}\" y2=\"{gy:.1}\" stroke=\"{GRID}\" stroke-width=\"1\"/>", CW - YMR).unwrap();
-            writeln!(y, "<text x=\"{:.0}\" y=\"{:.1}\" text-anchor=\"end\" font-size=\"11\" fill=\"{MUTED}\">{p:.0}%</text>", YML - 6.0, gy + 4.0).unwrap();
-            p += 10.0;
-        }
-        let mut s = 0.0;
-        while s <= cum_total {
-            let gx = yx(s);
-            writeln!(y, "<line x1=\"{gx:.1}\" y1=\"{YPB}\" x2=\"{gx:.1}\" y2=\"{:.0}\" stroke=\"{MUTED}\" stroke-width=\"1\"/>", YPB + 4.0).unwrap();
-            if s as i64 % 200 == 0 {
-                writeln!(y, "<text x=\"{gx:.1}\" y=\"{:.0}\" text-anchor=\"middle\" font-size=\"11\" fill=\"{MUTED}\">{s:.0}</text>", YPB + 17.0).unwrap();
-            }
-            s += 100.0;
-        }
-        writeln!(y, "<text x=\"{:.1}\" y=\"{:.0}\" text-anchor=\"end\" font-size=\"11\" fill=\"{MUTED}\">total solves</text>", CW - YMR, YPB + 32.0).unwrap();
-
-        // era switch on the solve axis
-        if let Ok(sw) = NaiveDate::parse_from_str(ERA_SWITCH, "%Y-%m-%d") {
-            let sw_s = sw.to_string();
-            let cx = yx(ev_recs.partition_point(|r| r.date.as_str() <= sw_s.as_str()) as f64);
-            writeln!(y, "<line x1=\"{cx:.1}\" y1=\"{YPT}\" x2=\"{cx:.1}\" y2=\"{YPB}\" stroke=\"{ERA_GRAPH_INK}\" stroke-width=\"1.2\" stroke-dasharray=\"5 4\" opacity=\"0.6\"/>").unwrap();
-        }
-
-        let mut dy = String::new();
-        // the path, one thick segment per week, colored by re-solve share
-        for i in 1..weeks.len() {
-            let (x1, y1, x2, y2) = (yx(cum[i - 1]), yy(scr[i - 1]), yx(cum[i]), yy(scr[i]));
-            let (nn, nr) = (week_new[i], week_re[i]);
-            if nn + nr == 0 {
-                // a resting week: no x movement, the line just drips down
-                writeln!(dy, "<line x1=\"{x1:.1}\" y1=\"{y1:.1}\" x2=\"{x2:.1}\" y2=\"{y2:.1}\" stroke=\"{MUTED}\" stroke-width=\"1.5\" stroke-dasharray=\"2 3\"/>").unwrap();
-                continue;
-            }
-            let t = nr as f64 / (nn + nr) as f64;
-            let lerp = |a: f64, b: f64| (a + t * (b - a)) as u8;
-            let color = format!("#{:02x}{:02x}{:02x}", lerp(110.0, 63.0), lerp(118.0, 185.0), lerp(129.0, 80.0));
-            writeln!(dy, "<line x1=\"{x1:.1}\" y1=\"{y1:.1}\" x2=\"{x2:.1}\" y2=\"{y2:.1}\" stroke=\"{color}\" stroke-width=\"4\" stroke-linecap=\"round\"/>").unwrap();
-        }
-
-        // the three phases, measured from the replay itself
-        let widx = |d: NaiveDate| weeks.partition_point(|w| *w <= d).saturating_sub(1);
-        let a = widx(NaiveDate::from_ymd_opt(2025, 10, 6).unwrap());
-        let b = widx(NaiveDate::from_ymd_opt(2025, 11, 30).unwrap());
-        let pz = widx(NaiveDate::from_ymd_opt(2026, 7, 31).unwrap());
-        let last = weeks.len() - 1;
-        if a < b && b < pz && pz < last {
-            // the plateau: hundreds of solves after the first read, no lift
-            let (dn, dp) = (cum[b] - cum[a], scr[b] - scr[a]);
-            let ptop = scr[a..=b].iter().fold(0.0f64, |m, &v| m.max(v));
-            let xm = (yx(cum[a]) + yx(cum[b])) / 2.0;
-            writeln!(dy, "<text x=\"{xm:.1}\" y=\"{:.1}\" text-anchor=\"middle\" font-size=\"13\" font-weight=\"bold\" fill=\"{INK}\">the plateau: {dn:.0} more solves → {dp:+.0} pts</text>", yy(ptop) - 30.0).unwrap();
-            writeln!(dy, "<text x=\"{xm:.1}\" y=\"{:.1}\" text-anchor=\"middle\" font-size=\"11\" fill=\"{MUTED}\">nearly all new problems, exercising ground already held</text>", yy(ptop) - 14.0).unwrap();
-            // extend the plateau's slope: at that rate it never breaks
-            let slope = dp / dn.max(1.0);
-            let (ex1, ey1) = (yx(cum[b]), yy(scr[b]));
-            let ex2 = CW - 8.0;
-            let ey2 = yy((scr[b] + slope * (ex2 - ex1) / px_per_solve).max(0.0));
-            writeln!(dy, "<line x1=\"{ex1:.1}\" y1=\"{ey1:.1}\" x2=\"{ex2:.1}\" y2=\"{ey2:.1}\" stroke=\"{MUTED}\" stroke-width=\"1.2\" stroke-dasharray=\"2 5\" opacity=\"0.8\"/>").unwrap();
-            writeln!(dy, "<text x=\"{ex2:.1}\" y=\"{:.1}\" text-anchor=\"end\" font-size=\"11\" fill=\"{MUTED}\">grinding on at that rate: never</text>", ey2 - 7.0).unwrap();
-            // the rest: no solves, the line drips in place
-            let dp2 = scr[pz] - scr[b];
-            writeln!(dy, "<text x=\"{:.1}\" y=\"{:.1}\" text-anchor=\"end\" font-size=\"11\" fill=\"{MUTED}\">8 months of rest: {dp2:+.0} pts</text>", yx(cum[b]) - 8.0, yy((scr[b] + scr[pz]) / 2.0) + 26.0).unwrap();
-            // the consolidation: few solves, mostly re-solves, big lift
-            let dn3 = cum[last] - cum[pz];
-            let dp3 = scr[last] - scr[pz];
-            let (n3, r3) = week_new[pz + 1..].iter().zip(&week_re[pz + 1..]).fold((0usize, 0usize), |(an, ar), (n, r)| (an + n, ar + r));
-            let share = if n3 + r3 > 0 { 100.0 * r3 as f64 / (n3 + r3) as f64 } else { 0.0 };
-            let cx = yx(cum[last]) + 6.0;
-            let cy = yy(ymax * 0.32);
-            writeln!(dy, "<text x=\"{cx:.1}\" y=\"{cy:.1}\" text-anchor=\"end\" font-size=\"13\" font-weight=\"bold\" fill=\"#3fb950\">the consolidation: {dn3:.0} solves → {dp3:+.0} pts</text>").unwrap();
-            writeln!(dy, "<text x=\"{cx:.1}\" y=\"{:.1}\" text-anchor=\"end\" font-size=\"11\" fill=\"#3fb950\" opacity=\"0.85\">{share:.0}% re-solves, repairing stale ground</text>", cy + 16.0).unwrap();
-        }
-
-        // reveal on the movie clock: x = cumulative solves at the tick date,
-        // monotone because solves only accumulate
-        let mut ry: Vec<String> = days
-            .iter()
-            .map(|d| {
-                let ds = d.to_string();
-                let cx = yx(ev_recs.partition_point(|r| r.date.as_str() <= ds.as_str()) as f64);
-                format!("{:.1}", cx.clamp(YML, CW - 2.0))
-            })
-            .collect();
-        let mut rt: Vec<f64> = tick_frac.clone();
-        ry.push(ry.last().unwrap().clone());
-        push_key(&mut rt, 1.0);
-        let ranim = animate("width", "linear", &ry, &rt, dur);
-        writeln!(y, "<clipPath id=\"yreveal\"><rect x=\"0\" y=\"0\" width=\"{CW:.0}\" height=\"{CH:.0}\">{ranim}</rect></clipPath>").unwrap();
-        let rrest = animate("x", "linear", &ry, &rt, dur);
-        writeln!(y, "<clipPath id=\"yrest\"><rect x=\"{:.1}\" y=\"0\" width=\"{CW:.0}\" height=\"{CH:.0}\">{rrest}</rect></clipPath>", CW - 2.0).unwrap();
-        writeln!(y, "<g clip-path=\"url(#yrest)\" opacity=\"0.35\">\n{dy}</g>").unwrap();
-        writeln!(y, "<g clip-path=\"url(#yreveal)\">\n{dy}</g>").unwrap();
-
-        // end-of-path marker + label, popping in on the final tick
-        let mut ft = vec![0.0];
-        push_key(&mut ft, *tick_frac.last().unwrap());
-        let yfinale = animate("opacity", "discrete", &["0".into(), "1".into()], &ft, dur);
-        let (ex, ey) = (yx(cum[last]), yy(scr[last]));
-        writeln!(y, "<circle cx=\"{ex:.1}\" cy=\"{ey:.1}\" r=\"4\" fill=\"{SCREEN_C}\" opacity=\"1\">{yfinale}</circle>").unwrap();
-        writeln!(y, "<text x=\"{:.1}\" y=\"{:.1}\" font-size=\"13\" font-weight=\"bold\" fill=\"{SCREEN_C}\" opacity=\"1\">{:.0}%{yfinale}</text>", ex + 8.0, ey - 8.0, scr[last]).unwrap();
-
-        writeln!(
-            y,
-            "<rect x=\"0\" y=\"0\" width=\"{CW:.0}\" height=\"{CH:.0}\" fill=\"{BG}\" opacity=\"0\" pointer-events=\"none\">{}</rect>",
-            animate("opacity", "linear", &["0".into(), "0".into(), "1".into()], &[0.0, fade_from, 1.0], dur)
-        )
-        .unwrap();
-        writeln!(y, "</svg>").unwrap();
-
-        let yield_path = graph.join("kg_yield.svg");
-        std::fs::write(&yield_path, &y).unwrap();
-        println!(
-            "wrote {} — {:.0} solves along the x axis, synced to the {:.0}s loop, {:.0}KB",
-            yield_path.display(),
-            cum_total,
-            seconds,
-            y.len() as f64 / 1024.0
-        );
-    }
-
-    // ---- two kinds of sideways: graph/kg_yield_time.svg ------------------
-    // The P(pass) lines over what each week was MADE OF, on the calendar
-    // axis shared with the other charts. Bar height = solves that week, bar
-    // color = composition: green re-solves stacked under gray new problems.
-    // A week is a regime, not a scorecard: flat P over tall gray bars is
-    // the plateau (tons of new questions, nothing landing — more of the
-    // same never breaks it); flat or slightly dipping P over green bars is
-    // consolidation (revisits repairing ground, loading the next leg up).
-    {
-        const TPT: f64 = 64.0;
-        const TPB: f64 = 368.0;
-
-        let mut t = String::with_capacity(32 * 1024);
-        writeln!(t, "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>").unwrap();
-        writeln!(
-            t,
-            "<svg width=\"{CW:.0}pt\" height=\"{CH:.0}pt\" viewBox=\"0 0 {CW:.0} {CH:.0}\" xmlns=\"http://www.w3.org/2000/svg\" font-family=\"Helvetica,sans-serif\">"
-        )
-        .unwrap();
-        writeln!(t, "<rect width=\"{CW:.0}\" height=\"{CH:.0}\" fill=\"{BG}\"/>").unwrap();
-        if split_x > 0.0 {
-            writeln!(t, "<rect x=\"0\" y=\"0\" width=\"{split_x:.1}\" height=\"3\" fill=\"{ERA_PRE_INK}\" opacity=\"0.55\"/>").unwrap();
-        }
-        if switch.is_some() && split_x < CW {
-            writeln!(t, "<rect x=\"{split_x:.1}\" y=\"0\" width=\"{:.1}\" height=\"3\" fill=\"{ERA_GRAPH_INK}\" opacity=\"0.9\"/>", CW - split_x).unwrap();
-        }
-        t.push_str(&era_banner(12.0, 26.0, 24.0, "start", era_frac, switch.is_some(), "", dur));
-        writeln!(
-            t,
-            "<text x=\"{:.0}\" y=\"19\" text-anchor=\"middle\" font-size=\"13\" fill=\"{INK}\">two kinds of sideways - P(pass) over what each week was made of</text>",
-            CW / 2.0 + 100.0
-        )
-        .unwrap();
-        writeln!(
-            t,
-            "<text x=\"{:.0}\" y=\"33\" text-anchor=\"middle\" font-size=\"11\" fill=\"{MUTED}\">bars: re-solve share × slope × drill work ÷ √volume (<tspan fill=\"#3fb950\">green = re-solves</tspan>, gray = new problems) - tall = P held on few revisits; damped where P is climbing. lines: central P(pass) - <tspan fill=\"{SCREEN_C}\">phone screen</tspan> and <tspan fill=\"{ONSITE_C}\">onsite</tspan></text>",
-            CW / 2.0 + 100.0
-        )
-        .unwrap();
-        writeln!(
-            t,
-            "<text x=\"{:.0}\" y=\"48\" text-anchor=\"middle\" font-size=\"11\" fill=\"{MUTED}\">flat P over gray = a plateau more new questions will not break; flat P over green = consolidation loading the next leg up</text>",
-            CW / 2.0 + 100.0
-        )
-        .unwrap();
-
-        // furniture: P% gridlines on the left, month ticks below
-        const PMAX: f64 = 60.0;
-        let py = |p: f64| TPB - p / PMAX * (TPB - TPT);
-        for p in [0.0, 10.0, 20.0, 30.0, 40.0, 50.0, 60.0] {
-            let gy = py(p);
-            writeln!(t, "<line x1=\"{CML}\" y1=\"{gy:.1}\" x2=\"{:.1}\" y2=\"{gy:.1}\" stroke=\"{GRID}\" stroke-width=\"1\"/>", CW - CMR).unwrap();
-            writeln!(t, "<text x=\"{:.0}\" y=\"{:.1}\" text-anchor=\"end\" font-size=\"11\" fill=\"{MUTED}\">{p:.0}%</text>", CML - 6.0, gy + 4.0).unwrap();
-        }
-        let mut m = NaiveDate::from_ymd_opt(x0.year(), x0.month(), 1).unwrap();
-        while m <= xend {
-            let nxt = NaiveDate::from_ymd_opt(m.year() + (m.month() == 12) as i32, m.month() % 12 + 1, 1).unwrap();
-            if m >= x0 {
-                let x = x_of(m);
-                writeln!(t, "<line x1=\"{x:.1}\" y1=\"{TPB}\" x2=\"{x:.1}\" y2=\"{:.0}\" stroke=\"{MUTED}\" stroke-width=\"1\"/>", TPB + 4.0).unwrap();
-                if x_of(nxt.min(xend)) - x >= 34.0 {
-                    let lab = if m.month() == 1 {
-                        format!("jan '{:02}", m.year() % 100)
-                    } else {
-                        MONTHS[m.month0() as usize].to_string()
-                    };
-                    writeln!(t, "<text x=\"{x:.1}\" y=\"{:.0}\" text-anchor=\"middle\" font-size=\"11\" fill=\"{MUTED}\">{lab}</text>", TPB + 17.0).unwrap();
-                }
-            }
-            m = nxt;
-        }
-        if let Ok(sw) = NaiveDate::parse_from_str(ERA_SWITCH, "%Y-%m-%d") {
-            if sw > x0 && sw < xend {
-                let x = x_of(sw);
-                writeln!(t, "<line x1=\"{x:.1}\" y1=\"{TPT}\" x2=\"{x:.1}\" y2=\"{TPB}\" stroke=\"{ERA_GRAPH_INK}\" stroke-width=\"1.2\" stroke-dasharray=\"5 4\" opacity=\"0.6\"/>").unwrap();
-            }
-        }
-
-        let mut dt = String::new();
-        // stacked novelty bars from the baseline: green re-solves under gray
-        // new problems. Height = re-solve share × slope weight ÷ volume —
-        // smart-consolidation intensity. The slope weight keeps a bar tall
-        // while the screen line is flat, wobbling, or dipping, and damps it
-        // while the line climbs (there the line already tells the story);
-        // dividing by √volume makes tall mean CHEAP, much held with little
-        // solving (√ not raw, or near-empty weeks own the scale and real
-        // work vanishes); the re-solve share gate means only revisit work
-        // counts — a lone new-problem week can't fake it. So a tall green
-        // bar is P held on a handful of revisits, while the plateau's flood
-        // of new questions flattens to stubs.
-        // flat or dipping keeps full weight (dips boost a little); any real
-        // climb decays exponentially — a +1 pt/week wobble keeps a third,
-        // +3 or more is effectively gone. Gentler damping let small-volume
-        // weeks with mildly RISING P top the chart, which is neither kind
-        // of sideways.
-        let slope_w = |i: usize| {
-            let s = if i == 0 { 0.0 } else { series[i][1].0 - series[i - 1][1].0 };
-            if s <= 0.0 { 1.0 + (s.abs() / 4.0).min(0.6) } else { (-s).exp() }
-        };
-        let weighted: Vec<f64> = week_new
-            .iter()
-            .zip(&week_re)
-            .enumerate()
-            .map(|(i, (n, r))| {
-                let tot = n + r;
-                let share = *r as f64 / tot.max(1) as f64;
-                // drill factor: 1 + 3× the drill share of the week's work,
-                // capped at 4× — drills are the foundation consolidation
-                // pours, so a week half-spent on drill building and review
-                // more than doubles, and a drill-dominated week maxes out
-                let dfac = 1.0 + (3.0 * week_drill[i] as f64 / (tot as f64).max(1.0)).min(3.0);
-                slope_w(i) * share * dfac / (tot as f64).max(8.0).sqrt()
-            })
-            .collect();
-        let vmax2 = weighted.iter().fold(0.0f64, |a, &b| a.max(b)).max(1e-9);
-        let unit = 0.6 * (TPB - TPT) / vmax2;
-        for (i, ((wd, nn), nr)) in weeks.iter().zip(&week_new).zip(&week_re).enumerate() {
-            if *nn + *nr == 0 {
-                continue;
-            }
-            let x1 = x_of(*wd - Duration::days(6));
-            let w = (x_of(*wd) - x1).max(1.5);
-            let h = weighted[i] * unit;
-            let h_re = h * *nr as f64 / (*nn + *nr) as f64;
-            let h_new = h - h_re;
-            if *nr > 0 {
-                writeln!(dt, "<rect x=\"{x1:.1}\" y=\"{:.1}\" width=\"{w:.1}\" height=\"{:.1}\" fill=\"#3fb950\"/>", TPB - h_re, h_re.max(1.0)).unwrap();
-            }
-            if *nn > 0 {
-                writeln!(dt, "<rect x=\"{x1:.1}\" y=\"{:.1}\" width=\"{w:.1}\" height=\"{:.1}\" fill=\"#57606a\"/>", TPB - h_re - h_new, h_new.max(1.0)).unwrap();
-            }
-        }
-
-        // the P(pass) lines on top of the bars, right-axis scale — the same
-        // central lines as kg_pass.svg, here to show the two kinds of
-        // sideways: flat over gray/red noise goes nowhere, flat-then-up over
-        // green was being loaded
-        for (kind, color) in [(0usize, SCREEN_C), (1usize, ONSITE_C)] {
-            let line: Vec<String> = weeks
-                .iter()
-                .enumerate()
-                .map(|(i, wd)| {
-                    let v = if kind == 0 { series[i][1].0 } else { series[i][1].1 };
-                    format!("{:.1},{:.1}", x_of(*wd), py(v.min(PMAX)))
-                })
-                .collect();
-            writeln!(dt, "<polyline points=\"{}\" fill=\"none\" stroke=\"{color}\" stroke-width=\"2\"/>", line.join(" ")).unwrap();
-        }
-
-        // era callouts, computed from the replay
-        let widx = |d: NaiveDate| weeks.partition_point(|w| *w <= d).saturating_sub(1);
-        let a = widx(NaiveDate::from_ymd_opt(2025, 10, 6).unwrap());
-        let b = widx(NaiveDate::from_ymd_opt(2025, 11, 30).unwrap());
-        let pz = widx(NaiveDate::from_ymd_opt(2026, 7, 31).unwrap());
-        let last = weeks.len() - 1;
-        if a < b && b < pz && pz < last {
-            let comp = |lo: usize, hi: usize| {
-                let (n, r) = week_new[lo..=hi].iter().zip(&week_re[lo..=hi]).fold((0usize, 0usize), |(an, ar), (n, r)| (an + n, ar + r));
-                (n + r, 100.0 * n as f64 / (n + r).max(1) as f64)
-            };
-            let (gn, gnew) = comp(a + 1, b);
-            let gp = series[b][1].0 - series[a][1].0;
-            let xm = ((x_of(weeks[a]) + x_of(weeks[b])) / 2.0).max(CML + 260.0);
-            writeln!(dt, "<text x=\"{xm:.1}\" y=\"{:.1}\" text-anchor=\"middle\" font-size=\"13\" font-weight=\"bold\" fill=\"{INK}\">sideways going nowhere: {gn} solves, {gnew:.0}% new → {gp:+.0} pts</text>", TPT + 16.0).unwrap();
-            writeln!(dt, "<text x=\"{xm:.1}\" y=\"{:.1}\" text-anchor=\"middle\" font-size=\"11\" fill=\"{MUTED}\">tons of new questions over ground already held - more of them will not break it</text>", TPT + 32.0).unwrap();
-            let (cn, cnew) = comp(pz + 1, last);
-            let cp = series[last][1].0 - series[pz][1].0;
-            let xc = x_of(weeks[pz]) - 10.0;
-            writeln!(dt, "<text x=\"{xc:.1}\" y=\"{:.1}\" text-anchor=\"end\" font-size=\"13\" font-weight=\"bold\" fill=\"#3fb950\">loading the next leg: {cn} solves, {:.0}% revisits → {cp:+.0} pts</text>", TPT + 16.0, 100.0 - cnew).unwrap();
-            writeln!(dt, "<text x=\"{xc:.1}\" y=\"{:.1}\" text-anchor=\"end\" font-size=\"11\" fill=\"#3fb950\" opacity=\"0.85\">a third of the volume, repairing stale ground - a dip here still preps the climb</text>", TPT + 32.0).unwrap();
-        }
-
-        // reveal + playhead on the shared calendar clock
-        let tanim = animate("width", "linear", &reveal_x, &reveal_t, dur);
-        writeln!(t, "<clipPath id=\"treveal\"><rect x=\"0\" y=\"0\" width=\"{CW:.0}\" height=\"{CH:.0}\">{tanim}</rect></clipPath>").unwrap();
-        let trest = animate("x", "linear", &reveal_x, &reveal_t, dur);
-        writeln!(t, "<clipPath id=\"trest\"><rect x=\"{:.1}\" y=\"0\" width=\"{CW:.0}\" height=\"{CH:.0}\">{trest}</rect></clipPath>", CW - CMR).unwrap();
-        writeln!(t, "<g clip-path=\"url(#trest)\" opacity=\"0.35\">\n{dt}</g>").unwrap();
-        writeln!(t, "<g clip-path=\"url(#treveal)\">\n{dt}</g>").unwrap();
-        let thead = animate("x", "linear", &reveal_x, &reveal_t, dur);
-        writeln!(t, "<rect x=\"{:.1}\" y=\"{TPT}\" width=\"1.5\" height=\"{:.0}\" fill=\"{INK}\" opacity=\"0.75\">{thead}</rect>", CW - CMR, TPB - TPT).unwrap();
-        // line end labels pop in on the final tick, kg_pass style
-        let mut tft = vec![0.0];
-        push_key(&mut tft, *tick_frac.last().unwrap());
-        let tfinale = animate("opacity", "discrete", &["0".into(), "1".into()], &tft, dur);
-        let lx = x_of(*weeks.last().unwrap());
-        for (color, v) in [(SCREEN_C, series.last().unwrap()[1].0), (ONSITE_C, series.last().unwrap()[1].1)] {
-            writeln!(t, "<text x=\"{:.1}\" y=\"{:.1}\" font-size=\"12\" font-weight=\"bold\" fill=\"{color}\" opacity=\"1\">{v:.0}%{tfinale}</text>", lx + 8.0, py(v.min(PMAX)) + 4.0).unwrap();
-        }
-        writeln!(
-            t,
-            "<rect x=\"0\" y=\"0\" width=\"{CW:.0}\" height=\"{CH:.0}\" fill=\"{BG}\" opacity=\"0\" pointer-events=\"none\">{}</rect>",
-            animate("opacity", "linear", &["0".into(), "0".into(), "1".into()], &[0.0, fade_from, 1.0], dur)
-        )
-        .unwrap();
-        writeln!(t, "</svg>").unwrap();
-
-        let tp = graph.join("kg_yield_time.svg");
-        std::fs::write(&tp, &t).unwrap();
-        println!(
-            "wrote {} — {} weeks of yield, synced to the {:.0}s loop, {:.0}KB",
-            tp.display(),
-            weeks.len(),
-            seconds,
-            t.len() as f64 / 1024.0
-        );
-    }
-
-    // ---- mock outcome distribution: graph/kg_dist.svg --------------------
-    // The mass behind the P(pass) central line: per DAY (weekly steps read as
-    // jitter), how the 4000 simulated mocks distribute over problems solved
-    // (0..=6 of the 2E+2M+2H set), stepping tick for tick on the shared
-    // clock. The slice of each bin that clears the onsite bar (2E+2M+>=1
-    // hard — only 5s and 6s can) is lit in the onsite color, so the pass
-    // rate reads as the lit mass. Same seed and inputs as the central
-    // pass_rates call, so on kg_pass's weekly stations they agree exactly.
-    // The swarm chart tracks the first SWARM_N of those sims individually.
-    // Every day re-runs seed 42, so sim i rolls the SAME dice each day
-    // (common random numbers): its dot moves only when the day's improved
-    // recall actually flips one of its problems.
+    // ---- the daily mock simulation behind the swarm and blame charts ----
+    // Per DAY, 4000 simulated mocks on the 2E+2M+2H set, same seed and
+    // inputs as the central pass_rates call, so on kg_pass's weekly stations
+    // they agree exactly. The swarm chart tracks the first SWARM_N of those
+    // sims individually. Every day re-runs seed 42, so sim i rolls the SAME
+    // dice each day (common random numbers): its dot moves only when the
+    // day's improved recall actually flips one of its problems. (The
+    // per-bin mass chart, kg_dist.svg, was dropped: the swarm shows it.)
     const SWARM_N: usize = 150;
     // blame: failed problems attributed to the weakest move in their walk,
     // rolled up by technique group; last band = off-graph moves
@@ -1980,7 +1524,6 @@ fn main() {
                 .unwrap_or(n_groups)
         })
         .collect();
-    let mut dists: Vec<([f64; 7], [f64; 7])> = Vec::with_capacity(n_ticks);
     let mut swarm: Vec<Vec<(usize, bool)>> = Vec::with_capacity(n_ticks); // (solved, onsite) per sim
     let mut blame_days: Vec<Vec<u32>> = Vec::with_capacity(n_ticks);
     for day in &days {
@@ -1990,17 +1533,14 @@ fn main() {
         let mv_recall: Vec<Option<f64>> = (0..bank.move_names.len())
             .map(|i| if i < bank.n_known { Some(recall[i]) } else { None })
             .collect();
-        let (mut hist, mut onsite_hist) = ([0i64; 7], [0i64; 7]);
         let mut sims = Vec::with_capacity(SWARM_N);
         let mut blame = vec![0u32; n_groups + 1];
         run_mocks(
-            &mv_recall, &bank.pools, SCENARIOS[1].1, (0, 0, 0),
+            &mv_recall, &bank.pools, &bank.mass, SCENARIOS[1].1, (0, 0, 0),
             &mut PyRandom::new(42), 4000,
             |solved, probs| {
                 let t = (solved[0] + solved[1] + solved[2]) as usize;
                 let onsite = solved[0] == 2 && solved[1] == 2 && solved[2] >= 1;
-                hist[t] += 1;
-                onsite_hist[t] += onsite as i64;
                 if sims.len() < SWARM_N {
                     sims.push((t, onsite));
                 }
@@ -2011,148 +1551,25 @@ fn main() {
                 }
             },
         );
-        dists.push((hist.map(|v| v as f64 / 4000.0), onsite_hist.map(|v| v as f64 / 4000.0)));
         swarm.push(sims);
         blame_days.push(blame);
     }
-    const DH: f64 = 430.0;
     const DML: f64 = 48.0;
     const DMR: f64 = 24.0;
-    const DPT: f64 = 56.0;
-    const DPB: f64 = 360.0;
-    let y_max = dists
-        .iter()
-        .flat_map(|(h, _)| h.iter().copied())
-        .fold(0.0f64, f64::max)
-        .mul_add(10.0, 0.999)
-        .floor()
-        / 10.0;
-    let dy_of = |share: f64| DPB - share / y_max * (DPB - DPT);
-    let collapse = |vals: &[String], attr: &str| -> String {
-        discrete_track(vals, &tick_frac, attr, dur).unwrap_or_default()
-    };
 
-    let mut ds = String::with_capacity(32 * 1024);
-    writeln!(ds, "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>").unwrap();
-    writeln!(ds, "<svg width=\"{CW:.0}pt\" height=\"{DH:.0}pt\" viewBox=\"0 0 {CW:.0} {DH:.0}\" xmlns=\"http://www.w3.org/2000/svg\" font-family=\"Helvetica,sans-serif\">").unwrap();
-    writeln!(ds, "<rect width=\"{CW:.0}\" height=\"{DH:.0}\" fill=\"{BG}\"/>").unwrap();
-    writeln!(ds, "<text x=\"{:.0}\" y=\"24\" text-anchor=\"middle\" font-size=\"13\" fill=\"{INK}\">The Monte Carlo mass behind P(pass) — 4000 simulated mocks/week by problems solved, central scenario</text>", CW / 2.0).unwrap();
-    ds.push_str(&era_banner(DML, 48.0, 26.0, "start", era_frac, switch.is_some(), "", dur));
-
-    for p in [0.0, 0.25, 0.5, 0.75, 1.0] {
-        let share = p * y_max;
-        let y = dy_of(share);
-        writeln!(ds, "<line x1=\"{DML}\" y1=\"{y:.1}\" x2=\"{:.1}\" y2=\"{y:.1}\" stroke=\"{GRID}\" stroke-width=\"1\"/>", CW - DMR).unwrap();
-        writeln!(ds, "<text x=\"{:.0}\" y=\"{:.1}\" text-anchor=\"end\" font-size=\"11\" fill=\"{MUTED}\">{:.0}%</text>", DML - 6.0, y + 4.0, share * 100.0).unwrap();
-    }
-
-    let group_w = (CW - DML - DMR) / 7.0;
-    let bar_w = group_w * 0.5;
-    for bin in 0..7usize {
-        let bx = DML + bin as f64 * group_w + (group_w - bar_w) / 2.0;
-        let (fin_h, fin_o) = (dists.last().unwrap().0[bin], dists.last().unwrap().1[bin]);
-        // rest of the bin above, onsite-clearing slice grounded at the axis
-        let rest_y: Vec<String> = dists.iter().map(|(h, _)| format!("{:.1}", dy_of(h[bin]))).collect();
-        let rest_h: Vec<String> =
-            dists.iter().map(|(h, o)| format!("{:.1}", (h[bin] - o[bin]) / y_max * (DPB - DPT))).collect();
-        let pass_y: Vec<String> = dists.iter().map(|(_, o)| format!("{:.1}", dy_of(o[bin]))).collect();
-        let pass_h: Vec<String> =
-            dists.iter().map(|(_, o)| format!("{:.1}", o[bin] / y_max * (DPB - DPT))).collect();
-        writeln!(
-            ds,
-            "<rect x=\"{bx:.1}\" y=\"{:.1}\" width=\"{bar_w:.1}\" height=\"{:.1}\" fill=\"{SCREEN_C}\" opacity=\"0.85\">{}{}</rect>",
-            dy_of(fin_h),
-            (fin_h - fin_o) / y_max * (DPB - DPT),
-            collapse(&rest_y, "y"),
-            collapse(&rest_h, "height")
-        )
-        .unwrap();
-        writeln!(
-            ds,
-            "<rect x=\"{bx:.1}\" y=\"{:.1}\" width=\"{bar_w:.1}\" height=\"{:.1}\" fill=\"{ONSITE_C}\">{}{}</rect>",
-            dy_of(fin_o),
-            fin_o / y_max * (DPB - DPT),
-            collapse(&pass_y, "y"),
-            collapse(&pass_h, "height")
-        )
-        .unwrap();
-        writeln!(
-            ds,
-            "<text x=\"{:.1}\" y=\"{:.0}\" text-anchor=\"middle\" font-size=\"12\" fill=\"{MUTED}\">{bin} solved</text>",
-            bx + bar_w / 2.0,
-            DPB + 18.0
-        )
-        .unwrap();
-    }
-
-    // legend + threshold note, top right where the low bins live early on
-    for (i, (color, label)) in [
-        (SCREEN_C, "share of simulated mocks"),
-        (ONSITE_C, "clears the onsite bar (2E+2M+\u{2265}1H)"),
-    ]
-    .iter()
-    .enumerate()
-    {
-        let y = DPT + 4.0 + i as f64 * 18.0;
-        writeln!(ds, "<rect x=\"{:.0}\" y=\"{:.1}\" width=\"14\" height=\"10\" fill=\"{color}\"/>", CW - DMR - 260.0, y - 9.0).unwrap();
-        writeln!(ds, "<text x=\"{:.0}\" y=\"{y:.1}\" font-size=\"12\" fill=\"{INK}\">{label}</text>", CW - DMR - 240.0).unwrap();
-    }
-
-    // month ticker on the movie's tick, like the python-rendered charts
+    // month starts for the tickers of the charts below, on the movie's tick
     let mut m = NaiveDate::from_ymd_opt(days[0].year(), days[0].month(), 1).unwrap();
     let mut month_starts = vec![];
     while m <= today {
         month_starts.push(m);
         m = NaiveDate::from_ymd_opt(m.year() + (m.month() == 12) as i32, m.month() % 12 + 1, 1).unwrap();
     }
-    for (i, m) in month_starts.iter().enumerate() {
-        let fs = tick_frac[((*m - days[0]).num_days().max(0) as usize).min(n_ticks - 1)];
-        let fe = month_starts
-            .get(i + 1)
-            .map_or(1.0, |n| tick_frac[((*n - days[0]).num_days() as usize).min(n_ticks - 1)]);
-        let lab = format!("{} '{:02}", MONTHS[m.month0() as usize], m.year() % 100);
-        let (values, times) = if fs > 0.0 {
-            if i + 1 < month_starts.len() {
-                (vec!["0".to_string(), "1".into(), "0".into()], vec![0.0, fs, fe])
-            } else {
-                (vec!["0".to_string(), "1".into()], vec![0.0, fs])
-            }
-        } else {
-            (vec!["1".to_string(), "0".into()], vec![0.0, fe])
-        };
-        writeln!(
-            ds,
-            "<text x=\"{:.0}\" y=\"24\" text-anchor=\"end\" font-size=\"14\" fill=\"{INK}\" opacity=\"0\">{lab}{}</text>",
-            CW - DMR,
-            animate("opacity", "discrete", &values, &times, dur)
-        )
-        .unwrap();
-    }
-
-    writeln!(
-        ds,
-        "<rect x=\"0\" y=\"0\" width=\"{CW:.0}\" height=\"{DH:.0}\" fill=\"{BG}\" opacity=\"0\" pointer-events=\"none\">{}</rect>",
-        animate("opacity", "linear", &["0".into(), "0".into(), "1".into()], &[0.0, fade_from, 1.0], dur)
-    )
-    .unwrap();
-    writeln!(ds, "</svg>").unwrap();
-
-    let dist_path = graph.join("kg_dist.svg");
-    std::fs::write(&dist_path, &ds).unwrap();
-    println!(
-        "wrote {} — {} daily distributions, synced to the {:.0}s loop, {:.0}KB",
-        dist_path.display(),
-        dists.len(),
-        seconds,
-        ds.len() as f64 / 1024.0
-    );
 
     // ---- swarm: graph/kg_swarm.svg ---------------------------------------
     // The same simulation, dot by dot: SWARM_N individual mocks re-taken
     // daily with the same dice, packing into their solved-count bins. A dot
     // lights up in the onsite color the day its fixed luck plus current
-    // skill clears the onsite bar. Companion to kg_dist.svg: that chart is
-    // the mass, this one is the dice.
+    // skill clears the onsite bar.
     const SH: f64 = 340.0;
     const SPB: f64 = 270.0;
     let sgroup = (CW - DML - DMR) / 7.0;
@@ -2184,7 +1601,7 @@ fn main() {
     writeln!(sw, "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>").unwrap();
     writeln!(sw, "<svg width=\"{CW:.0}pt\" height=\"{SH:.0}pt\" viewBox=\"0 0 {CW:.0} {SH:.0}\" xmlns=\"http://www.w3.org/2000/svg\" font-family=\"Helvetica,sans-serif\">").unwrap();
     writeln!(sw, "<rect width=\"{CW:.0}\" height=\"{SH:.0}\" fill=\"{BG}\"/>").unwrap();
-    writeln!(sw, "<text x=\"{:.0}\" y=\"24\" text-anchor=\"middle\" font-size=\"13\" fill=\"{INK}\">The dice themselves — {n_dots} of the simulated mocks, same rolls every day: a dot hops bins only when skill flips one of its problems</text>", CW / 2.0).unwrap();
+    writeln!(sw, "<text x=\"{:.0}\" y=\"24\" text-anchor=\"middle\" font-size=\"13\" fill=\"{INK}\">the same {n_dots} simulated mocks re-taken every day: a dot moves only when a change in recall flips one of its problems</text>", CW / 2.0).unwrap();
     sw.push_str(&era_banner(DML, 60.0, 26.0, "start", era_frac, switch.is_some(), "", dur));
 
     writeln!(sw, "<line x1=\"{DML}\" y1=\"{SPB}\" x2=\"{:.1}\" y2=\"{SPB}\" stroke=\"{GRID}\" stroke-width=\"1\"/>", CW - DMR).unwrap();
@@ -2256,7 +1673,7 @@ fn main() {
     let swarm_path = graph.join("kg_swarm.svg");
     std::fs::write(&swarm_path, &sw).unwrap();
     println!(
-        "wrote {} — {} dots over {} days, synced to the {:.0}s loop, {:.0}KB",
+        "wrote {} - {} dots over {} days, synced to the {:.0}s loop, {:.0}KB",
         swarm_path.display(),
         n_dots,
         n_ticks,
@@ -2327,7 +1744,7 @@ fn main() {
     writeln!(bl, "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>").unwrap();
     writeln!(bl, "<svg width=\"{CW:.0}pt\" height=\"{CH:.0}pt\" viewBox=\"0 0 {CW:.0} {CH:.0}\" xmlns=\"http://www.w3.org/2000/svg\" font-family=\"Helvetica,sans-serif\">").unwrap();
     writeln!(bl, "<rect width=\"{CW:.0}\" height=\"{CH:.0}\" fill=\"{BG}\"/>").unwrap();
-    writeln!(bl, "<text x=\"{:.0}\" y=\"19\" text-anchor=\"middle\" font-size=\"13\" fill=\"{INK}\">Why the simulated mocks fail — share of all simulated problems failing, blamed on the weakest move in the walk: down = fewer fails</text>", CW / 2.0).unwrap();
+    writeln!(bl, "<text x=\"{:.0}\" y=\"19\" text-anchor=\"middle\" font-size=\"13\" fill=\"{INK}\">Share of simulated problems failed, blamed on the weakest move in the walk (down = fewer fails)</text>", CW / 2.0).unwrap();
     bl.push_str(&era_banner(CML + 10.0, BPT + 34.0, 30.0, "start", era_frac, switch.is_some(), BG, dur));
 
     // legend: one row of swatches under the title
@@ -2401,7 +1818,7 @@ fn main() {
     let blame_path = graph.join("kg_blame.svg");
     std::fs::write(&blame_path, &bl).unwrap();
     println!(
-        "wrote {} — {} bands over {} days, synced to the {:.0}s loop, {:.0}KB",
+        "wrote {} - {} bands over {} days, synced to the {:.0}s loop, {:.0}KB",
         blame_path.display(),
         n_bands,
         n_ticks,

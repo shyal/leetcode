@@ -6,7 +6,33 @@ I've recently come to the realization that leetcode was never about solving the 
 
 My solution to this problem, in the past, was the use of Anki, and while Anki helped a lot, it created a problem of its own: it meant keeping a separate asset, and constantly having to work with both Anki and the actual learning + solving. This approach felt heavy. In November 2025, i started dumping my solve history in an LLM's context, and asking for what to work on next. This was a leaner approach, however in retrospect, although the scheduling felt good, it wasn't.
 
-So, here's my new approach: i decided on a new thesis: to focus on the core techniques behind each solve, and treat those like the key asset that needs to be kept solid, via spaced repetition. Of course classifying thousands of solves into a personal knowledge graph was always the answer to pick the signal from the noise. It's just that up until now, it wasn't feasible without significant resources. Well, now it is feasible, for a douzen dollars (i'll write up on the extraction process soon). So with the repo's tooling, i can now run `make next` which scans my solve graph and evidence, finds fragile or stale nodes, and recommends what to work on next.
+So, here's my new approach: i decided on a new thesis: to focus on the core techniques behind each solve, and treat those like the key asset that needs to be kept solid, via spaced repetition. Of course classifying thousands of solves into a personal knowledge graph was always the answer to pick the signal from the noise. It's just that up until now, it wasn't feasible without significant resources. Well, now it is feasible, for a douzen dollars (i'll write up on the extraction process soon). So with the repo's tooling, i can now run `make next` which scans my solve graph and evidence, finds fragile or stale nodes, and recommends what to work on next. If nothing needs reviewing, then `make next` goes into exploration mode with the goal of maximizing problem rechability.
+
+<!-- KG_3D -->
+
+![The technique graph in three dimensions, turning while the history replays](https://shyal.s3.amazonaws.com/kg_3d_20260831155826.svg)
+
+<!-- /KG_3D -->
+
+I like to think of this process as a compression algorithm. Lots of leetcode problems are just variations of one another, or variations around core themes that don't emerge easily. This readme is changing a lot as the tooling is in active development. But at the time of writing, <!-- N_NODES -->97<!-- /N_NODES --> nodes are enough to describe the whole bank of <!-- N_BANK -->3092<!-- /N_BANK --> free problems (the drafted walks score precision 0.80 / recall 0.75 against my evidenced ones), and the model expects <!-- N_REACH_TODAY -->~2600<!-- /N_REACH_TODAY --> of them to be solvable today. i'm hoping to demonstrate that the compression + optimizer works.
+
+It is worth noting that the topology of the graph changes continually: each new node is a mental model i was missing, and the graph grows as those gaps turn up.
+
+It is also worth noting that everything connects to everything, and everything can depend on anything. The first class citizens in the graph are:
+
+- Leetcode problems.
+- Drills (tiny problems i create myself, each training one atomic technique).
+- Nodes (single technique class, like prefix-sums or floyd-cycle).
+- Groups (like sql or trees).
+
+A problem's solution is a combination of several nodes, in a directed dependency graph. Problems can depend on an input dependency graph of nodes, on other problems and on drills. Nodes themselves can also depend on a dependency graph of drills. Problems that are solved in unpredicted ways are recorded as alternate walks.
+
+After each solve a judge runs, reads my submitted code + notes, and records the walk i took. Per node it records:
+
+- a verdict: clean or struggled
+- an assist level, from my notes only: none, hint, walkthrough or spoiled
+
+This means that failures are granular, and only affect the pertinent nodes, not the whole input dependency tree.
 
 <!-- KG_MOVIE -->
 
@@ -14,7 +40,7 @@ So, here's my new approach: i decided on a new thesis: to focus on the core tech
 
 <!-- /KG_MOVIE -->
 
-All the solves before the blue section of the timeline were done with poor scheduling. The inefficiency is evidenced by the nodes turning stale (orange) and fragile (red) like a Christmas tree. Then, once we enter the blue section of the timeline, they all turn green within a matter of a week.
+All the solves before the blue section of the timeline were done with poor scheduling. The inefficiency is evidenced by the nodes turning stale (orange) and fragile (red) like a Christmas tree. Then, once we enter the blue section of the timeline, the nodes start turning green rapidly (quick disclaimer, the scheduler has been starved throughout August 2026 due to deadlocks. This how now been fixed, so i'm expecting a lot of green September onwards).
 
 ## It seems to be working
 
@@ -22,41 +48,19 @@ Looking at my last leetcode grind, roughly October and November 2025, i plateaue
 
 <!-- PASS_PROB_CHART -->
 
-![P(pass a mock) over time](https://shyal.s3.amazonaws.com/pass_probability_20260831133936.svg)
+![P(pass a mock) over time](https://shyal.s3.amazonaws.com/pass_probability_20260831155624.svg)
 
 <!-- /PASS_PROB_CHART -->
 
-The same story with effort as the x axis. A plateau is a long flat slog: hundreds of new problems that buy nothing, because they only exercise ground i already hold. A consolidation is a short, nearly vertical climb: far fewer solves, mostly re-solves, repairing stale ground.
-
-<!-- YIELD_CHART -->
-
-![What a solve buys](https://shyal.s3.amazonaws.com/yield_20260831133936.svg)
-
-<!-- /YIELD_CHART -->
-
-The green bars in the chart below show **consolidation** periods: times when P is either flat, wobbly, or sloping downwards, with many resolves, as well as drills being either added or reviewed. These are periods spent building the foundations rather than trying to cover new solving ground. These periods, IFF sustained with optimal scheduling, should precede P moving up violently.
-
-<!-- YIELD_TIME_CHART -->
-
-![Two kinds of sideways](https://shyal.s3.amazonaws.com/yield_time_20260831133936.svg)
-
-<!-- /YIELD_TIME_CHART -->
-
-<!-- MOCK_DIST_CHART -->
-
-![Simulated mock outcomes over time](https://shyal.s3.amazonaws.com/mock_dist_20260831133936.svg)
-
-<!-- /MOCK_DIST_CHART -->
-
 <!-- MOCK_SWARM_CHART -->
 
-![Individual simulated mocks over time](https://shyal.s3.amazonaws.com/mock_swarm_20260831133936.svg)
+![Individual simulated mocks over time](https://shyal.s3.amazonaws.com/mock_swarm_20260831155624.svg)
 
 <!-- /MOCK_SWARM_CHART -->
 
 <!-- MOCK_BLAME_CHART -->
 
-![Why simulated mocks fail, over time](https://shyal.s3.amazonaws.com/mock_blame_20260831133936.svg)
+![Share of simulated problems failed, by group](https://shyal.s3.amazonaws.com/mock_blame_20260831155624.svg)
 
 <!-- /MOCK_BLAME_CHART -->
 
@@ -72,7 +76,7 @@ The model is power-law forgetting with a slip rate, P(recall) = (1−slip)·(1 +
 
 <!-- POSITIONS_SVG -->
 
-![Nodes sliding down their forgetting curves](https://shyal.s3.amazonaws.com/positions_20260831133936.svg)
+![Nodes sliding down their forgetting curves](https://shyal.s3.amazonaws.com/positions_20260831155624.svg)
 
 <!-- /POSITIONS_SVG -->
 
@@ -80,23 +84,29 @@ The model also tracks its accuracy internally, by comparing its predictions with
 
 <!-- CURVE_CALIBRATION_CHART -->
 
-![Curve calibration](https://shyal.s3.amazonaws.com/curve_calibration_20260831133936.svg)
+![Curve calibration](https://shyal.s3.amazonaws.com/curve_calibration_20260831155624.svg)
 
 <!-- /CURVE_CALIBRATION_CHART -->
 
+The lines below are 'residuals': groups of nodes moving up and down based on whether i perform better than the model predicts. The fact they roughly remain in the -2 to +2 band means the problem compression, combined with the derived forgetting curves is working as expected (the curves drop quite a bit in August 2026, because the scheduler was getting starved due to deadlocks etc. This has now been fixed).
+
+Groups that fall off the chart (below -2) for a portion of time likely need looking into. The process is usually finding the problematic node, then the drills or problems inside it, then node splitting the node: creating a new node for those problems, and possibly some drills. To continue with the compression analogy: those are compression artifacts, and the node splitting boosts the resolution for that section of the graph.
+
+<!-- RESIDUALS_CHART -->
+
+![Residuals per group over time](https://shyal.s3.amazonaws.com/residuals_20260831155624.svg)
+
+<!-- /RESIDUALS_CHART -->
+
 <!-- REVIEW_TIMING_CHART -->
 
-![Was each review on time?](https://shyal.s3.amazonaws.com/review_timing_20260831133936.svg)
+![Review timing](https://shyal.s3.amazonaws.com/review_timing_20260831155624.svg)
 
 <!-- /REVIEW_TIMING_CHART -->
 
-i had a hunch my solve times were bimodal: either the move fires and the problem falls out in minutes, or it grinds. The clock says no. Solve times come from the timing trailer in each solve commit (single-solve commits only; the day-one bulk import stamped 109 old files with one shared timestamp, so those are dropped), and the distribution is one smooth lognormal around 7 minutes. Whatever a grind feels like from inside, there are no clusters.
-
-What the clock does see is two drivers, and they were my gut ranking before i ran the numbers: repetition, then connectivity. Meet the same problem again within a month and i run at 0.76x my previous attempt on it; after a month away the edge is mostly gone. Averages can't show this (the problems i clear fast never earn a second serving, only the ones that hurt come back), so each re-solve is paired against my own previous attempt at that problem. The second driver: problems built from widely shared moves run faster than same-rated problems built from rare ones, 4.6m vs 6.3m on easies, 11.7m vs 20.5m on mediums. A move that fifty problems keep exercising never gets a chance to go cold; the rare moves are the expensive ones. Position in the concept taxonomy does nothing (prereq degree came out at zero in the regression): what matters is how many problems rehearse the move, not how central it looks on paper.
-
 <!-- SOLVETIME_CHART -->
 
-![The two drivers of solve time](https://shyal.s3.amazonaws.com/solvetime_20260831133936.svg)
+![How solve time changes with repetition and shared moves](https://shyal.s3.amazonaws.com/solvetime_20260831155826.svg)
 
 <!-- /SOLVETIME_CHART -->
 
@@ -110,7 +120,7 @@ The connectivity effect, zoomed in. Every timed solve as a dot, against how many
 
 The payoff metric is problems in reach: a problem is in reach when every move in its walk is currently solid. This replays today's walked problems against each day's historical node states, so the curve measures my skill moving under a fixed yardstick, not the catalog growing.
 
-Two lines now. The blue one counts only evidenced walks: walks extracted from code i actually wrote. The purple one is the whole bank of 3092 free problems, using LLM-drafted walks for everything i haven't solved yet (drafts score precision 0.80 / recall 0.75 against 50 evidenced walks, so the purple line runs a little optimistic). Guesses never mix into the blue line. The dip in the middle is the point of the whole repo: reach isn't a ratchet, volume without defense bleeds out at catalog scale.
+Two lines now. The blue one counts only evidenced walks: walks extracted from code i actually wrote. The purple one is the whole bank of <!-- N_BANK -->3092<!-- /N_BANK --> free problems, using LLM-drafted walks for everything i haven't solved yet (drafts score precision 0.80 / recall 0.75 against 50 evidenced walks, so the purple line runs a little optimistic). Guesses never mix into the blue line. The dip in the middle is the point of the whole repo: reach isn't a ratchet, volume without defense bleeds out at catalog scale.
 
 <!-- REACH_CHART -->
 
@@ -138,7 +148,7 @@ https://leetcode.com/problems/subarray-sum-equals-k/
 
 <!-- ZPD_SVG -->
 
-![The input tree of each of my last 50 solves, one per second](https://shyal.s3.amazonaws.com/zpd_20260831133936.svg)
+![The input tree of each of my last 50 solves, one per second](https://shyal.s3.amazonaws.com/zpd_20260831155826.svg)
 
 <!-- /ZPD_SVG -->
 
@@ -187,6 +197,7 @@ The chart below puts the history and the forecast on one time axis. Left of toda
 <!-- FORECAST_CHART -->
 
 ![History and forecast to a 50% pass rate](https://shyal.s3.amazonaws.com/forecast_20260831133936.svg)
+
 <!-- /FORECAST_CHART -->
 
 Every projected date is recorded daily, so one chart tracks whether the projections are stable. A flat line means the model isn't fooled by what i did that week; drift upward means i'm slacking. The third line is `utils/kg/kg_predict`, a day-by-day simulation of how the picker would spend the hours; its date answers "when is the work done" (graph fully solid + enough mediums banked + a polish block), not "when would i pass", which is why it lands much earlier.
@@ -199,13 +210,7 @@ Every projected date is recorded daily, so one chart tracks whether the projecti
 
 As you can see, these readiness projections are currently highly unreliable. The first issue is the inconsistency in practice (with a huge gap between September 2025 and August 2026), and secondly it's because the monte carlo simulation tries to guess my progress. It's rolling dice with an incomplete picture.
 
-Getting a more accurate picture would mean generating solutions for all leetcode problems, and building the currently unbuilt portions of the graph for it, something that can be done, but would not be _my_ graph, so would be a rather pointless activity.
-
-Towards the end of August, these prediction variance lines should flatten out, on average, but will continue to whiplash.
-
-This is because the projections use two noisy inputs: the hours assumption is my mean pace in the last 28 days, extrapolated forever. Secondly, since my resumption in August the window is refilling with consistent days, so by the end of the month that input settles.
-
-I find the predictions to be honest. At 2 hours of solving a day, a 50% pass rate for a FAANG mock at any company feels both correct and realistic. This is a much taller hill to climb than picking one company's mock exam, and cramming the solutions. This is a prediction for any 2 easy 2 medium and 1 hard mock exam, with questions picked at random.
+I'm currently working on getting a more accurate picture than monte carlo, via a simulation of the picker, and predictions fitted to my actual performance. This was only added toward the end of August 2026, and the simulation is lacking about 50 hards before it can deliver an accurate pass rate of 50% on the on-site.
 
 ## The make next commands
 

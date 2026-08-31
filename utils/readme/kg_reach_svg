@@ -264,6 +264,10 @@ def main():
     svg.append("</svg>")
     with open(OUT, "w") as f:
         f.write("\n".join(svg) + "\n")
+    # the final numbers, for update_readme.py's inline stats
+    with open(os.path.join(GRAPH_DIR, "reach.json"), "w") as f:
+        json.dump({"evidenced_reach": round(reach[-1], 1), "evidenced_total": frontier,
+                   "predicted_reach": round(pred_reach[-1], 1), "catalog": catalog}, f)
     print(f"wrote {OUT} ({reach[-1]:.1f}/{frontier} evidenced, "
           f"{pred_reach[-1]:.1f}/{catalog} expected solvable today, "
           f"{clock.n_ticks} days, synced to the {clock.dur:.0f}s loop)")
