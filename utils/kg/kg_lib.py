@@ -1598,14 +1598,25 @@ SCENARIOS = {"cautious": 0.75, "central": 0.85, "optimistic": 0.95}
 # port (kg_mock_rs SimState::practice) applies the same credit.
 COLD_SOLVES_PER_MOCK = 6
 
+# The practice terms' saturation constants: after this many, 63% of the
+# headroom is earned. Assumed, not fitted (kg_mock_rs carries the same
+# numbers); `make simulate --hard-sat 45` shows what a slower Hard curve
+# does to the date. The Hard one is the whole onsite question - 15 cold
+# Hards attempted so far say nothing about its slope yet.
+MEDIUM_SAT = 120
+HARD_SAT = 15
+MOCK_SAT = 8
+
 
 def recognition_practice(mocks_done, cold_first_solves):
+    if not COLD_SOLVES_PER_MOCK:
+        return mocks_done
     return mocks_done + cold_first_solves // COLD_SOLVES_PER_MOCK
 
 
 def recognition(base, mocks_done):
     import math
-    return base + (0.98 - base) * (1 - math.exp(-mocks_done / 8))
+    return base + (0.98 - base) * (1 - math.exp(-mocks_done / MOCK_SAT))
 
 
 def pass_rates(node_recall, pools, r_base, practice, rng, n_mc=20000):
@@ -1647,9 +1658,9 @@ def practice_factors(practice, r_base):
     worth today."""
     import math
     mediums, mocks, hards = practice
-    grow = 1 - math.exp(-mediums / 120)
+    grow = 1 - math.exp(-mediums / MEDIUM_SAT)
     time_f = {"E": 0.88 + 0.07 * grow, "M": 0.87 + 0.07 * grow,
-              "H": 0.40 + 0.42 * (1 - math.exp(-hards / 15))}
+              "H": 0.40 + 0.42 * (1 - math.exp(-hards / HARD_SAT))}
     derive = 0.25 + 0.20 * (1 - math.exp(-(mocks + hards) / 30))
     return time_f, recognition(r_base, mocks), derive
 
