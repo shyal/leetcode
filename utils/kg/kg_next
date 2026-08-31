@@ -74,6 +74,13 @@
 # with a drill bank gets ONLY its drill until a clean rep clears the status —
 # a struggled drill holds the carrier instead of unlocking it.
 #
+# Below the pick, one line says how much review stands between now and
+# the first pick that is new ground (review_ahead): the picker is replayed
+# on a copy of the evidence, every pick granted a clean unaided rep, the
+# day advanced when the once-a-day rules leave nothing to serve, until the
+# pick is a MISSING move (rule 3) or an all-solid problem (rules 4-6). The
+# count is the best case: a struggled rep adds to it.
+#
 # NOTE: the default drawing writes only status + a random face from that
 # status's pool (SOLID 💪, STALE 😐, ...) — no move names — so the tree
 # can be used for pattern recognition. --graph names the walk: that is
@@ -89,6 +96,7 @@ from datetime import date, datetime, timedelta
 from rich.console import Console
 from rich.table import Table
 
+from kg import kg_lib
 from kg.kg_lib import (
     GRAPH_DIR,
     DRILLS_DIR,
@@ -143,6 +151,8 @@ from kg.kg_lib import (
     solved_problems,
     solve_forecast,
     drill_forecast,
+    drill_trains,
+    drill_solved_stem,
 )
 from kg.kg_render import (make_digraph, status_node, render, display, animate,
                        animation_console, STATUS_FACE)
@@ -788,6 +798,95 @@ def pick(
 
     return None
 
+EXPLORE_REASONS = ("summit", "widen reach", "in reach")  # rules 4, 5, 6
+
+
+def exploratory(status, reason):
+    """True when a pick is new ground rather than review: a MISSING move
+    (rule 3, drill or carrier) or an all-solid problem (rules 4-6)."""
+    return status == MISSING or reason.startswith(EXPLORE_REASONS)
+
+
+def review_ahead(nodes, problems, evidence, asleep=(), exclude=(), group=None,
+                 days=14, cap=200):
+    """(drills, problems, reached): the review picks between now and the
+    first exploratory one. The picker is replayed on a copy of the
+    evidence; every pick is granted a clean unaided rep dated the replay
+    day, so a cleared node stops being served and a newly owned prereq
+    releases what it held. When a day has nothing left (drills once a day,
+    carriers cooled) the clock moves to the next day, up to `days`. The
+    plan and the session-start warmup are ignored. Best case by
+    construction: a struggled rep costs at least one more pick."""
+    ev = dict(evidence)
+    problems = dict(problems)  # promotion inserts drafted entries in memory
+    exclude = set(exclude)
+    drills = solves = seq = 0
+    real = kg_lib.date, globals()["date"]
+    start = date.today()
+
+    def freeze(day):
+        class Frozen(date):
+            @classmethod
+            def today(cls):
+                return day
+        kg_lib.date = Frozen
+        globals()["date"] = Frozen
+
+    try:
+        for day_no in range(days):
+            day = start + timedelta(days=day_no)
+            freeze(day)
+            statuses = {n: node_status(n, ev, today=day) for n in nodes}
+            while drills + solves < cap:
+                choice = pick(nodes, problems, ev, statuses, asleep=asleep,
+                              exclude=exclude, group=group)
+                if choice is None:
+                    break
+                target, status, pnum, reason = choice
+                if exploratory(status, reason):
+                    return drills, solves, True
+                seq += 1
+                stamp = day.strftime("%Y_%m_%dT") + f"{seq:06d}_00_00Z"
+                if str(pnum).startswith("drill:"):
+                    path = due_drill(target, ev, today=day)
+                    if not path:
+                        break
+                    moves = drill_trains(path) or [target]
+                    fname = f"solved/d_{drill_solved_stem(path)}_{stamp}.py"
+                    problem = "drill"
+                    drills += 1
+                else:
+                    moves = list(problems[pnum]["moves"])
+                    fname = f"solved/p{pnum}_{stamp}.py"
+                    problem = str(pnum)
+                    solves += 1
+                exclude.add(pnum)
+                ev[fname] = {"date": day.isoformat(), "problem": problem,
+                             "moves": {m: "clean" for m in moves if m in nodes}}
+                for m in moves:
+                    if m in nodes:
+                        statuses[m] = node_status(m, ev, today=day)
+            else:
+                break
+            exclude = set()  # a new day: nothing is spent yet
+        return drills, solves, False
+    finally:
+        kg_lib.date, globals()["date"] = real
+
+
+def review_line(drills, solves, reached):
+    """The one line `make next` prints under the pick."""
+    if not drills and not solves:
+        return ("review ahead: none - this pick is new ground" if reached
+                else "review ahead: none, and nothing new to serve either")
+    parts = []
+    if drills:
+        parts.append(f"{drills} drill{'s' if drills != 1 else ''}")
+    if solves:
+        parts.append(f"{solves} problem{'s' if solves != 1 else ''}")
+    tail = "then new ground" if reached else "and still nothing new"
+    return f"review ahead: {', '.join(parts)}, {tail} (if every rep is clean)"
+
 
 def ready_hards(problems, nodes, evidence, statuses, immature=None):
     """Unsolved Hards with no gaps left in their route: every node in the
@@ -1336,6 +1435,12 @@ def main():
         return
     target, target_status, pnum, reason = choice
 
+    # how much review stands between now and the first pick that is new
+    # ground; the early and assisted walks review everything by design
+    ahead = None if args.early or args.assisted else review_line(
+        *review_ahead(nodes, problems, evidence, asleep=asleep,
+                      exclude=solved_today_pnums(), group=args.group))
+
     if str(pnum).startswith("drill:"):
         path = due_drill(target, evidence, early=args.early, assisted=args.assisted)
         title = drill_title(path)
@@ -1363,6 +1468,8 @@ def main():
                 expect, hint, bail = (f"{round(v):d}m" for v in fc)
                 console.print(f"[dim]pace: ~{expect} expected · hint fair game after "
                               f"{hint} · at {bail} stop, mark it, reinforce[/dim]")
+            if ahead:
+                console.print(f"[dim]{ahead}[/dim]")
             console.print(f"make prepare {did or target}")
         if not args.no_show:
             tree = input_tree([target], nodes)
@@ -1444,6 +1551,8 @@ def main():
             expect, hint, bail = (f"{round(v):d}m" for v in fc)
             console.print(f"[dim]pace: ~{expect} expected · hint fair game after "
                           f"{hint} · at {bail} stop, mark it, reinforce[/dim]")
+        if ahead:
+            console.print(f"[dim]{ahead}[/dim]")
 
     if args.no_show:
         animate(cap.get())

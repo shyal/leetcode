@@ -1946,3 +1946,71 @@ def test_the_first_rep_of_a_drill_is_unaided_at_the_node(tmp_path, monkeypatch):
     assert kg_lib.held_behind("713", ps, ev) == "d1"
     second = evidence(ev, drill_rep("Count by Contribution", "sw", days_ago=0, assist="hint"))
     assert not kg_lib.owned("sw", second)
+
+
+# --------------------------------------------------------------------------
+# review_ahead: the review between now and the first pick that is new ground
+# --------------------------------------------------------------------------
+
+@pytest.fixture
+def flat_window(monkeypatch):
+    """No fitted curve: SOLID for SOLID_WINDOW_DAYS after a clean rep, then
+    STALE. review_ahead derives statuses from evidence, so the synthetic
+    evidence has to land where the test says."""
+    monkeypatch.setattr(kg_lib, "_load_curve", lambda: None)
+
+
+def test_review_ahead_counts_a_gated_drill_before_the_summit(picker, flat_window):
+    """A fragile move with a bank: one clean drill clears it, and the Hard
+    whose walk is then all solid is new ground. One drill, no problems."""
+    ns = nodes("a", "b")
+    ps = {"1": problem(["a"]), "2": problem(["a", "b"], difficulty="Hard")}
+    picker.bank = {"a"}
+    ev = evidence(solve("1", {"a": "struggled"}, days_ago=1),
+                  solve("3", {"b": "clean"}, days_ago=1))
+    assert kg_next.review_ahead(ns, ps, ev) == (1, 0, True)
+
+
+def test_review_ahead_counts_a_stale_re_solve_as_a_problem(picker, flat_window):
+    """An ordinary stale move re-solves its carrier: that is one problem of
+    review, then the summit."""
+    ns = nodes("a")
+    ps = {"1": problem(["a"]), "2": problem(["a"], difficulty="Hard")}
+    ev = evidence(solve("1", {"a": "clean"}, days_ago=kg_lib.SOLID_WINDOW_DAYS + 5))
+    assert kg_next.review_ahead(ns, ps, ev) == (0, 1, True)
+
+
+def test_review_ahead_is_zero_when_the_pick_is_new_ground(picker, flat_window):
+    """Every move solid: the first pick is already the summit."""
+    ns = nodes("a")
+    ps = {"2": problem(["a"], difficulty="Hard")}
+    ev = evidence(solve("1", {"a": "clean"}, days_ago=1))
+    assert kg_next.review_ahead(ns, ps, ev) == (0, 0, True)
+
+
+def test_review_ahead_follows_a_released_dependent(picker, flat_window):
+    """The granted rep changes what is served next: once the prereq's drill
+    is clean the dependent it held gets its own drill. Two drills, then
+    new ground."""
+    ns = nodes("a", ("b", ["a"]))
+    ps = {"2": problem(["a", "b"], difficulty="Hard")}
+    picker.bank = {"a", "b"}
+    ev = evidence(solve("1", {"a": "struggled", "b": "struggled"}, days_ago=1))
+    assert kg_next.review_ahead(ns, ps, ev) == (2, 0, True)
+
+
+def test_review_ahead_restores_the_clock(picker, flat_window):
+    ns = nodes("a")
+    ps = {"2": problem(["a"], difficulty="Hard")}
+    kg_next.review_ahead(ns, ps, {})
+    assert kg_lib.date.today() == date.today()
+    assert kg_next.date is date
+
+
+def test_review_line_wording():
+    assert kg_next.review_line(2, 1, True) == \
+        "review ahead: 2 drills, 1 problem, then new ground (if every rep is clean)"
+    assert kg_next.review_line(0, 0, True) == \
+        "review ahead: none - this pick is new ground"
+    assert kg_next.review_line(3, 0, False) == \
+        "review ahead: 3 drills, and still nothing new (if every rep is clean)"
