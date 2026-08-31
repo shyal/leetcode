@@ -701,6 +701,121 @@ def test_a_spoiled_predecessor_solve_does_not_release(picker):
     assert picker.run(ns, ps, ev, st)[:3] == ("bt", STALE, "46")
 
 
+# --------------------------------------------------------------------------
+# "after" edges to drills: a problem waits for the bank drill it builds on
+# --------------------------------------------------------------------------
+
+def drill_bank(tmp_path, monkeypatch, node, title, fname="d0.py"):
+    """One bank file under a temporary DRILLS_DIR, resolvable by title."""
+    d = tmp_path / node
+    d.mkdir(exist_ok=True)
+    (d / fname).write_text(f'"""\nDRILL: {title}\nTRAINS: {node}\n"""\n')
+    monkeypatch.setattr(kg_lib, "DRILLS_DIR", str(tmp_path))
+    kg_lib._DRILL_PATHS.clear()
+
+
+def drill_rep(title, node, days_ago, assist=None, verdict="clean"):
+    stem = title.replace(" ", "_")
+    rec = {"date": iso(days_ago), "problem": "drill", "moves": {node: verdict}}
+    if assist:
+        rec["assist"] = assist
+    return {f"solved/d_{stem}_{days_ago}.py": rec}
+
+
+def test_a_problem_waits_for_a_drill_never_done(tmp_path, monkeypatch):
+    """713 declares "after": ["drill:Count by Contribution"]. No rep of that
+    drill anywhere: 713 is held, and the hold names the drill."""
+    drill_bank(tmp_path, monkeypatch, "sw", "Count by Contribution")
+    ps = {"713": problem(["sw"], after=["drill:Count by Contribution"])}
+    assert kg_lib.held_behind("713", ps, {}) == "drill:Count by Contribution"
+
+
+def test_a_warm_drill_releases_the_problem(tmp_path, monkeypatch):
+    drill_bank(tmp_path, monkeypatch, "sw", "Count by Contribution")
+    ps = {"713": problem(["sw"], after=["drill:Count by Contribution"])}
+    ev = evidence(drill_rep("Count by Contribution", "sw", days_ago=3))
+    assert kg_lib.held_behind("713", ps, ev) is None
+
+
+def test_an_assisted_drill_rep_does_not_release(tmp_path, monkeypatch):
+    """Same bar as a drill releasing the next drill of its node: the unaided
+    clean is what releases, a walkthrough clean is a rep but not ownership."""
+    drill_bank(tmp_path, monkeypatch, "sw", "Count by Contribution")
+    ps = {"713": problem(["sw"], after=["drill:Count by Contribution"])}
+    ev = evidence(drill_rep("Count by Contribution", "sw", days_ago=3,
+                            assist="walkthrough"))
+    assert kg_lib.held_behind("713", ps, ev) == "drill:Count by Contribution"
+
+
+def test_a_drill_rep_outside_the_solid_window_does_not_release(tmp_path, monkeypatch):
+    drill_bank(tmp_path, monkeypatch, "sw", "Count by Contribution")
+    ps = {"713": problem(["sw"], after=["drill:Count by Contribution"])}
+    ev = evidence(drill_rep("Count by Contribution", "sw",
+                            days_ago=kg_lib.SOLID_WINDOW_DAYS + 1))
+    assert kg_lib.held_behind("713", ps, ev) == "drill:Count by Contribution"
+
+
+def test_a_struggle_after_a_clean_holds_again(tmp_path, monkeypatch):
+    """Latest rep decides, as for drills releasing drills."""
+    drill_bank(tmp_path, monkeypatch, "sw", "Count by Contribution")
+    ps = {"713": problem(["sw"], after=["drill:Count by Contribution"])}
+    ev = evidence(drill_rep("Count by Contribution", "sw", days_ago=9),
+                  drill_rep("Count by Contribution", "sw", days_ago=2,
+                            verdict="struggled"))
+    assert kg_lib.held_behind("713", ps, ev) == "drill:Count by Contribution"
+
+
+def test_a_drill_ref_nobody_banks_holds_nothing(tmp_path, monkeypatch):
+    """A title no bank file carries cannot be released by anything, so it
+    holds nothing - the deadlock rule for banned predecessors. The real
+    bank is checked by test_every_drill_ref_in_problems_json_resolves."""
+    drill_bank(tmp_path, monkeypatch, "sw", "Something Else")
+    ps = {"713": problem(["sw"], after=["drill:Count by Contribution"])}
+    assert kg_lib.held_behind("713", ps, {}) is None
+
+
+def test_a_renamed_bank_file_keeps_its_edge(tmp_path, monkeypatch):
+    """The edge names the DRILL title, not the file, so renumbering the bank
+    changes nothing."""
+    drill_bank(tmp_path, monkeypatch, "sw", "Count by Contribution", fname="w09_whatever.py")
+    ps = {"713": problem(["sw"], after=["drill:Count by Contribution"])}
+    ev = evidence(drill_rep("Count by Contribution", "sw", days_ago=3))
+    assert kg_lib.held_behind("713", ps, ev) is None
+
+
+def test_the_picker_serves_the_free_carrier_over_the_held_one(picker, tmp_path, monkeypatch):
+    """Two carriers of a rusty node, 713 fresher on paper but held behind a
+    drill never done: 3258 is served."""
+    drill_bank(tmp_path, monkeypatch, "sw", "Count by Contribution")
+    ns = nodes("sw")
+    ps = {"713": problem(["sw"], after=["drill:Count by Contribution"]),
+          "3258": problem(["sw"])}
+    ev = evidence(solve("713", {"sw": "clean"}, days_ago=300),
+                  solve("3258", {"sw": "clean"}, days_ago=299))
+    st = {"sw": (STALE, ago(299))}
+    assert picker.run(ns, ps, ev, st)[:3] == ("sw", STALE, "3258")
+    ev = evidence(ev, drill_rep("Count by Contribution", "sw", days_ago=3))
+    assert picker.run(ns, ps, ev, st)[:3] == ("sw", STALE, "713")
+
+
+def test_every_drill_ref_in_problems_json_resolves():
+    """Every "drill:<title>" in graph/problems.json names a file in the real
+    bank, and that file trains a node on the problem's own walk. A dangling
+    title holds nothing, silently; this is where it gets caught."""
+    problems = kg_lib.load_problems()
+    bad = []
+    for pnum, p in problems.items():
+        for pred in p.get("after", []):
+            if not str(pred).startswith(kg_lib.DRILL_REF):
+                continue
+            path = kg_lib.drill_ref_path(pred)
+            if path is None:
+                bad.append((pnum, pred, "no bank file"))
+            elif not set(kg_lib.drill_trains(path)) & set(p.get("moves", [])):
+                bad.append((pnum, pred, "trains nothing on the walk"))
+    assert not bad, bad
+
+
 def test_a_carrier_solved_days_ago_is_not_a_spaced_review(picker):
     """The move stayed rusty because the solve did not evidence it, but the
     problem is still in working memory - the picker must not hand back

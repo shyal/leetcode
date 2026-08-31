@@ -1,5 +1,5 @@
 {
-  "_comment": "Problem -> the moves its clean solution walks (order = rough application order, but assembly is the solver's job). Keys: leetcode number, or misc/<name> for custom drills. Seeded by hand from July 2026 sessions; extended by utils/kg/kg_extract. Optional \"after\": [problems] - predecessors whose walk this one builds on; the problem is held out of carrier pools until the predecessor has a clean solve inside the solid window (kg_lib.held_behind).",
+  "_comment": "Problem -> the moves its clean solution walks (order = rough application order, but assembly is the solver's job). Keys: leetcode number, or misc/<name> for custom drills. Seeded by hand from July 2026 sessions; extended by utils/kg/kg_extract. Optional \"after\": [predecessors] - predecessors whose walk this one builds on; the problem is held out of carrier pools until the predecessor has a clean solve inside the solid window (kg_lib.held_behind). A predecessor is a problem key, or \"drill:<DRILL title>\" naming a bank drill (drills/*/); a drill releases when its latest rep is an unaided clean inside the solid window (kg_lib.drill_warm).",
   "problems": {
     "242": {
       "title": "Valid Anagram",
@@ -126,6 +126,9 @@
         "derived-key-lookup",
         "streaming-accumulate-pairs",
         "prefix-sum-hashmap"
+      ],
+      "after": [
+        "drill:Range Sum Queries"
       ]
     },
     "49": {
@@ -202,7 +205,10 @@
         "running-sum",
         "running-extreme"
       ],
-      "source": "extracted"
+      "source": "extracted",
+      "after": [
+        "drill:Fixed Slide"
+      ]
     },
     "125": {
       "title": "Valid Palindrome",
@@ -228,7 +234,10 @@
         "dict-arbitrary-value",
         "sliding-window-variable"
       ],
-      "source": "extracted"
+      "source": "extracted",
+      "after": [
+        "drill:Grow and Shrink"
+      ]
     },
     "205": {
       "title": "Isomorphic Strings",
@@ -774,7 +783,10 @@
       "moves": [
         "union-find"
       ],
-      "source": "extracted"
+      "source": "extracted",
+      "after": [
+        "drill:How Many Companies"
+      ]
     },
     "942": {
       "title": "DI String Match",
@@ -851,7 +863,9 @@
       ],
       "source": "extracted",
       "after": [
-        "78"
+        "78",
+        "drill:Record Every Node",
+        "drill:No Repeat Siblings"
       ]
     },
     "81": {
@@ -881,7 +895,10 @@
         "backtracking-start-index",
         "tree-dfs-recursive"
       ],
-      "source": "extracted"
+      "source": "extracted",
+      "after": [
+        "drill:Record Every Node"
+      ]
     },
     "821": {
       "title": "Shortest Distance to a Character",
@@ -898,7 +915,10 @@
         "backtracking-choose-undo",
         "backtracking-start-index"
       ],
-      "source": "extracted"
+      "source": "extracted",
+      "after": [
+        "drill:Combinations"
+      ]
     },
     "83": {
       "title": "Remove Duplicates from Sorted List",
@@ -983,7 +1003,10 @@
       "moves": [
         "union-find"
       ],
-      "source": "extracted"
+      "source": "extracted",
+      "after": [
+        "drill:Union Links Head to Head"
+      ]
     },
     "701": {
       "title": "Insert into a Binary Search Tree",
@@ -1063,7 +1086,10 @@
         "tree-combine-returns",
         "tree-global-across-subtrees"
       ],
-      "source": "extracted"
+      "source": "extracted",
+      "after": [
+        "drill:Distribute Coins"
+      ]
     },
     "599": {
       "title": "Minimum Index Sum of Two Lists",
@@ -1104,7 +1130,10 @@
         "backtracking-choose-undo",
         "backtracking-mark-unmark"
       ],
-      "source": "extracted"
+      "source": "extracted",
+      "after": [
+        "drill:Permutations"
+      ]
     },
     "518": {
       "title": "Coin Change II",
@@ -1145,7 +1174,9 @@
       ],
       "source": "extracted",
       "after": [
-        "46"
+        "46",
+        "drill:Permutations",
+        "drill:No Repeat Siblings"
       ]
     },
     "441": {
@@ -1186,7 +1217,8 @@
       ],
       "source": "extracted",
       "after": [
-        "77"
+        "77",
+        "drill:Reuse Allowed"
       ]
     },
     "40": {
@@ -1201,7 +1233,9 @@
       ],
       "source": "extracted",
       "after": [
-        "39"
+        "39",
+        "drill:Combinations",
+        "drill:No Repeat Siblings"
       ]
     },
     "378": {
@@ -1395,7 +1429,10 @@
       "moves": [
         "sliding-window-variable"
       ],
-      "source": "extracted"
+      "source": "extracted",
+      "after": [
+        "drill:Count by Contribution"
+      ]
     },
     "3304": {
       "title": "Find the K-th Character in String Game I",
@@ -1475,7 +1512,10 @@
       "moves": [
         "prefix-sums"
       ],
-      "source": "extracted"
+      "source": "extracted",
+      "after": [
+        "drill:Range Sum Queries"
+      ]
     },
     "3158": {
       "title": "Find the XOR of Numbers Which Appear Twice",
@@ -1698,7 +1738,10 @@
       "moves": [
         "union-find"
       ],
-      "source": "extracted"
+      "source": "extracted",
+      "after": [
+        "drill:Union Links Head to Head"
+      ]
     },
     "2553": {
       "title": "Separate the Digits in an Array",
@@ -1881,7 +1924,8 @@
       ],
       "source": "extracted",
       "after": [
-        "39"
+        "39",
+        "drill:Combinations"
       ]
     },
     "2226": {
@@ -2183,7 +2227,10 @@
         "backtracking-mark-unmark",
         "memoize-recursion"
       ],
-      "source": "extracted"
+      "source": "extracted",
+      "after": [
+        "drill:Permutations"
+      ]
     },
     "1769": {
       "title": "Minimum Number of Operations to Move All Balls to Each Box",
@@ -2267,7 +2314,10 @@
         "index-value-gap",
         "binary-search-boundary"
       ],
-      "source": "extracted"
+      "source": "extracted",
+      "after": [
+        "drill:Count Missing Integers"
+      ]
     },
     "1700": {
       "title": "Number of Students Unable to Eat Lunch",
@@ -2315,7 +2365,10 @@
       "moves": [
         "monotonic-stack"
       ],
-      "source": "extracted"
+      "source": "extracted",
+      "after": [
+        "drill:Next Greater Index"
+      ]
     },
     "1436": {
       "title": "Destination City",
@@ -2417,7 +2470,10 @@
       "moves": [
         "union-find"
       ],
-      "source": "extracted"
+      "source": "extracted",
+      "after": [
+        "drill:How Many Companies"
+      ]
     },
     "1337": {
       "title": "The K Weakest Rows in a Matrix",
@@ -2480,7 +2536,10 @@
         "prefix-sums",
         "xor-cancellation"
       ],
-      "source": "extracted"
+      "source": "extracted",
+      "after": [
+        "drill:Range Sum Queries"
+      ]
     },
     "1304": {
       "title": "Find N Unique Integers Sum up to Zero",
@@ -2574,6 +2633,9 @@
         [
           "dict-arbitrary-value"
         ]
+      ],
+      "after": [
+        "drill:Level Groups"
       ]
     },
     "106": {
@@ -3007,7 +3069,10 @@
       "moves": [
         "prefix-sums"
       ],
-      "source": "extracted"
+      "source": "extracted",
+      "after": [
+        "drill:Range Sum Queries"
+      ]
     },
     "2413": {
       "title": "Smallest Even Multiple",
@@ -3257,7 +3322,10 @@
         "prefix-sums",
         "sliding-window-variable"
       ],
-      "source": "extracted"
+      "source": "extracted",
+      "after": [
+        "drill:Shrink While Valid"
+      ]
     },
     "1679": {
       "title": "Max Number of K-Sum Pairs",
@@ -3535,7 +3603,8 @@
       ],
       "source": "extracted",
       "after": [
-        "303"
+        "303",
+        "drill:Range Sum Queries"
       ]
     },
     "9": {
@@ -3578,7 +3647,10 @@
         "monotonic-stack",
         "streaming-ask-then-record"
       ],
-      "source": "extracted"
+      "source": "extracted",
+      "after": [
+        "drill:Next Greater Index"
+      ]
     },
     "841": {
       "title": "Keys and Rooms",
@@ -3834,7 +3906,10 @@
       "moves": [
         "backtracking-choose-undo"
       ],
-      "source": "extracted"
+      "source": "extracted",
+      "after": [
+        "drill:One From Each"
+      ]
     },
     "2300": {
       "title": "Successful Pairs of Spells and Potions",
@@ -3915,7 +3990,10 @@
         "sliding-window-fixed",
         "running-extreme"
       ],
-      "source": "extracted"
+      "source": "extracted",
+      "after": [
+        "drill:Fixed Slide"
+      ]
     },
     "144": {
       "title": "Binary Tree Preorder Traversal",
@@ -4079,7 +4157,10 @@
         "sliding-window-budget",
         "running-extreme"
       ],
-      "source": "extracted"
+      "source": "extracted",
+      "after": [
+        "drill:Slide, Never Shrink"
+      ]
     },
     "110": {
       "title": "Balanced Binary Tree",
@@ -4200,7 +4281,10 @@
         "counts-as-data",
         "sliding-window-fixed"
       ],
-      "source": "extracted"
+      "source": "extracted",
+      "after": [
+        "drill:Fixed Slide"
+      ]
     },
     "42": {
       "title": "Trapping Rain Water",
@@ -4264,6 +4348,9 @@
       "moves": [
         "sliding-window-variable",
         "counter-build"
+      ],
+      "after": [
+        "drill:Shrink While Valid"
       ]
     },
     "84": {
@@ -4271,6 +4358,9 @@
       "difficulty": "Hard",
       "moves": [
         "monotonic-stack"
+      ],
+      "after": [
+        "drill:Next Greater Index"
       ]
     },
     "85": {
@@ -4279,6 +4369,9 @@
       "moves": [
         "running-sum",
         "monotonic-stack"
+      ],
+      "after": [
+        "drill:Next Greater Index"
       ]
     },
     "124": {
@@ -4288,6 +4381,9 @@
         "tree-dfs-recursive",
         "tree-combine-returns",
         "tree-global-across-subtrees"
+      ],
+      "after": [
+        "drill:Distribute Coins"
       ]
     },
     "127": {
@@ -4306,6 +4402,9 @@
         "trie-build-walk",
         "backtracking-choose-undo",
         "backtracking-mark-unmark"
+      ],
+      "after": [
+        "drill:Grid Path"
       ]
     },
     "224": {
@@ -4319,6 +4418,11 @@
           "stack-matching",
           "string-build-transform"
         ]
+      ],
+      "after": [
+        "drill:Number Scanner",
+        "drill:Tape Reader",
+        "drill:Bundle Refunds"
       ]
     },
     "239": {
@@ -4410,6 +4514,9 @@
         "tree-dfs-recursive",
         "tree-combine-returns",
         "tree-global-across-subtrees"
+      ],
+      "after": [
+        "drill:Distribute Coins"
       ]
     },
     "1235": {
@@ -4438,7 +4545,10 @@
         "streaming-ask-then-record",
         "prefix-sum-hashmap"
       ],
-      "source": "manual"
+      "source": "manual",
+      "after": [
+        "drill:Range Sum Queries"
+      ]
     },
     "930": {
       "title": "Binary Subarrays With Sum",
@@ -4454,6 +4564,9 @@
           "sliding-window-variable",
           "streaming-accumulate-pairs"
         ]
+      ],
+      "after": [
+        "drill:Range Sum Queries"
       ]
     },
     "1248": {
@@ -4470,6 +4583,9 @@
           "sliding-window-variable",
           "streaming-accumulate-pairs"
         ]
+      ],
+      "after": [
+        "drill:Range Sum Queries"
       ]
     },
     "713": {
@@ -4479,7 +4595,10 @@
         "sliding-window-variable",
         "streaming-accumulate-pairs"
       ],
-      "source": "manual"
+      "source": "manual",
+      "after": [
+        "drill:Count by Contribution"
+      ]
     },
     "992": {
       "title": "Subarrays with K Different Integers",
@@ -4491,6 +4610,9 @@
       "source": "manual",
       "unmapped": [
         "count-exactly-k via atMost(k) - atMost(k-1)"
+      ],
+      "after": [
+        "drill:Exactly K"
       ]
     },
     "2962": {
@@ -4500,7 +4622,10 @@
         "sliding-window-variable",
         "streaming-accumulate-pairs"
       ],
-      "source": "manual"
+      "source": "manual",
+      "after": [
+        "drill:Count by Contribution"
+      ]
     },
     "542": {
       "title": "01 Matrix",
@@ -4529,7 +4654,10 @@
           "recursive-descent"
         ]
       ],
-      "note": "2021 writeup: ~/dev/pythonical/basic calculator II.md"
+      "note": "2021 writeup: ~/dev/pythonical/basic calculator II.md",
+      "after": [
+        "drill:Ledger Tally"
+      ]
     },
     "394": {
       "title": "Decode String",
@@ -4543,7 +4671,10 @@
         ]
       ],
       "note": "2021 writeup (Pramp variant): ~/dev/pythonical/decoding a string.md",
-      "banned": true
+      "banned": true,
+      "after": [
+        "drill:Ledger Tally"
+      ]
     },
     "636": {
       "title": "Exclusive Time of Functions",
@@ -4552,7 +4683,10 @@
         "stack-nested-eval",
         "running-sum"
       ],
-      "note": "2021 writeup: ~/dev/pythonical/exclusive time of functions.md"
+      "note": "2021 writeup: ~/dev/pythonical/exclusive time of functions.md",
+      "after": [
+        "drill:Ledger Tally"
+      ]
     },
     "1094": {
       "title": "Car Pooling",
@@ -4598,7 +4732,13 @@
           "stack-nested-eval"
         ]
       ],
-      "note": "LeetCode premium; if locked, capstone freestyle on '2*(3+4)-10/(1+1)' style inputs."
+      "note": "LeetCode premium; if locked, capstone freestyle on '2*(3+4)-10/(1+1)' style inputs.",
+      "after": [
+        "drill:Number Scanner",
+        "drill:Tape Reader",
+        "drill:Bundle Refunds",
+        "drill:Multi-Buy"
+      ]
     },
     "773": {
       "title": "Sliding Puzzle",

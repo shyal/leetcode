@@ -677,6 +677,16 @@ def held_behind(pnum, problems, evidence, today=None):
     today = today or date.today()
     for pred in problems.get(str(pnum), {}).get("after", []):
         pred = str(pred)
+        if pred.startswith(DRILL_REF):
+            # a bank drill as the predecessor: "drill:<DRILL title>". The
+            # bar is drill_warm, the same one a drill meets to release the
+            # next drill of its node. A title no bank file carries holds
+            # nothing (test_every_drill_ref_resolves keeps that from
+            # shipping), like a banned predecessor.
+            path = drill_ref_path(pred)
+            if path is not None and not drill_warm(path, evidence, today):
+                return pred
+            continue
         if problems.get(pred, {}).get("banned"):
             continue
         last = last_clean_solve(pred, evidence)
@@ -1225,17 +1235,47 @@ def gentleness(pnum, problems, nodes):
     return (tier, tree_size(pnum, problems, nodes))
 
 
-def drill_solved_stem(path):
-    """The d_-filename stem `make solved` writes for this drill file: its
-    DRILL title cleaned exactly the way utils/kg/solved cleans it. Falls back
-    to the bank filename slug if the header is missing."""
+def drill_title(path):
+    """The DRILL header of a bank file, or None when it has none."""
     try:
         with open(path) as f:
             m = re.search(r"^\s*DRILL:\s*(.+)$", f.read(), flags=re.M)
     except OSError:
         m = None
-    title = m.group(1).strip() if m else os.path.splitext(os.path.basename(path))[0]
+    return m.group(1).strip() if m else None
+
+
+def drill_solved_stem(path):
+    """The d_-filename stem `make solved` writes for this drill file: its
+    DRILL title cleaned exactly the way utils/kg/solved cleans it. Falls back
+    to the bank filename slug if the header is missing."""
+    title = drill_title(path)
+    if title is None:
+        title = os.path.splitext(os.path.basename(path))[0]
     return re.sub(r"[^\w\s-]", "", title).strip().replace(" ", "_")
+
+
+DRILL_REF = "drill:"  # an "after" entry naming a bank drill by its DRILL title
+
+_DRILL_PATHS = {}  # DRILLS_DIR -> {DRILL title: bank path}
+
+
+def drill_ref_path(ref):
+    """The bank file whose DRILL title an "after" entry "drill:<title>"
+    names, or None when no file in DRILLS_DIR carries that title. The
+    title is the drill's identity (evidence is keyed on it too), so bank
+    files can be renamed or renumbered without touching problems.json."""
+    title = ref[len(DRILL_REF):].strip()
+    paths = _DRILL_PATHS.get(DRILLS_DIR)
+    if paths is None or title not in paths:
+        paths = {}
+        for path in sorted(glob.glob(os.path.join(DRILLS_DIR, "*", "*.py"))):
+            t = drill_title(path)
+            if t is not None:
+                paths.setdefault(t, path)
+        _DRILL_PATHS.clear()
+        _DRILL_PATHS[DRILLS_DIR] = paths
+    return paths.get(title)
 
 
 def last_drilled(path, evidence):
