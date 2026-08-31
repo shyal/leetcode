@@ -6923,6 +6923,18 @@
         "sql-string-functions": "clean"
       },
       "summary": "The query uses UPPER(), LOWER(), SUBSTR(), and || concatenation to transform names by capitalizing the first letter and lowercasing the rest of each name. The transformation happens entirely in SQL as required by the REQUIRED constraint."
+    },
+    "solved/d_Total_Users_Per_Contest_2026_08_31T06_57_03_364956_00_00Z.py": {
+      "date": "2026-08-31",
+      "problem": "drill",
+      "moves": {
+        "sql-subquery": "clean"
+      },
+      "assist": {
+        "sql-subquery": "hint"
+      },
+      "note": "Assisted on scalar subquery placement (SELECT clause, not body logic)",
+      "summary": "The solution uses a scalar subquery in the SELECT clause to count all users from the Users table independently, then wraps it with GROUP BY on Register.contest_id to produce one row per contest with the total user count. The subquery is composed separately to isolate the scalar count from the grouping logic."
     }
   }
 }
