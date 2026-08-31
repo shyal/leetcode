@@ -6848,6 +6848,17 @@
         "backtracking-start-index": "clean"
       },
       "summary": "Generates all pairs (i, j) satisfying 0 <= i < j < n by iterating with nested for loops. The inner loop uses range(i+1, n) to ensure the ordering constraint. Each pair is appended to res and returned. All assertions passed."
+    },
+    "solved/p1143_Longest_Common_Subsequence_2026_08_31T02_02_53_102725_00_00Z.py": {
+      "date": "2026-08-31",
+      "problem": "1143",
+      "moves": {
+        "dp-state-formulate": "clean",
+        "two-sequence-align": "clean",
+        "dp-2d-grid": "clean"
+      },
+      "note": "Solution computes deletion distance (min edits with deletions only), then transforms to LCS; unconventional but valid.",
+      "summary": "The code solves LCS via deletion distance: memoized recursion computes minimum deletions needed to equalize strings, then transforms to LCS length using (len(text1) + len(text2) - deletions) / 2. Exercises dp-state-formulate (helper state), two-sequence-align (deletion-distance variant), and dp-2d-grid (implicit cache). Notes indicate the candidate couldn't independently figure out that Levenshtein requires removing substitutions to become deletion distance, or derive the transformation formula."
     }
   }
 }
