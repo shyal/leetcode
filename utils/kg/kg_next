@@ -132,6 +132,8 @@ from kg.kg_lib import (
     proving_carriers,
     drafted_in_reach,
     problem_difficulty,
+    ev_index,
+    solved_problems,
     solve_forecast,
     drill_forecast,
 )
@@ -667,8 +669,8 @@ def pick(
     if not group:
         today = date.today().isoformat()
         solved_today = sorted(
-            (k, r) for k, r in evidence.items()
-            if r.get("date") == today and str(r.get("problem", ""))[:1].isdigit())
+            (k, r) for k, r in ev_index(evidence).by_date.get(today, ())
+            if str(r.get("problem", ""))[:1].isdigit())
         last = solved_today[-1][1]["problem"] if solved_today else None
         first = "Medium" if last and problem_difficulty(last, problems) == "Hard" \
             else "Hard"
@@ -695,7 +697,7 @@ def ready_hards(problems, nodes, evidence, statuses, immature=None):
 
     Classics come first, and the whole list is ranked by kg_lib.rank_summits,
     so `make next` and `make hard` cannot name different summits."""
-    solved = {r["problem"] for r in evidence.values() if r.get("problem")}
+    solved = solved_problems(evidence)
     if immature is None:
         immature = immature_nodes(nodes, evidence, problems)
     out = []
@@ -838,7 +840,7 @@ def unmapped_summits(problems, nodes, evidence, statuses):
     """Unsolved Hards whose only gaps are unmapped proposals: all-green on
     the map, unroutable off it. These are the "needs new problems mapped"
     case - a node has to be added before the summit can be served."""
-    solved = {r["problem"] for r in evidence.values() if r.get("problem")}
+    solved = solved_problems(evidence)
     immature = immature_nodes(nodes, evidence, problems)
     out = []
     for pnum, p in problems.items():
