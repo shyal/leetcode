@@ -42,9 +42,16 @@ def trials_by_node(evidence):
         for d, _, v, a in evs:
             days[d].append((v, a))
         last_clean, cleans, struggles, assisted = None, 0, 0, 0.0
+        retrieved = False  # an unaided clean so far: the memory exists to test
         for d in sorted(days):
             verdict, assist = days[d][0]
-            if (last_clean is not None and verdict in ("clean", "struggled")
+            # a trial needs a prior UNAIDED clean: after only walked-through
+            # or hinted cleans nothing was retrieved yet, so the next attempt
+            # is a first attempt, not a recall (2026-08-31: the sql cram walk,
+            # copied one day and tried the next, read as 15 recall failures
+            # at short gaps, z = -4.7; after an unaided clean the same wing
+            # ran 8 of 8)
+            if (retrieved and verdict in ("clean", "struggled")
                     and assist != "spoiled"):
                 gap = (date.fromisoformat(d) - date.fromisoformat(last_clean)).days
                 if gap >= 1:
@@ -54,6 +61,7 @@ def trials_by_node(evidence):
                 if v == "clean" and a != "spoiled":
                     cleans += 1
                     last_clean = d
+                    retrieved = retrieved or a == "none"
                 elif v == "struggled":
                     struggles += 1
                 assisted += ASSIST_WEIGHT[a]
