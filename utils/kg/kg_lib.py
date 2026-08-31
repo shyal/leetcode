@@ -99,10 +99,50 @@ ASSIST_LEVELS = ("none", "hint", "walkthrough", "spoiled")
 ASSIST_WEIGHT = {"none": 0.0, "hint": 0.5, "walkthrough": 1.0, "spoiled": 2.0}
 
 
-def assist_of(rec):
-    """The assist level on an evidence record; absent field means unaided."""
+def assist_of(rec, node_id=None):
+    """The assist level on an evidence record; absent field means unaided.
+
+    Two shapes. A bare string ("hint") is the pre-2026-08-31 form and taints
+    every move in the walk. A dict {move: level} names the moves the help
+    actually touched; the others are unaided. With `node_id`, the answer is
+    for that one move. Without it, the answer is for the solve as a whole:
+    the heaviest level on it (one hint anywhere makes the solve a hinted
+    solve - the bar last_clean_solve and drill_warm hold releases to).
+
+    The 1004 case (2026-08-17): a hint on the sliding-window bookkeeping
+    was stamped on prefix-sums and running-extreme too, and `owned` then
+    held every drill behind prefix-sums for an unaided rep of a move that
+    had three unaided reps the week before."""
     a = rec.get("assist", "none")
+    if isinstance(a, dict):
+        levels = [v for v in a.values() if v in ASSIST_WEIGHT]
+        if node_id is not None:
+            v = a.get(node_id, "none")
+            return v if v in ASSIST_WEIGHT else "none"
+        return max(levels, key=ASSIST_WEIGHT.__getitem__) if levels else "none"
     return a if a in ASSIST_WEIGHT else "none"
+
+
+def normalise_assist(raw, moves):
+    """The stored shape of an extractor's "assist" answer: {move: level} for
+    the moves that were helped, restricted to the walk's moves, or None when
+    nothing was. A bare string is spread over every move in the walk (the
+    extractor could not say where the help landed, so it landed everywhere -
+    the old semantics, now explicit)."""
+    if isinstance(raw, str):
+        raw = {m: raw for m in moves} if raw in ASSIST_WEIGHT and raw != "none" else {}
+    if not isinstance(raw, dict):
+        return None
+    out = {m: v for m, v in raw.items()
+           if m in moves and v in ASSIST_WEIGHT and v != "none"}
+    return out or None
+
+
+def assist_tag(assist):
+    """One-line rendering of either assist shape for receipts."""
+    if isinstance(assist, dict):
+        return ", ".join(f"{m}={v}" for m, v in sorted(assist.items()))
+    return str(assist)
 
 
 def _load(name):
@@ -227,7 +267,7 @@ def node_eval(node_id, evidence, today=None):
     for rec in evidence.values():
         verdict = rec.get("moves", {}).get(node_id)
         if verdict:
-            entries.append((date.fromisoformat(rec["date"]), verdict, assist_of(rec)))
+            entries.append((date.fromisoformat(rec["date"]), verdict, assist_of(rec, node_id)))
     if not entries:
         return MISSING, None, 0.0
     entries.sort()
@@ -327,7 +367,7 @@ def mature(node_id, evidence, problems):
     clean = [(date.fromisoformat(rec["date"]), str(rec.get("problem", "")))
              for rec in evidence.values()
              if rec.get("moves", {}).get(node_id) == "clean"
-             and assist_of(rec) != "spoiled"]
+             and assist_of(rec, node_id) != "spoiled"]
     if not clean:
         return False
     dates = sorted(d for d, _ in clean)
@@ -939,15 +979,17 @@ def drill_gated(node_id, status, last, today=None):
 
 
 def owned(node_id, evidence):
-    """True when the node's most recent clean rep was unaided. An assisted
-    clean is a legit re-learning rep but it is not recall - the same
-    ownership bar last_clean_solve applies to problem release. Same-day
-    reps tie generously: one unaided clean that day is ownership."""
+    """True when the node's most recent clean rep was unaided ON THIS MOVE.
+    An assisted clean is a legit re-learning rep but it is not recall - the
+    same ownership bar last_clean_solve applies to problem release. Same-day
+    reps tie generously: one unaided clean that day is ownership. Help on
+    another move of the same walk does not count against this one (the
+    per-move assist shape, assist_of)."""
     latest, ok = "", False
     for rec in evidence.values():
         if rec.get("moves", {}).get(node_id) != "clean":
             continue
-        unaided = assist_of(rec) == "none"
+        unaided = assist_of(rec, node_id) == "none"
         if rec["date"] > latest:
             latest, ok = rec["date"], unaided
         elif rec["date"] == latest:

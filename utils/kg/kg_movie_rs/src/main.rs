@@ -133,11 +133,9 @@ fn assist_weight(a: &str) -> f64 {
     }
 }
 
-fn assist_of(rec: &Value) -> &str {
-    match rec.get("assist").and_then(Value::as_str) {
-        Some(a @ ("none" | "hint" | "walkthrough" | "spoiled")) => a,
-        _ => "none",
-    }
+/// kg_lib.assist_of(rec, node): the level of help on THIS move of the walk
+fn assist_of(rec: &Value, node: &str) -> String {
+    kg_mock::assist_map(rec).remove(node).unwrap_or_else(|| "none".to_string())
 }
 
 // ---------------------------------------------------------- node_status --
@@ -561,7 +559,7 @@ fn main() {
                 {
                     let d = NaiveDate::parse_from_str(rec["date"].as_str().unwrap(), "%Y-%m-%d")
                         .unwrap();
-                    entries.push((d, v.to_string(), assist_of(rec).to_string()));
+                    entries.push((d, v.to_string(), assist_of(rec, &n.id)));
                 }
             }
             entries.sort();
@@ -1218,7 +1216,7 @@ fn main() {
                         .collect()
                 })
                 .unwrap_or_default(),
-            assist: assist_of(r).to_string(),
+            assist: kg_mock::assist_map(r),
         })
         .collect();
     ev_recs.sort_by(|a, b| a.date.cmp(&b.date));

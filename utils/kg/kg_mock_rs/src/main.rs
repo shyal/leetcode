@@ -720,10 +720,6 @@ fn main() {
         .expect("evidence.json: evidence{}")
         .iter()
         .map(|(fname, rec)| {
-            let assist = match rec.get("assist").and_then(Value::as_str) {
-                Some(a) if ["none", "hint", "walkthrough", "spoiled"].contains(&a) => a,
-                _ => "none",
-            };
             EvRec {
                 fname: fname.clone(),
                 date: rec["date"].as_str().expect("evidence date").to_string(),
@@ -736,7 +732,7 @@ fn main() {
                             .collect()
                     })
                     .unwrap_or_default(),
-                assist: assist.to_string(),
+                assist: kg_mock::assist_map(rec),
             }
         })
         .collect();

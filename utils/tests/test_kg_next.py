@@ -884,6 +884,54 @@ def test_a_solid_owned_node_has_no_drill_due(tmp_path, monkeypatch):
     assert kg_lib.due_drill("some-node", assisted) is not None
 
 
+def test_a_hint_on_one_move_does_not_taint_the_rest_of_the_walk(picker):
+    """Assist is per move. 1004 on 2026-08-17: the hint was on the sliding
+    window bookkeeping, the prefix sums were the operator's own, yet the
+    solve-level flag stamped both, and `owned` then held every drill
+    behind prefix-sums for an unaided rep of a move with three unaided
+    reps the week before. With {move: level}, only the helped move is
+    unowned; the bare-string form still means the whole walk."""
+    ev = evidence(solve("1004", {"window": "clean", "prefix": "clean"},
+                        days_ago=1, assist={"window": "hint"}))
+    assert kg_lib.assist_of(next(iter(ev.values())), "window") == "hint"
+    assert kg_lib.assist_of(next(iter(ev.values())), "prefix") == "none"
+    assert kg_lib.assist_of(next(iter(ev.values()))) == "hint"  # the solve as a whole
+    assert kg_lib.owned("prefix", ev)
+    assert not kg_lib.owned("window", ev)
+    legacy = evidence(solve("1004", {"window": "clean", "prefix": "clean"},
+                            days_ago=1, assist="hint"))
+    assert not kg_lib.owned("prefix", legacy)
+    # and the picker serves the ownership rep for the helped move only
+    ns = nodes("window", "prefix", ("dep", ["window", "prefix"]))
+    picker.bank = {"window", "prefix", "dep"}
+    st = {"window": (SOLID, ago(1)), "prefix": (SOLID, ago(1)), "dep": (MISSING, None)}
+    assert picker.run(ns, {}, ev, st)[2] == "drill:window"
+    # prefix is never served as an ownership rep; once window's rep is done
+    # for today nothing else is held open (dep waits for that evidence to land)
+    picker.drilled_today = {"window"}
+    assert picker.run(ns, {}, ev, st) is None
+
+
+def test_a_spoiled_move_is_censored_only_for_itself():
+    """node_status reads the per-move level too: a spoiled move earns no
+    clean rep, the other move in the same walk does."""
+    ev = evidence(solve("9", {"a": "clean", "b": "clean"}, days_ago=1,
+                        assist={"a": "spoiled"}))
+    assert kg_lib.node_status("a", ev)[0] == FRAGILE
+    assert kg_lib.node_status("b", ev)[0] == SOLID
+
+
+def test_normalise_assist_stores_the_per_move_shape():
+    moves = {"a": "clean", "b": "clean"}
+    assert kg_lib.normalise_assist({"a": "hint"}, moves) == {"a": "hint"}
+    assert kg_lib.normalise_assist({"a": "hint", "zzz": "hint", "b": "none"}, moves) == {"a": "hint"}
+    assert kg_lib.normalise_assist("hint", moves) == {"a": "hint", "b": "hint"}
+    assert kg_lib.normalise_assist("none", moves) is None
+    assert kg_lib.normalise_assist({}, moves) is None
+    assert kg_lib.normalise_assist(None, moves) is None
+    assert kg_lib.assist_tag({"b": "hint", "a": "spoiled"}) == "a=spoiled, b=hint"
+
+
 def test_a_composite_rung_waits_for_every_move_it_combines(tmp_path, monkeypatch):
     """A rung whose TRAINS lists a second node is a walk, not a move: it is
     held until that node is owned (its own atomic rung clean, unaided), the

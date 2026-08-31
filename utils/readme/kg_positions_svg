@@ -57,9 +57,8 @@ def node_events(evidence):
     """node -> chronological [(date, verdict, assist)]"""
     events = defaultdict(list)
     for _, rec in evidence.items():
-        assist = assist_of(rec)
         for node, verdict in rec.get("moves", {}).items():
-            events[node].append((rec["date"], verdict, assist))
+            events[node].append((rec["date"], verdict, assist_of(rec, node)))
     for evs in events.values():
         evs.sort()
     return events
