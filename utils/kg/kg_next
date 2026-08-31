@@ -279,10 +279,14 @@ def pick(
         if not cram and drill_held(
                 target, nodes, statuses, evidence, has_bank=has_drill_bank):
             return None
-        if early and any(
+        if early and not assisted and any(
                 in_scope(p) and has_drill_bank(p) and ladder_left(p, evidence, early=True)
                 for p in nodes[target].get("prereqs", [])):
             return None  # the early walk is depth first: atoms under it unseen
+                         # (not under assisted: an untouched rung under a
+                         # prereq is not a candidate there, so holding the
+                         # dependent behind it served nothing - 2026-08-31,
+                         # "spent" with two assisted sql drills waiting)
         drill_id = f"drill:{target}"
         return (
             drill_id

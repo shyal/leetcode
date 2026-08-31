@@ -6955,6 +6955,18 @@
       },
       "note": "Candidate initially thought 'running' was a window function; learned it's SUM with OVER (ORDER BY).",
       "summary": "The query uses SUM(weight) OVER (ORDER BY turn) to compute a running total at each row in turn order. Candidate exercised the sql-window-running move correctly but needed clarification on the function name."
+    },
+    "solved/d_Dense_Rank_Scores_2026_08_31T07_16_34_226497_00_00Z.py": {
+      "date": "2026-08-31",
+      "problem": "drill",
+      "moves": {
+        "sql-window-rank": "clean"
+      },
+      "assist": {
+        "sql-window-rank": "hint"
+      },
+      "note": "Assisted: learned that dense_rank() takes no argument.",
+      "summary": "The query applies dense_rank() over score in descending order, assigning the same rank to equal scores and skipping no integers between rank values. The window function syntax correctly expresses the requirement that ties share a rank and the next rank is the next integer."
     }
   }
 }
