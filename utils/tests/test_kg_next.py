@@ -894,6 +894,32 @@ def test_a_solid_owned_node_has_no_drill_due(tmp_path, monkeypatch):
     assert kg_lib.due_drill("some-node", undone) == str(bank / "d0.py")
 
 
+def test_an_assisted_rung_with_undone_rungs_above_it_is_served_again(tmp_path, monkeypatch):
+    """2026-08-31: Combinations was done once with a walkthrough, so Reuse
+    Allowed and Subsets above it stayed held; every released rung had a rep,
+    the node read done, and the dedupe drill got served with subsets never
+    done. A rung held by the warm rule counts as ladder left, and the
+    assisted rung below it is what gets served. A rung held only because
+    another node is not owned does not count - nothing here clears it."""
+    from kg import kg_lib
+    bank = tmp_path / "some-node"
+    bank.mkdir()
+    (bank / "d0.py").write_text("DRILL: Lower\nTRAINS: some-node\n")
+    (bank / "d1.py").write_text("DRILL: Upper\nTRAINS: some-node\n")
+    monkeypatch.setattr(kg_lib, "DRILLS_DIR", str(tmp_path))
+    lower = {"solved/d_Lower_1.py": {"date": iso(5), "problem": "drill",
+                                     "moves": {"some-node": "clean"},
+                                     "assist": "walkthrough"}}
+    ev = evidence(solve("7", {"some-node": "clean"}, days_ago=2), lower)
+    assert kg_lib.ladder_left("some-node", ev)
+    assert kg_lib.due_drill("some-node", ev) == str(bank / "d0.py")
+    (bank / "d1.py").write_text("DRILL: Upper\nTRAINS: some-node, other\n")
+    unaided = {"solved/d_Lower_1.py": {"date": iso(5), "problem": "drill",
+                                       "moves": {"some-node": "clean"}}}
+    ev = evidence(solve("7", {"some-node": "clean"}, days_ago=2), unaided)
+    assert not kg_lib.ladder_left("some-node", ev)
+
+
 def test_picker_serves_the_next_undone_drill_of_a_solid_prereq(picker):
     """2026-08-31: Pairs (two for loops) went clean, start-index read SOLID,
     and the picker served the dedupe drill with subsets never done. A solid

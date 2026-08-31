@@ -1076,14 +1076,24 @@ def due_drill(node_id, evidence, today=None, early=False):
 
 
 def ladder_left(node_id, evidence, early=False):
-    """True while a released rung of the node's bank has never been drilled:
-    the atoms of this node are not all met yet. The early walk holds a
-    dependent behind it - a composition is not served while an atom under
-    it is still unseen (the 2026-08-30 spark serve, where the breadth-first
-    sweep reached plan-shuffles with five group-agg rungs untouched)."""
+    """True while a rung of the node's bank has never been drilled and the
+    ladder can still get there: either a released rung is untouched, or the
+    first held rung is held by the warm rule (the rung below it needs an
+    unaided clean), which a re-serve of that rung clears. A rung held only
+    because another node is not owned does not count - nothing this node
+    serves would clear it, and a hold nothing can open is a deadlock (the
+    2026-08-31 Combinations serve: done once with a walkthrough, so Reuse
+    Allowed and Subsets stayed held, the node read done, and the dedupe
+    drill got served with subsets never done)."""
     candidates = sorted(glob.glob(os.path.join(DRILLS_DIR, node_id, "*.py")))
-    return any(not last_drilled(p, evidence)
-               for p in released_rungs(candidates, evidence, node_id, early=early))
+    released = released_rungs(candidates, evidence, node_id, early=early)
+    if any(not last_drilled(p, evidence) for p in released):
+        return True
+    if len(released) == len(candidates):
+        return False
+    held = candidates[len(released)]
+    return not any(not owned(t, evidence)
+                   for t in drill_trains(held) if t != node_id)
 
 
 def latest_carrier(node_id, evidence):
