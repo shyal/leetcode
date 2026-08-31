@@ -122,6 +122,9 @@ from kg.kg_lib import (
     drills_left,
     drill_gated,
     drill_held,
+    held_behind,
+    vertex_kind,
+    drill_path,
     gates,
     vertex_status,
     drills,
@@ -315,6 +318,50 @@ def pick(
             problems[promo[0]] = promo[1]
         return promo
 
+    def unhold(target):
+        """No carrier of target can fire because each waits on a
+        predecessor ("after", held_behind). Serve the root of that chain
+        instead: a predecessor problem whose moves are all SOLID is
+        re-solved so it warms (nothing else re-solves a problem with no
+        rusty move: 310 after 210 after 207 sat 47 simulated days,
+        2026-08-31); a predecessor drill trains its node. A rusty
+        predecessor is left to rules 1-3, a Hard is a summit, a hold with
+        no root is a deadlock and serves nothing."""
+        for pnum, p in sorted(problems.items(), key=lambda kv: pnum_key(kv[0])):
+            moves = p.get("moves", [])
+            if (target not in moves or p.get("banned")
+                    or p.get("difficulty") == "Hard"
+                    or not all(m in nodes for m in moves)
+                    or any(statuses[m][0] != SOLID for m in moves if m != target)):
+                continue
+            pred, seen = held_behind(pnum, problems, evidence), set()
+            while pred and pred not in seen:
+                seen.add(pred)
+                kind = vertex_kind(pred, problems)
+                if kind == "problem":
+                    up = held_behind(pred, problems, evidence)
+                    if up:
+                        pred = up
+                        continue
+                    pm = problems[pred].get("moves", [])
+                    if (problems[pred].get("difficulty") == "Hard"
+                            or pred in asleep or pred in exclude
+                            or not cooled(pred, evidence)
+                            or not pm or not all(m in nodes for m in pm)):
+                        break
+                    t2 = next((m for m in pm if statuses[m][0] != SOLID), pm[0])
+                    return (t2, statuses[t2][0], pred,
+                            f"{pnum} carries {target} but waits on {pred} - {pred} first")
+                node = pred
+                if kind == "drill":
+                    path = drill_path(pred)
+                    node = os.path.basename(os.path.dirname(path)) if path else None
+                if node in nodes and node != target and due(node):
+                    return (node, statuses[node][0], due(node),
+                            f"{pnum} carries {target} but waits on {pred} - drill {node} first")
+                break
+        return None
+
     # rule -1: inside the session-start window, a trivial easy comes first
     if session_start:
         for pnum in trivial_easies(problems, nodes, evidence, statuses):
@@ -425,13 +472,35 @@ def pick(
                         and (not owned(pre, evidence)
                              or drills_left(pre, evidence))):
                     releases.setdefault(pre, []).append(n)
+        def holding(n):
+            """The banked prereq drill_held parks n behind, or None."""
+            return next((p for p in nodes[n].get("prereqs", [])
+                         if has_drill_bank(p) and p in statuses
+                         and (statuses[p][0] != SOLID or not owned(p, evidence)
+                              or drills_left(p, evidence))), None)
+
         for pre in sorted(releases, key=lambda p: (-len(releases[p]), p)):
+            held = len(releases[pre])
+            # a prereq parked behind its own prereq: climb to the root of
+            # the chain and serve that. One level was not enough: dedupe
+            # siblings waited on start-index, start-index on choose-undo,
+            # and choose-undo is SOLID, so no rule named it until some other
+            # dependent of its went rusty (2026-08-31, 14 simulated days).
+            seen = set()
+            while pre not in seen and drill_held(
+                    pre, nodes, statuses, evidence, has_bank=has_drill_bank):
+                seen.add(pre)
+                up = holding(pre)
+                if up is None:
+                    break
+                pre = up
+            if statuses[pre][0] != SOLID:
+                continue  # rusty: rules 1-3 serve it
             drill_id = f"drill:{pre}"
             if drill_id in exclude or not due_drill(pre, evidence):
                 continue
             if drill_held(pre, nodes, statuses, evidence, has_bank=has_drill_bank):
-                continue  # parked behind its own prereq: that one trains first
-            held = len(releases[pre])
+                continue  # a hold nothing above clears
             why = ("next undone drill" if owned(pre, evidence)
                    else "own it unaided")
             return (
@@ -522,6 +591,9 @@ def pick(
                 promo[0],
                 "no mapped carrier — promoted a drafted one (predicted walk)",
             )
+        held = unhold(target)
+        if held:
+            return held
 
     for target in stale:
         age = (date.today() - statuses[target][1]).days
@@ -548,6 +620,22 @@ def pick(
                     promo[0],
                     "no mapped carrier — promoted a drafted one (predicted walk)",
                 )
+            # no carrier can fire: every one is a Hard, warm, asleep, or held
+            # behind a predecessor (102 after d67), and the drafts are spent.
+            # The drill is the rep, as for a fragile move; a clean rep here is
+            # also what warms the drill the carrier waits on. Without it the
+            # node sat STALE until deep-stale gated it (2026-08-31, six nodes
+            # rusty for 30-60 simulated days with nothing aimed at them).
+            if due(target):
+                return (
+                    target,
+                    STALE,
+                    due(target),
+                    f"stale move ({age}d since clean), no carrier can fire — drill",
+                )
+            held = unhold(target)
+            if held:
+                return held
             continue
         if age > DEEP_STALE_DAYS:
             cands.sort(
@@ -609,6 +697,9 @@ def pick(
                 promo[0],
                 "no mapped carrier — promoted a drafted one (predicted walk)",
             )
+        held = unhold(target)
+        if held:
+            return held
 
     # rule 4: nothing rusty and nothing new — take a summit. A Hard is never a
     # CARRIER (it is not where a rusty move gets its rep), but once its walk is
