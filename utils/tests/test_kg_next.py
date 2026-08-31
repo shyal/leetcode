@@ -112,6 +112,11 @@ def picker(monkeypatch):
                         kg_lib.predicted_carrier(target, problems, statuses,
                                                  nodes, predicted=ctl.predicted,
                                                  skip=skip, difficulties=difficulties))
+    monkeypatch.setattr(kg_next, "drafted_in_reach",
+                        lambda problems, statuses, nodes, immature, skip=(), first="Hard":
+                        kg_lib.drafted_in_reach(problems, statuses, nodes, immature,
+                                                predicted=ctl.predicted, skip=skip,
+                                                first=first))
     monkeypatch.setattr(kg_next, "draft_misses",
                         lambda target, ev, nodes=None, predicted=None:
                         kg_lib.draft_misses(target, ev, nodes, ctl.predicted))
@@ -1558,3 +1563,91 @@ def test_unlocks_counts_a_young_move_as_a_gap():
     pred = {"9001": drafted(["a", "b"]), "9002": drafted(["a"])}
     assert kg_lib.unlocks(st, {}, predicted=pred) == {}
     assert kg_lib.unlocks(st, {}, predicted=pred, immature={"b"}) == {"b": 1}
+
+
+# --------------------------------------------------------------------------
+# rule 6: an unsolved drafted problem in reach, Hards first
+# --------------------------------------------------------------------------
+
+def test_a_solid_graph_serves_an_unsolved_drafted_hard(picker):
+    """The 2026-08-31 simulation: 180 days of a solid graph, one Hard
+    served, P(onsite) flat. Once nothing is rusty, new, young or a mapped
+    summit, what is left is the drafted catalog itself."""
+    ns = nodes("a", "b")
+    ps = {"1": problem(["a", "b"])}
+    st = {"a": (SOLID, ago(1)), "b": (SOLID, ago(1))}
+    picker.predicted["9001"] = drafted(["a", "b"])
+    picker.meta["9001"] = {"difficulty": "Hard"}
+    target, status, pnum, reason = picker.run(ns, ps, {}, st)
+    assert (status, pnum) == (SOLID, "9001")
+    assert ps["9001"]["predicted"] is True
+    assert "in reach" in reason
+
+
+def test_drafted_hards_and_mediums_alternate_within_a_day(picker):
+    """A Hard opens the day; after a Hard solved today the next pick is a
+    Medium, after that Medium a Hard again. Easies come last either way."""
+    ns = nodes("a")
+    ps = {"1": problem(["a"])}
+    st = {"a": (SOLID, ago(1))}
+    picker.predicted["9001"] = drafted(["a"])
+    picker.meta["9001"] = {"difficulty": "Medium"}
+    picker.predicted["9002"] = drafted(["a"])
+    picker.meta["9002"] = {"difficulty": "Hard"}
+    picker.predicted["9003"] = drafted(["a"])
+    picker.meta["9003"] = {"difficulty": "Easy"}
+    assert picker.run(ns, ps, {}, st)[2] == "9002"
+    ps["9002"] = problem(["a"], difficulty="Hard")
+    ev = evidence(solve("9002", {"a": "clean"}, days_ago=0))
+    assert picker.run(ns, ps, ev, st, exclude={"9002"})[2] == "9001"
+    ps["9001"] = problem(["a"])
+    ev.update(solve("9001", {"a": "clean"}, days_ago=0))
+    assert picker.run(ns, ps, ev, st, exclude={"9002", "9001"})[2] == "9003"
+
+
+def test_a_drafted_problem_on_a_young_move_is_not_in_reach(picker):
+    ns = nodes("a", "b")
+    ps = {"1": problem(["a", "b"])}
+    st = {"a": (SOLID, ago(1)), "b": (SOLID, ago(1))}
+    picker.immature.add("b")
+    picker.predicted["9001"] = drafted(["a", "b"])
+    picker.meta["9001"] = {"difficulty": "Hard"}
+    picker.predicted["9002"] = drafted(["a"])
+    picker.meta["9002"] = {"difficulty": "Easy"}
+    assert picker.run(ns, ps, {}, st)[2] == "9002"
+
+
+def test_a_missing_flagged_draft_is_never_in_reach(picker):
+    ns = nodes("a")
+    ps = {"1": problem(["a"])}
+    st = {"a": (SOLID, ago(1))}
+    picker.predicted["9001"] = drafted(["a"], missing=["some-trick"])
+    picker.meta["9001"] = {"difficulty": "Hard"}
+    assert picker.run(ns, ps, {}, st) is None
+
+
+def test_a_mapped_summit_outranks_a_drafted_one(picker):
+    ns = nodes("a")
+    ps = {"76": problem(["a"], difficulty="Hard")}
+    st = {"a": (SOLID, ago(1))}
+    picker.predicted["9001"] = drafted(["a"])
+    picker.meta["9001"] = {"difficulty": "Hard"}
+    assert picker.run(ns, ps, {}, st)[2] == "76"
+
+
+def test_a_drafted_problem_solved_today_is_skipped(picker):
+    ns = nodes("a")
+    ps = {"1": problem(["a"])}
+    st = {"a": (SOLID, ago(1))}
+    picker.predicted["9001"] = drafted(["a"])
+    picker.meta["9001"] = {"difficulty": "Hard"}
+    assert picker.run(ns, ps, {}, st, exclude={"9001"}) is None
+
+
+def test_a_group_pick_never_reaches_into_the_drafted_catalog(picker):
+    ns = {"a": {"id": "a", "prereqs": [], "group": "sql"}}
+    ps = {"1": problem(["a"])}
+    st = {"a": (SOLID, ago(1))}
+    picker.predicted["9001"] = drafted(["a"])
+    picker.meta["9001"] = {"difficulty": "Hard"}
+    assert picker.run(ns, ps, {}, st, group="sql") is None

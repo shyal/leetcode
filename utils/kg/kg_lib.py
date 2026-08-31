@@ -769,6 +769,52 @@ def predicted_carrier(target, problems, statuses, nodes,
                  "predicted": True}
 
 
+def drafted_in_reach(problems, statuses, nodes, immature, predicted=None,
+                     skip=(), first="Hard"):
+    """Unsolved drafted problems whose walk is entirely in reach: every move
+    a node, SOLID and mature, no missing-move flags. Ranked `first` (Hard
+    or Medium) ahead of the other, Easy last; within a difficulty the walk
+    whose rarest move has the most evidenced carriers, then acceptance,
+    then number. Each entry is problems.json-shaped and flagged
+    "predicted": True, like predicted_carrier's. The picker's last rule:
+    once the graph is solid and no young move has a carrier, this is what
+    is left of leetcode. The caller alternates `first` so a day is Hards
+    and Mediums, not Hards alone (the 2026-08-31 simulation: 550 Hards to
+    53 Mediums in 120 days, and the medium pass rate starved)."""
+    if predicted is None:
+        predicted = load_predicted()
+    rank = {"Easy": 0, "Medium": 1, "Hard": 1}
+    rank[first] = 2
+    counts = {}
+    for p in problems.values():
+        for m in p.get("moves", []):
+            counts[m] = counts.get(m, 0) + 1
+    out = []
+    for num, prob in predicted.items():
+        if num in problems or num in skip:
+            continue
+        diff = problem_difficulty(num, problems)
+        if diff not in DIFF_RANK:
+            continue
+        for w in prob.get("walks", []):
+            moves = w.get("moves", [])
+            if not moves or w.get("missing"):
+                continue
+            if any(m not in nodes or statuses[m][0] != SOLID or m in immature
+                   for m in moves):
+                continue
+            mass = min(counts.get(m, 0) for m in moves)
+            out.append((num, moves, diff, min(mass, CONN_MASS_CAP)))
+            break
+    out.sort(key=lambda t: (-rank[t[2]], -t[3], -acceptance(t[0]),
+                            pnum_key(t[0])))
+    meta = _metadata()
+    return [(num, {"title": predicted[num].get("title")
+                   or meta.get(str(num), {}).get("title", f"problem {num}"),
+                   "difficulty": diff, "moves": list(moves), "predicted": True})
+            for num, moves, diff, _ in out]
+
+
 DRAFT_MISSES = 2  # drafted carriers solved without the move before drafts stop
 
 
@@ -1296,6 +1342,19 @@ def taxonomy_summary(nodes):
 REC_POWER = {"E": 0.5, "M": 1.0, "H": 1.6}
 SCENARIOS = {"cautious": 0.75, "central": 0.85, "optimistic": 0.95}
 
+# Recognition - seeing which move a problem wants without being told - is
+# the one term of the model nothing measures. It rises with mocks, and
+# (2026-08-31) with cold first solves: a problem never seen before, solved
+# clean and unaided, is the same test a mock poses, minus the clock. A mock
+# is six problems, so six cold solves count as one. The `mocks` slot of the
+# practice triple is mock-equivalents: recognition_practice(). The Rust
+# port (kg_mock_rs SimState::practice) applies the same credit.
+COLD_SOLVES_PER_MOCK = 6
+
+
+def recognition_practice(mocks_done, cold_first_solves):
+    return mocks_done + cold_first_solves // COLD_SOLVES_PER_MOCK
+
 
 def recognition(base, mocks_done):
     import math
@@ -1307,17 +1366,13 @@ def pass_rates(node_recall, pools, r_base, practice, rng, n_mc=20000):
 
     pools: {"E"/"M"/"H": [problem, ...]}, each problem a list of walks, each
     walk a list of move names — real problems (evidenced + drafted walks, the
-    Rust Bank), not fabricated ones. A problem is drawn uniformly from its
+    Rust Bank), not fabricated ones. practice = (mediums, mock-equivalents,
+    hards) done since the snapshot; see recognition_practice() for the
+    second. A problem is drawn uniformly from its
     difficulty pool and scored by its BEST walk's recall product; a move
     without recall (off-taxonomy) costs the derive rate. Same draw order as
     the Rust port (randrange then random), so the RNG streams match."""
-    import math
-    mediums, mocks, hards = practice
-    grow = 1 - math.exp(-mediums / 120)
-    time_f = {"E": 0.88 + 0.07 * grow, "M": 0.87 + 0.07 * grow,
-              "H": 0.40 + 0.42 * (1 - math.exp(-hards / 15))}
-    derive = 0.25 + 0.20 * (1 - math.exp(-(mocks + hards) / 30))
-    rec = recognition(r_base, mocks)
+    time_f, rec, derive = practice_factors(practice, r_base)
     full = onsite = screen = h_solved = 0
     for _ in range(n_mc):
         solved = {"E": 0, "M": 0, "H": 0}
@@ -1334,6 +1389,22 @@ def pass_rates(node_recall, pools, r_base, practice, rng, n_mc=20000):
         screen += solved["M"] == 2
         h_solved += solved["H"]
     return full / n_mc, onsite / n_mc, screen / n_mc, h_solved / (2 * n_mc)
+
+
+def practice_factors(practice, r_base):
+    """The pass model's practice terms for a cold problem: per-difficulty
+    time factor, recognition, and the derive rate for an off-taxonomy move.
+    P(solve a cold problem) = time_f[dif] * rec ** REC_POWER[dif] * recall
+    product; pass_rates draws sets with it, kg_simulate draws single cold
+    solves with it, so the two never disagree about what a cold Hard is
+    worth today."""
+    import math
+    mediums, mocks, hards = practice
+    grow = 1 - math.exp(-mediums / 120)
+    time_f = {"E": 0.88 + 0.07 * grow, "M": 0.87 + 0.07 * grow,
+              "H": 0.40 + 0.42 * (1 - math.exp(-hards / 15))}
+    derive = 0.25 + 0.20 * (1 - math.exp(-(mocks + hards) / 30))
+    return time_f, recognition(r_base, mocks), derive
 
 
 def current_recall(nodes, evidence, curve, today=None):
