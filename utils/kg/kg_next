@@ -429,6 +429,8 @@ def pick(
             drill_id = f"drill:{pre}"
             if drill_id in exclude or not due_drill(pre, evidence):
                 continue
+            if drill_held(pre, nodes, statuses, evidence, has_bank=has_drill_bank):
+                continue  # parked behind its own prereq: that one trains first
             held = len(releases[pre])
             why = ("next undone drill" if owned(pre, evidence)
                    else "own it unaided")

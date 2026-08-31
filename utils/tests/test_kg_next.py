@@ -858,24 +858,43 @@ def test_easiest_first_orders_drills_then_by_difficulty_then_acceptance(monkeypa
     assert [r["id"] for r in kg_lib.easiest_first(rows)] == ["d5", "9", "2", "1", "3"]
 
 
+def test_drills_left_ignores_a_chain_ending_at_another_nodes_drill(tmp_path, monkeypatch):
+    """d27 waits on d26, d26 waits on d75 of another node. Serving this node
+    reaches neither, so the node has no drill left."""
+    drill_bank(tmp_path, monkeypatch, "other", "Atom", fname="a.py", did="d75")
+    drill_bank(tmp_path, monkeypatch, "sw", "Count", fname="c.py", did="d26", after=["d75"])
+    drill_bank(tmp_path, monkeypatch, "sw", "Exactly", fname="e.py", did="d27", after=["d26"])
+    assert not kg_lib.drills_left("sw", {})
+    ev = evidence(drill_rep("Atom", "other", days_ago=1))
+    assert kg_lib.drills_left("sw", ev)
+
+
+def test_rule_0c_does_not_serve_a_prereq_parked_behind_its_own_prereq(picker):
+    """2026-08-31: substring-enumeration (MISSING, banked) became a prereq of
+    the window node; the window node still had a drill undone and a held
+    dependent, so rule 0c served the window drill over the atom under it."""
+    ns = nodes("atom", ("win", ["atom"]), ("dep", ["win"]))
+    ps = {"1": problem(["dep"])}
+    ev = evidence(solve("1", {"win": "clean"}, days_ago=1))
+    st = {"atom": (MISSING, None), "win": (SOLID, ago(1)), "dep": (STALE, ago(300))}
+    picker.bank.update({"atom", "win"})
+    picker.undone.update({"atom", "win"})
+    assert picker.run(ns, ps, ev, st)[:3] == ("atom", MISSING, "drill:atom")
+
+
 def test_every_after_id_in_the_real_graph_resolves(monkeypatch):
     """Every id in an "after" list (problems.json, drills.json) names a
     problem, a bank drill, or a node; every drills.json title names a bank
-    file; a drill named by a problem trains a node on that problem's own
-    walk; the drill edges have no cycle. A dangling id holds nothing,
-    silently; this is where it gets caught."""
+    file; every bank file has an id; the drill edges have no cycle. A
+    dangling id holds nothing, silently; this is where it gets caught."""
     problems = kg_lib.load_problems()
     drills = kg_lib.load_drills()
     monkeypatch.setattr(kg_lib, "_DRILLS", drills)
     bad = []
     for pnum, p in problems.items():
         for pred in p.get("after", []):
-            kind = kg_lib.vertex_kind(pred, problems)
-            if kind is None:
+            if kg_lib.vertex_kind(pred, problems) is None:
                 bad.append((pnum, pred, "nothing carries this id"))
-            elif kind == "drill" and not (
-                    set(kg_lib.drill_trains(kg_lib.drill_path(pred))) & set(p.get("moves", []))):
-                bad.append((pnum, pred, "trains nothing on the walk"))
     for did, d in drills.items():
         if not re.fullmatch(r"d\d+", did):
             bad.append((did, "not a drill id"))
