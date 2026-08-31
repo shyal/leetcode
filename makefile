@@ -1,4 +1,4 @@
-.PHONY: all drop learning mirror q prepare force unforce preflight kg-extract kg-status kg-viz movie next dive drill hard is_session_start readme residuals sleep wake solved failed test timer viz graph
+.PHONY: all drop learning mirror q prepare force unforce preflight kg-extract kg-status kg-viz movie next dive drill hard is_session_start readme residuals simulate sleep wake solved failed test timer viz graph
 
 all: graph/leet.db
 	@cp utils/harness/sitecustomize.py .venv/lib/python3.10/site-packages/
@@ -62,6 +62,11 @@ mock: $(MOCK_BIN)
 
 predict:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_predict $(filter-out $@,$(MAKECMDGOALS))
+
+# make simulate 2 [seed 7]: run the real picker forward day by day on
+# simulated evidence until central P(onsite) reaches 50% (utils/kg/kg_simulate)
+simulate:
+	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_simulate $(patsubst seed,--seed,$(filter-out $@,$(MAKECMDGOALS)))
 
 # make movie is implemented in Rust: one pinned graphviz layout, the history
 # replayed as SMIL animation into graph/kg_movie.svg (embedded by make readme)
