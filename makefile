@@ -1,4 +1,4 @@
-.PHONY: all drop learning mirror q prepare force unforce preflight dependents kg-extract kg-status kg-viz movie next dive drill hard is_session_start readme residuals simulate sleep wake solved failed test timer viz graph
+.PHONY: all drop learning mirror q prepare force unforce preflight dependents kg-extract kg-status kg-viz movie next dive drill hard is_session_start readme residuals simulate sleep wake solved failed test timer viz graph snippets
 
 all: graph/leet.db
 	@cp utils/harness/sitecustomize.py .venv/lib/python3.10/site-packages/
@@ -117,6 +117,12 @@ failed:
 
 test:
 	@.venv/bin/pytest
+
+# VS Code snippets (the lc* prefixes the SNIPPET: drill header names) live in
+# misc/vscode-snippets/; this copies them into VS Code's User/snippets.
+snippets:
+	@cp misc/vscode-snippets/* "$$HOME/Library/Application Support/Code/User/snippets/"
+	@echo "deployed: $$(ls misc/vscode-snippets | tr '\n' ' ')"
 
 viz:
 	@.venv/bin/python3 dsa/viz.py

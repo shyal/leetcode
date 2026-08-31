@@ -1,6 +1,7 @@
 """
 DRILL: Reuse Allowed
 TRAINS: backtracking-start-index
+SNIPPET: lccomb
 
 Given an array nums of distinct positive integers and an integer target,
 return every combination of elements of nums whose sum is target. The

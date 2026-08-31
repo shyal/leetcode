@@ -1,6 +1,7 @@
 """
 DRILL: Union Links Head to Head
 TRAINS: union-find
+SNIPPET: lcunionunion
 
 Imagine a company with n employees labeled 0 .. n-1.
 Every employee has exactly one manager, recorded in a list called `parent`:
