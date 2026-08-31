@@ -239,7 +239,23 @@ def main():
     parser.add_argument("--days", type=int, default=MAX_DAYS)
     parser.add_argument("--every", type=int, default=7,
                         help="print a row every N days")
+    parser.add_argument("--hard-sat", type=float, default=kg_lib.HARD_SAT,
+                        help="Hards after which 63%% of the Hard headroom is "
+                        f"earned (model: {kg_lib.HARD_SAT})")
+    parser.add_argument("--mock-sat", type=float, default=kg_lib.MOCK_SAT,
+                        help="mock-equivalents after which 63%% of recognition "
+                        f"headroom is earned (model: {kg_lib.MOCK_SAT})")
+    parser.add_argument("--cold-per-mock", type=int, default=kg_lib.COLD_SOLVES_PER_MOCK,
+                        help="cold first solves worth one mock; 0 = no credit "
+                        f"(model: {kg_lib.COLD_SOLVES_PER_MOCK})")
+    parser.add_argument("--draft-error", type=float, default=0.0,
+                        help="share of drafted walks that are wrong: such a cold "
+                        "problem needs a move the walk did not name, at the "
+                        "derive rate (drafts score P 0.80 vs evidenced walks)")
     args = parser.parse_args()
+    kg_lib.HARD_SAT = args.hard_sat
+    kg_lib.MOCK_SAT = args.mock_sat
+    kg_lib.COLD_SOLVES_PER_MOCK = args.cold_per_mock
 
     rng = random.Random(args.seed)
     nodes = load_nodes()
@@ -281,6 +297,13 @@ def main():
     short_days = 0    # days it ran out before half the hours were used
     src = "given" if args.hours is not None else \
         f"measured: avg of the current streak, {measured:g}h"
+    knobs = []
+    if args.hard_sat != 15: knobs.append(f"hard-sat {args.hard_sat:g}")
+    if args.mock_sat != 8: knobs.append(f"mock-sat {args.mock_sat:g}")
+    if args.cold_per_mock != 6: knobs.append(f"cold-per-mock {args.cold_per_mock}")
+    if args.draft_error: knobs.append(f"draft-error {args.draft_error:g}")
+    if knobs:
+        print("model knobs off their defaults: " + ", ".join(knobs))
     print(f"policy: kg_next.pick at {hours:g}h/day ({src}), seed {args.seed}; "
           f"teach {teach:.2f}, curve {os.path.basename(GRAPH_DIR)}/curve.json")
     print("price per attempt, measured medians (clean / struggled): "
@@ -351,9 +374,12 @@ def main():
             if problem != "drill" and problem not in seen and verdict:
                 # a cold problem: the pass model's own odds on top of recall
                 dif = {"Easy": "E", "Medium": "M", "Hard": "H"}.get(kind, "M")
-                time_f, rec, _ = practice_factors(
+                time_f, rec, derive = practice_factors(
                     (mediums, recognition_practice(0, cold), hards), r_base)
-                if rng.random() >= time_f[dif] * rec ** REC_POWER[dif]:
+                p_cold = time_f[dif] * rec ** REC_POWER[dif]
+                if rng.random() < args.draft_error:
+                    p_cold *= derive  # the walk missed a move: derive it or fail
+                if rng.random() >= p_cold:
                     weakest = min(verdict, key=lambda m: recall[m])
                     verdict[weakest] = "struggled"
             clean = all(v == "clean" for v in verdict.values())
