@@ -1,0 +1,87 @@
+"""
+DRILL: Reuse Allowed
+TRAINS: backtracking-start-index
+
+Given an array nums of distinct positive integers and an integer target,
+return every combination of elements of nums whose sum is target. The
+same element can be used any number of times. List each combination in
+non-decreasing order, and return each combination once.
+
+Example 1:
+
+Input: nums = [2, 3, 6, 7], target = 7
+Output: [[2, 2, 3], [7]]
+Explanation: The list [3, 2, 2] is the same combination as [2, 2, 3], so
+it does not appear.
+
+Example 2:
+
+Input: nums = [2], target = 1
+Output: []
+Explanation: No sum of 2s equals 1.
+
+Example 3:
+
+Input: nums = [3], target = 9
+Output: [[3, 3, 3]]
+
+Constraints:
+
+    1 <= len(nums) <= 30
+    1 <= nums[i] <= 40
+    1 <= target <= 40
+    The elements of nums are distinct and given in increasing order.
+
+    REQUIRED: never build [3, 2, 2], not even to discard it. Never extend
+    a partial sum that already exceeds target. NO de-duplicating the
+    answer at the end, NO counting how many times each element is used.
+
+---
+
+New to reuse.
+
+Had to be hinted that helper is passed j, not j+1, and to add the break
+in the loop.
+
+Assisted.
+
+"""
+
+
+class Solution:
+    def combinationSum(self, nums: list[int], target: int) -> list[list[int]]:
+        def helper(i, t):
+            if t == target:
+                ret.append(curr[:])
+                return
+            for j in range(i, len(nums)):
+                if t + nums[j] > target:
+                    break
+                curr.append(nums[j])
+                helper(j, t + nums[j])
+                curr.pop()
+
+        ret = []
+        curr = []
+        helper(0, 0)
+        return ret
+
+
+sol = Solution()
+
+print(sol.combinationSum([2, 3, 6, 7], 7))  # [[2, 2, 3], [7]]
+
+assert sorted(map(tuple, sol.combinationSum([2, 3, 6, 7], 7))) == [(2, 2, 3), (7,)]
+assert sol.combinationSum([2], 1) == []
+assert sol.combinationSum([3], 9) == [[3, 3, 3]]
+assert sorted(map(tuple, sol.combinationSum([2, 3, 5], 8))) == [
+    (2, 2, 2, 2),
+    (2, 3, 3),
+    (3, 5),
+]
+
+res = sol.combinationSum([1, 2], 5)
+assert len(res) == 3 and len({tuple(c) for c in res}) == 3
+assert all(sum(c) == 5 and c == sorted(c) for c in res)
+
+assert len(sol.combinationSum([2, 4, 6, 8], 8)) == 5
