@@ -26,8 +26,9 @@
 # append a record shaped like the one kg_extract writes, and repeat until
 # the hours are spent. A struggled move goes FRAGILE the way it does for
 # real, and the picker spends the next days repairing it. At the end of
-# the day, kg_lib.pass_rates - the same model behind `make mock`'s cold
-# estimate - on the simulated evidence.
+# the day, the pass model behind `make mock`'s cold estimate on the
+# simulated evidence - in closed form (PassExpectation): the exact
+# expectation of the sets kg_lib.pass_rates draws, without the draws.
 #
 # What `make predict` and `make mock` do not do: run the picker itself.
 # Both simulate a policy of their own. This runs the policy that serves you,
@@ -43,6 +44,8 @@ import math
 import os
 import random
 import sys
+
+import numpy as np
 from datetime import date, timedelta
 from importlib.machinery import SourceFileLoader
 
@@ -51,7 +54,7 @@ from kg import kg_lib  # noqa: E402
 from kg.kg_lib import (  # noqa: E402
     GRAPH_DIR, SOLID, MISSING, SCENARIOS, REC_POWER, load_nodes, load_problems,
     load_evidence, load_predicted, node_status, immature_nodes, unlocks,
-    current_recall, pass_rates, drill_trains, sleep_state,
+    current_recall, node_curve_recall, drill_trains, sleep_state,
     problem_difficulty, recognition_practice, assist_of, practice_factors,
 )
 from statistics import median  # noqa: E402
@@ -61,7 +64,51 @@ kg_next = SourceFileLoader("kg_next", os.path.join(UTILS, "kg_next")).load_modul
 
 TARGET_ONSITE = 0.50
 MAX_DAYS = 730
-N_MC = 4000
+
+
+class PassExpectation:
+    """The pass model of kg_lib.pass_rates in closed form. A set draws each
+    problem uniformly from its difficulty pool and solves it with
+    p = time_f[dif] * rec ** REC_POWER[dif] * (best walk's recall product),
+    draws independent, so P(both Easies) is the pool mean of p squared,
+    and P(onsite) = E^2 * M^2 * (1 - (1 - H)^2). Walks are flattened into
+    index arrays once; a day's rates are two reduceats per pool."""
+
+    def __init__(self, pools, node_order):
+        self.index = {n: i for i, n in enumerate(node_order)}
+        self.derive_slot = len(node_order)  # every off-taxonomy move
+        self.pools = {}
+        for dif, probs in pools.items():
+            idx, walk_starts, prob_starts, pos = [], [], [], 0
+            for walks in probs:
+                prob_starts.append(len(walk_starts))
+                for w in walks:
+                    walk_starts.append(pos)
+                    for m in w:
+                        idx.append(self.index.get(m, self.derive_slot))
+                    pos += len(w)
+            self.pools[dif] = (np.array(idx), np.array(walk_starts),
+                               np.array(prob_starts), len(probs))
+
+    def rates(self, recall, practice, r_base):
+        """(full, onsite, screen, single-hard) as pass_rates returns."""
+        time_f, rec, derive = practice_factors(practice, r_base)
+        r = np.empty(self.derive_slot + 1)
+        for n, i in self.index.items():
+            r[i] = recall[n]
+        r[self.derive_slot] = derive
+        logs = np.log(r)
+        p = {}
+        for dif, (idx, ws, ps, n) in self.pools.items():
+            if not n:
+                p[dif] = 0.0
+                continue
+            walk = np.exp(np.add.reduceat(logs[idx], ws))
+            best = np.maximum.reduceat(walk, ps)
+            p[dif] = time_f[dif] * rec ** REC_POWER[dif] * best.mean()
+        e2, m2 = p["E"] ** 2, p["M"] ** 2
+        h1 = 1 - (1 - p["H"]) ** 2
+        return e2 * m2 * p["H"] ** 2, e2 * m2 * h1, m2, p["H"]
 PACE_WINDOW = 28  # calendar days the pace is averaged over (kg_mock_rs week_pace)
 
 
@@ -206,7 +253,7 @@ def main():
     mined = kg_lib.mined_solve_times(with_file=True)
     kg_lib.mined_solve_times = lambda with_file=False: [r[:3] for r in mined]
 
-    pools = build_pools(problems, predicted, nodes)
+    expect = PassExpectation(build_pools(problems, predicted, nodes), list(nodes))
     teach = min(first_contact(evidence) * 0.8, 0.85)
     asleep, _ = sleep_state(nodes, problems, evidence)
     r_base = SCENARIOS["central"]
@@ -218,10 +265,10 @@ def main():
     if hours <= 0:
         sys.exit("measured pace is 0h/day - pass hours explicitly")
 
-    def rates(day, practice):
-        recall = current_recall(nodes, evidence, curve, today=day)
-        return pass_rates(recall, pools, r_base, practice,
-                          random.Random(args.seed * 1000 + practice[0]), N_MC)
+    def rates(day, practice, recall=None):
+        if recall is None:
+            recall = current_recall(nodes, evidence, curve, today=day)
+        return expect.rates(recall, practice, r_base)
 
     def price(kind, clean):
         return prices[(kind, "clean" if clean else "struggled")]
@@ -242,8 +289,9 @@ def main():
     print(f"{'day':>4}  {'date':10}  {'solves':>6}  {'solid':>5}  {'young':>5}  "
           f"{'reach':>9}  {'P(hard)':>7}  {'P(screen)':>9}  {'P(onsite)':>9}")
 
-    def report(day_no, day, practice, solves_today):
-        statuses = {n: node_status(n, evidence, today=day) for n in nodes}
+    def report(day_no, day, practice, solves_today, statuses=None, recall=None):
+        if statuses is None:
+            statuses = {n: node_status(n, evidence, today=day) for n in nodes}
         imm = immature_nodes(nodes, evidence, problems)
         gain = unlocks(statuses, problems, immature=imm)
         blocked = sum(1 for p in predicted if p not in problems
@@ -252,7 +300,7 @@ def main():
                                   and all(m in nodes for m in w["moves"])
                                   and not w.get("missing")
                                   for w in predicted[p]["walks"]))
-        _, onsite, screen, phard = rates(day, practice)
+        _, onsite, screen, phard = rates(day, practice, recall)
         solid = sum(1 for s in statuses.values() if s[0] == SOLID)
         print(f"{day_no:>4}  {day.isoformat():10}  {solves_today:>6}  {solid:>5}  "
               f"{len(imm):>5}  {len(predicted) - blocked:>4}/{len(predicted):<4}  "
@@ -266,14 +314,15 @@ def main():
         budget = hours * 60
         exclude = set()
         solves_today = 0
+        # statuses and recall once per day; after a solve only its moves change
+        statuses = {n: node_status(n, evidence, today=day) for n in nodes}
+        recall = current_recall(nodes, evidence, curve, today=day)
         while budget > 0:
-            statuses = {n: node_status(n, evidence, today=day) for n in nodes}
             choice = kg_next.pick(nodes, problems, evidence, statuses,
                                   asleep=asleep, exclude=exclude)
             if not choice:
                 break
             target, _, pnum, _ = choice
-            recall = current_recall(nodes, evidence, curve, today=day)
             seq += 1
             stamp = f"{day.isoformat()}T{seq:06d}_00_00Z"
             if str(pnum).startswith("drill:"):
@@ -311,6 +360,9 @@ def main():
             budget -= price(kind if kind in per_kind else "Medium", clean)
             evidence[fname] = {"date": day.isoformat(), "problem": problem,
                                "moves": verdict}
+            for m in verdict:
+                statuses[m] = node_status(m, evidence, today=day)
+                recall[m] = node_curve_recall(m, evidence, curve, day)
             solves_today += 1
             per_kind[kind if kind in per_kind else "Medium"] += 1
             if clean:
@@ -324,10 +376,10 @@ def main():
         dry_days += solves_today == 0
         short_days += budget > hours * 30
         practice = (mediums, recognition_practice(0, cold), hards)
-        onsite = rates(day, practice)[1]
+        onsite = rates(day, practice, recall)[1]
         if day_no % args.every == 0 or day_no == args.days \
                 or onsite >= TARGET_ONSITE:
-            onsite = report(day_no, day, practice, solves_today)
+            onsite = report(day_no, day, practice, solves_today, statuses, recall)
             if onsite >= TARGET_ONSITE:
                 break
     else:
