@@ -6889,6 +6889,15 @@
         "bit-iterate": "clean"
       },
       "summary": "The solution uses bit iteration to process each bit position of a, b, and c separately, extracting bits with `& 1` and shifting with `>>= 1`. At each position, it counts the flips needed to satisfy a | b = c: when c's bit is 1, at least one of a or b must be 1; when c's bit is 0, both must be 0. All test cases pass."
+    },
+    "solved/d_Approved_Transactions_Per_Country_2026_08_31T05_50_33_200841_00_00Z.py": {
+      "date": "2026-08-31",
+      "problem": "drill",
+      "moves": {
+        "sql-conditional-aggregate": "clean",
+        "sql-group-aggregate": "clean"
+      },
+      "summary": "The query groups transactions by country and computes five aggregate metrics: total transaction count, approved-only count, total amount, and approved-only amount. Conditional aggregation uses CASE WHEN inside SUM() to pivot state into counts and sums within a single pass, returning 0 instead of NULL when no approved rows exist per group. Both examples pass."
     }
   }
 }
