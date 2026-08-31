@@ -67,7 +67,8 @@ predict:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_predict $(filter-out $@,$(MAKECMDGOALS))
 
 # make simulate 2 [seed 7]: run the real picker forward day by day on
-# simulated evidence until central P(onsite) reaches 50% (utils/kg/kg_simulate)
+# simulated evidence until central P(onsite) reaches 50% (utils/kg/kg_simulate;
+# utils/readme/kg_forecast_svg draws the same run after the history for the README)
 simulate:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_simulate $(patsubst seed,--seed,$(filter-out $@,$(MAKECMDGOALS)))
 
@@ -160,6 +161,7 @@ readme: $(MOVIE_BIN) $(MOCK_BIN)
 	PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_calibration_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_timing_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_solvetime_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_connectivity_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_rates_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_commits_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_zpd_svg & p2=$$!; \
 	$(MOVIE_BIN) & p3=$$!; \
 	PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_reach_svg & p4=$$!; \
+	PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_forecast_svg & p5=$$!; \
 	PYTHONPATH=./utils .venv/bin/python3 utils/kg/estimate; s=$$?; \
-	wait $$p1 && wait $$p2 && wait $$p3 && wait $$p4 && [ $$s -eq 0 ]
+	wait $$p1 && wait $$p2 && wait $$p3 && wait $$p4 && wait $$p5 && [ $$s -eq 0 ]
 	@AWS_PROFILE=readme-uploader PYTHONPATH=./utils .venv/bin/python3 utils/readme/update_readme.py

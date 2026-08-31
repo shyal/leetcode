@@ -218,6 +218,14 @@ def main():
         contest_progress_img = "No readiness data."
         faang_progress_img = "No readiness data."
 
+    # History and forecast (utils/readme/kg_forecast_svg): cumulative solves,
+    # STALE/FRAGILE counts and the pass rates day by day, then kg_simulate's
+    # run of the real picker until P(onsite) reaches 50%, on one time axis.
+    forecast_img = ""
+    if os.path.exists("graph/forecast.svg"):
+        s3_key_forecast = upload_svg_gz("graph/forecast.svg", "forecast")
+        forecast_img = f"![History and forecast to a 50% pass rate](https://shyal.s3.amazonaws.com/{s3_key_forecast})"
+
     # Forgetting-curve calibration (utils/readme/kg_calibration_svg): model vs
     # observed clean-recall by gap, replayed weekly as a SMIL SVG on the
     # shared clock — the fourth synced animation.
@@ -378,6 +386,7 @@ def main():
     readme = fill(readme, "YIELD_TIME_CHART", yield_time_img)
     readme = fill(readme, "CONTEST_PROGRESS", contest_progress_img)
     readme = fill(readme, "FAANG_PROGRESS", faang_progress_img)
+    readme = fill(readme, "FORECAST_CHART", forecast_img)
 
     with open("README.md", "w") as f:
         f.write(readme)

@@ -257,7 +257,9 @@ def run(hours=None, seed=1, days=MAX_DAYS, every=7, hard_sat=None,
     day: (day_no, stale, fragile, missing) at the first pick of the day),
     and starved: {node: days} for every node that was STALE or FRAGILE on
     STARVED_DAYS or more consecutive days with no pick aimed at it - the
-    longest such run. The picker's rules make a rusty node servable within
+    longest such run; and series: one dict per simulated day (day, solves
+    per kind that day, stale/fragile/missing counts at the end of the day,
+    onsite/screen/hard rates) for the README forecast chart. The picker's rules make a rusty node servable within
     days, so such a run is a hold nothing clears. A node picked and failed
     over and over is not starved: that is the draw, not the picker.
     kg_lib's date, HARD_SAT, MOCK_SAT,
@@ -328,6 +330,7 @@ def _run(hours, seed, days, every, hard_sat, mock_sat, cold_per_mock,
     rusty = []        # (day_no, stale, fragile, missing) at the first pick
     streak = {n: 0 for n in nodes}  # consecutive rusty days, no pick aimed
     starved = {}      # node -> longest such run
+    series = []       # per day, for the README forecast chart
     src = "given" if given else \
         f"measured: avg of the current streak, {measured:g}h"
     knobs = []
@@ -378,6 +381,7 @@ def _run(hours, seed, days, every, hard_sat, mock_sat, cold_per_mock,
         budget = hours * 60
         exclude = set()
         solves_today = 0
+        today_kind = {k: 0 for k in per_kind}
         # statuses and recall once per day; after a solve only its moves change
         statuses = {n: node_status(n, evidence, today=day) for n in nodes}
         recall = current_recall(nodes, evidence, curve, today=day)
@@ -443,6 +447,7 @@ def _run(hours, seed, days, every, hard_sat, mock_sat, cold_per_mock,
                 recall[m] = node_curve_recall(m, evidence, curve, day)
             solves_today += 1
             per_kind[kind if kind in per_kind else "Medium"] += 1
+            today_kind[kind if kind in per_kind else "Medium"] += 1
             if clean:
                 if kind == "Medium":
                     mediums += 1
@@ -454,7 +459,13 @@ def _run(hours, seed, days, every, hard_sat, mock_sat, cold_per_mock,
         dry_days += solves_today == 0
         short_days += budget > hours * 30
         practice = (mediums, recognition_practice(0, cold), hards)
-        onsite = rates(day, practice, recall)[1]
+        _, onsite, screen, phard = rates(day, practice, recall)
+        end = {s: 0 for s in (SOLID, STALE, FRAGILE, MISSING)}
+        for s in statuses.values():
+            end[s[0]] += 1
+        series.append({"day": day, "solves": today_kind, "stale": end[STALE],
+                       "fragile": end[FRAGILE], "missing": end[MISSING],
+                       "onsite": onsite, "screen": screen, "hard": phard})
         if day_no % every == 0 or day_no == days or onsite >= TARGET_ONSITE:
             onsite = report(day_no, day, practice, solves_today, statuses, recall)
             if onsite >= TARGET_ONSITE:
@@ -466,7 +477,8 @@ def _run(hours, seed, days, every, hard_sat, mock_sat, cold_per_mock,
     freeze_clock(start)
     return {"day": day_no, "start": start, "onsite": onsite, "hours": hours,
             "source": src, "per_kind": per_kind, "dry_days": dry_days,
-            "short_days": short_days, "rusty": rusty, "starved": starved}
+            "short_days": short_days, "rusty": rusty, "starved": starved,
+            "series": series}
 
 
 def main():
