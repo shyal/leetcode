@@ -255,12 +255,12 @@ def run(hours=None, seed=1, days=MAX_DAYS, every=7, hard_sat=None,
     silent run) and returns a dict: day (the last day run), onsite, hours,
     source ("given"/"measured"), per_kind, dry_days, short_days, rusty (per
     day: (day_no, stale, fragile, missing) at the first pick of the day),
-    and starved: {node: (streak, served)} for every node that was STALE or
-    FRAGILE on STARVED_DAYS or more consecutive days - the longest such
-    streak and the number of picks that targeted it during that streak.
-    The picker's rules make a rusty node servable within days; a streak
-    with zero serves is a hold nothing clears, a streak with serves is a
-    drill or carrier that never lands. kg_lib's date, HARD_SAT, MOCK_SAT,
+    and starved: {node: days} for every node that was STALE or FRAGILE on
+    STARVED_DAYS or more consecutive days with no pick aimed at it - the
+    longest such run. The picker's rules make a rusty node servable within
+    days, so such a run is a hold nothing clears. A node picked and failed
+    over and over is not starved: that is the draw, not the picker.
+    kg_lib's date, HARD_SAT, MOCK_SAT,
     COLD_SOLVES_PER_MOCK, load_predicted and mined_solve_times are patched
     for the run and restored after."""
     saved = (kg_lib.date, kg_next.date, kg_lib.HARD_SAT, kg_lib.MOCK_SAT,
@@ -326,8 +326,8 @@ def _run(hours, seed, days, every, hard_sat, mock_sat, cold_per_mock,
     dry_days = 0      # days the picker served nothing at all
     short_days = 0    # days it ran out before half the hours were used
     rusty = []        # (day_no, stale, fragile, missing) at the first pick
-    streak = {n: [0, 0] for n in nodes}   # [consecutive rusty days, serves]
-    starved = {}      # node -> (longest streak, serves during it)
+    streak = {n: 0 for n in nodes}  # consecutive rusty days, no pick aimed
+    starved = {}      # node -> longest such run
     src = "given" if given else \
         f"measured: avg of the current streak, {measured:g}h"
     knobs = []
@@ -367,10 +367,9 @@ def _run(hours, seed, days, every, hard_sat, mock_sat, cold_per_mock,
         return onsite
 
     def close_streak(n):
-        run_days, serves = streak[n]
-        if run_days >= STARVED_DAYS and run_days > starved.get(n, (0, 0))[0]:
-            starved[n] = (run_days, serves)
-        streak[n] = [0, 0]
+        if streak[n] >= STARVED_DAYS and streak[n] > starved.get(n, 0):
+            starved[n] = streak[n]
+        streak[n] = 0
 
     onsite = report(0, start, (0, 0, 0), 0)
     for day_no in range(1, days + 1):
@@ -386,7 +385,7 @@ def _run(hours, seed, days, every, hard_sat, mock_sat, cold_per_mock,
         for n, s in statuses.items():
             counts[s[0]] += 1
             if s[0] in (STALE, FRAGILE):
-                streak[n][0] += 1
+                streak[n] += 1
             else:
                 close_streak(n)
         rusty.append((day_no, counts[STALE], counts[FRAGILE], counts[MISSING]))
@@ -396,7 +395,7 @@ def _run(hours, seed, days, every, hard_sat, mock_sat, cold_per_mock,
             if not choice:
                 break
             target, _, pnum, _ = choice
-            streak[target][1] += 1
+            close_streak(target)
             seq += 1
             stamp = f"{day.isoformat()}T{seq:06d}_00_00Z"
             if str(pnum).startswith("drill:"):
@@ -509,11 +508,9 @@ def main():
     worst = max(s + f for _, s, f, _ in r["rusty"]) if r["rusty"] else 0
     print(f"rusty: at most {worst} nodes STALE or FRAGILE at the start of a day")
     if r["starved"]:
-        print(f"picker starved ({STARVED_DAYS}+ days rusty in a row):")
-        for n, (k, served) in sorted(r["starved"].items(), key=lambda x: -x[1][0]):
-            print(f"  {n}: {k} days, "
-                  + (f"picked {served} time{'s' if served > 1 else ''}, never repaired"
-                     if served else "never picked"))
+        print(f"picker starved ({STARVED_DAYS}+ days rusty in a row, nothing aimed at it):")
+        for n, k in sorted(r["starved"].items(), key=lambda x: -x[1]):
+            print(f"  {n}: {k} days")
 
 
 if __name__ == "__main__":

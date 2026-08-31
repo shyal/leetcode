@@ -882,6 +882,63 @@ def test_rule_0c_does_not_serve_a_prereq_parked_behind_its_own_prereq(picker):
     assert picker.run(ns, ps, ev, st)[:3] == ("atom", MISSING, "drill:atom")
 
 
+def test_rule_0c_climbs_a_hold_chain_to_its_root(picker):
+    """2026-08-31 (make simulate): dedupe siblings waited on start-index,
+    start-index on choose-undo, and choose-undo was SOLID through an
+    assisted rep. Rule 0c found start-index, saw it parked, and gave up;
+    nothing named choose-undo for 14 simulated days. It climbs now."""
+    ns = nodes("cu", ("si", ["cu"]), ("dd", ["si"]))
+    ps = {"1": problem(["dd"])}
+    picker.bank = {"cu", "si", "dd"}
+    picker.undone = {"si"}
+    ev = evidence(solve("8", {"cu": "clean"}, days_ago=1, assist="walkthrough"),
+                  solve("9", {"si": "clean"}, days_ago=1))
+    st = {"dd": (FRAGILE, ago(1)), "si": (SOLID, ago(1)), "cu": (SOLID, ago(1))}
+    target, status, pnum, why = picker.run(ns, ps, ev, st)
+    assert (target, status, pnum) == ("cu", SOLID, "drill:cu")
+    assert "own it unaided" in why
+
+
+def test_a_stale_move_whose_carriers_are_all_held_gets_its_drill(picker):
+    """2026-08-31 (make simulate): 102 is the one carrier of the level
+    BFS and waits on drill d67; ordinary STALE is not drill-gated, so the
+    stale rule offered nothing for 60 simulated days. No carrier can fire,
+    so the drill is the rep."""
+    ns = nodes("a", "b")
+    ps = {"1": problem(["a"], after=["9"]), "9": problem(["b"])}
+    picker.bank = {"a"}
+    ev = evidence(solve("1", {"a": "clean"}, days_ago=20))
+    st = {"a": (STALE, ago(20)), "b": (SOLID, ago(1))}
+    assert picker.run(ns, ps, ev, st)[:3] == ("a", STALE, "drill:a")
+
+
+def test_a_held_carrier_serves_the_root_predecessor_first(picker):
+    """2026-08-31 (make simulate): 310 carries topological order and waits
+    on 210, which waits on 207; every move of 207 was SOLID, so no rule
+    re-solved it and it never warmed - 47 simulated days. The root of the
+    chain is served, as the problem its own moves name."""
+    ns = nodes("a", "b")
+    ps = {"1": problem(["a"], after=["9"]), "9": problem(["b"], after=["8"]),
+          "8": problem(["b"])}
+    ev = evidence(solve("1", {"a": "clean"}, days_ago=20),
+                  solve("8", {"b": "clean"}, days_ago=100))
+    st = {"a": (STALE, ago(20)), "b": (SOLID, ago(1))}
+    target, status, pnum, why = picker.run(ns, ps, ev, st)
+    assert (target, status, pnum) == ("b", SOLID, "8")
+    assert "waits on 8" in why
+
+
+def test_a_held_carrier_behind_a_hard_serves_nothing(picker):
+    """A Hard is a summit, not a refresh: the hold rule leaves it alone,
+    and the summit rule takes it on its own terms."""
+    ns = nodes("a", "b")
+    ps = {"1": problem(["a"], after=["9"]), "9": problem(["b"], difficulty="Hard")}
+    ev = evidence(solve("1", {"a": "clean"}, days_ago=20))
+    st = {"a": (STALE, ago(20)), "b": (SOLID, ago(1))}
+    target, status, pnum, why = picker.run(ns, ps, ev, st)
+    assert (pnum, "summit" in why) == ("9", True)
+
+
 def test_every_after_id_in_the_real_graph_resolves(monkeypatch):
     """Every id in an "after" list (problems.json, drills.json) names a
     problem, a bank drill, or a node; every drills.json title names a bank
