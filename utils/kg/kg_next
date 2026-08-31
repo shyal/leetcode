@@ -130,6 +130,8 @@ from kg.kg_lib import (
     immature_nodes,
     carry_bar,
     proving_carriers,
+    drafted_in_reach,
+    problem_difficulty,
     solve_forecast,
     drill_forecast,
 )
@@ -263,9 +265,9 @@ def pick(
     whose latest rep was assisted: the unaided rep each is waiting for."""
     early = early or assisted
     cram = cram or early
+    immature = immature_nodes(nodes, evidence, problems)
 
     def in_scope(n):
-    immature = immature_nodes(nodes, evidence, problems)
         return group is None or nodes[n].get("group") == group
 
     def due(target):
@@ -656,10 +658,35 @@ def pick(
             problems[promo[0]] = promo[1]
             return target, SOLID, promo[0], why + " (drafted carrier)"
 
+    # rule 6: the graph is solid and no young move has a carrier today.
+    # What is left is leetcode itself: an unsolved drafted problem whose
+    # every move is SOLID and mature, Hards first. The pass model prices
+    # the onsite by Hards solved, and the summit rule only sees the Hards
+    # of problems.json - the 2026-08-31 simulation (make simulate) ran the
+    # picker 180 days and it served one Hard, P(onsite) flat at 16%.
+    if not group:
+        today = date.today().isoformat()
+        solved_today = sorted(
+            (k, r) for k, r in evidence.items()
+            if r.get("date") == today and str(r.get("problem", ""))[:1].isdigit())
+        last = solved_today[-1][1]["problem"] if solved_today else None
+        first = "Medium" if last and problem_difficulty(last, problems) == "Hard" \
+            else "Hard"
+        for num, entry in drafted_in_reach(
+                problems, statuses, nodes, immature,
+                skip=set(asleep) | set(exclude), first=first):
+            problems[num] = entry
+            return (
+                entry["moves"][0],
+                SOLID,
+                num,
+                "in reach - unsolved drafted problem, every move solid and mature",
+            )
+
     return None
 
 
-def ready_hards(problems, nodes, evidence, statuses):
+def ready_hards(problems, nodes, evidence, statuses, immature=None):
     """Unsolved Hards with no gaps left in their route: every node in the
     transitive input tree SOLID — and mature (kg_lib.mature: a young badge
     from one burst of drills is not yet load-bearing) — and no `unmapped`

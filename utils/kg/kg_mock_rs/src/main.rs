@@ -136,6 +136,7 @@ fn parse_solve_trailer(s: &str) -> Option<(u64, u64, usize)> {
 
 const HARDS_START: i64 = 45;
 const MOCKS_START: i64 = 90;
+const COLD_SOLVES_PER_MOCK: i64 = 6; // kg_lib.COLD_SOLVES_PER_MOCK
 const MOCKS_PER_WEEK: f64 = 2.0;
 const HARDS_PER_WEEK: f64 = 3.0;
 const N_MC: usize = 20000;
@@ -343,8 +344,17 @@ impl<'a> SimState<'a> {
         }
     }
 
+    // (mediums, mock-equivalents, hards). Recognition credit for cold first
+    // solves, as kg_lib.recognition_practice: every simulated medium and
+    // hard here is a problem never seen before, and six of them count as
+    // one mock. (The Python simulation, kg_simulate, counts only the clean
+    // unaided ones; this sim draws no per-solve outcome.)
     fn practice(&self) -> (i64, i64, i64) {
-        (self.mediums_done, self.mocks_done, self.hards_done)
+        (
+            self.mediums_done,
+            self.mocks_done + (self.mediums_done + self.hards_done) / COLD_SOLVES_PER_MOCK,
+            self.hards_done,
+        )
     }
 
     fn mv_recall(&self) -> Vec<Option<f64>> {
