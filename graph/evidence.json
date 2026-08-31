@@ -6943,6 +6943,18 @@
         "sql-window-offset": "clean"
       },
       "summary": "The query uses LAG(amount) OVER (ORDER BY month) to access each row's previous month's amount, then subtracts it to compute the month-over-month change. The first row correctly receives NULL from LAG since there is no preceding month, satisfying the REQUIRED contract. No self-join or date arithmetic is needed."
+    },
+    "solved/d_Running_Total_2026_08_31T07_05_52_202380_00_00Z.py": {
+      "date": "2026-08-31",
+      "problem": "drill",
+      "moves": {
+        "sql-window-running": "clean"
+      },
+      "assist": {
+        "sql-window-running": "hint"
+      },
+      "note": "Candidate initially thought 'running' was a window function; learned it's SUM with OVER (ORDER BY).",
+      "summary": "The query uses SUM(weight) OVER (ORDER BY turn) to compute a running total at each row in turn order. Candidate exercised the sql-window-running move correctly but needed clarification on the function name."
     }
   }
 }
