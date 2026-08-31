@@ -362,12 +362,33 @@ impl SolveCost {
     }
 }
 
+// The rehearsal-mass term of the pass model (kg_lib.mass_term /
+// mass_adjust): x[dif][prob][walk] = ln(1 + carrier count of the walk's
+// rarest move), reff[dif] = the pool mean of the best-walk x, beta the fitted
+// log-odds per unit of x from curve.json "mass" (0 = inert). A problem's p
+// is shifted on the logit scale by beta * (x - reff).
+#[derive(Clone, Default)]
+pub struct Mass {
+    pub beta: f64,
+    pub reff: [f64; 3],
+    pub x: [Vec<Vec<f64>>; 3],
+}
+
+pub fn mass_adjust(p: f64, x: f64, reff: f64, beta: f64) -> f64 {
+    if beta == 0.0 {
+        return p;
+    }
+    let p = p.max(1e-9).min(1.0 - 1e-9);
+    1.0 / (1.0 + (-((p / (1.0 - p)).ln() + beta * (x - reff))).exp())
+}
+
 pub struct Bank {
     pub cost: Option<SolveCost>,
     pub move_names: Vec<String>,
     pub n_known: usize,
     // pools[dif][prob] = walks; a walk = move indices (known + extras mixed)
     pub pools: [Vec<Vec<Vec<usize>>>; 3],
+    pub mass: Mass,
     // flat walk table for the forward sim's learning bookkeeping
     pub walk_prob: Vec<(usize, usize)>, // walk gid -> (dif, prob index)
     pub walk_extras: Vec<Vec<usize>>,   // walk gid -> extra ids (0-based past n_known)
@@ -397,6 +418,7 @@ impl Bank {
 pub fn run_mocks(
     mv_recall: &[Option<f64>],
     pools: &[Vec<Vec<Vec<usize>>>; 3],
+    mass: &Mass,
     r_base: f64,
     practice: (i64, i64, i64),
     rng: &mut PyRandom,
@@ -424,10 +446,11 @@ pub fn run_mocks(
         let mut probs = [(usize::MAX, false); 6];
         for (pi, &dif) in [0usize, 0, 1, 1, 2, 2].iter().enumerate() {
             let pool = &pools[dif];
-            let prob = &pool[rng.randbelow(pool.len() as u32) as usize];
+            let prob_i = rng.randbelow(pool.len() as u32) as usize;
+            let prob = &pool[prob_i];
             // best walk: highest recall product; its weakest factor is blame
-            let (mut best_p, mut best_min_i) = (-1.0f64, usize::MAX);
-            for walk in prob {
+            let (mut best_p, mut best_min_i, mut best_w) = (-1.0f64, usize::MAX, 0usize);
+            for (wi, walk) in prob.iter().enumerate() {
                 let mut prod = 1.0;
                 let (mut min_v, mut min_i) = (f64::INFINITY, usize::MAX);
                 for &mv in walk {
@@ -441,9 +464,13 @@ pub fn run_mocks(
                 if prod > best_p {
                     best_p = prod;
                     best_min_i = min_i;
+                    best_w = wi;
                 }
             }
-            let p = base_p[dif] * best_p;
+            let mut p = base_p[dif] * best_p;
+            if mass.beta != 0.0 {
+                p = mass_adjust(p, mass.x[dif][prob_i][best_w], mass.reff[dif], mass.beta);
+            }
             let ok = rng.random() < p;
             solved[dif] += ok as i32;
             probs[pi] = (best_min_i, !ok);
@@ -529,11 +556,23 @@ impl Bank {
             move_names.push(name.clone());
         }
 
+        // rehearsal mass: carrier counts over problems.json primary walks
+        // (kg_lib.carrier_counts), x per walk = ln(1 + count of its rarest move)
+        let mut counts: HashMap<&str, f64> = HashMap::new();
+        let no_moves = vec![];
+        for (_, v) in probs {
+            for m in v["moves"].as_array().unwrap_or(&no_moves) {
+                if let Some(name) = m.as_str() {
+                    *counts.entry(name).or_insert(0.0) += 1.0;
+                }
+            }
+        }
         let mut bank = Bank {
             cost: None,
             move_names,
             n_known,
             pools: [vec![], vec![], vec![]],
+            mass: Mass::default(),
             walk_prob: vec![],
             walk_extras: vec![],
             extra_walks: vec![Vec::new(); extras.len()],
@@ -544,6 +583,17 @@ impl Bank {
             let (dif, walks) = &raw[num];
             let pi = bank.pools[*dif].len();
             let mut iw: Vec<Vec<usize>> = vec![];
+            let xs: Vec<f64> = walks
+                .iter()
+                .map(|w| {
+                    let rarest = w
+                        .iter()
+                        .map(|m| counts.get(m.as_str()).copied().unwrap_or(0.0))
+                        .fold(f64::INFINITY, f64::min);
+                    (1.0 + if rarest.is_finite() { rarest } else { 0.0 }).ln()
+                })
+                .collect();
+            bank.mass.x[*dif].push(xs);
             for w in walks {
                 let gid = bank.walk_prob.len();
                 let ids: Vec<usize> = w.iter().map(|m| index[m.as_str()]).collect();
@@ -561,6 +611,19 @@ impl Bank {
             }
             bank.pools[*dif].push(iw);
         }
+        // the reference: pool mean of each problem's largest x, as
+        // kg_lib.mass_term computes it (max over walks, mean over the pool)
+        for dif in 0..3 {
+            let xp = &bank.mass.x[dif];
+            bank.mass.reff[dif] = if xp.is_empty() {
+                0.0
+            } else {
+                xp.iter()
+                    .map(|xs| xs.iter().cloned().fold(f64::NEG_INFINITY, f64::max))
+                    .sum::<f64>()
+                    / xp.len() as f64
+            };
+        }
         bank
     }
 }
@@ -568,13 +631,14 @@ impl Bank {
 pub fn pass_rates(
     mv_recall: &[Option<f64>],
     pools: &[Vec<Vec<Vec<usize>>>; 3],
+    mass: &Mass,
     r_base: f64,
     practice: (i64, i64, i64),
     rng: &mut PyRandom,
     n_mc: usize,
 ) -> (f64, f64, f64, f64) {
     let (mut full, mut onsite, mut screen, mut h_solved) = (0i64, 0i64, 0i64, 0i64);
-    run_mocks(mv_recall, pools, r_base, practice, rng, n_mc, |solved, _| {
+    run_mocks(mv_recall, pools, mass, r_base, practice, rng, n_mc, |solved, _| {
         full += (solved[0] == 2 && solved[1] == 2 && solved[2] == 2) as i64;
         onsite += (solved[0] == 2 && solved[1] == 2 && solved[2] >= 1) as i64;
         screen += (solved[1] == 2) as i64;
@@ -594,13 +658,14 @@ pub fn pass_rates(
 pub fn outcome_hist(
     mv_recall: &[Option<f64>],
     pools: &[Vec<Vec<Vec<usize>>>; 3],
+    mass: &Mass,
     r_base: f64,
     practice: (i64, i64, i64),
     rng: &mut PyRandom,
     n_mc: usize,
 ) -> ([f64; 7], [f64; 7]) {
     let (mut hist, mut onsite_hist) = ([0i64; 7], [0i64; 7]);
-    run_mocks(mv_recall, pools, r_base, practice, rng, n_mc, |solved, _| {
+    run_mocks(mv_recall, pools, mass, r_base, practice, rng, n_mc, |solved, _| {
         let t = (solved[0] + solved[1] + solved[2]) as usize;
         hist[t] += 1;
         onsite_hist[t] += (solved[0] == 2 && solved[1] == 2 && solved[2] >= 1) as i64;

@@ -56,6 +56,7 @@ from kg.kg_lib import (  # noqa: E402
     load_evidence, load_predicted, node_status, immature_nodes, unlocks,
     current_recall, node_curve_recall, drill_trains, sleep_state,
     problem_difficulty, recognition_practice, assist_of, practice_factors,
+    mass_term, mass_adjust, carrier_counts, walk_mass,
 )
 from statistics import median  # noqa: E402
 
@@ -74,21 +75,25 @@ class PassExpectation:
     and P(onsite) = E^2 * M^2 * (1 - (1 - H)^2). Walks are flattened into
     index arrays once; a day's rates are two reduceats per pool."""
 
-    def __init__(self, pools, node_order):
+    def __init__(self, pools, node_order, mass):
         self.index = {n: i for i, n in enumerate(node_order)}
         self.derive_slot = len(node_order)  # every off-taxonomy move
+        self.beta, self.ref = mass["beta"], mass["ref"]
         self.pools = {}
         for dif, probs in pools.items():
-            idx, walk_starts, prob_starts, pos = [], [], [], 0
-            for walks in probs:
+            idx, walk_starts, prob_starts, walk_prob, xs, pos = [], [], [], [], [], 0
+            for pi, walks in enumerate(probs):
                 prob_starts.append(len(walk_starts))
-                for w in walks:
+                for wi, w in enumerate(walks):
                     walk_starts.append(pos)
+                    walk_prob.append(pi)
+                    xs.append(mass["x"][dif][pi][wi])
                     for m in w:
                         idx.append(self.index.get(m, self.derive_slot))
                     pos += len(w)
             self.pools[dif] = (np.array(idx), np.array(walk_starts),
-                               np.array(prob_starts), len(probs))
+                               np.array(prob_starts), len(probs),
+                               np.array(walk_prob), np.array(xs))
 
     def rates(self, recall, practice, r_base):
         """(full, onsite, screen, single-hard) as pass_rates returns."""
@@ -99,13 +104,22 @@ class PassExpectation:
         r[self.derive_slot] = derive
         logs = np.log(r)
         p = {}
-        for dif, (idx, ws, ps, n) in self.pools.items():
+        for dif, (idx, ws, ps, n, wp, xs) in self.pools.items():
             if not n:
                 p[dif] = 0.0
                 continue
             walk = np.exp(np.add.reduceat(logs[idx], ws))
             best = np.maximum.reduceat(walk, ps)
-            p[dif] = time_f[dif] * rec ** REC_POWER[dif] * best.mean()
+            pp = time_f[dif] * rec ** REC_POWER[dif] * best
+            if self.beta:
+                # the best walk's x (first walk reaching the max, as the draws)
+                hit = np.flatnonzero(walk == best[wp])
+                _, first = np.unique(wp[hit], return_index=True)
+                x = xs[hit[first]]
+                pp = np.clip(pp, 1e-9, 1 - 1e-9)
+                pp = 1 / (1 + np.exp(-(np.log(pp / (1 - pp))
+                                       + self.beta * (x - self.ref[dif]))))
+            p[dif] = pp.mean()
         e2, m2 = p["E"] ** 2, p["M"] ** 2
         h1 = 1 - (1 - p["H"]) ** 2
         return e2 * m2 * p["H"] ** 2, e2 * m2 * h1, m2, p["H"]
@@ -269,7 +283,9 @@ def main():
     mined = kg_lib.mined_solve_times(with_file=True)
     kg_lib.mined_solve_times = lambda with_file=False: [r[:3] for r in mined]
 
-    expect = PassExpectation(build_pools(problems, predicted, nodes), list(nodes))
+    pools = build_pools(problems, predicted, nodes)
+    mass = mass_term(pools, problems, curve)
+    expect = PassExpectation(pools, list(nodes), mass)
     teach = min(first_contact(evidence) * 0.8, 0.85)
     asleep, _ = sleep_state(nodes, problems, evidence)
     r_base = SCENARIOS["central"]
@@ -306,6 +322,8 @@ def main():
         print("model knobs off their defaults: " + ", ".join(knobs))
     print(f"policy: kg_next.pick at {hours:g}h/day ({src}), seed {args.seed}; "
           f"teach {teach:.2f}, curve {os.path.basename(GRAPH_DIR)}/curve.json")
+    print(f"rehearsal-mass term: beta {mass['beta']:+.2f} per unit of ln(1+mass) "
+          f"(curve.json; 0 = unfitted)")
     print("price per attempt, measured medians (clean / struggled): "
           + ", ".join(f"{k} {prices[(k, 'clean')]:.0f}/{prices[(k, 'struggled')]:.0f}m"
                       for k in ("Easy", "Medium", "Hard", "drill")))
@@ -379,6 +397,8 @@ def main():
                 p_cold = time_f[dif] * rec ** REC_POWER[dif]
                 if rng.random() < args.draft_error:
                     p_cold *= derive  # the walk missed a move: derive it or fail
+                p_cold = mass_adjust(p_cold, walk_mass(moves, carrier_counts(problems)),
+                                     mass["ref"][dif], mass["beta"])
                 if rng.random() >= p_cold:
                     weakest = min(verdict, key=lambda m: recall[m])
                     verdict[weakest] = "struggled"
