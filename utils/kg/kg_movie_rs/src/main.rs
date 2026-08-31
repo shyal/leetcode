@@ -535,6 +535,11 @@ fn main() {
     let node_index: HashMap<&str, usize> =
         nodes.iter().enumerate().map(|(i, n)| (n.id.as_str(), i)).collect();
     let evidence = evidence_v["evidence"].as_object().unwrap();
+    // the first rep of a drill is unaided at the node level (kg_lib.ev_index)
+    let ev_list: Vec<(&str, &str)> =
+        evidence.iter().map(|(f, r)| (f.as_str(), r["date"].as_str().unwrap())).collect();
+    let first_reps: std::collections::HashSet<&str> =
+        kg_mock::first_drill_reps(ev_list.iter().copied()).into_iter().map(|i| ev_list[i].0).collect();
 
     // ---- date ticks: opening dark frame + every day of the history --------
     let mut solve_days: Vec<&str> = evidence.values().map(|r| r["date"].as_str().unwrap()).collect();
@@ -554,12 +559,17 @@ fn main() {
         .iter()
         .map(|n| {
             let mut entries = vec![];
-            for rec in evidence.values() {
+            for (fname, rec) in evidence.iter() {
                 if let Some(v) = rec.get("moves").and_then(|m| m.get(&n.id)).and_then(Value::as_str)
                 {
                     let d = NaiveDate::parse_from_str(rec["date"].as_str().unwrap(), "%Y-%m-%d")
                         .unwrap();
-                    entries.push((d, v.to_string(), assist_of(rec, &n.id)));
+                    let a = if first_reps.contains(fname.as_str()) {
+                        "none".to_string()
+                    } else {
+                        assist_of(rec, &n.id)
+                    };
+                    entries.push((d, v.to_string(), a));
                 }
             }
             entries.sort();

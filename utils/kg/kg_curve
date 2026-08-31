@@ -29,7 +29,7 @@ import os
 import re
 from collections import defaultdict
 
-from kg.kg_lib import ASSIST_WEIGHT, GRAPH_DIR, assist_of, load_evidence, load_problems, node_conn
+from kg.kg_lib import ASSIST_WEIGHT, GRAPH_DIR, assist_of, ev_index, load_evidence, load_problems, node_conn
 
 TARGET_RETENTION = 0.9   # node_status calls a node SOLID above this
 
@@ -40,24 +40,31 @@ def extract_trials(evidence, with_date=False, with_conn=False):
     with_conn=True appends the node's connectivity (log2 carriers) instead —
     the covariate the fit uses (solve-time analysis 2026-08-25: well-carried
     moves hold on longer than their rep counts alone predict)."""
-    events = defaultdict(list)  # node -> [(date, ts, verdict, assist)]
+    # (date, ts, verdict, assist, node_assist): assist is the help actually
+    # taken, what a trial asks about; node_assist is what node_eval charges
+    # the node for, "none" on the first rep of a drill (kg_lib.ev_index), so
+    # the fitted covariates match the ones node_eval applies.
+    events = defaultdict(list)
+    first_reps = ev_index(evidence).first_reps
     for fname, rec in evidence.items():
         m = re.search(r"\d{4}_\d{2}_\d{2}T[\d_]+", fname)
         ts = m.group(0) if m else ""
         for node, verdict in rec.get("moves", {}).items():
-            events[node].append((rec["date"], ts, verdict, assist_of(rec, node)))
+            a = assist_of(rec, node)
+            events[node].append((rec["date"], ts, verdict, a,
+                                 "none" if fname in first_reps else a))
 
     conn = node_conn(load_problems()) if with_conn else {}
     trials = []
     for node, evs in events.items():
         evs.sort()
         days = defaultdict(list)
-        for d, _, v, a in evs:
-            days[d].append((v, a))
+        for d, _, v, a, na in evs:
+            days[d].append((v, a, na))
         last_clean, cleans, struggles, assisted = None, 0, 0, 0.0
         retrieved = False  # an unaided clean so far: the memory exists to test
         for d in sorted(days):
-            verdict, assist = days[d][0]
+            verdict, assist, _ = days[d][0]
             # a spoiled solve is CENSORED, not failed: the candidate never
             # attempted the recall, so this day says nothing about whether the
             # memory was still there. It earns no rep either way (below).
@@ -78,14 +85,14 @@ def extract_trials(evidence, with_date=False, with_conn=False):
                     if with_conn:
                         row += (conn.get(node, 0.0),)
                     trials.append(row + (_date(d),) if with_date else row)
-            for v, a in days[d]:
-                if v == "clean" and a != "spoiled":
+            for v, a, na in days[d]:
+                if v == "clean" and na != "spoiled":
                     cleans += 1
                     last_clean = d
                     retrieved = retrieved or a == "none"
                 elif v == "struggled":
                     struggles += 1
-                assisted += ASSIST_WEIGHT[a]
+                assisted += ASSIST_WEIGHT[na]
     return trials
 
 

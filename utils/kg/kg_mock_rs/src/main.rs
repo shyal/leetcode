@@ -748,6 +748,10 @@ fn main() {
             }
         })
         .collect();
+    // the first rep of a drill is unaided at the node level (kg_lib.ev_index)
+    for i in kg_mock::first_drill_reps(evidence.iter().map(|r| (r.fname.as_str(), r.date.as_str()))) {
+        evidence[i].assist.clear();
+    }
     // chronological, so a historical replay date is just a prefix slice; every
     // downstream computation is order-independent
     evidence.sort_by(|a, b| a.date.cmp(&b.date));
