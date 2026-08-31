@@ -190,6 +190,41 @@ This is because the projections use two noisy inputs: the hours assumption is my
 
 I find the predictions to be honest. At 2 hours of solving a day, a 50% pass rate for a FAANG mock at any company feels both correct and realistic. This is a much taller hill to climb than picking one company's mock exam, and cramming the solutions. This is a prediction for any 2 easy 2 medium and 1 hard mock exam, with questions picked at random.
 
+## The make next commands
+
+Everything goes through one command. Each word after `next` is a filter or a switch, and the order does not matter.
+
+```
+make next                       what the graph says to do now: a fragile or stale
+                                technique gets a problem that exercises it, or its
+                                drill when no problem fits
+make next 2                     the second recommendation instead of the first
+make next why                   when there is nothing to serve, which techniques
+                                are waiting and why
+make next graph                 label the drawn tree with technique names instead
+                                of shapes
+
+make next sql                   restrict to one group: sql, trees, graphs,
+                                recursion-dp, streaming, ...
+make next sql cram              a drill is normally held until the technique under
+                                it has a clean unaided rep. cram lifts that hold,
+                                so a group can be walked in one sitting
+make next sql early             ignore the forgetting curve: every technique in the
+                                group gets its next drill, solid or not,
+                                prerequisites first. implies cram
+make next sql assisted          only the drills whose last rep needed a hint, a
+                                walkthrough or a spoiler: the unaided rep each one
+                                is waiting for. implies early
+
+make next sql assisted prepare  any of the above, then load the pick into
+                                current.py and start the clock
+make next sql assisted graph    any of the above, with the labelled drawing
+```
+
+A drill is served at most once a day, whatever the switches.
+
+Tab completion for the groups and switches: `. utils/harness/make-next-completion.bash` from `~/.bashrc`.
+
 # Leetcode flavoured environment
 
 Leetcode's python environment is non-standard: it seems to have pretty much everything in modules like `itertools`, `functools`, `bisect`, `operator` etc. readily available without the need for imports.

@@ -92,7 +92,7 @@ def picker(monkeypatch):
                         nid in ctl.bank and status in (FRAGILE, MISSING))
     monkeypatch.setattr(kg_next, "unlocks", lambda statuses, problems: ctl.unlocks)
     monkeypatch.setattr(kg_next, "due_drill",
-                        lambda nid, ev, today=None, early=False:
+                        lambda nid, ev, today=None, early=False, assisted=False:
                         f"drills/{nid}/one.py"
                         if nid in ctl.bank and nid not in ctl.drilled_today else None)
     monkeypatch.setattr(kg_next, "acceptance", lambda p: ctl.acceptance.get(str(p), 50.0))
@@ -920,6 +920,57 @@ def test_an_assisted_rung_with_undone_rungs_above_it_is_served_again(tmp_path, m
     assert not kg_lib.ladder_left("some-node", ev)
 
 
+def test_assisted_serves_only_drills_whose_latest_rep_was_assisted(tmp_path, monkeypatch):
+    """2026-08-31: every sql node SOLID, `make next sql` spent, `cram early`
+    walking the group from the bottom through drills already owned three
+    times over. `assisted` is the early walk restricted to drills whose
+    latest rep was a hint, a walkthrough, a spoil or a struggle: the ones
+    still waiting for their unaided rep. Never-done drills are not in it,
+    an owned drill is not in it, and the once-a-day rule still holds."""
+    from kg import kg_lib
+    bank = tmp_path / "some-node"
+    bank.mkdir()
+    for i, t in enumerate(["Owned", "Hinted", "Spoiled", "Fresh"]):
+        (bank / f"r{i}.py").write_text(f"DRILL: {t}\nTRAINS: some-node\n")
+    monkeypatch.setattr(kg_lib, "DRILLS_DIR", str(tmp_path))
+    reps = {
+        "solved/d_Owned_1.py": {"date": iso(3), "problem": "drill",
+                                "moves": {"some-node": "clean"}},
+        "solved/d_Hinted_1.py": {"date": iso(2), "problem": "drill",
+                                 "moves": {"some-node": "clean"},
+                                 "assist": "hint"},
+        "solved/d_Spoiled_1.py": {"date": iso(1), "problem": "drill",
+                                  "moves": {"some-node": "clean"},
+                                  "assist": {"some-node": "spoiled"}},
+    }
+    ev = evidence(solve("7", {"some-node": "clean"}, days_ago=1), reps)
+    assert kg_lib.due_drill("some-node", ev, assisted=True) == str(bank / "r1.py")
+    reps["solved/d_Hinted_2.py"] = {"date": iso(0), "problem": "drill",
+                                    "moves": {"some-node": "clean"}}
+    ev = evidence(solve("7", {"some-node": "clean"}, days_ago=1), reps)
+    assert kg_lib.due_drill("some-node", ev, assisted=True) == str(bank / "r2.py")
+    reps["solved/d_Spoiled_2.py"] = {"date": iso(0), "problem": "drill",
+                                     "moves": {"some-node": "clean"},
+                                     "assist": "hint"}
+    ev = evidence(solve("7", {"some-node": "clean"}, days_ago=1), reps)
+    assert kg_lib.due_drill("some-node", ev, assisted=True) is None  # today
+
+
+def test_assisted_walks_the_group_prereqs_first_whatever_the_status(picker):
+    """`assisted` implies early: SOLID nodes are served, prereqs before
+    dependents, and the reason names the walk."""
+    ns = nodes("base", ("dep", ["base"]))
+    for n in ns.values():
+        n["group"] = "g"
+    picker.bank = {"base", "dep"}
+    st = {"base": (SOLID, ago(0)), "dep": (SOLID, ago(0))}
+    ev = evidence(solve("7", {"base": "clean", "dep": "clean"}, days_ago=0))
+    got = picker.run(ns, {}, ev, st, group="g", assisted=True)
+    assert got[2] == "drill:base" and got[3].startswith("assisted review")
+    picker.drilled_today = {"base"}
+    assert picker.run(ns, {}, ev, st, group="g", assisted=True)[2] == "drill:dep"
+
+
 def test_picker_serves_the_next_undone_drill_of_a_solid_prereq(picker):
     """2026-08-31: Pairs (two for loops) went clean, start-index read SOLID,
     and the picker served the dedupe drill with subsets never done. A solid
@@ -1295,7 +1346,7 @@ def test_cram_keeps_the_curve(picker):
     picker.drilled_today = set()
     # due_drill (stubbed) follows the real one: an owned SOLID node is not
     # due outside early, so neither the curve nor cram serves it
-    monkeypatch_due = lambda nid, ev, today=None, early=False: (
+    monkeypatch_due = lambda nid, ev, today=None, early=False, assisted=False: (
         f"drills/{nid}/one.py" if early else None)
     kg_next.due_drill = monkeypatch_due
     assert picker.run(ns, {}, ev, st, group="g", cram=True) is None
@@ -1399,7 +1450,7 @@ def test_prepare_loads_the_exact_drill_file_the_pick_chose(monkeypatch, tmp_path
         "is_session_start": lambda: False,
         "solved_today_pnums": lambda: [],
         "pick": lambda *a, **k: ("j", SOLID, "drill:j", "early review"),
-        "due_drill": lambda nid, ev, today=None, early=False: path,
+        "due_drill": lambda nid, ev, today=None, early=False, assisted=False: path,
         "drill_title": lambda p: "Third",
         "drill_forecast": lambda p: None,
         "animate": lambda text: None,
