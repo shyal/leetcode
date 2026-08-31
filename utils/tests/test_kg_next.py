@@ -85,7 +85,7 @@ def picker(monkeypatch):
     real evidence these synthetic graphs don't carry. Tests that care
     override any of it via the returned control object."""
     ctl = type("Ctl", (), {"bank": set(), "drilled_today": set(), "acceptance": {},
-                           "unlocks": {}, "immature": set()})()
+                           "unlocks": {}, "immature": set(), "undone": set()})()
 
     monkeypatch.setattr(kg_next, "drill_gated",
                         lambda nid, status, last, today=None:
@@ -115,9 +115,12 @@ def picker(monkeypatch):
                         lambda target, ev, nodes=None, predicted=None:
                         kg_lib.drafts_falsified(target, ev, nodes, ctl.predicted))
     monkeypatch.setattr(kg_next, "has_drill_bank", lambda nid: nid in ctl.bank)
+    # nodes with drills never done (default none): they hold what depends
+    # on them and get their next drill served (rule 0c)
     monkeypatch.setattr(kg_next, "ladder_left",
-                        lambda nid, ev, early=False:
-                        nid in ctl.bank and nid not in ctl.drilled_today)
+                        lambda nid, ev, early=False: nid in ctl.undone)
+    monkeypatch.setattr(kg_lib, "ladder_left",  # drill_held reads this one
+                        lambda nid, ev, early=False: nid in ctl.undone)
     monkeypatch.setattr(kg_next, "immature_nodes",
                         lambda nodes, evidence, problems: frozenset(ctl.immature))
 
@@ -871,17 +874,62 @@ def test_a_pending_plan_drill_for_the_prereq_holds_the_dependent():
 
 def test_a_solid_owned_node_has_no_drill_due(tmp_path, monkeypatch):
     """Drills sit on the same forgetting curve as problems: a node SOLID on
-    an unaided clean is not re-served, whatever flagged it."""
+    an unaided clean is not re-served, whatever flagged it - once every
+    drill of the node has been done. A never-done drill is still due: one
+    clean drill does not stand for the others (2026-08-31, a clean Pairs
+    marked start-index solid with five drills, subsets included, untouched)."""
     from kg import kg_lib
     bank = tmp_path / "some-node"
     bank.mkdir()
-    (bank / "d0.py").write_text("pass\n")
+    (bank / "d0.py").write_text("DRILL: Only One\n")
     monkeypatch.setattr(kg_lib, "DRILLS_DIR", str(tmp_path))
-    ev = evidence(solve("7", {"some-node": "clean"}, days_ago=2))
+    done = {"solved/d_Only_One_1.py": {"date": iso(5), "problem": "drill",
+                                       "moves": {"some-node": "clean"}}}
+    ev = evidence(solve("7", {"some-node": "clean"}, days_ago=2), done)
     assert kg_lib.due_drill("some-node", ev) is None
     assisted = evidence(solve("7", {"some-node": "clean"}, days_ago=2,
-                              assist="walkthrough"))
+                              assist="walkthrough"), done)
     assert kg_lib.due_drill("some-node", assisted) is not None
+    undone = evidence(solve("7", {"some-node": "clean"}, days_ago=2))
+    assert kg_lib.due_drill("some-node", undone) == str(bank / "d0.py")
+
+
+def test_picker_serves_the_next_undone_drill_of_a_solid_prereq(picker):
+    """2026-08-31: Pairs (two for loops) went clean, start-index read SOLID,
+    and the picker served the dedupe drill with subsets never done. A solid
+    prereq with drills undone is served its next drill; the dependent waits."""
+    ns = nodes("base", ("dep", ["base"]))
+    picker.bank = {"base", "dep"}
+    picker.undone = {"base"}
+    st = {"base": (SOLID, ago(0)), "dep": (FRAGILE, ago(300))}
+    ev = evidence(solve("7", {"base": "clean"}, days_ago=0))
+    got = picker.run(ns, {}, ev, st)
+    assert got[2] == "drill:base" and got[3].startswith("next undone drill")
+    picker.undone = set()
+    assert picker.run(ns, {}, ev, st)[2] == "drill:dep"
+
+
+def test_undone_drills_hold_the_dependent_and_get_served(tmp_path, monkeypatch):
+    """A prereq node with drills never done does not unlock the node after
+    it, and the picker serves the prereq's next undone drill instead."""
+    from kg import kg_lib
+    bank = tmp_path / "base"
+    bank.mkdir()
+    (bank / "b0.py").write_text("DRILL: B Zero\nTRAINS: base\n")
+    (bank / "b1.py").write_text("DRILL: B One\nTRAINS: base\n")
+    monkeypatch.setattr(kg_lib, "DRILLS_DIR", str(tmp_path))
+    ns = nodes("base", ("dep", ["base"]))
+    st = {"base": (SOLID, ago(0)), "dep": (STALE, ago(300))}
+    b0 = {"solved/d_B_Zero_1.py": {"date": iso(0), "problem": "drill",
+                                   "moves": {"base": "clean"}}}
+    ev = evidence(b0)
+    assert kg_lib.drill_held("dep", ns, st, ev)
+    assert kg_lib.due_drill("base", ev) == str(bank / "b1.py")
+    b1 = {"solved/d_B_One_1.py": {"date": iso(0), "problem": "drill",
+                                  "moves": {"base": "clean"}}}
+    ev2 = evidence(b0, b1)
+    assert not kg_lib.drill_held("dep", ns, st, ev2)
+    assert kg_lib.due_drill("base", ev2) is None
 
 
 def test_a_hint_on_one_move_does_not_taint_the_rest_of_the_walk(picker):

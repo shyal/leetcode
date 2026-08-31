@@ -1011,8 +1011,9 @@ def drill_held(node_id, nodes, statuses, evidence, has_bank=None, pending=()):
         if p in pending:
             return True
         if has_bank(p) and p in statuses and (
-                statuses[p][0] != SOLID or not owned(p, evidence)):
-            return True
+                statuses[p][0] != SOLID or not owned(p, evidence)
+                or ladder_left(p, evidence)):
+            return True  # rusty, not owned, or drills of its own still undone
     return False
 
 
@@ -1058,9 +1059,13 @@ def due_drill(node_id, evidence, today=None, early=False):
     gets its next rung (the cram review, `make next sql cram early`); the
     ladder and the once-a-day rule still apply."""
     status, _ = node_status(node_id, evidence, today)
-    if status == SOLID and owned(node_id, evidence) and not early:
+    if (status == SOLID and owned(node_id, evidence) and not early
+            and not ladder_left(node_id, evidence)):
         return None  # the curve says the node holds - a drill is a problem
-                     # we authored, and problems are not re-served while warm
+                     # we authored, and problems are not re-served while warm.
+                     # A never-done drill of the node is still due: one clean
+                     # drill does not stand for the others (2026-08-31, Pairs
+                     # clean released the dedupe drill with subsets undone)
     today = (today or date.today()).isoformat()
     candidates = sorted(glob.glob(os.path.join(DRILLS_DIR, node_id, "*.py")))
     if not candidates:

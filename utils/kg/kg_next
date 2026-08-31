@@ -397,18 +397,21 @@ def pick(
             for pre in nodes[n].get("prereqs", []):
                 if (has_drill_bank(pre) and pre in statuses
                         and statuses[pre][0] == SOLID
-                        and not owned(pre, evidence)):
+                        and (not owned(pre, evidence)
+                             or ladder_left(pre, evidence))):
                     releases.setdefault(pre, []).append(n)
         for pre in sorted(releases, key=lambda p: (-len(releases[p]), p)):
             drill_id = f"drill:{pre}"
             if drill_id in exclude or not due_drill(pre, evidence):
                 continue
             held = len(releases[pre])
+            why = ("next undone drill" if owned(pre, evidence)
+                   else "own it unaided")
             return (
                 pre,
                 SOLID,
                 drill_id,
-                f"own it unaided - {held} held move{'s' if held > 1 else ''} "
+                f"{why} - {held} held move{'s' if held > 1 else ''} "
                 f"wait{'' if held > 1 else 's'} on it",
             )
 
@@ -656,11 +659,12 @@ def blocked_frontier(nodes, problems, evidence, statuses, asleep=(), exclude=())
             holders = [
                 p for p in prereqs
                 if has_drill_bank(p)
-                and (statuses[p][0] != SOLID or not owned(p, evidence))
+                and (statuses[p][0] != SOLID or not owned(p, evidence)
+                     or ladder_left(p, evidence))
             ]
             out.append((
                 nid, status,
-                f"held behind {', '.join(holders)} (no unaided clean rep yet)",
+                f"held behind {', '.join(holders)} (unaided clean rep or undone drills)",
                 False,
             ))
             continue
