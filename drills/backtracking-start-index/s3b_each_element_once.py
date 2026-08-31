@@ -1,6 +1,7 @@
 """
 DRILL: Each Element Once
 TRAINS: backtracking-start-index
+SNIPPET: lccomb
 
 Given an array nums of distinct positive integers in increasing order and
 an integer target, return every combination of elements of nums whose sum

@@ -1,6 +1,7 @@
 """
 DRILL: Find with Path Compression
 TRAINS: union-find
+SNIPPET: lcunionfind
 
 Imagine a company with n employees labeled 0 .. n-1.
 Every employee has exactly one manager, recorded in a list called `parent`:

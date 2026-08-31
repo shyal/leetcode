@@ -1,6 +1,7 @@
 """
 DRILL: Record Every Node
 TRAINS: backtracking-start-index
+SNIPPET: lccomb
 
 Given an array nums of distinct integers, return every subset of nums,
 including the empty subset. List each subset in the order its elements

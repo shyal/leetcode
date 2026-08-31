@@ -1,6 +1,7 @@
 """
 DRILL: Choose From an Array
 TRAINS: backtracking-start-index
+SNIPPET: lccomb
 
 Given an array nums of distinct integers and an integer k, return every
 combination of k elements of nums. List the elements of each combination
