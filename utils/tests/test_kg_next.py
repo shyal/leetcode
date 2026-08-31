@@ -1929,3 +1929,20 @@ def test_a_group_pick_never_reaches_into_the_drafted_catalog(picker):
     picker.predicted["9001"] = drafted(["a"])
     picker.meta["9001"] = {"difficulty": "Hard"}
     assert picker.run(ns, ps, {}, st, group="sql") is None
+
+
+def test_the_first_rep_of_a_drill_is_unaided_at_the_node(tmp_path, monkeypatch):
+    """A new drill on a known move (Reuse Allowed on start-index, 2026-09-01):
+    he copied the answer. That is first exposure to the drill, not a failed
+    recall of the move, so the node keeps ownership and the copy counts as
+    a clean rep; the same help on the drill's SECOND rep is a real assist.
+    The drill itself still waits for an unaided rep either way."""
+    drill_bank(tmp_path, monkeypatch, "sw", "Count by Contribution")
+    ps = {"713": problem(["sw"], after=["d1"])}
+    ev = evidence(solve("9", {"sw": "clean"}, days_ago=20),
+                  drill_rep("Count by Contribution", "sw", days_ago=1, assist="spoiled"))
+    assert kg_lib.owned("sw", ev)
+    assert kg_lib.node_status("sw", ev)[1].isoformat() == iso(1)
+    assert kg_lib.held_behind("713", ps, ev) == "d1"
+    second = evidence(ev, drill_rep("Count by Contribution", "sw", days_ago=0, assist="hint"))
+    assert not kg_lib.owned("sw", second)

@@ -135,6 +135,53 @@ impl EvRec {
     }
 }
 
+/// Mirror of kg_lib.drill_key: the drill a d_ solved file is a rep of, its
+/// lowercase basename with the `make solved` timestamp (_YYYY_MM_DDT...)
+/// stripped, or the last _token when there is none. None for a problem solve.
+pub fn drill_key(fname: &str) -> Option<String> {
+    let base = fname.rsplit('/').next().unwrap_or(fname).to_lowercase();
+    let stem = base.strip_suffix(".py").unwrap_or(&base);
+    if !stem.starts_with("d_") {
+        return None;
+    }
+    let b = stem.as_bytes();
+    for (i, &c) in b.iter().enumerate() {
+        // "_YYYY_MM_DDt": 4 digits, '_', 2 digits, '_', 2 digits, 't'
+        if c == b'_' && i + 12 <= b.len() {
+            let t = &b[i + 1..i + 12];
+            let digits = |r: std::ops::Range<usize>| t[r].iter().all(u8::is_ascii_digit);
+            if digits(0..4) && t[4] == b'_' && digits(5..7) && t[7] == b'_'
+                && digits(8..10) && t[10] == b't'
+            {
+                return Some(stem[..i].to_string());
+            }
+        }
+    }
+    Some(stem.rsplit_once('_').map_or(stem, |(a, _)| a).to_string())
+}
+
+/// The indices of each drill's first rep (earliest date, then filename):
+/// first exposure to the drill, scored as unaided at the node level
+/// (kg_lib.ev_index, 2026-09-01). `fname_date` yields (fname, date) per rec.
+pub fn first_drill_reps<'a, I>(recs: I) -> Vec<usize>
+where
+    I: IntoIterator<Item = (&'a str, &'a str)>,
+{
+    let mut firsts: HashMap<String, (String, String, usize)> = HashMap::new();
+    for (i, (fname, date)) in recs.into_iter().enumerate() {
+        let Some(key) = drill_key(fname) else { continue };
+        let base = fname.rsplit('/').next().unwrap_or(fname).to_lowercase();
+        let better = match firsts.get(&key) {
+            Some((d, b, _)) => (date, base.as_str()) < (d.as_str(), b.as_str()),
+            None => true,
+        };
+        if better {
+            firsts.insert(key, (date.to_string(), base, i));
+        }
+    }
+    firsts.into_values().map(|(_, _, i)| i).collect()
+}
+
 /// Mirror of kg_lib.assist_of's two shapes: a bare string taints every move
 /// in the walk, a {move: level} dict names the moves the help touched.
 pub fn assist_map(rec: &serde_json::Value) -> HashMap<String, String> {

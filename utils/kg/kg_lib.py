@@ -323,22 +323,52 @@ def _load_curve():
 # simulation's case); any other change rebuilds it. Records are never
 # copied - the same dicts, grouped.
 
+_DRILL_TS = re.compile(r"_\d{4}_\d{2}_\d{2}t.*$")
+
+
+def drill_key(fname):
+    """The drill a d_ solved file is a rep of: its lowercase basename with
+    the timestamp `make solved` appends stripped (or the last _token when
+    there is none, the shape the tests write). None for a problem solve.
+    Kept in lockstep with kg_mock_rs drill_key."""
+    base = os.path.splitext(os.path.basename(fname))[0].lower()
+    if not base.startswith("d_"):
+        return None
+    key, n = _DRILL_TS.subn("", base)
+    return key if n else base.rsplit("_", 1)[0]
+
+
 class _EvidenceIndex:
-    __slots__ = ("by_node", "by_problem", "by_date", "drills", "n", "last")
+    __slots__ = ("by_node", "by_problem", "by_date", "drills", "first_reps",
+                 "_drills_seen", "n", "last")
 
     def __init__(self):
         self.by_node = {}     # node -> [(date, verdict, assist, fname, rec)]
         self.by_problem = {}  # problem -> [(date str, fname, rec)]
         self.by_date = {}     # date str -> [(fname, rec)]
         self.drills = []      # [(date str, lowercase basename, rec)] of d_ files
+        self.first_reps = set()  # fnames that are the first rep of their drill
+        self._drills_seen = set()
         self.n = 0
         self.last = None
 
     def add(self, fname, rec):
         d = date.fromisoformat(rec["date"])
+        # The first rep of a drill is first exposure to the drill, whatever
+        # the move's status: the help he took on it says nothing about
+        # recall of the move. At the node level it is scored as unaided,
+        # so it neither shrinks the curve nor breaks ownership; the drill
+        # itself still waits for its unaided rep (drill_warm, drill_assisted
+        # read the record, not this index). Evidence is appended in
+        # chronological order, so first seen is first done (2026-09-01).
+        key = drill_key(fname)
+        first = key is not None and key not in self._drills_seen
+        if first:
+            self._drills_seen.add(key)
+            self.first_reps.add(fname)
         for node, v in rec.get("moves", {}).items():
             self.by_node.setdefault(node, []).append(
-                (d, v, assist_of(rec, node), fname, rec))
+                (d, v, "none" if first else assist_of(rec, node), fname, rec))
         pnum = rec.get("problem")
         if pnum is not None:
             self.by_problem.setdefault(str(pnum), []).append((rec["date"], fname, rec))
