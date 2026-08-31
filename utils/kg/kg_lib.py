@@ -335,19 +335,58 @@ def carry_bar(node_id, problems):
     ("none", 0)                       no real problem carries it at all:
                                       spacing alone decides — a gate nobody
                                       can open is a deadlock, not a standard"""
-    kinds = set()
+    return _bar_of(_carry_kinds(problems).get(node_id, set()))
+
+
+def _carry_kinds(problems):
+    """node -> the difficulties of the non-banned, non-Hard real problems
+    that carry it in any walk. One pass over the bank; carry_bar and
+    immature_nodes both read it (immature_nodes used to rescan the bank
+    once per node - half of every pick, the 2026-08-31 simulation)."""
+    kinds = {}
     for pnum, p in problems.items():
         if not str(pnum)[:1].isdigit() or p.get("banned") \
                 or p.get("difficulty") == "Hard":
             continue
-        if node_id in p.get("moves", []) \
-                or any(node_id in w for w in p.get("alt_walks", [])):
-            kinds.add(p.get("difficulty"))
+        for w in [p.get("moves", [])] + list(p.get("alt_walks", [])):
+            for m in w:
+                kinds.setdefault(m, set()).add(p.get("difficulty"))
+    return kinds
+
+
+def _bar_of(kinds):
     if "Medium" in kinds:
         return "medium", MATURE_CARRY_MEDIUMS
     if kinds:
         return "real", 1
     return "none", 0
+
+
+def _clean_reps(evidence):
+    """node -> [(date, problem), ...] over its clean, non-spoiled reps."""
+    out = {}
+    for rec in evidence.values():
+        for nid, v in rec.get("moves", {}).items():
+            if v == "clean" and assist_of(rec, nid) != "spoiled":
+                out.setdefault(nid, []).append(
+                    (date.fromisoformat(rec["date"]), str(rec.get("problem", ""))))
+    return out
+
+
+def _mature_from(clean, bar, problems):
+    if not clean:
+        return False
+    dates = sorted(d for d, _ in clean)
+    if (dates[-1] - dates[0]).days < MATURE_SPACING_DAYS:
+        return False
+    kind, need = bar
+    if kind == "medium":
+        return sum(1 for _, p in clean if p[:1].isdigit()
+                   and problem_difficulty(p, problems) in ("Medium", "Hard")
+                   ) >= need
+    if kind == "real":
+        return any(p[:1].isdigit() for _, p in clean)
+    return True
 
 
 def mature(node_id, evidence, problems):
@@ -367,29 +406,18 @@ def mature(node_id, evidence, problems):
     node earns both signals, so gating them would block the very reps that
     mature it. Callers fold immature nodes into route_gaps: an immature move
     is a camp on the route, not a servable summit."""
-    clean = [(date.fromisoformat(rec["date"]), str(rec.get("problem", "")))
-             for rec in evidence.values()
-             if rec.get("moves", {}).get(node_id) == "clean"
-             and assist_of(rec, node_id) != "spoiled"]
-    if not clean:
-        return False
-    dates = sorted(d for d, _ in clean)
-    if (dates[-1] - dates[0]).days < MATURE_SPACING_DAYS:
-        return False
-    kind, need = carry_bar(node_id, problems)
-    if kind == "medium":
-        return sum(1 for _, p in clean if p[:1].isdigit()
-                   and problem_difficulty(p, problems) in ("Medium", "Hard")
-                   ) >= need
-    if kind == "real":
-        return any(p[:1].isdigit() for _, p in clean)
-    return True
+    return _mature_from(_clean_reps(evidence).get(node_id, []),
+                        carry_bar(node_id, problems), problems)
 
 
 def immature_nodes(nodes, evidence, problems):
     """The nodes mature() rejects — precomputed once per run so route_gaps
-    and rank_summits stay pure sort keys."""
-    return frozenset(n for n in nodes if not mature(n, evidence, problems))
+    and rank_summits stay pure sort keys. One pass over the bank and one
+    over the evidence, whatever the node count."""
+    kinds = _carry_kinds(problems)
+    clean = _clean_reps(evidence)
+    return frozenset(n for n in nodes if not _mature_from(
+        clean.get(n, []), _bar_of(kinds.get(n, set())), problems))
 
 
 def proving_carriers(target, problems, statuses, nodes, evidence):

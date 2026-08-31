@@ -265,6 +265,7 @@ def pick(
     cram = cram or early
 
     def in_scope(n):
+    immature = immature_nodes(nodes, evidence, problems)
         return group is None or nodes[n].get("group") == group
 
     def due(target):
@@ -601,7 +602,7 @@ def pick(
     # pick as everything else rather than behind a second command.
     summits = [] if group else [
         p
-        for p in ready_hards(problems, nodes, evidence, statuses)
+        for p in ready_hards(problems, nodes, evidence, statuses, immature)
         if p not in asleep and p not in exclude
     ]
     if summits:
@@ -620,7 +621,6 @@ def pick(
     # problems is served first, on a proving carrier: an evidenced problem
     # that carries it at the bar, else a drafted one at the bar. Each rep
     # is one step toward maturity, so the count is the payoff of the rep.
-    immature = immature_nodes(nodes, evidence, problems)
     gain = unlocks(statuses, problems, immature=immature)
     young = sorted(
         (n for n in immature if in_scope(n) and gain.get(n, 0)
@@ -669,7 +669,8 @@ def ready_hards(problems, nodes, evidence, statuses):
     Classics come first, and the whole list is ranked by kg_lib.rank_summits,
     so `make next` and `make hard` cannot name different summits."""
     solved = {r["problem"] for r in evidence.values() if r.get("problem")}
-    immature = immature_nodes(nodes, evidence, problems)
+    if immature is None:
+        immature = immature_nodes(nodes, evidence, problems)
     out = []
     for pnum, p in problems.items():
         if (
