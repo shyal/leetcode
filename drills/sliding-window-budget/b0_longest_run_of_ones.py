@@ -1,6 +1,6 @@
 """
 DRILL: Longest Run of Ones
-TRAINS: sliding-window-variable
+TRAINS: sliding-window-budget
 
 Given a binary array nums, return the length of the longest run of
 consecutive 1s.

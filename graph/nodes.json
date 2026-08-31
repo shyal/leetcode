@@ -243,10 +243,22 @@
    "group": "pointers-windows",
    "added": "2025-09-18",
    "name": "Fast/slow pointers",
-   "desc": "Two speeds on the same sequence: cycle detection, find middle.",
-   "hint": "Different SPEEDS on one chain; converging ends are two-pointers-converging.",
+   "desc": "Two speeds on the same list to find the middle: slow steps one, fast steps two.",
+   "hint": "Different SPEEDS on one chain to land on the middle; two pointers that MEET in a cycle are floyd-cycle; converging ends are two-pointers-converging.",
    "prereqs": [],
    "drill": "Find the middle node of a linked list in one pass."
+  },
+  {
+   "id": "floyd-cycle",
+   "group": "pointers-windows",
+   "added": "2026-08-31",
+   "name": "Floyd's cycle finding",
+   "desc": "Slow and fast pointers meet inside a cycle; reset one to the head and advance both one step to find the entry. An array of indices is a linked list.",
+   "hint": "Two speeds that MEET, then a second walk from the head; two speeds that stop at the middle are fast-slow-pointers.",
+   "prereqs": [
+    "fast-slow-pointers"
+   ],
+   "drill": "Return the node where a linked list's cycle begins, O(1) space."
   },
   {
    "id": "sliding-window-fixed",
@@ -265,12 +277,24 @@
    "group": "pointers-windows",
    "added": "2025-09-18",
    "name": "Variable sliding window",
-   "desc": "Grow right; shrink left only while an invariant is violated.",
-   "hint": "The left edge moves only to restore a violated invariant; a constant length is sliding-window-fixed.",
+   "desc": "Grow right; shrink left only while an invariant is violated (at most k distinct, sum under a target).",
+   "hint": "The left edge moves only to restore a violated invariant; a constant length is sliding-window-fixed; a window that never shrinks is sliding-window-budget.",
    "prereqs": [
     "sliding-window-fixed"
    ],
-   "drill": "Longest subarray of 1s allowing at most one 0 flip."
+   "drill": "Longest substring with at most k distinct characters."
+  },
+  {
+   "id": "sliding-window-budget",
+   "group": "pointers-windows",
+   "added": "2026-08-31",
+   "name": "Window under a budget",
+   "desc": "Longest window whose violations (zeros to flip) stay within a budget: when the count exceeds it, slide the whole window right at constant width instead of shrinking, so the width never decreases and ends as the answer.",
+   "hint": "Count the violations inside the window; on excess, move both edges by one. Shrinking left until the invariant holds again is sliding-window-variable.",
+   "prereqs": [
+    "sliding-window-variable"
+   ],
+   "drill": "Longest run of 1s you can make by flipping at most k zeros, with a window that never shrinks."
   },
   {
    "id": "stack-matching",
