@@ -96,8 +96,7 @@ def main():
            f'font-family="Helvetica,sans-serif">',
            f'<rect width="{W}" height="{H}" fill="{BG}"/>',
            f'<text x="{W / 2:.0f}" y="24" text-anchor="middle" font-size="13" fill="{INK}">'
-           'The two drivers of solve time: meeting the same problem again soon, '
-           'and moves that many other problems keep warm</text>']
+           'How solve time changes with repetition, and with how widely a problem&#39;s moves are shared</text>']
 
     # ---- left panel: paired re-solve ratios -------------------------------
     LX0, LX1, PT, PB = 70, 560, 66, 360
@@ -107,7 +106,7 @@ def main():
         return PT + (SPAN - r) / (2 * SPAN) * (PB - PT)
 
     svg.append(f'<text x="{(LX0 + LX1) / 2:.0f}" y="{PT - 14}" text-anchor="middle" '
-               f'font-size="12" fill="{INK}">same problem, next rep: time vs my previous attempt</text>')
+               f'font-size="12" fill="{INK}">each dot is a repeat of a problem, timed against my previous attempt at it</text>')
     for e in range(-int(SPAN), int(SPAN) + 1):
         y = ly(e)
         if e == 0:

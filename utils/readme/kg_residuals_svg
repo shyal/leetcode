@@ -1,0 +1,252 @@
+#!/usr/bin/env python3
+
+# kg_residuals_svg - the residual diagnostic (utils/kg/kg_residuals) over
+# time, animated into graph/residuals.svg for the README pipeline.
+#
+# make residuals prints, per group (the group field in nodes.json), z = sum(obs - p) / sqrt(sum p(1-p)) over
+# every recall trial so far: how far the group's observed clean rate sits from
+# what the one global curve predicts, in standard deviations. This chart is
+# that number as a running total, one line per group, stepping on each trial's
+# date. A group that drifts below -2 decays faster than the global law says;
+# one that walks along zero is the law working. The white line is every group
+# pooled: the curve's overall bias. (kg_residuals calls a group a wing.)
+#
+# The x axis is calendar-true. The playhead sweeps it on kg_lib.MovieClock,
+# so it plays in sync with kg_movie.svg, kg_pass.svg, calibration.svg and
+# positions.svg (quiet months are crossed fast). Data left of the playhead is
+# revealed, data right of it sits dimmed underneath. Pure SMIL; non-SMIL
+# viewers see the full chart as a still.
+
+import json
+import math
+import os
+from collections import defaultdict
+from datetime import date, timedelta
+from importlib.machinery import SourceFileLoader
+
+from kg.kg_lib import GRAPH_DIR, MovieClock, era_banner, load_evidence
+
+kg_residuals = SourceFileLoader(
+    "kg_residuals", os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                                 "kg", "kg_residuals")).load_module()
+
+OUT = os.path.join(GRAPH_DIR, "residuals.svg")
+
+W, H = 1200, 470
+ML, MR = 48, 175                          # right margin holds the group labels
+PT, PB = 56, 400
+Z_FLAG = 2.0                              # the <-- threshold in make residuals
+LABEL_N_MIN = 5                           # groups thinner than this get no label
+
+BG = "#0d1117"
+INK = "#c9d1d9"
+MUTED = "#8b949e"
+GRID = "#21262d"
+BAND = "#f85149"
+TOTAL_C = "#f0f6fc"
+QUIET_C = "#484f58"
+WING_C = {                                # groups that end outside the band
+    "pointers-windows": "#f85149",
+    "sql": "#d29922",
+    "recursion-dp": "#a371f7",
+    "bits-math": "#3fb950",
+    "containers": "#58a6ff",
+    "binary-search": "#ff7b72",
+    "graphs": "#79c0ff",
+    "trees": "#56d364",
+    "streaming": "#e3b341",
+    "stack-queue": "#bc8cff",
+    "heaps-greedy": "#ffa657",
+    "index-order": "#7ee787",
+    "strings": "#d2a8ff",
+    "linked-lists": "#a5d6ff",
+}
+
+
+def linear(attr, pairs, dur):
+    """<animate> interpolating attr through pairs = [(frac, value)]."""
+    vals = ";".join(f"{v:.1f}" for _, v in pairs)
+    times = ";".join(f"{t:.4f}" for t, _ in pairs)
+    return (f'<animate attributeName="{attr}" calcMode="linear" values="{vals}" '
+            f'keyTimes="{times}" dur="{dur}s" repeatCount="indefinite"/>')
+
+
+def main():
+    with open(os.path.join(GRAPH_DIR, "curve.json")) as f:
+        P = json.load(f)["params"]
+    with open(os.path.join(GRAPH_DIR, "nodes.json")) as f:
+        group = {n["id"]: n["group"] for n in json.load(f)["nodes"]}
+
+    evidence = load_evidence()
+    clock = MovieClock(evidence)
+    trials = kg_residuals.trials_by_node(evidence)
+
+    def predict(gap, k, m, x):
+        s = math.exp(P["a"] + P["b"] * k - P["c"] * m - P.get("d", 0.0) * x)
+        return (1 - P["slip"]) * (1 + gap / s) ** (-P["beta"])
+
+    # per group (and pooled under ""), the running z after each trial day:
+    # [(date, z, n)]
+    by_day = defaultdict(lambda: defaultdict(list))   # group -> date -> [(obs, p)]
+    for node, gap, sf, k, m, x, d in trials:
+        p = predict(gap, k, m, x)
+        w = group.get(node, "?")
+        by_day[w][d].append((sf, p))
+        by_day[""][d].append((sf, p))
+    series = {}
+    for w, days in by_day.items():
+        num, var, n, pts = 0.0, 0.0, 0, []
+        for d in sorted(days):
+            for sf, p in days[d]:
+                num += sf - p
+                var += p * (1 - p)
+                n += 1
+            pts.append((date.fromisoformat(d), num / math.sqrt(var) if var > 0 else 0.0, n))
+        series[w] = pts
+
+    span = max((clock.last - clock.first).days, 1)
+
+    def x_of(d):
+        return ML + (d - clock.first).days / span * (W - ML - MR)
+
+    z_abs = max(abs(z) for pts in series.values() for _, z, _ in pts)
+    z_lim = max(Z_FLAG + 1, math.ceil(z_abs))
+
+    def y_of(z):
+        return PB - (z + z_lim) / (2 * z_lim) * (PB - PT)
+
+    def step_points(pts):
+        """A step line: each z holds until the next trial day."""
+        out, prev = [], None
+        for d, z, _ in pts:
+            x = x_of(d)
+            if prev is not None:
+                out.append(f"{x:.1f},{prev:.1f}")
+            out.append(f"{x:.1f},{y_of(z):.1f}")
+            prev = y_of(z)
+        out.append(f"{x_of(clock.last):.1f},{prev:.1f}")
+        return " ".join(out)
+
+    svg = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" '
+           f'font-family="Helvetica,sans-serif">',
+           f'<rect width="{W}" height="{H}" fill="{BG}"/>',
+           f'<text x="{(ML + W - MR) / 2:.0f}" y="24" text-anchor="middle" font-size="14" '
+           f'fill="{INK}">Residuals - running z of observed minus predicted recall, '
+           f'per group, trial by trial</text>']
+    svg.extend(era_banner(clock, ML, 48, 24))
+
+    # grid: integer z lines, the +-2 band in red
+    for z in range(-z_lim, z_lim + 1):
+        y = y_of(z)
+        if abs(z) == Z_FLAG:
+            svg.append(f'<line x1="{ML}" y1="{y:.1f}" x2="{W - MR}" y2="{y:.1f}" '
+                       f'stroke="{BAND}" stroke-width="1" stroke-dasharray="6 4" opacity="0.7"/>')
+        else:
+            svg.append(f'<line x1="{ML}" y1="{y:.1f}" x2="{W - MR}" y2="{y:.1f}" '
+                       f'stroke="{GRID}" stroke-width="{2 if z == 0 else 1}"/>')
+        svg.append(f'<text x="{ML - 6}" y="{y + 4:.1f}" text-anchor="end" font-size="11" '
+                   f'fill="{MUTED}">{z:+d}</text>' if z else
+                   f'<text x="{ML - 6}" y="{y + 4:.1f}" text-anchor="end" font-size="11" '
+                   f'fill="{MUTED}">0</text>')
+    halo = f'stroke="{BG}" stroke-width="3" paint-order="stroke" stroke-linejoin="round"'
+    svg.append(f'<text x="{ML + 4}" y="{y_of(Z_FLAG) - 5:.1f}" font-size="10" fill="{BAND}" '
+               f'{halo}>z = +{Z_FLAG:.0f}: better than the curve predicts</text>')
+    svg.append(f'<text x="{ML + 4}" y="{y_of(-Z_FLAG) + 13:.1f}" font-size="10" fill="{BAND}" '
+               f'{halo}>z = -{Z_FLAG:.0f}: decays faster than the curve predicts</text>')
+
+    # month ticks; the label only where the month is wide enough to own it
+    m = date(clock.first.year, clock.first.month, 1)
+    while m <= clock.last:
+        nxt = date(m.year + (m.month == 12), m.month % 12 + 1, 1)
+        if m >= clock.first:
+            x = x_of(m)
+            svg.append(f'<line x1="{x:.1f}" y1="{PT}" x2="{x:.1f}" y2="{PB}" '
+                       f'stroke="{GRID}" stroke-width="1"/>')
+            if x_of(min(nxt, clock.last)) - x >= 34:
+                svg.append(f'<text x="{x:.1f}" y="{PB + 16}" text-anchor="middle" font-size="11" '
+                           f'fill="{MUTED}">{m.strftime("%b %y").lower()}</text>')
+        m = nxt
+
+    # the reveal: a clip whose right edge tracks the playhead tick for tick,
+    # and its complement for the dimmed not-yet-swept data (as kg_pass.svg)
+    reveal = [(clock.frac(i), x_of(clock.first + timedelta(days=i))) for i in range(clock.n_ticks)]
+    reveal.append((1.0, reveal[-1][1]))
+    svg.append(f'<clipPath id="reveal"><rect x="0" y="0" width="{W}" height="{H}">'
+               f'{linear("width", reveal, clock.dur)}</rect></clipPath>')
+    svg.append(f'<clipPath id="rest"><rect x="{W - MR}" y="0" width="{W}" height="{H}">'
+               f'{linear("x", reveal, clock.dur)}</rect></clipPath>')
+
+    def color_of(w):
+        _, z_fin, n_fin = series[w][-1]
+        if w == "":
+            return TOTAL_C
+        return WING_C.get(w, INK) if abs(z_fin) >= Z_FLAG or n_fin >= 40 else QUIET_C
+
+    order = sorted((w for w in series if w), key=lambda w: series[w][-1][2])  # thin first
+    order.append("")
+    for clip, opacity in (("rest", 0.22), ("reveal", 1.0)):
+        svg.append(f'<g clip-path="url(#{clip})" opacity="{opacity}">')
+        for w in order:
+            width = 2.6 if w == "" else 1.6
+            svg.append(f'<polyline points="{step_points(series[w])}" fill="none" '
+                       f'stroke="{color_of(w)}" stroke-width="{width}" stroke-linejoin="round"/>')
+        svg.append("</g>")
+
+    # group labels at the right edge, spread apart so they never overlap;
+    # each pops in on its group's first trial
+    labels = [(y_of(series[w][-1][1]), w) for w in order
+              if w == "" or series[w][-1][2] >= LABEL_N_MIN]
+    labels.sort()
+    min_gap = 13
+    ys = [y for y, _ in labels]
+    for i in range(1, len(ys)):
+        ys[i] = max(ys[i], ys[i - 1] + min_gap)
+    for i in range(len(ys) - 2, -1, -1):
+        ys[i] = min(ys[i], ys[i + 1] - min_gap)
+    for (y_line, w), y in zip(labels, ys):
+        d0, _, _ = series[w][0]
+        _, z_fin, n_fin = series[w][-1]
+        f0 = clock.frac_date(d0)
+        name = "all groups" if w == "" else w
+        svg.append(f'<line x1="{W - MR + 2}" y1="{y_line:.1f}" x2="{W - MR + 12}" y2="{y:.1f}" '
+                   f'stroke="{color_of(w)}" stroke-width="1" opacity="0.6"/>')
+        svg.append(f'<text x="{W - MR + 16}" y="{y + 4:.1f}" font-size="11" '
+                   f'fill="{color_of(w)}">{name} {z_fin:+.1f} (n={n_fin})'
+                   + (f'<animate attributeName="opacity" calcMode="discrete" values="0;1" '
+                      f'keyTimes="0;{f0:.4f}" dur="{clock.dur}s" repeatCount="indefinite"/>'
+                      if f0 > 0 else "") + '</text>')
+
+    # month ticker, top right, same style as calibration.svg
+    months = []
+    m = date(clock.first.year, clock.first.month, 1)
+    while m <= clock.last:
+        months.append(m)
+        m = date(m.year + (m.month == 12), m.month % 12 + 1, 1)
+    for i, m in enumerate(months):
+        fs = clock.frac(max((m - clock.first).days, 0))
+        nxt = months[i + 1] if i + 1 < len(months) else None
+        fe = clock.frac((nxt - clock.first).days) if nxt else 1.0
+        lab = m.strftime("%b '%y").lower()
+        vals, times = ("0;1;0", f"0;{fs:.4f};{fe:.4f}") if fs > 0 else ("1;0", f"0;{fe:.4f}")
+        if not nxt:
+            vals, times = ("0;1", f"0;{fs:.4f}") if fs > 0 else ("1", "0")
+        svg.append(f'<text x="{W - 24}" y="24" fill="{INK}" font-size="14" '
+                   f'text-anchor="end" opacity="0">{lab}'
+                   f'<animate attributeName="opacity" calcMode="discrete" values="{vals}" '
+                   f'keyTimes="{times}" dur="{clock.dur}s" repeatCount="indefinite"/></text>')
+
+    svg.append(f'<text x="{(ML + W - MR) / 2:.0f}" y="{H - 8}" text-anchor="middle" font-size="12" '
+               f'fill="{MUTED}">z = sum(observed - predicted) / sqrt(sum p(1-p)), '
+               f'over every recall trial so far; dashed = |z| of {Z_FLAG:.0f}</text>')
+    svg.append(clock.dissolve_rect(W, H, BG))
+    svg.append("</svg>")
+    with open(OUT, "w") as f:
+        f.write("\n".join(svg) + "\n")
+    flagged = sorted(w for w in series if w and abs(series[w][-1][1]) >= Z_FLAG)
+    print(f"wrote {OUT} ({len(trials)} trials, {len(series) - 1} groups, "
+          f"z axis +-{z_lim}, outside the band: {', '.join(flagged) or 'none'}, "
+          f"synced to the {clock.dur:.0f}s loop)")
+
+
+if __name__ == "__main__":
+    main()

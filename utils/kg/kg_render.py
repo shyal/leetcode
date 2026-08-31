@@ -53,7 +53,7 @@ def make_digraph(name, title=None):
 
 
 def status_node(g, node_id, node, status, when, highlight=False, labeled=True):
-    tooltip = f"{node['name']} — {status}" + (f" ({when})" if when else "")
+    tooltip = f"{node['name']} - {status}" + (f" ({when})" if when else "")
     attrs = {"fillcolor": FILL[status], "tooltip": tooltip}
     if highlight:
         attrs.update({"color": "#c9d1d9", "penwidth": "2"})

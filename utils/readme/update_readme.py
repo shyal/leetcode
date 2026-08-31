@@ -234,20 +234,27 @@ def main():
         s3_key_calib = upload_svg_gz("graph/calibration.svg", "curve_calibration")
         curve_calibration_img = f"![Curve calibration](https://shyal.s3.amazonaws.com/{s3_key_calib})"
 
+    # Residuals over time (utils/readme/kg_residuals_svg): make residuals as a
+    # running z per group, stepping trial by trial on the shared clock.
+    residuals_img = ""
+    if os.path.exists("graph/residuals.svg"):
+        s3_key_residuals = upload_svg_gz("graph/residuals.svg", "residuals")
+        residuals_img = f"![Residuals per group over time](https://shyal.s3.amazonaws.com/{s3_key_residuals})"
+
     # Review timing (utils/readme/kg_timing_svg): every recall trial's gap vs the
     # predicted solid window — the scheduler's report card, on the shared
     # clock.
     review_timing_img = ""
     if os.path.exists("graph/timing.svg"):
         s3_key_timing = upload_svg_gz("graph/timing.svg", "review_timing")
-        review_timing_img = f"![Was each review on time?](https://shyal.s3.amazonaws.com/{s3_key_timing})"
+        review_timing_img = f"![Review timing](https://shyal.s3.amazonaws.com/{s3_key_timing})"
 
     # Solve-time drivers (utils/readme/kg_solvetime_svg): paired re-solve ratios
     # warm vs cold, and median minutes by move connectivity.
     solvetime_img = ""
     if os.path.exists("graph/solvetime.svg"):
         s3_key_solvetime = upload_svg_gz("graph/solvetime.svg", "solvetime")
-        solvetime_img = f"![The two drivers of solve time](https://shyal.s3.amazonaws.com/{s3_key_solvetime})"
+        solvetime_img = f"![How solve time changes with repetition and shared moves](https://shyal.s3.amazonaws.com/{s3_key_solvetime})"
 
     # Connectivity zoom (utils/readme/kg_connectivity_svg): every timed solve vs how
     # many problems share its moves, running medians per difficulty.
@@ -273,31 +280,9 @@ def main():
         s3_key_pass = upload_svg_gz("graph/kg_pass.svg", "pass_probability")
         pass_prob_img = f"![P(pass a mock) over time](https://shyal.s3.amazonaws.com/{s3_key_pass})"
 
-    # Yield chart (utils/kg/kg_movie_rs, same binary): P(pass) against
-    # cumulative solves instead of time - a plateau is a long flat slog,
-    # consolidation a near-vertical climb, segments colored by re-solve share.
-    yield_img = ""
-    if os.path.exists("graph/kg_yield.svg"):
-        s3_key_yield = upload_svg_gz("graph/kg_yield.svg", "yield")
-        yield_img = f"![What a solve buys](https://shyal.s3.amazonaws.com/{s3_key_yield})"
-
-    # Its calendar twin (same binary): the P(pass) lines over each week's
-    # composition (new problems vs re-solves) - the two kinds of sideways.
-    yield_time_img = ""
-    if os.path.exists("graph/kg_yield_time.svg"):
-        s3_key_yield_time = upload_svg_gz("graph/kg_yield_time.svg", "yield_time")
-        yield_time_img = f"![Two kinds of sideways](https://shyal.s3.amazonaws.com/{s3_key_yield_time})"
-
-    # Mock outcome distribution (utils/kg/kg_movie_rs, same binary): the Monte
-    # Carlo mass behind the P(pass) central line, stepping weekly on the
-    # shared clock.
-    mock_dist_img = ""
-    if os.path.exists("graph/kg_dist.svg"):
-        s3_key_dist = upload_svg_gz("graph/kg_dist.svg", "mock_dist")
-        mock_dist_img = f"![Simulated mock outcomes over time](https://shyal.s3.amazonaws.com/{s3_key_dist})"
-
-    # Its dot-level companion (same binary): individual simulated mocks with
-    # fixed dice, hopping bins as skill improves.
+    # Mock swarm (utils/kg/kg_movie_rs, same binary): individual simulated
+    # mocks with fixed dice, hopping bins as skill improves, on the shared
+    # clock.
     mock_swarm_img = ""
     if os.path.exists("graph/kg_swarm.svg"):
         s3_key_swarm = upload_svg_gz("graph/kg_swarm.svg", "mock_swarm")
@@ -308,7 +293,7 @@ def main():
     mock_blame_img = ""
     if os.path.exists("graph/kg_blame.svg"):
         s3_key_blame = upload_svg_gz("graph/kg_blame.svg", "mock_blame")
-        mock_blame_img = f"![Why simulated mocks fail, over time](https://shyal.s3.amazonaws.com/{s3_key_blame})"
+        mock_blame_img = f"![Share of simulated problems failed, by group](https://shyal.s3.amazonaws.com/{s3_key_blame})"
 
     # Animated SVG (utils/readme/kg_positions_svg): every node sliding down its
     # personal forgetting curve, replaying the same history on the same clock
@@ -333,6 +318,13 @@ def main():
     if os.path.exists("graph/kg_movie.svg"):
         s3_key_kg_movie = upload_svg_gz("graph/kg_movie.svg", "kg_movie")
         kg_movie_img = f"![Technique graph growing solve by solve](https://shyal.s3.amazonaws.com/{s3_key_kg_movie})"
+
+    # The graph in three dimensions (utils/readme/kg_3d_svg): the same replay
+    # on the same clock, the layout turning once per three loops.
+    kg_3d_img = ""
+    if os.path.exists("graph/kg_3d.svg"):
+        s3_key_kg_3d = upload_svg_gz("graph/kg_3d.svg", "kg_3d")
+        kg_3d_img = f"![The technique graph in three dimensions, turning while the history replays](https://shyal.s3.amazonaws.com/{s3_key_kg_3d})"
 
     # push everything queued above concurrently; boto3 clients are thread-safe.
     # Any failure raises here, before the README is touched.
@@ -367,23 +359,40 @@ def main():
         return pat.sub(
             lambda _: f"<!-- {name} -->{lead}{content}{trail}<!-- /{name} -->", text)
 
+    def fill_inline(text, name, value):
+        # same markers, but inside a sentence: no forced newlines. Every
+        # occurrence of the region gets the same value.
+        pat = re.compile(rf"<!-- {name} -->.*?<!-- /{name} -->", re.S)
+        if not pat.search(text):
+            print(f"WARNING: no <!-- {name} --> region in README.md, skipped")
+            return text
+        return pat.sub(lambda _: f"<!-- {name} -->{value}<!-- /{name} -->", text)
+
+    # inline numbers the prose claims, so they can never go stale
+    with open("graph/nodes.json") as f:
+        readme = fill_inline(readme, "N_NODES", len(json.load(f)["nodes"]))
+    if os.path.exists("graph/reach.json"):
+        with open("graph/reach.json") as f:
+            r = json.load(f)
+        readme = fill_inline(readme, "N_BANK", r["catalog"])
+        readme = fill_inline(readme, "N_REACH_TODAY", f"~{round(r['predicted_reach'], -2):.0f}")
+
     readme = fill(readme, "SOLVES_CHART", rates_img)
     readme = fill(readme, "COMMITS_CHART", commits_img)
     readme = fill(readme, "READINESS_PROJECTION_CHART", projection_img)
     readme = fill(readme, "KG_MOVIE", kg_movie_img)
-    readme = fill(readme, "MOCK_DIST_CHART", mock_dist_img)
+    readme = fill(readme, "KG_3D", kg_3d_img)
     readme = fill(readme, "MOCK_SWARM_CHART", mock_swarm_img)
     readme = fill(readme, "MOCK_BLAME_CHART", mock_blame_img)
     readme = fill(readme, "POSITIONS_SVG", positions_svg_img)
     readme = fill(readme, "ZPD_SVG", zpd_svg_img)
     readme = fill(readme, "CURVE_CALIBRATION_CHART", curve_calibration_img)
+    readme = fill(readme, "RESIDUALS_CHART", residuals_img)
     readme = fill(readme, "REVIEW_TIMING_CHART", review_timing_img)
     readme = fill(readme, "SOLVETIME_CHART", solvetime_img)
     readme = fill(readme, "CONNECTIVITY_CHART", connectivity_img)
     readme = fill(readme, "REACH_CHART", reach_img)
     readme = fill(readme, "PASS_PROB_CHART", pass_prob_img)
-    readme = fill(readme, "YIELD_CHART", yield_img)
-    readme = fill(readme, "YIELD_TIME_CHART", yield_time_img)
     readme = fill(readme, "CONTEST_PROGRESS", contest_progress_img)
     readme = fill(readme, "FAANG_PROGRESS", faang_progress_img)
     readme = fill(readme, "FORECAST_CHART", forecast_img)
