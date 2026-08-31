@@ -1,0 +1,124 @@
+#!/usr/bin/env python3
+
+# kg_commits_svg - cumulative tooling commits versus solve commits, rendered
+# into graph/commits.svg for the README pipeline. One panel, two lines, one
+# point per day of repo history.
+#
+# A solve commit adds a solved/ file that is not a FAILED record (problems
+# and drills alike). A tooling commit is any other commit that touches code:
+# utils/, the makefile, dsa/, drills/, stubs/, misc/, .github/, conftest.py,
+# requirements.txt, or any .py/.rs file outside solved/. Commits that only
+# regenerate the README, edit graph json by hand, or record a fail or a
+# sleep are neither and are not drawn.
+
+import os
+import subprocess
+from collections import defaultdict
+from datetime import date, timedelta
+
+from kg.kg_lib import GRAPH_DIR
+
+OUT = os.path.join(GRAPH_DIR, "commits.svg")
+
+TOOL_PREFIXES = ("utils/", "makefile", "Makefile", "dsa/", "drills/", "stubs/",
+                 "misc/", ".github/", "conftest.py", "requirements.txt")
+
+W, H = 1200, 400
+BG = "#0d1117"
+INK = "#c9d1d9"
+MUTED = "#8b949e"
+GRID = "#21262d"
+SOLVE = "#58a6ff"
+TOOL = "#d29922"
+ML, MR, MT, MB = 62, 24, 62, 60
+
+
+def is_solve(files):
+    return any(f.startswith("solved/") and "FAILED" not in f for f in files)
+
+
+def is_tool(files):
+    return any(f.startswith(TOOL_PREFIXES)
+               or (f.endswith((".py", ".rs")) and not f.startswith("solved/")
+                   and f != "current.py")
+               for f in files)
+
+
+def mine():
+    """[(date, cumulative tooling commits, cumulative solve commits)], one per day."""
+    out = subprocess.run(
+        ["git", "log", "--name-only", "--format=%x01%ad", "--date=short"],
+        capture_output=True, text=True, cwd=os.path.dirname(GRAPH_DIR)).stdout
+    tools, solves = defaultdict(int), defaultdict(int)
+    for block in out.split("\x01")[1:]:
+        lines = block.strip().splitlines()
+        d, files = lines[0][:10], lines[1:]
+        if is_solve(files):
+            solves[d] += 1
+        elif is_tool(files):
+            tools[d] += 1
+    days = sorted(set(tools) | set(solves))
+    if not days:
+        return []
+    d0, d1 = date.fromisoformat(days[0]), date.fromisoformat(days[-1])
+    rows, ct, cs = [], 0, 0
+    while d0 <= d1:
+        k = d0.isoformat()
+        ct += tools[k]
+        cs += solves[k]
+        rows.append((d0, ct, cs))
+        d0 += timedelta(days=1)
+    return rows
+
+
+def main():
+    rows = mine()
+    if not rows:
+        print("no commits found")
+        return
+    n = len(rows)
+    top, bottom = MT, H - MB
+    ymax = max(rows[-1][1], rows[-1][2], 1) * 1.08
+
+    def x_of(i):
+        return ML + i / max(n - 1, 1) * (W - ML - MR)
+
+    def y_of(v):
+        return bottom - v / ymax * (bottom - top)
+
+    svg = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" '
+           f'font-family="Helvetica,sans-serif">',
+           f'<rect width="{W}" height="{H}" fill="{BG}"/>',
+           f'<text x="{W / 2:.0f}" y="24" text-anchor="middle" font-size="13" fill="{INK}">'
+           f'Cumulative commits: tooling (yellow) versus solves (blue), full repo history</text>']
+    step = 100 if ymax > 400 else 50 if ymax > 150 else 20 if ymax > 60 else 10
+    for g in range(0, int(ymax) + 1, step):
+        y = y_of(g)
+        svg.append(f'<line x1="{ML}" y1="{y:.1f}" x2="{W - MR}" y2="{y:.1f}" '
+                   f'stroke="{GRID}" stroke-width="1"/>')
+        svg.append(f'<text x="{ML - 8}" y="{y + 4:.1f}" text-anchor="end" font-size="11" '
+                   f'fill="{MUTED}">{g}</text>')
+    for i, r in enumerate(rows):
+        if r[0].day == 1:
+            x = x_of(i)
+            svg.append(f'<line x1="{x:.1f}" y1="{top}" x2="{x:.1f}" y2="{bottom}" '
+                       f'stroke="{GRID}" stroke-width="1"/>')
+            svg.append(f'<text x="{x:.1f}" y="{bottom + 18}" text-anchor="middle" font-size="11" '
+                       f'fill="{MUTED}">{r[0].strftime("%b %y")}</text>')
+    for col, color in ((1, TOOL), (2, SOLVE)):
+        pts = " ".join(f"{x_of(i):.1f},{y_of(r[col]):.1f}" for i, r in enumerate(rows))
+        svg.append(f'<polyline points="{pts}" fill="none" stroke="{color}" stroke-width="2"/>')
+        svg.append(f'<text x="{W - MR - 4}" y="{y_of(rows[-1][col]) - 6:.1f}" text-anchor="end" '
+                   f'font-size="11" fill="{color}">{rows[-1][col]}</text>')
+    for i, (color, lab) in enumerate(((TOOL, "tooling commits"), (SOLVE, "solve commits"))):
+        lx = ML + i * 130
+        svg.append(f'<rect x="{lx}" y="{bottom + 30}" width="12" height="12" rx="3" fill="{color}"/>')
+        svg.append(f'<text x="{lx + 18}" y="{bottom + 40}" font-size="11" fill="{INK}">{lab}</text>')
+    svg.append("</svg>")
+    with open(OUT, "w") as f:
+        f.write("\n".join(svg) + "\n")
+    print(f"wrote {OUT} ({n} days: {rows[-1][1]} tooling commits, {rows[-1][2]} solve commits)")
+
+
+if __name__ == "__main__":
+    main()

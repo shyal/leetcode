@@ -10,7 +10,7 @@ So, here's my new approach: i decided on a new thesis: to focus on the core tech
 
 <!-- KG_MOVIE -->
 
-![Technique graph growing solve by solve](https://shyal.s3.amazonaws.com/kg_movie_20260830100035.svg)
+![Technique graph growing solve by solve](https://shyal.s3.amazonaws.com/kg_movie_20260831074502.svg)
 
 <!-- /KG_MOVIE -->
 
@@ -22,7 +22,7 @@ Looking at my last leetcode grind, roughly October and November 2025, i plateaue
 
 <!-- PASS_PROB_CHART -->
 
-![P(pass a mock) over time](https://shyal.s3.amazonaws.com/pass_probability_20260830100035.svg)
+![P(pass a mock) over time](https://shyal.s3.amazonaws.com/pass_probability_20260831074502.svg)
 
 <!-- /PASS_PROB_CHART -->
 
@@ -30,7 +30,7 @@ The same story with effort as the x axis. A plateau is a long flat slog: hundred
 
 <!-- YIELD_CHART -->
 
-![What a solve buys](https://shyal.s3.amazonaws.com/yield_20260830100035.svg)
+![What a solve buys](https://shyal.s3.amazonaws.com/yield_20260831074502.svg)
 
 <!-- /YIELD_CHART -->
 
@@ -38,25 +38,25 @@ The green bars in the chart below show **consolidation** periods: times when P i
 
 <!-- YIELD_TIME_CHART -->
 
-![Two kinds of sideways](https://shyal.s3.amazonaws.com/yield_time_20260830100035.svg)
+![Two kinds of sideways](https://shyal.s3.amazonaws.com/yield_time_20260831074502.svg)
 
 <!-- /YIELD_TIME_CHART -->
 
 <!-- MOCK_DIST_CHART -->
 
-![Simulated mock outcomes over time](https://shyal.s3.amazonaws.com/mock_dist_20260830100035.svg)
+![Simulated mock outcomes over time](https://shyal.s3.amazonaws.com/mock_dist_20260831074502.svg)
 
 <!-- /MOCK_DIST_CHART -->
 
 <!-- MOCK_SWARM_CHART -->
 
-![Individual simulated mocks over time](https://shyal.s3.amazonaws.com/mock_swarm_20260830100035.svg)
+![Individual simulated mocks over time](https://shyal.s3.amazonaws.com/mock_swarm_20260831074502.svg)
 
 <!-- /MOCK_SWARM_CHART -->
 
 <!-- MOCK_BLAME_CHART -->
 
-![Why simulated mocks fail, over time](https://shyal.s3.amazonaws.com/mock_blame_20260830100035.svg)
+![Why simulated mocks fail, over time](https://shyal.s3.amazonaws.com/mock_blame_20260831074502.svg)
 
 <!-- /MOCK_BLAME_CHART -->
 
@@ -72,7 +72,7 @@ The model is power-law forgetting with a slip rate, P(recall) = (1−slip)·(1 +
 
 <!-- POSITIONS_SVG -->
 
-![Nodes sliding down their forgetting curves](https://shyal.s3.amazonaws.com/positions_20260830100035.svg)
+![Nodes sliding down their forgetting curves](https://shyal.s3.amazonaws.com/positions_20260831074502.svg)
 
 <!-- /POSITIONS_SVG -->
 
@@ -80,13 +80,13 @@ The model also tracks its accuracy internally, by comparing its predictions with
 
 <!-- CURVE_CALIBRATION_CHART -->
 
-![Curve calibration](https://shyal.s3.amazonaws.com/curve_calibration_20260830100035.svg)
+![Curve calibration](https://shyal.s3.amazonaws.com/curve_calibration_20260831074502.svg)
 
 <!-- /CURVE_CALIBRATION_CHART -->
 
 <!-- REVIEW_TIMING_CHART -->
 
-![Was each review on time?](https://shyal.s3.amazonaws.com/review_timing_20260830100035.svg)
+![Was each review on time?](https://shyal.s3.amazonaws.com/review_timing_20260831074502.svg)
 
 <!-- /REVIEW_TIMING_CHART -->
 
@@ -96,7 +96,7 @@ What the clock does see is two drivers, and they were my gut ranking before i ra
 
 <!-- SOLVETIME_CHART -->
 
-![The two drivers of solve time](https://shyal.s3.amazonaws.com/solvetime_20260830100035.svg)
+![The two drivers of solve time](https://shyal.s3.amazonaws.com/solvetime_20260831074502.svg)
 
 <!-- /SOLVETIME_CHART -->
 
@@ -104,7 +104,7 @@ The connectivity effect, zoomed in. Every timed solve as a dot, against how many
 
 <!-- CONNECTIVITY_CHART -->
 
-![Move connectivity vs solve time](https://shyal.s3.amazonaws.com/connectivity_20260830050000.svg)
+![Move connectivity vs solve time](https://shyal.s3.amazonaws.com/connectivity_20260831074502.svg)
 
 <!-- /CONNECTIVITY_CHART -->
 
@@ -114,7 +114,7 @@ Two lines now. The blue one counts only evidenced walks: walks extracted from co
 
 <!-- REACH_CHART -->
 
-![Problems in reach](https://shyal.s3.amazonaws.com/reach_20260830100035.svg)
+![Problems in reach](https://shyal.s3.amazonaws.com/reach_20260831074502.svg)
 
 <!-- /REACH_CHART -->
 
@@ -138,7 +138,7 @@ https://leetcode.com/problems/subarray-sum-equals-k/
 
 <!-- ZPD_SVG -->
 
-![The input tree of each of my last 50 solves, one per second](https://shyal.s3.amazonaws.com/zpd_20260830100035.svg)
+![The input tree of each of my last 50 solves, one per second](https://shyal.s3.amazonaws.com/zpd_20260831074502.svg)
 
 <!-- /ZPD_SVG -->
 
@@ -148,9 +148,19 @@ Solves and drills per day, then the unique ones. Uniques are tracked separately 
 
 <!-- SOLVES_CHART -->
 
-![Solves and drills per day](https://shyal.s3.amazonaws.com/rates_20260830100035.svg)
+![Solves and drills per day](https://shyal.s3.amazonaws.com/rates_20260831074502.svg)
 
 <!-- /SOLVES_CHART -->
+
+## Tooling versus solves
+
+Cumulative commits of each kind. A solve commit adds a file to `solved/`, problem or drill, fails excluded. A tooling commit is any other commit that touches code: the picker, the graph scripts, the drill bank, the makefile. Commits that only regenerate the README or hand-edit graph json are neither and are left out.
+
+<!-- COMMITS_CHART -->
+
+![Tooling commits versus solves](https://shyal.s3.amazonaws.com/commits_20260831074502.svg)
+
+<!-- /COMMITS_CHART -->
 
 ## Readiness
 
@@ -160,7 +170,7 @@ Contest bar: today's central P(clear a single hard).
 
 <!-- CONTEST_PROGRESS -->
 
-![Contest Readiness Progress (Ready by 2026-12-06, in 98 days)](https://shyal.s3.amazonaws.com/contest_progress_20260830100035.png)
+![Contest Readiness Progress (Ready by 2026-10-28, in 58 days)](https://shyal.s3.amazonaws.com/contest_progress_20260831074502.png)
 
 <!-- /CONTEST_PROGRESS -->
 
@@ -168,7 +178,7 @@ FAANG bar: today's central P(pass a full onsite: 2 easies + 2 mediums + at least
 
 <!-- FAANG_PROGRESS -->
 
-![FAANG Interview Readiness Progress (Ready by 2027-01-21 at 1.7h/day, in 144 days)](https://shyal.s3.amazonaws.com/faang_progress_20260830100035.png)
+![FAANG Interview Readiness Progress (Ready by 2026-11-13 at 1.8h/day, in 74 days)](https://shyal.s3.amazonaws.com/faang_progress_20260831074502.png)
 
 <!-- /FAANG_PROGRESS -->
 
@@ -176,7 +186,7 @@ Every projected date is recorded daily, so one chart tracks whether the projecti
 
 <!-- READINESS_PROJECTION_CHART -->
 
-![Projected ready dates over time](https://shyal.s3.amazonaws.com/readiness_projection_20260830100035.png)
+![Projected ready dates over time](https://shyal.s3.amazonaws.com/readiness_projection_20260831074502.png)
 
 <!-- /READINESS_PROJECTION_CHART -->
 

@@ -94,6 +94,13 @@ def main():
         s3_key_rates = upload_svg_gz("graph/rates.svg", "rates")
         rates_img = f"![Solves and drills per day](https://shyal.s3.amazonaws.com/{s3_key_rates})"
 
+    # Cumulative tooling commits versus solve commits
+    # (utils/readme/kg_commits_svg): one panel, two lines.
+    commits_img = ""
+    if os.path.exists("graph/commits.svg"):
+        s3_key_commits = upload_svg_gz("graph/commits.svg", "commits")
+        commits_img = f"![Tooling commits versus solves](https://shyal.s3.amazonaws.com/{s3_key_commits})"
+
     # One projection-stability chart: each model's projected ready date over
     # run date, recomputed on the fly for EVERY day since the first evidence
     # record (no stored snapshots): kg_mock --history-json replays the
@@ -353,6 +360,7 @@ def main():
             lambda _: f"<!-- {name} -->{lead}{content}{trail}<!-- /{name} -->", text)
 
     readme = fill(readme, "SOLVES_CHART", rates_img)
+    readme = fill(readme, "COMMITS_CHART", commits_img)
     readme = fill(readme, "READINESS_PROJECTION_CHART", projection_img)
     readme = fill(readme, "KG_MOVIE", kg_movie_img)
     readme = fill(readme, "MOCK_DIST_CHART", mock_dist_img)
