@@ -6935,6 +6935,14 @@
       },
       "note": "Assisted on scalar subquery placement (SELECT clause, not body logic)",
       "summary": "The solution uses a scalar subquery in the SELECT clause to count all users from the Users table independently, then wraps it with GROUP BY on Register.contest_id to produce one row per contest with the total user count. The subquery is composed separately to isolate the scalar count from the grouping logic."
+    },
+    "solved/d_Month_Over_Month_Change_2026_08_31T07_01_27_904053_00_00Z.py": {
+      "date": "2026-08-31",
+      "problem": "drill",
+      "moves": {
+        "sql-window-offset": "clean"
+      },
+      "summary": "The query uses LAG(amount) OVER (ORDER BY month) to access each row's previous month's amount, then subtracts it to compute the month-over-month change. The first row correctly receives NULL from LAG since there is no preceding month, satisfying the REQUIRED contract. No self-join or date arithmetic is needed."
     }
   }
 }
