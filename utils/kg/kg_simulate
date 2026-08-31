@@ -1,0 +1,349 @@
+#!/usr/bin/env python3
+
+# kg_simulate - drive the real picker forward, one day at a time, until the
+# central onsite pass rate reaches 50%.
+#
+#   make simulate              # at the measured pace
+#   make simulate 2            # 2 hours/day instead
+#   make simulate seed 7       # another draw of the same policy
+#
+# Pace is measured, not assumed. Hours per day: minutes solved over the
+# last 28 calendar days, lapses included, cut at a dead week (kg_mock_rs
+# week_pace, the "avg of the current streak" make mock prints). Price of
+# an attempt: the median timed minutes of your own attempts of that kind
+# (Easy, Medium, Hard, drill) and verdict (clean, struggled), from the
+# `solve time` trailers in the git log joined to evidence.json.
+#
+# Each simulated day: call kg_next.pick() on the simulated evidence (the
+# same function `make next` runs, sleep and once-a-day rules included),
+# draw the outcome of every move on its walk from the fitted forgetting
+# curve (graph/curve.json; a first exposure uses the measured first-contact
+# absorption). A problem never seen before also has to pass the pass
+# model's own cold-solve odds (kg_lib.practice_factors: time factor and
+# recognition, the terms pass_rates scores an interview problem by); when
+# it does not, the least-recalled move on the walk is the one recorded as
+# struggled. Charge the attempt at the measured price for its verdict,
+# append a record shaped like the one kg_extract writes, and repeat until
+# the hours are spent. A struggled move goes FRAGILE the way it does for
+# real, and the picker spends the next days repairing it. At the end of
+# the day, kg_lib.pass_rates - the same model behind `make mock`'s cold
+# estimate - on the simulated evidence.
+#
+# What `make predict` and `make mock` do not do: run the picker itself.
+# Both simulate a policy of their own. This runs the policy that serves you,
+# so a picker that starves or loops shows up here as days with no progress.
+#
+# Recognition practice comes from cold first solves (kg_lib
+# recognition_practice); no mocks are simulated. Not modelled: fission of
+# the taxonomy, assists, lapses in the hours.
+# One trajectory per seed; run a few seeds for the spread.
+
+import argparse
+import math
+import os
+import random
+import sys
+from datetime import date, timedelta
+from importlib.machinery import SourceFileLoader
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from kg import kg_lib  # noqa: E402
+from kg.kg_lib import (  # noqa: E402
+    GRAPH_DIR, SOLID, MISSING, SCENARIOS, REC_POWER, load_nodes, load_problems,
+    load_evidence, load_predicted, node_status, immature_nodes, unlocks,
+    current_recall, pass_rates, drill_trains, sleep_state,
+    problem_difficulty, recognition_practice, assist_of, practice_factors,
+)
+from statistics import median  # noqa: E402
+
+UTILS = os.path.dirname(os.path.abspath(__file__))
+kg_next = SourceFileLoader("kg_next", os.path.join(UTILS, "kg_next")).load_module()
+
+TARGET_ONSITE = 0.50
+MAX_DAYS = 730
+N_MC = 4000
+PACE_WINDOW = 28  # calendar days the pace is averaged over (kg_mock_rs week_pace)
+
+
+def timed_attempts(evidence, problems, mined):
+    """[(date, minutes, kind, verdict)] per timed attempt in the git log:
+    kind Easy/Medium/Hard/drill, verdict clean (every move clean, no
+    assist) or struggled. The same trailers make mock paces itself by."""
+    out = []
+    for key, d, secs, fname in mined:
+        rec = evidence.get(fname)
+        if rec is None:
+            continue
+        kind = "drill" if key.startswith("d:") else problem_difficulty(key, problems)
+        if kind not in ("Easy", "Medium", "Hard", "drill"):
+            continue
+        clean = all(v == "clean" for v in rec.get("moves", {}).values()) \
+            and assist_of(rec) == "none"
+        out.append((d, secs / 60, kind, "clean" if clean else "struggled"))
+    return out
+
+
+def week_pace(attempts, today):
+    """Hours per calendar day over the last PACE_WINDOW days, cut at the
+    first dead week walking back from today (the days before a week-long
+    lapse are another streak). Port of kg_mock_rs week_pace."""
+    mins = [0.0] * PACE_WINDOW
+    for d, m, _, _ in attempts:
+        i = (today - d).days
+        if 0 <= i < PACE_WINDOW:
+            mins[i] += m
+    window, run = PACE_WINDOW, 0
+    for i, m in enumerate(mins):
+        run = run + 1 if m == 0 else 0
+        if run == 7:
+            window = i + 1 - run
+            break
+    window = max(window, 7)
+    return round(sum(mins[:window]) / window / 60, 1)
+
+
+def price_table(attempts):
+    """(kind, verdict) -> median minutes, with the kind's median as the
+    fallback for a verdict never timed, and the overall median for a kind
+    never timed."""
+    by, by_kind = {}, {}
+    for _, m, kind, verdict in attempts:
+        by.setdefault((kind, verdict), []).append(m)
+        by_kind.setdefault(kind, []).append(m)
+    overall = median(m for _, m, _, _ in attempts) if attempts else 15.0
+    table = {}
+    for kind in ("Easy", "Medium", "Hard", "drill"):
+        for verdict in ("clean", "struggled"):
+            table[(kind, verdict)] = median(
+                by.get((kind, verdict)) or by_kind.get(kind) or [overall])
+    return table
+
+
+def freeze_clock(day):
+    """Every date.today() in kg_lib and kg_next answers `day`."""
+    class SimDate(date):
+        @classmethod
+        def today(cls):
+            return day
+    kg_lib.date = SimDate
+    kg_next.date = SimDate
+
+
+def first_contact(evidence):
+    """Measured first-contact absorption: the share of nodes whose first
+    ever rep was clean (kg_mock_rs measured_first_contact). The teach rate
+    for a simulated first exposure is 0.8 of it, capped at 0.85."""
+    first = {}
+    for fname in sorted(evidence):
+        rec = evidence[fname]
+        for node, v in rec.get("moves", {}).items():
+            key = (rec["date"], fname)
+            if node not in first or key < first[node][0]:
+                first[node] = (key, v)
+    if not first:
+        return 0.7
+    return sum(1 for _, v in first.values() if v == "clean") / len(first)
+
+
+def build_pools(problems, predicted, nodes):
+    """{"E"/"M"/"H": [problem, ...]}, each problem a list of walks, as
+    kg_mock_rs Bank::build reads them: evidenced walks plus drafted ones,
+    missing-move names folded in as off-taxonomy moves."""
+    meta = kg_lib._metadata()
+    pools = {"E": [], "M": [], "H": []}
+    raw = {}
+
+    def dif_of(num, obj):
+        d = obj.get("difficulty") or meta.get(str(num), {}).get("difficulty")
+        return {"Easy": "E", "Medium": "M", "Hard": "H"}.get(d)
+
+    def walk_of(v):
+        w = list(v.get("moves", []))
+        for m in v.get("missing", []) or []:
+            name = m.strip().lower().replace(" ", "-")
+            if name and not name.startswith("brute-force"):
+                w.append(name)
+        return w
+
+    for num, p in problems.items():
+        d = dif_of(num, p)
+        w = walk_of(p)
+        if d and w:
+            raw.setdefault(num, (d, []))[1].append(w)
+    for num, p in predicted.items():
+        d = dif_of(num, p)
+        if not d:
+            continue
+        for wv in p.get("walks", []):
+            w = walk_of(wv)
+            if w:
+                raw.setdefault(num, (d, []))[1].append(w)
+    for d, walks in raw.values():
+        pools[d].append(walks)
+    return pools
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Run the real picker forward until P(onsite) reaches 50%.")
+    parser.add_argument("hours", type=float, nargs="?", default=None,
+                        help="hours per day; default: the measured pace")
+    parser.add_argument("--seed", type=int, default=1)
+    parser.add_argument("--days", type=int, default=MAX_DAYS)
+    parser.add_argument("--every", type=int, default=7,
+                        help="print a row every N days")
+    args = parser.parse_args()
+
+    rng = random.Random(args.seed)
+    nodes = load_nodes()
+    problems = load_problems()
+    evidence = dict(load_evidence())
+    predicted = load_predicted()
+    curve = kg_lib._load_curve()
+    if not curve:
+        sys.exit("graph/curve.json missing - run make curve first")
+    kg_lib.load_predicted = lambda: predicted
+    mined = kg_lib.mined_solve_times(with_file=True)
+    kg_lib.mined_solve_times = lambda with_file=False: [r[:3] for r in mined]
+
+    pools = build_pools(problems, predicted, nodes)
+    teach = min(first_contact(evidence) * 0.8, 0.85)
+    asleep, _ = sleep_state(nodes, problems, evidence)
+    r_base = SCENARIOS["central"]
+    start = date.today()
+    attempts = timed_attempts(evidence, problems, mined)
+    prices = price_table(attempts)
+    measured = week_pace(attempts, start)
+    hours = args.hours if args.hours is not None else measured
+    if hours <= 0:
+        sys.exit("measured pace is 0h/day - pass hours explicitly")
+
+    def rates(day, practice):
+        recall = current_recall(nodes, evidence, curve, today=day)
+        return pass_rates(recall, pools, r_base, practice,
+                          random.Random(args.seed * 1000 + practice[0]), N_MC)
+
+    def price(kind, clean):
+        return prices[(kind, "clean" if clean else "struggled")]
+
+    mediums = hards = cold = 0
+    seen = {str(r.get("problem")) for r in evidence.values()}
+    per_kind = {"Easy": 0, "Medium": 0, "Hard": 0, "drill": 0}
+    seq = 0
+    dry_days = 0      # days the picker served nothing at all
+    short_days = 0    # days it ran out before half the hours were used
+    src = "given" if args.hours is not None else \
+        f"measured: avg of the current streak, {measured:g}h"
+    print(f"policy: kg_next.pick at {hours:g}h/day ({src}), seed {args.seed}; "
+          f"teach {teach:.2f}, curve {os.path.basename(GRAPH_DIR)}/curve.json")
+    print("price per attempt, measured medians (clean / struggled): "
+          + ", ".join(f"{k} {prices[(k, 'clean')]:.0f}/{prices[(k, 'struggled')]:.0f}m"
+                      for k in ("Easy", "Medium", "Hard", "drill")))
+    print(f"{'day':>4}  {'date':10}  {'solves':>6}  {'solid':>5}  {'young':>5}  "
+          f"{'reach':>9}  {'P(hard)':>7}  {'P(screen)':>9}  {'P(onsite)':>9}")
+
+    def report(day_no, day, practice, solves_today):
+        statuses = {n: node_status(n, evidence, today=day) for n in nodes}
+        imm = immature_nodes(nodes, evidence, problems)
+        gain = unlocks(statuses, problems, immature=imm)
+        blocked = sum(1 for p in predicted if p not in problems
+                      and not any(all(statuses[m][0] == SOLID and m not in imm
+                                      for m in w["moves"] if m in nodes)
+                                  and all(m in nodes for m in w["moves"])
+                                  and not w.get("missing")
+                                  for w in predicted[p]["walks"]))
+        _, onsite, screen, phard = rates(day, practice)
+        solid = sum(1 for s in statuses.values() if s[0] == SOLID)
+        print(f"{day_no:>4}  {day.isoformat():10}  {solves_today:>6}  {solid:>5}  "
+              f"{len(imm):>5}  {len(predicted) - blocked:>4}/{len(predicted):<4}  "
+              f"{phard:>6.0%}  {screen:>8.0%}  {onsite:>8.0%}", flush=True)
+        return onsite
+
+    onsite = report(0, start, (0, 0, 0), 0)
+    for day_no in range(1, args.days + 1):
+        day = start + timedelta(days=day_no)
+        freeze_clock(day)
+        budget = hours * 60
+        exclude = set()
+        solves_today = 0
+        while budget > 0:
+            statuses = {n: node_status(n, evidence, today=day) for n in nodes}
+            choice = kg_next.pick(nodes, problems, evidence, statuses,
+                                  asleep=asleep, exclude=exclude)
+            if not choice:
+                break
+            target, _, pnum, _ = choice
+            recall = current_recall(nodes, evidence, curve, today=day)
+            seq += 1
+            stamp = f"{day.isoformat()}T{seq:06d}_00_00Z"
+            if str(pnum).startswith("drill:"):
+                path = kg_lib.due_drill(target, evidence, today=day)
+                if not path:
+                    break
+                kind = "drill"
+                moves = drill_trains(path) or [target]
+                stem = kg_lib.drill_solved_stem(path)
+                fname = f"solved/d_{stem}_{stamp}.py"
+                problem = "drill"
+                exclude.add(pnum)
+            else:
+                p = problems[pnum]
+                kind = p.get("difficulty") or problem_difficulty(pnum, problems)
+                moves = list(p["moves"])
+                fname = f"solved/p{pnum}_sim_{stamp}.py"
+                problem = str(pnum)
+                exclude.add(pnum)
+            verdict = {}
+            for m in moves:
+                if m not in nodes:
+                    continue
+                p_clean = teach if statuses[m][0] == MISSING else recall[m]
+                verdict[m] = "clean" if rng.random() < p_clean else "struggled"
+            if problem != "drill" and problem not in seen and verdict:
+                # a cold problem: the pass model's own odds on top of recall
+                dif = {"Easy": "E", "Medium": "M", "Hard": "H"}.get(kind, "M")
+                time_f, rec, _ = practice_factors(
+                    (mediums, recognition_practice(0, cold), hards), r_base)
+                if rng.random() >= time_f[dif] * rec ** REC_POWER[dif]:
+                    weakest = min(verdict, key=lambda m: recall[m])
+                    verdict[weakest] = "struggled"
+            clean = all(v == "clean" for v in verdict.values())
+            budget -= price(kind if kind in per_kind else "Medium", clean)
+            evidence[fname] = {"date": day.isoformat(), "problem": problem,
+                               "moves": verdict}
+            solves_today += 1
+            per_kind[kind if kind in per_kind else "Medium"] += 1
+            if clean:
+                if kind == "Medium":
+                    mediums += 1
+                elif kind == "Hard":
+                    hards += 1
+                if problem != "drill" and problem not in seen:
+                    cold += 1  # a cold first solve: recognition practice
+            seen.add(problem)
+        dry_days += solves_today == 0
+        short_days += budget > hours * 30
+        practice = (mediums, recognition_practice(0, cold), hards)
+        onsite = rates(day, practice)[1]
+        if day_no % args.every == 0 or day_no == args.days \
+                or onsite >= TARGET_ONSITE:
+            onsite = report(day_no, day, practice, solves_today)
+            if onsite >= TARGET_ONSITE:
+                break
+    else:
+        day_no = args.days
+    freeze_clock(start)
+    print()
+    if onsite >= TARGET_ONSITE:
+        print(f"central P(onsite) >= {TARGET_ONSITE:.0%} on day {day_no}: "
+              f"{(start + timedelta(days=day_no)).isoformat()}")
+    else:
+        print(f"not reached in {day_no} days (P(onsite) {onsite:.0%})")
+    print("solves: " + ", ".join(f"{k} {v}" for k, v in per_kind.items())
+          + f"; {sum(per_kind.values())} in {day_no} days at {hours:g}h/day")
+    print(f"picker dry: {dry_days} days served nothing, {short_days} days "
+          f"ran out before half the hours were used")
+
+
+if __name__ == "__main__":
+    main()
