@@ -2,7 +2,8 @@
 
 # drill — load a drill from the bank (drills/<node-id>/*.py) into current.py.
 #
-#   utils/kg/drill monotonic-stack        # least-recently-drilled file for that node
+#   utils/kg/drill monotonic-stack        # least-recently-drilled servable file for that node
+#   utils/kg/drill d14                    # one drill by its graph id (graph/drills.json)
 #   utils/kg/drill drills/monotonic-stack/next_greater_index.py
 #   utils/kg/drill monotonic-stack --list
 #
@@ -20,18 +21,21 @@ import subprocess
 import sys
 from rich.console import Console
 
-from kg.kg_lib import load_evidence, last_drilled, released_rungs, clear_branch
+from kg.kg_lib import (load_evidence, load_problems, last_drilled, servable_drills,
+                       clear_branch, drill_path, drill_id, drill_after, warm)
 
 console = Console()
 
 
 def main():
     parser = argparse.ArgumentParser(description="Load a bank drill into current.py.")
-    parser.add_argument("target", help="node id (drills/<node>/) or a direct path to a drill file")
+    parser.add_argument("target", help="node id (drills/<node>/), a drill id (d14), or a path to a drill file")
     parser.add_argument("--list", action="store_true", help="list the node's drills and when last drilled")
     args = parser.parse_args()
 
-    if os.path.isfile(args.target):
+    if re.fullmatch(r"d\d+", args.target) and drill_path(args.target):
+        candidates = [drill_path(args.target)]
+    elif os.path.isfile(args.target):
         candidates = [args.target]
     else:
         candidates = sorted(glob.glob(os.path.join("drills", args.target, "*.py")))
@@ -43,19 +47,26 @@ def main():
             sys.exit(1)
 
     evidence = load_evidence()
+    problems = load_problems()
 
-    # the bank's filename order is the ladder: a rung is held while the rung
-    # below it is not warm (kg_lib.released_rungs). A direct file path
-    # bypasses the hold.
-    released = released_rungs(candidates, evidence)
+    # a drill is held while an id in its "after" list (graph/drills.json)
+    # is not warm, or a second node on its TRAINS line is not owned
+    # (kg_lib.servable_drills). A direct file path bypasses the hold.
+    direct = os.path.isfile(args.target) or re.fullmatch(r"d\d+", args.target)
+    released = candidates if direct else servable_drills(candidates, evidence, args.target)
 
     if args.list:
         for path in candidates:
             when = last_drilled(path, evidence) or "never"
-            hold = "" if path in released else "  [yellow]held[/yellow]"
-            console.print(f"{path}  [dim]last drilled: {when}[/dim]{hold}")
+            after = [a for a in drill_after(path) if warm(a, problems, evidence) is False]
+            hold = "" if path in released else f"  [yellow]held by {', '.join(after) or 'TRAINS'}[/yellow]"
+            console.print(f"{drill_id(path) or '-':>4}  {path}  [dim]last drilled: {when}[/dim]{hold}")
         return
 
+    if not released:
+        console.print(f"[yellow]every drill of {args.target} is held[/yellow] - "
+                      "`--list` shows by what; `make dependents <id>` shows what a hold opens")
+        sys.exit(1)
     # least-recently-drilled first; never-drilled sorts before everything
     path = min(released, key=lambda p: last_drilled(p, evidence))
 
@@ -81,7 +92,7 @@ def main():
     subprocess.run(["git", "commit", "-m", f"drill: {title}"], check=True, capture_output=True)
 
     when = last_drilled(path, evidence) or "never"
-    console.print(f"Loaded [bold]{path}[/bold] into current.py on branch [bold]{node_id}[/bold]  "
+    console.print(f"Loaded [bold]{drill_id(path) or ''}. {title}[/bold] ({path}) into current.py on branch [bold]{node_id}[/bold]  "
                   f"[dim](last drilled: {when})[/dim]")
     console.print("Solve it, then `make solved` as usual.")
 

@@ -14,7 +14,9 @@ the `picker` fixture, which is also where a test overrides them to put a
 drill in the bank.
 """
 
+import glob
 import os
+import re
 import sys
 from datetime import date, timedelta
 from importlib.machinery import SourceFileLoader
@@ -126,9 +128,9 @@ def picker(monkeypatch):
     monkeypatch.setattr(kg_next, "has_drill_bank", lambda nid: nid in ctl.bank)
     # nodes with drills never done (default none): they hold what depends
     # on them and get their next drill served (rule 0c)
-    monkeypatch.setattr(kg_next, "ladder_left",
+    monkeypatch.setattr(kg_next, "drills_left",
                         lambda nid, ev, early=False: nid in ctl.undone)
-    monkeypatch.setattr(kg_lib, "ladder_left",  # drill_held reads this one
+    monkeypatch.setattr(kg_lib, "drills_left",  # drill_held reads this one
                         lambda nid, ev, early=False: nid in ctl.undone)
     monkeypatch.setattr(kg_next, "immature_nodes",
                         lambda nodes, evidence, problems: frozenset(ctl.immature))
@@ -705,12 +707,31 @@ def test_a_spoiled_predecessor_solve_does_not_release(picker):
 # "after" edges to drills: a problem waits for the bank drill it builds on
 # --------------------------------------------------------------------------
 
-def drill_bank(tmp_path, monkeypatch, node, title, fname="d0.py"):
-    """One bank file under a temporary DRILLS_DIR, resolvable by title."""
+class DrillRegistry(dict):
+    """A drills.json stand-in the test bank helpers fill."""
+
+
+def drill_bank(tmp_path, monkeypatch, node, title, fname="d0.py", did="d1", after=()):
+    """One bank file under a temporary DRILLS_DIR, registered in the graph
+    as drill `did` (drills.json) with its "after" ids."""
     d = tmp_path / node
     d.mkdir(exist_ok=True)
     (d / fname).write_text(f'"""\nDRILL: {title}\nTRAINS: {node}\n"""\n')
     monkeypatch.setattr(kg_lib, "DRILLS_DIR", str(tmp_path))
+    if not isinstance(kg_lib._DRILLS, DrillRegistry):
+        monkeypatch.setattr(kg_lib, "_DRILLS", DrillRegistry())
+    kg_lib._DRILLS[did] = {"title": title, "after": list(after)}
+    kg_lib._DRILL_PATHS.clear()
+
+
+def register(monkeypatch, **spec):
+    """drills.json for a test bank whose files were written by hand:
+    register(monkeypatch, d1="Lower", d2=("Upper", ["d1"]))."""
+    reg = {}
+    for did, v in spec.items():
+        title, after = (v, []) if isinstance(v, str) else v
+        reg[did] = {"title": title, "after": list(after)}
+    monkeypatch.setattr(kg_lib, "_DRILLS", reg)
     kg_lib._DRILL_PATHS.clear()
 
 
@@ -723,16 +744,16 @@ def drill_rep(title, node, days_ago, assist=None, verdict="clean"):
 
 
 def test_a_problem_waits_for_a_drill_never_done(tmp_path, monkeypatch):
-    """713 declares "after": ["drill:Count by Contribution"]. No rep of that
+    """713 declares "after": ["d1"], the Count by Contribution drill. No rep of that
     drill anywhere: 713 is held, and the hold names the drill."""
     drill_bank(tmp_path, monkeypatch, "sw", "Count by Contribution")
-    ps = {"713": problem(["sw"], after=["drill:Count by Contribution"])}
-    assert kg_lib.held_behind("713", ps, {}) == "drill:Count by Contribution"
+    ps = {"713": problem(["sw"], after=["d1"])}
+    assert kg_lib.held_behind("713", ps, {}) == "d1"
 
 
 def test_a_warm_drill_releases_the_problem(tmp_path, monkeypatch):
     drill_bank(tmp_path, monkeypatch, "sw", "Count by Contribution")
-    ps = {"713": problem(["sw"], after=["drill:Count by Contribution"])}
+    ps = {"713": problem(["sw"], after=["d1"])}
     ev = evidence(drill_rep("Count by Contribution", "sw", days_ago=3))
     assert kg_lib.held_behind("713", ps, ev) is None
 
@@ -741,36 +762,36 @@ def test_an_assisted_drill_rep_does_not_release(tmp_path, monkeypatch):
     """Same bar as a drill releasing the next drill of its node: the unaided
     clean is what releases, a walkthrough clean is a rep but not ownership."""
     drill_bank(tmp_path, monkeypatch, "sw", "Count by Contribution")
-    ps = {"713": problem(["sw"], after=["drill:Count by Contribution"])}
+    ps = {"713": problem(["sw"], after=["d1"])}
     ev = evidence(drill_rep("Count by Contribution", "sw", days_ago=3,
                             assist="walkthrough"))
-    assert kg_lib.held_behind("713", ps, ev) == "drill:Count by Contribution"
+    assert kg_lib.held_behind("713", ps, ev) == "d1"
 
 
 def test_a_drill_rep_outside_the_solid_window_does_not_release(tmp_path, monkeypatch):
     drill_bank(tmp_path, monkeypatch, "sw", "Count by Contribution")
-    ps = {"713": problem(["sw"], after=["drill:Count by Contribution"])}
+    ps = {"713": problem(["sw"], after=["d1"])}
     ev = evidence(drill_rep("Count by Contribution", "sw",
                             days_ago=kg_lib.SOLID_WINDOW_DAYS + 1))
-    assert kg_lib.held_behind("713", ps, ev) == "drill:Count by Contribution"
+    assert kg_lib.held_behind("713", ps, ev) == "d1"
 
 
 def test_a_struggle_after_a_clean_holds_again(tmp_path, monkeypatch):
     """Latest rep decides, as for drills releasing drills."""
     drill_bank(tmp_path, monkeypatch, "sw", "Count by Contribution")
-    ps = {"713": problem(["sw"], after=["drill:Count by Contribution"])}
+    ps = {"713": problem(["sw"], after=["d1"])}
     ev = evidence(drill_rep("Count by Contribution", "sw", days_ago=9),
                   drill_rep("Count by Contribution", "sw", days_ago=2,
                             verdict="struggled"))
-    assert kg_lib.held_behind("713", ps, ev) == "drill:Count by Contribution"
+    assert kg_lib.held_behind("713", ps, ev) == "d1"
 
 
 def test_a_drill_ref_nobody_banks_holds_nothing(tmp_path, monkeypatch):
-    """A title no bank file carries cannot be released by anything, so it
-    holds nothing - the deadlock rule for banned predecessors. The real
-    bank is checked by test_every_drill_ref_in_problems_json_resolves."""
-    drill_bank(tmp_path, monkeypatch, "sw", "Something Else")
-    ps = {"713": problem(["sw"], after=["drill:Count by Contribution"])}
+    """An id no drill carries cannot be released by anything, so it holds
+    nothing - the deadlock rule for banned predecessors. The real graph is
+    checked by test_every_after_id_in_the_real_graph_resolves."""
+    drill_bank(tmp_path, monkeypatch, "sw", "Something Else", did="d9")
+    ps = {"713": problem(["sw"], after=["d1"])}
     assert kg_lib.held_behind("713", ps, {}) is None
 
 
@@ -778,7 +799,7 @@ def test_a_renamed_bank_file_keeps_its_edge(tmp_path, monkeypatch):
     """The edge names the DRILL title, not the file, so renumbering the bank
     changes nothing."""
     drill_bank(tmp_path, monkeypatch, "sw", "Count by Contribution", fname="w09_whatever.py")
-    ps = {"713": problem(["sw"], after=["drill:Count by Contribution"])}
+    ps = {"713": problem(["sw"], after=["d1"])}
     ev = evidence(drill_rep("Count by Contribution", "sw", days_ago=3))
     assert kg_lib.held_behind("713", ps, ev) is None
 
@@ -788,7 +809,7 @@ def test_the_picker_serves_the_free_carrier_over_the_held_one(picker, tmp_path, 
     drill never done: 3258 is served."""
     drill_bank(tmp_path, monkeypatch, "sw", "Count by Contribution")
     ns = nodes("sw")
-    ps = {"713": problem(["sw"], after=["drill:Count by Contribution"]),
+    ps = {"713": problem(["sw"], after=["d1"]),
           "3258": problem(["sw"])}
     ev = evidence(solve("713", {"sw": "clean"}, days_ago=300),
                   solve("3258", {"sw": "clean"}, days_ago=299))
@@ -798,22 +819,84 @@ def test_the_picker_serves_the_free_carrier_over_the_held_one(picker, tmp_path, 
     assert picker.run(ns, ps, ev, st)[:3] == ("sw", STALE, "713")
 
 
-def test_every_drill_ref_in_problems_json_resolves():
-    """Every "drill:<title>" in graph/problems.json names a file in the real
-    bank, and that file trains a node on the problem's own walk. A dangling
-    title holds nothing, silently; this is where it gets caught."""
+def test_gates_is_the_reverse_of_after(tmp_path, monkeypatch):
+    """What `make next` prints under a served drill or problem: the problems
+    and drills whose "after" names it, problems first."""
+    drill_bank(tmp_path, monkeypatch, "sw", "Count by Contribution")
+    ps = {"713": problem(["sw"], after=["d1"]),
+          "3258": problem(["sw"], after=["d1"]),
+          "47": problem(["sw"], after=["46"]),
+          "46": problem(["sw"])}
+    ds = {"d2": {"title": "Exactly K", "after": ["d1"]}}
+    assert kg_lib.gates("d1", ps, ds) == ["713", "3258", "d2"]
+    assert kg_lib.gates("46", ps, ds) == ["47"]
+    assert kg_lib.gates("47", ps, ds) == []
+
+
+def test_dependents_says_what_opens_and_what_else_holds(tmp_path, monkeypatch):
+    """`make dependents d1`: each dependent with its status and the OTHER
+    ids still holding it, so the next `make prepare` reads off the list."""
+    drill_bank(tmp_path, monkeypatch, "sw", "Count by Contribution")
+    drill_bank(tmp_path, monkeypatch, "sw", "Exactly K", fname="d1.py", did="d2", after=["d1"])
+    ps = {"713": problem(["sw"], after=["d1"]),
+          "992": problem(["sw"], after=["d1", "d2"]),
+          "46": problem(["sw"])}
+    ev = evidence(solve("713", {"sw": "clean"}, days_ago=100))
+    rows = kg_lib.dependents("d1", ps, ev)
+    assert [(r["id"], r["kind"], r["status"], r["held_by"]) for r in rows] == [
+        ("713", "Medium", STALE, []),
+        ("992", "Medium", MISSING, ["d2"]),
+        ("d2", "drill", MISSING, []),
+    ]
+    assert kg_lib.dependents("46", ps, ev) == []
+
+
+def test_easiest_first_orders_drills_then_by_difficulty_then_acceptance(monkeypatch):
+    monkeypatch.setattr(kg_lib, "_METADATA", {"1": {"acceptance": 30.0}, "2": {"acceptance": 70.0}})
+    rows = [{"id": "3", "kind": "Hard"}, {"id": "1", "kind": "Medium"},
+            {"id": "2", "kind": "Medium"}, {"id": "d5", "kind": "drill"}, {"id": "9", "kind": "Easy"}]
+    assert [r["id"] for r in kg_lib.easiest_first(rows)] == ["d5", "9", "2", "1", "3"]
+
+
+def test_every_after_id_in_the_real_graph_resolves(monkeypatch):
+    """Every id in an "after" list (problems.json, drills.json) names a
+    problem, a bank drill, or a node; every drills.json title names a bank
+    file; a drill named by a problem trains a node on that problem's own
+    walk; the drill edges have no cycle. A dangling id holds nothing,
+    silently; this is where it gets caught."""
     problems = kg_lib.load_problems()
+    drills = kg_lib.load_drills()
+    monkeypatch.setattr(kg_lib, "_DRILLS", drills)
     bad = []
     for pnum, p in problems.items():
         for pred in p.get("after", []):
-            if not str(pred).startswith(kg_lib.DRILL_REF):
-                continue
-            path = kg_lib.drill_ref_path(pred)
-            if path is None:
-                bad.append((pnum, pred, "no bank file"))
-            elif not set(kg_lib.drill_trains(path)) & set(p.get("moves", [])):
+            kind = kg_lib.vertex_kind(pred, problems)
+            if kind is None:
+                bad.append((pnum, pred, "nothing carries this id"))
+            elif kind == "drill" and not (
+                    set(kg_lib.drill_trains(kg_lib.drill_path(pred))) & set(p.get("moves", []))):
                 bad.append((pnum, pred, "trains nothing on the walk"))
+    for did, d in drills.items():
+        if not re.fullmatch(r"d\d+", did):
+            bad.append((did, "not a drill id"))
+        if kg_lib.drill_path(did) is None:
+            bad.append((did, d.get("title"), "no bank file"))
+        for pred in d.get("after", []):
+            if kg_lib.vertex_kind(pred, problems) is None:
+                bad.append((did, pred, "nothing carries this id"))
+    titles = [d.get("title") for d in drills.values()]
+    assert len(titles) == len(set(titles)), "two ids for one title"
+    for path in glob.glob(os.path.join(kg_lib.DRILLS_DIR, "*", "*.py")):
+        if kg_lib.drill_id(path) is None:
+            bad.append((path, "bank file with no id in drills.json"))
     assert not bad, bad
+
+    def cyclic(did, seen=()):
+        if did in seen:
+            return True
+        return any(cyclic(a, seen + (did,)) for a in drills.get(did, {}).get("after", [])
+                   if a in drills)
+    assert not [t for t in drills if cyclic(t)]
 
 
 def test_a_carrier_solved_days_ago_is_not_a_spaced_review(picker):
@@ -1031,17 +1114,18 @@ def test_an_assisted_rung_with_undone_rungs_above_it_is_served_again(tmp_path, m
     (bank / "d0.py").write_text("DRILL: Lower\nTRAINS: some-node\n")
     (bank / "d1.py").write_text("DRILL: Upper\nTRAINS: some-node\n")
     monkeypatch.setattr(kg_lib, "DRILLS_DIR", str(tmp_path))
+    register(monkeypatch, d1="Lower", d2=("Upper", ["d1"]))
     lower = {"solved/d_Lower_1.py": {"date": iso(5), "problem": "drill",
                                      "moves": {"some-node": "clean"},
                                      "assist": "walkthrough"}}
     ev = evidence(solve("7", {"some-node": "clean"}, days_ago=2), lower)
-    assert kg_lib.ladder_left("some-node", ev)
+    assert kg_lib.drills_left("some-node", ev)
     assert kg_lib.due_drill("some-node", ev) == str(bank / "d0.py")
     (bank / "d1.py").write_text("DRILL: Upper\nTRAINS: some-node, other\n")
     unaided = {"solved/d_Lower_1.py": {"date": iso(5), "problem": "drill",
                                        "moves": {"some-node": "clean"}}}
     ev = evidence(solve("7", {"some-node": "clean"}, days_ago=2), unaided)
-    assert not kg_lib.ladder_left("some-node", ev)
+    assert not kg_lib.drills_left("some-node", ev)
 
 
 def test_assisted_serves_only_drills_whose_latest_rep_was_assisted(tmp_path, monkeypatch):
@@ -1119,6 +1203,7 @@ def test_undone_drills_hold_the_dependent_and_get_served(tmp_path, monkeypatch):
     (bank / "b0.py").write_text("DRILL: B Zero\nTRAINS: base\n")
     (bank / "b1.py").write_text("DRILL: B One\nTRAINS: base\n")
     monkeypatch.setattr(kg_lib, "DRILLS_DIR", str(tmp_path))
+    register(monkeypatch, d1="B Zero", d2=("B One", ["d1"]))
     ns = nodes("base", ("dep", ["base"]))
     st = {"base": (SOLID, ago(0)), "dep": (STALE, ago(300))}
     b0 = {"solved/d_B_Zero_1.py": {"date": iso(0), "problem": "drill",
@@ -1192,19 +1277,20 @@ def test_a_composite_rung_waits_for_every_move_it_combines(tmp_path, monkeypatch
     (bank / "r1.py").write_text('"""\nDRILL: R One\nTRAINS: left-keep\n"""\n')
     (bank / "r2.py").write_text('"""\nDRILL: R Two\nTRAINS: left-keep, group-agg\n"""\n')
     monkeypatch.setattr(kg_lib, "DRILLS_DIR", str(tmp_path))
+    register(monkeypatch, d1="R One", d2=("R Two", ["d1"]))
     r1, r2 = str(bank / "r1.py"), str(bank / "r2.py")
     # r1 warm (clean, unaided, recent) but group-agg never owned: r2 stays held
     ev = evidence({"solved/d_R_One_1.py": {"date": iso(3), "problem": "drill",
                                            "moves": {"left-keep": "clean"}}})
-    assert kg_lib.released_rungs([r1, r2], ev, "left-keep") == [r1]
+    assert kg_lib.servable_drills([r1, r2], ev, "left-keep") == [r1]
     # group-agg owned only through a hinted rep: still held
     ev2 = evidence(ev, solve("5", {"group-agg": "clean"}, days_ago=1, assist="hint"))
-    assert kg_lib.released_rungs([r1, r2], ev2, "left-keep") == [r1]
+    assert kg_lib.servable_drills([r1, r2], ev2, "left-keep") == [r1]
     # an unaided clean on group-agg releases it
     ev3 = evidence(ev, solve("5", {"group-agg": "clean"}, days_ago=1))
-    assert kg_lib.released_rungs([r1, r2], ev3, "left-keep") == [r1, r2]
-    # the first rung is never held by its own TRAINS list
-    assert kg_lib.released_rungs([r2, r1], ev, "left-keep") == [r2]
+    assert kg_lib.servable_drills([r1, r2], ev3, "left-keep") == [r1, r2]
+    # order of the candidates is not an edge
+    assert kg_lib.servable_drills([r2, r1], ev3, "left-keep") == [r2, r1]
 
 
 # --------------------------------------------------------------------------
@@ -1401,7 +1487,7 @@ def test_early_walks_one_ladder_to_the_top_before_the_node_above_it(picker):
     picker.drilled_today = {"base"}
     ladder = {"base"}
     picker_ladder = lambda nid, ev, early=False: nid in ladder
-    kg_next.ladder_left = picker_ladder
+    kg_next.drills_left = picker_ladder
     assert picker.run(ns, ps, ev, st, group="g", early=True) is None
     ladder.clear()
     assert picker.run(ns, ps, ev, st, group="g", early=True)[2] == "drill:dep"
@@ -1417,17 +1503,18 @@ def test_the_cram_ladder_climbs_on_an_assisted_clean(tmp_path, monkeypatch):
     (bank / "r1.py").write_text('"""\nDRILL: R One\nTRAINS: group-agg\n"""\n')
     (bank / "r2.py").write_text('"""\nDRILL: R Two\nTRAINS: group-agg\n"""\n')
     monkeypatch.setattr(kg_lib, "DRILLS_DIR", str(tmp_path))
+    register(monkeypatch, d1="R One", d2=("R Two", ["d1"]))
     r1, r2 = str(bank / "r1.py"), str(bank / "r2.py")
     ev = evidence({"solved/d_R_One_1.py": {"date": iso(0), "problem": "drill",
                                            "moves": {"group-agg": "clean"},
                                            "assist": "hint"}})
-    assert kg_lib.released_rungs([r1, r2], ev, "group-agg") == [r1]
-    assert kg_lib.released_rungs([r1, r2], ev, "group-agg", early=True) == [r1, r2]
+    assert kg_lib.servable_drills([r1, r2], ev, "group-agg") == [r1]
+    assert kg_lib.servable_drills([r1, r2], ev, "group-agg", early=True) == [r1, r2]
     assert kg_lib.due_drill("group-agg", ev, early=True) == r2
-    assert kg_lib.ladder_left("group-agg", ev, early=True)
+    assert kg_lib.drills_left("group-agg", ev, early=True)
     ev2 = evidence(ev, {"solved/d_R_Two_1.py": {"date": iso(0), "problem": "drill",
                                                 "moves": {"group-agg": "clean"}}})
-    assert not kg_lib.ladder_left("group-agg", ev2, early=True)
+    assert not kg_lib.drills_left("group-agg", ev2, early=True)
 
 
 def test_two_same_day_reps_of_one_drill_do_not_crash_the_ladder(tmp_path, monkeypatch):
@@ -1516,7 +1603,7 @@ def test_early_walks_a_chain_bottom_up_one_ladder_at_a_time(picker):
     ev = evidence(solve("9", {"a": "clean", "b": "clean"}, days_ago=1))
     st = {"a": (SOLID, ago(1)), "b": (SOLID, ago(1)), "c": (MISSING, None)}
     ladder = {"a", "b", "c"}
-    kg_next.ladder_left = lambda nid, ev, early=False: nid in ladder
+    kg_next.drills_left = lambda nid, ev, early=False: nid in ladder
     assert picker.run(ns, {}, ev, st, group="g", early=True)[2] == "drill:a"
     picker.drilled_today = {"a"}
     assert picker.run(ns, {}, ev, st, group="g", early=True) is None
@@ -1537,7 +1624,7 @@ def test_early_is_not_held_by_a_prereq_outside_the_group(picker):
     picker.bank = {"sql-base", "spark-dep"}
     ev = evidence(solve("9", {"sql-base": "clean"}, days_ago=1, assist="hint"))
     st = {"sql-base": (SOLID, ago(1)), "spark-dep": (MISSING, None)}
-    kg_next.ladder_left = lambda nid, ev, early=False: True
+    kg_next.drills_left = lambda nid, ev, early=False: True
     assert picker.run(ns, {}, ev, st, group="spark", early=True)[2] == "drill:spark-dep"
 
 

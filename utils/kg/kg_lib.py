@@ -657,7 +657,7 @@ def last_clean_solve(pnum, evidence):
     """Latest date this problem was solved with every walked move clean and
     no assist at all - the bar a predecessor must meet to release the
     problems declared "after" it. An assisted clean is a real rep, but the
-    ladder advances on ownership: the unaided rep is what releases."""
+    release is on ownership: the unaided rep is what releases."""
     dates = [d for d, _, r in ev_index(evidence).by_problem.get(str(pnum), ())
              if r.get("moves")
              and all(v == "clean" for v in r["moves"].values())
@@ -666,32 +666,121 @@ def last_clean_solve(pnum, evidence):
 
 
 def held_behind(pnum, problems, evidence, today=None):
-    """The predecessor problem this one must wait for, or None.
+    """The predecessor this problem must wait for, or None.
 
-    A problem may declare "after": ["46"] - problems whose walk its own
-    builds on (47 is 46's loop plus the dedup rule). While a predecessor is
-    due - never solved clean, or its last clean solve has aged out of the
-    solid window - this problem stays out of carrier pools so the picker
-    serves the predecessor first. A banned predecessor holds nothing back.
+    A problem may declare "after": [ids] - what its own solution builds on
+    (47 is 46's loop plus the dedup rule; 713 is the Count by Contribution
+    drill plus a product). An id is a problem number, a drill title, or a
+    node id; `warm` says whether it is owned. While one is not, this
+    problem stays out of carrier pools so the predecessor is served first.
+    A banned problem, or an id nothing in the graph carries, holds nothing:
+    a hold nothing can clear is a deadlock.
     """
     today = today or date.today()
     for pred in problems.get(str(pnum), {}).get("after", []):
         pred = str(pred)
-        if pred.startswith(DRILL_REF):
-            # a bank drill as the predecessor: "drill:<DRILL title>". The
-            # bar is drill_warm, the same one a drill meets to release the
-            # next drill of its node. A title no bank file carries holds
-            # nothing (test_every_drill_ref_resolves keeps that from
-            # shipping), like a banned predecessor.
-            path = drill_ref_path(pred)
-            if path is not None and not drill_warm(path, evidence, today):
-                return pred
-            continue
         if problems.get(pred, {}).get("banned"):
             continue
-        last = last_clean_solve(pred, evidence)
-        if not last or (today - date.fromisoformat(last)).days > SOLID_WINDOW_DAYS:
+        if warm(pred, problems, evidence, today) is False:
             return pred
+    return None
+
+
+def gates(vid, problems, drill_map=None):
+    """The vertices held behind `vid`: every problem number and drill id
+    whose "after" list names it, problems first in number order, then
+    drills in id order. The reverse of the one relation."""
+    vid = str(vid)
+    drill_map = drills() if drill_map is None else drill_map
+    held = sorted((k for k, p in problems.items()
+                   if vid in map(str, p.get("after", []))), key=pnum_key)
+    held += sorted((i for i, d in drill_map.items() if vid in map(str, d.get("after", []))),
+                   key=pnum_key)
+    return held
+
+
+def vertex_status(vid, problems, evidence, today=None):
+    """A status word for a problem or drill vertex, the way a node has one:
+    SOLID when warm, STALE when it has a rep that is not, MISSING when it
+    has never been done. What the unlabeled drawing shows for what a
+    served item gates."""
+    if warm(vid, problems, evidence, today):
+        return SOLID
+    kind = vertex_kind(vid, problems)
+    if kind == "problem" and ev_index(evidence).by_problem.get(str(vid)):
+        return STALE
+    if kind == "drill" and latest_drill_rep(drill_path(vid), evidence) is not None:
+        return STALE
+    return MISSING
+
+
+def dependents(vid, problems, evidence, drill_map=None, today=None):
+    """What `vid` gates, as rows to act on: for each problem or drill whose
+    "after" names it - id, title, kind (difficulty or "drill"), status
+    (vertex_status), and `held_by`: the other ids in its "after" list that
+    are not warm yet, so "done with d26, what can i do now" reads straight
+    off the list. Problems first in number order, then drills."""
+    vid = str(vid)
+    drill_map = drills() if drill_map is None else drill_map
+    rows = []
+    for h in gates(vid, problems, drill_map):
+        if h in problems:
+            p = problems[h]
+            title, kind, after = p["title"], p.get("difficulty", "?"), p.get("after", [])
+        else:
+            d = drill_map[h]
+            title, kind, after = d["title"], "drill", d.get("after", [])
+        held = [str(a) for a in after
+                if str(a) != vid and warm(a, problems, evidence, today) is False]
+        rows.append({"id": h, "title": title, "kind": kind,
+                     "status": vertex_status(h, problems, evidence, today),
+                     "held_by": held})
+    return rows
+
+
+DIFFICULTY_RANK = {"drill": 0, "Easy": 1, "Medium": 2, "Hard": 3}
+
+
+def easiest_first(rows):
+    """Dependent rows (see `dependents`) in the order to prepare them:
+    drills, then Easy, Medium, Hard; inside a kind the higher community
+    acceptance first. Drills go first for a second reason: the drill
+    picker refuses a non-empty current.py, so they must be cut before a
+    problem's stub lands there."""
+    return sorted(rows, key=lambda r: (DIFFICULTY_RANK.get(r["kind"], 9),
+                                       -acceptance(r["id"]), pnum_key(r["id"])))
+
+
+def vertex_kind(vid, problems):
+    """What an id in an "after" list names: "problem", "drill", "node", or
+    None when nothing in the graph carries it. Problem keys are numbers,
+    drill ids are d1, d2, ... (drills.json), node ids are kebab-case."""
+    vid = str(vid)
+    if vid in problems:
+        return "problem"
+    if vid in drills():
+        return "drill"
+    if vid in load_nodes():
+        return "node"
+    return None
+
+
+def warm(vid, problems, evidence, today=None, early=False):
+    """Whether the vertex `vid` is owned, by the bar its kind carries. A
+    problem: an unaided all-clean solve inside the solid window. A drill:
+    its latest rep is such a solve (drill_warm), or with `early` any
+    all-clean rep (drill_clean, the cram bar). A node: its latest clean rep
+    was unaided (owned). None for an id nothing carries."""
+    today = today or date.today()
+    kind = vertex_kind(vid, problems)
+    if kind == "problem":
+        last = last_clean_solve(vid, evidence)
+        return bool(last) and (today - date.fromisoformat(last)).days <= SOLID_WINDOW_DAYS
+    if kind == "drill":
+        path = drill_path(vid)
+        return drill_clean(path, evidence) if early else drill_warm(path, evidence, today)
+    if kind == "node":
+        return owned(vid, evidence)
     return None
 
 
@@ -812,7 +901,7 @@ FORECAST_WARM_DAYS = 30
 
 def drill_forecast(path, today=None):
     """(expect_min, hint_min, bail_min) for serving a bank drill file, from
-    the mined history — same shape as solve_forecast. First-time rungs fall
+    the mined history — same shape as solve_forecast. First-time drills fall
     back to the median first-attempt time across all timed drills."""
     import math
     from statistics import median
@@ -1255,17 +1344,15 @@ def drill_solved_stem(path):
     return re.sub(r"[^\w\s-]", "", title).strip().replace(" ", "_")
 
 
-DRILL_REF = "drill:"  # an "after" entry naming a bank drill by its DRILL title
-
 _DRILL_PATHS = {}  # DRILLS_DIR -> {DRILL title: bank path}
 
 
-def drill_ref_path(ref):
-    """The bank file whose DRILL title an "after" entry "drill:<title>"
-    names, or None when no file in DRILLS_DIR carries that title. The
-    title is the drill's identity (evidence is keyed on it too), so bank
-    files can be renamed or renumbered without touching problems.json."""
-    title = ref[len(DRILL_REF):].strip()
+def drill_path(ref):
+    """The bank file for a drill id (d61) or DRILL title, or None. The id
+    is how the graph names a drill; the title is the file's DRILL header
+    and the key of its evidence, so bank files can be renamed or moved
+    without touching the graph."""
+    title = drills().get(ref, {}).get("title", ref)
     paths = _DRILL_PATHS.get(DRILLS_DIR)
     if paths is None or title not in paths:
         paths = {}
@@ -1276,6 +1363,33 @@ def drill_ref_path(ref):
         _DRILL_PATHS.clear()
         _DRILL_PATHS[DRILLS_DIR] = paths
     return paths.get(title)
+
+
+_DRILLS = None  # drills.json: {id: {"title": DRILL title, "after": [ids]}}
+
+
+def load_drills():
+    return _load("drills.json")["drills"]
+
+
+def drills():
+    global _DRILLS
+    if _DRILLS is None:
+        _DRILLS = load_drills()
+    return _DRILLS
+
+
+def drill_id(path):
+    """The graph id (d61) of a bank file, by its DRILL title; None when the
+    file has no entry in drills.json."""
+    title = drill_title(path)
+    return next((i for i, d in drills().items() if d.get("title") == title), None)
+
+
+def drill_after(path):
+    """The ids this bank drill comes after (graph/drills.json). A drill with
+    no entry comes after nothing."""
+    return list(drills().get(drill_id(path), {}).get("after", []))
 
 
 def last_drilled(path, evidence):
@@ -1296,10 +1410,10 @@ def latest_drill_rep(path, evidence):
 
 
 def drill_clean(path, evidence):
-    """True when this rung's most recent rep is all-clean, assisted or not:
+    """True when this drill's most recent rep is all-clean, assisted or not:
     the cram bar (`make next sql cram early`), where a hinted clean is a
-    legit rep and the ladder climbs in one sitting instead of waiting a
-    day per rung for the unaided one."""
+    legit rep and a chain of drills is done in one sitting instead of
+    waiting a day per drill for the unaided one."""
     rec = latest_drill_rep(path, evidence)
     if rec is None:
         return False
@@ -1318,11 +1432,11 @@ def drill_assisted(path, evidence):
 
 
 def drill_warm(path, evidence, today=None):
-    """True when this rung's most recent rep is all-clean, not spoiled, and
-    inside the solid window — the bar it must meet to release the rung above
-    it. A drill is a problem we created, so this is held_behind's release
-    rule; latest-rep because a struggle after a clean means the rung is not
-    warm, whatever the graph once believed."""
+    """True when this drill's most recent rep is all-clean, not spoiled, and
+    inside the solid window — the bar it must meet to release what comes
+    after it. A drill is a problem we created, so this is held_behind's
+    release rule; latest-rep because a struggle after a clean means the
+    drill is not warm, whatever the graph once believed."""
     rec = latest_drill_rep(path, evidence)
     if rec is None:
         return False
@@ -1376,7 +1490,7 @@ def owned(node_id, evidence):
 
 
 def drill_held(node_id, nodes, statuses, evidence, has_bank=None, pending=()):
-    """The cross-bank ladder: True while a prereq of node_id must train
+    """The cross-bank hold: True while a prereq of node_id must train
     first - the prereq has a drill bank of its own and is not standing on
     an unaided clean (not SOLID, or solid only through assisted reps), or
     its drill item is still pending in today's plan. Interconnectivity is
@@ -1390,14 +1504,14 @@ def drill_held(node_id, nodes, statuses, evidence, has_bank=None, pending=()):
             return True
         if has_bank(p) and p in statuses and (
                 statuses[p][0] != SOLID or not owned(p, evidence)
-                or ladder_left(p, evidence)):
+                or drills_left(p, evidence)):
             return True  # rusty, not owned, or drills of its own still undone
     return False
 
 
 def drill_trains(path):
     """The node ids a bank drill evidences: its TRAINS header, comma
-    separated. A composite rung lists every move it combines, the way a
+    separated. A composite drill lists every move it combines, the way a
     leetcode problem's walk does; the solve evidences all of them."""
     try:
         with open(path) as f:
@@ -1407,25 +1521,22 @@ def drill_trains(path):
     return [t.strip() for t in m.group(1).split(",") if t.strip()] if m else []
 
 
-def released_rungs(candidates, evidence, node_id=None, early=False):
-    """The prefix of a drill ladder that is open to serve. The bank's
-    filename order is the ladder: a rung is held while the rung below it is
-    not warm — the same "after" rule that serves 46 before 47 (held_behind);
-    with `early` (the cram walk) an assisted clean below is enough.
-    A composite rung (TRAINS lists other nodes) is also held until each of
-    those nodes is owned - its atomic rung clean and unaided - so the
-    combination lands on moves the operator has, instead of teaching two at
-    once. Holds cascade, so this is always a prefix."""
-    below_ok = drill_clean if early else drill_warm
-    released = []
-    for i, rung in enumerate(candidates):
-        if i and not below_ok(candidates[i - 1], evidence):
-            break
-        if any(not owned(t, evidence)
-               for t in drill_trains(rung) if t != node_id):
-            break
-        released.append(rung)
-    return released or candidates[:1]
+def servable_drills(candidates, evidence, node_id=None, early=False):
+    """The bank files open to serve: every id in a drill's "after" list is
+    warm (with `early`, the cram walk, an assisted clean of a predecessor
+    drill is enough), and every other node on its TRAINS line is owned, so
+    a drill that combines moves lands on moves the operator has instead of
+    teaching two at once. Nothing else orders drills: not the filename,
+    not the directory."""
+    problems = load_problems()
+    out = []
+    for path in candidates:
+        if any(warm(a, problems, evidence, early=early) is False for a in drill_after(path)):
+            continue
+        if any(not owned(t, evidence) for t in drill_trains(path) if t != node_id):
+            continue
+        out.append(path)
+    return out
 
 
 def due_drill(node_id, evidence, today=None, early=False, assisted=False):
@@ -1434,14 +1545,14 @@ def due_drill(node_id, evidence, today=None, early=False, assisted=False):
     fallback: a gap node with no READY carrier gets its drill offered instead
     of being silently skipped — a drill cannot be dodged and needs no
     carrier. With `early`, the curve is ignored: a SOLID, owned node still
-    gets its next rung (the cram review, `make next sql cram early`); the
-    ladder and the once-a-day rule still apply. With `assisted`, only drills
-    whose latest rep was assisted are candidates (`make next sql assisted`):
-    the ladder is moot, since a drill with a rep is already released, and
-    the curve is off as under `early`."""
+    gets its next drill (the cram review, `make next sql cram early`); the
+    "after" holds and the once-a-day rule still apply. With `assisted`, only
+    drills whose latest rep was assisted are candidates (`make next sql
+    assisted`): the holds are moot, since a drill with a rep was already
+    servable, and the curve is off as under `early`."""
     status, _ = node_status(node_id, evidence, today)
     if (status == SOLID and owned(node_id, evidence) and not early and not assisted
-            and not ladder_left(node_id, evidence)):
+            and not drills_left(node_id, evidence)):
         return None  # the curve says the node holds - a drill is a problem
                      # we authored, and problems are not re-served while warm.
                      # A never-done drill of the node is still due: one clean
@@ -1453,31 +1564,38 @@ def due_drill(node_id, evidence, today=None, early=False, assisted=False):
         candidates = [p for p in candidates if drill_assisted(p, evidence)]
     if not candidates:
         return None
-    pool = candidates if assisted else released_rungs(
+    pool = candidates if assisted else servable_drills(
         candidates, evidence, node_id, early=early)
     path = min(pool, key=lambda p: last_drilled(p, evidence))
     return None if last_drilled(path, evidence) >= today else path
 
 
-def ladder_left(node_id, evidence, early=False):
-    """True while a rung of the node's bank has never been drilled and the
-    ladder can still get there: either a released rung is untouched, or the
-    first held rung is held by the warm rule (the rung below it needs an
-    unaided clean), which a re-serve of that rung clears. A rung held only
-    because another node is not owned does not count - nothing this node
-    serves would clear it, and a hold nothing can open is a deadlock (the
-    2026-08-31 Combinations serve: done once with a walkthrough, so Reuse
-    Allowed and Subsets stayed held, the node read done, and the dedupe
-    drill got served with subsets never done)."""
+def drills_left(node_id, evidence, early=False):
+    """True while a drill of this node has never been done and serving this
+    node can still get there: it is servable and untouched, or it waits
+    only on drills of this same node (a rep of those is what this node
+    serves). A drill held by another node not being owned, or by a drill
+    of another node, does not count - nothing this node serves would clear
+    it, and a hold nothing can open is a deadlock (the 2026-08-31
+    Combinations serve: done once with a walkthrough, so Reuse Allowed and
+    Subsets stayed held, the node read done, and the dedupe drill got
+    served with subsets never done)."""
     candidates = sorted(glob.glob(os.path.join(DRILLS_DIR, node_id, "*.py")))
-    released = released_rungs(candidates, evidence, node_id, early=early)
-    if any(not last_drilled(p, evidence) for p in released):
-        return True
-    if len(released) == len(candidates):
-        return False
-    held = candidates[len(released)]
-    return not any(not owned(t, evidence)
-                   for t in drill_trains(held) if t != node_id)
+    servable = set(servable_drills(candidates, evidence, node_id, early=early))
+    problems = load_problems()
+    own = {drill_id(p) for p in candidates}
+    for path in candidates:
+        if last_drilled(path, evidence):
+            continue
+        if path in servable:
+            return True
+        if any(not owned(t, evidence) for t in drill_trains(path) if t != node_id):
+            continue
+        unmet = [a for a in drill_after(path)
+                 if warm(a, problems, evidence, early=early) is False]
+        if unmet and all(a in own for a in unmet):
+            return True
+    return False
 
 
 def latest_carrier(node_id, evidence):

@@ -21,7 +21,7 @@ STATUS_FACE = {
     SOLID:   ["😄", "💪", "😎", "✨", "💎", "🟢"],
     STALE:   ["😐", "🫤", "😑", "😴", "🥀", "⌛"],
     FRAGILE: ["😰", "🫠", "🥲", "😬", "💔", "😵"],
-    MISSING: ["👻", "❔", "😶", "🫥", "🕳️"],
+    MISSING: ["👻", "❔", "😶", "🫥", "🕳"],  # bare U+1F573: with its FE0F selector Pango bails and the tree is not drawn
 }
 
 

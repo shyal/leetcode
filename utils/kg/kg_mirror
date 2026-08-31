@@ -14,7 +14,10 @@ Tables
     problems(num, title, difficulty, source, note, banned)
     steps(num, pos, node_id)                  the nodes a problem uses, in order
     alt_steps(num, walk, pos, node_id)        alternative orderings, walk = which one
-    problem_after(num, after_num)             serve `after_num` before `num`
+    problem_after(num, after_id)              serve `after_id` before `num`
+    drills(id, title, path, node)             one bank drill (drills/<node>/*.py), id = d14
+    drill_trains(id, node_id)                 the nodes a drill evidences (TRAINS)
+    drill_after(id, after_id)                 serve `after_id` before the drill
     problem_unmapped(num, text)               moves no node names yet
     solves(file, date, problem, assist, note)     one solve or drill file (evidence.json)
     verdicts(file, node_id, verdict)          one node's verdict inside one solve
@@ -22,14 +25,18 @@ Tables
 
 `assist` is always filled: 'none' when the record has no assist field.
 `problem` is 'drill' for drill files, else the LeetCode number as text.
+An `after_id` is a problem number, a drill id, or a node id (one relation,
+kg_lib.warm decides when it is met).
 """
 
+import glob
 import os
 import sqlite3
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from kg.kg_lib import GRAPH_DIR, assist_of, load_evidence, load_nodes, load_problems  # noqa: E402
+from kg.kg_lib import (GRAPH_DIR, DRILLS_DIR, assist_of, load_evidence, load_nodes,  # noqa: E402
+                       load_problems, load_drills, drill_title, drill_trains, drill_id)
 
 DB = os.path.join(GRAPH_DIR, "leet.db")
 
@@ -44,7 +51,10 @@ CREATE TABLE problems (
     note TEXT, banned INTEGER NOT NULL DEFAULT 0);
 CREATE TABLE steps (num TEXT, pos INTEGER, node_id TEXT, PRIMARY KEY (num, pos));
 CREATE TABLE alt_steps (num TEXT, walk INTEGER, pos INTEGER, node_id TEXT, PRIMARY KEY (num, walk, pos));
-CREATE TABLE problem_after (num TEXT, after_num TEXT, PRIMARY KEY (num, after_num));
+CREATE TABLE problem_after (num TEXT, after_id TEXT, PRIMARY KEY (num, after_id));
+CREATE TABLE drills (id TEXT PRIMARY KEY, title TEXT, path TEXT, node TEXT);
+CREATE TABLE drill_trains (id TEXT, node_id TEXT, PRIMARY KEY (id, node_id));
+CREATE TABLE drill_after (id TEXT, after_id TEXT, PRIMARY KEY (id, after_id));
 CREATE TABLE problem_unmapped (num TEXT, text TEXT);
 CREATE TABLE solves (file TEXT PRIMARY KEY, date TEXT, problem TEXT, assist TEXT, note TEXT);
 CREATE TABLE verdicts (file TEXT, node_id TEXT, verdict TEXT, PRIMARY KEY (file, node_id));
@@ -91,6 +101,22 @@ def main():
                         [(num, a) for a in p.get("after", [])])
         con.executemany("INSERT INTO problem_unmapped VALUES (?,?)",
                         [(num, t) for t in p.get("unmapped", [])])
+
+    edges = load_drills()
+    for path in sorted(glob.glob(os.path.join(DRILLS_DIR, "*", "*.py"))):
+        title = drill_title(path)
+        if title is None:
+            continue
+        did = drill_id(path)
+        if did is None:
+            continue
+        rel = os.path.relpath(path, os.path.dirname(GRAPH_DIR))
+        con.execute("INSERT OR IGNORE INTO drills VALUES (?,?,?,?)",
+                    (did, title, rel, os.path.basename(os.path.dirname(path))))
+        con.executemany("INSERT OR IGNORE INTO drill_trains VALUES (?,?)",
+                        [(did, n) for n in drill_trains(path)])
+        con.executemany("INSERT OR IGNORE INTO drill_after VALUES (?,?)",
+                        [(did, a) for a in edges.get(did, {}).get("after", [])])
 
     for fname, rec in evidence.items():
         con.execute(

@@ -57,8 +57,20 @@ nodes (problem = "drill"; problems.json is never touched; leetcode solve stats i
 d-files). Every drill improvised in chat gets deposited here afterwards, so the rote
 sheet grows with every gap found.
 
+A drill is a vertex of the graph like a problem or a node. Its id is a number
+like `d14`, assigned once in `graph/drills.json` and never reused (the way
+LeetCode numbers are); the entry carries the DRILL title, which is how the bank
+file and the evidence are found, and its edges: `"after": [ids]`, what the drill
+builds on. `make prepare d14` serves it. One relation covers the whole graph: an
+id in any `after` list (problems.json or drills.json) is a problem number, a
+drill id, or a node id,
+and `kg_lib.warm` says when it is met (a problem: an unaided all-clean solve inside
+the solid window; a drill: its latest rep is one; a node: owned). A problem or a
+drill is not served while an id it comes after is not warm (`kg_lib.held_behind`,
+`kg_lib.servable_drills`). Filename order inside `drills/<node>/` means nothing.
+
 Drills also surface in `make next` itself (kg_lib.due_drill picks the node's
-least-recently-drilled bank file; a drill already solved today is not due again).
+least-recently-drilled servable bank file; a drill already solved today is not due again).
 Precedence follows rule 2, and the drill is a GATE, not just an opener
 (`kg_lib.drill_gated`): a MISSING/FRAGILE target — and deep-stale ones, which
 re-enter like FRAGILE — whose node has a drill bank trains on the drill ONLY.
@@ -77,7 +89,7 @@ carrier is READY.
 
 `make next <group>` (currently `make next sql` and `make next spark`; `--group <g>` on kg_next for any group)
 runs the same rules 1-3 over one curated group only, skipping the sleep warm-up and the
-summit fallback, so a new ladder can be worked without the global frontier interrupting.
+summit fallback, so a new node's drills can be worked without the global frontier interrupting.
 
 `make next` is greedy and memoryless — each run picks the single globally-oldest rusty
 node, so consecutive sessions hop between unrelated topics. `make dive` answers "where
@@ -147,7 +159,7 @@ goes stale automatically if a different problem is prepared.
    refresh carriers — you don't carry rusty gear up the Himalayas. Any gap → prep first:
    spaced re-solve for STALE, micro-drill for MISSING/FRAGILE (`make hard <num>` plans
    the basecamp route).
-2b. **A hold must be servable.** The drill ladder (`kg_lib.drill_held`) parks a
+2b. **A hold must be servable.** The cross-bank hold (`kg_lib.drill_held`) parks a
    dependent behind a banked prereq until that prereq has an unaided clean rep. A
    prereq that is SOLID only through assisted reps is not rusty, so rules 1-3 never
    target it; `make next` serves its drill anyway (the ownership rep, rule 0c in
