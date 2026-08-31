@@ -1,1123 +1,1134 @@
 {
- "_comment": "Seed move taxonomy. A node = one atomic, drillable move (finer than a topic tag). Mastery is NEVER stored here — it is derived at query time from evidence.json dates. Split a node (fission) when a stumble reveals a hidden sub-move inside it. `added` = the date the node entered the taxonomy (first commit, clamped back to its earliest evidence).",
- "nodes": [
-  {
-   "id": "set-membership",
-   "group": "containers",
-   "added": "2025-09-17",
-   "name": "Set membership test",
-   "desc": "Build a set, ask 'is this value in it?' in O(1).",
-   "hint": "The set exists only to answer 'in?' queries; if counts matter it is counter-build.",
-   "prereqs": [],
-   "drill": "Given a list of words and an allowed-chars string, count words using only allowed chars."
-  },
-  {
-   "id": "set-algebra",
-   "group": "containers",
-   "added": "2025-09-18",
-   "name": "Set algebra",
-   "desc": "Union, intersection (&), difference (-), symmetric difference on sets.",
-   "hint": "Whole-set operators between two sets; a single membership test is set-membership.",
-   "prereqs": [
-    "set-membership"
-   ],
-   "drill": "Given two arrays, list distinct values in exactly one of them."
-  },
-  {
-   "id": "counter-build",
-   "group": "containers",
-   "added": "2025-09-18",
-   "name": "Frequency map",
-   "desc": "Build value->count with Counter/defaultdict(int).",
-   "hint": "Any value->count dict counts, however built; label it even when the counts feed another move.",
-   "prereqs": [],
-   "drill": "Return the most frequent character in a string."
-  },
-  {
-   "id": "counter-multiset-ops",
-   "group": "containers",
-   "added": "2025-09-29",
-   "name": "Counter as multiset",
-   "desc": "==, <=, &, - and .elements() as multiset equality, sub-multiset, intersection, difference.",
-   "hint": "Operators BETWEEN two Counters; building one Counter alone is just counter-build.",
-   "prereqs": [
-    "counter-build"
-   ],
-   "drill": "Solve 'can note be built from magazine letters?' in one expression."
-  },
-  {
-   "id": "counts-as-data",
-   "group": "containers",
-   "added": "2025-09-18",
-   "name": "Question the counts themselves",
-   "desc": "Treat Counter.values() as the dataset (uniqueness of counts, sorted counts, count-of-counts).",
-   "hint": "The counts themselves become the dataset (their uniqueness, their sorted order); merely reading a count is not the move.",
-   "prereqs": [
-    "counter-build"
-   ],
-   "drill": "Do all values in an array occur a distinct number of times?"
-  },
-  {
-   "id": "dict-arbitrary-value",
-   "group": "containers",
-   "added": "2025-10-01",
-   "name": "Dict values beyond counts",
-   "desc": "Store indices, last-seen positions, or mappings as dict values — choose WHAT to remember.",
-   "hint": "Dict values are payloads (indices, positions, lists); if the values are counts it is counter-build.",
-   "prereqs": [
-    "counter-build"
-   ],
-   "drill": "For each value in an array, record the index where it last appeared."
-  },
-  {
-   "id": "bijection-check",
-   "group": "containers",
-   "added": "2025-10-03",
-   "name": "Bijective mapping check",
-   "desc": "Verify a one-to-one two-way mapping with two dicts (or dict + value-set).",
-   "hint": "Both directions are checked; a one-way mapping is dict-arbitrary-value.",
-   "prereqs": [
-    "dict-arbitrary-value"
-   ],
-   "drill": "Are two strings isomorphic?"
-  },
-  {
-   "id": "streaming-ask-then-record",
-   "group": "streaming",
-   "added": "2025-09-17",
-   "name": "Streaming ask-then-record",
-   "desc": "Walk once; at each element QUERY the running summary of the past, THEN record the present. Order defines 'past'.",
-   "hint": "The signature is query-the-past-summary BEFORE inserting the current element; a plain accumulating total is running-sum.",
-   "prereqs": [
-    "dict-arbitrary-value"
-   ],
-   "drill": "Return the first letter to appear twice in a string, one pass."
-  },
-  {
-   "id": "derived-key-lookup",
-   "group": "streaming",
-   "added": "2025-09-15",
-   "name": "Derived-key lookup",
-   "desc": "Transform the in-hand value into the lookup key (target-n, n+k) instead of looking up the value itself.",
-   "hint": "The lookup key is computed from the in-hand value (target-n, n+k); looking up the value itself is plain set/dict use.",
-   "prereqs": [
-    "streaming-ask-then-record",
-    "solve-pair-condition"
-   ],
-   "drill": "One pass: does any prior element equal current+5?"
-  },
-  {
-   "id": "solve-pair-condition",
-   "group": "streaming",
-   "added": "2025-10-01",
-   "name": "Solve pair condition for the partner",
-   "desc": "Given a pair predicate f(p, n), solve for p algebraically; the solution count = number of lookups needed.",
-   "hint": "The pair predicate is solved algebraically before any lookup; not brute pair scanning.",
-   "prereqs": [],
-   "drill": "Solve |a - b| = c for a. How many answers?"
-  },
-  {
-   "id": "streaming-accumulate-pairs",
-   "group": "streaming",
-   "added": "2025-10-03",
-   "name": "Accumulate pair matches",
-   "desc": "pairs += (matches in the past) at each step, instead of returning on first match. Each pair counted at its second member.",
-   "hint": "Adds count-of-past-matches at every step; the answer is a pair COUNT, not a first match.",
-   "prereqs": [
-    "streaming-ask-then-record"
-   ],
-   "drill": "Count equal pairs (i<j) in one pass without the C(n,2) formula."
-  },
-  {
-   "id": "running-extreme",
-   "group": "streaming",
-   "added": "2025-09-17",
-   "name": "Running min/max",
-   "desc": "Track best-so-far while scanning; answer via current vs best (stock profit shape).",
-   "hint": "Best-so-far via max/min while scanning; if the state is a total or balance it is running-sum.",
-   "prereqs": [],
-   "drill": "Max profit from one buy/sell given prices, one pass."
-  },
-  {
-   "id": "running-sum",
-   "group": "streaming",
-   "added": "2025-09-15",
-   "name": "Running accumulation",
-   "desc": "Accumulate a total/state while scanning (altitude, balance, depth counters).",
-   "hint": "One accumulating total/level updated per step; max/min updates are running-extreme, and a stored per-index array is prefix-sums.",
-   "prereqs": [],
-   "drill": "Track max nesting depth of parentheses in one scan."
-  },
-  {
-   "id": "seen-state-cycle-detect",
-   "group": "streaming",
-   "added": "2025-09-29",
-   "name": "Seen-state cycle detection",
-   "desc": "Store visited states in a set; revisit = cycle/repeat (happy number, path crossing).",
-   "hint": "The set holds visited STATES to detect a repeat; lookups of values are set-membership.",
-   "prereqs": [
-    "set-membership"
-   ],
-   "drill": "Detect when iterating f(n) enters a loop."
-  },
-  {
-   "id": "prefix-sums",
-   "group": "index-order",
-   "added": "2025-10-02",
-   "name": "Prefix sums",
-   "desc": "Precompute cumulative sums; any range sum = difference of two prefixes.",
-   "hint": "A stored array of cumulative sums queried later by subtraction; a single never-stored total is running-sum.",
-   "prereqs": [
-    "running-sum"
-   ],
-   "drill": "Answer 3 range-sum queries on a static array in O(1) each."
-  },
-  {
-   "id": "prefix-sum-hashmap",
-   "group": "index-order",
-   "added": "2025-10-02",
-   "name": "Prefix-sum + hashmap",
-   "desc": "Count subarrays summing to k by asking the past 'have you seen prefix-k?' (560 shape).",
-   "hint": "Prefix sums keyed in a dict to count earlier prefixes equal to prefix-k; array-of-prefixes queries are prefix-sums.",
-   "prereqs": [
-    "prefix-sums",
-    "derived-key-lookup",
-    "streaming-accumulate-pairs"
-   ],
-   "drill": "Count subarrays summing to 0 in one pass."
-  },
-  {
-   "id": "sort-then-adjacent",
-   "group": "index-order",
-   "added": "2025-09-29",
-   "name": "Sort, then adjacent pairs",
-   "desc": "Sorting makes the answer a property of neighbors (min abs difference, arithmetic check).",
-   "hint": "The sort exists so NEIGHBORS answer the question; sorting for its own ordering is sort-by-custom-key.",
-   "prereqs": [],
-   "drill": "Find the minimum absolute difference between any two elements."
-  },
-  {
-   "id": "sort-by-custom-key",
-   "group": "index-order",
-   "added": "2025-09-24",
-   "name": "Custom sort keys",
-   "desc": "key=lambda with tuples for multi-criteria / derived ordering.",
-   "hint": "The point is the key function or tuple; a plain sorted() with default order is not the move.",
-   "prereqs": [],
-   "drill": "Sort words by length, ties alphabetical, in one sort call."
-  },
-  {
-   "id": "counting-sort-buckets",
-   "group": "index-order",
-   "added": "2026-07-05",
-   "name": "Bucket by bounded value",
-   "desc": "When the value domain is small, index an array by value instead of sorting.",
-   "hint": "An array indexed BY VALUE replaces comparison sorting.",
-   "prereqs": [
-    "counter-build"
-   ],
-   "drill": "Sort an array of values 0-100 in O(n) without sort()."
-  },
-  {
-   "id": "two-pointers-converging",
-   "group": "pointers-windows",
-   "added": "2025-09-16",
-   "name": "Converging two pointers",
-   "desc": "Pointers from both ends move inward by a rule (sorted two-sum, palindrome, container).",
-   "hint": "Both ends move toward each other by a rule; same-direction pointers are read-write or a sliding window.",
-   "prereqs": [],
-   "drill": "In a sorted array, find two values summing to target without extra space."
-  },
-  {
-   "id": "two-pointers-read-write",
-   "group": "pointers-windows",
-   "added": "2025-09-17",
-   "name": "Read/write pointers in-place",
-   "desc": "Slow pointer = write position, fast = scan; overwrite in place (remove duplicates, move zeroes).",
-   "hint": "In-place overwrite with a write index; nothing converges from the right end.",
-   "prereqs": [],
-   "drill": "Remove all instances of a value in-place, return new length."
-  },
-  {
-   "id": "fast-slow-pointers",
-   "group": "pointers-windows",
-   "added": "2025-09-18",
-   "name": "Fast/slow pointers",
-   "desc": "Two speeds on the same list to find the middle: slow steps one, fast steps two.",
-   "hint": "Different SPEEDS on one chain to land on the middle; two pointers that MEET in a cycle are floyd-cycle; converging ends are two-pointers-converging.",
-   "prereqs": [],
-   "drill": "Find the middle node of a linked list in one pass."
-  },
-  {
-   "id": "floyd-cycle",
-   "group": "pointers-windows",
-   "added": "2026-08-31",
-   "name": "Floyd's cycle finding",
-   "desc": "Slow and fast pointers meet inside a cycle; reset one to the head and advance both one step to find the entry. An array of indices is a linked list.",
-   "hint": "Two speeds that MEET, then a second walk from the head; two speeds that stop at the middle are fast-slow-pointers.",
-   "prereqs": [
-    "fast-slow-pointers"
-   ],
-   "drill": "Return the node where a linked list's cycle begins, O(1) space."
-  },
-  {
-   "id": "sliding-window-fixed",
-   "group": "pointers-windows",
-   "added": "2025-09-17",
-   "name": "Fixed-size sliding window",
-   "desc": "Window of size k: add the entering element, drop the leaving one, never recompute.",
-   "hint": "The window length is a constant k; a length that changes to keep an invariant is sliding-window-variable.",
-   "prereqs": [
-    "running-sum"
-   ],
-   "drill": "Max sum of any k consecutive elements, updating incrementally."
-  },
-  {
-   "id": "sliding-window-variable",
-   "group": "pointers-windows",
-   "added": "2025-09-18",
-   "name": "Variable sliding window",
-   "desc": "Grow right; shrink left only while an invariant is violated (at most k distinct, sum under a target).",
-   "hint": "The left edge moves only to restore a violated invariant; a constant length is sliding-window-fixed; a window that never shrinks is sliding-window-budget.",
-   "prereqs": [
-    "sliding-window-fixed"
-   ],
-   "drill": "Longest substring with at most k distinct characters."
-  },
-  {
-   "id": "sliding-window-budget",
-   "group": "pointers-windows",
-   "added": "2026-08-31",
-   "name": "Window under a budget",
-   "desc": "Longest window whose violations (zeros to flip) stay within a budget: when the count exceeds it, slide the whole window right at constant width instead of shrinking, so the width never decreases and ends as the answer.",
-   "hint": "Count the violations inside the window; on excess, move both edges by one. Shrinking left until the invariant holds again is sliding-window-variable.",
-   "prereqs": [
-    "sliding-window-variable"
-   ],
-   "drill": "Longest run of 1s you can make by flipping at most k zeros, with a window that never shrinks."
-  },
-  {
-   "id": "stack-matching",
-   "group": "stack-queue",
-   "added": "2025-09-18",
-   "name": "Stack for matching/undo",
-   "desc": "Push opens/candidates, pop on the matching close (parens, stars, collisions).",
-   "hint": "Pops fire on a matching partner (open/close, collision); pops fired by order comparisons are monotonic-stack.",
-   "prereqs": [],
-   "drill": "Validate balanced brackets of 3 kinds."
-  },
-  {
-   "id": "monotonic-stack",
-   "group": "stack-queue",
-   "added": "2025-09-21",
-   "name": "Monotonic stack",
-   "desc": "Keep the stack sorted; popping on violation reveals 'next greater/smaller' relationships.",
-   "hint": "Pops fire on an order violation to reveal next greater/smaller; delimiter matching is stack-matching.",
-   "prereqs": [
-    "stack-matching"
-   ],
-   "drill": "For each element, index of the next greater element to its right.",
-   "refs": [
-    "dsa/monotonic_stack.py"
-   ]
-  },
-  {
-   "id": "deque-recent-window",
-   "group": "stack-queue",
-   "added": "2025-09-18",
-   "name": "Deque for a time window",
-   "desc": "Append new events, popleft expired ones (recent calls shape).",
-   "hint": "A recency/time window: popleft expired entries; not a monotonic deque.",
-   "prereqs": [],
-   "drill": "Count events within the last 3000ms as events stream in."
-  },
-  {
-   "id": "ll-dummy-splice",
-   "group": "linked-lists",
-   "added": "2025-09-26",
-   "name": "Dummy head + splice",
-   "desc": "Dummy node in front; walk and re-link to delete/insert without head special-cases.",
-   "hint": "Dummy head plus relinking; plain traversal is not the move.",
-   "prereqs": [],
-   "drill": "Remove all nodes with a given value from a linked list."
-  },
-  {
-   "id": "ll-pointer-reversal",
-   "group": "linked-lists",
-   "added": "2025-09-19",
-   "name": "Pointer reversal",
-   "desc": "Iteratively flip next pointers with prev/curr bookkeeping.",
-   "hint": "prev/curr next-flipping in place.",
-   "prereqs": [
-    "ll-dummy-splice"
-   ],
-   "drill": "Reverse a linked list iteratively."
-  },
-  {
-   "id": "ll-offset-arithmetic",
-   "group": "linked-lists",
-   "added": "2025-10-08",
-   "name": "Length/offset arithmetic",
-   "desc": "Use lengths or a head-start gap between pointers (nth-from-end, list intersection).",
-   "hint": "A deliberate gap or measured lengths between equal-speed pointers; different speeds are fast-slow-pointers.",
-   "prereqs": [
-    "ll-dummy-splice"
-   ],
-   "drill": "Delete the nth node from the end in one structural pass."
-  },
-  {
-   "id": "binary-search-index",
-   "group": "binary-search",
-   "added": "2025-09-23",
-   "name": "Binary search for an index",
-   "desc": "Classic halving on a sorted array; the while/mid/move template.",
-   "hint": "Locates a target's position in an existing sorted array; searching a numeric answer space is binary-search-on-answer.",
-   "prereqs": [],
-   "drill": "Find a target's index in a sorted array, or -1."
-  },
-  {
-   "id": "binary-search-boundary",
-   "group": "binary-search",
-   "added": "2025-09-24",
-   "name": "Boundary binary search",
-   "desc": "Find the FIRST index where a monotone predicate flips true (leftmost/rightmost variants).",
-   "hint": "The target is the flip point of a monotone predicate, not an equality match.",
-   "prereqs": [
-    "binary-search-index"
-   ],
-   "drill": "First index where nums[i] >= target (insert position)."
-  },
-  {
-   "id": "binary-search-on-answer",
-   "group": "binary-search",
-   "added": "2025-09-26",
-   "name": "Binary search on the answer",
-   "desc": "Search the answer space; a feasibility check replaces the array (Koko, ship capacity).",
-   "hint": "The searched domain is candidate ANSWERS checked by a feasibility function; no array index is located.",
-   "prereqs": [
-    "binary-search-boundary"
-   ],
-   "drill": "Given a can_do(speed) checker, find minimum feasible speed."
-  },
-  {
-   "id": "tree-dfs-recursive",
-   "group": "trees",
-   "added": "2025-09-16",
-   "name": "Recursive tree DFS",
-   "desc": "Visit node, recurse children; pre/in/post order as placement of the visit.",
-   "hint": "Any recursive tree traversal gets this label, usually alongside the move that does the work.",
-   "prereqs": [],
-   "drill": "Collect all values of a binary tree in preorder."
-  },
-  {
-   "id": "tree-combine-returns",
-   "group": "trees",
-   "added": "2025-09-19",
-   "name": "Combine subtree returns",
-   "desc": "Answer at node = f(left answer, right answer) (depth, same-tree, balance).",
-   "hint": "The node's RETURN VALUE is built from the children's return values; combining into an outer best instead is tree-global-across-subtrees.",
-   "prereqs": [
-    "tree-dfs-recursive"
-   ],
-   "drill": "Max depth of a binary tree via one recursive expression."
-  },
-  {
-   "id": "tree-carry-down",
-   "group": "trees",
-   "added": "2025-09-16",
-   "name": "Carry state down",
-   "desc": "Pass accumulating state as recursion args (path sum so far, max on path, BST bounds).",
-   "hint": "State flows DOWN as extra recursion arguments; results flowing up are tree-combine-returns.",
-   "prereqs": [
-    "tree-dfs-recursive"
-   ],
-   "drill": "Count nodes >= the max value seen on their root path."
-  },
-  {
-   "id": "tree-global-across-subtrees",
-   "group": "trees",
-   "added": "2025-10-03",
-   "name": "Global answer across subtrees",
-   "desc": "Return one thing up, but update a global best combining left+right at each node (diameter shape).",
-   "hint": "Returns one simple value up while a nonlocal/global best is updated from left+right; pure return combination is tree-combine-returns.",
-   "prereqs": [
-    "tree-combine-returns"
-   ],
-   "drill": "Diameter of a binary tree."
-  },
-  {
-   "id": "tree-bfs-levels",
-   "group": "trees",
-   "added": "2025-10-08",
-   "name": "Level-order BFS",
-   "desc": "Queue of nodes processed level by level; depth = layer count.",
-   "hint": "Queue processed one level per loop iteration; depth counted in layers.",
-   "prereqs": [],
-   "drill": "Return tree values grouped by level."
-  },
-  {
-   "id": "bst-invariant",
-   "group": "trees",
-   "added": "2025-09-25",
-   "name": "Exploit BST ordering",
-   "desc": "left < node < right prunes half the tree per step (search, validate, insert).",
-   "hint": "The ordering property PRUNES one subtree per step; visiting both children is plain tree-dfs-recursive.",
-   "prereqs": [
-    "tree-dfs-recursive"
-   ],
-   "drill": "Search a value in a BST touching O(h) nodes."
-  },
-  {
-   "id": "tree-build-from-traversals",
-   "group": "trees",
-   "added": "2025-10-02",
-   "name": "Rebuild tree from traversals",
-   "desc": "Root from pre/postorder end, split inorder around it, recurse the slices.",
-   "hint": "Reconstruction by splitting traversal orders; the split logic is the move even though recursion drives it.",
-   "prereqs": [
-    "tree-combine-returns"
-   ],
-   "drill": "Build the tree from preorder + inorder."
-  },
-  {
-   "id": "graph-adjacency-build",
-   "group": "graphs",
-   "added": "2025-09-22",
-   "name": "Edges to adjacency",
-   "desc": "Convert edge lists to adjacency dict/list, directed or not.",
-   "hint": "Explicit edge-list to adjacency conversion; grids walked by delta offsets don't need it.",
-   "prereqs": [
-    "dict-arbitrary-value"
-   ],
-   "drill": "Build adjacency from an edge list; list neighbors of node 0."
-  },
-  {
-   "id": "graph-dfs-visited",
-   "group": "graphs",
-   "added": "2025-09-22",
-   "name": "Graph DFS with visited set",
-   "desc": "DFS + visited set; count components, check reachability.",
-   "hint": "DFS plus a visited set over an explicit graph or grid.",
-   "prereqs": [
-    "graph-adjacency-build",
-    "seen-state-cycle-detect"
-   ],
-   "drill": "Count connected components in an undirected graph."
-  },
-  {
-   "id": "graph-bfs-shortest",
-   "group": "graphs",
-   "added": "2025-09-23",
-   "name": "BFS for shortest steps",
-   "desc": "BFS layers = minimum moves; grid neighbors via delta offsets (maze, oranges).",
-   "hint": "BFS because the answer is MINIMUM steps from one source; all-sources seeding is multi-source-bfs.",
-   "prereqs": [
-    "graph-adjacency-build",
-    "tree-bfs-levels"
-   ],
-   "drill": "Min steps from corner to corner of a grid with walls."
-  },
-  {
-   "id": "union-find",
-   "group": "graphs",
-   "added": "2025-11-01",
-   "name": "Union-Find",
-   "desc": "parent[] with find + union; components and cycle detection without traversal.",
-   "hint": "parent array/dict with find and union; building components by traversal is graph-dfs-visited.",
-   "prereqs": [],
-   "drill": "Process edge list; report component count after each union."
-  },
-  {
-   "id": "topological-order",
-   "group": "graphs",
-   "added": "2025-11-05",
-   "name": "Topological ordering",
-   "desc": "Order a DAG by dependencies (Kahn's in-degree queue or DFS postorder); cycle = impossible.",
-   "hint": "In-degree queue or DFS postorder over a DAG; a detected cycle means impossible.",
-   "prereqs": [
-    "graph-dfs-visited"
-   ],
-   "drill": "Order courses given prerequisite pairs, or report a cycle."
-  },
-  {
-   "id": "backtracking-choose-undo",
-   "group": "recursion-dp",
-   "added": "2025-09-24",
-   "name": "Choose, explore, un-choose",
-   "desc": "Append candidate, recurse, pop; record a copy when the path is complete.",
-   "hint": "The undo after the recursive call is the signature. Which candidates are legal at a given depth is a different move.",
-   "prereqs": [
-    "tree-dfs-recursive"
-   ],
-   "drill": "Given groups of letters, return every string taking one letter from each group."
-  },
-  {
-   "id": "backtracking-start-index",
-   "group": "recursion-dp",
-   "added": "2026-08-26",
-   "name": "Start-index availability",
-   "desc": "Candidates are the suffix from a start value; recurse at x+1 to use once, x to reuse.",
-   "hint": "Order does not matter, so an element passed over is gone for good. Combinations and subsets differ only in where you record.",
-   "prereqs": [
-    "backtracking-choose-undo"
-   ],
-   "drill": "Return every combination of k numbers from 1 to n."
-  },
-  {
-   "id": "backtracking-mark-unmark",
-   "group": "recursion-dp",
-   "added": "2026-08-26",
-   "name": "Mark and unmark availability",
-   "desc": "Candidates are everything not currently marked; raise the flag before recursing, lower it after.",
-   "hint": "Order matters, so every call loops from the start and skips only what is marked. A cell or index left marked poisons later branches.",
-   "prereqs": [
-    "backtracking-choose-undo"
-   ],
-   "drill": "Return every ordering of a list of distinct integers."
-  },
-  {
-   "id": "backtracking-dedupe-siblings",
-   "group": "recursion-dp",
-   "added": "2026-08-26",
-   "name": "Skip equal siblings",
-   "desc": "Sort, then skip a candidate equal to the one before it when its index is past this call's start value.",
-   "hint": "Comparing the index against 0 instead of the start value throws away legitimate repeats from different depths.",
-   "prereqs": [
-    "backtracking-start-index"
-   ],
-   "drill": "Return every distinct subset of an array that holds repeated values."
-  },
-  {
-   "id": "memoize-recursion",
-   "group": "recursion-dp",
-   "added": "2025-09-25",
-   "name": "Memoized recursion",
-   "desc": "@cache on a pure recurrence turns exponential into linear (fib, climbing stairs).",
-   "hint": "A cache on a recurrence; filling a table iteratively is dp-1d-rolling or dp-2d-grid.",
-   "prereqs": [],
-   "drill": "Climbing stairs with @cache; explain what got cached."
-  },
-  {
-   "id": "dp-state-formulate",
-   "group": "recursion-dp",
-   "added": "2025-09-25",
-   "name": "Formulate DP state",
-   "desc": "Name the state, write the recurrence and base cases BEFORE coding.",
-   "hint": "Label when defining the state/recurrence is the work, usually alongside the dp node that fills it.",
-   "prereqs": [
-    "memoize-recursion"
-   ],
-   "drill": "State + recurrence (no code) for house robber."
-  },
-  {
-   "id": "dp-1d-rolling",
-   "group": "recursion-dp",
-   "added": "2025-09-25",
-   "name": "1D bottom-up DP",
-   "desc": "Fill a 1D table (or two rolling vars) forward from base cases.",
-   "hint": "Iterative 1D table or rolling variables; recursion with a cache is memoize-recursion.",
-   "prereqs": [
-    "dp-state-formulate"
-   ],
-   "drill": "House robber with O(1) space."
-  },
-  {
-   "id": "dp-2d-grid",
-   "group": "recursion-dp",
-   "added": "2025-10-16",
-   "name": "2D table DP",
-   "desc": "Grid/path DP: cell from its neighbor cells (unique paths, min path sum, obstacles).",
-   "hint": "A two-dimensional table over grid positions, filled from neighbor cells.",
-   "prereqs": [
-    "dp-1d-rolling"
-   ],
-   "drill": "Count grid paths with obstacles using one rolling row."
-  },
-  {
-   "id": "two-sequence-align",
-   "group": "recursion-dp",
-   "added": "2025-09-27",
-   "name": "Two-sequence alignment",
-   "desc": "Two-prefix state over two sequences; each step consumes from one side or both (LCS, edit distance, delete distance).",
-   "hint": "State is a pair of positions into two sequences, advanced by comparing their current characters.",
-   "prereqs": [
-    "dp-state-formulate"
-   ],
-   "drill": "State + recurrence (no code) for the delete-only distance between two strings."
-  },
-  {
-   "id": "heap-top-k",
-   "group": "heaps-greedy",
-   "added": "2025-09-23",
-   "name": "Heap for top-k",
-   "desc": "Min-heap of size k holds the k largest; root is the kth.",
-   "hint": "A size-k heap maintained under pushes; the heap answers top-k queries, it is not the process itself.",
-   "prereqs": [],
-   "drill": "Kth largest element without full sort."
-  },
-  {
-   "id": "heap-simulation",
-   "group": "heaps-greedy",
-   "added": "2025-10-05",
-   "name": "Heap-driven simulation",
-   "desc": "Repeatedly pop extreme, transform, push back (last stone weight).",
-   "hint": "The pop-transform-push loop IS the process; a heap kept only to answer top queries is heap-top-k.",
-   "prereqs": [
-    "heap-top-k"
-   ],
-   "drill": "Smash the two heaviest stones until <=1 remains."
-  },
-  {
-   "id": "greedy-sort-take",
-   "group": "heaps-greedy",
-   "added": "2025-09-24",
-   "name": "Sort then take greedily",
-   "desc": "Sort by the exchange-argument key (often interval END), take while compatible.",
-   "hint": "Sort once, then take greedily under a compatibility test.",
-   "prereqs": [
-    "sort-by-custom-key"
-   ],
-   "drill": "Max number of non-overlapping intervals."
-  },
-  {
-   "id": "interval-overlap",
-   "group": "heaps-greedy",
-   "added": "2025-09-24",
-   "name": "Interval overlap predicate",
-   "desc": "a.start <= b.end && b.start <= a.end; merge/count via sorted sweep.",
-   "hint": "The pairwise overlap predicate or sorted merge of intervals; +1/-1 boundary events are event-sweep.",
-   "prereqs": [
-    "sort-then-adjacent"
-   ],
-   "drill": "Merge a list of possibly-overlapping intervals."
-  },
-  {
-   "id": "xor-cancellation",
-   "group": "bits-math",
-   "added": "2025-09-20",
-   "name": "XOR cancellation",
-   "desc": "x^x=0, x^0=x: duplicates vanish under XOR reduction.",
-   "hint": "XOR chosen so duplicates cancel; general bit visiting is bit-iterate.",
-   "prereqs": [],
-   "drill": "Find the element appearing once where all others appear twice."
-  },
-  {
-   "id": "bit-iterate",
-   "group": "bits-math",
-   "added": "2025-09-20",
-   "name": "Walk the bits",
-   "desc": "Shift/AND to visit bits; popcount; compare numbers bitwise.",
-   "hint": "A loop over bits with shifts and masks; a single XOR-cancel trick is xor-cancellation.",
-   "prereqs": [],
-   "drill": "Count differing bits between two ints."
-  },
-  {
-   "id": "divmod-decompose",
-   "group": "bits-math",
-   "added": "2025-09-15",
-   "name": "Digit/base decomposition",
-   "desc": "divmod loops to peel digits or convert bases.",
-   "hint": "Digit peeling or base conversion by divmod.",
-   "prereqs": [],
-   "drill": "Sum the digits of n without str()."
-  },
-  {
-   "id": "gcd-reduction",
-   "group": "bits-math",
-   "added": "2025-09-17",
-   "name": "GCD/LCM reasoning",
-   "desc": "Euclid's gcd and where divisibility structure hides (gcd of array, common factors).",
-   "hint": "Euclid's algorithm, or the answer hides in divisibility structure.",
-   "prereqs": [],
-   "drill": "Count common factors of a and b via gcd."
-  },
-  {
-   "id": "pair-count-formula",
-   "group": "bits-math",
-   "added": "2025-10-03",
-   "name": "Closed-form pair counting",
-   "desc": "C(n,2)=n(n-1)/2 per group; batch alternative to streaming pair accumulation.",
-   "hint": "Closed-form n(n-1)/2 per group AFTER counting; incremental pair counting during the scan is streaming-accumulate-pairs.",
-   "prereqs": [
-    "counter-build"
-   ],
-   "drill": "Count equal pairs from a frequency map in one expression."
-  },
-  {
-   "id": "modular-cycle",
-   "group": "bits-math",
-   "added": "2025-09-16",
-   "name": "Modulo for circularity",
-   "desc": "% for wraparound indexing, cyclic distance, periodic schedules.",
-   "hint": "% for wraparound, parity, or periodic position; not digit peeling.",
-   "prereqs": [],
-   "drill": "Min moves between two letters on a circular A-Z wheel."
-  },
-  {
-   "id": "string-build-transform",
-   "group": "strings",
-   "added": "2025-09-15",
-   "name": "Split/transform/join",
-   "desc": "Decompose string, transform parts, reassemble (words, prefixes, normalization).",
-   "hint": "split/join/slice pipelines that rebuild a string; label it even when it only feeds another move.",
-   "prereqs": [],
-   "drill": "Reverse word order in a sentence, normalizing spaces."
-  },
-  {
-   "id": "trie-build-walk",
-   "group": "strings",
-   "added": "2025-09-20",
-   "name": "Trie build and walk",
-   "desc": "Nested-dict character tree; insert and prefix-walk.",
-   "hint": "Nested-dict character tree, insert and prefix-walk.",
-   "prereqs": [
-    "dict-arbitrary-value"
-   ],
-   "drill": "Insert 3 words; check a prefix and a full word."
-  },
-  {
-   "id": "heap-lazy-eviction",
-   "group": "heaps-greedy",
-   "added": "2026-08-13",
-   "name": "Lazy eviction from a heap",
-   "desc": "Leave stale entries in the heap; on peek/pop, discard tops that fail a validity check (index left the window, value outdated) until the top is live.",
-   "hint": "Stale entries stay in the heap until they surface invalid at the top; eager removal is not the move.",
-   "prereqs": [
-    "heap-simulation"
-   ],
-   "drill": "Sliding window max via max-heap of (val, idx): pop while the top's idx is outside the window."
-  },
-  {
-   "id": "multi-source-bfs",
-   "group": "graphs",
-   "added": "2026-08-13",
-   "name": "Multi-source BFS",
-   "desc": "Seed the BFS queue with every source at distance 0, then expand in rings; each cell's first visit is its distance to the nearest source.",
-   "hint": "The queue STARTS with every source at distance 0; one start point is graph-bfs-shortest.",
-   "prereqs": [
-    "graph-bfs-shortest"
-   ],
-   "drill": "Grid of 0s and 1s: fill each 1 with its distance to the nearest 0."
-  },
-  {
-   "id": "prefix-suffix-two-pass",
-   "group": "index-order",
-   "added": "2026-08-13",
-   "name": "Prefix/suffix two-pass",
-   "desc": "Scan left-to-right recording a running quantity, scan right-to-left recording its mirror, then combine the two per index.",
-   "hint": "Two opposite-direction passes combined per index; one stored prefix array queried by subtraction is prefix-sums.",
-   "prereqs": [
-    "running-sum",
-    "running-extreme"
-   ],
-   "drill": "Given heights, output min(max left of i, max right of i) for each i in two passes."
-  },
-  {
-   "id": "stack-nested-eval",
-   "group": "stack-queue",
-   "added": "2026-08-13",
-   "name": "Stack of partial state",
-   "desc": "Entering a nested scope or higher-precedence region, push the partial result and context; when it closes, pop and combine.",
-   "hint": "Push the partial result and context at scope open, pop and combine at close; matching delimiters alone is stack-matching.",
-   "prereqs": [
-    "stack-matching"
-   ],
-   "drill": "Evaluate '3+2*2-1' with a stack of signed terms, summing at the end."
-  },
-  {
-   "id": "recursive-descent",
-   "group": "stack-queue",
-   "added": "2026-08-18",
-   "name": "Recursive descent parsing",
-   "desc": "Grammar rule -> function, all sharing one cursor; a bracketed sub-expression is a recursive call, precedence is one function per level.",
-   "hint": "One function per grammar rule, all sharing one cursor.",
-   "prereqs": [
-    "stack-matching"
-   ],
-   "drill": "Parse and evaluate '12-(3+4)' with one function per grammar rule and a shared cursor.",
-   "refs": [
-    "dsa/recursive_descent.py"
-   ]
-  },
-  {
-   "id": "event-sweep",
-   "group": "index-order",
-   "added": "2026-08-13",
-   "name": "Event sweep",
-   "desc": "Turn intervals into +1/-1 boundary events, sort them, sweep once keeping a running count (or heap) of what's active.",
-   "hint": "Intervals become sorted +1/-1 events swept with a running count; direct pairwise tests are interval-overlap.",
-   "prereqs": [
-    "sort-by-custom-key",
-    "running-sum"
-   ],
-   "drill": "Given meeting intervals, find the max number happening at once via +1/-1 events."
-  },
-  {
-   "id": "rotated-array-pivot",
-   "group": "binary-search",
-   "added": "2026-08-13",
-   "name": "Rotated-array half-pick",
-   "desc": "At each binary-search step, compare mid against an end to decide which half is sorted, then pick the half that can contain the target/min.",
-   "hint": "The mid-vs-end comparison decides which half is sorted.",
-   "prereqs": [
-    "binary-search-index"
-   ],
-   "drill": "Find the index of the minimum in a rotated sorted array without a linear scan."
-  },
-  {
-   "id": "generate-and-test-neighbors",
-   "group": "graphs",
-   "added": "2026-08-13",
-   "name": "Generate-and-test neighbors",
-   "desc": "Implicit graphs: never materialize edges. Enumerate the small perturbation space of the current state (one-letter variants, wheel turns, blank swaps) and validate each candidate in O(1) against a set.",
-   "hint": "Neighbors are generated by mutating the state and validated against a set; no adjacency structure exists.",
-   "prereqs": [
-    "set-membership"
-   ],
-   "drill": "Given a word and a word-set, list its in-set one-letter variants without scanning the word list."
-  },
-  {
-   "id": "index-value-gap",
-   "group": "index-order",
-   "added": "2026-08-15",
-   "name": "Index-value gap counting",
-   "desc": "In a sorted strictly-increasing array of positive ints, index i should hold i+1; arr[i] - (i+1) = how many positive ints are missing before arr[i].",
-   "hint": "arr[i] is compared with the value index arithmetic says should sit there.",
-   "prereqs": [],
-   "drill": "Given a sorted strictly-increasing array of positive ints, return how many positive ints below arr[-1] are missing."
-  },
-  {
-   "id": "sql-filter-select",
-   "group": "sql",
-   "added": "2026-08-28",
-   "name": "Filter, project, order",
-   "desc": "SELECT columns FROM one table WHERE conditions, ORDER BY; DISTINCT, LIKE, arithmetic on columns.",
-   "hint": "One table, no aggregate, no join: the row either passes the WHERE or it does not.",
-   "prereqs": [],
-   "drill": "Return odd-id rows whose description is not 'boring', highest rating first."
-  },
-  {
-   "id": "sql-null-semantics",
-   "group": "sql",
-   "added": "2026-08-28",
-   "name": "NULL is not a value",
-   "desc": "NULL compared with anything is unknown, never true: IS NULL / IS NOT NULL, COALESCE, and why != drops NULL rows.",
-   "hint": "The move is remembering that a NULL row fails BOTH x = 2 and x != 2; label it whenever a NULL column is filtered.",
-   "prereqs": [
-    "sql-filter-select"
-   ],
-   "drill": "Names of customers whose referee is not customer 2, including customers with no referee."
-  },
-  {
-   "id": "sql-join-inner",
-   "group": "sql",
-   "added": "2026-08-28",
-   "name": "Inner join on a key",
-   "desc": "JOIN b ON a.key = b.key (or USING); unmatched rows on either side vanish.",
-   "hint": "Two tables, only matched rows wanted; if unmatched rows must survive it is sql-join-left-keep.",
-   "prereqs": [
-    "sql-filter-select"
-   ],
-   "drill": "Product name, year and price for every sale."
-  },
-  {
-   "id": "sql-join-left-keep",
-   "group": "sql",
-   "added": "2026-08-28",
-   "name": "Left join keeps the unmatched",
-   "desc": "LEFT JOIN keeps every left row with NULLs for no match; extra conditions go in ON, not WHERE, or the join turns inner.",
-   "hint": "The tell is 'every X, even those without Y'; a condition on the right table in WHERE is the classic bug.",
-   "prereqs": [
-    "sql-join-inner",
-    "sql-null-semantics",
-    "sql-group-aggregate"
-   ],
-   "drill": "Every employee with their unique_id or NULL."
-  },
-  {
-   "id": "sql-group-aggregate",
-   "group": "sql",
-   "added": "2026-08-28",
-   "name": "GROUP BY with aggregates",
-   "desc": "One row per group with COUNT / SUM / AVG / MIN / MAX, COUNT(DISTINCT), ROUND.",
-   "hint": "Collapsing rows to one per key; if the rows must survive alongside the aggregate it is a window.",
-   "prereqs": [
-    "sql-filter-select"
-   ],
-   "drill": "Distinct subjects per teacher."
-  },
-  {
-   "id": "sql-having-filter-groups",
-   "group": "sql",
-   "added": "2026-08-28",
-   "name": "HAVING filters groups",
-   "desc": "HAVING runs after GROUP BY and sees aggregates; WHERE runs before and cannot.",
-   "hint": "A condition on COUNT/SUM of the group; a condition on a row column is WHERE.",
-   "prereqs": [
-    "sql-group-aggregate"
-   ],
-   "drill": "Classes with at least five students."
-  },
-  {
-   "id": "sql-conditional-aggregate",
-   "group": "sql",
-   "added": "2026-08-28",
-   "name": "CASE inside an aggregate",
-   "desc": "SUM(CASE WHEN ... THEN 1 ELSE 0 END), AVG of a 0/1 flag for rates, pivoting states into columns in one pass.",
-   "hint": "Several counts or sums over different subsets of the same group in one GROUP BY; a rate is AVG of a flag.",
-   "prereqs": [
-    "sql-group-aggregate"
-   ],
-   "drill": "Per country: transactions, approved transactions, total amount, approved amount."
-  },
-  {
-   "id": "sql-anti-join",
-   "group": "sql",
-   "added": "2026-08-28",
-   "name": "Rows with no match",
-   "desc": "NOT EXISTS, or LEFT JOIN ... WHERE right.key IS NULL; NOT IN breaks when the subquery yields a NULL.",
-   "hint": "'X that never / without any Y'; label the NULL trap when the compared column is nullable.",
-   "prereqs": [
-    "sql-join-left-keep"
-   ],
-   "drill": "Employees who are nobody's manager, when manager_id has NULLs."
-  },
-  {
-   "id": "sql-self-join",
-   "group": "sql",
-   "added": "2026-08-28",
-   "name": "Join a table to itself",
-   "desc": "Two aliases of one table: employee/manager, previous/next row by id, pairs.",
-   "hint": "The relation is within one table; two aliases, one condition between them.",
-   "prereqs": [
-    "sql-join-inner",
-    "sql-group-aggregate"
-   ],
-   "drill": "Each manager with their direct-report count and average report age."
-  },
-  {
-   "id": "sql-subquery",
-   "group": "sql",
-   "added": "2026-08-28",
-   "name": "Subqueries and CTEs",
-   "desc": "Scalar subquery for a single total; (a, b) IN (SELECT a, MIN(b) ... GROUP BY a) for first-per-key; WITH for readability.",
-   "hint": "A query used as a value or as a filter set; a correlated version per row is the slow form.",
-   "prereqs": [
-    "sql-group-aggregate"
-   ],
-   "drill": "Percentage of all users registered per contest; sales in each product's first year."
-  },
-  {
-   "id": "sql-date-arithmetic",
-   "group": "sql",
-   "added": "2026-08-28",
-   "name": "Date arithmetic and buckets",
-   "desc": "Previous calendar day, day differences, month buckets; dialect map: sqlite date()/julianday()/strftime, MySQL DATEDIFF/DATE_FORMAT, Postgres date - 1/date_trunc, Presto date_add/date_trunc.",
-   "hint": "'Yesterday' means the date, not the previous row; 'per month' means grouping on a derived bucket.",
-   "prereqs": [
-    "sql-self-join",
-    "sql-conditional-aggregate"
-   ],
-   "drill": "Days warmer than the previous calendar day; monthly transaction summaries."
-  },
-  {
-   "id": "sql-set-union",
-   "group": "sql",
-   "added": "2026-08-28",
-   "name": "UNION ALL to stack",
-   "desc": "UNION ALL to stack both directions of a symmetric relation or to unpivot columns into rows; UNION dedupes and is usually wrong for counting.",
-   "hint": "A count that must see a row from both sides, or columns that should have been rows.",
-   "prereqs": [
-    "sql-group-aggregate"
-   ],
-   "drill": "Who has the most friends, counting both requester and accepter."
-  },
-  {
-   "id": "sql-dedupe-keep-one",
-   "group": "sql",
-   "added": "2026-08-28",
-   "name": "Keep one row per key",
-   "desc": "GROUP BY key with MIN(id) (or MAX) to pick the survivor, then join or IN to fetch its row.",
-   "hint": "Duplicates on a natural key, one survivor by a rule; the window form is sql-window-rank rung 3.",
-   "prereqs": [
-    "sql-group-aggregate"
-   ],
-   "drill": "Keep the smallest id per email."
-  },
-  {
-   "id": "sql-nth-value",
-   "group": "sql",
-   "added": "2026-08-28",
-   "name": "Nth highest with a NULL fallback",
-   "desc": "DISTINCT + ORDER BY + LIMIT/OFFSET wrapped as a scalar subquery so a missing Nth yields one NULL row; or MAX below MAX.",
-   "hint": "'Second highest, NULL if none': the empty-result-vs-NULL-row distinction is the move.",
-   "prereqs": [
-    "sql-subquery"
-   ],
-   "drill": "Second highest distinct salary, or NULL."
-  },
-  {
-   "id": "sql-string-functions",
-   "group": "sql",
-   "added": "2026-08-28",
-   "name": "String functions and string aggregation",
-   "desc": "UPPER/LOWER/SUBSTR/concatenation, LIKE patterns; GROUP_CONCAT / STRING_AGG / ARRAY_JOIN(ARRAY_AGG()) with DISTINCT and order.",
-   "hint": "Transforming text per row, or collapsing a group's values into one string.",
-   "prereqs": [
-    "sql-group-aggregate"
-   ],
-   "drill": "Capitalise names; comma-joined distinct products per date."
-  },
-  {
-   "id": "sql-window-rank",
-   "group": "sql",
-   "added": "2026-08-28",
-   "name": "Ranking windows",
-   "desc": "ROW_NUMBER / RANK / DENSE_RANK OVER (PARTITION BY ... ORDER BY ...), filtered in an outer query: top-N per group, dedupe-latest.",
-   "hint": "Rows survive with a rank attached; the filter on the rank must sit outside the window's query.",
-   "prereqs": [
-    "sql-group-aggregate",
-    "sql-subquery"
-   ],
-   "drill": "Dense-rank scores; top three salaries per department; latest reading per sensor."
-  },
-  {
-   "id": "sql-window-running",
-   "group": "sql",
-   "added": "2026-08-28",
-   "name": "Running and moving aggregates",
-   "desc": "SUM/AVG/COUNT OVER (ORDER BY ...) for prefix totals; ROWS BETWEEN n PRECEDING AND CURRENT ROW for moving windows.",
-   "hint": "Each row sees a total over rows up to it; a fixed-width window needs an explicit frame.",
-   "prereqs": [
-    "sql-window-rank"
-   ],
-   "drill": "Last person to fit in the bus; seven-day moving average."
-  },
-  {
-   "id": "sql-window-offset",
-   "group": "sql",
-   "added": "2026-08-28",
-   "name": "LAG and LEAD",
-   "desc": "LAG(col) / LEAD(col) OVER (ORDER BY ...) to compare a row with its neighbour: consecutive values, period-over-period change.",
-   "hint": "'Previous row' or 'next row' in an ordering; replaces a self-join on id - 1.",
-   "prereqs": [
-    "sql-window-rank"
-   ],
-   "drill": "Numbers appearing three times in a row; month-over-month change."
-  },
-  {
-   "id": "sql-gaps-islands",
-   "group": "sql",
-   "added": "2026-08-28",
-   "name": "Gaps and islands",
-   "desc": "value - ROW_NUMBER() OVER (ORDER BY value) is constant within a consecutive run; group on it to measure runs (streaks, sessions).",
-   "hint": "'At least k consecutive' or 'longest streak': the row-number difference labels each island in one pass.",
-   "prereqs": [
-    "sql-window-rank",
-    "sql-window-offset",
-    "sql-having-filter-groups"
-   ],
-   "drill": "Stadium days with three or more consecutive busy ids; longest login streak per user."
-  }
- ]
+  "_comment": "Seed move taxonomy. A node = one atomic, drillable move (finer than a topic tag). Mastery is NEVER stored here \u2014 it is derived at query time from evidence.json dates. Split a node (fission) when a stumble reveals a hidden sub-move inside it. `added` = the date the node entered the taxonomy (first commit, clamped back to its earliest evidence).",
+  "nodes": [
+    {
+      "id": "set-membership",
+      "group": "containers",
+      "added": "2025-09-17",
+      "name": "Set membership test",
+      "desc": "Build a set, ask 'is this value in it?' in O(1).",
+      "hint": "The set exists only to answer 'in?' queries; if counts matter it is counter-build.",
+      "prereqs": [],
+      "drill": "Given a list of words and an allowed-chars string, count words using only allowed chars."
+    },
+    {
+      "id": "set-algebra",
+      "group": "containers",
+      "added": "2025-09-18",
+      "name": "Set algebra",
+      "desc": "Union, intersection (&), difference (-), symmetric difference on sets.",
+      "hint": "Whole-set operators between two sets; a single membership test is set-membership.",
+      "prereqs": [
+        "set-membership"
+      ],
+      "drill": "Given two arrays, list distinct values in exactly one of them."
+    },
+    {
+      "id": "counter-build",
+      "group": "containers",
+      "added": "2025-09-18",
+      "name": "Frequency map",
+      "desc": "Build value->count with Counter/defaultdict(int).",
+      "hint": "Any value->count dict counts, however built; label it even when the counts feed another move.",
+      "prereqs": [],
+      "drill": "Return the most frequent character in a string."
+    },
+    {
+      "id": "counter-multiset-ops",
+      "group": "containers",
+      "added": "2025-09-29",
+      "name": "Counter as multiset",
+      "desc": "==, <=, &, - and .elements() as multiset equality, sub-multiset, intersection, difference.",
+      "hint": "Operators BETWEEN two Counters; building one Counter alone is just counter-build.",
+      "prereqs": [
+        "counter-build"
+      ],
+      "drill": "Solve 'can note be built from magazine letters?' in one expression."
+    },
+    {
+      "id": "counts-as-data",
+      "group": "containers",
+      "added": "2025-09-18",
+      "name": "Question the counts themselves",
+      "desc": "Treat Counter.values() as the dataset (uniqueness of counts, sorted counts, count-of-counts).",
+      "hint": "The counts themselves become the dataset (their uniqueness, their sorted order); merely reading a count is not the move.",
+      "prereqs": [
+        "counter-build"
+      ],
+      "drill": "Do all values in an array occur a distinct number of times?"
+    },
+    {
+      "id": "dict-arbitrary-value",
+      "group": "containers",
+      "added": "2025-10-01",
+      "name": "Dict values beyond counts",
+      "desc": "Store indices, last-seen positions, or mappings as dict values \u2014 choose WHAT to remember.",
+      "hint": "Dict values are payloads (indices, positions, lists); if the values are counts it is counter-build.",
+      "prereqs": [
+        "counter-build"
+      ],
+      "drill": "For each value in an array, record the index where it last appeared."
+    },
+    {
+      "id": "bijection-check",
+      "group": "containers",
+      "added": "2025-10-03",
+      "name": "Bijective mapping check",
+      "desc": "Verify a one-to-one two-way mapping with two dicts (or dict + value-set).",
+      "hint": "Both directions are checked; a one-way mapping is dict-arbitrary-value.",
+      "prereqs": [
+        "dict-arbitrary-value"
+      ],
+      "drill": "Are two strings isomorphic?"
+    },
+    {
+      "id": "streaming-ask-then-record",
+      "group": "streaming",
+      "added": "2025-09-17",
+      "name": "Streaming ask-then-record",
+      "desc": "Walk once; at each element QUERY the running summary of the past, THEN record the present. Order defines 'past'.",
+      "hint": "The signature is query-the-past-summary BEFORE inserting the current element; a plain accumulating total is running-sum.",
+      "prereqs": [
+        "dict-arbitrary-value"
+      ],
+      "drill": "Return the first letter to appear twice in a string, one pass."
+    },
+    {
+      "id": "derived-key-lookup",
+      "group": "streaming",
+      "added": "2025-09-15",
+      "name": "Derived-key lookup",
+      "desc": "Transform the in-hand value into the lookup key (target-n, n+k) instead of looking up the value itself.",
+      "hint": "The lookup key is computed from the in-hand value (target-n, n+k); looking up the value itself is plain set/dict use.",
+      "prereqs": [
+        "streaming-ask-then-record",
+        "solve-pair-condition"
+      ],
+      "drill": "One pass: does any prior element equal current+5?"
+    },
+    {
+      "id": "solve-pair-condition",
+      "group": "streaming",
+      "added": "2025-10-01",
+      "name": "Solve pair condition for the partner",
+      "desc": "Given a pair predicate f(p, n), solve for p algebraically; the solution count = number of lookups needed.",
+      "hint": "The pair predicate is solved algebraically before any lookup; not brute pair scanning.",
+      "prereqs": [],
+      "drill": "Solve |a - b| = c for a. How many answers?"
+    },
+    {
+      "id": "streaming-accumulate-pairs",
+      "group": "streaming",
+      "added": "2025-10-03",
+      "name": "Accumulate pair matches",
+      "desc": "pairs += (matches in the past) at each step, instead of returning on first match. Each pair counted at its second member.",
+      "hint": "Adds count-of-past-matches at every step; the answer is a pair COUNT, not a first match.",
+      "prereqs": [
+        "streaming-ask-then-record"
+      ],
+      "drill": "Count equal pairs (i<j) in one pass without the C(n,2) formula."
+    },
+    {
+      "id": "running-extreme",
+      "group": "streaming",
+      "added": "2025-09-17",
+      "name": "Running min/max",
+      "desc": "Track best-so-far while scanning; answer via current vs best (stock profit shape).",
+      "hint": "Best-so-far via max/min while scanning; if the state is a total or balance it is running-sum.",
+      "prereqs": [],
+      "drill": "Max profit from one buy/sell given prices, one pass."
+    },
+    {
+      "id": "running-sum",
+      "group": "streaming",
+      "added": "2025-09-15",
+      "name": "Running accumulation",
+      "desc": "Accumulate a total/state while scanning (altitude, balance, depth counters).",
+      "hint": "One accumulating total/level updated per step; max/min updates are running-extreme, and a stored per-index array is prefix-sums.",
+      "prereqs": [],
+      "drill": "Track max nesting depth of parentheses in one scan."
+    },
+    {
+      "id": "seen-state-cycle-detect",
+      "group": "streaming",
+      "added": "2025-09-29",
+      "name": "Seen-state cycle detection",
+      "desc": "Store visited states in a set; revisit = cycle/repeat (happy number, path crossing).",
+      "hint": "The set holds visited STATES to detect a repeat; lookups of values are set-membership.",
+      "prereqs": [
+        "set-membership"
+      ],
+      "drill": "Detect when iterating f(n) enters a loop."
+    },
+    {
+      "id": "prefix-sums",
+      "group": "index-order",
+      "added": "2025-10-02",
+      "name": "Prefix sums",
+      "desc": "Precompute cumulative sums; any range sum = difference of two prefixes.",
+      "hint": "A stored array of cumulative sums queried later by subtraction; a single never-stored total is running-sum.",
+      "prereqs": [
+        "running-sum"
+      ],
+      "drill": "Answer 3 range-sum queries on a static array in O(1) each."
+    },
+    {
+      "id": "prefix-sum-hashmap",
+      "group": "index-order",
+      "added": "2025-10-02",
+      "name": "Prefix-sum + hashmap",
+      "desc": "Count subarrays summing to k by asking the past 'have you seen prefix-k?' (560 shape).",
+      "hint": "Prefix sums keyed in a dict to count earlier prefixes equal to prefix-k; array-of-prefixes queries are prefix-sums.",
+      "prereqs": [
+        "prefix-sums",
+        "derived-key-lookup",
+        "streaming-accumulate-pairs"
+      ],
+      "drill": "Count subarrays summing to 0 in one pass."
+    },
+    {
+      "id": "sort-then-adjacent",
+      "group": "index-order",
+      "added": "2025-09-29",
+      "name": "Sort, then adjacent pairs",
+      "desc": "Sorting makes the answer a property of neighbors (min abs difference, arithmetic check).",
+      "hint": "The sort exists so NEIGHBORS answer the question; sorting for its own ordering is sort-by-custom-key.",
+      "prereqs": [],
+      "drill": "Find the minimum absolute difference between any two elements."
+    },
+    {
+      "id": "sort-by-custom-key",
+      "group": "index-order",
+      "added": "2025-09-24",
+      "name": "Custom sort keys",
+      "desc": "key=lambda with tuples for multi-criteria / derived ordering.",
+      "hint": "The point is the key function or tuple; a plain sorted() with default order is not the move.",
+      "prereqs": [],
+      "drill": "Sort words by length, ties alphabetical, in one sort call."
+    },
+    {
+      "id": "counting-sort-buckets",
+      "group": "index-order",
+      "added": "2026-07-05",
+      "name": "Bucket by bounded value",
+      "desc": "When the value domain is small, index an array by value instead of sorting.",
+      "hint": "An array indexed BY VALUE replaces comparison sorting.",
+      "prereqs": [
+        "counter-build"
+      ],
+      "drill": "Sort an array of values 0-100 in O(n) without sort()."
+    },
+    {
+      "id": "two-pointers-converging",
+      "group": "pointers-windows",
+      "added": "2025-09-16",
+      "name": "Converging two pointers",
+      "desc": "Pointers from both ends move inward by a rule (sorted two-sum, palindrome, container).",
+      "hint": "Both ends move toward each other by a rule; same-direction pointers are read-write or a sliding window.",
+      "prereqs": [],
+      "drill": "In a sorted array, find two values summing to target without extra space."
+    },
+    {
+      "id": "two-pointers-read-write",
+      "group": "pointers-windows",
+      "added": "2025-09-17",
+      "name": "Read/write pointers in-place",
+      "desc": "Slow pointer = write position, fast = scan; overwrite in place (remove duplicates, move zeroes).",
+      "hint": "In-place overwrite with a write index; nothing converges from the right end.",
+      "prereqs": [],
+      "drill": "Remove all instances of a value in-place, return new length."
+    },
+    {
+      "id": "fast-slow-pointers",
+      "group": "pointers-windows",
+      "added": "2025-09-18",
+      "name": "Fast/slow pointers",
+      "desc": "Two speeds on the same list to find the middle: slow steps one, fast steps two.",
+      "hint": "Different SPEEDS on one chain to land on the middle; two pointers that MEET in a cycle are floyd-cycle; converging ends are two-pointers-converging.",
+      "prereqs": [],
+      "drill": "Find the middle node of a linked list in one pass."
+    },
+    {
+      "id": "floyd-cycle",
+      "group": "pointers-windows",
+      "added": "2026-08-31",
+      "name": "Floyd's cycle finding",
+      "desc": "Slow and fast pointers meet inside a cycle; reset one to the head and advance both one step to find the entry. An array of indices is a linked list.",
+      "hint": "Two speeds that MEET, then a second walk from the head; two speeds that stop at the middle are fast-slow-pointers.",
+      "prereqs": [
+        "fast-slow-pointers"
+      ],
+      "drill": "Return the node where a linked list's cycle begins, O(1) space."
+    },
+    {
+      "id": "sliding-window-fixed",
+      "group": "pointers-windows",
+      "added": "2025-09-17",
+      "name": "Fixed-size sliding window",
+      "desc": "Window of size k: add the entering element, drop the leaving one, never recompute.",
+      "hint": "The window length is a constant k; a length that changes to keep an invariant is sliding-window-variable.",
+      "prereqs": [
+        "running-sum"
+      ],
+      "drill": "Max sum of any k consecutive elements, updating incrementally."
+    },
+    {
+      "id": "sliding-window-variable",
+      "group": "pointers-windows",
+      "added": "2025-09-18",
+      "name": "Variable sliding window",
+      "desc": "Grow right; shrink left only while an invariant is violated (at most k distinct, sum under a target).",
+      "hint": "The left edge moves only to restore a violated invariant; a constant length is sliding-window-fixed; a window that never shrinks is sliding-window-budget.",
+      "prereqs": [
+        "sliding-window-fixed",
+        "substring-enumeration"
+      ],
+      "drill": "Longest substring with at most k distinct characters."
+    },
+    {
+      "id": "sliding-window-budget",
+      "group": "pointers-windows",
+      "added": "2026-08-31",
+      "name": "Window under a budget",
+      "desc": "Longest window whose violations (zeros to flip) stay within a budget: when the count exceeds it, slide the whole window right at constant width instead of shrinking, so the width never decreases and ends as the answer.",
+      "hint": "Count the violations inside the window; on excess, move both edges by one. Shrinking left until the invariant holds again is sliding-window-variable.",
+      "prereqs": [
+        "sliding-window-variable"
+      ],
+      "drill": "Longest run of 1s you can make by flipping at most k zeros, with a window that never shrinks."
+    },
+    {
+      "id": "stack-matching",
+      "group": "stack-queue",
+      "added": "2025-09-18",
+      "name": "Stack for matching/undo",
+      "desc": "Push opens/candidates, pop on the matching close (parens, stars, collisions).",
+      "hint": "Pops fire on a matching partner (open/close, collision); pops fired by order comparisons are monotonic-stack.",
+      "prereqs": [],
+      "drill": "Validate balanced brackets of 3 kinds."
+    },
+    {
+      "id": "monotonic-stack",
+      "group": "stack-queue",
+      "added": "2025-09-21",
+      "name": "Monotonic stack",
+      "desc": "Keep the stack sorted; popping on violation reveals 'next greater/smaller' relationships.",
+      "hint": "Pops fire on an order violation to reveal next greater/smaller; delimiter matching is stack-matching.",
+      "prereqs": [
+        "stack-matching"
+      ],
+      "drill": "For each element, index of the next greater element to its right.",
+      "refs": [
+        "dsa/monotonic_stack.py"
+      ]
+    },
+    {
+      "id": "deque-recent-window",
+      "group": "stack-queue",
+      "added": "2025-09-18",
+      "name": "Deque for a time window",
+      "desc": "Append new events, popleft expired ones (recent calls shape).",
+      "hint": "A recency/time window: popleft expired entries; not a monotonic deque.",
+      "prereqs": [],
+      "drill": "Count events within the last 3000ms as events stream in."
+    },
+    {
+      "id": "ll-dummy-splice",
+      "group": "linked-lists",
+      "added": "2025-09-26",
+      "name": "Dummy head + splice",
+      "desc": "Dummy node in front; walk and re-link to delete/insert without head special-cases.",
+      "hint": "Dummy head plus relinking; plain traversal is not the move.",
+      "prereqs": [],
+      "drill": "Remove all nodes with a given value from a linked list."
+    },
+    {
+      "id": "ll-pointer-reversal",
+      "group": "linked-lists",
+      "added": "2025-09-19",
+      "name": "Pointer reversal",
+      "desc": "Iteratively flip next pointers with prev/curr bookkeeping.",
+      "hint": "prev/curr next-flipping in place.",
+      "prereqs": [
+        "ll-dummy-splice"
+      ],
+      "drill": "Reverse a linked list iteratively."
+    },
+    {
+      "id": "ll-offset-arithmetic",
+      "group": "linked-lists",
+      "added": "2025-10-08",
+      "name": "Length/offset arithmetic",
+      "desc": "Use lengths or a head-start gap between pointers (nth-from-end, list intersection).",
+      "hint": "A deliberate gap or measured lengths between equal-speed pointers; different speeds are fast-slow-pointers.",
+      "prereqs": [
+        "ll-dummy-splice"
+      ],
+      "drill": "Delete the nth node from the end in one structural pass."
+    },
+    {
+      "id": "binary-search-index",
+      "group": "binary-search",
+      "added": "2025-09-23",
+      "name": "Binary search for an index",
+      "desc": "Classic halving on a sorted array; the while/mid/move template.",
+      "hint": "Locates a target's position in an existing sorted array; searching a numeric answer space is binary-search-on-answer.",
+      "prereqs": [],
+      "drill": "Find a target's index in a sorted array, or -1."
+    },
+    {
+      "id": "binary-search-boundary",
+      "group": "binary-search",
+      "added": "2025-09-24",
+      "name": "Boundary binary search",
+      "desc": "Find the FIRST index where a monotone predicate flips true (leftmost/rightmost variants).",
+      "hint": "The target is the flip point of a monotone predicate, not an equality match.",
+      "prereqs": [
+        "binary-search-index"
+      ],
+      "drill": "First index where nums[i] >= target (insert position)."
+    },
+    {
+      "id": "binary-search-on-answer",
+      "group": "binary-search",
+      "added": "2025-09-26",
+      "name": "Binary search on the answer",
+      "desc": "Search the answer space; a feasibility check replaces the array (Koko, ship capacity).",
+      "hint": "The searched domain is candidate ANSWERS checked by a feasibility function; no array index is located.",
+      "prereqs": [
+        "binary-search-boundary"
+      ],
+      "drill": "Given a can_do(speed) checker, find minimum feasible speed."
+    },
+    {
+      "id": "tree-dfs-recursive",
+      "group": "trees",
+      "added": "2025-09-16",
+      "name": "Recursive tree DFS",
+      "desc": "Visit node, recurse children; pre/in/post order as placement of the visit.",
+      "hint": "Any recursive tree traversal gets this label, usually alongside the move that does the work.",
+      "prereqs": [],
+      "drill": "Collect all values of a binary tree in preorder."
+    },
+    {
+      "id": "tree-combine-returns",
+      "group": "trees",
+      "added": "2025-09-19",
+      "name": "Combine subtree returns",
+      "desc": "Answer at node = f(left answer, right answer) (depth, same-tree, balance).",
+      "hint": "The node's RETURN VALUE is built from the children's return values; combining into an outer best instead is tree-global-across-subtrees.",
+      "prereqs": [
+        "tree-dfs-recursive"
+      ],
+      "drill": "Max depth of a binary tree via one recursive expression."
+    },
+    {
+      "id": "tree-carry-down",
+      "group": "trees",
+      "added": "2025-09-16",
+      "name": "Carry state down",
+      "desc": "Pass accumulating state as recursion args (path sum so far, max on path, BST bounds).",
+      "hint": "State flows DOWN as extra recursion arguments; results flowing up are tree-combine-returns.",
+      "prereqs": [
+        "tree-dfs-recursive"
+      ],
+      "drill": "Count nodes >= the max value seen on their root path."
+    },
+    {
+      "id": "tree-global-across-subtrees",
+      "group": "trees",
+      "added": "2025-10-03",
+      "name": "Global answer across subtrees",
+      "desc": "Return one thing up, but update a global best combining left+right at each node (diameter shape).",
+      "hint": "Returns one simple value up while a nonlocal/global best is updated from left+right; pure return combination is tree-combine-returns.",
+      "prereqs": [
+        "tree-combine-returns"
+      ],
+      "drill": "Diameter of a binary tree."
+    },
+    {
+      "id": "tree-bfs-levels",
+      "group": "trees",
+      "added": "2025-10-08",
+      "name": "Level-order BFS",
+      "desc": "Queue of nodes processed level by level; depth = layer count.",
+      "hint": "Queue processed one level per loop iteration; depth counted in layers.",
+      "prereqs": [],
+      "drill": "Return tree values grouped by level."
+    },
+    {
+      "id": "bst-invariant",
+      "group": "trees",
+      "added": "2025-09-25",
+      "name": "Exploit BST ordering",
+      "desc": "left < node < right prunes half the tree per step (search, validate, insert).",
+      "hint": "The ordering property PRUNES one subtree per step; visiting both children is plain tree-dfs-recursive.",
+      "prereqs": [
+        "tree-dfs-recursive"
+      ],
+      "drill": "Search a value in a BST touching O(h) nodes."
+    },
+    {
+      "id": "tree-build-from-traversals",
+      "group": "trees",
+      "added": "2025-10-02",
+      "name": "Rebuild tree from traversals",
+      "desc": "Root from pre/postorder end, split inorder around it, recurse the slices.",
+      "hint": "Reconstruction by splitting traversal orders; the split logic is the move even though recursion drives it.",
+      "prereqs": [
+        "tree-combine-returns"
+      ],
+      "drill": "Build the tree from preorder + inorder."
+    },
+    {
+      "id": "graph-adjacency-build",
+      "group": "graphs",
+      "added": "2025-09-22",
+      "name": "Edges to adjacency",
+      "desc": "Convert edge lists to adjacency dict/list, directed or not.",
+      "hint": "Explicit edge-list to adjacency conversion; grids walked by delta offsets don't need it.",
+      "prereqs": [
+        "dict-arbitrary-value"
+      ],
+      "drill": "Build adjacency from an edge list; list neighbors of node 0."
+    },
+    {
+      "id": "graph-dfs-visited",
+      "group": "graphs",
+      "added": "2025-09-22",
+      "name": "Graph DFS with visited set",
+      "desc": "DFS + visited set; count components, check reachability.",
+      "hint": "DFS plus a visited set over an explicit graph or grid.",
+      "prereqs": [
+        "graph-adjacency-build",
+        "seen-state-cycle-detect"
+      ],
+      "drill": "Count connected components in an undirected graph."
+    },
+    {
+      "id": "graph-bfs-shortest",
+      "group": "graphs",
+      "added": "2025-09-23",
+      "name": "BFS for shortest steps",
+      "desc": "BFS layers = minimum moves; grid neighbors via delta offsets (maze, oranges).",
+      "hint": "BFS because the answer is MINIMUM steps from one source; all-sources seeding is multi-source-bfs.",
+      "prereqs": [
+        "graph-adjacency-build",
+        "tree-bfs-levels"
+      ],
+      "drill": "Min steps from corner to corner of a grid with walls."
+    },
+    {
+      "id": "union-find",
+      "group": "graphs",
+      "added": "2025-11-01",
+      "name": "Union-Find",
+      "desc": "parent[] with find + union; components and cycle detection without traversal.",
+      "hint": "parent array/dict with find and union; building components by traversal is graph-dfs-visited.",
+      "prereqs": [],
+      "drill": "Process edge list; report component count after each union."
+    },
+    {
+      "id": "topological-order",
+      "group": "graphs",
+      "added": "2025-11-05",
+      "name": "Topological ordering",
+      "desc": "Order a DAG by dependencies (Kahn's in-degree queue or DFS postorder); cycle = impossible.",
+      "hint": "In-degree queue or DFS postorder over a DAG; a detected cycle means impossible.",
+      "prereqs": [
+        "graph-dfs-visited"
+      ],
+      "drill": "Order courses given prerequisite pairs, or report a cycle."
+    },
+    {
+      "id": "backtracking-choose-undo",
+      "group": "recursion-dp",
+      "added": "2025-09-24",
+      "name": "Choose, explore, un-choose",
+      "desc": "Append candidate, recurse, pop; record a copy when the path is complete.",
+      "hint": "The undo after the recursive call is the signature. Which candidates are legal at a given depth is a different move.",
+      "prereqs": [
+        "tree-dfs-recursive"
+      ],
+      "drill": "Given groups of letters, return every string taking one letter from each group."
+    },
+    {
+      "id": "backtracking-start-index",
+      "group": "recursion-dp",
+      "added": "2026-08-26",
+      "name": "Start-index availability",
+      "desc": "Candidates are the suffix from a start value; recurse at x+1 to use once, x to reuse.",
+      "hint": "Order does not matter, so an element passed over is gone for good. Combinations and subsets differ only in where you record.",
+      "prereqs": [
+        "backtracking-choose-undo"
+      ],
+      "drill": "Return every combination of k numbers from 1 to n."
+    },
+    {
+      "id": "backtracking-mark-unmark",
+      "group": "recursion-dp",
+      "added": "2026-08-26",
+      "name": "Mark and unmark availability",
+      "desc": "Candidates are everything not currently marked; raise the flag before recursing, lower it after.",
+      "hint": "Order matters, so every call loops from the start and skips only what is marked. A cell or index left marked poisons later branches.",
+      "prereqs": [
+        "backtracking-choose-undo"
+      ],
+      "drill": "Return every ordering of a list of distinct integers."
+    },
+    {
+      "id": "backtracking-dedupe-siblings",
+      "group": "recursion-dp",
+      "added": "2026-08-26",
+      "name": "Skip equal siblings",
+      "desc": "Sort, then skip a candidate equal to the one before it when its index is past this call's start value.",
+      "hint": "Comparing the index against 0 instead of the start value throws away legitimate repeats from different depths.",
+      "prereqs": [
+        "backtracking-start-index"
+      ],
+      "drill": "Return every distinct subset of an array that holds repeated values."
+    },
+    {
+      "id": "memoize-recursion",
+      "group": "recursion-dp",
+      "added": "2025-09-25",
+      "name": "Memoized recursion",
+      "desc": "@cache on a pure recurrence turns exponential into linear (fib, climbing stairs).",
+      "hint": "A cache on a recurrence; filling a table iteratively is dp-1d-rolling or dp-2d-grid.",
+      "prereqs": [],
+      "drill": "Climbing stairs with @cache; explain what got cached."
+    },
+    {
+      "id": "dp-state-formulate",
+      "group": "recursion-dp",
+      "added": "2025-09-25",
+      "name": "Formulate DP state",
+      "desc": "Name the state, write the recurrence and base cases BEFORE coding.",
+      "hint": "Label when defining the state/recurrence is the work, usually alongside the dp node that fills it.",
+      "prereqs": [
+        "memoize-recursion"
+      ],
+      "drill": "State + recurrence (no code) for house robber."
+    },
+    {
+      "id": "dp-1d-rolling",
+      "group": "recursion-dp",
+      "added": "2025-09-25",
+      "name": "1D bottom-up DP",
+      "desc": "Fill a 1D table (or two rolling vars) forward from base cases.",
+      "hint": "Iterative 1D table or rolling variables; recursion with a cache is memoize-recursion.",
+      "prereqs": [
+        "dp-state-formulate"
+      ],
+      "drill": "House robber with O(1) space."
+    },
+    {
+      "id": "dp-2d-grid",
+      "group": "recursion-dp",
+      "added": "2025-10-16",
+      "name": "2D table DP",
+      "desc": "Grid/path DP: cell from its neighbor cells (unique paths, min path sum, obstacles).",
+      "hint": "A two-dimensional table over grid positions, filled from neighbor cells.",
+      "prereqs": [
+        "dp-1d-rolling"
+      ],
+      "drill": "Count grid paths with obstacles using one rolling row."
+    },
+    {
+      "id": "two-sequence-align",
+      "group": "recursion-dp",
+      "added": "2025-09-27",
+      "name": "Two-sequence alignment",
+      "desc": "Two-prefix state over two sequences; each step consumes from one side or both (LCS, edit distance, delete distance).",
+      "hint": "State is a pair of positions into two sequences, advanced by comparing their current characters.",
+      "prereqs": [
+        "dp-state-formulate"
+      ],
+      "drill": "State + recurrence (no code) for the delete-only distance between two strings."
+    },
+    {
+      "id": "heap-top-k",
+      "group": "heaps-greedy",
+      "added": "2025-09-23",
+      "name": "Heap for top-k",
+      "desc": "Min-heap of size k holds the k largest; root is the kth.",
+      "hint": "A size-k heap maintained under pushes; the heap answers top-k queries, it is not the process itself.",
+      "prereqs": [],
+      "drill": "Kth largest element without full sort."
+    },
+    {
+      "id": "heap-simulation",
+      "group": "heaps-greedy",
+      "added": "2025-10-05",
+      "name": "Heap-driven simulation",
+      "desc": "Repeatedly pop extreme, transform, push back (last stone weight).",
+      "hint": "The pop-transform-push loop IS the process; a heap kept only to answer top queries is heap-top-k.",
+      "prereqs": [
+        "heap-top-k"
+      ],
+      "drill": "Smash the two heaviest stones until <=1 remains."
+    },
+    {
+      "id": "greedy-sort-take",
+      "group": "heaps-greedy",
+      "added": "2025-09-24",
+      "name": "Sort then take greedily",
+      "desc": "Sort by the exchange-argument key (often interval END), take while compatible.",
+      "hint": "Sort once, then take greedily under a compatibility test.",
+      "prereqs": [
+        "sort-by-custom-key"
+      ],
+      "drill": "Max number of non-overlapping intervals."
+    },
+    {
+      "id": "interval-overlap",
+      "group": "heaps-greedy",
+      "added": "2025-09-24",
+      "name": "Interval overlap predicate",
+      "desc": "a.start <= b.end && b.start <= a.end; merge/count via sorted sweep.",
+      "hint": "The pairwise overlap predicate or sorted merge of intervals; +1/-1 boundary events are event-sweep.",
+      "prereqs": [
+        "sort-then-adjacent"
+      ],
+      "drill": "Merge a list of possibly-overlapping intervals."
+    },
+    {
+      "id": "xor-cancellation",
+      "group": "bits-math",
+      "added": "2025-09-20",
+      "name": "XOR cancellation",
+      "desc": "x^x=0, x^0=x: duplicates vanish under XOR reduction.",
+      "hint": "XOR chosen so duplicates cancel; general bit visiting is bit-iterate.",
+      "prereqs": [],
+      "drill": "Find the element appearing once where all others appear twice."
+    },
+    {
+      "id": "bit-iterate",
+      "group": "bits-math",
+      "added": "2025-09-20",
+      "name": "Walk the bits",
+      "desc": "Shift/AND to visit bits; popcount; compare numbers bitwise.",
+      "hint": "A loop over bits with shifts and masks; a single XOR-cancel trick is xor-cancellation.",
+      "prereqs": [],
+      "drill": "Count differing bits between two ints."
+    },
+    {
+      "id": "divmod-decompose",
+      "group": "bits-math",
+      "added": "2025-09-15",
+      "name": "Digit/base decomposition",
+      "desc": "divmod loops to peel digits or convert bases.",
+      "hint": "Digit peeling or base conversion by divmod.",
+      "prereqs": [],
+      "drill": "Sum the digits of n without str()."
+    },
+    {
+      "id": "gcd-reduction",
+      "group": "bits-math",
+      "added": "2025-09-17",
+      "name": "GCD/LCM reasoning",
+      "desc": "Euclid's gcd and where divisibility structure hides (gcd of array, common factors).",
+      "hint": "Euclid's algorithm, or the answer hides in divisibility structure.",
+      "prereqs": [],
+      "drill": "Count common factors of a and b via gcd."
+    },
+    {
+      "id": "pair-count-formula",
+      "group": "bits-math",
+      "added": "2025-10-03",
+      "name": "Closed-form pair counting",
+      "desc": "C(n,2)=n(n-1)/2 per group; batch alternative to streaming pair accumulation.",
+      "hint": "Closed-form n(n-1)/2 per group AFTER counting; incremental pair counting during the scan is streaming-accumulate-pairs.",
+      "prereqs": [
+        "counter-build"
+      ],
+      "drill": "Count equal pairs from a frequency map in one expression."
+    },
+    {
+      "id": "modular-cycle",
+      "group": "bits-math",
+      "added": "2025-09-16",
+      "name": "Modulo for circularity",
+      "desc": "% for wraparound indexing, cyclic distance, periodic schedules.",
+      "hint": "% for wraparound, parity, or periodic position; not digit peeling.",
+      "prereqs": [],
+      "drill": "Min moves between two letters on a circular A-Z wheel."
+    },
+    {
+      "id": "string-build-transform",
+      "group": "strings",
+      "added": "2025-09-15",
+      "name": "Split/transform/join",
+      "desc": "Decompose string, transform parts, reassemble (words, prefixes, normalization).",
+      "hint": "split/join/slice pipelines that rebuild a string; label it even when it only feeds another move.",
+      "prereqs": [],
+      "drill": "Reverse word order in a sentence, normalizing spaces."
+    },
+    {
+      "id": "trie-build-walk",
+      "group": "strings",
+      "added": "2025-09-20",
+      "name": "Trie build and walk",
+      "desc": "Nested-dict character tree; insert and prefix-walk.",
+      "hint": "Nested-dict character tree, insert and prefix-walk.",
+      "prereqs": [
+        "dict-arbitrary-value"
+      ],
+      "drill": "Insert 3 words; check a prefix and a full word."
+    },
+    {
+      "id": "heap-lazy-eviction",
+      "group": "heaps-greedy",
+      "added": "2026-08-13",
+      "name": "Lazy eviction from a heap",
+      "desc": "Leave stale entries in the heap; on peek/pop, discard tops that fail a validity check (index left the window, value outdated) until the top is live.",
+      "hint": "Stale entries stay in the heap until they surface invalid at the top; eager removal is not the move.",
+      "prereqs": [
+        "heap-simulation"
+      ],
+      "drill": "Sliding window max via max-heap of (val, idx): pop while the top's idx is outside the window."
+    },
+    {
+      "id": "multi-source-bfs",
+      "group": "graphs",
+      "added": "2026-08-13",
+      "name": "Multi-source BFS",
+      "desc": "Seed the BFS queue with every source at distance 0, then expand in rings; each cell's first visit is its distance to the nearest source.",
+      "hint": "The queue STARTS with every source at distance 0; one start point is graph-bfs-shortest.",
+      "prereqs": [
+        "graph-bfs-shortest"
+      ],
+      "drill": "Grid of 0s and 1s: fill each 1 with its distance to the nearest 0."
+    },
+    {
+      "id": "prefix-suffix-two-pass",
+      "group": "index-order",
+      "added": "2026-08-13",
+      "name": "Prefix/suffix two-pass",
+      "desc": "Scan left-to-right recording a running quantity, scan right-to-left recording its mirror, then combine the two per index.",
+      "hint": "Two opposite-direction passes combined per index; one stored prefix array queried by subtraction is prefix-sums.",
+      "prereqs": [
+        "running-sum",
+        "running-extreme"
+      ],
+      "drill": "Given heights, output min(max left of i, max right of i) for each i in two passes."
+    },
+    {
+      "id": "stack-nested-eval",
+      "group": "stack-queue",
+      "added": "2026-08-13",
+      "name": "Stack of partial state",
+      "desc": "Entering a nested scope or higher-precedence region, push the partial result and context; when it closes, pop and combine.",
+      "hint": "Push the partial result and context at scope open, pop and combine at close; matching delimiters alone is stack-matching.",
+      "prereqs": [
+        "stack-matching"
+      ],
+      "drill": "Evaluate '3+2*2-1' with a stack of signed terms, summing at the end."
+    },
+    {
+      "id": "recursive-descent",
+      "group": "stack-queue",
+      "added": "2026-08-18",
+      "name": "Recursive descent parsing",
+      "desc": "Grammar rule -> function, all sharing one cursor; a bracketed sub-expression is a recursive call, precedence is one function per level.",
+      "hint": "One function per grammar rule, all sharing one cursor.",
+      "prereqs": [
+        "stack-matching"
+      ],
+      "drill": "Parse and evaluate '12-(3+4)' with one function per grammar rule and a shared cursor.",
+      "refs": [
+        "dsa/recursive_descent.py"
+      ]
+    },
+    {
+      "id": "event-sweep",
+      "group": "index-order",
+      "added": "2026-08-13",
+      "name": "Event sweep",
+      "desc": "Turn intervals into +1/-1 boundary events, sort them, sweep once keeping a running count (or heap) of what's active.",
+      "hint": "Intervals become sorted +1/-1 events swept with a running count; direct pairwise tests are interval-overlap.",
+      "prereqs": [
+        "sort-by-custom-key",
+        "running-sum"
+      ],
+      "drill": "Given meeting intervals, find the max number happening at once via +1/-1 events."
+    },
+    {
+      "id": "rotated-array-pivot",
+      "group": "binary-search",
+      "added": "2026-08-13",
+      "name": "Rotated-array half-pick",
+      "desc": "At each binary-search step, compare mid against an end to decide which half is sorted, then pick the half that can contain the target/min.",
+      "hint": "The mid-vs-end comparison decides which half is sorted.",
+      "prereqs": [
+        "binary-search-index"
+      ],
+      "drill": "Find the index of the minimum in a rotated sorted array without a linear scan."
+    },
+    {
+      "id": "generate-and-test-neighbors",
+      "group": "graphs",
+      "added": "2026-08-13",
+      "name": "Generate-and-test neighbors",
+      "desc": "Implicit graphs: never materialize edges. Enumerate the small perturbation space of the current state (one-letter variants, wheel turns, blank swaps) and validate each candidate in O(1) against a set.",
+      "hint": "Neighbors are generated by mutating the state and validated against a set; no adjacency structure exists.",
+      "prereqs": [
+        "set-membership"
+      ],
+      "drill": "Given a word and a word-set, list its in-set one-letter variants without scanning the word list."
+    },
+    {
+      "id": "index-value-gap",
+      "group": "index-order",
+      "added": "2026-08-15",
+      "name": "Index-value gap counting",
+      "desc": "In a sorted strictly-increasing array of positive ints, index i should hold i+1; arr[i] - (i+1) = how many positive ints are missing before arr[i].",
+      "hint": "arr[i] is compared with the value index arithmetic says should sit there.",
+      "prereqs": [],
+      "drill": "Given a sorted strictly-increasing array of positive ints, return how many positive ints below arr[-1] are missing."
+    },
+    {
+      "id": "sql-filter-select",
+      "group": "sql",
+      "added": "2026-08-28",
+      "name": "Filter, project, order",
+      "desc": "SELECT columns FROM one table WHERE conditions, ORDER BY; DISTINCT, LIKE, arithmetic on columns.",
+      "hint": "One table, no aggregate, no join: the row either passes the WHERE or it does not.",
+      "prereqs": [],
+      "drill": "Return odd-id rows whose description is not 'boring', highest rating first."
+    },
+    {
+      "id": "sql-null-semantics",
+      "group": "sql",
+      "added": "2026-08-28",
+      "name": "NULL is not a value",
+      "desc": "NULL compared with anything is unknown, never true: IS NULL / IS NOT NULL, COALESCE, and why != drops NULL rows.",
+      "hint": "The move is remembering that a NULL row fails BOTH x = 2 and x != 2; label it whenever a NULL column is filtered.",
+      "prereqs": [
+        "sql-filter-select"
+      ],
+      "drill": "Names of customers whose referee is not customer 2, including customers with no referee."
+    },
+    {
+      "id": "sql-join-inner",
+      "group": "sql",
+      "added": "2026-08-28",
+      "name": "Inner join on a key",
+      "desc": "JOIN b ON a.key = b.key (or USING); unmatched rows on either side vanish.",
+      "hint": "Two tables, only matched rows wanted; if unmatched rows must survive it is sql-join-left-keep.",
+      "prereqs": [
+        "sql-filter-select"
+      ],
+      "drill": "Product name, year and price for every sale."
+    },
+    {
+      "id": "sql-join-left-keep",
+      "group": "sql",
+      "added": "2026-08-28",
+      "name": "Left join keeps the unmatched",
+      "desc": "LEFT JOIN keeps every left row with NULLs for no match; extra conditions go in ON, not WHERE, or the join turns inner.",
+      "hint": "The tell is 'every X, even those without Y'; a condition on the right table in WHERE is the classic bug.",
+      "prereqs": [
+        "sql-join-inner",
+        "sql-null-semantics",
+        "sql-group-aggregate"
+      ],
+      "drill": "Every employee with their unique_id or NULL."
+    },
+    {
+      "id": "sql-group-aggregate",
+      "group": "sql",
+      "added": "2026-08-28",
+      "name": "GROUP BY with aggregates",
+      "desc": "One row per group with COUNT / SUM / AVG / MIN / MAX, COUNT(DISTINCT), ROUND.",
+      "hint": "Collapsing rows to one per key; if the rows must survive alongside the aggregate it is a window.",
+      "prereqs": [
+        "sql-filter-select"
+      ],
+      "drill": "Distinct subjects per teacher."
+    },
+    {
+      "id": "sql-having-filter-groups",
+      "group": "sql",
+      "added": "2026-08-28",
+      "name": "HAVING filters groups",
+      "desc": "HAVING runs after GROUP BY and sees aggregates; WHERE runs before and cannot.",
+      "hint": "A condition on COUNT/SUM of the group; a condition on a row column is WHERE.",
+      "prereqs": [
+        "sql-group-aggregate"
+      ],
+      "drill": "Classes with at least five students."
+    },
+    {
+      "id": "sql-conditional-aggregate",
+      "group": "sql",
+      "added": "2026-08-28",
+      "name": "CASE inside an aggregate",
+      "desc": "SUM(CASE WHEN ... THEN 1 ELSE 0 END), AVG of a 0/1 flag for rates, pivoting states into columns in one pass.",
+      "hint": "Several counts or sums over different subsets of the same group in one GROUP BY; a rate is AVG of a flag.",
+      "prereqs": [
+        "sql-group-aggregate"
+      ],
+      "drill": "Per country: transactions, approved transactions, total amount, approved amount."
+    },
+    {
+      "id": "sql-anti-join",
+      "group": "sql",
+      "added": "2026-08-28",
+      "name": "Rows with no match",
+      "desc": "NOT EXISTS, or LEFT JOIN ... WHERE right.key IS NULL; NOT IN breaks when the subquery yields a NULL.",
+      "hint": "'X that never / without any Y'; label the NULL trap when the compared column is nullable.",
+      "prereqs": [
+        "sql-join-left-keep"
+      ],
+      "drill": "Employees who are nobody's manager, when manager_id has NULLs."
+    },
+    {
+      "id": "sql-self-join",
+      "group": "sql",
+      "added": "2026-08-28",
+      "name": "Join a table to itself",
+      "desc": "Two aliases of one table: employee/manager, previous/next row by id, pairs.",
+      "hint": "The relation is within one table; two aliases, one condition between them.",
+      "prereqs": [
+        "sql-join-inner",
+        "sql-group-aggregate"
+      ],
+      "drill": "Each manager with their direct-report count and average report age."
+    },
+    {
+      "id": "sql-subquery",
+      "group": "sql",
+      "added": "2026-08-28",
+      "name": "Subqueries and CTEs",
+      "desc": "Scalar subquery for a single total; (a, b) IN (SELECT a, MIN(b) ... GROUP BY a) for first-per-key; WITH for readability.",
+      "hint": "A query used as a value or as a filter set; a correlated version per row is the slow form.",
+      "prereqs": [
+        "sql-group-aggregate"
+      ],
+      "drill": "Percentage of all users registered per contest; sales in each product's first year."
+    },
+    {
+      "id": "sql-date-arithmetic",
+      "group": "sql",
+      "added": "2026-08-28",
+      "name": "Date arithmetic and buckets",
+      "desc": "Previous calendar day, day differences, month buckets; dialect map: sqlite date()/julianday()/strftime, MySQL DATEDIFF/DATE_FORMAT, Postgres date - 1/date_trunc, Presto date_add/date_trunc.",
+      "hint": "'Yesterday' means the date, not the previous row; 'per month' means grouping on a derived bucket.",
+      "prereqs": [
+        "sql-self-join",
+        "sql-conditional-aggregate"
+      ],
+      "drill": "Days warmer than the previous calendar day; monthly transaction summaries."
+    },
+    {
+      "id": "sql-set-union",
+      "group": "sql",
+      "added": "2026-08-28",
+      "name": "UNION ALL to stack",
+      "desc": "UNION ALL to stack both directions of a symmetric relation or to unpivot columns into rows; UNION dedupes and is usually wrong for counting.",
+      "hint": "A count that must see a row from both sides, or columns that should have been rows.",
+      "prereqs": [
+        "sql-group-aggregate"
+      ],
+      "drill": "Who has the most friends, counting both requester and accepter."
+    },
+    {
+      "id": "sql-dedupe-keep-one",
+      "group": "sql",
+      "added": "2026-08-28",
+      "name": "Keep one row per key",
+      "desc": "GROUP BY key with MIN(id) (or MAX) to pick the survivor, then join or IN to fetch its row.",
+      "hint": "Duplicates on a natural key, one survivor by a rule; the window form is sql-window-rank rung 3.",
+      "prereqs": [
+        "sql-group-aggregate"
+      ],
+      "drill": "Keep the smallest id per email."
+    },
+    {
+      "id": "sql-nth-value",
+      "group": "sql",
+      "added": "2026-08-28",
+      "name": "Nth highest with a NULL fallback",
+      "desc": "DISTINCT + ORDER BY + LIMIT/OFFSET wrapped as a scalar subquery so a missing Nth yields one NULL row; or MAX below MAX.",
+      "hint": "'Second highest, NULL if none': the empty-result-vs-NULL-row distinction is the move.",
+      "prereqs": [
+        "sql-subquery"
+      ],
+      "drill": "Second highest distinct salary, or NULL."
+    },
+    {
+      "id": "sql-string-functions",
+      "group": "sql",
+      "added": "2026-08-28",
+      "name": "String functions and string aggregation",
+      "desc": "UPPER/LOWER/SUBSTR/concatenation, LIKE patterns; GROUP_CONCAT / STRING_AGG / ARRAY_JOIN(ARRAY_AGG()) with DISTINCT and order.",
+      "hint": "Transforming text per row, or collapsing a group's values into one string.",
+      "prereqs": [
+        "sql-group-aggregate"
+      ],
+      "drill": "Capitalise names; comma-joined distinct products per date."
+    },
+    {
+      "id": "sql-window-rank",
+      "group": "sql",
+      "added": "2026-08-28",
+      "name": "Ranking windows",
+      "desc": "ROW_NUMBER / RANK / DENSE_RANK OVER (PARTITION BY ... ORDER BY ...), filtered in an outer query: top-N per group, dedupe-latest.",
+      "hint": "Rows survive with a rank attached; the filter on the rank must sit outside the window's query.",
+      "prereqs": [
+        "sql-group-aggregate",
+        "sql-subquery"
+      ],
+      "drill": "Dense-rank scores; top three salaries per department; latest reading per sensor."
+    },
+    {
+      "id": "sql-window-running",
+      "group": "sql",
+      "added": "2026-08-28",
+      "name": "Running and moving aggregates",
+      "desc": "SUM/AVG/COUNT OVER (ORDER BY ...) for prefix totals; ROWS BETWEEN n PRECEDING AND CURRENT ROW for moving windows.",
+      "hint": "Each row sees a total over rows up to it; a fixed-width window needs an explicit frame.",
+      "prereqs": [
+        "sql-window-rank"
+      ],
+      "drill": "Last person to fit in the bus; seven-day moving average."
+    },
+    {
+      "id": "sql-window-offset",
+      "group": "sql",
+      "added": "2026-08-28",
+      "name": "LAG and LEAD",
+      "desc": "LAG(col) / LEAD(col) OVER (ORDER BY ...) to compare a row with its neighbour: consecutive values, period-over-period change.",
+      "hint": "'Previous row' or 'next row' in an ordering; replaces a self-join on id - 1.",
+      "prereqs": [
+        "sql-window-rank"
+      ],
+      "drill": "Numbers appearing three times in a row; month-over-month change."
+    },
+    {
+      "id": "sql-gaps-islands",
+      "group": "sql",
+      "added": "2026-08-28",
+      "name": "Gaps and islands",
+      "desc": "value - ROW_NUMBER() OVER (ORDER BY value) is constant within a consecutive run; group on it to measure runs (streaks, sessions).",
+      "hint": "'At least k consecutive' or 'longest streak': the row-number difference labels each island in one pass.",
+      "prereqs": [
+        "sql-window-rank",
+        "sql-window-offset",
+        "sql-having-filter-groups"
+      ],
+      "drill": "Stadium days with three or more consecutive busy ids; longest login streak per user."
+    },
+    {
+      "id": "substring-enumeration",
+      "group": "index-order",
+      "added": "2026-08-31",
+      "name": "Substring enumeration",
+      "desc": "Every (start, end) pair of a sequence, as two nested loops: by start (the brute force under most substring problems) or by end (the loop of the counting window and of prefix DP).",
+      "hint": "Two loop orders, one set of pairs. If the answer is a longest or a count over substrings and you cannot see it, write this first; the technique replaces the inner loop.",
+      "prereqs": [],
+      "drill": "Return every substring of s, once per position, in a stated order."
+    }
+  ]
 }

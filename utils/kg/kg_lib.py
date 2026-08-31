@@ -1572,30 +1572,32 @@ def due_drill(node_id, evidence, today=None, early=False, assisted=False):
 
 def drills_left(node_id, evidence, early=False):
     """True while a drill of this node has never been done and serving this
-    node can still get there: it is servable and untouched, or it waits
-    only on drills of this same node (a rep of those is what this node
-    serves). A drill held by another node not being owned, or by a drill
-    of another node, does not count - nothing this node serves would clear
-    it, and a hold nothing can open is a deadlock (the 2026-08-31
-    Combinations serve: done once with a walkthrough, so Reuse Allowed and
-    Subsets stayed held, the node read done, and the dedupe drill got
-    served with subsets never done)."""
+    node can still get there: it is servable and untouched, or everything
+    it waits on is a drill of this same node that serving this node can
+    reach in turn. A drill held by another node not being owned, or (at
+    any depth) by a drill of another node, does not count - nothing this
+    node serves would clear it, and a hold nothing can open is a deadlock
+    (the 2026-08-31 Combinations serve: done once with a walkthrough, so
+    Reuse Allowed and Subsets stayed held, the node read done, and the
+    dedupe drill got served with subsets never done)."""
     candidates = sorted(glob.glob(os.path.join(DRILLS_DIR, node_id, "*.py")))
-    servable = set(servable_drills(candidates, evidence, node_id, early=early))
     problems = load_problems()
-    own = {drill_id(p) for p in candidates}
-    for path in candidates:
-        if last_drilled(path, evidence):
-            continue
-        if path in servable:
-            return True
-        if any(not owned(t, evidence) for t in drill_trains(path) if t != node_id):
-            continue
-        unmet = [a for a in drill_after(path)
-                 if warm(a, problems, evidence, early=early) is False]
-        if unmet and all(a in own for a in unmet):
-            return True
-    return False
+    by_id = {drill_id(p): p for p in candidates}
+    reachable = set(servable_drills(candidates, evidence, node_id, early=early))
+    grew = True
+    while grew:  # a drill is reachable when all its unmet holds are reachable drills of this node
+        grew = False
+        for path in candidates:
+            if path in reachable:
+                continue
+            if any(not owned(t, evidence) for t in drill_trains(path) if t != node_id):
+                continue
+            unmet = [a for a in drill_after(path)
+                     if warm(a, problems, evidence, early=early) is False]
+            if all(a in by_id and by_id[a] in reachable for a in unmet):
+                reachable.add(path)
+                grew = True
+    return any(not last_drilled(path, evidence) for path in reachable)
 
 
 def latest_carrier(node_id, evidence):
