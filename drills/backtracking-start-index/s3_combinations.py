@@ -3,8 +3,8 @@ DRILL: Combinations
 TRAINS: backtracking-start-index
 
 Given two integers n and k, return every combination of k distinct
-numbers drawn from 1 to n. Each combination lists its numbers in
-increasing order.
+integers chosen from 1 to n. List each combination in increasing order,
+and list the combinations in lexicographic order.
 
 Example 1:
 
@@ -21,9 +21,9 @@ Constraints:
     1 <= n <= 20
     1 <= k <= n
 
-REQUIRED: [2, 1] is never built, not built and discarded. NO swapping
-elements of a list, NO used or visited set, NO itertools, NO sorting or
-de-duplicating the answer at the end.
+    REQUIRED: never build [2, 1], not even to discard it. NO swapping
+    elements of a list, NO used or visited set, NO itertools, NO sorting
+    or de-duplicating the answer at the end.
 
 """
 
@@ -35,7 +35,7 @@ class Solution:
 
 sol = Solution()
 
-print(sol.combine(4, 2))
+print(sol.combine(4, 2))  # [[1, 2], [1, 3], [1, 4], [2, 3], [2, 4], [3, 4]]
 
 # assert sol.combine(4, 2) == [[1, 2], [1, 3], [1, 4], [2, 3], [2, 4], [3, 4]]
 # assert sol.combine(1, 1) == [[1]]

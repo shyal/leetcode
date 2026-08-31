@@ -2,8 +2,8 @@
 DRILL: Pairs
 TRAINS: backtracking-start-index
 
-Given an integer n, return every pair [a, b] of distinct numbers drawn
-from 0 to n - 1, with a < b.
+Given an integer n, return every pair [a, b] of integers with
+0 <= a < b < n. List the pairs in lexicographic order.
 
 Example 1:
 
@@ -14,13 +14,13 @@ Example 2:
 
 Input: n = 1
 Output: []
-Explanation: there is only one number to draw from.
+Explanation: Only 0 is available, and a pair needs two integers.
 
 Constraints:
 
     1 <= n <= 30
 
-REQUIRED: no recursion.
+    REQUIRED: NO recursion.
 
 """
 
