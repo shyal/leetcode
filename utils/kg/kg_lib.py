@@ -170,14 +170,17 @@ def load_predicted():
         return {}
 
 
-def unlocks(statuses, problems, predicted=None):
+def unlocks(statuses, problems, predicted=None, immature=frozenset()):
     """node -> how many unsolved bank problems are blocked ONLY by it.
 
     A problem counts for node n when it is not already solved (a key in
     problems.json means a walk was evidenced), no drafted walk of it is fully
     solid yet, and some walk needs nothing but n: every other move SOLID and
     no missing: suggestion. This is the reachability payoff of servicing n,
-    counted against the whole drafted catalog (PLAN.md phase 1)."""
+    counted against the whole drafted catalog (PLAN.md phase 1). With
+    `immature`, a young node is a gap too (mature(): SOLID but not yet
+    proven on a real problem at its bar), so the count is the payoff of
+    proving n - the reach rule in kg_next."""
     if predicted is None:
         predicted = load_predicted()
     counts = {}
@@ -189,7 +192,7 @@ def unlocks(statuses, problems, predicted=None):
         if not walks:
             continue
         solid = {m for w in walks for m in w
-                 if statuses.get(m, (None,))[0] == SOLID}
+                 if statuses.get(m, (None,))[0] == SOLID and m not in immature}
         if any(all(m in solid for m in w) for w in walks):
             continue
         blockers = set()
@@ -681,7 +684,7 @@ CONN_MASS_CAP = 30
 
 
 def predicted_carrier(target, problems, statuses, nodes,
-                      predicted=None, skip=()):
+                      predicted=None, skip=(), difficulties=("Easy", "Medium")):
     """The frontier mover (PLAN.md phase 4): when no evidenced problem can
     carry `target`, promote the best drafted one. Returns (pnum, entry) or
     None. `entry` is problems.json-shaped and flagged "predicted": True; it
@@ -694,7 +697,8 @@ def predicted_carrier(target, problems, statuses, nodes,
     express yet is not a carrier). Hards stay summits. Ranking is
     cheap-regime-first: the walk whose rarest supporting move has the most
     problems rehearsing it (capped at CONN_MASS_CAP), then the usual
-    gentleness and acceptance keys."""
+    gentleness and acceptance keys. `difficulties` narrows the pool: a
+    proving rep for a medium-bar node has to be a Medium."""
     if predicted is None:
         predicted = load_predicted()
     counts = {}
@@ -706,7 +710,7 @@ def predicted_carrier(target, problems, statuses, nodes,
         if num in problems or num in skip:
             continue
         diff = problem_difficulty(num, problems)
-        if diff not in ("Easy", "Medium"):
+        if diff not in ("Easy", "Medium") or diff not in difficulties:
             continue
         for w in prob.get("walks", []):
             moves = w.get("moves", [])
