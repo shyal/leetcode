@@ -6859,6 +6859,14 @@
       },
       "note": "Solution computes deletion distance (min edits with deletions only), then transforms to LCS; unconventional but valid.",
       "summary": "The code solves LCS via deletion distance: memoized recursion computes minimum deletions needed to equalize strings, then transforms to LCS length using (len(text1) + len(text2) - deletions) / 2. Exercises dp-state-formulate (helper state), two-sequence-align (deletion-distance variant), and dp-2d-grid (implicit cache). Notes indicate the candidate couldn't independently figure out that Levenshtein requires removing substitutions to become deletion distance, or derive the transformation formula."
+    },
+    "solved/d_Triples_2026_08_31T02_32_58_500478_00_00Z.py": {
+      "date": "2026-08-31",
+      "problem": "drill",
+      "moves": {
+        "backtracking-start-index": "clean"
+      },
+      "summary": "Generates all strictly-increasing triples (i, j, k) where 0 \u2264 i < j < k < n using three nested loops. Each loop starts at one position after the previous index, implementing the backtracking-start-index pattern: recurse at x+1 to use each element once, producing unique combinations. All assertions passed."
     }
   }
 }
