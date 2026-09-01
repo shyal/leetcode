@@ -759,27 +759,33 @@ def pick(
             c for c in proving_carriers(target, problems, statuses, nodes, evidence)
             if c not in asleep and c not in exclude and cooled(c, evidence)
         ]
-        if cands:
-            cands.sort(
-                key=lambda p: (
-                    gentleness(p, problems, nodes),
-                    last_solved(p, evidence),
-                    -acceptance(p),
-                    pnum_key(p),
-                )
+        cands.sort(
+            key=lambda p: (
+                gentleness(p, problems, nodes),
+                last_solved(p, evidence),
+                -acceptance(p),
+                pnum_key(p),
             )
-            return target, SOLID, cands[0], why
-        if drafts_falsified(target, evidence, nodes):
-            continue
-        kind, _ = carry_bar(target, problems)
-        promo = predicted_carrier(
-            target, problems, statuses, nodes,
-            skip=set(asleep) | set(exclude),
-            difficulties=("Medium",) if kind == "medium" else ("Easy", "Medium"),
         )
-        if promo:
-            problems[promo[0]] = promo[1]
-            return target, SOLID, promo[0], why + " (drafted carrier)"
+        # a carrier already counted toward the bar (a clean rep of target
+        # on it) proves memory of that problem, not carry: 102 was served
+        # for its second rep while 18 drafted Mediums waited (2026-09-01).
+        # Fresh evidenced carriers first, then a draft, then the re-solve.
+        fresh = [c for c in cands if not counted_toward_bar(c, target, evidence)]
+        if fresh:
+            return target, SOLID, fresh[0], why
+        if not drafts_falsified(target, evidence, nodes):
+            kind, _ = carry_bar(target, problems)
+            promo = predicted_carrier(
+                target, problems, statuses, nodes,
+                skip=set(asleep) | set(exclude),
+                difficulties=("Medium",) if kind == "medium" else ("Easy", "Medium"),
+            )
+            if promo:
+                problems[promo[0]] = promo[1]
+                return target, SOLID, promo[0], why + " (drafted carrier)"
+        if cands:
+            return target, SOLID, cands[0], why + " (re-solve: no fresh carrier)"
 
     # rule 6: the graph is solid and no young move has a carrier today.
     # What is left is leetcode itself: an unsolved drafted problem whose
@@ -809,6 +815,15 @@ def pick(
     return None
 
 EXPLORE_REASONS = ("summit", "widen reach", "in reach")  # rules 4, 5, 6
+
+
+def counted_toward_bar(pnum, target, evidence):
+    """True when this problem already gave `target` a clean rep: a second
+    rep of it counts toward maturity (kg_lib._mature_from counts reps),
+    but a different problem is the proof rule 5 is after."""
+    return any(str(rec.get("problem")) == str(pnum) and v == "clean"
+               for _, v, _, _, rec in
+               kg_lib.ev_index(evidence).by_node.get(target, ()))
 
 
 def exploratory(status, reason):
