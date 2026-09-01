@@ -43,6 +43,46 @@ def manila_date_from_filename(name):
 UTILS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REPO_ROOT = os.path.dirname(UTILS_DIR)
 GRAPH_DIR = os.path.join(REPO_ROOT, "graph")
+
+
+def load_envrc(path=None, environ=None):
+    """Read the repo's .envrc the way a dotenv loader would, so the knobs
+    the operator sets there (MAX_ASLEEP, KG_NO_PLAN, LEET_NO_ANIMATE) hold
+    in every shell the tooling runs from, not only one with direnv loaded
+    (2026-09-01: cap raised to 5 in .envrc, make next from another shell
+    still said cap 3). Only `export NAME=VALUE` and `NAME=VALUE` lines with
+    a literal value are taken; a value with a `$` in it is shell
+    expansion and is left to the shell. The real environment wins: a
+    variable already set is not overwritten."""
+    path = path or os.path.join(REPO_ROOT, ".envrc")
+    environ = os.environ if environ is None else environ
+    try:
+        with open(path) as f:
+            lines = f.read().splitlines()
+    except OSError:
+        return {}
+    loaded = {}
+    for line in lines:
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("export "):
+            line = line[len("export "):].strip()
+        m = re.match(r"^([A-Za-z_][A-Za-z0-9_]*)=(.*)$", line)
+        if not m:
+            continue
+        name, value = m.group(1), m.group(2).strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+            value = value[1:-1]
+        elif "$" in value:
+            continue
+        if name not in environ:
+            environ[name] = value
+            loaded[name] = value
+    return loaded
+
+
+load_envrc()
 DRILLS_DIR = os.path.join(os.path.dirname(GRAPH_DIR), "drills")
 SOLID_WINDOW_DAYS = 42
 
@@ -1770,6 +1810,34 @@ def sleep_state(nodes, problems, evidence):
     recs = sleep_records(problems, evidence)
     asleep = sorted(recs, key=lambda p: (-recs[p]["cycles"], recs[p]["slept"]))
     return asleep, []
+
+
+def sleep_lines(nodes, problems, evidence, statuses=None):
+    """The park, one line per parked problem: what it is, what the picker
+    is warming for it (or that its ground is solid), when it was parked,
+    how many times, and the wake command. Printed by `make sleep -- --list`
+    and, so the park cannot be ignored, at the bottom of every `make next`
+    (2026-09-01: the daily reminder is the point - the operator wants the
+    parked problems in view so they get thought about overnight). Empty
+    when nothing is parked."""
+    recs = sleep_records(problems, evidence)
+    if not recs:
+        return []
+    asleep, _ = sleep_state(nodes, problems, evidence)
+    if statuses is None:
+        statuses = {n: node_status(n, evidence) for n in nodes}
+    lines = []
+    for pnum in asleep:
+        rec = recs[pnum]
+        since = datetime.fromtimestamp(rec["slept"]).isoformat(timespec="minutes")
+        cycles = f", slept x{rec['cycles']}" if rec["cycles"] > 1 else ""
+        rusty = sorted(n for n in input_tree(problems[pnum]["moves"], nodes)
+                       if statuses[n][0] != SOLID)
+        ground = (f"warming: {', '.join(rusty)}" if rusty
+                  else "ground solid, simmering")
+        lines.append(f"{pnum}. {rec['title']} - asleep ({ground}) - parked "
+                     f"{since}{cycles} - make wake {pnum} when you choose")
+    return lines
 
 
 def claude_json(prompt, system_prompt, model="sonnet"):
