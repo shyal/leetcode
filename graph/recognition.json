@@ -44,6 +44,32 @@
         "sliding-window-variable"
       ],
       "why": "Sort then variable sliding window tracking max-min<=1 window length is a standard accepted O(n log n) solution to LeetCode 594 Longest Harmonious Subsequence."
+    },
+    "recognition/s884_Uncommon_Words_from_Two_Sentences_2026_09_01T07_44_24_431997_00_00Z.md": {
+      "date": "2026-09-01",
+      "problem": "884",
+      "kind": "spot",
+      "title": "Uncommon Words from Two Sentences",
+      "target": "counter-build",
+      "reason": "untested, 198 reachable through it",
+      "seconds": 596,
+      "named": [
+        "counter-build",
+        "counts-as-data"
+      ],
+      "walk": [
+        "string-build-transform",
+        "counter-build",
+        "counts-as-data"
+      ],
+      "moves": {
+        "counter-build": "hit",
+        "counts-as-data": "hit",
+        "string-build-transform": "missed"
+      },
+      "false": [],
+      "summary": "Build a Counter for each sentence to track word frequencies, then merge them and filter for words whose total count is exactly 1, which identifies the uncommon words.",
+      "answer": "The simpliest solution here is to build two sets, s1s which holds each word in s1, and s2s which holds every word in s2 (easy enough to split the strings in python with .split()).\n\nThen one can simply take the intersection of both sets with s1s ^ s2s. That is the solution.\n\nAh no, nevermind that:\n\n\"A word is **uncommon** if it appears exactly once in one of the sentences, and **does not appear** in the other sentence.\"\n\nThis means sets are out. Then we need a counter.\n\ns1 = \"apple apple\"\ns2 = \"banana\"\n\n```\nc1 = {\n    'apple': 2,\n}\n\nc2 = {\n    'banana': 1,\n}\n```\n\nNow we only need to focus on words that appear once. So we can simply add the counters to one another, or in fact take one big counter of both sentences would also work, and only return words that appear once. e.g:\n\n```\nc1 = {\n    'this': 1,\n    'apple': 1,\n    'is': 1:\n    'sweet': 1\n}\n\n\nc2 = {\n    'this': 1,\n    'apple': 1,\n    'is': 1:\n    'sour': 1\n}\n\n\nbecomes:\n\nc = {\n    'this': 2,\n    'apple': 2,\n    'is': 2,\n    'sweet':"
     }
   }
 }
