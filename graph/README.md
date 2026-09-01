@@ -143,6 +143,67 @@ a count-the-bits problem) if the solve routes around it. `make unforce` drops th
 constraint and files freestyle. The constraint lives in `.force.json` (untracked) and
 goes stale automatically if a different problem is prepared.
 
+## Recognition (`make prepare spot`)
+
+Execution evidence says whether a move runs once it is named. It says nothing
+about the step before: reading an unnamed statement and reaching for the
+move. 84 (2026-08-21) and 1760 (2026-09-01) were both that failure, on nodes
+whose execution evidence was clean; the picker could not see it because the
+two axes were one status.
+
+A spot rep is a problem statement with the title, number and tags removed,
+read and answered in free text: which move it calls for, or `direct` when
+none does, or `don't know`. No code, about three minutes. Same workflow as
+a solve: `make prepare spot` branches `spot-<stamp>` off master and writes
+the statement as markdown (emphasis, code, images kept) into `current.md`
+with an answer section under the rule; `make solved` files it as
+`recognition/s<num>_<title>_<ts>.md`, the judge (kg_extract) maps the answer
+onto node ids with one small claude call and scores it against the walk's
+entry move, and the commit squash-merges. The problem number appears
+nowhere the candidate sees before the answer is in: the branch and the
+marker commit carry only the stamp, the pick sits in `.spot.json`
+(untracked) until the judge reads it back, and the title is printed only in
+the reveal after the judge.
+
+- **What is scored.** Only the first move of the mapped walk and of each
+  alt walk (`kg.recognition.entry_nodes`): later moves (`solve-pair-condition`
+  inside 1760) are reached while executing, not read off the statement. A
+  hit on any entry is a hit; with none, the primary entry is `missed`. Moves
+  named that no walk of the problem uses are recorded as `false`
+  (over-triggering).
+- **graph/recognition.json** is the second axis, keyed by file like
+  evidence.json, verdicts `hit` / `missed`. Spot reps land here, and so does
+  a solve whose notes say a move was not recognised ("recognition failure,
+  not a binary search failure"): the judge reads it from the notes, as it
+  reads assist, and the words themselves put the miss on the walk's entry
+  move when the judge does not.
+- **Status is derived** (`recognition_status`): FAILED_TO_RECOGNIZE when the latest
+  event is a miss, RECOGNIZED when it is a hit inside the window (42 days grown
+  1.3x per hit), UNTESTED otherwise.
+- **Serving.** Recognition is the check on reach. The graph calls a
+  problem reachable when every move of its walk is SOLID; the spot rep asks
+  whether the statement actually triggers the move it enters through. So
+  `make next` serves the node carrying the most reach (unsolved
+  reachable problems entering through it, mapped and drafted) whose trigger
+  has not been shown recently: not RECOGNIZED inside the window. A
+  FAILED_TO_RECOGNIZE node ranks by the same number, ties go to it. The
+  carrier is the gentlest problem it reaches; a drafted problem's walk is
+  re-derived by the judge (preflight's mapping call) before scoring. The
+  line above the pick never names the node. A spotted problem is never
+  served for recognition again. A later solve of it after a miss is not
+  unaided (the reveal handed over the walk): kg_extract floors its assist to
+  `hint`. After a hit it is unaided: the reveal showed nothing the candidate
+  had not produced, and the two records sit side by side for the data.
+- **Ratio.** `SPOT_EVERY` (env, default 3): one spot rep per that many
+  solves, counted over the day. The first rep is due before the day's first
+  solve, the next after three more (drills count). `SPOT_EVERY=1` is one per
+  solve, `SPOT_EVERY=0` turns spot reps off. The ratio governs only what
+  `make next` suggests: `make prepare spot` (or `make spot`) serves a rep
+  whenever it is asked for.
+- **Summits wait for it.** Rule 4 does not serve a Hard whose entry move is
+  FAILED_TO_RECOGNIZE (`kg_next.ready_hards`): the walk has to be seen before the
+  climb is a combination rep, and the spot rep is what clears the miss.
+
 ## Rules
 
 1. **Mastery is derived, never stored.** Status comes from evidence dates at query time:
