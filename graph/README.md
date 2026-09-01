@@ -173,15 +173,20 @@ the reveal after the judge.
   misses the mapped walk's first move only when no walk move was named at
   all. Moves named that no walk uses are recorded as `false`
   (over-triggering).
-- **An alternative walk.** When the answer names moves no walk of the
-  problem uses, one call on the stronger model judges whether the approach
-  as written is a standard accepted solution (rule 3 for recognition: a
-  valid route the map lacks is never a miss). If it is, the rep is a hit on
-  the first move named, marked `alternative` since no code ran, and the
-  walk is filed on the problem under `spotted_walks`, a separate field from
-  `alt_walks`, which stays evidenced by code (a later solve taking the walk
-  promotes it). The judge's one-sentence reason is stored either way. No
-  code runs, so this is a model's reading: reliable on well known
+- **An alternative walk.** When the target was missed and the answer names
+  a move no walk of the problem uses, one call on the stronger model judges
+  whether the approach as written is a standard accepted solution (rule 3
+  for recognition: a valid route the map lacks is never a miss). If it is,
+  the rep is a hit on every move named, marked `alternative` since no code
+  ran; the target, when it was not named, gets an `alternative` event: not
+  seen, not missed, not needed by that statement. Two of those in a row and
+  the spot picker leaves the node to the solve picker (`left_to_solves`):
+  some moves (`dp-1d-rolling`) are met while executing, never read off a
+  statement, and an unaided solve that uses one is already a derived hit.
+  The walk is filed under the problem's `spotted_walks`, a separate field
+  from `alt_walks`, which stays evidenced by code (a later solve taking the
+  walk promotes it). The judge's one-sentence reason is stored either way.
+  No code runs, so this is a model's reading: reliable on well known
   problems, weaker on obscure ones, and the mark never comes off.
 - **graph/recognition.json** is the second axis, keyed by file like
   evidence.json, verdicts `hit` / `missed`. Spot reps land here, and so does
@@ -214,7 +219,9 @@ the reveal after the judge.
   solve, the next after three more (drills count). `SPOT_EVERY=1` is one per
   solve, `SPOT_EVERY=0` turns spot reps off. The ratio governs only what
   `make next` suggests: `make prepare spot` (or `make spot`) serves a rep
-  whenever it is asked for.
+  whenever it is asked for. `make spot easy|medium|hard` carries it on a
+  problem of that tier; the default is the gentlest carrier, like a solve,
+  which for a rep that costs no code means the obvious statement.
 - **Summits wait for it.** Rule 4 does not serve a Hard with a walk move
   that is FAILED_TO_RECOGNIZE (`kg_next.ready_hards`): the walk has to be
   seen before the climb is a combination rep, and the spot rep is what

@@ -79,22 +79,26 @@
       "reason": "failed to recognize last time, 159 problem(s) need only it",
       "seconds": 659,
       "named": [
-        "memoize-recursion"
+        "memoize-recursion",
+        "dp-state-formulate"
       ],
       "walk": [
         "dp-1d-rolling",
         "running-extreme"
       ],
       "moves": {
-        "memoize-recursion": "hit"
+        "memoize-recursion": "hit",
+        "dp-state-formulate": "hit",
+        "dp-1d-rolling": "alternative"
       },
       "false": [],
-      "summary": "The candidate identifies the recurrence relations in the problem and proposes a memoized recursive function with base cases (nums[0]=0, nums[1]=1) to compute array values and find the maximum, suggesting recursion with memoization to avoid recomputation.",
+      "summary": "The candidate identifies the recurrence relations and base cases, proposing a recursive solution with memoization to compute array values and then return the maximum.",
       "answer": "- `nums[0] = 0`\n- `nums[1] = 1`\n- `nums[2 * i] = nums[i]` when `2 <= 2 * i <= n`\n- `nums[2 * i + 1] = nums[i] + nums[i + 1]` when `2 <= 2 * i + 1 <= n`\n\nAt least n is small, so in a solve i'd probably just implement it without thinking about it too much:\n\n```\nnums = [0, 1] + [-1] * 2\n\nfor i in range(n + 1, -1, -1):\n    nums[i*2] =\n\n```\n\nHmm no nevermind that, recursion will probably be much simpler, and i'm guessing that:\n\n- `nums[0] = 0`\n- `nums[1] = 1`\n\nThese are the base cases.\n\n```\nnums = [0, 1] + [-1] * 2\n\ndef num(i, n):\n    # or instead of base case, just use memo\n    if nums[i] != -1:\n        return nums[i]\n    if 0 <= i <= 1:\n        v = num(2 * i)\n        return v\n    if 2 <= 2 * i <= n:\n        nums[2 * i + 1] = num(i) + num(i + 1)\n\nres = max(nums)\n\n```\n\nThe above should be treated as pseudocode, as i wasn't able to run it. But the gist is to understand that this question is asking to build a recursive function that satisfies the recurrence relations in the problem statement.",
       "alternative": [
-        "memoize-recursion"
+        "memoize-recursion",
+        "dp-state-formulate"
       ],
-      "why": "Matches the accepted memoized-recursion/DP solution that fills nums[i] via the given recurrence and takes max, which is O(n) and correct for n<=100."
+      "why": "Matches the standard memoized-recursion solution to LeetCode 1646 (Get Maximum in Generated Array), computing nums[i] via the given recurrence and taking the max, which runs in O(n) within the small constraint n<=100."
     },
     "recognition/s120_Triangle_2026_09_01T09_50_36_301874_00_00Z.md": {
       "date": "2026-09-01",
@@ -115,13 +119,17 @@
       ],
       "moves": {
         "dp-state-formulate": "hit",
-        "dp-1d-rolling": "missed"
+        "memoize-recursion": "hit",
+        "dp-1d-rolling": "alternative"
       },
-      "false": [
+      "false": [],
+      "summary": "The candidate identified this as a dynamic programming problem by formulating the recurrence relation (minimum path sum at each position depends on adjacent positions below) and base cases before implementing it as a memoized recursive function using @cache.",
+      "answer": "I think this is a dp problem.\n\n2\n3 4\n6 5 7\n4 1 8 3\n\nSo we start at row 0, and ask what's the minimum path sum for row 1 and positions 0 and 1.\nMore generically we the minimum path sum for\n\n```\nT[r][c] = min(T[r+1][c], R[r+1][c+1])\n```\n\nNow we need to make it recursive, so the base case is when we reach the bottom of the array. So if c == len(T) -1\n\n```\n\n@cache\ndef func(r, c):\n    if r >= len(T) or c >= len(T[r]):\n        return 0\n    return T[r][c] + min(func(r+1, c), func(r+1, c+1))\n```\n\nThe code above may not be correct as it's pseudocode, but the recognition is seeing the recurrence relation and implementing it with recursion and memoization.",
+      "alternative": [
+        "dp-state-formulate",
         "memoize-recursion"
       ],
-      "summary": "The candidate identifies this as a dynamic programming problem, formulates the recurrence relation T[r][c] = min(T[r+1][c], T[r+1][c+1]) with a base case at the bottom row, and implements it with @cache decorator on a recursive function.",
-      "answer": "I think this is a dp problem.\n\n2\n3 4\n6 5 7\n4 1 8 3\n\nSo we start at row 0, and ask what's the minimum path sum for row 1 and positions 0 and 1.\nMore generically we the minimum path sum for\n\n```\nT[r][c] = min(T[r+1][c], R[r+1][c+1])\n```\n\nNow we need to make it recursive, so the base case is when we reach the bottom of the array. So if c == len(T) -1\n\n```\n\n@cache\ndef func(r, c):\n    if r >= len(T) or c >= len(T[r]):\n        return 0\n    return T[r][c] + min(func(r+1, c), func(r+1, c+1))\n```\n\nThe code above may not be correct as it's pseudocode, but the recognition is seeing the recurrence relation and implementing it with recursion and memoization."
+      "why": "Matches the standard top-down memoized DP solution to Triangle: T[r][c] = triangle[r][c] + min(T[r+1][c], T[r+1][c+1]) with recursion + memoization, correct and within O(n^2) time/space bounds."
     }
   }
 }

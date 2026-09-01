@@ -396,7 +396,7 @@ def test_alternative_is_a_marked_hit_filed_under_spotted_walks():
            "false": ["sliding-window-variable", "sort-then-adjacent"]}
     named = ["sort-then-adjacent", "sliding-window-variable"]
     rc.apply_alternative(rec, named, problems, "matches the sort + sliding window editorial solution")
-    assert rec["moves"] == {"sort-then-adjacent": rc.HIT}
+    assert rec["moves"] == {"sort-then-adjacent": rc.HIT, "sliding-window-variable": rc.HIT}
     assert rec["false"] == []
     assert rec["alternative"] == named
     assert problems["594"]["spotted_walks"] == [named]
@@ -407,3 +407,45 @@ def test_alternative_is_a_marked_hit_filed_under_spotted_walks():
                                                          "kind": "spot", **rec}})[0] == rc.UNTESTED
     out = rc.reveal({**rec, "title": "t", "walk": ["counter-build"], "seconds": 3})
     assert "hit through an alternative walk, not yet evidenced by code: sort-then-adjacent, sliding-window-variable" in out
+
+
+def test_alternative_mixed_with_walk_moves_keeps_both_as_hits():
+    # 120: dp-state-formulate (in the walk) and memoize-recursion (not) were
+    # both named; a valid top-down route is a hit on both, no miss on the target
+    problems = {"120": problem(["dp-state-formulate", "dp-2d-grid", "dp-1d-rolling"])}
+    named = ["dp-state-formulate", "memoize-recursion"]
+    rec = {"problem": "120"}
+    rec["moves"], rec["false"] = rc.score(named, "120", problems, target="dp-1d-rolling")
+    assert rec["moves"] == {"dp-state-formulate": rc.HIT, "dp-1d-rolling": rc.MISSED}
+    assert rec["false"] == ["memoize-recursion"]
+    rc.apply_alternative(rec, named, problems, "top-down with @cache is the accepted memoized solution")
+    assert rec["moves"] == {"dp-state-formulate": rc.HIT, "memoize-recursion": rc.HIT}
+
+
+def test_an_alternative_marks_the_target_and_two_in_a_row_leave_it_to_solves():
+    problems = {"120": problem(["dp-state-formulate", "dp-1d-rolling"])}
+    rec = {"problem": "120", "moves": {"dp-1d-rolling": rc.MISSED}, "false": ["memoize-recursion"]}
+    rc.apply_alternative(rec, ["memoize-recursion"], problems, "why", target="dp-1d-rolling")
+    assert rec["moves"] == {"memoize-recursion": rc.HIT, "dp-1d-rolling": rc.ALTERNATIVE}
+    one = merged(miss(1235, "dp-1d-rolling", days_ago=5),
+                 spot(120, {"dp-1d-rolling": rc.ALTERNATIVE}, days_ago=2, target="dp-1d-rolling"))
+    # status still failed (from the park), date moved, still served
+    assert rc.recognition_status("dp-1d-rolling", one) == (rc.FAILED_TO_RECOGNIZE, date.today() - timedelta(days=2))
+    assert not rc.left_to_solves("dp-1d-rolling", one)
+    two = merged(one, spot(1646, {"dp-1d-rolling": rc.ALTERNATIVE}, days_ago=1, target="dp-1d-rolling"))
+    assert rc.left_to_solves("dp-1d-rolling", two)
+    ns = nodes("dp-state-formulate", "dp-1d-rolling")
+    statuses = {n: (SOLID, date.today()) for n in ns}
+    pick = rc.due_spot(ns, {"7": problem(["dp-1d-rolling"])}, {}, two, statuses, predicted={})
+    assert pick is None  # left to the solve picker
+    # an unaided solve using it is the hit that brings it back
+    three = merged(two, {"solved/p7_0.py#solve": {"date": iso(0), "problem": "7", "kind": "solve",
+                                                  "moves": {"dp-1d-rolling": rc.HIT}}})
+    assert rc.recognition_status("dp-1d-rolling", three)[0] == rc.RECOGNIZED
+
+
+def test_difficulty_restricts_the_carrier_tier():
+    ns, problems, statuses = graph()
+    assert rc.spot_carriers("ms", problems, {}, {}, ns, statuses, predicted={}, difficulty="Hard") == ["2"]
+    assert rc.due_spot(ns, problems, {}, {}, statuses, predicted={}, difficulty="Hard")[:2] == ("ms", "2")
+    assert rc.due_spot(ns, problems, {}, {}, statuses, predicted={}, difficulty="Medium")[:2] == ("bsoa", "3")
