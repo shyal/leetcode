@@ -449,3 +449,19 @@ def test_difficulty_restricts_the_carrier_tier():
     assert rc.spot_carriers("ms", problems, {}, {}, ns, statuses, predicted={}, difficulty="Hard") == ["2"]
     assert rc.due_spot(ns, problems, {}, {}, statuses, predicted={}, difficulty="Hard")[:2] == ("ms", "2")
     assert rc.due_spot(ns, problems, {}, {}, statuses, predicted={}, difficulty="Medium")[:2] == ("bsoa", "3")
+
+
+def test_a_failed_route_reveals_nothing():
+    rec = {"problem": "354", "title": "Russian Doll Envelopes", "target": "sort-by-custom-key",
+           "walk": ["sort-by-custom-key", "binary-search-boundary", "dp-1d-rolling"],
+           "moves": {"sort-by-custom-key": rc.HIT}, "named": ["sort-by-custom-key"],
+           "false": ["heap-simulation"], "seconds": 536, "valid": False,
+           "why": "counting chains greedily after the sort fails on [[1,1],[1,2],[2,1]]",
+           "summary": "sort by width, heap, count chains"}
+    out = rc.reveal(rec)
+    assert "binary-search-boundary" not in out and "dp-1d-rolling" not in out
+    assert "heap-simulation" not in out and "walk:" not in out
+    assert "the route as written does not solve it" in out
+    assert "served for: sort-by-custom-key" in out
+    ok = rc.reveal({**rec, "valid": True})
+    assert "walk: sort-by-custom-key, binary-search-boundary, dp-1d-rolling" in ok

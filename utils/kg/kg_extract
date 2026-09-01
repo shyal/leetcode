@@ -444,20 +444,20 @@ def judge_spots(nodes, problems, recog, model):
         }
         if answer:
             rec["answer"] = answer[:1000]
-        # rule 3 for recognition: a valid route the map does not have is
-        # never a miss on the candidate. One call on the stronger model
-        # decides validity; the hit is marked as an alternative (no code
-        # ran) and the walk is filed under spotted_walks, not alt_walks
-        if rc.MISSED in moves.values() and false:
+        # every proposed route is judged for validity (no code runs). A
+        # failed route is recorded and reveals nothing (rc.reveal). Rule 3
+        # for recognition: a valid route the map does not have is never a
+        # miss on the candidate - the hit is marked as an alternative and
+        # the walk is filed under spotted_walks, not alt_walks
+        if answer.strip() and named:
             try:
-                valid, why = rc.judge_alternative(statement, answer, named, nodes)
+                valid, why = rc.judge_route(statement, answer, named, nodes)
             except Exception as e:
-                valid, why = False, f"alternative not judged: {str(e)[:120]}"
-            if valid:
+                valid, why = None, f"route not judged: {str(e)[:120]}"
+            rec["valid"], rec["why"] = valid, why
+            if valid and rc.MISSED in moves.values() and false:
                 rc.apply_alternative(rec, named, problems, why, target=foot.get("target"))
                 save_problems(problems)
-            else:
-                rec["why"] = why
         recog[path] = rec
         rc.save_recognition(recog)
         verdict = ", ".join(f"{n}={v}" for n, v in rec["moves"].items()) or "unscored"
