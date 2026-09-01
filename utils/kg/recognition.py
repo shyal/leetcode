@@ -117,16 +117,20 @@ def score(named, pnum, problems):
     """Deterministic verdicts for one spot rep. `named` is the list of node
     ids the answer named (empty for "direct" or "don't know").
 
-    A hit on any entry node is a hit; the other entries are then left
-    unrecorded (a legitimate route was seen). With no hit, the primary
-    entry is recorded as missed. `false` is every named move no walk of the
-    problem uses: over-triggering, the failure in the other direction."""
+    Every named move that some walk of the problem uses is a hit: an
+    answer that works the example through to a convincing solve has read
+    the whole route, not only its first move (2026-09-01). The primary
+    entry is recorded as missed only when no entry move was named at all.
+    `false` is every named move no walk of the problem uses:
+    over-triggering, the failure in the other direction."""
     entries = entry_nodes(pnum, problems)
     if not entries:
         return {}, sorted(set(named))
-    hits = [e for e in dict.fromkeys(entries) if e in named]
-    moves = {e: HIT for e in hits} if hits else {entries[0]: MISSED}
-    false = sorted(set(named) - walk_nodes(pnum, problems))
+    walk = walk_nodes(pnum, problems)
+    moves = {n: HIT for n in dict.fromkeys(named) if n in walk}
+    if not any(e in named for e in entries):
+        moves[entries[0]] = MISSED
+    false = sorted(set(named) - walk)
     return moves, false
 
 
@@ -686,7 +690,7 @@ def reveal(rec):
     title = rec.get("title", "")
     pnum = rec.get("problem", "?")
     walk = ", ".join(rec.get("walk", [])) or "(unmapped)"
-    verdict = "hit" if any(v == HIT for v in rec.get("moves", {}).values()) else "missed"
+    verdict = "missed" if MISSED in rec.get("moves", {}).values() else "hit"
     lines = [f"{pnum}. {title}", f"walk: {walk}", f"{verdict} in {rec.get('seconds', 0)}s"]
     if rec.get("alternative"):
         lines.append("hit through an alternative walk, not yet evidenced by code: "
