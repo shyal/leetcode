@@ -87,7 +87,7 @@ def main():
         assisted = 0.0
         reps = []  # (date, stability_after)
         for d, v, a in evs:
-            if v == "clean" and a != "spoiled":
+            if v == "clean" and a != "learning":
                 cleans += 1
                 assisted += ASSIST_WEIGHT[a]
                 s = math.exp(P["a"] + P["b"] * cleans - P["c"] * struggles - P["d"] * assisted)

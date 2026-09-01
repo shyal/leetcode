@@ -27,7 +27,8 @@ from kg.kg_lib import (
     load_nodes, load_problems, load_evidence,
     save_problems, save_evidence, claude_json, taxonomy_summary, node_status,
     manila_date_from_filename, load_predicted, unlocks,
-    HARNESS_ENV_NOTE, SOLID, assist_tag, normalise_assist,
+    HARNESS_ENV_NOTE, SOLID, apply_assist_floor, assist_tag, normalise_assist,
+    notes_assist_level,
 )
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -222,14 +223,14 @@ Rules:
 - Judge the code as written, not the problem's canonical solution. Batch math on a streaming-carrier problem means the streaming move was NOT exercised — if the canonical solution's central move was sidestepped by an alternative approach, record that move as "avoided".
 - Verdicts: "clean" (executed correctly), "struggled" (bugs/confusion visible in code or notes, e.g. notes saying looked-up/hints/TLE/failed), "avoided" (canonical move sidestepped).
 - A drill file (DRILL: header) is a rung written to train exactly its TRAINS node. If it ran and its REQUIRED line is met, that node is "clean", whatever API spelling the code used: select("a", "b") trains a column-expression rung as well as select(F.col("a")) does. "avoided" is for a leetcode carrier whose central move was sidestepped, never for a drill that passed.
-- "assist" is a SEPARATE axis from the verdict, read ONLY from the candidate's own notes — never inferred from how the code looks. A confident-looking solve with a note saying it was walked through is "walkthrough"; a messy solve with no note is "none". Levels: "none" (no note claiming help), "hint" (a nudge, a question, a pointer at the wrong branch), "walkthrough" (the approach/recurrence was talked through before the code existed), "spoiled" (saw a solution). An explicit `ASSIST: <level>` line in the notes overrides your reading. Assist is PER MOVE: when the notes say what the help was on ("assisted on the window bookkeeping, the prefix sums were mine"), put the level on that move only and leave the others out, because a level on a move says the candidate could not recall THAT move unaided. When the notes claim help without saying where, put the level on every move in "moves". Omit the key, or use {{}}, when there was no help.
+- "assist" is a SEPARATE axis from the verdict, read ONLY from the candidate's own notes — never inferred from how the code looks. A confident-looking solve with a note saying it was walked through is "walkthrough"; a messy solve with no note is "none". Levels: "none" (no note claiming help), "hint" (a nudge, a question, a pointer at the wrong branch), "walkthrough" (the approach/recurrence was talked through before the code existed), "learning" (the solution was given and copied). An explicit `ASSIST: <level>` line in the notes overrides your reading. Assist is PER MOVE: when the notes say what the help was on ("assisted on the window bookkeeping, the prefix sums were mine"), put the level on that move only and leave the others out, because a level on a move says the candidate could not recall THAT move unaided. When the notes claim help without saying where, put the level on every move in "moves". Omit the key, or use {{}}, when there was no help.
 - Only include moves with real evidence in this code. 1-6 moves is typical.
 - If a required move has no taxonomy node, put a 3-8 word description in "unmapped".
 - If the file has no working solution (skeleton body, abandoned attempt), still return the JSON with "moves": {{}} and a note like "abandoned attempt" — never prose.
 - "summary": 2-4 sentences of plain english for the candidate to read after filing: what the code does and how, which moves it exercised, and what the notes say happened (hints, look-ups, TLEs, dead ends) if anything. Facts only: no praise, no grading, no advice, no adjectives about the candidate. Refer to the code by its real names (its variables, clauses, functions).
 
 Output STRICT JSON only:
-{{"problem": "<number>", "title": "<title>", "moves": {{"<node-id>": "clean|struggled|avoided"}}, "assist": {{"<node-id>": "hint|walkthrough|spoiled"}}, "unmapped": [], "note": "<one line, only if noteworthy>", "summary": "<2-4 sentences>"}}"""
+{{"problem": "<number>", "title": "<title>", "moves": {{"<node-id>": "clean|struggled|avoided"}}, "assist": {{"<node-id>": "hint|walkthrough|learning"}}, "unmapped": [], "note": "<one line, only if noteworthy>", "summary": "<2-4 sentences>"}}"""
 
     def extract_one(path):
         """Read + claude call only — no shared state touched here."""
@@ -267,7 +268,11 @@ Output STRICT JSON only:
                     f"code exercises it, 'avoided' if the solution routes around it. Also add "
                     f"any other moves the code actually exercises.\n\n{prompt}"
                 )
-        return claude_json(prompt, system, model=args.model), is_drill
+        try:
+            notes, _ = parse_content(code)
+        except SyntaxError:
+            notes = ""
+        return claude_json(prompt, system, model=args.model), is_drill, trains, notes
 
     lock = threading.Lock()
     done = failed = 0
@@ -276,7 +281,7 @@ Output STRICT JSON only:
         for fut in as_completed(futures):
             path = futures[fut]
             try:
-                result, is_drill = fut.result()
+                result, is_drill, trains, notes = fut.result()
             except Exception as e:
                 failed += 1
                 console.print(f"[red]FAIL {path}: {str(e)[:200]}[/red]")
@@ -306,6 +311,12 @@ Output STRICT JSON only:
                 "moves": moves,
             }
             assist = normalise_assist(result.get("assist"), moves)
+            # the level word in the candidate's notes ("asked for a
+            # walkthrough") is the mark, whatever the judge made of it: on a
+            # drill it lands on the TRAINS node, on a problem on every move
+            floor = notes_assist_level(notes)
+            targets = [t for t in trains if t in moves] if is_drill else []
+            assist = apply_assist_floor(assist, floor, targets or list(moves))
             if assist:
                 entry["assist"] = assist
             if result.get("note"):

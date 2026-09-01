@@ -94,9 +94,9 @@ SOLID, STALE, FRAGILE, MISSING = "SOLID", "STALE", "FRAGILE", "MISSING"
 #   none        unaided
 #   hint        a nudge (a question, a pointer to the branch that was wrong)
 #   walkthrough the shape was talked through before the code existed
-#   spoiled     saw the solution — no recall happened; `make sleep` re-queues it
-ASSIST_LEVELS = ("none", "hint", "walkthrough", "spoiled")
-ASSIST_WEIGHT = {"none": 0.0, "hint": 0.5, "walkthrough": 1.0, "spoiled": 2.0}
+#   learning    the solution was given and copied - no recall happened
+ASSIST_LEVELS = ("none", "hint", "walkthrough", "learning")
+ASSIST_WEIGHT = {"none": 0.0, "hint": 0.5, "walkthrough": 1.0, "learning": 2.0}
 
 
 def assist_of(rec, node_id=None):
@@ -135,6 +135,38 @@ def normalise_assist(raw, moves):
         return None
     out = {m: v for m, v in raw.items()
            if m in moves and v in ASSIST_WEIGHT and v != "none"}
+    return out or None
+
+
+_ASSIST_WORDS = [
+    ("learning", re.compile(r"\blearning\b", re.I)),
+    ("walkthrough", re.compile(r"\bwalk(?:ed|s)?[ -]?through\b|\bwalkthrough\b", re.I)),
+    ("hint", re.compile(r"\bhint(?:ed|s)?\b", re.I)),
+]
+
+
+def notes_assist_level(notes):
+    """The heaviest assist level the candidate's own notes name, or "none".
+
+    The judge is told to read assist from the notes, and it does - mostly.
+    On 2026-09-01 a drill whose notes read "Asked for a walkthrough." was
+    filed with no assist at all. The candidate will not type an
+    `ASSIST: <level>` line to make the model look; the level word in plain
+    prose is the mark. So the word is authoritative and this function is
+    what reads it, deterministically, before the judge's answer is stored."""
+    found = [lvl for lvl, rx in _ASSIST_WORDS if rx.search(notes or "")]
+    return max(found, key=ASSIST_WEIGHT.__getitem__) if found else "none"
+
+
+def apply_assist_floor(assist, level, targets):
+    """Raise the assist on each target move to at least `level`. `assist` is
+    the stored shape (dict or None); the result is the stored shape too."""
+    if level == "none" or not targets:
+        return assist
+    out = dict(assist or {})
+    for m in targets:
+        if ASSIST_WEIGHT[out.get(m, "none")] < ASSIST_WEIGHT[level]:
+            out[m] = level
     return out or None
 
 
@@ -419,7 +451,7 @@ def node_status(node_id, evidence, today=None):
     while predicted recall >= the fitted target. Without a curve: flat
     SOLID_WINDOW_DAYS.
 
-    A spoiled solve is not recall evidence at all — it neither counts as a
+    A learning solve is not recall evidence at all — it neither counts as a
     clean rep nor keeps the node SOLID.
     """
     status, last, _ = node_eval(node_id, evidence, today)
@@ -447,7 +479,7 @@ def node_eval(node_id, evidence, today=None):
         return MISSING, None, 0.0
     entries.sort()
     last_date, last_verdict, _ = entries[-1]
-    clean_dates = [d for d, v, a in entries if v == "clean" and a != "spoiled"]
+    clean_dates = [d for d, v, a in entries if v == "clean" and a != "learning"]
     if last_verdict in ("struggled", "avoided") and not (
         clean_dates and clean_dates[-1] >= last_date
     ):
@@ -544,9 +576,9 @@ def _bar_of(kinds):
 
 
 def _clean_reps(evidence):
-    """node -> [(date, problem), ...] over its clean, non-spoiled reps."""
+    """node -> [(date, problem), ...] over its clean, non-learning reps."""
     return {nid: [(d, str(rec.get("problem", ""))) for d, v, a, _, rec in entries
-                  if v == "clean" and a != "spoiled"]
+                  if v == "clean" and a != "learning"]
             for nid, entries in ev_index(evidence).by_node.items()}
 
 
@@ -570,7 +602,7 @@ def mature(node_id, evidence, problems):
     """True when a node's mastery is proven enough to carry a Hard.
 
     Two signals, both required:
-      spacing      clean (non-spoiled) reps on two days at least
+      spacing      clean (non-learning) reps on two days at least
                    MATURE_SPACING_DAYS apart — the badge survived a gap,
                    not just a same-week burst
       carry proof  clean reps on real leetcode problems (numeric id; drills
@@ -598,7 +630,7 @@ def immature_nodes(nodes, evidence, problems):
 
     def young(n):
         clean = [(d, str(rec.get("problem", ""))) for d, v, a, _, rec in
-                 idx.by_node.get(n, ()) if v == "clean" and a != "spoiled"]
+                 idx.by_node.get(n, ()) if v == "clean" and a != "learning"]
         return not _mature_from(clean, _bar_of(kinds.get(n, set())), problems)
 
     memo = _IMMATURE
@@ -1452,7 +1484,7 @@ def drill_clean(path, evidence):
 
 def drill_assisted(path, evidence):
     """True when this drill's most recent rep exists and was not an unaided
-    clean: a hint, a walkthrough, a spoil, or a struggle. The drill has been
+    clean: a hint, a walkthrough, a copy, or a struggle. The drill has been
     met but is not owned; the unaided rep is what it is waiting for."""
     rec = latest_drill_rep(path, evidence)
     if rec is None:
@@ -1462,7 +1494,7 @@ def drill_assisted(path, evidence):
 
 
 def drill_warm(path, evidence, today=None):
-    """True when this drill's most recent rep is all-clean, not spoiled, and
+    """True when this drill's most recent rep is all-clean, not learning, and
     inside the solid window — the bar it must meet to release what comes
     after it. A drill is a problem we created, so this is held_behind's
     release rule; latest-rep because a struggle after a clean means the

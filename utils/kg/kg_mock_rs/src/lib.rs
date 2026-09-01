@@ -185,7 +185,7 @@ where
 /// Mirror of kg_lib.assist_of's two shapes: a bare string taints every move
 /// in the walk, a {move: level} dict names the moves the help touched.
 pub fn assist_map(rec: &serde_json::Value) -> HashMap<String, String> {
-    let valid = |a: &str| ["hint", "walkthrough", "spoiled"].contains(&a);
+    let valid = |a: &str| ["hint", "walkthrough", "learning"].contains(&a);
     let mut out = HashMap::new();
     match rec.get("assist") {
         Some(serde_json::Value::String(a)) if valid(a) => {
@@ -232,7 +232,7 @@ pub fn assist_weight(a: &str) -> f64 {
     match a {
         "hint" => 0.5,
         "walkthrough" => 1.0,
-        "spoiled" => 2.0,
+        "learning" => 2.0,
         _ => 0.0,
     }
 }
@@ -257,7 +257,7 @@ pub fn node_status(node: &str, evidence: &[EvRec], today: NaiveDate, cv: &Curve)
     let (last_date, last_verdict, _) = *entries.last().unwrap();
     let clean_dates: Vec<&str> = entries
         .iter()
-        .filter(|(_, v, a)| *v == "clean" && *a != "spoiled")
+        .filter(|(_, v, a)| *v == "clean" && *a != "learning")
         .map(|(d, _, _)| *d)
         .collect();
     if (last_verdict == "struggled" || last_verdict == "avoided")

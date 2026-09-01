@@ -55,3 +55,9 @@
   drill file in `drills/`, any problem statement, or any REQUIRED line. It fixes
   the house form (section order, examples, constraints), the sentence-level
   mechanics, and when a scenario is allowed instead of a formal statement.
+
+# Words the operator will never use
+
+- "spoiled" / "spoiler" / "spoiling". Not in code, data, docs, tests, or chat.
+  Assist levels are none, hint, walkthrough, learning. A drill's solution
+  shown is a learning rep: the copy that every node's first rep is.

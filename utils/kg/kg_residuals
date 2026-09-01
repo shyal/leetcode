@@ -53,13 +53,13 @@ def trials_by_node(evidence):
             # at short gaps, z = -4.7; after an unaided clean the same wing
             # ran 8 of 8)
             if (retrieved and verdict in ("clean", "struggled")
-                    and assist != "spoiled"):
+                    and assist != "learning"):
                 gap = (date.fromisoformat(d) - date.fromisoformat(last_clean)).days
                 if gap >= 1:
                     success = int(verdict == "clean" and assist == "none")
                     out.append((node, gap, success, cleans, struggles, assisted, d))
             for v, a in days[d]:
-                if v == "clean" and a != "spoiled":
+                if v == "clean" and a != "learning":
                     cleans += 1
                     last_clean = d
                     retrieved = retrieved or a == "none"

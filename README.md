@@ -30,7 +30,7 @@ A problem's solution is a combination of several nodes, in a directed dependency
 After each solve a judge runs, reads my submitted code + notes, and records the walk i took. Per node it records:
 
 - a verdict: clean or struggled
-- an assist level, from my notes only: none, hint, walkthrough or spoiled
+- an assist level, from my notes only: none, hint, walkthrough or learning
 
 This means that failures are granular, and only affect the pertinent nodes, not the whole input dependency tree.
 
@@ -235,7 +235,7 @@ make next sql early             ignore the forgetting curve: every technique in 
                                 group gets its next drill, solid or not,
                                 prerequisites first. implies cram
 make next sql assisted          only the drills whose last rep needed a hint, a
-                                walkthrough or a spoiler: the unaided rep each one
+                                walkthrough or a copy: the unaided rep each one
                                 is waiting for. implies early
 
 make next sql assisted prepare  any of the above, then load the pick into

@@ -30,12 +30,12 @@ and generate combination drills ("rote sheets").
       none         unaided — the field is omitted
       hint         a nudge: a question, a pointer at the branch that was wrong
       walkthrough  the shape/recurrence was talked through before the code existed
-      spoiled      saw a solution
+      learning     the solution was given and copied (the first rep of a node)
 
   The verdict says whether the code worked; `assist` says how much of it was your
   own recall. Clean-but-walked-through is a real solve that is *not* a real rep, so
   it still earns evidence while shrinking the fitted half-life (the `- d*assist`
-  term in curve.json) instead of extending it. A `spoiled` solve doesn't count as a
+  term in curve.json) instead of extending it. A `learning` solve doesn't count as a
   clean rep at all — the node falls back to its previous clean date, which is what
   `make sleep` then re-queues.
 

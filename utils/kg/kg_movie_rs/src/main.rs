@@ -128,7 +128,7 @@ fn assist_weight(a: &str) -> f64 {
     match a {
         "hint" => 0.5,
         "walkthrough" => 1.0,
-        "spoiled" => 2.0,
+        "learning" => 2.0,
         _ => 0.0,
     }
 }
@@ -143,7 +143,7 @@ fn assist_of(rec: &Value, node: &str) -> String {
 // (date, verdict, assist); FRAGILE when the most recent evidence is
 // struggled/avoided with no clean on or after it, or when no clean exists;
 // otherwise the fitted forgetting curve (or the flat window) splits
-// SOLID/STALE. A spoiled solve is not recall evidence.
+// SOLID/STALE. A learning solve is not recall evidence.
 
 struct NodeReplay {
     entries: Vec<(NaiveDate, String, String)>, // sorted (date, verdict, assist)
@@ -161,7 +161,7 @@ impl NodeReplay {
         while self.idx < self.entries.len() && self.entries[self.idx].0 <= day {
             let (d, v, a) = self.entries[self.idx].clone();
             self.assisted += assist_weight(&a);
-            if v == "clean" && a != "spoiled" {
+            if v == "clean" && a != "learning" {
                 self.cleans += 1;
                 self.last_clean = Some(d);
             }
@@ -1470,7 +1470,7 @@ fn main() {
 
     // end-of-line labels sit to the RIGHT of the finished reveal, so they get
     // their own entrance: pop in on the movie's final tick, when the sweep
-    // reaches today — not clipped (never uncovered), not static (spoilers)
+    // reaches today — not clipped (never uncovered), not static (learning reps)
     let mut finale_times = vec![0.0];
     push_key(&mut finale_times, *tick_frac.last().unwrap());
     let finale = animate("opacity", "discrete", &["0".into(), "1".into()], &finale_times, dur);
