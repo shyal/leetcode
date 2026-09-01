@@ -82,7 +82,7 @@ def main():
     trials = kg_residuals.trials_by_node(evidence)
 
     def predict(gap, k, m, x):
-        s = math.exp(P["a"] + P["b"] * k - P["c"] * m - P.get("d", 0.0) * x)
+        s = math.exp(P["a"] + P["b"] * math.log1p(k) - P["c"] * m - P.get("d", 0.0) * x)
         return (1 - P["slip"]) * (1 + gap / s) ** (-P["beta"])
 
     # per group (and pooled under ""), the running z after each trial day:

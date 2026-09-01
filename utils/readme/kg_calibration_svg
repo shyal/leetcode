@@ -64,7 +64,7 @@ def main():
     trials = kg_curve.extract_trials(evidence, with_date=True)
 
     def pred(g, k, m, x):
-        s = math.exp(cp["a"] + cp["b"] * k - cp["c"] * m - cp.get("d", 0.0) * x)
+        s = math.exp(cp["a"] + cp["b"] * math.log1p(k) - cp["c"] * m - cp.get("d", 0.0) * x)
         return (1 - cp["slip"]) * (1 + g / s) ** (-cp["beta"])
 
     # daily stations, trials folded in incrementally as their date arrives;

@@ -14,6 +14,13 @@ from kg import recognition as rc
 from kg.kg_lib import SOLID, STALE
 
 
+@pytest.fixture(autouse=True)
+def _pin_spot_every(monkeypatch):
+    # the operator's .envrc knob (loaded by kg_lib at import) must not
+    # reach the suite: SPOT_EVERY=0 turns spots off and fails these tests
+    monkeypatch.setattr(rc, "SPOT_EVERY", 3)
+
+
 def iso(days):
     return (date.today() - timedelta(days=days)).isoformat()
 

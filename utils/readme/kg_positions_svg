@@ -90,7 +90,7 @@ def main():
             if v == "clean" and a != "learning":
                 cleans += 1
                 assisted += ASSIST_WEIGHT[a]
-                s = math.exp(P["a"] + P["b"] * cleans - P["c"] * struggles - P["d"] * assisted)
+                s = math.exp(P["a"] + P["b"] * math.log1p(cleans) - P["c"] * struggles - P["d"] * assisted)
                 reps.append((date.fromisoformat(d), s))
             else:
                 if v == "struggled":

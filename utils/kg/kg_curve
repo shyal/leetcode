@@ -6,9 +6,18 @@
 #
 #   make curve                 # refit from current evidence + report
 #
+# Fit knobs, for experimenting with what the trial pool should say
+# (CLI flag or env var; .envrc carries them the way it carries SPOT_EVERY,
+# and --if-stale treats a knob change as stale):
+#   --since YYYY-MM-DD / CURVE_SINCE       era boundary: older trials dropped
+#   --half-life DAYS   / CURVE_HALF_LIFE   recency weight 0.5^(age/half-life)
+#
 # Model: power-law forgetting with a slip rate.
 #   P(recall after gap Δ) = (1−slip) · (1 + Δ/s)^(−β)
-#   s = exp(a + b·cleans − c·struggles − d·assist)   — stability, grows with reps
+#   s = exp(a + b·log1p(cleans) − c·struggles − d·assist)   — stability, grows with reps
+#   (cleans = distinct clean DAYS: same-day reps are one rep, not several;
+#   log1p because per-rep stability gain saturates — a linear exponent
+#   compounded to multi-year windows at rep counts the data never sampled)
 # Power-law because real forgetting curves have heavy tails (Wixted), and an
 # exponential fitted to this data loses to a constant baseline; slip because
 # short-gap failures are retrieval noise, not forgetting — no curve pinned to
@@ -85,14 +94,20 @@ def extract_trials(evidence, with_date=False, with_conn=False):
                     if with_conn:
                         row += (conn.get(node, 0.0),)
                     trials.append(row + (_date(d),) if with_date else row)
+            # a day counts as at most one clean rep: same-day reps are massed
+            # practice, and crediting each one grows stability as if they
+            # were spaced (2026-09-02: five union-find drills in one sitting
+            # read as a 60+ day window)
+            day_clean = 0
             for v, a, na in days[d]:
                 if v == "clean" and na != "learning":
-                    cleans += 1
+                    day_clean = 1
                     last_clean = d
                     retrieved = retrieved or a == "none"
                 elif v == "struggled":
                     struggles += 1
                 assisted += ASSIST_WEIGHT[na]
+            cleans += day_clean
     return trials
 
 
@@ -101,28 +116,52 @@ def _date(s):
     return date.fromisoformat(s)
 
 
-def fit(trials, iters=8000, lr=0.05):
+def select_trials(trials, since=None, half_life=None):
+    """(trials without dates, weights or None) from dated trials.
+
+    `since` (a date) drops trials before it: an era boundary, for when an
+    old regime should not vote at all. `half_life` (days) weights each
+    trial 0.5^(age/half_life), age measured back from the newest trial:
+    recency weighting, for when the old regime should vote less. Both knobs
+    exist because the Oct-Nov 2025 era dominates the trial pool (73% of
+    trials at gaps <= 7d) while the 2026 graph era keeps disagreeing with
+    the curve it fitted (residuals z < -2 in four groups by sep 2026)."""
+    if since:
+        trials = [t for t in trials if t[-1] >= since]
+    if not trials:
+        return [], None
+    weights = None
+    if half_life:
+        newest = max(t[-1] for t in trials)
+        weights = [0.5 ** ((newest - t[-1]).days / half_life) for t in trials]
+    return [t[:-1] for t in trials], weights
+
+
+def fit(trials, iters=8000, lr=0.05, weights=None):
     """MLE for (a, b, c, d, e, conn_mean, beta, slip) in
     P = (1−slip)·(1 + Δ/s)^(−beta), s = exp(a + b·k − c·m − d·x + e·(conn − conn_mean)).
     Trials are 6-tuples (gap, success, cleans, struggles, assist, conn); the
     conn term is centered so a/b/c/d keep their meaning and consumers that
-    ignore e are simply assuming average connectivity."""
+    ignore e are simply assuming average connectivity. `weights` (parallel
+    to trials, from select_trials) turns the fit into weighted MLE."""
     try:
-        return _fit_numpy(trials, iters, lr)
+        return _fit_numpy(trials, iters, lr, weights)
     except ImportError:
         pass
-    n = len(trials)
-    conn_mean = sum(t[5] for t in trials) / n
+    ws = [1.0] * len(trials) if weights is None else list(weights)
+    wsum = sum(ws)
+    conn_mean = sum(w * t[5] for w, t in zip(ws, trials)) / wsum
     a, b, c, d, e, beta, slip = math.log(60), 0.05, 0.05, 0.05, 0.0, 0.5, 0.05
     for it in range(iters):
         ga = gb = gc = gd = ge = gbeta = gslip = 0.0
-        for gap, sf, k, m, x, cn in trials:
+        for w, (gap, sf, k, m, x, cn) in zip(ws, trials):
+            k = math.log1p(k)
             stab = math.exp(a + b * k - c * m - d * x + e * (cn - conn_mean))
             u = gap / stab
             mem = (1 + u) ** (-beta)
             p = min(1 - 1e-9, max(1e-9, (1 - slip) * mem))
             # E = dLL/dP scaled: success pulls P up, failure pushes it down
-            E = sf - (1 - sf) * p / (1 - p)
+            E = w * (sf - (1 - sf) * p / (1 - p))
             dlns = E * beta * u / (1 + u)          # dLL/d(ln stability)
             ga += dlns
             gb += dlns * k
@@ -132,31 +171,32 @@ def fit(trials, iters=8000, lr=0.05):
             gbeta += E * (-math.log(1 + u))
             gslip += E * (-1 / (1 - slip))
         step = lr / (1 + it / 2000)
-        a += step * ga / n
-        b = max(0.0, b + step * gb / n)            # reps should not shorten memory
-        c = max(0.0, c + step * gc / n)
-        d = max(0.0, d + step * gd / n)            # nor should being helped
-        e += step * ge / n
-        beta = min(5.0, max(0.02, beta + step * gbeta / n))
-        slip = min(0.25, max(0.0, slip + step * gslip / n))
+        a += step * ga / wsum
+        b = max(0.0, b + step * gb / wsum)          # reps should not shorten memory
+        c = max(0.0, c + step * gc / wsum)
+        d = max(0.0, d + step * gd / wsum)          # nor should being helped
+        e += step * ge / wsum
+        beta = min(5.0, max(0.02, beta + step * gbeta / wsum))
+        slip = min(0.25, max(0.0, slip + step * gslip / wsum))
     return a, b, c, d, e, conn_mean, beta, slip
 
 
-def _fit_numpy(trials, iters, lr):
+def _fit_numpy(trials, iters, lr, weights=None):
     import numpy as np
 
     gap, sf, k, m, x, cn = (np.array(v, dtype=float) for v in zip(*trials))
-    n = len(trials)
-    conn_mean = float(cn.mean())
+    k = np.log1p(k)
+    w = np.ones(len(trials)) if weights is None else np.array(weights, dtype=float)
+    conn_mean = float((w * cn).sum() / w.sum())
     cnc = cn - conn_mean
     a, b, c, d, e, beta, slip = math.log(60), 0.05, 0.05, 0.05, 0.0, 0.5, 0.05
     for it in range(iters):
         u = gap / np.exp(a + b * k - c * m - d * x + e * cnc)
         mem = (1 + u) ** (-beta)
         p = np.clip((1 - slip) * mem, 1e-9, 1 - 1e-9)
-        E = sf - (1 - sf) * p / (1 - p)
+        E = w * (sf - (1 - sf) * p / (1 - p))
         dlns = E * beta * u / (1 + u)
-        step = lr / (1 + it / 2000) / n
+        step = lr / (1 + it / 2000) / w.sum()
         a += step * dlns.sum()
         b = max(0.0, b + step * (dlns * k).sum())
         c = max(0.0, c + step * (-dlns * m).sum())
@@ -167,9 +207,10 @@ def _fit_numpy(trials, iters, lr):
     return a, b, c, d, e, conn_mean, beta, slip
 
 
-def loglik(trials, pred):
-    return sum(math.log(max(1e-9, pred(g, k, m, x, cn) if s else 1 - min(1 - 1e-9, pred(g, k, m, x, cn))))
-               for g, s, k, m, x, cn in trials) / len(trials)
+def loglik(trials, pred, weights=None):
+    ws = [1.0] * len(trials) if weights is None else list(weights)
+    return sum(w * math.log(max(1e-9, pred(g, k, m, x, cn) if s else 1 - min(1 - 1e-9, pred(g, k, m, x, cn))))
+               for w, (g, s, k, m, x, cn) in zip(ws, trials)) / sum(ws)
 
 
 GAP_BUCKETS = ((1, 7), (8, 21), (22, 42), (43, 90), (91, 180), (181, 400))
@@ -334,38 +375,62 @@ def main():
 
     parser = argparse.ArgumentParser(description="Fit the personal forgetting curve.")
     parser.add_argument("--if-stale", action="store_true",
-                        help="refit only when evidence.json is newer than curve.json")
+                        help="refit only when evidence.json (or a knob) is newer than curve.json")
+    parser.add_argument("--since", default=os.environ.get("CURVE_SINCE") or None,
+                        metavar="YYYY-MM-DD",
+                        help="era boundary: fit on trials on or after this date "
+                             "(env CURVE_SINCE)")
+    parser.add_argument("--half-life", type=float,
+                        default=float(os.environ.get("CURVE_HALF_LIFE", 0) or 0),
+                        metavar="DAYS",
+                        help="recency weighting: a trial DAYS older than the newest "
+                             "counts half as much (env CURVE_HALF_LIFE, 0 = off)")
     args = parser.parse_args()
+    knobs = {"since": args.since, "half_life": args.half_life or 0}
 
     curve_path = os.path.join(GRAPH_DIR, "curve.json")
     evidence_path = os.path.join(GRAPH_DIR, "evidence.json")
     if (args.if_stale and os.path.exists(curve_path)
             and os.path.getmtime(curve_path) >= os.path.getmtime(evidence_path)):
-        return  # curve already reflects current evidence
+        # a knob change makes the file stale even with no new evidence,
+        # otherwise an .envrc experiment never reaches the serving path
+        try:
+            with open(curve_path) as f:
+                prev = json.load(f).get("fit", {})
+        except (OSError, ValueError):
+            prev = {}
+        if (prev.get("since") == knobs["since"]
+                and prev.get("half_life", 0) == knobs["half_life"]):
+            return  # curve already reflects current evidence and knobs
 
     evidence = load_evidence()
-    trials = extract_trials(evidence, with_conn=True)
-    a, b, c, d, e, conn_mean, beta, slip = fit(trials)
+    dated = extract_trials(evidence, with_date=True, with_conn=True)
+    since = _date(args.since) if args.since else None
+    trials, weights = select_trials(dated, since, args.half_life or None)
+    if not trials:
+        raise SystemExit(f"no trials on or after {args.since}; curve.json left as is")
+    a, b, c, d, e, conn_mean, beta, slip = fit(trials, weights=weights)
     problems = load_problems()
     conn = node_conn(problems)
     mass = fit_mass(evidence, problems)
 
     def stab(k, m, x=0.0, cn=None):
         cn = conn_mean if cn is None else cn
-        return math.exp(a + b * k - c * m - d * x + e * (cn - conn_mean))
+        return math.exp(a + b * math.log1p(k) - c * m - d * x + e * (cn - conn_mean))
 
     def pred(gap, k, m, x=0.0, cn=None):
         return (1 - slip) * (1 + gap / stab(k, m, x, cn)) ** (-beta)
 
-    base_rate = sum(t[1] for t in trials) / len(trials)
-    ll_model = loglik(trials, pred)
-    ll_base = sum(math.log(base_rate if t[1] else 1 - base_rate)
-                  for t in trials) / len(trials)
+    ws = [1.0] * len(trials) if weights is None else weights
+    base_rate = sum(w * t[1] for w, t in zip(ws, trials)) / sum(ws)
+    ll_model = loglik(trials, pred, weights)
+    ll_base = sum(w * math.log(base_rate if t[1] else 1 - base_rate)
+                  for w, t in zip(ws, trials)) / sum(ws)
 
     curve = {
         "_comment": "Personal forgetting curve fitted by utils/kg/kg_curve. "
         "P(recall) = (1-slip)*(1 + gap/s)^(-beta), "
-        "s = exp(a + b*cleans - c*struggles - d*assist + e*(conn - conn_mean)). "
+        "s = exp(a + b*log1p(cleans) - c*struggles - d*assist + e*(conn - conn_mean)); cleans counts distinct clean days, same-day reps are one rep. "
         "conn is the node's log2 carrier count, frozen below at fit time; "
         "consumers that ignore e are assuming average connectivity. "
         "node_status() calls a node SOLID while the memory component "
@@ -380,7 +445,9 @@ def main():
         "target_retention": TARGET_RETENTION,
         "mass": mass,
         "fit": {"trials": len(trials), "loglik": round(ll_model, 4),
-                "baseline_loglik": round(ll_base, 4)},
+                "baseline_loglik": round(ll_base, 4),
+                "since": knobs["since"], "half_life": knobs["half_life"],
+                "effective_trials": round(sum(ws), 1)},
     }
     with open(os.path.join(GRAPH_DIR, "curve.json"), "w") as f:
         json.dump(curve, f, indent=2)
@@ -390,9 +457,17 @@ def main():
     print = lambda line: console.print(
         f"[bold]{line}[/bold]" if line.startswith("fitted") or line.startswith("wrote")
         else f"[dim]{line}[/dim]" if line.startswith("  ") else f"[cyan]{line}[/cyan]")
+    if knobs["since"] or knobs["half_life"]:
+        parts = []
+        if knobs["since"]:
+            parts.append(f"era boundary {knobs['since']}")
+        if knobs["half_life"]:
+            parts.append(f"recency half-life {knobs['half_life']:g}d "
+                         f"(effective n {sum(ws):.0f})")
+        print("knobs: " + ", ".join(parts))
     print(f"fitted on {len(trials)} trials: "
           f"P = {1 - slip:.2f}·(1 + Δ/s)^(−{beta:.2f}), "
-          f"s = exp({a:.2f} + {b:.3f}·cleans − {c:.3f}·struggles − {d:.3f}·assist "
+          f"s = exp({a:.2f} + {b:.3f}·log1p(cleans) − {c:.3f}·struggles − {d:.3f}·assist "
           f"+ {e:.3f}·conn)")
     print(f"loglik/trial {ll_model:.4f} vs always-{base_rate:.0%} baseline {ll_base:.4f}")
     print(f"{TARGET_RETENTION:.0%}-retention window by clean reps (no struggles, unaided):")

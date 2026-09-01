@@ -268,14 +268,20 @@ pub fn node_status(node: &str, evidence: &[EvRec], today: NaiveDate, cv: &Curve)
     if clean_dates.is_empty() {
         return (FRAGILE, Some(parse_date(last_date)));
     }
-    let cleans = clean_dates.len() as f64;
+    // distinct days, not entries: same-day reps are one rep (kept in
+    // lockstep with kg_lib.node_eval)
+    let cleans = {
+        let mut uniq = clean_dates.clone();
+        uniq.dedup();
+        uniq.len() as f64
+    };
     let struggles = entries.iter().filter(|(_, v, _)| *v == "struggled").count() as f64;
     let mut assisted = 0.0;
     for (_, _, a) in &entries {
         assisted += assist_weight(a);
     }
     let cn = cv.conn.get(node).copied().unwrap_or(cv.conn_mean);
-    let stability = (cv.a + cv.b * cleans - cv.c * struggles - cv.d * assisted
+    let stability = (cv.a + cv.b * (1.0 + cleans).ln() - cv.c * struggles - cv.d * assisted
         + cv.e * (cn - cv.conn_mean))
         .exp()
         .max(7.0)
@@ -294,14 +300,21 @@ pub fn current_recall(node_ids: &[String], evidence: &[EvRec], cv: &Curve, today
         .iter()
         .map(|nid| {
             let (status, last) = node_status(nid, evidence, today, cv);
-            let cleans = evidence
-                .iter()
-                .filter(|r| r.moves.get(nid.as_str()).map(String::as_str) == Some("clean"))
-                .count() as f64;
+            // distinct clean days, as in kg_lib.node_curve_recall
+            let cleans = {
+                let mut days: Vec<&str> = evidence
+                    .iter()
+                    .filter(|r| r.moves.get(nid.as_str()).map(String::as_str) == Some("clean"))
+                    .map(|r| r.date.as_str())
+                    .collect();
+                days.sort();
+                days.dedup();
+                days.len() as f64
+            };
             if status == MISSING || last.is_none() {
                 return 0.25;
             }
-            let s = (cv.a + cv.b * cleans).exp().max(7.0).min(3650.0);
+            let s = (cv.a + cv.b * (1.0 + cleans).ln()).exp().max(7.0).min(3650.0);
             let rec = (1.0 + (today - last.unwrap()).num_days() as f64 / s).powf(-cv.beta);
             if status == FRAGILE {
                 rec * 0.5
