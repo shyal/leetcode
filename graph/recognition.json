@@ -69,6 +69,32 @@
       "false": [],
       "summary": "The candidate initially considers sets but recognizes that the 'exactly once' constraint rules them out. They pivot to building Counter objects from the sentences and filtering for words whose count equals 1, selecting words that appear exactly once across both sentences combined.",
       "answer": "The simpliest solution here is to build two sets, s1s which holds each word in s1, and s2s which holds every word in s2 (easy enough to split the strings in python with .split()).\n\nThen one can simply take the intersection of both sets with s1s ^ s2s. That is the solution.\n\nAh no, nevermind that:\n\n\"A word is **uncommon** if it appears exactly once in one of the sentences, and **does not appear** in the other sentence.\"\n\nThis means sets are out. Then we need a counter.\n\ns1 = \"apple apple\"\ns2 = \"banana\"\n\n```\nc1 = {\n    'apple': 2,\n}\n\nc2 = {\n    'banana': 1,\n}\n```\n\nNow we only need to focus on words that appear once. So we can simply add the counters to one another, or in fact take one big counter of both sentences would also work, and only return words that appear once. e.g:\n\n```\nc1 = {\n    'this': 1,\n    'apple': 1,\n    'is': 1:\n    'sweet': 1\n}\n\n\nc2 = {\n    'this': 1,\n    'apple': 1,\n    'is': 1:\n    'sour': 1\n}\n\n\nbecomes:\n\nc = {\n    'this': 2,\n    'apple': 2,\n    'is': 2,\n    'sweet':"
+    },
+    "recognition/s1646_Get_Maximum_in_Generated_Array_2026_09_01T08_16_25_628648_00_00Z.md": {
+      "date": "2026-09-01",
+      "problem": "1646",
+      "kind": "spot",
+      "title": "Get Maximum in Generated Array",
+      "target": "dp-1d-rolling",
+      "reason": "failed to recognize last time, 159 problem(s) need only it",
+      "seconds": 659,
+      "named": [
+        "memoize-recursion"
+      ],
+      "walk": [
+        "dp-1d-rolling",
+        "running-extreme"
+      ],
+      "moves": {
+        "memoize-recursion": "hit"
+      },
+      "false": [],
+      "summary": "The candidate identifies the recurrence relations in the problem and proposes a memoized recursive function with base cases (nums[0]=0, nums[1]=1) to compute array values and find the maximum, suggesting recursion with memoization to avoid recomputation.",
+      "answer": "- `nums[0] = 0`\n- `nums[1] = 1`\n- `nums[2 * i] = nums[i]` when `2 <= 2 * i <= n`\n- `nums[2 * i + 1] = nums[i] + nums[i + 1]` when `2 <= 2 * i + 1 <= n`\n\nAt least n is small, so in a solve i'd probably just implement it without thinking about it too much:\n\n```\nnums = [0, 1] + [-1] * 2\n\nfor i in range(n + 1, -1, -1):\n    nums[i*2] =\n\n```\n\nHmm no nevermind that, recursion will probably be much simpler, and i'm guessing that:\n\n- `nums[0] = 0`\n- `nums[1] = 1`\n\nThese are the base cases.\n\n```\nnums = [0, 1] + [-1] * 2\n\ndef num(i, n):\n    # or instead of base case, just use memo\n    if nums[i] != -1:\n        return nums[i]\n    if 0 <= i <= 1:\n        v = num(2 * i)\n        return v\n    if 2 <= 2 * i <= n:\n        nums[2 * i + 1] = num(i) + num(i + 1)\n\nres = max(nums)\n\n```\n\nThe above should be treated as pseudocode, as i wasn't able to run it. But the gist is to understand that this question is asking to build a recursive function that satisfies the recurrence relations in the problem statement.",
+      "alternative": [
+        "memoize-recursion"
+      ],
+      "why": "Matches the accepted memoized-recursion/DP solution that fills nums[i] via the given recurrence and takes max, which is O(n) and correct for n<=100."
     }
   }
 }
