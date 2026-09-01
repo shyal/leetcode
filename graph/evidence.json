@@ -7172,6 +7172,14 @@
         "sql-subquery": "clean"
       },
       "summary": "The query uses a scalar subquery in the SELECT clause to compute count(*) from Users as a single total, then groups Register by contest_id to return one row per contest with the total user count. This directly exercises sql-subquery: using a scalar subquery for a single total that executes independently of the outer query's grouping."
+    },
+    "solved/d_Dense_Rank_Scores_2026_09_01T00_23_09_939389_00_00Z.py": {
+      "date": "2026-09-01",
+      "problem": "drill",
+      "moves": {
+        "sql-window-rank": "clean"
+      },
+      "summary": "Solution uses dense_rank() over (order by score desc) to rank scores in descending order, giving equal scores the same rank with no gaps in the rank sequence. The window function correctly produces the required output: 4.0 at rank 1, 3.85 at rank 2, 3.65 at rank 3, 3.5 at rank 4."
     }
   }
 }
