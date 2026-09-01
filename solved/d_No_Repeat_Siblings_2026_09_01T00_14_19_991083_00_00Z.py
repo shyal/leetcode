@@ -1,7 +1,6 @@
 """
 DRILL: No Repeat Siblings
 TRAINS: backtracking-dedupe-siblings
-SNIPPET: lcsubsets
 
 Given an array nums that may hold repeated values, return every distinct
 subset of nums. Each subset lists its values in non-decreasing order, and
@@ -29,31 +28,63 @@ Constraints:
     moment it is built, and no subset is ever built twice. NO set or
     tuple de-duplication of the answer, NO Counter of the input, no
     comparing a candidate against subsets already collected.
+
+
+---
+
+Learning.
+
 """
 
 
 class Solution:
     def subsetsWithDup(self, nums: list[int]) -> list[list[int]]:
-        pass
+        def helper(i):
+            ret.append(curr[:])
+            for j in range(i, len(nums)):
+                if j > i and nums[j] == nums[j - 1]:
+                    continue
+                curr.append(nums[j])
+                helper(j + 1)
+                curr.pop()
+
+        ret = []
+        curr = []
+        nums.sort()
+        helper(0)
+        return ret
 
 
 sol = Solution()
 
 print(sol.subsetsWithDup([1, 2, 2]))  # 6 subsets
 
-# assert sorted(map(tuple, sol.subsetsWithDup([1, 2, 2]))) == [
-#     (), (1,), (1, 2), (1, 2, 2), (2,), (2, 2)
-# ]
-# assert sorted(map(tuple, sol.subsetsWithDup([4, 4, 4]))) == [
-#     (), (4,), (4, 4), (4, 4, 4)
-# ]
-# assert sorted(map(tuple, sol.subsetsWithDup([1, 2]))) == [(), (1,), (1, 2), (2,)]
-# assert sorted(map(tuple, sol.subsetsWithDup([2, 1, 2]))) == [
-#     (), (1,), (1, 2), (1, 2, 2), (2,), (2, 2)
-# ]
+assert sorted(map(tuple, sol.subsetsWithDup([1, 2, 2]))) == [
+    (),
+    (1,),
+    (1, 2),
+    (1, 2, 2),
+    (2,),
+    (2, 2),
+]
+assert sorted(map(tuple, sol.subsetsWithDup([4, 4, 4]))) == [
+    (),
+    (4,),
+    (4, 4),
+    (4, 4, 4),
+]
+assert sorted(map(tuple, sol.subsetsWithDup([1, 2]))) == [(), (1,), (1, 2), (2,)]
+assert sorted(map(tuple, sol.subsetsWithDup([2, 1, 2]))) == [
+    (),
+    (1,),
+    (1, 2),
+    (1, 2, 2),
+    (2,),
+    (2, 2),
+]
 
-# res = sol.subsetsWithDup([1, 1, 2, 2])
-# assert len(res) == 9 and len({tuple(s) for s in res}) == 9
+res = sol.subsetsWithDup([1, 1, 2, 2])
+assert len(res) == 9 and len({tuple(s) for s in res}) == 9
 
-# res = sol.subsetsWithDup([5] * 12)
-# assert len(res) == 13
+res = sol.subsetsWithDup([5] * 12)
+assert len(res) == 13
