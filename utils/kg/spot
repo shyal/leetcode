@@ -8,6 +8,8 @@
 #
 #   make prepare spot           # the picker's rep (kg.recognition.due_spot),
 #   make spot                   # whether or not make next says one is due
+#   make spot medium            # carried on a Medium (easy|medium|hard); the
+#                               # default is the gentlest carrier, like a solve
 #   utils/kg/spot --problem 84  # a chosen problem (the number is not shown)
 #
 # The number appears nowhere the candidate sees before the answer is in:
@@ -40,7 +42,10 @@ def main():
                         help="serve this problem number instead of the picker's choice")
     parser.add_argument("--dry", action="store_true",
                         help="print the pick's reason and stop (the problem stays hidden)")
+    parser.add_argument("difficulty", nargs="?", choices=["easy", "medium", "hard"],
+                        help="carry the rep on a problem of this tier only (make spot medium)")
     args = parser.parse_args()
+    difficulty = args.difficulty.capitalize() if args.difficulty else None
 
     for f in ("current.py", "current.md"):
         path = os.path.join(REPO_ROOT, f)
@@ -61,9 +66,10 @@ def main():
         # asked for = served: the SPOT_EVERY ratio governs what make next
         # suggests, not what make prepare spot does
         pick = rc.due_spot(nodes, problems, evidence, recog, statuses,
-                           skip=set(asleep), force=True)
+                           skip=set(asleep), force=True, difficulty=difficulty)
         if not pick:
-            console.print("nothing to spot: no node with reach is waiting for a rep.")
+            tier = f" among {difficulty} problems" if difficulty else ""
+            console.print(f"nothing to spot{tier}: no node with reach is waiting for a rep.")
             sys.exit(1)
         target, pnum, reason = pick
     if args.dry:

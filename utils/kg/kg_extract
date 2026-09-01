@@ -448,13 +448,13 @@ def judge_spots(nodes, problems, recog, model):
         # never a miss on the candidate. One call on the stronger model
         # decides validity; the hit is marked as an alternative (no code
         # ran) and the walk is filed under spotted_walks, not alt_walks
-        if rc.MISSED in moves.values() and named and named == false:
+        if rc.MISSED in moves.values() and false:
             try:
                 valid, why = rc.judge_alternative(statement, answer, named, nodes)
             except Exception as e:
                 valid, why = False, f"alternative not judged: {str(e)[:120]}"
             if valid:
-                rc.apply_alternative(rec, named, problems, why)
+                rc.apply_alternative(rec, named, problems, why, target=foot.get("target"))
                 save_problems(problems)
             else:
                 rec["why"] = why

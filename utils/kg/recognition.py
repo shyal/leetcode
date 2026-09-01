@@ -42,6 +42,10 @@ CACHE_DIR = os.path.join(REPO_ROOT, ".prepare_cache")
 
 RECOGNIZED, FAILED_TO_RECOGNIZE, UNTESTED = "RECOGNIZED", "FAILED_TO_RECOGNIZE", "UNTESTED"
 HIT, MISSED = "hit", "missed"
+# a rep served for a target that ended as a valid alternative route: the
+# target was neither seen nor missed, the statement did not need it
+ALTERNATIVE = "alternative"
+LEFT_TO_SOLVES = 2  # that many in a row and the spot picker leaves the node alone
 ANSWER_MARK = "<!-- answer -->"
 FOOTER_RE = re.compile(r"<!-- spot (\{.*?\}) -->\s*$", re.S)
 SPOT_FNAME_RE = re.compile(r"^s(\d+)_")
@@ -180,18 +184,34 @@ def recognition_window(hits):
 
 
 def recognition_status(node_id, recog, today=None):
-    """(status, last_event_date) for a node's recognition axis."""
+    """(status, last_event_date) for a node's recognition axis. Status
+    comes from the last hit or miss; an ALTERNATIVE event moves the date
+    (the queue order) but not the status."""
     today = today or date.today()
     events = index(recog).by_node.get(node_id, ())
     if not events:
         return UNTESTED, None
-    last_date, last_verdict, _ = events[-1]
-    if last_verdict == MISSED:
+    last_date = events[-1][0]
+    decided = [(d, v) for d, v, _ in events if v in (HIT, MISSED)]
+    if not decided:
+        return UNTESTED, last_date
+    if decided[-1][1] == MISSED:
         return FAILED_TO_RECOGNIZE, last_date
-    hits = sum(1 for _, v, _ in events if v == HIT)
-    if (today - last_date).days <= recognition_window(hits):
+    hits = sum(1 for _, v in decided if v == HIT)
+    if (today - decided[-1][0]).days <= recognition_window(hits):
         return RECOGNIZED, last_date
     return UNTESTED, last_date
+
+
+def left_to_solves(node_id, recog):
+    """True when the last LEFT_TO_SOLVES reps served for this node all
+    ended as alternatives: the statements do not reach it (dp-1d-rolling
+    is met while executing, never read off a statement), so recognition
+    comes from an unaided solve that uses it (solve_hits) and the spot
+    picker stops serving it."""
+    events = index(recog).by_node.get(node_id, ())
+    tail = [v for _, v, _ in events[-LEFT_TO_SOLVES:]]
+    return len(tail) == LEFT_TO_SOLVES and all(v == ALTERNATIVE for v in tail)
 
 
 def spotted_problems(recog):
@@ -323,11 +343,15 @@ def spot_pool(problems, predicted=None):
     return pool
 
 
-def carriers_by_node(nodes, problems, evidence, recog, statuses, skip=(), predicted=None):
+def carriers_by_node(nodes, problems, evidence, recog, statuses, skip=(), predicted=None,
+                     difficulty=None):
     """{node: [carriers]} the way the solve picker counts reach: an
     unsolved, unspotted problem carries node n when its walk uses n and
     every OTHER move is SOLID - one unowned move is fine, it is the one
-    being served. Mapped before drafted, gentlest first."""
+    being served. Mapped before drafted, gentlest first. With
+    `difficulty` ("Easy" / "Medium" / "Hard", `make spot medium`), only
+    problems of that tier carry: a rep costs no code, so the gentlest
+    carrier is not the only sensible one."""
     solved = solved_problems(evidence)
     seen = spotted_problems(recog)
     pool = spot_pool(problems, predicted)
@@ -335,7 +359,8 @@ def carriers_by_node(nodes, problems, evidence, recog, statuses, skip=(), predic
     for pnum, p in pool.items():
         moves = p.get("moves", [])
         if (pnum in solved or pnum in seen or pnum in skip or p.get("banned")
-                or not moves or not all(m in nodes for m in moves)):
+                or not moves or not all(m in nodes for m in moves)
+                or (difficulty and p.get("difficulty") != difficulty)):
             continue
         gaps = [m for m in moves if statuses.get(m, (None,))[0] != SOLID]
         if len(gaps) > 1:
@@ -349,13 +374,13 @@ def carriers_by_node(nodes, problems, evidence, recog, statuses, skip=(), predic
 
 
 def spot_carriers(target, problems, evidence, recog, nodes, statuses=None,
-                  skip=(), predicted=None):
+                  skip=(), predicted=None, difficulty=None):
     return carriers_by_node(nodes, problems, evidence, recog, statuses or {},
-                            skip, predicted).get(target, [])
+                            skip, predicted, difficulty).get(target, [])
 
 
 def due_spot(nodes, problems, evidence, recog, statuses, today=None, skip=(),
-             predicted=None, every=None, force=False):
+             predicted=None, every=None, force=False, difficulty=None):
     """The spot rep due today, or None: (target, pnum, reason).
 
     Picks the way the solve picker picks. A node's score is the number
@@ -371,11 +396,12 @@ def due_spot(nodes, problems, evidence, recog, statuses, today=None, skip=(),
     today = today or date.today()
     if not force and not spot_due_by_ratio(recog, evidence, today, every):
         return None
-    carriers = carriers_by_node(nodes, problems, evidence, recog, statuses, skip, predicted)
+    carriers = carriers_by_node(nodes, problems, evidence, recog, statuses, skip, predicted,
+                                difficulty)
     ranked = []
     for n, cs in carriers.items():
         status, last = recognition_status(n, recog, today)
-        if status == RECOGNIZED:
+        if status == RECOGNIZED or left_to_solves(n, recog):
             continue
         ranked.append((status != FAILED_TO_RECOGNIZE, -len(cs), last or date.min, n))
     if not ranked:
@@ -662,13 +688,18 @@ Output STRICT JSON only: {"valid": true|false, "why": "<sentence>"}"""
     return bool(result.get("valid")), str(result.get("why", "")).strip()
 
 
-def apply_alternative(rec, named, problems, why):
-    """A valid alternative walk: the rep becomes a hit on the first move
-    the candidate named, marked "alternative" (recognition only, no code
-    ran), and the walk is filed on the problem under `spotted_walks`,
-    never `alt_walks`, which stays evidenced by code. A later solve that
-    takes this walk promotes it (kg_extract.record_alt_walk)."""
-    rec["moves"] = {named[0]: HIT}
+def apply_alternative(rec, named, problems, why, target=None):
+    """A valid alternative walk: the rep becomes a hit on every move the
+    candidate named, marked "alternative" (recognition only, no code
+    ran); the target's miss goes, a valid route is never a miss (rule 3).
+    The target, when it was not named, gets an ALTERNATIVE event: not
+    seen, not missed, not needed by this statement. The walk is filed on
+    the problem under `spotted_walks`, never `alt_walks`, which stays
+    evidenced by code. A later solve that takes this walk promotes it
+    (kg_extract.record_alt_walk)."""
+    rec["moves"] = {n: HIT for n in dict.fromkeys(named)}
+    if target and target not in rec["moves"]:
+        rec["moves"][target] = ALTERNATIVE
     rec["false"] = []
     rec["alternative"] = list(named)
     rec["why"] = why
@@ -738,6 +769,9 @@ def reveal(rec):
     pnum = rec.get("problem", "?")
     walk = ", ".join(rec.get("walk", [])) or "(unmapped)"
     verdict = "missed" if MISSED in rec.get("moves", {}).values() else "hit"
+    target = rec.get("target")
+    if rec.get("moves", {}).get(target) == ALTERNATIVE:
+        verdict = f"hit, {target} not needed"
     lines = [f"{pnum}. {title}", f"walk: {walk}", f"{verdict} in {rec.get('seconds', 0)}s"]
     if rec.get("alternative"):
         lines.append("hit through an alternative walk, not yet evidenced by code: "
