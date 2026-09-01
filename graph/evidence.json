@@ -7200,6 +7200,16 @@
       },
       "note": "Assisted on self-join column selection.",
       "summary": "The solution finds employees with no direct reports using LEFT JOIN Employees as m on m.manager_id = e.employee_id combined with WHERE m.employee_id IS NULL to filter rows where no one has e as their manager. The candidate needed assistance understanding which columns to join on."
+    },
+    "solved/p433_Minimum_Genetic_Mutation_2026_09_01T01_46_44_676930_00_00Z.py": {
+      "date": "2026-09-01",
+      "problem": "433",
+      "moves": {
+        "graph-bfs-shortest": "clean",
+        "generate-and-test-neighbors": "clean"
+      },
+      "note": "Uses pop() instead of popleft(); still finds shortest path because all distance-d neighbors are queued before any distance-(d+1) neighbor is processed.",
+      "summary": "The code implements shortest-path search through genetic mutations using a deque and distance tracking. At each step, it tests all bank entries to find single-letter mutations (generate-and-test-neighbors), queuing valid candidates with incremented distance. A visited set prevents revisits. Even though the code uses pop() (LIFO) instead of popleft() (FIFO), it correctly finds the minimum path because all nodes at a given distance level are enqueued before any at the next level is processed. The operator's notes confirm the code passed local testing."
     }
   }
 }
