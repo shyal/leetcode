@@ -1820,6 +1820,47 @@ def test_a_medium_bar_young_move_promotes_a_drafted_medium_not_an_easy(picker):
     assert "drafted" in reason
 
 
+def test_a_counted_carrier_yields_to_a_drafted_medium(picker):
+    """102 on 2026-09-01: the only evidenced Medium carrier of `b` had
+    already given it a clean rep, and cooled, so rule 5 served it again
+    while 18 drafted Mediums waited. A second rep of the same problem
+    proves memory of that problem, not carry: a draft goes first."""
+    ns = nodes("a", "b")
+    ps = {"1": problem(["a", "b"])}
+    st = {"a": (SOLID, ago(1)), "b": (SOLID, ago(1))}
+    ev = evidence(solve("1", {"a": "clean", "b": "clean"}, days_ago=10))
+    picker.immature.add("b")
+    picker.gain = {"b": 18}
+    picker.predicted["9002"] = drafted(["a", "b"])
+    picker.meta["9002"] = {"difficulty": "Medium"}
+    target, status, pnum, reason = picker.run(ns, ps, ev, st)
+    assert (target, pnum) == ("b", "9002")
+
+
+def test_a_counted_carrier_is_re_solved_when_no_draft_exists(picker):
+    ns = nodes("a", "b")
+    ps = {"1": problem(["a", "b"])}
+    st = {"a": (SOLID, ago(1)), "b": (SOLID, ago(1))}
+    ev = evidence(solve("1", {"a": "clean", "b": "clean"}, days_ago=10))
+    picker.immature.add("b")
+    picker.gain = {"b": 18}
+    target, status, pnum, reason = picker.run(ns, ps, ev, st)
+    assert (target, pnum) == ("b", "1")
+    assert "re-solve" in reason
+
+
+def test_a_fresh_evidenced_carrier_still_outranks_a_draft(picker):
+    ns = nodes("a", "b")
+    ps = {"1": problem(["a", "b"]), "2": problem(["a", "b"])}
+    st = {"a": (SOLID, ago(1)), "b": (SOLID, ago(1))}
+    ev = evidence(solve("1", {"a": "clean", "b": "clean"}, days_ago=10))
+    picker.immature.add("b")
+    picker.gain = {"b": 18}
+    picker.predicted["9002"] = drafted(["a", "b"])
+    picker.meta["9002"] = {"difficulty": "Medium"}
+    assert picker.run(ns, ps, ev, st)[2] == "2"
+
+
 def test_a_young_move_with_falsified_drafts_is_skipped(picker):
     ns = nodes("a", "b")
     ps = {"1": problem(["a", "b"])}

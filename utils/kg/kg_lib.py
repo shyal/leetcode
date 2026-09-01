@@ -347,8 +347,16 @@ class _DraftMatrix:
 _DRAFT_MATRIX = {}
 
 
+def _dict_key(d):
+    """Memo key for a dict that may be rebuilt: id() alone is recycled
+    across short-lived dicts (the picker tests build one per test and a
+    stale matrix served the wrong catalog, 2026-09-01). Small dicts are
+    keyed by content, the real 3000-problem catalog by id and size."""
+    return (id(d), tuple(sorted(d)) if len(d) < 256 else len(d))
+
+
 def _draft_matrix(predicted, node_ids):
-    key = (id(predicted), tuple(sorted(node_ids)))
+    key = (_dict_key(predicted), tuple(sorted(node_ids)))
     dm = _DRAFT_MATRIX.get(key)
     if dm is None:
         if len(_DRAFT_MATRIX) > 8:
@@ -1276,7 +1284,7 @@ def draft_misses(target, evidence, nodes=None, predicted=None):
     promoted the next of 56 drafts. Nothing counted the misses."""
     if predicted is None:
         predicted = load_predicted()
-    key = (id(predicted), target)
+    key = (_dict_key(predicted), target)
     drafts = _DRAFTS_OF.get(key)
     if drafts is None:
         if len(_DRAFTS_OF) > 512:

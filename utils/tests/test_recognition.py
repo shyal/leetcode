@@ -465,3 +465,10 @@ def test_a_failed_route_reveals_nothing():
     assert "served for: sort-by-custom-key" in out
     ok = rc.reveal({**rec, "valid": True})
     assert "walk: sort-by-custom-key, binary-search-boundary, dp-1d-rolling" in ok
+
+
+def test_a_hit_on_the_same_day_as_a_miss_wins():
+    recog = merged(miss(1760, "spc", days_ago=0),
+                   {"solved/p2177_0.py#solve": {"date": iso(0), "problem": "2177", "kind": "solve",
+                                                "moves": {"spc": rc.HIT}}})
+    assert rc.recognition_status("spc", recog)[0] == rc.RECOGNIZED

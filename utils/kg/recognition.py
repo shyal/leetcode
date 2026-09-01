@@ -160,8 +160,11 @@ class _Index:
                 self.by_problem.setdefault(str(pnum), []).append((d, key, rec))
             if rec.get("kind") == "spot":
                 self.spots.append((d, key, rec))
+        # same-day ties resolve to the hit: a park miss and a clean solve
+        # on one day means the solve settled it (2177 on 2026-09-01)
+        order = {MISSED: 0, ALTERNATIVE: 1, HIT: 2}
         for v in self.by_node.values():
-            v.sort()
+            v.sort(key=lambda t: (t[0], order.get(t[1], 1), t[2]))
         for v in self.by_problem.values():
             v.sort(key=lambda t: t[0])
         self.spots.sort(key=lambda t: t[0])
