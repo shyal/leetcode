@@ -2,14 +2,14 @@
   "_comment": "Personal forgetting curve fitted by utils/kg/kg_curve. P(recall) = (1-slip)*(1 + gap/s)^(-beta), s = exp(a + b*cleans - c*struggles - d*assist + e*(conn - conn_mean)). conn is the node's log2 carrier count, frozen below at fit time; consumers that ignore e are assuming average connectivity. node_status() calls a node SOLID while the memory component (1 + gap/s)^(-beta) >= target_retention; delete this file to fall back to the flat 42-day window.",
   "model": "power-law-slip",
   "params": {
-    "a": 4.1115,
-    "b": 0.3066,
-    "c": 0.1842,
-    "d": 0.0818,
-    "e": 0.5195,
-    "conn_mean": 4.2575,
-    "beta": 0.1566,
-    "slip": 0.0473
+    "a": 4.1121,
+    "b": 0.3093,
+    "c": 0.1872,
+    "d": 0.0793,
+    "e": 0.48,
+    "conn_mean": 4.2644,
+    "beta": 0.1614,
+    "slip": 0.0476
   },
   "conn": {
     "backtracking-choose-undo": 3.7,
@@ -28,7 +28,7 @@
     "counts-as-data": 4.524,
     "deque-recent-window": 2.0,
     "derived-key-lookup": 4.17,
-    "dict-arbitrary-value": 4.907,
+    "dict-arbitrary-value": 4.954,
     "divmod-decompose": 5.044,
     "dp-1d-rolling": 3.907,
     "dp-2d-grid": 2.585,
@@ -38,9 +38,11 @@
     "floyd-cycle": 2.0,
     "gcd-reduction": 2.585,
     "generate-and-test-neighbors": 3.322,
-    "graph-adjacency-build": 3.322,
-    "graph-bfs-shortest": 3.585,
-    "graph-dfs-visited": 2.585,
+    "graph-adjacency-build": 3.17,
+    "graph-bfs-shortest": 3.7,
+    "graph-dfs-visited": 2.807,
+    "graph-inverted-index": 2.0,
+    "graph-overlap-adjacency": 1.0,
     "greedy-sort-take": 3.0,
     "heap-lazy-eviction": 1.585,
     "heap-simulation": 3.7,
@@ -64,7 +66,7 @@
     "running-sum": 6.022,
     "seen-state-cycle-detect": 2.585,
     "set-algebra": 3.907,
-    "set-membership": 5.392,
+    "set-membership": 5.426,
     "sliding-window-budget": 1.0,
     "sliding-window-fixed": 2.0,
     "sliding-window-variable": 3.0,
@@ -76,7 +78,7 @@
     "streaming-accumulate-pairs": 3.0,
     "streaming-ask-then-record": 5.585,
     "string-build-transform": 5.615,
-    "topological-order": 1.585,
+    "topological-order": 2.0,
     "tree-bfs-levels": 1.0,
     "tree-build-from-traversals": 1.585,
     "tree-carry-down": 4.0,
@@ -87,23 +89,23 @@
     "two-pointers-converging": 4.585,
     "two-pointers-read-write": 2.807,
     "two-sequence-align": 2.585,
-    "union-find": 2.322,
+    "union-find": 2.585,
     "xor-cancellation": 3.17
   },
   "target_retention": 0.9,
   "mass": {
-    "beta": 0.7415,
-    "se": 0.1696,
+    "beta": 0.7523,
+    "se": 0.1703,
     "n": 476,
     "by_difficulty": {
-      "Easy": -0.338,
-      "Medium": 0.0708,
-      "Hard": -1.4742
+      "Easy": -0.3691,
+      "Medium": 0.0336,
+      "Hard": -1.5001
     }
   },
   "fit": {
     "trials": 718,
-    "loglik": -0.2306,
+    "loglik": -0.2308,
     "baseline_loglik": -0.2454
   }
 }
