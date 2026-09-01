@@ -165,12 +165,12 @@ marker commit carry only the stamp, the pick sits in `.spot.json`
 (untracked) until the judge reads it back, and the title is printed only in
 the reveal after the judge.
 
-- **What is scored.** Only the first move of the mapped walk and of each
-  alt walk (`kg.recognition.entry_nodes`): later moves (`solve-pair-condition`
-  inside 1760) are reached while executing, not read off the statement. A
-  hit on any entry is a hit; with none, the primary entry is `missed`. Moves
-  named that no walk of the problem uses are recorded as `false`
-  (over-triggering).
+- **What is scored.** Every move named that some walk of the problem uses
+  is a `hit`: an answer that works the example through to a convincing
+  solve has read the whole route, not only its first move. The primary
+  entry (first move of the mapped walk, `kg.recognition.entry_nodes`) is
+  `missed` only when no entry move of any walk was named. Moves named that
+  no walk uses are recorded as `false` (over-triggering).
 - **An alternative walk.** When the answer names moves no walk of the
   problem uses, one call on the stronger model judges whether the approach
   as written is a standard accepted solution (rule 3 for recognition: a

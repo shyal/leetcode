@@ -82,8 +82,13 @@ def test_score_miss_lands_on_primary_only():
 def test_score_false_is_a_named_move_no_walk_uses():
     problems = {"1": problem(["bsoa", "pair"])}
     moves, false = rc.score(["two-pointers", "pair"], "1", problems)
-    assert moves == {"bsoa": rc.MISSED}  # pair is not an entry
+    assert moves == {"pair": rc.HIT, "bsoa": rc.MISSED}  # the route was half read
     assert false == ["two-pointers"]
+
+
+def test_score_every_walk_move_named_is_a_hit():
+    problems = {"1": problem(["bsoa", "pair"])}
+    assert rc.score(["bsoa", "pair"], "1", problems) == ({"bsoa": rc.HIT, "pair": rc.HIT}, [])
 
 
 # ---- derived status ---------------------------------------------------------
