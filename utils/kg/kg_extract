@@ -433,7 +433,7 @@ def judge_spots(nodes, problems, recog, model):
         except Exception as e:
             console.print(f"[red]FAIL {path}: {str(e)[:200]}[/red]")
             continue
-        moves, false = rc.score(named, pnum, problems)
+        moves, false = rc.score(named, pnum, problems, target=foot.get("target"))
         rec = {
             "date": manila_date_from_filename(path) or "1970-01-01",
             "problem": pnum, "kind": "spot", "title": title,

@@ -113,23 +113,28 @@ def walk_nodes(pnum, problems):
     return out
 
 
-def score(named, pnum, problems):
+def score(named, pnum, problems, target=None):
     """Deterministic verdicts for one spot rep. `named` is the list of node
-    ids the answer named (empty for "direct" or "don't know").
+    ids the answer named (empty for "direct" or "don't know"); `target` the
+    node the rep was served for (None for a rep chosen by hand).
 
     Every named move that some walk of the problem uses is a hit: an
     answer that works the example through to a convincing solve has read
-    the whole route, not only its first move (2026-09-01). The primary
-    entry is recorded as missed only when no entry move was named at all.
-    `false` is every named move no walk of the problem uses:
-    over-triggering, the failure in the other direction."""
-    entries = entry_nodes(pnum, problems)
-    if not entries:
-        return {}, sorted(set(named))
+    the route. The target is missed when it was not named. Without a
+    target, the mapped walk's first move is missed only when no walk move
+    was named at all. Walk order means nothing else (2026-09-01: 884 was
+    served for counter-build, named, and "missed" on the .split() step the
+    map happened to list first). `false` is every named move no walk of
+    the problem uses: over-triggering, the failure in the other
+    direction."""
     walk = walk_nodes(pnum, problems)
     moves = {n: HIT for n in dict.fromkeys(named) if n in walk}
-    if not any(e in named for e in entries):
-        moves[entries[0]] = MISSED
+    if target and target in walk and target not in named:
+        moves[target] = MISSED
+    elif not target and walk and not moves:
+        entries = entry_nodes(pnum, problems)
+        if entries:
+            moves[entries[0]] = MISSED
     false = sorted(set(named) - walk)
     return moves, false
 
@@ -257,8 +262,8 @@ def drafted_carriers(problems, predicted=None):
 
 def spot_carriers(target, problems, evidence, recog, nodes, statuses=None,
                   skip=(), predicted=None):
-    """Unsolved, unspotted, unbanned problems whose entry moves include
-    target: reachable ones (every move of the walk SOLID) before the rest,
+    """Unsolved, unspotted, unbanned problems whose walk (or an alt walk)
+    uses target: reachable ones (every move of the walk SOLID) before the rest,
     mapped before drafted (a mapped walk is evidence, a draft a guess),
     gentlest first within each. Hards are allowed: a Hard statement is
     where the trigger fails in practice, and reading it is not climbing it."""
@@ -272,7 +277,7 @@ def spot_carriers(target, problems, evidence, recog, nodes, statuses=None,
         if (pnum in solved or pnum in seen or pnum in skip or p.get("banned")
                 or not p.get("moves") or not all(m in nodes for m in p["moves"])):
             continue
-        if target in entry_nodes(pnum, pool):
+        if target in walk_nodes(pnum, pool):
             out.append(pnum)
 
     def reachable(q):
@@ -285,9 +290,9 @@ def spot_carriers(target, problems, evidence, recog, nodes, statuses=None,
 
 def reach_through(nodes, problems, evidence, recog, statuses, skip=(), predicted=None):
     """{node: [reachable carriers]} - for each node, the unsolved problems
-    whose walk is all SOLID and enters through it. This is the reach a
-    node carries today; whether the statement triggers the node is what
-    decides if that reach is real."""
+    whose walk is all SOLID and uses it. This is the reach a node carries
+    today; whether the statement triggers the node is what decides if
+    that reach is real."""
     solved = solved_problems(evidence)
     seen = spotted_problems(recog)
     pool = dict(drafted_carriers(problems, predicted))
@@ -299,7 +304,7 @@ def reach_through(nodes, problems, evidence, recog, statuses, skip=(), predicted
                 or not moves or not all(m in nodes for m in moves)
                 or any(statuses.get(m, (None,))[0] != SOLID for m in moves)):
             continue
-        for e in dict.fromkeys(entry_nodes(pnum, pool)):
+        for e in sorted(walk_nodes(pnum, pool)):
             reach.setdefault(e, []).append(pnum)
     for e in reach:
         reach[e].sort(key=lambda q: (pool[q].get("drafted", False),
@@ -313,8 +318,8 @@ def due_spot(nodes, problems, evidence, recog, statuses, today=None, skip=(),
 
     One rule, at the SPOT_EVERY ratio. Recognition is the check on reach: the graph
     says these problems are reachable because every move in their walk is
-    SOLID; the spot rep asks whether the statement actually triggers the
-    move they enter through. So the node served is the one carrying the
+    SOLID; the spot rep asks whether the statement actually triggers a
+    move they use. So the node served is the one carrying the
     most reach whose trigger has not been shown recently (not RECOGNIZED
     inside the window). A FAILED_TO_RECOGNIZE node ranks by the same
     number; ties go to it, then to the older event. The carrier is the
@@ -573,7 +578,7 @@ def read_footer(text):
 
 # ---- the judge -------------------------------------------------------------
 
-def judge_answer(statement, answer, nodes, model="haiku"):
+def judge_answer(statement, answer, nodes, model="sonnet"):
     """One small claude call: the moves the candidate's free-text answer
     names or describes, as taxonomy ids. "direct" / "don't know" map to
     none. Returns (named, summary)."""

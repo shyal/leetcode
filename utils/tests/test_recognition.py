@@ -62,33 +62,38 @@ def test_entry_is_the_first_move_of_every_walk():
     assert rc.entry_nodes("1", problems) == ["bsoa", "greedy"]
 
 
-def test_score_hit_on_primary_entry():
+def test_score_hit_on_the_target():
     problems = {"1": problem(["bsoa", "pair"])}
-    assert rc.score(["bsoa"], "1", problems) == ({"bsoa": rc.HIT}, [])
+    assert rc.score(["bsoa"], "1", problems, target="bsoa") == ({"bsoa": rc.HIT}, [])
 
 
-def test_score_hit_on_alt_entry_records_nothing_on_primary():
-    problems = {"1": problem(["bsoa", "pair"], alt_walks=[["greedy"]])}
-    moves, false = rc.score(["greedy"], "1", problems)
-    assert moves == {"greedy": rc.HIT}
+def test_score_target_not_named_is_missed_whatever_its_position():
+    problems = {"1": problem(["split", "bsoa", "pair"])}
+    moves, false = rc.score(["bsoa", "pair"], "1", problems, target="split")
+    assert moves == {"bsoa": rc.HIT, "pair": rc.HIT, "split": rc.MISSED}
     assert false == []
 
 
-def test_score_miss_lands_on_primary_only():
+def test_score_the_first_move_is_not_the_target():
+    # 884: served for counter-build, named; the .split() step listed first
+    # in the map is not missed for being unnamed
+    problems = {"884": problem(["string-build-transform", "counter-build", "counts-as-data"])}
+    moves, _ = rc.score(["counter-build", "counts-as-data"], "884", problems, target="counter-build")
+    assert moves == {"counter-build": rc.HIT, "counts-as-data": rc.HIT}
+
+
+def test_score_by_hand_misses_the_first_move_only_when_nothing_was_named():
     problems = {"1": problem(["bsoa", "pair"], alt_walks=[["greedy"]])}
     assert rc.score([], "1", problems) == ({"bsoa": rc.MISSED}, [])
+    assert rc.score(["greedy"], "1", problems) == ({"greedy": rc.HIT}, [])
+    assert rc.score(["pair"], "1", problems) == ({"pair": rc.HIT}, [])
 
 
 def test_score_false_is_a_named_move_no_walk_uses():
     problems = {"1": problem(["bsoa", "pair"])}
-    moves, false = rc.score(["two-pointers", "pair"], "1", problems)
-    assert moves == {"pair": rc.HIT, "bsoa": rc.MISSED}  # the route was half read
+    moves, false = rc.score(["two-pointers", "pair"], "1", problems, target="bsoa")
+    assert moves == {"pair": rc.HIT, "bsoa": rc.MISSED}
     assert false == ["two-pointers"]
-
-
-def test_score_every_walk_move_named_is_a_hit():
-    problems = {"1": problem(["bsoa", "pair"])}
-    assert rc.score(["bsoa", "pair"], "1", problems) == ({"bsoa": rc.HIT, "pair": rc.HIT}, [])
 
 
 # ---- derived status ---------------------------------------------------------
@@ -150,7 +155,7 @@ def graph():
 
 def test_the_node_carrying_the_most_reach_is_served():
     ns, problems, statuses = graph()
-    # ms reaches 1 and 2; bsoa reaches 3; bsb reaches 4
+    # ms reaches 1 and 2; bsoa and pair reach 3; bsb reaches 4
     assert rc.due_spot(ns, problems, {}, {}, statuses, predicted={}) == \
         ("ms", "1", "untested, 2 reachable through it")
 
