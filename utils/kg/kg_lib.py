@@ -539,7 +539,10 @@ def node_eval(node_id, evidence, today=None):
     if curve:
         import math
         p = curve["params"]
-        cleans = len(clean_dates)
+        # distinct days, not entries: same-day reps are one rep (massed
+        # practice does not earn spaced-practice stability), matching
+        # kg_curve.extract_trials
+        cleans = len(set(clean_dates))
         struggles = sum(1 for _, v, _ in entries if v == "struggled")
         assisted = sum(ASSIST_WEIGHT[a] for _, _, a in entries)
         # connectivity covariate: widely carried moves hold on longer. The
@@ -547,7 +550,7 @@ def node_eval(node_id, evidence, today=None):
         # unknown nodes get the mean (a centered zero effect).
         cmean = p.get("conn_mean", 0.0)
         cn = curve.get("conn", {}).get(node_id, cmean)
-        stability = math.exp(p["a"] + p["b"] * cleans - p["c"] * struggles
+        stability = math.exp(p["a"] + p["b"] * math.log1p(cleans) - p["c"] * struggles
                              - p.get("d", 0.0) * assisted
                              + p.get("e", 0.0) * (cn - cmean))
         stability = min(max(stability, 7), 3650)  # sanity clamp
@@ -1599,6 +1602,53 @@ def owned(node_id, evidence):
     return ok
 
 
+GRAD_LADDER = (3, 10, 25)        # days to a young move's next unaided rep
+GRAD_LADDER_SPARSE = (2, 7, 18)  # tighter when few problems carry the move
+GRAD_SPARSE_CARRIERS = 2         # this many carriers or fewer = sparse
+
+
+def graduation_due(node_id, evidence, carriers=99):
+    """(due date, floor days) for a young move's next unaided rep, or None.
+
+    The graduating floor: the fitted curve schedules no rep inside the
+    window it believes, so it never observes a young move fail and the
+    young-move tail stays a guess (2026-09-02). Until a move has more
+    distinct unaided-clean days than the ladder has steps, its next
+    unaided rep falls due at the ladder's pace after the last clean day,
+    whatever the curve says. `carriers` (how many problems walk the move)
+    picks the ladder: a sparsely carried move rides the tighter one, both
+    because low connectivity is where the curve extrapolates most and
+    because nothing else will exercise it incidentally. No unaided clean
+    day at all means rules 0c/1/3 own the node, not the floor."""
+    idx = ev_index(evidence)
+    rows = idx.by_node.get(node_id, ())
+    unaided = sorted({d for d, v, a, _, _ in rows if v == "clean" and a == "none"})
+    if not unaided:
+        return None
+    # A drill's first rep is scored unaided at the node (the Steiner-copying
+    # rule), but a copy is not recall: it may START the clock, never advance
+    # the ladder or certify a gap (2026-09-02: five first-exposure drills
+    # read as a survived 282-day trial on union-find). Only days holding a
+    # non-first-rep unaided clean count past the first.
+    proof = {d for d, v, a, f, _ in rows
+             if v == "clean" and a == "none" and f not in idx.first_reps}
+    days = [unaided[0]] + [d for d in unaided[1:] if d in proof]
+    ladder = GRAD_LADDER_SPARSE if carriers <= GRAD_SPARSE_CARRIERS else GRAD_LADDER
+    if len(days) > len(ladder):
+        return None
+    # a clean rep that already survived a gap past the ladder's last step is
+    # the trial the ladder exists to run: graduated, the curve owns it. This
+    # also keeps the floor from retroactively flooding the queue with every
+    # long-standing thin-history node. The gap is measured between
+    # consecutive EXPOSURES (a copy refreshes memory even though it proves
+    # nothing), and only a proof day can end it.
+    if any((b - a).days >= ladder[-1] and b in proof
+           for a, b in zip(unaided, unaided[1:])):
+        return None
+    floor = ladder[len(days) - 1]
+    return days[-1] + timedelta(days=floor), floor
+
+
 def drill_held(node_id, nodes, statuses, evidence, has_bank=None, pending=()):
     """The cross-bank hold: True while a prereq of node_id must train
     first - the prereq has a drill bank of its own and is not standing on
@@ -2027,9 +2077,9 @@ def node_curve_recall(nid, evidence, curve, today=None):
     status, last = node_status(nid, evidence, today=today)
     if status == MISSING or not last:
         return 0.25
-    cleans = sum(1 for _, v, _, _, _ in ev_index(evidence).by_node.get(nid, ())
-                 if v == "clean")
-    s = min(max(math.exp(p["a"] + p["b"] * cleans), 7), 3650)
+    cleans = len({d for d, v, _, _, _ in ev_index(evidence).by_node.get(nid, ())
+                  if v == "clean"})  # distinct clean days, as in node_eval
+    s = min(max(math.exp(p["a"] + p["b"] * math.log1p(cleans)), 7), 3650)
     rec = (1 + (today - last).days / s) ** (-p["beta"])
     return rec * 0.5 if status == FRAGILE else rec
 

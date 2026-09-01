@@ -48,6 +48,13 @@
 #   1. consolidate the FRAGILE node with the highest unlock count (bank
 #      problems blocked only by it; oldest evidence breaks ties), via the
 #      freshest READY carrier
+#   1b. graduating floor: a young SOLID move (no more distinct unaided-clean
+#      days than the ladder has steps) gets its next unaided rep at 3/10/25
+#      days after the last clean — 2/7/18 when two or fewer problems carry
+#      it — whatever the curve says. The curve schedules no rep inside the
+#      window it believes, so young-move failures never reach the fit
+#      without this (2026-09-02). Freshest gentle carrier; drill when no
+#      carrier can fire.
 #   2. spaced re-solve of the STALE node's latest carrier, same unlock-count
 #      order — unless the
 #      move is DEEP stale (no clean solve within 2x the solid window): then the
@@ -113,6 +120,8 @@ from kg.kg_lib import (
     load_evidence,
     node_status,
     latest_carrier,
+    carrier_counts,
+    graduation_due,
     SOLID,
     STALE,
     FRAGILE,
@@ -614,6 +623,47 @@ def pick(
         held = unhold(target)
         if held:
             return held
+
+    # rule 1b: the graduating floor (kg_lib.graduation_due). Most overdue
+    # first, unlock count breaking ties; served exactly like a fragile
+    # consolidation - gentle fresh carrier, drill when none can fire.
+    carr = carrier_counts(problems)
+    grads = []
+    for n in nodes:
+        if statuses[n][0] != SOLID or not in_scope(n):
+            continue
+        g = graduation_due(n, evidence, carr.get(n, 0))
+        if g and g[0] <= date.today():
+            grads.append((g[0], -unl.get(n, 0), n, g[1]))
+    for _, _, target, floor in sorted(grads):
+        mapped = carriers_for(target, problems, statuses, nodes, evidence)
+        cands = [
+            c for c in mapped
+            if c not in asleep and c not in exclude and cooled(c, evidence)
+        ]
+        if cands:
+            cands.sort(
+                key=lambda p: (
+                    gentleness(p, problems, nodes),
+                    last_solved(p, evidence),
+                    -acceptance(p),
+                    pnum_key(p),
+                )
+            )
+            return (
+                target,
+                SOLID,
+                cands[0],
+                f"graduating rep - young move at its {floor}d floor",
+            )
+        d = due(target)
+        if d:
+            return (
+                target,
+                SOLID,
+                d,
+                f"graduating rep - young move at its {floor}d floor, no carrier - drill",
+            )
 
     for target in stale:
         age = (date.today() - statuses[target][1]).days

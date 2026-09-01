@@ -61,7 +61,7 @@ def main():
     # ratio of actual gap to the solid window the curve predicted at the time
     dots = []
     for g, success, k, m, x, d in trials:
-        s = math.exp(cp["a"] + cp["b"] * k - cp["c"] * m - cp["d"] * x)
+        s = math.exp(cp["a"] + cp["b"] * math.log1p(k) - cp["c"] * m - cp["d"] * x)
         window = s * (target ** (-1 / cp["beta"]) - 1)
         r = max(min(math.log2(g / window), Y_SPAN), -Y_SPAN)
         dots.append((d, r, success))

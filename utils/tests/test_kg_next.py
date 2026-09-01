@@ -353,6 +353,83 @@ def test_deep_stale_move_re_enters_on_a_fresh_carrier(picker):
 
 
 # --------------------------------------------------------------------------
+# rule 1b: the graduating floor — young moves get spaced reps the curve
+# would never schedule
+# --------------------------------------------------------------------------
+
+def test_graduation_ladder_steps_and_sparse_tightening():
+    ev = evidence(solve("9", {"m": "clean"}, days_ago=1))
+    assert kg_lib.graduation_due("m", ev, carriers=5) == (ago(1) + timedelta(days=3), 3)
+    assert kg_lib.graduation_due("m", ev, carriers=2) == (ago(1) + timedelta(days=2), 2)
+
+
+def test_same_day_slam_is_one_ladder_step():
+    ev = evidence(solve("8", {"m": "clean"}, days_ago=1),
+                  solve("9", {"m": "clean"}, days_ago=1))
+    assert kg_lib.graduation_due("m", ev, carriers=5)[1] == 3  # still step 1
+
+
+def test_assisted_days_do_not_start_or_advance_the_ladder():
+    ev = evidence(solve("9", {"m": "clean"}, days_ago=1, assist={"m": "walkthrough"}))
+    assert kg_lib.graduation_due("m", ev, carriers=5) is None
+    ev = evidence(solve("8", {"m": "clean"}, days_ago=5),
+                  solve("9", {"m": "clean"}, days_ago=1, assist={"m": "hint"}))
+    # the hinted day does not advance: still step 1, counted from day -5
+    assert kg_lib.graduation_due("m", ev, carriers=5) == (ago(5) + timedelta(days=3), 3)
+
+
+def test_a_survived_long_gap_graduates_the_move():
+    ev = evidence(solve("8", {"m": "clean"}, days_ago=40),
+                  solve("9", {"m": "clean"}, days_ago=10))
+    assert kg_lib.graduation_due("m", ev, carriers=5) is None
+
+
+def test_first_exposure_copies_start_the_clock_but_certify_nothing():
+    """A drill's first rep is scored unaided at the node (Steiner copying),
+    but a copy is not recall: first-rep-only days past the first neither
+    advance the ladder nor pass the long-gap trial (the union-find read of
+    2026-09-02: five first-exposure drills as a survived 282-day gap)."""
+    ev = {
+        "solved/d_alpha_40.py": {"date": iso(40), "problem": "drill",
+                                 "moves": {"m": "clean"}, "assist": "learning"},
+        "solved/d_beta_10.py": {"date": iso(10), "problem": "drill",
+                                "moves": {"m": "clean"}, "assist": "learning"},
+    }
+    # the 30-day gap ends on a first-rep day: no trial, still step 1
+    assert kg_lib.graduation_due("m", ev, carriers=5) == \
+        (ago(40) + timedelta(days=3), 3)
+    # a real unaided second rep of the first drill does advance it
+    ev["solved/d_alpha_5.py"] = {"date": iso(5), "problem": "drill",
+                                 "moves": {"m": "clean"}}
+    assert kg_lib.graduation_due("m", ev, carriers=5) == \
+        (ago(5) + timedelta(days=10), 10)
+
+
+def test_graduating_floor_serves_a_young_solid_move(picker):
+    """One unaided clean 4 days ago, two carriers (sparse, 2d floor): due,
+    and served on the gentle fresh carrier even though the node is SOLID."""
+    ns = nodes("young")
+    ps = {"1": problem(["young"], difficulty="Easy"), "2": problem(["young"])}
+    ev = evidence(solve("2", {"young": "clean"}, days_ago=4))
+    st = {"young": (SOLID, ago(4))}
+    target, status, pnum, reason = picker.run(ns, ps, ev, st)
+    assert (target, status, pnum) == ("young", SOLID, "1")
+    assert "graduating" in reason
+
+
+def test_rusty_moves_outrank_the_graduating_floor(picker):
+    """A currently decayed memory beats insurance on a young one."""
+    ns = nodes("young", "rusty")
+    ps = {"1": problem(["young"], difficulty="Easy"),
+          "2": problem(["rusty"], difficulty="Easy"),
+          "3": problem(["rusty"], difficulty="Easy")}
+    ev = evidence(solve("1", {"young": "clean"}, days_ago=4),
+                  solve("2", {"rusty": "struggled"}, days_ago=3))
+    st = {"young": (SOLID, ago(4)), "rusty": (FRAGILE, ago(3))}
+    assert picker.run(ns, ps, ev, st)[0] == "rusty"
+
+
+# --------------------------------------------------------------------------
 # MISSING: one genuinely new move, prereqs all solid
 # --------------------------------------------------------------------------
 
@@ -921,6 +998,7 @@ def test_a_held_carrier_serves_the_root_predecessor_first(picker):
     ps = {"1": problem(["a"], after=["9"]), "9": problem(["b"], after=["8"]),
           "8": problem(["b"])}
     ev = evidence(solve("1", {"a": "clean"}, days_ago=20),
+                  solve("8", {"b": "clean"}, days_ago=140),
                   solve("8", {"b": "clean"}, days_ago=100))
     st = {"a": (STALE, ago(20)), "b": (SOLID, ago(1))}
     target, status, pnum, why = picker.run(ns, ps, ev, st)
@@ -1828,7 +1906,8 @@ def test_a_counted_carrier_yields_to_a_drafted_medium(picker):
     ns = nodes("a", "b")
     ps = {"1": problem(["a", "b"])}
     st = {"a": (SOLID, ago(1)), "b": (SOLID, ago(1))}
-    ev = evidence(solve("1", {"a": "clean", "b": "clean"}, days_ago=10))
+    ev = evidence(solve("1", {"a": "clean", "b": "clean"}, days_ago=40),
+                  solve("1", {"a": "clean", "b": "clean"}, days_ago=10))
     picker.immature.add("b")
     picker.gain = {"b": 18}
     picker.predicted["9002"] = drafted(["a", "b"])
@@ -1841,7 +1920,8 @@ def test_a_counted_carrier_is_re_solved_when_no_draft_exists(picker):
     ns = nodes("a", "b")
     ps = {"1": problem(["a", "b"])}
     st = {"a": (SOLID, ago(1)), "b": (SOLID, ago(1))}
-    ev = evidence(solve("1", {"a": "clean", "b": "clean"}, days_ago=10))
+    ev = evidence(solve("1", {"a": "clean", "b": "clean"}, days_ago=40),
+                  solve("1", {"a": "clean", "b": "clean"}, days_ago=10))
     picker.immature.add("b")
     picker.gain = {"b": 18}
     target, status, pnum, reason = picker.run(ns, ps, ev, st)
@@ -1853,7 +1933,8 @@ def test_a_fresh_evidenced_carrier_still_outranks_a_draft(picker):
     ns = nodes("a", "b")
     ps = {"1": problem(["a", "b"]), "2": problem(["a", "b"])}
     st = {"a": (SOLID, ago(1)), "b": (SOLID, ago(1))}
-    ev = evidence(solve("1", {"a": "clean", "b": "clean"}, days_ago=10))
+    ev = evidence(solve("1", {"a": "clean", "b": "clean"}, days_ago=40),
+                  solve("1", {"a": "clean", "b": "clean"}, days_ago=10))
     picker.immature.add("b")
     picker.gain = {"b": 18}
     picker.predicted["9002"] = drafted(["a", "b"])

@@ -89,7 +89,7 @@ def maint_cost(n):
 
 def simulate(state, mediums_needed, medium_median, hours, p, target):
     def recall(n):
-        s = min(max(math.exp(p["a"] + p["b"] * n["reps"] - p["c"] * 0), 7), 3650)
+        s = min(max(math.exp(p["a"] + p["b"] * math.log1p(n["reps"]) - p["c"] * 0), 7), 3650)
         return (1 + n["gap"] / s) ** (-p["beta"])
 
     day, done_mediums, lit_day, maint_minutes = 0, 0, None, []

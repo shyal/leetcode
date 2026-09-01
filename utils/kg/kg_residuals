@@ -78,7 +78,7 @@ def main():
     trials = trials_by_node(load_evidence())
 
     def predict(gap, k, m, x):
-        s = math.exp(P["a"] + P["b"] * k - P["c"] * m - P["d"] * x)
+        s = math.exp(P["a"] + P["b"] * math.log1p(k) - P["c"] * m - P["d"] * x)
         return (1 - P["slip"]) * (1 + gap / s) ** (-P["beta"])
 
     def bucket(gap):

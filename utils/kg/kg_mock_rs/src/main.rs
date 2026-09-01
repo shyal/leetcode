@@ -304,7 +304,7 @@ impl<'a> SimState<'a> {
         let mut order: Vec<usize> = (0..self.gaps.len()).collect();
         order.sort_by(|&x, &y| self.gaps[y].cmp(&self.gaps[x]));
         for &n in &order {
-            let s = (self.cv.a + self.cv.b * self.reps[n] as f64)
+            let s = (self.cv.a + self.cv.b * (1.0 + self.reps[n] as f64).ln())
                 .exp()
                 .max(7.0)
                 .min(3650.0);
@@ -361,7 +361,7 @@ impl<'a> SimState<'a> {
     fn mv_recall(&self) -> Vec<Option<f64>> {
         let rec_now: Vec<f64> = (0..self.gaps.len())
             .map(|n| {
-                let s = (self.cv.a + self.cv.b * self.reps[n] as f64)
+                let s = (self.cv.a + self.cv.b * (1.0 + self.reps[n] as f64).ln())
                     .exp()
                     .max(7.0)
                     .min(3650.0);
