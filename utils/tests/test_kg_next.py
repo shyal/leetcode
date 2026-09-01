@@ -692,11 +692,11 @@ def test_a_warm_predecessor_releases_the_problem(picker):
     assert picker.run(ns, ps, ev, st)[:3] == ("bt", STALE, "47")
 
 
-def test_a_spoiled_predecessor_solve_does_not_release(picker):
-    """A spoiled rep is not recall evidence anywhere else either."""
+def test_a_learning_predecessor_solve_does_not_release(picker):
+    """A learning rep is not recall evidence anywhere else either."""
     ns = nodes("bt")
     ps = {"46": problem(["bt"]), "47": problem(["bt"], after=["46"])}
-    ev = evidence(solve("46", {"bt": "clean"}, days_ago=10, assist="spoiled"),
+    ev = evidence(solve("46", {"bt": "clean"}, days_ago=10, assist="learning"),
                   solve("46", {"bt": "clean"}, days_ago=299),
                   solve("47", {"bt": "clean"}, days_ago=300))
     st = {"bt": (STALE, ago(299))}
@@ -1208,13 +1208,13 @@ def test_assisted_serves_only_drills_whose_latest_rep_was_assisted(tmp_path, mon
     """2026-08-31: every sql node SOLID, `make next sql` spent, `cram early`
     walking the group from the bottom through drills already owned three
     times over. `assisted` is the early walk restricted to drills whose
-    latest rep was a hint, a walkthrough, a spoil or a struggle: the ones
+    latest rep was a hint, a walkthrough, a learning rep or a struggle: the ones
     still waiting for their unaided rep. Never-done drills are not in it,
     an owned drill is not in it, and the once-a-day rule still holds."""
     from kg import kg_lib
     bank = tmp_path / "some-node"
     bank.mkdir()
-    for i, t in enumerate(["Owned", "Hinted", "Spoiled", "Fresh"]):
+    for i, t in enumerate(["Owned", "Hinted", "Learning", "Fresh"]):
         (bank / f"r{i}.py").write_text(f"DRILL: {t}\nTRAINS: some-node\n")
     monkeypatch.setattr(kg_lib, "DRILLS_DIR", str(tmp_path))
     reps = {
@@ -1223,9 +1223,9 @@ def test_assisted_serves_only_drills_whose_latest_rep_was_assisted(tmp_path, mon
         "solved/d_Hinted_1.py": {"date": iso(2), "problem": "drill",
                                  "moves": {"some-node": "clean"},
                                  "assist": "hint"},
-        "solved/d_Spoiled_1.py": {"date": iso(1), "problem": "drill",
+        "solved/d_Learning_1.py": {"date": iso(1), "problem": "drill",
                                   "moves": {"some-node": "clean"},
-                                  "assist": {"some-node": "spoiled"}},
+                                  "assist": {"some-node": "learning"}},
     }
     ev = evidence(solve("7", {"some-node": "clean"}, days_ago=1), reps)
     assert kg_lib.due_drill("some-node", ev, assisted=True) == str(bank / "r1.py")
@@ -1233,7 +1233,7 @@ def test_assisted_serves_only_drills_whose_latest_rep_was_assisted(tmp_path, mon
                                     "moves": {"some-node": "clean"}}
     ev = evidence(solve("7", {"some-node": "clean"}, days_ago=1), reps)
     assert kg_lib.due_drill("some-node", ev, assisted=True) == str(bank / "r2.py")
-    reps["solved/d_Spoiled_2.py"] = {"date": iso(0), "problem": "drill",
+    reps["solved/d_Learning_2.py"] = {"date": iso(0), "problem": "drill",
                                      "moves": {"some-node": "clean"},
                                      "assist": "hint"}
     ev = evidence(solve("7", {"some-node": "clean"}, days_ago=1), reps)
@@ -1322,11 +1322,11 @@ def test_a_hint_on_one_move_does_not_taint_the_rest_of_the_walk(picker):
     assert picker.run(ns, {}, ev, st) is None
 
 
-def test_a_spoiled_move_is_censored_only_for_itself():
-    """node_status reads the per-move level too: a spoiled move earns no
+def test_a_learning_move_is_censored_only_for_itself():
+    """node_status reads the per-move level too: a learning move earns no
     clean rep, the other move in the same walk does."""
     ev = evidence(solve("9", {"a": "clean", "b": "clean"}, days_ago=1,
-                        assist={"a": "spoiled"}))
+                        assist={"a": "learning"}))
     assert kg_lib.node_status("a", ev)[0] == FRAGILE
     assert kg_lib.node_status("b", ev)[0] == SOLID
 
@@ -1339,7 +1339,7 @@ def test_normalise_assist_stores_the_per_move_shape():
     assert kg_lib.normalise_assist("none", moves) is None
     assert kg_lib.normalise_assist({}, moves) is None
     assert kg_lib.normalise_assist(None, moves) is None
-    assert kg_lib.assist_tag({"b": "hint", "a": "spoiled"}) == "a=spoiled, b=hint"
+    assert kg_lib.assist_tag({"b": "hint", "a": "learning"}) == "a=learning, b=hint"
 
 
 def test_a_composite_rung_waits_for_every_move_it_combines(tmp_path, monkeypatch):
@@ -1940,7 +1940,7 @@ def test_the_first_rep_of_a_drill_is_unaided_at_the_node(tmp_path, monkeypatch):
     drill_bank(tmp_path, monkeypatch, "sw", "Count by Contribution")
     ps = {"713": problem(["sw"], after=["d1"])}
     ev = evidence(solve("9", {"sw": "clean"}, days_ago=20),
-                  drill_rep("Count by Contribution", "sw", days_ago=1, assist="spoiled"))
+                  drill_rep("Count by Contribution", "sw", days_ago=1, assist="learning"))
     assert kg_lib.owned("sw", ev)
     assert kg_lib.node_status("sw", ev)[1].isoformat() == iso(1)
     assert kg_lib.held_behind("713", ps, ev) == "d1"
@@ -2014,3 +2014,23 @@ def test_review_line_wording():
         "review ahead: none - this pick is new ground"
     assert kg_next.review_line(3, 0, False) == \
         "review ahead: 3 drills, and still nothing new (if every rep is clean)"
+
+
+def test_the_level_word_in_the_notes_is_the_mark():
+    """2026-09-01: a drill whose notes read "Asked for a walkthrough." was
+    filed with no assist because the judge did not act on the note. The
+    word in the notes is authoritative; the judge's answer is a floor."""
+    assert kg_lib.notes_assist_level("Asked for a walkthrough.") == "walkthrough"
+    assert kg_lib.notes_assist_level("one hint on the pop") == "hint"
+    assert kg_lib.notes_assist_level("hinted, then walked through") == "walkthrough"
+    assert kg_lib.notes_assist_level("learning rep, copied the solution") == "learning"
+    assert kg_lib.notes_assist_level("") == "none"
+    assert kg_lib.notes_assist_level(None) == "none"
+    assert kg_lib.notes_assist_level("solved it cold") == "none"
+    # the floor lands on the drill's TRAINS node and raises, never lowers
+    assert kg_lib.apply_assist_floor(None, "walkthrough", ["a"]) == {"a": "walkthrough"}
+    assert kg_lib.apply_assist_floor({"a": "hint"}, "walkthrough", ["a"]) == {"a": "walkthrough"}
+    assert kg_lib.apply_assist_floor({"a": "learning"}, "hint", ["a"]) == {"a": "learning"}
+    assert kg_lib.apply_assist_floor({"b": "hint"}, "walkthrough", ["a"]) == {"a": "walkthrough", "b": "hint"}
+    assert kg_lib.apply_assist_floor({"a": "hint"}, "none", ["a"]) == {"a": "hint"}
+    assert kg_lib.apply_assist_floor(None, "none", ["a"]) is None

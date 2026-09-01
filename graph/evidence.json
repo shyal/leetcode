@@ -5268,7 +5268,7 @@
         "dp-state-formulate": "clean",
         "two-sequence-align": "clean"
       },
-      "assist": "spoiled",
+      "assist": "learning",
       "note": "Peeked own previous solve."
     },
     "solved/p1143_Longest_Common_Subsequence_2026_08_12T02_49_11_689914_00_00Z.py": {
@@ -5302,7 +5302,7 @@
         "streaming-accumulate-pairs": "clean",
         "prefix-sum-hashmap": "clean"
       },
-      "assist": "spoiled",
+      "assist": "learning",
       "note": "Looked up the O(1) solution after initially coding a brute-force prefix-array approach."
     },
     "solved/p239_Sliding_Window_Maximum_2026_08_13T01_33_02_249215_00_00Z.py": {
@@ -5353,7 +5353,7 @@
         "set-membership": "clean",
         "generate-and-test-neighbors": "clean"
       },
-      "assist": "spoiled",
+      "assist": "learning",
       "note": "Sacrificed as a learning moment for the fresh generate-and-test-neighbors fission: Claude wrote v1, operator re-derived v2 with explicit counter. Sleep for a delayed unaided rep."
     },
     "solved/p448_Find_All_Numbers_Disappeared_in_an_Array_2026_08_13T06_02_37_073052_00_00Z.py": {
@@ -6007,7 +6007,7 @@
       "moves": {
         "recursive-descent": "clean"
       },
-      "assist": "spoiled"
+      "assist": "learning"
     },
     "solved/d_Next_Greater_Index_2026_08_23T20_08_17_828767_00_00Z.py": {
       "date": "2026-08-24",
@@ -6051,7 +6051,7 @@
         "backtracking-choose-undo": "clean",
         "backtracking-mark-unmark": "clean"
       },
-      "assist": "spoiled",
+      "assist": "learning",
       "note": "Peeked at answer after confusing permutations with combinations in first attempt."
     },
     "solved/p2000_Reverse_Prefix_of_Word_2026_08_24T21_47_34_110139_00_00Z.py": {
@@ -6125,7 +6125,7 @@
       "moves": {
         "backtracking-choose-undo": "clean"
       },
-      "assist": "spoiled",
+      "assist": "learning",
       "note": "Subsets via classic append-recurse-pop-recurse backtracking pattern; re-learning."
     },
     "solved/d_Take_It_or_Leave_It_2026_08_25T21_23_13_718539_00_00Z.py": {
@@ -6134,7 +6134,7 @@
       "moves": {
         "backtracking-choose-undo": "clean"
       },
-      "assist": "spoiled",
+      "assist": "learning",
       "note": "Candidate had to peek to remember the pick/ignore backtracking pattern."
     },
     "solved/d_Combinations_2026_08_25T22_06_15_618238_00_00Z.py": {
@@ -6782,7 +6782,7 @@
       "moves": {
         "sql-window-offset": "clean"
       },
-      "assist": "spoiled",
+      "assist": "learning",
       "note": "Solution provided directly; exact LAG syntax was supplied.",
       "summary": "Query calculates month-over-month revenue change using LAG(amount) OVER (ORDER BY month) to retrieve the prior month's amount, then subtracts it from the current month. The first row's change is NULL, as LAG returns NULL when no prior row exists. Exercises sql-window-offset by comparing each row with its chronological neighbor."
     },
@@ -6876,8 +6876,8 @@
         "backtracking-choose-undo": "clean"
       },
       "assist": {
-        "backtracking-start-index": "spoiled",
-        "backtracking-choose-undo": "spoiled"
+        "backtracking-start-index": "learning",
+        "backtracking-choose-undo": "learning"
       },
       "note": "Looked up a past solution.",
       "summary": "The combine method generates all k-element subsets of 1..n using recursive backtracking. The start-index pattern (recursing with j+1) prevents duplicate combinations while the choose-undo pattern (append j+1, recurse, pop) explores all possibilities. All assertions passed."
@@ -7146,7 +7146,11 @@
         "backtracking-choose-undo": "clean",
         "backtracking-start-index": "clean"
       },
-      "summary": "Generates all subsets of [1, 2, 3] via recursive backtracking. The helper function records the current state at each recursion depth, then loops over candidates from start index i onward, appending each candidate, recursing with j+1, and popping to undo. Both backtracking-choose-undo (append-recurse-pop with state recording) and backtracking-start-index (suffix candidates, recurse at j+1 to prevent reuse) are exercised correctly."
+      "summary": "Generates all subsets of [1, 2, 3] via recursive backtracking. The helper function records the current state at each recursion depth, then loops over candidates from start index i onward, appending each candidate, recursing with j+1, and popping to undo. Both backtracking-choose-undo (append-recurse-pop with state recording) and backtracking-start-index (suffix candidates, recurse at j+1 to prevent reuse) are exercised correctly.",
+      "assist": {
+        "backtracking-start-index": "walkthrough"
+      },
+      "note": "Solution handed over after three \"don't know\"; copy rep."
     }
   }
 }

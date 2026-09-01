@@ -72,7 +72,7 @@ def rows(evidence, problems, conn, conn_mean):
         x += [1.0 if kind == k else 0.0 for k in KINDS[1:]]      # Easy is the baseline
         out.append((x, math.log(secs / 60), moves))
         for m, v in rec["moves"].items():
-            if v == "clean" and assist_of(rec) != "spoiled":
+            if v == "clean" and assist_of(rec) != "learning":
                 prior_clean[m] += 1
     return out
 

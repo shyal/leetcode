@@ -109,7 +109,7 @@ Rules:
 - At most 4 items total. Deduplicate: one item per wound.
 
 Output STRICT JSON, nothing else:
-{{"consolidate": [{{"problem": "<num>", "note": "<non-spoiling one-liner>", "why": "<diagnosis>"}}],
+{{"consolidate": [{{"problem": "<num>", "note": "<one-liner that gives nothing away>", "why": "<diagnosis>"}}],
  "drills": [{{"node": "<node-id>", "why": "<diagnosis>"}}],
  "create_drills": [{{"node": "<node-id>", "spec": "<what the new drill trains>", "why": "<diagnosis>"}}]}}"""
     return claude_json("Recent failures:\n\n" + "\n\n".join(digests), system)

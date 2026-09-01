@@ -19,7 +19,7 @@
 # evening consolidation counts as the failure it was. 'avoided' verdicts are
 # neither success nor failure (the move went unused). A trial only counts as
 # a SUCCESS if the recall was the candidate's own: clean with assist none or
-# hint. Walked-through or spoiled solves are failures — the code ran, but no
+# hint. Walked-through or learning solves are failures — the code ran, but no
 # retrieval happened. Status uses the memory component only: SOLID while
 # (1 + Δ/s)^(−β) >= target_retention.
 
@@ -65,7 +65,7 @@ def extract_trials(evidence, with_date=False, with_conn=False):
         retrieved = False  # an unaided clean so far: the memory exists to test
         for d in sorted(days):
             verdict, assist, _ = days[d][0]
-            # a spoiled solve is CENSORED, not failed: the candidate never
+            # a learning solve is CENSORED, not failed: the candidate never
             # attempted the recall, so this day says nothing about whether the
             # memory was still there. It earns no rep either way (below).
             # a trial needs a prior UNAIDED clean: after only walked-through
@@ -75,7 +75,7 @@ def extract_trials(evidence, with_date=False, with_conn=False):
             # at short gaps, z = -4.7; after an unaided clean the same wing
             # ran 8 of 8)
             if (retrieved and verdict in ("clean", "struggled")
-                    and assist != "spoiled"):
+                    and assist != "learning"):
                 gap = (_date(d) - _date(last_clean)).days
                 if gap >= 1:
                     # the trial asks "did you retrieve this unaided?" — needing
@@ -86,7 +86,7 @@ def extract_trials(evidence, with_date=False, with_conn=False):
                         row += (conn.get(node, 0.0),)
                     trials.append(row + (_date(d),) if with_date else row)
             for v, a, na in days[d]:
-                if v == "clean" and na != "spoiled":
+                if v == "clean" and na != "learning":
                     cleans += 1
                     last_clean = d
                     retrieved = retrieved or a == "none"
@@ -231,7 +231,7 @@ def render_chart(stab, pred, trials, beta):
 
     # panel 2: what help costs — the 90% window at 5 reps per assist level
     ax = axes[1]
-    labels = ("unaided", "one hint", "walkthrough", "spoiled")
+    labels = ("unaided", "one hint", "walkthrough", "learning")
     xs = (0.0, 0.5, 1.0, 2.0)
     ws = [window(5, x) for x in xs]
     ys = range(len(labels))[::-1]
@@ -401,7 +401,7 @@ def main():
         print(f"  {k:2d} reps: stability {stab(k, 0):5.0f}d -> window ≈ {window:5.0f}d")
     print("cost of assistance (5 clean reps, no struggles):")
     for label, x in (("unaided", 0.0), ("one hint", 0.5),
-                     ("walkthrough", 1.0), ("spoiled", 2.0)):
+                     ("walkthrough", 1.0), ("learning", 2.0)):
         window = stab(5, 0, x) * (TARGET_RETENTION ** (-1 / beta) - 1)
         print(f"  {label:12s}: window ≈ {window:5.0f}d")
     print("calibration (model mean vs observed unaided-recall rate):")
