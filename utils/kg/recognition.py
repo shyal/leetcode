@@ -750,6 +750,7 @@ def reveal(rec):
         lines.append(f"named but not in any walk: {', '.join(rec['false'])}")
     if rec.get("summary"):
         lines.append(rec["summary"])
-    if rec.get("reason"):
-        lines.append(f"served: {rec['reason']}")
+    if rec.get("target") or rec.get("reason"):
+        served = rec.get("target") or "chosen by hand"
+        lines.append(f"served for: {served}" + (f" ({rec['reason']})" if rec.get("reason") else ""))
     return "\n".join(lines)
