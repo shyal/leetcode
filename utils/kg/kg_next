@@ -921,9 +921,9 @@ def ready_hards(problems, nodes, evidence, statuses, immature=None, recog=None):
     from one burst of drills is not yet load-bearing) — and no `unmapped`
     move (a trick the taxonomy has no node for yet — unroutable new ground,
     so the walk is farther away than its mapped moves suggest). A Hard
-    whose entry move is FAILED_TO_RECOGNIZE on the recognition axis (kg.recognition:
-    the last time that move had to be read off a statement it was not)
-    is not ready either: a summit is a pure combination rep only if the
+    with a move that is FAILED_TO_RECOGNIZE on the recognition axis
+    (kg.recognition: the last time a statement was served for that move
+    it was not named) is not ready either: a summit is a pure combination rep only if the
     walk is seen, and the spot rep is what clears the miss.
 
     Classics come first, and the whole list is ranked by kg_lib.rank_summits,
@@ -942,8 +942,8 @@ def ready_hards(problems, nodes, evidence, statuses, immature=None, recog=None):
             or not p.get("moves")
         ):
             continue
-        if any(rc.recognition_status(e, recog)[0] == rc.FAILED_TO_RECOGNIZE
-               for e in rc.entry_nodes(pnum, problems)):
+        if any(rc.recognition_status(m, recog)[0] == rc.FAILED_TO_RECOGNIZE
+               for m in p["moves"]):
             continue
         if route_gaps(pnum, problems, nodes, statuses, immature)[1] == 0:
             out.append(pnum)

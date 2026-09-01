@@ -165,12 +165,14 @@ marker commit carry only the stamp, the pick sits in `.spot.json`
 (untracked) until the judge reads it back, and the title is printed only in
 the reveal after the judge.
 
-- **What is scored.** Every move named that some walk of the problem uses
-  is a `hit`: an answer that works the example through to a convincing
-  solve has read the whole route, not only its first move. The primary
-  entry (first move of the mapped walk, `kg.recognition.entry_nodes`) is
-  `missed` only when no entry move of any walk was named. Moves named that
-  no walk uses are recorded as `false` (over-triggering).
+- **What is scored.** The rep is served for one node, the target. Every
+  move named that some walk of the problem uses is a `hit`; the target is
+  `missed` when it was not named. The walk's order means nothing: 884 was
+  served for `counter-build`, named, and must not be missed on the
+  `.split()` step the map lists first. A rep chosen by hand (no target)
+  misses the mapped walk's first move only when no walk move was named at
+  all. Moves named that no walk uses are recorded as `false`
+  (over-triggering).
 - **An alternative walk.** When the answer names moves no walk of the
   problem uses, one call on the stronger model judges whether the approach
   as written is a standard accepted solution (rule 3 for recognition: a
@@ -192,9 +194,9 @@ the reveal after the judge.
   1.3x per hit), UNTESTED otherwise.
 - **Serving.** Recognition is the check on reach. The graph calls a
   problem reachable when every move of its walk is SOLID; the spot rep asks
-  whether the statement actually triggers the move it enters through. So
-  `make next` serves the node carrying the most reach (unsolved
-  reachable problems entering through it, mapped and drafted) whose trigger
+  whether the statement actually triggers a move it uses. So `make next`
+  serves the node carrying the most reach (unsolved reachable problems
+  whose walk uses it, mapped and drafted) whose trigger
   has not been shown recently: not RECOGNIZED inside the window. A
   FAILED_TO_RECOGNIZE node ranks by the same number, ties go to it. The
   carrier is the gentlest problem it reaches; a drafted problem's walk is
@@ -210,9 +212,10 @@ the reveal after the judge.
   solve, `SPOT_EVERY=0` turns spot reps off. The ratio governs only what
   `make next` suggests: `make prepare spot` (or `make spot`) serves a rep
   whenever it is asked for.
-- **Summits wait for it.** Rule 4 does not serve a Hard whose entry move is
-  FAILED_TO_RECOGNIZE (`kg_next.ready_hards`): the walk has to be seen before the
-  climb is a combination rep, and the spot rep is what clears the miss.
+- **Summits wait for it.** Rule 4 does not serve a Hard with a walk move
+  that is FAILED_TO_RECOGNIZE (`kg_next.ready_hards`): the walk has to be
+  seen before the climb is a combination rep, and the spot rep is what
+  clears the miss.
 
 ## Rules
 

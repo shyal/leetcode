@@ -64,11 +64,10 @@
       ],
       "moves": {
         "counter-build": "hit",
-        "counts-as-data": "hit",
-        "string-build-transform": "missed"
+        "counts-as-data": "hit"
       },
       "false": [],
-      "summary": "Build a Counter for each sentence to track word frequencies, then merge them and filter for words whose total count is exactly 1, which identifies the uncommon words.",
+      "summary": "The candidate initially considers sets but recognizes that the 'exactly once' constraint rules them out. They pivot to building Counter objects from the sentences and filtering for words whose count equals 1, selecting words that appear exactly once across both sentences combined.",
       "answer": "The simpliest solution here is to build two sets, s1s which holds each word in s1, and s2s which holds every word in s2 (easy enough to split the strings in python with .split()).\n\nThen one can simply take the intersection of both sets with s1s ^ s2s. That is the solution.\n\nAh no, nevermind that:\n\n\"A word is **uncommon** if it appears exactly once in one of the sentences, and **does not appear** in the other sentence.\"\n\nThis means sets are out. Then we need a counter.\n\ns1 = \"apple apple\"\ns2 = \"banana\"\n\n```\nc1 = {\n    'apple': 2,\n}\n\nc2 = {\n    'banana': 1,\n}\n```\n\nNow we only need to focus on words that appear once. So we can simply add the counters to one another, or in fact take one big counter of both sentences would also work, and only return words that appear once. e.g:\n\n```\nc1 = {\n    'this': 1,\n    'apple': 1,\n    'is': 1:\n    'sweet': 1\n}\n\n\nc2 = {\n    'this': 1,\n    'apple': 1,\n    'is': 1:\n    'sour': 1\n}\n\n\nbecomes:\n\nc = {\n    'this': 2,\n    'apple': 2,\n    'is': 2,\n    'sweet':"
     }
   }
