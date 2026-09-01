@@ -130,6 +130,29 @@
         "memoize-recursion"
       ],
       "why": "Matches the standard top-down memoized DP solution to Triangle: T[r][c] = triangle[r][c] + min(T[r+1][c], T[r+1][c+1]) with recursion + memoization, correct and within O(n^2) time/space bounds."
+    },
+    "recognition/s354_Russian_Doll_Envelopes_2026_09_01T10_16_28_736110_00_00Z.md": {
+      "date": "2026-09-01",
+      "problem": "354",
+      "kind": "spot",
+      "title": "Russian Doll Envelopes",
+      "target": "sort-by-custom-key",
+      "reason": "failed to recognize last time, 35 problem(s) need only it",
+      "seconds": 536,
+      "named": [
+        "sort-by-custom-key"
+      ],
+      "walk": [
+        "sort-by-custom-key",
+        "binary-search-boundary",
+        "dp-1d-rolling"
+      ],
+      "moves": {
+        "sort-by-custom-key": "hit"
+      },
+      "false": [],
+      "summary": "Sort envelopes by width with height as a tiebreaker, use a heap to extract them in a specific order, and count chains by checking if each envelope fits inside the previous one.",
+      "answer": "Ok this is a hard, so the solution is likely not as simple as it looks.\n\n```python\n#   a.    b     c.    d\n [[5,4],[6,4],[6,7],[2,3]]\n```\n\nLet's work through the provided examples.\n\nb and c are the widest, so safe to start with, but the next question is, which one\ndo we pick, surely it's the tallest of the 2:\nc\n[6,7]\n\n```\n.      .\n.      .\n.      .\n.      .\n.      .\n.      .\n.      .\n ------\n```\n\nNext we can fit a inside, : [5, 4]\nNext we can fit d inside. : [2, 3]\n\nSo we have our first rule, if there's a tie on the width, pick the largest height.\n\nNext we pick the next largest and so on. So this sounds like a heap.\n\nThe order we got was c, a, d.\n\n```\n   a.    b.    c.     d\n [[5,4],[6,4],[6,7],[2,3]]\n```\n\nand if this were on a heap, and we were to simply pop, and compare with the last popped item, if it fits (which is a simple check that both width and height are smaller than the previous pop) then we increment our counter.\n\nOur counter is the result.\n\nEither this is the wrong solve a"
     }
   }
 }
