@@ -81,5 +81,23 @@
       ""
     ],
     "description": "combinations by start index"
+  },
+  "lcsubsets": {
+    "prefix": "lcsubsets",
+    "body": [
+      "def helper(i):",
+      "    ret.append(curr[:])",
+      "    for j in range(i, len(nums)):",
+      "        curr.append(nums[j])",
+      "        helper(j + 1)",
+      "        curr.pop()",
+      "",
+      "ret = []",
+      "curr = []",
+      "helper(0)",
+      "return ret",
+      ""
+    ],
+    "description": "subsets: record every node, choose by start index"
   }
 }
