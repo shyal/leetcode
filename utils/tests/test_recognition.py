@@ -306,3 +306,24 @@ def test_a_summit_is_held_while_its_entry_move_failed_to_recognize():
         assert kg_next.ready_hards(problems, ns, {}, statuses, recog=cleared) == ["84"]
     finally:
         kg_next.immature_nodes = old
+
+
+# ---- an alternative walk ----------------------------------------------------
+
+def test_alternative_is_a_marked_hit_filed_under_spotted_walks():
+    problems = {"594": problem(["counter-build", "counts-as-data"])}
+    rec = {"problem": "594", "moves": {"counter-build": rc.MISSED},
+           "false": ["sliding-window-variable", "sort-then-adjacent"]}
+    named = ["sort-then-adjacent", "sliding-window-variable"]
+    rc.apply_alternative(rec, named, problems, "matches the sort + sliding window editorial solution")
+    assert rec["moves"] == {"sort-then-adjacent": rc.HIT}
+    assert rec["false"] == []
+    assert rec["alternative"] == named
+    assert problems["594"]["spotted_walks"] == [named]
+    assert "alt_walks" not in problems["594"]  # code-evidenced only
+    rc.apply_alternative(dict(rec), named, problems, "again")
+    assert problems["594"]["spotted_walks"] == [named]  # no duplicate
+    assert rc.recognition_status("counter-build", {"k": {"date": iso(0), "problem": "594",
+                                                         "kind": "spot", **rec}})[0] == rc.UNTESTED
+    out = rc.reveal({**rec, "title": "t", "walk": ["counter-build"], "seconds": 3})
+    assert "hit through an alternative walk, not yet evidenced by code: sort-then-adjacent, sliding-window-variable" in out

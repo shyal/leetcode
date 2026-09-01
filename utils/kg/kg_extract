@@ -444,9 +444,23 @@ def judge_spots(nodes, problems, recog, model):
         }
         if answer:
             rec["answer"] = answer[:1000]
+        # rule 3 for recognition: a valid route the map does not have is
+        # never a miss on the candidate. One call on the stronger model
+        # decides validity; the hit is marked as an alternative (no code
+        # ran) and the walk is filed under spotted_walks, not alt_walks
+        if rc.MISSED in moves.values() and named and named == false:
+            try:
+                valid, why = rc.judge_alternative(statement, answer, named, nodes)
+            except Exception as e:
+                valid, why = False, f"alternative not judged: {str(e)[:120]}"
+            if valid:
+                rc.apply_alternative(rec, named, problems, why)
+                save_problems(problems)
+            else:
+                rec["why"] = why
         recog[path] = rec
         rc.save_recognition(recog)
-        verdict = ", ".join(f"{n}={v}" for n, v in moves.items()) or "unscored"
+        verdict = ", ".join(f"{n}={v}" for n, v in rec["moves"].items()) or "unscored"
         console.print(f"[green]spot[/green] {os.path.basename(path)[:60]} → {verdict}")
 
 

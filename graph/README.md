@@ -171,6 +171,16 @@ the reveal after the judge.
   hit on any entry is a hit; with none, the primary entry is `missed`. Moves
   named that no walk of the problem uses are recorded as `false`
   (over-triggering).
+- **An alternative walk.** When the answer names moves no walk of the
+  problem uses, one call on the stronger model judges whether the approach
+  as written is a standard accepted solution (rule 3 for recognition: a
+  valid route the map lacks is never a miss). If it is, the rep is a hit on
+  the first move named, marked `alternative` since no code ran, and the
+  walk is filed on the problem under `spotted_walks`, a separate field from
+  `alt_walks`, which stays evidenced by code (a later solve taking the walk
+  promotes it). The judge's one-sentence reason is stored either way. No
+  code runs, so this is a model's reading: reliable on well known
+  problems, weaker on obscure ones, and the mark never comes off.
 - **graph/recognition.json** is the second axis, keyed by file like
   evidence.json, verdicts `hit` / `missed`. Spot reps land here, and so does
   a solve whose notes say a move was not recognised ("recognition failure,
