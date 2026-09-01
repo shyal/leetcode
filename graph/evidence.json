@@ -7210,6 +7210,16 @@
       },
       "note": "Uses pop() instead of popleft(); still finds shortest path because all distance-d neighbors are queued before any distance-(d+1) neighbor is processed.",
       "summary": "The code implements shortest-path search through genetic mutations using a deque and distance tracking. At each step, it tests all bank entries to find single-letter mutations (generate-and-test-neighbors), queuing valid candidates with incremented distance. A visited set prevents revisits. Even though the code uses pop() (LIFO) instead of popleft() (FIFO), it correctly finds the minimum path because all nodes at a given distance level are enqueued before any at the next level is processed. The operator's notes confirm the code passed local testing."
+    },
+    "solved/p1657_Determine_if_Two_Strings_Are_Close_2026_09_01T02_24_41_173542_00_00Z.py": {
+      "date": "2026-09-01",
+      "problem": "1657",
+      "moves": {
+        "counter-build": "clean",
+        "counts-as-data": "clean"
+      },
+      "note": "Operator discovered the count-of-counts insight after catching a failing case where character sets and individual counts matched but the solution was wrong.",
+      "summary": "The solution builds character-frequency counters for both words, checks that they share the same character set, then compares the distribution of counts themselves using Counter on the count values. Since operation 2 swaps all instances of two characters and operation 1 permits any transposition, the strings are transformable if and only if they have the same length, same character inventory, and the same multiset of frequencies."
     }
   }
 }
