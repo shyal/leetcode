@@ -7188,6 +7188,18 @@
         "sql-window-running": "clean"
       },
       "summary": "The solution uses a single window function to compute running totals: sum(weight) over (order by turn). This exercises the sql-window-running technique, meeting the REQUIRED one-pass constraint while avoiding forbidden self-joins and correlated subqueries. All tests passed."
+    },
+    "solved/d_Employees_Who_Manage_Nobody_2026_09_01T00_42_21_860764_00_00Z.py": {
+      "date": "2026-09-01",
+      "problem": "drill",
+      "moves": {
+        "sql-anti-join": "clean"
+      },
+      "assist": {
+        "sql-anti-join": "hint"
+      },
+      "note": "Assisted on self-join column selection.",
+      "summary": "The solution finds employees with no direct reports using LEFT JOIN Employees as m on m.manager_id = e.employee_id combined with WHERE m.employee_id IS NULL to filter rows where no one has e as their manager. The candidate needed assistance understanding which columns to join on."
     }
   }
 }
