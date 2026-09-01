@@ -1129,6 +1129,31 @@
       "hint": "Two loop orders, one set of pairs. If the answer is a longest or a count over substrings and you cannot see it, write this first; the technique replaces the inner loop.",
       "prereqs": [],
       "drill": "Return every substring of s, once per position, in a stated order."
+    },
+    {
+      "id": "graph-inverted-index",
+      "group": "graphs",
+      "added": "2026-09-02",
+      "name": "Member to group ids",
+      "desc": "Invert a list of groups into member -> group ids (stop -> the routes through it).",
+      "hint": "Input is groups (routes, rosters), not an edge list; edge lists are graph-adjacency-build's job.",
+      "prereqs": [
+        "dict-arbitrary-value"
+      ],
+      "drill": "Given playlists of song ids, build song -> playlist indexes."
+    },
+    {
+      "id": "graph-overlap-adjacency",
+      "group": "graphs",
+      "added": "2026-09-02",
+      "name": "Groups sharing a member",
+      "desc": "Groups as nodes: connect two groups when they share a member (routes sharing a stop).",
+      "hint": "A few hundred groups makes pairwise testing affordable; the traversal then walks group nodes, not members.",
+      "prereqs": [
+        "set-algebra",
+        "graph-adjacency-build"
+      ],
+      "drill": "Given class rosters, list for each class the classes sharing a student."
     }
   ]
 }
