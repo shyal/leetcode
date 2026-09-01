@@ -1,4 +1,4 @@
-.PHONY: all drop learning mirror q prepare force unforce preflight dependents kg-extract kg-status kg-viz movie next dive drill hard is_session_start readme residuals simulate sleep wake solved failed test timer viz graph snippets
+.PHONY: all drop learning mirror q prepare force unforce preflight dependents kg-extract kg-status kg-viz movie next dive drill spot hard is_session_start readme residuals simulate sleep wake solved failed test timer viz graph snippets
 
 all: graph/leet.db
 	@cp utils/harness/sitecustomize.py .venv/lib/python3.10/site-packages/
@@ -157,6 +157,11 @@ hard:
 
 drill:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/drill $(filter-out $@,$(MAKECMDGOALS))
+
+# a recognition rep, asked for: same as `make prepare spot`, served whether
+# or not make next says one is due (the SPOT_EVERY ratio only governs that)
+spot:
+	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/spot
 
 timer:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/timer

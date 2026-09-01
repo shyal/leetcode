@@ -30,6 +30,7 @@ from kg.kg_lib import (
     HARNESS_ENV_NOTE, SOLID, apply_assist_floor, assist_tag, normalise_assist,
     notes_assist_level,
 )
+from kg import recognition as rc
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 VENV_PY = os.path.join(REPO_ROOT, ".venv", "bin", "python3")
@@ -204,6 +205,7 @@ def main():
     nodes = load_nodes()
     problems = load_problems()
     evidence = load_evidence()
+    recog = rc.load_recognition()
     taxonomy = taxonomy_summary(nodes)
 
     files = sorted(glob.glob("solved/*.py"), key=os.path.getmtime, reverse=True)
@@ -227,10 +229,11 @@ Rules:
 - Only include moves with real evidence in this code. 1-6 moves is typical.
 - If a required move has no taxonomy node, put a 3-8 word description in "unmapped".
 - If the file has no working solution (skeleton body, abandoned attempt), still return the JSON with "moves": {{}} and a note like "abandoned attempt" — never prose.
+- "recognition": read ONLY from the candidate's own notes, like assist. When the notes say a move was not seen from the statement ("recognition failure", "failed to see it was binary search on the answer", "didn't recognise the monotonic stack"), list that move's id under "missed". A move being wrong or slow is not a recognition miss; only the notes saying it was not recognised is. Omit the key when the notes say nothing of the kind.
 - "summary": 2-4 sentences of plain english for the candidate to read after filing: what the code does and how, which moves it exercised, and what the notes say happened (hints, look-ups, TLEs, dead ends) if anything. Facts only: no praise, no grading, no advice, no adjectives about the candidate. Refer to the code by its real names (its variables, clauses, functions).
 
 Output STRICT JSON only:
-{{"problem": "<number>", "title": "<title>", "moves": {{"<node-id>": "clean|struggled|avoided"}}, "assist": {{"<node-id>": "hint|walkthrough|learning"}}, "unmapped": [], "note": "<one line, only if noteworthy>", "summary": "<2-4 sentences>"}}"""
+{{"problem": "<number>", "title": "<title>", "moves": {{"<node-id>": "clean|struggled|avoided"}}, "assist": {{"<node-id>": "hint|walkthrough|learning"}}, "recognition": {{"missed": ["<node-id>"]}}, "unmapped": [], "note": "<one line, only if noteworthy>", "summary": "<2-4 sentences>"}}"""
 
     def extract_one(path):
         """Read + claude call only — no shared state touched here."""
@@ -317,8 +320,22 @@ Output STRICT JSON only:
             floor = notes_assist_level(notes)
             targets = [t for t in trains if t in moves] if is_drill else []
             assist = apply_assist_floor(assist, floor, targets or list(moves))
+            # a problem whose statement was served as a spot rep and MISSED
+            # had its walk revealed after the answer: a later solve of it is
+            # not unaided. After a hit it is - the reveal showed nothing the
+            # candidate had not produced (settled 2026-09-01)
+            spotted = None if is_drill else rc.spotted_before(
+                entry["problem"], solve_date, recog)
+            if spotted and spotted[1] == rc.MISSED:
+                assist = apply_assist_floor(assist, "hint", list(moves))
             if assist:
                 entry["assist"] = assist
+            # the recognition axis: a miss the notes name (the judge's
+            # reading, or the words themselves on the canonical entry move)
+            missed = [n for n in (result.get("recognition") or {}).get("missed", [])
+                      if n in nodes]
+            if not missed and not is_drill and rc.notes_say_missed(notes):
+                missed = rc.entry_nodes(entry["problem"], problems)[:1]
             if result.get("note"):
                 entry["note"] = result["note"]
             # read back by `solved --commit`, the last step of `make solved`
@@ -331,6 +348,18 @@ Output STRICT JSON only:
                 evidence[path] = entry
                 save_evidence(evidence)
                 pnum = entry["problem"]
+                if missed:
+                    recog[path] = {
+                        "date": solve_date, "problem": pnum, "kind": "solve",
+                        "moves": {n: rc.MISSED for n in missed},
+                        "note": "the notes say the move was not recognised",
+                    }
+                    rc.save_recognition(recog)
+                    console.print(f"    [red]recognition miss on [bold]{', '.join(missed)}[/bold][/red] (from the notes)")
+                if spotted:
+                    d, v = spotted
+                    console.print(f"    [dim]spotted {d} ({v})"
+                                  f"{': assist floored to hint' if v == rc.MISSED else ''}[/dim]")
                 was_mapped = pnum in problems
                 pre_moves = list(problems.get(pnum, {}).get("moves", []))
                 # a skipped mapped move IS a discovered alt walk — record it so
@@ -373,6 +402,52 @@ Output STRICT JSON only:
         f"\nDone: {done} processed, {failed} failed (re-run to retry), "
         f"evidence.json now has {len(evidence)} entries."
     )
+    judge_spots(nodes, problems, recog, args.model)
+
+
+def judge_spots(nodes, problems, recog, model):
+    """Score every recognition/*.md not yet in recognition.json: one small
+    claude call maps the free-text answer onto node ids, the verdict is
+    computed against the walk's entry moves (kg.recognition.score). A
+    problem with no walk in problems.json gets the mapping call first."""
+    for path in rc.pending_spots(recog):
+        text = open(path).read()
+        foot = rc.read_footer(text)
+        m = rc.SPOT_FNAME_RE.search(os.path.basename(path))
+        pnum = str(foot.get("problem") or (m.group(1) if m else "?"))
+        statement, answer = rc.split_answer(text)
+        title = problems.get(pnum, {}).get("title", "")
+        if not problems.get(pnum, {}).get("moves"):
+            console.print(f"[dim]{pnum} has no walk - one claude call to map it (cached after)...[/dim]")
+            try:
+                if not title:
+                    title = rc.fetch_content(pnum).get("title", "")
+                rc.map_problem(pnum, title, nodes, problems)
+                save_problems(problems)
+                title = problems[pnum].get("title", title)
+            except Exception as e:
+                console.print(f"[red]FAIL {path}: could not map {pnum}: {str(e)[:200]}[/red]")
+                continue
+        try:
+            named, summary = rc.judge_answer(statement, answer, nodes, model=model)
+        except Exception as e:
+            console.print(f"[red]FAIL {path}: {str(e)[:200]}[/red]")
+            continue
+        moves, false = rc.score(named, pnum, problems)
+        rec = {
+            "date": manila_date_from_filename(path) or "1970-01-01",
+            "problem": pnum, "kind": "spot", "title": title,
+            "target": foot.get("target"), "reason": foot.get("reason"),
+            "seconds": foot.get("seconds", 0),
+            "named": named, "walk": list(problems[pnum].get("moves", [])),
+            "moves": moves, "false": false, "summary": summary,
+        }
+        if answer:
+            rec["answer"] = answer[:1000]
+        recog[path] = rec
+        rc.save_recognition(recog)
+        verdict = ", ".join(f"{n}={v}" for n, v in moves.items()) or "unscored"
+        console.print(f"[green]spot[/green] {os.path.basename(path)[:60]} → {verdict}")
 
 
 if __name__ == "__main__":

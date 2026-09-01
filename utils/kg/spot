@@ -1,0 +1,100 @@
+#!/usr/bin/env python3
+
+# spot — serve a recognition rep: a problem statement with the title, number
+# and tags stripped, as markdown in current.md, on a branch. The candidate
+# writes under the rule which move the statement calls for (free text; or
+# "direct" for none, or "don't know"), then `make solved` files it under
+# recognition/ and the judge scores the answer against the walk's entry move.
+#
+#   make prepare spot           # the picker's rep (kg.recognition.due_spot),
+#   make spot                   # whether or not make next says one is due
+#   utils/kg/spot --problem 84  # a chosen problem (the number is not shown)
+#
+# The number appears nowhere the candidate sees before the answer is in:
+# the branch is spot-<stamp>, the marker commit says "spotting", and the
+# pick is kept in .spot.json (untracked), keyed by branch, until the judge
+# reads it back.
+
+import argparse
+import os
+import subprocess
+import sys
+from datetime import datetime, timezone
+from rich.console import Console
+
+from kg.kg_lib import (load_nodes, load_problems, load_evidence, node_status,
+                       sleep_state)
+from kg import recognition as rc
+
+console = Console()
+REPO_ROOT = rc.REPO_ROOT
+
+
+def git(*args):
+    return subprocess.run(["git", *args], check=True, capture_output=True, text=True)
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Serve a recognition rep into current.md.")
+    parser.add_argument("--problem", default=None,
+                        help="serve this problem number instead of the picker's choice")
+    parser.add_argument("--dry", action="store_true",
+                        help="print the pick's reason and stop (the problem stays hidden)")
+    args = parser.parse_args()
+
+    for f in ("current.py", "current.md"):
+        path = os.path.join(REPO_ROOT, f)
+        if os.path.exists(path) and open(path).read().strip():
+            console.print(f"[red]{f} is not empty - record it (make solved) before preparing the next one.[/red]")
+            sys.exit(1)
+
+    nodes = load_nodes()
+    problems = load_problems()
+    evidence = load_evidence()
+    recog = rc.load_recognition()
+
+    if args.problem:
+        pnum, target, reason = str(args.problem), None, "chosen by hand"
+    else:
+        statuses = {n: node_status(n, evidence) for n in nodes}
+        asleep, _ = sleep_state(nodes, problems, evidence)
+        # asked for = served: the SPOT_EVERY ratio governs what make next
+        # suggests, not what make prepare spot does
+        pick = rc.due_spot(nodes, problems, evidence, recog, statuses,
+                           skip=set(asleep), force=True)
+        if not pick:
+            console.print("nothing to spot: no node with reach is waiting for a rep.")
+            sys.exit(1)
+        target, pnum, reason = pick
+    if args.dry:
+        console.print(f"a spot rep is due ({reason}).")
+        return
+
+    try:
+        entry = rc.fetch_content(pnum)
+    except Exception as e:
+        console.print(f"[red]could not fetch the statement: {e}[/red]")
+        sys.exit(1)
+    statement = rc.html_to_markdown(entry["content"])
+    title = problems.get(pnum, {}).get("title") or entry["title"]
+
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    branch = f"spot-{stamp}"
+    meta = rc.load_spot_meta()
+    meta[branch] = {"problem": pnum, "target": target, "reason": reason,
+                    "title": title, "difficulty": entry.get("difficulty", "")}
+    rc.save_spot_meta(meta)
+
+    git("checkout", "master")
+    with open(os.path.join(REPO_ROOT, "current.md"), "w") as f:
+        f.write(rc.spot_document(statement))
+    git("checkout", "-b", branch)
+    git("add", "current.md")
+    git("commit", "-m", "spotting")
+    console.print(f"current.md is ready on branch [bold]{branch}[/bold]. Read the statement, "
+                  "write under the rule which move it calls for (or \"direct\", or "
+                  "\"don't know\"), then `make solved`.")
+
+
+if __name__ == "__main__":
+    main()

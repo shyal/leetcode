@@ -288,7 +288,8 @@ parser.add_argument(
 args = parser.parse_args()
 
 numbers = [int(t) for t in args.targets if str(t).isdigit()]
-node_ids = [t for t in args.targets if not str(t).isdigit()]
+node_ids = [t for t in args.targets if not str(t).isdigit() and t != "spot"]
+spot = "spot" in args.targets
 
 example_stub = '''
 """
@@ -586,6 +587,18 @@ def finalize(num, title, code):
         run_git(["add", "."])
         run_git(["commit", "-m", problem_title])
 
+
+# `spot` routes to the recognition rep (utils/kg/spot): the picker's due
+# statement into current.md on a branch, same flow, no code
+if spot:
+    env = dict(os.environ)
+    env["PYTHONPATH"] = "utils" + os.pathsep + os.path.join("utils", "harness") + os.pathsep + env.get("PYTHONPATH", "")
+    r = subprocess.run(
+        [sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "spot")],
+        env=env,
+    )
+    if r.returncode:
+        sys.exit(r.returncode)
 
 # a node id routes to the drill bank picker — same flow as `make drill <node-id>`
 for nid in node_ids:

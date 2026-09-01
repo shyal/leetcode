@@ -12,6 +12,7 @@ from rich.panel import Panel
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from kg.kg_lib import active_seconds, load_evidence
+from kg import recognition as rc
 
 console = Console()
 
@@ -104,6 +105,46 @@ def solved_filename(problem_id, title, failed=False, now=None):
     return f"{prefix}_{clean_title}{marker}_{sanitized}.py"
 
 
+def spot_pending():
+    """A recognition rep is on the branch: current.md has content (and
+    current.py does not). `make solved` files it under recognition/ instead
+    of solved/; the judge (kg_extract) scores it after this phase."""
+    md = os.path.exists("current.md") and open("current.md").read().strip()
+    py = os.path.exists("current.py") and open("current.py").read().strip()
+    return bool(md) and not py
+
+
+def spot_file_phase(solve_time, slept_line):
+    """The spot rep's file phase: reveal nothing yet, archive current.md as
+    recognition/s<num>_<title>_<ts>.md with the pick and the clock in a
+    footer comment the judge reads, clear current.md."""
+    branch = subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"]).decode().strip()
+    meta = rc.load_spot_meta().get(branch)
+    if not meta:
+        console.print(f"[red]no pick recorded for branch {branch} (.spot.json) - cannot file this spot rep.[/red]")
+        return
+    pnum, title = meta["problem"], meta.get("title", "")
+    if FAILED:
+        console.print("[yellow]a spot rep is not failed, it is answered: write \"don't know\" under the rule and run make solved.[/yellow]")
+        return
+    active = active_seconds()[0]
+    content = open("current.md").read().rstrip() + "\n\n" + "<!-- spot " + json.dumps({
+        "problem": pnum, "target": meta.get("target"), "reason": meta.get("reason"),
+        "seconds": int(active),
+    }) + " -->\n"
+    filename = solved_filename(pnum, title, now=None)[:-3] + ".md"
+    filename = "s" + filename[1:]  # s<num>_ marks a spot rep the way p<num>_ marks a solve
+    os.makedirs(rc.RECOGNITION_DIR, exist_ok=True)
+    filepath = os.path.join("recognition", filename)
+    with open(filepath, "w") as f:
+        f.write(content)
+    commit_message = f"spot: {pnum}. {title}\n\nsolve time: {solve_time}{slept_line}"
+    with open(META, "w") as f:
+        json.dump({"message": commit_message, "file": filepath, "kind": "spot"}, f)
+    os.remove("current.md")
+    console.print(f"[green]filed[/green] [bold]{filepath}[/bold] [cyan]({solve_time})[/cyan]; the walk is revealed after the judge.")
+
+
 def file_phase():
     """Freeze the clock and archive the attempt. No git."""
     if os.path.exists(META):
@@ -123,6 +164,10 @@ def file_phase():
     if sleeps:
         sh, sm = divmod(int(slept_seconds) // 60, 60)
         slept_line = f"\nslept: {sh}h {sm:02d}m over {sleeps} park(s)"
+
+    if spot_pending():
+        spot_file_phase(solve_time, slept_line)
+        return
 
     if not os.path.exists("current.py"):
         console.print("[red]current.py does not exist. Exiting.[/red]")
@@ -246,6 +291,11 @@ def finish(meta):
     solved/ path)."""
     console.print("[green]✓ committed[/green] [bold]" + meta["message"].splitlines()[0] + "[/bold]")
     key = os.path.normpath(meta.get("file", ""))
+    if meta.get("kind") == "spot":
+        rec = rc.load_recognition().get(key)
+        if rec:
+            console.print(Panel(rc.reveal(rec), title="the rep", border_style="cyan", padding=(0, 1)))
+        return
     summary = load_evidence().get(key, {}).get("summary")
     if summary:
         console.print(Panel(summary, title="the solve", border_style="cyan", padding=(0, 1)))

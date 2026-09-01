@@ -104,6 +104,7 @@ from rich.console import Console
 from rich.table import Table
 
 from kg import kg_lib
+from kg import recognition as rc
 from kg.kg_lib import (
     GRAPH_DIR,
     DRILLS_DIR,
@@ -914,18 +915,24 @@ def review_line(drills, solves, reached):
     return f"review ahead: {', '.join(parts)}, {tail} (if every rep is clean)"
 
 
-def ready_hards(problems, nodes, evidence, statuses, immature=None):
+def ready_hards(problems, nodes, evidence, statuses, immature=None, recog=None):
     """Unsolved Hards with no gaps left in their route: every node in the
     transitive input tree SOLID — and mature (kg_lib.mature: a young badge
     from one burst of drills is not yet load-bearing) — and no `unmapped`
     move (a trick the taxonomy has no node for yet — unroutable new ground,
-    so the walk is farther away than its mapped moves suggest).
+    so the walk is farther away than its mapped moves suggest). A Hard
+    whose entry move is FAILED_TO_RECOGNIZE on the recognition axis (kg.recognition:
+    the last time that move had to be read off a statement it was not)
+    is not ready either: a summit is a pure combination rep only if the
+    walk is seen, and the spot rep is what clears the miss.
 
     Classics come first, and the whole list is ranked by kg_lib.rank_summits,
     so `make next` and `make hard` cannot name different summits."""
     solved = solved_problems(evidence)
     if immature is None:
         immature = immature_nodes(nodes, evidence, problems)
+    if recog is None:
+        recog = rc.load_recognition()
     out = []
     for pnum, p in problems.items():
         if (
@@ -934,6 +941,9 @@ def ready_hards(problems, nodes, evidence, statuses, immature=None):
             or pnum in solved
             or not p.get("moves")
         ):
+            continue
+        if any(rc.recognition_status(e, recog)[0] == rc.FAILED_TO_RECOGNIZE
+               for e in rc.entry_nodes(pnum, problems)):
             continue
         if route_gaps(pnum, problems, nodes, statuses, immature)[1] == 0:
             out.append(pnum)
@@ -1277,6 +1287,15 @@ def _main(footer):
         h, m = divmod(secs // 60, 60)
         clock = f"{h}h {m:02d}m" if h else f"{m}m"
         console.print(f"[dim]today: {clock} solving[/dim]")
+
+    # the recognition axis (kg.recognition): a statement to read before the
+    # solve, three minutes, when a node's trigger is missing or untested.
+    # Which node is not said - the emoji is decodable and the rep would
+    # test nothing. Group walks (sql, ...) are about their group, so no.
+    if not (args.group or args.early or args.assisted) and rc.due_spot(
+            nodes, problems, evidence, rc.load_recognition(), statuses, skip=set(asleep)):
+        console.print("[bold]spot rep due[/bold] - make prepare spot (read the statement, "
+                      "name the move, no code; before the solve)")
 
     exclude = set(solved_today_pnums())
     choice = None
