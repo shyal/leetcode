@@ -33,6 +33,13 @@
 #      nothing auto-wakes — and its walk's rusty moves/prereqs get warmed
 #      first, via other carriers (rule 0a fires only for a problem woken
 #      mid-run, which manual wake makes moot; it is kept for that path)
+#   0b. park full (kg_lib.MAX_ASLEEP problems asleep): review is served as
+#      usual, new ground is not. A pick that is new ground (rule 3, 4, 5, 6
+#      or a plan item that is) is withheld and the parked list is printed
+#      with the three ways out: keep going, learn it (notes say "learning",
+#      make solved), or fail it (make failed). The cap is the only pressure
+#      on a park; without this rule it only showed when make sleep refused
+#      a fifth (2026-09-01, four asleep and make next said nothing)
 #   0c. ownership rep: a held target's prereq that is SOLID only through
 #       assisted reps (kg_lib.owned is False) is never itself FRAGILE/STALE/
 #       MISSING, so rules 1-3 would never serve the unaided rep that clears
@@ -112,6 +119,8 @@ from kg.kg_lib import (
     DEEP_STALE_DAYS,
     CARRIER_COOLDOWN_DAYS,
     sleep_state,
+    sleep_lines,
+    MAX_ASLEEP,
     last_solved,
     pnum_key,
     dodged_nodes,
@@ -807,6 +816,23 @@ def exploratory(status, reason):
     return status == MISSING or reason.startswith(EXPLORE_REASONS)
 
 
+def withheld(choice, asleep):
+    """Rule 0b: True when the park is full and this pick is new ground.
+    Review picks pass; only a pick that would open something new is held
+    back until one parked problem is faced."""
+    if not choice or len(asleep) < MAX_ASLEEP:
+        return False
+    return exploratory(choice[1], choice[3])
+
+
+def park_full_lines(asleep, problems):
+    """The refusal, as lines: the count and the three ways out. The parked
+    problems themselves are on the footer every make next prints."""
+    return [f"{len(asleep)} asleep (cap {MAX_ASLEEP}) - new ground is withheld "
+            "until you face one (make wake <n>), then: keep going (make solved) "
+            "/ learn it (notes say \"learning\", make solved) / fail it (make failed)"]
+
+
 def review_ahead(nodes, problems, evidence, asleep=(), exclude=(), group=None,
                  days=14, cap=200):
     """(drills, problems, reached): the review picks between now and the
@@ -1133,6 +1159,20 @@ def print_gates(vid, problems, evidence, labeled):
 
 
 def main():
+    """Serve the pick, then the park. The footer is printed on every way
+    out of _main (a pick, a refusal, nothing to serve) so the parked
+    problems are seen every day."""
+    footer = []
+    try:
+        _main(footer)
+    finally:
+        if footer:
+            console.print()
+            for line in footer:
+                console.print(f"[dim]{line}[/dim]")
+
+
+def _main(footer):
     parser = argparse.ArgumentParser(
         description="Pick the next problem and draw its input tree."
     )
@@ -1227,6 +1267,8 @@ def main():
         return "[yellow]young[/yellow]" if n in immature else "[dim]mature[/dim]"
 
     asleep, woken = sleep_state(nodes, problems, evidence)
+    if asleep:
+        footer.extend(sleep_lines(nodes, problems, evidence, statuses))
 
     session_start = is_session_start()
 
@@ -1239,6 +1281,7 @@ def main():
     exclude = set(solved_today_pnums())
     choice = None
     shown = 0
+    refused = False  # rule 0b: a new-ground pick withheld by a full park
     plan_note = None
 
     def warn_dry(served):
@@ -1324,6 +1367,8 @@ def main():
                 target = next((m for m in moves if statuses[m][0] != SOLID), moves[0])
                 plan_note = item.get("note")
                 choice = (target, statuses[target][0], pnum, f"plan: {item['kind']}")
+            if withheld(choice, asleep):
+                choice, refused = None, True
             shown = 1 if choice else 0
 
     if not choice:
@@ -1344,8 +1389,15 @@ def main():
             )
             if not choice:
                 break
+            if withheld(choice, asleep):
+                choice, refused = None, True
+                break
             shown += 1
             exclude.add(choice[2])
+    if refused and not choice:
+        for line in park_full_lines(asleep, problems):
+            console.print(line)
+        return
     if not choice:
         # Zero friction: time worked, and what to work on next. Nothing else.
         # Basecamp running dry is the expected end state, not a fault — it

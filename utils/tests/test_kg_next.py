@@ -2034,3 +2034,75 @@ def test_the_level_word_in_the_notes_is_the_mark():
     assert kg_lib.apply_assist_floor({"b": "hint"}, "walkthrough", ["a"]) == {"a": "walkthrough", "b": "hint"}
     assert kg_lib.apply_assist_floor({"a": "hint"}, "none", ["a"]) == {"a": "hint"}
     assert kg_lib.apply_assist_floor(None, "none", ["a"]) is None
+
+
+# --------------------------------------------------------------------------
+# rule 0b: a full park withholds new ground, review still flows
+# --------------------------------------------------------------------------
+
+def test_a_full_park_withholds_new_ground_but_not_review(monkeypatch):
+    """2026-09-01: four problems asleep, cap three, and make next kept
+    serving as if nothing were parked. At the cap a new-ground pick is
+    held back; a review pick is not."""
+    monkeypatch.setattr(kg_next, "MAX_ASLEEP", 3)
+    full = {"1", "2", "3"}
+    new_move = ("m", MISSING, "9", "new move")
+    summit = ("m", SOLID, "9", "summit: gentlest all-solid Hard")
+    review = ("m", STALE, "9", "spaced re-solve")
+    assert kg_next.withheld(new_move, full)
+    assert kg_next.withheld(summit, full)
+    assert not kg_next.withheld(review, full)
+    assert not kg_next.withheld(new_move, {"1", "2"})
+    assert not kg_next.withheld(None, full)
+
+
+def test_the_park_full_message_names_the_ways_out(monkeypatch):
+    monkeypatch.setattr(kg_next, "MAX_ASLEEP", 3)
+    ps = {"1235": problem(["a"], title="Job Scheduling"),
+          "752": problem(["a"], title="Open the Lock")}
+    lines = kg_next.park_full_lines({"1235", "752"}, ps)
+    assert len(lines) == 1 and lines[0].startswith("2 asleep (cap 3)")
+    assert "make wake" in lines[0] and "make failed" in lines[0] and "learning" in lines[0]
+
+
+def test_the_park_is_listed_under_every_make_next(monkeypatch):
+    """2026-09-01: the park must be seen daily, not only when make sleep
+    refuses. sleep_lines is what make next prints at the bottom and what
+    make sleep -- --list prints; one line per park."""
+    ns = nodes("a", "b")
+    ps = {"7": problem(["a", "b"], title="Parked One")}
+    monkeypatch.setattr(kg_lib, "sleep_records",
+                        lambda problems, ev: {"7": {"branch": "7-slept", "title": "Parked One",
+                                                    "slept": 1_756_000_000, "cycles": 2}})
+    monkeypatch.setattr(kg_lib, "sleep_state", lambda nodes, problems, ev: (["7"], []))
+    st = {"a": (SOLID, ago(1)), "b": (STALE, ago(40))}
+    lines = kg_lib.sleep_lines(ns, ps, {}, st)
+    assert len(lines) == 1
+    assert lines[0].startswith("7. Parked One - asleep (warming: b)")
+    assert "slept x2" in lines[0] and lines[0].endswith("make wake 7 when you choose")
+    st["b"] = (SOLID, ago(1))
+    assert "ground solid, simmering" in kg_lib.sleep_lines(ns, ps, {}, st)[0]
+    monkeypatch.setattr(kg_lib, "sleep_records", lambda problems, ev: {})
+    assert kg_lib.sleep_lines(ns, ps, {}, st) == []
+
+
+def test_envrc_knobs_hold_without_direnv(tmp_path):
+    """The repo's .envrc is read like a dotenv file: literal exports are
+    taken, shell expansions are left alone, the environment wins."""
+    rc = tmp_path / ".envrc"
+    rc.write_text(
+        "export MAX_ASLEEP=5\n"
+        "# a comment\n"
+        "\n"
+        "export NAME=\"quoted value\"\n"
+        "SINGLE='x$y'\n"
+        "export PYTHONPATH=./utils/:${PYTHONPATH}\n"
+        "export SET_ALREADY=new\n"
+        "not a var line\n"
+    )
+    env = {"SET_ALREADY": "old"}
+    loaded = kg_lib.load_envrc(str(rc), env)
+    assert loaded == {"MAX_ASLEEP": "5", "NAME": "quoted value", "SINGLE": "x$y"}
+    assert env["SET_ALREADY"] == "old"
+    assert "PYTHONPATH" not in env
+    assert kg_lib.load_envrc(str(tmp_path / "missing"), {}) == {}

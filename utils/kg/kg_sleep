@@ -29,7 +29,7 @@ from datetime import datetime
 
 from kg.kg_lib import (
     load_nodes, load_problems, load_evidence, node_status, input_tree,
-    active_seconds, sleep_records, sleep_state,
+    active_seconds, sleep_records, sleep_state, sleep_lines,
     MAX_ASLEEP, SOLID,
 )
 
@@ -53,22 +53,8 @@ def hm(secs):
 
 
 def show_list(nodes, problems, evidence):
-    recs = sleep_records(problems, evidence)
-    if not recs:
-        print("nothing parked")
-        return
-    asleep, _ = sleep_state(nodes, problems, evidence)
-    statuses = {n: node_status(n, evidence) for n in nodes}
-    for pnum in asleep:
-        rec = recs[pnum]
-        since = datetime.fromtimestamp(rec["slept"]).isoformat(timespec="minutes")
-        cycles = f", slept x{rec['cycles']}" if rec["cycles"] > 1 else ""
-        rusty = sorted(n for n in input_tree(problems[pnum]["moves"], nodes)
-                       if statuses[n][0] != SOLID)
-        ground = (f"warming: {', '.join(rusty)}" if rusty
-                  else "ground solid, simmering")
-        print(f"{pnum}. {rec['title']} — asleep ({ground}) — parked "
-              f"{since}{cycles} — make wake {pnum} when you choose")
+    lines = sleep_lines(nodes, problems, evidence)
+    print("\n".join(lines) if lines else "nothing parked")
 
 
 def wake(args, nodes, problems, evidence):
