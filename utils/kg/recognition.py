@@ -234,6 +234,8 @@ def spotted_before(pnum, day, recog):
         return None
     d, r = max(reps, key=lambda t: t[0])
     verdict = HIT if any(v == HIT for v in r.get("moves", {}).values()) else MISSED
+    if r.get("revealed"):
+        verdict = MISSED  # the walk was handed over after all (asked for in chat)
     return d, verdict
 
 
@@ -667,25 +669,28 @@ Output STRICT JSON only: {{"named": ["<node-id>"], "summary": "<sentence>"}}"""
     return named, str(result.get("summary", "")).strip()
 
 
-def judge_alternative(statement, answer, named, nodes, model="sonnet"):
-    """The candidate named moves no mapped walk of the problem uses. One
-    call on the stronger model answers a narrow question: is the approach
-    the answer describes a standard, accepted, correct solution to this
-    statement (the kind an editorial lists), not merely a plausible idea?
-    Returns (valid, why). No code runs: a hit through here is marked as
-    an alternative walk not yet evidenced by code, and stays marked."""
+def judge_route(statement, answer, named, nodes, model="sonnet"):
+    """One call on the stronger model, for every rep that proposes a
+    route: is the approach the answer describes a standard, accepted,
+    correct solution to this statement (the kind an editorial lists), not
+    merely a plausible idea? Returns (valid, why). No code runs. When the
+    route fails, `why` names the input it fails on and never the correct
+    technique: a failed rep reveals nothing (settled 2026-09-01, 354)."""
     system = """You judge whether a candidate's proposed approach to a LeetCode problem (title hidden) is a correct solution.
 
 Rules:
 - "valid" is true ONLY when the approach, as the candidate describes it, is a standard accepted solution to this exact problem: correct on every input within the constraints and within the intended complexity, the kind of solution an editorial or a top community writeup lists. A plausible idea that would need repair, a heuristic, an approach that fails an edge case, or one that exceeds the constraints is false.
 - Judge what the candidate wrote, not the solution you would write. If the description is too vague to be sure it is correct, "valid" is false.
-- "why": one sentence naming the accepted solution it matches, or the input or constraint it fails on.
+- "why": one sentence. When valid, name the accepted solution it matches. When NOT valid, describe the concrete input or constraint the approach fails on, and NEVER name, hint at, or describe the correct technique or any move the approach is missing - the candidate will solve this problem later unaided.
 
 Output STRICT JSON only: {"valid": true|false, "why": "<sentence>"}"""
     prompt = (f"STATEMENT:\n{statement[:5000]}\n\nCANDIDATE'S ANSWER:\n{answer[:2000]}"
-              f"\n\nThe answer was read as these moves: {', '.join(named)}.")
+              f"\n\nThe answer was read as these moves: {', '.join(named) or '(none)'}.")
     result = claude_json(prompt, system, model=model)
     return bool(result.get("valid")), str(result.get("why", "")).strip()
+
+
+judge_alternative = judge_route  # the older name
 
 
 def apply_alternative(rec, named, problems, why, target=None):
@@ -772,6 +777,19 @@ def reveal(rec):
     target = rec.get("target")
     if rec.get("moves", {}).get(target) == ALTERNATIVE:
         verdict = f"hit, {target} not needed"
+    if rec.get("valid") is False:
+        # a failed route reveals nothing: not the walk, not which named
+        # moves fall outside it. The problem stays there to solve cold.
+        lines = [f"{pnum}. {title}",
+                 f"the route as written does not solve it ({verdict} on the target, "
+                 f"{rec.get('seconds', 0)}s); the walk stays hidden"]
+        if rec.get("why"):
+            lines.append(rec["why"])
+        if rec.get("named"):
+            lines.append(f"named: {', '.join(rec['named'])}")
+        if target:
+            lines.append(f"served for: {target}")
+        return "\n".join(lines)
     lines = [f"{pnum}. {title}", f"walk: {walk}", f"{verdict} in {rec.get('seconds', 0)}s"]
     if rec.get("alternative"):
         lines.append("hit through an alternative walk, not yet evidenced by code: "

@@ -173,10 +173,18 @@ the reveal after the judge.
   misses the mapped walk's first move only when no walk move was named at
   all. Moves named that no walk uses are recorded as `false`
   (over-triggering).
+- **The route is judged.** Every rep that proposes a route gets one call
+  on the stronger model: is the approach as written a standard accepted
+  solution, or merely a plausible idea? `valid` and a one-sentence reason
+  are stored. A failed route reveals nothing after the judge: not the walk,
+  not which named moves fall outside it, only the input the route fails on
+  (the judge is told never to name the missing technique). The target's
+  verdict stands either way, and the problem stays there to solve cold; a
+  later solve of it is unaided, since nothing was handed over. (Settled
+  2026-09-01 on 354: the sort was named, the route after it was wrong.)
 - **An alternative walk.** When the target was missed and the answer names
-  a move no walk of the problem uses, one call on the stronger model judges
-  whether the approach as written is a standard accepted solution (rule 3
-  for recognition: a valid route the map lacks is never a miss). If it is,
+  a move no walk of the problem uses and the route is valid (rule 3 for
+  recognition: a valid route the map lacks is never a miss),
   the rep is a hit on every move named, marked `alternative` since no code
   ran; the target, when it was not named, gets an `alternative` event: not
   seen, not missed, not needed by that statement. Two of those in a row and
