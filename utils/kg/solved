@@ -148,8 +148,18 @@ def spot_file_phase(solve_time, slept_line):
 def file_phase():
     """Freeze the clock and archive the attempt. No git."""
     if os.path.exists(META):
-        console.print("[yellow]a filed solve is already staged — resuming its ingest and commit.[/yellow]")
-        return
+        # a stage whose file is gone is a leftover, not a resume: `make drop`
+        # git-cleans the filed solve but spares the gitignored META, and the
+        # 2026-09-02 run committed the NEXT solve under the dropped one's
+        # message because of it. Discard and file the current attempt fresh.
+        with open(META) as f:
+            staged = json.load(f)
+        if not os.path.exists(staged.get("file", "")):
+            console.print("[red]stale stage: its solve file is gone (dropped?) — discarding it.[/red]")
+            os.remove(META)
+        else:
+            console.print("[yellow]a filed solve is already staged — resuming its ingest and commit.[/yellow]")
+            return
 
     # the clock stops when the operator runs `make solved`, not when the
     # judge finishes minutes later: active time is computed here and frozen

@@ -93,7 +93,8 @@ wake:
 drop:
 	@b="$$(git rev-parse --abbrev-ref HEAD)"; \
 	if [ "$$b" = "master" ]; then echo "on master, nothing to drop"; exit 1; fi; \
-	git checkout -q -- . && git clean -qfd && git checkout -q master && git branch -D "$$b"
+	git checkout -q -- . && git clean -qfd && git checkout -q master && git branch -D "$$b"; \
+	rm -f .solve_meta.json
 
 # file phase (freezes the solve time) -> judge -> curve -> ONE commit at the
 # end carrying solve + evidence + curve, with the frozen time in the message.
