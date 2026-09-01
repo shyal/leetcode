@@ -26,13 +26,13 @@ import glob
 import json
 import os
 import re
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from html.parser import HTMLParser
 
 from kg.kg_lib import (
     GRAPH_DIR, REPO_ROOT, SOLID, SOLID_WINDOW_DAYS, gentleness, pnum_key,
     solved_problems, taxonomy_summary, claude_json, load_predicted,
-    problem_difficulty, ev_index,
+    problem_difficulty, ev_index, assist_of, sleep_records,
 )
 
 RECOGNITION_JSON = os.path.join(GRAPH_DIR, "recognition.json")
@@ -237,6 +237,63 @@ def spot_due_by_ratio(recog, evidence, today=None, every=None):
     return spots_today(recog, today) <= solves_today(evidence, today) // every
 
 
+# ---- what solves and parks say ---------------------------------------------
+
+def solve_hits(evidence, problems):
+    """Recognition records derived from evidence.json: the first solve of
+    a mapped problem, all its moves clean, no assist, is a hit on every
+    move of its walk. Nobody named the move; the statement did. Keyed
+    `<solve file>#solve` so a miss the notes put on the same file
+    (kg_extract) keeps its own key."""
+    out = {}
+    seen = set()
+    for fname, rec in evidence.items():
+        pnum = str(rec.get("problem", ""))
+        if pnum in seen:
+            continue
+        seen.add(pnum)
+        moves = rec.get("moves", {})
+        if (pnum == "drill" or pnum not in problems or not moves
+                or any(v != "clean" for v in moves.values())
+                or any(assist_of(rec, m) != "none" for m in moves)):
+            continue
+        walk = [m for m in problems[pnum].get("moves", []) if m in moves]
+        if walk:
+            out[f"{fname}#solve"] = {"date": rec["date"], "problem": pnum,
+                                     "kind": "solve", "moves": {m: HIT for m in walk}}
+    return out
+
+
+def park_misses(problems, evidence, statuses):
+    """Suspected misses from the `-slept` branches: a park on a problem
+    whose walk is all SOLID on execution is a stall the execution axis
+    cannot explain, so its moves count as missed, dated at the park,
+    until the wake and the solve settle it. A park with a rusty move in
+    the walk is the solve picker's business (rule 0b warms it) and is
+    left alone."""
+    out = {}
+    for pnum, rec in sleep_records(problems, evidence).items():
+        moves = problems[pnum].get("moves", [])
+        if not moves or any(statuses.get(m, (None,))[0] != SOLID for m in moves):
+            continue
+        day = datetime.fromtimestamp(rec["slept"]).date().isoformat()
+        out[f"{rec['branch']}#park"] = {"date": day, "problem": pnum, "kind": "park",
+                                        "moves": {m: MISSED for m in moves},
+                                        "note": "parked with an all-SOLID walk"}
+    return out
+
+
+def derived(recog, evidence, problems, statuses):
+    """The recognition axis as the pickers read it: the stored records
+    (spot reps, misses the notes named) plus what solves and parks say.
+    Nothing here is written to recognition.json; it is re-derived on
+    every read, like mastery."""
+    out = dict(solve_hits(evidence, problems))
+    out.update(park_misses(problems, evidence, statuses))
+    out.update(recog)
+    return out
+
+
 # ---- the pick --------------------------------------------------------------
 
 def drafted_carriers(problems, predicted=None):
@@ -260,88 +317,73 @@ def drafted_carriers(problems, predicted=None):
     return out
 
 
-def spot_carriers(target, problems, evidence, recog, nodes, statuses=None,
-                  skip=(), predicted=None):
-    """Unsolved, unspotted, unbanned problems whose walk (or an alt walk)
-    uses target: reachable ones (every move of the walk SOLID) before the rest,
-    mapped before drafted (a mapped walk is evidence, a draft a guess),
-    gentlest first within each. Hards are allowed: a Hard statement is
-    where the trigger fails in practice, and reading it is not climbing it."""
-    solved = solved_problems(evidence)
-    seen = spotted_problems(recog)
-    statuses = statuses or {}
+def spot_pool(problems, predicted=None):
     pool = dict(drafted_carriers(problems, predicted))
     pool.update(problems)
-    out = []
-    for pnum, p in pool.items():
-        if (pnum in solved or pnum in seen or pnum in skip or p.get("banned")
-                or not p.get("moves") or not all(m in nodes for m in p["moves"])):
-            continue
-        if target in walk_nodes(pnum, pool):
-            out.append(pnum)
-
-    def reachable(q):
-        return all(statuses.get(m, (None,))[0] == SOLID for m in pool[q]["moves"])
-
-    out.sort(key=lambda q: (not reachable(q), pool[q].get("drafted", False),
-                            gentleness(q, pool, nodes), pnum_key(q)))
-    return out
+    return pool
 
 
-def reach_through(nodes, problems, evidence, recog, statuses, skip=(), predicted=None):
-    """{node: [reachable carriers]} - for each node, the unsolved problems
-    whose walk is all SOLID and uses it. This is the reach a node carries
-    today; whether the statement triggers the node is what decides if
-    that reach is real."""
+def carriers_by_node(nodes, problems, evidence, recog, statuses, skip=(), predicted=None):
+    """{node: [carriers]} the way the solve picker counts reach: an
+    unsolved, unspotted problem carries node n when its walk uses n and
+    every OTHER move is SOLID - one unowned move is fine, it is the one
+    being served. Mapped before drafted, gentlest first."""
     solved = solved_problems(evidence)
     seen = spotted_problems(recog)
-    pool = dict(drafted_carriers(problems, predicted))
-    pool.update(problems)
-    reach = {}
+    pool = spot_pool(problems, predicted)
+    by_node = {}
     for pnum, p in pool.items():
         moves = p.get("moves", [])
         if (pnum in solved or pnum in seen or pnum in skip or p.get("banned")
-                or not moves or not all(m in nodes for m in moves)
-                or any(statuses.get(m, (None,))[0] != SOLID for m in moves)):
+                or not moves or not all(m in nodes for m in moves)):
             continue
-        for e in sorted(walk_nodes(pnum, pool)):
-            reach.setdefault(e, []).append(pnum)
-    for e in reach:
-        reach[e].sort(key=lambda q: (pool[q].get("drafted", False),
-                                     gentleness(q, pool, nodes), pnum_key(q)))
-    return reach
+        gaps = [m for m in moves if statuses.get(m, (None,))[0] != SOLID]
+        if len(gaps) > 1:
+            continue
+        for n in (gaps or sorted(set(moves))):
+            by_node.setdefault(n, []).append(pnum)
+    for n in by_node:
+        by_node[n].sort(key=lambda q: (pool[q].get("drafted", False),
+                                       gentleness(q, pool, nodes), pnum_key(q)))
+    return by_node
+
+
+def spot_carriers(target, problems, evidence, recog, nodes, statuses=None,
+                  skip=(), predicted=None):
+    return carriers_by_node(nodes, problems, evidence, recog, statuses or {},
+                            skip, predicted).get(target, [])
 
 
 def due_spot(nodes, problems, evidence, recog, statuses, today=None, skip=(),
              predicted=None, every=None, force=False):
     """The spot rep due today, or None: (target, pnum, reason).
 
-    One rule, at the SPOT_EVERY ratio. Recognition is the check on reach: the graph
-    says these problems are reachable because every move in their walk is
-    SOLID; the spot rep asks whether the statement actually triggers a
-    move they use. So the node served is the one carrying the
-    most reach whose trigger has not been shown recently (not RECOGNIZED
-    inside the window). A FAILED_TO_RECOGNIZE node ranks by the same
-    number; ties go to it, then to the older event. The carrier is the
-    gentlest problem it reaches. `force` (make prepare spot) skips the
-    ratio: asking for a rep is always answered while a node has reach."""
+    Picks the way the solve picker picks. A node's score is the number
+    of unsolved problems that need nothing but it (every other move
+    SOLID): the reach that recognising it opens or confirms. Candidates
+    are nodes not RECOGNIZED: FAILED_TO_RECOGNIZE first (rule 1 for
+    recognition), then UNTESTED, highest score first, older event first.
+    `recog` should be the derived axis (kg.recognition.derived): a
+    freestyle clean solve is a hit, a park on solid ground a miss, so the
+    reps go to moves that have only ever been named for you. The carrier
+    is the gentlest problem carrying the node. `force` (make prepare
+    spot) skips the SPOT_EVERY ratio."""
     today = today or date.today()
     if not force and not spot_due_by_ratio(recog, evidence, today, every):
         return None
-    reach = reach_through(nodes, problems, evidence, recog, statuses, skip, predicted)
+    carriers = carriers_by_node(nodes, problems, evidence, recog, statuses, skip, predicted)
     ranked = []
-    for n, carriers in reach.items():
+    for n, cs in carriers.items():
         status, last = recognition_status(n, recog, today)
         if status == RECOGNIZED:
             continue
-        ranked.append((-len(carriers), status != FAILED_TO_RECOGNIZE,
-                       last or date.min, n))
+        ranked.append((status != FAILED_TO_RECOGNIZE, -len(cs), last or date.min, n))
     if not ranked:
         return None
     _, _, _, n = min(ranked)
     status = recognition_status(n, recog, today)[0]
     why = "failed to recognize last time" if status == FAILED_TO_RECOGNIZE else "untested"
-    return n, reach[n][0], f"{why}, {len(reach[n])} reachable through it"
+    return n, carriers[n][0], f"{why}, {len(carriers[n])} problem(s) need only it"
 
 
 # ---- the statement ---------------------------------------------------------

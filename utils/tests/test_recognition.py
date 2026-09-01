@@ -153,18 +153,27 @@ def graph():
     return ns, problems, statuses
 
 
-def test_the_node_carrying_the_most_reach_is_served():
+def test_the_node_more_problems_need_is_served():
     ns, problems, statuses = graph()
-    # ms reaches 1 and 2; bsoa and pair reach 3; bsb reaches 4
+    # ms carries 1 and 2; bsoa and pair carry 3; bsb carries 4
     assert rc.due_spot(ns, problems, {}, {}, statuses, predicted={}) == \
-        ("ms", "1", "untested, 2 reachable through it")
+        ("ms", "1", "untested, 2 problem(s) need only it")
 
 
-def test_reach_needs_the_whole_walk_solid():
+def test_one_unowned_move_is_fine_and_is_the_target():
     ns, problems, statuses = graph()
-    statuses["ms"] = (STALE, date.today())
-    pick = rc.due_spot(ns, problems, {}, {}, statuses, predicted={})
-    assert pick[0] in ("bsoa", "bsb")  # ms carries no reach while STALE
+    statuses["bsoa"] = (STALE, date.today())
+    carriers = rc.carriers_by_node(ns, problems, {}, {}, statuses, predicted={})
+    assert carriers["bsoa"] == ["3"]
+    assert "pair" not in carriers  # 3 is bsoa's rep, not pair's
+
+
+def test_two_unowned_moves_carry_nothing():
+    ns, problems, statuses = graph()
+    statuses["bsoa"] = (STALE, date.today())
+    statuses["pair"] = (STALE, date.today())
+    carriers = rc.carriers_by_node(ns, problems, {}, {}, statuses, predicted={})
+    assert "3" not in carriers.get("bsoa", []) and "3" not in carriers.get("pair", [])
 
 
 def test_a_recognized_node_is_not_served_again_inside_the_window():
@@ -173,19 +182,78 @@ def test_a_recognized_node_is_not_served_again_inside_the_window():
     assert rc.due_spot(ns, problems, {}, recog, statuses, predicted={})[0] != "ms"
 
 
-def test_failed_to_recognize_wins_ties_on_reach():
+def test_failed_to_recognize_comes_first_whatever_its_score():
     ns, problems, statuses = graph()
-    evidence = solve(2, days_ago=30)  # ms and bsoa now reach one problem each
-    recog = miss(1760, "bsoa", days_ago=2)
-    assert rc.due_spot(ns, problems, evidence, recog, statuses, predicted={}) == \
-        ("bsoa", "3", "failed to recognize last time, 1 reachable through it")
+    recog = miss(1760, "bsb", days_ago=2)  # bsb carries one problem, ms two
+    assert rc.due_spot(ns, problems, {}, recog, statuses, predicted={}) == \
+        ("bsb", "4", "failed to recognize last time, 1 problem(s) need only it")
 
 
-def test_solved_and_spotted_problems_carry_no_reach():
+def test_solved_and_spotted_problems_carry_nothing():
     ns, problems, statuses = graph()
     recog = spot(1, {"ms": rc.MISSED}, days_ago=1)
     evidence = solve(2, days_ago=30)
     assert rc.due_spot(ns, problems, evidence, recog, statuses, predicted={})[0] != "ms"
+
+
+def test_mapped_carriers_outrank_drafted_ones():
+    ns, problems, statuses = graph()
+    predicted = {"9": {"title": "draft", "walks": [{"moves": ["ms"]}]}}
+    assert rc.spot_carriers("ms", problems, {}, {}, ns, statuses, predicted=predicted) == ["1", "2", "9"]
+
+
+# ---- what solves and parks say ----------------------------------------------
+
+def clean_solve(pnum, moves, days_ago=0, assist=None):
+    rec = {"date": iso(days_ago), "problem": str(pnum), "moves": {m: "clean" for m in moves}}
+    if assist:
+        rec["assist"] = assist
+    return {f"solved/p{pnum}_{days_ago}.py": rec}
+
+
+def test_a_freestyle_clean_first_solve_is_a_hit_on_its_walk():
+    problems = {"1": problem(["bsoa", "pair"])}
+    hits = rc.solve_hits(clean_solve(1, ["bsoa", "pair"], days_ago=3), problems)
+    assert list(hits.values())[0]["moves"] == {"bsoa": rc.HIT, "pair": rc.HIT}
+    assert list(hits)[0].endswith("#solve")
+
+
+def test_assisted_struggled_or_drill_solves_are_not_hits():
+    problems = {"1": problem(["bsoa"])}
+    assert not rc.solve_hits(clean_solve(1, ["bsoa"], assist="hint"), problems)
+    assert not rc.solve_hits({"solved/p1_0.py": {"date": iso(0), "problem": "1",
+                                                 "moves": {"bsoa": "struggled"}}}, problems)
+    assert not rc.solve_hits({"solved/d_x.py": {"date": iso(0), "problem": "drill",
+                                                "moves": {"bsoa": "clean"}}}, problems)
+
+
+def test_only_the_first_solve_of_a_problem_counts():
+    problems = {"1": problem(["bsoa"])}
+    ev = merged(clean_solve(1, ["bsoa"], days_ago=40, assist="learning"),
+                clean_solve(1, ["bsoa"], days_ago=2))
+    assert not rc.solve_hits(ev, problems)  # the first was a copy; the re-solve remembers it
+
+
+def test_derived_stored_records_win_over_derived_ones():
+    problems = {"1": problem(["bsoa"])}
+    ev = clean_solve(1, ["bsoa"], days_ago=40)
+    recog = miss(1, "bsoa", days_ago=2)
+    d = rc.derived(recog, ev, problems, {"bsoa": (SOLID, date.today())})
+    assert rc.recognition_status("bsoa", d)[0] == rc.FAILED_TO_RECOGNIZE
+    d = rc.derived({}, ev, problems, {"bsoa": (SOLID, date.today())})
+    assert rc.recognition_status("bsoa", d)[0] == rc.RECOGNIZED
+
+
+def test_a_park_on_solid_ground_is_a_suspected_miss(monkeypatch):
+    problems = {"1760": problem(["bsoa", "pair"])}
+    import time
+    monkeypatch.setattr(rc, "sleep_records", lambda p, e: {
+        "1760": {"branch": "1760-slept", "title": "t", "slept": time.time(), "cycles": 1}})
+    solid = {"bsoa": (SOLID, date.today()), "pair": (SOLID, date.today())}
+    out = rc.park_misses(problems, {}, solid)
+    assert out["1760-slept#park"]["moves"] == {"bsoa": rc.MISSED, "pair": rc.MISSED}
+    rusty = {"bsoa": (SOLID, date.today()), "pair": (STALE, date.today())}
+    assert rc.park_misses(problems, {}, rusty) == {}  # the solve picker's business
 
 
 def test_ratio_first_rep_is_due_before_the_first_solve():
@@ -227,7 +295,7 @@ def test_drafted_problems_carry_when_the_map_has_none():
     evidence = merged(solve(1, days_ago=20), solve(2, days_ago=20), solve(3, days_ago=20))
     recog = miss(1760, "bsoa", days_ago=1)
     assert rc.due_spot(ns, problems, evidence, recog, statuses, predicted=predicted) == \
-        ("bsoa", "9", "failed to recognize last time, 1 reachable through it")
+        ("bsoa", "9", "failed to recognize last time, 1 problem(s) need only it")
 
 
 def test_mapped_carriers_outrank_drafted_ones():

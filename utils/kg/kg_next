@@ -932,7 +932,7 @@ def ready_hards(problems, nodes, evidence, statuses, immature=None, recog=None):
     if immature is None:
         immature = immature_nodes(nodes, evidence, problems)
     if recog is None:
-        recog = rc.load_recognition()
+        recog = rc.derived(rc.load_recognition(), evidence, problems, statuses)
     out = []
     for pnum, p in problems.items():
         if (
@@ -1293,7 +1293,9 @@ def _main(footer):
     # Which node is not said - the emoji is decodable and the rep would
     # test nothing. Group walks (sql, ...) are about their group, so no.
     if not (args.group or args.early or args.assisted) and rc.due_spot(
-            nodes, problems, evidence, rc.load_recognition(), statuses, skip=set(asleep)):
+            nodes, problems, evidence,
+            rc.derived(rc.load_recognition(), evidence, problems, statuses),
+            statuses, skip=set(asleep)):
         console.print("[bold]spot rep due[/bold] - make prepare spot (read the statement, "
                       "name the move, no code; before the solve)")
 

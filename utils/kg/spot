@@ -51,12 +51,12 @@ def main():
     nodes = load_nodes()
     problems = load_problems()
     evidence = load_evidence()
-    recog = rc.load_recognition()
+    statuses = {n: node_status(n, evidence) for n in nodes}
+    recog = rc.derived(rc.load_recognition(), evidence, problems, statuses)
 
     if args.problem:
         pnum, target, reason = str(args.problem), None, "chosen by hand"
     else:
-        statuses = {n: node_status(n, evidence) for n in nodes}
         asleep, _ = sleep_state(nodes, problems, evidence)
         # asked for = served: the SPOT_EVERY ratio governs what make next
         # suggests, not what make prepare spot does

@@ -192,20 +192,23 @@ the reveal after the judge.
 - **Status is derived** (`recognition_status`): FAILED_TO_RECOGNIZE when the latest
   event is a miss, RECOGNIZED when it is a hit inside the window (42 days grown
   1.3x per hit), UNTESTED otherwise.
-- **Serving.** Recognition is the check on reach. The graph calls a
-  problem reachable when every move of its walk is SOLID; the spot rep asks
-  whether the statement actually triggers a move it uses. So `make next`
-  serves the node carrying the most reach (unsolved reachable problems
-  whose walk uses it, mapped and drafted) whose trigger
-  has not been shown recently: not RECOGNIZED inside the window. A
-  FAILED_TO_RECOGNIZE node ranks by the same number, ties go to it. The
-  carrier is the gentlest problem it reaches; a drafted problem's walk is
-  re-derived by the judge (preflight's mapping call) before scoring. The
-  line above the pick never names the node. A spotted problem is never
-  served for recognition again. A later solve of it after a miss is not
-  unaided (the reveal handed over the walk): kg_extract floors its assist to
-  `hint`. After a hit it is unaided: the reveal showed nothing the candidate
-  had not produced, and the two records sit side by side for the data.
+- **Serving.** The spot picker picks the way the solve picker picks. A
+  node's score is the number of unsolved, unspotted problems (mapped and
+  drafted) that need nothing but it: every other move of the walk SOLID,
+  the node itself owned or not. Candidates are nodes not RECOGNIZED:
+  FAILED_TO_RECOGNIZE first, then UNTESTED, highest score first. The
+  carrier is the gentlest of those problems, mapped before drafted; a
+  drafted walk is re-derived by the judge before scoring. The line above
+  the pick never names the node.
+- **What already counts.** The axis the pickers read is derived
+  (`kg.recognition.derived`), never stored: the first solve of a mapped
+  problem with every move clean and no assist is a hit on its walk (the
+  statement named the move, nobody else did), and a park (`make sleep`) on
+  a problem whose walk is all SOLID on execution is a suspected miss on
+  its moves, dated at the park, until the wake settles it. Stored records
+  (spot reps, misses the notes named) win over derived ones. So the reps
+  go to moves that have only ever been named for you: drills, force mode,
+  walkthroughs, hints.
 - **Ratio.** `SPOT_EVERY` (env, default 3): one spot rep per that many
   solves, counted over the day. The first rep is due before the day's first
   solve, the next after three more (drills count). `SPOT_EVERY=1` is one per
