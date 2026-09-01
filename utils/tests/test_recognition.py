@@ -362,6 +362,8 @@ def test_reveal_names_the_problem_and_the_verdict():
     assert "walk: monotonic-stack" in out
     assert "missed in 140s" in out
     assert "named but not in any walk: prefix-sums" in out
+    out = rc.reveal({**rec, "target": "monotonic-stack", "reason": "failed to recognize last time"})
+    assert "served for: monotonic-stack (failed to recognize last time)" in out
 
 
 # ---- the summit gate (kg_next rule 4) ---------------------------------------
