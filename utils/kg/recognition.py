@@ -590,6 +590,44 @@ Output STRICT JSON only: {{"named": ["<node-id>"], "summary": "<sentence>"}}"""
     return named, str(result.get("summary", "")).strip()
 
 
+def judge_alternative(statement, answer, named, nodes, model="sonnet"):
+    """The candidate named moves no mapped walk of the problem uses. One
+    call on the stronger model answers a narrow question: is the approach
+    the answer describes a standard, accepted, correct solution to this
+    statement (the kind an editorial lists), not merely a plausible idea?
+    Returns (valid, why). No code runs: a hit through here is marked as
+    an alternative walk not yet evidenced by code, and stays marked."""
+    system = """You judge whether a candidate's proposed approach to a LeetCode problem (title hidden) is a correct solution.
+
+Rules:
+- "valid" is true ONLY when the approach, as the candidate describes it, is a standard accepted solution to this exact problem: correct on every input within the constraints and within the intended complexity, the kind of solution an editorial or a top community writeup lists. A plausible idea that would need repair, a heuristic, an approach that fails an edge case, or one that exceeds the constraints is false.
+- Judge what the candidate wrote, not the solution you would write. If the description is too vague to be sure it is correct, "valid" is false.
+- "why": one sentence naming the accepted solution it matches, or the input or constraint it fails on.
+
+Output STRICT JSON only: {"valid": true|false, "why": "<sentence>"}"""
+    prompt = (f"STATEMENT:\n{statement[:5000]}\n\nCANDIDATE'S ANSWER:\n{answer[:2000]}"
+              f"\n\nThe answer was read as these moves: {', '.join(named)}.")
+    result = claude_json(prompt, system, model=model)
+    return bool(result.get("valid")), str(result.get("why", "")).strip()
+
+
+def apply_alternative(rec, named, problems, why):
+    """A valid alternative walk: the rep becomes a hit on the first move
+    the candidate named, marked "alternative" (recognition only, no code
+    ran), and the walk is filed on the problem under `spotted_walks`,
+    never `alt_walks`, which stays evidenced by code. A later solve that
+    takes this walk promotes it (kg_extract.record_alt_walk)."""
+    rec["moves"] = {named[0]: HIT}
+    rec["false"] = []
+    rec["alternative"] = list(named)
+    rec["why"] = why
+    entry = problems.setdefault(str(rec["problem"]), {})
+    walks = entry.setdefault("spotted_walks", [])
+    if list(named) not in walks:
+        walks.append(list(named))
+    return rec
+
+
 MAP_SYSTEM = """You are mapping a LeetCode problem onto a fixed taxonomy of atomic technique moves.
 
 Taxonomy (use ONLY these ids):
@@ -650,6 +688,11 @@ def reveal(rec):
     walk = ", ".join(rec.get("walk", [])) or "(unmapped)"
     verdict = "hit" if any(v == HIT for v in rec.get("moves", {}).values()) else "missed"
     lines = [f"{pnum}. {title}", f"walk: {walk}", f"{verdict} in {rec.get('seconds', 0)}s"]
+    if rec.get("alternative"):
+        lines.append("hit through an alternative walk, not yet evidenced by code: "
+                     + ", ".join(rec["alternative"]))
+        if rec.get("why"):
+            lines.append(rec["why"])
     if rec.get("named"):
         lines.append(f"named: {', '.join(rec['named'])}")
     if rec.get("false"):

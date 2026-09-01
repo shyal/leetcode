@@ -28,7 +28,6 @@
       "reason": "untested, 199 reachable through it",
       "seconds": 639,
       "named": [
-        "sort-then-adjacent",
         "sliding-window-variable"
       ],
       "walk": [
@@ -36,14 +35,15 @@
         "counts-as-data"
       ],
       "moves": {
-        "counter-build": "missed"
+        "sliding-window-variable": "hit"
       },
-      "false": [
-        "sliding-window-variable",
-        "sort-then-adjacent"
+      "false": [],
+      "summary": "The candidate proposes sorting the array first, then using a variable-size sliding window where the right pointer advances and the left pointer shrinks only when the max-min difference exceeds 1, tracking the maximum window size encountered.",
+      "answer": "The question doesn't specify whether we can sort or not, and sorting is the simplest solution i can think of right now:\n\n[1,3,2,2,5,2,3,7]\n\nbecomes\n\n[1,2,2,2,3,3,5,7]\n\nNow it can be a sliding window problem. The right pointer runs, and if the difference between min and mix become more than 1, the left pointer goes in a while loop until the diff between min and max are back to 1. And we record the maximum right - left + 1 we encountered.\n\nThere are likely more optimial solutions in O(n) but i can't think of one right now.",
+      "alternative": [
+        "sliding-window-variable"
       ],
-      "summary": "Sort the array so harmonious subsequences become contiguous subarrays, then scan with a two-pointer sliding window that expands right and contracts left when the max-min invariant is broken.",
-      "answer": "The question doesn't specify whether we can sort or not, and sorting is the simplest solution i can think of right now:\n\n[1,3,2,2,5,2,3,7]\n\nbecomes\n\n[1,2,2,2,3,3,5,7]\n\nNow it can be a sliding window problem. The right pointer runs, and if the difference between min and mix become more than 1, the left pointer goes in a while loop until the diff between min and max are back to 1. And we record the maximum right - left + 1 we encountered.\n\nThere are likely more optimial solutions in O(n) but i can't think of one right now."
+      "why": "Sort then variable sliding window tracking max-min<=1 window length is a standard accepted O(n log n) solution to LeetCode 594 Longest Harmonious Subsequence."
     }
   }
 }
