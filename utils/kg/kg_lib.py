@@ -566,6 +566,7 @@ def node_eval(node_id, evidence, today=None):
 
 
 DEEP_STALE_DAYS = 2 * SOLID_WINDOW_DAYS  # beyond this, a "re-solve" plays like a new problem
+STARVED_DAYS = 14  # a move due this long with no rep aimed at it is starved
 
 # A SOLID badge earned in one burst of drills is not yet load-bearing: six
 # clean reps crammed into two days look identical to a node held for months,
