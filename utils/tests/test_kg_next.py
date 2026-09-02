@@ -1196,6 +1196,21 @@ def test_the_ownership_rep_releasing_the_most_held_moves_goes_first(picker):
     assert picker.run(ns, ps, ev, st) is None
 
 
+def test_a_floor_due_move_held_behind_a_prereq_serves_the_prereq_drill(picker):
+    """Rule 0c reaches floor-due SOLID targets too. sql-anti-join was due on
+    its floor, its drill held behind sql-join-left-keep with drills undone,
+    and nothing served the prereq; the floor fell through to 2115. The
+    prereq's undone drill goes first, the problem waits (2026-09-02)."""
+    ns = nodes("base", ("dep", ["base"]))
+    ps = {"1": problem(["dep"], difficulty="Easy")}
+    picker.bank = {"base", "dep"}
+    ev = evidence(solve("8", {"base": "clean"}, days_ago=30),
+                  solve("9", {"dep": "clean"}, days_ago=5))
+    st = {"base": (SOLID, ago(30)), "dep": (SOLID, ago(5))}
+    picker.drills_left = {"base"}
+    assert picker.run(ns, ps, ev, st)[:3] == ("base", SOLID, "drill:base")
+
+
 def test_cram_skips_the_ownership_rep(picker):
     ns = nodes("base", ("dep", ["base"]))
     ps = {}

@@ -44,7 +44,8 @@
 #       assisted reps (kg_lib.owned is False) is never itself FRAGILE/STALE/
 #       MISSING, so rules 1-3 would never serve the unaided rep that clears
 #       the cross-bank hold (kg_lib.drill_held) - a deadlock, 18 nodes deep on
-#       2026-08-29. Serve that prereq's drill first.
+#       2026-08-29. Serve that prereq's drill first. A SOLID target due on
+#       its floor (rule 1b) counts as held too (2026-09-02).
 #   1. consolidate the FRAGILE node with the highest unlock count (bank
 #      problems blocked only by it; oldest evidence breaks ties), via the
 #      freshest READY carrier
@@ -492,10 +493,23 @@ def pick(
     # That prereq is not rusty, so rules 1-3 never target it, and the hold
     # can only be cleared by a rep nobody serves. Serve it here: the prereq
     # whose unaided rep releases the most held targets goes first.
+    carr = carrier_counts(problems)
+
+    def floor_due(n):
+        """A young SOLID move whose ladder rep is due (rule 1b's target)."""
+        g = graduation_due(n, evidence, carr.get(n, 0))
+        return bool(g) and g[0] <= date.today()
+
     if not cram:
         releases = {}
         for n in nodes:
-            if statuses[n][0] == SOLID or not in_scope(n):
+            if not in_scope(n):
+                continue
+            # a floor-due move is a target too: its drill held behind a
+            # banked prereq with drills undone, nothing served the prereq
+            # and the floor fell through to a problem (sql-anti-join behind
+            # sql-join-left-keep, 2115 served instead, 2026-09-02)
+            if statuses[n][0] == SOLID and not floor_due(n):
                 continue
             if not drill_held(n, nodes, statuses, evidence, has_bank=has_drill_bank):
                 continue
@@ -636,7 +650,6 @@ def pick(
     # drill due first, then most overdue, unlock count breaking ties; served
     # like a fragile
     # consolidation - gentle fresh carrier, drill when none can fire.
-    carr = carrier_counts(problems)
     grads = []
     for n in nodes:
         if statuses[n][0] != SOLID or not in_scope(n):
