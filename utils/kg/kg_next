@@ -53,9 +53,11 @@
 #      days after the last clean — 2/7/18 when two or fewer problems carry
 #      it — whatever the curve says. The curve schedules no rep inside the
 #      window it believes, so young-move failures never reach the fit
-#      without this (2026-09-02). Freshest gentle carrier; drill when no
-#      carrier can fire.
-#   2. spaced re-solve of the STALE node's latest carrier, same unlock-count
+#      without this (2026-09-02). A banked move takes the rep on its drill
+#      (the bank is the move, the problem is the test); otherwise the
+#      freshest gentle carrier.
+#   2. review of a STALE node: its drill when it has a bank and one is due,
+#      else a spaced re-solve of its latest carrier, same unlock-count
 #      order — unless the
 #      move is DEEP stale (no clean solve within 2x the solid window): then the
 #      memory is effectively gone, so re-enter on a gentle fresh carrier the way
@@ -636,6 +638,18 @@ def pick(
         if g and g[0] <= date.today():
             grads.append((g[0], -unl.get(n, 0), n, g[1]))
     for _, _, target, floor in sorted(grads):
+        # the bank is the move, the problem is the test: a banked move takes
+        # its floor rep on the drill, and the carrier fires only once no drill
+        # is due (2026-09-02: 721 served as the union-find rep over six
+        # union-find drills, four of them copies).
+        d = due(target)
+        if d:
+            return (
+                target,
+                SOLID,
+                d,
+                f"graduating rep - young move at its {floor}d floor - drill first, carrier after",
+            )
         mapped = carriers_for(target, problems, statuses, nodes, evidence)
         cands = [
             c for c in mapped
@@ -676,6 +690,14 @@ def pick(
                     f"re-enter a deep-stale move ({age}d since clean) — drill until clean, carrier after",
                 )
             continue  # drilled today, still not clean — carrier stays held
+        d = due(target)
+        if d:  # a banked move reviews on its drill; the carrier is the test after
+            return (
+                target,
+                STALE,
+                d,
+                f"stale move ({age}d since clean) - drill first, carrier after",
+            )
         mapped = carriers_for(target, problems, statuses, nodes, evidence)
         cands = [
             c for c in mapped

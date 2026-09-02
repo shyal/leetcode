@@ -417,6 +417,23 @@ def test_graduating_floor_serves_a_young_solid_move(picker):
     assert "graduating" in reason
 
 
+def test_graduating_floor_serves_the_drill_when_the_move_has_a_bank(picker):
+    """The bank is the move, the problem is the test: a banked young move
+    takes its floor rep on the drill; the carrier fires only once no drill
+    is due (2026-09-02: 721 served as the union-find rep over six drills)."""
+    ns = nodes("young")
+    ps = {"1": problem(["young"], difficulty="Easy"), "2": problem(["young"])}
+    ev = evidence(solve("2", {"young": "clean"}, days_ago=4))
+    st = {"young": (SOLID, ago(4))}
+    picker.bank = {"young"}
+    target, status, pnum, reason = picker.run(ns, ps, ev, st)
+    assert (target, status, pnum) == ("young", SOLID, "drill:young")
+    assert "graduating" in reason
+    # drilled today and still due: the carrier is the test after the drill
+    picker.drilled_today = {"young"}
+    assert picker.run(ns, ps, ev, st)[:3] == ("young", SOLID, "1")
+
+
 def test_rusty_moves_outrank_the_graduating_floor(picker):
     """A currently decayed memory beats insurance on a young one."""
     ns = nodes("young", "rusty")
@@ -1091,11 +1108,21 @@ def test_a_banned_predecessor_holds_nothing_back(picker):
 
 def test_a_drill_is_held_while_its_banked_prereq_is_not_solid(picker):
     """The dedupe-siblings case: the dependent's drill waits and its carrier
-    stays held; the rusty base gets served instead."""
+    stays held; the rusty base gets served instead - on its own drill, since
+    it has a bank (2026-09-02: the bank is the move, the problem is the
+    test)."""
     ns = nodes("base", ("dep", ["base"]))
     ps = {"1": problem(["dep"]), "2": problem(["base"])}
     picker.bank = {"base", "dep"}
     st = {"dep": (FRAGILE, ago(1)), "base": (STALE, ago(50))}
+    assert picker.run(ns, ps, {}, st)[:3] == ("base", STALE, "drill:base")
+
+
+def test_a_stale_move_without_a_bank_re_solves_its_carrier(picker):
+    """No bank: the spaced re-solve stays on the carrier."""
+    ns = nodes("base")
+    ps = {"2": problem(["base"])}
+    st = {"base": (STALE, ago(50))}
     assert picker.run(ns, ps, {}, st)[:3] == ("base", STALE, "2")
 
 
