@@ -32,8 +32,6 @@ Constraints:
     element-by-element pair tests.
 """
 
-from typing import List
-
 
 class Solution:
 

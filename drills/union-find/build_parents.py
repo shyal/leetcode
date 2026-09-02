@@ -24,8 +24,6 @@ Constraints:
     assign into. NO dict; NO range object.
 """
 
-from typing import List
-
 
 class Solution:
 

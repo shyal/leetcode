@@ -62,5 +62,5 @@ print(sol.exist([["a", "b"], ["d", "c"]], "abcd"))  # True
 # assert sol.exist(g, "abcb") is False
 # assert sol.exist(g, "sfdaaa") is False
 
-# the same grid answered twice: a cell left marked breaks the second call
+## the same grid answered twice: a cell left marked breaks the second call
 # assert sol.exist(g, "abcced") is True

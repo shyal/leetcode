@@ -35,9 +35,6 @@ Constraints:
     this drill exists to kill.
 """
 
-from collections import deque
-from typing import List
-
 
 class Solution:
 

@@ -36,8 +36,6 @@ Constraints:
     pair tests.
 """
 
-from typing import Dict, List
-
 
 class Solution:
 

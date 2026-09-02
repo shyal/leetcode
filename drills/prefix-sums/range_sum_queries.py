@@ -30,8 +30,6 @@ Constraints:
     to kill. len(queries) makes O(n) per query a TLE.
 """
 
-from typing import List, Tuple
-
 
 class Solution:
 

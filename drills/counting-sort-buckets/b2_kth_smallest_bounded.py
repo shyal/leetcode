@@ -31,8 +31,6 @@ Constraints:
     failure mode this drill exists to kill.
 """
 
-from typing import List
-
 
 class Solution:
 
