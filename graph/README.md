@@ -81,9 +81,10 @@ day) — previously mere drill-recency unlocked the carrier the same day, which
 is how 227 fired over two struggled drills. The gate is node-side, so
 alt walks are unaffected: they change which walk a solve evidences, never
 whether a cold move gets a carrier. Nodes with no bank file keep the old
-behavior — depositing a drill is what arms the gate. Ordinary STALE keeps
-the spaced re-solve on its carrier, with the drill only as fallback when no
-carrier is READY.
+behavior — depositing a drill is what arms the gate. Ordinary STALE and the
+graduating floor also review on the drill when the node has a bank and a
+drill is due; the carrier is the test once no drill is (2026-09-02).
+Without a bank the spaced re-solve stays on the carrier.
 
 ## Dive (`make dive`)
 
