@@ -1634,8 +1634,11 @@ def graduation_due(node_id, evidence, carriers=99):
              if v == "clean" and a == "none" and f not in idx.first_reps}
     days = [unaided[0]] + [d for d in unaided[1:] if d in proof]
     ladder = GRAD_LADDER_SPARSE if carriers <= GRAD_SPARSE_CARRIERS else GRAD_LADDER
-    if len(days) > len(ladder):
-        return None
+    # the day count never graduates a move: five clean days inside one week
+    # are one exposure spaced five times, not five spaced reps (2026-09-02,
+    # recursive descent: longest survived gap 5 days, curve said 62 more).
+    # Past the ladder's last step the floor stays at that step until a gap
+    # of that length is survived - the trial below is the only way off.
     # a clean rep that already survived a gap past the ladder's last step is
     # the trial the ladder exists to run: graduated, the curve owns it. This
     # also keeps the floor from retroactively flooding the queue with every
@@ -1645,7 +1648,7 @@ def graduation_due(node_id, evidence, carriers=99):
     if any((b - a).days >= ladder[-1] and b in proof
            for a, b in zip(unaided, unaided[1:])):
         return None
-    floor = ladder[len(days) - 1]
+    floor = ladder[min(len(days), len(ladder)) - 1]
     return days[-1] + timedelta(days=floor), floor
 
 
