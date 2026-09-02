@@ -140,6 +140,7 @@ from kg.kg_lib import (
     FRAGILE,
     MISSING,
     DEEP_STALE_DAYS,
+    STARVED_DAYS,
     CARRIER_COOLDOWN_DAYS,
     sleep_state,
     sleep_lines,
@@ -1020,6 +1021,49 @@ def blocked_frontier(nodes, problems, evidence, statuses, asleep=(), exclude=())
     return out
 
 
+def due_on(n, nodes, evidence, carr, day):
+    """True when move n is due on `day`, by pick()'s own kind(): STALE or
+    FRAGILE; SOLID at its graduating floor; MISSING with every prereq
+    SOLID. The caller only asks about days after n's latest rep, so n's
+    own evidence reads as it did then; a prereq's is cut at `day`."""
+    status, _ = node_status(n, evidence, today=day)
+    if status in (STALE, FRAGILE):
+        return True
+    if status == SOLID:
+        g = graduation_due(n, evidence, carr.get(n, 0))
+        return bool(g) and g[0] <= day
+    prereqs = nodes[n].get("prereqs", [])
+    if not prereqs:
+        return True
+    cut = day.isoformat()
+    seen = {f: r for f, r in evidence.items() if r["date"] <= cut}
+    return all(node_status(p, seen, today=day)[0] == SOLID for p in prereqs)
+
+
+def starved(nodes, problems, evidence, today=None):
+    """{move: days} for every move due today that has been due STARVED_DAYS
+    or more days in a row with no rep aimed at it in all that time. This
+    is the simulator's starvation (kg_simulate) measured on the real run:
+    the picker's rules make a due move servable within days, so a run
+    this long is a hold nothing clears. A rep of the move on any day,
+    clean or not, ends the run - a move picked and failed is the draw,
+    not the picker."""
+    today = today or date.today()
+    carr = carrier_counts(problems)
+    idx = ev_index(evidence)
+    out = {}
+    for n in nodes:
+        last = max((d for d, *_ in idx.by_node.get(n, ())), default=None)
+        days, day = 0, today
+        while (last is None or day > last) and days < 365 \
+                and due_on(n, nodes, evidence, carr, day):
+            days += 1
+            day -= timedelta(days=1)
+        if days >= STARVED_DAYS:
+            out[n] = days
+    return out
+
+
 def parked_summits(problems, nodes, evidence, statuses, asleep):
     """Ready summits (rule 4 would serve them) that are asleep - the empty
     serve must name them, since only `make wake` can bring them back."""
@@ -1270,7 +1314,19 @@ def _main(footer):
         Only the structurally dry warn - moves no mapped, drilled, or
         drafted problem can EVER carry as things stand (blocked_frontier's
         dry flag); a node that is merely waiting is not a to-do. Nodes with
-        a drill bank stay quiet - their drill re-offers tomorrow."""
+        a drill bank stay quiet - their drill re-offers tomorrow.
+
+        The second warning is measured, not structural: a move due for
+        STARVED_DAYS in a row with no rep aimed at it (starved), whatever
+        the reason. The picker promising to serve it is not the same as
+        having served it."""
+        hungry = starved(nodes, problems, evidence)
+        if hungry:
+            names = ", ".join(
+                f"{n} ({k}d)" for n, k in sorted(hungry.items(), key=lambda x: -x[1]))
+            console.print(
+                f"[yellow]⚠ starved: {names} - due that long with nothing "
+                f"aimed at {'it' if len(hungry) == 1 else 'them'}[/yellow]")
         dry = [
             nid for nid, _, why, is_dry in blocked_frontier(
                 nodes, problems, evidence, statuses, asleep, ())

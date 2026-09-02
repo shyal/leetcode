@@ -27,7 +27,7 @@ KG = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "
 kg_next = SourceFileLoader("kg_next", os.path.join(KG, "kg_next")).load_module()
 
 from kg import kg_lib  # noqa: E402
-from kg.kg_lib import SOLID, STALE, FRAGILE, MISSING, DEEP_STALE_DAYS  # noqa: E402
+from kg.kg_lib import SOLID, STALE, FRAGILE, MISSING, DEEP_STALE_DAYS, STARVED_DAYS  # noqa: E402
 
 
 def ago(days):
@@ -649,6 +649,58 @@ def test_a_node_walked_only_by_hards_is_reported_as_blocked(picker):
     assert (nid, status, dry) == ("counting-sort-buckets", MISSING, True)
     assert "Hard" in why and "41" in why
     assert "no drill exists" in why
+
+
+# --------------------------------------------------------------------------
+# starvation: a due move nothing was aimed at for STARVED_DAYS in a row
+# --------------------------------------------------------------------------
+
+
+def test_a_move_due_for_two_weeks_with_nothing_aimed_at_it_is_starved():
+    """The simulator's starvation, measured on the real evidence: a move
+    that has been due STARVED_DAYS days running with no rep of it in that
+    time. A rep of any verdict ends the run (b: picked and failed three
+    days ago is the draw, not the picker); a move due for a few days is
+    merely waiting (c)."""
+    ns = nodes("a", "b", "c")
+    ps = {"1": problem(["a"]), "2": problem(["b"]), "3": problem(["c"])}
+    ev = evidence(
+        solve(1, {"a": "struggled"}, days_ago=20),
+        solve(2, {"b": "struggled"}, days_ago=20),
+        solve(2, {"b": "struggled"}, days_ago=3),
+        solve(3, {"c": "struggled"}, days_ago=STARVED_DAYS - 1),
+    )
+    assert kg_next.starved(ns, ps, ev) == {"a": 20}
+
+
+def test_a_young_solid_move_past_its_floor_is_starved_too(monkeypatch):
+    """Due is pick()'s own kind(), not just rusty: a young SOLID move whose
+    graduating rep fell due (the sparse ladder's first floor after its one
+    clean day, since one problem carries it) and never came is starved
+    from the floor date, not from the clean day. The curve is off so the
+    window is the flat one and the count is exact."""
+    monkeypatch.setattr(kg_lib, "_load_curve", lambda: None)
+    ns = nodes("a", "b")
+    ps = {"1": problem(["a"]), "2": problem(["b"])}
+    ev = evidence(
+        solve(1, {"a": "clean"}, days_ago=20),
+        solve(2, {"b": "clean"}, days_ago=1),
+    )
+    floor = kg_lib.GRAD_LADDER_SPARSE[0]
+    assert kg_next.starved(ns, ps, ev) == {"a": 20 - floor + 1}
+
+
+def test_a_missing_move_is_starved_only_from_the_day_its_prereqs_went_solid(monkeypatch):
+    """A MISSING move is due once every prereq is SOLID (the one-new-move
+    rule), so its run starts the day the last prereq went clean - the
+    prereq's evidence is read as of each day, not as of today."""
+    monkeypatch.setattr(kg_lib, "_load_curve", lambda: None)
+    ns = nodes("p", ("m", ["p"]))
+    ps = {"1": problem(["p"]), "2": problem(["p", "m"])}
+    ev = evidence(solve(1, {"p": "clean"}, days_ago=STARVED_DAYS - 2))
+    assert kg_next.starved(ns, ps, ev) == {}  # due 13 days counting today
+    ev = evidence(solve(1, {"p": "clean"}, days_ago=STARVED_DAYS + 5))
+    assert kg_next.starved(ns, ps, ev)["m"] == STARVED_DAYS + 6
 
 
 def test_an_all_solid_graph_has_no_blocked_frontier(picker):
