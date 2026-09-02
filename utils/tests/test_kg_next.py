@@ -1207,7 +1207,7 @@ def test_a_floor_due_move_held_behind_a_prereq_serves_the_prereq_drill(picker):
     ev = evidence(solve("8", {"base": "clean"}, days_ago=30),
                   solve("9", {"dep": "clean"}, days_ago=5))
     st = {"base": (SOLID, ago(30)), "dep": (SOLID, ago(5))}
-    picker.drills_left = {"base"}
+    picker.undone = {"base"}
     assert picker.run(ns, ps, ev, st)[:3] == ("base", SOLID, "drill:base")
 
 

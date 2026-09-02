@@ -40,34 +40,42 @@
 #      make solved), or fail it (make failed). The cap is the only pressure
 #      on a park; without this rule it only showed when make sleep refused
 #      a fifth (2026-09-01, four asleep and make next said nothing)
-#   0c. ownership rep: a held target's prereq that is SOLID only through
-#       assisted reps (kg_lib.owned is False) is never itself FRAGILE/STALE/
-#       MISSING, so rules 1-3 would never serve the unaided rep that clears
-#       the cross-bank hold (kg_lib.drill_held) - a deadlock, 18 nodes deep on
-#       2026-08-29. Serve that prereq's drill first. A SOLID target due on
-#       its floor (rule 1b) counts as held too (2026-09-02).
-#   1. consolidate the FRAGILE node with the highest unlock count (bank
-#      problems blocked only by it; oldest evidence breaks ties), via the
-#      freshest READY carrier
-#   1b. graduating floor: a young SOLID move (no more distinct unaided-clean
-#      days than the ladder has steps) gets its next unaided rep at 3/10/25
-#      days after the last clean — 2/7/18 when two or fewer problems carry
-#      it — whatever the curve says. The curve schedules no rep inside the
-#      window it believes, so young-move failures never reach the fit
-#      without this (2026-09-02). A banked move takes the rep on its drill
-#      (the bank is the move, the problem is the test); otherwise the
-#      freshest gentle carrier. Moves with a drill due are served before
-#      moves whose rep would be a problem.
-#   2. review of a STALE node: its drill when it has a bank and one is due,
-#      else a spaced re-solve of its latest carrier (drill-due moves first
-#      here too), same unlock-count
-#      order — unless the
-#      move is DEEP stale (no clean solve within 2x the solid window): then the
-#      memory is effectively gone, so re-enter on a gentle fresh carrier the way
-#      FRAGILE does, instead of a cold "re-solve" that plays like a new problem
-#   3. one new MISSING move whose prereqs are all SOLID — the one that
-#      unlocks the most bank problems first
-#   3b. frontier mover (PLAN.md phase 4), inside rules 1-3: a due node the
+#
+#   The frontier (2026-09-02): one list of due moves, one way to serve a
+#   move. A move is due when it is FRAGILE, STALE, MISSING with every
+#   prereq SOLID, or SOLID on its graduating floor (a young move gets its
+#   next unaided rep at 3/10/25 days after the last clean - 2/7/18 when
+#   two or fewer problems carry it - whatever the curve says, because the
+#   curve schedules no rep inside the window it believes). The list is
+#   sorted:
+#     1. the rusty ground under a sleeping problem first, so it is woken
+#        onto warm moves;
+#     2. then FRAGILE, floor, STALE, MISSING;
+#     3. then, within a status, moves a drill can serve before moves only
+#        a problem can - the bank is the asset, a drill is three minutes
+#        to a problem's seventeen;
+#     4. then most overdue floor, else most unlocks (bank problems blocked
+#        only by the move), oldest evidence.
+#   Every due move is served the same way:
+#     a. its own bank drill when one is due - the cross-bank hold honoured
+#        (kg_lib.drill_held: a banked prereq not owned unaided, or with
+#        drills undone, trains first);
+#     b. else the drill that opens that hold, climbing the chain of banked
+#        prereqs to its root (one level was not enough, 2026-08-31);
+#     c. else, unless the move is drill-gated (a MISSING/FRAGILE/deep-stale
+#        move with a bank drills until clean; drilled today and still not
+#        clean, its carrier stays held), a carrier problem: under a
+#        sleeper the freshest; a dodged FRAGILE move on the carrier that
+#        resists the dodge; ordinary STALE the spaced re-solve of its
+#        latest carrier; anything else the gentlest fresh one (deep stale,
+#        no clean solve within 2x the solid window, re-enters this way -
+#        the memory is gone, a cold re-solve plays like a new problem);
+#     d. else a drafted carrier (3b below; never for a floor rep);
+#     e. else the predecessor its carriers wait on (`after`).
+#   Before this the same six steps lived in six rule bodies, each with its
+#   own copy of "due" and "how to get past a hold", and three holds in one
+#   evening each broke a rule that did not know them.
+#   3b. frontier mover (PLAN.md phase 4), step d above: a due node the
 #      bank cannot carry AT ALL (a mapped carrier that is merely warm,
 #      asleep, or spent today is waited for, never routed around) promotes
 #      a drafted carrier — an unmapped easy/medium
@@ -488,332 +496,169 @@ def pick(
                     "early review - next drill, atoms first",
                 )
 
-    # rule 0c: the ownership rep. drill_held parks a target behind a banked
-    # prereq that is SOLID but not owned (its latest clean was assisted).
-    # That prereq is not rusty, so rules 1-3 never target it, and the hold
-    # can only be cleared by a rep nobody serves. Serve it here: the prereq
-    # whose unaided rep releases the most held targets goes first.
+    # ------------------------------------------------------------------
+    # The frontier (rules 0b, 0c, 1, 1b, 2 and 3 of the header): one list
+    # of due moves, one way to serve a move. A due move is served the same
+    # way whatever made it due - its own drill when one is due, else the
+    # drill of the banked prereq holding it, else a carrier problem, else
+    # a drafted carrier, else the predecessor its carriers wait on - and
+    # the rules are only the order of the list. Before 2026-09-02 each
+    # rule carried its own copy of "due" and "how to get past a hold", and
+    # three holds in one evening each broke a rule that did not know them.
+    # ------------------------------------------------------------------
     carr = carrier_counts(problems)
-
-    def floor_due(n):
-        """A young SOLID move whose ladder rep is due (rule 1b's target)."""
-        g = graduation_due(n, evidence, carr.get(n, 0))
-        return bool(g) and g[0] <= date.today()
-
-    if not cram:
-        releases = {}
-        for n in nodes:
-            if not in_scope(n):
-                continue
-            # a floor-due move is a target too: its drill held behind a
-            # banked prereq with drills undone, nothing served the prereq
-            # and the floor fell through to a problem (sql-anti-join behind
-            # sql-join-left-keep, 2115 served instead, 2026-09-02)
-            if statuses[n][0] == SOLID and not floor_due(n):
-                continue
-            if not drill_held(n, nodes, statuses, evidence, has_bank=has_drill_bank):
-                continue
-            for pre in nodes[n].get("prereqs", []):
-                if (has_drill_bank(pre) and pre in statuses
-                        and statuses[pre][0] == SOLID
-                        and (not owned(pre, evidence)
-                             or drills_left(pre, evidence))):
-                    releases.setdefault(pre, []).append(n)
-        def holding(n):
-            """The banked prereq drill_held parks n behind, or None."""
-            return next((p for p in nodes[n].get("prereqs", [])
-                         if has_drill_bank(p) and p in statuses
-                         and (statuses[p][0] != SOLID or not owned(p, evidence)
-                              or drills_left(p, evidence))), None)
-
-        for pre in sorted(releases, key=lambda p: (-len(releases[p]), p)):
-            held = len(releases[pre])
-            # a prereq parked behind its own prereq: climb to the root of
-            # the chain and serve that. One level was not enough: dedupe
-            # siblings waited on start-index, start-index on choose-undo,
-            # and choose-undo is SOLID, so no rule named it until some other
-            # dependent of its went rusty (2026-08-31, 14 simulated days).
-            seen = set()
-            while pre not in seen and drill_held(
-                    pre, nodes, statuses, evidence, has_bank=has_drill_bank):
-                seen.add(pre)
-                up = holding(pre)
-                if up is None:
-                    break
-                pre = up
-            if statuses[pre][0] != SOLID:
-                continue  # rusty: rules 1-3 serve it
-            drill_id = f"drill:{pre}"
-            if drill_id in exclude or not due_drill(pre, evidence):
-                continue
-            if drill_held(pre, nodes, statuses, evidence, has_bank=has_drill_bank):
-                continue  # a hold nothing above clears
-            why = ("next undone drill" if owned(pre, evidence)
-                   else "own it unaided")
-            return (
-                pre,
-                SOLID,
-                drill_id,
-                f"{why} - {held} held move{'s' if held > 1 else ''} "
-                f"wait{'' if held > 1 else 's'} on it",
-            )
-
-    # reachability-aware ordering (PLAN.md phase 1): among the due nodes,
-    # service the one that unblocks the most bank problems first; evidence
-    # age breaks ties. Deep-stale re-entry still backstops anything left
-    # waiting. The ZPD constraint is untouched.
     unl = unlocks(statuses, problems)
-    fragile = sorted(
-        (n for n in nodes if statuses[n][0] == FRAGILE and in_scope(n)),
-        key=lambda n: (-unl.get(n, 0), statuses[n][1]),
-    )
-    stale = sorted(
-        (n for n in nodes if statuses[n][0] == STALE and in_scope(n)),
-        key=lambda n: (-unl.get(n, 0), statuses[n][1]),
-    )
-    # drills before problems (2026-09-02): the bank is the asset, a drill rep
-    # is three minutes to a problem's seventeen, so among due moves the ones
-    # with a drill due go first and the unbanked ones wait their turn
-    stale.sort(key=lambda n: due(n) is None)
-    missing = sorted(
-        (
-            n
-            for n in nodes
-            if statuses[n][0] == MISSING
-            and in_scope(n)
-            and all(statuses[p][0] == SOLID for p in nodes[n].get("prereqs", []))
-        ),
-        key=lambda n: (-unl.get(n, 0), n),
-    )
-
     dodged = dodged_nodes(evidence)
-    for target in fragile:
-        if drill_gated(target, *statuses[target]):
-            if due(target):
-                return (
-                    target,
-                    FRAGILE,
-                    due(target),
-                    "fragile move — drill until clean, carrier after",
-                )
-            continue  # drilled today, still not clean — carrier stays held
-        mapped = carriers_for(target, problems, statuses, nodes, evidence)
-        cands = [
-            c for c in mapped
-            if c not in asleep and c not in exclude and cooled(c, evidence)
-        ]
+    today = date.today()
+    FLOOR = "floor"
+    ORDER = {FRAGILE: 0, FLOOR: 1, STALE: 2, MISSING: 3}
+
+    def floor(n):
+        """(due date, floor days) when n is a young SOLID move whose ladder
+        rep is due today (kg_lib.graduation_due), else None."""
+        g = graduation_due(n, evidence, carr.get(n, 0))
+        return g if g and g[0] <= today else None
+
+    def kind(n):
+        """Why n is due, or None. MISSING only once every prereq is SOLID
+        (the one-new-move rule); SOLID only on the graduating floor."""
+        status = statuses[n][0]
+        if status == MISSING:
+            return MISSING if all(
+                statuses[p][0] == SOLID for p in nodes[n].get("prereqs", [])) else None
+        if status == SOLID:
+            return FLOOR if floor(n) else None
+        return status
+
+    # the rusty ground under a sleeping problem comes first, freshest
+    # carrier first, so the problem is woken onto warm moves
+    under = {}
+    if not group:
+        for pnum in asleep:
+            for n in input_tree(problems[pnum]["moves"], nodes):
+                if statuses[n][0] != SOLID:
+                    under.setdefault(n, pnum)
+
+    def holding(n):
+        """The banked prereq drill_held parks n behind, or None."""
+        return next((p for p in nodes[n].get("prereqs", [])
+                     if has_drill_bank(p) and p in statuses
+                     and (statuses[p][0] != SOLID or not owned(p, evidence)
+                          or drills_left(p, evidence))), None)
+
+    def opener(n):
+        """(prereq, drill id) that opens the hold on n: climb the chain of
+        banked prereqs to its root and serve that prereq's drill. One
+        level was not enough (dedupe siblings waited on start-index,
+        start-index on choose-undo, 2026-08-31). A rusty root is a due
+        move of its own; a hold nothing above clears is a deadlock and
+        opens nothing."""
+        if cram or not drill_held(n, nodes, statuses, evidence, has_bank=has_drill_bank):
+            return None
+        pre, seen = holding(n), set()
+        while pre is not None and pre not in seen and drill_held(
+                pre, nodes, statuses, evidence, has_bank=has_drill_bank):
+            seen.add(pre)
+            pre = holding(pre)
+        if pre is None or statuses[pre][0] != SOLID:
+            return None
+        drill_id = f"drill:{pre}"
+        if drill_id in exclude or not due_drill(pre, evidence):
+            return None
+        return pre, drill_id
+
+    def drill_for(n):
+        """(node, drill id) - n's own bank drill when one is due, the hold
+        honoured, else the drill that opens the hold; None when no drill
+        can move n today."""
+        d = due(n)
+        return (n, d) if d else opener(n)
+
+    def sort_key(n):
+        """Sleeping ground first; then by why the move is due; then, within
+        a status, moves a drill can serve before moves only a problem can
+        (the bank is the asset, and a drill is three minutes to a
+        problem's seventeen); then the rule's own order - most overdue
+        floor first, else most unlocks, oldest evidence."""
+        k = kind(n)
+        last = statuses[n][1] or date.min
+        sub = (floor(n)[0], -unl.get(n, 0), n) if k == FLOOR \
+            else (-unl.get(n, 0), last, n)
+        return (n not in under, ORDER[k], drill_for(n) is None, sub)
+
+    due_list = sorted((n for n in nodes if in_scope(n) and kind(n)), key=sort_key)
+
+    def serve(n):
+        """The pick that gives n its rep today, or None (drilled today and
+        still not clean, or nothing can fire)."""
+        k = kind(n)
+        status, last = statuses[n]
+        age = (today - last).days if last else None
+        deep = k == STALE and age > DEEP_STALE_DAYS
+        sleeper = under.get(n)
+        d = drill_for(n)
+        if d:
+            node, drill_id = d
+            if node != n:  # the hold opener: a prereq's drill first
+                why = "next undone drill" if owned(node, evidence) else "own it unaided"
+                held = sum(1 for m in due_list if (opener(m) or (None,))[0] == node)
+                return (node, SOLID, drill_id,
+                        f"{why} - {held} held move{'s' if held > 1 else ''} "
+                        f"wait{'' if held > 1 else 's'} on it")
+            reason = (
+                f"warm the ground under sleeping {sleeper} — drill {n} first" if sleeper
+                else "fragile move — drill until clean, carrier after" if k == FRAGILE
+                else f"graduating rep - young move at its {floor(n)[1]}d floor"
+                     " - drill first, carrier after" if k == FLOOR
+                else f"re-enter a deep-stale move ({age}d since clean)"
+                     " — drill until clean, carrier after" if deep
+                else f"stale move ({age}d since clean) - drill first, carrier after"
+                if k == STALE
+                else "new move — drill until clean, carrier after")
+            return n, status, drill_id, reason
+        if drill_gated(n, status, last):
+            return None  # drilled today, still not clean - the carrier stays held
+        mapped = carriers_for(n, problems, statuses, nodes, evidence)
+        cands = [c for c in mapped
+                 if c not in asleep and c not in exclude and cooled(c, evidence)]
         if cands:
-            if target in dodged:
+            if sleeper:
+                cands.sort(key=lambda p: (last_solved(p, evidence),
+                                          tree_size(p, problems, nodes), pnum_key(p)))
+                return n, status, cands[0], f"warm the ground under sleeping {sleeper} ({n})"
+            if k == FRAGILE and n in dodged:
                 # anti-dodge: prefer carriers with no recorded escape route and
                 # short walks (the target is load-bearing, not optional)
-                cands.sort(
-                    key=lambda p: (
-                        dodgeable(p, target, problems),
-                        tree_size(p, problems, nodes),
-                        last_solved(p, evidence),
-                        pnum_key(p),
-                    )
-                )
-                return (
-                    target,
-                    FRAGILE,
-                    cands[0],
-                    f"you dodged this move on {dodged[target]} — carrier chosen to resist the dodge",
-                )
-            cands.sort(
-                key=lambda p: (
-                    gentleness(p, problems, nodes),
-                    last_solved(p, evidence),
-                    -acceptance(p),
-                    pnum_key(p),
-                )
-            )
-            return (
-                target,
-                FRAGILE,
-                cands[0],
-                "consolidate a fragile move on a fresh carrier",
-            )
-        promo = promote(target, mapped)
-        if promo:
-            return (
-                target,
-                FRAGILE,
-                promo[0],
-                "no mapped carrier — promoted a drafted one (predicted walk)",
-            )
-        held = unhold(target)
-        if held:
-            return held
-
-    # rule 1b: the graduating floor (kg_lib.graduation_due). Moves with a
-    # drill due first, then most overdue, unlock count breaking ties; served
-    # like a fragile
-    # consolidation - gentle fresh carrier, drill when none can fire.
-    grads = []
-    for n in nodes:
-        if statuses[n][0] != SOLID or not in_scope(n):
-            continue
-        g = graduation_due(n, evidence, carr.get(n, 0))
-        if g and g[0] <= date.today():
-            grads.append((g[0], -unl.get(n, 0), n, g[1]))
-    grads.sort()
-    grads.sort(key=lambda g: due(g[2]) is None)  # drills before problems
-    for _, _, target, floor in grads:
-        # the bank is the move, the problem is the test: a banked move takes
-        # its floor rep on the drill, and the carrier fires only once no drill
-        # is due (2026-09-02: 721 served as the union-find rep over six
-        # union-find drills, four of them copies).
-        d = due(target)
-        if d:
-            return (
-                target,
-                SOLID,
-                d,
-                f"graduating rep - young move at its {floor}d floor - drill first, carrier after",
-            )
-        mapped = carriers_for(target, problems, statuses, nodes, evidence)
-        cands = [
-            c for c in mapped
-            if c not in asleep and c not in exclude and cooled(c, evidence)
-        ]
-        if cands:
-            cands.sort(
-                key=lambda p: (
-                    gentleness(p, problems, nodes),
-                    last_solved(p, evidence),
-                    -acceptance(p),
-                    pnum_key(p),
-                )
-            )
-            return (
-                target,
-                SOLID,
-                cands[0],
-                f"graduating rep - young move at its {floor}d floor",
-            )
-        d = due(target)
-        if d:
-            return (
-                target,
-                SOLID,
-                d,
-                f"graduating rep - young move at its {floor}d floor, no carrier - drill",
-            )
-
-    for target in stale:
-        age = (date.today() - statuses[target][1]).days
-        if drill_gated(target, *statuses[target]):
-            if due(target):
-                return (
-                    target,
-                    STALE,
-                    due(target),
-                    f"re-enter a deep-stale move ({age}d since clean) — drill until clean, carrier after",
-                )
-            continue  # drilled today, still not clean — carrier stays held
-        d = due(target)
-        if d:  # a banked move reviews on its drill; the carrier is the test after
-            return (
-                target,
-                STALE,
-                d,
-                f"stale move ({age}d since clean) - drill first, carrier after",
-            )
-        mapped = carriers_for(target, problems, statuses, nodes, evidence)
-        cands = [
-            c for c in mapped
-            if c not in asleep and c not in exclude and cooled(c, evidence)
-        ]
-        if not cands:
-            promo = promote(target, mapped)
+                cands.sort(key=lambda p: (dodgeable(p, n, problems),
+                                          tree_size(p, problems, nodes),
+                                          last_solved(p, evidence), pnum_key(p)))
+                return (n, status, cands[0],
+                        f"you dodged this move on {dodged[n]} — carrier chosen to resist the dodge")
+            if k == STALE and not deep:  # the spaced re-solve of its latest carrier
+                carrier = latest_carrier(n, evidence)
+                pnum = carrier[2] if carrier and carrier[2] in cands else sorted(
+                    cands, key=lambda p: last_solved(p, evidence), reverse=True)[0]
+                return n, status, pnum, "spaced re-solve of a stale move's carrier"
+            cands.sort(key=lambda p: (gentleness(p, problems, nodes),
+                                      last_solved(p, evidence), -acceptance(p), pnum_key(p)))
+            reason = (
+                "consolidate a fragile move on a fresh carrier" if k == FRAGILE
+                else f"graduating rep - young move at its {floor(n)[1]}d floor" if k == FLOOR
+                else f"re-enter a deep-stale move ({age}d since clean) on a gentle fresh carrier"
+                if deep
+                else "one genuinely new move, prereqs all solid")
+            return n, status, cands[0], reason
+        if k != FLOOR:
+            promo = promote(n, mapped)
             if promo:
-                return (
-                    target,
-                    STALE,
-                    promo[0],
-                    "no mapped carrier — promoted a drafted one (predicted walk)",
-                )
-            # no carrier can fire: every one is a Hard, warm, asleep, or held
-            # behind a predecessor (102 after d67), and the drafts are spent.
-            # The drill is the rep, as for a fragile move; a clean rep here is
-            # also what warms the drill the carrier waits on. Without it the
-            # node sat STALE until deep-stale gated it (2026-08-31, six nodes
-            # rusty for 30-60 simulated days with nothing aimed at them).
-            if due(target):
-                return (
-                    target,
-                    STALE,
-                    due(target),
-                    f"stale move ({age}d since clean), no carrier can fire — drill",
-                )
-            held = unhold(target)
-            if held:
-                return held
-            continue
-        if age > DEEP_STALE_DAYS:
-            cands.sort(
-                key=lambda p: (
-                    gentleness(p, problems, nodes),
-                    last_solved(p, evidence),
-                    -acceptance(p),
-                    pnum_key(p),
-                )
-            )
-            return (
-                target,
-                STALE,
-                cands[0],
-                f"re-enter a deep-stale move ({age}d since clean) on a gentle fresh carrier",
-            )
-        carrier = latest_carrier(target, evidence)
-        pnum = (
-            carrier[2]
-            if carrier and carrier[2] in cands
-            else sorted(cands, key=lambda p: last_solved(p, evidence), reverse=True)[0]
-        )
-        return target, STALE, pnum, "spaced re-solve of a stale move's carrier"
+                return (n, status, promo[0],
+                        "no mapped carrier — promoted a drafted one (predicted walk)")
+        return unhold(n)
 
-    for target in missing:
-        if drill_gated(target, *statuses[target]):
-            if due(target):
-                return (
-                    target,
-                    MISSING,
-                    due(target),
-                    "new move — drill until clean, carrier after",
-                )
-            continue  # drilled today, still not clean — carrier stays held
-        mapped = carriers_for(target, problems, statuses, nodes, evidence)
-        cands = [
-            c for c in mapped
-            if c not in asleep and c not in exclude and cooled(c, evidence)
-        ]
-        if cands:
-            cands.sort(
-                key=lambda p: (
-                    gentleness(p, problems, nodes),
-                    -acceptance(p),
-                    pnum_key(p),
-                )
-            )
-            return (
-                target,
-                MISSING,
-                cands[0],
-                "one genuinely new move, prereqs all solid",
-            )
-        promo = promote(target, mapped)
-        if promo:
-            return (
-                target,
-                MISSING,
-                promo[0],
-                "no mapped carrier — promoted a drafted one (predicted walk)",
-            )
-        held = unhold(target)
-        if held:
-            return held
+    for n in due_list:
+        choice = serve(n)
+        if choice:
+            return choice
 
     # rule 4: nothing rusty and nothing new — take a summit. A Hard is never a
     # CARRIER (it is not where a rusty move gets its rep), but once its walk is
