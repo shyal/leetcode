@@ -9,9 +9,10 @@ any order.
 
 Example 1:
 
-Input: groups = [["a", "b"], ["c", "d"]]
-Output: ["ac", "ad", "bc", "bd"]
-Explanation: two letters in each group, so there are four strings.
+Input: groups = [["a", "b", "c"], ["x", "y", "z"]]
+Output: ["ax", "ay", "az", "bx", "by", "bz", "cx", "cy", "cz"]
+Explanation: the first letter of every string comes from group 0 and the
+second from group 1. Three choices for each, so there are nine strings.
 
 Example 2:
 
@@ -39,9 +40,9 @@ class Solution:
 
 sol = Solution()
 
-print(sol.combos([["a", "b"], ["c", "d"]]))  # 4 strings
+print(sol.combos([["a", "b", "c"], ["x", "y", "z"]]))  # 9 strings
 
-# assert sorted(sol.combos([["a", "b"], ["c", "d"]])) == ["ac", "ad", "bc", "bd"]
+# assert sorted(sol.combos([["a", "b", "c"], ["x", "y", "z"]])) == ["ax", "ay", "az", "bx", "by", "bz", "cx", "cy", "cz"]
 # assert sorted(sol.combos([["x", "y", "z"]])) == ["x", "y", "z"]
 # assert sorted(sol.combos([["a"], ["b"], ["c"]])) == ["abc"]
 
