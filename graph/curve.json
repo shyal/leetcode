@@ -2,14 +2,14 @@
   "_comment": "Personal forgetting curve fitted by utils/kg/kg_curve. P(recall) = (1-slip)*(1 + gap/s)^(-beta), s = exp(a + b*log1p(cleans) - c*struggles - d*assist + e*(conn - conn_mean)); cleans counts distinct clean days, same-day reps are one rep. conn is the node's log2 carrier count, frozen below at fit time; consumers that ignore e are assuming average connectivity. node_status() calls a node SOLID while the memory component (1 + gap/s)^(-beta) >= target_retention; delete this file to fall back to the flat 42-day window.",
   "model": "power-law-slip",
   "params": {
-    "a": 4.1803,
-    "b": 0.7205,
-    "c": 0.294,
-    "d": 0.0882,
-    "e": 0.3227,
-    "conn_mean": 3.7764,
-    "beta": 0.1257,
-    "slip": 0.1112
+    "a": 4.1782,
+    "b": 0.7163,
+    "c": 0.2946,
+    "d": 0.0923,
+    "e": 0.338,
+    "conn_mean": 3.768,
+    "beta": 0.1245,
+    "slip": 0.111
   },
   "conn": {
     "backtracking-choose-undo": 3.7,
@@ -60,7 +60,7 @@
     "prefix-suffix-two-pass": 1.0,
     "prefix-sum-hashmap": 2.807,
     "prefix-sums": 3.585,
-    "recursive-descent": 2.0,
+    "recursive-descent": 1.585,
     "rotated-array-pivot": 1.585,
     "running-extreme": 5.044,
     "running-sum": 6.022,
@@ -76,7 +76,7 @@
     "stack-matching": 2.585,
     "stack-nested-eval": 2.0,
     "streaming-accumulate-pairs": 3.0,
-    "streaming-ask-then-record": 5.585,
+    "streaming-ask-then-record": 5.555,
     "string-build-transform": 5.615,
     "topological-order": 2.0,
     "tree-bfs-levels": 1.0,
@@ -94,18 +94,18 @@
   },
   "target_retention": 0.9,
   "mass": {
-    "beta": 0.7921,
+    "beta": 0.7974,
     "se": 0.1684,
     "n": 476,
     "by_difficulty": {
-      "Easy": -0.4786,
-      "Medium": -0.2964,
-      "Hard": -1.5858
+      "Easy": -0.493,
+      "Medium": -0.3051,
+      "Hard": -1.5973
     }
   },
   "fit": {
     "trials": 238,
-    "loglik": -0.3995,
+    "loglik": -0.3994,
     "baseline_loglik": -0.4101,
     "since": "2026-06-01",
     "half_life": 0,
