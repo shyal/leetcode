@@ -55,9 +55,11 @@
 #      window it believes, so young-move failures never reach the fit
 #      without this (2026-09-02). A banked move takes the rep on its drill
 #      (the bank is the move, the problem is the test); otherwise the
-#      freshest gentle carrier.
+#      freshest gentle carrier. Moves with a drill due are served before
+#      moves whose rep would be a problem.
 #   2. review of a STALE node: its drill when it has a bank and one is due,
-#      else a spaced re-solve of its latest carrier, same unlock-count
+#      else a spaced re-solve of its latest carrier (drill-due moves first
+#      here too), same unlock-count
 #      order — unless the
 #      move is DEEP stale (no clean solve within 2x the solid window): then the
 #      memory is effectively gone, so re-enter on a gentle fresh carrier the way
@@ -555,6 +557,10 @@ def pick(
         (n for n in nodes if statuses[n][0] == STALE and in_scope(n)),
         key=lambda n: (-unl.get(n, 0), statuses[n][1]),
     )
+    # drills before problems (2026-09-02): the bank is the asset, a drill rep
+    # is three minutes to a problem's seventeen, so among due moves the ones
+    # with a drill due go first and the unbanked ones wait their turn
+    stale.sort(key=lambda n: due(n) is None)
     missing = sorted(
         (
             n
@@ -626,8 +632,9 @@ def pick(
         if held:
             return held
 
-    # rule 1b: the graduating floor (kg_lib.graduation_due). Most overdue
-    # first, unlock count breaking ties; served exactly like a fragile
+    # rule 1b: the graduating floor (kg_lib.graduation_due). Moves with a
+    # drill due first, then most overdue, unlock count breaking ties; served
+    # like a fragile
     # consolidation - gentle fresh carrier, drill when none can fire.
     carr = carrier_counts(problems)
     grads = []
@@ -637,7 +644,9 @@ def pick(
         g = graduation_due(n, evidence, carr.get(n, 0))
         if g and g[0] <= date.today():
             grads.append((g[0], -unl.get(n, 0), n, g[1]))
-    for _, _, target, floor in sorted(grads):
+    grads.sort()
+    grads.sort(key=lambda g: due(g[2]) is None)  # drills before problems
+    for _, _, target, floor in grads:
         # the bank is the move, the problem is the test: a banked move takes
         # its floor rep on the drill, and the carrier fires only once no drill
         # is due (2026-09-02: 721 served as the union-find rep over six

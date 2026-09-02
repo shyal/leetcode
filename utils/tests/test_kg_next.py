@@ -434,6 +434,22 @@ def test_graduating_floor_serves_the_drill_when_the_move_has_a_bank(picker):
     assert picker.run(ns, ps, ev, st)[:3] == ("young", SOLID, "1")
 
 
+def test_a_drill_due_move_is_served_before_a_more_overdue_unbanked_one(picker):
+    """Drills before problems (2026-09-02): topological order at 271 days
+    overdue with only a carrier sorted above union-find at 15 with six
+    drills in the bank. The bank is the asset; the unbanked move waits."""
+    ns = nodes("banked", "bare")
+    ps = {"1": problem(["banked"], difficulty="Easy"),
+          "2": problem(["bare"], difficulty="Easy")}
+    ev = evidence(solve("1", {"banked": "clean"}, days_ago=5),
+                  solve("2", {"bare": "clean"}, days_ago=40))
+    st = {"banked": (SOLID, ago(5)), "bare": (SOLID, ago(40))}
+    picker.bank = {"banked"}
+    assert picker.run(ns, ps, ev, st)[:3] == ("banked", SOLID, "drill:banked")
+    picker.drilled_today = {"banked"}
+    assert picker.run(ns, ps, ev, st)[0] == "bare"
+
+
 def test_rusty_moves_outrank_the_graduating_floor(picker):
     """A currently decayed memory beats insurance on a young one."""
     ns = nodes("young", "rusty")
