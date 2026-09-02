@@ -33,8 +33,6 @@ Constraints:
     pair tests; NO scan for heads other than through find.
 """
 
-from typing import Callable, List
-
 
 class Solution:
 

@@ -30,8 +30,6 @@ Constraints:
     managers walked. NO copy of parent; NO heads computed in advance.
 """
 
-from typing import Callable, List
-
 
 class Solution:
 

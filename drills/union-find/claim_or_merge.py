@@ -36,8 +36,6 @@ Constraints:
     rosters.
 """
 
-from typing import Callable, Dict, List
-
 
 class Solution:
 

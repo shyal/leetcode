@@ -28,8 +28,6 @@ Constraints:
     exists to kill; len(nums) makes it a TLE.
 """
 
-from typing import List
-
 
 class Solution:
 

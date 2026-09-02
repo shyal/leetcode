@@ -4,6 +4,7 @@
 # on real directories. Cheap import tests, so a future move breaks loudly here
 # rather than in the middle of `make solved`.
 import ast
+import glob
 import os
 import re
 import subprocess
@@ -186,3 +187,39 @@ def test_attic_is_not_imported_anywhere():
                 if isinstance(node, ast.Import) and any(a.name.split(".")[-1] in names for a in node.names):
                     offenders.append(f"{f}: import")
     assert offenders == [], offenders
+
+
+# --------------------------------------------------------------------------
+# the drill bank's house rules (2026-09-02)
+# --------------------------------------------------------------------------
+
+DRILLS = os.path.join(ROOT, "drills")
+_DRILL_FILES = sorted(glob.glob(os.path.join(DRILLS, "*", "*.py")))
+
+
+@pytest.mark.parametrize("path", _DRILL_FILES, ids=lambda p: os.path.relpath(p, DRILLS))
+def test_drill_imports_nothing_sitecustomize_provides(path):
+    """sitecustomize mirrors LeetCode's preloaded names (List, Callable,
+    defaultdict, ...). A drill never imports one of them: the operator
+    would not type the import on LeetCode, so it is noise in the rep."""
+    from kg import kg_lib
+    names = set(kg_lib.sitecustomize_names())
+    for node in ast.walk(ast.parse(open(path).read())):
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            dup = [a.asname or a.name for a in node.names if (a.asname or a.name) in names]
+            assert not dup, f"{os.path.relpath(path, ROOT)} imports {dup}; sitecustomize already provides them"
+
+
+@pytest.mark.parametrize("path", _DRILL_FILES, ids=lambda p: os.path.relpath(p, DRILLS))
+def test_drill_asserts_uncomment_in_one_swoop(path):
+    """From the Solution instantiation down, stripping one '#' from every
+    comment line must leave code that parses: the operator toggles the
+    whole block at once, so a prose line there carries '##' and stays a
+    comment after the toggle."""
+    src = open(path).read()
+    m = re.search(r"^\w+ = Solution\(", src, re.M)
+    assert m, f"{os.path.relpath(path, ROOT)}: no `sol = Solution(...)` line"
+    lines = src[m.start():].split("\n")
+    block = "\n".join(l[2:] if l.startswith("# ") else l[1:] if l.startswith("#") else l
+                      for l in lines)
+    compile(block, path, "exec")

@@ -32,8 +32,6 @@ Constraints:
     NO class-to-class pair tests; NO all-pairs edges inside a class.
 """
 
-from typing import Dict, List
-
 
 class Solution:
 

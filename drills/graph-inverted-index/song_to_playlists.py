@@ -29,8 +29,6 @@ Constraints:
     entries across all playlists. NO `song in playlist` membership scans.
 """
 
-from typing import Dict, List
-
 
 class Solution:
 
