@@ -99,5 +99,23 @@
       ""
     ],
     "description": "subsets: record every node, choose by start index"
+  },
+  "lcbfs": {
+    "prefix": "lcbfs",
+    "body": [
+      "q = deque([(${1:start}, 0)])",
+      "visited = {${1:start}}",
+      "while q:",
+      "    ${2:node}, dist = q.popleft()",
+      "    if ${3:node == target}:",
+      "        return dist",
+      "    for ${4:nxt} in ${5:neighbors}:",
+      "        if ${4:nxt} not in visited:",
+      "            visited.add(${4:nxt})",
+      "            q.append((${4:nxt}, dist + 1))",
+      "return -1",
+      ""
+    ],
+    "description": "bfs: queue of (node, dist), visited seeded with start"
   }
 }
