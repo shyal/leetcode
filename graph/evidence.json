@@ -7531,6 +7531,15 @@
       },
       "note": "straightforward textbook memoized recursion",
       "summary": "The solution computes Fibonacci numbers using a recursive function decorated with @cache, which memoizes subproblem results. The base case handles n \u2264 1, and the recurrence fib(n) = fib(n-1) + fib(n-2) is computed with memoization, converting exponential time into linear."
+    },
+    "solved/p1162_As_Far_from_Land_as_Possible_2026_09_03T10_35_43_062090_00_00Z.py": {
+      "date": "2026-09-03",
+      "problem": "1162",
+      "moves": {
+        "graph-bfs-shortest": "clean"
+      },
+      "note": "Runs individual BFS per land cell instead of seeding one BFS with all lands.",
+      "summary": "The code uses BFS to compute distances from each land cell to all others, collecting distance matrices, then filters for cells where all distances are equal and non-zero. It exercises graph-bfs-shortest but avoids the canonical multi-source-bfs technique, which would seed a single queue with all land cells at distance 0 and expand outward in rings. The author's note confirms awareness that this is suboptimal. The approach happens to work correctly on the symmetric test cases provided but is inefficient for larger or asymmetric grids."
     }
   }
 }
