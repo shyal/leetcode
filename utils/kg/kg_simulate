@@ -267,14 +267,33 @@ def run(hours=None, seed=1, days=MAX_DAYS, every=7, hard_sat=None,
     for the run and restored after."""
     saved = (kg_lib.date, kg_next.date, kg_lib.HARD_SAT, kg_lib.MOCK_SAT,
              kg_lib.COLD_SOLVES_PER_MOCK, kg_lib.load_predicted,
-             kg_lib.mined_solve_times)
+             kg_lib.mined_solve_times, kg_lib.slept_branches,
+             kg_lib.branch_events)
+    # the -slept branches do not move during a run, but sleep_records
+    # (via the recognition axis, every ready_hards call) would shell out
+    # to git for them on every pick: read each once
+    branches = memo(kg_lib.slept_branches)
+    events = memo(kg_lib.branch_events)
+    kg_lib.slept_branches = branches
+    kg_lib.branch_events = events
     try:
         return _run(hours, seed, days, every, hard_sat, mock_sat,
                     cold_per_mock, draft_error, log)
     finally:
         (kg_lib.date, kg_next.date, kg_lib.HARD_SAT, kg_lib.MOCK_SAT,
          kg_lib.COLD_SOLVES_PER_MOCK, kg_lib.load_predicted,
-         kg_lib.mined_solve_times) = saved
+         kg_lib.mined_solve_times, kg_lib.slept_branches,
+         kg_lib.branch_events) = saved
+
+
+def memo(fn):
+    cache = {}
+
+    def wrapped(*args):
+        if args not in cache:
+            cache[args] = fn(*args)
+        return cache[args]
+    return wrapped
 
 
 def _run(hours, seed, days, every, hard_sat, mock_sat, cold_per_mock,
