@@ -7550,6 +7550,15 @@
         "running-extreme": "clean"
       },
       "summary": "The solution uses multi-source BFS seeded with all initially rotten oranges (grid value 2), expanding in waves where each wave represents one time unit. It tracks the maximum distance reached via `res = max(res, dist)`, applying the running-extreme pattern. After BFS completes, it checks whether any fresh oranges (grid value 1) remain to return either the time or -1. All canonical moves are exercised cleanly, and all test cases pass."
+    },
+    "solved/p1094_Car_Pooling_2026_09_03T11_34_54_546726_00_00Z.py": {
+      "date": "2026-09-03",
+      "problem": "1094",
+      "moves": {
+        "counter-build": "clean",
+        "event-sweep": "clean"
+      },
+      "summary": "The code collects passenger pickups and dropoffs into two defaultdict counters keyed by location, then sweeps through sorted locations with a running total, checking if passengers ever exceed capacity. This exercises event-sweep: trips become boundary events (+n at pickup, -n at dropoff), sorted by location, then swept with a running sum; and counter-build: accumulating counts at each location."
     }
   }
 }
