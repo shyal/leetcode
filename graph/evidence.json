@@ -7479,6 +7479,15 @@
       },
       "note": "First exposure to COALESCE for NULL handling",
       "summary": "Counts paid orders per customer using LEFT JOIN to retain all customers, GROUP BY with conditional SUM(status='paid') to count only paid orders, and COALESCE to map NULL (no orders) to 0. The LEFT JOIN, GROUP BY aggregate, and conditional SUM were exercised correctly; COALESCE was first exposure."
+    },
+    "solved/d_Unique_Id_Or_Null_2026_09_03T01_09_45_872202_00_00Z.py": {
+      "date": "2026-09-03",
+      "problem": "drill",
+      "moves": {
+        "sql-join-left-keep": "clean"
+      },
+      "note": "GROUP BY defensive; ON condition keeps join inner-proof.",
+      "summary": "A LEFT JOIN from Employees to EmployeeUNI (matching on e.id = u.id) keeps all employees in the output. Unmatched rows (Alice, Bob) show NULL for unique_id. The GROUP BY e.id ensures one row per employee and makes it explicit that the join is safe to group on the left table's key."
     }
   }
 }
