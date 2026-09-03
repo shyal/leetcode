@@ -7502,6 +7502,17 @@
       },
       "note": "RecursionError: cache key (i, count) is useless for cycles because count increments each level. Depth check count > numCourses never fires; recursion limit hit first.",
       "summary": "The code builds an adjacency graph correctly and decorates dfs with @cache, but the cache key (i, count) changes on every recursive level, so memoization never prevents revisiting nodes. Cycle detection via count > numCourses fails because a cycle recurses deeper than any bounded count check; the stack overflows before the check evaluates. The candidate copied their own 2025 solution without verification."
+    },
+    "solved/p202_Happy_Number_2026_09_03T02_56_25_907087_00_00Z.py": {
+      "date": "2026-09-03",
+      "problem": "202",
+      "moves": {
+        "seen-state-cycle-detect": "clean",
+        "divmod-decompose": "clean",
+        "streaming-ask-then-record": "clean"
+      },
+      "note": "Recursive implementation; iterative is more common but not required.",
+      "summary": "The solution detects cycles in the happy-number sequence by maintaining a set of visited transformed values. For each number, it extracts digits via divmod decomposition, queries the seen set before recording, then recurses if the sum of squared digits is neither 1 nor a repeat. All test cases pass."
     }
   }
 }
