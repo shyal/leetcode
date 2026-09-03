@@ -101,6 +101,16 @@ def main():
         s3_key_commits = upload_svg_gz("graph/commits.svg", "commits")
         commits_img = f"![Tooling commits versus solves](https://shyal.s3.amazonaws.com/{s3_key_commits})"
 
+    # Elo on a contest clock (utils/readme/kg_elo_svg): the curve and a
+    # badge with the current number.
+    elo_img = elo_badge = ""
+    if os.path.exists("graph/elo.svg"):
+        s3_key_elo = upload_svg_gz("graph/elo.svg", "elo")
+        elo_img = f"![Elo on a contest clock](https://shyal.s3.amazonaws.com/{s3_key_elo})"
+    if os.path.exists("graph/elo_badge.svg"):
+        s3_key_elo_badge = upload_svg_gz("graph/elo_badge.svg", "elo_badge")
+        elo_badge = f"![Elo](https://shyal.s3.amazonaws.com/{s3_key_elo_badge})"
+
     # One projection-stability chart: each model's projected ready date over
     # run date, recomputed on the fly for EVERY day since the first evidence
     # record (no stored snapshots): kg_mock --history-json replays the
@@ -379,6 +389,8 @@ def main():
 
     readme = fill(readme, "SOLVES_CHART", rates_img)
     readme = fill(readme, "COMMITS_CHART", commits_img)
+    readme = fill(readme, "ELO_CHART", elo_img)
+    readme = fill(readme, "ELO_BADGE", elo_badge)
     readme = fill(readme, "READINESS_PROJECTION_CHART", projection_img)
     readme = fill(readme, "KG_MOVIE", kg_movie_img)
     readme = fill(readme, "KG_3D", kg_3d_img)
