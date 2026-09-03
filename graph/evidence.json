@@ -7488,6 +7488,20 @@
       },
       "note": "GROUP BY defensive; ON condition keeps join inner-proof.",
       "summary": "A LEFT JOIN from Employees to EmployeeUNI (matching on e.id = u.id) keeps all employees in the output. Unmatched rows (Alice, Bob) show NULL for unique_id. The GROUP BY e.id ensures one row per employee and makes it explicit that the join is safe to group on the left table's key."
+    },
+    "solved/p207_Course_Schedule_2026_09_03T02_40_29_327961_00_00Z.py": {
+      "date": "2026-09-03",
+      "problem": "207",
+      "moves": {
+        "graph-adjacency-build": "clean",
+        "seen-state-cycle-detect": "struggled"
+      },
+      "assist": {
+        "graph-adjacency-build": "learning",
+        "seen-state-cycle-detect": "learning"
+      },
+      "note": "RecursionError: cache key (i, count) is useless for cycles because count increments each level. Depth check count > numCourses never fires; recursion limit hit first.",
+      "summary": "The code builds an adjacency graph correctly and decorates dfs with @cache, but the cache key (i, count) changes on every recursive level, so memoization never prevents revisiting nodes. Cycle detection via count > numCourses fails because a cycle recurses deeper than any bounded count check; the stack overflows before the check evaluates. The candidate copied their own 2025 solution without verification."
     }
   }
 }
