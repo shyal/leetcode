@@ -1,4 +1,4 @@
-.PHONY: all drop learning mirror q prepare force unforce preflight dependents kg-extract kg-status kg-viz movie next dive drill spot hard is_session_start readme residuals simulate sleep wake solved failed test timer viz graph snippets
+.PHONY: all drop learning mirror q prepare force unforce preflight dependents kg-extract kg-status kg-viz rep movie next dive drill spot hard is_session_start readme residuals simulate sleep wake solved failed test timer viz graph snippets
 
 all: graph/leet.db
 	@cp utils/harness/sitecustomize.py .venv/lib/python3.10/site-packages/
@@ -37,6 +37,9 @@ kg-extract:
 
 kg-status:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_status
+
+rep:
+	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_rep $(filter-out $@,$(MAKECMDGOALS))
 
 dependents:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_dependents $(filter-out $@,$(MAKECMDGOALS))

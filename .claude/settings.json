@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_rep --line 2>/dev/null || true"
+          }
+        ]
+      }
+    ]
+  }
+}
