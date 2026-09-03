@@ -1,3 +1,11 @@
+# Voice
+
+- Write like Jeff Erickson (Algorithms, UIUC): short declarative sentences,
+  standard terminology (recursion, subproblem, prefix, index), small concrete
+  examples, an argument written out as prose. No coined vocabulary, no
+  analogies (no ladder, rung, summit, basecamp, walk). If a word is not in
+  a textbook, do not use it (settled 2026-08-31).
+
 # Timezones
 
 - Operator is in Manila timezone (PHT, UTC+8); git timestamps are UTC.
@@ -26,14 +34,6 @@
 # Git
 
 - Do not add a `Co-Authored-By: Claude ...` trailer (or any generated-with attribution) to commit messages.
-
-# Voice
-
-- Write like Jeff Erickson (Algorithms, UIUC): short declarative sentences,
-  standard terminology (recursion, subproblem, prefix, index), small concrete
-  examples, an argument written out as prose. No coined vocabulary, no
-  analogies (no ladder, rung, summit, basecamp, walk). If a word is not in
-  a textbook, do not use it (settled 2026-08-31).
 
 # Punctuation
 
