@@ -1438,14 +1438,37 @@ def gentleness(pnum, problems, nodes):
     return (tier, tree_size(pnum, problems, nodes))
 
 
-def drill_title(path):
-    """The DRILL header of a bank file, or None when it has none."""
+_DRILL_HEADERS = {}  # path -> (mtime_ns, size, DRILL title, TRAINS ids)
+
+
+def _drill_header(path):
+    """(DRILL title or None, TRAINS ids) of a bank file, read once per
+    file version: the picker asks for these thousands of times per pick
+    and the file never changes under it. Keyed on the file's mtime and
+    size so a rewritten file (the test banks, a bank edit) reads fresh."""
+    try:
+        st = os.stat(path)
+    except OSError:
+        return None, []
+    hit = _DRILL_HEADERS.get(path)
+    if hit is not None and hit[0] == st.st_mtime_ns and hit[1] == st.st_size:
+        return hit[2], hit[3]
     try:
         with open(path) as f:
-            m = re.search(r"^\s*DRILL:\s*(.+)$", f.read(), flags=re.M)
+            text = f.read()
     except OSError:
-        m = None
-    return m.group(1).strip() if m else None
+        return None, []
+    m = re.search(r"^\s*DRILL:\s*(.+)$", text, flags=re.M)
+    title = m.group(1).strip() if m else None
+    m = re.search(r"^\s*TRAINS:\s*([a-z0-9\-, ]+)$", text, flags=re.M)
+    trains = [t.strip() for t in m.group(1).split(",") if t.strip()] if m else []
+    _DRILL_HEADERS[path] = (st.st_mtime_ns, st.st_size, title, trains)
+    return title, trains
+
+
+def drill_title(path):
+    """The DRILL header of a bank file, or None when it has none."""
+    return _drill_header(path)[0]
 
 
 def drill_solved_stem(path):
@@ -1493,11 +1516,22 @@ def drills():
     return _DRILLS
 
 
+_DRILL_IDS = {}  # {"key": (id(drills()), len), "map": {DRILL title: id}}
+
+
 def drill_id(path):
     """The graph id (d61) of a bank file, by its DRILL title; None when the
-    file has no entry in drills.json."""
+    file has no entry in drills.json. The title index is rebuilt when the
+    registry is replaced or grows (the test banks add to it in place)."""
     title = drill_title(path)
-    return next((i for i, d in drills().items() if d.get("title") == title), None)
+    reg = drills()
+    key = (id(reg), len(reg))
+    if _DRILL_IDS.get("key") != key:
+        _DRILL_IDS.clear()
+        _DRILL_IDS["key"] = key
+        _DRILL_IDS["map"] = {d.get("title"): i for i, d in reversed(list(reg.items()))}
+    i = _DRILL_IDS["map"].get(title)
+    return i if i is not None and reg.get(i, {}).get("title") == title else None
 
 
 def drill_after(path):
@@ -1677,12 +1711,26 @@ def drill_trains(path):
     """The node ids a bank drill evidences: its TRAINS header, comma
     separated. A composite drill lists every move it combines, the way a
     leetcode problem's walk does; the solve evidences all of them."""
-    try:
-        with open(path) as f:
-            m = re.search(r"^\s*TRAINS:\s*([a-z0-9\-, ]+)$", f.read(), flags=re.M)
-    except OSError:
-        m = None
-    return [t.strip() for t in m.group(1).split(",") if t.strip()] if m else []
+    return list(_drill_header(path)[1])
+
+
+_PROBLEMS_RO = {}  # path -> (mtime_ns, size, problems)
+
+
+def _problems_ro():
+    """problems.json for READ-ONLY use, parsed once per file version. The
+    drill holds below ask for it on every candidate of every pick (tens of
+    thousands of times in one kg_simulate run); load_problems parses the
+    file each call because its callers mutate the result. Never hand this
+    dict to anything that writes into it."""
+    path = os.path.join(GRAPH_DIR, "problems.json")
+    st = os.stat(path)
+    hit = _PROBLEMS_RO.get(path)
+    if hit is None or hit[0] != st.st_mtime_ns or hit[1] != st.st_size:
+        hit = (st.st_mtime_ns, st.st_size, load_problems())
+        _PROBLEMS_RO.clear()
+        _PROBLEMS_RO[path] = hit
+    return hit[2]
 
 
 def servable_drills(candidates, evidence, node_id=None, early=False):
@@ -1692,7 +1740,7 @@ def servable_drills(candidates, evidence, node_id=None, early=False):
     a drill that combines moves lands on moves the operator has instead of
     teaching two at once. Nothing else orders drills: not the filename,
     not the directory."""
-    problems = load_problems()
+    problems = _problems_ro()
     out = []
     for path in candidates:
         if any(warm(a, problems, evidence, early=early) is False for a in drill_after(path)):
@@ -1747,7 +1795,7 @@ def drills_left(node_id, evidence, early=False):
     Reuse Allowed and Subsets stayed held, the node read done, and the
     dedupe drill got served with subsets never done)."""
     candidates = sorted(glob.glob(os.path.join(DRILLS_DIR, node_id, "*.py")))
-    problems = load_problems()
+    problems = _problems_ro()
     by_id = {drill_id(p): p for p in candidates}
     reachable = set(servable_drills(candidates, evidence, node_id, early=early))
     grew = True

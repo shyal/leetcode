@@ -19,6 +19,7 @@
 # title. A measured pace of 0h/day (a lapse) leaves the forecast out and
 # says so in the title.
 
+import multiprocessing
 import os
 import sys
 from datetime import date, timedelta
@@ -92,7 +93,10 @@ def main():
     pools = kg_simulate.build_pools(problems, load_predicted(), nodes)
     expect = kg_simulate.PassExpectation(pools, list(nodes), mass_term(pools, problems, curve))
     past = history(nodes, problems, evidence, expect, SCENARIOS["central"])
-    runs = [r for r in (forecast(s) for s in SEEDS) if r]
+    # one process per seed: a run is a minute of pure Python, and the
+    # seeds share nothing. fork, so the loaded graph comes along.
+    with multiprocessing.get_context("fork").Pool(len(SEEDS)) as pool:
+        runs = [r for r in pool.map(forecast, SEEDS) if r]
     main_run = runs[0] if runs else None
     P = len(past)  # past[P - 1] is today
     horizon = max((r["day"] for r in runs), default=0)
