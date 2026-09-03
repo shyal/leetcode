@@ -7513,6 +7513,15 @@
       },
       "note": "Recursive implementation; iterative is more common but not required.",
       "summary": "The solution detects cycles in the happy-number sequence by maintaining a set of visited transformed values. For each number, it extracts digits via divmod decomposition, queries the seen set before recording, then recurses if the sum of squared digits is neither 1 nor a repeat. All test cases pass."
+    },
+    "solved/p542_01_Matrix_FAILED_2026_09_03T03_48_58_768516_00_00Z.py": {
+      "date": "2026-09-03",
+      "problem": "542",
+      "moves": {
+        "memoize-recursion": "struggled"
+      },
+      "note": "Memoized DFS with inverted distance logic and incorrect boundary check; abandoned after 15 minutes.",
+      "summary": "The solution uses @cache on recursive distance computation, but the recurrence logic is backwards\u2014maximizing distances instead of minimizing\u2014and the boundary conditions incorrectly exclude valid rows and columns. The canonical multi-source BFS approach was avoided entirely."
     }
   }
 }
