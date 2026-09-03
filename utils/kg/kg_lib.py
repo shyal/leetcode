@@ -1730,6 +1730,8 @@ def due_drill(node_id, evidence, today=None, early=False, assisted=False):
         return None
     pool = candidates if assisted else servable_drills(
         candidates, evidence, node_id, early=early)
+    if not pool:
+        return None  # every bank file is held behind an id not yet warm
     path = min(pool, key=lambda p: last_drilled(p, evidence))
     return None if last_drilled(path, evidence) >= today else path
 
