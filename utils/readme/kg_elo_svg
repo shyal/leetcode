@@ -1,0 +1,214 @@
+#!/usr/bin/env python3
+
+# kg_elo_svg - an Elo rating over the solve history, scored on a contest
+# clock, rendered into graph/elo.svg (the curve) and graph/elo_badge.svg
+# (the current number) for the README pipeline.
+#
+# Problem ratings are zerotrac's, fitted from LeetCode contest results
+# (https://github.com/zerotrac/leetcode_problem_rating, copied to
+# data/leetcode_ratings.tsv). A problem that never ran in a contest gets
+# the median contest rating of its difficulty. Each attempt is one game
+# against the problem: solved unaided inside the budget for its difficulty
+# is a win, a hint inside the budget is a draw, a fail or a solve over
+# budget is a loss. Walkthrough and learning reps are copy reps and are not
+# games. Untimed solves are skipped. Standard Elo, K=32, from 1200.
+#
+# The cutoffs drawn are LeetCode's badge cutoffs: Knight is the top 25% of
+# contest users, Guardian the top 5%. Both are percentile ranks, so the
+# rating each one sits at drifts; the numbers here are the usual ones.
+
+import json
+import os
+import sqlite3
+from collections import defaultdict
+from datetime import date, timedelta
+from statistics import median
+
+from kg.kg_lib import ASSIST_WEIGHT, GRAPH_DIR, REPO_ROOT, mined_solve_times
+
+OUT = os.path.join(GRAPH_DIR, "elo.svg")
+BADGE = os.path.join(GRAPH_DIR, "elo_badge.svg")
+RATINGS = os.path.join(REPO_ROOT, "data", "leetcode_ratings.tsv")
+META = os.path.join(REPO_ROOT, "data", "problems_metadata.json")
+DB = os.path.join(GRAPH_DIR, "leet.db")
+
+BUDGET_MIN = {"Easy": 10, "Medium": 25, "Hard": 45}
+K, START = 32, 1200.0
+RANKS = ((2200, "guardian", "#d29922"), (1850, "knight", "#58a6ff"))
+
+W, H = 1200, 400
+BG = "#0d1117"
+INK = "#c9d1d9"
+MUTED = "#8b949e"
+GRID = "#21262d"
+LINE = "#3fb950"
+ML, MR, MT, MB = 62, 24, 62, 40
+
+
+def load_ratings():
+    r = {}
+    with open(RATINGS) as f:
+        next(f)
+        for line in f:
+            rating, pid, _ = line.rstrip("\n").split("\t")
+            r[pid] = float(rating)
+    return r
+
+
+def assist_level(a):
+    """Stored assist is None, a level, or {move: level}; take the heaviest."""
+    if not a:
+        return "none"
+    if isinstance(a, dict):
+        return max(a.values(), key=ASSIST_WEIGHT.get)
+    return a
+
+
+def games():
+    """[(date, problem rating, score)] oldest first, one per scored attempt."""
+    ratings = load_ratings()
+    with open(META) as f:
+        meta = json.load(f)
+    by_diff = defaultdict(list)
+    for pid, rt in ratings.items():
+        if pid in meta:
+            by_diff[meta[pid]["difficulty"]].append(rt)
+    imputed = {d: median(v) for d, v in by_diff.items()}
+    secs = {fn: s for _, _, s, fn in mined_solve_times(with_file=True)}
+    con = sqlite3.connect(DB)
+    rows = con.execute("select date, problem, assist, file from solves order by date, file")
+    out = []
+    for d, pid, assist, fn in rows:
+        pid = str(pid)
+        if pid not in meta:
+            continue
+        diff = meta[pid]["difficulty"]
+        rp = ratings.get(pid, imputed[diff])
+        try:
+            level = assist_level(json.loads(assist) if assist and assist.startswith("{") else assist)
+        except ValueError:
+            level = assist
+        failed = "FAILED" in fn
+        if failed:
+            s = 0.0
+        elif level in ("walkthrough", "learning") or fn not in secs:
+            continue
+        elif secs[fn] > BUDGET_MIN[diff] * 60:
+            s = 0.0
+        else:
+            s = 0.5 if level == "hint" else 1.0
+        out.append((date.fromisoformat(d), rp, s))
+    return out
+
+
+def elo(gs):
+    """[(date, rating after the day's last game)] one per day with a game."""
+    r, by_day = START, {}
+    for d, rp, s in gs:
+        e = 1 / (1 + 10 ** ((rp - r) / 400))
+        r += K * (s - e)
+        by_day[d] = r
+    return sorted(by_day.items())
+
+
+def rank_of(r):
+    for cut, name, color in RANKS:
+        if r >= cut:
+            return name, color
+    return f"{RANKS[-1][0] - round(r)} to knight", MUTED
+
+
+def badge(r):
+    name, color = rank_of(r)
+    left, right = "elo", f"{r:.0f} · {name}"
+    lw, rw = 6 * len(left) + 12, 6.2 * len(right) + 12
+    w = lw + rw
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{w:.0f}" height="20" '
+            f'font-family="Verdana,DejaVu Sans,sans-serif" font-size="11">'
+            f'<rect rx="3" width="{w:.0f}" height="20" fill="#555"/>'
+            f'<rect rx="3" x="{lw:.0f}" width="{rw:.0f}" height="20" fill="{color}"/>'
+            f'<rect x="{lw:.0f}" width="4" height="20" fill="{color}"/>'
+            f'<text x="{lw / 2:.1f}" y="14" fill="#fff" text-anchor="middle">{left}</text>'
+            f'<text x="{lw + rw / 2:.1f}" y="14" fill="#fff" text-anchor="middle">{right}</text>'
+            f'</svg>\n')
+
+
+def main():
+    gs = games()
+    if not gs:
+        print("no scored attempts")
+        return
+    hist = elo(gs)
+    d0, d1 = hist[0][0], hist[-1][0]
+    span = max((d1 - d0).days, 1)
+    top, bottom = MT, H - MB
+    vals = [r for _, r in hist]
+    lo = min(min(vals), RANKS[-1][0]) - 100
+    hi = max(max(vals), RANKS[0][0]) + 100
+    lo, hi = int(lo // 100 * 100), int(-(-hi // 100) * 100)
+
+    def x_of(d):
+        return ML + (d - d0).days / span * (W - ML - MR)
+
+    def y_of(v):
+        return bottom - (v - lo) / (hi - lo) * (bottom - top)
+
+    n_win = sum(1 for _, _, s in gs if s == 1.0)
+    n_draw = sum(1 for _, _, s in gs if s == 0.5)
+    svg = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" '
+           f'font-family="Helvetica,sans-serif">',
+           f'<rect width="{W}" height="{H}" fill="{BG}"/>',
+           f'<text x="{W / 2:.0f}" y="24" text-anchor="middle" font-size="13" fill="{INK}">'
+           f'Elo on a contest clock: win inside budget (easy 10m, medium 25m, hard 45m), '
+           f'hint inside budget is a draw, fail or over budget is a loss</text>',
+           f'<text x="{W / 2:.0f}" y="42" text-anchor="middle" font-size="11" fill="{MUTED}">'
+           f'{len(gs)} games: {n_win} wins, {n_draw} draws, {len(gs) - n_win - n_draw} losses. '
+           f'Problem ratings from LeetCode contests (zerotrac); copy reps are not games</text>']
+    for cut, name, color in RANKS:
+        y = y_of(cut)
+        svg.append(f'<rect x="{ML}" y="{top}" width="{W - ML - MR}" height="{y - top:.1f}" '
+                   f'fill="{color}" fill-opacity="0.06"/>')
+        svg.append(f'<line x1="{ML}" y1="{y:.1f}" x2="{W - MR}" y2="{y:.1f}" '
+                   f'stroke="{color}" stroke-width="1" stroke-dasharray="4 4"/>')
+        svg.append(f'<text x="{W - MR - 4}" y="{y - 5:.1f}" text-anchor="end" font-size="11" '
+                   f'fill="{color}">{name} {cut}</text>')
+    for g in range(lo, hi + 1, 100):
+        y = y_of(g)
+        svg.append(f'<line x1="{ML}" y1="{y:.1f}" x2="{W - MR}" y2="{y:.1f}" '
+                   f'stroke="{GRID}" stroke-width="1"/>')
+        svg.append(f'<text x="{ML - 8}" y="{y + 4:.1f}" text-anchor="end" font-size="11" '
+                   f'fill="{MUTED}">{g}</text>')
+    d = date(d0.year, d0.month, 1)
+    while d <= d1:
+        if d >= d0:
+            x = x_of(d)
+            svg.append(f'<line x1="{x:.1f}" y1="{top}" x2="{x:.1f}" y2="{bottom}" '
+                       f'stroke="{GRID}" stroke-width="1"/>')
+            svg.append(f'<text x="{x:.1f}" y="{bottom + 18}" text-anchor="middle" font-size="11" '
+                       f'fill="{MUTED}">{d.strftime("%b %y")}</text>')
+        d = (d.replace(day=28) + timedelta(days=4)).replace(day=1)
+    # one polyline per run of games; a gap over a month is drawn as a gap
+    runs, prev = [[]], None
+    for dd, r in hist:
+        if prev and (dd - prev).days > 31:
+            runs.append([])
+        runs[-1].append((dd, r))
+        prev = dd
+    for run in runs:
+        pts = " ".join(f"{x_of(dd):.1f},{y_of(r):.1f}" for dd, r in run)
+        svg.append(f'<polyline points="{pts}" fill="none" stroke="{LINE}" stroke-width="2"/>')
+    last = hist[-1][1]
+    svg.append(f'<circle cx="{x_of(d1):.1f}" cy="{y_of(last):.1f}" r="4" fill="{LINE}"/>')
+    svg.append(f'<text x="{x_of(d1):.1f}" y="{y_of(last) - 12:.1f}" text-anchor="end" '
+               f'font-size="12" fill="{LINE}">{last:.0f}</text>')
+    svg.append("</svg>")
+    with open(OUT, "w") as f:
+        f.write("\n".join(svg) + "\n")
+    with open(BADGE, "w") as f:
+        f.write(badge(last))
+    name, _ = rank_of(last)
+    print(f"wrote {OUT} and {BADGE} ({len(gs)} games, elo {last:.0f}, {name})")
+
+
+if __name__ == "__main__":
+    main()
