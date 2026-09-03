@@ -83,3 +83,34 @@ def test_no_node_starves(run):
         kg_simulate.STARVED_DAYS,
         ", ".join(f"{n} ({k}d)"
                   for n, k in sorted(run["starved"].items(), key=lambda x: -x[1])))
+
+
+def test_run_restores_drill_bank(run):
+    """A run reads a scratch copy of drills/ that it authors virtual bank
+    files into; after it, kg_lib and kg_next read the real bank again and
+    the copy is gone."""
+    import glob
+    real = os.path.join(os.path.dirname(kg_lib.GRAPH_DIR), "drills")
+    assert kg_lib.DRILLS_DIR == real
+    assert kg_simulate.kg_next.DRILLS_DIR == real
+    assert not glob.glob(os.path.join(real, "*", "sim_*.py")), \
+        "a virtual bank file landed in the real bank"
+
+
+def test_authoring_follows_the_measured_rate(run):
+    """At the measured rate the run banks nodes: the count of banks is the
+    rate times the days, rounded down (a fraction of a bank carries over),
+    capped by the nodes that had none."""
+    a = run["authored"]
+    assert a["rate"] >= 0
+    bankless = sum(1 for n in kg_lib.load_nodes() if not kg_lib.has_drill_bank(n))
+    assert a["nodes"] == min(int(a["rate"] * run["day"] + 1e-9), bankless)
+    assert a["files"] >= a["nodes"]
+
+
+def test_bank_rate_zero_authors_nothing():
+    """`make simulate bank-rate 0` runs on the bank as it is."""
+    if not kg_lib._load_curve():
+        pytest.skip("graph/curve.json missing - run make curve first")
+    r = kg_simulate.run(hours=HOURS, seed=SEED, days=5, log=lambda *a: None, bank_rate=0)
+    assert r["authored"] == {"nodes": 0, "files": 0, "rate": 0, "source": "given"}

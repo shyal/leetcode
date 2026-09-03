@@ -69,11 +69,11 @@ mock: $(MOCK_BIN)
 predict:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_predict $(filter-out $@,$(MAKECMDGOALS))
 
-# make simulate 2 [seed 7]: run the real picker forward day by day on
+# make simulate 2 [seed 7] [bank-rate 0.5]: run the real picker forward day by day on
 # simulated evidence until central P(onsite) reaches 50% (utils/kg/kg_simulate;
 # utils/readme/kg_forecast_svg draws the same run after the history for the README)
 simulate:
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_simulate $(patsubst seed,--seed,$(filter-out $@,$(MAKECMDGOALS)))
+	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_simulate $(patsubst bank-rate,--bank-rate,$(patsubst seed,--seed,$(filter-out $@,$(MAKECMDGOALS))))
 
 # make movie is implemented in Rust: one pinned graphviz layout, the history
 # replayed as SMIL animation into graph/kg_movie.svg (embedded by make readme)

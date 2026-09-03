@@ -37,15 +37,34 @@
 # lines at the end; utils/tests/test_kg_simulate.py holds the caps).
 #
 # Recognition practice comes from cold first solves (kg_lib
-# recognition_practice); no mocks are simulated. Not modelled: fission of
-# the taxonomy, assists, lapses in the hours.
+# recognition_practice); no mocks are simulated.
+#
+# The drill bank grows during the run the way it grows in the git log.
+# The rate is measured: nodes whose first bank file landed in the last 28
+# days, per calendar day (bank_rate; `make simulate bank-rate 0.5` sets
+# it, 0 runs on the bank as it is). Each day earns that much of a bank;
+# each whole bank goes to the bankless node the day's picks touched -
+# the pick's target first, a struggled move before a clean one, the
+# least-recalled move otherwise - and, with nothing touched, the least-
+# recalled bankless node. Its size is drawn from the sizes of the banks
+# on disk. A virtual bank file lives in a scratch copy of drills/ that
+# kg_lib and kg_next read for the run: it trains its node, comes after
+# nothing, and goes through due_drill's holds and the drill gate like a
+# real one. Writing it costs no hours: pace is measured from solve time
+# trailers, and authoring was never in them.
+#
+# Not modelled: fission of the taxonomy, assists, lapses in the hours.
 # One trajectory per seed; run a few seeds for the spread.
 
 import argparse
+import glob
 import math
 import os
 import random
+import shutil
+import subprocess
 import sys
+import tempfile
 
 import numpy as np
 from datetime import date, timedelta
@@ -182,6 +201,72 @@ def price_table(attempts):
     return table
 
 
+AUTHOR_WINDOW = PACE_WINDOW  # calendar days the authoring rate is averaged over
+
+
+def bank_history(today, drills_dir=None):
+    """({node: date its first bank file landed}, {node: files on disk}) from
+    the git log of drills/. Only files still on disk count (spark's bank
+    was ripped out); an untracked file counts as landed today."""
+    drills_dir = drills_dir or kg_lib.DRILLS_DIR
+    root = os.path.dirname(drills_dir)
+    out = subprocess.run(
+        ["git", "log", "--diff-filter=A", "--format=%x00%ad", "--date=short",
+         "--name-only", "--", "drills/*/*.py"],
+        capture_output=True, text=True, cwd=root).stdout
+    first, d = {}, None
+    for line in out.splitlines():
+        if line.startswith("\x00"):
+            d = date.fromisoformat(line[1:])
+        elif line.startswith("drills/") and os.path.exists(os.path.join(root, line)):
+            first[line] = min(first.get(line, d), d)
+    for path in glob.glob(os.path.join(drills_dir, "*", "*.py")):
+        first.setdefault(os.path.relpath(path, root), today)
+    banked, sizes = {}, {}
+    for rel, d in first.items():
+        node = rel.split(os.sep)[1]
+        banked[node] = min(banked.get(node, d), d)
+        sizes[node] = sizes.get(node, 0) + 1
+    return banked, sizes
+
+
+def measured_bank_rate(banked, today):
+    """New banks per calendar day over the last AUTHOR_WINDOW days."""
+    n = sum(1 for d in banked.values() if 0 <= (today - d).days < AUTHOR_WINDOW)
+    return round(n / AUTHOR_WINDOW, 2)
+
+
+class ScratchBank:
+    """A scratch copy of drills/ the run authors into: every real bank file
+    linked in, virtual files written beside them. kg_lib and kg_next read
+    DRILLS_DIR at call time, so the run points both at the copy and puts
+    them back after."""
+
+    def __init__(self, real):
+        self.real = real
+        self.root = tempfile.mkdtemp(prefix="kg_simulate_bank_")
+        for path in glob.glob(os.path.join(real, "*", "*.py")):
+            node = os.path.basename(os.path.dirname(path))
+            os.makedirs(os.path.join(self.root, node), exist_ok=True)
+            os.symlink(path, os.path.join(self.root, node, os.path.basename(path)))
+        self.authored = {}  # node -> virtual files written
+
+    def author(self, node, files):
+        """Write `files` virtual bank files for node: a DRILL title and a
+        TRAINS line, nothing else. No drills.json entry, so the file comes
+        after nothing; TRAINS only its node, so it holds on no other."""
+        d = os.path.join(self.root, node)
+        os.makedirs(d, exist_ok=True)
+        for _ in range(files):
+            k = self.authored.get(node, 0) + 1
+            self.authored[node] = k
+            with open(os.path.join(d, f"sim_{k}.py"), "w") as f:
+                f.write(f'"""\nDRILL: Sim {node} {k}\nTRAINS: {node}\n"""\n')
+
+    def close(self):
+        shutil.rmtree(self.root, ignore_errors=True)
+
+
 def freeze_clock(day):
     """Every date.today() in kg_lib and kg_next answers `day`."""
     class SimDate(date):
@@ -250,7 +335,8 @@ STARVED_DAYS = kg_lib.STARVED_DAYS  # a node rusty this long with no pick aimed 
 
 
 def run(hours=None, seed=1, days=MAX_DAYS, every=7, hard_sat=None,
-        mock_sat=None, cold_per_mock=None, draft_error=0.0, log=print):
+        mock_sat=None, cold_per_mock=None, draft_error=0.0, log=print,
+        bank_rate=None):
     """The simulation. Prints the rows through `log` (pass a no-op for a
     silent run) and returns a dict: day (the last day run), onsite, hours,
     source ("given"/"measured"), per_kind, dry_days, short_days, rusty (per
@@ -259,7 +345,9 @@ def run(hours=None, seed=1, days=MAX_DAYS, every=7, hard_sat=None,
     STARVED_DAYS or more consecutive days with no pick aimed at it - the
     longest such run; and series: one dict per simulated day (day, solves
     per kind that day, stale/fragile/missing counts at the end of the day,
-    onsite/screen/hard rates) for the README forecast chart. The picker's rules make a rusty node servable within
+    onsite/screen/hard rates) for the README forecast chart; and authored:
+    {nodes, files, rate, source} - the virtual banks the run wrote
+    (bank_rate None = the measured rate, 0 = none). The picker's rules make a rusty node servable within
     days, so such a run is a hold nothing clears. A node picked and failed
     over and over is not starved: that is the draw, not the picker.
     kg_lib's date, HARD_SAT, MOCK_SAT,
@@ -268,7 +356,7 @@ def run(hours=None, seed=1, days=MAX_DAYS, every=7, hard_sat=None,
     saved = (kg_lib.date, kg_next.date, kg_lib.HARD_SAT, kg_lib.MOCK_SAT,
              kg_lib.COLD_SOLVES_PER_MOCK, kg_lib.load_predicted,
              kg_lib.mined_solve_times, kg_lib.slept_branches,
-             kg_lib.branch_events)
+             kg_lib.branch_events, kg_lib.DRILLS_DIR, kg_next.DRILLS_DIR)
     # the -slept branches do not move during a run, but sleep_records
     # (via the recognition axis, every ready_hards call) would shell out
     # to git for them on every pick: read each once
@@ -276,14 +364,17 @@ def run(hours=None, seed=1, days=MAX_DAYS, every=7, hard_sat=None,
     events = memo(kg_lib.branch_events)
     kg_lib.slept_branches = branches
     kg_lib.branch_events = events
+    bank = ScratchBank(kg_lib.DRILLS_DIR)
+    kg_lib.DRILLS_DIR = kg_next.DRILLS_DIR = bank.root
     try:
         return _run(hours, seed, days, every, hard_sat, mock_sat,
-                    cold_per_mock, draft_error, log)
+                    cold_per_mock, draft_error, log, bank, bank_rate)
     finally:
         (kg_lib.date, kg_next.date, kg_lib.HARD_SAT, kg_lib.MOCK_SAT,
          kg_lib.COLD_SOLVES_PER_MOCK, kg_lib.load_predicted,
          kg_lib.mined_solve_times, kg_lib.slept_branches,
-         kg_lib.branch_events) = saved
+         kg_lib.branch_events, kg_lib.DRILLS_DIR, kg_next.DRILLS_DIR) = saved
+        bank.close()
 
 
 def memo(fn):
@@ -297,7 +388,7 @@ def memo(fn):
 
 
 def _run(hours, seed, days, every, hard_sat, mock_sat, cold_per_mock,
-         draft_error, log):
+         draft_error, log, bank, bank_rate):
     if hard_sat is not None:
         kg_lib.HARD_SAT = hard_sat
     if mock_sat is not None:
@@ -331,6 +422,15 @@ def _run(hours, seed, days, every, hard_sat, mock_sat, cold_per_mock,
     hours = hours if given else measured
     if hours <= 0:
         sys.exit("measured pace is 0h/day - pass hours explicitly")
+    banked, sizes = bank_history(start, bank.real)
+    measured_rate = measured_bank_rate(banked, start)
+    rate = measured_rate if bank_rate is None else bank_rate
+    size_pool = sorted(sizes.values()) or [1]
+    author_budget = 0.0
+    authored_files = 0
+    rate_src = "given" if bank_rate is not None else (
+        f"measured: {sum(1 for d in banked.values() if 0 <= (start - d).days < AUTHOR_WINDOW)}"
+        f" nodes banked in the last {AUTHOR_WINDOW} days")
 
     def rates(day, practice, recall=None):
         if recall is None:
@@ -364,6 +464,9 @@ def _run(hours, seed, days, every, hard_sat, mock_sat, cold_per_mock,
         f"teach {teach:.2f}, curve {os.path.basename(GRAPH_DIR)}/curve.json")
     log(f"rehearsal-mass term: beta {mass['beta']:+.2f} per unit of ln(1+mass) "
         f"(curve.json; 0 = unfitted)")
+    log(f"drill authoring: {rate:g} new banks/day ({rate_src}), size drawn from "
+        f"the {len(size_pool)} banks on disk (median {median(size_pool):g} files); "
+        f"{sum(1 for n in nodes if n not in banked)} of {len(nodes)} nodes bankless today")
     log("price per attempt, measured medians (clean / struggled): "
         + ", ".join(f"{k} {prices[(k, 'clean')]:.0f}/{prices[(k, 'struggled')]:.0f}m"
                     for k in ("Easy", "Medium", "Hard", "drill")))
@@ -400,6 +503,7 @@ def _run(hours, seed, days, every, hard_sat, mock_sat, cold_per_mock,
         budget = hours * 60
         exclude = set()
         solves_today = 0
+        touched = {}     # node -> (target?, struggled?) over the day's picks
         today_kind = {k: 0 for k in per_kind}
         # statuses and recall once per day; after a solve only its moves change
         statuses = {n: node_status(n, evidence, today=day) for n in nodes}
@@ -458,6 +562,9 @@ def _run(hours, seed, days, every, hard_sat, mock_sat, cold_per_mock,
                     weakest = min(verdict, key=lambda m: recall[m])
                     verdict[weakest] = "struggled"
             clean = all(v == "clean" for v in verdict.values())
+            for m, v in verdict.items():
+                was = touched.get(m, (False, False))
+                touched[m] = (was[0] or m == target, was[1] or v == "struggled")
             budget -= price(kind if kind in per_kind else "Medium", clean)
             evidence[fname] = {"date": day.isoformat(), "problem": problem,
                                "moves": verdict}
@@ -477,6 +584,19 @@ def _run(hours, seed, days, every, hard_sat, mock_sat, cold_per_mock,
             seen.add(problem)
         dry_days += solves_today == 0
         short_days += budget > hours * 30
+        author_budget += rate
+        while author_budget >= 1:
+            cands = [n for n in touched if not kg_lib.has_drill_bank(n)]
+            cands.sort(key=lambda n: (not touched[n][0], not touched[n][1], recall[n]))
+            if not cands:
+                cands = sorted((n for n in nodes if not kg_lib.has_drill_bank(n)),
+                               key=lambda n: recall[n])
+            if not cands:
+                break  # every node has a bank
+            files = rng.choice(size_pool)
+            bank.author(cands[0], files)
+            authored_files += files
+            author_budget -= 1
         practice = (mediums, recognition_practice(0, cold), hards)
         _, onsite, screen, phard = rates(day, practice, recall)
         end = {s: 0 for s in (SOLID, STALE, FRAGILE, MISSING)}
@@ -497,7 +617,9 @@ def _run(hours, seed, days, every, hard_sat, mock_sat, cold_per_mock,
     return {"day": day_no, "start": start, "onsite": onsite, "hours": hours,
             "source": src, "per_kind": per_kind, "dry_days": dry_days,
             "short_days": short_days, "rusty": rusty, "starved": starved,
-            "series": series}
+            "series": series,
+            "authored": {"nodes": len(bank.authored), "files": authored_files,
+                         "rate": rate, "source": rate_src}}
 
 
 def main():
@@ -522,9 +644,13 @@ def main():
                         help="share of drafted walks that are wrong: such a cold "
                         "problem needs a move the walk did not name, at the "
                         "derive rate (drafts score P 0.80 vs evidenced walks)")
+    parser.add_argument("--bank-rate", type=float, default=None,
+                        help="new drill banks authored per day; default: the "
+                        "measured rate over the last 28 days, 0 = the bank as it is")
     args = parser.parse_args()
     r = run(args.hours, args.seed, args.days, args.every, args.hard_sat,
-            args.mock_sat, args.cold_per_mock, args.draft_error)
+            args.mock_sat, args.cold_per_mock, args.draft_error,
+            bank_rate=args.bank_rate)
     day_no, onsite, hours = r["day"], r["onsite"], r["hours"]
     print()
     if onsite >= TARGET_ONSITE:
@@ -534,6 +660,9 @@ def main():
         print(f"not reached in {day_no} days (P(onsite) {onsite:.0%})")
     print("solves: " + ", ".join(f"{k} {v}" for k, v in r["per_kind"].items())
           + f"; {sum(r['per_kind'].values())} in {day_no} days at {hours:g}h/day")
+    a = r["authored"]
+    print(f"drills authored: {a['files']} files for {a['nodes']} nodes "
+          f"at {a['rate']:g} banks/day ({a['source']})")
     print(f"picker dry: {r['dry_days']} days served nothing, {r['short_days']} "
           f"days ran out before half the hours were used")
     worst = max(s + f for _, s, f, _ in r["rusty"]) if r["rusty"] else 0
