@@ -7540,6 +7540,16 @@
       },
       "note": "Runs individual BFS per land cell instead of seeding one BFS with all lands.",
       "summary": "The code uses BFS to compute distances from each land cell to all others, collecting distance matrices, then filters for cells where all distances are equal and non-zero. It exercises graph-bfs-shortest but avoids the canonical multi-source-bfs technique, which would seed a single queue with all land cells at distance 0 and expand outward in rings. The author's note confirms awareness that this is suboptimal. The approach happens to work correctly on the symmetric test cases provided but is inefficient for larger or asymmetric grids."
+    },
+    "solved/p994_Rotting_Oranges_2026_09_03T11_23_37_995091_00_00Z.py": {
+      "date": "2026-09-03",
+      "problem": "994",
+      "moves": {
+        "multi-source-bfs": "clean",
+        "graph-bfs-shortest": "clean",
+        "running-extreme": "clean"
+      },
+      "summary": "The solution uses multi-source BFS seeded with all initially rotten oranges (grid value 2), expanding in waves where each wave represents one time unit. It tracks the maximum distance reached via `res = max(res, dist)`, applying the running-extreme pattern. After BFS completes, it checks whether any fresh oranges (grid value 1) remain to return either the time or -1. All canonical moves are exercised cleanly, and all test cases pass."
     }
   }
 }
