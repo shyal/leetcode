@@ -1,0 +1,235 @@
+#!/usr/bin/env python3
+
+# kg_rep - what do we know about this problem or drill?
+#
+#   make rep                 # the thing in current.py
+#   make rep 1004            # a problem, by number
+#   make rep d44             # a drill, by graph id
+#   make rep "Paid Orders Per Customer"   # a drill, by DRILL title
+#   make rep sql-join-left-keep           # a node: its reps and its bank
+#   utils/kg/kg_rep --line   # one line, for the UserPromptSubmit hook
+#
+# One question, one command: is this a first rep or not, how did the
+# earlier reps go, and where do the moves it trains stand. Reading the
+# graph by hand for this took several queries every time (2026-09-03).
+#
+# The first rep of a drill or problem is first exposure to it, whatever
+# the status of the nodes it trains: the drill can add a piece none of the
+# nodes' earlier drills showed. On "i don't know" at rep 1 the answer is
+# given (CLAUDE.md, Coaching).
+
+import argparse
+import glob
+import os
+import re
+import sys
+
+from kg.kg_lib import (
+    REPO_ROOT, DRILLS_DIR, load_problems, load_evidence, load_nodes,
+    ev_index, node_eval, assist_of, assist_tag, drills, drill_path,
+    drill_title, drill_solved_stem, drill_id, drill_after, SOLID, STALE,
+    FRAGILE, MISSING,
+)
+
+CURRENT = os.path.join(REPO_ROOT, "current.py")
+
+
+def parse_current(path=CURRENT):
+    """("drill", title) or ("problem", number) from the first docstring of
+    current.py; (None, None) when it holds neither."""
+    try:
+        with open(path) as f:
+            content = f.read()
+    except OSError:
+        return None, None
+    m = re.search(r'"""(.*?)"""', content, re.DOTALL)
+    if not m:
+        return None, None
+    for line in m.group(1).splitlines():
+        line = line.strip()
+        d = re.match(r"\**DRILL:\**\s*(.+)", line)
+        if d:
+            return "drill", d.group(1).strip()
+        p = re.match(r"(\d+[a-zA-Z]?)\.\s+\S", line)
+        if p:
+            return "problem", p.group(1)
+    return None, None
+
+
+def resolve(ref, problems):
+    """("drill", bank path) / ("problem", number) / ("node", id) / (None, ref)."""
+    if ref is None:
+        kind, key = parse_current()
+        if kind == "drill":
+            return "drill", drill_path(key) or key
+        return kind, key
+    ref = str(ref)
+    if ref in problems:
+        return "problem", ref
+    if ref in load_nodes():
+        return "node", ref
+    if os.path.isfile(ref):
+        return "drill", os.path.abspath(ref)
+    path = drill_path(ref)
+    if path:
+        return "drill", path
+    return None, ref
+
+
+def drill_reps(path, evidence):
+    """[(date, fname, rec)] of this bank drill, oldest first."""
+    if not os.path.isfile(path):
+        # a title with no bank file: match on the title alone
+        stem = re.sub(r"[^\w\s-]", "", os.path.basename(path)).strip().replace(" ", "_")
+    else:
+        stem = drill_solved_stem(path)
+    key = f"d_{stem}_".lower()
+    reps = [(d, base, rec) for d, base, rec in ev_index(evidence).drills
+            if base.startswith(key)]
+    return sorted(reps, key=lambda t: t[:2])
+
+
+def problem_reps(pnum, evidence):
+    reps = ev_index(evidence).by_problem.get(str(pnum), [])
+    return sorted(reps, key=lambda t: (t[0], t[1]))
+
+
+def trains_of(path):
+    try:
+        with open(path) as f:
+            m = re.search(r"^\s*\**TRAINS:\**\s*([a-z0-9\-, ]+)$", f.read(), flags=re.M)
+    except OSError:
+        return []
+    return [t.strip() for t in m.group(1).split(",") if t.strip()] if m else []
+
+
+def node_line(node, evidence, today=None):
+    status, last, _ = node_eval(node, evidence, today)
+    entries = ev_index(evidence).by_node.get(node, [])
+    clean = [e for e in entries if e[1] == "clean"]
+    unaided = [e for e in clean if e[2] == "none"]
+    latest = max(entries, key=lambda e: (e[0], e[3])) if entries else None
+    tail = ""
+    if latest:
+        d, v, a, fname, _ = latest
+        tail = f"  last {d} {v}" + (f" ({a})" if a != "none" else "") + \
+            f"  {os.path.basename(fname)}"
+    return (f"  {node:<28} {status:<8} reps {len(entries)} "
+            f"(clean {len(clean)}, unaided {len(unaided)}){tail}")
+
+
+def rep_lines(reps):
+    out = []
+    for n, (d, fname, rec) in enumerate(reps, 1):
+        moves = rec.get("moves", {})
+        verdict = ", ".join(f"{m}={v}" for m, v in moves.items()) or "-"
+        a = rec.get("assist")
+        assist = assist_tag(a) if a else "none"
+        line = f"  rep {n}  {d}  {verdict}  assist {assist}"
+        note = rec.get("note")
+        if note:
+            line += f"\n         {note[:140]}"
+        out.append(line)
+    return out
+
+
+def first_rep_verdict(n):
+    if n == 0:
+        return "FIRST REP: first exposure. On \"i don't know\" give the answer."
+    return f"rep {n + 1}: not first exposure. No answer unless asked."
+
+
+def report_drill(path, evidence, today=None):
+    reps = drill_reps(path, evidence)
+    title = drill_title(path) if os.path.isfile(path) else os.path.basename(path)
+    did = drill_id(path) if os.path.isfile(path) else None
+    rel = os.path.relpath(path, REPO_ROOT) if os.path.isfile(path) else "(no bank file)"
+    lines = [f"drill: {title}  {did or ''}  {rel}".rstrip()]
+    after = drill_after(path) if os.path.isfile(path) else []
+    if after:
+        lines.append(f"after: {', '.join(after)}")
+    lines.append(first_rep_verdict(len(reps)))
+    lines += rep_lines(reps)
+    trains = trains_of(path) if os.path.isfile(path) else []
+    if trains:
+        lines.append("trains:")
+        lines += [node_line(n, evidence, today) for n in trains]
+    return lines
+
+
+def report_problem(pnum, problems, evidence, today=None):
+    p = problems.get(str(pnum), {})
+    reps = problem_reps(pnum, evidence)
+    lines = [f"problem: {pnum}. {p.get('title', '?')}  {p.get('difficulty', '')}".rstrip()]
+    if p.get("after"):
+        lines.append(f"after: {', '.join(map(str, p['after']))}")
+    lines.append(first_rep_verdict(len(reps)))
+    lines += rep_lines(reps)
+    if p.get("moves"):
+        lines.append("moves:")
+        lines += [node_line(n, evidence, today) for n in p["moves"]]
+    return lines
+
+
+def report_node(node, evidence, today=None):
+    lines = ["node:", node_line(node, evidence, today)]
+    bank = sorted(glob.glob(os.path.join(DRILLS_DIR, node, "*.py")))
+    if bank:
+        lines.append("bank:")
+        for path in bank:
+            n = len(drill_reps(path, evidence))
+            lines.append(f"  {os.path.relpath(path, REPO_ROOT):<60} reps {n}")
+    return lines
+
+
+def one_line(kind, key, problems, evidence):
+    """The hook line: what current.py holds, its rep number, node statuses."""
+    if kind == "drill":
+        path = key
+        reps = drill_reps(path, evidence)
+        title = drill_title(path) if os.path.isfile(path) else os.path.basename(path)
+        nodes = trains_of(path) if os.path.isfile(path) else []
+        head = f'drill "{title}"'
+    elif kind == "problem":
+        reps = problem_reps(key, evidence)
+        nodes = problems.get(str(key), {}).get("moves", [])
+        head = f"problem {key}"
+    else:
+        return None
+    n = len(reps) + 1
+    rep = "rep 1 = FIRST EXPOSURE, answer on \"i don't know\"" if n == 1 else \
+        f"rep {n} (last {reps[-1][0]}), no answer unless asked"
+    st = ", ".join(f"{m} {node_eval(m, evidence)[0]}" for m in nodes)
+    return f"[current: {head}, {rep} | {st}]"
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("ref", nargs="*", help="problem number, drill id/title/path, node id; default current.py")
+    ap.add_argument("--line", action="store_true", help="one line for the prompt hook")
+    args = ap.parse_args()
+
+    problems = load_problems()
+    evidence = load_evidence()
+    kind, key = resolve(" ".join(args.ref) if args.ref else None, problems)
+
+    if args.line:
+        line = one_line(kind, key, problems, evidence)
+        if line:
+            print(line)
+        return
+
+    if kind == "drill":
+        lines = report_drill(key, evidence)
+    elif kind == "problem":
+        lines = report_problem(key, problems, evidence)
+    elif kind == "node":
+        lines = report_node(key, evidence)
+    else:
+        print(f"nothing known for {key!r}" if key else "current.py holds no problem or drill")
+        sys.exit(1)
+    print("\n".join(lines))
+
+
+if __name__ == "__main__":
+    main()
