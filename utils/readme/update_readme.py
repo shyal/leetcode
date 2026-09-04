@@ -111,6 +111,13 @@ def main():
         s3_key_elo_badge = upload_svg_gz("graph/elo_badge.svg", "elo_badge")
         elo_badge = f"![Elo](https://shyal.s3.amazonaws.com/{s3_key_elo_badge})"
 
+    # Streak of solving days (utils/readme/kg_streak_svg): a badge with the
+    # current run and the best one.
+    streak_badge = ""
+    if os.path.exists("graph/streak_badge.svg"):
+        s3_key_streak_badge = upload_svg_gz("graph/streak_badge.svg", "streak_badge")
+        streak_badge = f"![Streak](https://shyal.s3.amazonaws.com/{s3_key_streak_badge})"
+
     # One projection-stability chart: each model's projected ready date over
     # run date, recomputed on the fly for EVERY day since the first evidence
     # record (no stored snapshots): kg_mock --history-json replays the
@@ -336,6 +343,21 @@ def main():
         s3_key_kg_3d = upload_svg_gz("graph/kg_3d.svg", "kg_3d")
         kg_3d_img = f"![The technique graph in three dimensions, turning while the history replays](https://shyal.s3.amazonaws.com/{s3_key_kg_3d})"
 
+    # The whole graph (utils/readme/kg_full_svg): every node, problem and
+    # drill with every edge, on the same clock; solves blink their vertex.
+    kg_full_img = ""
+    if os.path.exists("graph/kg_full.svg"):
+        s3_key_kg_full = upload_svg_gz("graph/kg_full.svg", "kg_full")
+        kg_full_img = f"![Every node, problem and drill with every edge, each solve blinking its vertex](https://shyal.s3.amazonaws.com/{s3_key_kg_full})"
+
+    # The graph as a picture (utils/readme/kg_compression_svg): one tile per
+    # node, one cell per problem or drill in it; a new node splits a tile,
+    # a solve lights a cell. Same SMIL pipeline as kg_full.
+    kg_compression_img = ""
+    if os.path.exists("graph/kg_compression.svg"):
+        s3_key_kg_compression = upload_svg_gz("graph/kg_compression.svg", "kg_compression")
+        kg_compression_img = f"![One tile per node, one cell per problem or drill; tiles split as nodes are added, cells light as they are solved](https://shyal.s3.amazonaws.com/{s3_key_kg_compression})"
+
     # push everything queued above concurrently; boto3 clients are thread-safe.
     # Any failure raises here, before the README is touched.
     with ThreadPoolExecutor(max_workers=10) as pool:
@@ -390,10 +412,16 @@ def main():
     readme = fill(readme, "SOLVES_CHART", rates_img)
     readme = fill(readme, "COMMITS_CHART", commits_img)
     readme = fill(readme, "ELO_CHART", elo_img)
-    readme = fill(readme, "ELO_BADGE", elo_badge)
+    # the badges share one line with the tests badge, so inline regions
+    if elo_badge:
+        readme = fill_inline(readme, "ELO_BADGE", elo_badge)
+    if streak_badge:
+        readme = fill_inline(readme, "STREAK_BADGE", streak_badge)
     readme = fill(readme, "READINESS_PROJECTION_CHART", projection_img)
     readme = fill(readme, "KG_MOVIE", kg_movie_img)
     readme = fill(readme, "KG_3D", kg_3d_img)
+    readme = fill(readme, "KG_FULL", kg_full_img)
+    readme = fill(readme, "KG_COMPRESSION", kg_compression_img)
     readme = fill(readme, "MOCK_SWARM_CHART", mock_swarm_img)
     readme = fill(readme, "MOCK_BLAME_CHART", mock_blame_img)
     readme = fill(readme, "POSITIONS_SVG", positions_svg_img)

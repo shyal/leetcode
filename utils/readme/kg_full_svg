@@ -1,0 +1,372 @@
+#!/usr/bin/env python3
+
+# kg_full_svg - the whole graph in three dimensions: every node, every
+# problem and every drill as a vertex, every edge between them, slowly
+# turning while the evidence history replays over it, written to
+# graph/kg_full.svg.
+#
+#   make readme                  # regenerates it (see the makefile)
+#   utils/readme/kg_full_svg 12  # 12 s history loop; the turn takes 3x that
+#
+# The vertices are the graph's three kinds: nodes (nodes.json), problems
+# (problems.json plus every number evidence.json names) and drills
+# (drills.json). The edges are every relation the graph records: a node's
+# prereqs, a problem's moves (its walk, its alt_walks and the moves its
+# solves evidenced), a drill's TRAINS moves, and the "after" lists of
+# problems and drills. Problem numbers and drill ids are always on screen.
+# A vertex flashes gold at the moment each of its solves happened, then
+# stays lit. Layout, projection and clock are kg_3d_svg's: nodes near the
+# centre, problems and drills on a shell around them. Pure SMIL, so it
+# animates inside GitHub's <img> pipeline.
+
+import math
+import os
+import sys
+from datetime import date, timedelta
+
+from kg.kg_lib import (FRAGILE, GRAPH_DIR, MISSING, SOLID, STALE, MovieClock, drill_path,
+                       drill_trains, drills, era_banner, exercises_by_day, load_evidence,
+                       load_nodes, load_problems, node_status)
+
+OUT = os.path.join(GRAPH_DIR, "kg_full.svg")
+
+W, H = 1000, 720
+CX, CY = W / 2, H / 2 + 24
+FRAMES = 64              # keyframes per turn (linear interpolation between)
+TURNS_PER_LOOP = 3       # one turn lasts this many history loops
+TILT = math.radians(22)
+CAMERA = 3.6
+SCALE = 310.0            # layout unit -> px at depth 0
+NODE_R = 6.0
+VERTEX_R = 2.6           # a problem or drill
+SHELL = 1.0              # radius problems and drills are pulled to; nodes sit at 0.6
+FLASH_FRACTION = 0.03    # a solve's gold blink, as a share of the loop
+BLINKS = 3               # gold on-off cycles per solve
+LAYOUT_SEED = 7
+
+BG = "#0d1117"
+INK = "#c9d1d9"
+MUTED = "#8b949e"
+DIM = "#3d444d"          # an unsolved problem or drill
+LIT = "#79c0ff"          # a solved one
+EDGE = "#30363d"
+EDGE_LIT = "#58a6ff"
+EDGE_DIM = "#2b323b"     # an edge into an unsolved problem or drill
+GOLD = "#ffd75f"
+FILL = {SOLID: "#238636", STALE: "#bb8009", FRAGILE: "#da3633", MISSING: "#6e7681"}
+
+
+def layout(nodes, verts, edges):
+    """id -> (x, y, z) in a unit ball. Group centres sit on a sphere of
+    radius 0.6; each node is pulled to its group's centre. Each problem or
+    drill is pulled to the mean of its neighbours and out to the SHELL.
+    Every vertex is pushed away from every other, and every edge pulls its
+    ends together."""
+    import numpy as np
+    rng = np.random.default_rng(LAYOUT_SEED)
+    ids = sorted(nodes) + sorted(v for v in verts if v not in nodes)
+    idx = {vid: i for i, vid in enumerate(ids)}
+    n = len(ids)
+    groups = sorted({nd["group"] for nd in nodes.values()})
+    centre = {}
+    for i, g in enumerate(groups):
+        y = 1 - 2 * (i + 0.5) / len(groups)
+        r = math.sqrt(1 - y * y)
+        phi = i * math.pi * (3 - math.sqrt(5))
+        centre[g] = 0.6 * np.array([r * math.cos(phi), y, r * math.sin(phi)])
+    is_node = np.array([vid in nodes for vid in ids])
+    C = np.zeros((n, 3))
+    for vid in nodes:
+        C[idx[vid]] = centre[nodes[vid]["group"]]
+    E = [(idx[a], idx[b]) for a, b in edges if a in idx and b in idx]
+    A = np.array([a for a, _ in E]) if E else np.zeros(0, int)
+    B = np.array([b for _, b in E]) if E else np.zeros(0, int)
+    # start every problem and drill at the mean of its node neighbours
+    P = rng.normal(0, 0.15, (n, 3))
+    P[is_node] += C[is_node]
+    for _ in range(3):
+        nb = np.zeros((n, 3))
+        cnt = np.zeros(n)
+        for a, b in E:
+            nb[a] += P[b]
+            cnt[a] += 1
+        has = (cnt > 0) & ~is_node
+        P[has] = nb[has] / cnt[has, None] + rng.normal(0, 0.05, (has.sum(), 3))
+    for it in range(300):
+        d = P[:, None, :] - P[None, :, :]
+        dist = np.linalg.norm(d, axis=2) + np.eye(n)
+        rep = (d / dist[:, :, None] ** 3 * 0.0008).sum(axis=1)
+        att = np.zeros((n, 3))
+        att[is_node] = (C[is_node] - P[is_node]) * 0.08
+        radial = np.linalg.norm(P, axis=1)[:, None] + 1e-9
+        att[~is_node] += (P[~is_node] / radial[~is_node]) * (SHELL - radial[~is_node]) * 0.05
+        if len(E):
+            v = (P[B] - P[A]) * 0.02
+            np.add.at(att, A, v)
+            np.add.at(att, B, -v)
+        step = 1.0 - it / 300
+        P += (rep + att) * step
+    P -= P[is_node].mean(axis=0)
+    P /= np.linalg.norm(P, axis=1).max()
+    return {vid: tuple(P[idx[vid]]) for vid in ids}
+
+
+def project(p, theta):
+    x, y, z = p
+    ct, st = math.cos(theta), math.sin(theta)
+    x, z = x * ct - z * st, x * st + z * ct
+    cy, sy = math.cos(TILT), math.sin(TILT)
+    y, z = y * cy - z * sy, y * sy + z * cy
+    f = CAMERA / (CAMERA - z)
+    return CX + x * SCALE * f, CY - y * SCALE * f, f
+
+
+def frames(p):
+    return [project(p, 2 * math.pi * i / FRAMES) for i in range(FRAMES + 1)]
+
+
+def depth_alpha(f):
+    lo, hi = CAMERA / (CAMERA + 1), CAMERA / (CAMERA - 1)
+    t = (f - lo) / (hi - lo)
+    return 0.2 + 0.8 * max(0.0, min(1.0, t)) ** 1.5
+
+
+def anim(attr, values, dur):
+    return (f'<animate attributeName="{attr}" calcMode="linear" values="{";".join(values)}" '
+            f'dur="{dur}s" repeatCount="indefinite"/>')
+
+
+def fmt_t(t):
+    return f"{t:.4f}".rstrip("0").rstrip(".") or "0"
+
+
+def discrete(attr, values, times, dur):
+    """A discrete track; a constant when the track never changes."""
+    if len(values) == 1:
+        return ""
+    return (f'<animate attributeName="{attr}" calcMode="discrete" values="{";".join(values)}" '
+            f'keyTimes="{";".join(fmt_t(t) for t in times)}" dur="{dur}s" repeatCount="indefinite"/>')
+
+
+def status_track(days, clock):
+    vals, times = [days[0]], [0.0]
+    for i in range(1, len(days)):
+        if days[i] != days[i - 1]:
+            vals.append(days[i])
+            times.append(clock.frac(i))
+    return vals, times
+
+
+def push_key(times, t):
+    """Strictly increasing keyTimes, or Chrome discards the whole animation."""
+    if times and t <= times[-1]:
+        t = times[-1] + 1e-5
+    times.append(min(t, 1.0))
+
+
+def flash_track(borns, off, on, clock):
+    """(values, keyTimes) of a fill that blinks gold BLINKS times at each
+    solve moment and is `on` from the first solve onward, `off` before."""
+    values, times = [off], [0.0]
+    step = FLASH_FRACTION * clock.ticks_end / (2 * BLINKS)
+    for b in borns:
+        for k in range(BLINKS):
+            push_key(times, b + 2 * k * step)
+            values.append(GOLD)
+            push_key(times, b + (2 * k + 1) * step)
+            values.append(on)
+    return values, times
+
+
+def gate(days, clock):
+    """A <g ...> opening a group whose opacity is 1 on the days the flag holds."""
+    v, t = status_track(["1" if d else "0" for d in days], clock)
+    if len(v) == 1:
+        return f'<g opacity="{v[0]}">'
+    return f'<g opacity="{v[0]}">' + discrete("opacity", v, t, clock.dur)
+
+
+def main():
+    seconds = float(sys.argv[1]) if len(sys.argv) > 1 else None
+    nodes = load_nodes()
+    problems = load_problems()
+    evidence = load_evidence()
+    reg = drills()
+    clock = MovieClock(evidence, seconds) if seconds else MovieClock(evidence)
+    turn = clock.dur * TURNS_PER_LOOP
+
+    # vertices and edges. A problem's moves are the union of its walk, its
+    # alt_walks and what its solves evidenced; a drill's are its TRAINS
+    # line and what its reps evidenced.
+    by_day = exercises_by_day(evidence)
+    evidenced = {}
+    for rows in by_day.values():
+        for label, moves in rows:
+            evidenced.setdefault(label, set()).update(moves)
+    probs = sorted(set(problems) | {k for k in evidenced if k[:1].isdigit()})
+    edges = set()
+    for nid, nd in nodes.items():
+        for p in nd.get("prereqs", []):
+            if p in nodes:
+                edges.add((nid, p))
+    for pid in probs:
+        pr = problems.get(pid, {})
+        moves = set(pr.get("moves", [])) | evidenced.get(pid, set())
+        for w in pr.get("alt_walks", []):
+            moves.update(w)
+        for m in moves:
+            if m in nodes:
+                edges.add((pid, m))
+        for a in pr.get("after", []):
+            edges.add((pid, str(a)))
+    for did, d in reg.items():
+        path = drill_path(did)
+        moves = set(drill_trains(path) if path else []) | evidenced.get(did, set())
+        for m in moves:
+            if m in nodes:
+                edges.add((did, m))
+        for a in d.get("after", []):
+            edges.add((did, str(a)))
+    verts = set(nodes) | set(probs) | set(reg)
+    edges = sorted(e for e in edges if e[0] in verts and e[1] in verts and e[0] != e[1])
+    pts = layout(nodes, verts, edges)
+
+    # per-node status for every tick, from the prefix of the history
+    by_date = sorted(evidence.items(), key=lambda kv: kv[1]["date"])
+    seen, k = {}, 0
+    status = {nid: [] for nid in nodes}
+    for i in range(clock.n_ticks):
+        day = clock.first + timedelta(days=i)
+        while k < len(by_date) and by_date[k][1]["date"] <= day.isoformat():
+            seen[by_date[k][0]] = by_date[k][1]
+            k += 1
+        for nid in nodes:
+            status[nid].append(node_status(nid, seen, day)[0])
+    present = {nid: [(clock.first + timedelta(days=i)).isoformat() >= n.get("added", "")
+                     for i in range(clock.n_ticks)] for nid, n in nodes.items()}
+
+    # the moment of every solve of every problem and drill, as loop fractions
+    borns = {}
+    for i in range(clock.n_ticks):
+        day = (clock.first + timedelta(days=i)).isoformat()
+        rows = by_day.get(day, ())
+        for j, (label, _) in enumerate(rows):
+            if label in verts:
+                borns.setdefault(label, []).append(clock.frac(i + j / len(rows)))
+    n_flashes = sum(len(v) for v in borns.values())
+
+    proj = {vid: frames(p) for vid, p in pts.items()}
+    order = sorted(verts, key=lambda vid: proj[vid][0][2])
+    n_prereq = sum(1 for a, b in edges if a in nodes)
+
+    svg = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" '
+           f'viewBox="0 0 {W} {H}" font-family="Helvetica, Arial, sans-serif">',
+           f'<rect width="{W}" height="{H}" fill="{BG}"/>',
+           f'<text x="24" y="34" fill="{INK}" font-size="20" font-weight="bold">the whole graph</text>',
+           f'<text x="24" y="56" fill="{MUTED}" font-size="13">{len(nodes)} moves, {len(probs)} problems, '
+           f'{len(reg)} drills, {len(edges)} edges; a problem or drill blinks gold as it is solved</text>']
+
+    months, m = [], date(clock.first.year, clock.first.month, 1)
+    while m <= clock.last:
+        months.append(m)
+        m = date(m.year + (m.month == 12), m.month % 12 + 1, 1)
+    for i, m in enumerate(months):
+        fs = clock.frac(max((m - clock.first).days, 0))
+        nxt = months[i + 1] if i + 1 < len(months) else None
+        fe = clock.frac((nxt - clock.first).days) if nxt else 1.0
+        lab = m.strftime("%b '%y").lower()
+        vals, times = ("0;1;0", f"0;{fs:.4f};{fe:.4f}") if fs > 0 else ("1;0", f"0;{fe:.4f}")
+        if not nxt:
+            vals, times = ("0;1", f"0;{fs:.4f}") if fs > 0 else ("1", "0")
+        svg.append(f'<text x="{W - 24}" y="34" fill="{INK}" font-size="16" '
+                   f'text-anchor="end" opacity="0">{lab}'
+                   f'<animate attributeName="opacity" calcMode="discrete" values="{vals}" '
+                   f'keyTimes="{times}" dur="{clock.dur}s" repeatCount="indefinite"/></text>')
+    svg.extend(era_banner(clock, W - 24, 60, 18, anchor="end"))
+
+    # edges, back to front. A node-node edge is lit while both ends are
+    # present in the evidence; any other edge lights when its source is
+    # first solved. Node edges are gated on the node's presence.
+    edges.sort(key=lambda e: proj[e[0]][0][2] + proj[e[1]][0][2])
+    for a, b in edges:
+        d = [f"M{fa[0]:.0f},{fa[1]:.0f}L{fb[0]:.0f},{fb[1]:.0f}"
+             for fa, fb in zip(proj[a], proj[b])]
+        if a in nodes:
+            lit = [EDGE_LIT if sa != MISSING and sb != MISSING else EDGE
+                   for sa, sb in zip(status[a], status[b])]
+            lv, lt = status_track(lit, clock)
+            both = [pa and pb for pa, pb in zip(present[a], present[b])]
+            width, op = 1.2, 0.7
+        else:
+            first = borns.get(a)
+            lv, lt = ([EDGE_DIM, EDGE], [0.0, first[0]]) if first else ([EDGE_DIM], [0.0])
+            both = present[b] if b in nodes else [True] * clock.n_ticks
+            width, op = 0.6, 0.55
+        svg.append(gate(both, clock)
+                   + f'<path fill="none" stroke="{lv[0]}" stroke-width="{width}" opacity="{op}" d="{d[0]}">'
+                   + anim("d", d, turn) + discrete("stroke", lv, lt, clock.dur) + '</path></g>')
+
+    # vertices, back to front
+    svg.append(f'<g font-family="Menlo, monospace" font-size="6">')
+    for vid in order:
+        fr = proj[vid]
+        tr = [f"{x:.1f},{y:.1f}" for x, y, _ in fr]
+        sc = [f"{f:.3f}" for _, _, f in fr]
+        op = [f"{depth_alpha(f):.2f}" for _, _, f in fr]
+        head = (f'<g transform="translate({tr[0]}) scale({sc[0]})">'
+                f'<animateTransform attributeName="transform" type="translate" calcMode="linear" '
+                f'values="{";".join(tr)}" dur="{turn}s" repeatCount="indefinite"/>'
+                f'<animateTransform attributeName="transform" type="scale" additive="sum" '
+                f'calcMode="linear" values="{";".join(sc)}" dur="{turn}s" repeatCount="indefinite"/>'
+                + anim("opacity", op, turn))
+        if vid in nodes:
+            sv, st = status_track([FILL[s] for s in status[vid]], clock)
+            fill_anim = discrete("fill", sv, st, clock.dur)
+            svg.append(
+                gate(present[vid], clock) + head
+                + f'<circle r="{NODE_R * 1.9:.1f}" fill="{sv[0]}" opacity="0.22">{fill_anim}</circle>'
+                f'<circle r="{NODE_R}" fill="{sv[0]}" stroke="{BG}" stroke-width="1.2">{fill_anim}</circle>'
+                f'<text x="{NODE_R + 3:.0f}" y="3" fill="{INK}" font-family="Helvetica, Arial, sans-serif" '
+                f'font-size="8">{vid}</text></g></g>')
+            continue
+        fv, ft = flash_track(borns.get(vid, []), DIM, LIT, clock)
+        fill_anim = discrete("fill", fv, ft, clock.dur)
+        lv, lt = flash_track(borns.get(vid, []), "#6e7681", INK, clock)
+        if vid in reg:
+            shape = (f'<rect x="{-VERTEX_R}" y="{-VERTEX_R}" width="{2 * VERTEX_R}" height="{2 * VERTEX_R}" '
+                     f'transform="rotate(45)" fill="{fv[0]}">{fill_anim}</rect>')
+        else:
+            shape = f'<circle r="{VERTEX_R}" fill="{fv[0]}">{fill_anim}</circle>'
+        svg.append(head + shape
+                   + f'<text x="{VERTEX_R + 1.5:.1f}" y="2.2" fill="{lv[0]}">{vid}'
+                   + discrete("fill", lv, lt, clock.dur) + '</text></g>')
+    svg.append("</g>")
+
+    # legend
+    x = 24
+    for s in (SOLID, STALE, FRAGILE, MISSING):
+        svg.append(f'<circle cx="{x + 5}" cy="{H - 24}" r="5" fill="{FILL[s]}"/>')
+        svg.append(f'<text x="{x + 16}" y="{H - 20}" fill="{MUTED}" font-size="12">{s.lower()}</text>')
+        x += 80
+    x += 20
+    svg.append(f'<circle cx="{x + 5}" cy="{H - 24}" r="3" fill="{LIT}"/>')
+    svg.append(f'<text x="{x + 16}" y="{H - 20}" fill="{MUTED}" font-size="12">problem</text>')
+    x += 80
+    svg.append(f'<rect x="{x + 2}" y="{H - 27}" width="6" height="6" transform="rotate(45 {x + 5} {H - 24})" fill="{LIT}"/>')
+    svg.append(f'<text x="{x + 16}" y="{H - 20}" fill="{MUTED}" font-size="12">drill</text>')
+    x += 70
+    svg.append(f'<circle cx="{x + 5}" cy="{H - 24}" r="3" fill="{DIM}"/>')
+    svg.append(f'<text x="{x + 16}" y="{H - 20}" fill="{MUTED}" font-size="12">not solved yet</text>')
+    x += 120
+    svg.append(f'<circle cx="{x + 5}" cy="{H - 24}" r="3" fill="{GOLD}"/>')
+    svg.append(f'<text x="{x + 16}" y="{H - 20}" fill="{MUTED}" font-size="12">solved now</text>')
+    svg.append(clock.dissolve_rect(W, H, BG))
+    svg.append("</svg>")
+    with open(OUT, "w") as f:
+        f.write("\n".join(svg) + "\n")
+    print(f"wrote {OUT} ({len(verts)} vertices, {len(edges)} edges, {n_flashes} solves, {clock.n_ticks} ticks "
+          f"on the {clock.dur:.0f}s loop, one turn per {turn:.0f}s, {os.path.getsize(OUT) // 1024} KB)")
+
+
+if __name__ == "__main__":
+    main()

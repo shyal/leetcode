@@ -1,0 +1,338 @@
+#!/usr/bin/env python3
+
+# kg_compression_svg - the graph as a picture whose resolution rises with
+# time, written to graph/kg_compression.svg.
+#
+#   make readme                         # regenerates it (see the makefile)
+#   utils/readme/kg_compression_svg 12  # 12 s history loop
+#
+# The canvas is a rectangle. Every node is a tile in it, and every tile is
+# filled with cells: one small square per problem that walks the node and
+# one small diamond per drill that trains it. The first node owns the whole
+# canvas. Each later node, on the day it entered the taxonomy, splits the
+# tile of the present node that shares a problem with it and holds the
+# most area above its fair share (any node's tile when none shares),
+# taking the share of it that its own member count is worth, clamped. So the picture starts as a few big blocks and ends as the
+# whole taxonomy, one tile per node. A cell blinks gold when its problem or
+# drill is solved and stays lit; a tile's border follows the node's status
+# day by day on the shared MovieClock, so this, kg_movie and the other
+# replays show the same history at the same moment. Pure SMIL, so it
+# animates inside GitHub's <img> pipeline.
+
+import math
+import os
+import sys
+from datetime import date, timedelta
+
+from kg.kg_lib import (FRAGILE, GRAPH_DIR, MISSING, SOLID, STALE, MovieClock, drill_path,
+                       drill_trains, drills, era_banner, exercises_by_day, load_evidence,
+                       load_nodes, load_problems, node_status, pnum_key)
+
+OUT = os.path.join(GRAPH_DIR, "kg_compression.svg")
+
+W, H = 1000, 720
+TOP, BOTTOM, SIDE = 72, H - 44, 24   # the canvas the tiles fill
+TILE_GAP = 3.0           # between neighbouring tiles
+TILE_PAD = 4.0           # tile border to cell grid
+LABEL_H = 12.0           # room for the node id above the cells
+MAX_CELL = 40.0          # a cell never grows past this, however big its tile
+MIN_LABEL_W = 44.0       # a tile narrower than this carries no label
+SIZE_FLOOR = 3           # added to member counts so a one-member node is not a sliver
+MIN_SHARE, MAX_SHARE = 0.25, 0.6   # of its parent's tile, whatever the member counts say
+FLASH_FRACTION = 0.03    # a solve's gold blink, as a share of the loop
+BLINKS = 3               # gold on-off cycles per solve
+
+BG = "#0d1117"
+INK = "#c9d1d9"
+MUTED = "#8b949e"
+TILE = "#161b22"         # a tile's ground
+DIM = "#30363d"          # an unsolved problem or drill
+LIT = "#79c0ff"          # a solved one
+GOLD = "#ffd75f"
+FILL = {SOLID: "#238636", STALE: "#bb8009", FRAGILE: "#da3633", MISSING: "#6e7681"}
+
+
+def fmt_t(t):
+    return f"{t:.4f}".rstrip("0").rstrip(".") or "0"
+
+
+def discrete(attr, values, times, dur):
+    """A discrete track; a constant when the track never changes."""
+    if len(values) == 1:
+        return ""
+    return (f'<animate attributeName="{attr}" calcMode="discrete" values="{";".join(values)}" '
+            f'keyTimes="{";".join(fmt_t(t) for t in times)}" dur="{dur}s" repeatCount="indefinite"/>')
+
+
+def status_track(days, clock):
+    vals, times = [days[0]], [0.0]
+    for i in range(1, len(days)):
+        if days[i] != days[i - 1]:
+            vals.append(days[i])
+            times.append(clock.frac(i))
+    return vals, times
+
+
+def push_key(times, t):
+    """Strictly increasing keyTimes, or Chrome discards the whole animation."""
+    if times and t <= times[-1]:
+        t = times[-1] + 1e-5
+    times.append(min(t, 1.0))
+
+
+def flash_track(borns, off, on, clock):
+    """(values, keyTimes) of a fill that blinks gold BLINKS times at each
+    solve moment and is `on` from the first solve onward, `off` before."""
+    values, times = [off], [0.0]
+    step = FLASH_FRACTION * clock.ticks_end / (2 * BLINKS)
+    for b in borns:
+        for k in range(BLINKS):
+            push_key(times, b + 2 * k * step)
+            values.append(GOLD)
+            push_key(times, b + (2 * k + 1) * step)
+            values.append(on)
+    return values, times
+
+
+def window(t0, t1, clock):
+    """A <g ...> open only between two loop fractions (t1 None = to the end)."""
+    if t1 is None:
+        return (f'<g opacity="0"><animate attributeName="opacity" calcMode="discrete" values="0;1" '
+                f'keyTimes="0;{fmt_t(t0)}" dur="{clock.dur}s" repeatCount="indefinite"/>')
+    return (f'<g opacity="0"><animate attributeName="opacity" calcMode="discrete" values="0;1;0" '
+            f'keyTimes="0;{fmt_t(t0)};{fmt_t(t1)}" dur="{clock.dur}s" repeatCount="indefinite"/>')
+
+
+def members_of(nodes, problems, reg, evidenced):
+    """node -> sorted labels of the problems that walk it and the drills
+    that train it. A problem's moves are the union of its walk, its
+    alt_walks and what its solves evidenced; a drill's are its TRAINS line
+    and what its reps evidenced."""
+    mem = {nid: set() for nid in nodes}
+    probs = set(problems) | {k for k in evidenced if k[:1].isdigit()}
+    for pid in probs:
+        pr = problems.get(pid, {})
+        moves = set(pr.get("moves", [])) | evidenced.get(pid, set())
+        for w in pr.get("alt_walks", []):
+            moves.update(w)
+        for m in moves:
+            if m in mem:
+                mem[m].add(pid)
+    for did in reg:
+        path = drill_path(did)
+        moves = set(drill_trains(path) if path else []) | evidenced.get(did, set())
+        for m in moves:
+            if m in mem:
+                mem[m].add(did)
+
+    def key(label):
+        return (label[:1] == "d", int(label[1:]) if label[:1] == "d" else pnum_key(label))
+    return {nid: sorted(s, key=key) for nid, s in mem.items()}, len(probs)
+
+
+def split_history(nodes, mem, clock):
+    """node -> [(t_start, (x, y, w, h)), ...]: the tile each node holds from
+    each loop fraction on. Nodes enter in `added` order; each carves its
+    tile out of the present node sharing the most members with it."""
+    by_day = {}
+    for nid, nd in nodes.items():
+        by_day.setdefault(nd["added"], []).append(nid)
+    size = {nid: len(mem[nid]) + SIZE_FLOOR for nid in nodes}
+    rects, hist, parents = {}, {}, {}
+    for day in sorted(by_day):
+        batch = sorted(by_day[day], key=lambda n: -size[n])
+        off = (date.fromisoformat(day) - clock.first).days
+        for j, nid in enumerate(batch):
+            t = clock.frac(off + j / len(batch))
+            if not rects:
+                rects[nid] = (SIDE, TOP, W - 2 * SIDE, BOTTOM - TOP)
+                hist[nid] = [(t, rects[nid])]
+                continue
+            shared = set(mem[nid])
+            unit = (W - 2 * SIDE) * (BOTTOM - TOP) / (size[nid] + sum(size[p] for p in rects))
+            parent = max(rects, key=lambda p: (bool(shared & set(mem[p])),
+                                               rects[p][2] * rects[p][3] / (size[p] * unit)))
+            x, y, w, h = rects[parent]
+            f = min(max(size[nid] * unit / (w * h), MIN_SHARE), MAX_SHARE)
+            # split the way that leaves both pieces closest to square
+            def aspect(a, b):
+                return max(a / b, b / a)
+            if (aspect(f * w, h) + aspect((1 - f) * w, h)
+                    <= aspect(w, f * h) + aspect(w, (1 - f) * h)):
+                rects[parent] = (x, y, w * (1 - f), h)
+                rects[nid] = (x + w * (1 - f), y, w * f, h)
+            else:
+                rects[parent] = (x, y, w, h * (1 - f))
+                rects[nid] = (x, y + h * (1 - f), w, h * f)
+            hist[parent].append((t, rects[parent]))
+            hist[nid] = [(t, rects[nid])]
+            parents[nid] = parent
+    return hist, parents
+
+
+def cell_grid(rect, m):
+    """(cell side, [(x, y), ...]) for m cells inside a tile."""
+    x, y, w, h = rect
+    ix, iy = x + TILE_GAP / 2 + TILE_PAD, y + TILE_GAP / 2 + TILE_PAD
+    iw, ih = w - TILE_GAP - 2 * TILE_PAD, h - TILE_GAP - 2 * TILE_PAD
+    if w >= MIN_LABEL_W and ih > 2 * LABEL_H:
+        iy, ih = iy + LABEL_H, ih - LABEL_H
+    if m == 0 or iw <= 1 or ih <= 1:
+        return 0, []
+    cols = max(1, math.ceil(math.sqrt(m * iw / ih)))
+    rows = math.ceil(m / cols)
+    while cols > 1 and math.ceil(m / (cols - 1)) == rows:
+        cols -= 1
+    side = min(iw / cols, ih / rows, MAX_CELL)
+    gx, gy = ix + (iw - cols * side) / 2, iy + (ih - rows * side) / 2
+    return side, [(gx + (i % cols) * side, gy + (i // cols) * side) for i in range(m)]
+
+
+def tile(nid, rect, mem, borns, reg, fill_anim, fill0, clock):
+    """The <g> of one tile: its ground, border, label and cells."""
+    x, y, w, h = rect
+    g = TILE_GAP / 2
+    out = [f'<rect x="{x + g:.1f}" y="{y + g:.1f}" width="{max(w - TILE_GAP, 0.5):.1f}" '
+           f'height="{max(h - TILE_GAP, 0.5):.1f}" fill="{TILE}" stroke="{fill0}" stroke-width="1.2">'
+           f'{fill_anim}</rect>']
+    if w >= MIN_LABEL_W and h - TILE_GAP - 2 * TILE_PAD > 2 * LABEL_H:
+        fs = max(6.0, min(9.0, w / 12))
+        label = nid[:int((w - TILE_GAP - 2 * TILE_PAD) / (fs * 0.62))]
+        out.append(f'<text x="{x + g + TILE_PAD:.1f}" y="{y + g + TILE_PAD + fs:.1f}" fill="{MUTED}" '
+                   f'font-size="{fs:.1f}">{label}</text>')
+    side, cells = cell_grid(rect, len(mem))
+    inset = side * 0.18
+    s = side - 2 * inset
+    for label, (cx, cy) in zip(mem, cells):
+        fv, ft = flash_track(borns.get(label, []), DIM, LIT, clock)
+        anim = discrete("fill", fv, ft, clock.dur)
+        rot = (f' transform="rotate(45 {cx + side / 2:.1f} {cy + side / 2:.1f})"'
+               if label in reg else "")
+        out.append(f'<rect x="{cx + inset:.1f}" y="{cy + inset:.1f}" width="{s:.1f}" height="{s:.1f}" '
+                   f'fill="{fv[0]}"{rot}>{anim}</rect>')
+    return "".join(out)
+
+
+def main():
+    seconds = float(sys.argv[1]) if len(sys.argv) > 1 else None
+    nodes = load_nodes()
+    problems = load_problems()
+    evidence = load_evidence()
+    reg = drills()
+    clock = MovieClock(evidence, seconds) if seconds else MovieClock(evidence)
+
+    by_day = exercises_by_day(evidence)
+    evidenced = {}
+    for rows in by_day.values():
+        for label, moves in rows:
+            evidenced.setdefault(label, set()).update(moves)
+    mem, n_probs = members_of(nodes, problems, reg, evidenced)
+    hist, parents = split_history(nodes, mem, clock)
+
+    # per-node status for every tick, from the prefix of the history
+    by_date = sorted(evidence.items(), key=lambda kv: kv[1]["date"])
+    seen, k = {}, 0
+    status = {nid: [] for nid in nodes}
+    for i in range(clock.n_ticks):
+        day = clock.first + timedelta(days=i)
+        while k < len(by_date) and by_date[k][1]["date"] <= day.isoformat():
+            seen[by_date[k][0]] = by_date[k][1]
+            k += 1
+        for nid in nodes:
+            status[nid].append(node_status(nid, seen, day)[0])
+
+    # the moment of every solve of every problem and drill, as loop fractions
+    borns = {}
+    for i in range(clock.n_ticks):
+        day = (clock.first + timedelta(days=i)).isoformat()
+        rows = by_day.get(day, ())
+        for j, (label, _) in enumerate(rows):
+            borns.setdefault(label, []).append(clock.frac(i + j / len(rows)))
+    n_flashes = sum(len(v) for lbl, v in borns.items() if lbl != "drill")
+
+    svg = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" '
+           f'viewBox="0 0 {W} {H}" font-family="Helvetica, Arial, sans-serif">',
+           f'<rect width="{W}" height="{H}" fill="{BG}"/>',
+           f'<text x="24" y="34" fill="{INK}" font-size="20" font-weight="bold">the graph as a picture</text>',
+           f'<text x="24" y="56" fill="{MUTED}" font-size="13">one tile per node, one cell per problem '
+           f'or drill in it; a new node splits a tile, a solve lights a cell</text>']
+
+    # the running node count, top right under the month
+    entries = sorted((h[0][0], nid) for nid, h in hist.items())
+    count_v, count_t = [], []
+    for i, (t, _) in enumerate(entries):
+        if i + 1 < len(entries) and entries[i + 1][0] == t:
+            continue
+        count_v.append(i + 1)
+        push_key(count_t, t)
+    for i, n in enumerate(count_v):
+        t0, t1 = count_t[i], count_t[i + 1] if i + 1 < len(count_t) else None
+        svg.append(window(t0, t1, clock)
+                   + f'<text x="{W - 24}" y="{H - 20}" fill="{MUTED}" font-size="12" text-anchor="end">'
+                   f'{n} of {len(nodes)} nodes, {n_probs} problems, {len(reg)} drills</text></g>')
+
+    months, m = [], date(clock.first.year, clock.first.month, 1)
+    while m <= clock.last:
+        months.append(m)
+        m = date(m.year + (m.month == 12), m.month % 12 + 1, 1)
+    for i, m in enumerate(months):
+        fs = clock.frac(max((m - clock.first).days, 0))
+        nxt = months[i + 1] if i + 1 < len(months) else None
+        fe = clock.frac((nxt - clock.first).days) if nxt else 1.0
+        lab = m.strftime("%b '%y").lower()
+        vals, times = ("0;1;0", f"0;{fs:.4f};{fe:.4f}") if fs > 0 else ("1;0", f"0;{fe:.4f}")
+        if not nxt:
+            vals, times = ("0;1", f"0;{fs:.4f}") if fs > 0 else ("1", "0")
+        svg.append(f'<text x="{W - 24}" y="34" fill="{INK}" font-size="16" '
+                   f'text-anchor="end" opacity="0">{lab}'
+                   f'<animate attributeName="opacity" calcMode="discrete" values="{vals}" '
+                   f'keyTimes="{times}" dur="{clock.dur}s" repeatCount="indefinite"/></text>')
+    svg.extend(era_banner(clock, W - 24, 60, 18, anchor="end"))
+
+    # every tile the canvas ever shows, each open for its own window
+    n_tiles = 0
+    svg.append('<g font-family="Menlo, monospace">')
+    for nid in sorted(nodes):
+        sv, st = status_track([FILL[s] for s in status[nid]], clock)
+        fill_anim = discrete("stroke", sv, st, clock.dur)
+        h = hist[nid]
+        for i, (t0, rect) in enumerate(h):
+            t1 = h[i + 1][0] if i + 1 < len(h) else None
+            if t1 is not None and t1 <= t0:
+                continue
+            svg.append(window(t0, t1, clock)
+                       + tile(nid, rect, mem[nid], borns, reg, fill_anim, sv[0], clock) + "</g>")
+            n_tiles += 1
+    svg.append("</g>")
+
+    # legend
+    x = 24
+    for s in (SOLID, STALE, FRAGILE, MISSING):
+        svg.append(f'<rect x="{x}" y="{H - 30}" width="11" height="11" fill="{TILE}" '
+                   f'stroke="{FILL[s]}" stroke-width="1.5"/>')
+        svg.append(f'<text x="{x + 16}" y="{H - 20}" fill="{MUTED}" font-size="12">{s.lower()}</text>')
+        x += 80
+    x += 20
+    svg.append(f'<rect x="{x + 2}" y="{H - 28}" width="7" height="7" fill="{LIT}"/>')
+    svg.append(f'<text x="{x + 16}" y="{H - 20}" fill="{MUTED}" font-size="12">problem</text>')
+    x += 80
+    svg.append(f'<rect x="{x + 2}" y="{H - 28}" width="7" height="7" transform="rotate(45 {x + 5.5} {H - 24.5})" fill="{LIT}"/>')
+    svg.append(f'<text x="{x + 16}" y="{H - 20}" fill="{MUTED}" font-size="12">drill</text>')
+    x += 70
+    svg.append(f'<rect x="{x + 2}" y="{H - 28}" width="7" height="7" fill="{DIM}"/>')
+    svg.append(f'<text x="{x + 16}" y="{H - 20}" fill="{MUTED}" font-size="12">not solved yet</text>')
+    x += 120
+    svg.append(f'<rect x="{x + 2}" y="{H - 28}" width="7" height="7" fill="{GOLD}"/>')
+    svg.append(f'<text x="{x + 16}" y="{H - 20}" fill="{MUTED}" font-size="12">solved now</text>')
+    svg.append(clock.dissolve_rect(W, H, BG))
+    svg.append("</svg>")
+    with open(OUT, "w") as f:
+        f.write("\n".join(svg) + "\n")
+    n_cells = sum(len(v) for v in mem.values())
+    print(f"wrote {OUT} ({len(nodes)} nodes, {n_probs} problems, {len(reg)} drills, {n_cells} cells, "
+          f"{n_tiles} tiles, {n_flashes} solves, {clock.n_ticks} ticks on the {clock.dur:.0f}s loop, "
+          f"{os.path.getsize(OUT) // 1024} KB)")
+
+
+if __name__ == "__main__":
+    main()
