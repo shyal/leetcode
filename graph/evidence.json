@@ -7617,6 +7617,15 @@
         "sql-conditional-aggregate": "clean"
       },
       "summary": "The query uses LEFT JOIN to preserve all customers including those with no orders, then groups by customer and counts paid orders with conditional aggregation SUM(CASE WHEN o.status == 'paid' THEN 1 ELSE 0 END). Output correctly shows Bob and Cal with 0 paid_orders, satisfying the REQUIRED constraint that every customer appears exactly once."
+    },
+    "solved/p46_Permutations_2026_09_04T01_09_49_445555_00_00Z.py": {
+      "date": "2026-09-04",
+      "problem": "46",
+      "moves": {
+        "backtracking-choose-undo": "clean",
+        "backtracking-mark-unmark": "clean"
+      },
+      "summary": "The solution generates all permutations by exploring every valid sequence. It appends unused elements to path, recurses to build longer sequences, then removes the element and unmarks it when backtracking. Both canonical moves\u2014choose-undo for the path and mark-unmark for the used array\u2014are cleanly exercised."
     }
   }
 }
