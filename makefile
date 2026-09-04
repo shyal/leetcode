@@ -173,9 +173,9 @@ timer:
 # the SVG renders run alongside estimate (all deterministic now — no LLM call)
 readme: $(MOVIE_BIN) $(MOCK_BIN)
 	@PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_positions_svg & p1=$$!; \
-	PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_calibration_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_residuals_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_timing_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_solvetime_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_connectivity_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_rates_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_commits_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_elo_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_zpd_svg & p2=$$!; \
+	PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_calibration_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_residuals_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_timing_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_solvetime_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_connectivity_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_rates_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_commits_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_elo_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_streak_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_zpd_svg & p2=$$!; \
 	$(MOVIE_BIN) & p3=$$!; \
-	PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_reach_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_3d_svg & p4=$$!; \
+	PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_reach_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_3d_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_full_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_compression_svg & p4=$$!; \
 	PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_forecast_svg & p5=$$!; \
 	PYTHONPATH=./utils .venv/bin/python3 utils/kg/estimate; s=$$?; \
 	wait $$p1 && wait $$p2 && wait $$p3 && wait $$p4 && wait $$p5 && [ $$s -eq 0 ]

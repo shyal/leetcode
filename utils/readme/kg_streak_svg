@@ -1,0 +1,89 @@
+#!/usr/bin/env python3
+
+# kg_streak_svg - the current streak of solving days, rendered into
+# graph/streak_badge.svg for the README pipeline.
+#
+# A solving day is a Manila calendar day with at least one file in solved/
+# that is not a FAILED file: a problem solve or a drill rep, timed or not.
+# Days come from the UTC timestamp in the filename via
+# manila_date_from_filename, never from the date digits as written. The
+# current streak counts back from today; when today has no rep yet it
+# counts back from yesterday, since the day is still open. The best streak
+# is the longest run anywhere in the history. The badge is green when
+# today already has a rep and grey while the day is still open.
+
+import os
+from datetime import date, timedelta
+
+from kg.kg_lib import GRAPH_DIR, REPO_ROOT, manila_date_from_filename
+
+SOLVED = os.path.join(REPO_ROOT, "solved")
+BADGE = os.path.join(GRAPH_DIR, "streak_badge.svg")
+
+GREEN = "#3fb950"
+MUTED = "#8b949e"
+
+
+def solving_days():
+    days = set()
+    for name in os.listdir(SOLVED):
+        if "FAILED" in name or not name.endswith(".py"):
+            continue
+        d = manila_date_from_filename(name)
+        if d:
+            days.add(date.fromisoformat(d))
+    return days
+
+
+def current_streak(days, today):
+    d = today if today in days else today - timedelta(days=1)
+    n = 0
+    while d in days:
+        n += 1
+        d -= timedelta(days=1)
+    return n
+
+
+def best_streak(days):
+    best = 0
+    for d in days:
+        if d - timedelta(days=1) in days:
+            continue
+        n = 0
+        while d in days:
+            n += 1
+            d += timedelta(days=1)
+        best = max(best, n)
+    return best
+
+
+def badge(current, best, color):
+    left = "streak"
+    right = f"{current} day{'s' if current != 1 else ''} · best {best}"
+    lw, rw = 6 * len(left) + 12, 6.2 * len(right) + 12
+    w = lw + rw
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{w:.0f}" height="20" '
+            f'font-family="Verdana,DejaVu Sans,sans-serif" font-size="11">'
+            f'<rect rx="3" width="{w:.0f}" height="20" fill="#555"/>'
+            f'<rect rx="3" x="{lw:.0f}" width="{rw:.0f}" height="20" fill="{color}"/>'
+            f'<rect x="{lw:.0f}" width="4" height="20" fill="{color}"/>'
+            f'<text x="{lw / 2:.1f}" y="14" fill="#fff" text-anchor="middle">{left}</text>'
+            f'<text x="{lw + rw / 2:.1f}" y="14" fill="#fff" text-anchor="middle">{right}</text>'
+            f'</svg>\n')
+
+
+def main():
+    days = solving_days()
+    if not days:
+        print("no solving days")
+        return
+    today = date.today()
+    current, best = current_streak(days, today), best_streak(days)
+    color = GREEN if today in days else MUTED
+    with open(BADGE, "w") as f:
+        f.write(badge(current, best, color))
+    print(f"wrote {BADGE} (streak {current}, best {best}, {len(days)} solving days)")
+
+
+if __name__ == "__main__":
+    main()

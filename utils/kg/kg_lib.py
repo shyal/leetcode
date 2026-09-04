@@ -2249,3 +2249,43 @@ def era_banner(clock, x, y, size, anchor="start", halo=None):
                    f'<animate attributeName="opacity" calcMode="discrete" values="{vals}" '
                    f'keyTimes="0;{f:.4f}" dur="{clock.dur}s" repeatCount="indefinite"/></text>')
     return out
+
+
+def drill_ids_by_key():
+    """drill_key of a solved d_ file -> the drill's id (d61), for every bank
+    drill drills.json names. A rep of a drill the bank no longer carries has
+    no entry."""
+    out = {}
+    for did in drills():
+        path = drill_path(did)
+        if path:
+            out.setdefault(f"d_{drill_solved_stem(path)}".lower(), did)
+    return out
+
+
+def exercises_by_day(evidence):
+    """date -> [(label, [moves])] in within-day order of the solved
+    timestamps: a problem's number, or a drill's id ("drill" for a rep of a
+    drill the bank no longer names). The first of a same-day re-solve only.
+    The replays (kg_3d, kg_full) read this for their solve labels."""
+    ids = drill_ids_by_key()
+    by_day = {}
+    for fname, rec in evidence.items():
+        p = rec.get("problem", "")
+        if p[:1].isdigit():
+            label = p
+        elif p == "drill":
+            label = ids.get(drill_key(fname), "drill")
+        else:
+            continue
+        m = re.search(r"\d{4}_\d{2}_\d{2}T[\d_]+", fname)
+        by_day.setdefault(rec["date"], []).append((m.group(0) if m else "", label, list(rec.get("moves", {}))))
+    out = {}
+    for day, rows in by_day.items():
+        seen, ordered = set(), []
+        for _, label, moves in sorted(rows):
+            if label not in seen:
+                seen.add(label)
+                ordered.append((label, moves))
+        out[day] = ordered
+    return out
