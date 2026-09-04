@@ -7653,6 +7653,22 @@
         "streaming-ask-then-record": "clean"
       },
       "summary": "Parses signed numbers from a +/- operator string, accumulating digits and deferring operator application until a full number is complete. Uses streaming-ask-then-record to walk the string once, querying whether the current character is an operator or end-of-string, then recording the previous operator applied to the accumulated number onto a stack."
+    },
+    "solved/p227_Basic_Calculator_II_2026_09_04T02_45_15_517241_00_00Z.py": {
+      "date": "2026-09-04",
+      "problem": "227",
+      "moves": {
+        "streaming-ask-then-record": "clean",
+        "string-build-transform": "clean",
+        "stack-nested-eval": "clean"
+      },
+      "assist": {
+        "streaming-ask-then-record": "walkthrough",
+        "string-build-transform": "walkthrough",
+        "stack-nested-eval": "hint"
+      },
+      "note": "Looked at solution, built drills to understand parsing and precedence, then solved fresh.",
+      "summary": "The solution parses multi-digit numbers and processes each operator as encountered. At each operator, it queries the previous operation and applies it to the current number, then records the new operator (streaming-ask-then-record). A stack defers lower-precedence operations while immediately combining higher-precedence ones (stack-nested-eval)."
     }
   }
 }
