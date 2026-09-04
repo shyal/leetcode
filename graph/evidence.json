@@ -7607,6 +7607,16 @@
         "sql-join-left-keep": "clean"
       },
       "summary": "The query uses LEFT JOIN from Employees to EmployeeUNI on id, preserving all employee rows and populating NULL for those without a matching unique_id. This exercises the core sql-join-left-keep move: keeping every left row with NULLs for non-matches, with the join condition correctly placed in the ON clause."
+    },
+    "solved/d_Paid_Orders_Per_Customer_2026_09_04T00_51_13_570320_00_00Z.py": {
+      "date": "2026-09-04",
+      "problem": "drill",
+      "moves": {
+        "sql-join-left-keep": "clean",
+        "sql-group-aggregate": "clean",
+        "sql-conditional-aggregate": "clean"
+      },
+      "summary": "The query uses LEFT JOIN to preserve all customers including those with no orders, then groups by customer and counts paid orders with conditional aggregation SUM(CASE WHEN o.status == 'paid' THEN 1 ELSE 0 END). Output correctly shows Bob and Cal with 0 paid_orders, satisfying the REQUIRED constraint that every customer appears exactly once."
     }
   }
 }
