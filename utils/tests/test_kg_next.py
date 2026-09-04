@@ -270,6 +270,44 @@ def test_problems_solved_today_are_excluded(picker):
     assert picker.run(ns, ps, {}, st, exclude={"1"})[2] == "2"
 
 
+def test_a_group_at_its_daily_cap_leaves_the_default_frontier(picker, monkeypatch):
+    monkeypatch.setattr(kg_next, "group_caps", lambda: {"sql": 2})
+    ns = nodes("q1", "q2", "other")
+    for n in ("q1", "q2"):
+        ns[n]["group"] = "sql"
+    ns["other"]["group"] = "trees"
+    ps = {"1": problem(["q1"]), "2": problem(["q2"]), "3": problem(["other"]),
+          "4": problem(["q1"])}
+    st = {"q1": (FRAGILE, ago(1)), "q2": (FRAGILE, ago(1)), "other": (STALE, ago(40))}
+    ev = evidence(solve(1, {"q1": "clean"}), solve(2, {"q2": "clean"}))
+    # two sql reps today: the fragile sql moves wait, the stale tree move is served
+    assert picker.run(ns, ps, ev, st, exclude={"1", "2"})[0] == "other"
+    # one rep short of the cap: sql is still on the frontier
+    assert picker.run(ns, ps, evidence(solve(1, {"q1": "clean"})), st,
+                      exclude={"1"})[0] in ("q1", "q2")
+    # naming the group is the override
+    assert picker.run(ns, ps, ev, st, exclude={"1", "2"}, group="sql")[:3] == \
+        ("q1", FRAGILE, "4")
+
+
+def test_group_reps_counts_drills_and_problems_touching_the_group():
+    ns = nodes("q1", "other")
+    ns["q1"]["group"] = "sql"
+    ev = evidence(solve(1, {"q1": "clean"}), solve(2, {"other": "clean"}))
+    ev["solved/d_Some_Drill_0.py"] = {"date": iso(0), "problem": "drill",
+                                     "moves": {"q1": "struggled"}}
+    ev.update(solve(3, {"q1": "clean"}, days_ago=1))  # yesterday does not count
+    assert kg_lib.group_reps("sql", ns, ev) == 2
+    assert kg_lib.group_reps("trees", ns, ev) == 0
+
+
+def test_group_caps_parses_the_envrc_knob():
+    assert kg_lib.group_caps({"KG_GROUP_CAP": "sql=3"}) == {"sql": 3}
+    assert kg_lib.group_caps({"KG_GROUP_CAP": "sql=3, graphs=2"}) == {"sql": 3, "graphs": 2}
+    assert kg_lib.group_caps({"KG_GROUP_CAP": "sql=lots"}) == {}
+    assert kg_lib.group_caps({}) == {}
+
+
 def test_sleeping_problems_are_not_offered(picker):
     ns = nodes("target")
     ps = {"1": problem(["target"]), "2": problem(["target"])}
