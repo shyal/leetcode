@@ -1832,6 +1832,31 @@ def latest_carrier(node_id, evidence):
 MAX_ASLEEP = int(os.environ.get("MAX_ASLEEP", 3))
 
 
+def group_caps(environ=None):
+    """Per-group daily caps from KG_GROUP_CAP, `sql=3` or `sql=3,graphs=2`
+    (set in .envrc, read through load_envrc). A group at its cap is left
+    out of the default frontier for the rest of the day: the graduating
+    floor made drills persistent, and without a cap one bank can fill
+    every session (2026-09-04, sql). An explicit `make next <group>` is
+    the override and ignores the cap."""
+    raw = (os.environ if environ is None else environ).get("KG_GROUP_CAP", "")
+    caps = {}
+    for part in raw.split(","):
+        name, _, count = part.partition("=")
+        if name.strip() and count.strip().isdigit():
+            caps[name.strip()] = int(count)
+    return caps
+
+
+def group_reps(group, nodes, evidence, day=None):
+    """How many reps dated `day` (today) touched the group: a drill or a
+    problem is one rep when its evidenced walk has a node of the group."""
+    day = (day or date.today()).isoformat()
+    return sum(
+        1 for _, rec in ev_index(evidence).by_date.get(day, ())
+        if any(nodes.get(m, {}).get("group") == group for m in rec.get("moves", {})))
+
+
 def _git_out(*args):
     return subprocess.run(["git", *args], capture_output=True, text=True).stdout
 

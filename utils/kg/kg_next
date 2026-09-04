@@ -33,6 +33,12 @@
 #      nothing auto-wakes — and its walk's rusty moves/prereqs get warmed
 #      first, via other carriers (rule 0a fires only for a problem woken
 #      mid-run, which manual wake makes moot; it is kept for that path)
+#   0e. group cap (KG_GROUP_CAP, e.g. sql=3 in .envrc): once that many reps
+#      of the day touched the group (drill or problem, review or new
+#      ground), its moves leave the default frontier until tomorrow. The
+#      graduating floor made drills persistent enough for one bank to fill
+#      every session (2026-09-04, sql). `make next <group>` ignores the
+#      cap; the footer shows the count. review_ahead replays under it.
 #   0b. park full (kg_lib.MAX_ASLEEP problems asleep): review is served as
 #      usual, new ground is not. A pick that is new ground (rule 3, 4, 5, 6
 #      or a plan item that is) is withheld and the parked list is printed
@@ -145,6 +151,8 @@ from kg.kg_lib import (
     sleep_state,
     sleep_lines,
     MAX_ASLEEP,
+    group_caps,
+    group_reps,
     last_solved,
     pnum_key,
     dodged_nodes,
@@ -318,9 +326,17 @@ def pick(
     early = early or assisted
     cram = cram or early
     immature = immature_nodes(nodes, evidence, problems)
+    # rule 0e: a group at its daily cap (KG_GROUP_CAP) is out of the default
+    # frontier; naming the group (`make next sql`) or a cram walk is the
+    # override
+    caps = {} if group or cram else group_caps()
+    capped = {g for g, c in caps.items()
+              if group_reps(g, nodes, evidence, date.today()) >= c}
 
     def in_scope(n):
-        return group is None or nodes[n].get("group") == group
+        if group is not None:
+            return nodes[n].get("group") == group
+        return nodes[n].get("group") not in capped
 
     def due(target):
         """The drill pseudo-pick for a node, or None if none is due. A drill
@@ -658,6 +674,8 @@ def pick(
 
     for n in due_list:
         choice = serve(n)
+        if choice and nodes.get(choice[0], {}).get("group") in capped:
+            continue  # the hold opener sits in a capped group
         if choice:
             return choice
 
@@ -1277,6 +1295,11 @@ def _main(footer):
     asleep, woken = sleep_state(nodes, problems, evidence)
     if asleep:
         footer.extend(sleep_lines(nodes, problems, evidence, statuses))
+    for g, c in sorted(group_caps().items()):
+        k = group_reps(g, nodes, evidence)
+        footer.append(f"{g}: {k}/{c} reps today"
+                      + (" - at the daily cap, make next {g} to go past it".format(g=g)
+                         if k >= c else " (KG_GROUP_CAP)"))
 
     session_start = is_session_start()
 

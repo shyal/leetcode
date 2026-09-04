@@ -86,6 +86,18 @@ graduating floor also review on the drill when the node has a bank and a
 drill is due; the carrier is the test once no drill is (2026-09-02).
 Without a bank the spaced re-solve stays on the carrier.
 
+## Group cap (`KG_GROUP_CAP`)
+
+`KG_GROUP_CAP=sql=3` in `.envrc` (`sql=3,graphs=2` for several) caps how many
+reps a day the default `make next` aims at one curated group. A rep is any solve
+file dated today whose evidenced walk touches a node of the group: a drill, a
+review carrier, or new ground alike. At the cap the group's moves leave the
+frontier until the next Manila day; every other move is served as usual, and
+the review-ahead line replays under the same cap. The footer prints the count
+(`sql: 2/3 reps today`). `make next sql` names the group and is the override.
+The graduating floor is what made this necessary: drills re-fire at 3/10/25
+days, and one bank of nineteen sql nodes could fill every session (2026-09-04).
+
 ## Dive (`make dive`)
 
 `make next <group>` (currently `make next sql` and `make next spark`; `--group <g>` on kg_next for any group)
