@@ -7644,6 +7644,15 @@
       },
       "note": "Drill targets stack-nested-eval but solution extracts numbers without nested evaluation or operator precedence.",
       "summary": "The code iterates through the string, accumulating digits into multi-digit numbers via running-sum on the num accumulator, and appends them to a list when a non-digit or end-of-string is reached. It avoids the targeted stack-nested-eval pattern because the problem only requires parsing and collecting numbers, not evaluating expressions with precedence or nested scopes."
+    },
+    "solved/d_Read_The_Signed_Numbers_2026_09_04T02_34_40_866542_00_00Z.py": {
+      "date": "2026-09-04",
+      "problem": "drill",
+      "moves": {
+        "stack-nested-eval": "clean",
+        "streaming-ask-then-record": "clean"
+      },
+      "summary": "Parses signed numbers from a +/- operator string, accumulating digits and deferring operator application until a full number is complete. Uses streaming-ask-then-record to walk the string once, querying whether the current character is an operator or end-of-string, then recording the previous operator applied to the accumulated number onto a stack."
     }
   }
 }
