@@ -341,8 +341,8 @@ def run(hours=None, seed=1, days=MAX_DAYS, every=7, hard_sat=None,
     silent run) and returns a dict: day (the last day run), onsite, hours,
     source ("given"/"measured"), per_kind, dry_days, short_days, rusty (per
     day: (day_no, stale, fragile, missing) at the first pick of the day),
-    and starved: {node: days} for every node that was STALE or FRAGILE on
-    STARVED_DAYS or more consecutive days with no pick aimed at it - the
+    and starved: {node: days} for every node that was due (kg_next.due_on)
+    on STARVED_DAYS or more consecutive days with no pick aimed at it - the
     longest such run; and series: one dict per simulated day (day, solves
     per kind that day, stale/fragile/missing counts at the end of the day,
     onsite/screen/hard rates) for the README forecast chart; and authored:
@@ -447,7 +447,7 @@ def _run(hours, seed, days, every, hard_sat, mock_sat, cold_per_mock,
     dry_days = 0      # days the picker served nothing at all
     short_days = 0    # days it ran out before half the hours were used
     rusty = []        # (day_no, stale, fragile, missing) at the first pick
-    streak = {n: 0 for n in nodes}  # consecutive rusty days, no pick aimed
+    streak = {n: 0 for n in nodes}  # consecutive due days, no pick aimed
     starved = {}      # node -> longest such run
     series = []       # per day, for the README forecast chart
     src = "given" if given else \
@@ -509,9 +509,14 @@ def _run(hours, seed, days, every, hard_sat, mock_sat, cold_per_mock,
         statuses = {n: node_status(n, evidence, today=day) for n in nodes}
         recall = current_recall(nodes, evidence, curve, today=day)
         counts = {s: 0 for s in (SOLID, STALE, FRAGILE, MISSING)}
+        carr = carrier_counts(problems)
         for n, s in statuses.items():
             counts[s[0]] += 1
-            if s[0] in (STALE, FRAGILE):
+            # due by the picker's own test (kg_next.due_on): rusty, SOLID
+            # at its floor, or MISSING with every prereq SOLID. Counting
+            # only rusty days let topological order starve 23 real days
+            # while SOLID at a floor nine months past (2026-09-06)
+            if kg_next.due_on(n, nodes, evidence, carr, day):
                 streak[n] += 1
             else:
                 close_streak(n)
@@ -524,7 +529,12 @@ def _run(hours, seed, days, every, hard_sat, mock_sat, cold_per_mock,
             target, _, pnum, _ = choice
             close_streak(target)
             seq += 1
-            stamp = f"{day.isoformat()}T{seq:06d}_00_00Z"
+            # the exact shape `make solved` writes (kg_lib.FNAME_TS_RE,
+            # drill_key): a hyphenated date made every simulated drill rep
+            # a first rep, so no floor ever advanced (2026-09-06)
+            h, rem = divmod(seq, 3600)
+            stamp = (f"{day.isoformat().replace('-', '_')}"
+                     f"T{h:02d}_{rem // 60:02d}_{rem % 60:02d}_000000_00_00Z")
             if str(pnum).startswith("drill:"):
                 path = kg_lib.due_drill(target, evidence, today=day)
                 if not path:
