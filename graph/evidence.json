@@ -7763,6 +7763,22 @@
       },
       "summary": "The solution finds the kth missing positive integer using binary search. It computes arr[mid] - mid - 1 to measure missing count at each position (index-value-gap), then searches for the boundary where the missing count transitions from \u2264k to >k, returning left + k as the answer. Both canonical moves executed cleanly.",
       "followup": "solved"
+    },
+    "solved/d_No_Repeat_Siblings_2026_09_05T22_39_20_288711_00_00Z.py": {
+      "date": "2026-09-06",
+      "problem": "drill",
+      "moves": {
+        "sort-then-adjacent": "clean",
+        "backtracking-choose-undo": "clean",
+        "backtracking-dedupe-siblings": "clean"
+      },
+      "assist": {
+        "sort-then-adjacent": "learning",
+        "backtracking-choose-undo": "learning",
+        "backtracking-dedupe-siblings": "learning"
+      },
+      "note": "Learning-level assistance provided.",
+      "summary": "The solution generates all unique subsets from a duplicate-containing array. It sorts to colocate duplicates, then uses backtracking with append/recurse/pop to build subsets. At each recursion level, the dedupe check `j > i and nums[j] == nums[j-1]` skips equivalent candidates. All moves are clean; learning-level help was provided."
     }
   }
 }
