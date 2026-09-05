@@ -2,7 +2,8 @@
 
 # is_session_start — predicate: is this the start of the session?
 #
-# True when fewer than THRESHOLD solves have been authored since local
+# True when fewer than NEXT_WARMUP_COUNT (env, default 2; 0 turns the
+# warmup off) solves have been authored since local
 # midnight (Asia/Manila — git stamps are UTC, and the evidence-folding
 # amend rewrites commit dates, so it counts by AUTHOR date of commits
 # that ADD files under solved/ or drills/; meta and tooling commits
@@ -22,7 +23,8 @@ from zoneinfo import ZoneInfo
 from kg.kg_lib import GRAPH_DIR
 
 MANILA = ZoneInfo("Asia/Manila")
-THRESHOLD = 2
+# how many warmups open a session; set in .envrc, read through kg_lib.load_envrc
+THRESHOLD = int(os.environ.get("NEXT_WARMUP_COUNT", 2))
 
 
 def solves_today():

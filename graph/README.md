@@ -86,6 +86,14 @@ graduating floor also review on the drill when the node has a bank and a
 drill is due; the carrier is the test once no drill is (2026-09-02).
 Without a bank the spaced re-solve stays on the carrier.
 
+## Warmup count (`NEXT_WARMUP_COUNT`)
+
+`NEXT_WARMUP_COUNT=2` in `.envrc` (the default) is how many solves open a
+session: until that many solve files are authored since Manila midnight,
+`make next` serves rule -1, an all-SOLID easy not solved in the last two weeks.
+`NEXT_WARMUP_COUNT=1` is one warmup, `0` turns the warmup off and the normal
+rules run from the first pick.
+
 ## Group cap (`KG_GROUP_CAP`)
 
 `KG_GROUP_CAP=sql=3` in `.envrc` (`sql=3,graphs=2` for several) caps how many
