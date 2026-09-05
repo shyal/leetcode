@@ -107,6 +107,11 @@
 # Drill-success gate (kg_lib.drill_gated): a MISSING/FRAGILE/deep-stale target
 # with a drill bank gets ONLY its drill until a clean rep clears the status —
 # a struggled drill holds the carrier instead of unlocking it.
+# Routed-around gate (routed_around): a starved move whose carrier was solved
+# another way during the run is served forced - `make force` on the carrier,
+# so the solve must use the move. Free-mode evidence records only what the
+# code did; without this the move is served again and again and never
+# lands a rep (2026-09-06).
 #
 # Below the pick, one line says how much review stands between now and
 # the first pick that is new ground (review_ahead): the picker is replayed
@@ -173,6 +178,8 @@ from kg.kg_lib import (
     drill_gated,
     drill_held,
     held_behind,
+    drill_after,
+    warm,
     vertex_kind,
     drill_path,
     gates,
@@ -416,6 +423,15 @@ def pick(
                 if kind == "drill":
                     path = drill_path(pred)
                     node = os.path.basename(os.path.dirname(path)) if path else None
+                    # the drill is itself held behind an id not yet warm:
+                    # climb to that id, as a problem's chain is climbed
+                    # (Install Order waited on Shake Hands, whose node read
+                    # owned, so neither was ever served - 2026-09-06)
+                    up = next((a for a in drill_after(path)
+                               if warm(a, problems, evidence) is False), None) if path else None
+                    if up and (node == target or not due(node)):
+                        pred = up
+                        continue
                 if node in nodes and node != target and due(node):
                     return (node, statuses[node][0], due(node),
                             f"{pnum} carries {target} but waits on {pred} - drill {node} first")
@@ -1083,6 +1099,32 @@ def starved(nodes, problems, evidence, today=None):
     return out
 
 
+def routed_around(nodes, problems, evidence, today=None):
+    """{move: carrier} for every starved move (starved above) that had a
+    carrier solved during its starvation run without the move in the
+    record: the solve went another way and left the move where it was.
+    Free-mode evidence records only what the code did, so a move solved
+    around on every carrier is served again and again and never lands a
+    rep. Its next carrier is served forced (`make force`): the solve must
+    use the move or `make solved` rejects it. One alternative walk while
+    the move is not yet starved is still just an alternative walk."""
+    today = today or date.today()
+    idx = ev_index(evidence)
+    out = {}
+    for n, days in starved(nodes, problems, evidence, today).items():
+        since = today - timedelta(days=days)
+        for pnum, p in problems.items():
+            if n not in p.get("moves", []):
+                continue
+            for d, _, rec in idx.by_problem.get(pnum, ()):
+                if date.fromisoformat(d) >= since and n not in rec.get("moves", {}):
+                    out[n] = pnum
+                    break
+            if n in out:
+                break
+    return out
+
+
 def parked_summits(problems, nodes, evidence, statuses, asleep):
     """Ready summits (rule 4 would serve them) that are asleep - the empty
     serve must name them, since only `make wake` can bring them back."""
@@ -1268,7 +1310,7 @@ def _main(footer):
                          f"({', '.join(sorted(groups))})")
     labeled = args.graph
 
-    def prepare(target):
+    def prepare(target, force=False):
         if not args.prepare:
             return
         cur = os.path.join(REPO_ROOT, "current.py")
@@ -1277,8 +1319,10 @@ def _main(footer):
                 "[yellow]current.py is not empty — record it (make solved) before preparing the next one.[/yellow]"
             )
             sys.exit(1)
+        # a forced pick arms the style judge as well (kg_force runs prepare)
+        tool = "kg_force" if force else "prepare"
         subprocess.run(
-            [sys.executable, os.path.join(UTILS, "prepare"), str(target)],
+            [sys.executable, os.path.join(UTILS, tool), str(target)],
             cwd=REPO_ROOT,
         )
 
@@ -1618,6 +1662,12 @@ def _main(footer):
         return
 
     p = problems[pnum]
+    # the starved move whose carriers keep being solved another way: this
+    # rep is held to the move (routed_around), served as `make force`
+    around = routed_around(nodes, problems, evidence).get(target)
+    forced = around is not None
+    force_note = (f"{around} was solved without this move while it was due - "
+                  "this rep must use it") if forced else None
 
     table = Table(show_header=True, header_style="bold", box=None, padding=(0, 2))
     table.add_column("Move")
@@ -1648,6 +1698,8 @@ def _main(footer):
             console.print(f"[yellow]⚠ {p['note']}[/yellow]")
         if plan_note:
             console.print(f"[yellow]{plan_note}[/yellow]")
+        if force_note:
+            console.print(f"[yellow]⚠ {force_note}[/yellow]")
         console.print(table)
         print_gates(pnum, problems, evidence, labeled)
         # pacing forecast from the mined solve-time history: expected time,
@@ -1660,11 +1712,13 @@ def _main(footer):
                           f"{hint} · at {bail} stop, mark it, reinforce[/dim]")
         if ahead:
             console.print(f"[dim]{ahead}[/dim]")
+        if forced:
+            console.print(f"make force {pnum}")
 
     if args.no_show:
         animate(cap.get())
         warn_dry(served=True)
-        prepare(pnum)
+        prepare(pnum, force=forced)
         return
 
     tree = input_tree(p["moves"], nodes)
@@ -1703,7 +1757,7 @@ def _main(footer):
         console.print(f"[dim](tree drawing failed — {type(e).__name__}; cosmetic, pick unaffected)[/dim]")
     animate(cap.get())
     warn_dry(served=True)
-    prepare(pnum)
+    prepare(pnum, force=forced)
 
 
 if __name__ == "__main__":

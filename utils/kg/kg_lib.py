@@ -1762,17 +1762,29 @@ def due_drill(node_id, evidence, today=None, early=False, assisted=False):
     drills whose latest rep was assisted are candidates (`make next sql
     assisted`): the holds are moot, since a drill with a rep was already
     servable, and the curve is off as under `early`."""
-    status, _ = node_status(node_id, evidence, today)
-    if (status == SOLID and owned(node_id, evidence) and not early and not assisted
-            and not drills_left(node_id, evidence)):
-        return None  # the curve says the node holds - a drill is a problem
-                     # we authored, and problems are not re-served while warm.
-                     # A never-done drill of the node is still due: one clean
-                     # drill does not stand for the others (2026-08-31, Pairs
-                     # clean released the dedupe drill with subsets undone)
+    day = today or date.today()
+    status, _ = node_status(node_id, evidence, day)
+    # the graduating floor (graduation_due) asks for a non-first unaided
+    # rep; a move carried by drills alone (every sql node) has nowhere
+    # else to land one, so it was due at its floor forever once each drill
+    # had been done once (kg_simulate, 2026-09-06: twenty sql nodes 45-60
+    # days). At the floor the bank is served again.
+    g = graduation_due(node_id, evidence, carrier_counts(_problems_ro()).get(node_id, 0))
+    at_floor = bool(g) and g[0] <= day
+    holds = (status == SOLID and owned(node_id, evidence) and not early and not assisted
+             and not drills_left(node_id, evidence) and not at_floor)
+    # the curve says the node holds - a drill is a problem we authored, and
+    # problems are not re-served while warm. A never-done drill of the node
+    # is still due: one clean drill does not stand for the others
+    # (2026-08-31, Pairs clean released the dedupe drill with subsets
+    # undone). So is a drill whose latest rep was assisted: the node reads
+    # owned (a first rep scores as unaided at the node level) while the
+    # drill is not warm, and everything "after" it stays held until its
+    # unaided rep, which nothing else serves (2026-09-06, Install Order
+    # behind Shake Hands for 23 starved days).
     today = (today or date.today()).isoformat()
     candidates = sorted(glob.glob(os.path.join(DRILLS_DIR, node_id, "*.py")))
-    if assisted:
+    if assisted or holds:
         candidates = [p for p in candidates if drill_assisted(p, evidence)]
     if not candidates:
         return None

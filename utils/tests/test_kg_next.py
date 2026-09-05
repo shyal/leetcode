@@ -2376,3 +2376,85 @@ def test_envrc_knobs_hold_without_direnv(tmp_path):
     assert env["SET_ALREADY"] == "old"
     assert "PYTHONPATH" not in env
     assert kg_lib.load_envrc(str(tmp_path / "missing"), {}) == {}
+
+
+def test_a_starved_move_solved_around_on_a_carrier_is_served_forced():
+    """Free-mode evidence records only what the code did, so a starved move
+    whose carrier was solved another way during the run gets nothing and
+    is served again. routed_around names that move with the carrier that
+    went around it (a); a starved move whose carriers were simply never
+    solved is starved, not routed around (b); a carrier solved around
+    BEFORE the run began does not count (c)."""
+    ns = nodes("a", "b", "c", "x")
+    ps = {"1": problem(["a", "x"]), "2": problem(["b"]), "3": problem(["c", "x"])}
+    ev = evidence(
+        solve(1, {"a": "struggled", "x": "clean"}, days_ago=20),
+        solve(1, {"x": "clean"}, days_ago=5),            # a: went around
+        solve(2, {"b": "struggled"}, days_ago=20),       # b: nothing since
+        solve(3, {"c": "struggled"}, days_ago=20),
+        solve(3, {"x": "clean"}, days_ago=25),           # c: before the run
+    )
+    assert set(kg_next.starved(ns, ps, ev)) == {"a", "b", "c"}
+    assert kg_next.routed_around(ns, ps, ev) == {"a": "1"}
+
+
+def test_an_owned_node_still_serves_its_assisted_drill(tmp_path, monkeypatch):
+    """2026-09-06: Shake Hands was done once as a learning rep. The first
+    rep of a drill scores as unaided at the node level, so the node read
+    owned with no drills left and due_drill declined; the drill itself was
+    not warm, so Install Order after it stayed held, and topological order
+    starved 23 days. An owned node's drill whose latest rep was assisted
+    is still due: the unaided rep is what releases what comes after it.
+    An owned node whose drill is owned too holds as before."""
+    from kg import kg_lib
+    drill_bank(tmp_path, monkeypatch, "some-node", "Shake", fname="s.py", did="d1")
+    held = drill_rep("Shake", "some-node", days_ago=3, assist={"some-node": "learning"})
+    ev = evidence(solve("7", {"some-node": "clean"}, days_ago=2), held)
+    assert kg_lib.owned("some-node", ev)
+    assert kg_lib.due_drill("some-node", ev) == str(tmp_path / "some-node" / "s.py")
+    ev = evidence(solve("7", {"some-node": "clean"}, days_ago=2),
+                  drill_rep("Shake", "some-node", days_ago=3))
+    assert kg_lib.due_drill("some-node", ev) is None
+
+
+def test_a_held_carrier_climbs_its_drills_after_chain(picker, tmp_path, monkeypatch):
+    """2115 carries topological order and waits on Install Order (d2), the
+    target's own drill; Install Order waits on Shake Hands (d1) of another
+    node, done once assisted. The chain used to stop at the target's own
+    drill and serve nothing. It climbs to d1 and serves its node's drill."""
+    drill_bank(tmp_path, monkeypatch, "b", "Shake", fname="s.py", did="d1")
+    drill_bank(tmp_path, monkeypatch, "a", "Install", fname="i.py", did="d2", after=["d1"])
+    ns = nodes("a", "b")
+    ps = {"1": problem(["a"], after=["d2"])}
+    picker.bank = {"b"}
+    ev = evidence(solve("1", {"a": "clean"}, days_ago=20),
+                  solve("7", {"b": "clean"}, days_ago=2),
+                  drill_rep("Shake", "b", days_ago=3, assist={"b": "learning"}))
+    st = {"a": (STALE, ago(20)), "b": (SOLID, ago(2))}
+    target, status, pnum, why = picker.run(ns, ps, ev, st)
+    assert (target, status, pnum) == ("b", SOLID, "drill:b")
+    assert "waits on d1" in why
+
+
+def test_a_move_at_its_floor_gets_its_bank_again(tmp_path, monkeypatch):
+    """2026-09-06 (make simulate, once its filenames matched `make solved`):
+    every sql move is carried by drills alone, and once each drill had
+    been done once the owned node got no drill and had no carrier, so it
+    sat at its graduating floor for the whole run. At the floor the least
+    recently drilled bank file is served again; off the floor an owned
+    node with nothing left holds as before."""
+    from kg import kg_lib
+    monkeypatch.setattr(kg_lib, "_load_curve", lambda: None)
+    drill_bank(tmp_path, monkeypatch, "some-node", "Lower", fname="a.py", did="d1")
+    drill_bank(tmp_path, monkeypatch, "some-node", "Upper", fname="b.py", did="d2")
+    floor = kg_lib.GRAD_LADDER_SPARSE[0]
+    reps = evidence(drill_rep("Lower", "some-node", days_ago=floor + 3),
+                    drill_rep("Upper", "some-node", days_ago=floor))
+    assert kg_lib.owned("some-node", reps) and not kg_lib.drills_left("some-node", reps)
+    assert kg_lib.graduation_due("some-node", reps, 0)[0] <= date.today()
+    assert kg_lib.due_drill("some-node", reps) == str(tmp_path / "some-node" / "a.py")
+    reps = evidence(drill_rep("Lower", "some-node", days_ago=10),
+                    drill_rep("Upper", "some-node", days_ago=5),
+                    drill_rep("Lower", "some-node", days_ago=1))  # a proof day
+    assert kg_lib.graduation_due("some-node", reps, 0)[0] > date.today()
+    assert kg_lib.due_drill("some-node", reps) is None
