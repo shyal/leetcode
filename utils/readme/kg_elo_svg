@@ -10,8 +10,11 @@
 # the median contest rating of its difficulty. Each attempt is one game
 # against the problem: solved unaided inside the budget for its difficulty
 # is a win, a hint inside the budget is a draw, a fail or a solve over
-# budget is a loss. Walkthrough and learning reps are copy reps and are not
-# games. Untimed solves are skipped. Standard Elo, K=32, from 1200.
+# budget is a loss. A solve the judge marked as meeting the statement's
+# follow-up (the sub-linear bound, the O(1) space, the iterative form) is
+# a harder problem than its label and plays on the next difficulty's clock.
+# Walkthrough and learning reps are copy reps and are not games. Untimed
+# solves are skipped. Standard Elo, K=32, from 1200.
 #
 # The cutoffs drawn are LeetCode's badge cutoffs: Knight is the top 25% of
 # contest users, Guardian the top 5%. Both are percentile ranks, so the
@@ -33,6 +36,7 @@ META = os.path.join(REPO_ROOT, "data", "problems_metadata.json")
 DB = os.path.join(GRAPH_DIR, "leet.db")
 
 BUDGET_MIN = {"Easy": 10, "Medium": 25, "Hard": 45}
+NEXT_TIER = {"Easy": "Medium", "Medium": "Hard", "Hard": "Hard"}
 K, START = 32, 1200.0
 RANKS = ((2200, "guardian", "#d29922"), (1850, "knight", "#58a6ff"))
 
@@ -76,9 +80,9 @@ def games():
     imputed = {d: median(v) for d, v in by_diff.items()}
     secs = {fn: s for _, _, s, fn in mined_solve_times(with_file=True)}
     con = sqlite3.connect(DB)
-    rows = con.execute("select date, problem, assist, file from solves order by date, file")
+    rows = con.execute("select date, problem, assist, file, followup from solves order by date, file")
     out = []
-    for d, pid, assist, fn in rows:
+    for d, pid, assist, fn, followup in rows:
         pid = str(pid)
         if pid not in meta:
             continue
@@ -93,7 +97,7 @@ def games():
             s = 0.0
         elif level in ("walkthrough", "learning") or fn not in secs:
             continue
-        elif secs[fn] > BUDGET_MIN[diff] * 60:
+        elif secs[fn] > BUDGET_MIN[NEXT_TIER[diff] if followup == "solved" else diff] * 60:
             s = 0.0
         else:
             s = 0.5 if level == "hint" else 1.0
@@ -160,7 +164,8 @@ def main():
            f'<rect width="{W}" height="{H}" fill="{BG}"/>',
            f'<text x="{W / 2:.0f}" y="24" text-anchor="middle" font-size="13" fill="{INK}">'
            f'Elo on a contest clock: win inside budget (easy 10m, medium 25m, hard 45m), '
-           f'hint inside budget is a draw, fail or over budget is a loss</text>',
+           f'hint inside budget is a draw, fail or over budget is a loss; '
+           f'a solved follow-up plays on the next clock</text>',
            f'<text x="{W / 2:.0f}" y="42" text-anchor="middle" font-size="11" fill="{MUTED}">'
            f'{len(gs)} games: {n_win} wins, {n_draw} draws, {len(gs) - n_win - n_draw} losses. '
            f'Problem ratings from LeetCode contests (zerotrac); copy reps are not games</text>']

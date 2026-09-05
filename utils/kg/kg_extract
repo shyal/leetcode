@@ -12,6 +12,7 @@
 #   utils/kg/kg_extract --model sonnet     # default is haiku (cheap/fast)
 
 import argparse
+import ast
 import glob
 import json
 import os
@@ -52,6 +53,30 @@ def strip_statement(code):
     except SyntaxError:  # abandoned attempt / half-typed file
         return body
     return f"{notes}\n\n{body}" if notes.strip() else body
+
+
+FOLLOWUP_RE = re.compile(r"^\s*\**follow[ -]?up\**:?\**\s*(.*)$", flags=re.I | re.M)
+
+
+def followup_of(code):
+    """The follow-up question in the problem statement, or "". LeetCode ends
+    some statements with a "Follow up:" paragraph asking for a better bound
+    (less than O(n) time, O(1) space, iterative instead of recursive). Only
+    the statement is read (the docstring above the `---` rule), never the
+    notes: the judge rules on whether the code meets it."""
+    try:
+        doc = ast.get_docstring(ast.parse(code))
+    except SyntaxError:
+        m = re.match(r'\s*"""(.*?)"""', code, flags=re.S)
+        doc = m.group(1) if m else None
+    if not doc:
+        return ""
+    statement = doc.split("---", 1)[0]
+    m = FOLLOWUP_RE.search(statement)
+    if not m:
+        return ""
+    rest = (m.group(1) + statement[m.end():]).strip()
+    return " ".join(rest.split("\n\n", 1)[0].split())
 
 
 def lookup_difficulty(pnum):
@@ -142,6 +167,41 @@ def record_alt_walk(problems, pnum, moves, skipped):
 
 
 VERDICT_STYLE = {"clean": "green", "struggled": "red", "avoided": "yellow"}
+FOLLOWUP_VERDICTS = ("solved", "not solved")
+
+
+def rejudge_followups(evidence, extract_one, workers):
+    """Fill the "followup" field on evidenced problem solves whose statement
+    asks one and whose entry predates the field. The judge is re-run on the
+    file, and ONLY that field is taken from its answer: moves, assist, note
+    and summary stay as they were judged the first time."""
+    todo = [p for p, e in evidence.items()
+            if e.get("problem") != "drill" and "followup" not in e
+            and os.path.exists(p) and followup_of(open(p).read())]
+    console.print(f"{len(todo)} evidenced solves with a follow-up and no verdict on it.\n")
+    done = failed = 0
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        futures = {pool.submit(extract_one, path): path for path in todo}
+        for fut in as_completed(futures):
+            path = futures[fut]
+            try:
+                result = fut.result()[0]
+            except Exception as e:
+                failed += 1
+                console.print(f"[red]FAIL {path}: {str(e)[:200]}[/red]")
+                continue
+            verdict = result.get("followup")
+            if verdict not in FOLLOWUP_VERDICTS:
+                failed += 1
+                console.print(f"[red]no follow-up verdict for {path}[/red]")
+                continue
+            evidence[path]["followup"] = verdict
+            save_evidence(evidence)
+            done += 1
+            style = "green" if verdict == "solved" else "yellow"
+            console.print(f"[green]{done}/{len(todo)}[/green] {os.path.basename(path)[:60]} "
+                          f"→ follow-up [{style}]{verdict}[/{style}]")
+    console.print(f"\nDone: {done} judged, {failed} failed (re-run to retry).")
 
 console = Console()
 
@@ -200,6 +260,8 @@ def main():
     parser.add_argument("--limit", type=int, default=0, help="max files this run (0 = all)")
     parser.add_argument("--model", default="haiku", help="model for extraction calls")
     parser.add_argument("--workers", type=int, default=8, help="concurrent extraction calls")
+    parser.add_argument("--followup", action="store_true",
+                        help="re-judge the follow-up only, on evidenced solves that lack the field")
     args = parser.parse_args()
 
     nodes = load_nodes()
@@ -230,10 +292,11 @@ Rules:
 - If a required move has no taxonomy node, put a 3-8 word description in "unmapped".
 - If the file has no working solution (skeleton body, abandoned attempt), still return the JSON with "moves": {{}} and a note like "abandoned attempt" — never prose.
 - "recognition": read ONLY from the candidate's own notes, like assist. When the notes say a move was not seen from the statement ("recognition failure", "failed to see it was binary search on the answer", "didn't recognise the monotonic stack"), list that move's id under "missed". A move being wrong or slow is not a recognition miss; only the notes saying it was not recognised is. Omit the key when the notes say nothing of the kind.
+- "followup": only when the prompt states the statement's follow-up question. "solved" when the code as written meets it (the bound it asks for, or the iterative/recursive form), "not solved" when it does not. Judge the code, not the notes.
 - "summary": 2-4 sentences of plain english for the candidate to read after filing: what the code does and how, which moves it exercised, and what the notes say happened (hints, look-ups, TLEs, dead ends) if anything. Facts only: no praise, no grading, no advice, no adjectives about the candidate. Refer to the code by its real names (its variables, clauses, functions).
 
 Output STRICT JSON only:
-{{"problem": "<number>", "title": "<title>", "moves": {{"<node-id>": "clean|struggled|avoided"}}, "assist": {{"<node-id>": "hint|walkthrough|learning"}}, "recognition": {{"missed": ["<node-id>"]}}, "unmapped": [], "note": "<one line, only if noteworthy>", "summary": "<2-4 sentences>"}}"""
+{{"problem": "<number>", "title": "<title>", "moves": {{"<node-id>": "clean|struggled|avoided"}}, "assist": {{"<node-id>": "hint|walkthrough|learning"}}, "recognition": {{"missed": ["<node-id>"]}}, "followup": "solved|not solved", "unmapped": [], "note": "<one line, only if noteworthy>", "summary": "<2-4 sentences>"}}"""
 
     def extract_one(path):
         """Read + claude call only — no shared state touched here."""
@@ -254,6 +317,13 @@ Output STRICT JSON only:
         # and they are the only source for struggles and assist. Keep them.
         body = strip_statement(code)[:6000]
         prompt = f"File: {os.path.basename(path)}\n\n{runtime_note(run_solve(path))}\n\n{body}"
+        followup = "" if is_drill else followup_of(code)
+        if followup:
+            prompt = (
+                f"The statement ends with a follow-up question: {followup} "
+                f"Judge whether the code as written meets it and answer in "
+                f"\"followup\": \"solved\" or \"not solved\".\n\n{prompt}"
+            )
         if is_drill:
             prompt = (
                 f"This is a DRILL file targeting these taxonomy nodes: {', '.join(trains) or 'unknown'}. "
@@ -275,7 +345,11 @@ Output STRICT JSON only:
             notes, _ = parse_content(code)
         except SyntaxError:
             notes = ""
-        return claude_json(prompt, system, model=args.model), is_drill, trains, notes
+        return claude_json(prompt, system, model=args.model), is_drill, trains, notes, followup
+
+    if args.followup:
+        rejudge_followups(evidence, extract_one, args.workers)
+        return
 
     lock = threading.Lock()
     done = failed = 0
@@ -284,7 +358,7 @@ Output STRICT JSON only:
         for fut in as_completed(futures):
             path = futures[fut]
             try:
-                result, is_drill, trains, notes = fut.result()
+                result, is_drill, trains, notes, followup = fut.result()
             except Exception as e:
                 failed += 1
                 console.print(f"[red]FAIL {path}: {str(e)[:200]}[/red]")
@@ -336,6 +410,8 @@ Output STRICT JSON only:
                       if n in nodes]
             if not missed and not is_drill and rc.notes_say_missed(notes):
                 missed = rc.entry_nodes(entry["problem"], problems)[:1]
+            if followup and result.get("followup") in FOLLOWUP_VERDICTS:
+                entry["followup"] = result["followup"]
             if result.get("note"):
                 entry["note"] = result["note"]
             # read back by `solved --commit`, the last step of `make solved`

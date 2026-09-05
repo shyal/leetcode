@@ -124,3 +124,57 @@ def test_nothing_is_recorded_when_no_mapped_move_was_skipped():
 
 def test_an_unmapped_problem_is_left_alone():
     assert not kg_extract.record_alt_walk({}, "9999", {}, {"pair-count-formula"})
+
+
+FOLLOWUP_SOLVE = '''"""
+1539. Kth Missing Positive Number
+
+Given an array arr sorted in strictly increasing order, return the kth
+missing positive integer.
+
+Follow up:
+
+Could you solve this problem in less than O(n) complexity?
+
+---
+Follow up: none of this line is the statement.
+"""
+
+
+class Solution:
+    def findKthPositive(self, arr, k):
+        return k
+'''
+
+
+def test_followup_is_read_from_the_statement():
+    assert kg_extract.followup_of(FOLLOWUP_SOLVE) == \
+        "Could you solve this problem in less than O(n) complexity?"
+
+
+def test_followup_on_one_line_is_read_too():
+    code = FOLLOWUP_SOLVE.replace("Follow up:\n\nCould", "Follow-up: Could")
+    assert kg_extract.followup_of(code) == \
+        "Could you solve this problem in less than O(n) complexity?"
+
+
+def test_followup_stops_at_the_paragraph():
+    code = FOLLOWUP_SOLVE.replace("complexity?\n", "complexity?\n\nConstraints:\n\n1 <= k\n")
+    assert kg_extract.followup_of(code) == \
+        "Could you solve this problem in less than O(n) complexity?"
+
+
+def test_no_followup_in_the_statement_means_none():
+    assert kg_extract.followup_of(SOLVE) == ""
+
+
+def test_followup_in_the_notes_only_is_not_a_followup():
+    code = SOLVE.replace("Peeked at", "Follow up: I peeked at")
+    assert kg_extract.followup_of(code) == ""
+
+
+def test_every_real_followup_is_a_question_from_the_statement():
+    for path in glob.glob(os.path.join(os.path.dirname(KG), "..", "solved", "*.py")):
+        f = kg_extract.followup_of(open(path).read())
+        assert "\n" not in f
+        assert "notes" not in f.lower()

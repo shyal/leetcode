@@ -19,12 +19,14 @@ Tables
     drill_trains(id, node_id)                 the nodes a drill evidences (TRAINS)
     drill_after(id, after_id)                 serve `after_id` before the drill
     problem_unmapped(num, text)               moves no node names yet
-    solves(file, date, problem, assist, note)     one solve or drill file (evidence.json)
+    solves(file, date, problem, assist, note, followup)
+                                              one solve or drill file (evidence.json)
     verdicts(file, node_id, verdict)          one node's verdict inside one solve
     solve_unmapped(file, text)
 
 `assist` is always filled: 'none' when the record has no assist field.
 `problem` is 'drill' for drill files, else the LeetCode number as text.
+`followup` is 'solved' or 'not solved' when the statement asked one, else NULL.
 An `after_id` is a problem number, a drill id, or a node id (one relation,
 kg_lib.warm decides when it is met).
 """
@@ -56,7 +58,7 @@ CREATE TABLE drills (id TEXT PRIMARY KEY, title TEXT, path TEXT, node TEXT);
 CREATE TABLE drill_trains (id TEXT, node_id TEXT, PRIMARY KEY (id, node_id));
 CREATE TABLE drill_after (id TEXT, after_id TEXT, PRIMARY KEY (id, after_id));
 CREATE TABLE problem_unmapped (num TEXT, text TEXT);
-CREATE TABLE solves (file TEXT PRIMARY KEY, date TEXT, problem TEXT, assist TEXT, note TEXT);
+CREATE TABLE solves (file TEXT PRIMARY KEY, date TEXT, problem TEXT, assist TEXT, note TEXT, followup TEXT);
 CREATE TABLE verdicts (file TEXT, node_id TEXT, verdict TEXT, PRIMARY KEY (file, node_id));
 CREATE TABLE solve_unmapped (file TEXT, text TEXT);
 CREATE INDEX verdicts_node ON verdicts (node_id);
@@ -120,8 +122,9 @@ def main():
 
     for fname, rec in evidence.items():
         con.execute(
-            "INSERT INTO solves VALUES (?,?,?,?,?)",
-            (fname, rec.get("date"), rec.get("problem"), assist_of(rec), rec.get("note")),
+            "INSERT INTO solves VALUES (?,?,?,?,?,?)",
+            (fname, rec.get("date"), rec.get("problem"), assist_of(rec), rec.get("note"),
+             rec.get("followup")),
         )
         con.executemany("INSERT INTO verdicts VALUES (?,?,?)",
                         [(fname, m, v) for m, v in rec.get("moves", {}).items()])
