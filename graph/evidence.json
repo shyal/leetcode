@@ -7678,6 +7678,17 @@
       },
       "note": "Clean anti-join via self-join with LEFT JOIN and HAVING filter for no match.",
       "summary": "The query finds employees who appear nowhere in the manager_id column (i.e., who manage nobody) using a self-join of Employees to itself. The condition `m.manager_id = e.employee_id` seeks each employee as a manager; LEFT JOIN keeps all employees, then HAVING m.employee_id IS NULL selects only those with no match. Correctly handles NULL manager_ids and avoids the NULL-in-NOT-IN trap mentioned in FORBIDDEN."
+    },
+    "solved/d_Nested_Boxes_2026_09_05T20_55_27_204004_00_00Z.py": {
+      "date": "2026-09-06",
+      "problem": "drill",
+      "moves": {
+        "stack-nested-eval": "clean"
+      },
+      "assist": {
+        "stack-nested-eval": "learning"
+      },
+      "summary": "The code computes total weight of nested boxes using digits, parentheses for nesting levels, and doubling each level's content when closing. It maintains a stack of accumulated weights at each nesting level, pushing to enter a scope and popping with a transformation (multiply by 2, add to parent) to exit, exemplifying stack-nested-eval."
     }
   }
 }
