@@ -2570,8 +2570,9 @@ def test_a_file_due_on_the_clock_outranks_every_other_rule(picker, monkeypatch):
 
 def test_the_clock_orders_reviews_before_new_files_and_ignores_holds(tmp_path, monkeypatch):
     """kg_lib.anki_frontier: a file past its due date comes first, most
-    overdue first; files never done follow, atoms before the drills that
-    come after them; a file done today is out; a file due tomorrow is out.
+    overdue first, but a due file's due "after" drills come before it;
+    files never done follow, atoms before the drills that come after
+    them; a file done today is out; a file due tomorrow is out.
     The "after" hold does not withhold a due file (Install Order sat
     behind Shake Hands for 23 days, 2026-09-06)."""
     from kg import kg_lib
@@ -2582,8 +2583,10 @@ def test_the_clock_orders_reviews_before_new_files_and_ignores_holds(tmp_path, m
     drill_bank(tmp_path, monkeypatch, "atom", "Later", fname="m.py", did="d4")
     drill_bank(tmp_path, monkeypatch, "atom", "Fresh", fname="f.py", did="d5")
     drill_bank(tmp_path, monkeypatch, "atom", "Today", fname="t.py", did="d6")
+    drill_bank(tmp_path, monkeypatch, "comp", "Top", fname="p.py", did="d7", after=["d3"])
     ns = {"atom": {"prereqs": []}, "comp": {"prereqs": ["atom"]}}
-    ev = evidence(drill_rep("Late", "atom", days_ago=3),      # interval 1: 2d overdue
+    ev = evidence(drill_rep("Top", "comp", days_ago=20),      # interval 1: 19d overdue, after Late
+                  drill_rep("Late", "atom", days_ago=3),      # interval 1: 2d overdue
                   drill_rep("Later", "atom", days_ago=10),
                   drill_rep("Later", "atom", days_ago=9),     # interval 3: 6d overdue
                   drill_rep("Fresh", "atom", days_ago=0),
@@ -2591,10 +2594,10 @@ def test_the_clock_orders_reviews_before_new_files_and_ignores_holds(tmp_path, m
                   drill_rep("Today", "atom", days_ago=4),
                   drill_rep("Today", "atom", days_ago=0))
     f = kg_lib.anki_frontier(ev, nodes=ns)
-    assert [os.path.basename(p) for p, _ in f] == ["m.py", "l.py", "a.py", "c.py"]
-    assert [n for _, n in f] == ["atom", "atom", "atom", "comp"]
+    assert [os.path.basename(p) for p, _ in f] == ["l.py", "p.py", "m.py", "a.py", "c.py"]
+    assert [n for _, n in f] == ["atom", "comp", "atom", "atom", "comp"]
     assert kg_lib.anki_frontier(ev, nodes=ns, node_ids=["comp"]) == [
-        (str(tmp_path / "comp" / "c.py"), "comp")]
+        (str(tmp_path / "comp" / "p.py"), "comp"), (str(tmp_path / "comp" / "c.py"), "comp")]
     # due_drill agrees with the clock on the file it serves
-    assert kg_lib.due_drill("atom", ev) == str(tmp_path / "atom" / "m.py")
-    assert kg_lib.due_drill("comp", ev) == str(tmp_path / "comp" / "c.py")
+    assert kg_lib.due_drill("atom", ev) == str(tmp_path / "atom" / "m.py")  # Top is out of scope
+    assert kg_lib.due_drill("comp", ev) == str(tmp_path / "comp" / "p.py")
