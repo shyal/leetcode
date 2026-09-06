@@ -1841,8 +1841,11 @@ def anki_rank(path, evidence, today=None, depth=0):
 
 def anki_frontier(evidence, today=None, nodes=None, node_ids=None, assisted=False):
     """Every bank file due on its own clock, as (path, node id): reviews
-    most overdue first, then files never done, atoms first. No hold, no
-    cap and no node status withholds a due file. The clock outranks
+    most overdue first, then files never done, atoms first. A due file
+    whose "after" drills are due too comes after them, whatever the
+    dates: the atom is served before the drill built on it (2026-09-06,
+    Bundle Refunds a day ahead of Tape Reader under it). No hold, no cap
+    and no node status withholds a due file. The clock outranks
     everything (2026-09-06: 92 files in the bank, 33 never served and 25
     served once and never again, after a month of pick rules that each
     ranked something above the return of a drill). With `assisted`, only
@@ -1850,7 +1853,7 @@ def anki_frontier(evidence, today=None, nodes=None, node_ids=None, assisted=Fals
     day = today or date.today()
     if nodes is None:
         nodes = load_nodes()
-    out = []
+    ranked = []
     for node in sorted(nodes if node_ids is None else node_ids):
         depth = len(input_tree([node], nodes)) if node in nodes else 0
         for path in sorted(glob.glob(os.path.join(DRILLS_DIR, node, "*.py"))):
@@ -1858,8 +1861,24 @@ def anki_frontier(evidence, today=None, nodes=None, node_ids=None, assisted=Fals
                 continue
             key = anki_rank(path, evidence, day, depth)
             if key is not None:
-                out.append((key, path, node))
-    return [(path, node) for _, path, node in sorted(out)]
+                ranked.append((key, path, node))
+    ranked.sort()
+    due = {path: node for _, path, node in ranked}
+    out, seen = [], set()
+
+    def emit(path):
+        if path in seen:
+            return
+        seen.add(path)
+        for a in drill_after(path):
+            up = drill_path(a)
+            if up in due:
+                emit(up)
+        out.append((path, due[path]))
+
+    for _, path, _ in ranked:
+        emit(path)
+    return out
 
 
 def due_drill(node_id, evidence, today=None, early=False, assisted=False):
@@ -1880,13 +1899,10 @@ def due_drill(node_id, evidence, today=None, early=False, assisted=False):
         # status and whatever holds on the file: a due drill is served.
         # With nothing due on the clock, a node that is not SOLID still
         # trains on its bank (the drill gate), below.
-        candidates = sorted(glob.glob(os.path.join(DRILLS_DIR, node_id, "*.py")))
-        if assisted:
-            candidates = [p for p in candidates if drill_assisted(p, evidence)]
-        ranked = [(anki_rank(p, evidence, day), p) for p in candidates]
-        ranked = [t for t in ranked if t[0] is not None]
+        ranked = anki_frontier(evidence, day, nodes={}, node_ids=[node_id],
+                               assisted=assisted)
         if ranked:
-            return min(ranked)[1]
+            return ranked[0][0]
     # the graduating floor (graduation_due) asks for a non-first unaided
     # rep; a move carried by drills alone (every sql node) has nowhere
     # else to land one, so it was due at its floor forever once each drill
