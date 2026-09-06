@@ -51,3 +51,4 @@ print(dict(sol.handshakes([[11, 12, 15], [14, 15], [16, 14], [19]])))  # {11: [1
 # assert sol.handshakes([[11, 12], [12, 11]]) == {11: [12, 12], 12: [11, 11]}
 # assert sol.handshakes([[11, 12], [11, 13]]) == {11: [12, 13], 12: [11], 13: [11]}  # one host, two parties
 # assert sol.handshakes([[15, 11], [12, 11]]) == {15: [11], 11: [15, 12], 12: [11]}  # handshake order, not sorted
+# assert sol.handshakes([[12, 11], [11, 13]]) == {12: [11], 11: [12, 13], 13: [11]}  # guest at party 0, host at party 1
