@@ -2458,3 +2458,76 @@ def test_a_move_at_its_floor_gets_its_bank_again(tmp_path, monkeypatch):
                     drill_rep("Lower", "some-node", days_ago=1))  # a proof day
     assert kg_lib.graduation_due("some-node", reps, 0)[0] > date.today()
     assert kg_lib.due_drill("some-node", reps) is None
+
+
+def test_the_anki_clock_grades_a_drill_file_from_its_own_reps(tmp_path, monkeypatch):
+    """SM-2 per bank file: Good runs 1, 3, 8, 20, 50 days; Hard (a hinted
+    clean) stretches by 1.2; Again (a struggle, a walkthrough or a copy)
+    goes back to one day. A file never done has no clock and is due."""
+    from kg import kg_lib
+    drill_bank(tmp_path, monkeypatch, "n", "Clock", fname="c.py", did="d1")
+    path = str(tmp_path / "n" / "c.py")
+    assert kg_lib.anki_due(path, {}) is None
+    ivl = []
+    reps = {}
+    for i, days in enumerate((60, 59, 56, 48, 28)):  # 1, 3, 8, 20 apart
+        reps.update(drill_rep("Clock", "n", days_ago=days))
+        ivl.append(kg_lib.anki_due(path, reps)[1])
+    assert ivl == [1, 3, 8, 20, 50]
+    hard = evidence(drill_rep("Clock", "n", days_ago=10),
+                    drill_rep("Clock", "n", days_ago=9, assist={"n": "hint"}))
+    assert kg_lib.anki_due(path, hard) == (ago(9) + timedelta(days=2), 2)
+    again = evidence(drill_rep("Clock", "n", days_ago=10),
+                     drill_rep("Clock", "n", days_ago=9),
+                     drill_rep("Clock", "n", days_ago=5, verdict="struggled"))
+    assert kg_lib.anki_due(path, again) == (ago(5) + timedelta(days=1), 1)
+    copy = evidence(drill_rep("Clock", "n", days_ago=3, assist={"n": "learning"}))
+    assert kg_lib.anki_due(path, copy) == (ago(3) + timedelta(days=1), 1)
+
+
+def test_under_the_anki_clock_a_solid_node_still_serves_its_due_drill(tmp_path, monkeypatch):
+    """DRILL_SCHEDULER=anki: a SOLID, owned node's drill comes back when the
+    file's own clock says so, and not before. Under the node clock the
+    same file is held (the node reads owned with nothing left)."""
+    from kg import kg_lib
+    monkeypatch.setattr(kg_lib, "_load_curve", lambda: None)
+    drill_bank(tmp_path, monkeypatch, "some-node", "Own", fname="o.py", did="d1")
+    path = str(tmp_path / "some-node" / "o.py")
+    ev = evidence(solve("7", {"some-node": "clean"}, days_ago=2),
+                  drill_rep("Own", "some-node", days_ago=5))
+    assert kg_lib.owned("some-node", ev)
+    assert kg_lib.due_drill("some-node", ev) is None
+    monkeypatch.setenv("DRILL_SCHEDULER", "anki")
+    assert kg_lib.due_drill("some-node", ev) == path
+    fresh = evidence(solve("7", {"some-node": "clean"}, days_ago=2),
+                     drill_rep("Own", "some-node", days_ago=9),
+                     drill_rep("Own", "some-node", days_ago=8),
+                     drill_rep("Own", "some-node", days_ago=5))  # interval 8: due in 3 days
+    assert kg_lib.due_drill("some-node", fresh) is None
+    held = evidence(drill_rep("Own", "some-node", days_ago=5),
+                    drill_rep("Own", "some-node", days_ago=0))  # once a day
+    assert kg_lib.due_drill("some-node", held) is None
+
+
+def test_under_the_anki_clock_a_solid_node_with_a_due_drill_enters_the_frontier(picker, monkeypatch):
+    """A SOLID node off its floor is not due under the node clock. With
+    DRILL_SCHEDULER=anki it is due when its bank has a due file, after
+    FRAGILE and floor moves and before STALE ones, and the reason names
+    the clock."""
+    from datetime import date as _date
+    monkeypatch.setenv("DRILL_SCHEDULER", "anki")
+    monkeypatch.setattr(kg_next, "graduation_due", lambda n, ev, carriers=99: None)
+    monkeypatch.setattr(kg_next, "anki_due",
+                        lambda path, ev: (_date.today() - timedelta(days=4), 3))
+    ns = nodes("a", "b")
+    ps = {"1": problem(["a"]), "2": problem(["b"])}
+    ev = evidence(solve("1", {"a": "clean"}, days_ago=30),
+                  solve("2", {"b": "clean"}, days_ago=20))
+    st = {"a": (SOLID, ago(30)), "b": (STALE, ago(20))}
+    assert picker.run(ns, ps, ev, st)[0] == "b"  # node clock: a is not due
+    picker.bank = {"a"}
+    target, status, pnum, why = picker.run(ns, ps, ev, st)
+    assert (target, status, pnum) == ("a", SOLID, "drill:a")
+    assert why == "drill due on its own clock - 3d interval, 4d overdue"
+    monkeypatch.delenv("DRILL_SCHEDULER")
+    assert picker.run(ns, ps, ev, st)[0] == "b"

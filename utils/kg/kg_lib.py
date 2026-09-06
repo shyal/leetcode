@@ -1751,6 +1751,91 @@ def servable_drills(candidates, evidence, node_id=None, early=False):
     return out
 
 
+def drill_scheduler(environ=None):
+    """Which clock a drill runs on (DRILL_SCHEDULER, set in .envrc):
+    "node", the default, where a drill is served when its node is due;
+    or "anki", where every bank file keeps a clock of its own (anki_due)
+    and the node's status never withholds it (2026-09-06: with the node
+    clock, a drill was served the day after its first rep and then never
+    again once a problem on the node went well; 28 of 41 second reps were
+    at a gap of one day, the longest gap seen was 18 days, and nine nodes
+    had a drill due by any per-file rule with nothing served)."""
+    raw = (os.environ if environ is None else environ).get("DRILL_SCHEDULER", "node")
+    return raw.strip().lower() or "node"
+
+
+# The Anki (SM-2) clock, one per bank file. A rep is graded from its own
+# record: an unaided all-clean is Good, a hinted all-clean is Hard, a
+# walkthrough, a copy or a struggle is Again. Good multiplies the interval
+# by the ease (250% to start), Hard by 1.2 and lowers the ease, Again
+# sends the file back to one day and lowers the ease more. A new file
+# graduates at one day; a file never done is due. Same-day reps are one
+# rep: the last of the day is the grade (massed practice earns no
+# interval, as in kg_curve.extract_trials).
+ANKI_EASE = 2.5
+ANKI_EASE_MIN = 1.3
+ANKI_HARD_FACTOR = 1.2
+ANKI_HARD_EASE_STEP = 0.15
+ANKI_AGAIN_EASE_STEP = 0.20
+ANKI_GRADUATING_DAYS = 1
+ANKI_MAX_INTERVAL = 365
+
+
+def anki_answer(rec):
+    """good / hard / again for one drill record."""
+    moves = rec.get("moves") or {}
+    if moves and all(v == "clean" for v in moves.values()):
+        a = assist_of(rec)
+        if a == "none":
+            return "good"
+        if a == "hint":
+            return "hard"
+    return "again"
+
+
+def anki_due(path, evidence):
+    """(due date, interval days) for a bank file on its own clock, or None
+    when the file has never been done (a new card: due now)."""
+    key = f"d_{drill_solved_stem(path)}_".lower()
+    reps = sorted((t for t in ev_index(evidence).drills if t[1].startswith(key)),
+                  key=lambda t: t[:2])
+    if not reps:
+        return None
+    by_day = {}
+    for d, _, rec in reps:
+        by_day[d] = rec  # the last rep of a day is that day's grade
+    interval, ease = 0, ANKI_EASE
+    for d in sorted(by_day):
+        answer = anki_answer(by_day[d])
+        if answer == "good":
+            interval = ANKI_GRADUATING_DAYS if interval == 0 else max(
+                interval + 1, int(interval * ease + 0.5))
+        elif answer == "hard":
+            interval = ANKI_GRADUATING_DAYS if interval == 0 else max(
+                interval + 1, int(interval * ANKI_HARD_FACTOR + 0.5))
+            ease = max(ANKI_EASE_MIN, ease - ANKI_HARD_EASE_STEP)
+        else:
+            interval = ANKI_GRADUATING_DAYS
+            ease = max(ANKI_EASE_MIN, ease - ANKI_AGAIN_EASE_STEP)
+        interval = min(interval, ANKI_MAX_INTERVAL)
+        last = d
+    return date.fromisoformat(last) + timedelta(days=interval), interval
+
+
+def anki_due_drills(candidates, evidence, today=None):
+    """The bank files among `candidates` whose own clock says due today,
+    most overdue first (a never-done file first of all)."""
+    day = today or date.today()
+    due = []
+    for path in candidates:
+        d = anki_due(path, evidence)
+        if d is None:
+            due.append((date.min, path))
+        elif d[0] <= day:
+            due.append((d[0], path))
+    return [p for _, p in sorted(due)]
+
+
 def due_drill(node_id, evidence, today=None, early=False, assisted=False):
     """Least-recently-drilled RELEASED bank file for a node, or None if the
     bank is empty or that file was already drilled today. The no-carrier
@@ -1764,6 +1849,22 @@ def due_drill(node_id, evidence, today=None, early=False, assisted=False):
     servable, and the curve is off as under `early`."""
     day = today or date.today()
     status, _ = node_status(node_id, evidence, day)
+    if drill_scheduler() == "anki" and not early and not assisted:
+        # the drill's own clock (anki_due): the "after" holds and the
+        # once-a-day rule still apply; the node's status never withholds
+        # a due file. A node that is not SOLID trains on its bank as
+        # before (the drill gate): its least recently drilled servable
+        # file, whatever the clocks say.
+        candidates = sorted(glob.glob(os.path.join(DRILLS_DIR, node_id, "*.py")))
+        pool = servable_drills(candidates, evidence, node_id)
+        if status == SOLID:
+            pool = anki_due_drills(pool, evidence, day)
+            path = pool[0] if pool else None
+        else:
+            path = min(pool, key=lambda p: last_drilled(p, evidence)) if pool else None
+        if path is None or last_drilled(path, evidence) >= day.isoformat():
+            return None
+        return path
     # the graduating floor (graduation_due) asks for a non-first unaided
     # rep; a move carried by drills alone (every sql node) has nowhere
     # else to land one, so it was due at its floor forever once each drill

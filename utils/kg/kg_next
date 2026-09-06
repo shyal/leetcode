@@ -53,11 +53,15 @@
 #   prereq SOLID, or SOLID on its graduating floor (a young move gets its
 #   next unaided rep at 3/10/25 days after the last clean - 2/7/18 when
 #   two or fewer problems carry it - whatever the curve says, because the
-#   curve schedules no rep inside the window it believes). The list is
-#   sorted:
+#   curve schedules no rep inside the window it believes). With
+#   DRILL_SCHEDULER=anki (.envrc; kg_lib.drill_scheduler) a SOLID move is
+#   also due when a bank file of its own says so: every drill file keeps
+#   an SM-2 clock of its own (kg_lib.anki_due), and the node's status never
+#   withholds it (2026-09-06: under the node clock a drill was served the
+#   day after its first rep and then never again). The list is sorted:
 #     1. the rusty ground under a sleeping problem first, so it is woken
 #        onto warm moves;
-#     2. then FRAGILE, floor, STALE, MISSING;
+#     2. then FRAGILE, floor, drill clock, STALE, MISSING;
 #     3. then, within a status, moves a drill can serve before moves only
 #        a problem can - the bank is the asset, a drill is three minutes
 #        to a problem's seventeen;
@@ -174,6 +178,8 @@ from kg.kg_lib import (
     tree_size,
     acceptance,
     due_drill,
+    drill_scheduler,
+    anki_due,
     drills_left,
     drill_gated,
     drill_held,
@@ -303,6 +309,18 @@ def problem_url(pnum):
         return f"https://leetcode.com/problems/{slug}/"
     except Exception:
         return f"https://leetcode.com/problemset/?search={pnum}"
+
+
+def drill_clock_reason(path, evidence, today=None):
+    """The reason line for a drill served on its own clock (kg_lib.anki_due):
+    the interval it had and how many days past it the file is."""
+    today = today or date.today()
+    due = anki_due(path, evidence) if path else None
+    if not due:
+        return "drill never done - on its own clock"
+    late = (today - due[0]).days
+    return (f"drill due on its own clock - {due[1]}d interval"
+            + (f", {late}d overdue" if late > 0 else ""))
 
 
 def pick(
@@ -545,7 +563,9 @@ def pick(
     dodged = dodged_nodes(evidence)
     today = date.today()
     FLOOR = "floor"
-    ORDER = {FRAGILE: 0, FLOOR: 1, STALE: 2, MISSING: 3}
+    DRILL = "drill"  # a SOLID move whose bank file is due on its own clock
+    ORDER = {FRAGILE: 0, FLOOR: 1, DRILL: 2, STALE: 3, MISSING: 4}
+    anki = drill_scheduler() == "anki"
 
     def floor(n):
         """(due date, floor days) when n is a young SOLID move whose ladder
@@ -561,7 +581,9 @@ def pick(
             return MISSING if all(
                 statuses[p][0] == SOLID for p in nodes[n].get("prereqs", [])) else None
         if status == SOLID:
-            return FLOOR if floor(n) else None
+            if floor(n):
+                return FLOOR
+            return DRILL if anki and due(n) else None
         return status
 
     # the rusty ground under a sleeping problem comes first, freshest
@@ -644,6 +666,7 @@ def pick(
                 else "fragile move — drill until clean, carrier after" if k == FRAGILE
                 else f"graduating rep - young move at its {floor(n)[1]}d floor"
                      " - drill first, carrier after" if k == FLOOR
+                else drill_clock_reason(due_drill(n, evidence), evidence) if k == DRILL
                 else f"re-enter a deep-stale move ({age}d since clean)"
                      " — drill until clean, carrier after" if deep
                 else f"stale move ({age}d since clean) - drill first, carrier after"
