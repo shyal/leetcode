@@ -21,5 +21,5 @@ files are not referenced by anything, and that is fine: unreferenced is not dead
 - `recursive_descent.py` - parser skeleton
 - `sliding_window.py`, `prims_algorithm.py` - the loops, as i remember them
 - `sql.py` - query idioms
-- `base_conversion.py`, `ceil_div/`, `union_find/` - small scratch solves kept for the idiom
+- `base_conversion.py`, `ceil_div/`, `union_find_problems/` - small scratch solves kept for the idiom
 - `viz.py` - tour of the drawing helpers the harness injects (`make viz`)

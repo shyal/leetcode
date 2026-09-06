@@ -29,6 +29,11 @@ Constraints:
 
     REQUIRED: must use only what union returns. NO scan of self.parent at
     the end. NO find or union of your own.
+
+---
+
+Learning
+
 """
 
 from dsa.union_find import UnionFind
@@ -36,7 +41,11 @@ from dsa.union_find import UnionFind
 
 class Solution(UnionFind):
     def countCompanies(self, pairs: List[List[int]]) -> int:
-        pass
+        count = len(self.parent)
+        for a, b in pairs:
+            if self.union(a, b):
+                count -= 1
+        return count
 
 
 sol = Solution(4)
