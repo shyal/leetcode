@@ -7991,6 +7991,18 @@
       },
       "note": "Iterative nested loops instead of recursive backtracking; same algorithmic move.",
       "summary": "The solution generates all strictly increasing triples [i, j, k] with i < j < k < n by iterating three nested loops where each loop starts at the position after the previous variable. This unrolled form exercises the core of backtracking-start-index: maintaining a start index and drawing candidates from the suffix [start, n), with each next level beginning at the current candidate + 1 to ensure the ordering invariant and avoid duplicates. All test cases pass."
+    },
+    "solved/d_Combinations_2026_09_06T05_52_46_565640_00_00Z.py": {
+      "date": "2026-09-06",
+      "problem": "drill",
+      "moves": {
+        "backtracking-start-index": "struggled"
+      },
+      "assist": {
+        "backtracking-start-index": "hint"
+      },
+      "note": "Initialize with helper(1), not helper(0); produces 0-indexed combinations instead of 1-indexed ones, failing the first assertion.",
+      "summary": "The code attempts combinations via backtracking with a start parameter. The pattern is sound\u2014loop from start to n, recurse at start+1, append-pop-copy\u2014but calls helper(0) instead of helper(1), generating combinations that include 0 and fail all assertions. The base case len(path)==k is correct, which matches the assisted note."
     }
   }
 }
