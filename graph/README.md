@@ -106,6 +106,28 @@ the review-ahead line replays under the same cap. The footer prints the count
 The graduating floor is what made this necessary: drills re-fire at 3/10/25
 days, and one bank of nineteen sql nodes could fill every session (2026-09-04).
 
+## Drill clock (`DRILL_SCHEDULER`)
+
+By default a drill is served when its node is due: FRAGILE, STALE, MISSING, or
+SOLID on its graduating floor. A node reads SOLID whenever a problem on it went
+well, so under this clock a drill was served the day after its first rep and
+then not again for weeks (2026-09-06: 28 of 41 second reps at a gap of one day,
+longest gap 18 days, nine nodes with a drill due by any per-file rule and
+nothing served).
+
+`DRILL_SCHEDULER=anki` in `.envrc` gives every bank file a clock of its own,
+Anki's SM-2. The file's own reps grade it: an unaided all-clean is Good, a
+hinted all-clean is Hard, a walkthrough, a copy or a struggle is Again. A new
+file graduates at 1 day. Good multiplies the interval by the ease (250% to
+start), so a file always answered Good runs 1, 3, 8, 20, 50 days. Hard
+multiplies by 1.2 and lowers the ease; Again sends the file back to 1 day and
+lowers the ease more. A file never done is due. A SOLID node with a due file
+enters the frontier after FRAGILE and floor moves and before STALE ones; the
+"after" holds, the once-a-day rule and the group cap still apply, and a node
+that is not SOLID trains on its bank as before. The node curve and the
+graduating floor keep their job for problems and are never consulted for a
+drill's own due date.
+
 ## Dive (`make dive`)
 
 `make next <group>` (currently `make next sql` and `make next spark`; `--group <g>` on kg_next for any group)
