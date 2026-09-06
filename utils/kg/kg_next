@@ -176,6 +176,9 @@ from kg.kg_lib import (
     MAX_ASLEEP,
     group_caps,
     group_reps,
+    pending_judgements,
+    spawn_judge,
+    PENDING_STALE_SECONDS,
     last_solved,
     pnum_key,
     dodged_nodes,
@@ -1397,6 +1400,16 @@ def _main(footer):
         footer.append(f"{g}: {k}/{c} reps today"
                       + (" - at the daily cap, make next {g} to go past it".format(g=g)
                          if k >= c else " (KG_GROUP_CAP)"))
+    # the judge queue: a placeholder still pending is a rep the picker
+    # counts on its TRAINS, unjudged. Fresh ones are being judged now; a
+    # stale one lost its worker (killed, dropped with its branch) - respawn
+    pending = pending_judgements(evidence)
+    if pending:
+        stale = [p for p, age in pending if age > PENDING_STALE_SECONDS]
+        for p in stale:
+            spawn_judge(p)
+        footer.append(f"judge pending on {len(pending)} rep(s)"
+                      + (f", {len(stale)} respawned" if stale else "") + " (.judge.log)")
 
     session_start = is_session_start()
 

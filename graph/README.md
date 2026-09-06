@@ -39,6 +39,22 @@ and generate combination drills ("rote sheets").
   clean rep at all — the node falls back to its previous clean date, which is what
   `make sleep` then re-queues.
 
+  The judge does not hold up `make solved`. The file phase writes a placeholder
+  entry - the rep, dated, on the drill's TRAINS (or the problem's canonical walk)
+  marked clean, assist read from the level word in the notes - with a `pending`
+  stamp, and commits at once. A detached `kg_extract --file F --commit` then judges
+  the file, replaces the entry, refits the curve, and commits the graph files by
+  path onto whatever is checked out when it finishes. It then folds that commit
+  into the solve's own commit and replays everything after it - master, the branch
+  of the solve in progress, any parked branch - onto the rewritten commit, in a
+  temporary worktree, dates kept; the checked-out branch is moved only when its
+  tree is unchanged, so a half-typed current.py never notices. A solve already
+  pushed is not rewritten: the `judge:` commit stays on top, verdicts and summary
+  in its body. Every writer reloads evidence.json under
+  `graph/.evidence.lock`, so a judge landing late never drops the next placeholder.
+  A `pending` entry is the queue: `make next` counts them in its footer and respawns
+  any older than ten minutes; `make kg-extract` re-judges them all in line.
+
 ## The drill bank (../drills/)
 
 `drills/<node-id>/*.py` is a growing bank of self-authored, leetcode-style drill files —

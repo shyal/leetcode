@@ -11,7 +11,7 @@ from rich.console import Console
 from rich.panel import Panel
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from kg.kg_lib import active_seconds, load_evidence
+from kg.kg_lib import active_seconds, load_evidence, spawn_judge, PENDING
 from kg import recognition as rc
 
 console = Console()
@@ -23,17 +23,22 @@ console = Console()
 #                           current.py into solved/, clear it, park the
 #                           frozen commit message in .solve_meta.json
 #                           (untracked, gitignored). No git.
-#   <the judge + curve run here, interruptible and resumable>
-#   utils/kg/solved --commit   commit phase: ONE commit carrying the solve,
-#                           the evidence, and the curve together, with the
-#                           frozen solve time in the message; then the
-#                           squash-merge to master. SIGINT-immune — it is
+#   kg_extract --stub       placeholder evidence for the filed solve, no
+#                           model call (a spot rep is judged here, in line:
+#                           its walk is revealed after the judge)
+#   utils/kg/solved --commit   commit phase: ONE commit carrying the solve and
+#                           the placeholder, with the frozen solve time in
+#                           the message; then the squash-merge to master;
+#                           then the judge is spawned DETACHED on the filed
+#                           file (kg_lib.spawn_judge). SIGINT-immune — it is
 #                           about a second of git.
 #
-# Interrupted anywhere: re-run `make solved`. The file phase sees the meta
-# and skips itself, the judge skips files already in evidence, the commit
-# phase picks up the meta and finishes. Nothing is committed until
-# everything is in.
+# The judge (kg_extract --file F --commit) lands its own commit when it is
+# done, on whatever is checked out then (settled 2026-09-06; before, every
+# `make solved` waited a median 38s for it). Interrupted anywhere: re-run
+# `make solved`. The file phase sees the meta and skips itself, the stub
+# skips an entry already present, the commit phase picks up the meta and
+# finishes. A placeholder still pending is respawned by `make next`.
 FAILED = "--failed" in sys.argv
 COMMIT = "--commit" in sys.argv
 META = ".solve_meta.json"
@@ -296,9 +301,9 @@ def commit_phase():
 
 
 def finish(meta):
-    """The last thing `make solved` prints: the judge's plain-english account
-    of the solve, read back from evidence.json (kg_extract keys it by the
-    solved/ path)."""
+    """The last thing `make solved` prints. A spot rep: the judge's reveal.
+    A solve: its placeholder is committed, so the judge is spawned detached
+    here; its account of the solve lands in its own commit's body."""
     console.print("[green]✓ committed[/green] [bold]" + meta["message"].splitlines()[0] + "[/bold]")
     key = os.path.normpath(meta.get("file", ""))
     if meta.get("kind") == "spot":
@@ -306,9 +311,12 @@ def finish(meta):
         if rec:
             console.print(Panel(rc.reveal(rec), title="the rep", border_style="cyan", padding=(0, 1)))
         return
-    summary = load_evidence().get(key, {}).get("summary")
-    if summary:
-        console.print(Panel(summary, title="the solve", border_style="cyan", padding=(0, 1)))
+    entry = load_evidence().get(key, {})
+    if entry.get(PENDING):
+        spawn_judge(key)
+        console.print("[dim]judge running in the background; it commits when done (.judge.log).[/dim]")
+    elif entry.get("summary"):
+        console.print(Panel(entry["summary"], title="the solve", border_style="cyan", padding=(0, 1)))
 
 
 def main():
