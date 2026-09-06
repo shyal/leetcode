@@ -7824,6 +7824,13 @@
       },
       "note": "Drill file; all assertions pass.",
       "summary": "Converts parties (implicit edge list) into an adjacency dict by iterating each party, adding bidirectional edges between the host and each guest using defaultdict(list). Correctly handles single-person parties (no edges) and people appearing in multiple parties (accumulated neighbors)."
+    },
+    "solved/d_Count_Missing_Integers_2026_09_06T01_08_07_586726_00_00Z.py": {
+      "date": "2026-09-06",
+      "problem": "drill",
+      "moves": {},
+      "note": "Solution uses direct arithmetic (last \u2212 length) instead of examining index-value gaps.",
+      "summary": "The solution calculates missing integers from 1 to arr[-1] using the formula arr[-1] - len(arr), which is algebraically equivalent to summing index-value gaps but sidesteps the technique entirely. All test cases pass. The index-value-gap approach would iterate through indices, computing arr[i] - (i+1) at each position; instead, this solution recognizes that the total gap equals the final value minus the count."
     }
   }
 }
