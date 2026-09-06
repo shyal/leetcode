@@ -31,7 +31,7 @@ preflight:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/preflight $(filter-out $@,$(MAKECMDGOALS))
 
 kg-extract:
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_extract $(filter-out $@,$(MAKECMDGOALS))
+	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_extract --pending $(filter-out $@,$(MAKECMDGOALS))
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_curve --if-stale
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_solvecost --if-stale
 
@@ -99,24 +99,22 @@ drop:
 	git checkout -q -- . && git clean -qfd && git checkout -q master && git branch -D "$$b"; \
 	rm -f .solve_meta.json
 
-# file phase (freezes the solve time) -> judge -> curve -> ONE commit at the
-# end carrying solve + evidence + curve, with the frozen time in the message.
-# Ctrl-C anywhere: re-run `make solved`, every step resumes (utils/kg/solved).
+# file phase (freezes the solve time) -> placeholder evidence (no model
+# call) -> ONE commit carrying solve + placeholder, with the frozen time in
+# the message -> the judge spawned detached; it commits its verdict when
+# done. Seconds, not the judge's minute. Ctrl-C anywhere: re-run
+# `make solved`, every step resumes (utils/kg/solved).
 solved:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_force --check
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/solved
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_extract
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_curve --if-stale
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_solvecost --if-stale
+	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_extract --stub
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/solved --commit
 
 # file the current attempt as a FAILED one: same flow as solved (archive,
-# solve-time trailer, extraction -> struggled evidence), honest label
+# solve-time trailer, placeholder -> struggled evidence), honest label
 failed:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/solved --failed
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_extract
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_curve --if-stale
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_solvecost --if-stale
+	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_extract --stub
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/solved --commit
 
 test:

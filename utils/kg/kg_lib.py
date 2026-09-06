@@ -383,6 +383,83 @@ def save_evidence(evidence):
         json.dump(data, f, indent=2)
 
 
+# ---- the judge queue -----------------------------------------------------------
+# `make solved` no longer waits for the judge (settled 2026-09-06: a median
+# 38s, up to 3 minutes, per drill). The file phase writes a PLACEHOLDER
+# entry - the rep exists, its moves are the drill's TRAINS (or the
+# problem's canonical walk) marked clean, assist read from the notes - and
+# flags it "pending". A detached kg_extract judges the file and replaces the
+# entry. The flag is the queue: anything pending is unjudged, whatever
+# happened to the worker, and `make next` respawns it when it is stale.
+# Two writers (a worker landing, the next solve's placeholder) share
+# evidence.json, so every write reloads the file under this lock.
+PENDING = "pending"
+PENDING_STALE_SECONDS = 600
+
+
+class evidence_lock:
+    """Exclusive lock on graph/evidence.json for a load-modify-save."""
+
+    def __enter__(self):
+        import fcntl
+        self._f = open(os.path.join(GRAPH_DIR, ".evidence.lock"), "w")
+        fcntl.flock(self._f, fcntl.LOCK_EX)
+        return self
+
+    def __exit__(self, *exc):
+        import fcntl
+        fcntl.flock(self._f, fcntl.LOCK_UN)
+        self._f.close()
+        return False
+
+
+def store_evidence_entry(path, entry):
+    """Set ONE entry and save, against the file as it is NOW (not as it was
+    when the caller loaded it): a worker that judged for a minute must not
+    clobber the placeholder the next `make solved` wrote meanwhile. Returns
+    the fresh evidence dict."""
+    with evidence_lock():
+        evidence = load_evidence()
+        evidence[path] = entry
+        save_evidence(evidence)
+    return evidence
+
+
+def pending_judgements(evidence):
+    """[(path, seconds since the placeholder was written)], oldest first."""
+    now = time.time()
+    out = []
+    for path, e in evidence.items():
+        stamp = e.get(PENDING)
+        if not stamp:
+            continue
+        try:
+            age = now - datetime.fromisoformat(stamp).timestamp()
+        except (TypeError, ValueError):
+            age = float("inf")
+        out.append((path, age))
+    return sorted(out, key=lambda t: -t[1])
+
+
+def spawn_judge(path):
+    """Detach one kg_extract on this file: it judges, folds, refits the
+    curve, and commits the graph files by path onto whatever branch is
+    checked out when it finishes. Output goes to .judge.log (gitignored).
+    Returns the Popen; nothing waits on it."""
+    root = os.path.dirname(GRAPH_DIR)
+    py = os.path.join(root, ".venv", "bin", "python3")
+    if not os.path.exists(py):
+        py = sys.executable
+    env = dict(os.environ)
+    env["PYTHONPATH"] = os.pathsep.join([os.path.join(root, "utils"), env.get("PYTHONPATH", "")])
+    log = open(os.path.join(root, ".judge.log"), "a")
+    return subprocess.Popen(
+        [py, os.path.join(root, "utils", "kg", "kg_extract"), "--file", path, "--commit"],
+        cwd=root, env=env, stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT,
+        start_new_session=True,
+    )
+
+
 _curve_cache = None
 
 
@@ -2129,8 +2206,19 @@ def sleep_lines(nodes, problems, evidence, statuses=None):
     return lines
 
 
-def claude_json(prompt, system_prompt, model="sonnet"):
-    """One non-interactive claude call; returns parsed JSON from the result text."""
+def claude_json(prompt, system_prompt, model="sonnet", retries=2):
+    """One non-interactive claude call; returns parsed JSON from the result
+    text. A reply that is not JSON (haiku, now and then) is asked again, up
+    to `retries` more times: the detached judge has no operator to re-run it."""
+    for attempt in range(retries + 1):
+        try:
+            return _claude_json_once(prompt, system_prompt, model)
+        except ValueError:
+            if attempt == retries:
+                raise
+
+
+def _claude_json_once(prompt, system_prompt, model):
     proc = subprocess.run(
         [
             "claude", "-p", prompt,

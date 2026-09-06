@@ -126,6 +126,8 @@ def rep_lines(reps):
         a = rec.get("assist")
         assist = assist_tag(a) if a else "none"
         line = f"  rep {n}  {d}  {verdict}  assist {assist}"
+        if rec.get("pending"):
+            line += "  (judge pending)"
         note = rec.get("note")
         if note:
             line += f"\n         {note[:140]}"

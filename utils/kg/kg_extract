@@ -10,6 +10,15 @@
 #   utils/kg/kg_extract --limit 5          # trial run on the 5 newest unprocessed
 #   utils/kg/kg_extract                    # process everything unprocessed
 #   utils/kg/kg_extract --model sonnet     # default is haiku (cheap/fast)
+#   utils/kg/kg_extract --stub             # placeholder entry for the staged solve (no model call)
+#   utils/kg/kg_extract --file F --commit  # the detached judge: judge F, fold, refit, commit
+#   utils/kg/kg_extract --pending          # also re-judge every placeholder still pending
+#
+# The judge queue (settled 2026-09-06): `make solved` writes the placeholder
+# and commits at once; the judge runs detached and lands its own commit on
+# whatever branch is checked out when it finishes, then folds that commit
+# into the solve's own commit and rewrites every branch cut from it
+# (fold_into); a pushed solve keeps the "judge:" commit on top instead.
 
 import argparse
 import ast
@@ -20,7 +29,9 @@ import re
 import subprocess
 import sys
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime, timezone
 from rich.console import Console
 
 from history.history_builder import parse_content
@@ -29,13 +40,19 @@ from kg.kg_lib import (
     save_problems, save_evidence, claude_json, taxonomy_summary, node_status,
     manila_date_from_filename, load_predicted, unlocks,
     HARNESS_ENV_NOTE, SOLID, apply_assist_floor, assist_tag, normalise_assist,
-    notes_assist_level,
+    notes_assist_level, PENDING, store_evidence_entry, evidence_lock,
 )
 from kg import recognition as rc
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+UTILS = os.path.join(REPO_ROOT, "utils")
 VENV_PY = os.path.join(REPO_ROOT, ".venv", "bin", "python3")
 RUN_TIMEOUT = 30
+META = os.path.join(REPO_ROOT, ".solve_meta.json")
+# what the judge commits, by path: never `git add .`, the candidate may be
+# typing the next solve in current.py when the judge lands
+GRAPH_FILES = ["graph/evidence.json", "graph/problems.json", "graph/recognition.json",
+               "graph/curve.json", "graph/solvecost.json"]
 
 
 def strip_statement(code):
@@ -209,6 +226,217 @@ FNAME_RE = re.compile(r"p(\d+)_(.+?)_\d{4}_\d{2}_\d{2}T")
 TRAINS_RE = re.compile(r"TRAINS:\s*([a-z0-9\-, ]+)")
 
 
+def is_drill_file(path, code):
+    """A drill is a drill even when its filename lacks the d_ prefix
+    (p1_read_the_operator): the DRILL: header is authoritative - without
+    this, the p<digit> prefix reads as a leetcode number and the drill's
+    evidence and alt_walks land on that problem (Two Sum once grew a
+    recursive-descent alt walk this way)."""
+    return os.path.basename(path).startswith("d_") \
+        or bool(re.search(r"^\s*\**DRILL:", code, flags=re.M))
+
+
+def trains_in(code):
+    m = TRAINS_RE.search(code)
+    return [t.strip() for t in m.group(1).split(",")] if m else []
+
+
+def stub_entry(path, nodes, problems, now=None):
+    """The placeholder `make solved` files before the judge runs: the rep,
+    dated, on the moves the file is FOR - a drill's TRAINS, a problem's
+    canonical walk - marked clean (struggled for a FAILED file), assist read
+    from the level word in the notes exactly as the judge's floor reads it.
+    The picker, the caps and the rep hook count it as the rep it is; the
+    judge replaces it. The pending stamp is when it was written."""
+    code = open(path).read()
+    is_drill = is_drill_file(path, code)
+    if is_drill:
+        moves = trains_in(code)
+        problem = "drill"
+    else:
+        m = FNAME_RE.search(os.path.basename(path))
+        problem = m.group(1) if m else "?"
+        moves = list(problems.get(problem, {}).get("moves", []))
+    verdict = "struggled" if "_FAILED_" in os.path.basename(path) else "clean"
+    moves = {mv: verdict for mv in moves if mv in nodes}
+    entry = {
+        "date": manila_date_from_filename(path) or "1970-01-01",
+        "problem": problem,
+        "moves": moves,
+        PENDING: (now or datetime.now(timezone.utc)).isoformat(timespec="seconds"),
+    }
+    try:
+        notes, _ = parse_content(code)
+    except SyntaxError:
+        notes = ""
+    assist = apply_assist_floor(None, notes_assist_level(notes), list(moves))
+    if assist:
+        entry["assist"] = assist
+    return entry
+
+
+def staged_solve():
+    """The solve `make solved` just filed (.solve_meta.json), or None."""
+    try:
+        with open(META) as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return None
+
+
+def judge_title(path):
+    """"Slide, Never Shrink" from d_Slide_Never_Shrink_2026_..., "1539"
+    from p1539_...: the subject of the judge's commit."""
+    base = os.path.basename(path)
+    base = re.sub(r"_\d{4}_\d{2}_\d{2}T.*$", "", base)
+    if base.startswith("d_"):
+        return base[2:].replace("_FAILED", "").replace("_", " ")
+    m = re.match(r"p(\d+)_(.*)", base)
+    return f"{m.group(1)}. {m.group(2).replace('_FAILED', '').replace('_', ' ')}" if m else base
+
+
+def _git(*args, cwd=None, env=None):
+    return subprocess.run(["git", *args], cwd=cwd or REPO_ROOT, capture_output=True, text=True, env=env)
+
+
+def solve_commit(path):
+    """The commit that added this solved/ file, in HEAD's history: master's
+    squash commit, seen from master or from any branch cut after it."""
+    out = _git("log", "--diff-filter=A", "--format=%H", "-1", "HEAD", "--", path).stdout.strip()
+    return out or None
+
+
+def commit_pushed(sha):
+    """Already on origin? Rewriting it would need a force push."""
+    return _git("merge-base", "--is-ancestor", sha, "origin/master").returncode == 0
+
+
+def _tree(sha, cwd=None):
+    return _git("rev-parse", f"{sha}^{{tree}}", cwd=cwd).stdout.strip()
+
+
+def fold_into(solve, judge):
+    """Rewrite history so the judge's commit is part of the solve's commit,
+    then replay everything after the solve - on master and on every branch
+    cut from it - onto the rewritten commit, so no branch keeps the
+    placeholder to conflict with the verdict at its squash-merge. All of it
+    happens in a temporary worktree; the checked-out branch is moved only
+    when its new tip has exactly the tree it has now, so the working tree
+    (current.py mid-solve) never notices. Author and committer dates are
+    kept. Returns (ok, why); on any doubt nothing is moved and the judge's
+    own commit stays where it landed."""
+    import tempfile
+    tmp = tempfile.mkdtemp(prefix="judge_")
+    os.rmdir(tmp)
+    current = _git("rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
+    refs = []
+    for line in _git("for-each-ref", "refs/heads", "--contains", solve,
+                     "--format=%(refname:short) %(objectname)").stdout.split("\n"):
+        if line.strip():
+            name, sha = line.split()
+            refs.append((name, sha))
+    try:
+        r = _git("worktree", "add", "-q", "--detach", tmp, solve)
+        if r.returncode != 0:
+            return False, "no worktree: " + r.stderr.strip()[:120]
+
+        def g(*args, env=None):
+            return _git(*args, cwd=tmp, env=env)
+
+        def dated(sha):
+            cd = _git("show", "-s", "--format=%cI", sha).stdout.strip()
+            return {**os.environ, "GIT_COMMITTER_DATE": cd}
+
+        changed = _git("diff-tree", "--no-commit-id", "--name-only", "-r", judge).stdout.split()
+        for path in changed:
+            g("checkout", judge, "--", path)
+        r = g("commit", "-q", "--amend", "--no-edit", env=dated(solve))
+        if r.returncode != 0:
+            return False, "amend failed: " + r.stderr.strip()[:120]
+        rewritten = g("rev-parse", "HEAD").stdout.strip()
+
+        new = {}
+        for name, old in refs:
+            g("checkout", "-q", "--detach", rewritten)
+            for c in _git("rev-list", "--reverse", f"{solve}..{old}").stdout.split():
+                if c == judge:
+                    continue
+                was_empty = _tree(c) == _tree(c + "^")
+                r = g("cherry-pick", *(["--allow-empty"] if was_empty else []), c, env=dated(c))
+                if r.returncode != 0:
+                    staged = g("diff", "--cached", "--quiet").returncode != 0
+                    dirty = g("diff", "--quiet").returncode != 0
+                    if staged or dirty:
+                        g("cherry-pick", "--abort")
+                        return False, f"{c[:8]} does not replay cleanly on {name}"
+                    g("cherry-pick", "--skip")  # became empty: its change is in the fold
+            tip = g("rev-parse", "HEAD").stdout.strip()
+            if name == current and _tree(tip) != _tree(old):
+                return False, f"the tree of {name} would change"
+            new[name] = (old, tip)
+
+        for name in sorted(new, key=lambda n: n != "master"):
+            old, tip = new[name]
+            r = _git("update-ref", f"refs/heads/{name}", tip, old)
+            if r.returncode != 0 and name == "master":
+                return False, "master moved meanwhile"
+            # another branch gone or moved meanwhile: its history is its own
+        return True, ""
+    finally:
+        _git("worktree", "remove", "--force", tmp)
+        _git("worktree", "prune")
+
+
+def commit_judgement(judged, refit=True):
+    """Land the judge's result in git. First a commit on whatever is checked
+    out NOW, only the graph files, by path (the candidate may be typing the
+    next solve in current.py). Then, for one judged file, fold that commit
+    into the solve's own commit and rewrite every branch cut from it
+    (fold_into), so the drill stays one commit and no branch keeps the
+    placeholder. A solve already pushed is never rewritten: the judge's
+    commit stays on top, verdicts and summary in its body. Retries through
+    another git holding index.lock (a `make next` cutting the next branch)."""
+    if refit:
+        py = VENV_PY if os.path.exists(VENV_PY) else sys.executable
+        for tool in ("kg_curve", "kg_solvecost"):
+            subprocess.run([py, os.path.join(UTILS, "kg", tool), "--if-stale"], cwd=REPO_ROOT,
+                           env={**os.environ, "PYTHONPATH": UTILS}, capture_output=True)
+    paths = [p for p in GRAPH_FILES if os.path.exists(os.path.join(REPO_ROOT, p))]
+    if not _git("status", "--porcelain", "--", *paths).stdout.strip():
+        return "judge: nothing to commit"
+    lines = []
+    for path, entry in judged:
+        verdicts = ", ".join(f"{m}={v}" for m, v in entry.get("moves", {}).items()) or "-"
+        lines.append(f"{judge_title(path)}: {verdicts}")
+        if entry.get("summary"):
+            lines.append(entry["summary"])
+        lines.append("")
+    subject = "judge: " + ", ".join(judge_title(p) for p, _ in judged)
+    message = subject + "\n\n" + "\n".join(lines).rstrip() + "\n"
+    for _ in range(40):
+        r = _git("commit", "-q", "-m", message, "--", *paths)
+        if r.returncode == 0:
+            break
+        if "index.lock" in r.stderr:
+            time.sleep(1.5)
+            continue
+        return f"judge: commit failed: {(r.stderr or r.stdout).strip()[:300]}"
+    else:
+        return "judge: commit failed: index.lock held for a minute"
+    if len(judged) != 1:
+        return f"judge: committed {subject}"
+    judge = _git("rev-parse", "HEAD").stdout.strip()
+    solve = solve_commit(judged[0][0])
+    if not solve:
+        return f"judge: committed {subject} (no solve commit to fold into)"
+    if commit_pushed(solve):
+        return f"judge: committed {subject} (solve already pushed, not folded)"
+    ok, why = fold_into(solve, judge)
+    if ok:
+        return "judge: folded into " + _git("show", "-s", "--format=%s", solve).stdout.strip()
+    return f"judge: committed {subject} (not folded: {why})"
+
+
 def serve_receipt(pnum, moves, pre_moves, was_mapped, nodes, problems,
                   evidence, before_ev, predicted=None):
     """Rich-markup lines explaining what this solve meant to the graph.
@@ -262,6 +490,13 @@ def main():
     parser.add_argument("--workers", type=int, default=8, help="concurrent extraction calls")
     parser.add_argument("--followup", action="store_true",
                         help="re-judge the follow-up only, on evidenced solves that lack the field")
+    parser.add_argument("--stub", action="store_true",
+                        help="placeholder entry for the staged solve, no model call (a spot rep is judged now)")
+    parser.add_argument("--file", help="judge this one solved/ file only (missing or pending)")
+    parser.add_argument("--pending", action="store_true",
+                        help="also re-judge placeholders still pending")
+    parser.add_argument("--commit", action="store_true",
+                        help="refit the curve and commit the graph files after judging")
     args = parser.parse_args()
 
     nodes = load_nodes()
@@ -270,11 +505,31 @@ def main():
     recog = rc.load_recognition()
     taxonomy = taxonomy_summary(nodes)
 
+    if args.stub:
+        meta = staged_solve()
+        if not meta:
+            console.print("[yellow]nothing staged - no placeholder to write.[/yellow]")
+            return
+        if meta.get("kind") != "spot":
+            path = os.path.normpath(meta["file"])
+            if path in evidence and not evidence[path].get(PENDING):
+                return  # judged already (a resumed run)
+            entry = stub_entry(path, nodes, problems)
+            store_evidence_entry(path, entry)
+            console.print(f"[dim]placeholder filed on {', '.join(entry['moves']) or '-'}; the judge runs detached.[/dim]")
+            return
+        # a spot rep reveals its walk after the judge: judged now, in line
+
     files = sorted(glob.glob("solved/*.py"), key=os.path.getmtime, reverse=True)
-    todo = [f for f in files if f not in evidence]
+    if args.file:
+        todo = [os.path.normpath(args.file)]
+    else:
+        todo = [f for f in files
+                if f not in evidence or (args.pending and evidence[f].get(PENDING))]
     if args.limit:
         todo = todo[: args.limit]
     console.print(f"{len(files)} solve files, {len(todo)} to process this run.\n")
+    landed = []
 
     system = f"""You judge which atomic technique moves a candidate's LeetCode solution ACTUALLY exercised.
 
@@ -301,17 +556,8 @@ Output STRICT JSON only:
     def extract_one(path):
         """Read + claude call only — no shared state touched here."""
         code = open(path).read()
-        # a drill is a drill even when its filename lacks the d_ prefix
-        # (p1_read_the_operator): the DRILL: header is authoritative —
-        # without this, the p<digit> prefix reads as a leetcode number and
-        # the drill's evidence and alt_walks land on that problem (Two Sum
-        # once grew a recursive-descent alt walk this way)
-        is_drill = os.path.basename(path).startswith("d_") \
-            or bool(re.search(r"^\s*\**DRILL:", code, flags=re.M))
-        trains = []
-        if is_drill:
-            m = TRAINS_RE.search(code)
-            trains = [t.strip() for t in m.group(1).split(",")] if m else []
+        is_drill = is_drill_file(path, code)
+        trains = trains_in(code) if is_drill else []
         # strip the problem statement to keep the prompt small — but the
         # candidate's notes live INSIDE that docstring, below a `---` rule,
         # and they are the only source for struggles and assist. Keep them.
@@ -421,8 +667,13 @@ Output STRICT JSON only:
                 entry["unmapped"] = result.get("unmapped", []) + rejected
 
             with lock:
-                evidence[path] = entry
-                save_evidence(evidence)
+                # against the files as they are NOW: another judge, or the
+                # next solve's placeholder, may have written since we loaded
+                evidence = store_evidence_entry(path, entry)
+                landed.append((path, entry))
+                with evidence_lock():
+                    recog = rc.load_recognition()
+                    problems = load_problems()
                 pnum = entry["problem"]
                 if missed:
                     recog[path] = {
@@ -478,7 +729,10 @@ Output STRICT JSON only:
         f"\nDone: {done} processed, {failed} failed (re-run to retry), "
         f"evidence.json now has {len(evidence)} entries."
     )
-    judge_spots(nodes, problems, recog, args.model)
+    if not args.file:
+        judge_spots(nodes, problems, recog, args.model)
+    if args.commit and landed:
+        console.print(commit_judgement(landed))
 
 
 def judge_spots(nodes, problems, recog, model):
