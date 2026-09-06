@@ -1822,18 +1822,44 @@ def anki_due(path, evidence):
     return date.fromisoformat(last) + timedelta(days=interval), interval
 
 
-def anki_due_drills(candidates, evidence, today=None):
-    """The bank files among `candidates` whose own clock says due today,
-    most overdue first (a never-done file first of all)."""
+def anki_rank(path, evidence, today=None, depth=0):
+    """The sort key of a bank file due on its own clock today, or None
+    when it is not due (a file done today is not due). A file with reps
+    sorts by its due date, most overdue first. A file never done sorts
+    after every review, by the depth of its node (atoms before
+    compositions) and then by how many drills it comes after."""
     day = today or date.today()
-    due = []
-    for path in candidates:
-        d = anki_due(path, evidence)
-        if d is None:
-            due.append((date.min, path))
-        elif d[0] <= day:
-            due.append((d[0], path))
-    return [p for _, p in sorted(due)]
+    if last_drilled(path, evidence) >= day.isoformat():
+        return None
+    d = anki_due(path, evidence)
+    if d is None:
+        return (1, date.min, depth, len(drill_after(path)), path)
+    if d[0] > day:
+        return None
+    return (0, d[0], 0, 0, path)
+
+
+def anki_frontier(evidence, today=None, nodes=None, node_ids=None, assisted=False):
+    """Every bank file due on its own clock, as (path, node id): reviews
+    most overdue first, then files never done, atoms first. No hold, no
+    cap and no node status withholds a due file. The clock outranks
+    everything (2026-09-06: 92 files in the bank, 33 never served and 25
+    served once and never again, after a month of pick rules that each
+    ranked something above the return of a drill). With `assisted`, only
+    files whose latest rep was assisted."""
+    day = today or date.today()
+    if nodes is None:
+        nodes = load_nodes()
+    out = []
+    for node in sorted(nodes if node_ids is None else node_ids):
+        depth = len(input_tree([node], nodes)) if node in nodes else 0
+        for path in sorted(glob.glob(os.path.join(DRILLS_DIR, node, "*.py"))):
+            if assisted and not drill_assisted(path, evidence):
+                continue
+            key = anki_rank(path, evidence, day, depth)
+            if key is not None:
+                out.append((key, path, node))
+    return [(path, node) for _, path, node in sorted(out)]
 
 
 def due_drill(node_id, evidence, today=None, early=False, assisted=False):
@@ -1849,22 +1875,18 @@ def due_drill(node_id, evidence, today=None, early=False, assisted=False):
     servable, and the curve is off as under `early`."""
     day = today or date.today()
     status, _ = node_status(node_id, evidence, day)
-    if drill_scheduler() == "anki" and not early and not assisted:
-        # the drill's own clock (anki_due): the "after" holds and the
-        # once-a-day rule still apply; the node's status never withholds
-        # a due file. A node that is not SOLID trains on its bank as
-        # before (the drill gate): its least recently drilled servable
-        # file, whatever the clocks say.
+    if drill_scheduler() == "anki":
+        # the file's own clock (anki_rank) first, whatever the node's
+        # status and whatever holds on the file: a due drill is served.
+        # With nothing due on the clock, a node that is not SOLID still
+        # trains on its bank (the drill gate), below.
         candidates = sorted(glob.glob(os.path.join(DRILLS_DIR, node_id, "*.py")))
-        pool = servable_drills(candidates, evidence, node_id)
-        if status == SOLID:
-            pool = anki_due_drills(pool, evidence, day)
-            path = pool[0] if pool else None
-        else:
-            path = min(pool, key=lambda p: last_drilled(p, evidence)) if pool else None
-        if path is None or last_drilled(path, evidence) >= day.isoformat():
-            return None
-        return path
+        if assisted:
+            candidates = [p for p in candidates if drill_assisted(p, evidence)]
+        ranked = [(anki_rank(p, evidence, day), p) for p in candidates]
+        ranked = [t for t in ranked if t[0] is not None]
+        if ranked:
+            return min(ranked)[1]
     # the graduating floor (graduation_due) asks for a non-first unaided
     # rep; a move carried by drills alone (every sql node) has nowhere
     # else to land one, so it was due at its floor forever once each drill

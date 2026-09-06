@@ -126,6 +126,13 @@ def picker(monkeypatch):
                         lambda target, ev, nodes=None, predicted=None:
                         kg_lib.drafts_falsified(target, ev, nodes, ctl.predicted))
     monkeypatch.setattr(kg_next, "has_drill_bank", lambda nid: nid in ctl.bank)
+    # the clock (kg_lib.anki_frontier): empty unless a test fills ctl.clock
+    # with (path, node) pairs
+    ctl.clock = []
+    monkeypatch.setattr(kg_next, "anki_frontier",
+                        lambda ev, today=None, nodes=None, node_ids=None, assisted=False:
+                        [(p, n) for p, n in ctl.clock
+                         if node_ids is None or n in node_ids])
     # nodes with drills never done (default none): they hold what depends
     # on them and get their next drill served (rule 0c)
     monkeypatch.setattr(kg_next, "drills_left",
@@ -2531,3 +2538,63 @@ def test_under_the_anki_clock_a_solid_node_with_a_due_drill_enters_the_frontier(
     assert why == "drill due on its own clock - 3d interval, 4d overdue"
     monkeypatch.delenv("DRILL_SCHEDULER")
     assert picker.run(ns, ps, ev, st)[0] == "b"
+
+
+def test_a_file_due_on_the_clock_outranks_every_other_rule(picker, monkeypatch):
+    """DRILL_SCHEDULER=anki: a bank file due on its own clock is served
+    before the session-start easy, before a STALE move with a carrier,
+    and whatever the node's status. The reason names the clock. A group
+    name scopes the clock; an excluded drill id steps to the next file."""
+    from datetime import date as _date
+    monkeypatch.setenv("DRILL_SCHEDULER", "anki")
+    monkeypatch.setattr(kg_next, "anki_due",
+                        lambda path, ev: (_date.today() - timedelta(days=2), 3)
+                        if path.endswith("a.py") else None)
+    ns = nodes("a", "b", "c")
+    ns["c"]["group"] = "sql"
+    ps = {"1": problem(["a"]), "2": problem(["b"])}
+    ev = evidence(solve("1", {"a": "clean"}, days_ago=2),
+                  solve("2", {"b": "clean"}, days_ago=20))
+    st = {"a": (SOLID, ago(2)), "b": (STALE, ago(20)), "c": (MISSING, None)}
+    assert picker.run(ns, ps, ev, st)[0] == "b"  # the clock is empty
+    picker.clock = [("drills/a/a.py", "a"), ("drills/c/c.py", "c")]
+    target, status, pnum, why = picker.run(ns, ps, ev, st, session_start=True)
+    assert (target, status, pnum) == ("a", SOLID, "drill:a")
+    assert why == "drill due on its own clock - 3d interval, 2d overdue"
+    assert picker.run(ns, ps, ev, st, exclude={"drill:a"}) == (
+        "c", MISSING, "drill:c", "drill never done - on its own clock")
+    assert picker.run(ns, ps, ev, st, group="sql")[2] == "drill:c"
+    monkeypatch.delenv("DRILL_SCHEDULER")
+    assert picker.run(ns, ps, ev, st)[0] == "b"
+
+
+def test_the_clock_orders_reviews_before_new_files_and_ignores_holds(tmp_path, monkeypatch):
+    """kg_lib.anki_frontier: a file past its due date comes first, most
+    overdue first; files never done follow, atoms before the drills that
+    come after them; a file done today is out; a file due tomorrow is out.
+    The "after" hold does not withhold a due file (Install Order sat
+    behind Shake Hands for 23 days, 2026-09-06)."""
+    from kg import kg_lib
+    monkeypatch.setenv("DRILL_SCHEDULER", "anki")
+    drill_bank(tmp_path, monkeypatch, "atom", "Atom", fname="a.py", did="d1")
+    drill_bank(tmp_path, monkeypatch, "comp", "Comp", fname="c.py", did="d2", after=["d1"])
+    drill_bank(tmp_path, monkeypatch, "atom", "Late", fname="l.py", did="d3")
+    drill_bank(tmp_path, monkeypatch, "atom", "Later", fname="m.py", did="d4")
+    drill_bank(tmp_path, monkeypatch, "atom", "Fresh", fname="f.py", did="d5")
+    drill_bank(tmp_path, monkeypatch, "atom", "Today", fname="t.py", did="d6")
+    ns = {"atom": {"prereqs": []}, "comp": {"prereqs": ["atom"]}}
+    ev = evidence(drill_rep("Late", "atom", days_ago=3),      # interval 1: 2d overdue
+                  drill_rep("Later", "atom", days_ago=10),
+                  drill_rep("Later", "atom", days_ago=9),     # interval 3: 6d overdue
+                  drill_rep("Fresh", "atom", days_ago=0),
+                  drill_rep("Today", "atom", days_ago=5),
+                  drill_rep("Today", "atom", days_ago=4),
+                  drill_rep("Today", "atom", days_ago=0))
+    f = kg_lib.anki_frontier(ev, nodes=ns)
+    assert [os.path.basename(p) for p, _ in f] == ["m.py", "l.py", "a.py", "c.py"]
+    assert [n for _, n in f] == ["atom", "atom", "atom", "comp"]
+    assert kg_lib.anki_frontier(ev, nodes=ns, node_ids=["comp"]) == [
+        (str(tmp_path / "comp" / "c.py"), "comp")]
+    # due_drill agrees with the clock on the file it serves
+    assert kg_lib.due_drill("atom", ev) == str(tmp_path / "atom" / "m.py")
+    assert kg_lib.due_drill("comp", ev) == str(tmp_path / "comp" / "c.py")

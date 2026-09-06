@@ -24,6 +24,16 @@
 #                              # -1..4 only
 #
 # Picking rules (same preference order the /next coach uses):
+#   THE CLOCK (DRILL_SCHEDULER=anki, .envrc): every bank file keeps an SM-2
+#      clock of its own (kg_lib.anki_due), and a file due on its clock is
+#      served before anything below - before the plan, the session-start
+#      easy, the sleep rules, the group cap, the frontier and the summits.
+#      Reviews most overdue first, then files never done, atoms first
+#      (kg_lib.anki_frontier). No hold, no cap and no node status withholds
+#      a due file. `make next <group>` scopes the clock to the group. The
+#      repo has one job, to make the drills stick, and a month of rules
+#      that each ranked something above the return of a drill left 33 of
+#      92 files never served and 25 served once (2026-09-06).
 #   -1. session start (fewer than NEXT_WARMUP_COUNT solves since Manila
 #       midnight; env, default 2, 0 turns it off): the
 #       gentlest all-SOLID easy (tiny walk, high acceptance) that has not
@@ -180,6 +190,7 @@ from kg.kg_lib import (
     due_drill,
     drill_scheduler,
     anki_due,
+    anki_frontier,
     drills_left,
     drill_gated,
     drill_held,
@@ -351,6 +362,18 @@ def pick(
     whose latest rep was assisted: the unaided rep each is waiting for."""
     early = early or assisted
     cram = cram or early
+
+    # the clock: a bank file due on its own clock outranks every rule below
+    if drill_scheduler() == "anki":
+        scope = [n for n in nodes if group is None or nodes[n].get("group") == group]
+        for path, node in anki_frontier(evidence, nodes=nodes, node_ids=scope,
+                                        assisted=assisted):
+            drill_id = f"drill:{node}"
+            if drill_id in exclude or node not in statuses:
+                continue
+            return (node, statuses[node][0], drill_id,
+                    drill_clock_reason(path, evidence))
+
     immature = immature_nodes(nodes, evidence, problems)
     # rule 0e: a group at its daily cap (KG_GROUP_CAP) is out of the default
     # frontier; naming the group (`make next sql`) or a cram walk is the
@@ -1433,7 +1456,18 @@ def _main(footer):
     # Today's frozen plan comes first: serve its pending items in order,
     # transparently — same rendering, same commands. Items self-clear from
     # evidence; an exhausted or absent plan falls through to the normal rules.
-    plan = None if args.early or args.assisted else load_plan()
+    # the clock, announced: how many files are due and of what kind. A
+    # starved bank must show in the default output, not in an audit.
+    clock = []
+    if drill_scheduler() == "anki":
+        scope = [n for n in nodes
+                 if args.group is None or nodes[n].get("group") == args.group]
+        clock = anki_frontier(evidence, nodes=nodes, node_ids=scope,
+                              assisted=args.assisted)
+        reviews = sum(1 for path, _ in clock if anki_due(path, evidence) is not None)
+        console.print(f"[dim]drill clock: {len(clock)} due - {reviews} review, "
+                      f"{len(clock) - reviews} never done[/dim]")
+    plan = None if args.early or args.assisted or clock else load_plan()
     if plan:
         pending = [
             it
