@@ -5,7 +5,8 @@ TRAINS: topological-order
 Given n packages numbered 0 to n - 1 and deps, where deps[i] = [a, b]
 means package a must be installed before package b, return an order that
 installs every package. If several orders work, return any of them. If no
-order installs every package, return an empty list.
+order installs every package, return an empty list. Use Kahn's
+algorithm.
 
 Example 1:
 
