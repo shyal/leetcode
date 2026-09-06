@@ -8017,6 +8017,15 @@
       },
       "note": "First exposure: copied the solution.",
       "summary": "The query joins the Employees table to itself with two aliases: m for managers and r for their direct reports. The join condition r.reports_to = m.employee_id connects each report to their manager. The GROUP BY m.employee_id, m.name groups by each manager, then count(*) and round(avg(r.age)) aggregate the report counts and average ages respectively. Output matches both examples."
+    },
+    "solved/d_Combinations_2026_09_06T20_38_08_223403_00_00Z.py": {
+      "date": "2026-09-07",
+      "problem": "drill",
+      "moves": {
+        "backtracking-start-index": "clean",
+        "backtracking-choose-undo": "clean"
+      },
+      "summary": "Generates all k-combinations from 1..n using backtracking with a start-index parameter i. The loop range(i, n) and recursive call helper(j + 1) implement the start-index pattern, preventing duplicates by considering only candidates at position i or later. The choose-undo pattern (path.append, recurse, path.pop) provides the backtracking mechanism."
     }
   }
 }
