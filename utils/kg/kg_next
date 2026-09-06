@@ -27,10 +27,13 @@
 #   THE CLOCK (DRILL_SCHEDULER=anki, .envrc): every bank file keeps an SM-2
 #      clock of its own (kg_lib.anki_due), and a file due on its clock is
 #      served before anything below - before the plan, the session-start
-#      easy, the sleep rules, the group cap, the frontier and the summits.
+#      easy, the sleep rules, the frontier and the summits.
 #      Reviews most overdue first, then files never done, atoms first
-#      (kg_lib.anki_frontier). No hold, no cap and no node status withholds
-#      a due file. `make next <group>` scopes the clock to the group. The
+#      (kg_lib.anki_frontier). No hold and no node status withholds a due
+#      file. The daily group cap (KG_GROUP_CAP, rule 0e) does: a group at
+#      its cap is out of the clock too, or one bank fills every session
+#      (2026-09-06, sql). `make next <group>` scopes the clock to the group
+#      and is the override. The
 #      repo has one job, to make the drills stick, and a month of rules
 #      that each ranked something above the return of a drill left 33 of
 #      92 files never served and 25 served once (2026-09-06).
@@ -363,6 +366,13 @@ def pick(
     early = early or assisted
     cram = cram or early
 
+    # rule 0e: a group at its daily cap (KG_GROUP_CAP) is out of the default
+    # frontier, the clock included; naming the group (`make next sql`) or a
+    # cram walk is the override
+    caps = {} if group or cram else group_caps()
+    capped = {g for g, c in caps.items()
+              if group_reps(g, nodes, evidence, date.today()) >= c}
+
     # the clock: a bank file due on its own clock outranks every rule below
     if drill_scheduler() == "anki":
         scope = [n for n in nodes if group is None or nodes[n].get("group") == group]
@@ -371,16 +381,12 @@ def pick(
             drill_id = f"drill:{node}"
             if drill_id in exclude or node not in statuses:
                 continue
+            if nodes[node].get("group") in capped:
+                continue
             return (node, statuses[node][0], drill_id,
                     drill_clock_reason(path, evidence))
 
     immature = immature_nodes(nodes, evidence, problems)
-    # rule 0e: a group at its daily cap (KG_GROUP_CAP) is out of the default
-    # frontier; naming the group (`make next sql`) or a cram walk is the
-    # override
-    caps = {} if group or cram else group_caps()
-    capped = {g for g, c in caps.items()
-              if group_reps(g, nodes, evidence, date.today()) >= c}
 
     def in_scope(n):
         if group is not None:

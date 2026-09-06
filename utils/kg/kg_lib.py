@@ -1844,8 +1844,9 @@ def anki_frontier(evidence, today=None, nodes=None, node_ids=None, assisted=Fals
     most overdue first, then files never done, atoms first. A due file
     whose "after" drills are due too comes after them, whatever the
     dates: the atom is served before the drill built on it (2026-09-06,
-    Bundle Refunds a day ahead of Tape Reader under it). No hold, no cap
-    and no node status withholds a due file. The clock outranks
+    Bundle Refunds a day ahead of Tape Reader under it). No hold and no
+    node status withholds a due file; the daily group cap (group_caps) is
+    applied by the picker, not here. The clock outranks
     everything (2026-09-06: 92 files in the bank, 33 never served and 25
     served once and never again, after a month of pick rules that each
     ranked something above the return of a drill). With `assisted`, only

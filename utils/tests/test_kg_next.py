@@ -297,6 +297,28 @@ def test_a_group_at_its_daily_cap_leaves_the_default_frontier(picker, monkeypatc
         ("q1", FRAGILE, "4")
 
 
+def test_a_group_at_its_daily_cap_is_out_of_the_clock_too(picker, monkeypatch):
+    """DRILL_SCHEDULER=anki: a due file in a capped group waits with the
+    rest of the group; the clock moves to the next due file, and naming
+    the group is still the override (2026-09-06, KG_GROUP_CAP=sql=1
+    ignored by the clock)."""
+    monkeypatch.setenv("DRILL_SCHEDULER", "anki")
+    monkeypatch.setattr(kg_next, "group_caps", lambda: {"sql": 1})
+    ns = nodes("q1", "other")
+    ns["q1"]["group"] = "sql"
+    ns["other"]["group"] = "trees"
+    ps = {"1": problem(["q1"]), "2": problem(["other"])}
+    st = {"q1": (SOLID, ago(1)), "other": (SOLID, ago(1))}
+    picker.clock = [("drills/q1/a.py", "q1"), ("drills/other/b.py", "other")]
+    # no sql rep today: the sql file leads the clock
+    assert picker.run(ns, ps, {}, st)[2] == "drill:q1"
+    # one sql rep today, at the cap: the next due file is served instead
+    ev = evidence(solve(1, {"q1": "clean"}))
+    assert picker.run(ns, ps, ev, st, exclude={"1"})[2] == "drill:other"
+    # naming the group is the override
+    assert picker.run(ns, ps, ev, st, exclude={"1"}, group="sql")[2] == "drill:q1"
+
+
 def test_group_reps_counts_drills_and_problems_touching_the_group():
     ns = nodes("q1", "other")
     ns["q1"]["group"] = "sql"
