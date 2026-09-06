@@ -7979,10 +7979,18 @@
     "solved/d_Pairs_2026_09_06T05_43_23_349704_00_00Z.py": {
       "date": "2026-09-06",
       "problem": "drill",
+      "moves": {},
+      "note": "drill targets backtracking-start-index; solution uses iterative nested-loop enumeration instead",
+      "summary": "The code generates all pairs (i, j) where i < j via nested loops: iterate through first elements, then remaining elements. The drill targeted backtracking-start-index, but the solution sidesteps it with a simpler iterative enumeration. All assertions pass."
+    },
+    "solved/d_Triples_2026_09_06T05_44_44_526783_00_00Z.py": {
+      "date": "2026-09-06",
+      "problem": "drill",
       "moves": {
         "backtracking-start-index": "clean"
       },
-      "pending": "2026-09-06T05:43:23+00:00"
+      "note": "Iterative nested loops instead of recursive backtracking; same algorithmic move.",
+      "summary": "The solution generates all strictly increasing triples [i, j, k] with i < j < k < n by iterating three nested loops where each loop starts at the position after the previous variable. This unrolled form exercises the core of backtracking-start-index: maintaining a start index and drawing candidates from the suffix [start, n), with each next level beginning at the current candidate + 1 to ensure the ordering invariant and avoid duplicates. All test cases pass."
     }
   }
 }
