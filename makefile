@@ -120,7 +120,7 @@ failed:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/solved --commit
 
 test:
-	@.venv/bin/pytest
+	@.venv/bin/pytest -o verbosity_assertions=2
 
 # VS Code snippets (the lc* prefixes the SNIPPET: drill header names) live in
 # misc/vscode-snippets/; this copies them into VS Code's User/snippets.
