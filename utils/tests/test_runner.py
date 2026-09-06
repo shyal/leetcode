@@ -81,6 +81,8 @@ if __name__ == "__main__":
         os.devnull,
         "--override-ini",
         "python_files=*.py",
+        "--override-ini",
+        "verbosity_assertions=2",  # full assertion diffs under -q
         "-p",
         "no:cacheprovider",
     ]
