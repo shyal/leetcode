@@ -8003,6 +8003,20 @@
       },
       "note": "Initialize with helper(1), not helper(0); produces 0-indexed combinations instead of 1-indexed ones, failing the first assertion.",
       "summary": "The code attempts combinations via backtracking with a start parameter. The pattern is sound\u2014loop from start to n, recurse at start+1, append-pop-copy\u2014but calls helper(0) instead of helper(1), generating combinations that include 0 and fail all assertions. The base case len(path)==k is correct, which matches the assisted note."
+    },
+    "solved/d_Reports_Per_Manager_2026_09_06T20_35_03_444953_00_00Z.py": {
+      "date": "2026-09-07",
+      "problem": "drill",
+      "moves": {
+        "sql-self-join": "clean",
+        "sql-group-aggregate": "clean"
+      },
+      "assist": {
+        "sql-self-join": "learning",
+        "sql-group-aggregate": "learning"
+      },
+      "note": "First exposure: copied the solution.",
+      "summary": "The query joins the Employees table to itself with two aliases: m for managers and r for their direct reports. The join condition r.reports_to = m.employee_id connects each report to their manager. The GROUP BY m.employee_id, m.name groups by each manager, then count(*) and round(avg(r.age)) aggregate the report counts and average ages respectively. Output matches both examples."
     }
   }
 }
