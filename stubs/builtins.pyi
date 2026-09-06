@@ -32,9 +32,9 @@ from _typeshed import (
 )
 from collections.abc import (
     Awaitable,
-    Callable,
-    Iterable,
-    Iterator,
+    Callable as Callable,
+    Iterable as Iterable,
+    Iterator as Iterator,
     MutableSet,
     Reversible,
     Set as AbstractSet,
@@ -48,10 +48,10 @@ from types import CellType, CodeType, GenericAlias, TracebackType
 # are imported from collections.abc in builtins.pyi
 from typing import (  # noqa: Y022,UP035
     IO,
-    Any,
+    Any as Any,
     BinaryIO,
     ClassVar,
-    Generic,
+    Generic as Generic,
     Mapping,
     MutableMapping,
     MutableSequence,
@@ -62,9 +62,9 @@ from typing import (  # noqa: Y022,UP035
     SupportsComplex,
     SupportsFloat,
     SupportsIndex,
-    TypeVar,
+    TypeVar as TypeVar,
     final,
-    overload,
+    overload as overload,
     type_check_only,
 )
 
