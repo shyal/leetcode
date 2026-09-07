@@ -6,7 +6,8 @@
 #   utils/kg/kg_gaps --all
 #
 # Reads the missing-move suggestions the walk drafter emitted into
-# graph/predicted.json (phase 3 of PLAN.md). For each suggested move:
+# the drafted walks in graph/problems.json (phase 3 of PLAN.md). For each
+# suggested move:
 # mentions = how many predicted walks asked for it; sole blocker = problems
 # whose known moves are all SOLID today and which are blocked ONLY by this
 # one absent node - the unlock count if it entered the taxonomy and got
@@ -14,13 +15,12 @@
 # 'no technique needed', not a node.
 
 import argparse
-import json
 import os
 import sys
 from collections import defaultdict
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from kg.kg_lib import GRAPH_DIR, SOLID, load_evidence, load_nodes, node_status
+from kg.kg_lib import SOLID, load_evidence, load_nodes, load_predicted, node_status
 
 
 def norm(name):
@@ -33,7 +33,7 @@ def main():
     parser.add_argument("--all", action="store_true", help="Print every suggestion.")
     args = parser.parse_args()
 
-    predicted = json.load(open(os.path.join(GRAPH_DIR, "predicted.json")))["problems"]
+    predicted = load_predicted()
     nodes = load_nodes()
     evidence = load_evidence()
     statuses = {nid: node_status(nid, evidence)[0] for nid in nodes}

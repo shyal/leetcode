@@ -424,7 +424,7 @@ pub fn sigmoid(z: f64) -> f64 {
 // ---------------------------------------------------------------- the bank --
 // Real problems replace the old fabricated walks (guessed WALK_LEN /
 // OFF_GRAPH0 / i.i.d. move-frequency draws): every problem with a walk —
-// evidenced in problems.json or LLM-drafted in predicted.json — sits in a
+// evidenced or LLM-drafted, both in problems.json — sits in a
 // per-difficulty pool, its walks stored as indices into one move-name
 // universe. Universe layout: [0, n_known) are nodes.json ids (recall comes
 // from evidence); [n_known, ..) are "extras" — moves the taxonomy lacks
@@ -600,10 +600,10 @@ pub fn run_mocks(
 }
 
 impl Bank {
-    // problems.json (evidenced walks, has difficulty), predicted.json
-    // (drafted walks + missing: suggestions), problems_metadata.json
-    // (difficulty for problems only the drafts know).
-    pub fn build(problems: &serde_json::Value, predicted: &serde_json::Value,
+    // problems.json (one table: an evidenced entry has "moves" and a
+    // difficulty, a drafted one "walks" + missing: suggestions),
+    // problems_metadata.json (difficulty for problems only the drafts know).
+    pub fn build(problems: &serde_json::Value,
                  metadata: &serde_json::Value, node_ids: &[String],
                  ratings: &serde_json::Value) -> Bank {
         use serde_json::Value;
@@ -620,7 +620,6 @@ impl Bank {
             }
         };
         let probs = problems["problems"].as_object().expect("problems.json: problems{}");
-        let preds = predicted["problems"].as_object().expect("predicted.json: problems{}");
 
         // universe: node ids first, then extras ranked by walk mentions
         let mut index: HashMap<String, usize> = HashMap::new();
@@ -655,14 +654,10 @@ impl Bank {
         for (num, v) in probs {
             let Some(obj) = v.as_object() else { continue };
             let Some(dif) = dif_of(num, obj) else { continue };
-            let w = walk_of(v, &mut mention);
+            let w = walk_of(v, &mut mention);  // the evidenced walk, if any
             if !w.is_empty() {
                 raw.entry(num.clone()).or_insert((dif, vec![])).1.push(w);
             }
-        }
-        for (num, v) in preds {
-            let Some(obj) = v.as_object() else { continue };
-            let Some(dif) = dif_of(num, obj) else { continue };
             for wv in v["walks"].as_array().unwrap_or(&vec![]) {
                 let w = walk_of(wv, &mut mention);
                 if !w.is_empty() {

@@ -18,7 +18,7 @@ import sys
 from rich.console import Console
 from rich.table import Table
 
-from kg.kg_lib import (load_problems, load_evidence, drills, dependents, vertex_kind,
+from kg.kg_lib import (load_all_problems, load_evidence, drills, dependents, vertex_kind,
                        vertex_status, easiest_first, SOLID, STALE, FRAGILE, MISSING)
 
 console = Console()
@@ -33,7 +33,7 @@ def main():
                              "easiest first (drills, Easy, Medium, Hard)")
     args = parser.parse_args()
 
-    problems, evidence, drill_map = load_problems(), load_evidence(), drills()
+    problems, evidence, drill_map = load_all_problems(), load_evidence(), drills()
     vid = args.id
     kind = vertex_kind(vid, problems)
     if kind is None:

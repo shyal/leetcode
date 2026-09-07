@@ -57,7 +57,7 @@ def problem(moves, difficulty="Medium", **extra):
 
 
 def drafted(moves, missing=None):
-    """A graph/predicted.json-shaped entry with one drafted walk."""
+    """A drafted problems.json entry with one drafted walk."""
     w = {"moves": list(moves), "tier": "predicted"}
     if missing:
         w["missing"] = list(missing)
@@ -109,15 +109,18 @@ def picker(monkeypatch):
     ctl.meta = {}
     monkeypatch.setattr(kg_lib, "_METADATA", ctl.meta)
     monkeypatch.setattr(kg_next, "predicted_carrier",
-                        lambda target, problems, statuses, nodes, skip=(),
-                        difficulties=("Easy", "Medium"):
+                        lambda target, problems, statuses, nodes, evidence=None,
+                        skip=(), difficulties=("Easy", "Medium"):
                         kg_lib.predicted_carrier(target, problems, statuses,
                                                  nodes, predicted=ctl.predicted,
+                                                 evidence=evidence or {},
                                                  skip=skip, difficulties=difficulties))
     monkeypatch.setattr(kg_next, "drafted_in_reach",
-                        lambda problems, statuses, nodes, immature, skip=(), first="Hard":
+                        lambda problems, statuses, nodes, immature, evidence=None,
+                        skip=(), first="Hard":
                         kg_lib.drafted_in_reach(problems, statuses, nodes, immature,
-                                                predicted=ctl.predicted, skip=skip,
+                                                predicted=ctl.predicted,
+                                                evidence=evidence or {}, skip=skip,
                                                 first=first))
     monkeypatch.setattr(kg_next, "has_drill_bank", lambda nid: nid in ctl.bank)
     # the clock (kg_lib.anki_frontier): empty unless a test fills ctl.clock
@@ -822,12 +825,15 @@ def test_nothing_to_pick_returns_none_when_no_summit_is_green(picker):
     assert picker.run(ns, ps, {}, st) is None
 
 
-def test_a_node_walked_only_by_hards_is_reported_as_blocked(picker):
+def test_a_node_walked_only_by_hards_is_reported_as_blocked(picker, tmp_path, monkeypatch):
     """The real state of the graph on 2026-08-20: counting-sort-buckets is
     MISSING, its only walk is a Hard (so no carrier can exist), and it has no
     drill bank — so every pick() branch fell through and `make next` printed
     nothing about the one node still standing between here and an all-solid
-    graph. pick() still returns None, but the blockage is now nameable."""
+    graph. pick() still returns None, but the blockage is now nameable. (The
+    node has a bank today, so the empty DRILLS_DIR is what keeps the state
+    the test is about.)"""
+    monkeypatch.setattr(kg_lib, "DRILLS_DIR", str(tmp_path))
     ns = nodes("counting-sort-buckets")
     ps = {"41": problem(["counting-sort-buckets"], difficulty="Hard")}
     st = {"counting-sort-buckets": (MISSING, None)}
@@ -1141,7 +1147,7 @@ def test_a_drill_ref_nobody_banks_holds_nothing(tmp_path, monkeypatch):
     nothing - the deadlock rule for banned predecessors. The real graph is
     checked by test_every_after_id_in_the_real_graph_resolves."""
     drill_bank(tmp_path, monkeypatch, "sw", "Something Else", did="d9")
-    ps = {"713": problem(["sw"], after=["d1"])}
+    ps = {"713": problem(["nobank"], after=["d1"])}  # no bank of its own to hold it
     assert kg_lib.held_behind("713", ps, {}) is None
 
 
@@ -1154,9 +1160,11 @@ def test_a_renamed_bank_file_keeps_its_edge(tmp_path, monkeypatch):
     assert kg_lib.held_behind("713", ps, ev) is None
 
 
-def test_the_picker_serves_the_free_carrier_over_the_held_one(picker, tmp_path, monkeypatch):
-    """Two carriers of a rusty node, 713 fresher on paper but held behind a
-    drill never done: 3258 is served."""
+def test_a_cold_drill_holds_every_carrier_of_its_node(picker, tmp_path, monkeypatch):
+    """A drill nobody has done holds every problem that walks its node, the
+    one that names it in "after" and the one that does not: the drill is
+    what the node can be served. A clean unaided rep releases both, and the
+    fresher carrier is served."""
     drill_bank(tmp_path, monkeypatch, "sw", "Count by Contribution")
     ns = nodes("sw")
     ps = {"713": problem(["sw"], after=["d1"]),
@@ -1164,8 +1172,10 @@ def test_the_picker_serves_the_free_carrier_over_the_held_one(picker, tmp_path, 
     ev = evidence(solve("713", {"sw": "clean"}, days_ago=300),
                   solve("3258", {"sw": "clean"}, days_ago=299))
     st = {"sw": (STALE, ago(299))}
-    assert picker.run(ns, ps, ev, st)[:3] == ("sw", STALE, "3258")
+    assert kg_lib.held_behind("3258", ps, ev) == "d1"
+    assert picker.run(ns, ps, ev, st)[:3] == ("sw", STALE, "drill:sw")
     ev = evidence(ev, drill_rep("Count by Contribution", "sw", days_ago=3))
+    assert kg_lib.held_behind("3258", ps, ev) is None
     assert picker.run(ns, ps, ev, st)[:3] == ("sw", STALE, "713")
 
 
