@@ -118,7 +118,8 @@
 #        proving carrier it has not carried yet (kg_lib.proving_carriers,
 #        at its bar; else a drafted carrier at the bar, else the re-solve
 #        - a second rep of one problem proves memory of that problem, not
-#        carry); anything else the gentlest fresh one (deep stale,
+#        carry); anything else the gentlest carrier it has never solved,
+#        and only when there is none of those a repeat (deep stale,
 #        no clean solve within 2x the solid window, re-enters this way -
 #        the memory is gone, a cold re-solve plays like a new problem);
 #     d. else a drafted carrier (3b below; never for a floor rep);
@@ -126,9 +127,12 @@
 #   Before this the same six steps lived in six rule bodies, each with its
 #   own copy of "due" and "how to get past a hold", and three holds in one
 #   evening each broke a rule that did not know them.
-#   3b. frontier mover (PLAN.md phase 4), step d above: a due node the
-#      bank cannot carry AT ALL (a mapped carrier that is merely warm,
-#      asleep, or spent today is waited for, never routed around) promotes
+#   3b. frontier mover (PLAN.md phase 4), step d above: a due node with no
+#      UNSOLVED mapped carrier (one it has never been given is waited for
+#      even when warm, asleep, or spent today; one it has already solved is
+#      a repeat and does not outrank a draft — 2026-09-07, with 467 of 486
+#      carriers solved the old "any mapped carrier" gate had silenced the
+#      mover completely) promotes
 #      a drafted carrier — an unmapped easy/medium
 #      from graph/predicted.json whose predicted walk has the target as its
 #      only non-solid move and no missing-move flags. Ranked cheap-regime
@@ -136,10 +140,11 @@
 #      mass, capped at the ~30-problem connectivity threshold), then
 #      gentleness. The promotion is in-memory; the solve's evidenced walk
 #      (kg_extract) is what maps the problem for real. A promoted draft
-#      that comes back mapped to some other move is a MISS; after
-#      kg_lib.DRAFT_MISSES of them the target stops promoting (the drafts
-#      are wrong about how the operator solves) and the dry warning names
-#      it — otherwise the mover spins through every draft in the tier.
+#      that comes back mapped to some other move costs one solve and is
+#      never offered again (a problem with any evidence is skipped); a
+#      2-miss cutoff stood here until 2026-09-07, when it was latching 27
+#      moves off the drafted tier for good and sending them back to
+#      repeats.
 #   4. nothing rusty, nothing thin and nothing new: a summit — the
 #      gentlest unsolved Hard whose whole walk is already SOLID and mature
 #      (kg_lib.mature: spaced clean reps + distinct real problems at the
@@ -221,8 +226,6 @@ from kg.kg_lib import (
     dodgeable,
     carriers_for,
     predicted_carrier,
-    draft_misses,
-    drafts_falsified,
     cooled,
     gentleness,
     unlocks,
@@ -428,6 +431,14 @@ def pick(
     early = early or assisted
     cram = cram or early
 
+    # every problem with any evidence at all. A drafted carrier is new ground
+    # or it is nothing: a draft that came back mapped to some other move cost
+    # one solve, and re-promoting it would spend a second on a problem already
+    # in memory. Mapping normally excludes it (predicted_carrier only sees
+    # problems absent from problems.json); this covers the solve whose walk
+    # the judge has not written yet.
+    solved_ever = {str(r.get("problem")) for r in evidence.values()}
+
     # rule 0e: a group at its daily cap (KG_GROUP_CAP) is out of the default
     # frontier, the clock included; naming the group (`make next sql`) or a
     # cram walk is the override
@@ -479,18 +490,22 @@ def pick(
         path = due_drill(target, evidence, early=early, assisted=assisted)
         return drill_id if path and not drill_capped(path, evidence) else None
 
-    def promote(target, mapped):
-        """The frontier mover (PLAN.md phase 4): NO evidenced problem can
-        carry target — not "none today": a mapped carrier that is merely
-        warm, asleep, or spent outranks a drafted guess, so the node waits
-        for it instead. Only genuinely uncarried moves promote. The entry
-        is inserted in memory so rendering and forecasting see a normal
-        problem; problems.json is untouched — kg_extract maps the problem
-        from the actual solve."""
-        if mapped or drafts_falsified(target, evidence, nodes):
+    def promote(target, unsolved):
+        """The frontier mover (PLAN.md phase 4): no UNSOLVED evidenced problem
+        can carry target. A mapped carrier this move has never been given
+        outranks a drafted guess even when it is merely warm, asleep, or spent
+        today, so the node waits for it instead; but once every mapped carrier
+        is solved, the bank has only a repeat to offer and the drafted tier is
+        the only new ground. The gate was `if mapped` until 2026-09-07, when
+        467 of the 486 carriers were solved and the mover had gone silent - the
+        picker served repeats with 3087 drafts untouched. The entry is inserted
+        in memory so rendering and forecasting see a normal problem;
+        problems.json is untouched - kg_extract maps the problem from the
+        actual solve."""
+        if unsolved:
             return None
         promo = predicted_carrier(target, problems, statuses, nodes,
-                                  skip=set(asleep) | set(exclude))
+                                  skip=set(asleep) | set(exclude) | solved_ever)
         if promo:
             problems[promo[0]] = promo[1]
         return promo
@@ -776,19 +791,20 @@ def pick(
         fresh = [c for c in cands if not counted_toward_bar(c, target, evidence)]
         if fresh:
             return target, SOLID, fresh[0], why
-        if not drafts_falsified(target, evidence, nodes):
-            bar_kind, _ = carry_bar(target, problems)
-            promo = predicted_carrier(
-                target, problems, statuses, nodes,
-                skip=set(asleep) | set(exclude),
-                difficulties=("Medium",) if bar_kind == "medium" else ("Easy", "Medium"),
-            )
-            if promo:
-                problems[promo[0]] = promo[1]
-                return target, SOLID, promo[0], why + " (drafted carrier)"
+        bar_kind, _ = carry_bar(target, problems)
+        promo = predicted_carrier(
+            target, problems, statuses, nodes,
+            skip=set(asleep) | set(exclude) | solved_ever,
+            difficulties=("Medium",) if bar_kind == "medium" else ("Easy", "Medium"),
+        )
+        if promo:
+            problems[promo[0]] = promo[1]
+            return target, SOLID, promo[0], why + " (drafted carrier)"
         if cands:
             return target, SOLID, cands[0], why + " (re-solve: no fresh carrier)"
         return None
+
+    PROMOTED = "no unsolved mapped carrier - promoted a drafted one (predicted walk)"
 
     def serve(n):
         """The pick that gives n its rep today, or None (drilled today and
@@ -831,6 +847,9 @@ def pick(
             if proof:
                 return proof
         mapped = carriers_for(n, problems, statuses, nodes, evidence)
+        # carriers this move has never been given: what "fresh" means below,
+        # and what promote() waits for before reaching into the drafted tier
+        unsolved = [c for c in mapped if not last_solved(c, evidence)]
         cands = [c for c in mapped
                  if c not in asleep and c not in exclude and cooled(c, evidence)]
         if cands:
@@ -851,7 +870,14 @@ def pick(
                 pnum = carrier[2] if carrier and carrier[2] in cands else sorted(
                     cands, key=lambda p: last_solved(p, evidence), reverse=True)[0]
                 return n, status, pnum, "spaced re-solve of a stale move's carrier"
-            cands.sort(key=lambda p: (gentleness(p, problems, nodes),
+            if k != FLOOR:
+                promo = promote(n, unsolved)  # every mapped carrier solved
+                if promo:
+                    return (n, status, promo[0], PROMOTED)
+            # freshness before gentleness: an unsolved carrier is a rep AND new
+            # ground, and a solved one two tree-nodes smaller is neither
+            cands.sort(key=lambda p: (bool(last_solved(p, evidence)),
+                                      gentleness(p, problems, nodes),
                                       last_solved(p, evidence), -acceptance(p), pnum_key(p)))
             reason = (
                 "consolidate a fragile move on a fresh carrier" if k == FRAGILE
@@ -861,10 +887,9 @@ def pick(
                 else "one genuinely new move, prereqs all solid")
             return n, status, cands[0], reason
         if k != FLOOR:
-            promo = promote(n, mapped)
+            promo = promote(n, unsolved)
             if promo:
-                return (n, status, promo[0],
-                        "no mapped carrier — promoted a drafted one (predicted walk)")
+                return (n, status, promo[0], PROMOTED)
         return unhold(n)
 
     for n in due_list:
@@ -1192,12 +1217,10 @@ def blocked_frontier(nodes, problems, evidence, statuses, asleep=(), exclude=())
                         "its drill is due, the day's drill budget is spent "
                         "(MAX_NEW_DRILLS / MAX_DRILL_REVIEWS)", False))
             continue
-        misses = draft_misses(nid, evidence, nodes)
-        falsified = drafts_falsified(nid, evidence, nodes)
-        if (not ready and not falsified
+        if (not [c for c in ready if not last_solved(c, evidence)]
                 and predicted_carrier(nid, problems, statuses, nodes,
                                       skip=set(asleep) | set(exclude))):
-            continue  # uncarried but servable - pick() promotes a draft
+            continue  # no unsolved carrier but servable - pick() promotes a draft
 
         if live:
             # every live carrier is inside the review cooldown
@@ -1244,15 +1267,7 @@ def blocked_frontier(nodes, problems, evidence, statuses, asleep=(), exclude=())
             why += ", and its drill is done for today"
         else:
             why += ", and no drill exists for it"
-        if falsified:
-            listed = ", ".join(misses)
-            why += (
-                f", and {len(misses)} drafted carriers ({listed}) were solved "
-                "without the move - the drafts are wrong about how you solve, "
-                "so no more are promoted"
-            )
-        else:
-            why += ", and no drafted walk can carry it alone"
+        why += ", and no drafted walk can carry it alone"
         out.append((nid, status, why, dry))
     return out
 

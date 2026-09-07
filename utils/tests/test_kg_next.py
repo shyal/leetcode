@@ -119,12 +119,6 @@ def picker(monkeypatch):
                         kg_lib.drafted_in_reach(problems, statuses, nodes, immature,
                                                 predicted=ctl.predicted, skip=skip,
                                                 first=first))
-    monkeypatch.setattr(kg_next, "draft_misses",
-                        lambda target, ev, nodes=None, predicted=None:
-                        kg_lib.draft_misses(target, ev, nodes, ctl.predicted))
-    monkeypatch.setattr(kg_next, "drafts_falsified",
-                        lambda target, ev, nodes=None, predicted=None:
-                        kg_lib.drafts_falsified(target, ev, nodes, ctl.predicted))
     monkeypatch.setattr(kg_next, "has_drill_bank", lambda nid: nid in ctl.bank)
     # the clock (kg_lib.anki_frontier): empty unless a test fills ctl.clock
     # with (path, node) pairs
@@ -463,6 +457,17 @@ def test_sleeping_problems_are_not_offered(picker):
 # --------------------------------------------------------------------------
 # carrier sort keys — the 153-before-33 regression
 # --------------------------------------------------------------------------
+
+def test_an_unsolved_carrier_outranks_a_gentler_solved_one(picker):
+    """Gentleness decided before freshness, so an Easy solved a month ago
+    kept beating a Medium never seen. A carrier that has never been solved
+    is a rep and new ground at once; a smaller solved one is neither."""
+    ns = nodes("m")
+    ps = {"1": problem(["m"], difficulty="Easy"), "2": problem(["m"])}
+    ev = evidence(solve("1", {"m": "clean"}, days_ago=30))
+    st = {"m": (FRAGILE, ago(30))}
+    assert picker.run(ns, ps, ev, st)[2] == "2"
+
 
 def test_freshness_outranks_acceptance(picker):
     """The bug this suite was started for: 153 (55% acceptance, failed
@@ -1761,52 +1766,21 @@ def test_a_missing_move_with_no_mapped_carrier_promotes_a_draft(picker):
     assert ps["9001"]["moves"] == ["csb"]
 
 
-def test_drafts_stop_promoting_after_two_misses(picker):
-    """The 2026-08-29 carousel: counting-sort-buckets had 56 drafts and the
-    mover served them one after another while every solve came back mapped
-    to some other move. Two drafted carriers solved without the target
-    falsify the tier for it: no third promotion, and the frontier names
-    the misses instead of "no drafted walk can carry it"."""
+def test_a_draft_already_solved_is_never_promoted(picker):
+    """The 2026-08-29 carousel was drafts for one move coming back mapped to
+    something else, one after another. The cutoff that answered it
+    (DRAFT_MISSES = 2) latched 27 moves off the drafted tier for good and
+    sent them back to repeats, so it is gone; what stops the carousel now is
+    that a draft is promoted once. A problem with any evidence at all is not
+    new ground, whether or not the judge has mapped it yet."""
     ns = nodes("csb")
-    ps = {"41": problem(["csb"], difficulty="Hard"),
-          "1365": problem(["dav"]), "1893": problem(["sa"])}
+    ps = {"41": problem(["csb"], difficulty="Hard")}
     st = {"csb": (MISSING, None)}
     for num in ("1365", "1893", "2149"):
         picker.predicted[num] = drafted(["csb"])
         picker.meta[num] = {"difficulty": "Easy"}
     ev = evidence(solve("1365", {"dav": "clean"}, days_ago=1),
                   solve("1893", {"sa": "clean"}, days_ago=0))
-    assert picker.run(ns, ps, ev, st) is None
-    [(nid, status, why, dry)] = picker.blocked(ns, ps, ev, st)
-    assert (nid, status, dry) == ("csb", MISSING, True)
-    assert "1365, 1893" in why and "without the move" in why
-
-
-def test_one_miss_still_promotes(picker):
-    """One draft coming back wrong is noise; the tier keeps serving."""
-    ns = nodes("csb")
-    ps = {"41": problem(["csb"], difficulty="Hard"), "1365": problem(["dav"])}
-    st = {"csb": (MISSING, None)}
-    for num in ("1365", "1893"):
-        picker.predicted[num] = drafted(["csb"])
-        picker.meta[num] = {"difficulty": "Easy"}
-    ev = evidence(solve("1365", {"dav": "clean"}, days_ago=1))
-    assert picker.run(ns, ps, ev, st)[2] == "1893"
-
-
-def test_a_solve_older_than_the_node_is_not_a_miss(picker):
-    """Evidence from before the node existed could not have tagged it
-    whatever the walk was, so it does not falsify the draft."""
-    ns = nodes("csb")
-    ns["csb"]["added"] = iso(10)
-    ps = {"41": problem(["csb"], difficulty="Hard"),
-          "1365": problem(["dav"]), "1893": problem(["sa"])}
-    st = {"csb": (MISSING, None)}
-    for num in ("1365", "1893", "2149"):
-        picker.predicted[num] = drafted(["csb"])
-        picker.meta[num] = {"difficulty": "Easy"}
-    ev = evidence(solve("1365", {"dav": "clean"}, days_ago=30),
-                  solve("1893", {"sa": "clean"}, days_ago=1))
     assert picker.run(ns, ps, ev, st)[2] == "2149"
 
 
@@ -1821,18 +1795,33 @@ def test_an_evidenced_carrier_outranks_promotion(picker):
     assert picker.run(ns, ps, {}, st)[2] == "1"
 
 
-def test_a_warm_carrier_is_waited_out_not_promoted(picker):
-    """A mapped carrier inside the re-solve cooldown is "not today", not
-    "never": evidenced truth outranks a drafted guess, so the node waits
-    for its carrier to cool instead of promoting."""
+def test_an_unsolved_carrier_is_waited_out_not_promoted(picker):
+    """A mapped carrier the move has never been given is "not today", not
+    "never": an evidenced walk outranks a drafted guess, so the node waits
+    for its carrier to wake instead of promoting."""
+    ns = nodes("m")
+    ps = {"1": problem(["m"])}
+    st = {"m": (FRAGILE, ago(1))}
+    picker.predicted["9001"] = drafted(["m"])
+    picker.meta["9001"] = {"difficulty": "Easy"}
+    got = picker.run(ns, ps, {}, st, asleep={"1"})
+    assert got is None or got[2] != "9001"
+
+
+def test_every_mapped_carrier_solved_promotes_a_draft(picker):
+    """The other half of the same rule: a mapped carrier already solved is a
+    repeat, and a repeat does not outrank new ground. Waiting out its
+    cooldown serves nothing today and serves the same problem again after.
+    2026-09-07: 467 of the 486 mapped carriers were solved, so the old "any
+    mapped carrier" gate had silenced the frontier mover completely and the
+    picker served repeats with 3087 drafts untouched."""
     ns = nodes("m")
     ps = {"1": problem(["m"])}
     ev = evidence(solve("1", {"m": "struggled"}, days_ago=1))
     st = {"m": (FRAGILE, ago(1))}
     picker.predicted["9001"] = drafted(["m"])
     picker.meta["9001"] = {"difficulty": "Easy"}
-    got = picker.run(ns, ps, ev, st)
-    assert got is None or got[2] != "9001"
+    assert picker.run(ns, ps, ev, st)[2] == "9001"
 
 
 def test_a_promoted_walk_obeys_the_one_new_move_rule(picker):
@@ -2293,22 +2282,6 @@ def test_a_fresh_evidenced_carrier_still_outranks_a_draft(picker):
     picker.predicted["9002"] = drafted(["a", "b"])
     picker.meta["9002"] = {"difficulty": "Medium"}
     assert picker.run(ns, ps, ev, st)[2] == "2"
-
-
-def test_a_young_move_with_falsified_drafts_is_skipped(picker):
-    ns = nodes("a", "b")
-    ps = {"1": problem(["a", "b"])}
-    st = {"a": (SOLID, ago(1)), "b": (SOLID, ago(1))}
-    picker.immature.add("b")
-    picker.gain = {"b": 40}
-    for n in ("9001", "9002", "9003"):
-        picker.predicted[n] = drafted(["a", "b"])
-        picker.meta[n] = {"difficulty": "Medium"}
-    # 9001 and 9002 solved without b: the drafts are wrong about this move
-    ev = evidence(solve("1", {"a": "clean", "b": "clean"}, days_ago=1),
-                  solve("9001", {"a": "clean"}, days_ago=3),
-                  solve("9002", {"a": "clean"}, days_ago=4))
-    assert picker.run(ns, ps, ev, st) is None
 
 
 def test_unlocks_counts_a_young_move_as_a_gap():
