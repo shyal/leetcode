@@ -50,7 +50,7 @@ class Solution:
 
         path = []
         res = []
-        helper(0)
+        helper(1)
         return res
 
 
