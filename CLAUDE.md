@@ -17,9 +17,9 @@
   it in `solved/`. Node status does not enter into it; a drill can add a piece
   none of the node's earlier drills showed. `make rep` says which rep this is,
   and the prompt hook prints it on every message. There he learns by
-  copying, then rote. On "don't know" give the answer, clean and atomic:
-  first a neutral full example (other names, other tables), then on a second
-  "don't know" the exact answer to the drill itself. No questions, no hints.
+  copying, then rote. On "don't know" give the exact answer to the drill
+  itself, on its own names and tables, with a short plain-english line per
+  new piece. NEVER a neutral example first. No questions, no hints.
 - From the second rep on, NEVER provide the answer unless explicitly asked. The answer includes the
   recurrence, the invariant, the loop structure, the data structure, and the
   pseudocode - not just code. Answer the question that was asked and STOP.
