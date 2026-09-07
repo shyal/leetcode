@@ -8326,6 +8326,22 @@
       },
       "note": "Used memoized recursion instead of bottom-up 2D DP grid.",
       "summary": "The code recursively processes two strings in parallel, tracking the minimum cost to delete characters to make them equal. It formulates the state as suffixes of both strings, with a recurrence that skips matching characters and accumulates ASCII values for deletions. Memoization via @cache replaces the bottom-up 2D grid approach, avoiding that canonical move."
+    },
+    "solved/p1035_Uncrossed_Lines_2026_09_07T14_20_40_819745_00_00Z.py": {
+      "date": "2026-09-07",
+      "problem": "1035",
+      "moves": {
+        "dp-state-formulate": "clean",
+        "two-sequence-align": "clean",
+        "dp-2d-grid": "clean"
+      },
+      "assist": {
+        "dp-state-formulate": "learning",
+        "two-sequence-align": "learning",
+        "dp-2d-grid": "learning"
+      },
+      "note": "Candidate's first attempt (backtracking enumeration) was abandoned; provided solution shown.",
+      "summary": "The solution solves uncrossed lines as a two-sequence alignment problem using a 2D DP table. State dp[i][j] holds the maximum lines through the first i and j elements; each cell is either dp[i-1][j-1]+1 when elements match, or the maximum of the two neighbors when they differ. The candidate received this solution."
     }
   }
 }
