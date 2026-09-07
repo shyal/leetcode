@@ -1335,11 +1335,10 @@ fn main() {
     // walks), shared with kg_mock so the charts and `make mock` agree
     let node_ids: Vec<String> = nodes.iter().map(|n| n.id.clone()).collect();
     let problems_v = load_json(&graph.join("problems.json"));
-    let predicted_v = load_json(&graph.join("predicted.json"));
     let repo_root = graph.parent().map(|p| p.to_path_buf()).unwrap_or_else(|| PathBuf::from("."));
     let metadata_v = load_json(&repo_root.join("data/problems_metadata.json"));
     let ratings_v = load_json(&graph.join("ratings.json"));
-    let bank = Bank::build(&problems_v, &predicted_v, &metadata_v, &node_ids, &ratings_v);
+    let bank = Bank::build(&problems_v, &metadata_v, &node_ids, &ratings_v);
     let coef = SolveModel::load(&load_json(&graph.join("curve.json")))
         .expect("graph/curve.json has no fitted cold-solve model - run make curve");
     let scenarios = coef.scenarios(0);

@@ -888,11 +888,10 @@ fn main() {
 
     // the bank: real per-difficulty problem pools from evidenced + drafted
     // walks, one move universe (nodes first, then off-taxonomy extras)
-    let predicted_v = load_json(&graph.join("predicted.json"));
     let metadata_v = load_json(&repo_root.join("data/problems_metadata.json"));
     let target = target_pass();
     let ratings_v = load_json(&graph.join("ratings.json"));
-    let mut bank = Bank::build(&problems_v, &predicted_v, &metadata_v, &node_ids, &ratings_v);
+    let mut bank = Bank::build(&problems_v, &metadata_v, &node_ids, &ratings_v);
     let coef = match SolveModel::load(&curve_v) {
         Some(c) => c,
         None => {

@@ -322,7 +322,7 @@ def derived(recog, evidence, problems, statuses):
 # ---- the pick --------------------------------------------------------------
 
 def drafted_carriers(problems, predicted=None):
-    """graph/predicted.json problems not in problems.json, as in-memory
+    """Drafted problems the operator has never solved, as in-memory
     entries the way kg_next promotes a draft: one drafted walk, no missing
     move, difficulty from the metadata. The bank of mapped unsolved
     problems is ~30 and mostly Hards; the drafts are ~2300. A drafted

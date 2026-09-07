@@ -227,8 +227,18 @@ def load_nodes():
     return {n["id"]: n for n in _load("nodes.json")["nodes"]}
 
 
-def load_problems():
+def load_all_problems():
+    """graph/problems.json: every problem the graph knows, drafted and
+    evidenced in one table. Gates read this one - a drafted problem waits
+    behind its "after" list exactly like an evidenced one."""
     return _load("problems.json")["problems"]
+
+
+def load_problems():
+    """The evidenced problems: a solve mapped the walk, so the entry has
+    "moves" and no "draft" flag. Everything that reasons from evidenced
+    walks - carriers, carrier counts, node status - reads this view."""
+    return {k: v for k, v in load_all_problems().items() if not v.get("draft")}
 
 
 def load_evidence():
@@ -236,11 +246,10 @@ def load_evidence():
 
 
 def load_predicted():
-    """graph/predicted.json (LLM-drafted walks); {} before it exists."""
-    try:
-        return _load("predicted.json")["problems"]
-    except OSError:
-        return {}
+    """The drafted walks, keyed by problem: every entry carrying "walks",
+    drafted or already evidenced. The entries are the table's own, so a
+    drafted problem's "after" travels with its walks."""
+    return {k: v for k, v in load_all_problems().items() if v.get("walks")}
 
 
 def unlocks(statuses, problems, predicted=None, immature=frozenset()):
@@ -276,7 +285,7 @@ def unlocks(statuses, problems, predicted=None, immature=frozenset()):
 
 
 class _DraftMatrix:
-    """graph/predicted.json as arrays, built once per (predicted, node set):
+    """The drafted walks as arrays, built once per (predicted, node set):
     W[walk, node] says the walk uses the node; prob[walk] its problem's
     row; missing/unknown flag walks the taxonomy cannot express (a missing:
     suggestion, or a move with no node). Per problem: difficulty rank,
@@ -367,12 +376,22 @@ def _draft_matrix(predicted, node_ids):
 
 
 def save_problems(problems):
+    """Write these entries into graph/problems.json, leaving every entry the
+    caller did not pass - the drafts - as it is. An entry keeps what the
+    file already said and the caller did not: its drafted walks, its "after"
+    gate, a "banned" flag. It loses the "draft" flag the moment a solve
+    gives it "moves"."""
     path = os.path.join(GRAPH_DIR, "problems.json")
     with open(path) as f:
         data = json.load(f)
-    data["problems"] = problems
+    table = data["problems"]
+    for num, entry in problems.items():
+        entry = {**table.get(num, {}), **entry}
+        if entry.get("moves"):
+            entry.pop("draft", None)
+        table[num] = entry
     with open(path, "w") as f:
-        json.dump(data, f, indent=2)
+        json.dump(data, f, indent=1)
 
 
 def save_evidence(evidence):
@@ -1026,16 +1045,24 @@ def held_behind(pnum, problems, evidence, today=None):
     drill plus a product). An id is a problem number, a drill title, or a
     node id; `warm` says whether it is owned. While one is not, this
     problem stays out of carrier pools so the predecessor is served first.
+    Drafted problems are gated the same way: the "after" list is read from
+    the table the caller holds, or from graph/problems.json when the caller
+    holds the evidenced view alone.
     A banned problem, or an id nothing in the graph carries, holds nothing:
     a hold nothing can clear is a deadlock.
     """
     today = today or date.today()
-    for pred in problems.get(str(pnum), {}).get("after", []):
+    entry = problems.get(str(pnum)) or _problems_ro().get(str(pnum), {})
+    for pred in entry.get("after", []):
         pred = str(pred)
-        if problems.get(pred, {}).get("banned"):
+        if (problems.get(pred) or _problems_ro().get(pred, {})).get("banned"):
             continue
         if warm(pred, problems, evidence, today) is False:
             return pred
+    for node in dict.fromkeys(walk_nodes(entry)):
+        held = node_drill_hold(node, evidence, today)
+        if held:
+            return held
     return None
 
 
@@ -1079,7 +1106,9 @@ def dependents(vid, problems, evidence, drill_map=None, today=None):
     for h in gates(vid, problems, drill_map):
         if h in problems:
             p = problems[h]
-            title, kind, after = p["title"], p.get("difficulty", "?"), p.get("after", [])
+            title = p["title"]
+            kind = problem_difficulty(h, problems) or "?"
+            after = p.get("after", [])
         else:
             d = drill_map[h]
             title, kind, after = d["title"], "drill", d.get("after", [])
@@ -1115,6 +1144,8 @@ def vertex_kind(vid, problems):
         return "drill"
     if vid in load_nodes():
         return "node"
+    if vid in _problems_ro():
+        return "problem"  # drafted: not in the evidenced view the caller holds
     return None
 
 
@@ -1399,8 +1430,8 @@ def cooled(pnum, evidence, days=CARRIER_COOLDOWN_DAYS):
 CONN_MASS_CAP = 30
 
 
-def predicted_carrier(target, problems, statuses, nodes,
-                      predicted=None, skip=(), difficulties=("Easy", "Medium")):
+def predicted_carrier(target, problems, statuses, nodes, predicted=None,
+                      evidence=None, skip=(), difficulties=("Easy", "Medium")):
     """The frontier mover (PLAN.md phase 4): when no evidenced problem can
     carry `target`, promote the best drafted one. Returns (pnum, entry) or
     None. `entry` is problems.json-shaped and flagged "predicted": True; it
@@ -1414,10 +1445,14 @@ def predicted_carrier(target, problems, statuses, nodes,
     cheap-regime-first: the walk whose rarest supporting move has the most
     problems rehearsing it (capped at CONN_MASS_CAP), then the usual
     gentleness and acceptance keys. `difficulties` narrows the pool: a
-    proving rep for a medium-bar node has to be a Medium."""
+    proving rep for a medium-bar node has to be a Medium. A draft held
+    behind an unmet "after" is not promoted, the hold an evidenced carrier
+    obeys."""
     import numpy as np
     if predicted is None:
         predicted = load_predicted()
+    if evidence is None:
+        evidence = _evidence_ro()
     dm = _draft_matrix(predicted, sorted(statuses))
     if target not in dm.index:
         return None
@@ -1441,6 +1476,8 @@ def predicted_carrier(target, problems, statuses, nodes,
         diff = dm.diff[pi]
         if num in skip or diff not in ("Easy", "Medium") or diff not in difficulties:
             continue
+        if held_behind(num, predicted, evidence):
+            continue
         best.append((num, dm.walk_moves[wi], diff, min(int(m), CONN_MASS_CAP)))
     if not best:
         return None
@@ -1459,7 +1496,7 @@ def predicted_carrier(target, problems, statuses, nodes,
 
 
 def drafted_in_reach(problems, statuses, nodes, immature, predicted=None,
-                     skip=(), first="Hard", limit=20):
+                     evidence=None, skip=(), first="Hard", limit=20):
     """Unsolved drafted problems whose walk is entirely in reach: every move
     a node, SOLID and mature, no missing-move flags. Ranked `first` (Hard
     or Medium) ahead of the other, Easy last; within a difficulty the walk
@@ -1470,10 +1507,13 @@ def drafted_in_reach(problems, statuses, nodes, immature, predicted=None,
     move has a carrier, this is what is left of leetcode. The caller
     alternates `first` so a day is Hards and Mediums, not Hards alone (the
     2026-08-31 simulation: 550 Hards to 53 Mediums in 120 days, and the
-    medium pass rate starved)."""
+    medium pass rate starved). A draft held behind an unmet "after" waits,
+    the hold an evidenced problem obeys."""
     import numpy as np
     if predicted is None:
         predicted = load_predicted()
+    if evidence is None:
+        evidence = _evidence_ro()
     dm = _draft_matrix(predicted, list(nodes))
     reach = np.array([statuses[n][0] == SOLID and n not in immature
                       for n in dm.node_ids], dtype=bool)
@@ -1498,7 +1538,7 @@ def drafted_in_reach(problems, statuses, nodes, immature, predicted=None,
     out = []
     for i in order:
         num = dm.problems[probs[i]]
-        if num in skip:
+        if num in skip or held_behind(num, predicted, evidence):
             continue
         out.append((num, {"title": predicted[num].get("title")
                           or meta.get(str(num), {}).get("title", f"problem {num}"),
@@ -1791,6 +1831,63 @@ def has_drill_bank(node_id):
     return bool(glob.glob(os.path.join(DRILLS_DIR, node_id, "*.py")))
 
 
+_NODE_DRILL_HOLD = {}
+
+
+def bank_files(node_id):
+    """The bank files of a node, in filename order. Cached: the holds below
+    ask for them on every candidate of every pick."""
+    key = (DRILLS_DIR, node_id)
+    hit = _BANK_FILES.get(key)
+    if hit is None:
+        hit = _BANK_FILES[key] = sorted(
+            glob.glob(os.path.join(DRILLS_DIR, node_id, "*.py")))
+    return hit
+
+
+def cold_drill(node_id, evidence, today=None, ready_only=False):
+    """The bank file of this node that is not warm yet - the one a rep is
+    owed on - or None when every drill of the node is warm. Servable files
+    (servable_drills) come first; with `ready_only` an unservable one is not
+    named at all, which is what a caller about to SERVE the file wants: a
+    drill still waiting on its own "after" is reached by climbing that
+    chain, not by serving it."""
+    day = today or date.today()
+    key = (DRILLS_DIR, node_id, id(evidence), len(evidence), day)
+    hit = _NODE_DRILL_HOLD.get(key)
+    if hit is None:
+        cold = [p for p in bank_files(node_id) if not drill_warm(p, evidence, day)]
+        ready = servable_drills(cold, evidence, node_id) if cold else []
+        hit = _NODE_DRILL_HOLD[key] = (ready, cold)
+    ready, cold = hit
+    if ready_only:
+        return ready[0] if ready else None
+    return (ready or cold)[0] if cold else None
+
+
+def node_drill_hold(node_id, evidence, today=None):
+    """The drill of this node that is not warm yet, or None. A node with a
+    bank hands its problems to the bank first: while one of its drills has
+    no unaided all-clean rep inside the solid window, every problem walking
+    the node waits for that drill. This is the hand-written "after" applied
+    to the whole node - the drill trains the move, so it gates every problem
+    that walks it, drafted or evidenced, not the few listed by hand. The
+    picker clears the hold by serving that drill (kg_next.due)."""
+    path = cold_drill(node_id, evidence, today)
+    return drill_id(path) if path else None
+
+
+def walk_nodes(entry):
+    """Every node a problem's solution might walk: the evidenced walk and its
+    alt walks, or the moves of each drafted walk. What the drill holds read."""
+    out = list(entry.get("moves", []))
+    for alt in entry.get("alt_walks", []):
+        out += list(alt)
+    for w in entry.get("walks", []):
+        out += list(w.get("moves", []))
+    return out
+
+
 def drill_gated(node_id, status, last, today=None):
     """The drill-success gate: a MISSING/FRAGILE — or deep-stale — target
     with a drill bank trains on its drill ONLY; no carrier fires for it
@@ -1905,20 +2002,39 @@ def drill_trains(path):
     return list(_drill_header(path)[1])
 
 
+_EVIDENCE_RO = {}  # path -> (mtime_ns, size, evidence)
+
+
+def _evidence_ro():
+    """graph/evidence.json for READ-ONLY use, parsed once per file version.
+    The gate checks in the predicted rules need evidence to say whether a
+    predecessor is warm, and their callers do not all carry it."""
+    path = os.path.join(GRAPH_DIR, "evidence.json")
+    st = os.stat(path)
+    hit = _EVIDENCE_RO.get(path)
+    if hit is None or hit[0] != st.st_mtime_ns or hit[1] != st.st_size:
+        hit = (st.st_mtime_ns, st.st_size, load_evidence())
+        _EVIDENCE_RO.clear()
+        _EVIDENCE_RO[path] = hit
+    return hit[2]
+
+
+_BANK_FILES = {}  # node id -> its drill bank files
+
 _PROBLEMS_RO = {}  # path -> (mtime_ns, size, problems)
 
 
 def _problems_ro():
-    """problems.json for READ-ONLY use, parsed once per file version. The
-    drill holds below ask for it on every candidate of every pick (tens of
-    thousands of times in one kg_simulate run); load_problems parses the
-    file each call because its callers mutate the result. Never hand this
-    dict to anything that writes into it."""
+    """graph/problems.json, the whole table, for READ-ONLY use, parsed once
+    per file version. The drill holds below ask for it on every candidate of
+    every pick (tens of thousands of times in one kg_simulate run);
+    load_problems parses the file each call because its callers mutate the
+    result. Never hand this dict to anything that writes into it."""
     path = os.path.join(GRAPH_DIR, "problems.json")
     st = os.stat(path)
     hit = _PROBLEMS_RO.get(path)
     if hit is None or hit[0] != st.st_mtime_ns or hit[1] != st.st_size:
-        hit = (st.st_mtime_ns, st.st_size, load_problems())
+        hit = (st.st_mtime_ns, st.st_size, load_all_problems())
         _PROBLEMS_RO.clear()
         _PROBLEMS_RO[path] = hit
     return hit[2]

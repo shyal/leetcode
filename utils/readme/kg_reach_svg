@@ -27,7 +27,7 @@
 # evidenced line sums only problems.json walks (what actually happened,
 # never mixed with guesses); the predicted line sums the whole catalog -
 # a problem contributes its BEST walk's joint probability (evidenced, or
-# LLM-drafted in graph/predicted.json). A draft that needs a move the
+# LLM-drafted, both in graph/problems.json). A draft that needs a move the
 # taxonomy lacks (missing:) can never contribute, and an empty draft is no
 # walk at all, but both keep their problem in the denominator: those are
 # the taxonomy's blind spots.
@@ -47,6 +47,7 @@ from kg.kg_lib import (
     era_banner,
     load_evidence,
     load_nodes,
+    load_predicted,
     load_problems,
     node_axes,
     degree_color,
@@ -86,7 +87,7 @@ def main():
     added = {nid: date.fromisoformat(n["added"]) for nid, n in nodes.items()}
 
     # full catalog: every problem with any walk record; usable walks only
-    predicted = json.load(open(os.path.join(GRAPH_DIR, "predicted.json")))["problems"]
+    predicted = load_predicted()
     walks = {num: [] for num in set(problems) | set(predicted)}
     for num, p in problems.items():
         walks[num].append(p["moves"])

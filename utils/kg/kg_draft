@@ -3,7 +3,7 @@
 # kg_draft — draft predicted walks for cached problems with an LLM.
 #
 #   utils/kg/kg_draft --pilot 50                 # label N evidenced problems, score vs truth
-#   utils/kg/kg_draft --full                     # label every cached solution -> graph/predicted.json
+#   utils/kg/kg_draft --full                     # label every cached solution -> graph/problems.json
 #
 # Closed-vocabulary labeling: the model picks move ids from nodes.json, it
 # never invents walk vocabulary. Few-shot examples come from evidenced walks
@@ -49,8 +49,10 @@ def load_nodes():
 
 
 def load_walks():
+    """The evidenced walks, for the few-shot examples: a drafted entry has
+    no "moves" of its own, only the walks this script writes."""
     probs = json.load(open(os.path.join(GRAPH_DIR, "problems.json")))["problems"]
-    return {k: v for k, v in probs.items() if k.isdigit()}
+    return {k: v for k, v in probs.items() if k.isdigit() and v.get("moves")}
 
 
 def load_solution(num):
@@ -174,19 +176,16 @@ def cache_solution(num):
 
 
 def save_predicted(drafts, model):
-    """graph/predicted.json: walks are a LIST per problem, each walk stamped
-    with tier and source. Alt walks accumulate; nothing here is evidence."""
-    path = os.path.join(GRAPH_DIR, "predicted.json")
-    try:
-        doc = json.load(open(path))
-    except (OSError, ValueError):
-        doc = {"_comment": "LLM-drafted walks. tier=predicted until an actual "
-                           "solve + kg_extract evidences them. A problem may "
-                           "hold alt walks; reach counts a problem in reach if "
-                           "ANY walk is all-solid.",
-               "problems": {}}
+    """graph/problems.json: "walks" is a LIST per problem, each walk stamped
+    with tier and source. Alt walks accumulate; nothing here is evidence, so
+    a problem the operator has never solved keeps its "draft": true until
+    kg_extract maps it from a real solve."""
+    path = os.path.join(GRAPH_DIR, "problems.json")
+    doc = json.load(open(path))
     for num, (title, entry) in drafts.items():
-        prob = doc["problems"].setdefault(num, {"title": title, "walks": []})
+        prob = doc["problems"].setdefault(
+            num, {"title": title, "draft": True, "walks": []})
+        prob.setdefault("walks", [])
         walk = {"moves": entry["moves"], "tier": "predicted",
                 "source": "cache-solution", "model": model,
                 "prompt_version": PROMPT_VERSION}
@@ -305,7 +304,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--pilot", type=int, default=None,
                     help="Label N random evidenced problems and score vs truth.")
 parser.add_argument("--full", action="store_true",
-                    help="Label every cached solution, write graph/predicted.json.")
+                    help="Label every cached solution, write graph/problems.json.")
 parser.add_argument("--limit", type=int, default=None,
                     help="With --full: stop after N problems.")
 parser.add_argument("--model", default="gpt-5-mini")

@@ -21,6 +21,13 @@ and generate combination drills ("rote sheets").
   offered as a carrier (all pickers route through `carriers_for`) — for problems whose
   training value is buried under busywork. The move still gets trained, just via a
   different carrier; preflight still audits banned problems and labels them ⛔.
+  Problems nobody here has solved sit in the same table with `"draft": true` and
+  no walk of their own, only the LLM-drafted `walks` kg_draft writes (they were a
+  separate file, predicted.json, until 2026-09-07). One table, one set of rules: a
+  draft is gated by `after` and blacklisted by `banned` exactly like an evidenced
+  problem, and `kg_extract` turns it into one on the first solve, dropping the flag.
+  `load_problems` is the evidenced view, `load_predicted` the drafted walks,
+  `load_all_problems` the table itself.
 - **evidence.json** — per solve-file: which moves the actual code exercised, verdict
   `clean` / `struggled` / `avoided`. Append-only, keyed by filename like `data/summaries.json`.
   An optional `assist` field records how much outside help the solve had — a second

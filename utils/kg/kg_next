@@ -134,7 +134,7 @@
 #      carriers solved the old "any mapped carrier" gate had silenced the
 #      mover completely) promotes
 #      a drafted carrier — an unmapped easy/medium
-#      from graph/predicted.json whose predicted walk has the target as its
+#      from the drafted entries of graph/problems.json whose walk has the target as its
 #      only non-solid move and no missing-move flags. Ranked cheap-regime
 #      first (kg_lib.predicted_carrier: rarest supporting move's carrier
 #      mass, capped at the ~30-problem connectivity threshold), then
@@ -193,6 +193,8 @@ from kg.kg_lib import (
     DRILLS_DIR,
     load_nodes,
     load_problems,
+    load_all_problems,
+    cold_drill,
     load_evidence,
     node_status,
     node_axes,
@@ -494,6 +496,10 @@ def pick(
         if drill_id in exclude:
             return None
         path = due_drill(target, evidence, early=early, assisted=assisted)
+        # a drill the clock does not call for still holds every problem that
+        # walks its node (kg_lib.node_drill_hold), so it is what the node can
+        # be served: nothing else clears that hold
+        path = path or cold_drill(target, evidence, ready_only=True)
         return drill_id if path and not drill_capped(path, evidence) else None
 
     def promote(target, unsolved):
@@ -511,6 +517,7 @@ def pick(
         if unsolved:
             return None
         promo = predicted_carrier(target, problems, statuses, nodes,
+                                  evidence=evidence,
                                   skip=set(asleep) | set(exclude) | solved_ever)
         if promo:
             problems[promo[0]] = promo[1]
@@ -563,9 +570,11 @@ def pick(
                     if up and (node == target or not due(node)):
                         pred = up
                         continue
-                if node in nodes and node != target and due(node):
-                    return (node, statuses[node][0], due(node),
-                            f"{pnum} carries {target} but waits on {pred} - drill {node} first")
+                if node in nodes and due(node):
+                    why = (f"every carrier of {target} waits on {pred} - drill first"
+                           if node == target else
+                           f"{pnum} carries {target} but waits on {pred} - drill {node} first")
+                    return (node, statuses[node][0], due(node), why)
                 break
         return None
 
@@ -828,7 +837,7 @@ def pick(
             return target, SOLID, fresh[0], why
         bar_kind, _ = carry_bar(target, problems)
         promo = predicted_carrier(
-            target, problems, statuses, nodes,
+            target, problems, statuses, nodes, evidence=evidence,
             skip=set(asleep) | set(exclude) | solved_ever,
             difficulties=("Medium",) if bar_kind == "medium" else ("Easy", "Medium"),
         )
@@ -968,7 +977,7 @@ def pick(
         first = "Medium" if last and problem_difficulty(last, problems) == "Hard" \
             else "Hard"
         for num, entry in drafted_in_reach(
-                problems, statuses, nodes, immature,
+                problems, statuses, nodes, immature, evidence=evidence,
                 skip=set(asleep) | set(exclude), first=first):
             problems[num] = entry
             return (
@@ -1254,6 +1263,7 @@ def blocked_frontier(nodes, problems, evidence, statuses, asleep=(), exclude=())
             continue
         if (not [c for c in ready if not last_solved(c, evidence)]
                 and predicted_carrier(nid, problems, statuses, nodes,
+                                      evidence=evidence,
                                       skip=set(asleep) | set(exclude))):
             continue  # no unsolved carrier but servable - pick() promotes a draft
 
@@ -1456,10 +1466,17 @@ def gated_label(h, problems, evidence, labeled):
     return f"{st} {random.choice(STATUS_FACE[st])}"
 
 
+def gate_table(problems):
+    """Every problem an "after" list can name - the drafted ones included -
+    with the caller's own entries (promoted drafts, stubs) winning."""
+    return {**load_all_problems(), **problems}
+
+
 def add_gated(dot, from_node, vid, problems, evidence, labeled):
     """Draw what `vid` holds behind it under its box: one outlined box per
     problem or drill whose "after" names it, with an edge from `from_node`.
     The reverse of the input tree above the box."""
+    problems = gate_table(problems)
     for h in gates(vid, problems):
         gid = f"gated_{h}"
         dot.node(gid, label=gated_label(h, problems, evidence, labeled), shape="box",
@@ -1471,6 +1488,7 @@ def add_gated(dot, from_node, vid, problems, evidence, labeled):
 def print_gates(vid, problems, evidence, labeled):
     """One dim line for what this problem or drill holds behind it: names
     under `graph`, faces otherwise. Nothing is printed when nothing does."""
+    problems = gate_table(problems)
     held = gates(vid, problems)
     if not held:
         return
