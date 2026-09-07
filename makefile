@@ -1,4 +1,4 @@
-.PHONY: all drop learning mirror q prepare force unforce preflight dependents kg-extract kg-status kg-viz rep movie next dive drill spot hard is_session_start readme residuals simulate sleep wake solved failed test timer viz graph snippets
+.PHONY: all asserts drop learning mirror q prepare force unforce preflight dependents kg-extract kg-status kg-viz rep movie next dive drill spot hard is_session_start readme residuals simulate sleep wake solved failed test timer viz graph snippets
 
 all: graph/leet.db
 	@cp utils/harness/sitecustomize.py .venv/lib/python3.10/site-packages/
@@ -34,6 +34,11 @@ kg-extract:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_extract --pending $(filter-out $@,$(MAKECMDGOALS))
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_curve --if-stale
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_solvecost --if-stale
+
+# `make asserts 5` generates the extra asserts for the picker's next five
+# problems, into .prepare_cache; `make asserts 5 dry` prints them instead.
+asserts:
+	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/asserts --next $(or $(filter-out $@ dry,$(MAKECMDGOALS)),5) $(patsubst dry,--dry,$(filter dry,$(MAKECMDGOALS)))
 
 kg-status:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_status

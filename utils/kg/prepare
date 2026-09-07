@@ -13,6 +13,7 @@ import tempfile
 import threading
 import requests
 
+from kg.assert_gen import extra_asserts, has_stress
 from kg.stub_utils import sanitize, strip_solution, structure_problems
 from kg.kg_lib import clear_branch
 
@@ -342,8 +343,19 @@ lock = threading.Lock()
 def process_problem(num):
     cached = cache_load(num)
     if cached:
-        title, code, _solution = cached
-        print(f"Using cached stub for {num}. {title}")
+        title, code, solution = cached
+        if args.warm and solution and not has_stress(solution):
+            print(f"{num}. {title}: adding the extra asserts")
+            merged = extra_asserts(solution, llm, validate)
+            if merged is not solution:
+                try:
+                    code = strip_solution(merged)
+                except SyntaxError as e:
+                    print(f"{num}: could not strip the solution\n{e}")
+                    return
+                cache_save(num, title, code, merged)
+        else:
+            print(f"Using cached stub for {num}. {title}")
         if not args.warm:
             finalize(num, title, code)
         return
@@ -538,6 +550,10 @@ duplicates, negatives, and constraint extremes. At most 12 lines.
         ok, _ = validate(with_edges)
         if ok:
             code = with_edges
+    # a design problem is driven by a SEQUENCE of calls, which no single
+    # expression can express: these two blocks replay a random workload and
+    # walk the boundary cases, both frozen by running this same solution.
+    code = extra_asserts(code, llm, validate)
     # current.py is derived from it, deterministically, at write time.
     # both cache fields are stored black-formatted.
     solution = code
