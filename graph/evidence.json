@@ -8118,6 +8118,15 @@
       "moves": {},
       "note": "Drill targets stack-nested-eval but solution uses simple accumulation without nesting or pop-combine operations.",
       "summary": "The code extracts numbers from a + -delimited string by accumulating digits into num and pushing finalized values to a list when delimiters are encountered. While the drill targets stack-nested-eval, the implementation sidesteps this pattern entirely: it performs straightforward one-way accumulation rather than the nested scope handling with push-pop-combine cycles that characterize stack-based nested evaluation."
+    },
+    "solved/d_Read_The_Signed_Numbers_2026_09_07T01_27_21_394529_00_00Z.py": {
+      "date": "2026-09-07",
+      "problem": "drill",
+      "moves": {
+        "stack-nested-eval": "clean"
+      },
+      "note": "Problem solved via streaming-ask-then-record; the problem has no nested structures despite drill target.",
+      "summary": "Parses a linear arithmetic expression one character at a time. At each operator, queries the previous operator to sign the accumulated number, then records the operator for the next iteration. The variable `op` carries state between loop steps; the appended `+` sentinel ensures the final number is processed. Code passes all test cases."
     }
   }
 }
