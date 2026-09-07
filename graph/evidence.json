@@ -8291,6 +8291,16 @@
       },
       "note": "Discussed general approach beforehand.",
       "summary": "The code maintains three heaps (timestamps, min-prices, max-prices) and a dict of current prices by timestamp. When maximum() or minimum() queries run, they pop entries one by one from the heap; each popped entry is validated by checking if the price in the dict matches the entry's price. Stale entries (from prior updates of the same timestamp) are discarded until a valid entry is found. The dict serves as ground truth; the heaps implement lazy eviction by deferring cleanup until query time."
+    },
+    "solved/p2353_Design_a_Food_Rating_System_2026_09_07T08_51_39_337469_00_00Z.py": {
+      "date": "2026-09-07",
+      "problem": "2353",
+      "moves": {
+        "heap-lazy-eviction": "clean",
+        "dict-arbitrary-value": "clean",
+        "set-membership": "clean"
+      },
+      "summary": "Solution maintains a max-heap per cuisine with negated ratings (lazy eviction); when ratings update, old heap entries remain but a dict records the current rating for each food. On highestRated, the code pops stale entries until finding one whose stored rating matches the heap entry. Uses set-membership (food in updates dict) to detect staleness and dict-arbitrary-value to store validation data for O(1) checking."
     }
   }
 }
