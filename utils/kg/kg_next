@@ -53,6 +53,21 @@
 #      graduating floor made drills persistent enough for one bank to fill
 #      every session (2026-09-04, sql). `make next <group>` ignores the
 #      cap; the footer shows the count. review_ahead replays under it.
+#   0f. new-drill cap (MAX_NEW_DRILLS, e.g. 3 in .envrc): once that many
+#      bank files have been met for the first time today, a file never
+#      drilled waits until tomorrow - on the clock and on the frontier
+#      alike. The first rep of a drill is first exposure, read and copied,
+#      and a day of those is not a day of reviews. Reviews are never
+#      withheld, and there is no override: the cap is on the whole day's
+#      new ground, not on one bank, so naming a group or cramming it does
+#      not lift it. Unset, the default, is no cap.
+#   0g. drill review cap (MAX_DRILL_REVIEWS, e.g. 6 in .envrc): once that
+#      many bank files already met have come back today, a file with a rep
+#      waits until tomorrow, on the clock and on the frontier alike. The
+#      other half of 0f: with 47 files due on the clock, a session is
+#      drills and nothing else and the problems the drills exist for never
+#      get solved. With both budgets spent the picker falls through to its
+#      problem rules. Unset, the default, is no cap.
 #   0b. park full (kg_lib.MAX_ASLEEP problems asleep): review is served as
 #      usual, new ground is not. A pick that is new ground (rule 3, 4, 5, 6
 #      or a plan item that is) is withheld and the parked list is printed
@@ -192,6 +207,11 @@ from kg.kg_lib import (
     MAX_ASLEEP,
     group_caps,
     group_reps,
+    new_drill_cap,
+    new_drills_today,
+    drill_review_cap,
+    drill_reviews_today,
+    drill_capped,
     pending_judgements,
     spawn_judge,
     PENDING_STALE_SECONDS,
@@ -402,6 +422,8 @@ def pick(
                 continue
             if nodes[node].get("group") in capped:
                 continue
+            if drill_capped(path, evidence):
+                continue
             return (node, statuses[node][0], drill_id,
                     drill_clock_reason(path, evidence))
 
@@ -429,12 +451,10 @@ def pick(
                          # dependent behind it served nothing - 2026-08-31,
                          # "spent" with two assisted sql drills waiting)
         drill_id = f"drill:{target}"
-        return (
-            drill_id
-            if drill_id not in exclude
-            and due_drill(target, evidence, early=early, assisted=assisted)
-            else None
-        )
+        if drill_id in exclude:
+            return None
+        path = due_drill(target, evidence, early=early, assisted=assisted)
+        return drill_id if path and not drill_capped(path, evidence) else None
 
     def promote(target, mapped):
         """The frontier mover (PLAN.md phase 4): NO evidenced problem can
@@ -679,7 +699,10 @@ def pick(
         if pre is None or statuses[pre][0] != SOLID:
             return None
         drill_id = f"drill:{pre}"
-        if drill_id in exclude or not due_drill(pre, evidence):
+        if drill_id in exclude:
+            return None
+        path = due_drill(pre, evidence)
+        if not path or drill_capped(path, evidence):
             return None
         return pre, drill_id
 
@@ -1075,8 +1098,14 @@ def blocked_frontier(nodes, problems, evidence, statuses, asleep=(), exclude=())
         live = [c for c in ready if c not in asleep and c not in exclude]
         if [c for c in live if cooled(c, evidence)]:
             continue  # servable - pick() just preferred something else
-        if due_drill(nid, evidence):
+        path = due_drill(nid, evidence)
+        if path and not drill_capped(path, evidence):
             continue  # its drill is available and pick() would offer it
+        if path:
+            out.append((nid, status,
+                        "its drill is due, the day's drill budget is spent "
+                        "(MAX_NEW_DRILLS / MAX_DRILL_REVIEWS)", False))
+            continue
         misses = draft_misses(nid, evidence, nodes)
         falsified = drafts_falsified(nid, evidence, nodes)
         if (not ready and not falsified
@@ -1440,6 +1469,18 @@ def _main(footer):
         footer.append(f"{g}: {k}/{c} reps today"
                       + (" - at the daily cap, make next {g} to go past it".format(g=g)
                          if k >= c else " (KG_GROUP_CAP)"))
+    new_cap = new_drill_cap()
+    if new_cap is not None:
+        k = new_drills_today(evidence)
+        footer.append(f"new drills: {k}/{new_cap} today"
+                      + (" - at the daily cap, reviews only until tomorrow"
+                         if k >= new_cap else " (MAX_NEW_DRILLS)"))
+    review_cap = drill_review_cap()
+    if review_cap is not None:
+        k = drill_reviews_today(evidence)
+        footer.append(f"drill reviews: {k}/{review_cap} today"
+                      + (" - at the daily cap, the bank waits until tomorrow"
+                         if k >= review_cap else " (MAX_DRILL_REVIEWS)"))
     # the judge queue: a placeholder still pending is a rep the picker
     # counts on its TRAINS, unjudged. Fresh ones are being judged now; a
     # stale one lost its worker (killed, dropped with its branch) - respawn

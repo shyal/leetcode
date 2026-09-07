@@ -2239,6 +2239,76 @@ def group_caps(environ=None):
     return caps
 
 
+def new_drill_cap(environ=None):
+    """How many bank files may be met for the first time in one day
+    (MAX_NEW_DRILLS, set in .envrc), or None when there is no cap. The
+    first rep of a drill is first exposure: it is read, copied and
+    understood, and a session of them is a different day's work from a
+    session of reviews. The group cap (group_caps) bounds one bank; this
+    bounds the whole day, whatever the group and whatever the pick rule,
+    so a bank with 30 files never served cannot be poured out at once.
+    Reviews are never withheld by it."""
+    raw = (os.environ if environ is None else environ).get("MAX_NEW_DRILLS", "").strip()
+    return int(raw) if raw.isdigit() else None
+
+
+def new_drills_today(evidence, day=None):
+    """How many bank files were met for the first time today: reps dated
+    today that are the first rep of their drill (ev_index.first_reps)."""
+    day = (day or date.today()).isoformat()
+    idx = ev_index(evidence)
+    return sum(1 for fname, _ in idx.by_date.get(day, ()) if fname in idx.first_reps)
+
+
+def new_drills_left(evidence, day=None, environ=None):
+    """First exposures the day has left under MAX_NEW_DRILLS, or None when
+    there is no cap. Zero means a never-drilled file waits until tomorrow;
+    a file with a rep is a review and is served as usual."""
+    cap = new_drill_cap(environ)
+    return None if cap is None else cap - new_drills_today(evidence, day)
+
+
+def drill_review_cap(environ=None):
+    """How many bank files already met may come back in one day
+    (MAX_DRILL_REVIEWS, set in .envrc), or None when there is no cap. The
+    other half of MAX_NEW_DRILLS: with 47 files due on the clock, a
+    session is drills and nothing else, and the problems the drills exist
+    for never get solved. Past the cap the clock waits and the picker
+    falls through to its problem rules."""
+    raw = (os.environ if environ is None else environ).get("MAX_DRILL_REVIEWS", "").strip()
+    return int(raw) if raw.isdigit() else None
+
+
+def drill_reviews_today(evidence, day=None):
+    """How many bank files came back today: reps dated today of a drill
+    that had been met before (a d_ record not in ev_index.first_reps)."""
+    day = (day or date.today()).isoformat()
+    idx = ev_index(evidence)
+    return sum(1 for fname, _ in idx.by_date.get(day, ())
+               if drill_key(fname) is not None and fname not in idx.first_reps)
+
+
+def drill_reviews_left(evidence, day=None, environ=None):
+    """Reviews the day has left under MAX_DRILL_REVIEWS, or None when there
+    is no cap. Zero means a file with a rep waits until tomorrow; a file
+    never drilled is first exposure and answers to MAX_NEW_DRILLS."""
+    cap = drill_review_cap(environ)
+    return None if cap is None else cap - drill_reviews_today(evidence, day)
+
+
+def drill_capped(path, evidence, day=None, environ=None):
+    """True when the day's budget for this bank file is spent. A file never
+    drilled is first exposure and spends MAX_NEW_DRILLS; a file with a rep
+    is a review and spends MAX_DRILL_REVIEWS. Past its budget the file
+    waits until tomorrow and the picker moves on - to the next due file,
+    and with both budgets spent, to its problem rules. Unlike the group cap
+    (group_caps) there is no override: the budgets are on the whole day,
+    not on one bank, so naming a group or cramming it does not lift them."""
+    left = (drill_reviews_left(evidence, day, environ) if last_drilled(path, evidence)
+            else new_drills_left(evidence, day, environ))
+    return left is not None and left <= 0
+
+
 def group_reps(group, nodes, evidence, day=None):
     """How many reps dated `day` (today) touched the group: a drill or a
     problem is one rep when its evidenced walk has a node of the group."""

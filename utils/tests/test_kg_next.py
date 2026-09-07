@@ -330,6 +330,122 @@ def test_group_reps_counts_drills_and_problems_touching_the_group():
     assert kg_lib.group_reps("trees", ns, ev) == 0
 
 
+def test_the_new_drill_cap_withholds_files_never_drilled(picker, monkeypatch):
+    """MAX_NEW_DRILLS: past the cap, a bank file with no rep waits until
+    tomorrow; a file with a rep is a review and is served as usual."""
+    monkeypatch.setenv("DRILL_SCHEDULER", "anki")
+    monkeypatch.setenv("MAX_NEW_DRILLS", "1")
+    ns = nodes("q1", "q2")
+    ps = {"1": problem(["q1"]), "2": problem(["q2"])}
+    st = {"q1": (SOLID, ago(1)), "q2": (SOLID, ago(1))}
+    picker.clock = [("drills/q1/a.py", "q1"), ("drills/q2/b.py", "q2")]
+    # nothing met today: the first due file is served whether or not it is new
+    assert picker.run(ns, ps, {}, st)[2] == "drill:q1"
+    # one first exposure today, at the cap: a.py is still never drilled, so
+    # the clock moves on to b.py - which has a rep, and is a review
+    ev = evidence()
+    ev["solved/d_Met_Today_2026_01_01T00_00_00_000000_00_00Z.py"] = {
+        "date": iso(0), "problem": "drill", "moves": {"q1": "clean"}}
+    ev["solved/d_B_2026_01_01T00_00_00_000000_00_00Z.py"] = {
+        "date": iso(3), "problem": "drill", "moves": {"q2": "clean"}}
+    assert picker.run(ns, ps, ev, st)[2] == "drill:q2"
+
+
+def test_the_new_drill_cap_holds_the_frontier_too(picker, monkeypatch):
+    """The cap is on the whole day's new ground: a MISSING node whose bank
+    file has never been drilled is withheld on the frontier as well, and
+    naming its group does not lift it."""
+    monkeypatch.setenv("MAX_NEW_DRILLS", "1")
+    ns = nodes("q1")
+    ns["q1"]["group"] = "sql"
+    ps = {"1": problem(["q1"])}
+    st = {"q1": (MISSING, "")}
+    picker.bank = {"q1"}
+    assert picker.run(ns, ps, {}, st)[2] == "drill:q1"
+    ev = evidence()
+    ev["solved/d_Met_Today_2026_01_01T00_00_00_000000_00_00Z.py"] = {
+        "date": iso(0), "problem": "drill", "moves": {"q1": "clean"}}
+    assert picker.run(ns, ps, ev, st) is None
+    assert picker.run(ns, ps, ev, st, group="sql") is None
+    assert picker.run(ns, ps, ev, st, cram=True, early=True) is None
+
+
+def test_new_drill_knob_parses_and_counts_first_reps():
+    assert kg_lib.new_drill_cap({"MAX_NEW_DRILLS": "3"}) == 3
+    assert kg_lib.new_drill_cap({"MAX_NEW_DRILLS": "lots"}) is None
+    assert kg_lib.new_drill_cap({"MAX_NEW_DRILLS": ""}) is None
+    assert kg_lib.new_drill_cap({}) is None
+    ev = evidence()
+    ev["solved/d_First_2026_01_01T00_00_00_000000_00_00Z.py"] = {
+        "date": iso(1), "problem": "drill", "moves": {"q1": "clean"}}
+    ev["solved/d_First_2026_01_02T00_00_00_000000_00_00Z.py"] = {
+        "date": iso(0), "problem": "drill", "moves": {"q1": "clean"}}
+    ev["solved/d_Second_2026_01_02T00_00_00_000000_00_00Z.py"] = {
+        "date": iso(0), "problem": "drill", "moves": {"q1": "clean"}}
+    # today: one first exposure (Second), one review (First, met yesterday)
+    assert kg_lib.new_drills_today(ev) == 1
+    assert kg_lib.new_drills_left(ev, environ={"MAX_NEW_DRILLS": "2"}) == 1
+    assert kg_lib.new_drills_left(ev, environ={}) is None
+
+
+def test_the_drill_review_cap_withholds_files_already_met(picker, monkeypatch):
+    """MAX_DRILL_REVIEWS: past the cap, a bank file with a rep waits until
+    tomorrow; a file never drilled is first exposure and is unaffected."""
+    monkeypatch.setenv("DRILL_SCHEDULER", "anki")
+    monkeypatch.setenv("MAX_DRILL_REVIEWS", "1")
+    ns = nodes("q1", "q2")
+    ps = {"1": problem(["q1"]), "2": problem(["q2"])}
+    st = {"q1": (SOLID, ago(1)), "q2": (SOLID, ago(1))}
+    picker.clock = [("drills/q1/a.py", "q1"), ("drills/q2/b.py", "q2")]
+    ev = evidence()
+    ev["solved/d_A_2026_01_01T00_00_00_000000_00_00Z.py"] = {
+        "date": iso(3), "problem": "drill", "moves": {"q1": "clean"}}
+    # nothing back today: a.py is a review and leads the clock
+    assert picker.run(ns, ps, ev, st)[2] == "drill:q1"
+    # one review today, at the cap: a.py waits, b.py is never drilled and
+    # answers to the other budget
+    ev["solved/d_A_2026_01_02T00_00_00_000000_00_00Z.py"] = {
+        "date": iso(0), "problem": "drill", "moves": {"q1": "clean"}}
+    assert picker.run(ns, ps, ev, st)[2] == "drill:q2"
+
+
+def test_both_drill_budgets_spent_falls_through_to_a_problem(picker, monkeypatch):
+    """With the day's new drills and its reviews both spent, the bank is
+    out and the picker serves the problem the drills exist for."""
+    ns = nodes("q1")
+    ps = {"1": problem(["q1"])}
+    st = {"q1": (STALE, ago(40))}
+    picker.bank = {"q1"}
+    ev = evidence()
+    ev["solved/d_New_2026_01_01T00_00_00_000000_00_00Z.py"] = {
+        "date": iso(0), "problem": "drill", "moves": {"q1": "clean"}}
+    # uncapped, the stale move gets its bank
+    assert picker.run(ns, ps, ev, st)[2] == "drill:q1"
+    # one first exposure today and no review: due_drill's file has no rep of
+    # its own, so it is new ground and the new-drill budget is spent
+    monkeypatch.setenv("MAX_NEW_DRILLS", "1")
+    monkeypatch.setenv("MAX_DRILL_REVIEWS", "1")
+    assert picker.run(ns, ps, ev, st)[2] == "1"
+
+
+def test_drill_review_knob_parses_and_counts_returning_files():
+    assert kg_lib.drill_review_cap({"MAX_DRILL_REVIEWS": "6"}) == 6
+    assert kg_lib.drill_review_cap({"MAX_DRILL_REVIEWS": "some"}) is None
+    assert kg_lib.drill_review_cap({}) is None
+    ev = evidence(solve(1, {"q1": "clean"}))  # a problem is not a drill rep
+    ev["solved/d_First_2026_01_01T00_00_00_000000_00_00Z.py"] = {
+        "date": iso(1), "problem": "drill", "moves": {"q1": "clean"}}
+    ev["solved/d_First_2026_01_02T00_00_00_000000_00_00Z.py"] = {
+        "date": iso(0), "problem": "drill", "moves": {"q1": "clean"}}
+    ev["solved/d_Second_2026_01_02T00_00_00_000000_00_00Z.py"] = {
+        "date": iso(0), "problem": "drill", "moves": {"q1": "clean"}}
+    # today: First comes back (a review), Second is first exposure
+    assert kg_lib.drill_reviews_today(ev) == 1
+    assert kg_lib.new_drills_today(ev) == 1
+    assert kg_lib.drill_reviews_left(ev, environ={"MAX_DRILL_REVIEWS": "3"}) == 2
+    assert kg_lib.drill_reviews_left(ev, environ={}) is None
+
+
 def test_group_caps_parses_the_envrc_knob():
     assert kg_lib.group_caps({"KG_GROUP_CAP": "sql=3"}) == {"sql": 3}
     assert kg_lib.group_caps({"KG_GROUP_CAP": "sql=3, graphs=2"}) == {"sql": 3, "graphs": 2}
