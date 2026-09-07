@@ -8141,9 +8141,25 @@
       "date": "2026-09-07",
       "problem": "drill",
       "moves": {
+        "backtracking-choose-undo": "clean",
+        "backtracking-start-index": "clean",
         "backtracking-dedupe-siblings": "clean"
       },
-      "pending": "2026-09-07T01:51:13+00:00"
+      "assist": {
+        "backtracking-choose-undo": "hint",
+        "backtracking-start-index": "hint",
+        "backtracking-dedupe-siblings": "hint"
+      },
+      "note": "Notes claim 'Assisted' but do not specify level or move; applied to all moves conservatively.",
+      "summary": "The code generates all unique subsets of a duplicated array using backtracking. It exercises three moves: the choose-undo pattern (append, recurse, pop with ret.append), iteration from a start index with j+1 recursion, and the dedupe-siblings condition j > i and nums[j-1] == nums[j] to skip duplicate siblings. All assertions pass."
+    },
+    "solved/d_Pairs_2026_09_07T01_52_48_370603_00_00Z.py": {
+      "date": "2026-09-07",
+      "problem": "drill",
+      "moves": {
+        "backtracking-start-index": "clean"
+      },
+      "summary": "The code generates all pairs (i, j) where 0 \u2264 i < j < n using nested loops. The inner loop starts at i+1 to ensure each pair (i, j) is enumerated exactly once. This exercises the start-index principle of backtracking-start-index, where the suffix of candidates increments on each iteration to avoid duplicates."
     }
   }
 }
