@@ -8259,6 +8259,15 @@
         "tree-dfs-recursive": "clean"
       },
       "summary": "The code generates all subsets using recursive backtracking. It maintains a path during recursion, appends each intermediate state to the result, and backtracks by popping before trying the next option. The start-index parameter ensures each element is used at most once per subset."
+    },
+    "solved/p3092_Most_Frequent_IDs_2026_09_07T05_12_10_446398_00_00Z.py": {
+      "date": "2026-09-07",
+      "problem": "3092",
+      "moves": {
+        "counter-build": "clean"
+      },
+      "note": "Brute-force scan on each query instead of lazy-eviction heap.",
+      "summary": "The solution maintains a defaultdict(int) counter mapping each ID to its frequency, updating it by the delta at each step and deleting IDs when their count drops to zero or below. At each step it finds the maximum frequency by scanning all counter values with max(col.values()). The code avoids the canonical heap-lazy-eviction approach: instead of pushing all frequency updates to a max-heap and lazily discarding stale entries on peek, it rebuilds the answer from scratch each time."
     }
   }
 }
