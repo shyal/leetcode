@@ -24,9 +24,9 @@ import os
 import sys
 from datetime import date, timedelta
 
-from kg.kg_lib import (FRAGILE, GRAPH_DIR, MISSING, SOLID, STALE, MovieClock, drill_path,
+from kg.kg_lib import (DEGREE_LEGEND, GRAPH_DIR, MovieClock, degree_color, degree_track, drill_path,
                        drill_trains, drills, era_banner, exercises_by_day, load_evidence,
-                       load_nodes, load_problems, node_status, pnum_key)
+                       load_nodes, load_problems, pnum_key)
 
 OUT = os.path.join(GRAPH_DIR, "kg_compression.svg")
 
@@ -49,7 +49,6 @@ TILE = "#161b22"         # a tile's ground
 DIM = "#30363d"          # an unsolved problem or drill
 LIT = "#79c0ff"          # a solved one
 GOLD = "#ffd75f"
-FILL = {SOLID: "#238636", STALE: "#bb8009", FRAGILE: "#da3633", MISSING: "#6e7681"}
 
 
 def fmt_t(t):
@@ -189,11 +188,12 @@ def cell_grid(rect, m):
 
 
 def tile(nid, rect, mem, borns, reg, fill_anim, fill0, clock):
-    """The <g> of one tile: its ground, border, label and cells."""
+    """The <g> of one tile: its ground, border (the node's degree of
+    ownership on the ramp), label and cells."""
     x, y, w, h = rect
     g = TILE_GAP / 2
     out = [f'<rect x="{x + g:.1f}" y="{y + g:.1f}" width="{max(w - TILE_GAP, 0.5):.1f}" '
-           f'height="{max(h - TILE_GAP, 0.5):.1f}" fill="{TILE}" stroke="{fill0}" stroke-width="1.2">'
+           f'height="{max(h - TILE_GAP, 0.5):.1f}" fill="{TILE}" stroke="{fill0}" stroke-width="1.6">'
            f'{fill_anim}</rect>']
     if w >= MIN_LABEL_W and h - TILE_GAP - 2 * TILE_PAD > 2 * LABEL_H:
         fs = max(6.0, min(9.0, w / 12))
@@ -229,17 +229,9 @@ def main():
     mem, n_probs = members_of(nodes, problems, reg, evidenced)
     hist, parents = split_history(nodes, mem, clock)
 
-    # per-node status for every tick, from the prefix of the history
-    by_date = sorted(evidence.items(), key=lambda kv: kv[1]["date"])
-    seen, k = {}, 0
-    status = {nid: [] for nid in nodes}
-    for i in range(clock.n_ticks):
-        day = clock.first + timedelta(days=i)
-        while k < len(by_date) and by_date[k][1]["date"] <= day.isoformat():
-            seen[by_date[k][0]] = by_date[k][1]
-            k += 1
-        for nid in nodes:
-            status[nid].append(node_status(nid, seen, day)[0])
+    # per-node degree of ownership for every tick (kg_lib.degree_track);
+    # today's bank is the fixed yardstick for the carry bar, as in kg_reach_svg
+    degree = degree_track(nodes, evidence, problems, clock)
 
     # the moment of every solve of every problem and drill, as loop fractions
     borns = {}
@@ -293,7 +285,7 @@ def main():
     n_tiles = 0
     svg.append('<g font-family="Menlo, monospace">')
     for nid in sorted(nodes):
-        sv, st = status_track([FILL[s] for s in status[nid]], clock)
+        sv, st = status_track([degree_color(d) for d in degree[nid]], clock)
         fill_anim = discrete("stroke", sv, st, clock.dur)
         h = hist[nid]
         for i, (t0, rect) in enumerate(h):
@@ -305,14 +297,16 @@ def main():
             n_tiles += 1
     svg.append("</g>")
 
-    # legend
+    # legend: the ownership ramp on the tile border, then the cell kinds
     x = 24
-    for s in (SOLID, STALE, FRAGILE, MISSING):
+    svg.append(f'<text x="{x}" y="{H - 20}" fill="{MUTED}" font-size="12">degree of ownership</text>')
+    x += 122
+    for d in DEGREE_LEGEND:
         svg.append(f'<rect x="{x}" y="{H - 30}" width="11" height="11" fill="{TILE}" '
-                   f'stroke="{FILL[s]}" stroke-width="1.5"/>')
-        svg.append(f'<text x="{x + 16}" y="{H - 20}" fill="{MUTED}" font-size="12">{s.lower()}</text>')
-        x += 80
-    x += 20
+                   f'stroke="{degree_color(d)}" stroke-width="1.6"/>')
+        svg.append(f'<text x="{x + 15}" y="{H - 20}" fill="{MUTED}" font-size="12">{d:.2f}</text>')
+        x += 46
+    x += 12
     svg.append(f'<rect x="{x + 2}" y="{H - 28}" width="7" height="7" fill="{LIT}"/>')
     svg.append(f'<text x="{x + 16}" y="{H - 20}" fill="{MUTED}" font-size="12">problem</text>')
     x += 80
@@ -324,6 +318,7 @@ def main():
     x += 120
     svg.append(f'<rect x="{x + 2}" y="{H - 28}" width="7" height="7" fill="{GOLD}"/>')
     svg.append(f'<text x="{x + 16}" y="{H - 20}" fill="{MUTED}" font-size="12">solved now</text>')
+
     svg.append(clock.dissolve_rect(W, H, BG))
     svg.append("</svg>")
     with open(OUT, "w") as f:

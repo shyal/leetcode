@@ -15,7 +15,7 @@ import subprocess
 from collections import defaultdict
 from rich.console import Console
 
-from kg.kg_lib import GRAPH_DIR, load_nodes, load_evidence, node_status
+from kg.kg_lib import GRAPH_DIR, load_nodes, load_evidence, load_problems, node_status, node_degree
 from kg.kg_render import make_digraph, status_node, add_legend, render, display
 
 console = Console()
@@ -29,6 +29,7 @@ def main():
 
     nodes = load_nodes()
     evidence = load_evidence()
+    problems = load_problems()
     dot = make_digraph("technique-graph")
 
     groups = defaultdict(list)
@@ -40,7 +41,8 @@ def main():
             c.attr(label=group, fontcolor="#8b949e", color="#30363d", style="rounded", fontname="Helvetica")
             for node_id in members:
                 status, when = node_status(node_id, evidence)
-                status_node(c, node_id, nodes[node_id], status, when)
+                status_node(c, node_id, nodes[node_id], status, when,
+                            degree=node_degree(node_id, evidence, problems))
 
     for node_id, node in nodes.items():
         for prereq in node.get("prereqs", []):

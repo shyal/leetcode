@@ -1,0 +1,38 @@
+#!/usr/bin/env python3
+
+# kg_degree_track - every node's degree of ownership (kg_lib.node_axes) for
+# every day of the history, written to graph/degree_track.json for the Rust
+# movie (utils/kg/kg_movie_rs), which colours its nodes from it. The Python
+# charts call kg_lib.degree_track directly; the movie reads this file so
+# the carry-bar and breadth logic lives once, in Python. Derived, rewritten
+# by every `make readme` (the movie target runs it first); the days are the
+# MovieClock's, the day before the first evidence entry through the last.
+
+import json
+import os
+import sys
+from datetime import timedelta
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+
+from kg.kg_lib import (GRAPH_DIR, MovieClock, degree_track, load_evidence,  # noqa: E402
+                       load_nodes, load_problems)
+
+OUT = os.path.join(GRAPH_DIR, "degree_track.json")
+
+
+def main():
+    nodes = load_nodes()
+    evidence = load_evidence()
+    clock = MovieClock(evidence)
+    track = degree_track(nodes, evidence, load_problems(), clock)
+    days = [(clock.first + timedelta(days=i)).isoformat() for i in range(clock.n_ticks)]
+    with open(OUT, "w") as f:
+        json.dump({"_comment": "kg_lib.node_axes degree per node per day, for kg_movie_rs; "
+                               "derived by utils/readme/kg_degree_track, never edited",
+                   "days": days, "nodes": track}, f, separators=(",", ":"))
+    print(f"wrote {OUT} ({len(nodes)} nodes, {len(days)} days)")
+
+
+if __name__ == "__main__":
+    main()

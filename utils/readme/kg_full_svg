@@ -24,7 +24,7 @@ import os
 import sys
 from datetime import date, timedelta
 
-from kg.kg_lib import (FRAGILE, GRAPH_DIR, MISSING, SOLID, STALE, MovieClock, drill_path,
+from kg.kg_lib import (DEGREE_LEGEND, GRAPH_DIR, MISSING, MovieClock, degree_color, degree_track, drill_path,
                        drill_trains, drills, era_banner, exercises_by_day, load_evidence,
                        load_nodes, load_problems, node_status)
 
@@ -53,7 +53,6 @@ EDGE = "#30363d"
 EDGE_LIT = "#58a6ff"
 EDGE_DIM = "#2b323b"     # an edge into an unsolved problem or drill
 GOLD = "#ffd75f"
-FILL = {SOLID: "#238636", STALE: "#bb8009", FRAGILE: "#da3633", MISSING: "#6e7681"}
 
 
 def layout(nodes, verts, edges):
@@ -231,7 +230,9 @@ def main():
     edges = sorted(e for e in edges if e[0] in verts and e[1] in verts and e[0] != e[1])
     pts = layout(nodes, verts, edges)
 
-    # per-node status for every tick, from the prefix of the history
+    # per-node status for every tick (edges light up between evidenced
+    # nodes); node_status reads the prefix of the history, the same dict
+    # grown in place, which ev_index extends incrementally
     by_date = sorted(evidence.items(), key=lambda kv: kv[1]["date"])
     seen, k = {}, 0
     status = {nid: [] for nid in nodes}
@@ -242,6 +243,8 @@ def main():
             k += 1
         for nid in nodes:
             status[nid].append(node_status(nid, seen, day)[0])
+    # and the degree of ownership the nodes are coloured by (kg_lib.degree_track)
+    degree = degree_track(nodes, evidence, problems, clock)
     present = {nid: [(clock.first + timedelta(days=i)).isoformat() >= n.get("added", "")
                      for i in range(clock.n_ticks)] for nid, n in nodes.items()}
 
@@ -320,7 +323,7 @@ def main():
                 f'calcMode="linear" values="{";".join(sc)}" dur="{turn}s" repeatCount="indefinite"/>'
                 + anim("opacity", op, turn))
         if vid in nodes:
-            sv, st = status_track([FILL[s] for s in status[vid]], clock)
+            sv, st = status_track([degree_color(d) for d in degree[vid]], clock)
             fill_anim = discrete("fill", sv, st, clock.dur)
             svg.append(
                 gate(present[vid], clock) + head
@@ -342,12 +345,14 @@ def main():
                    + discrete("fill", lv, lt, clock.dur) + '</text></g>')
     svg.append("</g>")
 
-    # legend
+    # legend: the ownership ramp, then the vertex kinds
     x = 24
-    for s in (SOLID, STALE, FRAGILE, MISSING):
-        svg.append(f'<circle cx="{x + 5}" cy="{H - 24}" r="5" fill="{FILL[s]}"/>')
-        svg.append(f'<text x="{x + 16}" y="{H - 20}" fill="{MUTED}" font-size="12">{s.lower()}</text>')
-        x += 80
+    svg.append(f'<text x="{x}" y="{H - 20}" fill="{MUTED}" font-size="12">degree of ownership</text>')
+    x += 130
+    for d in DEGREE_LEGEND:
+        svg.append(f'<circle cx="{x + 5}" cy="{H - 24}" r="5" fill="{degree_color(d)}"/>')
+        svg.append(f'<text x="{x + 14}" y="{H - 20}" fill="{MUTED}" font-size="12">{d:.2f}</text>')
+        x += 52
     x += 20
     svg.append(f'<circle cx="{x + 5}" cy="{H - 24}" r="3" fill="{LIT}"/>')
     svg.append(f'<text x="{x + 16}" y="{H - 20}" fill="{MUTED}" font-size="12">problem</text>')

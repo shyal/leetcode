@@ -38,7 +38,7 @@ from rich.console import Console
 from rich.table import Table
 
 from kg.kg_lib import (
-    GRAPH_DIR, load_nodes, load_problems, load_evidence, save_problems,
+    GRAPH_DIR, load_nodes, load_problems, load_evidence, save_problems, node_degree,
     node_status, latest_carrier, SOLID, STALE, FRAGILE, MISSING,
     DEEP_STALE_DAYS, sleep_state, last_solved, pnum_key,
     dodged_nodes, dodgeable, carriers_for, gentleness, claude_json, taxonomy_summary,
@@ -266,7 +266,8 @@ def main():
                               f"(names the moves).[/dim]")
         out.append(cap.get())
         if not args.no_show:
-            draw_tree(summit, p, nodes, statuses, metadata, labeled=labeled)
+            draw_tree(summit, p, nodes, statuses, metadata, labeled=labeled,
+                      degrees={n: node_degree(n, evidence, problems) for n in nodes})
         animate("".join(out), effect=HARD_EFFECT)
         return
 
@@ -318,18 +319,19 @@ def main():
     out.append(cap.get())
 
     if not args.no_show:
-        draw_tree(summit, p, nodes, statuses, metadata, labeled=labeled)
+        draw_tree(summit, p, nodes, statuses, metadata, labeled=labeled,
+                      degrees={n: node_degree(n, evidence, problems) for n in nodes})
 
     animate("".join(out), effect=HARD_EFFECT)
 
 
-def draw_tree(summit, p, nodes, statuses, metadata, labeled=False):
+def draw_tree(summit, p, nodes, statuses, metadata, labeled=False, degrees=None):
     tree = input_tree(p["moves"], nodes)
     dot = make_digraph("kg_hard")
     for n in tree:
         s, d = statuses[n]
         status_node(dot, n, nodes[n], s, d, highlight=(n in p["moves"]),
-                    labeled=labeled)
+                    labeled=labeled, degree=(degrees or {}).get(n))
     for n in tree:
         for pre in nodes[n].get("prereqs", []):
             if pre in tree:

@@ -71,15 +71,23 @@
 #   also due when a bank file of its own says so: every drill file keeps
 #   an SM-2 clock of its own (kg_lib.anki_due), and the node's status never
 #   withholds it (2026-09-06: under the node clock a drill was served the
-#   day after its first rep and then never again). The list is sorted:
+#   day after its first rep and then never again). A SOLID move off its
+#   ladder is due while it is still immature (kg_lib.mature: not yet
+#   proven on distinct real problems at its bar) - the THIN kind
+#   (2026-09-07): status says it is remembered, breadth says on how many
+#   problems, and a node fed by drills alone owns its problems only to the
+#   degree of the weaker axis (kg_lib.node_axes). The list is sorted:
 #     1. the rusty ground under a sleeping problem first, so it is woken
 #        onto warm moves;
-#     2. then FRAGILE, floor, drill clock, STALE, MISSING;
+#     2. then FRAGILE, floor, drill clock, STALE, THIN, MISSING - a stale
+#        move is being lost, a thin one is only unproven, and both come
+#        before new ground;
 #     3. then, within a status, moves a drill can serve before moves only
 #        a problem can - the bank is the asset, a drill is three minutes
 #        to a problem's seventeen;
-#     4. then most overdue floor, else most unlocks (bank problems blocked
-#        only by the move), oldest evidence.
+#     4. then most overdue floor, else least owned (kg_lib.node_degree),
+#        most unlocks (bank problems blocked only by the move; for a THIN
+#        move, drafted problems its proof would open), oldest evidence.
 #   Every due move is served the same way:
 #     a. its own bank drill when one is due - the cross-bank hold honoured
 #        (kg_lib.drill_held: a banked prereq not owned unaided, or with
@@ -91,7 +99,11 @@
 #        clean, its carrier stays held), a carrier problem: under a
 #        sleeper the freshest; a dodged FRAGILE move on the carrier that
 #        resists the dodge; ordinary STALE the spaced re-solve of its
-#        latest carrier; anything else the gentlest fresh one (deep stale,
+#        latest carrier; a THIN move, or a young move's floor rep, a
+#        proving carrier it has not carried yet (kg_lib.proving_carriers,
+#        at its bar; else a drafted carrier at the bar, else the re-solve
+#        - a second rep of one problem proves memory of that problem, not
+#        carry); anything else the gentlest fresh one (deep stale,
 #        no clean solve within 2x the solid window, re-enters this way -
 #        the memory is gone, a cold re-solve plays like a new problem);
 #     d. else a drafted carrier (3b below; never for a floor rep);
@@ -113,10 +125,12 @@
 #      kg_lib.DRAFT_MISSES of them the target stops promoting (the drafts
 #      are wrong about how the operator solves) and the dry warning names
 #      it — otherwise the mover spins through every draft in the tier.
-#   4. nothing rusty and nothing new: a summit — the gentlest unsolved Hard
-#      whose whole walk is already SOLID and mature (kg_lib.mature: spaced
-#      clean reps + a real-problem carry proof — a badge earned in one burst
-#      of drills does not yet carry a Hard).
+#   4. nothing rusty, nothing thin and nothing new: a summit — the
+#      gentlest unsolved Hard whose whole walk is already SOLID and mature
+#      (kg_lib.mature: spaced clean reps + distinct real problems at the
+#      bar — a badge earned in one burst of drills does not yet carry a
+#      Hard). Rule 5 (widen reach) lived here until 2026-09-07; it is the
+#      THIN kind of the frontier now.
 #      A Hard is never a CARRIER (not where
 #      a rusty move gets its rep), but once it is all-green it is exactly what
 #      to work on next, so it is picked here rather than behind `make hard`.
@@ -161,6 +175,8 @@ from kg.kg_lib import (
     load_problems,
     load_evidence,
     node_status,
+    node_axes,
+    node_degree,
     latest_carrier,
     carrier_counts,
     graduation_due,
@@ -390,6 +406,7 @@ def pick(
                     drill_clock_reason(path, evidence))
 
     immature = immature_nodes(nodes, evidence, problems)
+    degrees = {n: node_degree(n, evidence, problems) for n in nodes}
 
     def in_scope(n):
         if group is not None:
@@ -592,22 +609,31 @@ def pick(
     # ------------------------------------------------------------------
     carr = carrier_counts(problems)
     unl = unlocks(statuses, problems)
+    gain = unlocks(statuses, problems, immature=immature)  # payoff of proving a young move
     dodged = dodged_nodes(evidence)
     today = date.today()
     FLOOR = "floor"
     DRILL = "drill"  # a SOLID move whose bank file is due on its own clock
-    ORDER = {FRAGILE: 0, FLOOR: 1, DRILL: 2, STALE: 3, MISSING: 4}
+    THIN = "thin"    # a SOLID move off its ladder but not yet proven on enough problems
+    ORDER = {FRAGILE: 0, FLOOR: 1, DRILL: 2, STALE: 3, THIN: 4, MISSING: 5}
     anki = drill_scheduler() == "anki"
 
+    def ladder(n):
+        """(due date, floor days) while n is a young SOLID move still on its
+        ladder (kg_lib.graduation_due), else None."""
+        return graduation_due(n, evidence, carr.get(n, 0))
+
     def floor(n):
-        """(due date, floor days) when n is a young SOLID move whose ladder
-        rep is due today (kg_lib.graduation_due), else None."""
-        g = graduation_due(n, evidence, carr.get(n, 0))
+        """ladder(n) when that rep is due today, else None."""
+        g = ladder(n)
         return g if g and g[0] <= today else None
 
     def kind(n):
         """Why n is due, or None. MISSING only once every prereq is SOLID
-        (the one-new-move rule); SOLID only on the graduating floor."""
+        (the one-new-move rule). SOLID on the graduating floor, on its
+        drill's clock, or - once off the ladder - while still immature
+        (kg_lib.mature: not yet proven on distinct problems at its bar):
+        the THIN kind, breadth is what its next rep buys."""
         status = statuses[n][0]
         if status == MISSING:
             return MISSING if all(
@@ -615,7 +641,9 @@ def pick(
         if status == SOLID:
             if floor(n):
                 return FLOOR
-            return DRILL if anki and due(n) else None
+            if anki and due(n):
+                return DRILL
+            return THIN if n in immature and not ladder(n) else None
         return status
 
     # the rusty ground under a sleeping problem comes first, freshest
@@ -667,19 +695,61 @@ def pick(
         a status, moves a drill can serve before moves only a problem can
         (the bank is the asset, and a drill is three minutes to a
         problem's seventeen); then the rule's own order - most overdue
-        floor first, else most unlocks, oldest evidence."""
+        floor first, else least owned (kg_lib.node_degree: the weaker of
+        memory and breadth), most unlocks, oldest evidence."""
         k = kind(n)
         last = statuses[n][1] or date.min
-        sub = (floor(n)[0], -unl.get(n, 0), n) if k == FLOOR \
-            else (-unl.get(n, 0), last, n)
+        payoff = gain if k == THIN else unl
+        sub = (floor(n)[0], degrees[n], -unl.get(n, 0), n) if k == FLOOR \
+            else (degrees[n], -payoff.get(n, 0), last, n)
         return (n not in under, ORDER[k], drill_for(n) is None, sub)
 
     due_list = sorted((n for n in nodes if in_scope(n) and kind(n)), key=sort_key)
+
+    def prove(target):
+        """The rep that widens a THIN move's breadth: a proving carrier
+        (kg_lib.proving_carriers, at the node's bar) that never gave it a
+        clean rep - a second rep of the same problem proves memory of that
+        problem, not carry (102 on 2026-09-01) - else a drafted carrier at
+        the bar, else the re-solve. None when nothing can fire today."""
+        waiting = gain.get(target, 0)
+        why = f"widen reach - prove {target} on a real problem" + (
+            f"; {waiting} drafted problems wait on it" if waiting else "")
+        cands = [
+            c for c in proving_carriers(target, problems, statuses, nodes, evidence)
+            if c not in asleep and c not in exclude and cooled(c, evidence)
+        ]
+        cands.sort(
+            key=lambda p: (
+                gentleness(p, problems, nodes),
+                last_solved(p, evidence),
+                -acceptance(p),
+                pnum_key(p),
+            )
+        )
+        fresh = [c for c in cands if not counted_toward_bar(c, target, evidence)]
+        if fresh:
+            return target, SOLID, fresh[0], why
+        if not drafts_falsified(target, evidence, nodes):
+            bar_kind, _ = carry_bar(target, problems)
+            promo = predicted_carrier(
+                target, problems, statuses, nodes,
+                skip=set(asleep) | set(exclude),
+                difficulties=("Medium",) if bar_kind == "medium" else ("Easy", "Medium"),
+            )
+            if promo:
+                problems[promo[0]] = promo[1]
+                return target, SOLID, promo[0], why + " (drafted carrier)"
+        if cands:
+            return target, SOLID, cands[0], why + " (re-solve: no fresh carrier)"
+        return None
 
     def serve(n):
         """The pick that gives n its rep today, or None (drilled today and
         still not clean, or nothing can fire)."""
         k = kind(n)
+        if k == THIN:
+            return prove(n)  # a carrier is the point; its drill is on its own clock
         status, last = statuses[n]
         age = (today - last).days if last else None
         deep = k == STALE and age > DEEP_STALE_DAYS
@@ -707,6 +777,13 @@ def pick(
             return n, status, drill_id, reason
         if drill_gated(n, status, last):
             return None  # drilled today, still not clean - the carrier stays held
+        if k == FLOOR and n in immature:
+            # a young move's floor rep on a problem it has not carried yet,
+            # else the same gentle re-solve every floor gave it before and
+            # breadth never moved
+            proof = prove(n)
+            if proof:
+                return proof
         mapped = carriers_for(n, problems, statuses, nodes, evidence)
         cands = [c for c in mapped
                  if c not in asleep and c not in exclude and cooled(c, evidence)]
@@ -769,57 +846,10 @@ def pick(
             "summit — its walk has no gaps left",
         )
 
-    # rule 5: nothing rusty, nothing new, no summit ready - widen reach.
-    # Reach is counted against the drafted catalog, and a node is in reach
-    # only when it is mature (SOLID and proven on a real problem at its
-    # bar, kg_lib.mature). The young node blocking the most unsolved drafted
-    # problems is served first, on a proving carrier: an evidenced problem
-    # that carries it at the bar, else a drafted one at the bar. Each rep
-    # is one step toward maturity, so the count is the payoff of the rep.
-    gain = unlocks(statuses, problems, immature=immature)
-    young = sorted(
-        (n for n in immature if in_scope(n) and gain.get(n, 0)
-         and statuses[n][0] == SOLID),
-        key=lambda n: (-gain[n], n),
-    )
-    for target in young:
-        why = f"widen reach - prove {target} on a real problem; " \
-              f"{gain[target]} drafted problems wait on it"
-        cands = [
-            c for c in proving_carriers(target, problems, statuses, nodes, evidence)
-            if c not in asleep and c not in exclude and cooled(c, evidence)
-        ]
-        cands.sort(
-            key=lambda p: (
-                gentleness(p, problems, nodes),
-                last_solved(p, evidence),
-                -acceptance(p),
-                pnum_key(p),
-            )
-        )
-        # a carrier already counted toward the bar (a clean rep of target
-        # on it) proves memory of that problem, not carry: 102 was served
-        # for its second rep while 18 drafted Mediums waited (2026-09-01).
-        # Fresh evidenced carriers first, then a draft, then the re-solve.
-        fresh = [c for c in cands if not counted_toward_bar(c, target, evidence)]
-        if fresh:
-            return target, SOLID, fresh[0], why
-        if not drafts_falsified(target, evidence, nodes):
-            kind, _ = carry_bar(target, problems)
-            promo = predicted_carrier(
-                target, problems, statuses, nodes,
-                skip=set(asleep) | set(exclude),
-                difficulties=("Medium",) if kind == "medium" else ("Easy", "Medium"),
-            )
-            if promo:
-                problems[promo[0]] = promo[1]
-                return target, SOLID, promo[0], why + " (drafted carrier)"
-        if cands:
-            return target, SOLID, cands[0], why + " (re-solve: no fresh carrier)"
-
-    # rule 6: the graph is solid and no young move has a carrier today.
-    # What is left is leetcode itself: an unsolved drafted problem whose
-    # every move is SOLID and mature, Hards first. The pass model prices
+    # rule 6: the graph is solid and no young move has a carrier today
+    # (the THIN kind of the frontier served none). What is left is leetcode
+    # itself: an unsolved drafted problem whose every move is SOLID and
+    # mature, Hards first. The pass model prices
     # the onsite by Hards solved, and the summit rule only sees the Hards
     # of problems.json - the 2026-08-31 simulation (make simulate) ran the
     # picker 180 days and it served one Hard, P(onsite) flat at 16%.
@@ -844,13 +874,14 @@ def pick(
 
     return None
 
-EXPLORE_REASONS = ("summit", "widen reach", "in reach")  # rules 4, 5, 6
+EXPLORE_REASONS = ("summit", "widen reach", "in reach")  # rule 4, THIN, rule 6
 
 
 def counted_toward_bar(pnum, target, evidence):
     """True when this problem already gave `target` a clean rep: a second
-    rep of it counts toward maturity (kg_lib._mature_from counts reps),
-    but a different problem is the proof rule 5 is after."""
+    rep of it proves memory of that problem, not carry - maturity and
+    breadth both count distinct problems (kg_lib._mature_from,
+    kg_lib.proven_carriers), so only a different problem moves either."""
     return any(str(rec.get("problem")) == str(pnum) and v == "clean"
                for _, v, _, _, rec in
                kg_lib.ev_index(evidence).by_node.get(target, ()))
@@ -1392,6 +1423,15 @@ def _main(footer):
         # mature says the badge survived a gap and a real problem
         return "[yellow]young[/yellow]" if n in immature else "[dim]mature[/dim]"
 
+    def own_cell(n):
+        # degree of ownership: the weaker of memory and breadth, and the
+        # distinct unaided carriers at the bar the breadth stands on
+        ax = node_axes(n, evidence, problems)
+        k = ax.carriers
+        note = ("none in bank" if carry_bar(n, problems)[0] == "none"
+                else f"{k} carrier{'' if k == 1 else 's'}")
+        return f"{ax.degree:.2f} [dim]({note})[/dim]"
+
     asleep, woken = sleep_state(nodes, problems, evidence)
     if asleep:
         footer.extend(sleep_lines(nodes, problems, evidence, statuses))
@@ -1678,12 +1718,14 @@ def _main(footer):
         table.add_column("Move")
         table.add_column("Status")
         table.add_column("Maturity")
+        table.add_column("Own")
         table.add_column("Last evidence")
         label = target if labeled else random.choice(STATUS_FACE[s])
         table.add_row(
             label,
             f"[{STATUS_STYLE[s]}]{s}[/{STATUS_STYLE[s]}]",
             maturity_cell(target),
+            own_cell(target),
             str(d) if d else "—",
         )
         with console.capture() as cap:
@@ -1704,7 +1746,8 @@ def _main(footer):
             for n in tree:
                 s, d = statuses[n]
                 status_node(
-                    dot, n, nodes[n], s, d, highlight=(n == target), labeled=labeled
+                    dot, n, nodes[n], s, d, highlight=(n == target), labeled=labeled,
+                    degree=node_degree(n, evidence, problems),
                 )
             for n in tree:
                 for pre in nodes[n].get("prereqs", []):
@@ -1749,6 +1792,7 @@ def _main(footer):
     table.add_column("Move")
     table.add_column("Status")
     table.add_column("Maturity")
+    table.add_column("Own")
     table.add_column("Last evidence")
     for m in p["moves"]:
         s, d = statuses[m]
@@ -1757,6 +1801,7 @@ def _main(footer):
             label,
             f"[{STATUS_STYLE[s]}]{s}[/{STATUS_STYLE[s]}]",
             maturity_cell(m),
+            own_cell(m),
             str(d) if d else "—",
         )
 
@@ -1802,7 +1847,8 @@ def _main(footer):
     for n in tree:
         s, d = statuses[n]
         status_node(
-            dot, n, nodes[n], s, d, highlight=(n in p["moves"]), labeled=labeled
+            dot, n, nodes[n], s, d, highlight=(n in p["moves"]), labeled=labeled,
+            degree=node_degree(n, evidence, problems),
         )
     for n in tree:
         for pre in nodes[n].get("prereqs", []):

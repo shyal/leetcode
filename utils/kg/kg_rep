@@ -26,7 +26,7 @@ import sys
 
 from kg.kg_lib import (
     REPO_ROOT, DRILLS_DIR, load_problems, load_evidence, load_nodes,
-    ev_index, node_eval, assist_of, assist_tag, drills, drill_path,
+    ev_index, node_eval, node_axes, assist_of, assist_tag, drills, drill_path,
     drill_title, drill_solved_stem, drill_id, drill_after, SOLID, STALE,
     FRAGILE, MISSING,
 )
@@ -103,8 +103,18 @@ def trains_of(path):
     return [t.strip() for t in m.group(1).split(",") if t.strip()] if m else []
 
 
+_PROBLEMS = {}
+
+
+def _problems():
+    if "bank" not in _PROBLEMS:
+        _PROBLEMS["bank"] = load_problems()
+    return _PROBLEMS["bank"]
+
+
 def node_line(node, evidence, today=None):
     status, last, _ = node_eval(node, evidence, today)
+    ax = node_axes(node, evidence, _problems(), today)
     entries = ev_index(evidence).by_node.get(node, [])
     clean = [e for e in entries if e[1] == "clean"]
     unaided = [e for e in clean if e[2] == "none"]
@@ -115,7 +125,8 @@ def node_line(node, evidence, today=None):
         tail = f"  last {d} {v}" + (f" ({a})" if a != "none" else "") + \
             f"  {os.path.basename(fname)}"
     return (f"  {node:<28} {status:<8} reps {len(entries)} "
-            f"(clean {len(clean)}, unaided {len(unaided)}){tail}")
+            f"(clean {len(clean)}, unaided {len(unaided)})  "
+            f"carriers {ax.carriers}  own {ax.degree:.2f}{tail}")
 
 
 def rep_lines(reps):

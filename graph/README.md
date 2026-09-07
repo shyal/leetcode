@@ -304,6 +304,23 @@ the reveal after the judge.
    stability, so a helped rep buys a shorter window than an unaided one. Delete
    curve.json to fall back to a flat 42-day window. Nothing goes stale by sitting in
    a file.
+   **Degree of ownership** (`kg_lib.node_axes`, 2026-09-07). Status answers one
+   question: does the curve predict recall today. It says nothing about transfer.
+   Stability grows with distinct clean days whatever the rep was on, so five drill
+   reps and five distinct carriers look the same, and a node fed by drills alone read
+   as owning every problem in its cell set. Degree is the weaker of two axes in
+   [0, 1]: memory, the curve's retention component, and breadth, the distinct real
+   problems the move was executed on unaided at its carry bar (`carry_bar`; a node no
+   real problem carries has nothing to prove on and reads full). Breadth is 0.25 for
+   a drill-only node and adds 0.25 per distinct carrier up to three. `make kg-status`
+   prints the mean and a histogram, `make rep` and the `make next` tables print it
+   per move, the reach chart multiplies it along the walk instead of recall, and the
+   picker sorts every due kind by it (least owned first) and serves a SOLID move that
+   is off its ladder but immature as the THIN kind, behind STALE and ahead of new
+   ground. `mature()` counts distinct problems at the bar, not reps. Every drawn node
+   (the README charts, the movie, the `make next` and `make hard` trees) is filled
+   from the same sequential ramp (`kg_lib.degree_color`, mirrored in kg_movie_rs):
+   red at 0 through orange and amber to green at 1, the status colours made continuous.
 2. **One new move per assignment; summits take zero.** An easy/medium is READY when at
    most one of its moves is non-SOLID — that move is the training target. A Hard is READY
    only when its whole walk is SOLID: hards are summits (pure combination reps), never

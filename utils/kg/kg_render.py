@@ -12,8 +12,11 @@ import subprocess
 import sys
 import graphviz
 
-from kg.kg_lib import GRAPH_DIR, SOLID, STALE, FRAGILE, MISSING
+from kg.kg_lib import GRAPH_DIR, SOLID, STALE, FRAGILE, MISSING, degree_color, DEGREE_LEGEND
 
+# the four status colours: the terminal tables and the emoji pools still
+# speak in status; a drawn node is filled by its degree of ownership
+# (kg_lib.degree_color) whenever the caller passes one
 FILL = {SOLID: "#238636", STALE: "#bb8009", FRAGILE: "#da3633", MISSING: "#6e7681"}
 
 # Random face per node, drawn from the status's vibe — never the move name.
@@ -52,9 +55,12 @@ def make_digraph(name, title=None):
     )
 
 
-def status_node(g, node_id, node, status, when, highlight=False, labeled=True):
+def status_node(g, node_id, node, status, when, highlight=False, labeled=True, degree=None):
     tooltip = f"{node['name']} - {status}" + (f" ({when})" if when else "")
-    attrs = {"fillcolor": FILL[status], "tooltip": tooltip}
+    if degree is not None:
+        tooltip += f", owned {degree:.2f}"
+    fill = degree_color(degree) if degree is not None else FILL[status]
+    attrs = {"fillcolor": fill, "tooltip": tooltip}
     if highlight:
         attrs.update({"color": "#c9d1d9", "penwidth": "2"})
     if labeled:
@@ -65,10 +71,11 @@ def status_node(g, node_id, node, status, when, highlight=False, labeled=True):
 
 
 def add_legend(dot):
+    """The ownership ramp, five swatches from none to full."""
     with dot.subgraph(name="cluster_legend") as c:
-        c.attr(label="legend", fontcolor="#8b949e", color="#30363d", style="rounded")
-        for status in (SOLID, STALE, FRAGILE, MISSING):
-            c.node(f"legend_{status}", label=status.lower(), fillcolor=FILL[status])
+        c.attr(label="degree of ownership", fontcolor="#8b949e", color="#30363d", style="rounded")
+        for d in DEGREE_LEGEND:
+            c.node(f"legend_{int(d * 100)}", label=f"{d:.2f}", fillcolor=degree_color(d))
 
 
 def _png_width(path):

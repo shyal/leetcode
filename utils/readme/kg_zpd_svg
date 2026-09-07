@@ -24,7 +24,7 @@ import sys
 import xml.etree.ElementTree as ET
 from datetime import date
 
-from kg.kg_lib import GRAPH_DIR, input_tree, load_evidence, load_nodes, load_problems, node_status
+from kg.kg_lib import GRAPH_DIR, input_tree, load_evidence, load_nodes, load_problems, node_status, node_degree
 from kg.kg_render import make_digraph, status_node
 
 OUT = os.path.join(GRAPH_DIR, "zpd.svg")
@@ -62,14 +62,25 @@ def last_solves(evidence, problems, n):
     return solves[-n:]
 
 
+_BANK = {}
+
+
+def _bank():
+    if "p" not in _BANK:
+        _BANK["p"] = load_problems()
+    return _BANK["p"]
+
+
 def frame_svg(title, moves, solve_date, prior, nodes):
     """Render one input tree with graphviz; return the SVG source."""
     tree = input_tree(moves, nodes)
     dot = make_digraph("input-tree")
     dot.graph_attr["bgcolor"] = "transparent"
+    problems = _bank()
     for n in tree:
         s, d = node_status(n, prior, today=solve_date)
-        status_node(dot, n, nodes[n], s, d, highlight=(n in moves), labeled=True)
+        status_node(dot, n, nodes[n], s, d, highlight=(n in moves), labeled=True,
+                    degree=node_degree(n, prior, problems, today=solve_date))
     for n in tree:
         for pre in nodes[n].get("prereqs", []):
             if pre in tree:
