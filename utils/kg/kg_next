@@ -364,6 +364,29 @@ def problem_url(pnum):
         return f"https://leetcode.com/problemset/?search={pnum}"
 
 
+DIFF_STYLE = {"Easy": "green", "Medium": "yellow", "Hard": "red"}
+
+
+def difficulty_line(pnum, problems):
+    """Difficulty and community acceptance rate, under the URL. Acceptance is
+    read straight from the metadata file rather than through kg_lib.acceptance,
+    whose 50.0 default for an unknown problem would read as a real rate."""
+    diff = problem_difficulty(pnum, problems)
+    meta_path = os.path.join(os.path.dirname(GRAPH_DIR), "data/problems_metadata.json")
+    try:
+        acc = json.load(open(meta_path))[str(pnum)]["acceptance"]
+    except Exception:
+        acc = None
+    if not diff and acc is None:
+        return None
+    parts = []
+    if diff:
+        parts.append(f"[{DIFF_STYLE.get(diff, 'dim')}]{diff}[/{DIFF_STYLE.get(diff, 'dim')}]")
+    if isinstance(acc, (int, float)):
+        parts.append(f"[dim]{acc:.1f}% accepted[/dim]")
+    return " [dim]·[/dim] ".join(parts)
+
+
 def drill_clock_reason(path, evidence, today=None):
     """The reason line for a drill served on its own clock (kg_lib.anki_due):
     the interval it had and how many days past it the file is."""
@@ -1853,6 +1876,9 @@ def _main(footer):
     with console.capture() as cap:
         console.print(f"\n[bold]{summit}{pnum}. {p['title']}[/bold]")
         console.print(problem_url(pnum))
+        diff_line = difficulty_line(pnum, problems)
+        if diff_line:
+            console.print(diff_line)
         if p.get("predicted"):
             console.print("[yellow]⚠ drafted walk, not yet evidenced — "
                           "your solve is what maps this problem[/yellow]")
