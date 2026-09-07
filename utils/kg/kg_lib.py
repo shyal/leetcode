@@ -2694,12 +2694,13 @@ def target_pass_rate():
 
 
 # ---- timed attempts, as scored games ----------------------------------------
-# One game per timed solve, scored on a contest clock: a win is clean and
-# unaided inside the budget for the problem's difficulty, a draw is a hint
-# inside it, a loss is a fail or a solve over budget. A solve the judge marked
-# as meeting the follow-up is a harder problem than its label and plays on the
-# next tier's clock. Walkthrough and learning reps are copy reps, not
-# retrieval; untimed solves cannot be scored; both are skipped.
+# One game per solve, scored on a contest clock: a win is clean and unaided
+# inside the budget for the problem's difficulty, a draw is a hint inside it,
+# a loss is anything else - a fail, a solve over budget, or a rep that needed
+# the walkthrough or the answer. A solve the judge marked as meeting the
+# follow-up is a harder problem than its label and plays on the next tier's
+# clock. A solve whose time was never recorded is missing data, not a loss,
+# so it is skipped.
 # kg_elo_svg rates these games, kg_curve fits P(solve) on them.
 
 BUDGET_MIN = {"Easy": 10, "Medium": 25, "Hard": 45}
@@ -2718,11 +2719,10 @@ def scored_games(evidence=None):
         diff = problem_difficulty(pnum, problems)
         if not pnum[:1].isdigit() or diff not in BUDGET_MIN:
             continue
-        failed = "FAILED" in fname
         level = assist_of(rec)
-        if failed:
+        if "FAILED" in fname or level in ("walkthrough", "learning"):
             score = 0.0
-        elif level in ("walkthrough", "learning") or fname not in secs:
+        elif fname not in secs:
             continue
         elif secs[fname] > BUDGET_MIN[NEXT_TIER[diff] if rec.get("followup") == "solved"
                                       else diff] * 60:
