@@ -38,6 +38,7 @@ import os
 import re
 from collections import defaultdict
 
+from kg import kg_lib
 from kg.kg_lib import ASSIST_WEIGHT, GRAPH_DIR, assist_of, ev_index, load_evidence, load_problems, node_conn
 
 TARGET_RETENTION = 0.9   # node_status calls a node SOLID above this
@@ -323,7 +324,10 @@ def render_chart(stab, pred, trials, beta):
 
 
 def fit_mass(evidence, problems):
-    """The rehearsal-mass term of the pass model (kg_lib.pass_rates):
+    """Rehearsal mass as a predictor of a clean cold first attempt. Recorded
+    in curve.json as a measurement of the evidence; the pass model does not
+    read it, having offered `mass` to fit_solve as a candidate feature and
+    watched the held-out check reject it.
     logistic regression of a cold first attempt being clean and unaided on
     x = log(1 + mass), mass = how many evidenced problems carry the walk's
     rarest move, with one intercept per difficulty. The 2026-08-31 check:
@@ -370,6 +374,234 @@ def fit_mass(evidence, problems):
             "by_difficulty": {d: round(float(w[i]), 4) for i, d in enumerate(difs)}}
 
 
+# ---- the cold-solve model ---------------------------------------------------
+# P(solve a problem cold, unaided, inside the clock) as one fitted logistic,
+# on the games kg_lib.scored_games scores. Difficulty enters as the problem's
+# contest rating (utils/kg/clist.py), not as its Easy/Medium/Hard label: the
+# label is a three-way bucket whose Medium tier spans a wider rating range
+# than the gap between the Easy and Medium medians, and out of sample it
+# predicts these outcomes worse than an intercept does.
+#
+#   logit P = k0 + k_gap    * (his elo that day - rating)/400
+#                + k_rating * (rating - 1500)/400
+#                + k_recall * sum ln(recall of each move already met)
+#                + k_unseen * (moves in the walk never met before)
+#                + k_exper  * log1p(games played before this one)
+#                + k_mass   * log1p(carriers of the walk's rarest move)
+#                + k_length * ln(walk length)
+#
+# Recall comes from the forgetting curve fitted above, evaluated the day of
+# the attempt. Every coefficient is fitted; a feature ships only if it earns
+# its place on held-out games (expanding-window blocks, so a fold is always
+# scored on games later than the ones it was fitted on).
+
+SOLVE_FEATURES = ("gap", "rating", "recall", "unseen", "experience", "mass", "length")
+SOLVE_FOLDS = 5
+SOLVE_LAMBDAS = (0.0, 0.1, 0.3, 1.0, 3.0, 10.0)
+
+
+def _logistic(X, y, lam=0.0, iters=60):
+    """Newton's method on the ridge-penalised log-likelihood; the intercept
+    (column 0) is never penalised."""
+    import numpy as np
+    w = np.zeros(X.shape[1])
+    pen = np.eye(X.shape[1]) * lam
+    pen[0, 0] = 0.0
+    for _ in range(iters):
+        pr = 1 / (1 + np.exp(-(X @ w)))
+        grad = X.T @ (y - pr) - pen @ w
+        hess = (X * (pr * (1 - pr))[:, None]).T @ X + pen + 1e-6 * np.eye(X.shape[1])
+        step = np.linalg.solve(hess, grad)
+        w += step
+        if np.abs(step).max() < 1e-9:
+            break
+    return w
+
+
+def _mean_loglik(X, y, w):
+    import numpy as np
+    pr = np.clip(1 / (1 + np.exp(-(X @ w))), 1e-9, 1 - 1e-9)
+    return float((y * np.log(pr) + (1 - y) * np.log(1 - pr)).mean())
+
+
+def solve_rows(evidence, params, ratings):
+    """Per scored game: (features dict, outcome, date). Features are built
+    from evidence strictly older than the game, so a row never sees its own
+    result or anything after it."""
+    import bisect
+    cleans = defaultdict(list)          # move -> sorted clean dates
+    for fname, rec in evidence.items():
+        for mv, verdict in (rec.get("moves") or {}).items():
+            if verdict == "clean":
+                cleans[mv].append(rec["date"])
+    for v in cleans.values():
+        v.sort()
+
+    def recall(move, day):
+        seen = cleans.get(move)
+        if not seen:
+            return None
+        i = bisect.bisect_left(seen, day)
+        if i == 0:
+            return None                  # never met before this attempt
+        prior = seen[:i]
+        s = min(max(math.exp(params["a"] + params["b"]
+                             * math.log1p(len(set(prior)))), 7), 3650)
+        gap = (_date(day) - _date(prior[-1])).days
+        return (1 + gap / s) ** (-params["beta"])
+
+    counts = kg_lib.carrier_counts(kg_lib.load_problems())
+    rows = []
+    for g in kg_lib.elo_games(evidence, ratings):
+        rating = g["rating"]
+        rs = [recall(m, g["date"]) for m in g["moves"]]
+        rows.append(({
+            "gap": (g["elo_before"] - rating) / 400,
+            "rating": (rating - 1500) / 400,
+            "recall": sum(math.log(max(r, 1e-3)) for r in rs if r is not None),
+            "unseen": float(sum(1 for r in rs if r is None)),
+            "experience": math.log1p(len(rows)),
+            "mass": kg_lib.walk_mass(g["moves"], counts),
+            "length": math.log(max(len(g["moves"]), 1)),
+        }, g["score"], g["date"]))
+    return rows
+
+
+def _design(rows, features):
+    import numpy as np
+    X = np.array([[1.0] + [r[0][f] for f in features] for r in rows])
+    y = np.array([r[1] for r in rows])
+    return X, y
+
+
+def _cv_loglik(rows, features, lam):
+    """Mean held-out log-likelihood over expanding-window folds: fold k is
+    fitted on everything before it and scored on the block after."""
+    import numpy as np
+    X, y = _design(rows, features)
+    n = len(y)
+    edges = [round(n * (i + 1) / (SOLVE_FOLDS + 1)) for i in range(SOLVE_FOLDS + 1)]
+    lls, sizes = [], []
+    for lo, hi in zip(edges, edges[1:]):
+        if hi <= lo:
+            continue
+        w = _logistic(X[:lo], y[:lo], lam)
+        lls.append(_mean_loglik(X[lo:hi], y[lo:hi], w) * (hi - lo))
+        sizes.append(hi - lo)
+    return sum(lls) / sum(sizes) if sizes else float("-inf")
+
+
+def solve_ratings():
+    """Problem number -> contest rating, zerotrac where it has one and
+    rescaled CLIST elsewhere (utils/kg/clist.py). Empty when the CLIST cache
+    has not been fetched, which leaves the cold-solve model unfitted."""
+    try:
+        from kg import clist
+        return clist.combined_ratings()
+    except (ImportError, SystemExit):
+        return {}
+
+
+def fit_solve(evidence, params, ratings):
+    """Forward-select the features that earn their place on held-out games,
+    refit on everything, and report what the alternatives score."""
+    rows = solve_rows(evidence, params, ratings)
+    if len(rows) < 100:
+        return {"games": len(rows), "features": {}, "note": "too few games"}
+    chosen, best = [], max(_cv_loglik(rows, [], lam) for lam in SOLVE_LAMBDAS)
+    base_cv, best_lam = best, 0.0
+    while True:
+        gains = []
+        for f in SOLVE_FEATURES:
+            if f in chosen:
+                continue
+            for lam in SOLVE_LAMBDAS:
+                gains.append((_cv_loglik(rows, chosen + [f], lam), f, lam))
+        if not gains:
+            break
+        cv, feature, lam = max(gains)
+        if cv <= best + 1e-4:
+            break
+        chosen, best, best_lam = chosen + [feature], cv, lam
+    import numpy as np
+    X, y = _design(rows, chosen)
+    w = _logistic(X, y, best_lam)
+    # The skill channel. `gap` (his Elo that day minus the problem's rating) is
+    # offered above as a feature and loses to plain `rating` on held-out games:
+    # tracking skill does not predict TODAY better, because his skill has not
+    # measurably moved. It still belongs in the model, as the one term that can
+    # move a projection - so the drift of the Elo state is measured here and
+    # the forward simulation advances the fitted intercept by it. Near zero
+    # today, with a standard error that says how near.
+    drift, drift_se = kg_lib.elo_drift(evidence, ratings)
+    pr = 1 / (1 + np.exp(-(X @ w)))
+    cov = np.linalg.inv((X * (pr * (1 - pr))[:, None]).T @ X
+                        + 1e-6 * np.eye(X.shape[1]))
+    return {
+        "games": len(rows),
+        "features": {f: round(float(c), 4) for f, c in zip(["intercept"] + chosen, w)},
+        "se": {f: round(float(np.sqrt(cov[i, i])), 4)
+               for i, f in enumerate(["intercept"] + chosen)},
+        "intercept_se": round(float(np.sqrt(cov[0, 0])), 4),
+        "elo": {"now": round(kg_lib.elo_now(evidence, ratings), 1),
+                "drift_per_day": round(drift, 5),
+                "drift_se": round(drift_se, 5)},
+        "lambda": best_lam,
+        "cv_loglik": round(best, 4),
+        "baseline_cv_loglik": round(base_cv, 4),
+        "rejected": [f for f in SOLVE_FEATURES if f not in chosen],
+    }
+
+
+def solve_report(evidence, params, ratings):
+    """Held-out comparison of the cold-solve model against the alternatives,
+    on the same expanding-window folds: the base rate, the Easy/Medium/Hard
+    label, the rating alone, and the fitted set. Printed by --solve-report."""
+    import numpy as np
+    rows = solve_rows(evidence, params, ratings)
+    games = [g for g in kg_lib.scored_games(evidence) if g["problem"] in ratings]
+    y = np.array([r[1] for r in rows])
+    n = len(y)
+    edges = [round(n * (i + 1) / (SOLVE_FOLDS + 1)) for i in range(SOLVE_FOLDS + 1)]
+
+    def out_of_fold(X, lam):
+        pred = np.full(n, np.nan)
+        for lo, hi in zip(edges, edges[1:]):
+            w = _logistic(X[:lo], y[:lo], lam)
+            pred[lo:hi] = 1 / (1 + np.exp(-(X[lo:hi] @ w)))
+        return pred
+
+    fit = fit_solve(evidence, params, ratings)
+    chosen = [f for f in fit["features"] if f != "intercept"]
+    lab = np.column_stack([np.ones(n)] + [
+        np.array([g["difficulty"] == d for g in games], float) for d in ("Medium", "Hard")])
+    models = {
+        "base rate": out_of_fold(np.ones((n, 1)), 0.0),
+        "Easy/Medium/Hard label": out_of_fold(lab, 0.0),
+        "rating alone": out_of_fold(_design(rows, ["rating"])[0], fit["lambda"]),
+        "fitted: " + " + ".join(chosen): out_of_fold(_design(rows, chosen)[0], fit["lambda"]),
+    }
+    scored = ~np.isnan(next(iter(models.values())))
+    print(f"{n} games, {int(scored.sum())} scored out of fold "
+          f"({SOLVE_FOLDS} expanding-window blocks)")
+    print(f"  {'model':34}{'loglik/game':>13}{'Brier':>9}{'mean p':>9}{'actual':>9}")
+    lls = {}
+    for name, pred in models.items():
+        p = np.clip(pred[scored], 1e-9, 1 - 1e-9)
+        t = y[scored]
+        lls[name] = t * np.log(p) + (1 - t) * np.log(1 - p)
+        print(f"  {name:34}{lls[name].mean():13.4f}{((p - t) ** 2).mean():9.4f}"
+              f"{p.mean():9.3f}{t.mean():9.3f}")
+    rng = np.random.default_rng(0)
+    best = [k for k in models if k.startswith("fitted")][0]
+    for other in ("base rate", "Easy/Medium/Hard label"):
+        d = lls[best] - lls[other]
+        boot = np.array([d[rng.integers(0, len(d), len(d))].mean() for _ in range(4000)])
+        lo, hi = np.percentile(boot, [2.5, 97.5])
+        print(f"  fitted - {other}: {d.mean():+.4f}/game, "
+              f"95% CI [{lo:+.4f}, {hi:+.4f}], P(better) {(boot > 0).mean():.3f}")
+
+
 def main():
     import argparse
 
@@ -380,6 +612,10 @@ def main():
                         metavar="YYYY-MM-DD",
                         help="era boundary: fit on trials on or after this date "
                              "(env CURVE_SINCE)")
+    parser.add_argument("--solve-report", action="store_true",
+                        help="held-out comparison of the cold-solve model "
+                             "against the base rate, the difficulty label and "
+                             "the rating alone")
     parser.add_argument("--half-life", type=float,
                         default=float(os.environ.get("CURVE_HALF_LIFE", 0) or 0),
                         metavar="DAYS",
@@ -413,6 +649,11 @@ def main():
     problems = load_problems()
     conn = node_conn(problems)
     mass = fit_mass(evidence, problems)
+    ratings = solve_ratings()
+    if ratings:
+        from kg import clist
+        clist.write_ratings()          # graph/ratings.json, read by kg_mock
+    solve = fit_solve(evidence, {"a": a, "b": b, "beta": beta}, ratings)
 
     def stab(k, m, x=0.0, cn=None):
         cn = conn_mean if cn is None else cn
@@ -433,6 +674,11 @@ def main():
         "s = exp(a + b*log1p(cleans) - c*struggles - d*assist + e*(conn - conn_mean)); cleans counts distinct clean days, same-day reps are one rep. "
         "conn is the node's log2 carrier count, frozen below at fit time; "
         "consumers that ignore e are assuming average connectivity. "
+        "\"solve\" is the cold-solve model fitted by fit_solve: "
+        "logit P(solve cold, unaided, inside the clock) = the listed "
+        "coefficients over (rating - 1500)/400, the walk's summed log recall, "
+        "and its count of never-met moves; features not listed did not earn "
+        "their place on held-out games. "
         "node_status() calls a node SOLID while the memory component "
         "(1 + gap/s)^(-beta) >= target_retention; delete this file to fall "
         "back to the flat 42-day window.",
@@ -444,6 +690,7 @@ def main():
         "conn": {n: round(v, 3) for n, v in sorted(conn.items())},
         "target_retention": TARGET_RETENTION,
         "mass": mass,
+        "solve": solve,
         "fit": {"trials": len(trials), "loglik": round(ll_model, 4),
                 "baseline_loglik": round(ll_base, 4),
                 "since": knobs["since"], "half_life": knobs["half_life"],
@@ -486,6 +733,17 @@ def main():
             obs = sum(s for _, s, _, _, _, _ in rows) / len(rows)
             mod = sum(pred(g, k, m, x, cn) for g, _, k, m, x, cn in rows) / len(rows)
             print(f"  gap {lo:3d}-{hi:3d}d: model {mod:4.0%}  observed {obs:4.0%}  (n={len(rows)})")
+    if solve.get("features"):
+        terms = " ".join(f"{c:+.3f}·{f}" for f, c in solve["features"].items()
+                         if f != "intercept")
+        print(f"cold solve, fitted on {solve['games']} timed games: "
+              f"logit P = {solve['features']['intercept']:.3f} {terms}")
+        print(f"  held-out loglik/game {solve['cv_loglik']:.4f} vs base rate "
+              f"{solve['baseline_cv_loglik']:.4f}"
+              + (f"; earned no place: {', '.join(solve['rejected'])}"
+                 if solve["rejected"] else ""))
+    if args.solve_report:
+        solve_report(evidence, {"a": a, "b": b, "beta": beta}, solve_ratings())
     print(f"wrote {os.path.join(GRAPH_DIR, 'curve.json')}")
 
     # the same report as a picture, drawn in-place on iTerm (silently skipped

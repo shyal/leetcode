@@ -77,6 +77,41 @@ fn solve_log(repo_root: &PathBuf) -> Vec<(NaiveDate, f64)> {
 // 7-day average let one heavy day entering or leaving the window whiplash the
 // projections by months — while a flat 28-day average made a fresh streak
 // drag a dead month behind it. Streak-aware clamping avoids both.
+// The mix of Easy/Medium/Hard problems he actually solves, over the last
+// MIX_WINDOW days of the evidence visible on `today`. The forward simulation
+// spends its days in this mix instead of an invented hard-and-mock schedule.
+// A window with no problem solves in it falls back to the whole history, and
+// an empty history to all-Medium.
+fn solve_mix(evidence: &[EvRec], metadata: &Value, today: NaiveDate) -> [f64; 3] {
+    let mut recent = [0.0f64; 3];
+    let mut all = [0.0f64; 3];
+    for rec in evidence {
+        let base = rec.fname.rsplit('/').next().unwrap_or(&rec.fname);
+        let Some(num) = base.strip_prefix('p').and_then(|r| {
+            let n: String = r.chars().take_while(char::is_ascii_digit).collect();
+            (!n.is_empty()).then_some(n)
+        }) else {
+            continue;
+        };
+        let dif = match metadata.get(&num).and_then(|m| m["difficulty"].as_str()) {
+            Some("Easy") => 0,
+            Some("Medium") => 1,
+            Some("Hard") => 2,
+            _ => continue,
+        };
+        all[dif] += 1.0;
+        if (today - parse_date(&rec.date)).num_days() < MIX_WINDOW {
+            recent[dif] += 1.0;
+        }
+    }
+    let pick = if recent.iter().sum::<f64>() > 0.0 { recent } else { all };
+    let total: f64 = pick.iter().sum();
+    if total == 0.0 {
+        return [0.0, 1.0, 0.0];
+    }
+    [pick[0] / total, pick[1] / total, pick[2] / total]
+}
+
 fn week_pace(log: &[(NaiveDate, f64)], today: NaiveDate) -> Option<f64> {
     let mut mins = [0.0f64; 28]; // mins[i] = minutes solved on `today - i`
     for (when, m) in log {
@@ -134,12 +169,25 @@ fn parse_solve_trailer(s: &str) -> Option<(u64, u64, usize)> {
 
 // ------------------------------------------------------------- pass_rates --
 
-const HARDS_START: i64 = 45;
-const MOCKS_START: i64 = 90;
-const COLD_SOLVES_PER_MOCK: i64 = 6; // kg_lib.COLD_SOLVES_PER_MOCK
-const MOCKS_PER_WEEK: f64 = 2.0;
-const HARDS_PER_WEEK: f64 = 3.0;
+// How the simulated days are spent: the mix of Easy/Medium/Hard solves is
+// measured from his own solve log over MIX_WINDOW days, and each solve is
+// priced by the fitted solve-time model (graph/solvecost.json), so no part of
+// the schedule is a constant any more. The window is the same 28 days the
+// pace average uses.
+const MIX_WINDOW: i64 = 28;
 const N_MC: usize = 20000;
+
+// What "ready" means: the central pass rate a milestone has to reach. It is a
+// choice, not a measurement - which onsite you are aiming at - so it lives in
+// .envrc (TARGET_PASS_RATE, a fraction) beside the other knobs, and every
+// consumer reads it from there. The workable-hards milestone sits at half it.
+fn target_pass() -> f64 {
+    std::env::var("TARGET_PASS_RATE")
+        .ok()
+        .and_then(|v| v.parse::<f64>().ok())
+        .filter(|v| *v > 0.0 && *v < 1.0)
+        .unwrap_or(0.5)
+}
 
 // mv_recall: per move of the bank universe the recall, or None -> derive.
 
@@ -148,8 +196,8 @@ const N_MC: usize = 20000;
 struct Task {
     mv_recall: Arc<Vec<Option<f64>>>,
     bank: Arc<Bank>,
-    r: f64,
-    practice: (i64, i64, i64),
+    coef: SolveModel,
+    shift: f64,
     n_mc: usize,
 }
 
@@ -172,9 +220,9 @@ fn run_all(tasks: &[Task]) -> Vec<(f64, f64, f64, f64)> {
                 let r = pass_rates(
                     &t.mv_recall,
                     &t.bank.pools,
-                    &t.bank.mass,
-                    t.r,
-                    t.practice,
+                    &t.bank.ratings,
+                    &t.coef,
+                    t.shift,
                     &mut PyRandom::new(42),
                     t.n_mc,
                 );
@@ -186,10 +234,10 @@ fn run_all(tasks: &[Task]) -> Vec<(f64, f64, f64, f64)> {
 }
 
 // One monthly snapshot of the forward simulation; its pass_rates tasks sit at
-// tasks[task_start..task_start + scenarios.len()], in SCENARIOS order.
+// tasks[task_start..task_start + scenarios.len()], in scenario order.
 struct Snap {
     day: i64,
-    practice: (i64, i64, i64),
+    solves: (i64, i64, i64),
     n_nodes: usize,
     offh: f64,
     task_start: usize,
@@ -208,7 +256,11 @@ struct SimState<'a> {
     cv: &'a Curve,
     teach: f64,
     hours: f64,
-    hards_per_week: f64,
+    /// measured share of his solves that are Easy / Medium / Hard
+    mix: [f64; 3],
+    /// mean walk length per difficulty in the bank, for the solve price
+    mean_walk: [f64; 3],
+    coef: SolveModel,
     bank: Arc<Bank>,
     reps: Vec<i64>,
     gaps: Vec<i64>,
@@ -218,13 +270,13 @@ struct SimState<'a> {
     blocked: [usize; 3],         // per dif: problems with no clean walk
     learn_ptr: usize,
     learn_credit: f64,
-    mediums_done: i64,
-    mocks_done: i64,
-    hards_done: i64,
+    /// solves done per difficulty, for the forward table only
+    done: [i64; 3],
     day: i64,
 }
 
 impl<'a> SimState<'a> {
+    #[allow(clippy::too_many_arguments)]
     fn new(
         hours: f64,
         teach: f64,
@@ -232,6 +284,8 @@ impl<'a> SimState<'a> {
         gaps: Vec<i64>,
         cv: &'a Curve,
         bank: Arc<Bank>,
+        mix: [f64; 3],
+        coef: SolveModel,
     ) -> Self {
         let walk_unlearned: Vec<u32> =
             bank.walk_extras.iter().map(|e| e.len() as u32).collect();
@@ -244,11 +298,20 @@ impl<'a> SimState<'a> {
         }
         let blocked =
             [0, 1, 2].map(|d| clean_walks[d].iter().filter(|&&c| c == 0).count());
+        let mean_walk = [0, 1, 2].map(|d| {
+            let walks: Vec<f64> = bank.pools[d]
+                .iter()
+                .filter_map(|p| p.iter().map(|w| w.len() as f64).reduce(f64::min))
+                .collect();
+            if walks.is_empty() { 3.0 } else { walks.iter().sum::<f64>() / walks.len() as f64 }
+        });
         SimState {
             cv,
             teach,
             hours,
-            hards_per_week: (HARDS_PER_WEEK * hours / 2.0).min(6.0),
+            mix,
+            mean_walk,
+            coef,
             learned: vec![None; bank.n_extras()],
             walk_unlearned,
             clean_walks,
@@ -258,9 +321,7 @@ impl<'a> SimState<'a> {
             gaps,
             learn_ptr: 0,
             learn_credit: 0.0,
-            mediums_done: 0,
-            mocks_done: 0,
-            hards_done: 0,
+            done: [0; 3],
             day: 0,
         }
     }
@@ -317,25 +378,32 @@ impl<'a> SimState<'a> {
                 self.reps[n] += 1;
             }
         }
-        while budget >= 23.0 {
-            if self.day > HARDS_START
-                && (self.hards_done as f64)
-                    < (self.day - HARDS_START) as f64 / 7.0 * self.hards_per_week
-            {
-                budget -= 40.0;
-                self.hards_done += 1;
-                self.learn_ideas(2, 1);
-            } else if self.day > MOCKS_START
-                && (self.mocks_done as f64)
-                    < (self.day - MOCKS_START) as f64 / 7.0 * MOCKS_PER_WEEK
-            {
-                budget -= 90.0;
-                self.mocks_done += 1;
-            } else {
-                budget -= 23.0;
-                self.mediums_done += 1;
-                self.learn_ideas(1, 1);
+        // solves fill what the refreshes leave, in his measured mix: the
+        // next solve is the difficulty furthest behind its measured share.
+        // Each is priced by the fitted solve-time model, so what a day buys
+        // is measured on both sides.
+        let price: [f64; 3] = [0, 1, 2].map(|d| {
+            self.bank
+                .cost
+                .as_ref()
+                .map_or(23.0, |c| c.solve_minutes(d, self.mean_walk[d]))
+        });
+        loop {
+            let total: i64 = self.done.iter().sum::<i64>() + 1;
+            let dif = (0..3)
+                .filter(|&d| self.mix[d] > 0.0)
+                .min_by(|&x, &y| {
+                    let deficit = |d: usize| self.done[d] as f64 / total as f64 - self.mix[d];
+                    deficit(x).partial_cmp(&deficit(y)).unwrap()
+                })
+                .unwrap_or(1);
+            let cost = price[dif];
+            if budget < cost {
+                break;
             }
+            budget -= cost;
+            self.done[dif] += 1;
+            self.learn_ideas(dif, 1);
             let mut ord2: Vec<usize> = (0..self.gaps.len()).collect();
             ord2.sort_by_key(|&n| (self.reps[n], -self.gaps[n]));
             for &n in ord2.iter().take(3) {
@@ -343,19 +411,6 @@ impl<'a> SimState<'a> {
                 self.reps[n] += 1;
             }
         }
-    }
-
-    // (mediums, mock-equivalents, hards). Recognition credit for cold first
-    // solves, as kg_lib.recognition_practice: every simulated medium and
-    // hard here is a problem never seen before, and six of them count as
-    // one mock. (The Python simulation, kg_simulate, counts only the clean
-    // unaided ones; this sim draws no per-solve outcome.)
-    fn practice(&self) -> (i64, i64, i64) {
-        (
-            self.mediums_done,
-            self.mocks_done + (self.mediums_done + self.hards_done) / COLD_SOLVES_PER_MOCK,
-            self.hards_done,
-        )
     }
 
     fn mv_recall(&self) -> Vec<Option<f64>> {
@@ -379,25 +434,25 @@ impl<'a> SimState<'a> {
             .collect()
     }
 
-    fn task(&self, r: f64, n_mc: usize) -> Task {
+    fn task(&self, shift: f64, n_mc: usize) -> Task {
         Task {
             mv_recall: Arc::new(self.mv_recall()),
             bank: self.bank.clone(),
-            r,
-            practice: self.practice(),
+            coef: self.coef,
+            shift,
             n_mc,
         }
     }
 
     // pass_rates at the current simulated day — bit-identical to running the
     // equivalent Task through run_all (same params, same fresh seed)
-    fn rates(&self, r: f64, n_mc: usize) -> (f64, f64, f64, f64) {
+    fn rates(&self, shift: f64, n_mc: usize) -> (f64, f64, f64, f64) {
         pass_rates(
             &self.mv_recall(),
             &self.bank.pools,
-            &self.bank.mass,
-            r,
-            self.practice(),
+            &self.bank.ratings,
+            &self.coef,
+            shift,
             &mut PyRandom::new(42),
             n_mc,
         )
@@ -415,22 +470,25 @@ fn forward_sim(
     gaps: Vec<i64>,
     cv: &Curve,
     bank: Arc<Bank>,
-    scenarios: &[f64],
+    mix: [f64; 3],
+    coef: SolveModel,
     n_mc: usize,
     tasks: &mut Vec<Task>,
 ) -> Vec<Snap> {
-    let mut st = SimState::new(hours, teach, reps, gaps, cv, bank);
+    let mut st = SimState::new(hours, teach, reps, gaps, cv, bank, mix, coef);
     let mut snaps: Vec<Snap> = Vec::new();
     while st.day < 540 {
         st.step();
         if st.day % 30 == 0 {
             let task_start = tasks.len();
-            for &r in scenarios {
-                tasks.push(st.task(r, n_mc));
+            // the band at THIS simulated day: today's uncertainty plus the
+            // drift's, compounded over the days projected so far
+            for (_, shift) in coef.scenarios(st.day) {
+                tasks.push(st.task(shift, n_mc));
             }
             snaps.push(Snap {
                 day: st.day,
-                practice: st.practice(),
+                solves: (st.done[0], st.done[1], st.done[2]),
                 n_nodes: st.gaps.len(),
                 offh: st.off_now(2),
                 task_start,
@@ -447,7 +505,7 @@ fn forward_sim(
 // crossing to the day instead of the month. `use_onsite` picks the metric.
 fn refine_day<'a, F: Fn() -> SimState<'a>>(
     mk_state: &F,
-    r: f64,
+    coef: &SolveModel,
     thr: f64,
     use_onsite: bool,
     hi0: i64,
@@ -459,7 +517,8 @@ fn refine_day<'a, F: Fn() -> SimState<'a>>(
         while st.day < mid {
             st.step();
         }
-        let (_, onsite, _, ph) = st.rates(r, 6000);
+        // the central line at the probe day, drift included
+        let (_, onsite, _, ph) = st.rates(coef.scenarios(mid)[1].1, 6000);
         let v = if use_onsite { onsite } else { ph };
         if v >= thr {
             hi = mid;
@@ -831,12 +890,17 @@ fn main() {
     // walks, one move universe (nodes first, then off-taxonomy extras)
     let predicted_v = load_json(&graph.join("predicted.json"));
     let metadata_v = load_json(&repo_root.join("data/problems_metadata.json"));
-    let mut bank = Bank::build(&problems_v, &predicted_v, &metadata_v, &node_ids);
-    bank.mass.beta = curve_v
-        .get("mass")
-        .and_then(|m| m.get("beta"))
-        .and_then(Value::as_f64)
-        .unwrap_or(0.0);
+    let target = target_pass();
+    let ratings_v = load_json(&graph.join("ratings.json"));
+    let mut bank = Bank::build(&problems_v, &predicted_v, &metadata_v, &node_ids, &ratings_v);
+    let coef = match SolveModel::load(&curve_v) {
+        Some(c) => c,
+        None => {
+            eprintln!("graph/curve.json has no fitted cold-solve model - run make curve");
+            std::process::exit(1);
+        }
+    };
+    let scenarios = coef.scenarios(0);
     bank.cost = std::fs::read_to_string(graph.join("solvecost.json"))
         .ok()
         .and_then(|s| serde_json::from_str::<Value>(&s).ok())
@@ -859,10 +923,10 @@ fn main() {
     }
     let bank = Arc::new(bank);
 
-    let mv_recall_of = |recall: &[f64]| -> Arc<Vec<Option<f64>>> {
+    let mv_recall_of = |recall: &[Option<f64>]| -> Arc<Vec<Option<f64>>> {
         Arc::new(
             (0..bank.move_names.len())
-                .map(|i| if i < bank.n_known { Some(recall[i]) } else { None })
+                .map(|i| if i < bank.n_known { recall[i] } else { None })
                 .collect(),
         )
     };
@@ -878,7 +942,7 @@ fn main() {
             return;
         }
         let pace_log = solve_log(&repo_root);
-        let central_r = SCENARIOS[1].1;
+        let central_shift = scenarios[1].1;
         let first = parse_date(&evidence[0].date);
         let n_days = ((today - first).num_days() + 1).max(0) as usize;
         // per-date evidence prefix lengths, precomputed once
@@ -918,12 +982,13 @@ fn main() {
                     let (_, onsite_t, screen_t, ph_t) = pass_rates(
                         &mv_recall_of(&recall_d),
                         &bank.pools,
-                        &bank.mass,
-                        central_r,
-                        (0, 0, 0),
+                        &bank.ratings,
+                        &coef,
+                        central_shift,
                         &mut PyRandom::new(42),
                         N_MC,
                     );
+                    let mix_d = solve_mix(ev, &metadata_v, d);
                     let (reps0, gaps0) = init_state(&node_ids, ev, d, &cv);
                     let mk_state = || {
                         SimState::new(
@@ -933,6 +998,8 @@ fn main() {
                             gaps0.clone(),
                             &cv,
                             bank.clone(),
+                            mix_d,
+                            coef,
                         )
                     };
                     // monthly scan for crossing brackets, then bisect each to
@@ -942,13 +1009,14 @@ fn main() {
                     while st.day < 540 {
                         st.step();
                         if st.day % 30 == 0 {
-                            let (_, onsite_c, _, ph_c) = st.rates(central_r, 6000);
-                            for (slot, lvl) in [(0usize, 0.25), (1, 0.5)] {
+                            let (_, onsite_c, _, ph_c) =
+                                st.rates(coef.scenarios(st.day)[1].1, 6000);
+                            for (slot, lvl) in [(0usize, target / 2.0), (1, target)] {
                                 if ph_c >= lvl && checkpoints[slot].is_none() {
                                     checkpoints[slot] = Some(st.day);
                                 }
                             }
-                            if onsite_c >= 0.5 && checkpoints[2].is_none() {
+                            if onsite_c >= target && checkpoints[2].is_none() {
                                 checkpoints[2] = Some(st.day);
                             }
                             if checkpoints.iter().all(Option::is_some) {
@@ -958,7 +1026,7 @@ fn main() {
                     }
                     let refine = |slot: usize, thr: f64, use_onsite: bool| {
                         checkpoints[slot]
-                            .map(|hi| refine_day(&mk_state, central_r, thr, use_onsite, hi))
+                            .map(|hi| refine_day(&mk_state, &coef, thr, use_onsite, hi))
                             .map(|dd| Value::String((d + Duration::days(dd)).to_string()))
                             .unwrap_or(Value::Null)
                     };
@@ -969,8 +1037,8 @@ fn main() {
                         "onsite": onsite_t,
                         "hard": ph_t,
                         "hards_workable": refine(0, 0.25, false),
-                        "hard_competent": refine(1, 0.5, false),
-                        "onsite_ready": refine(2, 0.5, true),
+                        "hard_competent": refine(1, target, false),
+                        "onsite_ready": refine(2, target, true),
                     });
                     out.lock().unwrap()[i] = entry;
                 });
@@ -993,19 +1061,19 @@ fn main() {
     let teach = (mfc * 0.8).min(0.85);
 
     let mv_recall_today = mv_recall_of(&recall_today);
-    let mut tasks: Vec<Task> = SCENARIOS
+    let mut tasks: Vec<Task> = scenarios
         .iter()
-        .map(|&(_, r)| Task {
+        .map(|&(_, shift)| Task {
             mv_recall: mv_recall_today.clone(),
             bank: bank.clone(),
-            r,
-            practice: (0, 0, 0),
+            coef,
+            shift,
             n_mc: N_MC,
         })
         .collect();
 
     // forward: practice within the graph AND growth of the graph itself
-    let scenario_rs: Vec<f64> = SCENARIOS.iter().map(|&(_, r)| r).collect();
+    let mix = solve_mix(&evidence, &metadata_v, today);
     let (reps0, gaps0) = init_state(&node_ids, &evidence, today, &cv);
     let snaps = forward_sim(
         hours,
@@ -1014,7 +1082,8 @@ fn main() {
         gaps0.clone(),
         &cv,
         bank.clone(),
-        &scenario_rs,
+        mix,
+        coef,
         6000,
         &mut tasks,
     );
@@ -1026,16 +1095,16 @@ fn main() {
     let mut milestones: [Option<i64>; 3] = [None, None, None];
     for s in &snaps {
         let spread: Vec<(f64, f64, f64, f64)> =
-            results[s.task_start..s.task_start + SCENARIOS.len()].to_vec();
+            results[s.task_start..s.task_start + scenarios.len()].to_vec();
         let ph_c = spread[1].3;
         let onsite_c = spread[1].1;
-        rows.push((s.day, s.practice, s.n_nodes, s.offh, spread));
-        for (slot, lvl) in [(0usize, 0.25), (1, 0.5)] {
+        rows.push((s.day, s.solves, s.n_nodes, s.offh, spread));
+        for (slot, lvl) in [(0usize, target / 2.0), (1, target)] {
             if ph_c >= lvl && milestones[slot].is_none() {
                 milestones[slot] = Some(s.day);
             }
         }
-        if onsite_c >= 0.5 && milestones[2].is_none() {
+        if onsite_c >= target && milestones[2].is_none() {
             milestones[2] = Some(s.day);
         }
     }
@@ -1045,7 +1114,6 @@ fn main() {
     // 30-day steps. The forward table stays monthly; its highlight marks the
     // crossing checkpoint row (`milestones`), while the printed milestone
     // lines and --json use the refined days.
-    let central_r = SCENARIOS[1].1;
     let mk_state = || {
         SimState::new(
             hours,
@@ -1054,12 +1122,14 @@ fn main() {
             gaps0.clone(),
             &cv,
             bank.clone(),
+            mix,
+            coef,
         )
     };
     let milestone_days: [Option<i64>; 3] = [
-        milestones[0].map(|hi| refine_day(&mk_state, central_r, 0.25, false, hi)),
-        milestones[1].map(|hi| refine_day(&mk_state, central_r, 0.5, false, hi)),
-        milestones[2].map(|hi| refine_day(&mk_state, central_r, 0.5, true, hi)),
+        milestones[0].map(|hi| refine_day(&mk_state, &coef, target / 2.0, false, hi)),
+        milestones[1].map(|hi| refine_day(&mk_state, &coef, target, false, hi)),
+        milestones[2].map(|hi| refine_day(&mk_state, &coef, target, true, hi)),
     ];
 
     // --json: today's central rates + the milestone dates, consumed live by
@@ -1085,7 +1155,7 @@ fn main() {
     }
 
     println!("{}", styled("today, cold, on a random 2E+2M+2H set:", "bold", color));
-    let today_rows: Vec<Vec<Cell>> = SCENARIOS
+    let today_rows: Vec<Vec<Cell>> = scenarios
         .iter()
         .enumerate()
         .map(|(i, (name, _))| {
@@ -1128,8 +1198,11 @@ fn main() {
         styled(&format!("forward at {}h/day", fmt_g(hours)), "bold", color),
         styled(
             &format!(
-                "({}hards from day {}, mocks deferred to day {})",
-                source, HARDS_START, MOCKS_START
+                "({}solves in his measured mix: {:.0}% easy, {:.0}% medium, {:.0}% hard)",
+                source,
+                mix[0] * 100.0,
+                mix[1] * 100.0,
+                mix[2] * 100.0
             ),
             "dim",
             color
@@ -1175,7 +1248,7 @@ fn main() {
     print_table(
         &[
             ("month", true),
-            ("practice (M/mk/H)", false),
+            ("solves (E/M/H)", false),
             ("nodes", false),
             ("offH", false),
             ("P(hard)", false),
@@ -1186,10 +1259,13 @@ fn main() {
         &forward_rows,
         color,
     );
+    let half = format!("P >={:.0}%", target * 50.0);
+    let full = format!("P >={:.0}%", target * 100.0);
+    let onsite_lvl = format!("central P(onsite) >={:.0}%", target * 100.0);
     for (slot, tag, lvl) in [
-        (0usize, "hards workable", "P >=25%"),
-        (1, "hard-competent", "P >=50%"),
-        (2, "onsite-ready", "central P(onsite) >=50%"),
+        (0usize, "hards workable", half.as_str()),
+        (1, "hard-competent", full.as_str()),
+        (2, "onsite-ready", onsite_lvl.as_str()),
     ] {
         if let Some(d) = milestone_days[slot] {
             let when = fmt_date_long(today + Duration::days(d));
@@ -1202,10 +1278,15 @@ fn main() {
         }
     }
     print_wrapped(
-        "measured: solve times, forgetting curve, first-contact absorption, and the \
-         problem bank itself (real walks, LLM-drafted for unsolved problems; drafts \
-         score P 0.80 / R 0.75 vs 50 evidenced walks). assumed: recognition scenarios, \
-         mock start day, derive rate. The band collapses as real data arrives.",
+        "measured: the cold-solve model (fitted on his timed games: contest \
+         rating, walk recall, never-met moves), solve times, forgetting curve, \
+         first-contact absorption, the solve mix, and the problem bank itself \
+         (real walks, LLM-drafted for unsolved problems; drafts score P 0.80 / \
+         R 0.75 vs 50 evidenced walks), and the drift of his Elo. assumed: \
+         which problems an onsite serves. The band is the fitted intercept's \
+         standard error plus the drift's, compounded over the projection, so \
+         it is tight today and widens with the horizon. The central line \
+         rises only as fast as his Elo actually has.",
         "dim",
         color,
         80,

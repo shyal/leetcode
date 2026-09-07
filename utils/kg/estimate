@@ -17,7 +17,8 @@ from datetime import datetime, timedelta, timezone
 from rich.console import Console
 from rich.table import Table
 
-from kg.kg_lib import load_nodes, load_evidence, node_status, SOLID, STALE, FRAGILE, MISSING
+from kg.kg_lib import (load_nodes, load_evidence, node_status, target_pass_rate,
+                       SOLID, STALE, FRAGILE, MISSING)
 
 console = Console()
 
@@ -67,8 +68,14 @@ def main():
     table.add_row("Run date", run_date)
     table.add_row("Node statuses", status_line)
     if mock:
-        table.add_row("Contest (mock hard-competent)", str(mock["hard_competent"]))
-        table.add_row("Onsite (mock P(onsite)>=50%)", f"{mock['onsite_ready']} at {mock['hours']:g}h/day")
+        # a milestone the forward simulation never reaches inside its horizon
+        # prints as such rather than as a bare None
+        unreached = "not within 18 months at this pace"
+        table.add_row("Contest (mock hard-competent)",
+                      mock["hard_competent"] or unreached)
+        table.add_row(f"Onsite (mock P(onsite)>={target_pass_rate():.0%})",
+                      f"{mock['onsite_ready']} at {mock['hours']:g}h/day"
+                      if mock["onsite_ready"] else unreached)
     if predict:
         table.add_row("Work done (kg_predict)", f"{predict['ready']} at {predict['hours']:g}h/day")
     console.print(table)

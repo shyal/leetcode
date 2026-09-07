@@ -26,9 +26,9 @@ from datetime import date, timedelta
 from importlib.machinery import SourceFileLoader
 
 from kg.kg_lib import (
-    GRAPH_DIR, SCENARIOS, STALE, FRAGILE, load_nodes, load_problems,
+    GRAPH_DIR, STALE, FRAGILE, load_nodes, load_problems,
     load_evidence, load_predicted, node_status, current_recall,
-    problem_difficulty, mass_term, _load_curve,
+    problem_difficulty, solve_model, solve_scenarios, _load_curve,
 )
 
 KG = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "kg")
@@ -51,7 +51,7 @@ ML, MR = 62, 150
 LANES = {"volume": (64, 300), "nodes": (346, 470), "pass": (516, 720)}
 
 
-def history(nodes, problems, evidence, expect, r_base):
+def history(nodes, problems, evidence, expect, shift):
     """One row per calendar day from the first evidence record to today:
     (date, solves per kind, stale, fragile, onsite, screen, hard)."""
     today = date.today()
@@ -68,7 +68,7 @@ def history(nodes, problems, evidence, expect, r_base):
         seen = {f: r for f, r in evidence.items() if r["date"] <= k}
         statuses = [node_status(n, seen, today=d)[0] for n in nodes]
         recall = current_recall(nodes, seen, curve, today=d)
-        _, onsite, screen, hard = expect.rates(recall, (0, 0, 0), r_base)
+        _, onsite, screen, hard = expect.rates(recall, shift)
         rows.append((d, by_day.get(k, {kk: 0 for kk in KINDS}),
                      statuses.count(STALE), statuses.count(FRAGILE), onsite, screen, hard))
         d += timedelta(days=1)
@@ -90,9 +90,12 @@ def main():
     curve = _load_curve()
     if not curve:
         sys.exit("graph/curve.json missing - run make curve first")
-    pools = kg_simulate.build_pools(problems, load_predicted(), nodes)
-    expect = kg_simulate.PassExpectation(pools, list(nodes), mass_term(pools, problems, curve))
-    past = history(nodes, problems, evidence, expect, SCENARIOS["central"])
+    pools, ratings = kg_simulate.build_pools(problems, load_predicted(), nodes)
+    coef = solve_model(curve)
+    if not coef:
+        sys.exit("graph/curve.json has no fitted cold-solve model - run make curve")
+    expect = kg_simulate.PassExpectation(pools, ratings, list(nodes), coef)
+    past = history(nodes, problems, evidence, expect, solve_scenarios(curve)["central"])
     # one process per seed: a run is a minute of pure Python, and the
     # seeds share nothing. fork, so the loaded graph comes along.
     with multiprocessing.get_context("fork").Pool(len(SEEDS)) as pool:

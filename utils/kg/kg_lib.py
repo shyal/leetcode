@@ -2436,38 +2436,187 @@ def taxonomy_summary(nodes):
 # The Monte-Carlo model behind `make mock` (implemented in Rust under
 # utils/kg/kg_mock_rs) and the README's P(pass) history chart. The Rust port keeps
 # this exact math (same RNG stream, same float-op order); change them together.
+#
+# One problem's odds come from the cold-solve model kg_curve fits (curve.json
+# "solve"): the problem's contest rating, the walk's summed log recall, and its
+# count of never-met moves, each with a fitted coefficient. Nothing here is
+# per-difficulty any more - the Easy/Medium/Hard label only says which pool a
+# problem is drawn from, which is a fact about the interview, not about him.
 
-REC_POWER = {"E": 0.5, "M": 1.0, "H": 1.6}
-SCENARIOS = {"cautious": 0.75, "central": 0.85, "optimistic": 0.95}
-
-# Recognition - seeing which move a problem wants without being told - is
-# the one term of the model nothing measures. It rises with mocks, and
-# (2026-08-31) with cold first solves: a problem never seen before, solved
-# clean and unaided, is the same test a mock poses, minus the clock. A mock
-# is six problems, so six cold solves count as one. The `mocks` slot of the
-# practice triple is mock-equivalents: recognition_practice(). The Rust
-# port (kg_mock_rs SimState::practice) applies the same credit.
-COLD_SOLVES_PER_MOCK = 6
-
-# The practice terms' saturation constants: after this many, 63% of the
-# headroom is earned. Assumed, not fitted (kg_mock_rs carries the same
-# numbers); `make simulate --hard-sat 45` shows what a slower Hard curve
-# does to the date. The Hard one is the whole onsite question - 15 cold
-# Hards attempted so far say nothing about its slope yet.
-MEDIUM_SAT = 120
-HARD_SAT = 15
-MOCK_SAT = 8
+def solve_model(curve=None):
+    """The fitted cold-solve coefficients, or None when curve.json predates
+    the fit (in which case there is no pass model to run)."""
+    curve = _load_curve() if curve is None else curve
+    solve = (curve or {}).get("solve") or {}
+    return solve.get("features") or None
 
 
-def recognition_practice(mocks_done, cold_first_solves):
-    if not COLD_SOLVES_PER_MOCK:
-        return mocks_done
-    return mocks_done + cold_first_solves // COLD_SOLVES_PER_MOCK
+def solve_logit(coef, rating, ln_recall, unseen):
+    """The cold-solve model's linear predictor for one walk."""
+    return (coef.get("intercept", 0.0)
+            + coef.get("rating", 0.0) * (rating - 1500) / 400
+            + coef.get("recall", 0.0) * ln_recall
+            + coef.get("unseen", 0.0) * unseen)
 
 
-def recognition(base, mocks_done):
-    import math
-    return base + (0.98 - base) * (1 - math.exp(-mocks_done / MOCK_SAT))
+def walk_terms(walk, node_recall):
+    """(summed log recall of the moves already met, count of the rest)."""
+    ln_recall, unseen = 0.0, 0
+    for mv in walk:
+        r = node_recall.get(mv)
+        if r is None:
+            unseen += 1
+        else:
+            ln_recall += math.log(max(r, 1e-3))
+    return ln_recall, unseen
+
+
+# ---- the skill state ---------------------------------------------------------
+# Standard Elo over the scored games, K=32 from 1200, problems priced by their
+# contest rating (an unrated one takes the median of its difficulty). This is
+# the model's only channel for getting BETTER as opposed to knowing more: it
+# moves when he outperforms the ratings he was served and not otherwise, so a
+# forecast built on it can rise without anyone assuming that it will.
+
+ELO_K, ELO_START = 32.0, 1200.0
+
+
+def elo_games(evidence=None, ratings=None):
+    """Every scored game with the Elo he carried INTO it and the rating of the
+    problem: [{..., "rating", "elo_before"}], oldest first. Causal by
+    construction - a game's elo_before sees only games before it."""
+    games = scored_games(evidence)
+    ratings = solve_ratings() if ratings is None else ratings
+    by_dif = {}
+    for g in games:
+        r = ratings.get(g["problem"])
+        if r is not None:
+            by_dif.setdefault(g["difficulty"], []).append(r)
+    median = {d: sorted(v)[len(v) // 2] for d, v in by_dif.items()}
+    elo = ELO_START
+    out = []
+    for g in games:
+        r = ratings.get(g["problem"], median.get(g["difficulty"]))
+        if r is None:
+            continue
+        g = dict(g, rating=r, elo_before=elo)
+        elo += ELO_K * (g["score"] - 1 / (1 + 10 ** ((r - elo) / 400)))
+        out.append(g)
+    return out
+
+
+def elo_now(evidence=None, ratings=None):
+    """His Elo after the last scored game, or the starting rating."""
+    games = elo_games(evidence, ratings)
+    if not games:
+        return ELO_START
+    last = games[-1]
+    return last["elo_before"] + ELO_K * (
+        last["score"] - 1 / (1 + 10 ** ((last["rating"] - last["elo_before"]) / 400)))
+
+
+def elo_drift(evidence=None, ratings=None, window=None):
+    """(points per day, its standard error): least squares of Elo on calendar
+    day over the games in `window` days, all of them by default. The forward
+    simulation advances the skill state by this and nothing else - a measured
+    drift, near zero today, rather than an assumed climb."""
+    games = elo_games(evidence, ratings)
+    if window:
+        cutoff = date.today() - timedelta(days=window)
+        games = [g for g in games if date.fromisoformat(g["date"]) >= cutoff]
+    if len(games) < 30:
+        return 0.0, 0.0
+    x = [(date.fromisoformat(g["date"]) - date.fromisoformat(games[0]["date"])).days
+         for g in games]
+    y = [g["elo_before"] for g in games]
+    n = len(x)
+    mx, my = sum(x) / n, sum(y) / n
+    sxx = sum((a - mx) ** 2 for a in x)
+    if sxx == 0:
+        return 0.0, 0.0
+    slope = sum((a - mx) * (b - my) for a, b in zip(x, y)) / sxx
+    resid = [b - (my + slope * (a - mx)) for a, b in zip(x, y)]
+    s2 = sum(r * r for r in resid) / max(n - 2, 1)
+    return slope, math.sqrt(s2 / sxx)
+
+
+def problem_solve_p(pnum, problems, node_recall, coef=None, ratings=None):
+    """The cold-solve model's odds on one real problem: its best evidenced
+    walk under solve_logit, with the problem's contest rating. None when the
+    problem has no walk, no rating, or the model is unfitted - callers order
+    on what they have and leave the rest where they were."""
+    coef = solve_model() if coef is None else coef
+    ratings = solve_ratings() if ratings is None else ratings
+    rating = (ratings or {}).get(str(pnum))
+    walk = problems.get(str(pnum), {}).get("moves")
+    if not coef or rating is None or not walk:
+        return None
+    ln_recall, unseen = walk_terms(walk, node_recall)
+    return 1 / (1 + math.exp(-solve_logit(coef, rating, ln_recall, unseen)))
+
+
+def solve_ratings():
+    """Problem number -> contest rating (utils/kg/clist.py); empty without the
+    cache, which leaves every rating-aware sort inert."""
+    try:
+        from kg import clist
+        return clist.combined_ratings()
+    except (ImportError, SystemExit, OSError):
+        return {}
+
+
+def target_pass_rate():
+    """The central pass rate a milestone has to reach for "ready". Which
+    onsite he is aiming at is a choice, not a measurement, so it lives in
+    .envrc as TARGET_PASS_RATE (a fraction); kg_mock reads the same variable.
+    """
+    try:
+        v = float(os.environ.get("TARGET_PASS_RATE", "") or 0.5)
+    except ValueError:
+        return 0.5
+    return v if 0.0 < v < 1.0 else 0.5
+
+
+# ---- timed attempts, as scored games ----------------------------------------
+# One game per timed solve, scored on a contest clock: a win is clean and
+# unaided inside the budget for the problem's difficulty, a draw is a hint
+# inside it, a loss is a fail or a solve over budget. A solve the judge marked
+# as meeting the follow-up is a harder problem than its label and plays on the
+# next tier's clock. Walkthrough and learning reps are copy reps, not
+# retrieval; untimed solves cannot be scored; both are skipped.
+# kg_elo_svg rates these games, kg_curve fits P(solve) on them.
+
+BUDGET_MIN = {"Easy": 10, "Medium": 25, "Hard": 45}
+NEXT_TIER = {"Easy": "Medium", "Medium": "Hard", "Hard": "Hard"}
+
+
+def scored_games(evidence=None):
+    """[{date, problem, difficulty, score, file, moves}] oldest first."""
+    evidence = load_evidence() if evidence is None else evidence
+    problems = load_problems()
+    secs = {fn: s for _, _, s, fn in mined_solve_times(with_file=True)}
+    out = []
+    for fname in sorted(evidence, key=lambda k: (evidence[k]["date"], k)):
+        rec = evidence[fname]
+        pnum = str(rec.get("problem", ""))
+        diff = problem_difficulty(pnum, problems)
+        if not pnum[:1].isdigit() or diff not in BUDGET_MIN:
+            continue
+        failed = "FAILED" in fname
+        level = assist_of(rec)
+        if failed:
+            score = 0.0
+        elif level in ("walkthrough", "learning") or fname not in secs:
+            continue
+        elif secs[fname] > BUDGET_MIN[NEXT_TIER[diff] if rec.get("followup") == "solved"
+                                      else diff] * 60:
+            score = 0.0
+        else:
+            score = 0.5 if level == "hint" else 1.0
+        out.append({"date": rec["date"], "problem": pnum, "difficulty": diff,
+                    "score": score, "file": fname,
+                    "moves": list(rec.get("moves") or {})})
+    return out
 
 
 def carrier_counts(problems):
@@ -2486,61 +2635,28 @@ def walk_mass(walk, counts):
     return math.log1p(min((counts.get(m, 0) for m in walk), default=0))
 
 
-def mass_term(pools, problems, curve=None):
-    """The per-walk rehearsal-mass adjustment for pass_rates over these
-    pools: {"beta", "ref": {dif: pool mean x}, "x": {dif: [[x per walk]]}}.
-    beta is fitted by kg_curve (curve.json "mass"); 0 when unfitted, which
-    makes the term inert. The reference is the pool mean, so a problem
-    drawn uniformly keeps the model's average and only the spread between
-    rehearsed and rare walks changes."""
-    curve = _load_curve() if curve is None else curve
-    beta = (curve or {}).get("mass", {}).get("beta", 0.0) if curve else 0.0
-    counts = carrier_counts(problems)
-    x = {dif: [[walk_mass(w, counts) for w in prob] for prob in probs]
-         for dif, probs in pools.items()}
-    ref = {dif: (sum(max(xs) for xs in xp) / len(xp) if xp else 0.0)
-           for dif, xp in x.items()}
-    return {"beta": beta, "ref": ref, "x": x}
-
-
-def mass_adjust(p, x, ref, beta):
-    """p on the logit scale shifted by beta * (x - ref); p clamped away
-    from 0 and 1 so the shift is finite. Same arithmetic as the Rust port."""
-    if not beta:
-        return p
-    p = min(max(p, 1e-9), 1 - 1e-9)
-    return 1 / (1 + math.exp(-(math.log(p / (1 - p)) + beta * (x - ref))))
-
-
-def pass_rates(node_recall, pools, r_base, practice, rng, n_mc=20000, mass=None):
+def pass_rates(node_recall, pools, ratings, coef, rng, n_mc=20000, shift=0.0):
     """(full clear, onsite 2E+2M+>=1H, screen both-M, single-hard P).
 
     pools: {"E"/"M"/"H": [problem, ...]}, each problem a list of walks, each
-    walk a list of move names — real problems (evidenced + drafted walks, the
-    Rust Bank), not fabricated ones. practice = (mediums, mock-equivalents,
-    hards) done since the snapshot; see recognition_practice() for the
-    second. A problem is drawn uniformly from its
-    difficulty pool and scored by its BEST walk's recall product; a move
-    without recall (off-taxonomy) costs the derive rate. Same draw order as
-    the Rust port (randrange then random), so the RNG streams match. With
-    `mass` (mass_term), the drawn problem's best walk also carries its
-    rehearsal-mass adjustment (mass_adjust)."""
-    time_f, rec, derive = practice_factors(practice, r_base)
+    walk a list of move names - real problems (evidenced + drafted walks, the
+    Rust Bank), not fabricated ones. ratings: the same shape, one contest
+    rating per problem. A problem is drawn uniformly from its difficulty pool
+    and scored by its BEST walk under the cold-solve model; `shift` moves the
+    fitted intercept for the scenario band. Same draw order as the Rust port
+    (randrange then random), so the RNG streams match."""
     full = onsite = screen = h_solved = 0
     for _ in range(n_mc):
         solved = {"E": 0, "M": 0, "H": 0}
         for dif in ("E", "E", "M", "M", "H", "H"):
             i = rng.randrange(len(pools[dif]))
-            prob = pools[dif][i]
-            best, best_w = -1.0, 0
-            for wi, walk in enumerate(prob):
-                prod = math.prod(node_recall.get(mv, derive) for mv in walk)
-                if prod > best:
-                    best, best_w = prod, wi
-            p = time_f[dif] * rec ** REC_POWER[dif] * best
-            if mass:
-                p = mass_adjust(p, mass["x"][dif][i][best_w], mass["ref"][dif],
-                                mass["beta"])
+            best = None
+            for walk in pools[dif][i]:
+                ln_recall, unseen = walk_terms(walk, node_recall)
+                z = solve_logit(coef, ratings[dif][i], ln_recall, unseen)
+                if best is None or z > best:
+                    best = z
+            p = 1 / (1 + math.exp(-(best + shift)))
             solved[dif] += rng.random() < p
         full += solved["E"] == 2 and solved["M"] == 2 and solved["H"] == 2
         onsite += solved["E"] == 2 and solved["M"] == 2 and solved["H"] >= 1
@@ -2549,42 +2665,87 @@ def pass_rates(node_recall, pools, r_base, practice, rng, n_mc=20000, mass=None)
     return full / n_mc, onsite / n_mc, screen / n_mc, h_solved / (2 * n_mc)
 
 
-def practice_factors(practice, r_base):
-    """The pass model's practice terms for a cold problem: per-difficulty
-    time factor, recognition, and the derive rate for an off-taxonomy move.
-    P(solve a cold problem) = time_f[dif] * rec ** REC_POWER[dif] * recall
-    product; pass_rates draws sets with it, kg_simulate draws single cold
-    solves with it, so the two never disagree about what a cold Hard is
-    worth today."""
-    import math
-    mediums, mocks, hards = practice
-    grow = 1 - math.exp(-mediums / MEDIUM_SAT)
-    time_f = {"E": 0.88 + 0.07 * grow, "M": 0.87 + 0.07 * grow,
-              "H": 0.40 + 0.42 * (1 - math.exp(-hards / HARD_SAT))}
-    derive = 0.25 + 0.20 * (1 - math.exp(-(mocks + hards) / 30))
-    return time_f, recognition(r_base, mocks), derive
+def solve_scenarios(curve=None, days=0):
+    """The scenario band as a logit shift, from two measured uncertainties:
+    the fitted intercept's standard error (today's), and, `days` into a
+    projection, the standard error of the Elo drift compounded over them. So
+    the band is tight today and widens with the horizon, which is the honest
+    shape - and the central line moves only by the drift his games actually
+    show. The old hand-set 0.75/0.85/0.95 recognition band said all of this
+    with numbers nothing measured."""
+    curve = _load_curve() if curve is None else curve
+    solve = (curve or {}).get("solve") or {}
+    se = solve.get("intercept_se") or 0.0
+    centre = skill_shift(curve, days)
+    lo, hi = skill_shift(curve, days, -1.96), skill_shift(curve, days, 1.96)
+    return {"cautious": -1.96 * se + lo,
+            "central": centre,
+            "optimistic": 1.96 * se + hi}
+
+
+def retention_cycle(nodes=None, evidence=None, curve=None):
+    """The median retention window across the graph: how long the typical move
+    holds before the curve calls it due. One of these is a full turn of the
+    picker's cycle - every typical node comes due and is repaired once - which
+    is as far as a projection needs to run when its target is unreachable."""
+    curve = _load_curve() if curve is None else curve
+    if not curve:
+        return SOLID_WINDOW_DAYS
+    nodes = load_nodes() if nodes is None else nodes
+    evidence = load_evidence() if evidence is None else evidence
+    p = curve["params"]
+    index = ev_index(evidence).by_node
+    windows = []
+    for nid in nodes:
+        cleans = len({d for d, v, _, _, _ in index.get(nid, ()) if v == "clean"})
+        s = min(max(math.exp(p["a"] + p["b"] * math.log1p(cleans)), 7), 3650)
+        windows.append(s * (curve["target_retention"] ** (-1 / p["beta"]) - 1))
+    return int(sorted(windows)[len(windows) // 2]) if windows else SOLID_WINDOW_DAYS
+
+
+def skill_shift(curve=None, days=0, z=0.0):
+    """The logit shift `days` of projected practice buys, from the measured
+    Elo drift: a skill gain of D points is the same as every problem being D
+    points easier, so the shift is -k_rating * D / 400. `z` walks the drift's
+    own standard error. Zero drift, zero shift - the model never assumes a
+    climb it has not measured."""
+    curve = _load_curve() if curve is None else curve
+    solve = (curve or {}).get("solve") or {}
+    elo = solve.get("elo") or {}
+    k_rating = (solve.get("features") or {}).get("rating", 0.0)
+    drift = (elo.get("drift_per_day") or 0.0) + z * (elo.get("drift_se") or 0.0)
+    return -k_rating * drift * days / 400.0
 
 
 def current_recall(nodes, evidence, curve, today=None):
-    """Predicted recall per node. Pass `today` (and evidence filtered to
-    entries on or before it) to replay a historical snapshot."""
+    """Predicted recall per node, for the nodes he has actually met. Pass
+    `today` (and evidence filtered to entries on or before it) to replay a
+    historical snapshot. A node with no clean rep behind it is left out
+    entirely: the cold-solve model counts it as a never-met move rather than
+    charging it an assumed recall."""
     today = today or date.today()
-    return {nid: node_curve_recall(nid, evidence, curve, today) for nid in nodes}
+    out = {}
+    for nid in nodes:
+        r = node_curve_recall(nid, evidence, curve, today)
+        if r is not None:
+            out[nid] = r
+    return out
 
 
 def node_curve_recall(nid, evidence, curve, today=None):
-    """One node of current_recall."""
+    """One node of current_recall, or None when he has never had it clean."""
     import math
     today = today or date.today()
     p = curve["params"]
     status, last = node_status(nid, evidence, today=today)
     if status == MISSING or not last:
-        return 0.25
+        return None
     cleans = len({d for d, v, _, _, _ in ev_index(evidence).by_node.get(nid, ())
                   if v == "clean"})  # distinct clean days, as in node_eval
+    if not cleans:
+        return None
     s = min(max(math.exp(p["a"] + p["b"] * math.log1p(cleans)), 7), 3650)
-    rec = (1 + (today - last).days / s) ** (-p["beta"])
-    return rec * 0.5 if status == FRAGILE else rec
+    return (1 + (today - last).days / s) ** (-p["beta"])
 
 
 # --- the replay clock (utils/kg/kg_movie_rs) ----------------------------------

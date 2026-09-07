@@ -11,6 +11,7 @@ def main():
     import numpy as np
     import json
     from history.metadata import get_problems_metadata
+    from kg.kg_lib import target_pass_rate
 
     mpl.use("Agg")
     import matplotlib.pyplot as plt
@@ -195,8 +196,9 @@ def main():
         def prob_bar(p, ready_date, title, xlabel, color, fname, s3_prefix, alt):
             fig, ax = plt.subplots(figsize=(10, 2))
             ax.barh([0], [p * 100], height=0.5, color=color)
-            ax.axvline(50, color="#DD0000", linestyle="--", linewidth=1.5)
-            ax.text(51, 0.18, "ready = 50%", color="#DD0000", fontsize=9)
+            mark = target_pass_rate() * 100
+            ax.axvline(mark, color="#DD0000", linestyle="--", linewidth=1.5)
+            ax.text(mark + 1, 0.18, f"ready = {mark:.0f}%", color="#DD0000", fontsize=9)
             ax.text(p * 100 + 1, 0, f"{p * 100:.0f}%", va="center", fontweight="bold")
             ax.set_yticks([])
             ax.set_xlim(0, 100)

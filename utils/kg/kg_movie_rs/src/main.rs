@@ -35,7 +35,7 @@ use std::process::{Command, Stdio};
 use chrono::{Datelike, Duration, NaiveDate};
 use serde_json::Value;
 
-use kg_mock::{current_recall, pass_rates, run_mocks, Bank, EvRec, PyRandom, SCENARIOS};
+use kg_mock::{current_recall, pass_rates, run_mocks, Bank, EvRec, PyRandom, SolveModel};
 
 const DEFAULT_SECONDS: f64 = 10.0;
 const END_FADE_S: f64 = 1.2; // loop-closing dissolve, capped by FADE_FRACTION
@@ -1338,7 +1338,11 @@ fn main() {
     let predicted_v = load_json(&graph.join("predicted.json"));
     let repo_root = graph.parent().map(|p| p.to_path_buf()).unwrap_or_else(|| PathBuf::from("."));
     let metadata_v = load_json(&repo_root.join("data/problems_metadata.json"));
-    let bank = Bank::build(&problems_v, &predicted_v, &metadata_v, &node_ids);
+    let ratings_v = load_json(&graph.join("ratings.json"));
+    let bank = Bank::build(&problems_v, &predicted_v, &metadata_v, &node_ids, &ratings_v);
+    let coef = SolveModel::load(&load_json(&graph.join("curve.json")))
+        .expect("graph/curve.json has no fitted cold-solve model - run make curve");
+    let scenarios = coef.scenarios(0);
 
     // weekly replay: evidence filtered to each date, recall from the curve,
     // Monte Carlo per recognition scenario ("today" = last recorded evidence)
@@ -1365,12 +1369,12 @@ fn main() {
         let k = ev_recs.partition_point(|r| r.date.as_str() <= wd_s.as_str());
         let recall = current_recall(&node_ids, &ev_recs[..k], &mcurve, *wd);
         let mv_recall: Vec<Option<f64>> = (0..bank.move_names.len())
-            .map(|i| if i < bank.n_known { Some(recall[i]) } else { None })
+            .map(|i| if i < bank.n_known { recall[i] } else { None })
             .collect();
         let mut row = [(0.0, 0.0); 3];
-        for (si, (_name, r_base)) in SCENARIOS.iter().enumerate() {
+        for (si, (_name, shift)) in scenarios.iter().enumerate() {
             let (_full, onsite, screen, _h) = pass_rates(
-                &mv_recall, &bank.pools, &bank.mass, *r_base, (0, 0, 0),
+                &mv_recall, &bank.pools, &bank.ratings, &coef, *shift,
                 &mut PyRandom::new(42), 4000,
             );
             row[si] = (screen * 100.0, onsite * 100.0);
@@ -1378,10 +1382,10 @@ fn main() {
         series.push(row);
         let recall_s = current_recall(&node_ids, &ev_recs[..k], &mcurve, *wd + Duration::days(SHELF_DAYS));
         let mv_recall_s: Vec<Option<f64>> = (0..bank.move_names.len())
-            .map(|i| if i < bank.n_known { Some(recall_s[i]) } else { None })
+            .map(|i| if i < bank.n_known { recall_s[i] } else { None })
             .collect();
         let (_full, onsite_s, screen_s, _h) = pass_rates(
-            &mv_recall_s, &bank.pools, &bank.mass, SCENARIOS[1].1, (0, 0, 0),
+            &mv_recall_s, &bank.pools, &bank.ratings, &coef, scenarios[1].1,
             &mut PyRandom::new(42), 4000,
         );
         shelf.push((screen_s * 100.0, onsite_s * 100.0));
@@ -1641,12 +1645,12 @@ fn main() {
         let k = ev_recs.partition_point(|r| r.date.as_str() <= d_s.as_str());
         let recall = current_recall(&node_ids, &ev_recs[..k], &mcurve, *day);
         let mv_recall: Vec<Option<f64>> = (0..bank.move_names.len())
-            .map(|i| if i < bank.n_known { Some(recall[i]) } else { None })
+            .map(|i| if i < bank.n_known { recall[i] } else { None })
             .collect();
         let mut sims = Vec::with_capacity(SWARM_N);
         let mut blame = vec![0u32; n_groups + 1];
         run_mocks(
-            &mv_recall, &bank.pools, &bank.mass, SCENARIOS[1].1, (0, 0, 0),
+            &mv_recall, &bank.pools, &bank.ratings, &coef, scenarios[1].1,
             &mut PyRandom::new(42), 4000,
             |solved, probs| {
                 let t = (solved[0] + solved[1] + solved[2]) as usize;

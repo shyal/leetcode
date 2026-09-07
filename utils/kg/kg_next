@@ -228,6 +228,12 @@ from kg.kg_lib import (
     predicted_carrier,
     cooled,
     gentleness,
+    problem_solve_p,
+    target_pass_rate,
+    current_recall,
+    solve_model,
+    solve_ratings,
+    _load_curve,
     unlocks,
     input_tree,
     tree_size,
@@ -767,6 +773,19 @@ def pick(
 
     due_list = sorted((n for n in nodes if in_scope(n) and kind(n)), key=sort_key)
 
+    # the cold-solve model, for ordering interchangeable proving carriers.
+    # Built once per pick and only when a proving rep is actually reached:
+    # recall over every node is not free, and most picks never need it.
+    model_state = {}
+
+    def solve_state():
+        if not model_state:
+            model_state["coef"] = solve_model()
+            model_state["ratings"] = solve_ratings() if model_state["coef"] else {}
+            model_state["recall"] = (current_recall(nodes, evidence, _load_curve())
+                                     if model_state["coef"] else {})
+        return model_state["recall"], model_state["coef"], model_state["ratings"]
+
     def prove(target):
         """The rep that widens a THIN move's breadth: a proving carrier
         (kg_lib.proving_carriers, at the node's bar) that never gave it a
@@ -780,8 +799,24 @@ def pick(
             c for c in proving_carriers(target, problems, statuses, nodes, evidence)
             if c not in asleep and c not in exclude and cooled(c, evidence)
         ]
+        # A proving rep is a real problem chosen to TEST the move, so among
+        # carriers that all prove it, take the one the cold-solve model puts
+        # closest to the target pass rate: at that level roughly half the
+        # attempts land, which is where a rep carries information and where
+        # the model's own rating slope is identified. Problems the model
+        # cannot price (no rating, no evidenced walk) keep their old order
+        # behind the priced ones, on gentleness. Repair picks are untouched -
+        # a fragile move still gets a gentle carrier.
+        aim = target_pass_rate()
+        recall, coef, ratings = solve_state()
+
+        def informative(p):
+            odds = problem_solve_p(p, problems, recall, coef, ratings)
+            return (odds is None, abs(odds - aim) if odds is not None else 0.0)
+
         cands.sort(
             key=lambda p: (
+                informative(p),
                 gentleness(p, problems, nodes),
                 last_solved(p, evidence),
                 -acceptance(p),
