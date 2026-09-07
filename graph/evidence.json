@@ -8301,6 +8301,17 @@
         "set-membership": "clean"
       },
       "summary": "Solution maintains a max-heap per cuisine with negated ratings (lazy eviction); when ratings update, old heap entries remain but a dict records the current rating for each food. On highestRated, the code pops stale entries until finding one whose stored rating matches the heap entry. Uses set-membership (food in updates dict) to detect staleness and dict-arbitrary-value to store validation data for O(1) checking."
+    },
+    "solved/p120_Triangle_2026_09_07T09_02_13_553123_00_00Z.py": {
+      "date": "2026-09-07",
+      "problem": "120",
+      "moves": {
+        "dp-state-formulate": "clean",
+        "memoize-recursion": "clean"
+      },
+      "followup": "not solved",
+      "note": "Memoized recursion sidesteps both canonical iterative patterns; cache uses O(n^2) space.",
+      "summary": "The solution recursively computes the minimum path sum from each cell (row, col) to the triangle's base, with @cache memoization storing subproblem results. It clearly formulates the state and recurrence (dp-state-formulate) but avoids the canonical iterative 2D grid-filling and 1D rolling-array patterns by using top-down recursion instead. The space complexity is O(n^2) for the memoization table, not O(n) as the follow-up asks."
     }
   }
 }
