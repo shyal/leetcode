@@ -8342,6 +8342,20 @@
       },
       "note": "Candidate's first attempt (backtracking enumeration) was abandoned; provided solution shown.",
       "summary": "The solution solves uncrossed lines as a two-sequence alignment problem using a 2D DP table. State dp[i][j] holds the maximum lines through the first i and j elements; each cell is either dp[i-1][j-1]+1 when elements match, or the maximum of the two neighbors when they differ. The candidate received this solution."
+    },
+    "solved/d_Longest_Common_Subsequence_2026_09_07T14_43_43_160669_00_00Z.py": {
+      "date": "2026-09-07",
+      "problem": "drill",
+      "moves": {
+        "two-sequence-align": "clean",
+        "dp-2d-grid": "clean"
+      },
+      "assist": {
+        "two-sequence-align": "learning",
+        "dp-2d-grid": "learning"
+      },
+      "note": "First exposure learning rep; table output demonstrates the two-prefix state structure.",
+      "summary": "Longest Common Subsequence via two-sequence DP. The code maintains dp[i][j] = LCS length of a[0:i] and b[0:j]. At each cell, if a[i-1] == b[j-1], the code extends the LCS from both prefixes; otherwise it takes the max from consuming a alone or b alone. This directly exercises two-sequence-align: a two-prefix state over two sequences where each step decides whether to advance one or both pointers based on character equality."
     }
   }
 }
