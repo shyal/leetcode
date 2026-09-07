@@ -1,4 +1,4 @@
-[![Run Tests](https://github.com/shyal/leetcode/actions/workflows/run-tests.yml/badge.svg)](https://github.com/shyal/leetcode/actions/workflows/run-tests.yml) <!-- ELO_BADGE -->![Elo](https://shyal.s3.amazonaws.com/elo_badge_20260906043458.svg)<!-- /ELO_BADGE --> <!-- STREAK_BADGE -->![Streak](https://shyal.s3.amazonaws.com/streak_badge_20260907010330.svg)<!-- /STREAK_BADGE -->
+[![Run Tests](https://github.com/shyal/leetcode/actions/workflows/run-tests.yml/badge.svg)](https://github.com/shyal/leetcode/actions/workflows/run-tests.yml) <!-- ELO_BADGE -->![Elo](https://shyal.s3.amazonaws.com/elo_badge_20260907094921.svg)<!-- /ELO_BADGE --> <!-- STREAK_BADGE -->![Streak](https://shyal.s3.amazonaws.com/streak_badge_20260907094921.svg)<!-- /STREAK_BADGE -->
 
 # Cracking Leetcode
 
@@ -10,7 +10,7 @@ So, here's my new approach: i decided on a new thesis: to focus on the core tech
 
 <!-- KG_3D -->
 
-![The technique graph in three dimensions, turning while the history replays](https://shyal.s3.amazonaws.com/kg_3d_20260907010330.svg)
+![The technique graph in three dimensions, turning while the history replays](https://shyal.s3.amazonaws.com/kg_3d_20260907094921.svg)
 
 <!-- /KG_3D -->
 
@@ -20,7 +20,7 @@ It is worth noting that the topology of the graph changes continually: each new 
 
 <!-- KG_COMPRESSION -->
 
-![One tile per node, one cell per problem or drill; tiles split as nodes are added, cells light as they are solved](https://shyal.s3.amazonaws.com/kg_compression_20260907010330.svg)
+![One tile per node, one cell per problem or drill; tiles split as nodes are added, cells light as they are solved](https://shyal.s3.amazonaws.com/kg_compression_20260907094921.svg)
 
 <!-- /KG_COMPRESSION -->
 
@@ -35,7 +35,7 @@ A problem's solution is a combination of several nodes, in a directed dependency
 
 <!-- KG_FULL -->
 
-![Every node, problem and drill with every edge, each solve blinking its vertex](https://shyal.s3.amazonaws.com/kg_full_20260907010330.svg)
+![Every node, problem and drill with every edge, each solve blinking its vertex](https://shyal.s3.amazonaws.com/kg_full_20260907094921.svg)
 
 <!-- /KG_FULL -->
 
@@ -48,7 +48,7 @@ This means that failures are granular, and only affect the pertinent nodes, not 
 
 <!-- KG_MOVIE -->
 
-![Technique graph growing solve by solve](https://shyal.s3.amazonaws.com/kg_movie_20260907010330.svg)
+![Technique graph growing solve by solve](https://shyal.s3.amazonaws.com/kg_movie_20260907094921.svg)
 
 <!-- /KG_MOVIE -->
 
@@ -60,19 +60,19 @@ Looking at my last leetcode grind, roughly October and November 2025, i plateaue
 
 <!-- PASS_PROB_CHART -->
 
-![P(pass a mock) over time](https://shyal.s3.amazonaws.com/pass_probability_20260907004423.svg)
+![P(pass a mock) over time](https://shyal.s3.amazonaws.com/pass_probability_20260907094921.svg)
 
 <!-- /PASS_PROB_CHART -->
 
 <!-- MOCK_SWARM_CHART -->
 
-![Individual simulated mocks over time](https://shyal.s3.amazonaws.com/mock_swarm_20260907004423.svg)
+![Individual simulated mocks over time](https://shyal.s3.amazonaws.com/mock_swarm_20260907094921.svg)
 
 <!-- /MOCK_SWARM_CHART -->
 
 <!-- MOCK_BLAME_CHART -->
 
-![Share of simulated problems failed, by group](https://shyal.s3.amazonaws.com/mock_blame_20260907004423.svg)
+![Share of simulated problems failed, by group](https://shyal.s3.amazonaws.com/mock_blame_20260907094921.svg)
 
 <!-- /MOCK_BLAME_CHART -->
 
@@ -88,7 +88,7 @@ The model is power-law forgetting with a slip rate, P(recall) = (1−slip)·(1 +
 
 <!-- POSITIONS_SVG -->
 
-![Nodes sliding down their forgetting curves](https://shyal.s3.amazonaws.com/positions_20260907004423.svg)
+![Nodes sliding down their forgetting curves](https://shyal.s3.amazonaws.com/positions_20260907094921.svg)
 
 <!-- /POSITIONS_SVG -->
 
@@ -96,7 +96,7 @@ The model also tracks its accuracy internally, by comparing its predictions with
 
 <!-- CURVE_CALIBRATION_CHART -->
 
-![Curve calibration](https://shyal.s3.amazonaws.com/curve_calibration_20260907004423.svg)
+![Curve calibration](https://shyal.s3.amazonaws.com/curve_calibration_20260907094921.svg)
 
 <!-- /CURVE_CALIBRATION_CHART -->
 
@@ -106,19 +106,19 @@ Groups that fall off the chart (below -2) for a portion of time likely need look
 
 <!-- RESIDUALS_CHART -->
 
-![Residuals per group over time](https://shyal.s3.amazonaws.com/residuals_20260907004423.svg)
+![Residuals per group over time](https://shyal.s3.amazonaws.com/residuals_20260907094921.svg)
 
 <!-- /RESIDUALS_CHART -->
 
 <!-- REVIEW_TIMING_CHART -->
 
-![Review timing](https://shyal.s3.amazonaws.com/review_timing_20260907004423.svg)
+![Review timing](https://shyal.s3.amazonaws.com/review_timing_20260907094921.svg)
 
 <!-- /REVIEW_TIMING_CHART -->
 
 <!-- SOLVETIME_CHART -->
 
-![How solve time changes with repetition and shared moves](https://shyal.s3.amazonaws.com/solvetime_20260907004423.svg)
+![How solve time changes with repetition and shared moves](https://shyal.s3.amazonaws.com/solvetime_20260907094921.svg)
 
 <!-- /SOLVETIME_CHART -->
 
@@ -126,7 +126,7 @@ The connectivity effect, zoomed in. Every timed solve as a dot, against how many
 
 <!-- CONNECTIVITY_CHART -->
 
-![Move connectivity vs solve time](https://shyal.s3.amazonaws.com/connectivity_20260906043458.svg)
+![Move connectivity vs solve time](https://shyal.s3.amazonaws.com/connectivity_20260907094921.svg)
 
 <!-- /CONNECTIVITY_CHART -->
 
@@ -136,7 +136,7 @@ Two lines now. The blue one counts only evidenced walks: walks extracted from co
 
 <!-- REACH_CHART -->
 
-![Problems in reach](https://shyal.s3.amazonaws.com/reach_20260907010330.svg)
+![Problems in reach](https://shyal.s3.amazonaws.com/reach_20260907094921.svg)
 
 <!-- /REACH_CHART -->
 
@@ -160,7 +160,7 @@ https://leetcode.com/problems/subarray-sum-equals-k/
 
 <!-- ZPD_SVG -->
 
-![The input tree of each of my last 50 solves, one per second](https://shyal.s3.amazonaws.com/zpd_20260907010330.svg)
+![The input tree of each of my last 50 solves, one per second](https://shyal.s3.amazonaws.com/zpd_20260907094921.svg)
 
 <!-- /ZPD_SVG -->
 
@@ -168,7 +168,7 @@ https://leetcode.com/problems/subarray-sum-equals-k/
 
 <!-- ELO_CHART -->
 
-![Elo on a contest clock](https://shyal.s3.amazonaws.com/elo_20260906043458.svg)
+![Elo on a contest clock](https://shyal.s3.amazonaws.com/elo_20260907094921.svg)
 
 <!-- /ELO_CHART -->
 
@@ -178,7 +178,7 @@ Solves and drills per day, then the unique ones. Uniques are tracked separately 
 
 <!-- SOLVES_CHART -->
 
-![Solves and drills per day](https://shyal.s3.amazonaws.com/rates_20260907004423.svg)
+![Solves and drills per day](https://shyal.s3.amazonaws.com/rates_20260907094921.svg)
 
 <!-- /SOLVES_CHART -->
 
@@ -188,7 +188,7 @@ Cumulative commits of each kind. A solve commit adds a file to `solved/`, proble
 
 <!-- COMMITS_CHART -->
 
-![Tooling commits versus solves](https://shyal.s3.amazonaws.com/commits_20260907004423.svg)
+![Tooling commits versus solves](https://shyal.s3.amazonaws.com/commits_20260907094921.svg)
 
 <!-- /COMMITS_CHART -->
 
@@ -200,7 +200,7 @@ Contest bar: today's central P(clear a single hard).
 
 <!-- CONTEST_PROGRESS -->
 
-![Contest Readiness Progress (Ready by 2026-11-03, in 57 days)](https://shyal.s3.amazonaws.com/contest_progress_20260907004423.png)
+![Contest Readiness Progress (Ready by 2026-11-03, in 57 days)](https://shyal.s3.amazonaws.com/contest_progress_20260907094921.png)
 
 <!-- /CONTEST_PROGRESS -->
 
@@ -208,7 +208,7 @@ FAANG bar: today's central P(pass a full onsite: 2 easies + 2 mediums + at least
 
 <!-- FAANG_PROGRESS -->
 
-![FAANG Interview Readiness Progress (Ready by 2026-11-24 at 2h/day, in 78 days)](https://shyal.s3.amazonaws.com/faang_progress_20260907004423.png)
+![FAANG Interview Readiness Progress (Ready by 2026-11-26 at 2.1h/day, in 80 days)](https://shyal.s3.amazonaws.com/faang_progress_20260907094921.png)
 
 <!-- /FAANG_PROGRESS -->
 
@@ -216,7 +216,7 @@ The chart below puts the history and the forecast on one time axis. Left of toda
 
 <!-- FORECAST_CHART -->
 
-![History and forecast to a 50% pass rate](https://shyal.s3.amazonaws.com/forecast_20260907004423.svg)
+![History and forecast to a 50% pass rate](https://shyal.s3.amazonaws.com/forecast_20260907094921.svg)
 
 <!-- /FORECAST_CHART -->
 
@@ -224,7 +224,7 @@ Every projected date is recorded daily, so one chart tracks whether the projecti
 
 <!-- READINESS_PROJECTION_CHART -->
 
-![Projected ready dates over time](https://shyal.s3.amazonaws.com/readiness_projection_20260907004423.png)
+![Projected ready dates over time](https://shyal.s3.amazonaws.com/readiness_projection_20260907094921.png)
 
 <!-- /READINESS_PROJECTION_CHART -->
 
