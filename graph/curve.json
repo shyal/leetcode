@@ -2,14 +2,14 @@
   "_comment": "Personal forgetting curve fitted by utils/kg/kg_curve. P(recall) = (1-slip)*(1 + gap/s)^(-beta), s = exp(a + b*log1p(cleans) - c*struggles - d*assist + e*(conn - conn_mean)); cleans counts distinct clean days, same-day reps are one rep. conn is the node's log2 carrier count, frozen below at fit time; consumers that ignore e are assuming average connectivity. node_status() calls a node SOLID while the memory component (1 + gap/s)^(-beta) >= target_retention; delete this file to fall back to the flat 42-day window.",
   "model": "power-law-slip",
   "params": {
-    "a": 4.1726,
-    "b": 0.6079,
-    "c": 0.2693,
-    "d": 0.0563,
-    "e": 0.2593,
-    "conn_mean": 3.5919,
-    "beta": 0.127,
-    "slip": 0.1054
+    "a": 4.1669,
+    "b": 0.603,
+    "c": 0.247,
+    "d": 0.0845,
+    "e": 0.2744,
+    "conn_mean": 3.5885,
+    "beta": 0.1232,
+    "slip": 0.1089
   },
   "conn": {
     "backtracking-choose-undo": 3.7,
@@ -94,21 +94,21 @@
   },
   "target_retention": 0.9,
   "mass": {
-    "beta": 0.8078,
-    "se": 0.1685,
-    "n": 482,
+    "beta": 0.8144,
+    "se": 0.1683,
+    "n": 483,
     "by_difficulty": {
-      "Easy": -0.5267,
-      "Medium": -0.3916,
-      "Hard": -1.6616
+      "Easy": -0.5449,
+      "Medium": -0.4373,
+      "Hard": -1.6762
     }
   },
   "fit": {
-    "trials": 301,
-    "loglik": -0.3823,
-    "baseline_loglik": -0.3918,
+    "trials": 302,
+    "loglik": -0.3883,
+    "baseline_loglik": -0.3972,
     "since": "2026-06-01",
     "half_life": 0,
-    "effective_trials": 301.0
+    "effective_trials": 302.0
   }
 }
