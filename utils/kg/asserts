@@ -1,0 +1,128 @@
+#!/usr/bin/env python3
+
+"""Generate the extra asserts for the problems the picker is about to serve.
+
+The two blocks come from utils/kg/assert_gen.py, written against the validated
+reference solution in the prepare cache. Running it again on the same problem
+grows its edge cases: the model is handed the labels already covered and hunts
+for the ones they miss. `--next N` replays the picker N
+problems ahead (kg_next.upcoming) and does them in order, so a pick arrives
+with its coverage already cached; explicit numbers do just those.
+
+The asserts are folded into .prepare_cache/<num>.json, which is where `make
+prepare` reads them from; `--dry` prints them instead. Nothing here touches
+current.py, a branch, or anything under solved/.
+"""
+
+import argparse
+import json
+import os
+import subprocess
+import sys
+import tempfile
+from importlib.machinery import SourceFileLoader
+
+from kg.assert_gen import edge_labels, extra_asserts
+from kg.stub_utils import strip_solution
+
+CACHE_DIR = ".prepare_cache"
+
+SYSTEM_PROMPT = (
+    "You generate Python test scaffolding for LeetCode solutions. Output ONLY "
+    "raw Python source - no explanations, no markdown fences, no preamble. Do "
+    "NOT use any tools; the caller writes your stdout straight to disk."
+)
+
+
+def claude(prompt, model=None):
+    r = subprocess.run(
+        ["claude", "-p", prompt,
+         *(["--model", model] if model else []),
+         "--system-prompt", SYSTEM_PROMPT,
+         "--disallowedTools", "Write,Edit,Read,Bash,NotebookEdit",
+         "--output-format", "text"],
+        capture_output=True, text=True,
+    )
+    return r.stdout.strip()
+
+
+def run(code, timeout=None):
+    """Execute a source file the way prepare.validate does."""
+    os.makedirs(CACHE_DIR, exist_ok=True)
+    with tempfile.NamedTemporaryFile("w", suffix=".py", delete=False, dir=CACHE_DIR) as f:
+        f.write(code)
+        path = f.name
+    env = dict(os.environ)
+    env["PYTHONPATH"] = os.pathsep.join(
+        ["utils", os.path.join("utils", "harness"), env.get("PYTHONPATH", "")]
+    )
+    try:
+        r = subprocess.run([sys.executable, path], capture_output=True,
+                           text=True, env=env, timeout=timeout or 120)
+        return r.returncode == 0, (r.stdout + r.stderr).strip()
+    except subprocess.TimeoutExpired as e:
+        out = (e.stdout or b"").decode() + (e.stderr or b"").decode()
+        return False, out + f"\nTimed out after {timeout or 120}s."
+    finally:
+        os.unlink(path)
+
+
+def _shared_prefix(old, new):
+    """What the two files have in common - the rest is this pass's work."""
+    end = 0
+    for i, (a, b) in enumerate(zip(old, new)):
+        if a != b:
+            break
+        end = i + 1
+    return old[:end]
+
+
+def upcoming(count):
+    """The picker's next `count` problem numbers, its own order."""
+    kg_next = SourceFileLoader(
+        "kg_next", os.path.join(os.path.dirname(os.path.abspath(__file__)), "kg_next")
+    ).load_module()
+    from kg.kg_lib import load_nodes, load_problems, load_evidence, sleep_records
+
+    nodes, problems = load_nodes(), load_problems()
+    evidence = load_evidence()
+    return kg_next.upcoming(nodes, problems, evidence, count,
+                            asleep=sleep_records(problems, evidence))
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("nums", nargs="*", help="cached leetcode numbers")
+    ap.add_argument("--next", type=int, default=0, metavar="N",
+                    help="the next N problems the picker would serve")
+    ap.add_argument("--dry", action="store_true",
+                    help="print the asserts instead of caching them")
+    ap.add_argument("--model", default=None)
+    args = ap.parse_args()
+    nums = args.nums or upcoming(getattr(args, "next") or 5)
+
+    for num in nums:
+        path = os.path.join(CACHE_DIR, f"{num}.json")
+        entry = json.load(open(path))
+        solution = entry.get("solution")
+        if not solution:
+            print(f"{num}: cache has no reference solution")
+            continue
+        before = len(edge_labels(solution))
+        merged = extra_asserts(solution, lambda p: claude(p, args.model), run)
+        if merged == solution:
+            print(f"{num}: nothing new")
+            continue
+        grown = len(edge_labels(merged)) - before
+        if not args.dry:
+            entry["solution"] = merged
+            entry["code"] = strip_solution(merged)
+            json.dump(entry, open(path, "w"))
+            print(f"{num}: cached, {grown} more edge cases ({before + grown} total)")
+        else:
+            print(f"--- {num}: {grown} more edge cases " + "-" * 20)
+            print(merged[len(_shared_prefix(solution, merged)):])
+
+
+if __name__ == "__main__":
+    main()

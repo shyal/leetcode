@@ -956,6 +956,77 @@ def park_full_lines(asleep, problems):
             "/ learn it (notes say \"learning\", make solved) / fail it (make failed)"]
 
 
+def freeze(day):
+    """Every date.today() in kg_lib and here answers `day`, so the picker can
+    be replayed forward. The caller restores what `real_clock` returned."""
+    class Frozen(date):
+        @classmethod
+        def today(cls):
+            return day
+    kg_lib.date = Frozen
+    globals()["date"] = Frozen
+
+
+def real_clock():
+    return kg_lib.date, globals()["date"]
+
+
+def restore_clock(saved):
+    kg_lib.date, globals()["date"] = saved
+
+
+def upcoming(nodes, problems, evidence, count, asleep=(), days=30):
+    """The next `count` problem numbers the picker would serve, drills
+    skipped. Same replay as `review_ahead` - every pick is granted a clean
+    unaided rep dated the replay day, so the walk moves on instead of
+    serving the same node forever - but it runs past the first exploratory
+    pick, since a problem never solved before is exactly the one whose
+    asserts are worth generating ahead of time."""
+    ev = dict(evidence)
+    problems = dict(problems)  # promotion inserts drafted entries in memory
+    exclude, out = set(), []
+    saved = real_clock()
+    start = date.today()
+    seq = 0
+    try:
+        for day_no in range(days):
+            day = start + timedelta(days=day_no)
+            freeze(day)
+            statuses = {n: node_status(n, ev, today=day) for n in nodes}
+            while len(out) < count:
+                choice = pick(nodes, problems, ev, statuses, asleep=asleep,
+                              exclude=exclude)
+                if choice is None:
+                    break
+                target, _status, pnum, _reason = choice
+                seq += 1
+                stamp = day.strftime("%Y_%m_%dT") + f"{seq:06d}_00_00Z"
+                if str(pnum).startswith("drill:"):
+                    path = due_drill(target, ev, today=day)
+                    if not path:
+                        break
+                    moves = drill_trains(path) or [target]
+                    fname = f"solved/d_{drill_solved_stem(path)}_{stamp}.py"
+                    problem = "drill"
+                else:
+                    moves = list(problems[pnum]["moves"])
+                    fname = f"solved/p{pnum}_{stamp}.py"
+                    problem = str(pnum)
+                    out.append(str(pnum))
+                exclude.add(pnum)
+                ev[fname] = {"date": day.isoformat(), "problem": problem,
+                             "moves": {m: "clean" for m in moves if m in nodes}}
+                for m in moves:
+                    if m in nodes:
+                        statuses[m] = node_status(m, ev, today=day)
+            if len(out) >= count:
+                break
+            exclude = set()  # a new day: nothing is spent yet
+        return out
+    finally:
+        restore_clock(saved)
+
+
 def review_ahead(nodes, problems, evidence, asleep=(), exclude=(), group=None,
                  days=14, cap=200):
     """(drills, problems, reached): the review picks between now and the
@@ -970,16 +1041,8 @@ def review_ahead(nodes, problems, evidence, asleep=(), exclude=(), group=None,
     problems = dict(problems)  # promotion inserts drafted entries in memory
     exclude = set(exclude)
     drills = solves = seq = 0
-    real = kg_lib.date, globals()["date"]
+    real = real_clock()
     start = date.today()
-
-    def freeze(day):
-        class Frozen(date):
-            @classmethod
-            def today(cls):
-                return day
-        kg_lib.date = Frozen
-        globals()["date"] = Frozen
 
     try:
         for day_no in range(days):
@@ -1020,7 +1083,7 @@ def review_ahead(nodes, problems, evidence, asleep=(), exclude=(), group=None,
             exclude = set()  # a new day: nothing is spent yet
         return drills, solves, False
     finally:
-        kg_lib.date, globals()["date"] = real
+        restore_clock(real)
 
 
 def review_line(drills, solves, reached):
