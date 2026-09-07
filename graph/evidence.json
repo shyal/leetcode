@@ -8277,6 +8277,20 @@
       },
       "note": "Passes given test but lacks validity tracking; destructive heap pops avoid lazy eviction.",
       "summary": "Solution stores lists of indices per number in a dictionary and pops the minimum index on find. It avoids lazy eviction by destructively removing entries rather than validating them against a current index-to-number mapping. The candidate correctly intuited the need for lazy eviction but did not implement it."
+    },
+    "solved/p2034_Stock_Price_Fluctuation_2026_09_07T08_19_02_678523_00_00Z.py": {
+      "date": "2026-09-07",
+      "problem": "2034",
+      "moves": {
+        "heap-lazy-eviction": "clean",
+        "dict-arbitrary-value": "clean"
+      },
+      "assist": {
+        "heap-lazy-eviction": "hint",
+        "dict-arbitrary-value": "hint"
+      },
+      "note": "Discussed general approach beforehand.",
+      "summary": "The code maintains three heaps (timestamps, min-prices, max-prices) and a dict of current prices by timestamp. When maximum() or minimum() queries run, they pop entries one by one from the heap; each popped entry is validated by checking if the price in the dict matches the entry's price. Stale entries (from prior updates of the same timestamp) are discarded until a valid entry is found. The dict serves as ground truth; the heaps implement lazy eviction by deferring cleanup until query time."
     }
   }
 }
