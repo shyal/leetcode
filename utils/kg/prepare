@@ -13,7 +13,7 @@ import tempfile
 import threading
 import requests
 
-from kg.assert_gen import extra_asserts, has_stress
+from kg.assert_gen import extra_asserts, has_extra
 from kg.stub_utils import sanitize, strip_solution, structure_problems
 from kg.kg_lib import clear_branch
 
@@ -344,7 +344,7 @@ def process_problem(num):
     cached = cache_load(num)
     if cached:
         title, code, solution = cached
-        if args.warm and solution and not has_stress(solution):
+        if args.warm and solution and not has_extra(solution):
             print(f"{num}. {title}: adding the extra asserts")
             merged = extra_asserts(solution, llm, validate)
             if merged is not solution:
@@ -550,9 +550,9 @@ duplicates, negatives, and constraint extremes. At most 12 lines.
         ok, _ = validate(with_edges)
         if ok:
             code = with_edges
-    # a design problem is driven by a SEQUENCE of calls, which no single
-    # expression can express: these two blocks replay a random workload and
-    # walk the boundary cases, both frozen by running this same solution.
+    # the stage above cannot express a design problem, whose answers depend on
+    # a SEQUENCE of calls: these are one self-contained line each, labelled,
+    # and frozen by running this same solution.
     code = extra_asserts(code, llm, validate)
     # current.py is derived from it, deterministically, at write time.
     # both cache fields are stored black-formatted.

@@ -2,10 +2,10 @@
 
 """Generate the extra asserts for the problems the picker is about to serve.
 
-The two blocks come from utils/kg/assert_gen.py, written against the validated
-reference solution in the prepare cache. Running it again on the same problem
-grows its edge cases: the model is handed the labels already covered and hunts
-for the ones they miss. `--next N` replays the picker N
+The asserts come from utils/kg/assert_gen.py, one self-contained line each,
+frozen by running the validated reference solution in the prepare cache.
+Running it again on the same problem grows the block: the model is handed the
+labels already covered and hunts for the ones they miss. `--next N` replays the picker N
 problems ahead (kg_next.upcoming) and does them in order, so a pick arrives
 with its coverage already cached; explicit numbers do just those.
 
@@ -24,7 +24,7 @@ import tempfile
 import threading
 from importlib.machinery import SourceFileLoader
 
-from kg.assert_gen import edge_labels, extra_asserts
+from kg.assert_gen import covered, extra_asserts
 from kg.stub_utils import strip_solution
 
 CACHE_DIR = ".prepare_cache"
@@ -100,11 +100,11 @@ def generate(num, args, say):
     solution = entry.get("solution")
     if not solution:
         return say(f"{num}: cache has no reference solution")
-    before = len(edge_labels(solution))
+    before = len(covered(solution))
     merged = extra_asserts(solution, lambda p: claude(p, args.model), run)
     if merged == solution:
         return say(f"{num}: nothing new")
-    grown = len(edge_labels(merged)) - before
+    grown = len(covered(merged)) - before
     if args.dry:
         return say(f"--- {num}: {grown} more edge cases " + "-" * 20
                    + "\n" + merged[len(_shared_prefix(solution, merged)):])
