@@ -2556,6 +2556,20 @@ def test_envrc_knobs_hold_without_direnv(tmp_path):
     assert kg_lib.load_envrc(str(tmp_path / "missing"), {}) == {}
 
 
+def test_the_envrc_knobs_do_not_reach_the_suite():
+    """kg_lib reads the repo's .envrc at import, so the operator's own knobs
+    would answer for the defaults these tests assert. conftest drops every
+    name .envrc sets before collection: with DRILL_SCHEDULER=anki in the
+    environment, eleven tests in this file went red on his machine while CI,
+    which has no .envrc, was green. A test that wants a knob sets it itself."""
+    for name in kg_lib.load_envrc(environ={}):
+        assert name not in os.environ, f"{name} reached the suite from .envrc"
+    assert kg_lib.drill_scheduler() == "node"
+    assert kg_lib.group_caps() == {}
+    assert kg_lib.new_drill_cap() is None
+    assert kg_lib.drill_review_cap() is None
+
+
 def test_a_starved_move_solved_around_on_a_carrier_is_served_forced():
     """Free-mode evidence records only what the code did, so a starved move
     whose carrier was solved another way during the run gets nothing and
