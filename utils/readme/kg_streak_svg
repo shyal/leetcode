@@ -3,19 +3,22 @@
 # kg_streak_svg - the current streak of solving days, rendered into
 # graph/streak_badge.svg for the README pipeline.
 #
-# A solving day is a Manila calendar day with at least one file in solved/
+# A solving day is a UTC calendar day with at least one file in solved/
 # that is not a FAILED file: a problem solve or a drill rep, timed or not.
-# Days come from the UTC timestamp in the filename via
-# manila_date_from_filename, never from the date digits as written. The
-# current streak counts back from today; when today has no rep yet it
-# counts back from yesterday, since the day is still open. The best streak
-# is the longest run anywhere in the history. The badge is green when
-# today already has a rep and grey while the day is still open.
+# Days come from the UTC timestamp in the filename (kg_lib.FNAME_TS_RE),
+# the clock the machine and the filenames already keep. Manila days were
+# the rule until 2026-09-07: the operator's sessions start around 04:00
+# Manila and run past midnight UTC, so a Manila midnight cut a night's
+# work in two and read a daily month as a two-day streak. The current
+# streak counts back from today; when today has no rep yet it counts back
+# from yesterday, since the day is still open. The best streak is the
+# longest run anywhere in the history. The badge is green when today
+# already has a rep and grey while the day is still open.
 
 import os
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
-from kg.kg_lib import GRAPH_DIR, REPO_ROOT, manila_date_from_filename
+from kg.kg_lib import FNAME_TS_RE, GRAPH_DIR, REPO_ROOT
 
 SOLVED = os.path.join(REPO_ROOT, "solved")
 BADGE = os.path.join(GRAPH_DIR, "streak_badge.svg")
@@ -29,9 +32,10 @@ def solving_days():
     for name in os.listdir(SOLVED):
         if "FAILED" in name or not name.endswith(".py"):
             continue
-        d = manila_date_from_filename(name)
-        if d:
-            days.add(date.fromisoformat(d))
+        m = FNAME_TS_RE.search(name)
+        if m:
+            y, mo, d = map(int, m.groups()[:3])
+            days.add(date(y, mo, d))
     return days
 
 
@@ -77,7 +81,7 @@ def main():
     if not days:
         print("no solving days")
         return
-    today = date.today()
+    today = datetime.now(timezone.utc).date()
     current, best = current_streak(days, today), best_streak(days)
     color = GREEN if today in days else MUTED
     with open(BADGE, "w") as f:

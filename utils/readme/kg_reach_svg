@@ -4,17 +4,22 @@
 # README pipeline.
 #
 # The payoff variable of the whole graph: each problem contributes the JOINT
-# probability of its walk - the product of per-move predicted recall from the
-# fitted curve (kg_lib.node_recall), so a 5-move walk of 0.9s counts ~0.59,
-# not 1. The lines are expected solvable counts, not tallies of a binary
-# all-SOLID test: per-node thresholds don't compose, and the old binary count
-# read as generous on long walks. The frontier is TODAY'S problems.json held
+# degree of its walk - the product of per-move degree of ownership
+# (kg_lib.node_axes: the weaker of the curve's memory and breadth, distinct
+# real problems the move was executed on unaided), so a 5-move walk of 0.9s
+# counts ~0.59, not 1, times the curve's slip (a remembered move is still
+# fumbled some of the time; the same factor node_recall carries). The lines
+# are expected solvable counts, not tallies of a binary all-SOLID test:
+# per-node thresholds don't compose, and the old binary count read as
+# generous on long walks. Before 2026-09-07 the factor was predicted recall
+# alone, which let a node fed by drills alone claim every problem in its
+# cell set. The frontier is TODAY'S problems.json held
 # fixed, replayed against historical node states - so the curve measures
 # skill moving under a constant yardstick, not the walk catalog growing.
-# Recall is derived, never stored: each day is node_eval() over the evidence
+# Degree is derived, never stored: each day is node_axes() over the evidence
 # recorded up to that date, with the final fitted curve (same convention as
 # calibration.svg). Two panels on a shared calendar: the expected-reach count
-# on top, the node-state composition (stacked) below - cause under effect.
+# on top, the nodes stacked by degree of ownership below - cause under effect.
 # Clock is kg_lib.MovieClock, so it plays in sync with the other animated
 # SVGs. Pure SMIL; non-SMIL viewers see today as a still.
 #
@@ -43,7 +48,9 @@ from kg.kg_lib import (
     load_evidence,
     load_nodes,
     load_problems,
-    node_eval,
+    node_axes,
+    degree_color,
+    _load_curve,
 )
 
 OUT = os.path.join(GRAPH_DIR, "reach.svg")
@@ -59,8 +66,15 @@ MUTED = "#8b949e"
 GRID = "#21262d"
 REACH_C = "#58a6ff"
 PREDICTED_C = "#bc8cff"
-STATE_C = {SOLID: "#238636", STALE: "#bb8009", FRAGILE: "#da3633", MISSING: "#6e7681"}
-STACK_ORDER = (SOLID, STALE, FRAGILE, MISSING)
+# the lower panel stacks nodes by degree of ownership, most owned at the
+# bottom, each band a step of the ramp (kg_lib.degree_color)
+STACK_ORDER = (0.75, 0.5, 0.25, 0.0)  # bucket floors, bottom-up
+STATE_C = {lo: degree_color(lo + 0.125) for lo in STACK_ORDER}
+BUCKET_LABEL = {0.75: "owned .75-1", 0.5: ".5-.75", 0.25: ".25-.5", 0.0: "under .25"}
+
+
+def bucket(degree):
+    return next((lo for lo in STACK_ORDER if degree >= lo), 0.0)
 
 
 def main():
@@ -83,6 +97,8 @@ def main():
     catalog = len(walks)
 
     move_ids = sorted(set(nodes) | {m for ws in walks.values() for w in ws for m in w})
+    curve = _load_curve()
+    slip = curve["params"].get("slip", 0.0) if curve else 0.0
 
     # daily replay: evidence grows a day at a time, statuses re-derived on it
     by_day = {}
@@ -95,9 +111,10 @@ def main():
     for i in range(clock.n_ticks):
         d = clock.first + timedelta(days=i)
         ev_t.update(by_day.get(d.isoformat(), {}))
-        statuses, recalls = {}, {}
+        degrees, recalls = {}, {}
         for m in move_ids:
-            statuses[m], _, recalls[m] = node_eval(m, ev_t, today=d)
+            ax = node_axes(m, ev_t, problems, today=d)
+            degrees[m], recalls[m] = ax.degree, (1 - slip) * ax.degree
 
         def joint(w):
             p = 1.0
@@ -111,7 +128,7 @@ def main():
         counts = dict.fromkeys(STACK_ORDER, 0)
         for nid in nodes:
             if added[nid] <= d:
-                counts[statuses[nid]] += 1
+                counts[bucket(degrees[nid])] += 1
         stacks.append(counts)
 
     frontier = len(problems)
@@ -160,7 +177,7 @@ def main():
         svg.append(f'<text x="{ML - 8}" y="{y + 4:.1f}" text-anchor="end" font-size="11" '
                    f'fill="{MUTED}">{v}</text>')
     svg.append(f'<text x="{ML}" y="{PT2 - 8}" font-size="12" fill="{INK}">'
-               'node states (the cause: taxonomy nodes by mastery status)</text>')
+               'nodes by degree of ownership (the cause: how far each move is owned)</text>')
 
     # month ticks along the bottom
     months = []
@@ -256,7 +273,7 @@ def main():
         n_fin = stacks[-1][state]
         svg.append(f'<rect x="{lx}" y="{PT2 + 6}" width="10" height="10" '
                    f'fill="{STATE_C[state]}"/>')
-        lab = f'{state.lower()} ({n_fin})'
+        lab = f'{BUCKET_LABEL[state]} ({n_fin})'
         svg.append(f'<text x="{lx + 15}" y="{PT2 + 15}" font-size="12" fill="{INK}">{lab}</text>')
         lx += 30 + 7 * len(lab)
 

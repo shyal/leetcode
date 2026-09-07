@@ -8,6 +8,7 @@
 
 import glob
 import json
+from collections import namedtuple
 import os
 import re
 import subprocess
@@ -597,20 +598,29 @@ def node_recall(node_id, evidence, today=None):
 def node_eval(node_id, evidence, today=None):
     """(status, last_relevant_date, predicted_recall) in one evidence scan —
     node_status and node_recall are views of this."""
+    return _node_curve(node_id, evidence, today)[:3]
+
+
+def _node_curve(node_id, evidence, today=None):
+    """(status, last_relevant_date, predicted_recall, memory). `memory` is
+    the curve's retention component (1 + gap/s)^(-beta) before the slip
+    factor: the number the SOLID cut is applied to, and the recall axis of
+    node_axes. node_eval drops it so its callers and the Rust golden diff
+    (kg_mock_rs) see the same three-tuple as before."""
     today = today or date.today()
     entries = [(d, v, a) for d, v, a, _, _ in
                ev_index(evidence).by_node.get(node_id, ())]  # (date, verdict, assist)
     if not entries:
-        return MISSING, None, 0.0
+        return MISSING, None, 0.0, 0.0
     entries.sort()
     last_date, last_verdict, _ = entries[-1]
     clean_dates = [d for d, v, a in entries if v == "clean" and a != "learning"]
     if last_verdict in ("struggled", "avoided") and not (
         clean_dates and clean_dates[-1] >= last_date
     ):
-        return FRAGILE, last_date, 0.0
+        return FRAGILE, last_date, 0.0, 0.0
     if not clean_dates:
-        return FRAGILE, last_date, 0.0
+        return FRAGILE, last_date, 0.0, 0.0
 
     curve = _load_curve()
     if curve:
@@ -635,11 +645,11 @@ def node_eval(node_id, evidence, today=None):
         memory = (1 + gap / stability) ** (-p["beta"])
         recall = (1 - p.get("slip", 0.0)) * memory
         status = SOLID if memory >= curve["target_retention"] else STALE
-        return status, clean_dates[-1], recall
+        return status, clean_dates[-1], recall, memory
 
     if today - clean_dates[-1] <= timedelta(days=SOLID_WINDOW_DAYS):
-        return SOLID, clean_dates[-1], 1.0
-    return STALE, clean_dates[-1], 0.0
+        return SOLID, clean_dates[-1], 1.0, 1.0
+    return STALE, clean_dates[-1], 0.0, 0.0
 
 
 DEEP_STALE_DAYS = 2 * SOLID_WINDOW_DAYS  # beyond this, a "re-solve" plays like a new problem
@@ -711,6 +721,18 @@ def _clean_reps(evidence):
             for nid, entries in ev_index(evidence).by_node.items()}
 
 
+def _at_bar(pnums, bar, problems):
+    """The distinct real problems among `pnums` that count toward `bar`:
+    Medium/Hard only for a medium bar, any real problem otherwise. Drills
+    (problem="drill") never count."""
+    kind, _ = bar
+    out = {p for p in pnums if p[:1].isdigit()}
+    if kind == "medium":
+        out = {p for p in out
+               if problem_difficulty(p, problems) in ("Medium", "Hard")}
+    return out
+
+
 def _mature_from(clean, bar, problems):
     if not clean:
         return False
@@ -718,13 +740,153 @@ def _mature_from(clean, bar, problems):
     if (dates[-1] - dates[0]).days < MATURE_SPACING_DAYS:
         return False
     kind, need = bar
-    if kind == "medium":
-        return sum(1 for _, p in clean if p[:1].isdigit()
-                   and problem_difficulty(p, problems) in ("Medium", "Hard")
-                   ) >= need
-    if kind == "real":
-        return any(p[:1].isdigit() for _, p in clean)
-    return True
+    if kind == "none":
+        return True
+    # distinct problems, not reps: two clean reps of one Medium prove memory
+    # of that problem, not that the move carries (2026-09-07)
+    return len(_at_bar({p for _, p in clean}, bar, problems)) >= need
+
+
+def proven_carriers(node_id, evidence, problems, unaided=False):
+    """The distinct real problems that gave node_id a clean non-learning rep
+    at its carry bar (carry_bar). With `unaided`, only reps taken with no
+    help count - the ownership bar of owned() applied problem by problem."""
+    pnums = {str(rec.get("problem", "")) for _, v, a, _, rec in
+             ev_index(evidence).by_node.get(node_id, ())
+             if v == "clean" and a != "learning" and (not unaided or a == "none")}
+    return _at_bar(pnums, carry_bar(node_id, problems), problems)
+
+
+# --- degree of ownership --------------------------------------------------
+# Status says whether the curve predicts recall today. It says nothing about
+# transfer: five drill reps and five distinct carriers grow the same
+# stability, so a node fed by drills alone reads as owned as one solved from
+# several sides. Degree is the weaker of two axes: memory, the curve's
+# retention component, and breadth, how many distinct real problems the move
+# has been executed on unaided. A node owns its cell set only to that degree
+# (2026-09-07).
+
+BREADTH_FULL = 3  # distinct unaided carriers at bar for breadth 1.0
+
+Axes = namedtuple("Axes", "status last memory carriers breadth degree")
+
+
+def breadth_score(carriers, bar, any_unaided):
+    """Breadth in [0, 1] from `carriers` distinct unaided carriers at `bar`.
+    No unaided clean rep at all is 0. A node no real problem carries (bar
+    "none") has nothing to prove on: one unaided rep is full breadth, the
+    deadlock reasoning of _mature_from. Otherwise a drill-only node reads
+    0.25 and each distinct carrier adds 0.25 up to BREADTH_FULL."""
+    if not any_unaided:
+        return 0.0
+    if bar[0] == "none":
+        return 1.0
+    return (1 + min(carriers, BREADTH_FULL)) / (1 + BREADTH_FULL)
+
+
+def node_axes(node_id, evidence, problems, today=None):
+    """Axes(status, last, memory, carriers, breadth, degree) for a node.
+    memory is 0 for MISSING and FRAGILE, as node_recall; degree is
+    min(memory, breadth)."""
+    status, last, _, memory = _node_curve(node_id, evidence, today)
+    bar = carry_bar(node_id, problems)
+    carriers = proven_carriers(node_id, evidence, problems, unaided=True)
+    any_unaided = any(v == "clean" and a == "none" for _, v, a, _, _ in
+                      ev_index(evidence).by_node.get(node_id, ()))
+    breadth = breadth_score(len(carriers), bar, any_unaided)
+    return Axes(status, last, memory, len(carriers), breadth, min(memory, breadth))
+
+
+def node_degree(node_id, evidence, problems, today=None):
+    """Degree of ownership in [0, 1]: node_axes(...).degree."""
+    return node_axes(node_id, evidence, problems, today).degree
+
+
+def degree_track(nodes, evidence, problems, clock):
+    """node -> [degree per tick of `clock` (kg_lib.MovieClock)], each tick
+    node_axes() over the evidence recorded up to that day against today's
+    bank. The one replay every animated chart colours its nodes from."""
+    by_date = sorted(evidence.items(), key=lambda kv: kv[1]["date"])
+    seen, k = {}, 0
+    track = {nid: [] for nid in nodes}
+    for i in range(clock.n_ticks):
+        day = clock.first + timedelta(days=i)
+        while k < len(by_date) and by_date[k][1]["date"] <= day.isoformat():
+            seen[by_date[k][0]] = by_date[k][1]
+            k += 1
+        for nid in nodes:
+            track[nid].append(round(node_axes(nid, seen, problems, day).degree, 2))
+    return track
+
+
+# --- the ownership ramp ---------------------------------------------------
+# Every drawn node is filled from one ramp over its degree of ownership:
+# the FRAGILE red at 0 sweeping through orange and amber to the green a
+# full owner reads as at 1 - the order the status colours always had,
+# made continuous. Interpolated in OKLCH (lightness, chroma and hue each
+# linear, hue the short way round through yellow); every step clears the
+# dark chart surface (#0d1117) at 4:1 or better. Red-green is the pair
+# colour-blind readers merge; the operator chose it over a one-hue green
+# ramp on 2026-09-07, the four labels having been red/yellow/green all
+# along. kg_movie_rs carries the same function; change both together.
+
+DEGREE_RAMP_BOTTOM = "#da3633"  # degree 0
+DEGREE_RAMP_TOP = "#3fb950"     # degree 1
+
+
+def _srgb_to_linear(c):
+    c /= 255
+    return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
+
+
+def _linear_to_srgb(c):
+    c = max(0.0, min(1.0, c))
+    return 12.92 * c if c <= 0.0031308 else 1.055 * c ** (1 / 2.4) - 0.055
+
+
+def _hex_to_oklab(h):
+    r, g, b = (_srgb_to_linear(int(h[i:i + 2], 16)) for i in (1, 3, 5))
+    l_ = (0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b) ** (1 / 3)
+    m_ = (0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b) ** (1 / 3)
+    s_ = (0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b) ** (1 / 3)
+    return (0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_,
+            1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_,
+            0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_)
+
+
+def _oklab_to_hex(L, a, b):
+    l_ = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3
+    m_ = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3
+    s_ = (L - 0.0894841775 * a - 1.2914855480 * b) ** 3
+    r = 4.0767416621 * l_ - 3.3077115913 * m_ + 0.2309699292 * s_
+    g = -1.2684380046 * l_ + 2.6097574011 * m_ - 0.3413193965 * s_
+    bl = -0.0041960863 * l_ - 0.7034186147 * m_ + 1.7076147010 * s_
+    return "#%02x%02x%02x" % tuple(round(_linear_to_srgb(c) * 255) for c in (r, g, bl))
+
+
+_RAMP_LCH = {}
+
+
+def _lch(hex_color):
+    import math
+    if hex_color not in _RAMP_LCH:
+        L, a, b = _hex_to_oklab(hex_color)
+        _RAMP_LCH[hex_color] = (L, math.hypot(a, b), math.atan2(b, a) % (2 * math.pi))
+    return _RAMP_LCH[hex_color]
+
+
+def degree_color(degree):
+    """The hex colour of a degree of ownership in [0, 1] on the ramp."""
+    import math
+    L0, C0, h0 = _lch(DEGREE_RAMP_BOTTOM)
+    L1, C1, h1 = _lch(DEGREE_RAMP_TOP)
+    t = max(0.0, min(1.0, float(degree)))
+    dh = (h1 - h0 + math.pi) % (2 * math.pi) - math.pi  # the short way round
+    L, C, h = L0 + (L1 - L0) * t, C0 + (C1 - C0) * t, h0 + dh * t
+    return _oklab_to_hex(L, C * math.cos(h), C * math.sin(h))
+
+
+DEGREE_LEGEND = (0.0, 0.25, 0.5, 0.75, 1.0)  # the swatches every chart's legend shows
 
 
 def mature(node_id, evidence, problems):

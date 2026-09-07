@@ -1,4 +1,4 @@
-"""kg_streak_svg: a streak is a run of consecutive Manila solving days. The
+"""kg_streak_svg: a streak is a run of consecutive UTC solving days. The
 current one counts back from today, or from yesterday while today is still
 open; the best one is the longest run in the history."""
 import os

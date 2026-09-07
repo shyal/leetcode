@@ -2010,14 +2010,14 @@ def test_prepare_loads_the_exact_drill_file_the_pick_chose(monkeypatch, tmp_path
 
 
 # --------------------------------------------------------------------------
-# rule 5: widen reach - a young move is proved on a real problem
+# the THIN kind: a young move off its ladder is proved on a real problem
 # --------------------------------------------------------------------------
 
 def test_a_young_move_is_proved_when_nothing_else_is_due(picker):
     """Every node SOLID, no summit ready, so the picker used to say nothing.
-    Reach against the drafted catalog says otherwise: `b` is SOLID but
-    young, and drafted problems wait on it. Serve the Medium that carries
-    it with every other move SOLID - the rep that matures it."""
+    `b` is SOLID but young: it has never carried a real problem at its bar.
+    Serve the Medium that carries it with every other move SOLID - the rep
+    that widens its breadth (kg_lib.node_axes) and matures it."""
     ns = nodes("a", "b")
     ps = {"1": problem(["a", "b"]), "2": problem(["a"])}
     st = {"a": (SOLID, ago(1)), "b": (SOLID, ago(1))}
@@ -2037,32 +2037,92 @@ def test_the_young_move_with_the_most_reach_goes_first(picker):
     assert picker.run(ns, ps, {}, st)[2] == "2"
 
 
-def test_a_young_move_nobody_waits_on_is_not_served(picker):
+def test_a_young_move_nobody_waits_on_is_still_proved(picker):
+    """Breadth is owed whether or not a drafted problem waits on the move:
+    a young node also holds back every summit whose route crosses it
+    (route_gaps counts immature as a gap). The count only orders THIN
+    moves and decorates the reason."""
     ns = nodes("a", "b")
     ps = {"1": problem(["a", "b"])}
     st = {"a": (SOLID, ago(1)), "b": (SOLID, ago(1))}
     picker.immature.add("b")
     picker.gain = {}
-    assert picker.run(ns, ps, {}, st) is None
+    target, status, pnum, reason = picker.run(ns, ps, {}, st)
+    assert (target, status, pnum) == ("b", SOLID, "1")
+    assert "wait on it" not in reason
 
 
-def test_a_summit_still_outranks_the_reach_rule(picker):
+def test_a_thin_move_outranks_a_summit(picker):
+    """THIN sits in the frontier, ahead of new ground: a summit is a pure
+    combination rep, and a move not yet proven on a second problem is
+    ground still being laid. Once b is mature the summit is served."""
     ns = nodes("a", "b")
     ps = {"1": problem(["a", "b"]), "76": problem(["a"], difficulty="Hard")}
     st = {"a": (SOLID, ago(1)), "b": (SOLID, ago(1))}
     picker.immature.add("b")
     picker.gain = {"b": 40}
+    assert picker.run(ns, ps, {}, st)[2] == "1"
+    picker.immature.clear()
     assert picker.run(ns, ps, {}, st)[2] == "76"
+
+
+def test_a_thin_move_waits_behind_a_stale_one(picker):
+    ns = nodes("a", "b", "c")
+    ps = {"1": problem(["a", "b"]), "2": problem(["a", "c"])}
+    st = {"a": (SOLID, ago(1)), "b": (SOLID, ago(1)), "c": (STALE, ago(50))}
+    picker.immature.add("b")
+    assert picker.run(ns, ps, {}, st)[0] == "c"
+
+
+def test_a_thin_move_goes_before_a_missing_one(picker):
+    ns = nodes("a", "b", "c")
+    ps = {"1": problem(["a", "b"]), "2": problem(["a", "c"])}
+    st = {"a": (SOLID, ago(1)), "b": (SOLID, ago(1)), "c": (MISSING, None)}
+    picker.immature.add("b")
+    assert picker.run(ns, ps, {}, st)[0] == "b"
+
+
+def test_a_young_move_on_its_ladder_waits_for_its_floor(picker):
+    """One unaided rep yesterday puts b on the graduating ladder; the floor
+    paces its next rep, so THIN does not fire the day after."""
+    ns = nodes("a", "b")
+    ps = {"1": problem(["a", "b"]), "2": problem(["a", "b"])}
+    st = {"a": (SOLID, ago(1)), "b": (SOLID, ago(1))}
+    ev = evidence(solve("1", {"a": "clean", "b": "clean"}, days_ago=1))
+    picker.immature.add("b")
+    assert picker.run(ns, ps, ev, st) is None
+
+
+def test_thin_moves_order_by_degree(picker, monkeypatch):
+    """Two young moves, both off the ladder (a 30-day gap survived): the
+    one with the lower degree of ownership (kg_lib.node_degree) is proved
+    first, whatever waits on the other. c has one unaided carrier at its
+    bar (breadth 0.5); b has only its drill (0.25)."""
+    monkeypatch.setattr(kg_lib, "_load_curve", lambda: None)
+    ns = nodes("a", "b", "c")
+    ps = {"1": problem(["a", "b"]), "2": problem(["a", "c"]), "3": problem(["a", "c"])}
+    st = {n: (SOLID, ago(1)) for n in ns}
+    ev = evidence(solve("2", {"c": "clean"}, days_ago=40),
+                  solve("2", {"c": "clean"}, days_ago=10),
+                  {"solved/d_Thing_1.py": {"date": iso(40), "problem": "drill",
+                                           "moves": {"b": "clean"}}},
+                  {"solved/d_Thing_2.py": {"date": iso(10), "problem": "drill",
+                                           "moves": {"b": "clean"}}})
+    picker.immature |= {"b", "c"}
+    picker.gain = {"b": 1, "c": 90}
+    assert picker.run(ns, ps, ev, st)[0] == "b"
 
 
 def test_a_medium_bar_young_move_promotes_a_drafted_medium_not_an_easy(picker):
     """The only evidenced carrier of `b` is a Medium, so its bar is Medium;
-    that carrier is warm, so the rule widens to the drafted tier - and an
-    easy there is not proof at the bar, so the Medium draft is promoted."""
+    that carrier already gave b its rep, so the floor rep widens to the
+    drafted tier - and an easy there is not proof at the bar, so the
+    Medium draft is promoted."""
     ns = nodes("a", "b")
-    ps = {"1": problem(["a", "b"])}
+    ps = {"1": problem(["a", "b"]), "2": problem(["a"])}
     st = {"a": (SOLID, ago(1)), "b": (SOLID, ago(1))}
-    ev = evidence(solve("1", {"a": "clean", "b": "clean"}, days_ago=1))
+    ev = evidence(solve("2", {"a": "clean"}, days_ago=60),  # a is off its ladder
+                  solve("1", {"a": "clean", "b": "clean"}, days_ago=30))
     picker.immature.add("b")
     picker.gain = {"b": 40}
     picker.predicted["9001"] = drafted(["a", "b"])
@@ -2184,7 +2244,7 @@ def test_drafted_hards_and_mediums_alternate_within_a_day(picker):
 
 def test_a_drafted_problem_on_a_young_move_is_not_in_reach(picker):
     ns = nodes("a", "b")
-    ps = {"1": problem(["a", "b"])}
+    ps = {"1": problem(["a"])}  # nothing evidenced carries b: THIN has no rep to serve
     st = {"a": (SOLID, ago(1)), "b": (SOLID, ago(1))}
     picker.immature.add("b")
     picker.predicted["9001"] = drafted(["a", "b"])

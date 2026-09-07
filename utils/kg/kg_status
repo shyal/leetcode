@@ -10,6 +10,12 @@
 #
 # Colors: green = SOLID, yellow = STALE, red = FRAGILE, dim = MISSING.
 # Derivation lives in kg_lib.node_status(); nothing is stored.
+#
+# Ownership is the graded axis under the labels (kg_lib.node_axes): the
+# weaker of the curve's memory and breadth, distinct real problems the move
+# was executed on unaided. The report prints its mean and a four-bucket
+# histogram; the grid prints each node's degree after its id. A graph that
+# is all green with a mean of 0.6 is remembered, not yet owned.
 
 import argparse
 import math
@@ -20,7 +26,7 @@ from rich.table import Table
 from rich.text import Text
 
 from kg.kg_lib import (
-    load_nodes, load_problems, load_evidence, node_status,
+    load_nodes, load_problems, load_evidence, node_status, node_axes,
     SOLID, STALE, FRAGILE, MISSING,
     sleep_records, sleep_state, input_tree,
 )
@@ -86,7 +92,35 @@ def eta_line(remaining, pace):
     return f"~{days} days to all green · {pace_txt}"
 
 
-def print_report(counts, n_problems, n_fading, remaining, pace):
+DEGREE_BUCKETS = ("0-.25", ".25-.5", ".5-.75", ".75-1")
+
+
+def degree_bucket(degree):
+    """Index into DEGREE_BUCKETS; 1.0 lands in the top bucket."""
+    return min(int(degree * 4), 3)
+
+
+def degree_label(degree):
+    """A node's degree beside its id in the grid: 1 when owned in full,
+    else the fraction without its leading zero (.50)."""
+    if round(degree, 2) >= 1:
+        return "1"
+    return f"{degree:.2f}"[1:]
+
+
+def ownership_lines(degrees):
+    """Two lines: mean degree with the count below 0.5, then the histogram."""
+    if not degrees:
+        return []
+    vals = list(degrees.values())
+    mean = sum(vals) / len(vals)
+    low = sum(1 for v in vals if v < 0.5)
+    hist = Counter(degree_bucket(v) for v in vals)
+    cells = "  ".join(f"{DEGREE_BUCKETS[i]}: {hist.get(i, 0)}" for i in range(4))
+    return [f"ownership: mean {mean:.2f} · {low} below 0.5", f"[dim]{cells}[/dim]"]
+
+
+def print_report(counts, n_problems, n_fading, remaining, pace, degrees=None):
     total = sum(counts.values())
     console.print(f"\n[bold]Technique graph[/bold] · {total} nodes")
     table = Table(show_header=False, box=None, padding=(0, 2))
@@ -109,9 +143,11 @@ def print_report(counts, n_problems, n_fading, remaining, pace):
         extras.append(f"{n_fading} fade within 7 days")
     console.print("[dim]" + " · ".join(extras) + "[/dim]")
     console.print(eta_line(remaining, pace))
+    for line in ownership_lines(degrees or {}):
+        console.print(line)
 
 
-def print_grid(groups):
+def print_grid(groups, degrees=None):
     table = Table(title="by group", title_style="dim", show_header=False, box=None, padding=(0, 1))
     table.add_column("group", style="bold", no_wrap=True)
     table.add_column("nodes")
@@ -121,6 +157,8 @@ def print_grid(groups):
             if i:
                 line.append("  ")
             line.append(node_id, style=STYLE[status])
+            if degrees:
+                line.append(":" + degree_label(degrees[node_id]), style="dim")
         table.add_row(group, line)
     console.print()
     console.print(table)
@@ -149,20 +187,23 @@ def main():
 
     nodes = load_nodes()
     evidence = load_evidence()
+    problems = load_problems()
     groups = defaultdict(list)
     counts = Counter()
+    degrees = {}
     for node_id, node in nodes.items():
-        status, _ = node_status(node_id, evidence)
-        groups[node["group"]].append((node_id, status))
-        counts[status] += 1
+        ax = node_axes(node_id, evidence, problems)
+        groups[node["group"]].append((node_id, ax.status))
+        counts[ax.status] += 1
+        degrees[node_id] = ax.degree
 
     remaining = counts[STALE] + counts[FRAGILE] + counts[MISSING]
     pace = greened_per_day(nodes, evidence)
-    print_report(counts, len(load_problems()), fading_count(nodes, evidence),
-                 remaining, pace)
+    print_report(counts, len(problems), fading_count(nodes, evidence),
+                 remaining, pace, degrees)
     if not args.summary:
-        print_grid(groups)
-    print_sleep(nodes, load_problems(), evidence)
+        print_grid(groups, degrees)
+    print_sleep(nodes, problems, evidence)
 
 
 if __name__ == "__main__":

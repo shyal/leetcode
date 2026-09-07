@@ -11,7 +11,7 @@
 # away from every other node. Each node is a <g> whose translate and
 # scale are keyframed once per rotation frame (perspective projection of the
 # turning layout); each edge is a <path> whose d is keyframed the same way.
-# Colour follows kg_lib.node_status day by day on the shared MovieClock, so
+# Colour follows kg_lib.node_degree day by day on the shared MovieClock, so
 # this, kg_movie and the other replays show the same history at the same
 # moment. Pure SMIL, so it animates inside GitHub's <img> pipeline.
 
@@ -20,8 +20,9 @@ import os
 import sys
 from datetime import timedelta
 
-from kg.kg_lib import (FRAGILE, GRAPH_DIR, MISSING, SOLID, STALE, MovieClock, era_banner,
-                       exercises_by_day, load_evidence, load_nodes, node_status)
+from kg.kg_lib import (DEGREE_LEGEND, GRAPH_DIR, MISSING, MovieClock, degree_color, degree_track,
+                       era_banner, exercises_by_day, load_evidence, load_nodes, load_problems,
+                       node_status)
 
 OUT = os.path.join(GRAPH_DIR, "kg_3d.svg")
 
@@ -44,7 +45,6 @@ MUTED = "#8b949e"
 EDGE = "#30363d"
 EDGE_LIT = "#58a6ff"
 GOLD = "#ffd75f"
-FILL = {SOLID: "#238636", STALE: "#bb8009", FRAGILE: "#da3633", MISSING: "#6e7681"}
 
 
 def layout(nodes):
@@ -180,9 +180,9 @@ def main():
     turn = clock.dur * TURNS_PER_LOOP
     pts = layout(nodes)
 
-    # per-node status for every tick of the replay. node_status reads every
-    # record it is given, so feed it the prefix of the history up to each day
-    # (the same dict grown in place, which ev_index extends incrementally).
+    # per-node status for every tick (edges light up between evidenced
+    # nodes); node_status reads the prefix of the history, the same dict
+    # grown in place, which ev_index extends incrementally
     by_date = sorted(evidence.items(), key=lambda kv: kv[1]["date"])
     seen, k = {}, 0
     status = {nid: [] for nid in nodes}
@@ -193,6 +193,8 @@ def main():
             k += 1
         for nid in nodes:
             status[nid].append(node_status(nid, seen, day)[0])
+    # and the degree of ownership the nodes are coloured by (kg_lib.degree_track)
+    degree = degree_track(nodes, evidence, load_problems(), clock)
     # a node is drawn only from the day it entered the taxonomy
     present = {nid: [(clock.first + timedelta(days=i)).isoformat() >= n.get("added", "")
                      for i in range(clock.n_ticks)] for nid, n in nodes.items()}
@@ -232,7 +234,7 @@ def main():
            f'<text x="24" y="34" fill="{INK}" font-size="20" font-weight="bold">technique graph</text>',
            f'<text x="24" y="56" fill="{MUTED}" font-size="13">{len(nodes)} moves, '
            f'{sum(len(n.get("prereqs", [])) for n in nodes.values())} prerequisite edges; '
-           f'colour is the status derived from evidence.json on that day</text>']
+           f'colour is the degree of ownership derived from evidence.json on that day</text>']
 
     # month ticker, top right
     from datetime import date
@@ -279,7 +281,7 @@ def main():
         sc = [f"{f:.3f}" for _, _, f in fr]
         op = [f"{depth_alpha(f):.2f}" for _, _, f in fr]
         lab_op = [f"{max(0.0, (depth_alpha(f) - 0.72) / 0.28):.2f}" for _, _, f in fr]
-        sv, st = status_track([FILL[s] for s in status[nid]], clock)
+        sv, st = status_track([degree_color(d) for d in degree[nid]], clock)
         svg.append(
             gate(present[nid], clock)
             + f'<g transform="translate({tr[0]}) scale({sc[0]})">'
@@ -288,10 +290,10 @@ def main():
             f'<animateTransform attributeName="transform" type="scale" additive="sum" '
             f'calcMode="linear" values="{";".join(sc)}" dur="{turn}s" repeatCount="indefinite"/>'
             + anim("opacity", op, turn)
-            + f'<circle r="{NODE_R * 1.9:.1f}" fill="{FILL[status[nid][0]]}" opacity="0.22">'
+            + f'<circle r="{NODE_R * 1.9:.1f}" fill="{sv[0]}" opacity="0.22">'
             f'<animate attributeName="fill" calcMode="discrete" values="{sv}" keyTimes="{st}" '
             f'dur="{clock.dur}s" repeatCount="indefinite"/></circle>'
-            f'<circle r="{NODE_R}" fill="{FILL[status[nid][0]]}" stroke="{BG}" stroke-width="1.2">'
+            f'<circle r="{NODE_R}" fill="{sv[0]}" stroke="{BG}" stroke-width="1.2">'
             f'<animate attributeName="fill" calcMode="discrete" values="{sv}" keyTimes="{st}" '
             f'dur="{clock.dur}s" repeatCount="indefinite"/></circle>'
             f'<text x="{NODE_R + 3:.0f}" y="3.5" fill="{INK}" font-family="Helvetica, Arial, sans-serif" '
@@ -304,12 +306,14 @@ def main():
 
     svg.append("</g>")
 
-    # legend
+    # legend: the ownership ramp
     x = 24
-    for s in (SOLID, STALE, FRAGILE, MISSING):
-        svg.append(f'<circle cx="{x + 5}" cy="{H - 24}" r="5" fill="{FILL[s]}"/>')
-        svg.append(f'<text x="{x + 16}" y="{H - 20}" fill="{MUTED}" font-size="12">{s.lower()}</text>')
-        x += 80
+    svg.append(f'<text x="{x}" y="{H - 20}" fill="{MUTED}" font-size="12">degree of ownership</text>')
+    x += 130
+    for d in DEGREE_LEGEND:
+        svg.append(f'<circle cx="{x + 5}" cy="{H - 24}" r="5" fill="{degree_color(d)}"/>')
+        svg.append(f'<text x="{x + 14}" y="{H - 20}" fill="{MUTED}" font-size="12">{d:.2f}</text>')
+        x += 52
     svg.append(clock.dissolve_rect(W, H, BG))
     svg.append("</svg>")
     with open(OUT, "w") as f:
