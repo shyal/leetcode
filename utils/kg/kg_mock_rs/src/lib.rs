@@ -295,7 +295,12 @@ pub fn node_status(node: &str, evidence: &[EvRec], today: NaiveDate, cv: &Curve)
     }
 }
 
-pub fn current_recall(node_ids: &[String], evidence: &[EvRec], cv: &Curve, today: NaiveDate) -> Vec<f64> {
+pub fn current_recall(
+    node_ids: &[String],
+    evidence: &[EvRec],
+    cv: &Curve,
+    today: NaiveDate,
+) -> Vec<Option<f64>> {
     node_ids
         .iter()
         .map(|nid| {
@@ -311,16 +316,14 @@ pub fn current_recall(node_ids: &[String], evidence: &[EvRec], cv: &Curve, today
                 days.dedup();
                 days.len() as f64
             };
-            if status == MISSING || last.is_none() {
-                return 0.25;
+            // a move he has never had clean has no recall at all: the
+            // cold-solve model charges it the fitted unseen term instead of
+            // an assumed number
+            if status == MISSING || last.is_none() || cleans == 0.0 {
+                return None;
             }
             let s = (cv.a + cv.b * (1.0 + cleans).ln()).exp().max(7.0).min(3650.0);
-            let rec = (1.0 + (today - last.unwrap()).num_days() as f64 / s).powf(-cv.beta);
-            if status == FRAGILE {
-                rec * 0.5
-            } else {
-                rec
-            }
+            Some((1.0 + (today - last.unwrap()).num_days() as f64 / s).powf(-cv.beta))
         })
         .collect()
 }
@@ -351,8 +354,72 @@ pub fn ts_match(s: &str) -> String {
     String::new()
 }
 
-pub const REC_POWER: [f64; 3] = [0.5, 1.0, 1.6];
-pub const SCENARIOS: [(&str, f64); 3] = [("cautious", 0.75), ("central", 0.85), ("optimistic", 0.95)];
+// The cold-solve model fitted by utils/kg/kg_curve (curve.json "solve"):
+// logit P(solve a problem cold, unaided, inside the clock) = intercept
+// + rating*(contest rating - 1500)/400 + recall*(the walk's summed log
+// recall) + unseen*(its count of never-met moves). Nothing here is
+// per-difficulty: the label only says which pool a problem is drawn from.
+#[derive(Clone, Copy, Default)]
+pub struct SolveModel {
+    pub intercept: f64,
+    pub rating: f64,
+    pub recall: f64,
+    pub unseen: f64,
+    pub intercept_se: f64,
+    /// the skill channel: measured Elo drift in points per day, and its
+    /// standard error. `gap` (elo - rating) is offered to the fit as a
+    /// feature and loses to plain rating, because his skill has not
+    /// measurably moved; the drift is what a PROJECTION advances by, so the
+    /// forecast can rise without anyone assuming that it will.
+    pub drift: f64,
+    pub drift_se: f64,
+}
+
+impl SolveModel {
+    pub fn load(v: &serde_json::Value) -> Option<SolveModel> {
+        let f = v.get("solve")?.get("features")?;
+        Some(SolveModel {
+            intercept: f.get("intercept").and_then(serde_json::Value::as_f64)?,
+            rating: f.get("rating").and_then(serde_json::Value::as_f64).unwrap_or(0.0),
+            recall: f.get("recall").and_then(serde_json::Value::as_f64).unwrap_or(0.0),
+            unseen: f.get("unseen").and_then(serde_json::Value::as_f64).unwrap_or(0.0),
+            intercept_se: v["solve"]["intercept_se"].as_f64().unwrap_or(0.0),
+            drift: v["solve"]["elo"]["drift_per_day"].as_f64().unwrap_or(0.0),
+            drift_se: v["solve"]["elo"]["drift_se"].as_f64().unwrap_or(0.0),
+        })
+    }
+
+    /// The logit shift `days` of projected practice buys: a skill gain of D
+    /// Elo points is the same as every problem being D points easier, so the
+    /// shift is -k_rating * D / 400. `z` walks the drift's standard error.
+    /// Zero drift, zero shift.
+    pub fn skill_shift(&self, days: i64, z: f64) -> f64 {
+        -self.rating * (self.drift + z * self.drift_se) * days as f64 / 400.0
+    }
+
+    /// The scenario band at `days` into a projection: the fitted intercept's
+    /// own standard error (today's uncertainty) plus the drift's, compounded
+    /// over the horizon. Tight today, widening with the projection - and the
+    /// central line moves only by the drift his games actually show.
+    pub fn scenarios(&self, days: i64) -> [(&'static str, f64); 3] {
+        let z = 1.96 * self.intercept_se;
+        [
+            ("cautious", -z + self.skill_shift(days, -1.96)),
+            ("central", self.skill_shift(days, 0.0)),
+            ("optimistic", z + self.skill_shift(days, 1.96)),
+        ]
+    }
+
+    /// One walk's linear predictor.
+    pub fn logit(&self, rating: f64, ln_recall: f64, unseen: f64) -> f64 {
+        self.intercept + self.rating * (rating - 1500.0) / 400.0
+            + self.recall * ln_recall + self.unseen * unseen
+    }
+}
+
+pub fn sigmoid(z: f64) -> f64 {
+    1.0 / (1.0 + (-z).exp())
+}
 
 // ---------------------------------------------------------------- the bank --
 // Real problems replace the old fabricated walks (guessed WALK_LEN /
@@ -373,9 +440,12 @@ pub struct SolveCost {
     pub a: f64,
     pub g_reps: f64,
     pub g_conn: f64,
+    pub g_len: f64,
     pub conn_mean: f64,
     pub min: f64,
     pub max: f64,
+    /// per difficulty, the fitted kind intercept (Easy is the baseline, 0)
+    pub kind: [f64; 3],
     pub nodes: Vec<Option<(f64, f64, f64)>>, // node index -> (eff, conn, kind intercept)
 }
 
@@ -400,11 +470,27 @@ impl SolveCost {
             a: f("a")?,
             g_reps: f("g_reps")?,
             g_conn: f("g_conn")?,
+            g_len: f("g_len").unwrap_or(0.0),
+            kind: [
+                f("kind_Easy").unwrap_or(0.0),
+                f("kind_Medium").unwrap_or(0.0),
+                f("kind_Hard").unwrap_or(0.0),
+            ],
             conn_mean: f("conn_mean")?,
             min: f("min_cost").unwrap_or(1.0),
             max: f("max_cost").unwrap_or(40.0),
             nodes,
         })
+    }
+
+    /// Minutes one fresh solve of a difficulty-`dif` problem costs, from the
+    /// same fitted model: no prior reps, average connectivity, a walk of
+    /// `walk_len` moves. Replaces the flat 23/40/90-minute budgets.
+    pub fn solve_minutes(&self, dif: usize, walk_len: f64) -> f64 {
+        (self.a + self.g_len * walk_len.max(1.0).ln() + self.kind[dif])
+            .exp()
+            .max(self.min)
+            .min(self.max)
     }
 
     pub fn minutes(&self, n: usize, reps: i64) -> f64 {
@@ -422,33 +508,15 @@ impl SolveCost {
     }
 }
 
-// The rehearsal-mass term of the pass model (kg_lib.mass_term /
-// mass_adjust): x[dif][prob][walk] = ln(1 + carrier count of the walk's
-// rarest move), reff[dif] = the pool mean of the best-walk x, beta the fitted
-// log-odds per unit of x from curve.json "mass" (0 = inert). A problem's p
-// is shifted on the logit scale by beta * (x - reff).
-#[derive(Clone, Default)]
-pub struct Mass {
-    pub beta: f64,
-    pub reff: [f64; 3],
-    pub x: [Vec<Vec<f64>>; 3],
-}
-
-pub fn mass_adjust(p: f64, x: f64, reff: f64, beta: f64) -> f64 {
-    if beta == 0.0 {
-        return p;
-    }
-    let p = p.max(1e-9).min(1.0 - 1e-9);
-    1.0 / (1.0 + (-((p / (1.0 - p)).ln() + beta * (x - reff))).exp())
-}
-
 pub struct Bank {
     pub cost: Option<SolveCost>,
     pub move_names: Vec<String>,
     pub n_known: usize,
     // pools[dif][prob] = walks; a walk = move indices (known + extras mixed)
     pub pools: [Vec<Vec<Vec<usize>>>; 3],
-    pub mass: Mass,
+    // ratings[dif][prob] = the problem's contest rating (graph/ratings.json;
+    // a problem no contest rated takes its difficulty's median)
+    pub ratings: [Vec<f64>; 3],
     // flat walk table for the forward sim's learning bookkeeping
     pub walk_prob: Vec<(usize, usize)>, // walk gid -> (dif, prob index)
     pub walk_extras: Vec<Vec<usize>>,   // walk gid -> extra ids (0-based past n_known)
@@ -467,39 +535,33 @@ impl Bank {
 }
 
 // The simulation loop itself: n_mc mock interviews on a random 2E+2M+2H set,
-// each problem drawn uniformly from its difficulty pool and scored by the
-// BEST of its real walks (recall product; an extra move costs the derive
-// rate). on_sim sees every simulated mock's per-difficulty solved counts
-// plus, per problem of the set, the weakest move in the walk that was used
-// (index into mv_recall; usize::MAX when the weakest link had no recall —
-// an off-graph move at the derive rate) and whether the problem failed.
-// pass_rates and outcome_hist are thin tallies over this — the RNG stream
-// is identical for identical inputs.
+// each problem drawn uniformly from its difficulty pool and scored by its
+// BEST real walk under the fitted cold-solve model — the problem's contest
+// rating, the walk's summed log recall, and its count of never-met moves.
+// on_sim sees every simulated mock's per-difficulty solved counts plus, per
+// problem of the set, the weakest move in the walk that was used (index into
+// mv_recall; usize::MAX when the weakest link was a move he has never met)
+// and whether the problem failed. pass_rates and outcome_hist are thin
+// tallies over this — the RNG stream is identical for identical inputs.
 pub fn run_mocks(
     mv_recall: &[Option<f64>],
     pools: &[Vec<Vec<Vec<usize>>>; 3],
-    mass: &Mass,
-    r_base: f64,
-    practice: (i64, i64, i64),
+    ratings: &[Vec<f64>; 3],
+    coef: &SolveModel,
+    shift: f64,
     rng: &mut PyRandom,
     n_mc: usize,
     mut on_sim: impl FnMut(&[i32; 3], &[(usize, bool); 6]),
 ) {
-    let (mediums, mocks, hards) = practice;
-    let grow = 1.0 - (-(mediums as f64) / 120.0).exp();
-    let time_f = [
-        0.88 + 0.07 * grow,
-        0.87 + 0.07 * grow,
-        0.40 + 0.42 * (1.0 - (-(hards as f64) / 15.0).exp()),
-    ];
-    let derive = 0.25 + 0.20 * (1.0 - (-((mocks + hards) as f64) / 30.0).exp());
-    let rec = r_base + (0.98 - r_base) * (1.0 - (-(mocks as f64) / 8.0).exp());
-    let base_p = [
-        time_f[0] * rec.powf(REC_POWER[0]),
-        time_f[1] * rec.powf(REC_POWER[1]),
-        time_f[2] * rec.powf(REC_POWER[2]),
-    ];
-    let mv_val: Vec<f64> = mv_recall.iter().map(|o| o.unwrap_or(derive)).collect();
+    // per move, its contribution to a walk's linear predictor: the recall
+    // term for a move he has met, the unseen term for one he has not
+    let term: Vec<f64> = mv_recall
+        .iter()
+        .map(|o| match o {
+            Some(r) => coef.recall * r.max(1e-3).ln(),
+            None => coef.unseen,
+        })
+        .collect();
 
     for _ in 0..n_mc {
         let mut solved = [0i32; 3];
@@ -508,29 +570,27 @@ pub fn run_mocks(
             let pool = &pools[dif];
             let prob_i = rng.randbelow(pool.len() as u32) as usize;
             let prob = &pool[prob_i];
-            // best walk: highest recall product; its weakest factor is blame
-            let (mut best_p, mut best_min_i, mut best_w) = (-1.0f64, usize::MAX, 0usize);
-            for (wi, walk) in prob.iter().enumerate() {
-                let mut prod = 1.0;
+            // best walk: highest linear predictor; its weakest move is blame
+            let (mut best_z, mut best_min_i) = (f64::NEG_INFINITY, usize::MAX);
+            for walk in prob.iter() {
+                let mut z = 0.0;
                 let (mut min_v, mut min_i) = (f64::INFINITY, usize::MAX);
                 for &mv in walk {
-                    let v = mv_val[mv];
+                    let v = term[mv];
                     if v < min_v {
                         min_v = v;
                         min_i = if mv_recall[mv].is_some() { mv } else { usize::MAX };
                     }
-                    prod *= v;
+                    z += v;
                 }
-                if prod > best_p {
-                    best_p = prod;
+                if z > best_z {
+                    best_z = z;
                     best_min_i = min_i;
-                    best_w = wi;
                 }
             }
-            let mut p = base_p[dif] * best_p;
-            if mass.beta != 0.0 {
-                p = mass_adjust(p, mass.x[dif][prob_i][best_w], mass.reff[dif], mass.beta);
-            }
+            // logit(rating, 0, 0) is the intercept plus the rating term;
+            // best_z already carries the walk's recall and unseen terms
+            let p = sigmoid(coef.logit(ratings[dif][prob_i], 0.0, 0.0) + best_z + shift);
             let ok = rng.random() < p;
             solved[dif] += ok as i32;
             probs[pi] = (best_min_i, !ok);
@@ -544,7 +604,8 @@ impl Bank {
     // (drafted walks + missing: suggestions), problems_metadata.json
     // (difficulty for problems only the drafts know).
     pub fn build(problems: &serde_json::Value, predicted: &serde_json::Value,
-                 metadata: &serde_json::Value, node_ids: &[String]) -> Bank {
+                 metadata: &serde_json::Value, node_ids: &[String],
+                 ratings: &serde_json::Value) -> Bank {
         use serde_json::Value;
         let norm = |s: &str| s.trim().to_lowercase().replace(' ', "-");
         let dif_of = |num: &str, obj: &serde_json::Map<String, Value>| -> Option<usize> {
@@ -616,44 +677,32 @@ impl Bank {
             move_names.push(name.clone());
         }
 
-        // rehearsal mass: carrier counts over problems.json primary walks
-        // (kg_lib.carrier_counts), x per walk = ln(1 + count of its rarest move)
-        let mut counts: HashMap<&str, f64> = HashMap::new();
-        let no_moves = vec![];
-        for (_, v) in probs {
-            for m in v["moves"].as_array().unwrap_or(&no_moves) {
-                if let Some(name) = m.as_str() {
-                    *counts.entry(name).or_insert(0.0) += 1.0;
-                }
-            }
-        }
         let mut bank = Bank {
             cost: None,
             move_names,
             n_known,
             pools: [vec![], vec![], vec![]],
-            mass: Mass::default(),
+            ratings: [vec![], vec![], vec![]],
             walk_prob: vec![],
             walk_extras: vec![],
             extra_walks: vec![Vec::new(); extras.len()],
         };
         let mut nums: Vec<&String> = raw.keys().collect();
         nums.sort(); // deterministic pool order -> deterministic RNG stream
+        let rating_of = |num: &str| ratings.get(num).and_then(Value::as_f64);
+        let median_rating: [f64; 3] = [0, 1, 2].map(|d| {
+            let mut seen: Vec<f64> = nums
+                .iter()
+                .filter(|n| raw[**n].0 == d)
+                .filter_map(|n| rating_of(n))
+                .collect();
+            seen.sort_by(|a, b| a.partial_cmp(b).unwrap());
+            if seen.is_empty() { 1500.0 } else { seen[seen.len() / 2] }
+        });
         for num in nums {
             let (dif, walks) = &raw[num];
             let pi = bank.pools[*dif].len();
             let mut iw: Vec<Vec<usize>> = vec![];
-            let xs: Vec<f64> = walks
-                .iter()
-                .map(|w| {
-                    let rarest = w
-                        .iter()
-                        .map(|m| counts.get(m.as_str()).copied().unwrap_or(0.0))
-                        .fold(f64::INFINITY, f64::min);
-                    (1.0 + if rarest.is_finite() { rarest } else { 0.0 }).ln()
-                })
-                .collect();
-            bank.mass.x[*dif].push(xs);
             for w in walks {
                 let gid = bank.walk_prob.len();
                 let ids: Vec<usize> = w.iter().map(|m| index[m.as_str()]).collect();
@@ -670,19 +719,7 @@ impl Bank {
                 iw.push(ids);
             }
             bank.pools[*dif].push(iw);
-        }
-        // the reference: pool mean of each problem's largest x, as
-        // kg_lib.mass_term computes it (max over walks, mean over the pool)
-        for dif in 0..3 {
-            let xp = &bank.mass.x[dif];
-            bank.mass.reff[dif] = if xp.is_empty() {
-                0.0
-            } else {
-                xp.iter()
-                    .map(|xs| xs.iter().cloned().fold(f64::NEG_INFINITY, f64::max))
-                    .sum::<f64>()
-                    / xp.len() as f64
-            };
+            bank.ratings[*dif].push(rating_of(num).unwrap_or(median_rating[*dif]));
         }
         bank
     }
@@ -691,14 +728,14 @@ impl Bank {
 pub fn pass_rates(
     mv_recall: &[Option<f64>],
     pools: &[Vec<Vec<Vec<usize>>>; 3],
-    mass: &Mass,
-    r_base: f64,
-    practice: (i64, i64, i64),
+    ratings: &[Vec<f64>; 3],
+    coef: &SolveModel,
+    shift: f64,
     rng: &mut PyRandom,
     n_mc: usize,
 ) -> (f64, f64, f64, f64) {
     let (mut full, mut onsite, mut screen, mut h_solved) = (0i64, 0i64, 0i64, 0i64);
-    run_mocks(mv_recall, pools, mass, r_base, practice, rng, n_mc, |solved, _| {
+    run_mocks(mv_recall, pools, ratings, coef, shift, rng, n_mc, |solved, _| {
         full += (solved[0] == 2 && solved[1] == 2 && solved[2] == 2) as i64;
         onsite += (solved[0] == 2 && solved[1] == 2 && solved[2] >= 1) as i64;
         screen += (solved[1] == 2) as i64;
@@ -718,14 +755,14 @@ pub fn pass_rates(
 pub fn outcome_hist(
     mv_recall: &[Option<f64>],
     pools: &[Vec<Vec<Vec<usize>>>; 3],
-    mass: &Mass,
-    r_base: f64,
-    practice: (i64, i64, i64),
+    ratings: &[Vec<f64>; 3],
+    coef: &SolveModel,
+    shift: f64,
     rng: &mut PyRandom,
     n_mc: usize,
 ) -> ([f64; 7], [f64; 7]) {
     let (mut hist, mut onsite_hist) = ([0i64; 7], [0i64; 7]);
-    run_mocks(mv_recall, pools, mass, r_base, practice, rng, n_mc, |solved, _| {
+    run_mocks(mv_recall, pools, ratings, coef, shift, rng, n_mc, |solved, _| {
         let t = (solved[0] + solved[1] + solved[2]) as usize;
         hist[t] += 1;
         onsite_hist[t] += (solved[0] == 2 && solved[1] == 2 && solved[2] >= 1) as i64;

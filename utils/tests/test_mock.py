@@ -62,12 +62,12 @@ def test_columns_aligned():
 
 def test_hours_override():
     out = run_mock(["3"])
-    assert "forward at 3h/day (hards from day" in out
+    assert "forward at 3h/day (solves in his measured mix" in out
 
 
 def test_measured_pace_default():
     out = run_mock()
-    m = re.search(r"forward at (\d+(?:\.\d+)?)h/day \((.*?)hards from day", out)
+    m = re.search(r"forward at (\d+(?:\.\d+)?)h/day \((.*?)solves in his measured mix", out)
     assert m, out
     # either a measured window (with the source note) or the empty-window 2h fallback
     if m.group(2):
@@ -130,3 +130,34 @@ def test_speed():
         run_mock()
         times.append(time.perf_counter() - start)
     assert min(times) < 0.5, f"kg_mock too slow: best of 3 was {min(times):.3f}s"
+
+
+def test_python_and_rust_agree_on_todays_rates():
+    """The Rust Monte Carlo and the Python closed form are two readings of the
+    same fitted cold-solve model; on today's evidence they must land on the
+    same numbers, within Monte-Carlo noise."""
+    import json
+    import sys
+    sys.path.insert(0, os.path.join(ROOT, "utils"))
+    from importlib.machinery import SourceFileLoader
+    from kg import kg_lib
+
+    curve = kg_lib._load_curve()
+    coef = kg_lib.solve_model(curve)
+    if not coef:
+        pytest.skip("no fitted cold-solve model in graph/curve.json")
+    kg_simulate = SourceFileLoader(
+        "kg_simulate", os.path.join(ROOT, "utils", "kg", "kg_simulate")).load_module()
+    nodes = kg_lib.load_nodes()
+    pools, ratings = kg_simulate.build_pools(
+        kg_lib.load_problems(), kg_lib.load_predicted(), nodes)
+    expect = kg_simulate.PassExpectation(pools, ratings, list(nodes), coef)
+    recall = kg_lib.current_recall(nodes, kg_lib.load_evidence(), curve)
+    shift = kg_lib.solve_scenarios(curve)["central"]
+    _, onsite, screen, hard = expect.rates(recall, shift)
+
+    mock = json.loads(run_mock(["--json"]))
+    for name, mine, theirs in (("onsite", onsite, mock["onsite"]),
+                               ("screen", screen, mock["screen"]),
+                               ("hard", hard, mock["hard"])):
+        assert abs(mine - theirs) < 0.02, f"{name}: python {mine:.3f} vs rust {theirs:.3f}"

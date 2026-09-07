@@ -22,21 +22,17 @@
 
 import json
 import os
-import sqlite3
 from collections import defaultdict
 from datetime import date, timedelta
 from statistics import median
 
-from kg.kg_lib import ASSIST_WEIGHT, GRAPH_DIR, REPO_ROOT, mined_solve_times
+from kg.kg_lib import GRAPH_DIR, REPO_ROOT, scored_games
 
 OUT = os.path.join(GRAPH_DIR, "elo.svg")
 BADGE = os.path.join(GRAPH_DIR, "elo_badge.svg")
 RATINGS = os.path.join(REPO_ROOT, "data", "leetcode_ratings.tsv")
 META = os.path.join(REPO_ROOT, "data", "problems_metadata.json")
-DB = os.path.join(GRAPH_DIR, "leet.db")
 
-BUDGET_MIN = {"Easy": 10, "Medium": 25, "Hard": 45}
-NEXT_TIER = {"Easy": "Medium", "Medium": "Hard", "Hard": "Hard"}
 K, START = 32, 1200.0
 RANKS = ((2200, "guardian", "#d29922"), (1850, "knight", "#58a6ff"))
 
@@ -59,17 +55,11 @@ def load_ratings():
     return r
 
 
-def assist_level(a):
-    """Stored assist is None, a level, or {move: level}; take the heaviest."""
-    if not a:
-        return "none"
-    if isinstance(a, dict):
-        return max(a.values(), key=ASSIST_WEIGHT.get)
-    return a
-
-
 def games():
-    """[(date, problem rating, score)] oldest first, one per scored attempt."""
+    """[(date, problem rating, score)] oldest first, one per scored attempt.
+    Scoring lives in kg_lib.scored_games; here each game is priced by its
+    problem's rating, with an unrated problem taking the median rating of its
+    difficulty."""
     ratings = load_ratings()
     with open(META) as f:
         meta = json.load(f)
@@ -78,31 +68,10 @@ def games():
         if pid in meta:
             by_diff[meta[pid]["difficulty"]].append(rt)
     imputed = {d: median(v) for d, v in by_diff.items()}
-    secs = {fn: s for _, _, s, fn in mined_solve_times(with_file=True)}
-    con = sqlite3.connect(DB)
-    rows = con.execute("select date, problem, assist, file, followup from solves order by date, file")
-    out = []
-    for d, pid, assist, fn, followup in rows:
-        pid = str(pid)
-        if pid not in meta:
-            continue
-        diff = meta[pid]["difficulty"]
-        rp = ratings.get(pid, imputed[diff])
-        try:
-            level = assist_level(json.loads(assist) if assist and assist.startswith("{") else assist)
-        except ValueError:
-            level = assist
-        failed = "FAILED" in fn
-        if failed:
-            s = 0.0
-        elif level in ("walkthrough", "learning") or fn not in secs:
-            continue
-        elif secs[fn] > BUDGET_MIN[NEXT_TIER[diff] if followup == "solved" else diff] * 60:
-            s = 0.0
-        else:
-            s = 0.5 if level == "hint" else 1.0
-        out.append((date.fromisoformat(d), rp, s))
-    return out
+    return [(date.fromisoformat(g["date"]),
+             ratings.get(g["problem"], imputed[g["difficulty"]]),
+             g["score"])
+            for g in scored_games()]
 
 
 def elo(gs):

@@ -2133,6 +2133,40 @@ def test_a_young_move_is_proved_when_nothing_else_is_due(picker):
     assert "40" in reason
 
 
+def test_the_proving_carrier_nearest_the_target_pass_rate_wins(picker, monkeypatch):
+    """Two carriers prove the same young move. The cold-solve model puts one
+    near the target pass rate and one well above it; the rep goes to the one
+    that can actually fail, not to the gentler problem."""
+    monkeypatch.setattr(kg_lib, "solve_model",
+                        lambda curve=None: {"intercept": 0.0, "rating": -1.0})
+    monkeypatch.setattr(kg_lib, "solve_ratings", lambda: {"1": 1500.0, "2": 1100.0})
+    monkeypatch.setattr(kg_next, "solve_model", kg_lib.solve_model)
+    monkeypatch.setattr(kg_next, "solve_ratings", kg_lib.solve_ratings)
+    ns = nodes("a", "b")
+    # problem 1 sits at p = 0.50, problem 2 at p = 0.73: 1 is the test
+    ps = {"1": problem(["a", "b"]), "2": problem(["a", "b"])}
+    st = {"a": (SOLID, ago(1)), "b": (SOLID, ago(1))}
+    picker.immature.add("b")
+    picker.gain = {"b": 40}
+    assert picker.run(ns, ps, {}, st)[2] == "1"
+
+
+def test_an_unpriced_carrier_sorts_behind_the_priced_ones(picker, monkeypatch):
+    """A problem with no contest rating cannot be placed on the scale, so it
+    keeps its old gentleness order behind every problem that can."""
+    monkeypatch.setattr(kg_lib, "solve_model",
+                        lambda curve=None: {"intercept": 0.0, "rating": -1.0})
+    monkeypatch.setattr(kg_lib, "solve_ratings", lambda: {"2": 1500.0})
+    monkeypatch.setattr(kg_next, "solve_model", kg_lib.solve_model)
+    monkeypatch.setattr(kg_next, "solve_ratings", kg_lib.solve_ratings)
+    ns = nodes("a", "b")
+    ps = {"1": problem(["a", "b"]), "2": problem(["a", "b"])}
+    st = {"a": (SOLID, ago(1)), "b": (SOLID, ago(1))}
+    picker.immature.add("b")
+    picker.gain = {"b": 40}
+    assert picker.run(ns, ps, {}, st)[2] == "2"
+
+
 def test_the_young_move_with_the_most_reach_goes_first(picker):
     ns = nodes("a", "b", "c")
     ps = {"1": problem(["a", "b"]), "2": problem(["a", "c"])}
