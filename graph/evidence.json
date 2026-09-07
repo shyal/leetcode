@@ -8356,6 +8356,15 @@
       },
       "note": "First exposure learning rep; table output demonstrates the two-prefix state structure.",
       "summary": "Longest Common Subsequence via two-sequence DP. The code maintains dp[i][j] = LCS length of a[0:i] and b[0:j]. At each cell, if a[i-1] == b[j-1], the code extends the LCS from both prefixes; otherwise it takes the max from consuming a alone or b alone. This directly exercises two-sequence-align: a two-prefix state over two sequences where each step decides whether to advance one or both pointers based on character equality."
+    },
+    "solved/p799_Champagne_Tower_FAILED_2026_09_07T15_48_06_762102_00_00Z.py": {
+      "date": "2026-09-07",
+      "problem": "799",
+      "moves": {
+        "binary-search-on-answer": "struggled"
+      },
+      "note": "Attempted binary search on cumulative row counts; problem requires simulating liquid overflow through each level.",
+      "summary": "The candidate tried to binary search for the last completely-full row based on total glasses at each level, then calculate the query glass's amount via row ratios. This is fundamentally wrong: Champagne Tower requires simulating how liquid pours through each glass, with overflow (anything above 1.0) splitting equally to the two glasses below. The solution fails on basic test cases like (1, 1, 1) returning nothing instead of 0.0."
     }
   }
 }
