@@ -8268,6 +8268,15 @@
       },
       "note": "Brute-force scan on each query instead of lazy-eviction heap.",
       "summary": "The solution maintains a defaultdict(int) counter mapping each ID to its frequency, updating it by the delta at each step and deleting IDs when their count drops to zero or below. At each step it finds the maximum frequency by scanning all counter values with max(col.values()). The code avoids the canonical heap-lazy-eviction approach: instead of pushing all frequency updates to a max-heap and lazily discarding stale entries on peek, it rebuilds the answer from scratch each time."
+    },
+    "solved/p2349_Design_a_Number_Container_System_2026_09_07T05_38_21_904882_00_00Z.py": {
+      "date": "2026-09-07",
+      "problem": "2349",
+      "moves": {
+        "dict-arbitrary-value": "clean"
+      },
+      "note": "Passes given test but lacks validity tracking; destructive heap pops avoid lazy eviction.",
+      "summary": "Solution stores lists of indices per number in a dictionary and pops the minimum index on find. It avoids lazy eviction by destructively removing entries rather than validating them against a current index-to-number mapping. The candidate correctly intuited the need for lazy eviction but did not implement it."
     }
   }
 }
