@@ -17,9 +17,11 @@ current.py, a branch, or anything under solved/.
 import argparse
 import json
 import os
+import queue
 import subprocess
 import sys
 import tempfile
+import threading
 from importlib.machinery import SourceFileLoader
 
 from kg.assert_gen import edge_labels, extra_asserts
@@ -90,6 +92,28 @@ def upcoming(count):
                             asleep=sleep_records(problems, evidence))
 
 
+def generate(num, args, say):
+    """One problem, start to finish. `say` prints it in one piece, so two
+    workers finishing together cannot interleave their output."""
+    path = os.path.join(CACHE_DIR, f"{num}.json")
+    entry = json.load(open(path))
+    solution = entry.get("solution")
+    if not solution:
+        return say(f"{num}: cache has no reference solution")
+    before = len(edge_labels(solution))
+    merged = extra_asserts(solution, lambda p: claude(p, args.model), run)
+    if merged == solution:
+        return say(f"{num}: nothing new")
+    grown = len(edge_labels(merged)) - before
+    if args.dry:
+        return say(f"--- {num}: {grown} more edge cases " + "-" * 20
+                   + "\n" + merged[len(_shared_prefix(solution, merged)):])
+    entry["solution"] = merged
+    entry["code"] = strip_solution(merged)
+    json.dump(entry, open(path, "w"))
+    say(f"{num}: cached, {grown} more edge cases ({before + grown} total)")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("nums", nargs="*", help="cached leetcode numbers")
@@ -98,30 +122,37 @@ def main():
     ap.add_argument("--dry", action="store_true",
                     help="print the asserts instead of caching them")
     ap.add_argument("--model", default=None)
+    ap.add_argument("--jobs", type=int, default=4,
+                    help="problems generated concurrently (default 4)")
     args = ap.parse_args()
     nums = args.nums or upcoming(getattr(args, "next") or 5)
 
+    work = queue.Queue()
     for num in nums:
-        path = os.path.join(CACHE_DIR, f"{num}.json")
-        entry = json.load(open(path))
-        solution = entry.get("solution")
-        if not solution:
-            print(f"{num}: cache has no reference solution")
-            continue
-        before = len(edge_labels(solution))
-        merged = extra_asserts(solution, lambda p: claude(p, args.model), run)
-        if merged == solution:
-            print(f"{num}: nothing new")
-            continue
-        grown = len(edge_labels(merged)) - before
-        if not args.dry:
-            entry["solution"] = merged
-            entry["code"] = strip_solution(merged)
-            json.dump(entry, open(path, "w"))
-            print(f"{num}: cached, {grown} more edge cases ({before + grown} total)")
-        else:
-            print(f"--- {num}: {grown} more edge cases " + "-" * 20)
-            print(merged[len(_shared_prefix(solution, merged)):])
+        work.put(num)
+    lock = threading.Lock()
+
+    def say(text):
+        with lock:
+            print(text, flush=True)
+
+    def worker():
+        while True:
+            try:
+                num = work.get_nowait()
+            except queue.Empty:
+                return
+            try:
+                generate(num, args, say)
+            except Exception as e:
+                say(f"{num}: failed ({e})")
+
+    threads = [threading.Thread(target=worker)
+               for _ in range(min(args.jobs, len(nums)) or 1)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
 
 
 if __name__ == "__main__":
