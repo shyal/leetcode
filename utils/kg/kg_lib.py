@@ -2129,6 +2129,68 @@ def anki_due(path, evidence):
     return date.fromisoformat(last) + timedelta(days=interval), interval
 
 
+def drill_recall(path, evidence, today=None):
+    """Predicted recall for one bank file, from that file's own history.
+
+    node_recall answers "can he recall this move today", pooling every
+    carrier and every representation of it. In front of a drill that is the
+    wrong question. On 2026-09-08 two-sequence-align was SOLID on four LCS
+    solves written as recursion over delete distance, while the drill asking
+    for the bottom-up table had one rep, a copy, the day before; the node
+    badge promised something the file could not deliver. So the fitted curve
+    is applied here to the file's own clean days, struggles and assistance,
+    and the number in front of him is about the thing he is about to type.
+
+    (recall, clean days, gap days, copy days). Before the file's first
+    unaided clean rep there is no recall to predict and `recall` is None,
+    but the copy count and the gap still are, and they are what sets the
+    expectation for that rep. None only when the file has no reps at all,
+    or with no fitted curve, where recall is binary and a bar would lie.
+    """
+    import math
+
+    curve = _load_curve()
+    if not curve:
+        return None
+    key = f"d_{drill_solved_stem(path)}_".lower()
+    reps = sorted((t for t in ev_index(evidence).drills if t[1].startswith(key)),
+                  key=lambda t: t[:2])
+    if not reps:
+        return None
+    by_day = {}
+    for d, _, rec in reps:
+        by_day[d] = rec  # same-day reps are one rep: the last of the day grades it
+    clean_days, struggles = [], 0
+    for d, rec in by_day.items():
+        moves = rec.get("moves") or {}
+        if not moves:
+            continue
+        if all(v == "clean" for v in moves.values()):
+            if assist_of(rec) != "learning":
+                clean_days.append(d)
+        else:
+            struggles += 1
+    copies = sum(1 for rec in by_day.values() if assist_of(rec) == "learning")
+    if not clean_days:
+        gap = max(((today or date.today()) - date.fromisoformat(max(by_day))).days, 0)
+        return None, 0, gap, copies
+    assisted = sum(ASSIST_WEIGHT[assist_of(rec)] for _, _, rec in reps)
+
+    p = curve["params"]
+    cmean = p.get("conn_mean", 0.0)
+    conn = curve.get("conn", {})
+    # the file's connectivity is its node's; a composite drill takes the
+    # widest-carried move it combines, the one holding the rest up
+    cn = max((conn[n] for n in drill_trains(path) if n in conn), default=cmean)
+    stability = math.exp(p["a"] + p["b"] * math.log1p(len(clean_days))
+                         - p["c"] * struggles - p.get("d", 0.0) * assisted
+                         + p.get("e", 0.0) * (cn - cmean))
+    stability = min(max(stability, 7), 3650)  # sanity clamp, as in _node_curve
+    gap = max(((today or date.today()) - date.fromisoformat(max(clean_days))).days, 0)
+    memory = (1 + gap / stability) ** (-p["beta"])
+    return (1 - p.get("slip", 0.0)) * memory, len(clean_days), gap, copies
+
+
 def anki_rank(path, evidence, today=None, depth=0):
     """The sort key of a bank file due on its own clock today, or None
     when it is not due (a file done today is not due). A file with reps
