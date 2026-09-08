@@ -249,6 +249,7 @@ from kg.kg_lib import (
     drill_held,
     held_behind,
     drill_after,
+    drill_recall,
     warm,
     vertex_kind,
     drill_path,
@@ -1615,6 +1616,41 @@ def _main(footer):
                 else f"{k} carrier{'' if k == 1 else 's'}")
         return f"{ax.degree:.2f} [dim]({note})[/dim]"
 
+    def recall_line(path):
+        # the drill's own recall, not its node's: the node badge pools every
+        # representation of a move, and what he is about to type is one of
+        # them (2026-09-08, LCS - SOLID node, one copied rep of the table).
+        # Naming the odds before the rep is the point: a miss at 40% is the
+        # schedule working, and only looks like failure without the number.
+        r = drill_recall(path, evidence)
+        if r is None:
+            return None
+        p, cleans, gap, copies = r
+        cells = 12
+        if p is None:
+            # copied but never yet recalled unaided. No number: 5 such reps
+            # in the history is nothing to fit, and a percentage off it
+            # would be the invention the bar exists to replace.
+            bar = f"[dim]{chr(0x2591) * cells}[/dim]"
+            seen = ("never done" if not copies else
+                    f"{copies} cop{'y' if copies == 1 else 'ies'}, {gap}d gap")
+            return (f"[dim]recall:[/dim] {bar} [cyan]no unaided rep yet[/cyan] "
+                    f"[dim]{seen} - copying is the rep, recall is the next one[/dim]")
+        for cut, colour, note in (
+            (0.85, "green", "should come back cold"),
+            (0.65, "yellow", "likely, expect to fumble the bookkeeping"),
+            (0.40, "dark_orange", "even odds - expect to reconstruct it"),
+            (0.0, "red", "expect a miss - this is a relearning rep"),
+        ):
+            if p >= cut:
+                break
+        full = max(1, min(cells, round(p * cells)))
+        solid, empty = chr(0x2588) * full, chr(0x2591) * (cells - full)
+        bar = f"[{colour}]{solid}[/{colour}][dim]{empty}[/dim]"
+        reps = f"{cleans} clean rep{'' if cleans == 1 else 's'}"
+        return (f"[dim]recall:[/dim] {bar} [{colour}]{round(p * 100)}%[/{colour}] "
+                f"[dim]{reps}, {gap}d gap - {note}[/dim]")
+
     asleep, woken = sleep_state(nodes, problems, evidence)
     if asleep:
         footer.extend(sleep_lines(nodes, problems, evidence, statuses))
@@ -1926,6 +1962,9 @@ def _main(footer):
         with console.capture() as cap:
             console.print(f"\n[bold]{name}[/bold]")
             console.print(table)
+            rl = recall_line(path)
+            if rl:
+                console.print(rl)
             print_gates(did or title, problems, evidence, labeled)
             fc = drill_forecast(path)
             if fc:
