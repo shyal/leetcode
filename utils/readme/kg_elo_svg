@@ -42,7 +42,7 @@ INK = "#c9d1d9"
 MUTED = "#8b949e"
 GRID = "#21262d"
 LINE = "#3fb950"
-ML, MR, MT, MB = 62, 24, 62, 40
+ML, MR, MT, MB = 62, 24, 44, 40
 
 
 def load_ratings():
@@ -131,13 +131,8 @@ def main():
     svg = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" '
            f'font-family="Helvetica,sans-serif">',
            f'<rect width="{W}" height="{H}" fill="{BG}"/>',
-           f'<text x="{W / 2:.0f}" y="24" text-anchor="middle" font-size="13" fill="{INK}">'
-           f'Elo on a contest clock: win inside budget (easy 10m, medium 25m, hard 45m), '
-           f'hint inside budget is a draw, fail or over budget is a loss; '
-           f'a solved follow-up plays on the next clock</text>',
-           f'<text x="{W / 2:.0f}" y="42" text-anchor="middle" font-size="11" fill="{MUTED}">'
-           f'{len(gs)} games: {n_win} wins, {n_draw} draws, {len(gs) - n_win - n_draw} losses. '
-           f'Problem ratings from LeetCode contests (zerotrac); copy reps are not games</text>']
+           f'<text x="{W / 2:.0f}" y="26" text-anchor="middle" font-size="11" fill="{MUTED}">'
+           f'{len(gs)} games, {n_win} wins, {n_draw} draws, {len(gs) - n_win - n_draw} losses</text>']
     for cut, name, color in RANKS:
         y = y_of(cut)
         svg.append(f'<rect x="{ML}" y="{top}" width="{W - ML - MR}" height="{y - top:.1f}" '
