@@ -2,14 +2,14 @@
   "_comment": "Personal forgetting curve fitted by utils/kg/kg_curve. P(recall) = (1-slip)*(1 + gap/s)^(-beta), s = exp(a + b*log1p(cleans) - c*struggles - d*assist + e*(conn - conn_mean)); cleans counts distinct clean days, same-day reps are one rep. conn is the node's log2 carrier count, frozen below at fit time; consumers that ignore e are assuming average connectivity. \"solve\" is the cold-solve model fitted by fit_solve: logit P(solve cold, unaided, inside the clock) = the listed coefficients over (rating - 1500)/400, the walk's summed log recall, and its count of never-met moves; features not listed did not earn their place on held-out games. node_status() calls a node SOLID while the memory component (1 + gap/s)^(-beta) >= target_retention; delete this file to fall back to the flat 42-day window.",
   "model": "power-law-slip",
   "params": {
-    "a": 4.1826,
-    "b": 0.5912,
-    "c": 0.264,
-    "d": 0.0644,
-    "e": 0.2037,
-    "conn_mean": 3.5714,
-    "beta": 0.1157,
-    "slip": 0.1189
+    "a": 4.1993,
+    "b": 0.5999,
+    "c": 0.2266,
+    "d": 0.0569,
+    "e": 0.1858,
+    "conn_mean": 3.5837,
+    "beta": 0.1062,
+    "slip": 0.13
   },
   "conn": {
     "backtracking-choose-undo": 3.7,
@@ -52,7 +52,7 @@
     "ll-dummy-splice": 4.248,
     "ll-offset-arithmetic": 2.322,
     "ll-pointer-reversal": 3.17,
-    "memoize-recursion": 3.322,
+    "memoize-recursion": 3.459,
     "modular-cycle": 3.907,
     "monotonic-stack": 2.585,
     "multi-source-bfs": 2.0,
@@ -82,8 +82,8 @@
     "tree-bfs-levels": 1.0,
     "tree-build-from-traversals": 1.585,
     "tree-carry-down": 4.0,
-    "tree-combine-returns": 4.248,
-    "tree-dfs-recursive": 5.524,
+    "tree-combine-returns": 4.322,
+    "tree-dfs-recursive": 5.555,
     "tree-global-across-subtrees": 2.0,
     "trie-build-walk": 2.0,
     "two-pointers-converging": 4.585,
@@ -94,38 +94,38 @@
   },
   "target_retention": 0.9,
   "mass": {
-    "beta": 0.8058,
-    "se": 0.1668,
-    "n": 485,
+    "beta": 0.7973,
+    "se": 0.166,
+    "n": 486,
     "by_difficulty": {
-      "Easy": -0.5215,
-      "Medium": -0.4871,
-      "Hard": -1.6614
+      "Easy": -0.5002,
+      "Medium": -0.5035,
+      "Hard": -1.6435
     }
   },
   "solve": {
-    "games": 654,
+    "games": 655,
     "features": {
-      "intercept": 0.921,
-      "rating": -0.807,
-      "unseen": -0.9479,
-      "recall": 3.691
+      "intercept": 0.9077,
+      "rating": -0.816,
+      "unseen": -0.9379,
+      "recall": 3.8216
     },
     "se": {
-      "intercept": 0.1079,
-      "rating": 0.1525,
-      "unseen": 0.3399,
-      "recall": 1.9208
+      "intercept": 0.1075,
+      "rating": 0.1523,
+      "unseen": 0.3398,
+      "recall": 2.1367
     },
-    "intercept_se": 0.1079,
+    "intercept_se": 0.1075,
     "elo": {
-      "now": 1691.4,
-      "drift_per_day": -0.04641,
-      "drift_se": 0.02984
+      "now": 1674.1,
+      "drift_per_day": -0.04483,
+      "drift_se": 0.02977
     },
     "lambda": 0.1,
-    "cv_loglik": -0.581,
-    "baseline_cv_loglik": -0.6115,
+    "cv_loglik": -0.5826,
+    "baseline_cv_loglik": -0.6128,
     "rejected": [
       "gap",
       "experience",
@@ -134,11 +134,11 @@
     ]
   },
   "fit": {
-    "trials": 316,
-    "loglik": -0.4023,
-    "baseline_loglik": -0.4093,
+    "trials": 319,
+    "loglik": -0.4181,
+    "baseline_loglik": -0.4235,
     "since": "2026-06-01",
     "half_life": 0,
-    "effective_trials": 316.0
+    "effective_trials": 319.0
   }
 }
