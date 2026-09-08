@@ -8551,6 +8551,15 @@
       },
       "note": "Detects and returns -1 for invalid BSTs; standard in-order traversal approach.",
       "summary": "The code solves the minimum distance problem by performing an in-order DFS traversal of the BST, which yields nodes in sorted order. It tracks the previous node's value via self.prev (tree-carry-down) and maintains the minimum difference seen so far in self.res (running-extreme). The code also detects BST invariant violations and returns -1 for invalid inputs."
+    },
+    "solved/d_Next_Day_2026_09_08T23_22_44_927345_00_00Z.py": {
+      "date": "2026-09-09",
+      "problem": "drill",
+      "moves": {
+        "sql-date-arithmetic": "clean"
+      },
+      "note": "Drill passed; candidate used SQLite date(recordDate, '+1 day') to handle month/year boundaries automatically, avoiding forbidden string slicing and day arithmetic.",
+      "summary": "The query selects recordDate and computes next_date using SQLite's date() function with a '+1 day' modifier. The solution correctly handles all edge cases (month ends, year boundary, leap years) as the REQUIRED constraint specifies, and avoids the forbidden approaches of string slicing or manual day-number arithmetic. The code exercised sql-date-arithmetic cleanly."
     }
   }
 }
