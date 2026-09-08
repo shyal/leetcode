@@ -148,7 +148,9 @@ def runtime_note(res):
         return (
             "RUNTIME RESULT (authoritative): the file was EXECUTED and exited NON-ZERO. "
             "It genuinely fails. Use the traceback below as the evidence for any "
-            "'struggled' verdict, and quote the real error in the note.\n"
+            "'struggled' verdict, and quote the real error in the note. Attribute the "
+            "failure to the ONE move the defective line belongs to; the moves that ran "
+            "correctly around it stay 'clean'.\n"
             f"{res['detail']}"
         )
     if res["status"] == "timeout":
@@ -244,7 +246,8 @@ def trains_in(code):
 def stub_entry(path, nodes, problems, now=None):
     """The placeholder `make solved` files before the judge runs: the rep,
     dated, on the moves the file is FOR - a drill's TRAINS, a problem's
-    canonical walk - marked clean (struggled for a FAILED file), assist read
+    canonical walk - marked clean; a FAILED file records the rep with no
+    moves at all, since which move broke is the judge's call. Assist read
     from the level word in the notes exactly as the judge's floor reads it.
     The picker, the caps and the rep hook count it as the rep it is; the
     judge replaces it. The pending stamp is when it was written."""
@@ -257,8 +260,13 @@ def stub_entry(path, nodes, problems, now=None):
         m = FNAME_RE.search(os.path.basename(path))
         problem = m.group(1) if m else "?"
         moves = list(problems.get(problem, {}).get("moves", []))
-    verdict = "struggled" if "_FAILED_" in os.path.basename(path) else "clean"
-    moves = {mv: verdict for mv in moves if mv in nodes}
+    # A FAILED file records the rep but NO verdicts: the stub cannot know
+    # which move the defect is in, and blanket-marking the whole walk
+    # "struggled" flips nodes the failure says nothing about (2684 lost
+    # tree-combine-returns to an off-by-one in a grid bound). The judge
+    # attributes the failure to the one move it belongs to, or to none.
+    failed = "_FAILED_" in os.path.basename(path)
+    moves = {} if failed else {mv: "clean" for mv in moves if mv in nodes}
     entry = {
         "date": manila_date_from_filename(path) or "1970-01-01",
         "problem": problem,
@@ -541,6 +549,7 @@ Rules:
 - Every file is EXECUTED for you before you see it, and the result is stated in the prompt. That result OUTWEIGHS your reading of the source in every case. If the run passed, the code is correct — no "struggled" for suspected bugs, and no note claiming a failure. Only a non-zero exit, a timeout, or the candidate's own notes (looked-up/hints/TLE/failed) justify "struggled".
 - Judge the code as written, not the problem's canonical solution. Batch math on a streaming-carrier problem means the streaming move was NOT exercised — if the canonical solution's central move was sidestepped by an alternative approach, record that move as "avoided".
 - Verdicts: "clean" (executed correctly), "struggled" (bugs/confusion visible in code or notes, e.g. notes saying looked-up/hints/TLE/failed), "avoided" (canonical move sidestepped).
+- A failing run condemns ONE move, not the whole walk. Find the defect - the line the traceback points at, the wrong bound, the missing case - and mark "struggled" only on the move that line belongs to. Every other move the code exercised correctly stays "clean": an IndexError in a grid boundary test is not evidence against the recursion or the memoization that ran fine around it. If the defect belongs to no node in the taxonomy - index arithmetic, an off-by-one in a bound, a typo - mark NO move "struggled" and say where the defect was in the note.
 - A drill file (DRILL: header) is a rung written to train exactly its TRAINS node. If it ran and its REQUIRED line is met, that node is "clean", whatever API spelling the code used: select("a", "b") trains a column-expression rung as well as select(F.col("a")) does. "avoided" is for a leetcode carrier whose central move was sidestepped, never for a drill that passed.
 - "assist" is a SEPARATE axis from the verdict, read ONLY from the candidate's own notes — never inferred from how the code looks. A confident-looking solve with a note saying it was walked through is "walkthrough"; a messy solve with no note is "none". Levels: "none" (no note claiming help), "hint" (a nudge, a question, a pointer at the wrong branch), "walkthrough" (the approach/recurrence was talked through before the code existed), "learning" (the solution was given and copied). An explicit `ASSIST: <level>` line in the notes overrides your reading. Assist is PER MOVE: when the notes say what the help was on ("assisted on the window bookkeeping, the prefix sums were mine"), put the level on that move only and leave the others out, because a level on a move says the candidate could not recall THAT move unaided. When the notes claim help without saying where, put the level on every move in "moves". Omit the key, or use {{}}, when there was no help.
 - Only include moves with real evidence in this code. 1-6 moves is typical.
