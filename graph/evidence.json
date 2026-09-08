@@ -8574,6 +8574,15 @@
       },
       "note": "Sorted array implicit in test inputs; deduplication via index-past-start comparison.",
       "summary": "Generates all unique subsets from a list containing duplicates using backtracking. Code appends each candidate to the path, recurses at the next index (using each element at most once), and pops on return. The deduplication move skips a candidate when it equals the previous element and its index is past this recursion level's start point."
+    },
+    "solved/d_Pairs_2026_09_08T23_40_05_820678_00_00Z.py": {
+      "date": "2026-09-09",
+      "problem": "drill",
+      "moves": {
+        "backtracking-start-index": "clean"
+      },
+      "note": "Drill enforces NO recursion; code correctly exercises start-index enumeration iteratively.",
+      "summary": "Two nested loops enumerate all pairs [i, j] where 0 \u2264 i < j < n in lexicographic order. The inner loop beginning at i+1 expresses the start-index pattern: candidates are the suffix from the current position onward. All assertions pass and the REQUIRED constraint (no recursion) is met."
     }
   }
 }
