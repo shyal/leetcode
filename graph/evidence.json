@@ -8532,6 +8532,15 @@
       },
       "note": "IndexError at line 54: grid[i+1][j+1] when i reaches last row. Boundary checks are wrong: line 53 i < len(grid)+1 should be i+1 < len(grid); line 50 j < len(grid[0]) should be j+1 < len(grid[0]).",
       "summary": "Attempted a recursive DFS with memoization to explore moves in three directions (northeast, east, southeast) and select the longest path. The @cache decorator memoizes the recursion, and max([ne, e, se]) + 1 combines the direction results. Multiple boundary-checking errors and incorrect base-case logic (returns 1 at the last column instead of 0) cause an IndexError when the row index reaches the grid limit."
+    },
+    "solved/p1137_N-th_Tribonacci_Number_2026_09_08T15_29_54_098435_00_00Z.py": {
+      "date": "2026-09-08",
+      "problem": "1137",
+      "moves": {
+        "memoize-recursion": "clean",
+        "dp-state-formulate": "clean"
+      },
+      "summary": "The code applies the @cache decorator to memoize a recursive function tri(n) that directly implements the Tribonacci recurrence: tri(n) = tri(n-3) + tri(n-2) + tri(n-1) for n >= 3, with base cases n <= 1 returning n and n == 2 returning 1. Both canonical moves\u2014formulating the DP state and memoizing the recursion\u2014are exercised cleanly."
     }
   }
 }
