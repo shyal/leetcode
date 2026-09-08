@@ -10,6 +10,14 @@
 
 - Operator is in Manila timezone (PHT, UTC+8); git timestamps are UTC.
 
+# The process
+
+- When the operator struggles with something, he copies the code to his iPad and
+  steps through it with the Apple Pencil, drawing a picture. That is the process.
+  It is from 2020, it is the only one with evidence behind it, and it went unused
+  for the whole repo, which is his read on the flat year (stated 2026-09-08).
+- Struggle is the trigger, not total failure. When he struggles, say it.
+
 # Coaching
 
 - Don't tell the operator when to sleep / go to bed.
