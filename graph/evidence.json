@@ -8593,6 +8593,18 @@
       },
       "note": "Unused `take` variable; otherwise textbook start-index backtracking.",
       "summary": "The solution generates all k-combinations of integers 1..n using backtracking. Each recursion level receives a start index i, iterates candidates from i onward, and recurses with the next index j+1 to ensure each element is used exactly once. The pattern maintains ascending order and prevents duplicates."
+    },
+    "solved/d_Reuse_Allowed_2026_09_08T23_57_45_905023_00_00Z.py": {
+      "date": "2026-09-09",
+      "problem": "drill",
+      "moves": {
+        "backtracking-start-index": "clean"
+      },
+      "assist": {
+        "backtracking-start-index": "hint"
+      },
+      "note": "Operator initially used helper(j + 1, ...), preventing reuse; hint led to correcting to helper(j, ...) for unlimited reuse.",
+      "summary": "The solution uses backtracking with a start index to generate all combinations that sum to a target, where each candidate can be reused. The helper function takes a start index i and iterates through candidates from i onwards; crucially, it recurses with the same index j (not j+1), allowing the selected candidate to be picked again. The code correctly appends each candidate, recurses, and pops to undo the choice."
     }
   }
 }
