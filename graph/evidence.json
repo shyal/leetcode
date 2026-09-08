@@ -8527,8 +8527,7 @@
       "problem": "2684",
       "moves": {
         "tree-dfs-recursive": "struggled",
-        "memoize-recursion": "struggled",
-        "tree-combine-returns": "struggled"
+        "memoize-recursion": "struggled"
       },
       "note": "IndexError at line 54: grid[i+1][j+1] when i reaches last row. Boundary checks are wrong: line 53 i < len(grid)+1 should be i+1 < len(grid); line 50 j < len(grid[0]) should be j+1 < len(grid[0]).",
       "summary": "Attempted a recursive DFS with memoization to explore moves in three directions (northeast, east, southeast) and select the longest path. The @cache decorator memoizes the recursion, and max([ne, e, se]) + 1 combines the direction results. Multiple boundary-checking errors and incorrect base-case logic (returns 1 at the last column instead of 0) cause an IndexError when the row index reaches the grid limit."

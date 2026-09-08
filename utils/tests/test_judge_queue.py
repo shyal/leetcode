@@ -82,10 +82,12 @@ def test_placeholder_of_a_problem_is_its_canonical_walk(graph):
     assert "assist" not in e
 
 
-def test_placeholder_of_a_failed_file_is_struggled(graph):
+def test_placeholder_of_a_failed_file_marks_no_move(graph):
+    """A failed solve records the rep with no verdicts: the stub cannot see
+    which move the defect is in, so it condemns none of them."""
     path = write(graph, "d_Slide_Never_Shrink_FAILED_2026_09_06T04_31_57_473199_00_00Z.py", DRILL)
     e = kg_extract.stub_entry(path, NODES, PROBLEMS)
-    assert set(e["moves"].values()) == {"struggled"}
+    assert e["moves"] == {} and e[kg_lib.PENDING] and e["problem"] == "drill"
 
 
 def test_unknown_trains_are_dropped_and_the_rep_still_exists(graph):
