@@ -2,14 +2,14 @@
   "_comment": "Personal forgetting curve fitted by utils/kg/kg_curve. P(recall) = (1-slip)*(1 + gap/s)^(-beta), s = exp(a + b*log1p(cleans) - c*struggles - d*assist + e*(conn - conn_mean)); cleans counts distinct clean days, same-day reps are one rep. conn is the node's log2 carrier count, frozen below at fit time; consumers that ignore e are assuming average connectivity. \"solve\" is the cold-solve model fitted by fit_solve: logit P(solve cold, unaided, inside the clock) = the listed coefficients over (rating - 1500)/400, the walk's summed log recall, and its count of never-met moves; features not listed did not earn their place on held-out games. node_status() calls a node SOLID while the memory component (1 + gap/s)^(-beta) >= target_retention; delete this file to fall back to the flat 42-day window.",
   "model": "power-law-slip",
   "params": {
-    "a": 4.1775,
-    "b": 0.5786,
-    "c": 0.2761,
-    "d": 0.0797,
-    "e": 0.2055,
-    "conn_mean": 3.5637,
-    "beta": 0.1131,
-    "slip": 0.121
+    "a": 4.1816,
+    "b": 0.5856,
+    "c": 0.281,
+    "d": 0.0816,
+    "e": 0.2009,
+    "conn_mean": 3.5667,
+    "beta": 0.114,
+    "slip": 0.1202
   },
   "conn": {
     "backtracking-choose-undo": 3.7,
@@ -107,17 +107,17 @@
     "games": 653,
     "features": {
       "intercept": 0.9156,
-      "rating": -0.8135,
+      "rating": -0.8134,
       "unseen": -0.943,
-      "recall": 3.671
+      "recall": 3.6815
     },
     "se": {
-      "intercept": 0.1081,
+      "intercept": 0.108,
       "rating": 0.1527,
       "unseen": 0.34,
-      "recall": 1.9351
+      "recall": 1.9393
     },
-    "intercept_se": 0.1081,
+    "intercept_se": 0.108,
     "elo": {
       "now": 1674.0,
       "drift_per_day": -0.04834,
@@ -134,11 +134,11 @@
     ]
   },
   "fit": {
-    "trials": 311,
-    "loglik": -0.4065,
-    "baseline_loglik": -0.4134,
+    "trials": 313,
+    "loglik": -0.4049,
+    "baseline_loglik": -0.4117,
     "since": "2026-06-01",
     "half_life": 0,
-    "effective_trials": 311.0
+    "effective_trials": 313.0
   }
 }
