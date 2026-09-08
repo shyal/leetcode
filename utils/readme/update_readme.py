@@ -1,21 +1,9 @@
 def main():
-    import git
     import os
     import re
-    import subprocess
-    import sys
-    from datetime import datetime, timedelta, date
-    from collections import defaultdict
-    import matplotlib as mpl
+    from datetime import datetime
     import boto3
-    import numpy as np
     import json
-    from history.metadata import get_problems_metadata
-    from kg.kg_lib import target_pass_rate
-
-    mpl.use("Agg")
-    import matplotlib.pyplot as plt
-
     import hashlib
     from concurrent.futures import ThreadPoolExecutor
     from boto3.s3.transfer import TransferConfig
@@ -87,278 +75,45 @@ def main():
             {"ContentType": "image/svg+xml", "ContentEncoding": "gzip"},
         )
 
-    # Solve and drill rates (utils/readme/kg_rates_svg): one SVG, two
-    # stacked panels (per day, unique per day), replacing the two matplotlib
-    # PNGs that only knew about problems.
-    rates_img = ""
-    if os.path.exists("graph/rates.svg"):
-        s3_key_rates = upload_svg_gz("graph/rates.svg", "rates")
-        rates_img = f"![Solves and drills per day](https://shyal.s3.amazonaws.com/{s3_key_rates})"
-
-    # Cumulative tooling commits versus solve commits
-    # (utils/readme/kg_commits_svg): one panel, two lines.
-    commits_img = ""
-    if os.path.exists("graph/commits.svg"):
-        s3_key_commits = upload_svg_gz("graph/commits.svg", "commits")
-        commits_img = f"![Tooling commits versus solves](https://shyal.s3.amazonaws.com/{s3_key_commits})"
-
-    # Elo on a contest clock (utils/readme/kg_elo_svg): the curve and a
-    # badge with the current number.
-    elo_img = elo_badge = ""
-    if os.path.exists("graph/elo.svg"):
-        s3_key_elo = upload_svg_gz("graph/elo.svg", "elo")
-        elo_img = f"![Elo on a contest clock](https://shyal.s3.amazonaws.com/{s3_key_elo})"
-    if os.path.exists("graph/elo_badge.svg"):
-        s3_key_elo_badge = upload_svg_gz("graph/elo_badge.svg", "elo_badge")
-        elo_badge = f"![Elo](https://shyal.s3.amazonaws.com/{s3_key_elo_badge})"
-
-    # Streak of solving days (utils/readme/kg_streak_svg): a badge with the
-    # current run and the best one.
-    streak_badge = ""
-    if os.path.exists("graph/streak_badge.svg"):
-        s3_key_streak_badge = upload_svg_gz("graph/streak_badge.svg", "streak_badge")
-        streak_badge = f"![Streak](https://shyal.s3.amazonaws.com/{s3_key_streak_badge})"
-
-    # One projection-stability chart: each model's projected ready date over
-    # run date, recomputed on the fly for EVERY day since the first evidence
-    # record (no stored snapshots): kg_mock --history-json replays the
-    # Monte-Carlo mock milestones, kg_predict --history-json the work-done
-    # simulator. Each day's point uses only the evidence and git log visible
-    # on that day; the math is today's model throughout.
-    mock_bin = "utils/kg/kg_mock_rs/target/release/kg_mock"
-    mock_history = json.loads(
-        subprocess.run([mock_bin, "--history-json"],
-                       capture_output=True, text=True, check=True).stdout
-    )
-    predict_history = json.loads(
-        subprocess.run([sys.executable, "utils/kg/kg_predict", "--history-json"],
-                       capture_output=True, text=True, check=True,
-                       env={**os.environ, "PYTHONPATH": "utils"}).stdout
-    )
-
-    projection_img = ""
-    proj_series = [
-        (mock_history, "hard_competent", "contest: mock hard-competent", "#1f77b4"),
-        (mock_history, "onsite_ready", "onsite: mock P(onsite)>=50%", "#ff7f0e"),
-        (predict_history, "ready", "work done: kg_predict", "#2ca02c"),
+    # Chart generation is disabled: the README carries the Elo chart and the two
+    # badges, nothing else. CHARTS is the whole list of what gets picked up and
+    # linked - one row per generated image. To bring a chart back, uncomment its
+    # row here and add its renderer back to the readme target in the Makefile.
+    #
+    #   (graph file, s3 prefix, README region, alt text, inline region?)
+    CHARTS = [
+        ("graph/elo.svg", "elo", "ELO_CHART", "Elo", False),
+        ("graph/elo_badge.svg", "elo_badge", "ELO_BADGE", "Elo", True),
+        ("graph/streak_badge.svg", "streak_badge", "STREAK_BADGE", "Streak", True),
+        # ("graph/rates.svg", "rates", "SOLVES_CHART", "Solves and drills per day", False),
+        # ("graph/commits.svg", "commits", "COMMITS_CHART", "Tooling commits versus solves", False),
+        # ("graph/forecast.svg", "forecast", "FORECAST_CHART", "History and forecast to a 50% pass rate", False),
+        # ("graph/calibration.svg", "curve_calibration", "CURVE_CALIBRATION_CHART", "Curve calibration", False),
+        # ("graph/residuals.svg", "residuals", "RESIDUALS_CHART", "Residuals per group over time", False),
+        # ("graph/timing.svg", "review_timing", "REVIEW_TIMING_CHART", "Review timing", False),
+        # ("graph/solvetime.svg", "solvetime", "SOLVETIME_CHART", "How solve time changes with repetition and shared moves", False),
+        # ("graph/connectivity.svg", "connectivity", "CONNECTIVITY_CHART", "Move connectivity vs solve time", False),
+        # ("graph/reach.svg", "reach", "REACH_CHART", "Problems in reach", False),
+        # ("graph/kg_pass.svg", "pass_probability", "PASS_PROB_CHART", "P(pass a mock) over time", False),
+        # ("graph/kg_swarm.svg", "mock_swarm", "MOCK_SWARM_CHART", "Individual simulated mocks over time", False),
+        # ("graph/kg_blame.svg", "mock_blame", "MOCK_BLAME_CHART", "Share of simulated problems failed, by group", False),
+        # ("graph/positions.svg", "positions", "POSITIONS_SVG", "Nodes sliding down their forgetting curves", False),
+        # ("graph/zpd.svg", "zpd", "ZPD_SVG", "The input tree of each of my last 50 solves, one per second", False),
+        # ("graph/kg_movie.svg", "kg_movie", "KG_MOVIE", "Technique graph growing solve by solve", False),
+        # ("graph/kg_3d.svg", "kg_3d", "KG_3D", "The technique graph in three dimensions, turning while the history replays", False),
+        # ("graph/kg_full.svg", "kg_full", "KG_FULL", "Every node, problem and drill with every edge, each solve blinking its vertex", False),
+        # ("graph/kg_compression.svg", "kg_compression", "KG_COMPRESSION", "One tile per node, one cell per problem or drill; tiles split as nodes are added, cells light as they are solved", False),
     ]
-    fig, ax = plt.subplots(figsize=(12, 5))
-    plotted_any = False
-    for series, key, label, color in proj_series:
-        pts = [(e["run_date"], e[key]) for e in series if e.get(key)]
-        if not pts:
+    # The two matplotlib readiness bars and the projection-stability chart went
+    # with them; they were the only consumers of kg_mock --history-json and
+    # kg_predict --history-json here (see git history to restore them).
+
+    images = []  # (region, markdown, inline?)
+    for path, prefix, region, alt, inline in CHARTS:
+        if not os.path.exists(path):
             continue
-        xs = [datetime.strptime(x, "%Y-%m-%d") for x, _ in pts]
-        ys = [datetime.strptime(y, "%Y-%m-%d") for _, y in pts]
-        ax.plot(xs, ys, label=label, color=color)
-        plotted_any = True
-    if plotted_any:
-        ax.set_title("Projected Ready Dates Over Time")
-        ax.set_xlabel("Run Date")
-        ax.set_ylabel("Projected Ready Date")
-        ax.legend()
-        fig.autofmt_xdate()
-        fig.tight_layout()
-        local_path = "/tmp/readiness_projection.png"
-        fig.savefig(local_path)
-        s3_key_projection = queue_upload(
-            local_path, "readiness_projection", "png", {"ContentType": "image/png"})
-        projection_img = f"![Projected ready dates over time](https://shyal.s3.amazonaws.com/{s3_key_projection})"
-    plt.close(fig)
-
-    if mock_history:
-        last_readiness = mock_history[-1]
-        # headline dates come from the Monte-Carlo mock milestones (contest =
-        # hard-competent, onsite = central P(onsite) >= 50%); kg_predict's
-        # work-done date is the only fallback
-        contest_date_str = last_readiness.get("hard_competent")
-        faang_date_str = last_readiness.get("onsite_ready") or predict_history[-1]["ready"]
-        faang_hours = last_readiness.get("hours")
-        run_day = datetime.strptime(last_readiness["run_date"], "%Y-%m-%d")
-
-        def days_out(d_str):
-            return (datetime.strptime(d_str, "%Y-%m-%d") - run_day).days
-
-        contest_end_str = (
-            f"{contest_date_str}, in {days_out(contest_date_str)} days"
-            if contest_date_str else None
-        )
-        faang_end_str = faang_date_str
-        if faang_end_str:
-            if faang_hours:
-                faang_end_str = f"{faang_end_str} at {faang_hours:g}h/day"
-            faang_end_str = f"{faang_end_str}, in {days_out(faang_date_str)} days"
-
-        # The bars plot the SAME quantity the projected dates are defined by:
-        # today's central Monte-Carlo pass rate, against the 50% ready mark.
-        # A 9% bar next to a 2027 date is coherent; the old graph-solidity
-        # bars (90%+ next to a far date) were not.
-        def prob_bar(p, ready_date, title, xlabel, color, fname, s3_prefix, alt):
-            fig, ax = plt.subplots(figsize=(10, 2))
-            ax.barh([0], [p * 100], height=0.5, color=color)
-            mark = target_pass_rate() * 100
-            ax.axvline(mark, color="#DD0000", linestyle="--", linewidth=1.5)
-            ax.text(mark + 1, 0.18, f"ready = {mark:.0f}%", color="#DD0000", fontsize=9)
-            ax.text(p * 100 + 1, 0, f"{p * 100:.0f}%", va="center", fontweight="bold")
-            ax.set_yticks([])
-            ax.set_xlim(0, 100)
-            ax.set_xlabel(xlabel)
-            note = f" (projected ready {ready_date})" if ready_date else ""
-            ax.set_title(title + note)
-            local_path = f"/tmp/{fname}.png"
-            fig.savefig(local_path, bbox_inches="tight")
-            s3_key = queue_upload(local_path, s3_prefix, "png", {"ContentType": "image/png"})
-            plt.close(fig)
-            alt_note = f" (Ready by {ready_date})" if ready_date else ""
-            return f"![{alt}{alt_note}](https://shyal.s3.amazonaws.com/{s3_key})"
-
-        mock_hard = last_readiness.get("hard")
-        mock_onsite = last_readiness.get("onsite")
-        contest_progress_img = ""
-        faang_progress_img = ""
-        if mock_hard is not None:
-            contest_progress_img = prob_bar(
-                mock_hard, contest_end_str,
-                "Contest Readiness",
-                "today's central P(clear a single hard), %",
-                "#1f77b4", "contest_progress", "contest_progress",
-                "Contest Readiness Progress",
-            )
-        if mock_onsite is not None:
-            faang_progress_img = prob_bar(
-                mock_onsite, faang_end_str,
-                "FAANG Interview Readiness",
-                "today's central P(pass onsite: 2E + 2M + >=1 hard), %",
-                "#ff7f0e", "faang_progress", "faang_progress",
-                "FAANG Interview Readiness Progress",
-            )
-
-    else:
-        contest_progress_img = "No readiness data."
-        faang_progress_img = "No readiness data."
-
-    # History and forecast (utils/readme/kg_forecast_svg): cumulative solves,
-    # STALE/FRAGILE counts and the pass rates day by day, then kg_simulate's
-    # run of the real picker until P(onsite) reaches 50%, on one time axis.
-    forecast_img = ""
-    if os.path.exists("graph/forecast.svg"):
-        s3_key_forecast = upload_svg_gz("graph/forecast.svg", "forecast")
-        forecast_img = f"![History and forecast to a 50% pass rate](https://shyal.s3.amazonaws.com/{s3_key_forecast})"
-
-    # Forgetting-curve calibration (utils/readme/kg_calibration_svg): model vs
-    # observed clean-recall by gap, replayed weekly as a SMIL SVG on the
-    # shared clock — the fourth synced animation.
-    curve_calibration_img = ""
-    if os.path.exists("graph/calibration.svg"):
-        s3_key_calib = upload_svg_gz("graph/calibration.svg", "curve_calibration")
-        curve_calibration_img = f"![Curve calibration](https://shyal.s3.amazonaws.com/{s3_key_calib})"
-
-    # Residuals over time (utils/readme/kg_residuals_svg): make residuals as a
-    # running z per group, stepping trial by trial on the shared clock.
-    residuals_img = ""
-    if os.path.exists("graph/residuals.svg"):
-        s3_key_residuals = upload_svg_gz("graph/residuals.svg", "residuals")
-        residuals_img = f"![Residuals per group over time](https://shyal.s3.amazonaws.com/{s3_key_residuals})"
-
-    # Review timing (utils/readme/kg_timing_svg): every recall trial's gap vs the
-    # predicted solid window — the scheduler's report card, on the shared
-    # clock.
-    review_timing_img = ""
-    if os.path.exists("graph/timing.svg"):
-        s3_key_timing = upload_svg_gz("graph/timing.svg", "review_timing")
-        review_timing_img = f"![Review timing](https://shyal.s3.amazonaws.com/{s3_key_timing})"
-
-    # Solve-time drivers (utils/readme/kg_solvetime_svg): paired re-solve ratios
-    # warm vs cold, and median minutes by move connectivity.
-    solvetime_img = ""
-    if os.path.exists("graph/solvetime.svg"):
-        s3_key_solvetime = upload_svg_gz("graph/solvetime.svg", "solvetime")
-        solvetime_img = f"![How solve time changes with repetition and shared moves](https://shyal.s3.amazonaws.com/{s3_key_solvetime})"
-
-    # Connectivity zoom (utils/readme/kg_connectivity_svg): every timed solve vs how
-    # many problems share its moves, running medians per difficulty.
-    connectivity_img = ""
-    if os.path.exists("graph/connectivity.svg"):
-        s3_key_conn = upload_svg_gz("graph/connectivity.svg", "connectivity")
-        connectivity_img = f"![Move connectivity vs solve time](https://shyal.s3.amazonaws.com/{s3_key_conn})"
-
-    # Problems in reach (utils/readme/kg_reach_svg): today's walked frontier replayed
-    # against historical node states - the payoff curve, on the shared clock.
-    reach_img = ""
-    if os.path.exists("graph/reach.svg"):
-        s3_key_reach = upload_svg_gz("graph/reach.svg", "reach")
-        reach_img = f"![Problems in reach](https://shyal.s3.amazonaws.com/{s3_key_reach})"
-
-    # P(pass) history — the headline "how good am i" line, now rendered by
-    # utils/kg/kg_movie_rs (`make movie`) as a SMIL-animated SVG synced with the
-    # technique-graph movie: the same weekly replay + kg_lib cold-mock Monte
-    # Carlo (the kg_mock lib reproduces the math bit-for-bit), revealed
-    # left-to-right on the movie's clock.
-    pass_prob_img = ""
-    if os.path.exists("graph/kg_pass.svg"):
-        s3_key_pass = upload_svg_gz("graph/kg_pass.svg", "pass_probability")
-        pass_prob_img = f"![P(pass a mock) over time](https://shyal.s3.amazonaws.com/{s3_key_pass})"
-
-    # Mock swarm (utils/kg/kg_movie_rs, same binary): individual simulated
-    # mocks with fixed dice, hopping bins as skill improves, on the shared
-    # clock.
-    mock_swarm_img = ""
-    if os.path.exists("graph/kg_swarm.svg"):
-        s3_key_swarm = upload_svg_gz("graph/kg_swarm.svg", "mock_swarm")
-        mock_swarm_img = f"![Individual simulated mocks over time](https://shyal.s3.amazonaws.com/{s3_key_swarm})"
-
-    # And the failure-attribution view (same binary): failed simulated
-    # problems blamed on the weakest move in their walk, by technique group.
-    mock_blame_img = ""
-    if os.path.exists("graph/kg_blame.svg"):
-        s3_key_blame = upload_svg_gz("graph/kg_blame.svg", "mock_blame")
-        mock_blame_img = f"![Share of simulated problems failed, by group](https://shyal.s3.amazonaws.com/{s3_key_blame})"
-
-    # Animated SVG (utils/readme/kg_positions_svg): every node sliding down its
-    # personal forgetting curve, replaying the same history on the same clock
-    # as the two SVGs above.
-    positions_svg_img = ""
-    if os.path.exists("graph/positions.svg"):
-        s3_key_positions = upload_svg_gz("graph/positions.svg", "positions")
-        positions_svg_img = f"![Nodes sliding down their forgetting curves](https://shyal.s3.amazonaws.com/{s3_key_positions})"
-
-    # Zone of proximal development (utils/readme/kg_zpd_svg): the input tree
-    # of each of the last 50 solves as `make next` drew it at the time, one
-    # solve per second, SMIL like the others.
-    zpd_svg_img = ""
-    if os.path.exists("graph/zpd.svg"):
-        s3_key_zpd = upload_svg_gz("graph/zpd.svg", "zpd")
-        zpd_svg_img = f"![The input tree of each of my last 50 solves, one per second](https://shyal.s3.amazonaws.com/{s3_key_zpd})"
-
-    # Technique-graph movie (utils/kg/kg_movie_rs, `make movie`): the history
-    # replayed as a SMIL-animated SVG. Like positions.svg it survives GitHub's
-    # camo/<img> pipeline as-is with an svg content type.
-    kg_movie_img = ""
-    if os.path.exists("graph/kg_movie.svg"):
-        s3_key_kg_movie = upload_svg_gz("graph/kg_movie.svg", "kg_movie")
-        kg_movie_img = f"![Technique graph growing solve by solve](https://shyal.s3.amazonaws.com/{s3_key_kg_movie})"
-
-    # The graph in three dimensions (utils/readme/kg_3d_svg): the same replay
-    # on the same clock, the layout turning once per three loops.
-    kg_3d_img = ""
-    if os.path.exists("graph/kg_3d.svg"):
-        s3_key_kg_3d = upload_svg_gz("graph/kg_3d.svg", "kg_3d")
-        kg_3d_img = f"![The technique graph in three dimensions, turning while the history replays](https://shyal.s3.amazonaws.com/{s3_key_kg_3d})"
-
-    # The whole graph (utils/readme/kg_full_svg): every node, problem and
-    # drill with every edge, on the same clock; solves blink their vertex.
-    kg_full_img = ""
-    if os.path.exists("graph/kg_full.svg"):
-        s3_key_kg_full = upload_svg_gz("graph/kg_full.svg", "kg_full")
-        kg_full_img = f"![Every node, problem and drill with every edge, each solve blinking its vertex](https://shyal.s3.amazonaws.com/{s3_key_kg_full})"
-
-    # The graph as a picture (utils/readme/kg_compression_svg): one tile per
-    # node, one cell per problem or drill in it; a new node splits a tile,
-    # a solve lights a cell. Same SMIL pipeline as kg_full.
-    kg_compression_img = ""
-    if os.path.exists("graph/kg_compression.svg"):
-        s3_key_kg_compression = upload_svg_gz("graph/kg_compression.svg", "kg_compression")
-        kg_compression_img = f"![One tile per node, one cell per problem or drill; tiles split as nodes are added, cells light as they are solved](https://shyal.s3.amazonaws.com/{s3_key_kg_compression})"
+        key = upload_svg_gz(path, prefix)
+        images.append((region, f"![{alt}](https://shyal.s3.amazonaws.com/{key})", inline))
 
     # push everything queued above concurrently; boto3 clients are thread-safe.
     # Any failure raises here, before the README is touched.
@@ -411,33 +166,8 @@ def main():
         readme = fill_inline(readme, "N_BANK", r["catalog"])
         readme = fill_inline(readme, "N_REACH_TODAY", f"~{round(r['predicted_reach'], -2):.0f}")
 
-    readme = fill(readme, "SOLVES_CHART", rates_img)
-    readme = fill(readme, "COMMITS_CHART", commits_img)
-    readme = fill(readme, "ELO_CHART", elo_img)
-    # the badges share one line with the tests badge, so inline regions
-    if elo_badge:
-        readme = fill_inline(readme, "ELO_BADGE", elo_badge)
-    if streak_badge:
-        readme = fill_inline(readme, "STREAK_BADGE", streak_badge)
-    readme = fill(readme, "READINESS_PROJECTION_CHART", projection_img)
-    readme = fill(readme, "KG_MOVIE", kg_movie_img)
-    readme = fill(readme, "KG_3D", kg_3d_img)
-    readme = fill(readme, "KG_FULL", kg_full_img)
-    readme = fill(readme, "KG_COMPRESSION", kg_compression_img)
-    readme = fill(readme, "MOCK_SWARM_CHART", mock_swarm_img)
-    readme = fill(readme, "MOCK_BLAME_CHART", mock_blame_img)
-    readme = fill(readme, "POSITIONS_SVG", positions_svg_img)
-    readme = fill(readme, "ZPD_SVG", zpd_svg_img)
-    readme = fill(readme, "CURVE_CALIBRATION_CHART", curve_calibration_img)
-    readme = fill(readme, "RESIDUALS_CHART", residuals_img)
-    readme = fill(readme, "REVIEW_TIMING_CHART", review_timing_img)
-    readme = fill(readme, "SOLVETIME_CHART", solvetime_img)
-    readme = fill(readme, "CONNECTIVITY_CHART", connectivity_img)
-    readme = fill(readme, "REACH_CHART", reach_img)
-    readme = fill(readme, "PASS_PROB_CHART", pass_prob_img)
-    readme = fill(readme, "CONTEST_PROGRESS", contest_progress_img)
-    readme = fill(readme, "FAANG_PROGRESS", faang_progress_img)
-    readme = fill(readme, "FORECAST_CHART", forecast_img)
+    for region, markdown, inline in images:
+        readme = (fill_inline if inline else fill)(readme, region, markdown)
 
     with open("README.md", "w") as f:
         f.write(readme)
