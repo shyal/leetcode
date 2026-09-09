@@ -2129,6 +2129,122 @@ def anki_due(path, evidence):
     return date.fromisoformat(last) + timedelta(days=interval), interval
 
 
+# A problem gets a review clock of its own, the drill clock's (SM-2), and
+# only when an attempt at it went badly: a FAILED file, any assist, or a move
+# the judge marked struggled. A problem solved cleanly unaided the first time
+# never gets a card - its moves are the node's job, and 486 carriers on a
+# clock would be the whole session.
+#
+# Until 2026-09-09 nothing in the picker read how a problem itself went.
+# Every re-serve was node-driven (a stale move's latest carrier, a deep-stale
+# repeat, unhold), so a node that went SOLID on some other carrier left the
+# problem that actually beat you untouched: 36 of the 56 problems with a bad
+# attempt had never been solved cleanly since, 227 and 207 among them.
+#
+# The grades are the drill clock's, which is the point: only an unaided
+# all-clean rep is Good, so the help that put the problem on the list can
+# never be what takes it off. The schedule is shorter than a bank file's,
+# because a card here is a debt and not a lifetime: Again puts the problem
+# 3 days out, Hard (a hinted clean rep - the answer is partly his) drifts it
+# 1.2x further, and Good retires the card. The node curve carries it from
+# there; a later bad attempt opens a new one.
+#
+# 3 days, where a bank file graduates at 1. A drill is three minutes - copy
+# today, rote tomorrow. A problem is seventeen, and a next-morning rep on one
+# whose solution was on the screen yesterday grades Good for the wrong reason
+# and retires a debt that was never paid.
+PROBLEM_GRADUATING_DAYS = 3
+
+
+def attempt_label(fname, rec):
+    """What happened on one attempt at a problem: failed, struggled, the
+    assist level, clean, or unmapped when the judge found no move in it (a
+    trivial solve is not a struggle, and grades nothing either way)."""
+    if "FAILED" in fname:
+        return "failed"
+    moves = rec.get("moves") or {}
+    if not moves:
+        return "unmapped"
+    if any(v != "clean" for v in moves.values()):
+        return "struggled"
+    level = assist_of(rec)
+    return "clean" if level == "none" else level
+
+
+# What opens a card: help, or walking away. A struggled move on an otherwise
+# unaided solve does not - the judge's verdict already shrinks that node's
+# stability, which is the node curve doing its job, and 52 such problems from
+# autumn 2025 would sit ahead of this week's on any overdue-first order. Once
+# a card IS open a struggle still fails it: the rep it waits for is clean.
+OPENS_CARD = ("failed", "learning", "walkthrough", "hint")
+
+
+def problem_grade(fname, rec):
+    """good / hard / again for one attempt, or None when it grades nothing.
+    Same bar as anki_answer, plus the FAILED file the drill clock never
+    sees."""
+    return {"clean": "good", "hint": "hard",
+            "unmapped": None}.get(attempt_label(fname, rec), "again")
+
+
+def problem_attempts(pnum, evidence):
+    """[(date str, fname, rec)] for a problem, oldest first."""
+    return sorted(ev_index(evidence).by_problem.get(str(pnum)) or [],
+                  key=lambda t: (t[0], t[1]))
+
+
+def problem_due(pnum, evidence):
+    """(due date, interval days) for a problem's own review clock, or None
+    when it has no card. One grade per day (the day's last attempt, as a bank
+    file's clock takes it): help or a walk-away opens the card (OPENS_CARD),
+    a hinted clean rep pushes it out, an unaided clean rep retires it, and
+    anything else while it is open resets it."""
+    by_day = {}
+    for d, fname, rec in problem_attempts(pnum, evidence):
+        if problem_grade(fname, rec) is not None:
+            by_day[d] = (fname, rec)
+    interval, last = 0, None
+    for d in sorted(by_day):
+        answer = problem_grade(*by_day[d])
+        if interval == 0 and attempt_label(*by_day[d]) not in OPENS_CARD:
+            continue
+        if answer == "good":
+            interval, last = 0, None  # the rep it was waiting for
+        elif answer == "hard":
+            interval = PROBLEM_GRADUATING_DAYS if interval == 0 else max(
+                interval + 1, int(interval * ANKI_HARD_FACTOR + 0.5))
+            last = d
+        else:
+            interval, last = PROBLEM_GRADUATING_DAYS, d
+    if last is None:
+        return None
+    return date.fromisoformat(last) + timedelta(days=interval), interval
+
+
+def due_problems(evidence, today=None, problems=None):
+    """[(pnum, due date, interval)] for every problem whose review clock is
+    due, most overdue first. With `problems`, only the ones that table
+    carries - the picker has to be able to show a walk."""
+    day = today or date.today()
+    out = []
+    for pnum in ev_index(evidence).by_problem:
+        if not pnum[:1].isdigit() or (problems is not None and pnum not in problems):
+            continue
+        d = problem_due(pnum, evidence)
+        if d and d[0] <= day:
+            out.append((pnum, d[0], d[1]))
+    out.sort(key=lambda t: (t[1], pnum_key(t[0])))
+    return out
+
+
+def last_attempt(pnum, evidence):
+    """(date, label) of the latest graded attempt at a problem, or None."""
+    for d, fname, rec in reversed(problem_attempts(pnum, evidence)):
+        if problem_grade(fname, rec) is not None:
+            return date.fromisoformat(d), attempt_label(fname, rec)
+    return None
+
+
 def drill_recall(path, evidence, today=None):
     """Predicted recall for one bank file, from that file's own history.
 

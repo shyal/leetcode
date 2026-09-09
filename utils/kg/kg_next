@@ -127,6 +127,17 @@
 #   Before this the same six steps lived in six rule bodies, each with its
 #   own copy of "due" and "how to get past a hold", and three holds in one
 #   evening each broke a rule that did not know them.
+#   2c. a problem on a review clock of its own (kg_lib.problem_due), served
+#      between the drill-clock moves and STALE ones. Every other rule picks
+#      a MOVE and then a carrier for it, so how a problem itself went was
+#      never read: a node that went SOLID on some other carrier left the
+#      problem that beat you untouched, and on 2026-09-09 25 problems had
+#      an unpaid one. A card is opened by help or a walk-away (a copied
+#      solution, a walkthrough, a hint, a FAILED file), pushed out by a
+#      hinted clean rep, and retired by an unaided clean one - the help
+#      that put the problem on the list can never be what takes it off.
+#      3 days, not the bank's 1: a next-morning rep on a problem whose
+#      solution was on the screen yesterday is a typing exercise.
 #   3b. frontier mover (PLAN.md phase 4), step d above: a due node with no
 #      UNSOLVED mapped carrier (one it has never been given is waited for
 #      even when warm, asleep, or spent today; one it has already solved is
@@ -241,6 +252,9 @@ from kg.kg_lib import (
     tree_size,
     acceptance,
     due_drill,
+    due_problems,
+    problem_due,
+    last_attempt,
     drill_scheduler,
     anki_due,
     anki_frontier,
@@ -354,6 +368,17 @@ def trivial_easies(problems, nodes, evidence, statuses):
         )
     cands.sort()
     return [c[-1] for c in cands]
+
+
+# what the review line says happened, in the words graph/README.md uses for
+# the assist levels. No node names: the pick never says which move it is for.
+REVIEW_NOTE = {
+    "failed": "you walked away from this one",
+    "learning": "the solution was given and copied",
+    "walkthrough": "the shape was talked through before the code existed",
+    "hint": "you took a hint",
+    "struggled": "a move on it was marked struggled",
+}
 
 
 def drill_title(path):
@@ -937,10 +962,49 @@ def pick(
                 return (n, status, promo[0], PROMOTED)
         return unhold(n)
 
+    def review():
+        """rule 2c: a problem on a review clock of its own (kg_lib.problem_due
+        - opened by help or a walk-away, retired by an unaided clean rep).
+        Nothing else re-serves a problem for its own sake: every other rule
+        picks a MOVE and then a carrier for it, so a node that went SOLID on
+        some other carrier left the problem that beat you untouched. It sits
+        under due drills and the moves that are broken (FRAGILE) or on their
+        graduating floor, and above the spaced re-solve of a stale move -
+        those are already reps, this is a debt."""
+        for pnum, _due, _interval in due_problems(evidence, today=today,
+                                                  problems=problems):
+            if pnum in asleep or pnum in exclude:
+                continue
+            moves = problems[pnum].get("moves") or []
+            if not moves or not all(m in nodes for m in moves):
+                continue
+            if any(nodes[m].get("group") in capped for m in moves):
+                continue
+            when, label = last_attempt(pnum, evidence)
+            age = (today - when).days
+            # the move to head the table: the one the bad attempt was on,
+            # else the least owned of the walk
+            target = min(moves, key=lambda m: (statuses[m][0] == SOLID,
+                                               degrees[m], m))
+            return (target, statuses[target][0], pnum,
+                    f"{label} on this problem {age}d ago - the unaided rep it "
+                    f"is waiting for")
+        return None
+
+    reviewed = []
     for n in due_list:
+        if not reviewed and ORDER[kind(n)] >= ORDER[STALE]:
+            reviewed.append(True)  # rule 2c sits here, once
+            choice = review()
+            if choice:
+                return choice
         choice = serve(n)
         if choice and nodes.get(choice[0], {}).get("group") in capped:
             continue  # the hold opener sits in a capped group
+        if choice:
+            return choice
+    if not reviewed:
+        choice = review()
         if choice:
             return choice
 
@@ -1671,6 +1735,18 @@ def _main(footer):
         footer.append(f"drill reviews: {k}/{review_cap} today"
                       + (" - at the daily cap, the bank waits until tomorrow"
                          if k >= review_cap else " (MAX_DRILL_REVIEWS)"))
+    # the review queue: problems on their own clock (rule 2c). One is served
+    # per pick at most, so the count is the only place the rest are visible.
+    review_due = due_problems(evidence, problems=problems)
+    if review_due:
+        n = len(review_due)
+        oldest = review_due[0][0]
+        footer.append(
+            f"problem reviews: {n} due"
+            + (f" (oldest {oldest}. {problems[oldest]['title']})" if n > 1 else "")
+            + " - a problem stays due until an unaided clean rep"
+        )
+
     # the judge queue: a placeholder still pending is a rep the picker
     # counts on its TRAINS, unjudged. Fresh ones are being judged now; a
     # stale one lost its worker (killed, dropped with its branch) - respawn
@@ -2058,6 +2134,14 @@ def _main(footer):
             console.print(f"[yellow]{plan_note}[/yellow]")
         if force_note:
             console.print(f"[yellow]⚠ {force_note}[/yellow]")
+        # rule 2c served this: say what the debt is, or a problem last seen
+        # ten months ago reads as a random repeat
+        rv = problem_due(pnum, evidence)
+        if rv and rv[0] <= date.today():
+            when, label = last_attempt(pnum, evidence)
+            console.print(f"[yellow]⚠ review: {REVIEW_NOTE[label]} "
+                          f"{(date.today() - when).days}d ago - this rep is the "
+                          f"unaided one[/yellow]")
         console.print(table)
         print_gates(pnum, problems, evidence, labeled)
         # pacing forecast from the mined solve-time history: expected time,
