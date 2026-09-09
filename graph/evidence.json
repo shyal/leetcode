@@ -8605,6 +8605,16 @@
       },
       "note": "Operator initially used helper(j + 1, ...), preventing reuse; hint led to correcting to helper(j, ...) for unlimited reuse.",
       "summary": "The solution uses backtracking with a start index to generate all combinations that sum to a target, where each candidate can be reused. The helper function takes a start index i and iterates through candidates from i onwards; crucially, it recurses with the same index j (not j+1), allowing the selected candidate to be picked again. The code correctly appends each candidate, recurses, and pops to undo the choice."
+    },
+    "solved/p684_Redundant_Connection_FAILED_2026_09_09T01_08_08_439026_00_00Z.py": {
+      "date": "2026-09-09",
+      "problem": "684",
+      "moves": {
+        "graph-adjacency-build": "clean",
+        "graph-dfs-visited": "struggled"
+      },
+      "note": "abandoned after 24m; DFS cycle detection incomplete, function returns None",
+      "summary": "The code builds an adjacency list correctly and initiates DFS-based cycle detection instead of the canonical union-find approach. The graph construction is sound, but the DFS lacks proper tracking of cycle-forming edges and never returns a result\u2014the function yields None. After 24 minutes the attempt was abandoned without a working solution."
     }
   }
 }
