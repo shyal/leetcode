@@ -21,6 +21,11 @@ and generate combination drills ("rote sheets").
   offered as a carrier (all pickers route through `carriers_for`) — for problems whose
   training value is buried under busywork. The move still gets trained, just via a
   different carrier; preflight still audits banned problems and labels them ⛔.
+  A LeetCode premium problem is unservable for a different reason — `make
+  prepare` cannot fetch a paid-only statement — and `kg_lib.unservable` is the
+  one predicate for both, asked wherever a problem is offered. The flag is
+  `paid_only` in data/problems_metadata.json (783 problems); 261 came back on
+  the review clock ten months after its solve, to a prepare that failed.
   Problems nobody here has solved sit in the same table with `"draft": true` and
   no walk of their own, only the LLM-drafted `walks` kg_draft writes (they were a
   separate file, predicted.json, until 2026-09-07). One table, one set of rules: a

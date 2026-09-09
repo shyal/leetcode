@@ -32,7 +32,7 @@ from html.parser import HTMLParser
 from kg.kg_lib import (
     GRAPH_DIR, REPO_ROOT, SOLID, SOLID_WINDOW_DAYS, gentleness, pnum_key,
     solved_problems, taxonomy_summary, claude_json, load_predicted,
-    problem_difficulty, ev_index, assist_of, sleep_records,
+    problem_difficulty, ev_index, assist_of, sleep_records, unservable,
 )
 
 RECOGNITION_JSON = os.path.join(GRAPH_DIR, "recognition.json")
@@ -363,7 +363,8 @@ def carriers_by_node(nodes, problems, evidence, recog, statuses, skip=(), predic
     by_node = {}
     for pnum, p in pool.items():
         moves = p.get("moves", [])
-        if (pnum in solved or pnum in seen or pnum in skip or p.get("banned")
+        if (pnum in solved or pnum in seen or pnum in skip
+                or unservable(pnum, p)
                 or not moves or not all(m in nodes for m in moves)
                 or (difficulty and p.get("difficulty") != difficulty)):
             continue

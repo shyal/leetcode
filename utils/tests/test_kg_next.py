@@ -2927,3 +2927,53 @@ def test_the_review_target_is_a_move_of_the_walk(picker):
     ev = evidence(assisted("1", {"q1": "clean", "q2": "clean"}, 30))
     target, _, pnum, _ = picker.run(ns, ps, ev, st)
     assert pnum == "1" and target in ps["1"]["moves"]
+
+
+# --------------------------------------------------------------------------
+# paid-only problems: there is no statement to prepare
+# --------------------------------------------------------------------------
+
+@pytest.fixture
+def premium(monkeypatch):
+    """Mark problem numbers as LeetCode premium, the way the metadata cache
+    does."""
+    def mark(*pnums):
+        monkeypatch.setattr(kg_lib, "_METADATA",
+                            {str(p): {"paid_only": True} for p in pnums})
+    return mark
+
+
+def test_a_paid_only_problem_is_never_a_carrier(picker, premium):
+    premium("1")
+    ns = nodes("q1")
+    ps = {"1": problem(["q1"]), "2": problem(["q1"])}
+    st = {"q1": (FRAGILE, ago(20))}
+    assert picker.run(ns, ps, {}, st)[2] == "2"
+    del ps["2"]
+    assert picker.run(ns, ps, {}, st) is None
+
+
+def test_a_paid_only_problem_is_never_a_review(picker, premium):
+    """261 was solved in November 2025, came back on the review clock ten
+    months later, and `make prepare` could not fetch it."""
+    premium("1")
+    ns = nodes("q1")
+    ps = {"1": problem(["q1"]), "2": problem(["q1"])}
+    st = {"q1": (SOLID, ago(1))}
+    ev = evidence(assisted("1", {"q1": "clean"}, 30),
+                  assisted("2", {"q1": "clean"}, 20))
+    assert picker.run(ns, ps, ev, st)[2] == "2"
+    assert [p for p, _, _ in kg_next.review_queue(ev, ps)] == ["2"]
+
+
+def test_a_paid_only_summit_is_never_offered(picker, premium):
+    premium("9")
+    ns = nodes("q1")
+    ps = {"9": problem(["q1"], difficulty="Hard")}
+    st = {"q1": (SOLID, ago(1))}
+    assert picker.summits(ns, ps, {}, st) == []
+
+
+def test_unservable_covers_both_reasons():
+    assert kg_lib.unservable("1", {"banned": True})
+    assert not kg_lib.unservable("1", {})

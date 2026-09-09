@@ -254,6 +254,7 @@ from kg.kg_lib import (
     due_drill,
     due_problems,
     problem_due,
+    unservable,
     last_attempt,
     drill_scheduler,
     anki_due,
@@ -351,7 +352,7 @@ def trivial_easies(problems, nodes, evidence, statuses):
     cands = []
     for pnum, p in problems.items():
         moves = p.get("moves", [])
-        if p.get("banned") or p.get("difficulty") != "Easy" or not moves:
+        if unservable(pnum, p) or p.get("difficulty") != "Easy" or not moves:
             continue
         if not all(m in nodes and statuses[m][0] == SOLID for m in moves):
             continue
@@ -422,6 +423,15 @@ def difficulty_line(pnum, problems):
     if isinstance(acc, (int, float)):
         parts.append(f"[dim]{acc:.1f}% accepted[/dim]")
     return " [dim]·[/dim] ".join(parts)
+
+
+def review_queue(evidence, problems, today=None):
+    """The problems whose review clock is due (kg_lib.due_problems), minus
+    the ones nothing may be served on. The footer's count and rule 2c's pick
+    read the same list, so the number is what can actually be served."""
+    return [(pnum, d, i)
+            for pnum, d, i in due_problems(evidence, today=today, problems=problems)
+            if not unservable(pnum, problems[pnum])]
 
 
 def drill_clock_reason(path, evidence, today=None):
@@ -560,7 +570,7 @@ def pick(
         no root is a deadlock and serves nothing."""
         for pnum, p in sorted(problems.items(), key=lambda kv: pnum_key(kv[0])):
             moves = p.get("moves", [])
-            if (target not in moves or p.get("banned")
+            if (target not in moves or unservable(pnum, p)
                     or p.get("difficulty") == "Hard"
                     or not all(m in nodes for m in moves)
                     or any(statuses[m][0] != SOLID for m in moves if m != target)):
@@ -971,8 +981,7 @@ def pick(
         under due drills and the moves that are broken (FRAGILE) or on their
         graduating floor, and above the spaced re-solve of a stale move -
         those are already reps, this is a debt."""
-        for pnum, _due, _interval in due_problems(evidence, today=today,
-                                                  problems=problems):
+        for pnum, _due, _interval in review_queue(evidence, problems, today):
             if pnum in asleep or pnum in exclude:
                 continue
             moves = problems[pnum].get("moves") or []
@@ -1256,7 +1265,7 @@ def ready_hards(problems, nodes, evidence, statuses, immature=None, recog=None):
     for pnum, p in problems.items():
         if (
             p.get("difficulty") != "Hard"
-            or p.get("banned")
+            or unservable(pnum, p)
             or pnum in solved
             or not p.get("moves")
         ):
@@ -1347,7 +1356,7 @@ def blocked_frontier(nodes, problems, evidence, statuses, asleep=(), exclude=())
         usable = [
             p
             for p in walks
-            if not problems[p].get("banned") and problems[p].get("difficulty") != "Hard"
+            if not unservable(p, problems[p]) and problems[p].get("difficulty") != "Hard"
         ]
         listed = ", ".join(sorted(walks, key=pnum_key))
         dry = True
@@ -1465,7 +1474,7 @@ def unmapped_summits(problems, nodes, evidence, statuses):
     immature = immature_nodes(nodes, evidence, problems)
     out = []
     for pnum, p in problems.items():
-        if (p.get("difficulty") != "Hard" or p.get("banned")
+        if (p.get("difficulty") != "Hard" or unservable(pnum, p)
                 or pnum in solved or not p.get("moves") or not p.get("unmapped")):
             continue
         gaps, count, _ = route_gaps(pnum, problems, nodes, statuses, immature)
@@ -1737,7 +1746,7 @@ def _main(footer):
                          if k >= review_cap else " (MAX_DRILL_REVIEWS)"))
     # the review queue: problems on their own clock (rule 2c). One is served
     # per pick at most, so the count is the only place the rest are visible.
-    review_due = due_problems(evidence, problems=problems)
+    review_due = review_queue(evidence, problems)
     if review_due:
         n = len(review_due)
         oldest = review_due[0][0]
