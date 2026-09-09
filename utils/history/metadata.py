@@ -22,6 +22,11 @@ def get_problems_metadata():
             diff = stat["difficulty"]["level"]  # 1,2,3
             diff_str = {1: "Easy", 2: "Medium", 3: "Hard"}[diff]
             problems[num] = {"title": title, "slug": slug, "difficulty": diff_str}
+            # premium problems: make prepare cannot fetch the statement
+            # ("Question 261 is paid only"), so the picker must never offer
+            # one. Recorded only when true - 783 of 4047 carry it.
+            if stat.get("paid_only"):
+                problems[num]["paid_only"] = True
             if s.get("total_submitted"):
                 problems[num]["acceptance"] = round(
                     100 * s["total_acs"] / s["total_submitted"], 1)

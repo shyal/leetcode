@@ -712,7 +712,7 @@ def _carry_kinds(problems):
     else:
         kinds, start = {}, 0
     for pnum, p in islice(problems.items(), start, None):
-        if not str(pnum)[:1].isdigit() or p.get("banned") \
+        if not str(pnum)[:1].isdigit() or unservable(pnum, p) \
                 or p.get("difficulty") == "Hard":
             continue
         for w in [p.get("moves", [])] + list(p.get("alt_walks", [])):
@@ -1010,7 +1010,7 @@ def _walks_carrying(problems):
     else:
         out, start = {}, 0
     for pnum, p in islice(problems.items(), start, None):
-        if not str(pnum)[:1].isdigit() or p.get("banned") \
+        if not str(pnum)[:1].isdigit() or unservable(pnum, p) \
                 or p.get("difficulty") == "Hard":
             continue
         walks = [p.get("moves", [])] + list(p.get("alt_walks", []))
@@ -1055,7 +1055,7 @@ def held_behind(pnum, problems, evidence, today=None):
     entry = problems.get(str(pnum)) or _problems_ro().get(str(pnum), {})
     for pred in entry.get("after", []):
         pred = str(pred)
-        if (problems.get(pred) or _problems_ro().get(pred, {})).get("banned"):
+        if unservable(pred, problems.get(pred) or _problems_ro().get(pred, {})):
             continue
         if warm(pred, problems, evidence, today) is False:
             return pred
@@ -1388,7 +1388,7 @@ def node_conn(problems):
 
 def carriers_for(target, problems, statuses, nodes, evidence):
     """Problems containing the target move whose every OTHER move is SOLID.
-    Banned problems ("banned": true) are never offered as carriers.
+    Banned and paid-only problems are never offered (kg_lib.unservable).
     Hards are summits, never refresh carriers — rusty moves get their reps
     at basecamps (easies/mediums); a Hard is attempted only all-green.
     A problem declaring "after" waits until its predecessor is warm
@@ -1396,7 +1396,7 @@ def carriers_for(target, problems, statuses, nodes, evidence):
     found = []
     for pnum, p in problems.items():
         moves = p.get("moves", [])
-        if p.get("banned") or p.get("difficulty") == "Hard" or target not in moves \
+        if unservable(pnum, p) or p.get("difficulty") == "Hard" or target not in moves \
                 or not all(m in nodes for m in moves):
             continue
         if all(statuses[m][0] == SOLID for m in moves if m != target) \
@@ -1647,6 +1647,24 @@ def acceptance(pnum):
     problem is unknown or the metadata predates the acceptance field."""
     v = _metadata().get(str(pnum), {}).get("acceptance")
     return v if isinstance(v, (int, float)) else 50.0
+
+
+def paid_only(pnum):
+    """True for a LeetCode premium problem. `make prepare` cannot fetch one
+    ("Question 261 is paid only"), so nothing may be served on it. Read from
+    data/problems_metadata.json, which records the flag for the 783 problems
+    that carry it; unknown problems are treated as free."""
+    return bool(_metadata().get(str(pnum), {}).get("paid_only"))
+
+
+def unservable(pnum, p):
+    """A problem the picker must never offer: banned (its training value is
+    buried under busywork) or paid-only (there is no statement to prepare).
+    Both are still audited, drawn and counted as evidence - this is only
+    about being served. 261 was solved in November 2025 and came back on
+    the review clock ten months later, to a prepare that could not fetch it
+    (2026-09-09)."""
+    return bool(p.get("banned")) or paid_only(pnum)
 
 
 def problem_difficulty(pnum, problems):
