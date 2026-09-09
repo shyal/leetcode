@@ -8705,6 +8705,15 @@
         "recursive-descent": "clean"
       },
       "summary": "The code builds an expression tree using recursive descent. The atom() method forms the grammar base: it checks the lookahead character, recursively calls expr() for parenthesized subexpressions, and returns a number for base cases. All test cases pass, demonstrating correct precedence handling through the recursive rule hierarchy."
+    },
+    "solved/d_Multi-Buy_2026_09_09T21_28_10_735341_00_00Z.py": {
+      "date": "2026-09-10",
+      "problem": "drill",
+      "moves": {
+        "recursive-descent": "clean"
+      },
+      "note": "Drill demonstrates recursive-descent for operator precedence via grammar-rule methods with shared cursor and recursive calls.",
+      "summary": "The Solution class implements recursive-descent expression parsing by defining `term()` to handle multiplication and division at higher precedence than addition and subtraction. The `term()` method calls `self.atom()` for operands and uses a while loop to build left-associative operator trees, stopping when it encounters `+`, `-`, or end-of-input. This method integrates with the inherited `expr()` method and cursor management from the Parser base class to produce correctly precedenced parse trees for expressions like \"2+3*4/6\" and \"100/10/5\"."
     }
   }
 }
