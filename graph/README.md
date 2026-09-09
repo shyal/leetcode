@@ -151,6 +151,46 @@ that is not SOLID trains on its bank as before. The node curve and the
 graduating floor keep their job for problems and are never consulted for a
 drill's own due date.
 
+## Problem review clock
+
+The drill clock gives every bank file a due date of its own. Problems had
+nothing of the kind: every re-serve of a problem was a side effect of a MOVE
+going due — the spaced re-solve of a stale move's latest carrier, a deep-stale
+repeat, `unhold`. So how the problem itself went was never read. A node goes
+SOLID on some other carrier and the one problem that actually beat you is
+never asked again. On 2026-09-09, of the 56 problems with a bad attempt, 36
+had never been solved cleanly since; the picker could not see any of them.
+
+`kg_lib.problem_due` gives a problem a card, and only when an attempt at it
+needed help or ended in walking away: a copied solution (`learning`), a
+walkthrough, a hint, or a FAILED file (`OPENS_CARD`). A struggled move on an
+otherwise unaided solve does not open one — the judge's verdict already
+shrinks that node's stability, which is the node curve's job, and 52 such
+problems from autumn 2025 would sit ahead of this week's on any overdue-first
+order.
+
+The grades are the drill clock's (`anki_answer`), which is the point: only an
+unaided all-clean rep is Good, so the help that put the problem on the list
+can never be what takes it off.
+
+    again   a fail, a copy, a walkthrough, or a struggle    due in 3 days
+    hard    a hinted clean rep                              1.2x further out
+    good    an unaided clean rep                            card retired
+
+Retired, not rescheduled: the debt is paid and the node curve carries the
+problem from there. A later bad attempt opens a new card. The graduating
+interval is 3 days where a bank file's is 1 — a drill is three minutes, copy
+today and rote tomorrow, but a problem is seventeen, and a next-morning rep on
+one whose solution was on the screen yesterday grades Good for the wrong
+reason and retires a debt that was never paid.
+
+Serving is rule 2c in `kg_next.pick`: under due drills and the moves that are
+broken (FRAGILE) or on their graduating floor, above the spaced re-solve of a
+stale move. Those are reps; this is a debt. One is served per pick at most, so
+the footer prints how many are due, and the pick itself says what the debt is
+("the solution was given and copied 311d ago") — a problem last seen ten
+months ago otherwise reads as a random repeat.
+
 ## Dive (`make dive`)
 
 `make next <group>` (currently `make next sql` and `make next spark`; `--group <g>` on kg_next for any group)

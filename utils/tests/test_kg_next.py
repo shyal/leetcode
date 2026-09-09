@@ -2830,3 +2830,100 @@ def test_the_clock_orders_reviews_before_new_files_and_ignores_holds(tmp_path, m
     # due_drill agrees with the clock on the file it serves
     assert kg_lib.due_drill("atom", ev) == str(tmp_path / "atom" / "m.py")  # Top is out of scope
     assert kg_lib.due_drill("comp", ev) == str(tmp_path / "comp" / "p.py")
+
+
+# --------------------------------------------------------------------------
+# rule 2c: a problem on its own review clock
+# --------------------------------------------------------------------------
+
+def assisted(pnum, moves, days_ago, assist="learning"):
+    """A solve that needed help, which is what opens a problem's card."""
+    return solve(pnum, moves, days_ago=days_ago, assist=assist)
+
+
+def test_a_problem_that_needed_help_comes_back_on_its_own(picker):
+    """Nothing else re-serves a problem for its own sake: every other rule
+    picks a move and then a carrier for it, so a node that went SOLID on some
+    other carrier left the problem that beat you untouched."""
+    ns = nodes("q1")
+    ps = {"1": problem(["q1"]), "2": problem(["q1"])}
+    st = {"q1": (SOLID, ago(1))}
+    ev = evidence(assisted("1", {"q1": "clean"}, 30))
+    assert picker.run(ns, ps, ev, st)[2] == "1"
+
+
+def test_a_clean_first_solve_is_never_re_served_as_a_review(picker):
+    """It may still be picked as a carrier - what it must not be is a debt."""
+    ns = nodes("q1")
+    ps = {"1": problem(["q1"])}
+    st = {"q1": (SOLID, ago(1))}
+    ev = evidence(solve("1", {"q1": "clean"}, days_ago=30))
+    assert kg_lib.problem_due("1", ev) is None
+    assert "waiting for" not in picker.run(ns, ps, ev, st)[3]
+
+
+def test_a_review_outranks_the_spaced_re_solve_of_a_stale_move(picker):
+    ns = nodes("q1", "q2")
+    ps = {"1": problem(["q1"]), "2": problem(["q2"])}
+    st = {"q1": (SOLID, ago(1)), "q2": (STALE, ago(60))}
+    ev = evidence(assisted("1", {"q1": "clean"}, 30),
+                  solve("2", {"q2": "clean"}, days_ago=60))
+    assert picker.run(ns, ps, ev, st)[2] == "1"
+
+
+def test_a_fragile_move_still_goes_first(picker):
+    """A broken move is a rep the graph needs now; a review is a debt."""
+    ns = nodes("q1", "q2")
+    ps = {"1": problem(["q1"]), "2": problem(["q2"])}
+    st = {"q1": (SOLID, ago(1)), "q2": (FRAGILE, ago(20))}
+    ev = evidence(assisted("1", {"q1": "clean"}, 30))
+    assert picker.run(ns, ps, ev, st)[2] == "2"
+
+
+def test_the_drill_clock_still_outranks_a_review(picker, monkeypatch):
+    monkeypatch.setenv("DRILL_SCHEDULER", "anki")
+    ns = nodes("q1", "q2")
+    ps = {"1": problem(["q1"]), "2": problem(["q2"])}
+    st = {"q1": (SOLID, ago(1)), "q2": (SOLID, ago(1))}
+    picker.clock = [("drills/q2/a.py", "q2")]
+    ev = evidence(assisted("1", {"q1": "clean"}, 30))
+    assert picker.run(ns, ps, ev, st)[2] == "drill:q2"
+
+
+def test_a_review_outranks_a_summit(picker):
+    ns = nodes("q1")
+    ps = {"1": problem(["q1"]), "9": problem(["q1"], difficulty="Hard")}
+    st = {"q1": (SOLID, ago(1))}
+    ev = evidence(assisted("1", {"q1": "clean"}, 30))
+    assert picker.run(ns, ps, ev, st)[2] == "1"
+
+
+def test_a_sleeping_or_spent_problem_is_not_served_for_review(picker):
+    ns = nodes("q1")
+    ps = {"1": problem(["q1"])}
+    st = {"q1": (SOLID, ago(1))}
+    ev = evidence(assisted("1", {"q1": "clean"}, 30))
+    assert picker.run(ns, ps, ev, st, asleep=["1"]) is None
+    assert picker.run(ns, ps, ev, st, exclude={"1"}) is None
+
+
+def test_a_review_respects_the_daily_group_cap(picker, monkeypatch):
+    monkeypatch.setenv("KG_GROUP_CAP", "sql=1")
+    ns = nodes("q1")
+    ns["q1"]["group"] = "sql"
+    ps = {"1": problem(["q1"])}
+    st = {"q1": (SOLID, ago(1))}
+    ev = evidence(assisted("1", {"q1": "clean"}, 30),
+                  solve("2", {"q1": "clean"}, days_ago=0))
+    assert picker.run(ns, ps, ev, st) is None
+
+
+def test_the_review_target_is_a_move_of_the_walk(picker):
+    """The pick is rendered off the target node, so it has to be one the
+    walk actually carries."""
+    ns = nodes("q1", "q2")
+    ps = {"1": problem(["q1", "q2"])}
+    st = {"q1": (SOLID, ago(1)), "q2": (SOLID, ago(1))}
+    ev = evidence(assisted("1", {"q1": "clean", "q2": "clean"}, 30))
+    target, _, pnum, _ = picker.run(ns, ps, ev, st)
+    assert pnum == "1" and target in ps["1"]["moves"]
