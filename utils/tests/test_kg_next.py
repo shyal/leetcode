@@ -2832,6 +2832,25 @@ def test_the_clock_orders_reviews_before_new_files_and_ignores_holds(tmp_path, m
     assert kg_lib.due_drill("comp", ev) == str(tmp_path / "comp" / "p.py")
 
 
+def test_a_due_drill_waits_for_a_due_ancestor_past_one_that_is_not_due(tmp_path, monkeypatch):
+    """kg_lib.anki_frontier: the "after" chain is climbed through drills
+    that are not due. 2026-09-10: How Many Companies (after Union Links,
+    after Find Roots) was a day more overdue than Find Roots, Union Links
+    was not due, and the climb stopped there - Find Roots came second."""
+    from kg import kg_lib
+    monkeypatch.setenv("DRILL_SCHEDULER", "anki")
+    drill_bank(tmp_path, monkeypatch, "uf", "Find Roots", fname="r.py", did="d1")
+    drill_bank(tmp_path, monkeypatch, "uf", "Union Links", fname="u.py", did="d2", after=["d1"])
+    drill_bank(tmp_path, monkeypatch, "uf", "Companies", fname="c.py", did="d3", after=["d2"])
+    ns = {"uf": {"prereqs": []}}
+    ev = evidence(drill_rep("Find Roots", "uf", days_ago=2),    # interval 1: 1d overdue
+                  drill_rep("Union Links", "uf", days_ago=5),
+                  drill_rep("Union Links", "uf", days_ago=1),   # interval 4: not due
+                  drill_rep("Companies", "uf", days_ago=3))     # interval 1: 2d overdue
+    f = kg_lib.anki_frontier(ev, nodes=ns)
+    assert [os.path.basename(p) for p, _ in f] == ["r.py", "c.py"]
+
+
 # --------------------------------------------------------------------------
 # rule 2c: a problem on its own review clock
 # --------------------------------------------------------------------------
