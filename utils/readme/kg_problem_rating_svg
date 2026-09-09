@@ -1,0 +1,183 @@
+#!/usr/bin/env python3
+
+# kg_problem_rating_svg - the contest rating of every problem attempted,
+# one dot per attempt, rendered into graph/problem_rating.svg for the
+# README pipeline.
+#
+# A rating is the problem's contest rating on zerotrac's scale: zerotrac's
+# own number when the problem is in data/leetcode_ratings.tsv, otherwise
+# CLIST's rating rescaled onto that scale (kg.clist.combined_ratings). The
+# Elo curve in graph/elo.svg is scored against the same numbers, so the two
+# are comparable and the Elo is drawn here as the second line: the gap
+# between the lines is how far the problems sit from the rating the
+# attempts have earned.
+#
+# Every evidenced attempt on a numbered problem is a dot, timed or not. The
+# dot is coloured by how the attempt went: unaided, then the assist level the
+# evidence record carries (hint, walkthrough, learning), then failed for a
+# FAILED file. Assist is per-move, so the level shown is the heaviest one on
+# the solve (kg_lib.assist_of). The solid blue line is the median rating of
+# the last WINDOW attempts, so it lags a change by half a window and ignores
+# a single hard problem.
+
+import os
+from datetime import date, timedelta
+from collections import Counter
+from statistics import median
+
+from kg.kg_lib import GRAPH_DIR, assist_of, load_evidence, solve_ratings
+
+OUT = os.path.join(GRAPH_DIR, "problem_rating.svg")
+
+WINDOW = 50
+
+W, H = 1200, 400
+BG = "#0d1117"
+MUTED = "#8b949e"
+GRID = "#21262d"
+DOT = "#58a6ff"
+ELO = "#3fb950"
+# one colour per outcome, heaviest last; "none" is the bulk of the history
+# and is drawn faint, the rest are rare and drawn solid
+OUTCOMES = (("none", "unaided", DOT, 0.35),
+            ("hint", "hint", "#d29922", 0.9),
+            ("walkthrough", "walkthrough", "#db6d28", 0.9),
+            ("learning", "learning", "#a371f7", 0.9),
+            ("failed", "failed", "#f85149", 0.9))
+COLOR = {k: (c, o) for k, _, c, o in OUTCOMES}
+ML, MR, MT, MB = 62, 24, 60, 40
+
+
+def attempts():
+    """[(date, rating, outcome)] oldest first, one per evidenced attempt on a
+    numbered problem the rating tables cover. The outcome is "failed" for a
+    FAILED file, else the solve's assist level."""
+    ratings, evidence = solve_ratings(), load_evidence()
+    out = []
+    for fname in sorted(evidence, key=lambda k: (evidence[k]["date"], k)):
+        rec = evidence[fname]
+        pnum = str(rec.get("problem", ""))
+        if not pnum[:1].isdigit() or pnum not in ratings:
+            continue
+        outcome = "failed" if "FAILED" in fname else assist_of(rec)
+        out.append((date.fromisoformat(rec["date"]), ratings[pnum], outcome))
+    return out
+
+
+def trailing_median(att):
+    """[(date, median rating of the last WINDOW attempts)] one per day with an
+    attempt, taken after the day's last attempt. A gap of over a month starts
+    the window again, so the line after a break is drawn from the attempts
+    after the break and not from whatever came before it."""
+    by_day, window, prev = {}, [], None
+    for d, r, _ in att:
+        if prev and (d - prev).days > 31:
+            window.clear()
+        window.append(r)
+        del window[:-WINDOW]
+        by_day[d] = median(window)
+        prev = d
+    return sorted(by_day.items())
+
+
+def elo_curve():
+    """[(date, elo after the day's last game)] from the same scoring the Elo
+    chart uses, or [] when nothing is scored."""
+    from importlib.machinery import SourceFileLoader
+    src = os.path.join(os.path.dirname(os.path.abspath(__file__)), "kg_elo_svg")
+    mod = SourceFileLoader("kg_elo_svg", src).load_module()
+    return mod.elo(mod.games())
+
+
+def main():
+    att = attempts()
+    if not att:
+        print("no rated attempts")
+        return
+    med = trailing_median(att)
+    elo = elo_curve()
+    d0 = min(att[0][0], elo[0][0] if elo else att[0][0])
+    d1 = max(att[-1][0], elo[-1][0] if elo else att[-1][0])
+    span = max((d1 - d0).days, 1)
+    top, bottom = MT, H - MB
+    vals = [r for _, r, _ in att] + [r for _, r in elo]
+    lo = int(min(vals) // 100 * 100) - 100
+    hi = int(-(-max(vals) // 100) * 100) + 100
+
+    def x_of(d):
+        return ML + (d - d0).days / span * (W - ML - MR)
+
+    def y_of(v):
+        return bottom - (v - lo) / (hi - lo) * (bottom - top)
+
+    def runs(series):
+        """the series split wherever it skips more than a month, so a gap in
+        the history is drawn as a gap and not as a straight line across it."""
+        out, prev = [[]], None
+        for d, v in series:
+            if prev and (d - prev).days > 31:
+                out.append([])
+            out[-1].append((d, v))
+            prev = d
+        return out
+
+    counts = Counter(o for _, _, o in att)
+    tally = ", ".join(f"{counts[k]} {label}" for k, label, _, _ in OUTCOMES
+                      if counts[k])
+    svg = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" '
+           f'font-family="Helvetica,sans-serif">',
+           f'<rect width="{W}" height="{H}" fill="{BG}"/>',
+           f'<text x="{W / 2:.0f}" y="20" text-anchor="middle" font-size="11" fill="{MUTED}">'
+           f'{len(att)} attempts - {tally} - median rating '
+           f'{median([r for _, r, _ in att]):.0f}</text>']
+    for g in range(lo, hi + 1, 200):
+        y = y_of(g)
+        svg.append(f'<line x1="{ML}" y1="{y:.1f}" x2="{W - MR}" y2="{y:.1f}" '
+                   f'stroke="{GRID}" stroke-width="1"/>')
+        svg.append(f'<text x="{ML - 8}" y="{y + 4:.1f}" text-anchor="end" font-size="11" '
+                   f'fill="{MUTED}">{g}</text>')
+    d = date(d0.year, d0.month, 1)
+    while d <= d1:
+        if d >= d0:
+            x = x_of(d)
+            svg.append(f'<line x1="{x:.1f}" y1="{top}" x2="{x:.1f}" y2="{bottom}" '
+                       f'stroke="{GRID}" stroke-width="1"/>')
+            svg.append(f'<text x="{x:.1f}" y="{bottom + 18}" text-anchor="middle" font-size="11" '
+                       f'fill="{MUTED}">{d.strftime("%b %y")}</text>')
+        d = (d.replace(day=28) + timedelta(days=4)).replace(day=1)
+    # dots first, lines over them: on a day with many attempts the dots stack
+    # into a column and the lines have to stay readable through it. Unaided
+    # dots go down first so the rare assisted and failed ones sit on top of
+    # the pile instead of under it.
+    order = {k: i for i, (k, _, _, _) in enumerate(OUTCOMES)}
+    for dd, r, outcome in sorted(att, key=lambda a: order.get(a[2], 0)):
+        color, opacity = COLOR.get(outcome, COLOR["none"])
+        svg.append(f'<circle cx="{x_of(dd):.1f}" cy="{y_of(r):.1f}" r="2.5" '
+                   f'fill="{color}" fill-opacity="{opacity}"/>')
+    for series, color in ((elo, ELO), (med, DOT)):
+        for run in runs(series):
+            pts = " ".join(f"{x_of(dd):.1f},{y_of(v):.1f}" for dd, v in run)
+            svg.append(f'<polyline points="{pts}" fill="none" stroke="{color}" '
+                       f'stroke-width="2"/>')
+    y = MT - 18  # the legend row, under the summary line
+    legend = [(None, c, label) for k, label, c, _ in OUTCOMES if counts[k]]
+    legend += [(True, DOT, f"median of last {WINDOW}"), (True, ELO, "elo")]
+    x = ML
+    for is_line, color, label in legend:
+        if is_line:
+            svg.append(f'<line x1="{x}" y1="{y}" x2="{x + 16}" y2="{y}" '
+                       f'stroke="{color}" stroke-width="2"/>')
+        else:
+            svg.append(f'<circle cx="{x + 8}" cy="{y}" r="3" fill="{color}"/>')
+        svg.append(f'<text x="{x + 22}" y="{y + 4}" font-size="11" fill="{MUTED}">'
+                   f'{label}</text>')
+        x += 34 + 6.2 * len(label)
+    svg.append("</svg>")
+    with open(OUT, "w") as f:
+        f.write("\n".join(svg) + "\n")
+    print(f"wrote {OUT} ({len(att)} attempts - {tally} - median "
+          f"{median([r for _, r, _ in att]):.0f})")
+
+
+if __name__ == "__main__":
+    main()

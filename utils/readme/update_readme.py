@@ -75,14 +75,16 @@ def main():
             {"ContentType": "image/svg+xml", "ContentEncoding": "gzip"},
         )
 
-    # Chart generation is disabled: the README carries the Elo chart and the two
-    # badges, nothing else. CHARTS is the whole list of what gets picked up and
-    # linked - one row per generated image. To bring a chart back, uncomment its
-    # row here and add its renderer back to the readme target in the Makefile.
+    # Chart generation is mostly disabled: the README carries the Elo chart,
+    # the problem-rating chart and the two badges, nothing else. CHARTS is the
+    # whole list of what gets picked up and linked - one row per generated
+    # image. To bring a chart back, uncomment its row here and add its renderer
+    # back to the readme target in the Makefile.
     #
     #   (graph file, s3 prefix, README region, alt text, inline region?)
     CHARTS = [
         ("graph/elo.svg", "elo", "ELO_CHART", "Elo", False),
+        ("graph/problem_rating.svg", "problem_rating", "PROBLEM_RATING_CHART", "Rating of the problems attempted", False),
         ("graph/elo_badge.svg", "elo_badge", "ELO_BADGE", "Elo", True),
         ("graph/streak_badge.svg", "streak_badge", "STREAK_BADGE", "Streak", True),
         # ("graph/rates.svg", "rates", "SOLVES_CHART", "Solves and drills per day", False),
