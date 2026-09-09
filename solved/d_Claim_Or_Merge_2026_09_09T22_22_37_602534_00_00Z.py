@@ -73,15 +73,35 @@ from dsa.union_find import UnionFind
 
 class Solution(UnionFind):
     def claimOrMerge(self, countries: List[List[int]]) -> Dict[int, int]:
-        pass
+        owner = {}
+        for i, borders in enumerate(countries):
+            for b in borders:
+                if b in owner:
+                    self.union(i, owner[b])
+                else:
+                    owner[b] = i
+        return owner
 
 
 sol = Solution(4)
 
-print(sol.claimOrMerge([[41, 42], [43], [42, 44], [45, 43]]))  # {41: 0, 42: 0, 43: 1, 44: 2, 45: 3}
+print(
+    sol.claimOrMerge([[41, 42], [43], [42, 44], [45, 43]])
+)  # {41: 0, 42: 0, 43: 1, 44: 2, 45: 3}
 
-# assert Solution(4).claimOrMerge([[41, 42], [43], [42, 44], [45, 43]]) == {41: 0, 42: 0, 43: 1, 44: 2, 45: 3}
-# assert Solution(3).claimOrMerge([[47], [47], [47]]) == {47: 0}
-# assert Solution(1).claimOrMerge([[48]]) == {48: 0}
-# assert Solution(2).claimOrMerge([[41, 42], [43, 44]]) == {41: 0, 42: 0, 43: 1, 44: 1}
-# assert Solution(3).claimOrMerge([[41, 42], [43, 44], [42, 43]]) == {41: 0, 42: 0, 43: 1, 44: 1}
+assert Solution(4).claimOrMerge([[41, 42], [43], [42, 44], [45, 43]]) == {
+    41: 0,
+    42: 0,
+    43: 1,
+    44: 2,
+    45: 3,
+}
+assert Solution(3).claimOrMerge([[47], [47], [47]]) == {47: 0}
+assert Solution(1).claimOrMerge([[48]]) == {48: 0}
+assert Solution(2).claimOrMerge([[41, 42], [43, 44]]) == {41: 0, 42: 0, 43: 1, 44: 1}
+assert Solution(3).claimOrMerge([[41, 42], [43, 44], [42, 43]]) == {
+    41: 0,
+    42: 0,
+    43: 1,
+    44: 1,
+}

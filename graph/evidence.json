@@ -8714,6 +8714,18 @@
       },
       "note": "Drill demonstrates recursive-descent for operator precedence via grammar-rule methods with shared cursor and recursive calls.",
       "summary": "The Solution class implements recursive-descent expression parsing by defining `term()` to handle multiplication and division at higher precedence than addition and subtraction. The `term()` method calls `self.atom()` for operands and uses a while loop to build left-associative operator trees, stopping when it encounters `+`, `-`, or end-of-input. This method integrates with the inherited `expr()` method and cursor management from the Parser base class to produce correctly precedenced parse trees for expressions like \"2+3*4/6\" and \"100/10/5\"."
+    },
+    "solved/d_Claim_Or_Merge_2026_09_09T22_22_37_602534_00_00Z.py": {
+      "date": "2026-09-10",
+      "problem": "drill",
+      "moves": {
+        "union-find": "clean",
+        "dict-arbitrary-value": "clean",
+        "streaming-ask-then-record": "clean",
+        "set-membership": "clean"
+      },
+      "note": "REQUIRED met: single pass, O(L) operations, no pairwise tests.",
+      "summary": "Single pass over countries maps each border to its claimant. Shared borders trigger unions; new borders are recorded. Exercises union-find for merging, dict-arbitrary-value for storing indices, streaming-ask-then-record for the walk-query-record pattern, and set-membership for O(1) checks."
     }
   }
 }
