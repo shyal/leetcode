@@ -2345,9 +2345,11 @@ def anki_rank(path, evidence, today=None, depth=0):
 def anki_frontier(evidence, today=None, nodes=None, node_ids=None, assisted=False):
     """Every bank file due on its own clock, as (path, node id): reviews
     most overdue first, then files never done, atoms first. A due file
-    whose "after" drills are due too comes after them, whatever the
-    dates: the atom is served before the drill built on it (2026-09-06,
-    Bundle Refunds a day ahead of Tape Reader under it). No hold and no
+    whose "after" chain holds a due drill comes after it, whatever the
+    dates and however many drills that are not due sit between them: the
+    atom is served before the drill built on it (2026-09-06, Bundle
+    Refunds a day ahead of Tape Reader under it; 2026-09-10, How Many
+    Companies ahead of Find Roots two drills up). No hold and no
     node status withholds a due file; the daily group cap (group_caps) is
     applied by the picker, not here. The clock outranks
     everything (2026-09-06: 92 files in the bank, 33 never served and 25
@@ -2375,10 +2377,9 @@ def anki_frontier(evidence, today=None, nodes=None, node_ids=None, assisted=Fals
             return
         seen.add(path)
         for a in drill_after(path):
-            up = drill_path(a)
-            if up in due:
-                emit(up)
-        out.append((path, due[path]))
+            emit(drill_path(a))
+        if path in due:
+            out.append((path, due[path]))
 
     for _, path, _ in ranked:
         emit(path)
