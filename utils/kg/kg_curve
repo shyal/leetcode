@@ -39,9 +39,17 @@ import re
 from collections import defaultdict
 
 from kg import kg_lib
-from kg.kg_lib import ASSIST_WEIGHT, GRAPH_DIR, assist_of, ev_index, load_evidence, load_problems, node_conn
+from kg.kg_lib import (
+    ASSIST_WEIGHT,
+    GRAPH_DIR,
+    assist_of,
+    ev_index,
+    load_evidence,
+    load_problems,
+    node_conn,
+)
 
-TARGET_RETENTION = 0.9   # node_status calls a node SOLID above this
+TARGET_RETENTION = 0.9  # node_status calls a node SOLID above this
 
 
 def extract_trials(evidence, with_date=False, with_conn=False):
@@ -61,8 +69,9 @@ def extract_trials(evidence, with_date=False, with_conn=False):
         ts = m.group(0) if m else ""
         for node, verdict in rec.get("moves", {}).items():
             a = assist_of(rec, node)
-            events[node].append((rec["date"], ts, verdict, a,
-                                 "none" if fname in first_reps else a))
+            events[node].append(
+                (rec["date"], ts, verdict, a, "none" if fname in first_reps else a)
+            )
 
     conn = node_conn(load_problems()) if with_conn else {}
     trials = []
@@ -84,14 +93,13 @@ def extract_trials(evidence, with_date=False, with_conn=False):
             # copied one day and tried the next, read as 15 recall failures
             # at short gaps, z = -4.7; after an unaided clean the same wing
             # ran 8 of 8)
-            if (retrieved and verdict in ("clean", "struggled")
-                    and assist != "learning"):
+            if retrieved and verdict in ("clean", "struggled") and assist != "learning":
                 gap = (_date(d) - _date(last_clean)).days
                 if gap >= 1:
                     # the trial asks "did you retrieve this unaided?" — needing
                     # a nudge or a walkthrough answers no, however clean the code
                     success = int(verdict == "clean" and assist == "none")
-                    row = (gap, success, cleans, struggles, assisted)
+                    row: tuple = (gap, success, cleans, struggles, assisted)
                     if with_conn:
                         row += (conn.get(node, 0.0),)
                     trials.append(row + (_date(d),) if with_date else row)
@@ -114,6 +122,7 @@ def extract_trials(evidence, with_date=False, with_conn=False):
 
 def _date(s):
     from datetime import date
+
     return date.fromisoformat(s)
 
 
@@ -163,7 +172,7 @@ def fit(trials, iters=8000, lr=0.05, weights=None):
             p = min(1 - 1e-9, max(1e-9, (1 - slip) * mem))
             # E = dLL/dP scaled: success pulls P up, failure pushes it down
             E = w * (sf - (1 - sf) * p / (1 - p))
-            dlns = E * beta * u / (1 + u)          # dLL/d(ln stability)
+            dlns = E * beta * u / (1 + u)  # dLL/d(ln stability)
             ga += dlns
             gb += dlns * k
             gc += dlns * (-m)
@@ -173,9 +182,9 @@ def fit(trials, iters=8000, lr=0.05, weights=None):
             gslip += E * (-1 / (1 - slip))
         step = lr / (1 + it / 2000)
         a += step * ga / wsum
-        b = max(0.0, b + step * gb / wsum)          # reps should not shorten memory
+        b = max(0.0, b + step * gb / wsum)  # reps should not shorten memory
         c = max(0.0, c + step * gc / wsum)
-        d = max(0.0, d + step * gd / wsum)          # nor should being helped
+        d = max(0.0, d + step * gd / wsum)  # nor should being helped
         e += step * ge / wsum
         beta = min(5.0, max(0.02, beta + step * gbeta / wsum))
         slip = min(0.25, max(0.0, slip + step * gslip / wsum))
@@ -210,8 +219,16 @@ def _fit_numpy(trials, iters, lr, weights=None):
 
 def loglik(trials, pred, weights=None):
     ws = [1.0] * len(trials) if weights is None else list(weights)
-    return sum(w * math.log(max(1e-9, pred(g, k, m, x, cn) if s else 1 - min(1 - 1e-9, pred(g, k, m, x, cn))))
-               for w, (g, s, k, m, x, cn) in zip(ws, trials)) / sum(ws)
+    return sum(
+        w
+        * math.log(
+            max(
+                1e-9,
+                pred(g, k, m, x, cn) if s else 1 - min(1 - 1e-9, pred(g, k, m, x, cn)),
+            )
+        )
+        for w, (g, s, k, m, x, cn) in zip(ws, trials)
+    ) / sum(ws)
 
 
 GAP_BUCKETS = ((1, 7), (8, 21), (22, 42), (43, 90), (91, 180), (181, 400))
@@ -232,6 +249,7 @@ def render_chart(stab, pred, trials, beta):
     the png path, or None when matplotlib is unavailable."""
     try:
         import matplotlib
+
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
     except ImportError:
@@ -259,14 +277,25 @@ def render_chart(stab, pred, trials, beta):
     for color, k in zip(BLUE_RAMP, (1, 5, 20)):
         ax.plot(gaps, [pred(g, k, 0) for g in gaps], color=color, linewidth=2)
         w = window(k)
-        ax.annotate(f"{k} rep{'s' if k > 1 else ''} · {w:.0f}d",
-                    xy=(min(w, 235), TARGET_RETENTION), color=color, fontsize=8,
-                    xytext=(4, 4 + 11 * (1, 5, 20).index(k)), textcoords="offset points")
+        ax.annotate(
+            f"{k} rep{'s' if k > 1 else ''} · {w:.0f}d",
+            xy=(min(w, 235), TARGET_RETENTION),
+            color=color,
+            fontsize=8,
+            xytext=(4, 4 + 11 * (1, 5, 20).index(k)),
+            textcoords="offset points",
+        )
         ax.plot([w], [TARGET_RETENTION], "o", color=color, markersize=5)
     ax.axhline(TARGET_RETENTION, color=INK2, linewidth=1, linestyle="--", alpha=0.7)
-    ax.annotate(f"SOLID above {TARGET_RETENTION:.0%}", xy=(238, TARGET_RETENTION),
-                color=INK2, fontsize=8, ha="right", xytext=(0, -12),
-                textcoords="offset points")
+    ax.annotate(
+        f"SOLID above {TARGET_RETENTION:.0%}",
+        xy=(238, TARGET_RETENTION),
+        color=INK2,
+        fontsize=8,
+        ha="right",
+        xytext=(0, -12),
+        textcoords="offset points",
+    )
     ax.set_xlim(0, 240)
     ax.set_title("P(recall) by clean reps, unaided", color=INK, fontsize=10)
     ax.set_xlabel("days since last clean", color=INK2, fontsize=8)
@@ -279,8 +308,15 @@ def render_chart(stab, pred, trials, beta):
     ys = range(len(labels))[::-1]
     ax.barh(ys, ws, height=0.55, color=MODEL_BLUE)
     for y, w in zip(ys, ws):
-        ax.annotate(f"{w:.0f}d", xy=(w, y), color=INK, fontsize=9,
-                    va="center", xytext=(4, 0), textcoords="offset points")
+        ax.annotate(
+            f"{w:.0f}d",
+            xy=(w, y),
+            color=INK,
+            fontsize=9,
+            va="center",
+            xytext=(4, 0),
+            textcoords="offset points",
+        )
     ax.set_yticks(list(ys), labels)
     ax.tick_params(axis="y", colors=INK)
     ax.grid(axis="y", visible=False)
@@ -303,15 +339,34 @@ def render_chart(stab, pred, trials, beta):
     ax.plot(xs, mods, color=MODEL_BLUE, linewidth=2, marker="o", markersize=5)
     ax.scatter(xs, obss, color=OBSERVED_GREEN, s=[12 + n / 2 for n in ns], zorder=3)
     for x, o, n in zip(xs, obss, ns):
-        ax.annotate(f"n={n}", xy=(x, o), color=INK2, fontsize=7,
-                    xytext=(0, 8), textcoords="offset points", ha="center")
-    ax.annotate("model", xy=(xs[-1], mods[-1]), color=MODEL_BLUE, fontsize=9,
-                xytext=(6, -2), textcoords="offset points")
-    ax.annotate("observed", xy=(xs[-1], obss[-1]), color=OBSERVED_GREEN, fontsize=9,
-                xytext=(6, 4), textcoords="offset points")
+        ax.annotate(
+            f"n={n}",
+            xy=(x, o),
+            color=INK2,
+            fontsize=7,
+            xytext=(0, 8),
+            textcoords="offset points",
+            ha="center",
+        )
+    ax.annotate(
+        "model",
+        xy=(xs[-1], mods[-1]),
+        color=MODEL_BLUE,
+        fontsize=9,
+        xytext=(6, -2),
+        textcoords="offset points",
+    )
+    ax.annotate(
+        "observed",
+        xy=(xs[-1], obss[-1]),
+        color=OBSERVED_GREEN,
+        fontsize=9,
+        xytext=(6, 4),
+        textcoords="offset points",
+    )
     lo_y = min(min(mods), min(obss))
     ax.set_ylim(max(0.0, lo_y - 0.06), 1.04)
-    ax.set_xticks(xs, [f"{lo}-{hi}" for lo, hi in GAP_BUCKETS[:len(xs)]])
+    ax.set_xticks(xs, [f"{lo}-{hi}" for lo, hi in GAP_BUCKETS[: len(xs)]])
     ax.minorticks_off()
     ax.set_title("calibration by gap (model vs observed)", color=INK, fontsize=10)
     ax.set_xlabel("gap, days (log)", color=INK2, fontsize=8)
@@ -338,7 +393,9 @@ def fit_mass(evidence, problems):
     friendly-first serving order (rule 6) stops biasing the fitted rate.
     Returns {"beta", "se", "n", "by_difficulty": {intercept per class}}."""
     import numpy as np
-    from kg.kg_lib import assist_of, problem_difficulty, carrier_counts, walk_mass
+
+    from kg.kg_lib import assist_of, carrier_counts, problem_difficulty, walk_mass
+
     counts = carrier_counts(problems)
     seen, rows = set(), []
     for fname in sorted(evidence, key=lambda k: (evidence[k]["date"], k)):
@@ -350,8 +407,10 @@ def fit_mass(evidence, problems):
         dif = problem_difficulty(pnum, problems)
         if dif not in ("Easy", "Medium", "Hard"):
             continue
-        clean = all(v == "clean" for v in rec["moves"].values()) \
+        clean = (
+            all(v == "clean" for v in rec["moves"].values())
             and assist_of(rec) == "none"
+        )
         rows.append((dif, walk_mass(rec["moves"], counts), clean))
     if len(rows) < 30:
         return {"beta": 0.0, "se": 0.0, "n": len(rows), "by_difficulty": {}}
@@ -368,10 +427,15 @@ def fit_mass(evidence, problems):
         if np.abs(step).max() < 1e-8:
             break
     pr = 1 / (1 + np.exp(-(X @ w)))
-    cov = np.linalg.inv((X * (pr * (1 - pr))[:, None]).T @ X + 1e-6 * np.eye(X.shape[1]))
-    return {"beta": round(float(w[3]), 4), "se": round(float(np.sqrt(cov[3, 3])), 4),
-            "n": len(rows),
-            "by_difficulty": {d: round(float(w[i]), 4) for i, d in enumerate(difs)}}
+    cov = np.linalg.inv(
+        (X * (pr * (1 - pr))[:, None]).T @ X + 1e-6 * np.eye(X.shape[1])
+    )
+    return {
+        "beta": round(float(w[3]), 4),
+        "se": round(float(np.sqrt(cov[3, 3])), 4),
+        "n": len(rows),
+        "by_difficulty": {d: round(float(w[i]), 4) for i, d in enumerate(difs)},
+    }
 
 
 # ---- the cold-solve model ---------------------------------------------------
@@ -404,6 +468,7 @@ def _logistic(X, y, lam=0.0, iters=60):
     """Newton's method on the ridge-penalised log-likelihood; the intercept
     (column 0) is never penalised."""
     import numpy as np
+
     w = np.zeros(X.shape[1])
     pen = np.eye(X.shape[1]) * lam
     pen[0, 0] = 0.0
@@ -420,6 +485,7 @@ def _logistic(X, y, lam=0.0, iters=60):
 
 def _mean_loglik(X, y, w):
     import numpy as np
+
     pr = np.clip(1 / (1 + np.exp(-(X @ w))), 1e-9, 1 - 1e-9)
     return float((y * np.log(pr) + (1 - y) * np.log(1 - pr)).mean())
 
@@ -429,7 +495,8 @@ def solve_rows(evidence, params, ratings):
     from evidence strictly older than the game, so a row never sees its own
     result or anything after it."""
     import bisect
-    cleans = defaultdict(list)          # move -> sorted clean dates
+
+    cleans = defaultdict(list)  # move -> sorted clean dates
     for fname, rec in evidence.items():
         for mv, verdict in (rec.get("moves") or {}).items():
             if verdict == "clean":
@@ -443,32 +510,41 @@ def solve_rows(evidence, params, ratings):
             return None
         i = bisect.bisect_left(seen, day)
         if i == 0:
-            return None                  # never met before this attempt
+            return None  # never met before this attempt
         prior = seen[:i]
-        s = min(max(math.exp(params["a"] + params["b"]
-                             * math.log1p(len(set(prior)))), 7), 3650)
+        s = min(
+            max(math.exp(params["a"] + params["b"] * math.log1p(len(set(prior)))), 7),
+            3650,
+        )
         gap = (_date(day) - _date(prior[-1])).days
         return (1 + gap / s) ** (-params["beta"])
 
     counts = kg_lib.carrier_counts(kg_lib.load_problems())
-    rows = []
+    rows: list = []
     for g in kg_lib.elo_games(evidence, ratings):
         rating = g["rating"]
         rs = [recall(m, g["date"]) for m in g["moves"]]
-        rows.append(({
-            "gap": (g["elo_before"] - rating) / 400,
-            "rating": (rating - 1500) / 400,
-            "recall": sum(math.log(max(r, 1e-3)) for r in rs if r is not None),
-            "unseen": float(sum(1 for r in rs if r is None)),
-            "experience": math.log1p(len(rows)),
-            "mass": kg_lib.walk_mass(g["moves"], counts),
-            "length": math.log(max(len(g["moves"]), 1)),
-        }, g["score"], g["date"]))
+        rows.append(
+            (
+                {
+                    "gap": (g["elo_before"] - rating) / 400,
+                    "rating": (rating - 1500) / 400,
+                    "recall": sum(math.log(max(r, 1e-3)) for r in rs if r is not None),
+                    "unseen": float(sum(1 for r in rs if r is None)),
+                    "experience": math.log1p(len(rows)),
+                    "mass": kg_lib.walk_mass(g["moves"], counts),
+                    "length": math.log(max(len(g["moves"]), 1)),
+                },
+                g["score"],
+                g["date"],
+            )
+        )
     return rows
 
 
 def _design(rows, features):
     import numpy as np
+
     X = np.array([[1.0] + [r[0][f] for f in features] for r in rows])
     y = np.array([r[1] for r in rows])
     return X, y
@@ -477,7 +553,7 @@ def _design(rows, features):
 def _cv_loglik(rows, features, lam):
     """Mean held-out log-likelihood over expanding-window folds: fold k is
     fitted on everything before it and scored on the block after."""
-    import numpy as np
+
     X, y = _design(rows, features)
     n = len(y)
     edges = [round(n * (i + 1) / (SOLVE_FOLDS + 1)) for i in range(SOLVE_FOLDS + 1)]
@@ -497,6 +573,7 @@ def solve_ratings():
     has not been fetched, which leaves the cold-solve model unfitted."""
     try:
         from kg import clist
+
         return clist.combined_ratings()
     except (ImportError, SystemExit):
         return {}
@@ -508,7 +585,8 @@ def fit_solve(evidence, params, ratings):
     rows = solve_rows(evidence, params, ratings)
     if len(rows) < 100:
         return {"games": len(rows), "features": {}, "note": "too few games"}
-    chosen, best = [], max(_cv_loglik(rows, [], lam) for lam in SOLVE_LAMBDAS)
+    chosen: list = []
+    best = max(_cv_loglik(rows, [], lam) for lam in SOLVE_LAMBDAS)
     base_cv, best_lam = best, 0.0
     while True:
         gains = []
@@ -524,6 +602,7 @@ def fit_solve(evidence, params, ratings):
             break
         chosen, best, best_lam = chosen + [feature], cv, lam
     import numpy as np
+
     X, y = _design(rows, chosen)
     w = _logistic(X, y, best_lam)
     # The skill channel. `gap` (his Elo that day minus the problem's rating) is
@@ -535,17 +614,22 @@ def fit_solve(evidence, params, ratings):
     # today, with a standard error that says how near.
     drift, drift_se = kg_lib.elo_drift(evidence, ratings)
     pr = 1 / (1 + np.exp(-(X @ w)))
-    cov = np.linalg.inv((X * (pr * (1 - pr))[:, None]).T @ X
-                        + 1e-6 * np.eye(X.shape[1]))
+    cov = np.linalg.inv(
+        (X * (pr * (1 - pr))[:, None]).T @ X + 1e-6 * np.eye(X.shape[1])
+    )
     return {
         "games": len(rows),
         "features": {f: round(float(c), 4) for f, c in zip(["intercept"] + chosen, w)},
-        "se": {f: round(float(np.sqrt(cov[i, i])), 4)
-               for i, f in enumerate(["intercept"] + chosen)},
+        "se": {
+            f: round(float(np.sqrt(cov[i, i])), 4)
+            for i, f in enumerate(["intercept"] + chosen)
+        },
         "intercept_se": round(float(np.sqrt(cov[0, 0])), 4),
-        "elo": {"now": round(kg_lib.elo_now(evidence, ratings), 1),
-                "drift_per_day": round(drift, 5),
-                "drift_se": round(drift_se, 5)},
+        "elo": {
+            "now": round(kg_lib.elo_now(evidence, ratings), 1),
+            "drift_per_day": round(drift, 5),
+            "drift_se": round(drift_se, 5),
+        },
         "lambda": best_lam,
         "cv_loglik": round(best, 4),
         "baseline_cv_loglik": round(base_cv, 4),
@@ -558,6 +642,7 @@ def solve_report(evidence, params, ratings):
     on the same expanding-window folds: the base rate, the Easy/Medium/Hard
     label, the rating alone, and the fitted set. Printed by --solve-report."""
     import numpy as np
+
     rows = solve_rows(evidence, params, ratings)
     games = [g for g in kg_lib.scored_games(evidence) if g["problem"] in ratings]
     y = np.array([r[1] for r in rows])
@@ -573,61 +658,89 @@ def solve_report(evidence, params, ratings):
 
     fit = fit_solve(evidence, params, ratings)
     chosen = [f for f in fit["features"] if f != "intercept"]
-    lab = np.column_stack([np.ones(n)] + [
-        np.array([g["difficulty"] == d for g in games], float) for d in ("Medium", "Hard")])
+    lab = np.column_stack(
+        [np.ones(n)]
+        + [
+            np.array([g["difficulty"] == d for g in games], float)
+            for d in ("Medium", "Hard")
+        ]
+    )
     models = {
         "base rate": out_of_fold(np.ones((n, 1)), 0.0),
         "Easy/Medium/Hard label": out_of_fold(lab, 0.0),
         "rating alone": out_of_fold(_design(rows, ["rating"])[0], fit["lambda"]),
-        "fitted: " + " + ".join(chosen): out_of_fold(_design(rows, chosen)[0], fit["lambda"]),
+        "fitted: "
+        + " + ".join(chosen): out_of_fold(_design(rows, chosen)[0], fit["lambda"]),
     }
     scored = ~np.isnan(next(iter(models.values())))
-    print(f"{n} games, {int(scored.sum())} scored out of fold "
-          f"({SOLVE_FOLDS} expanding-window blocks)")
+    print(
+        f"{n} games, {int(scored.sum())} scored out of fold "
+        f"({SOLVE_FOLDS} expanding-window blocks)"
+    )
     print(f"  {'model':34}{'loglik/game':>13}{'Brier':>9}{'mean p':>9}{'actual':>9}")
     lls = {}
     for name, pred in models.items():
         p = np.clip(pred[scored], 1e-9, 1 - 1e-9)
         t = y[scored]
         lls[name] = t * np.log(p) + (1 - t) * np.log(1 - p)
-        print(f"  {name:34}{lls[name].mean():13.4f}{((p - t) ** 2).mean():9.4f}"
-              f"{p.mean():9.3f}{t.mean():9.3f}")
+        print(
+            f"  {name:34}{lls[name].mean():13.4f}{((p - t) ** 2).mean():9.4f}"
+            f"{p.mean():9.3f}{t.mean():9.3f}"
+        )
     rng = np.random.default_rng(0)
     best = [k for k in models if k.startswith("fitted")][0]
     for other in ("base rate", "Easy/Medium/Hard label"):
         d = lls[best] - lls[other]
-        boot = np.array([d[rng.integers(0, len(d), len(d))].mean() for _ in range(4000)])
+        boot = np.array(
+            [d[rng.integers(0, len(d), len(d))].mean() for _ in range(4000)]
+        )
         lo, hi = np.percentile(boot, [2.5, 97.5])
-        print(f"  fitted - {other}: {d.mean():+.4f}/game, "
-              f"95% CI [{lo:+.4f}, {hi:+.4f}], P(better) {(boot > 0).mean():.3f}")
+        print(
+            f"  fitted - {other}: {d.mean():+.4f}/game, "
+            f"95% CI [{lo:+.4f}, {hi:+.4f}], P(better) {(boot > 0).mean():.3f}"
+        )
 
 
 def main():
     import argparse
 
     parser = argparse.ArgumentParser(description="Fit the personal forgetting curve.")
-    parser.add_argument("--if-stale", action="store_true",
-                        help="refit only when evidence.json (or a knob) is newer than curve.json")
-    parser.add_argument("--since", default=os.environ.get("CURVE_SINCE") or None,
-                        metavar="YYYY-MM-DD",
-                        help="era boundary: fit on trials on or after this date "
-                             "(env CURVE_SINCE)")
-    parser.add_argument("--solve-report", action="store_true",
-                        help="held-out comparison of the cold-solve model "
-                             "against the base rate, the difficulty label and "
-                             "the rating alone")
-    parser.add_argument("--half-life", type=float,
-                        default=float(os.environ.get("CURVE_HALF_LIFE", 0) or 0),
-                        metavar="DAYS",
-                        help="recency weighting: a trial DAYS older than the newest "
-                             "counts half as much (env CURVE_HALF_LIFE, 0 = off)")
+    parser.add_argument(
+        "--if-stale",
+        action="store_true",
+        help="refit only when evidence.json (or a knob) is newer than curve.json",
+    )
+    parser.add_argument(
+        "--since",
+        default=os.environ.get("CURVE_SINCE") or None,
+        metavar="YYYY-MM-DD",
+        help="era boundary: fit on trials on or after this date " "(env CURVE_SINCE)",
+    )
+    parser.add_argument(
+        "--solve-report",
+        action="store_true",
+        help="held-out comparison of the cold-solve model "
+        "against the base rate, the difficulty label and "
+        "the rating alone",
+    )
+    parser.add_argument(
+        "--half-life",
+        type=float,
+        default=float(os.environ.get("CURVE_HALF_LIFE", 0) or 0),
+        metavar="DAYS",
+        help="recency weighting: a trial DAYS older than the newest "
+        "counts half as much (env CURVE_HALF_LIFE, 0 = off)",
+    )
     args = parser.parse_args()
     knobs = {"since": args.since, "half_life": args.half_life or 0}
 
     curve_path = os.path.join(GRAPH_DIR, "curve.json")
     evidence_path = os.path.join(GRAPH_DIR, "evidence.json")
-    if (args.if_stale and os.path.exists(curve_path)
-            and os.path.getmtime(curve_path) >= os.path.getmtime(evidence_path)):
+    if (
+        args.if_stale
+        and os.path.exists(curve_path)
+        and os.path.getmtime(curve_path) >= os.path.getmtime(evidence_path)
+    ):
         # a knob change makes the file stale even with no new evidence,
         # otherwise an .envrc experiment never reaches the serving path
         try:
@@ -635,8 +748,10 @@ def main():
                 prev = json.load(f).get("fit", {})
         except (OSError, ValueError):
             prev = {}
-        if (prev.get("since") == knobs["since"]
-                and prev.get("half_life", 0) == knobs["half_life"]):
+        if (
+            prev.get("since") == knobs["since"]
+            and prev.get("half_life", 0) == knobs["half_life"]
+        ):
             return  # curve already reflects current evidence and knobs
 
     evidence = load_evidence()
@@ -652,7 +767,8 @@ def main():
     ratings = solve_ratings()
     if ratings:
         from kg import clist
-        clist.write_ratings()          # graph/ratings.json, read by kg_mock
+
+        clist.write_ratings()  # graph/ratings.json, read by kg_mock
     solve = fit_solve(evidence, {"a": a, "b": b, "beta": beta}, ratings)
 
     def stab(k, m, x=0.0, cn=None):
@@ -665,8 +781,9 @@ def main():
     ws = [1.0] * len(trials) if weights is None else weights
     base_rate = sum(w * t[1] for w, t in zip(ws, trials)) / sum(ws)
     ll_model = loglik(trials, pred, weights)
-    ll_base = sum(w * math.log(base_rate if t[1] else 1 - base_rate)
-                  for w, t in zip(ws, trials)) / sum(ws)
+    ll_base = sum(
+        w * math.log(base_rate if t[1] else 1 - base_rate) for w, t in zip(ws, trials)
+    ) / sum(ws)
 
     curve = {
         "_comment": "Personal forgetting curve fitted by utils/kg/kg_curve. "
@@ -674,7 +791,7 @@ def main():
         "s = exp(a + b*log1p(cleans) - c*struggles - d*assist + e*(conn - conn_mean)); cleans counts distinct clean days, same-day reps are one rep. "
         "conn is the node's log2 carrier count, frozen below at fit time; "
         "consumers that ignore e are assuming average connectivity. "
-        "\"solve\" is the cold-solve model fitted by fit_solve: "
+        '"solve" is the cold-solve model fitted by fit_solve: '
         "logit P(solve cold, unaided, inside the clock) = the listed "
         "coefficients over (rating - 1500)/400, the walk's summed log recall, "
         "and its count of never-met moves; features not listed did not earn "
@@ -683,47 +800,72 @@ def main():
         "(1 + gap/s)^(-beta) >= target_retention; delete this file to fall "
         "back to the flat 42-day window.",
         "model": "power-law-slip",
-        "params": {"a": round(a, 4), "b": round(b, 4), "c": round(c, 4),
-                   "d": round(d, 4), "e": round(e, 4),
-                   "conn_mean": round(conn_mean, 4),
-                   "beta": round(beta, 4), "slip": round(slip, 4)},
+        "params": {
+            "a": round(a, 4),
+            "b": round(b, 4),
+            "c": round(c, 4),
+            "d": round(d, 4),
+            "e": round(e, 4),
+            "conn_mean": round(conn_mean, 4),
+            "beta": round(beta, 4),
+            "slip": round(slip, 4),
+        },
         "conn": {n: round(v, 3) for n, v in sorted(conn.items())},
         "target_retention": TARGET_RETENTION,
         "mass": mass,
         "solve": solve,
-        "fit": {"trials": len(trials), "loglik": round(ll_model, 4),
-                "baseline_loglik": round(ll_base, 4),
-                "since": knobs["since"], "half_life": knobs["half_life"],
-                "effective_trials": round(sum(ws), 1)},
+        "fit": {
+            "trials": len(trials),
+            "loglik": round(ll_model, 4),
+            "baseline_loglik": round(ll_base, 4),
+            "since": knobs["since"],
+            "half_life": knobs["half_life"],
+            "effective_trials": round(sum(ws), 1),
+        },
     }
     with open(os.path.join(GRAPH_DIR, "curve.json"), "w") as f:
         json.dump(curve, f, indent=2)
 
     from rich.console import Console
+
     console = Console(highlight=False)
     print = lambda line: console.print(
-        f"[bold]{line}[/bold]" if line.startswith("fitted") or line.startswith("wrote")
-        else f"[dim]{line}[/dim]" if line.startswith("  ") else f"[cyan]{line}[/cyan]")
+        f"[bold]{line}[/bold]"
+        if line.startswith("fitted") or line.startswith("wrote")
+        else f"[dim]{line}[/dim]" if line.startswith("  ") else f"[cyan]{line}[/cyan]"
+    )
     if knobs["since"] or knobs["half_life"]:
         parts = []
         if knobs["since"]:
             parts.append(f"era boundary {knobs['since']}")
         if knobs["half_life"]:
-            parts.append(f"recency half-life {knobs['half_life']:g}d "
-                         f"(effective n {sum(ws):.0f})")
+            parts.append(
+                f"recency half-life {knobs['half_life']:g}d "
+                f"(effective n {sum(ws):.0f})"
+            )
         print("knobs: " + ", ".join(parts))
-    print(f"fitted on {len(trials)} trials: "
-          f"P = {1 - slip:.2f}·(1 + Δ/s)^(−{beta:.2f}), "
-          f"s = exp({a:.2f} + {b:.3f}·log1p(cleans) − {c:.3f}·struggles − {d:.3f}·assist "
-          f"+ {e:.3f}·conn)")
-    print(f"loglik/trial {ll_model:.4f} vs always-{base_rate:.0%} baseline {ll_base:.4f}")
-    print(f"{TARGET_RETENTION:.0%}-retention window by clean reps (no struggles, unaided):")
+    print(
+        f"fitted on {len(trials)} trials: "
+        f"P = {1 - slip:.2f}·(1 + Δ/s)^(−{beta:.2f}), "
+        f"s = exp({a:.2f} + {b:.3f}·log1p(cleans) − {c:.3f}·struggles − {d:.3f}·assist "
+        f"+ {e:.3f}·conn)"
+    )
+    print(
+        f"loglik/trial {ll_model:.4f} vs always-{base_rate:.0%} baseline {ll_base:.4f}"
+    )
+    print(
+        f"{TARGET_RETENTION:.0%}-retention window by clean reps (no struggles, unaided):"
+    )
     for k in (1, 2, 3, 5, 10, 20):
         window = stab(k, 0) * (TARGET_RETENTION ** (-1 / beta) - 1)
         print(f"  {k:2d} reps: stability {stab(k, 0):5.0f}d -> window ≈ {window:5.0f}d")
     print("cost of assistance (5 clean reps, no struggles):")
-    for label, x in (("unaided", 0.0), ("one hint", 0.5),
-                     ("walkthrough", 1.0), ("learning", 2.0)):
+    for label, x in (
+        ("unaided", 0.0),
+        ("one hint", 0.5),
+        ("walkthrough", 1.0),
+        ("learning", 2.0),
+    ):
         window = stab(5, 0, x) * (TARGET_RETENTION ** (-1 / beta) - 1)
         print(f"  {label:12s}: window ≈ {window:5.0f}d")
     print("calibration (model mean vs observed unaided-recall rate):")
@@ -732,16 +874,26 @@ def main():
         if rows:
             obs = sum(s for _, s, _, _, _, _ in rows) / len(rows)
             mod = sum(pred(g, k, m, x, cn) for g, _, k, m, x, cn in rows) / len(rows)
-            print(f"  gap {lo:3d}-{hi:3d}d: model {mod:4.0%}  observed {obs:4.0%}  (n={len(rows)})")
+            print(
+                f"  gap {lo:3d}-{hi:3d}d: model {mod:4.0%}  observed {obs:4.0%}  (n={len(rows)})"
+            )
     if solve.get("features"):
-        terms = " ".join(f"{c:+.3f}·{f}" for f, c in solve["features"].items()
-                         if f != "intercept")
-        print(f"cold solve, fitted on {solve['games']} timed games: "
-              f"logit P = {solve['features']['intercept']:.3f} {terms}")
-        print(f"  held-out loglik/game {solve['cv_loglik']:.4f} vs base rate "
-              f"{solve['baseline_cv_loglik']:.4f}"
-              + (f"; earned no place: {', '.join(solve['rejected'])}"
-                 if solve["rejected"] else ""))
+        terms = " ".join(
+            f"{c:+.3f}·{f}" for f, c in solve["features"].items() if f != "intercept"
+        )
+        print(
+            f"cold solve, fitted on {solve['games']} timed games: "
+            f"logit P = {solve['features']['intercept']:.3f} {terms}"
+        )
+        print(
+            f"  held-out loglik/game {solve['cv_loglik']:.4f} vs base rate "
+            f"{solve['baseline_cv_loglik']:.4f}"
+            + (
+                f"; earned no place: {', '.join(solve['rejected'])}"
+                if solve["rejected"]
+                else ""
+            )
+        )
     if args.solve_report:
         solve_report(evidence, {"a": a, "b": b, "beta": beta}, solve_ratings())
     print(f"wrote {os.path.join(GRAPH_DIR, 'curve.json')}")
@@ -749,10 +901,12 @@ def main():
     # the same report as a picture, drawn in-place on iTerm (silently skipped
     # when piped or unsupported — the text above is the everywhere fallback)
     import sys
+
     if sys.stdout.isatty():
         png = render_chart(stab, pred, trials, beta)
         if png:
             from kg.kg_render import show_inline
+
             show_inline(png, display_width_px=1100)
 
 

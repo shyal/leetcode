@@ -23,8 +23,17 @@ import re
 import sys
 import xml.etree.ElementTree as ET
 from datetime import date
+from typing import Any
 
-from kg.kg_lib import GRAPH_DIR, input_tree, load_evidence, load_nodes, load_problems, node_status, node_degree
+from kg.kg_lib import (
+    GRAPH_DIR,
+    input_tree,
+    load_evidence,
+    load_nodes,
+    load_problems,
+    node_degree,
+    node_status,
+)
 from kg.kg_render import make_digraph, status_node
 
 OUT = os.path.join(GRAPH_DIR, "zpd.svg")
@@ -62,7 +71,7 @@ def last_solves(evidence, problems, n):
     return solves[-n:]
 
 
-_BANK = {}
+_BANK: dict[str, Any] = {}
 
 
 def _bank():
@@ -79,15 +88,31 @@ def frame_svg(title, moves, solve_date, prior, nodes):
     problems = _bank()
     for n in tree:
         s, d = node_status(n, prior, today=solve_date)
-        status_node(dot, n, nodes[n], s, d, highlight=(n in moves), labeled=True,
-                    degree=node_degree(n, prior, problems, today=solve_date))
+        status_node(
+            dot,
+            n,
+            nodes[n],
+            s,
+            d,
+            highlight=(n in moves),
+            labeled=True,
+            degree=node_degree(n, prior, problems, today=solve_date),
+        )
     for n in tree:
         for pre in nodes[n].get("prereqs", []):
             if pre in tree:
                 dot.edge(pre, n)
-    dot.node("carrier", label=title, shape="box", style="filled",
-             fillcolor="#1f6feb", color="#c9d1d9", penwidth="2", fontsize="13",
-             margin="0.2,0.12")
+    dot.node(
+        "carrier",
+        label=title,
+        shape="box",
+        style="filled",
+        fillcolor="#1f6feb",
+        color="#c9d1d9",
+        penwidth="2",
+        fontsize="13",
+        margin="0.2,0.12",
+    )
     for m in moves:
         if m in nodes:
             dot.edge(m, "carrier", penwidth="1.4")
@@ -100,8 +125,11 @@ def parse_frame(svg_src):
     ET.register_namespace("", SVG_NS)
     ET.register_namespace("xlink", XLINK_NS)
     root = ET.fromstring(svg_src)
-    vb = [float(v) for v in root.get("viewBox").split()]
+    view_box = root.get("viewBox")
+    assert view_box is not None
+    vb = [float(v) for v in view_box.split()]
     g = root.find(f"{{{SVG_NS}}}g")
+    assert g is not None
     for child in list(g):
         if child.tag in (f"{{{SVG_NS}}}polygon", f"{{{SVG_NS}}}title"):
             g.remove(child)
@@ -138,15 +166,19 @@ def main():
     ]
     for i, (w, h, body, _, d) in enumerate(frames):
         t0, t1 = i / n, (i + 1) / n
-        vis = (f'<animate attributeName="visibility" calcMode="discrete" '
-               f'values="hidden;visible;hidden;hidden" keyTimes="0;{t0:.5f};{t1:.5f};1" '
-               f'dur="{dur}s" repeatCount="indefinite"/>')
+        vis = (
+            f'<animate attributeName="visibility" calcMode="discrete" '
+            f'values="hidden;visible;hidden;hidden" keyTimes="0;{t0:.5f};{t1:.5f};1" '
+            f'dur="{dur}s" repeatCount="indefinite"/>'
+        )
         x = (W - w) / 2
         y = (H - 28 - h) / 2 + 28
-        out.append(f'<g visibility="hidden">{vis}'
-                   f'<text x="{PAD}" y="22" font-family="Helvetica,sans-serif" font-size="12" '
-                   f'fill="{INK_MUTED}">{d.isoformat()}  solve {i + 1}/{n}</text>'
-                   f'<g transform="translate({x:.2f} {y:.2f})">{body}</g></g>')
+        out.append(
+            f'<g visibility="hidden">{vis}'
+            f'<text x="{PAD}" y="22" font-family="Helvetica,sans-serif" font-size="12" '
+            f'fill="{INK_MUTED}">{d.isoformat()}  solve {i + 1}/{n}</text>'
+            f'<g transform="translate({x:.2f} {y:.2f})">{body}</g></g>'
+        )
     out.append("</svg>")
     with open(OUT, "w") as f:
         f.write("\n".join(out))

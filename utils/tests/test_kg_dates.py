@@ -13,10 +13,12 @@ from datetime import date, datetime, timezone
 from importlib.machinery import SourceFileLoader
 
 from kg import kg_lib
-from kg.kg_lib import MANILA, manila_date_from_filename, due_drill, last_drilled
+from kg.kg_lib import MANILA, due_drill, last_drilled, manila_date_from_filename
 
 KG = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "kg")
-kg_extract = SourceFileLoader("kg_extract", os.path.join(KG, "kg_extract")).load_module()
+kg_extract = SourceFileLoader(
+    "kg_extract", os.path.join(KG, "kg_extract")
+).load_module()
 # NOT module name "solved" — test_runner imports solve files as the package
 # solved.<stem> from ./solved/, and that name in sys.modules would shadow it
 solved = SourceFileLoader("solved_cli", os.path.join(KG, "solved")).load_module()
@@ -28,12 +30,14 @@ def utc(y, mo, d, h, mi=0, s=0, micro=0):
 
 # --- the toolchain's clock is pinned to Manila ---------------------------------
 
+
 def test_today_means_the_manila_calendar_day():
     assert os.environ["TZ"] == "Asia/Manila"
     assert date.today() == datetime.now(MANILA).date()
 
 
 # --- filename stamp -> Manila day ----------------------------------------------
+
 
 def test_evening_utc_stamp_is_the_next_manila_day():
     # the actual incident: drill solved 19:44 UTC Aug 23 = 03:44 Manila Aug 24
@@ -71,6 +75,7 @@ def test_no_timestamp_returns_none():
 
 # --- utils/kg/solved stamps in UTC and the round trip lands on the Manila day -----
 
+
 def test_solved_filename_roundtrip_across_midnight():
     now = utc(2026, 8, 23, 19, 44, 54, 884512)
     name = solved.solved_filename("drill", "Number Scanner", now=now)
@@ -94,6 +99,7 @@ def test_solved_filename_failed_marker_survives_roundtrip():
 
 # --- kg_extract derives evidence dates through the shared helper ---------------
 
+
 def test_extract_uses_the_manila_helper():
     assert kg_extract.manila_date_from_filename is kg_lib.manila_date_from_filename
     # the raw-digits regex must stay dead
@@ -101,6 +107,7 @@ def test_extract_uses_the_manila_helper():
 
 
 # --- evidence.json invariant: stored dates ARE the Manila days -----------------
+
 
 def test_every_evidence_date_matches_its_filename_manila_day():
     """Regression net for the whole seam: if kg_extract (or anything else)
@@ -123,6 +130,7 @@ def test_every_evidence_date_matches_its_filename_manila_day():
 
 # --- due_drill at the boundary: the bug that started this ----------------------
 
+
 def bank(tmp_path, monkeypatch, node, title):
     d = tmp_path / node
     d.mkdir()
@@ -135,7 +143,9 @@ def bank(tmp_path, monkeypatch, node, title):
 def test_drill_solved_after_manila_midnight_is_not_due_again(tmp_path, monkeypatch):
     path = bank(tmp_path, monkeypatch, "recursive-descent", "Number Scanner")
     key = "solved/d_Number_Scanner_2026_08_23T19_44_54_884512_00_00Z.py"
-    ev = {key: {"date": manila_date_from_filename(key), "problem": "drill", "moves": {}}}
+    ev = {
+        key: {"date": manila_date_from_filename(key), "problem": "drill", "moves": {}}
+    }
     today = date(2026, 8, 24)  # Manila day of that solve
     assert last_drilled(path, ev) == "2026-08-24"
     assert due_drill("recursive-descent", ev, today=today) is None
@@ -145,13 +155,20 @@ def test_the_utc_date_bug_would_have_reoffered_it(tmp_path, monkeypatch):
     """What actually happened on 2026-08-24: the evidence carried the UTC day,
     so the drill looked a day old and was offered again the same night."""
     bank(tmp_path, monkeypatch, "recursive-descent", "Number Scanner")
-    ev = {"solved/d_Number_Scanner_2026_08_23T19_44_54_884512_00_00Z.py":
-          {"date": "2026-08-23", "problem": "drill", "moves": {}}}
+    ev = {
+        "solved/d_Number_Scanner_2026_08_23T19_44_54_884512_00_00Z.py": {
+            "date": "2026-08-23",
+            "problem": "drill",
+            "moves": {},
+        }
+    }
     assert due_drill("recursive-descent", ev, today=date(2026, 8, 24)) is not None
 
 
 def test_drill_solved_yesterday_is_due_today(tmp_path, monkeypatch):
     bank(tmp_path, monkeypatch, "recursive-descent", "Number Scanner")
     key = "solved/d_Number_Scanner_2026_08_22T19_44_54_884512_00_00Z.py"
-    ev = {key: {"date": manila_date_from_filename(key), "problem": "drill", "moves": {}}}
+    ev = {
+        key: {"date": manila_date_from_filename(key), "problem": "drill", "moves": {}}
+    }
     assert due_drill("recursive-descent", ev, today=date(2026, 8, 24)) is not None

@@ -25,9 +25,13 @@ PY = VENV_PY if os.path.exists(VENV_PY) else sys.executable
 
 
 def _scripts(d):
-    return sorted(f for f in os.listdir(d)
-                  if os.path.isfile(os.path.join(d, f)) and not f.startswith("__")
-                  and not f.endswith((".txt", ".pyc")))
+    return sorted(
+        f
+        for f in os.listdir(d)
+        if os.path.isfile(os.path.join(d, f))
+        and not f.startswith("__")
+        and not f.endswith((".txt", ".pyc"))
+    )
 
 
 def _has_main_guard(path):
@@ -37,14 +41,20 @@ def _has_main_guard(path):
 
 # --- the makefile only names files that exist ------------------------------
 
+
 def test_makefile_paths_exist():
     """Every utils/ path the makefile names exists, except cargo build
     outputs under target/, which the makefile builds itself and a fresh
     checkout (CI) does not have."""
     text = open(os.path.join(ROOT, "makefile")).read()
-    missing = sorted({p for p in re.findall(r"utils/[\w./-]+", text)
-                      if "/target/" not in p
-                      and not os.path.exists(os.path.join(ROOT, p.rstrip("/")))})
+    missing = sorted(
+        {
+            p
+            for p in re.findall(r"utils/[\w./-]+", text)
+            if "/target/" not in p
+            and not os.path.exists(os.path.join(ROOT, p.rstrip("/")))
+        }
+    )
     assert missing == [], f"makefile points at files that do not exist: {missing}"
 
 
@@ -58,14 +68,18 @@ def test_tooling_paths_exist():
                     continue
                 for p in re.findall(r"[\"']utils/([\w./-]+)[\"']", line):
                     seen.add(p)
-    missing = sorted(p for p in seen if not os.path.exists(os.path.join(ROOT, "utils", p)))
+    missing = sorted(
+        p for p in seen if not os.path.exists(os.path.join(ROOT, "utils", p))
+    )
     assert seen, "expected at least one cross-script utils/ path (kg_force -> prepare)"
     assert missing == [], f"scripts point at utils/ files that do not exist: {missing}"
 
 
 # --- every tooling script still imports ------------------------------------
 
-_KG_MODULES = [f for f in _scripts(KG) if _has_main_guard(os.path.join(KG, f)) or f.endswith(".py")]
+_KG_MODULES = [
+    f for f in _scripts(KG) if _has_main_guard(os.path.join(KG, f)) or f.endswith(".py")
+]
 
 
 @pytest.mark.parametrize("name", _KG_MODULES)
@@ -78,20 +92,32 @@ def test_kg_script_loads(name):
     # __file__-derived roots must point at real directories after the move
     for attr in ("REPO_ROOT", "GRAPH_DIR", "DRILLS_DIR", "UTILS", "UTILS_DIR", "ROOT"):
         if hasattr(mod, attr):
-            assert os.path.isdir(getattr(mod, attr)), f"{name}.{attr} = {getattr(mod, attr)}"
+            assert os.path.isdir(
+                getattr(mod, attr)
+            ), f"{name}.{attr} = {getattr(mod, attr)}"
 
 
 def test_kg_lib_roots():
     from kg import kg_lib
+
     assert kg_lib.REPO_ROOT == ROOT
     assert kg_lib.UTILS_DIR == UTILS
     assert kg_lib.GRAPH_DIR == os.path.join(ROOT, "graph")
     assert kg_lib.DRILLS_DIR == os.path.join(ROOT, "drills")
     assert os.path.isfile(kg_lib.SITECUSTOMIZE)
-    assert kg_lib.sitecustomize_names(), "builtin names are read from sitecustomize.py; empty means the path is wrong"
+    assert (
+        kg_lib.sitecustomize_names()
+    ), "builtin names are read from sitecustomize.py; empty means the path is wrong"
 
 
-@pytest.mark.parametrize("name", [f for f in _scripts(README) if _has_main_guard(os.path.join(README, f)) or f.endswith(".py")])
+@pytest.mark.parametrize(
+    "name",
+    [
+        f
+        for f in _scripts(README)
+        if _has_main_guard(os.path.join(README, f)) or f.endswith(".py")
+    ],
+)
 def test_readme_script_loads(name):
     path = os.path.join(README, name)
     if name.endswith(".py"):
@@ -108,10 +134,12 @@ def test_history_module_loads(name):
 def test_mock_binary_paths_agree():
     """estimate, solve_rate and the tests must all point at the same kg_mock."""
     from history import solve_rate  # noqa: F401
+
     expected = os.path.join(KG, "kg_mock_rs", "target", "release", "kg_mock")
-    src = open(os.path.join(KG, "estimate")).read()
+    # one line or one segment per line, whichever way black laid it out
+    src = re.sub(r"\s+", " ", open(os.path.join(KG, "estimate")).read())
     assert '"kg_mock_rs", "target", "release", "kg_mock"' in src
-    src = open(os.path.join(HISTORY, "solve_rate.py")).read()
+    src = re.sub(r"\s+", " ", open(os.path.join(HISTORY, "solve_rate.py")).read())
     assert '"kg", "kg_mock_rs", "target", "release", "kg_mock"' in src
     assert os.path.exists(os.path.join(KG, "kg_mock_rs", "Cargo.toml"))
     assert os.path.exists(os.path.join(KG, "kg_movie_rs", "Cargo.toml"))
@@ -120,8 +148,17 @@ def test_mock_binary_paths_agree():
 
 # --- the harness stays a flat namespace (what solves import) --------------
 
-HARNESS_MODULES = ["Types", "TreeFormatter", "tree_utils", "bst_utils", "linked_list_utils",
-                   "graph_utils", "bs_utils", "debug_utils", "heap_utils"]
+HARNESS_MODULES = [
+    "Types",
+    "TreeFormatter",
+    "tree_utils",
+    "bst_utils",
+    "linked_list_utils",
+    "graph_utils",
+    "bs_utils",
+    "debug_utils",
+    "heap_utils",
+]
 
 
 @pytest.mark.parametrize("name", HARNESS_MODULES)
@@ -139,11 +176,15 @@ def test_solve_sees_harness_like_kg_extract_runs_it():
     a solve that says `from Types import TreeNode` must still resolve."""
     env = dict(os.environ)
     env["PYTHONPATH"] = os.pathsep.join([ROOT, UTILS, HARNESS])
-    code = ("from Types import TreeNode, ListNode\n"
-            "from tree_utils import build_tree\n"
-            "from kg import kg_lib\n"
-            "print(build_tree([1, 2, 3]).left.val)\n")
-    r = subprocess.run([PY, "-c", code], env=env, cwd=ROOT, capture_output=True, text=True, timeout=60)
+    code = (
+        "from Types import TreeNode, ListNode\n"
+        "from tree_utils import build_tree\n"
+        "from kg import kg_lib\n"
+        "print(build_tree([1, 2, 3]).left.val)\n"
+    )
+    r = subprocess.run(
+        [PY, "-c", code], env=env, cwd=ROOT, capture_output=True, text=True, timeout=60
+    )
     assert r.returncode == 0, r.stderr
     assert r.stdout.strip() == "2"
 
@@ -155,15 +196,21 @@ def test_sitecustomize_puts_harness_and_utils_on_path():
     src = open(os.path.join(HARNESS, "sitecustomize.py")).read()
     assert 'os.path.join(project_root, "utils", "harness")' in src
     assert 'os.path.join(project_root, "utils")' in src
-    installed = os.path.join(ROOT, ".venv", "lib", "python3.10", "site-packages", "sitecustomize.py")
+    installed = os.path.join(
+        ROOT, ".venv", "lib", "python3.10", "site-packages", "sitecustomize.py"
+    )
     if os.path.exists(installed):
-        assert open(installed).read() == src, "venv sitecustomize is stale: run `make all`"
+        assert (
+            open(installed).read() == src
+        ), "venv sitecustomize is stale: run `make all`"
 
 
 def test_no_stray_files_at_utils_top_level():
     """Everything lives in a subfolder now; a new file dropped at utils/ is a
     regression of the layout, not a convention."""
-    stray = sorted(f for f in os.listdir(UTILS) if os.path.isfile(os.path.join(UTILS, f)))
+    stray = sorted(
+        f for f in os.listdir(UTILS) if os.path.isfile(os.path.join(UTILS, f))
+    )
     assert stray == [], stray
 
 
@@ -182,9 +229,15 @@ def test_attic_is_not_imported_anywhere():
             except SyntaxError:
                 continue
             for node in ast.walk(tree):
-                if isinstance(node, ast.ImportFrom) and node.module and node.module.split(".")[-1] in names:
+                if (
+                    isinstance(node, ast.ImportFrom)
+                    and node.module
+                    and node.module.split(".")[-1] in names
+                ):
                     offenders.append(f"{f}: from {node.module}")
-                if isinstance(node, ast.Import) and any(a.name.split(".")[-1] in names for a in node.names):
+                if isinstance(node, ast.Import) and any(
+                    a.name.split(".")[-1] in names for a in node.names
+                ):
                     offenders.append(f"{f}: import")
     assert offenders == [], offenders
 
@@ -203,11 +256,16 @@ def test_drill_imports_nothing_sitecustomize_provides(path):
     defaultdict, ...). A drill never imports one of them: the operator
     would not type the import on LeetCode, so it is noise in the rep."""
     from kg import kg_lib
+
     names = set(kg_lib.sitecustomize_names())
     for node in ast.walk(ast.parse(open(path).read())):
         if isinstance(node, (ast.Import, ast.ImportFrom)):
-            dup = [a.asname or a.name for a in node.names if (a.asname or a.name) in names]
-            assert not dup, f"{os.path.relpath(path, ROOT)} imports {dup}; sitecustomize already provides them"
+            dup = [
+                a.asname or a.name for a in node.names if (a.asname or a.name) in names
+            ]
+            assert (
+                not dup
+            ), f"{os.path.relpath(path, ROOT)} imports {dup}; sitecustomize already provides them"
 
 
 @pytest.mark.parametrize("path", _DRILL_FILES, ids=lambda p: os.path.relpath(p, DRILLS))
@@ -219,7 +277,40 @@ def test_drill_asserts_uncomment_in_one_swoop(path):
     src = open(path).read()
     m = re.search(r"^\w+ = Solution\(", src, re.M)
     assert m, f"{os.path.relpath(path, ROOT)}: no `sol = Solution(...)` line"
-    lines = src[m.start():].split("\n")
-    block = "\n".join(l[2:] if l.startswith("# ") else l[1:] if l.startswith("#") else l
-                      for l in lines)
+    lines = src[m.start() :].split("\n")
+    block = "\n".join(
+        l[2:] if l.startswith("# ") else l[1:] if l.startswith("#") else l
+        for l in lines
+    )
     compile(block, path, "exec")
+
+
+# --- the gates see what runs --------------------------------------------------
+
+
+def test_ruff_builtins_match_sitecustomize():
+    """pyproject's ruff builtins list is the names sitecustomize injects; ruff
+    cannot read them at run time, so the copy is pinned here."""
+    import tomli as tomllib
+
+    from kg import kg_lib
+
+    with open(os.path.join(ROOT, "pyproject.toml"), "rb") as f:
+        cfg = tomllib.load(f)
+    assert cfg["tool"]["ruff"]["builtins"] == kg_lib.sitecustomize_names()
+
+
+def test_check_scripts_cover_the_tooling():
+    """utils/check/pyfiles lists every tooling script the makefile runs."""
+    listed = set(
+        subprocess.run(
+            [os.path.join(UTILS, "check", "pyfiles")],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.split()
+    )
+    for d, name in (("kg", "kg_next"), ("kg", "kg_lib.py"), ("readme", "kg_full_svg")):
+        assert f"utils/{d}/{name}" in listed
+    assert "utils/harness/sitecustomize.py" in listed
+    assert not any(f.startswith(("solved/", "drills/", "utils/attic/")) for f in listed)

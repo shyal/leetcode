@@ -31,13 +31,25 @@ def solves_today():
     """Solve files authored since local midnight (added, not just touched).
     Author date, not commit date: a solve committed or amended hours later
     still belongs to the sitting where it was actually solved."""
-    midnight = datetime.now(tz=MANILA).replace(hour=0, minute=0, second=0,
-                                               microsecond=0)
+    midnight = datetime.now(tz=MANILA).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
     out = subprocess.run(
-        ["git", "log", "--since=3.days", "--diff-filter=A", "--format=@%at",
-         "--name-only", "--", "solved/", "drills/"],
-        capture_output=True, text=True,
-        cwd=os.path.dirname(GRAPH_DIR)).stdout.split()
+        [
+            "git",
+            "log",
+            "--since=3.days",
+            "--diff-filter=A",
+            "--format=@%at",
+            "--name-only",
+            "--",
+            "solved/",
+            "drills/",
+        ],
+        capture_output=True,
+        text=True,
+        cwd=os.path.dirname(GRAPH_DIR),
+    ).stdout.split()
     solves, today = set(), False
     for tok in out:
         if tok.startswith("@"):
@@ -52,13 +64,24 @@ def solve_seconds_today():
     """Total seconds of recorded solving since local midnight, from the
     'solve time: Xm Ys' trailer `make solved` writes into each solve commit.
     Same commit set as solves_today: author date, adds under solved/drills."""
-    midnight = datetime.now(tz=MANILA).replace(hour=0, minute=0, second=0,
-                                               microsecond=0)
+    midnight = datetime.now(tz=MANILA).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
     out = subprocess.run(
-        ["git", "log", "--since=3.days", "--diff-filter=A",
-         "--format=%x01%at%x01%B", "--", "solved/", "drills/"],
-        capture_output=True, text=True,
-        cwd=os.path.dirname(GRAPH_DIR)).stdout
+        [
+            "git",
+            "log",
+            "--since=3.days",
+            "--diff-filter=A",
+            "--format=%x01%at%x01%B",
+            "--",
+            "solved/",
+            "drills/",
+        ],
+        capture_output=True,
+        text=True,
+        cwd=os.path.dirname(GRAPH_DIR),
+    ).stdout
     parts = out.split("\x01")[1:]
     total = 0
     for ts, body in zip(parts[::2], parts[1::2]):

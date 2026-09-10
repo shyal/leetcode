@@ -1,18 +1,16 @@
-from functools import cache
 import ast
-import os
-import re
-from datetime import timezone, timedelta
-from datetime import datetime
-from git import Repo
 import glob
-from dataclasses import dataclass
-from collections import defaultdict
 import json
 import os
 import re
-
 import subprocess as _subprocess
+from collections import defaultdict
+from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
+from functools import cache
+from typing import Any
+
+from git import Repo
 
 claude_available = True
 
@@ -39,9 +37,15 @@ def strip_triple_ticks(text: str) -> str:
 
 def claude(user_prompt):
     result = _subprocess.run(
-        ["claude", "-p", user_prompt, "--system-prompt",
-         "You are a helpful assistant that generates concise summaries for LeetCode problem solutions, including key ideas from the code and notes."],
-        capture_output=True, text=True,
+        [
+            "claude",
+            "-p",
+            user_prompt,
+            "--system-prompt",
+            "You are a helpful assistant that generates concise summaries for LeetCode problem solutions, including key ideas from the code and notes.",
+        ],
+        capture_output=True,
+        text=True,
     )
     return strip_triple_ticks(result.stdout.strip())
 
@@ -97,7 +101,6 @@ def get_solved_problems():
     blocks = log_output.strip().split("---\n")
     solved = []
     manila_tz = timezone(timedelta(hours=8))
-    seen = set([])
     for block in blocks:
         if not block.strip():
             continue
@@ -281,7 +284,7 @@ def get_history_string(
     if not solved_problems:
         return "No previous solves recorded."
 
-    events = []
+    events: list[tuple[str, datetime, Any]] = []
 
     if include_notes:
         # Collect review notes if the directory exists
@@ -289,6 +292,7 @@ def get_history_string(
         notes_list = []
         if os.path.exists(notes_dir):
             notes_files = glob.glob(os.path.join(notes_dir, "*.md"))
+            f: Any
             for f in notes_files:
                 base = os.path.basename(f)
                 dt_str = base[:-3]  # remove .md

@@ -1,8 +1,9 @@
 # bst_utils.py
 
 import random
-from typing import List, Optional
 from collections import deque
+from typing import List, Optional
+
 from tree_utils import draw_tree
 from Types import TreeNode
 
@@ -19,7 +20,7 @@ def insert(root: Optional[TreeNode], val: int) -> TreeNode:
     return root
 
 
-def generate_random_bst(n: int, seed: int = None) -> Optional[TreeNode]:
+def generate_random_bst(n: int, seed: Optional[int] = None) -> Optional[TreeNode]:
     """Generate a random BST with values 1..n inserted in random order."""
     if n <= 0:
         return None
@@ -65,7 +66,9 @@ def is_valid_bst(root: Optional[TreeNode]) -> bool:
     return all(vals[i] < vals[i + 1] for i in range(len(vals) - 1))
 
 
-def generate_and_print_random_bst(n: int, seed=None, verbose=True) -> None:
+def generate_and_print_random_bst(
+    n: int, seed=None, verbose=True
+) -> Optional[TreeNode]:
     root = generate_random_bst(n, seed)
     valid = is_valid_bst(root)
     assert valid

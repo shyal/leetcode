@@ -1,12 +1,16 @@
-from typing import Callable, Iterable, Any, TypeVar
+from typing import Any, Callable, Generic, Iterable, TypeVar
 
 from PrettyPrint.PrintTree.HorizontalTree import (
-    join_vertically,
     add_parent as add_parent_left,
+)
+from PrettyPrint.PrintTree.HorizontalTree import (
+    join_vertically,
+)
+from PrettyPrint.PrintTree.VerticalTree import (
+    add_parent as add_parent_top,
 )
 from PrettyPrint.PrintTree.VerticalTree import (
     join_horizontally,
-    add_parent as add_parent_top,
 )
 from PrettyPrint.Utils.NodeFormatter import NodeFormatter
 from PrettyPrint.Utils.Orientation import Orientation
@@ -20,18 +24,18 @@ BLUE = "\033[34m"
 RESET = "\033[0m"
 
 
-class TreeFormatter:
+class TreeFormatter(Generic[T]):
     def __init__(
         self,
         get_children: Callable[[T], Iterable[T]],
         get_val: Callable[[T], Any],
-        get_label: Callable[[T], Any],
+        get_label: Callable[[T], Any] | None,
         label_color: str,
         show_newline_literal: bool,
         newline_literal: str,
         trim: int,
         trim_symbol: str,
-        start_message: Callable[[T], str],
+        start_message: Callable[[T], str] | None,
         color: str,
         border: bool,
         max_depth: int,

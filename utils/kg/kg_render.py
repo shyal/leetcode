@@ -10,9 +10,18 @@ import shutil
 import struct
 import subprocess
 import sys
+
 import graphviz
 
-from kg.kg_lib import GRAPH_DIR, SOLID, STALE, FRAGILE, MISSING, degree_color, DEGREE_LEGEND
+from kg.kg_lib import (
+    DEGREE_LEGEND,
+    FRAGILE,
+    GRAPH_DIR,
+    MISSING,
+    SOLID,
+    STALE,
+    degree_color,
+)
 
 # the four status colours: the terminal tables and the emoji pools still
 # speak in status; a drawn node is filled by its degree of ownership
@@ -21,10 +30,16 @@ FILL = {SOLID: "#238636", STALE: "#bb8009", FRAGILE: "#da3633", MISSING: "#6e768
 
 # Random face per node, drawn from the status's vibe — never the move name.
 STATUS_FACE = {
-    SOLID:   ["😄", "💪", "😎", "✨", "💎", "🟢"],
-    STALE:   ["😐", "🫤", "😑", "😴", "🥀", "⌛"],
+    SOLID: ["😄", "💪", "😎", "✨", "💎", "🟢"],
+    STALE: ["😐", "🫤", "😑", "😴", "🥀", "⌛"],
     FRAGILE: ["😰", "🫠", "🥲", "😬", "💔", "😵"],
-    MISSING: ["👻", "❔", "😶", "🫥", "🕳"],  # bare U+1F573: with its FE0F selector Pango bails and the tree is not drawn
+    MISSING: [
+        "👻",
+        "❔",
+        "😶",
+        "🫥",
+        "🕳",
+    ],  # bare U+1F573: with its FE0F selector Pango bails and the tree is not drawn
 }
 
 
@@ -38,7 +53,9 @@ def make_digraph(name, title=None):
         "nodesep": "0.25",
     }
     if title:
-        graph_attr.update({"label": title, "labelloc": "t", "fontcolor": "#c9d1d9", "fontsize": "16"})
+        graph_attr.update(
+            {"label": title, "labelloc": "t", "fontcolor": "#c9d1d9", "fontsize": "16"}
+        )
     return graphviz.Digraph(
         name,
         graph_attr=graph_attr,
@@ -55,7 +72,9 @@ def make_digraph(name, title=None):
     )
 
 
-def status_node(g, node_id, node, status, when, highlight=False, labeled=True, degree=None):
+def status_node(
+    g, node_id, node, status, when, highlight=False, labeled=True, degree=None
+):
     tooltip = f"{node['name']} - {status}" + (f" ({when})" if when else "")
     if degree is not None:
         tooltip += f", owned {degree:.2f}"
@@ -73,9 +92,16 @@ def status_node(g, node_id, node, status, when, highlight=False, labeled=True, d
 def add_legend(dot):
     """The ownership ramp, five swatches from none to full."""
     with dot.subgraph(name="cluster_legend") as c:
-        c.attr(label="degree of ownership", fontcolor="#8b949e", color="#30363d", style="rounded")
+        c.attr(
+            label="degree of ownership",
+            fontcolor="#8b949e",
+            color="#30363d",
+            style="rounded",
+        )
         for d in DEGREE_LEGEND:
-            c.node(f"legend_{int(d * 100)}", label=f"{d:.2f}", fillcolor=degree_color(d))
+            c.node(
+                f"legend_{int(d * 100)}", label=f"{d:.2f}", fillcolor=degree_color(d)
+            )
 
 
 def _png_width(path):
@@ -129,7 +155,9 @@ def animate(text, effect=("decrypt", "--typing-speed", "20")):
         return
     subprocess.run(
         [exe, "--frame-rate", "360", "--existing-color-handling", "always", *effect],
-        input=text.encode(), check=False)
+        input=text.encode(),
+        check=False,
+    )
 
 
 def show_inline(png_path, display_width_px=None):
@@ -138,12 +166,16 @@ def show_inline(png_path, display_width_px=None):
     display_width_px is the graph's logical size — iTerm shows it at that
     size (scaling the hi-DPI pixels down, never up) and caps at pane width.
     """
-    if not sys.stdout.isatty() or os.environ.get("LC_TERMINAL", os.environ.get("TERM_PROGRAM", "")) not in ("iTerm2", "iTerm.app"):
+    if not sys.stdout.isatty() or os.environ.get(
+        "LC_TERMINAL", os.environ.get("TERM_PROGRAM", "")
+    ) not in ("iTerm2", "iTerm.app"):
         return False
     width = f"{display_width_px}px" if display_width_px else "auto"
     payload = base64.b64encode(open(png_path, "rb").read()).decode()
     name = base64.b64encode(os.path.basename(png_path).encode()).decode()
-    sys.stdout.write(f"\033]1337;File=name={name};size={len(payload)};inline=1;width={width};preserveAspectRatio=1:{payload}\a\n")
+    sys.stdout.write(
+        f"\033]1337;File=name={name};size={len(payload)};inline=1;width={width};preserveAspectRatio=1:{payload}\a\n"
+    )
     sys.stdout.flush()
     return True
 
@@ -153,4 +185,6 @@ def display(basename, display_width_px=None):
     if show_inline(os.path.join(GRAPH_DIR, f"{basename}.png"), display_width_px):
         return
     if sys.stdout.isatty():
-        subprocess.run(["open", os.path.join(GRAPH_DIR, f"{basename}.svg")], check=False)
+        subprocess.run(
+            ["open", os.path.join(GRAPH_DIR, f"{basename}.svg")], check=False
+        )

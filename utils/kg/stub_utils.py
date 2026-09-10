@@ -8,6 +8,14 @@ original survive byte-for-byte - only method bodies and asserts are touched.
 
 import ast
 
+
+def _end(node):
+    """Last line of an ast node. The parser always fills end_lineno in; the
+    stub type says Optional, so this pins it to int."""
+    assert node.end_lineno is not None
+    return node.end_lineno
+
+
 # injected by sitecustomize; if a generator redefines one anyway, leave it
 # working rather than gutting it and breaking the file.
 HELPER_CLASSES = {"TreeNode", "ListNode", "GraphNode", "Node"}
@@ -16,8 +24,14 @@ HELPER_CLASSES = {"TreeNode", "ListNode", "GraphNode", "Node"}
 # modules whose contents sitecustomize already injects; importing from them
 # is always redundant in a solve file.
 INJECTED_MODULES = {
-    "typing", "collections", "functools", "itertools", "math",
-    "heapq", "bisect", "string",
+    "typing",
+    "collections",
+    "functools",
+    "itertools",
+    "math",
+    "heapq",
+    "bisect",
+    "string",
 }
 
 
@@ -30,16 +44,16 @@ def sanitize(code):
     sitecustomize environment makes redundant: imports from injected modules
     and redefinitions of the helper classes. Returns the cleaned source."""
     tree = ast.parse(code)
-    drop = set()
+    drop: set[int] = set()
     for node in tree.body:
         if isinstance(node, ast.ImportFrom) and node.module in INJECTED_MODULES:
-            drop.update(range(node.lineno, node.end_lineno + 1))
+            drop.update(range(node.lineno, _end(node) + 1))
         elif isinstance(node, ast.Import) and all(
             a.name in INJECTED_MODULES for a in node.names
         ):
-            drop.update(range(node.lineno, node.end_lineno + 1))
+            drop.update(range(node.lineno, _end(node) + 1))
         elif isinstance(node, ast.ClassDef) and node.name in HELPER_CLASSES:
-            drop.update(range(node.lineno, node.end_lineno + 1))
+            drop.update(range(node.lineno, _end(node) + 1))
     if not drop:
         return code
     src = code.splitlines()
@@ -84,8 +98,7 @@ def structure_problems(code):
     # leetcode's natural class name (Trie, NumArray, ...) per the house
     # convention, so any non-helper class satisfies this.
     if not any(
-        isinstance(n, ast.ClassDef) and n.name not in HELPER_CLASSES
-        for n in tree.body
+        isinstance(n, ast.ClassDef) and n.name not in HELPER_CLASSES for n in tree.body
     ):
         problems.append("file must define the problem's class")
     if "assert" not in code:
@@ -100,8 +113,8 @@ def strip_solution(code):
     src = code.splitlines()
 
     # start line -> (last line consumed, replacement lines)
-    replace = {}
-    commented = set()
+    replace: dict[int, tuple[int, list[str]]] = {}
+    commented: set[int] = set()
 
     # everything after the first-example demo call is the test block: it gets
     # commented wholesale (asserts AND any setup they need), so the whole
@@ -115,23 +128,19 @@ def strip_solution(code):
 
     demo = next((s for s in tree.body if is_demo(s)), None)
     if demo is not None:
-        live_defs = set()
+        live_defs: set[int] = set()
         for stmt in tree.body:
             # defs/classes stay live even after the demo (their bodies are
             # stripped separately); only plain statements join the block.
-            if stmt.lineno <= demo.end_lineno:
+            if stmt.lineno <= _end(demo):
                 continue
             if isinstance(stmt, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
-                live_defs.update(range(stmt.lineno, stmt.end_lineno + 1))
+                live_defs.update(range(stmt.lineno, _end(stmt) + 1))
             else:
-                commented.update(range(stmt.lineno, stmt.end_lineno + 1))
+                commented.update(range(stmt.lineno, _end(stmt) + 1))
         # prose comments between block statements join the block too
         for i, line in enumerate(code.splitlines(), start=1):
-            if (
-                i > demo.end_lineno
-                and i not in live_defs
-                and line.lstrip().startswith("#")
-            ):
+            if i > _end(demo) and i not in live_defs and line.lstrip().startswith("#"):
                 commented.add(i)
 
     for node in ast.walk(tree):
@@ -155,20 +164,24 @@ def strip_solution(code):
                     # `def f(self): return 1` - keep the signature, drop the body
                     head = src[first.lineno - 1][: first.col_offset].rstrip()
                     body_indent = _indent_of(head) + "    "
-                    replace[first.lineno] = (last.end_lineno, [head, body_indent + "pass"])
+                    replace[first.lineno] = (
+                        _end(last),
+                        [head, body_indent + "pass"],
+                    )
                 else:
                     body_indent = _indent_of(src[first.lineno - 1])
-                    replace[first.lineno] = (last.end_lineno, [body_indent + "pass"])
+                    replace[first.lineno] = (_end(last), [body_indent + "pass"])
         elif isinstance(node, ast.Assert):
-            commented.update(range(node.lineno, node.end_lineno + 1))
+            commented.update(range(node.lineno, _end(node) + 1))
 
     out = []
     line_no = 1
     while line_no <= len(src):
         if line_no in replace:
-            last, replacement = replace[line_no]
+            # `last` held an ast node above; here it is a line number
+            last, replacement = replace[line_no]  # type: ignore[assignment]
             out.extend(replacement)
-            line_no = last + 1
+            line_no = last + 1  # type: ignore[operator]
             continue
         line = src[line_no - 1]
         if line_no in commented and line.strip():

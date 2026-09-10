@@ -26,12 +26,19 @@ import argparse
 import os
 import subprocess
 import sys
-from datetime import datetime
 
 from kg.kg_lib import (
-    load_nodes, load_problems, load_evidence, node_status, input_tree,
-    active_seconds, sleep_records, sleep_state, sleep_lines,
-    MAX_ASLEEP, SOLID,
+    MAX_ASLEEP,
+    SOLID,
+    active_seconds,
+    input_tree,
+    load_evidence,
+    load_nodes,
+    load_problems,
+    node_status,
+    sleep_lines,
+    sleep_records,
+    sleep_state,
 )
 
 
@@ -44,8 +51,12 @@ def current_branch():
 
 
 def branch_exists(name):
-    return git("rev-parse", "--verify", "--quiet", "refs/heads/" + name,
-               check=False).returncode == 0
+    return (
+        git(
+            "rev-parse", "--verify", "--quiet", "refs/heads/" + name, check=False
+        ).returncode
+        == 0
+    )
 
 
 def hm(secs):
@@ -78,36 +89,50 @@ def wake(args, nodes, problems, evidence):
     # to the day it was cut. -X ours keeps the parked current.py; everything
     # else comes forward to master. The merge commit's timestamp is the wake
     # event active_seconds reads.
-    merged = git("merge", "-X", "ours", "-m", f"woke: {pnum}. {title}", "master",
-                 check=False)
+    merged = git(
+        "merge", "-X", "ours", "-m", f"woke: {pnum}. {title}", "master", check=False
+    )
     if merged.returncode:
         git("merge", "--abort", check=False)
-        print("could not sync with master — tree may be stale:\n"
-              + (merged.stderr or merged.stdout).strip())
+        print(
+            "could not sync with master — tree may be stale:\n"
+            + (merged.stderr or merged.stdout).strip()
+        )
     if not git("log", "-1", "--format=%s").stdout.startswith("woke:"):
         # master had nothing new (or the merge failed): stamp the wake anyway
         git("commit", "--allow-empty", "-m", f"woke: {pnum}. {title}")
     active, slept, sleeps = active_seconds(pnum)
-    print(f"{pnum}. {title} is awake on branch {pnum} — "
-          f"{hm(active)} fought so far, {hm(slept)} slept over {sleeps} park(s). "
-          "make solved / make sleep as usual.")
+    print(
+        f"{pnum}. {title} is awake on branch {pnum} — "
+        f"{hm(active)} fought so far, {hm(slept)} slept over {sleeps} park(s). "
+        "make solved / make sleep as usual."
+    )
     # the Claude Code pane follows the branch: back to the problem's conversation
-    subprocess.run([sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "chat"), "--switch"])
+    subprocess.run(
+        [
+            sys.executable,
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), "chat"),
+            "--switch",
+        ]
+    )
 
 
 def park(args, nodes, problems, evidence):
     branch = current_branch()
     pnum = args.problem or (branch if branch in problems else None)
     if pnum is None or pnum not in problems:
-        sys.exit(f"can't tell which problem to sleep (branch {branch!r}); "
-                 "pass one: make sleep 108")
+        sys.exit(
+            f"can't tell which problem to sleep (branch {branch!r}); "
+            "pass one: make sleep 108"
+        )
     recs = sleep_records(problems, evidence)
     if branch_exists(f"{pnum}-slept") and pnum in recs:
         sys.exit(f"{pnum} is already parked")
     if len(recs) >= MAX_ASLEEP:
         parked = ", ".join(f"{p}. {recs[p]['title']}" for p in sorted(recs))
-        sys.exit(f"cap ({MAX_ASLEEP}) reached — face one first (make wake <n>): "
-                 f"{parked}")
+        sys.exit(
+            f"cap ({MAX_ASLEEP}) reached — face one first (make wake <n>): " f"{parked}"
+        )
 
     title = problems[pnum]["title"]
     if branch == pnum:
@@ -120,8 +145,10 @@ def park(args, nodes, problems, evidence):
         git("commit", "--allow-empty", "-m", f"sleeping: {pnum}. {title}")
         git("branch", "-M", pnum, f"{pnum}-slept")
         git("checkout", "master")
-        print(f"WIP parked on branch {pnum}-slept ({hm(fought)} fought); "
-              "back on master.")
+        print(
+            f"WIP parked on branch {pnum}-slept ({hm(fought)} fought); "
+            "back on master."
+        )
     elif branch_exists(pnum):
         # park an attempt whose branch exists but isn't checked out: stamp
         # the marker on it, rename, come back to where we were
@@ -131,22 +158,34 @@ def park(args, nodes, problems, evidence):
         git("checkout", branch)
         print(f"branch {pnum} parked as {pnum}-slept.")
     else:
-        sys.exit(f"no attempt to park — no branch {pnum}. "
-                 f"Parking marks what you are BLOCKED on; start it first "
-                 f"(make prepare {pnum}).")
+        sys.exit(
+            f"no attempt to park — no branch {pnum}. "
+            f"Parking marks what you are BLOCKED on; start it first "
+            f"(make prepare {pnum})."
+        )
 
     statuses = {n: node_status(n, evidence) for n in nodes}
-    rusty = [n for n in input_tree(problems[pnum]["moves"], nodes)
-             if statuses[n][0] != SOLID]
+    rusty = [
+        n for n in input_tree(problems[pnum]["moves"], nodes) if statuses[n][0] != SOLID
+    ]
     print(f"{pnum}. {title} sleeps until you wake it (make wake {pnum}).")
-    print("kg_next will warm meanwhile: " + (", ".join(sorted(rusty)) if rusty
-          else "nothing — its walk is already solid; the simmer alone is the treatment"))
+    print(
+        "kg_next will warm meanwhile: "
+        + (
+            ", ".join(sorted(rusty))
+            if rusty
+            else "nothing — its walk is already solid; the simmer alone is the treatment"
+        )
+    )
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Park the current problem until you wake it.")
-    parser.add_argument("problem", nargs="?", help="problem number (default: current branch)")
+        description="Park the current problem until you wake it."
+    )
+    parser.add_argument(
+        "problem", nargs="?", help="problem number (default: current branch)"
+    )
     parser.add_argument("--wake", action="store_true", help="resume a parked problem")
     parser.add_argument("--list", action="store_true", help="show park state and exit")
     args = parser.parse_args()

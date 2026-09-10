@@ -1,21 +1,21 @@
 # tree_utils.py
 
 from collections import deque
-from typing import List, Optional, Dict, Any
-from PrettyPrint import PrettyPrintTree
-from colorama import Fore, Style
+from typing import Any, List, Optional
+
 import TreeFormatter
-from PrettyPrint import PrintTree
+from colorama import Fore, Style
+from PrettyPrint import PrettyPrintTree, PrintTree
 from Types import TreeNode
-import sys
 
 PrintTree.TreePrinter.TreeFormatter = TreeFormatter.TreeFormatter
 
 
 class Node:
-    def __init__(self, val: Any, children: Optional[Dict[Any, "Node"]] = None):
+    # children is a dict for draw_general_tree and a list for build_nary_tree
+    def __init__(self, val: Any, children: Any = None):
         self.val = val
-        self.children = children if children is not None else {}
+        self.children: Any = children if children is not None else {}
 
 
 def find_node(root, val):
@@ -113,7 +113,7 @@ def draw_general_tree(root: Optional[Node]) -> None:
             self.node = node
 
     def get_children(w: _Wrapper):
-        children = w.node.children
+        children: Any = w.node.children
         if isinstance(children, dict):
             children = children.values()
         return [_Wrapper(child) for child in children]
@@ -137,7 +137,7 @@ def generate_full_binary_tree(height: int) -> Optional[TreeNode]:
     # Calculate the total number of nodes in a perfect binary tree of height h: 2^(h+1) - 1
     num_nodes = (1 << (height + 1)) - 1
     # Create a level-order list of node values
-    arr = list(range(1, num_nodes + 1))
+    arr: List[Optional[int]] = list(range(1, num_nodes + 1))
     # Use the provided build_tree utility to construct the tree
     return build_tree(arr)
 

@@ -32,17 +32,34 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
+
 from rich.console import Console
 
 from history.history_builder import parse_content
-from kg.kg_lib import (
-    load_nodes, load_problems, load_evidence,
-    save_problems, save_evidence, claude_json, taxonomy_summary, node_status,
-    manila_date_from_filename, load_predicted, unlocks,
-    HARNESS_ENV_NOTE, SOLID, apply_assist_floor, assist_tag, normalise_assist,
-    notes_assist_level, PENDING, store_evidence_entry, evidence_lock, drills,
-)
 from kg import recognition as rc
+from kg.kg_lib import (
+    HARNESS_ENV_NOTE,
+    PENDING,
+    SOLID,
+    apply_assist_floor,
+    assist_tag,
+    claude_json,
+    drills,
+    evidence_lock,
+    load_evidence,
+    load_nodes,
+    load_predicted,
+    load_problems,
+    manila_date_from_filename,
+    node_status,
+    normalise_assist,
+    notes_assist_level,
+    save_evidence,
+    save_problems,
+    store_evidence_entry,
+    taxonomy_summary,
+    unlocks,
+)
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 UTILS = os.path.join(REPO_ROOT, "utils")
@@ -51,8 +68,13 @@ RUN_TIMEOUT = 30
 META = os.path.join(REPO_ROOT, ".solve_meta.json")
 # what the judge commits, by path: never `git add .`, the candidate may be
 # typing the next solve in current.py when the judge lands
-GRAPH_FILES = ["graph/evidence.json", "graph/problems.json", "graph/recognition.json",
-               "graph/curve.json", "graph/solvecost.json"]
+GRAPH_FILES = [
+    "graph/evidence.json",
+    "graph/problems.json",
+    "graph/recognition.json",
+    "graph/curve.json",
+    "graph/solvecost.json",
+]
 
 
 def strip_statement(code):
@@ -92,7 +114,7 @@ def followup_of(code):
     m = FOLLOWUP_RE.search(statement)
     if not m:
         return ""
-    rest = (m.group(1) + statement[m.end():]).strip()
+    rest = (m.group(1) + statement[m.end() :]).strip()
     return " ".join(rest.split("\n\n", 1)[0].split())
 
 
@@ -116,15 +138,28 @@ def run_solve(path):
     # at sys.path[0], not the cwd, so without this `from dsa...` imports that
     # pass under `make` blow up only here and read as false struggles.
     env["PYTHONPATH"] = os.pathsep.join(
-        [REPO_ROOT, os.path.join(REPO_ROOT, "utils"), os.path.join(REPO_ROOT, "utils", "harness"), env.get("PYTHONPATH", "")])
+        [
+            REPO_ROOT,
+            os.path.join(REPO_ROOT, "utils"),
+            os.path.join(REPO_ROOT, "utils", "harness"),
+            env.get("PYTHONPATH", ""),
+        ]
+    )
     py = VENV_PY if os.path.exists(VENV_PY) else sys.executable
     try:
         p = subprocess.run(
-            [py, os.path.abspath(path)], cwd=REPO_ROOT, env=env,
-            capture_output=True, text=True, timeout=RUN_TIMEOUT,
+            [py, os.path.abspath(path)],
+            cwd=REPO_ROOT,
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=RUN_TIMEOUT,
         )
     except subprocess.TimeoutExpired:
-        return {"status": "timeout", "detail": f"exceeded {RUN_TIMEOUT}s — likely TLE or an infinite loop"}
+        return {
+            "status": "timeout",
+            "detail": f"exceeded {RUN_TIMEOUT}s — likely TLE or an infinite loop",
+        }
     except Exception as e:  # interpreter missing, unreadable file, ...
         return {"status": "unknown", "detail": f"could not execute: {str(e)[:200]}"}
     if p.returncode == 0:
@@ -194,10 +229,17 @@ def rejudge_followups(evidence, extract_one, workers):
     asks one and whose entry predates the field. The judge is re-run on the
     file, and ONLY that field is taken from its answer: moves, assist, note
     and summary stay as they were judged the first time."""
-    todo = [p for p, e in evidence.items()
-            if e.get("problem") != "drill" and "followup" not in e
-            and os.path.exists(p) and followup_of(open(p).read())]
-    console.print(f"{len(todo)} evidenced solves with a follow-up and no verdict on it.\n")
+    todo = [
+        p
+        for p, e in evidence.items()
+        if e.get("problem") != "drill"
+        and "followup" not in e
+        and os.path.exists(p)
+        and followup_of(open(p).read())
+    ]
+    console.print(
+        f"{len(todo)} evidenced solves with a follow-up and no verdict on it.\n"
+    )
     done = failed = 0
     with ThreadPoolExecutor(max_workers=workers) as pool:
         futures = {pool.submit(extract_one, path): path for path in todo}
@@ -218,9 +260,12 @@ def rejudge_followups(evidence, extract_one, workers):
             save_evidence(evidence)
             done += 1
             style = "green" if verdict == "solved" else "yellow"
-            console.print(f"[green]{done}/{len(todo)}[/green] {os.path.basename(path)[:60]} "
-                          f"→ follow-up [{style}]{verdict}[/{style}]")
+            console.print(
+                f"[green]{done}/{len(todo)}[/green] {os.path.basename(path)[:60]} "
+                f"→ follow-up [{style}]{verdict}[/{style}]"
+            )
     console.print(f"\nDone: {done} judged, {failed} failed (re-run to retry).")
+
 
 console = Console()
 
@@ -234,8 +279,9 @@ def is_drill_file(path, code):
     this, the p<digit> prefix reads as a leetcode number and the drill's
     evidence and alt_walks land on that problem (Two Sum once grew a
     recursive-descent alt walk this way)."""
-    return os.path.basename(path).startswith("d_") \
-        or bool(re.search(r"^\s*\**DRILL:", code, flags=re.M))
+    return os.path.basename(path).startswith("d_") or bool(
+        re.search(r"^\s*\**DRILL:", code, flags=re.M)
+    )
 
 
 def trains_in(code):
@@ -306,24 +352,32 @@ def staged_solve():
 
 
 def judge_title(path):
-    """"Slide, Never Shrink" from d_Slide_Never_Shrink_2026_..., "1539"
+    """ "Slide, Never Shrink" from d_Slide_Never_Shrink_2026_..., "1539"
     from p1539_...: the subject of the judge's commit."""
     base = os.path.basename(path)
     base = re.sub(r"_\d{4}_\d{2}_\d{2}T.*$", "", base)
     if base.startswith("d_"):
         return base[2:].replace("_FAILED", "").replace("_", " ")
     m = re.match(r"p(\d+)_(.*)", base)
-    return f"{m.group(1)}. {m.group(2).replace('_FAILED', '').replace('_', ' ')}" if m else base
+    return (
+        f"{m.group(1)}. {m.group(2).replace('_FAILED', '').replace('_', ' ')}"
+        if m
+        else base
+    )
 
 
 def _git(*args, cwd=None, env=None):
-    return subprocess.run(["git", *args], cwd=cwd or REPO_ROOT, capture_output=True, text=True, env=env)
+    return subprocess.run(
+        ["git", *args], cwd=cwd or REPO_ROOT, capture_output=True, text=True, env=env
+    )
 
 
 def solve_commit(path):
     """The commit that added this solved/ file, in HEAD's history: master's
     squash commit, seen from master or from any branch cut after it."""
-    out = _git("log", "--diff-filter=A", "--format=%H", "-1", "HEAD", "--", path).stdout.strip()
+    out = _git(
+        "log", "--diff-filter=A", "--format=%H", "-1", "HEAD", "--", path
+    ).stdout.strip()
     return out or None
 
 
@@ -347,12 +401,18 @@ def fold_into(solve, judge):
     kept. Returns (ok, why); on any doubt nothing is moved and the judge's
     own commit stays where it landed."""
     import tempfile
+
     tmp = tempfile.mkdtemp(prefix="judge_")
     os.rmdir(tmp)
     current = _git("rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
     refs = []
-    for line in _git("for-each-ref", "refs/heads", "--contains", solve,
-                     "--format=%(refname:short) %(objectname)").stdout.split("\n"):
+    for line in _git(
+        "for-each-ref",
+        "refs/heads",
+        "--contains",
+        solve,
+        "--format=%(refname:short) %(objectname)",
+    ).stdout.split("\n"):
         if line.strip():
             name, sha = line.split()
             refs.append((name, sha))
@@ -368,7 +428,9 @@ def fold_into(solve, judge):
             cd = _git("show", "-s", "--format=%cI", sha).stdout.strip()
             return {**os.environ, "GIT_COMMITTER_DATE": cd}
 
-        changed = _git("diff-tree", "--no-commit-id", "--name-only", "-r", judge).stdout.split()
+        changed = _git(
+            "diff-tree", "--no-commit-id", "--name-only", "-r", judge
+        ).stdout.split()
         for path in changed:
             g("checkout", judge, "--", path)
         r = g("commit", "-q", "--amend", "--no-edit", env=dated(solve))
@@ -383,14 +445,21 @@ def fold_into(solve, judge):
                 if c == judge:
                     continue
                 was_empty = _tree(c) == _tree(c + "^")
-                r = g("cherry-pick", *(["--allow-empty"] if was_empty else []), c, env=dated(c))
+                r = g(
+                    "cherry-pick",
+                    *(["--allow-empty"] if was_empty else []),
+                    c,
+                    env=dated(c),
+                )
                 if r.returncode != 0:
                     staged = g("diff", "--cached", "--quiet").returncode != 0
                     dirty = g("diff", "--quiet").returncode != 0
                     if staged or dirty:
                         g("cherry-pick", "--abort")
                         return False, f"{c[:8]} does not replay cleanly on {name}"
-                    g("cherry-pick", "--skip")  # became empty: its change is in the fold
+                    g(
+                        "cherry-pick", "--skip"
+                    )  # became empty: its change is in the fold
             tip = g("rev-parse", "HEAD").stdout.strip()
             if name == current and _tree(tip) != _tree(old):
                 return False, f"the tree of {name} would change"
@@ -420,14 +489,20 @@ def commit_judgement(judged, refit=True):
     if refit:
         py = VENV_PY if os.path.exists(VENV_PY) else sys.executable
         for tool in ("kg_curve", "kg_solvecost"):
-            subprocess.run([py, os.path.join(UTILS, "kg", tool), "--if-stale"], cwd=REPO_ROOT,
-                           env={**os.environ, "PYTHONPATH": UTILS}, capture_output=True)
+            subprocess.run(
+                [py, os.path.join(UTILS, "kg", tool), "--if-stale"],
+                cwd=REPO_ROOT,
+                env={**os.environ, "PYTHONPATH": UTILS},
+                capture_output=True,
+            )
     paths = [p for p in GRAPH_FILES if os.path.exists(os.path.join(REPO_ROOT, p))]
     if not _git("status", "--porcelain", "--", *paths).stdout.strip():
         return "judge: nothing to commit"
     lines = []
     for path, entry in judged:
-        verdicts = ", ".join(f"{m}={v}" for m, v in entry.get("moves", {}).items()) or "-"
+        verdicts = (
+            ", ".join(f"{m}={v}" for m, v in entry.get("moves", {}).items()) or "-"
+        )
         lines.append(f"{judge_title(path)}: {verdicts}")
         if entry.get("summary"):
             lines.append(entry["summary"])
@@ -454,12 +529,24 @@ def commit_judgement(judged, refit=True):
         return f"judge: committed {subject} (solve already pushed, not folded)"
     ok, why = fold_into(solve, judge)
     if ok:
-        return "judge: folded into " + _git("show", "-s", "--format=%s", solve).stdout.strip()
+        return (
+            "judge: folded into "
+            + _git("show", "-s", "--format=%s", solve).stdout.strip()
+        )
     return f"judge: committed {subject} (not folded: {why})"
 
 
-def serve_receipt(pnum, moves, pre_moves, was_mapped, nodes, problems,
-                  evidence, before_ev, predicted=None):
+def serve_receipt(
+    pnum,
+    moves,
+    pre_moves,
+    was_mapped,
+    nodes,
+    problems,
+    evidence,
+    before_ev,
+    predicted=None,
+):
     """Rich-markup lines explaining what this solve meant to the graph.
 
     What the problem was serving is derived, never stored (the same way
@@ -471,30 +558,39 @@ def serve_receipt(pnum, moves, pre_moves, was_mapped, nodes, problems,
     never as a verdict on the candidate."""
     if predicted is None:
         predicted = load_predicted()
-    drafted = [w.get("moves", []) for w in
-               predicted.get(pnum, {}).get("walks", [])]
+    drafted = [w.get("moves", []) for w in predicted.get(pnum, {}).get("walks", [])]
     expected = list(dict.fromkeys(pre_moves + [m for w in drafted for m in w]))
-    targets = [m for m in expected if m in nodes
-               and node_status(m, before_ev)[0] != SOLID]
+    targets = [
+        m for m in expected if m in nodes and node_status(m, before_ev)[0] != SOLID
+    ]
     lines = []
     for t in targets:
         b, _ = node_status(t, before_ev)
         a, _ = node_status(t, evidence)
         if t in moves:
-            line = (f"served for [bold]{t}[/bold]: {b} → {a}" if a != b
-                    else f"served for [bold]{t}[/bold]: got its rep, stays {a}")
+            line = (
+                f"served for [bold]{t}[/bold]: {b} → {a}"
+                if a != b
+                else f"served for [bold]{t}[/bold]: got its rep, stays {a}"
+            )
             if a == SOLID and b != SOLID:
                 statuses_before = {n: node_status(n, before_ev) for n in nodes}
                 gained = unlocks(statuses_before, problems, predicted).get(t, 0)
                 if gained:
-                    line += (f" — brings {gained} drafted problem"
-                             f"{'s' if gained != 1 else ''} into reach")
+                    line += (
+                        f" — brings {gained} drafted problem"
+                        f"{'s' if gained != 1 else ''} into reach"
+                    )
         elif moves:
-            line = (f"served for [bold]{t}[/bold] — the code went "
-                    f"{', '.join(moves)} instead; {t} stays {a}")
+            line = (
+                f"served for [bold]{t}[/bold] — the code went "
+                f"{', '.join(moves)} instead; {t} stays {a}"
+            )
         else:
-            line = (f"served for [bold]{t}[/bold] — the solve evidenced "
-                    f"no moves; {t} stays {a}")
+            line = (
+                f"served for [bold]{t}[/bold] — the solve evidenced "
+                f"no moves; {t} stays {a}"
+            )
         lines.append(line)
     if not was_mapped and drafted and moves:
         # parentheses, not square brackets: these lines go through rich
@@ -505,19 +601,39 @@ def serve_receipt(pnum, moves, pre_moves, was_mapped, nodes, problems,
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Extract move evidence from solved files.")
-    parser.add_argument("--limit", type=int, default=0, help="max files this run (0 = all)")
+    parser = argparse.ArgumentParser(
+        description="Extract move evidence from solved files."
+    )
+    parser.add_argument(
+        "--limit", type=int, default=0, help="max files this run (0 = all)"
+    )
     parser.add_argument("--model", default="haiku", help="model for extraction calls")
-    parser.add_argument("--workers", type=int, default=8, help="concurrent extraction calls")
-    parser.add_argument("--followup", action="store_true",
-                        help="re-judge the follow-up only, on evidenced solves that lack the field")
-    parser.add_argument("--stub", action="store_true",
-                        help="placeholder entry for the staged solve, no model call (a spot rep is judged now)")
-    parser.add_argument("--file", help="judge this one solved/ file only (missing or pending)")
-    parser.add_argument("--pending", action="store_true",
-                        help="also re-judge placeholders still pending")
-    parser.add_argument("--commit", action="store_true",
-                        help="refit the curve and commit the graph files after judging")
+    parser.add_argument(
+        "--workers", type=int, default=8, help="concurrent extraction calls"
+    )
+    parser.add_argument(
+        "--followup",
+        action="store_true",
+        help="re-judge the follow-up only, on evidenced solves that lack the field",
+    )
+    parser.add_argument(
+        "--stub",
+        action="store_true",
+        help="placeholder entry for the staged solve, no model call (a spot rep is judged now)",
+    )
+    parser.add_argument(
+        "--file", help="judge this one solved/ file only (missing or pending)"
+    )
+    parser.add_argument(
+        "--pending",
+        action="store_true",
+        help="also re-judge placeholders still pending",
+    )
+    parser.add_argument(
+        "--commit",
+        action="store_true",
+        help="refit the curve and commit the graph files after judging",
+    )
     args = parser.parse_args()
 
     nodes = load_nodes()
@@ -537,7 +653,9 @@ def main():
                 return  # judged already (a resumed run)
             entry = stub_entry(path, nodes, problems)
             store_evidence_entry(path, entry)
-            console.print(f"[dim]placeholder filed on {', '.join(entry['moves']) or '-'}; the judge runs detached.[/dim]")
+            console.print(
+                f"[dim]placeholder filed on {', '.join(entry['moves']) or '-'}; the judge runs detached.[/dim]"
+            )
             return
         # a spot rep reveals its walk after the judge: judged now, in line
 
@@ -545,8 +663,11 @@ def main():
     if args.file:
         todo = [os.path.normpath(args.file)]
     else:
-        todo = [f for f in files
-                if f not in evidence or (args.pending and evidence[f].get(PENDING))]
+        todo = [
+            f
+            for f in files
+            if f not in evidence or (args.pending and evidence[f].get(PENDING))
+        ]
     if args.limit:
         todo = todo[: args.limit]
     console.print(f"{len(files)} solve files, {len(todo)} to process this run.\n")
@@ -590,7 +711,7 @@ Output STRICT JSON only:
             prompt = (
                 f"The statement ends with a follow-up question: {followup} "
                 f"Judge whether the code as written meets it and answer in "
-                f"\"followup\": \"solved\" or \"not solved\".\n\n{prompt}"
+                f'"followup": "solved" or "not solved".\n\n{prompt}'
             )
         if is_drill:
             prompt = (
@@ -613,7 +734,13 @@ Output STRICT JSON only:
             notes, _ = parse_content(code)
         except SyntaxError:
             notes = ""
-        return claude_json(prompt, system, model=args.model), is_drill, trains, notes, followup
+        return (
+            claude_json(prompt, system, model=args.model),
+            is_drill,
+            trains,
+            notes,
+            followup,
+        )
 
     if args.followup:
         rejudge_followups(evidence, extract_one, args.workers)
@@ -652,7 +779,11 @@ Output STRICT JSON only:
                         skipped.add(mv)
             entry = {
                 "date": solve_date,
-                "problem": "drill" if is_drill else (result.get("problem") or (m.group(1) if m else "?")),
+                "problem": (
+                    "drill"
+                    if is_drill
+                    else (result.get("problem") or (m.group(1) if m else "?"))
+                ),
                 "moves": moves,
             }
             assist = normalise_assist(result.get("assist"), moves)
@@ -666,16 +797,22 @@ Output STRICT JSON only:
             # had its walk revealed after the answer: a later solve of it is
             # not unaided. After a hit it is - the reveal showed nothing the
             # candidate had not produced (settled 2026-09-01)
-            spotted = None if is_drill else rc.spotted_before(
-                entry["problem"], solve_date, recog)
+            spotted = (
+                None
+                if is_drill
+                else rc.spotted_before(entry["problem"], solve_date, recog)
+            )
             if spotted and spotted[1] == rc.MISSED:
                 assist = apply_assist_floor(assist, "hint", list(moves))
             if assist:
                 entry["assist"] = assist
             # the recognition axis: a miss the notes name (the judge's
             # reading, or the words themselves on the canonical entry move)
-            missed = [n for n in (result.get("recognition") or {}).get("missed", [])
-                      if n in nodes]
+            missed = [
+                n
+                for n in (result.get("recognition") or {}).get("missed", [])
+                if n in nodes
+            ]
             if not missed and not is_drill and rc.notes_say_missed(notes):
                 missed = rc.entry_nodes(entry["problem"], problems)[:1]
             if followup and result.get("followup") in FOLLOWUP_VERDICTS:
@@ -699,16 +836,22 @@ Output STRICT JSON only:
                 pnum = entry["problem"]
                 if missed:
                     recog[path] = {
-                        "date": solve_date, "problem": pnum, "kind": "solve",
+                        "date": solve_date,
+                        "problem": pnum,
+                        "kind": "solve",
                         "moves": {n: rc.MISSED for n in missed},
                         "note": "the notes say the move was not recognised",
                     }
                     rc.save_recognition(recog)
-                    console.print(f"    [red]recognition miss on [bold]{', '.join(missed)}[/bold][/red] (from the notes)")
+                    console.print(
+                        f"    [red]recognition miss on [bold]{', '.join(missed)}[/bold][/red] (from the notes)"
+                    )
                 if spotted:
                     d, v = spotted
-                    console.print(f"    [dim]spotted {d} ({v})"
-                                  f"{': assist floored to hint' if v == rc.MISSED else ''}[/dim]")
+                    console.print(
+                        f"    [dim]spotted {d} ({v})"
+                        f"{': assist floored to hint' if v == rc.MISSED else ''}[/dim]"
+                    )
                 was_mapped = pnum in problems
                 pre_moves = list(problems.get(pnum, {}).get("moves", []))
                 # a skipped mapped move IS a discovered alt walk — record it so
@@ -717,7 +860,9 @@ Output STRICT JSON only:
                     save_problems(problems)
                 if not is_drill and pnum not in problems and moves:
                     problems[pnum] = {
-                        "title": result.get("title", (m.group(2).replace("_", " ") if m else "")),
+                        "title": result.get(
+                            "title", (m.group(2).replace("_", " ") if m else "")
+                        ),
                         "difficulty": lookup_difficulty(pnum),
                         "moves": list(moves.keys()),
                         "source": "extracted",
@@ -726,9 +871,13 @@ Output STRICT JSON only:
                 done += 1
                 painted = ", ".join(
                     f"[{VERDICT_STYLE.get(v, 'white')}]{mv}[/{VERDICT_STYLE.get(v, 'white')}]"
-                    for mv, v in moves.items())
-                tag = (f" [yellow](assist: {assist_tag(entry['assist'])})[/yellow]"
-                       if "assist" in entry else "")
+                    for mv, v in moves.items()
+                )
+                tag = (
+                    f" [yellow](assist: {assist_tag(entry['assist'])})[/yellow]"
+                    if "assist" in entry
+                    else ""
+                )
                 console.print(
                     f"[green]{done}/{len(todo)}[/green] {os.path.basename(path)[:60]} → {painted or '—'}{tag}"
                 )
@@ -740,11 +889,20 @@ Output STRICT JSON only:
                     b, _ = node_status(mv, before_ev)
                     a, _ = node_status(mv, evidence)
                     change = f"[red]{b} → {a}[/red]" if a != b else f"stays {a}"
-                    console.print(f"    [red]⚠ struggled on [bold]{mv}[/bold][/red] ({change})")
+                    console.print(
+                        f"    [red]⚠ struggled on [bold]{mv}[/bold][/red] ({change})"
+                    )
                 if not is_drill:
-                    for line in serve_receipt(pnum, list(moves), pre_moves,
-                                              was_mapped, nodes, problems,
-                                              evidence, before_ev):
+                    for line in serve_receipt(
+                        pnum,
+                        list(moves),
+                        pre_moves,
+                        was_mapped,
+                        nodes,
+                        problems,
+                        evidence,
+                        before_ev,
+                    ):
                         console.print(f"    [dim]{line}[/dim]")
 
     console.print(
@@ -770,7 +928,9 @@ def judge_spots(nodes, problems, recog, model):
         statement, answer = rc.split_answer(text)
         title = problems.get(pnum, {}).get("title", "")
         if not problems.get(pnum, {}).get("moves"):
-            console.print(f"[dim]{pnum} has no walk - one claude call to map it (cached after)...[/dim]")
+            console.print(
+                f"[dim]{pnum} has no walk - one claude call to map it (cached after)...[/dim]"
+            )
             try:
                 if not title:
                     title = rc.fetch_content(pnum).get("title", "")
@@ -778,7 +938,9 @@ def judge_spots(nodes, problems, recog, model):
                 save_problems(problems)
                 title = problems[pnum].get("title", title)
             except Exception as e:
-                console.print(f"[red]FAIL {path}: could not map {pnum}: {str(e)[:200]}[/red]")
+                console.print(
+                    f"[red]FAIL {path}: could not map {pnum}: {str(e)[:200]}[/red]"
+                )
                 continue
         try:
             named, summary = rc.judge_answer(statement, answer, nodes, model=model)
@@ -788,11 +950,17 @@ def judge_spots(nodes, problems, recog, model):
         moves, false = rc.score(named, pnum, problems, target=foot.get("target"))
         rec = {
             "date": manila_date_from_filename(path) or "1970-01-01",
-            "problem": pnum, "kind": "spot", "title": title,
-            "target": foot.get("target"), "reason": foot.get("reason"),
+            "problem": pnum,
+            "kind": "spot",
+            "title": title,
+            "target": foot.get("target"),
+            "reason": foot.get("reason"),
             "seconds": foot.get("seconds", 0),
-            "named": named, "walk": list(problems[pnum].get("moves", [])),
-            "moves": moves, "false": false, "summary": summary,
+            "named": named,
+            "walk": list(problems[pnum].get("moves", [])),
+            "moves": moves,
+            "false": false,
+            "summary": summary,
         }
         if answer:
             rec["answer"] = answer[:1000]
@@ -808,7 +976,9 @@ def judge_spots(nodes, problems, recog, model):
                 valid, why = None, f"route not judged: {str(e)[:120]}"
             rec["valid"], rec["why"] = valid, why
             if valid and rc.MISSED in moves.values() and false:
-                rc.apply_alternative(rec, named, problems, why, target=foot.get("target"))
+                rc.apply_alternative(
+                    rec, named, problems, why, target=foot.get("target")
+                )
                 save_problems(problems)
         recog[path] = rec
         rc.save_recognition(recog)

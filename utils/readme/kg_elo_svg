@@ -69,10 +69,14 @@ def games():
         if pid in meta:
             by_diff[meta[pid]["difficulty"]].append(rt)
     imputed = {d: median(v) for d, v in by_diff.items()}
-    return [(date.fromisoformat(g["date"]),
-             ratings.get(g["problem"], imputed[g["difficulty"]]),
-             g["score"])
-            for g in scored_games()]
+    return [
+        (
+            date.fromisoformat(g["date"]),
+            ratings.get(g["problem"], imputed[g["difficulty"]]),
+            g["score"],
+        )
+        for g in scored_games()
+    ]
 
 
 def elo(gs):
@@ -97,14 +101,16 @@ def badge(r):
     left, right = "elo", f"{r:.0f} · {name}"
     lw, rw = 6 * len(left) + 12, 6.2 * len(right) + 12
     w = lw + rw
-    return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{w:.0f}" height="20" '
-            f'font-family="Verdana,DejaVu Sans,sans-serif" font-size="11">'
-            f'<rect rx="3" width="{w:.0f}" height="20" fill="#555"/>'
-            f'<rect rx="3" x="{lw:.0f}" width="{rw:.0f}" height="20" fill="{color}"/>'
-            f'<rect x="{lw:.0f}" width="4" height="20" fill="{color}"/>'
-            f'<text x="{lw / 2:.1f}" y="14" fill="#fff" text-anchor="middle">{left}</text>'
-            f'<text x="{lw + rw / 2:.1f}" y="14" fill="#fff" text-anchor="middle">{right}</text>'
-            f'</svg>\n')
+    return (
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{w:.0f}" height="20" '
+        f'font-family="Verdana,DejaVu Sans,sans-serif" font-size="11">'
+        f'<rect rx="3" width="{w:.0f}" height="20" fill="#555"/>'
+        f'<rect rx="3" x="{lw:.0f}" width="{rw:.0f}" height="20" fill="{color}"/>'
+        f'<rect x="{lw:.0f}" width="4" height="20" fill="{color}"/>'
+        f'<text x="{lw / 2:.1f}" y="14" fill="#fff" text-anchor="middle">{left}</text>'
+        f'<text x="{lw + rw / 2:.1f}" y="14" fill="#fff" text-anchor="middle">{right}</text>'
+        f"</svg>\n"
+    )
 
 
 def main():
@@ -129,36 +135,53 @@ def main():
 
     n_win = sum(1 for _, _, s in gs if s == 1.0)
     n_draw = sum(1 for _, _, s in gs if s == 0.5)
-    svg = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" '
-           f'font-family="Helvetica,sans-serif">',
-           f'<rect width="{W}" height="{H}" fill="{BG}"/>',
-           f'<text x="{W / 2:.0f}" y="26" text-anchor="middle" font-size="11" fill="{MUTED}">'
-           f'{len(gs)} games, {n_win} wins, {n_draw} draws, {len(gs) - n_win - n_draw} losses</text>']
+    svg = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" '
+        f'font-family="Helvetica,sans-serif">',
+        f'<rect width="{W}" height="{H}" fill="{BG}"/>',
+        f'<text x="{W / 2:.0f}" y="26" text-anchor="middle" font-size="11" fill="{MUTED}">'
+        f"{len(gs)} games, {n_win} wins, {n_draw} draws, {len(gs) - n_win - n_draw} losses</text>",
+    ]
     for cut, name, color in RANKS:
         y = y_of(cut)
-        svg.append(f'<rect x="{ML}" y="{top}" width="{W - ML - MR}" height="{y - top:.1f}" '
-                   f'fill="{color}" fill-opacity="0.06"/>')
-        svg.append(f'<line x1="{ML}" y1="{y:.1f}" x2="{W - MR}" y2="{y:.1f}" '
-                   f'stroke="{color}" stroke-width="1" stroke-dasharray="4 4"/>')
-        svg.append(f'<text x="{W - MR - 4}" y="{y - 5:.1f}" text-anchor="end" font-size="11" '
-                   f'fill="{color}">{name} {cut}</text>')
+        svg.append(
+            f'<rect x="{ML}" y="{top}" width="{W - ML - MR}" height="{y - top:.1f}" '
+            f'fill="{color}" fill-opacity="0.06"/>'
+        )
+        svg.append(
+            f'<line x1="{ML}" y1="{y:.1f}" x2="{W - MR}" y2="{y:.1f}" '
+            f'stroke="{color}" stroke-width="1" stroke-dasharray="4 4"/>'
+        )
+        svg.append(
+            f'<text x="{W - MR - 4}" y="{y - 5:.1f}" text-anchor="end" font-size="11" '
+            f'fill="{color}">{name} {cut}</text>'
+        )
     for g in range(lo, hi + 1, 100):
         y = y_of(g)
-        svg.append(f'<line x1="{ML}" y1="{y:.1f}" x2="{W - MR}" y2="{y:.1f}" '
-                   f'stroke="{GRID}" stroke-width="1"/>')
-        svg.append(f'<text x="{ML - 8}" y="{y + 4:.1f}" text-anchor="end" font-size="11" '
-                   f'fill="{MUTED}">{g}</text>')
+        svg.append(
+            f'<line x1="{ML}" y1="{y:.1f}" x2="{W - MR}" y2="{y:.1f}" '
+            f'stroke="{GRID}" stroke-width="1"/>'
+        )
+        svg.append(
+            f'<text x="{ML - 8}" y="{y + 4:.1f}" text-anchor="end" font-size="11" '
+            f'fill="{MUTED}">{g}</text>'
+        )
     d = date(d0.year, d0.month, 1)
     while d <= d1:
         if d >= d0:
             x = x_of(d)
-            svg.append(f'<line x1="{x:.1f}" y1="{top}" x2="{x:.1f}" y2="{bottom}" '
-                       f'stroke="{GRID}" stroke-width="1"/>')
-            svg.append(f'<text x="{x:.1f}" y="{bottom + 18}" text-anchor="middle" font-size="11" '
-                       f'fill="{MUTED}">{d.strftime("%b %y")}</text>')
+            svg.append(
+                f'<line x1="{x:.1f}" y1="{top}" x2="{x:.1f}" y2="{bottom}" '
+                f'stroke="{GRID}" stroke-width="1"/>'
+            )
+            svg.append(
+                f'<text x="{x:.1f}" y="{bottom + 18}" text-anchor="middle" font-size="11" '
+                f'fill="{MUTED}">{d.strftime("%b %y")}</text>'
+            )
         d = (d.replace(day=28) + timedelta(days=4)).replace(day=1)
     # one polyline per run of games; a gap over a month is drawn as a gap
-    runs, prev = [[]], None
+    runs: list[list] = [[]]
+    prev = None
     for dd, r in hist:
         if prev and (dd - prev).days > 31:
             runs.append([])
@@ -166,11 +189,17 @@ def main():
         prev = dd
     for run in runs:
         pts = " ".join(f"{x_of(dd):.1f},{y_of(r):.1f}" for dd, r in run)
-        svg.append(f'<polyline points="{pts}" fill="none" stroke="{LINE}" stroke-width="2"/>')
+        svg.append(
+            f'<polyline points="{pts}" fill="none" stroke="{LINE}" stroke-width="2"/>'
+        )
     last = hist[-1][1]
-    svg.append(f'<circle cx="{x_of(d1):.1f}" cy="{y_of(last):.1f}" r="4" fill="{LINE}"/>')
-    svg.append(f'<text x="{x_of(d1):.1f}" y="{y_of(last) - 12:.1f}" text-anchor="end" '
-               f'font-size="12" fill="{LINE}">{last:.0f}</text>')
+    svg.append(
+        f'<circle cx="{x_of(d1):.1f}" cy="{y_of(last):.1f}" r="4" fill="{LINE}"/>'
+    )
+    svg.append(
+        f'<text x="{x_of(d1):.1f}" y="{y_of(last) - 12:.1f}" text-anchor="end" '
+        f'font-size="12" fill="{LINE}">{last:.0f}</text>'
+    )
     svg.append("</svg>")
     with open(OUT, "w") as f:
         f.write("\n".join(svg) + "\n")

@@ -172,10 +172,16 @@ def main():
     ap.add_argument("problem", nargs="?", help="frontend number or slug")
     ap.add_argument("-n", type=int, default=5, help="how many to list")
     ap.add_argument("--read", help="print the markdown of rank K or K-M")
-    ap.add_argument("--order", default="MOST_VOTES", choices=["MOST_VOTES", "HOT", "MOST_RECENT"])
+    ap.add_argument(
+        "--order", default="MOST_VOTES", choices=["MOST_VOTES", "HOT", "MOST_RECENT"]
+    )
     ap.add_argument("--tag", action="append", help="filter by tag slug, repeatable")
-    ap.add_argument("--search", help="keyword search within the solutions (titles, text)")
-    ap.add_argument("--author", help="list a user's solution articles (e.g. StefanPochmann)")
+    ap.add_argument(
+        "--search", help="keyword search within the solutions (titles, text)"
+    )
+    ap.add_argument(
+        "--author", help="list a user's solution articles (e.g. StefanPochmann)"
+    )
     args = ap.parse_args()
 
     if not args.problem and not args.author:
@@ -186,7 +192,9 @@ def main():
         total, nodes = fetch_author(args.author, slug)
         scope = f"{args.author} on {slug}" if slug else f"{args.author}, most recent"
         if not slug:
-            nodes = nodes[: max(args.n, max(parse_ranks(args.read, 1000)) if args.read else 0)]
+            nodes = nodes[
+                : max(args.n, max(parse_ranks(args.read, 1000)) if args.read else 0)
+            ]
         print(f"{scope}: {len(nodes)} of {total} articles")
     else:
         want = max(args.n, max(parse_ranks(args.read, 100)) if args.read else 0)
@@ -212,7 +220,9 @@ def main():
         nslug = node.get("questionSlug") or slug
         path = save_copy(args.problem, nslug, node, art["content"])
         print(f"\n{'=' * 72}")
-        print(f"#{rank}: {art['title']}  [{upvotes(node)} upvotes, saved {os.path.relpath(path, ROOT)}]")
+        print(
+            f"#{rank}: {art['title']}  [{upvotes(node)} upvotes, saved {os.path.relpath(path, ROOT)}]"
+        )
         print("=" * 72)
         print(art["content"])
 

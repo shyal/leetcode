@@ -20,7 +20,14 @@
 import os
 from datetime import date, timedelta
 
-from kg.kg_lib import GRAPH_DIR, anki_due, bank_paths, ev_index, load_evidence, problem_due
+from kg.kg_lib import (
+    GRAPH_DIR,
+    anki_due,
+    bank_paths,
+    ev_index,
+    load_evidence,
+    problem_due,
+)
 
 OUT = os.path.join(GRAPH_DIR, "backlog.svg")
 
@@ -28,9 +35,11 @@ W, H = 1200, 400
 BG = "#0d1117"
 MUTED = "#8b949e"
 GRID = "#21262d"
-SERIES = (("open cards", "#8b949e"),
-          ("due cards", "#f85149"),
-          ("due drills", "#d29922"))
+SERIES = (
+    ("open cards", "#8b949e"),
+    ("due cards", "#f85149"),
+    ("due drills", "#d29922"),
+)
 ML, MR, MT, MB = 62, 24, 60, 40
 
 
@@ -48,11 +57,19 @@ def counts():
         while i < len(ordered) and ordered[i][1]["date"] <= d.isoformat():
             upto[ordered[i][0]] = ordered[i][1]
             i += 1
-        cards = [problem_due(p, upto) for p in ev_index(upto).by_problem if p[:1].isdigit()]
+        cards = [
+            problem_due(p, upto) for p in ev_index(upto).by_problem if p[:1].isdigit()
+        ]
         cards = [c for c in cards if c]
         drills = [anki_due(p, upto) for p in banks]
-        out.append((d, len(cards), sum(1 for c in cards if c[0] <= d),
-                    sum(1 for a in drills if a and a[0] <= d)))
+        out.append(
+            (
+                d,
+                len(cards),
+                sum(1 for c in cards if c[0] <= d),
+                sum(1 for a in drills if a and a[0] <= d),
+            )
+        )
         d += timedelta(days=1)
     return out
 
@@ -73,37 +90,53 @@ def main():
         return bottom - v / hi * (bottom - top)
 
     last = rows[-1]
-    svg = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" '
-           f'font-family="Helvetica,sans-serif">',
-           f'<rect width="{W}" height="{H}" fill="{BG}"/>',
-           f'<text x="{W / 2:.0f}" y="20" text-anchor="middle" font-size="11" fill="{MUTED}">'
-           f'today: {last[1]} open cards, {last[2]} due, {last[3]} drills due</text>']
+    svg = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" '
+        f'font-family="Helvetica,sans-serif">',
+        f'<rect width="{W}" height="{H}" fill="{BG}"/>',
+        f'<text x="{W / 2:.0f}" y="20" text-anchor="middle" font-size="11" fill="{MUTED}">'
+        f"today: {last[1]} open cards, {last[2]} due, {last[3]} drills due</text>",
+    ]
     for g in range(0, hi + 1, step):
         y = y_of(g)
-        svg.append(f'<line x1="{ML}" y1="{y:.1f}" x2="{W - MR}" y2="{y:.1f}" '
-                   f'stroke="{GRID}" stroke-width="1"/>')
-        svg.append(f'<text x="{ML - 8}" y="{y + 4:.1f}" text-anchor="end" font-size="11" '
-                   f'fill="{MUTED}">{g}</text>')
+        svg.append(
+            f'<line x1="{ML}" y1="{y:.1f}" x2="{W - MR}" y2="{y:.1f}" '
+            f'stroke="{GRID}" stroke-width="1"/>'
+        )
+        svg.append(
+            f'<text x="{ML - 8}" y="{y + 4:.1f}" text-anchor="end" font-size="11" '
+            f'fill="{MUTED}">{g}</text>'
+        )
     d = date(d0.year, d0.month, 1)
     while d <= d1:
         if d >= d0:
             x = x_of(d)
-            svg.append(f'<line x1="{x:.1f}" y1="{top}" x2="{x:.1f}" y2="{bottom}" '
-                       f'stroke="{GRID}" stroke-width="1"/>')
-            svg.append(f'<text x="{x:.1f}" y="{bottom + 18}" text-anchor="middle" font-size="11" '
-                       f'fill="{MUTED}">{d.strftime("%b %y")}</text>')
+            svg.append(
+                f'<line x1="{x:.1f}" y1="{top}" x2="{x:.1f}" y2="{bottom}" '
+                f'stroke="{GRID}" stroke-width="1"/>'
+            )
+            svg.append(
+                f'<text x="{x:.1f}" y="{bottom + 18}" text-anchor="middle" font-size="11" '
+                f'fill="{MUTED}">{d.strftime("%b %y")}</text>'
+            )
         d = (d.replace(day=28) + timedelta(days=4)).replace(day=1)
     for i, (label, color) in enumerate(SERIES, start=1):
         pts = " ".join(f"{x_of(r[0]):.1f},{y_of(r[i]):.1f}" for r in rows)
-        svg.append(f'<polyline points="{pts}" fill="none" stroke="{color}" '
-                   f'stroke-width="2"/>')
+        svg.append(
+            f'<polyline points="{pts}" fill="none" stroke="{color}" '
+            f'stroke-width="2"/>'
+        )
     y = MT - 18
     x = ML
     for label, color in SERIES:
-        svg.append(f'<line x1="{x}" y1="{y}" x2="{x + 16}" y2="{y}" '
-                   f'stroke="{color}" stroke-width="2"/>')
-        svg.append(f'<text x="{x + 22}" y="{y + 4}" font-size="11" fill="{MUTED}">'
-                   f'{label}</text>')
+        svg.append(
+            f'<line x1="{x}" y1="{y}" x2="{x + 16}" y2="{y}" '
+            f'stroke="{color}" stroke-width="2"/>'
+        )
+        svg.append(
+            f'<text x="{x + 22}" y="{y + 4}" font-size="11" fill="{MUTED}">'
+            f"{label}</text>"
+        )
         x += 34 + 6.2 * len(label)
     svg.append("</svg>")
     with open(OUT, "w") as f:

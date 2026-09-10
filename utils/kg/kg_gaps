@@ -38,15 +38,18 @@ def main():
     evidence = load_evidence()
     statuses = {nid: node_status(nid, evidence)[0] for nid in nodes}
 
-    mentions = defaultdict(int)
+    mentions: dict[str, int] = defaultdict(int)
     sole = defaultdict(list)
     for num, prob in predicted.items():
         for walk in prob["walks"]:
             missing = sorted({norm(m) for m in walk.get("missing", [])})
             for m in missing:
                 mentions[m] += 1
-            if len(missing) == 1 and walk["moves"] and \
-                    all(statuses.get(mv) == SOLID for mv in walk["moves"]):
+            if (
+                len(missing) == 1
+                and walk["moves"]
+                and all(statuses.get(mv) == SOLID for mv in walk["moves"])
+            ):
                 sole[missing[0]].append((num, prob["title"]))
 
     ranked = sorted(mentions, key=lambda m: (-len(sole[m]), -mentions[m], m))
@@ -57,8 +60,10 @@ def main():
         ex = ", ".join(num for num, _ in sole[m][:5])
         print(f"{m:<34} {len(sole[m]):>7} {mentions[m]:>8}  {ex}")
     total = sum(len(v) for v in sole.values())
-    print(f"\n{len(mentions)} distinct suggestions; {total} problems blocked by "
-          "exactly one absent node with everything else solid")
+    print(
+        f"\n{len(mentions)} distinct suggestions; {total} problems blocked by "
+        "exactly one absent node with everything else solid"
+    )
 
 
 if __name__ == "__main__":

@@ -9,7 +9,9 @@ import os
 from importlib.machinery import SourceFileLoader
 
 KG = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "kg")
-kg_extract = SourceFileLoader("kg_extract", os.path.join(KG, "kg_extract")).load_module()
+kg_extract = SourceFileLoader(
+    "kg_extract", os.path.join(KG, "kg_extract")
+).load_module()
 
 SOLVE = '''"""
 1. Two Sum
@@ -94,10 +96,12 @@ def test_real_solves_with_notes_keep_them():
 # walk (3042's "pair-count-formula", withdrawn 2026-08-27) survived two solves
 # that both contradicted it.
 
+
 def test_an_alt_walk_is_recorded_when_a_mapped_move_is_skipped():
     problems = {"1512": {"moves": ["streaming-accumulate-pairs"]}}
     assert kg_extract.record_alt_walk(
-        problems, "1512", {"counter-build": "clean"}, {"streaming-accumulate-pairs"})
+        problems, "1512", {"counter-build": "clean"}, {"streaming-accumulate-pairs"}
+    )
     assert problems["1512"]["alt_walks"] == [["counter-build"]]
 
 
@@ -118,7 +122,8 @@ def test_the_same_alt_walk_is_not_recorded_twice():
 def test_nothing_is_recorded_when_no_mapped_move_was_skipped():
     problems = {"1512": {"moves": ["streaming-accumulate-pairs"]}}
     assert not kg_extract.record_alt_walk(
-        problems, "1512", {"streaming-accumulate-pairs": "clean"}, set())
+        problems, "1512", {"streaming-accumulate-pairs": "clean"}, set()
+    )
     assert "alt_walks" not in problems["1512"]
 
 
@@ -148,20 +153,28 @@ class Solution:
 
 
 def test_followup_is_read_from_the_statement():
-    assert kg_extract.followup_of(FOLLOWUP_SOLVE) == \
-        "Could you solve this problem in less than O(n) complexity?"
+    assert (
+        kg_extract.followup_of(FOLLOWUP_SOLVE)
+        == "Could you solve this problem in less than O(n) complexity?"
+    )
 
 
 def test_followup_on_one_line_is_read_too():
     code = FOLLOWUP_SOLVE.replace("Follow up:\n\nCould", "Follow-up: Could")
-    assert kg_extract.followup_of(code) == \
-        "Could you solve this problem in less than O(n) complexity?"
+    assert (
+        kg_extract.followup_of(code)
+        == "Could you solve this problem in less than O(n) complexity?"
+    )
 
 
 def test_followup_stops_at_the_paragraph():
-    code = FOLLOWUP_SOLVE.replace("complexity?\n", "complexity?\n\nConstraints:\n\n1 <= k\n")
-    assert kg_extract.followup_of(code) == \
-        "Could you solve this problem in less than O(n) complexity?"
+    code = FOLLOWUP_SOLVE.replace(
+        "complexity?\n", "complexity?\n\nConstraints:\n\n1 <= k\n"
+    )
+    assert (
+        kg_extract.followup_of(code)
+        == "Could you solve this problem in less than O(n) complexity?"
+    )
 
 
 def test_no_followup_in_the_statement_means_none():

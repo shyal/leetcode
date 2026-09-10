@@ -26,13 +26,25 @@ from datetime import date, timedelta
 from importlib.machinery import SourceFileLoader
 
 from kg.kg_lib import (
-    GRAPH_DIR, STALE, FRAGILE, load_nodes, load_problems,
-    load_evidence, load_predicted, node_status, current_recall,
-    problem_difficulty, solve_model, solve_scenarios, _load_curve,
+    FRAGILE,
+    GRAPH_DIR,
+    STALE,
+    _load_curve,
+    current_recall,
+    load_evidence,
+    load_nodes,
+    load_predicted,
+    load_problems,
+    node_status,
+    problem_difficulty,
+    solve_model,
+    solve_scenarios,
 )
 
 KG = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "kg")
-kg_simulate = SourceFileLoader("kg_simulate", os.path.join(KG, "kg_simulate")).load_module()
+kg_simulate = SourceFileLoader(
+    "kg_simulate", os.path.join(KG, "kg_simulate")
+).load_module()
 
 OUT = os.path.join(GRAPH_DIR, "forecast.svg")
 SEEDS = (1, 2, 3, 4, 5)
@@ -57,9 +69,13 @@ def history(nodes, problems, evidence, expect, shift):
     today = date.today()
     d = date.fromisoformat(min(r["date"] for r in evidence.values()))
     curve = _load_curve()
-    by_day = {}
+    by_day: dict[str, dict[str, int]] = {}
     for r in evidence.values():
-        kind = "drill" if r["problem"] == "drill" else problem_difficulty(r["problem"], problems)
+        kind = (
+            "drill"
+            if r["problem"] == "drill"
+            else problem_difficulty(r["problem"], problems)
+        )
         if kind in KINDS:
             by_day.setdefault(r["date"], {k: 0 for k in KINDS})[kind] += 1
     rows = []
@@ -69,8 +85,17 @@ def history(nodes, problems, evidence, expect, shift):
         statuses = [node_status(n, seen, today=d)[0] for n in nodes]
         recall = current_recall(nodes, seen, curve, today=d)
         _, onsite, screen, hard = expect.rates(recall, shift)
-        rows.append((d, by_day.get(k, {kk: 0 for kk in KINDS}),
-                     statuses.count(STALE), statuses.count(FRAGILE), onsite, screen, hard))
+        rows.append(
+            (
+                d,
+                by_day.get(k, {kk: 0 for kk in KINDS}),
+                statuses.count(STALE),
+                statuses.count(FRAGILE),
+                onsite,
+                screen,
+                hard,
+            )
+        )
         d += timedelta(days=1)
     return rows
 
@@ -111,16 +136,22 @@ def main():
     def path(pts, color, width, dash=None, opacity=1.0):
         d = "M" + " L".join(f"{x:.1f},{y:.1f}" for x, y in pts)
         extra = f' stroke-dasharray="{dash}"' if dash else ""
-        return (f'<path d="{d}" fill="none" stroke="{color}" stroke-width="{width}" '
-                f'stroke-opacity="{opacity}" stroke-linejoin="round"{extra}/>')
+        return (
+            f'<path d="{d}" fill="none" stroke="{color}" stroke-width="{width}" '
+            f'stroke-opacity="{opacity}" stroke-linejoin="round"{extra}/>'
+        )
 
     def text(x, y, s, size=11, color=INK, anchor="start"):
-        return (f'<text x="{x:.1f}" y="{y:.1f}" font-size="{size}" fill="{color}" '
-                f'text-anchor="{anchor}">{s}</text>')
+        return (
+            f'<text x="{x:.1f}" y="{y:.1f}" font-size="{size}" fill="{color}" '
+            f'text-anchor="{anchor}">{s}</text>'
+        )
 
     def swatch(x, y, color, label):
-        return (f'<rect x="{x:.1f}" y="{y - 9:.1f}" width="10" height="10" rx="2" fill="{color}"/>'
-                + text(x + 15, y, label))
+        return (
+            f'<rect x="{x:.1f}" y="{y - 9:.1f}" width="10" height="10" rx="2" fill="{color}"/>'
+            + text(x + 15, y, label)
+        )
 
     def grid(lane, ymax, step, fmt=str):
         top, bottom = LANES[lane]
@@ -128,25 +159,33 @@ def main():
         g = 0
         while g <= ymax + 1e-9:
             y = bottom - g / ymax * (bottom - top)
-            out.append(f'<line x1="{ML}" y1="{y:.1f}" x2="{W - MR}" y2="{y:.1f}" '
-                       f'stroke="{GRID}" stroke-width="1"/>')
+            out.append(
+                f'<line x1="{ML}" y1="{y:.1f}" x2="{W - MR}" y2="{y:.1f}" '
+                f'stroke="{GRID}" stroke-width="1"/>'
+            )
             out.append(text(ML - 8, y + 4, fmt(g), color=MUTED, anchor="end"))
             g += step
         return out
 
-    svg = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" '
-           f'font-family="Helvetica,sans-serif">',
-           f'<rect width="{W}" height="{H}" fill="{BG}"/>']
+    svg = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" '
+        f'font-family="Helvetica,sans-serif">',
+        f'<rect width="{W}" height="{H}" fill="{BG}"/>',
+    ]
     if main_run:
         end = main_run["start"] + timedelta(days=main_run["day"])
         total = sum(main_run["per_kind"].values())
         reached = main_run["onsite"] >= kg_simulate.TARGET_ONSITE
-        title = (f"History, then the forecast: make simulate at {main_run['hours']:g}h/day "
-                 f"({main_run['source']}), seed {SEEDS[0]}: "
-                 + (f"P(onsite) 50% on {end.isoformat()}, day {main_run['day']}, "
-                    f"after {total} more solves"
-                    if reached else
-                    f"P(onsite) {main_run['onsite']:.0%} after {main_run['day']} days, not 50%"))
+        title = (
+            f"History, then the forecast: make simulate at {main_run['hours']:g}h/day "
+            f"({main_run['source']}), seed {SEEDS[0]}: "
+            + (
+                f"P(onsite) 50% on {end.isoformat()}, day {main_run['day']}, "
+                f"after {total} more solves"
+                if reached
+                else f"P(onsite) {main_run['onsite']:.0%} after {main_run['day']} days, not 50%"
+            )
+        )
     else:
         title = "History; no forecast (measured pace 0h/day)"
     svg.append(text(W / 2, 24, title, size=13, anchor="middle"))
@@ -154,15 +193,26 @@ def main():
     # x positions and the today line
     today_x = x_of(P - 1)
     for top, bottom in LANES.values():
-        svg.append(f'<line x1="{today_x:.1f}" y1="{top}" x2="{today_x:.1f}" y2="{bottom}" '
-                   f'stroke="{TODAY}" stroke-width="1" stroke-dasharray="2 3"/>')
-    svg.append(text(today_x, LANES["volume"][0] - 8, "today", color=TODAY, anchor="middle"))
+        svg.append(
+            f'<line x1="{today_x:.1f}" y1="{top}" x2="{today_x:.1f}" y2="{bottom}" '
+            f'stroke="{TODAY}" stroke-width="1" stroke-dasharray="2 3"/>'
+        )
+    svg.append(
+        text(today_x, LANES["volume"][0] - 8, "today", color=TODAY, anchor="middle")
+    )
     if main_run:
-        svg.append(text((today_x + W - MR) / 2, LANES["volume"][0] - 8, "forecast",
-                        color=MUTED, anchor="middle"))
+        svg.append(
+            text(
+                (today_x + W - MR) / 2,
+                LANES["volume"][0] - 8,
+                "forecast",
+                color=MUTED,
+                anchor="middle",
+            )
+        )
 
     # --- volume: cumulative solves by kind, stacked ---
-    cum = {k: [] for k in KINDS}
+    cum: dict[str, list] = {k: [] for k in KINDS}
     run_tot = {k: 0 for k in KINDS}
     for _, solves, *_ in past:
         for k in KINDS:
@@ -183,7 +233,9 @@ def main():
 
     step = 100 if stack_max > 400 else 50 if stack_max > 150 else 20
     svg += grid("volume", stack_max * 1.05, step, lambda g: str(int(g)))
-    svg.append(text(ML, top - 8, "cumulative solves by kind, stacked (Easy at the bottom)"))
+    svg.append(
+        text(ML, top - 8, "cumulative solves by kind, stacked (Easy at the bottom)")
+    )
     lower = [0] * n_vol
     for k in KINDS:
         upper = [l + c for l, c in zip(lower, cum[k])]
@@ -191,9 +243,14 @@ def main():
             if hi - lo < 2:
                 continue
             xs = [x_of(i) for i in range(lo, hi)]
-            pts = [f"{x:.1f},{y_vol(u):.1f}" for x, u in zip(xs, upper[lo:hi])]
-            pts += [f"{x:.1f},{y_vol(l):.1f}" for x, l in zip(reversed(xs), reversed(lower[lo:hi]))]
-            svg.append(f'<polygon points="{" ".join(pts)}" fill="{KIND_C[k]}" fill-opacity="{op}"/>')
+            pts: list = [f"{x:.1f},{y_vol(u):.1f}" for x, u in zip(xs, upper[lo:hi])]
+            pts += [
+                f"{x:.1f},{y_vol(l):.1f}"
+                for x, l in zip(reversed(xs), reversed(lower[lo:hi]))
+            ]
+            svg.append(
+                f'<polygon points="{" ".join(pts)}" fill="{KIND_C[k]}" fill-opacity="{op}"/>'
+            )
         svg.append(path([(x_of(i), y_vol(u)) for i, u in enumerate(upper)], BG, 2))
         lower = upper
     # direct labels: count so far, and the forecast's addition
@@ -207,7 +264,9 @@ def main():
         lab = f"{k} {past_tot[k]}"
         if main_run:
             lab += f" +{cum[k][-1] - past_tot[k]}"
-        svg.append(f'<rect x="{W - MR + 6}" y="{y - 9:.1f}" width="10" height="10" rx="2" fill="{KIND_C[k]}"/>')
+        svg.append(
+            f'<rect x="{W - MR + 6}" y="{y - 9:.1f}" width="10" height="10" rx="2" fill="{KIND_C[k]}"/>'
+        )
         svg.append(text(W - MR + 21, y, lab))
         y_prev = y
         lower_end = top_end
@@ -225,14 +284,30 @@ def main():
         return bottom - v / (nmax * 1.15) * (bottom - top)
 
     svg += grid("nodes", nmax * 1.15, 5 if nmax > 12 else 2, lambda g: str(int(g)))
-    svg.append(text(ML, top - 8, f"nodes STALE and FRAGILE at the end of the day, of {len(nodes)}"))
+    svg.append(
+        text(
+            ML,
+            top - 8,
+            f"nodes STALE and FRAGILE at the end of the day, of {len(nodes)}",
+        )
+    )
     for ys, color, lab in ((stale, STALE_C, "STALE"), (fragile, FRAGILE_C, "FRAGILE")):
         svg.append(path([(x_of(i), y_nod(v)) for i, v in enumerate(ys[:P])], color, 2))
         if len(ys) > P:
-            svg.append(path([(x_of(i), y_nod(v)) for i, v in enumerate(ys) if i >= P - 1],
-                            color, 2, dash="5 4"))
-    for i, (ys, color, lab) in enumerate(((stale, STALE_C, "STALE"), (fragile, FRAGILE_C, "FRAGILE"))):
-        svg.append(swatch(W - MR + 6, top + 14 + i * 16, color, f"{lab} {ys[P - 1]} today"))
+            svg.append(
+                path(
+                    [(x_of(i), y_nod(v)) for i, v in enumerate(ys) if i >= P - 1],
+                    color,
+                    2,
+                    dash="5 4",
+                )
+            )
+    for i, (ys, color, lab) in enumerate(
+        ((stale, STALE_C, "STALE"), (fragile, FRAGILE_C, "FRAGILE"))
+    ):
+        svg.append(
+            swatch(W - MR + 6, top + 14 + i * 16, color, f"{lab} {ys[P - 1]} today")
+        )
 
     # --- pass: P(onsite), P(screen), P(hard) ---
     top, bottom = LANES["pass"]
@@ -241,38 +316,79 @@ def main():
         return bottom - v / 1.0 * (bottom - top)
 
     svg += grid("pass", 1.0, 0.25, lambda g: f"{g:.0%}")
-    svg.append(text(ML, top - 8, "central pass rates, closed form of the mock model: "
-                    "P(onsite: 2 Easy + 2 Medium + at least 1 Hard), P(screen: 2 Medium), P(one Hard)"))
+    svg.append(
+        text(
+            ML,
+            top - 8,
+            "central pass rates, closed form of the mock model: "
+            "P(onsite: 2 Easy + 2 Medium + at least 1 Hard), P(screen: 2 Medium), P(one Hard)",
+        )
+    )
     y50 = y_pct(0.5)
-    svg.append(f'<line x1="{ML}" y1="{y50:.1f}" x2="{W - MR}" y2="{y50:.1f}" '
-               f'stroke="{INK}" stroke-width="1" stroke-dasharray="6 4"/>')
+    svg.append(
+        f'<line x1="{ML}" y1="{y50:.1f}" x2="{W - MR}" y2="{y50:.1f}" '
+        f'stroke="{INK}" stroke-width="1" stroke-dasharray="6 4"/>'
+    )
     svg.append(text(ML + 6, y50 - 5, "ready = 50%", color=INK))
     for idx, color, width in ((6, HARD_C, 1.4), (5, SCREEN_C, 1.4), (4, ONSITE_C, 2.4)):
-        svg.append(path([(x_of(i), y_pct(r[idx])) for i, r in enumerate(past)], color, width))
+        svg.append(
+            path([(x_of(i), y_pct(r[idx])) for i, r in enumerate(past)], color, width)
+        )
     key = {4: "onsite", 5: "screen", 6: "hard"}
     for run in runs:
         primary = run is main_run
-        for idx, color, width in ((6, HARD_C, 1.4), (5, SCREEN_C, 1.4), (4, ONSITE_C, 2.4)):
+        for idx, color, width in (
+            (6, HARD_C, 1.4),
+            (5, SCREEN_C, 1.4),
+            (4, ONSITE_C, 2.4),
+        ):
             if not primary and idx != 4:
                 continue
             pts = [(x_of(P - 1), y_pct(past[-1][idx]))]
-            pts += [(x_of(P - 1 + j + 1), y_pct(d[key[idx]])) for j, d in enumerate(run["series"])]
-            svg.append(path(pts, color, width if primary else 1,
-                            dash="5 4" if primary else None,
-                            opacity=1.0 if primary else 0.35))
+            pts += [
+                (x_of(P - 1 + j + 1), y_pct(d[key[idx]]))
+                for j, d in enumerate(run["series"])
+            ]
+            svg.append(
+                path(
+                    pts,
+                    color,
+                    width if primary else 1,
+                    dash="5 4" if primary else None,
+                    opacity=1.0 if primary else 0.35,
+                )
+            )
     if main_run and main_run["onsite"] >= kg_simulate.TARGET_ONSITE:
         cx, cy = x_of(P - 1 + main_run["day"]), y_pct(main_run["onsite"])
-        svg.append(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="5" fill="{ONSITE_C}" stroke="{BG}" stroke-width="2"/>')
+        svg.append(
+            f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="5" fill="{ONSITE_C}" stroke="{BG}" stroke-width="2"/>'
+        )
         end = main_run["start"] + timedelta(days=main_run["day"])
-        svg.append(text(cx - 9, cy - 10, f"{end.isoformat()}, day {main_run['day']}", color=INK, anchor="end"))
-    labels = ((ONSITE_C, f"P(onsite) {past[-1][4]:.0%} today"),
-              (SCREEN_C, f"P(screen) {past[-1][5]:.0%}"),
-              (HARD_C, f"P(hard) {past[-1][6]:.0%}"))
+        svg.append(
+            text(
+                cx - 9,
+                cy - 10,
+                f"{end.isoformat()}, day {main_run['day']}",
+                color=INK,
+                anchor="end",
+            )
+        )
+    labels = (
+        (ONSITE_C, f"P(onsite) {past[-1][4]:.0%} today"),
+        (SCREEN_C, f"P(screen) {past[-1][5]:.0%}"),
+        (HARD_C, f"P(hard) {past[-1][6]:.0%}"),
+    )
     for i, (color, lab) in enumerate(labels):
         svg.append(swatch(W - MR + 6, top + 14 + i * 16, color, lab))
     if len(runs) > 1:
-        svg.append(text(W - MR + 6, top + 14 + 3 * 16 + 4,
-                        f"thin: seeds {', '.join(str(s) for s in SEEDS[1:])}", color=MUTED))
+        svg.append(
+            text(
+                W - MR + 6,
+                top + 14 + 3 * 16 + 4,
+                f"thin: seeds {', '.join(str(s) for s in SEEDS[1:])}",
+                color=MUTED,
+            )
+        )
 
     # month ticks along the bottom; the forecast's dates continue the axis
     d0 = past[0][0]
@@ -281,16 +397,34 @@ def main():
         if d.day == 1:
             x = x_of(i)
             for top, bottom in LANES.values():
-                svg.append(f'<line x1="{x:.1f}" y1="{top}" x2="{x:.1f}" y2="{bottom}" '
-                           f'stroke="{GRID}" stroke-width="1"/>')
-            svg.append(text(x, LANES["pass"][1] + 18, d.strftime("%b %y"), color=MUTED, anchor="middle"))
-    svg.append(text(ML, H - 14, "solid: history from graph/evidence.json. dashed and faded: "
-                    "the forecast, one draw of the real picker per seed (utils/kg/kg_simulate).",
-                    color=MUTED))
+                svg.append(
+                    f'<line x1="{x:.1f}" y1="{top}" x2="{x:.1f}" y2="{bottom}" '
+                    f'stroke="{GRID}" stroke-width="1"/>'
+                )
+            svg.append(
+                text(
+                    x,
+                    LANES["pass"][1] + 18,
+                    d.strftime("%b %y"),
+                    color=MUTED,
+                    anchor="middle",
+                )
+            )
+    svg.append(
+        text(
+            ML,
+            H - 14,
+            "solid: history from graph/evidence.json. dashed and faded: "
+            "the forecast, one draw of the real picker per seed (utils/kg/kg_simulate).",
+            color=MUTED,
+        )
+    )
     svg.append("</svg>")
     with open(OUT, "w") as f:
         f.write("\n".join(svg) + "\n")
-    print(f"wrote {OUT} ({P} days of history, {horizon} forecast days, {len(runs)} seeds)")
+    print(
+        f"wrote {OUT} ({P} days of history, {horizon} forecast days, {len(runs)} seeds)"
+    )
 
 
 if __name__ == "__main__":

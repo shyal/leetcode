@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
 
 import json
-import subprocess
 import os
-import signal
-import sys
 import re
+import signal
+import subprocess
+import sys
 from datetime import datetime, timezone
+
 from rich.console import Console
 from rich.panel import Panel
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from kg.kg_lib import active_seconds, load_evidence, spawn_judge, PENDING
 from kg import recognition as rc
+from kg.kg_lib import PENDING, active_seconds, load_evidence, spawn_judge
 
 console = Console()
 
@@ -123,22 +124,42 @@ def spot_file_phase(solve_time, slept_line):
     """The spot rep's file phase: reveal nothing yet, archive current.md as
     recognition/s<num>_<title>_<ts>.md with the pick and the clock in a
     footer comment the judge reads, clear current.md."""
-    branch = subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"]).decode().strip()
+    branch = (
+        subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"])
+        .decode()
+        .strip()
+    )
     meta = rc.load_spot_meta().get(branch)
     if not meta:
-        console.print(f"[red]no pick recorded for branch {branch} (.spot.json) - cannot file this spot rep.[/red]")
+        console.print(
+            f"[red]no pick recorded for branch {branch} (.spot.json) - cannot file this spot rep.[/red]"
+        )
         return
     pnum, title = meta["problem"], meta.get("title", "")
     if FAILED:
-        console.print("[yellow]a spot rep is not failed, it is answered: write \"don't know\" under the rule and run make solved.[/yellow]")
+        console.print(
+            '[yellow]a spot rep is not failed, it is answered: write "don\'t know" under the rule and run make solved.[/yellow]'
+        )
         return
     active = active_seconds()[0]
-    content = open("current.md").read().rstrip() + "\n\n" + "<!-- spot " + json.dumps({
-        "problem": pnum, "target": meta.get("target"), "reason": meta.get("reason"),
-        "seconds": int(active),
-    }) + " -->\n"
+    content = (
+        open("current.md").read().rstrip()
+        + "\n\n"
+        + "<!-- spot "
+        + json.dumps(
+            {
+                "problem": pnum,
+                "target": meta.get("target"),
+                "reason": meta.get("reason"),
+                "seconds": int(active),
+            }
+        )
+        + " -->\n"
+    )
     filename = solved_filename(pnum, title, now=None)[:-3] + ".md"
-    filename = "s" + filename[1:]  # s<num>_ marks a spot rep the way p<num>_ marks a solve
+    filename = (
+        "s" + filename[1:]
+    )  # s<num>_ marks a spot rep the way p<num>_ marks a solve
     os.makedirs(rc.RECOGNITION_DIR, exist_ok=True)
     filepath = os.path.join("recognition", filename)
     with open(filepath, "w") as f:
@@ -147,7 +168,9 @@ def spot_file_phase(solve_time, slept_line):
     with open(META, "w") as f:
         json.dump({"message": commit_message, "file": filepath, "kind": "spot"}, f)
     os.remove("current.md")
-    console.print(f"[green]filed[/green] [bold]{filepath}[/bold] [cyan]({solve_time})[/cyan]; the walk is revealed after the judge.")
+    console.print(
+        f"[green]filed[/green] [bold]{filepath}[/bold] [cyan]({solve_time})[/cyan]; the walk is revealed after the judge."
+    )
 
 
 def file_phase():
@@ -160,10 +183,14 @@ def file_phase():
         with open(META) as f:
             staged = json.load(f)
         if not os.path.exists(staged.get("file", "")):
-            console.print("[red]stale stage: its solve file is gone (dropped?) — discarding it.[/red]")
+            console.print(
+                "[red]stale stage: its solve file is gone (dropped?) — discarding it.[/red]"
+            )
             os.remove(META)
         else:
-            console.print("[yellow]a filed solve is already staged — resuming its ingest and commit.[/yellow]")
+            console.print(
+                "[yellow]a filed solve is already staged — resuming its ingest and commit.[/yellow]"
+            )
             return
 
     # the clock stops when the operator runs `make solved`, not when the
@@ -195,7 +222,9 @@ def file_phase():
 
     problem_id, title, content = parse_current()
     if problem_id is None or title is None:
-        console.print("[red]Could not parse problem id and title from current.py. Exiting.[/red]")
+        console.print(
+            "[red]Could not parse problem id and title from current.py. Exiting.[/red]"
+        )
         return
 
     filename = solved_filename(problem_id, title, FAILED)
@@ -215,7 +244,9 @@ def file_phase():
     if problem_id == "drill":
         commit_message = f"drill: {title}\n\nsolve time: {solve_time}{slept_line}"
     else:
-        commit_message = f"{problem_id}. {title}\n\nsolve time: {solve_time}{slept_line}"
+        commit_message = (
+            f"{problem_id}. {title}\n\nsolve time: {solve_time}{slept_line}"
+        )
     if FAILED:
         commit_message = "failed: " + commit_message
 
@@ -227,7 +258,9 @@ def file_phase():
     with open("current.py", "w") as f:
         f.write("")
 
-    console.print(f"[green]filed[/green] [bold]{filepath}[/bold] [cyan]({solve_time})[/cyan]; the commit lands after the judge.")
+    console.print(
+        f"[green]filed[/green] [bold]{filepath}[/bold] [cyan]({solve_time})[/cyan]; the commit lands after the judge."
+    )
 
 
 def commit_phase():
@@ -304,19 +337,33 @@ def finish(meta):
     """The last thing `make solved` prints. A spot rep: the judge's reveal.
     A solve: its placeholder is committed, so the judge is spawned detached
     here; its account of the solve lands in its own commit's body."""
-    console.print("[green]✓ committed[/green] [bold]" + meta["message"].splitlines()[0] + "[/bold]")
+    console.print(
+        "[green]✓ committed[/green] [bold]"
+        + meta["message"].splitlines()[0]
+        + "[/bold]"
+    )
     key = os.path.normpath(meta.get("file", ""))
     if meta.get("kind") == "spot":
         rec = rc.load_recognition().get(key)
         if rec:
-            console.print(Panel(rc.reveal(rec), title="the rep", border_style="cyan", padding=(0, 1)))
+            console.print(
+                Panel(
+                    rc.reveal(rec), title="the rep", border_style="cyan", padding=(0, 1)
+                )
+            )
         return
     entry = load_evidence().get(key, {})
     if entry.get(PENDING):
         spawn_judge(key)
-        console.print("[dim]judge running in the background; it commits when done (.judge.log).[/dim]")
+        console.print(
+            "[dim]judge running in the background; it commits when done (.judge.log).[/dim]"
+        )
     elif entry.get("summary"):
-        console.print(Panel(entry["summary"], title="the solve", border_style="cyan", padding=(0, 1)))
+        console.print(
+            Panel(
+                entry["summary"], title="the solve", border_style="cyan", padding=(0, 1)
+            )
+        )
 
 
 def main():

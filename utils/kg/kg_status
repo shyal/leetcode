@@ -21,14 +21,24 @@ import argparse
 import math
 from collections import Counter, defaultdict
 from datetime import date, timedelta
+
 from rich.console import Console
 from rich.table import Table
 from rich.text import Text
 
 from kg.kg_lib import (
-    load_nodes, load_problems, load_evidence, node_status, node_axes,
-    SOLID, STALE, FRAGILE, MISSING,
-    sleep_records, sleep_state, input_tree,
+    FRAGILE,
+    MISSING,
+    SOLID,
+    STALE,
+    input_tree,
+    load_evidence,
+    load_nodes,
+    load_problems,
+    node_axes,
+    node_status,
+    sleep_records,
+    sleep_state,
 )
 
 console = Console()
@@ -73,8 +83,10 @@ def greened_per_day(nodes, evidence, days=7, today=None):
         before = evidence_through(evidence, day - timedelta(days=1))
         after = evidence_through(evidence, day)
         for node_id in nodes:
-            if (node_status(node_id, before, today=day)[0] != SOLID
-                    and node_status(node_id, after, today=day)[0] == SOLID):
+            if (
+                node_status(node_id, before, today=day)[0] != SOLID
+                and node_status(node_id, after, today=day)[0] == SOLID
+            ):
                 greened += 1
     return greened / days
 
@@ -148,7 +160,9 @@ def print_report(counts, n_problems, n_fading, remaining, pace, degrees=None):
 
 
 def print_grid(groups, degrees=None):
-    table = Table(title="by group", title_style="dim", show_header=False, box=None, padding=(0, 1))
+    table = Table(
+        title="by group", title_style="dim", show_header=False, box=None, padding=(0, 1)
+    )
     table.add_column("group", style="bold", no_wrap=True)
     table.add_column("nodes")
     for group, members in groups.items():
@@ -170,26 +184,35 @@ def print_sleep(nodes, problems, evidence):
         return
     asleep, _ = sleep_state(nodes, problems, evidence)
     for p in asleep:
-        rusty = sorted(n for n in input_tree(problems[p]["moves"], nodes)
-                       if node_status(n, evidence)[0] != SOLID)
+        rusty = sorted(
+            n
+            for n in input_tree(problems[p]["moves"], nodes)
+            if node_status(n, evidence)[0] != SOLID
+        )
         cycles = f" (slept x{recs[p]['cycles']})" if recs[p]["cycles"] > 1 else ""
-        ground = (f"kg_next is warming: {', '.join(rusty)}" if rusty
-                  else "ground solid, simmering")
-        console.print(f"💤 [bold]{p}. {recs[p]['title']}[/bold]{cycles} parked - "
-                      f"{ground} - make wake {p} when you choose")
+        ground = (
+            f"kg_next is warming: {', '.join(rusty)}"
+            if rusty
+            else "ground solid, simmering"
+        )
+        console.print(
+            f"💤 [bold]{p}. {recs[p]['title']}[/bold]{cycles} parked - "
+            f"{ground} - make wake {p} when you choose"
+        )
 
 
 def main():
     parser = argparse.ArgumentParser(description="Graph health report.")
-    parser.add_argument("--summary", action="store_true",
-                        help="counts only, no named grid")
+    parser.add_argument(
+        "--summary", action="store_true", help="counts only, no named grid"
+    )
     args = parser.parse_args()
 
     nodes = load_nodes()
     evidence = load_evidence()
     problems = load_problems()
     groups = defaultdict(list)
-    counts = Counter()
+    counts: Counter[str] = Counter()
     degrees = {}
     for node_id, node in nodes.items():
         ax = node_axes(node_id, evidence, problems)
@@ -199,8 +222,9 @@ def main():
 
     remaining = counts[STALE] + counts[FRAGILE] + counts[MISSING]
     pace = greened_per_day(nodes, evidence)
-    print_report(counts, len(problems), fading_count(nodes, evidence),
-                 remaining, pace, degrees)
+    print_report(
+        counts, len(problems), fading_count(nodes, evidence), remaining, pace, degrees
+    )
     if not args.summary:
         print_grid(groups, degrees)
     print_sleep(nodes, problems, evidence)

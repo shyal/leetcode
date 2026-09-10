@@ -198,104 +198,112 @@ import random
 import subprocess
 import sys
 from datetime import date, datetime, timedelta
-from rich.console import Console
+from typing import Any
+
 from rich.table import Table
 
 from kg import kg_lib
 from kg import recognition as rc
 from kg.kg_lib import (
-    GRAPH_DIR,
+    CARRIER_COOLDOWN_DAYS,
+    CLASSICS,
+    DEEP_STALE_DAYS,
     DRILLS_DIR,
-    load_nodes,
-    load_problems,
-    load_all_problems,
-    cold_drill,
-    load_evidence,
-    node_status,
-    node_axes,
-    node_degree,
-    latest_carrier,
-    carrier_counts,
-    graduation_due,
+    FRAGILE,
+    GRAPH_DIR,
+    MAX_ASLEEP,
+    MISSING,
+    PENDING_STALE_SECONDS,
     SOLID,
     STALE,
-    FRAGILE,
-    MISSING,
-    DEEP_STALE_DAYS,
     STARVED_DAYS,
-    CARRIER_COOLDOWN_DAYS,
-    sleep_state,
-    sleep_lines,
-    MAX_ASLEEP,
-    group_caps,
-    group_reps,
-    new_drill_cap,
-    new_drills_today,
-    drill_review_cap,
-    drill_reviews_today,
-    drill_capped,
-    pending_judgements,
-    spawn_judge,
-    PENDING_STALE_SECONDS,
-    last_solved,
-    pnum_key,
-    dodged_nodes,
-    dodgeable,
-    carriers_for,
-    predicted_carrier,
-    cooled,
-    gentleness,
-    problem_solve_p,
-    target_pass_rate,
-    current_recall,
-    solve_model,
-    solve_ratings,
     _load_curve,
-    unlocks,
-    input_tree,
-    tree_size,
     acceptance,
-    due_drill,
-    due_problems,
-    reviews_first,
-    problem_due,
-    unservable,
-    last_attempt,
-    drill_scheduler,
     anki_due,
     anki_frontier,
-    drills_left,
+    carrier_counts,
+    carriers_for,
+    carry_bar,
+    cold_drill,
+    cooled,
+    current_recall,
+    dodgeable,
+    dodged_nodes,
+    drafted_in_reach,
+    drill_after,
+    drill_capped,
+    drill_forecast,
     drill_gated,
     drill_held,
-    held_behind,
-    drill_after,
-    drill_recall,
-    warm,
-    vertex_kind,
-    drill_path,
-    gates,
-    vertex_status,
-    drills,
     drill_id,
-    owned,
-    has_drill_bank,
-    CLASSICS,
-    route_gaps,
-    rank_summits,
-    immature_nodes,
-    carry_bar,
-    proving_carriers,
-    drafted_in_reach,
-    problem_difficulty,
-    ev_index,
-    solved_problems,
-    solve_forecast,
-    drill_forecast,
-    drill_trains,
+    drill_path,
+    drill_recall,
+    drill_review_cap,
+    drill_reviews_today,
+    drill_scheduler,
     drill_solved_stem,
+    drill_trains,
+    drills,
+    drills_left,
+    due_drill,
+    due_problems,
+    ev_index,
+    gates,
+    gentleness,
+    graduation_due,
+    group_caps,
+    group_reps,
+    has_drill_bank,
+    held_behind,
+    immature_nodes,
+    input_tree,
+    last_attempt,
+    last_solved,
+    latest_carrier,
+    load_all_problems,
+    load_evidence,
+    load_nodes,
+    load_problems,
+    new_drill_cap,
+    new_drills_today,
+    node_axes,
+    node_degree,
+    node_status,
+    owned,
+    pending_judgements,
+    pnum_key,
+    predicted_carrier,
+    problem_difficulty,
+    problem_due,
+    problem_solve_p,
+    proving_carriers,
+    rank_summits,
+    reviews_first,
+    route_gaps,
+    sleep_lines,
+    sleep_state,
+    solve_forecast,
+    solve_model,
+    solve_ratings,
+    solved_problems,
+    spawn_judge,
+    target_pass_rate,
+    tree_size,
+    unlocks,
+    unservable,
+    vertex_kind,
+    vertex_status,
+    warm,
 )
-from kg.kg_render import (make_digraph, status_node, render, display, animate,
-                       animation_console, STATUS_FACE)
+from kg.kg_render import (
+    STATUS_FACE,
+    animate,
+    animation_console,
+    display,
+    make_digraph,
+    render,
+    status_node,
+)
 
 console = animation_console()
 
@@ -424,7 +432,9 @@ def difficulty_line(pnum, problems):
         return None
     parts = []
     if diff:
-        parts.append(f"[{DIFF_STYLE.get(diff, 'dim')}]{diff}[/{DIFF_STYLE.get(diff, 'dim')}]")
+        parts.append(
+            f"[{DIFF_STYLE.get(diff, 'dim')}]{diff}[/{DIFF_STYLE.get(diff, 'dim')}]"
+        )
     if isinstance(acc, (int, float)):
         parts.append(f"[dim]{acc:.1f}% accepted[/dim]")
     return " [dim]·[/dim] ".join(parts)
@@ -434,9 +444,11 @@ def review_queue(evidence, problems, today=None):
     """The problems whose review clock is due (kg_lib.due_problems), minus
     the ones nothing may be served on. The footer's count and rule 2c's pick
     read the same list, so the number is what can actually be served."""
-    return [(pnum, d, i)
-            for pnum, d, i in due_problems(evidence, today=today, problems=problems)
-            if not unservable(pnum, problems[pnum])]
+    return [
+        (pnum, d, i)
+        for pnum, d, i in due_problems(evidence, today=today, problems=problems)
+        if not unservable(pnum, problems[pnum])
+    ]
 
 
 def drill_clock_reason(path, evidence, today=None):
@@ -447,8 +459,9 @@ def drill_clock_reason(path, evidence, today=None):
     if not due:
         return "drill never done - on its own clock"
     late = (today - due[0]).days
-    return (f"drill due on its own clock - {due[1]}d interval"
-            + (f", {late}d overdue" if late > 0 else ""))
+    return f"drill due on its own clock - {due[1]}d interval" + (
+        f", {late}d overdue" if late > 0 else ""
+    )
 
 
 def pick(
@@ -492,14 +505,16 @@ def pick(
     # frontier, the clock included; naming the group (`make next sql`) or a
     # cram walk is the override
     caps = {} if group or cram else group_caps()
-    capped = {g for g, c in caps.items()
-              if group_reps(g, nodes, evidence, date.today()) >= c}
+    capped = {
+        g for g, c in caps.items() if group_reps(g, nodes, evidence, date.today()) >= c
+    }
 
     # the clock: a bank file due on its own clock outranks every rule below
     if drill_scheduler() == "anki":
         scope = [n for n in nodes if group is None or nodes[n].get("group") == group]
-        for path, node in anki_frontier(evidence, nodes=nodes, node_ids=scope,
-                                        assisted=assisted):
+        for path, node in anki_frontier(
+            evidence, nodes=nodes, node_ids=scope, assisted=assisted
+        ):
             drill_id = f"drill:{node}"
             if drill_id in exclude or node not in statuses:
                 continue
@@ -507,8 +522,12 @@ def pick(
                 continue
             if drill_capped(path, evidence):
                 continue
-            return (node, statuses[node][0], drill_id,
-                    drill_clock_reason(path, evidence))
+            return (
+                node,
+                statuses[node][0],
+                drill_id,
+                drill_clock_reason(path, evidence),
+            )
 
     immature = immature_nodes(nodes, evidence, problems)
     degrees = {n: node_degree(n, evidence, problems) for n in nodes}
@@ -523,16 +542,24 @@ def pick(
         held behind a rusty banked prereq is not due - the prereq trains
         first, and the carrier stays held with it."""
         if not cram and drill_held(
-                target, nodes, statuses, evidence, has_bank=has_drill_bank):
+            target, nodes, statuses, evidence, has_bank=has_drill_bank
+        ):
             return None
-        if early and not assisted and any(
-                in_scope(p) and has_drill_bank(p) and drills_left(p, evidence, early=True)
-                for p in nodes[target].get("prereqs", [])):
+        if (
+            early
+            and not assisted
+            and any(
+                in_scope(p)
+                and has_drill_bank(p)
+                and drills_left(p, evidence, early=True)
+                for p in nodes[target].get("prereqs", [])
+            )
+        ):
             return None  # the early walk is depth first: atoms under it unseen
-                         # (not under assisted: an untouched drill under a
-                         # prereq is not a candidate there, so holding the
-                         # dependent behind it served nothing - 2026-08-31,
-                         # "spent" with two assisted sql drills waiting)
+            # (not under assisted: an untouched drill under a
+            # prereq is not a candidate there, so holding the
+            # dependent behind it served nothing - 2026-08-31,
+            # "spent" with two assisted sql drills waiting)
         drill_id = f"drill:{target}"
         if drill_id in exclude:
             return None
@@ -557,9 +584,14 @@ def pick(
         actual solve."""
         if unsolved:
             return None
-        promo = predicted_carrier(target, problems, statuses, nodes,
-                                  evidence=evidence,
-                                  skip=set(asleep) | set(exclude) | solved_ever)
+        promo = predicted_carrier(
+            target,
+            problems,
+            statuses,
+            nodes,
+            evidence=evidence,
+            skip=set(asleep) | set(exclude) | solved_ever,
+        )
         if promo:
             problems[promo[0]] = promo[1]
         return promo
@@ -575,10 +607,13 @@ def pick(
         no root is a deadlock and serves nothing."""
         for pnum, p in sorted(problems.items(), key=lambda kv: pnum_key(kv[0])):
             moves = p.get("moves", [])
-            if (target not in moves or unservable(pnum, p)
-                    or p.get("difficulty") == "Hard"
-                    or not all(m in nodes for m in moves)
-                    or any(statuses[m][0] != SOLID for m in moves if m != target)):
+            if (
+                target not in moves
+                or unservable(pnum, p)
+                or p.get("difficulty") == "Hard"
+                or not all(m in nodes for m in moves)
+                or any(statuses[m][0] != SOLID for m in moves if m != target)
+            ):
                 continue
             pred, seen = held_behind(pnum, problems, evidence), set()
             while pred and pred not in seen:
@@ -590,14 +625,22 @@ def pick(
                         pred = up
                         continue
                     pm = problems[pred].get("moves", [])
-                    if (problems[pred].get("difficulty") == "Hard"
-                            or pred in asleep or pred in exclude
-                            or not cooled(pred, evidence)
-                            or not pm or not all(m in nodes for m in pm)):
+                    if (
+                        problems[pred].get("difficulty") == "Hard"
+                        or pred in asleep
+                        or pred in exclude
+                        or not cooled(pred, evidence)
+                        or not pm
+                        or not all(m in nodes for m in pm)
+                    ):
                         break
                     t2 = next((m for m in pm if statuses[m][0] != SOLID), pm[0])
-                    return (t2, statuses[t2][0], pred,
-                            f"{pnum} carries {target} but waits on {pred} - {pred} first")
+                    return (
+                        t2,
+                        statuses[t2][0],
+                        pred,
+                        f"{pnum} carries {target} but waits on {pred} - {pred} first",
+                    )
                 node = pred
                 if kind == "drill":
                     path = drill_path(pred)
@@ -606,15 +649,27 @@ def pick(
                     # climb to that id, as a problem's chain is climbed
                     # (Install Order waited on Shake Hands, whose node read
                     # owned, so neither was ever served - 2026-09-06)
-                    up = next((a for a in drill_after(path)
-                               if warm(a, problems, evidence) is False), None) if path else None
+                    up = (
+                        next(
+                            (
+                                a
+                                for a in drill_after(path)
+                                if warm(a, problems, evidence) is False
+                            ),
+                            None,
+                        )
+                        if path
+                        else None
+                    )
                     if up and (node == target or not due(node)):
                         pred = up
                         continue
                 if node in nodes and due(node):
-                    why = (f"every carrier of {target} waits on {pred} - drill first"
-                           if node == target else
-                           f"{pnum} carries {target} but waits on {pred} - drill {node} first")
+                    why = (
+                        f"every carrier of {target} waits on {pred} - drill first"
+                        if node == target
+                        else f"{pnum} carries {target} but waits on {pred} - drill {node} first"
+                    )
                     return (node, statuses[node][0], due(node), why)
                 break
         return None
@@ -696,7 +751,7 @@ def pick(
     # dependent comes after the review of the SOLID prereqs under it, which
     # is the point: the prereqs are jogged before the new move is met.
     if early:
-        review = sorted(
+        review: Any = sorted(
             (n for n in nodes if in_scope(n)),
             key=lambda n: (len(input_tree([n], nodes)), n),
         )
@@ -706,9 +761,11 @@ def pick(
                     target,
                     statuses[target][0],
                     due(target),
-                    "assisted review - the unaided rep this drill is waiting for"
-                    if assisted else
-                    "early review - next drill, atoms first",
+                    (
+                        "assisted review - the unaided rep this drill is waiting for"
+                        if assisted
+                        else "early review - next drill, atoms first"
+                    ),
                 )
 
     # ------------------------------------------------------------------
@@ -723,12 +780,14 @@ def pick(
     # ------------------------------------------------------------------
     carr = carrier_counts(problems)
     unl = unlocks(statuses, problems)
-    gain = unlocks(statuses, problems, immature=immature)  # payoff of proving a young move
+    gain = unlocks(
+        statuses, problems, immature=immature
+    )  # payoff of proving a young move
     dodged = dodged_nodes(evidence)
     today = date.today()
     FLOOR = "floor"
     DRILL = "drill"  # a SOLID move whose bank file is due on its own clock
-    THIN = "thin"    # a SOLID move off its ladder but not yet proven on enough problems
+    THIN = "thin"  # a SOLID move off its ladder but not yet proven on enough problems
     ORDER = {FRAGILE: 0, FLOOR: 1, DRILL: 2, STALE: 3, THIN: 4, MISSING: 5}
     anki = drill_scheduler() == "anki"
 
@@ -750,8 +809,11 @@ def pick(
         the THIN kind, breadth is what its next rep buys."""
         status = statuses[n][0]
         if status == MISSING:
-            return MISSING if all(
-                statuses[p][0] == SOLID for p in nodes[n].get("prereqs", [])) else None
+            return (
+                MISSING
+                if all(statuses[p][0] == SOLID for p in nodes[n].get("prereqs", []))
+                else None
+            )
         if status == SOLID:
             if floor(n):
                 return FLOOR
@@ -762,7 +824,7 @@ def pick(
 
     # the rusty ground under a sleeping problem comes first, freshest
     # carrier first, so the problem is woken onto warm moves
-    under = {}
+    under: dict[str, str] = {}
     if not group:
         for pnum in asleep:
             for n in input_tree(problems[pnum]["moves"], nodes):
@@ -771,10 +833,20 @@ def pick(
 
     def holding(n):
         """The banked prereq drill_held parks n behind, or None."""
-        return next((p for p in nodes[n].get("prereqs", [])
-                     if has_drill_bank(p) and p in statuses
-                     and (statuses[p][0] != SOLID or not owned(p, evidence)
-                          or drills_left(p, evidence))), None)
+        return next(
+            (
+                p
+                for p in nodes[n].get("prereqs", [])
+                if has_drill_bank(p)
+                and p in statuses
+                and (
+                    statuses[p][0] != SOLID
+                    or not owned(p, evidence)
+                    or drills_left(p, evidence)
+                )
+            ),
+            None,
+        )
 
     def opener(n):
         """(prereq, drill id) that opens the hold on n: climb the chain of
@@ -783,11 +855,16 @@ def pick(
         start-index on choose-undo, 2026-08-31). A rusty root is a due
         move of its own; a hold nothing above clears is a deadlock and
         opens nothing."""
-        if cram or not drill_held(n, nodes, statuses, evidence, has_bank=has_drill_bank):
+        if cram or not drill_held(
+            n, nodes, statuses, evidence, has_bank=has_drill_bank
+        ):
             return None
         pre, seen = holding(n), set()
-        while pre is not None and pre not in seen and drill_held(
-                pre, nodes, statuses, evidence, has_bank=has_drill_bank):
+        while (
+            pre is not None
+            and pre not in seen
+            and drill_held(pre, nodes, statuses, evidence, has_bank=has_drill_bank)
+        ):
             seen.add(pre)
             pre = holding(pre)
         if pre is None or statuses[pre][0] != SOLID:
@@ -817,8 +894,11 @@ def pick(
         k = kind(n)
         last = statuses[n][1] or date.min
         payoff = gain if k == THIN else unl
-        sub = (floor(n)[0], degrees[n], -unl.get(n, 0), n) if k == FLOOR \
+        sub = (
+            (floor(n)[0], degrees[n], -unl.get(n, 0), n)
+            if k == FLOOR
             else (degrees[n], -payoff.get(n, 0), last, n)
+        )
         return (n not in under, ORDER[k], drill_for(n) is None, sub)
 
     due_list = sorted((n for n in nodes if in_scope(n) and kind(n)), key=sort_key)
@@ -826,14 +906,17 @@ def pick(
     # the cold-solve model, for ordering interchangeable proving carriers.
     # Built once per pick and only when a proving rep is actually reached:
     # recall over every node is not free, and most picks never need it.
-    model_state = {}
+    model_state: dict[str, Any] = {}
 
     def solve_state():
         if not model_state:
             model_state["coef"] = solve_model()
             model_state["ratings"] = solve_ratings() if model_state["coef"] else {}
-            model_state["recall"] = (current_recall(nodes, evidence, _load_curve())
-                                     if model_state["coef"] else {})
+            model_state["recall"] = (
+                current_recall(nodes, evidence, _load_curve())
+                if model_state["coef"]
+                else {}
+            )
         return model_state["recall"], model_state["coef"], model_state["ratings"]
 
     def prove(target):
@@ -844,9 +927,11 @@ def pick(
         the bar, else the re-solve. None when nothing can fire today."""
         waiting = gain.get(target, 0)
         why = f"widen reach - prove {target} on a real problem" + (
-            f"; {waiting} drafted problems wait on it" if waiting else "")
+            f"; {waiting} drafted problems wait on it" if waiting else ""
+        )
         cands = [
-            c for c in proving_carriers(target, problems, statuses, nodes, evidence)
+            c
+            for c in proving_carriers(target, problems, statuses, nodes, evidence)
             if c not in asleep and c not in exclude and cooled(c, evidence)
         ]
         # A proving rep is a real problem chosen to TEST the move, so among
@@ -878,7 +963,11 @@ def pick(
             return target, SOLID, fresh[0], why
         bar_kind, _ = carry_bar(target, problems)
         promo = predicted_carrier(
-            target, problems, statuses, nodes, evidence=evidence,
+            target,
+            problems,
+            statuses,
+            nodes,
+            evidence=evidence,
             skip=set(asleep) | set(exclude) | solved_ever,
             difficulties=("Medium",) if bar_kind == "medium" else ("Easy", "Medium"),
         )
@@ -899,7 +988,7 @@ def pick(
             return prove(n)  # a carrier is the point; its drill is on its own clock
         status, last = statuses[n]
         age = (today - last).days if last else None
-        deep = k == STALE and age > DEEP_STALE_DAYS
+        deep = k == STALE and age is not None and age > DEEP_STALE_DAYS
         sleeper = under.get(n)
         d = drill_for(n)
         if d:
@@ -907,20 +996,40 @@ def pick(
             if node != n:  # the hold opener: a prereq's drill first
                 why = "next undone drill" if owned(node, evidence) else "own it unaided"
                 held = sum(1 for m in due_list if (opener(m) or (None,))[0] == node)
-                return (node, SOLID, drill_id,
-                        f"{why} - {held} held move{'s' if held > 1 else ''} "
-                        f"wait{'' if held > 1 else 's'} on it")
+                return (
+                    node,
+                    SOLID,
+                    drill_id,
+                    f"{why} - {held} held move{'s' if held > 1 else ''} "
+                    f"wait{'' if held > 1 else 's'} on it",
+                )
             reason = (
-                f"warm the ground under sleeping {sleeper} — drill {n} first" if sleeper
-                else "fragile move — drill until clean, carrier after" if k == FRAGILE
-                else f"graduating rep - young move at its {floor(n)[1]}d floor"
-                     " - drill first, carrier after" if k == FLOOR
-                else drill_clock_reason(due_drill(n, evidence), evidence) if k == DRILL
-                else f"re-enter a deep-stale move ({age}d since clean)"
-                     " — drill until clean, carrier after" if deep
-                else f"stale move ({age}d since clean) - drill first, carrier after"
-                if k == STALE
-                else "new move — drill until clean, carrier after")
+                f"warm the ground under sleeping {sleeper} — drill {n} first"
+                if sleeper
+                else (
+                    "fragile move — drill until clean, carrier after"
+                    if k == FRAGILE
+                    else (
+                        f"graduating rep - young move at its {floor(n)[1]}d floor"
+                        " - drill first, carrier after"
+                        if k == FLOOR
+                        else (
+                            drill_clock_reason(due_drill(n, evidence), evidence)
+                            if k == DRILL
+                            else (
+                                f"re-enter a deep-stale move ({age}d since clean)"
+                                " — drill until clean, carrier after"
+                                if deep
+                                else (
+                                    f"stale move ({age}d since clean) - drill first, carrier after"
+                                    if k == STALE
+                                    else "new move — drill until clean, carrier after"
+                                )
+                            )
+                        )
+                    )
+                )
+            )
             return n, status, drill_id, reason
         if drill_gated(n, status, last):
             return None  # drilled today, still not clean - the carrier stays held
@@ -935,25 +1044,52 @@ def pick(
         # carriers this move has never been given: what "fresh" means below,
         # and what promote() waits for before reaching into the drafted tier
         unsolved = [c for c in mapped if not last_solved(c, evidence)]
-        cands = [c for c in mapped
-                 if c not in asleep and c not in exclude and cooled(c, evidence)]
+        cands = [
+            c
+            for c in mapped
+            if c not in asleep and c not in exclude and cooled(c, evidence)
+        ]
         if cands:
             if sleeper:
-                cands.sort(key=lambda p: (last_solved(p, evidence),
-                                          tree_size(p, problems, nodes), pnum_key(p)))
-                return n, status, cands[0], f"warm the ground under sleeping {sleeper} ({n})"
+                cands.sort(
+                    key=lambda p: (
+                        last_solved(p, evidence),
+                        tree_size(p, problems, nodes),
+                        pnum_key(p),
+                    )
+                )
+                return (
+                    n,
+                    status,
+                    cands[0],
+                    f"warm the ground under sleeping {sleeper} ({n})",
+                )
             if k == FRAGILE and n in dodged:
                 # anti-dodge: prefer carriers with no recorded escape route and
                 # short walks (the target is load-bearing, not optional)
-                cands.sort(key=lambda p: (dodgeable(p, n, problems),
-                                          tree_size(p, problems, nodes),
-                                          last_solved(p, evidence), pnum_key(p)))
-                return (n, status, cands[0],
-                        f"you dodged this move on {dodged[n]} — carrier chosen to resist the dodge")
+                cands.sort(
+                    key=lambda p: (
+                        dodgeable(p, n, problems),
+                        tree_size(p, problems, nodes),
+                        last_solved(p, evidence),
+                        pnum_key(p),
+                    )
+                )
+                return (
+                    n,
+                    status,
+                    cands[0],
+                    f"you dodged this move on {dodged[n]} — carrier chosen to resist the dodge",
+                )
             if k == STALE and not deep:  # the spaced re-solve of its latest carrier
                 carrier = latest_carrier(n, evidence)
-                pnum = carrier[2] if carrier and carrier[2] in cands else sorted(
-                    cands, key=lambda p: last_solved(p, evidence), reverse=True)[0]
+                pnum = (
+                    carrier[2]
+                    if carrier and carrier[2] in cands
+                    else sorted(
+                        cands, key=lambda p: last_solved(p, evidence), reverse=True
+                    )[0]
+                )
                 return n, status, pnum, "spaced re-solve of a stale move's carrier"
             if k != FLOOR:
                 promo = promote(n, unsolved)  # every mapped carrier solved
@@ -961,15 +1097,28 @@ def pick(
                     return (n, status, promo[0], PROMOTED)
             # freshness before gentleness: an unsolved carrier is a rep AND new
             # ground, and a solved one two tree-nodes smaller is neither
-            cands.sort(key=lambda p: (bool(last_solved(p, evidence)),
-                                      gentleness(p, problems, nodes),
-                                      last_solved(p, evidence), -acceptance(p), pnum_key(p)))
+            cands.sort(
+                key=lambda p: (
+                    bool(last_solved(p, evidence)),
+                    gentleness(p, problems, nodes),
+                    last_solved(p, evidence),
+                    -acceptance(p),
+                    pnum_key(p),
+                )
+            )
             reason = (
-                "consolidate a fragile move on a fresh carrier" if k == FRAGILE
-                else f"graduating rep - young move at its {floor(n)[1]}d floor" if k == FLOOR
-                else f"re-enter a deep-stale move ({age}d since clean) on a gentle fresh carrier"
-                if deep
-                else "one genuinely new move, prereqs all solid")
+                "consolidate a fragile move on a fresh carrier"
+                if k == FRAGILE
+                else (
+                    f"graduating rep - young move at its {floor(n)[1]}d floor"
+                    if k == FLOOR
+                    else (
+                        f"re-enter a deep-stale move ({age}d since clean) on a gentle fresh carrier"
+                        if deep
+                        else "one genuinely new move, prereqs all solid"
+                    )
+                )
+            )
             return n, status, cands[0], reason
         if k != FLOOR:
             promo = promote(n, unsolved)
@@ -977,7 +1126,7 @@ def pick(
                 return (n, status, promo[0], PROMOTED)
         return unhold(n)
 
-    def review():
+    def review():  # type: ignore[no-redef]  # the early-review list above shares the name
         """rule 2c: a problem on a review clock of its own (kg_lib.problem_due
         - opened by help or a walk-away, retired by an unaided clean rep).
         Nothing else re-serves a problem for its own sake: every other rule
@@ -998,11 +1147,14 @@ def pick(
             age = (today - when).days
             # the move to head the table: the one the bad attempt was on,
             # else the least owned of the walk
-            target = min(moves, key=lambda m: (statuses[m][0] == SOLID,
-                                               degrees[m], m))
-            return (target, statuses[target][0], pnum,
-                    f"{label} on this problem {age}d ago - the unaided rep it "
-                    f"is waiting for")
+            target = min(moves, key=lambda m: (statuses[m][0] == SOLID, degrees[m], m))
+            return (
+                target,
+                statuses[target][0],
+                pnum,
+                f"{label} on this problem {age}d ago - the unaided rep it "
+                f"is waiting for",
+            )
         return None
 
     reviewed = []
@@ -1031,11 +1183,15 @@ def pick(
     # CARRIER (it is not where a rusty move gets its rep), but once its walk is
     # gap-free it is exactly what to work on next, so it belongs in the same
     # pick as everything else rather than behind a second command.
-    summits = [] if group else [
-        p
-        for p in ready_hards(problems, nodes, evidence, statuses, immature)
-        if p not in asleep and p not in exclude
-    ]
+    summits = (
+        []
+        if group
+        else [
+            p
+            for p in ready_hards(problems, nodes, evidence, statuses, immature)
+            if p not in asleep and p not in exclude
+        ]
+    )
     if summits:
         pnum = rank_summits(summits, problems, nodes, statuses)[0]
         return (
@@ -1053,16 +1209,27 @@ def pick(
     # of problems.json - the 2026-08-31 simulation (make simulate) ran the
     # picker 180 days and it served one Hard, P(onsite) flat at 16%.
     if not group:
-        today = date.today().isoformat()
+        today = date.today().isoformat()  # type: ignore[assignment]  # the date above, as its iso string
         solved_today = sorted(
-            (k, r) for k, r in ev_index(evidence).by_date.get(today, ())
-            if str(r.get("problem", ""))[:1].isdigit())
+            (k, r)
+            for k, r in ev_index(evidence).by_date.get(today, ())
+            if str(r.get("problem", ""))[:1].isdigit()
+        )
         last = solved_today[-1][1]["problem"] if solved_today else None
-        first = "Medium" if last and problem_difficulty(last, problems) == "Hard" \
+        first = (
+            "Medium"
+            if last and problem_difficulty(last, problems) == "Hard"
             else "Hard"
+        )
         for num, entry in drafted_in_reach(
-                problems, statuses, nodes, immature, evidence=evidence,
-                skip=set(asleep) | set(exclude), first=first):
+            problems,
+            statuses,
+            nodes,
+            immature,
+            evidence=evidence,
+            skip=set(asleep) | set(exclude),
+            first=first,
+        ):
             problems[num] = entry
             return (
                 entry["moves"][0],
@@ -1073,6 +1240,7 @@ def pick(
 
     return None
 
+
 EXPLORE_REASONS = ("summit", "widen reach", "in reach")  # rule 4, THIN, rule 6
 
 
@@ -1081,9 +1249,10 @@ def counted_toward_bar(pnum, target, evidence):
     rep of it proves memory of that problem, not carry - maturity and
     breadth both count distinct problems (kg_lib._mature_from,
     kg_lib.proven_carriers), so only a different problem moves either."""
-    return any(str(rec.get("problem")) == str(pnum) and v == "clean"
-               for _, v, _, _, rec in
-               kg_lib.ev_index(evidence).by_node.get(target, ()))
+    return any(
+        str(rec.get("problem")) == str(pnum) and v == "clean"
+        for _, v, _, _, rec in kg_lib.ev_index(evidence).by_node.get(target, ())
+    )
 
 
 def exploratory(status, reason):
@@ -1104,19 +1273,23 @@ def withheld(choice, asleep):
 def park_full_lines(asleep, problems):
     """The refusal, as lines: the count and the three ways out. The parked
     problems themselves are on the footer every make next prints."""
-    return [f"{len(asleep)} asleep (cap {MAX_ASLEEP}) - new ground is withheld "
-            "until you face one (make wake <n>), then: keep going (make solved) "
-            "/ learn it (notes say \"learning\", make solved) / fail it (make failed)"]
+    return [
+        f"{len(asleep)} asleep (cap {MAX_ASLEEP}) - new ground is withheld "
+        "until you face one (make wake <n>), then: keep going (make solved) "
+        '/ learn it (notes say "learning", make solved) / fail it (make failed)'
+    ]
 
 
 def freeze(day):
     """Every date.today() in kg_lib and here answers `day`, so the picker can
     be replayed forward. The caller restores what `real_clock` returned."""
+
     class Frozen(date):
         @classmethod
         def today(cls):
             return day
-    kg_lib.date = Frozen
+
+    kg_lib.date = Frozen  # type: ignore[misc]  # monkeypatch of the module's date class
     globals()["date"] = Frozen
 
 
@@ -1125,7 +1298,7 @@ def real_clock():
 
 
 def restore_clock(saved):
-    kg_lib.date, globals()["date"] = saved
+    kg_lib.date, globals()["date"] = saved  # type: ignore[misc]  # restores the monkeypatched date class
 
 
 def upcoming(nodes, problems, evidence, count, asleep=(), days=30):
@@ -1137,7 +1310,8 @@ def upcoming(nodes, problems, evidence, count, asleep=(), days=30):
     asserts are worth generating ahead of time."""
     ev = dict(evidence)
     problems = dict(problems)  # promotion inserts drafted entries in memory
-    exclude, out = set(), []
+    exclude: set = set()
+    out: list = []
     saved = real_clock()
     start = date.today()
     seq = 0
@@ -1147,8 +1321,9 @@ def upcoming(nodes, problems, evidence, count, asleep=(), days=30):
             freeze(day)
             statuses = {n: node_status(n, ev, today=day) for n in nodes}
             while len(out) < count:
-                choice = pick(nodes, problems, ev, statuses, asleep=asleep,
-                              exclude=exclude)
+                choice = pick(
+                    nodes, problems, ev, statuses, asleep=asleep, exclude=exclude
+                )
                 if choice is None:
                     break
                 target, _status, pnum, _reason = choice
@@ -1167,8 +1342,11 @@ def upcoming(nodes, problems, evidence, count, asleep=(), days=30):
                     problem = str(pnum)
                     out.append(str(pnum))
                 exclude.add(pnum)
-                ev[fname] = {"date": day.isoformat(), "problem": problem,
-                             "moves": {m: "clean" for m in moves if m in nodes}}
+                ev[fname] = {
+                    "date": day.isoformat(),
+                    "problem": problem,
+                    "moves": {m: "clean" for m in moves if m in nodes},
+                }
                 for m in moves:
                     if m in nodes:
                         statuses[m] = node_status(m, ev, today=day)
@@ -1180,8 +1358,9 @@ def upcoming(nodes, problems, evidence, count, asleep=(), days=30):
         restore_clock(saved)
 
 
-def review_ahead(nodes, problems, evidence, asleep=(), exclude=(), group=None,
-                 days=14, cap=200):
+def review_ahead(
+    nodes, problems, evidence, asleep=(), exclude=(), group=None, days=14, cap=200
+):
     """(drills, problems, reached): the review picks between now and the
     first exploratory one. The picker is replayed on a copy of the
     evidence; every pick is granted a clean unaided rep dated the replay
@@ -1203,8 +1382,15 @@ def review_ahead(nodes, problems, evidence, asleep=(), exclude=(), group=None,
             freeze(day)
             statuses = {n: node_status(n, ev, today=day) for n in nodes}
             while drills + solves < cap:
-                choice = pick(nodes, problems, ev, statuses, asleep=asleep,
-                              exclude=exclude, group=group)
+                choice = pick(
+                    nodes,
+                    problems,
+                    ev,
+                    statuses,
+                    asleep=asleep,
+                    exclude=exclude,
+                    group=group,
+                )
                 if choice is None:
                     break
                 target, status, pnum, reason = choice
@@ -1226,8 +1412,11 @@ def review_ahead(nodes, problems, evidence, asleep=(), exclude=(), group=None,
                     problem = str(pnum)
                     solves += 1
                 exclude.add(pnum)
-                ev[fname] = {"date": day.isoformat(), "problem": problem,
-                             "moves": {m: "clean" for m in moves if m in nodes}}
+                ev[fname] = {
+                    "date": day.isoformat(),
+                    "problem": problem,
+                    "moves": {m: "clean" for m in moves if m in nodes},
+                }
                 for m in moves:
                     if m in nodes:
                         statuses[m] = node_status(m, ev, today=day)
@@ -1242,8 +1431,11 @@ def review_ahead(nodes, problems, evidence, asleep=(), exclude=(), group=None,
 def review_line(drills, solves, reached):
     """The one line `make next` prints under the pick."""
     if not drills and not solves:
-        return ("review ahead: none - this pick is new ground" if reached
-                else "review ahead: none, and nothing new to serve either")
+        return (
+            "review ahead: none - this pick is new ground"
+            if reached
+            else "review ahead: none, and nothing new to serve either"
+        )
     parts = []
     if drills:
         parts.append(f"{drills} drill{'s' if drills != 1 else ''}")
@@ -1280,8 +1472,10 @@ def ready_hards(problems, nodes, evidence, statuses, immature=None, recog=None):
             or not p.get("moves")
         ):
             continue
-        if any(rc.recognition_status(m, recog)[0] == rc.FAILED_TO_RECOGNIZE
-               for m in p["moves"]):
+        if any(
+            rc.recognition_status(m, recog)[0] == rc.FAILED_TO_RECOGNIZE
+            for m in p["moves"]
+        ):
             continue
         if route_gaps(pnum, problems, nodes, statuses, immature)[1] == 0:
             out.append(pnum)
@@ -1316,21 +1510,35 @@ def blocked_frontier(nodes, problems, evidence, statuses, asleep=(), exclude=())
         # serves that rep, so this is never dry)
         if drill_held(nid, nodes, statuses, evidence, has_bank=has_drill_bank):
             holders = [
-                p for p in prereqs
+                p
+                for p in prereqs
                 if has_drill_bank(p)
-                and (statuses[p][0] != SOLID or not owned(p, evidence)
-                     or drills_left(p, evidence))
+                and (
+                    statuses[p][0] != SOLID
+                    or not owned(p, evidence)
+                    or drills_left(p, evidence)
+                )
             ]
-            out.append((
-                nid, status,
-                f"held behind {', '.join(holders)} (unaided clean rep or undone drills)",
-                False,
-            ))
+            out.append(
+                (
+                    nid,
+                    status,
+                    f"held behind {', '.join(holders)} (unaided clean rep or undone drills)",
+                    False,
+                )
+            )
             continue
 
         # the drill gate: trains on the drill only, and it is done for today
         if drill_gated(nid, status, last) and not due_drill(nid, evidence):
-            out.append((nid, status, "drilled today, still not clean - holds until a clean rep", False))
+            out.append(
+                (
+                    nid,
+                    status,
+                    "drilled today, still not clean - holds until a clean rep",
+                    False,
+                )
+            )
             continue
 
         ready = carriers_for(nid, problems, statuses, nodes, evidence)
@@ -1341,21 +1549,32 @@ def blocked_frontier(nodes, problems, evidence, statuses, asleep=(), exclude=())
         if path and not drill_capped(path, evidence):
             continue  # its drill is available and pick() would offer it
         if path:
-            out.append((nid, status,
-                        "its drill is due, the day's drill budget is spent "
-                        "(MAX_NEW_DRILLS / MAX_DRILL_REVIEWS)", False))
+            out.append(
+                (
+                    nid,
+                    status,
+                    "its drill is due, the day's drill budget is spent "
+                    "(MAX_NEW_DRILLS / MAX_DRILL_REVIEWS)",
+                    False,
+                )
+            )
             continue
-        if (not [c for c in ready if not last_solved(c, evidence)]
-                and predicted_carrier(nid, problems, statuses, nodes,
-                                      evidence=evidence,
-                                      skip=set(asleep) | set(exclude))):
+        if not [c for c in ready if not last_solved(c, evidence)] and predicted_carrier(
+            nid,
+            problems,
+            statuses,
+            nodes,
+            evidence=evidence,
+            skip=set(asleep) | set(exclude),
+        ):
             continue  # no unsolved carrier but servable - pick() promotes a draft
 
         if live:
             # every live carrier is inside the review cooldown
             soonest = min(live, key=lambda c: last_solved(c, evidence))
             cools = date.fromisoformat(last_solved(soonest, evidence)) + timedelta(
-                days=CARRIER_COOLDOWN_DAYS)
+                days=CARRIER_COOLDOWN_DAYS
+            )
             why = f"carrier {soonest} cools {cools.isoformat()}"
             if has_drill_bank(nid):
                 why += ", and its drill is done for today"
@@ -1366,7 +1585,8 @@ def blocked_frontier(nodes, problems, evidence, statuses, asleep=(), exclude=())
         usable = [
             p
             for p in walks
-            if not unservable(p, problems[p]) and problems[p].get("difficulty") != "Hard"
+            if not unservable(p, problems[p])
+            and problems[p].get("difficulty") != "Hard"
         ]
         listed = ", ".join(sorted(walks, key=pnum_key))
         dry = True
@@ -1435,8 +1655,11 @@ def starved(nodes, problems, evidence, today=None):
     for n in nodes:
         last = max((d for d, *_ in idx.by_node.get(n, ())), default=None)
         days, day = 0, today
-        while (last is None or day > last) and days < 365 \
-                and due_on(n, nodes, evidence, carr, day):
+        while (
+            (last is None or day > last)
+            and days < 365
+            and due_on(n, nodes, evidence, carr, day)
+        ):
             days += 1
             day -= timedelta(days=1)
         if days >= STARVED_DAYS:
@@ -1484,8 +1707,13 @@ def unmapped_summits(problems, nodes, evidence, statuses):
     immature = immature_nodes(nodes, evidence, problems)
     out = []
     for pnum, p in problems.items():
-        if (p.get("difficulty") != "Hard" or unservable(pnum, p)
-                or pnum in solved or not p.get("moves") or not p.get("unmapped")):
+        if (
+            p.get("difficulty") != "Hard"
+            or unservable(pnum, p)
+            or pnum in solved
+            or not p.get("moves")
+            or not p.get("unmapped")
+        ):
             continue
         gaps, count, _ = route_gaps(pnum, problems, nodes, statuses, immature)
         if not gaps and count:
@@ -1502,12 +1730,18 @@ def load_plan():
     if os.environ.get("KG_NO_PLAN", "").strip() not in ("", "0"):
         return None
     path = os.path.join(
-        os.path.dirname(GRAPH_DIR), "data", "study_plan", f"{date.today().isoformat()}.json"
+        os.path.dirname(GRAPH_DIR),
+        "data",
+        "study_plan",
+        f"{date.today().isoformat()}.json",
     )
     if not os.path.exists(path):
         console.print("[dim]new day — freezing today's plan...[/dim]")
         subprocess.run(
-            [sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "kg_today")]
+            [
+                sys.executable,
+                os.path.join(os.path.dirname(os.path.abspath(__file__)), "kg_today"),
+            ]
         )
     try:
         with open(path) as f:
@@ -1563,9 +1797,15 @@ def add_gated(dot, from_node, vid, problems, evidence, labeled):
     problems = gate_table(problems)
     for h in gates(vid, problems):
         gid = f"gated_{h}"
-        dot.node(gid, label=gated_label(h, problems, evidence, labeled), shape="box",
-                 style="rounded", color="#8b949e", fontcolor="#c9d1d9",
-                 margin="0.15,0.08")
+        dot.node(
+            gid,
+            label=gated_label(h, problems, evidence, labeled),
+            shape="box",
+            style="rounded",
+            color="#8b949e",
+            fontcolor="#c9d1d9",
+            margin="0.15,0.08",
+        )
         dot.edge(from_node, gid, color="#8b949e", style="dashed")
 
 
@@ -1584,7 +1824,7 @@ def main():
     """Serve the pick, then the park. The footer is printed on every way
     out of _main (a pick, a refusal, nothing to serve) so the parked
     problems are seen every day."""
-    footer = []
+    footer: list[str] = []
     try:
         _main(footer)
     finally:
@@ -1659,8 +1899,9 @@ def _main(footer):
         elif w in groups:
             args.group = w
         else:
-            parser.error(f"{w!r} is not a number or a group "
-                         f"({', '.join(sorted(groups))})")
+            parser.error(
+                f"{w!r} is not a number or a group " f"({', '.join(sorted(groups))})"
+            )
     labeled = args.graph
 
     def prepare(target, force=False):
@@ -1695,8 +1936,11 @@ def _main(footer):
         # distinct unaided carriers at the bar the breadth stands on
         ax = node_axes(n, evidence, problems)
         k = ax.carriers
-        note = ("none in bank" if carry_bar(n, problems)[0] == "none"
-                else f"{k} carrier{'' if k == 1 else 's'}")
+        note = (
+            "none in bank"
+            if carry_bar(n, problems)[0] == "none"
+            else f"{k} carrier{'' if k == 1 else 's'}"
+        )
         return f"{ax.degree:.2f} [dim]({note})[/dim]"
 
     def recall_line(path):
@@ -1715,10 +1959,15 @@ def _main(footer):
             # in the history is nothing to fit, and a percentage off it
             # would be the invention the bar exists to replace.
             bar = f"[dim]{chr(0x2591) * cells}[/dim]"
-            seen = ("never done" if not copies else
-                    f"{copies} cop{'y' if copies == 1 else 'ies'}, {gap}d gap")
-            return (f"[dim]recall:[/dim] {bar} [cyan]no unaided rep yet[/cyan] "
-                    f"[dim]{seen} - copying is the rep, recall is the next one[/dim]")
+            seen = (
+                "never done"
+                if not copies
+                else f"{copies} cop{'y' if copies == 1 else 'ies'}, {gap}d gap"
+            )
+            return (
+                f"[dim]recall:[/dim] {bar} [cyan]no unaided rep yet[/cyan] "
+                f"[dim]{seen} - copying is the rep, recall is the next one[/dim]"
+            )
         for cut, colour, note in (
             (0.85, "green", "should come back cold"),
             (0.65, "yellow", "likely, expect to fumble the bookkeeping"),
@@ -1731,29 +1980,46 @@ def _main(footer):
         solid, empty = chr(0x2588) * full, chr(0x2591) * (cells - full)
         bar = f"[{colour}]{solid}[/{colour}][dim]{empty}[/dim]"
         reps = f"{cleans} clean rep{'' if cleans == 1 else 's'}"
-        return (f"[dim]recall:[/dim] {bar} [{colour}]{round(p * 100)}%[/{colour}] "
-                f"[dim]{reps}, {gap}d gap - {note}[/dim]")
+        return (
+            f"[dim]recall:[/dim] {bar} [{colour}]{round(p * 100)}%[/{colour}] "
+            f"[dim]{reps}, {gap}d gap - {note}[/dim]"
+        )
 
     asleep, woken = sleep_state(nodes, problems, evidence)
     if asleep:
         footer.extend(sleep_lines(nodes, problems, evidence, statuses))
     for g, c in sorted(group_caps().items()):
         k = group_reps(g, nodes, evidence)
-        footer.append(f"{g}: {k}/{c} reps today"
-                      + (" - at the daily cap, make next {g} to go past it".format(g=g)
-                         if k >= c else " (KG_GROUP_CAP)"))
+        footer.append(
+            f"{g}: {k}/{c} reps today"
+            + (
+                " - at the daily cap, make next {g} to go past it".format(g=g)
+                if k >= c
+                else " (KG_GROUP_CAP)"
+            )
+        )
     new_cap = new_drill_cap()
     if new_cap is not None:
         k = new_drills_today(evidence)
-        footer.append(f"new drills: {k}/{new_cap} today"
-                      + (" - at the daily cap, reviews only until tomorrow"
-                         if k >= new_cap else " (MAX_NEW_DRILLS)"))
+        footer.append(
+            f"new drills: {k}/{new_cap} today"
+            + (
+                " - at the daily cap, reviews only until tomorrow"
+                if k >= new_cap
+                else " (MAX_NEW_DRILLS)"
+            )
+        )
     review_cap = drill_review_cap()
     if review_cap is not None:
         k = drill_reviews_today(evidence)
-        footer.append(f"drill reviews: {k}/{review_cap} today"
-                      + (" - at the daily cap, the bank waits until tomorrow"
-                         if k >= review_cap else " (MAX_DRILL_REVIEWS)"))
+        footer.append(
+            f"drill reviews: {k}/{review_cap} today"
+            + (
+                " - at the daily cap, the bank waits until tomorrow"
+                if k >= review_cap
+                else " (MAX_DRILL_REVIEWS)"
+            )
+        )
     # the review queue: problems on their own clock (rule 2c). One is served
     # per pick at most, so the count is the only place the rest are visible.
     review_due = review_queue(evidence, problems)
@@ -1775,11 +2041,15 @@ def _main(footer):
         stale = [p for p, age in pending if age > PENDING_STALE_SECONDS]
         for p in stale:
             spawn_judge(p)
-        footer.append(f"judge pending on {len(pending)} rep(s)"
-                      + (f", {len(stale)} respawned" if stale else "") + " (.judge.log)")
+        footer.append(
+            f"judge pending on {len(pending)} rep(s)"
+            + (f", {len(stale)} respawned" if stale else "")
+            + " (.judge.log)"
+        )
 
     session_start = is_session_start()
 
+    clock: Any  # the solving time as text here, the drill clock list below
     secs = _iss().solve_seconds_today()
     if secs:
         h, m = divmod(secs // 60, 60)
@@ -1791,11 +2061,17 @@ def _main(footer):
     # Which node is not said - the emoji is decodable and the rep would
     # test nothing. Group walks (sql, ...) are about their group, so no.
     if not (args.group or args.early or args.assisted) and rc.due_spot(
-            nodes, problems, evidence,
-            rc.derived(rc.load_recognition(), evidence, problems, statuses),
-            statuses, skip=set(asleep)):
-        console.print("[bold]spot rep due[/bold] - make prepare spot (read the statement, "
-                      "name the move, no code; before the solve)")
+        nodes,
+        problems,
+        evidence,
+        rc.derived(rc.load_recognition(), evidence, problems, statuses),
+        statuses,
+        skip=set(asleep),
+    ):
+        console.print(
+            "[bold]spot rep due[/bold] - make prepare spot (read the statement, "
+            "name the move, no code; before the solve)"
+        )
 
     exclude = set(solved_today_pnums())
     choice = None
@@ -1823,13 +2099,17 @@ def _main(footer):
         hungry = starved(nodes, problems, evidence)
         if hungry:
             names = ", ".join(
-                f"{n} ({k}d)" for n, k in sorted(hungry.items(), key=lambda x: -x[1]))
+                f"{n} ({k}d)" for n, k in sorted(hungry.items(), key=lambda x: -x[1])
+            )
             console.print(
                 f"[yellow]⚠ starved: {names} - due that long with nothing "
-                f"aimed at {'it' if len(hungry) == 1 else 'them'}[/yellow]")
+                f"aimed at {'it' if len(hungry) == 1 else 'them'}[/yellow]"
+            )
         dry = [
-            nid for nid, _, why, is_dry in blocked_frontier(
-                nodes, problems, evidence, statuses, asleep, ())
+            nid
+            for nid, _, why, is_dry in blocked_frontier(
+                nodes, problems, evidence, statuses, asleep, ()
+            )
             if is_dry and not has_drill_bank(nid)
         ]
         if dry:
@@ -1837,7 +2117,8 @@ def _main(footer):
             console.print(
                 f"[yellow]⚠ dry on {names} — nothing can serve "
                 f"{'this move' if len(dry) == 1 else 'these moves'} "
-                f"(make next --why)[/yellow]")
+                f"(make next --why)[/yellow]"
+            )
 
     # Today's frozen plan comes first: serve its pending items in order,
     # transparently — same rendering, same commands. Items self-clear from
@@ -1846,13 +2127,19 @@ def _main(footer):
     # starved bank must show in the default output, not in an audit.
     clock = []
     if drill_scheduler() == "anki":
-        scope = [n for n in nodes
-                 if args.group is None or nodes[n].get("group") == args.group]
-        clock = anki_frontier(evidence, nodes=nodes, node_ids=scope,
-                              assisted=args.assisted)
+        scope = [
+            n
+            for n in nodes
+            if args.group is None or nodes[n].get("group") == args.group
+        ]
+        clock = anki_frontier(
+            evidence, nodes=nodes, node_ids=scope, assisted=args.assisted
+        )
         reviews = sum(1 for path, _ in clock if anki_due(path, evidence) is not None)
-        console.print(f"[dim]drill clock: {len(clock)} due - {reviews} review, "
-                      f"{len(clock) - reviews} never done[/dim]")
+        console.print(
+            f"[dim]drill clock: {len(clock)} due - {reviews} review, "
+            f"{len(clock) - reviews} never done[/dim]"
+        )
     plan = None if args.early or args.assisted or clock else load_plan()
     if plan:
         pending = [
@@ -1874,11 +2161,15 @@ def _main(footer):
             or (
                 # the curve outranks the flag: a SOLID, owned node's drill
                 # item is satisfied, whatever prescribed it
-                not (statuses[it["node"]][0] == SOLID
-                     and owned(it["node"], evidence))
-                and not drill_held(it["node"], nodes, statuses, evidence,
-                                   has_bank=has_drill_bank,
-                                   pending=plan_drills - {it["node"]})
+                not (statuses[it["node"]][0] == SOLID and owned(it["node"], evidence))
+                and not drill_held(
+                    it["node"],
+                    nodes,
+                    statuses,
+                    evidence,
+                    has_bank=has_drill_bank,
+                    pending=plan_drills - {it["node"]},
+                )
             )
         ]
         idx = max(1, args.n) - 1
@@ -1950,11 +2241,18 @@ def _main(footer):
         if shown:
             console.print(f"[yellow]Only {shown} recommendation(s) available.[/yellow]")
         elif args.group:
-            held = [] if args.cram or args.early or args.assisted else sorted(
-                n for n in nodes
-                if nodes[n].get("group") == args.group
-                and statuses[n][0] != SOLID
-                and drill_held(n, nodes, statuses, evidence, has_bank=has_drill_bank)
+            held = (
+                []
+                if args.cram or args.early or args.assisted
+                else sorted(
+                    n
+                    for n in nodes
+                    if nodes[n].get("group") == args.group
+                    and statuses[n][0] != SOLID
+                    and drill_held(
+                        n, nodes, statuses, evidence, has_bank=has_drill_bank
+                    )
+                )
             )
             if held:
                 console.print(
@@ -1975,35 +2273,47 @@ def _main(footer):
             parked = parked_summits(problems, nodes, evidence, statuses, asleep)
             unmapped = unmapped_summits(problems, nodes, evidence, statuses)
             if dry:
-                console.print("\nNothing to serve — the graph needs new problems mapped.")
+                console.print(
+                    "\nNothing to serve — the graph needs new problems mapped."
+                )
             elif waiting or parked:
                 console.print("\nNothing due today.")
             else:
-                console.print("\nNothing to serve — every mapped move is solid and every summit is climbed.")
+                console.print(
+                    "\nNothing to serve — every mapped move is solid and every summit is climbed."
+                )
             if waiting:
                 n = len(waiting)
-                console.print(f"[dim]{n} move{'s' if n > 1 else ''} waiting (make next --why)[/dim]")
+                console.print(
+                    f"[dim]{n} move{'s' if n > 1 else ''} waiting (make next --why)[/dim]"
+                )
             if parked:
                 for pnum in parked:
                     console.print(
                         f"⛰  {pnum}. {problems[pnum]['title']} is ready and asleep — "
-                        f"`make wake {pnum}`")
+                        f"`make wake {pnum}`"
+                    )
             if unmapped:
                 console.print(
                     f"[dim]summits blocked only by an unmapped move (needs a node): "
-                    f"{', '.join(unmapped)}[/dim]")
+                    f"{', '.join(unmapped)}[/dim]"
+                )
             # the reach rule found no carrier for any of these today
             young = sorted(
-                ((n, g) for n, g in
-                 unlocks(statuses, problems, immature=immature).items()
-                 if n in immature and statuses[n][0] == SOLID),
+                (
+                    (n, g)
+                    for n, g in unlocks(statuses, problems, immature=immature).items()
+                    if n in immature and statuses[n][0] == SOLID
+                ),
                 key=lambda t: (-t[1], t[0]),
             )[:3]
             if young:
                 console.print(
                     "[dim]young moves with no proving carrier today, by drafted "
                     "problems waiting: "
-                    + ", ".join(f"{n} ({g})" for n, g in young) + "[/dim]")
+                    + ", ".join(f"{n} ({g})" for n, g in young)
+                    + "[/dim]"
+                )
 
         if not args.why:
             warn_dry(served=False)
@@ -2031,9 +2341,20 @@ def _main(footer):
 
     # how much review stands between now and the first pick that is new
     # ground; the early and assisted walks review everything by design
-    ahead = None if args.early or args.assisted else review_line(
-        *review_ahead(nodes, problems, evidence, asleep=asleep,
-                      exclude=solved_today_pnums(), group=args.group))
+    ahead = (
+        None
+        if args.early or args.assisted
+        else review_line(
+            *review_ahead(
+                nodes,
+                problems,
+                evidence,
+                asleep=asleep,
+                exclude=solved_today_pnums(),
+                group=args.group,
+            )
+        )
+    )
 
     if str(pnum).startswith("drill:"):
         path = due_drill(target, evidence, early=args.early, assisted=args.assisted)
@@ -2065,8 +2386,10 @@ def _main(footer):
             fc = drill_forecast(path)
             if fc:
                 expect, hint, bail = (f"{round(v):d}m" for v in fc)
-                console.print(f"[dim]pace: ~{expect} expected · hint fair game after "
-                              f"{hint} · at {bail} stop, mark it, reinforce[/dim]")
+                console.print(
+                    f"[dim]pace: ~{expect} expected · hint fair game after "
+                    f"{hint} · at {bail} stop, mark it, reinforce[/dim]"
+                )
             if ahead:
                 console.print(f"[dim]{ahead}[/dim]")
             console.print(f"make prepare {did or target}")
@@ -2076,7 +2399,13 @@ def _main(footer):
             for n in tree:
                 s, d = statuses[n]
                 status_node(
-                    dot, n, nodes[n], s, d, highlight=(n == target), labeled=labeled,
+                    dot,
+                    n,
+                    nodes[n],
+                    s,
+                    d,
+                    highlight=(n == target),
+                    labeled=labeled,
                     degree=node_degree(n, evidence, problems),
                 )
             for n in tree:
@@ -2100,7 +2429,9 @@ def _main(footer):
                 logical_width = render(dot, "kg_next")
                 display("kg_next", logical_width)
             except Exception as e:
-                console.print(f"[dim](tree drawing failed — {type(e).__name__}; cosmetic, pick unaffected)[/dim]")
+                console.print(
+                    f"[dim](tree drawing failed — {type(e).__name__}; cosmetic, pick unaffected)[/dim]"
+                )
         animate(cap.get())
         warn_dry(served=True)
         # the exact file the pick chose, not the node: `utils/kg/drill <node>`
@@ -2115,8 +2446,14 @@ def _main(footer):
     # rep is held to the move (routed_around), served as `make force`
     around = routed_around(nodes, problems, evidence).get(target)
     forced = around is not None
-    force_note = (f"{around} was solved without this move while it was due - "
-                  "this rep must use it") if forced else None
+    force_note = (
+        (
+            f"{around} was solved without this move while it was due - "
+            "this rep must use it"
+        )
+        if forced
+        else None
+    )
 
     table = Table(show_header=True, header_style="bold", box=None, padding=(0, 2))
     table.add_column("Move")
@@ -2146,8 +2483,10 @@ def _main(footer):
         if diff_line:
             console.print(diff_line)
         if p.get("predicted"):
-            console.print("[yellow]⚠ drafted walk, not yet evidenced — "
-                          "your solve is what maps this problem[/yellow]")
+            console.print(
+                "[yellow]⚠ drafted walk, not yet evidenced — "
+                "your solve is what maps this problem[/yellow]"
+            )
         if p.get("note"):
             console.print(f"[yellow]⚠ {p['note']}[/yellow]")
         if plan_note:
@@ -2159,9 +2498,11 @@ def _main(footer):
         rv = problem_due(pnum, evidence)
         if rv and rv[0] <= date.today():
             when, label = last_attempt(pnum, evidence)
-            console.print(f"[yellow]⚠ review: {REVIEW_NOTE[label]} "
-                          f"{(date.today() - when).days}d ago - this rep is the "
-                          f"unaided one[/yellow]")
+            console.print(
+                f"[yellow]⚠ review: {REVIEW_NOTE[label]} "
+                f"{(date.today() - when).days}d ago - this rep is the "
+                f"unaided one[/yellow]"
+            )
         console.print(table)
         print_gates(pnum, problems, evidence, labeled)
         # pacing forecast from the mined solve-time history: expected time,
@@ -2170,8 +2511,10 @@ def _main(footer):
         fc = solve_forecast(pnum, problems)
         if fc:
             expect, hint, bail = (f"{round(v):d}m" for v in fc)
-            console.print(f"[dim]pace: ~{expect} expected · hint fair game after "
-                          f"{hint} · at {bail} stop, mark it, reinforce[/dim]")
+            console.print(
+                f"[dim]pace: ~{expect} expected · hint fair game after "
+                f"{hint} · at {bail} stop, mark it, reinforce[/dim]"
+            )
         if ahead:
             console.print(f"[dim]{ahead}[/dim]")
         if forced:
@@ -2188,7 +2531,13 @@ def _main(footer):
     for n in tree:
         s, d = statuses[n]
         status_node(
-            dot, n, nodes[n], s, d, highlight=(n in p["moves"]), labeled=labeled,
+            dot,
+            n,
+            nodes[n],
+            s,
+            d,
+            highlight=(n in p["moves"]),
+            labeled=labeled,
             degree=node_degree(n, evidence, problems),
         )
     for n in tree:
@@ -2217,7 +2566,9 @@ def _main(footer):
         logical_width = render(dot, "kg_next")
         display("kg_next", logical_width)
     except Exception as e:
-        console.print(f"[dim](tree drawing failed — {type(e).__name__}; cosmetic, pick unaffected)[/dim]")
+        console.print(
+            f"[dim](tree drawing failed — {type(e).__name__}; cosmetic, pick unaffected)[/dim]"
+        )
     animate(cap.get())
     warn_dry(served=True)
     prepare(pnum, force=forced)

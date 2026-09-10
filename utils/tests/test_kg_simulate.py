@@ -29,7 +29,9 @@ from importlib.machinery import SourceFileLoader
 import pytest
 
 KG = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "kg")
-kg_simulate = SourceFileLoader("kg_simulate", os.path.join(KG, "kg_simulate")).load_module()
+kg_simulate = SourceFileLoader(
+    "kg_simulate", os.path.join(KG, "kg_simulate")
+).load_module()
 
 from kg import kg_lib  # noqa: E402
 
@@ -49,6 +51,7 @@ def run():
 def test_run_restores_kg_lib_clock(run):
     """A run freezes kg_lib's date day by day; after it, today is today."""
     from datetime import date
+
     assert kg_lib.date.today() == date.today()
 
 
@@ -62,7 +65,8 @@ def test_rusty_nodes_bounded(run):
     worst = max((s + f, d) for d, s, f, _ in run["rusty"] if d > 1)
     assert worst[0] <= RUSTY_CAP, (
         f"{worst[0]} nodes STALE or FRAGILE at the start of day {worst[1]} "
-        f"(cap {RUSTY_CAP}); the picker is not repairing what goes rusty")
+        f"(cap {RUSTY_CAP}); the picker is not repairing what goes rusty"
+    )
 
 
 def test_series_one_row_per_day(run):
@@ -79,10 +83,15 @@ def test_series_one_row_per_day(run):
 
 
 def test_no_node_starves(run):
-    assert not run["starved"], "rusty %d+ days in a row with nothing aimed at it: %s" % (
+    assert not run[
+        "starved"
+    ], "rusty %d+ days in a row with nothing aimed at it: %s" % (
         kg_simulate.STARVED_DAYS,
-        ", ".join(f"{n} ({k}d)"
-                  for n, k in sorted(run["starved"].items(), key=lambda x: -x[1])))
+        ", ".join(
+            f"{n} ({k}d)"
+            for n, k in sorted(run["starved"].items(), key=lambda x: -x[1])
+        ),
+    )
 
 
 def test_run_restores_drill_bank(run):
@@ -90,11 +99,13 @@ def test_run_restores_drill_bank(run):
     files into; after it, kg_lib and kg_next read the real bank again and
     the copy is gone."""
     import glob
+
     real = os.path.join(os.path.dirname(kg_lib.GRAPH_DIR), "drills")
     assert kg_lib.DRILLS_DIR == real
     assert kg_simulate.kg_next.DRILLS_DIR == real
-    assert not glob.glob(os.path.join(real, "*", "sim_*.py")), \
-        "a virtual bank file landed in the real bank"
+    assert not glob.glob(
+        os.path.join(real, "*", "sim_*.py")
+    ), "a virtual bank file landed in the real bank"
 
 
 def test_authoring_follows_the_measured_rate(run):
@@ -112,5 +123,7 @@ def test_bank_rate_zero_authors_nothing():
     """`make simulate bank-rate 0` runs on the bank as it is."""
     if not kg_lib._load_curve():
         pytest.skip("graph/curve.json missing - run make curve first")
-    r = kg_simulate.run(hours=HOURS, seed=SEED, days=5, log=lambda *a: None, bank_rate=0)
+    r = kg_simulate.run(
+        hours=HOURS, seed=SEED, days=5, log=lambda *a: None, bank_rate=0
+    )
     assert r["authored"] == {"nodes": 0, "files": 0, "rate": 0, "source": "given"}

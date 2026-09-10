@@ -8,13 +8,15 @@
 
 import glob
 import json
-from collections import namedtuple
+import math
 import os
 import re
 import subprocess
 import sys
 import time
+from collections import namedtuple
 from datetime import date, datetime, timedelta, timezone
+from typing import Any
 
 # The system clock runs UTC but the operator lives in Manila (UTC+8);
 # "today" everywhere in the toolchain means the Manila calendar day.
@@ -39,7 +41,13 @@ def manila_date_from_filename(name):
     if not m:
         return None
     y, mo, d, h, mi, s = map(int, m.groups())
-    return datetime(y, mo, d, h, mi, s, tzinfo=timezone.utc).astimezone(MANILA).date().isoformat()
+    return (
+        datetime(y, mo, d, h, mi, s, tzinfo=timezone.utc)
+        .astimezone(MANILA)
+        .date()
+        .isoformat()
+    )
+
 
 UTILS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REPO_ROOT = os.path.dirname(UTILS_DIR)
@@ -68,7 +76,7 @@ def load_envrc(path=None, environ=None):
         if not line or line.startswith("#"):
             continue
         if line.startswith("export "):
-            line = line[len("export "):].strip()
+            line = line[len("export ") :].strip()
         m = re.match(r"^([A-Za-z_][A-Za-z0-9_]*)=(.*)$", line)
         if not m:
             continue
@@ -174,8 +182,11 @@ def normalise_assist(raw, moves):
         raw = {m: raw for m in moves} if raw in ASSIST_WEIGHT and raw != "none" else {}
     if not isinstance(raw, dict):
         return None
-    out = {m: v for m, v in raw.items()
-           if m in moves and v in ASSIST_WEIGHT and v != "none"}
+    out = {
+        m: v
+        for m, v in raw.items()
+        if m in moves and v in ASSIST_WEIGHT and v != "none"
+    }
     return out or None
 
 
@@ -265,17 +276,24 @@ def unlocks(statuses, problems, predicted=None, immature=frozenset()):
     proving n - the reach rule in kg_next. A move the taxonomy has no node
     for is a gap nothing here can close."""
     import numpy as np
+
     if predicted is None:
         predicted = load_predicted()
     dm = _draft_matrix(predicted, sorted(statuses))
-    reach = np.array([statuses[n][0] == SOLID and n not in immature
-                      for n in dm.node_ids], dtype=bool)
+    reach = np.array(
+        [statuses[n][0] == SOLID and n not in immature for n in dm.node_ids], dtype=bool
+    )
     gaps = (dm.W & ~reach).sum(1) + dm.unknown
     live = dm.live_problems(problems)
     in_reach = np.zeros(len(dm.problems), dtype=bool)
     np.logical_or.at(in_reach, dm.prob[~dm.missing & (gaps == 0)], True)
-    sel = ~dm.missing & (gaps == 1) & (dm.unknown == 0) \
-        & live[dm.prob] & ~in_reach[dm.prob]
+    sel = (
+        ~dm.missing
+        & (gaps == 1)
+        & (dm.unknown == 0)
+        & live[dm.prob]
+        & ~in_reach[dm.prob]
+    )
     if not sel.any():
         return {}
     blocker = (dm.W[sel] & ~reach).argmax(1)
@@ -296,9 +314,11 @@ class _DraftMatrix:
 
     def __init__(self, predicted, node_ids):
         import numpy as np
+
         self.node_ids = list(node_ids)
         self.index = index = {n: i for i, n in enumerate(self.node_ids)}
-        self.problems, rows, prob, missing, unknown = [], [], [], [], []
+        self.problems: list = []
+        rows, prob, missing, unknown = [], [], [], []
         self.walk_moves = []  # each walk's moves in file order
         meta = _metadata()
         for num, entry in predicted.items():
@@ -327,34 +347,40 @@ class _DraftMatrix:
         self.diff = [meta.get(str(n), {}).get("difficulty", "") for n in self.problems]
         self.acc = np.array([acceptance(n) for n in self.problems], dtype=float)
         self.pkey = np.array([pnum_key(n)[0] for n in self.problems], dtype=int)
-        self._live = (None, None)
-        self._counts = (None, None)
+        self._live: tuple[Any, Any] = (None, None)
+        self._counts: tuple[Any, Any] = (None, None)
 
     def live_problems(self, problems):
         """Boolean per problem: not in problems.json (unsolved, unmapped)."""
         import numpy as np
+
         key = (id(problems), len(problems))
         if self._live[0] != key:
-            self._live = (key, np.array([n not in problems for n in self.problems],
-                                        dtype=bool))
+            self._live = (
+                key,
+                np.array([n not in problems for n in self.problems], dtype=bool),
+            )
         return self._live[1]
 
     def carrier_counts(self, problems):
         """Per node: evidenced problems carrying it (predicted_carrier's
         rehearsal mass), as a vector over node_ids."""
         import numpy as np
+
         key = (id(problems), len(problems))
         if self._counts[0] != key:
-            counts = {}
+            counts: dict[str, int] = {}
             for p in problems.values():
                 for m in p.get("moves", []):
                     counts[m] = counts.get(m, 0) + 1
-            self._counts = (key, np.array([counts.get(n, 0) for n in self.node_ids],
-                                          dtype=float))
+            self._counts = (
+                key,
+                np.array([counts.get(n, 0) for n in self.node_ids], dtype=float),
+            )
         return self._counts[1]
 
 
-_DRAFT_MATRIX = {}
+_DRAFT_MATRIX: dict = {}
 
 
 def _dict_key(d):
@@ -422,12 +448,14 @@ class evidence_lock:
 
     def __enter__(self):
         import fcntl
+
         self._f = open(os.path.join(GRAPH_DIR, ".evidence.lock"), "w")
         fcntl.flock(self._f, fcntl.LOCK_EX)
         return self
 
     def __exit__(self, *exc):
         import fcntl
+
         fcntl.flock(self._f, fcntl.LOCK_UN)
         self._f.close()
         return False
@@ -471,11 +499,23 @@ def spawn_judge(path):
     if not os.path.exists(py):
         py = sys.executable
     env = dict(os.environ)
-    env["PYTHONPATH"] = os.pathsep.join([os.path.join(root, "utils"), env.get("PYTHONPATH", "")])
+    env["PYTHONPATH"] = os.pathsep.join(
+        [os.path.join(root, "utils"), env.get("PYTHONPATH", "")]
+    )
     log = open(os.path.join(root, ".judge.log"), "a")
     return subprocess.Popen(
-        [py, os.path.join(root, "utils", "kg", "kg_extract"), "--file", path, "--commit"],
-        cwd=root, env=env, stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT,
+        [
+            py,
+            os.path.join(root, "utils", "kg", "kg_extract"),
+            "--file",
+            path,
+            "--commit",
+        ],
+        cwd=root,
+        env=env,
+        stdin=subprocess.DEVNULL,
+        stdout=log,
+        stderr=subprocess.STDOUT,
         start_new_session=True,
     )
 
@@ -516,14 +556,22 @@ def drill_key(fname):
 
 
 class _EvidenceIndex:
-    __slots__ = ("by_node", "by_problem", "by_date", "drills", "first_reps",
-                 "_drills_seen", "n", "last")
+    __slots__ = (
+        "by_node",
+        "by_problem",
+        "by_date",
+        "drills",
+        "first_reps",
+        "_drills_seen",
+        "n",
+        "last",
+    )
 
     def __init__(self):
-        self.by_node = {}     # node -> [(date, verdict, assist, fname, rec)]
+        self.by_node = {}  # node -> [(date, verdict, assist, fname, rec)]
         self.by_problem = {}  # problem -> [(date str, fname, rec)]
-        self.by_date = {}     # date str -> [(fname, rec)]
-        self.drills = []      # [(date str, lowercase basename, rec)] of d_ files
+        self.by_date = {}  # date str -> [(fname, rec)]
+        self.drills = []  # [(date str, lowercase basename, rec)] of d_ files
         self.first_reps = set()  # fnames that are the first rep of their drill
         self._drills_seen = set()
         self.n = 0
@@ -545,7 +593,8 @@ class _EvidenceIndex:
             self.first_reps.add(fname)
         for node, v in rec.get("moves", {}).items():
             self.by_node.setdefault(node, []).append(
-                (d, v, "none" if first else assist_of(rec, node), fname, rec))
+                (d, v, "none" if first else assist_of(rec, node), fname, rec)
+            )
         pnum = rec.get("problem")
         if pnum is not None:
             self.by_problem.setdefault(str(pnum), []).append((rec["date"], fname, rec))
@@ -557,7 +606,7 @@ class _EvidenceIndex:
         self.last = fname
 
 
-_EV_INDEX = {}  # id(evidence) -> _EvidenceIndex
+_EV_INDEX: dict = {}  # id(evidence) -> _EvidenceIndex
 
 
 def ev_index(evidence):
@@ -565,12 +614,16 @@ def ev_index(evidence):
     the same object and has only grown at the end since the last call;
     rebuilt otherwise."""
     from itertools import islice
+
     idx = _EV_INDEX.get(id(evidence))
     n = len(evidence)
     if idx is not None and idx.n == n:
         return idx
-    if idx is not None and idx.n <= n and (
-            idx.n == 0 or next(islice(evidence, idx.n - 1, idx.n), None) == idx.last):
+    if (
+        idx is not None
+        and idx.n <= n
+        and (idx.n == 0 or next(islice(evidence, idx.n - 1, idx.n), None) == idx.last)
+    ):
         for fname, rec in islice(evidence.items(), idx.n, None):
             idx.add(fname, rec)
         return idx
@@ -627,8 +680,9 @@ def _node_curve(node_id, evidence, today=None):
     node_axes. node_eval drops it so its callers and the Rust golden diff
     (kg_mock_rs) see the same three-tuple as before."""
     today = today or date.today()
-    entries = [(d, v, a) for d, v, a, _, _ in
-               ev_index(evidence).by_node.get(node_id, ())]  # (date, verdict, assist)
+    entries = [
+        (d, v, a) for d, v, a, _, _ in ev_index(evidence).by_node.get(node_id, ())
+    ]  # (date, verdict, assist)
     if not entries:
         return MISSING, None, 0.0, 0.0
     entries.sort()
@@ -644,6 +698,7 @@ def _node_curve(node_id, evidence, today=None):
     curve = _load_curve()
     if curve:
         import math
+
         p = curve["params"]
         # distinct days, not entries: same-day reps are one rep (massed
         # practice does not earn spaced-practice stability), matching
@@ -656,9 +711,13 @@ def _node_curve(node_id, evidence, today=None):
         # unknown nodes get the mean (a centered zero effect).
         cmean = p.get("conn_mean", 0.0)
         cn = curve.get("conn", {}).get(node_id, cmean)
-        stability = math.exp(p["a"] + p["b"] * math.log1p(cleans) - p["c"] * struggles
-                             - p.get("d", 0.0) * assisted
-                             + p.get("e", 0.0) * (cn - cmean))
+        stability = math.exp(
+            p["a"]
+            + p["b"] * math.log1p(cleans)
+            - p["c"] * struggles
+            - p.get("d", 0.0) * assisted
+            + p.get("e", 0.0) * (cn - cmean)
+        )
         stability = min(max(stability, 7), 3650)  # sanity clamp
         gap = max((today - clean_dates[-1]).days, 0)
         memory = (1 + gap / stability) ** (-p["beta"])
@@ -671,7 +730,9 @@ def _node_curve(node_id, evidence, today=None):
     return STALE, clean_dates[-1], 0.0, 0.0
 
 
-DEEP_STALE_DAYS = 2 * SOLID_WINDOW_DAYS  # beyond this, a "re-solve" plays like a new problem
+DEEP_STALE_DAYS = (
+    2 * SOLID_WINDOW_DAYS
+)  # beyond this, a "re-solve" plays like a new problem
 STARVED_DAYS = 14  # a move due this long with no rep aimed at it is starved
 
 # A SOLID badge earned in one burst of drills is not yet load-bearing: six
@@ -706,14 +767,18 @@ def _carry_kinds(problems):
     immature_nodes both read it (immature_nodes used to rescan the bank
     once per node - half of every pick, the 2026-08-31 simulation)."""
     from itertools import islice
+
     memo = _CARRY_KINDS
     if memo.get("id") == id(problems) and memo["n"] <= len(problems):
         kinds, start = memo["kinds"], memo["n"]  # extend: the bank only grows
     else:
         kinds, start = {}, 0
     for pnum, p in islice(problems.items(), start, None):
-        if not str(pnum)[:1].isdigit() or unservable(pnum, p) \
-                or p.get("difficulty") == "Hard":
+        if (
+            not str(pnum)[:1].isdigit()
+            or unservable(pnum, p)
+            or p.get("difficulty") == "Hard"
+        ):
             continue
         for w in [p.get("moves", [])] + list(p.get("alt_walks", [])):
             for m in w:
@@ -722,7 +787,7 @@ def _carry_kinds(problems):
     return kinds
 
 
-_CARRY_KINDS = {}  # memo of the last bank seen: problems only ever grow
+_CARRY_KINDS: dict = {}  # memo of the last bank seen: problems only ever grow
 
 
 def _bar_of(kinds):
@@ -735,9 +800,14 @@ def _bar_of(kinds):
 
 def _clean_reps(evidence):
     """node -> [(date, problem), ...] over its clean, non-learning reps."""
-    return {nid: [(d, str(rec.get("problem", ""))) for d, v, a, _, rec in entries
-                  if v == "clean" and a != "learning"]
-            for nid, entries in ev_index(evidence).by_node.items()}
+    return {
+        nid: [
+            (d, str(rec.get("problem", "")))
+            for d, v, a, _, rec in entries
+            if v == "clean" and a != "learning"
+        ]
+        for nid, entries in ev_index(evidence).by_node.items()
+    }
 
 
 def _at_bar(pnums, bar, problems):
@@ -747,8 +817,7 @@ def _at_bar(pnums, bar, problems):
     kind, _ = bar
     out = {p for p in pnums if p[:1].isdigit()}
     if kind == "medium":
-        out = {p for p in out
-               if problem_difficulty(p, problems) in ("Medium", "Hard")}
+        out = {p for p in out if problem_difficulty(p, problems) in ("Medium", "Hard")}
     return out
 
 
@@ -770,9 +839,11 @@ def proven_carriers(node_id, evidence, problems, unaided=False):
     """The distinct real problems that gave node_id a clean non-learning rep
     at its carry bar (carry_bar). With `unaided`, only reps taken with no
     help count - the ownership bar of owned() applied problem by problem."""
-    pnums = {str(rec.get("problem", "")) for _, v, a, _, rec in
-             ev_index(evidence).by_node.get(node_id, ())
-             if v == "clean" and a != "learning" and (not unaided or a == "none")}
+    pnums = {
+        str(rec.get("problem", ""))
+        for _, v, a, _, rec in ev_index(evidence).by_node.get(node_id, ())
+        if v == "clean" and a != "learning" and (not unaided or a == "none")
+    }
     return _at_bar(pnums, carry_bar(node_id, problems), problems)
 
 
@@ -810,8 +881,10 @@ def node_axes(node_id, evidence, problems, today=None):
     status, last, _, memory = _node_curve(node_id, evidence, today)
     bar = carry_bar(node_id, problems)
     carriers = proven_carriers(node_id, evidence, problems, unaided=True)
-    any_unaided = any(v == "clean" and a == "none" for _, v, a, _, _ in
-                      ev_index(evidence).by_node.get(node_id, ()))
+    any_unaided = any(
+        v == "clean" and a == "none"
+        for _, v, a, _, _ in ev_index(evidence).by_node.get(node_id, ())
+    )
     breadth = breadth_score(len(carriers), bar, any_unaided)
     return Axes(status, last, memory, len(carriers), breadth, min(memory, breadth))
 
@@ -827,7 +900,7 @@ def degree_track(nodes, evidence, problems, clock):
     bank. The one replay every animated chart colours its nodes from."""
     by_date = sorted(evidence.items(), key=lambda kv: kv[1]["date"])
     seen, k = {}, 0
-    track = {nid: [] for nid in nodes}
+    track: dict[str, list] = {nid: [] for nid in nodes}
     for i in range(clock.n_ticks):
         day = clock.first + timedelta(days=i)
         while k < len(by_date) and by_date[k][1]["date"] <= day.isoformat():
@@ -850,7 +923,7 @@ def degree_track(nodes, evidence, problems, clock):
 # along. kg_movie_rs carries the same function; change both together.
 
 DEGREE_RAMP_BOTTOM = "#da3633"  # degree 0
-DEGREE_RAMP_TOP = "#3fb950"     # degree 1
+DEGREE_RAMP_TOP = "#3fb950"  # degree 1
 
 
 def _srgb_to_linear(c):
@@ -864,13 +937,15 @@ def _linear_to_srgb(c):
 
 
 def _hex_to_oklab(h):
-    r, g, b = (_srgb_to_linear(int(h[i:i + 2], 16)) for i in (1, 3, 5))
+    r, g, b = (_srgb_to_linear(int(h[i : i + 2], 16)) for i in (1, 3, 5))
     l_ = (0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b) ** (1 / 3)
     m_ = (0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b) ** (1 / 3)
     s_ = (0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b) ** (1 / 3)
-    return (0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_,
-            1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_,
-            0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_)
+    return (
+        0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_,
+        1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_,
+        0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_,
+    )
 
 
 def _oklab_to_hex(L, a, b):
@@ -883,11 +958,12 @@ def _oklab_to_hex(L, a, b):
     return "#%02x%02x%02x" % tuple(round(_linear_to_srgb(c) * 255) for c in (r, g, bl))
 
 
-_RAMP_LCH = {}
+_RAMP_LCH: dict = {}
 
 
 def _lch(hex_color):
     import math
+
     if hex_color not in _RAMP_LCH:
         L, a, b = _hex_to_oklab(hex_color)
         _RAMP_LCH[hex_color] = (L, math.hypot(a, b), math.atan2(b, a) % (2 * math.pi))
@@ -897,6 +973,7 @@ def _lch(hex_color):
 def degree_color(degree):
     """The hex colour of a degree of ownership in [0, 1] on the ramp."""
     import math
+
     L0, C0, h0 = _lch(DEGREE_RAMP_BOTTOM)
     L1, C1, h1 = _lch(DEGREE_RAMP_TOP)
     t = max(0.0, min(1.0, float(degree)))
@@ -925,8 +1002,9 @@ def mature(node_id, evidence, problems):
     node earns both signals, so gating them would block the very reps that
     mature it. Callers fold immature nodes into route_gaps: an immature move
     is a camp on the route, not a servable summit."""
-    return _mature_from(_clean_reps(evidence).get(node_id, []),
-                        carry_bar(node_id, problems), problems)
+    return _mature_from(
+        _clean_reps(evidence).get(node_id, []), carry_bar(node_id, problems), problems
+    )
 
 
 def immature_nodes(nodes, evidence, problems):
@@ -934,18 +1012,25 @@ def immature_nodes(nodes, evidence, problems):
     and rank_summits stay pure sort keys. One pass over the bank and one
     over the evidence, whatever the node count."""
     from itertools import islice
+
     key = (id(evidence), id(problems), tuple(nodes))
     idx = ev_index(evidence)
     kinds = _carry_kinds(problems)
 
     def young(n):
-        clean = [(d, str(rec.get("problem", ""))) for d, v, a, _, rec in
-                 idx.by_node.get(n, ()) if v == "clean" and a != "learning"]
+        clean = [
+            (d, str(rec.get("problem", "")))
+            for d, v, a, _, rec in idx.by_node.get(n, ())
+            if v == "clean" and a != "learning"
+        ]
         return not _mature_from(clean, _bar_of(kinds.get(n, set())), problems)
 
     memo = _IMMATURE
-    if memo.get("key") == key and memo["n"] <= len(evidence) \
-            and memo["n_pr"] <= len(problems):
+    if (
+        memo.get("key") == key
+        and memo["n"] <= len(evidence)
+        and memo["n_pr"] <= len(problems)
+    ):
         # records and problems appended since: only the nodes they touch
         # can have changed (a problem changes carry bars for its moves)
         touched = set()
@@ -955,7 +1040,7 @@ def immature_nodes(nodes, evidence, problems):
             touched.update(p.get("moves", []))
             for w in p.get("alt_walks", []):
                 touched.update(w)
-        out = set(memo["out"])
+        out: Any = set(memo["out"])
         for n in touched & memo["nodes"]:
             out.discard(n)
             if young(n):
@@ -963,12 +1048,11 @@ def immature_nodes(nodes, evidence, problems):
         out = frozenset(out)
     else:
         out = frozenset(n for n in nodes if young(n))
-    memo.update(key=key, n=len(evidence), n_pr=len(problems), out=out,
-                nodes=set(nodes))
+    memo.update(key=key, n=len(evidence), n_pr=len(problems), out=out, nodes=set(nodes))
     return out
 
 
-_IMMATURE = {}  # memo: maturity changes only with the evidence or the bank
+_IMMATURE: dict = {}  # memo: maturity changes only with the evidence or the bank
 
 
 def proving_carriers(target, problems, statuses, nodes, evidence):
@@ -986,9 +1070,11 @@ def proving_carriers(target, problems, statuses, nodes, evidence):
         p = problems[pnum]
         if kind == "medium" and p.get("difficulty") != "Medium":
             continue
-        if not any(all(m in nodes for m in walk)
-                   and all(statuses[m][0] == SOLID for m in walk if m != target)
-                   for walk in walks):
+        if not any(
+            all(m in nodes for m in walk)
+            and all(statuses[m][0] == SOLID for m in walk if m != target)
+            for walk in walks
+        ):
             continue
         if held_behind(pnum, problems, evidence):
             continue
@@ -996,7 +1082,7 @@ def proving_carriers(target, problems, statuses, nodes, evidence):
     return found
 
 
-_WALKS_CARRYING = {}
+_WALKS_CARRYING: dict = {}
 
 
 def _walks_carrying(problems):
@@ -1004,14 +1090,18 @@ def _walks_carrying(problems):
     problems whose recorded walks (primary or alt) use the node, in bank
     order. One pass over the bank, memoized while it is unchanged."""
     from itertools import islice
+
     memo = _WALKS_CARRYING
     if memo.get("id") == id(problems) and memo["n"] <= len(problems):
         out, start = memo["out"], memo["n"]  # extend: the bank only grows
     else:
         out, start = {}, 0
     for pnum, p in islice(problems.items(), start, None):
-        if not str(pnum)[:1].isdigit() or unservable(pnum, p) \
-                or p.get("difficulty") == "Hard":
+        if (
+            not str(pnum)[:1].isdigit()
+            or unservable(pnum, p)
+            or p.get("difficulty") == "Hard"
+        ):
             continue
         walks = [p.get("moves", [])] + list(p.get("alt_walks", []))
         for node in {m for w in walks for m in w}:
@@ -1030,10 +1120,13 @@ def last_clean_solve(pnum, evidence):
     no assist at all - the bar a predecessor must meet to release the
     problems declared "after" it. An assisted clean is a real rep, but the
     release is on ownership: the unaided rep is what releases."""
-    dates = [d for d, _, r in ev_index(evidence).by_problem.get(str(pnum), ())
-             if r.get("moves")
-             and all(v == "clean" for v in r["moves"].values())
-             and assist_of(r) == "none"]
+    dates = [
+        d
+        for d, _, r in ev_index(evidence).by_problem.get(str(pnum), ())
+        if r.get("moves")
+        and all(v == "clean" for v in r["moves"].values())
+        and assist_of(r) == "none"
+    ]
     return max(dates) if dates else ""
 
 
@@ -1072,10 +1165,14 @@ def gates(vid, problems, drill_map=None):
     drills in id order. The reverse of the one relation."""
     vid = str(vid)
     drill_map = drills() if drill_map is None else drill_map
-    held = sorted((k for k, p in problems.items()
-                   if vid in map(str, p.get("after", []))), key=pnum_key)
-    held += sorted((i for i, d in drill_map.items() if vid in map(str, d.get("after", []))),
-                   key=pnum_key)
+    held = sorted(
+        (k for k, p in problems.items() if vid in map(str, p.get("after", []))),
+        key=pnum_key,
+    )
+    held += sorted(
+        (i for i, d in drill_map.items() if vid in map(str, d.get("after", []))),
+        key=pnum_key,
+    )
     return held
 
 
@@ -1112,11 +1209,20 @@ def dependents(vid, problems, evidence, drill_map=None, today=None):
         else:
             d = drill_map[h]
             title, kind, after = d["title"], "drill", d.get("after", [])
-        held = [str(a) for a in after
-                if str(a) != vid and warm(a, problems, evidence, today) is False]
-        rows.append({"id": h, "title": title, "kind": kind,
-                     "status": vertex_status(h, problems, evidence, today),
-                     "held_by": held})
+        held = [
+            str(a)
+            for a in after
+            if str(a) != vid and warm(a, problems, evidence, today) is False
+        ]
+        rows.append(
+            {
+                "id": h,
+                "title": title,
+                "kind": kind,
+                "status": vertex_status(h, problems, evidence, today),
+                "held_by": held,
+            }
+        )
     return rows
 
 
@@ -1129,8 +1235,14 @@ def easiest_first(rows):
     acceptance first. Drills go first for a second reason: the drill
     picker refuses a non-empty current.py, so they must be cut before a
     problem's stub lands there."""
-    return sorted(rows, key=lambda r: (DIFFICULTY_RANK.get(r["kind"], 9),
-                                       -acceptance(r["id"]), pnum_key(r["id"])))
+    return sorted(
+        rows,
+        key=lambda r: (
+            DIFFICULTY_RANK.get(r["kind"], 9),
+            -acceptance(r["id"]),
+            pnum_key(r["id"]),
+        ),
+    )
 
 
 def vertex_kind(vid, problems):
@@ -1159,10 +1271,14 @@ def warm(vid, problems, evidence, today=None, early=False):
     kind = vertex_kind(vid, problems)
     if kind == "problem":
         last = last_clean_solve(vid, evidence)
-        return bool(last) and (today - date.fromisoformat(last)).days <= SOLID_WINDOW_DAYS
+        return (
+            bool(last) and (today - date.fromisoformat(last)).days <= SOLID_WINDOW_DAYS
+        )
     if kind == "drill":
         path = drill_path(vid)
-        return drill_clean(path, evidence) if early else drill_warm(path, evidence, today)
+        return (
+            drill_clean(path, evidence) if early else drill_warm(path, evidence, today)
+        )
     if kind == "node":
         return owned(vid, evidence)
     return None
@@ -1174,7 +1290,7 @@ def pnum_key(pnum):
     return (int(digits) if digits else 0, str(pnum))
 
 
-_DODGED = {}  # memo of the latest verdict per node, extended as evidence grows
+_DODGED: dict = {}  # memo of the latest verdict per node, extended as evidence grows
 
 
 def dodged_nodes(evidence):
@@ -1182,6 +1298,7 @@ def dodged_nodes(evidence):
     routed around. These get anti-dodge treatment: carriers chosen to resist
     the escape, drills prescribed first (a drill cannot be dodged)."""
     from itertools import islice
+
     memo = _DODGED
     if memo.get("id") == id(evidence) and memo["n"] <= len(evidence):
         latest, start = memo["latest"], memo["n"]  # extend over the new records
@@ -1198,24 +1315,29 @@ def dodged_nodes(evidence):
 
 def dodgeable(pnum, target, problems):
     """True if a recorded alt walk lets this problem be solved without target."""
-    return any(target not in walk
-               for walk in problems.get(pnum, {}).get("alt_walks", []))
+    return any(
+        target not in walk for walk in problems.get(pnum, {}).get("alt_walks", [])
+    )
 
 
 def clear_branch(name):
     """True when no local branch `name` blocks a fresh checkout -b: either
     none exists, or the user was asked and chose to delete it. Without a
     TTY the branch is kept, never silently deleted."""
-    if subprocess.run(["git", "rev-parse", "--verify", "--quiet",
-                       "refs/heads/" + name], capture_output=True).returncode:
+    if subprocess.run(
+        ["git", "rev-parse", "--verify", "--quiet", "refs/heads/" + name],
+        capture_output=True,
+    ).returncode:
         return True
-    last = subprocess.run(["git", "log", "-1", "--format=%s (%cs)", name],
-                          capture_output=True, text=True).stdout.strip()
+    last = subprocess.run(
+        ["git", "log", "-1", "--format=%s (%cs)", name], capture_output=True, text=True
+    ).stdout.strip()
     if sys.stdin.isatty():
         ans = input(f"branch '{name}' already exists - {last}. Delete it? [y/N] ")
         if ans.strip().lower() in ("y", "yes"):
-            subprocess.run(["git", "branch", "-D", name],
-                           check=True, capture_output=True)
+            subprocess.run(
+                ["git", "branch", "-D", name], check=True, capture_output=True
+            )
             return True
     print(f"kept branch '{name}' - `git checkout {name}` to resume it")
     return False
@@ -1230,22 +1352,30 @@ def mined_solve_times(with_file=False):
     FAILED files measure time-to-walking-away and >10h means a file left
     open across days, so both are dropped."""
     root = os.path.dirname(GRAPH_DIR)
-    head = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True,
-                          text=True, cwd=root).stdout.strip()
+    head = subprocess.run(
+        ["git", "rev-parse", "HEAD"], capture_output=True, text=True, cwd=root
+    ).stdout.strip()
     cache = os.path.join(root, ".solvetimes_cache.json")
     try:
         with open(cache) as f:
             data = json.load(f)
         if data.get("head") == head:
-            reps = [(k, date.fromisoformat(d), secs, f) for k, d, secs, f in data["reps"]]
+            reps = [
+                (k, date.fromisoformat(d), secs, f) for k, d, secs, f in data["reps"]
+            ]
             return reps if with_file else [r[:3] for r in reps]
     except (OSError, ValueError, KeyError, TypeError):
         pass
     reps = _mine_solve_times(root)
     try:
         with open(cache, "w") as f:
-            json.dump({"head": head, "reps": [(k, d.isoformat(), secs, fn)
-                                              for k, d, secs, fn in reps]}, f)
+            json.dump(
+                {
+                    "head": head,
+                    "reps": [(k, d.isoformat(), secs, fn) for k, d, secs, fn in reps],
+                },
+                f,
+            )
     except OSError:
         pass
     return reps if with_file else [r[:3] for r in reps]
@@ -1257,9 +1387,19 @@ def _mine_solve_times(root):
     in .solvetimes_cache.json - every solve is a commit, so the cache is
     exactly as fresh as the history."""
     out = subprocess.run(
-        ["git", "log", "--diff-filter=A", "--format=%x01%at%x01%B%x02",
-         "--name-only", "--", "solved/"],
-        capture_output=True, text=True, cwd=root).stdout
+        [
+            "git",
+            "log",
+            "--diff-filter=A",
+            "--format=%x01%at%x01%B%x02",
+            "--name-only",
+            "--",
+            "solved/",
+        ],
+        capture_output=True,
+        text=True,
+        cwd=root,
+    ).stdout
     parts = out.split("\x01")[1:]
     reps = []
     for at, rest in zip(parts[::2], parts[1::2]):
@@ -1275,8 +1415,14 @@ def _mine_solve_times(root):
         dm = re.match(r"d_(.+?)_\d{4}_", added[0])
         key = pm.group(1) if pm else (f"d:{dm.group(1)}" if dm else None)
         if key:
-            reps.append((key, datetime.fromtimestamp(int(at)).date(), secs,
-                         f"solved/{added[0]}"))
+            reps.append(
+                (
+                    key,
+                    datetime.fromtimestamp(int(at)).date(),
+                    secs,
+                    f"solved/{added[0]}",
+                )
+            )
     return sorted(reps, key=lambda r: r[1])
 
 
@@ -1295,19 +1441,19 @@ def drill_forecast(path, today=None):
     if not reps:
         return None
     key = f"d:{drill_solved_stem(path)}"
-    by_key = {}
+    by_key: dict[str, list] = {}
     for k, d, secs in reps:
         by_key.setdefault(k, []).append((d, secs))
     mine = by_key.get(key)
     if mine:
-        ratios = {True: [], False: []}
+        ratios: dict[bool, list] = {True: [], False: []}
         for rs in by_key.values():
             for (d0, s0), (d1, s1) in zip(rs, rs[1:]):
                 ratios[(d1 - d0).days <= FORECAST_WARM_DAYS].append(math.log2(s1 / s0))
         d0, s0 = mine[-1]
         warm = (today - d0).days <= FORECAST_WARM_DAYS
         r = median(ratios[warm]) if ratios[warm] else 0.0
-        base = s0 / 60 * 2 ** r
+        base = s0 / 60 * 2**r
     else:
         firsts = [rs[0][1] / 60 for k, rs in by_key.items() if k.startswith("d:")]
         if len(firsts) < 8:
@@ -1333,32 +1479,37 @@ def solve_forecast(pnum, problems, today=None):
     reps = mined_solve_times()
     if not reps:
         return None
-    by_key = {}
+    by_key: dict[str, list] = {}
     for key, d, secs in reps:
         by_key.setdefault(key, []).append((d, secs))
 
     mine = by_key.get(str(pnum))
     if mine:
-        ratios = {True: [], False: []}
+        ratios: dict[bool, list] = {True: [], False: []}
         for rs in by_key.values():
             for (d0, s0), (d1, s1) in zip(rs, rs[1:]):
                 ratios[(d1 - d0).days <= FORECAST_WARM_DAYS].append(math.log2(s1 / s0))
         d0, s0 = mine[-1]
         warm = (today - d0).days <= FORECAST_WARM_DAYS
         r = median(ratios[warm]) if ratios[warm] else 0.0
-        base = s0 / 60 * 2 ** r
+        base = s0 / 60 * 2**r
     else:
         conn = node_conn(problems)
         my = problems.get(str(pnum), {})
         if not my.get("moves"):
             return None
+
         def mean_conn(p):
             mv = p.get("moves", [])
             return sum(conn.get(m, 0.0) for m in mv) / len(mv) if mv else 0.0
-        firsts = [(mean_conn(problems[k]), rs[0][1] / 60)
-                  for k, rs in by_key.items()
-                  if k in problems and problems[k].get("difficulty") == my.get("difficulty")
-                  and problems[k].get("moves")]
+
+        firsts = [
+            (mean_conn(problems[k]), rs[0][1] / 60)
+            for k, rs in by_key.items()
+            if k in problems
+            and problems[k].get("difficulty") == my.get("difficulty")
+            and problems[k].get("moves")
+        ]
         if len(firsts) < 8:
             return None
         cs = sorted(c for c, _ in firsts)
@@ -1379,7 +1530,7 @@ def node_conn(problems):
     rest of the catalog keeps rehearsing them incidentally."""
     import math
 
-    counts = {}
+    counts: dict[str, int] = {}
     for p in problems.values():
         for m in p.get("moves", []):
             counts[m] = counts.get(m, 0) + 1
@@ -1396,11 +1547,16 @@ def carriers_for(target, problems, statuses, nodes, evidence):
     found = []
     for pnum, p in problems.items():
         moves = p.get("moves", [])
-        if unservable(pnum, p) or p.get("difficulty") == "Hard" or target not in moves \
-                or not all(m in nodes for m in moves):
+        if (
+            unservable(pnum, p)
+            or p.get("difficulty") == "Hard"
+            or target not in moves
+            or not all(m in nodes for m in moves)
+        ):
             continue
-        if all(statuses[m][0] == SOLID for m in moves if m != target) \
-                and not held_behind(pnum, problems, evidence):
+        if all(
+            statuses[m][0] == SOLID for m in moves if m != target
+        ) and not held_behind(pnum, problems, evidence):
             found.append(pnum)
     return found
 
@@ -1430,8 +1586,16 @@ def cooled(pnum, evidence, days=CARRIER_COOLDOWN_DAYS):
 CONN_MASS_CAP = 30
 
 
-def predicted_carrier(target, problems, statuses, nodes, predicted=None,
-                      evidence=None, skip=(), difficulties=("Easy", "Medium")):
+def predicted_carrier(
+    target,
+    problems,
+    statuses,
+    nodes,
+    predicted=None,
+    evidence=None,
+    skip=(),
+    difficulties=("Easy", "Medium"),
+):
     """The frontier mover (PLAN.md phase 4): when no evidenced problem can
     carry `target`, promote the best drafted one. Returns (pnum, entry) or
     None. `entry` is problems.json-shaped and flagged "predicted": True; it
@@ -1449,6 +1613,7 @@ def predicted_carrier(target, problems, statuses, nodes, predicted=None,
     behind an unmet "after" is not promoted, the hold an evidenced carrier
     obeys."""
     import numpy as np
+
     if predicted is None:
         predicted = load_predicted()
     if evidence is None:
@@ -1481,22 +1646,38 @@ def predicted_carrier(target, problems, statuses, nodes, predicted=None,
         best.append((num, dm.walk_moves[wi], diff, min(int(m), CONN_MASS_CAP)))
     if not best:
         return None
-    best.sort(key=lambda t: (
-        DIFF_RANK.get(t[2], 1),
-        -t[3],
-        (len(input_tree(t[1], nodes)), len(t[1])),
-        -acceptance(t[0]),
-        pnum_key(t[0]),
-    ))
+    best.sort(
+        key=lambda t: (
+            DIFF_RANK.get(t[2], 1),
+            -t[3],
+            (len(input_tree(t[1], nodes)), len(t[1])),
+            -acceptance(t[0]),
+            pnum_key(t[0]),
+        )
+    )
     num, moves, diff, _ = best[0]
-    title = predicted[num].get("title") \
-        or _metadata().get(str(num), {}).get("title", f"problem {num}")
-    return num, {"title": title, "difficulty": diff, "moves": list(moves),
-                 "predicted": True}
+    title = predicted[num].get("title") or _metadata().get(str(num), {}).get(
+        "title", f"problem {num}"
+    )
+    return num, {
+        "title": title,
+        "difficulty": diff,
+        "moves": list(moves),
+        "predicted": True,
+    }
 
 
-def drafted_in_reach(problems, statuses, nodes, immature, predicted=None,
-                     evidence=None, skip=(), first="Hard", limit=20):
+def drafted_in_reach(
+    problems,
+    statuses,
+    nodes,
+    immature,
+    predicted=None,
+    evidence=None,
+    skip=(),
+    first="Hard",
+    limit=20,
+):
     """Unsolved drafted problems whose walk is entirely in reach: every move
     a node, SOLID and mature, no missing-move flags. Ranked `first` (Hard
     or Medium) ahead of the other, Easy last; within a difficulty the walk
@@ -1510,13 +1691,15 @@ def drafted_in_reach(problems, statuses, nodes, immature, predicted=None,
     medium pass rate starved). A draft held behind an unmet "after" waits,
     the hold an evidenced problem obeys."""
     import numpy as np
+
     if predicted is None:
         predicted = load_predicted()
     if evidence is None:
         evidence = _evidence_ro()
     dm = _draft_matrix(predicted, list(nodes))
-    reach = np.array([statuses[n][0] == SOLID and n not in immature
-                      for n in dm.node_ids], dtype=bool)
+    reach = np.array(
+        [statuses[n][0] == SOLID and n not in immature for n in dm.node_ids], dtype=bool
+    )
     gaps = (dm.W & ~reach).sum(1) + dm.unknown
     sel = ~dm.missing & (gaps == 0) & dm.live_problems(problems)[dm.prob]
     walks = np.flatnonzero(sel)
@@ -1540,11 +1723,18 @@ def drafted_in_reach(problems, statuses, nodes, immature, predicted=None,
         num = dm.problems[probs[i]]
         if num in skip or held_behind(num, predicted, evidence):
             continue
-        out.append((num, {"title": predicted[num].get("title")
-                          or meta.get(str(num), {}).get("title", f"problem {num}"),
-                          "difficulty": dm.diff[probs[i]],
-                          "moves": list(dm.walk_moves[walks[i]]),
-                          "predicted": True}))
+        out.append(
+            (
+                num,
+                {
+                    "title": predicted[num].get("title")
+                    or meta.get(str(num), {}).get("title", f"problem {num}"),
+                    "difficulty": dm.diff[probs[i]],
+                    "moves": list(dm.walk_moves[walks[i]]),
+                    "predicted": True,
+                },
+            )
+        )
         if len(out) >= limit:
             break
     return out
@@ -1599,8 +1789,11 @@ def rank_summits(candidates, problems, nodes, statuses, immature=frozenset()):
     one whose gaps are mostly consolidation (moves you once had) rather than
     new ground. The single ordering `make hard` and `make next` share, so a
     summit cannot be named differently depending on which one you ran."""
-    scored = [(route_gaps(p, problems, nodes, statuses, immature)[1:], pnum_key(p), p)
-              for p in candidates if p in problems]
+    scored = [
+        (route_gaps(p, problems, nodes, statuses, immature)[1:], pnum_key(p), p)
+        for p in candidates
+        if p in problems
+    ]
     scored.sort(key=lambda s: (s[0][0], -s[0][1], s[1]))
     return [p for _, _, p in scored]
 
@@ -1670,8 +1863,9 @@ def unservable(pnum, p):
 def problem_difficulty(pnum, problems):
     """Difficulty of a real problem: problems.json first (the curated truth
     for mapped ones), metadata as fallback for evidence-only references."""
-    return problems.get(str(pnum), {}).get("difficulty") \
-        or _metadata().get(str(pnum), {}).get("difficulty", "")
+    return problems.get(str(pnum), {}).get("difficulty") or _metadata().get(
+        str(pnum), {}
+    ).get("difficulty", "")
 
 
 DIFF_RANK = {"Easy": 0, "Medium": 1, "Hard": 2}
@@ -1687,7 +1881,7 @@ def gentleness(pnum, problems, nodes):
     return (tier, tree_size(pnum, problems, nodes))
 
 
-_DRILL_HEADERS = {}  # path -> (mtime_ns, size, DRILL title, TRAINS ids)
+_DRILL_HEADERS: dict = {}  # path -> (mtime_ns, size, DRILL title, TRAINS ids)
 
 
 def _drill_header(path):
@@ -1736,13 +1930,15 @@ def bank_paths(node_id="*"):
     string sort would put d76 before d8. Files without an id sort last, by
     name. Where nothing else separates two drills (both never done), the
     lower id is served first."""
+
     def key(path):
         i = drill_id(path)
         return (int(i[1:]) if i else 10**9, os.path.basename(path))
+
     return sorted(glob.glob(os.path.join(DRILLS_DIR, node_id, "*.py")), key=key)
 
 
-_DRILL_PATHS = {}  # DRILLS_DIR -> {DRILL title: bank path}
+_DRILL_PATHS: dict = {}  # DRILLS_DIR -> {DRILL title: bank path}
 
 
 def drill_path(ref):
@@ -1754,7 +1950,9 @@ def drill_path(ref):
     paths = _DRILL_PATHS.get(DRILLS_DIR)
     if paths is None or title not in paths:
         paths = {}
-        for path in sorted(glob.glob(os.path.join(DRILLS_DIR, "*", "*.py"))):  # not bank_paths: it needs drill_id
+        for path in sorted(
+            glob.glob(os.path.join(DRILLS_DIR, "*", "*.py"))
+        ):  # not bank_paths: it needs drill_id
             t = drill_title(path)
             if t is not None:
                 paths.setdefault(t, path)
@@ -1777,7 +1975,7 @@ def drills():
     return _DRILLS
 
 
-_DRILL_IDS = {}  # {"key": (id(drills()), len), "map": {DRILL title: id}}
+_DRILL_IDS: dict = {}  # {"key": (id(drills()), len), "map": {DRILL title: id}}
 
 
 def drill_id(path):
@@ -1836,8 +2034,11 @@ def drill_assisted(path, evidence):
     rec = latest_drill_rep(path, evidence)
     if rec is None:
         return False
-    return not (rec.get("moves") and all(v == "clean" for v in rec["moves"].values())
-                and assist_of(rec) == "none")
+    return not (
+        rec.get("moves")
+        and all(v == "clean" for v in rec["moves"].values())
+        and assist_of(rec) == "none"
+    )
 
 
 def drill_warm(path, evidence, today=None):
@@ -1851,9 +2052,12 @@ def drill_warm(path, evidence, today=None):
         return False
     when = rec["date"]
     today = today or date.today()
-    return (rec.get("moves") and all(v == "clean" for v in rec["moves"].values())
-            and assist_of(rec) == "none"
-            and (today - date.fromisoformat(when)).days <= SOLID_WINDOW_DAYS)
+    return (
+        rec.get("moves")
+        and all(v == "clean" for v in rec["moves"].values())
+        and assist_of(rec) == "none"
+        and (today - date.fromisoformat(when)).days <= SOLID_WINDOW_DAYS
+    )
 
 
 def has_drill_bank(node_id):
@@ -1861,7 +2065,7 @@ def has_drill_bank(node_id):
     return bool(glob.glob(os.path.join(DRILLS_DIR, node_id, "*.py")))
 
 
-_NODE_DRILL_HOLD = {}
+_NODE_DRILL_HOLD: dict = {}
 
 
 def bank_files(node_id):
@@ -1871,7 +2075,8 @@ def bank_files(node_id):
     hit = _BANK_FILES.get(key)
     if hit is None:
         hit = _BANK_FILES[key] = sorted(
-            glob.glob(os.path.join(DRILLS_DIR, node_id, "*.py")))
+            glob.glob(os.path.join(DRILLS_DIR, node_id, "*.py"))
+        )
     return hit
 
 
@@ -1955,9 +2160,9 @@ def owned(node_id, evidence):
     return ok
 
 
-GRAD_LADDER = (3, 10, 25)        # days to a young move's next unaided rep
+GRAD_LADDER = (3, 10, 25)  # days to a young move's next unaided rep
 GRAD_LADDER_SPARSE = (2, 7, 18)  # tighter when few problems carry the move
-GRAD_SPARSE_CARRIERS = 2         # this many carriers or fewer = sparse
+GRAD_SPARSE_CARRIERS = 2  # this many carriers or fewer = sparse
 
 
 def graduation_due(node_id, evidence, carriers=99):
@@ -1983,8 +2188,11 @@ def graduation_due(node_id, evidence, carriers=99):
     # the ladder or certify a gap (2026-09-02: five first-exposure drills
     # read as a survived 282-day trial on union-find). Only days holding a
     # non-first-rep unaided clean count past the first.
-    proof = {d for d, v, a, f, _ in rows
-             if v == "clean" and a == "none" and f not in idx.first_reps}
+    proof = {
+        d
+        for d, v, a, f, _ in rows
+        if v == "clean" and a == "none" and f not in idx.first_reps
+    }
     days = [unaided[0]] + [d for d in unaided[1:] if d in proof]
     ladder = GRAD_LADDER_SPARSE if carriers <= GRAD_SPARSE_CARRIERS else GRAD_LADDER
     # the day count never graduates a move: five clean days inside one week
@@ -1998,8 +2206,9 @@ def graduation_due(node_id, evidence, carriers=99):
     # long-standing thin-history node. The gap is measured between
     # consecutive EXPOSURES (a copy refreshes memory even though it proves
     # nothing), and only a proof day can end it.
-    if any((b - a).days >= ladder[-1] and b in proof
-           for a, b in zip(unaided, unaided[1:])):
+    if any(
+        (b - a).days >= ladder[-1] and b in proof for a, b in zip(unaided, unaided[1:])
+    ):
         return None
     floor = ladder[min(len(days), len(ladder)) - 1]
     return days[-1] + timedelta(days=floor), floor
@@ -2018,9 +2227,15 @@ def drill_held(node_id, nodes, statuses, evidence, has_bank=None, pending=()):
     for p in nodes.get(node_id, {}).get("prereqs", []):
         if p in pending:
             return True
-        if has_bank(p) and p in statuses and (
-                statuses[p][0] != SOLID or not owned(p, evidence)
-                or drills_left(p, evidence)):
+        if (
+            has_bank(p)
+            and p in statuses
+            and (
+                statuses[p][0] != SOLID
+                or not owned(p, evidence)
+                or drills_left(p, evidence)
+            )
+        ):
             return True  # rusty, not owned, or drills of its own still undone
     return False
 
@@ -2038,7 +2253,7 @@ def drill_trains(path):
     return list(_drill_header(path)[1])
 
 
-_EVIDENCE_RO = {}  # path -> (mtime_ns, size, evidence)
+_EVIDENCE_RO: dict = {}  # path -> (mtime_ns, size, evidence)
 
 
 def _evidence_ro():
@@ -2055,9 +2270,9 @@ def _evidence_ro():
     return hit[2]
 
 
-_BANK_FILES = {}  # node id -> its drill bank files
+_BANK_FILES: dict = {}  # node id -> its drill bank files
 
-_PROBLEMS_RO = {}  # path -> (mtime_ns, size, problems)
+_PROBLEMS_RO: dict = {}  # path -> (mtime_ns, size, problems)
 
 
 def _problems_ro():
@@ -2086,7 +2301,9 @@ def servable_drills(candidates, evidence, node_id=None, early=False):
     problems = _problems_ro()
     out = []
     for path in candidates:
-        if any(warm(a, problems, evidence, early=early) is False for a in drill_after(path)):
+        if any(
+            warm(a, problems, evidence, early=early) is False for a in drill_after(path)
+        ):
             continue
         if any(not owned(t, evidence) for t in drill_trains(path) if t != node_id):
             continue
@@ -2140,8 +2357,10 @@ def anki_due(path, evidence):
     """(due date, interval days) for a bank file on its own clock, or None
     when the file has never been done (a new card: due now)."""
     key = f"d_{drill_solved_stem(path)}_".lower()
-    reps = sorted((t for t in ev_index(evidence).drills if t[1].startswith(key)),
-                  key=lambda t: t[:2])
+    reps = sorted(
+        (t for t in ev_index(evidence).drills if t[1].startswith(key)),
+        key=lambda t: t[:2],
+    )
     if not reps:
         return None
     by_day = {}
@@ -2151,11 +2370,17 @@ def anki_due(path, evidence):
     for d in sorted(by_day):
         answer = anki_answer(by_day[d])
         if answer == "good":
-            interval = ANKI_GRADUATING_DAYS if interval == 0 else max(
-                interval + 1, int(interval * ease + 0.5))
+            interval = (
+                ANKI_GRADUATING_DAYS
+                if interval == 0
+                else max(interval + 1, int(interval * ease + 0.5))
+            )
         elif answer == "hard":
-            interval = ANKI_GRADUATING_DAYS if interval == 0 else max(
-                interval + 1, int(interval * ANKI_HARD_FACTOR + 0.5))
+            interval = (
+                ANKI_GRADUATING_DAYS
+                if interval == 0
+                else max(interval + 1, int(interval * ANKI_HARD_FACTOR + 0.5))
+            )
             ease = max(ANKI_EASE_MIN, ease - ANKI_HARD_EASE_STEP)
         else:
             interval = ANKI_GRADUATING_DAYS
@@ -2219,14 +2444,16 @@ def problem_grade(fname, rec):
     """good / hard / again for one attempt, or None when it grades nothing.
     Same bar as anki_answer, plus the FAILED file the drill clock never
     sees."""
-    return {"clean": "good", "hint": "hard",
-            "unmapped": None}.get(attempt_label(fname, rec), "again")
+    return {"clean": "good", "hint": "hard", "unmapped": None}.get(
+        attempt_label(fname, rec), "again"
+    )
 
 
 def problem_attempts(pnum, evidence):
     """[(date str, fname, rec)] for a problem, oldest first."""
-    return sorted(ev_index(evidence).by_problem.get(str(pnum)) or [],
-                  key=lambda t: (t[0], t[1]))
+    return sorted(
+        ev_index(evidence).by_problem.get(str(pnum)) or [], key=lambda t: (t[0], t[1])
+    )
 
 
 def problem_due(pnum, evidence):
@@ -2247,8 +2474,11 @@ def problem_due(pnum, evidence):
         if answer == "good":
             interval, last = 0, None  # the rep it was waiting for
         elif answer == "hard":
-            interval = PROBLEM_GRADUATING_DAYS if interval == 0 else max(
-                interval + 1, int(interval * ANKI_HARD_FACTOR + 0.5))
+            interval = (
+                PROBLEM_GRADUATING_DAYS
+                if interval == 0
+                else max(interval + 1, int(interval * ANKI_HARD_FACTOR + 0.5))
+            )
             last = d
         else:
             interval, last = PROBLEM_GRADUATING_DAYS, d
@@ -2305,8 +2535,10 @@ def drill_recall(path, evidence, today=None):
     if not curve:
         return None
     key = f"d_{drill_solved_stem(path)}_".lower()
-    reps = sorted((t for t in ev_index(evidence).drills if t[1].startswith(key)),
-                  key=lambda t: t[:2])
+    reps = sorted(
+        (t for t in ev_index(evidence).drills if t[1].startswith(key)),
+        key=lambda t: t[:2],
+    )
     if not reps:
         return None
     by_day = {}
@@ -2334,9 +2566,13 @@ def drill_recall(path, evidence, today=None):
     # the file's connectivity is its node's; a composite drill takes the
     # widest-carried move it combines, the one holding the rest up
     cn = max((conn[n] for n in drill_trains(path) if n in conn), default=cmean)
-    stability = math.exp(p["a"] + p["b"] * math.log1p(len(clean_days))
-                         - p["c"] * struggles - p.get("d", 0.0) * assisted
-                         + p.get("e", 0.0) * (cn - cmean))
+    stability = math.exp(
+        p["a"]
+        + p["b"] * math.log1p(len(clean_days))
+        - p["c"] * struggles
+        - p.get("d", 0.0) * assisted
+        + p.get("e", 0.0) * (cn - cmean)
+    )
     stability = min(max(stability, 7), 3650)  # sanity clamp, as in _node_curve
     gap = max(((today or date.today()) - date.fromisoformat(max(clean_days))).days, 0)
     memory = (1 + gap / stability) ** (-p["beta"])
@@ -2422,8 +2658,9 @@ def due_drill(node_id, evidence, today=None, early=False, assisted=False):
         # status and whatever holds on the file: a due drill is served.
         # With nothing due on the clock, a node that is not SOLID still
         # trains on its bank (the drill gate), below.
-        ranked = anki_frontier(evidence, day, nodes={}, node_ids=[node_id],
-                               assisted=assisted)
+        ranked = anki_frontier(
+            evidence, day, nodes={}, node_ids=[node_id], assisted=assisted
+        )
         if ranked:
             return ranked[0][0]
     # the graduating floor (graduation_due) asks for a non-first unaided
@@ -2431,10 +2668,18 @@ def due_drill(node_id, evidence, today=None, early=False, assisted=False):
     # else to land one, so it was due at its floor forever once each drill
     # had been done once (kg_simulate, 2026-09-06: twenty sql nodes 45-60
     # days). At the floor the bank is served again.
-    g = graduation_due(node_id, evidence, carrier_counts(_problems_ro()).get(node_id, 0))
+    g = graduation_due(
+        node_id, evidence, carrier_counts(_problems_ro()).get(node_id, 0)
+    )
     at_floor = bool(g) and g[0] <= day
-    holds = (status == SOLID and owned(node_id, evidence) and not early and not assisted
-             and not drills_left(node_id, evidence) and not at_floor)
+    holds = (
+        status == SOLID
+        and owned(node_id, evidence)
+        and not early
+        and not assisted
+        and not drills_left(node_id, evidence)
+        and not at_floor
+    )
     # the curve says the node holds - a drill is a problem we authored, and
     # problems are not re-served while warm. A never-done drill of the node
     # is still due: one clean drill does not stand for the others
@@ -2450,8 +2695,11 @@ def due_drill(node_id, evidence, today=None, early=False, assisted=False):
         candidates = [p for p in candidates if drill_assisted(p, evidence)]
     if not candidates:
         return None
-    pool = candidates if assisted else servable_drills(
-        candidates, evidence, node_id, early=early)
+    pool = (
+        candidates
+        if assisted
+        else servable_drills(candidates, evidence, node_id, early=early)
+    )
     if not pool:
         return None  # every bank file is held behind an id not yet warm
     path = min(pool, key=lambda p: last_drilled(p, evidence))
@@ -2473,15 +2721,20 @@ def drills_left(node_id, evidence, early=False):
     by_id = {drill_id(p): p for p in candidates}
     reachable = set(servable_drills(candidates, evidence, node_id, early=early))
     grew = True
-    while grew:  # a drill is reachable when all its unmet holds are reachable drills of this node
+    while (
+        grew
+    ):  # a drill is reachable when all its unmet holds are reachable drills of this node
         grew = False
         for path in candidates:
             if path in reachable:
                 continue
             if any(not owned(t, evidence) for t in drill_trains(path) if t != node_id):
                 continue
-            unmet = [a for a in drill_after(path)
-                     if warm(a, problems, evidence, early=early) is False]
+            unmet = [
+                a
+                for a in drill_after(path)
+                if warm(a, problems, evidence, early=early) is False
+            ]
             if all(a in by_id and by_id[a] in reachable for a in unmet):
                 reachable.add(path)
                 grew = True
@@ -2569,7 +2822,11 @@ def drill_review_cap(environ=None):
     session is drills and nothing else, and the problems the drills exist
     for never get solved. Past the cap the clock waits and the picker
     falls through to its problem rules."""
-    raw = (os.environ if environ is None else environ).get("MAX_DRILL_REVIEWS", "").strip()
+    raw = (
+        (os.environ if environ is None else environ)
+        .get("MAX_DRILL_REVIEWS", "")
+        .strip()
+    )
     return int(raw) if raw.isdigit() else None
 
 
@@ -2578,8 +2835,11 @@ def drill_reviews_today(evidence, day=None):
     that had been met before (a d_ record not in ev_index.first_reps)."""
     day = (day or date.today()).isoformat()
     idx = ev_index(evidence)
-    return sum(1 for fname, _ in idx.by_date.get(day, ())
-               if drill_key(fname) is not None and fname not in idx.first_reps)
+    return sum(
+        1
+        for fname, _ in idx.by_date.get(day, ())
+        if drill_key(fname) is not None and fname not in idx.first_reps
+    )
 
 
 def drill_reviews_left(evidence, day=None, environ=None):
@@ -2598,8 +2858,11 @@ def drill_capped(path, evidence, day=None, environ=None):
     and with both budgets spent, to its problem rules. Unlike the group cap
     (group_caps) there is no override: the budgets are on the whole day,
     not on one bank, so naming a group or cramming it does not lift them."""
-    left = (drill_reviews_left(evidence, day, environ) if last_drilled(path, evidence)
-            else new_drills_left(evidence, day, environ))
+    left = (
+        drill_reviews_left(evidence, day, environ)
+        if last_drilled(path, evidence)
+        else new_drills_left(evidence, day, environ)
+    )
     return left is not None and left <= 0
 
 
@@ -2608,8 +2871,10 @@ def group_reps(group, nodes, evidence, day=None):
     problem is one rep when its evidenced walk has a node of the group."""
     day = (day or date.today()).isoformat()
     return sum(
-        1 for _, rec in ev_index(evidence).by_date.get(day, ())
-        if any(nodes.get(m, {}).get("group") == group for m in rec.get("moves", {})))
+        1
+        for _, rec in ev_index(evidence).by_date.get(day, ())
+        if any(nodes.get(m, {}).get("group") == group for m in rec.get("moves", {}))
+    )
 
 
 def _git_out(*args):
@@ -2684,11 +2949,16 @@ def sleep_records(problems, evidence):
         if ts is None:
             continue
         slept_day = datetime.fromtimestamp(ts).date().isoformat()
-        if any(d >= slept_day
-               for d, _, _ in ev_index(evidence).by_problem.get(pnum, ())):
+        if any(
+            d >= slept_day for d, _, _ in ev_index(evidence).by_problem.get(pnum, ())
+        ):
             continue
-        recs[pnum] = {"branch": branch, "title": problems[pnum]["title"],
-                      "slept": ts, "cycles": max(len(marks), 1)}
+        recs[pnum] = {
+            "branch": branch,
+            "title": problems[pnum]["title"],
+            "slept": ts,
+            "cycles": max(len(marks), 1),
+        }
     return recs
 
 
@@ -2723,12 +2993,16 @@ def sleep_lines(nodes, problems, evidence, statuses=None):
         rec = recs[pnum]
         since = datetime.fromtimestamp(rec["slept"]).isoformat(timespec="minutes")
         cycles = f", slept x{rec['cycles']}" if rec["cycles"] > 1 else ""
-        rusty = sorted(n for n in input_tree(problems[pnum]["moves"], nodes)
-                       if statuses[n][0] != SOLID)
-        ground = (f"warming: {', '.join(rusty)}" if rusty
-                  else "ground solid, simmering")
-        lines.append(f"{pnum}. {rec['title']} - asleep ({ground}) - parked "
-                     f"{since}{cycles} - make wake {pnum} when you choose")
+        rusty = sorted(
+            n
+            for n in input_tree(problems[pnum]["moves"], nodes)
+            if statuses[n][0] != SOLID
+        )
+        ground = f"warming: {', '.join(rusty)}" if rusty else "ground solid, simmering"
+        lines.append(
+            f"{pnum}. {rec['title']} - asleep ({ground}) - parked "
+            f"{since}{cycles} - make wake {pnum} when you choose"
+        )
     return lines
 
 
@@ -2747,10 +3021,15 @@ def claude_json(prompt, system_prompt, model="sonnet", retries=2):
 def _claude_json_once(prompt, system_prompt, model):
     proc = subprocess.run(
         [
-            "claude", "-p", prompt,
-            "--system-prompt", system_prompt,
-            "--model", model,
-            "--output-format", "json",
+            "claude",
+            "-p",
+            prompt,
+            "--system-prompt",
+            system_prompt,
+            "--model",
+            model,
+            "--output-format",
+            "json",
         ],
         capture_output=True,
         text=True,
@@ -2785,6 +3064,7 @@ def taxonomy_summary(nodes):
 # per-difficulty any more - the Easy/Medium/Hard label only says which pool a
 # problem is drawn from, which is a fact about the interview, not about him.
 
+
 def solve_model(curve=None):
     """The fitted cold-solve coefficients, or None when curve.json predates
     the fit (in which case there is no pass model to run)."""
@@ -2795,10 +3075,12 @@ def solve_model(curve=None):
 
 def solve_logit(coef, rating, ln_recall, unseen):
     """The cold-solve model's linear predictor for one walk."""
-    return (coef.get("intercept", 0.0)
-            + coef.get("rating", 0.0) * (rating - 1500) / 400
-            + coef.get("recall", 0.0) * ln_recall
-            + coef.get("unseen", 0.0) * unseen)
+    return (
+        coef.get("intercept", 0.0)
+        + coef.get("rating", 0.0) * (rating - 1500) / 400
+        + coef.get("recall", 0.0) * ln_recall
+        + coef.get("unseen", 0.0) * unseen
+    )
 
 
 def walk_terms(walk, node_recall):
@@ -2829,7 +3111,7 @@ def elo_games(evidence=None, ratings=None):
     construction - a game's elo_before sees only games before it."""
     games = scored_games(evidence)
     ratings = solve_ratings() if ratings is None else ratings
-    by_dif = {}
+    by_dif: dict[str, list] = {}
     for g in games:
         r = ratings.get(g["problem"])
         if r is not None:
@@ -2854,7 +3136,8 @@ def elo_now(evidence=None, ratings=None):
         return ELO_START
     last = games[-1]
     return last["elo_before"] + ELO_K * (
-        last["score"] - 1 / (1 + 10 ** ((last["rating"] - last["elo_before"]) / 400)))
+        last["score"] - 1 / (1 + 10 ** ((last["rating"] - last["elo_before"]) / 400))
+    )
 
 
 def elo_drift(evidence=None, ratings=None, window=None):
@@ -2868,8 +3151,10 @@ def elo_drift(evidence=None, ratings=None, window=None):
         games = [g for g in games if date.fromisoformat(g["date"]) >= cutoff]
     if len(games) < 30:
         return 0.0, 0.0
-    x = [(date.fromisoformat(g["date"]) - date.fromisoformat(games[0]["date"])).days
-         for g in games]
+    x = [
+        (date.fromisoformat(g["date"]) - date.fromisoformat(games[0]["date"])).days
+        for g in games
+    ]
     y = [g["elo_before"] for g in games]
     n = len(x)
     mx, my = sum(x) / n, sum(y) / n
@@ -2902,6 +3187,7 @@ def solve_ratings():
     cache, which leaves every rating-aware sort inert."""
     try:
         from kg import clist
+
         return clist.combined_ratings()
     except (ImportError, SystemExit, OSError):
         return {}
@@ -2950,21 +3236,31 @@ def scored_games(evidence=None):
             score = 0.0
         elif fname not in secs:
             continue
-        elif secs[fname] > BUDGET_MIN[NEXT_TIER[diff] if rec.get("followup") == "solved"
-                                      else diff] * 60:
+        elif (
+            secs[fname]
+            > BUDGET_MIN[NEXT_TIER[diff] if rec.get("followup") == "solved" else diff]
+            * 60
+        ):
             score = 0.0
         else:
             score = 0.5 if level == "hint" else 1.0
-        out.append({"date": rec["date"], "problem": pnum, "difficulty": diff,
-                    "score": score, "file": fname,
-                    "moves": list(rec.get("moves") or {})})
+        out.append(
+            {
+                "date": rec["date"],
+                "problem": pnum,
+                "difficulty": diff,
+                "score": score,
+                "file": fname,
+                "moves": list(rec.get("moves") or {}),
+            }
+        )
     return out
 
 
 def carrier_counts(problems):
     """move -> how many evidenced problems walk it (problems.json primary
     walks). The rehearsal mass of a walk is the count of its rarest move."""
-    counts = {}
+    counts: dict[str, int] = {}
     for p in problems.values():
         for m in p.get("moves", []):
             counts[m] = counts.get(m, 0) + 1
@@ -3020,9 +3316,11 @@ def solve_scenarios(curve=None, days=0):
     se = solve.get("intercept_se") or 0.0
     centre = skill_shift(curve, days)
     lo, hi = skill_shift(curve, days, -1.96), skill_shift(curve, days, 1.96)
-    return {"cautious": -1.96 * se + lo,
-            "central": centre,
-            "optimistic": 1.96 * se + hi}
+    return {
+        "cautious": -1.96 * se + lo,
+        "central": centre,
+        "optimistic": 1.96 * se + hi,
+    }
 
 
 def retention_cycle(nodes=None, evidence=None, curve=None):
@@ -3077,13 +3375,15 @@ def current_recall(nodes, evidence, curve, today=None):
 def node_curve_recall(nid, evidence, curve, today=None):
     """One node of current_recall, or None when he has never had it clean."""
     import math
+
     today = today or date.today()
     p = curve["params"]
     status, last = node_status(nid, evidence, today=today)
     if status == MISSING or not last:
         return None
-    cleans = len({d for d, v, _, _, _ in ev_index(evidence).by_node.get(nid, ())
-                  if v == "clean"})  # distinct clean days, as in node_eval
+    cleans = len(
+        {d for d, v, _, _, _ in ev_index(evidence).by_node.get(nid, ()) if v == "clean"}
+    )  # distinct clean days, as in node_eval
     if not cleans:
         return None
     s = min(max(math.exp(p["a"] + p["b"] * math.log1p(cleans)), 7), 3650)
@@ -3098,10 +3398,10 @@ def node_curve_recall(nid, evidence, curve, today=None):
 # wants to play in sync with kg_movie.svg / kg_pass.svg builds its keyTimes
 # from this. Change the pacing here and in kg_movie_rs/src/main.rs together.
 
-MOVIE_SECONDS = 10.0        # kg_movie's DEFAULT_SECONDS
-MOVIE_END_FADE_S = 1.2      # loop-closing dissolve, capped by the fraction
+MOVIE_SECONDS = 10.0  # kg_movie's DEFAULT_SECONDS
+MOVIE_END_FADE_S = 1.2  # loop-closing dissolve, capped by the fraction
 MOVIE_FADE_FRACTION = 0.08
-MOVIE_LULL_WEIGHT = 0.25    # screen time a solve-less day gets, in solves
+MOVIE_LULL_WEIGHT = 0.25  # screen time a solve-less day gets, in solves
 
 
 class MovieClock:
@@ -3123,7 +3423,8 @@ class MovieClock:
             if p[:1].isdigit():
                 by_day[rec["date"]].add(p)
         self.weights = [
-            len(by_day[(self.first + timedelta(days=i)).isoformat()]) + MOVIE_LULL_WEIGHT
+            len(by_day[(self.first + timedelta(days=i)).isoformat()])
+            + MOVIE_LULL_WEIGHT
             for i in range(self.n_ticks)
         ]
         self.total_w = sum(self.weights)
@@ -3143,9 +3444,11 @@ class MovieClock:
 
     def dissolve_rect(self, w, h, fill):
         """The loop-closing cover fade, identical to kg_movie's."""
-        return (f'<rect width="{w}" height="{h}" fill="{fill}" opacity="0" pointer-events="none">'
-                f'<animate attributeName="opacity" calcMode="linear" values="0;0;1" '
-                f'keyTimes="0;{self.ticks_end:.4f};1" dur="{self.dur}s" repeatCount="indefinite"/></rect>')
+        return (
+            f'<rect width="{w}" height="{h}" fill="{fill}" opacity="0" pointer-events="none">'
+            f'<animate attributeName="opacity" calcMode="linear" values="0;0;1" '
+            f'keyTimes="0;{self.ticks_end:.4f};1" dur="{self.dur}s" repeatCount="indefinite"/></rect>'
+        )
 
 
 # era banner shared by the animated SVGs: the one flip that is the point of
@@ -3161,20 +3464,33 @@ def era_banner(clock, x, y, size, anchor="start", halo=None):
     """Two <text> layers flipping grey -> blue on the switch date's tick;
     non-SMIL viewers see today's era. halo outlines the text in a background
     color for banners placed over chart ink."""
-    halo_attr = (f' stroke="{halo}" stroke-width="{max(size // 7, 3)}" '
-                 f'paint-order="stroke" stroke-linejoin="round"') if halo else ""
+    halo_attr = (
+        (
+            f' stroke="{halo}" stroke-width="{max(size // 7, 3)}" '
+            f'paint-order="stroke" stroke-linejoin="round"'
+        )
+        if halo
+        else ""
+    )
     common = f'y="{y}" text-anchor="{anchor}" font-size="{size}" font-weight="bold"'
     if not (clock.first < ERA_SWITCH <= clock.last):
-        label, ink = ((ERA_PRE_LABEL, ERA_PRE_INK) if clock.last < ERA_SWITCH
-                      else (ERA_GRAPH_LABEL, ERA_GRAPH_INK))
+        label, ink = (
+            (ERA_PRE_LABEL, ERA_PRE_INK)
+            if clock.last < ERA_SWITCH
+            else (ERA_GRAPH_LABEL, ERA_GRAPH_INK)
+        )
         return [f'<text x="{x}" {common} fill="{ink}"{halo_attr}>{label}</text>']
     f = clock.frac((ERA_SWITCH - clock.first).days)
     out = []
-    for label, ink, vals, init in ((ERA_PRE_LABEL, ERA_PRE_INK, "1;0", 0),
-                                   (ERA_GRAPH_LABEL, ERA_GRAPH_INK, "0;1", 1)):
-        out.append(f'<text x="{x}" {common} fill="{ink}"{halo_attr} opacity="{init}">{label}'
-                   f'<animate attributeName="opacity" calcMode="discrete" values="{vals}" '
-                   f'keyTimes="0;{f:.4f}" dur="{clock.dur}s" repeatCount="indefinite"/></text>')
+    for label, ink, vals, init in (
+        (ERA_PRE_LABEL, ERA_PRE_INK, "1;0", 0),
+        (ERA_GRAPH_LABEL, ERA_GRAPH_INK, "0;1", 1),
+    ):
+        out.append(
+            f'<text x="{x}" {common} fill="{ink}"{halo_attr} opacity="{init}">{label}'
+            f'<animate attributeName="opacity" calcMode="discrete" values="{vals}" '
+            f'keyTimes="0;{f:.4f}" dur="{clock.dur}s" repeatCount="indefinite"/></text>'
+        )
     return out
 
 
@@ -3182,7 +3498,7 @@ def drill_ids_by_key():
     """drill_key of a solved d_ file -> the drill's id (d61), for every bank
     drill drills.json names. A rep of a drill the bank no longer carries has
     no entry."""
-    out = {}
+    out: dict[str, str] = {}
     for did in drills():
         path = drill_path(did)
         if path:
@@ -3196,7 +3512,7 @@ def exercises_by_day(evidence):
     drill the bank no longer names). The first of a same-day re-solve only.
     The replays (kg_3d, kg_full) read this for their solve labels."""
     ids = drill_ids_by_key()
-    by_day = {}
+    by_day: dict[str, list] = {}
     for fname, rec in evidence.items():
         p = rec.get("problem", "")
         if p[:1].isdigit():
@@ -3206,7 +3522,9 @@ def exercises_by_day(evidence):
         else:
             continue
         m = re.search(r"\d{4}_\d{2}_\d{2}T[\d_]+", fname)
-        by_day.setdefault(rec["date"], []).append((m.group(0) if m else "", label, list(rec.get("moves", {}))))
+        by_day.setdefault(rec["date"], []).append(
+            (m.group(0) if m else "", label, list(rec.get("moves", {})))
+        )
     out = {}
     for day, rows in by_day.items():
         seen, ordered = set(), []

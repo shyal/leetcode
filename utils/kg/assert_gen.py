@@ -107,8 +107,7 @@ def _proposals(text):
 
 def covered(code):
     """The labels a file's one-line asserts already carry."""
-    return [m.group(1) for m in
-            re.finditer(r"^assert .*#\s*(\S+)\s*$", code, re.M)]
+    return [m.group(1) for m in re.finditer(r"^assert .*#\s*(\S+)\s*$", code, re.M)]
 
 
 def _freeze(run, code, proposals):

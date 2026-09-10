@@ -19,16 +19,26 @@
 # given (CLAUDE.md, Coaching).
 
 import argparse
-import glob
 import os
 import re
 import sys
 
 from kg.kg_lib import (
-    REPO_ROOT, DRILLS_DIR, load_problems, load_evidence, load_nodes,
-    ev_index, node_eval, node_axes, assist_of, assist_tag, drills, drill_path,
-    drill_title, drill_solved_stem, drill_id, drill_after, drill_trains, bank_paths, SOLID, STALE,
-    FRAGILE, MISSING,
+    REPO_ROOT,
+    assist_tag,
+    bank_paths,
+    drill_after,
+    drill_id,
+    drill_path,
+    drill_solved_stem,
+    drill_title,
+    drill_trains,
+    ev_index,
+    load_evidence,
+    load_nodes,
+    load_problems,
+    node_axes,
+    node_eval,
 )
 
 CURRENT = os.path.join(REPO_ROOT, "current.py")
@@ -84,8 +94,11 @@ def drill_reps(path, evidence):
     else:
         stem = drill_solved_stem(path)
     key = f"d_{stem}_".lower()
-    reps = [(d, base, rec) for d, base, rec in ev_index(evidence).drills
-            if base.startswith(key)]
+    reps = [
+        (d, base, rec)
+        for d, base, rec in ev_index(evidence).drills
+        if base.startswith(key)
+    ]
     return sorted(reps, key=lambda t: t[:2])
 
 
@@ -98,7 +111,7 @@ def trains_of(path):
     return drill_trains(path)
 
 
-_PROBLEMS = {}
+_PROBLEMS: dict = {}
 
 
 def _problems():
@@ -117,11 +130,16 @@ def node_line(node, evidence, today=None):
     tail = ""
     if latest:
         d, v, a, fname, _ = latest
-        tail = f"  last {d} {v}" + (f" ({a})" if a != "none" else "") + \
-            f"  {os.path.basename(fname)}"
-    return (f"  {node:<28} {status:<8} reps {len(entries)} "
-            f"(clean {len(clean)}, unaided {len(unaided)})  "
-            f"carriers {ax.carriers}  own {ax.degree:.2f}{tail}")
+        tail = (
+            f"  last {d} {v}"
+            + (f" ({a})" if a != "none" else "")
+            + f"  {os.path.basename(fname)}"
+        )
+    return (
+        f"  {node:<28} {status:<8} reps {len(entries)} "
+        f"(clean {len(clean)}, unaided {len(unaided)})  "
+        f"carriers {ax.carriers}  own {ax.degree:.2f}{tail}"
+    )
 
 
 def rep_lines(reps):
@@ -143,7 +161,7 @@ def rep_lines(reps):
 
 def first_rep_verdict(n):
     if n == 0:
-        return "FIRST REP: first exposure. On \"i don't know\" give the answer."
+        return 'FIRST REP: first exposure. On "i don\'t know" give the answer.'
     return f"rep {n + 1}: not first exposure. No answer unless asked."
 
 
@@ -168,7 +186,9 @@ def report_drill(path, evidence, today=None):
 def report_problem(pnum, problems, evidence, today=None):
     p = problems.get(str(pnum), {})
     reps = problem_reps(pnum, evidence)
-    lines = [f"problem: {pnum}. {p.get('title', '?')}  {p.get('difficulty', '')}".rstrip()]
+    lines = [
+        f"problem: {pnum}. {p.get('title', '?')}  {p.get('difficulty', '')}".rstrip()
+    ]
     if p.get("after"):
         lines.append(f"after: {', '.join(map(str, p['after']))}")
     lines.append(first_rep_verdict(len(reps)))
@@ -205,15 +225,22 @@ def one_line(kind, key, problems, evidence):
     else:
         return None
     n = len(reps) + 1
-    rep = "rep 1 = FIRST EXPOSURE, answer on \"i don't know\"" if n == 1 else \
-        f"rep {n} (last {reps[-1][0]}), no answer unless asked"
+    rep = (
+        'rep 1 = FIRST EXPOSURE, answer on "i don\'t know"'
+        if n == 1
+        else f"rep {n} (last {reps[-1][0]}), no answer unless asked"
+    )
     st = ", ".join(f"{m} {node_eval(m, evidence)[0]}" for m in nodes)
     return f"[current: {head}, {rep} | {st}]"
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("ref", nargs="*", help="problem number, drill id/title/path, node id; default current.py")
+    ap.add_argument(
+        "ref",
+        nargs="*",
+        help="problem number, drill id/title/path, node id; default current.py",
+    )
     ap.add_argument("--line", action="store_true", help="one line for the prompt hook")
     args = ap.parse_args()
 
@@ -234,7 +261,11 @@ def main():
     elif kind == "node":
         lines = report_node(key, evidence)
     else:
-        print(f"nothing known for {key!r}" if key else "current.py holds no problem or drill")
+        print(
+            f"nothing known for {key!r}"
+            if key
+            else "current.py holds no problem or drill"
+        )
         sys.exit(1)
     print("\n".join(lines))
 

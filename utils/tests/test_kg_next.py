@@ -20,14 +20,23 @@ import re
 import sys
 from datetime import date, timedelta
 from importlib.machinery import SourceFileLoader
+from typing import Any
 
 import pytest
 
 KG = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "kg")
-kg_next = SourceFileLoader("kg_next", os.path.join(KG, "kg_next")).load_module()
+# Any: the tests monkeypatch module attributes (drills_left, due_drill, ...)
+kg_next: Any = SourceFileLoader("kg_next", os.path.join(KG, "kg_next")).load_module()
 
 from kg import kg_lib  # noqa: E402
-from kg.kg_lib import SOLID, STALE, FRAGILE, MISSING, DEEP_STALE_DAYS, STARVED_DAYS  # noqa: E402
+from kg.kg_lib import (
+    DEEP_STALE_DAYS,
+    FRAGILE,
+    MISSING,
+    SOLID,
+    STALE,
+    STARVED_DAYS,
+)  # noqa: E402
 
 
 def ago(days):
@@ -52,8 +61,12 @@ def nodes(*specs):
 
 
 def problem(moves, difficulty="Medium", **extra):
-    return {"title": f"synthetic {difficulty}", "difficulty": difficulty,
-            "moves": list(moves), **extra}
+    return {
+        "title": f"synthetic {difficulty}",
+        "difficulty": difficulty,
+        "moves": list(moves),
+        **extra,
+    }
 
 
 def drafted(moves, missing=None):
@@ -86,21 +99,43 @@ def picker(monkeypatch):
     neutral too — every node mature — because it is derived from months of
     real evidence these synthetic graphs don't carry. Tests that care
     override any of it via the returned control object."""
-    ctl = type("Ctl", (), {"bank": set(), "drilled_today": set(), "acceptance": {},
-                           "unlocks": {}, "immature": set(), "undone": set()})()
+    ctl = type(
+        "Ctl",
+        (),
+        {
+            "bank": set(),
+            "drilled_today": set(),
+            "acceptance": {},
+            "unlocks": {},
+            "immature": set(),
+            "undone": set(),
+        },
+    )()
 
-    monkeypatch.setattr(kg_next, "drill_gated",
-                        lambda nid, status, last, today=None:
-                        nid in ctl.bank and status in (FRAGILE, MISSING))
-    monkeypatch.setattr(kg_next, "unlocks",
-                        lambda statuses, problems, immature=():
-                        ctl.gain if immature else ctl.unlocks)
+    monkeypatch.setattr(
+        kg_next,
+        "drill_gated",
+        lambda nid, status, last, today=None: nid in ctl.bank
+        and status in (FRAGILE, MISSING),
+    )
+    monkeypatch.setattr(
+        kg_next,
+        "unlocks",
+        lambda statuses, problems, immature=(): ctl.gain if immature else ctl.unlocks,
+    )
     ctl.gain = {}  # the reach rule's counts: young node -> drafted problems waiting
-    monkeypatch.setattr(kg_next, "due_drill",
-                        lambda nid, ev, today=None, early=False, assisted=False:
-                        f"drills/{nid}/one.py"
-                        if nid in ctl.bank and nid not in ctl.drilled_today else None)
-    monkeypatch.setattr(kg_next, "acceptance", lambda p: ctl.acceptance.get(str(p), 50.0))
+    monkeypatch.setattr(
+        kg_next,
+        "due_drill",
+        lambda nid, ev, today=None, early=False, assisted=False: (
+            f"drills/{nid}/one.py"
+            if nid in ctl.bank and nid not in ctl.drilled_today
+            else None
+        ),
+    )
+    monkeypatch.setattr(
+        kg_next, "acceptance", lambda p: ctl.acceptance.get(str(p), 50.0)
+    )
     # the predicted tier: empty by default (no drafted walks anywhere), so
     # promotion is inert unless a test puts drafts in ctl.predicted and their
     # difficulty in ctl.meta. Routed through the REAL kg_lib.predicted_carrier
@@ -108,36 +143,63 @@ def picker(monkeypatch):
     ctl.predicted = {}
     ctl.meta = {}
     monkeypatch.setattr(kg_lib, "_METADATA", ctl.meta)
-    monkeypatch.setattr(kg_next, "predicted_carrier",
-                        lambda target, problems, statuses, nodes, evidence=None,
-                        skip=(), difficulties=("Easy", "Medium"):
-                        kg_lib.predicted_carrier(target, problems, statuses,
-                                                 nodes, predicted=ctl.predicted,
-                                                 evidence=evidence or {},
-                                                 skip=skip, difficulties=difficulties))
-    monkeypatch.setattr(kg_next, "drafted_in_reach",
-                        lambda problems, statuses, nodes, immature, evidence=None,
-                        skip=(), first="Hard":
-                        kg_lib.drafted_in_reach(problems, statuses, nodes, immature,
-                                                predicted=ctl.predicted,
-                                                evidence=evidence or {}, skip=skip,
-                                                first=first))
+    monkeypatch.setattr(
+        kg_next,
+        "predicted_carrier",
+        lambda target, problems, statuses, nodes, evidence=None, skip=(), difficulties=(
+            "Easy",
+            "Medium",
+        ): kg_lib.predicted_carrier(
+            target,
+            problems,
+            statuses,
+            nodes,
+            predicted=ctl.predicted,
+            evidence=evidence or {},
+            skip=skip,
+            difficulties=difficulties,
+        ),
+    )
+    monkeypatch.setattr(
+        kg_next,
+        "drafted_in_reach",
+        lambda problems, statuses, nodes, immature, evidence=None, skip=(), first="Hard": kg_lib.drafted_in_reach(
+            problems,
+            statuses,
+            nodes,
+            immature,
+            predicted=ctl.predicted,
+            evidence=evidence or {},
+            skip=skip,
+            first=first,
+        ),
+    )
     monkeypatch.setattr(kg_next, "has_drill_bank", lambda nid: nid in ctl.bank)
     # the clock (kg_lib.anki_frontier): empty unless a test fills ctl.clock
     # with (path, node) pairs
     ctl.clock = []
-    monkeypatch.setattr(kg_next, "anki_frontier",
-                        lambda ev, today=None, nodes=None, node_ids=None, assisted=False:
-                        [(p, n) for p, n in ctl.clock
-                         if node_ids is None or n in node_ids])
+    monkeypatch.setattr(
+        kg_next,
+        "anki_frontier",
+        lambda ev, today=None, nodes=None, node_ids=None, assisted=False: [
+            (p, n) for p, n in ctl.clock if node_ids is None or n in node_ids
+        ],
+    )
     # nodes with drills never done (default none): they hold what depends
     # on them and get their next drill served (rule 0c)
-    monkeypatch.setattr(kg_next, "drills_left",
-                        lambda nid, ev, early=False: nid in ctl.undone)
-    monkeypatch.setattr(kg_lib, "drills_left",  # drill_held reads this one
-                        lambda nid, ev, early=False: nid in ctl.undone)
-    monkeypatch.setattr(kg_next, "immature_nodes",
-                        lambda nodes, evidence, problems: frozenset(ctl.immature))
+    monkeypatch.setattr(
+        kg_next, "drills_left", lambda nid, ev, early=False: nid in ctl.undone
+    )
+    monkeypatch.setattr(
+        kg_lib,
+        "drills_left",  # drill_held reads this one
+        lambda nid, ev, early=False: nid in ctl.undone,
+    )
+    monkeypatch.setattr(
+        kg_next,
+        "immature_nodes",
+        lambda nodes, evidence, problems: frozenset(ctl.immature),
+    )
 
     def run(nodes, problems, ev, statuses, **kw):
         return kg_next.pick(nodes, problems, ev, statuses, **kw)
@@ -147,6 +209,7 @@ def picker(monkeypatch):
 
     ctl.run = run
     ctl.blocked = blocked
+
     def summits(ns, problems, ev, statuses):
         return kg_next.ready_hards(problems, ns, ev, statuses)
 
@@ -157,6 +220,7 @@ def picker(monkeypatch):
 # --------------------------------------------------------------------------
 # rule 1: consolidate a FRAGILE move on a READY carrier
 # --------------------------------------------------------------------------
+
 
 def test_fragile_move_is_served_on_a_ready_carrier(picker):
     ns = nodes("bsearch", "pivot")
@@ -186,6 +250,7 @@ def test_oldest_fragile_goes_first(picker):
 # nodes; evidence age breaks ties
 # --------------------------------------------------------------------------
 
+
 def test_higher_unlock_fragile_outranks_an_older_one(picker):
     ns = nodes("old_dud", "young_key")
     ps = {"1": problem(["old_dud"]), "2": problem(["young_key"])}
@@ -212,15 +277,20 @@ def test_highest_unlock_missing_move_is_introduced_first(picker):
 
 def test_unlocks_counts_only_problems_blocked_by_exactly_one_node():
     from kg.kg_lib import unlocks
+
     st = {"a": (SOLID, ago(1)), "b": (FRAGILE, ago(1)), "c": (MISSING, None)}
-    problems = {"1": problem(["a"])}          # already solved, never counted
+    problems = {"1": problem(["a"])}  # already solved, never counted
     predicted = {
-        "1": {"walks": [{"moves": ["a", "b"]}]},           # solved: skipped
-        "2": {"walks": [{"moves": ["a", "b"]}]},           # blocked only by b
-        "3": {"walks": [{"moves": ["b", "c"]}]},           # two gaps: nobody
-        "4": {"walks": [{"moves": ["a"]}]},                # in reach: skipped
-        "5": {"walks": [{"moves": ["a", "b"], "missing": ["segment-tree"]},
-                        {"moves": ["a", "c"]}]},           # only clean walk -> c
+        "1": {"walks": [{"moves": ["a", "b"]}]},  # solved: skipped
+        "2": {"walks": [{"moves": ["a", "b"]}]},  # blocked only by b
+        "3": {"walks": [{"moves": ["b", "c"]}]},  # two gaps: nobody
+        "4": {"walks": [{"moves": ["a"]}]},  # in reach: skipped
+        "5": {
+            "walks": [
+                {"moves": ["a", "b"], "missing": ["segment-tree"]},
+                {"moves": ["a", "c"]},
+            ]
+        },  # only clean walk -> c
         "6": {"walks": [{"moves": ["a"]}, {"moves": ["a", "b"]}]},  # in reach
     }
     assert unlocks(st, problems, predicted) == {"b": 1, "c": 1}
@@ -230,14 +300,20 @@ def test_unlocks_counts_only_problems_blocked_by_exactly_one_node():
 # the one-new-move rule, and who is allowed to be a carrier
 # --------------------------------------------------------------------------
 
+
 def test_carrier_needs_every_other_move_solid(picker):
     """A carrier that would introduce a second rusty move is not a carrier:
     the ZPD constraint is one fragile/stale node per assignment."""
     ns = nodes("target", "alsorusty", "solid")
-    ps = {"1": problem(["target", "alsorusty"]),   # two rusty moves — never
-          "2": problem(["target", "solid"])}       # one rusty move — this one
-    st = {"target": (FRAGILE, ago(1)), "alsorusty": (STALE, ago(90)),
-          "solid": (SOLID, ago(1))}
+    ps = {
+        "1": problem(["target", "alsorusty"]),  # two rusty moves — never
+        "2": problem(["target", "solid"]),
+    }  # one rusty move — this one
+    st = {
+        "target": (FRAGILE, ago(1)),
+        "alsorusty": (STALE, ago(90)),
+        "solid": (SOLID, ago(1)),
+    }
     assert picker.run(ns, ps, {}, st)[2] == "2"
 
 
@@ -280,18 +356,26 @@ def test_a_group_at_its_daily_cap_leaves_the_default_frontier(picker, monkeypatc
     for n in ("q1", "q2"):
         ns[n]["group"] = "sql"
     ns["other"]["group"] = "trees"
-    ps = {"1": problem(["q1"]), "2": problem(["q2"]), "3": problem(["other"]),
-          "4": problem(["q1"])}
+    ps = {
+        "1": problem(["q1"]),
+        "2": problem(["q2"]),
+        "3": problem(["other"]),
+        "4": problem(["q1"]),
+    }
     st = {"q1": (FRAGILE, ago(1)), "q2": (FRAGILE, ago(1)), "other": (STALE, ago(40))}
     ev = evidence(solve(1, {"q1": "clean"}), solve(2, {"q2": "clean"}))
     # two sql reps today: the fragile sql moves wait, the stale tree move is served
     assert picker.run(ns, ps, ev, st, exclude={"1", "2"})[0] == "other"
     # one rep short of the cap: sql is still on the frontier
-    assert picker.run(ns, ps, evidence(solve(1, {"q1": "clean"})), st,
-                      exclude={"1"})[0] in ("q1", "q2")
+    assert picker.run(ns, ps, evidence(solve(1, {"q1": "clean"})), st, exclude={"1"})[
+        0
+    ] in ("q1", "q2")
     # naming the group is the override
-    assert picker.run(ns, ps, ev, st, exclude={"1", "2"}, group="sql")[:3] == \
-        ("q1", FRAGILE, "4")
+    assert picker.run(ns, ps, ev, st, exclude={"1", "2"}, group="sql")[:3] == (
+        "q1",
+        FRAGILE,
+        "4",
+    )
 
 
 def test_a_group_at_its_daily_cap_is_out_of_the_clock_too(picker, monkeypatch):
@@ -320,8 +404,11 @@ def test_group_reps_counts_drills_and_problems_touching_the_group():
     ns = nodes("q1", "other")
     ns["q1"]["group"] = "sql"
     ev = evidence(solve(1, {"q1": "clean"}), solve(2, {"other": "clean"}))
-    ev["solved/d_Some_Drill_0.py"] = {"date": iso(0), "problem": "drill",
-                                     "moves": {"q1": "struggled"}}
+    ev["solved/d_Some_Drill_0.py"] = {
+        "date": iso(0),
+        "problem": "drill",
+        "moves": {"q1": "struggled"},
+    }
     ev.update(solve(3, {"q1": "clean"}, days_ago=1))  # yesterday does not count
     assert kg_lib.group_reps("sql", ns, ev) == 2
     assert kg_lib.group_reps("trees", ns, ev) == 0
@@ -342,9 +429,15 @@ def test_the_new_drill_cap_withholds_files_never_drilled(picker, monkeypatch):
     # the clock moves on to b.py - which has a rep, and is a review
     ev = evidence()
     ev["solved/d_Met_Today_2026_01_01T00_00_00_000000_00_00Z.py"] = {
-        "date": iso(0), "problem": "drill", "moves": {"q1": "clean"}}
+        "date": iso(0),
+        "problem": "drill",
+        "moves": {"q1": "clean"},
+    }
     ev["solved/d_B_2026_01_01T00_00_00_000000_00_00Z.py"] = {
-        "date": iso(3), "problem": "drill", "moves": {"q2": "clean"}}
+        "date": iso(3),
+        "problem": "drill",
+        "moves": {"q2": "clean"},
+    }
     assert picker.run(ns, ps, ev, st)[2] == "drill:q2"
 
 
@@ -361,7 +454,10 @@ def test_the_new_drill_cap_holds_the_frontier_too(picker, monkeypatch):
     assert picker.run(ns, ps, {}, st)[2] == "drill:q1"
     ev = evidence()
     ev["solved/d_Met_Today_2026_01_01T00_00_00_000000_00_00Z.py"] = {
-        "date": iso(0), "problem": "drill", "moves": {"q1": "clean"}}
+        "date": iso(0),
+        "problem": "drill",
+        "moves": {"q1": "clean"},
+    }
     assert picker.run(ns, ps, ev, st) is None
     assert picker.run(ns, ps, ev, st, group="sql") is None
     assert picker.run(ns, ps, ev, st, cram=True, early=True) is None
@@ -374,11 +470,20 @@ def test_new_drill_knob_parses_and_counts_first_reps():
     assert kg_lib.new_drill_cap({}) is None
     ev = evidence()
     ev["solved/d_First_2026_01_01T00_00_00_000000_00_00Z.py"] = {
-        "date": iso(1), "problem": "drill", "moves": {"q1": "clean"}}
+        "date": iso(1),
+        "problem": "drill",
+        "moves": {"q1": "clean"},
+    }
     ev["solved/d_First_2026_01_02T00_00_00_000000_00_00Z.py"] = {
-        "date": iso(0), "problem": "drill", "moves": {"q1": "clean"}}
+        "date": iso(0),
+        "problem": "drill",
+        "moves": {"q1": "clean"},
+    }
     ev["solved/d_Second_2026_01_02T00_00_00_000000_00_00Z.py"] = {
-        "date": iso(0), "problem": "drill", "moves": {"q1": "clean"}}
+        "date": iso(0),
+        "problem": "drill",
+        "moves": {"q1": "clean"},
+    }
     # today: one first exposure (Second), one review (First, met yesterday)
     assert kg_lib.new_drills_today(ev) == 1
     assert kg_lib.new_drills_left(ev, environ={"MAX_NEW_DRILLS": "2"}) == 1
@@ -396,13 +501,19 @@ def test_the_drill_review_cap_withholds_files_already_met(picker, monkeypatch):
     picker.clock = [("drills/q1/a.py", "q1"), ("drills/q2/b.py", "q2")]
     ev = evidence()
     ev["solved/d_A_2026_01_01T00_00_00_000000_00_00Z.py"] = {
-        "date": iso(3), "problem": "drill", "moves": {"q1": "clean"}}
+        "date": iso(3),
+        "problem": "drill",
+        "moves": {"q1": "clean"},
+    }
     # nothing back today: a.py is a review and leads the clock
     assert picker.run(ns, ps, ev, st)[2] == "drill:q1"
     # one review today, at the cap: a.py waits, b.py is never drilled and
     # answers to the other budget
     ev["solved/d_A_2026_01_02T00_00_00_000000_00_00Z.py"] = {
-        "date": iso(0), "problem": "drill", "moves": {"q1": "clean"}}
+        "date": iso(0),
+        "problem": "drill",
+        "moves": {"q1": "clean"},
+    }
     assert picker.run(ns, ps, ev, st)[2] == "drill:q2"
 
 
@@ -415,7 +526,10 @@ def test_both_drill_budgets_spent_falls_through_to_a_problem(picker, monkeypatch
     picker.bank = {"q1"}
     ev = evidence()
     ev["solved/d_New_2026_01_01T00_00_00_000000_00_00Z.py"] = {
-        "date": iso(0), "problem": "drill", "moves": {"q1": "clean"}}
+        "date": iso(0),
+        "problem": "drill",
+        "moves": {"q1": "clean"},
+    }
     # uncapped, the stale move gets its bank
     assert picker.run(ns, ps, ev, st)[2] == "drill:q1"
     # one first exposure today and no review: due_drill's file has no rep of
@@ -431,11 +545,20 @@ def test_drill_review_knob_parses_and_counts_returning_files():
     assert kg_lib.drill_review_cap({}) is None
     ev = evidence(solve(1, {"q1": "clean"}))  # a problem is not a drill rep
     ev["solved/d_First_2026_01_01T00_00_00_000000_00_00Z.py"] = {
-        "date": iso(1), "problem": "drill", "moves": {"q1": "clean"}}
+        "date": iso(1),
+        "problem": "drill",
+        "moves": {"q1": "clean"},
+    }
     ev["solved/d_First_2026_01_02T00_00_00_000000_00_00Z.py"] = {
-        "date": iso(0), "problem": "drill", "moves": {"q1": "clean"}}
+        "date": iso(0),
+        "problem": "drill",
+        "moves": {"q1": "clean"},
+    }
     ev["solved/d_Second_2026_01_02T00_00_00_000000_00_00Z.py"] = {
-        "date": iso(0), "problem": "drill", "moves": {"q1": "clean"}}
+        "date": iso(0),
+        "problem": "drill",
+        "moves": {"q1": "clean"},
+    }
     # today: First comes back (a review), Second is first exposure
     assert kg_lib.drill_reviews_today(ev) == 1
     assert kg_lib.new_drills_today(ev) == 1
@@ -445,7 +568,10 @@ def test_drill_review_knob_parses_and_counts_returning_files():
 
 def test_group_caps_parses_the_envrc_knob():
     assert kg_lib.group_caps({"KG_GROUP_CAP": "sql=3"}) == {"sql": 3}
-    assert kg_lib.group_caps({"KG_GROUP_CAP": "sql=3, graphs=2"}) == {"sql": 3, "graphs": 2}
+    assert kg_lib.group_caps({"KG_GROUP_CAP": "sql=3, graphs=2"}) == {
+        "sql": 3,
+        "graphs": 2,
+    }
     assert kg_lib.group_caps({"KG_GROUP_CAP": "sql=lots"}) == {}
     assert kg_lib.group_caps({}) == {}
 
@@ -460,6 +586,7 @@ def test_sleeping_problems_are_not_offered(picker):
 # --------------------------------------------------------------------------
 # carrier sort keys — the 153-before-33 regression
 # --------------------------------------------------------------------------
+
 
 def test_an_unsolved_carrier_outranks_a_gentler_solved_one(picker):
     """Gentleness decided before freshness, so an Easy solved a month ago
@@ -480,8 +607,10 @@ def test_freshness_outranks_acceptance(picker):
     ns = nodes("bsearch", "pivot")
     ps = {"33": problem(["bsearch", "pivot"]), "153": problem(["bsearch", "pivot"])}
     picker.acceptance = {"33": 45.5, "153": 55.2}
-    ev = evidence(solve("33", {"bsearch": "clean"}, days_ago=300),
-                  solve("153", {"bsearch": "clean", "pivot": "struggled"}, days_ago=1))
+    ev = evidence(
+        solve("33", {"bsearch": "clean"}, days_ago=300),
+        solve("153", {"bsearch": "clean", "pivot": "struggled"}, days_ago=1),
+    )
     st = {"bsearch": (SOLID, ago(1)), "pivot": (FRAGILE, ago(1))}
     assert picker.run(ns, ps, ev, st)[2] == "33"
 
@@ -499,8 +628,10 @@ def test_acceptance_still_breaks_a_genuine_tie(picker):
 
 def test_easier_carrier_wins_over_a_harder_one(picker):
     ns = nodes("target", "extra")
-    ps = {"1": problem(["target", "extra"], difficulty="Medium"),
-          "2": problem(["target", "extra"], difficulty="Easy")}
+    ps = {
+        "1": problem(["target", "extra"], difficulty="Medium"),
+        "2": problem(["target", "extra"], difficulty="Easy"),
+    }
     st = {"target": (FRAGILE, ago(1)), "extra": (SOLID, ago(1))}
     assert picker.run(ns, ps, {}, st)[2] == "2"
 
@@ -510,14 +641,20 @@ def test_smaller_input_tree_wins_within_a_tier(picker):
     over the transitive prereq closure, not just the walk length."""
     ns = nodes("target", "plain", ("deep", ["p1"]), ("p1", ["p2"]), "p2")
     ps = {"1": problem(["target", "deep"]), "2": problem(["target", "plain"])}
-    st = {"target": (FRAGILE, ago(1)), "deep": (SOLID, ago(1)),
-          "plain": (SOLID, ago(1)), "p1": (SOLID, ago(1)), "p2": (SOLID, ago(1))}
+    st = {
+        "target": (FRAGILE, ago(1)),
+        "deep": (SOLID, ago(1)),
+        "plain": (SOLID, ago(1)),
+        "p1": (SOLID, ago(1)),
+        "p2": (SOLID, ago(1)),
+    }
     assert picker.run(ns, ps, {}, st)[2] == "2"
 
 
 # --------------------------------------------------------------------------
 # STALE: spaced re-solve vs deep-stale re-entry
 # --------------------------------------------------------------------------
+
 
 def test_stale_move_reuses_its_latest_carrier(picker):
     """An ordinary stale move is a spaced repetition: the same problem comes
@@ -534,8 +671,10 @@ def test_deep_stale_move_re_enters_on_a_fresh_carrier(picker):
     would play like a new problem. Re-enter on a gentle carrier instead."""
     old = DEEP_STALE_DAYS + 30
     ns = nodes("target")
-    ps = {"1": problem(["target"], difficulty="Easy"),
-          "2": problem(["target"], difficulty="Medium")}
+    ps = {
+        "1": problem(["target"], difficulty="Easy"),
+        "2": problem(["target"], difficulty="Medium"),
+    }
     ev = evidence(solve("2", {"target": "clean"}, days_ago=old))
     st = {"target": (STALE, ago(old))}
     target, status, pnum, reason = picker.run(ns, ps, ev, st)
@@ -548,6 +687,7 @@ def test_deep_stale_move_re_enters_on_a_fresh_carrier(picker):
 # would never schedule
 # --------------------------------------------------------------------------
 
+
 def test_graduation_ladder_steps_and_sparse_tightening():
     ev = evidence(solve("9", {"m": "clean"}, days_ago=1))
     assert kg_lib.graduation_due("m", ev, carriers=5) == (ago(1) + timedelta(days=3), 3)
@@ -555,23 +695,27 @@ def test_graduation_ladder_steps_and_sparse_tightening():
 
 
 def test_same_day_slam_is_one_ladder_step():
-    ev = evidence(solve("8", {"m": "clean"}, days_ago=1),
-                  solve("9", {"m": "clean"}, days_ago=1))
+    ev = evidence(
+        solve("8", {"m": "clean"}, days_ago=1), solve("9", {"m": "clean"}, days_ago=1)
+    )
     assert kg_lib.graduation_due("m", ev, carriers=5)[1] == 3  # still step 1
 
 
 def test_assisted_days_do_not_start_or_advance_the_ladder():
     ev = evidence(solve("9", {"m": "clean"}, days_ago=1, assist={"m": "walkthrough"}))
     assert kg_lib.graduation_due("m", ev, carriers=5) is None
-    ev = evidence(solve("8", {"m": "clean"}, days_ago=5),
-                  solve("9", {"m": "clean"}, days_ago=1, assist={"m": "hint"}))
+    ev = evidence(
+        solve("8", {"m": "clean"}, days_ago=5),
+        solve("9", {"m": "clean"}, days_ago=1, assist={"m": "hint"}),
+    )
     # the hinted day does not advance: still step 1, counted from day -5
     assert kg_lib.graduation_due("m", ev, carriers=5) == (ago(5) + timedelta(days=3), 3)
 
 
 def test_a_survived_long_gap_graduates_the_move():
-    ev = evidence(solve("8", {"m": "clean"}, days_ago=40),
-                  solve("9", {"m": "clean"}, days_ago=10))
+    ev = evidence(
+        solve("8", {"m": "clean"}, days_ago=40), solve("9", {"m": "clean"}, days_ago=10)
+    )
     assert kg_lib.graduation_due("m", ev, carriers=5) is None
 
 
@@ -581,19 +725,34 @@ def test_first_exposure_copies_start_the_clock_but_certify_nothing():
     advance the ladder nor pass the long-gap trial (the union-find read of
     2026-09-02: five first-exposure drills as a survived 282-day gap)."""
     ev = {
-        "solved/d_alpha_40.py": {"date": iso(40), "problem": "drill",
-                                 "moves": {"m": "clean"}, "assist": "learning"},
-        "solved/d_beta_10.py": {"date": iso(10), "problem": "drill",
-                                "moves": {"m": "clean"}, "assist": "learning"},
+        "solved/d_alpha_40.py": {
+            "date": iso(40),
+            "problem": "drill",
+            "moves": {"m": "clean"},
+            "assist": "learning",
+        },
+        "solved/d_beta_10.py": {
+            "date": iso(10),
+            "problem": "drill",
+            "moves": {"m": "clean"},
+            "assist": "learning",
+        },
     }
     # the 30-day gap ends on a first-rep day: no trial, still step 1
-    assert kg_lib.graduation_due("m", ev, carriers=5) == \
-        (ago(40) + timedelta(days=3), 3)
+    assert kg_lib.graduation_due("m", ev, carriers=5) == (
+        ago(40) + timedelta(days=3),
+        3,
+    )
     # a real unaided second rep of the first drill does advance it
-    ev["solved/d_alpha_5.py"] = {"date": iso(5), "problem": "drill",
-                                 "moves": {"m": "clean"}}
-    assert kg_lib.graduation_due("m", ev, carriers=5) == \
-        (ago(5) + timedelta(days=10), 10)
+    ev["solved/d_alpha_5.py"] = {
+        "date": iso(5),
+        "problem": "drill",
+        "moves": {"m": "clean"},
+    }
+    assert kg_lib.graduation_due("m", ev, carriers=5) == (
+        ago(5) + timedelta(days=10),
+        10,
+    )
 
 
 def test_graduating_floor_serves_a_young_solid_move(picker):
@@ -630,10 +789,14 @@ def test_a_drill_due_move_is_served_before_a_more_overdue_unbanked_one(picker):
     overdue with only a carrier sorted above union-find at 15 with six
     drills in the bank. The bank is the asset; the unbanked move waits."""
     ns = nodes("banked", "bare")
-    ps = {"1": problem(["banked"], difficulty="Easy"),
-          "2": problem(["bare"], difficulty="Easy")}
-    ev = evidence(solve("1", {"banked": "clean"}, days_ago=5),
-                  solve("2", {"bare": "clean"}, days_ago=40))
+    ps = {
+        "1": problem(["banked"], difficulty="Easy"),
+        "2": problem(["bare"], difficulty="Easy"),
+    }
+    ev = evidence(
+        solve("1", {"banked": "clean"}, days_ago=5),
+        solve("2", {"bare": "clean"}, days_ago=40),
+    )
     st = {"banked": (SOLID, ago(5)), "bare": (SOLID, ago(40))}
     picker.bank = {"banked"}
     assert picker.run(ns, ps, ev, st)[:3] == ("banked", SOLID, "drill:banked")
@@ -644,11 +807,15 @@ def test_a_drill_due_move_is_served_before_a_more_overdue_unbanked_one(picker):
 def test_rusty_moves_outrank_the_graduating_floor(picker):
     """A currently decayed memory beats insurance on a young one."""
     ns = nodes("young", "rusty")
-    ps = {"1": problem(["young"], difficulty="Easy"),
-          "2": problem(["rusty"], difficulty="Easy"),
-          "3": problem(["rusty"], difficulty="Easy")}
-    ev = evidence(solve("1", {"young": "clean"}, days_ago=4),
-                  solve("2", {"rusty": "struggled"}, days_ago=3))
+    ps = {
+        "1": problem(["young"], difficulty="Easy"),
+        "2": problem(["rusty"], difficulty="Easy"),
+        "3": problem(["rusty"], difficulty="Easy"),
+    }
+    ev = evidence(
+        solve("1", {"young": "clean"}, days_ago=4),
+        solve("2", {"rusty": "struggled"}, days_ago=3),
+    )
     st = {"young": (SOLID, ago(4)), "rusty": (FRAGILE, ago(3))}
     assert picker.run(ns, ps, ev, st)[0] == "rusty"
 
@@ -656,6 +823,7 @@ def test_rusty_moves_outrank_the_graduating_floor(picker):
 # --------------------------------------------------------------------------
 # MISSING: one genuinely new move, prereqs all solid
 # --------------------------------------------------------------------------
+
 
 def test_missing_move_needs_solid_prereqs(picker):
     """A new move whose prereq is itself rusty is not on the frontier —
@@ -676,6 +844,7 @@ def test_missing_move_with_solid_prereqs_is_introduced(picker):
 # --------------------------------------------------------------------------
 # the drill-success gate
 # --------------------------------------------------------------------------
+
 
 def test_fragile_move_with_a_drill_bank_drills_instead_of_solving(picker):
     """drill_gated: a fragile move that HAS a bank trains on the drill only.
@@ -712,6 +881,7 @@ def test_missing_move_with_no_carrier_falls_back_to_its_drill(picker):
 # sleep
 # --------------------------------------------------------------------------
 
+
 def test_woken_problem_jumps_the_queue(picker):
     ns = nodes("target", "other")
     ps = {"1": problem(["target"]), "2": problem(["other"])}
@@ -736,6 +906,7 @@ def test_ground_under_a_sleeping_problem_is_warmed_elsewhere(picker):
 # session start
 # --------------------------------------------------------------------------
 
+
 def test_session_start_serves_a_trivial_easy(picker):
     """Inside the session-start window the first pick is juice: an all-SOLID
     easy, nothing rusty and nothing new."""
@@ -750,8 +921,10 @@ def test_session_start_serves_a_trivial_easy(picker):
 def test_session_start_skips_a_warmup_done_this_week(picker):
     """A problem solved inside the cooldown is muscle memory, not a warmup."""
     ns = nodes("solid")
-    ps = {"1": problem(["solid"], difficulty="Easy"),
-          "2": problem(["solid"], difficulty="Easy")}
+    ps = {
+        "1": problem(["solid"], difficulty="Easy"),
+        "2": problem(["solid"], difficulty="Easy"),
+    }
     ev = evidence(solve("1", {"solid": "clean"}, days_ago=2))
     st = {"solid": (SOLID, ago(1))}
     assert picker.run(ns, ps, ev, st, session_start=True)[2] == "2"
@@ -770,12 +943,15 @@ def test_session_start_falls_through_when_no_easy_qualifies(picker):
 # anti-dodge
 # --------------------------------------------------------------------------
 
+
 def test_dodged_move_gets_a_carrier_that_resists_the_dodge(picker):
     """When the last evidence for a move says it was routed around, the
     carrier is chosen for having no recorded escape route."""
     ns = nodes("target", "solid")
-    ps = {"1": problem(["target", "solid"], alt_walks=[["solid"]]),  # escapable
-          "2": problem(["target", "solid"])}                        # not
+    ps = {
+        "1": problem(["target", "solid"], alt_walks=[["solid"]]),  # escapable
+        "2": problem(["target", "solid"]),
+    }  # not
     ev = evidence(solve("9", {"target": "avoided"}, days_ago=3))
     st = {"target": (FRAGILE, ago(3)), "solid": (SOLID, ago(1))}
     target, status, pnum, reason = picker.run(ns, ps, ev, st)
@@ -787,11 +963,15 @@ def test_dodged_move_gets_a_carrier_that_resists_the_dodge(picker):
 # exhaustion — the case that made `make next` go quiet
 # --------------------------------------------------------------------------
 
+
 def test_an_all_solid_graph_serves_a_summit(picker):
     """`make next` was never about basecamps: with nothing rusty left, the
     answer to "what now" is an all-green Hard, served as a normal pick."""
     ns = nodes("a")
-    ps = {"1": problem(["a"], difficulty="Easy"), "76": problem(["a"], difficulty="Hard")}
+    ps = {
+        "1": problem(["a"], difficulty="Easy"),
+        "76": problem(["a"], difficulty="Hard"),
+    }
     st = {"a": (SOLID, ago(1))}
     target, status, pnum, reason = picker.run(ns, ps, {}, st)
     assert (pnum, status) == ("76", SOLID)
@@ -802,8 +982,10 @@ def test_the_most_reachable_summit_goes_first(picker):
     """Fewest gaps on the route wins — not the shortest walk. 76 carries an
     unmapped trick, so 4 is closer even with the longer walk."""
     ns = nodes("a", "b", "c")
-    ps = {"4": problem(["a", "b", "c"], difficulty="Hard"),
-          "76": problem(["a"], difficulty="Hard", unmapped=["a trick with no node"])}
+    ps = {
+        "4": problem(["a", "b", "c"], difficulty="Hard"),
+        "76": problem(["a"], difficulty="Hard", unmapped=["a trick with no node"]),
+    }
     st = {n: (SOLID, ago(1)) for n in "abc"}
     assert picker.run(ns, ps, {}, st)[2] == "4"
 
@@ -825,7 +1007,9 @@ def test_nothing_to_pick_returns_none_when_no_summit_is_green(picker):
     assert picker.run(ns, ps, {}, st) is None
 
 
-def test_a_node_walked_only_by_hards_is_reported_as_blocked(picker, tmp_path, monkeypatch):
+def test_a_node_walked_only_by_hards_is_reported_as_blocked(
+    picker, tmp_path, monkeypatch
+):
     """The real state of the graph on 2026-08-20: counting-sort-buckets is
     MISSING, its only walk is a Hard (so no carrier can exist), and it has no
     drill bank — so every pick() branch fell through and `make next` printed
@@ -839,7 +1023,7 @@ def test_a_node_walked_only_by_hards_is_reported_as_blocked(picker, tmp_path, mo
     st = {"counting-sort-buckets": (MISSING, None)}
     assert picker.run(ns, ps, {}, st) is None
 
-    (nid, status, why, dry), = picker.blocked(ns, ps, {}, st)
+    ((nid, status, why, dry),) = picker.blocked(ns, ps, {}, st)
     assert (nid, status, dry) == ("counting-sort-buckets", MISSING, True)
     assert "Hard" in why and "41" in why
     assert "no drill exists" in why
@@ -884,7 +1068,9 @@ def test_a_young_solid_move_past_its_floor_is_starved_too(monkeypatch):
     assert kg_next.starved(ns, ps, ev) == {"a": 20 - floor + 1}
 
 
-def test_a_missing_move_is_starved_only_from_the_day_its_prereqs_went_solid(monkeypatch):
+def test_a_missing_move_is_starved_only_from_the_day_its_prereqs_went_solid(
+    monkeypatch,
+):
     """A MISSING move is due once every prereq is SOLID (the one-new-move
     rule), so its run starts the day the last prereq went clean - the
     prereq's evidence is read as of each day, not as of today."""
@@ -921,7 +1107,7 @@ def test_a_node_whose_carriers_are_all_spent_today_is_blocked(picker):
     ns = nodes("target")
     ps = {"1": problem(["target"])}
     st = {"target": (FRAGILE, ago(1))}
-    (nid, _, why, dry), = picker.blocked(ns, ps, {}, st, exclude={"1"})
+    ((nid, _, why, dry),) = picker.blocked(ns, ps, {}, st, exclude={"1"})
     assert (nid, dry) == ("target", False)
     assert "already solved today" in why
 
@@ -939,8 +1125,10 @@ def test_a_node_blocked_only_by_a_second_rusty_move_says_so(picker):
 def test_an_all_green_hard_is_offered_as_the_summit(picker):
     """When basecamp is dry the answer to "what now" is a summit."""
     ns = nodes("a", "b")
-    ps = {"76": problem(["a", "b"], difficulty="Hard"),
-          "1": problem(["a"], difficulty="Easy")}
+    ps = {
+        "76": problem(["a", "b"], difficulty="Hard"),
+        "1": problem(["a"], difficulty="Easy"),
+    }
     st = {"a": (SOLID, ago(1)), "b": (SOLID, ago(1))}
     assert picker.summits(ns, ps, {}, st) == ["76"]
 
@@ -966,8 +1154,13 @@ def test_a_hard_with_an_unmapped_move_is_not_ready(picker):
     maintain a running median" — a trick with no node in the taxonomy. An
     unmapped move is unroutable new ground, so it counts as a gap."""
     ns = nodes("a")
-    ps = {"295": problem(["a"], difficulty="Hard",
-                         unmapped=["balance two heaps for a running median"])}
+    ps = {
+        "295": problem(
+            ["a"],
+            difficulty="Hard",
+            unmapped=["balance two heaps for a running median"],
+        )
+    }
     st = {"a": (SOLID, ago(1))}
     assert picker.summits(ns, ps, {}, st) == []
 
@@ -995,9 +1188,11 @@ def test_summits_are_ranked_by_reachability_then_number(picker):
     """rank_summits is the ordering `make hard` uses, and `make next` shares
     it so the two can never name different summits."""
     ns = nodes("a")
-    ps = {"212": problem(["a"], difficulty="Hard"),
-          "76": problem(["a"], difficulty="Hard"),
-          "4": problem(["a"], difficulty="Hard")}
+    ps = {
+        "212": problem(["a"], difficulty="Hard"),
+        "76": problem(["a"], difficulty="Hard"),
+        "4": problem(["a"], difficulty="Hard"),
+    }
     st = {"a": (SOLID, ago(1))}
     assert picker.summits(ns, ps, {}, st) == ["4", "76", "212"]
 
@@ -1006,8 +1201,10 @@ def test_a_classic_summit_outranks_a_non_classic_one(picker):
     """`make hard` only ever offers interview classics, so `make next` puts
     them first rather than serving a summit `make hard` would never name."""
     ns = nodes("a")
-    ps = {"76": problem(["a"], difficulty="Hard"),      # a CLASSIC
-          "3000": problem(["a"], difficulty="Hard")}    # not
+    ps = {
+        "76": problem(["a"], difficulty="Hard"),  # a CLASSIC
+        "3000": problem(["a"], difficulty="Hard"),
+    }  # not
     st = {"a": (SOLID, ago(1))}
     assert picker.summits(ns, ps, {}, st) == ["76"]
 
@@ -1025,14 +1222,17 @@ def test_a_missing_node_behind_a_rusty_prereq_is_not_on_the_frontier(picker):
 # "after" edges: a problem waits for the problem its walk builds on
 # --------------------------------------------------------------------------
 
+
 def test_a_problem_waits_for_its_due_predecessor(picker):
     """47 declares "after": ["46"]. With both cold, plain freshness sorting
     would serve 47 (older last solve) - the hold flips it to 46, the core
     the variation builds on."""
     ns = nodes("bt")
     ps = {"46": problem(["bt"]), "47": problem(["bt"], after=["46"])}
-    ev = evidence(solve("46", {"bt": "clean"}, days_ago=299),
-                  solve("47", {"bt": "clean"}, days_ago=300))
+    ev = evidence(
+        solve("46", {"bt": "clean"}, days_ago=299),
+        solve("47", {"bt": "clean"}, days_ago=300),
+    )
     st = {"bt": (STALE, ago(299))}
     assert picker.run(ns, ps, ev, st)[:3] == ("bt", STALE, "46")
 
@@ -1042,8 +1242,10 @@ def test_a_warm_predecessor_releases_the_problem(picker):
     pool and wins on freshness (least recently solved)."""
     ns = nodes("bt")
     ps = {"46": problem(["bt"]), "47": problem(["bt"], after=["46"])}
-    ev = evidence(solve("46", {"bt": "clean"}, days_ago=3),
-                  solve("47", {"bt": "clean"}, days_ago=300))
+    ev = evidence(
+        solve("46", {"bt": "clean"}, days_ago=3),
+        solve("47", {"bt": "clean"}, days_ago=300),
+    )
     st = {"bt": (STALE, ago(300))}
     assert picker.run(ns, ps, ev, st)[:3] == ("bt", STALE, "47")
 
@@ -1052,9 +1254,11 @@ def test_a_learning_predecessor_solve_does_not_release(picker):
     """A learning rep is not recall evidence anywhere else either."""
     ns = nodes("bt")
     ps = {"46": problem(["bt"]), "47": problem(["bt"], after=["46"])}
-    ev = evidence(solve("46", {"bt": "clean"}, days_ago=10, assist="learning"),
-                  solve("46", {"bt": "clean"}, days_ago=299),
-                  solve("47", {"bt": "clean"}, days_ago=300))
+    ev = evidence(
+        solve("46", {"bt": "clean"}, days_ago=10, assist="learning"),
+        solve("46", {"bt": "clean"}, days_ago=299),
+        solve("47", {"bt": "clean"}, days_ago=300),
+    )
     st = {"bt": (STALE, ago(299))}
     assert picker.run(ns, ps, ev, st)[:3] == ("bt", STALE, "46")
 
@@ -1062,6 +1266,7 @@ def test_a_learning_predecessor_solve_does_not_release(picker):
 # --------------------------------------------------------------------------
 # "after" edges to drills: a problem waits for the bank drill it builds on
 # --------------------------------------------------------------------------
+
 
 class DrillRegistry(dict):
     """A drills.json stand-in the test bank helpers fill."""
@@ -1076,6 +1281,7 @@ def drill_bank(tmp_path, monkeypatch, node, title, fname="d0.py", did="d1", afte
     monkeypatch.setattr(kg_lib, "DRILLS_DIR", str(tmp_path))
     if not isinstance(kg_lib._DRILLS, DrillRegistry):
         monkeypatch.setattr(kg_lib, "_DRILLS", DrillRegistry())
+    assert kg_lib._DRILLS is not None
     kg_lib._DRILLS[did] = {"title": title, "after": list(after)}
     kg_lib._DRILL_PATHS.clear()
 
@@ -1119,16 +1325,18 @@ def test_an_assisted_drill_rep_does_not_release(tmp_path, monkeypatch):
     clean is what releases, a walkthrough clean is a rep but not ownership."""
     drill_bank(tmp_path, monkeypatch, "sw", "Count by Contribution")
     ps = {"713": problem(["sw"], after=["d1"])}
-    ev = evidence(drill_rep("Count by Contribution", "sw", days_ago=3,
-                            assist="walkthrough"))
+    ev = evidence(
+        drill_rep("Count by Contribution", "sw", days_ago=3, assist="walkthrough")
+    )
     assert kg_lib.held_behind("713", ps, ev) == "d1"
 
 
 def test_a_drill_rep_outside_the_solid_window_does_not_release(tmp_path, monkeypatch):
     drill_bank(tmp_path, monkeypatch, "sw", "Count by Contribution")
     ps = {"713": problem(["sw"], after=["d1"])}
-    ev = evidence(drill_rep("Count by Contribution", "sw",
-                            days_ago=kg_lib.SOLID_WINDOW_DAYS + 1))
+    ev = evidence(
+        drill_rep("Count by Contribution", "sw", days_ago=kg_lib.SOLID_WINDOW_DAYS + 1)
+    )
     assert kg_lib.held_behind("713", ps, ev) == "d1"
 
 
@@ -1136,9 +1344,10 @@ def test_a_struggle_after_a_clean_holds_again(tmp_path, monkeypatch):
     """Latest rep decides, as for drills releasing drills."""
     drill_bank(tmp_path, monkeypatch, "sw", "Count by Contribution")
     ps = {"713": problem(["sw"], after=["d1"])}
-    ev = evidence(drill_rep("Count by Contribution", "sw", days_ago=9),
-                  drill_rep("Count by Contribution", "sw", days_ago=2,
-                            verdict="struggled"))
+    ev = evidence(
+        drill_rep("Count by Contribution", "sw", days_ago=9),
+        drill_rep("Count by Contribution", "sw", days_ago=2, verdict="struggled"),
+    )
     assert kg_lib.held_behind("713", ps, ev) == "d1"
 
 
@@ -1154,7 +1363,9 @@ def test_a_drill_ref_nobody_banks_holds_nothing(tmp_path, monkeypatch):
 def test_a_renamed_bank_file_keeps_its_edge(tmp_path, monkeypatch):
     """The edge names the DRILL title, not the file, so renumbering the bank
     changes nothing."""
-    drill_bank(tmp_path, monkeypatch, "sw", "Count by Contribution", fname="w09_whatever.py")
+    drill_bank(
+        tmp_path, monkeypatch, "sw", "Count by Contribution", fname="w09_whatever.py"
+    )
     ps = {"713": problem(["sw"], after=["d1"])}
     ev = evidence(drill_rep("Count by Contribution", "sw", days_ago=3))
     assert kg_lib.held_behind("713", ps, ev) is None
@@ -1167,10 +1378,11 @@ def test_a_cold_drill_holds_every_carrier_of_its_node(picker, tmp_path, monkeypa
     fresher carrier is served."""
     drill_bank(tmp_path, monkeypatch, "sw", "Count by Contribution")
     ns = nodes("sw")
-    ps = {"713": problem(["sw"], after=["d1"]),
-          "3258": problem(["sw"])}
-    ev = evidence(solve("713", {"sw": "clean"}, days_ago=300),
-                  solve("3258", {"sw": "clean"}, days_ago=299))
+    ps = {"713": problem(["sw"], after=["d1"]), "3258": problem(["sw"])}
+    ev = evidence(
+        solve("713", {"sw": "clean"}, days_ago=300),
+        solve("3258", {"sw": "clean"}, days_ago=299),
+    )
     st = {"sw": (STALE, ago(299))}
     assert kg_lib.held_behind("3258", ps, ev) == "d1"
     assert picker.run(ns, ps, ev, st)[:3] == ("sw", STALE, "drill:sw")
@@ -1183,10 +1395,12 @@ def test_gates_is_the_reverse_of_after(tmp_path, monkeypatch):
     """What `make next` prints under a served drill or problem: the problems
     and drills whose "after" names it, problems first."""
     drill_bank(tmp_path, monkeypatch, "sw", "Count by Contribution")
-    ps = {"713": problem(["sw"], after=["d1"]),
-          "3258": problem(["sw"], after=["d1"]),
-          "47": problem(["sw"], after=["46"]),
-          "46": problem(["sw"])}
+    ps = {
+        "713": problem(["sw"], after=["d1"]),
+        "3258": problem(["sw"], after=["d1"]),
+        "47": problem(["sw"], after=["46"]),
+        "46": problem(["sw"]),
+    }
     ds = {"d2": {"title": "Exactly K", "after": ["d1"]}}
     assert kg_lib.gates("d1", ps, ds) == ["713", "3258", "d2"]
     assert kg_lib.gates("46", ps, ds) == ["47"]
@@ -1197,10 +1411,14 @@ def test_dependents_says_what_opens_and_what_else_holds(tmp_path, monkeypatch):
     """`make dependents d1`: each dependent with its status and the OTHER
     ids still holding it, so the next `make prepare` reads off the list."""
     drill_bank(tmp_path, monkeypatch, "sw", "Count by Contribution")
-    drill_bank(tmp_path, monkeypatch, "sw", "Exactly K", fname="d1.py", did="d2", after=["d1"])
-    ps = {"713": problem(["sw"], after=["d1"]),
-          "992": problem(["sw"], after=["d1", "d2"]),
-          "46": problem(["sw"])}
+    drill_bank(
+        tmp_path, monkeypatch, "sw", "Exactly K", fname="d1.py", did="d2", after=["d1"]
+    )
+    ps = {
+        "713": problem(["sw"], after=["d1"]),
+        "992": problem(["sw"], after=["d1", "d2"]),
+        "46": problem(["sw"]),
+    }
     ev = evidence(solve("713", {"sw": "clean"}, days_ago=100))
     rows = kg_lib.dependents("d1", ps, ev)
     assert [(r["id"], r["kind"], r["status"], r["held_by"]) for r in rows] == [
@@ -1212,18 +1430,31 @@ def test_dependents_says_what_opens_and_what_else_holds(tmp_path, monkeypatch):
 
 
 def test_easiest_first_orders_drills_then_by_difficulty_then_acceptance(monkeypatch):
-    monkeypatch.setattr(kg_lib, "_METADATA", {"1": {"acceptance": 30.0}, "2": {"acceptance": 70.0}})
-    rows = [{"id": "3", "kind": "Hard"}, {"id": "1", "kind": "Medium"},
-            {"id": "2", "kind": "Medium"}, {"id": "d5", "kind": "drill"}, {"id": "9", "kind": "Easy"}]
+    monkeypatch.setattr(
+        kg_lib, "_METADATA", {"1": {"acceptance": 30.0}, "2": {"acceptance": 70.0}}
+    )
+    rows = [
+        {"id": "3", "kind": "Hard"},
+        {"id": "1", "kind": "Medium"},
+        {"id": "2", "kind": "Medium"},
+        {"id": "d5", "kind": "drill"},
+        {"id": "9", "kind": "Easy"},
+    ]
     assert [r["id"] for r in kg_lib.easiest_first(rows)] == ["d5", "9", "2", "1", "3"]
 
 
-def test_drills_left_ignores_a_chain_ending_at_another_nodes_drill(tmp_path, monkeypatch):
+def test_drills_left_ignores_a_chain_ending_at_another_nodes_drill(
+    tmp_path, monkeypatch
+):
     """d27 waits on d26, d26 waits on d75 of another node. Serving this node
     reaches neither, so the node has no drill left."""
     drill_bank(tmp_path, monkeypatch, "other", "Atom", fname="a.py", did="d75")
-    drill_bank(tmp_path, monkeypatch, "sw", "Count", fname="c.py", did="d26", after=["d75"])
-    drill_bank(tmp_path, monkeypatch, "sw", "Exactly", fname="e.py", did="d27", after=["d26"])
+    drill_bank(
+        tmp_path, monkeypatch, "sw", "Count", fname="c.py", did="d26", after=["d75"]
+    )
+    drill_bank(
+        tmp_path, monkeypatch, "sw", "Exactly", fname="e.py", did="d27", after=["d26"]
+    )
     assert not kg_lib.drills_left("sw", {})
     ev = evidence(drill_rep("Atom", "other", days_ago=1))
     assert kg_lib.drills_left("sw", ev)
@@ -1251,8 +1482,10 @@ def test_rule_0c_climbs_a_hold_chain_to_its_root(picker):
     ps = {"1": problem(["dd"])}
     picker.bank = {"cu", "si", "dd"}
     picker.undone = {"si"}
-    ev = evidence(solve("8", {"cu": "clean"}, days_ago=1, assist="walkthrough"),
-                  solve("9", {"si": "clean"}, days_ago=1))
+    ev = evidence(
+        solve("8", {"cu": "clean"}, days_ago=1, assist="walkthrough"),
+        solve("9", {"si": "clean"}, days_ago=1),
+    )
     st = {"dd": (FRAGILE, ago(1)), "si": (SOLID, ago(1)), "cu": (SOLID, ago(1))}
     target, status, pnum, why = picker.run(ns, ps, ev, st)
     assert (target, status, pnum) == ("cu", SOLID, "drill:cu")
@@ -1278,11 +1511,16 @@ def test_a_held_carrier_serves_the_root_predecessor_first(picker):
     re-solved it and it never warmed - 47 simulated days. The root of the
     chain is served, as the problem its own moves name."""
     ns = nodes("a", "b")
-    ps = {"1": problem(["a"], after=["9"]), "9": problem(["b"], after=["8"]),
-          "8": problem(["b"])}
-    ev = evidence(solve("1", {"a": "clean"}, days_ago=20),
-                  solve("8", {"b": "clean"}, days_ago=140),
-                  solve("8", {"b": "clean"}, days_ago=100))
+    ps = {
+        "1": problem(["a"], after=["9"]),
+        "9": problem(["b"], after=["8"]),
+        "8": problem(["b"]),
+    }
+    ev = evidence(
+        solve("1", {"a": "clean"}, days_ago=20),
+        solve("8", {"b": "clean"}, days_ago=140),
+        solve("8", {"b": "clean"}, days_ago=100),
+    )
     st = {"a": (STALE, ago(20)), "b": (SOLID, ago(1))}
     target, status, pnum, why = picker.run(ns, ps, ev, st)
     assert (target, status, pnum) == ("b", SOLID, "8")
@@ -1308,7 +1546,7 @@ def test_every_after_id_in_the_real_graph_resolves(monkeypatch):
     problems = kg_lib.load_problems()
     drills = kg_lib.load_drills()
     monkeypatch.setattr(kg_lib, "_DRILLS", drills)
-    bad = []
+    bad: list[tuple] = []
     for pnum, p in problems.items():
         for pred in p.get("after", []):
             if kg_lib.vertex_kind(pred, problems) is None:
@@ -1331,8 +1569,12 @@ def test_every_after_id_in_the_real_graph_resolves(monkeypatch):
     def cyclic(did, seen=()):
         if did in seen:
             return True
-        return any(cyclic(a, seen + (did,)) for a in drills.get(did, {}).get("after", [])
-                   if a in drills)
+        return any(
+            cyclic(a, seen + (did,))
+            for a in drills.get(did, {}).get("after", [])
+            if a in drills
+        )
+
     assert not [t for t in drills if cyclic(t)]
 
 
@@ -1342,8 +1584,9 @@ def test_a_carrier_solved_days_ago_is_not_a_spaced_review(picker):
     yesterday's problem this morning."""
     ns = nodes("bt")
     ps = {"46": problem(["bt"]), "47": problem(["bt"])}
-    ev = evidence(solve("46", {}, days_ago=1),
-                  solve("47", {"bt": "clean"}, days_ago=300))
+    ev = evidence(
+        solve("46", {}, days_ago=1), solve("47", {"bt": "clean"}, days_ago=300)
+    )
     st = {"bt": (STALE, ago(300))}
     assert picker.run(ns, ps, ev, st)[:3] == ("bt", STALE, "47")
 
@@ -1371,6 +1614,7 @@ def test_a_banned_predecessor_holds_nothing_back(picker):
 # --------------------------------------------------------------------------
 # the cross-bank ladder: drills gate one another through node prereqs
 # --------------------------------------------------------------------------
+
 
 def test_a_drill_is_held_while_its_banked_prereq_is_not_solid(picker):
     """The dedupe-siblings case: the dependent's drill waits and its carrier
@@ -1426,18 +1670,23 @@ def test_an_assisted_clean_on_the_prereq_still_holds(picker):
     assert (target, status, pnum) == ("base", SOLID, "drill:base")
     assert "own it unaided" in why
     # the dependent is reported as waiting on it, not as a dry node
-    (nid, _, why, dry), = picker.blocked(ns, ps, ev, st)
+    ((nid, _, why, dry),) = picker.blocked(ns, ps, ev, st)
     assert (nid, dry) == ("dep", False)
     assert "held behind base" in why
 
 
 def test_the_ownership_rep_releasing_the_most_held_moves_goes_first(picker):
     ns = nodes("a", "b", ("d1", ["a"]), ("d2", ["a"]), ("d3", ["b"]))
-    ps = {}
+    ps: dict = {}
     picker.bank = {"a", "b", "d1", "d2", "d3"}
     ev = evidence(solve("9", {"a": "clean", "b": "clean"}, days_ago=1, assist="hint"))
-    st = {"a": (SOLID, ago(1)), "b": (SOLID, ago(1)),
-          "d1": (MISSING, None), "d2": (MISSING, None), "d3": (MISSING, None)}
+    st = {
+        "a": (SOLID, ago(1)),
+        "b": (SOLID, ago(1)),
+        "d1": (MISSING, None),
+        "d2": (MISSING, None),
+        "d3": (MISSING, None),
+    }
     assert picker.run(ns, ps, ev, st)[2] == "drill:a"
     # its drill done for today: the next prereq is served, never the dependents
     picker.drilled_today = {"a"}
@@ -1454,8 +1703,10 @@ def test_a_floor_due_move_held_behind_a_prereq_serves_the_prereq_drill(picker):
     ns = nodes("base", ("dep", ["base"]))
     ps = {"1": problem(["dep"], difficulty="Easy")}
     picker.bank = {"base", "dep"}
-    ev = evidence(solve("8", {"base": "clean"}, days_ago=30),
-                  solve("9", {"dep": "clean"}, days_ago=5))
+    ev = evidence(
+        solve("8", {"base": "clean"}, days_ago=30),
+        solve("9", {"dep": "clean"}, days_ago=5),
+    )
     st = {"base": (SOLID, ago(30)), "dep": (SOLID, ago(5))}
     picker.undone = {"base"}
     assert picker.run(ns, ps, ev, st)[:3] == ("base", SOLID, "drill:base")
@@ -1463,7 +1714,7 @@ def test_a_floor_due_move_held_behind_a_prereq_serves_the_prereq_drill(picker):
 
 def test_cram_skips_the_ownership_rep(picker):
     ns = nodes("base", ("dep", ["base"]))
-    ps = {}
+    ps: dict = {}
     picker.bank = {"base", "dep"}
     ev = evidence(solve("9", {"base": "clean"}, days_ago=1, assist="hint"))
     st = {"dep": (MISSING, None), "base": (SOLID, ago(1))}
@@ -1474,11 +1725,10 @@ def test_early_reviews_solid_nodes_prereqs_first(picker):
     """`make next sql cram early`: nothing rusty in the group, yet every
     SOLID node with a rung left is served, base before dependent."""
     ns = nodes("base", ("dep", ["base"]), "other")
-    ps = {}
+    ps: dict = {}
     picker.bank = {"base", "dep", "other"}
     ev = evidence(solve("9", {"base": "clean", "dep": "clean"}, days_ago=1))
-    st = {"base": (SOLID, ago(1)), "dep": (SOLID, ago(1)),
-          "other": (SOLID, ago(1))}
+    st = {"base": (SOLID, ago(1)), "dep": (SOLID, ago(1)), "other": (SOLID, ago(1))}
     ns["base"]["group"] = ns["dep"]["group"] = "g"
     ns["base"]["group"] = ns["dep"]["group"] = "g"
     ns["other"]["group"] = "elsewhere"
@@ -1495,7 +1745,7 @@ def test_early_walks_the_ladder_missing_after_its_solid_prereqs(picker):
     straight to the MISSING window node. Early means the whole group in
     ladder order - the SOLID prereqs are jogged first, the new move after."""
     ns = nodes("base", ("dep", ["base"]))
-    ps = {}
+    ps: dict = {}
     picker.bank = {"base", "dep"}
     ev = evidence(solve("9", {"base": "clean"}, days_ago=1))
     st = {"base": (SOLID, ago(1)), "dep": (MISSING, None)}
@@ -1516,7 +1766,7 @@ def test_a_node_whose_only_carrier_is_cooling_is_waiting_not_dry(picker):
     ev = evidence(solve("2475", {"t": "clean"}, days_ago=3))
     st = {"t": (STALE, ago(55))}
     assert picker.run(ns, ps, ev, st) is None
-    (nid, _, why, dry), = picker.blocked(ns, ps, ev, st)
+    ((nid, _, why, dry),) = picker.blocked(ns, ps, ev, st)
     assert (nid, dry) == ("t", False)
     assert "carrier 2475 cools " + iso(-2) in why
 
@@ -1525,7 +1775,7 @@ def test_a_node_whose_carrier_is_asleep_names_the_park(picker):
     ns = nodes("t")
     ps = {"7": problem(["t"])}
     st = {"t": (STALE, ago(55))}
-    (nid, _, why, dry), = picker.blocked(ns, ps, {}, st, asleep={"7"})
+    ((nid, _, why, dry),) = picker.blocked(ns, ps, {}, st, asleep={"7"})
     assert (nid, dry) == ("t", False)
     assert "7 is asleep" in why and "make wake" in why
 
@@ -1534,6 +1784,7 @@ def test_a_pending_plan_drill_for_the_prereq_holds_the_dependent():
     """The plan-serving clause: judgment may order items freely, so a
     dependent's drill item waits while the prereq's item is still pending."""
     from kg.kg_lib import drill_held
+
     ns = nodes("base", ("dep", ["base"]))
     st = {"base": (SOLID, ago(1)), "dep": (STALE, ago(300))}
     no_bank = lambda nid: False
@@ -1548,22 +1799,31 @@ def test_a_solid_owned_node_has_no_drill_due(tmp_path, monkeypatch):
     clean drill does not stand for the others (2026-08-31, a clean Pairs
     marked start-index solid with five drills, subsets included, untouched)."""
     from kg import kg_lib
+
     bank = tmp_path / "some-node"
     bank.mkdir()
     (bank / "d0.py").write_text("DRILL: Only One\n")
     monkeypatch.setattr(kg_lib, "DRILLS_DIR", str(tmp_path))
-    done = {"solved/d_Only_One_1.py": {"date": iso(5), "problem": "drill",
-                                       "moves": {"some-node": "clean"}}}
+    done = {
+        "solved/d_Only_One_1.py": {
+            "date": iso(5),
+            "problem": "drill",
+            "moves": {"some-node": "clean"},
+        }
+    }
     ev = evidence(solve("7", {"some-node": "clean"}, days_ago=2), done)
     assert kg_lib.due_drill("some-node", ev) is None
-    assisted = evidence(solve("7", {"some-node": "clean"}, days_ago=2,
-                              assist="walkthrough"), done)
+    assisted = evidence(
+        solve("7", {"some-node": "clean"}, days_ago=2, assist="walkthrough"), done
+    )
     assert kg_lib.due_drill("some-node", assisted) is not None
     undone = evidence(solve("7", {"some-node": "clean"}, days_ago=2))
     assert kg_lib.due_drill("some-node", undone) == str(bank / "d0.py")
 
 
-def test_an_assisted_rung_with_undone_rungs_above_it_is_served_again(tmp_path, monkeypatch):
+def test_an_assisted_rung_with_undone_rungs_above_it_is_served_again(
+    tmp_path, monkeypatch
+):
     """2026-08-31: Combinations was done once with a walkthrough, so Reuse
     Allowed and Subsets above it stayed held; every released rung had a rep,
     the node read done, and the dedupe drill got served with subsets never
@@ -1571,26 +1831,39 @@ def test_an_assisted_rung_with_undone_rungs_above_it_is_served_again(tmp_path, m
     assisted rung below it is what gets served. A rung held only because
     another node is not owned does not count - nothing here clears it."""
     from kg import kg_lib
+
     bank = tmp_path / "some-node"
     bank.mkdir()
     (bank / "d0.py").write_text("DRILL: Lower\nTRAINS: some-node\n")
     (bank / "d1.py").write_text("DRILL: Upper\nTRAINS: some-node\n")
     monkeypatch.setattr(kg_lib, "DRILLS_DIR", str(tmp_path))
     register(monkeypatch, d1="Lower", d2=("Upper", ["d1"]))
-    lower = {"solved/d_Lower_1.py": {"date": iso(5), "problem": "drill",
-                                     "moves": {"some-node": "clean"},
-                                     "assist": "walkthrough"}}
+    lower = {
+        "solved/d_Lower_1.py": {
+            "date": iso(5),
+            "problem": "drill",
+            "moves": {"some-node": "clean"},
+            "assist": "walkthrough",
+        }
+    }
     ev = evidence(solve("7", {"some-node": "clean"}, days_ago=2), lower)
     assert kg_lib.drills_left("some-node", ev)
     assert kg_lib.due_drill("some-node", ev) == str(bank / "d0.py")
     (bank / "d1.py").write_text("DRILL: Upper\nTRAINS: some-node, other\n")
-    unaided = {"solved/d_Lower_1.py": {"date": iso(5), "problem": "drill",
-                                       "moves": {"some-node": "clean"}}}
+    unaided = {
+        "solved/d_Lower_1.py": {
+            "date": iso(5),
+            "problem": "drill",
+            "moves": {"some-node": "clean"},
+        }
+    }
     ev = evidence(solve("7", {"some-node": "clean"}, days_ago=2), unaided)
     assert not kg_lib.drills_left("some-node", ev)
 
 
-def test_assisted_serves_only_drills_whose_latest_rep_was_assisted(tmp_path, monkeypatch):
+def test_assisted_serves_only_drills_whose_latest_rep_was_assisted(
+    tmp_path, monkeypatch
+):
     """2026-08-31: every sql node SOLID, `make next sql` spent, `cram early`
     walking the group from the bottom through drills already owned three
     times over. `assisted` is the early walk restricted to drills whose
@@ -1598,30 +1871,46 @@ def test_assisted_serves_only_drills_whose_latest_rep_was_assisted(tmp_path, mon
     still waiting for their unaided rep. Never-done drills are not in it,
     an owned drill is not in it, and the once-a-day rule still holds."""
     from kg import kg_lib
+
     bank = tmp_path / "some-node"
     bank.mkdir()
     for i, t in enumerate(["Owned", "Hinted", "Learning", "Fresh"]):
         (bank / f"r{i}.py").write_text(f"DRILL: {t}\nTRAINS: some-node\n")
     monkeypatch.setattr(kg_lib, "DRILLS_DIR", str(tmp_path))
     reps = {
-        "solved/d_Owned_1.py": {"date": iso(3), "problem": "drill",
-                                "moves": {"some-node": "clean"}},
-        "solved/d_Hinted_1.py": {"date": iso(2), "problem": "drill",
-                                 "moves": {"some-node": "clean"},
-                                 "assist": "hint"},
-        "solved/d_Learning_1.py": {"date": iso(1), "problem": "drill",
-                                  "moves": {"some-node": "clean"},
-                                  "assist": {"some-node": "learning"}},
+        "solved/d_Owned_1.py": {
+            "date": iso(3),
+            "problem": "drill",
+            "moves": {"some-node": "clean"},
+        },
+        "solved/d_Hinted_1.py": {
+            "date": iso(2),
+            "problem": "drill",
+            "moves": {"some-node": "clean"},
+            "assist": "hint",
+        },
+        "solved/d_Learning_1.py": {
+            "date": iso(1),
+            "problem": "drill",
+            "moves": {"some-node": "clean"},
+            "assist": {"some-node": "learning"},
+        },
     }
     ev = evidence(solve("7", {"some-node": "clean"}, days_ago=1), reps)
     assert kg_lib.due_drill("some-node", ev, assisted=True) == str(bank / "r1.py")
-    reps["solved/d_Hinted_2.py"] = {"date": iso(0), "problem": "drill",
-                                    "moves": {"some-node": "clean"}}
+    reps["solved/d_Hinted_2.py"] = {
+        "date": iso(0),
+        "problem": "drill",
+        "moves": {"some-node": "clean"},
+    }
     ev = evidence(solve("7", {"some-node": "clean"}, days_ago=1), reps)
     assert kg_lib.due_drill("some-node", ev, assisted=True) == str(bank / "r2.py")
-    reps["solved/d_Learning_2.py"] = {"date": iso(0), "problem": "drill",
-                                     "moves": {"some-node": "clean"},
-                                     "assist": "hint"}
+    reps["solved/d_Learning_2.py"] = {
+        "date": iso(0),
+        "problem": "drill",
+        "moves": {"some-node": "clean"},
+        "assist": "hint",
+    }
     ev = evidence(solve("7", {"some-node": "clean"}, days_ago=1), reps)
     assert kg_lib.due_drill("some-node", ev, assisted=True) is None  # today
 
@@ -1660,6 +1949,7 @@ def test_undone_drills_hold_the_dependent_and_get_served(tmp_path, monkeypatch):
     """A prereq node with drills never done does not unlock the node after
     it, and the picker serves the prereq's next undone drill instead."""
     from kg import kg_lib
+
     bank = tmp_path / "base"
     bank.mkdir()
     (bank / "b0.py").write_text("DRILL: B Zero\nTRAINS: base\n")
@@ -1668,13 +1958,23 @@ def test_undone_drills_hold_the_dependent_and_get_served(tmp_path, monkeypatch):
     register(monkeypatch, d1="B Zero", d2=("B One", ["d1"]))
     ns = nodes("base", ("dep", ["base"]))
     st = {"base": (SOLID, ago(0)), "dep": (STALE, ago(300))}
-    b0 = {"solved/d_B_Zero_1.py": {"date": iso(0), "problem": "drill",
-                                   "moves": {"base": "clean"}}}
+    b0 = {
+        "solved/d_B_Zero_1.py": {
+            "date": iso(0),
+            "problem": "drill",
+            "moves": {"base": "clean"},
+        }
+    }
     ev = evidence(b0)
     assert kg_lib.drill_held("dep", ns, st, ev)
     assert kg_lib.due_drill("base", ev) == str(bank / "b1.py")
-    b1 = {"solved/d_B_One_1.py": {"date": iso(0), "problem": "drill",
-                                  "moves": {"base": "clean"}}}
+    b1 = {
+        "solved/d_B_One_1.py": {
+            "date": iso(0),
+            "problem": "drill",
+            "moves": {"base": "clean"},
+        }
+    }
     ev2 = evidence(b0, b1)
     assert not kg_lib.drill_held("dep", ns, st, ev2)
     assert kg_lib.due_drill("base", ev2) is None
@@ -1687,15 +1987,22 @@ def test_a_hint_on_one_move_does_not_taint_the_rest_of_the_walk(picker):
     behind prefix-sums for an unaided rep of a move with three unaided
     reps the week before. With {move: level}, only the helped move is
     unowned; the bare-string form still means the whole walk."""
-    ev = evidence(solve("1004", {"window": "clean", "prefix": "clean"},
-                        days_ago=1, assist={"window": "hint"}))
+    ev = evidence(
+        solve(
+            "1004",
+            {"window": "clean", "prefix": "clean"},
+            days_ago=1,
+            assist={"window": "hint"},
+        )
+    )
     assert kg_lib.assist_of(next(iter(ev.values())), "window") == "hint"
     assert kg_lib.assist_of(next(iter(ev.values())), "prefix") == "none"
     assert kg_lib.assist_of(next(iter(ev.values()))) == "hint"  # the solve as a whole
     assert kg_lib.owned("prefix", ev)
     assert not kg_lib.owned("window", ev)
-    legacy = evidence(solve("1004", {"window": "clean", "prefix": "clean"},
-                            days_ago=1, assist="hint"))
+    legacy = evidence(
+        solve("1004", {"window": "clean", "prefix": "clean"}, days_ago=1, assist="hint")
+    )
     assert not kg_lib.owned("prefix", legacy)
     # and the picker serves the ownership rep for the helped move only
     ns = nodes("window", "prefix", ("dep", ["window", "prefix"]))
@@ -1711,8 +2018,9 @@ def test_a_hint_on_one_move_does_not_taint_the_rest_of_the_walk(picker):
 def test_a_learning_move_is_censored_only_for_itself():
     """node_status reads the per-move level too: a learning move earns no
     clean rep, the other move in the same walk does."""
-    ev = evidence(solve("9", {"a": "clean", "b": "clean"}, days_ago=1,
-                        assist={"a": "learning"}))
+    ev = evidence(
+        solve("9", {"a": "clean", "b": "clean"}, days_ago=1, assist={"a": "learning"})
+    )
     assert kg_lib.node_status("a", ev)[0] == FRAGILE
     assert kg_lib.node_status("b", ev)[0] == SOLID
 
@@ -1720,7 +2028,9 @@ def test_a_learning_move_is_censored_only_for_itself():
 def test_normalise_assist_stores_the_per_move_shape():
     moves = {"a": "clean", "b": "clean"}
     assert kg_lib.normalise_assist({"a": "hint"}, moves) == {"a": "hint"}
-    assert kg_lib.normalise_assist({"a": "hint", "zzz": "hint", "b": "none"}, moves) == {"a": "hint"}
+    assert kg_lib.normalise_assist(
+        {"a": "hint", "zzz": "hint", "b": "none"}, moves
+    ) == {"a": "hint"}
     assert kg_lib.normalise_assist("hint", moves) == {"a": "hint", "b": "hint"}
     assert kg_lib.normalise_assist("none", moves) is None
     assert kg_lib.normalise_assist({}, moves) is None
@@ -1734,16 +2044,26 @@ def test_a_composite_rung_waits_for_every_move_it_combines(tmp_path, monkeypatch
     way a carrier waits for every other move in its walk to be SOLID. The
     ladder below it still applies, and the first rung is never held."""
     from kg import kg_lib
+
     bank = tmp_path / "left-keep"
     bank.mkdir()
     (bank / "r1.py").write_text('"""\nDRILL: R One\nTRAINS: left-keep\n"""\n')
-    (bank / "r2.py").write_text('"""\nDRILL: R Two\nTRAINS: left-keep, group-agg\n"""\n')
+    (bank / "r2.py").write_text(
+        '"""\nDRILL: R Two\nTRAINS: left-keep, group-agg\n"""\n'
+    )
     monkeypatch.setattr(kg_lib, "DRILLS_DIR", str(tmp_path))
     register(monkeypatch, d1="R One", d2=("R Two", ["d1"]))
     r1, r2 = str(bank / "r1.py"), str(bank / "r2.py")
     # r1 warm (clean, unaided, recent) but group-agg never owned: r2 stays held
-    ev = evidence({"solved/d_R_One_1.py": {"date": iso(3), "problem": "drill",
-                                           "moves": {"left-keep": "clean"}}})
+    ev = evidence(
+        {
+            "solved/d_R_One_1.py": {
+                "date": iso(3),
+                "problem": "drill",
+                "moves": {"left-keep": "clean"},
+            }
+        }
+    )
     assert kg_lib.servable_drills([r1, r2], ev, "left-keep") == [r1]
     # group-agg owned only through a hinted rep: still held
     ev2 = evidence(ev, solve("5", {"group-agg": "clean"}, days_ago=1, assist="hint"))
@@ -1759,6 +2079,7 @@ def test_a_composite_rung_waits_for_every_move_it_combines(tmp_path, monkeypatch
 # the frontier mover (PLAN.md phase 4): a due node with no evidenced carrier
 # promotes a drafted problem from the predicted tier
 # --------------------------------------------------------------------------
+
 
 def test_a_missing_move_with_no_mapped_carrier_promotes_a_draft(picker):
     """The 2026-08-28 dry basecamp: the frontier node's only mapped walk is
@@ -1789,8 +2110,10 @@ def test_a_draft_already_solved_is_never_promoted(picker):
     for num in ("1365", "1893", "2149"):
         picker.predicted[num] = drafted(["csb"])
         picker.meta[num] = {"difficulty": "Easy"}
-    ev = evidence(solve("1365", {"dav": "clean"}, days_ago=1),
-                  solve("1893", {"sa": "clean"}, days_ago=0))
+    ev = evidence(
+        solve("1365", {"dav": "clean"}, days_ago=1),
+        solve("1893", {"sa": "clean"}, days_ago=0),
+    )
     assert picker.run(ns, ps, ev, st)[2] == "2149"
 
 
@@ -1849,7 +2172,7 @@ def test_a_promoted_walk_obeys_the_one_new_move_rule(picker):
 def test_a_drafted_hard_is_never_promoted(picker):
     """Hards stay summits even in the predicted tier."""
     ns = nodes("t")
-    ps = {}
+    ps: dict = {}
     st = {"t": (MISSING, None)}
     picker.predicted["9001"] = drafted(["t"])
     picker.meta["9001"] = {"difficulty": "Hard"}
@@ -1860,7 +2183,7 @@ def test_a_missing_flagged_draft_is_not_promoted(picker):
     """A walk the taxonomy cannot express yet is not a carrier for anything:
     its unexpressed move would ride along as a hidden second gap."""
     ns = nodes("t")
-    ps = {}
+    ps: dict = {}
     st = {"t": (MISSING, None)}
     picker.predicted["9001"] = drafted(["t"], missing=["fenwick-tree"])
     picker.meta["9001"] = {"difficulty": "Easy"}
@@ -1874,8 +2197,7 @@ def test_promotion_prefers_the_heavily_rehearsed_walk(picker):
     ns = nodes("t", "common", "rare")
     ps = {str(i): problem(["common"]) for i in range(1, 6)}
     ps["10"] = problem(["rare"])
-    st = {"t": (MISSING, None), "common": (SOLID, ago(1)),
-          "rare": (SOLID, ago(1))}
+    st = {"t": (MISSING, None), "common": (SOLID, ago(1)), "rare": (SOLID, ago(1))}
     picker.predicted["9001"] = drafted(["t", "rare"])
     picker.predicted["9002"] = drafted(["t", "common"])
     picker.meta["9001"] = {"difficulty": "Easy"}
@@ -1911,7 +2233,7 @@ def test_blocked_report_says_no_draft_can_carry(picker):
     ns = nodes("t")
     ps = {"41": problem(["t"], difficulty="Hard")}
     st = {"t": (MISSING, None)}
-    (nid, _, why, _), = picker.blocked(ns, ps, {}, st)
+    ((nid, _, why, _),) = picker.blocked(ns, ps, {}, st)
     assert nid == "t"
     assert "no drafted walk" in why
 
@@ -1922,7 +2244,7 @@ def test_early_walks_one_ladder_to_the_top_before_the_node_above_it(picker):
     unseen. Early is depth first - a dependent waits while an in-scope
     prereq's bank still has an undrilled released rung."""
     ns = nodes("base", ("dep", ["base"]))
-    ps = {}
+    ps: dict = {}
     picker.bank = {"base", "dep"}
     ev = evidence(solve("9", {"base": "clean"}, days_ago=1, assist="hint"))
     st = {"base": (SOLID, ago(1)), "dep": (MISSING, None)}
@@ -1944,6 +2266,7 @@ def test_the_cram_ladder_climbs_on_an_assisted_clean(tmp_path, monkeypatch):
     (drill_warm). In the early walk a hinted clean is enough, so a ladder
     is climbed in one sitting instead of one rung per day."""
     from kg import kg_lib
+
     bank = tmp_path / "group-agg"
     bank.mkdir()
     (bank / "r1.py").write_text('"""\nDRILL: R One\nTRAINS: group-agg\n"""\n')
@@ -1951,15 +2274,30 @@ def test_the_cram_ladder_climbs_on_an_assisted_clean(tmp_path, monkeypatch):
     monkeypatch.setattr(kg_lib, "DRILLS_DIR", str(tmp_path))
     register(monkeypatch, d1="R One", d2=("R Two", ["d1"]))
     r1, r2 = str(bank / "r1.py"), str(bank / "r2.py")
-    ev = evidence({"solved/d_R_One_1.py": {"date": iso(0), "problem": "drill",
-                                           "moves": {"group-agg": "clean"},
-                                           "assist": "hint"}})
+    ev = evidence(
+        {
+            "solved/d_R_One_1.py": {
+                "date": iso(0),
+                "problem": "drill",
+                "moves": {"group-agg": "clean"},
+                "assist": "hint",
+            }
+        }
+    )
     assert kg_lib.servable_drills([r1, r2], ev, "group-agg") == [r1]
     assert kg_lib.servable_drills([r1, r2], ev, "group-agg", early=True) == [r1, r2]
     assert kg_lib.due_drill("group-agg", ev, early=True) == r2
     assert kg_lib.drills_left("group-agg", ev, early=True)
-    ev2 = evidence(ev, {"solved/d_R_Two_1.py": {"date": iso(0), "problem": "drill",
-                                                "moves": {"group-agg": "clean"}}})
+    ev2 = evidence(
+        ev,
+        {
+            "solved/d_R_Two_1.py": {
+                "date": iso(0),
+                "problem": "drill",
+                "moves": {"group-agg": "clean"},
+            }
+        },
+    )
     assert not kg_lib.drills_left("group-agg", ev2, early=True)
 
 
@@ -1969,19 +2307,31 @@ def test_two_same_day_reps_of_one_drill_do_not_crash_the_ladder(tmp_path, monkey
     through to the records. The later solved file (timestamp in its name)
     is the latest rep."""
     from kg import kg_lib
+
     bank = tmp_path / "n"
     bank.mkdir()
     (bank / "r1.py").write_text('"""\nDRILL: R One\nTRAINS: n\n"""\n')
     monkeypatch.setattr(kg_lib, "DRILLS_DIR", str(tmp_path))
     r1 = str(bank / "r1.py")
-    ev = {"solved/d_R_One_2026_08_30T01.py": {"date": iso(0), "problem": "drill",
-                                             "moves": {"n": "clean"}},
-          "solved/d_R_One_2026_08_30T02.py": {"date": iso(0), "problem": "drill",
-                                             "moves": {"n": "struggled"}}}
+    ev = {
+        "solved/d_R_One_2026_08_30T01.py": {
+            "date": iso(0),
+            "problem": "drill",
+            "moves": {"n": "clean"},
+        },
+        "solved/d_R_One_2026_08_30T02.py": {
+            "date": iso(0),
+            "problem": "drill",
+            "moves": {"n": "struggled"},
+        },
+    }
     assert not kg_lib.drill_clean(r1, ev)
     assert not kg_lib.drill_warm(r1, ev)
-    ev["solved/d_R_One_2026_08_30T03.py"] = {"date": iso(0), "problem": "drill",
-                                            "moves": {"n": "clean"}}
+    ev["solved/d_R_One_2026_08_30T03.py"] = {
+        "date": iso(0),
+        "problem": "drill",
+        "moves": {"n": "clean"},
+    }
     assert kg_lib.drill_clean(r1, ev)
     assert kg_lib.drill_warm(r1, ev)
 
@@ -2004,7 +2354,8 @@ def test_cram_keeps_the_curve(picker):
     # due_drill (stubbed) follows the real one: an owned SOLID node is not
     # due outside early, so neither the curve nor cram serves it
     monkeypatch_due = lambda nid, ev, today=None, early=False, assisted=False: (
-        f"drills/{nid}/one.py" if early else None)
+        f"drills/{nid}/one.py" if early else None
+    )
     kg_next.due_drill = monkeypatch_due
     assert picker.run(ns, {}, ev, st, group="g", cram=True) is None
     assert picker.run(ns, {}, ev, st, group="g", early=True)[2] == "drill:base"
@@ -2013,8 +2364,9 @@ def test_cram_keeps_the_curve(picker):
 def test_cram_stays_inside_the_group(picker):
     """The group scope survives cram: a held node in another group is not
     what `make next sql cram` releases."""
-    ns = grouped(nodes("base", ("dep", ["base"]), ("far", ["base"])),
-                 "g", "base", "dep")
+    ns = grouped(
+        nodes("base", ("dep", ["base"]), ("far", ["base"])), "g", "base", "dep"
+    )
     ns["far"]["group"] = "elsewhere"
     picker.bank = {"base", "dep", "far"}
     ev = evidence(solve("9", {"base": "clean"}, days_ago=1, assist="hint"))
@@ -2113,13 +2465,18 @@ def test_prepare_loads_the_exact_drill_file_the_pick_chose(monkeypatch, tmp_path
         "animate": lambda text: None,
     }.items():
         monkeypatch.setattr(kg_next, name, fn)
-    monkeypatch.setattr(kg_next, "_iss",
-                        lambda: type("S", (), {"solve_seconds_today": lambda self: 0})())
+    monkeypatch.setattr(
+        kg_next,
+        "_iss",
+        lambda: type("S", (), {"solve_seconds_today": lambda self: 0})(),
+    )
     monkeypatch.setattr(kg_next, "REPO_ROOT", str(tmp_path))  # empty current.py
-    monkeypatch.setattr(kg_next.subprocess, "run",
-                        lambda cmd, **kw: calls.append(cmd[-1]))
-    monkeypatch.setattr(sys, "argv",
-                        ["kg_next", "--group=g", "--early", "--prepare", "--no-show"])
+    monkeypatch.setattr(
+        kg_next.subprocess, "run", lambda cmd, **kw: calls.append(cmd[-1])
+    )
+    monkeypatch.setattr(
+        sys, "argv", ["kg_next", "--group=g", "--early", "--prepare", "--no-show"]
+    )
     kg_next.main()
     assert calls == [path]
 
@@ -2127,6 +2484,7 @@ def test_prepare_loads_the_exact_drill_file_the_pick_chose(monkeypatch, tmp_path
 # --------------------------------------------------------------------------
 # the THIN kind: a young move off its ladder is proved on a real problem
 # --------------------------------------------------------------------------
+
 
 def test_a_young_move_is_proved_when_nothing_else_is_due(picker):
     """Every node SOLID, no summit ready, so the picker used to say nothing.
@@ -2147,8 +2505,9 @@ def test_the_proving_carrier_nearest_the_target_pass_rate_wins(picker, monkeypat
     """Two carriers prove the same young move. The cold-solve model puts one
     near the target pass rate and one well above it; the rep goes to the one
     that can actually fail, not to the gentler problem."""
-    monkeypatch.setattr(kg_lib, "solve_model",
-                        lambda curve=None: {"intercept": 0.0, "rating": -1.0})
+    monkeypatch.setattr(
+        kg_lib, "solve_model", lambda curve=None: {"intercept": 0.0, "rating": -1.0}
+    )
     monkeypatch.setattr(kg_lib, "solve_ratings", lambda: {"1": 1500.0, "2": 1100.0})
     monkeypatch.setattr(kg_next, "solve_model", kg_lib.solve_model)
     monkeypatch.setattr(kg_next, "solve_ratings", kg_lib.solve_ratings)
@@ -2164,8 +2523,9 @@ def test_the_proving_carrier_nearest_the_target_pass_rate_wins(picker, monkeypat
 def test_an_unpriced_carrier_sorts_behind_the_priced_ones(picker, monkeypatch):
     """A problem with no contest rating cannot be placed on the scale, so it
     keeps its old gentleness order behind every problem that can."""
-    monkeypatch.setattr(kg_lib, "solve_model",
-                        lambda curve=None: {"intercept": 0.0, "rating": -1.0})
+    monkeypatch.setattr(
+        kg_lib, "solve_model", lambda curve=None: {"intercept": 0.0, "rating": -1.0}
+    )
     monkeypatch.setattr(kg_lib, "solve_ratings", lambda: {"2": 1500.0})
     monkeypatch.setattr(kg_next, "solve_model", kg_lib.solve_model)
     monkeypatch.setattr(kg_next, "solve_ratings", kg_lib.solve_ratings)
@@ -2251,12 +2611,24 @@ def test_thin_moves_order_by_degree(picker, monkeypatch):
     ns = nodes("a", "b", "c")
     ps = {"1": problem(["a", "b"]), "2": problem(["a", "c"]), "3": problem(["a", "c"])}
     st = {n: (SOLID, ago(1)) for n in ns}
-    ev = evidence(solve("2", {"c": "clean"}, days_ago=40),
-                  solve("2", {"c": "clean"}, days_ago=10),
-                  {"solved/d_Thing_1.py": {"date": iso(40), "problem": "drill",
-                                           "moves": {"b": "clean"}}},
-                  {"solved/d_Thing_2.py": {"date": iso(10), "problem": "drill",
-                                           "moves": {"b": "clean"}}})
+    ev = evidence(
+        solve("2", {"c": "clean"}, days_ago=40),
+        solve("2", {"c": "clean"}, days_ago=10),
+        {
+            "solved/d_Thing_1.py": {
+                "date": iso(40),
+                "problem": "drill",
+                "moves": {"b": "clean"},
+            }
+        },
+        {
+            "solved/d_Thing_2.py": {
+                "date": iso(10),
+                "problem": "drill",
+                "moves": {"b": "clean"},
+            }
+        },
+    )
     picker.immature |= {"b", "c"}
     picker.gain = {"b": 1, "c": 90}
     assert picker.run(ns, ps, ev, st)[0] == "b"
@@ -2270,8 +2642,10 @@ def test_a_medium_bar_young_move_promotes_a_drafted_medium_not_an_easy(picker):
     ns = nodes("a", "b")
     ps = {"1": problem(["a", "b"]), "2": problem(["a"])}
     st = {"a": (SOLID, ago(1)), "b": (SOLID, ago(1))}
-    ev = evidence(solve("2", {"a": "clean"}, days_ago=60),  # a is off its ladder
-                  solve("1", {"a": "clean", "b": "clean"}, days_ago=30))
+    ev = evidence(
+        solve("2", {"a": "clean"}, days_ago=60),  # a is off its ladder
+        solve("1", {"a": "clean", "b": "clean"}, days_ago=30),
+    )
     picker.immature.add("b")
     picker.gain = {"b": 40}
     picker.predicted["9001"] = drafted(["a", "b"])
@@ -2292,8 +2666,10 @@ def test_a_counted_carrier_yields_to_a_drafted_medium(picker):
     ns = nodes("a", "b")
     ps = {"1": problem(["a", "b"])}
     st = {"a": (SOLID, ago(1)), "b": (SOLID, ago(1))}
-    ev = evidence(solve("1", {"a": "clean", "b": "clean"}, days_ago=40),
-                  solve("1", {"a": "clean", "b": "clean"}, days_ago=10))
+    ev = evidence(
+        solve("1", {"a": "clean", "b": "clean"}, days_ago=40),
+        solve("1", {"a": "clean", "b": "clean"}, days_ago=10),
+    )
     picker.immature.add("b")
     picker.gain = {"b": 18}
     picker.predicted["9002"] = drafted(["a", "b"])
@@ -2306,8 +2682,10 @@ def test_a_counted_carrier_is_re_solved_when_no_draft_exists(picker):
     ns = nodes("a", "b")
     ps = {"1": problem(["a", "b"])}
     st = {"a": (SOLID, ago(1)), "b": (SOLID, ago(1))}
-    ev = evidence(solve("1", {"a": "clean", "b": "clean"}, days_ago=40),
-                  solve("1", {"a": "clean", "b": "clean"}, days_ago=10))
+    ev = evidence(
+        solve("1", {"a": "clean", "b": "clean"}, days_ago=40),
+        solve("1", {"a": "clean", "b": "clean"}, days_ago=10),
+    )
     picker.immature.add("b")
     picker.gain = {"b": 18}
     target, status, pnum, reason = picker.run(ns, ps, ev, st)
@@ -2319,8 +2697,10 @@ def test_a_fresh_evidenced_carrier_still_outranks_a_draft(picker):
     ns = nodes("a", "b")
     ps = {"1": problem(["a", "b"]), "2": problem(["a", "b"])}
     st = {"a": (SOLID, ago(1)), "b": (SOLID, ago(1))}
-    ev = evidence(solve("1", {"a": "clean", "b": "clean"}, days_ago=40),
-                  solve("1", {"a": "clean", "b": "clean"}, days_ago=10))
+    ev = evidence(
+        solve("1", {"a": "clean", "b": "clean"}, days_ago=40),
+        solve("1", {"a": "clean", "b": "clean"}, days_ago=10),
+    )
     picker.immature.add("b")
     picker.gain = {"b": 18}
     picker.predicted["9002"] = drafted(["a", "b"])
@@ -2338,6 +2718,7 @@ def test_unlocks_counts_a_young_move_as_a_gap():
 # --------------------------------------------------------------------------
 # rule 6: an unsolved drafted problem in reach, Hards first
 # --------------------------------------------------------------------------
+
 
 def test_a_solid_graph_serves_an_unsolved_drafted_hard(picker):
     """The 2026-08-31 simulation: 180 days of a solid graph, one Hard
@@ -2431,18 +2812,23 @@ def test_the_first_rep_of_a_drill_is_unaided_at_the_node(tmp_path, monkeypatch):
     The drill itself still waits for an unaided rep either way."""
     drill_bank(tmp_path, monkeypatch, "sw", "Count by Contribution")
     ps = {"713": problem(["sw"], after=["d1"])}
-    ev = evidence(solve("9", {"sw": "clean"}, days_ago=20),
-                  drill_rep("Count by Contribution", "sw", days_ago=1, assist="learning"))
+    ev = evidence(
+        solve("9", {"sw": "clean"}, days_ago=20),
+        drill_rep("Count by Contribution", "sw", days_ago=1, assist="learning"),
+    )
     assert kg_lib.owned("sw", ev)
     assert kg_lib.node_status("sw", ev)[1].isoformat() == iso(1)
     assert kg_lib.held_behind("713", ps, ev) == "d1"
-    second = evidence(ev, drill_rep("Count by Contribution", "sw", days_ago=0, assist="hint"))
+    second = evidence(
+        ev, drill_rep("Count by Contribution", "sw", days_ago=0, assist="hint")
+    )
     assert not kg_lib.owned("sw", second)
 
 
 # --------------------------------------------------------------------------
 # review_ahead: the review between now and the first pick that is new ground
 # --------------------------------------------------------------------------
+
 
 @pytest.fixture
 def flat_window(monkeypatch):
@@ -2458,8 +2844,10 @@ def test_review_ahead_counts_a_gated_drill_before_the_summit(picker, flat_window
     ns = nodes("a", "b")
     ps = {"1": problem(["a"]), "2": problem(["a", "b"], difficulty="Hard")}
     picker.bank = {"a"}
-    ev = evidence(solve("1", {"a": "struggled"}, days_ago=1),
-                  solve("3", {"b": "clean"}, days_ago=1))
+    ev = evidence(
+        solve("1", {"a": "struggled"}, days_ago=1),
+        solve("3", {"b": "clean"}, days_ago=1),
+    )
     assert kg_next.review_ahead(ns, ps, ev) == (1, 0, True)
 
 
@@ -2500,12 +2888,18 @@ def test_review_ahead_restores_the_clock(picker, flat_window):
 
 
 def test_review_line_wording():
-    assert kg_next.review_line(2, 1, True) == \
-        "review ahead: 2 drills, 1 problem, then new ground (if every rep is clean)"
-    assert kg_next.review_line(0, 0, True) == \
-        "review ahead: none - this pick is new ground"
-    assert kg_next.review_line(3, 0, False) == \
-        "review ahead: 3 drills, and still nothing new (if every rep is clean)"
+    assert (
+        kg_next.review_line(2, 1, True)
+        == "review ahead: 2 drills, 1 problem, then new ground (if every rep is clean)"
+    )
+    assert (
+        kg_next.review_line(0, 0, True)
+        == "review ahead: none - this pick is new ground"
+    )
+    assert (
+        kg_next.review_line(3, 0, False)
+        == "review ahead: 3 drills, and still nothing new (if every rep is clean)"
+    )
 
 
 def test_the_level_word_in_the_notes_is_the_mark():
@@ -2521,9 +2915,16 @@ def test_the_level_word_in_the_notes_is_the_mark():
     assert kg_lib.notes_assist_level("solved it cold") == "none"
     # the floor lands on the drill's TRAINS node and raises, never lowers
     assert kg_lib.apply_assist_floor(None, "walkthrough", ["a"]) == {"a": "walkthrough"}
-    assert kg_lib.apply_assist_floor({"a": "hint"}, "walkthrough", ["a"]) == {"a": "walkthrough"}
-    assert kg_lib.apply_assist_floor({"a": "learning"}, "hint", ["a"]) == {"a": "learning"}
-    assert kg_lib.apply_assist_floor({"b": "hint"}, "walkthrough", ["a"]) == {"a": "walkthrough", "b": "hint"}
+    assert kg_lib.apply_assist_floor({"a": "hint"}, "walkthrough", ["a"]) == {
+        "a": "walkthrough"
+    }
+    assert kg_lib.apply_assist_floor({"a": "learning"}, "hint", ["a"]) == {
+        "a": "learning"
+    }
+    assert kg_lib.apply_assist_floor({"b": "hint"}, "walkthrough", ["a"]) == {
+        "a": "walkthrough",
+        "b": "hint",
+    }
     assert kg_lib.apply_assist_floor({"a": "hint"}, "none", ["a"]) == {"a": "hint"}
     assert kg_lib.apply_assist_floor(None, "none", ["a"]) is None
 
@@ -2531,6 +2932,7 @@ def test_the_level_word_in_the_notes_is_the_mark():
 # --------------------------------------------------------------------------
 # rule 0b: a full park withholds new ground, review still flows
 # --------------------------------------------------------------------------
+
 
 def test_a_full_park_withholds_new_ground_but_not_review(monkeypatch):
     """2026-09-01: four problems asleep, cap three, and make next kept
@@ -2550,11 +2952,15 @@ def test_a_full_park_withholds_new_ground_but_not_review(monkeypatch):
 
 def test_the_park_full_message_names_the_ways_out(monkeypatch):
     monkeypatch.setattr(kg_next, "MAX_ASLEEP", 3)
-    ps = {"1235": problem(["a"], title="Job Scheduling"),
-          "752": problem(["a"], title="Open the Lock")}
+    ps = {
+        "1235": problem(["a"], title="Job Scheduling"),
+        "752": problem(["a"], title="Open the Lock"),
+    }
     lines = kg_next.park_full_lines({"1235", "752"}, ps)
     assert len(lines) == 1 and lines[0].startswith("2 asleep (cap 3)")
-    assert "make wake" in lines[0] and "make failed" in lines[0] and "learning" in lines[0]
+    assert (
+        "make wake" in lines[0] and "make failed" in lines[0] and "learning" in lines[0]
+    )
 
 
 def test_the_park_is_listed_under_every_make_next(monkeypatch):
@@ -2563,9 +2969,18 @@ def test_the_park_is_listed_under_every_make_next(monkeypatch):
     make sleep -- --list prints; one line per park."""
     ns = nodes("a", "b")
     ps = {"7": problem(["a", "b"], title="Parked One")}
-    monkeypatch.setattr(kg_lib, "sleep_records",
-                        lambda problems, ev: {"7": {"branch": "7-slept", "title": "Parked One",
-                                                    "slept": 1_756_000_000, "cycles": 2}})
+    monkeypatch.setattr(
+        kg_lib,
+        "sleep_records",
+        lambda problems, ev: {
+            "7": {
+                "branch": "7-slept",
+                "title": "Parked One",
+                "slept": 1_756_000_000,
+                "cycles": 2,
+            }
+        },
+    )
     monkeypatch.setattr(kg_lib, "sleep_state", lambda nodes, problems, ev: (["7"], []))
     st = {"a": (SOLID, ago(1)), "b": (STALE, ago(40))}
     lines = kg_lib.sleep_lines(ns, ps, {}, st)
@@ -2586,7 +3001,7 @@ def test_envrc_knobs_hold_without_direnv(tmp_path):
         "export MAX_ASLEEP=5\n"
         "# a comment\n"
         "\n"
-        "export NAME=\"quoted value\"\n"
+        'export NAME="quoted value"\n'
         "SINGLE='x$y'\n"
         "export PYTHONPATH=./utils/:${PYTHONPATH}\n"
         "export SET_ALREADY=new\n"
@@ -2625,10 +3040,10 @@ def test_a_starved_move_solved_around_on_a_carrier_is_served_forced():
     ps = {"1": problem(["a", "x"]), "2": problem(["b"]), "3": problem(["c", "x"])}
     ev = evidence(
         solve(1, {"a": "struggled", "x": "clean"}, days_ago=20),
-        solve(1, {"x": "clean"}, days_ago=5),            # a: went around
-        solve(2, {"b": "struggled"}, days_ago=20),       # b: nothing since
+        solve(1, {"x": "clean"}, days_ago=5),  # a: went around
+        solve(2, {"b": "struggled"}, days_ago=20),  # b: nothing since
         solve(3, {"c": "struggled"}, days_ago=20),
-        solve(3, {"x": "clean"}, days_ago=25),           # c: before the run
+        solve(3, {"x": "clean"}, days_ago=25),  # c: before the run
     )
     assert set(kg_next.starved(ns, ps, ev)) == {"a", "b", "c"}
     assert kg_next.routed_around(ns, ps, ev) == {"a": "1"}
@@ -2643,13 +3058,16 @@ def test_an_owned_node_still_serves_its_assisted_drill(tmp_path, monkeypatch):
     is still due: the unaided rep is what releases what comes after it.
     An owned node whose drill is owned too holds as before."""
     from kg import kg_lib
+
     drill_bank(tmp_path, monkeypatch, "some-node", "Shake", fname="s.py", did="d1")
     held = drill_rep("Shake", "some-node", days_ago=3, assist={"some-node": "learning"})
     ev = evidence(solve("7", {"some-node": "clean"}, days_ago=2), held)
     assert kg_lib.owned("some-node", ev)
     assert kg_lib.due_drill("some-node", ev) == str(tmp_path / "some-node" / "s.py")
-    ev = evidence(solve("7", {"some-node": "clean"}, days_ago=2),
-                  drill_rep("Shake", "some-node", days_ago=3))
+    ev = evidence(
+        solve("7", {"some-node": "clean"}, days_ago=2),
+        drill_rep("Shake", "some-node", days_ago=3),
+    )
     assert kg_lib.due_drill("some-node", ev) is None
 
 
@@ -2659,13 +3077,17 @@ def test_a_held_carrier_climbs_its_drills_after_chain(picker, tmp_path, monkeypa
     node, done once assisted. The chain used to stop at the target's own
     drill and serve nothing. It climbs to d1 and serves its node's drill."""
     drill_bank(tmp_path, monkeypatch, "b", "Shake", fname="s.py", did="d1")
-    drill_bank(tmp_path, monkeypatch, "a", "Install", fname="i.py", did="d2", after=["d1"])
+    drill_bank(
+        tmp_path, monkeypatch, "a", "Install", fname="i.py", did="d2", after=["d1"]
+    )
     ns = nodes("a", "b")
     ps = {"1": problem(["a"], after=["d2"])}
     picker.bank = {"b"}
-    ev = evidence(solve("1", {"a": "clean"}, days_ago=20),
-                  solve("7", {"b": "clean"}, days_ago=2),
-                  drill_rep("Shake", "b", days_ago=3, assist={"b": "learning"}))
+    ev = evidence(
+        solve("1", {"a": "clean"}, days_ago=20),
+        solve("7", {"b": "clean"}, days_ago=2),
+        drill_rep("Shake", "b", days_ago=3, assist={"b": "learning"}),
+    )
     st = {"a": (STALE, ago(20)), "b": (SOLID, ago(2))}
     target, status, pnum, why = picker.run(ns, ps, ev, st)
     assert (target, status, pnum) == ("b", SOLID, "drill:b")
@@ -2680,18 +3102,23 @@ def test_a_move_at_its_floor_gets_its_bank_again(tmp_path, monkeypatch):
     recently drilled bank file is served again; off the floor an owned
     node with nothing left holds as before."""
     from kg import kg_lib
+
     monkeypatch.setattr(kg_lib, "_load_curve", lambda: None)
     drill_bank(tmp_path, monkeypatch, "some-node", "Lower", fname="a.py", did="d1")
     drill_bank(tmp_path, monkeypatch, "some-node", "Upper", fname="b.py", did="d2")
     floor = kg_lib.GRAD_LADDER_SPARSE[0]
-    reps = evidence(drill_rep("Lower", "some-node", days_ago=floor + 3),
-                    drill_rep("Upper", "some-node", days_ago=floor))
+    reps = evidence(
+        drill_rep("Lower", "some-node", days_ago=floor + 3),
+        drill_rep("Upper", "some-node", days_ago=floor),
+    )
     assert kg_lib.owned("some-node", reps) and not kg_lib.drills_left("some-node", reps)
     assert kg_lib.graduation_due("some-node", reps, 0)[0] <= date.today()
     assert kg_lib.due_drill("some-node", reps) == str(tmp_path / "some-node" / "a.py")
-    reps = evidence(drill_rep("Lower", "some-node", days_ago=10),
-                    drill_rep("Upper", "some-node", days_ago=5),
-                    drill_rep("Lower", "some-node", days_ago=1))  # a proof day
+    reps = evidence(
+        drill_rep("Lower", "some-node", days_ago=10),
+        drill_rep("Upper", "some-node", days_ago=5),
+        drill_rep("Lower", "some-node", days_ago=1),
+    )  # a proof day
     assert kg_lib.graduation_due("some-node", reps, 0)[0] > date.today()
     assert kg_lib.due_drill("some-node", reps) is None
 
@@ -2701,6 +3128,7 @@ def test_the_anki_clock_grades_a_drill_file_from_its_own_reps(tmp_path, monkeypa
     clean) stretches by 1.2; Again (a struggle, a walkthrough or a copy)
     goes back to one day. A file never done has no clock and is due."""
     from kg import kg_lib
+
     drill_bank(tmp_path, monkeypatch, "n", "Clock", fname="c.py", did="d1")
     path = str(tmp_path / "n" / "c.py")
     assert kg_lib.anki_due(path, {}) is None
@@ -2710,55 +3138,73 @@ def test_the_anki_clock_grades_a_drill_file_from_its_own_reps(tmp_path, monkeypa
         reps.update(drill_rep("Clock", "n", days_ago=days))
         ivl.append(kg_lib.anki_due(path, reps)[1])
     assert ivl == [1, 3, 8, 20, 50]
-    hard = evidence(drill_rep("Clock", "n", days_ago=10),
-                    drill_rep("Clock", "n", days_ago=9, assist={"n": "hint"}))
+    hard = evidence(
+        drill_rep("Clock", "n", days_ago=10),
+        drill_rep("Clock", "n", days_ago=9, assist={"n": "hint"}),
+    )
     assert kg_lib.anki_due(path, hard) == (ago(9) + timedelta(days=2), 2)
-    again = evidence(drill_rep("Clock", "n", days_ago=10),
-                     drill_rep("Clock", "n", days_ago=9),
-                     drill_rep("Clock", "n", days_ago=5, verdict="struggled"))
+    again = evidence(
+        drill_rep("Clock", "n", days_ago=10),
+        drill_rep("Clock", "n", days_ago=9),
+        drill_rep("Clock", "n", days_ago=5, verdict="struggled"),
+    )
     assert kg_lib.anki_due(path, again) == (ago(5) + timedelta(days=1), 1)
     copy = evidence(drill_rep("Clock", "n", days_ago=3, assist={"n": "learning"}))
     assert kg_lib.anki_due(path, copy) == (ago(3) + timedelta(days=1), 1)
 
 
-def test_under_the_anki_clock_a_solid_node_still_serves_its_due_drill(tmp_path, monkeypatch):
+def test_under_the_anki_clock_a_solid_node_still_serves_its_due_drill(
+    tmp_path, monkeypatch
+):
     """DRILL_SCHEDULER=anki: a SOLID, owned node's drill comes back when the
     file's own clock says so, and not before. Under the node clock the
     same file is held (the node reads owned with nothing left)."""
     from kg import kg_lib
+
     monkeypatch.setattr(kg_lib, "_load_curve", lambda: None)
     drill_bank(tmp_path, monkeypatch, "some-node", "Own", fname="o.py", did="d1")
     path = str(tmp_path / "some-node" / "o.py")
-    ev = evidence(solve("7", {"some-node": "clean"}, days_ago=2),
-                  drill_rep("Own", "some-node", days_ago=5))
+    ev = evidence(
+        solve("7", {"some-node": "clean"}, days_ago=2),
+        drill_rep("Own", "some-node", days_ago=5),
+    )
     assert kg_lib.owned("some-node", ev)
     assert kg_lib.due_drill("some-node", ev) is None
     monkeypatch.setenv("DRILL_SCHEDULER", "anki")
     assert kg_lib.due_drill("some-node", ev) == path
-    fresh = evidence(solve("7", {"some-node": "clean"}, days_ago=2),
-                     drill_rep("Own", "some-node", days_ago=9),
-                     drill_rep("Own", "some-node", days_ago=8),
-                     drill_rep("Own", "some-node", days_ago=5))  # interval 8: due in 3 days
+    fresh = evidence(
+        solve("7", {"some-node": "clean"}, days_ago=2),
+        drill_rep("Own", "some-node", days_ago=9),
+        drill_rep("Own", "some-node", days_ago=8),
+        drill_rep("Own", "some-node", days_ago=5),
+    )  # interval 8: due in 3 days
     assert kg_lib.due_drill("some-node", fresh) is None
-    held = evidence(drill_rep("Own", "some-node", days_ago=5),
-                    drill_rep("Own", "some-node", days_ago=0))  # once a day
+    held = evidence(
+        drill_rep("Own", "some-node", days_ago=5),
+        drill_rep("Own", "some-node", days_ago=0),
+    )  # once a day
     assert kg_lib.due_drill("some-node", held) is None
 
 
-def test_under_the_anki_clock_a_solid_node_with_a_due_drill_enters_the_frontier(picker, monkeypatch):
+def test_under_the_anki_clock_a_solid_node_with_a_due_drill_enters_the_frontier(
+    picker, monkeypatch
+):
     """A SOLID node off its floor is not due under the node clock. With
     DRILL_SCHEDULER=anki it is due when its bank has a due file, after
     FRAGILE and floor moves and before STALE ones, and the reason names
     the clock."""
     from datetime import date as _date
+
     monkeypatch.setenv("DRILL_SCHEDULER", "anki")
     monkeypatch.setattr(kg_next, "graduation_due", lambda n, ev, carriers=99: None)
-    monkeypatch.setattr(kg_next, "anki_due",
-                        lambda path, ev: (_date.today() - timedelta(days=4), 3))
+    monkeypatch.setattr(
+        kg_next, "anki_due", lambda path, ev: (_date.today() - timedelta(days=4), 3)
+    )
     ns = nodes("a", "b")
     ps = {"1": problem(["a"]), "2": problem(["b"])}
-    ev = evidence(solve("1", {"a": "clean"}, days_ago=30),
-                  solve("2", {"b": "clean"}, days_ago=20))
+    ev = evidence(
+        solve("1", {"a": "clean"}, days_ago=30), solve("2", {"b": "clean"}, days_ago=20)
+    )
     st = {"a": (SOLID, ago(30)), "b": (STALE, ago(20))}
     assert picker.run(ns, ps, ev, st)[0] == "b"  # node clock: a is not due
     picker.bank = {"a"}
@@ -2775,15 +3221,21 @@ def test_a_file_due_on_the_clock_outranks_every_other_rule(picker, monkeypatch):
     and whatever the node's status. The reason names the clock. A group
     name scopes the clock; an excluded drill id steps to the next file."""
     from datetime import date as _date
+
     monkeypatch.setenv("DRILL_SCHEDULER", "anki")
-    monkeypatch.setattr(kg_next, "anki_due",
-                        lambda path, ev: (_date.today() - timedelta(days=2), 3)
-                        if path.endswith("a.py") else None)
+    monkeypatch.setattr(
+        kg_next,
+        "anki_due",
+        lambda path, ev: (
+            (_date.today() - timedelta(days=2), 3) if path.endswith("a.py") else None
+        ),
+    )
     ns = nodes("a", "b", "c")
     ns["c"]["group"] = "sql"
     ps = {"1": problem(["a"]), "2": problem(["b"])}
-    ev = evidence(solve("1", {"a": "clean"}, days_ago=2),
-                  solve("2", {"b": "clean"}, days_ago=20))
+    ev = evidence(
+        solve("1", {"a": "clean"}, days_ago=2), solve("2", {"b": "clean"}, days_ago=20)
+    )
     st = {"a": (SOLID, ago(2)), "b": (STALE, ago(20)), "c": (MISSING, None)}
     assert picker.run(ns, ps, ev, st)[0] == "b"  # the clock is empty
     picker.clock = [("drills/a/a.py", "a"), ("drills/c/c.py", "c")]
@@ -2791,13 +3243,19 @@ def test_a_file_due_on_the_clock_outranks_every_other_rule(picker, monkeypatch):
     assert (target, status, pnum) == ("a", SOLID, "drill:a")
     assert why == "drill due on its own clock - 3d interval, 2d overdue"
     assert picker.run(ns, ps, ev, st, exclude={"drill:a"}) == (
-        "c", MISSING, "drill:c", "drill never done - on its own clock")
+        "c",
+        MISSING,
+        "drill:c",
+        "drill never done - on its own clock",
+    )
     assert picker.run(ns, ps, ev, st, group="sql")[2] == "drill:c"
     monkeypatch.delenv("DRILL_SCHEDULER")
     assert picker.run(ns, ps, ev, st)[0] == "b"
 
 
-def test_the_clock_orders_reviews_before_new_files_and_ignores_holds(tmp_path, monkeypatch):
+def test_the_clock_orders_reviews_before_new_files_and_ignores_holds(
+    tmp_path, monkeypatch
+):
     """kg_lib.anki_frontier: a file past its due date comes first, most
     overdue first, but a due file's due "after" drills come before it;
     files never done follow, atoms before the drills that come after
@@ -2805,48 +3263,74 @@ def test_the_clock_orders_reviews_before_new_files_and_ignores_holds(tmp_path, m
     The "after" hold does not withhold a due file (Install Order sat
     behind Shake Hands for 23 days, 2026-09-06)."""
     from kg import kg_lib
+
     monkeypatch.setenv("DRILL_SCHEDULER", "anki")
     drill_bank(tmp_path, monkeypatch, "atom", "Atom", fname="a.py", did="d1")
-    drill_bank(tmp_path, monkeypatch, "comp", "Comp", fname="c.py", did="d2", after=["d1"])
+    drill_bank(
+        tmp_path, monkeypatch, "comp", "Comp", fname="c.py", did="d2", after=["d1"]
+    )
     drill_bank(tmp_path, monkeypatch, "atom", "Late", fname="l.py", did="d3")
     drill_bank(tmp_path, monkeypatch, "atom", "Later", fname="m.py", did="d4")
     drill_bank(tmp_path, monkeypatch, "atom", "Fresh", fname="f.py", did="d5")
     drill_bank(tmp_path, monkeypatch, "atom", "Today", fname="t.py", did="d6")
-    drill_bank(tmp_path, monkeypatch, "comp", "Top", fname="p.py", did="d7", after=["d3"])
+    drill_bank(
+        tmp_path, monkeypatch, "comp", "Top", fname="p.py", did="d7", after=["d3"]
+    )
     ns = {"atom": {"prereqs": []}, "comp": {"prereqs": ["atom"]}}
-    ev = evidence(drill_rep("Top", "comp", days_ago=20),      # interval 1: 19d overdue, after Late
-                  drill_rep("Late", "atom", days_ago=3),      # interval 1: 2d overdue
-                  drill_rep("Later", "atom", days_ago=10),
-                  drill_rep("Later", "atom", days_ago=9),     # interval 3: 6d overdue
-                  drill_rep("Fresh", "atom", days_ago=0),
-                  drill_rep("Today", "atom", days_ago=5),
-                  drill_rep("Today", "atom", days_ago=4),
-                  drill_rep("Today", "atom", days_ago=0))
+    ev = evidence(
+        drill_rep("Top", "comp", days_ago=20),  # interval 1: 19d overdue, after Late
+        drill_rep("Late", "atom", days_ago=3),  # interval 1: 2d overdue
+        drill_rep("Later", "atom", days_ago=10),
+        drill_rep("Later", "atom", days_ago=9),  # interval 3: 6d overdue
+        drill_rep("Fresh", "atom", days_ago=0),
+        drill_rep("Today", "atom", days_ago=5),
+        drill_rep("Today", "atom", days_ago=4),
+        drill_rep("Today", "atom", days_ago=0),
+    )
     f = kg_lib.anki_frontier(ev, nodes=ns)
-    assert [os.path.basename(p) for p, _ in f] == ["l.py", "p.py", "m.py", "a.py", "c.py"]
+    assert [os.path.basename(p) for p, _ in f] == [
+        "l.py",
+        "p.py",
+        "m.py",
+        "a.py",
+        "c.py",
+    ]
     assert [n for _, n in f] == ["atom", "comp", "atom", "atom", "comp"]
     assert kg_lib.anki_frontier(ev, nodes=ns, node_ids=["comp"]) == [
-        (str(tmp_path / "comp" / "p.py"), "comp"), (str(tmp_path / "comp" / "c.py"), "comp")]
+        (str(tmp_path / "comp" / "p.py"), "comp"),
+        (str(tmp_path / "comp" / "c.py"), "comp"),
+    ]
     # due_drill agrees with the clock on the file it serves
-    assert kg_lib.due_drill("atom", ev) == str(tmp_path / "atom" / "m.py")  # Top is out of scope
+    assert kg_lib.due_drill("atom", ev) == str(
+        tmp_path / "atom" / "m.py"
+    )  # Top is out of scope
     assert kg_lib.due_drill("comp", ev) == str(tmp_path / "comp" / "p.py")
 
 
-def test_a_due_drill_waits_for_a_due_ancestor_past_one_that_is_not_due(tmp_path, monkeypatch):
+def test_a_due_drill_waits_for_a_due_ancestor_past_one_that_is_not_due(
+    tmp_path, monkeypatch
+):
     """kg_lib.anki_frontier: the "after" chain is climbed through drills
     that are not due. 2026-09-10: How Many Companies (after Union Links,
     after Find Roots) was a day more overdue than Find Roots, Union Links
     was not due, and the climb stopped there - Find Roots came second."""
     from kg import kg_lib
+
     monkeypatch.setenv("DRILL_SCHEDULER", "anki")
     drill_bank(tmp_path, monkeypatch, "uf", "Find Roots", fname="r.py", did="d1")
-    drill_bank(tmp_path, monkeypatch, "uf", "Union Links", fname="u.py", did="d2", after=["d1"])
-    drill_bank(tmp_path, monkeypatch, "uf", "Companies", fname="c.py", did="d3", after=["d2"])
-    ns = {"uf": {"prereqs": []}}
-    ev = evidence(drill_rep("Find Roots", "uf", days_ago=2),    # interval 1: 1d overdue
-                  drill_rep("Union Links", "uf", days_ago=5),
-                  drill_rep("Union Links", "uf", days_ago=1),   # interval 4: not due
-                  drill_rep("Companies", "uf", days_ago=3))     # interval 1: 2d overdue
+    drill_bank(
+        tmp_path, monkeypatch, "uf", "Union Links", fname="u.py", did="d2", after=["d1"]
+    )
+    drill_bank(
+        tmp_path, monkeypatch, "uf", "Companies", fname="c.py", did="d3", after=["d2"]
+    )
+    ns: dict = {"uf": {"prereqs": []}}
+    ev = evidence(
+        drill_rep("Find Roots", "uf", days_ago=2),  # interval 1: 1d overdue
+        drill_rep("Union Links", "uf", days_ago=5),
+        drill_rep("Union Links", "uf", days_ago=1),  # interval 4: not due
+        drill_rep("Companies", "uf", days_ago=3),
+    )  # interval 1: 2d overdue
     f = kg_lib.anki_frontier(ev, nodes=ns)
     assert [os.path.basename(p) for p, _ in f] == ["r.py", "c.py"]
 
@@ -2854,6 +3338,7 @@ def test_a_due_drill_waits_for_a_due_ancestor_past_one_that_is_not_due(tmp_path,
 # --------------------------------------------------------------------------
 # rule 2c: a problem on its own review clock
 # --------------------------------------------------------------------------
+
 
 def assisted(pnum, moves, days_ago, assist="learning"):
     """A solve that needed help, which is what opens a problem's card."""
@@ -2885,8 +3370,9 @@ def test_a_review_outranks_the_spaced_re_solve_of_a_stale_move(picker):
     ns = nodes("q1", "q2")
     ps = {"1": problem(["q1"]), "2": problem(["q2"])}
     st = {"q1": (SOLID, ago(1)), "q2": (STALE, ago(60))}
-    ev = evidence(assisted("1", {"q1": "clean"}, 30),
-                  solve("2", {"q2": "clean"}, days_ago=60))
+    ev = evidence(
+        assisted("1", {"q1": "clean"}, 30), solve("2", {"q2": "clean"}, days_ago=60)
+    )
     assert picker.run(ns, ps, ev, st)[2] == "1"
 
 
@@ -2916,8 +3402,9 @@ def test_a_graduating_floor_outranks_a_review_by_default(picker, monkeypatch):
     ns = nodes("q1", "q2")
     ps = {"1": problem(["q1"]), "2": problem(["q2"]), "3": problem(["q2"])}
     st = {"q1": (SOLID, ago(1)), "q2": (SOLID, ago(7))}
-    ev = evidence(assisted("1", {"q1": "clean"}, 30),
-                  solve("2", {"q2": "clean"}, days_ago=7))
+    ev = evidence(
+        assisted("1", {"q1": "clean"}, 30), solve("2", {"q2": "clean"}, days_ago=7)
+    )
     assert kg_lib.graduation_due("q2", ev, 2) is not None
     assert picker.run(ns, ps, ev, st)[2] == "3"
 
@@ -2927,8 +3414,9 @@ def test_reviews_first_serves_the_review_ahead_of_the_floor(picker, monkeypatch)
     ns = nodes("q1", "q2")
     ps = {"1": problem(["q1"]), "2": problem(["q2"]), "3": problem(["q2"])}
     st = {"q1": (SOLID, ago(1)), "q2": (SOLID, ago(7))}
-    ev = evidence(assisted("1", {"q1": "clean"}, 30),
-                  solve("2", {"q2": "clean"}, days_ago=7))
+    ev = evidence(
+        assisted("1", {"q1": "clean"}, 30), solve("2", {"q2": "clean"}, days_ago=7)
+    )
     assert picker.run(ns, ps, ev, st)[2] == "1"
 
 
@@ -2966,8 +3454,9 @@ def test_a_review_respects_the_daily_group_cap(picker, monkeypatch):
     ns["q1"]["group"] = "sql"
     ps = {"1": problem(["q1"])}
     st = {"q1": (SOLID, ago(1))}
-    ev = evidence(assisted("1", {"q1": "clean"}, 30),
-                  solve("2", {"q1": "clean"}, days_ago=0))
+    ev = evidence(
+        assisted("1", {"q1": "clean"}, 30), solve("2", {"q1": "clean"}, days_ago=0)
+    )
     assert picker.run(ns, ps, ev, st) is None
 
 
@@ -2986,13 +3475,17 @@ def test_the_review_target_is_a_move_of_the_walk(picker):
 # paid-only problems: there is no statement to prepare
 # --------------------------------------------------------------------------
 
+
 @pytest.fixture
 def premium(monkeypatch):
     """Mark problem numbers as LeetCode premium, the way the metadata cache
     does."""
+
     def mark(*pnums):
-        monkeypatch.setattr(kg_lib, "_METADATA",
-                            {str(p): {"paid_only": True} for p in pnums})
+        monkeypatch.setattr(
+            kg_lib, "_METADATA", {str(p): {"paid_only": True} for p in pnums}
+        )
+
     return mark
 
 
@@ -3013,8 +3506,9 @@ def test_a_paid_only_problem_is_never_a_review(picker, premium):
     ns = nodes("q1")
     ps = {"1": problem(["q1"]), "2": problem(["q1"])}
     st = {"q1": (SOLID, ago(1))}
-    ev = evidence(assisted("1", {"q1": "clean"}, 30),
-                  assisted("2", {"q1": "clean"}, 20))
+    ev = evidence(
+        assisted("1", {"q1": "clean"}, 30), assisted("2", {"q1": "clean"}, 20)
+    )
     assert picker.run(ns, ps, ev, st)[2] == "2"
     assert [p for p, _, _ in kg_next.review_queue(ev, ps)] == ["2"]
 

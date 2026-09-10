@@ -35,12 +35,17 @@ FIELDS = ("name", "slug", "rating", "n_accepted", "n_total", "time", "kinds")
 
 
 def _fetch_page(offset, user, key):
-    url = (f"{API}?resource_id={RESOURCE_ID}&limit={PAGE}&offset={offset}"
-           f"&order_by=id&format=json")
-    req = urllib.request.Request(url, headers={
-        "Authorization": f"ApiKey {user}:{key}",
-        "User-Agent": "leet/clist.py",
-    })
+    url = (
+        f"{API}?resource_id={RESOURCE_ID}&limit={PAGE}&offset={offset}"
+        f"&order_by=id&format=json"
+    )
+    req = urllib.request.Request(
+        url,
+        headers={
+            "Authorization": f"ApiKey {user}:{key}",
+            "User-Agent": "leet/clist.py",
+        },
+    )
     with urllib.request.urlopen(req, timeout=60) as resp:
         return json.loads(resp.read())
 
@@ -109,9 +114,9 @@ def ratings_by_number():
 def zerotrac_by_number():
     """leetcode number -> zerotrac rating, from data/leetcode_ratings.tsv."""
     import csv
+
     with open(RATINGS) as f:
-        return {r["id"]: float(r["rating"])
-                for r in csv.DictReader(f, delimiter="\t")}
+        return {r["id"]: float(r["rating"]) for r in csv.DictReader(f, delimiter="\t")}
 
 
 def rescale():
@@ -119,6 +124,7 @@ def rescale():
     the problems both rate. The two correlate at r = 0.97 but CLIST's scale is
     the wider one, so a rating is only comparable after this."""
     import statistics
+
     clist, zt = ratings_by_number(), zerotrac_by_number()
     both = sorted(set(clist) & set(zt))
     xs = [clist[n] for n in both]
@@ -148,8 +154,10 @@ def write_ratings(path=None):
     """graph/ratings.json: problem number -> rating, the combined table. The
     Rust mock reads it; kg_curve rewrites it on every fit."""
     path = path or os.path.join(ROOT, "graph", "ratings.json")
-    table = {n: round(r, 1) for n, r in sorted(combined_ratings().items(),
-                                               key=lambda kv: int(kv[0]))}
+    table = {
+        n: round(r, 1)
+        for n, r in sorted(combined_ratings().items(), key=lambda kv: int(kv[0]))
+    }
     with open(path, "w") as f:
         json.dump(table, f, indent=1)
     return path
@@ -162,13 +170,21 @@ def rating(number):
 
 def main():
     import argparse
+
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--refresh", action="store_true",
-                        help="fetch from the API and rewrite the cache")
-    parser.add_argument("--stats", action="store_true",
-                        help="coverage against zerotrac and where they disagree")
-    parser.add_argument("--write", action="store_true",
-                        help="rewrite graph/ratings.json from the cache")
+    parser.add_argument(
+        "--refresh",
+        action="store_true",
+        help="fetch from the API and rewrite the cache",
+    )
+    parser.add_argument(
+        "--stats",
+        action="store_true",
+        help="coverage against zerotrac and where they disagree",
+    )
+    parser.add_argument(
+        "--write", action="store_true", help="rewrite graph/ratings.json from the cache"
+    )
     args = parser.parse_args()
     if args.refresh:
         refresh()
@@ -176,23 +192,34 @@ def main():
         print(f"wrote {write_ratings()}")
     if args.stats:
         import statistics
+
         clist, zt = ratings_by_number(), zerotrac_by_number()
         both = sorted(set(clist) & set(zt))
-        print(f"clist rates {len(clist)}, zerotrac rates {len(zt)}, "
-              f"both {len(both)}, union {len(set(clist) | set(zt))}")
-        print(f"clist only: {len(set(clist) - set(zt))}   "
-              f"zerotrac only: {len(set(zt) - set(clist))}")
+        print(
+            f"clist rates {len(clist)}, zerotrac rates {len(zt)}, "
+            f"both {len(both)}, union {len(set(clist) | set(zt))}"
+        )
+        print(
+            f"clist only: {len(set(clist) - set(zt))}   "
+            f"zerotrac only: {len(set(zt) - set(clist))}"
+        )
         if both:
             d = [clist[n] - zt[n] for n in both]
             d.sort()
-            print(f"clist - zerotrac on the overlap: median {statistics.median(d):+.0f}, "
-                  f"mean {statistics.mean(d):+.0f}, sd {statistics.pstdev(d):.0f}")
-            print(f"  p10 {d[len(d) // 10]:+.0f}  p90 {d[9 * len(d) // 10]:+.0f}  "
-                  f"within 100 points: {sum(1 for x in d if abs(x) <= 100) / len(d):.0%}")
+            print(
+                f"clist - zerotrac on the overlap: median {statistics.median(d):+.0f}, "
+                f"mean {statistics.mean(d):+.0f}, sd {statistics.pstdev(d):.0f}"
+            )
+            print(
+                f"  p10 {d[len(d) // 10]:+.0f}  p90 {d[9 * len(d) // 10]:+.0f}  "
+                f"within 100 points: {sum(1 for x in d if abs(x) <= 100) / len(d):.0%}"
+            )
             a, b = rescale()
             res = [zt[n] - (a + b * clist[n]) for n in both]
-            print(f"on zerotrac's scale: zerotrac ~ {a:.0f} + {b:.3f} * clist, "
-                  f"residual sd {statistics.pstdev(res):.0f}")
+            print(
+                f"on zerotrac's scale: zerotrac ~ {a:.0f} + {b:.3f} * clist, "
+                f"residual sd {statistics.pstdev(res):.0f}"
+            )
             print(f"combined table: {len(combined_ratings())} problems rated")
     if not (args.refresh or args.stats or args.write):
         parser.print_help()

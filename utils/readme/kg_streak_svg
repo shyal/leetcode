@@ -66,14 +66,16 @@ def badge(current, best, color):
     right = f"{current} day{'s' if current != 1 else ''} · best {best}"
     lw, rw = 6 * len(left) + 12, 6.2 * len(right) + 12
     w = lw + rw
-    return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{w:.0f}" height="20" '
-            f'font-family="Verdana,DejaVu Sans,sans-serif" font-size="11">'
-            f'<rect rx="3" width="{w:.0f}" height="20" fill="#555"/>'
-            f'<rect rx="3" x="{lw:.0f}" width="{rw:.0f}" height="20" fill="{color}"/>'
-            f'<rect x="{lw:.0f}" width="4" height="20" fill="{color}"/>'
-            f'<text x="{lw / 2:.1f}" y="14" fill="#fff" text-anchor="middle">{left}</text>'
-            f'<text x="{lw + rw / 2:.1f}" y="14" fill="#fff" text-anchor="middle">{right}</text>'
-            f'</svg>\n')
+    return (
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{w:.0f}" height="20" '
+        f'font-family="Verdana,DejaVu Sans,sans-serif" font-size="11">'
+        f'<rect rx="3" width="{w:.0f}" height="20" fill="#555"/>'
+        f'<rect rx="3" x="{lw:.0f}" width="{rw:.0f}" height="20" fill="{color}"/>'
+        f'<rect x="{lw:.0f}" width="4" height="20" fill="{color}"/>'
+        f'<text x="{lw / 2:.1f}" y="14" fill="#fff" text-anchor="middle">{left}</text>'
+        f'<text x="{lw + rw / 2:.1f}" y="14" fill="#fff" text-anchor="middle">{right}</text>'
+        f"</svg>\n"
+    )
 
 
 def main():

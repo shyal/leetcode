@@ -1,7 +1,7 @@
+import importlib.util
+import os
 import re
 import sys
-import os
-import importlib.util
 
 # This file mirrors LeetCode's preloads for solves run inside the repo venv.
 # Any other interpreter that inherits PYTHONPATH=./utils (litecli, uv tools,
@@ -20,59 +20,82 @@ sys.path.insert(0, os.path.join(project_root, "utils", "harness"))
 
 import bisect
 import builtins
-from rich.console import Console
-from rich.markdown import Markdown
-from math import gcd, isclose
+import heapq
+import operator
 
-# types
-from Types import TreeNode
-from Types import ListNode
-from Types import GraphNode
-from Types import Node
-
+# shortcuts
+import random
+from collections import Counter, OrderedDict, defaultdict, deque
+from collections.abc import Callable as Callable
+from functools import *
+from itertools import *
+from math import ceil, floor, gcd, isclose, log2, log10, prod, sqrt
+from random import (
+    choice,
+    choices,
+    getrandbits,
+    randint,
+    randrange,
+    sample,
+    shuffle,
+    uniform,
+)
+from string import ascii_letters, ascii_lowercase, ascii_uppercase, digits, hexdigits
+from sys import maxsize
+from typing import (
+    Any as Any,
+)
+from typing import (
+    Dict as Dict,
+)
+from typing import (
+    Generic as Generic,
+)
+from typing import (
+    Iterable as Iterable,
+)
+from typing import (
+    Iterator as Iterator,
+)
 
 # Type aliases
 from typing import (
     List as List,
+)
+from typing import (
     Optional as Optional,
-    Dict as Dict,
+)
+from typing import (
     Tuple as Tuple,
-    Any as Any,
-    Generic as Generic,
-    Iterable as Iterable,
-    Iterator as Iterator,
+)
+from typing import (
     TypeVar as TypeVar,
+)
+from typing import (
     Union as Union,
+)
+from typing import (
     overload as overload,
 )
-from collections.abc import Callable as Callable
 
-
-# shortcuts
-import random
-from random import randint, randrange, choice, choices, shuffle, sample, uniform, getrandbits
-from sys import maxsize
-from functools import *
-from itertools import *
-from math import log10, log2, floor, ceil, prod, sqrt
-from collections import defaultdict, Counter, OrderedDict
-import operator
-import heapq
-from collections import deque
-from string import ascii_letters, ascii_lowercase, ascii_uppercase, digits, hexdigits
+from bs_utils import *
+from bst_utils import *
+from debug_utils import *
 
 # utils
 from graph_utils import *
-from tree_utils import *
-from bst_utils import *
-from linked_list_utils import *
-from bs_utils import *
-from debug_utils import *
 from heap_utils import *
+from linked_list_utils import *
 
 # pretty printing
 from rich import print as rich_print
+from rich.console import Console
+from rich.markdown import Markdown
 from tabulate import tabulate as tabulate_orig
+from tree_utils import *
+
+# types
+from Types import GraphNode, ListNode, Node, TreeNode
 
 console = Console()
 
@@ -170,10 +193,10 @@ builtins.isub = operator.isub
 builtins.xor = operator.xor
 builtins.ixor = operator.ixor
 # the module objects themselves, mirroring leetcode's preloaded imports
-import math as _math
+import collections as _collections
 import functools as _functools
 import itertools as _itertools
-import collections as _collections
+import math as _math
 import string as _string
 
 builtins.math = _math

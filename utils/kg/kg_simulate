@@ -65,24 +65,46 @@ import shutil
 import subprocess
 import sys
 import tempfile
-
-import numpy as np
 from datetime import date, timedelta
 from importlib.machinery import SourceFileLoader
+from typing import Any
+
+import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from kg import kg_lib  # noqa: E402
-from kg.kg_lib import (  # noqa: E402
-    GRAPH_DIR, SOLID, STALE, FRAGILE, MISSING, load_nodes, load_problems,
-    load_evidence, load_predicted, node_status, immature_nodes, unlocks,
-    current_recall, node_curve_recall, drill_trains, sleep_state,
-    problem_difficulty, assist_of, solve_model, solve_scenarios, retention_cycle, retention_cycle,
-    solve_logit, walk_terms, carrier_counts, walk_mass, solve_ratings,
-)
 from statistics import median  # noqa: E402
 
+from kg import kg_lib  # noqa: E402
+from kg.kg_lib import (  # noqa: E402
+    FRAGILE,
+    GRAPH_DIR,
+    MISSING,
+    SOLID,
+    STALE,
+    assist_of,
+    carrier_counts,
+    current_recall,
+    drill_trains,
+    immature_nodes,
+    load_evidence,
+    load_nodes,
+    load_predicted,
+    load_problems,
+    node_curve_recall,
+    node_status,
+    problem_difficulty,
+    retention_cycle,
+    sleep_state,
+    solve_logit,
+    solve_model,
+    solve_ratings,
+    solve_scenarios,
+    walk_terms,
+)
+
 UTILS = os.path.dirname(os.path.abspath(__file__))
-kg_next = SourceFileLoader("kg_next", os.path.join(UTILS, "kg_next")).load_module()
+# Any: the script is loaded by path, so mypy has no module type for it
+kg_next: Any = SourceFileLoader("kg_next", os.path.join(UTILS, "kg_next")).load_module()
 
 # What "ready" means: the central onsite pass rate to stop at. A choice, not
 # a measurement, so it lives in .envrc (TARGET_PASS_RATE) with the other knobs;
@@ -103,11 +125,12 @@ class PassExpectation:
 
     def __init__(self, pools, ratings, node_order, coef):
         self.index = {n: i for i, n in enumerate(node_order)}
-        self.unseen_slot = len(node_order)   # every move he has not met
+        self.unseen_slot = len(node_order)  # every move he has not met
         self.coef = coef
         self.pools = {}
         for dif, probs in pools.items():
-            idx, walk_starts, prob_starts, walk_prob, pos = [], [], [], [], 0
+            walk_starts: list[int] = []
+            idx, prob_starts, walk_prob, pos = [], [], [], 0
             for pi, walks in enumerate(probs):
                 prob_starts.append(len(walk_starts))
                 for w in walks:
@@ -116,10 +139,14 @@ class PassExpectation:
                     for m in w:
                         idx.append(self.index.get(m, self.unseen_slot))
                     pos += len(w)
-            self.pools[dif] = (np.array(idx), np.array(walk_starts),
-                               np.array(prob_starts), len(probs),
-                               np.array(walk_prob),
-                               np.array([ratings[dif][pi] for pi in walk_prob]))
+            self.pools[dif] = (
+                np.array(idx),
+                np.array(walk_starts),
+                np.array(prob_starts),
+                len(probs),
+                np.array(walk_prob),
+                np.array([ratings[dif][pi] for pi in walk_prob]),
+            )
 
     def ceiling(self, shift=0.0):
         """The rates a perfect graph would produce: every move recalled, none
@@ -143,9 +170,12 @@ class PassExpectation:
             if not n:
                 p[dif] = 0.0
                 continue
-            z = (c.get("intercept", 0.0) + shift
-                 + c.get("rating", 0.0) * (rt - 1500) / 400
-                 + np.add.reduceat(term[idx], ws))
+            z = (
+                c.get("intercept", 0.0)
+                + shift
+                + c.get("rating", 0.0) * (rt - 1500) / 400
+                + np.add.reduceat(term[idx], ws)
+            )
             best = np.maximum.reduceat(z, ps)
             p[dif] = (1 / (1 + np.exp(-best))).mean()
         e2, m2 = p["E"] ** 2, p["M"] ** 2
@@ -168,8 +198,10 @@ def timed_attempts(evidence, problems, mined):
         kind = "drill" if key.startswith("d:") else problem_difficulty(key, problems)
         if kind not in ("Easy", "Medium", "Hard", "drill"):
             continue
-        clean = all(v == "clean" for v in rec.get("moves", {}).values()) \
+        clean = (
+            all(v == "clean" for v in rec.get("moves", {}).values())
             and assist_of(rec) == "none"
+        )
         out.append((d, secs / 60, kind, "clean" if clean else "struggled"))
     return out
 
@@ -197,7 +229,8 @@ def price_table(attempts):
     """(kind, verdict) -> median minutes, with the kind's median as the
     fallback for a verdict never timed, and the overall median for a kind
     never timed."""
-    by, by_kind = {}, {}
+    by: dict[tuple[str, str], list] = {}
+    by_kind: dict[str, list] = {}
     for _, m, kind, verdict in attempts:
         by.setdefault((kind, verdict), []).append(m)
         by_kind.setdefault(kind, []).append(m)
@@ -206,7 +239,8 @@ def price_table(attempts):
     for kind in ("Easy", "Medium", "Hard", "drill"):
         for verdict in ("clean", "struggled"):
             table[(kind, verdict)] = median(
-                by.get((kind, verdict)) or by_kind.get(kind) or [overall])
+                by.get((kind, verdict)) or by_kind.get(kind) or [overall]
+            )
     return table
 
 
@@ -220,18 +254,32 @@ def bank_history(today, drills_dir=None):
     drills_dir = drills_dir or kg_lib.DRILLS_DIR
     root = os.path.dirname(drills_dir)
     out = subprocess.run(
-        ["git", "log", "--diff-filter=A", "--format=%x00%ad", "--date=short",
-         "--name-only", "--", "drills/*/*.py"],
-        capture_output=True, text=True, cwd=root).stdout
-    first, d = {}, None
+        [
+            "git",
+            "log",
+            "--diff-filter=A",
+            "--format=%x00%ad",
+            "--date=short",
+            "--name-only",
+            "--",
+            "drills/*/*.py",
+        ],
+        capture_output=True,
+        text=True,
+        cwd=root,
+    ).stdout
+    first: dict[str, date] = {}
+    d: date | None = None
     for line in out.splitlines():
         if line.startswith("\x00"):
             d = date.fromisoformat(line[1:])
         elif line.startswith("drills/") and os.path.exists(os.path.join(root, line)):
+            assert d is not None  # git log prints the date line before its files
             first[line] = min(first.get(line, d), d)
     for path in glob.glob(os.path.join(drills_dir, "*", "*.py")):
         first.setdefault(os.path.relpath(path, root), today)
-    banked, sizes = {}, {}
+    banked: dict[str, date] = {}
+    sizes: dict[str, int] = {}
     for rel, d in first.items():
         node = rel.split(os.sep)[1]
         banked[node] = min(banked.get(node, d), d)
@@ -278,11 +326,13 @@ class ScratchBank:
 
 def freeze_clock(day):
     """Every date.today() in kg_lib and kg_next answers `day`."""
+
     class SimDate(date):
         @classmethod
         def today(cls):
             return day
-    kg_lib.date = SimDate
+
+    kg_lib.date = SimDate  # type: ignore[misc]  # monkeypatch of the module's date class
     kg_next.date = SimDate
 
 
@@ -290,7 +340,7 @@ def first_contact(evidence):
     """Measured first-contact absorption: the share of nodes whose first
     ever rep was clean (kg_mock_rs measured_first_contact). The teach rate
     for a simulated first exposure is 0.8 of it, capped at 0.85."""
-    first = {}
+    first: dict[str, tuple] = {}
     for fname in sorted(evidence):
         rec = evidence[fname]
         for node, v in rec.get("moves", {}).items():
@@ -309,10 +359,10 @@ def build_pools(problems, predicted, nodes):
     off-taxonomy moves. A problem no contest rated takes the median rating of
     its difficulty, the same fallback kg_elo_svg uses."""
     meta = kg_lib._metadata()
-    pools = {"E": [], "M": [], "H": []}
-    ratings = {"E": [], "M": [], "H": []}
+    pools: dict[str, list] = {"E": [], "M": [], "H": []}
+    ratings: dict[str, list] = {"E": [], "M": [], "H": []}
     rated = solve_ratings()
-    raw = {}
+    raw: dict = {}
 
     def dif_of(num, obj):
         d = obj.get("difficulty") or meta.get(str(num), {}).get("difficulty")
@@ -349,11 +399,20 @@ def build_pools(problems, predicted, nodes):
     return pools, ratings
 
 
-STARVED_DAYS = kg_lib.STARVED_DAYS  # a node rusty this long with no pick aimed at it is starved
+STARVED_DAYS = (
+    kg_lib.STARVED_DAYS
+)  # a node rusty this long with no pick aimed at it is starved
 
 
-def run(hours=None, seed=1, days=MAX_DAYS, every=7, draft_error=0.0, log=print,
-        bank_rate=None):
+def run(
+    hours=None,
+    seed=1,
+    days=MAX_DAYS,
+    every=7,
+    draft_error=0.0,
+    log=print,
+    bank_rate=None,
+):
     """The simulation. Prints the rows through `log` (pass a no-op for a
     silent run) and returns a dict: day (the last day run), onsite, hours,
     source ("given"/"measured"), per_kind, dry_days, short_days, rusty (per
@@ -369,9 +428,16 @@ def run(hours=None, seed=1, days=MAX_DAYS, every=7, draft_error=0.0, log=print,
     over and over is not starved: that is the draw, not the picker.
     kg_lib's date, load_predicted and mined_solve_times are patched
     for the run and restored after."""
-    saved = (kg_lib.date, kg_next.date, kg_lib.load_predicted,
-             kg_lib.mined_solve_times, kg_lib.slept_branches,
-             kg_lib.branch_events, kg_lib.DRILLS_DIR, kg_next.DRILLS_DIR)
+    saved = (
+        kg_lib.date,
+        kg_next.date,
+        kg_lib.load_predicted,
+        kg_lib.mined_solve_times,
+        kg_lib.slept_branches,
+        kg_lib.branch_events,
+        kg_lib.DRILLS_DIR,
+        kg_next.DRILLS_DIR,
+    )
     # the -slept branches do not move during a run, but sleep_records
     # (via the recognition axis, every ready_hards call) would shell out
     # to git for them on every pick: read each once
@@ -384,9 +450,16 @@ def run(hours=None, seed=1, days=MAX_DAYS, every=7, draft_error=0.0, log=print,
     try:
         return _run(hours, seed, days, every, draft_error, log, bank, bank_rate)
     finally:
-        (kg_lib.date, kg_next.date, kg_lib.load_predicted,
-         kg_lib.mined_solve_times, kg_lib.slept_branches,
-         kg_lib.branch_events, kg_lib.DRILLS_DIR, kg_next.DRILLS_DIR) = saved
+        (
+            kg_lib.date,  # type: ignore[misc]  # restores the monkeypatched date class
+            kg_next.date,
+            kg_lib.load_predicted,
+            kg_lib.mined_solve_times,
+            kg_lib.slept_branches,
+            kg_lib.branch_events,
+            kg_lib.DRILLS_DIR,
+            kg_next.DRILLS_DIR,
+        ) = saved
         bank.close()
 
 
@@ -397,11 +470,11 @@ def memo(fn):
         if args not in cache:
             cache[args] = fn(*args)
         return cache[args]
+
     return wrapped
 
 
-def _run(hours, seed, days, every,
-         draft_error, log, bank, bank_rate):
+def _run(hours, seed, days, every, draft_error, log, bank, bank_rate):
 
     rng = random.Random(seed)
     nodes = load_nodes()
@@ -432,11 +505,13 @@ def _run(hours, seed, days, every,
     if unreachable:
         cycle = retention_cycle(nodes, evidence, curve)
         if cycle < days:
-            log(f"target P(onsite) {TARGET_ONSITE:.0%} is above the model's ceiling "
+            log(
+                f"target P(onsite) {TARGET_ONSITE:.0%} is above the model's ceiling "
                 f"of {ceiling:.0%} (a perfect graph, optimistic band, day {days}): "
                 f"no run can cross it. Stopping at one retention cycle "
                 f"({cycle}d) instead of {days}d - the diagnostics are what is "
-                f"left to learn.")
+                f"left to learn."
+            )
             days = cycle
     # Is the target even reachable? The ceiling is what a perfect graph scores
     # - every move recalled, none never-met - at the optimistic end of the band
@@ -449,16 +524,20 @@ def _run(hours, seed, days, every,
     if ceiling < TARGET_ONSITE:
         cycle = retention_cycle(nodes, evidence, curve)
         if cycle < days:
-            log(f"target P(onsite) {TARGET_ONSITE:.0%} is above the model's ceiling "
+            log(
+                f"target P(onsite) {TARGET_ONSITE:.0%} is above the model's ceiling "
                 f"of {ceiling:.0%} (perfect graph, optimistic band, day {days}): "
                 f"no run crosses it. Stopping at one retention cycle ({cycle}d) "
-                f"instead of {days}d - the diagnostics are what is left to learn.")
+                f"instead of {days}d - the diagnostics are what is left to learn."
+            )
             days = cycle
     ratings_of = solve_ratings()
-    median_rating = {d: (sorted(v)[len(v) // 2] if v else 1500.0)
-                     for d, v in ratings.items()}
+    median_rating = {
+        d: (sorted(v)[len(v) // 2] if v else 1500.0) for d, v in ratings.items()
+    }
     teach = min(first_contact(evidence) * 0.8, 0.85)
     asleep, _ = sleep_state(nodes, problems, evidence)
+
     # the central line moves with the measured Elo drift, so a projected day
     # is priced at the skill the evidence says he will have then - near
     # today's, with a band that widens the further out it looks
@@ -480,9 +559,14 @@ def _run(hours, seed, days, every,
     size_pool = sorted(sizes.values()) or [1]
     author_budget = 0.0
     authored_files = 0
-    rate_src = "given" if bank_rate is not None else (
-        f"measured: {sum(1 for d in banked.values() if 0 <= (start - d).days < AUTHOR_WINDOW)}"
-        f" nodes banked in the last {AUTHOR_WINDOW} days")
+    rate_src = (
+        "given"
+        if bank_rate is not None
+        else (
+            f"measured: {sum(1 for d in banked.values() if 0 <= (start - d).days < AUTHOR_WINDOW)}"
+            f" nodes banked in the last {AUTHOR_WINDOW} days"
+        )
+    )
 
     def rates(day, recall=None, day_no=0):
         if recall is None:
@@ -496,48 +580,70 @@ def _run(hours, seed, days, every,
     seen = {str(r.get("problem")) for r in evidence.values()}
     per_kind = {"Easy": 0, "Medium": 0, "Hard": 0, "drill": 0}
     seq = 0
-    dry_days = 0      # days the picker served nothing at all
-    short_days = 0    # days it ran out before half the hours were used
-    rusty = []        # (day_no, stale, fragile, missing) at the first pick
+    dry_days = 0  # days the picker served nothing at all
+    short_days = 0  # days it ran out before half the hours were used
+    rusty = []  # (day_no, stale, fragile, missing) at the first pick
     streak = {n: 0 for n in nodes}  # consecutive due days, no pick aimed
-    starved = {}      # node -> longest such run
-    series = []       # per day, for the README forecast chart
-    src = "given" if given else \
-        f"measured: avg of the current streak, {measured:g}h"
+    starved: dict[str, int] = {}  # node -> longest such run
+    series = []  # per day, for the README forecast chart
+    src = "given" if given else f"measured: avg of the current streak, {measured:g}h"
     knobs = []
-    if draft_error: knobs.append(f"draft-error {draft_error:g}")
+    if draft_error:
+        knobs.append(f"draft-error {draft_error:g}")
     if knobs:
         log("model knobs off their defaults: " + ", ".join(knobs))
-    log(f"policy: kg_next.pick at {hours:g}h/day ({src}), seed {seed}; "
-        f"teach {teach:.2f}, curve {os.path.basename(GRAPH_DIR)}/curve.json")
-    log("cold-solve model: logit P = "
+    log(
+        f"policy: kg_next.pick at {hours:g}h/day ({src}), seed {seed}; "
+        f"teach {teach:.2f}, curve {os.path.basename(GRAPH_DIR)}/curve.json"
+    )
+    log(
+        "cold-solve model: logit P = "
         + " ".join(f"{c:+.3f}·{f}" for f, c in coef.items())
-        + f" (curve.json, fitted on {curve['solve']['games']} timed games)")
-    log(f"drill authoring: {rate:g} new banks/day ({rate_src}), size drawn from "
+        + f" (curve.json, fitted on {curve['solve']['games']} timed games)"
+    )
+    log(
+        f"drill authoring: {rate:g} new banks/day ({rate_src}), size drawn from "
         f"the {len(size_pool)} banks on disk (median {median(size_pool):g} files); "
-        f"{sum(1 for n in nodes if n not in banked)} of {len(nodes)} nodes bankless today")
-    log("price per attempt, measured medians (clean / struggled): "
-        + ", ".join(f"{k} {prices[(k, 'clean')]:.0f}/{prices[(k, 'struggled')]:.0f}m"
-                    for k in ("Easy", "Medium", "Hard", "drill")))
-    log(f"{'day':>4}  {'date':10}  {'solves':>6}  {'solid':>5}  {'young':>5}  "
-        f"{'reach':>9}  {'P(hard)':>7}  {'P(screen)':>9}  {'P(onsite)':>9}")
+        f"{sum(1 for n in nodes if n not in banked)} of {len(nodes)} nodes bankless today"
+    )
+    log(
+        "price per attempt, measured medians (clean / struggled): "
+        + ", ".join(
+            f"{k} {prices[(k, 'clean')]:.0f}/{prices[(k, 'struggled')]:.0f}m"
+            for k in ("Easy", "Medium", "Hard", "drill")
+        )
+    )
+    log(
+        f"{'day':>4}  {'date':10}  {'solves':>6}  {'solid':>5}  {'young':>5}  "
+        f"{'reach':>9}  {'P(hard)':>7}  {'P(screen)':>9}  {'P(onsite)':>9}"
+    )
 
     def report(day_no, day, solves_today, statuses=None, recall=None):
         if statuses is None:
             statuses = {n: node_status(n, evidence, today=day) for n in nodes}
         imm = immature_nodes(nodes, evidence, problems)
-        gain = unlocks(statuses, problems, immature=imm)
-        blocked = sum(1 for p in predicted if p not in problems
-                      and not any(all(statuses[m][0] == SOLID and m not in imm
-                                      for m in w["moves"] if m in nodes)
-                                  and all(m in nodes for m in w["moves"])
-                                  and not w.get("missing")
-                                  for w in predicted[p]["walks"]))
+        blocked = sum(
+            1
+            for p in predicted
+            if p not in problems
+            and not any(
+                all(
+                    statuses[m][0] == SOLID and m not in imm
+                    for m in w["moves"]
+                    if m in nodes
+                )
+                and all(m in nodes for m in w["moves"])
+                and not w.get("missing")
+                for w in predicted[p]["walks"]
+            )
+        )
         _, onsite, screen, phard = rates(day, recall, day_no)
         solid = sum(1 for s in statuses.values() if s[0] == SOLID)
-        log(f"{day_no:>4}  {day.isoformat():10}  {solves_today:>6}  {solid:>5}  "
+        log(
+            f"{day_no:>4}  {day.isoformat():10}  {solves_today:>6}  {solid:>5}  "
             f"{len(imm):>5}  {len(predicted) - blocked:>4}/{len(predicted):<4}  "
-            f"{phard:>6.0%}  {screen:>8.0%}  {onsite:>8.0%}")
+            f"{phard:>6.0%}  {screen:>8.0%}  {onsite:>8.0%}"
+        )
         return onsite
 
     def close_streak(n):
@@ -550,9 +656,11 @@ def _run(hours, seed, days, every,
         day = start + timedelta(days=day_no)
         freeze_clock(day)
         budget = hours * 60
-        exclude = set()
+        exclude: set = set()
         solves_today = 0
-        touched = {}     # node -> (target?, struggled?) over the day's picks
+        touched: dict[str, tuple] = (
+            {}
+        )  # node -> (target?, struggled?) over the day's picks
         today_kind = {k: 0 for k in per_kind}
         # statuses and recall once per day; after a solve only its moves change
         statuses = {n: node_status(n, evidence, today=day) for n in nodes}
@@ -571,8 +679,9 @@ def _run(hours, seed, days, every,
                 close_streak(n)
         rusty.append((day_no, counts[STALE], counts[FRAGILE], counts[MISSING]))
         while budget > 0:
-            choice = kg_next.pick(nodes, problems, evidence, statuses,
-                                  asleep=asleep, exclude=exclude)
+            choice = kg_next.pick(
+                nodes, problems, evidence, statuses, asleep=asleep, exclude=exclude
+            )
             if not choice:
                 break
             target, _, pnum, _ = choice
@@ -582,8 +691,10 @@ def _run(hours, seed, days, every,
             # drill_key): a hyphenated date made every simulated drill rep
             # a first rep, so no floor ever advanced (2026-09-06)
             h, rem = divmod(seq, 3600)
-            stamp = (f"{day.isoformat().replace('-', '_')}"
-                     f"T{h:02d}_{rem // 60:02d}_{rem % 60:02d}_000000_00_00Z")
+            stamp = (
+                f"{day.isoformat().replace('-', '_')}"
+                f"T{h:02d}_{rem // 60:02d}_{rem % 60:02d}_000000_00_00Z"
+            )
             if str(pnum).startswith("drill:"):
                 path = kg_lib.due_drill(target, evidence, today=day)
                 if not path:
@@ -615,8 +726,10 @@ def _run(hours, seed, days, every,
                 if rng.random() < draft_error:
                     walk.append("off-taxonomy")  # the draft missed a move
                 ln_recall, unseen = walk_terms(walk, recall)
-                p_cold = 1 / (1 + math.exp(
-                    -(solve_logit(coef, rating, ln_recall, unseen) + shift)))
+                p_cold = 1 / (
+                    1
+                    + math.exp(-(solve_logit(coef, rating, ln_recall, unseen) + shift))
+                )
                 if rng.random() >= p_cold:
                     weakest = min(verdict, key=lambda m: recall[m])
                     verdict[weakest] = "struggled"
@@ -625,8 +738,11 @@ def _run(hours, seed, days, every,
                 was = touched.get(m, (False, False))
                 touched[m] = (was[0] or m == target, was[1] or v == "struggled")
             budget -= price(kind if kind in per_kind else "Medium", clean)
-            evidence[fname] = {"date": day.isoformat(), "problem": problem,
-                               "moves": verdict}
+            evidence[fname] = {
+                "date": day.isoformat(),
+                "problem": problem,
+                "moves": verdict,
+            }
             for m in verdict:
                 statuses[m] = node_status(m, evidence, today=day)
                 recall[m] = node_curve_recall(m, evidence, curve, day)
@@ -648,8 +764,10 @@ def _run(hours, seed, days, every,
             cands = [n for n in touched if not kg_lib.has_drill_bank(n)]
             cands.sort(key=lambda n: (not touched[n][0], not touched[n][1], recall[n]))
             if not cands:
-                cands = sorted((n for n in nodes if not kg_lib.has_drill_bank(n)),
-                               key=lambda n: recall[n])
+                cands = sorted(
+                    (n for n in nodes if not kg_lib.has_drill_bank(n)),
+                    key=lambda n: recall[n],
+                )
             if not cands:
                 break  # every node has a bank
             files = rng.choice(size_pool)
@@ -660,9 +778,18 @@ def _run(hours, seed, days, every,
         end = {s: 0 for s in (SOLID, STALE, FRAGILE, MISSING)}
         for s in statuses.values():
             end[s[0]] += 1
-        series.append({"day": day, "solves": today_kind, "stale": end[STALE],
-                       "fragile": end[FRAGILE], "missing": end[MISSING],
-                       "onsite": onsite, "screen": screen, "hard": phard})
+        series.append(
+            {
+                "day": day,
+                "solves": today_kind,
+                "stale": end[STALE],
+                "fragile": end[FRAGILE],
+                "missing": end[MISSING],
+                "onsite": onsite,
+                "screen": screen,
+                "hard": phard,
+            }
+        )
         if day_no % every == 0 or day_no == days or onsite >= TARGET_ONSITE:
             onsite = report(day_no, day, solves_today, statuses, recall)
             if onsite >= TARGET_ONSITE:
@@ -672,51 +799,94 @@ def _run(hours, seed, days, every,
     for n in nodes:
         close_streak(n)
     freeze_clock(start)
-    return {"day": day_no, "start": start, "onsite": onsite, "hours": hours,
-            "source": src, "per_kind": per_kind, "dry_days": dry_days,
-            "short_days": short_days, "rusty": rusty, "starved": starved,
-            "series": series,
-            "authored": {"nodes": len(bank.authored), "files": authored_files,
-                         "rate": rate, "source": rate_src}}
+    return {
+        "day": day_no,
+        "start": start,
+        "onsite": onsite,
+        "hours": hours,
+        "source": src,
+        "per_kind": per_kind,
+        "dry_days": dry_days,
+        "short_days": short_days,
+        "rusty": rusty,
+        "starved": starved,
+        "series": series,
+        "authored": {
+            "nodes": len(bank.authored),
+            "files": authored_files,
+            "rate": rate,
+            "source": rate_src,
+        },
+    }
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Run the real picker forward until P(onsite) reaches 50%.")
-    parser.add_argument("hours", type=float, nargs="?", default=None,
-                        help="hours per day; default: the measured pace")
+        description="Run the real picker forward until P(onsite) reaches 50%."
+    )
+    parser.add_argument(
+        "hours",
+        type=float,
+        nargs="?",
+        default=None,
+        help="hours per day; default: the measured pace",
+    )
     parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--days", type=int, default=MAX_DAYS)
-    parser.add_argument("--every", type=int, default=7,
-                        help="print a row every N days")
-    parser.add_argument("--draft-error", type=float, default=0.0,
-                        help="share of drafted walks that are wrong: such a cold "
-                        "problem needs a move the walk did not name, at the "
-                        "derive rate (drafts score P 0.80 vs evidenced walks)")
-    parser.add_argument("--bank-rate", type=float, default=None,
-                        help="new drill banks authored per day; default: the "
-                        "measured rate over the last 28 days, 0 = the bank as it is")
+    parser.add_argument("--every", type=int, default=7, help="print a row every N days")
+    parser.add_argument(
+        "--draft-error",
+        type=float,
+        default=0.0,
+        help="share of drafted walks that are wrong: such a cold "
+        "problem needs a move the walk did not name, at the "
+        "derive rate (drafts score P 0.80 vs evidenced walks)",
+    )
+    parser.add_argument(
+        "--bank-rate",
+        type=float,
+        default=None,
+        help="new drill banks authored per day; default: the "
+        "measured rate over the last 28 days, 0 = the bank as it is",
+    )
     args = parser.parse_args()
-    r = run(args.hours, args.seed, args.days, args.every, args.draft_error,
-            bank_rate=args.bank_rate)
+    r = run(
+        args.hours,
+        args.seed,
+        args.days,
+        args.every,
+        args.draft_error,
+        bank_rate=args.bank_rate,
+    )
     day_no, onsite, hours = r["day"], r["onsite"], r["hours"]
     print()
     if onsite >= TARGET_ONSITE:
-        print(f"central P(onsite) >= {TARGET_ONSITE:.0%} on day {day_no}: "
-              f"{(r['start'] + timedelta(days=day_no)).isoformat()}")
+        print(
+            f"central P(onsite) >= {TARGET_ONSITE:.0%} on day {day_no}: "
+            f"{(r['start'] + timedelta(days=day_no)).isoformat()}"
+        )
     else:
         print(f"not reached in {day_no} days (P(onsite) {onsite:.0%})")
-    print("solves: " + ", ".join(f"{k} {v}" for k, v in r["per_kind"].items())
-          + f"; {sum(r['per_kind'].values())} in {day_no} days at {hours:g}h/day")
+    print(
+        "solves: "
+        + ", ".join(f"{k} {v}" for k, v in r["per_kind"].items())
+        + f"; {sum(r['per_kind'].values())} in {day_no} days at {hours:g}h/day"
+    )
     a = r["authored"]
-    print(f"drills authored: {a['files']} files for {a['nodes']} nodes "
-          f"at {a['rate']:g} banks/day ({a['source']})")
-    print(f"picker dry: {r['dry_days']} days served nothing, {r['short_days']} "
-          f"days ran out before half the hours were used")
+    print(
+        f"drills authored: {a['files']} files for {a['nodes']} nodes "
+        f"at {a['rate']:g} banks/day ({a['source']})"
+    )
+    print(
+        f"picker dry: {r['dry_days']} days served nothing, {r['short_days']} "
+        f"days ran out before half the hours were used"
+    )
     worst = max(s + f for _, s, f, _ in r["rusty"]) if r["rusty"] else 0
     print(f"rusty: at most {worst} nodes STALE or FRAGILE at the start of a day")
     if r["starved"]:
-        print(f"picker starved ({STARVED_DAYS}+ days rusty in a row, nothing aimed at it):")
+        print(
+            f"picker starved ({STARVED_DAYS}+ days rusty in a row, nothing aimed at it):"
+        )
         for n, k in sorted(r["starved"].items(), key=lambda x: -x[1]):
             print(f"  {n}: {k} days")
 

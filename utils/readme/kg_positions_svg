@@ -24,13 +24,21 @@ import math
 import os
 from collections import defaultdict
 from datetime import date
+from typing import Any
 
-from kg.kg_lib import ASSIST_WEIGHT, GRAPH_DIR, MovieClock, assist_of, era_banner, load_evidence
+from kg.kg_lib import (
+    ASSIST_WEIGHT,
+    GRAPH_DIR,
+    MovieClock,
+    assist_of,
+    era_banner,
+    load_evidence,
+)
 
 OUT = os.path.join(GRAPH_DIR, "positions.svg")
 
 W, H = 1200, 700
-ML, MR, MT, MB = 70, 30, 78, 56          # margins
+ML, MR, MT, MB = 70, 30, 78, 56  # margins
 PW, PH = W - ML - MR, H - MT - MB
 GAP_MAX = 700.0
 Y_LO, Y_HI = 0.70, 1.02
@@ -90,7 +98,12 @@ def main():
             if v == "clean" and a != "learning":
                 cleans += 1
                 assisted += ASSIST_WEIGHT[a]
-                s = math.exp(P["a"] + P["b"] * math.log1p(cleans) - P["c"] * struggles - P["d"] * assisted)
+                s = math.exp(
+                    P["a"]
+                    + P["b"] * math.log1p(cleans)
+                    - P["c"] * struggles
+                    - P["d"] * assisted
+                )
                 reps.append((date.fromisoformat(d), s))
             else:
                 if v == "struggled":
@@ -104,38 +117,66 @@ def main():
     svg = []
     svg.append(
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" '
-        f'font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif">')
+        f'font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif">'
+    )
     svg.append(f'<rect width="{W}" height="{H}" fill="{SURFACE}"/>')
 
-    svg.append(f'<text x="{ML}" y="30" fill="{INK}" font-size="19">'
-               'Technique nodes living on their forgetting curves</text>')
-    svg.append(f'<text x="{ML}" y="52" fill="{INK_MUTED}" font-size="12">'
-               'calendar replay, looping (quiet stretches fast-forward): dots age to the right, '
-               'every review snaps them back to day zero on a flatter curve; '
-               'amber = below the 90% solid threshold</text>')
+    svg.append(
+        f'<text x="{ML}" y="30" fill="{INK}" font-size="19">'
+        "Technique nodes living on their forgetting curves</text>"
+    )
+    svg.append(
+        f'<text x="{ML}" y="52" fill="{INK_MUTED}" font-size="12">'
+        "calendar replay, looping (quiet stretches fast-forward): dots age to the right, "
+        "every review snaps them back to day zero on a flatter curve; "
+        "amber = below the 90% solid threshold</text>"
+    )
 
     # grid + axes
     for p in (0.75, 0.80, 0.85, 0.90, 0.95, 1.00):
         y = Y(p)
-        svg.append(f'<line x1="{ML}" y1="{y:.1f}" x2="{W - MR}" y2="{y:.1f}" '
-                   f'stroke="{GRID}" stroke-width="1"/>')
-        svg.append(f'<text x="{ML - 8}" y="{y + 4:.1f}" fill="{INK_MUTED}" '
-                   f'font-size="11" text-anchor="end">{p:.0%}</text>')
-    for g, lab in ((1, "1d"), (3, "3d"), (7, "1w"), (14, "2w"), (30, "1m"),
-                   (60, "2m"), (120, "4m"), (250, "8m"), (500, "16m")):
+        svg.append(
+            f'<line x1="{ML}" y1="{y:.1f}" x2="{W - MR}" y2="{y:.1f}" '
+            f'stroke="{GRID}" stroke-width="1"/>'
+        )
+        svg.append(
+            f'<text x="{ML - 8}" y="{y + 4:.1f}" fill="{INK_MUTED}" '
+            f'font-size="11" text-anchor="end">{p:.0%}</text>'
+        )
+    for g, lab in (
+        (1, "1d"),
+        (3, "3d"),
+        (7, "1w"),
+        (14, "2w"),
+        (30, "1m"),
+        (60, "2m"),
+        (120, "4m"),
+        (250, "8m"),
+        (500, "16m"),
+    ):
         x = X(g)
-        svg.append(f'<line x1="{x:.1f}" y1="{MT + PH}" x2="{x:.1f}" y2="{MT + PH + 5}" '
-                   f'stroke="{INK_MUTED}" stroke-width="1"/>')
-        svg.append(f'<text x="{x:.1f}" y="{MT + PH + 20}" fill="{INK_MUTED}" '
-                   f'font-size="11" text-anchor="middle">{lab}</text>')
-    svg.append(f'<text x="{ML + PW / 2}" y="{H - 10}" fill="{INK_MUTED}" font-size="12" '
-               f'text-anchor="middle">days since last clean rep (log)</text>')
+        svg.append(
+            f'<line x1="{x:.1f}" y1="{MT + PH}" x2="{x:.1f}" y2="{MT + PH + 5}" '
+            f'stroke="{INK_MUTED}" stroke-width="1"/>'
+        )
+        svg.append(
+            f'<text x="{x:.1f}" y="{MT + PH + 20}" fill="{INK_MUTED}" '
+            f'font-size="11" text-anchor="middle">{lab}</text>'
+        )
+    svg.append(
+        f'<text x="{ML + PW / 2}" y="{H - 10}" fill="{INK_MUTED}" font-size="12" '
+        f'text-anchor="middle">days since last clean rep (log)</text>'
+    )
 
     y90 = Y(THR)
-    svg.append(f'<line x1="{ML}" y1="{y90:.1f}" x2="{W - MR}" y2="{y90:.1f}" '
-               f'stroke="{INK_MUTED}" stroke-width="1.2" stroke-dasharray="7 5"/>')
-    svg.append(f'<text x="{ML + PW * 0.42:.1f}" y="{y90 + 16:.1f}" fill="{INK_MUTED}" '
-               f'font-size="11">90%: solid above, stale below</text>')
+    svg.append(
+        f'<line x1="{ML}" y1="{y90:.1f}" x2="{W - MR}" y2="{y90:.1f}" '
+        f'stroke="{INK_MUTED}" stroke-width="1.2" stroke-dasharray="7 5"/>'
+    )
+    svg.append(
+        f'<text x="{ML + PW * 0.42:.1f}" y="{y90 + 16:.1f}" fill="{INK_MUTED}" '
+        f'font-size="11">90%: solid above, stale below</text>'
+    )
 
     # month ticker, top right
     months = []
@@ -143,28 +184,37 @@ def main():
     while m <= last:
         months.append(m)
         m = date(m.year + (m.month == 12), m.month % 12 + 1, 1)
+    times: Any
     for i, m in enumerate(months):
         fs = frac(max((m - first).days, 0))
         nxt = months[i + 1] if i + 1 < len(months) else None
         fe = frac((nxt - first).days) if nxt else 1.0
         lab = m.strftime("%b '%y").lower()
-        vals, times = ("0;1;0", f"0;{fs:.4f};{fe:.4f}") if fs > 0 else ("1;0", f"0;{fe:.4f}")
+        vals, times = (
+            ("0;1;0", f"0;{fs:.4f};{fe:.4f}") if fs > 0 else ("1;0", f"0;{fe:.4f}")
+        )
         if not nxt:
             vals, times = ("0;1", f"0;{fs:.4f}") if fs > 0 else ("1", "0")
-        svg.append(f'<text x="{W - MR}" y="30" fill="{INK}" font-size="16" '
-                   f'text-anchor="end" opacity="0">{lab}'
-                   f'<animate attributeName="opacity" calcMode="discrete" values="{vals}" '
-                   f'keyTimes="{times}" dur="{DUR}s" repeatCount="indefinite"/></text>')
+        svg.append(
+            f'<text x="{W - MR}" y="30" fill="{INK}" font-size="16" '
+            f'text-anchor="end" opacity="0">{lab}'
+            f'<animate attributeName="opacity" calcMode="discrete" values="{vals}" '
+            f'keyTimes="{times}" dur="{DUR}s" repeatCount="indefinite"/></text>'
+        )
 
     svg.extend(era_banner(clock, W - MR, 60, 26, anchor="end"))
 
     # faint static curves at final stability, for the rails
     for node, reps in tracks.items():
         s = reps[-1][1]
-        pts = [f"{X(g):.1f},{Y(mem(g, s)):.1f}"
-               for g in (10 ** (i / 40 * math.log10(GAP_MAX)) for i in range(41))]
-        svg.append(f'<polyline points="{" ".join(pts)}" fill="none" '
-                   f'stroke="{CURVE}" stroke-width="0.8" opacity="0.3"/>')
+        pts = [
+            f"{X(g):.1f},{Y(mem(g, s)):.1f}"
+            for g in (10 ** (i / 40 * math.log10(GAP_MAX)) for i in range(41))
+        ]
+        svg.append(
+            f'<polyline points="{" ".join(pts)}" fill="none" '
+            f'stroke="{CURVE}" stroke-width="0.8" opacity="0.3"/>'
+        )
 
     # animated dots
     n_stale = 0
@@ -191,7 +241,11 @@ def main():
                 color_vals.append(GOOD)
 
             n = min(length, 24) or 1
-            sampled = sorted({max(1, round(length * j / n)) for j in range(1, n + 1)}) if length else []
+            sampled = (
+                sorted({max(1, round(length * j / n)) for j in range(1, n + 1)})
+                if length
+                else []
+            )
             for g in sampled:
                 times.append(frac(seg_start + g))
                 xs.append(f"{X(g):.1f}")
@@ -227,28 +281,37 @@ def main():
             f'calcMode="linear" dur="{DUR}s" repeatCount="indefinite"/>'
             f'<animate attributeName="fill" calcMode="discrete" values="{";".join(color_vals)}" '
             f'keyTimes="{ckt}" dur="{DUR}s" repeatCount="indefinite"/>'
-            f'</circle>')
+            f"</circle>"
+        )
 
     # static labels marking where the stale nodes end each cycle (today)
     for node, lx, ly in stale_now:
-        svg.append(f'<text x="{lx + 10:.1f}" y="{ly + 4:.1f}" fill="{INK}" '
-                   f'font-size="12">{node}</text>')
+        svg.append(
+            f'<text x="{lx + 10:.1f}" y="{ly + 4:.1f}" fill="{INK}" '
+            f'font-size="12">{node}</text>'
+        )
 
     # legend
     svg.append(f'<circle cx="{ML + 10}" cy="{H - 38}" r="4.5" fill="{GOOD}"/>')
-    svg.append(f'<text x="{ML + 22}" y="{H - 34}" fill="{INK}" font-size="12">'
-               f'solid today ({len(tracks) - n_stale})</text>')
+    svg.append(
+        f'<text x="{ML + 22}" y="{H - 34}" fill="{INK}" font-size="12">'
+        f"solid today ({len(tracks) - n_stale})</text>"
+    )
     svg.append(f'<circle cx="{ML + 140}" cy="{H - 38}" r="6" fill="{WARN}"/>')
-    svg.append(f'<text x="{ML + 152}" y="{H - 34}" fill="{INK}" font-size="12">'
-               f'stale today ({n_stale})</text>')
+    svg.append(
+        f'<text x="{ML + 152}" y="{H - 34}" fill="{INK}" font-size="12">'
+        f"stale today ({n_stale})</text>"
+    )
 
     svg.append(clock.dissolve_rect(W, H, SURFACE))
 
     svg.append("</svg>")
     with open(OUT, "w") as f:
         f.write("\n".join(svg) + "\n")
-    print(f"wrote {OUT} ({len(tracks)} nodes, {n_stale} stale, "
-          f"{clock.n_ticks} ticks synced to the {DUR:.0f}s loop, {clock.fade_s:.1f}s dissolve)")
+    print(
+        f"wrote {OUT} ({len(tracks)} nodes, {n_stale} stale, "
+        f"{clock.n_ticks} ticks synced to the {DUR:.0f}s loop, {clock.fade_s:.1f}s dissolve)"
+    )
 
 
 if __name__ == "__main__":

@@ -37,29 +37,25 @@ import os
 from datetime import date, timedelta
 
 from kg.kg_lib import (
-    FRAGILE,
-    GRAPH_DIR,
-    MISSING,
-    SOLID,
-    STALE,
     ERA_SWITCH,
+    GRAPH_DIR,
     MovieClock,
+    _load_curve,
+    degree_color,
     era_banner,
     load_evidence,
     load_nodes,
     load_predicted,
     load_problems,
     node_axes,
-    degree_color,
-    _load_curve,
 )
 
 OUT = os.path.join(GRAPH_DIR, "reach.svg")
 
 W, H = 1200, 560
 ML, MR = 70, 24
-PT1, PB1 = 56, 300                       # in-reach panel
-PT2, PB2 = 330, 500                      # node-state panel
+PT1, PB1 = 56, 300  # in-reach panel
+PT2, PB2 = 330, 500  # node-state panel
 
 BG = "#0d1117"
 INK = "#c9d1d9"
@@ -88,7 +84,7 @@ def main():
 
     # full catalog: every problem with any walk record; usable walks only
     predicted = load_predicted()
-    walks = {num: [] for num in set(problems) | set(predicted)}
+    walks: dict[str, list] = {num: [] for num in set(problems) | set(predicted)}
     for num, p in problems.items():
         walks[num].append(p["moves"])
     for num, p in predicted.items():
@@ -102,13 +98,13 @@ def main():
     slip = curve["params"].get("slip", 0.0) if curve else 0.0
 
     # daily replay: evidence grows a day at a time, statuses re-derived on it
-    by_day = {}
+    by_day: dict[str, dict] = {}
     for fname, rec in evidence.items():
         by_day.setdefault(rec["date"], {})[fname] = rec
     ev_t = {}
-    reach = []                           # per tick: expected evidenced-solvable count
-    pred_reach = []                      # per tick: expected best-walk-solvable count
-    stacks = []                          # per tick: {state: count} over added nodes
+    reach = []  # per tick: expected evidenced-solvable count
+    pred_reach = []  # per tick: expected best-walk-solvable count
+    stacks = []  # per tick: {state: count} over added nodes
     for i in range(clock.n_ticks):
         d = clock.first + timedelta(days=i)
         ev_t.update(by_day.get(d.isoformat(), {}))
@@ -120,12 +116,13 @@ def main():
         def joint(w):
             p = 1.0
             for m in w:
-                p *= recalls[m]
+                p *= recalls[m]  # noqa: B023  (used inside the same iteration)
             return p
 
         reach.append(sum(joint(p["moves"]) for p in problems.values()))
-        pred_reach.append(sum(max(map(joint, ws), default=0.0)
-                              for ws in walks.values()))
+        pred_reach.append(
+            sum(max(map(joint, ws), default=0.0) for ws in walks.values())
+        )
         counts = dict.fromkeys(STACK_ORDER, 0)
         for nid in nodes:
             if added[nid] <= d:
@@ -137,7 +134,9 @@ def main():
     n_hi = max(sum(c.values()) for c in stacks) + 2
 
     def x_of(d):
-        return ML + (d - clock.first).days / max((clock.last - clock.first).days, 1) * (W - ML - MR)
+        return ML + (d - clock.first).days / max((clock.last - clock.first).days, 1) * (
+            W - ML - MR
+        )
 
     def y1(v):
         return PB1 - v / y1_hi * (PB1 - PT1)
@@ -146,39 +145,61 @@ def main():
         return PB2 - v / n_hi * (PB2 - PT2)
 
     svg = []
-    svg.append(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" '
-               f'font-family="Helvetica,sans-serif">')
+    svg.append(
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" '
+        f'font-family="Helvetica,sans-serif">'
+    )
     svg.append(f'<rect width="{W}" height="{H}" fill="{BG}"/>')
-    svg.append(f'<text x="{W / 2:.0f}" y="24" text-anchor="middle" font-size="13" fill="{INK}">'
-               f"Problems in reach - expected solvable count: each problem weighs in at its "
-               "walk's joint probability (per-move predicted recall multiplied), daily replay</text>")
-    svg.append(f'<text x="{W / 2:.0f}" y="41" text-anchor="middle" font-size="11" fill="{MUTED}">'
-               f'blue: the {frontier} evidenced walks only. purple: all {catalog} problems at '
-               'their best walk, LLM-drafted walks included (gpt-5-mini, precision 0.80 / '
-               'recall 0.75 against 50 evidenced walks)</text>')
+    svg.append(
+        f'<text x="{W / 2:.0f}" y="24" text-anchor="middle" font-size="13" fill="{INK}">'
+        f"Problems in reach - expected solvable count: each problem weighs in at its "
+        "walk's joint probability (per-move predicted recall multiplied), daily replay</text>"
+    )
+    svg.append(
+        f'<text x="{W / 2:.0f}" y="41" text-anchor="middle" font-size="11" fill="{MUTED}">'
+        f"blue: the {frontier} evidenced walks only. purple: all {catalog} problems at "
+        "their best walk, LLM-drafted walks included (gpt-5-mini, precision 0.80 / "
+        "recall 0.75 against 50 evidenced walks)</text>"
+    )
 
     # grids + axes
     for v in range(0, catalog + 1, 500):
         y = y1(v)
-        svg.append(f'<line x1="{ML}" y1="{y:.1f}" x2="{W - MR}" y2="{y:.1f}" '
-                   f'stroke="{GRID}" stroke-width="1"/>')
-        svg.append(f'<text x="{ML - 8}" y="{y + 4:.1f}" text-anchor="end" font-size="11" '
-                   f'fill="{MUTED}">{v}</text>')
-    for cap, lab in ((frontier, f"the evidenced frontier ({frontier})"),
-                     (catalog, f"every problem in the bank ({catalog})")):
+        svg.append(
+            f'<line x1="{ML}" y1="{y:.1f}" x2="{W - MR}" y2="{y:.1f}" '
+            f'stroke="{GRID}" stroke-width="1"/>'
+        )
+        svg.append(
+            f'<text x="{ML - 8}" y="{y + 4:.1f}" text-anchor="end" font-size="11" '
+            f'fill="{MUTED}">{v}</text>'
+        )
+    for cap, lab in (
+        (frontier, f"the evidenced frontier ({frontier})"),
+        (catalog, f"every problem in the bank ({catalog})"),
+    ):
         yf = y1(cap)
-        svg.append(f'<line x1="{ML}" y1="{yf:.1f}" x2="{W - MR}" y2="{yf:.1f}" '
-                   f'stroke="{MUTED}" stroke-width="1" stroke-dasharray="7 5"/>')
-        svg.append(f'<text x="{ML + 6}" y="{yf - 6:.1f}" font-size="11" fill="{MUTED}">'
-                   f'{lab}</text>')
+        svg.append(
+            f'<line x1="{ML}" y1="{yf:.1f}" x2="{W - MR}" y2="{yf:.1f}" '
+            f'stroke="{MUTED}" stroke-width="1" stroke-dasharray="7 5"/>'
+        )
+        svg.append(
+            f'<text x="{ML + 6}" y="{yf - 6:.1f}" font-size="11" fill="{MUTED}">'
+            f"{lab}</text>"
+        )
     for v in range(0, n_hi, 20):
         y = y2(v)
-        svg.append(f'<line x1="{ML}" y1="{y:.1f}" x2="{W - MR}" y2="{y:.1f}" '
-                   f'stroke="{GRID}" stroke-width="1"/>')
-        svg.append(f'<text x="{ML - 8}" y="{y + 4:.1f}" text-anchor="end" font-size="11" '
-                   f'fill="{MUTED}">{v}</text>')
-    svg.append(f'<text x="{ML}" y="{PT2 - 8}" font-size="12" fill="{INK}">'
-               'nodes by degree of ownership (the cause: how far each move is owned)</text>')
+        svg.append(
+            f'<line x1="{ML}" y1="{y:.1f}" x2="{W - MR}" y2="{y:.1f}" '
+            f'stroke="{GRID}" stroke-width="1"/>'
+        )
+        svg.append(
+            f'<text x="{ML - 8}" y="{y + 4:.1f}" text-anchor="end" font-size="11" '
+            f'fill="{MUTED}">{v}</text>'
+        )
+    svg.append(
+        f'<text x="{ML}" y="{PT2 - 8}" font-size="12" fill="{INK}">'
+        "nodes by degree of ownership (the cause: how far each move is owned)</text>"
+    )
 
     # month ticks along the bottom
     months = []
@@ -190,19 +211,25 @@ def main():
         if mo < clock.first:
             continue
         x = x_of(mo)
-        svg.append(f'<line x1="{x:.1f}" y1="{PB2}" x2="{x:.1f}" y2="{PB2 + 4}" '
-                   f'stroke="{MUTED}" stroke-width="1"/>')
+        svg.append(
+            f'<line x1="{x:.1f}" y1="{PB2}" x2="{x:.1f}" y2="{PB2 + 4}" '
+            f'stroke="{MUTED}" stroke-width="1"/>'
+        )
         nxt = months[i + 1] if i + 1 < len(months) else clock.last
         if x_of(min(nxt, clock.last)) - x >= 34:
             lab = mo.strftime("jan '%y" if mo.month == 1 else "%b").lower()
-            svg.append(f'<text x="{x:.1f}" y="{PB2 + 17}" text-anchor="middle" font-size="11" '
-                       f'fill="{MUTED}">{lab}</text>')
+            svg.append(
+                f'<text x="{x:.1f}" y="{PB2 + 17}" text-anchor="middle" font-size="11" '
+                f'fill="{MUTED}">{lab}</text>'
+            )
 
     # era switch line through both panels, same date as the movie's banner flip
     if clock.first < ERA_SWITCH < clock.last:
         x = x_of(ERA_SWITCH)
-        svg.append(f'<line x1="{x:.1f}" y1="{PT1}" x2="{x:.1f}" y2="{PB2}" stroke="{REACH_C}" '
-                   f'stroke-width="1.2" stroke-dasharray="5 4" opacity="0.6"/>')
+        svg.append(
+            f'<line x1="{x:.1f}" y1="{PT1}" x2="{x:.1f}" y2="{PB2}" stroke="{REACH_C}" '
+            f'stroke-width="1.2" stroke-dasharray="5 4" opacity="0.6"/>'
+        )
     svg.extend(era_banner(clock, W - MR - 6, PB1 - 12, 18, anchor="end", halo=BG))
 
     # the data, visible in full the whole time at half opacity, with the
@@ -210,13 +237,17 @@ def main():
     days_x = [x_of(clock.first + timedelta(days=i)) for i in range(clock.n_ticks)]
     widths = ";".join([f"{x - ML:.1f}" for x in days_x] + [f"{days_x[-1] - ML:.1f}"])
     kt = ";".join([f"{clock.frac(i):.4f}" for i in range(clock.n_ticks)] + ["1"])
-    svg.append(f'<clipPath id="reveal"><rect x="{ML}" y="0" width="{W - ML - MR}" height="{H}">'
-               f'<animate attributeName="width" calcMode="linear" values="{widths}" '
-               f'keyTimes="{kt}" dur="{clock.dur}s" repeatCount="indefinite"/></rect></clipPath>')
+    svg.append(
+        f'<clipPath id="reveal"><rect x="{ML}" y="0" width="{W - ML - MR}" height="{H}">'
+        f'<animate attributeName="width" calcMode="linear" values="{widths}" '
+        f'keyTimes="{kt}" dur="{clock.dur}s" repeatCount="indefinite"/></rect></clipPath>'
+    )
     xs = ";".join([f"{x:.1f}" for x in days_x] + [f"{days_x[-1]:.1f}"])
-    svg.append(f'<clipPath id="rest"><rect x="{W - MR}" y="0" width="{W}" height="{H}">'
-               f'<animate attributeName="x" calcMode="linear" values="{xs}" '
-               f'keyTimes="{kt}" dur="{clock.dur}s" repeatCount="indefinite"/></rect></clipPath>')
+    svg.append(
+        f'<clipPath id="rest"><rect x="{W - MR}" y="0" width="{W}" height="{H}">'
+        f'<animate attributeName="x" calcMode="linear" values="{xs}" '
+        f'keyTimes="{kt}" dur="{clock.dur}s" repeatCount="indefinite"/></rect></clipPath>'
+    )
     data = []
 
     # stacked node states, bottom-up in mastery order, banded with a BG seam;
@@ -234,48 +265,66 @@ def main():
                 j += 1
             lo, hi = max(i - 1, 0), min(j + 1, clock.n_ticks)
             pts = [f"{days_x[k]:.1f},{y2(top[k]):.1f}" for k in range(lo, hi)]
-            pts += [f"{days_x[k]:.1f},{y2(base[k]):.1f}" for k in reversed(range(lo, hi))]
-            data.append(f'<polygon points="{" ".join(pts)}" fill="{STATE_C[state]}" '
-                        f'stroke="{BG}" stroke-width="1.5"/>')
+            pts += [
+                f"{days_x[k]:.1f},{y2(base[k]):.1f}" for k in reversed(range(lo, hi))
+            ]
+            data.append(
+                f'<polygon points="{" ".join(pts)}" fill="{STATE_C[state]}" '
+                f'stroke="{BG}" stroke-width="1.5"/>'
+            )
             i = j
         base = top
 
     # the in-reach lines: evidenced (blue) under predicted (purple)
     for series, color in ((pred_reach, PREDICTED_C), (reach, REACH_C)):
-        line = " ".join(f"{days_x[i]:.1f},{y1(series[i]):.1f}" for i in range(clock.n_ticks))
-        data.append(f'<polyline points="{line}" fill="none" stroke="{color}" stroke-width="2.5"/>')
+        line = " ".join(
+            f"{days_x[i]:.1f},{y1(series[i]):.1f}" for i in range(clock.n_ticks)
+        )
+        data.append(
+            f'<polyline points="{line}" fill="none" stroke="{color}" stroke-width="2.5"/>'
+        )
 
     # ahead of the playhead the data shows dimmed; the sweep brings it to
     # full strength — the two clips share one animation, so they tile exactly
     svg.append('<g clip-path="url(#rest)" opacity="0.5">')
     svg.extend(data)
-    svg.append('</g>')
+    svg.append("</g>")
     svg.append('<g clip-path="url(#reveal)">')
     svg.extend(data)
-    svg.append('</g>')
+    svg.append("</g>")
 
     # final-value labels ride outside the clip, popping in at the end
-    for series, color, lab, dy in ((pred_reach, PREDICTED_C, "in predicted reach", -10),
-                                   (reach, REACH_C, "evidenced in reach", 20)):
+    for series, color, lab, dy in (
+        (pred_reach, PREDICTED_C, "in predicted reach", -10),
+        (reach, REACH_C, "evidenced in reach", 20),
+    ):
         fx, fy = days_x[-1], y1(series[-1])
-        svg.append(f'<circle cx="{fx:.1f}" cy="{fy:.1f}" r="4" fill="{color}" opacity="1">'
-                   f'<animate attributeName="opacity" calcMode="discrete" values="0;1" '
-                   f'keyTimes="0;{clock.frac_date(clock.last):.4f}" dur="{clock.dur}s" '
-                   f'repeatCount="indefinite"/></circle>')
-        svg.append(f'<text x="{fx - 8:.1f}" y="{fy + dy:.1f}" text-anchor="end" font-size="15" '
-                   f'font-weight="bold" fill="{INK}">{series[-1]:.0f} {lab}'
-                   f'<animate attributeName="opacity" calcMode="discrete" values="0;1" '
-                   f'keyTimes="0;{clock.frac_date(clock.last):.4f}" dur="{clock.dur}s" '
-                   f'repeatCount="indefinite"/></text>')
+        svg.append(
+            f'<circle cx="{fx:.1f}" cy="{fy:.1f}" r="4" fill="{color}" opacity="1">'
+            f'<animate attributeName="opacity" calcMode="discrete" values="0;1" '
+            f'keyTimes="0;{clock.frac_date(clock.last):.4f}" dur="{clock.dur}s" '
+            f'repeatCount="indefinite"/></circle>'
+        )
+        svg.append(
+            f'<text x="{fx - 8:.1f}" y="{fy + dy:.1f}" text-anchor="end" font-size="15" '
+            f'font-weight="bold" fill="{INK}">{series[-1]:.0f} {lab}'
+            f'<animate attributeName="opacity" calcMode="discrete" values="0;1" '
+            f'keyTimes="0;{clock.frac_date(clock.last):.4f}" dur="{clock.dur}s" '
+            f'repeatCount="indefinite"/></text>'
+        )
 
     # legend (the top panel's two lines are named in the subtitle)
     lx = ML + 6
     for state in STACK_ORDER:
         n_fin = stacks[-1][state]
-        svg.append(f'<rect x="{lx}" y="{PT2 + 6}" width="10" height="10" '
-                   f'fill="{STATE_C[state]}"/>')
-        lab = f'{BUCKET_LABEL[state]} ({n_fin})'
-        svg.append(f'<text x="{lx + 15}" y="{PT2 + 15}" font-size="12" fill="{INK}">{lab}</text>')
+        svg.append(
+            f'<rect x="{lx}" y="{PT2 + 6}" width="10" height="10" '
+            f'fill="{STATE_C[state]}"/>'
+        )
+        lab = f"{BUCKET_LABEL[state]} ({n_fin})"
+        svg.append(
+            f'<text x="{lx + 15}" y="{PT2 + 15}" font-size="12" fill="{INK}">{lab}</text>'
+        )
         lx += 30 + 7 * len(lab)
 
     svg.append(clock.dissolve_rect(W, H, BG))
@@ -284,11 +333,20 @@ def main():
         f.write("\n".join(svg) + "\n")
     # the final numbers, for update_readme.py's inline stats
     with open(os.path.join(GRAPH_DIR, "reach.json"), "w") as f:
-        json.dump({"evidenced_reach": round(reach[-1], 1), "evidenced_total": frontier,
-                   "predicted_reach": round(pred_reach[-1], 1), "catalog": catalog}, f)
-    print(f"wrote {OUT} ({reach[-1]:.1f}/{frontier} evidenced, "
-          f"{pred_reach[-1]:.1f}/{catalog} expected solvable today, "
-          f"{clock.n_ticks} days, synced to the {clock.dur:.0f}s loop)")
+        json.dump(
+            {
+                "evidenced_reach": round(reach[-1], 1),
+                "evidenced_total": frontier,
+                "predicted_reach": round(pred_reach[-1], 1),
+                "catalog": catalog,
+            },
+            f,
+        )
+    print(
+        f"wrote {OUT} ({reach[-1]:.1f}/{frontier} evidenced, "
+        f"{pred_reach[-1]:.1f}/{catalog} expected solvable today, "
+        f"{clock.n_ticks} days, synced to the {clock.dur:.0f}s loop)"
+    )
 
 
 if __name__ == "__main__":
