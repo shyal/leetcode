@@ -1,0 +1,153 @@
+#!/usr/bin/env python3
+
+# kg_hours_svg - Elo against hours of recorded solving, rendered into
+# graph/hours.svg for the README pipeline.
+#
+# The x axis is cumulative solve time from the "solve time: Xm Ys" trailer
+# `make solved` writes into every solve and drill commit, in commit order,
+# each solve capped at CAP_MIN minutes (three October 2025 commits carry a
+# clock left running overnight; capped, they are ordinary solves). The y
+# axis is the Elo from kg_elo_svg, one point per day with a scored game,
+# placed at the hours recorded through that day.
+#
+# The dashed line is the rate the Carnegie Mellon study of Codeforces users
+# found (Improving your rating: a statistical perspective, codeforces.com/
+# blog/entry/112510): about 200 rating points per 800 hours of practice,
+# a quarter of a point an hour. It is anchored at game ANCHOR, after the
+# Elo has settled from its 1200 start - the first games are calibration,
+# not learning. The Knight and Guardian bands are kg_elo_svg.RANKS.
+
+import os
+import re
+import subprocess
+from datetime import date, timedelta
+
+from kg.kg_lib import GRAPH_DIR, REPO_ROOT
+
+OUT = os.path.join(GRAPH_DIR, "hours.svg")
+
+CAP_MIN = 120
+ANCHOR = 100
+CMU_PER_HOUR = 200 / 800
+
+W, H = 1200, 400
+BG = "#0d1117"
+MUTED = "#8b949e"
+GRID = "#21262d"
+ELO = "#3fb950"
+REF = "#8b949e"
+ML, MR, MT, MB = 62, 24, 60, 40
+
+
+def elo_module():
+    from importlib.machinery import SourceFileLoader
+    src = os.path.join(os.path.dirname(os.path.abspath(__file__)), "kg_elo_svg")
+    return SourceFileLoader("kg_elo_svg", src).load_module()
+
+
+def hours_by_day():
+    """{date: cumulative hours of recorded solving through that day}, from
+    the solve-time trailers of the commits adding under solved/ and drills/,
+    on the Manila calendar."""
+    out = subprocess.run(
+        ["git", "log", "--diff-filter=A", "--date=short",
+         "--format=%x02%ad%x01%B", "--", "solved/", "drills/"],
+        capture_output=True, text=True, cwd=REPO_ROOT,
+        env={**os.environ, "TZ": "Asia/Manila"}).stdout
+    per_day = {}
+    for chunk in out.split("\x02")[1:]:
+        d, body = chunk.split("\x01", 1)
+        m = re.search(r"solve time: (\d+)m (\d+)s", body)
+        if m:
+            mins = min(int(m.group(1)) + int(m.group(2)) / 60, CAP_MIN)
+            per_day[date.fromisoformat(d)] = per_day.get(date.fromisoformat(d), 0) + mins / 60
+    total, cum = 0.0, {}
+    for d in sorted(per_day):
+        total += per_day[d]
+        cum[d] = total
+    return cum
+
+
+def at(cum, d):
+    """Hours recorded through day d."""
+    best = 0.0
+    for dd, h in cum.items():
+        if dd <= d:
+            best = max(best, h)
+    return best
+
+
+def main():
+    mod = elo_module()
+    gs = mod.games()
+    curve = mod.elo(gs)
+    cum = hours_by_day()
+    pts = [(at(cum, d), r) for d, r in curve]
+    anchor_day = gs[min(ANCHOR, len(gs)) - 1][0]
+    anchor = next((h, r) for (d, r), (h, _) in zip(curve, pts) if d >= anchor_day)
+    total = pts[-1][0]
+    x_hi = -(-int(total) // 50) * 50 or 50
+
+    vals = [r for _, r in pts] + [mod.RANKS[0][0]]
+    lo = int(min(vals) // 100 * 100) - 100
+    hi = int(-(-max(vals) // 100) * 100) + 100
+    top, bottom = MT, H - MB
+
+    def x_of(h):
+        return ML + h / x_hi * (W - ML - MR)
+
+    def y_of(v):
+        return bottom - (v - lo) / (hi - lo) * (bottom - top)
+
+    gained = pts[-1][1] - anchor[1]
+    spent = total - anchor[0]
+    rate = gained / spent if spent else 0
+    svg = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" '
+           f'font-family="Helvetica,sans-serif">',
+           f'<rect width="{W}" height="{H}" fill="{BG}"/>',
+           f'<text x="{W / 2:.0f}" y="20" text-anchor="middle" font-size="11" fill="{MUTED}">'
+           f'{total:.0f} hours recorded - {gained:+.0f} elo over {spent:.0f} hours since game {ANCHOR} '
+           f'({rate * 100:.0f} per 100 hours; the Carnegie Mellon rate is {CMU_PER_HOUR * 100:.0f})</text>']
+    for cut, name, color in mod.RANKS:
+        y = y_of(cut)
+        svg.append(f'<rect x="{ML}" y="{top}" width="{W - ML - MR}" height="{y - top:.1f}" '
+                   f'fill="{color}" fill-opacity="0.06"/>')
+        svg.append(f'<line x1="{ML}" y1="{y:.1f}" x2="{W - MR}" y2="{y:.1f}" '
+                   f'stroke="{color}" stroke-width="1" stroke-dasharray="4 4"/>')
+        svg.append(f'<text x="{W - MR - 4}" y="{y - 5:.1f}" text-anchor="end" font-size="11" '
+                   f'fill="{color}">{name} {cut}</text>')
+    for g in range(lo, hi + 1, 100):
+        y = y_of(g)
+        svg.append(f'<line x1="{ML}" y1="{y:.1f}" x2="{W - MR}" y2="{y:.1f}" '
+                   f'stroke="{GRID}" stroke-width="1"/>')
+        svg.append(f'<text x="{ML - 8}" y="{y + 4:.1f}" text-anchor="end" font-size="11" '
+                   f'fill="{MUTED}">{g}</text>')
+    for h in range(0, x_hi + 1, 50 if x_hi <= 500 else 100):
+        x = x_of(h)
+        svg.append(f'<line x1="{x:.1f}" y1="{top}" x2="{x:.1f}" y2="{bottom}" '
+                   f'stroke="{GRID}" stroke-width="1"/>')
+        svg.append(f'<text x="{x:.1f}" y="{bottom + 18}" text-anchor="middle" font-size="11" '
+                   f'fill="{MUTED}">{h}h</text>')
+    # the reference rate from the anchor to the right edge
+    x0, y0 = x_of(anchor[0]), y_of(anchor[1])
+    x1, y1 = x_of(x_hi), y_of(anchor[1] + (x_hi - anchor[0]) * CMU_PER_HOUR)
+    svg.append(f'<line x1="{x0:.1f}" y1="{y0:.1f}" x2="{x1:.1f}" y2="{y1:.1f}" '
+               f'stroke="{REF}" stroke-width="1.5" stroke-dasharray="6 4"/>')
+    path = " ".join(f"{x_of(h):.1f},{y_of(r):.1f}" for h, r in pts)
+    svg.append(f'<polyline points="{path}" fill="none" stroke="{ELO}" stroke-width="2"/>')
+    y = MT - 18
+    x = ML
+    for is_dash, color, label in ((False, ELO, "elo"),
+                                  (True, REF, "200 elo per 800 hours (Carnegie Mellon, Codeforces users)")):
+        svg.append(f'<line x1="{x}" y1="{y}" x2="{x + 16}" y2="{y}" stroke="{color}" '
+                   f'stroke-width="2"' + (' stroke-dasharray="6 4"' if is_dash else "") + "/>")
+        svg.append(f'<text x="{x + 22}" y="{y + 4}" font-size="11" fill="{MUTED}">{label}</text>')
+        x += 34 + 6.2 * len(label)
+    svg.append("</svg>")
+    with open(OUT, "w") as f:
+        f.write("\n".join(svg) + "\n")
+    print(f"wrote {OUT} ({total:.0f} hours, {gained:+.0f} elo over {spent:.0f} hours since game {ANCHOR})")
+
+
+if __name__ == "__main__":
+    main()
