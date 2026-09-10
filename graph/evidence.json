@@ -8942,6 +8942,15 @@
       "moves": {},
       "note": "Drill passed; uses streaming state machine instead of stack-based nested evaluation.",
       "summary": "Parses signed numbers via digit accumulation (num = num * 10 + int(c)) and operator tracking, deferring sign application until the next operator is seen. The boolean index [-num, num][op == \"+\"] selects the sign. All tests pass, but the solution avoids the intended stack-nested-eval technique entirely."
+    },
+    "solved/d_Substrings_by_End_2026_09_10T20_58_45_127153_00_00Z.py": {
+      "date": "2026-09-11",
+      "problem": "drill",
+      "moves": {
+        "substring-enumeration": "clean"
+      },
+      "note": "Drill targets substring-enumeration by end: outer loop fixes end position i, inner loop varies start position j from 0 to i, then extracts s[j:i+1].",
+      "summary": "The code enumerates all substrings by fixing each end position and iterating over all valid start positions. It exercises the substring-enumeration-by-end variant: for each ending index, the nested loop collects every substring that terminates there. All assertions pass."
     }
   }
 }
