@@ -716,7 +716,10 @@ def _run(hours, seed, days, every, draft_error, log, bank, bank_rate):
             for m in moves:
                 if m not in nodes:
                     continue
-                p_clean = teach if statuses[m][0] == MISSING else recall[m]
+                # a node met but never clean has no curve recall: it is
+                # still being taught, so the teach rate applies
+                r = recall.get(m)
+                p_clean = teach if statuses[m][0] == MISSING or r is None else r
                 verdict[m] = "clean" if rng.random() < p_clean else "struggled"
             if problem != "drill" and problem not in seen and verdict:
                 # a cold problem: the pass model's own odds on top of recall
@@ -731,7 +734,7 @@ def _run(hours, seed, days, every, draft_error, log, bank, bank_rate):
                     + math.exp(-(solve_logit(coef, rating, ln_recall, unseen) + shift))
                 )
                 if rng.random() >= p_cold:
-                    weakest = min(verdict, key=lambda m: recall[m])
+                    weakest = min(verdict, key=lambda m: recall.get(m, 0.0))
                     verdict[weakest] = "struggled"
             clean = all(v == "clean" for v in verdict.values())
             for m, v in verdict.items():
@@ -745,7 +748,11 @@ def _run(hours, seed, days, every, draft_error, log, bank, bank_rate):
             }
             for m in verdict:
                 statuses[m] = node_status(m, evidence, today=day)
-                recall[m] = node_curve_recall(m, evidence, curve, day)
+                r = node_curve_recall(m, evidence, curve, day)
+                if r is None:
+                    recall.pop(m, None)
+                else:
+                    recall[m] = r
             solves_today += 1
             per_kind[kind if kind in per_kind else "Medium"] += 1
             today_kind[kind if kind in per_kind else "Medium"] += 1
@@ -762,11 +769,13 @@ def _run(hours, seed, days, every, draft_error, log, bank, bank_rate):
         author_budget += rate
         while author_budget >= 1:
             cands = [n for n in touched if not kg_lib.has_drill_bank(n)]
-            cands.sort(key=lambda n: (not touched[n][0], not touched[n][1], recall[n]))
+            cands.sort(
+                key=lambda n: (not touched[n][0], not touched[n][1], recall.get(n, 0.0))
+            )
             if not cands:
                 cands = sorted(
                     (n for n in nodes if not kg_lib.has_drill_bank(n)),
-                    key=lambda n: recall[n],
+                    key=lambda n: recall.get(n, 0.0),
                 )
             if not cands:
                 break  # every node has a bank
