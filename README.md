@@ -16,6 +16,13 @@ This is my leetcode repo. My ELO is currently sideways. I'll elaborate on this r
 ![Elo against hours of recorded solving, with the Carnegie Mellon rate](https://shyal.s3.amazonaws.com/hours_20260910063516.svg)
 <!-- /HOURS_CHART -->
 
+## Onsite
+
+<!-- ONSITE_CHART -->
+
+![Elo history and its projection to the onsite line, on dates](https://shyal.s3.amazonaws.com/onsite_20260910065112.svg)
+<!-- /ONSITE_CHART -->
+
 ## Backlog
 
 <!-- BACKLOG_CHART -->

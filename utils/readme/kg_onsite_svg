@@ -1,0 +1,219 @@
+#!/usr/bin/env python3
+
+# kg_onsite_svg - the Elo history and its projection to the onsite line,
+# on calendar dates, rendered into graph/onsite.svg for the README pipeline.
+#
+# The onsite is kg_lib.pass_rates's: two easies, two mediums and two hards
+# in one sitting, passed when both easies, both mediums and at least one
+# hard are solved unaided inside budget. Here each problem is drawn from
+# the rated problems of its difficulty and solved with the Elo win
+# probability against its rating, and the onsite line is the Elo at which
+# that passes half the time - once for the repo's bank (graph/problems.json)
+# and once for every rated LeetCode problem.
+#
+# Two projections run forward from today's Elo at the hours per calendar
+# day recorded over the last PACE_DAYS days (kg_hours_svg.hours_by_day,
+# same cap):
+#   - the Carnegie Mellon rate, 200 points per 800 hours, which is also the
+#     Elo's own rate since game 100 (kg_hours_svg);
+#   - the first-sight rate: the change in first-sight performance rating
+#     between the first and the last FS_WINDOW days of history with games,
+#     per recorded hour from the first window's start to the last's end. A first-sight game is a scored game
+#     on the day of the problem's first evidenced attempt; performance rating is the Elo at which
+#     the expected score equals the actual score.
+# Each line is labelled with the date it crosses each onsite line.
+
+import json
+import os
+import random
+from datetime import date, timedelta
+
+from kg.kg_lib import GRAPH_DIR, load_evidence, load_problems, scored_games
+
+OUT = os.path.join(GRAPH_DIR, "onsite.svg")
+
+PACE_DAYS = 60
+FS_WINDOW = 60
+CMU_PER_HOUR = 200 / 800
+MAX_YEARS = 4
+
+W, H = 1200, 400
+BG = "#0d1117"
+MUTED = "#8b949e"
+GRID = "#21262d"
+ELO = "#3fb950"
+SLOW = "#8b949e"
+FAST = "#58a6ff"
+BANK = "#d29922"
+ALL = "#f85149"
+ML, MR, MT, MB = 62, 24, 60, 40
+
+
+def load(name):
+    from importlib.machinery import SourceFileLoader
+    src = os.path.join(os.path.dirname(os.path.abspath(__file__)), name)
+    return SourceFileLoader(name, src).load_module()
+
+
+def perf(rows):
+    """Performance rating of [(problem rating, score)]: the Elo at which the
+    expected score equals the actual one."""
+    s = sum(x for _, x in rows)
+    lo, hi = 500, 3500
+    for _ in range(50):
+        mid = (lo + hi) / 2
+        e = sum(1 / (1 + 10 ** ((r - mid) / 400)) for r, _ in rows)
+        lo, hi = (mid, hi) if e < s else (lo, mid)
+    return (lo + hi) / 2
+
+
+def onsite_elo(pool, rng):
+    """The Elo at which the onsite passes half the time against this pool."""
+    def p(elo, n=4000):
+        ok = 0
+        for _ in range(n):
+            s = {"E": 0, "M": 0, "H": 0}
+            for d in "EEMMHH":
+                r = rng.choice(pool[d])
+                s[d] += rng.random() < 1 / (1 + 10 ** ((r - elo) / 400))
+            ok += s["E"] == 2 and s["M"] == 2 and s["H"] >= 1
+        return ok / n
+    lo, hi = 1200, 3000
+    for _ in range(12):
+        mid = (lo + hi) / 2
+        lo, hi = (mid, hi) if p(mid) < 0.5 else (lo, mid)
+    return round((lo + hi) / 2)
+
+
+def main():
+    em, hm = load("kg_elo_svg"), load("kg_hours_svg")
+    gs = em.games()
+    curve = em.elo(gs)
+    cum = hm.hours_by_day()
+    today = date.today()
+
+    ratings, meta = em.load_ratings(), json.load(open(em.META))
+    bank = load_problems()
+    pools = {"bank": {"E": [], "M": [], "H": []}, "all": {"E": [], "M": [], "H": []}}
+    for pid, rt in ratings.items():
+        d = meta.get(pid, {}).get("difficulty")
+        if d:
+            pools["all"][d[0]].append(rt)
+            if pid in bank:
+                pools["bank"][d[0]].append(rt)
+    rng = random.Random(1)
+    lines = [(onsite_elo(pools["bank"], rng), "onsite 50%, the bank", BANK),
+             (onsite_elo(pools["all"], rng), "onsite 50%, every rated problem", ALL)]
+
+    # pace: recorded hours per calendar day over the last PACE_DAYS days
+    pace = (hm.at(cum, today) - hm.at(cum, today - timedelta(days=PACE_DAYS))) / PACE_DAYS
+
+    # the first-sight rate
+    first = {}
+    for fname, rec in sorted(load_evidence().items(), key=lambda kv: (kv[1]["date"], kv[0])):
+        first.setdefault(str(rec.get("problem", "")), rec["date"])
+    fs = [(d, rp, s) for (d, rp, s), g in zip(gs, scored_games())
+          if g["date"] == first.get(str(g["problem"]))]
+    d0, d1 = fs[0][0], fs[-1][0]
+    early = [(rp, s) for d, rp, s in fs if d < d0 + timedelta(days=FS_WINDOW)]
+    late = [(rp, s) for d, rp, s in fs if d > d1 - timedelta(days=FS_WINDOW)]
+    # over every hour from the first window's start to the last's end: the
+    # gain happened somewhere in those hours, and the midpoints would credit
+    # it to the few hours in the gap between the two blocks of work
+    hours_between = hm.at(cum, d1) - hm.at(cum, d0 - timedelta(days=1))
+    fs_rate = (perf(late) - perf(early)) / hours_between if hours_between > 0 else 0
+
+    elo_now = curve[-1][1]
+    rates = [(CMU_PER_HOUR, "200 per 800 hours (Carnegie Mellon; the Elo's own rate)", SLOW),
+             (fs_rate, f"first-sight rate, {fs_rate * 100:.0f} per 100 hours", FAST)]
+
+    def cross(rate, target):
+        if rate <= 0 or pace <= 0:
+            return None
+        return today + timedelta(days=(target - elo_now) / (rate * pace))
+
+    horizon = max([today + timedelta(days=365)]
+                  + [c for r, _, _ in rates for t, _, _ in lines if (c := cross(r, t))
+                     and c <= today + timedelta(days=365 * MAX_YEARS)])
+    x0, x1 = curve[0][0], horizon
+    span = (x1 - x0).days
+    top, bottom = MT, H - MB
+    lo = int(min(r for _, r in curve) // 100 * 100) - 100
+    hi = max(t for t, _, _ in lines) // 100 * 100 + 200
+
+    def x_of(d):
+        return ML + (d - x0).days / span * (W - ML - MR)
+
+    def y_of(v):
+        return bottom - (v - lo) / (hi - lo) * (bottom - top)
+
+    svg = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" '
+           f'font-family="Helvetica,sans-serif">',
+           f'<rect width="{W}" height="{H}" fill="{BG}"/>',
+           f'<text x="{W / 2:.0f}" y="20" text-anchor="middle" font-size="11" fill="{MUTED}">'
+           f'elo {elo_now:.0f} - {pace:.1f} recorded hours a day over the last {PACE_DAYS} days</text>']
+    for g in range(lo, hi + 1, 200):
+        y = y_of(g)
+        svg.append(f'<line x1="{ML}" y1="{y:.1f}" x2="{W - MR}" y2="{y:.1f}" '
+                   f'stroke="{GRID}" stroke-width="1"/>')
+        svg.append(f'<text x="{ML - 8}" y="{y + 4:.1f}" text-anchor="end" font-size="11" '
+                   f'fill="{MUTED}">{g}</text>')
+    step = 3 if span > 900 else 1
+    d = date(x0.year, x0.month, 1)
+    while d <= x1:
+        if d >= x0 and (d.month - 1) % step == 0:
+            x = x_of(d)
+            svg.append(f'<line x1="{x:.1f}" y1="{top}" x2="{x:.1f}" y2="{bottom}" '
+                       f'stroke="{GRID}" stroke-width="1"/>')
+            svg.append(f'<text x="{x:.1f}" y="{bottom + 18}" text-anchor="middle" font-size="11" '
+                       f'fill="{MUTED}">{d.strftime("%b %y")}</text>')
+        d = (d.replace(day=28) + timedelta(days=4)).replace(day=1)
+    for cut, name, color in em.RANKS:
+        y = y_of(cut)
+        svg.append(f'<line x1="{ML}" y1="{y:.1f}" x2="{W - MR}" y2="{y:.1f}" '
+                   f'stroke="{color}" stroke-width="1" stroke-dasharray="4 4" stroke-opacity="0.6"/>')
+        svg.append(f'<text x="{ML + 4}" y="{y - 5:.1f}" font-size="11" fill="{color}">{name} {cut}</text>')
+    for target, label, color in lines:
+        y = y_of(target)
+        svg.append(f'<line x1="{ML}" y1="{y:.1f}" x2="{W - MR}" y2="{y:.1f}" '
+                   f'stroke="{color}" stroke-width="1.5"/>')
+        svg.append(f'<text x="{ML + 4}" y="{y + 14:.1f}" font-size="11" fill="{color}">{label} {target}</text>')
+    xt = x_of(today)
+    svg.append(f'<line x1="{xt:.1f}" y1="{top}" x2="{xt:.1f}" y2="{bottom}" '
+               f'stroke="{MUTED}" stroke-width="1" stroke-dasharray="2 3"/>')
+    for rate, label, color in rates:
+        end = min(x1, cross(rate, hi) or x1) if rate > 0 else x1
+        y_end = elo_now + rate * pace * (end - today).days
+        svg.append(f'<line x1="{xt:.1f}" y1="{y_of(elo_now):.1f}" x2="{x_of(end):.1f}" '
+                   f'y2="{y_of(y_end):.1f}" stroke="{color}" stroke-width="1.5" stroke-dasharray="6 4"/>')
+        for target, _, tcolor in lines:
+            c = cross(rate, target)
+            if c and c <= x1:
+                cx = x_of(c)
+                near_edge = cx > W - MR - 70
+                svg.append(f'<circle cx="{cx:.1f}" cy="{y_of(target):.1f}" r="4" fill="{color}"/>')
+                svg.append(f'<text x="{cx - 7 if near_edge else cx + 7:.1f}" y="{y_of(target) + 14:.1f}" '
+                           f'text-anchor="{"end" if near_edge else "start"}" font-size="11" '
+                           f'fill="{color}">{c.strftime("%b %Y")}</text>')
+            elif c:
+                svg.append(f'<text x="{W - MR - 4}" y="{y_of(target) + 14:.1f}" text-anchor="end" '
+                           f'font-size="11" fill="{color}">{c.strftime("%b %Y")} at this rate</text>')
+    pts = " ".join(f"{x_of(d):.1f},{y_of(r):.1f}" for d, r in curve)
+    svg.append(f'<polyline points="{pts}" fill="none" stroke="{ELO}" stroke-width="2"/>')
+    y = MT - 18
+    x = ML
+    for color, label in [(ELO, "elo")] + [(c, l) for _, l, c in rates]:
+        svg.append(f'<line x1="{x}" y1="{y}" x2="{x + 16}" y2="{y}" stroke="{color}" stroke-width="2"/>')
+        svg.append(f'<text x="{x + 22}" y="{y + 4}" font-size="11" fill="{MUTED}">{label}</text>')
+        x += 34 + 6.2 * len(label)
+    svg.append("</svg>")
+    with open(OUT, "w") as f:
+        f.write("\n".join(svg) + "\n")
+    print(f"wrote {OUT} (elo {elo_now:.0f}, {pace:.1f}h/day, first-sight rate "
+          f"{fs_rate * 100:.0f}/100h, onsite at {lines[0][0]} (bank) / {lines[1][0]} (all); "
+          + ", ".join(f"{l.split(',')[0]} -> {t}: {c.strftime('%b %Y') if c else 'never'}"
+                      for r, l, _ in rates for t, _, _ in lines for c in [cross(r, t)]) + ")")
+
+
+if __name__ == "__main__":
+    main()
