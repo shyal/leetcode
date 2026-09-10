@@ -42,6 +42,7 @@ Constraints:
 
 from dsa.monotonic_stack import MonotonicStack, Type
 
+
 class Solution:
     def nextGreaterIndex(self, nums: list[int]) -> list[int]:
         stack = MonotonicStack(Type.decreasing)
@@ -50,11 +51,11 @@ class Solution:
             for _, tag in stack.push((v, i)):
                 res[tag] = i
         return res
-        
+
 
 sol = Solution()
 
-print(sol.nextGreaterIndex([4, 1, 6, 3, 2, 7])) # [2, 2, 5, 5, 5, -1]
+print(sol.nextGreaterIndex([4, 1, 6, 3, 2, 7]))  # [2, 2, 5, 5, 5, -1]
 
 assert sol.nextGreaterIndex([4, 1, 6, 3, 2, 7]) == [2, 2, 5, 5, 5, -1]
 assert sol.nextGreaterIndex([3, 3, 3]) == [-1, -1, -1]

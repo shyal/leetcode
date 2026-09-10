@@ -13,18 +13,33 @@ import argparse
 import os
 import subprocess
 from collections import defaultdict
+
 from rich.console import Console
 
-from kg.kg_lib import GRAPH_DIR, load_nodes, load_evidence, load_problems, node_status, node_degree
-from kg.kg_render import make_digraph, status_node, add_legend, render, display
+from kg.kg_lib import (
+    GRAPH_DIR,
+    load_evidence,
+    load_nodes,
+    load_problems,
+    node_degree,
+    node_status,
+)
+from kg.kg_render import add_legend, display, make_digraph, render, status_node
 
 console = Console()
 
 
 def main():
     parser = argparse.ArgumentParser(description="Render the technique graph.")
-    parser.add_argument("--open", action="store_true", help="open the SVG in the browser instead")
-    parser.add_argument("--no-show", "--no-open", action="store_true", help="render only, display nothing")
+    parser.add_argument(
+        "--open", action="store_true", help="open the SVG in the browser instead"
+    )
+    parser.add_argument(
+        "--no-show",
+        "--no-open",
+        action="store_true",
+        help="render only, display nothing",
+    )
     args = parser.parse_args()
 
     nodes = load_nodes()
@@ -38,11 +53,23 @@ def main():
 
     for group, members in groups.items():
         with dot.subgraph(name=f"cluster_{group}") as c:
-            c.attr(label=group, fontcolor="#8b949e", color="#30363d", style="rounded", fontname="Helvetica")
+            c.attr(
+                label=group,
+                fontcolor="#8b949e",
+                color="#30363d",
+                style="rounded",
+                fontname="Helvetica",
+            )
             for node_id in members:
                 status, when = node_status(node_id, evidence)
-                status_node(c, node_id, nodes[node_id], status, when,
-                            degree=node_degree(node_id, evidence, problems))
+                status_node(
+                    c,
+                    node_id,
+                    nodes[node_id],
+                    status,
+                    when,
+                    degree=node_degree(node_id, evidence, problems),
+                )
 
     for node_id, node in nodes.items():
         for prereq in node.get("prereqs", []):

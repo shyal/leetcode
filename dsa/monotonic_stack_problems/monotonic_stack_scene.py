@@ -56,7 +56,7 @@ class MonotonicStack(Scene):
         self.draw_grid()
         self.draw_board()
 
-        self.stack = []        # list of (value, index, VGroup) bottom-of-list = top of stack
+        self.stack = []  # list of (value, index, VGroup) bottom-of-list = top of stack
         self.answers = {}
         self.cursor = None
 
@@ -145,7 +145,9 @@ class MonotonicStack(Scene):
         pop = hand("POP!", INK_BLUE, 46).next_to(cmp, UP, buff=0.45).shift(RIGHT * 0.85)
         self.play(FadeIn(pop, shift=UP * 0.2), run_time=0.6)
         self.wait(0.8)
-        self.play(FadeOut(cmp), FadeOut(rule), FadeOut(pop), FadeOut(sweep), run_time=0.5)
+        self.play(
+            FadeOut(cmp), FadeOut(rule), FadeOut(pop), FadeOut(sweep), run_time=0.5
+        )
 
         while self.stack and self.stack[-1][0] < v:
             _, tag, row = self.stack.pop()

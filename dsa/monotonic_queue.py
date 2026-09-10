@@ -1,4 +1,4 @@
-from operator import lt, gt
+from operator import gt, lt
 
 
 class Type:

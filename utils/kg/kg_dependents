@@ -15,11 +15,23 @@ import argparse
 import os
 import subprocess
 import sys
+
 from rich.console import Console
 from rich.table import Table
 
-from kg.kg_lib import (load_all_problems, load_evidence, drills, dependents, vertex_kind,
-                       vertex_status, easiest_first, SOLID, STALE, FRAGILE, MISSING)
+from kg.kg_lib import (
+    FRAGILE,
+    MISSING,
+    SOLID,
+    STALE,
+    dependents,
+    drills,
+    easiest_first,
+    load_all_problems,
+    load_evidence,
+    vertex_kind,
+    vertex_status,
+)
 
 console = Console()
 STYLE = {SOLID: "green", STALE: "yellow", FRAGILE: "red", MISSING: "dim"}
@@ -27,10 +39,16 @@ STYLE = {SOLID: "green", STALE: "yellow", FRAGILE: "red", MISSING: "dim"}
 
 def main():
     parser = argparse.ArgumentParser(description="List what a problem or drill gates.")
-    parser.add_argument("id", help="a drill id (d26), a problem number (46), or a node id")
-    parser.add_argument("action", nargs="?", choices=["prepare"],
-                        help="prepare: `make prepare` every dependent nothing else holds, "
-                             "easiest first (drills, Easy, Medium, Hard)")
+    parser.add_argument(
+        "id", help="a drill id (d26), a problem number (46), or a node id"
+    )
+    parser.add_argument(
+        "action",
+        nargs="?",
+        choices=["prepare"],
+        help="prepare: `make prepare` every dependent nothing else holds, "
+        "easiest first (drills, Easy, Medium, Hard)",
+    )
     args = parser.parse_args()
 
     problems, evidence, drill_map = load_all_problems(), load_evidence(), drills()
@@ -61,17 +79,23 @@ def main():
         table.add_column(col)
     for r in rows:
         st = r["status"]
-        then = (f"held by {', '.join(r['held_by'])}" if r["held_by"]
-                else f"make prepare {r['id']}")
-        table.add_row(r["id"], r["title"], r["kind"],
-                      f"[{STYLE[st]}]{st}[/{STYLE[st]}]", then)
+        then = (
+            f"held by {', '.join(r['held_by'])}"
+            if r["held_by"]
+            else f"make prepare {r['id']}"
+        )
+        table.add_row(
+            r["id"], r["title"], r["kind"], f"[{STYLE[st]}]{st}[/{STYLE[st]}]", then
+        )
     console.print(table)
 
     if args.action == "prepare":
         order = [r for r in easiest_first(rows) if not r["held_by"]]
         skipped = [r["id"] for r in rows if r["held_by"]]
         if skipped:
-            console.print(f"[dim]skipped, held by something else: {', '.join(skipped)}[/dim]")
+            console.print(
+                f"[dim]skipped, held by something else: {', '.join(skipped)}[/dim]"
+            )
         if not order:
             console.print("[dim]nothing to prepare[/dim]")
             return
@@ -81,9 +105,16 @@ def main():
         # one at a time: prepare's workers would otherwise cut the branches in
         # whatever order the cache answers, and the last one cut is the one
         # left checked out
-        r = subprocess.run([sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                                         "prepare"), "--jobs", "1"]
-                           + [r["id"] for r in order], env=env)
+        r = subprocess.run(
+            [
+                sys.executable,
+                os.path.join(os.path.dirname(os.path.abspath(__file__)), "prepare"),
+                "--jobs",
+                "1",
+            ]
+            + [r["id"] for r in order],
+            env=env,
+        )
         raise SystemExit(r.returncode)
 
 

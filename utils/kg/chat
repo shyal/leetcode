@@ -34,9 +34,12 @@ import time
 import uuid
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-PROJECT_DIR = os.path.join(os.path.expanduser("~"), ".claude", "projects",
-                           REPO_ROOT.replace("/", "-"))
-STATE = os.path.join(REPO_ROOT, ".chat.json")  # {"pid": claude started by the loop, "switch": true while a restart is wanted}
+PROJECT_DIR = os.path.join(
+    os.path.expanduser("~"), ".claude", "projects", REPO_ROOT.replace("/", "-")
+)
+STATE = os.path.join(
+    REPO_ROOT, ".chat.json"
+)  # {"pid": claude started by the loop, "switch": true while a restart is wanted}
 
 
 def load_state():
@@ -53,14 +56,18 @@ def save_state(state):
 
 
 def branch():
-    return subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=REPO_ROOT,
-                          capture_output=True, text=True).stdout.strip()
+    return subprocess.run(
+        ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
 
 
 def key_of(name):
     """The thing a branch is about: a parked problem's branch drops its
     -slept suffix so waking resumes the conversation, not a new one."""
-    return name[:-len("-slept")] if name.endswith("-slept") else name
+    return name[: -len("-slept")] if name.endswith("-slept") else name
 
 
 def session_id(name):
@@ -80,25 +87,36 @@ def check():
     name = branch()
     if name in ("", "master", "HEAD") or sid == session_id(name):
         return
-    print(f"[this is not branch {name}'s conversation - exit and `make chat` to open it]")
+    print(
+        f"[this is not branch {name}'s conversation - exit and `make chat` to open it]"
+    )
 
 
 def claude_pid_tty():
     """(pid, tty) of the claude process whose working directory is this
     repo, or (None, None). Other repos' claudes are left alone."""
-    ps = subprocess.run(["ps", "-A", "-o", "pid=,tty=,comm="], capture_output=True, text=True).stdout
+    ps = subprocess.run(
+        ["ps", "-A", "-o", "pid=,tty=,comm="], capture_output=True, text=True
+    ).stdout
     for line in ps.splitlines():
         parts = line.split(None, 2)
         if len(parts) == 3 and parts[2] == "claude" and parts[1] != "??":
-            cwd = subprocess.run(["lsof", "-a", "-p", parts[0], "-d", "cwd", "-Fn"],
-                                 capture_output=True, text=True).stdout
-            if "\nn" + REPO_ROOT + "\n" in cwd or cwd.rstrip().endswith("\nn" + REPO_ROOT):
+            cwd = subprocess.run(
+                ["lsof", "-a", "-p", parts[0], "-d", "cwd", "-Fn"],
+                capture_output=True,
+                text=True,
+            ).stdout
+            if "\nn" + REPO_ROOT + "\n" in cwd or cwd.rstrip().endswith(
+                "\nn" + REPO_ROOT
+            ):
                 return int(parts[0]), "/dev/" + parts[1]
     return None, None
 
 
 def osascript(script):
-    return subprocess.run(["osascript", "-e", script], capture_output=True, text=True).stdout.strip()
+    return subprocess.run(
+        ["osascript", "-e", script], capture_output=True, text=True
+    ).stdout.strip()
 
 
 def alive(pid):
@@ -124,11 +142,13 @@ def switch():
     pid, tty = claude_pid_tty()
     state = load_state()
     if pid is None or state.get("pid") != pid or not alive(pid):
-        print("no `make chat` running in this repo - start claude with `make chat` and it follows the branch")
+        print(
+            "no `make chat` running in this repo - start claude with `make chat` and it follows the branch"
+        )
         return
     state["switch"] = True
     save_state(state)
-    sid = osascript(f'''
+    sid = osascript(f"""
 tell application "iTerm2"
   repeat with w in windows
     repeat with t in tabs of w
@@ -138,10 +158,16 @@ tell application "iTerm2"
     end repeat
   end repeat
   return ""
-end tell''')
+end tell""")
     if sid:
-        def key(text):  # raw keystrokes: no trailing newline, which the input box takes as a line break
-            osascript(f'tell application "iTerm2" to tell session id "{sid}" to write text {text} newline NO')
+
+        def key(
+            text,
+        ):  # raw keystrokes: no trailing newline, which the input box takes as a line break
+            osascript(
+                f'tell application "iTerm2" to tell session id "{sid}" to write text {text} newline NO'
+            )
+
         key("(ASCII character 27)")  # Escape: leave a running turn or a menu first
         key('"/exit"')
         key("(ASCII character 13)")  # Enter
@@ -157,7 +183,9 @@ def claude_args(args):
     if name in ("", "master", "HEAD"):
         return ["claude", *args]
     sid = session_id(name)
-    flag = ["--resume", sid] if os.path.exists(transcript(sid)) else ["--session-id", sid]
+    flag = (
+        ["--resume", sid] if os.path.exists(transcript(sid)) else ["--session-id", sid]
+    )
     return ["claude", *flag, *args]
 
 

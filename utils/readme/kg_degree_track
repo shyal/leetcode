@@ -15,8 +15,14 @@ from datetime import timedelta
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
-from kg.kg_lib import (GRAPH_DIR, MovieClock, degree_track, load_evidence,  # noqa: E402
-                       load_nodes, load_problems)
+from kg.kg_lib import (
+    GRAPH_DIR,
+    MovieClock,
+    degree_track,
+    load_evidence,  # noqa: E402
+    load_nodes,
+    load_problems,
+)
 
 OUT = os.path.join(GRAPH_DIR, "degree_track.json")
 
@@ -28,9 +34,16 @@ def main():
     track = degree_track(nodes, evidence, load_problems(), clock)
     days = [(clock.first + timedelta(days=i)).isoformat() for i in range(clock.n_ticks)]
     with open(OUT, "w") as f:
-        json.dump({"_comment": "kg_lib.node_axes degree per node per day, for kg_movie_rs; "
-                               "derived by utils/readme/kg_degree_track, never edited",
-                   "days": days, "nodes": track}, f, separators=(",", ":"))
+        json.dump(
+            {
+                "_comment": "kg_lib.node_axes degree per node per day, for kg_movie_rs; "
+                "derived by utils/readme/kg_degree_track, never edited",
+                "days": days,
+                "nodes": track,
+            },
+            f,
+            separators=(",", ":"),
+        )
     print(f"wrote {OUT} ({len(nodes)} nodes, {len(days)} days)")
 
 

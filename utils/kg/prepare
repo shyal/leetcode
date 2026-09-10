@@ -4,18 +4,19 @@
 
 import argparse
 import json
-import queue
-import sys
-import subprocess
 import os
+import queue
+import subprocess
 import subprocess as _subprocess
+import sys
 import tempfile
 import threading
+
 import requests
 
 from kg.assert_gen import extra_asserts, has_extra
-from kg.stub_utils import sanitize, strip_solution, structure_problems
 from kg.kg_lib import clear_branch
+from kg.stub_utils import sanitize, strip_solution, structure_problems
 
 CACHE_DIR = ".prepare_cache"
 
@@ -82,13 +83,19 @@ def openai_llm(user_prompt):
 def claude(user_prompt):
     result = _subprocess.run(
         [
-            "claude", "-p", user_prompt,
+            "claude",
+            "-p",
+            user_prompt,
             *(["--model", args.model] if args.model else []),
-            "--system-prompt", SYSTEM_PROMPT,
-            "--disallowedTools", "Write,Edit,Read,Bash,NotebookEdit",
-            "--output-format", "text",
+            "--system-prompt",
+            SYSTEM_PROMPT,
+            "--disallowedTools",
+            "Write,Edit,Read,Bash,NotebookEdit",
+            "--output-format",
+            "text",
         ],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     return strip_fences(result.stdout.strip())
 
@@ -108,11 +115,20 @@ def validate(code):
         f.write(code)
         path = f.name
     env = dict(os.environ)
-    env["PYTHONPATH"] = "utils" + os.pathsep + os.path.join("utils", "harness") + os.pathsep + env.get("PYTHONPATH", "")
+    env["PYTHONPATH"] = (
+        "utils"
+        + os.pathsep
+        + os.path.join("utils", "harness")
+        + os.pathsep
+        + env.get("PYTHONPATH", "")
+    )
     try:
         r = subprocess.run(
             [sys.executable, path],
-            capture_output=True, text=True, env=env, timeout=60,
+            capture_output=True,
+            text=True,
+            env=env,
+            timeout=60,
         )
         return r.returncode == 0, (r.stdout + r.stderr).strip()
     except subprocess.TimeoutExpired:
@@ -268,21 +284,28 @@ def get_question_info(num):
     return title, slug, difficulty, content, example_testcases, python_stub
 
 
-parser = argparse.ArgumentParser(description="Prepare leetcode questions or bank drills.")
+parser = argparse.ArgumentParser(
+    description="Prepare leetcode questions or bank drills."
+)
 parser.add_argument(
-    "targets", nargs="+",
+    "targets",
+    nargs="+",
     help="Leetcode question numbers, or drill node ids (drills/<node-id>/).",
 )
 parser.add_argument(
-    "--warm", action="store_true",
+    "--warm",
+    action="store_true",
     help="Only populate .prepare_cache; skip the git branch/commit step.",
 )
 parser.add_argument(
-    "--jobs", type=int, default=4,
+    "--jobs",
+    type=int,
+    default=4,
     help="Max problems generated concurrently (default 4).",
 )
 parser.add_argument(
-    "--model", default=None,
+    "--model",
+    default=None,
     help="Model for the claude calls (default: your CLI default).",
 )
 
@@ -501,7 +524,9 @@ The code:
 {code}
 """)
     else:
-        print(f"{num}: could not produce a passing solution+asserts, skipping.\nLast output:\n{output}")
+        print(
+            f"{num}: could not produce a passing solution+asserts, skipping.\nLast output:\n{output}"
+        )
         return
 
     # Enforce the house format: first deterministically (drop redundant
@@ -559,6 +584,7 @@ duplicates, negatives, and constraint extremes. At most 12 lines.
     solution = code
     try:
         import black
+
         solution = black.format_str(solution, mode=black.Mode())
     except ImportError:
         pass
@@ -571,6 +597,7 @@ duplicates, negatives, and constraint extremes. At most 12 lines.
         return
     try:
         import black
+
         stub = black.format_str(stub, mode=black.Mode())
     except Exception:
         pass
@@ -584,13 +611,16 @@ duplicates, negatives, and constraint extremes. At most 12 lines.
 def finalize(num, title, code):
     problem_title = f"{num}. {title}"
     print("problem_title", problem_title)
-    file_name = f"current.py"
+    file_name = "current.py"
 
     with lock:
-        from kg.kg_lib import load_problems, load_evidence, sleep_records
+        from kg.kg_lib import load_evidence, load_problems, sleep_records
+
         if str(num) in sleep_records(load_problems(), load_evidence()):
-            print(f"{num} is parked on branch {num}-slept - `make wake {num}` resumes it "
-                  "(delete the branch first for a truly fresh start)")
+            print(
+                f"{num} is parked on branch {num}-slept - `make wake {num}` resumes it "
+                "(delete the branch first for a truly fresh start)"
+            )
             return
         if not clear_branch(str(num)):
             return
@@ -603,16 +633,31 @@ def finalize(num, title, code):
         run_git(["add", "."])
         run_git(["commit", "-m", problem_title])
         # the Claude Code pane follows the branch: its conversation is the problem's
-        subprocess.run([sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "chat"), "--switch"])
+        subprocess.run(
+            [
+                sys.executable,
+                os.path.join(os.path.dirname(os.path.abspath(__file__)), "chat"),
+                "--switch",
+            ]
+        )
 
 
 # `spot` routes to the recognition rep (utils/kg/spot): the picker's due
 # statement into current.md on a branch, same flow, no code
 if spot:
     env = dict(os.environ)
-    env["PYTHONPATH"] = "utils" + os.pathsep + os.path.join("utils", "harness") + os.pathsep + env.get("PYTHONPATH", "")
+    env["PYTHONPATH"] = (
+        "utils"
+        + os.pathsep
+        + os.path.join("utils", "harness")
+        + os.pathsep
+        + env.get("PYTHONPATH", "")
+    )
     r = subprocess.run(
-        [sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "spot")],
+        [
+            sys.executable,
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), "spot"),
+        ],
         env=env,
     )
     if r.returncode:
@@ -621,15 +666,25 @@ if spot:
 # a node id routes to the drill bank picker — same flow as `make drill <node-id>`
 for nid in node_ids:
     env = dict(os.environ)
-    env["PYTHONPATH"] = "utils" + os.pathsep + os.path.join("utils", "harness") + os.pathsep + env.get("PYTHONPATH", "")
+    env["PYTHONPATH"] = (
+        "utils"
+        + os.pathsep
+        + os.path.join("utils", "harness")
+        + os.pathsep
+        + env.get("PYTHONPATH", "")
+    )
     r = subprocess.run(
-        [sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "drill"), nid],
+        [
+            sys.executable,
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), "drill"),
+            nid,
+        ],
         env=env,
     )
     if r.returncode:
         sys.exit(r.returncode)
 
-work = queue.Queue()
+work: queue.Queue = queue.Queue()
 for num in numbers:
     work.put(num)
 
@@ -647,8 +702,7 @@ def worker():
 
 
 threads = [
-    threading.Thread(target=worker)
-    for _ in range(min(args.jobs, len(numbers)) or 1)
+    threading.Thread(target=worker) for _ in range(min(args.jobs, len(numbers)) or 1)
 ]
 for t in threads:
     t.start()

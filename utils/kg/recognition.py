@@ -26,13 +26,25 @@ import glob
 import json
 import os
 import re
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from html.parser import HTMLParser
 
 from kg.kg_lib import (
-    GRAPH_DIR, REPO_ROOT, SOLID, SOLID_WINDOW_DAYS, gentleness, pnum_key,
-    solved_problems, taxonomy_summary, claude_json, load_predicted,
-    problem_difficulty, ev_index, assist_of, sleep_records, unservable,
+    GRAPH_DIR,
+    REPO_ROOT,
+    SOLID,
+    SOLID_WINDOW_DAYS,
+    assist_of,
+    claude_json,
+    ev_index,
+    gentleness,
+    load_predicted,
+    pnum_key,
+    problem_difficulty,
+    sleep_records,
+    solved_problems,
+    taxonomy_summary,
+    unservable,
 )
 
 RECOGNITION_JSON = os.path.join(GRAPH_DIR, "recognition.json")
@@ -40,7 +52,11 @@ RECOGNITION_DIR = os.path.join(REPO_ROOT, "recognition")
 SPOT_META = os.path.join(REPO_ROOT, ".spot.json")  # untracked: branch -> pick
 CACHE_DIR = os.path.join(REPO_ROOT, ".prepare_cache")
 
-RECOGNIZED, FAILED_TO_RECOGNIZE, UNTESTED = "RECOGNIZED", "FAILED_TO_RECOGNIZE", "UNTESTED"
+RECOGNIZED, FAILED_TO_RECOGNIZE, UNTESTED = (
+    "RECOGNIZED",
+    "FAILED_TO_RECOGNIZE",
+    "UNTESTED",
+)
 HIT, MISSED = "hit", "missed"
 # a rep served for a target that ended as a valid alternative route: the
 # target was neither seen nor missed, the statement did not need it
@@ -56,6 +72,7 @@ SPOT_EVERY = int(os.environ.get("SPOT_EVERY", 3))
 
 
 # ---- storage ---------------------------------------------------------------
+
 
 def load_recognition():
     try:
@@ -98,6 +115,7 @@ def save_spot_meta(meta):
 
 
 # ---- the walk's entry ------------------------------------------------------
+
 
 def entry_nodes(pnum, problems):
     """The moves a statement can trigger: the first move of the mapped walk
@@ -145,11 +163,12 @@ def score(named, pnum, problems, target=None):
 
 # ---- derived status --------------------------------------------------------
 
+
 class _Index:
     def __init__(self, recog):
-        self.by_node = {}     # node -> [(date, verdict, key)]
-        self.by_problem = {}  # problem -> [(date, key, rec)]
-        self.spots = []       # [(date, key, rec)] of spot reps
+        self.by_node: dict[str, list] = {}  # node -> [(date, verdict, key)]
+        self.by_problem: dict[str, list] = {}  # problem -> [(date, key, rec)]
+        self.spots = []  # [(date, key, rec)] of spot reps
         self._n = len(recog)
         for key, rec in recog.items():
             d = date.fromisoformat(rec["date"])
@@ -170,7 +189,7 @@ class _Index:
         self.spots.sort(key=lambda t: t[0])
 
 
-_INDEX = {}
+_INDEX: dict = {}
 
 
 def index(recog):
@@ -220,8 +239,11 @@ def left_to_solves(node_id, recog):
 def spotted_problems(recog):
     """Problems that have had a spot rep: the statement has been seen with
     its walk revealed, so it is never served for recognition again."""
-    return {p for p, evs in index(recog).by_problem.items()
-            if any(r.get("kind") == "spot" for _, _, r in evs)}
+    return {
+        p
+        for p, evs in index(recog).by_problem.items()
+        if any(r.get("kind") == "spot" for _, _, r in evs)
+    }
 
 
 def spotted_before(pnum, day, recog):
@@ -231,8 +253,11 @@ def spotted_before(pnum, day, recog):
     solve after a HIT is: the reveal showed nothing the candidate had not
     produced, and both records stay side by side for the data."""
     day = date.fromisoformat(day) if isinstance(day, str) else day
-    reps = [(d, r) for d, _, r in index(recog).by_problem.get(str(pnum), ())
-            if r.get("kind") == "spot" and d < day]
+    reps = [
+        (d, r)
+        for d, _, r in index(recog).by_problem.get(str(pnum), ())
+        if r.get("kind") == "spot" and d < day
+    ]
     if not reps:
         return None
     d, r = max(reps, key=lambda t: t[0])
@@ -264,6 +289,7 @@ def spot_due_by_ratio(recog, evidence, today=None, every=None):
 
 # ---- what solves and parks say ---------------------------------------------
 
+
 def solve_hits(evidence, problems):
     """Recognition records derived from evidence.json: the first solve of
     a mapped problem, all its moves clean, no assist, is a hit on every
@@ -278,14 +304,22 @@ def solve_hits(evidence, problems):
             continue
         seen.add(pnum)
         moves = rec.get("moves", {})
-        if (pnum == "drill" or pnum not in problems or not moves
-                or any(v != "clean" for v in moves.values())
-                or any(assist_of(rec, m) != "none" for m in moves)):
+        if (
+            pnum == "drill"
+            or pnum not in problems
+            or not moves
+            or any(v != "clean" for v in moves.values())
+            or any(assist_of(rec, m) != "none" for m in moves)
+        ):
             continue
         walk = [m for m in problems[pnum].get("moves", []) if m in moves]
         if walk:
-            out[f"{fname}#solve"] = {"date": rec["date"], "problem": pnum,
-                                     "kind": "solve", "moves": {m: HIT for m in walk}}
+            out[f"{fname}#solve"] = {
+                "date": rec["date"],
+                "problem": pnum,
+                "kind": "solve",
+                "moves": {m: HIT for m in walk},
+            }
     return out
 
 
@@ -302,9 +336,13 @@ def park_misses(problems, evidence, statuses):
         if not moves or any(statuses.get(m, (None,))[0] != SOLID for m in moves):
             continue
         day = datetime.fromtimestamp(rec["slept"]).date().isoformat()
-        out[f"{rec['branch']}#park"] = {"date": day, "problem": pnum, "kind": "park",
-                                        "moves": {m: MISSED for m in moves},
-                                        "note": "parked with an all-SOLID walk"}
+        out[f"{rec['branch']}#park"] = {
+            "date": day,
+            "problem": pnum,
+            "kind": "park",
+            "moves": {m: MISSED for m in moves},
+            "note": "parked with an all-SOLID walk",
+        }
     return out
 
 
@@ -321,6 +359,7 @@ def derived(recog, evidence, problems, statuses):
 
 # ---- the pick --------------------------------------------------------------
 
+
 def drafted_carriers(problems, predicted=None):
     """Drafted problems the operator has never solved, as in-memory
     entries the way kg_next promotes a draft: one drafted walk, no missing
@@ -336,9 +375,12 @@ def drafted_carriers(problems, predicted=None):
         walks = v.get("walks", [])
         if len(walks) != 1 or walks[0].get("missing") or not walks[0].get("moves"):
             continue
-        out[pnum] = {"title": v.get("title", ""),
-                     "difficulty": problem_difficulty(pnum, problems),
-                     "moves": list(walks[0]["moves"]), "drafted": True}
+        out[pnum] = {
+            "title": v.get("title", ""),
+            "difficulty": problem_difficulty(pnum, problems),
+            "moves": list(walks[0]["moves"]),
+            "drafted": True,
+        }
     return out
 
 
@@ -348,8 +390,9 @@ def spot_pool(problems, predicted=None):
     return pool
 
 
-def carriers_by_node(nodes, problems, evidence, recog, statuses, skip=(), predicted=None,
-                     difficulty=None):
+def carriers_by_node(
+    nodes, problems, evidence, recog, statuses, skip=(), predicted=None, difficulty=None
+):
     """{node: [carriers]} the way the solve picker counts reach: an
     unsolved, unspotted problem carries node n when its walk uses n and
     every OTHER move is SOLID - one unowned move is fine, it is the one
@@ -360,33 +403,64 @@ def carriers_by_node(nodes, problems, evidence, recog, statuses, skip=(), predic
     solved = solved_problems(evidence)
     seen = spotted_problems(recog)
     pool = spot_pool(problems, predicted)
-    by_node = {}
+    by_node: dict[str, list] = {}
     for pnum, p in pool.items():
         moves = p.get("moves", [])
-        if (pnum in solved or pnum in seen or pnum in skip
-                or unservable(pnum, p)
-                or not moves or not all(m in nodes for m in moves)
-                or (difficulty and p.get("difficulty") != difficulty)):
+        if (
+            pnum in solved
+            or pnum in seen
+            or pnum in skip
+            or unservable(pnum, p)
+            or not moves
+            or not all(m in nodes for m in moves)
+            or (difficulty and p.get("difficulty") != difficulty)
+        ):
             continue
         gaps = [m for m in moves if statuses.get(m, (None,))[0] != SOLID]
         if len(gaps) > 1:
             continue
-        for n in (gaps or sorted(set(moves))):
+        for n in gaps or sorted(set(moves)):
             by_node.setdefault(n, []).append(pnum)
     for n in by_node:
-        by_node[n].sort(key=lambda q: (pool[q].get("drafted", False),
-                                       gentleness(q, pool, nodes), pnum_key(q)))
+        by_node[n].sort(
+            key=lambda q: (
+                pool[q].get("drafted", False),
+                gentleness(q, pool, nodes),
+                pnum_key(q),
+            )
+        )
     return by_node
 
 
-def spot_carriers(target, problems, evidence, recog, nodes, statuses=None,
-                  skip=(), predicted=None, difficulty=None):
-    return carriers_by_node(nodes, problems, evidence, recog, statuses or {},
-                            skip, predicted, difficulty).get(target, [])
+def spot_carriers(
+    target,
+    problems,
+    evidence,
+    recog,
+    nodes,
+    statuses=None,
+    skip=(),
+    predicted=None,
+    difficulty=None,
+):
+    return carriers_by_node(
+        nodes, problems, evidence, recog, statuses or {}, skip, predicted, difficulty
+    ).get(target, [])
 
 
-def due_spot(nodes, problems, evidence, recog, statuses, today=None, skip=(),
-             predicted=None, every=None, force=False, difficulty=None):
+def due_spot(
+    nodes,
+    problems,
+    evidence,
+    recog,
+    statuses,
+    today=None,
+    skip=(),
+    predicted=None,
+    every=None,
+    force=False,
+    difficulty=None,
+):
     """The spot rep due today, or None: (target, pnum, reason).
 
     Picks the way the solve picker picks. A node's score is the number
@@ -402,8 +476,9 @@ def due_spot(nodes, problems, evidence, recog, statuses, today=None, skip=(),
     today = today or date.today()
     if not force and not spot_due_by_ratio(recog, evidence, today, every):
         return None
-    carriers = carriers_by_node(nodes, problems, evidence, recog, statuses, skip, predicted,
-                                difficulty)
+    carriers = carriers_by_node(
+        nodes, problems, evidence, recog, statuses, skip, predicted, difficulty
+    )
     ranked = []
     for n, cs in carriers.items():
         status, last = recognition_status(n, recog, today)
@@ -414,17 +489,32 @@ def due_spot(nodes, problems, evidence, recog, statuses, today=None, skip=(),
         return None
     _, _, _, n = min(ranked)
     status = recognition_status(n, recog, today)[0]
-    why = "failed to recognize last time" if status == FAILED_TO_RECOGNIZE else "untested"
+    why = (
+        "failed to recognize last time" if status == FAILED_TO_RECOGNIZE else "untested"
+    )
     return n, carriers[n][0], f"{why}, {len(carriers[n])} problem(s) need only it"
 
 
 # ---- the statement ---------------------------------------------------------
 
+
 class _MD(HTMLParser):
     """LeetCode's statement HTML as markdown: emphasis, code, lists, images,
     superscripts and example blocks kept; everything else is text."""
 
-    BLOCK = {"p", "div", "ul", "ol", "pre", "table", "tr", "h1", "h2", "h3", "blockquote"}
+    BLOCK = {
+        "p",
+        "div",
+        "ul",
+        "ol",
+        "pre",
+        "table",
+        "tr",
+        "h1",
+        "h2",
+        "h3",
+        "blockquote",
+    }
 
     def __init__(self):
         super().__init__(convert_charrefs=True)
@@ -432,7 +522,7 @@ class _MD(HTMLParser):
         self.pending = []
         self.pre = 0
         self.list_stack = []
-        self.cell = None
+        self.cell: list[str] | None = None
         self.row = None
         self.table = None
 
@@ -462,7 +552,7 @@ class _MD(HTMLParser):
         sink = self.sink()
         if sink and sink[-1].strip() and sink[-1] != sink[-1].rstrip():
             body = sink[-1].rstrip()
-            tail = sink[-1][len(body):]
+            tail = sink[-1][len(body) :]
             sink[-1] = body
             sink.append(mark + tail)
         else:
@@ -533,6 +623,7 @@ class _MD(HTMLParser):
             if not self.list_stack:
                 self.emit("\n")
         elif tag in ("td", "th"):
+            assert self.cell is not None
             cell = "".join(self.cell).strip().replace("\n", " ")
             self.cell = None
             if self.row is not None:
@@ -547,8 +638,7 @@ class _MD(HTMLParser):
             if rows:
                 width = max(len(r) for r in rows)
                 rows = [r + [""] * (width - len(r)) for r in rows]
-                lines = ["| " + " | ".join(rows[0]) + " |",
-                         "|" + "---|" * width]
+                lines = ["| " + " | ".join(rows[0]) + " |", "|" + "---|" * width]
                 lines += ["| " + " | ".join(r) + " |" for r in rows[1:]]
                 self.out.append("\n" + "\n".join(lines) + "\n")
         elif tag in ("p", "div", "h1", "h2", "h3", "blockquote"):
@@ -585,6 +675,7 @@ def fetch_content(num):
     except (OSError, ValueError):
         pass
     import requests
+
     url = "https://leetcode.com/graphql/"
     headers = {"Content-Type": "application/json"}
     q1 = """
@@ -593,10 +684,20 @@ def fetch_content(num):
         questions: data { difficulty frontendQuestionId: questionFrontendId paidOnly: isPaidOnly title titleSlug }
       }
     }"""
-    r = requests.post(url, headers=headers, json={
-        "query": q1,
-        "variables": {"categorySlug": "", "limit": 1, "skip": int(num) - 1, "filters": {}}},
-        timeout=60)
+    r = requests.post(
+        url,
+        headers=headers,
+        json={
+            "query": q1,
+            "variables": {
+                "categorySlug": "",
+                "limit": 1,
+                "skip": int(num) - 1,
+                "filters": {},
+            },
+        },
+        timeout=60,
+    )
     r.raise_for_status()
     qs = r.json()["data"]["problemsetQuestionList"]["questions"]
     if not qs or qs[0]["frontendQuestionId"] != str(num):
@@ -608,13 +709,20 @@ def fetch_content(num):
     query questionDetails($titleSlug: String!) {
       question(titleSlug: $titleSlug) { content }
     }"""
-    r = requests.post(url, headers=headers,
-                      json={"query": q2, "variables": {"titleSlug": q["titleSlug"]}},
-                      timeout=60)
+    r = requests.post(
+        url,
+        headers=headers,
+        json={"query": q2, "variables": {"titleSlug": q["titleSlug"]}},
+        timeout=60,
+    )
     r.raise_for_status()
     content = r.json()["data"]["question"]["content"]
-    entry = {"title": q["title"], "slug": q["titleSlug"],
-             "difficulty": q["difficulty"], "content": content}
+    entry = {
+        "title": q["title"],
+        "slug": q["titleSlug"],
+        "difficulty": q["difficulty"],
+        "content": content,
+    }
     os.makedirs(CACHE_DIR, exist_ok=True)
     with open(content_cache_path(num), "w") as f:
         json.dump(entry, f)
@@ -623,10 +731,7 @@ def fetch_content(num):
 
 def spot_document(markdown_statement):
     """current.md for a spot rep: the statement, then the answer section."""
-    return (
-        f"{markdown_statement.rstrip()}\n\n"
-        f"{ANSWER_MARK}\n---\n\n"
-    )
+    return f"{markdown_statement.rstrip()}\n\n" f"{ANSWER_MARK}\n---\n\n"
 
 
 def split_answer(text):
@@ -651,6 +756,7 @@ def read_footer(text):
 
 
 # ---- the judge -------------------------------------------------------------
+
 
 def judge_answer(statement, answer, nodes, model="sonnet"):
     """One small claude call: the moves the candidate's free-text answer
@@ -688,8 +794,10 @@ Rules:
 - "why": one sentence. When valid, name the accepted solution it matches. When NOT valid, describe the concrete input or constraint the approach fails on, and NEVER name, hint at, or describe the correct technique or any move the approach is missing - the candidate will solve this problem later unaided.
 
 Output STRICT JSON only: {"valid": true|false, "why": "<sentence>"}"""
-    prompt = (f"STATEMENT:\n{statement[:5000]}\n\nCANDIDATE'S ANSWER:\n{answer[:2000]}"
-              f"\n\nThe answer was read as these moves: {', '.join(named) or '(none)'}.")
+    prompt = (
+        f"STATEMENT:\n{statement[:5000]}\n\nCANDIDATE'S ANSWER:\n{answer[:2000]}"
+        f"\n\nThe answer was read as these moves: {', '.join(named) or '(none)'}."
+    )
     result = claude_json(prompt, system, model=model)
     return bool(result.get("valid")), str(result.get("why", "")).strip()
 
@@ -734,14 +842,21 @@ def map_problem(pnum, title, nodes, problems, model="sonnet"):
     """The preflight mapping call for a problem not in problems.json (or
     with a withdrawn walk); the walk is what a spot rep is scored against.
     Writes the entry into `problems` (caller saves)."""
-    result = claude_json(f"LeetCode problem: {pnum}. {title}",
-                         MAP_SYSTEM.format(taxonomy=taxonomy_summary(nodes)),
-                         model=model)
+    result = claude_json(
+        f"LeetCode problem: {pnum}. {title}",
+        MAP_SYSTEM.format(taxonomy=taxonomy_summary(nodes)),
+        model=model,
+    )
     moves = [m for m in result.get("moves", []) if m in nodes]
     entry = problems.setdefault(str(pnum), {})
-    entry.update({"title": result.get("title", title),
-                  "difficulty": result.get("difficulty", ""),
-                  "moves": moves, "source": "spot"})
+    entry.update(
+        {
+            "title": result.get("title", title),
+            "difficulty": result.get("difficulty", ""),
+            "moves": moves,
+            "source": "spot",
+        }
+    )
     if result.get("unmapped"):
         entry["unmapped"] = result["unmapped"]
     return moves
@@ -751,7 +866,9 @@ def map_problem(pnum, title, nodes, problems, model="sonnet"):
 
 _MISS_WORDS = re.compile(
     r"recognition failure|(?:fail|did ?n[o']?t|never|could ?n[o']?t|missed|not)"
-    r"[^.\n]{0,40}\brecogni[sz]", re.I)
+    r"[^.\n]{0,40}\brecogni[sz]",
+    re.I,
+)
 
 
 def notes_say_missed(notes):
@@ -762,13 +879,15 @@ def notes_say_missed(notes):
 
 def pending_spots(recog):
     """recognition/*.md files with no record yet, oldest first."""
-    files = sorted(glob.glob(os.path.join(RECOGNITION_DIR, "*.md")),
-                   key=os.path.getmtime)
+    files = sorted(
+        glob.glob(os.path.join(RECOGNITION_DIR, "*.md")), key=os.path.getmtime
+    )
     rel = [os.path.relpath(f, REPO_ROOT) for f in files]
     return [f for f in rel if f not in recog]
 
 
 # ---- the reveal ------------------------------------------------------------
+
 
 def reveal(rec):
     """The lines `make solved` prints after a spot rep is judged: the
@@ -784,9 +903,11 @@ def reveal(rec):
     if rec.get("valid") is False:
         # a failed route reveals nothing: not the walk, not which named
         # moves fall outside it. The problem stays there to solve cold.
-        lines = [f"{pnum}. {title}",
-                 f"the route as written does not solve it ({verdict} on the target, "
-                 f"{rec.get('seconds', 0)}s); the walk stays hidden"]
+        lines = [
+            f"{pnum}. {title}",
+            f"the route as written does not solve it ({verdict} on the target, "
+            f"{rec.get('seconds', 0)}s); the walk stays hidden",
+        ]
         if rec.get("why"):
             lines.append(rec["why"])
         if rec.get("named"):
@@ -794,10 +915,16 @@ def reveal(rec):
         if target:
             lines.append(f"served for: {target}")
         return "\n".join(lines)
-    lines = [f"{pnum}. {title}", f"walk: {walk}", f"{verdict} in {rec.get('seconds', 0)}s"]
+    lines = [
+        f"{pnum}. {title}",
+        f"walk: {walk}",
+        f"{verdict} in {rec.get('seconds', 0)}s",
+    ]
     if rec.get("alternative"):
-        lines.append("hit through an alternative walk, not yet evidenced by code: "
-                     + ", ".join(rec["alternative"]))
+        lines.append(
+            "hit through an alternative walk, not yet evidenced by code: "
+            + ", ".join(rec["alternative"])
+        )
         if rec.get("why"):
             lines.append(rec["why"])
     if rec.get("named"):
@@ -808,5 +935,8 @@ def reveal(rec):
         lines.append(rec["summary"])
     if rec.get("target") or rec.get("reason"):
         served = rec.get("target") or "chosen by hand"
-        lines.append(f"served for: {served}" + (f" ({rec['reason']})" if rec.get("reason") else ""))
+        lines.append(
+            f"served for: {served}"
+            + (f" ({rec['reason']})" if rec.get("reason") else "")
+        )
     return "\n".join(lines)

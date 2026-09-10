@@ -19,24 +19,36 @@ import math
 import os
 import sys
 from datetime import timedelta
+from typing import Any
 
-from kg.kg_lib import (DEGREE_LEGEND, GRAPH_DIR, MISSING, MovieClock, degree_color, degree_track,
-                       era_banner, exercises_by_day, load_evidence, load_nodes, load_problems,
-                       node_status)
+from kg.kg_lib import (
+    DEGREE_LEGEND,
+    GRAPH_DIR,
+    MISSING,
+    MovieClock,
+    degree_color,
+    degree_track,
+    era_banner,
+    exercises_by_day,
+    load_evidence,
+    load_nodes,
+    load_problems,
+    node_status,
+)
 
 OUT = os.path.join(GRAPH_DIR, "kg_3d.svg")
 
 W, H = 1000, 640
 CX, CY = W / 2, H / 2 + 24
-FRAMES = 96              # keyframes per turn (linear interpolation between)
-TURNS_PER_LOOP = 3       # one turn lasts this many history loops
+FRAMES = 96  # keyframes per turn (linear interpolation between)
+TURNS_PER_LOOP = 3  # one turn lasts this many history loops
 TILT = math.radians(22)  # camera looks down at the axis by this much
-CAMERA = 3.4             # camera distance from the origin, in layout units
-SCALE = 275.0            # layout unit -> px at depth 0
+CAMERA = 3.4  # camera distance from the origin, in layout units
+SCALE = 275.0  # layout unit -> px at depth 0
 NODE_R = 7.0
 LABEL_LIFE_FRACTION = 0.04  # a solve label's fade, as a share of the loop (kg_movie)
-MAX_PROBS = 3               # live labels per node; the oldest is evicted (kg_movie)
-LABEL_PT = 9.0              # in node units, so it scales with depth like the node
+MAX_PROBS = 3  # live labels per node; the oldest is evicted (kg_movie)
+LABEL_PT = 9.0  # in node units, so it scales with depth like the node
 LAYOUT_SEED = 7
 
 BG = "#0d1117"
@@ -52,6 +64,7 @@ def layout(nodes):
     node is pulled to its group's centre and along its prerequisite edges,
     and pushed away from every other node."""
     import numpy as np
+
     rng = np.random.default_rng(LAYOUT_SEED)
     ids = sorted(nodes)
     groups = sorted({n["group"] for n in nodes.values()})
@@ -63,9 +76,16 @@ def layout(nodes):
         phi = i * math.pi * (3 - math.sqrt(5))
         centre[g] = 0.7 * np.array([r * math.cos(phi), y, r * math.sin(phi)])
     idx = {nid: i for i, nid in enumerate(ids)}
-    P = np.array([centre[nodes[nid]["group"]] for nid in ids]) + rng.normal(0, 0.15, (len(ids), 3))
+    P = np.array([centre[nodes[nid]["group"]] for nid in ids]) + rng.normal(
+        0, 0.15, (len(ids), 3)
+    )
     C = np.array([centre[nodes[nid]["group"]] for nid in ids])
-    E = [(idx[nid], idx[p]) for nid in ids for p in nodes[nid].get("prereqs", []) if p in idx]
+    E = [
+        (idx[nid], idx[p])
+        for nid in ids
+        for p in nodes[nid].get("prereqs", [])
+        if p in idx
+    ]
     for it in range(400):
         d = P[:, None, :] - P[None, :, :]
         dist = np.linalg.norm(d, axis=2) + np.eye(len(ids))
@@ -107,8 +127,10 @@ def depth_alpha(f):
 
 
 def anim(attr, values, dur, extra=""):
-    return (f'<animate attributeName="{attr}" calcMode="linear" values="{";".join(values)}" '
-            f'dur="{dur}s" repeatCount="indefinite"{extra}/>')
+    return (
+        f'<animate attributeName="{attr}" calcMode="linear" values="{";".join(values)}" '
+        f'dur="{dur}s" repeatCount="indefinite"{extra}/>'
+    )
 
 
 def status_track(days, clock):
@@ -152,15 +174,21 @@ def label_fade(born, clock):
     if times[0] != 0.0:
         times.insert(0, 0.0)
         values.insert(0, "0")
-    return (f'<animate attributeName="opacity" calcMode="linear" values="{";".join(values)}" '
-            f'keyTimes="{";".join(f"{t:.4f}".rstrip("0").rstrip(".") or "0" for t in times)}" '
-            f'dur="{clock.dur}s" repeatCount="indefinite"/>')
+    return (
+        f'<animate attributeName="opacity" calcMode="linear" values="{";".join(values)}" '
+        f'keyTimes="{";".join(f"{t:.4f}".rstrip("0").rstrip(".") or "0" for t in times)}" '
+        f'dur="{clock.dur}s" repeatCount="indefinite"/>'
+    )
 
 
 # the spots a label can take around a node, in node units; a node's labels
 # cycle through them so up to MAX_PROBS live ones never sit on each other
-LABEL_SPOTS = [(0, -NODE_R - 6, "middle"), (0, NODE_R + 13, "middle"),
-               (-NODE_R - 4, 3.5, "end"), (0, -NODE_R - 18, "middle")]
+LABEL_SPOTS = [
+    (0, -NODE_R - 6, "middle"),
+    (0, NODE_R + 13, "middle"),
+    (-NODE_R - 4, 3.5, "end"),
+    (0, -NODE_R - 18, "middle"),
+]
 
 
 def gate(days, clock):
@@ -168,8 +196,10 @@ def gate(days, clock):
     v, t = status_track(["1" if d else "0" for d in days], clock)
     if ";" not in v:
         return f'<g opacity="{v}">'
-    return (f'<g opacity="{v[0]}"><animate attributeName="opacity" calcMode="discrete" '
-            f'values="{v}" keyTimes="{t}" dur="{clock.dur}s" repeatCount="indefinite"/>')
+    return (
+        f'<g opacity="{v[0]}"><animate attributeName="opacity" calcMode="discrete" '
+        f'values="{v}" keyTimes="{t}" dur="{clock.dur}s" repeatCount="indefinite"/>'
+    )
 
 
 def main():
@@ -185,7 +215,8 @@ def main():
     # grown in place, which ev_index extends incrementally
     by_date = sorted(evidence.items(), key=lambda kv: kv[1]["date"])
     seen, k = {}, 0
-    status = {nid: [] for nid in nodes}
+    status: dict[str, list] = {nid: [] for nid in nodes}
+    day: Any
     for i in range(clock.n_ticks):
         day = clock.first + timedelta(days=i)
         while k < len(by_date) and by_date[k][1]["date"] <= day.isoformat():
@@ -196,8 +227,13 @@ def main():
     # and the degree of ownership the nodes are coloured by (kg_lib.degree_track)
     degree = degree_track(nodes, evidence, load_problems(), clock)
     # a node is drawn only from the day it entered the taxonomy
-    present = {nid: [(clock.first + timedelta(days=i)).isoformat() >= n.get("added", "")
-                     for i in range(clock.n_ticks)] for nid, n in nodes.items()}
+    present = {
+        nid: [
+            (clock.first + timedelta(days=i)).isoformat() >= n.get("added", "")
+            for i in range(clock.n_ticks)
+        ]
+        for nid, n in nodes.items()
+    }
 
     # solve labels: the problem number, or the drill id, by every move the
     # solve exercised, born at the solve's moment within its day; at most
@@ -205,8 +241,10 @@ def main():
     # has not appeared yet
     by_day = exercises_by_day(evidence)
     lf = LABEL_LIFE_FRACTION * clock.ticks_end
-    labels = {nid: [] for nid in nodes}       # nid -> [(born, text, spot)]
-    live = {nid: [] for nid in nodes}         # nid -> [(born, spot)] still fading
+    labels: dict[str, list] = {nid: [] for nid in nodes}  # nid -> [(born, text, spot)]
+    live: dict[str, list] = {
+        nid: [] for nid in nodes
+    }  # nid -> [(born, spot)] still fading
     for i in range(clock.n_ticks):
         day = (clock.first + timedelta(days=i)).isoformat()
         solves = by_day.get(day, ())
@@ -218,7 +256,11 @@ def main():
                 live[nid] = [(b, sp) for b, sp in live[nid] if born - b < lf]
                 if len(live[nid]) >= MAX_PROBS:
                     live[nid].remove(min(live[nid]))
-                spot = next(j for j in range(len(LABEL_SPOTS)) if j not in {sp for _, sp in live[nid]})
+                spot = next(
+                    j
+                    for j in range(len(LABEL_SPOTS))
+                    if j not in {sp for _, sp in live[nid]}
+                )
                 live[nid].append((born, spot))
                 labels[nid].append((born, prob, spot))
     n_labels = sum(len(v) for v in labels.values())
@@ -228,16 +270,19 @@ def main():
     # the whole turn, which is the price of doing this without a z-buffer
     order = sorted(nodes, key=lambda nid: proj[nid][0][2])
 
-    svg = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" '
-           f'viewBox="0 0 {W} {H}" font-family="Helvetica, Arial, sans-serif">',
-           f'<rect width="{W}" height="{H}" fill="{BG}"/>',
-           f'<text x="24" y="34" fill="{INK}" font-size="20" font-weight="bold">technique graph</text>',
-           f'<text x="24" y="56" fill="{MUTED}" font-size="13">{len(nodes)} moves, '
-           f'{sum(len(n.get("prereqs", [])) for n in nodes.values())} prerequisite edges; '
-           f'colour is the degree of ownership derived from evidence.json on that day</text>']
+    svg = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" '
+        f'viewBox="0 0 {W} {H}" font-family="Helvetica, Arial, sans-serif">',
+        f'<rect width="{W}" height="{H}" fill="{BG}"/>',
+        f'<text x="24" y="34" fill="{INK}" font-size="20" font-weight="bold">technique graph</text>',
+        f'<text x="24" y="56" fill="{MUTED}" font-size="13">{len(nodes)} moves, '
+        f'{sum(len(n.get("prereqs", [])) for n in nodes.values())} prerequisite edges; '
+        f"colour is the degree of ownership derived from evidence.json on that day</text>",
+    ]
 
     # month ticker, top right
     from datetime import date
+
     months, m = [], date(clock.first.year, clock.first.month, 1)
     while m <= clock.last:
         months.append(m)
@@ -247,34 +292,53 @@ def main():
         nxt = months[i + 1] if i + 1 < len(months) else None
         fe = clock.frac((nxt - clock.first).days) if nxt else 1.0
         lab = m.strftime("%b '%y").lower()
-        vals, times = ("0;1;0", f"0;{fs:.4f};{fe:.4f}") if fs > 0 else ("1;0", f"0;{fe:.4f}")
+        vals, times = (
+            ("0;1;0", f"0;{fs:.4f};{fe:.4f}") if fs > 0 else ("1;0", f"0;{fe:.4f}")
+        )
         if not nxt:
             vals, times = ("0;1", f"0;{fs:.4f}") if fs > 0 else ("1", "0")
-        svg.append(f'<text x="{W - 24}" y="34" fill="{INK}" font-size="16" '
-                   f'text-anchor="end" opacity="0">{lab}'
-                   f'<animate attributeName="opacity" calcMode="discrete" values="{vals}" '
-                   f'keyTimes="{times}" dur="{clock.dur}s" repeatCount="indefinite"/></text>')
+        svg.append(
+            f'<text x="{W - 24}" y="34" fill="{INK}" font-size="16" '
+            f'text-anchor="end" opacity="0">{lab}'
+            f'<animate attributeName="opacity" calcMode="discrete" values="{vals}" '
+            f'keyTimes="{times}" dur="{clock.dur}s" repeatCount="indefinite"/></text>'
+        )
     svg.extend(era_banner(clock, W - 24, 60, 18, anchor="end"))
 
     # edges: back to front by the mean depth of their endpoints
-    edges = [(p, nid) for nid, n in nodes.items() for p in n.get("prereqs", []) if p in nodes]
+    edges = [
+        (p, nid) for nid, n in nodes.items() for p in n.get("prereqs", []) if p in nodes
+    ]
     edges.sort(key=lambda e: proj[e[0]][0][2] + proj[e[1]][0][2])
+    d: Any
     for a, b in edges:
-        d = [f"M{fa[0]:.1f},{fa[1]:.1f}L{fb[0]:.1f},{fb[1]:.1f}"
-             for fa, fb in zip(proj[a], proj[b])]
-        op = [f"{depth_alpha((fa[2] + fb[2]) / 2) * 0.7:.2f}" for fa, fb in zip(proj[a], proj[b])]
-        lit = [EDGE_LIT if sa != MISSING and sb != MISSING else EDGE
-               for sa, sb in zip(status[a], status[b])]
+        d = [
+            f"M{fa[0]:.1f},{fa[1]:.1f}L{fb[0]:.1f},{fb[1]:.1f}"
+            for fa, fb in zip(proj[a], proj[b])
+        ]
+        op = [
+            f"{depth_alpha((fa[2] + fb[2]) / 2) * 0.7:.2f}"
+            for fa, fb in zip(proj[a], proj[b])
+        ]
+        lit = [
+            EDGE_LIT if sa != MISSING and sb != MISSING else EDGE
+            for sa, sb in zip(status[a], status[b])
+        ]
         lv, lt = status_track(lit, clock)
         both = [pa and pb for pa, pb in zip(present[a], present[b])]
-        svg.append(gate(both, clock)
-                   + f'<path fill="none" stroke="{EDGE}" stroke-width="1.2" d="{d[0]}">'
-                   + anim("d", d, turn) + anim("opacity", op, turn)
-                   + f'<animate attributeName="stroke" calcMode="discrete" values="{lv}" '
-                   f'keyTimes="{lt}" dur="{clock.dur}s" repeatCount="indefinite"/></path></g>')
+        svg.append(
+            gate(both, clock)
+            + f'<path fill="none" stroke="{EDGE}" stroke-width="1.2" d="{d[0]}">'
+            + anim("d", d, turn)
+            + anim("opacity", op, turn)
+            + f'<animate attributeName="stroke" calcMode="discrete" values="{lv}" '
+            f'keyTimes="{lt}" dur="{clock.dur}s" repeatCount="indefinite"/></path></g>'
+        )
 
     # nodes (the gold solve labels inherit the monospace face from this group)
-    svg.append(f'<g font-family="Menlo, monospace" font-size="{LABEL_PT:.0f}" fill="{GOLD}">')
+    svg.append(
+        f'<g font-family="Menlo, monospace" font-size="{LABEL_PT:.0f}" fill="{GOLD}">'
+    )
     for nid in order:
         fr = proj[nid]
         tr = [f"{x:.1f},{y:.1f}" for x, y, _ in fr]
@@ -298,28 +362,40 @@ def main():
             f'dur="{clock.dur}s" repeatCount="indefinite"/></circle>'
             f'<text x="{NODE_R + 3:.0f}" y="3.5" fill="{INK}" font-family="Helvetica, Arial, sans-serif" '
             f'font-size="8.5" opacity="{lab_op[0]}">{nid}'
-            + anim("opacity", lab_op, turn) + '</text>'
-            + "".join(f'<text x="{LABEL_SPOTS[sp][0]}" y="{LABEL_SPOTS[sp][1]}" '
-                      f'text-anchor="{LABEL_SPOTS[sp][2]}" opacity="0">{prob}{label_fade(b, clock)}</text>'
-                      for b, prob, sp in labels[nid])
-            + '</g></g>')
+            + anim("opacity", lab_op, turn)
+            + "</text>"
+            + "".join(
+                f'<text x="{LABEL_SPOTS[sp][0]}" y="{LABEL_SPOTS[sp][1]}" '
+                f'text-anchor="{LABEL_SPOTS[sp][2]}" opacity="0">{prob}{label_fade(b, clock)}</text>'
+                for b, prob, sp in labels[nid]
+            )
+            + "</g></g>"
+        )
 
     svg.append("</g>")
 
     # legend: the ownership ramp
     x = 24
-    svg.append(f'<text x="{x}" y="{H - 20}" fill="{MUTED}" font-size="12">degree of ownership</text>')
+    svg.append(
+        f'<text x="{x}" y="{H - 20}" fill="{MUTED}" font-size="12">degree of ownership</text>'
+    )
     x += 130
     for d in DEGREE_LEGEND:
-        svg.append(f'<circle cx="{x + 5}" cy="{H - 24}" r="5" fill="{degree_color(d)}"/>')
-        svg.append(f'<text x="{x + 14}" y="{H - 20}" fill="{MUTED}" font-size="12">{d:.2f}</text>')
+        svg.append(
+            f'<circle cx="{x + 5}" cy="{H - 24}" r="5" fill="{degree_color(d)}"/>'
+        )
+        svg.append(
+            f'<text x="{x + 14}" y="{H - 20}" fill="{MUTED}" font-size="12">{d:.2f}</text>'
+        )
         x += 52
     svg.append(clock.dissolve_rect(W, H, BG))
     svg.append("</svg>")
     with open(OUT, "w") as f:
         f.write("\n".join(svg) + "\n")
-    print(f"wrote {OUT} ({len(nodes)} nodes, {len(edges)} edges, {n_labels} solve labels, {clock.n_ticks} ticks "
-          f"on the {clock.dur:.0f}s loop, one turn per {turn:.0f}s, {os.path.getsize(OUT) // 1024} KB)")
+    print(
+        f"wrote {OUT} ({len(nodes)} nodes, {len(edges)} edges, {n_labels} solve labels, {clock.n_ticks} ticks "
+        f"on the {clock.dur:.0f}s loop, one turn per {turn:.0f}s, {os.path.getsize(OUT) // 1024} KB)"
+    )
 
 
 if __name__ == "__main__":

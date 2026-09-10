@@ -1,13 +1,15 @@
 """kg_streak_svg: a streak is a run of consecutive UTC solving days. The
 current one counts back from today, or from yesterday while today is still
 open; the best one is the longest run in the history."""
+
 import os
 from datetime import date, timedelta
 from importlib.machinery import SourceFileLoader
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 streak = SourceFileLoader(
-    "kg_streak_svg", os.path.join(HERE, "..", "readme", "kg_streak_svg")).load_module()
+    "kg_streak_svg", os.path.join(HERE, "..", "readme", "kg_streak_svg")
+).load_module()
 
 D = date(2026, 9, 4)
 

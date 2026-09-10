@@ -30,15 +30,31 @@
 import argparse
 import os
 from datetime import date
+
 from rich.console import Console
 from rich.table import Table
 
 from kg.kg_lib import (
-    load_nodes, load_problems, load_evidence, node_status, latest_carrier,
-    SOLID, STALE, FRAGILE, MISSING, DEEP_STALE_DAYS,
+    DEEP_STALE_DAYS,
+    FRAGILE,
+    MISSING,
+    SOLID,
+    STALE,
+    acceptance,
+    carriers_for,
+    dodgeable,
+    dodged_nodes,
+    drill_gated,
+    gentleness,
+    last_solved,
+    latest_carrier,
+    load_evidence,
+    load_nodes,
+    load_problems,
+    node_status,
+    pnum_key,
     sleep_state,
-    last_solved, pnum_key, dodged_nodes, dodgeable, carriers_for,
-    tree_size, gentleness, acceptance, drill_gated,
+    tree_size,
 )
 
 console = Console()
@@ -76,7 +92,7 @@ def clusters_of(rusty, nodes):
     def union(a, b):
         parent[find(a)] = find(b)
 
-    by_group = {}
+    by_group: dict[str, list[str]] = {}
     for n in rusty:
         by_group.setdefault(nodes[n].get("group"), []).append(n)
     for members in by_group.values():
@@ -87,7 +103,7 @@ def clusters_of(rusty, nodes):
             if p in rusty:
                 union(p, n)
 
-    comps = {}
+    comps: dict[str, list[str]] = {}
     for n in rusty:
         comps.setdefault(find(n), []).append(n)
     return list(comps.values())
@@ -98,7 +114,7 @@ def cluster_score(cluster, statuses):
 
 
 def cluster_label(cluster, nodes):
-    groups = {}
+    groups: dict[str, int] = {}
     for n in cluster:
         g = nodes[n].get("group", "?")
         groups[g] = groups.get(g, 0) + 1
@@ -113,27 +129,56 @@ def urgency_key(n, statuses):
 
 def choose_carrier(target, sim, problems, nodes, evidence, dodged, excluded):
     """(pnum, reason) for the target under simulated statuses, or None."""
-    cands = [c for c in carriers_for(target, problems, sim, nodes, evidence)
-             if c not in excluded]
+    cands = [
+        c
+        for c in carriers_for(target, problems, sim, nodes, evidence)
+        if c not in excluded
+    ]
     if not cands:
         return None
     s, d = sim[target]
     if s == FRAGILE and target in dodged:
-        cands.sort(key=lambda p: (dodgeable(p, target, problems),
-                                  tree_size(p, problems, nodes),
-                                  last_solved(p, evidence), pnum_key(p)))
+        cands.sort(
+            key=lambda p: (
+                dodgeable(p, target, problems),
+                tree_size(p, problems, nodes),
+                last_solved(p, evidence),
+                pnum_key(p),
+            )
+        )
         return cands[0], f"dodged on {dodged[target]} — carrier resists the dodge"
     if s == STALE:
         age = (date.today() - d).days
         if age <= DEEP_STALE_DAYS:
             carrier = latest_carrier(target, evidence)
-            pnum = carrier[2] if carrier and carrier[2] in cands else \
-                sorted(cands, key=lambda p: last_solved(p, evidence), reverse=True)[0]
+            pnum = (
+                carrier[2]
+                if carrier and carrier[2] in cands
+                else sorted(
+                    cands, key=lambda p: last_solved(p, evidence), reverse=True
+                )[0]
+            )
             return pnum, "spaced re-solve"
-        cands.sort(key=lambda p: (gentleness(p, problems, nodes), last_solved(p, evidence), -acceptance(p), pnum_key(p)))
+        cands.sort(
+            key=lambda p: (
+                gentleness(p, problems, nodes),
+                last_solved(p, evidence),
+                -acceptance(p),
+                pnum_key(p),
+            )
+        )
         return cands[0], f"deep-stale ({age}d) — gentle fresh carrier"
-    cands.sort(key=lambda p: (gentleness(p, problems, nodes), last_solved(p, evidence), -acceptance(p), pnum_key(p)))
-    return cands[0], "consolidate on a fresh carrier" if s == FRAGILE else "new move, prereqs solid"
+    cands.sort(
+        key=lambda p: (
+            gentleness(p, problems, nodes),
+            last_solved(p, evidence),
+            -acceptance(p),
+            pnum_key(p),
+        )
+    )
+    return cands[0], (
+        "consolidate on a fresh carrier" if s == FRAGILE else "new move, prereqs solid"
+    )
 
 
 def plan_dive(cluster, statuses, problems, nodes, evidence, asleep, n):
@@ -143,22 +188,29 @@ def plan_dive(cluster, statuses, problems, nodes, evidence, asleep, n):
     dodged = dodged_nodes(evidence)
     remaining = set(cluster)
     excluded = set(asleep)
-    steps = []
+    steps: list[tuple] = []
     while remaining and len(steps) < n:
         # prereqs first: a node waits while a rusty prereq of it is still unscheduled
-        ready = [x for x in remaining
-                 if not any(p in remaining for p in nodes[x].get("prereqs", []))]
+        ready = [
+            x
+            for x in remaining
+            if not any(p in remaining for p in nodes[x].get("prereqs", []))
+        ]
         pool = sorted(ready or remaining, key=lambda x: urgency_key(x, sim))
         scheduled = False
         for target in pool:
             status = sim[target][0]
             if drill_gated(target, *sim[target]):
-                steps.append((target, status, None, "drill until clean — carrier stays held"))
+                steps.append(
+                    (target, status, None, "drill until clean — carrier stays held")
+                )
                 sim[target] = (SOLID, date.today())
                 remaining.discard(target)
                 scheduled = True
                 break
-            choice = choose_carrier(target, sim, problems, nodes, evidence, dodged, excluded)
+            choice = choose_carrier(
+                target, sim, problems, nodes, evidence, dodged, excluded
+            )
             if choice:
                 pnum, reason = choice
                 steps.append((target, status, pnum, reason))
@@ -176,9 +228,14 @@ def plan_dive(cluster, statuses, problems, nodes, evidence, asleep, n):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Cluster the rusty frontier and plan a deep-dive session.")
-    parser.add_argument("words", nargs="*",
-                        help="a number = session length (default 3), a word = cluster to dive")
+    parser = argparse.ArgumentParser(
+        description="Cluster the rusty frontier and plan a deep-dive session."
+    )
+    parser.add_argument(
+        "words",
+        nargs="*",
+        help="a number = session length (default 3), a word = cluster to dive",
+    )
     args = parser.parse_args()
     args.n, args.cluster = 3, None
     for w in args.words:
@@ -193,39 +250,55 @@ def main():
     statuses = {n: node_status(n, evidence) for n in nodes}
     asleep, woken = sleep_state(nodes, problems, evidence)
     if woken:
-        console.print(f"[yellow]⏰ woken problem {woken[0]} is queue-jumping — run `make next` first[/yellow]")
+        console.print(
+            f"[yellow]⏰ woken problem {woken[0]} is queue-jumping — run `make next` first[/yellow]"
+        )
 
     rusty = rusty_frontier(nodes, statuses)
     if not rusty:
-        console.print("[green]Nothing rusty — the whole frontier is SOLID. Go learn a new move.[/green]")
+        console.print(
+            "[green]Nothing rusty — the whole frontier is SOLID. Go learn a new move.[/green]"
+        )
         return
 
-    ranked = sorted(clusters_of(rusty, nodes),
-                    key=lambda c: (-cluster_score(c, statuses),
-                                   min(statuses[n][1] or date.max for n in c),
-                                   cluster_label(c, nodes)))
+    ranked = sorted(
+        clusters_of(rusty, nodes),
+        key=lambda c: (
+            -cluster_score(c, statuses),
+            min(statuses[n][1] or date.max for n in c),
+            cluster_label(c, nodes),
+        ),
+    )
 
     table = Table(show_header=True, header_style="bold", box=None, padding=(0, 2))
     table.add_column("Cluster")
     table.add_column("Score", justify="right")
     table.add_column("Rusty moves")
     for c in ranked:
-        parts = [f"[{STATUS_STYLE[statuses[n][0]]}]{n}[/{STATUS_STYLE[statuses[n][0]]}]"
-                 for n in sorted(c, key=lambda x: urgency_key(x, statuses))]
-        table.add_row(cluster_label(c, nodes), str(cluster_score(c, statuses)), " ".join(parts))
+        parts = [
+            f"[{STATUS_STYLE[statuses[n][0]]}]{n}[/{STATUS_STYLE[statuses[n][0]]}]"
+            for n in sorted(c, key=lambda x: urgency_key(x, statuses))
+        ]
+        table.add_row(
+            cluster_label(c, nodes), str(cluster_score(c, statuses)), " ".join(parts)
+        )
     console.print(table)
 
     chosen = ranked[0]
     if args.cluster:
-        named = [c for c in ranked if args.cluster in cluster_label(c, nodes).split("+")]
+        named = [
+            c for c in ranked if args.cluster in cluster_label(c, nodes).split("+")
+        ]
         if not named:
             console.print(f"[red]no rusty cluster named {args.cluster!r}[/red]")
             return
         chosen = named[0]
 
     label = cluster_label(chosen, nodes)
-    console.print(f"\n[bold]Deep dive: {label}[/bold] — "
-                  f"{len(chosen)} rusty moves, score {cluster_score(chosen, statuses)}")
+    console.print(
+        f"\n[bold]Deep dive: {label}[/bold] — "
+        f"{len(chosen)} rusty moves, score {cluster_score(chosen, statuses)}"
+    )
 
     steps = plan_dive(chosen, statuses, problems, nodes, evidence, asleep, args.n)
     dodged = dodged_nodes(evidence)
@@ -233,16 +306,24 @@ def main():
         style = STATUS_STYLE[status]
         if pnum:
             p = problems[pnum]
-            console.print(f"  {i}. [bold]{pnum}. {p['title']}[/bold] — "
-                          f"[{style}]{status}[/{style}] [bold]{target}[/bold] ({reason})")
+            console.print(
+                f"  {i}. [bold]{pnum}. {p['title']}[/bold] — "
+                f"[{style}]{status}[/{style}] [bold]{target}[/bold] ({reason})"
+            )
         else:
-            console.print(f"  {i}. `make drill {target}` — "
-                          f"[{style}]{status}[/{style}] [bold]{target}[/bold] ({reason})")
+            console.print(
+                f"  {i}. `make drill {target}` — "
+                f"[{style}]{status}[/{style}] [bold]{target}[/bold] ({reason})"
+            )
         if pnum and target in dodged and os.path.isdir(os.path.join("drills", target)):
-            console.print(f"     [yellow]drill FIRST — a drill can't be dodged: "
-                          f"`make drill {target}`[/yellow]")
-    console.print("\n[dim]Work top-down; `make solved` after each, then re-run `make dive` — "
-                  "the plan re-derives from fresh evidence.[/dim]")
+            console.print(
+                f"     [yellow]drill FIRST — a drill can't be dodged: "
+                f"`make drill {target}`[/yellow]"
+            )
+    console.print(
+        "\n[dim]Work top-down; `make solved` after each, then re-run `make dive` — "
+        "the plan re-derives from fresh evidence.[/dim]"
+    )
 
 
 if __name__ == "__main__":

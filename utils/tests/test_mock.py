@@ -11,22 +11,36 @@ import time
 import pytest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-RUST_BIN = os.path.join(ROOT, "utils", "kg", "kg_mock_rs", "target", "release", "kg_mock")
+RUST_BIN = os.path.join(
+    ROOT, "utils", "kg", "kg_mock_rs", "target", "release", "kg_mock"
+)
 MONTH_ROW = re.compile(r"^  \d{1,2} \w{3} \d{2} ")
 
 
 @pytest.fixture(scope="session", autouse=True)
 def build_rust():
     subprocess.run(
-        ["cargo", "build", "--release", "--quiet",
-         "--manifest-path", os.path.join(ROOT, "utils", "kg", "kg_mock_rs", "Cargo.toml")],
-        check=True, capture_output=True, text=True,
+        [
+            "cargo",
+            "build",
+            "--release",
+            "--quiet",
+            "--manifest-path",
+            os.path.join(ROOT, "utils", "kg", "kg_mock_rs", "Cargo.toml"),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
     )
 
 
 def run_mock(args=()):
     proc = subprocess.run(
-        [RUST_BIN, *args], capture_output=True, text=True, cwd=ROOT, check=True,
+        [RUST_BIN, *args],
+        capture_output=True,
+        text=True,
+        cwd=ROOT,
+        check=True,
     )
     assert proc.stderr == ""
     return proc.stdout
@@ -54,8 +68,11 @@ def test_columns_aligned():
     assert {len(r) for r in month_rows} == {len(header)}
     # same property for the today table
     header = next(line for line in lines if line.lstrip().startswith("scenario "))
-    scen_rows = [line for line in lines
-                 if line.lstrip().split(" ")[0] in ("cautious", "central", "optimistic")]
+    scen_rows = [
+        line
+        for line in lines
+        if line.lstrip().split(" ")[0] in ("cautious", "central", "optimistic")
+    ]
     assert len(scen_rows) == 3
     assert {len(r) for r in scen_rows} == {len(header)}
 
@@ -67,7 +84,9 @@ def test_hours_override():
 
 def test_measured_pace_default():
     out = run_mock()
-    m = re.search(r"forward at (\d+(?:\.\d+)?)h/day \((.*?)solves in his measured mix", out)
+    m = re.search(
+        r"forward at (\d+(?:\.\d+)?)h/day \((.*?)solves in his measured mix", out
+    )
     assert m, out
     # either a measured window (with the source note) or the empty-window 2h fallback
     if m.group(2):
@@ -82,7 +101,8 @@ def test_onsite_ready_milestone_within_a_row_month():
     # ending at some row (the checkpoint that bracketed the crossing)
     out = run_mock()
     m = re.search(
-        r"onsite-ready \(central P\(onsite\) >=50%\) ~ (\d{1,2} \w{3} \d{4})", out)
+        r"onsite-ready \(central P\(onsite\) >=50%\) ~ (\d{1,2} \w{3} \d{4})", out
+    )
     if not m:
         pytest.skip("central P(onsite) never crosses 50% inside the horizon")
     from datetime import datetime
@@ -92,8 +112,9 @@ def test_onsite_ready_milestone_within_a_row_month():
         datetime.strptime(r, "%d %b %y").date()
         for r in re.findall(r"^  (\d{1,2} \w{3} \d{2}) ", out, re.M)
     ]
-    assert any(0 <= (r - milestone).days < 30 for r in rows), \
-        f"milestone {milestone} not within a month of any table row"
+    assert any(
+        0 <= (r - milestone).days < 30 for r in rows
+    ), f"milestone {milestone} not within a month of any table row"
 
 
 def test_json_mode():
@@ -103,8 +124,13 @@ def test_json_mode():
 
     data = json.loads(run_mock(["--json"]))
     assert set(data) == {
-        "hours", "screen", "onsite", "hard",
-        "hards_workable", "hard_competent", "onsite_ready",
+        "hours",
+        "screen",
+        "onsite",
+        "hard",
+        "hards_workable",
+        "hard_competent",
+        "onsite_ready",
     }
     for k in ("screen", "onsite", "hard"):
         assert 0.0 <= data[k] <= 1.0, k
@@ -112,7 +138,9 @@ def test_json_mode():
         assert data[k] is None or re.fullmatch(r"\d{4}-\d{2}-\d{2}", data[k]), k
     # the JSON dates and the human output's milestone lines agree
     out = run_mock()
-    m = re.search(r"onsite-ready \(central P\(onsite\) >=50%\) ~ (\d{1,2} \w{3} \d{4})", out)
+    m = re.search(
+        r"onsite-ready \(central P\(onsite\) >=50%\) ~ (\d{1,2} \w{3} \d{4})", out
+    )
     if m and data["onsite_ready"]:
         from datetime import datetime
 
@@ -138,8 +166,10 @@ def test_python_and_rust_agree_on_todays_rates():
     same numbers, within Monte-Carlo noise."""
     import json
     import sys
+
     sys.path.insert(0, os.path.join(ROOT, "utils"))
     from importlib.machinery import SourceFileLoader
+
     from kg import kg_lib
 
     curve = kg_lib._load_curve()
@@ -147,17 +177,23 @@ def test_python_and_rust_agree_on_todays_rates():
     if not coef:
         pytest.skip("no fitted cold-solve model in graph/curve.json")
     kg_simulate = SourceFileLoader(
-        "kg_simulate", os.path.join(ROOT, "utils", "kg", "kg_simulate")).load_module()
+        "kg_simulate", os.path.join(ROOT, "utils", "kg", "kg_simulate")
+    ).load_module()
     nodes = kg_lib.load_nodes()
     pools, ratings = kg_simulate.build_pools(
-        kg_lib.load_problems(), kg_lib.load_predicted(), nodes)
+        kg_lib.load_problems(), kg_lib.load_predicted(), nodes
+    )
     expect = kg_simulate.PassExpectation(pools, ratings, list(nodes), coef)
     recall = kg_lib.current_recall(nodes, kg_lib.load_evidence(), curve)
     shift = kg_lib.solve_scenarios(curve)["central"]
     _, onsite, screen, hard = expect.rates(recall, shift)
 
     mock = json.loads(run_mock(["--json"]))
-    for name, mine, theirs in (("onsite", onsite, mock["onsite"]),
-                               ("screen", screen, mock["screen"]),
-                               ("hard", hard, mock["hard"])):
-        assert abs(mine - theirs) < 0.02, f"{name}: python {mine:.3f} vs rust {theirs:.3f}"
+    for name, mine, theirs in (
+        ("onsite", onsite, mock["onsite"]),
+        ("screen", screen, mock["screen"]),
+        ("hard", hard, mock["hard"]),
+    ):
+        assert (
+            abs(mine - theirs) < 0.02
+        ), f"{name}: python {mine:.3f} vs rust {theirs:.3f}"

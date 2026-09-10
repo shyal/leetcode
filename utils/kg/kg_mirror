@@ -31,14 +31,23 @@ An `after_id` is a problem number, a drill id, or a node id (one relation,
 kg_lib.warm decides when it is met).
 """
 
-import glob
 import os
 import sqlite3
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from kg.kg_lib import (GRAPH_DIR, DRILLS_DIR, assist_of, load_evidence, load_nodes,  # noqa: E402
-                       load_problems, load_drills, drill_title, drill_trains, drill_id, bank_paths)
+from kg.kg_lib import (
+    GRAPH_DIR,
+    assist_of,
+    bank_paths,
+    drill_id,
+    drill_title,
+    drill_trains,
+    load_drills,
+    load_evidence,
+    load_nodes,  # noqa: E402
+    load_problems,
+)
 
 DB = os.path.join(GRAPH_DIR, "leet.db")
 
@@ -77,32 +86,55 @@ def main():
     for nid, n in nodes.items():
         con.execute(
             "INSERT INTO nodes VALUES (?,?,?,?,?,?,?)",
-            (nid, n.get("name"), n.get("group"), n.get("added"),
-             n.get("desc"), n.get("hint"), n.get("drill")),
+            (
+                nid,
+                n.get("name"),
+                n.get("group"),
+                n.get("added"),
+                n.get("desc"),
+                n.get("hint"),
+                n.get("drill"),
+            ),
         )
-        con.executemany("INSERT INTO prereqs VALUES (?,?)",
-                        [(nid, p) for p in n.get("prereqs", [])])
-        con.executemany("INSERT INTO node_refs VALUES (?,?)",
-                        [(nid, r) for r in n.get("refs", [])])
+        con.executemany(
+            "INSERT INTO prereqs VALUES (?,?)", [(nid, p) for p in n.get("prereqs", [])]
+        )
+        con.executemany(
+            "INSERT INTO node_refs VALUES (?,?)", [(nid, r) for r in n.get("refs", [])]
+        )
 
     for num, p in problems.items():
         con.execute(
             "INSERT INTO problems VALUES (?,?,?,?,?,?)",
-            (num, p.get("title"), p.get("difficulty"), p.get("source"),
-             p.get("note"), int(bool(p.get("banned")))),
+            (
+                num,
+                p.get("title"),
+                p.get("difficulty"),
+                p.get("source"),
+                p.get("note"),
+                int(bool(p.get("banned"))),
+            ),
         )
-        con.executemany("INSERT INTO steps VALUES (?,?,?)",
-                        [(num, i, m) for i, m in enumerate(p.get("moves", []))])
+        con.executemany(
+            "INSERT INTO steps VALUES (?,?,?)",
+            [(num, i, m) for i, m in enumerate(p.get("moves", []))],
+        )
         con.executemany(
             "INSERT INTO alt_steps VALUES (?,?,?,?)",
-            [(num, w, i, m)
-             for w, walk in enumerate(p.get("alt_steps", []))
-             for i, m in enumerate(walk)],
+            [
+                (num, w, i, m)
+                for w, walk in enumerate(p.get("alt_steps", []))
+                for i, m in enumerate(walk)
+            ],
         )
-        con.executemany("INSERT INTO problem_after VALUES (?,?)",
-                        [(num, a) for a in p.get("after", [])])
-        con.executemany("INSERT INTO problem_unmapped VALUES (?,?)",
-                        [(num, t) for t in p.get("unmapped", [])])
+        con.executemany(
+            "INSERT INTO problem_after VALUES (?,?)",
+            [(num, a) for a in p.get("after", [])],
+        )
+        con.executemany(
+            "INSERT INTO problem_unmapped VALUES (?,?)",
+            [(num, t) for t in p.get("unmapped", [])],
+        )
 
     edges = load_drills()
     for path in bank_paths():
@@ -113,28 +145,45 @@ def main():
         if did is None:
             continue
         rel = os.path.relpath(path, os.path.dirname(GRAPH_DIR))
-        con.execute("INSERT OR IGNORE INTO drills VALUES (?,?,?,?)",
-                    (did, title, rel, os.path.basename(os.path.dirname(path))))
-        con.executemany("INSERT OR IGNORE INTO drill_trains VALUES (?,?)",
-                        [(did, n) for n in drill_trains(path)])
-        con.executemany("INSERT OR IGNORE INTO drill_after VALUES (?,?)",
-                        [(did, a) for a in edges.get(did, {}).get("after", [])])
+        con.execute(
+            "INSERT OR IGNORE INTO drills VALUES (?,?,?,?)",
+            (did, title, rel, os.path.basename(os.path.dirname(path))),
+        )
+        con.executemany(
+            "INSERT OR IGNORE INTO drill_trains VALUES (?,?)",
+            [(did, n) for n in drill_trains(path)],
+        )
+        con.executemany(
+            "INSERT OR IGNORE INTO drill_after VALUES (?,?)",
+            [(did, a) for a in edges.get(did, {}).get("after", [])],
+        )
 
     for fname, rec in evidence.items():
         con.execute(
             "INSERT INTO solves VALUES (?,?,?,?,?,?)",
-            (fname, rec.get("date"), rec.get("problem"), assist_of(rec), rec.get("note"),
-             rec.get("followup")),
+            (
+                fname,
+                rec.get("date"),
+                rec.get("problem"),
+                assist_of(rec),
+                rec.get("note"),
+                rec.get("followup"),
+            ),
         )
-        con.executemany("INSERT INTO verdicts VALUES (?,?,?)",
-                        [(fname, m, v) for m, v in rec.get("moves", {}).items()])
-        con.executemany("INSERT INTO solve_unmapped VALUES (?,?)",
-                        [(fname, t) for t in rec.get("unmapped", [])])
+        con.executemany(
+            "INSERT INTO verdicts VALUES (?,?,?)",
+            [(fname, m, v) for m, v in rec.get("moves", {}).items()],
+        )
+        con.executemany(
+            "INSERT INTO solve_unmapped VALUES (?,?)",
+            [(fname, t) for t in rec.get("unmapped", [])],
+        )
 
     con.commit()
-    counts = {t: con.execute(f'SELECT count(*) FROM "{t}"').fetchone()[0]
-              for t in ("nodes", "prereqs", "problems", "steps",
-                        "solves", "verdicts")}
+    counts = {
+        t: con.execute(f'SELECT count(*) FROM "{t}"').fetchone()[0]
+        for t in ("nodes", "prereqs", "problems", "steps", "solves", "verdicts")
+    }
     con.close()
     print(f"{os.path.relpath(DB)}: " + ", ".join(f"{v} {k}" for k, v in counts.items()))
     print(f"sqlite3 {os.path.relpath(DB)}")

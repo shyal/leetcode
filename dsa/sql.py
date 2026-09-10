@@ -47,11 +47,11 @@ def null_safe(row):
 class SQLDrill:
     """Base for SQL drills: subclass, write `query()`, done.
 
-        sol.run(schema)                -> row tuples, sorted (row order is
-                                          not part of the drill)
-        sol.run(schema, ordered=True)  -> row tuples in engine order, for a
-                                          drill where ORDER BY is the move
-        sol.show(schema)               -> prints the result as a +---+ table
+    sol.run(schema)                -> row tuples, sorted (row order is
+                                      not part of the drill)
+    sol.run(schema, ordered=True)  -> row tuples in engine order, for a
+                                      drill where ORDER BY is the move
+    sol.show(schema)               -> prints the result as a +---+ table
     """
 
     def query(self) -> str:

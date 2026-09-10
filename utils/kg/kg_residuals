@@ -21,9 +21,9 @@ from datetime import date
 
 from kg.kg_lib import ASSIST_WEIGHT, GRAPH_DIR, assist_of, load_evidence
 
-NODE_Z_FLAG = 1.5   # per-node report threshold
+NODE_Z_FLAG = 1.5  # per-node report threshold
 NODE_N_MIN = 5
-GAP_SPLIT = 21      # days: short vs long bucket
+GAP_SPLIT = 21  # days: short vs long bucket
 
 
 def trials_by_node(evidence):
@@ -52,8 +52,8 @@ def trials_by_node(evidence):
             # copied one day and tried the next, read as 15 recall failures
             # at short gaps, z = -4.7; after an unaided clean the same wing
             # ran 8 of 8)
-            if (retrieved and verdict in ("clean", "struggled")
-                    and assist != "learning"):
+            if retrieved and verdict in ("clean", "struggled") and assist != "learning":
+                assert last_clean is not None  # set together with retrieved
                 gap = (date.fromisoformat(d) - date.fromisoformat(last_clean)).days
                 if gap >= 1:
                     success = int(verdict == "clean" and assist == "none")
@@ -82,9 +82,13 @@ def main():
         return (1 - P["slip"]) * (1 + gap / s) ** (-P["beta"])
 
     def bucket(gap):
-        return f"short (<={GAP_SPLIT}d)" if gap <= GAP_SPLIT else f"long (>{GAP_SPLIT}d)"
+        return (
+            f"short (<={GAP_SPLIT}d)" if gap <= GAP_SPLIT else f"long (>{GAP_SPLIT}d)"
+        )
 
-    agg = defaultdict(lambda: defaultdict(list))   # wing -> bucket -> [(obs, p)]
+    agg: dict[str, dict[str, list]] = defaultdict(
+        lambda: defaultdict(list)
+    )  # wing -> bucket -> [(obs, p)]
     per_node = defaultdict(list)
     for node, gap, sf, k, m, x, _ in trials:
         p = predict(gap, k, m, x)
@@ -109,14 +113,21 @@ def main():
                 flag = "  <--" if abs(z) >= 2 else ""
                 print(f"{w:<18}{b:<15}{n:>4}{obs:>7.0%}{exp:>7.0%}{z:>7.2f}{flag}")
 
-    flagged = [(node, stats(pairs)) for node, pairs in per_node.items()
-               if len(pairs) >= NODE_N_MIN and abs(stats(pairs)[3]) >= NODE_Z_FLAG]
+    flagged = [
+        (node, stats(pairs))
+        for node, pairs in per_node.items()
+        if len(pairs) >= NODE_N_MIN and abs(stats(pairs)[3]) >= NODE_Z_FLAG
+    ]
     if flagged:
-        print(f"\nnodes with |z| >= {NODE_Z_FLAG} and n >= {NODE_N_MIN}"
-              " (fission / interference suspects):")
+        print(
+            f"\nnodes with |z| >= {NODE_Z_FLAG} and n >= {NODE_N_MIN}"
+            " (fission / interference suspects):"
+        )
         for node, (n, obs, exp, z) in sorted(flagged, key=lambda kv: kv[1][3]):
-            print(f"  {node:<28}{wing.get(node, '?'):<17}"
-                  f"n={n:<4}obs={obs:<5.0%}model={exp:<5.0%}z={z:+.2f}")
+            print(
+                f"  {node:<28}{wing.get(node, '?'):<17}"
+                f"n={n:<4}obs={obs:<5.0%}model={exp:<5.0%}z={z:+.2f}"
+            )
 
 
 if __name__ == "__main__":

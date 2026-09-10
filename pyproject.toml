@@ -1,0 +1,175 @@
+# Tool configuration only; the repo is not a package. The gates run on utils/
+# and dsa/. solved/ and drills/ are reps, not code under maintenance, and
+# every name sitecustomize injects would read as undefined there.
+# `make check` runs all of them; see the makefile.
+
+[tool.black]
+line-length = 88
+extend-exclude = "/(solved|drills|research|stubs|utils/attic)/"
+
+[tool.ruff]
+line-length = 88
+extend-exclude = ["solved", "drills", "research", "stubs", "utils/attic", "current.py"]
+# the names utils/harness/sitecustomize.py injects into builtins;
+# utils/tests/test_layout.py keeps this equal to kg_lib.sitecustomize_names()
+builtins = [
+    "Any",
+    "Callable",
+    "Counter",
+    "Dict",
+    "Generic",
+    "GraphNode",
+    "Iterable",
+    "Iterator",
+    "List",
+    "ListNode",
+    "Node",
+    "Optional",
+    "OrderedDict",
+    "TreeNode",
+    "Tuple",
+    "TypeVar",
+    "Union",
+    "accumulate",
+    "add",
+    "and_",
+    "ascii_letters",
+    "ascii_lowercase",
+    "ascii_uppercase",
+    "batched",
+    "bisect",
+    "bisect_left",
+    "bisect_right",
+    "build_graph",
+    "build_graph_from_edge_list",
+    "build_linked_list",
+    "build_nary_tree",
+    "build_tree",
+    "cache",
+    "ceil",
+    "ceil_div",
+    "chain",
+    "choice",
+    "choices",
+    "collections",
+    "combinations",
+    "compress",
+    "dd",
+    "debug_var",
+    "debug_vars",
+    "defaultdict",
+    "deque",
+    "digits",
+    "draw_ascii_graph",
+    "draw_general_tree",
+    "draw_graph",
+    "draw_graphviz",
+    "draw_heap",
+    "draw_linked_list",
+    "draw_tree",
+    "dropwhile",
+    "enumr",
+    "find_node",
+    "floor",
+    "floordiv",
+    "functools",
+    "gcd",
+    "generate_and_print_random_bst",
+    "generate_full_binary_tree",
+    "get_adj_list",
+    "get_inorder",
+    "get_level_order",
+    "get_list_values",
+    "getrandbits",
+    "groupby",
+    "heapify",
+    "heappop",
+    "heappush",
+    "heapq",
+    "hexdigits",
+    "iadd",
+    "ior",
+    "is_balanced",
+    "is_valid_bst",
+    "isclose",
+    "islice",
+    "isub",
+    "itertools",
+    "ixor",
+    "log10",
+    "log2",
+    "match",
+    "math",
+    "maxsize",
+    "mul",
+    "nlargest",
+    "nsmallest",
+    "operator",
+    "or_",
+    "overload",
+    "pairwise",
+    "permutations",
+    "print_linked_list",
+    "prod",
+    "product",
+    "randint",
+    "random",
+    "randrange",
+    "re",
+    "reduce",
+    "rich_print",
+    "run_with_input",
+    "sample",
+    "shuffle",
+    "sqrt",
+    "starmap",
+    "string",
+    "sub",
+    "tabulate",
+    "takewhile",
+    "truediv",
+    "uniform",
+    "viz_binary_search",
+    "xor",
+    "zip_longest",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B"]
+ignore = [
+    "E402",  # scripts put sys.path setup before their imports
+    "E501",  # line length is black's job
+    "E731",  # lambda assignment
+    "E741",  # single-letter names l, I, O
+    "B007",  # unused loop variable
+    "B905",  # zip without strict=
+]
+
+[tool.ruff.lint.per-file-ignores]
+"utils/harness/sitecustomize.py" = ["F401", "F403", "F405", "F811"]
+"dsa/monotonic_stack_problems/monotonic_stack_scene.py" = ["F403", "F405"]  # from manim import *
+
+[tool.ruff.lint.isort]
+known-first-party = ["kg", "history", "readme"]
+
+[tool.mypy]
+python_version = "3.10"
+mypy_path = "utils:utils/harness"
+explicit_package_bases = true
+scripts_are_modules = true
+ignore_missing_imports = true
+check_untyped_defs = true
+warn_unused_ignores = true
+
+[tool.pytest.ini_options]
+testpaths = ["utils/tests"]
+pythonpath = ["utils/harness", "utils"]
+
+[tool.coverage.run]
+source = ["utils/kg", "utils/harness", "utils/history", "utils/readme"]
+omit = ["utils/kg/kg_*_rs/*"]
+
+[tool.coverage.report]
+# the floor is where coverage stood when the gate went in; raise it, never lower it
+fail_under = 35
+skip_covered = true

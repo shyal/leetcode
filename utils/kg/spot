@@ -22,11 +22,12 @@ import os
 import subprocess
 import sys
 from datetime import datetime, timezone
+from typing import Any
+
 from rich.console import Console
 
-from kg.kg_lib import (load_nodes, load_problems, load_evidence, node_status,
-                       sleep_state)
 from kg import recognition as rc
+from kg.kg_lib import load_evidence, load_nodes, load_problems, node_status, sleep_state
 
 console = Console()
 REPO_ROOT = rc.REPO_ROOT
@@ -37,20 +38,35 @@ def git(*args):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Serve a recognition rep into current.md.")
-    parser.add_argument("--problem", default=None,
-                        help="serve this problem number instead of the picker's choice")
-    parser.add_argument("--dry", action="store_true",
-                        help="print the pick's reason and stop (the problem stays hidden)")
-    parser.add_argument("difficulty", nargs="?", choices=["easy", "medium", "hard"],
-                        help="carry the rep on a problem of this tier only (make spot medium)")
+    parser = argparse.ArgumentParser(
+        description="Serve a recognition rep into current.md."
+    )
+    parser.add_argument(
+        "--problem",
+        default=None,
+        help="serve this problem number instead of the picker's choice",
+    )
+    parser.add_argument(
+        "--dry",
+        action="store_true",
+        help="print the pick's reason and stop (the problem stays hidden)",
+    )
+    parser.add_argument(
+        "difficulty",
+        nargs="?",
+        choices=["easy", "medium", "hard"],
+        help="carry the rep on a problem of this tier only (make spot medium)",
+    )
     args = parser.parse_args()
     difficulty = args.difficulty.capitalize() if args.difficulty else None
 
+    f: Any  # a filename here, the open file handle further down
     for f in ("current.py", "current.md"):
         path = os.path.join(REPO_ROOT, f)
         if os.path.exists(path) and open(path).read().strip():
-            console.print(f"[red]{f} is not empty - record it (make solved) before preparing the next one.[/red]")
+            console.print(
+                f"[red]{f} is not empty - record it (make solved) before preparing the next one.[/red]"
+            )
             sys.exit(1)
 
     nodes = load_nodes()
@@ -65,11 +81,21 @@ def main():
         asleep, _ = sleep_state(nodes, problems, evidence)
         # asked for = served: the SPOT_EVERY ratio governs what make next
         # suggests, not what make prepare spot does
-        pick = rc.due_spot(nodes, problems, evidence, recog, statuses,
-                           skip=set(asleep), force=True, difficulty=difficulty)
+        pick = rc.due_spot(
+            nodes,
+            problems,
+            evidence,
+            recog,
+            statuses,
+            skip=set(asleep),
+            force=True,
+            difficulty=difficulty,
+        )
         if not pick:
             tier = f" among {difficulty} problems" if difficulty else ""
-            console.print(f"nothing to spot{tier}: no node with reach is waiting for a rep.")
+            console.print(
+                f"nothing to spot{tier}: no node with reach is waiting for a rep."
+            )
             sys.exit(1)
         target, pnum, reason = pick
     if args.dry:
@@ -87,8 +113,13 @@ def main():
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     branch = f"spot-{stamp}"
     meta = rc.load_spot_meta()
-    meta[branch] = {"problem": pnum, "target": target, "reason": reason,
-                    "title": title, "difficulty": entry.get("difficulty", "")}
+    meta[branch] = {
+        "problem": pnum,
+        "target": target,
+        "reason": reason,
+        "title": title,
+        "difficulty": entry.get("difficulty", ""),
+    }
     rc.save_spot_meta(meta)
 
     git("checkout", "master")
@@ -97,9 +128,11 @@ def main():
     git("checkout", "-b", branch)
     git("add", "current.md")
     git("commit", "-m", "spotting")
-    console.print(f"current.md is ready on branch [bold]{branch}[/bold]. Read the statement, "
-                  "write under the rule which move it calls for (or \"direct\", or "
-                  "\"don't know\"), then `make solved`.")
+    console.print(
+        f"current.md is ready on branch [bold]{branch}[/bold]. Read the statement, "
+        'write under the rule which move it calls for (or "direct", or '
+        '"don\'t know"), then `make solved`.'
+    )
 
 
 if __name__ == "__main__":

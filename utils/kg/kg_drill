@@ -11,9 +11,10 @@
 import argparse
 import sys
 from datetime import date
+
 from rich.console import Console
 
-from kg.kg_lib import load_nodes, load_evidence, save_evidence, node_status
+from kg.kg_lib import load_evidence, load_nodes, node_status, save_evidence
 
 console = Console()
 
@@ -23,7 +24,9 @@ def main():
     parser.add_argument("node", help="node id from graph/nodes.json")
     parser.add_argument("verdict", choices=["clean", "struggled"], help="how it went")
     parser.add_argument("--note", default="", help="one-line context")
-    parser.add_argument("--date", default=str(date.today()), help="YYYY-MM-DD (default today)")
+    parser.add_argument(
+        "--date", default=str(date.today()), help="YYYY-MM-DD (default today)"
+    )
     args = parser.parse_args()
 
     nodes = load_nodes()

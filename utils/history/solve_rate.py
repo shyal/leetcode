@@ -1,22 +1,23 @@
 # solve_rate.py
 
+import argparse
+import json
+import math
 import os
 import re
 import subprocess
+import time
+from collections import defaultdict
 from datetime import datetime, timedelta, timezone
-import argparse
-import math
+
+import pyfiglet
+import requests
 from rich import print
-from rich.table import Table
 from rich.live import Live
 from rich.panel import Panel
-from rich.text import Text
-import time
-import pyfiglet
-import json
-from history.history_builder import get_solved_problems, get_learning
-from collections import defaultdict
-import requests
+from rich.table import Table
+
+from history.history_builder import get_learning, get_solved_problems
 
 
 def get_problems_metadata():
@@ -132,7 +133,7 @@ def run_goals_mode(args):
             unique_solves[num] = probs[0]
 
     # Count by difficulty
-    diff_counts = defaultdict(int)
+    diff_counts: defaultdict[str, int] = defaultdict(int)
     for num in unique_solves:
         diff = metadata.get(str(num), {}).get("difficulty", "Unknown")
         diff_counts[diff] += 1
@@ -148,11 +149,13 @@ def run_goals_mode(args):
     else:
         phase_label = "Past deadline"
     header = f"FAANG Prep  ·  {phase_label}  ·  {days_left} days remaining"
-    print(Panel(
-        header,
-        subtitle=f"Deadline: {deadline.strftime('%B %d, %Y')}  ·  {phase.get('description', '')}",
-        style="bold cyan",
-    ))
+    print(
+        Panel(
+            header,
+            subtitle=f"Deadline: {deadline.strftime('%B %d, %Y')}  ·  {phase.get('description', '')}",
+            style="bold cyan",
+        )
+    )
 
     # ── DIFFICULTY PROGRESS ──
     targets = goals.get("difficulty_targets", {})
@@ -171,12 +174,17 @@ def run_goals_mode(args):
         total_gap += gap
         bar = progress_bar(solved_count, target)
         gap_str = str(gap) if gap > 0 else "[green]✅[/green]"
-        style = "orange1" if diff == "Medium" else "red"
-        diff_table.add_row(diff, str(solved_count), str(target), gap_str, bar, style=style)
+        style: str | None = "orange1" if diff == "Medium" else "red"
+        diff_table.add_row(
+            diff, str(solved_count), str(target), gap_str, bar, style=style
+        )
 
     easy_count = diff_counts.get("Easy", 0)
     diff_table.add_row(
-        "Easy", str(easy_count), "—", "—",
+        "Easy",
+        str(easy_count),
+        "—",
+        "—",
         f"[dim]{easy_count} solved (no target — focus on Medium+Hard)[/dim]",
         style="green",
     )
@@ -185,7 +193,9 @@ def run_goals_mode(args):
 
     if days_left > 0 and total_gap > 0:
         pace = total_gap / days_left
-        print(f"  Pace to close gap by deadline: [bold]{pace:.1f} Medium+Hard per day[/bold]")
+        print(
+            f"  Pace to close gap by deadline: [bold]{pace:.1f} Medium+Hard per day[/bold]"
+        )
     elif total_gap == 0:
         print("  [bold green]All difficulty targets met![/bold green]")
     print()
@@ -218,9 +228,13 @@ def run_goals_mode(args):
                 priority = "[yellow]MEDIUM[/yellow]"
             else:
                 priority = "[green]LOW[/green]"
-            topic_table.add_row(topic, str(solved_count), str(minimum), str(gap), priority)
+            topic_table.add_row(
+                topic, str(solved_count), str(minimum), str(gap), priority
+            )
     else:
-        topic_table.add_row("—", "—", "—", "—", "[bold green]All targets met![/bold green]")
+        topic_table.add_row(
+            "—", "—", "—", "—", "[bold green]All targets met![/bold green]"
+        )
 
     # Show topics that are already met (compact)
     met_topics = []
@@ -244,9 +258,16 @@ def run_goals_mode(args):
         table_learning.add_column("Difficulty", justify="right")
         for p in learning_problems:
             date_str = p.date.strftime("%Y-%m-%d %H:%M")
-            style = {"Easy": "green", "Medium": "orange1", "Hard": "red"}.get(p.difficulty)
+            style = {"Easy": "green", "Medium": "orange1", "Hard": "red"}.get(
+                p.difficulty
+            )
             table_learning.add_row(
-                str(p.num), p.title, date_str, p.solve_time or "", p.difficulty, style=style,
+                str(p.num),
+                p.title,
+                date_str,
+                p.solve_time or "",
+                p.difficulty,
+                style=style,
             )
         print(table_learning)
         print()
@@ -259,7 +280,9 @@ def run_goals_mode(args):
     solved_today = []
     for p in all_solves:
         if p.date >= today_start and p.status == "solved":
-            solved_today.append((p.num, p.title, p.date, None, p.solve_time, p.difficulty))
+            solved_today.append(
+                (p.num, p.title, p.date, None, p.solve_time, p.difficulty)
+            )
 
     num_solved_today = len(solved_today)
     daily_target = phase["daily_problems"]
@@ -311,9 +334,13 @@ def run_goals_mode(args):
     for task_name, time_str in all_tasks:
         try:
             task_time_obj = parse_time(time_str)
-            task_time = datetime.combine(current_time.date(), task_time_obj, tzinfo=local_tz)
+            task_time = datetime.combine(
+                current_time.date(), task_time_obj, tzinfo=local_tz
+            )
             if task_name in done_tasks:
-                done_task_items.append(("Task", task_name + " (done)", early_time, None, None, None))
+                done_task_items.append(
+                    ("Task", task_name + " (done)", early_time, None, None, None)
+                )
             else:
                 planned_time = max(task_time, current_time)
                 planned_tasks.append((task_name, planned_time))
@@ -321,7 +348,7 @@ def run_goals_mode(args):
             continue
 
     day_end = datetime.combine(current_time.date(), end_time_obj, tzinfo=local_tz)
-    all_todays = list(solved_today) + done_task_items
+    all_todays: list[tuple] = list(solved_today) + done_task_items
 
     # Schedule remaining slots
     if num_to_do > 0 and current_time < day_end:
@@ -342,7 +369,11 @@ def run_goals_mode(args):
             total_break = num_breaks * timedelta(minutes=break_minutes)
             task_seconds = len(planned_tasks) * 3600
 
-            work_seconds = remaining_time.total_seconds() - task_seconds - total_break.total_seconds()
+            work_seconds = (
+                remaining_time.total_seconds()
+                - task_seconds
+                - total_break.total_seconds()
+            )
             if work_seconds > 0 and num_to_do > 0:
                 slot_duration = timedelta(seconds=work_seconds / num_to_do)
                 # Cap at 50 min per slot — FAANG interview problems shouldn't take longer
@@ -355,11 +386,24 @@ def run_goals_mode(args):
             slots_to_schedule = slots[:num_to_do]
             topics_to_schedule = slot_topics[:num_to_do]
 
-            for i, (diff, topic) in enumerate(zip(slots_to_schedule, topics_to_schedule)):
-                start = get_available_start(current_slot_time, slot_duration, task_intervals)
+            for i, (diff, topic) in enumerate(
+                zip(slots_to_schedule, topics_to_schedule)
+            ):
+                start = get_available_start(
+                    current_slot_time, slot_duration, task_intervals
+                )
                 if start + slot_duration > day_end:
                     break
-                all_todays.append((f"Slot {i + 1}", f"{diff} · {topic}", start, slot_duration, None, diff))
+                all_todays.append(
+                    (
+                        f"Slot {i + 1}",
+                        f"{diff} · {topic}",
+                        start,
+                        slot_duration,
+                        None,
+                        diff,
+                    )
+                )
                 next_start = start + slot_duration
                 if i < len(slots_to_schedule) - 1 and break_minutes > 0:
                     next_start += timedelta(minutes=break_minutes)
@@ -387,21 +431,31 @@ def run_goals_mode(args):
                 time_str = "Done"
             else:
                 time_str = t.strftime("%I:%M %p")
-            style = {"Easy": "green", "Medium": "orange1", "Hard": "red"}.get(difficulty)
+            style = {"Easy": "green", "Medium": "orange1", "Hard": "red"}.get(
+                difficulty
+            )
             if duration and t <= current_time < (t + duration):
-                style = (style + " bold" if style else "bold yellow")
+                style = style + " bold" if style else "bold yellow"
             if solve_time:
                 cumulative += parse_solve_time(solve_time)
-            cum_str = format_timedelta(cumulative)
             sched_table.add_row(
-                str(activity), details or "", time_str, solve_time or "", difficulty or "", style=style,
+                str(activity),
+                details or "",
+                time_str,
+                solve_time or "",
+                difficulty or "",
+                style=style,
             )
         print(sched_table)
 
         if num_to_do > 0:
-            print(f"\n  [dim]Run[/dim] [bold]make recommend[/bold] [dim]to get a specific problem for each slot.[/dim]")
+            print(
+                "\n  [dim]Run[/dim] [bold]make recommend[/bold] [dim]to get a specific problem for each slot.[/dim]"
+            )
         elif num_solved_today >= daily_target:
-            print(f"\n  [bold green]Daily target reached ({num_solved_today}/{daily_target})![/bold green]")
+            print(
+                f"\n  [bold green]Daily target reached ({num_solved_today}/{daily_target})![/bold green]"
+            )
     else:
         print("[dim]No activities planned or done today.[/dim]")
 
@@ -422,8 +476,14 @@ def run_goals_mode(args):
         def make_display(now):
             remaining_td = end_time - now
             if remaining_td <= timedelta(0):
-                art = pyfiglet.figlet_format("TIME'S UP!", font=args.timer_font, width=args.timer_width)
-                return Panel(art + f"\n\nTask completed: {task_name}", title="Timer", style="bold red")
+                art = pyfiglet.figlet_format(
+                    "TIME'S UP!", font=args.timer_font, width=args.timer_width
+                )
+                return Panel(
+                    art + f"\n\nTask completed: {task_name}",
+                    title="Timer",
+                    style="bold red",
+                )
             secs = int(remaining_td.total_seconds())
             art = render_big_time(secs, args.timer_font, args.timer_width)
             return Panel(art, title=f"Remaining for {task_name}", style="bold cyan")
@@ -452,7 +512,7 @@ def parse_date(date_str):
         dt = datetime.strptime(date_str, "%d %B %Y")
         return dt.date()
     except ValueError:
-        raise ValueError("Invalid date format. Use like '1st of August 2026'")
+        raise ValueError("Invalid date format. Use like '1st of August 2026'") from None
 
 
 def parse_json_date(date_str):
@@ -460,7 +520,7 @@ def parse_json_date(date_str):
         dt = datetime.strptime(date_str, "%Y-%m-%d")
         return dt.date()
     except ValueError:
-        raise ValueError("Invalid JSON date format. Use like '2025-11-15'")
+        raise ValueError("Invalid JSON date format. Use like '2025-11-15'") from None
 
 
 def parse_time(time_str):
@@ -468,7 +528,7 @@ def parse_time(time_str):
         dt = datetime.strptime(time_str, "%I%p")
         return dt.time()
     except ValueError:
-        raise ValueError("Invalid time format. Use like '5pm'")
+        raise ValueError("Invalid time format. Use like '5pm'") from None
 
 
 def get_available_start(proposed_start, duration, task_intervals):
@@ -521,7 +581,11 @@ def load_readiness_data():
     # contest = hard-competent, faang = central P(onsite) >= 50%
     mock_bin = os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-        "kg", "kg_mock_rs", "target", "release", "kg_mock",
+        "kg",
+        "kg_mock_rs",
+        "target",
+        "release",
+        "kg_mock",
     )
     try:
         out = subprocess.run(
@@ -818,7 +882,7 @@ def main():
             total_planned = num_to_do_today + num_tasks
 
             day_end = datetime.combine(current_time.date(), end_time, tzinfo=local_tz)
-            all_todays = solved_today + done_task_items
+            all_todays: list[tuple] = solved_today + done_task_items
 
             planned_items = []
             if total_planned > 0:
@@ -1005,6 +1069,7 @@ def main():
                         time.sleep(1)
                         now = datetime.now(local_tz)
                         live.update(make_display(now))
+
 
 if __name__ == "__main__":
     main()

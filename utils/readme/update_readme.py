@@ -1,11 +1,13 @@
 def main():
+    import hashlib
+    import json
     import os
     import re
-    from datetime import datetime
-    import boto3
-    import json
-    import hashlib
     from concurrent.futures import ThreadPoolExecutor
+    from datetime import datetime
+    from typing import Any
+
+    import boto3
     from boto3.s3.transfer import TransferConfig
 
     s3 = boto3.client("s3")
@@ -18,6 +20,7 @@ def main():
     # where the previous run's S3 keys live. Read it once up front and HEAD
     # every timestamped key it links, so an unchanged chart keeps its link
     # instead of landing on S3 again as a duplicate.
+    f: Any
     with open("README.md", "r") as f:
         readme = f.read()
     existing = {}  # prefix -> key currently linked from README.md
@@ -85,10 +88,34 @@ def main():
     #   (graph file, s3 prefix, README region, alt text, inline region?)
     CHARTS = [
         # ("graph/elo.svg", "elo", "ELO_CHART", "Elo", False),
-        ("graph/problem_rating.svg", "problem_rating", "PROBLEM_RATING_CHART", "Rating of the problems attempted", False),
-        ("graph/hours.svg", "hours", "HOURS_CHART", "Elo against hours of recorded solving, with the Carnegie Mellon rate", False),
-        ("graph/onsite.svg", "onsite", "ONSITE_CHART", "Elo history and its projection to the onsite line, on dates", False),
-        ("graph/backlog.svg", "backlog", "BACKLOG_CHART", "Review backlog: open cards, due cards, due drills", False),
+        (
+            "graph/problem_rating.svg",
+            "problem_rating",
+            "PROBLEM_RATING_CHART",
+            "Rating of the problems attempted",
+            False,
+        ),
+        (
+            "graph/hours.svg",
+            "hours",
+            "HOURS_CHART",
+            "Elo against hours of recorded solving, with the Carnegie Mellon rate",
+            False,
+        ),
+        (
+            "graph/onsite.svg",
+            "onsite",
+            "ONSITE_CHART",
+            "Elo history and its projection to the onsite line, on dates",
+            False,
+        ),
+        (
+            "graph/backlog.svg",
+            "backlog",
+            "BACKLOG_CHART",
+            "Review backlog: open cards, due cards, due drills",
+            False,
+        ),
         ("graph/elo_badge.svg", "elo_badge", "ELO_BADGE", "Elo", True),
         ("graph/streak_badge.svg", "streak_badge", "STREAK_BADGE", "Streak", True),
         # ("graph/rates.svg", "rates", "SOLVES_CHART", "Solves and drills per day", False),
@@ -119,14 +146,22 @@ def main():
         if not os.path.exists(path):
             continue
         key = upload_svg_gz(path, prefix)
-        images.append((region, f"![{alt}](https://shyal.s3.amazonaws.com/{key})", inline))
+        images.append(
+            (region, f"![{alt}](https://shyal.s3.amazonaws.com/{key})", inline)
+        )
 
     # push everything queued above concurrently; boto3 clients are thread-safe.
     # Any failure raises here, before the README is touched.
     with ThreadPoolExecutor(max_workers=10) as pool:
         futures = [
-            pool.submit(s3.upload_file, local, bucket_name, key,
-                        ExtraArgs=extra, Config=transfer_config)
+            pool.submit(
+                s3.upload_file,
+                local,
+                bucket_name,
+                key,
+                ExtraArgs=extra,
+                Config=transfer_config,
+            )
             for local, key, extra in upload_jobs
         ]
         for f in futures:
@@ -152,7 +187,8 @@ def main():
         lead = m.group(1) if "\n" in m.group(1) else "\n"
         trail = m.group(2) if "\n" in m.group(2) else "\n"
         return pat.sub(
-            lambda _: f"<!-- {name} -->{lead}{content}{trail}<!-- /{name} -->", text)
+            lambda _: f"<!-- {name} -->{lead}{content}{trail}<!-- /{name} -->", text
+        )
 
     def fill_inline(text, name, value):
         # same markers, but inside a sentence: no forced newlines. Every
@@ -170,7 +206,9 @@ def main():
         with open("graph/reach.json") as f:
             r = json.load(f)
         readme = fill_inline(readme, "N_BANK", r["catalog"])
-        readme = fill_inline(readme, "N_REACH_TODAY", f"~{round(r['predicted_reach'], -2):.0f}")
+        readme = fill_inline(
+            readme, "N_REACH_TODAY", f"~{round(r['predicted_reach'], -2):.0f}"
+        )
 
     for region, markdown, inline in images:
         readme = (fill_inline if inline else fill)(readme, region, markdown)

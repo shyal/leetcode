@@ -1,4 +1,4 @@
-.PHONY: all asserts drop learning mirror q prepare force unforce preflight dependents kg-extract kg-status kg-viz rep movie next dive drill spot hard is_session_start readme residuals simulate sleep wake solved failed test timer viz graph snippets
+.PHONY: check fmt fmt-check lint types complexity duplicates test-fast cov rust audit secrets all asserts drop learning mirror q prepare force unforce preflight dependents kg-extract kg-status kg-viz rep movie next dive drill spot hard is_session_start readme residuals simulate sleep wake solved failed test timer viz graph snippets
 
 all: graph/leet.db
 	@cp utils/harness/sitecustomize.py .venv/lib/python3.10/site-packages/
@@ -121,6 +121,53 @@ failed:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/solved --failed
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_extract --stub
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/solved --commit
+
+# --- code quality gates -------------------------------------------------------
+# make check is the aggregate every change to utils/ or dsa/ must pass (CI runs
+# the same targets as separate jobs). Thresholds live next to each gate:
+# pyproject.toml (black, ruff, mypy, coverage floor), utils/check/complexity
+# (radon max/avg), .jscpd.json (duplication). Ratchet them down, never up.
+PYSRC = $(shell utils/check/pyfiles)
+PYSRC_MYPY = $(shell utils/check/pyfiles --mypy)
+CRATES = utils/kg/kg_mock_rs utils/kg/kg_movie_rs
+
+check: fmt-check lint types complexity rust test-fast
+
+fmt:
+	@.venv/bin/black -q $(PYSRC)
+	@.venv/bin/ruff check -q --fix --select I $(PYSRC)
+	@for c in $(CRATES); do cargo fmt --manifest-path $$c/Cargo.toml; done
+
+fmt-check:
+	@.venv/bin/black -q --check $(PYSRC)
+
+lint:
+	@.venv/bin/ruff check -q $(PYSRC)
+
+types:
+	@.venv/bin/mypy $(PYSRC_MYPY)
+
+complexity:
+	@.venv/bin/python3 utils/check/complexity $(PYSRC)
+
+duplicates:
+	@npx --yes jscpd utils dsa
+
+rust:
+	@for c in $(CRATES); do cargo fmt --check --manifest-path $$c/Cargo.toml && cargo clippy -q --manifest-path $$c/Cargo.toml -- -D warnings && cargo test -q --manifest-path $$c/Cargo.toml || exit 1; done
+
+audit:
+	@for c in $(CRATES); do (cd $$c && cargo audit -q) || exit 1; done
+
+secrets:
+	@gitleaks detect --source . --no-banner --redact
+
+# the guard suite without the 988-solve sweep (that is make test, and CI)
+test-fast:
+	@.venv/bin/pytest -q -p no:cacheprovider --ignore=utils/tests/test_runner.py
+
+cov:
+	@.venv/bin/pytest -q -p no:cacheprovider --ignore=utils/tests/test_runner.py --cov --cov-report=term-missing
 
 test:
 	@.venv/bin/pytest -o verbosity_assertions=2

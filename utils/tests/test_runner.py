@@ -1,11 +1,12 @@
 # test_runner.py
 
 import argparse
-import pytest
-import os
-import time
-import subprocess
 import contextlib
+import os
+import subprocess
+import time
+
+import pytest
 
 parser = argparse.ArgumentParser(description="Test leetcode codebase.")
 parser.add_argument(
@@ -52,7 +53,6 @@ def test_solved(module_name):
 
 def test_current():
     print("")
-    import current
 
 
 if __name__ == "__main__":
@@ -73,7 +73,7 @@ if __name__ == "__main__":
     if current_branch == "master" and not args.viz:
         os.environ["RUNNING_TESTS"] = "True"
 
-    args = [
+    pytest_args = [
         __file__,
         "-s",
         "-q",
@@ -88,10 +88,10 @@ if __name__ == "__main__":
     ]
 
     if current_branch != "master":
-        args.extend(["-k", "test_current"])
+        pytest_args.extend(["-k", "test_current"])
 
     pytest.main(
-        args,
+        pytest_args,
         plugins=[stats],
     )
 

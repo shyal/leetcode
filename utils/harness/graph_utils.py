@@ -1,20 +1,20 @@
 # graph_utils.py
 
-import os
-import json
 import hashlib
+import json
+import os
+from collections import defaultdict, deque
+from typing import Any, Dict, List, Optional, Union
 
 from Types import GraphNode
-from typing import List
-from typing import Dict, Any, Optional, Union
 
 try:
-    from tabulate import tabulate
+    from tabulate import tabulate  # noqa: F401
 except ImportError:
     pass  # Will handle in function
 
 try:
-    from graphviz import Digraph
+    from graphviz import Digraph  # noqa: F401
 except ImportError:
     pass  # Will handle in function
 
@@ -120,7 +120,7 @@ def draw_graph(G: Dict[Any, Union[Dict[Any, Any], Any]]) -> None:
 
 
 def build_graph_from_edge_list(edges, type="undirected"):
-    G = defaultdict(dict)
+    G: defaultdict[Any, dict] = defaultdict(dict)
     for u, v in edges:
         G[u][v] = 0
         if type == "undirected":
@@ -137,7 +137,7 @@ def is_edge_list(edges):
 
 def draw_graphviz(
     G: Dict[Any, Union[Dict[Any, Any], List[Any]]],
-    png_filename: str = None,
+    png_filename: Optional[str] = None,
     n=None,
     type="undirected",
     show_weights: bool = False,
@@ -216,6 +216,7 @@ def draw_graphviz(
 
     for src in G:
         neighbors = G[src]
+        items: Any
         if isinstance(neighbors, dict):
             items = neighbors.items()
         elif isinstance(neighbors, (list, tuple, set)):
@@ -296,7 +297,8 @@ def draw_ascii_graph(G: Dict[Any, Dict[Any, Any]]) -> None:
         # Fallback to adjacency list
         print("Fallback: Adjacency list")
         for src in sorted(G):
-            neighbors = [f"{dst}({G[src][dst]})" for dst in sorted(G[src])]
+            # `neighbors` held a dict above; here it is the printed list
+            neighbors = [f"{dst}({G[src][dst]})" for dst in sorted(G[src])]  # type: ignore[assignment]
             print(f"{src}: {', '.join(neighbors)}")
 
 
@@ -314,8 +316,8 @@ def build_graph(adj: List[List[int]]) -> Optional[GraphNode]:
 def get_adj_list(node: Optional[GraphNode]) -> List[List[int]]:
     if not node:
         return []
-    node_map = {}
-    queue = deque([node])
+    node_map: Dict[Any, Any] = {}
+    queue: deque[Any] = deque([node])
     visited = set([node])
     max_val = 0
     while queue:

@@ -39,6 +39,14 @@
 - When he wants the technique, he asks: `/high-level-walkthrough`, "give me a
   hint", "how does this work". No ask, no reveal.
 
+# Code quality gates
+
+- Any change under `utils/` or `dsa/` must pass `make check` (black, ruff, mypy,
+  complexity, rust, the fast test suite). CI runs the same targets as separate
+  jobs plus `make duplicates`, `make secrets`, `make audit` and the full
+  `make test`. Thresholds are ratchets: lower them when a refactor earns it,
+  never raise them. A gate that cannot fail does not exist here.
+
 # Git
 
 - Do not add a `Co-Authored-By: Claude ...` trailer (or any generated-with attribution) to commit messages.

@@ -2,7 +2,7 @@
 
 
 import json
-import os
+
 import requests
 
 
@@ -29,7 +29,8 @@ def get_problems_metadata():
                 problems[num]["paid_only"] = True
             if s.get("total_submitted"):
                 problems[num]["acceptance"] = round(
-                    100 * s["total_acs"] / s["total_submitted"], 1)
+                    100 * s["total_acs"] / s["total_submitted"], 1
+                )
 
         with open(METADATA_FILE, "w") as f:
             json.dump(problems, f)

@@ -1,6 +1,6 @@
-from rich import print
-
 import sys
+
+from rich import print
 
 
 def viz_binary_search(width=100):

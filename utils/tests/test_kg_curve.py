@@ -25,15 +25,19 @@ def test_no_knobs_returns_all_trials_unweighted():
 
 
 def test_era_boundary_drops_older_trials():
-    trials, _ = kgc.select_trials([dated(30, 1, OLD), dated(30, 0, NEW)],
-                                  since=date(2026, 1, 1))
+    trials, _ = kgc.select_trials(
+        [dated(30, 1, OLD), dated(30, 0, NEW)], since=date(2026, 1, 1)
+    )
     assert trials == [(30, 0, 1, 0, 0.0, 4.0)]
     assert kgc.select_trials([dated(30, 1, OLD)], since=date(2026, 1, 1)) == ([], None)
 
 
 def test_half_life_discounts_by_age_from_newest():
-    rows = [dated(30, 1, date(2026, 8, 1)), dated(30, 1, date(2026, 7, 2)),
-            dated(30, 1, date(2026, 8, 31))]
+    rows = [
+        dated(30, 1, date(2026, 8, 1)),
+        dated(30, 1, date(2026, 7, 2)),
+        dated(30, 1, date(2026, 8, 31)),
+    ]
     _, weights = kgc.select_trials(rows, half_life=30)
     assert weights == [0.5, 0.25, 1.0]
 
@@ -44,13 +48,15 @@ def test_recency_weighted_fit_follows_the_recent_era():
 
     def pred_at_30(params):
         a, b, c, d, e, conn_mean, beta, slip = params
-        s = kgc.math.exp(a + b * kgc.math.log1p(1))  # k=1, no struggles/assist, conn centered
+        s = kgc.math.exp(
+            a + b * kgc.math.log1p(1)
+        )  # k=1, no struggles/assist, conn centered
         return (1 - slip) * (1 + 30 / s) ** (-beta)
 
     t_plain, w_plain = kgc.select_trials(rows)
     t_rec, w_rec = kgc.select_trials(rows, half_life=30)
     plain = pred_at_30(kgc.fit(t_plain, weights=w_plain))
     weighted = pred_at_30(kgc.fit(t_rec, weights=w_rec))
-    assert 0.3 < plain < 0.7          # unweighted: the eras split the vote
-    assert weighted < 0.25            # weighted: the old era barely votes
+    assert 0.3 < plain < 0.7  # unweighted: the eras split the vote
+    assert weighted < 0.25  # weighted: the old era barely votes
     assert weighted < plain - 0.2

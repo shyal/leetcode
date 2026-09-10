@@ -16,13 +16,12 @@
 import argparse
 import json
 import os
+import queue
 import random
 import re
+import subprocess
 import sys
 import threading
-import queue
-
-import subprocess
 
 import requests
 
@@ -58,8 +57,7 @@ def load_walks():
 def load_solution(num):
     """The operator's own latest solve if there is one (that is the code the
     evidenced walk describes), else the validated cache solution."""
-    own = sorted(f for f in os.listdir(SOLVED)
-                 if re.match(rf"p{num}_.*\.py$", f))
+    own = sorted(f for f in os.listdir(SOLVED) if re.match(rf"p{num}_.*\.py$", f))
     if own:
         return open(os.path.join(SOLVED, own[-1])).read()
     try:
@@ -109,13 +107,20 @@ def call_openai(model, user_prompt):
 def call_claude(model, user_prompt):
     result = subprocess.run(
         [
-            "claude", "-p", user_prompt,
-            "--model", model,
-            "--system-prompt", SYSTEM_PROMPT,
-            "--disallowedTools", "Write,Edit,Read,Bash,NotebookEdit",
-            "--output-format", "text",
+            "claude",
+            "-p",
+            user_prompt,
+            "--model",
+            model,
+            "--system-prompt",
+            SYSTEM_PROMPT,
+            "--disallowedTools",
+            "Write,Edit,Read,Bash,NotebookEdit",
+            "--output-format",
+            "text",
         ],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     return result.stdout.strip()
 
@@ -184,11 +189,16 @@ def save_predicted(drafts, model):
     doc = json.load(open(path))
     for num, (title, entry) in drafts.items():
         prob = doc["problems"].setdefault(
-            num, {"title": title, "draft": True, "walks": []})
+            num, {"title": title, "draft": True, "walks": []}
+        )
         prob.setdefault("walks", [])
-        walk = {"moves": entry["moves"], "tier": "predicted",
-                "source": "cache-solution", "model": model,
-                "prompt_version": PROMPT_VERSION}
+        walk = {
+            "moves": entry["moves"],
+            "tier": "predicted",
+            "source": "cache-solution",
+            "model": model,
+            "prompt_version": PROMPT_VERSION,
+        }
         if entry["missing"]:
             walk["missing"] = entry["missing"]
         if not any(w["moves"] == walk["moves"] for w in prob["walks"]):
@@ -201,12 +211,14 @@ def save_predicted(drafts, model):
 def full(args):
     nodes = load_nodes()
     walks = load_walks()
-    nums = sorted((f.split(".")[0] for f in os.listdir(PREPARE_CACHE)
-                   if f.endswith(".json")), key=int)
+    nums = sorted(
+        (f.split(".")[0] for f in os.listdir(PREPARE_CACHE) if f.endswith(".json")),
+        key=int,
+    )
     if args.limit:
-        nums = nums[:args.limit]
+        nums = nums[: args.limit]
     drafts, errors = {}, []
-    q = queue.Queue()
+    q: queue.Queue = queue.Queue()
     for num in nums:
         q.put(num)
     lock = threading.Lock()
@@ -220,8 +232,9 @@ def full(args):
             sol, title = cache_solution(num)
             if not sol:
                 continue
-            ex = pick_examples(walks, num, args.examples,
-                               random.Random(args.seed + int(num)))
+            ex = pick_examples(
+                walks, num, args.examples, random.Random(args.seed + int(num))
+            )
             try:
                 entry = draft(nodes, walks, num, sol, ex, args.model, "cache")
                 with lock:
@@ -255,7 +268,7 @@ def pilot(args):
     targets = rng.sample(evidenced, args.pilot)
 
     results = {}
-    q = queue.Queue()
+    q: queue.Queue = queue.Queue()
     for num in targets:
         q.put(num)
 
@@ -265,14 +278,19 @@ def pilot(args):
                 num = q.get_nowait()
             except queue.Empty:
                 return
-            ex = pick_examples(walks, num, args.examples, random.Random(args.seed + int(num)))
+            ex = pick_examples(
+                walks, num, args.examples, random.Random(args.seed + int(num))
+            )
             try:
-                results[num] = draft(nodes, walks, num, load_solution(num), ex,
-                                     args.model, "own")
+                results[num] = draft(
+                    nodes, walks, num, load_solution(num), ex, args.model, "own"
+                )
             except Exception as e:
                 results[num] = {"error": str(e)}
 
-    threads = [threading.Thread(target=worker) for _ in range(min(args.jobs, len(targets)))]
+    threads = [
+        threading.Thread(target=worker) for _ in range(min(args.jobs, len(targets)))
+    ]
     for t in threads:
         t.start()
     for t in threads:
@@ -287,29 +305,44 @@ def pilot(args):
             continue
         truth, pred = set(walks[num]["moves"]), set(r["moves"])
         hit, extra, miss = truth & pred, pred - truth, truth - pred
-        tp += len(hit); fp += len(extra); fn += len(miss)
+        tp += len(hit)
+        fp += len(extra)
+        fn += len(miss)
         exact += truth == pred
         flag = "=" if truth == pred else " "
-        print(f"{num:>5} {flag} {walks[num]['title'][:34]:<34} "
-              f"hit {sorted(hit)}  extra {sorted(extra)}  miss {sorted(miss)}"
-              + (f"  missing? {r['missing']}" if r["missing"] else "")
-              + (f"  junk {r['junk']}" if r["junk"] else ""))
+        print(
+            f"{num:>5} {flag} {walks[num]['title'][:34]:<34} "
+            f"hit {sorted(hit)}  extra {sorted(extra)}  miss {sorted(miss)}"
+            + (f"  missing? {r['missing']}" if r["missing"] else "")
+            + (f"  junk {r['junk']}" if r["junk"] else "")
+        )
     n = len([r for r in results.values() if "error" not in r])
     if tp + fp and tp + fn:
-        print(f"\nexact {exact}/{n}   "
-              f"precision {tp / (tp + fp):.2f}   recall {tp / (tp + fn):.2f}")
+        print(
+            f"\nexact {exact}/{n}   "
+            f"precision {tp / (tp + fp):.2f}   recall {tp / (tp + fn):.2f}"
+        )
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--pilot", type=int, default=None,
-                    help="Label N random evidenced problems and score vs truth.")
-parser.add_argument("--full", action="store_true",
-                    help="Label every cached solution, write graph/problems.json.")
-parser.add_argument("--limit", type=int, default=None,
-                    help="With --full: stop after N problems.")
+parser.add_argument(
+    "--pilot",
+    type=int,
+    default=None,
+    help="Label N random evidenced problems and score vs truth.",
+)
+parser.add_argument(
+    "--full",
+    action="store_true",
+    help="Label every cached solution, write graph/problems.json.",
+)
+parser.add_argument(
+    "--limit", type=int, default=None, help="With --full: stop after N problems."
+)
 parser.add_argument("--model", default="gpt-5-mini")
-parser.add_argument("--examples", type=int, default=6,
-                    help="Few-shot examples per prompt.")
+parser.add_argument(
+    "--examples", type=int, default=6, help="Few-shot examples per prompt."
+)
 parser.add_argument("--jobs", type=int, default=4)
 parser.add_argument("--seed", type=int, default=1)
 args = parser.parse_args()

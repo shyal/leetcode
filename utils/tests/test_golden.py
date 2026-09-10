@@ -16,22 +16,35 @@ import pytest
 from kg import kg_lib
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-RUST_BIN = os.path.join(ROOT, "utils", "kg", "kg_mock_rs", "target", "release", "kg_mock")
+RUST_BIN = os.path.join(
+    ROOT, "utils", "kg", "kg_mock_rs", "target", "release", "kg_mock"
+)
 
 
 @pytest.fixture(scope="session", autouse=True)
 def build_rust():
     subprocess.run(
-        ["cargo", "build", "--release", "--quiet",
-         "--manifest-path", os.path.join(ROOT, "utils", "kg", "kg_mock_rs", "Cargo.toml")],
-        check=True, capture_output=True, text=True,
+        [
+            "cargo",
+            "build",
+            "--release",
+            "--quiet",
+            "--manifest-path",
+            os.path.join(ROOT, "utils", "kg", "kg_mock_rs", "Cargo.toml"),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
     )
 
 
 @pytest.fixture(scope="module")
 def golden():
     proc = subprocess.run(
-        [RUST_BIN, "--golden-json"], capture_output=True, text=True, cwd=ROOT,
+        [RUST_BIN, "--golden-json"],
+        capture_output=True,
+        text=True,
+        cwd=ROOT,
         check=True,
     )
     assert proc.stderr == ""

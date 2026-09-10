@@ -18,20 +18,25 @@ import glob
 import os
 import re
 import subprocess
-import sys
 import time
 from importlib.machinery import SourceFileLoader
 
 import pyfiglet
 from rich.align import Align
-from rich.console import Console, Group
+from rich.console import Console, Group, RenderableType
 from rich.live import Live
 from rich.panel import Panel
 from rich.progress import BarColumn, Progress, TextColumn
 from rich.text import Text
 
-from kg.kg_lib import (DRILLS_DIR, load_problems, solve_forecast, drill_forecast,
-                    drill_solved_stem, active_seconds)
+from kg.kg_lib import (
+    DRILLS_DIR,
+    active_seconds,
+    drill_forecast,
+    drill_solved_stem,
+    load_problems,
+    solve_forecast,
+)
 
 UTILS = os.path.dirname(os.path.abspath(__file__))
 console = Console()
@@ -55,8 +60,14 @@ def forecast():
         return None, None
     if pid == "drill":
         stem = re.sub(r"[^\w\s-]", "", title).strip().replace(" ", "_")
-        path = next((p for p in glob.glob(os.path.join(DRILLS_DIR, "*", "*.py"))
-                     if drill_solved_stem(p) == stem), None)
+        path = next(
+            (
+                p
+                for p in glob.glob(os.path.join(DRILLS_DIR, "*", "*.py"))
+                if drill_solved_stem(p) == stem
+            ),
+            None,
+        )
         return f"drill: {title}", (drill_forecast(path) if path else None)
     return f"{pid}. {title}", solve_forecast(pid, load_problems())
 
@@ -103,19 +114,31 @@ class Session:
         self.label, fc = forecast()
         self.t0 = start_time()
         self.slept, self.parks = active_seconds()[1:]
-        self.marks = [("expected", fc[0] * 60, "green"),
-                      ("hint fair game", fc[1] * 60, "yellow"),
-                      ("stop, reinforce", fc[2] * 60, "red")] if fc else []
+        self.marks = (
+            [
+                ("expected", fc[0] * 60, "green"),
+                ("hint fair game", fc[1] * 60, "yellow"),
+                ("stop, reinforce", fc[2] * 60, "red"),
+            ]
+            if fc
+            else []
+        )
         self.progress = Progress(
             TextColumn("{task.description}"),
-            BarColumn(bar_width=None, complete_style="cyan", finished_style="bold cyan"),
+            BarColumn(
+                bar_width=None, complete_style="cyan", finished_style="bold cyan"
+            ),
             TextColumn("[dim]{task.fields[mark]}[/dim]"),
             TextColumn("{task.fields[left]:>10s}"),
-            console=console, expand=True,
+            console=console,
+            expand=True,
         )
-        self.tasks = [self.progress.add_task(f"[{c}]{name:15s}[/{c}]",
-                                             total=total, mark=clock(total), left="")
-                      for name, total, c in self.marks]
+        self.tasks = [
+            self.progress.add_task(
+                f"[{c}]{name:15s}[/{c}]", total=total, mark=clock(total), left=""
+            )
+            for name, total, c in self.marks
+        ]
 
     def zone(self, elapsed):
         """(color, message) for where the clock sits between the marks."""
@@ -135,15 +158,22 @@ class Session:
         for t, (_, total, c) in zip(self.tasks, self.marks):
             left = "" if elapsed >= total else f"-{clock(total - elapsed)}"
             self.progress.update(t, completed=min(elapsed, total), left=left)
-        body = [Align.center(big_clock(elapsed, color))]
+        body: list[RenderableType] = [Align.center(big_clock(elapsed, color))]
         if self.marks:
             body.append(self.progress)
         subtitle = f"[{color}]{message}[/{color}]"
         if self.parks:
             sh, sm = divmod(self.slept // 60, 60)
-            subtitle += f"  [dim]· slept {sh}h {sm:02d}m over {self.parks} park(s)[/dim]"
-        return Panel(Group(*body), title=f"[bold]{self.label}[/bold]",
-                     subtitle=subtitle, border_style=color, padding=(1, 2))
+            subtitle += (
+                f"  [dim]· slept {sh}h {sm:02d}m over {self.parks} park(s)[/dim]"
+            )
+        return Panel(
+            Group(*body),
+            title=f"[bold]{self.label}[/bold]",
+            subtitle=subtitle,
+            border_style=color,
+            padding=(1, 2),
+        )
 
 
 def main():
@@ -159,15 +189,25 @@ def main():
                 if session:
                     live.update(session.render())
                 else:
-                    live.update(Panel(Align.center(Text.from_markup(
-                        "[dim]idle — waiting for a solve branch "
-                        "(`make next`, `make drill`)[/dim]")),
-                        border_style="dim", padding=(1, 2)))
+                    live.update(
+                        Panel(
+                            Align.center(
+                                Text.from_markup(
+                                    "[dim]idle — waiting for a solve branch "
+                                    "(`make next`, `make drill`)[/dim]"
+                                )
+                            ),
+                            border_style="dim",
+                            padding=(1, 2),
+                        )
+                    )
                 time.sleep(1.0)
     except KeyboardInterrupt:
         if session:
-            console.print(f"{session.label} — {clock(time.time() - session.t0)} "
-                          "on the clock. `make solved` when it lands.")
+            console.print(
+                f"{session.label} — {clock(time.time() - session.t0)} "
+                "on the clock. `make solved` when it lands."
+            )
 
 
 if __name__ == "__main__":

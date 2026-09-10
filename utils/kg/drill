@@ -19,18 +19,36 @@ import os
 import re
 import subprocess
 import sys
+
 from rich.console import Console
 
-from kg.kg_lib import (load_evidence, load_problems, last_drilled, servable_drills, bank_paths,
-                       clear_branch, drill_path, drill_id, drill_after, warm)
+from kg.kg_lib import (
+    bank_paths,
+    clear_branch,
+    drill_after,
+    drill_id,
+    drill_path,
+    last_drilled,
+    load_evidence,
+    load_problems,
+    servable_drills,
+    warm,
+)
 
 console = Console()
 
 
 def main():
     parser = argparse.ArgumentParser(description="Load a bank drill into current.py.")
-    parser.add_argument("target", help="node id (drills/<node>/), a drill id (d14), or a path to a drill file")
-    parser.add_argument("--list", action="store_true", help="list the node's drills and when last drilled")
+    parser.add_argument(
+        "target",
+        help="node id (drills/<node>/), a drill id (d14), or a path to a drill file",
+    )
+    parser.add_argument(
+        "--list",
+        action="store_true",
+        help="list the node's drills and when last drilled",
+    )
     args = parser.parse_args()
 
     if re.fullmatch(r"d\d+", args.target) and drill_path(args.target):
@@ -41,7 +59,9 @@ def main():
         candidates = bank_paths(args.target)
         if not candidates:
             console.print(f"[red]No drills found under drills/{args.target}/[/red]")
-            existing = sorted(os.path.basename(d) for d in glob.glob("drills/*") if os.path.isdir(d))
+            existing = sorted(
+                os.path.basename(d) for d in glob.glob("drills/*") if os.path.isdir(d)
+            )
             if existing:
                 console.print(f"[dim]Nodes with drills: {', '.join(existing)}[/dim]")
             sys.exit(1)
@@ -53,19 +73,31 @@ def main():
     # is not warm, or a second node in its drills.json "trains" is not owned
     # (kg_lib.servable_drills). A direct file path bypasses the hold.
     direct = os.path.isfile(args.target) or re.fullmatch(r"d\d+", args.target)
-    released = candidates if direct else servable_drills(candidates, evidence, args.target)
+    released = (
+        candidates if direct else servable_drills(candidates, evidence, args.target)
+    )
 
     if args.list:
         for path in candidates:
             when = last_drilled(path, evidence) or "never"
-            after = [a for a in drill_after(path) if warm(a, problems, evidence) is False]
-            hold = "" if path in released else f"  [yellow]held by {', '.join(after) or 'TRAINS'}[/yellow]"
-            console.print(f"{drill_id(path) or '-':>4}  {path}  [dim]last drilled: {when}[/dim]{hold}")
+            after = [
+                a for a in drill_after(path) if warm(a, problems, evidence) is False
+            ]
+            hold = (
+                ""
+                if path in released
+                else f"  [yellow]held by {', '.join(after) or 'TRAINS'}[/yellow]"
+            )
+            console.print(
+                f"{drill_id(path) or '-':>4}  {path}  [dim]last drilled: {when}[/dim]{hold}"
+            )
         return
 
     if not released:
-        console.print(f"[yellow]every drill of {args.target} is held[/yellow] - "
-                      "`--list` shows by what; `make dependents <id>` shows what a hold opens")
+        console.print(
+            f"[yellow]every drill of {args.target} is held[/yellow] - "
+            "`--list` shows by what; `make dependents <id>` shows what a hold opens"
+        )
         sys.exit(1)
     # least-recently-drilled first; never-drilled sorts before everything
     path = min(released, key=lambda p: last_drilled(p, evidence))
@@ -92,14 +124,24 @@ def main():
         dst.write(content)
     subprocess.run(["git", "checkout", "-b", branch], check=True, capture_output=True)
     subprocess.run(["git", "add", "."], check=True, capture_output=True)
-    subprocess.run(["git", "commit", "-m", f"drill: {title}"], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", f"drill: {title}"], check=True, capture_output=True
+    )
 
     when = last_drilled(path, evidence) or "never"
-    console.print(f"Loaded [bold]{drill_id(path) or ''}. {title}[/bold] ({path}) into current.py on branch [bold]{branch}[/bold]  "
-                  f"[dim](last drilled: {when})[/dim]")
+    console.print(
+        f"Loaded [bold]{drill_id(path) or ''}. {title}[/bold] ({path}) into current.py on branch [bold]{branch}[/bold]  "
+        f"[dim](last drilled: {when})[/dim]"
+    )
     console.print("Solve it, then `make solved` as usual.")
     # the Claude Code pane follows the branch: its conversation is the drill's
-    subprocess.run([sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "chat"), "--switch"])
+    subprocess.run(
+        [
+            sys.executable,
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), "chat"),
+            "--switch",
+        ]
+    )
 
 
 if __name__ == "__main__":
