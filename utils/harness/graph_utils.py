@@ -29,7 +29,7 @@ except ImportError:
 
 def draw_graph(G: Dict[Any, Union[Dict[Any, Any], Any]]) -> None:
     """
-    Utility function to draw a graph (stored as dict of dicts or dict with (row, col) tuples as keys) in the terminal as a colored adjacency matrix.
+    Utility function to draw a graph (stored as dict of dicts, dict of lists, or dict with (row, col) tuples as keys) in the terminal as a colored adjacency matrix.
     Requires 'tabulate' library: pip install tabulate
     For colors, requires 'colorama': pip install colorama
     Colors edges based on values (e.g., 1 in red, 0 in blue).
@@ -39,6 +39,7 @@ def draw_graph(G: Dict[Any, Union[Dict[Any, Any], Any]]) -> None:
     # duck typing, auto convert edge list to graph
     if is_edge_list(G):
         G = build_graph_from_edge_list(G)
+    G = as_dict_of_dicts(G)
 
     try:
         from tabulate import tabulate
@@ -125,6 +126,19 @@ def build_graph_from_edge_list(edges, type="undirected"):
         G[u][v] = 0
         if type == "undirected":
             G[v][u] = 0
+    return G
+
+
+def as_dict_of_dicts(G: Any) -> Any:
+    """Accept a dict of lists (or tuples or sets) as well as a dict of dicts.
+    Each list neighbor becomes a dict entry with weight 1."""
+    if isinstance(G, dict) and any(
+        isinstance(v, (list, tuple, set)) for v in G.values()
+    ):
+        return {
+            k: (v if isinstance(v, dict) else {dst: 1 for dst in v})
+            for k, v in G.items()
+        }
     return G
 
 
@@ -259,9 +273,9 @@ def draw_graphviz(
             print(dot.source)
 
 
-def draw_ascii_graph(G: Dict[Any, Dict[Any, Any]]) -> None:
+def draw_ascii_graph(graph: Dict[Any, Union[Dict[Any, Any], List[Any]]]) -> None:
     """
-    Utility function to draw a graph (stored as dict of dicts) in the terminal using PHART for ASCII rendering.
+    Utility function to draw a graph (stored as dict of dicts or dict of lists) in the terminal using PHART for ASCII rendering.
     Requires 'networkx' and 'phart' libraries: pip install networkx phart
     Supports directed graphs. Edge weights (like 0/1) are ignored in rendering but structure is shown.
     """
@@ -270,6 +284,7 @@ def draw_ascii_graph(G: Dict[Any, Dict[Any, Any]]) -> None:
         print("Please install networkx and phart: pip install networkx phart")
         return
 
+    G: Dict[Any, Dict[Any, Any]] = as_dict_of_dicts(graph)
     if not G:
         print("Empty graph")
         return
@@ -297,9 +312,8 @@ def draw_ascii_graph(G: Dict[Any, Dict[Any, Any]]) -> None:
         # Fallback to adjacency list
         print("Fallback: Adjacency list")
         for src in sorted(G):
-            # `neighbors` held a dict above; here it is the printed list
-            neighbors = [f"{dst}({G[src][dst]})" for dst in sorted(G[src])]  # type: ignore[assignment]
-            print(f"{src}: {', '.join(neighbors)}")
+            shown = [f"{dst}({G[src][dst]})" for dst in sorted(G[src])]
+            print(f"{src}: {', '.join(shown)}")
 
 
 def build_graph(adj: List[List[int]]) -> Optional[GraphNode]:
