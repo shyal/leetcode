@@ -98,6 +98,8 @@ def main():
     console.print(f"Loaded [bold]{drill_id(path) or ''}. {title}[/bold] ({path}) into current.py on branch [bold]{branch}[/bold]  "
                   f"[dim](last drilled: {when})[/dim]")
     console.print("Solve it, then `make solved` as usual.")
+    # the Claude Code pane follows the branch: its conversation is the drill's
+    subprocess.run([sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "chat"), "--switch"])
 
 
 if __name__ == "__main__":
