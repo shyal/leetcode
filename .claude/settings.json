@@ -3,7 +3,7 @@
         "PostToolUse": [
             {
                 "matcher": "Edit|Write",
-                "hooks": [{"type": "command", "command": "utils/check/format-one"}],
+                "hooks": [{"type": "command", "command": "utils/check/format-one"}]
             }
         ],
         "UserPromptSubmit": [
@@ -12,14 +12,14 @@
                 "hooks": [
                     {
                         "type": "command",
-                        "command": 'cd "$CLAUDE_PROJECT_DIR" && PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_rep --line 2>/dev/null || true',
+                        "command": "cd \"$CLAUDE_PROJECT_DIR\" && PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_rep --line 2>/dev/null || true"
                     },
                     {
                         "type": "command",
-                        "command": 'cd "$CLAUDE_PROJECT_DIR" && utils/kg/chat --check 2>/dev/null || true',
-                    },
-                ],
+                        "command": "cd \"$CLAUDE_PROJECT_DIR\" && utils/kg/chat --check 2>/dev/null || true"
+                    }
+                ]
             }
-        ],
+        ]
     }
 }
