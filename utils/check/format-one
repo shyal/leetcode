@@ -1,0 +1,19 @@
+#!/bin/sh
+# Claude Code PostToolUse hook: after an Edit or Write under utils/ or dsa/,
+# run black and ruff --fix on that one file. Reads the hook's JSON on stdin,
+# never fails the tool call. Files outside the gates' scope are left alone.
+cd "$CLAUDE_PROJECT_DIR" || exit 0
+f=$(.venv/bin/python3 -c 'import json,sys; print(json.load(sys.stdin).get("tool_input",{}).get("file_path",""))' 2>/dev/null)
+[ -n "$f" ] || exit 0
+case "$f" in
+  "$PWD"/*) f=${f#"$PWD"/} ;;
+esac
+case "$f" in
+  utils/attic/*|utils/kg/kg_*_rs/*) exit 0 ;;
+  utils/*|dsa/*) ;;
+  *) exit 0 ;;
+esac
+utils/check/pyfiles | grep -qx "$f" || exit 0
+.venv/bin/ruff check -q --fix --select I "$f" >/dev/null 2>&1
+.venv/bin/black -q "$f" >/dev/null 2>&1
+exit 0
