@@ -52,19 +52,22 @@ from dsa.union_find import UnionFind
 
 class Solution(UnionFind):
     def countCompanies(self, pairs: List[List[int]]) -> int:
-        pass
+        count = len(self.parent)
+        for a, b in pairs:
+            count -= self.union(a, b)
+        return count
 
 
 sol = Solution(4)
 
 print(sol.countCompanies([[0, 1], [0, 2], [1, 2]]))  # 2
 
-# assert Solution(4).countCompanies([[0, 1], [0, 2], [1, 2]]) == 2
-# assert Solution(3).countCompanies([[0, 1], [1, 2]]) == 1
-# assert Solution(5).countCompanies([]) == 5
-# assert Solution(6).countCompanies([[0, 1], [2, 3], [4, 5], [0, 2], [3, 5]]) == 1
-# assert Solution(4).countCompanies([[0, 1], [1, 0], [2, 3], [0, 3]]) == 1
-# assert Solution(1).countCompanies([]) == 1
-# assert Solution(2).countCompanies([[0, 1], [0, 1]]) == 1
-# assert Solution(4).countCompanies([[0, 1], [2, 3]]) == 2
-# assert Solution(3).countCompanies([[0, 0]]) == 3
+assert Solution(4).countCompanies([[0, 1], [0, 2], [1, 2]]) == 2
+assert Solution(3).countCompanies([[0, 1], [1, 2]]) == 1
+assert Solution(5).countCompanies([]) == 5
+assert Solution(6).countCompanies([[0, 1], [2, 3], [4, 5], [0, 2], [3, 5]]) == 1
+assert Solution(4).countCompanies([[0, 1], [1, 0], [2, 3], [0, 3]]) == 1
+assert Solution(1).countCompanies([]) == 1
+assert Solution(2).countCompanies([[0, 1], [0, 1]]) == 1
+assert Solution(4).countCompanies([[0, 1], [2, 3]]) == 2
+assert Solution(3).countCompanies([[0, 0]]) == 3
