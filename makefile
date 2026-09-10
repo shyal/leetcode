@@ -173,6 +173,10 @@ spot:
 timer:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/timer
 
+# this branch's Claude Code conversation: resumed if it exists, started if not
+chat:
+	@utils/kg/chat $(filter-out $@,$(MAKECMDGOALS))
+
 # chart generation is disabled: the README carries only the Elo chart and the
 # two badges, so only kg_elo_svg (chart + Elo badge) and kg_streak_svg (streak
 # badge) run. The other renderers still work standalone if a chart comes back:

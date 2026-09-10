@@ -23,6 +23,7 @@
 # merely uncomfortable; discomfort means retrieval is working.
 
 import argparse
+import os
 import subprocess
 import sys
 from datetime import datetime
@@ -90,6 +91,8 @@ def wake(args, nodes, problems, evidence):
     print(f"{pnum}. {title} is awake on branch {pnum} — "
           f"{hm(active)} fought so far, {hm(slept)} slept over {sleeps} park(s). "
           "make solved / make sleep as usual.")
+    # the Claude Code pane follows the branch: back to the problem's conversation
+    subprocess.run([sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "chat"), "--switch"])
 
 
 def park(args, nodes, problems, evidence):
