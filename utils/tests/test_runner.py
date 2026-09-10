@@ -53,6 +53,7 @@ def test_solved(module_name):
 
 def test_current():
     print("")
+    import current  # noqa: F401  # on a branch this runs the solve
 
 
 if __name__ == "__main__":
