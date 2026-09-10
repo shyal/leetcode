@@ -1,4 +1,4 @@
-from operator import lt, gt, le, ge
+from operator import lt, gt
 
 
 class Type:
@@ -13,17 +13,11 @@ class MonotonicStack:
         self.type = type
 
     def push(self, val):
-        res = []
         op = (lt, gt)[self.type]
-        ope = (le, ge)[self.type]
-
-        if not self.data or ope(val[0], self.data[-1][0]):
-            self.data.append(val)
-        else:
-            while self.data and op(self.data[-1][0], val[0]):
-                r = self.data.pop()
-                res.append(r)
-            self.data.append(val)
+        res = []
+        while self.data and op(self.data[-1][0], val[0]):
+            res.append(self.data.pop())
+        self.data.append(val)
         return res
 
     def pop(self):
@@ -44,5 +38,5 @@ res = []
 for i, v in enumerate(vals):
     r = stack.push((v, i))
     res.extend(r)
-assert res == [(1, 4), (2, 3)] # these two got evicted by the last 3
+assert res == [(1, 4), (2, 3)]  # these two got evicted by the last 3
 assert stack.data == [(5, 0), (4, 1), (3, 2), (3, 5)]
