@@ -1,8 +1,8 @@
 {
   "_comment": "Solve-time model fitted by utils/kg/kg_solvecost. ln minutes = a + g_reps*ln(1+reps) + g_conn*(conn-conn_mean) + g_len*ln(walk) + g_assist*assist + kind + node eff. A refresh of node n after r clean reps costs exp(a + g_reps*ln(1+r) + g_conn*(conn_n-conn_mean) + kind_n + eff_n) minutes, clamped to [min_cost, max_cost]. Delete this file to fall back to the flat 10-minute refresh.",
   "fit": {
-    "n": 808,
-    "r2": 0.2861,
+    "n": 809,
+    "r2": 0.2894,
     "date": "2026-09-10"
   },
   "params": {
@@ -10,9 +10,9 @@
     "g_reps": -0.0602,
     "g_conn": 0.021,
     "g_len": 0.409,
-    "g_assist": 0.3375,
+    "g_assist": 0.3376,
     "kind_Medium": 0.7753,
-    "kind_Hard": 1.3652,
+    "kind_Hard": 1.3654,
     "kind_drill": -0.3075,
     "kind_Easy": 0.0,
     "conn_mean": 3.0714,
@@ -159,7 +159,7 @@
       "n": 7
     },
     "sliding-window-fixed": {
-      "eff": 0.4018,
+      "eff": 0.4017,
       "conn": 2.322,
       "kind": "drill",
       "n": 6
@@ -183,16 +183,16 @@
       "n": 3
     },
     "monotonic-stack": {
-      "eff": 0.3103,
+      "eff": 0.2796,
       "conn": 2.585,
       "kind": "drill",
-      "n": 6
+      "n": 7
     },
     "deque-recent-window": {
-      "eff": 0.0785,
+      "eff": 0.069,
       "conn": 2.0,
       "kind": "Easy",
-      "n": 4
+      "n": 5
     },
     "ll-dummy-splice": {
       "eff": 0.1319,
@@ -225,7 +225,7 @@
       "n": 15
     },
     "binary-search-on-answer": {
-      "eff": 0.5164,
+      "eff": 0.5163,
       "conn": 4.0,
       "kind": "Easy",
       "n": 23
@@ -453,7 +453,7 @@
       "n": 9
     },
     "recursive-descent": {
-      "eff": -0.1454,
+      "eff": -0.1455,
       "conn": 1.585,
       "kind": "drill",
       "n": 21
@@ -471,7 +471,7 @@
       "n": 3
     },
     "generate-and-test-neighbors": {
-      "eff": -0.0635,
+      "eff": -0.0636,
       "conn": 3.322,
       "kind": "Easy",
       "n": 6
@@ -585,7 +585,7 @@
       "n": 4
     },
     "sql-window-offset": {
-      "eff": 0.0214,
+      "eff": 0.0213,
       "conn": 0.0,
       "kind": "drill",
       "n": 3
@@ -597,7 +597,7 @@
       "n": 3
     },
     "substring-enumeration": {
-      "eff": -0.4189,
+      "eff": -0.419,
       "conn": 0.0,
       "kind": "drill",
       "n": 6
