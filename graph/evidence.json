@@ -8880,6 +8880,16 @@
       },
       "note": "DISTINCT and LIMIT/OFFSET keywords initially forgotten; recovered after hint.",
       "summary": "The query uses DISTINCT salary with ORDER BY DESC and LIMIT 1 OFFSET 1 to skip the highest distinct salary and return the second distinct value, exercising the sql-nth-value pattern for retrieving the Nth distinct element in sorted order."
+    },
+    "solved/d_Count_Univalue_Subtrees_2026_09_10T20_09_30_363203_00_00Z.py": {
+      "date": "2026-09-11",
+      "problem": "drill",
+      "moves": {
+        "tree-dfs-recursive": "clean",
+        "tree-combine-returns": "clean",
+        "tree-global-across-subtrees": "clean"
+      },
+      "summary": "The solution uses recursive DFS to traverse the tree bottom-up. At each node, it combines information from left and right subtrees to check if they form univalue subtrees with matching values. A global counter accumulates across all subtrees to track the total count of univalue subtrees."
     }
   }
 }
