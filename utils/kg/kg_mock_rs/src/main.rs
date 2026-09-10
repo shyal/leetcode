@@ -18,6 +18,9 @@ use serde_json::Value;
 
 use kg_mock::*;
 
+// one mock row: (day, solves per band, n_nodes, offh, spread)
+type Row = (i64, (i64, i64, i64), usize, f64, Vec<(f64, f64, f64, f64)>);
+
 fn measured_first_contact(evidence: &[EvRec]) -> f64 {
     let mut order: Vec<usize> = (0..evidence.len()).collect();
     order.sort_by(|&x, &y| evidence[x].fname.cmp(&evidence[y].fname));
@@ -27,7 +30,7 @@ fn measured_first_contact(evidence: &[EvRec]) -> f64 {
         let key = (rec.date.as_str(), ts_match(&rec.fname));
         for (node, v) in &rec.moves {
             match first.get(node.as_str()) {
-                Some((k0, _)) if !(key < *k0) => {}
+                Some((k0, _)) if key >= *k0 => {}
                 _ => {
                     first.insert(node.as_str(), (key.clone(), v.as_str()));
                 }
@@ -378,8 +381,7 @@ impl<'a> SimState<'a> {
         for &n in &order {
             let s = (self.cv.a + self.cv.b * (1.0 + self.reps[n] as f64).ln())
                 .exp()
-                .max(7.0)
-                .min(3650.0);
+                .clamp(7.0, 3650.0);
             let cost = self.bank.refresh_cost(n, self.reps[n]);
             if (1.0 + self.gaps[n] as f64 / s).powf(-self.cv.beta) < self.cv.target
                 && budget >= cost
@@ -429,8 +431,7 @@ impl<'a> SimState<'a> {
             .map(|n| {
                 let s = (self.cv.a + self.cv.b * (1.0 + self.reps[n] as f64).ln())
                     .exp()
-                    .max(7.0)
-                    .min(3650.0);
+                    .clamp(7.0, 3650.0);
                 (1.0 + self.gaps[n] as f64 / s).powf(-self.cv.beta)
             })
             .collect();
@@ -1105,7 +1106,7 @@ fn main() {
 
     let results = run_all(&tasks);
 
-    let mut rows: Vec<(i64, (i64, i64, i64), usize, f64, Vec<(f64, f64, f64, f64)>)> = Vec::new();
+    let mut rows: Vec<Row> = Vec::new();
     // workable, competent, onsite-ready (the faang-readiness line)
     let mut milestones: [Option<i64>; 3] = [None, None, None];
     for s in &snaps {

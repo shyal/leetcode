@@ -275,7 +275,7 @@ pub fn node_status(
         .map(|(d, _, _)| *d)
         .collect();
     if (last_verdict == "struggled" || last_verdict == "avoided")
-        && !clean_dates.last().map_or(false, |c| *c >= last_date)
+        && clean_dates.last().is_none_or(|c| *c < last_date)
     {
         return (FRAGILE, Some(parse_date(last_date)));
     }
@@ -298,8 +298,7 @@ pub fn node_status(
     let stability = (cv.a + cv.b * (1.0 + cleans).ln() - cv.c * struggles - cv.d * assisted
         + cv.e * (cn - cv.conn_mean))
         .exp()
-        .max(7.0)
-        .min(3650.0);
+        .clamp(7.0, 3650.0);
     let clean_last = parse_date(clean_dates.last().unwrap());
     let gap = (today - clean_last).num_days() as f64;
     if (1.0 + gap / stability).powf(-cv.beta) >= cv.target {
@@ -336,10 +335,7 @@ pub fn current_recall(
             if status == MISSING || last.is_none() || cleans == 0.0 {
                 return None;
             }
-            let s = (cv.a + cv.b * (1.0 + cleans).ln())
-                .exp()
-                .max(7.0)
-                .min(3650.0);
+            let s = (cv.a + cv.b * (1.0 + cleans).ln()).exp().clamp(7.0, 3650.0);
             Some((1.0 + (today - last.unwrap()).num_days() as f64 / s).powf(-cv.beta))
         })
         .collect()
@@ -571,6 +567,7 @@ impl Bank {
 // mv_recall; usize::MAX when the weakest link was a move he has never met)
 // and whether the problem failed. pass_rates and outcome_hist are thin
 // tallies over this — the RNG stream is identical for identical inputs.
+#[allow(clippy::too_many_arguments)]
 pub fn run_mocks(
     mv_recall: &[Option<f64>],
     pools: &[Vec<Vec<Vec<usize>>>; 3],

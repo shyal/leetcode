@@ -515,6 +515,7 @@ fn animate(attr_name: &str, calc: &str, values: &[String], key_times: &[f64], du
 // pre-graph era to the blue graph-scheduling era on the switch date's tick.
 // era_frac None = the whole replay is one era (static label). halo draws a
 // background-colored outline for banners placed over chart ink.
+#[allow(clippy::too_many_arguments)]
 fn era_banner(
     x: f64,
     y: f64,
