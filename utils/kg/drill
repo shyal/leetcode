@@ -9,7 +9,7 @@
 #
 # The workflow then matches leetcode problems exactly: a branch named after
 # the node is created off master with the stub committed; solve current.py,
-# run `make solved` — the DRILL/TRAINS docstring headers route it to a
+# run `make solved` — the DRILL header and its drills.json entry route it to a
 # d_-prefixed file in solved/ and drill evidence in the graph, and the branch
 # squash-merges into master like any problem branch.
 
@@ -21,7 +21,7 @@ import subprocess
 import sys
 from rich.console import Console
 
-from kg.kg_lib import (load_evidence, load_problems, last_drilled, servable_drills,
+from kg.kg_lib import (load_evidence, load_problems, last_drilled, servable_drills, bank_paths,
                        clear_branch, drill_path, drill_id, drill_after, warm)
 
 console = Console()
@@ -38,7 +38,7 @@ def main():
     elif os.path.isfile(args.target):
         candidates = [args.target]
     else:
-        candidates = sorted(glob.glob(os.path.join("drills", args.target, "*.py")))
+        candidates = bank_paths(args.target)
         if not candidates:
             console.print(f"[red]No drills found under drills/{args.target}/[/red]")
             existing = sorted(os.path.basename(d) for d in glob.glob("drills/*") if os.path.isdir(d))
@@ -50,7 +50,7 @@ def main():
     problems = load_problems()
 
     # a drill is held while an id in its "after" list (graph/drills.json)
-    # is not warm, or a second node on its TRAINS line is not owned
+    # is not warm, or a second node in its drills.json "trains" is not owned
     # (kg_lib.servable_drills). A direct file path bypasses the hold.
     direct = os.path.isfile(args.target) or re.fullmatch(r"d\d+", args.target)
     released = candidates if direct else servable_drills(candidates, evidence, args.target)
@@ -78,8 +78,11 @@ def main():
     m = re.search(r"^\s*DRILL:\s*(.+)$", content, flags=re.M)
     title = m.group(1).strip() if m else os.path.splitext(os.path.basename(path))[0]
     node_id = os.path.basename(os.path.dirname(path))
+    # the branch is the drill's graph id: unique per drill, the way a
+    # problem's branch is its number; the node name is shared by its bank
+    branch = drill_id(path) or node_id
 
-    if not clear_branch(node_id):
+    if not clear_branch(branch):
         return
 
     # same branch flow as prepare: stub committed on a branch off master,
@@ -87,12 +90,12 @@ def main():
     subprocess.run(["git", "checkout", "master"], check=True, capture_output=True)
     with open("current.py", "w") as dst:
         dst.write(content)
-    subprocess.run(["git", "checkout", "-b", node_id], check=True, capture_output=True)
+    subprocess.run(["git", "checkout", "-b", branch], check=True, capture_output=True)
     subprocess.run(["git", "add", "."], check=True, capture_output=True)
     subprocess.run(["git", "commit", "-m", f"drill: {title}"], check=True, capture_output=True)
 
     when = last_drilled(path, evidence) or "never"
-    console.print(f"Loaded [bold]{drill_id(path) or ''}. {title}[/bold] ({path}) into current.py on branch [bold]{node_id}[/bold]  "
+    console.print(f"Loaded [bold]{drill_id(path) or ''}. {title}[/bold] ({path}) into current.py on branch [bold]{branch}[/bold]  "
                   f"[dim](last drilled: {when})[/dim]")
     console.print("Solve it, then `make solved` as usual.")
 

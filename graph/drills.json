@@ -1,132 +1,207 @@
 {
-  "_comment": "Drills as vertices of the graph. The key is the drill's id (d1, d2, ...): assigned once, never reused, the way LeetCode numbers are; it is what \"after\" lists, make prepare and make next use. \"title\" is the DRILL header of the bank file (drills/<node>/*.py), which is how the file, its node and its TRAINS line are found, and how evidence is keyed. \"after\": [ids] - what this drill builds on; an id is a drill id, a problem number, or a node id, and the drill is not served until each is warm (kg_lib.warm). Filename order means nothing. Seeded 2026-08-31 from the bank's former filename order.",
+  "_comment": "Drills as vertices of the graph. The key is the drill's id (d1, d2, ...): assigned once, never reused, the way LeetCode numbers are; it is what \"after\" lists, make prepare and make next use. \"title\" is the DRILL header of the bank file (drills/<node>/*.py), which is how the file, its node and its TRAINS line are found, and how evidence is keyed. \"after\": [ids] - what this drill builds on; an id is a drill id, a problem number, or a node id, and the drill is not served until each is warm (kg_lib.warm). Filename order means nothing. Seeded 2026-08-31 from the bank's former filename order. \"trains\" is the list of node ids the drill evidences; it lives here, keyed by the stable id, so a node rename never touches a bank file or a solved copy.",
   "drills": {
     "d1": {
       "title": "One From Each",
-      "after": []
+      "after": [],
+      "trains": [
+        "backtracking-choose-undo"
+      ]
     },
     "d2": {
       "title": "No Repeat Siblings",
-      "after": []
+      "after": [],
+      "trains": [
+        "backtracking-dedupe-siblings"
+      ]
     },
     "d3": {
       "title": "Permutations",
-      "after": []
+      "after": [],
+      "trains": [
+        "backtracking-mark-unmark"
+      ]
     },
     "d4": {
       "title": "Grid Path",
       "after": [
         "d3"
+      ],
+      "trains": [
+        "backtracking-mark-unmark"
       ]
     },
     "d5": {
       "title": "Pairs",
-      "after": []
+      "after": [],
+      "trains": [
+        "backtracking-start-index"
+      ]
     },
     "d6": {
       "title": "Triples",
       "after": [
         "d5"
+      ],
+      "trains": [
+        "backtracking-start-index"
       ]
     },
     "d7": {
       "title": "Combinations",
       "after": [
         "d6"
+      ],
+      "trains": [
+        "backtracking-start-index"
       ]
     },
     "d8": {
       "title": "Reuse Allowed",
       "after": [
         "d77"
+      ],
+      "trains": [
+        "backtracking-start-index"
       ]
     },
     "d9": {
       "title": "Record Every Node",
       "after": [
         "d76"
+      ],
+      "trains": [
+        "backtracking-start-index"
       ]
     },
     "d10": {
       "title": "Sort Bounded Values",
-      "after": []
+      "after": [],
+      "trains": [
+        "counting-sort-buckets"
+      ]
     },
     "d11": {
       "title": "Count Smaller Values",
       "after": [
         "d10"
+      ],
+      "trains": [
+        "counting-sort-buckets"
       ]
     },
     "d12": {
       "title": "Kth Smallest Bounded Value",
       "after": [
         "d11"
+      ],
+      "trains": [
+        "counting-sort-buckets"
       ]
     },
     "d13": {
       "title": "Count Missing Integers",
-      "after": []
+      "after": [],
+      "trains": [
+        "index-value-gap"
+      ]
     },
     "d14": {
       "title": "Next Greater Index",
-      "after": []
+      "after": [],
+      "trains": [
+        "monotonic-stack"
+      ]
     },
     "d15": {
       "title": "Range Sum Queries",
-      "after": []
+      "after": [],
+      "trains": [
+        "prefix-sums"
+      ]
     },
     "d16": {
       "title": "Number Scanner",
-      "after": []
+      "after": [],
+      "trains": [
+        "recursive-descent"
+      ]
     },
     "d17": {
       "title": "Tape Reader",
       "after": [
         "d16"
+      ],
+      "trains": [
+        "recursive-descent"
       ]
     },
     "d18": {
       "title": "Bundle Refunds",
       "after": [
         "d17"
+      ],
+      "trains": [
+        "recursive-descent"
       ]
     },
     "d19": {
       "title": "Multi-Buy",
       "after": [
         "d18"
+      ],
+      "trains": [
+        "recursive-descent"
       ]
     },
     "d20": {
       "title": "Longest Run of Ones",
-      "after": []
+      "after": [],
+      "trains": [
+        "sliding-window-budget"
+      ]
     },
     "d21": {
       "title": "Slide, Never Shrink",
       "after": [
         "d20"
+      ],
+      "trains": [
+        "sliding-window-budget"
       ]
     },
     "d22": {
       "title": "Fixed Slide",
-      "after": []
+      "after": [],
+      "trains": [
+        "sliding-window-fixed"
+      ]
     },
     "d23": {
       "title": "Anagram Windows",
       "after": [
         "d22"
+      ],
+      "trains": [
+        "sliding-window-fixed"
       ]
     },
     "d24": {
       "title": "Grow and Shrink",
       "after": [
         "d75"
+      ],
+      "trains": [
+        "sliding-window-variable"
       ]
     },
     "d25": {
       "title": "Shrink While Valid",
       "after": [
         "d24"
+      ],
+      "trains": [
+        "sliding-window-variable"
       ]
     },
     "d26": {
@@ -134,26 +209,41 @@
       "after": [
         "d25",
         "d75"
+      ],
+      "trains": [
+        "sliding-window-variable"
       ]
     },
     "d27": {
       "title": "Exactly K",
       "after": [
         "d26"
+      ],
+      "trains": [
+        "sliding-window-variable"
       ]
     },
     "d28": {
       "title": "Employees Who Manage Nobody",
-      "after": []
+      "after": [],
+      "trains": [
+        "sql-anti-join"
+      ]
     },
     "d29": {
       "title": "Approved Count Per Country",
-      "after": []
+      "after": [],
+      "trains": [
+        "sql-conditional-aggregate"
+      ]
     },
     "d30": {
       "title": "Approved Transactions Per Country",
       "after": [
         "d29"
+      ],
+      "trains": [
+        "sql-conditional-aggregate"
       ]
     },
     "d31": {
@@ -162,68 +252,116 @@
         "d30",
         "d44",
         "d91"
+      ],
+      "trains": [
+        "sql-conditional-aggregate",
+        "sql-join-left-keep"
       ]
     },
     "d32": {
       "title": "Next Day",
-      "after": []
+      "after": [],
+      "trains": [
+        "sql-date-arithmetic"
+      ]
     },
     "d33": {
       "title": "Rising Temperature",
       "after": [
         "d32"
+      ],
+      "trains": [
+        "sql-date-arithmetic",
+        "sql-self-join"
       ]
     },
     "d34": {
       "title": "Monthly Transactions",
       "after": [
         "d33"
+      ],
+      "trains": [
+        "sql-date-arithmetic",
+        "sql-conditional-aggregate"
       ]
     },
     "d35": {
       "title": "Keep Smallest Id Per Email",
-      "after": []
+      "after": [],
+      "trains": [
+        "sql-dedupe-keep-one"
+      ]
     },
     "d36": {
       "title": "Not Boring Movies",
-      "after": []
+      "after": [],
+      "trains": [
+        "sql-filter-select"
+      ]
     },
     "d37": {
       "title": "Island Key",
-      "after": []
+      "after": [],
+      "trains": [
+        "sql-gaps-islands"
+      ]
     },
     "d38": {
       "title": "Human Traffic Of Stadium",
       "after": [
         "d37"
+      ],
+      "trains": [
+        "sql-gaps-islands",
+        "sql-having-filter-groups"
       ]
     },
     "d39": {
       "title": "Longest Login Streak Per User",
       "after": [
         "d38"
+      ],
+      "trains": [
+        "sql-gaps-islands",
+        "sql-date-arithmetic"
       ]
     },
     "d40": {
       "title": "Distinct Subjects Per Teacher",
-      "after": []
+      "after": [],
+      "trains": [
+        "sql-group-aggregate"
+      ]
     },
     "d41": {
       "title": "Classes With At Least Five Students",
-      "after": []
+      "after": [],
+      "trains": [
+        "sql-having-filter-groups"
+      ]
     },
     "d42": {
       "title": "Sales With Product Names",
-      "after": []
+      "after": [],
+      "trains": [
+        "sql-join-inner"
+      ]
     },
     "d43": {
       "title": "Unique Id Or Null",
-      "after": []
+      "after": [],
+      "trains": [
+        "sql-join-left-keep"
+      ]
     },
     "d44": {
       "title": "Paid Orders Per Customer",
       "after": [
         "d43"
+      ],
+      "trains": [
+        "sql-join-left-keep",
+        "sql-group-aggregate"
       ]
     },
     "d45": {
@@ -232,103 +370,171 @@
         "d44",
         "d91",
         "d92"
+      ],
+      "trains": [
+        "sql-join-left-keep",
+        "sql-group-aggregate"
       ]
     },
     "d46": {
       "title": "Second Distinct Salary",
-      "after": []
+      "after": [],
+      "trains": [
+        "sql-nth-value"
+      ]
     },
     "d47": {
       "title": "Second Highest Salary",
       "after": [
         "d46"
+      ],
+      "trains": [
+        "sql-nth-value",
+        "sql-subquery"
       ]
     },
     "d48": {
       "title": "Not Referred By Customer Two",
-      "after": []
+      "after": [],
+      "trains": [
+        "sql-null-semantics"
+      ]
     },
     "d49": {
       "title": "Manager Name",
-      "after": []
+      "after": [],
+      "trains": [
+        "sql-self-join"
+      ]
     },
     "d50": {
       "title": "Reports Per Manager",
       "after": [
         "d49"
+      ],
+      "trains": [
+        "sql-self-join",
+        "sql-group-aggregate"
       ]
     },
     "d51": {
       "title": "Stack Both Sides",
-      "after": []
+      "after": [],
+      "trains": [
+        "sql-set-union"
+      ]
     },
     "d52": {
       "title": "Who Has The Most Friends",
       "after": [
         "d51"
+      ],
+      "trains": [
+        "sql-set-union",
+        "sql-group-aggregate"
       ]
     },
     "d53": {
       "title": "Fix Names",
-      "after": []
+      "after": [],
+      "trains": [
+        "sql-string-functions"
+      ]
     },
     "d54": {
       "title": "Products Sold Per Date",
       "after": [
         "d53"
+      ],
+      "trains": [
+        "sql-string-functions",
+        "sql-group-aggregate"
       ]
     },
     "d55": {
       "title": "Total Users Per Contest",
-      "after": []
+      "after": [],
+      "trains": [
+        "sql-subquery"
+      ]
     },
     "d56": {
       "title": "Percentage Of All Users Per Contest",
       "after": [
         "d55",
         "d91"
+      ],
+      "trains": [
+        "sql-subquery"
       ]
     },
     "d57": {
       "title": "Sales In Each Product's First Year",
       "after": [
         "d56"
+      ],
+      "trains": [
+        "sql-subquery",
+        "sql-group-aggregate"
       ]
     },
     "d58": {
       "title": "Month Over Month Change",
-      "after": []
+      "after": [],
+      "trains": [
+        "sql-window-offset"
+      ]
     },
     "d59": {
       "title": "Consecutive Numbers",
       "after": [
         "d58"
+      ],
+      "trains": [
+        "sql-window-offset"
       ]
     },
     "d60": {
       "title": "Dense Rank Scores",
-      "after": []
+      "after": [],
+      "trains": [
+        "sql-window-rank"
+      ]
     },
     "d61": {
       "title": "Department Top Three Salaries",
       "after": [
         "d60"
+      ],
+      "trains": [
+        "sql-window-rank",
+        "sql-subquery"
       ]
     },
     "d62": {
       "title": "Latest Reading Per Sensor",
       "after": [
         "d61"
+      ],
+      "trains": [
+        "sql-window-rank"
       ]
     },
     "d63": {
       "title": "Running Total",
-      "after": []
+      "after": [],
+      "trains": [
+        "sql-window-running"
+      ]
     },
     "d64": {
       "title": "Last Person To Fit In The Bus",
       "after": [
         "d63"
+      ],
+      "trains": [
+        "sql-window-running",
+        "sql-subquery"
       ]
     },
     "d65": {
@@ -336,135 +542,211 @@
       "after": [
         "d64",
         "d90"
+      ],
+      "trains": [
+        "sql-window-running",
+        "sql-group-aggregate"
       ]
     },
     "d66": {
       "title": "Ledger Tally",
-      "after": []
+      "after": [],
+      "trains": [
+        "stack-nested-eval"
+      ]
     },
     "d67": {
       "title": "Level Groups",
-      "after": []
+      "after": [],
+      "trains": [
+        "tree-bfs-levels"
+      ]
     },
     "d68": {
       "title": "Count Univalue Subtrees",
-      "after": []
+      "after": [],
+      "trains": [
+        "tree-global-across-subtrees"
+      ]
     },
     "d69": {
       "title": "Distribute Coins",
       "after": [
         "d68"
+      ],
+      "trains": [
+        "tree-global-across-subtrees"
       ]
     },
     "d70": {
       "title": "Find Roots",
       "after": [
         "d84"
+      ],
+      "trains": [
+        "union-find"
       ]
     },
     "d71": {
       "title": "How Many Companies",
       "after": [
         "d73"
+      ],
+      "trains": [
+        "union-find"
       ]
     },
     "d72": {
       "title": "Find with Path Compression",
       "after": [
         "d71"
+      ],
+      "trains": [
+        "union-find"
       ]
     },
     "d73": {
       "title": "Union Links Head to Head",
       "after": [
         "d70"
+      ],
+      "trains": [
+        "union-find"
       ]
     },
     "d74": {
       "title": "All Substrings",
-      "after": []
+      "after": [],
+      "trains": [
+        "substring-enumeration"
+      ]
     },
     "d75": {
       "title": "Substrings by End",
       "after": [
         "d74"
+      ],
+      "trains": [
+        "substring-enumeration"
       ]
     },
     "d76": {
       "title": "Choose From an Array",
       "after": [
         "d7"
+      ],
+      "trains": [
+        "backtracking-start-index"
       ]
     },
     "d77": {
       "title": "Each Element Once",
       "after": [
         "d76"
+      ],
+      "trains": [
+        "backtracking-start-index"
       ]
     },
     "d78": {
       "title": "Song To Playlists",
-      "after": []
+      "after": [],
+      "trains": [
+        "graph-inverted-index"
+      ]
     },
     "d79": {
       "title": "Plates Sharing A Bolt",
-      "after": []
+      "after": [],
+      "trains": [
+        "graph-overlap-adjacency"
+      ]
     },
     "d80": {
       "title": "Shake Hands With The Host",
-      "after": []
+      "after": [],
+      "trains": [
+        "graph-adjacency-build"
+      ]
     },
     "d82": {
       "title": "Claim Or Merge",
       "after": [
         "d72",
         "d78"
+      ],
+      "trains": [
+        "union-find"
       ]
     },
     "d83": {
       "title": "Parts Per Pallet",
       "after": [
         "d82"
+      ],
+      "trains": [
+        "union-find"
       ]
     },
     "d84": {
       "title": "Build Parents",
-      "after": []
+      "after": [],
+      "trains": [
+        "union-find"
+      ]
     },
     "d85": {
       "title": "Install Order",
       "after": [
         "d80"
+      ],
+      "trains": [
+        "topological-order"
       ]
     },
     "d86": {
       "title": "Read The Numbers",
       "after": [
         "d16"
+      ],
+      "trains": [
+        "stack-nested-eval"
       ]
     },
     "d87": {
       "title": "Read The Signed Numbers",
       "after": [
         "d86"
+      ],
+      "trains": [
+        "stack-nested-eval"
       ]
     },
     "d88": {
       "title": "Orders In A Date Window",
       "after": [
         "d36"
+      ],
+      "trains": [
+        "sql-filter-select"
       ]
     },
     "d89": {
       "title": "Revenue Per Product",
       "after": [
         "d40"
+      ],
+      "trains": [
+        "sql-group-aggregate"
       ]
     },
     "d90": {
       "title": "Average Years Per Project",
       "after": [
         "d40"
+      ],
+      "trains": [
+        "sql-group-aggregate"
       ]
     },
     "d91": {
@@ -472,6 +754,9 @@
       "after": [
         "d89",
         "d90"
+      ],
+      "trains": [
+        "sql-group-aggregate"
       ]
     },
     "d92": {
@@ -479,15 +764,24 @@
       "after": [
         "d42",
         "d88"
+      ],
+      "trains": [
+        "sql-join-inner"
       ]
     },
     "d93": {
       "title": "Nested Boxes",
-      "after": []
+      "after": [],
+      "trains": [
+        "stack-nested-eval"
+      ]
     },
     "d94": {
       "title": "Longest Common Subsequence",
-      "after": []
+      "after": [],
+      "trains": [
+        "two-sequence-align"
+      ]
     }
   }
 }

@@ -40,7 +40,7 @@ from kg.kg_lib import (
     save_problems, save_evidence, claude_json, taxonomy_summary, node_status,
     manila_date_from_filename, load_predicted, unlocks,
     HARNESS_ENV_NOTE, SOLID, apply_assist_floor, assist_tag, normalise_assist,
-    notes_assist_level, PENDING, store_evidence_entry, evidence_lock,
+    notes_assist_level, PENDING, store_evidence_entry, evidence_lock, drills,
 )
 from kg import recognition as rc
 
@@ -239,6 +239,19 @@ def is_drill_file(path, code):
 
 
 def trains_in(code):
+    """The nodes a drill file trains: its DRILL title looked up in
+    drills.json (the "trains" list, keyed by the stable id); a TRAINS
+    header only for an old solved copy whose title the bank no longer
+    carries."""
+    m = re.search(r"^\s*\**DRILL:\**\s*(.+?)\s*$", code, flags=re.M)
+    if m:
+        try:
+            reg = drills()
+        except OSError:
+            reg = {}  # a test graph without drills.json
+        for entry in reversed(list(reg.values())):
+            if entry.get("title") == m.group(1) and "trains" in entry:
+                return list(entry["trains"])
     m = TRAINS_RE.search(code)
     return [t.strip() for t in m.group(1).split(",")] if m else []
 

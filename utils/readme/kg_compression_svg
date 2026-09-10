@@ -105,7 +105,7 @@ def window(t0, t1, clock):
 def members_of(nodes, problems, reg, evidenced):
     """node -> sorted labels of the problems that walk it and the drills
     that train it. A problem's moves are the union of its walk, its
-    alt_walks and what its solves evidenced; a drill's are its TRAINS line
+    alt_walks and what its solves evidenced; a drill's are its drills.json "trains"
     and what its reps evidenced."""
     mem = {nid: set() for nid in nodes}
     probs = set(problems) | {k for k in evidenced if k[:1].isdigit()}

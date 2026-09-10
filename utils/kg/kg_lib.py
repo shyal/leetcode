@@ -1730,6 +1730,18 @@ def drill_solved_stem(path):
     return re.sub(r"[^\w\s-]", "", title).strip().replace(" ", "_")
 
 
+def bank_paths(node_id="*"):
+    """The bank files of a node (or of every node), in drill-id order: the
+    files are named d<id>_<slug>.py so they are easy to find, and a plain
+    string sort would put d76 before d8. Files without an id sort last, by
+    name. Where nothing else separates two drills (both never done), the
+    lower id is served first."""
+    def key(path):
+        i = drill_id(path)
+        return (int(i[1:]) if i else 10**9, os.path.basename(path))
+    return sorted(glob.glob(os.path.join(DRILLS_DIR, node_id, "*.py")), key=key)
+
+
 _DRILL_PATHS = {}  # DRILLS_DIR -> {DRILL title: bank path}
 
 
@@ -1742,7 +1754,7 @@ def drill_path(ref):
     paths = _DRILL_PATHS.get(DRILLS_DIR)
     if paths is None or title not in paths:
         paths = {}
-        for path in sorted(glob.glob(os.path.join(DRILLS_DIR, "*", "*.py"))):
+        for path in sorted(glob.glob(os.path.join(DRILLS_DIR, "*", "*.py"))):  # not bank_paths: it needs drill_id
             t = drill_title(path)
             if t is not None:
                 paths.setdefault(t, path)
@@ -1751,7 +1763,7 @@ def drill_path(ref):
     return paths.get(title)
 
 
-_DRILLS = None  # drills.json: {id: {"title": DRILL title, "after": [ids]}}
+_DRILLS = None  # drills.json: {id: {"title": DRILL title, "after": [ids], "trains": [node ids]}}
 
 
 def load_drills():
@@ -2014,9 +2026,15 @@ def drill_held(node_id, nodes, statuses, evidence, has_bank=None, pending=()):
 
 
 def drill_trains(path):
-    """The node ids a bank drill evidences: its TRAINS header, comma
-    separated. A composite drill lists every move it combines, the way a
-    leetcode problem's walk does; the solve evidences all of them."""
+    """The node ids a bank drill evidences: the "trains" list of its
+    drills.json entry, keyed by the stable id so a node rename touches one
+    line there and never a bank file or a solved copy. A composite drill
+    lists every move it combines, the way a leetcode problem's walk does;
+    the solve evidences all of them. A file with no entry (the test banks,
+    a simulated drill) falls back to its TRAINS header."""
+    i = drill_id(path)
+    if i is not None and "trains" in drills().get(i, {}):
+        return list(drills()[i]["trains"])
     return list(_drill_header(path)[1])
 
 
@@ -2362,7 +2380,7 @@ def anki_frontier(evidence, today=None, nodes=None, node_ids=None, assisted=Fals
     ranked = []
     for node in sorted(nodes if node_ids is None else node_ids):
         depth = len(input_tree([node], nodes)) if node in nodes else 0
-        for path in sorted(glob.glob(os.path.join(DRILLS_DIR, node, "*.py"))):
+        for path in bank_paths(node):
             if assisted and not drill_assisted(path, evidence):
                 continue
             key = anki_rank(path, evidence, day, depth)
@@ -2427,7 +2445,7 @@ def due_drill(node_id, evidence, today=None, early=False, assisted=False):
     # unaided rep, which nothing else serves (2026-09-06, Install Order
     # behind Shake Hands for 23 starved days).
     today = (today or date.today()).isoformat()
-    candidates = sorted(glob.glob(os.path.join(DRILLS_DIR, node_id, "*.py")))
+    candidates = bank_paths(node_id)
     if assisted or holds:
         candidates = [p for p in candidates if drill_assisted(p, evidence)]
     if not candidates:
@@ -2450,7 +2468,7 @@ def drills_left(node_id, evidence, early=False):
     (the 2026-08-31 Combinations serve: done once with a walkthrough, so
     Reuse Allowed and Subsets stayed held, the node read done, and the
     dedupe drill got served with subsets never done)."""
-    candidates = sorted(glob.glob(os.path.join(DRILLS_DIR, node_id, "*.py")))
+    candidates = bank_paths(node_id)
     problems = _problems_ro()
     by_id = {drill_id(p): p for p in candidates}
     reachable = set(servable_drills(candidates, evidence, node_id, early=early))
