@@ -92,25 +92,24 @@ def check():
     )
 
 
-def claude_pid_tty():
-    """(pid, tty) of the claude process whose working directory is this
-    repo, or (None, None). Other repos' claudes are left alone."""
+def claude_tty(pid):
+    """The tty of the claude process `pid` if it is a claude whose working
+    directory is this repo, else None. Only the pid the loop noted is
+    consulted: another claude open in this repo (a second pane, a `claude`
+    typed by hand) must not be mistaken for the loop's."""
     ps = subprocess.run(
-        ["ps", "-A", "-o", "pid=,tty=,comm="], capture_output=True, text=True
+        ["ps", "-o", "tty=,comm=", "-p", str(pid)], capture_output=True, text=True
+    ).stdout.split()
+    if len(ps) != 2 or ps[1] != "claude" or ps[0] == "??":
+        return None
+    cwd = subprocess.run(
+        ["lsof", "-a", "-p", str(pid), "-d", "cwd", "-Fn"],
+        capture_output=True,
+        text=True,
     ).stdout
-    for line in ps.splitlines():
-        parts = line.split(None, 2)
-        if len(parts) == 3 and parts[2] == "claude" and parts[1] != "??":
-            cwd = subprocess.run(
-                ["lsof", "-a", "-p", parts[0], "-d", "cwd", "-Fn"],
-                capture_output=True,
-                text=True,
-            ).stdout
-            if "\nn" + REPO_ROOT + "\n" in cwd or cwd.rstrip().endswith(
-                "\nn" + REPO_ROOT
-            ):
-                return int(parts[0]), "/dev/" + parts[1]
-    return None, None
+    if "\nn" + REPO_ROOT + "\n" in cwd or cwd.rstrip().endswith("\nn" + REPO_ROOT):
+        return "/dev/" + ps[0]
+    return None
 
 
 def osascript(script):
@@ -139,9 +138,10 @@ def switch():
     """Exit the claude that `make chat` is running in this repo's iTerm2
     pane; the loop starts it again on the branch now checked out. Nothing
     to do when no such claude is running."""
-    pid, tty = claude_pid_tty()
     state = load_state()
-    if pid is None or state.get("pid") != pid or not alive(pid):
+    pid = state.get("pid")
+    tty = claude_tty(pid) if pid and alive(pid) else None
+    if tty is None:
         print(
             "no `make chat` running in this repo - start claude with `make chat` and it follows the branch"
         )
