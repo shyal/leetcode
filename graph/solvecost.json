@@ -1,8 +1,8 @@
 {
   "_comment": "Solve-time model fitted by utils/kg/kg_solvecost. ln minutes = a + g_reps*ln(1+reps) + g_conn*(conn-conn_mean) + g_len*ln(walk) + g_assist*assist + kind + node eff. A refresh of node n after r clean reps costs exp(a + g_reps*ln(1+r) + g_conn*(conn_n-conn_mean) + kind_n + eff_n) minutes, clamped to [min_cost, max_cost]. Delete this file to fall back to the flat 10-minute refresh.",
   "fit": {
-    "n": 807,
-    "r2": 0.2856,
+    "n": 808,
+    "r2": 0.2861,
     "date": "2026-09-10"
   },
   "params": {
@@ -10,10 +10,10 @@
     "g_reps": -0.0602,
     "g_conn": 0.021,
     "g_len": 0.409,
-    "g_assist": 0.3376,
+    "g_assist": 0.3375,
     "kind_Medium": 0.7753,
     "kind_Hard": 1.3652,
-    "kind_drill": -0.3076,
+    "kind_drill": -0.3075,
     "kind_Easy": 0.0,
     "conn_mean": 3.0714,
     "min_cost": 1.0,
@@ -69,7 +69,7 @@
       "n": 61
     },
     "derived-key-lookup": {
-      "eff": -0.1834,
+      "eff": -0.1833,
       "conn": 4.17,
       "kind": "Easy",
       "n": 27
@@ -111,7 +111,7 @@
       "n": 13
     },
     "prefix-sum-hashmap": {
-      "eff": -0.6912,
+      "eff": -0.6911,
       "conn": 2.807,
       "kind": "Easy",
       "n": 5
@@ -129,7 +129,7 @@
       "n": 23
     },
     "counting-sort-buckets": {
-      "eff": 0.22,
+      "eff": 0.2199,
       "conn": 1.0,
       "kind": "drill",
       "n": 7
@@ -171,10 +171,10 @@
       "n": 11
     },
     "sliding-window-budget": {
-      "eff": 0.2589,
+      "eff": 0.2419,
       "conn": 1.0,
       "kind": "drill",
-      "n": 10
+      "n": 11
     },
     "stack-matching": {
       "eff": 0.1599,
@@ -183,7 +183,7 @@
       "n": 3
     },
     "monotonic-stack": {
-      "eff": 0.3104,
+      "eff": 0.3103,
       "conn": 2.585,
       "kind": "drill",
       "n": 6
@@ -207,7 +207,7 @@
       "n": 9
     },
     "ll-offset-arithmetic": {
-      "eff": 0.1717,
+      "eff": 0.1716,
       "conn": 2.322,
       "kind": "Easy",
       "n": 5
@@ -273,7 +273,7 @@
       "n": 3
     },
     "graph-adjacency-build": {
-      "eff": 0.3703,
+      "eff": 0.3702,
       "conn": 3.17,
       "kind": "drill",
       "n": 20
@@ -291,7 +291,7 @@
       "n": 7
     },
     "union-find": {
-      "eff": -0.379,
+      "eff": -0.3791,
       "conn": 2.585,
       "kind": "drill",
       "n": 32
@@ -447,7 +447,7 @@
       "n": 2
     },
     "stack-nested-eval": {
-      "eff": 0.1891,
+      "eff": 0.189,
       "conn": 2.585,
       "kind": "drill",
       "n": 9
@@ -483,19 +483,19 @@
       "n": 5
     },
     "sql-filter-select": {
-      "eff": 0.1734,
+      "eff": 0.1733,
       "conn": 0.0,
       "kind": "drill",
       "n": 4
     },
     "sql-null-semantics": {
-      "eff": 0.0198,
+      "eff": 0.0197,
       "conn": 0.0,
       "kind": "drill",
       "n": 4
     },
     "sql-join-inner": {
-      "eff": -0.089,
+      "eff": -0.0891,
       "conn": 0.0,
       "kind": "drill",
       "n": 4
@@ -507,49 +507,49 @@
       "n": 7
     },
     "sql-group-aggregate": {
-      "eff": 0.1222,
+      "eff": 0.1221,
       "conn": 0.0,
       "kind": "drill",
       "n": 16
     },
     "sql-having-filter-groups": {
-      "eff": 0.044,
+      "eff": 0.0439,
       "conn": 0.0,
       "kind": "drill",
       "n": 3
     },
     "sql-conditional-aggregate": {
-      "eff": 0.0365,
+      "eff": 0.0364,
       "conn": 0.0,
       "kind": "drill",
       "n": 7
     },
     "sql-anti-join": {
-      "eff": 0.5003,
+      "eff": 0.5002,
       "conn": 0.0,
       "kind": "drill",
       "n": 5
     },
     "sql-self-join": {
-      "eff": 0.2626,
+      "eff": 0.2625,
       "conn": 0.0,
       "kind": "drill",
       "n": 8
     },
     "sql-subquery": {
-      "eff": 0.2369,
+      "eff": 0.2368,
       "conn": 0.0,
       "kind": "drill",
       "n": 4
     },
     "sql-date-arithmetic": {
-      "eff": -0.1967,
+      "eff": -0.1968,
       "conn": 0.0,
       "kind": "drill",
       "n": 3
     },
     "sql-set-union": {
-      "eff": -0.2574,
+      "eff": -0.2575,
       "conn": 0.0,
       "kind": "drill",
       "n": 3
@@ -567,19 +567,19 @@
       "n": 2
     },
     "sql-string-functions": {
-      "eff": -0.0446,
+      "eff": -0.0447,
       "conn": 0.0,
       "kind": "drill",
       "n": 3
     },
     "sql-window-rank": {
-      "eff": 0.1678,
+      "eff": 0.1677,
       "conn": 0.0,
       "kind": "drill",
       "n": 6
     },
     "sql-window-running": {
-      "eff": -0.1444,
+      "eff": -0.1445,
       "conn": 0.0,
       "kind": "drill",
       "n": 4
@@ -591,7 +591,7 @@
       "n": 3
     },
     "sql-gaps-islands": {
-      "eff": -0.1944,
+      "eff": -0.1945,
       "conn": 0.0,
       "kind": "drill",
       "n": 3
