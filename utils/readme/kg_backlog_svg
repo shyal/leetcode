@@ -1,0 +1,115 @@
+#!/usr/bin/env python3
+
+# kg_backlog_svg - the review backlog day by day, rendered into
+# graph/backlog.svg for the README pipeline.
+#
+# Three counts per day, each taken from the evidence on file up to that day
+# and the same clocks the picker runs (kg_lib.problem_due, kg_lib.anki_due):
+#   open cards  - problems on a review clock of their own: an attempt went
+#                 badly (a FAILED file, any assist) and no unaided clean rep
+#                 has retired the card since.
+#   due cards   - the open cards whose clock has run out, the ones the picker
+#                 serves ahead of the frontier.
+#   due drills  - bank files done at least once whose clock has run out. A
+#                 bank file never done is new ground, not backlog, and is not
+#                 counted.
+# The clocks are computed from the evidence, so the curves run back over the
+# whole history even though the problem clock only reached the picker on
+# 2026-09-10.
+
+import os
+from datetime import date, timedelta
+
+from kg.kg_lib import GRAPH_DIR, anki_due, bank_paths, ev_index, load_evidence, problem_due
+
+OUT = os.path.join(GRAPH_DIR, "backlog.svg")
+
+W, H = 1200, 400
+BG = "#0d1117"
+MUTED = "#8b949e"
+GRID = "#21262d"
+SERIES = (("open cards", "#8b949e"),
+          ("due cards", "#f85149"),
+          ("due drills", "#d29922"))
+ML, MR, MT, MB = 62, 24, 60, 40
+
+
+def counts():
+    """[(date, open cards, due cards, due drills)] one per day from the
+    first evidenced attempt to today."""
+    evidence = load_evidence()
+    banks = list(bank_paths())
+    d0 = date.fromisoformat(min(r["date"] for r in evidence.values()))
+    # one dict grown a day at a time, in date order: kg_lib.ev_index reuses
+    # its index for a dict that has only grown at the end
+    ordered = sorted(evidence.items(), key=lambda kv: (kv[1]["date"], kv[0]))
+    upto, i, out, d = {}, 0, [], d0
+    while d <= date.today():
+        while i < len(ordered) and ordered[i][1]["date"] <= d.isoformat():
+            upto[ordered[i][0]] = ordered[i][1]
+            i += 1
+        cards = [problem_due(p, upto) for p in ev_index(upto).by_problem if p[:1].isdigit()]
+        cards = [c for c in cards if c]
+        drills = [anki_due(p, upto) for p in banks]
+        out.append((d, len(cards), sum(1 for c in cards if c[0] <= d),
+                    sum(1 for a in drills if a and a[0] <= d)))
+        d += timedelta(days=1)
+    return out
+
+
+def main():
+    rows = counts()
+    d0, d1 = rows[0][0], rows[-1][0]
+    span = max((d1 - d0).days, 1)
+    top, bottom = MT, H - MB
+    hi = max(max(r[1:]) for r in rows)
+    step = 5 if hi <= 30 else 10 if hi <= 80 else 25
+    hi = -(-hi // step) * step or step
+
+    def x_of(d):
+        return ML + (d - d0).days / span * (W - ML - MR)
+
+    def y_of(v):
+        return bottom - v / hi * (bottom - top)
+
+    last = rows[-1]
+    svg = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" '
+           f'font-family="Helvetica,sans-serif">',
+           f'<rect width="{W}" height="{H}" fill="{BG}"/>',
+           f'<text x="{W / 2:.0f}" y="20" text-anchor="middle" font-size="11" fill="{MUTED}">'
+           f'today: {last[1]} open cards, {last[2]} due, {last[3]} drills due</text>']
+    for g in range(0, hi + 1, step):
+        y = y_of(g)
+        svg.append(f'<line x1="{ML}" y1="{y:.1f}" x2="{W - MR}" y2="{y:.1f}" '
+                   f'stroke="{GRID}" stroke-width="1"/>')
+        svg.append(f'<text x="{ML - 8}" y="{y + 4:.1f}" text-anchor="end" font-size="11" '
+                   f'fill="{MUTED}">{g}</text>')
+    d = date(d0.year, d0.month, 1)
+    while d <= d1:
+        if d >= d0:
+            x = x_of(d)
+            svg.append(f'<line x1="{x:.1f}" y1="{top}" x2="{x:.1f}" y2="{bottom}" '
+                       f'stroke="{GRID}" stroke-width="1"/>')
+            svg.append(f'<text x="{x:.1f}" y="{bottom + 18}" text-anchor="middle" font-size="11" '
+                       f'fill="{MUTED}">{d.strftime("%b %y")}</text>')
+        d = (d.replace(day=28) + timedelta(days=4)).replace(day=1)
+    for i, (label, color) in enumerate(SERIES, start=1):
+        pts = " ".join(f"{x_of(r[0]):.1f},{y_of(r[i]):.1f}" for r in rows)
+        svg.append(f'<polyline points="{pts}" fill="none" stroke="{color}" '
+                   f'stroke-width="2"/>')
+    y = MT - 18
+    x = ML
+    for label, color in SERIES:
+        svg.append(f'<line x1="{x}" y1="{y}" x2="{x + 16}" y2="{y}" '
+                   f'stroke="{color}" stroke-width="2"/>')
+        svg.append(f'<text x="{x + 22}" y="{y + 4}" font-size="11" fill="{MUTED}">'
+                   f'{label}</text>')
+        x += 34 + 6.2 * len(label)
+    svg.append("</svg>")
+    with open(OUT, "w") as f:
+        f.write("\n".join(svg) + "\n")
+    print(f"wrote {OUT} ({last[1]} open cards, {last[2]} due, {last[3]} drills due)")
+
+
+if __name__ == "__main__":
+    main()

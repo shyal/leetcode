@@ -31,7 +31,7 @@ OUT = os.path.join(GRAPH_DIR, "problem_rating.svg")
 
 WINDOW = 50
 
-W, H = 1200, 400
+W, H = 1200, 1000
 BG = "#0d1117"
 MUTED = "#8b949e"
 GRID = "#21262d"
@@ -80,12 +80,16 @@ def trailing_median(att):
     return sorted(by_day.items())
 
 
+def elo_module():
+    from importlib.machinery import SourceFileLoader
+    src = os.path.join(os.path.dirname(os.path.abspath(__file__)), "kg_elo_svg")
+    return SourceFileLoader("kg_elo_svg", src).load_module()
+
+
 def elo_curve():
     """[(date, elo after the day's last game)] from the same scoring the Elo
     chart uses, or [] when nothing is scored."""
-    from importlib.machinery import SourceFileLoader
-    src = os.path.join(os.path.dirname(os.path.abspath(__file__)), "kg_elo_svg")
-    mod = SourceFileLoader("kg_elo_svg", src).load_module()
+    mod = elo_module()
     return mod.elo(mod.games())
 
 
@@ -96,13 +100,14 @@ def main():
         return
     med = trailing_median(att)
     elo = elo_curve()
+    RANKS = elo_module().RANKS
     d0 = min(att[0][0], elo[0][0] if elo else att[0][0])
     d1 = max(att[-1][0], elo[-1][0] if elo else att[-1][0])
     span = max((d1 - d0).days, 1)
     top, bottom = MT, H - MB
     vals = [r for _, r, _ in att] + [r for _, r in elo]
     lo = int(min(vals) // 100 * 100) - 100
-    hi = int(-(-max(vals) // 100) * 100) + 100
+    hi = max(int(-(-max(vals) // 100) * 100), RANKS[0][0]) + 100
 
     def x_of(d):
         return ML + (d - d0).days / span * (W - ML - MR)
@@ -130,6 +135,17 @@ def main():
            f'<text x="{W / 2:.0f}" y="20" text-anchor="middle" font-size="11" fill="{MUTED}">'
            f'{len(att)} attempts - {tally} - median rating '
            f'{median([r for _, r, _ in att]):.0f}</text>']
+    # the rank cutoffs the Elo chart draws (kg_elo_svg.RANKS): a band above
+    # each line, so where the dots sit against Knight and Guardian is read
+    # off the same picture as the Elo
+    for cut, name, color in RANKS:
+        y = y_of(cut)
+        svg.append(f'<rect x="{ML}" y="{top}" width="{W - ML - MR}" height="{y - top:.1f}" '
+                   f'fill="{color}" fill-opacity="0.06"/>')
+        svg.append(f'<line x1="{ML}" y1="{y:.1f}" x2="{W - MR}" y2="{y:.1f}" '
+                   f'stroke="{color}" stroke-width="1" stroke-dasharray="4 4"/>')
+        svg.append(f'<text x="{W - MR - 4}" y="{y - 5:.1f}" text-anchor="end" font-size="11" '
+                   f'fill="{color}">{name} {cut}</text>')
     for g in range(lo, hi + 1, 200):
         y = y_of(g)
         svg.append(f'<line x1="{ML}" y1="{y:.1f}" x2="{W - MR}" y2="{y:.1f}" '
