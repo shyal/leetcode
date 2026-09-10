@@ -55,8 +55,12 @@ fn solve_log(repo_root: &PathBuf) -> Vec<(NaiveDate, f64)> {
     let mut entries = Vec::new();
     for block in log.split("~~~") {
         let block = block.trim();
-        let Some(head) = block.get(..10) else { continue };
-        let Ok(when) = NaiveDate::parse_from_str(head, "%Y-%m-%d") else { continue };
+        let Some(head) = block.get(..10) else {
+            continue;
+        };
+        let Ok(when) = NaiveDate::parse_from_str(head, "%Y-%m-%d") else {
+            continue;
+        };
         let mut rest = block;
         while let Some(pos) = rest.find("solve time: ") {
             rest = &rest[pos + 12..];
@@ -104,7 +108,11 @@ fn solve_mix(evidence: &[EvRec], metadata: &Value, today: NaiveDate) -> [f64; 3]
             recent[dif] += 1.0;
         }
     }
-    let pick = if recent.iter().sum::<f64>() > 0.0 { recent } else { all };
+    let pick = if recent.iter().sum::<f64>() > 0.0 {
+        recent
+    } else {
+        all
+    };
     let total: f64 = pick.iter().sum();
     if total == 0.0 {
         return [0.0, 1.0, 0.0];
@@ -137,7 +145,9 @@ fn week_pace(log: &[(NaiveDate, f64)], today: NaiveDate) -> Option<f64> {
     // the floor only ever adds days inside the dead week, which are zero
     let window = window.max(7);
     let minutes: f64 = mins[..window].iter().sum();
-    let h: f64 = format!("{:.1}", minutes / window as f64 / 60.0).parse().unwrap();
+    let h: f64 = format!("{:.1}", minutes / window as f64 / 60.0)
+        .parse()
+        .unwrap();
     if h == 0.0 {
         None
     } else {
@@ -287,23 +297,24 @@ impl<'a> SimState<'a> {
         mix: [f64; 3],
         coef: SolveModel,
     ) -> Self {
-        let walk_unlearned: Vec<u32> =
-            bank.walk_extras.iter().map(|e| e.len() as u32).collect();
-        let mut clean_walks: [Vec<u32>; 3] =
-            [0, 1, 2].map(|d| vec![0u32; bank.pools[d].len()]);
+        let walk_unlearned: Vec<u32> = bank.walk_extras.iter().map(|e| e.len() as u32).collect();
+        let mut clean_walks: [Vec<u32>; 3] = [0, 1, 2].map(|d| vec![0u32; bank.pools[d].len()]);
         for (gid, &(dif, pi)) in bank.walk_prob.iter().enumerate() {
             if walk_unlearned[gid] == 0 {
                 clean_walks[dif][pi] += 1;
             }
         }
-        let blocked =
-            [0, 1, 2].map(|d| clean_walks[d].iter().filter(|&&c| c == 0).count());
+        let blocked = [0, 1, 2].map(|d| clean_walks[d].iter().filter(|&&c| c == 0).count());
         let mean_walk = [0, 1, 2].map(|d| {
             let walks: Vec<f64> = bank.pools[d]
                 .iter()
                 .filter_map(|p| p.iter().map(|w| w.len() as f64).reduce(f64::min))
                 .collect();
-            if walks.is_empty() { 3.0 } else { walks.iter().sum::<f64>() / walks.len() as f64 }
+            if walks.is_empty() {
+                3.0
+            } else {
+                walks.iter().sum::<f64>() / walks.len() as f64
+            }
         });
         SimState {
             cv,
@@ -669,7 +680,12 @@ const MONTHS: [&str; 12] = [
 ];
 
 fn fmt_date_short(d: NaiveDate) -> String {
-    format!("{} {} {:02}", d.day(), MONTHS[d.month0() as usize], d.year() % 100)
+    format!(
+        "{} {} {:02}",
+        d.day(),
+        MONTHS[d.month0() as usize],
+        d.year() % 100
+    )
 }
 
 fn fmt_date_long(d: NaiveDate) -> String {
@@ -747,7 +763,8 @@ fn find_graph_dir() -> PathBuf {
 }
 
 fn load_json(path: &PathBuf) -> Value {
-    let text = std::fs::read_to_string(path).unwrap_or_else(|e| panic!("{}: {}", path.display(), e));
+    let text =
+        std::fs::read_to_string(path).unwrap_or_else(|e| panic!("{}: {}", path.display(), e));
     serde_json::from_str(&text).unwrap_or_else(|e| panic!("{}: {}", path.display(), e))
 }
 
@@ -790,25 +807,24 @@ fn main() {
         .as_object()
         .expect("evidence.json: evidence{}")
         .iter()
-        .map(|(fname, rec)| {
-            EvRec {
-                fname: fname.clone(),
-                date: rec["date"].as_str().expect("evidence date").to_string(),
-                moves: rec
-                    .get("moves")
-                    .and_then(Value::as_object)
-                    .map(|m| {
-                        m.iter()
-                            .map(|(k, v)| (k.clone(), v.as_str().unwrap_or("").to_string()))
-                            .collect()
-                    })
-                    .unwrap_or_default(),
-                assist: kg_mock::assist_map(rec),
-            }
+        .map(|(fname, rec)| EvRec {
+            fname: fname.clone(),
+            date: rec["date"].as_str().expect("evidence date").to_string(),
+            moves: rec
+                .get("moves")
+                .and_then(Value::as_object)
+                .map(|m| {
+                    m.iter()
+                        .map(|(k, v)| (k.clone(), v.as_str().unwrap_or("").to_string()))
+                        .collect()
+                })
+                .unwrap_or_default(),
+            assist: kg_mock::assist_map(rec),
         })
         .collect();
     // the first rep of a drill is unaided at the node level (kg_lib.ev_index)
-    for i in kg_mock::first_drill_reps(evidence.iter().map(|r| (r.fname.as_str(), r.date.as_str()))) {
+    for i in kg_mock::first_drill_reps(evidence.iter().map(|r| (r.fname.as_str(), r.date.as_str())))
+    {
         evidence[i].assist.clear();
     }
     // chronological, so a historical replay date is just a prefix slice; every
@@ -1153,7 +1169,10 @@ fn main() {
         return;
     }
 
-    println!("{}", styled("today, cold, on a random 2E+2M+2H set:", "bold", color));
+    println!(
+        "{}",
+        styled("today, cold, on a random 2E+2M+2H set:", "bold", color)
+    );
     let today_rows: Vec<Vec<Cell>> = scenarios
         .iter()
         .enumerate()

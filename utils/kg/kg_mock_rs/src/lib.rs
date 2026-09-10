@@ -20,7 +20,10 @@ pub struct PyRandom {
 
 impl PyRandom {
     pub fn new(seed: u32) -> Self {
-        let mut r = PyRandom { mt: [0; 624], mti: 624 };
+        let mut r = PyRandom {
+            mt: [0; 624],
+            mti: 624,
+        };
         r.init_by_array(&[seed]);
         r
     }
@@ -150,8 +153,12 @@ pub fn drill_key(fname: &str) -> Option<String> {
         if c == b'_' && i + 12 <= b.len() {
             let t = &b[i + 1..i + 12];
             let digits = |r: std::ops::Range<usize>| t[r].iter().all(u8::is_ascii_digit);
-            if digits(0..4) && t[4] == b'_' && digits(5..7) && t[7] == b'_'
-                && digits(8..10) && t[10] == b't'
+            if digits(0..4)
+                && t[4] == b'_'
+                && digits(5..7)
+                && t[7] == b'_'
+                && digits(8..10)
+                && t[10] == b't'
             {
                 return Some(stem[..i].to_string());
             }
@@ -169,7 +176,9 @@ where
 {
     let mut firsts: HashMap<String, (String, String, usize)> = HashMap::new();
     for (i, (fname, date)) in recs.into_iter().enumerate() {
-        let Some(key) = drill_key(fname) else { continue };
+        let Some(key) = drill_key(fname) else {
+            continue;
+        };
         let base = fname.rsplit('/').next().unwrap_or(fname).to_lowercase();
         let better = match firsts.get(&key) {
             Some((d, b, _)) => (date, base.as_str()) < (d.as_str(), b.as_str()),
@@ -241,7 +250,12 @@ pub fn parse_date(s: &str) -> NaiveDate {
     NaiveDate::parse_from_str(s, "%Y-%m-%d").expect("bad date in evidence")
 }
 
-pub fn node_status(node: &str, evidence: &[EvRec], today: NaiveDate, cv: &Curve) -> (u8, Option<NaiveDate>) {
+pub fn node_status(
+    node: &str,
+    evidence: &[EvRec],
+    today: NaiveDate,
+    cv: &Curve,
+) -> (u8, Option<NaiveDate>) {
     let mut entries: Vec<(&str, &str, &str)> = Vec::new();
     for rec in evidence {
         if let Some(v) = rec.moves.get(node) {
@@ -322,7 +336,10 @@ pub fn current_recall(
             if status == MISSING || last.is_none() || cleans == 0.0 {
                 return None;
             }
-            let s = (cv.a + cv.b * (1.0 + cleans).ln()).exp().max(7.0).min(3650.0);
+            let s = (cv.a + cv.b * (1.0 + cleans).ln())
+                .exp()
+                .max(7.0)
+                .min(3650.0);
             Some((1.0 + (today - last.unwrap()).num_days() as f64 / s).powf(-cv.beta))
         })
         .collect()
@@ -380,9 +397,18 @@ impl SolveModel {
         let f = v.get("solve")?.get("features")?;
         Some(SolveModel {
             intercept: f.get("intercept").and_then(serde_json::Value::as_f64)?,
-            rating: f.get("rating").and_then(serde_json::Value::as_f64).unwrap_or(0.0),
-            recall: f.get("recall").and_then(serde_json::Value::as_f64).unwrap_or(0.0),
-            unseen: f.get("unseen").and_then(serde_json::Value::as_f64).unwrap_or(0.0),
+            rating: f
+                .get("rating")
+                .and_then(serde_json::Value::as_f64)
+                .unwrap_or(0.0),
+            recall: f
+                .get("recall")
+                .and_then(serde_json::Value::as_f64)
+                .unwrap_or(0.0),
+            unseen: f
+                .get("unseen")
+                .and_then(serde_json::Value::as_f64)
+                .unwrap_or(0.0),
             intercept_se: v["solve"]["intercept_se"].as_f64().unwrap_or(0.0),
             drift: v["solve"]["elo"]["drift_per_day"].as_f64().unwrap_or(0.0),
             drift_se: v["solve"]["elo"]["drift_se"].as_f64().unwrap_or(0.0),
@@ -412,8 +438,10 @@ impl SolveModel {
 
     /// One walk's linear predictor.
     pub fn logit(&self, rating: f64, ln_recall: f64, unseen: f64) -> f64 {
-        self.intercept + self.rating * (rating - 1500.0) / 400.0
-            + self.recall * ln_recall + self.unseen * unseen
+        self.intercept
+            + self.rating * (rating - 1500.0) / 400.0
+            + self.recall * ln_recall
+            + self.unseen * unseen
     }
 }
 
@@ -579,7 +607,11 @@ pub fn run_mocks(
                     let v = term[mv];
                     if v < min_v {
                         min_v = v;
-                        min_i = if mv_recall[mv].is_some() { mv } else { usize::MAX };
+                        min_i = if mv_recall[mv].is_some() {
+                            mv
+                        } else {
+                            usize::MAX
+                        };
                     }
                     z += v;
                 }
@@ -603,15 +635,19 @@ impl Bank {
     // problems.json (one table: an evidenced entry has "moves" and a
     // difficulty, a drafted one "walks" + missing: suggestions),
     // problems_metadata.json (difficulty for problems only the drafts know).
-    pub fn build(problems: &serde_json::Value,
-                 metadata: &serde_json::Value, node_ids: &[String],
-                 ratings: &serde_json::Value) -> Bank {
+    pub fn build(
+        problems: &serde_json::Value,
+        metadata: &serde_json::Value,
+        node_ids: &[String],
+        ratings: &serde_json::Value,
+    ) -> Bank {
         use serde_json::Value;
         let norm = |s: &str| s.trim().to_lowercase().replace(' ', "-");
         let dif_of = |num: &str, obj: &serde_json::Map<String, Value>| -> Option<usize> {
-            let d = obj.get("difficulty").and_then(Value::as_str).or_else(|| {
-                metadata.get(num).and_then(|m| m["difficulty"].as_str())
-            })?;
+            let d = obj
+                .get("difficulty")
+                .and_then(Value::as_str)
+                .or_else(|| metadata.get(num).and_then(|m| m["difficulty"].as_str()))?;
             match d {
                 "Easy" => Some(0),
                 "Medium" => Some(1),
@@ -619,7 +655,9 @@ impl Bank {
                 _ => None,
             }
         };
-        let probs = problems["problems"].as_object().expect("problems.json: problems{}");
+        let probs = problems["problems"]
+            .as_object()
+            .expect("problems.json: problems{}");
 
         // universe: node ids first, then extras ranked by walk mentions
         let mut index: HashMap<String, usize> = HashMap::new();
@@ -632,9 +670,18 @@ impl Bank {
         let walk_of = |v: &Value, mention: &mut HashMap<String, f64>| -> Vec<String> {
             let mut w: Vec<String> = v["moves"]
                 .as_array()
-                .map(|a| a.iter().filter_map(Value::as_str).map(String::from).collect())
+                .map(|a| {
+                    a.iter()
+                        .filter_map(Value::as_str)
+                        .map(String::from)
+                        .collect()
+                })
                 .unwrap_or_default();
-            for m in v.get("missing").and_then(Value::as_array).unwrap_or(&vec![]) {
+            for m in v
+                .get("missing")
+                .and_then(Value::as_array)
+                .unwrap_or(&vec![])
+            {
                 let name = norm(m.as_str().unwrap_or(""));
                 if name.is_empty() || name.starts_with("brute-force") {
                     continue;
@@ -653,8 +700,10 @@ impl Bank {
         let mut raw: HashMap<String, (usize, Vec<Vec<String>>)> = HashMap::new();
         for (num, v) in probs {
             let Some(obj) = v.as_object() else { continue };
-            let Some(dif) = dif_of(num, obj) else { continue };
-            let w = walk_of(v, &mut mention);  // the evidenced walk, if any
+            let Some(dif) = dif_of(num, obj) else {
+                continue;
+            };
+            let w = walk_of(v, &mut mention); // the evidenced walk, if any
             if !w.is_empty() {
                 raw.entry(num.clone()).or_insert((dif, vec![])).1.push(w);
             }
@@ -692,7 +741,11 @@ impl Bank {
                 .filter_map(|n| rating_of(n))
                 .collect();
             seen.sort_by(|a, b| a.partial_cmp(b).unwrap());
-            if seen.is_empty() { 1500.0 } else { seen[seen.len() / 2] }
+            if seen.is_empty() {
+                1500.0
+            } else {
+                seen[seen.len() / 2]
+            }
         });
         for num in nums {
             let (dif, walks) = &raw[num];
@@ -730,12 +783,21 @@ pub fn pass_rates(
     n_mc: usize,
 ) -> (f64, f64, f64, f64) {
     let (mut full, mut onsite, mut screen, mut h_solved) = (0i64, 0i64, 0i64, 0i64);
-    run_mocks(mv_recall, pools, ratings, coef, shift, rng, n_mc, |solved, _| {
-        full += (solved[0] == 2 && solved[1] == 2 && solved[2] == 2) as i64;
-        onsite += (solved[0] == 2 && solved[1] == 2 && solved[2] >= 1) as i64;
-        screen += (solved[1] == 2) as i64;
-        h_solved += solved[2] as i64;
-    });
+    run_mocks(
+        mv_recall,
+        pools,
+        ratings,
+        coef,
+        shift,
+        rng,
+        n_mc,
+        |solved, _| {
+            full += (solved[0] == 2 && solved[1] == 2 && solved[2] == 2) as i64;
+            onsite += (solved[0] == 2 && solved[1] == 2 && solved[2] >= 1) as i64;
+            screen += (solved[1] == 2) as i64;
+            h_solved += solved[2] as i64;
+        },
+    );
     (
         full as f64 / n_mc as f64,
         onsite as f64 / n_mc as f64,
@@ -757,11 +819,20 @@ pub fn outcome_hist(
     n_mc: usize,
 ) -> ([f64; 7], [f64; 7]) {
     let (mut hist, mut onsite_hist) = ([0i64; 7], [0i64; 7]);
-    run_mocks(mv_recall, pools, ratings, coef, shift, rng, n_mc, |solved, _| {
-        let t = (solved[0] + solved[1] + solved[2]) as usize;
-        hist[t] += 1;
-        onsite_hist[t] += (solved[0] == 2 && solved[1] == 2 && solved[2] >= 1) as i64;
-    });
+    run_mocks(
+        mv_recall,
+        pools,
+        ratings,
+        coef,
+        shift,
+        rng,
+        n_mc,
+        |solved, _| {
+            let t = (solved[0] + solved[1] + solved[2]) as usize;
+            hist[t] += 1;
+            onsite_hist[t] += (solved[0] == 2 && solved[1] == 2 && solved[2] >= 1) as i64;
+        },
+    );
     let norm = |a: [i64; 7]| a.map(|v| v as f64 / n_mc as f64);
     (norm(hist), norm(onsite_hist))
 }

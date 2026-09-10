@@ -85,12 +85,20 @@ const DEGREE_LEGEND: [f64; 5] = [0.0, 0.25, 0.5, 0.75, 1.0];
 
 fn srgb_to_linear(c: f64) -> f64 {
     let c = c / 255.0;
-    if c <= 0.04045 { c / 12.92 } else { ((c + 0.055) / 1.055).powf(2.4) }
+    if c <= 0.04045 {
+        c / 12.92
+    } else {
+        ((c + 0.055) / 1.055).powf(2.4)
+    }
 }
 
 fn linear_to_srgb(c: f64) -> f64 {
     let c = c.clamp(0.0, 1.0);
-    if c <= 0.0031308 { 12.92 * c } else { 1.055 * c.powf(1.0 / 2.4) - 0.055 }
+    if c <= 0.0031308 {
+        12.92 * c
+    } else {
+        1.055 * c.powf(1.0 / 2.4) - 0.055
+    }
 }
 
 fn hex_to_oklab(h: &str) -> (f64, f64, f64) {
@@ -194,7 +202,9 @@ fn assist_weight(a: &str) -> f64 {
 
 /// kg_lib.assist_of(rec, node): the level of help on THIS move of the walk
 fn assist_of(rec: &Value, node: &str) -> String {
-    kg_mock::assist_map(rec).remove(node).unwrap_or_else(|| "none".to_string())
+    kg_mock::assist_map(rec)
+        .remove(node)
+        .unwrap_or_else(|| "none".to_string())
 }
 
 // ---------------------------------------------------------- node_status --
@@ -246,7 +256,8 @@ impl NodeReplay {
         let gap = (day - last_clean).num_days();
         match curve {
             Some(p) => {
-                let s = (p.a + p.b * self.cleans as f64 - p.c * self.struggles as f64
+                let s = (p.a + p.b * self.cleans as f64
+                    - p.c * self.struggles as f64
                     - p.d * self.assisted
                     + p.e * (self.conn.unwrap_or(p.conn_mean) - p.conn_mean))
                     .exp()
@@ -275,9 +286,17 @@ fn filename_ts(fname: &str) -> String {
     let b = fname.as_bytes();
     let digit = |i: usize| i < b.len() && b[i].is_ascii_digit();
     for i in 0..b.len().saturating_sub(11) {
-        if digit(i) && digit(i + 1) && digit(i + 2) && digit(i + 3) && b[i + 4] == b'_'
-            && digit(i + 5) && digit(i + 6) && b[i + 7] == b'_'
-            && digit(i + 8) && digit(i + 9) && b[i + 10] == b'T'
+        if digit(i)
+            && digit(i + 1)
+            && digit(i + 2)
+            && digit(i + 3)
+            && b[i + 4] == b'_'
+            && digit(i + 5)
+            && digit(i + 6)
+            && b[i + 7] == b'_'
+            && digit(i + 8)
+            && digit(i + 9)
+            && b[i + 10] == b'T'
         {
             let mut j = i + 11;
             while j < b.len() && (b[j].is_ascii_digit() || b[j] == b'_') {
@@ -291,7 +310,9 @@ fn filename_ts(fname: &str) -> String {
 
 // date -> [(problem, moves)] in true within-day solve order, first solve of a
 // same-day re-solve only. Drills and misc entries carry no leetcode number.
-fn solves_by_day(evidence: &serde_json::Map<String, Value>) -> HashMap<String, Vec<(String, Vec<String>)>> {
+fn solves_by_day(
+    evidence: &serde_json::Map<String, Value>,
+) -> HashMap<String, Vec<(String, Vec<String>)>> {
     let mut by_day: HashMap<String, Vec<(String, String, Vec<String>)>> = HashMap::new();
     for (fname, rec) in evidence {
         let p = rec.get("problem").and_then(Value::as_str).unwrap_or("");
@@ -329,9 +350,18 @@ fn solves_by_day(evidence: &serde_json::Map<String, Value>) -> HashMap<String, V
 fn floats(s: &str) -> Vec<f64> {
     let cleaned: String = s
         .chars()
-        .map(|c| if c.is_ascii_digit() || c == '.' || c == '-' || c == '+' { c } else { ' ' })
+        .map(|c| {
+            if c.is_ascii_digit() || c == '.' || c == '-' || c == '+' {
+                c
+            } else {
+                ' '
+            }
+        })
         .collect();
-    cleaned.split_whitespace().filter_map(|t| t.parse().ok()).collect()
+    cleaned
+        .split_whitespace()
+        .filter_map(|t| t.parse().ok())
+        .collect()
 }
 
 fn points_bbox(pts: &[f64]) -> Rect {
@@ -395,17 +425,34 @@ fn candidate_spots(node_box: Rect, w: f64, h: f64) -> Vec<(f64, f64)> {
 // Pick a spot touching nothing; least-weighted-overlap fallback. `taken` are
 // rectangles of labels still fading: a dying label keeps its ground.
 fn place_label(node_box: Rect, w: f64, h: f64, obstacles: &[(Rect, f64)], taken: &[Rect]) -> Rect {
-    let vicinity = (node_box.0 - 180.0, node_box.1 - 180.0, node_box.2 + 180.0, node_box.3 + 180.0);
-    let near: Vec<&(Rect, f64)> = obstacles.iter().filter(|(r, _)| overlaps(*r, vicinity)).collect();
-    let near_taken: Vec<Rect> = taken.iter().copied().filter(|r| overlaps(*r, vicinity)).collect();
+    let vicinity = (
+        node_box.0 - 180.0,
+        node_box.1 - 180.0,
+        node_box.2 + 180.0,
+        node_box.3 + 180.0,
+    );
+    let near: Vec<&(Rect, f64)> = obstacles
+        .iter()
+        .filter(|(r, _)| overlaps(*r, vicinity))
+        .collect();
+    let near_taken: Vec<Rect> = taken
+        .iter()
+        .copied()
+        .filter(|r| overlaps(*r, vicinity))
+        .collect();
     let mut best = None;
     let mut best_bad = f64::MAX;
     for (lx, ly) in candidate_spots(node_box, w, h) {
         let rect = (lx, ly, lx + w, ly + h);
         let mut bad = 0.0;
-        for (r, wt) in near.iter().map(|x| **x).chain(near_taken.iter().map(|r| (*r, 5.0))) {
+        for (r, wt) in near
+            .iter()
+            .map(|x| **x)
+            .chain(near_taken.iter().map(|r| (*r, 5.0)))
+        {
             if overlaps(rect, r) {
-                bad += (r.2.min(rect.2) - r.0.max(rect.0)) * (r.3.min(rect.3) - r.1.max(rect.1)) * wt;
+                bad +=
+                    (r.2.min(rect.2) - r.0.max(rect.0)) * (r.3.min(rect.3) - r.1.max(rect.1)) * wt;
             }
         }
         if bad == 0.0 {
@@ -448,7 +495,11 @@ fn push_key(times: &mut Vec<f64>, t: f64) {
 fn fmt_frac(t: f64) -> String {
     let s = format!("{t:.4}");
     let s = s.trim_end_matches('0').trim_end_matches('.');
-    if s.is_empty() { "0".to_string() } else { s.to_string() }
+    if s.is_empty() {
+        "0".to_string()
+    } else {
+        s.to_string()
+    }
 }
 
 fn animate(attr_name: &str, calc: &str, values: &[String], key_times: &[f64], dur: f64) -> String {
@@ -464,7 +515,16 @@ fn animate(attr_name: &str, calc: &str, values: &[String], key_times: &[f64], du
 // pre-graph era to the blue graph-scheduling era on the switch date's tick.
 // era_frac None = the whole replay is one era (static label). halo draws a
 // background-colored outline for banners placed over chart ink.
-fn era_banner(x: f64, y: f64, size: f64, anchor: &str, era_frac: Option<f64>, switch_exists: bool, halo: &str, dur: f64) -> String {
+fn era_banner(
+    x: f64,
+    y: f64,
+    size: f64,
+    anchor: &str,
+    era_frac: Option<f64>,
+    switch_exists: bool,
+    halo: &str,
+    dur: f64,
+) -> String {
     let halo_attr = if halo.is_empty() {
         String::new()
     } else {
@@ -586,22 +646,41 @@ fn main() {
             prereqs: n
                 .get("prereqs")
                 .and_then(Value::as_array)
-                .map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+                .map(|a| {
+                    a.iter()
+                        .filter_map(|v| v.as_str().map(String::from))
+                        .collect()
+                })
                 .unwrap_or_default(),
-            added: n.get("added").and_then(Value::as_str).unwrap_or("").to_string(),
+            added: n
+                .get("added")
+                .and_then(Value::as_str)
+                .unwrap_or("")
+                .to_string(),
         })
         .collect();
-    let node_index: HashMap<&str, usize> =
-        nodes.iter().enumerate().map(|(i, n)| (n.id.as_str(), i)).collect();
+    let node_index: HashMap<&str, usize> = nodes
+        .iter()
+        .enumerate()
+        .map(|(i, n)| (n.id.as_str(), i))
+        .collect();
     let evidence = evidence_v["evidence"].as_object().unwrap();
     // the first rep of a drill is unaided at the node level (kg_lib.ev_index)
-    let ev_list: Vec<(&str, &str)> =
-        evidence.iter().map(|(f, r)| (f.as_str(), r["date"].as_str().unwrap())).collect();
+    let ev_list: Vec<(&str, &str)> = evidence
+        .iter()
+        .map(|(f, r)| (f.as_str(), r["date"].as_str().unwrap()))
+        .collect();
     let first_reps: std::collections::HashSet<&str> =
-        kg_mock::first_drill_reps(ev_list.iter().copied()).into_iter().map(|i| ev_list[i].0).collect();
+        kg_mock::first_drill_reps(ev_list.iter().copied())
+            .into_iter()
+            .map(|i| ev_list[i].0)
+            .collect();
 
     // ---- date ticks: opening dark frame + every day of the history --------
-    let mut solve_days: Vec<&str> = evidence.values().map(|r| r["date"].as_str().unwrap()).collect();
+    let mut solve_days: Vec<&str> = evidence
+        .values()
+        .map(|r| r["date"].as_str().unwrap())
+        .collect();
     solve_days.sort_unstable();
     let first = NaiveDate::parse_from_str(solve_days[0], "%Y-%m-%d").unwrap();
     let last = NaiveDate::parse_from_str(solve_days[solve_days.len() - 1], "%Y-%m-%d").unwrap();
@@ -619,7 +698,10 @@ fn main() {
         .map(|n| {
             let mut entries = vec![];
             for (fname, rec) in evidence.iter() {
-                if let Some(v) = rec.get("moves").and_then(|m| m.get(&n.id)).and_then(Value::as_str)
+                if let Some(v) = rec
+                    .get("moves")
+                    .and_then(|m| m.get(&n.id))
+                    .and_then(Value::as_str)
                 {
                     let d = NaiveDate::parse_from_str(rec["date"].as_str().unwrap(), "%Y-%m-%d")
                         .unwrap();
@@ -632,8 +714,16 @@ fn main() {
                 }
             }
             entries.sort();
-            NodeReplay { entries, idx: 0, cleans: 0, struggles: 0, assisted: 0.0,
-                         conn: conn_map.get(&n.id).copied(), last_clean: None, last: None }
+            NodeReplay {
+                entries,
+                idx: 0,
+                cleans: 0,
+                struggles: 0,
+                assisted: 0.0,
+                conn: conn_map.get(&n.id).copied(),
+                last_clean: None,
+                last: None,
+            }
         })
         .collect();
 
@@ -681,7 +771,11 @@ fn main() {
     // nodes appear when they were actually introduced; no field = always there
     let first_vis: Vec<usize> = nodes
         .iter()
-        .map(|n| days.iter().position(|d| n.added.as_str() <= d.to_string().as_str()).unwrap_or(0))
+        .map(|n| {
+            days.iter()
+                .position(|d| n.added.as_str() <= d.to_string().as_str())
+                .unwrap_or(0)
+        })
         .collect();
 
     // ---- pacing: screen time per tick, in units of "one solve" -----------
@@ -704,7 +798,13 @@ fn main() {
         cum += w;
     }
     let tick_len: Vec<f64> = (0..n_ticks)
-        .map(|i| if i + 1 < n_ticks { tick_t[i + 1] - tick_t[i] } else { ticks_s - tick_t[i] })
+        .map(|i| {
+            if i + 1 < n_ticks {
+                tick_t[i + 1] - tick_t[i]
+            } else {
+                ticks_s - tick_t[i]
+            }
+        })
         .collect();
     let tick_frac: Vec<f64> = tick_t.iter().map(|t| t / seconds).collect();
 
@@ -748,12 +848,24 @@ fn main() {
     if degree_tl.is_some() {
         dot.push_str(" subgraph cluster_legend {\n  label=\"degree of ownership\"; fontcolor=\"#8b949e\"; color=\"#30363d\"; style=rounded;\n");
         for d in DEGREE_LEGEND {
-            writeln!(dot, "  legend_{} [label=\"{:.2}\", fillcolor=\"{}\"];", (d * 100.0) as usize, d, degree_color(d)).unwrap();
+            writeln!(
+                dot,
+                "  legend_{} [label=\"{:.2}\", fillcolor=\"{}\"];",
+                (d * 100.0) as usize,
+                d,
+                degree_color(d)
+            )
+            .unwrap();
         }
     } else {
         dot.push_str(" subgraph cluster_legend {\n  label=\"legend\"; fontcolor=\"#8b949e\"; color=\"#30363d\"; style=rounded;\n");
         for s in [SOLID, STALE, FRAGILE, MISSING] {
-            writeln!(dot, "  legend_{} [label=\"{}\", fillcolor=\"{}\"];", STATUS_NAME[s], STATUS_NAME[s], FILL[s]).unwrap();
+            writeln!(
+                dot,
+                "  legend_{} [label=\"{}\", fillcolor=\"{}\"];",
+                STATUS_NAME[s], STATUS_NAME[s], FILL[s]
+            )
+            .unwrap();
         }
     }
     dot.push_str(" }\n}\n");
@@ -765,7 +877,12 @@ fn main() {
         .spawn()
         .expect("graphviz `dot` not found");
     use std::io::Write as _;
-    child.stdin.as_ref().unwrap().write_all(dot.as_bytes()).unwrap();
+    child
+        .stdin
+        .as_ref()
+        .unwrap()
+        .write_all(dot.as_bytes())
+        .unwrap();
     let out = child.wait_with_output().unwrap();
     assert!(out.status.success(), "dot failed");
     let svg = String::from_utf8(out.stdout).unwrap();
@@ -835,7 +952,8 @@ fn main() {
                     let pts = floats(&block[i + 4..j]);
                     for pair in pts.windows(4).step_by(2) {
                         let (ax, ay, bx, by) = (pair[0], pair[1], pair[2], pair[3]);
-                        let steps = (((bx - ax).powi(2) + (by - ay).powi(2)).sqrt() / 9.0).max(1.0) as usize;
+                        let steps = (((bx - ax).powi(2) + (by - ay).powi(2)).sqrt() / 9.0).max(1.0)
+                            as usize;
                         for k in 0..=steps {
                             let mx = ax + (bx - ax) * k as f64 / steps as f64;
                             let my = ay + (by - ay) * k as f64 / steps as f64;
@@ -862,18 +980,28 @@ fn main() {
     for (i, day) in days.iter().enumerate() {
         let t0 = tick_t[i];
         active.retain(|&li| label_alpha(t0 - labels[li].born, label_life) > 0.0);
-        let Some(day_solves) = by_day.get(&day.to_string()) else { continue };
+        let Some(day_solves) = by_day.get(&day.to_string()) else {
+            continue;
+        };
         for (k, (prob, moves)) in day_solves.iter().enumerate() {
             let born = t0 + k as f64 * tick_len[i] / day_solves.len() as f64;
             for node_id in moves {
-                let Some(&node_box) = boxes.get(node_id) else { continue };
+                let Some(&node_box) = boxes.get(node_id) else {
+                    continue;
+                };
                 // a solve older than the node's `added` date must not light
                 // up a box that has not materialized yet
-                if node_index.get(node_id.as_str()).is_some_and(|&ni| i < first_vis[ni]) {
+                if node_index
+                    .get(node_id.as_str())
+                    .is_some_and(|&ni| i < first_vis[ni])
+                {
                     continue;
                 }
-                let alive_here: Vec<usize> =
-                    active.iter().copied().filter(|&li| &labels[li].node == node_id).collect();
+                let alive_here: Vec<usize> = active
+                    .iter()
+                    .copied()
+                    .filter(|&li| &labels[li].node == node_id)
+                    .collect();
                 if alive_here.len() >= MAX_PROBS {
                     // evict the oldest on a hot node
                     let oldest = *alive_here
@@ -885,7 +1013,12 @@ fn main() {
                 let w = prob.chars().count() as f64 * LABEL_PT * 0.61;
                 let taken: Vec<Rect> = active.iter().map(|&li| labels[li].rect).collect();
                 let rect = place_label(node_box, w, line_h, &obstacles, &taken);
-                labels.push(Label { node: node_id.clone(), text: prob.clone(), rect, born });
+                labels.push(Label {
+                    node: node_id.clone(),
+                    text: prob.clone(),
+                    rect,
+                    born,
+                });
                 active.push(labels.len() - 1);
             }
         }
@@ -912,11 +1045,17 @@ fn main() {
     );
     out_svg.push_str(&head);
     // full-canvas background: the graph's own bg polygon doesn't cover the header
-    writeln!(out_svg, "<rect x=\"0\" y=\"0\" width=\"{width:.0}\" height=\"{new_h:.0}\" fill=\"{BG}\"/>").unwrap();
+    writeln!(
+        out_svg,
+        "<rect x=\"0\" y=\"0\" width=\"{width:.0}\" height=\"{new_h:.0}\" fill=\"{BG}\"/>"
+    )
+    .unwrap();
 
     let g_tag_end = svg[header_end..].find('>').unwrap() + header_end + 1;
-    let g_open = svg[header_end..g_tag_end]
-        .replace(&format!("translate(4 {})", height - 4.0), &format!("translate(4 {})", height - 4.0 + HEADER_H));
+    let g_open = svg[header_end..g_tag_end].replace(
+        &format!("translate(4 {})", height - 4.0),
+        &format!("translate(4 {})", height - 4.0 + HEADER_H),
+    );
     out_svg.push_str(&g_open);
 
     let body_end = svg.rfind("</g>").unwrap();
@@ -945,7 +1084,13 @@ fn main() {
                 if first_vis[ni] > 0 {
                     let mut times = vec![0.0];
                     push_key(&mut times, tick_frac[first_vis[ni]]);
-                    tracks.push_str(&animate("opacity", "discrete", &["0".into(), "1".into()], &times, dur));
+                    tracks.push_str(&animate(
+                        "opacity",
+                        "discrete",
+                        &["0".into(), "1".into()],
+                        &times,
+                        dur,
+                    ));
                 }
                 let fills: Vec<String> = (0..n_ticks).map(|t| fill_at(ni, t)).collect();
                 let fill_track = discrete_track(&fills, &tick_frac, "fill", dur);
@@ -992,7 +1137,13 @@ fn main() {
                 if vis > 0 {
                     let mut times = vec![0.0];
                     push_key(&mut times, tick_frac[vis]);
-                    out_svg.push_str(&animate("opacity", "discrete", &["0".into(), "1".into()], &times, dur));
+                    out_svg.push_str(&animate(
+                        "opacity",
+                        "discrete",
+                        &["0".into(), "1".into()],
+                        &times,
+                        dur,
+                    ));
                 }
                 out_svg.push_str(block);
             }
@@ -1006,7 +1157,11 @@ fn main() {
     // Shared styling lives on the outer group, and every label of one solve
     // (same problem, same birth, one per exercised move) shares a single
     // fade animation on an inner group — 1000+ labels, every byte repeats.
-    writeln!(out_svg, "<g font-family=\"Menlo,monospace\" font-size=\"{LABEL_PT:.0}\" fill=\"{GOLD}\">").unwrap();
+    writeln!(
+        out_svg,
+        "<g font-family=\"Menlo,monospace\" font-size=\"{LABEL_PT:.0}\" fill=\"{GOLD}\">"
+    )
+    .unwrap();
     let mut li = 0;
     while li < labels.len() {
         let l = &labels[li];
@@ -1048,7 +1203,14 @@ fn main() {
         )
         .unwrap();
         for l in &labels[li..lj] {
-            write!(out_svg, "<text x=\"{:.0}\" y=\"{:.0}\">{}</text>", l.rect.0, l.rect.3 - 3.0, l.text).unwrap();
+            write!(
+                out_svg,
+                "<text x=\"{:.0}\" y=\"{:.0}\">{}</text>",
+                l.rect.0,
+                l.rect.3 - 3.0,
+                l.text
+            )
+            .unwrap();
         }
         out_svg.push_str("</g>\n");
         li = lj;
@@ -1088,7 +1250,11 @@ fn main() {
             let n = targets.len() as f64;
             let cx = targets.iter().map(|t| t.0).sum::<f64>() / n;
             let cy = targets.iter().map(|t| t.1).sum::<f64>() / n;
-            shots.push(Shot { born: l.born, hover: (cx, cy + HOVER_DY), targets });
+            shots.push(Shot {
+                born: l.born,
+                hover: (cx, cy + HOVER_DY),
+                targets,
+            });
         }
         li = lj;
     }
@@ -1132,7 +1298,11 @@ fn main() {
         // at the solve and fading out over BEAM_FADE_S so the eye can catch
         // them; overlapping beams simply coexist
         const BEAM_FADE_S: f64 = 0.7;
-        writeln!(out_svg, "<g stroke=\"#ff7b72\" stroke-width=\"2\" stroke-linecap=\"round\">").unwrap();
+        writeln!(
+            out_svg,
+            "<g stroke=\"#ff7b72\" stroke-width=\"2\" stroke-linecap=\"round\">"
+        )
+        .unwrap();
         for sh in &shots {
             let tb = sh.born / dur;
             let te = (tb + BEAM_FADE_S / dur).min(1.0);
@@ -1151,7 +1321,12 @@ fn main() {
             }
             push_key(&mut times, 1.0);
             values.push("0".to_string());
-            write!(out_svg, "<g opacity=\"0\">{}", animate("opacity", "linear", &values, &times, dur)).unwrap();
+            write!(
+                out_svg,
+                "<g opacity=\"0\">{}",
+                animate("opacity", "linear", &values, &times, dur)
+            )
+            .unwrap();
             for t in &sh.targets {
                 write!(
                     out_svg,
@@ -1165,8 +1340,13 @@ fn main() {
         out_svg.push_str("</g>\n");
 
         // the sprite itself, riding the simulated path (linear between steps)
-        let times: Vec<f64> = (0..path.len()).map(|k| (k as f64 * STEP_S / dur).min(1.0)).collect();
-        let values: Vec<String> = path.iter().map(|p| format!("{:.0},{:.0}", p.0, p.1)).collect();
+        let times: Vec<f64> = (0..path.len())
+            .map(|k| (k as f64 * STEP_S / dur).min(1.0))
+            .collect();
+        let values: Vec<String> = path
+            .iter()
+            .map(|p| format!("{:.0},{:.0}", p.0, p.1))
+            .collect();
         let kt: Vec<String> = times.iter().map(|t| fmt_frac(*t)).collect();
         writeln!(
             out_svg,
@@ -1201,7 +1381,11 @@ fn main() {
             days[i], counts[SOLID], counts[STALE], counts[FRAGILE], counts[MISSING]
         );
         let ts = tick_frac[i];
-        let te = if i + 1 < n_ticks { tick_frac[i + 1] } else { 1.0 };
+        let te = if i + 1 < n_ticks {
+            tick_frac[i + 1]
+        } else {
+            1.0
+        };
         let (values, times) = if ts <= 0.0 {
             (vec!["1".to_string(), "0".to_string()], vec![0.0, te])
         } else {
@@ -1227,9 +1411,20 @@ fn main() {
 
     // era label, top left: hand-scheduled until the graph tooling landed,
     // graph-scheduled after — one flip, pinned to the switch date's tick
-    let switch = days.iter().position(|d| d.to_string().as_str() >= ERA_SWITCH);
+    let switch = days
+        .iter()
+        .position(|d| d.to_string().as_str() >= ERA_SWITCH);
     let era_frac = switch.map(|i| tick_frac[i]);
-    out_svg.push_str(&era_banner(20.0, 48.0, 36.0, "start", era_frac, switch.is_some(), "", dur));
+    out_svg.push_str(&era_banner(
+        20.0,
+        48.0,
+        36.0,
+        "start",
+        era_frac,
+        switch.is_some(),
+        "",
+        dur,
+    ));
 
     // era strip: the history's calendar along the top edge — grey for the
     // hand-scheduled stretch, blue once the graph picker takes over, a
@@ -1250,7 +1445,9 @@ fn main() {
         )
         .unwrap();
     }
-    let mut head_x: Vec<String> = (0..n_ticks).map(|i| format!("{:.1}", cal_x(i) - 2.0)).collect();
+    let mut head_x: Vec<String> = (0..n_ticks)
+        .map(|i| format!("{:.1}", cal_x(i) - 2.0))
+        .collect();
     let mut head_t = tick_frac.clone();
     head_x.push(head_x.last().unwrap().clone());
     push_key(&mut head_t, 1.0);
@@ -1310,8 +1507,17 @@ fn main() {
         println!("no graph/curve.json - kg_pass.svg skipped");
         return;
     };
-    let mcurve = kg_mock::Curve { a: cv.a, b: cv.b, c: cv.c, d: cv.d, e: cv.e,
-        conn_mean: cv.conn_mean, conn: conn_map.clone(), beta: cv.beta, target: cv.target };
+    let mcurve = kg_mock::Curve {
+        a: cv.a,
+        b: cv.b,
+        c: cv.c,
+        d: cv.d,
+        e: cv.e,
+        conn_mean: cv.conn_mean,
+        conn: conn_map.clone(),
+        beta: cv.beta,
+        target: cv.target,
+    };
     let mut ev_recs: Vec<EvRec> = evidence
         .iter()
         .map(|(f, r)| EvRec {
@@ -1335,7 +1541,10 @@ fn main() {
     // walks), shared with kg_mock so the charts and `make mock` agree
     let node_ids: Vec<String> = nodes.iter().map(|n| n.id.clone()).collect();
     let problems_v = load_json(&graph.join("problems.json"));
-    let repo_root = graph.parent().map(|p| p.to_path_buf()).unwrap_or_else(|| PathBuf::from("."));
+    let repo_root = graph
+        .parent()
+        .map(|p| p.to_path_buf())
+        .unwrap_or_else(|| PathBuf::from("."));
     let metadata_v = load_json(&repo_root.join("data/problems_metadata.json"));
     let ratings_v = load_json(&graph.join("ratings.json"));
     let bank = Bank::build(&problems_v, &metadata_v, &node_ids, &ratings_v);
@@ -1373,24 +1582,46 @@ fn main() {
         let mut row = [(0.0, 0.0); 3];
         for (si, (_name, shift)) in scenarios.iter().enumerate() {
             let (_full, onsite, screen, _h) = pass_rates(
-                &mv_recall, &bank.pools, &bank.ratings, &coef, *shift,
-                &mut PyRandom::new(42), 4000,
+                &mv_recall,
+                &bank.pools,
+                &bank.ratings,
+                &coef,
+                *shift,
+                &mut PyRandom::new(42),
+                4000,
             );
             row[si] = (screen * 100.0, onsite * 100.0);
         }
         series.push(row);
-        let recall_s = current_recall(&node_ids, &ev_recs[..k], &mcurve, *wd + Duration::days(SHELF_DAYS));
+        let recall_s = current_recall(
+            &node_ids,
+            &ev_recs[..k],
+            &mcurve,
+            *wd + Duration::days(SHELF_DAYS),
+        );
         let mv_recall_s: Vec<Option<f64>> = (0..bank.move_names.len())
             .map(|i| if i < bank.n_known { recall_s[i] } else { None })
             .collect();
         let (_full, onsite_s, screen_s, _h) = pass_rates(
-            &mv_recall_s, &bank.pools, &bank.ratings, &coef, scenarios[1].1,
-            &mut PyRandom::new(42), 4000,
+            &mv_recall_s,
+            &bank.pools,
+            &bank.ratings,
+            &coef,
+            scenarios[1].1,
+            &mut PyRandom::new(42),
+            4000,
         );
         shelf.push((screen_s * 100.0, onsite_s * 100.0));
-        let lo = if i == 0 { String::new() } else { weeks[i - 1].to_string() };
+        let lo = if i == 0 {
+            String::new()
+        } else {
+            weeks[i - 1].to_string()
+        };
         week_counts.push(
-            ev_recs.iter().filter(|r| lo.as_str() < r.date.as_str() && r.date.as_str() <= wd_s.as_str()).count(),
+            ev_recs
+                .iter()
+                .filter(|r| lo.as_str() < r.date.as_str() && r.date.as_str() <= wd_s.as_str())
+                .count(),
         );
     }
 
@@ -1414,13 +1645,21 @@ fn main() {
     let y_of = |p: f64| CPB - p / 100.0 * (CPB - CPT);
 
     let mut c = String::with_capacity(64 * 1024);
-    writeln!(c, "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>").unwrap();
+    writeln!(
+        c,
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>"
+    )
+    .unwrap();
     writeln!(
         c,
         "<svg width=\"{CW:.0}pt\" height=\"{CH:.0}pt\" viewBox=\"0 0 {CW:.0} {CH:.0}\" xmlns=\"http://www.w3.org/2000/svg\" font-family=\"Helvetica,sans-serif\">"
     )
     .unwrap();
-    writeln!(c, "<rect width=\"{CW:.0}\" height=\"{CH:.0}\" fill=\"{BG}\"/>").unwrap();
+    writeln!(
+        c,
+        "<rect width=\"{CW:.0}\" height=\"{CH:.0}\" fill=\"{BG}\"/>"
+    )
+    .unwrap();
 
     // era banner strip + swapping era label, same split tick as the movie's;
     // date-true split so the two strips mirror each other
@@ -1431,7 +1670,16 @@ fn main() {
     if switch.is_some() && split_x < CW {
         writeln!(c, "<rect x=\"{split_x:.1}\" y=\"0\" width=\"{:.1}\" height=\"3\" fill=\"{ERA_GRAPH_INK}\" opacity=\"0.9\"/>", CW - split_x).unwrap();
     }
-    c.push_str(&era_banner(12.0, 26.0, 24.0, "start", era_frac, switch.is_some(), "", dur));
+    c.push_str(&era_banner(
+        12.0,
+        26.0,
+        24.0,
+        "start",
+        era_frac,
+        switch.is_some(),
+        "",
+        dur,
+    ));
     writeln!(
         c,
         "<text x=\"{:.0}\" y=\"19\" text-anchor=\"middle\" font-size=\"13\" fill=\"{INK}\">P(pass a mock, cold): weekly replay of the technique graph (band = recognition scenarios)</text>",
@@ -1442,14 +1690,22 @@ fn main() {
     // static furniture: grid, axes, month ticks
     for p in [0.0, 25.0, 50.0, 75.0, 100.0] {
         let y = y_of(p);
-        let (stroke, dash) = if p == 50.0 { (MUTED, " stroke-dasharray=\"2 4\"") } else { (GRID, "") };
+        let (stroke, dash) = if p == 50.0 {
+            (MUTED, " stroke-dasharray=\"2 4\"")
+        } else {
+            (GRID, "")
+        };
         writeln!(c, "<line x1=\"{CML}\" y1=\"{y:.1}\" x2=\"{:.1}\" y2=\"{y:.1}\" stroke=\"{stroke}\" stroke-width=\"1\"{dash}/>", CW - CMR).unwrap();
         writeln!(c, "<text x=\"{:.0}\" y=\"{:.1}\" text-anchor=\"end\" font-size=\"11\" fill=\"{MUTED}\">{p:.0}%</text>", CML - 6.0, y + 4.0).unwrap();
     }
     let mut m = NaiveDate::from_ymd_opt(x0.year(), x0.month(), 1).unwrap();
-    const MONTHS: [&str; 12] = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+    const MONTHS: [&str; 12] = [
+        "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec",
+    ];
     while m <= xend {
-        let nxt = NaiveDate::from_ymd_opt(m.year() + (m.month() == 12) as i32, m.month() % 12 + 1, 1).unwrap();
+        let nxt =
+            NaiveDate::from_ymd_opt(m.year() + (m.month() == 12) as i32, m.month() % 12 + 1, 1)
+                .unwrap();
         if m >= x0 {
             let x = x_of(m);
             writeln!(c, "<line x1=\"{x:.1}\" y1=\"{CVB}\" x2=\"{x:.1}\" y2=\"{:.0}\" stroke=\"{MUTED}\" stroke-width=\"1\"/>", CVB + 4.0).unwrap();
@@ -1466,7 +1722,13 @@ fn main() {
         }
         m = nxt;
     }
-    writeln!(c, "<text x=\"{:.0}\" y=\"{:.0}\" font-size=\"10\" fill=\"{MUTED}\">solves/wk</text>", CML + 4.0, CVT + 10.0).unwrap();
+    writeln!(
+        c,
+        "<text x=\"{:.0}\" y=\"{:.0}\" font-size=\"10\" fill=\"{MUTED}\">solves/wk</text>",
+        CML + 4.0,
+        CVT + 10.0
+    )
+    .unwrap();
 
     // era switch on the calendar axis itself
     if let Ok(sw) = NaiveDate::parse_from_str(ERA_SWITCH, "%Y-%m-%d") {
@@ -1480,14 +1742,24 @@ fn main() {
     for (i, (color, label, dash)) in [
         (SCREEN_C, "phone screen (both mediums)", ""),
         (ONSITE_C, "onsite (2E + 2M + ≥1 hard)", ""),
-        (MUTED, "dashed: after a 90-day break, the durable floor under each line", " stroke-dasharray=\"5 4\""),
+        (
+            MUTED,
+            "dashed: after a 90-day break, the durable floor under each line",
+            " stroke-dasharray=\"5 4\"",
+        ),
     ]
     .iter()
     .enumerate()
     {
         let y = CPT + 14.0 + i as f64 * 18.0;
         writeln!(c, "<line x1=\"{:.0}\" y1=\"{y:.1}\" x2=\"{:.0}\" y2=\"{y:.1}\" stroke=\"{color}\" stroke-width=\"2.5\"{dash}/>", CML + 10.0, CML + 32.0).unwrap();
-        writeln!(c, "<text x=\"{:.0}\" y=\"{:.1}\" font-size=\"12\" fill=\"{INK}\">{label}</text>", CML + 38.0, y + 4.0).unwrap();
+        writeln!(
+            c,
+            "<text x=\"{:.0}\" y=\"{:.1}\" font-size=\"12\" fill=\"{INK}\">{label}</text>",
+            CML + 38.0,
+            y + 4.0
+        )
+        .unwrap();
     }
 
     // the reveal: everything data-driven clips to a rect whose right edge
@@ -1512,7 +1784,13 @@ fn main() {
 
     // bands (cautious..optimistic) and central lines
     for (kind, color) in [(0usize, SCREEN_C), (1usize, ONSITE_C)] {
-        let get = |si: usize, i: usize| if kind == 0 { series[i][si].0 } else { series[i][si].1 };
+        let get = |si: usize, i: usize| {
+            if kind == 0 {
+                series[i][si].0
+            } else {
+                series[i][si].1
+            }
+        };
         let mut band = String::new();
         for (i, wd) in weeks.iter().enumerate() {
             write!(band, "{:.1},{:.1} ", x_of(*wd), y_of(get(0, i))).unwrap();
@@ -1520,13 +1798,23 @@ fn main() {
         for (i, wd) in weeks.iter().enumerate().rev() {
             write!(band, "{:.1},{:.1} ", x_of(*wd), y_of(get(2, i))).unwrap();
         }
-        writeln!(dg, "<polygon points=\"{}\" fill=\"{color}\" opacity=\"0.15\"/>", band.trim_end()).unwrap();
+        writeln!(
+            dg,
+            "<polygon points=\"{}\" fill=\"{color}\" opacity=\"0.15\"/>",
+            band.trim_end()
+        )
+        .unwrap();
         let line: Vec<String> = weeks
             .iter()
             .enumerate()
             .map(|(i, wd)| format!("{:.1},{:.1}", x_of(*wd), y_of(get(1, i))))
             .collect();
-        writeln!(dg, "<polyline points=\"{}\" fill=\"none\" stroke=\"{color}\" stroke-width=\"2\"/>", line.join(" ")).unwrap();
+        writeln!(
+            dg,
+            "<polyline points=\"{}\" fill=\"none\" stroke=\"{color}\" stroke-width=\"2\"/>",
+            line.join(" ")
+        )
+        .unwrap();
         // the shelf: central P(pass) 90 days after stopping — dashed, under
         // its solid line; the gap is what a break would cost
         let sline: Vec<String> = weeks
@@ -1565,7 +1853,13 @@ fn main() {
         }
         let x1 = x_of(*wd - Duration::days(6));
         let h = *n as f64 / vmax * (CVB - CVT - 6.0);
-        writeln!(dg, "<rect x=\"{x1:.1}\" y=\"{:.1}\" width=\"{:.1}\" height=\"{h:.1}\" fill=\"#484f58\"/>", CVB - h, (x_of(*wd) - x1).max(1.0)).unwrap();
+        writeln!(
+            dg,
+            "<rect x=\"{x1:.1}\" y=\"{:.1}\" width=\"{:.1}\" height=\"{h:.1}\" fill=\"#484f58\"/>",
+            CVB - h,
+            (x_of(*wd) - x1).max(1.0)
+        )
+        .unwrap();
     }
     // dimmed ahead of the playhead, full strength behind it
     writeln!(c, "<g clip-path=\"url(#rest)\" opacity=\"0.5\">\n{dg}</g>").unwrap();
@@ -1576,11 +1870,25 @@ fn main() {
     // reaches today — not clipped (never uncovered), not static (learning reps)
     let mut finale_times = vec![0.0];
     push_key(&mut finale_times, *tick_frac.last().unwrap());
-    let finale = animate("opacity", "discrete", &["0".into(), "1".into()], &finale_times, dur);
+    let finale = animate(
+        "opacity",
+        "discrete",
+        &["0".into(), "1".into()],
+        &finale_times,
+        dur,
+    );
     let lx = x_of(*weeks.last().unwrap());
     for (color, v, sv) in [
-        (SCREEN_C, series.last().unwrap()[1].0, shelf.last().unwrap().0),
-        (ONSITE_C, series.last().unwrap()[1].1, shelf.last().unwrap().1),
+        (
+            SCREEN_C,
+            series.last().unwrap()[1].0,
+            shelf.last().unwrap().0,
+        ),
+        (
+            ONSITE_C,
+            series.last().unwrap()[1].1,
+            shelf.last().unwrap().1,
+        ),
     ] {
         writeln!(c, "<text x=\"{:.1}\" y=\"{:.1}\" font-size=\"12\" font-weight=\"bold\" fill=\"{color}\" opacity=\"1\">{v:.0}%{finale}</text>", lx + 8.0, y_of(v) + 4.0).unwrap();
         // shelf end label, skipped when it would sit on top of the main one
@@ -1649,8 +1957,13 @@ fn main() {
         let mut sims = Vec::with_capacity(SWARM_N);
         let mut blame = vec![0u32; n_groups + 1];
         run_mocks(
-            &mv_recall, &bank.pools, &bank.ratings, &coef, scenarios[1].1,
-            &mut PyRandom::new(42), 4000,
+            &mv_recall,
+            &bank.pools,
+            &bank.ratings,
+            &coef,
+            scenarios[1].1,
+            &mut PyRandom::new(42),
+            4000,
             |solved, probs| {
                 let t = (solved[0] + solved[1] + solved[2]) as usize;
                 let onsite = solved[0] == 2 && solved[1] == 2 && solved[2] >= 1;
@@ -1659,7 +1972,11 @@ fn main() {
                 }
                 for &(wi, failed) in probs {
                     if failed {
-                        blame[if wi == usize::MAX { n_groups } else { mf_group[wi] }] += 1;
+                        blame[if wi == usize::MAX {
+                            n_groups
+                        } else {
+                            mf_group[wi]
+                        }] += 1;
                     }
                 }
             },
@@ -1675,7 +1992,8 @@ fn main() {
     let mut month_starts = vec![];
     while m <= today {
         month_starts.push(m);
-        m = NaiveDate::from_ymd_opt(m.year() + (m.month() == 12) as i32, m.month() % 12 + 1, 1).unwrap();
+        m = NaiveDate::from_ymd_opt(m.year() + (m.month() == 12) as i32, m.month() % 12 + 1, 1)
+            .unwrap();
     }
 
     // ---- swarm: graph/kg_swarm.svg ---------------------------------------
@@ -1711,11 +2029,28 @@ fn main() {
     }
 
     let mut sw = String::with_capacity(64 * 1024);
-    writeln!(sw, "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>").unwrap();
+    writeln!(
+        sw,
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>"
+    )
+    .unwrap();
     writeln!(sw, "<svg width=\"{CW:.0}pt\" height=\"{SH:.0}pt\" viewBox=\"0 0 {CW:.0} {SH:.0}\" xmlns=\"http://www.w3.org/2000/svg\" font-family=\"Helvetica,sans-serif\">").unwrap();
-    writeln!(sw, "<rect width=\"{CW:.0}\" height=\"{SH:.0}\" fill=\"{BG}\"/>").unwrap();
+    writeln!(
+        sw,
+        "<rect width=\"{CW:.0}\" height=\"{SH:.0}\" fill=\"{BG}\"/>"
+    )
+    .unwrap();
     writeln!(sw, "<text x=\"{:.0}\" y=\"24\" text-anchor=\"middle\" font-size=\"13\" fill=\"{INK}\">the same {n_dots} simulated mocks re-taken every day: a dot moves only when a change in recall flips one of its problems</text>", CW / 2.0).unwrap();
-    sw.push_str(&era_banner(DML, 60.0, 26.0, "start", era_frac, switch.is_some(), "", dur));
+    sw.push_str(&era_banner(
+        DML,
+        60.0,
+        26.0,
+        "start",
+        era_frac,
+        switch.is_some(),
+        "",
+        dur,
+    ));
 
     writeln!(sw, "<line x1=\"{DML}\" y1=\"{SPB}\" x2=\"{:.1}\" y2=\"{SPB}\" stroke=\"{GRID}\" stroke-width=\"1\"/>", CW - DMR).unwrap();
     for bin in 0..7usize {
@@ -1727,14 +2062,27 @@ fn main() {
         )
         .unwrap();
     }
-    for (i, (color, label)) in
-        [(SCREEN_C, "one simulated mock"), (ONSITE_C, "clears the onsite bar (2E+2M+\u{2265}1H)")]
-            .iter()
-            .enumerate()
+    for (i, (color, label)) in [
+        (SCREEN_C, "one simulated mock"),
+        (ONSITE_C, "clears the onsite bar (2E+2M+\u{2265}1H)"),
+    ]
+    .iter()
+    .enumerate()
     {
         let y = 52.0 + i as f64 * 18.0;
-        writeln!(sw, "<circle cx=\"{:.0}\" cy=\"{:.1}\" r=\"5\" fill=\"{color}\"/>", CW - DMR - 254.0, y - 4.0).unwrap();
-        writeln!(sw, "<text x=\"{:.0}\" y=\"{y:.1}\" font-size=\"12\" fill=\"{INK}\">{label}</text>", CW - DMR - 240.0).unwrap();
+        writeln!(
+            sw,
+            "<circle cx=\"{:.0}\" cy=\"{:.1}\" r=\"5\" fill=\"{color}\"/>",
+            CW - DMR - 254.0,
+            y - 4.0
+        )
+        .unwrap();
+        writeln!(
+            sw,
+            "<text x=\"{:.0}\" y=\"{y:.1}\" font-size=\"12\" fill=\"{INK}\">{label}</text>",
+            CW - DMR - 240.0
+        )
+        .unwrap();
     }
 
     for i in 0..n_dots {
@@ -1753,13 +2101,16 @@ fn main() {
 
     for (i, m) in month_starts.iter().enumerate() {
         let fs = tick_frac[((*m - days[0]).num_days().max(0) as usize).min(n_ticks - 1)];
-        let fe = month_starts
-            .get(i + 1)
-            .map_or(1.0, |n| tick_frac[((*n - days[0]).num_days() as usize).min(n_ticks - 1)]);
+        let fe = month_starts.get(i + 1).map_or(1.0, |n| {
+            tick_frac[((*n - days[0]).num_days() as usize).min(n_ticks - 1)]
+        });
         let lab = format!("{} '{:02}", MONTHS[m.month0() as usize], m.year() % 100);
         let (values, times) = if fs > 0.0 {
             if i + 1 < month_starts.len() {
-                (vec!["0".to_string(), "1".into(), "0".into()], vec![0.0, fs, fe])
+                (
+                    vec!["0".to_string(), "1".into(), "0".into()],
+                    vec![0.0, fs, fe],
+                )
             } else {
                 (vec!["0".to_string(), "1".into()], vec![0.0, fs])
             }
@@ -1816,20 +2167,32 @@ fn main() {
     top.sort_by_key(|&g| std::cmp::Reverse(totals[g]));
     top.truncate(N_TOP);
     // bands, bottom to top: top groups by total blame, other, off-graph
-    let mut bands: Vec<(String, Vec<usize>)> =
-        top.iter().map(|&g| (groups[g].0.to_string(), vec![g])).collect();
+    let mut bands: Vec<(String, Vec<usize>)> = top
+        .iter()
+        .map(|&g| (groups[g].0.to_string(), vec![g]))
+        .collect();
     let rest: Vec<usize> = (0..n_groups).filter(|g| !top.contains(g)).collect();
     if !rest.is_empty() {
         bands.push(("other groups".into(), rest));
     }
     bands.push(("off-graph moves".into(), vec![n_groups]));
-    const BAND_C: [&str; 9] =
-        ["#f85149", "#ff7f0e", "#e3b341", "#3fb950", "#1f77b4", "#a371f7", "#58a6ff", "#8b949e", "#484f58"];
+    const BAND_C: [&str; 9] = [
+        "#f85149", "#ff7f0e", "#e3b341", "#3fb950", "#1f77b4", "#a371f7", "#58a6ff", "#8b949e",
+        "#484f58",
+    ];
     let n_bands = bands.len();
     let band_color = |bi: usize| {
-        if bi + 2 == n_bands && n_bands == 9 { BAND_C[7] }        // other
-        else if bi + 1 == n_bands { BAND_C[8] }                    // off-graph
-        else { BAND_C[bi.min(6)] }
+        if bi + 2 == n_bands && n_bands == 9 {
+            BAND_C[7]
+        }
+        // other
+        else if bi + 1 == n_bands {
+            BAND_C[8]
+        }
+        // off-graph
+        else {
+            BAND_C[bi.min(6)]
+        }
     };
 
     // per day: cumulative failure-rate boundaries (share of ALL simulated
@@ -1854,17 +2217,44 @@ fn main() {
     let by_of = |share: f64| BPB - share / by_max * (BPB - BPT);
 
     let mut bl = String::with_capacity(128 * 1024);
-    writeln!(bl, "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>").unwrap();
+    writeln!(
+        bl,
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>"
+    )
+    .unwrap();
     writeln!(bl, "<svg width=\"{CW:.0}pt\" height=\"{CH:.0}pt\" viewBox=\"0 0 {CW:.0} {CH:.0}\" xmlns=\"http://www.w3.org/2000/svg\" font-family=\"Helvetica,sans-serif\">").unwrap();
-    writeln!(bl, "<rect width=\"{CW:.0}\" height=\"{CH:.0}\" fill=\"{BG}\"/>").unwrap();
+    writeln!(
+        bl,
+        "<rect width=\"{CW:.0}\" height=\"{CH:.0}\" fill=\"{BG}\"/>"
+    )
+    .unwrap();
     writeln!(bl, "<text x=\"{:.0}\" y=\"19\" text-anchor=\"middle\" font-size=\"13\" fill=\"{INK}\">Share of simulated problems failed, blamed on the weakest move in the walk (down = fewer fails)</text>", CW / 2.0).unwrap();
-    bl.push_str(&era_banner(CML + 10.0, BPT + 34.0, 30.0, "start", era_frac, switch.is_some(), BG, dur));
+    bl.push_str(&era_banner(
+        CML + 10.0,
+        BPT + 34.0,
+        30.0,
+        "start",
+        era_frac,
+        switch.is_some(),
+        BG,
+        dur,
+    ));
 
     // legend: one row of swatches under the title
     let mut lx = CML;
     for (bi, (name, _)) in bands.iter().enumerate() {
-        writeln!(bl, "<rect x=\"{lx:.0}\" y=\"30\" width=\"12\" height=\"12\" fill=\"{}\"/>", band_color(bi)).unwrap();
-        writeln!(bl, "<text x=\"{:.0}\" y=\"40\" font-size=\"12\" fill=\"{INK}\">{name}</text>", lx + 16.0).unwrap();
+        writeln!(
+            bl,
+            "<rect x=\"{lx:.0}\" y=\"30\" width=\"12\" height=\"12\" fill=\"{}\"/>",
+            band_color(bi)
+        )
+        .unwrap();
+        writeln!(
+            bl,
+            "<text x=\"{:.0}\" y=\"40\" font-size=\"12\" fill=\"{INK}\">{name}</text>",
+            lx + 16.0
+        )
+        .unwrap();
         lx += 16.0 + 8.0 + 7.2 * name.len() as f64 + 14.0;
     }
 
@@ -1876,7 +2266,9 @@ fn main() {
     }
     let mut m = NaiveDate::from_ymd_opt(x0.year(), x0.month(), 1).unwrap();
     while m <= xend {
-        let nxt = NaiveDate::from_ymd_opt(m.year() + (m.month() == 12) as i32, m.month() % 12 + 1, 1).unwrap();
+        let nxt =
+            NaiveDate::from_ymd_opt(m.year() + (m.month() == 12) as i32, m.month() % 12 + 1, 1)
+                .unwrap();
         if m >= x0 {
             let x = x_of(m);
             writeln!(bl, "<line x1=\"{x:.1}\" y1=\"{BPB}\" x2=\"{x:.1}\" y2=\"{:.0}\" stroke=\"{MUTED}\" stroke-width=\"1\"/>", BPB + 4.0).unwrap();
@@ -1900,15 +2292,37 @@ fn main() {
     for bi in 0..n_bands {
         let mut pts = String::new();
         for (di, day) in days.iter().enumerate() {
-            write!(pts, "{:.1},{:.1} ", x_of(*day).clamp(CML, CW - CMR), by_of(cum_shares[di][bi + 1])).unwrap();
+            write!(
+                pts,
+                "{:.1},{:.1} ",
+                x_of(*day).clamp(CML, CW - CMR),
+                by_of(cum_shares[di][bi + 1])
+            )
+            .unwrap();
         }
         for (di, day) in days.iter().enumerate().rev() {
-            write!(pts, "{:.1},{:.1} ", x_of(*day).clamp(CML, CW - CMR), by_of(cum_shares[di][bi])).unwrap();
+            write!(
+                pts,
+                "{:.1},{:.1} ",
+                x_of(*day).clamp(CML, CW - CMR),
+                by_of(cum_shares[di][bi])
+            )
+            .unwrap();
         }
-        writeln!(bd, "<polygon points=\"{}\" fill=\"{}\" opacity=\"0.9\"/>", pts.trim_end(), band_color(bi)).unwrap();
+        writeln!(
+            bd,
+            "<polygon points=\"{}\" fill=\"{}\" opacity=\"0.9\"/>",
+            pts.trim_end(),
+            band_color(bi)
+        )
+        .unwrap();
     }
     // dimmed ahead of the playhead, full strength behind it
-    writeln!(bl, "<g clip-path=\"url(#brest)\" opacity=\"0.5\">\n{bd}</g>").unwrap();
+    writeln!(
+        bl,
+        "<g clip-path=\"url(#brest)\" opacity=\"0.5\">\n{bd}</g>"
+    )
+    .unwrap();
     writeln!(bl, "<g clip-path=\"url(#breveal)\">\n{bd}</g>").unwrap();
 
     if let Ok(sw_d) = NaiveDate::parse_from_str(ERA_SWITCH, "%Y-%m-%d") {
