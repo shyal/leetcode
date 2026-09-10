@@ -1,4 +1,4 @@
-name: Run Tests
+name: Checks
 
 on:
   push:
@@ -6,39 +6,83 @@ on:
   pull_request:
     branches: [master]
 
-jobs:
-  test:
-    runs-on: ubuntu-latest
+# Every job is one target of `make check` (see the makefile); a red job names
+# the gate. The pytest job is the full suite including the 988-solve sweep.
 
+jobs:
+  python-gates:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        gate: [fmt-check, lint, types, complexity]
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Python 3.10
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
+      - name: Install
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install -q --upgrade pip
+          .venv/bin/pip install -q -r requirements.txt
+      - name: make ${{ matrix.gate }}
+        run: make ${{ matrix.gate }}
 
+  duplicates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: make duplicates
+
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - run: make rust
+      - name: cargo audit
+        run: |
+          cargo install cargo-audit --locked --quiet
+          make audit
+
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
       - name: Set up Java (pyspark drills run a local JVM)
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
-
-      - name: Create virtual environment
-        run: python -m venv venv
-
-      - name: Install dependencies
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install
         run: |
-          source venv/bin/activate
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Copy custom sitecustomize.py
+          python -m venv .venv
+          .venv/bin/pip install -q --upgrade pip
+          .venv/bin/pip install -q -r requirements.txt
+          cp utils/harness/sitecustomize.py .venv/lib/python3.10/site-packages/
+      - name: Build the Rust binaries the golden tests diff against
         run: |
-          source venv/bin/activate
-          cp utils/harness/sitecustomize.py $(python -c "import site; print(site.getsitepackages()[0])")
-
-      - name: Run pytest via runner
-        run: |
-          source venv/bin/activate
-          PYTHONPATH=./utils:./utils/ pytest
+          cargo build --release --quiet --manifest-path utils/kg/kg_mock_rs/Cargo.toml
+          cargo build --release --quiet --manifest-path utils/kg/kg_movie_rs/Cargo.toml
+      - name: pytest with the coverage floor
+        run: .venv/bin/pytest --cov --cov-report=term
