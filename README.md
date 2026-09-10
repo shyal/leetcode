@@ -1,4 +1,4 @@
-[![Run Tests](https://github.com/shyal/leetcode/actions/workflows/run-tests.yml/badge.svg)](https://github.com/shyal/leetcode/actions/workflows/run-tests.yml) <!-- ELO_BADGE -->![Elo](https://shyal.s3.amazonaws.com/elo_badge_20260908154553.svg)<!-- /ELO_BADGE --> <!-- STREAK_BADGE -->![Streak](https://shyal.s3.amazonaws.com/streak_badge_20260909000409.svg)<!-- /STREAK_BADGE -->
+[![Run Tests](https://github.com/shyal/leetcode/actions/workflows/run-tests.yml/badge.svg)](https://github.com/shyal/leetcode/actions/workflows/run-tests.yml) <!-- ELO_BADGE -->![Elo](https://shyal.s3.amazonaws.com/elo_badge_20260910040717.svg)<!-- /ELO_BADGE --> <!-- STREAK_BADGE -->![Streak](https://shyal.s3.amazonaws.com/streak_badge_20260910040717.svg)<!-- /STREAK_BADGE -->
 
 This is my leetcode repo. My ELO is currently sideways. I'll elaborate on this repo once it starts moving up.
 
@@ -6,7 +6,7 @@ This is my leetcode repo. My ELO is currently sideways. I'll elaborate on this r
 
 <!-- ELO_CHART -->
 
-![Elo](https://shyal.s3.amazonaws.com/elo_20260908154553.svg)
+![Elo](https://shyal.s3.amazonaws.com/elo_20260910040717.svg)
 
 <!-- /ELO_CHART -->
 
@@ -14,5 +14,5 @@ This is my leetcode repo. My ELO is currently sideways. I'll elaborate on this r
 
 <!-- PROBLEM_RATING_CHART -->
 
-![Rating of the problems attempted](https://shyal.s3.amazonaws.com/problem_rating_20260909000725.svg)
+![Rating of the problems attempted](https://shyal.s3.amazonaws.com/problem_rating_20260910040717.svg)
 <!-- /PROBLEM_RATING_CHART -->
