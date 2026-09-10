@@ -8997,6 +8997,15 @@
       },
       "note": "Drill targeting sliding-window-fixed; all assertions passed.",
       "summary": "The code maintains a fixed-size window of k characters by adding each new character on the right and removing the leftmost on the left when i >= k, keeping the window exactly k elements wide. It tracks character frequencies in a defaultdict(int) and updates the best (maximum distinct count) with each slide. All three moves executed cleanly: the window maintenance, the frequency counter, and the running maximum."
+    },
+    "solved/d_Ledger_Tally_2026_09_10T21_45_57_466453_00_00Z.py": {
+      "date": "2026-09-11",
+      "problem": "drill",
+      "moves": {
+        "streaming-ask-then-record": "clean"
+      },
+      "note": "Sidesteps stack evaluation; encodes operators as signs in a linear accumulator instead of nested push-pop.",
+      "summary": "The code parses an arithmetic expression with + and - operators in a single pass. At each operator boundary, it queries the previous operator to determine the sign of the accumulated number (push -num for minus, num for plus), records the new operator, and resets the accumulator. It avoids the target stack-nested-eval move by eliminating precedence handling through linear left-to-right processing with implicit context encoding."
     }
   }
 }
