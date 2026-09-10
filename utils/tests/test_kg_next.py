@@ -2909,6 +2909,40 @@ def test_the_drill_clock_still_outranks_a_review(picker, monkeypatch):
     assert picker.run(ns, ps, ev, st)[2] == "drill:q2"
 
 
+def test_a_graduating_floor_outranks_a_review_by_default(picker, monkeypatch):
+    """A floor rep goes to a fresh carrier, so with REVIEWS_FIRST unset the
+    due review is never reached while a young move has one (2026-09-10)."""
+    monkeypatch.delenv("REVIEWS_FIRST", raising=False)
+    ns = nodes("q1", "q2")
+    ps = {"1": problem(["q1"]), "2": problem(["q2"]), "3": problem(["q2"])}
+    st = {"q1": (SOLID, ago(1)), "q2": (SOLID, ago(7))}
+    ev = evidence(assisted("1", {"q1": "clean"}, 30),
+                  solve("2", {"q2": "clean"}, days_ago=7))
+    assert kg_lib.graduation_due("q2", ev, 2) is not None
+    assert picker.run(ns, ps, ev, st)[2] == "3"
+
+
+def test_reviews_first_serves_the_review_ahead_of_the_floor(picker, monkeypatch):
+    monkeypatch.setenv("REVIEWS_FIRST", "1")
+    ns = nodes("q1", "q2")
+    ps = {"1": problem(["q1"]), "2": problem(["q2"]), "3": problem(["q2"])}
+    st = {"q1": (SOLID, ago(1)), "q2": (SOLID, ago(7))}
+    ev = evidence(assisted("1", {"q1": "clean"}, 30),
+                  solve("2", {"q2": "clean"}, days_ago=7))
+    assert picker.run(ns, ps, ev, st)[2] == "1"
+
+
+def test_reviews_first_still_yields_to_the_drill_clock(picker, monkeypatch):
+    monkeypatch.setenv("REVIEWS_FIRST", "1")
+    monkeypatch.setenv("DRILL_SCHEDULER", "anki")
+    ns = nodes("q1", "q2")
+    ps = {"1": problem(["q1"]), "2": problem(["q2"])}
+    st = {"q1": (SOLID, ago(1)), "q2": (SOLID, ago(1))}
+    picker.clock = [("drills/q2/a.py", "q2")]
+    ev = evidence(assisted("1", {"q1": "clean"}, 30))
+    assert picker.run(ns, ps, ev, st)[2] == "drill:q2"
+
+
 def test_a_review_outranks_a_summit(picker):
     ns = nodes("q1")
     ps = {"1": problem(["q1"]), "9": problem(["q1"], difficulty="Hard")}

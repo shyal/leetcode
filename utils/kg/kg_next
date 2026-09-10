@@ -128,7 +128,11 @@
 #   own copy of "due" and "how to get past a hold", and three holds in one
 #   evening each broke a rule that did not know them.
 #   2c. a problem on a review clock of its own (kg_lib.problem_due), served
-#      between the drill-clock moves and STALE ones. Every other rule picks
+#      between the drill-clock moves and STALE ones - or, with REVIEWS_FIRST=1
+#      (.envrc; kg_lib.reviews_first), ahead of the whole frontier, floors
+#      and FRAGILE moves included (2026-09-10: 13 young moves on a due
+#      floor, each served on a fresh carrier, kept 23 due reviews from
+#      ever reaching the top). Every other rule picks
 #      a MOVE and then a carrier for it, so how a problem itself went was
 #      never read: a node that went SOLID on some other carrier left the
 #      problem that beat you untouched, and on 2026-09-09 25 problems had
@@ -253,6 +257,7 @@ from kg.kg_lib import (
     acceptance,
     due_drill,
     due_problems,
+    reviews_first,
     problem_due,
     unservable,
     last_attempt,
@@ -1001,6 +1006,11 @@ def pick(
         return None
 
     reviewed = []
+    if reviews_first():
+        reviewed.append(True)
+        choice = review()
+        if choice:
+            return choice
     for n in due_list:
         if not reviewed and ORDER[kind(n)] >= ORDER[STALE]:
             reviewed.append(True)  # rule 2c sits here, once
@@ -1754,6 +1764,7 @@ def _main(footer):
             f"problem reviews: {n} due"
             + (f" (oldest {oldest}. {problems[oldest]['title']})" if n > 1 else "")
             + " - a problem stays due until an unaided clean rep"
+            + (" (REVIEWS_FIRST)" if reviews_first() else "")
         )
 
     # the judge queue: a placeholder still pending is a rep the picker

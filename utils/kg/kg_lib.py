@@ -2551,6 +2551,17 @@ def new_drills_left(evidence, day=None, environ=None):
     return None if cap is None else cap - new_drills_today(evidence, day)
 
 
+def reviews_first(environ=None):
+    """Whether a problem on its own review clock (problem_due) is served
+    ahead of the frontier (REVIEWS_FIRST=1 in .envrc). Off, the default,
+    it sits under FRAGILE moves and graduating floors, and a floor rep is
+    always on a fresh carrier: with 13 young moves on a due floor the 23
+    due reviews never reached the top (2026-09-10). The drill clock and the
+    sleep rules still come first."""
+    raw = (os.environ if environ is None else environ).get("REVIEWS_FIRST", "").strip()
+    return raw not in ("", "0")
+
+
 def drill_review_cap(environ=None):
     """How many bank files already met may come back in one day
     (MAX_DRILL_REVIEWS, set in .envrc), or None when there is no cap. The
