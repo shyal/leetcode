@@ -8837,6 +8837,20 @@
       },
       "note": "Monotonic deque solution; candidate struggled with heap + lazy eviction before looking up the technique and copying it.",
       "summary": "The solution maintains a monotonically decreasing deque of indices. As the window slides right, the while loop pops indices whose values are smaller than or equal to the incoming value, keeping the deque sorted in descending order by value. Expired indices (outside the window) are removed from the front with popleft(). The front index always holds the maximum in the current window. Both canonical moves \u2014 deque-recent-window for window management and monotonic-stack for maintaining the decreasing invariant \u2014 are cleanly exercised."
+    },
+    "solved/d_Nested_Boxes_2026_09_10T09_49_20_208833_00_00Z.py": {
+      "date": "2026-09-10",
+      "problem": "drill",
+      "moves": {
+        "stack-nested-eval": "clean",
+        "streaming-ask-then-record": "clean"
+      },
+      "assist": {
+        "stack-nested-eval": "learning",
+        "streaming-ask-then-record": "learning"
+      },
+      "note": "First rep; solution copied.",
+      "summary": "Stack manages nested parenthetical scopes: '(' pushes a new level, ')' pops and multiplies the inner result by 2 before adding to the parent. The code walks once through the string, querying and updating the stack at each character. Output 34 is correct for '2(3(4)5)'."
     }
   }
 }

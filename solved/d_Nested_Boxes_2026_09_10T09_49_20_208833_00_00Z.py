@@ -33,17 +33,31 @@ Constraints:
 
     REQUIRED: one pass over the characters with a stack of running weights,
     one entry per open box. NO recursion, NO second pass.
+
+---
+
+Learning
+
 """
 
 
 class Solution:
     def weight(self, s: str) -> int:
-        pass
+        stack = [0]
+        for c in s:
+            if c.isdigit():
+                stack[-1] += int(c)
+            elif c == "(":
+                stack.append(0)
+            elif c == ")":
+                inner = stack.pop()
+                stack[-1] += 2 * inner
+        return stack[0]
 
 
 sol = Solution()
 
-print(sol.weight("3(4)"))  # 11
+print(sol.weight("2(3(4)5)"))
 
 # assert sol.weight("3(4)") == 11
 # assert sol.weight("(1(2))") == 10
