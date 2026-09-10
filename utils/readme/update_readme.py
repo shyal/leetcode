@@ -76,7 +76,8 @@ def main():
         )
 
     # Chart generation is mostly disabled: the README carries the
-    # problem-rating chart, the backlog chart and the two badges, nothing else. CHARTS is the
+    # problem-rating chart, the hours chart, the backlog chart and the two
+    # badges, nothing else. CHARTS is the
     # whole list of what gets picked up and linked - one row per generated
     # image. To bring a chart back, uncomment its row here and add its renderer
     # back to the readme target in the Makefile.
@@ -85,6 +86,7 @@ def main():
     CHARTS = [
         # ("graph/elo.svg", "elo", "ELO_CHART", "Elo", False),
         ("graph/problem_rating.svg", "problem_rating", "PROBLEM_RATING_CHART", "Rating of the problems attempted", False),
+        ("graph/hours.svg", "hours", "HOURS_CHART", "Elo against hours of recorded solving, with the Carnegie Mellon rate", False),
         ("graph/backlog.svg", "backlog", "BACKLOG_CHART", "Review backlog: open cards, due cards, due drills", False),
         ("graph/elo_badge.svg", "elo_badge", "ELO_BADGE", "Elo", True),
         ("graph/streak_badge.svg", "streak_badge", "STREAK_BADGE", "Streak", True),
