@@ -8897,7 +8897,8 @@
       "moves": {
         "two-sequence-align": "clean"
       },
-      "pending": "2026-09-10T20:30:54+00:00"
+      "note": "Candidate initially wrote dp[i][j] += 1 instead of dp[i][j] += dp[i-1][j-1] + 1, then corrected it.",
+      "summary": "The solution implements LCS using a 2D DP table where dp[i][j] represents the LCS length of a[:i] and b[:j]. When characters match, it takes the diagonal cell and adds 1; when they don't, it takes the maximum of the cells above and to the left. The recurrence relation was initially incorrect but corrected before execution."
     },
     "solved/d_Each_Element_Once_2026_09_10T20_40_33_708966_00_00Z.py": {
       "date": "2026-09-11",
@@ -8917,6 +8918,14 @@
       },
       "note": "Solution correctly uses a small-domain frequency array (0-100) indexed by value, then accumulates running totals to compute cumulative counts.",
       "summary": "The code uses a frequency array indexed by small-domain values (0-100) instead of sorting, then accumulates running sums of these frequencies to compute, for each value, how many smaller values appear in the input. For each input number, it looks up the precomputed cumulative count. All test cases pass."
+    },
+    "solved/d_Kth_Smallest_Bounded_Value_2026_09_10T20_51_32_430898_00_00Z.py": {
+      "date": "2026-09-11",
+      "problem": "drill",
+      "moves": {
+        "counting-sort-buckets": "clean"
+      },
+      "pending": "2026-09-10T20:51:32+00:00"
     }
   }
 }
