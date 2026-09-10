@@ -9006,6 +9006,16 @@
       },
       "note": "Sidesteps stack evaluation; encodes operators as signs in a linear accumulator instead of nested push-pop.",
       "summary": "The code parses an arithmetic expression with + and - operators in a single pass. At each operator boundary, it queries the previous operator to determine the sign of the accumulated number (push -num for minus, num for plus), records the new operator, and resets the accumulator. It avoids the target stack-nested-eval move by eliminating precedence handling through linear left-to-right processing with implicit context encoding."
+    },
+    "solved/d_Nested_Boxes_2026_09_10T21_50_40_782628_00_00Z.py": {
+      "date": "2026-09-11",
+      "problem": "drill",
+      "moves": {
+        "stack-nested-eval": "clean",
+        "running-sum": "clean"
+      },
+      "note": "Stack for nested scopes, running-sum for per-level digit accumulation, 2x multiplier on close.",
+      "summary": "A stack tracks nested scopes. Digits add to the current scope's accumulator. '(' opens a new scope; ')' closes one, multiplies the total by 2, and adds to the parent scope. Both stack-nested-eval and running-sum are cleanly exercised."
     }
   }
 }
