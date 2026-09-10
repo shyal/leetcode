@@ -16,7 +16,7 @@ Tables
     alt_steps(num, walk, pos, node_id)        alternative orderings, walk = which one
     problem_after(num, after_id)              serve `after_id` before `num`
     drills(id, title, path, node)             one bank drill (drills/<node>/*.py), id = d14
-    drill_trains(id, node_id)                 the nodes a drill evidences (TRAINS)
+    drill_trains(id, node_id)                 the nodes a drill evidences (drills.json "trains")
     drill_after(id, after_id)                 serve `after_id` before the drill
     problem_unmapped(num, text)               moves no node names yet
     solves(file, date, problem, assist, note, followup)
@@ -38,7 +38,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from kg.kg_lib import (GRAPH_DIR, DRILLS_DIR, assist_of, load_evidence, load_nodes,  # noqa: E402
-                       load_problems, load_drills, drill_title, drill_trains, drill_id)
+                       load_problems, load_drills, drill_title, drill_trains, drill_id, bank_paths)
 
 DB = os.path.join(GRAPH_DIR, "leet.db")
 
@@ -105,7 +105,7 @@ def main():
                         [(num, t) for t in p.get("unmapped", [])])
 
     edges = load_drills()
-    for path in sorted(glob.glob(os.path.join(DRILLS_DIR, "*", "*.py"))):
+    for path in bank_paths():
         title = drill_title(path)
         if title is None:
             continue

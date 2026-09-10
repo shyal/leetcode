@@ -244,3 +244,15 @@ def test_a_branch_that_does_not_replay_keeps_the_judges_commit_on_top(repo):
 def test_judge_titles():
     assert kg_extract.judge_title("solved/d_Slide_Never_Shrink_2026_09_06T04_31_57_473199_00_00Z.py") == "Slide Never Shrink"
     assert kg_extract.judge_title("solved/p542_01_Matrix_FAILED_2026_09_03T03_48_58_768516_00_00Z.py") == "542. 01 Matrix"
+
+
+def test_trains_come_from_drills_json_not_the_file(graph, tmp_path):
+    """A bank file carries only its DRILL title; the nodes it trains live in
+    drills.json under the stable id, so a node rename never touches a file."""
+    (tmp_path / "graph" / "drills.json").write_text(json.dumps({"drills": {
+        "d9": {"title": "Slide, Never Shrink", "after": [], "trains": ["two-pointers"]}}}))
+    kg_lib._DRILLS = None
+    no_header = DRILL.replace("TRAINS: sliding-window, prefix-sum\n", "")
+    assert "TRAINS" not in no_header
+    assert kg_extract.trains_in(no_header) == ["two-pointers"]
+    kg_lib._DRILLS = None

@@ -12,7 +12,7 @@
 # (problems.json plus every number evidence.json names) and drills
 # (drills.json). The edges are every relation the graph records: a node's
 # prereqs, a problem's moves (its walk, its alt_walks and the moves its
-# solves evidenced), a drill's TRAINS moves, and the "after" lists of
+# solves evidenced), a drill's drills.json "trains", and the "after" lists of
 # problems and drills. Problem numbers and drill ids are always on screen.
 # A vertex flashes gold at the moment each of its solves happened, then
 # stays lit. Layout, projection and clock are kg_3d_svg's: nodes near the
@@ -195,7 +195,7 @@ def main():
     turn = clock.dur * TURNS_PER_LOOP
 
     # vertices and edges. A problem's moves are the union of its walk, its
-    # alt_walks and what its solves evidenced; a drill's are its TRAINS
+    # alt_walks and what its solves evidenced; a drill's are its drills.json "trains"
     # line and what its reps evidenced.
     by_day = exercises_by_day(evidence)
     evidenced = {}

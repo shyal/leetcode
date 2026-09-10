@@ -27,7 +27,7 @@ import sys
 from kg.kg_lib import (
     REPO_ROOT, DRILLS_DIR, load_problems, load_evidence, load_nodes,
     ev_index, node_eval, node_axes, assist_of, assist_tag, drills, drill_path,
-    drill_title, drill_solved_stem, drill_id, drill_after, SOLID, STALE,
+    drill_title, drill_solved_stem, drill_id, drill_after, drill_trains, bank_paths, SOLID, STALE,
     FRAGILE, MISSING,
 )
 
@@ -95,12 +95,7 @@ def problem_reps(pnum, evidence):
 
 
 def trains_of(path):
-    try:
-        with open(path) as f:
-            m = re.search(r"^\s*\**TRAINS:\**\s*([a-z0-9\-, ]+)$", f.read(), flags=re.M)
-    except OSError:
-        return []
-    return [t.strip() for t in m.group(1).split(",") if t.strip()] if m else []
+    return drill_trains(path)
 
 
 _PROBLEMS = {}
@@ -186,7 +181,7 @@ def report_problem(pnum, problems, evidence, today=None):
 
 def report_node(node, evidence, today=None):
     lines = ["node:", node_line(node, evidence, today)]
-    bank = sorted(glob.glob(os.path.join(DRILLS_DIR, node, "*.py")))
+    bank = bank_paths(node)
     if bank:
         lines.append("bank:")
         for path in bank:
