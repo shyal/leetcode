@@ -9078,6 +9078,17 @@
       },
       "note": "Abandoned after 38m; curr['end'] never set on 'end' event, producing negative duration calculations.",
       "summary": "The code uses a stack to track nested function calls, pushing on 'start' logs and popping on 'end' logs (stack-nested-eval move is implemented correctly). It attempts to accumulate exclusive time into stack[-1]['total_time'] (running-sum), but the logic is broken: curr['end'] is initialized to 0 and only updated when the next function starts, never when the current function ends. This causes duration calculations like 0 - 2 to produce negative times. The method returns None; the solution is incomplete and abandoned."
+    },
+    "solved/p76_Minimum_Window_Substring_2026_09_11T01_19_35_101716_00_00Z.py": {
+      "date": "2026-09-11",
+      "problem": "76",
+      "moves": {
+        "sliding-window-variable": "clean",
+        "counter-build": "clean"
+      },
+      "followup": "not solved",
+      "note": "Repeated counts_match calls are O(n*k), not O(m+n); incremental state tracking would remove the k factor.",
+      "summary": "Expands the window from the right and contracts from the left while counts_match() validates that the current window contains all required characters. The counter-build tracks frequencies in both the window and the target. The algorithm is correct but uses O(n\u00b7k) time due to repeated validation; a true O(m+n) solution maintains the validation state incrementally."
     }
   }
 }
