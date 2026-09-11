@@ -129,7 +129,7 @@ failed:
 # (radon max/avg), .jscpd.json (duplication). Ratchet them down, never up.
 PYSRC = $(shell utils/check/pyfiles)
 PYSRC_MYPY = $(shell utils/check/pyfiles --mypy)
-CRATES = utils/kg/kg_mock_rs utils/kg/kg_movie_rs
+CRATES = utils/kg/kg_mock_rs utils/kg/kg_movie_rs utils/kg/kg_next_rs
 
 check: fmt-check lint types complexity rust test-fast
 
@@ -186,8 +186,16 @@ viz:
 	@:
 graph:
 	@:
-next:
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_next $(patsubst why,--why,$(patsubst graph,--graph,$(patsubst cram,--cram,$(patsubst early,--early,$(patsubst assisted,--assisted,$(patsubst prepare,--prepare,$(filter-out $@,$(MAKECMDGOALS))))))))
+# make next is implemented in Rust (utils/kg/kg_next_rs); utils/kg/kg_next is
+# the Python reference and utils/tests/test_next_parity.py diffs the two over
+# the real graph/ data - change them together
+NEXT_BIN := utils/kg/kg_next_rs/target/release/kg_next
+
+$(NEXT_BIN): $(wildcard utils/kg/kg_next_rs/src/*.rs) utils/kg/kg_next_rs/Cargo.toml utils/kg/kg_mock_rs/src/lib.rs
+	@cargo build --release --quiet --manifest-path utils/kg/kg_next_rs/Cargo.toml
+
+next: $(NEXT_BIN)
+	@$(NEXT_BIN) $(patsubst why,--why,$(patsubst graph,--graph,$(patsubst cram,--cram,$(patsubst early,--early,$(patsubst assisted,--assisted,$(patsubst prepare,--prepare,$(filter-out $@,$(MAKECMDGOALS))))))))
 
 GRAPH_JSON = graph/nodes.json graph/problems.json graph/evidence.json
 

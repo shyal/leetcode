@@ -4,6 +4,12 @@
 # and draw its full input tree (the problem's moves + every transitive
 # prerequisite) inline in the terminal.
 #
+# `make next` runs the Rust port of this file (utils/kg/kg_next_rs, 2026-09-11);
+# this file is the reference implementation and the home of the rules below.
+# utils/tests/test_next_parity.py runs both over the real graph/ data and
+# diffs their output and their library values, so a change to either side
+# fails `make test` until the other side follows.
+#
 #   utils/kg/kg_next              # pick, print preflight table, draw status+emoji tree
 #   utils/kg/kg_next --graph      # same, with node labels (the map)
 #   utils/kg/kg_next --no-show    # same, without the drawing
@@ -2519,7 +2525,11 @@ def _main(footer):
     )
 
     if str(pnum).startswith("drill:"):
-        path = due_drill(target, evidence, early=args.early, assisted=args.assisted)
+        # the file pick()'s due() named: its clock's, else the cold one it
+        # fell back to (a drill held by nothing, served under the review)
+        path = due_drill(
+            target, evidence, early=args.early, assisted=args.assisted
+        ) or cold_drill(target, evidence, ready_only=True)
         title = drill_title(path)
         did = drill_id(path)
         name = f"{did}. {title}" if did else f"drill: {title}"
