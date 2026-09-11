@@ -9089,6 +9089,19 @@
       "followup": "not solved",
       "note": "Repeated counts_match calls are O(n*k), not O(m+n); incremental state tracking would remove the k factor.",
       "summary": "Expands the window from the right and contracts from the left while counts_match() validates that the current window contains all required characters. The counter-build tracks frequencies in both the window and the target. The algorithm is correct but uses O(n\u00b7k) time due to repeated validation; a true O(m+n) solution maintains the validation state incrementally."
+    },
+    "solved/d_No_Repeat_Siblings_2026_09_11T12_29_18_289276_00_00Z.py": {
+      "date": "2026-09-11",
+      "problem": "drill",
+      "moves": {
+        "backtracking-choose-undo": "clean",
+        "backtracking-dedupe-siblings": "clean"
+      },
+      "assist": {
+        "backtracking-dedupe-siblings": "hint"
+      },
+      "note": "Input is assumed sorted; typical solutions include explicit nums.sort().",
+      "summary": "The solution generates all unique subsets from an array with duplicate elements using backtracking, appending to path, recursing to deeper candidates starting at the next index, and popping to undo. At each recursion level, it skips duplicate candidates by comparing adjacent elements with the condition j > i and nums[j] == nums[j - 1]. A hint was provided about the comparison operator (== not >)."
     }
   }
 }
