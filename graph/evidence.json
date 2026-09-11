@@ -9068,6 +9068,16 @@
       },
       "note": "Hint clarified returning right instead of mid at loop termination.",
       "summary": "Uses binary search on the answer space [0, x], comparing mid*mid against x to narrow the search range. Returns right at termination, which is the largest value whose square is <= x."
+    },
+    "solved/p636_Exclusive_Time_of_Functions_FAILED_2026_09_11T00_55_06_981093_00_00Z.py": {
+      "date": "2026-09-11",
+      "problem": "636",
+      "moves": {
+        "stack-nested-eval": "clean",
+        "running-sum": "struggled"
+      },
+      "note": "Abandoned after 38m; curr['end'] never set on 'end' event, producing negative duration calculations.",
+      "summary": "The code uses a stack to track nested function calls, pushing on 'start' logs and popping on 'end' logs (stack-nested-eval move is implemented correctly). It attempts to accumulate exclusive time into stack[-1]['total_time'] (running-sum), but the logic is broken: curr['end'] is initialized to 0 and only updated when the next function starts, never when the current function ends. This causes duration calculations like 0 - 2 to produce negative times. The method returns None; the solution is incomplete and abandoned."
     }
   }
 }
