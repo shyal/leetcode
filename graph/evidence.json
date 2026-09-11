@@ -9132,6 +9132,15 @@
       },
       "note": "monotonic stack maintains descending stack of [index, value] pairs; at each element, query stack for smaller values, pop and record their next greater index, then push current.",
       "summary": "The code finds the next greater index for each element in the array using a monotonic stack. It maintains a stack in descending order by value; when a larger value arrives, it pops all smaller values and records their next greater index. Results are stored in a dictionary mapping index to its answer."
+    },
+    "solved/d_Approved_Transactions_Per_Country_2026_09_11T22_58_01_130002_00_00Z.py": {
+      "date": "2026-09-12",
+      "problem": "drill",
+      "moves": {
+        "sql-conditional-aggregate": "clean",
+        "sql-group-aggregate": "clean"
+      },
+      "summary": "The query groups transactions by country using GROUP BY, then applies conditional aggregates: SUM(CASE WHEN state='approved' THEN 1 ELSE 0 END) counts approved transactions, and SUM(CASE WHEN state='approved' THEN amount ELSE 0 END) sums approved amounts. The CASE WHEN inside aggregation ensures unmet conditions return 0 instead of NULL per country."
     }
   }
 }
