@@ -9141,6 +9141,15 @@
         "sql-group-aggregate": "clean"
       },
       "summary": "The query groups transactions by country using GROUP BY, then applies conditional aggregates: SUM(CASE WHEN state='approved' THEN 1 ELSE 0 END) counts approved transactions, and SUM(CASE WHEN state='approved' THEN amount ELSE 0 END) sums approved amounts. The CASE WHEN inside aggregation ensures unmet conditions return 0 instead of NULL per country."
+    },
+    "solved/d_Shake_Hands_With_The_Host_2026_09_11T23_01_08_680492_00_00Z.py": {
+      "date": "2026-09-12",
+      "problem": "drill",
+      "moves": {
+        "graph-adjacency-build": "clean"
+      },
+      "note": "Single move: builds adjacency dict from party structure.",
+      "summary": "The code converts a list of parties (where the first guest is the host) into an undirected adjacency dictionary. It iterates through each party, initializes each host in the defaultdict, then adds bidirectional edges between each host and their guests. All test cases pass, including isolated hosts, multi-party guests, and duplicate connections across parties."
     }
   }
 }
