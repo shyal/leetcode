@@ -64,7 +64,13 @@ jobs:
   pytest:
     runs-on: ubuntu-latest
     steps:
+      # the whole history: kg_simulate reads the solve-time trailers and the
+      # bank's growth from the git log, and a depth-1 checkout hands it a
+      # bank that appears all at once today (two starvation guards went red
+      # on 2026-09-11 for that alone)
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.10"

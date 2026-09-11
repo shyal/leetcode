@@ -366,7 +366,7 @@ fn floats(s: &str) -> Vec<f64> {
 
 fn points_bbox(pts: &[f64]) -> Rect {
     let (mut x0, mut y0, mut x1, mut y1) = (f64::MAX, f64::MAX, f64::MIN, f64::MIN);
-    for pair in pts.chunks_exact(2) {
+    for pair in pts.as_chunks::<2>().0 {
         x0 = x0.min(pair[0]);
         x1 = x1.max(pair[0]);
         y0 = y0.min(pair[1]);
