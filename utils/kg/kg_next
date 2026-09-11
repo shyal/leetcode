@@ -200,7 +200,11 @@ import sys
 from datetime import date, datetime, timedelta
 from typing import Any
 
+from rich import box
+from rich.columns import Columns
+from rich.panel import Panel
 from rich.table import Table
+from rich.text import Text
 
 from kg import kg_lib
 from kg import recognition as rc
@@ -247,6 +251,7 @@ from kg.kg_lib import (
     drills_left,
     due_drill,
     due_problems,
+    elo_now,
     ev_index,
     gates,
     gentleness,
@@ -280,7 +285,7 @@ from kg.kg_lib import (
     rank_summits,
     reviews_first,
     route_gaps,
-    sleep_lines,
+    sleep_rows,
     sleep_state,
     solve_forecast,
     solve_model,
@@ -1824,14 +1829,251 @@ def main():
     """Serve the pick, then the park. The footer is printed on every way
     out of _main (a pick, a refusal, nothing to serve) so the parked
     problems are seen every day."""
-    footer: list[str] = []
+    footer: list[Any] = []
     try:
         _main(footer)
     finally:
         if footer:
             console.print()
+            tables = [it for it in footer if not isinstance(it, str)]
+            if tables:
+                console.print(Columns(tables, padding=(0, 2)))
             for line in footer:
-                console.print(f"[dim]{line}[/dim]")
+                if isinstance(line, str):
+                    console.print(f"[dim]{line}[/dim]")
+
+
+ROW_SHADE = ["", "on grey15"]  # alternate rows, a shade darker
+
+
+def plain_table(*columns, title=None, frame=box.ROUNDED):
+    """The house table: rounded dim border, bold headers, alternate rows
+    shaded. Every table `make next` prints is one of these; the one inside
+    the pick panel keeps only the header rule (box.SIMPLE_HEAD), a box in
+    a box being noise."""
+    table = Table(
+        title=title,
+        title_justify="left",
+        title_style="bold",
+        show_header=True,
+        header_style="bold",
+        box=frame,
+        border_style="dim",
+        row_styles=ROW_SHADE,
+        padding=(0, 1),
+    )
+    for c in columns:
+        table.add_column(c)
+    return table
+
+
+def pick_panel(body, title, subtitle=None):
+    """The pick, framed: title on the top border, the URL on the bottom
+    one, the captured body (ANSI text) inside."""
+    return Panel(
+        Text.from_ansi(body.rstrip("\n")),
+        title=title,
+        title_align="left",
+        subtitle=subtitle,
+        subtitle_align="left",
+        border_style="dim",
+        expand=False,
+        padding=(0, 1),
+    )
+
+
+def headline(pnum, problems, evidence):
+    """The panel's first line: difficulty and acceptance, then the rating
+    against his Elo, whichever of the two the problem has."""
+    parts = (difficulty_line(pnum, problems), rating_line(pnum, evidence))
+    return " [dim]·[/dim] ".join(x for x in parts if x)
+
+
+def rating_line(pnum, evidence):
+    """The problem's contest rating against his Elo: the gap and the Elo
+    odds of a cold solve. None without a rating for the problem."""
+    rating = solve_ratings().get(str(pnum))
+    if rating is None:
+        return None
+    elo = elo_now(evidence)
+    gap = rating - elo
+    odds = 1 / (1 + 10 ** (gap / 400))
+    colour = "red" if gap > 100 else "yellow" if gap > -100 else "green"
+    return (
+        f"[dim]rating[/dim] [bold]{rating:.0f}[/bold] [dim]·[/dim] "
+        f"[dim]elo[/dim] {elo:.0f} [dim]·[/dim] "
+        f"[{colour}]{gap:+.0f}[/{colour}] [dim]·[/dim] "
+        f"[dim]odds[/dim] [{colour}]{odds:.0%}[/{colour}]"
+    )
+
+
+def header_line(secs, clock, reviews):
+    """The first line: time solved today and the drill clock, one line."""
+    parts = []
+    if secs:
+        h, m = divmod(secs // 60, 60)
+        parts.append(f"today [bold]{f'{h}h {m:02d}m' if h else f'{m}m'}[/bold] solving")
+    if clock:
+        parts.append(
+            f"drill clock [bold]{len(clock)}[/bold] due "
+            f"({reviews} review, {len(clock) - reviews} never done)"
+        )
+    return " [dim]·[/dim] ".join(parts)
+
+
+def drill_clock(args, nodes, evidence):
+    """The anki clock's due files for today's scope, and how many of them
+    are reviews. Empty under any other scheduler."""
+    if drill_scheduler() != "anki":
+        return [], 0
+    scope = [
+        n for n in nodes if args.group is None or nodes[n].get("group") == args.group
+    ]
+    clock = anki_frontier(evidence, nodes=nodes, node_ids=scope, assisted=args.assisted)
+    reviews = sum(1 for path, _ in clock if anki_due(path, evidence) is not None)
+    return clock, reviews
+
+
+def pace_line(fc):
+    """The pacing forecast as one dim line, or None without a forecast."""
+    if not fc:
+        return None
+    expect, hint, bail = (f"{round(v):d}m" for v in fc)
+    return (
+        f"[dim]pace[/dim] ~{expect} expected [dim]·[/dim] hint fair game after "
+        f"{hint} [dim]·[/dim] at {bail} stop, mark it, reinforce"
+    )
+
+
+def ahead_line(line):
+    """review_line's text with the label dimmed like pace's."""
+    return "[dim]ahead[/dim] " + line.removeprefix("review ahead: ")
+
+
+def park_table(nodes, problems, evidence, statuses):
+    """The park as a table: one row per parked problem, the wake command in
+    the last column. None when nothing is parked."""
+    rows = sleep_rows(nodes, problems, evidence, statuses)
+    if not rows:
+        return None
+    table = plain_table("Problem", "Ground", "Parked", "Wake", title="asleep")
+    for pnum, title, rusty, since, cycles in rows:
+        ground = (
+            f"[yellow]warming: {', '.join(rusty)}[/yellow]"
+            if rusty
+            else "[green]solid[/green]"
+        )
+        slept = f" [dim]x{cycles}[/dim]" if cycles > 1 else ""
+        table.add_row(
+            f"{pnum}. {title}",
+            ground,
+            since.replace("T", " ") + slept,
+            f"make wake {pnum}",
+        )
+    return table
+
+
+def cap_cell(k, c):
+    """`k/c` in red at the cap, green under it."""
+    colour = "red" if k >= c else "green"
+    return f"[{colour}]{k}/{c}[/{colour}]"
+
+
+def caps_table(nodes, problems, evidence):
+    """The day's budgets as a table: group caps, new drills, drill reviews,
+    problem reviews. None when no cap is set and nothing is due."""
+    rows = []
+    for g, c in sorted(group_caps().items()):
+        k = group_reps(g, nodes, evidence)
+        rows.append(
+            (
+                g,
+                cap_cell(k, c),
+                (
+                    f"at the cap - make next {g} to go past it"
+                    if k >= c
+                    else "KG_GROUP_CAP"
+                ),
+            )
+        )
+    new_cap = new_drill_cap()
+    if new_cap is not None:
+        k = new_drills_today(evidence)
+        rows.append(
+            (
+                "new drills",
+                cap_cell(k, new_cap),
+                (
+                    "at the cap - reviews only until tomorrow"
+                    if k >= new_cap
+                    else "MAX_NEW_DRILLS"
+                ),
+            )
+        )
+    review_cap = drill_review_cap()
+    if review_cap is not None:
+        k = drill_reviews_today(evidence)
+        rows.append(
+            (
+                "drill reviews",
+                cap_cell(k, review_cap),
+                (
+                    "at the cap - the bank waits until tomorrow"
+                    if k >= review_cap
+                    else "MAX_DRILL_REVIEWS"
+                ),
+            )
+        )
+    # the review queue: problems on their own clock (rule 2c). One is served
+    # per pick at most, so the count is the only place the rest are visible.
+    review_due = review_queue(evidence, problems)
+    if review_due:
+        n = len(review_due)
+        oldest = review_due[0][0]
+        rows.append(
+            (
+                "problem reviews",
+                f"[yellow]{n} due[/yellow]",
+                (f"oldest {oldest}. {problems[oldest]['title']} - " if n > 1 else "")
+                + "due until an unaided clean rep"
+                + (" (REVIEWS_FIRST)" if reviews_first() else ""),
+            )
+        )
+    if not rows:
+        return None
+    table = plain_table("Budget", "Used", "Note", title="today")
+    for row in rows:
+        table.add_row(*row)
+    return table
+
+
+def judge_line(evidence):
+    """The judge queue: a placeholder still pending is a rep the picker
+    counts on its TRAINS, unjudged. Fresh ones are being judged now; a
+    stale one lost its worker (killed, dropped with its branch) - respawn.
+    None when nothing is pending."""
+    pending = pending_judgements(evidence)
+    if not pending:
+        return None
+    stale = [p for p, age in pending if age > PENDING_STALE_SECONDS]
+    for p in stale:
+        spawn_judge(p)
+    return (
+        f"judge pending on {len(pending)} rep(s)"
+        + (f", {len(stale)} respawned" if stale else "")
+        + " (.judge.log)"
+    )
+
+
+def build_footer(nodes, problems, evidence, statuses, asleep):
+    """Everything under the rule at the bottom of every make next: the
+    park, the day's budgets, the judge queue."""
+    items = [
+        park_table(nodes, problems, evidence, statuses) if asleep else None,
+        caps_table(nodes, problems, evidence),
+        judge_line(evidence),
+    ]
+    return [it for it in items if it is not None]
 
 
 def _main(footer):
@@ -1986,75 +2228,17 @@ def _main(footer):
         )
 
     asleep, woken = sleep_state(nodes, problems, evidence)
-    if asleep:
-        footer.extend(sleep_lines(nodes, problems, evidence, statuses))
-    for g, c in sorted(group_caps().items()):
-        k = group_reps(g, nodes, evidence)
-        footer.append(
-            f"{g}: {k}/{c} reps today"
-            + (
-                " - at the daily cap, make next {g} to go past it".format(g=g)
-                if k >= c
-                else " (KG_GROUP_CAP)"
-            )
-        )
-    new_cap = new_drill_cap()
-    if new_cap is not None:
-        k = new_drills_today(evidence)
-        footer.append(
-            f"new drills: {k}/{new_cap} today"
-            + (
-                " - at the daily cap, reviews only until tomorrow"
-                if k >= new_cap
-                else " (MAX_NEW_DRILLS)"
-            )
-        )
-    review_cap = drill_review_cap()
-    if review_cap is not None:
-        k = drill_reviews_today(evidence)
-        footer.append(
-            f"drill reviews: {k}/{review_cap} today"
-            + (
-                " - at the daily cap, the bank waits until tomorrow"
-                if k >= review_cap
-                else " (MAX_DRILL_REVIEWS)"
-            )
-        )
-    # the review queue: problems on their own clock (rule 2c). One is served
-    # per pick at most, so the count is the only place the rest are visible.
-    review_due = review_queue(evidence, problems)
-    if review_due:
-        n = len(review_due)
-        oldest = review_due[0][0]
-        footer.append(
-            f"problem reviews: {n} due"
-            + (f" (oldest {oldest}. {problems[oldest]['title']})" if n > 1 else "")
-            + " - a problem stays due until an unaided clean rep"
-            + (" (REVIEWS_FIRST)" if reviews_first() else "")
-        )
-
-    # the judge queue: a placeholder still pending is a rep the picker
-    # counts on its TRAINS, unjudged. Fresh ones are being judged now; a
-    # stale one lost its worker (killed, dropped with its branch) - respawn
-    pending = pending_judgements(evidence)
-    if pending:
-        stale = [p for p, age in pending if age > PENDING_STALE_SECONDS]
-        for p in stale:
-            spawn_judge(p)
-        footer.append(
-            f"judge pending on {len(pending)} rep(s)"
-            + (f", {len(stale)} respawned" if stale else "")
-            + " (.judge.log)"
-        )
+    footer.extend(build_footer(nodes, problems, evidence, statuses, asleep))
 
     session_start = is_session_start()
 
-    clock: Any  # the solving time as text here, the drill clock list below
-    secs = _iss().solve_seconds_today()
-    if secs:
-        h, m = divmod(secs // 60, 60)
-        clock = f"{h}h {m:02d}m" if h else f"{m}m"
-        console.print(f"[dim]today: {clock} solving[/dim]")
+    # the clock, announced: time solved today, and how many files are due
+    # and of what kind. A starved bank must show in the default output,
+    # not in an audit.
+    clock, reviews = drill_clock(args, nodes, evidence)
+    head = header_line(_iss().solve_seconds_today(), clock, reviews)
+    if head:
+        console.print(f"[dim]{head}[/dim]")
 
     # the recognition axis (kg.recognition): a statement to read before the
     # solve, three minutes, when a node's trigger is missing or untested.
@@ -2123,23 +2307,6 @@ def _main(footer):
     # Today's frozen plan comes first: serve its pending items in order,
     # transparently — same rendering, same commands. Items self-clear from
     # evidence; an exhausted or absent plan falls through to the normal rules.
-    # the clock, announced: how many files are due and of what kind. A
-    # starved bank must show in the default output, not in an audit.
-    clock = []
-    if drill_scheduler() == "anki":
-        scope = [
-            n
-            for n in nodes
-            if args.group is None or nodes[n].get("group") == args.group
-        ]
-        clock = anki_frontier(
-            evidence, nodes=nodes, node_ids=scope, assisted=args.assisted
-        )
-        reviews = sum(1 for path, _ in clock if anki_due(path, evidence) is not None)
-        console.print(
-            f"[dim]drill clock: {len(clock)} due - {reviews} review, "
-            f"{len(clock) - reviews} never done[/dim]"
-        )
     plan = None if args.early or args.assisted or clock else load_plan()
     if plan:
         pending = [
@@ -2322,12 +2489,7 @@ def _main(footer):
                 nodes, problems, evidence, statuses, asleep, exclude
             )
             if blocked:
-                table = Table(
-                    show_header=True, header_style="bold", box=None, padding=(0, 2)
-                )
-                table.add_column("Move")
-                table.add_column("Status")
-                table.add_column("Why it can't be served")
+                table = plain_table("Move", "Status", "Why it can't be served")
                 for nid, status, why, is_dry in blocked:
                     table.add_row(
                         nid,
@@ -2362,12 +2524,9 @@ def _main(footer):
         did = drill_id(path)
         name = f"{did}. {title}" if did else f"drill: {title}"
         s, d = statuses[target]
-        table = Table(show_header=True, header_style="bold", box=None, padding=(0, 2))
-        table.add_column("Move")
-        table.add_column("Status")
-        table.add_column("Maturity")
-        table.add_column("Own")
-        table.add_column("Last evidence")
+        table = plain_table(
+            "Move", "Status", "Maturity", "Own", "Last evidence", frame=box.SIMPLE_HEAD
+        )
         label = target if labeled else random.choice(STATUS_FACE[s])
         table.add_row(
             label,
@@ -2376,23 +2535,21 @@ def _main(footer):
             own_cell(target),
             str(d) if d else "—",
         )
-        with console.capture() as cap:
-            console.print(f"\n[bold]{name}[/bold]")
+        with console.capture() as cap, console.capture() as body:
             console.print(table)
             rl = recall_line(path)
             if rl:
                 console.print(rl)
             print_gates(did or title, problems, evidence, labeled)
-            fc = drill_forecast(path)
-            if fc:
-                expect, hint, bail = (f"{round(v):d}m" for v in fc)
-                console.print(
-                    f"[dim]pace: ~{expect} expected · hint fair game after "
-                    f"{hint} · at {bail} stop, mark it, reinforce[/dim]"
-                )
+            pace = pace_line(drill_forecast(path))
+            if pace:
+                console.print(pace)
             if ahead:
-                console.print(f"[dim]{ahead}[/dim]")
-            console.print(f"make prepare {did or target}")
+                console.print(ahead_line(ahead))
+        with console.capture() as cap:
+            console.print()
+            console.print(pick_panel(body.get(), f"[bold]{name}[/bold]"))
+            console.print(f"[bold]make prepare {did or target}[/bold]")
         if not args.no_show:
             tree = input_tree([target], nodes)
             dot = make_digraph("input-tree")
@@ -2455,12 +2612,9 @@ def _main(footer):
         else None
     )
 
-    table = Table(show_header=True, header_style="bold", box=None, padding=(0, 2))
-    table.add_column("Move")
-    table.add_column("Status")
-    table.add_column("Maturity")
-    table.add_column("Own")
-    table.add_column("Last evidence")
+    table = plain_table(
+        "Move", "Status", "Maturity", "Own", "Last evidence", frame=box.SIMPLE_HEAD
+    )
     for m in p["moves"]:
         s, d = statuses[m]
         label = m if labeled else random.choice(STATUS_FACE[s])
@@ -2476,12 +2630,8 @@ def _main(footer):
     # all-green — so it gets kg_hard's mountain rather than a word of prose.
     summit = "⛰  " if p.get("difficulty") == "Hard" else ""
 
-    with console.capture() as cap:
-        console.print(f"\n[bold]{summit}{pnum}. {p['title']}[/bold]")
-        console.print(problem_url(pnum))
-        diff_line = difficulty_line(pnum, problems)
-        if diff_line:
-            console.print(diff_line)
+    with console.capture() as body:
+        console.print(headline(pnum, problems, evidence))
         if p.get("predicted"):
             console.print(
                 "[yellow]⚠ drafted walk, not yet evidenced — "
@@ -2508,17 +2658,22 @@ def _main(footer):
         # pacing forecast from the mined solve-time history: expected time,
         # the point where a hint is fair game, and the point where the rep
         # has become a grind — bank it and reinforce instead
-        fc = solve_forecast(pnum, problems)
-        if fc:
-            expect, hint, bail = (f"{round(v):d}m" for v in fc)
-            console.print(
-                f"[dim]pace: ~{expect} expected · hint fair game after "
-                f"{hint} · at {bail} stop, mark it, reinforce[/dim]"
-            )
+        pace = pace_line(solve_forecast(pnum, problems))
+        if pace:
+            console.print(pace)
         if ahead:
-            console.print(f"[dim]{ahead}[/dim]")
+            console.print(ahead_line(ahead))
+    with console.capture() as cap:
+        console.print()
+        console.print(
+            pick_panel(
+                body.get(),
+                f"[bold]{summit}{pnum}. {p['title']}[/bold]",
+                f"[dim]{problem_url(pnum)}[/dim]",
+            )
+        )
         if forced:
-            console.print(f"make force {pnum}")
+            console.print(f"[bold]make force {pnum}[/bold]")
 
     if args.no_show:
         animate(cap.get())

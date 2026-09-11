@@ -2974,34 +2974,48 @@ def sleep_state(nodes, problems, evidence):
     return asleep, []
 
 
-def sleep_lines(nodes, problems, evidence, statuses=None):
-    """The park, one line per parked problem: what it is, what the picker
-    is warming for it (or that its ground is solid), when it was parked,
-    how many times, and the wake command. Printed by `make sleep -- --list`
-    and, so the park cannot be ignored, at the bottom of every `make next`
-    (2026-09-01: the daily reminder is the point - the operator wants the
-    parked problems in view so they get thought about overnight). Empty
-    when nothing is parked."""
+def sleep_rows(nodes, problems, evidence, statuses=None):
+    """The park, one row per parked problem: (pnum, title, ground, since,
+    cycles). ground is the list of non-SOLID nodes under the problem (what
+    the picker is warming for it), empty when its ground is solid. since
+    is the last park time, ISO to the minute. Empty when nothing is
+    parked."""
     recs = sleep_records(problems, evidence)
     if not recs:
         return []
     asleep, _ = sleep_state(nodes, problems, evidence)
     if statuses is None:
         statuses = {n: node_status(n, evidence) for n in nodes}
-    lines = []
+    rows = []
     for pnum in asleep:
         rec = recs[pnum]
         since = datetime.fromtimestamp(rec["slept"]).isoformat(timespec="minutes")
-        cycles = f", slept x{rec['cycles']}" if rec["cycles"] > 1 else ""
         rusty = sorted(
             n
             for n in input_tree(problems[pnum]["moves"], nodes)
             if statuses[n][0] != SOLID
         )
+        rows.append((pnum, rec["title"], rusty, since, rec["cycles"]))
+    return rows
+
+
+def sleep_lines(nodes, problems, evidence, statuses=None):
+    """The park, one line per parked problem: what it is, what the picker
+    is warming for it (or that its ground is solid), when it was parked,
+    how many times, and the wake command. Printed by `make sleep -- --list`;
+    `make next` prints the same rows as a table at the bottom of every
+    pick (2026-09-01: the daily reminder is the point - the operator wants
+    the parked problems in view so they get thought about overnight).
+    Empty when nothing is parked."""
+    lines = []
+    for pnum, title, rusty, since, cycles in sleep_rows(
+        nodes, problems, evidence, statuses
+    ):
         ground = f"warming: {', '.join(rusty)}" if rusty else "ground solid, simmering"
+        slept = f", slept x{cycles}" if cycles > 1 else ""
         lines.append(
-            f"{pnum}. {rec['title']} - asleep ({ground}) - parked "
-            f"{since}{cycles} - make wake {pnum} when you choose"
+            f"{pnum}. {title} - asleep ({ground}) - parked "
+            f"{since}{slept} - make wake {pnum} when you choose"
         )
     return lines
 
