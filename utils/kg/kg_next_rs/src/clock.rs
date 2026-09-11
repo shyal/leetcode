@@ -129,7 +129,7 @@ pub fn due_problems(
             }
         }
     }
-    out.sort_by(|a, b| (a.1, pnum_key(&a.0)).cmp(&(b.1, pnum_key(&b.0))));
+    out.sort_by_key(|t| (t.1, pnum_key(&t.0)));
     out
 }
 
