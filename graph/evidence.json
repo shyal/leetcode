@@ -9121,6 +9121,17 @@
         "rotated-array-pivot": "clean"
       },
       "summary": "The solution uses binary search to find a target in a rotated sorted array. At each binary-search step, it detects which half is sorted by comparing endpoints with mid, then checks if the target falls in that sorted range; if yes, it narrows to that half, otherwise to the other. Both canonical moves exercise cleanly."
+    },
+    "solved/d_Next_Greater_Index_2026_09_11T13_06_03_695098_00_00Z.py": {
+      "date": "2026-09-11",
+      "problem": "drill",
+      "moves": {
+        "monotonic-stack": "clean",
+        "streaming-ask-then-record": "clean",
+        "dict-arbitrary-value": "clean"
+      },
+      "note": "monotonic stack maintains descending stack of [index, value] pairs; at each element, query stack for smaller values, pop and record their next greater index, then push current.",
+      "summary": "The code finds the next greater index for each element in the array using a monotonic stack. It maintains a stack in descending order by value; when a larger value arrives, it pops all smaller values and records their next greater index. Results are stored in a dictionary mapping index to its answer."
     }
   }
 }
