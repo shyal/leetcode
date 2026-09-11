@@ -20,7 +20,7 @@ use crate::ctx::{Ctx, PView};
 use crate::data::{is_numeric_id, max_asleep, parse_date, pnum_key, Problem, Rec};
 use crate::drills::{
     anki, anki_due, anki_frontier, cold_drill, drill_capped, drill_gated, drill_held, drills_left,
-    due_drill, group_caps, group_reps,
+    due_drill, group_caps, group_reps, last_drilled,
 };
 use crate::evidence::Evidence;
 use crate::model::{problem_solve_p, solve_model, solve_ratings, target_pass_rate};
@@ -303,7 +303,15 @@ impl<'a> Picker<'a> {
             self.early,
             self.assisted,
         )
-        .or_else(|| cold_drill(self.ctx, target, self.ev, self.today, true));
+        .or_else(|| {
+            // once a day: a drill done today with a hint is still cold, and
+            // the same file was served straight back (2026-09-11, No
+            // Repeat Siblings right after its rep)
+            cold_drill(self.ctx, target, self.ev, self.today, true).filter(|p| {
+                last_drilled(self.ctx, p, self.ev).as_str()
+                    < self.today.format("%Y-%m-%d").to_string().as_str()
+            })
+        });
         match path {
             Some(p) if !drill_capped(self.ctx, &p, self.ev, self.today) => Some(drill_id),
             _ => None,

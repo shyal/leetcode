@@ -269,6 +269,7 @@ from kg.kg_lib import (
     immature_nodes,
     input_tree,
     last_attempt,
+    last_drilled,
     last_solved,
     latest_carrier,
     load_all_problems,
@@ -577,8 +578,14 @@ def pick(
         path = due_drill(target, evidence, early=early, assisted=assisted)
         # a drill the clock does not call for still holds every problem that
         # walks its node (kg_lib.node_drill_hold), so it is what the node can
-        # be served: nothing else clears that hold
-        path = path or cold_drill(target, evidence, ready_only=True)
+        # be served: nothing else clears that hold. Once a day, though: a
+        # drill done today with a hint is still cold, and the same file was
+        # served straight back (2026-09-11, No Repeat Siblings right after
+        # its rep)
+        if not path:
+            cold = cold_drill(target, evidence, ready_only=True)
+            if cold and last_drilled(cold, evidence) < date.today().isoformat():
+                path = cold
         return drill_id if path and not drill_capped(path, evidence) else None
 
     def promote(target, unsolved):
