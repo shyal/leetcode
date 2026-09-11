@@ -131,15 +131,30 @@ def build_graph_from_edge_list(edges, type="undirected"):
 
 def as_dict_of_dicts(G: Any) -> Any:
     """Accept a dict of lists (or tuples or sets) as well as a dict of dicts.
-    Each list neighbor becomes a dict entry with weight 1."""
-    if isinstance(G, dict) and any(
-        isinstance(v, (list, tuple, set)) for v in G.values()
-    ):
+    Each list neighbor becomes a dict entry with weight 1.
+
+    Also accept a dict of scalars (each key has one neighbor, its value)
+    and a list of ints (a parent array: index i has one neighbor
+    parent[i]). A self loop, parent[i] == i, draws as a node with no
+    outgoing edge."""
+    if isinstance(G, list) and all(isinstance(v, int) for v in G):
+        G = dict(enumerate(G))
+    if not isinstance(G, dict):
+        return G
+    if all(isinstance(v, (dict, list, tuple, set)) for v in G.values()):
         return {
             k: (v if isinstance(v, dict) else {dst: 1 for dst in v})
             for k, v in G.items()
         }
-    return G
+    out: Dict[Any, Dict[Any, Any]] = {}
+    for k, v in G.items():
+        if isinstance(v, dict):
+            out[k] = v
+        elif isinstance(v, (list, tuple, set)):
+            out[k] = {dst: 1 for dst in v}
+        else:
+            out[k] = {} if v == k else {v: 1}
+    return out
 
 
 def is_edge_list(edges):
@@ -163,6 +178,7 @@ def draw_graphviz(
     # duck typing, auto convert edge list to graph
     if is_edge_list(G):
         G = build_graph_from_edge_list(G, type)
+    G = as_dict_of_dicts(G)
 
     if png_filename is None:
         # Compute deterministic hash for caching
