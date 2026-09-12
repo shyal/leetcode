@@ -75,11 +75,11 @@ def first_dates():
     return first
 
 
-def games():
-    """[(date, problem rating, score)] oldest first, one per scored first-sight
-    attempt. Scoring lives in kg_lib.scored_games; here each game is priced
-    by its problem's rating, with an unrated problem taking the median rating
-    of its difficulty."""
+def pricing():
+    """(problem -> contest rating, difficulty -> the median rating of its
+    rated problems): what a game is priced at. An unrated problem takes its
+    difficulty's median. The problem chart prices its simulated games here
+    too, so the forecast Elo continues the history on the same numbers."""
     ratings = load_ratings()
     with open(META) as f:
         meta = json.load(f)
@@ -87,7 +87,15 @@ def games():
     for pid, rt in ratings.items():
         if pid in meta:
             by_diff[meta[pid]["difficulty"]].append(rt)
-    imputed = {d: median(v) for d, v in by_diff.items()}
+    return ratings, {d: median(v) for d, v in by_diff.items()}
+
+
+def games():
+    """[(date, problem rating, score)] oldest first, one per scored first-sight
+    attempt. Scoring lives in kg_lib.scored_games; here each game is priced
+    by its problem's rating, with an unrated problem taking the median rating
+    of its difficulty."""
+    ratings, imputed = pricing()
     first = first_dates()
     return [
         (
@@ -100,27 +108,31 @@ def games():
     ]
 
 
-def elo(gs):
-    """[(date, rating after the day's last game)] one per day with a game."""
-    r, by_day = START, {}
-    for d, rp, s in gs:
-        e = 1 / (1 + 10 ** ((rp - r) / 400))
-        r += K * (s - e)
-        by_day[d] = r
-    return sorted(by_day.items())
-
-
-def elo_ma(gs, n=MA):
-    """[(date, mean of the Elo after each of the last n games)] one per day
-    with a game, once n games exist. Elo after a game is the value one game's
-    K*(s-e) step past the previous; here the steps are replayed and averaged
-    over a window of n games, not n days."""
-    r, after = START, []
+def elo_after(gs, start=START):
+    """[(date, rating after the game)] one per game, from `start`: the K*(s-e)
+    step replayed game by game. Every Elo series here is a view of this."""
+    r, after = start, []
     for d, rp, s in gs:
         r += K * (s - 1 / (1 + 10 ** ((rp - r) / 400)))
         after.append((d, r))
+    return after
+
+
+def elo(gs, start=START):
+    """[(date, rating after the day's last game)] one per day with a game."""
+    return sorted(dict(elo_after(gs, start)).items())
+
+
+def elo_ma(gs, n=MA, start=START, tail=()):
+    """[(date, mean of the Elo after each of the last n games)] one per day
+    with a game, once n games exist. Elo after a game is the value one game's
+    K*(s-e) step past the previous; here the steps are replayed and averaged
+    over a window of n games, not n days. `tail` is the per-game Elo the
+    window starts full of, for a series that continues another (the problem
+    chart's forecast): only dates past it are returned."""
+    after = list(tail) + elo_after(gs, start)
     out = {}
-    for i in range(n - 1, len(after)):
+    for i in range(max(n - 1, len(tail)), len(after)):
         out[after[i][0]] = sum(r for _, r in after[i - n + 1 : i + 1]) / n
     return sorted(out.items())
 

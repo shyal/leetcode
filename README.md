@@ -20,9 +20,11 @@ The gauge is my Elo gains on problems i've seen for the first time: <!-- FS_RATE
 
 The blue line is the median rating of my last 50 first sights, the green line is my Elo. The dots are every attempt, repeats included. For about a year the blue line was around 300 points below my Elo. That is the "leetcode grind" of semi randomly walking through problems, hoping for the best. It jumped in September 2026 when the picker started serving problems at my rating, and it now sits at <!-- SERVED_MEDIAN -->1647<!-- /SERVED_MEDIAN -->.
 
+Right of the dotted line is a simulation: the picker running on its own for six months, five times over. Grey dots are the problems it would give me, the dashed lines are where the median and the Elo go. The Elo only goes up because the picker serves harder problems, not because i get better. The model assumes i don't, see below.
+
 <!-- PROBLEM_RATING_CHART -->
 
-![Rating of the problems attempted](https://shyal.s3.amazonaws.com/problem_rating_20260912061513.svg)
+![Rating of the problems attempted](https://shyal.s3.amazonaws.com/problem_rating_20260912082058.svg)
 
 <!-- /PROBLEM_RATING_CHART -->
 
@@ -47,6 +49,15 @@ Extrapolating noisy data. What could go wrong.
 ![Elo history and its projection to the onsite line, on dates](https://shyal.s3.amazonaws.com/onsite_20260912061513.svg)
 
 <!-- /ONSITE_CHART -->
+
+## Progress
+
+The two projections above are extrapolations. This one isn't. The model that scores my solves knows the problem's rating and how well i remember the moves, and nothing about hours or time, because adding those didn't help it predict anything. So it assumes i'm not improving. This chart is my last 30 first sights minus what the model expected. Inside the band, the model is right. Above it for a while, i'm getting better and the model hasn't caught up yet.
+
+<!-- PROGRESS_CHART -->
+
+![Actual minus model on the last 30 first sights](https://shyal.s3.amazonaws.com/progress_20260912082058.svg)
+<!-- /PROGRESS_CHART -->
 
 ## Backlog
 
