@@ -19,6 +19,7 @@ pub mod git;
 pub mod mock;
 pub mod model;
 pub mod pick;
+pub mod pyjson;
 pub mod recog;
 pub mod render;
 pub mod status;
