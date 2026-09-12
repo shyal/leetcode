@@ -9316,6 +9316,14 @@
         "graph-bfs-shortest": "clean"
       },
       "summary": "Finds distance from each 1 to the nearest 0 via repeated single-source BFS from each 1. The code exercises BFS with distance tracking but avoids the canonical multi-source approach of seeding all 0s at once; instead it runs separate BFS passes for each 1."
+    },
+    "solved/p1720_Decode_XORed_Array_2026_09_12T10_14_23_919423_00_00Z.py": {
+      "date": "2026-09-12",
+      "problem": "1720",
+      "moves": {
+        "xor-cancellation": "clean"
+      },
+      "summary": "The solution builds the original array in a single pass. Starting with arr[0] = first, it iterates through the encoded array. At each step, given encoded[i] = arr[i] XOR arr[i+1], it computes arr[i+1] = encoded[i] XOR arr[i] using XOR cancellation: the property that (a XOR b) XOR a = b allows the known arr[i] terms to cancel, recovering arr[i+1]."
     }
   }
 }
