@@ -1,4 +1,4 @@
-[![Run Tests](https://github.com/shyal/leetcode/actions/workflows/run-tests.yml/badge.svg)](https://github.com/shyal/leetcode/actions/workflows/run-tests.yml) <!-- ELO_BADGE -->![Elo](https://shyal.s3.amazonaws.com/elo_badge_20260912031833.svg)<!-- /ELO_BADGE --> <!-- STREAK_BADGE -->![Streak](https://shyal.s3.amazonaws.com/streak_badge_20260912031833.svg)<!-- /STREAK_BADGE --> <!-- RATE_BADGE -->![Elo per 100 hours on new problems](https://shyal.s3.amazonaws.com/rate_badge_20260912042937.svg)<!-- /RATE_BADGE -->
+[![Run Tests](https://github.com/shyal/leetcode/actions/workflows/run-tests.yml/badge.svg)](https://github.com/shyal/leetcode/actions/workflows/run-tests.yml) <!-- ELO_BADGE -->![Elo](https://shyal.s3.amazonaws.com/elo_badge_20260912052550.svg)<!-- /ELO_BADGE --> <!-- STREAK_BADGE -->![Streak](https://shyal.s3.amazonaws.com/streak_badge_20260912031833.svg)<!-- /STREAK_BADGE --> <!-- RANK_ALL_BADGE -->![Elo against all rated LeetCode users](https://shyal.s3.amazonaws.com/rank_all_badge_20260912052550.svg)<!-- /RANK_ALL_BADGE --> <!-- RANK_REGULARS_BADGE -->![Elo against users with 20 or more contests](https://shyal.s3.amazonaws.com/rank_regulars_badge_20260912052550.svg)<!-- /RANK_REGULARS_BADGE --> <!-- RATE_BADGE -->![First-sight Elo per 100 hours](https://shyal.s3.amazonaws.com/rate_badge_20260912052550.svg)<!-- /RATE_BADGE -->
 
 This is my leetcode repo. It uses [zerotrac] and [CLIST] so leetcode questions actually have an Elo rating attached to them, and has drills on an Anki schedule, a directed graph of moves, problems and drills that tries to categorize every leetcode question, a duolingo-style memory decay curve for nodes, and a pretty complex picker algorithm.
 
@@ -6,11 +6,11 @@ The biggest insight so far has been that i've been "grinding" well below my Elo,
 
 This probably explains why so many leetcode users refer to the infamous "leetcode grind", since leetcode does not let people pick questions that match their current Elo (unlike topcoder).
 
-My current Elo moving average (over the last <!-- ELO_MA_WINDOW -->60<!-- /ELO_MA_WINDOW --> games) is <!-- ELO_MA -->1588<!-- /ELO_MA -->.
+My current Elo moving average (over the last <!-- ELO_MA_WINDOW -->60<!-- /ELO_MA_WINDOW --> games) is <!-- ELO_MA -->1591<!-- /ELO_MA -->.
 
 <!-- RATE_GAUGE -->
 
-![Elo per 100 hours on problems seen for the first time](https://shyal.s3.amazonaws.com/rate_gauge_20260912042937.svg)
+![Elo per 100 hours on problems seen for the first time](https://shyal.s3.amazonaws.com/rate_gauge_20260912052550.svg)
 
 <!-- /RATE_GAUGE -->
 
@@ -22,7 +22,7 @@ The blue line is the median rating of my last 50 attempts, the green line is my 
 
 <!-- PROBLEM_RATING_CHART -->
 
-![Rating of the problems attempted](https://shyal.s3.amazonaws.com/problem_rating_20260912033231.svg)
+![Rating of the problems attempted](https://shyal.s3.amazonaws.com/problem_rating_20260912052550.svg)
 
 <!-- /PROBLEM_RATING_CHART -->
 
@@ -34,7 +34,7 @@ The study showed a 200 point gain at about 200 problems above one's rating, roug
 
 <!-- HOURS_CHART -->
 
-![Elo against hours of recorded solving, with the Carnegie Mellon rate](https://shyal.s3.amazonaws.com/hours_20260912033231.svg)
+![Elo against hours of recorded solving, with the Carnegie Mellon rate](https://shyal.s3.amazonaws.com/hours_20260912052550.svg)
 
 <!-- /HOURS_CHART -->
 
@@ -44,7 +44,7 @@ Extrapolating noisy data. What could go wrong.
 
 <!-- ONSITE_CHART -->
 
-![Elo history and its projection to the onsite line, on dates](https://shyal.s3.amazonaws.com/onsite_20260912033231.svg)
+![Elo history and its projection to the onsite line, on dates](https://shyal.s3.amazonaws.com/onsite_20260912052550.svg)
 
 <!-- /ONSITE_CHART -->
 
@@ -52,9 +52,15 @@ Extrapolating noisy data. What could go wrong.
 
 <!-- BACKLOG_CHART -->
 
-![Review backlog: open cards, due cards, due drills](https://shyal.s3.amazonaws.com/backlog_20260912031833.svg)
+![Review backlog: open cards, due cards, due drills](https://shyal.s3.amazonaws.com/backlog_20260912052550.svg)
 
 <!-- /BACKLOG_CHART -->
+
+## Rank badges
+
+The two rank badges put the Elo on LeetCode's contest scale. "vs all rated" is the share of all rated users at or above it, read off LeetCode's global ranking (snapshot in `data/leetcode_rank_table.json`, refreshed with `make rank-table`). "vs 20+ contests" is the share of a random sample of users with at least 20 attended contests, so it is an estimate from a few hundred people and moves a few points between snapshots.
+
+Both flatter me. Most rated users entered one contest, lost points, and never came back, so a rating a little above 1500 clears the bulk of them. And the Elo is scored on problems solved on a clock, against [zerotrac] problem ratings, not on contests, so it is a problem-solving Elo read on a contest scale. My real contest rating, if i had one, would likely be lower.
 
 [zerotrac]: https://zerotrac.github.io/leetcode_problem_rating/
 [CLIST]: https://clist.by/

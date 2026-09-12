@@ -1,0 +1,89 @@
+#!/usr/bin/env python3
+
+# kg_rank_svg - where the current Elo sits in LeetCode's rated population,
+# rendered into graph/rank_all_badge.svg and graph/rank_regulars_badge.svg
+# for the README pipeline.
+#
+# The Elo is the one the Elo badge shows (kg_elo_svg). The population data
+# is the snapshot in data/leetcode_rank_table.json, written by
+# kg_rank_fetch. Against all rated users the badge interpolates the count
+# at or above the Elo between the table's 25-point rows. Against regulars
+# (users with 20 or more contests) it is the share of the sampled regulars
+# rated at or above the Elo. The Elo is scored on problems, not contests,
+# so both badges read a problem-solving Elo on a contest scale; the README
+# says so at the bottom.
+
+import json
+import os
+from importlib.machinery import SourceFileLoader
+
+from kg.kg_lib import GRAPH_DIR, REPO_ROOT
+
+TABLE = os.path.join(REPO_ROOT, "data", "leetcode_rank_table.json")
+ALL_BADGE = os.path.join(GRAPH_DIR, "rank_all_badge.svg")
+REGULARS_BADGE = os.path.join(GRAPH_DIR, "rank_regulars_badge.svg")
+COLOR = "#8b949e"
+
+
+def top_share_all(table, elo):
+    """Share of all rated users at or above elo, from the 25-point rows,
+    linearly interpolated; clamped to the table's ends."""
+    rows = table["rows"]
+    if elo <= rows[0][0]:
+        return rows[0][1] / table["total"]
+    if elo >= rows[-1][0]:
+        return rows[-1][1] / table["total"]
+    for (r0, n0), (r1, n1) in zip(rows, rows[1:]):
+        if r0 <= elo <= r1:
+            n = n0 + (n1 - n0) * (elo - r0) / (r1 - r0)
+            return n / table["total"]
+    raise ValueError("rows are not sorted")
+
+
+def top_share_regulars(sample, elo):
+    """Share of the sampled regulars rated at or above elo."""
+    ratings = sample["ratings"]
+    return sum(1 for r in ratings if r >= elo) / len(ratings)
+
+
+def badge(left, right, color=COLOR):
+    lw, rw = 6 * len(left) + 12, 6.2 * len(right) + 12
+    w = lw + rw
+    return (
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{w:.0f}" height="20" '
+        f'font-family="Verdana,DejaVu Sans,sans-serif" font-size="11">'
+        f'<rect rx="3" width="{w:.0f}" height="20" fill="#555"/>'
+        f'<rect rx="3" x="{lw:.0f}" width="{rw:.0f}" height="20" fill="{color}"/>'
+        f'<rect x="{lw:.0f}" width="4" height="20" fill="{color}"/>'
+        f'<text x="{lw / 2:.1f}" y="14" fill="#fff" text-anchor="middle">{left}</text>'
+        f'<text x="{lw + rw / 2:.1f}" y="14" fill="#fff" text-anchor="middle">{right}</text>'
+        f"</svg>\n"
+    )
+
+
+def current_elo():
+    src = os.path.join(os.path.dirname(os.path.abspath(__file__)), "kg_elo_svg")
+    em = SourceFileLoader("kg_elo_svg", src).load_module()
+    hist = em.elo(em.games())
+    return hist[-1][1] if hist else em.START
+
+
+def main():
+    with open(TABLE) as f:
+        table = json.load(f)
+    elo = current_elo()
+    share_all = top_share_all(table["all"], elo)
+    share_reg = top_share_regulars(table["regulars"], elo)
+    with open(ALL_BADGE, "w") as f:
+        f.write(badge("vs all rated", f"top {100 * share_all:.0f}%"))
+    with open(REGULARS_BADGE, "w") as f:
+        f.write(badge("vs 20+ contests", f"top {100 * share_reg:.0f}%"))
+    print(
+        f"elo {elo:.0f}: top {100 * share_all:.1f}% of {table['all']['total']} "
+        f"rated, top {100 * share_reg:.1f}% of {len(table['regulars']['ratings'])} "
+        f"sampled regulars ({table['date']})"
+    )
+
+
+if __name__ == "__main__":
+    main()
