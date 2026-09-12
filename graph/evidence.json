@@ -9215,6 +9215,16 @@
       },
       "note": "Drill code exercises the two core techniques required for the problem.",
       "summary": "The solution maintains a decreasing monotonic queue to track the maximum element in a sliding window of fixed size k. For each input element, it pushes the element and its index, evicts expired elements (those outside the window), and appends the current maximum to the result."
+    },
+    "solved/d_No_Repeat_Siblings_2026_09_12T00_11_51_431418_00_00Z.py": {
+      "date": "2026-09-12",
+      "problem": "drill",
+      "moves": {
+        "backtracking-choose-undo": "clean",
+        "backtracking-dedupe-siblings": "clean"
+      },
+      "note": "Code does not explicitly sort; relies on pre-sorted test inputs for deduplication correctness.",
+      "summary": "The code generates all subsets of a list with duplicates using the choose-undo backtracking pattern: path.append(nums[j]), helper(j+1), path.pop(). Deduplication is implemented by skipping candidates equal to the previous one when j > i (past the current call's start index), preventing duplicate subsets in the recursion tree. All assertions pass."
     }
   }
 }
