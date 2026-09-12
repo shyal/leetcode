@@ -2,7 +2,7 @@
 # (kg_rep, is_session_start, kg_chat, kg_status, kg_dependents, kg_gaps,
 # kg_viz, estimate, kg_residuals, kg_predict, kg_sleep, kg_mirror, kg_drill,
 # kg_solved, drill, kg_force, timer, kg_curve, kg_solvecost, preflight, spot,
-# lc_solutions; utils/rs).
+# lc_solutions, kg_dive, learning; utils/rs).
 # Each was diffed against
 # its Python original over the real graph/ data before the Python was
 # deleted (2026-09-12); these guard the shape of what they print, and make
@@ -378,3 +378,28 @@ def test_lc_solutions_usage_without_network():
     p = run("lc_solutions")
     assert p.returncode == 2 and "need a problem, an --author, or both" in p.stderr
     assert run("lc_solutions", "--help").returncode == 0
+
+
+# --- kg_dive, learning ----------------------------------------------------------
+
+
+def test_kg_dive_ranks_clusters():
+    p = run("kg_dive")
+    assert p.returncode == 0, p.stderr
+    first = p.stdout.splitlines()[0]
+    assert first.split()[:2] == ["Cluster", "Score"] or first.startswith(
+        "Nothing rusty"
+    )
+    p = run("kg_dive", "no-such-cluster-xyz")
+    assert p.returncode == 0 and (
+        "no rusty cluster named 'no-such-cluster-xyz'" in p.stdout
+        or "Nothing rusty" in p.stdout
+    )
+
+
+def test_learning_stops_without_a_stub(tmp_path):
+    p = subprocess.run(
+        [os.path.join(RS_BIN, "learning")], capture_output=True, text=True, cwd=tmp_path
+    )
+    assert p.returncode == 0
+    assert p.stdout.strip().endswith("current.py does not exist. Exiting.")
