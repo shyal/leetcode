@@ -20,9 +20,9 @@
 # one point per day with a game: what the picker is asking of him.
 #   - the first-sight rate: the change in first-sight performance rating
 #     between the first and the last FS_WINDOW days of history with games,
-#     per recorded hour from the first window's start to the last's end. A first-sight game is a scored game
-#     on the day of the problem's first evidenced attempt; performance rating is the Elo at which
-#     the expected score equals the actual score.
+#     per recorded hour from the first window's start to the last's end;
+#     performance rating is the Elo at which the expected score equals the
+#     actual score.
 # Each line is labelled with the date it crosses each onsite line.
 
 import json
@@ -31,7 +31,7 @@ import random
 from datetime import date, timedelta
 from statistics import median
 
-from kg.kg_lib import GRAPH_DIR, load_evidence, load_problems, scored_games
+from kg.kg_lib import GRAPH_DIR, load_problems
 
 OUT = os.path.join(GRAPH_DIR, "onsite.svg")
 
@@ -86,17 +86,9 @@ def served(gs):
 
 def first_sight_rate(gs, cum, hm):
     """(points per recorded hour, performance rating over the first FS_WINDOW
-    days, the same over the last FS_WINDOW days) on first-sight games only."""
-    first: dict[str, str] = {}
-    for fname, rec in sorted(
-        load_evidence().items(), key=lambda kv: (kv[1]["date"], kv[0])
-    ):
-        first.setdefault(str(rec.get("problem", "")), rec["date"])
-    fs = [
-        (d, rp, s)
-        for (d, rp, s), g in zip(gs, scored_games())
-        if g["date"] == first.get(str(g["problem"]))
-    ]
+    days, the same over the last FS_WINDOW days). gs is kg_elo_svg.games(),
+    first sights only."""
+    fs = gs
     d0, d1 = fs[0][0], fs[-1][0]
     early = [(rp, s) for d, rp, s in fs if d < d0 + timedelta(days=FS_WINDOW)]
     late = [(rp, s) for d, rp, s in fs if d > d1 - timedelta(days=FS_WINDOW)]
