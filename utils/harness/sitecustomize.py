@@ -97,6 +97,15 @@ from tree_utils import *
 # types
 from Types import GraphNode, ListNode, Node, TreeNode
 
+from dsa.maxheapq import (
+    maxheapify,
+    maxheappeek,
+    maxheappop,
+    maxheappush,
+    maxheappushpop,
+    maxheapreplace,
+)
+
 console = Console()
 
 
@@ -214,6 +223,12 @@ builtins.heappop = heapq.heappop
 builtins.heappush = heapq.heappush
 builtins.nlargest = heapq.nlargest
 builtins.nsmallest = heapq.nsmallest
+builtins.maxheapify = maxheapify
+builtins.maxheappop = maxheappop
+builtins.maxheappush = maxheappush
+builtins.maxheappushpop = maxheappushpop
+builtins.maxheapreplace = maxheapreplace
+builtins.maxheappeek = maxheappeek
 builtins.ascii_letters = ascii_letters
 builtins.hexdigits = hexdigits
 builtins.ascii_lowercase = ascii_lowercase
