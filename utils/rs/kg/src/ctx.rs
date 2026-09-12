@@ -233,6 +233,27 @@ impl Ctx {
     }
 
     /// Every node directory under drills/ (glob "*/*.py"), sorted.
+    /// kg_lib.bank_paths("*"): every bank file, in drill-id order, files
+    /// without an id last by name (the same key bank_paths uses per node).
+    pub fn every_bank_path(&self) -> Vec<PathBuf> {
+        let mut files = self.all_bank_paths();
+        files.sort_by_key(|p| {
+            let id = self.drill_id(p);
+            let n: i64 = id
+                .as_deref()
+                .and_then(|i| i[1..].parse().ok())
+                .unwrap_or(1_000_000_000);
+            (
+                n,
+                p.file_name()
+                    .and_then(|s| s.to_str())
+                    .unwrap_or("")
+                    .to_string(),
+            )
+        });
+        files
+    }
+
     fn all_bank_paths(&self) -> Vec<PathBuf> {
         let mut out = Vec::new();
         if let Ok(rd) = std::fs::read_dir(self.drills_dir()) {

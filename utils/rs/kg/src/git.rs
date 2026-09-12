@@ -349,6 +349,78 @@ pub fn sleep_rows(
     rows
 }
 
+/// kg_lib.sleep_lines: the park, one line per parked problem (make sleep
+/// --list; make next prints the same rows as a table).
+pub fn sleep_lines(ctx: &Ctx, pv: &PView, ev: &Evidence, statuses: &Statuses) -> Vec<String> {
+    sleep_rows(ctx, pv, ev, statuses)
+        .into_iter()
+        .map(|(pnum, title, rusty, since, cycles)| {
+            let ground = if rusty.is_empty() {
+                "ground solid, simmering".to_string()
+            } else {
+                format!("warming: {}", rusty.join(", "))
+            };
+            let slept = if cycles > 1 {
+                format!(", slept x{cycles}")
+            } else {
+                String::new()
+            };
+            format!("{pnum}. {title} - asleep ({ground}) - parked {since}{slept} - make wake {pnum} when you choose")
+        })
+        .collect()
+}
+
+/// kg_lib.active_seconds: (active_s, slept_s, sleeps) for a solve branch,
+/// wall time since the started commit split into awake and parked
+/// intervals by the marker commits. With no events (a branch with nothing
+/// of its own) the plain started-to-now clock.
+pub fn active_seconds(root: &Path, branch: &str, now: i64) -> (i64, i64, i64) {
+    let events = git_branch_events(root, branch);
+    if events.is_empty() {
+        let out = git_out(root, &["log", "-1", "--grep=^started$", "--format=%ct"]);
+        let t0: i64 = out
+            .trim()
+            .parse()
+            .ok()
+            .or_else(|| {
+                git_out(root, &["log", "-1", "--format=%ct"])
+                    .trim()
+                    .parse()
+                    .ok()
+            })
+            .unwrap_or(now);
+        return ((now - t0).max(0), 0, 0);
+    }
+    let t0 = events
+        .iter()
+        .rfind(|(_, s)| s == "started")
+        .map(|(t, _)| *t)
+        .unwrap_or(events[0].0);
+    let (mut active, mut slept, mut sleeps) = (0i64, 0i64, 0i64);
+    let (mut awake, mut last) = (true, t0);
+    for (ts, subj) in &events {
+        if *ts < t0 {
+            continue;
+        }
+        if subj.starts_with("sleeping:") && awake {
+            active += ts - last;
+            sleeps += 1;
+            awake = false;
+            last = *ts;
+        } else if subj.starts_with("woke") && !awake {
+            slept += ts - last;
+            awake = true;
+            last = *ts;
+        }
+    }
+    if awake {
+        active += now - last;
+    } else {
+        slept += now - last;
+    }
+    (active, slept, sleeps)
+}
+
 // ---- is_session_start ---------------------------------------------------
 
 fn manila_midnight_ts() -> i64 {

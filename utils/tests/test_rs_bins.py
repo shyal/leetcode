@@ -1,6 +1,7 @@
 # Smoke tests for the Rust binaries that replaced Python scripts outright
 # (kg_rep, is_session_start, kg_chat, kg_status, kg_dependents, kg_gaps,
-# kg_viz, estimate, kg_residuals, kg_predict; utils/rs).
+# kg_viz, estimate, kg_residuals, kg_predict, kg_sleep, kg_mirror, kg_drill;
+# utils/rs).
 # Each was diffed against
 # its Python original over the real graph/ data before the Python was
 # deleted (2026-09-12); these guard the shape of what they print, and make
@@ -203,3 +204,41 @@ def test_kg_predict_modes_agree():
     assert f"({j['days']} days)" in text.stdout
     hist = json.loads(run("kg_predict", "--history-json").stdout)
     assert hist and hist[-1]["run_date"] == j["run_date"] and hist[-1]["hours"] == 2.0
+
+
+# --- kg_sleep, kg_mirror, kg_drill -------------------------------------------
+
+
+def test_kg_sleep_list_shape():
+    p = run("kg_sleep", "--list")
+    assert p.returncode == 0, p.stderr
+    lines = p.stdout.splitlines()
+    assert lines == ["nothing parked"] or all(
+        " - asleep (" in l and l.endswith(" when you choose") for l in lines
+    )
+
+
+def test_kg_mirror_rebuilds_the_db():
+    import sqlite3
+
+    p = run("kg_mirror")
+    assert p.returncode == 0, p.stderr
+    assert p.stdout.splitlines()[1] == "sqlite3 graph/leet.db"
+    con = sqlite3.connect(os.path.join(ROOT, "graph", "leet.db"))
+    nodes = con.execute("select count(*) from nodes").fetchone()[0]
+    solves = con.execute("select count(*) from solves").fetchone()[0]
+    con.close()
+    assert f"{nodes} nodes" in p.stdout and f"{solves} solves" in p.stdout
+    ev = json.load(open(os.path.join(ROOT, "graph", "evidence.json")))["evidence"]
+    assert solves == len(ev)
+
+
+def test_kg_drill_refuses_without_writing():
+    before = open(os.path.join(ROOT, "graph", "evidence.json")).read()
+    assert run("kg_drill").returncode == 2
+    assert run("kg_drill", "set-membership", "meh").returncode == 2
+    p = run("kg_drill", "no-such-node-xyz", "clean")
+    assert p.returncode == 1 and p.stdout.startswith(
+        "Unknown node id: no-such-node-xyz"
+    )
+    assert open(os.path.join(ROOT, "graph", "evidence.json")).read() == before

@@ -105,11 +105,11 @@ MOVIE_BIN := $(RS_BIN)/kg_movie
 movie: $(MOVIE_BIN)
 	@$(MOVIE_BIN) $(filter-out $@,$(MAKECMDGOALS))
 
-sleep:
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_sleep $(filter-out $@,$(MAKECMDGOALS))
+sleep: $(RS_BIN)/kg_sleep
+	@$(RS_BIN)/kg_sleep $(filter-out $@,$(MAKECMDGOALS))
 
-wake:
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_sleep --wake $(filter-out $@,$(MAKECMDGOALS))
+wake: $(RS_BIN)/kg_sleep
+	@$(RS_BIN)/kg_sleep --wake $(filter-out $@,$(MAKECMDGOALS))
 
 # nuke the current branch, no questions asked: discard the working tree,
 # switch to master, delete the branch. refuses on master.
@@ -218,8 +218,8 @@ next: $(NEXT_BIN)
 
 GRAPH_JSON = graph/nodes.json graph/problems.json graph/evidence.json
 
-graph/leet.db: $(GRAPH_JSON) utils/kg/kg_mirror
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_mirror
+graph/leet.db: $(GRAPH_JSON) $(RS_BIN)/kg_mirror
+	@$(RS_BIN)/kg_mirror
 
 mirror: graph/leet.db
 

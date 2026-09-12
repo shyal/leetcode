@@ -216,6 +216,17 @@ pub fn dumps(v: &Value, indent: Option<usize>) -> String {
     out
 }
 
+/// json.load of a file, or None.
+pub fn load(path: &std::path::Path) -> Option<Value> {
+    serde_json::from_str(&std::fs::read_to_string(path).ok()?).ok()
+}
+
+/// json.dump(v, f, indent=indent): the file as Python leaves it, no
+/// trailing newline.
+pub fn save(path: &std::path::Path, v: &Value, indent: Option<usize>) -> std::io::Result<()> {
+    std::fs::write(path, dumps(v, indent))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
