@@ -78,14 +78,19 @@ fn main() {
         .format("%Y-%m-%d")
         .to_string();
 
-    // work-done date from the curve simulator (utils/kg/kg_predict): when the
+    // work-done date from the curve simulator (utils/rs/kg_predict): when the
     // graph would be fully solid + enough mediums banked + a polish block
+    // the sibling binaries of this workspace build
+    let sibling = |name: &str| {
+        std::env::current_exe()
+            .ok()
+            .and_then(|p| p.parent().map(|d| d.join(name)))
+            .unwrap_or_else(|| ctx.root.join("utils/rs/target/release").join(name))
+    };
     let predict = json_of(
         &console,
-        Command::new(ctx.root.join(".venv/bin/python3"))
-            .arg(ctx.root.join("utils/kg/kg_predict"))
+        Command::new(sibling("kg_predict"))
             .arg("--json")
-            .env("PYTHONPATH", ctx.root.join("utils"))
             .current_dir(&ctx.root),
         "kg_predict",
         "no work-done date",
@@ -93,13 +98,11 @@ fn main() {
     // Monte-Carlo milestone dates from `make mock` (utils/rs/kg_mock): contest =
     // hard-competent (central P(single hard) >= 50%), onsite = central
     // P(onsite) >= 50%. These headline the README progress bars.
-    let mock_bin = std::env::current_exe()
-        .ok()
-        .and_then(|p| p.parent().map(|d| d.join("kg_mock")))
-        .unwrap_or_else(|| ctx.root.join("utils/rs/target/release/kg_mock"));
     let mock = json_of(
         &console,
-        Command::new(mock_bin).arg("--json").current_dir(&ctx.root),
+        Command::new(sibling("kg_mock"))
+            .arg("--json")
+            .current_dir(&ctx.root),
         "kg_mock",
         "no mock milestones",
     );

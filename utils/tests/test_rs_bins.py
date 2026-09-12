@@ -1,6 +1,6 @@
 # Smoke tests for the Rust binaries that replaced Python scripts outright
 # (kg_rep, is_session_start, kg_chat, kg_status, kg_dependents, kg_gaps,
-# kg_viz, estimate; utils/rs).
+# kg_viz, estimate, kg_residuals, kg_predict; utils/rs).
 # Each was diffed against
 # its Python original over the real graph/ data before the Python was
 # deleted (2026-09-12); these guard the shape of what they print, and make
@@ -180,3 +180,26 @@ def test_estimate_rows():
     ]
     assert heads[:2] == ["Run date", "Node statuses"]
     assert any(h.startswith("Onsite (mock P(onsite)>=") for h in heads)
+
+
+# --- kg_residuals, kg_predict -------------------------------------------------
+
+
+def test_kg_residuals_table():
+    p = run("kg_residuals")
+    assert p.returncode == 0, p.stderr
+    lines = p.stdout.splitlines()
+    assert lines[0].endswith(" trials against curve.json")
+    assert lines[2].split() == ["wing", "bucket", "n", "obs", "model", "z"]
+    assert any("(<=21d)" in l or "(>21d)" in l for l in lines[3:])
+
+
+def test_kg_predict_modes_agree():
+    text = run("kg_predict", "1.5")
+    assert text.returncode == 0, text.stderr
+    assert text.stdout.startswith("at 1.5h/day, every day:")
+    j = json.loads(run("kg_predict", "1.5", "--json").stdout)
+    assert j["hours"] == 1.5 and j["days"] >= 35
+    assert f"({j['days']} days)" in text.stdout
+    hist = json.loads(run("kg_predict", "--history-json").stdout)
+    assert hist and hist[-1]["run_date"] == j["run_date"] and hist[-1]["hours"] == 2.0
