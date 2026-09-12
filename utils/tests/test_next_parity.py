@@ -1,5 +1,5 @@
 # Lockstep test for `make next`: utils/kg/kg_next (Python, the reference)
-# and utils/kg/kg_next_rs (Rust, what `make next` runs) implement the same
+# and utils/rs/kg_next (Rust, what `make next` runs) implement the same
 # picker over the same graph/ data. Nothing but this test keeps them in
 # step, so it diffs them two ways over the REAL repo state:
 #
@@ -32,7 +32,7 @@ from kg import kg_lib
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 KG = os.path.join(ROOT, "utils", "kg")
-CRATE = os.path.join(KG, "kg_next_rs")
+CRATE = os.path.join(ROOT, "utils", "rs")
 RUST_BIN = os.path.join(CRATE, "target", "release", "kg_next")
 PY = os.path.join(ROOT, ".venv", "bin", "python3")
 SEED = "7"
@@ -159,7 +159,7 @@ def test_cell_widths_are_rich_s():
 
     from rich._cell_widths import CELL_WIDTHS
 
-    src = open(os.path.join(CRATE, "src", "cell_widths.rs")).read()
+    src = open(os.path.join(CRATE, "kg", "src", "cell_widths.rs")).read()
     body = src[src.index("= &[") + 4 :]
     rows = [
         tuple(int(x) for x in m.groups())

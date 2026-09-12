@@ -577,12 +577,11 @@ def format_timedelta(td):
 
 
 def load_readiness_data():
-    # recomputed live by the Monte-Carlo mock model (utils/kg/kg_mock_rs) —
+    # recomputed live by the Monte-Carlo mock model (utils/rs/kg_mock) -
     # contest = hard-competent, faang = central P(onsite) >= 50%
     mock_bin = os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-        "kg",
-        "kg_mock_rs",
+        "rs",
         "target",
         "release",
         "kg_mock",

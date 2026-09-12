@@ -135,15 +135,16 @@ def test_mock_binary_paths_agree():
     """estimate, solve_rate and the tests must all point at the same kg_mock."""
     from history import solve_rate  # noqa: F401
 
-    expected = os.path.join(KG, "kg_mock_rs", "target", "release", "kg_mock")
+    rs = os.path.join(UTILS, "rs")
     # one line or one segment per line, whichever way black laid it out
     src = re.sub(r"\s+", " ", open(os.path.join(KG, "estimate")).read())
-    assert '"kg_mock_rs", "target", "release", "kg_mock"' in src
+    assert '"rs", "target", "release", "kg_mock"' in src
     src = re.sub(r"\s+", " ", open(os.path.join(HISTORY, "solve_rate.py")).read())
-    assert '"kg", "kg_mock_rs", "target", "release", "kg_mock"' in src
-    assert os.path.exists(os.path.join(KG, "kg_mock_rs", "Cargo.toml"))
-    assert os.path.exists(os.path.join(KG, "kg_movie_rs", "Cargo.toml"))
-    assert expected.startswith(KG)
+    assert '"rs", "target", "release", "kg_mock"' in src
+    for crate in ("kg", "kg_mock", "kg_movie", "kg_next"):
+        assert os.path.exists(os.path.join(rs, crate, "Cargo.toml"))
+    members = open(os.path.join(rs, "Cargo.toml")).read()
+    assert 'members = ["kg", "kg_mock", "kg_movie", "kg_next"]' in members
 
 
 # --- the harness stays a flat namespace (what solves import) --------------

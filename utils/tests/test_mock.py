@@ -1,4 +1,4 @@
-# Guards for `make mock` (utils/kg/kg_mock_rs): output structure, column
+# Guards for `make mock` (utils/rs/kg_mock): output structure, column
 # alignment, the hours override, and the <100ms speed budget. The model math is
 # shared with kg_lib.py (pass_rates / current_recall for the README chart);
 # keep the two in sync when either changes.
@@ -11,9 +11,7 @@ import time
 import pytest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-RUST_BIN = os.path.join(
-    ROOT, "utils", "kg", "kg_mock_rs", "target", "release", "kg_mock"
-)
+RUST_BIN = os.path.join(ROOT, "utils", "rs", "target", "release", "kg_mock")
 MONTH_ROW = re.compile(r"^  \d{1,2} \w{3} \d{2} ")
 
 
@@ -26,7 +24,7 @@ def build_rust():
             "--release",
             "--quiet",
             "--manifest-path",
-            os.path.join(ROOT, "utils", "kg", "kg_mock_rs", "Cargo.toml"),
+            os.path.join(ROOT, "utils", "rs", "Cargo.toml"),
         ],
         check=True,
         capture_output=True,

@@ -23,7 +23,7 @@ pub struct NodeEntry {
 
 /// kg_lib.drill_key: the drill a d_ solved file is a rep of.
 pub fn drill_key(fname: &str) -> Option<String> {
-    kg_mock::drill_key(fname)
+    crate::mock::drill_key(fname)
 }
 
 pub fn basename(fname: &str) -> &str {

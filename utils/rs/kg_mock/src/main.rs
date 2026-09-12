@@ -16,7 +16,7 @@ use std::sync::{Arc, Mutex};
 use chrono::{Datelike, Duration, NaiveDate};
 use serde_json::Value;
 
-use kg_mock::*;
+use kg::mock::*;
 
 // one mock row: (day, solves per band, n_nodes, offh, spread)
 type Row = (i64, (i64, i64, i64), usize, f64, Vec<(f64, f64, f64, f64)>);
@@ -820,11 +820,12 @@ fn main() {
                         .collect()
                 })
                 .unwrap_or_default(),
-            assist: kg_mock::assist_map(rec),
+            assist: kg::mock::assist_map(rec),
         })
         .collect();
     // the first rep of a drill is unaided at the node level (kg_lib.ev_index)
-    for i in kg_mock::first_drill_reps(evidence.iter().map(|r| (r.fname.as_str(), r.date.as_str())))
+    for i in
+        kg::mock::first_drill_reps(evidence.iter().map(|r| (r.fname.as_str(), r.date.as_str())))
     {
         evidence[i].assist.clear();
     }

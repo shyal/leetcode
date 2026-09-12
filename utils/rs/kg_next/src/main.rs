@@ -21,37 +21,37 @@ use std::collections::HashSet;
 use std::process::Command;
 
 use chrono::NaiveDate;
-use kg_mock::PyRandom;
+use kg::mock::PyRandom;
 use serde_json::Value;
 
-use kg_next::clock::{last_attempt, problem_due};
-use kg_next::console::{Console, Line};
-use kg_next::ctx::{Ctx, PView};
-use kg_next::data::{load_envrc, repo_root};
-use kg_next::drills::{
+use kg::clock::{last_attempt, problem_due};
+use kg::console::{Console, Line};
+use kg::ctx::{Ctx, PView};
+use kg::data::{load_envrc, repo_root};
+use kg::drills::{
     anki, anki_due, anki_frontier, cold_drill, drill_held, drill_recall, drill_review_cap,
     drill_reviews_today, due_drill, group_caps, group_reps, new_drill_cap, new_drills_today,
     reviews_first,
 };
-use kg_next::evidence::Evidence;
-use kg_next::git::{
+use kg::evidence::Evidence;
+use kg::git::{
     is_session_start, is_stale, pending_judgements, sleep_rows, sleep_state, solve_seconds_today,
     solved_today_pnums, spawn_judge,
 };
-use kg_next::model::{drill_forecast, elo_now, solve_forecast, solve_ratings};
-use kg_next::pick::{
+use kg::model::{drill_forecast, elo_now, solve_forecast, solve_ratings};
+use kg::pick::{
     blocked_frontier, park_full_lines, parked_summits, pick, review_ahead, review_line,
     review_queue, starved, unmapped_summits, withheld, Choice, PickArgs,
 };
-use kg_next::recog;
-use kg_next::render::{
+use kg::recog;
+use kg::render::{
     animate, degree_color, display, faces, prespawn_dot, render_in_background, Dot, PreDot,
 };
-use kg_next::status::{
+use kg::status::{
     all_statuses, carry_bar, immature_nodes, input_tree, node_axes, node_degree, owned, st, Status,
     Statuses, FRAGILE, MISSING, SOLID, STALE,
 };
-use kg_next::table::{columns, panel, BoxKind, Table};
+use kg::table::{columns, panel, BoxKind, Table};
 
 mod golden;
 
@@ -467,7 +467,7 @@ fn build_footer(
 /// and drill id whose "after" names `vid`, problems first in number
 /// order, then drills.
 fn gates_merged(ctx: &Ctx, pv: &PView, vid: &str) -> Vec<String> {
-    let names = |p: &kg_next::data::Problem| p.after.iter().any(|a| a == vid);
+    let names = |p: &kg::data::Problem| p.after.iter().any(|a| a == vid);
     let mut held: Vec<String> = ctx
         .all_problems()
         .iter()
@@ -480,14 +480,14 @@ fn gates_merged(ctx: &Ctx, pv: &PView, vid: &str) -> Vec<String> {
             .filter(|(k, p)| !ctx.all_problems().contains_key(*k) && names(p))
             .map(|(k, _)| k.clone()),
     );
-    held.sort_by_key(|p| kg_next::data::pnum_key(p));
+    held.sort_by_key(|p| kg::data::pnum_key(p));
     let mut drills: Vec<String> = ctx
         .drills
         .iter()
         .filter(|(_, d)| d.after.iter().any(|a| a == vid))
         .map(|(i, _)| i.clone())
         .collect();
-    drills.sort_by_key(|p| kg_next::data::pnum_key(p));
+    drills.sort_by_key(|p| kg::data::pnum_key(p));
     held.extend(drills);
     held
 }
@@ -511,7 +511,7 @@ fn gated_label(
     }
     // vertex_status over the merged table: the caller's view first, the
     // whole table behind it (vertex_kind already falls through to it)
-    let s = kg_next::bank::vertex_status(ctx, h, pv, ev, today);
+    let s = kg::bank::vertex_status(ctx, h, pv, ev, today);
     format!("{s} {}", face(s))
 }
 
@@ -802,7 +802,7 @@ impl<'a> Run<'a> {
     /// nothing to show it on (no terminal): kg_render.display draws nothing
     /// when piped, so the layout is skipped too.
     fn start_drawing(&self, dot: &Dot) -> Option<DotJob> {
-        if !kg_next::console::stdout_is_tty() {
+        if !kg::console::stdout_is_tty() {
             return None;
         }
         let pre = self.pre_dot.borrow_mut().take();
@@ -855,7 +855,7 @@ fn load_plan(console: &Console, ctx: &Ctx, today: NaiveDate) -> Option<Value> {
             )
             .status();
     }
-    kg_next::data::read_json(&path)
+    kg::data::read_json(&path)
 }
 
 fn plan_item_done(ctx: &Ctx, item: &Value, ev: &Evidence, plan: &Value) -> bool {
@@ -870,7 +870,7 @@ fn plan_item_done(ctx: &Ctx, item: &Value, ev: &Evidence, plan: &Value) -> bool 
                     .ok()
             })
             .map(|dt| {
-                dt.and_local_timezone(kg_next::data::manila())
+                dt.and_local_timezone(kg::data::manila())
                     .unwrap()
                     .timestamp()
             })
@@ -891,7 +891,7 @@ fn plan_item_done(ctx: &Ctx, item: &Value, ev: &Evidence, plan: &Value) -> bool 
             .iter()
             .any(|(_, r)| r.date.as_str() >= plan_date && r.moves.contains_key(node));
     }
-    let problem = kg_next::data::value_str(&item["problem"]);
+    let problem = kg::data::value_str(&item["problem"]);
     ev.recs.iter().any(|(_, r)| {
         r.problem.as_deref() == Some(problem.as_str()) && r.date.as_str() >= plan_date
     })
@@ -903,7 +903,7 @@ fn main() {
     load_envrc(&root);
     // a terminal run will draw: dot starts now and gets the graph later
     let argv: Vec<String> = std::env::args().skip(1).collect();
-    let will_draw = kg_next::console::stdout_is_tty()
+    let will_draw = kg::console::stdout_is_tty()
         && !argv
             .iter()
             .any(|a| a == "--no-show" || a == "--golden-json" || a == "-h" || a == "--help");
@@ -914,7 +914,7 @@ fn main() {
     };
     // git and its cache file are read on a thread while the JSON parses
     let git_root = root.clone();
-    let git_prefetch = std::thread::spawn(move || kg_next::git::fetch_git_state(&git_root));
+    let git_prefetch = std::thread::spawn(move || kg::git::fetch_git_state(&git_root));
     let (ctx, recs) = Ctx::load(root);
     *ctx.git_prefetch.borrow_mut() = Some(git_prefetch);
     trace("ctx loaded");
@@ -954,7 +954,7 @@ fn main() {
     run_main(&run, &asleep, &woken);
     run.flush_footer();
     trace("done");
-    kg_next::pick::ptrace("dump", std::time::Instant::now());
+    kg::pick::ptrace("dump", std::time::Instant::now());
 }
 
 fn run_main(run: &Run, asleep: &[String], woken: &[String]) {
@@ -1022,12 +1022,12 @@ fn run_main(run: &Run, asleep: &[String], woken: &[String]) {
             .into_iter()
             .filter(|it| {
                 !plan_item_done(ctx, it, ev, &plan)
-                    && !exclude.contains(&kg_next::data::value_str(
+                    && !exclude.contains(&kg::data::value_str(
                         it.get("problem").unwrap_or(&Value::String(String::new())),
                     ))
                     && !it
                         .get("problem")
-                        .map(kg_next::data::value_str)
+                        .map(kg::data::value_str)
                         .is_some_and(|p| asleep.contains(&p))
             })
             .collect();
@@ -1084,7 +1084,7 @@ fn run_main(run: &Run, asleep: &[String], woken: &[String]) {
                     });
                 }
             } else {
-                let pnum = kg_next::data::value_str(
+                let pnum = kg::data::value_str(
                     item.get("problem").unwrap_or(&Value::String(String::new())),
                 );
                 if let Some(p) = run.pv.borrow().get(&pnum) {
@@ -1223,7 +1223,7 @@ fn run_main(run: &Run, asleep: &[String], woken: &[String]) {
             job = run.start_drawing(&dot);
         }
         console.begin_capture();
-        kg_next::table::print_table(console, &table);
+        kg::table::print_table(console, &table);
         if let Some(rl) = run.recall_line(&path) {
             console.print(&rl);
         }
@@ -1262,7 +1262,7 @@ fn run_main(run: &Run, asleep: &[String], woken: &[String]) {
         .get(&pnum)
         .cloned()
         .expect("the problem the pick named");
-    let around = kg_next::pick::routed_around_from(&run.pv.borrow(), ev, today, &run.starved())
+    let around = kg::pick::routed_around_from(&run.pv.borrow(), ev, today, &run.starved())
         .into_iter()
         .find(|(n, _)| *n == target)
         .map(|(_, c)| c);
@@ -1345,7 +1345,7 @@ fn run_main(run: &Run, asleep: &[String], woken: &[String]) {
             }
         }
     }
-    kg_next::table::print_table(console, &table);
+    kg::table::print_table(console, &table);
     print_gates(console, &names);
     if let Some(pl) = pace_line(solve_forecast(ctx, &pnum, &run.pv.borrow(), today)) {
         console.print(&pl);
@@ -1465,7 +1465,7 @@ fn nothing_to_serve(run: &Run, asleep: &[String], exclude: &HashSet<String>, sho
                 unmapped.join(", ")
             ));
         }
-        let gain = kg_next::bank::unlocks(ctx, statuses, &pv, &run.immature);
+        let gain = kg::bank::unlocks(ctx, statuses, &pv, &run.immature);
         let mut young: Vec<(String, i64)> = gain
             .into_iter()
             .filter(|(n, _)| run.immature.contains(n) && st(statuses, n).0 == SOLID)
@@ -1500,7 +1500,7 @@ fn nothing_to_serve(run: &Run, asleep: &[String], exclude: &HashSet<String>, sho
                 ]);
             }
             console.blank();
-            kg_next::table::print_table(console, &table);
+            kg::table::print_table(console, &table);
         }
     }
 }
