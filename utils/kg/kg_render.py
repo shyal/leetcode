@@ -1,6 +1,7 @@
 # kg_render — shared graphviz styling + terminal display for the graph tools.
 #
-# kg_viz draws the whole taxonomy; kg_next draws one problem's input tree.
+# kg_next (the Python reference) draws one problem's input tree; kg_viz moved
+# to Rust (utils/rs/kg_viz, kg::render) on 2026-09-12.
 # Both get their look and their inline-terminal rendering from here.
 
 import base64

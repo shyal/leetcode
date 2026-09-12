@@ -1,5 +1,6 @@
 # Smoke tests for the Rust binaries that replaced Python scripts outright
-# (kg_rep, is_session_start, kg_chat, kg_status, kg_dependents; utils/rs).
+# (kg_rep, is_session_start, kg_chat, kg_status, kg_dependents, kg_gaps,
+# kg_viz, estimate; utils/rs).
 # Each was diffed against
 # its Python original over the real graph/ data before the Python was
 # deleted (2026-09-12); these guard the shape of what they print, and make
@@ -145,3 +146,37 @@ def test_kg_dependents_lists_a_gated_problem():
     assert p.returncode == 0, p.stderr
     assert p.stdout.splitlines()[0].startswith(gate)
     assert any(l.split()[:1] == [held] for l in p.stdout.splitlines())
+
+
+# --- kg_gaps, kg_viz, estimate ----------------------------------------------
+
+
+def test_kg_gaps_table_shape():
+    p = run("kg_gaps")
+    assert p.returncode == 0, p.stderr
+    lines = p.stdout.splitlines()
+    assert lines[0].split() == ["suggested", "move", "unlocks", "mentions", "examples"]
+    assert len(lines) <= 28  # header, up to 25 rows, blank, total
+    assert "distinct suggestions" in lines[-1]
+    assert len(run("kg_gaps", "--all").stdout.splitlines()) >= len(lines)
+
+
+def test_kg_viz_source_is_dot_with_clusters_and_legend():
+    p = run("kg_viz", "--source")
+    assert p.returncode == 0, p.stderr
+    assert p.stdout.startswith('digraph "technique-graph" {')
+    assert 'subgraph "cluster_legend"' in p.stdout
+    assert p.stdout.count('subgraph "cluster_') >= 3
+    assert p.stdout.rstrip().endswith("}")
+
+
+def test_estimate_rows():
+    p = run("estimate")
+    assert p.returncode == 0, p.stderr
+    heads = [
+        l.split("  ")[1].strip()
+        for l in p.stdout.splitlines()
+        if l.startswith("  ") and not l.startswith("   ")
+    ]
+    assert heads[:2] == ["Run date", "Node statuses"]
+    assert any(h.startswith("Onsite (mock P(onsite)>=") for h in heads)

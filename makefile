@@ -49,8 +49,8 @@ rep: $(RS_BIN)/kg_rep
 dependents: $(RS_BIN)/kg_dependents
 	@$(RS_BIN)/kg_dependents $(filter-out $@,$(MAKECMDGOALS))
 
-kg-viz:
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_viz
+kg-viz: $(RS_BIN)/kg_viz
+	@$(RS_BIN)/kg_viz
 
 curve:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_curve
@@ -266,7 +266,7 @@ rank-table:
 #   kg_solvetime_svg kg_connectivity_svg kg_rates_svg kg_commits_svg
 #   kg_zpd_svg kg_degree_track kg_reach_svg kg_3d_svg kg_full_svg
 #   kg_compression_svg kg_forecast_svg, and $(MOVIE_BIN) (make movie)
-readme: $(MOCK_BIN)
+readme: $(MOCK_BIN) $(RS_BIN)/estimate
 	@PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_elo_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_streak_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_rank_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_rate_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_problem_rating_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_backlog_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_hours_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_onsite_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_progress_svg
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/estimate
+	@$(RS_BIN)/estimate
 	@AWS_PROFILE=readme-uploader PYTHONPATH=./utils .venv/bin/python3 utils/readme/update_readme.py

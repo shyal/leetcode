@@ -119,6 +119,8 @@ pub type Nodes = IndexMap<String, Node>;
 pub struct Walk {
     pub moves: Vec<String>,
     pub missing: bool,
+    /// the moves the walk drafter said the taxonomy lacks (kg_gaps)
+    pub missing_names: Vec<String>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -195,6 +197,7 @@ pub fn parse_problem(v: &Value) -> Problem {
                     .map(|w| Walk {
                         moves: str_list(w.get("moves")),
                         missing: w.get("missing").is_some_and(truthy),
+                        missing_names: str_list(w.get("missing")),
                     })
                     .collect()
             })

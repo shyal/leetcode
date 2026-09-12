@@ -116,7 +116,7 @@ def test_onsite_ready_milestone_within_a_row_month():
 
 
 def test_json_mode():
-    # the contract utils/kg/estimate depends on: milestone dates (or null) plus
+    # the contract utils/rs/estimate depends on: milestone dates (or null) plus
     # today's central rates, matching what the human tables print
     import json
 
