@@ -156,6 +156,8 @@ pub struct Node {
     pub prereqs: Vec<String>,
     /// one line on what the move is (kg_force's blurb, the judge prompts)
     pub desc: String,
+    /// the micro-drill suggestion nodes.json carries (preflight's prep step)
+    pub drill: Option<String>,
 }
 
 pub type Nodes = IndexMap<String, Node>;
@@ -435,6 +437,7 @@ pub fn load_nodes(root: &Path) -> Nodes {
                     .and_then(Value::as_str)
                     .unwrap_or("")
                     .to_string(),
+                drill: n.get("drill").and_then(Value::as_str).map(String::from),
             },
         );
     }

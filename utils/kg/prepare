@@ -636,24 +636,10 @@ def finalize(num, title, code):
         subprocess.run([rs_bin("kg_chat"), "--switch"])
 
 
-# `spot` routes to the recognition rep (utils/kg/spot): the picker's due
+# `spot` routes to the recognition rep (utils/rs/spot): the picker's due
 # statement into current.md on a branch, same flow, no code
 if spot:
-    env = dict(os.environ)
-    env["PYTHONPATH"] = (
-        "utils"
-        + os.pathsep
-        + os.path.join("utils", "harness")
-        + os.pathsep
-        + env.get("PYTHONPATH", "")
-    )
-    r = subprocess.run(
-        [
-            sys.executable,
-            os.path.join(os.path.dirname(os.path.abspath(__file__)), "spot"),
-        ],
-        env=env,
-    )
+    r = subprocess.run([rs_bin("spot")])
     if r.returncode:
         sys.exit(r.returncode)
 

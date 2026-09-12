@@ -1,11 +1,13 @@
 # Smoke tests for the Rust binaries that replaced Python scripts outright
 # (kg_rep, is_session_start, kg_chat, kg_status, kg_dependents, kg_gaps,
 # kg_viz, estimate, kg_residuals, kg_predict, kg_sleep, kg_mirror, kg_drill,
-# kg_solved, drill, kg_force, timer, kg_curve, kg_solvecost; utils/rs).
+# kg_solved, drill, kg_force, timer, kg_curve, kg_solvecost, preflight, spot,
+# lc_solutions; utils/rs).
 # Each was diffed against
 # its Python original over the real graph/ data before the Python was
 # deleted (2026-09-12); these guard the shape of what they print, and make
 # sure CI builds them.
+import glob
 import json
 import os
 import subprocess
@@ -344,3 +346,35 @@ def test_kg_curve_solve_rows_bridge():
 def test_fitters_print_usage():
     assert run("kg_curve", "--help").stdout.startswith("usage: kg_curve")
     assert run("kg_solvecost", "--help").stdout.startswith("usage: kg_solvecost")
+
+
+# --- preflight, spot, lc_solutions --------------------------------------------
+
+
+def test_preflight_known_problem_table():
+    pnum = _first_evidenced_problem()
+    p = run("preflight", pnum)
+    assert p.returncode == 0, p.stderr
+    lines = p.stdout.splitlines()
+    assert lines[0].strip().startswith(f"Preflight: {pnum}. ")
+    assert lines[1].startswith("┏") and "Verdict:" in p.stdout
+    assert run("preflight").returncode == 2
+
+
+def test_spot_dry_run_and_markdown():
+    p = run("spot", "--dry")
+    assert p.returncode in (0, 1)
+    assert p.stdout.startswith("a spot rep is due (") or p.stdout.startswith(
+        "nothing to spot"
+    )
+    cached = sorted(glob.glob(os.path.join(ROOT, ".prepare_cache", "*.content.json")))
+    if cached:
+        num = os.path.basename(cached[0]).split(".")[0]
+        md = run("spot", "--markdown", num).stdout
+        assert md.strip() and md.endswith("\n")
+
+
+def test_lc_solutions_usage_without_network():
+    p = run("lc_solutions")
+    assert p.returncode == 2 and "need a problem, an --author, or both" in p.stderr
+    assert run("lc_solutions", "--help").returncode == 0

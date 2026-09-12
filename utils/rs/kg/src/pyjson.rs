@@ -227,6 +227,35 @@ pub fn save(path: &std::path::Path, v: &Value, indent: Option<usize>) -> std::io
     std::fs::write(path, dumps(v, indent))
 }
 
+/// kg_lib.save_problems for one entry: merged over what graph/problems.json
+/// already says about the number (its drafted walks, its "after" gate, a
+/// "banned" flag survive), the "draft" flag dropped the moment it has moves;
+/// written with indent=1 as the Python did.
+pub fn save_problem_entry(root: &std::path::Path, num: &str, entry: &Value) -> std::io::Result<()> {
+    let path = root.join("graph/problems.json");
+    let mut data = load(&path).ok_or_else(|| std::io::Error::other("graph/problems.json"))?;
+    let table = data["problems"]
+        .as_object_mut()
+        .ok_or_else(|| std::io::Error::other("problems{}"))?;
+    let mut merged = table
+        .get(num)
+        .and_then(Value::as_object)
+        .cloned()
+        .unwrap_or_default();
+    for (k, v) in entry.as_object().into_iter().flatten() {
+        merged.insert(k.clone(), v.clone());
+    }
+    if merged
+        .get("moves")
+        .and_then(Value::as_array)
+        .is_some_and(|m| !m.is_empty())
+    {
+        merged.remove("draft");
+    }
+    table.insert(num.to_string(), Value::Object(merged));
+    save(&path, &data, Some(1))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
