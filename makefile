@@ -195,7 +195,11 @@ $(NEXT_BIN): $(wildcard utils/kg/kg_next_rs/src/*.rs) utils/kg/kg_next_rs/Cargo.
 	@cargo build --release --quiet --manifest-path utils/kg/kg_next_rs/Cargo.toml
 
 next: $(NEXT_BIN)
-	@$(NEXT_BIN) $(patsubst why,--why,$(patsubst graph,--graph,$(patsubst cram,--cram,$(patsubst early,--early,$(patsubst assisted,--assisted,$(patsubst prepare,--prepare,$(filter-out $@,$(MAKECMDGOALS))))))))
+	@if [ -n "$(filter llm,$(MAKECMDGOALS))" ]; then \
+		PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_llm_next $(patsubst fresh,--fresh,$(patsubst prepare,--prepare,$(filter-out $@ llm,$(MAKECMDGOALS)))); \
+	else \
+		$(NEXT_BIN) $(patsubst why,--why,$(patsubst graph,--graph,$(patsubst cram,--cram,$(patsubst early,--early,$(patsubst assisted,--assisted,$(patsubst prepare,--prepare,$(filter-out $@,$(MAKECMDGOALS)))))))); \
+	fi
 
 GRAPH_JSON = graph/nodes.json graph/problems.json graph/evidence.json
 

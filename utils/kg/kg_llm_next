@@ -1,0 +1,295 @@
+#!/usr/bin/env python3
+
+# kg_llm_next - a second opinion on the pick. The model reads what `make
+# next` printed and the last three weeks of evidence (every rep, its verdicts,
+# its note, the failure notes, the rating gap on each problem) and names the
+# problem it would schedule, with its reasons.
+#
+#   make next llm              # the model's pick and the plan behind it
+#   make next llm prepare      # prepare that pick: stub + branch, clock on
+#   make next sql llm          # the same, inside a group
+#
+# The pick is cached in .llm_next.json under a key made of the evidence file,
+# today's date and the words after `next`. So `make next llm` followed by
+# `make next llm prepare` prepares the problem that was just read, without a
+# second call, and a rep recorded in between changes the key and forces a
+# fresh pick.
+
+import argparse
+import hashlib
+import json
+import os
+import re
+import subprocess
+import sys
+from datetime import date, timedelta
+
+from rich.console import Console
+from rich.panel import Panel
+
+from kg.kg_lib import (
+    assist_of,
+    claude_json,
+    drill_key,
+    elo_now,
+    load_all_problems,
+    load_evidence,
+    mined_solve_times,
+    solve_ratings,
+)
+
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+UTILS = os.path.join(REPO_ROOT, "utils", "kg")
+NEXT_BIN = os.path.join(UTILS, "kg_next_rs", "target", "release", "kg_next")
+CACHE = os.path.join(REPO_ROOT, ".llm_next.json")
+SOLVED = os.path.join(REPO_ROOT, "solved")
+WINDOW_DAYS = 21
+PROMPT_VERSION = 1
+
+console = Console()
+
+SYSTEM_PROMPT = """\
+You schedule the next leetcode problem for one operator. You are given what
+his own picker printed, and the last three weeks of his evidence: every rep,
+its verdicts, his notes, the failure notes, the contest rating of each problem
+against his elo. Name the one problem he should open next.
+
+Rules of the schedule, in order:
+1. A due review of a problem he failed outranks new ground.
+2. When a hard problem leans on a plainer problem he failed recently, the
+   plain one comes first.
+3. A problem he walked away from without ever reaching a working solution
+   gets a learning rep first: look the solution up, step through it. An
+   unaided rep of it comes days later. Do not schedule the unaided rep cold.
+4. Measure a problem by its contest rating against his elo, never by the
+   Easy/Medium/Hard label.
+5. What worked in the last few days is the pattern to continue.
+
+Writing rules: short declarative sentences, plain English, no analogies, no
+coined words. Refer to problems by number and title only. Never name a
+technique, a graph node, or a move. Never say a problem should be easy.
+Never tell him when to rest.
+
+Reply with one JSON object and nothing else:
+{
+  "problem": "<number>",
+  "title": "<title>",
+  "agrees": <true if this is the picker's own pick>,
+  "reason": "<two to four sentences>",
+  "plan": [{"problem": "<number>", "title": "<title>", "note": "<one sentence>"}]
+}
+The plan is the next two or three problems after this one, in order.
+"""
+
+
+def today():
+    env = os.environ.get("KG_TODAY")
+    return date.fromisoformat(env) if env else date.today()
+
+
+def picker_frame(words):
+    """What `make next` prints for these words, as plain text."""
+    env = dict(os.environ, COLUMNS="120", TERM="dumb")
+    proc = subprocess.run(
+        [NEXT_BIN, "--no-show", *words],
+        capture_output=True,
+        text=True,
+        cwd=REPO_ROOT,
+        env=env,
+    )
+    return proc.stdout
+
+
+def failure_note(path):
+    """The trailing `# FAILED:` comment of a walked-away file, joined."""
+    try:
+        with open(os.path.join(REPO_ROOT, path)) as f:
+            lines = f.read().splitlines()
+    except OSError:
+        return ""
+    tail = [ln[2:] for ln in lines if ln.startswith("# ")]
+    note = [ln for ln in tail if ln.startswith("FAILED")]
+    return " ".join(note)
+
+
+def recent_reps(evidence, problems, since):
+    """One record per rep in the window, oldest first: what he did, how it
+    went, what he wrote. Move names are left out so the model cannot leak
+    them back; the verdict counts and his own notes stay."""
+    ratings = solve_ratings()
+    times = {f: secs for _, _, secs, f in mined_solve_times(with_file=True)}
+    out = []
+    for path, rec in evidence.items():
+        try:
+            d = date.fromisoformat(rec.get("date", ""))
+        except ValueError:
+            continue
+        if d < since:
+            continue
+        verdicts = list(rec.get("moves", {}).values())
+        failed = "_FAILED_" in path
+        item = {
+            "date": rec["date"],
+            "failed": failed,
+            "clean": verdicts.count("clean"),
+            "struggled": verdicts.count("struggled"),
+            "assist": assist_of(rec),
+        }
+        pnum = rec.get("problem")
+        if pnum == "drill" or drill_key(path):
+            item["drill"] = re.sub(
+                r"^d_|_\d{4}_\d{2}_\d{2}T.*$", "", os.path.basename(path)
+            ).replace("_", " ")
+        else:
+            item["problem"] = pnum
+            item["title"] = problems.get(str(pnum), {}).get("title", "")
+            if str(pnum) in ratings:
+                item["rating"] = round(ratings[str(pnum)])
+        if path in times:
+            item["minutes"] = round(times[path] / 60)
+        if rec.get("note"):
+            item["note"] = rec["note"]
+        if failed:
+            item["failure_note"] = failure_note(path)
+        out.append(item)
+    out.sort(key=lambda r: r["date"])
+    return out
+
+
+def open_failures(evidence, problems):
+    """Problems with a failed rep and no clean unaided problem rep since."""
+    last_fail = {}
+    last_clean = {}
+    for path, rec in evidence.items():
+        pnum = rec.get("problem")
+        if pnum == "drill" or drill_key(path) or not pnum:
+            continue
+        d = rec.get("date", "")
+        if "_FAILED_" in path:
+            last_fail[pnum] = max(last_fail.get(pnum, ""), d)
+        elif assist_of(rec) == "none" and all(
+            v == "clean" for v in rec.get("moves", {}).values()
+        ):
+            last_clean[pnum] = max(last_clean.get(pnum, ""), d)
+    ratings = solve_ratings()
+    out = []
+    for pnum, d in sorted(last_fail.items(), key=lambda kv: kv[1]):
+        if last_clean.get(pnum, "") > d:
+            continue
+        out.append(
+            {
+                "problem": pnum,
+                "title": problems.get(pnum, {}).get("title", ""),
+                "failed": d,
+                "rating": round(ratings[pnum]) if pnum in ratings else None,
+            }
+        )
+    return out
+
+
+def build_context(words):
+    evidence = load_evidence()
+    problems = load_all_problems()
+    since = today() - timedelta(days=WINDOW_DAYS)
+    return {
+        "today": today().isoformat(),
+        "elo": round(elo_now(evidence)),
+        "picker": picker_frame(words),
+        "failed_without_a_clean_unaided_rep_since": open_failures(evidence, problems),
+        "reps": recent_reps(evidence, problems, since),
+    }
+
+
+def context_key(words):
+    h = hashlib.sha256()
+    with open(os.path.join(REPO_ROOT, "graph", "evidence.json"), "rb") as f:
+        h.update(f.read())
+    h.update(today().isoformat().encode())
+    h.update(" ".join(words).encode())
+    h.update(str(PROMPT_VERSION).encode())
+    return h.hexdigest()
+
+
+def load_cache():
+    try:
+        with open(CACHE) as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return {}
+
+
+def ask(context, model):
+    prompt = json.dumps(context, indent=1)
+    return claude_json(prompt, SYSTEM_PROMPT, model=model)
+
+
+def recommendation(words, model, fresh=False):
+    key = context_key(words)
+    cache = load_cache()
+    if not fresh and cache.get("key") == key:
+        return cache["pick"], True
+    pick = ask(build_context(words), model)
+    with open(CACHE, "w") as f:
+        json.dump({"key": key, "pick": pick}, f, indent=1)
+    return pick, False
+
+
+def render(pick, cached, words):
+    head = f"{pick['problem']}. {pick['title']}"
+    tag = (
+        "the picker's pick as well"
+        if pick.get("agrees")
+        else "instead of the picker's pick"
+    )
+    body = [f"[dim]{tag}[/dim]", "", pick["reason"]]
+    if pick.get("plan"):
+        body += ["", "[bold]then[/bold]"]
+        for step in pick["plan"]:
+            body.append(
+                f"  {step['problem']}. {step['title']} [dim]- {step['note']}[/dim]"
+            )
+    body += ["", f"[bold]make next {' '.join([*words, 'llm', 'prepare'])}[/bold]"]
+    if cached:
+        body.append("[dim]cached: same evidence, same day[/dim]")
+    console.print(
+        Panel(
+            "\n".join(body),
+            title=f"llm: {head}",
+            title_align="left",
+            width=min(console.width, 100),
+        )
+    )
+
+
+def prepare(pick):
+    cur = os.path.join(REPO_ROOT, "current.py")
+    if os.path.exists(cur) and open(cur).read().strip():
+        console.print(
+            "[yellow]current.py is not empty - record it (make solved) before preparing the next one.[/yellow]"
+        )
+        sys.exit(1)
+    subprocess.run(
+        [sys.executable, os.path.join(UTILS, "prepare"), str(pick["problem"])],
+        cwd=REPO_ROOT,
+    )
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="the model's pick for the next problem"
+    )
+    parser.add_argument(
+        "words", nargs="*", help="the words `make next` takes (a group, a rank)"
+    )
+    parser.add_argument("--prepare", action="store_true", help="prepare the pick")
+    parser.add_argument("--fresh", action="store_true", help="ignore the cache")
+    parser.add_argument("--model", default="opus")
+    args = parser.parse_intermixed_args()
+    pick, cached = recommendation(args.words, args.model, fresh=args.fresh)
+    render(pick, cached, args.words)
+    if args.prepare:
+        prepare(pick)
+
+
+if __name__ == "__main__":
+    main()
