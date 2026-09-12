@@ -587,3 +587,77 @@ pub fn carrier_counts(problems: &Problems) -> HashMap<String, i64> {
 pub fn numeric_problems(pv: &PView) -> Vec<String> {
     pv.keys().into_iter().filter(|k| is_numeric_id(k)).collect()
 }
+
+/// kg_lib.dependents: one row per problem or drill whose "after" names
+/// `vid` - id, title, kind (difficulty or "drill"), status (vertex_status),
+/// and `held_by`, the other ids in its "after" list that are not warm yet.
+/// Problems first in number order, then drills.
+#[derive(Clone, Debug)]
+pub struct Dependent {
+    pub id: String,
+    pub title: String,
+    pub kind: String,
+    pub status: crate::status::Status,
+    pub held_by: Vec<String>,
+}
+
+pub fn dependents(
+    ctx: &Ctx,
+    vid: &str,
+    problems: &PView,
+    ev: &Evidence,
+    today: NaiveDate,
+) -> Vec<Dependent> {
+    let mut rows = Vec::new();
+    for h in gates(ctx, vid, &problems.map) {
+        let (title, kind, after) = if let Some(p) = problems.map.get(&h) {
+            let kind = ctx.problem_difficulty(&h, &problems.map);
+            (
+                p.title.clone(),
+                if kind.is_empty() {
+                    "?".to_string()
+                } else {
+                    kind
+                },
+                p.after.clone(),
+            )
+        } else {
+            let d = &ctx.drills[&h];
+            (d.title.clone(), "drill".to_string(), d.after.clone())
+        };
+        let held_by = after
+            .iter()
+            .filter(|a| {
+                a.as_str() != vid && warm(ctx, a, problems, ev, today, false) == Some(false)
+            })
+            .cloned()
+            .collect();
+        rows.push(Dependent {
+            status: vertex_status(ctx, &h, problems, ev, today),
+            id: h,
+            title,
+            kind,
+            held_by,
+        });
+    }
+    rows
+}
+
+/// kg_lib.easiest_first: drills, then Easy, Medium, Hard; inside a kind the
+/// higher community acceptance first, then by number.
+pub fn easiest_first(ctx: &Ctx, rows: &[Dependent]) -> Vec<Dependent> {
+    let rank = |k: &str| match k {
+        "drill" => 0,
+        "Easy" => 1,
+        "Medium" => 2,
+        "Hard" => 3,
+        _ => 9,
+    };
+    let mut out = rows.to_vec();
+    out.sort_by(|a, b| {
+        (rank(&a.kind), -ctx.acceptance(&a.id), pnum_key(&a.id))
+            .partial_cmp(&(rank(&b.kind), -ctx.acceptance(&b.id), pnum_key(&b.id)))
+            .unwrap()
+    });
+    out
+}

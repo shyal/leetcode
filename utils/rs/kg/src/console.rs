@@ -486,6 +486,16 @@ impl Console {
         }
     }
 
+    /// rich's plain Console(): the terminal width (COLUMNS, else the tty,
+    /// else 80), colour when stdout is a tty. kg_next narrows by 8; the
+    /// other reports print at the full width as their Python did.
+    pub fn full_width() -> Console {
+        Console {
+            width: terminal_columns(),
+            ..Console::new()
+        }
+    }
+
     /// Start capturing: printed lines are kept instead of written.
     pub fn begin_capture(&self) {
         *self.captured.borrow_mut() = Some(Vec::new());
