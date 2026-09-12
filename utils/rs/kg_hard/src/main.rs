@@ -82,14 +82,6 @@ fn problem_url(ctx: &Ctx, pnum: &str) -> String {
     }
 }
 
-fn taxonomy_summary(ctx: &Ctx) -> String {
-    ctx.nodes
-        .values()
-        .map(|n| format!("- {}: {}", n.id, n.desc))
-        .collect::<Vec<_>>()
-        .join("\n")
-}
-
 /// One claude call mapping a batch of problems onto the taxonomy; results
 /// cached into problems.json (same convention as preflight). Returns the
 /// subset of `unmapped` that came back mapped, and reloads the view.
@@ -110,7 +102,7 @@ fn map_with_claude(
         .collect();
     let system = format!(
         "You are mapping LeetCode problems onto a fixed taxonomy of atomic technique moves.\n\nTaxonomy (use ONLY these ids):\n{}\n\nFor EACH problem below, determine the canonical clean solution and list every move a candidate must execute, including foundational micro-moves. Hard problems almost always hinge on a signature trick; if that trick has no matching node id, it MUST appear in \"unmapped\" — never paper over it with the nearest broader node. Output STRICT JSON, nothing else:\n{{\"problems\": [{{\"num\": \"<number>\", \"title\": \"<full title>\", \"moves\": [\"<node-id>\", ...], \"unmapped\": [\"<short description of any required move with no matching node>\"]}}, ...]}}\n\nDo not explain the solutions.",
-        taxonomy_summary(ctx)
+        ctx.taxonomy_summary()
     );
     let result = match claude_json(
         &format!("LeetCode problems:\n{}", listing.join("\n")),

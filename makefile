@@ -8,8 +8,8 @@ all: graph/leet.db $(EXT) $(RS_BIN)/kg_status
 goals:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/history/solve_rate.py --goals data/goals.json --timer-font=doh
 
-today:
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_today $(patsubst rebuild,--force,$(filter-out $@,$(MAKECMDGOALS)))
+today: $(RS_BIN)/kg_today
+	@$(RS_BIN)/kg_today $(patsubst rebuild,--force,$(filter-out $@,$(MAKECMDGOALS)))
 
 is_session_start: $(RS_BIN)/is_session_start
 	@$(RS_BIN)/is_session_start || true
