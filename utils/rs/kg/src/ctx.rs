@@ -485,6 +485,15 @@ impl Ctx {
     }
 
     /// kg_lib.vertex_kind: what an "after" id names.
+    /// kg_lib.taxonomy_summary: compact node list for prompts, "- id: desc".
+    pub fn taxonomy_summary(&self) -> String {
+        self.nodes
+            .values()
+            .map(|n| format!("- {}: {}", n.id, n.desc))
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+
     pub fn vertex_kind(&self, vid: &str, problems: &Problems) -> Option<&'static str> {
         if problems.contains_key(vid) {
             return Some("problem");

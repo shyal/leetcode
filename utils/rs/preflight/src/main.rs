@@ -33,15 +33,6 @@ fn style(s: Status) -> &'static str {
     }
 }
 
-/// kg_lib.taxonomy_summary: compact node list for prompts.
-fn taxonomy_summary(ctx: &Ctx) -> String {
-    ctx.nodes
-        .values()
-        .map(|n| format!("- {}: {}", n.id, n.desc))
-        .collect::<Vec<_>>()
-        .join("\n")
-}
-
 /// (moves, title, the entry's difficulty/banned/note) for the key: a mapped
 /// problem, a title fragment, or one claude call cached into problems.json.
 fn resolve_moves(
@@ -64,7 +55,7 @@ fn resolve_moves(
     console.print("[dim]Problem not in graph/problems.json — one claude call to map it (cached after)...[/dim]");
     let system = format!(
         "You are mapping a LeetCode problem onto a fixed taxonomy of atomic technique moves.\n\nTaxonomy (use ONLY these ids):\n{}\n\nDetermine the canonical clean solution for the problem, then output STRICT JSON, nothing else:\n{{\"title\": \"<full problem title>\", \"difficulty\": \"Easy|Medium|Hard\", \"moves\": [\"<node-id>\", ...], \"unmapped\": [\"<short description of any required move with no matching node>\"]}}\n\nList every move a candidate must execute, including foundational micro-moves (algebra steps, idioms). Do not explain the solution.",
-        taxonomy_summary(ctx)
+        ctx.taxonomy_summary()
     );
     let result = match claude_json(&format!("LeetCode problem: {key}"), &system, "sonnet", 2) {
         Ok(v) => v,
