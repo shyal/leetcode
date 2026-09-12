@@ -15,6 +15,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 def load_tool():
     path = os.path.join(ROOT, "utils", "kg", "kg_llm_next")
     spec = importlib.util.spec_from_loader("kg_llm_next", loader=None, origin=path)
+    assert spec is not None
     mod = importlib.util.module_from_spec(spec)
     mod.__file__ = path
     with open(path) as f:
@@ -73,7 +74,9 @@ def test_new_evidence_asks_again(tool, monkeypatch):
         lambda words: "a different evidence file",
     )
     _, cached = tool.recommendation([], "opus")
-    assert not cached and len(tool.calls) == 2 and keys[0] != "a different evidence file"
+    assert (
+        not cached and len(tool.calls) == 2 and keys[0] != "a different evidence file"
+    )
 
 
 def test_fresh_ignores_the_cache(tool):

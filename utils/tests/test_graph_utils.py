@@ -1,4 +1,4 @@
-from utils.harness.graph_utils import as_dict_of_dicts
+from graph_utils import as_dict_of_dicts
 
 
 def test_dict_of_lists_becomes_dict_of_dicts():
