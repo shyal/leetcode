@@ -60,13 +60,20 @@ curve:
 residuals:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_residuals
 
-# make mock is implemented in Rust (utils/tests/test_mock.py guards it); the shared
-# model math also lives in kg_lib.py for the README chart — change them
-# together (utils/tests/test_golden.py diffs the two implementations)
-MOCK_BIN := utils/kg/kg_mock_rs/target/release/kg_mock
+# The Rust tooling is one cargo workspace, utils/rs: the kg library and one
+# binary per target (kg_next, kg_mock, kg_movie). One build produces all of
+# them. RS_SRC is every file the build depends on.
+RS_DIR := utils/rs
+RS_SRC := $(RS_DIR)/Cargo.toml $(wildcard $(RS_DIR)/*/Cargo.toml) $(wildcard $(RS_DIR)/*/src/*.rs)
+RS_BIN := $(RS_DIR)/target/release
 
-$(MOCK_BIN): utils/kg/kg_mock_rs/src/main.rs utils/kg/kg_mock_rs/Cargo.toml
-	@cargo build --release --quiet --manifest-path utils/kg/kg_mock_rs/Cargo.toml
+$(RS_BIN)/%: $(RS_SRC)
+	@cargo build --release --quiet --manifest-path $(RS_DIR)/Cargo.toml
+
+# make mock is implemented in Rust (utils/tests/test_mock.py guards it); the shared
+# model math also lives in kg_lib.py for the README chart - change them
+# together (utils/tests/test_golden.py diffs the two implementations)
+MOCK_BIN := $(RS_BIN)/kg_mock
 
 mock: $(MOCK_BIN)
 	@$(MOCK_BIN) $(filter-out $@,$(MAKECMDGOALS))
@@ -82,10 +89,7 @@ simulate:
 
 # make movie is implemented in Rust: one pinned graphviz layout, the history
 # replayed as SMIL animation into graph/kg_movie.svg (embedded by make readme)
-MOVIE_BIN := utils/kg/kg_movie_rs/target/release/kg_movie
-
-$(MOVIE_BIN): utils/kg/kg_movie_rs/src/main.rs utils/kg/kg_movie_rs/Cargo.toml
-	@cargo build --release --quiet --manifest-path utils/kg/kg_movie_rs/Cargo.toml
+MOVIE_BIN := $(RS_BIN)/kg_movie
 
 movie: $(MOVIE_BIN)
 	@$(MOVIE_BIN) $(filter-out $@,$(MAKECMDGOALS))
@@ -130,14 +134,13 @@ failed:
 # (radon max/avg), .jscpd.json (duplication). Ratchet them down, never up.
 PYSRC = $(shell utils/check/pyfiles)
 PYSRC_MYPY = $(shell utils/check/pyfiles --mypy)
-CRATES = utils/kg/kg_mock_rs utils/kg/kg_movie_rs utils/kg/kg_next_rs
 
 check: fmt-check lint types complexity rust test-fast
 
 fmt:
 	@.venv/bin/black -q $(PYSRC)
 	@.venv/bin/ruff check -q --fix --select I $(PYSRC)
-	@for c in $(CRATES); do cargo fmt --manifest-path $$c/Cargo.toml; done
+	@cargo fmt --all --manifest-path $(RS_DIR)/Cargo.toml
 
 fmt-check:
 	@.venv/bin/black -q --check $(PYSRC)
@@ -155,10 +158,10 @@ duplicates:
 	@npx --yes jscpd utils dsa
 
 rust:
-	@for c in $(CRATES); do cargo fmt --check --manifest-path $$c/Cargo.toml && cargo clippy -q --manifest-path $$c/Cargo.toml -- -D warnings && cargo test -q --manifest-path $$c/Cargo.toml || exit 1; done
+	@cargo fmt --all --check --manifest-path $(RS_DIR)/Cargo.toml && cargo clippy -q --manifest-path $(RS_DIR)/Cargo.toml -- -D warnings && cargo test -q --manifest-path $(RS_DIR)/Cargo.toml
 
 audit:
-	@for c in $(CRATES); do (cd $$c && cargo audit -q) || exit 1; done
+	@cd $(RS_DIR) && cargo audit -q
 
 secrets:
 	@gitleaks detect --source . --no-banner --redact
@@ -190,13 +193,10 @@ viz:
 	@:
 graph:
 	@:
-# make next is implemented in Rust (utils/kg/kg_next_rs); utils/kg/kg_next is
+# make next is implemented in Rust (utils/rs/kg_next); utils/kg/kg_next is
 # the Python reference and utils/tests/test_next_parity.py diffs the two over
 # the real graph/ data - change them together
-NEXT_BIN := utils/kg/kg_next_rs/target/release/kg_next
-
-$(NEXT_BIN): $(wildcard utils/kg/kg_next_rs/src/*.rs) utils/kg/kg_next_rs/Cargo.toml utils/kg/kg_mock_rs/src/lib.rs
-	@cargo build --release --quiet --manifest-path utils/kg/kg_next_rs/Cargo.toml
+NEXT_BIN := $(RS_BIN)/kg_next
 
 next: $(NEXT_BIN)
 	@if [ -n "$(filter llm,$(MAKECMDGOALS))" ]; then \

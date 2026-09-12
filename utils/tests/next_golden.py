@@ -1,5 +1,5 @@
 # The Python side of the `make next` golden diff: every library value
-# `kg_next --golden-json` (utils/kg/kg_next_rs) prints, computed by kg_lib
+# `kg_next --golden-json` (utils/rs/kg_next) prints, computed by kg_lib
 # and kg_next in-process and printed as the same JSON. Run as a subprocess
 # by utils/tests/test_next_parity.py under the same environment as the
 # Rust binary (KG_TODAY, the .envrc knobs), never imported under pytest,

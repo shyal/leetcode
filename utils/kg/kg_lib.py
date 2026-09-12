@@ -547,7 +547,7 @@ def drill_key(fname):
     """The drill a d_ solved file is a rep of: its lowercase basename with
     the timestamp `make solved` appends stripped (or the last _token when
     there is none, the shape the tests write). None for a problem solve.
-    Kept in lockstep with kg_mock_rs drill_key."""
+    Kept in lockstep with utils/rs/kg drill_key."""
     base = os.path.splitext(os.path.basename(fname))[0].lower()
     if not base.startswith("d_"):
         return None
@@ -678,7 +678,7 @@ def _node_curve(node_id, evidence, today=None):
     the curve's retention component (1 + gap/s)^(-beta) before the slip
     factor: the number the SOLID cut is applied to, and the recall axis of
     node_axes. node_eval drops it so its callers and the Rust golden diff
-    (kg_mock_rs) see the same three-tuple as before."""
+    (utils/rs/kg) see the same three-tuple as before."""
     today = today or date.today()
     entries = [
         (d, v, a) for d, v, a, _, _ in ev_index(evidence).by_node.get(node_id, ())
@@ -920,7 +920,7 @@ def degree_track(nodes, evidence, problems, clock):
 # dark chart surface (#0d1117) at 4:1 or better. Red-green is the pair
 # colour-blind readers merge; the operator chose it over a one-hue green
 # ramp on 2026-09-07, the four labels having been red/yellow/green all
-# along. kg_movie_rs carries the same function; change both together.
+# along. utils/rs/kg_movie carries the same function; change both together.
 
 DEGREE_RAMP_BOTTOM = "#da3633"  # degree 0
 DEGREE_RAMP_TOP = "#3fb950"  # degree 1
@@ -3069,7 +3069,7 @@ def taxonomy_summary(nodes):
 
 # ---- cold-mock pass-rate model ----------------------------------------------
 # The Monte-Carlo model behind `make mock` (implemented in Rust under
-# utils/kg/kg_mock_rs) and the README's P(pass) history chart. The Rust port keeps
+# utils/rs/kg_mock) and the README's P(pass) history chart. The Rust port keeps
 # this exact math (same RNG stream, same float-op order); change them together.
 #
 # One problem's odds come from the cold-solve model kg_curve fits (curve.json
@@ -3404,13 +3404,13 @@ def node_curve_recall(nid, evidence, curve, today=None):
     return (1 + (today - last).days / s) ** (-p["beta"])
 
 
-# --- the replay clock (utils/kg/kg_movie_rs) ----------------------------------
+# --- the replay clock (utils/rs/kg_movie) ----------------------------------
 # Python mirror of kg_movie's pacing, bit-for-bit: ticks run from the day
 # before the first evidence entry to the last one, each day's screen time is
 # its unique leetcode solve count + LULL_WEIGHT (long solve-less stretches
 # fast-forward), and the loop closes with a dissolve. Every animated SVG that
 # wants to play in sync with kg_movie.svg / kg_pass.svg builds its keyTimes
-# from this. Change the pacing here and in kg_movie_rs/src/main.rs together.
+# from this. Change the pacing here and in utils/rs/kg_movie/src/main.rs together.
 
 MOVIE_SECONDS = 10.0  # kg_movie's DEFAULT_SECONDS
 MOVIE_END_FADE_S = 1.2  # loop-closing dissolve, capped by the fraction
@@ -3466,7 +3466,7 @@ class MovieClock:
 
 
 # era banner shared by the animated SVGs: the one flip that is the point of
-# all of them. Mirrors kg_movie_rs's ERA_SWITCH / labels / inks.
+# all of them. Mirrors kg_movie's ERA_SWITCH / labels / inks.
 ERA_SWITCH = date(2026, 8, 7)
 ERA_PRE_LABEL = "pre graph scheduling era"
 ERA_GRAPH_LABEL = "graph scheduling era"

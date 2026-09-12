@@ -4,7 +4,7 @@
 # every consumer (README chart, progress bars, dashboard) recomputes these
 # numbers on the fly from git + the technique graph, so this is display only.
 #
-# The projected dates come from the Monte-Carlo mock model (utils/kg/kg_mock_rs):
+# The projected dates come from the Monte-Carlo mock model (utils/rs/kg_mock):
 # contest = hard-competent (central P(single hard) >= 50%), onsite = central
 # P(onsite) >= 50%. kg_predict's work-done date rides along for comparison.
 
@@ -71,12 +71,16 @@ def main():
     except (subprocess.CalledProcessError, json.JSONDecodeError) as e:
         console.print(f"[yellow]kg_predict failed, no work-done date: {e}[/yellow]")
 
-    # Monte-Carlo milestone dates from `make mock` (utils/kg/kg_mock_rs): contest =
+    # Monte-Carlo milestone dates from `make mock` (utils/rs/kg_mock): contest =
     # hard-competent (central P(single hard) >= 50%), onsite = central
     # P(onsite) >= 50%. These headline the README progress bars.
     mock = None
     mock_bin = os.path.join(
-        os.path.dirname(__file__), "kg_mock_rs", "target", "release", "kg_mock"
+        os.path.dirname(os.path.dirname(__file__)),
+        "rs",
+        "target",
+        "release",
+        "kg_mock",
     )
     try:
         out = subprocess.run(

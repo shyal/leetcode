@@ -35,7 +35,7 @@ use std::process::{Command, Stdio};
 use chrono::{Datelike, Duration, NaiveDate};
 use serde_json::Value;
 
-use kg_mock::{current_recall, pass_rates, run_mocks, Bank, EvRec, PyRandom, SolveModel};
+use kg::mock::{current_recall, pass_rates, run_mocks, Bank, EvRec, PyRandom, SolveModel};
 
 const DEFAULT_SECONDS: f64 = 10.0;
 const END_FADE_S: f64 = 1.2; // loop-closing dissolve, capped by FADE_FRACTION
@@ -202,7 +202,7 @@ fn assist_weight(a: &str) -> f64 {
 
 /// kg_lib.assist_of(rec, node): the level of help on THIS move of the walk
 fn assist_of(rec: &Value, node: &str) -> String {
-    kg_mock::assist_map(rec)
+    kg::mock::assist_map(rec)
         .remove(node)
         .unwrap_or_else(|| "none".to_string())
 }
@@ -672,7 +672,7 @@ fn main() {
         .map(|(f, r)| (f.as_str(), r["date"].as_str().unwrap()))
         .collect();
     let first_reps: std::collections::HashSet<&str> =
-        kg_mock::first_drill_reps(ev_list.iter().copied())
+        kg::mock::first_drill_reps(ev_list.iter().copied())
             .into_iter()
             .map(|i| ev_list[i].0)
             .collect();
@@ -1508,7 +1508,7 @@ fn main() {
         println!("no graph/curve.json - kg_pass.svg skipped");
         return;
     };
-    let mcurve = kg_mock::Curve {
+    let mcurve = kg::mock::Curve {
         a: cv.a,
         b: cv.b,
         c: cv.c,
@@ -1533,7 +1533,7 @@ fn main() {
                         .collect()
                 })
                 .unwrap_or_default(),
-            assist: kg_mock::assist_map(r),
+            assist: kg::mock::assist_map(r),
         })
         .collect();
     ev_recs.sort_by(|a, b| a.date.cmp(&b.date));

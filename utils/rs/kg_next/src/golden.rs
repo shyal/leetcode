@@ -9,26 +9,26 @@ use std::collections::HashSet;
 use chrono::NaiveDate;
 use serde_json::{json, Map, Value};
 
-use kg_next::bank::{
+use kg::bank::{
     carriers_for, drafted_in_reach, held_behind, predicted_carrier, proving_carriers, unlocks,
     vertex_status, warm,
 };
-use kg_next::clock::{due_problems, last_attempt, problem_due};
-use kg_next::ctx::{Ctx, PView};
-use kg_next::drills::{
+use kg::clock::{due_problems, last_attempt, problem_due};
+use kg::ctx::{Ctx, PView};
+use kg::drills::{
     anki_due, anki_frontier, cold_drill, drill_assisted, drill_capped, drill_clean, drill_gated,
     drill_held, drill_recall, drill_warm, drills_left, due_drill, group_caps, group_reps,
     last_drilled, node_drill_hold,
 };
-use kg_next::evidence::Evidence;
-use kg_next::git::{sleep_rows, sleep_state, solve_seconds_today, solved_today_pnums};
-use kg_next::model::{drill_forecast, elo_now, solve_forecast, solve_model, solve_ratings};
-use kg_next::pick::{
+use kg::evidence::Evidence;
+use kg::git::{sleep_rows, sleep_state, solve_seconds_today, solved_today_pnums};
+use kg::model::{drill_forecast, elo_now, solve_forecast, solve_model, solve_ratings};
+use kg::pick::{
     blocked_frontier, choice_tuple, parked_summits, pick, ready_hards, review_ahead, review_queue,
     routed_around, starved, trivial_easies, unmapped_summits, upcoming, PickArgs,
 };
-use kg_next::recog;
-use kg_next::status::{
+use kg::recog;
+use kg::status::{
     cooled, gentleness, graduation_due, last_clean_solve, last_solved, latest_carrier, node_axes,
     node_curve, owned, tree_size, Statuses,
 };

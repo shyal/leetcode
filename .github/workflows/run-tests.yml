@@ -88,8 +88,6 @@ jobs:
           cp utils/harness/sitecustomize.py .venv/lib/python3.10/site-packages/
       - name: Build the Rust binaries the golden tests diff against
         run: |
-          cargo build --release --quiet --manifest-path utils/kg/kg_mock_rs/Cargo.toml
-          cargo build --release --quiet --manifest-path utils/kg/kg_movie_rs/Cargo.toml
-          cargo build --release --quiet --manifest-path utils/kg/kg_next_rs/Cargo.toml
+          cargo build --release --quiet --manifest-path utils/rs/Cargo.toml
       - name: pytest with the coverage floor
         run: .venv/bin/pytest --cov --cov-report=term

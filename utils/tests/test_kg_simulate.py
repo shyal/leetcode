@@ -166,7 +166,7 @@ def test_run_ignores_the_envrc_knobs(tmp_path, monkeypatch):
     )
     monkeypatch.setenv("DRILL_SCHEDULER", "anki")
     monkeypatch.setattr(kg_lib, "MAX_ASLEEP", 10)
-    seen = {}
+    seen: dict[str, object] = {}
     real = kg_simulate._run
 
     def spy(*a, **k):

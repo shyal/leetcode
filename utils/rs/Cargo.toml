@@ -1,0 +1,16 @@
+# The Rust tooling: one workspace, one library (kg), one binary per make
+# target. `cargo build --release` here builds every binary into
+# utils/rs/target/release/. The makefile's `make rust` runs fmt, clippy and
+# the tests over the whole workspace.
+[workspace]
+resolver = "2"
+members = ["kg", "kg_mock", "kg_movie", "kg_next"]
+
+[workspace.dependencies]
+libc = "0.2"
+serde_json = { version = "1", features = ["preserve_order"] }
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+indexmap = "2"
+
+[profile.release]
+lto = true

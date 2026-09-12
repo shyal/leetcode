@@ -1,4 +1,4 @@
-# Golden lockstep test: utils/kg/kg_lib.py and utils/kg/kg_mock_rs both implement
+# Golden lockstep test: utils/kg/kg_lib.py and utils/rs/kg_mock both implement
 # node_status (the forgetting-curve mastery derivation), and kg_mock's
 # PyRandom claims to reproduce CPython's random.Random bit-for-bit. Nothing
 # enforced that until now — the "kept in lockstep" comments were the only
@@ -16,9 +16,7 @@ import pytest
 from kg import kg_lib
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-RUST_BIN = os.path.join(
-    ROOT, "utils", "kg", "kg_mock_rs", "target", "release", "kg_mock"
-)
+RUST_BIN = os.path.join(ROOT, "utils", "rs", "target", "release", "kg_mock")
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -30,7 +28,7 @@ def build_rust():
             "--release",
             "--quiet",
             "--manifest-path",
-            os.path.join(ROOT, "utils", "kg", "kg_mock_rs", "Cargo.toml"),
+            os.path.join(ROOT, "utils", "rs", "Cargo.toml"),
         ],
         check=True,
         capture_output=True,

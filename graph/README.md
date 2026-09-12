@@ -371,7 +371,7 @@ the reveal after the judge.
    is off its ladder but immature as the THIN kind, behind STALE and ahead of new
    ground. `mature()` counts distinct problems at the bar, not reps. Every drawn node
    (the README charts, the movie, the `make next` and `make hard` trees) is filled
-   from the same sequential ramp (`kg_lib.degree_color`, mirrored in kg_movie_rs):
+   from the same sequential ramp (`kg_lib.degree_color`, mirrored in utils/rs/kg_movie):
    red at 0 through orange and amber to green at 1, the status colours made continuous.
 2. **One new move per assignment; summits take zero.** An easy/medium is READY when at
    most one of its moves is non-SOLID — that move is the training target. A Hard is READY

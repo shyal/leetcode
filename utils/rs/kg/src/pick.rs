@@ -1754,6 +1754,7 @@ fn grant(
         assist: crate::data::Assist::None,
         followup: None,
         pending: None,
+        note: None,
     };
     ev.push(fname, rec);
     for m in &moves {
