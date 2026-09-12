@@ -209,9 +209,9 @@ graph:
 # the real graph/ data - change them together
 NEXT_BIN := $(RS_BIN)/kg_next
 
-next: $(NEXT_BIN)
+next: $(NEXT_BIN) $(RS_BIN)/kg_llm_next
 	@if [ -n "$(filter llm,$(MAKECMDGOALS))" ]; then \
-		PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_llm_next $(patsubst fresh,--fresh,$(patsubst prepare,--prepare,$(filter-out $@ llm,$(MAKECMDGOALS)))); \
+		$(RS_BIN)/kg_llm_next $(patsubst fresh,--fresh,$(patsubst prepare,--prepare,$(filter-out $@ llm,$(MAKECMDGOALS)))); \
 	else \
 		$(NEXT_BIN) $(patsubst why,--why,$(patsubst graph,--graph,$(patsubst cram,--cram,$(patsubst early,--early,$(patsubst assisted,--assisted,$(patsubst prepare,--prepare,$(filter-out $@,$(MAKECMDGOALS)))))))); \
 	fi
@@ -233,8 +233,8 @@ q: graph/leet.db
 dive: $(RS_BIN)/kg_dive
 	@$(RS_BIN)/kg_dive $(filter-out $@,$(MAKECMDGOALS))
 
-hard:
-	@if [ "$(firstword $(MAKECMDGOALS))" != spot ]; then PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_hard $(patsubst graph,--graph,$(filter-out $@,$(MAKECMDGOALS))); fi
+hard: $(RS_BIN)/kg_hard
+	@if [ "$(firstword $(MAKECMDGOALS))" != spot ]; then $(RS_BIN)/kg_hard $(patsubst graph,--graph,$(filter-out $@,$(MAKECMDGOALS))); fi
 
 drill: $(RS_BIN)/drill
 	@$(RS_BIN)/drill $(filter-out $@,$(MAKECMDGOALS))

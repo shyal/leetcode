@@ -2,7 +2,7 @@
 # (kg_rep, is_session_start, kg_chat, kg_status, kg_dependents, kg_gaps,
 # kg_viz, estimate, kg_residuals, kg_predict, kg_sleep, kg_mirror, kg_drill,
 # kg_solved, drill, kg_force, timer, kg_curve, kg_solvecost, preflight, spot,
-# lc_solutions, kg_dive, learning; utils/rs).
+# lc_solutions, kg_dive, learning, kg_hard, kg_llm_next; utils/rs).
 # Each was diffed against
 # its Python original over the real graph/ data before the Python was
 # deleted (2026-09-12); these guard the shape of what they print, and make
@@ -403,3 +403,37 @@ def test_learning_stops_without_a_stub(tmp_path):
     )
     assert p.returncode == 0
     assert p.stdout.strip().endswith("current.py does not exist. Exiting.")
+
+
+# --- kg_hard, kg_llm_next -------------------------------------------------------
+
+
+def test_kg_hard_verdict_for_a_mapped_problem():
+    pnum = _first_evidenced_problem()
+    p = subprocess.run(
+        [os.path.join(RS_BIN, "kg_hard"), pnum, "--no-show"],
+        capture_output=True,
+        text=True,
+        cwd=ROOT,
+        env={**os.environ, "LEET_NO_ANIMATE": "1"},
+    )
+    assert p.returncode == 0, p.stderr
+    lines = [l for l in p.stdout.splitlines() if l]
+    assert lines[0].startswith(f"⛰  {pnum}. ")
+    assert lines[1].startswith("https://leetcode.com/")
+    assert any("Go claim the summit" in l or "Not ready" in l for l in lines)
+
+
+def test_kg_llm_next_key_and_context_without_a_model_call():
+    key = run("kg_llm_next", "--key").stdout.strip()
+    assert len(key) == 64 and all(c in "0123456789abcdef" for c in key)
+    assert run("kg_llm_next", "--key", "sql").stdout.strip() != key
+    ctx = json.loads(run("kg_llm_next", "--context").stdout)
+    assert set(ctx) == {
+        "today",
+        "elo",
+        "picker",
+        "failed_without_a_clean_unaided_rep_since",
+        "reps",
+    }
+    assert ctx["picker"] and isinstance(ctx["reps"], list)

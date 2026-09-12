@@ -390,6 +390,11 @@ fn base64(bytes: &[u8]) -> String {
 
 /// kg_render.animate: through ttfx on a tty, plain otherwise.
 pub fn animate(console: &Console, lines: Vec<crate::console::Line>) {
+    animate_with(console, lines, &["decrypt", "--typing-speed", "20"]);
+}
+
+/// animate with a chosen ttfx effect and its arguments (kg_hard's laseretch).
+pub fn animate_with(console: &Console, lines: Vec<crate::console::Line>, effect: &[&str]) {
     let plain = std::env::var("LEET_NO_ANIMATE").is_ok_and(|v| !v.is_empty());
     let exe = which("ttfx");
     if plain || !stdout_is_tty() || exe.is_none() {
@@ -401,15 +406,8 @@ pub fn animate(console: &Console, lines: Vec<crate::console::Line>) {
         .map(|l| console.render_line(l) + "\n")
         .collect();
     let child = Command::new(exe.unwrap())
-        .args([
-            "--frame-rate",
-            "360",
-            "--existing-color-handling",
-            "always",
-            "decrypt",
-            "--typing-speed",
-            "20",
-        ])
+        .args(["--frame-rate", "360", "--existing-color-handling", "always"])
+        .args(effect)
         .stdin(Stdio::piped())
         .spawn();
     match child {
