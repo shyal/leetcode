@@ -9324,6 +9324,17 @@
         "xor-cancellation": "clean"
       },
       "summary": "The solution builds the original array in a single pass. Starting with arr[0] = first, it iterates through the encoded array. At each step, given encoded[i] = arr[i] XOR arr[i+1], it computes arr[i+1] = encoded[i] XOR arr[i] using XOR cancellation: the property that (a XOR b) XOR a = b allows the known arr[i] terms to cancel, recovering arr[i+1]."
+    },
+    "solved/p712_Minimum_ASCII_Delete_Sum_for_Two_Strings_2026_09_12T10_19_48_740317_00_00Z.py": {
+      "date": "2026-09-12",
+      "problem": "712",
+      "moves": {
+        "dp-state-formulate": "clean",
+        "two-sequence-align": "clean",
+        "memoize-recursion": "clean"
+      },
+      "note": "Top-down memoized recursion instead of bottom-up 2D grid.",
+      "summary": "The code defines a memoized recursive state computing the minimum ASCII sum of deletions to make two strings equal. It aligns characters from the back: matching characters advance both strings, mismatches try deleting from each and take the minimum. The @cache decorator provides the memoization."
     }
   }
 }
