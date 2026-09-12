@@ -139,7 +139,8 @@ pub fn trivial_easies(
     cands.into_iter().map(|c| c.4).collect()
 }
 
-/// kg_next.review_queue: due problems minus the unservable ones.
+/// kg_next.review_queue: due problems minus the unservable ones and the
+/// ones held behind an "after" predecessor that is not warm.
 pub fn review_queue(
     ctx: &Ctx,
     ev: &Evidence,
@@ -149,6 +150,7 @@ pub fn review_queue(
     due_problems(ev, today, Some(pv))
         .into_iter()
         .filter(|(p, _, _)| !ctx.unservable(p, pv.get(p).unwrap()))
+        .filter(|(p, _, _)| held_behind(ctx, p, pv, ev, today).is_none())
         .collect()
 }
 

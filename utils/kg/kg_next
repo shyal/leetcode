@@ -133,7 +133,9 @@
 #   Before this the same six steps lived in six rule bodies, each with its
 #   own copy of "due" and "how to get past a hold", and three holds in one
 #   evening each broke a rule that did not know them.
-#   2c. a problem on a review clock of its own (kg_lib.problem_due), served
+#   2c. a problem on a review clock of its own (kg_lib.problem_due), unless
+#      an "after" predecessor of it is not warm (the hold serves the
+#      predecessor's own review first), served
 #      between the drill-clock moves and STALE ones - or, with REVIEWS_FIRST=1
 #      (.envrc; kg_lib.reviews_first), ahead of the whole frontier, floors
 #      and FRAGILE moves included (2026-09-10: 13 young moves on a due
@@ -454,12 +456,16 @@ def difficulty_line(pnum, problems):
 
 def review_queue(evidence, problems, today=None):
     """The problems whose review clock is due (kg_lib.due_problems), minus
-    the ones nothing may be served on. The footer's count and rule 2c's pick
-    read the same list, so the number is what can actually be served."""
+    the ones nothing may be served on and the ones held behind an "after"
+    predecessor that is not warm (968 waits for 543, the plain problem it
+    builds on and the one he failed the day after; 2026-09-12). The footer's
+    count and rule 2c's pick read the same list, so the number is what can
+    actually be served."""
     return [
         (pnum, d, i)
         for pnum, d, i in due_problems(evidence, today=today, problems=problems)
         if not unservable(pnum, problems[pnum])
+        and held_behind(pnum, problems, evidence, today) is None
     ]
 
 
