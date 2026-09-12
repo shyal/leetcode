@@ -690,28 +690,23 @@ pub fn is_stale(age: f64) -> bool {
     age > PENDING_STALE_SECONDS
 }
 
-/// kg_lib.spawn_judge: one detached kg_extract on the file.
+/// kg_lib.spawn_judge: one detached kg_extract (the Rust judge) on the file.
 pub fn spawn_judge(root: &Path, path: &str) {
-    let venv = root.join(".venv/bin/python3");
-    let py = if venv.exists() {
-        venv
-    } else {
-        std::path::PathBuf::from("python3")
-    };
-    let pythonpath = format!("{}:{}", root.join("utils").display(), env_str("PYTHONPATH"));
+    let judge = std::env::current_exe()
+        .ok()
+        .and_then(|p| p.parent().map(|d| d.join("kg_extract")))
+        .unwrap_or_else(|| root.join("utils/rs/target/release/kg_extract"));
     let log = std::fs::OpenOptions::new()
         .append(true)
         .create(true)
         .open(root.join(".judge.log"));
     let Ok(log) = log else { return };
     let err = log.try_clone().ok();
-    let mut cmd = Command::new(py);
-    cmd.arg(root.join("utils/kg/kg_extract"))
-        .arg("--file")
+    let mut cmd = Command::new(judge);
+    cmd.arg("--file")
         .arg(path)
         .arg("--commit")
         .current_dir(root)
-        .env("PYTHONPATH", pythonpath)
         .stdin(Stdio::null())
         .stdout(Stdio::from(log));
     if let Some(e) = err {

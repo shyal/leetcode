@@ -190,6 +190,7 @@ def test_mock_binary_paths_agree():
         "kg_hard",
         "kg_llm_next",
         "kg_today",
+        "kg_extract",
     } <= set(crates)
 
 

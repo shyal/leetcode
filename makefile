@@ -30,8 +30,8 @@ unforce: $(RS_BIN)/kg_force
 preflight: $(RS_BIN)/preflight
 	@$(RS_BIN)/preflight $(filter-out $@,$(MAKECMDGOALS))
 
-kg-extract: $(RS_BIN)/kg_curve $(RS_BIN)/kg_solvecost
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_extract --pending $(filter-out $@,$(MAKECMDGOALS))
+kg-extract: $(RS_BIN)/kg_extract $(RS_BIN)/kg_curve $(RS_BIN)/kg_solvecost
+	@$(RS_BIN)/kg_extract --pending $(filter-out $@,$(MAKECMDGOALS))
 	@$(RS_BIN)/kg_curve --if-stale
 	@$(RS_BIN)/kg_solvecost --if-stale
 
@@ -125,17 +125,17 @@ drop:
 # the message -> the judge spawned detached; it commits its verdict when
 # done. Seconds, not the judge's minute. Ctrl-C anywhere: re-run
 # `make solved`, every step resumes (utils/rs/kg_solved).
-solved: $(RS_BIN)/kg_solved $(RS_BIN)/kg_force
+solved: $(RS_BIN)/kg_solved $(RS_BIN)/kg_force $(RS_BIN)/kg_extract
 	@$(RS_BIN)/kg_force --check
 	@$(RS_BIN)/kg_solved
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_extract --stub
+	@$(RS_BIN)/kg_extract --stub
 	@$(RS_BIN)/kg_solved --commit
 
 # file the current attempt as a FAILED one: same flow as solved (archive,
 # solve-time trailer, placeholder -> struggled evidence), honest label
-failed: $(RS_BIN)/kg_solved
+failed: $(RS_BIN)/kg_solved $(RS_BIN)/kg_extract
 	@$(RS_BIN)/kg_solved --failed
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_extract --stub
+	@$(RS_BIN)/kg_extract --stub
 	@$(RS_BIN)/kg_solved --commit
 
 # --- code quality gates -------------------------------------------------------

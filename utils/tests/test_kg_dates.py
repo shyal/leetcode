@@ -10,15 +10,11 @@ boundary."""
 
 import os
 from datetime import date, datetime, timezone
-from importlib.machinery import SourceFileLoader
 
 from kg import kg_lib
 from kg.kg_lib import MANILA, due_drill, last_drilled, manila_date_from_filename
 
 KG = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "kg")
-kg_extract = SourceFileLoader(
-    "kg_extract", os.path.join(KG, "kg_extract")
-).load_module()
 
 
 def utc(y, mo, d, h, mi=0, s=0, micro=0):
@@ -73,15 +69,6 @@ def test_no_timestamp_returns_none():
 # --- the solved filename stamp itself is tested where it is made: the
 # utils/rs/kg_solved unit tests round-trip the same three cases through the
 # UTC stamp and the Manila day.
-
-
-# --- kg_extract derives evidence dates through the shared helper ---------------
-
-
-def test_extract_uses_the_manila_helper():
-    assert kg_extract.manila_date_from_filename is kg_lib.manila_date_from_filename
-    # the raw-digits regex must stay dead
-    assert not hasattr(kg_extract, "DATE_RE")
 
 
 # --- evidence.json invariant: stored dates ARE the Manila days -----------------

@@ -502,29 +502,15 @@ def pending_judgements(evidence):
 
 
 def spawn_judge(path):
-    """Detach one kg_extract on this file: it judges, folds, refits the
-    curve, and commits the graph files by path onto whatever branch is
-    checked out when it finishes. Output goes to .judge.log (gitignored).
-    Returns the Popen; nothing waits on it."""
+    """Detach one kg_extract (utils/rs/kg_extract) on this file: it judges,
+    folds, refits the curve, and commits the graph files by path onto
+    whatever branch is checked out when it finishes. Output goes to
+    .judge.log (gitignored). Returns the Popen; nothing waits on it."""
     root = os.path.dirname(GRAPH_DIR)
-    py = os.path.join(root, ".venv", "bin", "python3")
-    if not os.path.exists(py):
-        py = sys.executable
-    env = dict(os.environ)
-    env["PYTHONPATH"] = os.pathsep.join(
-        [os.path.join(root, "utils"), env.get("PYTHONPATH", "")]
-    )
     log = open(os.path.join(root, ".judge.log"), "a")
     return subprocess.Popen(
-        [
-            py,
-            os.path.join(root, "utils", "kg", "kg_extract"),
-            "--file",
-            path,
-            "--commit",
-        ],
+        [rs_bin("kg_extract"), "--file", path, "--commit"],
         cwd=root,
-        env=env,
         stdin=subprocess.DEVNULL,
         stdout=log,
         stderr=subprocess.STDOUT,
