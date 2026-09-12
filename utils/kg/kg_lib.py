@@ -18,6 +18,11 @@ from collections import namedtuple
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
+# utils/rs/kg as a Python extension (utils/rs/kg_py; `make ext` installs it).
+# The functions imported here used to be defined below; each pointer comment
+# marks where. New ports are added here and the Python body deleted.
+from kg_rs import degree_color, drill_key  # noqa: F401
+
 # The system clock runs UTC but the operator lives in Manila (UTC+8);
 # "today" everywhere in the toolchain means the Manila calendar day.
 os.environ["TZ"] = "Asia/Manila"
@@ -52,6 +57,13 @@ def manila_date_from_filename(name):
 UTILS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REPO_ROOT = os.path.dirname(UTILS_DIR)
 GRAPH_DIR = os.path.join(REPO_ROOT, "graph")
+RS_BIN = os.path.join(REPO_ROOT, "utils", "rs", "target", "release")
+
+
+def rs_bin(name):
+    """The Rust binary `name` of the utils/rs workspace (built by `make`,
+    which every target that runs one depends on)."""
+    return os.path.join(RS_BIN, name)
 
 
 def load_envrc(path=None, environ=None):
@@ -540,19 +552,11 @@ def _load_curve():
 # simulation's case); any other change rebuilds it. Records are never
 # copied - the same dicts, grouped.
 
-_DRILL_TS = re.compile(r"_\d{4}_\d{2}_\d{2}t.*$")
-
-
-def drill_key(fname):
-    """The drill a d_ solved file is a rep of: its lowercase basename with
-    the timestamp `make solved` appends stripped (or the last _token when
-    there is none, the shape the tests write). None for a problem solve.
-    Kept in lockstep with utils/rs/kg drill_key."""
-    base = os.path.splitext(os.path.basename(fname))[0].lower()
-    if not base.startswith("d_"):
-        return None
-    key, n = _DRILL_TS.subn("", base)
-    return key if n else base.rsplit("_", 1)[0]
+# drill_key(fname): the drill a d_ solved file is a rep of - its lowercase
+# basename with the timestamp `make solved` appends stripped (or the last
+# _token when there is none, the shape the tests write); None for a problem
+# solve. Implemented in Rust (utils/rs/kg/src/evidence.rs), imported from
+# kg_rs above.
 
 
 class _EvidenceIndex:
@@ -920,67 +924,11 @@ def degree_track(nodes, evidence, problems, clock):
 # dark chart surface (#0d1117) at 4:1 or better. Red-green is the pair
 # colour-blind readers merge; the operator chose it over a one-hue green
 # ramp on 2026-09-07, the four labels having been red/yellow/green all
-# along. utils/rs/kg_movie carries the same function; change both together.
+# along. utils/rs/kg/src/render.rs holds the one implementation.
 
-DEGREE_RAMP_BOTTOM = "#da3633"  # degree 0
-DEGREE_RAMP_TOP = "#3fb950"  # degree 1
-
-
-def _srgb_to_linear(c):
-    c /= 255
-    return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
-
-
-def _linear_to_srgb(c):
-    c = max(0.0, min(1.0, c))
-    return 12.92 * c if c <= 0.0031308 else 1.055 * c ** (1 / 2.4) - 0.055
-
-
-def _hex_to_oklab(h):
-    r, g, b = (_srgb_to_linear(int(h[i : i + 2], 16)) for i in (1, 3, 5))
-    l_ = (0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b) ** (1 / 3)
-    m_ = (0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b) ** (1 / 3)
-    s_ = (0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b) ** (1 / 3)
-    return (
-        0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_,
-        1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_,
-        0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_,
-    )
-
-
-def _oklab_to_hex(L, a, b):
-    l_ = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3
-    m_ = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3
-    s_ = (L - 0.0894841775 * a - 1.2914855480 * b) ** 3
-    r = 4.0767416621 * l_ - 3.3077115913 * m_ + 0.2309699292 * s_
-    g = -1.2684380046 * l_ + 2.6097574011 * m_ - 0.3413193965 * s_
-    bl = -0.0041960863 * l_ - 0.7034186147 * m_ + 1.7076147010 * s_
-    return "#%02x%02x%02x" % tuple(round(_linear_to_srgb(c) * 255) for c in (r, g, bl))
-
-
-_RAMP_LCH: dict = {}
-
-
-def _lch(hex_color):
-    import math
-
-    if hex_color not in _RAMP_LCH:
-        L, a, b = _hex_to_oklab(hex_color)
-        _RAMP_LCH[hex_color] = (L, math.hypot(a, b), math.atan2(b, a) % (2 * math.pi))
-    return _RAMP_LCH[hex_color]
-
-
-def degree_color(degree):
-    """The hex colour of a degree of ownership in [0, 1] on the ramp."""
-    import math
-
-    L0, C0, h0 = _lch(DEGREE_RAMP_BOTTOM)
-    L1, C1, h1 = _lch(DEGREE_RAMP_TOP)
-    t = max(0.0, min(1.0, float(degree)))
-    dh = (h1 - h0 + math.pi) % (2 * math.pi) - math.pi  # the short way round
-    L, C, h = L0 + (L1 - L0) * t, C0 + (C1 - C0) * t, h0 + dh * t
-    return _oklab_to_hex(L, C * math.cos(h), C * math.sin(h))
-
+# degree_color(degree): the hex colour of a degree of ownership in [0, 1] on
+# the ramp #da3633 (degree 0) to #3fb950 (degree 1). Implemented in Rust
+# (utils/rs/kg/src/render.rs), imported from kg_rs above.
 
 DEGREE_LEGEND = (0.0, 0.25, 0.5, 0.75, 1.0)  # the swatches every chart's legend shows
 

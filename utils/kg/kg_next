@@ -332,30 +332,30 @@ STATUS_STYLE = {SOLID: "green", STALE: "yellow", FRAGILE: "red", MISSING: "dim"}
 WARMUP_COOLDOWN_DAYS = 14
 
 
-def is_session_start():
-    """Exit code of the is_session_start script: 0 = still in the window."""
-    return (
-        subprocess.run(
-            [sys.executable, os.path.join(UTILS, "is_session_start")],
-            capture_output=True,
-        ).returncode
-        == 0
+def _iss(*args):
+    """Run the is_session_start binary (utils/rs/is_session_start)."""
+    return subprocess.run(
+        [kg_lib.rs_bin("is_session_start"), *args], capture_output=True, text=True
     )
 
 
-def _iss():
-    from importlib.machinery import SourceFileLoader
+def is_session_start():
+    """Exit code of the is_session_start binary: 0 = still in the window."""
+    return _iss().returncode == 0
 
-    return SourceFileLoader(
-        "_iss", os.path.join(UTILS, "is_session_start")
-    ).load_module()
+
+def solves_today():
+    return _iss("--files").stdout.split()
+
+
+def solve_seconds_today():
+    return int(_iss("--seconds").stdout.strip() or 0)
 
 
 def solved_today_pnums():
-    """Problems already solved today — never re-offered, whatever the rule."""
-    mod = _iss()
+    """Problems already solved today - never re-offered, whatever the rule."""
     pnums = set()
-    for f in mod.solves_today():
+    for f in solves_today():
         name = os.path.basename(f)
         num = name[1:].split("_", 1)[0]
         if name.startswith("p") and num.isdigit():
@@ -2255,7 +2255,7 @@ def _main(footer):
     # and of what kind. A starved bank must show in the default output,
     # not in an audit.
     clock, reviews = drill_clock(args, nodes, evidence)
-    head = header_line(_iss().solve_seconds_today(), clock, reviews)
+    head = header_line(solve_seconds_today(), clock, reviews)
     if head:
         console.print(f"[dim]{head}[/dim]")
 

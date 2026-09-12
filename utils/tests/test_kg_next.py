@@ -2465,11 +2465,7 @@ def test_prepare_loads_the_exact_drill_file_the_pick_chose(monkeypatch, tmp_path
         "animate": lambda text: None,
     }.items():
         monkeypatch.setattr(kg_next, name, fn)
-    monkeypatch.setattr(
-        kg_next,
-        "_iss",
-        lambda: type("S", (), {"solve_seconds_today": lambda self: 0})(),
-    )
+    monkeypatch.setattr(kg_next, "solve_seconds_today", lambda: 0)
     monkeypatch.setattr(kg_next, "REPO_ROOT", str(tmp_path))  # empty current.py
     monkeypatch.setattr(
         kg_next.subprocess, "run", lambda cmd, **kw: calls.append(cmd[-1])

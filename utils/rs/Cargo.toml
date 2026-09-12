@@ -4,13 +4,15 @@
 # the tests over the whole workspace.
 [workspace]
 resolver = "2"
-members = ["kg", "kg_mock", "kg_movie", "kg_next"]
+members = ["kg", "kg_chat", "kg_mock", "kg_movie", "kg_next", "kg_py", "kg_rep", "is_session_start"]
 
 [workspace.dependencies]
 libc = "0.2"
 serde_json = { version = "1", features = ["preserve_order"] }
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 indexmap = "2"
+regex = "1"
+uuid = { version = "1", features = ["v5"] }
 
 [profile.release]
 lto = true

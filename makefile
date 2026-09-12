@@ -1,6 +1,6 @@
-.PHONY: check fmt fmt-check lint types complexity duplicates test-fast cov rust audit secrets all asserts drop learning mirror q prepare force unforce preflight dependents kg-extract kg-status kg-viz rep movie next dive drill spot hard is_session_start readme rank-table residuals simulate sleep wake solved failed test timer viz graph snippets
+.PHONY: ext check fmt fmt-check lint types complexity duplicates test-fast cov rust audit secrets all asserts drop learning mirror q prepare force unforce preflight dependents kg-extract kg-status kg-viz rep movie next dive drill spot hard is_session_start readme rank-table residuals simulate sleep wake solved failed test timer viz graph snippets
 
-all: graph/leet.db
+all: graph/leet.db $(EXT)
 	@cp utils/harness/sitecustomize.py .venv/lib/python3.10/site-packages/
 	@if [ "$$(git rev-parse --abbrev-ref HEAD)" = "master" ]; then PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_status --summary; fi
 	@PYTHONPATH=./utils:${PYTHONPATH} .venv/bin/python3 utils/tests/test_runner.py
@@ -11,8 +11,8 @@ goals:
 today:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_today $(patsubst rebuild,--force,$(filter-out $@,$(MAKECMDGOALS)))
 
-is_session_start:
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/is_session_start || true
+is_session_start: $(RS_BIN)/is_session_start
+	@$(RS_BIN)/is_session_start || true
 
 learning:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/history/learning
@@ -43,8 +43,8 @@ asserts:
 kg-status:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_status
 
-rep:
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_rep $(filter-out $@,$(MAKECMDGOALS))
+rep: $(RS_BIN)/kg_rep
+	@$(RS_BIN)/kg_rep $(filter-out $@,$(MAKECMDGOALS))
 
 dependents:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_dependents $(filter-out $@,$(MAKECMDGOALS))
@@ -64,11 +64,22 @@ residuals:
 # binary per target (kg_next, kg_mock, kg_movie). One build produces all of
 # them. RS_SRC is every file the build depends on.
 RS_DIR := utils/rs
-RS_SRC := $(RS_DIR)/Cargo.toml $(wildcard $(RS_DIR)/*/Cargo.toml) $(wildcard $(RS_DIR)/*/src/*.rs)
+RS_SRC := $(RS_DIR)/Cargo.toml $(wildcard $(RS_DIR)/*/Cargo.toml) $(wildcard $(RS_DIR)/*/build.rs) $(wildcard $(RS_DIR)/*/src/*.rs)
 RS_BIN := $(RS_DIR)/target/release
 
 $(RS_BIN)/%: $(RS_SRC)
 	@cargo build --release --quiet --manifest-path $(RS_DIR)/Cargo.toml
+
+# kg_rs: the kg library as a Python extension (utils/rs/kg_py), copied into
+# the venv so utils/kg/kg_lib.py can import it. make all and the test
+# targets depend on it; CI runs make ext before pytest.
+EXT_SRC := $(RS_BIN)/libkg_rs.$(if $(filter Darwin,$(shell uname)),dylib,so)
+EXT := .venv/lib/python3.10/site-packages/kg_rs.abi3.so
+
+$(EXT): $(EXT_SRC)
+	@cp $(EXT_SRC) $(EXT)
+
+ext: $(EXT)
 
 # make mock is implemented in Rust (utils/tests/test_mock.py guards it); the shared
 # model math also lives in kg_lib.py for the README chart - change them
@@ -107,7 +118,7 @@ drop:
 	if [ "$$b" = "master" ]; then echo "on master, nothing to drop"; exit 1; fi; \
 	git checkout -q -- . && git clean -qfd && git checkout -q master && git branch -D "$$b"; \
 	rm -f .solve_meta.json; \
-	utils/kg/chat --switch
+	$(RS_BIN)/kg_chat --switch
 
 # file phase (freezes the solve time) -> placeholder evidence (no model
 # call) -> ONE commit carrying solve + placeholder, with the frozen time in
@@ -170,13 +181,13 @@ secrets:
 # picker parity diff (minutes: the Python picker runs once per argument
 # set). Both are make test, and CI.
 SLOW_TESTS = --ignore=utils/tests/test_runner.py --ignore=utils/tests/test_next_parity.py
-test-fast:
+test-fast: $(EXT)
 	@.venv/bin/pytest -q -p no:cacheprovider $(SLOW_TESTS)
 
-cov:
+cov: $(EXT)
 	@.venv/bin/pytest -q -p no:cacheprovider $(SLOW_TESTS) --cov --cov-report=term-missing
 
-test:
+test: $(EXT)
 	@.venv/bin/pytest -o verbosity_assertions=2
 
 # VS Code snippets (the lc* prefixes the SNIPPET: drill header names) live in
@@ -237,8 +248,8 @@ timer:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/timer
 
 # this branch's Claude Code conversation: resumed if it exists, started if not
-chat:
-	@utils/kg/chat $(filter-out $@,$(MAKECMDGOALS))
+chat: $(RS_BIN)/kg_chat
+	@$(RS_BIN)/kg_chat $(filter-out $@,$(MAKECMDGOALS))
 
 # rank-table: refresh data/leetcode_rank_table.json from LeetCode's global
 # ranking (a few hundred requests, a few minutes). The rank badges read the

@@ -75,6 +75,23 @@ def test_tooling_paths_exist():
     assert missing == [], f"scripts point at utils/ files that do not exist: {missing}"
 
 
+def test_rs_bin_names_are_crates():
+    """Every Rust binary a script runs through kg_lib.rs_bin("...") is a
+    crate of the utils/rs workspace (the binary is named after its crate)."""
+    rs = os.path.join(UTILS, "rs")
+    names = set()
+    for d in (KG, README, HISTORY):
+        for f in _scripts(d):
+            names |= set(
+                re.findall(r'rs_bin\("([\w-]+)"\)', open(os.path.join(d, f)).read())
+            )
+    assert {"kg_chat", "is_session_start"} <= names
+    missing = sorted(
+        n for n in names if not os.path.exists(os.path.join(rs, n, "Cargo.toml"))
+    )
+    assert missing == [], missing
+
+
 # --- every tooling script still imports ------------------------------------
 
 _KG_MODULES = [
@@ -141,10 +158,16 @@ def test_mock_binary_paths_agree():
     assert '"rs", "target", "release", "kg_mock"' in src
     src = re.sub(r"\s+", " ", open(os.path.join(HISTORY, "solve_rate.py")).read())
     assert '"rs", "target", "release", "kg_mock"' in src
-    for crate in ("kg", "kg_mock", "kg_movie", "kg_next"):
-        assert os.path.exists(os.path.join(rs, crate, "Cargo.toml"))
-    members = open(os.path.join(rs, "Cargo.toml")).read()
-    assert 'members = ["kg", "kg_mock", "kg_movie", "kg_next"]' in members
+    # every crate directory is a workspace member, so one build makes them all
+    crates = sorted(
+        d for d in os.listdir(rs) if os.path.exists(os.path.join(rs, d, "Cargo.toml"))
+    )
+    members = re.search(
+        r"members = \[([^\]]*)\]", open(os.path.join(rs, "Cargo.toml")).read()
+    )
+    assert members, "utils/rs/Cargo.toml has no [workspace] members list"
+    assert sorted(re.findall(r'"([^"]+)"', members.group(1))) == crates
+    assert {"kg", "kg_mock", "kg_movie", "kg_next", "kg_rep"} <= set(crates)
 
 
 # --- the harness stays a flat namespace (what solves import) --------------
