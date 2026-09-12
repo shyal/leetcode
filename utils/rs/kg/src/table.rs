@@ -709,6 +709,11 @@ pub fn columns(items: &[&Table], max_width: usize) -> Vec<Line> {
 /// rich Panel(body, title=..., padding=(0, 1)) with expand=True (the
 /// default): the full console width, the title centred in the top rule.
 pub fn panel_expanded(body: &[Line], title: &str, width: usize) -> Vec<Line> {
+    panel_titled(body, title, width, false)
+}
+
+/// The same panel with title_align="left" (kg_llm_next).
+pub fn panel_titled(body: &[Line], title: &str, width: usize, left: bool) -> Vec<Line> {
     let border = Style::parse("dim");
     let mut title_text = Text::from_markup(title);
     title_text.plain = format!(" {} ", title_text.plain.replace('\n', " "));
@@ -725,14 +730,18 @@ pub fn panel_expanded(body: &[Line], title: &str, width: usize) -> Vec<Line> {
         t.plain = crate::cells::set_cell_size(&t.plain, inner);
     }
     let excess = inner - t.cell_len();
-    let (left, right) = (excess / 2, excess - excess / 2);
+    let (pad_l, pad_r) = if left {
+        (0, excess)
+    } else {
+        (excess / 2, excess - excess / 2)
+    };
     let mut top: Line = vec![Seg {
-        text: format!("╭─{}", "─".repeat(left)),
+        text: format!("╭─{}", "─".repeat(pad_l)),
         style: border,
     }];
     top.extend(t.segments());
     top.push(Seg {
-        text: format!("{}─╮", "─".repeat(right)),
+        text: format!("{}─╮", "─".repeat(pad_r)),
         style: border,
     });
     out.push(top);

@@ -187,6 +187,8 @@ def test_mock_binary_paths_agree():
         "lc_solutions",
         "kg_dive",
         "learning",
+        "kg_hard",
+        "kg_llm_next",
     } <= set(crates)
 
 
