@@ -102,7 +102,8 @@ drop:
 	@b="$$(git rev-parse --abbrev-ref HEAD)"; \
 	if [ "$$b" = "master" ]; then echo "on master, nothing to drop"; exit 1; fi; \
 	git checkout -q -- . && git clean -qfd && git checkout -q master && git branch -D "$$b"; \
-	rm -f .solve_meta.json
+	rm -f .solve_meta.json; \
+	utils/kg/chat --switch
 
 # file phase (freezes the solve time) -> placeholder evidence (no model
 # call) -> ONE commit carrying solve + placeholder, with the frozen time in
