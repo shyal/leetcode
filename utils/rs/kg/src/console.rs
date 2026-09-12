@@ -18,6 +18,7 @@ pub enum Color {
     Cyan,
     DarkOrange,
     Grey15,
+    Orange3,
 }
 
 impl Color {
@@ -29,6 +30,8 @@ impl Color {
             (Color::Cyan, false) => "36".into(),
             (Color::DarkOrange, false) => "38;5;208".into(),
             (Color::Grey15, false) => "38;5;235".into(),
+            (Color::Orange3, false) => "38;5;172".into(),
+            (Color::Orange3, true) => "48;5;172".into(),
             (Color::Green, true) => "42".into(),
             (Color::Yellow, true) => "43".into(),
             (Color::Red, true) => "41".into(),
@@ -43,6 +46,7 @@ impl Color {
 pub struct Style {
     pub bold: bool,
     pub dim: bool,
+    pub italic: bool,
     pub fg: Option<Color>,
     pub bg: Option<Color>,
 }
@@ -63,11 +67,13 @@ impl Style {
                 "cyan" => Some(Color::Cyan),
                 "dark_orange" => Some(Color::DarkOrange),
                 "grey15" => Some(Color::Grey15),
+                "orange3" => Some(Color::Orange3),
                 _ => None,
             };
             match word {
                 "bold" => st.bold = true,
                 "dim" => st.dim = true,
+                "italic" => st.italic = true,
                 _ => {
                     if on {
                         st.bg = colour;
@@ -86,6 +92,7 @@ impl Style {
         Style {
             bold: self.bold || other.bold,
             dim: self.dim || other.dim,
+            italic: self.italic || other.italic,
             fg: other.fg.or(self.fg),
             bg: other.bg.or(self.bg),
         }
@@ -102,6 +109,9 @@ impl Style {
         }
         if self.dim {
             codes.push("2".into());
+        }
+        if self.italic {
+            codes.push("3".into());
         }
         if let Some(c) = self.fg {
             codes.push(c.sgr(false));

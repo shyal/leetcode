@@ -27,8 +27,8 @@ force: $(RS_BIN)/kg_force
 unforce: $(RS_BIN)/kg_force
 	@$(RS_BIN)/kg_force --clear
 
-preflight:
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/preflight $(filter-out $@,$(MAKECMDGOALS))
+preflight: $(RS_BIN)/preflight
+	@$(RS_BIN)/preflight $(filter-out $@,$(MAKECMDGOALS))
 
 kg-extract: $(RS_BIN)/kg_curve $(RS_BIN)/kg_solvecost
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_extract --pending $(filter-out $@,$(MAKECMDGOALS))
@@ -241,8 +241,8 @@ drill: $(RS_BIN)/drill
 
 # a recognition rep, asked for: same as `make prepare spot`, served whether
 # or not make next says one is due (the SPOT_EVERY ratio only governs that)
-spot:
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/spot $(filter-out $@,$(MAKECMDGOALS))
+spot: $(RS_BIN)/spot
+	@$(RS_BIN)/spot $(filter-out $@,$(MAKECMDGOALS))
 
 timer: $(RS_BIN)/timer
 	@$(RS_BIN)/timer

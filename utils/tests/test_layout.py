@@ -182,6 +182,9 @@ def test_mock_binary_paths_agree():
         "timer",
         "kg_curve",
         "kg_solvecost",
+        "preflight",
+        "spot",
+        "lc_solutions",
     } <= set(crates)
 
 

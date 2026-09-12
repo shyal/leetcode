@@ -17,6 +17,8 @@ pub enum BoxKind {
     SimpleHead,
     /// rich `box=None`: no border lines, no dividers
     None,
+    /// rich's default table box
+    HeavyHead,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Default)]
@@ -66,6 +68,7 @@ fn box_chars(kind: BoxKind) -> BoxChars {
         BoxKind::Rounded => "╭─┬╮\n│ ││\n├─┼┤\n│ ││\n├─┼┤\n├─┼┤\n│ ││\n╰─┴╯",
         BoxKind::SimpleHead => "    \n    \n ── \n    \n    \n    \n    \n    ",
         BoxKind::None => "    \n    \n    \n    \n    \n    \n    \n    ",
+        BoxKind::HeavyHead => "┏━┳┓\n┃ ┃┃\n┡━╇┩\n│ ││\n├─┼┤\n├─┼┤\n│ ││\n└─┴┘",
     };
     let l: Vec<Vec<char>> = src.lines().map(|s| s.chars().collect()).collect();
     BoxChars {
@@ -189,6 +192,7 @@ pub struct Table {
     pub title_style: Style,
     pub title_justify: Justify,
     pub header_style: Style,
+    pub border_style: Style,
     pub column_opts: Vec<Column>,
 }
 
@@ -207,7 +211,20 @@ impl Table {
             title_style: Style::parse("bold"),
             title_justify: Justify::Left,
             header_style: Style::parse("bold"),
+            border_style: Style::parse("dim"),
             column_opts: vec![Column::default(); columns.len()],
+        }
+    }
+
+    /// rich Table(title=...) with every default: the heavy-head box in a
+    /// plain style, a bold header, an italic centred title, padding (0, 1).
+    pub fn rich_default(columns: &[&str], title: Option<&str>) -> Table {
+        Table {
+            row_shade: false,
+            title_style: Style::parse("italic"),
+            title_justify: Justify::Center,
+            border_style: Style::default(),
+            ..Table::plain(columns, title, BoxKind::HeavyHead)
         }
     }
 
@@ -370,7 +387,7 @@ impl Table {
 
     pub fn render(&self, max_width: usize) -> Vec<Line> {
         let bx = box_chars(self.kind);
-        let border = Style::parse("dim");
+        let border = self.border_style;
         let extra = self.extra_width();
         let widths = self.column_widths(max_width.saturating_sub(extra));
         let table_width: usize = widths.iter().sum::<usize>() + extra;

@@ -334,6 +334,20 @@ pub fn carriers_by_node(
     statuses: &Statuses,
     skip: &HashSet<String>,
 ) -> HashMap<String, Vec<String>> {
+    carriers_by_node_with(ctx, pv, ev, recog, statuses, skip, None)
+}
+
+/// carriers_by_node with a tier: only problems of that difficulty carry
+/// (`make spot medium`), a rep costing no code.
+pub fn carriers_by_node_with(
+    ctx: &Ctx,
+    pv: &PView,
+    ev: &Evidence,
+    recog: &Recog,
+    statuses: &Statuses,
+    skip: &HashSet<String>,
+    difficulty: Option<&str>,
+) -> HashMap<String, Vec<String>> {
     let solved = ev.solved_problems();
     let seen = spotted_problems(recog);
     let pool = spot_pool(ctx, pv);
@@ -346,6 +360,7 @@ pub fn carriers_by_node(
             || ctx.unservable(pnum, p)
             || moves.is_empty()
             || !moves.iter().all(|m| ctx.nodes.contains_key(m))
+            || difficulty.is_some_and(|d| p.difficulty.as_deref() != Some(d))
         {
             continue;
         }
@@ -396,10 +411,27 @@ pub fn due_spot(
     today: NaiveDate,
     skip: &HashSet<String>,
 ) -> Option<(String, String, String)> {
-    if !spot_due_by_ratio(recog, ev, today) {
+    due_spot_with(ctx, pv, ev, recog, statuses, today, skip, false, None)
+}
+
+/// due_spot with `force` (make spot: the SPOT_EVERY ratio skipped) and a
+/// difficulty tier for the carrier.
+#[allow(clippy::too_many_arguments)]
+pub fn due_spot_with(
+    ctx: &Ctx,
+    pv: &PView,
+    ev: &Evidence,
+    recog: &Recog,
+    statuses: &Statuses,
+    today: NaiveDate,
+    skip: &HashSet<String>,
+    force: bool,
+    difficulty: Option<&str>,
+) -> Option<(String, String, String)> {
+    if !force && !spot_due_by_ratio(recog, ev, today) {
         return None;
     }
-    let carriers = carriers_by_node(ctx, pv, ev, recog, statuses, skip);
+    let carriers = carriers_by_node_with(ctx, pv, ev, recog, statuses, skip, difficulty);
     let mut ranked: Vec<(bool, i64, NaiveDate, String)> = Vec::new();
     for (n, cs) in &carriers {
         let (status, last) = recognition_status(n, recog, today);
@@ -537,4 +569,402 @@ pub fn load_recognition_raw(root: &std::path::Path) -> serde_json::Value {
         .and_then(|v| v.get("recognition").cloned())
         .filter(serde_json::Value::is_object)
         .unwrap_or_else(|| serde_json::json!({}))
+}
+
+// ---- the statement ---------------------------------------------------------
+
+/// recognition._MD: LeetCode's statement HTML as markdown - emphasis, code,
+/// lists, images, superscripts and example blocks kept; everything else is
+/// text. A small tag tokenizer stands in for html.parser.HTMLParser.
+struct Md {
+    out: Vec<String>,
+    pending: Vec<&'static str>,
+    pre: i32,
+    list_stack: Vec<i32>,
+    cell: Option<Vec<String>>,
+    row: Option<Vec<String>>,
+    table: Option<Vec<Vec<String>>>,
+}
+
+const BLOCK_TAGS: [&str; 11] = [
+    "p",
+    "div",
+    "ul",
+    "ol",
+    "pre",
+    "table",
+    "tr",
+    "h1",
+    "h2",
+    "h3",
+    "blockquote",
+];
+
+impl Md {
+    fn new() -> Md {
+        Md {
+            out: vec![],
+            pending: vec![],
+            pre: 0,
+            list_stack: vec![],
+            cell: None,
+            row: None,
+            table: None,
+        }
+    }
+
+    fn sink(&mut self) -> &mut Vec<String> {
+        match self.cell.as_mut() {
+            Some(c) => c,
+            None => &mut self.out,
+        }
+    }
+
+    fn emit(&mut self, s: &str) {
+        self.sink().push(s.to_string());
+    }
+
+    fn open_mark(&mut self, mark: &'static str) {
+        if self.pre > 0 {
+            return;
+        }
+        self.pending.push(mark);
+    }
+
+    fn close_mark(&mut self, mark: &'static str) {
+        if self.pre > 0 {
+            return;
+        }
+        if self.pending.last() == Some(&mark) {
+            self.pending.pop(); // empty element: nothing to mark
+            return;
+        }
+        let sink = self.sink();
+        match sink.last() {
+            Some(last) if !last.trim().is_empty() && *last != last.trim_end() => {
+                let body = last.trim_end().to_string();
+                let tail = last[body.len()..].to_string();
+                let n = sink.len();
+                sink[n - 1] = body;
+                sink.push(format!("{mark}{tail}"));
+            }
+            _ => sink.push(mark.to_string()),
+        }
+    }
+
+    fn data(&mut self, data: &str) {
+        if self.pre > 0 {
+            self.emit(data);
+            return;
+        }
+        // re.sub(r"[ \t\r\n]+", " ", data)
+        let mut collapsed = String::new();
+        let mut in_ws = false;
+        for c in data.chars() {
+            if matches!(c, ' ' | '\t' | '\r' | '\n') {
+                if !in_ws {
+                    collapsed.push(' ');
+                }
+                in_ws = true;
+            } else {
+                collapsed.push(c);
+                in_ws = false;
+            }
+        }
+        let mut data = collapsed;
+        if !self.pending.is_empty() && !data.trim().is_empty() {
+            let stripped = data.trim_start().to_string();
+            let mut lead = data[..data.len() - stripped.len()].to_string();
+            if self
+                .sink()
+                .last()
+                .is_some_and(|l| l.chars().last().is_some_and(char::is_whitespace))
+            {
+                lead.clear(); // the text before the marker already ends in one
+            }
+            let marks = self.pending.join("");
+            self.emit(&format!("{lead}{marks}"));
+            self.pending.clear();
+            data = stripped;
+        }
+        self.emit(&data);
+    }
+
+    fn start(&mut self, tag: &str, attrs: &HashMap<String, String>) {
+        match tag {
+            "pre" => {
+                self.pre += 1;
+                self.emit("\n```\n");
+            }
+            "strong" | "b" => self.open_mark("**"),
+            "em" | "i" => self.open_mark("*"),
+            "code" => self.open_mark("`"),
+            "sup" => self.emit("^"),
+            "br" => self.emit("\n"),
+            "img" => {
+                let alt = attrs.get("alt").cloned().unwrap_or_default();
+                let src = attrs.get("src").cloned().unwrap_or_default();
+                self.emit(&format!("\n![{alt}]({src})\n"));
+            }
+            "ul" | "ol" => {
+                if self.list_stack.is_empty() {
+                    self.emit("\n");
+                }
+                self.list_stack.push(0);
+            }
+            "li" => {
+                let depth = self.list_stack.len();
+                if let Some(last) = self.list_stack.last_mut() {
+                    *last += 1;
+                }
+                self.emit(&format!("\n{}- ", "  ".repeat(depth.saturating_sub(1))));
+            }
+            "table" => self.table = Some(vec![]),
+            "tr" => self.row = Some(vec![]),
+            "td" | "th" => self.cell = Some(vec![]),
+            t if BLOCK_TAGS.contains(&t) => self.emit("\n"),
+            _ => {}
+        }
+    }
+
+    fn end(&mut self, tag: &str) {
+        match tag {
+            "pre" => {
+                self.pre -= 1;
+                self.emit("\n```\n");
+            }
+            "strong" | "b" => self.close_mark("**"),
+            "em" | "i" => self.close_mark("*"),
+            "code" => self.close_mark("`"),
+            "ul" | "ol" => {
+                self.list_stack.pop();
+                if self.list_stack.is_empty() {
+                    self.emit("\n");
+                }
+            }
+            "td" | "th" => {
+                if let Some(cell) = self.cell.take() {
+                    let text = cell.concat().trim().replace('\n', " ");
+                    if let Some(row) = self.row.as_mut() {
+                        row.push(text);
+                    }
+                }
+            }
+            "tr" => {
+                if let (Some(table), Some(row)) = (self.table.as_mut(), self.row.take()) {
+                    table.push(row);
+                }
+                self.row = None;
+            }
+            "table" => {
+                let rows = self.table.take().unwrap_or_default();
+                if !rows.is_empty() {
+                    let width = rows.iter().map(Vec::len).max().unwrap_or(0);
+                    let rows: Vec<Vec<String>> = rows
+                        .into_iter()
+                        .map(|mut r| {
+                            r.resize(width, String::new());
+                            r
+                        })
+                        .collect();
+                    let mut lines = vec![
+                        format!("| {} |", rows[0].join(" | ")),
+                        format!("|{}", "---|".repeat(width)),
+                    ];
+                    lines.extend(rows[1..].iter().map(|r| format!("| {} |", r.join(" | "))));
+                    self.out.push(format!("\n{}\n", lines.join("\n")));
+                }
+            }
+            "p" | "div" | "h1" | "h2" | "h3" | "blockquote" => self.emit("\n"),
+            _ => {}
+        }
+    }
+
+    fn text(&self) -> String {
+        let s = self.out.concat().replace('\u{a0}', " ");
+        // [ \t]+\n -> \n ; \n (?=\S) -> \n ; ```\n\n+ -> ```\n ; \n\n+``` -> \n``` ; \n{3,} -> \n\n
+        let re1 = regex::Regex::new(r"[ \t]+\n").unwrap();
+        let re2 = regex::Regex::new(r"\n (\S)").unwrap();
+        let re3 = regex::Regex::new(r"```\n\n+").unwrap();
+        let re4 = regex::Regex::new(r"\n\n+```").unwrap();
+        let re5 = regex::Regex::new(r"\n{3,}").unwrap();
+        let s = re1.replace_all(&s, "\n");
+        let s = re2.replace_all(&s, "\n$1");
+        let s = re3.replace_all(&s, "```\n");
+        let s = re4.replace_all(&s, "\n```");
+        let s = re5.replace_all(&s, "\n\n");
+        format!("{}\n", s.trim())
+    }
+}
+
+/// html.parser's character reference decoding for the entities LeetCode
+/// statements use.
+fn unescape(s: &str) -> String {
+    if !s.contains('&') {
+        return s.to_string();
+    }
+    let mut out = String::new();
+    let mut rest = s;
+    while let Some(i) = rest.find('&') {
+        out.push_str(&rest[..i]);
+        let tail = &rest[i..];
+        let Some(end) = tail.find(';') else {
+            out.push_str(tail);
+            return out;
+        };
+        let name = &tail[1..end];
+        let decoded: Option<String> = match name {
+            "lt" => Some("<".into()),
+            "gt" => Some(">".into()),
+            "amp" => Some("&".into()),
+            "quot" => Some("\"".into()),
+            "apos" | "#39" => Some("'".into()),
+            "nbsp" => Some("\u{a0}".into()),
+            "le" => Some("\u{2264}".into()),
+            "ge" => Some("\u{2265}".into()),
+            "ne" => Some("\u{2260}".into()),
+            "hellip" => Some("\u{2026}".into()),
+            "ndash" => Some("\u{2013}".into()),
+            "mdash" => Some("\u{2014}".into()),
+            "rarr" => Some("\u{2192}".into()),
+            "larr" => Some("\u{2190}".into()),
+            "times" => Some("\u{d7}".into()),
+            "minus" => Some("\u{2212}".into()),
+            n if n.starts_with("#x") || n.starts_with("#X") => u32::from_str_radix(&n[2..], 16)
+                .ok()
+                .and_then(char::from_u32)
+                .map(String::from),
+            n if n.starts_with('#') => n[1..]
+                .parse::<u32>()
+                .ok()
+                .and_then(char::from_u32)
+                .map(String::from),
+            _ => None,
+        };
+        match decoded {
+            Some(d) => {
+                out.push_str(&d);
+                rest = &tail[end + 1..];
+            }
+            None => {
+                out.push('&');
+                rest = &tail[1..];
+            }
+        }
+    }
+    out.push_str(rest);
+    out
+}
+
+/// recognition.html_to_markdown.
+pub fn html_to_markdown(html: &str) -> String {
+    let mut md = Md::new();
+    let mut rest = html;
+    let attr_re = regex::Regex::new(
+        r#"([A-Za-z_:][-A-Za-z0-9_:.]*)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))"#,
+    )
+    .unwrap();
+    while !rest.is_empty() {
+        let Some(lt) = rest.find('<') else {
+            md.data(&unescape(rest));
+            break;
+        };
+        if lt > 0 {
+            md.data(&unescape(&rest[..lt]));
+        }
+        let tail = &rest[lt..];
+        if tail.starts_with("<!--") {
+            match tail.find("-->") {
+                Some(e) => rest = &tail[e + 3..],
+                None => break,
+            }
+            continue;
+        }
+        let Some(gt) = tail.find('>') else {
+            md.data(&unescape(tail));
+            break;
+        };
+        let inner = tail[1..gt].trim();
+        rest = &tail[gt + 1..];
+        if let Some(name) = inner.strip_prefix('/') {
+            md.end(&name.trim().to_lowercase());
+            continue;
+        }
+        let self_closing = inner.ends_with('/');
+        let inner = inner.trim_end_matches('/').trim();
+        let (name, attr_text) = inner.split_once(char::is_whitespace).unwrap_or((inner, ""));
+        let name = name.to_lowercase();
+        let mut attrs: HashMap<String, String> = HashMap::new();
+
+        for c in attr_re.captures_iter(attr_text) {
+            let v = c
+                .get(2)
+                .or(c.get(3))
+                .or(c.get(4))
+                .map(|m| m.as_str())
+                .unwrap_or("");
+            attrs.insert(c[1].to_lowercase(), unescape(v));
+        }
+        md.start(&name, &attrs);
+        if self_closing {
+            md.end(&name);
+        }
+    }
+    md.text()
+}
+
+/// recognition.fetch_content: LeetCode's statement HTML for a problem, with
+/// title, slug and difficulty; cached in .prepare_cache/<num>.content.json.
+pub fn fetch_content(root: &std::path::Path, num: &str) -> Result<serde_json::Value, String> {
+    let cache = root
+        .join(".prepare_cache")
+        .join(format!("{num}.content.json"));
+    if let Some(v) = crate::pyjson::load(&cache) {
+        return Ok(v);
+    }
+    let url = "https://leetcode.com/graphql/";
+    let post = |body: serde_json::Value| -> Result<serde_json::Value, String> {
+        let mut resp = ureq::post(url)
+            .header("Content-Type", "application/json")
+            .send_json(&body)
+            .map_err(|e| e.to_string())?;
+        resp.body_mut()
+            .read_json::<serde_json::Value>()
+            .map_err(|e| e.to_string())
+    };
+    let q1 = "\n    query problemsetQuestionList($categorySlug: String, $limit: Int, $skip: Int, $filters: QuestionListFilterInput) {\n      problemsetQuestionList: questionList(categorySlug: $categorySlug, limit: $limit, skip: $skip, filters: $filters) {\n        questions: data { difficulty frontendQuestionId: questionFrontendId paidOnly: isPaidOnly title titleSlug }\n      }\n    }";
+    let skip: i64 = num
+        .parse::<i64>()
+        .map_err(|_| format!("bad number {num}"))?
+        - 1;
+    let r = post(
+        serde_json::json!({"query": q1, "variables": {"categorySlug": "", "limit": 1, "skip": skip, "filters": {}}}),
+    )?;
+    let qs = r["data"]["problemsetQuestionList"]["questions"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default();
+    let q = match qs.first() {
+        Some(q) if q["frontendQuestionId"].as_str() == Some(num) => q.clone(),
+        _ => return Err(format!("no question found for number {num}")),
+    };
+    if q["paidOnly"].as_bool() == Some(true) {
+        return Err(format!("question {num} is paid only"));
+    }
+    let q2 = "\n    query questionDetails($titleSlug: String!) {\n      question(titleSlug: $titleSlug) { content }\n    }";
+    let r = post(serde_json::json!({"query": q2, "variables": {"titleSlug": q["titleSlug"]}}))?;
+    let entry = serde_json::json!({
+        "title": q["title"],
+        "slug": q["titleSlug"],
+        "difficulty": q["difficulty"],
+        "content": r["data"]["question"]["content"],
+    });
+    let _ = std::fs::create_dir_all(root.join(".prepare_cache"));
+    crate::pyjson::save(&cache, &entry, None).map_err(|e| e.to_string())?;
+    Ok(entry)
+}
+
+/// recognition.spot_document: current.md for a spot rep.
+pub fn spot_document(markdown: &str) -> String {
+    format!("{}\n\n<!-- answer -->\n---\n\n", markdown.trim_end())
 }
