@@ -107,7 +107,7 @@ pub fn g(x: f64) -> String {
     }
 }
 
-fn write_str(out: &mut String, s: &str) {
+fn write_str_opt(out: &mut String, s: &str, ensure_ascii: bool) {
     out.push('"');
     for c in s.chars() {
         match c {
@@ -121,7 +121,7 @@ fn write_str(out: &mut String, s: &str) {
             c if (c as u32) < 0x20 => {
                 let _ = write!(out, "\\u{:04x}", c as u32);
             }
-            c if (c as u32) > 0x7e => {
+            c if ensure_ascii && (c as u32) > 0x7e => {
                 // ensure_ascii: \uXXXX, a surrogate pair above the BMP
                 let n = c as u32;
                 if n > 0xffff {
@@ -143,6 +143,16 @@ fn write_str(out: &mut String, s: &str) {
 }
 
 fn write_value(out: &mut String, v: &Value, indent: Option<usize>, level: usize) {
+    write_value_opt(out, v, indent, level, true)
+}
+
+fn write_value_opt(
+    out: &mut String,
+    v: &Value,
+    indent: Option<usize>,
+    level: usize,
+    ensure_ascii: bool,
+) {
     match v {
         Value::Null => out.push_str("null"),
         Value::Bool(b) => out.push_str(if *b { "true" } else { "false" }),
@@ -155,7 +165,7 @@ fn write_value(out: &mut String, v: &Value, indent: Option<usize>, level: usize)
                 out.push_str(&float_repr(n.as_f64().unwrap()));
             }
         }
-        Value::String(s) => write_str(out, s),
+        Value::String(s) => write_str_opt(out, s, ensure_ascii),
         Value::Array(a) => {
             if a.is_empty() {
                 out.push_str("[]");
@@ -170,7 +180,7 @@ fn write_value(out: &mut String, v: &Value, indent: Option<usize>, level: usize)
                     }
                 }
                 newline(out, indent, level + 1);
-                write_value(out, x, indent, level + 1);
+                write_value_opt(out, x, indent, level + 1, ensure_ascii);
             }
             newline(out, indent, level);
             out.push(']');
@@ -189,9 +199,9 @@ fn write_value(out: &mut String, v: &Value, indent: Option<usize>, level: usize)
                     }
                 }
                 newline(out, indent, level + 1);
-                write_str(out, k);
+                write_str_opt(out, k, ensure_ascii);
                 out.push_str(": ");
-                write_value(out, x, indent, level + 1);
+                write_value_opt(out, x, indent, level + 1, ensure_ascii);
             }
             newline(out, indent, level);
             out.push('}');
@@ -219,6 +229,65 @@ pub fn dumps(v: &Value, indent: Option<usize>) -> String {
 /// json.load of a file, or None.
 pub fn load(path: &std::path::Path) -> Option<Value> {
     serde_json::from_str(&std::fs::read_to_string(path).ok()?).ok()
+}
+
+/// json.dumps(v, indent=indent, ensure_ascii=False).
+pub fn dumps_unicode(v: &Value, indent: Option<usize>) -> String {
+    let mut out = String::new();
+    write_value_opt(&mut out, v, indent, 0, false);
+    out
+}
+
+/// kg_lib.store_evidence_entry: set ONE entry and save, against the file as
+/// it is NOW, under graph/.evidence.lock (flock): a worker that judged for a
+/// minute must not clobber the placeholder the next `make solved` wrote
+/// meanwhile. Returns the fresh evidence table.
+pub fn store_evidence_entry(
+    root: &std::path::Path,
+    key: &str,
+    entry: &Value,
+) -> std::io::Result<Value> {
+    let _lock = EvidenceLock::take(root)?;
+    let path = root.join("graph/evidence.json");
+    let mut data = load(&path).unwrap_or_else(|| serde_json::json!({"evidence": {}}));
+    if !data.get("evidence").is_some_and(Value::is_object) {
+        data["evidence"] = serde_json::json!({});
+    }
+    data["evidence"][key] = entry.clone();
+    save(&path, &data, Some(2))?;
+    Ok(data["evidence"].clone())
+}
+
+/// kg_lib.evidence_lock: an exclusive flock on graph/.evidence.lock, held
+/// while the value lives.
+pub struct EvidenceLock {
+    file: std::fs::File,
+}
+
+impl EvidenceLock {
+    pub fn take(root: &std::path::Path) -> std::io::Result<EvidenceLock> {
+        let file = std::fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(false)
+            .open(root.join("graph/.evidence.lock"))?;
+        use std::os::unix::io::AsRawFd;
+        // SAFETY: flock on a descriptor we own
+        if unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX) } != 0 {
+            return Err(std::io::Error::last_os_error());
+        }
+        Ok(EvidenceLock { file })
+    }
+}
+
+impl Drop for EvidenceLock {
+    fn drop(&mut self) {
+        use std::os::unix::io::AsRawFd;
+        // SAFETY: releasing the lock we took
+        unsafe {
+            libc::flock(self.file.as_raw_fd(), libc::LOCK_UN);
+        }
+    }
 }
 
 /// json.dump(v, f, indent=indent): the file as Python leaves it, no

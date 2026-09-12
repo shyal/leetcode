@@ -2,7 +2,8 @@
 # (kg_rep, is_session_start, kg_chat, kg_status, kg_dependents, kg_gaps,
 # kg_viz, estimate, kg_residuals, kg_predict, kg_sleep, kg_mirror, kg_drill,
 # kg_solved, drill, kg_force, timer, kg_curve, kg_solvecost, preflight, spot,
-# lc_solutions, kg_dive, learning, kg_hard, kg_llm_next, kg_today; utils/rs).
+# lc_solutions, kg_dive, learning, kg_hard, kg_llm_next, kg_today, kg_extract;
+# utils/rs).
 # Each was diffed against
 # its Python original over the real graph/ data before the Python was
 # deleted (2026-09-12); these guard the shape of what they print, and make
@@ -452,3 +453,39 @@ def test_kg_today_writes_a_plan_into_the_given_dir(tmp_path):
     assert p.stdout.splitlines()[-2].startswith(f"plan for {plan['date']}: ")
     again = run("kg_today", "--no-analysis", "--plan-dir", str(tmp_path))
     assert again.stdout.startswith(f"plan for {plan['date']} already exists")
+
+
+# --- kg_extract: the pure readers, and the stub with nothing staged -------------
+
+
+def test_kg_extract_reads_notes_and_followups(tmp_path):
+    solve = tmp_path / "p1_Two_Sum_2026_09_12T01_02_03_000000_00_00Z.py"
+    solve.write_text(
+        '"""\n1. Two Sum\n\nFollow up: can you do it in one pass?\n\n---\nasked for a hint\n"""\n\nclass Solution:\n    pass\n'
+    )
+    assert (
+        run("kg_extract", "--followup-of", str(solve)).stdout.strip()
+        == "can you do it in one pass?"
+    )
+    body = run("kg_extract", "--strip", str(solve)).stdout
+    assert body.startswith("notes: \n\nasked for a hint") and "class Solution" in body
+    assert "Follow up" not in body
+
+
+def test_kg_extract_stub_with_nothing_staged(tmp_path):
+    """KG_ROOT is a bare scratch root: no .solve_meta.json, so no write."""
+    (tmp_path / "graph").mkdir()
+    for name in ("nodes", "problems", "evidence", "drills"):
+        (tmp_path / "graph" / f"{name}.json").write_text(
+            json.dumps({name: {} if name != "nodes" else []})
+        )
+    (tmp_path / "solved").mkdir()
+    p = subprocess.run(
+        [os.path.join(RS_BIN, "kg_extract"), "--stub"],
+        capture_output=True,
+        text=True,
+        env={**os.environ, "KG_ROOT": str(tmp_path)},
+        cwd=tmp_path,
+    )
+    assert p.returncode == 0, p.stderr
+    assert p.stdout.strip() == "nothing staged - no placeholder to write."

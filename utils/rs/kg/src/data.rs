@@ -565,3 +565,110 @@ pub fn pnum_key(pnum: &str) -> (i64, String) {
 pub fn is_numeric_id(s: &str) -> bool {
     s.chars().next().is_some_and(|c| c.is_ascii_digit())
 }
+
+// ---- the assist axis --------------------------------------------------------
+
+/// kg_lib.notes_assist_level: the heaviest assist level the candidate's own
+/// notes name, or "none". The level word in plain prose is the mark.
+pub fn notes_assist_level(notes: &str) -> &'static str {
+    let learning = regex::Regex::new(r"(?i)\blearning\b").unwrap();
+    let walkthrough =
+        regex::Regex::new(r"(?i)\bwalk(?:ed|s)?[ -]?through\b|\bwalkthrough\b").unwrap();
+    let hint = regex::Regex::new(r"(?i)\bhint(?:ed|s)?\b").unwrap();
+    if learning.is_match(notes) {
+        "learning"
+    } else if walkthrough.is_match(notes) {
+        "walkthrough"
+    } else if hint.is_match(notes) {
+        "hint"
+    } else {
+        "none"
+    }
+}
+
+fn is_level(v: &str) -> bool {
+    matches!(v, "none" | "hint" | "walkthrough" | "learning")
+}
+
+/// kg_lib.normalise_assist: the stored shape of an extractor's "assist"
+/// answer, {move: level} restricted to the walk's moves, None when nothing
+/// was helped. A bare string is spread over every move in the walk.
+pub fn normalise_assist(
+    raw: Option<&serde_json::Value>,
+    moves: &[String],
+) -> Option<IndexMap<String, String>> {
+    let mut out: IndexMap<String, String> = IndexMap::new();
+    match raw {
+        Some(Value::String(s)) => {
+            if is_level(s) && s != "none" {
+                for m in moves {
+                    out.insert(m.clone(), s.clone());
+                }
+            }
+        }
+        Some(Value::Object(o)) => {
+            for (m, v) in o {
+                if let Some(v) = v.as_str() {
+                    if moves.contains(m) && is_level(v) && v != "none" {
+                        out.insert(m.clone(), v.to_string());
+                    }
+                }
+            }
+        }
+        _ => return None,
+    }
+    if out.is_empty() {
+        None
+    } else {
+        Some(out)
+    }
+}
+
+/// kg_lib.apply_assist_floor: raise the assist on each target move to at
+/// least `level`.
+pub fn apply_assist_floor(
+    assist: Option<IndexMap<String, String>>,
+    level: &str,
+    targets: &[String],
+) -> Option<IndexMap<String, String>> {
+    if level == "none" || targets.is_empty() {
+        return assist;
+    }
+    let mut out = assist.unwrap_or_default();
+    for m in targets {
+        let current = out.get(m).map(String::as_str).unwrap_or("none");
+        if assist_weight(current) < assist_weight(level) {
+            out.insert(m.clone(), level.to_string());
+        }
+    }
+    if out.is_empty() {
+        None
+    } else {
+        Some(out)
+    }
+}
+
+/// kg_lib.sitecustomize_names: the names utils/harness/sitecustomize.py
+/// injects into builtins, read from the source of truth.
+pub fn sitecustomize_names(root: &Path) -> Vec<String> {
+    let src =
+        std::fs::read_to_string(root.join("utils/harness/sitecustomize.py")).unwrap_or_default();
+    let re = regex::Regex::new(r"(?m)^builtins\.(\w+)\s*=").unwrap();
+    let mut names: Vec<String> = re.captures_iter(&src).map(|c| c[1].to_string()).collect();
+    names.sort();
+    names.dedup();
+    names
+}
+
+/// kg_lib.HARNESS_ENV_NOTE: for any model prompt that judges solve code.
+pub fn harness_env_note(root: &Path) -> String {
+    let names = sitecustomize_names(root);
+    let listed = if names.is_empty() {
+        String::new()
+    } else {
+        format!(" The injected names are: {}.", names.join(", "))
+    };
+    format!(
+        "Environment: this code runs under a harness that (like LeetCode's judge) preloads a large set of names into builtins — typing names, collections, itertools/functools, heapq, math, AND classes and helper functions such as TreeNode, ListNode, GraphNode, Node, build_tree, draw_tree, tabulate.{listed} Using ANY of these without an import or a local definition is VALID and NEVER a bug. More generally: if a name looks undefined, assume it comes from the harness rather than concluding the code is broken. NEVER report a missing import, an undefined name, or an undefined class in a verdict or note."
+    )
+}

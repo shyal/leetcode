@@ -968,3 +968,290 @@ pub fn fetch_content(root: &std::path::Path, num: &str) -> Result<serde_json::Va
 pub fn spot_document(markdown: &str) -> String {
     format!("{}\n\n<!-- answer -->\n---\n\n", markdown.trim_end())
 }
+
+// ---- what the judge (kg_extract) needs, over the raw records ---------------
+
+/// recognition.save_recognition: graph/recognition.json rewritten through a
+/// temp file, indent=2, ensure_ascii=False, a trailing newline.
+pub fn save_recognition(root: &std::path::Path, recog: &serde_json::Value) -> std::io::Result<()> {
+    let doc = serde_json::json!({
+        "_comment": "Per file: whether the statement triggered the move. Verdicts: hit (the entry move was named from the statement alone), missed (it was not). Spot reps (recognition/*.md) and solves whose notes say a move was not seen (solved/*.py) both land here. Append-only; utils/kg/kg_extract writes it. Status is derived at query time by kg.recognition.recognition_status.",
+        "recognition": recog,
+    });
+    let path = root.join("graph/recognition.json");
+    let tmp = root.join("graph/recognition.json.tmp");
+    std::fs::write(
+        &tmp,
+        format!("{}\n", crate::pyjson::dumps_unicode(&doc, Some(2))),
+    )?;
+    std::fs::rename(tmp, path)
+}
+
+/// recognition.entry_nodes: the first move of the mapped walk and of every
+/// alt walk.
+pub fn entry_nodes(pv: &PView, pnum: &str) -> Vec<String> {
+    let Some(p) = pv.map.get(pnum) else {
+        return vec![];
+    };
+    let mut out = Vec::new();
+    if let Some(m) = p.moves.first() {
+        out.push(m.clone());
+    }
+    for w in &p.alt_walks {
+        if let Some(m) = w.first() {
+            out.push(m.clone());
+        }
+    }
+    out
+}
+
+fn walk_nodes(pv: &PView, pnum: &str) -> HashSet<String> {
+    let mut out = HashSet::new();
+    if let Some(p) = pv.map.get(pnum) {
+        out.extend(p.moves.iter().cloned());
+        for w in &p.alt_walks {
+            out.extend(w.iter().cloned());
+        }
+    }
+    out
+}
+
+/// recognition.score: deterministic verdicts for one spot rep, (moves,
+/// false). Every named move some walk uses is a hit; the target is missed
+/// when it was not named; without a target the mapped walk's first move is
+/// missed only when no walk move was named at all.
+pub fn score(
+    named: &[String],
+    pv: &PView,
+    pnum: &str,
+    target: Option<&str>,
+) -> (IndexMap<String, String>, Vec<String>) {
+    let walk = walk_nodes(pv, pnum);
+    let mut moves: IndexMap<String, String> = IndexMap::new();
+    for n in named {
+        if walk.contains(n) && !moves.contains_key(n) {
+            moves.insert(n.clone(), HIT.to_string());
+        }
+    }
+    match target {
+        Some(t) if walk.contains(t) && !named.iter().any(|n| n == t) => {
+            moves.insert(t.to_string(), MISSED.to_string());
+        }
+        None if !walk.is_empty() && moves.is_empty() => {
+            if let Some(e) = entry_nodes(pv, pnum).first() {
+                moves.insert(e.clone(), MISSED.to_string());
+            }
+        }
+        _ => {}
+    }
+    let mut false_: Vec<String> = named
+        .iter()
+        .filter(|n| !walk.contains(*n))
+        .cloned()
+        .collect::<HashSet<_>>()
+        .into_iter()
+        .collect();
+    false_.sort();
+    (moves, false_)
+}
+
+/// recognition.spotted_before over the raw records: (date, verdict) of the
+/// latest spot rep on this problem strictly before `day`.
+pub fn spotted_before_raw(
+    recog: &serde_json::Value,
+    pnum: &str,
+    day: &str,
+) -> Option<(NaiveDate, &'static str)> {
+    let day = crate::data::parse_date(day);
+    let mut best: Option<(NaiveDate, &serde_json::Value)> = None;
+    for rec in recog.as_object().into_iter().flatten().map(|(_, r)| r) {
+        if rec.get("kind").and_then(serde_json::Value::as_str) != Some("spot") {
+            continue;
+        }
+        if rec.get("problem").map(crate::data::value_str).as_deref() != Some(pnum) {
+            continue;
+        }
+        let Some(d) = rec.get("date").and_then(serde_json::Value::as_str) else {
+            continue;
+        };
+        let d = crate::data::parse_date(d);
+        if d < day && best.is_none_or(|(b, _)| d > b) {
+            best = Some((d, rec));
+        }
+    }
+    let (d, r) = best?;
+    let hit = r["moves"]
+        .as_object()
+        .is_some_and(|m| m.values().any(|v| v.as_str() == Some(HIT)));
+    let mut verdict = if hit { HIT } else { MISSED };
+    if r.get("revealed").is_some_and(crate::data::truthy) {
+        verdict = MISSED; // the walk was handed over after all (asked for in chat)
+    }
+    Some((d, verdict))
+}
+
+/// recognition.notes_say_missed: the candidate's own notes say a move was
+/// not recognised.
+pub fn notes_say_missed(notes: &str) -> bool {
+    regex::Regex::new(r"(?i)recognition failure|(?:fail|did ?n[o']?t|never|could ?n[o']?t|missed|not)[^.\n]{0,40}\brecogni[sz]")
+        .unwrap()
+        .is_match(notes)
+}
+
+const ANSWER_MARK: &str = "<!-- answer -->";
+
+/// recognition.split_answer: (statement, answer) from a spot file; the
+/// footer comment is not part of the answer.
+pub fn split_answer(text: &str) -> (String, String) {
+    let footer = regex::Regex::new(r"(?s)<!-- spot (\{.*?\}) -->\s*$").unwrap();
+    let text = footer.replace(text, "").into_owned();
+    match text.split_once(ANSWER_MARK) {
+        Some((head, tail)) => {
+            let tail = regex::Regex::new(r"^\s*---\s*")
+                .unwrap()
+                .replace(tail, "")
+                .into_owned();
+            (head.trim().to_string(), tail.trim().to_string())
+        }
+        None => (text.trim().to_string(), String::new()),
+    }
+}
+
+/// recognition.read_footer: the pick the spot file carries in its footer.
+pub fn read_footer(text: &str) -> serde_json::Value {
+    let footer = regex::Regex::new(r"(?s)<!-- spot (\{.*?\}) -->\s*$").unwrap();
+    footer
+        .captures(text)
+        .and_then(|c| serde_json::from_str(&c[1]).ok())
+        .unwrap_or_else(|| serde_json::json!({}))
+}
+
+/// recognition.judge_answer: one small claude call mapping the candidate's
+/// free-text answer onto taxonomy ids; (named, summary).
+pub fn judge_answer(
+    ctx: &Ctx,
+    statement: &str,
+    answer: &str,
+    model: &str,
+) -> Result<(Vec<String>, String), String> {
+    let system = format!(
+        "A candidate read a LeetCode problem statement (title hidden) and wrote, in free text, which technique they would reach for. You map that answer onto a fixed taxonomy.\n\nTaxonomy (use ONLY these ids):\n{}\n\nRules:\n- \"named\" lists every taxonomy move the answer names or unmistakably describes (\"binary search over the answer with a feasibility check\" names binary-search-on-answer). Do not add moves the answer only implies, and never add the move YOU think solves the problem: you are reading the candidate, not solving.\n- An answer of \"direct\", \"just simulate\", \"no technique\", \"don't know\", or similar names nothing: \"named\": [].\n- \"summary\": one or two plain sentences saying what the answer reached for, in the candidate's terms. Facts only, no grading.\n\nOutput STRICT JSON only: {{\"named\": [\"<node-id>\"], \"summary\": \"<sentence>\"}}",
+        ctx.taxonomy_summary()
+    );
+    let head: String = statement.chars().take(5000).collect();
+    let ans: String = answer.chars().take(2000).collect();
+    let prompt = format!(
+        "STATEMENT:\n{head}\n\nCANDIDATE'S ANSWER:\n{}",
+        if ans.is_empty() {
+            "(empty)".to_string()
+        } else {
+            ans
+        }
+    );
+    let result = crate::llm::claude_json(&prompt, &system, model, 2).map_err(|e| e.to_string())?;
+    let named: Vec<String> = result["named"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|v| v.as_str())
+        .filter(|n| ctx.nodes.contains_key(*n))
+        .map(String::from)
+        .collect();
+    let summary = result
+        .get("summary")
+        .map(crate::data::value_str)
+        .unwrap_or_default()
+        .trim()
+        .to_string();
+    Ok((named, summary))
+}
+
+/// recognition.judge_route: is the described approach a standard accepted
+/// solution? (valid, why); `why` never names the missing technique.
+pub fn judge_route(
+    statement: &str,
+    answer: &str,
+    named: &[String],
+    model: &str,
+) -> Result<(bool, String), String> {
+    let system = "You judge whether a candidate's proposed approach to a LeetCode problem (title hidden) is a correct solution.\n\nRules:\n- \"valid\" is true ONLY when the approach, as the candidate describes it, is a standard accepted solution to this exact problem: correct on every input within the constraints and within the intended complexity, the kind of solution an editorial or a top community writeup lists. A plausible idea that would need repair, a heuristic, an approach that fails an edge case, or one that exceeds the constraints is false.\n- Judge what the candidate wrote, not the solution you would write. If the description is too vague to be sure it is correct, \"valid\" is false.\n- \"why\": one sentence. When valid, name the accepted solution it matches. When NOT valid, describe the concrete input or constraint the approach fails on, and NEVER name, hint at, or describe the correct technique or any move the approach is missing - the candidate will solve this problem later unaided.\n\nOutput STRICT JSON only: {\"valid\": true|false, \"why\": \"<sentence>\"}";
+    let head: String = statement.chars().take(5000).collect();
+    let ans: String = answer.chars().take(2000).collect();
+    let prompt = format!(
+        "STATEMENT:\n{head}\n\nCANDIDATE'S ANSWER:\n{ans}\n\nThe answer was read as these moves: {}.",
+        if named.is_empty() { "(none)".to_string() } else { named.join(", ") }
+    );
+    let result = crate::llm::claude_json(&prompt, system, model, 2).map_err(|e| e.to_string())?;
+    Ok((
+        result.get("valid").is_some_and(crate::data::truthy),
+        result
+            .get("why")
+            .map(crate::data::value_str)
+            .unwrap_or_default()
+            .trim()
+            .to_string(),
+    ))
+}
+
+/// recognition.map_problem: the mapping call for a problem not in
+/// problems.json; the entry is written with source "spot". Returns the moves.
+pub fn map_problem(ctx: &Ctx, pnum: &str, title: &str, model: &str) -> Result<Vec<String>, String> {
+    let system = format!(
+        "You are mapping a LeetCode problem onto a fixed taxonomy of atomic technique moves.\n\nTaxonomy (use ONLY these ids):\n{}\n\nDetermine the canonical clean solution for the problem, then output STRICT JSON, nothing else:\n{{\"title\": \"<full problem title>\", \"difficulty\": \"Easy|Medium|Hard\", \"moves\": [\"<node-id>\", ...], \"unmapped\": [\"<short description of any required move with no matching node>\"]}}\n\nList the moves in the order a candidate meets them: the move the statement triggers FIRST comes first. Include foundational micro-moves after it. Do not explain the solution.",
+        ctx.taxonomy_summary()
+    );
+    let result = crate::llm::claude_json(
+        &format!("LeetCode problem: {pnum}. {title}"),
+        &system,
+        model,
+        2,
+    )
+    .map_err(|e| e.to_string())?;
+    let moves: Vec<String> = result["moves"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|v| v.as_str())
+        .filter(|m| ctx.nodes.contains_key(*m))
+        .map(String::from)
+        .collect();
+    let mut entry = serde_json::json!({
+        "title": result.get("title").and_then(serde_json::Value::as_str).unwrap_or(title),
+        "difficulty": result.get("difficulty").and_then(serde_json::Value::as_str).unwrap_or(""),
+        "moves": moves,
+        "source": "spot",
+    });
+    if let Some(un) = result.get("unmapped").filter(|u| crate::data::truthy(u)) {
+        entry["unmapped"] = un.clone();
+    }
+    crate::pyjson::save_problem_entry(&ctx.root, pnum, &entry).map_err(|e| e.to_string())?;
+    Ok(moves)
+}
+
+/// recognition.pending_spots: recognition/*.md files with no record yet,
+/// oldest first (by modification time), as repo-relative paths.
+pub fn pending_spots(root: &std::path::Path, recog: &serde_json::Value) -> Vec<String> {
+    let dir = root.join("recognition");
+    let mut files: Vec<(std::time::SystemTime, String)> = std::fs::read_dir(&dir)
+        .into_iter()
+        .flatten()
+        .filter_map(Result::ok)
+        .filter(|e| e.path().extension().is_some_and(|x| x == "md"))
+        .map(|e| {
+            let m = e
+                .metadata()
+                .and_then(|m| m.modified())
+                .unwrap_or(std::time::UNIX_EPOCH);
+            (
+                m,
+                format!("recognition/{}", e.file_name().to_string_lossy()),
+            )
+        })
+        .collect();
+    files.sort();
+    files
+        .into_iter()
+        .map(|(_, p)| p)
+        .filter(|p| recog.get(p.as_str()).is_none())
+        .collect()
+}
