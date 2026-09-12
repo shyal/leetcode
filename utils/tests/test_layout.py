@@ -167,7 +167,9 @@ def test_mock_binary_paths_agree():
     )
     assert members, "utils/rs/Cargo.toml has no [workspace] members list"
     assert sorted(re.findall(r'"([^"]+)"', members.group(1))) == crates
-    assert {"kg", "kg_mock", "kg_movie", "kg_next", "kg_rep"} <= set(crates)
+    assert {"kg", "kg_mock", "kg_movie", "kg_next", "kg_rep", "kg_status"} <= set(
+        crates
+    )
 
 
 # --- the harness stays a flat namespace (what solves import) --------------

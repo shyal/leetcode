@@ -3,7 +3,9 @@
 // (0, 1), a bold header, alternate rows shaded; a panel sized to its body
 // with a title on the top border and a subtitle on the bottom one; and
 // two tables side by side when they fit in the console width, stacked
-// otherwise. Widths and padding follow rich's algorithms line for line so
+// otherwise. kg_status and kg_dependents add the box-less shape: no
+// border, padding (0, 2), an optional header, right-justified and styled
+// columns. Widths and padding follow rich's algorithms line for line so
 // the Python and Rust printouts agree cell for cell.
 
 use crate::cells::cell_len;
@@ -13,6 +15,25 @@ use crate::console::{adjust_line, set_shape, Console, Line, Seg, Style, Text};
 pub enum BoxKind {
     Rounded,
     SimpleHead,
+    /// rich `box=None`: no border lines, no dividers
+    None,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Default)]
+pub enum Justify {
+    #[default]
+    Left,
+    Right,
+    Center,
+}
+
+/// rich.Column as far as it is used: justify, a style for every cell,
+/// no_wrap (the column never shrinks below its content).
+#[derive(Clone, Copy, Default)]
+pub struct Column {
+    pub justify: Justify,
+    pub style: Style,
+    pub no_wrap: bool,
 }
 
 struct BoxChars {
@@ -44,6 +65,7 @@ fn box_chars(kind: BoxKind) -> BoxChars {
     let src = match kind {
         BoxKind::Rounded => "╭─┬╮\n│ ││\n├─┼┤\n│ ││\n├─┼┤\n├─┼┤\n│ ││\n╰─┴╯",
         BoxKind::SimpleHead => "    \n    \n ── \n    \n    \n    \n    \n    ",
+        BoxKind::None => "    \n    \n    \n    \n    \n    \n    \n    ",
     };
     let l: Vec<Vec<char>> = src.lines().map(|s| s.chars().collect()).collect();
     BoxChars {
@@ -117,21 +139,32 @@ fn ratio_reduce(total: i64, ratios: &[i64], maximums: &[i64], values: &[i64]) ->
 }
 
 /// rich.Table._collapse_widths.
-fn collapse_widths(widths: &[i64], max_width: i64) -> Vec<i64> {
+fn collapse_widths(widths: &[i64], max_width: i64, wrapable: &[bool]) -> Vec<i64> {
     let mut widths = widths.to_vec();
     let mut total: i64 = widths.iter().sum();
     let mut excess = total - max_width;
+    if !wrapable.iter().any(|w| *w) {
+        return widths;
+    }
     while total != 0 && excess > 0 {
-        let max_column = *widths.iter().max().unwrap();
+        let max_column = widths
+            .iter()
+            .zip(wrapable)
+            .filter(|(_, w)| **w)
+            .map(|(c, _)| *c)
+            .max()
+            .unwrap();
         let second = widths
             .iter()
-            .map(|w| if *w != max_column { *w } else { 0 })
+            .zip(wrapable)
+            .map(|(c, w)| if *w && *c != max_column { *c } else { 0 })
             .max()
             .unwrap();
         let diff = max_column - second;
         let ratios: Vec<i64> = widths
             .iter()
-            .map(|w| if *w == max_column { 1 } else { 0 })
+            .zip(wrapable)
+            .map(|(c, w)| if *w && *c == max_column { 1 } else { 0 })
             .collect();
         if ratios.iter().all(|r| *r == 0) || diff == 0 {
             break;
@@ -150,6 +183,13 @@ pub struct Table {
     pub title: Option<String>,
     pub kind: BoxKind,
     pub row_shade: bool,
+    pub show_header: bool,
+    /// rich padding (0, pad): spaces on each side of every cell
+    pub pad: usize,
+    pub title_style: Style,
+    pub title_justify: Justify,
+    pub header_style: Style,
+    pub column_opts: Vec<Column>,
 }
 
 impl Table {
@@ -162,7 +202,31 @@ impl Table {
             title: title.map(|t| t.to_string()),
             kind,
             row_shade: true,
+            show_header: true,
+            pad: 1,
+            title_style: Style::parse("bold"),
+            title_justify: Justify::Left,
+            header_style: Style::parse("bold"),
+            column_opts: vec![Column::default(); columns.len()],
         }
+    }
+
+    /// rich Table(box=None, padding=(0, pad)) with rich's defaults
+    /// otherwise: no row shading, a bold header when shown, a centred title.
+    pub fn bare(columns: &[&str], show_header: bool, pad: usize) -> Table {
+        Table {
+            kind: BoxKind::None,
+            row_shade: false,
+            show_header,
+            pad,
+            title_justify: Justify::Center,
+            title_style: Style::default(),
+            ..Table::plain(columns, None, BoxKind::None)
+        }
+    }
+
+    pub fn column(&mut self, i: usize, opts: Column) {
+        self.column_opts[i] = opts;
     }
 
     pub fn add_row(&mut self, cells: &[String]) {
@@ -170,12 +234,20 @@ impl Table {
     }
 
     fn extra_width(&self) -> usize {
-        2 + self.columns.len() - 1
+        // rich Table._extra_width: the edges and the dividers, box only
+        if self.kind == BoxKind::None {
+            0
+        } else {
+            2 + self.columns.len() - 1
+        }
     }
 
     /// Every cell of a column, header first, as rich Text.
     fn column_cells(&self, i: usize) -> Vec<Text> {
-        let mut out = vec![Text::from_markup(&self.columns[i])];
+        let mut out = Vec::new();
+        if self.show_header {
+            out.push(Text::from_markup(&self.columns[i]));
+        }
         for row in &self.rows {
             out.push(Text::from_markup(
                 row.get(i).map(String::as_str).unwrap_or(""),
@@ -184,17 +256,20 @@ impl Table {
         out
     }
 
-    fn measure_cell(text: &Text, max_width: usize) -> (usize, usize) {
-        // Padding(text, (0,1)) measured: the text's min/max plus 2
+    fn measure_cell(text: &Text, max_width: usize, pad: usize, no_wrap: bool) -> (usize, usize) {
+        // Padding(text, (0,pad)) measured: the text's min/max plus 2*pad
         let lines: Vec<&str> = text.plain.split('\n').collect();
         let max = lines.iter().map(|l| cell_len(l)).max().unwrap_or(0);
         let words: Vec<&str> = text.plain.split_whitespace().collect();
-        let min = if words.is_empty() {
+        let min = if no_wrap || words.is_empty() {
             max
         } else {
             words.iter().map(|w| cell_len(w)).max().unwrap()
         };
-        ((min + 2).min(max_width), (max + 2).min(max_width))
+        (
+            (min + 2 * pad).min(max_width),
+            (max + 2 * pad).min(max_width),
+        )
     }
 
     /// rich.Table._calculate_column_widths for a non-expanding table.
@@ -205,7 +280,9 @@ impl Table {
                 let cells = self.column_cells(i);
                 cells
                     .iter()
-                    .map(|c| Table::measure_cell(c, max_width).1)
+                    .map(|c| {
+                        Table::measure_cell(c, max_width, self.pad, self.column_opts[i].no_wrap).1
+                    })
                     .max()
                     .unwrap_or(1)
                     .max(1) as i64
@@ -213,7 +290,9 @@ impl Table {
             .collect();
         let table_width: i64 = widths.iter().sum();
         if table_width > max_width as i64 {
-            widths = collapse_widths(&widths, max_width as i64);
+            // rich: no_wrap columns keep their width; the others collapse
+            let wrapable: Vec<bool> = self.column_opts.iter().map(|c| !c.no_wrap).collect();
+            widths = collapse_widths(&widths, max_width as i64, &wrapable);
             let table_width: i64 = widths.iter().sum();
             if table_width > max_width as i64 {
                 let excess = table_width - max_width as i64;
@@ -225,7 +304,7 @@ impl Table {
                     let w = widths[i].max(0) as usize;
                     self.column_cells(i)
                         .iter()
-                        .map(|c| Table::measure_cell(c, w).1)
+                        .map(|c| Table::measure_cell(c, w, self.pad, self.column_opts[i].no_wrap).1)
                         .max()
                         .unwrap_or(0) as i64
                 })
@@ -243,19 +322,39 @@ impl Table {
     }
 
     /// One padded cell rendered at `width`: " " + text lines + " ".
-    fn render_cell(text: &Text, width: usize, style: Style) -> Vec<Line> {
-        let inner = width.saturating_sub(2);
+    fn render_cell(
+        text: &Text,
+        width: usize,
+        style: Style,
+        pad: usize,
+        justify: Justify,
+    ) -> Vec<Line> {
+        let inner = width.saturating_sub(2 * pad);
         let mut lines: Vec<Line> = Vec::new();
         for t in text.wrap_with(inner, false) {
             let mut t = t;
             t.base = style;
             let mut line = vec![Seg {
-                text: " ".into(),
+                text: " ".repeat(pad),
                 style,
             }];
-            line.extend(adjust_line(&t.segments(), inner, style));
+            let segs = t.segments();
+            let gap = inner.saturating_sub(crate::console::line_len(&segs));
+            let (left, right) = match justify {
+                Justify::Left => (0, gap),
+                Justify::Right => (gap, 0),
+                Justify::Center => (gap / 2, gap - gap / 2),
+            };
+            if left > 0 {
+                line.push(Seg {
+                    text: " ".repeat(left),
+                    style,
+                });
+            }
+            line.extend(adjust_line(&segs, inner - left, style));
+            let _ = right;
             line.push(Seg {
-                text: " ".into(),
+                text: " ".repeat(pad),
                 style,
             });
             lines.push(line);
@@ -276,28 +375,48 @@ impl Table {
         let widths = self.column_widths(max_width.saturating_sub(extra));
         let table_width: usize = widths.iter().sum::<usize>() + extra;
         let mut out: Vec<Line> = Vec::new();
+        let boxed = self.kind != BoxKind::None;
         if let Some(title) = &self.title {
             let mut t = Text::from_markup(title);
-            t.base = Style::parse("bold");
+            t.base = self.title_style;
             for line in t.wrap(table_width) {
-                out.push(adjust_line(&line.segments(), table_width, Style::default()));
+                let segs = line.segments();
+                let gap = table_width.saturating_sub(crate::console::line_len(&segs));
+                let left = match self.title_justify {
+                    Justify::Left => 0,
+                    Justify::Right => gap,
+                    Justify::Center => gap / 2,
+                };
+                let mut l: Line = Vec::new();
+                if left > 0 {
+                    l.push(Seg {
+                        text: " ".repeat(left),
+                        style: Style::default(),
+                    });
+                }
+                l.extend(segs);
+                out.push(adjust_line(&l, table_width, Style::default()));
             }
         }
-        out.push(vec![Seg {
-            text: joined(bx.top_left, bx.top, bx.top_divider, bx.top_right, &widths),
-            style: border,
-        }]);
-        let nrows = self.rows.len() + 1; // header included
+        if boxed {
+            out.push(vec![Seg {
+                text: joined(bx.top_left, bx.top, bx.top_divider, bx.top_right, &widths),
+                style: border,
+            }]);
+        }
+        let header_rows = usize::from(self.show_header);
+        let nrows = self.rows.len() + header_rows;
         for r in 0..nrows {
-            let first = r == 0;
+            let first = self.show_header && r == 0;
             let last = r + 1 == nrows;
-            let row_style = if first || !self.row_shade || (r - 1) % 2 == 0 {
+            let data_index = r - header_rows; // valid when !first
+            let row_style = if first || !self.row_shade || data_index % 2 == 0 {
                 Style::default()
             } else {
                 Style::parse("on grey15")
             };
             let cell_style = if first {
-                Style::parse("bold")
+                self.header_style
             } else {
                 Style::default()
             };
@@ -306,9 +425,21 @@ impl Table {
                     let text = if first {
                         Text::from_markup(&self.columns[c])
                     } else {
-                        Text::from_markup(self.rows[r - 1].get(c).map(String::as_str).unwrap_or(""))
+                        Text::from_markup(
+                            self.rows[data_index]
+                                .get(c)
+                                .map(String::as_str)
+                                .unwrap_or(""),
+                        )
                     };
-                    Table::render_cell(&text, widths[c], cell_style.plus(row_style))
+                    let opts = self.column_opts[c];
+                    Table::render_cell(
+                        &text,
+                        widths[c],
+                        cell_style.plus(row_style).plus(opts.style),
+                        self.pad,
+                        opts.justify,
+                    )
                 })
                 .collect();
             let height = cells.iter().map(Vec::len).max().unwrap_or(1).max(1);
@@ -348,26 +479,31 @@ impl Table {
                 border
             };
             for line_no in 0..height {
-                let mut line: Line = vec![Seg {
-                    text: left.to_string(),
-                    style: border,
-                }];
+                let mut line: Line = Vec::new();
+                if boxed {
+                    line.push(Seg {
+                        text: left.to_string(),
+                        style: border,
+                    });
+                }
                 for (ci, cell) in shaped.iter().enumerate() {
                     line.extend(cell[line_no].clone());
-                    if ci + 1 < shaped.len() {
+                    if boxed && ci + 1 < shaped.len() {
                         line.push(Seg {
                             text: vertical.to_string(),
                             style: divider_style,
                         });
                     }
                 }
-                line.push(Seg {
-                    text: right.to_string(),
-                    style: border,
-                });
+                if boxed {
+                    line.push(Seg {
+                        text: right.to_string(),
+                        style: border,
+                    });
+                }
                 out.push(line);
             }
-            if first {
+            if first && boxed {
                 out.push(vec![Seg {
                     text: joined(
                         bx.head_row_left,
@@ -380,16 +516,18 @@ impl Table {
                 }]);
             }
         }
-        out.push(vec![Seg {
-            text: joined(
-                bx.bottom_left,
-                bx.bottom,
-                bx.bottom_divider,
-                bx.bottom_right,
-                &widths,
-            ),
-            style: border,
-        }]);
+        if boxed {
+            out.push(vec![Seg {
+                text: joined(
+                    bx.bottom_left,
+                    bx.bottom,
+                    bx.bottom_divider,
+                    bx.bottom_right,
+                    &widths,
+                ),
+                style: border,
+            }]);
+        }
         out
     }
 }

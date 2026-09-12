@@ -1,5 +1,6 @@
 # Smoke tests for the Rust binaries that replaced Python scripts outright
-# (kg_rep, is_session_start, kg_chat; utils/rs). Each was diffed against
+# (kg_rep, is_session_start, kg_chat, kg_status, kg_dependents; utils/rs).
+# Each was diffed against
 # its Python original over the real graph/ data before the Python was
 # deleted (2026-09-12); these guard the shape of what they print, and make
 # sure CI builds them.
@@ -105,3 +106,42 @@ def test_kg_rs_degree_color_ends_of_the_ramp():
     assert kg_rs.degree_color(1.0) == "#3fb950"
     assert kg_rs.degree_color(-3) == "#da3633"
     assert kg_rs.degree_color(0.5).startswith("#") and len(kg_rs.degree_color(0.5)) == 7
+
+
+# --- kg_status, kg_dependents ------------------------------------------------
+
+
+def test_kg_status_summary_shape():
+    p = run("kg_status", "--summary")
+    assert p.returncode == 0, p.stderr
+    lines = p.stdout.splitlines()
+    assert lines[1].startswith("Technique graph · ")
+    assert [l.split()[1] for l in lines[2:6]] == [
+        "SOLID",
+        "STALE",
+        "FRAGILE",
+        "MISSING",
+    ]
+    assert any(l.startswith("ownership: mean ") for l in lines)
+    assert "by group" not in p.stdout
+    assert "by group" in run("kg_status").stdout
+
+
+def test_kg_dependents_unknown_and_usage():
+    p = run("kg_dependents", "no-such-id")
+    assert (
+        p.returncode == 1
+        and p.stdout.strip() == "nothing in the graph is called no-such-id"
+    )
+    assert run("kg_dependents").returncode == 2
+
+
+def test_kg_dependents_lists_a_gated_problem():
+    problems = json.load(open(os.path.join(ROOT, "graph", "problems.json")))["problems"]
+    gate, held = next(
+        (str(p["after"][0]), pnum) for pnum, p in problems.items() if p.get("after")
+    )
+    p = run("kg_dependents", gate)
+    assert p.returncode == 0, p.stderr
+    assert p.stdout.splitlines()[0].startswith(gate)
+    assert any(l.split()[:1] == [held] for l in p.stdout.splitlines())

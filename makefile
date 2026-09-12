@@ -1,8 +1,8 @@
 .PHONY: ext check fmt fmt-check lint types complexity duplicates test-fast cov rust audit secrets all asserts drop learning mirror q prepare force unforce preflight dependents kg-extract kg-status kg-viz rep movie next dive drill spot hard is_session_start readme rank-table residuals simulate sleep wake solved failed test timer viz graph snippets
 
-all: graph/leet.db $(EXT)
+all: graph/leet.db $(EXT) $(RS_BIN)/kg_status
 	@cp utils/harness/sitecustomize.py .venv/lib/python3.10/site-packages/
-	@if [ "$$(git rev-parse --abbrev-ref HEAD)" = "master" ]; then PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_status --summary; fi
+	@if [ "$$(git rev-parse --abbrev-ref HEAD)" = "master" ]; then $(RS_BIN)/kg_status --summary; fi
 	@PYTHONPATH=./utils:${PYTHONPATH} .venv/bin/python3 utils/tests/test_runner.py
 
 goals:
@@ -40,14 +40,14 @@ kg-extract:
 asserts:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/asserts --next $(or $(filter-out $@ dry,$(MAKECMDGOALS)),5) $(patsubst dry,--dry,$(filter dry,$(MAKECMDGOALS)))
 
-kg-status:
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_status
+kg-status: $(RS_BIN)/kg_status
+	@$(RS_BIN)/kg_status
 
 rep: $(RS_BIN)/kg_rep
 	@$(RS_BIN)/kg_rep $(filter-out $@,$(MAKECMDGOALS))
 
-dependents:
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_dependents $(filter-out $@,$(MAKECMDGOALS))
+dependents: $(RS_BIN)/kg_dependents
+	@$(RS_BIN)/kg_dependents $(filter-out $@,$(MAKECMDGOALS))
 
 kg-viz:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_viz
