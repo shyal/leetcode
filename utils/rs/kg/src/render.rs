@@ -91,9 +91,11 @@ fn q(s: &str) -> String {
     format!("\"{}\"", s.replace('\\', "\\\\").replace('"', "\\\""))
 }
 
-/// A DOT source in the making, with kg_render.make_digraph's look.
+/// A DOT source in the making, with kg_render.make_digraph's look. Nodes
+/// and edges land in the open subgraph, if any (kg_viz's clusters).
 pub struct Dot {
     lines: Vec<String>,
+    depth: usize,
 }
 
 impl Dot {
@@ -102,22 +104,66 @@ impl Dot {
         lines.push("\tgraph [bgcolor=\"#0d1117\" compound=true fontname=Helvetica nodesep=0.25 rankdir=TB ranksep=0.6]".into());
         lines.push("\tnode [color=\"#30363d\" fontcolor=white fontname=Helvetica fontsize=11 margin=\"0.12,0.06\" shape=box style=\"rounded,filled\"]".into());
         lines.push("\tedge [arrowsize=0.6 color=\"#8b949e\"]".into());
-        Dot { lines }
+        Dot { lines, depth: 1 }
+    }
+
+    fn indent(&self) -> String {
+        "\t".repeat(self.depth)
     }
 
     pub fn node(&mut self, id: &str, attrs: &[(&str, &str)]) {
         let a: Vec<String> = attrs.iter().map(|(k, v)| format!("{k}={}", q(v))).collect();
-        self.lines.push(format!("\t{} [{}]", q(id), a.join(" ")));
+        self.lines
+            .push(format!("{}{} [{}]", self.indent(), q(id), a.join(" ")));
     }
 
     pub fn edge(&mut self, a: &str, b: &str, attrs: &[(&str, &str)]) {
         let at: Vec<String> = attrs.iter().map(|(k, v)| format!("{k}={}", q(v))).collect();
+        let ind = self.indent();
         if at.is_empty() {
-            self.lines.push(format!("\t{} -> {}", q(a), q(b)));
+            self.lines.push(format!("{ind}{} -> {}", q(a), q(b)));
         } else {
             self.lines
-                .push(format!("\t{} -> {} [{}]", q(a), q(b), at.join(" ")));
+                .push(format!("{ind}{} -> {} [{}]", q(a), q(b), at.join(" ")));
         }
+    }
+
+    /// `with dot.subgraph(name=...) as c: c.attr(...)`: open a subgraph
+    /// with these attributes; nodes added until end_subgraph() belong to it.
+    pub fn begin_subgraph(&mut self, name: &str, attrs: &[(&str, &str)]) {
+        self.lines
+            .push(format!("{}subgraph {} {{", self.indent(), q(name)));
+        self.depth += 1;
+        // the graphviz library writes a subgraph's attributes sorted by name
+        let mut a: Vec<String> = attrs.iter().map(|(k, v)| format!("{k}={}", q(v))).collect();
+        a.sort();
+        self.lines.push(format!("{}{}", self.indent(), a.join(" ")));
+    }
+
+    pub fn end_subgraph(&mut self) {
+        self.depth -= 1;
+        self.lines.push(format!("{}}}", self.indent()));
+    }
+
+    /// kg_render.add_legend: the ownership ramp, five swatches from none
+    /// to full.
+    pub fn legend(&mut self) {
+        self.begin_subgraph(
+            "cluster_legend",
+            &[
+                ("label", "degree of ownership"),
+                ("fontcolor", "#8b949e"),
+                ("color", "#30363d"),
+                ("style", "rounded"),
+            ],
+        );
+        for d in [0.0, 0.25, 0.5, 0.75, 1.0] {
+            let id = format!("legend_{}", (d * 100.0) as i64);
+            let label = format!("{d:.2}");
+            let fill = degree_color(d);
+            self.node(&id, &[("label", &label), ("fillcolor", &fill)]);
+        }
+        self.end_subgraph();
     }
 
     /// kg_render.status_node: a box filled by degree, labeled by name or
@@ -266,6 +312,14 @@ pub fn render_in_background(
         let _ = std::fs::write(&stamp, format!("{hash} {w}\n"));
         Ok(w)
     })
+}
+
+/// kg_render.render, waited for: svg and png into graph_dir, the logical
+/// width in px (kg_viz).
+pub fn render(graph_dir: &Path, source: String, basename: &str) -> Result<u32, String> {
+    render_in_background(graph_dir.to_path_buf(), source, basename, None)
+        .join()
+        .map_err(|_| "render thread".to_string())?
 }
 
 /// FNV-1a over the bytes, as hex.

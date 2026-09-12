@@ -149,13 +149,11 @@ def test_history_module_loads(name):
 
 
 def test_mock_binary_paths_agree():
-    """estimate, solve_rate and the tests must all point at the same kg_mock."""
+    """solve_rate and the tests must point at the workspace's kg_mock."""
     from history import solve_rate  # noqa: F401
 
     rs = os.path.join(UTILS, "rs")
     # one line or one segment per line, whichever way black laid it out
-    src = re.sub(r"\s+", " ", open(os.path.join(KG, "estimate")).read())
-    assert '"rs", "target", "release", "kg_mock"' in src
     src = re.sub(r"\s+", " ", open(os.path.join(HISTORY, "solve_rate.py")).read())
     assert '"rs", "target", "release", "kg_mock"' in src
     # every crate directory is a workspace member, so one build makes them all
@@ -167,9 +165,15 @@ def test_mock_binary_paths_agree():
     )
     assert members, "utils/rs/Cargo.toml has no [workspace] members list"
     assert sorted(re.findall(r'"([^"]+)"', members.group(1))) == crates
-    assert {"kg", "kg_mock", "kg_movie", "kg_next", "kg_rep", "kg_status"} <= set(
-        crates
-    )
+    assert {
+        "kg",
+        "kg_mock",
+        "kg_movie",
+        "kg_next",
+        "kg_rep",
+        "kg_status",
+        "estimate",
+    } <= set(crates)
 
 
 # --- the harness stays a flat namespace (what solves import) --------------
