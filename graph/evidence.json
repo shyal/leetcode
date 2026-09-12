@@ -9367,6 +9367,19 @@
         "set-membership": "clean"
       },
       "summary": "The code implements StockPrice using three lazy-eviction heaps (for current, max, min queries) paired with a dict mapping timestamps to their current valid prices. Queries peek at heap tops and discard stale entries until finding one that matches the dict record. A set tracks seen timestamps to distinguish first updates from re-updates."
+    },
+    "solved/d_Keep_Smallest_Id_Per_Email_2026_09_12T22_29_13_133185_00_00Z.py": {
+      "date": "2026-09-13",
+      "problem": "drill",
+      "moves": {
+        "sql-group-aggregate": "clean",
+        "sql-dedupe-keep-one": "clean"
+      },
+      "assist": {
+        "sql-dedupe-keep-one": "hint"
+      },
+      "note": "Hint note shows the teaching point: wrapping id in MIN() when selecting from a grouped table.",
+      "summary": "The query groups Person rows by email and selects min(id) for each group. This exercises sql-group-aggregate (GROUP BY with aggregation function) and sql-dedupe-keep-one (keeping one row per key by choosing the survivor via an aggregate). The solution is correct and portable SQL."
     }
   }
 }
