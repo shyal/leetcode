@@ -118,6 +118,20 @@ def main():
         ),
         ("graph/elo_badge.svg", "elo_badge", "ELO_BADGE", "Elo", True),
         ("graph/streak_badge.svg", "streak_badge", "STREAK_BADGE", "Streak", True),
+        (
+            "graph/rate_badge.svg",
+            "rate_badge",
+            "RATE_BADGE",
+            "First-sight Elo per 100 hours",
+            True,
+        ),
+        (
+            "graph/rate_gauge.svg",
+            "rate_gauge",
+            "RATE_GAUGE",
+            "Elo per 100 hours on problems seen for the first time",
+            False,
+        ),
         # ("graph/rates.svg", "rates", "SOLVES_CHART", "Solves and drills per day", False),
         # ("graph/commits.svg", "commits", "COMMITS_CHART", "Tooling commits versus solves", False),
         # ("graph/forecast.svg", "forecast", "FORECAST_CHART", "History and forecast to a 50% pass rate", False),
@@ -209,6 +223,28 @@ def main():
         readme = fill_inline(
             readme, "N_REACH_TODAY", f"~{round(r['predicted_reach'], -2):.0f}"
         )
+
+    # the Elo figures the prose quotes: the median rating of the last problems
+    # served, the moving average of the Elo, and that average's rate per 100
+    # recorded hours, all from the chart scripts so the text and the charts
+    # never disagree
+    from importlib.machinery import SourceFileLoader
+
+    def load(name):
+        src = os.path.join(os.path.dirname(os.path.abspath(__file__)), name)
+        return SourceFileLoader(name, src).load_module()
+
+    em, hm, om = load("kg_elo_svg"), load("kg_hours_svg"), load("kg_onsite_svg")
+    gs = em.games()
+    ma = em.elo_ma(gs)
+    fs_rate, fs_early, fs_late = om.first_sight_rate(gs, hm.hours_by_day(), hm)
+    readme = fill_inline(readme, "FS_RATE", f"{fs_rate * 100:+.0f}")
+    readme = fill_inline(readme, "FS_EARLY", f"{fs_early:.0f}")
+    readme = fill_inline(readme, "FS_LATE", f"{fs_late:.0f}")
+    readme = fill_inline(readme, "FS_WINDOW", om.FS_WINDOW)
+    readme = fill_inline(readme, "SERVED_MEDIAN", f"{om.served(gs)[-1][1]:.0f}")
+    readme = fill_inline(readme, "ELO_MA", f"{ma[-1][1]:.0f}")
+    readme = fill_inline(readme, "ELO_MA_WINDOW", em.MA)
 
     for region, markdown, inline in images:
         readme = (fill_inline if inline else fill)(readme, region, markdown)

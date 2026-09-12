@@ -16,6 +16,8 @@
 # same cap):
 #   - the Carnegie Mellon rate, 200 points per 800 hours, which is also the
 #     Elo's own rate since game 100 (kg_hours_svg);
+# The served line is the median contest rating of the last SERVED games,
+# one point per day with a game: what the picker is asking of him.
 #   - the first-sight rate: the change in first-sight performance rating
 #     between the first and the last FS_WINDOW days of history with games,
 #     per recorded hour from the first window's start to the last's end. A first-sight game is a scored game
@@ -27,6 +29,7 @@ import json
 import os
 import random
 from datetime import date, timedelta
+from statistics import median
 
 from kg.kg_lib import GRAPH_DIR, load_evidence, load_problems, scored_games
 
@@ -34,6 +37,7 @@ OUT = os.path.join(GRAPH_DIR, "onsite.svg")
 
 PACE_DAYS = 60
 FS_WINDOW = 60
+SERVED = 50
 CMU_PER_HOUR = 200 / 800
 MAX_YEARS = 4
 
@@ -42,6 +46,7 @@ BG = "#0d1117"
 MUTED = "#8b949e"
 GRID = "#21262d"
 ELO = "#3fb950"
+SERVED_COLOR = "#bc8cff"
 SLOW = "#8b949e"
 FAST = "#58a6ff"
 BANK = "#d29922"
@@ -68,6 +73,39 @@ def perf(rows):
         e = sum(1 / (1 + 10 ** ((r - mid) / 400)) for r, _ in rows)
         lo, hi = (mid, hi) if e < s else (lo, mid)
     return (lo + hi) / 2
+
+
+def served(gs):
+    """[(date, median rating of the last SERVED games)] one per day with a
+    game, once SERVED games exist."""
+    out = {}
+    for i in range(SERVED - 1, len(gs)):
+        out[gs[i][0]] = median(rp for _, rp, _ in gs[i - SERVED + 1 : i + 1])
+    return sorted(out.items())
+
+
+def first_sight_rate(gs, cum, hm):
+    """(points per recorded hour, performance rating over the first FS_WINDOW
+    days, the same over the last FS_WINDOW days) on first-sight games only."""
+    first: dict[str, str] = {}
+    for fname, rec in sorted(
+        load_evidence().items(), key=lambda kv: (kv[1]["date"], kv[0])
+    ):
+        first.setdefault(str(rec.get("problem", "")), rec["date"])
+    fs = [
+        (d, rp, s)
+        for (d, rp, s), g in zip(gs, scored_games())
+        if g["date"] == first.get(str(g["problem"]))
+    ]
+    d0, d1 = fs[0][0], fs[-1][0]
+    early = [(rp, s) for d, rp, s in fs if d < d0 + timedelta(days=FS_WINDOW)]
+    late = [(rp, s) for d, rp, s in fs if d > d1 - timedelta(days=FS_WINDOW)]
+    # over every hour from the first window's start to the last's end: the
+    # gain happened somewhere in those hours, and the midpoints would credit
+    # it to the few hours in the gap between the two blocks of work
+    hours_between = hm.at(cum, d1) - hm.at(cum, d0 - timedelta(days=1))
+    p0, p1 = perf(early), perf(late)
+    return (p1 - p0) / hours_between if hours_between > 0 else 0, p0, p1
 
 
 def onsite_elo(pool, rng):
@@ -122,25 +160,7 @@ def main():
         hm.at(cum, today) - hm.at(cum, today - timedelta(days=PACE_DAYS))
     ) / PACE_DAYS
 
-    # the first-sight rate
-    first: dict[str, str] = {}
-    for fname, rec in sorted(
-        load_evidence().items(), key=lambda kv: (kv[1]["date"], kv[0])
-    ):
-        first.setdefault(str(rec.get("problem", "")), rec["date"])
-    fs = [
-        (d, rp, s)
-        for (d, rp, s), g in zip(gs, scored_games())
-        if g["date"] == first.get(str(g["problem"]))
-    ]
-    d0, d1 = fs[0][0], fs[-1][0]
-    early = [(rp, s) for d, rp, s in fs if d < d0 + timedelta(days=FS_WINDOW)]
-    late = [(rp, s) for d, rp, s in fs if d > d1 - timedelta(days=FS_WINDOW)]
-    # over every hour from the first window's start to the last's end: the
-    # gain happened somewhere in those hours, and the midpoints would credit
-    # it to the few hours in the gap between the two blocks of work
-    hours_between = hm.at(cum, d1) - hm.at(cum, d0 - timedelta(days=1))
-    fs_rate = (perf(late) - perf(early)) / hours_between if hours_between > 0 else 0
+    fs_rate, early_perf, late_perf = first_sight_rate(gs, cum, hm)
 
     elo_now = curve[-1][1]
     rates = [
@@ -165,7 +185,7 @@ def main():
     x0, x1 = curve[0][0], horizon
     span = (x1 - x0).days
     top, bottom = MT, H - MB
-    lo = int(min(r for _, r in curve) // 100 * 100) - 100
+    lo = int(min(r for _, r in curve + served(gs)) // 100 * 100) - 100
     hi = max(t for t, _, _ in lines) // 100 * 100 + 200
 
     def x_of(d):
@@ -253,13 +273,26 @@ def main():
                     f'<text x="{W - MR - 4}" y="{y_of(target) + 14:.1f}" text-anchor="end" '
                     f'font-size="11" fill="{color}">{c.strftime("%b %Y")} at this rate</text>'
                 )
+    pts = " ".join(f"{x_of(d):.1f},{y_of(r):.1f}" for d, r in served(gs))
+    svg.append(
+        f'<polyline points="{pts}" fill="none" stroke="{SERVED_COLOR}" stroke-width="1.5"/>'
+    )
     pts = " ".join(f"{x_of(d):.1f},{y_of(r):.1f}" for d, r in curve)
     svg.append(
-        f'<polyline points="{pts}" fill="none" stroke="{ELO}" stroke-width="2"/>'
+        f'<polyline points="{pts}" fill="none" stroke="{ELO}" stroke-width="2" '
+        f'stroke-opacity="0.3"/>'
+    )
+    pts = " ".join(f"{x_of(d):.1f},{y_of(r):.1f}" for d, r in em.elo_ma(gs))
+    svg.append(
+        f'<polyline points="{pts}" fill="none" stroke="{em.MA_LINE}" stroke-width="2"/>'
     )
     y = MT - 18
     x = ML
-    for color, label in [(ELO, "elo")] + [(c, l) for _, l, c in rates]:
+    for color, label in [
+        (ELO, "elo"),
+        (em.MA_LINE, f"{em.MA} game moving average"),
+        (SERVED_COLOR, f"median rating of the last {SERVED} problems served"),
+    ] + [(c, l) for _, l, c in rates]:
         svg.append(
             f'<line x1="{x}" y1="{y}" x2="{x + 16}" y2="{y}" stroke="{color}" stroke-width="2"/>'
         )

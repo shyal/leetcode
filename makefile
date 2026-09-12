@@ -249,6 +249,6 @@ chat:
 #   kg_zpd_svg kg_degree_track kg_reach_svg kg_3d_svg kg_full_svg
 #   kg_compression_svg kg_forecast_svg, and $(MOVIE_BIN) (make movie)
 readme: $(MOCK_BIN)
-	@PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_elo_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_streak_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_problem_rating_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_backlog_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_hours_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_onsite_svg
+	@PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_elo_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_streak_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_rate_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_problem_rating_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_backlog_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_hours_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_onsite_svg
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/estimate
 	@AWS_PROFILE=readme-uploader PYTHONPATH=./utils .venv/bin/python3 utils/readme/update_readme.py
