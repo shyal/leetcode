@@ -162,12 +162,15 @@ audit:
 secrets:
 	@gitleaks detect --source . --no-banner --redact
 
-# the guard suite without the 988-solve sweep (that is make test, and CI)
+# the guard suite without the 988-solve sweep and without the Python/Rust
+# picker parity diff (minutes: the Python picker runs once per argument
+# set). Both are make test, and CI.
+SLOW_TESTS = --ignore=utils/tests/test_runner.py --ignore=utils/tests/test_next_parity.py
 test-fast:
-	@.venv/bin/pytest -q -p no:cacheprovider --ignore=utils/tests/test_runner.py
+	@.venv/bin/pytest -q -p no:cacheprovider $(SLOW_TESTS)
 
 cov:
-	@.venv/bin/pytest -q -p no:cacheprovider --ignore=utils/tests/test_runner.py --cov --cov-report=term-missing
+	@.venv/bin/pytest -q -p no:cacheprovider $(SLOW_TESTS) --cov --cov-report=term-missing
 
 test:
 	@.venv/bin/pytest -o verbosity_assertions=2

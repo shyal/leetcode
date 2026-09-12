@@ -15,7 +15,11 @@
 #      axes, the drill clock, the holds, carriers, the drafted tier, the
 #      review clocks, the replay, the picks under each scenario.
 #
-# A change to either side that moves any of it fails `make test`.
+# A change to either side that moves any of it fails `make test`. This
+# file is not in `make test-fast` (it takes minutes: the Python picker runs
+# once per argument set); run it by hand after touching either picker:
+#
+#   .venv/bin/pytest -q utils/tests/test_next_parity.py
 
 import json
 import os
