@@ -119,6 +119,20 @@ def main():
         ("graph/elo_badge.svg", "elo_badge", "ELO_BADGE", "Elo", True),
         ("graph/streak_badge.svg", "streak_badge", "STREAK_BADGE", "Streak", True),
         (
+            "graph/rank_all_badge.svg",
+            "rank_all_badge",
+            "RANK_ALL_BADGE",
+            "Elo against all rated LeetCode users",
+            True,
+        ),
+        (
+            "graph/rank_regulars_badge.svg",
+            "rank_regulars_badge",
+            "RANK_REGULARS_BADGE",
+            "Elo against users with 20 or more contests",
+            True,
+        ),
+        (
             "graph/rate_badge.svg",
             "rate_badge",
             "RATE_BADGE",

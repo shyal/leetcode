@@ -1,0 +1,140 @@
+#!/usr/bin/env python3
+
+# kg_rank_fetch - a snapshot of where LeetCode contest ratings sit in the
+# rated population, written to data/leetcode_rank_table.json for
+# kg_rank_svg. Run by hand (make rank-table); the badge reads the file.
+#
+# Two populations. "all" is every rated user: LeetCode's global ranking
+# lists them by rating, 25 to a page, so the number of users at or above
+# a rating is found by binary search over the pages. The table holds that
+# count for every 25 points from 1200 to 3000. "regulars" are users with
+# at least REGULAR_MIN attended contests. The ranking does not carry the
+# contest count, so PAGES pages are drawn at random (every user equally
+# likely) and each user's count is fetched in batches of 25; the ratings
+# of the regulars found are kept, sorted. Some users answer null (private
+# or region-restricted profiles) and are dropped; "answered" records how
+# many did not, so the sample size is on the record.
+
+import json
+import os
+import random
+import time
+import urllib.request
+from datetime import date
+
+from kg.kg_lib import REPO_ROOT
+
+OUT = os.path.join(REPO_ROOT, "data", "leetcode_rank_table.json")
+URL = "https://leetcode.com/graphql"
+HEADERS = {
+    "content-type": "application/json",
+    "referer": "https://leetcode.com/contest/globalranking/",
+    "user-agent": "Mozilla/5.0",
+}
+GRID = range(1200, 3001, 25)
+REGULAR_MIN = 20
+PAGES = 120
+SEED = 20260912
+
+
+def gql(query, tries=4):
+    req = urllib.request.Request(
+        URL, data=json.dumps({"query": query}).encode(), headers=HEADERS
+    )
+    for _ in range(tries):
+        try:
+            return json.load(urllib.request.urlopen(req, timeout=30))["data"]
+        except Exception:
+            time.sleep(3)
+    raise SystemExit("leetcode did not answer")
+
+
+def page(p):
+    d = gql(
+        "query { globalRanking(page: %d) { totalUsers userPerPage rankingNodes "
+        "{ currentRating currentGlobalRanking user { username } } } }" % p
+    )["globalRanking"]
+    nodes = [
+        (float(n["currentRating"]), n["currentGlobalRanking"], n["user"]["username"])
+        for n in d["rankingNodes"]
+    ]
+    return d["totalUsers"], d["userPerPage"], nodes
+
+
+class Ranking:
+    def __init__(self):
+        self.total, per, _ = page(1)
+        self.pages = -(-self.total // per)
+        self.cache = {}
+
+    def nodes(self, p):
+        if p not in self.cache:
+            self.cache[p] = page(p)[2]
+        return self.cache[p]
+
+    def at_or_above(self, r):
+        """Number of users with rating >= r."""
+        lo, hi = 1, self.pages
+        while lo < hi:
+            mid = (lo + hi) // 2
+            if self.nodes(mid)[-1][0] >= r:
+                lo = mid + 1
+            else:
+                hi = mid
+        for rt, rank, _ in self.nodes(lo):
+            if rt < r:
+                return rank - 1
+        return self.nodes(lo)[-1][1]
+
+
+def contest_counts(usernames):
+    """{username: attended contests} for the users that answer."""
+    q = " ".join(
+        f'u{i}: userContestRanking(username: "{u}") {{ attendedContestsCount }}'
+        for i, u in enumerate(usernames)
+    )
+    d = gql("query { " + q + " }")
+    return {
+        u: d[f"u{i}"]["attendedContestsCount"]
+        for i, u in enumerate(usernames)
+        if d.get(f"u{i}")
+    }
+
+
+def sample_regulars(ranking):
+    rng = random.Random(SEED)
+    sampled, answered, ratings = 0, 0, []
+    for p in rng.sample(range(1, ranking.pages + 1), PAGES):
+        nodes = ranking.nodes(p)
+        counts = contest_counts([u for _, _, u in nodes])
+        sampled += len(nodes)
+        answered += len(counts)
+        ratings += [rt for rt, _, u in nodes if counts.get(u, 0) >= REGULAR_MIN]
+        print(f"page {p}: {len(counts)}/{len(nodes)} answered", flush=True)
+    return {
+        "min_contests": REGULAR_MIN,
+        "sampled": sampled,
+        "answered": answered,
+        "ratings": sorted(ratings),
+    }
+
+
+def main():
+    ranking = Ranking()
+    rows = []
+    for r in GRID:
+        n = ranking.at_or_above(r)
+        rows.append([r, n])
+        print(f"{r}: {n} at or above ({100 * n / ranking.total:.2f}%)", flush=True)
+    table = {
+        "date": date.today().isoformat(),
+        "all": {"total": ranking.total, "rows": rows},
+        "regulars": sample_regulars(ranking),
+    }
+    with open(OUT, "w") as f:
+        json.dump(table, f, indent=1)
+    print(f"wrote {OUT}")
+
+
+if __name__ == "__main__":
+    main()

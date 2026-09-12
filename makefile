@@ -1,4 +1,4 @@
-.PHONY: check fmt fmt-check lint types complexity duplicates test-fast cov rust audit secrets all asserts drop learning mirror q prepare force unforce preflight dependents kg-extract kg-status kg-viz rep movie next dive drill spot hard is_session_start readme residuals simulate sleep wake solved failed test timer viz graph snippets
+.PHONY: check fmt fmt-check lint types complexity duplicates test-fast cov rust audit secrets all asserts drop learning mirror q prepare force unforce preflight dependents kg-extract kg-status kg-viz rep movie next dive drill spot hard is_session_start readme rank-table residuals simulate sleep wake solved failed test timer viz graph snippets
 
 all: graph/leet.db
 	@cp utils/harness/sitecustomize.py .venv/lib/python3.10/site-packages/
@@ -240,15 +240,22 @@ timer:
 chat:
 	@utils/kg/chat $(filter-out $@,$(MAKECMDGOALS))
 
+# rank-table: refresh data/leetcode_rank_table.json from LeetCode's global
+# ranking (a few hundred requests, a few minutes). The rank badges read the
+# file; make readme never fetches.
+rank-table:
+	@PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_rank_fetch
+
 # chart generation is mostly disabled: the README carries the problem-rating
 # chart, the hours chart, the backlog chart and the two badges, so kg_elo_svg
 # (Elo badge; its chart is no longer linked), kg_streak_svg (streak badge),
+# kg_rank_svg (the two rank badges),
 # kg_problem_rating_svg, kg_backlog_svg, kg_hours_svg and kg_onsite_svg run. The other renderers still work standalone if a chart comes back:
 #   kg_positions_svg kg_calibration_svg kg_residuals_svg kg_timing_svg
 #   kg_solvetime_svg kg_connectivity_svg kg_rates_svg kg_commits_svg
 #   kg_zpd_svg kg_degree_track kg_reach_svg kg_3d_svg kg_full_svg
 #   kg_compression_svg kg_forecast_svg, and $(MOVIE_BIN) (make movie)
 readme: $(MOCK_BIN)
-	@PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_elo_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_streak_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_rate_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_problem_rating_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_backlog_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_hours_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_onsite_svg
+	@PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_elo_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_streak_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_rank_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_rate_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_problem_rating_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_backlog_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_hours_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_onsite_svg
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/estimate
 	@AWS_PROFILE=readme-uploader PYTHONPATH=./utils .venv/bin/python3 utils/readme/update_readme.py
