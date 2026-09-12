@@ -180,6 +180,8 @@ def test_mock_binary_paths_agree():
         "drill",
         "kg_force",
         "timer",
+        "kg_curve",
+        "kg_solvecost",
     } <= set(crates)
 
 

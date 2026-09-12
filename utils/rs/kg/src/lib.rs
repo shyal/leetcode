@@ -17,6 +17,7 @@ pub mod drills;
 pub mod evidence;
 pub mod figlet;
 pub mod git;
+pub mod linalg;
 pub mod llm;
 pub mod mock;
 pub mod model;
