@@ -149,6 +149,14 @@ def park(args, nodes, problems, evidence):
             f"WIP parked on branch {pnum}-slept ({hm(fought)} fought); "
             "back on master."
         )
+        # the Claude Code pane follows the branch: a fresh conversation on master
+        subprocess.run(
+            [
+                sys.executable,
+                os.path.join(os.path.dirname(os.path.abspath(__file__)), "chat"),
+                "--switch",
+            ]
+        )
     elif branch_exists(pnum):
         # park an attempt whose branch exists but isn't checked out: stamp
         # the marker on it, rename, come back to where we were
