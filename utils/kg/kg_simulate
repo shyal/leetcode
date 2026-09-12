@@ -53,6 +53,25 @@
 # real one. Writing it costs no hours: pace is measured from solve time
 # trailers, and authoring was never in them.
 #
+# Every attempt on a numbered problem is also returned as a row for the
+# README's problem-rating chart (kg_problem_rating_svg draws the run after
+# the history), and a first sight is scored as an Elo game while it is at
+# it: the cold-solve draw above IS the game. kg_curve fits that model on
+# kg_lib.scored_games - a win is unaided and inside the budget, a solve over
+# the clock is a loss - so its odds already price the clock, and the draw
+# that decides whether the walk holds up cold is the draw that decides the
+# game. No second model of the solve time sits on top of it.
+#
+# The run is the picker on its own rules: every knob the repo's .envrc
+# sets (kg_lib.load_envrc - the drill scheduler, the caps, the group caps)
+# is dropped from the environment for the run and put back after, the way
+# conftest drops them for the test suite. The operator's knobs are a
+# session's preferences and moved with them - the anki scheduler and the
+# one-new-drill cap ran the picker dry of problems after ten weeks on
+# 2026-09-12 - so the forecast is of the picker, not of the .envrc of the
+# day. TARGET_PASS_RATE is the exception: it says what "ready" means, is
+# read at import, and is honoured.
+#
 # Not modelled: fission of the taxonomy, assists, lapses in the hours.
 # One trajectory per seed; run a few seeds for the spread.
 
@@ -417,7 +436,10 @@ def run(
     silent run) and returns a dict: day (the last day run), onsite, hours,
     source ("given"/"measured"), per_kind, dry_days, short_days, rusty (per
     day: (day_no, stale, fragile, missing) at the first pick of the day),
-    and starved: {node: days} for every node that was due (kg_next.due_on)
+    attempts (one dict per attempt on a numbered problem: date, problem,
+    difficulty, rating - contest rating, the difficulty's median when it
+    has none - first (a first sight?) and score: the Elo game a first sight
+    played, 1.0 won or 0.0 lost, None for a repeat), and starved: {node: days} for every node that was due (kg_next.due_on)
     on STARVED_DAYS or more consecutive days with no pick aimed at it - the
     longest such run; and series: one dict per simulated day (day, solves
     per kind that day, stale/fragile/missing counts at the end of the day,
@@ -447,9 +469,21 @@ def run(
     kg_lib.branch_events = events
     bank = ScratchBank(kg_lib.DRILLS_DIR)
     kg_lib.DRILLS_DIR = kg_next.DRILLS_DIR = bank.root
+    # the picker on its own rules: the .envrc knobs leave the environment
+    # for the run (conftest does the same for the suite). MAX_ASLEEP is the
+    # one kg_lib bakes in at import, so it is reset to its default by hand.
+    knobs = {
+        name: os.environ.pop(name)
+        for name in kg_lib.load_envrc(environ={})
+        if name in os.environ
+    }
+    max_asleep = kg_lib.MAX_ASLEEP
+    kg_lib.MAX_ASLEEP = 3
     try:
         return _run(hours, seed, days, every, draft_error, log, bank, bank_rate)
     finally:
+        os.environ.update(knobs)
+        kg_lib.MAX_ASLEEP = max_asleep
         (
             kg_lib.date,  # type: ignore[misc]  # restores the monkeypatched date class
             kg_next.date,
@@ -586,6 +620,7 @@ def _run(hours, seed, days, every, draft_error, log, bank, bank_rate):
     streak = {n: 0 for n in nodes}  # consecutive due days, no pick aimed
     starved: dict[str, int] = {}  # node -> longest such run
     series = []  # per day, for the README forecast chart
+    attempts_log = []  # per numbered attempt, for the README problem chart
     src = "given" if given else f"measured: avg of the current streak, {measured:g}h"
     knobs = []
     if draft_error:
@@ -721,10 +756,14 @@ def _run(hours, seed, days, every, draft_error, log, bank, bank_rate):
                 r = recall.get(m)
                 p_clean = teach if statuses[m][0] == MISSING or r is None else r
                 verdict[m] = "clean" if rng.random() < p_clean else "struggled"
-            if problem != "drill" and problem not in seen and verdict:
-                # a cold problem: the pass model's own odds on top of recall
-                dif = {"Easy": "E", "Medium": "M", "Hard": "H"}.get(kind, "M")
-                rating = ratings_of.get(problem, median_rating[dif])
+            dif = {"Easy": "E", "Medium": "M", "Hard": "H"}.get(kind, "M")
+            rating = ratings_of.get(problem, median_rating[dif])
+            first = problem != "drill" and problem not in seen
+            score = None  # the Elo game a first sight plays; a repeat plays none
+            if first and verdict:
+                # a cold problem: the pass model's own odds on top of recall.
+                # The model is fitted on scored games, so this draw is the
+                # game: won cold and inside the clock, or not
                 walk = list(moves)
                 if rng.random() < draft_error:
                     walk.append("off-taxonomy")  # the draft missed a move
@@ -733,7 +772,9 @@ def _run(hours, seed, days, every, draft_error, log, bank, bank_rate):
                     1
                     + math.exp(-(solve_logit(coef, rating, ln_recall, unseen) + shift))
                 )
+                score = 1.0
                 if rng.random() >= p_cold:
+                    score = 0.0
                     weakest = min(verdict, key=lambda m: recall.get(m, 0.0))
                     verdict[weakest] = "struggled"
             clean = all(v == "clean" for v in verdict.values())
@@ -746,6 +787,17 @@ def _run(hours, seed, days, every, draft_error, log, bank, bank_rate):
                 "problem": problem,
                 "moves": verdict,
             }
+            if problem != "drill":
+                attempts_log.append(
+                    {
+                        "date": day,
+                        "problem": problem,
+                        "difficulty": kind,
+                        "rating": rating,
+                        "first": first,
+                        "score": score,
+                    }
+                )
             for m in verdict:
                 statuses[m] = node_status(m, evidence, today=day)
                 r = node_curve_recall(m, evidence, curve, day)
@@ -820,6 +872,7 @@ def _run(hours, seed, days, every, draft_error, log, bank, bank_rate):
         "rusty": rusty,
         "starved": starved,
         "series": series,
+        "attempts": attempts_log,
         "authored": {
             "nodes": len(bank.authored),
             "files": authored_files,

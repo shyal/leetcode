@@ -19,10 +19,30 @@
 # the solve (kg_lib.assist_of). The solid blue line is the median rating of
 # the last WINDOW attempts, so it lags a change by half a window and ignores
 # a single hard problem.
+#
+# Past today the chart is a forecast: the real picker run forward HORIZON
+# days on simulated evidence (utils/kg/kg_simulate, the run behind make
+# simulate), once per seed in SEEDS. Every simulated attempt on a numbered
+# problem is a grey dot (the first seed's run; the others would only pile
+# on), the median line continues over them, and each first sight plays an
+# Elo game - the cold-solve draw the run already makes, a model kg_curve
+# fits on the very games the Elo is scored on - priced by kg_elo_svg's
+# numbers and stepped from the Elo the history ends on. One dashed line per
+# seed; the first seed is drawn heavier, so the spread is the fan. The runs
+# are cached in graph/problem_forecast.json for CACHE_DAYS - a run is a
+# picker pick per simulated attempt, seconds per simulated week - and a
+# cached fan is drawn from the day it was run, the history continuing past
+# that day on its own. --forecast reruns now; --no-forecast skips the fan
+# altogether, as does a run with nothing to run on (no fitted curve, no
+# measured pace).
 
+import json
+import multiprocessing
 import os
+import sys
 from collections import Counter
 from datetime import date, timedelta
+from importlib.machinery import SourceFileLoader
 from statistics import median
 
 from kg.kg_lib import GRAPH_DIR, assist_of, load_evidence, solve_ratings
@@ -30,6 +50,10 @@ from kg.kg_lib import GRAPH_DIR, assist_of, load_evidence, solve_ratings
 OUT = os.path.join(GRAPH_DIR, "problem_rating.svg")
 
 WINDOW = 50
+HORIZON = 180  # forecast days past the day the run starts from
+SEEDS = (1, 2, 3, 4, 5)
+CACHE = os.path.join(GRAPH_DIR, "problem_forecast.json")
+CACHE_DAYS = 7  # a cached forecast younger than this is drawn, not rerun
 
 W, H = 1200, 1000
 BG = "#0d1117"
@@ -37,6 +61,8 @@ MUTED = "#8b949e"
 GRID = "#21262d"
 DOT = "#58a6ff"
 ELO = "#3fb950"
+SIM = "#6e7681"  # a simulated attempt
+TODAY = "#f0f6fc"
 # one colour per outcome, heaviest last; "none" is the bulk of the history
 # and is drawn faint, the rest are rare and drawn solid
 OUTCOMES = (
@@ -98,6 +124,186 @@ def elo_curve():
     return mod.elo(gs), mod.elo_ma(gs), mod.MA_LINE, mod.MA
 
 
+def simulate(seed):
+    """One run of the real picker, HORIZON days from today, or None when the
+    run cannot start (it exits with the reason)."""
+    kg = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "kg")
+    kg_simulate = SourceFileLoader(
+        "kg_simulate", os.path.join(kg, "kg_simulate")
+    ).load_module()
+    try:
+        return kg_simulate.run(seed=seed, days=HORIZON, log=lambda *a: None)
+    except SystemExit as e:
+        print(f"no forecast: {e}")
+        return None
+
+
+def cached_runs():
+    """The runs in CACHE, as [(seed, start date, attempts)], when it was
+    written within CACHE_DAYS with the same seeds and horizon; else None. A
+    run costs the picker a pick per simulated attempt, seconds per simulated
+    week, and the evidence a week adds does not move a six-month fan, so
+    make readme reruns it weekly and `--forecast` reruns it now."""
+    try:
+        with open(CACHE) as f:
+            c = json.load(f)
+    except (OSError, ValueError):
+        return None
+    start = date.fromisoformat(c["start"])
+    if (
+        (date.today() - start).days >= CACHE_DAYS
+        or c.get("seeds") != list(SEEDS)
+        or c.get("horizon") != HORIZON
+    ):
+        return None
+    return [
+        (
+            r["seed"],
+            start,
+            [dict(a, date=date.fromisoformat(a["date"])) for a in r["attempts"]],
+        )
+        for r in c["runs"]
+    ]
+
+
+def fresh_runs():
+    """Run every seed and write CACHE: [(seed, start date, attempts)]."""
+    # one process per seed: a run is seconds of pure Python per simulated
+    # week, and the seeds share nothing. fork, so the loaded graph comes along
+    with multiprocessing.get_context("fork").Pool(len(SEEDS)) as pool:
+        runs = [(seed, r) for seed, r in zip(SEEDS, pool.map(simulate, SEEDS)) if r]
+    if not runs:
+        return []
+    start = runs[0][1]["start"]
+    with open(CACHE, "w") as f:
+        json.dump(
+            {
+                "start": start.isoformat(),
+                "seeds": list(SEEDS),
+                "horizon": HORIZON,
+                "runs": [
+                    {
+                        "seed": seed,
+                        "attempts": [
+                            dict(a, date=a["date"].isoformat()) for a in r["attempts"]
+                        ],
+                    }
+                    for seed, r in runs
+                ],
+            },
+            f,
+        )
+    return [(seed, start, r["attempts"]) for seed, r in runs]
+
+
+def forecast(att):
+    """[(seed, start, attempts, median, elo, ma)] one per seed that ran: the
+    day the run started from, the simulated attempts as (date, rating, "sim")
+    rows, the trailing median continued over them from the history's window
+    as it stood that day, and the Elo and its moving average stepped on from
+    the history's games up to that day by the first sights the run scored,
+    priced as the Elo chart prices a game."""
+    if "--no-forecast" in sys.argv[1:]:
+        return []
+    runs = None if "--forecast" in sys.argv[1:] else cached_runs()
+    if runs is None:
+        runs = fresh_runs()
+    mod = elo_module()
+    gs = mod.games()
+    ratings, imputed = mod.pricing()
+    out = []
+    for seed, start, attempts in runs:
+        after = mod.elo_after([g for g in gs if g[0] <= start])
+        elo0 = after[-1][1] if after else mod.START
+        sim = [(a["date"], a["rating"], "sim") for a in attempts]
+        games = [
+            (a["date"], ratings.get(a["problem"], imputed[a["difficulty"]]), a["score"])
+            for a in attempts
+            if a["score"] is not None
+        ]
+        past = [a for a in att if a[0] <= start]
+        med = [(d, m) for d, m in trailing_median(past + sim) if d > start]
+        out.append(
+            (
+                seed,
+                start,
+                sim,
+                med,
+                mod.elo(games, elo0),
+                mod.elo_ma(games, start=elo0, tail=after),
+            )
+        )
+    return out
+
+
+def forecast_note(fc, n):
+    """ " - forecast: N game average A to B in D days over S seeds", or ""."""
+    ends = [fma[-1][1] for *_, fma in fc if fma]
+    if not ends:
+        return ""
+    days = max((sim[-1][0] - sim[0][0]).days + 1 for _, _, sim, *_ in fc if sim)
+    lo, hi = min(ends), max(ends)
+    return (
+        f" - forecast: {n} game average {lo:.0f}"
+        + (f" to {hi:.0f}" if hi - lo >= 1 else "")
+        + f" in {days} days over {len(fc)} seed{'s' if len(fc) > 1 else ''}"
+    )
+
+
+def runs(series):
+    """the series split wherever it skips more than a month, so a gap in
+    the history - or in a forecast whose picker went quiet - is drawn as a
+    gap and not as a straight line across it."""
+    out: list[list] = [[]]
+    prev = None
+    for d, v in series:
+        if prev and (d - prev).days > 31:
+            out.append([])
+        out[-1].append((d, v))
+        prev = d
+    return out
+
+
+def draw_forecast(svg, fc, x_of, y_of, top, bottom, today, ma_line):
+    """The forecast: a line on the day the runs started from (today, or the
+    day the cached runs were made), the first seed's attempts as grey dots,
+    and per seed the dashed continuations of the median, the Elo and its
+    moving average - the first seed heavier, the rest thin, so the fan is
+    the spread."""
+    start = fc[0][1]
+    x = x_of(start)
+    svg.append(
+        f'<line x1="{x:.1f}" y1="{top}" x2="{x:.1f}" y2="{bottom}" '
+        f'stroke="{TODAY}" stroke-width="1" stroke-opacity="0.5" '
+        f'stroke-dasharray="2 3"/>'
+    )
+    label = "today" if start >= today else f"forecast from {start.isoformat()}"
+    svg.append(
+        f'<text x="{x + 4:.1f}" y="{top + 12}" font-size="11" fill="{TODAY}" '
+        f'fill-opacity="0.7">{label}</text>'
+    )
+    for dd, r, _ in fc[0][2]:
+        svg.append(
+            f'<circle cx="{x_of(dd):.1f}" cy="{y_of(r):.1f}" r="2.5" '
+            f'fill="{SIM}" fill-opacity="0.35"/>'
+        )
+    # the first seed heavier, the rest thin: the fan is the spread
+    for i, (_, _, _, fmed, felo, fma) in enumerate(fc):
+        width = 2 if i == 0 else 1
+        for series, color, opacity in (
+            (felo, ELO, 0.3),
+            (fma, ma_line, 0.9),
+            (fmed, DOT, 0.9),
+        ):
+            for run in runs(series):
+                pts = " ".join(f"{x_of(dd):.1f},{y_of(v):.1f}" for dd, v in run)
+                svg.append(
+                    f'<polyline points="{pts}" fill="none" stroke="{color}" '
+                    f'stroke-width="{width}" stroke-opacity="{opacity}" '
+                    f'stroke-dasharray="6 4"/>'
+                )
+
+
 def main():
     att = attempts()
     if not att:
@@ -106,11 +312,18 @@ def main():
     med = trailing_median(att)
     elo, ma, MA_LINE, MA = elo_curve()
     RANKS = elo_module().RANKS
+    fc = forecast(att)
     d0 = min(att[0][0], elo[0][0] if elo else att[0][0])
-    d1 = max(att[-1][0], elo[-1][0] if elo else att[-1][0])
+    today = max(att[-1][0], elo[-1][0] if elo else att[-1][0])
+    d1 = max([today] + [a[0] for _, _, sim, *_ in fc for a in sim])
     span = max((d1 - d0).days, 1)
     top, bottom = MT, H - MB
-    vals = [r for _, r, _ in att] + [r for _, r in elo]
+    vals = (
+        [r for _, r, _ in att]
+        + [r for _, r in elo]
+        + [r for _, _, sim, *_ in fc for _, r, _ in sim]
+        + [r for _, _, _, _, e, _ in fc for _, r in e]
+    )
     lo = int(min(vals) // 100 * 100) - 100
     hi = max(int(-(-max(vals) // 100) * 100), RANKS[0][0]) + 100
 
@@ -119,18 +332,6 @@ def main():
 
     def y_of(v):
         return bottom - (v - lo) / (hi - lo) * (bottom - top)
-
-    def runs(series):
-        """the series split wherever it skips more than a month, so a gap in
-        the history is drawn as a gap and not as a straight line across it."""
-        out: list[list] = [[]]
-        prev = None
-        for d, v in series:
-            if prev and (d - prev).days > 31:
-                out.append([])
-            out[-1].append((d, v))
-            prev = d
-        return out
 
     counts = Counter(o for _, _, o in att)
     tally = ", ".join(
@@ -142,7 +343,7 @@ def main():
         f'<rect width="{W}" height="{H}" fill="{BG}"/>',
         f'<text x="{W / 2:.0f}" y="20" text-anchor="middle" font-size="11" fill="{MUTED}">'
         f"{len(att)} attempts - {tally} - median rating "
-        f"{median([r for _, r, _ in att]):.0f}</text>",
+        f"{median([r for _, r, _ in att]):.0f}{forecast_note(fc, MA)}</text>",
     ]
     # the rank cutoffs the Elo chart draws (kg_elo_svg.RANKS): a band above
     # each line, so where the dots sit against Knight and Guardian is read
@@ -202,6 +403,8 @@ def main():
                 f'<polyline points="{pts}" fill="none" stroke="{color}" '
                 f'stroke-width="2" stroke-opacity="{opacity}"/>'
             )
+    if fc:
+        draw_forecast(svg, fc, x_of, y_of, top, bottom, today, MA_LINE)
     y = MT - 18  # the legend row, under the summary line
     legend: list[tuple[bool | None, str, str]] = [
         (None, c, label) for k, label, c, _ in OUTCOMES if counts[k]
@@ -211,6 +414,8 @@ def main():
         (True, ELO, "elo"),
         (True, MA_LINE, f"{MA} game moving average"),
     ]
+    if fc:
+        legend.append((None, SIM, f"forecast, dashed: {len(fc)} seeds of the picker"))
     x = ML
     for is_line, color, label in legend:
         if is_line:
@@ -230,7 +435,7 @@ def main():
         f.write("\n".join(svg) + "\n")
     print(
         f"wrote {OUT} ({len(att)} attempts - {tally} - median "
-        f"{median([r for _, r, _ in att]):.0f})"
+        f"{median([r for _, r, _ in att]):.0f}{forecast_note(fc, MA)})"
     )
 
 

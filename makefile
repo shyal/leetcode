@@ -250,12 +250,12 @@ rank-table:
 # chart, the hours chart, the backlog chart and the two badges, so kg_elo_svg
 # (Elo badge; its chart is no longer linked), kg_streak_svg (streak badge),
 # kg_rank_svg (the two rank badges),
-# kg_problem_rating_svg, kg_backlog_svg, kg_hours_svg and kg_onsite_svg run. The other renderers still work standalone if a chart comes back:
+# kg_problem_rating_svg, kg_backlog_svg, kg_hours_svg, kg_onsite_svg and kg_progress_svg run. The other renderers still work standalone if a chart comes back:
 #   kg_positions_svg kg_calibration_svg kg_residuals_svg kg_timing_svg
 #   kg_solvetime_svg kg_connectivity_svg kg_rates_svg kg_commits_svg
 #   kg_zpd_svg kg_degree_track kg_reach_svg kg_3d_svg kg_full_svg
 #   kg_compression_svg kg_forecast_svg, and $(MOVIE_BIN) (make movie)
 readme: $(MOCK_BIN)
-	@PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_elo_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_streak_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_rank_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_rate_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_problem_rating_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_backlog_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_hours_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_onsite_svg
+	@PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_elo_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_streak_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_rank_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_rate_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_problem_rating_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_backlog_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_hours_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_onsite_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_progress_svg
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/estimate
 	@AWS_PROFILE=readme-uploader PYTHONPATH=./utils .venv/bin/python3 utils/readme/update_readme.py

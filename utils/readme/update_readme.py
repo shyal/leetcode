@@ -116,6 +116,13 @@ def main():
             "Review backlog: open cards, due cards, due drills",
             False,
         ),
+        (
+            "graph/progress.svg",
+            "progress",
+            "PROGRESS_CHART",
+            "Actual minus model on the last 30 first sights",
+            False,
+        ),
         ("graph/elo_badge.svg", "elo_badge", "ELO_BADGE", "Elo", True),
         ("graph/streak_badge.svg", "streak_badge", "STREAK_BADGE", "Streak", True),
         (

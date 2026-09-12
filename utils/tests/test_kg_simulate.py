@@ -127,3 +127,55 @@ def test_bank_rate_zero_authors_nothing():
         hours=HOURS, seed=SEED, days=5, log=lambda *a: None, bank_rate=0
     )
     assert r["authored"] == {"nodes": 0, "files": 0, "rate": 0, "source": "given"}
+
+
+def test_attempts_score_first_sights_only(run):
+    """Every attempt on a numbered problem is returned for the problem
+    chart; a first sight carries the Elo game it played, a repeat none."""
+    att = run["attempts"]
+    assert len(att) == sum(v for k, v in run["per_kind"].items() if k != "drill")
+    assert att == sorted(att, key=lambda a: a["date"])
+    # a problem the real evidence already holds is a repeat from its first
+    # simulated appearance; only a problem never met before plays a game
+    seen = {str(r.get("problem")) for r in kg_lib.load_evidence().values()}
+    for a in att:
+        assert a["difficulty"] in ("Easy", "Medium", "Hard")
+        assert 1000 <= a["rating"] <= 3500
+        assert a["first"] == (a["problem"] not in seen)
+        seen.add(a["problem"])
+        if a["first"]:
+            assert a["score"] in (0.0, 1.0)
+        else:
+            assert a["score"] is None
+    scored = [a for a in att if a["first"]]
+    assert scored, "a two-month run meets new problems"
+    # the run wins some and loses some: a game with only one outcome is a
+    # draw that has stopped reading the cold-solve model
+    assert 0 < sum(a["score"] for a in scored) < len(scored)
+
+
+def test_run_ignores_the_envrc_knobs(tmp_path, monkeypatch):
+    """The run is the picker on its own rules: a knob .envrc sets is out of
+    the environment while the run goes and back after it."""
+    rc = tmp_path / ".envrc"
+    rc.write_text("export DRILL_SCHEDULER=anki\nexport MAX_ASLEEP=10\n")
+    monkeypatch.setattr(
+        kg_lib,
+        "load_envrc",
+        lambda path=None, environ=None: {"DRILL_SCHEDULER": "anki", "MAX_ASLEEP": "10"},
+    )
+    monkeypatch.setenv("DRILL_SCHEDULER", "anki")
+    monkeypatch.setattr(kg_lib, "MAX_ASLEEP", 10)
+    seen = {}
+    real = kg_simulate._run
+
+    def spy(*a, **k):
+        seen["scheduler"] = os.environ.get("DRILL_SCHEDULER")
+        seen["asleep"] = kg_lib.MAX_ASLEEP
+        return real(*a, **k)
+
+    monkeypatch.setattr(kg_simulate, "_run", spy)
+    kg_simulate.run(hours=HOURS, seed=SEED, days=1, log=lambda *a: None)
+    assert seen == {"scheduler": None, "asleep": 3}
+    assert os.environ["DRILL_SCHEDULER"] == "anki"
+    assert kg_lib.MAX_ASLEEP == 10

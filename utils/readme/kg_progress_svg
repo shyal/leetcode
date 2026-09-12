@@ -1,0 +1,210 @@
+#!/usr/bin/env python3
+
+# kg_progress_svg - is the recent play beating the fitted model? Rendered
+# into graph/progress.svg for the README pipeline.
+#
+# The cold-solve model (graph/curve.json "solve", fitted by kg_curve on
+# the scored games) prices every first-sight game by the problem's rating,
+# the walk's recall and its never-met moves - and nothing about time or
+# hours, because on held-out games neither earned its place. So the model
+# is the null hypothesis of no skill growth, and the residual, actual score
+# minus the model's probability, is the test of it: a window of games that
+# sits above zero is play the model cannot explain, and the way it would
+# show up first. The forecasts extrapolate; this measures.
+#
+# One point per first-sight game (kg_elo_svg's definition: the attempts on
+# the day a problem was first met), on its date: the mean residual of the
+# last WINDOW games. The band is ±2 standard errors of that mean under the
+# model, sqrt(sum p(1-p))/n, so a line outside the band is a window the model
+# gets wrong at about 95%. Features are built from evidence strictly older
+# than each game (kg_curve.solve_rows), so the model never sees the game it
+# is pricing; its coefficients were fitted on the whole history, this window
+# included, which makes the test conservative in the recent months.
+
+import math
+import os
+from datetime import date, timedelta
+from importlib.machinery import SourceFileLoader
+
+from kg.kg_lib import (
+    GRAPH_DIR,
+    _load_curve,
+    elo_games,
+    load_evidence,
+    solve_ratings,
+)
+
+OUT = os.path.join(GRAPH_DIR, "progress.svg")
+
+WINDOW = 30
+
+W, H = 1200, 400
+BG = "#0d1117"
+MUTED = "#8b949e"
+GRID = "#21262d"
+LINE = "#58a6ff"
+BAND = "#58a6ff"
+ZERO = "#c9d1d9"
+ABOVE, BELOW = "#3fb950", "#f85149"
+ML, MR, MT, MB = 62, 24, 60, 40
+
+
+def curve_module():
+    kg = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "kg")
+    return SourceFileLoader("kg_curve", os.path.join(kg, "kg_curve")).load_module()
+
+
+def first_sight_rows():
+    """[(date, actual score, model probability)] one per first-sight scored
+    game, oldest first; [] without a fitted model."""
+    curve = _load_curve()
+    coef = ((curve or {}).get("solve") or {}).get("features")
+    if not coef:
+        return []
+    evidence = load_evidence()
+    ratings = solve_ratings()
+    rows = curve_module().solve_rows(evidence, curve["params"], ratings)
+    games = elo_games(evidence, ratings)
+    first: dict[str, str] = {}
+    for fname, rec in sorted(evidence.items(), key=lambda kv: (kv[1]["date"], kv[0])):
+        first.setdefault(str(rec.get("problem", "")), rec["date"])
+    out = []
+    for (f, y, d), g in zip(rows, games):
+        if d != first.get(g["problem"]):
+            continue
+        z = coef.get("intercept", 0.0) + sum(
+            coef.get(k, 0.0) * f[k] for k in ("rating", "recall", "unseen")
+        )
+        out.append((date.fromisoformat(d), y, 1 / (1 + math.exp(-z))))
+    return out
+
+
+def windows(rows, n=WINDOW):
+    """[(date, mean residual, its standard error under the model)] one per
+    game from the n-th on: the last n games ending at that game."""
+    out = []
+    for i in range(n - 1, len(rows)):
+        w = rows[i - n + 1 : i + 1]
+        resid = sum(y - p for _, y, p in w) / n
+        se = math.sqrt(sum(p * (1 - p) for _, _, p in w)) / n
+        out.append((w[-1][0], resid, se))
+    return out
+
+
+def runs(series):
+    """the series split wherever it skips more than a month."""
+    out: list[list] = [[]]
+    prev = None
+    for row in series:
+        if prev and (row[0] - prev).days > 31:
+            out.append([])
+        out[-1].append(row)
+        prev = row[0]
+    return out
+
+
+def main():
+    rows = first_sight_rows()
+    win = windows(rows)
+    if not win:
+        print(f"no chart: {len(rows)} first-sight games, {WINDOW} needed")
+        return
+    d0, d1 = win[0][0], win[-1][0]
+    span = max((d1 - d0).days, 1)
+    top, bottom = MT, H - MB
+    lim = max(0.25, max(abs(r) + 2 * se for _, r, se in win))
+    lim = math.ceil(lim * 20) / 20
+
+    def x_of(d):
+        return ML + (d - d0).days / span * (W - ML - MR)
+
+    def y_of(v):
+        return bottom - (v + lim) / (2 * lim) * (bottom - top)
+
+    last_d, last_r, last_se = win[-1]
+    z = last_r / last_se if last_se else 0.0
+    verdict = (
+        "above the model" if z > 2 else "below the model" if z < -2 else "inside noise"
+    )
+    svg = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" '
+        f'font-family="Helvetica,sans-serif">',
+        f'<rect width="{W}" height="{H}" fill="{BG}"/>',
+        f'<text x="{W / 2:.0f}" y="20" text-anchor="middle" font-size="11" fill="{MUTED}">'
+        f"{len(rows)} first-sight games - last {WINDOW}: actual minus model "
+        f"{last_r:+.2f} ({z:+.1f} standard errors, {verdict})</text>",
+    ]
+    x, y = float(ML), MT - 18
+    for color, label in (
+        (LINE, f"mean residual of the last {WINDOW} first sights"),
+        (BAND, "±2 standard errors under the model"),
+    ):
+        svg.append(
+            f'<rect x="{x}" y="{y - 4}" width="16" height="8" fill="{color}" '
+            f'fill-opacity="{1 if color == LINE else 0.15}"/>'
+        )
+        svg.append(
+            f'<text x="{x + 22}" y="{y + 4}" font-size="11" fill="{MUTED}">{label}</text>'
+        )
+        x += 34 + 6.2 * len(label)
+    step = 0.1 if lim <= 0.5 else 0.25
+    v: float = -lim
+    while v <= lim + 1e-9:
+        yy = y_of(v)
+        svg.append(
+            f'<line x1="{ML}" y1="{yy:.1f}" x2="{W - MR}" y2="{yy:.1f}" '
+            f'stroke="{GRID}" stroke-width="1"/>'
+        )
+        svg.append(
+            f'<text x="{ML - 8}" y="{yy + 4:.1f}" text-anchor="end" font-size="11" '
+            f'fill="{MUTED}">{v:+.2f}</text>'
+        )
+        v = round(v + step, 6)
+    d = date(d0.year, d0.month, 1)
+    while d <= d1:
+        if d >= d0:
+            xx = x_of(d)
+            svg.append(
+                f'<line x1="{xx:.1f}" y1="{top}" x2="{xx:.1f}" y2="{bottom}" '
+                f'stroke="{GRID}" stroke-width="1"/>'
+            )
+            svg.append(
+                f'<text x="{xx:.1f}" y="{bottom + 18}" text-anchor="middle" '
+                f'font-size="11" fill="{MUTED}">{d.strftime("%b %y")}</text>'
+            )
+        d = (d.replace(day=28) + timedelta(days=4)).replace(day=1)
+    for run in runs(win):
+        up = " ".join(f"{x_of(dd):.1f},{y_of(r + 2 * se):.1f}" for dd, r, se in run)
+        down = " ".join(
+            f"{x_of(dd):.1f},{y_of(r - 2 * se):.1f}" for dd, r, se in reversed(run)
+        )
+        svg.append(f'<polygon points="{up} {down}" fill="{BAND}" fill-opacity="0.15"/>')
+    yz = y_of(0)
+    svg.append(
+        f'<line x1="{ML}" y1="{yz:.1f}" x2="{W - MR}" y2="{yz:.1f}" '
+        f'stroke="{ZERO}" stroke-width="1" stroke-dasharray="4 4"/>'
+    )
+    svg.append(
+        f'<text x="{W - MR - 4}" y="{yz - 5:.1f}" text-anchor="end" font-size="11" '
+        f'fill="{ZERO}">the model</text>'
+    )
+    for run in runs(win):
+        pts = " ".join(f"{x_of(dd):.1f},{y_of(r):.1f}" for dd, r, _ in run)
+        svg.append(
+            f'<polyline points="{pts}" fill="none" stroke="{LINE}" stroke-width="2"/>'
+        )
+    color = ABOVE if z > 2 else BELOW if z < -2 else LINE
+    svg.append(
+        f'<circle cx="{x_of(last_d):.1f}" cy="{y_of(last_r):.1f}" r="4" fill="{color}"/>'
+    )
+    svg.append("</svg>")
+    with open(OUT, "w") as f:
+        f.write("\n".join(svg) + "\n")
+    print(
+        f"wrote {OUT} ({len(rows)} first-sight games, last {WINDOW}: "
+        f"{last_r:+.2f}, {z:+.1f} se, {verdict})"
+    )
+
+
+if __name__ == "__main__":
+    main()
