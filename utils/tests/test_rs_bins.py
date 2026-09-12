@@ -1,7 +1,7 @@
 # Smoke tests for the Rust binaries that replaced Python scripts outright
 # (kg_rep, is_session_start, kg_chat, kg_status, kg_dependents, kg_gaps,
 # kg_viz, estimate, kg_residuals, kg_predict, kg_sleep, kg_mirror, kg_drill,
-# kg_solved, drill; utils/rs).
+# kg_solved, drill, kg_force, timer; utils/rs).
 # Each was diffed against
 # its Python original over the real graph/ data before the Python was
 # deleted (2026-09-12); these guard the shape of what they print, and make
@@ -282,3 +282,41 @@ def test_kg_solved_files_nothing_from_an_empty_stub(tmp_path):
         cwd=tmp_path,
     )
     assert p.stdout.strip() == "nothing staged — no commit to make."
+
+
+# --- kg_force, timer -----------------------------------------------------------
+
+
+def test_kg_force_clear_and_usage_in_a_scratch_root(tmp_path):
+    """KG_ROOT points the binary at an empty root, so the repo's own
+    .force.json is never touched."""
+    env = {**os.environ, "KG_ROOT": str(tmp_path)}
+    p = subprocess.run(
+        [os.path.join(RS_BIN, "kg_force"), "--clear"],
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+    assert p.returncode == 0 and p.stdout == ""
+    (tmp_path / ".force.json").write_text('{"problem": "1", "moves": []}')
+    p = subprocess.run(
+        [os.path.join(RS_BIN, "kg_force"), "--clear"],
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+    assert p.stdout.strip() == "constraint dropped — freestyle solve."
+    assert not (tmp_path / ".force.json").exists()
+    assert run("kg_force").returncode == 2
+
+
+def test_timer_figlet_matches_pyfiglet_and_renders_a_frame():
+    art = run("timer", "--figlet", "big", "1:05").stdout
+    assert art == (
+        " __    ___  _____ \n/_ |_ / _ \\| ____|\n | (_) | | | |__  \n"
+        " | | | | | |___ \\ \n | |_| |_| |___) |\n |_(_)\\___/|____/ \n"
+        "                  \n                  \n"
+    )
+    frame = run("timer", "--once").stdout
+    assert frame.startswith("╭") and frame.rstrip().endswith("╯")
+    assert "\x1b[" not in frame  # no colour when piped
