@@ -1,0 +1,150 @@
+#!/usr/bin/env python3
+
+# kg_rate_svg - the first-sight rate, in Elo points per 100 recorded hours,
+# rendered into graph/rate_badge.svg (a badge) and graph/rate_gauge.svg (a
+# gauge) for the README pipeline.
+#
+# The rate is kg_onsite_svg.first_sight_rate: the change in performance
+# rating on first-sight games between the first and the last FS_WINDOW days
+# of history, per hour recorded in between. Review reps never enter it. The
+# gauge spans -SPAN to +SPAN with the Carnegie Mellon rate
+# (kg_hours_svg.CMU_PER_HOUR, 25 per 100 hours) marked on it. Green above
+# zero, red below.
+
+import math
+import os
+
+from kg.kg_lib import GRAPH_DIR
+
+BADGE = os.path.join(GRAPH_DIR, "rate_badge.svg")
+GAUGE = os.path.join(GRAPH_DIR, "rate_gauge.svg")
+
+SPAN = 150
+
+BG = "#0d1117"
+MUTED = "#8b949e"
+GRID = "#30363d"
+GREEN = "#3fb950"
+RED = "#f85149"
+INK = "#c9d1d9"
+CMU = "#58a6ff"
+
+
+def load(name):
+    from importlib.machinery import SourceFileLoader
+
+    src = os.path.join(os.path.dirname(os.path.abspath(__file__)), name)
+    return SourceFileLoader(name, src).load_module()
+
+
+def rate():
+    """(points per 100 hours, the window in days, the performance rating
+    over the first window, the same over the last)."""
+    em, hm, om = load("kg_elo_svg"), load("kg_hours_svg"), load("kg_onsite_svg")
+    per_hour, p0, p1 = om.first_sight_rate(em.games(), hm.hours_by_day(), hm)
+    return per_hour * 100, om.FS_WINDOW, p0, p1
+
+
+def color_of(v):
+    return GREEN if v > 0 else RED if v < 0 else MUTED
+
+
+def badge(v):
+    left, right = "elo per 100h, new problems only", f"{v:+.0f}"
+    lw, rw = 6 * len(left) + 12, 6.2 * len(right) + 12
+    w = lw + rw
+    color = color_of(v)
+    return (
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{w:.0f}" height="20" '
+        f'font-family="Verdana,DejaVu Sans,sans-serif" font-size="11">'
+        f'<rect rx="3" width="{w:.0f}" height="20" fill="#555"/>'
+        f'<rect rx="3" x="{lw:.0f}" width="{rw:.0f}" height="20" fill="{color}"/>'
+        f'<rect x="{lw:.0f}" width="4" height="20" fill="{color}"/>'
+        f'<text x="{lw / 2:.1f}" y="14" fill="#fff" text-anchor="middle">{left}</text>'
+        f'<text x="{lw + rw / 2:.1f}" y="14" fill="#fff" text-anchor="middle">{right}</text>'
+        f"</svg>\n"
+    )
+
+
+def gauge(v, window, p0, p1, cmu):
+    """A half dial from -SPAN on the left to +SPAN on the right, the needle
+    at the rate, clipped to the ends, the Carnegie Mellon rate marked."""
+    W, H = 420, 200
+    cx, cy, r = W / 2, 160, 120
+
+    def point(x, radius):
+        a = math.pi * (1 - (max(-SPAN, min(SPAN, x)) + SPAN) / (2 * SPAN))
+        return cx + radius * math.cos(a), cy - radius * math.sin(a)
+
+    def arc(v0, v1, radius, color, width, opacity=1.0):
+        x0, y0 = point(v0, radius)
+        x1, y1 = point(v1, radius)
+        return (
+            f'<path d="M{x0:.1f},{y0:.1f} A{radius},{radius} 0 0 1 {x1:.1f},{y1:.1f}" '
+            f'fill="none" stroke="{color}" stroke-width="{width}" '
+            f'stroke-opacity="{opacity}"/>'
+        )
+
+    svg = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" '
+        f'width="{W}" height="{H}" font-family="Helvetica,sans-serif">',
+        f'<rect width="{W}" height="{H}" fill="{BG}"/>',
+        arc(-SPAN, 0, r, RED, 14, 0.35),
+        arc(0, SPAN, r, GREEN, 14, 0.35),
+    ]
+    if v:
+        svg.append(arc(min(0, v), max(0, v), r, color_of(v), 14))
+    for t in range(-SPAN, SPAN + 1, 50):
+        x0, y0 = point(t, r - 12)
+        x1, y1 = point(t, r + 12)
+        svg.append(
+            f'<line x1="{x0:.1f}" y1="{y0:.1f}" x2="{x1:.1f}" y2="{y1:.1f}" '
+            f'stroke="{GRID}" stroke-width="1"/>'
+        )
+        tx, ty = point(t, r + 24)
+        svg.append(
+            f'<text x="{tx:.1f}" y="{ty + 4:.1f}" text-anchor="middle" font-size="10" '
+            f'fill="{MUTED}">{t:+d}</text>'
+        )
+    x0, y0 = point(cmu, r - 10)
+    x1, y1 = point(cmu, r + 10)
+    svg.append(
+        f'<line x1="{x0:.1f}" y1="{y0:.1f}" x2="{x1:.1f}" y2="{y1:.1f}" '
+        f'stroke="{CMU}" stroke-width="2"/>'
+    )
+    tx, ty = point(cmu, r - 30)
+    svg.append(
+        f'<text x="{tx:.1f}" y="{ty + 4:.1f}" text-anchor="middle" font-size="10" '
+        f'fill="{CMU}">CMU {cmu:.0f}</text>'
+    )
+    nx, ny = point(v, r - 20)
+    svg.append(
+        f'<line x1="{cx}" y1="{cy}" x2="{nx:.1f}" y2="{ny:.1f}" '
+        f'stroke="{INK}" stroke-width="2.5" stroke-linecap="round"/>'
+    )
+    svg.append(f'<circle cx="{cx}" cy="{cy}" r="5" fill="{INK}"/>')
+    svg.append(
+        f'<text x="{cx}" y="{cy - 40}" text-anchor="middle" font-size="26" '
+        f'font-weight="bold" fill="{color_of(v)}">{v:+.0f}</text>'
+    )
+    svg.append(
+        f'<text x="{cx}" y="{cy + 28}" text-anchor="middle" font-size="11" '
+        f'fill="{MUTED}">elo per 100h on new problems, {p0:.0f} to {p1:.0f}, '
+        f"first vs last {window} days</text>"
+    )
+    svg.append("</svg>")
+    return "\n".join(svg) + "\n"
+
+
+def main():
+    v, window, p0, p1 = rate()
+    cmu = load("kg_hours_svg").CMU_PER_HOUR * 100
+    with open(BADGE, "w") as f:
+        f.write(badge(v))
+    with open(GAUGE, "w") as f:
+        f.write(gauge(v, window, p0, p1, cmu))
+    print(f"wrote {BADGE} and {GAUGE} (first-sight {v:+.0f} elo per 100h)")
+
+
+if __name__ == "__main__":
+    main()

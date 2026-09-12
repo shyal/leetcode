@@ -90,10 +90,12 @@ def elo_module():
 
 
 def elo_curve():
-    """[(date, elo after the day's last game)] from the same scoring the Elo
-    chart uses, or [] when nothing is scored."""
+    """([(date, elo after the day's last game)], [(date, its moving average)],
+    the average's colour, its window) from the same scoring the Elo chart
+    uses; empty lists when nothing is scored."""
     mod = elo_module()
-    return mod.elo(mod.games())
+    gs = mod.games()
+    return mod.elo(gs), mod.elo_ma(gs), mod.MA_LINE, mod.MA
 
 
 def main():
@@ -102,7 +104,7 @@ def main():
         print("no rated attempts")
         return
     med = trailing_median(att)
-    elo = elo_curve()
+    elo, ma, MA_LINE, MA = elo_curve()
     RANKS = elo_module().RANKS
     d0 = min(att[0][0], elo[0][0] if elo else att[0][0])
     d1 = max(att[-1][0], elo[-1][0] if elo else att[-1][0])
@@ -193,18 +195,22 @@ def main():
             f'<circle cx="{x_of(dd):.1f}" cy="{y_of(r):.1f}" r="2.5" '
             f'fill="{color}" fill-opacity="{opacity}"/>'
         )
-    for series, color in ((elo, ELO), (med, DOT)):
+    for series, color, opacity in ((elo, ELO, 0.3), (ma, MA_LINE, 1), (med, DOT, 1)):
         for run in runs(series):
             pts = " ".join(f"{x_of(dd):.1f},{y_of(v):.1f}" for dd, v in run)
             svg.append(
                 f'<polyline points="{pts}" fill="none" stroke="{color}" '
-                f'stroke-width="2"/>'
+                f'stroke-width="2" stroke-opacity="{opacity}"/>'
             )
     y = MT - 18  # the legend row, under the summary line
     legend: list[tuple[bool | None, str, str]] = [
         (None, c, label) for k, label, c, _ in OUTCOMES if counts[k]
     ]
-    legend += [(True, DOT, f"median of last {WINDOW}"), (True, ELO, "elo")]
+    legend += [
+        (True, DOT, f"median of last {WINDOW}"),
+        (True, ELO, "elo"),
+        (True, MA_LINE, f"{MA} game moving average"),
+    ]
     x = ML
     for is_line, color, label in legend:
         if is_line:

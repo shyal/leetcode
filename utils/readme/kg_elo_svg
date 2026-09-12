@@ -43,6 +43,8 @@ INK = "#c9d1d9"
 MUTED = "#8b949e"
 GRID = "#21262d"
 LINE = "#3fb950"
+MA_LINE = "#e3b341"
+MA = 60
 ML, MR, MT, MB = 62, 24, 44, 40
 
 
@@ -87,6 +89,21 @@ def elo(gs):
         r += K * (s - e)
         by_day[d] = r
     return sorted(by_day.items())
+
+
+def elo_ma(gs, n=MA):
+    """[(date, mean of the Elo after each of the last n games)] one per day
+    with a game, once n games exist. Elo after a game is the value one game's
+    K*(s-e) step past the previous; here the steps are replayed and averaged
+    over a window of n games, not n days."""
+    r, after = START, []
+    for d, rp, s in gs:
+        r += K * (s - 1 / (1 + 10 ** ((rp - r) / 400)))
+        after.append((d, r))
+    out = {}
+    for i in range(n - 1, len(after)):
+        out[after[i][0]] = sum(r for _, r in after[i - n + 1 : i + 1]) / n
+    return sorted(out.items())
 
 
 def rank_of(r):
@@ -179,19 +196,35 @@ def main():
                 f'fill="{MUTED}">{d.strftime("%b %y")}</text>'
             )
         d = (d.replace(day=28) + timedelta(days=4)).replace(day=1)
+
     # one polyline per run of games; a gap over a month is drawn as a gap
-    runs: list[list] = [[]]
-    prev = None
-    for dd, r in hist:
-        if prev and (dd - prev).days > 31:
-            runs.append([])
-        runs[-1].append((dd, r))
-        prev = dd
-    for run in runs:
-        pts = " ".join(f"{x_of(dd):.1f},{y_of(r):.1f}" for dd, r in run)
+    def runs(series):
+        out: list[list] = [[]]
+        prev = None
+        for dd, r in series:
+            if prev and (dd - prev).days > 31:
+                out.append([])
+            out[-1].append((dd, r))
+            prev = dd
+        return out
+
+    for series, color, opacity in ((hist, LINE, 0.3), (elo_ma(gs), MA_LINE, 1)):
+        for run in runs(series):
+            pts = " ".join(f"{x_of(dd):.1f},{y_of(r):.1f}" for dd, r in run)
+            svg.append(
+                f'<polyline points="{pts}" fill="none" stroke="{color}" '
+                f'stroke-width="2" stroke-opacity="{opacity}"/>'
+            )
+    y = MT - 18
+    x = ML
+    for color, label in ((LINE, "elo"), (MA_LINE, f"{MA} game moving average")):
         svg.append(
-            f'<polyline points="{pts}" fill="none" stroke="{LINE}" stroke-width="2"/>'
+            f'<line x1="{x}" y1="{y}" x2="{x + 16}" y2="{y}" stroke="{color}" stroke-width="2"/>'
         )
+        svg.append(
+            f'<text x="{x + 22}" y="{y + 4}" font-size="11" fill="{MUTED}">{label}</text>'
+        )
+        x += 34 + 6.2 * len(label)
     last = hist[-1][1]
     svg.append(
         f'<circle cx="{x_of(d1):.1f}" cy="{y_of(last):.1f}" r="4" fill="{LINE}"/>'

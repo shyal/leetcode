@@ -169,12 +169,18 @@ def main():
     )
     path = " ".join(f"{x_of(h):.1f},{y_of(r):.1f}" for h, r in pts)
     svg.append(
-        f'<polyline points="{path}" fill="none" stroke="{ELO}" stroke-width="2"/>'
+        f'<polyline points="{path}" fill="none" stroke="{ELO}" stroke-width="2" '
+        f'stroke-opacity="0.3"/>'
+    )
+    path = " ".join(f"{x_of(at(cum, d)):.1f},{y_of(r):.1f}" for d, r in mod.elo_ma(gs))
+    svg.append(
+        f'<polyline points="{path}" fill="none" stroke="{mod.MA_LINE}" stroke-width="2"/>'
     )
     y = MT - 18
     x = ML
     for is_dash, color, label in (
         (False, ELO, "elo"),
+        (False, mod.MA_LINE, f"{mod.MA} game moving average"),
         (True, REF, "200 elo per 800 hours (Carnegie Mellon, Codeforces users)"),
     ):
         svg.append(
