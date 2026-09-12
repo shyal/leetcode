@@ -17,6 +17,13 @@
 # the page, so the attempt says nothing about solving the problem cold.
 # Untimed solves are otherwise skipped. Standard Elo, K=32, from 1200.
 #
+# Only first sights are games: the attempts on the day of a problem's first
+# evidenced attempt. A re-solve of a known problem is rehearsal, and part
+# of that win is remembering the answer, so it says nothing about solving
+# cold. Every Elo on the README comes from this list. The picker, the
+# curve fit and the simulations keep their own Elo over every timed
+# attempt in kg_lib; that one is not read here (settled 2026-09-12).
+#
 # The cutoffs drawn are LeetCode's badge cutoffs: Knight is the top 25% of
 # contest users, Guardian the top 5%. Both are percentile ranks, so the
 # rating each one sits at drifts; the numbers here are the usual ones.
@@ -27,7 +34,7 @@ from collections import defaultdict
 from datetime import date, timedelta
 from statistics import median
 
-from kg.kg_lib import GRAPH_DIR, REPO_ROOT, scored_games
+from kg.kg_lib import GRAPH_DIR, REPO_ROOT, load_evidence, scored_games
 
 OUT = os.path.join(GRAPH_DIR, "elo.svg")
 BADGE = os.path.join(GRAPH_DIR, "elo_badge.svg")
@@ -58,11 +65,21 @@ def load_ratings():
     return r
 
 
+def first_dates():
+    """problem -> date of its first evidenced attempt, timed or not."""
+    first: dict[str, str] = {}
+    for fname, rec in sorted(
+        load_evidence().items(), key=lambda kv: (kv[1]["date"], kv[0])
+    ):
+        first.setdefault(str(rec.get("problem", "")), rec["date"])
+    return first
+
+
 def games():
-    """[(date, problem rating, score)] oldest first, one per scored attempt.
-    Scoring lives in kg_lib.scored_games; here each game is priced by its
-    problem's rating, with an unrated problem taking the median rating of its
-    difficulty."""
+    """[(date, problem rating, score)] oldest first, one per scored first-sight
+    attempt. Scoring lives in kg_lib.scored_games; here each game is priced
+    by its problem's rating, with an unrated problem taking the median rating
+    of its difficulty."""
     ratings = load_ratings()
     with open(META) as f:
         meta = json.load(f)
@@ -71,6 +88,7 @@ def games():
         if pid in meta:
             by_diff[meta[pid]["difficulty"]].append(rt)
     imputed = {d: median(v) for d, v in by_diff.items()}
+    first = first_dates()
     return [
         (
             date.fromisoformat(g["date"]),
@@ -78,6 +96,7 @@ def games():
             g["score"],
         )
         for g in scored_games()
+        if g["date"] == first.get(g["problem"])
     ]
 
 
