@@ -174,6 +174,8 @@ def test_mock_binary_paths_agree():
         "kg_status",
         "estimate",
         "kg_predict",
+        "kg_sleep",
+        "kg_mirror",
     } <= set(crates)
 
 

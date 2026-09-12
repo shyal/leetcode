@@ -13,7 +13,7 @@ written here, then a drill makes me write it myself, then it lives in my head
 and the file is just a backup. Monotonic stack went exactly that way: i started
 by importing `monotonic_stack.py`, then switched to writing the stack by hand.
 
-Some files are pointed at by `refs` in `graph/nodes.json` (see `utils/kg/kg_mirror`),
+Some files are pointed at by `refs` in `graph/nodes.json` (see `utils/rs/kg_mirror`),
 which is how a node can say "the reference implementation lives here". Most
 files are not referenced by anything, and that is fine: unreferenced is not dead.
 
