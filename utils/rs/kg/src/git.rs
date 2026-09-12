@@ -421,6 +421,47 @@ pub fn active_seconds(root: &Path, branch: &str, now: i64) -> (i64, i64, i64) {
     (active, slept, sleeps)
 }
 
+/// kg_lib.clear_branch: true when no local branch `name` blocks a fresh
+/// checkout -b, either because none exists or because the user, asked on a
+/// tty, chose to delete it. Without a tty the branch is kept, never
+/// silently deleted.
+pub fn clear_branch(root: &Path, name: &str) -> bool {
+    let exists = Command::new("git")
+        .args([
+            "rev-parse",
+            "--verify",
+            "--quiet",
+            &format!("refs/heads/{name}"),
+        ])
+        .current_dir(root)
+        .output()
+        .is_ok_and(|o| o.status.success());
+    if !exists {
+        return true;
+    }
+    let last = git_out(root, &["log", "-1", "--format=%s (%cs)", name])
+        .trim()
+        .to_string();
+    // SAFETY: isatty only reads the descriptor's terminal flag
+    if unsafe { libc::isatty(libc::STDIN_FILENO) } == 1 {
+        eprint!("branch '{name}' already exists - {last}. Delete it? [y/N] ");
+        let mut ans = String::new();
+        let _ = std::io::stdin().read_line(&mut ans);
+        if matches!(ans.trim().to_lowercase().as_str(), "y" | "yes") {
+            let ok = Command::new("git")
+                .args(["branch", "-D", name])
+                .current_dir(root)
+                .output()
+                .is_ok_and(|o| o.status.success());
+            if ok {
+                return true;
+            }
+        }
+    }
+    println!("kept branch '{name}' - `git checkout {name}` to resume it");
+    false
+}
+
 // ---- is_session_start ---------------------------------------------------
 
 fn manila_midnight_ts() -> i64 {

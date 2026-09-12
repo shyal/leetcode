@@ -689,6 +689,66 @@ pub fn columns(items: &[&Table], max_width: usize) -> Vec<Line> {
     out
 }
 
+/// rich Panel(body, title=..., padding=(0, 1)) with expand=True (the
+/// default): the full console width, the title centred in the top rule.
+pub fn panel_expanded(body: &[Line], title: &str, width: usize) -> Vec<Line> {
+    let border = Style::parse("dim");
+    let mut title_text = Text::from_markup(title);
+    title_text.plain = format!(" {} ", title_text.plain.replace('\n', " "));
+    title_text.spans = title_text
+        .spans
+        .iter()
+        .map(|(s, e, st)| (s + 1, e + 1, *st))
+        .collect();
+    title_text.base = border;
+    let inner = width.saturating_sub(4);
+    let mut out: Vec<Line> = Vec::new();
+    let mut t = title_text.clone();
+    if t.cell_len() > inner {
+        t.plain = crate::cells::set_cell_size(&t.plain, inner);
+    }
+    let excess = inner - t.cell_len();
+    let (left, right) = (excess / 2, excess - excess / 2);
+    let mut top: Line = vec![Seg {
+        text: format!("╭─{}", "─".repeat(left)),
+        style: border,
+    }];
+    top.extend(t.segments());
+    top.push(Seg {
+        text: format!("{}─╮", "─".repeat(right)),
+        style: border,
+    });
+    out.push(top);
+    for line in body {
+        let mut text = Text::plain(&crate::console::line_plain(line));
+        let mut pos = 0;
+        for seg in line {
+            let n = seg.text.chars().count();
+            if !seg.style.is_plain() {
+                text.spans.push((pos, pos + n, seg.style));
+            }
+            pos += n;
+        }
+        for piece in text.wrap(inner) {
+            let mut l: Line = vec![Seg {
+                text: "│ ".into(),
+                style: border,
+            }];
+            l.extend(adjust_line(&piece.segments(), inner, Style::default()));
+            l.push(Seg {
+                text: " │".into(),
+                style: border,
+            });
+            out.push(l);
+        }
+    }
+    out.push(vec![Seg {
+        text: format!("╰{}╯", "─".repeat(width - 2)),
+        style: border,
+    }]);
+    out
+}
+
 pub fn print_table(console: &Console, table: &Table) {
     console.print_lines(table.render(console.width));
 }

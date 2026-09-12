@@ -124,19 +124,19 @@ drop:
 # call) -> ONE commit carrying solve + placeholder, with the frozen time in
 # the message -> the judge spawned detached; it commits its verdict when
 # done. Seconds, not the judge's minute. Ctrl-C anywhere: re-run
-# `make solved`, every step resumes (utils/kg/solved).
-solved:
+# `make solved`, every step resumes (utils/rs/kg_solved).
+solved: $(RS_BIN)/kg_solved
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_force --check
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/solved
+	@$(RS_BIN)/kg_solved
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_extract --stub
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/solved --commit
+	@$(RS_BIN)/kg_solved --commit
 
 # file the current attempt as a FAILED one: same flow as solved (archive,
 # solve-time trailer, placeholder -> struggled evidence), honest label
-failed:
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/solved --failed
+failed: $(RS_BIN)/kg_solved
+	@$(RS_BIN)/kg_solved --failed
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_extract --stub
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/solved --commit
+	@$(RS_BIN)/kg_solved --commit
 
 # --- code quality gates -------------------------------------------------------
 # make check is the aggregate every change to utils/ or dsa/ must pass (CI runs
@@ -236,8 +236,8 @@ dive:
 hard:
 	@if [ "$(firstword $(MAKECMDGOALS))" != spot ]; then PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_hard $(patsubst graph,--graph,$(filter-out $@,$(MAKECMDGOALS))); fi
 
-drill:
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/drill $(filter-out $@,$(MAKECMDGOALS))
+drill: $(RS_BIN)/drill
+	@$(RS_BIN)/drill $(filter-out $@,$(MAKECMDGOALS))
 
 # a recognition rep, asked for: same as `make prepare spot`, served whether
 # or not make next says one is due (the SPOT_EVERY ratio only governs that)
