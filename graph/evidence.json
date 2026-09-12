@@ -9259,6 +9259,20 @@
       },
       "note": "Initially tried max depth + 1 instead of left + right for diameter; hint clarified the combining rule.",
       "summary": "Code recursively computes subtree heights while tracking the maximum diameter as left + right at each node. All three canonical moves are clean: recursive DFS walks the tree, child return values (heights) are combined in the return statement, and a global best tracks the maximum diameter by summing left and right subtree heights. A hint helped clarify the diameter formula."
+    },
+    "solved/p153_Find_Minimum_in_Rotated_Sorted_Array_2026_09_12T02_30_06_221724_00_00Z.py": {
+      "date": "2026-09-12",
+      "problem": "153",
+      "moves": {
+        "binary-search-index": "clean",
+        "rotated-array-pivot": "clean"
+      },
+      "assist": {
+        "binary-search-index": "learning",
+        "rotated-array-pivot": "learning"
+      },
+      "note": "First exposure; solution correctly uses binary search with right-boundary comparison to navigate the rotation point.",
+      "summary": "The code finds the minimum in a rotated sorted array by binary search, converging left and right pointers. At each step, it compares nums[mid] against nums[right]: if mid is larger, the minimum is in the right half (left = mid + 1); otherwise, the right half including mid contains the minimum (right = mid). The loop terminates when left == right, pointing to the answer."
     }
   }
 }
