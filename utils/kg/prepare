@@ -667,14 +667,7 @@ for nid in node_ids:
         + os.pathsep
         + env.get("PYTHONPATH", "")
     )
-    r = subprocess.run(
-        [
-            sys.executable,
-            os.path.join(os.path.dirname(os.path.abspath(__file__)), "drill"),
-            nid,
-        ],
-        env=env,
-    )
+    r = subprocess.run([rs_bin("drill"), nid], env=env)
     if r.returncode:
         sys.exit(r.returncode)
 

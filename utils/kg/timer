@@ -19,7 +19,6 @@ import os
 import re
 import subprocess
 import time
-from importlib.machinery import SourceFileLoader
 
 import pyfiglet
 from rich.align import Align
@@ -53,9 +52,31 @@ def start_time():
     return time.time() - active_seconds()[0]
 
 
+def parse_current(file_path="current.py"):
+    """("drill", title) or (number, title) from the first docstring of
+    current.py, as kg_solved reads it; (None, None) when it holds neither."""
+    try:
+        content = open(file_path).read()
+    except OSError:
+        return None, None
+    match = re.search(r'"""(.*?)"""', content, re.DOTALL)
+    if not match:
+        return None, None
+    for line in match.group(1).strip().split("\n"):
+        line = line.strip()
+        if not line:
+            continue
+        drill_match = re.match(r"DRILL:\s*(.+)", line)
+        if drill_match:
+            return "drill", drill_match.group(1).strip()
+        prob_match = re.match(r"(\d+[a-zA-Z]?)\.\s*(.+)", line)
+        if prob_match:
+            return prob_match.group(1).strip(), prob_match.group(2).strip()
+    return None, None
+
+
 def forecast():
-    solved = SourceFileLoader("_solved", os.path.join(UTILS, "solved")).load_module()
-    pid, title, _ = solved.parse_current()
+    pid, title = parse_current()
     if pid is None:
         return None, None
     if pid == "drill":

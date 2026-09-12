@@ -1,6 +1,6 @@
 """Timezone seams. The system clock and git run UTC; the operator's day is
 Manila (UTC+8), which starts at 16:00 UTC. Solved filenames are stamped in
-UTC (utils/kg/solved), so between 16:00 and 24:00 UTC — midnight to 8am Manila,
+UTC (utils/rs/kg_solved), so between 16:00 and 24:00 UTC — midnight to 8am Manila,
 the usual session hours — the raw Y_M_D digits in a filename are one day
 behind "today". kg_extract once read those digits straight into the evidence
 date, so a drill solved after Manila midnight looked un-drilled the same
@@ -19,9 +19,6 @@ KG = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "
 kg_extract = SourceFileLoader(
     "kg_extract", os.path.join(KG, "kg_extract")
 ).load_module()
-# NOT module name "solved" — test_runner imports solve files as the package
-# solved.<stem> from ./solved/, and that name in sys.modules would shadow it
-solved = SourceFileLoader("solved_cli", os.path.join(KG, "solved")).load_module()
 
 
 def utc(y, mo, d, h, mi=0, s=0, micro=0):
@@ -73,28 +70,9 @@ def test_no_timestamp_returns_none():
     assert manila_date_from_filename("current.py@2006-attempt-2026-07-05") is None
 
 
-# --- utils/kg/solved stamps in UTC and the round trip lands on the Manila day -----
-
-
-def test_solved_filename_roundtrip_across_midnight():
-    now = utc(2026, 8, 23, 19, 44, 54, 884512)
-    name = solved.solved_filename("drill", "Number Scanner", now=now)
-    assert name == "d_Number_Scanner_2026_08_23T19_44_54_884512_00_00Z.py"
-    assert manila_date_from_filename(name) == "2026-08-24"
-
-
-def test_solved_filename_roundtrip_daytime():
-    now = utc(2026, 8, 23, 9, 5, 0)
-    name = solved.solved_filename("560", "Subarray Sum Equals K", now=now)
-    assert name.startswith("p560_Subarray_Sum_Equals_K_2026_08_23T09_05_00")
-    assert manila_date_from_filename(name) == "2026-08-23"
-
-
-def test_solved_filename_failed_marker_survives_roundtrip():
-    now = utc(2026, 8, 23, 23, 59, 59)
-    name = solved.solved_filename("227", "Basic Calculator II", failed=True, now=now)
-    assert "_FAILED_" in name
-    assert manila_date_from_filename(name) == "2026-08-24"
+# --- the solved filename stamp itself is tested where it is made: the
+# utils/rs/kg_solved unit tests round-trip the same three cases through the
+# UTC stamp and the Manila day.
 
 
 # --- kg_extract derives evidence dates through the shared helper ---------------

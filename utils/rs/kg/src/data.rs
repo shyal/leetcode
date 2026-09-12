@@ -58,6 +58,49 @@ pub fn repo_root() -> PathBuf {
     PathBuf::from(".")
 }
 
+/// kg_lib.manila_date_from_filename: the Manila calendar day of the UTC
+/// timestamp a solved/ filename carries (_YYYY_MM_DDTHH_MM_SS), None when
+/// the name has no timestamp.
+pub fn manila_date_from_filename(name: &str) -> Option<String> {
+    let base = name.rsplit('/').next().unwrap_or(name);
+    let b = base.as_bytes();
+    // find "_dddd_dd_ddTdd_dd_dd"
+    let digit = |i: usize| i < b.len() && b[i].is_ascii_digit();
+    let mut start = None;
+    for i in 0..b.len() {
+        if b[i] == b'_'
+            && (1..=4).all(|k| digit(i + k))
+            && b.get(i + 5) == Some(&b'_')
+            && digit(i + 6)
+            && digit(i + 7)
+            && b.get(i + 8) == Some(&b'_')
+            && digit(i + 9)
+            && digit(i + 10)
+            && b.get(i + 11) == Some(&b'T')
+            && digit(i + 12)
+            && digit(i + 13)
+            && b.get(i + 14) == Some(&b'_')
+            && digit(i + 15)
+            && digit(i + 16)
+            && b.get(i + 17) == Some(&b'_')
+            && digit(i + 18)
+            && digit(i + 19)
+        {
+            start = Some(i);
+            break;
+        }
+    }
+    let i = start?;
+    let num = |a: usize, n: usize| base[i + a..i + a + n].parse::<u32>().unwrap();
+    let utc = NaiveDate::from_ymd_opt(num(1, 4) as i32, num(6, 2), num(9, 2))?.and_hms_opt(
+        num(12, 2),
+        num(15, 2),
+        num(18, 2),
+    )?;
+    let manila = utc + chrono::Duration::hours(8);
+    Some(manila.date().format("%Y-%m-%d").to_string())
+}
+
 /// kg_lib.load_envrc: `export NAME=VALUE` lines of .envrc set in this
 /// process's environment unless already set; a `$` value is left to the
 /// shell.

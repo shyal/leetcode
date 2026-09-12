@@ -427,3 +427,114 @@ pub fn due_spot(
         format!("{why}, {} problem(s) need only it", cs.len()),
     ))
 }
+
+/// recognition.reveal: the lines `make solved` prints after a spot rep is
+/// judged, from the raw graph/recognition.json record.
+pub fn reveal(rec: &serde_json::Value) -> String {
+    use serde_json::Value;
+    let text = |k: &str| rec.get(k).and_then(Value::as_str).unwrap_or("").to_string();
+    let list = |k: &str| -> Vec<String> {
+        rec.get(k)
+            .and_then(Value::as_array)
+            .map(|a| a.iter().map(crate::data::value_str).collect())
+            .unwrap_or_default()
+    };
+    let title = text("title");
+    let pnum = rec
+        .get("problem")
+        .map(crate::data::value_str)
+        .unwrap_or_else(|| "?".to_string());
+    let walk = list("walk");
+    let walk = if walk.is_empty() {
+        "(unmapped)".to_string()
+    } else {
+        walk.join(", ")
+    };
+    let moves = rec.get("moves").and_then(Value::as_object);
+    let mut verdict = if moves.is_some_and(|m| m.values().any(|v| v.as_str() == Some(MISSED))) {
+        "missed".to_string()
+    } else {
+        "hit".to_string()
+    };
+    let target = rec.get("target").and_then(Value::as_str);
+    if let Some(t) = target {
+        if moves.and_then(|m| m.get(t)).and_then(Value::as_str) == Some(ALTERNATIVE) {
+            verdict = format!("hit, {t} not needed");
+        }
+    }
+    let seconds = rec
+        .get("seconds")
+        .map(crate::data::value_str)
+        .unwrap_or_else(|| "0".to_string());
+    let mut lines = vec![format!("{pnum}. {title}")];
+    if rec.get("valid") == Some(&Value::Bool(false)) {
+        // a failed route reveals nothing: not the walk, not which named
+        // moves fall outside it. The problem stays there to solve cold.
+        lines.push(format!(
+            "the route as written does not solve it ({verdict} on the target, {seconds}s); the walk stays hidden"
+        ));
+        if !text("why").is_empty() {
+            lines.push(text("why"));
+        }
+        if !list("named").is_empty() {
+            lines.push(format!("named: {}", list("named").join(", ")));
+        }
+        if let Some(t) = target {
+            lines.push(format!("served for: {t}"));
+        }
+        return lines.join("\n");
+    }
+    lines.push(format!("walk: {walk}"));
+    lines.push(format!("{verdict} in {seconds}s"));
+    if !list("alternative").is_empty() {
+        lines.push(format!(
+            "hit through an alternative walk, not yet evidenced by code: {}",
+            list("alternative").join(", ")
+        ));
+        if !text("why").is_empty() {
+            lines.push(text("why"));
+        }
+    }
+    if !list("named").is_empty() {
+        lines.push(format!("named: {}", list("named").join(", ")));
+    }
+    if !list("false").is_empty() {
+        lines.push(format!(
+            "named but not in any walk: {}",
+            list("false").join(", ")
+        ));
+    }
+    if !text("summary").is_empty() {
+        lines.push(text("summary"));
+    }
+    let reason = text("reason");
+    if target.is_some() || !reason.is_empty() {
+        let served = target.unwrap_or("chosen by hand");
+        let why = if reason.is_empty() {
+            String::new()
+        } else {
+            format!(" ({reason})")
+        };
+        lines.push(format!("served for: {served}{why}"));
+    }
+    lines.join("\n")
+}
+
+/// recognition.load_spot_meta / save_spot_meta: .spot.json, branch -> pick.
+pub fn load_spot_meta(root: &std::path::Path) -> serde_json::Value {
+    crate::pyjson::load(&root.join(".spot.json"))
+        .filter(serde_json::Value::is_object)
+        .unwrap_or_else(|| serde_json::json!({}))
+}
+
+pub fn save_spot_meta(root: &std::path::Path, meta: &serde_json::Value) -> std::io::Result<()> {
+    crate::pyjson::save(&root.join(".spot.json"), meta, Some(2))
+}
+
+/// recognition.load_recognition, raw: the records of graph/recognition.json.
+pub fn load_recognition_raw(root: &std::path::Path) -> serde_json::Value {
+    crate::pyjson::load(&root.join("graph/recognition.json"))
+        .and_then(|v| v.get("recognition").cloned())
+        .filter(serde_json::Value::is_object)
+        .unwrap_or_else(|| serde_json::json!({}))
+}

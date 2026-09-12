@@ -30,7 +30,7 @@ time.tzset()
 
 MANILA = timezone(timedelta(hours=8))
 
-# solved/ filenames are stamped in UTC (utils/kg/solved) — same clock as git.
+# solved/ filenames are stamped in UTC (utils/rs/kg_solved) - same clock as git.
 # The Manila day starts at 16:00 UTC, so for any solve between 16:00 and
 # 24:00 UTC (midnight to 8am Manila, the usual session hours) the raw Y_M_D
 # in the filename is one day behind "today". Anything deriving a calendar
@@ -1864,7 +1864,7 @@ def drill_title(path):
 
 def drill_solved_stem(path):
     """The d_-filename stem `make solved` writes for this drill file: its
-    DRILL title cleaned exactly the way utils/kg/solved cleans it. Falls back
+    DRILL title cleaned exactly the way utils/rs/kg_solved cleans it. Falls back
     to the bank filename slug if the header is missing."""
     title = drill_title(path)
     if title is None:

@@ -1,7 +1,7 @@
 # Smoke tests for the Rust binaries that replaced Python scripts outright
 # (kg_rep, is_session_start, kg_chat, kg_status, kg_dependents, kg_gaps,
-# kg_viz, estimate, kg_residuals, kg_predict, kg_sleep, kg_mirror, kg_drill;
-# utils/rs).
+# kg_viz, estimate, kg_residuals, kg_predict, kg_sleep, kg_mirror, kg_drill,
+# kg_solved, drill; utils/rs).
 # Each was diffed against
 # its Python original over the real graph/ data before the Python was
 # deleted (2026-09-12); these guard the shape of what they print, and make
@@ -242,3 +242,43 @@ def test_kg_drill_refuses_without_writing():
         "Unknown node id: no-such-node-xyz"
     )
     assert open(os.path.join(ROOT, "graph", "evidence.json")).read() == before
+
+
+# --- drill, kg_solved ----------------------------------------------------------
+
+
+def test_drill_list_and_unknown_node():
+    drills = json.load(open(os.path.join(ROOT, "graph", "drills.json")))["drills"]
+    did = sorted(drills, key=lambda d: int(d[1:]))[0]
+    p = run("drill", did, "--list")
+    assert p.returncode == 0, p.stderr
+    assert p.stdout.split()[0] == did and "last drilled:" in p.stdout
+    p = run("drill", "no-such-node-xyz", "--list")
+    assert p.returncode == 1 and p.stdout.startswith(
+        "No drills found under drills/no-such-node-xyz/"
+    )
+
+
+def test_kg_solved_files_nothing_from_an_empty_stub(tmp_path):
+    """Run in a scratch directory: the file phase reads current.py from the
+    working directory, so the repo's own attempt is never touched here."""
+    (tmp_path / "current.py").write_text("\n")
+    p = subprocess.run(
+        [os.path.join(RS_BIN, "kg_solved")],
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+    )
+    assert p.returncode == 0, p.stderr
+    assert p.stdout.strip() == "current.py is empty — nothing to file."
+    assert (
+        not (tmp_path / ".solve_meta.json").exists()
+        and not (tmp_path / "solved").exists()
+    )
+    p = subprocess.run(
+        [os.path.join(RS_BIN, "kg_solved"), "--commit"],
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+    )
+    assert p.stdout.strip() == "nothing staged — no commit to make."
