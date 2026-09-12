@@ -185,6 +185,8 @@ def test_mock_binary_paths_agree():
         "preflight",
         "spot",
         "lc_solutions",
+        "kg_dive",
+        "learning",
     } <= set(crates)
 
 

@@ -14,8 +14,8 @@ today:
 is_session_start: $(RS_BIN)/is_session_start
 	@$(RS_BIN)/is_session_start || true
 
-learning:
-	@PYTHONPATH=./utils .venv/bin/python3 utils/history/learning
+learning: $(RS_BIN)/learning
+	@$(RS_BIN)/learning
 
 prepare:
 	@if [ "$(firstword $(MAKECMDGOALS))" != next ] && [ "$(firstword $(MAKECMDGOALS))" != dependents ]; then PYTHONPATH=./utils .venv/bin/python3 utils/kg/prepare $(filter-out $@,$(MAKECMDGOALS)); fi
@@ -230,8 +230,8 @@ q: graph/leet.db
 	if [ -z "$$m" ]; then echo "no query matching '$$f'"; exit 1; fi; \
 	echo "-- $$m"; sqlite3 -header -column graph/leet.db < "$$m"
 
-dive:
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_dive $(filter-out $@,$(MAKECMDGOALS))
+dive: $(RS_BIN)/kg_dive
+	@$(RS_BIN)/kg_dive $(filter-out $@,$(MAKECMDGOALS))
 
 hard:
 	@if [ "$(firstword $(MAKECMDGOALS))" != spot ]; then PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_hard $(patsubst graph,--graph,$(filter-out $@,$(MAKECMDGOALS))); fi
