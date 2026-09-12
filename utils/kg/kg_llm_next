@@ -158,8 +158,8 @@ def recent_reps(evidence, problems, since):
 
 def open_failures(evidence, problems):
     """Problems with a failed rep and no clean unaided problem rep since."""
-    last_fail = {}
-    last_clean = {}
+    last_fail: dict[str, str] = {}
+    last_clean: dict[str, str] = {}
     for path, rec in evidence.items():
         pnum = rec.get("problem")
         if pnum == "drill" or drill_key(path) or not pnum:
