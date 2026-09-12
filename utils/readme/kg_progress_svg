@@ -17,20 +17,22 @@
 # last WINDOW games. The band is ±2 standard errors of that mean under the
 # model, sqrt(sum p(1-p))/n, so a line outside the band is a window the model
 # gets wrong at about 95%. Features are built from evidence strictly older
-# than each game (kg_curve.solve_rows), so the model never sees the game it
+# than each game (kg_curve --solve-rows-json), so the model never sees the game it
 # is pricing; its coefficients were fitted on the whole history, this window
 # included, which makes the test conservative in the recent months.
 
+import json
 import math
 import os
+import subprocess
 from datetime import date, timedelta
-from importlib.machinery import SourceFileLoader
 
 from kg.kg_lib import (
     GRAPH_DIR,
     _load_curve,
     elo_games,
     load_evidence,
+    rs_bin,
     solve_ratings,
 )
 
@@ -49,9 +51,13 @@ ABOVE, BELOW = "#3fb950", "#f85149"
 ML, MR, MT, MB = 62, 24, 60, 40
 
 
-def curve_module():
-    kg = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "kg")
-    return SourceFileLoader("kg_curve", os.path.join(kg, "kg_curve")).load_module()
+def solve_rows():
+    """The per-game feature rows under the fitted curve, from the Rust
+    fitter (utils/rs/kg_curve --solve-rows-json): [[features, score, date]]."""
+    out = subprocess.run(
+        [rs_bin("kg_curve"), "--solve-rows-json"], capture_output=True, text=True
+    )
+    return json.loads(out.stdout) if out.returncode == 0 else []
 
 
 def first_sight_rows():
@@ -63,7 +69,7 @@ def first_sight_rows():
         return []
     evidence = load_evidence()
     ratings = solve_ratings()
-    rows = curve_module().solve_rows(evidence, curve["params"], ratings)
+    rows = solve_rows()
     games = elo_games(evidence, ratings)
     first: dict[str, str] = {}
     for fname, rec in sorted(evidence.items(), key=lambda kv: (kv[1]["date"], kv[0])):

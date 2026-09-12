@@ -1,7 +1,7 @@
 # Smoke tests for the Rust binaries that replaced Python scripts outright
 # (kg_rep, is_session_start, kg_chat, kg_status, kg_dependents, kg_gaps,
 # kg_viz, estimate, kg_residuals, kg_predict, kg_sleep, kg_mirror, kg_drill,
-# kg_solved, drill, kg_force, timer; utils/rs).
+# kg_solved, drill, kg_force, timer, kg_curve, kg_solvecost; utils/rs).
 # Each was diffed against
 # its Python original over the real graph/ data before the Python was
 # deleted (2026-09-12); these guard the shape of what they print, and make
@@ -320,3 +320,27 @@ def test_timer_figlet_matches_pyfiglet_and_renders_a_frame():
     frame = run("timer", "--once").stdout
     assert frame.startswith("╭") and frame.rstrip().endswith("╯")
     assert "\x1b[" not in frame  # no colour when piped
+
+
+# --- kg_curve, kg_solvecost (read-only modes: a refit rewrites graph/ files) ----
+
+
+def test_kg_curve_solve_rows_bridge():
+    p = run("kg_curve", "--solve-rows-json")
+    assert p.returncode == 0, p.stderr
+    rows = json.loads(p.stdout)
+    assert rows and set(rows[0][0]) == {
+        "gap",
+        "rating",
+        "recall",
+        "unseen",
+        "experience",
+        "mass",
+        "length",
+    }
+    assert rows[0][1] in (0.0, 0.5, 1.0) and len(rows[0][2]) == 10
+
+
+def test_fitters_print_usage():
+    assert run("kg_curve", "--help").stdout.startswith("usage: kg_curve")
+    assert run("kg_solvecost", "--help").stdout.startswith("usage: kg_solvecost")

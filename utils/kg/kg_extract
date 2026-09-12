@@ -54,6 +54,7 @@ from kg.kg_lib import (
     node_status,
     normalise_assist,
     notes_assist_level,
+    rs_bin,
     save_evidence,
     save_problems,
     store_evidence_entry,
@@ -487,13 +488,9 @@ def commit_judgement(judged, refit=True):
     commit stays on top, verdicts and summary in its body. Retries through
     another git holding index.lock (a `make next` cutting the next branch)."""
     if refit:
-        py = VENV_PY if os.path.exists(VENV_PY) else sys.executable
         for tool in ("kg_curve", "kg_solvecost"):
             subprocess.run(
-                [py, os.path.join(UTILS, "kg", tool), "--if-stale"],
-                cwd=REPO_ROOT,
-                env={**os.environ, "PYTHONPATH": UTILS},
-                capture_output=True,
+                [rs_bin(tool), "--if-stale"], cwd=REPO_ROOT, capture_output=True
             )
     paths = [p for p in GRAPH_FILES if os.path.exists(os.path.join(REPO_ROOT, p))]
     if not _git("status", "--porcelain", "--", *paths).stdout.strip():

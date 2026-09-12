@@ -214,6 +214,7 @@ pub struct Game {
     pub problem: String,
     pub difficulty: String,
     pub score: f64,
+    pub moves: Vec<String>,
 }
 
 /// kg_lib.scored_games over the evidence, oldest first.
@@ -259,9 +260,97 @@ pub fn scored_games(ctx: &Ctx, ev: &Evidence) -> Vec<Game> {
             problem: pnum,
             difficulty: diff,
             score,
+            moves: rec.moves.keys().cloned().collect(),
         });
     }
     out
+}
+
+/// kg_lib.elo_games: every scored game with the Elo he carried INTO it and
+/// the rating of the problem (a missing rating takes its difficulty's
+/// median), oldest first: (game, rating, elo_before).
+pub fn elo_games(
+    ctx: &Ctx,
+    ev: &Evidence,
+    ratings: &HashMap<String, f64>,
+) -> Vec<(Game, f64, f64)> {
+    let games = scored_games(ctx, ev);
+    let mut by_dif: HashMap<String, Vec<f64>> = HashMap::new();
+    for g in &games {
+        if let Some(r) = ratings.get(&g.problem) {
+            by_dif.entry(g.difficulty.clone()).or_default().push(*r);
+        }
+    }
+    let median: HashMap<String, f64> = by_dif
+        .into_iter()
+        .map(|(d, mut v)| {
+            v.sort_by(|a, b| a.partial_cmp(b).unwrap());
+            let m = v[v.len() / 2];
+            (d, m)
+        })
+        .collect();
+    let mut elo = ELO_START;
+    let mut out = Vec::new();
+    for g in games {
+        let Some(r) = ratings
+            .get(&g.problem)
+            .or_else(|| median.get(&g.difficulty))
+            .copied()
+        else {
+            continue;
+        };
+        let before = elo;
+        elo += ELO_K * (g.score - 1.0 / (1.0 + 10f64.powf((r - elo) / 400.0)));
+        out.push((g, r, before));
+    }
+    out
+}
+
+/// kg_lib.elo_drift: (points per day, its standard error), least squares of
+/// Elo on calendar day over all the games; (0, 0) under 30 games.
+pub fn elo_drift(games: &[(Game, f64, f64)]) -> (f64, f64) {
+    if games.len() < 30 {
+        return (0.0, 0.0);
+    }
+    let d0 = crate::data::parse_date(&games[0].0.date);
+    let x: Vec<f64> = games
+        .iter()
+        .map(|(g, _, _)| (crate::data::parse_date(&g.date) - d0).num_days() as f64)
+        .collect();
+    let y: Vec<f64> = games.iter().map(|(_, _, e)| *e).collect();
+    let n = x.len() as f64;
+    let mx = x.iter().sum::<f64>() / n;
+    let my = y.iter().sum::<f64>() / n;
+    let sxx: f64 = x.iter().map(|a| (a - mx) * (a - mx)).sum();
+    if sxx == 0.0 {
+        return (0.0, 0.0);
+    }
+    let slope: f64 = x
+        .iter()
+        .zip(&y)
+        .map(|(a, b)| (a - mx) * (b - my))
+        .sum::<f64>()
+        / sxx;
+    let s2: f64 = x
+        .iter()
+        .zip(&y)
+        .map(|(a, b)| {
+            let r = b - (my + slope * (a - mx));
+            r * r
+        })
+        .sum::<f64>()
+        / (n - 2.0).max(1.0);
+    (slope, (s2 / sxx).sqrt())
+}
+
+/// kg_lib.walk_mass: log(1 + carriers of the walk's rarest move).
+pub fn walk_mass(walk: &[String], counts: &HashMap<String, i64>) -> f64 {
+    let m = walk
+        .iter()
+        .map(|m| *counts.get(m).unwrap_or(&0))
+        .min()
+        .unwrap_or(0);
+    (m as f64).ln_1p()
 }
 
 /// kg_lib.elo_now: his Elo after the last scored game.

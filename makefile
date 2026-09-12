@@ -30,10 +30,10 @@ unforce: $(RS_BIN)/kg_force
 preflight:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/preflight $(filter-out $@,$(MAKECMDGOALS))
 
-kg-extract:
+kg-extract: $(RS_BIN)/kg_curve $(RS_BIN)/kg_solvecost
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_extract --pending $(filter-out $@,$(MAKECMDGOALS))
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_curve --if-stale
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_solvecost --if-stale
+	@$(RS_BIN)/kg_curve --if-stale
+	@$(RS_BIN)/kg_solvecost --if-stale
 
 # `make asserts 5` generates the extra asserts for the picker's next five
 # problems, into .prepare_cache; `make asserts 5 dry` prints them instead.
@@ -52,9 +52,9 @@ dependents: $(RS_BIN)/kg_dependents
 kg-viz: $(RS_BIN)/kg_viz
 	@$(RS_BIN)/kg_viz
 
-curve: $(RS_BIN)/kg_residuals
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_curve
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_solvecost
+curve: $(RS_BIN)/kg_curve $(RS_BIN)/kg_solvecost $(RS_BIN)/kg_residuals
+	@$(RS_BIN)/kg_curve
+	@$(RS_BIN)/kg_solvecost
 	@$(RS_BIN)/kg_residuals
 
 residuals: $(RS_BIN)/kg_residuals
@@ -262,7 +262,7 @@ rank-table:
 # (Elo badge; its chart is no longer linked), kg_streak_svg (streak badge),
 # kg_rank_svg (the two rank badges),
 # kg_problem_rating_svg, kg_backlog_svg, kg_hours_svg, kg_onsite_svg and kg_progress_svg run. The other renderers still work standalone if a chart comes back:
-#   kg_positions_svg kg_calibration_svg kg_timing_svg
+#   kg_positions_svg
 #   kg_solvetime_svg kg_connectivity_svg kg_rates_svg kg_commits_svg
 #   kg_zpd_svg kg_degree_track kg_reach_svg kg_3d_svg kg_full_svg
 #   kg_compression_svg kg_forecast_svg, and $(MOVIE_BIN) (make movie)
