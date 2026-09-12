@@ -23,7 +23,6 @@
 # merely uncomfortable; discomfort means retrieval is working.
 
 import argparse
-import os
 import subprocess
 import sys
 
@@ -36,6 +35,7 @@ from kg.kg_lib import (
     load_nodes,
     load_problems,
     node_status,
+    rs_bin,
     sleep_lines,
     sleep_records,
     sleep_state,
@@ -108,13 +108,7 @@ def wake(args, nodes, problems, evidence):
         "make solved / make sleep as usual."
     )
     # the Claude Code pane follows the branch: back to the problem's conversation
-    subprocess.run(
-        [
-            sys.executable,
-            os.path.join(os.path.dirname(os.path.abspath(__file__)), "chat"),
-            "--switch",
-        ]
-    )
+    subprocess.run([rs_bin("kg_chat"), "--switch"])
 
 
 def park(args, nodes, problems, evidence):
@@ -150,13 +144,7 @@ def park(args, nodes, problems, evidence):
             "back on master."
         )
         # the Claude Code pane follows the branch: a fresh conversation on master
-        subprocess.run(
-            [
-                sys.executable,
-                os.path.join(os.path.dirname(os.path.abspath(__file__)), "chat"),
-                "--switch",
-            ]
-        )
+        subprocess.run([rs_bin("kg_chat"), "--switch"])
     elif branch_exists(pnum):
         # park an attempt whose branch exists but isn't checked out: stamp
         # the marker on it, rename, come back to where we were

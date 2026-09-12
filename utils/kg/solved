@@ -13,7 +13,7 @@ from rich.panel import Panel
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from kg import recognition as rc
-from kg.kg_lib import PENDING, active_seconds, load_evidence, spawn_judge
+from kg.kg_lib import PENDING, active_seconds, load_evidence, rs_bin, spawn_judge
 
 console = Console()
 
@@ -332,13 +332,7 @@ def commit_phase():
     os.remove(META)
     finish(meta)
     # the Claude Code pane follows the branch: a fresh conversation on master
-    subprocess.run(
-        [
-            sys.executable,
-            os.path.join(os.path.dirname(os.path.abspath(__file__)), "chat"),
-            "--switch",
-        ]
-    )
+    subprocess.run([rs_bin("kg_chat"), "--switch"])
 
 
 def finish(meta):

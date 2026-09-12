@@ -15,7 +15,7 @@ import threading
 import requests
 
 from kg.assert_gen import extra_asserts, has_extra
-from kg.kg_lib import clear_branch
+from kg.kg_lib import clear_branch, rs_bin
 from kg.stub_utils import sanitize, strip_solution, structure_problems
 
 CACHE_DIR = ".prepare_cache"
@@ -633,13 +633,7 @@ def finalize(num, title, code):
         run_git(["add", "."])
         run_git(["commit", "-m", problem_title])
         # the Claude Code pane follows the branch: its conversation is the problem's
-        subprocess.run(
-            [
-                sys.executable,
-                os.path.join(os.path.dirname(os.path.abspath(__file__)), "chat"),
-                "--switch",
-            ]
-        )
+        subprocess.run([rs_bin("kg_chat"), "--switch"])
 
 
 # `spot` routes to the recognition rep (utils/kg/spot): the picker's due

@@ -246,7 +246,7 @@ def compute():
             for n in nodes
         },
         "due_spot": list(spot) if spot else None,
-        "solve_seconds_today": kg_next._iss().solve_seconds_today(),
+        "solve_seconds_today": kg_next.solve_seconds_today(),
         "solved_today": sorted(kg_next.solved_today_pnums()),
         "group_caps": [[g, c] for g, c in kg_lib.group_caps().items()],
         "group_reps": [

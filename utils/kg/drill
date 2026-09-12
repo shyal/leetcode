@@ -31,6 +31,7 @@ from kg.kg_lib import (
     last_drilled,
     load_evidence,
     load_problems,
+    rs_bin,
     servable_drills,
     warm,
 )
@@ -135,13 +136,7 @@ def main():
     )
     console.print("Solve it, then `make solved` as usual.")
     # the Claude Code pane follows the branch: its conversation is the drill's
-    subprocess.run(
-        [
-            sys.executable,
-            os.path.join(os.path.dirname(os.path.abspath(__file__)), "chat"),
-            "--switch",
-        ]
-    )
+    subprocess.run([rs_bin("kg_chat"), "--switch"])
 
 
 if __name__ == "__main__":
