@@ -154,6 +154,8 @@ pub struct Node {
     pub name: String,
     pub group: Option<String>,
     pub prereqs: Vec<String>,
+    /// one line on what the move is (kg_force's blurb, the judge prompts)
+    pub desc: String,
 }
 
 pub type Nodes = IndexMap<String, Node>;
@@ -428,6 +430,11 @@ pub fn load_nodes(root: &Path) -> Nodes {
                     .to_string(),
                 group: n.get("group").and_then(Value::as_str).map(String::from),
                 prereqs: str_list(n.get("prereqs")),
+                desc: n
+                    .get("desc")
+                    .and_then(Value::as_str)
+                    .unwrap_or("")
+                    .to_string(),
             },
         );
     }

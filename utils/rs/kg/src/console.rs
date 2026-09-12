@@ -95,7 +95,7 @@ impl Style {
         *self == Style::default()
     }
 
-    fn sgr(&self) -> String {
+    pub fn sgr(&self) -> String {
         let mut codes: Vec<String> = Vec::new();
         if self.bold {
             codes.push("1".into());

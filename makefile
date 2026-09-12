@@ -21,11 +21,11 @@ prepare:
 	@if [ "$(firstword $(MAKECMDGOALS))" != next ] && [ "$(firstword $(MAKECMDGOALS))" != dependents ]; then PYTHONPATH=./utils .venv/bin/python3 utils/kg/prepare $(filter-out $@,$(MAKECMDGOALS)); fi
 
 
-force:
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_force $(filter-out $@,$(MAKECMDGOALS))
+force: $(RS_BIN)/kg_force
+	@$(RS_BIN)/kg_force $(filter-out $@,$(MAKECMDGOALS))
 
-unforce:
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_force --clear
+unforce: $(RS_BIN)/kg_force
+	@$(RS_BIN)/kg_force --clear
 
 preflight:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/preflight $(filter-out $@,$(MAKECMDGOALS))
@@ -125,8 +125,8 @@ drop:
 # the message -> the judge spawned detached; it commits its verdict when
 # done. Seconds, not the judge's minute. Ctrl-C anywhere: re-run
 # `make solved`, every step resumes (utils/rs/kg_solved).
-solved: $(RS_BIN)/kg_solved
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_force --check
+solved: $(RS_BIN)/kg_solved $(RS_BIN)/kg_force
+	@$(RS_BIN)/kg_force --check
 	@$(RS_BIN)/kg_solved
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_extract --stub
 	@$(RS_BIN)/kg_solved --commit
@@ -244,8 +244,8 @@ drill: $(RS_BIN)/drill
 spot:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/spot $(filter-out $@,$(MAKECMDGOALS))
 
-timer:
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/timer
+timer: $(RS_BIN)/timer
+	@$(RS_BIN)/timer
 
 # this branch's Claude Code conversation: resumed if it exists, started if not
 chat: $(RS_BIN)/kg_chat
