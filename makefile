@@ -9,9 +9,6 @@ all: graph/leet.db $(EXT) $(RS_BIN)/kg_status
 		.venv/bin/python3 current.py; \
 	fi
 
-goals:
-	@PYTHONPATH=./utils .venv/bin/python3 utils/history/solve_rate.py --goals data/goals.json --timer-font=doh
-
 today: $(RS_BIN)/kg_today
 	@$(RS_BIN)/kg_today $(patsubst rebuild,--force,$(filter-out $@,$(MAKECMDGOALS)))
 
@@ -260,22 +257,18 @@ timer: $(RS_BIN)/timer
 chat: $(RS_BIN)/kg_chat
 	@$(RS_BIN)/kg_chat $(filter-out $@,$(MAKECMDGOALS))
 
-# rank-table: refresh data/leetcode_rank_table.json from LeetCode's global
-# ranking (a few hundred requests, a few minutes). The rank badges read the
-# file; make readme never fetches.
-rank-table:
-	@PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_rank_fetch
+# rank-table: $(RS_BIN)/kg_readme
+	@$(RS_BIN)/kg_readme rank-table
 
-# chart generation is mostly disabled: the README carries the problem-rating
-# chart, the hours chart, the backlog chart and the two badges, so kg_elo_svg
-# (Elo badge; its chart is no longer linked), kg_streak_svg (streak badge),
-# kg_rank_svg (the two rank badges),
-# kg_problem_rating_svg, kg_backlog_svg, kg_hours_svg, kg_onsite_svg and kg_progress_svg run. The other renderers still work standalone if a chart comes back:
-#   kg_positions_svg
-#   kg_solvetime_svg kg_connectivity_svg kg_rates_svg kg_commits_svg
-#   kg_zpd_svg kg_degree_track kg_reach_svg kg_3d_svg kg_full_svg
-#   kg_compression_svg kg_forecast_svg, and $(MOVIE_BIN) (make movie)
-readme: $(MOCK_BIN) $(RS_BIN)/estimate
-	@PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_elo_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_streak_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_rank_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_rate_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_problem_rating_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_backlog_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_hours_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_onsite_svg && PYTHONPATH=./utils .venv/bin/python3 utils/readme/kg_progress_svg
+# make readme is implemented in Rust (utils/rs/kg_readme): the charts and
+# badges the README carries (problem rating, hours, onsite, progress,
+# backlog, the rate gauge, and the Elo, streak, rank and rate badges), then
+# the S3 upload and the README's generated regions. The renderers that are
+# no longer linked still work standalone from Python if a chart comes back:
+#   kg_positions_svg kg_solvetime_svg kg_connectivity_svg kg_rates_svg
+#   kg_commits_svg kg_zpd_svg kg_degree_track kg_reach_svg kg_3d_svg
+#   kg_full_svg kg_compression_svg kg_forecast_svg, and $(MOVIE_BIN)
+readme: $(MOCK_BIN) $(RS_BIN)/estimate $(RS_BIN)/kg_readme
+	@$(RS_BIN)/kg_readme
 	@$(RS_BIN)/estimate
-	@AWS_PROFILE=readme-uploader PYTHONPATH=./utils .venv/bin/python3 utils/readme/update_readme.py
+	@AWS_PROFILE=readme-uploader $(RS_BIN)/kg_readme update

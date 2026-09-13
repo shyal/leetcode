@@ -5,7 +5,7 @@
 //   make curve                 # refit from current evidence + report
 //   kg_curve --if-stale        # refit only when evidence.json (or a knob) is newer
 //   kg_curve --solve-report    # held-out comparison of the cold-solve model
-//   kg_curve --solve-rows-json # the per-game feature rows (kg_progress_svg)
+//   kg_curve --solve-rows-json # the per-game feature rows (kg_readme progress)
 //
 // Fit knobs, for experimenting with what the trial pool should say (CLI
 // flag or env var; .envrc carries them, and --if-stale treats a knob change
@@ -808,7 +808,7 @@ fn main() {
     let pv = PView::new(ctx.evidenced());
 
     if rows_json {
-        // the bridge for kg_progress_svg: the feature rows under the fitted curve
+        // the bridge for kg_readme progress: the feature rows under the fitted curve
         let curve = ctx.curve.as_ref().expect("graph/curve.json");
         let p = Params {
             a: curve.a,

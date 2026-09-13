@@ -125,7 +125,7 @@ fn active_branch(root: &std::path::Path) -> Option<String> {
 }
 
 /// The elapsed clock as large figlet digits. Font from $TIMER_FONT (default
-/// doh, same as make goals), stepping down to smaller fonts and finally
+/// doh), stepping down to smaller fonts and finally
 /// plain text when the area is too narrow or too short.
 fn big_clock(secs: f64, width: usize, height: usize) -> Vec<String> {
     let s = secs as i64;

@@ -1,4 +1,4 @@
-[![Run Tests](https://github.com/shyal/leetcode/actions/workflows/run-tests.yml/badge.svg)](https://github.com/shyal/leetcode/actions/workflows/run-tests.yml) <!-- ELO_BADGE -->![Elo](https://shyal.s3.amazonaws.com/elo_badge_20260913031920.svg)<!-- /ELO_BADGE --> <!-- STREAK_BADGE -->![Streak](https://shyal.s3.amazonaws.com/streak_badge_20260913031920.svg)<!-- /STREAK_BADGE --> <!-- RANK_ALL_BADGE -->![Elo against all rated LeetCode users](https://shyal.s3.amazonaws.com/rank_all_badge_20260913031920.svg)<!-- /RANK_ALL_BADGE --> <!-- RANK_REGULARS_BADGE -->![Elo against users with 20 or more contests](https://shyal.s3.amazonaws.com/rank_regulars_badge_20260913031920.svg)<!-- /RANK_REGULARS_BADGE --> <!-- RATE_BADGE -->![First-sight Elo per 100 hours](https://shyal.s3.amazonaws.com/rate_badge_20260913031920.svg)<!-- /RATE_BADGE -->
+[![Run Tests](https://github.com/shyal/leetcode/actions/workflows/run-tests.yml/badge.svg)](https://github.com/shyal/leetcode/actions/workflows/run-tests.yml) <!-- ELO_BADGE -->![Elo](https://shyal.s3.amazonaws.com/elo_badge_20260913045650.svg)<!-- /ELO_BADGE --> <!-- STREAK_BADGE -->![Streak](https://shyal.s3.amazonaws.com/streak_badge_20260913045650.svg)<!-- /STREAK_BADGE --> <!-- RANK_ALL_BADGE -->![Elo against all rated LeetCode users](https://shyal.s3.amazonaws.com/rank_all_badge_20260913045650.svg)<!-- /RANK_ALL_BADGE --> <!-- RANK_REGULARS_BADGE -->![Elo against users with 20 or more contests](https://shyal.s3.amazonaws.com/rank_regulars_badge_20260913045650.svg)<!-- /RANK_REGULARS_BADGE --> <!-- RATE_BADGE -->![First-sight Elo per 100 hours](https://shyal.s3.amazonaws.com/rate_badge_20260913045650.svg)<!-- /RATE_BADGE -->
 
 This is my leetcode repo. It uses [zerotrac] and [CLIST] so leetcode questions actually have an Elo rating attached to them, and has drills on an Anki schedule, a directed graph of moves, problems and drills that tries to categorize every leetcode question, a duolingo-style memory decay curve for nodes, and a pretty complex picker algorithm.
 
@@ -10,7 +10,7 @@ Every Elo on this page is scored on first sight only: the first time i meet a pr
 
 <!-- RATE_GAUGE -->
 
-![Elo per 100 hours on problems seen for the first time](https://shyal.s3.amazonaws.com/rate_gauge_20260913031920.svg)
+![Elo per 100 hours on problems seen for the first time](https://shyal.s3.amazonaws.com/rate_gauge_20260913045650.svg)
 
 <!-- /RATE_GAUGE -->
 
@@ -24,7 +24,7 @@ Right of the dotted line is a simulation: the picker running on its own for six 
 
 <!-- PROBLEM_RATING_CHART -->
 
-![Rating of the problems attempted](https://shyal.s3.amazonaws.com/problem_rating_20260913031920.svg)
+![Rating of the problems attempted](https://shyal.s3.amazonaws.com/problem_rating_20260913045650.svg)
 
 <!-- /PROBLEM_RATING_CHART -->
 
@@ -36,7 +36,7 @@ The study showed a 200 point gain at about 200 problems above one's rating, roug
 
 <!-- HOURS_CHART -->
 
-![Elo against hours of recorded solving, with the Carnegie Mellon rate](https://shyal.s3.amazonaws.com/hours_20260913031920.svg)
+![Elo against hours of recorded solving, with the Carnegie Mellon rate](https://shyal.s3.amazonaws.com/hours_20260913045650.svg)
 
 <!-- /HOURS_CHART -->
 
@@ -46,7 +46,7 @@ Extrapolating noisy data. What could go wrong.
 
 <!-- ONSITE_CHART -->
 
-![Elo history and its projection to the onsite line, on dates](https://shyal.s3.amazonaws.com/onsite_20260913031920.svg)
+![Elo history and its projection to the onsite line, on dates](https://shyal.s3.amazonaws.com/onsite_20260913045650.svg)
 
 <!-- /ONSITE_CHART -->
 
@@ -56,14 +56,14 @@ The two projections above are extrapolations. This one isn't. The model that sco
 
 <!-- PROGRESS_CHART -->
 
-![Actual minus model on the last 30 first sights](https://shyal.s3.amazonaws.com/progress_20260913031920.svg)
+![Actual minus model on the last 30 first sights](https://shyal.s3.amazonaws.com/progress_20260913045650.svg)
 <!-- /PROGRESS_CHART -->
 
 ## Backlog
 
 <!-- BACKLOG_CHART -->
 
-![Review backlog: open cards, due cards, due drills](https://shyal.s3.amazonaws.com/backlog_20260913031920.svg)
+![Review backlog: open cards, due cards, due drills](https://shyal.s3.amazonaws.com/backlog_20260913045650.svg)
 
 <!-- /BACKLOG_CHART -->
 

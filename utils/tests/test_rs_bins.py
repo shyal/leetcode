@@ -2,7 +2,8 @@
 # (kg_rep, is_session_start, kg_chat, kg_status, kg_dependents, kg_gaps,
 # kg_viz, estimate, kg_residuals, kg_predict, kg_sleep, kg_mirror, kg_drill,
 # kg_solved, drill, kg_force, timer, kg_curve, kg_solvecost, preflight, spot,
-# lc_solutions, kg_dive, learning, kg_hard, kg_llm_next, kg_today, kg_extract;
+# lc_solutions, kg_dive, learning, kg_hard, kg_llm_next, kg_today, kg_extract,
+# kg_readme;
 # utils/rs).
 # Each was diffed against
 # its Python original over the real graph/ data before the Python was
@@ -489,3 +490,13 @@ def test_kg_extract_stub_with_nothing_staged(tmp_path):
     )
     assert p.returncode == 0, p.stderr
     assert p.stdout.strip() == "nothing staged - no placeholder to write."
+
+
+def test_kg_readme_streak_badge_and_unknown_target():
+    p = run("kg_readme", "streak")
+    assert p.returncode == 0, p.stderr
+    assert p.stdout.startswith("wrote ") and "streak_badge.svg" in p.stdout
+    svg = open(os.path.join(ROOT, "graph", "streak_badge.svg")).read()
+    assert svg.startswith("<svg ") and "streak" in svg and "best" in svg
+    p = run("kg_readme", "bogus")
+    assert p.returncode == 2 and "unknown target bogus" in p.stderr
