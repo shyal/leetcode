@@ -304,6 +304,7 @@ builtins.draw_heap = draw_heap
 builtins.build_tree = build_tree
 builtins.generate_and_print_random_bst = generate_and_print_random_bst
 builtins.generate_full_binary_tree = generate_full_binary_tree
+builtins.generate_random_tree = generate_random_tree
 builtins.build_graph_from_edge_list = build_graph_from_edge_list
 
 # grids

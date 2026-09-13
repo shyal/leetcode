@@ -1,7 +1,8 @@
 # tree_utils.py
 
+import random
 from collections import deque
-from typing import Any, List, Optional
+from typing import Any, Iterable, List, Optional
 
 from colorama import Fore, Style
 from Types import TreeNode
@@ -150,6 +151,75 @@ def generate_full_binary_tree(height: int) -> Optional[TreeNode]:
     arr: List[Optional[int]] = list(range(1, num_nodes + 1))
     # Use the provided build_tree utility to construct the tree
     return build_tree(arr)
+
+
+def generate_random_tree(
+    size: int,
+    seed: Optional[int] = None,
+    sparsity: float = 0.0,
+    skew: float = 0.0,
+    values: Optional[Iterable[int]] = None,
+    bst: bool = False,
+) -> Optional[TreeNode]:
+    """A random binary tree with `size` nodes.
+
+    The tree grows one node at a time. Each new node fills one of the empty
+    child slots of the tree so far. Which slot is chosen is controlled by:
+
+    sparsity in [0, 1]: 0 fills the shallowest slots first, so the tree is
+        as bushy as a complete tree; 1 fills the deepest slots, so the tree
+        is a long chain. In between, each node picks deep with probability
+        `sparsity` and shallow otherwise.
+    skew in [-1, 1]: -1 always takes a left slot when one is available at
+        the chosen depth, 1 always takes a right one, 0 is even.
+    values: the node values, in level order; default is 1..size shuffled.
+        With bst=True the values are sorted and assigned in inorder, so the
+        tree is a valid BST with the same shape.
+    seed: fixes the tree; the global random state is untouched.
+    """
+    if size <= 0:
+        return None
+    rng = random.Random(seed)
+    vals = list(values) if values is not None else list(range(1, size + 1))
+    if len(vals) != size:
+        raise ValueError(f"need {size} values, got {len(vals)}")
+    if values is None:
+        rng.shuffle(vals)
+
+    root = TreeNode(0)
+    nodes = [root]
+    # (depth, parent, side): every empty child slot in the tree so far
+    slots = [(1, root, "left"), (1, root, "right")]
+    for _ in range(size - 1):
+        deep = rng.random() < sparsity
+        depth = max(d for d, _, _ in slots) if deep else min(d for d, _, _ in slots)
+        at = [s for s in slots if s[0] == depth]
+        right = rng.random() < (1 + skew) / 2
+        side = [s for s in at if s[2] == ("right" if right else "left")] or at
+        depth, parent, name = rng.choice(side)
+        slots.remove((depth, parent, name))
+        child = TreeNode(0)
+        setattr(parent, name, child)
+        nodes.append(child)
+        slots += [(depth + 1, child, "left"), (depth + 1, child, "right")]
+
+    if bst:
+        order: List[TreeNode] = []
+        stack: List[TreeNode] = []
+        cur: Optional[TreeNode] = root
+        while stack or cur:
+            while cur:
+                stack.append(cur)
+                cur = cur.left
+            cur = stack.pop()
+            order.append(cur)
+            cur = cur.right
+        for node, v in zip(order, sorted(vals)):
+            node.val = v
+    else:
+        for node, v in zip(nodes, vals):
+            node.val = v
+    return root
 
 
 def get_inorder(root: Optional[TreeNode]) -> List[int]:
