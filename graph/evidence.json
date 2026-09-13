@@ -24987,6 +24987,15 @@
       "judge": "deepseek-chat",
       "note": "Uses harness-provided cells(grid) to enumerate all coordinates; no explicit delta offsets written.",
       "summary": "The solution counts cells equal to v by iterating over cells(grid), a harness helper that yields every (i, j) coordinate, and summing a generator of matches. The grid-neighbors node is exercised through that coordinate enumeration rather than hand-written cardinal offsets. All assertions passed, including the 1000x1000 case."
+    },
+    "solved/d_Neighbour_Values_2026_09_13T21_37_39_062827_00_00Z.py": {
+      "date": "2026-09-14",
+      "problem": "drill",
+      "moves": {
+        "grid-neighbors": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The solution calls the harness helper nbrs(grid, r, c) to enumerate the cardinal neighbors of a cell and indexes grid at each returned (i, j) pair, collecting the values. This exercises grid-neighbors directly: the offset enumeration and bounds filtering are delegated to nbrs, and the assertions cover corners, edges, a single cell, and single-row/single-column grids. The file ran clean with no notes."
     }
   }
 }
