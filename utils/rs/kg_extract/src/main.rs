@@ -381,8 +381,12 @@ impl Git {
     }
 }
 
-/// macOS notification with the verdict, so the detached judge's answer
-/// reaches the operator without opening .judge.log or git log.
+/// macOS dialog with the full verdict, so the detached judge's answer
+/// reaches the operator without opening .judge.log or git log. A dialog,
+/// not a notification: a notification truncates the text, and clicking it
+/// opens Script Editor (osascript's owner) rather than anything useful.
+/// The dialog closes itself after ten minutes; the judge is detached, so
+/// the wait costs nothing.
 fn notify_verdict(title: &str, moves: &IndexMap<String, String>, note: &str) {
     if !cfg!(target_os = "macos") {
         return;
@@ -393,7 +397,8 @@ fn notify_verdict(title: &str, moves: &IndexMap<String, String>, note: &str) {
     }
     let esc = |s: &str| s.replace('\\', "\\\\").replace('"', "\\\"");
     let script = format!(
-        "display notification \"{}\" with title \"judge: {}\"",
+        "display dialog \"{}\" with title \"judge: {}\" buttons {{\"OK\"}} \
+         default button 1 giving up after 600",
         esc(&body.join("\n")),
         esc(title)
     );
