@@ -9507,6 +9507,15 @@
       },
       "note": "Multiple independent BFS calls per land cell instead of single unified multi-source queue.",
       "summary": "maxDistance computes the farthest distance from any water cell to the nearest land cell. It runs BFS from each land cell separately, recording min distances into a result matrix, then returns the maximum value found. The canonical multi-source-bfs pattern (seeding all sources in one queue upfront) was avoided in favor of multiple single-source passes, but the solution is correct."
+    },
+    "solved/p1765_Map_of_Highest_Peak_2026_09_13T01_44_58_095977_00_00Z.py": {
+      "date": "2026-09-13",
+      "problem": "1765",
+      "moves": {
+        "graph-bfs-shortest": "clean"
+      },
+      "note": "Sequential single-source BFS from each water cell instead of canonical multi-source-bfs.",
+      "summary": "The code computes each cell's distance to the nearest water by running a separate BFS from each water cell and tracking minimums. It exercises graph-bfs-shortest but sidesteps the standard multi-source-bfs approach of seeding all sources into the queue at once."
     }
   }
 }
