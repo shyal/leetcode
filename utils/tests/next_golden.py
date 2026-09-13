@@ -36,13 +36,23 @@ def node_rows(nodes, problems, evidence, statuses, immature, day):
     unl = kg_lib.unlocks(statuses, problems)
     gain = kg_lib.unlocks(statuses, problems, immature=immature)
     carr = kg_lib.carrier_counts(problems)
+    coef = kg_lib.solve_model()
+    solve_state = (
+        (
+            kg_lib.current_recall(nodes, evidence, kg_lib._load_curve(), day),
+            coef,
+            kg_lib.solve_ratings(),
+        )
+        if coef
+        else ({}, None, {})
+    )
     out = {}
     for n in nodes:
         status, last, recall, memory = kg_lib._node_curve(n, evidence, day)
         ax = kg_lib.node_axes(n, evidence, problems, day)
         grad = kg_lib.graduation_due(n, evidence, carr.get(n, 0))
         promo = kg_lib.predicted_carrier(
-            n, problems, statuses, nodes, evidence=evidence
+            n, problems, statuses, nodes, evidence=evidence, solve_state=solve_state
         )
         lc = kg_lib.latest_carrier(n, evidence)
         out[n] = {

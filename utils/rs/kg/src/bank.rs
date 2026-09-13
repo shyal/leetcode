@@ -13,6 +13,7 @@ use crate::ctx::{Ctx, PView};
 use crate::data::{is_numeric_id, parse_date, pnum_key, Problem, Problems, SOLID_WINDOW_DAYS};
 use crate::drills::{drill_clean, drill_warm, latest_drill_rep, node_drill_hold};
 use crate::evidence::Evidence;
+use crate::model::{target_pass_rate, walk_informative, SolveState};
 use crate::status::{
     carry_bar, diff_rank, input_tree, is_solid, last_clean_solve, owned, Statuses, MISSING, SOLID,
     STALE,
@@ -355,7 +356,10 @@ fn first_walk_per_problem(dm: &DraftMatrix, sel: &[bool]) -> Vec<usize> {
 }
 
 /// kg_lib.predicted_carrier: the best drafted problem whose walk needs
-/// nothing but the target, promoted in memory as (pnum, entry).
+/// nothing but the target, promoted in memory as (pnum, entry). With a
+/// `state` the walk the cold-solve model prices closest to the target pass
+/// rate comes first; unpriced walks keep the connectivity order behind it.
+#[allow(clippy::too_many_arguments)]
 pub fn predicted_carrier(
     ctx: &Ctx,
     target: &str,
@@ -365,6 +369,7 @@ pub fn predicted_carrier(
     skip: &HashSet<String>,
     difficulties: &[&str],
     today: NaiveDate,
+    state: Option<&SolveState>,
 ) -> Option<(String, Problem)> {
     let dm = ctx.draft_matrix(sorted_node_ids(statuses));
     let t = *dm.index.get(target)?;
@@ -419,7 +424,10 @@ pub fn predicted_carrier(
     if best.is_empty() {
         return None;
     }
+    let aim = target_pass_rate();
     best.sort_by(|a, b| {
+        let ia = walk_informative(&a.0, &a.1, state, aim);
+        let ib = walk_informative(&b.0, &b.1, state, aim);
         let ka = (
             diff_rank(&a.2),
             -a.3,
@@ -430,7 +438,9 @@ pub fn predicted_carrier(
             -b.3,
             (input_tree(&b.1, &ctx.nodes).len(), b.1.len()),
         );
-        ka.cmp(&kb)
+        ia.0.cmp(&ib.0)
+            .then_with(|| ia.1.partial_cmp(&ib.1).unwrap())
+            .then_with(|| ka.cmp(&kb))
             .then_with(|| {
                 ctx.acceptance(&b.0)
                     .partial_cmp(&ctx.acceptance(&a.0))

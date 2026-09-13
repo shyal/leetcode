@@ -328,6 +328,7 @@ impl<'a> Picker<'a> {
         }
         let promo = {
             let pv = self.pv.borrow();
+            let state = self.solve_state();
             predicted_carrier(
                 self.ctx,
                 target,
@@ -337,6 +338,7 @@ impl<'a> Picker<'a> {
                 &self.skip_set(),
                 &["Easy", "Medium"],
                 self.today,
+                Some(&state),
             )
         };
         let (num, entry) = promo?;
@@ -641,6 +643,7 @@ impl<'a> Picker<'a> {
             } else {
                 &["Easy", "Medium"]
             };
+            let state = (recall, coef, ratings);
             predicted_carrier(
                 self.ctx,
                 target,
@@ -650,6 +653,7 @@ impl<'a> Picker<'a> {
                 &self.skip_set(),
                 diffs,
                 self.today,
+                Some(&state),
             )
         };
         if let Some((num, entry)) = promo {
@@ -1514,6 +1518,7 @@ pub fn blocked_frontier(
                 &skip,
                 &["Easy", "Medium"],
                 today,
+                None,
             )
             .is_some()
             {

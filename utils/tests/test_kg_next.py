@@ -149,7 +149,7 @@ def picker(monkeypatch):
         lambda target, problems, statuses, nodes, evidence=None, skip=(), difficulties=(
             "Easy",
             "Medium",
-        ): kg_lib.predicted_carrier(
+        ), solve_state=None: kg_lib.predicted_carrier(
             target,
             problems,
             statuses,
@@ -158,6 +158,7 @@ def picker(monkeypatch):
             evidence=evidence or {},
             skip=skip,
             difficulties=difficulties,
+            solve_state=solve_state,
         ),
     )
     monkeypatch.setattr(
@@ -2531,6 +2532,50 @@ def test_an_unpriced_carrier_sorts_behind_the_priced_ones(picker, monkeypatch):
     picker.immature.add("b")
     picker.gain = {"b": 40}
     assert picker.run(ns, ps, {}, st)[2] == "2"
+
+
+def test_the_drafted_carrier_nearest_the_target_pass_rate_wins(picker, monkeypatch):
+    """2026-09-13: multi-source-bfs had every proving carrier solved, and the
+    drafted fallback served 2812 at rating 2154 (7% odds) on connectivity
+    alone. The drafted tier now takes the proving path's order: among
+    drafts whose walk needs only the target, the one the cold-solve model
+    puts nearest the target pass rate, so the rep can actually fail."""
+    monkeypatch.setattr(
+        kg_lib, "solve_model", lambda curve=None: {"intercept": 0.0, "rating": -1.0}
+    )
+    monkeypatch.setattr(
+        kg_lib, "solve_ratings", lambda: {"9001": 900.0, "9002": 1500.0}
+    )
+    monkeypatch.setattr(kg_next, "solve_model", kg_lib.solve_model)
+    monkeypatch.setattr(kg_next, "solve_ratings", kg_lib.solve_ratings)
+    ns = nodes("m")
+    ps = {"1": problem(["m"])}
+    ev = evidence(solve("1", {"m": "struggled"}, days_ago=1))
+    st = {"m": (FRAGILE, ago(1))}
+    # 9001 sits at p = 0.82, 9002 at p = 0.50: 9002 is the test
+    for num in ("9001", "9002"):
+        picker.predicted[num] = drafted(["m"])
+        picker.meta[num] = {"difficulty": "Medium"}
+    assert picker.run(ns, ps, ev, st)[2] == "9002"
+
+
+def test_an_unpriced_draft_sorts_behind_the_priced_ones(picker, monkeypatch):
+    """A draft with no contest rating keeps the old connectivity order,
+    behind every draft the model can place on the scale."""
+    monkeypatch.setattr(
+        kg_lib, "solve_model", lambda curve=None: {"intercept": 0.0, "rating": -1.0}
+    )
+    monkeypatch.setattr(kg_lib, "solve_ratings", lambda: {"9002": 1100.0})
+    monkeypatch.setattr(kg_next, "solve_model", kg_lib.solve_model)
+    monkeypatch.setattr(kg_next, "solve_ratings", kg_lib.solve_ratings)
+    ns = nodes("m")
+    ps = {"1": problem(["m"])}
+    ev = evidence(solve("1", {"m": "struggled"}, days_ago=1))
+    st = {"m": (FRAGILE, ago(1))}
+    for num in ("9001", "9002"):
+        picker.predicted[num] = drafted(["m"])
+        picker.meta[num] = {"difficulty": "Medium"}
+    assert picker.run(ns, ps, ev, st)[2] == "9002"
 
 
 def test_the_young_move_with_the_most_reach_goes_first(picker):

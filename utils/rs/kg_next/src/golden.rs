@@ -4,7 +4,7 @@
 // and compares the two exactly, so a drift in either port fails `make test`.
 
 use std::cell::RefCell;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use chrono::NaiveDate;
 use serde_json::{json, Map, Value};
@@ -22,15 +22,15 @@ use kg::drills::{
 };
 use kg::evidence::Evidence;
 use kg::git::{sleep_rows, sleep_state, solve_seconds_today, solved_today_pnums};
-use kg::model::{drill_forecast, elo_now, solve_forecast, solve_model, solve_ratings};
+use kg::model::{drill_forecast, elo_now, solve_forecast, solve_model, solve_ratings, SolveState};
 use kg::pick::{
     blocked_frontier, choice_tuple, parked_summits, pick, ready_hards, review_ahead, review_queue,
     routed_around, starved, trivial_easies, unmapped_summits, upcoming, PickArgs,
 };
 use kg::recog;
 use kg::status::{
-    cooled, gentleness, graduation_due, last_clean_solve, last_solved, latest_carrier, node_axes,
-    node_curve, owned, tree_size, Statuses,
+    cooled, current_recall, gentleness, graduation_due, last_clean_solve, last_solved,
+    latest_carrier, node_axes, node_curve, owned, tree_size, Statuses,
 };
 
 fn date(d: Option<NaiveDate>) -> Value {
@@ -66,12 +66,28 @@ pub fn dump(
     let unl = unlocks(ctx, statuses, pv, &empty);
     let gain = unlocks(ctx, statuses, pv, immature);
     let skip: HashSet<String> = HashSet::new();
+    let coef = solve_model(ctx);
+    let state: SolveState = if coef.is_some() {
+        (current_recall(ctx, ev, today), coef, solve_ratings(ctx))
+    } else {
+        (HashMap::new(), None, HashMap::new())
+    };
     for n in ctx.nodes.keys() {
         let (status, last, recall, memory) = node_curve(ctx, n, ev, today);
         let ax = node_axes(ctx, n, ev, pv, today);
         let due = due_drill(ctx, n, ev, today, false, false);
         let cold = cold_drill(ctx, n, ev, today, false);
-        let promo = predicted_carrier(ctx, n, pv, statuses, ev, &skip, &["Easy", "Medium"], today);
+        let promo = predicted_carrier(
+            ctx,
+            n,
+            pv,
+            statuses,
+            ev,
+            &skip,
+            &["Easy", "Medium"],
+            today,
+            Some(&state),
+        );
         nodes.insert(
             n.clone(),
             json!({

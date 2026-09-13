@@ -1529,6 +1529,7 @@ def predicted_carrier(
     evidence=None,
     skip=(),
     difficulties=("Easy", "Medium"),
+    solve_state=None,
 ):
     """The frontier mover (PLAN.md phase 4): when no evidenced problem can
     carry `target`, promote the best drafted one. Returns (pnum, entry) or
@@ -1539,8 +1540,13 @@ def predicted_carrier(
     A candidate is an unmapped easy/medium with a drafted walk in which the
     ONE non-solid move is the target — the one-new-move rule applied to the
     predicted tier — and no missing-move flags (a walk the taxonomy cannot
-    express yet is not a carrier). Hards stay summits. Ranking is
-    cheap-regime-first: the walk whose rarest supporting move has the most
+    express yet is not a carrier). Hards stay summits. Ranking is the
+    proving path's: with `solve_state` (recall, coef, ratings) given, the
+    drafted walk the cold-solve model puts closest to the target pass rate
+    comes first - a rep at 7% odds is a rep on failing, not on the move
+    (2812 at rating 2154 served for multi-source-bfs, 2026-09-13). Walks the
+    model cannot price keep the old order behind the priced ones:
+    cheap-regime-first, the walk whose rarest supporting move has the most
     problems rehearsing it (capped at CONN_MASS_CAP), then the usual
     gentleness and acceptance keys. `difficulties` narrows the pool: a
     proving rep for a medium-bar node has to be a Medium. A draft held
@@ -1580,8 +1586,22 @@ def predicted_carrier(
         best.append((num, dm.walk_moves[wi], diff, min(int(m), CONN_MASS_CAP)))
     if not best:
         return None
+    aim = target_pass_rate()
+    empty: dict[str, float] = {}
+    recall, coef, ratings = solve_state or (empty, None, empty)
+    ratings = ratings or empty
+
+    def informative(num, moves):
+        rating = ratings.get(str(num))
+        if not coef or rating is None:
+            return (True, 0.0)
+        ln_recall, unseen = walk_terms(moves, recall)
+        odds = 1 / (1 + math.exp(-solve_logit(coef, rating, ln_recall, unseen)))
+        return (False, abs(odds - aim))
+
     best.sort(
         key=lambda t: (
+            informative(t[0], t[1]),
             DIFF_RANK.get(t[2], 1),
             -t[3],
             (len(input_tree(t[1], nodes)), len(t[1])),
