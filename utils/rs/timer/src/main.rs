@@ -14,28 +14,27 @@
 // merges away the timer goes idle again and waits for the next one. Ctrl+C
 // to quit; it records nothing - `make solved` stays the only recorder.
 //
-// Ported from utils/kg/timer (Python) on 2026-09-12; the rich Live display
-// became a redraw-in-place loop with the same panel, bars and figlet clock.
+// Ported from utils/kg/timer (Python) on 2026-09-12. Since 2026-09-13 it is
+// a ratatui application: alternate screen, raw mode, one full frame per
+// tick, so nothing ever wraps or scrolls, and a resize just redraws. q, Esc
+// or Ctrl+C quits.
 
-use std::io::Write;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::Duration;
 
-use kg::cells::cell_len;
-use kg::console::{terminal_columns, Style};
+use kg::console::terminal_columns;
 use kg::ctx::{Ctx, PView};
 use kg::data::{load_envrc, repo_root};
 use kg::figlet;
 use kg::git::active_seconds;
 use kg::model::{drill_forecast, solve_forecast};
+use ratatui::backend::TestBackend;
+use ratatui::crossterm::event::{self, Event, KeyCode, KeyEventKind, KeyModifiers};
+use ratatui::layout::{Constraint, Flex, Layout, Rect};
+use ratatui::style::{Color, Modifier, Style, Stylize};
+use ratatui::text::{Line, Span};
+use ratatui::widgets::{Block, BorderType, Padding, Paragraph};
+use ratatui::{Frame, Terminal};
 use regex::Regex;
-
-static STOP: AtomicBool = AtomicBool::new(false);
-/// colour only on a tty (rich's rule), set once at start
-static COLOR: AtomicBool = AtomicBool::new(false);
-
-extern "C" fn on_sigint(_: libc::c_int) {
-    STOP.store(true, Ordering::SeqCst);
-}
 
 fn now() -> f64 {
     std::time::SystemTime::now()
@@ -127,8 +126,8 @@ fn active_branch(root: &std::path::Path) -> Option<String> {
 
 /// The elapsed clock as large figlet digits. Font from $TIMER_FONT (default
 /// doh, same as make goals), stepping down to smaller fonts and finally
-/// plain text when the pane is too narrow.
-fn big_clock(secs: f64, width: usize) -> Vec<String> {
+/// plain text when the area is too narrow or too short.
+fn big_clock(secs: f64, width: usize, height: usize) -> Vec<String> {
     let s = secs as i64;
     let face = format!("{}:{:02}", s / 60, s % 60);
     let first = std::env::var("TIMER_FONT").unwrap_or_else(|_| "doh".to_string());
@@ -136,15 +135,16 @@ fn big_clock(secs: f64, width: usize) -> Vec<String> {
         let Some(f) = figlet::builtin(font) else {
             continue;
         };
-        let art = f.render(&face, 80);
+        let art = f.render(&face, 200);
         let lines: Vec<String> = art
             .trim_end()
             .lines()
             .filter(|l| !l.trim().is_empty())
-            .map(String::from)
+            .map(|l| l.trim_end().to_string())
             .collect();
         if !lines.is_empty()
-            && lines.iter().map(|l| l.chars().count()).max().unwrap() <= width.saturating_sub(4)
+            && lines.len() <= height
+            && lines.iter().map(|l| l.chars().count()).max().unwrap() <= width
         {
             return lines;
         }
@@ -184,45 +184,34 @@ impl Session {
     /// (color, message) for where the clock sits between the marks.
     fn zone(&self, elapsed: f64) -> (&'static str, &'static str) {
         if self.marks.is_empty() {
-            return ("cyan", "no forecast — plain clock");
+            return ("cyan", "no forecast - plain clock");
         }
         if elapsed > self.marks[2].1 {
-            return ("red", "past the stop mark — bank it, reinforce");
+            return ("red", "past the stop mark - bank it, reinforce");
         }
         if elapsed > self.marks[1].1 {
             return ("yellow", "hint is fair game");
         }
         if elapsed > self.marks[0].1 {
-            return ("yellow", "past expected — keep going");
+            return ("yellow", "past expected - keep going");
         }
         ("green", "on pace")
     }
 }
 
-fn sgr(style: &str) -> String {
-    if !COLOR.load(Ordering::Relaxed) {
-        return String::new();
-    }
-    let st = Style::parse(style);
-    if st.is_plain() {
-        String::new()
-    } else {
-        format!("\x1b[{}m", st.sgr())
-    }
-}
-
-fn paint(text: &str, style: &str) -> String {
-    let code = sgr(style);
-    if code.is_empty() {
-        text.to_string()
-    } else {
-        format!("{code}{text}\x1b[0m")
+fn color(name: &str) -> Color {
+    match name {
+        "green" => Color::Green,
+        "yellow" => Color::Yellow,
+        "red" => Color::Red,
+        "cyan" => Color::Cyan,
+        _ => Color::Reset,
     }
 }
 
 /// rich's ProgressBar: "━" for the done part (a half block at the edge),
 /// dim "━" for the rest.
-fn bar(width: usize, completed: f64, total: f64, finished: bool) -> String {
+fn bar(width: usize, completed: f64, total: f64, finished: bool) -> Line<'static> {
     let frac = if total > 0.0 {
         (completed / total).clamp(0.0, 1.0)
     } else {
@@ -231,124 +220,161 @@ fn bar(width: usize, completed: f64, total: f64, finished: bool) -> String {
     let halves = (width as f64 * 2.0 * frac) as usize;
     let full = halves / 2;
     let half = halves % 2 == 1;
-    let mut s = String::new();
-    let done: String = "━".repeat(full);
-    s.push_str(&paint(&done, if finished { "bold cyan" } else { "cyan" }));
+    let done = if finished {
+        Style::new().cyan().bold()
+    } else {
+        Style::new().cyan()
+    };
+    let mut spans = vec![Span::styled("━".repeat(full), done)];
     let mut rest = width.saturating_sub(full);
     if half && rest > 0 {
-        s.push_str(&paint("╸", "cyan"));
+        spans.push(Span::styled("╸", Style::new().cyan()));
         rest -= 1;
     }
-    s.push_str(&paint(&"━".repeat(rest), "dim"));
-    s
+    spans.push(Span::styled("━".repeat(rest), Style::new().dim()));
+    Line::from(spans)
 }
 
-/// A rich Panel with padding (1, 2) at the terminal width: the top rule
-/// carries the title, the bottom one the subtitle, both centred.
-fn panel(body: &[String], title: &str, subtitle: &str, border: &str, width: usize) -> Vec<String> {
-    let inner = width.saturating_sub(4);
-    let rule = |text: &str, l: char, r: char| -> String {
-        let t = if text.is_empty() {
+/// The panel: rounded border in the zone colour, the label on the top rule,
+/// the zone message on the bottom one, padding (1, 2) inside.
+fn panel<'a>(title: Line<'a>, subtitle: Line<'a>, border: Color) -> Block<'a> {
+    Block::bordered()
+        .border_type(BorderType::Rounded)
+        .border_style(Style::new().fg(border))
+        .title(title.centered())
+        .title_bottom(subtitle.centered())
+        .padding(Padding::new(3, 3, 1, 1))
+}
+
+fn draw_session(frame: &mut Frame, session: &Session) {
+    let elapsed = now() - session.t0;
+    let (zone, message) = session.zone(elapsed);
+    let c = color(zone);
+    let mut subtitle = vec![Span::styled(message, Style::new().fg(c))];
+    if session.parks > 0 {
+        let (sh, sm) = (session.slept / 60 / 60, session.slept / 60 % 60);
+        subtitle.push(Span::styled(
+            format!("  · slept {sh}h {sm:02}m over {} park(s)", session.parks),
+            Style::new().dim(),
+        ));
+    }
+    let block = panel(
+        Line::from(session.label.as_str()).bold(),
+        Line::from(subtitle),
+        c,
+    );
+    let inner = block.inner(frame.area());
+    frame.render_widget(block, frame.area());
+
+    let n = session.marks.len() as u16;
+    let gap = u16::from(n > 0);
+    let [clock_area, _, marks_area] = Layout::vertical([
+        Constraint::Fill(1),
+        Constraint::Length(gap),
+        Constraint::Length(n),
+    ])
+    .areas(inner);
+
+    let lines = big_clock(
+        elapsed,
+        clock_area.width as usize,
+        clock_area.height as usize,
+    );
+    let [clock_area] = Layout::vertical([Constraint::Length(lines.len() as u16)])
+        .flex(Flex::Center)
+        .areas(clock_area);
+    let text: Vec<Line> = lines.into_iter().map(Line::from).collect();
+    frame.render_widget(
+        Paragraph::new(text)
+            .style(Style::new().fg(c).add_modifier(Modifier::BOLD))
+            .centered(),
+        clock_area,
+    );
+
+    // description(15) | bar | mark(6) | left(10), one space between
+    for (i, (name, total, zc)) in session.marks.iter().enumerate() {
+        let row = Rect {
+            y: marks_area.y + i as u16,
+            height: 1,
+            ..marks_area
+        };
+        let [desc, gauge, mark, left] = Layout::horizontal([
+            Constraint::Length(15),
+            Constraint::Fill(1),
+            Constraint::Length(6),
+            Constraint::Length(10),
+        ])
+        .spacing(1)
+        .areas(row);
+        let remaining = if elapsed >= *total {
             String::new()
         } else {
-            format!(" {text} ")
+            format!("-{}", clock(total - elapsed))
         };
-        let excess = inner.saturating_sub(cell_len(&t));
-        let (a, b) = (excess / 2, excess - excess / 2);
-        format!(
-            "{}{}{}{}",
-            paint(&format!("{l}─{}", "─".repeat(a)), border),
-            paint(&t, "bold"),
-            paint(&"─".repeat(b), border),
-            paint(&format!("─{r}"), border)
-        )
-    };
-    let mut out = vec![rule(title, '╭', '╮')];
-    let line = |s: &str| -> String {
-        let pad = inner.saturating_sub(2).saturating_sub(visible_len(s));
-        format!(
-            "{}   {s}{}   {}",
-            paint("│", border),
-            " ".repeat(pad),
-            paint("│", border)
-        )
-    };
-    out.push(line(""));
-    for l in body {
-        out.push(line(l));
+        frame.render_widget(Paragraph::new(*name).fg(color(zc)), desc);
+        frame.render_widget(
+            bar(
+                gauge.width as usize,
+                elapsed.min(*total),
+                *total,
+                elapsed >= *total,
+            ),
+            gauge,
+        );
+        frame.render_widget(Paragraph::new(clock(*total)).dim(), mark);
+        frame.render_widget(Paragraph::new(remaining).right_aligned(), left);
     }
-    out.push(line(""));
-    out.push(rule(subtitle, '╰', '╯'));
+}
+
+fn draw_idle(frame: &mut Frame) {
+    let block = panel(Line::default(), Line::default(), Color::DarkGray);
+    let inner = block.inner(frame.area());
+    frame.render_widget(block, frame.area());
+    let [row] = Layout::vertical([Constraint::Length(1)])
+        .flex(Flex::Center)
+        .areas(inner);
+    frame.render_widget(
+        Paragraph::new("idle - waiting for a solve branch (`make next`, `make drill`)")
+            .dim()
+            .centered(),
+        row,
+    );
+}
+
+fn draw(frame: &mut Frame, session: Option<&Session>) {
+    match session {
+        Some(s) => draw_session(frame, s),
+        None => draw_idle(frame),
+    }
+}
+
+/// One frame as plain text (no colour), for `--once` and the tests.
+fn frame_text(session: Option<&Session>, width: u16, height: u16) -> String {
+    let mut terminal = Terminal::new(TestBackend::new(width, height)).expect("test backend");
+    terminal.draw(|f| draw(f, session)).expect("draw");
+    let buf = terminal.backend().buffer();
+    let mut out = String::new();
+    for y in 0..height {
+        let mut row = String::new();
+        for x in 0..width {
+            if let Some(cell) = buf.cell((x, y)) {
+                row.push_str(cell.symbol());
+            }
+        }
+        out.push_str(row.trim_end());
+        out.push('\n');
+    }
     out
 }
 
-/// Cells of a string with its ANSI escapes stripped.
-fn visible_len(s: &str) -> usize {
-    let re = Regex::new("\x1b\\[[0-9;]*m").unwrap();
-    cell_len(&re.replace_all(s, ""))
-}
-
-fn center(s: &str, width: usize) -> String {
-    let pad = width.saturating_sub(visible_len(s)) / 2;
-    format!("{}{s}", " ".repeat(pad))
-}
-
-fn render(session: &Session, width: usize) -> Vec<String> {
-    let elapsed = now() - session.t0;
-    let (color, message) = session.zone(elapsed);
-    let inner = width.saturating_sub(6); // the panel's border and padding
-    let mut body: Vec<String> = big_clock(elapsed, width)
-        .iter()
-        .map(|l| center(&paint(l, &format!("bold {color}")), inner))
-        .collect();
-    if !session.marks.is_empty() {
-        body.push(String::new());
-        // description(15) | bar | mark | left(10), one space between
-        let bar_width = inner.saturating_sub(15 + 1 + 1 + 6 + 1 + 10);
-        for (name, total, c) in &session.marks {
-            let left = if elapsed >= *total {
-                String::new()
-            } else {
-                format!("-{}", clock(total - elapsed))
-            };
-            body.push(format!(
-                "{} {} {} {:>10}",
-                paint(&format!("{name:<15}"), c),
-                bar(bar_width, elapsed.min(*total), *total, elapsed >= *total),
-                paint(&format!("{:<6}", clock(*total)), "dim"),
-                left
-            ));
-        }
-    }
-    let mut subtitle = paint(message, color);
-    if session.parks > 0 {
-        let (sh, sm) = (session.slept / 60 / 60, session.slept / 60 % 60);
-        subtitle.push_str(&paint(
-            &format!("  · slept {sh}h {sm:02}m over {} park(s)", session.parks),
-            "dim",
-        ));
-    }
-    panel(
-        &body,
-        &paint(&session.label, "bold"),
-        &subtitle,
-        color,
-        width,
-    )
-}
-
-fn idle(width: usize) -> Vec<String> {
-    let text = paint(
-        "idle — waiting for a solve branch (`make next`, `make drill`)",
-        "dim",
-    );
-    panel(
-        &[center(&text, width.saturating_sub(6))],
-        "",
-        "",
-        "dim",
-        width,
-    )
+/// true when the key means quit: q, Esc or Ctrl+C.
+fn quits(ev: &Event) -> bool {
+    let Event::Key(k) = ev else {
+        return false;
+    };
+    k.kind == KeyEventKind::Press
+        && (matches!(k.code, KeyCode::Char('q') | KeyCode::Esc)
+            || (k.code == KeyCode::Char('c') && k.modifiers.contains(KeyModifiers::CONTROL)))
 }
 
 fn main() {
@@ -365,54 +391,44 @@ fn main() {
         }
         return;
     }
-    let once = args.iter().any(|a| a == "--once");
-    COLOR.store(kg::console::Console::new().color, Ordering::Relaxed);
     let root = repo_root();
     load_envrc(&root);
     let (ctx, _) = Ctx::load(root);
-    // SAFETY: a plain flag-setting handler
-    unsafe {
-        libc::signal(libc::SIGINT, on_sigint as *const () as libc::sighandler_t);
+    if args.iter().any(|a| a == "--once") {
+        let session = active_branch(&ctx.root).map(|_| Session::new(&ctx));
+        let (w, h) = ratatui::crossterm::terminal::size()
+            .ok()
+            .filter(|(w, h)| *w > 0 && *h > 0)
+            .unwrap_or((terminal_columns() as u16, 24));
+        print!("{}", frame_text(session.as_ref(), w, h));
+        return;
     }
+    let mut terminal = ratatui::init();
     let mut branch: Option<String> = None;
     let mut session: Option<Session> = None;
-    let mut drawn = 0usize;
-    let mut out = std::io::stdout();
-    loop {
+    let mut stop = false;
+    while !stop {
         let b = active_branch(&ctx.root);
         if b != branch {
             branch = b.clone();
             session = b.map(|_| Session::new(&ctx));
         }
-        let width = terminal_columns();
-        let frame = match &session {
-            Some(s) => render(s, width),
-            None => idle(width),
-        };
-        if drawn > 0 {
-            let _ = write!(out, "\x1b[{drawn}A\x1b[J");
-        }
-        for l in &frame {
-            let _ = writeln!(out, "{l}");
-        }
-        let _ = out.flush();
-        drawn = frame.len();
-        if once {
-            return;
-        }
-        for _ in 0..10 {
-            if STOP.load(Ordering::SeqCst) {
-                if let Some(s) = &session {
-                    println!(
-                        "{} — {} on the clock. `make solved` when it lands.",
-                        s.label,
-                        clock(now() - s.t0)
-                    );
-                }
-                return;
+        let _ = terminal.draw(|f| draw(f, session.as_ref()));
+        // wake at the next whole second, or at once on a key or a resize
+        let tick = Duration::from_millis(1000 - (now() * 1000.0) as u64 % 1000);
+        if event::poll(tick).unwrap_or(false) {
+            if let Ok(ev) = event::read() {
+                stop = quits(&ev);
             }
-            std::thread::sleep(std::time::Duration::from_millis(100));
         }
+    }
+    ratatui::restore();
+    if let Some(s) = &session {
+        println!(
+            "{} - {} on the clock. `make solved` when it lands.",
+            s.label,
+            clock(now() - s.t0)
+        );
     }
 }
 
@@ -422,8 +438,17 @@ mod tests {
     fn clocks() {
         assert_eq!(super::clock(65.0), "1m 05s");
         assert_eq!(super::clock(0.0), "0m 00s");
-        let lines = super::big_clock(65.0, 120);
+        let lines = super::big_clock(65.0, 120, 40);
         assert!(lines.len() > 5);
-        assert_eq!(super::big_clock(65.0, 10), vec!["1m 05s".to_string()]);
+        assert_eq!(super::big_clock(65.0, 10, 40), vec!["1m 05s".to_string()]);
+        assert_eq!(super::big_clock(65.0, 120, 1), vec!["1m 05s".to_string()]);
+    }
+
+    #[test]
+    fn idle_frame_is_a_panel() {
+        let f = super::frame_text(None, 60, 7);
+        assert!(f.starts_with('╭') && f.trim_end().ends_with('╯'));
+        assert!(f.contains("idle - waiting"));
+        assert!(f.lines().all(|l| l.chars().count() <= 60));
     }
 }
