@@ -8,22 +8,22 @@
 //   lc_submit --auto          # the `make solved` step: silently skip a drill (no URL
 //                             # line) or a missing cookie file; never fail the make
 //   lc_submit --show          # print the code that would be submitted and stop
+//   lc_submit --check F...    # print "F: <names>" for every file whose submission
+//                             # uses a name leetcode lacks; exit 1 if any (the corpus test)
 //
 // Login: the cookie file LC_COOKIE_FILE (default ~/.leetcode_cookies.json)
 // holding {"LEETCODE_SESSION": ..., "csrftoken": ...}; `make lc-login`
 // writes it from a browser (misc/lc_cookies.mjs).
 //
-// What is submitted: the LAST top-level `class Solution` block in the file,
-// with every harness helper it uses (cells, nbrs, like, grid_bfs, the
-// maxheap functions) pasted above it from HELPER_FILES, transitively. Imports
-// are not sent; leetcode preloads the ones the harness mirrors
-// (utils/harness/sitecustomize.py).
+// What is submitted: see strip.rs.
 
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use kg::console::Console;
 use serde_json::{json, Value};
+
+mod strip;
 
 const UA: &str = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
 const QUESTION_QUERY: &str =
@@ -40,158 +40,6 @@ fn slug_of(code: &str) -> Option<String> {
     let rest = line.split("/problems/").nth(1)?;
     let slug = rest.split(['/', '?']).next()?;
     (!slug.is_empty()).then(|| slug.to_string())
-}
-
-/// The last top-level `class Solution` block: from its header to the line
-/// before the next top-level statement.
-fn solution_class(code: &str) -> Option<String> {
-    let lines: Vec<&str> = code.lines().collect();
-    let start = lines
-        .iter()
-        .rposition(|l| l.starts_with("class Solution") && l.trim_end().ends_with(':'))?;
-    let mut end = lines.len();
-    for (i, l) in lines.iter().enumerate().skip(start + 1) {
-        let top_level = !l.is_empty() && !l.starts_with([' ', '\t']);
-        if top_level && !l.starts_with('#') {
-            end = i;
-            break;
-        }
-    }
-    Some(lines[start..end].join("\n").trim_end().to_string() + "\n")
-}
-
-/// The files whose top-level names a solution may call bare, and which
-/// leetcode does not have: each used name is pasted in, with what it needs.
-const HELPER_FILES: [&str; 2] = ["utils/harness/grid_utils.py", "dsa/maxheapq.py"];
-
-/// Every top-level `def`, `class` or assignment in a python file, by name:
-/// the block runs to the next top-level statement. Imports and the
-/// `if __name__` demo are not blocks.
-fn top_level_blocks(src: &str) -> Vec<(String, String)> {
-    let lines: Vec<&str> = src.lines().collect();
-    let name_of = |l: &str| -> Option<String> {
-        let head = l.split(['(', ':', '=', ' ']).find(|w| !w.is_empty())?;
-        let name = match head {
-            "def" | "class" => l[head.len()..]
-                .trim_start()
-                .split(['(', ':'])
-                .next()?
-                .trim()
-                .to_string(),
-            "import" | "from" | "if" | "print" | "@" => return None,
-            _ if l.contains('=') || l.contains(':') => head.to_string(),
-            _ => return None,
-        };
-        let ok = name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_');
-        (ok && !name.is_empty()).then_some(name)
-    };
-    let starts: Vec<(usize, String)> = lines
-        .iter()
-        .enumerate()
-        .filter(|(_, l)| !l.is_empty() && !l.starts_with([' ', '\t', '#', '"', ')']))
-        .filter_map(|(i, l)| name_of(l).map(|n| (i, n)))
-        .collect();
-    let mut out = Vec::new();
-    for (k, (start, name)) in starts.iter().enumerate() {
-        let mut end = starts.get(k + 1).map_or(lines.len(), |(s, _)| *s);
-        // an `if __name__` (or any other statement) between two blocks ends the
-        // earlier one too; a `)` at column 0 closes a multi-line signature
-        for (i, l) in lines
-            .iter()
-            .enumerate()
-            .skip(start + 1)
-            .take(end - start - 1)
-        {
-            if !l.is_empty() && !l.starts_with([' ', '\t', '#', ')']) {
-                end = i;
-                break;
-            }
-        }
-        let block = lines[*start..end].join("\n").trim_end().to_string();
-        out.push((name.clone(), block));
-    }
-    out
-}
-
-/// The block without its docstrings and comments, so a helper named in
-/// prose is not pulled in.
-fn code_only(block: &str) -> String {
-    let mut out = String::new();
-    let mut in_doc = false;
-    for l in block.lines() {
-        let quotes = l.matches("\"\"\"").count();
-        if in_doc {
-            in_doc = quotes % 2 == 0;
-            continue;
-        }
-        if quotes % 2 == 1 {
-            in_doc = true;
-            continue;
-        }
-        if quotes == 0 {
-            out.push_str(l.split('#').next().unwrap_or(""));
-            out.push('\n');
-        }
-    }
-    out
-}
-
-fn uses(code: &str, name: &str) -> bool {
-    let bytes = code.as_bytes();
-    let mut from = 0;
-    while let Some(pos) = code[from..].find(name) {
-        let i = from + pos;
-        let j = i + name.len();
-        let word = |b: u8| b.is_ascii_alphanumeric() || b == b'_';
-        let before = i > 0 && word(bytes[i - 1]);
-        let after = j < bytes.len() && word(bytes[j]);
-        if !before && !after {
-            return true;
-        }
-        from = j;
-    }
-    false
-}
-
-/// The blocks `class_src` needs, dependencies first: harness helpers, then
-/// the file's own top-level definitions (a State class, a helper function)
-/// other than the Solution classes themselves.
-fn expand_helpers(root: &Path, file_src: &str, class_src: &str) -> String {
-    let mut blocks: Vec<(String, String)> = Vec::new();
-    for f in HELPER_FILES {
-        if let Ok(src) = std::fs::read_to_string(root.join(f)) {
-            blocks.extend(top_level_blocks(&src));
-        }
-    }
-    blocks.extend(
-        top_level_blocks(file_src)
-            .into_iter()
-            .filter(|(name, block)| {
-                // assignments in a solve are test setup (root = build_tree(...))
-                name != "Solution" && (block.starts_with("def ") || block.starts_with("class "))
-            }),
-    );
-    let mut needed = vec![false; blocks.len()];
-    let mut frontier: Vec<usize> = (0..blocks.len())
-        .filter(|&i| !blocks[i].0.starts_with('_') && uses(class_src, &blocks[i].0))
-        .collect();
-    while let Some(i) = frontier.pop() {
-        if needed[i] {
-            continue;
-        }
-        needed[i] = true;
-        for (j, (name, _)) in blocks.iter().enumerate() {
-            if j != i && !needed[j] && uses(&code_only(&blocks[i].1), name) {
-                frontier.push(j);
-            }
-        }
-    }
-    blocks
-        .iter()
-        .zip(&needed)
-        .filter(|(_, &n)| n)
-        .map(|((_, b), _)| format!("{b}\n\n\n"))
-        .collect()
 }
 
 fn cookie_file() -> PathBuf {
@@ -233,7 +81,27 @@ fn question_id(slug: &str) -> String {
     }
 }
 
+/// One POST; a 429 (leetcode allows a submission every few seconds) is
+/// waited out and retried a few times.
 fn submit(login: &Login, slug: &str, qid: &str, code: &str) -> Result<u64, String> {
+    let mut wait = 5;
+    loop {
+        match submit_once(login, slug, qid, code) {
+            Err(ureq::Error::StatusCode(429)) if wait <= 40 => {
+                eprintln!("leetcode is rate limiting; retrying in {wait}s");
+                std::thread::sleep(Duration::from_secs(wait));
+                wait *= 2;
+            }
+            Err(ureq::Error::StatusCode(403)) => {
+                return Err("leetcode refused the login (403): run make lc-login".to_string())
+            }
+            Err(e) => return Err(format!("submit: {e}")),
+            Ok(id) => return Ok(id),
+        }
+    }
+}
+
+fn submit_once(login: &Login, slug: &str, qid: &str, code: &str) -> Result<u64, ureq::Error> {
     let url = format!("https://leetcode.com/problems/{slug}/submit/");
     let mut resp = ureq::post(&url)
         .header("Content-Type", "application/json")
@@ -242,20 +110,11 @@ fn submit(login: &Login, slug: &str, qid: &str, code: &str) -> Result<u64, Strin
         .header("x-csrftoken", &login.csrf)
         .header("Referer", &format!("https://leetcode.com/problems/{slug}/"))
         .header("Origin", "https://leetcode.com")
-        .send_json(json!({"lang": "python3", "question_id": qid, "typed_code": code}))
-        .map_err(|e| match e {
-            ureq::Error::StatusCode(403) => {
-                "leetcode refused the login (403): run make lc-login".to_string()
-            }
-            e => format!("submit: {e}"),
-        })?;
-    let data: Value = resp
-        .body_mut()
-        .read_json()
-        .map_err(|e| format!("submit: {e}"))?;
+        .send_json(json!({"lang": "python3", "question_id": qid, "typed_code": code}))?;
+    let data: Value = resp.body_mut().read_json()?;
     data["submission_id"]
         .as_u64()
-        .ok_or_else(|| format!("submit: no submission_id in {data}"))
+        .ok_or_else(|| ureq::Error::BadUri(format!("no submission_id in {data}")))
 }
 
 /// Poll until the judge is done; returns the check payload.
@@ -328,11 +187,35 @@ fn record(code: &str, line: &str) -> String {
     format!("{}{}{}", &code[..open + 3], body, &code[close..])
 }
 
+/// Every file whose submission would hit a NameError on leetcode, with the
+/// names; 0 when none.
+fn check(files: &[String]) -> i32 {
+    let root = kg::data::repo_root();
+    let mut bad = 0;
+    for f in files {
+        let Ok(code) = std::fs::read_to_string(f) else {
+            continue;
+        };
+        let Some(sub) = strip::strip(&root, &code) else {
+            continue;
+        };
+        let missing = strip::undefined_names(&root, &sub);
+        if !missing.is_empty() {
+            bad += 1;
+            println!("{f}: {}", missing.into_iter().collect::<Vec<_>>().join(" "));
+        }
+    }
+    i32::from(bad > 0)
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     if args.iter().any(|a| a == "--help" || a == "-h") {
-        println!("usage: lc_submit [--file F] [--auto] [--show]");
+        println!("usage: lc_submit [--file F] [--auto] [--show] | --check F...");
         return;
+    }
+    if args.first().is_some_and(|a| a == "--check") {
+        std::process::exit(check(&args[1..]));
     }
     let auto = args.iter().any(|a| a == "--auto");
     let show = args.iter().any(|a| a == "--show");
@@ -357,19 +240,27 @@ fn main() {
             "{file}: no `URL: https://leetcode.com/problems/<slug>/` line"
         ));
     };
-    let Some(class) = solution_class(&code) else {
+    let Some(class) = strip::strip(&kg::data::repo_root(), &code) else {
         if auto {
             return;
         }
-        die(&format!("{file}: no top-level `class Solution:`"));
+        die(&format!("{file}: no top-level class to submit"));
     };
-    let class = format!(
-        "{}{class}",
-        expand_helpers(&kg::data::repo_root(), &code, &class)
-    );
     if show {
         print!("{class}");
         return;
+    }
+    let missing = strip::undefined_names(&kg::data::repo_root(), &class);
+    if !missing.is_empty() {
+        let names = missing.into_iter().collect::<Vec<_>>().join(", ");
+        let msg = format!(
+            "{file}: the class calls {names}, which leetcode does not have; take it out first"
+        );
+        if auto {
+            console.print(&format!("[yellow]leetcode submit skipped: {msg}[/yellow]"));
+            return;
+        }
+        die(&msg);
     }
     let Some(login) = login() else {
         if auto {
@@ -430,63 +321,6 @@ mod tests {
             Some("max-score")
         );
         assert_eq!(slug_of("DRILL: Something\n"), None);
-    }
-
-    #[test]
-    fn last_class_only() {
-        let c = solution_class(FILE).unwrap();
-        assert!(c.starts_with("class Solution:\n    def twoSum"));
-        assert!(c.contains("# final"));
-        assert!(!c.contains("[0, 1]"));
-        assert!(!c.contains("sol = Solution()"));
-        assert!(c.ends_with("return [1, 0]\n"));
-    }
-
-    #[test]
-    fn helpers_expand_transitively() {
-        let root = kg::data::repo_root();
-        let plain = expand_helpers(
-            &root,
-            "",
-            "class Solution:\n    def f(self):\n        return 1\n",
-        );
-        assert_eq!(plain, "");
-        let grid = expand_helpers(
-            &root,
-            "",
-            "class Solution:\n    def f(self, grid):\n        return like(grid)\n",
-        );
-        assert!(grid.starts_with("def like("), "{grid}");
-        assert!(!grid.contains("def nbrs("));
-        let bfs = expand_helpers(
-            &root,
-            "",
-            "class Solution:\n    def f(self, g):\n        return grid_bfs(g, [(0, 0)])\n",
-        );
-        let at = |s: &str| {
-            bfs.find(s)
-                .unwrap_or_else(|| panic!("{s} missing in:\n{bfs}"))
-        };
-        assert!(at("CARDINALS") < at("def nbrs(") && at("def nbrs(") < at("def grid_bfs("));
-        assert!(at("def like(") < at("def grid_bfs("));
-        assert!(!bfs.contains("def cells("), "named only in a docstring");
-        assert!(!bfs.contains("import "));
-        let heap = expand_helpers(
-            &root,
-            "",
-            "class Solution:\n    def f(self, h):\n        maxheappush(h, 1)\n",
-        );
-        assert!(heap.contains("class _Rev:") && heap.contains("def maxheappush("));
-        assert!(!heap.contains("def maxheappop("));
-        assert!(!heap.contains("__name__"));
-    }
-
-    #[test]
-    fn own_definitions_come_along() {
-        let file = "\"\"\"\nURL: x\n\"\"\"\n\nclass State:\n    A = 1\n\n\ndef unused():\n    pass\n\n\nroot = build_tree([1])\n\n\nclass Solution:\n    def f(self, root):\n        return State.A\n\n\nsol = Solution()\n";
-        let class = solution_class(file).unwrap();
-        let pre = expand_helpers(&kg::data::repo_root(), file, &class);
-        assert_eq!(pre, "class State:\n    A = 1\n\n\n");
     }
 
     #[test]
