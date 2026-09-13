@@ -37,13 +37,14 @@ def build_rust():
     )
 
 
-def run(name, *args, stdin=None):
+def run(name, *args, stdin=None, env=None):
     return subprocess.run(
         [os.path.join(RS_BIN, name), *args],
         capture_output=True,
         text=True,
         input=stdin,
         cwd=ROOT,
+        env={**os.environ, **env} if env else None,
     )
 
 
@@ -380,6 +381,29 @@ def test_lc_solutions_usage_without_network():
     p = run("lc_solutions")
     assert p.returncode == 2 and "need a problem, an --author, or both" in p.stderr
     assert run("lc_solutions", "--help").returncode == 0
+
+
+def test_lc_submit_show_and_auto_without_network(tmp_path):
+    f = tmp_path / "current.py"
+    f.write_text(
+        '"""\nURL: https://leetcode.com/problems/two-sum/\n"""\n\n'
+        "class Solution:\n    def a(self):\n        return 1\n\n\n"
+        "class Solution:\n    def a(self):\n        return 2\n\n\nsol = Solution()\n"
+    )
+    p = run("lc_submit", "--show", "--file", str(f))
+    assert p.returncode == 0, p.stderr
+    assert p.stdout == "class Solution:\n    def a(self):\n        return 2\n"
+    # a drill has no URL line: --auto is a silent no-op, never a failed make
+    d = tmp_path / "drill.py"
+    d.write_text('"""\nDRILL: X\n"""\n\nclass Solution:\n    pass\n')
+    p = run("lc_submit", "--auto", "--file", str(d))
+    assert p.returncode == 0 and p.stdout == "" and p.stderr == ""
+    # no cookie file: --auto is silent too, a plain run says what is missing
+    env = {"LC_COOKIE_FILE": str(tmp_path / "none.json")}
+    p = run("lc_submit", "--auto", "--file", str(f), env=env)
+    assert p.returncode == 0 and p.stdout == ""
+    p = run("lc_submit", "--file", str(f), env=env)
+    assert p.returncode == 1 and "make lc-login" in p.stderr
 
 
 # --- kg_dive, learning ----------------------------------------------------------
