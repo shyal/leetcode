@@ -1,5 +1,5 @@
 """
-DRILL: Forklift Moves
+DRILL: Cardinal Offsets
 SNIPPET: lcdirs
 
 Given an integer s, return the four offsets (dr, dc) with dr and dc in
@@ -26,15 +26,15 @@ Constraints:
 
 
 class Solution:
-    def moves(self, s: int) -> list[tuple[int, int]]:
+    def offsets(self, s: int) -> list[tuple[int, int]]:
         pass
 
 
 sol = Solution()
 
-print(sol.moves(1))  # [(-1, 0), (0, -1), (0, 1), (1, 0)]
+print(sol.offsets(1))  # [(-1, 0), (0, -1), (0, 1), (1, 0)]
 
-# assert sol.moves(1) == [(-1, 0), (0, -1), (0, 1), (1, 0)]
-# assert sol.moves(3) == [(-3, 0), (0, -3), (0, 3), (3, 0)]
-# assert sol.moves(100) == [(-100, 0), (0, -100), (0, 100), (100, 0)]
-# assert all(isinstance(d, tuple) for d in sol.moves(2))
+# assert sol.offsets(1) == [(-1, 0), (0, -1), (0, 1), (1, 0)]
+# assert sol.offsets(3) == [(-3, 0), (0, -3), (0, 3), (3, 0)]
+# assert sol.offsets(100) == [(-100, 0), (0, -100), (0, 100), (100, 0)]
+# assert all(isinstance(d, tuple) for d in sol.offsets(2))
