@@ -1,4 +1,4 @@
-.PHONY: ext check fmt fmt-check lint types complexity duplicates test-fast cov rust audit secrets all asserts drop learning mirror q prepare force unforce preflight dependents kg-extract kg-status kg-viz rep movie next dive drill spot hard is_session_start readme rank-table residuals simulate sleep wake solved failed test timer viz graph snippets
+.PHONY: submit lc-login ext check fmt fmt-check lint types complexity duplicates test-fast cov rust audit secrets all asserts drop learning mirror q prepare force unforce preflight dependents kg-extract kg-status kg-viz rep movie next dive drill spot hard is_session_start readme rank-table residuals simulate sleep wake solved failed test timer viz graph snippets
 
 all: $(if $(filter master,$(shell git rev-parse --abbrev-ref HEAD)),graph/leet.db) $(EXT) $(RS_BIN)/kg_status
 	@cp utils/harness/sitecustomize.py .venv/lib/python3.10/site-packages/
@@ -131,11 +131,22 @@ drop:
 # the message -> the judge spawned detached; it commits its verdict when
 # done. Seconds, not the judge's minute. Ctrl-C anywhere: re-run
 # `make solved`, every step resumes (utils/rs/kg_solved).
-solved: $(RS_BIN)/kg_solved $(RS_BIN)/kg_force $(RS_BIN)/kg_extract
+solved: $(RS_BIN)/kg_solved $(RS_BIN)/kg_force $(RS_BIN)/kg_extract $(RS_BIN)/lc_submit
 	@$(RS_BIN)/kg_force --check
+	@$(RS_BIN)/lc_submit --auto
 	@$(RS_BIN)/kg_solved
 	@$(RS_BIN)/kg_extract --stub
 	@$(RS_BIN)/kg_solved --commit
+
+# submit current.py's last `class Solution` to leetcode and write the verdict
+# into its notes (LEETCODE: Accepted / Time Limit Exceeded ...) for the judge.
+# make solved does this itself; the cookie file comes from make lc-login,
+# which copies the login out of a browser exposing devtools at LC_CDP_ENDPOINT.
+submit: $(RS_BIN)/lc_submit
+	@$(RS_BIN)/lc_submit $(filter-out $@,$(MAKECMDGOALS))
+
+lc-login:
+	@node misc/lc_cookies.mjs
 
 # file the current attempt as a FAILED one: same flow as solved (archive,
 # solve-time trailer, placeholder -> struggled evidence), honest label

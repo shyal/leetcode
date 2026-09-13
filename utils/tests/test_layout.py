@@ -174,6 +174,7 @@ def test_mock_binary_paths_agree():
         "preflight",
         "spot",
         "lc_solutions",
+        "lc_submit",
         "kg_dive",
         "learning",
         "kg_hard",
