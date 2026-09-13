@@ -2,8 +2,12 @@
 
 all: graph/leet.db $(EXT) $(RS_BIN)/kg_status
 	@cp utils/harness/sitecustomize.py .venv/lib/python3.10/site-packages/
-	@if [ "$$(git rev-parse --abbrev-ref HEAD)" = "master" ]; then $(RS_BIN)/kg_status --summary; fi
-	@PYTHONPATH=./utils:${PYTHONPATH} .venv/bin/python3 utils/tests/test_runner.py
+	@if [ "$$(git rev-parse --abbrev-ref HEAD)" = "master" ]; then \
+		$(RS_BIN)/kg_status --summary; \
+		PYTHONPATH=./utils:${PYTHONPATH} .venv/bin/python3 utils/tests/test_runner.py; \
+	else \
+		.venv/bin/python3 current.py; \
+	fi
 
 goals:
 	@PYTHONPATH=./utils .venv/bin/python3 utils/history/solve_rate.py --goals data/goals.json --timer-font=doh
