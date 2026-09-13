@@ -80,8 +80,13 @@ $(RS_BIN)/%: $(RS_SRC)
 EXT_SRC := $(RS_BIN)/libkg_rs.$(if $(filter Darwin,$(shell uname)),dylib,so)
 EXT := .venv/lib/python3.10/site-packages/kg_rs.abi3.so
 
+# copy then rename: cp straight over the loaded extension keeps its inode,
+# and macOS then kills every python that imports it (Killed: 9, invalid
+# code signature at page-in, 2026-09-13). The rename is atomic and gives a
+# fresh inode, so a running python keeps the old file and a new one gets
+# the new file.
 $(EXT): $(EXT_SRC)
-	@cp $(EXT_SRC) $(EXT)
+	@cp $(EXT_SRC) $(EXT).tmp && mv -f $(EXT).tmp $(EXT)
 
 ext: $(EXT)
 
