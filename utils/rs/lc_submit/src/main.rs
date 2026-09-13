@@ -153,14 +153,24 @@ fn uses(code: &str, name: &str) -> bool {
     false
 }
 
-/// The helper blocks `class_src` needs, dependencies first, in file order.
-fn expand_helpers(root: &Path, class_src: &str) -> String {
+/// The blocks `class_src` needs, dependencies first: harness helpers, then
+/// the file's own top-level definitions (a State class, a helper function)
+/// other than the Solution classes themselves.
+fn expand_helpers(root: &Path, file_src: &str, class_src: &str) -> String {
     let mut blocks: Vec<(String, String)> = Vec::new();
     for f in HELPER_FILES {
         if let Ok(src) = std::fs::read_to_string(root.join(f)) {
             blocks.extend(top_level_blocks(&src));
         }
     }
+    blocks.extend(
+        top_level_blocks(file_src)
+            .into_iter()
+            .filter(|(name, block)| {
+                // assignments in a solve are test setup (root = build_tree(...))
+                name != "Solution" && (block.starts_with("def ") || block.starts_with("class "))
+            }),
+    );
     let mut needed = vec![false; blocks.len()];
     let mut frontier: Vec<usize> = (0..blocks.len())
         .filter(|&i| !blocks[i].0.starts_with('_') && uses(class_src, &blocks[i].0))
@@ -353,7 +363,10 @@ fn main() {
         }
         die(&format!("{file}: no top-level `class Solution:`"));
     };
-    let class = format!("{}{class}", expand_helpers(&kg::data::repo_root(), &class));
+    let class = format!(
+        "{}{class}",
+        expand_helpers(&kg::data::repo_root(), &code, &class)
+    );
     if show {
         print!("{class}");
         return;
@@ -391,6 +404,15 @@ fn main() {
         "red"
     };
     console.print(&format!("[{colour}]LEETCODE: {line}[/{colour}]"));
+    if line.starts_with("Wrong Answer") {
+        let s = |k: &str| verdict[k].as_str().unwrap_or("").trim().replace('\n', " ");
+        console.print(&format!(
+            "[dim]input {}\nexpected {}\ngot {}[/dim]",
+            s("last_testcase"),
+            s("expected_output"),
+            s("code_output")
+        ));
+    }
     std::fs::write(&file, record(&code, &line)).unwrap_or_else(|e| die(&format!("{file}: {e}")));
 }
 
@@ -425,17 +447,20 @@ mod tests {
         let root = kg::data::repo_root();
         let plain = expand_helpers(
             &root,
+            "",
             "class Solution:\n    def f(self):\n        return 1\n",
         );
         assert_eq!(plain, "");
         let grid = expand_helpers(
             &root,
+            "",
             "class Solution:\n    def f(self, grid):\n        return like(grid)\n",
         );
         assert!(grid.starts_with("def like("), "{grid}");
         assert!(!grid.contains("def nbrs("));
         let bfs = expand_helpers(
             &root,
+            "",
             "class Solution:\n    def f(self, g):\n        return grid_bfs(g, [(0, 0)])\n",
         );
         let at = |s: &str| {
@@ -448,11 +473,20 @@ mod tests {
         assert!(!bfs.contains("import "));
         let heap = expand_helpers(
             &root,
+            "",
             "class Solution:\n    def f(self, h):\n        maxheappush(h, 1)\n",
         );
         assert!(heap.contains("class _Rev:") && heap.contains("def maxheappush("));
         assert!(!heap.contains("def maxheappop("));
         assert!(!heap.contains("__name__"));
+    }
+
+    #[test]
+    fn own_definitions_come_along() {
+        let file = "\"\"\"\nURL: x\n\"\"\"\n\nclass State:\n    A = 1\n\n\ndef unused():\n    pass\n\n\nroot = build_tree([1])\n\n\nclass Solution:\n    def f(self, root):\n        return State.A\n\n\nsol = Solution()\n";
+        let class = solution_class(file).unwrap();
+        let pre = expand_helpers(&kg::data::repo_root(), file, &class);
+        assert_eq!(pre, "class State:\n    A = 1\n\n\n");
     }
 
     #[test]
