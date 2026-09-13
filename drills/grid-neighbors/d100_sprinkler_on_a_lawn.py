@@ -1,12 +1,11 @@
 """
 DRILL: Sprinkler On A Lawn
+SNIPPET: lcnbrs
 
-Given a lawn of m rows and n columns of tiles and a sprinkler on tile
-(r, c), return the tiles the sprinkler wets. It wets the tile above, the
-tile to the left, the tile to the right and the tile below, in that
-order, and only tiles on the lawn. Rows and columns are numbered from 0.
-Build each neighbour from an offset with a generator expression and test
-the bounds on the built pair, never on the offset.
+Given a grid of m rows and n columns and a cell (r, c), return the
+cardinal neighbours of (r, c) that lie on the grid, in the order up,
+left, right, down. Build each neighbour from an offset with a generator
+expression and test the bounds on the built pair, not on the offset.
 
 Example 1:
 
@@ -17,7 +16,7 @@ Example 2:
 
 Input: m = 3, n = 3, r = 0, c = 0
 Output: [(0, 1), (1, 0)]
-Explanation: (-1, 0) and (0, -1) are off the lawn.
+Explanation: (-1, 0) and (0, -1) are off the grid.
 
 Example 3:
 
