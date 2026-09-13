@@ -9516,6 +9516,15 @@
       },
       "note": "Sequential single-source BFS from each water cell instead of canonical multi-source-bfs.",
       "summary": "The code computes each cell's distance to the nearest water by running a separate BFS from each water cell and tracking minimums. It exercises graph-bfs-shortest but sidesteps the standard multi-source-bfs approach of seeding all sources into the queue at once."
+    },
+    "solved/p3905_Multi_Source_Flood_Fill_2026_09_13T02_57_42_706594_00_00Z.py": {
+      "date": "2026-09-13",
+      "problem": "3905",
+      "moves": {
+        "multi-source-bfs": "struggled"
+      },
+      "note": "Timeout from unbounded queue re-enqueueing: missing visited-cell check before enqueueing neighbors causes cells to be added multiple times from different directions.",
+      "summary": "Code performs multi-source BFS flood fill, tracking arrival time per cell to resolve simultaneous color arrivals by max value. The algorithm times out because it enqueues every neighbor unconditionally without checking whether that neighbor has already been colored\u2014each cell gets queued multiple times from its neighbors, causing exponential queue growth and repeated processing."
     }
   }
 }
