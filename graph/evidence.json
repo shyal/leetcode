@@ -9497,6 +9497,16 @@
         "graph-overlap-adjacency": "learning"
       },
       "summary": "The solution builds a member-to-clubs inverted index, then for each club unions all clubs that contain each of its members to find overlap partners. This trains graph-overlap-adjacency: clubs are nodes connected when they share members. Inverted index enables O(n*L) time by bypassing person-to-person club pair iteration."
+    },
+    "solved/p1162_As_Far_from_Land_as_Possible_2026_09_13T00_47_27_122067_00_00Z.py": {
+      "date": "2026-09-13",
+      "problem": "1162",
+      "moves": {
+        "graph-bfs-shortest": "clean",
+        "running-extreme": "clean"
+      },
+      "note": "Multiple independent BFS calls per land cell instead of single unified multi-source queue.",
+      "summary": "maxDistance computes the farthest distance from any water cell to the nearest land cell. It runs BFS from each land cell separately, recording min distances into a result matrix, then returns the maximum value found. The canonical multi-source-bfs pattern (seeding all sources in one queue upfront) was avoided in favor of multiple single-source passes, but the solution is correct."
     }
   }
 }
