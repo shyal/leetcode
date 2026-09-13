@@ -2,14 +2,14 @@
   "_comment": "Personal forgetting curve fitted by utils/kg/kg_curve. P(recall) = (1-slip)*(1 + gap/s)^(-beta), s = exp(a + b*log1p(cleans) - c*struggles - d*assist + e*(conn - conn_mean)); cleans counts distinct clean days, same-day reps are one rep. conn is the node's log2 carrier count, frozen below at fit time; consumers that ignore e are assuming average connectivity. \"solve\" is the cold-solve model fitted by fit_solve: logit P(solve cold, unaided, inside the clock) = the listed coefficients over (rating - 1500)/400, the walk's summed log recall, and its count of never-met moves; features not listed did not earn their place on held-out games. node_status() calls a node SOLID while the memory component (1 + gap/s)^(-beta) >= target_retention; delete this file to fall back to the flat 42-day window.",
   "model": "power-law-slip",
   "params": {
-    "a": 4.1421,
-    "b": 0.3866,
+    "a": 4.1415,
+    "b": 0.3857,
     "c": 0.0328,
     "d": 0.0,
-    "e": 0.5348,
-    "conn_mean": 3.3819,
-    "beta": 0.0675,
-    "slip": 0.0974
+    "e": 0.5365,
+    "conn_mean": 3.3802,
+    "beta": 0.0677,
+    "slip": 0.0971
   },
   "conn": {
     "backtracking-choose-undo": 3.7,
@@ -108,18 +108,18 @@
   "solve": {
     "games": 691,
     "features": {
-      "intercept": 1.1218,
+      "intercept": 1.1219,
       "rating": -0.7112,
-      "length": -0.6123,
-      "unseen": -0.4656,
-      "recall": 2.6726
+      "length": -0.6122,
+      "unseen": -0.4658,
+      "recall": 2.6694
     },
     "se": {
       "intercept": 0.147,
       "rating": 0.1493,
       "length": 0.192,
       "unseen": 0.2384,
-      "recall": 2.5358
+      "recall": 2.5238
     },
     "intercept_se": 0.147,
     "elo": {
@@ -137,11 +137,11 @@
     ]
   },
   "fit": {
-    "trials": 466,
-    "loglik": -0.346,
-    "baseline_loglik": -0.3498,
+    "trials": 467,
+    "loglik": -0.3455,
+    "baseline_loglik": -0.3493,
     "since": "2026-06-01",
     "half_life": 0,
-    "effective_trials": 466.0
+    "effective_trials": 467.0
   }
 }
