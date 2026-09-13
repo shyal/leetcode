@@ -9546,6 +9546,18 @@
       },
       "note": "Generates cardinal offsets via Cartesian product and Manhattan distance filtering.",
       "summary": "The solution generates cardinal offset tuples at Manhattan distance s using product((-s, 0, s), repeat=2) and filter() with a Manhattan distance check. For s=1, it correctly produces [(-1, 0), (0, -1), (0, 1), (1, 0)], exercising the offset enumeration aspect of grid-neighbors. All assertions pass cleanly."
+    },
+    "solved/d_In-Bounds_Neighbours_2026_09_13T05_53_54_440130_00_00Z.py": {
+      "date": "2026-09-13",
+      "problem": "drill",
+      "moves": {
+        "grid-neighbors": "clean"
+      },
+      "assist": {
+        "grid-neighbors": "learning"
+      },
+      "note": "First exposure; copied solution exercised cardinal-direction enumeration and bounds-checking.",
+      "summary": "The neighbours method enumerates cardinal offsets (up, down, left, right) by filtering product((-1,0,1), repeat=2) for Manhattan distance = 1, applies each offset to (r,c), and collects neighbors passing the bounds test 0 \u2264 nr < m, 0 \u2264 nc < n. All test cases passed."
     }
   }
 }
