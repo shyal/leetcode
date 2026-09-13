@@ -24,7 +24,7 @@ use chrono::NaiveDate;
 use kg::mock::PyRandom;
 use serde_json::Value;
 
-use kg::clock::{last_attempt, problem_due};
+use kg::clock::{last_attempt, problem_attempts, problem_due};
 use kg::console::{Console, Line};
 use kg::ctx::{Ctx, PView};
 use kg::data::{load_envrc, repo_root};
@@ -38,7 +38,7 @@ use kg::git::{
     is_session_start, is_stale, pending_judgements, sleep_rows, sleep_state, solve_seconds_today,
     solved_today_pnums, spawn_judge,
 };
-use kg::model::{drill_forecast, elo_now, solve_forecast, solve_ratings};
+use kg::model::{drill_forecast, elo_now, solve_forecast, solve_ratings, ELO_K};
 use kg::pick::{
     blocked_frontier, park_full_lines, parked_summits, pick, review_ahead, review_line,
     review_queue, starved, unmapped_summits, withheld, Choice, PickArgs,
@@ -255,13 +255,22 @@ fn rating_line(ctx: &Ctx, pnum: &str, ev: &Evidence) -> Option<String> {
     } else {
         "green"
     };
-    Some(format!(
+    let mut line = format!(
         "[dim]rating[/dim] [bold]{:.0}[/bold] [dim]·[/dim] [dim]elo[/dim] {:.0} [dim]·[/dim] [{colour}]{:+.0}[/{colour}] [dim]·[/dim] [dim]odds[/dim] [{colour}]{:.0}%[/{colour}]",
         rating,
         elo,
         gap,
         odds * 100.0
-    ))
+    );
+    // a first sight: the Elo a solve and a fail would carry away
+    if problem_attempts(ev, pnum).is_empty() {
+        line.push_str(&format!(
+            " [dim]·[/dim] [dim]solve[/dim] [green]{:+.0}[/green] [dim]fail[/dim] [red]{:+.0}[/red]",
+            ELO_K * (1.0 - odds),
+            -ELO_K * odds
+        ));
+    }
+    Some(line)
 }
 
 fn headline(ctx: &Ctx, pnum: &str, pv: &PView, ev: &Evidence) -> String {

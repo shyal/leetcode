@@ -221,6 +221,7 @@ from kg.kg_lib import (
     CLASSICS,
     DEEP_STALE_DAYS,
     DRILLS_DIR,
+    ELO_K,
     FRAGILE,
     GRAPH_DIR,
     MAX_ASLEEP,
@@ -287,6 +288,7 @@ from kg.kg_lib import (
     pending_judgements,
     pnum_key,
     predicted_carrier,
+    problem_attempts,
     problem_difficulty,
     problem_due,
     problem_solve_p,
@@ -1912,7 +1914,9 @@ def headline(pnum, problems, evidence):
 
 def rating_line(pnum, evidence):
     """The problem's contest rating against his Elo: the gap and the Elo
-    odds of a cold solve. None without a rating for the problem."""
+    odds of a cold solve. On a first sight, the Elo he would carry away
+    from a solve and from a fail (K times the surprise, both ways). None
+    without a rating for the problem."""
     rating = solve_ratings().get(str(pnum))
     if rating is None:
         return None
@@ -1920,12 +1924,18 @@ def rating_line(pnum, evidence):
     gap = rating - elo
     odds = 1 / (1 + 10 ** (gap / 400))
     colour = "red" if gap > 100 else "yellow" if gap > -100 else "green"
-    return (
+    line = (
         f"[dim]rating[/dim] [bold]{rating:.0f}[/bold] [dim]·[/dim] "
         f"[dim]elo[/dim] {elo:.0f} [dim]·[/dim] "
         f"[{colour}]{gap:+.0f}[/{colour}] [dim]·[/dim] "
         f"[dim]odds[/dim] [{colour}]{odds:.0%}[/{colour}]"
     )
+    if not problem_attempts(pnum, evidence):
+        line += (
+            f" [dim]·[/dim] [dim]solve[/dim] [green]{ELO_K * (1 - odds):+.0f}[/green]"
+            f" [dim]fail[/dim] [red]{-ELO_K * odds:+.0f}[/red]"
+        )
+    return line
 
 
 def header_line(secs, clock, reviews):
