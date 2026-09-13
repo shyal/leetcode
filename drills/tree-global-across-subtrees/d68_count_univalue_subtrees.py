@@ -46,7 +46,7 @@ class Solution:
 sol = Solution()
 
 tree = build_tree([5, 1, 5, 5, 5, None, 5])
-draw_tree(tree)
+print(tree)
 
 print(sol.countUnivalSubtrees(tree))  # 4
 

@@ -54,15 +54,151 @@ def sanitize(code):
             drop.update(range(node.lineno, _end(node) + 1))
         elif isinstance(node, ast.ClassDef) and node.name in HELPER_CLASSES:
             drop.update(range(node.lineno, _end(node) + 1))
-    if not drop:
+    if drop:
+        src = code.splitlines()
+        out = [l for i, l in enumerate(src, start=1) if i not in drop]
+        # collapse the blank run left where a block was removed
+        text = "\n".join(out)
+        while "\n\n\n\n" in text:
+            text = text.replace("\n\n\n\n", "\n\n\n")
+        code = text.lstrip("\n").rstrip() + "\n"
+    return hoist_builders(code)
+
+
+# builder -> the variable name used when the callee's parameter name is unknown
+BUILDERS = {"build_tree": "root", "build_linked_list": "head"}
+
+
+def _builder_default(node):
+    """The fallback variable name when `node` calls a builder, else None."""
+    if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+        return BUILDERS.get(node.func.id)
+    return None
+
+
+def _is_builder_call(node):
+    return _builder_default(node) is not None
+
+
+def _is_bare_print(stmt):
+    """`print(x)` / `draw_tree(x)` of a plain name: shows a value, tests nothing."""
+    if not (isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Call)):
+        return False
+    call = stmt.value
+    if not (isinstance(call.func, ast.Name) and len(call.args) == 1):
+        return False
+    return isinstance(call.args[0], ast.Name) and not call.keywords
+
+
+def is_demo(stmt):
+    """The first-example call: a print or draw that is not a bare `print(x)`."""
+    if not (isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Call)):
+        return False
+    fn = stmt.value.func
+    name = fn.id if isinstance(fn, ast.Name) else getattr(fn, "attr", "")
+    shows = name in {"print", "tabulate", "rich_print"} or name.startswith("draw_")
+    return shows and not _is_bare_print(stmt)
+
+
+def _param_names(tree, call):
+    """Parameter names of the method or constructor `call` invokes, minus self.
+    None when the callee is not defined in the file."""
+    fn = call.func
+    for cls in tree.body:
+        if not isinstance(cls, ast.ClassDef):
+            continue
+        for member in cls.body:
+            if not isinstance(member, ast.FunctionDef):
+                continue
+            hit = (isinstance(fn, ast.Attribute) and member.name == fn.attr) or (
+                isinstance(fn, ast.Name)
+                and fn.id == cls.name
+                and member.name == "__init__"
+            )
+            if hit:
+                return [a.arg for a in member.args.args[1:]]
+    return None
+
+
+def _splice(lines, node, text):
+    """Replace the source of `node` (0-based lines list) with `text`."""
+    r0, c0 = node.lineno - 1, node.col_offset
+    r1, c1 = _end(node) - 1, node.end_col_offset
+    lines[r0 : r1 + 1] = [lines[r0][:c0] + text + lines[r1][c1:]]
+
+
+def hoist_builders(code):
+    """A tree or linked list passed inline to the first-example call is built
+    into a variable named after the parameter, printed on its own line (the
+    harness draws it), then passed. Statements after the demo are untouched."""
+    tree = ast.parse(code)
+    demo = next((s for s in tree.body if is_demo(s)), None)
+    if demo is None:
         return code
-    src = code.splitlines()
-    out = [l for i, l in enumerate(src, start=1) if i not in drop]
-    # collapse the blank run left where a block was removed
-    text = "\n".join(out)
-    while "\n\n\n\n" in text:
-        text = text.replace("\n\n\n\n", "\n\n\n")
-    return text.lstrip("\n").rstrip() + "\n"
+    lines = code.splitlines()
+    taken = {
+        t.id
+        for s in tree.body
+        if isinstance(s, ast.Assign) and s.lineno <= demo.lineno
+        for t in s.targets
+        if isinstance(t, ast.Name)
+    }
+    printed = {
+        s.value.args[0].id
+        for s in tree.body
+        if s.lineno <= demo.lineno and _is_bare_print(s)
+    }
+    edits = []  # (stmt, [(call, name)], print_only_names)
+    for stmt in tree.body:
+        if stmt.lineno > demo.lineno or not isinstance(stmt, (ast.Expr, ast.Assign)):
+            continue
+        hoists = []
+        for call in ast.walk(stmt):
+            if not isinstance(call, ast.Call) or _is_builder_call(call):
+                continue
+            params = _param_names(tree, call)
+            for i, arg in enumerate(call.args):
+                default = _builder_default(arg)
+                if default is not None:
+                    base = params[i] if params and i < len(params) else None
+                    hoists.append((arg, base or default))
+            for kw in call.keywords:
+                default = _builder_default(kw.value)
+                if default is not None:
+                    hoists.append((kw.value, kw.arg or default))
+        named = []
+        for call, base in hoists:
+            name, k = base, 1
+            while name in taken:
+                k += 1
+                name = f"{base}{k}"
+            taken.add(name)
+            named.append((call, name))
+        unprinted = []
+        if (
+            isinstance(stmt, ast.Assign)
+            and _is_builder_call(stmt.value)
+            and len(stmt.targets) == 1
+            and isinstance(stmt.targets[0], ast.Name)
+            and stmt.targets[0].id not in printed
+        ):
+            unprinted.append(stmt.targets[0].id)
+        if named or unprinted:
+            edits.append((stmt, named, unprinted))
+    if not edits:
+        return code
+    for stmt, named, unprinted in reversed(edits):
+        hoisted: list[str] = []
+        for call, name in sorted(
+            named, key=lambda cn: (cn[0].lineno, cn[0].col_offset), reverse=True
+        ):
+            hoisted.insert(0, f"{name} = {ast.get_source_segment(code, call)}")
+            hoisted.insert(1, f"print({name})")
+            _splice(lines, call, name)
+        after = [f"print({name})" for name in unprinted]
+        lines[_end(stmt) : _end(stmt)] = after
+        lines[stmt.lineno - 1 : stmt.lineno - 1] = hoisted + ([""] if hoisted else [])
+    return "\n".join(lines).rstrip() + "\n"
 
 
 def structure_problems(code):
@@ -119,13 +255,6 @@ def strip_solution(code):
     # everything after the first-example demo call is the test block: it gets
     # commented wholesale (asserts AND any setup they need), so the whole
     # tail toggles back on with one cmd+/ in an editor.
-    def is_demo(stmt):
-        if not (isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Call)):
-            return False
-        fn = stmt.value.func
-        name = fn.id if isinstance(fn, ast.Name) else getattr(fn, "attr", "")
-        return name in {"print", "tabulate", "rich_print"} or name.startswith("draw_")
-
     demo = next((s for s in tree.body if is_demo(s)), None)
     if demo is not None:
         live_defs: set[int] = set()
