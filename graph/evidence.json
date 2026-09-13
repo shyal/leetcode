@@ -24996,6 +24996,16 @@
       },
       "judge": "deepseek-chat",
       "summary": "The solution calls the harness helper nbrs(grid, r, c) to enumerate the cardinal neighbors of a cell and indexes grid at each returned (i, j) pair, collecting the values. This exercises grid-neighbors directly: the offset enumeration and bounds filtering are delegated to nbrs, and the assertions cover corners, edges, a single cell, and single-row/single-column grids. The file ran clean with no notes."
+    },
+    "solved/d_Neighbour_Counts_2026_09_13T21_39_32_015129_00_00Z.py": {
+      "date": "2026-09-14",
+      "problem": "drill",
+      "moves": {
+        "grid-neighbors": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Uses harness helpers cells() and nbrs() to enumerate cardinal neighbors; the grid-neighbors move is exercised via nbrs(grid, i, j).",
+      "summary": "The solution builds a result grid with like(grid), then for every cell produced by cells(grid) sets res[i][j] to the count of neighbors returned by nbrs(grid, i, j). The cardinal-offset neighbor enumeration is delegated to the harness nbrs helper, which is exactly the grid-neighbors move. All assertions passed, including the single-cell, single-row, single-column, and aliasing checks."
     }
   }
 }
