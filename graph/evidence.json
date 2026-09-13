@@ -24921,6 +24921,17 @@
       "judge": "deepseek-chat",
       "note": "Drill targets backtracking-start-index but the code uses a plain nested loop (i, j from i+1), not recursion with a start index.",
       "summary": "The file defines Solution.pairs(n), which returns all index pairs via a double for-loop: outer i, inner j starting at i+1. It exercises the suffix-from-start idea only implicitly through the loop bound, not as a recursive backtracking-start-index move, so that targeted node is avoided. All assertions pass, including the 435-pair check for n=30."
+    },
+    "solved/d_Triples_2026_09_13T20_55_20_078258_00_00Z.py": {
+      "date": "2026-09-14",
+      "problem": "drill",
+      "moves": {},
+      "judge": "deepseek-chat",
+      "note": "Drill targets backtracking-start-index but the code uses three nested for-loops with i+1/j+1 starts instead of recursion; the start-index recursion move is sidestepped.",
+      "summary": "The code generates all index triples by three nested for-loops, each starting one past the previous index, and appends [i, j, k] to res. It exercises plain iterative enumeration rather than the targeted backtracking-start-index recursion, so that move is avoided. All assertions pass, including the count and uniqueness checks for n=30.",
+      "unmapped": [
+        "triple nested loops enumeration"
+      ]
     }
   }
 }
