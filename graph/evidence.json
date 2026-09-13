@@ -9525,6 +9525,18 @@
       },
       "note": "Timeout from unbounded queue re-enqueueing: missing visited-cell check before enqueueing neighbors causes cells to be added multiple times from different directions.",
       "summary": "Code performs multi-source BFS flood fill, tracking arrival time per cell to resolve simultaneous color arrivals by max value. The algorithm times out because it enqueues every neighbor unconditionally without checking whether that neighbor has already been colored\u2014each cell gets queued multiple times from its neighbors, causing exponential queue growth and repeated processing."
+    },
+    "solved/d_Cardinal_Offsets_2026_09_13T05_49_10_921237_00_00Z.py": {
+      "date": "2026-09-13",
+      "problem": "drill",
+      "moves": {
+        "grid-neighbors": "clean"
+      },
+      "assist": {
+        "grid-neighbors": "learning"
+      },
+      "note": "First exposure rep using product and filter to enumerate offsets.",
+      "summary": "The solution uses product((-s, 0, s), repeat=2) to generate all pairs, then filters by Manhattan distance to get cardinal offsets at distance s. This trains grid-neighbors understanding through algorithmic enumeration instead of hardcoded offsets. The notes indicate this is a learning rep where the answer was provided."
     }
   }
 }
