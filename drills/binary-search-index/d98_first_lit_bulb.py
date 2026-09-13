@@ -12,13 +12,23 @@ Output: 3
 
 Example 2:
 
-Input: lit = [True, True]
-Output: 0
+Input: lit = [False, False, False, False, False, False, False, True]
+Output: 7
 
 Example 3:
 
-Input: lit = [False, True]
+Input: lit = [False, True, True, True, True, True, True, True]
 Output: 1
+
+Example 4:
+
+Input: lit = [True, True, True, True, True, True, True, True]
+Output: 0
+
+Example 5:
+
+Input: lit = [False, False, False, False, True, True, True, True]
+Output: 4
 
 Constraints:
 
@@ -40,8 +50,10 @@ sol = Solution()
 print(sol.firstLit([False, False, False, True, True]))  # 3
 
 # assert sol.firstLit([False, False, False, True, True]) == 3
-# assert sol.firstLit([True, True]) == 0
-# assert sol.firstLit([False, True]) == 1
+# assert sol.firstLit([False, False, False, False, False, False, False, True]) == 7
+# assert sol.firstLit([False, True, True, True, True, True, True, True]) == 1
+# assert sol.firstLit([True, True, True, True, True, True, True, True]) == 0
+# assert sol.firstLit([False, False, False, False, True, True, True, True]) == 4
 # assert sol.firstLit([True]) == 0
 # assert sol.firstLit([False] * 99999 + [True]) == 99999
-# assert sol.firstLit([False, False, True, True, True, True, True]) == 2
+# assert sol.firstLit([True] * 100000) == 0

@@ -36,25 +36,37 @@ Constraints:
     lit is False for a prefix and True for the rest.
 
     REQUIRED: must run in O(log n) time. NO scan from the right.
+
+---
+
+Learning
+
 """
 
 
 class Solution:
 
     def lastOff(self, lit: List[bool]) -> int:
-        pass
+        left, right = 0, len(lit) - 1
+        while left < right:
+            mid = (left + right + 1) // 2
+            if lit[mid]:
+                right = mid - 1
+            else:
+                left = mid
+        return right
 
 
 sol = Solution()
 
 print(sol.lastOff([False, False, False, True, True]))  # 2
 
-# assert sol.lastOff([False, False, False, True, True]) == 2
-# assert sol.lastOff([False, False, False, False, False, False, False, True]) == 6
-# assert sol.lastOff([False, True, True, True, True, True, True, True]) == 0
-# assert sol.lastOff([False, False, False, False, False, False, False, False]) == 7
-# assert sol.lastOff([False, False, False, False, True, True, True, True]) == 3
-# assert sol.lastOff([False]) == 0
-# assert sol.lastOff([False] + [True] * 99999) == 0
-# assert sol.lastOff([False] * 99999 + [True]) == 99998
-# assert sol.lastOff([False] * 100000) == 99999
+assert sol.lastOff([False, False, False, True, True]) == 2
+assert sol.lastOff([False, False, False, False, False, False, False, True]) == 6
+assert sol.lastOff([False, True, True, True, True, True, True, True]) == 0
+assert sol.lastOff([False, False, False, False, False, False, False, False]) == 7
+assert sol.lastOff([False, False, False, False, True, True, True, True]) == 3
+assert sol.lastOff([False]) == 0
+assert sol.lastOff([False] + [True] * 99999) == 0
+assert sol.lastOff([False] * 99999 + [True]) == 99998
+assert sol.lastOff([False] * 100000) == 99999
