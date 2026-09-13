@@ -84,6 +84,7 @@ from debug_utils import *
 
 # utils
 from graph_utils import *
+from grid_utils import *
 from heap_utils import *
 from linked_list_utils import *
 
@@ -304,6 +305,15 @@ builtins.build_tree = build_tree
 builtins.generate_and_print_random_bst = generate_and_print_random_bst
 builtins.generate_full_binary_tree = generate_full_binary_tree
 builtins.build_graph_from_edge_list = build_graph_from_edge_list
+
+# grids
+builtins.CARDINALS = CARDINALS
+builtins.DIAGONALS = DIAGONALS
+builtins.ALL_EIGHT = ALL_EIGHT
+builtins.cells = cells
+builtins.nbrs = nbrs
+builtins.like = like
+builtins.grid_bfs = grid_bfs
 
 # utilities
 builtins.deque = deque
