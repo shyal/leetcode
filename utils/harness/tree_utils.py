@@ -97,7 +97,10 @@ def draw_tree(root: Optional[TreeNode]) -> None:
         return val_str
 
     pt = _pretty_print_tree()(
-        lambda x: [c for c in (x.left, x.right) if c], get_value, border=True
+        lambda x: [c for c in (x.left, x.right) if c],
+        get_value,
+        border=True,
+        color="\x1b[30;43m",
     )
     pt(root)
 
@@ -128,7 +131,7 @@ def draw_general_tree(root: Optional[Node]) -> None:
     def get_value(w: _Wrapper):
         return str(w.node.label) if hasattr(w.node, "label") else str(w.node.val)
 
-    pt = _pretty_print_tree()(get_children, get_value, border=True)
+    pt = _pretty_print_tree()(get_children, get_value, border=True, color="\x1b[30;43m")
     pt(_Wrapper(root))
 
 
