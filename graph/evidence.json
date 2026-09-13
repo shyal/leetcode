@@ -9623,6 +9623,22 @@
       },
       "note": "Drill uses nbrs() harness function to enumerate cardinal neighbors.",
       "summary": "The solution fetches cardinal neighbor values by calling nbrs(grid, r, c) to enumerate neighbor coordinates, then extracts their values via list comprehension. All test cases passed, confirming correct boundary handling for interior, edge, and corner cells."
+    },
+    "solved/p968_Binary_Tree_Cameras_2026_09_13T09_18_37_549671_00_00Z.py": {
+      "date": "2026-09-13",
+      "problem": "968",
+      "moves": {
+        "tree-dfs-recursive": "clean",
+        "tree-combine-returns": "clean",
+        "tree-global-across-subtrees": "clean"
+      },
+      "assist": {
+        "tree-dfs-recursive": "hint",
+        "tree-combine-returns": "hint",
+        "tree-global-across-subtrees": "hint"
+      },
+      "note": "Docstring shows BFS exploration that failed; final solution implements correct greedy DFS.",
+      "summary": "The solution uses recursive DFS to traverse the tree, computing each node's state based on its children's states. When a child requires coverage and has no camera, the parent places one; when a child has a camera, the parent is covered. A global counter tracks cameras placed. All three canonical moves are exercised: post-order recursive traversal, combining children's return values into node state, and maintaining a global camera count based on node-level decisions."
     }
   }
 }
