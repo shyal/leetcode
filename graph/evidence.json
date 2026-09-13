@@ -24953,6 +24953,16 @@
       "judge": "deepseek-chat",
       "note": "Drill targets stack-nested-eval; the code accumulates digits and pushes each completed number onto a stack, then returns the stack contents.",
       "summary": "The solution scans s with a sentinel '+' appended, building each number digit by digit in num and pushing it onto stack whenever a non-digit is hit, then returns the stack. This exercises the stack-nested-eval node by pushing completed tokens onto a stack and reading them back out. All assertions passed on execution."
+    },
+    "solved/d_First_Lit_Bulb_2026_09_13T21_14_28_493270_00_00Z.py": {
+      "date": "2026-09-14",
+      "problem": "drill",
+      "moves": {
+        "binary-search-boundary": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets binary-search-index; the code implements the leftmost-true boundary variant (right=mid / left=mid+1), which is the boundary node rather than the plain index template.",
+      "summary": "The code binary-searches a boolean array for the first True, using left/right pointers and mid=(left+right)//2, moving right=mid when lit[mid] is True and left=mid+1 otherwise, then returning left. This exercises the leftmost-boundary binary search move. All assertions passed, including the 100000-element case, and the notes contain no mention of help or recognition difficulty."
     }
   }
 }
