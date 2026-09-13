@@ -86,6 +86,34 @@ pub fn problem_solve_p(
 }
 
 /// kg_lib.target_pass_rate: TARGET_PASS_RATE in (0, 1), else 0.5.
+/// kg_next.solve_state: (node recall today, the fitted cold-solve
+/// coefficients, problem ratings) - what prices a walk. Computed once per
+/// pick and handed to every rating-aware sort.
+pub type SolveState = (
+    HashMap<String, f64>,
+    Option<HashMap<String, f64>>,
+    HashMap<String, f64>,
+);
+
+/// kg_lib.predicted_carrier.informative: (unpriced, distance of the walk's
+/// cold-solve odds from the target pass rate). Unpriced walks sort last.
+pub fn walk_informative(
+    pnum: &str,
+    walk: &[String],
+    state: Option<&SolveState>,
+    aim: f64,
+) -> (bool, f64) {
+    let Some((recall, Some(coef), ratings)) = state else {
+        return (true, 0.0);
+    };
+    let Some(&rating) = ratings.get(pnum) else {
+        return (true, 0.0);
+    };
+    let (ln_recall, unseen) = walk_terms(walk, recall);
+    let odds = 1.0 / (1.0 + (-solve_logit(coef, rating, ln_recall, unseen)).exp());
+    (false, (odds - aim).abs())
+}
+
 pub fn target_pass_rate() -> f64 {
     let raw = env_str("TARGET_PASS_RATE");
     if raw.is_empty() {

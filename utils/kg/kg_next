@@ -615,6 +615,7 @@ def pick(
             nodes,
             evidence=evidence,
             skip=set(asleep) | set(exclude) | solved_ever,
+            solve_state=solve_state(),
         )
         if promo:
             problems[promo[0]] = promo[1]
@@ -994,6 +995,7 @@ def pick(
             evidence=evidence,
             skip=set(asleep) | set(exclude) | solved_ever,
             difficulties=("Medium",) if bar_kind == "medium" else ("Easy", "Medium"),
+            solve_state=(recall, coef, ratings),
         )
         if promo:
             problems[promo[0]] = promo[1]
