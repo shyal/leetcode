@@ -294,12 +294,41 @@ def _colorize_ascii_graph(text: str) -> str:
     return "\n".join(out)
 
 
+def _image_terminal() -> bool:
+    """True when stdout is an iTerm2 tty and timg is installed."""
+    import shutil
+    import sys
+
+    return (
+        sys.stdout.isatty()
+        and os.environ.get("TERM_PROGRAM") == "iTerm.app"
+        and shutil.which("timg") is not None
+    )
+
+
+def _symmetric(G: Dict[Any, Dict[Any, Any]]) -> bool:
+    """Every edge u->v has a v->u: draw it undirected."""
+    return all(src in G.get(dst, {}) for src in G for dst in G[src])
+
+
 def draw_ascii_graph(graph: Dict[Any, Union[Dict[Any, Any], List[Any]]]) -> None:
     """
     Utility function to draw a graph (stored as dict of dicts or dict of lists) in the terminal using PHART for ASCII rendering.
     Requires 'networkx' and 'phart' libraries: pip install networkx phart
     Supports directed graphs. Edge weights (like 0/1) are ignored in rendering but structure is shown.
     """
+    G: Dict[Any, Dict[Any, Any]] = as_dict_of_dicts(graph)
+    if not G:
+        print("Empty graph")
+        return
+
+    # An image terminal gets a graphviz layout: phart puts every node on
+    # one row and routes edges through the others, which is unreadable
+    # past a handful of edges.
+    if _image_terminal():
+        draw_graphviz(graph, type="undirected" if _symmetric(G) else "directed")
+        return
+
     # imported here: networkx costs ~50ms and every interpreter start pays
     # for sitecustomize's imports
     try:
@@ -307,11 +336,6 @@ def draw_ascii_graph(graph: Dict[Any, Union[Dict[Any, Any], List[Any]]]) -> None
         from phart import ASCIIRenderer
     except ImportError:
         print("Please install networkx and phart: pip install networkx phart")
-        return
-
-    G: Dict[Any, Dict[Any, Any]] = as_dict_of_dicts(graph)
-    if not G:
-        print("Empty graph")
         return
 
     print("\n")

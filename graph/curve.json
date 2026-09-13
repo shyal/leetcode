@@ -2,14 +2,14 @@
   "_comment": "Personal forgetting curve fitted by utils/kg/kg_curve. P(recall) = (1-slip)*(1 + gap/s)^(-beta), s = exp(a + b*log1p(cleans) - c*struggles - d*assist + e*(conn - conn_mean)); cleans counts distinct clean days, same-day reps are one rep. conn is the node's log2 carrier count, frozen below at fit time; consumers that ignore e are assuming average connectivity. \"solve\" is the cold-solve model fitted by fit_solve: logit P(solve cold, unaided, inside the clock) = the listed coefficients over (rating - 1500)/400, the walk's summed log recall, and its count of never-met moves; features not listed did not earn their place on held-out games. node_status() calls a node SOLID while the memory component (1 + gap/s)^(-beta) >= target_retention; delete this file to fall back to the flat 42-day window.",
   "model": "power-law-slip",
   "params": {
-    "a": 4.1409,
-    "b": 0.385,
-    "c": 0.0333,
+    "a": 4.1403,
+    "b": 0.384,
+    "c": 0.0337,
     "d": 0.0,
-    "e": 0.5383,
-    "conn_mean": 3.3807,
-    "beta": 0.0679,
-    "slip": 0.0968
+    "e": 0.5397,
+    "conn_mean": 3.3777,
+    "beta": 0.0681,
+    "slip": 0.0965
   },
   "conn": {
     "backtracking-choose-undo": 3.7,
@@ -108,18 +108,18 @@
   "solve": {
     "games": 691,
     "features": {
-      "intercept": 1.122,
+      "intercept": 1.1221,
       "rating": -0.7112,
-      "length": -0.612,
-      "unseen": -0.4658,
-      "recall": 2.6666
+      "length": -0.6118,
+      "unseen": -0.4659,
+      "recall": 2.6632
     },
     "se": {
       "intercept": 0.147,
       "rating": 0.1493,
       "length": 0.192,
       "unseen": 0.2384,
-      "recall": 2.5133
+      "recall": 2.5012
     },
     "intercept_se": 0.147,
     "elo": {
@@ -137,11 +137,11 @@
     ]
   },
   "fit": {
-    "trials": 468,
-    "loglik": -0.345,
-    "baseline_loglik": -0.3488,
+    "trials": 469,
+    "loglik": -0.3444,
+    "baseline_loglik": -0.3483,
     "since": "2026-06-01",
     "half_life": 0,
-    "effective_trials": 468.0
+    "effective_trials": 469.0
   }
 }
