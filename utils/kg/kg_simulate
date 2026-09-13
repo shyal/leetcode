@@ -54,7 +54,7 @@
 # trailers, and authoring was never in them.
 #
 # Every attempt on a numbered problem is also returned as a row for the
-# README's problem-rating chart (kg_problem_rating_svg draws the run after
+# README's problem-rating chart (kg_readme problem-rating draws the run after
 # the history), and a first sight is scored as an Elo game while it is at
 # it: the cold-solve draw above IS the game. kg_curve fits that model on
 # kg_lib.scored_games - a win is unaided and inside the budget, a solve over
@@ -77,6 +77,7 @@
 
 import argparse
 import glob
+import json
 import math
 import os
 import random
@@ -376,7 +377,7 @@ def build_pools(problems, predicted, nodes):
     each problem a list of walks, as kg_mock_rs Bank::build reads them:
     evidenced walks plus drafted ones, missing-move names folded in as
     off-taxonomy moves. A problem no contest rated takes the median rating of
-    its difficulty, the same fallback kg_elo_svg uses."""
+    its difficulty, the same fallback kg_readme elo uses."""
     meta = kg_lib._metadata()
     pools: dict[str, list] = {"E": [], "M": [], "H": []}
     ratings: dict[str, list] = {"E": [], "M": [], "H": []}
@@ -911,6 +912,12 @@ def main():
         help="new drill banks authored per day; default: the "
         "measured rate over the last 28 days, 0 = the bank as it is",
     )
+    parser.add_argument(
+        "--attempts-json",
+        action="store_true",
+        help="print only the start day and the attempts as JSON, for the "
+        "README problem chart (utils/rs/kg_readme)",
+    )
     args = parser.parse_args()
     r = run(
         args.hours,
@@ -918,8 +925,21 @@ def main():
         args.days,
         args.every,
         args.draft_error,
+        log=(lambda *a, **k: None) if args.attempts_json else print,
         bank_rate=args.bank_rate,
     )
+    if args.attempts_json:
+        print(
+            json.dumps(
+                {
+                    "start": r["start"].isoformat(),
+                    "attempts": [
+                        dict(a, date=a["date"].isoformat()) for a in r["attempts"]
+                    ],
+                }
+            )
+        )
+        return
     day_no, onsite, hours = r["day"], r["onsite"], r["hours"]
     print()
     if onsite >= TARGET_ONSITE:

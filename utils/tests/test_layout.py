@@ -18,7 +18,6 @@ UTILS = os.path.dirname(TESTS)
 ROOT = os.path.dirname(UTILS)
 KG = os.path.join(UTILS, "kg")
 README = os.path.join(UTILS, "readme")
-HISTORY = os.path.join(UTILS, "history")
 HARNESS = os.path.join(UTILS, "harness")
 VENV_PY = os.path.join(ROOT, ".venv", "bin", "python3")
 PY = VENV_PY if os.path.exists(VENV_PY) else sys.executable
@@ -61,7 +60,7 @@ def test_makefile_paths_exist():
 def test_tooling_paths_exist():
     """Scripts that spawn each other name the target by a utils/... path."""
     seen = set()
-    for d in (KG, README, HISTORY, HARNESS):
+    for d in (KG, README, HARNESS):
         for f in _scripts(d):
             for line in open(os.path.join(d, f)):
                 if line.lstrip().startswith("#"):
@@ -80,7 +79,7 @@ def test_rs_bin_names_are_crates():
     crate of the utils/rs workspace (the binary is named after its crate)."""
     rs = os.path.join(UTILS, "rs")
     names = set()
-    for d in (KG, README, HISTORY):
+    for d in (KG, README):
         for f in _scripts(d):
             names |= set(
                 re.findall(r'rs_bin\("([\w-]+)"\)', open(os.path.join(d, f)).read())
@@ -143,19 +142,9 @@ def test_readme_script_loads(name):
         SourceFileLoader(f"_layout_{name}", path).load_module()
 
 
-@pytest.mark.parametrize("name", ["history_builder", "metadata", "solve_rate"])
-def test_history_module_loads(name):
-    __import__(f"history.{name}", fromlist=["_"])
-
-
 def test_mock_binary_paths_agree():
-    """solve_rate and the tests must point at the workspace's kg_mock."""
-    from history import solve_rate  # noqa: F401
-
+    """The tests must point at the workspace's kg_mock."""
     rs = os.path.join(UTILS, "rs")
-    # one line or one segment per line, whichever way black laid it out
-    src = re.sub(r"\s+", " ", open(os.path.join(HISTORY, "solve_rate.py")).read())
-    assert '"rs", "target", "release", "kg_mock"' in src
     # every crate directory is a workspace member, so one build makes them all
     crates = sorted(
         d for d in os.listdir(rs) if os.path.exists(os.path.join(rs, d, "Cargo.toml"))
@@ -191,6 +180,7 @@ def test_mock_binary_paths_agree():
         "kg_llm_next",
         "kg_today",
         "kg_extract",
+        "kg_readme",
     } <= set(crates)
 
 
@@ -267,7 +257,7 @@ def test_attic_is_not_imported_anywhere():
     attic = os.path.join(UTILS, "attic")
     names = {f.split(".")[0] for f in os.listdir(attic)}
     offenders = []
-    for d in (KG, README, HISTORY, HARNESS, TESTS):
+    for d in (KG, README, HARNESS, TESTS):
         for f in _scripts(d):
             if f == os.path.basename(__file__):
                 continue

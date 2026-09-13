@@ -3181,7 +3181,7 @@ def target_pass_rate():
 # follow-up is a harder problem than its label and plays on the next tier's
 # clock. A solve whose time was never recorded is missing data, not a loss,
 # so it is skipped.
-# kg_elo_svg rates these games, kg_curve fits P(solve) on them.
+# kg_readme elo rates these games, kg_curve fits P(solve) on them.
 
 BUDGET_MIN = {"Easy": 10, "Medium": 25, "Hard": 45}
 NEXT_TIER = {"Easy": "Medium", "Medium": "Hard", "Hard": "Hard"}

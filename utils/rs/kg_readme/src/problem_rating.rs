@@ -1,0 +1,484 @@
+// The contest rating of every problem attempted, one dot per attempt,
+// rendered into graph/problem_rating.svg.
+//
+// A rating is zerotrac's where the problem has one, else CLIST's rescaled
+// onto that scale (kg::model::solve_ratings). The Elo of elo.rs is scored
+// against the same numbers and drawn as the second line. Every evidenced
+// attempt on a numbered problem is a dot, coloured by how it went:
+// unaided, then the assist level (hint, walkthrough, learning), then
+// failed. The solid blue line is the median rating of the last WINDOW
+// attempts.
+//
+// Past today the chart is a forecast: the real picker run forward HORIZON
+// days on simulated evidence (utils/kg/kg_simulate --attempts-json), once
+// per seed in SEEDS, the runs cached in graph/problem_forecast.json for
+// CACHE_DAYS. Each first sight plays an Elo game priced as elo.rs prices
+// one, stepped from the Elo the history ends on. --forecast reruns now;
+// --no-forecast skips the fan.
+//
+// Ported from utils/readme/kg_problem_rating_svg (Python) on 2026-09-13.
+
+use std::collections::HashMap;
+use std::path::Path;
+use std::process::Command;
+
+use chrono::NaiveDate;
+use kg::ctx::Ctx;
+use kg::data::parse_date;
+use kg::evidence::Evidence;
+use kg::model::solve_ratings;
+use serde_json::{json, Value};
+
+use crate::common::*;
+use crate::elo::{self, G, MA, MA_LINE, RANKS, START};
+
+const WINDOW: usize = 50;
+const HORIZON: i64 = 180;
+const SEEDS: [i64; 5] = [1, 2, 3, 4, 5];
+const CACHE_DAYS: i64 = 7;
+
+const W: i64 = 1200;
+const H: i64 = 1000;
+const DOT: &str = BLUE;
+const ELO: &str = GREEN;
+const SIM: &str = "#6e7681";
+const TODAY: &str = "#f0f6fc";
+// (outcome, label, colour, opacity) heaviest last
+const OUTCOMES: [(&str, &str, &str, &str); 5] = [
+    ("none", "unaided", DOT, "0.35"),
+    ("hint", "hint", "#d29922", "0.9"),
+    ("walkthrough", "walkthrough", "#db6d28", "0.9"),
+    ("learning", "learning", "#a371f7", "0.9"),
+    ("failed", "failed", "#f85149", "0.9"),
+];
+const ML: i64 = 62;
+const MR: i64 = 24;
+const MT: i64 = 60;
+const MB: i64 = 40;
+
+/// (date, rating, outcome): one evidenced attempt.
+type Att = (NaiveDate, f64, String);
+
+/// One per evidenced attempt on a numbered problem the rating tables
+/// cover, oldest first.
+fn attempts(ctx: &Ctx, ev: &Evidence) -> Vec<Att> {
+    let ratings = solve_ratings(ctx);
+    let mut order: Vec<usize> = (0..ev.len()).collect();
+    order.sort_by(|&a, &b| (&ev.rec(a).date, ev.fname(a)).cmp(&(&ev.rec(b).date, ev.fname(b))));
+    let mut out = Vec::new();
+    for i in order {
+        let rec = ev.rec(i);
+        let pnum = rec.problem.clone().unwrap_or_default();
+        if !pnum.chars().next().is_some_and(|c| c.is_ascii_digit()) {
+            continue;
+        }
+        let Some(r) = ratings.get(&pnum) else {
+            continue;
+        };
+        let outcome = if ev.fname(i).contains("FAILED") {
+            "failed"
+        } else {
+            rec.assist_any()
+        };
+        out.push((parse_date(&rec.date), *r, outcome.to_string()));
+    }
+    out
+}
+
+/// [(date, median rating of the last WINDOW attempts)] one per day with an
+/// attempt; a gap of over a month starts the window again.
+fn trailing_median(att: &[Att]) -> Vec<(NaiveDate, f64)> {
+    let mut by_day: Vec<(NaiveDate, f64)> = Vec::new();
+    let mut window: Vec<f64> = Vec::new();
+    let mut prev: Option<NaiveDate> = None;
+    for (d, r, _) in att {
+        if prev.is_some_and(|p| days_between(p, *d) > 31) {
+            window.clear();
+        }
+        window.push(*r);
+        if window.len() > WINDOW {
+            window.drain(..window.len() - WINDOW);
+        }
+        let m = median(&window);
+        match by_day.iter_mut().find(|(dd, _)| dd == d) {
+            Some(slot) => slot.1 = m,
+            None => by_day.push((*d, m)),
+        }
+        prev = Some(*d);
+    }
+    by_day.sort_by_key(|(d, _)| *d);
+    by_day
+}
+
+struct Run {
+    seed: i64,
+    start: NaiveDate,
+    attempts: Vec<Value>,
+}
+
+/// One run of the real picker, HORIZON days from today, as the simulator
+/// prints it under --attempts-json; None when the run cannot start.
+fn simulate(root: &Path, seed: i64) -> Option<Value> {
+    let out = Command::new(root.join(".venv/bin/python3"))
+        .args([
+            "utils/kg/kg_simulate",
+            "--seed",
+            &seed.to_string(),
+            "--days",
+            &HORIZON.to_string(),
+            "--attempts-json",
+        ])
+        .env("PYTHONPATH", "./utils")
+        .current_dir(root)
+        .output()
+        .ok()?;
+    if !out.status.success() {
+        println!(
+            "no forecast: {}",
+            String::from_utf8_lossy(&out.stderr).trim()
+        );
+        return None;
+    }
+    serde_json::from_slice(&out.stdout).ok()
+}
+
+fn cache_path(ctx: &Ctx) -> std::path::PathBuf {
+    ctx.graph_dir().join("problem_forecast.json")
+}
+
+/// The cached runs when written within CACHE_DAYS with the same seeds and
+/// horizon; else None.
+fn cached_runs(ctx: &Ctx) -> Option<Vec<Run>> {
+    let c: Value = serde_json::from_str(&std::fs::read_to_string(cache_path(ctx)).ok()?).ok()?;
+    let start = parse_date(c.get("start")?.as_str()?);
+    if days_between(start, ctx.today()) >= CACHE_DAYS
+        || c.get("seeds") != Some(&json!(SEEDS))
+        || c.get("horizon") != Some(&json!(HORIZON))
+    {
+        return None;
+    }
+    Some(
+        c["runs"]
+            .as_array()?
+            .iter()
+            .map(|r| Run {
+                seed: r["seed"].as_i64().unwrap_or(0),
+                start,
+                attempts: r["attempts"].as_array().cloned().unwrap_or_default(),
+            })
+            .collect(),
+    )
+}
+
+/// Run every seed, one process each, and write the cache.
+fn fresh_runs(ctx: &Ctx) -> Vec<Run> {
+    let root: &Path = &ctx.root;
+    let results: Vec<Option<Value>> = std::thread::scope(|sc| {
+        let hs: Vec<_> = SEEDS
+            .iter()
+            .map(|s| sc.spawn(move || simulate(root, *s)))
+            .collect();
+        hs.into_iter().map(|h| h.join().unwrap()).collect()
+    });
+    let runs: Vec<(i64, Value)> = SEEDS
+        .iter()
+        .zip(results)
+        .filter_map(|(s, r)| r.map(|r| (*s, r)))
+        .collect();
+    if runs.is_empty() {
+        return Vec::new();
+    }
+    let start = runs[0].1["start"].as_str().unwrap().to_string();
+    let cache = json!({
+        "start": start,
+        "seeds": SEEDS,
+        "horizon": HORIZON,
+        "runs": runs.iter().map(|(s, r)| json!({"seed": s, "attempts": r["attempts"]})).collect::<Vec<_>>(),
+    });
+    std::fs::write(cache_path(ctx), serde_json::to_string(&cache).unwrap()).expect("write cache");
+    let start = parse_date(&start);
+    runs.into_iter()
+        .map(|(seed, r)| Run {
+            seed,
+            start,
+            attempts: r["attempts"].as_array().cloned().unwrap_or_default(),
+        })
+        .collect()
+}
+
+struct Forecast {
+    start: NaiveDate,
+    sim: Vec<(NaiveDate, f64)>,
+    med: Vec<(NaiveDate, f64)>,
+    elo: Vec<(NaiveDate, f64)>,
+    ma: Vec<(NaiveDate, f64)>,
+}
+
+/// One per seed that ran: the simulated attempts, the trailing median
+/// continued over them, and the Elo and its moving average stepped on
+/// from the history's games up to the start day.
+fn forecast(ctx: &Ctx, ev: &Evidence, att: &[Att], args: &[String]) -> Vec<Forecast> {
+    if args.iter().any(|a| a == "--no-forecast") {
+        return Vec::new();
+    }
+    let runs = if args.iter().any(|a| a == "--forecast") {
+        None
+    } else {
+        cached_runs(ctx)
+    };
+    let runs = runs.unwrap_or_else(|| fresh_runs(ctx));
+    let gs = elo::games(ctx, ev);
+    let (ratings, imputed) = elo::pricing(ctx);
+    let mut out = Vec::new();
+    for run in runs {
+        let past_games: Vec<G> = gs.iter().filter(|g| g.0 <= run.start).cloned().collect();
+        let after = elo::elo_after(&past_games, START);
+        let elo0 = after.last().map(|a| a.1).unwrap_or(START);
+        let sim: Vec<(NaiveDate, f64)> = run
+            .attempts
+            .iter()
+            .map(|a| {
+                (
+                    parse_date(a["date"].as_str().unwrap()),
+                    a["rating"].as_f64().unwrap(),
+                )
+            })
+            .collect();
+        let games: Vec<G> = run
+            .attempts
+            .iter()
+            .filter(|a| !a["score"].is_null())
+            .map(|a| {
+                (
+                    parse_date(a["date"].as_str().unwrap()),
+                    elo::price(
+                        &ratings,
+                        &imputed,
+                        &kg::data::value_str(&a["problem"]),
+                        a["difficulty"].as_str().unwrap_or(""),
+                    ),
+                    a["score"].as_f64().unwrap(),
+                )
+            })
+            .collect();
+        let mut past: Vec<Att> = att.iter().filter(|a| a.0 <= run.start).cloned().collect();
+        past.extend(sim.iter().map(|(d, r)| (*d, *r, "sim".to_string())));
+        let med = trailing_median(&past)
+            .into_iter()
+            .filter(|(d, _)| *d > run.start)
+            .collect();
+        let _ = run.seed;
+        out.push(Forecast {
+            start: run.start,
+            sim,
+            med,
+            elo: elo::elo(&games, elo0),
+            ma: elo::elo_ma(&games, elo0, &after),
+        });
+    }
+    out
+}
+
+/// " - forecast: N game average A to B in D days over S seeds", or "".
+fn forecast_note(fc: &[Forecast], n: usize) -> String {
+    let ends: Vec<f64> = fc.iter().filter_map(|f| f.ma.last().map(|x| x.1)).collect();
+    if ends.is_empty() {
+        return String::new();
+    }
+    let days = fc
+        .iter()
+        .filter(|f| !f.sim.is_empty())
+        .map(|f| days_between(f.sim[0].0, f.sim[f.sim.len() - 1].0) + 1)
+        .max()
+        .unwrap_or(0);
+    let lo = ends.iter().cloned().fold(f64::INFINITY, f64::min);
+    let hi = ends.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+    format!(
+        " - forecast: {n} game average {}{} in {days} days over {} seed{}",
+        f0(lo),
+        if hi - lo >= 1.0 {
+            format!(" to {}", f0(hi))
+        } else {
+            String::new()
+        },
+        fc.len(),
+        if fc.len() > 1 { "s" } else { "" }
+    )
+}
+
+fn draw_forecast<F: Fn(NaiveDate) -> f64 + Copy, Y: Fn(f64) -> f64 + Copy>(
+    svg: &mut Vec<String>,
+    fc: &[Forecast],
+    x_of: F,
+    y_of: Y,
+    top: i64,
+    bottom: i64,
+    today: NaiveDate,
+) {
+    let start = fc[0].start;
+    let x = x_of(start);
+    svg.push(format!(
+        "<line x1=\"{}\" y1=\"{top}\" x2=\"{}\" y2=\"{bottom}\" stroke=\"{TODAY}\" stroke-width=\"1\" stroke-opacity=\"0.5\" stroke-dasharray=\"2 3\"/>",
+        f1(x),
+        f1(x)
+    ));
+    let label = if start >= today {
+        "today".to_string()
+    } else {
+        format!("forecast from {start}")
+    };
+    svg.push(format!(
+        "<text x=\"{}\" y=\"{}\" font-size=\"11\" fill=\"{TODAY}\" fill-opacity=\"0.7\">{label}</text>",
+        f1(x + 4.0),
+        top + 12
+    ));
+    for (d, r) in &fc[0].sim {
+        svg.push(format!(
+            "<circle cx=\"{}\" cy=\"{}\" r=\"2.5\" fill=\"{SIM}\" fill-opacity=\"0.35\"/>",
+            f1(x_of(*d)),
+            f1(y_of(*r))
+        ));
+    }
+    for (i, f) in fc.iter().enumerate() {
+        let width = if i == 0 { 2 } else { 1 };
+        for (series, color, opacity) in [
+            (&f.elo, ELO, "0.3"),
+            (&f.ma, MA_LINE, "0.9"),
+            (&f.med, DOT, "0.9"),
+        ] {
+            for run in runs(series) {
+                svg.push(format!(
+                    "<polyline points=\"{}\" fill=\"none\" stroke=\"{color}\" stroke-width=\"{width}\" stroke-opacity=\"{opacity}\" stroke-dasharray=\"6 4\"/>",
+                    points(&run, x_of, y_of)
+                ));
+            }
+        }
+    }
+}
+
+pub fn render(ctx: &Ctx, ev: &Evidence, args: &[String]) {
+    let out = ctx.graph_dir().join("problem_rating.svg");
+    let att = attempts(ctx, ev);
+    if att.is_empty() {
+        println!("no rated attempts");
+        return;
+    }
+    let med = trailing_median(&att);
+    let gs = elo::games(ctx, ev);
+    let (elo_hist, ma) = (elo::elo(&gs, START), elo::elo_ma(&gs, START, &[]));
+    let fc = forecast(ctx, ev, &att, args);
+    let d0 = elo_hist
+        .first()
+        .map(|e| e.0.min(att[0].0))
+        .unwrap_or(att[0].0);
+    let today = elo_hist
+        .last()
+        .map(|e| e.0.max(att[att.len() - 1].0))
+        .unwrap_or(att[att.len() - 1].0);
+    let d1 = fc
+        .iter()
+        .flat_map(|f| f.sim.iter().map(|s| s.0))
+        .fold(today, NaiveDate::max);
+    let span = days_between(d0, d1).max(1);
+    let (top, bottom) = (MT, H - MB);
+    let vals: Vec<f64> = att
+        .iter()
+        .map(|a| a.1)
+        .chain(elo_hist.iter().map(|e| e.1))
+        .chain(fc.iter().flat_map(|f| f.sim.iter().map(|s| s.1)))
+        .chain(fc.iter().flat_map(|f| f.elo.iter().map(|e| e.1)))
+        .collect();
+    let lo = floor_to(vals.iter().cloned().fold(f64::INFINITY, f64::min), 100) - 100;
+    let hi =
+        ceil_to(vals.iter().cloned().fold(f64::NEG_INFINITY, f64::max), 100).max(RANKS[0].0) + 100;
+    let x_of =
+        |d: NaiveDate| ML as f64 + days_between(d0, d) as f64 / span as f64 * (W - ML - MR) as f64;
+    let y_of = |v: f64| bottom as f64 - (v - lo as f64) / (hi - lo) as f64 * (bottom - top) as f64;
+
+    let mut counts: HashMap<&str, usize> = HashMap::new();
+    for a in &att {
+        *counts.entry(a.2.as_str()).or_default() += 1;
+    }
+    let tally = OUTCOMES
+        .iter()
+        .filter(|(k, _, _, _)| counts.get(k).copied().unwrap_or(0) > 0)
+        .map(|(k, label, _, _)| format!("{} {label}", counts[k]))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let med_all = median(&att.iter().map(|a| a.1).collect::<Vec<_>>());
+    let note = forecast_note(&fc, MA);
+    let mut svg = vec![
+        format!("<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 {W} {H}\" font-family=\"Helvetica,sans-serif\">"),
+        format!("<rect width=\"{W}\" height=\"{H}\" fill=\"{BG}\"/>"),
+        format!(
+            "<text x=\"{}\" y=\"20\" text-anchor=\"middle\" font-size=\"11\" fill=\"{MUTED}\">{} attempts - {tally} - median rating {}{note}</text>",
+            f0(W as f64 / 2.0),
+            att.len(),
+            f0(med_all)
+        ),
+    ];
+    rank_bands(&mut svg, &RANKS, y_of, ML, W, MR, top);
+    value_ticks(&mut svg, lo, hi, 200, y_of, ML, W - MR);
+    month_ticks(&mut svg, d0, d1, x_of, top, bottom, 1);
+    // dots first, lines over them; unaided dots go down first so the rare
+    // assisted and failed ones sit on top of the pile
+    let order = |k: &str| OUTCOMES.iter().position(|o| o.0 == k).unwrap_or(0);
+    let mut sorted: Vec<&Att> = att.iter().collect();
+    sorted.sort_by_key(|a| order(&a.2));
+    for (d, r, outcome) in sorted {
+        let (color, opacity) = OUTCOMES
+            .iter()
+            .find(|o| o.0 == outcome)
+            .map(|o| (o.2, o.3))
+            .unwrap_or((OUTCOMES[0].2, OUTCOMES[0].3));
+        svg.push(format!(
+            "<circle cx=\"{}\" cy=\"{}\" r=\"2.5\" fill=\"{color}\" fill-opacity=\"{opacity}\"/>",
+            f1(x_of(*d)),
+            f1(y_of(*r))
+        ));
+    }
+    for (series, color, opacity) in [
+        (&elo_hist, ELO, "0.3"),
+        (&ma, MA_LINE, "1"),
+        (&med, DOT, "1"),
+    ] {
+        for run in runs(series) {
+            svg.push(format!(
+                "<polyline points=\"{}\" fill=\"none\" stroke=\"{color}\" stroke-width=\"2\" stroke-opacity=\"{opacity}\"/>",
+                points(&run, x_of, y_of)
+            ));
+        }
+    }
+    if !fc.is_empty() {
+        draw_forecast(&mut svg, &fc, x_of, y_of, top, bottom, today);
+    }
+    let mut legend = Legend::new(ML, true, MT - 18);
+    for (k, label, color, _) in OUTCOMES {
+        if counts.get(k).copied().unwrap_or(0) > 0 {
+            legend.dot(&mut svg, color, label);
+        }
+    }
+    legend.line(&mut svg, DOT, &format!("median of last {WINDOW}"), false);
+    legend.line(&mut svg, ELO, "elo", false);
+    legend.line(
+        &mut svg,
+        MA_LINE,
+        &format!("{MA} game moving average"),
+        false,
+    );
+    if !fc.is_empty() {
+        legend.dot(
+            &mut svg,
+            SIM,
+            &format!("forecast, dashed: {} seeds of the picker", fc.len()),
+        );
+    }
+    svg.push("</svg>".to_string());
+    write(&out, &svg);
+    println!(
+        "wrote {} ({} attempts - {tally} - median {}{note})",
+        out.display(),
+        att.len(),
+        f0(med_all)
+    );
+}

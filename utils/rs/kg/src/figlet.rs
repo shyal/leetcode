@@ -1,4 +1,4 @@
-// pyfiglet's FIGfont renderer, as far as `make timer` and `make goals` use
+// pyfiglet's FIGfont renderer, as far as `make timer` uses
 // it: left-to-right, left-justified, the font's own smushing rules. The
 // algorithm follows pyfiglet.FigletBuilder step for step (smushAmount,
 // smushChars, the line-break markers) so the digits come out identical.
