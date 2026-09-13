@@ -8,10 +8,12 @@
 //
 //   kg_extract --limit 5          # trial run on the 5 newest unprocessed
 //   kg_extract                    # process everything unprocessed
-//   kg_extract --model sonnet     # default is haiku (cheap/fast)
+//   kg_extract --model sonnet     # default is $JUDGE_MODEL, else fable
 //   kg_extract --stub             # placeholder entry for the staged solve (no model call)
 //   kg_extract --file F --commit  # the detached judge: judge F, fold, refit, commit
 //   kg_extract --pending          # also re-judge every placeholder still pending
+//   kg_extract --rejudge          # also every verdict not from the current model
+//   kg_extract --review           # second opinion on every live verdict (or --file)
 //   kg_extract --followup-of F    # the statement's follow-up question (the tests)
 //   kg_extract --strip F          # the prompt body of a file (the tests)
 //
@@ -26,7 +28,7 @@
 // file that does not parse as Python but starts with a docstring keeps its
 // notes here where the Python dropped them.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::mpsc;
@@ -781,6 +783,7 @@ fn extract_one(
     model: &str,
     drills: &DrillMap,
     canon_of: &dyn Fn(&str) -> Vec<String>,
+    prior: Option<&Value>,
 ) -> Result<Judged, String> {
     let code = std::fs::read_to_string(root.join(path)).map_err(|e| e.to_string())?;
     let is_drill = is_drill_file(path, &code);
@@ -820,6 +823,9 @@ fn extract_one(
             );
         }
     }
+    if let Some(prior) = prior {
+        prompt = format!("{prompt}\n\n{}", review_block(prior));
+    }
     let notes = notes_of(&code);
     let result = claude_json(&prompt, system, model, 2).map_err(|e| e.to_string())?;
     Ok(Judged {
@@ -829,6 +835,23 @@ fn extract_one(
         notes,
         followup,
     })
+}
+
+/// `--review`: the live verdict handed back for a second opinion, its
+/// author unnamed so the model neither defends its own answer nor defers
+/// to a stranger's. The reply is the same JSON, and replaces the verdict
+/// through the usual fold, so the first answer stays under `verdicts`.
+fn review_block(prior: &Value) -> String {
+    let mut shown = Map::new();
+    for k in ["moves", "assist", "note", "summary", "unmapped", "followup"] {
+        if let Some(v) = prior.get(k) {
+            shown.insert(k.to_string(), v.clone());
+        }
+    }
+    format!(
+        "A model came up with this answer for the file above. It may be you, or it may be another model:\n{}\n\nWhich walk is the most accurate? Answer with the same JSON: corrected where that answer is wrong, unchanged where it is right.",
+        Value::Object(shown)
+    )
 }
 
 fn system_prompt(ctx: &Ctx) -> String {
@@ -1061,7 +1084,7 @@ fn judge_spots(console: &Console, ctx: &Ctx, model: &str) {
 fn main() {
     let argv: Vec<String> = std::env::args().skip(1).collect();
     if argv.iter().any(|a| a == "-h" || a == "--help") {
-        println!("usage: kg_extract [--limit N] [--model M] [--workers N] [--followup] [--stub] [--file F] [--pending] [--commit]");
+        println!("usage: kg_extract [--limit N] [--model M] [--workers N] [--followup] [--stub] [--file F] [--pending] [--rejudge] [--review] [--commit]");
         return;
     }
     let flag = |name: &str| -> Option<String> {
@@ -1085,18 +1108,25 @@ fn main() {
         return;
     }
     let limit: usize = flag("--limit").and_then(|s| s.parse().ok()).unwrap_or(0);
-    let model = flag("--model").unwrap_or_else(|| "haiku".to_string());
     let workers: usize = flag("--workers").and_then(|s| s.parse().ok()).unwrap_or(8);
-    let (followup_mode, stub, pending, commit) = (
+    let (followup_mode, stub, pending, rejudge, review, commit) = (
         argv.iter().any(|a| a == "--followup"),
         argv.iter().any(|a| a == "--stub"),
         argv.iter().any(|a| a == "--pending"),
+        argv.iter().any(|a| a == "--rejudge"),
+        argv.iter().any(|a| a == "--review"),
         argv.iter().any(|a| a == "--commit"),
     );
     let file = flag("--file");
 
     let root = repo_root();
     load_envrc(&root);
+    let model = flag("--model").unwrap_or_else(|| kg::llm::judge_model("fable"));
+    let judge_name = if review {
+        format!("{}/review", kg::llm::judge_name(&model))
+    } else {
+        kg::llm::judge_name(&model)
+    };
     let (ctx, recs) = Ctx::load(root);
     let console = Console::full_width();
     let mut evidence = Evidence::new(recs);
@@ -1167,12 +1197,15 @@ fn main() {
             .filter(|f| match evidence.by_fname.get(*f) {
                 None => true,
                 Some(&i) => {
-                    pending
-                        && evidence
-                            .rec(i)
-                            .pending
-                            .as_deref()
-                            .is_some_and(|p| !p.is_empty())
+                    let rec = evidence.rec(i);
+                    let is_pending = rec.pending.as_deref().is_some_and(|p| !p.is_empty());
+                    (pending && is_pending)
+                        || (rejudge
+                            && !is_pending
+                            && rec.judge.as_deref() != Some(judge_name.as_str()))
+                        || (review
+                            && !is_pending
+                            && rec.judge.as_deref() != Some(judge_name.as_str()))
                 }
             })
             .cloned()
@@ -1204,6 +1237,14 @@ fn main() {
     // the workers: one claude call each, results handed back as they land
     let (tx, rx) = mpsc::channel::<(String, Result<Judged, String>)>();
     let queue = std::sync::Mutex::new(todo.clone());
+    let priors: HashMap<String, Value> = if review {
+        pyjson::load(&ctx.root.join("graph/evidence.json"))
+            .and_then(|v| v["evidence"].as_object().cloned())
+            .map(|m| m.into_iter().collect())
+            .unwrap_or_default()
+    } else {
+        HashMap::new()
+    };
     std::thread::scope(|scope| {
         // Ctx is single-threaded (RefCell caches): the workers get copies of
         // the little they read
@@ -1217,12 +1258,19 @@ fn main() {
             let system = &system;
             let model = &model;
             let problems_raw = &problems_raw;
+            let priors = &priors;
             scope.spawn(move || loop {
                 let next = queue.lock().unwrap().pop();
                 let Some(path) = next else { break };
-                let r = extract_one(&root, &path, system, model, &drills, &|p| {
-                    canonical_moves(problems_raw, p)
-                });
+                let r = extract_one(
+                    &root,
+                    &path,
+                    system,
+                    model,
+                    &drills,
+                    &|p| canonical_moves(problems_raw, p),
+                    priors.get(&path),
+                );
                 let _ = tx.send((path, r));
             });
         }
@@ -1338,6 +1386,7 @@ fn main() {
             if let Some(a) = &assist {
                 entry.insert("assist".into(), assist_json(a));
             }
+            entry.insert("judge".into(), json!(judge_name));
             let mut missed: Vec<String> = result["recognition"]["missed"]
                 .as_array()
                 .into_iter()
@@ -1454,7 +1503,10 @@ fn main() {
                     .expect("write graph/problems.json");
             }
             done += 1;
-            if file.is_some() {
+            // The dialog is for the detached judge spawned by `make solved`
+            // (--file --commit). A manual or bulk re-judge prints its verdict
+            // to the terminal and stays silent.
+            if file.is_some() && commit {
                 let note = result
                     .get("note")
                     .map(kg::data::value_str)
@@ -1582,9 +1634,15 @@ fn rejudge_followups(
             scope.spawn(move || loop {
                 let next = queue.lock().unwrap().pop();
                 let Some(path) = next else { break };
-                let r = extract_one(&root, &path, system, model, &drills, &|p| {
-                    canonical_moves(problems, p)
-                });
+                let r = extract_one(
+                    &root,
+                    &path,
+                    system,
+                    model,
+                    &drills,
+                    &|p| canonical_moves(problems, p),
+                    None,
+                );
                 let _ = tx.send((path, r));
             });
         }

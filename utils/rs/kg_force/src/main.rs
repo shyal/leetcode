@@ -171,7 +171,7 @@ fn check(console: &Console, ctx: &Ctx) {
         "Required techniques:\n{}\n\nCode:\n{body}",
         required.join("\n")
     );
-    let result = match claude_json(&prompt, system, "haiku", 2) {
+    let result = match claude_json(&prompt, system, &kg::llm::judge_model("fable"), 2) {
         Ok(v) => v,
         Err(e) => {
             console.print(&format!("[red]{e}[/red]"));
