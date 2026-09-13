@@ -1760,6 +1760,7 @@ fn grant(
         followup: None,
         pending: None,
         note: None,
+        judge: None,
     };
     ev.push(fname, rec);
     for m in &moves {

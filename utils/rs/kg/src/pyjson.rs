@@ -253,9 +253,41 @@ pub fn store_evidence_entry(
     if !data.get("evidence").is_some_and(Value::is_object) {
         data["evidence"] = serde_json::json!({});
     }
-    data["evidence"][key] = entry.clone();
+    let mut entry = entry.clone();
+    if let Some(old) = data["evidence"].get(key) {
+        fold_prior_verdict(&mut entry, old);
+    }
+    data["evidence"][key] = entry;
     save(&path, &data, Some(2))?;
     Ok(data["evidence"].clone())
+}
+
+/// Verdicts are kept per model. When a judged entry replaces one that was
+/// itself judged (not a pending placeholder), the outgoing verdict moves
+/// under `verdicts[<its judge>]`, earlier ones carried along; the new
+/// verdict is the live one at the top. An entry without a `judge` field
+/// predates the field and was judged by haiku, the only model in use then.
+pub fn fold_prior_verdict(new: &mut Value, old: &Value) {
+    let judged = old.get("pending").is_none()
+        && old.get("moves").is_some_and(Value::is_object)
+        && new.get("judge").is_some();
+    if !judged {
+        return;
+    }
+    let mut verdicts = old
+        .get("verdicts")
+        .and_then(Value::as_object)
+        .cloned()
+        .unwrap_or_default();
+    let mut prior = old.as_object().cloned().unwrap_or_default();
+    prior.remove("verdicts");
+    let who = old
+        .get("judge")
+        .and_then(Value::as_str)
+        .unwrap_or("haiku")
+        .to_string();
+    verdicts.insert(who, Value::Object(prior));
+    new["verdicts"] = Value::Object(verdicts);
 }
 
 /// kg_lib.evidence_lock: an exclusive flock on graph/.evidence.lock, held
@@ -327,6 +359,32 @@ pub fn save_problem_entry(root: &std::path::Path, num: &str, entry: &Value) -> s
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn fold_prior_verdict_keeps_every_model() {
+        use serde_json::json;
+        let haiku = json!({"date": "2026-09-12", "problem": "227", "moves": {}});
+        let mut fable = json!({"date": "2026-09-12", "problem": "227",
+            "moves": {"stack-nested-eval": "clean"}, "judge": "fable"});
+        super::fold_prior_verdict(&mut fable, &haiku);
+        assert_eq!(fable["verdicts"]["haiku"]["moves"], json!({}));
+        assert!(fable["verdicts"]["haiku"].get("verdicts").is_none());
+
+        let mut deepseek = json!({"date": "2026-09-12", "problem": "227",
+            "moves": {"stack-nested-eval": "clean", "running-sum": "clean"}, "judge": "deepseek-chat"});
+        super::fold_prior_verdict(&mut deepseek, &fable);
+        let v = deepseek["verdicts"].as_object().unwrap();
+        assert_eq!(v.len(), 2);
+        assert_eq!(v["fable"]["moves"], json!({"stack-nested-eval": "clean"}));
+        assert!(v["fable"].get("verdicts").is_none());
+
+        // a placeholder is not a verdict: nothing to keep
+        let pending =
+            json!({"date": "2026-09-13", "problem": "1", "moves": {"x": "clean"}, "pending": "t"});
+        let mut judged = json!({"date": "2026-09-13", "problem": "1", "moves": {"x": "clean"}, "judge": "fable"});
+        super::fold_prior_verdict(&mut judged, &pending);
+        assert!(judged.get("verdicts").is_none());
+    }
+
     use super::*;
 
     #[test]

@@ -783,6 +783,7 @@ mod tests {
             followup: None,
             pending: None,
             note: None,
+            judge: None,
         }
     }
 

@@ -283,6 +283,8 @@ pub struct Rec {
     pub pending: Option<String>,
     /// the judge's free-text note (kg_rep prints its first 140 characters)
     pub note: Option<String>,
+    /// the model that produced the live verdict; None on a placeholder
+    pub judge: Option<String>,
 }
 
 pub const ASSIST_LEVELS: [&str; 4] = ["none", "hint", "walkthrough", "learning"];
@@ -321,6 +323,7 @@ impl Rec {
             followup: v.get("followup").and_then(Value::as_str).map(String::from),
             pending: v.get("pending").and_then(Value::as_str).map(String::from),
             note: v.get("note").and_then(Value::as_str).map(String::from),
+            judge: v.get("judge").and_then(Value::as_str).map(String::from),
         }
     }
 

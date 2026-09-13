@@ -2,6 +2,13 @@
 // in its result. A reply that is not JSON (haiku, now and then) is asked
 // again, up to `retries` more times: the detached judge has no operator to
 // re-run it.
+//
+// A model named `deepseek` or `deepseek-<x>` goes to DeepSeek's chat
+// completions endpoint instead (OpenAI-compatible JSON, key in
+// DEEPSEEK_API_KEY); one named `gpt-<x>` goes to OpenAI's (key in
+// ~/.openai_key_leet, else OPENAI_API_KEY). `deepseek` alone means deepseek-chat. The judge reads
+// its default model from JUDGE_MODEL, so `export JUDGE_MODEL=deepseek` in
+// .envrc switches every verdict over; the claude aliases still work.
 
 use std::process::Command;
 
@@ -26,7 +33,109 @@ impl std::fmt::Display for LlmError {
     }
 }
 
+/// The name a verdict is filed under: the model as the API knows it
+/// (`deepseek` is the alias for deepseek-chat; claude aliases stay as typed).
+pub fn judge_name(model: &str) -> String {
+    if model == "deepseek" {
+        "deepseek-chat".to_string()
+    } else {
+        model.to_string()
+    }
+}
+
+/// The judge's model: JUDGE_MODEL from the environment, else `fallback`.
+pub fn judge_model(fallback: &str) -> String {
+    std::env::var("JUDGE_MODEL")
+        .ok()
+        .filter(|m| !m.trim().is_empty())
+        .unwrap_or_else(|| fallback.to_string())
+}
+
+/// ~/.openai_key_leet first, OPENAI_API_KEY second: the shell's variable
+/// has been a dead key more than once (2026-09-13: a 429 on it while the
+/// file's key answered).
+fn openai_key() -> Option<String> {
+    let from_file = std::env::var("HOME").ok().and_then(|home| {
+        std::fs::read_to_string(format!("{home}/.openai_key_leet"))
+            .ok()
+            .map(|k| k.trim().to_string())
+            .filter(|k| !k.is_empty())
+    });
+    from_file.or_else(|| {
+        std::env::var("OPENAI_API_KEY")
+            .ok()
+            .filter(|k| !k.is_empty())
+    })
+}
+
+/// One OpenAI-compatible chat completion, JSON object answer.
+fn chat_once(url: &str, key: &str, body: Value) -> Result<Value, LlmError> {
+    // a dead connection must fail, not hang a worker forever (the 2026-09-13
+    // full re-judge sat 18 minutes on a dropped network)
+    let agent: ureq::Agent = ureq::Agent::config_builder()
+        .timeout_global(Some(std::time::Duration::from_secs(180)))
+        .build()
+        .into();
+    let mut resp = agent
+        .post(url)
+        .header("Authorization", &format!("Bearer {key}"))
+        .header("Content-Type", "application/json")
+        .send_json(&body)
+        .map_err(|e| LlmError::Exit(1, e.to_string().chars().take(500).collect()))?;
+    let envelope: Value = resp
+        .body_mut()
+        .read_json()
+        .map_err(|e| LlmError::NotJson(e.to_string().chars().take(200).collect()))?;
+    if std::env::var("KG_LLM_USAGE").is_ok() {
+        eprintln!("usage: {}", envelope["usage"]);
+    }
+    let result = envelope["choices"][0]["message"]["content"]
+        .as_str()
+        .unwrap_or("");
+    first_object(result)
+}
+
+fn openai_once(prompt: &str, system_prompt: &str, model: &str) -> Result<Value, LlmError> {
+    let key = openai_key().ok_or_else(|| {
+        LlmError::Spawn("OPENAI_API_KEY is not set and ~/.openai_key_leet is missing".into())
+    })?;
+    // gpt-5 models take no temperature; reasoning stays at the default
+    let body = serde_json::json!({
+        "model": model,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt},
+        ],
+        "response_format": {"type": "json_object"},
+    });
+    chat_once("https://api.openai.com/v1/chat/completions", &key, body)
+}
+
+fn deepseek_once(prompt: &str, system_prompt: &str, model: &str) -> Result<Value, LlmError> {
+    let key = std::env::var("DEEPSEEK_API_KEY")
+        .ok()
+        .filter(|k| !k.is_empty())
+        .ok_or_else(|| LlmError::Spawn("DEEPSEEK_API_KEY is not set".into()))?;
+    let model = judge_name(model);
+    let body = serde_json::json!({
+        "model": model,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt},
+        ],
+        "temperature": 0,
+        "response_format": {"type": "json_object"},
+    });
+    chat_once("https://api.deepseek.com/chat/completions", &key, body)
+}
+
 fn once(prompt: &str, system_prompt: &str, model: &str) -> Result<Value, LlmError> {
+    if model.starts_with("deepseek") {
+        return deepseek_once(prompt, system_prompt, model);
+    }
+    if model.starts_with("gpt-") {
+        return openai_once(prompt, system_prompt, model);
+    }
     let out = Command::new("claude")
         .args([
             "-p",

@@ -1,7 +1,4 @@
-import sys
-
 import pytest
-
 from tree_utils import generate_random_tree, get_level_order
 
 
@@ -45,6 +42,7 @@ def test_skew():
         node, n = node.left, n + 1
     assert n == 6
     chain = generate_random_tree(6, seed=3, sparsity=1.0, skew=1.0)
+    assert chain is not None and chain.right is not None
     assert chain.left is None and chain.right.left is None
 
 
