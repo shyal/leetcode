@@ -508,6 +508,16 @@
       "drill": "Build adjacency from an edge list; list neighbors of node 0."
     },
     {
+      "id": "grid-neighbors",
+      "group": "graphs",
+      "added": "2026-09-13",
+      "name": "Grid neighbours by offset",
+      "desc": "Enumerate the cardinal (or all eight) offsets once, add each to the current cell, keep the pairs inside the bounds. Shared by grid BFS, DFS, flood fill.",
+      "hint": "The offsets are a constant list; the bounds test is on the built pair, not the offset. An explicit edge list is graph-adjacency-build.",
+      "prereqs": [],
+      "drill": "Given m, n and a cell (r, c), list its in-bounds cardinal neighbours."
+    },
+    {
       "id": "graph-dfs-visited",
       "group": "graphs",
       "added": "2025-09-22",
@@ -516,7 +526,8 @@
       "hint": "DFS plus a visited set over an explicit graph or grid.",
       "prereqs": [
         "graph-adjacency-build",
-        "seen-state-cycle-detect"
+        "seen-state-cycle-detect",
+        "grid-neighbors"
       ],
       "drill": "Count connected components in an undirected graph."
     },
@@ -529,7 +540,8 @@
       "hint": "BFS because the answer is MINIMUM steps from one source; all-sources seeding is multi-source-bfs.",
       "prereqs": [
         "graph-adjacency-build",
-        "tree-bfs-levels"
+        "tree-bfs-levels",
+        "grid-neighbors"
       ],
       "drill": "Min steps from corner to corner of a grid with walls."
     },
