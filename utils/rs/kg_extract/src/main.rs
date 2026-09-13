@@ -381,6 +381,30 @@ impl Git {
     }
 }
 
+/// macOS notification with the verdict, so the detached judge's answer
+/// reaches the operator without opening .judge.log or git log.
+fn notify_verdict(title: &str, moves: &IndexMap<String, String>, note: &str) {
+    if !cfg!(target_os = "macos") {
+        return;
+    }
+    let mut body: Vec<String> = moves.iter().map(|(m, v)| format!("{m}: {v}")).collect();
+    if !note.is_empty() {
+        body.push(note.to_string());
+    }
+    let esc = |s: &str| s.replace('\\', "\\\\").replace('"', "\\\"");
+    let script = format!(
+        "display notification \"{}\" with title \"judge: {}\"",
+        esc(&body.join("\n")),
+        esc(title)
+    );
+    let _ = Command::new("osascript")
+        .arg("-e")
+        .arg(script)
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status();
+}
+
 /// The commit that added this solved/ file, in HEAD's history.
 fn solve_commit(git: &Git, path: &str) -> Option<String> {
     let out = git.out(&[
@@ -1425,6 +1449,13 @@ fn main() {
                     .expect("write graph/problems.json");
             }
             done += 1;
+            if file.is_some() {
+                let note = result
+                    .get("note")
+                    .map(kg::data::value_str)
+                    .unwrap_or_default();
+                notify_verdict(&judge_title(&path), &moves, note.trim());
+            }
             let painted: Vec<String> = moves
                 .iter()
                 .map(|(m, v)| {
