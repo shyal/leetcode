@@ -25019,6 +25019,18 @@
       "judge": "deepseek-chat",
       "note": "Upper-mid binary search (mid = (left+right+1)//2) finds the last False; all assertions pass.",
       "summary": "The code binary-searches the boolean array for the last False, using an upper-biased midpoint so left converges to the boundary and right is returned. It exercises the binary-search-index template with the boundary-flavored mid choice. The notes say 'Learning', indicating the solution was given and copied."
+    },
+    "solved/p2542_Maximum_Subsequence_Score_2026_09_13T22_30_43_973147_00_00Z.py": {
+      "date": "2026-09-14",
+      "problem": "2542",
+      "moves": {
+        "backtracking-choose-undo": "clean",
+        "backtracking-start-index": "clean",
+        "prefix-sums": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Final maxScore is a backtracking brute force over combinations; the intended sort-by-nums2 + min-heap-of-size-k sweep is not implemented.",
+      "summary": "The submitted maxScore uses a recursive helper that appends indices from a start position, tracks the running sum and running min, and records the best sum*min when the chosen set reaches size k, undoing each choice on return. An earlier attempt used prefix sums with a fixed window over nums2, and a combinations-based brute force is also present. The notes say the candidate answered the wrong question, ran low on time, and settled for brute force, calling it a DP problem they were not seeing; the intended heap-top-k sweep is absent."
     }
   }
 }
