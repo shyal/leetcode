@@ -48,5 +48,6 @@ def draw_linked_list(head):
         lambda x: x.next,
         lambda x: None,
         orientation=PrettyPrintLinkedList.Horizontal,
+        color="\x1b[44m",
     )
     pt(head)

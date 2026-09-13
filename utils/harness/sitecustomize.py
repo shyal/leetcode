@@ -108,21 +108,158 @@ from dsa.maxheapq import (
 console = Console()
 
 
+_PALETTE = [
+    "bright_blue",
+    "cyan",
+    "green",
+    "bright_green",
+    "yellow",
+    "bright_yellow",
+    "orange1",
+    "bright_red",
+    "magenta",
+    "bright_magenta",
+    "deep_pink1",
+    "white",
+]
+
+
+def _cell_style(v, ranks):
+    """Each distinct number in the table gets its own color, by rank."""
+    if v is None or v == "":
+        return "dim"
+    if isinstance(v, bool):
+        return "bold green" if v else "bold red"
+    if isinstance(v, (int, float)):
+        if v == 0:
+            return "dim"
+        return _PALETTE[ranks[v] % len(_PALETTE)]
+    return "yellow"
+
+
 def tabulate(tabular_data, headers=(), row_labels=(), tablefmt="github"):
+    """Print a grid as a colored table. With no headers, columns and rows are
+    labelled by index, like a dp table. A flat list is one row."""
+    from rich.table import Table  # ~20ms, only when a table is printed
+
+    tabular_data = list(tabular_data)
+    if tabular_data and not isinstance(tabular_data[0], (list, tuple)):
+        tabular_data = [tabular_data]
+    if not headers and tabular_data:
+        headers = list(range(max(len(row) for row in tabular_data)))
+        row_labels = row_labels or list(range(len(tabular_data)))
+    if row_labels and len(row_labels) != len(tabular_data):
+        raise ValueError("Number of row labels must match number of rows")
+
+    t = Table(header_style="bold magenta", border_style="bright_black")
     if row_labels:
-        if len(row_labels) != len(tabular_data):
-            raise ValueError("Number of row labels must match number of rows")
-        tabular_data = [
-            [row_label] + row for row_label, row in zip(row_labels, tabular_data)
-        ]
-        headers = [""] + list(headers)
+        t.add_column("", style="bold cyan", justify="right")
+    for h in headers:
+        t.add_column(str(h), justify="right")
+    nums = {v for row in tabular_data for v in row if isinstance(v, (int, float))}
+    ranks = {v: r for r, v in enumerate(sorted(nums - {0}))}
+    for i, row in enumerate(tabular_data):
+        cells = [f"[{_cell_style(v, ranks)}]{v}[/]" for v in row]
+        if row_labels:
+            cells = [str(row_labels[i])] + cells
+        t.add_row(*cells)
+    console.print(t)
+    return t
 
-    from rich.markdown import Markdown  # ~20ms, only when a table is printed
 
-    t = tabulate_orig(tabular_data, headers, tablefmt=tablefmt)
-    md = Markdown(t)
-    console.print(md)
-    return md
+_SCALAR = (int, float, str, bool, type(None))
+
+
+def _is_grid(x):
+    """A non-empty list of lists (or tuples) whose entries are all scalars."""
+    if not isinstance(x, (list, tuple)) or not x:
+        return False
+    return all(
+        isinstance(row, (list, tuple)) and all(isinstance(v, _SCALAR) for v in row)
+        for row in x
+    )
+
+
+def _is_adjacency_list(x):
+    """A ragged list of lists of ints: index i lists the neighbors of i.
+    A rectangular one is a grid and prints as a table."""
+    if not _is_grid(x) or not all(isinstance(v, int) for row in x for v in row):
+        return False
+    return len({len(row) for row in x}) > 1
+
+
+def _is_adjacency(x):
+    """A non-empty dict whose values are all containers of neighbors."""
+    if not isinstance(x, dict) or not x:
+        return False
+    return all(isinstance(v, (dict, list, tuple, set)) for v in x.values())
+
+
+def _graph_node_to_adj(node):
+    adj = {}
+    stack = [node]
+    while stack:
+        cur = stack.pop()
+        if cur.val in adj:
+            continue
+        adj[cur.val] = [nb.val for nb in cur.neighbors]
+        stack.extend(cur.neighbors)
+    return adj
+
+
+def _drawer_for(x):
+    """The draw function that fits x, or None to print it as-is."""
+    if isinstance(x, ListNode):
+        return draw_linked_list
+    if isinstance(x, TreeNode):
+        return draw_tree
+    if isinstance(x, Node):
+        return draw_general_tree
+    if isinstance(x, GraphNode):
+        return lambda n: draw_ascii_graph(_graph_node_to_adj(n))
+    if _is_adjacency(x):
+        return draw_ascii_graph
+    if _is_adjacency_list(x):
+        return lambda adj: draw_ascii_graph(dict(enumerate(adj)))
+    if _is_grid(x):
+        return tabulate
+    return None
+
+
+print_orig = builtins.print
+_drawing = False
+
+
+def pprint(*args, **kwargs):
+    """print, but a linked list, tree, graph or grid goes to its draw function.
+
+    Plain arguments print as usual. A `file=` keyword bypasses drawing."""
+    global _drawing
+    if _drawing or "file" in kwargs:
+        return print_orig(*args, **kwargs)
+    sep = kwargs.pop("sep", " ")
+
+    def flush(plain):
+        text = sep.join(str(a) for a in plain)
+        console.print(text, markup=False, highlight=True, soft_wrap=True, **kwargs)
+
+    plain = []
+    for arg in args:
+        draw = _drawer_for(arg)
+        if draw is None:
+            plain.append(arg)
+            continue
+        if plain:
+            flush(plain)
+            plain = []
+        _drawing = True
+        try:
+            draw(arg)
+        finally:
+            _drawing = False
+    if plain or not args:
+        flush(plain)
+    return None
 
 
 # types
@@ -145,6 +282,10 @@ builtins.Node = Node
 
 # pretty printing
 builtins.tabulate = tabulate
+builtins.print_orig = print_orig
+builtins.pprint = pprint
+if os.environ.get("PRETTY_PRINT", "").lower() not in ("", "0", "false"):
+    builtins.print = pprint
 builtins.rich_print = rich_print
 builtins.draw_tree = draw_tree
 builtins.draw_linked_list = draw_linked_list

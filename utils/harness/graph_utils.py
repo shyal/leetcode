@@ -3,6 +3,7 @@
 import hashlib
 import json
 import os
+import re
 from collections import defaultdict, deque
 from typing import Any, Dict, List, Optional, Union
 
@@ -276,6 +277,23 @@ def draw_graphviz(
             print(dot.source)
 
 
+def _colorize_ascii_graph(text: str) -> str:
+    """Nodes [x] in bold cyan, edge glyphs in yellow."""
+    from colorama import Fore, Style
+
+    node = re.compile(r"\[[^\]]*\]")
+    edge = re.compile(r"[→←↑↓↕↔─│┌┐└┘┤├┬┴┼+|\-]+")
+    out = []
+    for line in text.splitlines():
+        # edges first would re-match the "[" of the escape codes
+        line = node.sub(
+            lambda m: Style.BRIGHT + Fore.CYAN + m.group() + Style.RESET_ALL, line
+        )
+        line = edge.sub(lambda m: Fore.YELLOW + m.group() + Style.RESET_ALL, line)
+        out.append(line)
+    return "\n".join(out)
+
+
 def draw_ascii_graph(graph: Dict[Any, Union[Dict[Any, Any], List[Any]]]) -> None:
     """
     Utility function to draw a graph (stored as dict of dicts or dict of lists) in the terminal using PHART for ASCII rendering.
@@ -313,7 +331,7 @@ def draw_ascii_graph(graph: Dict[Any, Union[Dict[Any, Any], List[Any]]]) -> None
     # Render with PHART
     try:
         renderer = ASCIIRenderer(nx_graph)
-        print(renderer.render())
+        print(_colorize_ascii_graph(renderer.render()))
     except Exception as e:
         print(f"Failed to render with PHART: {e}")
         # Fallback to adjacency list
