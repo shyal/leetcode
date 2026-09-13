@@ -24963,6 +24963,20 @@
       "judge": "deepseek-chat",
       "note": "Drill targets binary-search-index; the code implements the leftmost-true boundary variant (right=mid / left=mid+1), which is the boundary node rather than the plain index template.",
       "summary": "The code binary-searches a boolean array for the first True, using left/right pointers and mid=(left+right)//2, moving right=mid when lit[mid] is True and left=mid+1 otherwise, then returning left. This exercises the leftmost-boundary binary search move. All assertions passed, including the 100000-element case, and the notes contain no mention of help or recognition difficulty."
+    },
+    "solved/d_Clubs_Sharing_A_Member_2026_09_13T21_28_00_270390_00_00Z.py": {
+      "date": "2026-09-14",
+      "problem": "drill",
+      "moves": {
+        "graph-inverted-index": "clean",
+        "graph-overlap-adjacency": "clean"
+      },
+      "assist": {
+        "graph-overlap-adjacency": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say 'Learning'; the required O(n*L) no-pair-test constraint is met via inverted index + set union.",
+      "summary": "The code builds an inverted index clubs_of mapping each person to the clubs they belong to, then for each club i unions the club lists of its members into a set, discards i, and sorts the result into the adjacency list. This exercises graph-inverted-index and graph-overlap-adjacency, meeting the O(n*L) requirement without person-to-person edges or pair tests. The notes mark the file as Learning, indicating the solution was given and copied."
     }
   }
 }
