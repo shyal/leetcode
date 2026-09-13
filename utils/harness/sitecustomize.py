@@ -90,7 +90,6 @@ from linked_list_utils import *
 # pretty printing
 from rich import print as rich_print
 from rich.console import Console
-from rich.markdown import Markdown
 from tabulate import tabulate as tabulate_orig
 from tree_utils import *
 
@@ -117,6 +116,8 @@ def tabulate(tabular_data, headers=(), row_labels=(), tablefmt="github"):
             [row_label] + row for row_label, row in zip(row_labels, tabular_data)
         ]
         headers = [""] + list(headers)
+
+    from rich.markdown import Markdown  # ~20ms, only when a table is printed
 
     t = tabulate_orig(tabular_data, headers, tablefmt=tablefmt)
     md = Markdown(t)
@@ -301,3 +302,51 @@ def run_with_input(input_str, main):
 
 
 builtins.run_with_input = run_with_input
+
+
+def _assert_hook(exc_type, exc, tb):
+    """On a failed `assert left == right`, print the traceback and then both
+    sides. Plain python prints a bare AssertionError; this is what pytest's
+    assertion rewriting gave the branch run, without the 200ms pytest import.
+    Both sides are evaluated again in the failing frame."""
+    sys.__excepthook__(exc_type, exc, tb)
+    if exc_type is not AssertionError or exc.args:
+        return
+    import ast
+    import linecache
+
+    while tb.tb_next:
+        tb = tb.tb_next
+    frame, lineno = tb.tb_frame, tb.tb_lineno
+    filename = frame.f_code.co_filename
+    src = "".join(linecache.getlines(filename))
+    try:
+        tree = ast.parse(src, filename)
+    except SyntaxError:
+        return
+    node = next(
+        (
+            n
+            for n in ast.walk(tree)
+            if isinstance(n, ast.Assert)
+            and n.lineno <= lineno <= (n.end_lineno or n.lineno)
+        ),
+        None,
+    )
+    test = node.test if node else None
+    if not (isinstance(test, ast.Compare) and len(test.ops) == 1):
+        return
+    sides = [test.left, test.comparators[0]]
+    op = type(test.ops[0]).__name__
+    for label, expr in zip(("left ", "right"), sides):
+        code = compile(ast.Expression(expr), filename, "eval")
+        try:
+            val = eval(code, frame.f_globals, frame.f_locals)
+        except Exception as e:  # noqa: BLE001
+            val = f"<{type(e).__name__}: {e}>"
+        print(f"{label}: {val!r}", file=sys.stderr)
+    if op != "Eq":
+        print(f"op   : {op}", file=sys.stderr)
+
+
+sys.excepthook = _assert_hook

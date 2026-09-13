@@ -13,19 +13,6 @@ try:
 except ImportError:
     pass  # Will handle in function
 
-try:
-    from graphviz import Digraph  # noqa: F401
-except ImportError:
-    pass  # Will handle in function
-
-try:
-    import networkx as nx
-    from phart import ASCIIRenderer
-
-    PHART_AVAILABLE = True
-except ImportError:
-    PHART_AVAILABLE = False
-
 
 def draw_graph(G: Dict[Any, Union[Dict[Any, Any], Any]]) -> None:
     """
@@ -295,8 +282,12 @@ def draw_ascii_graph(graph: Dict[Any, Union[Dict[Any, Any], List[Any]]]) -> None
     Requires 'networkx' and 'phart' libraries: pip install networkx phart
     Supports directed graphs. Edge weights (like 0/1) are ignored in rendering but structure is shown.
     """
-    global PHART_AVAILABLE
-    if not PHART_AVAILABLE:
+    # imported here: networkx costs ~50ms and every interpreter start pays
+    # for sitecustomize's imports
+    try:
+        import networkx as nx
+        from phart import ASCIIRenderer
+    except ImportError:
         print("Please install networkx and phart: pip install networkx phart")
         return
 

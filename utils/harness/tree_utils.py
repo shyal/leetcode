@@ -3,12 +3,19 @@
 from collections import deque
 from typing import Any, List, Optional
 
-import TreeFormatter
 from colorama import Fore, Style
-from PrettyPrint import PrettyPrintTree, PrintTree
 from Types import TreeNode
 
-PrintTree.TreePrinter.TreeFormatter = TreeFormatter.TreeFormatter
+
+def _pretty_print_tree():
+    """PrettyPrintTree with our TreeFormatter patched in. Imported on first
+    draw: PrettyPrint pulls in cmd2 (~75ms), and every interpreter start
+    pays for sitecustomize's imports."""
+    import TreeFormatter
+    from PrettyPrint import PrettyPrintTree, PrintTree
+
+    PrintTree.TreePrinter.TreeFormatter = TreeFormatter.TreeFormatter
+    return PrettyPrintTree
 
 
 class Node:
@@ -89,7 +96,7 @@ def draw_tree(root: Optional[TreeNode]) -> None:
                 val_str = color_map[color] + val_str + Style.RESET_ALL
         return val_str
 
-    pt = PrettyPrintTree(
+    pt = _pretty_print_tree()(
         lambda x: [c for c in (x.left, x.right) if c], get_value, border=True
     )
     pt(root)
@@ -121,7 +128,7 @@ def draw_general_tree(root: Optional[Node]) -> None:
     def get_value(w: _Wrapper):
         return str(w.node.label) if hasattr(w.node, "label") else str(w.node.val)
 
-    pt = PrettyPrintTree(get_children, get_value, border=True)
+    pt = _pretty_print_tree()(get_children, get_value, border=True)
     pt(_Wrapper(root))
 
 

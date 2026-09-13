@@ -1,6 +1,5 @@
 # linked_list_utils.py
 
-from PrettyPrint import PrettyPrintLinkedList
 from rich import print
 from Types import ListNode
 
@@ -42,6 +41,8 @@ def draw_linked_list(head):
     if not head:
         print("Empty linked list")
         return
+    from PrettyPrint import PrettyPrintLinkedList  # see tree_utils
+
     pt = PrettyPrintLinkedList(
         lambda x: x.val,
         lambda x: x.next,
