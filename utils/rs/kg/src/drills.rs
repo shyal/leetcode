@@ -313,8 +313,12 @@ pub fn anki_answer(rec: &Rec) -> &'static str {
 
 /// kg_lib.anki_due: (due date, interval) for a bank file, None never done.
 pub fn anki_due(ctx: &Ctx, path: &Path, ev: &Evidence) -> Option<(NaiveDate, i64)> {
-    let key = ctx.drill_evidence_key(path);
-    let mut reps: Vec<usize> = ev.drill_reps(&key).to_vec();
+    anki_due_key(&ctx.drill_evidence_key(path), ev)
+}
+
+/// anki_due on the file's evidence key (ctx.drill_evidence_key).
+pub fn anki_due_key(key: &str, ev: &Evidence) -> Option<(NaiveDate, i64)> {
+    let mut reps: Vec<usize> = ev.drill_reps(key).to_vec();
     reps.sort_by(|&a, &b| {
         let (da, ba, _) = &ev.drills[a];
         let (db, bb, _) = &ev.drills[b];
@@ -360,6 +364,22 @@ pub fn anki_due(ctx: &Ctx, path: &Path, ev: &Evidence) -> Option<(NaiveDate, i64
         last = d;
     }
     Some((parse_date(&last) + Duration::days(interval), interval))
+}
+
+/// The place of a bank file in the `make drill` queue, smallest first:
+/// a never-drilled file, then the file due soonest on its SM-2 clock, and
+/// among files due the same day the one solved longest ago. The second
+/// element is the timestamp part of the latest solved basename ("" if
+/// never), so two files solved the same day still order by time.
+pub fn drill_queue_key(key: &str, ev: &Evidence) -> (NaiveDate, String) {
+    let due = anki_due_key(key, ev).map_or(NaiveDate::MIN, |(d, _)| d);
+    let last = ev
+        .drill_reps(key)
+        .iter()
+        .map(|&i| ev.drills[i].1[key.len()..].to_string())
+        .max()
+        .unwrap_or_default();
+    (due, last)
 }
 
 /// kg_lib.anki_rank: the sort key of a file due today, or None.
@@ -744,4 +764,84 @@ pub fn drill_recall(
         gap,
         copies,
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::data::Assist;
+    use indexmap::IndexMap;
+
+    fn rec(date: &str) -> Rec {
+        let mut moves = IndexMap::new();
+        moves.insert("grid-neighbors".to_string(), "clean".to_string());
+        Rec {
+            date: date.to_string(),
+            problem: Some("drill".to_string()),
+            moves,
+            assist: Assist::None,
+            followup: None,
+            pending: None,
+            note: None,
+        }
+    }
+
+    /// 2026-09-13: `make drill grid-neighbors` served Count Cells four
+    /// times in a row. Every file of the node had a rep that day, the
+    /// picker keyed on the date alone, and min_by_key kept the first of
+    /// the tie: the bank's first file, however recently it was solved.
+    #[test]
+    fn same_day_reps_order_by_time_not_bank_order() {
+        let ev = Evidence::new(vec![
+            (
+                "solved/d_Count_Cells_2026_09_13T07_04_17Z.py".to_string(),
+                rec("2026-09-13"),
+            ),
+            (
+                "solved/d_Neighbour_Values_2026_09_13T07_08_33Z.py".to_string(),
+                rec("2026-09-13"),
+            ),
+            (
+                "solved/d_Neighbour_Counts_2026_09_13T07_14_11Z.py".to_string(),
+                rec("2026-09-13"),
+            ),
+            (
+                "solved/d_Count_Cells_2026_09_13T07_15_31Z.py".to_string(),
+                rec("2026-09-13"),
+            ),
+        ]);
+        let keys = [
+            "d_count_cells_",
+            "d_neighbour_values_",
+            "d_neighbour_counts_",
+        ];
+        let next = keys.iter().min_by_key(|k| drill_queue_key(k, &ev)).unwrap();
+        assert_eq!(*next, "d_neighbour_values_");
+        // the file just solved is at the back
+        let last = keys.iter().max_by_key(|k| drill_queue_key(k, &ev)).unwrap();
+        assert_eq!(*last, "d_count_cells_");
+        // a file never drilled outranks every drilled one
+        assert!(drill_queue_key("d_nearest_one_", &ev) < drill_queue_key(next, &ev));
+    }
+
+    #[test]
+    fn due_date_outranks_last_rep_time() {
+        let ev = Evidence::new(vec![
+            // drilled twice: interval 1 then 3, due 09-15
+            (
+                "solved/d_A_2026_09_11T01_00_00Z.py".to_string(),
+                rec("2026-09-11"),
+            ),
+            (
+                "solved/d_A_2026_09_12T01_00_00Z.py".to_string(),
+                rec("2026-09-12"),
+            ),
+            // drilled once, later in the day, due 09-14
+            (
+                "solved/d_B_2026_09_13T09_00_00Z.py".to_string(),
+                rec("2026-09-13"),
+            ),
+        ]);
+        assert!(drill_queue_key("d_b_", &ev) < drill_queue_key("d_a_", &ev));
+    }
 }

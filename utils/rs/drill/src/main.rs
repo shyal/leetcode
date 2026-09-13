@@ -20,7 +20,7 @@ use kg::bank::warm;
 use kg::console::Console;
 use kg::ctx::{Ctx, PView};
 use kg::data::{load_envrc, repo_root};
-use kg::drills::{last_drilled, servable_drills};
+use kg::drills::{anki_due, drill_queue_key, last_drilled, servable_drills};
 use kg::evidence::Evidence;
 use kg::git::clear_branch;
 use regex::Regex;
@@ -90,7 +90,10 @@ fn main() {
         if w.is_empty() {
             "never".to_string()
         } else {
-            w
+            let due = anki_due(&ctx, p, &ev)
+                .map(|(d, _)| format!(", due {d}"))
+                .unwrap_or_default();
+            format!("{w}{due}")
         }
     };
     if list {
@@ -128,10 +131,12 @@ fn main() {
         ));
         std::process::exit(1);
     }
-    // least-recently-drilled first; never-drilled sorts before everything
+    // never-drilled first, then due soonest, then solved longest ago
+    // (kg::drills::drill_queue_key). Keying on the date alone repeated the
+    // bank's first file all day once every file had a rep that day.
     let path = released
         .iter()
-        .min_by_key(|p| last_drilled(&ctx, p, &ev))
+        .min_by_key(|p| drill_queue_key(&ctx.drill_evidence_key(p), &ev))
         .unwrap()
         .clone();
 
