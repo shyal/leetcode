@@ -24977,6 +24977,16 @@
       "judge": "deepseek-chat",
       "note": "Notes say 'Learning'; the required O(n*L) no-pair-test constraint is met via inverted index + set union.",
       "summary": "The code builds an inverted index clubs_of mapping each person to the clubs they belong to, then for each club i unions the club lists of its members into a set, discards i, and sorts the result into the adjacency list. This exercises graph-inverted-index and graph-overlap-adjacency, meeting the O(n*L) requirement without person-to-person edges or pair tests. The notes mark the file as Learning, indicating the solution was given and copied."
+    },
+    "solved/d_Count_Cells_2026_09_13T21_34_59_397341_00_00Z.py": {
+      "date": "2026-09-14",
+      "problem": "drill",
+      "moves": {
+        "grid-neighbors": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Uses harness-provided cells(grid) to enumerate all coordinates; no explicit delta offsets written.",
+      "summary": "The solution counts cells equal to v by iterating over cells(grid), a harness helper that yields every (i, j) coordinate, and summing a generator of matches. The grid-neighbors node is exercised through that coordinate enumeration rather than hand-written cardinal offsets. All assertions passed, including the 1000x1000 case."
     }
   }
 }
