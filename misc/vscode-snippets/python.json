@@ -117,5 +117,23 @@
       ""
     ],
     "description": "bfs: queue of (node, dist), visited seeded with start"
+  },
+  "lcdirs": {
+    "prefix": "lcdirs",
+    "body": [
+      "dirs = list(filter(lambda d: abs(d[0]) + abs(d[1]) == 1, product((-1, 0, 1), repeat=2)))",
+      ""
+    ],
+    "description": "cardinal offsets: product filtered to manhattan length 1"
+  },
+  "lcnbrs": {
+    "prefix": "lcnbrs",
+    "body": [
+      "for nr, nc in ((${1:r} + dr, ${2:c} + dc) for dr, dc in dirs):",
+      "    if 0 <= nr < ${3:m} and 0 <= nc < ${4:n}:",
+      "        $0",
+      ""
+    ],
+    "description": "grid neighbours: build the pair, then bounds-check it"
   }
 }
