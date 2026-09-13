@@ -1,5 +1,5 @@
 """
-DRILL: Sprinkler On A Lawn
+DRILL: In-Bounds Neighbours
 SNIPPET: lcnbrs
 
 Given a grid of m rows and n columns and a cell (r, c), return the
@@ -35,18 +35,18 @@ Constraints:
 
 
 class Solution:
-    def wets(self, m: int, n: int, r: int, c: int) -> list[tuple[int, int]]:
+    def neighbours(self, m: int, n: int, r: int, c: int) -> list[tuple[int, int]]:
         pass
 
 
 sol = Solution()
 
-print(sol.wets(3, 3, 1, 1))  # [(0, 1), (1, 0), (1, 2), (2, 1)]
+print(sol.neighbours(3, 3, 1, 1))  # [(0, 1), (1, 0), (1, 2), (2, 1)]
 
-# assert sol.wets(3, 3, 1, 1) == [(0, 1), (1, 0), (1, 2), (2, 1)]
-# assert sol.wets(3, 3, 0, 0) == [(0, 1), (1, 0)]
-# assert sol.wets(1, 1, 0, 0) == []
-# assert sol.wets(3, 3, 2, 2) == [(1, 2), (2, 1)]
-# assert sol.wets(1, 4, 0, 2) == [(0, 1), (0, 3)]
-# assert sol.wets(4, 1, 2, 0) == [(1, 0), (3, 0)]
-# assert sol.wets(1000, 1000, 999, 0) == [(998, 0), (999, 1)]
+# assert sol.neighbours(3, 3, 1, 1) == [(0, 1), (1, 0), (1, 2), (2, 1)]
+# assert sol.neighbours(3, 3, 0, 0) == [(0, 1), (1, 0)]
+# assert sol.neighbours(1, 1, 0, 0) == []
+# assert sol.neighbours(3, 3, 2, 2) == [(1, 2), (2, 1)]
+# assert sol.neighbours(1, 4, 0, 2) == [(0, 1), (0, 3)]
+# assert sol.neighbours(4, 1, 2, 0) == [(1, 0), (3, 0)]
+# assert sol.neighbours(1000, 1000, 999, 0) == [(998, 0), (999, 1)]
