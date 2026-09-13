@@ -24913,6 +24913,14 @@
       },
       "judge": "deepseek-chat",
       "summary": "The query groups Courses by class and applies HAVING count(student) >= 5, filtering groups on the aggregate rather than using WHERE. It exercises sql-group-aggregate and sql-having-filter-groups, and both example assertions pass. No notes indicate any help or recognition trouble."
+    },
+    "solved/d_Pairs_2026_09_13T20_53_51_153795_00_00Z.py": {
+      "date": "2026-09-14",
+      "problem": "drill",
+      "moves": {},
+      "judge": "deepseek-chat",
+      "note": "Drill targets backtracking-start-index but the code uses a plain nested loop (i, j from i+1), not recursion with a start index.",
+      "summary": "The file defines Solution.pairs(n), which returns all index pairs via a double for-loop: outer i, inner j starting at i+1. It exercises the suffix-from-start idea only implicitly through the loop bound, not as a recursive backtracking-start-index move, so that targeted node is avoided. All assertions pass, including the 435-pair check for n=30."
     }
   }
 }
