@@ -25222,6 +25222,15 @@
       },
       "judge": "fable",
       "summary": "mergeAccounts builds persons as a defaultdict(set), enumerates accounts, calls self.find(account) once per account to get its root, and adds every email of that account to persons[person]. The union step is done beforehand by sol.union_shared(accounts) from dsa.union_find, so the code exercises the find-then-group half of union-find, meeting the REQUIRED line of one find per account. The notes end with 'Learning.', so this rep was a copy of the given solution."
+    },
+    "solved/d_Pairs_2026_09_14T22_15_03_795449_00_00Z.py": {
+      "date": "2026-09-15",
+      "problem": "drill",
+      "moves": {
+        "backtracking-start-index": "clean"
+      },
+      "judge": "fable",
+      "summary": "pairs(n) enumerates every unordered pair of indices with two nested loops: the outer loop picks i, the inner loop runs j over range(i + 1, n), so each candidate after the current one is taken exactly once and no pair is repeated or reversed. This is the start-index shape of the drill: the inner loop's candidates are the suffix past the chosen element. The file ran clean and the assertions on n=1, 2, 4 and the 435-pair count for n=30 all passed; the notes say nothing about help."
     }
   }
 }
