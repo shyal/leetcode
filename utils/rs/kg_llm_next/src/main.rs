@@ -349,8 +349,7 @@ fn main() {
             console.print("[yellow]current.py is not empty - record it (make solved) before preparing the next one.[/yellow]");
             std::process::exit(1);
         }
-        let _ = Command::new(ctx.root.join(".venv/bin/python3"))
-            .arg(ctx.root.join("utils/kg/prepare"))
+        let _ = Command::new(kg::data::rs_bin(&ctx.root, "prepare"))
             .arg(kg::data::value_str(&pick["problem"]))
             .current_dir(&ctx.root)
             .status();

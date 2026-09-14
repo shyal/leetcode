@@ -200,6 +200,74 @@ pub fn claude_json(
     }
 }
 
+// ---- plain-text completions (prepare, asserts) ---------------------------
+
+/// prepare.llm / asserts.claude: one completion whose answer is raw text
+/// (Python source), fences and all. A `gpt-*`, `o3*` or `o4*` model goes to
+/// OpenAI (temperature 0.2 on gpt-4, the reasoning models take only the
+/// default); anything else, or no model at all, is `claude -p` with the
+/// file-writing tools disallowed, its stdout returned whatever its exit
+/// code, exactly as the Python did.
+pub fn text(prompt: &str, system_prompt: &str, model: Option<&str>) -> Result<String, LlmError> {
+    if let Some(m) = model {
+        if m.starts_with("gpt-") || m.starts_with("o3") || m.starts_with("o4") {
+            return openai_text(prompt, system_prompt, m);
+        }
+    }
+    let mut args: Vec<&str> = vec!["-p", prompt];
+    if let Some(m) = model {
+        args.extend(["--model", m]);
+    }
+    args.extend([
+        "--system-prompt",
+        system_prompt,
+        "--disallowedTools",
+        "Write,Edit,Read,Bash,NotebookEdit",
+        "--output-format",
+        "text",
+    ]);
+    let out = Command::new("claude")
+        .args(&args)
+        .output()
+        .map_err(|e| LlmError::Spawn(e.to_string()))?;
+    Ok(String::from_utf8_lossy(&out.stdout).trim().to_string())
+}
+
+fn openai_text(prompt: &str, system_prompt: &str, model: &str) -> Result<String, LlmError> {
+    let key = openai_key().ok_or_else(|| {
+        LlmError::Spawn("OPENAI_API_KEY is not set and ~/.openai_key_leet is missing".into())
+    })?;
+    let mut body = serde_json::json!({
+        "model": model,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt},
+        ],
+    });
+    if model.starts_with("gpt-4") {
+        body["temperature"] = serde_json::json!(0.2);
+    }
+    let agent: ureq::Agent = ureq::Agent::config_builder()
+        .timeout_global(Some(std::time::Duration::from_secs(600)))
+        .build()
+        .into();
+    let mut resp = agent
+        .post("https://api.openai.com/v1/chat/completions")
+        .header("Authorization", &format!("Bearer {key}"))
+        .header("Content-Type", "application/json")
+        .send_json(&body)
+        .map_err(|e| LlmError::Exit(1, e.to_string().chars().take(500).collect()))?;
+    let envelope: Value = resp
+        .body_mut()
+        .read_json()
+        .map_err(|e| LlmError::NotJson(e.to_string().chars().take(200).collect()))?;
+    Ok(envelope["choices"][0]["message"]["content"]
+        .as_str()
+        .unwrap_or("")
+        .trim()
+        .to_string())
+}
+
 #[cfg(test)]
 mod tests {
     #[test]

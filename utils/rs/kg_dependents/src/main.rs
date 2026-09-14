@@ -122,15 +122,9 @@ fn main() {
         // one at a time: prepare's workers would otherwise cut the branches in
         // whatever order the cache answers, and the last one cut is the one
         // left checked out
-        let pythonpath = match std::env::var("PYTHONPATH") {
-            Ok(p) => format!("utils:{p}"),
-            Err(_) => "utils:".to_string(),
-        };
-        let status = std::process::Command::new(ctx.root.join(".venv/bin/python3"))
-            .arg(ctx.root.join("utils/kg/prepare"))
+        let status = std::process::Command::new(kg::data::rs_bin(&ctx.root, "prepare"))
             .args(["--jobs", "1"])
             .args(&ids)
-            .env("PYTHONPATH", pythonpath)
             .current_dir(&ctx.root)
             .status();
         std::process::exit(status.ok().and_then(|s| s.code()).unwrap_or(1));

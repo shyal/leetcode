@@ -18,8 +18,8 @@ is_session_start: $(RS_BIN)/is_session_start
 learning: $(RS_BIN)/learning
 	@$(RS_BIN)/learning
 
-prepare:
-	@if [ "$(firstword $(MAKECMDGOALS))" != next ] && [ "$(firstword $(MAKECMDGOALS))" != dependents ]; then PYTHONPATH=./utils .venv/bin/python3 utils/kg/prepare $(filter-out $@,$(MAKECMDGOALS)); fi
+prepare: $(RS_BIN)/prepare
+	@if [ "$(firstword $(MAKECMDGOALS))" != next ] && [ "$(firstword $(MAKECMDGOALS))" != dependents ]; then $(RS_BIN)/prepare $(filter-out $@,$(MAKECMDGOALS)); fi
 
 
 force: $(RS_BIN)/kg_force
@@ -38,8 +38,8 @@ kg-extract: $(RS_BIN)/kg_extract $(RS_BIN)/kg_curve $(RS_BIN)/kg_solvecost
 
 # `make asserts 5` generates the extra asserts for the picker's next five
 # problems, into .prepare_cache; `make asserts 5 dry` prints them instead.
-asserts:
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/asserts --next $(or $(filter-out $@ dry,$(MAKECMDGOALS)),5) $(patsubst dry,--dry,$(filter dry,$(MAKECMDGOALS)))
+asserts: $(RS_BIN)/asserts
+	@$(RS_BIN)/asserts --next $(or $(filter-out $@ dry,$(MAKECMDGOALS)),5) $(patsubst dry,--dry,$(filter dry,$(MAKECMDGOALS)))
 
 kg-status: $(RS_BIN)/kg_status
 	@$(RS_BIN)/kg_status
