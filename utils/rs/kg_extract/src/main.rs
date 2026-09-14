@@ -1211,7 +1211,7 @@ fn main() {
                 (m, format!("solved/{}", e.file_name().to_string_lossy()))
             })
             .collect();
-    files.sort_by(|a, b| b.0.cmp(&a.0));
+    files.sort_by_key(|a| std::cmp::Reverse(a.0));
     let files: Vec<String> = files.into_iter().map(|(_, p)| p).collect();
     let mut todo: Vec<String> = match &file {
         Some(f) => vec![f.strip_prefix("./").unwrap_or(f).to_string()],

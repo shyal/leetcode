@@ -3,6 +3,7 @@
 import argparse
 import contextlib
 import os
+import signal
 import subprocess
 import time
 
@@ -42,13 +43,28 @@ for filename in os.listdir(solved_dir):
         modules.append(module_name)
 
 
+# A solve that never returns must fail with its name, not stall the job: a
+# 3905 assert with two adjacent sources re-enqueuing each other cancelled CI
+# at the 6h limit on 2026-09-13.
+SOLVE_TIMEOUT = 120
+
+
+def _on_alarm(signum, frame):
+    raise TimeoutError(f"solve exceeded {SOLVE_TIMEOUT}s")
+
+
 @pytest.mark.parametrize("module_name", modules)
 def test_solved(module_name):
-    if not args.viz:
-        with open(os.devnull, "w") as f, contextlib.redirect_stdout(f):
+    signal.signal(signal.SIGALRM, _on_alarm)
+    signal.alarm(SOLVE_TIMEOUT)
+    try:
+        if not args.viz:
+            with open(os.devnull, "w") as f, contextlib.redirect_stdout(f):
+                __import__(f"solved.{module_name}")
+        else:
             __import__(f"solved.{module_name}")
-    else:
-        __import__(f"solved.{module_name}")
+    finally:
+        signal.alarm(0)
 
 
 def test_current():
