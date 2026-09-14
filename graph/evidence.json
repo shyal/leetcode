@@ -25310,6 +25310,15 @@
       "judge": "fable",
       "note": "Notes say 'Learning': the solution was given and copied.",
       "summary": "largestOfLastK walks nums once, pushing (v, i) into a MonotonicQueue of Type.decreasing so the largest value sits at the front, and popleft-ing the front when its index has left the last-k window (q.front()[1] <= i - k). Each step appends q.front()[0] to res, giving the maximum of the last k elements at every index. The monotonic-queue move is exercised through the dsa class; the notes say 'Learning', so the solution was copied rather than recalled."
+    },
+    "solved/d_Range_Sum_Queries_2026_09_14T23_22_55_895003_00_00Z.py": {
+      "date": "2026-09-15",
+      "problem": "drill",
+      "moves": {
+        "prefix-sums": "clean"
+      },
+      "judge": "fable",
+      "summary": "rangeSums builds acc with accumulate(nums), so acc[i] is the sum of nums[0..i]. The prefix lambda answers each (a, b) query as acc[b] minus acc[a-1], with the a == 0 case handled by subtracting 0. The file ran and all assertions passed; the notes say nothing about help or difficulty."
     }
   }
 }
