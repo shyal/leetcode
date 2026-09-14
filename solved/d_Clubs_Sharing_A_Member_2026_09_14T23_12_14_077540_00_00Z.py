@@ -36,18 +36,31 @@ Constraints:
     REQUIRED: must run in O(n * L) time, where n is the number of clubs
     and L is the total number of entries in clubs_of. NO person-to-person
     edges; NO element-by-element pair tests.
+
+---
+
+Learning
+
 """
 
 
 class Solution:
 
     def clubGraph(self, n: int, clubs_of: Dict[int, List[int]]) -> List[List[int]]:
-        pass
+        adj = [set() for _ in range(n)]
+        for clubs in clubs_of.values():
+            for i in clubs:
+                adj[i].update(clubs)
+        for i in range(n):
+            adj[i].discard(i)
+        return adj
 
 
 sol = Solution()
 
-print(sol.clubGraph(4, {51: [0], 53: [0, 2], 52: [1, 3], 54: [2, 3]}))  # [[2], [3], [0, 3], [1, 2]]
+print(
+    sol.clubGraph(4, {51: [0], 53: [0, 2], 52: [1, 3], 54: [2, 3]})
+)  # [[2], [3], [0, 3], [1, 2]]
 
 # assert same_rows(sol.clubGraph(4, {51: [0], 53: [0, 2], 52: [1, 3], 54: [2, 3]}), [[2], [3], [0, 3], [1, 2]])
 # assert same_rows(sol.clubGraph(3, {57: [0, 1, 2]}), [[1, 2], [0, 2], [0, 1]])

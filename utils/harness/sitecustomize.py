@@ -78,6 +78,7 @@ from typing import (
     overload as overload,
 )
 
+from assert_utils import *
 from bs_utils import *
 from bst_utils import *
 
@@ -326,6 +327,7 @@ builtins.grid_bfs = grid_bfs
 
 # index combinations
 builtins.pairs = pairs
+builtins.same_rows = same_rows
 builtins.triples = triples
 
 # utilities
