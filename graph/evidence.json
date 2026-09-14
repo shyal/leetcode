@@ -25241,6 +25241,16 @@
       "judge": "fable",
       "note": "The recursion is not written out: Solution.triples returns [*triples(n, type=list)], the harness helper, which produces the sorted index triples the assertions check.",
       "summary": "Solution.triples calls the harness helper triples(n, type=list) and unpacks its output into a list, which yields every increasing index triple below n in lexicographic order. The file has no recursion, start index, or append/pop of its own; the start-index enumeration happens inside the helper. All assertions passed, including the 4060 distinct triples for n=30."
+    },
+    "solved/d_Reuse_Allowed_2026_09_14T22_33_33_565726_00_00Z.py": {
+      "date": "2026-09-15",
+      "problem": "drill",
+      "moves": {
+        "backtracking-start-index": "clean",
+        "backtracking-choose-undo": "clean"
+      },
+      "judge": "fable",
+      "summary": "helper(i, total) loops j over range(i, len(nums)), appends nums[j] to path, recurses with helper(j, ...) so the same value may be reused, then pops. A copy of path is recorded when total == target and the branch is cut when total > target. The drill exercised backtracking-start-index and backtracking-choose-undo; the run passed and no notes report help."
     }
   }
 }
