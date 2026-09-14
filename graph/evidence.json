@@ -24566,13 +24566,13 @@
       "date": "2026-09-13",
       "problem": "1162",
       "moves": {
-        "graph-bfs-shortest": "clean",
+        "graph-bfs-shortest": "struggled",
         "grid-neighbors": "clean",
-        "running-extreme": "clean"
+        "graph-dfs-visited": "clean"
       },
       "judge": "deepseek-chat",
-      "note": "Runs one BFS per land cell and takes min distance per cell instead of seeding a single multi-source queue.",
-      "summary": "The code loops over every land cell and runs a separate BFS from it, writing min(res[ii][jj], dist) into a res matrix, then scans res for the maximum finite value. It exercises grid-neighbors and graph-bfs-shortest, but sidesteps the canonical multi-source BFS by launching one BFS per source. The notes describe the min-distance reasoning and the res matrix, and the run passed all assertions.",
+      "note": "LEETCODE: Time Limit Exceeded (11/38 cases) \u2014 running a separate BFS from every land cell is O(land * n*m), the brute force the single multi-source BFS replaces.",
+      "summary": "The code runs an independent BFS from each land cell, writing min(res, dist) into a res matrix, then takes the max finite entry. It uses a visited set and inline boundary checks for the four grid neighbors, but never seeds one shared queue with all sources, so the multi-source BFS is sidestepped. LeetCode rejected it with Time Limit Exceeded (11/38 cases) because the per-source BFS is too slow.",
       "verdicts": {
         "haiku": {
           "date": "2026-09-13",
@@ -24584,6 +24584,19 @@
           "note": "Multiple independent BFS calls per land cell instead of single unified multi-source queue.",
           "summary": "maxDistance computes the farthest distance from any water cell to the nearest land cell. It runs BFS from each land cell separately, recording min distances into a result matrix, then returns the maximum value found. The canonical multi-source-bfs pattern (seeding all sources in one queue upfront) was avoided in favor of multiple single-source passes, but the solution is correct.",
           "judge": "haiku"
+        },
+        "deepseek-chat": {
+          "date": "2026-09-13",
+          "problem": "1162",
+          "moves": {
+            "graph-bfs-shortest": "clean",
+            "grid-neighbors": "clean",
+            "set-membership": "clean",
+            "running-extreme": "clean"
+          },
+          "judge": "deepseek-chat",
+          "note": "LEETCODE: Time Limit Exceeded (11/38 cases) \u2014 one BFS per land cell instead of a single multi-source BFS.",
+          "summary": "The code runs a separate BFS from every land cell, tracking visited cells in a set and taking min(res[ii][jj], dist) so each water cell records its nearest land distance, then scans res for the maximum. It exercises graph-bfs-shortest, grid-neighbors, set-membership and running-extreme, but routes around multi-source-bfs by seeding one queue per source rather than all sources at distance 0. The notes describe the min-distance reasoning, and LeetCode reports Time Limit Exceeded (11/38 cases) on the submitted version."
         }
       }
     },
@@ -25024,13 +25037,27 @@
       "date": "2026-09-14",
       "problem": "2542",
       "moves": {
-        "backtracking-choose-undo": "clean",
-        "backtracking-start-index": "clean",
+        "backtracking-choose-undo": "struggled",
+        "backtracking-start-index": "struggled",
         "prefix-sums": "clean"
       },
       "judge": "deepseek-chat",
-      "note": "Final maxScore is a backtracking brute force over combinations; the intended sort-by-nums2 + min-heap-of-size-k sweep is not implemented.",
-      "summary": "The submitted maxScore uses a recursive helper that appends indices from a start position, tracks the running sum and running min, and records the best sum*min when the chosen set reaches size k, undoing each choice on return. An earlier attempt used prefix sums with a fixed window over nums2, and a combinations-based brute force is also present. The notes say the candidate answered the wrong question, ran low on time, and settled for brute force, calling it a DP problem they were not seeing; the intended heap-top-k sweep is absent."
+      "note": "LEETCODE: Time Limit Exceeded (12/28 cases) \u2014 the combinations/backtracking enumeration of all size-k subsets is exponential and is the move responsible.",
+      "summary": "The submitted maxScore uses a recursive helper that appends nums1[j], recurses at j+1, and pops, tracking the running sum and running min of nums2 to score each size-k subset; a maxScorebf using itertools.combinations does the same enumeration. The earlier attempt built a prefix-sum array and a running_sum(i, j) helper, but its sliding window only ever evaluated windows of length k rather than all subsets, which the notes admit answered the wrong question. The notes say the candidate ran low on time, fell back to brute force, and suspected a DP they could not see. LeetCode rejected the submission with Time Limit Exceeded on 12/28 cases.",
+      "verdicts": {
+        "deepseek-chat": {
+          "date": "2026-09-14",
+          "problem": "2542",
+          "moves": {
+            "backtracking-choose-undo": "clean",
+            "backtracking-start-index": "clean",
+            "prefix-sums": "clean"
+          },
+          "judge": "deepseek-chat",
+          "note": "LEETCODE: Time Limit Exceeded (12/28 cases) on the combinations brute force; the submitted maxScore uses backtracking and passes locally.",
+          "summary": "The submitted maxScore enumerates every k-index combination via a recursive helper that appends nums1[j], recurses at j+1, and pops (choose/undo), tracking the running sum and running min of nums2 and updating self.res. A separate maxScorebf uses itertools.combinations, and an earlier prefix-sum sliding attempt is left in the notes. The notes say the candidate answered the wrong question, fell back to brute force, and suspected DP; LeetCode returned Time Limit Exceeded (12/28 cases)."
+        }
+      }
     }
   }
 }

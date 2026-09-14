@@ -198,9 +198,24 @@ fn run_solve(root: &Path, path: &str) -> (String, String) {
     }
 }
 
+/// The `LEETCODE:` line lc_submit wrote into the notes, when it is not an
+/// acceptance: leetcode's verdict outranks the local run, which only saw
+/// the file's own asserts (2542 on 2026-09-14: clean locally, TLE there).
+fn leetcode_rejection(notes: &str) -> Option<String> {
+    notes
+        .lines()
+        .filter_map(|l| l.trim().strip_prefix("LEETCODE:"))
+        .map(str::trim)
+        .find(|v| !v.starts_with("Accepted"))
+        .map(str::to_string)
+}
+
 /// One authoritative paragraph about the run, for the judge's prompt.
 fn runtime_note(status: &str, detail: &str) -> String {
     match status {
+        "leetcode" => format!(
+            "LEETCODE RESULT (authoritative, outranks the local run, which only saw the file's own asserts): the code was SUBMITTED to leetcode and rejected: {detail}. The solution does NOT solve the problem. Mark 'struggled' the move responsible and quote the verdict in the note: for Time Limit Exceeded, the move whose complexity is too high (a brute force standing in for the canonical technique condemns every move of that brute force); for Wrong Answer or Runtime Error, the move the defect belongs to. At least one move must be 'struggled'."
+        ),
         "passed" => format!(
             "RUNTIME RESULT (authoritative): the file was EXECUTED and exited 0 — every active assertion passed and no exception was raised. The solution WORKS. Do NOT report bugs, failing assertions, or undefined names; if you think you see one, you have misread the code. Note that `assert f(x) is False` PASSES when f(x) returns False — a negative expectation is not a failure. Judge only WHICH technique moves the working code exercises.{}",
             if detail.is_empty() { String::new() } else { format!("\nProgram output:\n{detail}") }
@@ -226,6 +241,10 @@ pub fn record_alt_walk(
     moves: &IndexMap<String, String>,
     skipped: &HashSet<String>,
 ) -> bool {
+    // a walk with a struggled move did not solve the problem: not an alternative
+    if moves.values().any(|v| v == "struggled") {
+        return false;
+    }
     let mut taken: Vec<String> = moves
         .iter()
         .filter(|(_, v)| *v == "clean")
@@ -793,7 +812,10 @@ fn extract_one(
         vec![]
     };
     let body: String = strip_statement(&code).chars().take(6000).collect();
-    let (status, detail) = run_solve(root, path);
+    let (status, detail) = match leetcode_rejection(&notes_of(&code)) {
+        Some(verdict) => ("leetcode".to_string(), verdict),
+        None => run_solve(root, path),
+    };
     let mut prompt = format!(
         "File: {}\n\n{}\n\n{body}",
         basename(path),
@@ -1703,6 +1725,21 @@ mod tests {
     }
 
     #[test]
+    fn leetcode_verdict_in_the_notes() {
+        assert_eq!(
+            leetcode_rejection("notes: \n\nmine\n\nLEETCODE: Time Limit Exceeded (12/28 cases)"),
+            Some("Time Limit Exceeded (12/28 cases)".to_string())
+        );
+        assert_eq!(
+            leetcode_rejection("LEETCODE: Accepted (85 ms, 30 MB)"),
+            None
+        );
+        assert_eq!(leetcode_rejection("no line"), None);
+        assert!(runtime_note("leetcode", "Wrong Answer (97/171 cases)")
+            .contains("rejected: Wrong Answer"));
+    }
+
+    #[test]
     fn alt_walks() {
         let mut problems: Map<String, Value> =
             serde_json::from_str(r#"{"1512": {"moves": ["streaming-accumulate-pairs"]}}"#).unwrap();
@@ -1728,6 +1765,19 @@ mod tests {
             &IndexMap::new(),
             &skipped
         ));
+        // a struggled move means the problem was not solved this way
+        let mut problems: Map<String, Value> =
+            serde_json::from_str(r#"{"2542": {"moves": ["heap-top-k"]}}"#).unwrap();
+        let mut moves = IndexMap::new();
+        moves.insert("prefix-sums".to_string(), "clean".to_string());
+        moves.insert(
+            "backtracking-choose-undo".to_string(),
+            "struggled".to_string(),
+        );
+        let skipped: HashSet<String> = ["heap-top-k".to_string()].into();
+        assert!(!record_alt_walk(&mut problems, "2542", &moves, &skipped));
+        assert!(problems["2542"].get("alt_walks").is_none());
+        let skipped: HashSet<String> = ["streaming-accumulate-pairs".to_string()].into();
         // nothing recorded when no mapped move was skipped, or for an unmapped problem
         let mut problems: Map<String, Value> =
             serde_json::from_str(r#"{"1512": {"moves": ["streaming-accumulate-pairs"]}}"#).unwrap();
