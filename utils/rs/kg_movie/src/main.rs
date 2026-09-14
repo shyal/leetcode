@@ -35,7 +35,10 @@ use std::process::{Command, Stdio};
 use chrono::{Datelike, Duration, NaiveDate};
 use serde_json::Value;
 
+use kg::ctx::{Ctx, PView};
+use kg::data::repo_root;
 use kg::mock::{current_recall, pass_rates, run_mocks, Bank, EvRec, PyRandom, SolveModel};
+use kg::render::degree_color;
 
 const DEFAULT_SECONDS: f64 = 10.0;
 const END_FADE_S: f64 = 1.2; // loop-closing dissolve, capped by FADE_FRACTION
@@ -71,75 +74,10 @@ const SOLID: usize = 0;
 const STALE: usize = 1;
 const FRAGILE: usize = 2;
 const MISSING: usize = 3;
-const FILL: [&str; 4] = ["#238636", "#bb8009", "#da3633", "#6e7681"];
-const STATUS_NAME: [&str; 4] = ["solid", "stale", "fragile", "missing"];
 
-// The ownership ramp (kg_lib.degree_color): the FRAGILE red at 0 sweeping
-// through orange and amber to green at 1, the node's degree of ownership
-// from graph/degree_track.json (written by utils/readme/kg_degree_track).
-// OKLCH, each of L, C and hue linear, hue the short way round. Mirror of
-// the Python; change both.
-const DEGREE_RAMP_BOTTOM: &str = "#da3633";
-const DEGREE_RAMP_TOP: &str = "#3fb950";
+// Every node is filled from the ownership ramp (kg::render::degree_color)
+// over its degree of ownership on that day (kg::status::degree_track).
 const DEGREE_LEGEND: [f64; 5] = [0.0, 0.25, 0.5, 0.75, 1.0];
-
-fn srgb_to_linear(c: f64) -> f64 {
-    let c = c / 255.0;
-    if c <= 0.04045 {
-        c / 12.92
-    } else {
-        ((c + 0.055) / 1.055).powf(2.4)
-    }
-}
-
-fn linear_to_srgb(c: f64) -> f64 {
-    let c = c.clamp(0.0, 1.0);
-    if c <= 0.0031308 {
-        12.92 * c
-    } else {
-        1.055 * c.powf(1.0 / 2.4) - 0.055
-    }
-}
-
-fn hex_to_oklab(h: &str) -> (f64, f64, f64) {
-    let ch = |i: usize| srgb_to_linear(u8::from_str_radix(&h[i..i + 2], 16).unwrap() as f64);
-    let (r, g, b) = (ch(1), ch(3), ch(5));
-    let l_ = (0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b).cbrt();
-    let m_ = (0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b).cbrt();
-    let s_ = (0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b).cbrt();
-    (
-        0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_,
-        1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_,
-        0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_,
-    )
-}
-
-fn oklab_to_hex(l: f64, a: f64, b: f64) -> String {
-    let l_ = (l + 0.3963377774 * a + 0.2158037573 * b).powi(3);
-    let m_ = (l - 0.1055613458 * a - 0.0638541728 * b).powi(3);
-    let s_ = (l - 0.0894841775 * a - 1.2914855480 * b).powi(3);
-    let r = 4.0767416621 * l_ - 3.3077115913 * m_ + 0.2309699292 * s_;
-    let g = -1.2684380046 * l_ + 2.6097574011 * m_ - 0.3413193965 * s_;
-    let bl = -0.0041960863 * l_ - 0.7034186147 * m_ + 1.7076147010 * s_;
-    let to = |c: f64| (linear_to_srgb(c) * 255.0).round() as u8;
-    format!("#{:02x}{:02x}{:02x}", to(r), to(g), to(bl))
-}
-
-fn lch(hex: &str) -> (f64, f64, f64) {
-    let (l, a, b) = hex_to_oklab(hex);
-    let tau = 2.0 * std::f64::consts::PI;
-    (l, a.hypot(b), b.atan2(a).rem_euclid(tau))
-}
-
-fn degree_color(degree: f64) -> String {
-    let (l0, c0, h0) = lch(DEGREE_RAMP_BOTTOM);
-    let (l1, c1, h1) = lch(DEGREE_RAMP_TOP);
-    let pi = std::f64::consts::PI;
-    let t = degree.clamp(0.0, 1.0);
-    let dh = (h1 - h0 + pi).rem_euclid(2.0 * pi) - pi; // the short way round
-    let (l, c, h) = (l0 + (l1 - l0) * t, c0 + (c1 - c0) * t, h0 + dh * t);
-    oklab_to_hex(l, c * h.cos(), c * h.sin())
-}
 
 type Rect = (f64, f64, f64, f64);
 
@@ -163,26 +101,6 @@ struct Curve {
     conn_mean: f64,
     beta: f64,
     target: f64,
-}
-
-fn find_graph_dir() -> PathBuf {
-    let local = PathBuf::from("graph");
-    if local.join("nodes.json").exists() {
-        return local;
-    }
-    let mut dir = std::env::current_exe()
-        .ok()
-        .and_then(|p| p.parent().map(|p| p.to_path_buf()))
-        .unwrap_or_default();
-    loop {
-        let g = dir.join("graph");
-        if g.join("nodes.json").exists() {
-            return g;
-        }
-        if !dir.pop() {
-            panic!("graph/ directory not found");
-        }
-    }
 }
 
 fn load_json(path: &PathBuf) -> Value {
@@ -600,7 +518,10 @@ fn main() {
     let label_life = seconds * LABEL_LIFE_FRACTION;
     let ticks_s = seconds - fade_s;
 
-    let graph = find_graph_dir();
+    let root = repo_root();
+    let graph = root.join("graph");
+    let (ctx, recs) = Ctx::load(root);
+    let pv = PView::new(ctx.evidenced());
     let nodes_v = load_json(&graph.join("nodes.json"));
     let evidence_v = load_json(&graph.join("evidence.json"));
     let conn_map: std::collections::HashMap<String, f64> = {
@@ -735,40 +656,21 @@ fn main() {
             status_tl[ni].push(rep.status(day, curve.as_ref()));
         }
     }
-    // degree of ownership per node per day, from kg_degree_track's file;
-    // without it (a bare `make movie` before any `make readme`) the fill
-    // falls back to the four status colours
-    let degree_tl: Option<Vec<Vec<f64>>> = {
-        let path = graph.join("degree_track.json");
-        path.exists().then(|| {
-            let v = load_json(&path);
-            let day_idx: HashMap<String, usize> = v["days"]
-                .as_array()
-                .unwrap()
-                .iter()
-                .enumerate()
-                .map(|(i, d)| (d.as_str().unwrap().to_string(), i))
-                .collect();
-            nodes
-                .iter()
-                .map(|n| {
-                    let row = v["nodes"].get(&n.id).and_then(Value::as_array);
-                    days.iter()
-                        .map(|d| match (row, day_idx.get(&d.to_string())) {
-                            (Some(r), Some(&i)) => r.get(i).and_then(Value::as_f64).unwrap_or(0.0),
-                            _ => 0.0,
-                        })
-                        .collect()
-                })
-                .collect()
-        })
+    // degree of ownership per node per day (kg::status::degree_track):
+    // node_axes over the records up to each day against today's bank
+    let degree_tl: Vec<Vec<f64>> = {
+        let track = kg::status::degree_track(&ctx, &recs, &pv, &days);
+        nodes
+            .iter()
+            .map(|n| {
+                track
+                    .get(&n.id)
+                    .cloned()
+                    .unwrap_or_else(|| vec![0.0; n_ticks])
+            })
+            .collect()
     };
-    let fill_at = |ni: usize, t: usize| -> String {
-        match &degree_tl {
-            Some(tl) => degree_color(tl[ni][t]),
-            None => FILL[status_tl[ni][t]].to_string(),
-        }
-    };
+    let fill_at = |ni: usize, t: usize| -> String { degree_color(degree_tl[ni][t]) };
     // nodes appear when they were actually introduced; no field = always there
     let first_vis: Vec<usize> = nodes
         .iter()
@@ -846,28 +748,16 @@ fn main() {
             }
         }
     }
-    if degree_tl.is_some() {
-        dot.push_str(" subgraph cluster_legend {\n  label=\"degree of ownership\"; fontcolor=\"#8b949e\"; color=\"#30363d\"; style=rounded;\n");
-        for d in DEGREE_LEGEND {
-            writeln!(
-                dot,
-                "  legend_{} [label=\"{:.2}\", fillcolor=\"{}\"];",
-                (d * 100.0) as usize,
-                d,
-                degree_color(d)
-            )
-            .unwrap();
-        }
-    } else {
-        dot.push_str(" subgraph cluster_legend {\n  label=\"legend\"; fontcolor=\"#8b949e\"; color=\"#30363d\"; style=rounded;\n");
-        for s in [SOLID, STALE, FRAGILE, MISSING] {
-            writeln!(
-                dot,
-                "  legend_{} [label=\"{}\", fillcolor=\"{}\"];",
-                STATUS_NAME[s], STATUS_NAME[s], FILL[s]
-            )
-            .unwrap();
-        }
+    dot.push_str(" subgraph cluster_legend {\n  label=\"degree of ownership\"; fontcolor=\"#8b949e\"; color=\"#30363d\"; style=rounded;\n");
+    for d in DEGREE_LEGEND {
+        writeln!(
+            dot,
+            "  legend_{} [label=\"{:.2}\", fillcolor=\"{}\"];",
+            (d * 100.0) as usize,
+            d,
+            degree_color(d)
+        )
+        .unwrap();
     }
     dot.push_str(" }\n}\n");
 
