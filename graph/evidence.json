@@ -25251,6 +25251,16 @@
       },
       "judge": "fable",
       "summary": "helper(i, total) loops j over range(i, len(nums)), appends nums[j] to path, recurses with helper(j, ...) so the same value may be reused, then pops. A copy of path is recorded when total == target and the branch is cut when total > target. The drill exercised backtracking-start-index and backtracking-choose-undo; the run passed and no notes report help."
+    },
+    "solved/d_Record_Every_Node_2026_09_14T22_36_54_911801_00_00Z.py": {
+      "date": "2026-09-15",
+      "problem": "drill",
+      "moves": {
+        "backtracking-start-index": "clean",
+        "backtracking-choose-undo": "clean"
+      },
+      "judge": "fable",
+      "summary": "helper(i) records path[:] into res on entry, then loops j from i to len(nums), appending nums[j], recursing at helper(j + 1), and popping. The suffix start index i and the recurse-at-j+1 give each element single use and keep every subset in sorted order; the append/recurse/pop with a copy on record is the choose-undo shape. All assertions passed, including 65536 subsets of range(16), each sorted."
     }
   }
 }
