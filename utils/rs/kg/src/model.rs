@@ -114,6 +114,69 @@ pub fn walk_informative(
     (false, (odds - aim).abs())
 }
 
+/// kg_lib.skill_shift: the logit shift `days` of projected practice buys,
+/// from the measured Elo drift: a gain of D points is every problem being D
+/// points easier, so the shift is -k_rating * D / 400. `z` walks the
+/// drift's standard error. Zero drift, zero shift.
+pub fn skill_shift(ctx: &Ctx, days: i64, z: f64) -> f64 {
+    let solve = ctx.curve.as_ref().and_then(|cv| cv.raw.get("solve"));
+    let num = |v: Option<&serde_json::Value>| v.and_then(|x| x.as_f64()).unwrap_or(0.0);
+    let elo = solve.and_then(|s| s.get("elo"));
+    let k_rating = num(solve
+        .and_then(|s| s.get("features"))
+        .and_then(|f| f.get("rating")));
+    let drift = num(elo.and_then(|e| e.get("drift_per_day")))
+        + z * num(elo.and_then(|e| e.get("drift_se")));
+    -k_rating * drift * days as f64 / 400.0
+}
+
+/// kg_lib.solve_scenarios: (cautious, central, optimistic) logit shifts
+/// `days` out - the fitted intercept's standard error plus the drift's,
+/// compounded over the horizon.
+pub fn solve_scenarios(ctx: &Ctx, days: i64) -> (f64, f64, f64) {
+    let se = ctx
+        .curve
+        .as_ref()
+        .and_then(|cv| cv.raw.get("solve"))
+        .and_then(|s| s.get("intercept_se"))
+        .and_then(|x| x.as_f64())
+        .unwrap_or(0.0);
+    (
+        -1.96 * se + skill_shift(ctx, days, -1.96),
+        skill_shift(ctx, days, 0.0),
+        1.96 * se + skill_shift(ctx, days, 1.96),
+    )
+}
+
+/// kg_lib.retention_cycle: the median retention window over the graph,
+/// in days - how long the typical move holds before the curve calls it
+/// due.
+pub fn retention_cycle(ctx: &Ctx, ev: &Evidence) -> i64 {
+    let Some(cv) = &ctx.curve else {
+        return crate::data::SOLID_WINDOW_DAYS;
+    };
+    let mut windows: Vec<f64> = ctx
+        .nodes
+        .keys()
+        .map(|nid| {
+            let cleans = ev
+                .node_entries(nid)
+                .iter()
+                .filter(|e| e.verdict == "clean")
+                .map(|e| e.date)
+                .collect::<std::collections::HashSet<_>>()
+                .len() as f64;
+            let s = (cv.a + cv.b * cleans.ln_1p()).exp().clamp(7.0, 3650.0);
+            s * (cv.target_retention.powf(-1.0 / cv.beta) - 1.0)
+        })
+        .collect();
+    if windows.is_empty() {
+        return crate::data::SOLID_WINDOW_DAYS;
+    }
+    windows.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    windows[windows.len() / 2] as i64
+}
+
 pub fn target_pass_rate() -> f64 {
     let raw = env_str("TARGET_PASS_RATE");
     if raw.is_empty() {
@@ -128,12 +191,32 @@ pub fn target_pass_rate() -> f64 {
 // ---- ratings (utils/kg/clist.py) ------------------------------------------
 
 /// statistics.mean over floats: the exact rational mean, converted once.
-/// Every rating is an integer or a decimal with one digit, so the exact
-/// sum fits fixed point at 2^-40.
+/// A rating is a float between 1 and 4096, so a multiple of 2^-42: the
+/// exact sum fits fixed point at 2^-60 in an i128 (4096 * 2^60 per term,
+/// a few thousand terms); the quotient is rounded to a float once, half
+/// to even, as Fraction.__float__ rounds it.
 fn exact_mean(xs: &[f64]) -> f64 {
-    const SHIFT: f64 = 1099511627776.0; // 2^40
+    const SHIFT: f64 = 1152921504606846976.0; // 2^60
     let total: i128 = xs.iter().map(|x| (x * SHIFT).round() as i128).sum();
-    (total as f64 / SHIFT) / xs.len() as f64
+    let d = xs.len() as i128 * (1i128 << 60);
+    let neg = total < 0;
+    let mut num = total.abs();
+    // scale the quotient to 55 bits: 53 of mantissa and two to round on
+    let mut k = 0i32;
+    while num / d < (1i128 << 54) && k < 100 {
+        num <<= 1;
+        k += 1;
+    }
+    let (mut q, r) = (num / d, num % d);
+    if r != 0 {
+        q |= 1; // the sticky bit: below a tie, the round goes down
+    }
+    let v = (q as f64) * 2f64.powi(-k);
+    if neg {
+        -v
+    } else {
+        v
+    }
 }
 
 fn clist_ratings(root: &Path) -> HashMap<String, f64> {
@@ -415,7 +498,8 @@ pub fn elo_now(ctx: &Ctx, ev: &Evidence) -> f64 {
 
 // ---- pacing forecasts -----------------------------------------------------
 
-fn median(v: &[f64]) -> f64 {
+/// statistics.median
+pub fn median(v: &[f64]) -> f64 {
     let mut s = v.to_vec();
     s.sort_by(|a, b| a.partial_cmp(b).unwrap());
     let n = s.len();

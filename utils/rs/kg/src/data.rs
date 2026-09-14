@@ -101,13 +101,13 @@ pub fn manila_date_from_filename(name: &str) -> Option<String> {
     Some(manila.date().format("%Y-%m-%d").to_string())
 }
 
-/// kg_lib.load_envrc: `export NAME=VALUE` lines of .envrc set in this
-/// process's environment unless already set; a `$` value is left to the
-/// shell.
-pub fn load_envrc(root: &Path) {
+/// kg_lib.load_envrc(environ={}): the `export NAME=VALUE` lines of .envrc
+/// as (name, value) pairs; a `$` value is left to the shell.
+pub fn envrc_pairs(root: &Path) -> Vec<(String, String)> {
     let Ok(text) = std::fs::read_to_string(root.join(".envrc")) else {
-        return;
+        return Vec::new();
     };
+    let mut out = Vec::new();
     for raw in text.lines() {
         let mut line = raw.trim();
         if line.is_empty() || line.starts_with('#') {
@@ -138,7 +138,16 @@ pub fn load_envrc(root: &Path) {
         } else if value.contains('$') {
             continue;
         }
-        if std::env::var_os(name).is_none() {
+        out.push((name.to_string(), value));
+    }
+    out
+}
+
+/// kg_lib.load_envrc: the .envrc knobs set in this process's environment
+/// unless already set.
+pub fn load_envrc(root: &Path) {
+    for (name, value) in envrc_pairs(root) {
+        if std::env::var_os(&name).is_none() {
             std::env::set_var(name, value);
         }
     }

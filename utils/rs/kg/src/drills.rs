@@ -148,6 +148,16 @@ fn sync_caches(ctx: &Ctx, ev: &Evidence) {
     c.cold.retain(|(n, _), _| !hit(n));
 }
 
+/// A bank file landed for `node` mid-run (kg_simulate authors one): the
+/// answers kg_lib reads back from the directory on every call go, the
+/// ones it memoises stay (Ctx::bank_authored).
+pub fn bank_authored(ctx: &Ctx, ev: &Evidence, node: &str) {
+    ctx.bank_authored(node);
+    let mut c = ev.cold_cache();
+    c.due_drill.retain(|(n, _, _, _), _| n != node);
+    c.drills_left.retain(|(n, _), _| n != node);
+}
+
 /// kg_lib.cold_drill: the bank file of a node not warm yet; servable ones
 /// first, and with `ready_only` none at all when none is servable.
 pub fn cold_drill(
