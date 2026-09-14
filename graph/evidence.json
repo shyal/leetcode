@@ -25319,6 +25319,19 @@
       },
       "judge": "fable",
       "summary": "rangeSums builds acc with accumulate(nums), so acc[i] is the sum of nums[0..i]. The prefix lambda answers each (a, b) query as acc[b] minus acc[a-1], with the a == 0 case handled by subtracting 0. The file ran and all assertions passed; the notes say nothing about help or difficulty."
+    },
+    "solved/d_Multi-Buy_2026_09_14T23_36_17_230384_00_00Z.py": {
+      "date": "2026-09-15",
+      "problem": "drill",
+      "moves": {
+        "recursive-descent": "clean"
+      },
+      "assist": {
+        "recursive-descent": "hint"
+      },
+      "judge": "fable",
+      "note": "Notes: 'Hint: use next, not advance which returns nothing'; assist level hint on recursive-descent.",
+      "summary": "The file subclasses dsa.recursive_descent.Parser and fills in term: it calls self.atom() for the left operand, then loops while self.curr is '*' or '/', consuming the operator with self.next and building a TreeNode whose left is the tree so far and right is the next self.atom(). This gives left-associative multiplication and division one precedence level below expr, and all five parses ('2+3*4/6', '10-2*3', '100/10/5', '3*4-2*5', '7') passed. The notes record one hint: use self.next rather than advance, since advance returns nothing."
     }
   }
 }
