@@ -25131,6 +25131,17 @@
       "judge": "deepseek-chat",
       "note": "LeetCode: Accepted (3 ms, 19 MB)",
       "summary": "The code scans cost once, keeping a running minimum in _min via min(_min, c) and appending it to res, so each position gets the cheapest cost seen so far. This exercises the running-extreme move. All assertions pass and LeetCode reports Accepted."
+    },
+    "solved/p378_Kth_Smallest_Element_in_a_Sorted_Matrix_2026_09_14T07_03_15_498077_00_00Z.py": {
+      "date": "2026-09-14",
+      "problem": "378",
+      "moves": {
+        "heap-top-k": "clean"
+      },
+      "judge": "deepseek-chat",
+      "followup": "not solved",
+      "note": "Canonical heap-simulation (merge n sorted rows via a min-heap of (val,row,col)) is sidestepped; the accepted solution pushes every cell into a max-heap capped at size k.",
+      "summary": "The active kthSmallest delegates to kthSmallestBF2, which walks every cell of the matrix with cells(m), pushes each value onto a max-heap, and pops whenever the heap exceeds k, so the root ends as the kth smallest. This exercises heap-top-k (bounded heap of size k) but avoids the canonical heap-simulation merge of the sorted rows. The notes say the candidate took a while but got there, and LeetCode reports Accepted (88 ms, 24.6 MB). The follow-up asks for O(1) memory and O(n) time; the code uses O(k) heap memory and O(n^2 log k) time, so it does not meet it."
     }
   }
 }
