@@ -117,8 +117,8 @@ sleep: $(RS_BIN)/kg_sleep
 wake: $(RS_BIN)/kg_sleep
 	@$(RS_BIN)/kg_sleep --wake $(filter-out $@,$(MAKECMDGOALS))
 
-# make queue: the next problems the picker would serve, rating against elo
-# (the table under make next). make queue gate [-- --gap 50] [-- --apply]:
+# make queue [-- --size N]: the next N (default 10) problems the picker
+# would serve, rating against elo (the table under make next). make queue gate [-- --gap 50] [-- --apply]:
 # ask the judge model which mapped plainer problems should gate the queued
 # ones rated GAP or more above elo; --apply writes them into "after".
 queue: $(RS_BIN)/kg_queue

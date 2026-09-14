@@ -1,6 +1,6 @@
 // kg_queue - the queue `make next` prints, on its own, and its gates.
 //
-//   kg_queue                       # the next problems, rating against elo
+//   kg_queue [--size N]            # the next N problems, rating against elo
 //   kg_queue gate [--gap 50]       # ask the judge model which plainer
 //                                  # problems should gate the ones rated
 //                                  # GAP or more above his elo
@@ -28,7 +28,7 @@ use kg::git::sleep_state;
 use kg::llm::{claude_json, judge_model};
 use kg::model::elo_now;
 use kg::pyjson::{self, dumps};
-use kg::queue::{gap_colour, queue_rows, queue_table, QueueRow};
+use kg::queue::{gap_colour, queue_rows, queue_table, QueueRow, QUEUE_LEN};
 use kg::table::{print_table, BoxKind, Table};
 use serde_json::{json, Map, Value};
 
@@ -38,6 +38,7 @@ const GATE_MARGIN: f64 = 150.0;
 const SYSTEM_PROMPT: &str = "You maintain the prerequisite edges of one operator's leetcode practice\ngraph. A gate is a plainer problem that isolates one piece of a harder\ntarget problem, so that a clean solve of the gate proves the piece before\nthe target is served. Each target comes with its solution; read it and\nname the pieces yourself.\n\nFor each target, name up to three gates, taken from the candidates only,\none per distinct piece, each isolating that piece as purely as possible.\nNever name a problem that is not in the candidates. Never repeat a problem\nalready in the target's after list.\n\nWriting rules for `why`: one short declarative sentence in plain English.\nRefer to problems by number and title only. Never name a technique, a\nmove, or a data structure.\n\nReply with one JSON object and nothing else:\n{\"gates\": [{\"problem\": \"<target number>\", \"gate\": \"<candidate number>\", \"why\": \"<one sentence>\"}]}\n";
 
 struct Args {
+    size: usize,
     gate: bool,
     gap: f64,
     apply: bool,
@@ -48,6 +49,7 @@ struct Args {
 fn parse_args() -> Args {
     let raw: Vec<String> = std::env::args().skip(1).collect();
     let mut a = Args {
+        size: QUEUE_LEN,
         gate: false,
         gap: DEFAULT_GAP,
         apply: false,
@@ -58,12 +60,27 @@ fn parse_args() -> Args {
     while i < raw.len() {
         match raw[i].as_str() {
             "-h" | "--help" => {
-                println!("usage: kg_queue [gate] [--gap N] [--apply] [--context] [--model MODEL]");
+                println!("usage: kg_queue [--size N] [gate] [--gap N] [--apply] [--context] [--model MODEL]");
                 std::process::exit(0);
             }
             "gate" => a.gate = true,
             "--apply" => a.apply = true,
             "--context" => a.context = true,
+            "--size" => {
+                i += 1;
+                a.size = raw
+                    .get(i)
+                    .and_then(|s| s.parse().ok())
+                    .filter(|&n| n > 0)
+                    .unwrap_or_else(|| usage("--size takes a positive integer"));
+            }
+            w if w.starts_with("--size=") => {
+                a.size = w["--size=".len()..]
+                    .parse()
+                    .ok()
+                    .filter(|&n| n > 0)
+                    .unwrap_or_else(|| usage("--size takes a positive integer"));
+            }
             "--gap" => {
                 i += 1;
                 a.gap = raw
@@ -91,7 +108,7 @@ fn parse_args() -> Args {
 }
 
 fn usage(msg: &str) -> ! {
-    eprintln!("usage: kg_queue [gate] [--gap N] [--apply] [--context] [--model MODEL]");
+    eprintln!("usage: kg_queue [--size N] [gate] [--gap N] [--apply] [--context] [--model MODEL]");
     eprintln!("kg_queue: error: {msg}");
     std::process::exit(2);
 }
@@ -285,7 +302,7 @@ fn main() {
     let console = Console::full_width();
 
     if !args.gate {
-        match queue_table(&ctx, &pv, &ev, &asleep) {
+        match queue_table(&ctx, &pv, &ev, &asleep, args.size) {
             Some(t) => print_table(&console, &t),
             None => console.print("[dim]the queue is empty[/dim]"),
         }
@@ -293,7 +310,7 @@ fn main() {
     }
 
     let elo = elo_now(&ctx, &ev);
-    let rows = queue_rows(&ctx, &pv, &ev, &asleep);
+    let rows = queue_rows(&ctx, &pv, &ev, &asleep, args.size);
     let context = build_context(&ctx, &rows, elo, args.gap);
     if args.context {
         println!("{}", dumps(&context, Some(1)));

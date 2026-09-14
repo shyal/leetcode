@@ -12,6 +12,7 @@
 import glob
 import json
 import os
+import re
 import subprocess
 
 import pytest
@@ -172,6 +173,11 @@ def test_kg_queue_table_and_context():
     assert p.returncode == 0, p.stderr
     assert p.stdout.startswith("queue (elo ")
     assert "Rating" in p.stdout.splitlines()[2]
+    # --size N: N problem rows (a long title wraps onto extra lines)
+    p = run("kg_queue", "--size", "3")
+    assert p.returncode == 0, p.stderr
+    assert sum(bool(re.match(r"│ \d+\. ", ln)) for ln in p.stdout.splitlines()) == 3
+    assert run("kg_queue", "--size", "0").returncode == 2
     # gate --context prints the prompt and asks nothing
     p = run("kg_queue", "gate", "--gap", "50", "--context")
     assert p.returncode == 0, p.stderr

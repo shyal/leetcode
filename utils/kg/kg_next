@@ -1355,6 +1355,8 @@ def upcoming(nodes, problems, evidence, count, asleep=(), days=30):
                 if choice is None:
                     break
                 target, _status, pnum, _reason = choice
+                if pnum in exclude:
+                    break  # the pick ignored exclude: the day is spent
                 seq += 1
                 stamp = day.strftime("%Y_%m_%dT") + f"{seq:06d}_00_00Z"
                 if str(pnum).startswith("drill:"):

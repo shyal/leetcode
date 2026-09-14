@@ -1877,6 +1877,9 @@ pub fn upcoming(
             else {
                 break;
             };
+            if exclude.contains(&pnum) {
+                break; // the pick ignored exclude: the day is spent
+            }
             if !is_drill {
                 out.push(pnum.clone());
             }
