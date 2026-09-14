@@ -1,7 +1,7 @@
 # grid_utils.py
 #
 # Grid helpers preloaded by sitecustomize: scan a grid, list a cell's
-# in-bounds neighbours, build a same-shape table, multi-source BFS.
+# in-bounds neighbours, build a table by shape or by size, multi-source BFS.
 
 from collections import deque
 from typing import Any, Callable, Iterator, List, Sequence, Tuple
@@ -30,9 +30,14 @@ def nbrs(
             yield nr, nc
 
 
+def table(m: int, n: int, fill: Any = 0) -> List[List[Any]]:
+    """A new m by n table, every cell set to fill; rows are distinct lists."""
+    return [[fill] * n for _ in range(m)]
+
+
 def like(grid: Sequence[Sequence[Any]], fill: Any = 0) -> List[List[Any]]:
     """A new table with the shape of grid, every cell set to fill."""
-    return [[fill] * len(grid[0]) for _ in grid]
+    return table(len(grid), len(grid[0]), fill)
 
 
 def grid_bfs(
