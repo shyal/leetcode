@@ -70,7 +70,6 @@ def test_tooling_paths_exist():
     missing = sorted(
         p for p in seen if not os.path.exists(os.path.join(ROOT, "utils", p))
     )
-    assert seen, "expected at least one cross-script utils/ path (kg_force -> prepare)"
     assert missing == [], f"scripts point at utils/ files that do not exist: {missing}"
 
 
@@ -84,7 +83,7 @@ def test_rs_bin_names_are_crates():
             names |= set(
                 re.findall(r'rs_bin\("([\w-]+)"\)', open(os.path.join(d, f)).read())
             )
-    assert {"kg_chat", "is_session_start"} <= names
+    assert {"kg_extract", "is_session_start"} <= names
     missing = sorted(
         n for n in names if not os.path.exists(os.path.join(rs, n, "Cargo.toml"))
     )

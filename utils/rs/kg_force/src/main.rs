@@ -53,8 +53,8 @@ fn arm(console: &Console, ctx: &Ctx, num: &str) {
         .cloned()
         .collect();
 
-    let status = Command::new(ctx.root.join(".venv/bin/python3"))
-        .args(["utils/kg/prepare", num])
+    let status = Command::new(kg::data::rs_bin(&ctx.root, "prepare"))
+        .arg(num)
         .current_dir(&ctx.root)
         .status();
     match status {

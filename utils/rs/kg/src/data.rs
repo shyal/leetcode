@@ -32,6 +32,16 @@ pub fn parse_date(s: &str) -> NaiveDate {
     NaiveDate::parse_from_str(s, "%Y-%m-%d").unwrap_or_else(|_| panic!("bad date {s:?}"))
 }
 
+/// kg_lib.rs_bin: the Rust binary `name` of the utils/rs workspace, next to
+/// the running one (they are built together), else under target/release.
+pub fn rs_bin(root: &Path, name: &str) -> PathBuf {
+    std::env::current_exe()
+        .ok()
+        .and_then(|p| p.parent().map(|d| d.join(name)))
+        .filter(|p| p.exists())
+        .unwrap_or_else(|| root.join("utils/rs/target/release").join(name))
+}
+
 /// The repo root: the directory holding graph/nodes.json, found from
 /// KG_ROOT, the binary's own location (utils/rs/target/...), or
 /// the working directory.

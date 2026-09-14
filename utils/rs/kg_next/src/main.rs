@@ -715,22 +715,9 @@ impl<'a> Run<'a> {
             std::process::exit(1);
         }
         let tool = if force { "kg_force" } else { "prepare" };
-        let py = self.ctx.root.join(".venv/bin/python3");
-        let py = if py.exists() {
-            py
-        } else {
-            std::path::PathBuf::from("python3")
-        };
-        let pythonpath = format!(
-            "{}:{}",
-            self.ctx.root.join("utils").display(),
-            std::env::var("PYTHONPATH").unwrap_or_default()
-        );
-        let _ = Command::new(py)
-            .arg(self.ctx.root.join("utils/kg").join(tool))
+        let _ = Command::new(kg::data::rs_bin(&self.ctx.root, tool))
             .arg(target)
             .current_dir(&self.ctx.root)
-            .env("PYTHONPATH", pythonpath)
             .status();
     }
 
@@ -850,22 +837,8 @@ fn load_plan(console: &Console, ctx: &Ctx, today: NaiveDate) -> Option<Value> {
         .join(format!("{}.json", today.format("%Y-%m-%d")));
     if !path.exists() {
         console.print("[dim]new day \u{2014} freezing today's plan...[/dim]");
-        let py = ctx.root.join(".venv/bin/python3");
-        let py = if py.exists() {
-            py
-        } else {
-            std::path::PathBuf::from("python3")
-        };
-        let _ = Command::new(py)
-            .arg(ctx.root.join("utils/kg/kg_today"))
-            .env(
-                "PYTHONPATH",
-                format!(
-                    "{}:{}",
-                    ctx.root.join("utils").display(),
-                    std::env::var("PYTHONPATH").unwrap_or_default()
-                ),
-            )
+        let _ = Command::new(kg::data::rs_bin(&ctx.root, "kg_today"))
+            .current_dir(&ctx.root)
             .status();
     }
     kg::data::read_json(&path)
