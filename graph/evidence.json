@@ -25168,6 +25168,15 @@
       "judge": "fable",
       "note": "Notes say 'Learning': the solution was given and copied.",
       "summary": "largestOfLastK pushes each (v, i) pair into a MonotonicQueue of Type.decreasing, pops the front when its index has left the window (q.front()[1] <= i - k), and appends q.front()[0] to res at every step, so the front is always the maximum of the last k values. The drill's REQUIRED move, the monotonic queue, is exercised through the imported dsa class, and the run printed the expected list. The notes say 'Learning', so this rep was a copy of a given solution."
+    },
+    "solved/d_Tape_Reader_2026_09_14T13_05_48_709904_00_00Z.py": {
+      "date": "2026-09-14",
+      "problem": "drill",
+      "moves": {
+        "recursive-descent": "clean"
+      },
+      "judge": "fable",
+      "summary": "Solution subclasses the dsa Parser and writes expr as one grammar function over the shared cursor: it calls self.number() for the first operand, then loops while self.curr is '+' or '-', consuming the operator via self.next and building a left-associative TreeNode with the next self.number() as the right child. The asserts confirm the tree shape for 120+45-30, a single number, 10-100+1000 and 1+2+3+4, and that p.i reaches len(p.S). The notes claim no assistance."
     }
   }
 }
