@@ -24,6 +24,7 @@ pub mod model;
 pub mod pick;
 pub mod pyjson;
 pub mod pysrc;
+pub mod queue;
 pub mod recog;
 pub mod render;
 pub mod status;

@@ -2096,10 +2096,53 @@ def judge_line(evidence):
     )
 
 
+QUEUE_LEN = 10
+
+
+def queue_table(nodes, problems, evidence, asleep):
+    """The next QUEUE_LEN problems the picker would serve if every rep is
+    clean (upcoming, drills skipped), each with its rating
+    against his Elo, coloured like the rating line. None when the replay
+    serves nothing."""
+    picks = upcoming(nodes, problems, evidence, QUEUE_LEN, asleep=asleep)
+    if not picks:
+        return None
+    every = gate_table(problems)
+    elo = elo_now(evidence)
+    ratings = solve_ratings()
+    table = plain_table(
+        "Problem",
+        "Difficulty",
+        "Rating",
+        "Gap",
+        "Odds",
+        title=f"queue (elo {elo:.0f}, every rep clean)",
+    )
+    for pnum in picks:
+        title = every.get(pnum, {}).get("title", "")
+        diff = problem_difficulty(pnum, every)
+        style = DIFF_STYLE.get(diff, "dim")
+        rating = ratings.get(str(pnum))
+        if rating is None:
+            cells = ["-", "-", "-"]
+        else:
+            gap = rating - elo
+            odds = 1 / (1 + 10 ** (gap / 400))
+            colour = "red" if gap > 100 else "yellow" if gap > -100 else "green"
+            cells = [
+                f"[bold]{rating:.0f}[/bold]",
+                f"[{colour}]{gap:+.0f}[/{colour}]",
+                f"[{colour}]{odds:.0%}[/{colour}]",
+            ]
+        table.add_row(f"{pnum}. {title}", f"[{style}]{diff}[/{style}]", *cells)
+    return table
+
+
 def build_footer(nodes, problems, evidence, statuses, asleep):
     """Everything under the rule at the bottom of every make next: the
-    park, the day's budgets, the judge queue."""
+    next QUEUE_LEN picks, the park, the day's budgets, the judge queue."""
     items = [
+        queue_table(nodes, problems, evidence, asleep),
         park_table(nodes, problems, evidence, statuses) if asleep else None,
         caps_table(nodes, problems, evidence),
         judge_line(evidence),
