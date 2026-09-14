@@ -25297,6 +25297,19 @@
       "judge": "fable",
       "note": "Notes say 'Learning'; asserts commented out but the print run matches the expected adjacency.",
       "summary": "clubGraph builds one set per club in adj, then for every person's club list updates adj[i] with the whole list, so two clubs become neighbours whenever a person belongs to both; a final loop discards each club's self-entry. This is the overlap-adjacency move done in O(n * L) with no person-to-person edges and no element-by-element pair tests. The notes carry a single line, 'Learning', so the drill was a copied first rep; the four asserts are commented out and the print of the first example matches the expected output."
+    },
+    "solved/d_Largest_Of_The_Last_K_2026_09_14T23_18_59_760258_00_00Z.py": {
+      "date": "2026-09-15",
+      "problem": "drill",
+      "moves": {
+        "monotonic-queue": "clean"
+      },
+      "assist": {
+        "monotonic-queue": "learning"
+      },
+      "judge": "fable",
+      "note": "Notes say 'Learning': the solution was given and copied.",
+      "summary": "largestOfLastK walks nums once, pushing (v, i) into a MonotonicQueue of Type.decreasing so the largest value sits at the front, and popleft-ing the front when its index has left the last-k window (q.front()[1] <= i - k). Each step appends q.front()[0] to res, giving the maximum of the last k elements at every index. The monotonic-queue move is exercised through the dsa class; the notes say 'Learning', so the solution was copied rather than recalled."
     }
   }
 }
