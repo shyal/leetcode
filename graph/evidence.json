@@ -25187,6 +25187,20 @@
       },
       "judge": "fable",
       "summary": "findMaxConsecutiveOnes walks nums with right, counting zeros in the window; whenever zeros is positive it advances left one step (decrementing zeros if nums[left] was a zero), so the window slides at constant width instead of shrinking, and best records the widest window seen. This exercises the constant-width slide with a zero budget of 0 and a running maximum. No notes; the run passed all assertions."
+    },
+    "solved/d_Longest_Common_Subsequence_2026_09_14T13_43_45_558726_00_00Z.py": {
+      "date": "2026-09-14",
+      "problem": "drill",
+      "moves": {
+        "two-sequence-align": "clean",
+        "dp-2d-grid": "clean"
+      },
+      "assist": {
+        "two-sequence-align": "hint"
+      },
+      "judge": "fable",
+      "note": "Drill ran and exited 0; notes record a hint on the diagonal-match line dp[i][j] = dp[i-1][j-1] + 1.",
+      "summary": "lcs builds a (len(a)+1) x (len(b)+1) table dp, walks every cell with cells(dp), and for i, j > 0 sets dp[i][j] to dp[i-1][j-1] + 1 when a[i-1] == b[j-1], otherwise to max(dp[i][j-1], dp[i-1][j]); it returns dp[-1][-1]. The two-prefix state over a and b is the two-sequence-align move, filled as a 2D grid from its left, top, and diagonal neighbours. The notes say a hint was needed for the diagonal match line dp[i][j] = dp[i-1][j-1] + 1, which the candidate reports keeps being forgotten."
     }
   }
 }
