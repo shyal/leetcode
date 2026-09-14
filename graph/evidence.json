@@ -25283,6 +25283,20 @@
       "judge": "fable",
       "note": "Drill passed; the code is closed-form arithmetic (min+1, max+limit), no boundary events or sweep appear in the body.",
       "summary": "afterOneTurn returns (min(a, b) + 1, max(a, b) + limit), a two-term closed-form answer with no loop. All seven asserts pass, including the swapped-argument case (4, 2, 4) and the equal case (3, 3, 3). The file targets event-sweep and its REQUIRED line was met by the run, so that node is recorded clean; the notes claim no help."
+    },
+    "solved/d_Clubs_Sharing_A_Member_2026_09_14T23_12_14_077540_00_00Z.py": {
+      "date": "2026-09-15",
+      "problem": "drill",
+      "moves": {
+        "graph-overlap-adjacency": "clean",
+        "set-membership": "clean"
+      },
+      "assist": {
+        "graph-overlap-adjacency": "learning"
+      },
+      "judge": "fable",
+      "note": "Notes say 'Learning'; asserts commented out but the print run matches the expected adjacency.",
+      "summary": "clubGraph builds one set per club in adj, then for every person's club list updates adj[i] with the whole list, so two clubs become neighbours whenever a person belongs to both; a final loop discards each club's self-entry. This is the overlap-adjacency move done in O(n * L) with no person-to-person edges and no element-by-element pair tests. The notes carry a single line, 'Learning', so the drill was a copied first rep; the four asserts are commented out and the print of the first example matches the expected output."
     }
   }
 }
