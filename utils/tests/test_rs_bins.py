@@ -167,6 +167,21 @@ def test_kg_gaps_table_shape():
     assert len(run("kg_gaps", "--all").stdout.splitlines()) >= len(lines)
 
 
+def test_kg_queue_table_and_context():
+    p = run("kg_queue")
+    assert p.returncode == 0, p.stderr
+    assert p.stdout.startswith("queue (elo ")
+    assert "Rating" in p.stdout.splitlines()[2]
+    # gate --context prints the prompt and asks nothing
+    p = run("kg_queue", "gate", "--gap", "50", "--context")
+    assert p.returncode == 0, p.stderr
+    ctx = json.loads(p.stdout)
+    assert set(ctx) == {"elo", "targets", "candidates"}
+    for t in ctx["targets"]:
+        assert t["rating"] - ctx["elo"] >= 50
+    assert run("kg_queue", "gate", "--gap", "x").returncode == 2
+
+
 def test_kg_viz_source_is_dot_with_clusters_and_legend():
     p = run("kg_viz", "--source")
     assert p.returncode == 0, p.stderr

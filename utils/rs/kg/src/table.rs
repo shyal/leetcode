@@ -689,12 +689,15 @@ pub fn columns(items: &[&Table], max_width: usize) -> Vec<Line> {
                     });
                 }
             }
-            // an odd last row still spans every column (blank cells)
-            for w in col_w.iter().take(count).skip(shaped.len()) {
-                line.push(Seg {
-                    text: "  ".into(),
-                    style: Style::default(),
-                });
+            // an odd last row still spans every column (blank cells); the
+            // separator after the last real cell is already on the line
+            for (i, w) in col_w.iter().enumerate().take(count).skip(shaped.len()) {
+                if i > shaped.len() {
+                    line.push(Seg {
+                        text: "  ".into(),
+                        style: Style::default(),
+                    });
+                }
                 line.push(Seg {
                     text: " ".repeat(*w),
                     style: Style::default(),
