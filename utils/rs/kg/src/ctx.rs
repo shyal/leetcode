@@ -63,6 +63,95 @@ pub struct Ctx {
     pub git_prefetch: RefCell<Option<std::thread::JoinHandle<crate::git::GitState>>>,
     pub solve_times: RefCell<Option<Vec<(String, NaiveDate, i64, String)>>>,
     pub ratings: RefCell<Option<HashMap<String, f64>>>,
+    /// The stand-ins the picker tests put in place of the disk reads and
+    /// the tables months of evidence derive (see Stubs); None everywhere
+    /// but under a test that sets them.
+    #[cfg(test)]
+    pub stubs: RefCell<Option<Stubs>>,
+}
+
+/// What the picker tests stub, the way utils/tests/test_kg_next.py's
+/// `picker` fixture monkeypatched kg_next: the drill bank (has_drill_bank,
+/// drill_gated, due_drill), the drills undone (drills_left), the drill
+/// clock (anki_frontier), the unlock counts, the immature set, and the
+/// solve model. A test that wants the real function leaves its field at
+/// the default and the shim falls through.
+#[cfg(test)]
+#[derive(Default, Clone)]
+pub struct Stubs {
+    /// nodes with a bank: has_drill_bank; drill_gated when FRAGILE/MISSING;
+    /// due_drill = drills/<node>/one.py unless drilled today
+    pub bank: HashSet<String>,
+    pub drilled_today: HashSet<String>,
+    /// due_drill answers only under `early` (the owned SOLID node)
+    pub due_early_only: bool,
+    /// unlocks(immature = {}) and unlocks(immature = the set)
+    pub unlocks: HashMap<String, i64>,
+    pub gain: HashMap<String, i64>,
+    pub immature: HashSet<String>,
+    /// drills_left: the nodes with a drill never done
+    pub undone: HashSet<String>,
+    /// anki_frontier: (path, node) in clock order
+    pub clock: Vec<(PathBuf, String)>,
+    /// graduation_due -> None (no move is on its ladder)
+    pub graduation_none: bool,
+    /// anki_due by file name
+    pub anki_due: Option<fn(&Path) -> Option<(NaiveDate, i64)>>,
+    pub solve_model: Option<HashMap<String, f64>>,
+    pub solve_ratings: Option<HashMap<String, f64>>,
+}
+
+#[cfg(test)]
+impl Ctx {
+    /// A context over tables built in a test: no graph/ directory, the
+    /// bank under `drills_dir`, the repo's fitted curve unless `curve` is
+    /// None, today = the Manila date.
+    pub fn synthetic(
+        root: PathBuf,
+        nodes: Nodes,
+        problems: Problems,
+        predicted: Problems,
+        drills: DrillMap,
+        meta: Metadata,
+        curve: Option<Curve>,
+    ) -> Ctx {
+        let mut all = problems;
+        for (k, p) in &predicted {
+            all.entry(k.clone()).or_insert_with(|| p.clone());
+        }
+        let drills_dir = root.join("drills");
+        Ctx {
+            nodes,
+            predicted_view: PView::new(predicted.clone()),
+            predicted,
+            ro: PView::new(all),
+            draft: RefCell::new(None),
+            drills,
+            meta,
+            curve,
+            today: Cell::new(real_today()),
+            drills_dir: RefCell::new(drills_dir),
+            bank_files: RefCell::new(HashMap::new()),
+            has_bank: RefCell::new(HashMap::new()),
+            bank_paths: RefCell::new(HashMap::new()),
+            evidence_keys: RefCell::new(HashMap::new()),
+            deps: RefCell::new(HashMap::new()),
+            git: RefCell::new(None),
+            git_prefetch: RefCell::new(None),
+            drill_headers: RefCell::new(HashMap::new()),
+            drill_paths: RefCell::new(None),
+            drill_ids: RefCell::new(None),
+            solve_times: RefCell::new(None),
+            ratings: RefCell::new(None),
+            stubs: RefCell::new(None),
+            root,
+        }
+    }
+
+    /// Read a stub field, None when the test set no stubs.
+    pub fn stub<T>(&self, f: impl FnOnce(&Stubs) -> T) -> Option<T> {
+        self.stubs.borrow().as_ref().map(f)
+    }
 }
 
 impl Ctx {
@@ -104,6 +193,8 @@ impl Ctx {
             drill_ids: RefCell::new(None),
             solve_times: RefCell::new(None),
             ratings: RefCell::new(None),
+            #[cfg(test)]
+            stubs: RefCell::new(None),
             root,
         };
         (ctx, evidence)

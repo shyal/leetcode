@@ -1,8 +1,8 @@
 // Terminal cell widths, mirrored from rich.cells (the CELL_WIDTHS table is
-// rich's own, generated from rich._cell_widths by utils/tests/test_next_parity.py's
-// fixture check): an emoji is two cells, a combining mark is none. The
-// tables and panels `make next` prints are laid out on these numbers, so
-// the Rust output pads exactly where the Python (rich) output pads.
+// rich's own, copied from rich._cell_widths when the Python picker was
+// ported): an emoji is two cells, a combining mark is none. The tables and
+// panels `make next` prints are laid out on these numbers, so the output
+// pads exactly where rich padded.
 
 use crate::cell_widths::CELL_WIDTHS;
 
