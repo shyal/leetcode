@@ -29,12 +29,19 @@ use crate::{elo, hours, onsite};
 const BUCKET: &str = "shyal";
 
 // (graph file, s3 prefix, README region, alt text, inline region?)
-const CHARTS: [(&str, &str, &str, &str, bool); 11] = [
+const CHARTS: [(&str, &str, &str, &str, bool); 12] = [
     (
         "graph/problem_rating.svg",
         "problem_rating",
         "PROBLEM_RATING_CHART",
         "Rating of the problems attempted",
+        false,
+    ),
+    (
+        "graph/problem_rating_month.svg",
+        "problem_rating_month",
+        "PROBLEM_RATING_MONTH_CHART",
+        "Rating of the problems attempted in the last 30 days",
         false,
     ),
     (

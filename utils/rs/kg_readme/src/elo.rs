@@ -235,7 +235,7 @@ pub fn render(ctx: &Ctx, ev: &Evidence) {
     value_ticks(&mut svg, lo, hi, 100, y_of, ML, W - MR);
     month_ticks(&mut svg, d0, d1, x_of, top, bottom, 1);
     for (series, color, opacity) in [
-        (&hist, LINE, "0.3"),
+        (&hist, LINE, elo_opacity().as_str()),
         (&elo_ma(&gs, START, &[]), MA_LINE, "1"),
     ] {
         for run in runs(series) {

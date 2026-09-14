@@ -22,7 +22,7 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::process::Command;
 
-use chrono::NaiveDate;
+use chrono::{Duration, NaiveDate};
 use kg::ctx::Ctx;
 use kg::data::parse_date;
 use kg::evidence::Evidence;
@@ -39,6 +39,9 @@ const CACHE_DAYS: i64 = 7;
 
 const W: i64 = 1200;
 const H: i64 = 1000;
+const H_MONTH: i64 = 600;
+/// The zoomed chart's window, in days.
+const MONTH: i64 = 30;
 const DOT: &str = BLUE;
 const ELO: &str = GREEN;
 const SIM: &str = "#6e7681";
@@ -332,23 +335,20 @@ fn draw_forecast<F: Fn(NaiveDate) -> f64 + Copy, Y: Fn(f64) -> f64 + Copy>(
         f1(x + 4.0),
         top + 12
     ));
+    let sim = sim_opacity();
     for (d, r) in &fc[0].sim {
         svg.push(format!(
-            "<circle cx=\"{}\" cy=\"{}\" r=\"2.5\" fill=\"{SIM}\" fill-opacity=\"0.35\"/>",
+            "<circle cx=\"{}\" cy=\"{}\" r=\"2.5\" fill=\"{SIM}\" fill-opacity=\"{sim}\"/>",
             f1(x_of(*d)),
             f1(y_of(*r))
         ));
     }
     for (i, f) in fc.iter().enumerate() {
         let width = if i == 0 { 2 } else { 1 };
-        for (series, color, opacity) in [
-            (&f.elo, ELO, "0.3"),
-            (&f.ma, MA_LINE, "0.9"),
-            (&f.med, DOT, "0.9"),
-        ] {
+        for (series, color) in [(&f.elo, ELO), (&f.ma, MA_LINE), (&f.med, DOT)] {
             for run in runs(series) {
                 svg.push(format!(
-                    "<polyline points=\"{}\" fill=\"none\" stroke=\"{color}\" stroke-width=\"{width}\" stroke-opacity=\"{opacity}\" stroke-dasharray=\"6 4\"/>",
+                    "<polyline points=\"{}\" fill=\"none\" stroke=\"{color}\" stroke-width=\"{width}\" stroke-opacity=\"{sim}\" stroke-dasharray=\"6 4\"/>",
                     points(&run, x_of, y_of)
                 ));
             }
@@ -356,31 +356,128 @@ fn draw_forecast<F: Fn(NaiveDate) -> f64 + Copy, Y: Fn(f64) -> f64 + Copy>(
     }
 }
 
+/// A series with its colour and its label, for annotate_ends.
+type Labelled<'a> = (&'a Vec<(NaiveDate, f64)>, &'a str, &'a str);
+
+/// An arrow from a label to the last point of each series, the current
+/// value on the label, so the three lines can be read where they end.
+/// Labels sit to the left of the point and are pushed apart vertically
+/// when two ends are close.
+fn annotate_ends<F: Fn(NaiveDate) -> f64, Y: Fn(f64) -> f64>(
+    svg: &mut Vec<String>,
+    series: &[Labelled],
+    x_of: F,
+    y_of: Y,
+    top: i64,
+    bottom: i64,
+) {
+    const GAP: f64 = 14.0;
+    const REACH: f64 = 90.0;
+    let mut ends: Vec<(f64, f64, f64, &str, &str)> = series
+        .iter()
+        .filter_map(|(s, color, label)| {
+            s.last()
+                .map(|(d, v)| (x_of(*d), y_of(*v), *v, *color, *label))
+        })
+        .collect();
+    ends.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
+    // the labels stack above the highest end, so no line runs through
+    // them; the topmost end gets the lowest label
+    let base = ends.first().map(|e| e.1).unwrap_or(0.0) - 12.0;
+    let mut ys: Vec<f64> = (0..ends.len()).map(|i| base - GAP * i as f64).collect();
+    let overflow = (top as f64 + 10.0 - ys.last().copied().unwrap_or(0.0)).max(0.0);
+    for y in ys.iter_mut() {
+        *y = (*y + overflow).min(bottom as f64 - 4.0);
+    }
+    for ((x, y, v, color, label), ly) in ends.iter().zip(ys) {
+        let (tx, ty) = (x - REACH, ly);
+        let (dx, dy) = (x - tx, y - ty);
+        let len = (dx * dx + dy * dy).sqrt().max(1.0);
+        let (ux, uy) = (dx / len, dy / len);
+        let (hx, hy) = (x - ux * 5.0, y - uy * 5.0);
+        svg.push(format!(
+            "<line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" stroke=\"{color}\" stroke-width=\"1\"/>",
+            f1(tx + 2.0),
+            f1(ty),
+            f1(hx),
+            f1(hy)
+        ));
+        svg.push(format!(
+            "<polygon points=\"{},{} {},{} {},{}\" fill=\"{color}\"/>",
+            f1(*x - ux * 2.0),
+            f1(*y - uy * 2.0),
+            f1(hx - uy * 3.0),
+            f1(hy + ux * 3.0),
+            f1(hx + uy * 3.0),
+            f1(hy - ux * 3.0)
+        ));
+        svg.push(format!(
+            "<text x=\"{}\" y=\"{}\" text-anchor=\"end\" font-size=\"11\" fill=\"{color}\">{label} {}</text>",
+            f1(tx - 2.0),
+            f1(ty + 4.0),
+            f0(*v)
+        ));
+    }
+}
+
 pub fn render(ctx: &Ctx, ev: &Evidence, args: &[String]) {
-    let out = ctx.graph_dir().join("problem_rating.svg");
-    let att = attempts(ctx, ev);
+    draw(ctx, ev, args, None);
+}
+
+/// problem_rating_month.svg: the same chart over the last MONTH days,
+/// without the forecast.
+pub fn render_month(ctx: &Ctx, ev: &Evidence) {
+    draw(ctx, ev, &[], Some(MONTH));
+}
+
+fn draw(ctx: &Ctx, ev: &Evidence, args: &[String], days: Option<i64>) {
+    let out = ctx.graph_dir().join(if days.is_some() {
+        "problem_rating_month.svg"
+    } else {
+        "problem_rating.svg"
+    });
+    let mut att = attempts(ctx, ev);
     if att.is_empty() {
         println!("no rated attempts");
         return;
     }
-    let med = trailing_median(&att);
+    let mut med = trailing_median(&att);
     let gs = elo::games(ctx, ev);
-    let (elo_hist, ma) = (elo::elo(&gs, START), elo::elo_ma(&gs, START, &[]));
-    let fc = forecast(ctx, ev, &att, args);
-    let d0 = elo_hist
-        .first()
-        .map(|e| e.0.min(att[0].0))
-        .unwrap_or(att[0].0);
+    let (mut elo_hist, mut ma) = (elo::elo(&gs, START), elo::elo_ma(&gs, START, &[]));
+    let fc = if days.is_some() {
+        Vec::new()
+    } else {
+        forecast(ctx, ev, &att, args)
+    };
     let today = elo_hist
         .last()
         .map(|e| e.0.max(att[att.len() - 1].0))
         .unwrap_or(att[att.len() - 1].0);
+    let d0 = match days {
+        Some(n) => {
+            let since = today - Duration::days(n);
+            att.retain(|a| a.0 >= since);
+            med.retain(|m| m.0 >= since);
+            elo_hist.retain(|e| e.0 >= since);
+            ma.retain(|m| m.0 >= since);
+            if att.is_empty() {
+                println!("no rated attempts in the last {n} days");
+                return;
+            }
+            since
+        }
+        None => elo_hist
+            .first()
+            .map(|e| e.0.min(att[0].0))
+            .unwrap_or(att[0].0),
+    };
     let d1 = fc
         .iter()
         .flat_map(|f| f.sim.iter().map(|s| s.0))
         .fold(today, NaiveDate::max);
     let span = days_between(d0, d1).max(1);
-    let (top, bottom) = (MT, H - MB);
+    let h = if days.is_some() { H_MONTH } else { H };
+    let (top, bottom) = (MT, h - MB);
     let vals: Vec<f64> = att
         .iter()
         .map(|a| a.1)
@@ -388,9 +485,18 @@ pub fn render(ctx: &Ctx, ev: &Evidence, args: &[String]) {
         .chain(fc.iter().flat_map(|f| f.sim.iter().map(|s| s.1)))
         .chain(fc.iter().flat_map(|f| f.elo.iter().map(|e| e.1)))
         .collect();
-    let lo = floor_to(vals.iter().cloned().fold(f64::INFINITY, f64::min), 100) - 100;
-    let hi =
-        ceil_to(vals.iter().cloned().fold(f64::NEG_INFINITY, f64::max), 100).max(RANKS[0].0) + 100;
+    let (vmin, vmax) = (
+        vals.iter().cloned().fold(f64::INFINITY, f64::min),
+        vals.iter().cloned().fold(f64::NEG_INFINITY, f64::max),
+    );
+    // the month zooms: 50 point grid, no padding to the top rank
+    let step = if days.is_some() { 50 } else { 100 };
+    let lo = floor_to(vmin, step) - step;
+    let hi = if days.is_some() {
+        ceil_to(vmax, step) + step
+    } else {
+        ceil_to(vmax, step).max(RANKS[0].0) + step
+    };
     let x_of =
         |d: NaiveDate| ML as f64 + days_between(d0, d) as f64 / span as f64 * (W - ML - MR) as f64;
     let y_of = |v: f64| bottom as f64 - (v - lo as f64) / (hi - lo) as f64 * (bottom - top) as f64;
@@ -408,18 +514,29 @@ pub fn render(ctx: &Ctx, ev: &Evidence, args: &[String]) {
     let med_all = median(&att.iter().map(|a| a.1).collect::<Vec<_>>());
     let note = forecast_note(&fc, MA);
     let mut svg = vec![
-        format!("<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 {W} {H}\" font-family=\"Helvetica,sans-serif\">"),
-        format!("<rect width=\"{W}\" height=\"{H}\" fill=\"{BG}\"/>"),
+        format!("<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 {W} {h}\" font-family=\"Helvetica,sans-serif\">"),
+        format!("<rect width=\"{W}\" height=\"{h}\" fill=\"{BG}\"/>"),
         format!(
-            "<text x=\"{}\" y=\"20\" text-anchor=\"middle\" font-size=\"11\" fill=\"{MUTED}\">{} attempts - {tally} - median rating {}{note}</text>",
+            "<text x=\"{}\" y=\"20\" text-anchor=\"middle\" font-size=\"11\" fill=\"{MUTED}\">{}{} attempts - {tally} - median rating {}{note}</text>",
             f0(W as f64 / 2.0),
+            days.map(|n| format!("last {n} days: ")).unwrap_or_default(),
             att.len(),
             f0(med_all)
         ),
     ];
-    rank_bands(&mut svg, &RANKS, y_of, ML, W, MR, top);
-    value_ticks(&mut svg, lo, hi, 200, y_of, ML, W - MR);
-    month_ticks(&mut svg, d0, d1, x_of, top, bottom, 1);
+    let ranks: Vec<(i64, &str, &str)> = RANKS
+        .iter()
+        .filter(|r| r.0 > lo && r.0 < hi)
+        .cloned()
+        .collect();
+    rank_bands(&mut svg, &ranks, y_of, ML, W, MR, top);
+    if days.is_some() {
+        value_ticks(&mut svg, lo, hi, step, y_of, ML, W - MR);
+        day_ticks(&mut svg, d0, d1, x_of, top, bottom, 7);
+    } else {
+        value_ticks(&mut svg, lo, hi, 200, y_of, ML, W - MR);
+        month_ticks(&mut svg, d0, d1, x_of, top, bottom, 1);
+    }
     // dots first, lines over them; unaided dots go down first so the rare
     // assisted and failed ones sit on top of the pile
     let order = |k: &str| OUTCOMES.iter().position(|o| o.0 == k).unwrap_or(0);
@@ -438,7 +555,7 @@ pub fn render(ctx: &Ctx, ev: &Evidence, args: &[String]) {
         ));
     }
     for (series, color, opacity) in [
-        (&elo_hist, ELO, "0.3"),
+        (&elo_hist, ELO, elo_opacity().as_str()),
         (&ma, MA_LINE, "1"),
         (&med, DOT, "1"),
     ] {
@@ -452,6 +569,18 @@ pub fn render(ctx: &Ctx, ev: &Evidence, args: &[String]) {
     if !fc.is_empty() {
         draw_forecast(&mut svg, &fc, x_of, y_of, top, bottom, today);
     }
+    annotate_ends(
+        &mut svg,
+        &[
+            (&elo_hist, ELO, "elo"),
+            (&ma, MA_LINE, "average"),
+            (&med, DOT, "median"),
+        ],
+        x_of,
+        y_of,
+        top,
+        bottom,
+    );
     let mut legend = Legend::new(ML, true, MT - 18);
     for (k, label, color, _) in OUTCOMES {
         if counts.get(k).copied().unwrap_or(0) > 0 {

@@ -153,6 +153,32 @@ pub fn month_ticks<F: Fn(NaiveDate) -> f64>(
     }
 }
 
+/// The vertical grid for a short window: a line and a day label every
+/// `step` days, counted back from d1 so the last tick is the last day.
+pub fn day_ticks<F: Fn(NaiveDate) -> f64>(
+    svg: &mut Vec<String>,
+    d0: NaiveDate,
+    d1: NaiveDate,
+    x_of: F,
+    top: i64,
+    bottom: i64,
+    step: i64,
+) {
+    let mut d = d1;
+    while d >= d0 {
+        let x = f1(x_of(d));
+        svg.push(format!(
+            "<line x1=\"{x}\" y1=\"{top}\" x2=\"{x}\" y2=\"{bottom}\" stroke=\"{GRID}\" stroke-width=\"1\"/>"
+        ));
+        svg.push(format!(
+            "<text x=\"{x}\" y=\"{}\" text-anchor=\"middle\" font-size=\"11\" fill=\"{MUTED}\">{}</text>",
+            bottom + 18,
+            d.format("%b %d")
+        ));
+        d -= Duration::days(step);
+    }
+}
+
 /// The horizontal grid: a line and a label every `step` from lo to hi.
 pub fn value_ticks<G: Fn(f64) -> f64>(
     svg: &mut Vec<String>,
@@ -282,6 +308,28 @@ impl Legend {
         ));
         self.label(svg, label);
     }
+}
+
+/// An opacity from the environment (.envrc is loaded): a number in 0..=1,
+/// else `default`.
+fn opacity(name: &str, default: &str) -> String {
+    match std::env::var(name)
+        .ok()
+        .and_then(|v| v.trim().parse::<f64>().ok())
+    {
+        Some(x) if (0.0..=1.0).contains(&x) => x.to_string(),
+        _ => default.to_string(),
+    }
+}
+
+/// README_ELO_OPACITY: the raw elo line under its moving average.
+pub fn elo_opacity() -> String {
+    opacity("README_ELO_OPACITY", "0.55")
+}
+
+/// README_SIM_OPACITY: the forecast's simulated attempts in the problems chart.
+pub fn sim_opacity() -> String {
+    opacity("README_SIM_OPACITY", "0.2")
 }
 
 pub fn write(path: &std::path::Path, svg: &[String]) {

@@ -342,8 +342,9 @@ pub fn render(ctx: &Ctx, ev: &Evidence) {
         points(&srv, x_of, y_of)
     ));
     svg.push(format!(
-        "<polyline points=\"{}\" fill=\"none\" stroke=\"{ELO}\" stroke-width=\"2\" stroke-opacity=\"0.3\"/>",
-        points(&curve, x_of, y_of)
+        "<polyline points=\"{}\" fill=\"none\" stroke=\"{ELO}\" stroke-width=\"2\" stroke-opacity=\"{}\"/>",
+        points(&curve, x_of, y_of),
+        elo_opacity()
     ));
     svg.push(format!(
         "<polyline points=\"{}\" fill=\"none\" stroke=\"{MA_LINE}\" stroke-width=\"2\"/>",
