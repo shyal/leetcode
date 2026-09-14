@@ -13,10 +13,10 @@ DIAGONALS: Tuple[Cell, ...] = ((-1, -1), (-1, 1), (1, -1), (1, 1))
 ALL_EIGHT: Tuple[Cell, ...] = CARDINALS + DIAGONALS
 
 
-def cells(grid: Sequence[Sequence[Any]]) -> Iterator[Cell]:
-    """Every (i, j) of grid in row-major order."""
-    for i in range(len(grid)):
-        for j in range(len(grid[0])):
+def cells(grid: Sequence[Sequence[Any]], start: int = 0) -> Iterator[Cell]:
+    """Every (i, j) of grid with i >= start and j >= start, in row-major order."""
+    for i in range(start, len(grid)):
+        for j in range(start, len(grid[0])):
             yield i, j
 
 
