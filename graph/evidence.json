@@ -25155,6 +25155,19 @@
       "judge": "deepseek-chat",
       "note": "LEETCODE: Accepted (0 ms, 19.4 MB)",
       "summary": "getDigits peels digits with %10 and //10, then largestInteger splits them into even and odd lists, sorts each, and rebuilds the number by popping the largest available digit of the matching parity at each position, reassembling via reduce. The parity pattern is preserved while each parity class is greedily maximized. The run passed all assertions and LeetCode accepted it in 0 ms."
+    },
+    "solved/d_Largest_Of_The_Last_K_2026_09_14T12_54_20_033106_00_00Z.py": {
+      "date": "2026-09-14",
+      "problem": "drill",
+      "moves": {
+        "monotonic-queue": "clean"
+      },
+      "assist": {
+        "monotonic-queue": "learning"
+      },
+      "judge": "fable",
+      "note": "Notes say 'Learning': the solution was given and copied.",
+      "summary": "largestOfLastK pushes each (v, i) pair into a MonotonicQueue of Type.decreasing, pops the front when its index has left the window (q.front()[1] <= i - k), and appends q.front()[0] to res at every step, so the front is always the maximum of the last k values. The drill's REQUIRED move, the monotonic queue, is exercised through the imported dsa class, and the run printed the expected list. The notes say 'Learning', so this rep was a copy of a given solution."
     }
   }
 }
