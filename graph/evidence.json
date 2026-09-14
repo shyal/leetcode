@@ -25210,6 +25210,18 @@
       },
       "judge": "fable",
       "summary": "The query selects p.product_name, s.year and s.price from Sales as s joined to Product as p on s.product_id = p.product_id. The inner join drops Samsung (no sales) in EXAMPLE_1 and the sale with product_id 999 (no product) in EXAMPLE_2, which both assertions confirm. The notes record no help or difficulty."
+    },
+    "solved/d_Merge_Accounts_2026_09_14T22_13_27_297268_00_00Z.py": {
+      "date": "2026-09-15",
+      "problem": "drill",
+      "moves": {
+        "union-find": "clean"
+      },
+      "assist": {
+        "union-find": "learning"
+      },
+      "judge": "fable",
+      "summary": "mergeAccounts builds persons as a defaultdict(set), enumerates accounts, calls self.find(account) once per account to get its root, and adds every email of that account to persons[person]. The union step is done beforehand by sol.union_shared(accounts) from dsa.union_find, so the code exercises the find-then-group half of union-find, meeting the REQUIRED line of one find per account. The notes end with 'Learning.', so this rep was a copy of the given solution."
     }
   }
 }
