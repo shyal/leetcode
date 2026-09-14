@@ -263,6 +263,12 @@ def pprint(*args, **kwargs):
     return None
 
 
+# Adding a builtin touches four places: the `builtins.x = x` line below,
+# the ruff builtins list in pyproject.toml (test_layout pins the two equal),
+# stubs/custom_builtins.pyi and stubs/builtins.pyi (Pylance reads the stub
+# through python.analysis.stubPath). Then `make all` copies this file into
+# the venv.
+
 # types
 builtins.List = List
 builtins.Optional = Optional
@@ -313,6 +319,7 @@ builtins.DIAGONALS = DIAGONALS
 builtins.ALL_EIGHT = ALL_EIGHT
 builtins.cells = cells
 builtins.nbrs = nbrs
+builtins.table = table
 builtins.like = like
 builtins.grid_bfs = grid_bfs
 
