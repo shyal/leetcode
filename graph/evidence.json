@@ -25058,6 +25058,18 @@
           "summary": "The submitted maxScore enumerates every k-index combination via a recursive helper that appends nums1[j], recurses at j+1, and pops (choose/undo), tracking the running sum and running min of nums2 and updating self.res. A separate maxScorebf uses itertools.combinations, and an earlier prefix-sum sliding attempt is left in the notes. The notes say the candidate answered the wrong question, fell back to brute force, and suspected DP; LeetCode returned Time Limit Exceeded (12/28 cases)."
         }
       }
+    },
+    "solved/p2587_Rearrange_Array_to_Maximize_Prefix_Score_2026_09_14T01_53_34_198476_00_00Z.py": {
+      "date": "2026-09-14",
+      "problem": "2587",
+      "moves": {
+        "sort-by-custom-key": "clean",
+        "prefix-sums": "clean",
+        "running-sum": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "score() counts prefix entries >= 1 via accumulate; sort(reverse=True) puts positives first.",
+      "summary": "The code sorts nums descending, builds the prefix sums with accumulate, and counts how many prefix sums are at least 1. It exercises sort-by-custom-key (reverse sort), prefix-sums, and running-sum accumulation. LeetCode accepted it at 95 ms and 32.3 MB, and all local assertions passed."
     }
   }
 }
