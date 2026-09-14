@@ -194,6 +194,7 @@ HARNESS_MODULES = [
     "linked_list_utils",
     "graph_utils",
     "grid_utils",
+    "combo_utils",
     "bs_utils",
     "debug_utils",
     "heap_utils",

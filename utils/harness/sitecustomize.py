@@ -80,9 +80,10 @@ from typing import (
 
 from bs_utils import *
 from bst_utils import *
-from debug_utils import *
 
 # utils
+from combo_utils import *
+from debug_utils import *
 from graph_utils import *
 from grid_utils import *
 from heap_utils import *
@@ -322,6 +323,10 @@ builtins.nbrs = nbrs
 builtins.table = table
 builtins.like = like
 builtins.grid_bfs = grid_bfs
+
+# index combinations
+builtins.pairs = pairs
+builtins.triples = triples
 
 # utilities
 builtins.deque = deque
