@@ -25177,6 +25177,16 @@
       },
       "judge": "fable",
       "summary": "Solution subclasses the dsa Parser and writes expr as one grammar function over the shared cursor: it calls self.number() for the first operand, then loops while self.curr is '+' or '-', consuming the operator via self.next and building a left-associative TreeNode with the next self.number() as the right child. The asserts confirm the tree shape for 120+45-30, a single number, 10-100+1000 and 1+2+3+4, and that p.i reaches len(p.S). The notes claim no assistance."
+    },
+    "solved/d_Longest_Run_of_Ones_2026_09_14T13_26_01_409819_00_00Z.py": {
+      "date": "2026-09-14",
+      "problem": "drill",
+      "moves": {
+        "sliding-window-budget": "clean",
+        "running-extreme": "clean"
+      },
+      "judge": "fable",
+      "summary": "findMaxConsecutiveOnes walks nums with right, counting zeros in the window; whenever zeros is positive it advances left one step (decrementing zeros if nums[left] was a zero), so the window slides at constant width instead of shrinking, and best records the widest window seen. This exercises the constant-width slide with a zero budget of 0 and a running maximum. No notes; the run passed all assertions."
     }
   }
 }
