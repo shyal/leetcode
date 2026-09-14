@@ -120,6 +120,41 @@ impl PyRandom {
     pub fn randint(&mut self, a: u32, b: u32) -> u32 {
         a + self.randbelow(b - a + 1)
     }
+
+    /// random.sample(population, k): k distinct picks, in CPython's order.
+    /// Below a size threshold CPython draws from a copy of the list and
+    /// fills each hole with the last unpicked item; above it, it rejects
+    /// repeated indices against a set. Both paths consume the generator
+    /// differently, so both are kept.
+    pub fn sample<T: Clone>(&mut self, population: &[T], k: usize) -> Vec<T> {
+        let n = population.len();
+        assert!(k <= n, "sample larger than population");
+        let mut setsize = 21usize;
+        if k > 5 {
+            let e = ((k * 3) as f64).ln() / 4f64.ln();
+            setsize += 4usize.pow(e.ceil() as u32);
+        }
+        let mut result = Vec::with_capacity(k);
+        if n <= setsize {
+            let mut pool: Vec<T> = population.to_vec();
+            for i in 0..k {
+                let j = self.randbelow((n - i) as u32) as usize;
+                result.push(pool[j].clone());
+                pool[j] = pool[n - i - 1].clone();
+            }
+        } else {
+            let mut selected = std::collections::HashSet::new();
+            for _ in 0..k {
+                let mut j = self.randbelow(n as u32) as usize;
+                while selected.contains(&j) {
+                    j = self.randbelow(n as u32) as usize;
+                }
+                selected.insert(j);
+                result.push(population[j].clone());
+            }
+        }
+        result
+    }
 }
 
 // ------------------------------------------------------------- data model --
@@ -832,4 +867,49 @@ pub fn outcome_hist(
     );
     let norm = |a: [i64; 7]| a.map(|v| v as f64 / n_mc as f64);
     (norm(hist), norm(onsite_hist))
+}
+
+#[cfg(test)]
+mod sample_tests {
+    use super::PyRandom;
+
+    fn ints(n: usize) -> Vec<usize> {
+        (0..n).collect()
+    }
+
+    // random.Random(seed).sample(list(range(n)), k), CPython 3.
+    #[test]
+    fn sample_small_population_uses_the_pool_path() {
+        assert_eq!(PyRandom::new(1).sample(&ints(50), 6), [8, 36, 4, 16, 7, 31]);
+    }
+
+    #[test]
+    fn sample_large_population_uses_the_set_path() {
+        assert_eq!(
+            PyRandom::new(1).sample(&ints(1000), 6),
+            [137, 582, 867, 821, 782, 64]
+        );
+        let got = PyRandom::new(1).sample(&ints(300), 50);
+        assert_eq!(
+            got,
+            [
+                68, 291, 32, 130, 60, 253, 230, 241, 194, 107, 48, 249, 14, 199, 221, 1, 228, 136,
+                117, 52, 162, 15, 11, 13, 277, 4, 195, 110, 216, 270, 113, 224, 283, 119, 176, 118,
+                112, 235, 148, 213, 284, 51, 95, 151, 61, 170, 256, 259, 97, 155
+            ]
+        );
+    }
+
+    #[test]
+    fn sample_fifty_from_two_hundred_takes_the_pool_path() {
+        let got = PyRandom::new(2026).sample(&ints(200), 50);
+        assert_eq!(
+            got,
+            [
+                30, 81, 128, 131, 165, 26, 57, 153, 159, 142, 107, 146, 140, 125, 150, 112, 61, 0,
+                157, 20, 28, 73, 25, 115, 2, 186, 173, 80, 53, 101, 64, 89, 91, 96, 196, 163, 19,
+                87, 22, 190, 137, 74, 178, 117, 36, 147, 79, 6, 94, 93
+            ]
+        );
+    }
 }
