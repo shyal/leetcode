@@ -284,7 +284,7 @@ chat: $(RS_BIN)/kg_chat
 # the S3 upload and the README's generated regions. The renderers that are
 # no longer linked still work standalone from Python if a chart comes back:
 #   kg_positions_svg kg_solvetime_svg kg_connectivity_svg kg_rates_svg
-#   kg_commits_svg kg_zpd_svg kg_degree_track kg_reach_svg kg_3d_svg
+#   kg_commits_svg kg_zpd_svg kg_reach_svg kg_3d_svg
 #   kg_full_svg kg_compression_svg, and $(MOVIE_BIN)
 readme: $(MOCK_BIN) $(RS_BIN)/estimate $(RS_BIN)/kg_readme
 	@$(RS_BIN)/kg_readme

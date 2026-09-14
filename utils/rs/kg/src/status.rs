@@ -10,7 +10,7 @@ use std::fmt;
 use chrono::{Duration, NaiveDate};
 
 use crate::ctx::{Ctx, PView};
-use crate::data::{assist_weight, is_numeric_id, Nodes, SOLID_WINDOW_DAYS};
+use crate::data::{assist_weight, is_numeric_id, Nodes, Rec, SOLID_WINDOW_DAYS};
 use crate::evidence::Evidence;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
@@ -343,6 +343,46 @@ fn node_axes_uncached_(ctx: &Ctx, node: &str, ev: &Evidence, pv: &PView, today: 
 
 pub fn node_degree(ctx: &Ctx, node: &str, ev: &Evidence, pv: &PView, today: NaiveDate) -> f64 {
     node_axes(ctx, node, ev, pv, today).degree
+}
+
+/// kg_lib.degree_track: node -> degree of ownership on every day of
+/// `days`, each day node_axes over the records dated on or before it
+/// against today's bank, rounded to two decimals as the Python did. The
+/// records are replayed in date order into one growing table (the one
+/// replay every animated chart colours its nodes from).
+pub fn degree_track(
+    ctx: &Ctx,
+    recs: &[(String, Rec)],
+    pv: &PView,
+    days: &[NaiveDate],
+) -> HashMap<String, Vec<f64>> {
+    let mut by_date: Vec<&(String, Rec)> = recs.iter().collect();
+    by_date.sort_by(|a, b| a.1.date.cmp(&b.1.date));
+    let mut seen = Evidence::new(Vec::new());
+    let mut k = 0;
+    let mut track: HashMap<String, Vec<f64>> = ctx
+        .nodes
+        .keys()
+        .map(|n| (n.clone(), Vec::with_capacity(days.len())))
+        .collect();
+    for &day in days {
+        let cut = day.to_string();
+        while k < by_date.len() && by_date[k].1.date <= cut {
+            seen.push(by_date[k].0.clone(), by_date[k].1.clone());
+            k += 1;
+        }
+        for n in ctx.nodes.keys() {
+            let d = node_axes(ctx, n, &seen, pv, day).degree;
+            track.get_mut(n).unwrap().push(round2(d));
+        }
+    }
+    track
+}
+
+/// Python's round(x, 2): the exact binary value rounded to two decimals,
+/// ties to even (Rust's `{:.2}` does the same).
+fn round2(x: f64) -> f64 {
+    format!("{x:.2}").parse().unwrap()
 }
 
 /// kg_lib.owned: the node's most recent clean rep was unaided on this move.
