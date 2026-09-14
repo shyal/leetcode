@@ -99,10 +99,10 @@ predict: $(RS_BIN)/kg_predict
 	@$(RS_BIN)/kg_predict $(filter-out $@,$(MAKECMDGOALS))
 
 # make simulate 2 [seed 7] [bank-rate 0.5]: run the real picker forward day by day on
-# simulated evidence until central P(onsite) reaches 50% (utils/kg/kg_simulate;
-# utils/readme/kg_forecast_svg draws the same run after the history for the README)
-simulate:
-	@PYTHONPATH=./utils .venv/bin/python3 utils/kg/kg_simulate $(patsubst bank-rate,--bank-rate,$(patsubst seed,--seed,$(filter-out $@,$(MAKECMDGOALS))))
+# simulated evidence until central P(onsite) reaches the target (utils/rs/kg_simulate;
+# kg_readme problem-rating draws the same run after the history for the README)
+simulate: $(RS_BIN)/kg_simulate
+	@$(RS_BIN)/kg_simulate $(patsubst bank-rate,--bank-rate,$(patsubst seed,--seed,$(filter-out $@,$(MAKECMDGOALS))))
 
 # make movie is implemented in Rust: one pinned graphviz layout, the history
 # replayed as SMIL animation into graph/kg_movie.svg (embedded by make readme)
@@ -285,7 +285,7 @@ chat: $(RS_BIN)/kg_chat
 # no longer linked still work standalone from Python if a chart comes back:
 #   kg_positions_svg kg_solvetime_svg kg_connectivity_svg kg_rates_svg
 #   kg_commits_svg kg_zpd_svg kg_degree_track kg_reach_svg kg_3d_svg
-#   kg_full_svg kg_compression_svg kg_forecast_svg, and $(MOVIE_BIN)
+#   kg_full_svg kg_compression_svg, and $(MOVIE_BIN)
 readme: $(MOCK_BIN) $(RS_BIN)/estimate $(RS_BIN)/kg_readme
 	@$(RS_BIN)/kg_readme
 	@$(RS_BIN)/estimate

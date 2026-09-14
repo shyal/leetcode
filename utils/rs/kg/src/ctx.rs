@@ -48,7 +48,11 @@ pub struct Ctx {
     pub meta: Metadata,
     pub curve: Option<Curve>,
     today: Cell<NaiveDate>,
+    /// kg_lib.DRILLS_DIR: root/drills, or the scratch copy a simulation
+    /// authors into (kg_simulate.ScratchBank)
+    drills_dir: RefCell<PathBuf>,
     bank_files: RefCell<HashMap<String, Rc<Vec<PathBuf>>>>,
+    has_bank: RefCell<HashMap<String, bool>>,
     bank_paths: RefCell<HashMap<String, Rc<Vec<PathBuf>>>>,
     evidence_keys: RefCell<HashMap<PathBuf, String>>,
     drill_headers: RefCell<HashMap<PathBuf, Rc<(Option<String>, Vec<String>)>>>,
@@ -87,7 +91,9 @@ impl Ctx {
             meta,
             curve: load_curve(&root),
             today: Cell::new(today),
+            drills_dir: RefCell::new(root.join("drills")),
             bank_files: RefCell::new(HashMap::new()),
+            has_bank: RefCell::new(HashMap::new()),
             bank_paths: RefCell::new(HashMap::new()),
             evidence_keys: RefCell::new(HashMap::new()),
             deps: RefCell::new(HashMap::new()),
@@ -116,7 +122,24 @@ impl Ctx {
     }
 
     pub fn drills_dir(&self) -> PathBuf {
-        self.root.join("drills")
+        self.drills_dir.borrow().clone()
+    }
+
+    /// Point every bank read at another directory (kg_simulate patches
+    /// kg_lib.DRILLS_DIR the same way). Call before the first bank read:
+    /// the per-node caches are keyed by node alone.
+    pub fn set_drills_dir(&self, dir: PathBuf) {
+        *self.drills_dir.borrow_mut() = dir;
+    }
+
+    /// A bank file was written for `node` after the tables were read. What
+    /// kg_lib reads from the directory on every call follows: has_drill_bank
+    /// and bank_paths glob afresh, deps derives from bank_paths. bank_files
+    /// is the one kg_lib memoises for the process, so it keeps its answer.
+    pub fn bank_authored(&self, node: &str) {
+        self.has_bank.borrow_mut().insert(node.to_string(), true);
+        self.bank_paths.borrow_mut().remove(node);
+        self.deps.borrow_mut().remove(node);
     }
 
     /// kg_lib.load_problems: the evidenced entries, a fresh copy.
@@ -202,11 +225,21 @@ impl Ctx {
 
     // ---- the bank directory ----------------------------------------------
 
-    /// kg_lib.bank_files: drills/<node>/*.py in filename order.
+    /// kg_lib.bank_files: drills/<node>/*.py in filename order, memoised.
     pub fn bank_files(&self, node: &str) -> Rc<Vec<PathBuf>> {
         if let Some(v) = self.bank_files.borrow().get(node) {
             return v.clone();
         }
+        let out = Rc::new(self.glob_bank_files(node));
+        self.bank_files
+            .borrow_mut()
+            .insert(node.to_string(), out.clone());
+        out
+    }
+
+    /// glob(drills/<node>/*.py), sorted: what kg_lib reads on every
+    /// bank_paths call.
+    fn glob_bank_files(&self, node: &str) -> Vec<PathBuf> {
         let mut out: Vec<PathBuf> = std::fs::read_dir(self.drills_dir().join(node))
             .map(|rd| {
                 rd.filter_map(Result::ok)
@@ -221,15 +254,19 @@ impl Ctx {
             })
             .unwrap_or_default();
         out.sort();
-        let out = Rc::new(out);
-        self.bank_files
-            .borrow_mut()
-            .insert(node.to_string(), out.clone());
         out
     }
 
+    /// kg_lib.has_drill_bank: glob(drills/<node>/*.py) is non-empty. A
+    /// directory only ever gains files (bank_authored), so the answer is
+    /// kept per node.
     pub fn has_drill_bank(&self, node: &str) -> bool {
-        !self.bank_files(node).is_empty()
+        if let Some(&v) = self.has_bank.borrow().get(node) {
+            return v;
+        }
+        let v = !self.glob_bank_files(node).is_empty();
+        self.has_bank.borrow_mut().insert(node.to_string(), v);
+        v
     }
 
     /// Every node directory under drills/ (glob "*/*.py"), sorted.
@@ -285,7 +322,7 @@ impl Ctx {
     }
 
     fn bank_paths_uncached(&self, node: &str) -> Vec<PathBuf> {
-        let mut files: Vec<PathBuf> = self.bank_files(node).as_ref().clone();
+        let mut files: Vec<PathBuf> = self.glob_bank_files(node);
         files.sort_by_key(|p| {
             let id = self.drill_id(p);
             let n: i64 = id

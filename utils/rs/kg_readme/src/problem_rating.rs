@@ -10,7 +10,7 @@
 // attempts.
 //
 // Past today the chart is a forecast: the real picker run forward HORIZON
-// days on simulated evidence (utils/kg/kg_simulate --attempts-json), once
+// days on simulated evidence (utils/rs/kg_simulate --attempts-json), once
 // per seed in SEEDS, the runs cached in graph/problem_forecast.json for
 // CACHE_DAYS. Each first sight plays an Elo game priced as elo.rs prices
 // one, stepped from the Elo the history ends on. --forecast reruns now;
@@ -122,16 +122,19 @@ struct Run {
 /// One run of the real picker, HORIZON days from today, as the simulator
 /// prints it under --attempts-json; None when the run cannot start.
 fn simulate(root: &Path, seed: i64) -> Option<Value> {
-    let out = Command::new(root.join(".venv/bin/python3"))
+    // the sibling binary of this workspace build
+    let bin = std::env::current_exe()
+        .ok()
+        .and_then(|p| p.parent().map(|d| d.join("kg_simulate")))
+        .unwrap_or_else(|| root.join("utils/rs/target/release/kg_simulate"));
+    let out = Command::new(bin)
         .args([
-            "utils/kg/kg_simulate",
             "--seed",
             &seed.to_string(),
             "--days",
             &HORIZON.to_string(),
             "--attempts-json",
         ])
-        .env("PYTHONPATH", "./utils")
         .current_dir(root)
         .output()
         .ok()?;

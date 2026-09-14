@@ -545,32 +545,34 @@ pub fn node_conn(pv: &PView, ctx: &Ctx) -> HashMap<String, f64> {
         .collect()
 }
 
-/// kg_lib.node_curve_recall / current_recall: predicted recall per node he
-/// has met (distinct clean days, learning included, as the Python counts).
-pub fn current_recall(ctx: &Ctx, ev: &Evidence, today: NaiveDate) -> HashMap<String, f64> {
-    let Some(cv) = &ctx.curve else {
-        return HashMap::new();
-    };
-    let mut out = HashMap::new();
-    for nid in ctx.nodes.keys() {
-        let (status, last) = node_status(ctx, nid, ev, today);
-        if status == MISSING {
-            continue;
-        }
-        let Some(last) = last else { continue };
-        let cleans = ev
-            .node_entries(nid)
-            .iter()
-            .filter(|e| e.verdict == "clean")
-            .map(|e| e.date)
-            .collect::<HashSet<_>>()
-            .len() as f64;
-        if cleans == 0.0 {
-            continue;
-        }
-        let s = (cv.a + cv.b * cleans.ln_1p()).exp().clamp(7.0, 3650.0);
-        let r = (1.0 + (today - last).num_days() as f64 / s).powf(-cv.beta);
-        out.insert(nid.clone(), r);
+/// kg_lib.node_curve_recall: predicted recall of one node, or None when
+/// he has never had it clean (distinct clean days, learning included, as
+/// the Python counts).
+pub fn node_curve_recall(ctx: &Ctx, nid: &str, ev: &Evidence, today: NaiveDate) -> Option<f64> {
+    let cv = ctx.curve.as_ref()?;
+    let (status, last) = node_status(ctx, nid, ev, today);
+    if status == MISSING {
+        return None;
     }
-    out
+    let last = last?;
+    let cleans = ev
+        .node_entries(nid)
+        .iter()
+        .filter(|e| e.verdict == "clean")
+        .map(|e| e.date)
+        .collect::<HashSet<_>>()
+        .len() as f64;
+    if cleans == 0.0 {
+        return None;
+    }
+    let s = (cv.a + cv.b * cleans.ln_1p()).exp().clamp(7.0, 3650.0);
+    Some((1.0 + (today - last).num_days() as f64 / s).powf(-cv.beta))
+}
+
+/// kg_lib.current_recall: node_curve_recall over the nodes he has met.
+pub fn current_recall(ctx: &Ctx, ev: &Evidence, today: NaiveDate) -> HashMap<String, f64> {
+    ctx.nodes
+        .keys()
+        .filter_map(|nid| node_curve_recall(ctx, nid, ev, today).map(|r| (nid.clone(), r)))
+        .collect()
 }

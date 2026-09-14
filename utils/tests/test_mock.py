@@ -1,7 +1,7 @@
 # Guards for `make mock` (utils/rs/kg_mock): output structure, column
 # alignment, the hours override, and the <100ms speed budget. The model math is
-# shared with kg_lib.py (pass_rates / current_recall for the README chart);
-# keep the two in sync when either changes.
+# shared with kg::mock (pass_rates / current_recall) and kg_simulate's closed
+# form; keep them in sync when either changes.
 
 import os
 import re
@@ -158,40 +158,21 @@ def test_speed():
     assert min(times) < 0.5, f"kg_mock too slow: best of 3 was {min(times):.3f}s"
 
 
-def test_python_and_rust_agree_on_todays_rates():
-    """The Rust Monte Carlo and the Python closed form are two readings of the
-    same fitted cold-solve model; on today's evidence they must land on the
-    same numbers, within Monte-Carlo noise."""
+def test_monte_carlo_and_closed_form_agree_on_todays_rates():
+    """kg_mock's Monte Carlo and kg_simulate's closed form (PassExpectation)
+    are two readings of the same fitted cold-solve model; on today's
+    evidence they must land on the same numbers, within Monte-Carlo noise."""
     import json
-    import sys
 
-    sys.path.insert(0, os.path.join(ROOT, "utils"))
-    from importlib.machinery import SourceFileLoader
-
-    from kg import kg_lib
-
-    curve = kg_lib._load_curve()
-    coef = kg_lib.solve_model(curve)
-    if not coef:
-        pytest.skip("no fitted cold-solve model in graph/curve.json")
-    kg_simulate = SourceFileLoader(
-        "kg_simulate", os.path.join(ROOT, "utils", "kg", "kg_simulate")
-    ).load_module()
-    nodes = kg_lib.load_nodes()
-    pools, ratings = kg_simulate.build_pools(
-        kg_lib.load_problems(), kg_lib.load_predicted(), nodes
+    sim = os.path.join(os.path.dirname(RUST_BIN), "kg_simulate")
+    proc = subprocess.run(
+        [sim, "--rates-json"], capture_output=True, text=True, cwd=ROOT
     )
-    expect = kg_simulate.PassExpectation(pools, ratings, list(nodes), coef)
-    recall = kg_lib.current_recall(nodes, kg_lib.load_evidence(), curve)
-    shift = kg_lib.solve_scenarios(curve)["central"]
-    _, onsite, screen, hard = expect.rates(recall, shift)
-
+    if proc.returncode != 0:
+        pytest.skip(proc.stderr.strip() or "kg_simulate could not start")
+    mine = json.loads(proc.stdout)
     mock = json.loads(run_mock(["--json"]))
-    for name, mine, theirs in (
-        ("onsite", onsite, mock["onsite"]),
-        ("screen", screen, mock["screen"]),
-        ("hard", hard, mock["hard"]),
-    ):
+    for name in ("onsite", "screen", "hard"):
         assert (
-            abs(mine - theirs) < 0.02
-        ), f"{name}: python {mine:.3f} vs rust {theirs:.3f}"
+            abs(mine[name] - mock[name]) < 0.02
+        ), f"{name}: closed form {mine[name]:.3f} vs monte carlo {mock[name]:.3f}"
