@@ -163,8 +163,40 @@ pub fn load_envrc(root: &Path) {
     }
 }
 
+/// The knobs (.envrc: DRILL_SCHEDULER, KG_GROUP_CAP, MAX_ASLEEP, ...).
+/// Under `cargo test` the process environment is never read: the
+/// operator's own .envrc would answer for the defaults the tests assert
+/// (eleven tests went red on his machine with DRILL_SCHEDULER=anki, CI
+/// green), and the tests run on threads, so each thread keeps a table of
+/// its own that a test fills with test_env.
+#[cfg(not(test))]
 pub fn env_str(name: &str) -> String {
     std::env::var(name).unwrap_or_default()
+}
+
+#[cfg(test)]
+thread_local! {
+    static TEST_ENV: std::cell::RefCell<HashMap<String, String>> =
+        std::cell::RefCell::new(HashMap::new());
+}
+
+#[cfg(test)]
+pub fn env_str(name: &str) -> String {
+    TEST_ENV.with(|e| e.borrow().get(name).cloned().unwrap_or_default())
+}
+
+/// Set a knob for the rest of this test thread; "" unsets it.
+#[cfg(test)]
+pub fn test_env(name: &str, value: &str) {
+    TEST_ENV.with(|e| {
+        e.borrow_mut().insert(name.to_string(), value.to_string());
+    });
+}
+
+/// Every knob unset: what a test starts from (a thread runs several).
+#[cfg(test)]
+pub fn reset_test_env() {
+    TEST_ENV.with(|e| e.borrow_mut().clear());
 }
 
 #[derive(Clone, Debug, Default)]

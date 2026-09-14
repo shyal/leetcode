@@ -83,7 +83,7 @@ def test_rs_bin_names_are_crates():
             names |= set(
                 re.findall(r'rs_bin\("([\w-]+)"\)', open(os.path.join(d, f)).read())
             )
-    assert {"kg_extract", "is_session_start"} <= names
+    assert {"kg_extract"} <= names
     missing = sorted(
         n for n in names if not os.path.exists(os.path.join(rs, n, "Cargo.toml"))
     )
@@ -349,7 +349,7 @@ def test_check_scripts_cover_the_tooling():
             check=True,
         ).stdout.split()
     )
-    for d, name in (("kg", "kg_next"), ("kg", "kg_lib.py"), ("readme", "kg_full_svg")):
+    for d, name in (("kg", "kg_lib.py"), ("readme", "kg_full_svg")):
         assert f"utils/{d}/{name}" in listed
     assert "utils/harness/sitecustomize.py" in listed
     assert not any(f.startswith(("solved/", "drills/", "utils/attic/")) for f in listed)

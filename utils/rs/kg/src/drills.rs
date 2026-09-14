@@ -243,7 +243,7 @@ pub fn drill_held(
         if pending.contains(p) {
             return true;
         }
-        if ctx.has_drill_bank(p)
+        if has_drill_bank(ctx, p)
             && statuses.contains_key(p)
             && (statuses[p].0 != SOLID || !owned(ev, p) || drills_left(ctx, p, ev, false))
         {
@@ -253,8 +253,22 @@ pub fn drill_held(
     false
 }
 
+/// ctx.has_drill_bank, or the test's bank (the picker passed its own
+/// has_drill_bank into kg_lib.drill_held).
+pub fn has_drill_bank(ctx: &Ctx, node: &str) -> bool {
+    #[cfg(test)]
+    if let Some(b) = ctx.stub(|s| s.bank.contains(node)) {
+        return b;
+    }
+    ctx.has_drill_bank(node)
+}
+
 /// kg_lib.drills_left: a drill of this node is never done and reachable.
 pub fn drills_left(ctx: &Ctx, node: &str, ev: &Evidence, early: bool) -> bool {
+    #[cfg(test)]
+    if let Some(b) = ctx.stub(|s| s.undone.contains(node)) {
+        return b;
+    }
     sync_caches(ctx, ev);
     let key = (node.to_string(), early);
     if let Some(v) = ev.cold_cache().drills_left.get(&key) {

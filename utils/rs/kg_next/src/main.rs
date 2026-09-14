@@ -10,10 +10,8 @@
 //   kg_next --no-show    # skip the drawing
 //   kg_next --why        # with nothing to serve, table the blocked moves
 //   kg_next sql 2        # group and rank, makefile form
-//   kg_next --golden-json  # the library values the parity test diffs
 //
-// KG_SEED=<n> seeds the status faces like random.seed(n) does on the
-// Python side; KG_TODAY=YYYY-MM-DD freezes the day (kg_next.freeze).
+// KG_SEED=<n> seeds the status faces; KG_TODAY=YYYY-MM-DD freezes the day.
 #![allow(clippy::too_many_arguments)]
 
 use std::cell::RefCell;
@@ -53,8 +51,6 @@ use kg::status::{
     Statuses, FRAGILE, MISSING, SOLID, STALE,
 };
 use kg::table::{columns, panel, BoxKind, Table};
-
-mod golden;
 
 /// KG_TRACE=1: elapsed milliseconds at each phase, on stderr.
 fn trace(label: &str) {
@@ -135,7 +131,6 @@ struct Args {
     early: bool,
     assisted: bool,
     prepare: bool,
-    golden: bool,
 }
 
 fn usage_error(msg: &str) -> ! {
@@ -155,7 +150,6 @@ fn parse_args(ctx: &Ctx) -> Args {
         early: false,
         assisted: false,
         prepare: false,
-        golden: false,
     };
     let groups: HashSet<String> = ctx.nodes.values().filter_map(|n| n.group.clone()).collect();
     let mut it = std::env::args().skip(1);
@@ -168,7 +162,6 @@ fn parse_args(ctx: &Ctx) -> Args {
             "--early" => a.early = true,
             "--assisted" => a.assisted = true,
             "--prepare" => a.prepare = true,
-            "--golden-json" => a.golden = true,
             "--group" => {
                 a.group = Some(
                     it.next()
@@ -892,7 +885,7 @@ fn main() {
     let will_draw = kg::console::stdout_is_tty()
         && !argv
             .iter()
-            .any(|a| a == "--no-show" || a == "--golden-json" || a == "-h" || a == "--help");
+            .any(|a| a == "--no-show" || a == "-h" || a == "--help");
     let pre = if will_draw {
         prespawn_dot(&root.join("graph"))
     } else {
@@ -913,11 +906,6 @@ fn main() {
     let statuses = all_statuses(&ctx, &ev, today);
     let immature = immature_nodes(&ctx, &ev, &pv.borrow());
     trace("statuses");
-
-    if args.golden {
-        golden::dump(&ctx, &pv.borrow(), &ev, &statuses, &immature, today);
-        return;
-    }
 
     let asleep = sleep_state(&ctx, &pv.borrow(), &ev);
     trace("sleep state");

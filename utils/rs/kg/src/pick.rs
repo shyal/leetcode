@@ -1,9 +1,181 @@
-// The picker: utils/kg/kg_next's pick() and the functions around it,
-// rule for rule. The frontier is one sorted list of due moves and one
-// way to serve a move (its own drill, the drill opening its hold, a
-// carrier, a drafted carrier, the predecessor its carriers wait on); the
-// rules are only the order of the list. See the header of kg_next for
-// the rules and the dates they were settled on.
+// The picker: pick() and the functions around it, rule for rule. The
+// frontier is one sorted list of due moves and one way to serve a move
+// (its own drill, the drill opening its hold, a carrier, a drafted
+// carrier, the predecessor its carriers wait on); the rules are only the
+// order of the list. The rules, and the dates they were settled on,
+// follow; the tests in src/tests/ pin each of them on a synthetic graph.
+// (Ported from the Python kg_next, deleted 2026-09-14 once the tests
+// moved here.)
+//
+// Picking rules (same preference order the /next coach uses):
+//   THE CLOCK (DRILL_SCHEDULER=anki, .envrc): every bank file keeps an SM-2
+//      clock of its own (drills::anki_due), and a file due on its clock is
+//      served before anything below - before the plan, the session-start
+//      easy, the sleep rules, the frontier and the summits.
+//      Reviews most overdue first, then files never done, atoms first
+//      (drills::anki_frontier). No hold and no node status withholds a due
+//      file. The daily group cap (KG_GROUP_CAP, rule 0e) does: a group at
+//      its cap is out of the clock too, or one bank fills every session
+//      (2026-09-06, sql). `make next <group>` scopes the clock to the group
+//      and is the override. The
+//      repo has one job, to make the drills stick, and a month of rules
+//      that each ranked something above the return of a drill left 33 of
+//      92 files never served and 25 served once (2026-09-06).
+//   -1. session start (fewer than NEXT_WARMUP_COUNT solves since Manila
+//       midnight; env, default 2, 0 turns it off): the
+//       gentlest all-SOLID easy (tiny walk, high acceptance) that has not
+//       been solved inside WARMUP_COOLDOWN_DAYS — juice, not a rerun of
+//       Thursday. Normal rules resume once the count is reached.
+//   0. sleep (`<num>-slept` branches, written by `make sleep`): a parked
+//      problem is excluded everywhere until the operator runs `make wake` —
+//      nothing auto-wakes — and its walk's rusty moves/prereqs get warmed
+//      first, via other carriers (rule 0a fires only for a problem woken
+//      mid-run, which manual wake makes moot; it is kept for that path)
+//   0e. group cap (KG_GROUP_CAP, e.g. sql=3 in .envrc): once that many reps
+//      of the day touched the group (drill or problem, review or new
+//      ground), its moves leave the default frontier until tomorrow. The
+//      graduating floor made drills persistent enough for one bank to fill
+//      every session (2026-09-04, sql). `make next <group>` ignores the
+//      cap; the footer shows the count. review_ahead replays under it.
+//   0f. new-drill cap (MAX_NEW_DRILLS, e.g. 3 in .envrc): once that many
+//      bank files have been met for the first time today, a file never
+//      drilled waits until tomorrow - on the clock and on the frontier
+//      alike. The first rep of a drill is first exposure, read and copied,
+//      and a day of those is not a day of reviews. Reviews are never
+//      withheld, and there is no override: the cap is on the whole day's
+//      new ground, not on one bank, so naming a group or cramming it does
+//      not lift it. Unset, the default, is no cap.
+//   0g. drill review cap (MAX_DRILL_REVIEWS, e.g. 6 in .envrc): once that
+//      many bank files already met have come back today, a file with a rep
+//      waits until tomorrow, on the clock and on the frontier alike. The
+//      other half of 0f: with 47 files due on the clock, a session is
+//      drills and nothing else and the problems the drills exist for never
+//      get solved. With both budgets spent the picker falls through to its
+//      problem rules. Unset, the default, is no cap.
+//   0b. park full (MAX_ASLEEP problems asleep): review is served as
+//      usual, new ground is not. A pick that is new ground (rule 3, 4, 5, 6
+//      or a plan item that is) is withheld and the parked list is printed
+//      with the three ways out: keep going, learn it (notes say "learning",
+//      make solved), or fail it (make failed). The cap is the only pressure
+//      on a park; without this rule it only showed when make sleep refused
+//      a fifth (2026-09-01, four asleep and make next said nothing)
+//
+//   The frontier (2026-09-02): one list of due moves, one way to serve a
+//   move. A move is due when it is FRAGILE, STALE, MISSING with every
+//   prereq SOLID, or SOLID on its graduating floor (a young move gets its
+//   next unaided rep at 3/10/25 days after the last clean - 2/7/18 when
+//   two or fewer problems carry it - whatever the curve says, because the
+//   curve schedules no rep inside the window it believes). With
+//   DRILL_SCHEDULER=anki (.envrc; drills::drill_scheduler) a SOLID move is
+//   also due when a bank file of its own says so: every drill file keeps
+//   an SM-2 clock of its own (drills::anki_due), and the node's status never
+//   withholds it (2026-09-06: under the node clock a drill was served the
+//   day after its first rep and then never again). A SOLID move off its
+//   ladder is due while it is still immature (status::mature: not yet
+//   proven on distinct real problems at its bar) - the THIN kind
+//   (2026-09-07): status says it is remembered, breadth says on how many
+//   problems, and a node fed by drills alone owns its problems only to the
+//   degree of the weaker axis (status::node_axes). The list is sorted:
+//     1. the rusty ground under a sleeping problem first, so it is woken
+//        onto warm moves;
+//     2. then FRAGILE, floor, drill clock, STALE, THIN, MISSING - a stale
+//        move is being lost, a thin one is only unproven, and both come
+//        before new ground;
+//     3. then, within a status, moves a drill can serve before moves only
+//        a problem can - the bank is the asset, a drill is three minutes
+//        to a problem's seventeen;
+//     4. then most overdue floor, else least owned (status::node_degree),
+//        most unlocks (bank problems blocked only by the move; for a THIN
+//        move, drafted problems its proof would open), oldest evidence.
+//   Every due move is served the same way:
+//     a. its own bank drill when one is due - the cross-bank hold honoured
+//        (drills::drill_held: a banked prereq not owned unaided, or with
+//        drills undone, trains first);
+//     b. else the drill that opens that hold, climbing the chain of banked
+//        prereqs to its root (one level was not enough, 2026-08-31);
+//     c. else, unless the move is drill-gated (a MISSING/FRAGILE/deep-stale
+//        move with a bank drills until clean; drilled today and still not
+//        clean, its carrier stays held), a carrier problem: under a
+//        sleeper the freshest; a dodged FRAGILE move on the carrier that
+//        resists the dodge; ordinary STALE the spaced re-solve of its
+//        latest carrier; a THIN move, or a young move's floor rep, a
+//        proving carrier it has not carried yet (bank::proving_carriers,
+//        at its bar; else a drafted carrier at the bar, else the re-solve
+//        - a second rep of one problem proves memory of that problem, not
+//        carry); anything else the gentlest carrier it has never solved,
+//        and only when there is none of those a repeat (deep stale,
+//        no clean solve within 2x the solid window, re-enters this way -
+//        the memory is gone, a cold re-solve plays like a new problem);
+//     d. else a drafted carrier (3b below; never for a floor rep);
+//     e. else the predecessor its carriers wait on (`after`).
+//   Before this the same six steps lived in six rule bodies, each with its
+//   own copy of "due" and "how to get past a hold", and three holds in one
+//   evening each broke a rule that did not know them.
+//   2c. a problem on a review clock of its own (clock::problem_due), unless
+//      an "after" predecessor of it is not warm (the hold serves the
+//      predecessor's own review first), served
+//      between the drill-clock moves and STALE ones - or, with REVIEWS_FIRST=1
+//      (.envrc; drills::reviews_first), ahead of the whole frontier, floors
+//      and FRAGILE moves included (2026-09-10: 13 young moves on a due
+//      floor, each served on a fresh carrier, kept 23 due reviews from
+//      ever reaching the top). Every other rule picks
+//      a MOVE and then a carrier for it, so how a problem itself went was
+//      never read: a node that went SOLID on some other carrier left the
+//      problem that beat you untouched, and on 2026-09-09 25 problems had
+//      an unpaid one. A card is opened by help or a walk-away (a copied
+//      solution, a walkthrough, a hint, a FAILED file), pushed out by a
+//      hinted clean rep, and retired by an unaided clean one - the help
+//      that put the problem on the list can never be what takes it off.
+//      3 days, not the bank's 1: a next-morning rep on a problem whose
+//      solution was on the screen yesterday is a typing exercise.
+//   3b. frontier mover (PLAN.md phase 4), step d above: a due node with no
+//      UNSOLVED mapped carrier (one it has never been given is waited for
+//      even when warm, asleep, or spent today; one it has already solved is
+//      a repeat and does not outrank a draft — 2026-09-07, with 467 of 486
+//      carriers solved the old "any mapped carrier" gate had silenced the
+//      mover completely) promotes
+//      a drafted carrier — an unmapped easy/medium
+//      from the drafted entries of graph/problems.json whose walk has the target as its
+//      only non-solid move and no missing-move flags. Ranked cheap-regime
+//      first (bank::predicted_carrier: rarest supporting move's carrier
+//      mass, capped at the ~30-problem connectivity threshold), then
+//      gentleness. The promotion is in-memory; the solve's evidenced walk
+//      (kg_extract) is what maps the problem for real. A promoted draft
+//      that comes back mapped to some other move costs one solve and is
+//      never offered again (a problem with any evidence is skipped); a
+//      2-miss cutoff stood here until 2026-09-07, when it was latching 27
+//      moves off the drafted tier for good and sending them back to
+//      repeats.
+//   4. nothing rusty, nothing thin and nothing new: a summit — the
+//      gentlest unsolved Hard whose whole walk is already SOLID and mature
+//      (status::mature: spaced clean reps + distinct real problems at the
+//      bar — a badge earned in one burst of drills does not yet carry a
+//      Hard). Rule 5 (widen reach) lived here until 2026-09-07; it is the
+//      THIN kind of the frontier now.
+//      A Hard is never a CARRIER (not where
+//      a rusty move gets its rep), but once it is all-green it is exactly what
+//      to work on next, so it is picked here rather than behind `make hard`.
+// One-new-move rule is enforced: every other move in the walk must be SOLID.
+// Drill-success gate (drills::drill_gated): a MISSING/FRAGILE/deep-stale target
+// with a drill bank gets ONLY its drill until a clean rep clears the status —
+// a struggled drill holds the carrier instead of unlocking it.
+// Routed-around gate (routed_around): a starved move whose carrier was solved
+// another way during the run is served forced - `make force` on the carrier,
+// so the solve must use the move. Free-mode evidence records only what the
+// code did; without this the move is served again and again and never
+// lands a rep (2026-09-06).
+//
+// Below the pick, one line says how much review stands between now and
+// the first pick that is new ground (review_ahead): the picker is replayed
+// on a copy of the evidence, every pick granted a clean unaided rep, the
+// day advanced when the once-a-day rules leave nothing to serve, until the
+// pick is a MISSING move (rule 3) or an all-solid problem (rules 4-6). The
+// count is the best case: a struggled rep adds to it.
+//
+// NOTE: the default drawing writes only status + a random face from that
+// status's pool (SOLID 💪, STALE 😐, ...) — no move names — so the tree
+// can be used for pattern recognition. --graph names the walk: that is
+// the "show me the map" flow. The /next chat flow seals targets.
 
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
@@ -13,24 +185,154 @@ use chrono::{Duration, NaiveDate};
 
 use crate::bank::{
     carriers_for, dodgeable, drafted_in_reach, held_behind, predicted_carrier, proving_carriers,
-    unlocks, warm,
+    warm,
 };
 use crate::clock::{due_problems, last_attempt};
 use crate::ctx::{Ctx, PView};
-use crate::data::{is_numeric_id, max_asleep, parse_date, pnum_key, Problem, Rec};
+use crate::data::{is_numeric_id, max_asleep, parse_date, pnum_key, Rec};
 use crate::drills::{
-    anki, anki_due, anki_frontier, cold_drill, drill_capped, drill_gated, drill_held, drills_left,
-    due_drill, group_caps, group_reps, last_drilled,
+    anki, cold_drill, drill_capped, drill_held, drills_left, group_caps, group_reps, last_drilled,
 };
 use crate::evidence::Evidence;
 use crate::model::{problem_solve_p, solve_model, solve_ratings, target_pass_rate};
 use crate::recog;
 use crate::status::{
-    all_statuses, cooled, current_recall, gentleness, graduation_due, immature_nodes, input_tree,
-    is_solid, last_solved, latest_carrier, node_degree, node_status, owned, rank_summits,
-    route_gaps, st, tree_size, Status, Statuses, CARRIER_COOLDOWN_DAYS, DEEP_STALE_DAYS, FRAGILE,
-    MISSING, SOLID, STALE, STARVED_DAYS,
+    all_statuses, cooled, current_recall, gentleness, input_tree, is_solid, last_solved,
+    latest_carrier, node_degree, node_status, owned, rank_summits, route_gaps, st, tree_size,
+    Status, Statuses, CARRIER_COOLDOWN_DAYS, DEEP_STALE_DAYS, FRAGILE, MISSING, SOLID, STALE,
+    STARVED_DAYS,
 };
+use seam::{
+    anki_due, anki_frontier, drill_gated, due_drill, graduation_due, has_drill_bank,
+    immature_nodes, unlocks,
+};
+
+/// The reads the picker tests stand in for (ctx::Stubs): the bank, the
+/// drill clock, the unlock counts, the immature set, the ladder. Outside a
+/// test each is the library function it names; under one, the test's
+/// table answers when it set the field, else the function does.
+mod seam {
+    use std::collections::{HashMap, HashSet};
+    use std::path::{Path, PathBuf};
+
+    use chrono::NaiveDate;
+
+    use crate::ctx::{Ctx, PView};
+    use crate::evidence::Evidence;
+    use crate::status::{Status, Statuses};
+    #[cfg(test)]
+    use crate::status::{FRAGILE, MISSING};
+
+    pub fn drill_gated(
+        ctx: &Ctx,
+        node: &str,
+        status: Status,
+        last: Option<NaiveDate>,
+        today: NaiveDate,
+    ) -> bool {
+        #[cfg(test)]
+        if let Some(b) =
+            ctx.stub(|s| s.bank.contains(node) && (status == FRAGILE || status == MISSING))
+        {
+            return b;
+        }
+        crate::drills::drill_gated(ctx, node, status, last, today)
+    }
+
+    pub fn due_drill(
+        ctx: &Ctx,
+        node: &str,
+        ev: &Evidence,
+        day: NaiveDate,
+        early: bool,
+        assisted: bool,
+    ) -> Option<PathBuf> {
+        #[cfg(test)]
+        if let Some(d) = ctx.stub(|s| {
+            let served = s.bank.contains(node)
+                && !s.drilled_today.contains(node)
+                && (early || !s.due_early_only);
+            served.then(|| PathBuf::from(format!("drills/{node}/one.py")))
+        }) {
+            return d;
+        }
+        crate::drills::due_drill(ctx, node, ev, day, early, assisted)
+    }
+
+    pub fn has_drill_bank(ctx: &Ctx, node: &str) -> bool {
+        crate::drills::has_drill_bank(ctx, node)
+    }
+
+    pub fn anki_frontier(
+        ctx: &Ctx,
+        ev: &Evidence,
+        day: NaiveDate,
+        nodes: Option<&crate::data::Nodes>,
+        node_ids: Option<&[String]>,
+        assisted: bool,
+    ) -> Vec<(PathBuf, String)> {
+        #[cfg(test)]
+        if let Some(f) = ctx.stub(|s| {
+            s.clock
+                .iter()
+                .filter(|(_, n)| node_ids.is_none_or(|ids| ids.contains(n)))
+                .cloned()
+                .collect::<Vec<_>>()
+        }) {
+            return f;
+        }
+        crate::drills::anki_frontier(ctx, ev, day, nodes, node_ids, assisted)
+    }
+
+    pub fn immature_nodes(ctx: &Ctx, ev: &Evidence, pv: &PView) -> HashSet<String> {
+        #[cfg(test)]
+        if let Some(i) = ctx.stub(|s| s.immature.clone()) {
+            return i;
+        }
+        crate::status::immature_nodes(ctx, ev, pv)
+    }
+
+    pub fn unlocks(
+        ctx: &Ctx,
+        statuses: &Statuses,
+        pv: &PView,
+        immature: &HashSet<String>,
+    ) -> HashMap<String, i64> {
+        #[cfg(test)]
+        if let Some(u) = ctx.stub(|s| {
+            if immature.is_empty() {
+                s.unlocks.clone()
+            } else {
+                s.gain.clone()
+            }
+        }) {
+            return u;
+        }
+        crate::bank::unlocks(ctx, statuses, pv, immature)
+    }
+
+    pub fn graduation_due(
+        ctx: &Ctx,
+        ev: &Evidence,
+        node: &str,
+        carriers: i64,
+    ) -> Option<(NaiveDate, i64)> {
+        #[cfg(test)]
+        if ctx.stub(|s| s.graduation_none) == Some(true) {
+            return None;
+        }
+        let _ = ctx;
+        crate::status::graduation_due(ev, node, carriers)
+    }
+
+    pub fn anki_due(ctx: &Ctx, path: &Path, ev: &Evidence) -> Option<(NaiveDate, i64)> {
+        #[cfg(test)]
+        if let Some(f) = ctx.stub(|s| s.anki_due).flatten() {
+            return f(path);
+        }
+        crate::drills::anki_due(ctx, path, ev)
+    }
+}
 
 pub const WARMUP_COOLDOWN_DAYS: i64 = 14;
 
@@ -287,7 +589,7 @@ impl<'a> Picker<'a> {
             && !self.assisted
             && self.ctx.prereqs(target).iter().any(|p| {
                 self.in_scope(p)
-                    && self.ctx.has_drill_bank(p)
+                    && has_drill_bank(self.ctx, p)
                     && drills_left(self.ctx, p, self.ev, true)
             })
         {
@@ -443,7 +745,7 @@ impl<'a> Picker<'a> {
     }
 
     fn ladder(&self, n: &str) -> Option<(NaiveDate, i64)> {
-        graduation_due(self.ev, n, self.carr.get(n).copied().unwrap_or(0))
+        graduation_due(self.ctx, self.ev, n, self.carr.get(n).copied().unwrap_or(0))
     }
 
     fn floor(&self, n: &str) -> Option<(NaiveDate, i64)> {
@@ -499,7 +801,7 @@ impl<'a> Picker<'a> {
             .prereqs(n)
             .iter()
             .find(|p| {
-                self.ctx.has_drill_bank(p)
+                has_drill_bank(self.ctx, p)
                     && self.statuses.contains_key(*p)
                     && (!is_solid(self.statuses, p)
                         || !owned(self.ev, p)
@@ -1456,7 +1758,7 @@ pub fn blocked_frontier(
             let holders: Vec<String> = prereqs
                 .iter()
                 .filter(|p| {
-                    ctx.has_drill_bank(p)
+                    has_drill_bank(ctx, p)
                         && (!is_solid(statuses, p)
                             || !owned(ev, p)
                             || drills_left(ctx, p, ev, false))
@@ -1530,7 +1832,7 @@ pub fn blocked_frontier(
             let cools =
                 parse_date(&last_solved(ev, soonest)) + Duration::days(CARRIER_COOLDOWN_DAYS);
             let mut why = format!("carrier {soonest} cools {}", cools.format("%Y-%m-%d"));
-            if ctx.has_drill_bank(nid) {
+            if has_drill_bank(ctx, nid) {
                 why.push_str(", and its drill is done for today");
             }
             out.push((nid.clone(), status, why, false));
@@ -1577,7 +1879,7 @@ pub fn blocked_frontier(
                 )
             }
         };
-        if ctx.has_drill_bank(nid) {
+        if has_drill_bank(ctx, nid) {
             why.push_str(", and its drill is done for today");
         } else {
             why.push_str(", and no drill exists for it");
@@ -1602,7 +1904,7 @@ pub fn due_on(
         return true;
     }
     if status == SOLID {
-        return graduation_due(ev, n, carr.get(n).copied().unwrap_or(0))
+        return graduation_due(ctx, ev, n, carr.get(n).copied().unwrap_or(0))
             .is_some_and(|(d, _)| d <= day);
     }
     let prereqs = ctx.prereqs(n);
@@ -1924,19 +2226,4 @@ pub fn review_line(drills: i64, solves: i64, reached: bool) -> String {
         "review ahead: {}, {tail} (if every rep is clean)",
         parts.join(", ")
     )
-}
-
-/// The unlabeled picks kg_next.serve dumps for the golden diff: (target,
-/// status, pnum, reason) of the first pick under each argument set.
-pub fn choice_tuple(c: &Choice) -> (String, String, String, String) {
-    (
-        c.target.clone(),
-        c.status.to_string(),
-        c.pnum.clone(),
-        c.reason.clone(),
-    )
-}
-
-pub fn has_problem(pv: &PView, pnum: &str) -> Option<Problem> {
-    pv.get(pnum).cloned()
 }

@@ -5,9 +5,7 @@ move), how an answer is scored, how status is derived, which rep is due,
 how the statement HTML becomes markdown, and how the notes of a solve name
 a miss."""
 
-import os
 from datetime import date, timedelta
-from typing import Any
 
 import pytest
 
@@ -481,31 +479,6 @@ def test_reveal_names_the_problem_and_the_verdict():
         {**rec, "target": "monotonic-stack", "reason": "failed to recognize last time"}
     )
     assert "served for: monotonic-stack (failed to recognize last time)" in out
-
-
-# ---- the summit gate (kg_next rule 4) ---------------------------------------
-
-
-def test_a_summit_is_held_while_its_entry_move_failed_to_recognize():
-    from importlib.machinery import SourceFileLoader
-
-    KG = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "kg")
-    kg_next: Any = SourceFileLoader(
-        "kg_next_rc", os.path.join(KG, "kg_next")
-    ).load_module()
-    ns = nodes("ms")
-    problems = {"84": problem(["ms"], "Hard")}
-    statuses = {"ms": (SOLID, date.today())}
-    old = kg_next.immature_nodes
-    kg_next.immature_nodes = lambda *a, **k: set()
-    try:
-        assert kg_next.ready_hards(problems, ns, {}, statuses, recog={}) == ["84"]
-        held = merged(miss(84, "ms", days_ago=3))
-        assert kg_next.ready_hards(problems, ns, {}, statuses, recog=held) == []
-        cleared = merged(held, spot(9, {"ms": rc.HIT}, days_ago=1))
-        assert kg_next.ready_hards(problems, ns, {}, statuses, recog=cleared) == ["84"]
-    finally:
-        kg_next.immature_nodes = old
 
 
 # ---- an alternative walk ----------------------------------------------------

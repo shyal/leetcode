@@ -36,6 +36,10 @@ pub fn next_tier(d: &str) -> &str {
 
 /// kg_lib.solve_model: the fitted coefficients, or None.
 pub fn solve_model(ctx: &Ctx) -> Option<HashMap<String, f64>> {
+    #[cfg(test)]
+    if let Some(m) = ctx.stub(|s| s.solve_model.clone()).flatten() {
+        return Some(m);
+    }
     let cv = ctx.curve.as_ref()?;
     let f = cv.raw.get("solve")?.get("features")?.as_object()?;
     if f.is_empty() {
@@ -281,6 +285,10 @@ fn zerotrac_ratings(root: &Path) -> HashMap<String, f64> {
 
 /// clist.combined_ratings: zerotrac where it rates, rescaled CLIST elsewhere.
 pub fn solve_ratings(ctx: &Ctx) -> HashMap<String, f64> {
+    #[cfg(test)]
+    if let Some(r) = ctx.stub(|s| s.solve_ratings.clone()).flatten() {
+        return r;
+    }
     if let Some(r) = ctx.ratings.borrow().as_ref() {
         return r.clone();
     }

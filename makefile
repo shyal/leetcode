@@ -201,10 +201,8 @@ audit:
 secrets:
 	@gitleaks detect --source . --no-banner --redact
 
-# the guard suite without the 988-solve sweep and without the Python/Rust
-# picker parity diff (minutes: the Python picker runs once per argument
-# set). Both are make test, and CI.
-SLOW_TESTS = --ignore=utils/tests/test_runner.py --ignore=utils/tests/test_next_parity.py
+# the guard suite without the 988-solve sweep (make test, and CI, run it)
+SLOW_TESTS = --ignore=utils/tests/test_runner.py
 test-fast: $(EXT)
 	@.venv/bin/pytest -q -p no:cacheprovider $(SLOW_TESTS)
 
@@ -228,9 +226,8 @@ viz:
 	@:
 graph:
 	@:
-# make next is implemented in Rust (utils/rs/kg_next); utils/kg/kg_next is
-# the Python reference and utils/tests/test_next_parity.py diffs the two over
-# the real graph/ data - change them together
+# make next is implemented in Rust (utils/rs/kg_next); the picker's rules
+# are pinned by the tests in utils/rs/kg/src/tests/ (make rust)
 NEXT_BIN := $(RS_BIN)/kg_next
 
 next: $(NEXT_BIN) $(RS_BIN)/kg_llm_next
