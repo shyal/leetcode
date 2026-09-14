@@ -25332,6 +25332,15 @@
       "judge": "fable",
       "note": "Notes: 'Hint: use next, not advance which returns nothing'; assist level hint on recursive-descent.",
       "summary": "The file subclasses dsa.recursive_descent.Parser and fills in term: it calls self.atom() for the left operand, then loops while self.curr is '*' or '/', consuming the operator with self.next and building a TreeNode whose left is the tree so far and right is the next self.atom(). This gives left-associative multiplication and division one precedence level below expr, and all five parses ('2+3*4/6', '10-2*3', '100/10/5', '3*4-2*5', '7') passed. The notes record one hint: use self.next rather than advance, since advance returns nothing."
+    },
+    "solved/d_Number_Scanner_2026_09_14T23_53_51_409959_00_00Z.py": {
+      "date": "2026-09-15",
+      "problem": "drill",
+      "moves": {
+        "recursive-descent": "clean"
+      },
+      "judge": "fable",
+      "summary": "The `number` method scans digits at the shared cursor `self.i`, accumulating `num = num * 10 + int(self.S[self.i])` until a non-digit or the end of `self.S`, and returns `TreeNode(num)` with `self.i` left on the next unconsumed character. The asserts check the cursor lands on `+` and `-` after each call and reaches `len(p.S)` at the end. This is the terminal rule of a recursive-descent parser: one function, one shared cursor, consumes exactly its token. No notes claim help."
     }
   }
 }
