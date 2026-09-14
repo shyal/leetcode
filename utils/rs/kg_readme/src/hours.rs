@@ -170,8 +170,9 @@ pub fn render(ctx: &Ctx, ev: &Evidence) {
         .map(|(h, r)| format!("{},{}", f1(x_of(*h)), f1(y_of(*r))))
         .collect();
     svg.push(format!(
-        "<polyline points=\"{}\" fill=\"none\" stroke=\"{ELO}\" stroke-width=\"2\" stroke-opacity=\"0.3\"/>",
-        path.join(" ")
+        "<polyline points=\"{}\" fill=\"none\" stroke=\"{ELO}\" stroke-width=\"2\" stroke-opacity=\"{}\"/>",
+        path.join(" "),
+        elo_opacity()
     ));
     let path: Vec<String> = elo::elo_ma(&gs, elo::START, &[])
         .iter()

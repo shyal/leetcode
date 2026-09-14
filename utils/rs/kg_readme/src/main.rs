@@ -7,7 +7,8 @@
 //   kg_readme <chart> [--forecast | --no-forecast]
 //
 // <chart> is one of elo, streak, rank, rate, problem-rating, backlog,
-// hours, onsite, progress. The forecast flags reach problem-rating.
+// problem-rating-month, hours, onsite, progress. The forecast flags reach
+// problem-rating.
 //
 // Ported from the utils/readme/*_svg scripts and update_readme.py
 // (Python) on 2026-09-13.
@@ -29,12 +30,13 @@ use kg::ctx::Ctx;
 use kg::data::{load_envrc, repo_root};
 use kg::evidence::Evidence;
 
-const CHARTS: [&str; 9] = [
+const CHARTS: [&str; 10] = [
     "elo",
     "streak",
     "rank",
     "rate",
     "problem-rating",
+    "problem-rating-month",
     "backlog",
     "hours",
     "onsite",
@@ -64,6 +66,7 @@ fn main() {
             "rank" => rank::render(&ctx, &ev),
             "rate" => rate::render(&ctx, &ev),
             "problem-rating" => problem_rating::render(&ctx, &ev, &args),
+            "problem-rating-month" => problem_rating::render_month(&ctx, &ev),
             "backlog" => backlog::render(&ctx, &ev),
             "hours" => hours::render(&ctx, &ev),
             "onsite" => onsite::render(&ctx, &ev),

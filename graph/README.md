@@ -122,6 +122,14 @@ session: until that many solve files are authored since Manila midnight,
 `NEXT_WARMUP_COUNT=1` is one warmup, `0` turns the warmup off and the normal
 rules run from the first pick.
 
+## Chart opacity (`README_ELO_OPACITY`, `README_SIM_OPACITY`)
+
+`README_ELO_OPACITY=0.55` (the default) is the opacity of the raw elo line
+under its moving average in the elo, hours, onsite and problem rating charts.
+`README_SIM_OPACITY=0.2` (the default) is the opacity of the forecast's
+simulated attempts and its dashed forecast lines in the problem rating chart. Either takes
+a number from 0 to 1 in `.envrc`; anything else falls back to the default.
+
 ## Group cap (`KG_GROUP_CAP`)
 
 `KG_GROUP_CAP=sql=3` in `.envrc` (`sql=3,graphs=2` for several) caps how many
