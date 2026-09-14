@@ -22,9 +22,16 @@ pub struct QueueRow {
     pub rating: Option<f64>,
 }
 
-pub fn queue_rows(ctx: &Ctx, pv: &PView, ev: &Evidence, asleep: &[String]) -> Vec<QueueRow> {
+/// The next `len` problems the picker would serve.
+pub fn queue_rows(
+    ctx: &Ctx,
+    pv: &PView,
+    ev: &Evidence,
+    asleep: &[String],
+    len: usize,
+) -> Vec<QueueRow> {
     let ratings = solve_ratings(ctx);
-    upcoming(ctx, pv, ev, QUEUE_LEN, asleep, DAYS)
+    upcoming(ctx, pv, ev, len, asleep, DAYS)
         .into_iter()
         .map(|pnum| QueueRow {
             title: pv
@@ -52,9 +59,15 @@ pub fn gap_colour(gap: f64) -> &'static str {
 }
 
 /// kg_next.queue_table: the queue as a table, coloured like the rating
-/// line. None when the replay serves nothing.
-pub fn queue_table(ctx: &Ctx, pv: &PView, ev: &Evidence, asleep: &[String]) -> Option<Table> {
-    let rows = queue_rows(ctx, pv, ev, asleep);
+/// line, `len` rows long. None when the replay serves nothing.
+pub fn queue_table(
+    ctx: &Ctx,
+    pv: &PView,
+    ev: &Evidence,
+    asleep: &[String],
+    len: usize,
+) -> Option<Table> {
+    let rows = queue_rows(ctx, pv, ev, asleep, len);
     if rows.is_empty() {
         return None;
     }

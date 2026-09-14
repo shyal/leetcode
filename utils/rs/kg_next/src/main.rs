@@ -43,7 +43,7 @@ use kg::pick::{
     blocked_frontier, park_full_lines, parked_summits, pick, review_ahead, review_line,
     review_queue, starved, unmapped_summits, withheld, Choice, PickArgs,
 };
-use kg::queue::queue_table;
+use kg::queue::{queue_table, QUEUE_LEN};
 use kg::recog;
 use kg::render::{
     animate, degree_color, display, faces, prespawn_dot, render_in_background, Dot, PreDot,
@@ -458,7 +458,7 @@ fn build_footer(
     today: NaiveDate,
 ) -> Vec<FooterItem> {
     let mut items = Vec::new();
-    if let Some(t) = queue_table(ctx, pv, ev, asleep) {
+    if let Some(t) = queue_table(ctx, pv, ev, asleep, QUEUE_LEN) {
         items.push(FooterItem::Table(t));
     }
     if !asleep.is_empty() {
