@@ -25096,6 +25096,20 @@
       "followup": "not solved",
       "note": "Notes say the mnemonic was asked for, so this was hinted; LeetCode: Accepted (0 ms, 20.5 MB).",
       "summary": "reverse_sublist builds a dummy node d and walks h, using the simultaneous assignment d.next, h.next, h = h, d.next, h.next to splice each node onto the front of the new list while keeping the old tail t; it returns d.next and t, and reverseList returns the new head. This exercises the dummy-node splice and the iterative pointer reversal. The notes say the candidate asked for the mnemonic, so the move was hinted. Only the iterative form is implemented, so the follow-up asking for both iterative and recursive is not solved."
+    },
+    "solved/p24_Swap_Nodes_in_Pairs_FAILED_2026_09_14T04_49_14_083240_00_00Z.py": {
+      "date": "2026-09-14",
+      "problem": "24",
+      "moves": {
+        "ll-dummy-splice": "struggled",
+        "ll-pointer-reversal": "struggled"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes end with 'Ok this is giving me a headache. Fail.' and the file's own footer says FAILED: walked away after 21m 53s; no working solution. The run only printed the original list and [] because the assertions were commented out.",
+      "summary": "The code walks the list once, appending nodes alternately to even and odd Python lists, then tries to relink them by index with a dummy node d that is never used. The relinking loop indexes even[i] and odd[i+1] out of step and sets tails to 0, so the returned list is empty; the harness printed the input 1->2->3->4 and [] for the result. The notes describe the even/odd interleave idea, call the node wrangling tedious, and end with 'Ok this is giving me a headache. Fail.'; the file footer records the attempt as failed after 21m 53s.",
+      "unmapped": [
+        "collect nodes into even/odd lists then relink"
+      ]
     }
   }
 }
