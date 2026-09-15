@@ -25463,6 +25463,17 @@
       "followup": "not solved",
       "note": "LEETCODE: Accepted. countOnes recomputes each popcount from scratch via divmod: O(n log n), no reuse of earlier entries and no shift/AND.",
       "summary": "countBits loops i from 0 to n and appends countOnes(i), where countOnes sums the digits produced by toBits, a divmod(n, 2) loop that peels base-2 digits. Each entry is computed independently, so the code exercises divmod-decompose but not the res[i] = res[i >> 1] + (i & 1) recurrence or any shift/AND bit walking. The notes record a LeetCode Accepted verdict (103 ms). The follow-up asks for O(n); this runs in O(n log n) and is not met."
+    },
+    "solved/p42_Trapping_Rain_Water_2026_09_15T05_57_39_871113_00_00Z.py": {
+      "date": "2026-09-15",
+      "problem": "42",
+      "moves": {
+        "prefix-suffix-two-pass": "clean",
+        "running-extreme": "clean"
+      },
+      "judge": "fable",
+      "note": "Two-pass prefix/suffix max arrays (O(n) space) instead of the converging two-pointer solve; LEETCODE: Accepted.",
+      "summary": "trap fills left_max and right_max in one loop, tracking max_from_left over height[i] and max_from_right over height[~i], then sets water_height[i] = min(left_max[i], right_max[i]) and sums water_height[i] - height[i]. This exercises running-extreme and the prefix-suffix two-pass combine; the two-pointers-converging form was not used, so it is recorded as avoided. The notes describe the left-max/right-max/min idea, and LeetCode returned Accepted (20 ms, 21.2 MB)."
     }
   }
 }
