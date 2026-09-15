@@ -25493,6 +25493,18 @@
       "judge": "fable",
       "note": "LEETCODE: Accepted (13 ms, 19.6 MB). Notes say 'Learning': the solution was given and copied.",
       "summary": "helper does a postorder DFS returning one of three State flags per node: None is covered, a node with an uncovered child places a camera and bumps self.count, a node with a camera child is covered, otherwise uncovered. The children's states are merged with | and tested with `in`, so the per-node answer is combined from both subtrees while self.count accumulates across the whole tree; the root gets a camera if it comes back uncovered. Exercises tree-dfs-recursive, tree-combine-returns, tree-global-across-subtrees and bit-flags via enum.Flag. Notes say 'Learning' and LEETCODE: Accepted (13 ms, 19.6 MB)."
+    },
+    "solved/p2684_Maximum_Number_of_Moves_in_a_Grid_2026_09_15T07_38_29_651934_00_00Z.py": {
+      "date": "2026-09-15",
+      "problem": "2684",
+      "moves": {
+        "tree-dfs-recursive": "clean",
+        "memoize-recursion": "clean",
+        "tree-combine-returns": "clean",
+        "grid-neighbors": "clean"
+      },
+      "judge": "fable",
+      "summary": "dfs(row, col) is a memoized recursion over the grid: for each of the three right-going offsets (row-1, col+1), (row, col+1), (row+1, col+1) it checks bounds and the strict increase, recurses into each valid neighbour, and returns max(res) + 1 or 0 when no move is possible. @cache makes each cell compute once, and the answer is max(dfs(col, 0)) over the first column. The notes hold the neighbour offsets and the LeetCode verdict: Accepted (179 ms, 54.7 MB)."
     }
   }
 }
