@@ -25617,6 +25617,20 @@
       },
       "judge": "deepseek-chat",
       "summary": "The drill implements firstTrue(lo, hi, ok) with the classic halving template: while lo < hi, mid = (lo+hi)//2, and ok(mid) moves hi to mid else lo to mid+1, returning lo as the first index where the predicate flips true. It exercises the boundary-search template and the binary-search-on-answer shape, since ok is an arbitrary monotone predicate over the answer space rather than an array lookup. All assertions pass, including the 10**9 range with at most 31 calls, and the notes contain no claims of help or recognition trouble."
+    },
+    "solved/d_Last_True_2026_09_15T13_35_05_874629_00_00Z.py": {
+      "date": "2026-09-15",
+      "problem": "drill",
+      "moves": {
+        "binary-search-boundary": "clean",
+        "binary-search-on-answer": "clean"
+      },
+      "assist": {
+        "binary-search-boundary": "learning",
+        "binary-search-on-answer": "learning"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The drill implements lastTrue(lo, hi, ok), a binary search that finds the last index where the monotone predicate ok is true, using mid = (lo + hi + 1) // 2 and moving lo = mid on true, hi = mid - 1 on false. The assertions cover the boundary cases (single element, predicate always true, predicate true only at lo, and a 10^9 range with a call-count bound of 31), and all pass. The notes say 'Learning', so the approach was given and copied."
     }
   }
 }
