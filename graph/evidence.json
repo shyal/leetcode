@@ -25441,6 +25441,17 @@
       "judge": "fable",
       "note": "LEETCODE: Wrong Answer (26/33 cases). nums is never sorted, and the skip `j > i and nums[j] == nums[j - 1]` fires regardless of whether nums[j-1] is still unused, so it prunes valid branches on inputs like [3,3,0,3]; the final set(res) hides the duplicates but not the lost permutations. Walked away after 7m 10s.",
       "summary": "helper builds path by appending nums[j], flagging use[j] False, recursing, then popping and restoring use[j]; a full path is stored as a tuple in res and the result is deduplicated at the end with set(res). The sibling-skip test compares nums[j] to nums[j-1] without sorting nums first and without checking that nums[j-1] is unused, and the recursion passes j+1 as i so the skip only applies for j > i. LeetCode returned Wrong Answer (26/33 cases); the notes say the candidate walked away after 7m 10s with no working solution."
+    },
+    "solved/d_No_Repeat_Siblings_2026_09_15T04_28_17_279097_00_00Z.py": {
+      "date": "2026-09-15",
+      "problem": "drill",
+      "moves": {
+        "backtracking-dedupe-siblings": "clean",
+        "backtracking-start-index": "clean",
+        "backtracking-choose-undo": "clean"
+      },
+      "judge": "fable",
+      "summary": "helper(i) records path[:] at every call, then loops j over the suffix from i, skipping nums[j] when j > i and nums[j] == nums[j - 1], and otherwise appends nums[j], recurses at j + 1, and pops. The dedupe condition, the suffix start index, and the append/recurse/pop shape are all present and all assertions pass, including the [5] * 12 case yielding 13 subsets. No notes claim help."
     }
   }
 }
