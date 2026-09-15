@@ -35,16 +35,16 @@ Constraints:
 
 class Solution:
     def indicesByValue(self, nums2: List[int]) -> List[int]:
-        pass
+        return [x[1] for x in sorted(zip(nums2, range(len(nums2))))]
 
 
 sol = Solution()
 
 print(sol.indicesByValue([2, 1, 3, 4]))  # [1, 0, 2, 3]
 
-# assert sol.indicesByValue([2, 1, 3, 4]) == [1, 0, 2, 3]
-# assert sol.indicesByValue([7, 5, 10, 9, 6]) == [1, 4, 0, 3, 2]
-# assert sol.indicesByValue([3, 1, 3]) == [1, 0, 2]
-# assert sol.indicesByValue([5, 5, 5]) == [0, 1, 2]
-# assert sol.indicesByValue([0]) == [0]
-# assert sol.indicesByValue(list(range(100000))) == list(range(100000))
+assert sol.indicesByValue([2, 1, 3, 4]) == [1, 0, 2, 3]
+assert sol.indicesByValue([7, 5, 10, 9, 6]) == [1, 4, 0, 3, 2]
+assert sol.indicesByValue([3, 1, 3]) == [1, 0, 2]
+assert sol.indicesByValue([5, 5, 5]) == [0, 1, 2]
+assert sol.indicesByValue([0]) == [0]
+assert sol.indicesByValue(list(range(100000))) == list(range(100000))
