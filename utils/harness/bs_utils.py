@@ -1,153 +1,194 @@
+import inspect
+import shutil
 import sys
+from typing import Any, Callable, Optional
 
 from rich import print
 
+PAIRS = (("left", "right"), ("low", "high"), ("lo", "hi"))
 
-def viz_binary_search(width=100):
-    def decorator(func):
-        def wrapper(*args, **kwargs):
-            prev_state = None
-            initial_min = None
-            initial_max = None
-            bound1_var = None
-            bound2_var = None
-            mid_var = None
+TRUE_MARK = "[bold green]✓[/bold green]"
+FALSE_MARK = "[bold red]✗[/bold red]"
+MID_MARK = "[bold yellow]▼[/bold yellow]"
+IN_RANGE = "[cyan]█[/cyan]"
+DROPPED = "[dim]·[/dim]"
 
-            def trace(frame, event, arg):
-                nonlocal prev_state, initial_min, initial_max, bound1_var, bound2_var, mid_var
-                if event == "line" and frame.f_code == func.__code__:
-                    locals_dict = frame.f_locals
-                    if bound1_var is None:
-                        if (
-                            "left" in locals_dict
-                            and "right" in locals_dict
-                            and "mid" in locals_dict
-                        ):
-                            bound1_var = "left"
-                            bound2_var = "right"
-                            mid_var = "mid"
-                        elif (
-                            "low" in locals_dict
-                            and "high" in locals_dict
-                            and "mid" in locals_dict
-                        ):
-                            bound1_var = "low"
-                            bound2_var = "high"
-                            mid_var = "mid"
-                    if bound1_var is not None:
-                        bound1 = locals_dict[bound1_var]
-                        bound2 = locals_dict[bound2_var]
-                        m = locals_dict[mid_var]
-                        lower = min(bound1, bound2)
-                        upper = max(bound1, bound2)
-                        if abs(m - (bound1 + bound2) / 2) <= 0.5:
-                            current_state = (lower, upper, m)
-                            if current_state != prev_state:
-                                if initial_min is None:
-                                    initial_min = lower
-                                    initial_max = upper
-                                    delta = (
-                                        initial_max - initial_min
-                                        if initial_min is not None
-                                        else 0
-                                    )
-                                    number_line = [" "] * width
-                                    if delta > 0:
-                                        is_int_bounds = isinstance(
-                                            initial_min, int
-                                        ) and isinstance(initial_max, int)
-                                        if is_int_bounds and delta <= 20:
-                                            for num in range(
-                                                initial_min, initial_max + 1
-                                            ):
-                                                str_num = str(num)
-                                                pos = int(
-                                                    ((num - initial_min) / delta)
-                                                    * (width - 1)
-                                                )
-                                                for i in range(len(str_num)):
-                                                    if pos + i < width:
-                                                        number_line[pos + i] = str_num[
-                                                            i
-                                                        ]
-                                        else:
-                                            max_ticks = min(width // 10, 11)
-                                            for i in range(max_ticks):
-                                                frac = (
-                                                    i / (max_ticks - 1)
-                                                    if max_ticks > 1
-                                                    else 0
-                                                )
-                                                if is_int_bounds:
-                                                    num = initial_min + round(
-                                                        frac * delta
-                                                    )
-                                                    str_num = str(int(num))
-                                                else:
-                                                    num = initial_min + frac * delta
-                                                    str_num = (
-                                                        f"{num:.2f}"
-                                                        if isinstance(num, float)
-                                                        else str(num)
-                                                    )
-                                                pos = int(frac * (width - 1))
-                                                for j in range(len(str_num)):
-                                                    if pos + j < width:
-                                                        number_line[pos + j] = str_num[
-                                                            j
-                                                        ]
-                                    else:
-                                        str_num = str(initial_min)
-                                        pos = width // 2 - len(str_num) // 2
-                                        for i in range(len(str_num)):
-                                            number_line[pos + i] = str_num[i]
-                                    print("".join(number_line))
-                                delta = (
-                                    initial_max - initial_min
-                                    if initial_min is not None
-                                    else 0
-                                )
-                                if delta > 0:
-                                    pos_l = int(
-                                        ((lower - initial_min) / delta) * (width - 1)
-                                    )
-                                    pos_m = int(
-                                        ((m - initial_min) / delta) * (width - 1)
-                                    )
-                                    pos_r = int(
-                                        ((upper - initial_min) / delta) * (width - 1)
-                                    )
-                                else:
-                                    pos_l = pos_m = pos_r = width // 2
-                                line = ["-"] * width
-                                if pos_l == pos_r:
-                                    line[pos_l] = "X"
-                                else:
-                                    line[pos_l] = "L"
-                                    line[pos_r] = "R"
-                                line_str = "".join(line)
-                                line_str = (
-                                    line_str.replace("L", "[green]L[/green]")
-                                    .replace("R", "[red]R[/red]")
-                                    .replace("X", "[magenta]X[/magenta]")
-                                )
-                                print(line_str)
-                                pointer_line = [" "] * width
-                                pointer_line[pos_m] = "M"
-                                pointer_str = "".join(pointer_line)
-                                pointer_str = pointer_str.replace(
-                                    "M", "[yellow]M[/yellow]"
-                                )
-                                print(pointer_str)
-                                prev_state = current_state
+
+def _ticks(lo: Any, hi: Any, width: int) -> str:
+    """One row of numbers spanning [lo, hi] over `width` columns."""
+    span = hi - lo
+    row = [" "] * width
+    if span <= 0:
+        s = str(lo)
+        row[width // 2 : width // 2 + len(s)] = s
+        return "".join(row[:width])
+    if isinstance(lo, int) and isinstance(hi, int) and span <= 20:
+        values = list(range(lo, hi + 1))
+    else:
+        n = max(2, min(width // 10, 11))
+        values = [lo + (hi - lo) * i / (n - 1) for i in range(n)]
+    labels = []
+    for v in values:
+        s = str(int(v)) if isinstance(lo, int) else f"{v:.2f}"
+        pos = int((v - lo) / span * (width - 1))
+        labels.append((min(pos, width - len(s)), s))
+    placed = [labels[0], labels[-1]]
+    for pos, s in labels[1:-1]:
+        if all(pos + len(s) < q or pos > q + len(t) for q, t in placed):
+            placed.append((pos, s))
+    for pos, s in placed:
+        for i, ch in enumerate(s):
+            row[pos + i] = ch
+    return "".join(row)
+
+
+def _record(calls: list, f: Callable, name: str) -> Callable:
+    def wrapped(*a: Any, **k: Any) -> Any:
+        r = f(*a, **k)
+        calls.append((a[0] if a else None, r, name))
+        return r
+
+    return wrapped
+
+
+class _Viz:
+    def __init__(self, width: int) -> None:
+        self.width = width
+        self.lo0: Any = None
+        self.hi0: Any = None
+        self.names: Optional[tuple] = None
+        self.pending: Optional[tuple] = None
+        self.calls: list = []
+        self.seen = 0
+        self.step = 0
+
+    def col(self, v: Any) -> int:
+        span = self.hi0 - self.lo0
+        if span <= 0:
+            return self.width // 2
+        return int((v - self.lo0) / span * (self.width - 1))
+
+    def flush(self) -> None:
+        if self.pending is None:
+            return
+        lo, hi, mid = self.pending
+        verdict, name = None, "ok"
+        for x, r, n in self.calls[self.seen :]:
+            if x == mid:
+                verdict, name = r, n
+        self.seen = len(self.calls)
+        mark = MID_MARK
+        if isinstance(verdict, bool):
+            mark = TRUE_MARK if verdict else FALSE_MARK
+        self.step += 1
+        row = []
+        cl, cr, cm = self.col(lo), self.col(hi), self.col(mid)
+        for c in range(self.width):
+            if c == cm:
+                row.append(mark)
+            elif cl <= c <= cr:
+                row.append(IN_RANGE)
+            else:
+                row.append(DROPPED)
+        a, b, m = self.names or ("lo", "hi", "mid")
+        ok = "" if verdict is None else f"  {name}({mid}) = {verdict}"
+        print("".join(row))
+        print(
+            f"[dim]step {self.step:>2}[/dim]  "
+            f"[cyan]{a}={lo}[/cyan]  [cyan]{b}={hi}[/cyan]  "
+            f"[yellow]{m}={mid}[/yellow]{ok}"
+        )
+        self.pending = None
+
+    def _detect(self, loc: dict) -> None:
+        for a, b in PAIRS:
+            if a in loc and b in loc:
+                self.names = (a, b, self._mid_name(loc, a, b))
+                return
+
+    @staticmethod
+    def _mid_name(loc: dict, a: str, b: str) -> Optional[str]:
+        if "mid" in loc:
+            return "mid"
+        lo, hi = loc[a], loc[b]
+        if not isinstance(lo, int) or not isinstance(hi, int):
+            return None
+        mids = {(lo + hi) // 2, (lo + hi + 1) // 2}
+        for k, v in loc.items():
+            if k not in (a, b) and isinstance(v, int) and v in mids:
+                return k
+        return None
+
+    def observe(self, loc: dict) -> None:
+        if self.names is None or self.names[2] is None:
+            self._detect(loc)
+            if self.names is None or self.names[2] is None:
+                return
+        a, b, m = self.names
+        if a not in loc or b not in loc or m not in loc:
+            return
+        lo, hi, mid = loc[a], loc[b], loc[m]
+        if lo > hi or abs(mid - (lo + hi) / 2) > 0.5:
+            return
+        state = (lo, hi, mid)
+        if state == self.pending:
+            return
+        if self.lo0 is None:
+            self.lo0, self.hi0 = lo, hi
+            print(_ticks(self.lo0, self.hi0, self.width))
+        self.flush()
+        self.pending = state
+
+    def finish(self, result: Any) -> None:
+        self.flush()
+        if self.lo0 is None:
+            return
+        c = self.col(result) if isinstance(result, (int, float)) else None
+        row = [DROPPED] * self.width
+        if c is not None and 0 <= c < self.width:
+            row[c] = "[bold magenta]★[/bold magenta]"
+        print("".join(row))
+        print(f"[bold magenta]return {result!r}[/bold magenta]")
+
+
+def viz_binary_search(func: Optional[Callable] = None, width: Optional[int] = None):
+    """Trace a binary search: one bar per step, mid marked ✓/✗ by ok(mid)."""
+    if width is None:
+        width = min(100, shutil.get_terminal_size().columns)
+    if callable(func):
+        return viz_binary_search(width=width)(func)
+
+    def decorator(f: Callable) -> Callable:
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            viz = _Viz(width)
+            bound = inspect.signature(f).bind(*args, **kwargs)
+            for name, v in bound.arguments.items():
+                if callable(v):
+                    bound.arguments[name] = _record(viz.calls, v, name)
+            args, kwargs = bound.args, bound.kwargs
+
+            def trace(frame: Any, event: str, arg: Any) -> Any:
+                if frame.f_code == f.__code__:
+                    if event == "line":
+                        viz.observe(frame.f_locals)
+                    return trace
+                back = frame.f_back
+                if back is None or back.f_code != f.__code__:
+                    return None
+                if event == "return" and viz.pending is not None:
+                    mid = viz.pending[2]
+                    if any(v is mid for v in frame.f_locals.values()):
+                        viz.calls.append((mid, arg, frame.f_code.co_name))
                 return trace
 
-            old_trace = sys.gettrace()
+            old = sys.gettrace()
             sys.settrace(trace)
             try:
-                return func(*args, **kwargs)
+                result = f(*args, **kwargs)
             finally:
-                sys.settrace(old_trace)
+                sys.settrace(old)
+            viz.finish(result)
+            return result
 
         return wrapper
 
