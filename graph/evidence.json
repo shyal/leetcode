@@ -25520,6 +25520,21 @@
       "judge": "fable",
       "note": "Enumerates every target T in range(2, 2*limit+1) and re-sums cost over all pairs per T (O(n*limit)); the difference-array sweep over T that makes this linear is replaced by brute force. Notes say 'Learning'.",
       "summary": "minMoves pairs nums[i] with nums[n-1-i] for i in range(n//2) and, for every candidate sum T from 2 to 2*limit, adds cost(a, b, T): 0 when T == a+b, 1 when T lies in band(a, b) = (min(a,b)+1, max(a,b)+limit), else 2; the answer is the min over T. The band lambda solves the pair predicate for T, and the index pairing from both ends is the converging-pointer shape. The per-T full re-sum is the brute force; no difference array or sweep over T is built. The notes say 'Learning', so the solution was a copied rep."
+    },
+    "solved/p322_Coin_Change_2026_09_15T11_52_32_010090_00_00Z.py": {
+      "date": "2026-09-15",
+      "problem": "322",
+      "moves": {
+        "dp-state-formulate": "clean",
+        "dp-1d-rolling": "clean"
+      },
+      "assist": {
+        "dp-state-formulate": "learning",
+        "dp-1d-rolling": "learning"
+      },
+      "judge": "fable",
+      "note": "LEETCODE: Accepted (483 ms, 19.6 MB). Notes say 'Learning', so the solution was given and copied.",
+      "summary": "coinChange fills a 1D table DP of size amount+1 with inf, sets DP[0] = 0, and for each a from 1 to amount takes min(DP[a], DP[a - c] + 1) over every coin c <= a; it returns DP[amount] or -1 if it stayed inf. The state is DP[a] = fewest coins summing to a, filled forward from the base case, so the code exercises dp-state-formulate and dp-1d-rolling. The notes contain a hand trace of DP for coins [1, 2, 5] and amount 11, the word 'Learning', and the leetcode verdict 'Accepted (483 ms, 19.6 MB)'."
     }
   }
 }

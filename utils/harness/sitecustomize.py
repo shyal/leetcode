@@ -29,7 +29,7 @@ from collections import Counter, OrderedDict, defaultdict, deque
 from collections.abc import Callable as Callable
 from functools import *
 from itertools import *
-from math import ceil, floor, gcd, isclose, log2, log10, prod, sqrt
+from math import ceil, floor, gcd, inf, isclose, log2, log10, prod, sqrt
 from random import (
     choice,
     choices,
@@ -416,6 +416,7 @@ builtins.starmap = starmap
 builtins.maxsize = maxsize
 builtins.cache = cache
 builtins.gcd = gcd
+builtins.inf = inf
 builtins.isclose = isclose
 builtins.dropwhile = dropwhile
 builtins.build_nary_tree = build_nary_tree
