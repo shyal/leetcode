@@ -25696,6 +25696,15 @@
       "judge": "deepseek-chat",
       "note": "Drill targets binary-search-on-answer; the lastTrue template with mid=(lo+hi+1)//2 and lo=mid on success finds the last index where the predicate holds.",
       "summary": "The file defines Solution.lastTrue(lo, hi, ok), a binary search that returns the last index in [lo, hi] for which the monotone predicate ok is true, using mid = (lo+hi+1)//2 and moving lo=mid on success, hi=mid-1 otherwise. It is exercised by assertions over predicates like x*x <= 50 and x <= 123456789, plus a call-count check confirming at most 31 probes over a 1e9 range. All assertions pass and the program prints 7."
+    },
+    "solved/d_Colors_Seen_2026_09_15T21_19_41_681887_00_00Z.py": {
+      "date": "2026-09-16",
+      "problem": "drill",
+      "moves": {
+        "bit-flags": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "Defines a Color enum.Flag with red/green/blue as auto() members and a Solution.seen method that folds a list of color names into a single flag value using color |= Color[name], starting from Color(0). The assertions confirm union semantics, idempotence on repeats, and the empty case. This exercises the bit-flags move: named states as one Flag value, combined with | and tested by membership."
     }
   }
 }
