@@ -552,5 +552,11 @@ def test_kg_readme_now_once_is_the_elo_panel():
     assert p.returncode == 0, p.stderr
     frame = p.stdout
     assert frame.startswith("╭") and frame.rstrip().endswith("╯")
-    for s in ["first-sight elo", "60 game average", "last 60 days", "picker", " games, "]:
+    for s in [
+        "first-sight elo",
+        "60 game average",
+        "last 60 days",
+        "picker",
+        " games, ",
+    ]:
         assert s in frame
