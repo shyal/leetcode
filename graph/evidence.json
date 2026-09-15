@@ -25341,6 +25341,17 @@
       },
       "judge": "fable",
       "summary": "The `number` method scans digits at the shared cursor `self.i`, accumulating `num = num * 10 + int(self.S[self.i])` until a non-digit or the end of `self.S`, and returns `TreeNode(num)` with `self.i` left on the next unconsumed character. The asserts check the cursor lands on `+` and `-` after each call and reaches `len(p.S)` at the end. This is the terminal rule of a recursive-descent parser: one function, one shared cursor, consumes exactly its token. No notes claim help."
+    },
+    "solved/d_Count_Univalue_Subtrees_2026_09_15T00_12_16_693133_00_00Z.py": {
+      "date": "2026-09-15",
+      "problem": "drill",
+      "moves": {
+        "tree-global-across-subtrees": "clean",
+        "tree-combine-returns": "clean",
+        "tree-dfs-recursive": "clean"
+      },
+      "judge": "fable",
+      "summary": "helper(n) recurses into n.left and n.right, collecting each child's (uni, val) into unis and vals, and returns whether the subtree rooted at n is univalue (all children univalue and all values equal to n.val) together with n.val. At each node where both hold it increments self.count, the global accumulated across subtrees, while returning only the boolean and value upward. The drill's target move is exercised; the file ran clean with no notes of help."
     }
   }
 }
