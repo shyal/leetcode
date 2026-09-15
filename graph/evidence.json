@@ -25429,6 +25429,18 @@
       "judge": "fable",
       "note": "LEETCODE: Wrong Answer (80/124 cases). The search space is right = sum(time), which is too small: for time=[5], totalTrips=5 the answer is 25 but the search never leaves [0, 5]. The bound should be min(time) * totalTrips (or any value where trips_within_t is guaranteed >= totalTrips).",
       "summary": "minimumTime binary-searches t over [0, sum(time)] with trips_within_t(t) = sum(t // x for x in time) as the feasibility check, moving right = mid when trips >= totalTrips and left = mid + 1 otherwise, returning left. The leftmost-true template is correct, but the upper bound sum(time) does not cover the answer space: with time=[5] and totalTrips=5 the answer 25 lies outside the range, so the code returns 5. LeetCode rejected the submission with Wrong Answer on 80/124 cases and the file's own assert for [5], 5 == 25 fails; the notes say the candidate walked away after 20 minutes with no working solution."
+    },
+    "solved/p47_Permutations_II_FAILED_2026_09_15T04_08_20_750565_00_00Z.py": {
+      "date": "2026-09-15",
+      "problem": "47",
+      "moves": {
+        "backtracking-choose-undo": "clean",
+        "backtracking-mark-unmark": "clean",
+        "backtracking-dedupe-siblings": "struggled"
+      },
+      "judge": "fable",
+      "note": "LEETCODE: Wrong Answer (26/33 cases). nums is never sorted, and the skip `j > i and nums[j] == nums[j - 1]` fires regardless of whether nums[j-1] is still unused, so it prunes valid branches on inputs like [3,3,0,3]; the final set(res) hides the duplicates but not the lost permutations. Walked away after 7m 10s.",
+      "summary": "helper builds path by appending nums[j], flagging use[j] False, recursing, then popping and restoring use[j]; a full path is stored as a tuple in res and the result is deduplicated at the end with set(res). The sibling-skip test compares nums[j] to nums[j-1] without sorting nums first and without checking that nums[j-1] is unused, and the recursion passes j+1 as i so the skip only applies for j > i. LeetCode returned Wrong Answer (26/33 cases); the notes say the candidate walked away after 7m 10s with no working solution."
     }
   }
 }
