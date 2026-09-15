@@ -641,7 +641,9 @@ expressions for it: ONE Python expression per line, nothing else. Each expressio
 call the solution and evaluate to a plain comparable value (wrap structure results with
 helpers like get_level_order / get_list_values as the existing asserts do). Do NOT write
 assert statements, expected values, comments, or blank lines. Cover boundary sizes,
-duplicates, negatives, and constraint extremes. At most 12 lines.
+duplicates, negatives, and constraint extremes, and the inputs on which the tempting
+wrong algorithm answers differently from this solution: where taking the locally best
+option loses, where one pass misses a later better choice. At most 12 lines.
 
 {code}
 "

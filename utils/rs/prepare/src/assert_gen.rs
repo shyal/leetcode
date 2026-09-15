@@ -64,6 +64,12 @@ input, an empty or absent lookup, a value replaced by itself, duplicates,
 negatives, a query before anything exists, the extremes the constraints allow,
 and a longer mixed sequence or two.
 
+Also cover the inputs on which the tempting wrong algorithm answers differently
+from this solution: the case where taking the locally best option loses, where
+one pass misses a later better choice, where sorting destroys an order the
+answer needs. A block of boundary cases alone lets a wrong algorithm through
+green. The label still names the input, not the algorithm it defeats.
+
 At most 12 lines. Output ONLY those lines - no asserts, no expected values, no
 blank lines, no prose.
 {more}
