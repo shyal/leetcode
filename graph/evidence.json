@@ -25372,6 +25372,16 @@
       },
       "judge": "fable",
       "summary": "lcs pads both strings with a leading space so row 0 and column 0 serve as empty-prefix base cases, builds dp with table(len(a), len(b)), and iterates every cell via cells(dp). When a[i] == b[j] it takes the diagonal dp[i-1][j-1] + 1; otherwise it takes max(dp[i-1][j], dp[i][j-1]), consuming from one side. The answer is dp[-1][-1]; all assertions including the 1000-length case passed, and the notes report no help."
+    },
+    "solved/d_First_Lit_Bulb_2026_09_15T00_41_08_393947_00_00Z.py": {
+      "date": "2026-09-15",
+      "problem": "drill",
+      "moves": {
+        "binary-search-index": "clean",
+        "binary-search-boundary": "clean"
+      },
+      "judge": "fable",
+      "summary": "firstLit halves the range [left, right] with mid = (left + right) // 2, moving right to mid when lit[mid] is True and left to mid + 1 otherwise, until left == right, then returns left as the first True index. This is the while/mid/move template, in its leftmost-boundary form with an inclusive right bound. All assertions passed, including the single-element and 100000-element cases; no notes claim help."
     }
   }
 }
