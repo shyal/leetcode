@@ -25394,6 +25394,19 @@
       "judge": "fable",
       "note": "AssertionError on `sol.can_ship([1..10], 15, 5) == True`: can_ship never resets `total` when a day closes and never counts the final partial day, so the feasibility check is wrong; left bound is 0 instead of max(weights); notes: 'complete failure, both on the can_ship and the binary search', walked away after 37m20s.",
       "summary": "shipWithinDays binary-searches capacity between 0 and sum(weights), calling can_ship(weights, mid, days) as the feasibility check and moving right = mid on success, left = mid + 1 otherwise. can_ship walks weights keeping a running total, but when total + v >= capacity it increments days_taken without resetting total to v, and it never counts the last open day, so the assert `can_ship([1..10], 15, 5) == True` fails with AssertionError. The notes say the problem statement took time to parse, that the decision function was built first, and that the attempt ended over time as a 'complete failure, both on the can_ship and the binary search'."
+    },
+    "solved/d_Sections_Under_Cap_2026_09_15T03_06_47_322761_00_00Z.py": {
+      "date": "2026-09-15",
+      "problem": "drill",
+      "moves": {
+        "running-sum": "clean"
+      },
+      "assist": {
+        "running-sum": "learning"
+      },
+      "judge": "fable",
+      "note": "Notes say 'Learning': the solution was shown and copied.",
+      "summary": "sections walks weights once, accumulating total; when total + w would exceed cap it increments used, resets total to 0, then adds w. used starts at 1 and is returned as the section count. The move exercised is running-sum with a reset on overflow. The notes say 'Learning', so this was a copied rep."
     }
   }
 }
