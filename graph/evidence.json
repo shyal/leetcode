@@ -25656,6 +25656,16 @@
       },
       "judge": "deepseek-chat",
       "summary": "The drill builds an in-degree array with table(n) and increments in_degrees[b] for each edge (a, b), returning the counts. This is the in-degree counting step that feeds Kahn's topological sort, and all four assertions pass, including the empty-edge and single-edge cases."
+    },
+    "solved/d_Not_Referred_By_Customer_Two_2026_09_15T21_01_58_188100_00_00Z.py": {
+      "date": "2026-09-16",
+      "problem": "drill",
+      "moves": {
+        "sql-null-semantics": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Uses `referee_id is not 2`, sqlite's null-safe inequality, so NULL rows are kept.",
+      "summary": "The query selects name from Customer where referee_id is not 2. Using `is not` rather than `!=` keeps the NULL-referee rows, which is exactly the null-semantics point of the drill. Both example assertions passed."
     }
   }
 }
