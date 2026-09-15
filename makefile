@@ -1,13 +1,8 @@
-.PHONY: submit lc-login ext check fmt fmt-check lint types complexity duplicates test-fast cov rust audit secrets all asserts drop learning mirror q prepare force unforce preflight dependents kg-extract kg-status kg-viz rep movie next dive drill spot hard is_session_start readme rank-table residuals simulate sleep wake solved failed test timer viz graph snippets
+.PHONY: submit lc-login ext check fmt fmt-check lint types complexity duplicates test-fast cov rust audit secrets all asserts drop learning mirror q prepare force unforce preflight dependents kg-extract kg-status kg-viz rep movie next dive drill spot hard is_session_start readme rank-table residuals simulate sleep wake solved failed test timer elo viz graph snippets
 
-all: $(if $(filter master,$(shell git rev-parse --abbrev-ref HEAD)),graph/leet.db) $(EXT) $(RS_BIN)/kg_status
+all: $(if $(filter master,$(shell git rev-parse --abbrev-ref HEAD)),graph/leet.db) $(EXT)
 	@cp utils/harness/sitecustomize.py .venv/lib/python3.10/site-packages/
-	@if [ "$$(git rev-parse --abbrev-ref HEAD)" = "master" ]; then \
-		$(RS_BIN)/kg_status --summary; \
-		PYTHONPATH=./utils:${PYTHONPATH} .venv/bin/python3 utils/tests/test_runner.py; \
-	else \
-		.venv/bin/python3 current.py; \
-	fi
+	@.venv/bin/python3 current.py
 
 today: $(RS_BIN)/kg_today
 	@$(RS_BIN)/kg_today $(patsubst rebuild,--force,$(filter-out $@,$(MAKECMDGOALS)))
@@ -267,6 +262,10 @@ spot: $(RS_BIN)/spot
 
 timer: $(RS_BIN)/timer
 	@$(RS_BIN)/timer
+
+# make elo: the Elo dashboard, live like make timer (kg_readme now)
+elo: $(RS_BIN)/kg_readme
+	@$(RS_BIN)/kg_readme now
 
 # this branch's Claude Code conversation: resumed if it exists, started if not
 chat: $(RS_BIN)/kg_chat
