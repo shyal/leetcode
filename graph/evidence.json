@@ -25705,6 +25705,15 @@
       },
       "judge": "deepseek-chat",
       "summary": "Defines a Color enum.Flag with red/green/blue as auto() members and a Solution.seen method that folds a list of color names into a single flag value using color |= Color[name], starting from Color(0). The assertions confirm union semantics, idempotence on repeats, and the empty case. This exercises the bit-flags move: named states as one Flag value, combined with | and tested by membership."
+    },
+    "solved/d_Names_In_Palette_2026_09_15T21_21_22_164455_00_00Z.py": {
+      "date": "2026-09-16",
+      "problem": "drill",
+      "moves": {
+        "bit-flags": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "Defines a Color enum.Flag with red/green/blue members from auto(), builds a palette by unioning flags with |, and tests membership with `Color[name] in palette`. The present method loops over names, looks each up in the Flag by name, and appends it when the flag is contained in the palette. All assertions pass, including the empty palette Color(0) and the all-flags union."
     }
   }
 }
