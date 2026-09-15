@@ -25714,6 +25714,17 @@
       },
       "judge": "deepseek-chat",
       "summary": "Defines a Color enum.Flag with red/green/blue members from auto(), builds a palette by unioning flags with |, and tests membership with `Color[name] in palette`. The present method loops over names, looks each up in the Flag by name, and appends it when the flag is contained in the palette. All assertions pass, including the empty palette Color(0) and the all-flags union."
+    },
+    "solved/d_Turn_Knobs_To_A_Total_2026_09_15T21_24_44_674650_00_00Z.py": {
+      "date": "2026-09-16",
+      "problem": "drill",
+      "moves": {},
+      "judge": "deepseek-chat",
+      "note": "Drill targets event-sweep, but the solution solves the reachable-total band with a closed-form interval check (min+1, max+limit) instead of sweeping +1/-1 boundary events.",
+      "summary": "numTurns computes the reachable sum band with band(a,b) = (min(a,b)+1, max(a,b)+limit) and returns 0 if a+b already equals T, 1 if T falls inside the band, else 2. All assertions pass. The event-sweep move the drill targets is not exercised; the code uses a direct closed-form interval membership test instead.",
+      "unmapped": [
+        "closed-form interval membership"
+      ]
     }
   }
 }
