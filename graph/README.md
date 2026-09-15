@@ -97,6 +97,24 @@ the solid window; a drill: its latest rep is one; a node: owned). A problem or a
 drill is not served while an id it comes after is not warm (`kg_lib.held_behind`,
 `kg_lib.servable_drills`). Filename order inside `drills/<node>/` means nothing.
 
+### Reference solutions (node_notes/<node>/dNNN_<slug>.py)
+
+Every drill has one reference solution, stored as
+`graph/node_notes/<node>/dNNN_<slug>.py`, the same node directory and file
+stem as the drill. The file is a bare `class Solution` with the drill's
+method, in the drill's own parameter names, nothing else: no imports, no
+asserts, no demo (the harness builtins such as `ListNode` are injected at run
+time). A mnemonic the operator coined goes as a comment on the line it names;
+nothing else is commented. `graph/node_notes/<node>/<node>.md` holds the
+mnemonic phrases as plain lines, never code.
+
+`utils/tests/test_reference_solutions.py` splices each reference into its
+drill file in place of the stub, turns the commented-out asserts on, and runs
+it. A reference with no drill, or one that fails its drill, fails `make check`.
+Write the reference before the drill statement; a drill with no reference is
+not finished. The reference is what gets shown on a first rep or on "dunno";
+it is never pasted into current.py.
+
 Drills also surface in `make next` itself (kg_lib.due_drill picks the node's
 least-recently-drilled servable bank file; a drill already solved today is not due again).
 Precedence follows rule 2, and the drill is a GATE, not just an opener

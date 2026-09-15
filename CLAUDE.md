@@ -63,6 +63,11 @@
   canonical treatment of the technique. Read the intuition sections. Build from
   those. Thousands of people have written these up carefully; a drill improvised
   without reading them is worthless (settled 2026-08-26).
+- Every drill's reference solution lives at
+  `graph/node_notes/<node>/dNNN_<slug>.py` (bare `class Solution`, drill's own
+  names, mnemonic as a comment on its line). `make check` runs it against the
+  drill's asserts. Write it before the statement; a drill without one is not
+  finished. See graph/README.md, "Reference solutions".
 - A drill that hands over the answer's skeleton and asks the operator to fill in
   one comparison is not a drill. It trains a solution to a problem that was
   never posed, and it teaches no intuition.
