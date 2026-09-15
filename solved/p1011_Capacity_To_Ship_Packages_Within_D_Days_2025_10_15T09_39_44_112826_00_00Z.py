@@ -51,15 +51,17 @@ This went a lot smoother this time, thanks for the binary search template.
 class Solution:
 
     def daysToShipPackages(self, nums, weightPerShipment):
-        days = 1
         total = 0
+        count = 0
         for n in nums:
-            if total + n > weightPerShipment:
-                days += 1
+            if n > weightPerShipment:
+                return float("inf")
+            if total + n >= weightPerShipment:
+                count += 1
                 total = n
             else:
                 total += n
-        return days
+        return count
 
     # @viz_binary_search()
     def shipWithinDays(self, weights: List[int], days: int) -> int:

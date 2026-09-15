@@ -25382,6 +25382,18 @@
       },
       "judge": "fable",
       "summary": "firstLit halves the range [left, right] with mid = (left + right) // 2, moving right to mid when lit[mid] is True and left to mid + 1 otherwise, until left == right, then returns left as the first True index. This is the while/mid/move template, in its leftmost-boundary form with an inclusive right bound. All assertions passed, including the single-element and 100000-element cases; no notes claim help."
+    },
+    "solved/p1011_Capacity_To_Ship_Packages_Within_D_Days_FAILED_2026_09_15T02_40_08_847664_00_00Z.py": {
+      "date": "2026-09-15",
+      "problem": "1011",
+      "moves": {
+        "binary-search-on-answer": "struggled",
+        "running-sum": "struggled",
+        "binary-search-boundary": "struggled"
+      },
+      "judge": "fable",
+      "note": "AssertionError on `sol.can_ship([1..10], 15, 5) == True`: can_ship never resets `total` when a day closes and never counts the final partial day, so the feasibility check is wrong; left bound is 0 instead of max(weights); notes: 'complete failure, both on the can_ship and the binary search', walked away after 37m20s.",
+      "summary": "shipWithinDays binary-searches capacity between 0 and sum(weights), calling can_ship(weights, mid, days) as the feasibility check and moving right = mid on success, left = mid + 1 otherwise. can_ship walks weights keeping a running total, but when total + v >= capacity it increments days_taken without resetting total to v, and it never counts the last open day, so the assert `can_ship([1..10], 15, 5) == True` fails with AssertionError. The notes say the problem statement took time to parse, that the decision function was built first, and that the attempt ended over time as a 'complete failure, both on the can_ship and the binary search'."
     }
   }
 }
