@@ -25566,6 +25566,18 @@
       "moves": {},
       "judge": "deepseek-chat",
       "summary": "The code swaps the first two nodes of a linked list by keeping pointers m=head and c=head.next, then re-linking m.next and c.next and returning c, with an early return for lists of length 0 or 1. It exercises direct pointer re-linking rather than the dummy-node splice the drill targets, so the ll-dummy-splice move is avoided. The notes say 'Learning', indicating the solution was given and copied."
+    },
+    "solved/d_Remove_Value_2026_09_15T12_25_02_385749_00_00Z.py": {
+      "date": "2026-09-15",
+      "problem": "drill",
+      "moves": {
+        "ll-dummy-splice": "clean"
+      },
+      "assist": {
+        "ll-dummy-splice": "learning"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The drill builds a dummy node `d = pre = ListNode(0, head)` and walks `pre.next`, re-linking `pre.next = pre.next.next` when the value matches and otherwise advancing `pre`, returning `d.next`. This exercises the dummy-splice move, which handles removal at the head without a special case, and all assertions including the empty list and all-matching cases pass. The notes say 'Learning', indicating the solution was given and copied."
     }
   }
 }
