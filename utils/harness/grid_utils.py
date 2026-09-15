@@ -30,14 +30,19 @@ def nbrs(
             yield nr, nc
 
 
-def table(m: int, n: int, fill: Any = 0) -> List[List[Any]]:
-    """A new m by n table, every cell set to fill; rows are distinct lists."""
-    return [[fill] * n for _ in range(m)]
+def table(*dims: int, fill: Any = 0) -> List[Any]:
+    """A new table of the given dimensions, every cell set to fill.
+
+    table(n) is a list of n cells; table(m, n) is m rows of n cells, the
+    rows distinct lists; table(l, m, n) nests one level deeper."""
+    if len(dims) == 1:
+        return [fill] * dims[0]
+    return [table(*dims[1:], fill=fill) for _ in range(dims[0])]
 
 
 def like(grid: Sequence[Sequence[Any]], fill: Any = 0) -> List[List[Any]]:
     """A new table with the shape of grid, every cell set to fill."""
-    return table(len(grid), len(grid[0]), fill)
+    return table(len(grid), len(grid[0]), fill=fill)
 
 
 def grid_bfs(
