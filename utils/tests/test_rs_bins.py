@@ -545,3 +545,12 @@ def test_kg_readme_streak_badge_and_unknown_target():
     assert svg.startswith("<svg ") and "streak" in svg and "best" in svg
     p = run("kg_readme", "bogus")
     assert p.returncode == 2 and "unknown target bogus" in p.stderr
+
+
+def test_kg_readme_now_once_is_the_elo_panel():
+    p = run("kg_readme", "now", "--once", env={**os.environ, "COLUMNS": "80"})
+    assert p.returncode == 0, p.stderr
+    frame = p.stdout
+    assert frame.startswith("╭") and frame.rstrip().endswith("╯")
+    for s in ["first-sight elo", "60 game average", "last 60 days", "picker", " games, "]:
+        assert s in frame

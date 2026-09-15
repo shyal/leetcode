@@ -277,3 +277,40 @@ pub fn render(ctx: &Ctx, ev: &Evidence) {
         f0(last)
     );
 }
+
+/// The numbers make elo shows, from the same functions as the chart. None
+/// with nothing scored.
+pub struct Numbers {
+    /// the first-sight Elo after the last game
+    pub elo: f64,
+    /// mean of the Elo after each of the last MA games, once MA exist
+    pub ma: Option<f64>,
+    /// performance rating over the last onsite::FS_WINDOW days
+    pub late: f64,
+    /// kg::model::elo_now: the picker's Elo over every timed attempt
+    pub picker: f64,
+    /// (date, Elo after the day's last game) one per day with a game
+    pub history: Vec<(NaiveDate, f64)>,
+    pub games: usize,
+    pub wins: usize,
+    pub draws: usize,
+}
+
+pub fn numbers(ctx: &Ctx, ev: &Evidence) -> Option<Numbers> {
+    let gs = games(ctx, ev);
+    if gs.is_empty() {
+        return None;
+    }
+    let history = elo(&gs, START);
+    let (_, _, late) = crate::onsite::first_sight_rate(&gs, &crate::hours::hours_by_day(ctx));
+    Some(Numbers {
+        elo: history[history.len() - 1].1,
+        ma: elo_ma(&gs, START, &[]).last().map(|x| x.1),
+        late,
+        picker: kg::model::elo_now(ctx, ev),
+        history,
+        games: gs.len(),
+        wins: gs.iter().filter(|g| g.2 == 1.0).count(),
+        draws: gs.iter().filter(|g| g.2 == 0.5).count(),
+    })
+}
