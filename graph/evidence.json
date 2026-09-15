@@ -25631,6 +25631,22 @@
       },
       "judge": "deepseek-chat",
       "summary": "The drill implements lastTrue(lo, hi, ok), a binary search that finds the last index where the monotone predicate ok is true, using mid = (lo + hi + 1) // 2 and moving lo = mid on true, hi = mid - 1 on false. The assertions cover the boundary cases (single element, predicate always true, predicate true only at lo, and a 10^9 range with a call-count bound of 31), and all pass. The notes say 'Learning', so the approach was given and copied."
+    },
+    "solved/d_Turn_Knobs_To_A_Total_2026_09_15T13_45_43_650356_00_00Z.py": {
+      "date": "2026-09-15",
+      "problem": "drill",
+      "moves": {
+        "event-sweep": "clean"
+      },
+      "assist": {
+        "event-sweep": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets event-sweep but the code solves the turn count in closed form via a reachable-band interval test, not a sweep.",
+      "summary": "numTurns computes a reachable band (min(a,b)+1, max(a,b)+limit) and returns 0 if a+b==T, 1 if T falls in the band, else 2. It exercises interval membership rather than an event sweep, and all assertions pass with output 1. The notes say 'Learning'.",
+      "unmapped": [
+        "closed-form interval membership for turn count"
+      ]
     }
   }
 }
