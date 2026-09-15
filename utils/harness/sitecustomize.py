@@ -244,6 +244,9 @@ def pprint(*args, **kwargs):
 
     def flush(plain):
         text = sep.join(str(a) for a in plain)
+        # already coloured: rich's highlighter would split the escapes
+        if "\x1b" in text:
+            return print_orig(text, **kwargs)
         console.print(text, markup=False, highlight=True, soft_wrap=True, **kwargs)
 
     plain = []
