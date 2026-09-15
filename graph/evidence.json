@@ -25685,6 +25685,17 @@
       },
       "judge": "deepseek-chat",
       "summary": "The file defines Solution.firstTrue, a half-open binary search that narrows [lo, hi) by testing ok(mid) and moving hi to mid when true, lo to mid+1 otherwise, returning lo as the first index where the predicate holds. The assertions exercise the boundary cases (predicate true at lo, at hi, single-element ranges, and a 10^9 range) and confirm the call count stays within 31, i.e. logarithmic. This is the first-true boundary template rather than a search over an explicit answer space, so binary-search-boundary is the move exercised."
+    },
+    "solved/d_Last_True_2026_09_15T21_17_59_327338_00_00Z.py": {
+      "date": "2026-09-16",
+      "problem": "drill",
+      "moves": {
+        "binary-search-boundary": "clean",
+        "binary-search-on-answer": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets binary-search-on-answer; the lastTrue template with mid=(lo+hi+1)//2 and lo=mid on success finds the last index where the predicate holds.",
+      "summary": "The file defines Solution.lastTrue(lo, hi, ok), a binary search that returns the last index in [lo, hi] for which the monotone predicate ok is true, using mid = (lo+hi+1)//2 and moving lo=mid on success, hi=mid-1 otherwise. It is exercised by assertions over predicates like x*x <= 50 and x <= 123456789, plus a call-count check confirming at most 31 probes over a 1e9 range. All assertions pass and the program prints 7."
     }
   }
 }
