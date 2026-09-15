@@ -25362,6 +25362,16 @@
       },
       "judge": "fable",
       "summary": "longestAtMost walks s with right, adds each character to the count defaultdict, and records best when len(count) <= k. When the distinct count exceeds k the while loop decrements count[s[left]], deletes the key at zero, and advances left until the invariant holds again. Every assertion passed; the file has no notes."
+    },
+    "solved/d_Longest_Common_Subsequence_2026_09_15T00_39_07_564072_00_00Z.py": {
+      "date": "2026-09-15",
+      "problem": "drill",
+      "moves": {
+        "two-sequence-align": "clean",
+        "dp-2d-grid": "clean"
+      },
+      "judge": "fable",
+      "summary": "lcs pads both strings with a leading space so row 0 and column 0 serve as empty-prefix base cases, builds dp with table(len(a), len(b)), and iterates every cell via cells(dp). When a[i] == b[j] it takes the diagonal dp[i-1][j-1] + 1; otherwise it takes max(dp[i-1][j], dp[i][j-1]), consuming from one side. The answer is dp[-1][-1]; all assertions including the 1000-length case passed, and the notes report no help."
     }
   }
 }
