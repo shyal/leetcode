@@ -25505,6 +25505,21 @@
       },
       "judge": "fable",
       "summary": "dfs(row, col) is a memoized recursion over the grid: for each of the three right-going offsets (row-1, col+1), (row, col+1), (row+1, col+1) it checks bounds and the strict increase, recurses into each valid neighbour, and returns max(res) + 1 or 0 when no move is possible. @cache makes each cell compute once, and the answer is max(dfs(col, 0)) over the first column. The notes hold the neighbour offsets and the LeetCode verdict: Accepted (179 ms, 54.7 MB)."
+    },
+    "solved/p1674_Minimum_Moves_to_Make_Array_Complementary_2026_09_15T08_19_11_921503_00_00Z.py": {
+      "date": "2026-09-15",
+      "problem": "1674",
+      "moves": {
+        "two-pointers-converging": "clean",
+        "solve-pair-condition": "clean"
+      },
+      "assist": {
+        "two-pointers-converging": "learning",
+        "solve-pair-condition": "learning"
+      },
+      "judge": "fable",
+      "note": "Enumerates every target T in range(2, 2*limit+1) and re-sums cost over all pairs per T (O(n*limit)); the difference-array sweep over T that makes this linear is replaced by brute force. Notes say 'Learning'.",
+      "summary": "minMoves pairs nums[i] with nums[n-1-i] for i in range(n//2) and, for every candidate sum T from 2 to 2*limit, adds cost(a, b, T): 0 when T == a+b, 1 when T lies in band(a, b) = (min(a,b)+1, max(a,b)+limit), else 2; the answer is the min over T. The band lambda solves the pair predicate for T, and the index pairing from both ends is the converging-pointer shape. The per-T full re-sum is the brute force; no difference array or sweep over T is built. The notes say 'Learning', so the solution was a copied rep."
     }
   }
 }
