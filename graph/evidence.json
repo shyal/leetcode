@@ -25607,6 +25607,16 @@
       "judge": "deepseek-chat",
       "note": "Sorts (value, index) tuples by default tuple ordering, which is the derived multi-criteria key; ties keep original index order.",
       "summary": "The solution zips each value with its index, sorts the (value, index) pairs, and extracts the index column, so the output lists indices ordered by their values. This exercises sort-by-custom-key via the implicit tuple ordering rather than an explicit key= lambda. All assertions pass, including the 100000-element case."
+    },
+    "solved/d_First_True_2026_09_15T13_17_08_413428_00_00Z.py": {
+      "date": "2026-09-15",
+      "problem": "drill",
+      "moves": {
+        "binary-search-boundary": "clean",
+        "binary-search-on-answer": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The drill implements firstTrue(lo, hi, ok) with the classic halving template: while lo < hi, mid = (lo+hi)//2, and ok(mid) moves hi to mid else lo to mid+1, returning lo as the first index where the predicate flips true. It exercises the boundary-search template and the binary-search-on-answer shape, since ok is an arbitrary monotone predicate over the answer space rather than an array lookup. All assertions pass, including the 10**9 range with at most 31 calls, and the notes contain no claims of help or recognition trouble."
     }
   }
 }
