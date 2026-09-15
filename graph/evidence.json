@@ -25407,6 +25407,17 @@
       "judge": "fable",
       "note": "Notes say 'Learning': the solution was shown and copied.",
       "summary": "sections walks weights once, accumulating total; when total + w would exceed cap it increments used, resets total to 0, then adds w. used starts at 1 and is returned as the section count. The move exercised is running-sum with a reset on overflow. The notes say 'Learning', so this was a copied rep."
+    },
+    "solved/p1283_Find_the_Smallest_Divisor_Given_a_Threshold_2026_09_15T03_25_10_114319_00_00Z.py": {
+      "date": "2026-09-15",
+      "problem": "1283",
+      "moves": {
+        "binary-search-on-answer": "struggled",
+        "binary-search-boundary": "struggled"
+      },
+      "judge": "fable",
+      "note": "LEETCODE: Accepted (163 ms, 24.3 MB). The notes record a failed hand-rolled search (left=0, right=mid-1 with left=mid, no result variable) before falling back to the is_minimization template; candidate asks for a BS deep dive.",
+      "summary": "smallestDivisor searches divisors in [1, sum(nums)]; div(nums, mid) computes sum(ceil(x / mid)) and the feasibility test is _sum <= threshold. The loop is the low <= high template with a result variable: a feasible mid records result and moves high = mid - 1, an infeasible one moves low = mid + 1, so result ends as the leftmost feasible divisor. The notes say a first attempt (left, right = 0, sum(nums); right = mid - 1 / left = mid; return left) did not work, and the is_minimization template was used instead; LEETCODE: Accepted."
     }
   }
 }
