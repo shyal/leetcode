@@ -342,6 +342,40 @@ pub fn anki_due(ctx: &Ctx, path: &Path, ev: &Evidence) -> Option<(NaiveDate, i64
 
 /// anki_due on the file's evidence key (ctx.drill_evidence_key).
 pub fn anki_due_key(key: &str, ev: &Evidence) -> Option<(NaiveDate, i64)> {
+    let st = anki_state(key, ev)?;
+    Some((
+        parse_date(&st.last) + Duration::days(st.interval),
+        st.interval,
+    ))
+}
+
+/// The SM-2 clock one step ahead: when the file is answered Good today,
+/// (the day it comes back, that interval). A file never done graduates
+/// to one day.
+pub fn anki_next_if_good(key: &str, ev: &Evidence, today: NaiveDate) -> (NaiveDate, i64) {
+    let (interval, ease) = anki_state(key, ev).map_or((0, ANKI_EASE), |s| (s.interval, s.ease));
+    let next = anki_good(interval, ease);
+    (today + Duration::days(next), next)
+}
+
+/// The clock's state after the file's last rep: the day of that rep, the
+/// interval it set and the ease it left.
+struct AnkiState {
+    last: String,
+    interval: i64,
+    ease: f64,
+}
+
+fn anki_good(interval: i64, ease: f64) -> i64 {
+    let next = if interval == 0 {
+        ANKI_GRADUATING_DAYS
+    } else {
+        (interval + 1).max((interval as f64 * ease + 0.5) as i64)
+    };
+    next.min(ANKI_MAX_INTERVAL)
+}
+
+fn anki_state(key: &str, ev: &Evidence) -> Option<AnkiState> {
     let mut reps: Vec<usize> = ev.drill_reps(key).to_vec();
     reps.sort_by(|&a, &b| {
         let (da, ba, _) = &ev.drills[a];
@@ -364,13 +398,7 @@ pub fn anki_due_key(key: &str, ev: &Evidence) -> Option<(NaiveDate, i64)> {
     let mut last = String::new();
     for (d, ri) in by_day {
         match anki_answer(ev.rec(ri)) {
-            "good" => {
-                interval = if interval == 0 {
-                    ANKI_GRADUATING_DAYS
-                } else {
-                    (interval + 1).max((interval as f64 * ease + 0.5) as i64)
-                };
-            }
+            "good" => interval = anki_good(interval, ease),
             "hard" => {
                 interval = if interval == 0 {
                     ANKI_GRADUATING_DAYS
@@ -387,7 +415,11 @@ pub fn anki_due_key(key: &str, ev: &Evidence) -> Option<(NaiveDate, i64)> {
         interval = interval.min(ANKI_MAX_INTERVAL);
         last = d;
     }
-    Some((parse_date(&last) + Duration::days(interval), interval))
+    Some(AnkiState {
+        last,
+        interval,
+        ease,
+    })
 }
 
 /// The place of a bank file in the `make drill` queue, smallest first:

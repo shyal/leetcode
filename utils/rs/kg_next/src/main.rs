@@ -27,9 +27,9 @@ use kg::console::{Console, Line};
 use kg::ctx::{Ctx, PView};
 use kg::data::{load_envrc, repo_root};
 use kg::drills::{
-    anki, anki_due, anki_frontier, cold_drill, drill_held, drill_recall, drill_review_cap,
-    drill_reviews_today, due_drill, group_caps, group_reps, new_drill_cap, new_drills_today,
-    reviews_first,
+    anki, anki_due, anki_frontier, anki_next_if_good, cold_drill, drill_held, drill_recall,
+    drill_review_cap, drill_reviews_today, due_drill, group_caps, group_reps, new_drill_cap,
+    new_drills_today, reviews_first,
 };
 use kg::evidence::Evidence;
 use kg::git::{
@@ -607,6 +607,17 @@ impl<'a> Run<'a> {
             format!("{k} carrier{}", if k == 1 { "" } else { "s" })
         };
         format!("{:.2} [dim]({note})[/dim]", ax.degree)
+    }
+
+    /// The clock one step ahead: the day this file comes back if today's
+    /// rep is clean.
+    fn next_line(&self, path: &std::path::Path) -> String {
+        let (day, ivl) =
+            anki_next_if_good(&self.ctx.drill_evidence_key(path), &self.ev, self.today);
+        format!(
+            "[dim]next:[/dim]   clean today puts it back in [bold]{ivl}d[/bold] [dim]({})[/dim]",
+            day.format("%a %b %-d")
+        )
     }
 
     fn recall_line(&self, path: &std::path::Path) -> Option<String> {
@@ -1200,6 +1211,7 @@ fn run_main(run: &Run, asleep: &[String], woken: &[String]) {
         kg::table::print_table(console, &table);
         if let Some(rl) = run.recall_line(&path) {
             console.print(&rl);
+            console.print(&run.next_line(&path));
         }
         print_gates(console, &names);
         if let Some(p) = pace_line(drill_forecast(ctx, &path, today)) {
