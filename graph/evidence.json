@@ -25676,6 +25676,15 @@
       "judge": "deepseek-chat",
       "note": "Upper-mid binary search (mid = (left+right+1)//2) finds the last False; all assertions pass.",
       "summary": "The code binary-searches the boolean array for the last False, using an upper-mid midpoint so the loop converges on the rightmost index where lit[mid] is False. It exercises the binary-search-index template with a monotone predicate (False then True). All assertions, including the 100000-element cases, pass."
+    },
+    "solved/d_First_True_2026_09_15T21_14_40_938159_00_00Z.py": {
+      "date": "2026-09-16",
+      "problem": "drill",
+      "moves": {
+        "binary-search-boundary": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The file defines Solution.firstTrue, a half-open binary search that narrows [lo, hi) by testing ok(mid) and moving hi to mid when true, lo to mid+1 otherwise, returning lo as the first index where the predicate holds. The assertions exercise the boundary cases (predicate true at lo, at hi, single-element ranges, and a 10^9 range) and confirm the call count stays within 31, i.e. logarithmic. This is the first-true boundary template rather than a search over an explicit answer space, so binary-search-boundary is the move exercised."
     }
   }
 }
