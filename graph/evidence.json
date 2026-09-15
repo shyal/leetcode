@@ -25849,6 +25849,19 @@
       "judge": "deepseek-chat",
       "note": "Outer loop fixes the end index i, inner loop varies the start j, emitting s[j:i] \u2014 the by-end enumeration order.",
       "summary": "The code enumerates every substring by fixing the end index i in the outer loop and varying the start j in the inner loop, appending s[j:i] to res. This exercises substring-enumeration in its by-end form, producing the expected order ['a','ab','b','abc','bc','c'] for 'abc'. All assertions passed on execution."
+    },
+    "solved/d_Count_In-Degrees_2026_09_15T23_25_57_779585_00_00Z.py": {
+      "date": "2026-09-16",
+      "problem": "drill",
+      "moves": {
+        "topological-order": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill rung: builds the in-degree array that Kahn's topological sort consumes; ran clean.",
+      "summary": "The code builds an in-degree array of size n with table(n) and increments in_degrees[b] for each edge (a, b), returning the counts. This is the in-degree bookkeeping step that feeds Kahn's algorithm, so the topological-order node is exercised. All four assertions passed on execution.",
+      "unmapped": [
+        "in-degree counting via array"
+      ]
     }
   }
 }
