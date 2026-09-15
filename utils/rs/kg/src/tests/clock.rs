@@ -7,7 +7,7 @@ use chrono::Duration;
 use super::*;
 use crate::clock::problem_due;
 use crate::data::test_env;
-use crate::drills::{anki_due, anki_frontier, due_drill};
+use crate::drills::{anki_due, anki_frontier, anki_next_if_good, due_drill};
 use crate::pick::review_queue;
 use crate::status::{graduation_due, owned};
 
@@ -58,6 +58,49 @@ fn the_anki_clock_grades_a_drill_file_from_its_own_reps() {
     assert_eq!(
         anki_due(&ctx, &path, &copy),
         Some((ago(3) + Duration::days(1), 1))
+    );
+}
+
+/// One step ahead on the same clock: a Good answer today multiplies the
+/// last interval by the ease the history left (2.5 untouched, 2.35 after
+/// a Hard, 2.3 after an Again), dated from today; a file never done
+/// comes back tomorrow.
+#[test]
+fn a_clean_rep_today_projects_the_next_due_day() {
+    let mut fx = Fx::new();
+    let path = fx.bank("n", "Clock", "c.py", "d1", &[]);
+    let key = fx.ctx().drill_evidence_key(&path);
+    assert_eq!(
+        anki_next_if_good(&key, &no_evidence(), today()),
+        (today() + Duration::days(1), 1)
+    );
+    let good = evidence(vec![
+        drill_rep("Clock", "n", 60),
+        drill_rep("Clock", "n", 59),
+        drill_rep("Clock", "n", 56),
+    ]);
+    assert_eq!(
+        anki_next_if_good(&key, &good, today()),
+        (today() + Duration::days(20), 20)
+    );
+    let hard = evidence(vec![
+        drill_rep("Clock", "n", 10),
+        drill_rep("Clock", "n", 9),
+        drill_rep_a("Clock", "n", 6, assist_map(&[("n", "hint")])),
+    ]);
+    // 3 * 1.2 = 4 on the Hard, then 4 * 2.35 = 9
+    assert_eq!(
+        anki_next_if_good(&key, &hard, today()),
+        (today() + Duration::days(9), 9)
+    );
+    let again = evidence(vec![
+        drill_rep("Clock", "n", 10),
+        drill_rep_v("Clock", "n", 5, "struggled", Assist::None),
+    ]);
+    // back to 1 on the Again, then max(2, 1 * 2.3) = 2
+    assert_eq!(
+        anki_next_if_good(&key, &again, today()),
+        (today() + Duration::days(2), 2)
     );
 }
 
