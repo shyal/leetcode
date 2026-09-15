@@ -25597,6 +25597,16 @@
       "judge": "deepseek-chat",
       "note": "Drill's required line met: enum.Flag members via auto(), union with |, membership test with `in`.",
       "summary": "Defines a Color(Flag) enum with red/green/blue from auto(), then present() walks the names list and keeps each name whose Color[n] member is `in` the palette flag value, returning ['blue', 'red'] for Color.red | Color.blue. The union with | and the `in` test are the bit-flags moves the drill trains, and the run exited 0 with the expected output."
+    },
+    "solved/d_Indices_By_Value_2026_09_15T12_35_32_812933_00_00Z.py": {
+      "date": "2026-09-15",
+      "problem": "drill",
+      "moves": {
+        "sort-by-custom-key": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Sorts (value, index) tuples by default tuple ordering, which is the derived multi-criteria key; ties keep original index order.",
+      "summary": "The solution zips each value with its index, sorts the (value, index) pairs, and extracts the index column, so the output lists indices ordered by their values. This exercises sort-by-custom-key via the implicit tuple ordering rather than an explicit key= lambda. All assertions pass, including the 100000-element case."
     }
   }
 }
