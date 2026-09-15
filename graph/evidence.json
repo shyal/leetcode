@@ -25418,6 +25418,17 @@
       "judge": "fable",
       "note": "LEETCODE: Accepted (163 ms, 24.3 MB). The notes record a failed hand-rolled search (left=0, right=mid-1 with left=mid, no result variable) before falling back to the is_minimization template; candidate asks for a BS deep dive.",
       "summary": "smallestDivisor searches divisors in [1, sum(nums)]; div(nums, mid) computes sum(ceil(x / mid)) and the feasibility test is _sum <= threshold. The loop is the low <= high template with a result variable: a feasible mid records result and moves high = mid - 1, an infeasible one moves low = mid + 1, so result ends as the leftmost feasible divisor. The notes say a first attempt (left, right = 0, sum(nums); right = mid - 1 / left = mid; return left) did not work, and the is_minimization template was used instead; LEETCODE: Accepted."
+    },
+    "solved/p2187_Minimum_Time_to_Complete_Trips_FAILED_2026_09_15T03_53_50_616536_00_00Z.py": {
+      "date": "2026-09-15",
+      "problem": "2187",
+      "moves": {
+        "binary-search-on-answer": "struggled",
+        "binary-search-boundary": "clean"
+      },
+      "judge": "fable",
+      "note": "LEETCODE: Wrong Answer (80/124 cases). The search space is right = sum(time), which is too small: for time=[5], totalTrips=5 the answer is 25 but the search never leaves [0, 5]. The bound should be min(time) * totalTrips (or any value where trips_within_t is guaranteed >= totalTrips).",
+      "summary": "minimumTime binary-searches t over [0, sum(time)] with trips_within_t(t) = sum(t // x for x in time) as the feasibility check, moving right = mid when trips >= totalTrips and left = mid + 1 otherwise, returning left. The leftmost-true template is correct, but the upper bound sum(time) does not cover the answer space: with time=[5] and totalTrips=5 the answer 25 lies outside the range, so the code returns 5. LeetCode rejected the submission with Wrong Answer on 80/124 cases and the file's own assert for [5], 5 == 25 fails; the notes say the candidate walked away after 20 minutes with no working solution."
     }
   }
 }
