@@ -52,15 +52,41 @@ pub fn solve_model(ctx: &Ctx) -> Option<HashMap<String, f64>> {
     )
 }
 
-pub fn solve_logit(coef: &HashMap<String, f64>, rating: f64, ln_recall: f64, unseen: i64) -> f64 {
+/// The features of the cold-solve model in graph/curve.json "solve" that
+/// solve_logit can price at pick time. kg_curve offers the fitter exactly
+/// these, so a fitted coefficient is never silently dropped here (the
+/// `length` term was, from its fit on 2026-09-16 until this list existed).
+pub const PRICED_FEATURES: [&str; 6] =
+    ["intercept", "rating", "recall", "unseen", "length", "mass"];
+
+/// The walk's side of the cold-solve model: kg_curve.solve_rows' per-walk
+/// features, computed the same way at pick time.
+pub struct WalkTerms {
+    /// the summed log recall of the moves met before
+    pub ln_recall: f64,
+    /// the moves never met
+    pub unseen: i64,
+    /// ln(moves), at least ln(1)
+    pub length: f64,
+    /// walk_mass: log(1 + carriers of the rarest move)
+    pub mass: f64,
+}
+
+pub fn solve_logit(coef: &HashMap<String, f64>, rating: f64, t: &WalkTerms) -> f64 {
     let g = |k: &str| coef.get(k).copied().unwrap_or(0.0);
     g("intercept")
         + g("rating") * (rating - 1500.0) / 400.0
-        + g("recall") * ln_recall
-        + g("unseen") * unseen as f64
+        + g("recall") * t.ln_recall
+        + g("unseen") * t.unseen as f64
+        + g("length") * t.length
+        + g("mass") * t.mass
 }
 
-pub fn walk_terms(walk: &[String], recall: &HashMap<String, f64>) -> (f64, i64) {
+pub fn walk_terms(
+    walk: &[String],
+    recall: &HashMap<String, f64>,
+    counts: &HashMap<String, i64>,
+) -> WalkTerms {
     let (mut ln_recall, mut unseen) = (0.0, 0);
     for mv in walk {
         match recall.get(mv) {
@@ -68,7 +94,12 @@ pub fn walk_terms(walk: &[String], recall: &HashMap<String, f64>) -> (f64, i64) 
             Some(r) => ln_recall += r.max(1e-3).ln(),
         }
     }
-    (ln_recall, unseen)
+    WalkTerms {
+        ln_recall,
+        unseen,
+        length: (walk.len().max(1) as f64).ln(),
+        mass: walk_mass(walk, counts),
+    }
 }
 
 /// kg_lib.problem_solve_p: the cold-solve odds on one problem, or None.
@@ -78,6 +109,7 @@ pub fn problem_solve_p(
     recall: &HashMap<String, f64>,
     coef: Option<&HashMap<String, f64>>,
     ratings: &HashMap<String, f64>,
+    counts: &HashMap<String, i64>,
 ) -> Option<f64> {
     let coef = coef?;
     let rating = *ratings.get(pnum)?;
@@ -85,18 +117,19 @@ pub fn problem_solve_p(
     if walk.is_empty() {
         return None;
     }
-    let (ln_recall, unseen) = walk_terms(walk, recall);
-    Some(1.0 / (1.0 + (-solve_logit(coef, rating, ln_recall, unseen)).exp()))
+    let t = walk_terms(walk, recall, counts);
+    Some(1.0 / (1.0 + (-solve_logit(coef, rating, &t)).exp()))
 }
 
 /// kg_lib.target_pass_rate: TARGET_PASS_RATE in (0, 1), else 0.5.
 /// kg_next.solve_state: (node recall today, the fitted cold-solve
-/// coefficients, problem ratings) - what prices a walk. Computed once per
-/// pick and handed to every rating-aware sort.
+/// coefficients, problem ratings, carrier counts) - what prices a walk.
+/// Computed once per pick and handed to every rating-aware sort.
 pub type SolveState = (
     HashMap<String, f64>,
     Option<HashMap<String, f64>>,
     HashMap<String, f64>,
+    HashMap<String, i64>,
 );
 
 /// kg_lib.predicted_carrier.informative: (unpriced, distance of the walk's
@@ -107,14 +140,14 @@ pub fn walk_informative(
     state: Option<&SolveState>,
     aim: f64,
 ) -> (bool, f64) {
-    let Some((recall, Some(coef), ratings)) = state else {
+    let Some((recall, Some(coef), ratings, counts)) = state else {
         return (true, 0.0);
     };
     let Some(&rating) = ratings.get(pnum) else {
         return (true, 0.0);
     };
-    let (ln_recall, unseen) = walk_terms(walk, recall);
-    let odds = 1.0 / (1.0 + (-solve_logit(coef, rating, ln_recall, unseen)).exp());
+    let t = walk_terms(walk, recall, counts);
+    let odds = 1.0 / (1.0 + (-solve_logit(coef, rating, &t)).exp());
     (false, (odds - aim).abs())
 }
 

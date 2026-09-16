@@ -233,6 +233,25 @@ fn the_proving_carrier_nearest_the_target_pass_rate_wins() {
     assert_eq!(pnum(&fx.run(&no_evidence(), &st, args())), "1");
 }
 
+/// The fit can keep a `length` term (it did on 2026-09-16, at -0.60) and
+/// the picker must price it: at one rating, the intercept puts a one-move
+/// walk above the target and the length term brings a two-move walk down
+/// onto it, so the longer walk is the test. Before solve_logit knew the
+/// term both priced the same and the one-move walk won on gentleness.
+#[test]
+fn a_fitted_length_term_prices_the_walk() {
+    let mut fx = Fx::picker();
+    fx.stubs().solve_model = Some(fmap(&[("intercept", 0.69), ("length", -1.0)]));
+    fx.stubs().solve_ratings = Some(fmap(&[("1", 1500.0), ("2", 1500.0)]));
+    fx.nodes(&["a", "b"]);
+    // problem 1 sits at p = 0.50 (0.69 - ln 2), problem 2 at p = 0.67
+    fx.problems(vec![("1", problem(&["a", "b"])), ("2", problem(&["b"]))]);
+    let st = statuses(&[("a", SOLID, Some(1)), ("b", SOLID, Some(1))]);
+    fx.stubs().immature.insert("b".into());
+    fx.stubs().gain = map(&[("b", 40)]);
+    assert_eq!(pnum(&fx.run(&no_evidence(), &st, args())), "1");
+}
+
 /// A problem with no contest rating cannot be placed on the scale, so it
 /// keeps its old gentleness order behind every problem that can.
 #[test]

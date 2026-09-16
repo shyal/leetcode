@@ -49,15 +49,11 @@ use serde_json::{json, Map, Value};
 
 const TARGET_RETENTION: f64 = 0.9;
 const GAP_BUCKETS: [(i64, i64); 6] = [(1, 7), (8, 21), (22, 42), (43, 90), (91, 180), (181, 400)];
-const SOLVE_FEATURES: [&str; 7] = [
-    "gap",
-    "rating",
-    "recall",
-    "unseen",
-    "experience",
-    "mass",
-    "length",
-];
+/// The candidates offered to the forward selection: every one is a term of
+/// kg::model::solve_logit, so the picker prices whatever the fit keeps.
+/// `gap` and `experience` are constants at pick time (his Elo, his game
+/// count), so they left the list on 2026-09-16.
+const SOLVE_FEATURES: [&str; 5] = ["rating", "recall", "unseen", "mass", "length"];
 const SOLVE_FOLDS: usize = 5;
 const SOLVE_LAMBDAS: [f64; 6] = [0.0, 0.1, 0.3, 1.0, 3.0, 10.0];
 
@@ -1049,6 +1045,18 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Every candidate the fitter can keep is a term solve_logit prices;
+    /// a coefficient the picker cannot read is a fit nobody uses.
+    #[test]
+    fn every_fitted_feature_is_priced_by_the_picker() {
+        for f in SOLVE_FEATURES {
+            assert!(
+                kg::model::PRICED_FEATURES.contains(&f),
+                "{f} is fitted but not priced"
+            );
+        }
+    }
 
     fn dated(gap: i64, success: i64, day: NaiveDate) -> Trial {
         Trial {

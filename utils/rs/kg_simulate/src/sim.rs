@@ -800,9 +800,8 @@ fn run_(
                 if rng.random() < args.draft_error {
                     walk.push("off-taxonomy".to_string()); // the draft missed a move
                 }
-                let (ln_recall, unseen) = walk_terms(&walk, &recall);
-                let p_cold =
-                    1.0 / (1.0 + (-(solve_logit(&coef, rating, ln_recall, unseen) + shift)).exp());
+                let t = walk_terms(&walk, &recall, &carr);
+                let p_cold = 1.0 / (1.0 + (-(solve_logit(&coef, rating, &t) + shift)).exp());
                 score = Some(1.0);
                 if rng.random() >= p_cold {
                     score = Some(0.0);
