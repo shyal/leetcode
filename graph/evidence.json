@@ -27418,6 +27418,19 @@
       "note": "LEETCODE: Runtime Error (Line 28: IndexError: list index out of range) - a typo in union: parent[a] = pb where parent[pa] = pb was meant. Union-find written correctly otherwise; per the judge rule a typo condemns no move. The local asserts were 14 in-order single cycles and could not catch it (edge-case block added 2026-09-17).",
       "summary": "The code builds a parent map over all edge endpoints, defines recursive find and a union that returns False when both endpoints already share a root, then collects every edge that closes a cycle and returns the last one. The union-find move is the canonical one here; one typo, parent[a] = pb for parent[pa] = pb, left the old root behind when a was not a root. LeetCode rejected the submission with Runtime Error (Line 28: IndexError: list index out of range), and the local asserts only passed because the small test cases happened to produce a non-empty res.",
       "seconds": 777
+    },
+    "solved/p239_Sliding_Window_Maximum_2026_09_16T23_11_25_877807_00_00Z.py": {
+      "date": "2026-09-17",
+      "problem": "239",
+      "moves": {
+        "monotonic-queue": "clean",
+        "deque-recent-window": "clean",
+        "sliding-window-fixed": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Accepted (399 ms, 38.2 MB).",
+      "summary": "The code wraps a deque in a MonotonicQueue class and, for each index i, pushes (value, index) while popping smaller values from the back, then popleft the front when its index falls out of the window, appending the front value once i >= k-1. This exercises the monotonic-queue move (decreasing deque keeps the max at the front) and the deque-recent-window move (expiring the front by index), with a fixed-size sliding window. All assertions pass and LeetCode reports Accepted.",
+      "seconds": 366
     }
   }
 }
