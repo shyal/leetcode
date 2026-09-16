@@ -63,12 +63,14 @@ query sessionAndReportData($id: ID!) {
 def _session():
     import requests
 
-    path = os.path.expanduser(os.environ.get("LC_COOKIE_FILE", "~/.leetcode_cookies.json"))
+    path = os.path.expanduser(
+        os.environ.get("LC_COOKIE_FILE", "~/.leetcode_cookies.json")
+    )
     try:
         with open(path) as f:
             cookies = json.load(f)
     except FileNotFoundError:
-        raise SystemExit(f"no cookie file at {path}; run make lc-login")
+        raise SystemExit(f"no cookie file at {path}; run make lc-login") from None
     s = requests.Session()
     s.cookies.update(cookies)
     s.headers.update(
@@ -92,9 +94,12 @@ def _query(s, query, variables):
 
 def session_ids(s):
     """Every session id, newest first, following the cursor."""
-    ids, after = [], None
+    ids: list[str] = []
+    after = None
     while True:
-        page = _query(s, SESSIONS, {"first": 50, "after": after})["interviewAllSessions"]
+        page = _query(s, SESSIONS, {"first": 50, "after": after})[
+            "interviewAllSessions"
+        ]
         ids.extend(e["node"]["id"] for e in page["edges"])
         if not page["pageInfo"]["hasNextPage"]:
             return ids
@@ -115,8 +120,14 @@ def _record(node):
     report = node.get("report") or {}
     subs = {q["questionId"]: q.get("submission") for q in report.get("questions") or []}
     progress = {p["questionId"]: p["status"] for p in node.get("progress") or []}
-    start, end, expired = node["startTime"], node.get("endTime"), node.get("expiredTime")
-    spent = (expired if node.get("status") == "TIMEOUT" else end) - start if start else None
+    start, end, expired = (
+        node["startTime"],
+        node.get("endTime"),
+        node.get("expiredTime"),
+    )
+    spent = (
+        (expired if node.get("status") == "TIMEOUT" else end) - start if start else None
+    )
     questions = []
     for q in node["interview"]["questions"]:
         sub = subs.get(q["questionId"]) or {}
@@ -140,7 +151,11 @@ def _record(node):
         "id": node["id"],
         "company": company.get("name") or "Random Set",
         "stage": card.get("stage") or company.get("stage"),
-        "date": dt.datetime.fromtimestamp(start, dt.timezone.utc).isoformat() if start else None,
+        "date": (
+            dt.datetime.fromtimestamp(start, dt.timezone.utc).isoformat()
+            if start
+            else None
+        ),
         "status": node.get("status"),
         "allotted_s": node["interview"].get("timeConstraint"),
         "spent_s": spent,
@@ -157,7 +172,10 @@ def fetch():
     for sid in session_ids(s):
         node = _query(s, SESSION, {"id": sid})["interviewSession"]
         records.append(_record(node))
-        print(f"{records[-1]['date']}  {records[-1]['company']}  {records[-1]['score']}", file=sys.stderr)
+        print(
+            f"{records[-1]['date']}  {records[-1]['company']}  {records[-1]['score']}",
+            file=sys.stderr,
+        )
     records.sort(key=lambda r: r["date"] or "")
     with open(CACHE, "w") as f:
         json.dump(records, f, indent=1)
@@ -168,10 +186,13 @@ def fetch():
 def show(records):
     for r in records:
         qs = ", ".join(
-            f"{q['number']}. {q['title']} [{q['difficulty'][0]}] {q['passed']}/{q['total']}" for q in r["questions"]
+            f"{q['number']}. {q['title']} [{q['difficulty'][0]}] {q['passed']}/{q['total']}"
+            for q in r["questions"]
         )
         spent = f"{r['spent_s'] // 60}m" if r["spent_s"] is not None else "-"
-        print(f"{(r['date'] or '')[:10]}  {r['company']:<11} {r['status']:<9} {spent:>4}/{r['allotted_s'] // 60}m  {r['score']}  {qs}")
+        print(
+            f"{(r['date'] or '')[:10]}  {r['company']:<11} {r['status']:<9} {spent:>4}/{r['allotted_s'] // 60}m  {r['score']}  {qs}"
+        )
 
 
 def main():
