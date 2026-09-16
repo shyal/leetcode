@@ -27182,6 +27182,17 @@
       "note": "Notes say 'Forgot about lag' and 'Assisted'; the LAG window function is the required move.",
       "summary": "The query selects month, amount, and amount - lag(amount) over (order by month) as change from Revenue, so the first row's change is NULL and each later row subtracts the previous month's amount. This exercises the sql-window-offset move via LAG. The notes state the candidate forgot about lag and were assisted, and both example assertions pass.",
       "seconds": 229
+    },
+    "solved/d_Pairs_2026_09_16T21_22_48_696902_00_00Z.py": {
+      "date": "2026-09-17",
+      "problem": "drill",
+      "moves": {
+        "backtracking-start-index": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Delegates to harness-provided pairs(n, type=list); drill's required output met.",
+      "summary": "The Solution.pairs method wraps the harness-provided pairs(n, type=list) generator with @as_list and returns all index pairs. The assertions confirm the output for n=4, n=1, n=2, and n=30 (435 unique ordered pairs with a<b). The targeted backtracking-start-index rung is exercised by the underlying pairs generator, which enumerates combinations by advancing a start index.",
+      "seconds": 54
     }
   }
 }
