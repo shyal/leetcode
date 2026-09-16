@@ -115,7 +115,9 @@
 //      an "after" predecessor of it is not warm (the hold serves the
 //      predecessor's own review first), served
 //      between the drill-clock moves and STALE ones - or, with REVIEWS_FIRST=1
-//      (.envrc; drills::reviews_first), ahead of the whole frontier, floors
+//      (.envrc; drills::reviews_first), ahead of every other rule, the
+//      sleeping-problem warm-up and the session-start easy included
+//      (2026-09-16: rule 0b served 909 over 12 due reviews). Floors
 //      and FRAGILE moves included (2026-09-10: 13 young moves on a due
 //      floor, each served on a fresh carrier, kept 23 due reviews from
 //      ever reaching the top). Every other rule picks
@@ -452,10 +454,25 @@ pub fn review_queue(
     pv: &PView,
     today: NaiveDate,
 ) -> Vec<(String, NaiveDate, i64)> {
+    let trace = std::env::var("KG_TRACE").is_ok();
     let due: Vec<_> = due_problems(ev, today, Some(pv))
         .into_iter()
-        .filter(|(p, _, _)| !ctx.unservable(p, pv.get(p).unwrap()))
-        .filter(|(p, _, _)| held_behind(ctx, p, pv, ev, today).is_none())
+        .filter(|(p, _, _)| {
+            let drop = ctx.unservable(p, pv.get(p).unwrap());
+            if drop && trace {
+                eprintln!("review {p}: unservable");
+            }
+            !drop
+        })
+        .filter(|(p, _, _)| match held_behind(ctx, p, pv, ev, today) {
+            Some(h) => {
+                if trace {
+                    eprintln!("review {p}: held behind {h}");
+                }
+                false
+            }
+            None => true,
+        })
         .collect();
     let primary = |p: &str| pv.get(p).and_then(|q| q.moves.first().cloned());
     let mut earliest: HashMap<Option<String>, NaiveDate> = HashMap::new();
@@ -1202,14 +1219,24 @@ impl<'a> Picker<'a> {
     fn review(&self) -> Option<Choice> {
         let pv = self.pv.borrow();
         for (pnum, _due, _interval) in review_queue(self.ctx, self.ev, &pv, self.today) {
+            let trace = std::env::var("KG_TRACE").is_ok();
             if self.args.asleep.contains(&pnum) || self.args.exclude.contains(&pnum) {
+                if trace {
+                    eprintln!("review {pnum}: asleep or excluded");
+                }
                 continue;
             }
             let moves = pv.get(&pnum).map(|p| p.moves.clone()).unwrap_or_default();
             if moves.is_empty() || !moves.iter().all(|m| self.ctx.nodes.contains_key(m)) {
+                if trace {
+                    eprintln!("review {pnum}: a move is not in the graph");
+                }
                 continue;
             }
             if moves.iter().any(|m| self.group_capped(m)) {
+                if trace {
+                    eprintln!("review {pnum}: group at its cap");
+                }
                 continue;
             }
             let (when, label) = last_attempt(self.ev, &pnum).expect("a due problem has an attempt");
@@ -1402,6 +1429,15 @@ pub fn pick(
         opener_memo: RefCell::new(HashMap::new()),
     };
 
+    // REVIEWS_FIRST=1: a due review outranks every other rule
+    let mut reviewed = false;
+    if crate::drills::reviews_first() {
+        reviewed = true;
+        if let Some(c) = picker.review() {
+            return Some(c);
+        }
+    }
+
     // rule -1: the session-start easy
     if args.session_start {
         let easies = {
@@ -1569,13 +1605,6 @@ pub fn pick(
 
     ptrace("due_list", t);
     let t = std::time::Instant::now();
-    let mut reviewed = false;
-    if crate::drills::reviews_first() {
-        reviewed = true;
-        if let Some(c) = picker.review() {
-            return Some(c);
-        }
-    }
     for n in &due_list {
         if !reviewed && order(picker.kind(n).unwrap()) >= order(Kind::Stale) {
             reviewed = true;

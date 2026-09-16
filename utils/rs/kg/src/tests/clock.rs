@@ -401,6 +401,24 @@ fn reviews_first_serves_the_review_ahead_of_the_floor() {
     assert_eq!(pnum(&fx.run(&ev, &st, args())), "1");
 }
 
+/// 2026-09-16: 815 and 752 asleep on a node 2812 had just broken, and
+/// rule 0b served 909 to warm it over 12 due reviews.
+#[test]
+fn reviews_first_outranks_the_sleeping_problem_warm_up() {
+    let mut fx = Fx::picker();
+    test_env("REVIEWS_FIRST", "1");
+    fx.nodes(&["q1", "q2"]).problems(vec![
+        ("1", problem(&["q1"])),
+        ("2", problem(&["q2"])),
+        ("3", problem(&["q2"])),
+    ]);
+    let st = statuses(&[("q1", SOLID, Some(1)), ("q2", FRAGILE, Some(0))]);
+    let ev = evidence(vec![assisted("1", &[("q1", "clean")], 30)]);
+    assert_eq!(pnum(&fx.run(&ev, &st, args().asleep(&["2"]))), "1");
+    test_env("REVIEWS_FIRST", "");
+    assert_eq!(pnum(&fx.run(&ev, &st, args().asleep(&["2"]))), "3");
+}
+
 #[test]
 fn reviews_first_still_yields_to_the_drill_clock() {
     let mut fx = Fx::picker();
