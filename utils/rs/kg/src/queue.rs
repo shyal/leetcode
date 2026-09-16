@@ -14,12 +14,14 @@ pub const QUEUE_LEN: usize = 10;
 const DAYS: i64 = 30;
 
 /// One row of the queue: number, title, difficulty, rating (None when the
-/// problem has no contest rating).
+/// problem has no contest rating), and whether serving it would be a first
+/// sight (no record of the problem in the evidence).
 pub struct QueueRow {
     pub pnum: String,
     pub title: String,
     pub difficulty: String,
     pub rating: Option<f64>,
+    pub first_sight: bool,
 }
 
 /// The next `len` problems the picker would serve.
@@ -41,6 +43,7 @@ pub fn queue_rows(
                 .unwrap_or_default(),
             difficulty: ctx.problem_difficulty(&pnum, &pv.map),
             rating: ratings.get(&pnum).copied(),
+            first_sight: ev.problem_recs(&pnum).is_empty(),
             pnum,
         })
         .collect()
@@ -73,7 +76,14 @@ pub fn queue_table(
     }
     let elo = elo_now(ctx, ev);
     let mut table = Table::plain(
-        &["Problem", "Difficulty", "Rating", "Gap", "Odds"],
+        &[
+            "Problem",
+            "Difficulty",
+            "Rating",
+            "Gap",
+            "Odds",
+            "First sight",
+        ],
         Some(&format!("queue (elo {elo:.0}, every rep clean)")),
         BoxKind::Rounded,
     );
@@ -103,6 +113,11 @@ pub fn queue_table(
             r,
             g,
             o,
+            if row.first_sight {
+                "[green]yes[/green]".into()
+            } else {
+                "[dim]no[/dim]".into()
+            },
         ]);
     }
     Some(table)
