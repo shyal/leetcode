@@ -27274,6 +27274,18 @@
         "closed-form min/max arithmetic"
       ],
       "seconds": 33
+    },
+    "solved/d_Turn_Knobs_To_A_Total_2026_09_16T21_48_38_199527_00_00Z.py": {
+      "date": "2026-09-17",
+      "problem": "drill",
+      "moves": {},
+      "judge": "deepseek-chat",
+      "note": "Drill targets event-sweep, but the code solves the reachable-total question with a closed-form band check (min+1, max+limit) and returns 0/1/2; no boundary events are generated or swept.",
+      "summary": "The code defines numTurns, which computes a reachable band from the two knobs via band(a, b) = (min(a,b)+1, max(a,b)+limit), then returns 0 if a+b already equals T, 1 if T lies inside the band, and 2 otherwise. It exercises only a closed-form interval-membership check, not the event-sweep move the drill targets, so that node is avoided. All assertions pass and the run exits 0.",
+      "unmapped": [
+        "closed-form interval membership"
+      ],
+      "seconds": 517
     }
   }
 }
