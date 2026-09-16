@@ -26011,6 +26011,21 @@
       "judge": "deepseek-chat",
       "note": "Notes say the BFS/in-degree stage was not understood and was learned; LeetCode verdict Accepted (4 ms, 20.3 MB).",
       "summary": "The code builds an adjacency dict adj from prerequisite pairs, counts in-degrees, seeds a deque with zero-in-degree courses, and pops/explores neighbors while decrementing in-degrees, appending a course only when its count hits zero. It returns res if all courses were emitted, else []. This exercises graph-adjacency-build and topological-order (Kahn's algorithm). The notes state the adjacency, in-degrees, and queue were understood but the BFS decrement step was not, and the candidate marks it as learned; LeetCode accepted the submission."
+    },
+    "solved/p636_Exclusive_Time_of_Functions_2026_09_16T07_19_09_605372_00_00Z.py": {
+      "date": "2026-09-16",
+      "problem": "636",
+      "moves": {
+        "stack-nested-eval": "clean",
+        "running-sum": "clean"
+      },
+      "assist": {
+        "stack-nested-eval": "hint",
+        "running-sum": "hint"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say 'Had to be hinted about tracking the child'; LEETCODE: Accepted (6 ms, 19.4 MB).",
+      "summary": "The code walks the logs, pushing [id, start_ts, child_time] on a stack at each start and, at each end, popping the frame to compute span = ts - start_ts + 1, adding span - child to times[id], and adding span to the parent frame's child accumulator. This exercises stack-nested-eval for the nested scope bookkeeping and running-sum for the accumulated exclusive time per function. The notes state the candidate was hinted about tracking the child time, and LeetCode accepted the submission."
     }
   }
 }

@@ -92,3 +92,9 @@
   `draw_tree`, `draw_linked_list`, `draw_graph`, ...; full list in
   `stubs/custom_builtins.pyi`). Never hand-roll `[0] * n` or a print loop
   when a helper exists (settled 2026-09-16).
+
+# Naming problems
+
+- Always write a problem as number + name: "636. Exclusive Time of
+  Functions", never a bare "636". A number alone means nothing to the
+  operator (settled 2026-09-16).
