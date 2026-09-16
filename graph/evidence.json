@@ -27322,6 +27322,17 @@
       "note": "Drill passes; uses harness nbrs(grid, r, c) to enumerate in-bounds cardinal neighbors and yields their values.",
       "summary": "The solution defines neighbour_values, which iterates over nbrs(grid, r, c) and yields grid[i][j] for each in-bounds cardinal neighbor, wrapped by @as_list. All assertions pass, including corners and single-row/single-column grids, confirming the grid-neighbors move is exercised correctly. No notes indicate any help or recognition difficulty.",
       "seconds": 65
+    },
+    "solved/d_Neighbour_Counts_2026_09_16T22_04_07_752587_00_00Z.py": {
+      "date": "2026-09-17",
+      "problem": "drill",
+      "moves": {
+        "grid-neighbors": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Uses harness helpers cells() and nbrs() to enumerate cardinal neighbors; all assertions passed.",
+      "summary": "The code builds a result grid with like(grid), then for every cell produced by cells(grid) it sets rs[i][j] to the count of neighbors returned by nbrs(grid, i, j). This exercises the grid-neighbors move: cardinal offsets are enumerated by the helper and each neighbor is counted. The file ran cleanly and all assertions, including the aliasing check on t, passed.",
+      "seconds": 91
     }
   }
 }
