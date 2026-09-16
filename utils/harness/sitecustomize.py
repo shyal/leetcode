@@ -85,6 +85,7 @@ from bst_utils import *
 # utils
 from combo_utils import *
 from debug_utils import *
+from gen_utils import *
 from graph_utils import *
 from grid_utils import *
 from heap_utils import *
@@ -328,6 +329,9 @@ builtins.nbrs = nbrs
 builtins.table = table
 builtins.like = like
 builtins.grid_bfs = grid_bfs
+
+# generators
+builtins.as_list = as_list
 
 # index combinations
 builtins.pairs = pairs
