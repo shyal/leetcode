@@ -25961,6 +25961,18 @@
       "judge": "deepseek-chat",
       "note": "One-liner: pref[0] plus pairwise XOR of adjacent prefixes; notes show the 5^x=2 hand-derivation.",
       "summary": "The solution returns pref[0] followed by a ^ b for each adjacent pair in pref, recovering the original array because XOR of consecutive prefix-xors cancels the shared prefix. It exercises xor-cancellation and the running/prefix accumulation shape, and the notes show a manual 5 ^ x = 2 bit derivation. LeetCode reports Accepted (11 ms, 36.7 MB) and all local assertions pass."
+    },
+    "solved/p974_Subarray_Sums_Divisible_by_K_2026_09_16T03_59_41_528332_00_00Z.py": {
+      "date": "2026-09-16",
+      "problem": "974",
+      "moves": {
+        "running-sum": "clean",
+        "prefix-sums": "clean",
+        "substring-enumeration": "struggled"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Time Limit Exceeded (66/76 cases) \u2014 the O(n^2) double loop over all (i, j) pairs is the move that blew the complexity; notes say 'Solving as brute force. TLE.'",
+      "summary": "The code builds a prefix-sum array with accumulate and a range_sum lambda, then enumerates every (i, j) subarray with two nested loops and counts those whose range sum is divisible by k. It exercises prefix-sums and running-sum, but routes around the canonical prefix-sum-hashmap, counter-build, streaming-ask-then-record, and derived-key-lookup moves. The notes state it was solved as a brute force and LeetCode rejected it with Time Limit Exceeded (66/76 cases)."
     }
   }
 }
