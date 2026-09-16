@@ -26026,6 +26026,17 @@
       "judge": "deepseek-chat",
       "note": "Notes say 'Had to be hinted about tracking the child'; LEETCODE: Accepted (6 ms, 19.4 MB).",
       "summary": "The code walks the logs, pushing [id, start_ts, child_time] on a stack at each start and, at each end, popping the frame to compute span = ts - start_ts + 1, adding span - child to times[id], and adding span to the parent frame's child accumulator. This exercises stack-nested-eval for the nested scope bookkeeping and running-sum for the accumulated exclusive time per function. The notes state the candidate was hinted about tracking the child time, and LeetCode accepted the submission."
+    },
+    "solved/p153_Find_Minimum_in_Rotated_Sorted_Array_2026_09_16T09_18_46_422698_00_00Z.py": {
+      "date": "2026-09-16",
+      "problem": "153",
+      "moves": {
+        "binary-search-index": "clean",
+        "rotated-array-pivot": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Accepted (0 ms, 19.4 MB)",
+      "summary": "The code binary-searches with left/right/mid, comparing nums[left], nums[mid], nums[right] to decide which half holds the minimum: it returns nums[left] when the window is already sorted, moves right=mid when the left end is the larger side, else left=mid+1. This exercises the classic halving template and the rotated-array pivot comparison against the ends. The notes derive the pivot rule from a table of rotations and the run passes all assertions; LeetCode reports Accepted."
     }
   }
 }
