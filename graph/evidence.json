@@ -27395,6 +27395,18 @@
       "judge": "deepseek-chat",
       "summary": "The Solution subclasses UnionFind and counts components by starting from len(self.parent) and subtracting self.union(a, b) for each pair, since union returns 1 only when it actually merges two distinct sets. The drill exercises union-find directly, and all assertions pass, including self-pairs and duplicate edges that must not reduce the count.",
       "seconds": 135
+    },
+    "solved/d_Claim_Or_Merge_2026_09_16T22_36_11_633318_00_00Z.py": {
+      "date": "2026-09-17",
+      "problem": "drill",
+      "moves": {
+        "union-find": "clean",
+        "dict-arbitrary-value": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill trains union-find; the code subclasses UnionFind and calls self.union/self.find, with a dict mapping email->first account index as the merge key.",
+      "summary": "The code subclasses UnionFind and, for each account, records the first index seen for each email in an `owner` dict; when an email reappears it calls `self.union(i, owner[email])` to merge the two accounts. It then returns the owner map and the assertions check `find` results across several account lists. The union-find move and the dict-as-arbitrary-value move are both exercised and the run passed; the notes only say it 'feels like cramming'.",
+      "seconds": 340
     }
   }
 }
