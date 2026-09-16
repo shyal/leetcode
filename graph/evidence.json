@@ -25885,6 +25885,21 @@
       },
       "judge": "deepseek-chat",
       "summary": "The Solution subclasses UnionFind and mergeAccounts walks the accounts, calling self.find(account) once per account to get its root, then adds each email into persons[root], a defaultdict(set). The union_shared helper (from the base class) performs the merges beforehand, so the find calls resolve accounts sharing an email to the same root. The required constraint of at most one find per account is met, and all assertions pass."
+    },
+    "solved/p2812_Find_the_Safest_Path_in_a_Grid_FAILED_2026_09_16T01_01_35_913538_00_00Z.py": {
+      "date": "2026-09-16",
+      "problem": "2812",
+      "moves": {
+        "multi-source-bfs": "struggled",
+        "grid-neighbors": "clean",
+        "graph-bfs-shortest": "struggled"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say 'FAILED: walked away after 25m 15s; no working solution' \u2014 the multi-source BFS records distances but never computes the max-min safeness along a path; it returns min of leaf distances instead.",
+      "summary": "The code seeds a deque with every thief cell and runs a multi-source BFS over the grid using nbrs, writing each cell's distance-to-nearest-thief into res. It then collects dist values at cells whose neighbors are all already visited and returns the minimum of those, which is not the max-min safeness factor the problem asks for. The notes describe the multi-source BFS idea but the run was abandoned after 25 minutes with no working solution, and the max-min path search (binary search on the answer or a max-heap) is never implemented.",
+      "unmapped": [
+        "max-min path via binary search / heap"
+      ]
     }
   }
 }
