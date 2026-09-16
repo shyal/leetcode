@@ -499,6 +499,29 @@ fn a_paid_only_problem_is_never_a_review() {
     assert_eq!(queue, strs(&["2"]));
 }
 
+/// Reviews come out clustered by primary move: groups in order of their
+/// earliest due date, problems inside a group by due date. Plain due order
+/// here would be 1, 3, 2.
+#[test]
+fn reviews_are_clustered_by_primary_move() {
+    let mut fx = Fx::picker();
+    fx.nodes(&["q1", "q2"]).problems(vec![
+        ("1", problem(&["q1"])),
+        ("2", problem(&["q1"])),
+        ("3", problem(&["q2"])),
+    ]);
+    let ev = evidence(vec![
+        assisted("1", &[("q1", "clean")], 30),
+        assisted("2", &[("q1", "clean")], 10),
+        assisted("3", &[("q2", "clean")], 20),
+    ]);
+    let queue: Vec<String> = review_queue(&fx.ctx(), &ev, &fx.pv(), today())
+        .into_iter()
+        .map(|(p, _, _)| p)
+        .collect();
+    assert_eq!(queue, strs(&["1", "2", "3"]));
+}
+
 #[test]
 fn a_paid_only_summit_is_never_offered() {
     let mut fx = Fx::picker();
