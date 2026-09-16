@@ -26037,6 +26037,19 @@
       "judge": "deepseek-chat",
       "note": "LEETCODE: Accepted (0 ms, 19.4 MB)",
       "summary": "The code binary-searches with left/right/mid, comparing nums[left], nums[mid], nums[right] to decide which half holds the minimum: it returns nums[left] when the window is already sorted, moves right=mid when the left end is the larger side, else left=mid+1. This exercises the classic halving template and the rotated-array pivot comparison against the ends. The notes derive the pivot rule from a table of rotations and the run passes all assertions; LeetCode reports Accepted."
+    },
+    "solved/p799_Champagne_Tower_2026_09_16T09_53_28_160087_00_00Z.py": {
+      "date": "2026-09-16",
+      "problem": "799",
+      "moves": {
+        "dp-1d-rolling": "clean"
+      },
+      "assist": {
+        "dp-1d-rolling": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Canonical binary-search-on-answer not exercised; solved by row-by-row simulation instead.",
+      "summary": "The code simulates the tower row by row: it starts with row = [poured], and for each row below the query it computes excess = (amt - 1) / 2 per glass, pushing that excess into the two glasses of the next row, then returns min(1.0, row[query_glass]). This is a rolling 1D DP over rows rather than the canonical binary-search-on-answer approach, so that move is avoided. The notes say the candidate first tried a decreasing-row loop, found it wrong, and marked the solve as learning; LeetCode reports Accepted (31 ms, 19.6 MB)."
     }
   }
 }
