@@ -25934,6 +25934,22 @@
       "judge": "deepseek-chat",
       "note": "Drill asserts no sort/key= is used; solution builds a min-heap of [ratio, x, y] and pops all n entries, ordering by ratio.",
       "summary": "The code builds a list of [x/y, x, y] triples from the classes, heapifies it, then pops every entry and returns the [x, y] tails, yielding ascending ratio order. This exercises the heap-top-k move: a heap keyed on the ratio orders the pairs, and the drill's assertion confirms no sort or key= was used. The run exited 0 with all assertions passing, including the 100k-element case."
+    },
+    "solved/p300_Longest_Increasing_Subsequence_2026_09_16T03_03_42_528410_00_00Z.py": {
+      "date": "2026-09-16",
+      "problem": "300",
+      "moves": {
+        "dp-state-formulate": "clean",
+        "dp-1d-rolling": "clean"
+      },
+      "assist": {
+        "dp-state-formulate": "learning",
+        "dp-1d-rolling": "learning"
+      },
+      "judge": "deepseek-chat",
+      "followup": "not solved",
+      "note": "LEETCODE: Runtime Error (Line 1: ModuleNotFoundError: No module named 'rich') \u2014 the harness-only `table`/`tabulate` calls are the defect; the O(n^2) DP itself is correct but does not meet the O(n log n) follow-up.",
+      "summary": "The code builds a 1D dp array initialized to 1 and fills it with a nested loop, setting dp[i] = max(dp[i], dp[j]+1) whenever nums[j] < nums[i], then returns max(dp). It exercises dp-state-formulate and dp-1d-rolling, but routes around the canonical streaming/patience-sorting move and the binary-search-boundary that would give O(n log n). The notes say 'Learning', and the LeetCode submission was rejected with a Runtime Error from the harness-only rich import, so the solution does not solve the problem as submitted."
     }
   }
 }
