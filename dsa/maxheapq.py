@@ -1,13 +1,15 @@
 """heapq with the order reversed.
 
-    maxheappush, maxheappop, maxheapify, maxheappushpop, maxheapreplace, maxheappeek
+    maxheappush, maxheappop, maxheapify, maxheappushpop, maxheapreplace, maxheappeek,
+    maxheapitems
 
 Each function is its heapq namesake with the prefix max, same signature, and
 the largest item comes out first. Items can be anything heapq accepts, tuples
 included: there is no negation, so no minus sign to remember.
 
 The list holds each item inside a small wrapper whose `<` is `>`. maxheappop
-unwraps it; h[0] does not, so peek with maxheappeek(h), not h[0].
+unwraps it; h[0] does not, so peek with maxheappeek(h), not h[0], and read
+the whole heap with maxheapitems(h), not by iterating h.
 
 The harness preloads these names, so a solve calls them bare.
 """
@@ -57,6 +59,10 @@ def maxheappeek(h: list) -> Any:
     return h[0].item
 
 
+def maxheapitems(h: list) -> list:
+    return [w.item for w in h]
+
+
 if __name__ == "__main__":
     h: list = []
     for x in [3, 1, 4, 1, 5]:
@@ -69,5 +75,6 @@ if __name__ == "__main__":
     assert maxheappop(h) == (9, "a")
     assert maxheappushpop(h, (7, "d")) == (7, "d")
     assert maxheapreplace(h, (1, "e")) == (5, "c")
+    assert sorted(maxheapitems(h)) == [(1, "e"), (2, "b")]
     assert [maxheappop(h) for _ in range(len(h))] == [(2, "b"), (1, "e")]
     print("ok")

@@ -101,6 +101,7 @@ from Types import GraphNode, ListNode, Node, TreeNode
 
 from dsa.maxheapq import (
     maxheapify,
+    maxheapitems,
     maxheappeek,
     maxheappop,
     maxheappush,
@@ -399,6 +400,7 @@ builtins.maxheappush = maxheappush
 builtins.maxheappushpop = maxheappushpop
 builtins.maxheapreplace = maxheapreplace
 builtins.maxheappeek = maxheappeek
+builtins.maxheapitems = maxheapitems
 builtins.ascii_letters = ascii_letters
 builtins.hexdigits = hexdigits
 builtins.ascii_lowercase = ascii_lowercase
