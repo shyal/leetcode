@@ -336,6 +336,10 @@ pub struct Rec {
     pub note: Option<String>,
     /// the model that produced the live verdict; None on a placeholder
     pub judge: Option<String>,
+    /// active seconds on the clock when `make solved` ran, frozen by
+    /// kg_solved and filed with the placeholder; None on a record older
+    /// than the field (2026-09-16), whose time is mined from its commit
+    pub seconds: Option<i64>,
 }
 
 pub const ASSIST_LEVELS: [&str; 4] = ["none", "hint", "walkthrough", "learning"];
@@ -375,6 +379,7 @@ impl Rec {
             pending: v.get("pending").and_then(Value::as_str).map(String::from),
             note: v.get("note").and_then(Value::as_str).map(String::from),
             judge: v.get("judge").and_then(Value::as_str).map(String::from),
+            seconds: v.get("seconds").and_then(Value::as_i64),
         }
     }
 

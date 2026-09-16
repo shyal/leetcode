@@ -2132,6 +2132,7 @@ fn grant(
         pending: None,
         note: None,
         judge: None,
+        seconds: None,
     };
     ev.push(fname, rec);
     for m in &moves {

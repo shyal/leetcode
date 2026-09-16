@@ -24,7 +24,7 @@ use ratatui::widgets::{
 };
 use ratatui::{Frame, Terminal};
 
-use crate::elo::{numbers, Numbers, MA, RANKS, START};
+use crate::elo::{numbers, Numbers, MA, RANKS, START, WEEK};
 use crate::onsite::FS_WINDOW;
 
 /// The gauges run from START to the top cutoff.
@@ -121,12 +121,16 @@ fn draw_numbers(frame: &mut Frame, n: &Numbers) {
     .flatten()
     .collect();
 
+    // the week's totals under the gauges, dropped first when the panel is short
+    let week = n.week.rows();
+    let week_h = u16::from(inner.height >= 16) * (week.len() as u16 + 1);
     let spark_h = u16::from(inner.height >= 12) * 3;
-    let [number_area, spark_area, _, rows_area] = Layout::vertical([
+    let [number_area, spark_area, _, rows_area, week_area] = Layout::vertical([
         Constraint::Fill(1),
         Constraint::Length(spark_h),
         Constraint::Length(1),
         Constraint::Length(rows.len() as u16),
+        Constraint::Length(week_h),
     ])
     .areas(inner);
 
@@ -188,6 +192,19 @@ fn draw_numbers(frame: &mut Frame, n: &Numbers) {
         );
         frame.render_widget(Paragraph::new(format!("{value:.0}")).bold(), mark);
         frame.render_widget(Paragraph::new(note.as_str()).dim().right_aligned(), right);
+    }
+
+    if week_h > 0 {
+        // the ratios bright: they are what the panel is open for
+        let mut text = vec![Line::from(format!("last {WEEK} days").bold())];
+        text.extend(week.into_iter().map(|(before, ratio, after)| {
+            Line::from(vec![
+                Span::styled(before, Style::new().dim()),
+                Span::styled(ratio, Style::new().fg(Color::LightGreen).bold()),
+                Span::styled(after, Style::new().dim()),
+            ])
+        }));
+        frame.render_widget(Paragraph::new(text), week_area);
     }
 }
 
@@ -273,6 +290,15 @@ mod tests {
             games: 427,
             wins: 297,
             draws: 6,
+            week: kg::model::Summary {
+                solves: 32,
+                fails: 7,
+                inside: 22,
+                over: 3,
+                first: 5,
+                first_fails: 2,
+                won: 15.5,
+            },
         }
     }
 
@@ -294,6 +320,12 @@ mod tests {
             "picker",
             "1690",
             "+9",
+            "last 7 days",
+            "32 solves: 25 pass / 7 fail (78%)",
+            "inside the clock: 22 of 32 (69%, 3 passes over time)",
+            "first sight: 5 (3 pass / 2 fail, 60%)",
+            "repeat: 27 (22 pass / 5 fail, 81%)",
+            "games won: 15.5 of 32 (48%, what the Elo sees)",
         ] {
             assert!(f.contains(s), "missing {s:?}\n{f}");
         }

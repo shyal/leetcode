@@ -202,6 +202,7 @@ fn rec(date: String, problem: &str, moves: &[(&str, &str)], assist: Assist) -> R
         pending: None,
         note: None,
         judge: None,
+        seconds: None,
     }
 }
 
