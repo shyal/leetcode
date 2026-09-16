@@ -21,7 +21,7 @@ pub const FORECAST_WARM_DAYS: i64 = 30;
 pub fn budget_min(d: &str) -> Option<i64> {
     match d {
         "Easy" => Some(10),
-        "Medium" => Some(25),
+        "Medium" => Some(30),
         "Hard" => Some(45),
         _ => None,
     }
