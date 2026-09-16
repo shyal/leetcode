@@ -284,7 +284,7 @@ fn file_phase(console: &Console, root: &Path, failed: bool) {
     // two re-runs into the staged branch above instead of filing twice
     kg::pyjson::save(
         Path::new(META),
-        &json!({"message": message, "file": filepath}),
+        &json!({"message": message, "file": filepath, "seconds": active}),
         None,
     )
     .expect("write .solve_meta.json");

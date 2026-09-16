@@ -1,4 +1,4 @@
-.PHONY: submit lc-login ext check fmt fmt-check lint types complexity duplicates test-fast cov rust audit secrets all asserts drop learning mirror q prepare force unforce preflight dependents kg-extract kg-status kg-viz rep movie next dive drill spot hard is_session_start readme rank-table residuals simulate sleep wake solved failed test timer elo viz graph snippets
+.PHONY: stats submit lc-login ext check fmt fmt-check lint types complexity duplicates test-fast cov rust audit secrets all asserts drop learning mirror q prepare force unforce preflight dependents kg-extract kg-status kg-viz rep movie next dive drill spot hard is_session_start readme rank-table residuals simulate sleep wake solved failed test timer elo viz graph snippets
 
 all: $(if $(filter master,$(shell git rev-parse --abbrev-ref HEAD)),graph/leet.db) $(EXT)
 	@cp utils/harness/sitecustomize.py .venv/lib/python3.10/site-packages/
@@ -38,6 +38,11 @@ asserts: $(RS_BIN)/asserts
 
 kg-status: $(RS_BIN)/kg_status
 	@$(RS_BIN)/kg_status
+
+# make stats [DAYS|all]: the scored games over a window, pass/fail, inside
+# the clock, first sight against repeat
+stats: $(RS_BIN)/kg_stats
+	@$(RS_BIN)/kg_stats $(filter-out $@,$(MAKECMDGOALS))
 
 rep: $(RS_BIN)/kg_rep
 	@$(RS_BIN)/kg_rep $(filter-out $@,$(MAKECMDGOALS))

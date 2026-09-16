@@ -67,6 +67,13 @@ and generate combination drills ("rote sheets").
   A `pending` entry is the queue: `make next` counts them in its footer and respawns
   any older than ten minutes; `make kg-extract` re-judges them all in line.
 
+  The placeholder also carries `seconds`, the active time on the clock when
+  `make solved` ran, and every later rewrite of the entry keeps it. The Elo's
+  games (`scored_games`) read it from the record; records from before the field
+  (2026-09-16) are timed from their commit message. `make stats [DAYS|all]`
+  lists the games over a window with the totals: pass/fail, inside the clock,
+  first sight against repeat, games won.
+
 ## The drill bank (../drills/)
 
 `drills/<node-id>/*.py` is a growing bank of self-authored, leetcode-style drill files —

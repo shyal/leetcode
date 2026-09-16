@@ -256,10 +256,22 @@ pub fn store_evidence_entry(
     let mut entry = entry.clone();
     if let Some(old) = data["evidence"].get(key) {
         fold_prior_verdict(&mut entry, old);
+        carry_seconds(&mut entry, old);
     }
     data["evidence"][key] = entry;
     save(&path, &data, Some(2))?;
     Ok(data["evidence"].clone())
+}
+
+/// `seconds` is the clock's fact, not the judge's: filed once with the
+/// placeholder, it survives every later rewrite of the entry (the judge,
+/// a rejudge, a review) that does not carry it itself.
+pub fn carry_seconds(new: &mut Value, old: &Value) {
+    if new.get("seconds").is_none() {
+        if let Some(s) = old.get("seconds") {
+            new["seconds"] = s.clone();
+        }
+    }
 }
 
 /// Verdicts are kept per model. When a judged entry replaces one that was
@@ -383,6 +395,29 @@ mod tests {
         let mut judged = json!({"date": "2026-09-13", "problem": "1", "moves": {"x": "clean"}, "judge": "fable"});
         super::fold_prior_verdict(&mut judged, &pending);
         assert!(judged.get("verdicts").is_none());
+    }
+
+    #[test]
+    fn seconds_survive_the_judge() {
+        use serde_json::json;
+        let placeholder = json!({"date": "2026-09-16", "problem": "909", "moves": {},
+            "pending": "t", "seconds": 1508});
+        let mut judged = json!({"date": "2026-09-16", "problem": "909",
+            "moves": {"graph-bfs-shortest": "struggled"}, "judge": "fable"});
+        super::carry_seconds(&mut judged, &placeholder);
+        assert_eq!(judged["seconds"], json!(1508));
+
+        // a record that never had a clock stays without one
+        let bare = json!({"date": "2026-09-16", "problem": "909", "moves": {}});
+        let mut again =
+            json!({"date": "2026-09-16", "problem": "909", "moves": {}, "judge": "fable"});
+        super::carry_seconds(&mut again, &bare);
+        assert!(again.get("seconds").is_none());
+
+        // a rewrite that brings its own reading keeps it
+        let mut own = json!({"seconds": 7});
+        super::carry_seconds(&mut own, &placeholder);
+        assert_eq!(own["seconds"], json!(7));
     }
 
     use super::*;

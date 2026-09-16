@@ -3,7 +3,7 @@
 // cold-solve odds (curve.json "solve"), and the pacing forecast from the
 // mined solve times (kg_lib.solve_forecast / drill_forecast).
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
 use chrono::NaiveDate;
@@ -367,6 +367,128 @@ pub struct Game {
     pub difficulty: String,
     pub score: f64,
     pub moves: Vec<String>,
+    pub fname: String,
+    /// first sight: no earlier scored game on the problem
+    pub first: bool,
+    /// a FAILED file
+    pub failed: bool,
+    pub seconds: Option<i64>,
+    /// a pass that ran past its tier's clock (budget_min)
+    pub over: bool,
+    /// the heaviest assist level on the solve
+    pub assist: String,
+}
+
+/// The totals `make stats` prints and `make elo` shows under its gauges:
+/// the games since a date, counted the way they were scored.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Summary {
+    pub solves: usize,
+    pub fails: usize,
+    /// passes inside the clock
+    pub inside: usize,
+    /// passes over the clock
+    pub over: usize,
+    pub first: usize,
+    pub first_fails: usize,
+    /// the sum of the scores: what the Elo saw
+    pub won: f64,
+}
+
+impl Summary {
+    pub fn of<'a>(games: impl IntoIterator<Item = &'a Game>) -> Summary {
+        let mut s = Summary::default();
+        for g in games {
+            s.solves += 1;
+            s.fails += usize::from(g.failed);
+            s.inside += usize::from(!g.failed && !g.over);
+            s.over += usize::from(g.over);
+            s.first += usize::from(g.first);
+            s.first_fails += usize::from(g.first && g.failed);
+            s.won += g.score;
+        }
+        s
+    }
+
+    pub fn passes(&self) -> usize {
+        self.solves - self.fails
+    }
+
+    /// The five lines as (before, ratio, after): the ratio is the part a
+    /// caller colours. `lines()` joins them.
+    pub fn rows(&self) -> Vec<(String, String, String)> {
+        let pct = |a: usize, b: usize| {
+            if b == 0 {
+                "-".to_string()
+            } else {
+                format!("{:.0}%", 100.0 * a as f64 / b as f64)
+            }
+        };
+        let repeats = self.solves - self.first;
+        let repeat_fails = self.fails - self.first_fails;
+        vec![
+            (
+                format!(
+                    "{} solves: {} pass / {} fail (",
+                    self.solves,
+                    self.passes(),
+                    self.fails
+                ),
+                pct(self.passes(), self.solves),
+                ")".to_string(),
+            ),
+            (
+                format!("inside the clock: {} of {} (", self.inside, self.solves),
+                pct(self.inside, self.solves),
+                format!(", {} passes over time)", self.over),
+            ),
+            (
+                format!(
+                    "first sight: {} ({} pass / {} fail, ",
+                    self.first,
+                    self.first - self.first_fails,
+                    self.first_fails
+                ),
+                pct(self.first - self.first_fails, self.first),
+                ")".to_string(),
+            ),
+            (
+                format!(
+                    "repeat: {} ({} pass / {} fail, ",
+                    repeats,
+                    repeats - repeat_fails,
+                    repeat_fails
+                ),
+                pct(repeats - repeat_fails, repeats),
+                ")".to_string(),
+            ),
+            (
+                format!(
+                    "games won: {} of {} (",
+                    crate::pyjson::g(self.won),
+                    self.solves
+                ),
+                pct((self.won * 2.0).round() as usize, self.solves * 2),
+                ", what the Elo sees)".to_string(),
+            ),
+        ]
+    }
+
+    /// The five lines, plain text.
+    pub fn lines(&self) -> Vec<String> {
+        self.rows()
+            .into_iter()
+            .map(|(a, b, c)| format!("{a}{b}{c}"))
+            .collect()
+    }
+}
+
+/// The games on or after `since`, in place.
+pub fn games_since(games: &[Game], since: NaiveDate) -> Vec<&Game> {
+    games
+        .iter()
+        .filter(|g| crate::data::parse_date(&g.date) >= since)
+        .collect()
 }
 
 /// kg_lib.scored_games over the evidence, oldest first.
@@ -381,6 +503,7 @@ pub fn scored_games(ctx: &Ctx, ev: &Evidence) -> Vec<Game> {
         (ev.rec(a).date.as_str(), ev.fname(a)).cmp(&(ev.rec(b).date.as_str(), ev.fname(b)))
     });
     let mut out = Vec::new();
+    let mut seen: HashSet<String> = HashSet::new();
     for i in order {
         let rec = ev.rec(i);
         let fname = ev.fname(i);
@@ -390,16 +513,23 @@ pub fn scored_games(ctx: &Ctx, ev: &Evidence) -> Vec<Game> {
             continue;
         }
         let level = rec.assist_any();
-        let score = if fname.contains("FAILED") || level == "walkthrough" || level == "learning" {
+        let failed = fname.contains("FAILED");
+        // the record's own clock; a record older than the field
+        // (2026-09-16) falls back to the time mined from its commit
+        let seconds = rec.seconds.or_else(|| secs.get(fname).copied());
+        let tier = if rec.followup.as_deref() == Some("solved") {
+            next_tier(&diff).to_string()
+        } else {
+            diff.clone()
+        };
+        let over = !failed && seconds.is_some_and(|s| s > budget_min(&tier).unwrap() * 60);
+        let score = if failed || level == "walkthrough" || level == "learning" {
             0.0
         } else {
-            let Some(s) = secs.get(fname) else { continue };
-            let tier = if rec.followup.as_deref() == Some("solved") {
-                next_tier(&diff).to_string()
-            } else {
-                diff.clone()
-            };
-            if *s > budget_min(&tier).unwrap() * 60 {
+            if seconds.is_none() {
+                continue;
+            }
+            if over {
                 0.0
             } else if level == "hint" {
                 0.5
@@ -409,10 +539,16 @@ pub fn scored_games(ctx: &Ctx, ev: &Evidence) -> Vec<Game> {
         };
         out.push(Game {
             date: rec.date.clone(),
-            problem: pnum,
+            problem: pnum.clone(),
             difficulty: diff,
             score,
             moves: rec.moves.keys().cloned().collect(),
+            fname: fname.to_string(),
+            first: seen.insert(pnum),
+            failed,
+            seconds,
+            over,
+            assist: level.to_string(),
         });
     }
     out

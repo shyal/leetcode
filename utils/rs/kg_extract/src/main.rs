@@ -1172,7 +1172,7 @@ fn main() {
                 }
             }
             let code = std::fs::read_to_string(ctx.root.join(&path)).unwrap_or_default();
-            let entry = stub_entry(
+            let mut entry = stub_entry(
                 &path,
                 &code,
                 &node_set,
@@ -1180,6 +1180,11 @@ fn main() {
                 &ctx.drills,
                 Utc::now(),
             );
+            // the clock's reading, frozen by kg_solved; the judge's rewrite
+            // of the entry carries it forward (pyjson::store_evidence_entry)
+            if let Some(secs) = meta.get("seconds").and_then(Value::as_i64) {
+                entry["seconds"] = json!(secs);
+            }
             pyjson::store_evidence_entry(&ctx.root, &path, &entry)
                 .expect("write graph/evidence.json");
             let moves: Vec<&str> = entry["moves"]

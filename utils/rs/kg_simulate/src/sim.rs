@@ -838,6 +838,7 @@ fn run_(
                     pending: None,
                     note: None,
                     judge: None,
+                    seconds: None,
                 },
             );
             if problem != "drill" {

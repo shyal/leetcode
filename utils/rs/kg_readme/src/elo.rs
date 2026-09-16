@@ -294,7 +294,13 @@ pub struct Numbers {
     pub games: usize,
     pub wins: usize,
     pub draws: usize,
+    /// every scored game of the last WEEK days, repeats included, as
+    /// `make stats` counts them
+    pub week: kg::model::Summary,
 }
+
+/// The window of the summary under the dashboard's gauges.
+pub const WEEK: i64 = 7;
 
 pub fn numbers(ctx: &Ctx, ev: &Evidence) -> Option<Numbers> {
     let gs = games(ctx, ev);
@@ -303,6 +309,11 @@ pub fn numbers(ctx: &Ctx, ev: &Evidence) -> Option<Numbers> {
     }
     let history = elo(&gs, START);
     let (_, _, late) = crate::onsite::first_sight_rate(&gs, &crate::hours::hours_by_day(ctx));
+    let all = scored_games(ctx, ev);
+    let week = kg::model::Summary::of(kg::model::games_since(
+        &all,
+        ctx.today() - chrono::Duration::days(WEEK - 1),
+    ));
     Some(Numbers {
         elo: history[history.len() - 1].1,
         ma: elo_ma(&gs, START, &[]).last().map(|x| x.1),
@@ -312,5 +323,6 @@ pub fn numbers(ctx: &Ctx, ev: &Evidence) -> Option<Numbers> {
         games: gs.len(),
         wins: gs.iter().filter(|g| g.2 == 1.0).count(),
         draws: gs.iter().filter(|g| g.2 == 0.5).count(),
+        week,
     })
 }

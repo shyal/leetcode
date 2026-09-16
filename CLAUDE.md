@@ -39,6 +39,14 @@
 - When he wants the technique, he asks: `/high-level-walkthrough`, "give me a
   hint", "how does this work". No ask, no reveal.
 
+# When he says he is failing a lot
+
+- Run `make stats 3` (or `7`, `all`) and give the percentages: pass/fail,
+  inside the clock, first sight, repeat, games won. `make elo` shows the
+  same 7-day block. Never reconstruct the numbers from git log; the seconds
+  live in each evidence record. Two loud fails erase twenty silent passes
+  in his head; the ratios are what keep him going (2026-09-16).
+
 # Code quality gates
 
 - Any change under `utils/` or `dsa/` must pass `make check` (black, ruff, mypy,

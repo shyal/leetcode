@@ -915,6 +915,7 @@ mod tests {
             pending: None,
             note: None,
             judge: None,
+            seconds: None,
         }
     }
 
