@@ -235,6 +235,65 @@ fn drills_left_ignores_a_chain_ending_at_another_nodes_drill() {
     assert!(drills_left(&fx.ctx(), "sw", &ev, false));
 }
 
+/// 2026-09-16 (make simulate): binary-search-on-answer went FRAGILE; its
+/// bank is d115 after d98, a drill of binary-search-index, last done 43
+/// days before. d115 is not servable while d98 is cold, and d98's own
+/// node, SOLID and off its clock, never served it: 19 starved days. A
+/// cold drill a held drill waits on is due on its own node.
+#[test]
+fn a_cold_drill_a_held_drill_waits_on_is_due_on_its_own_node() {
+    let mut fx = Fx::new();
+    fx.nodes(&["idx", "ans"]);
+    let lit = fx.bank("idx", "First Lit", "a.py", "d98", &[]);
+    fx.bank("ans", "First True", "b.py", "d115", &["d98"]);
+    let idx_solid = vec![
+        drill_rep("First Lit", "idx", SOLID_WINDOW_DAYS + 1),
+        solve("2", &[("idx", "clean")], 1),
+    ];
+    // ans FRAGILE: d98 is wanted, clock or no clock
+    let mut ev = idx_solid.clone();
+    ev.push(solve("1", &[("ans", "struggled")], 2));
+    let ev = evidence(ev);
+    assert_eq!(node_status(&fx.ctx(), "ans", &ev, today()).0, FRAGILE);
+    assert_eq!(
+        due_drill(&fx.ctx(), "idx", &ev, today(), false, false),
+        Some(lit)
+    );
+    // ans SOLID: nothing waits, and idx owns its bank, so nothing is due
+    let mut ev = idx_solid;
+    ev.push(solve("1", &[("ans", "clean")], 2));
+    let ev = evidence(ev);
+    assert_eq!(
+        due_drill(&fx.ctx(), "idx", &ev, today(), false, false),
+        None
+    );
+}
+
+/// The picker's side of the same hold: the FRAGILE node has no drill of
+/// its own to serve, is not parked behind a prereq, and is drill-gated.
+/// The rep goes to the cold predecessor's node, and the reason says why.
+#[test]
+fn a_drill_gated_node_with_nothing_to_serve_rewarms_the_drill_it_waits_on() {
+    let mut fx = Fx::picker();
+    fx.nodes(&["idx", "ans"]);
+    fx.bank("idx", "First Lit", "a.py", "d98", &[]);
+    fx.bank("ans", "First True", "b.py", "d115", &["d98"]);
+    fx.stubs().bank = set(&["idx", "ans"]);
+    fx.stubs().drilled_today = set(&["ans"]);
+    let ev = evidence(vec![drill_rep("First Lit", "idx", SOLID_WINDOW_DAYS + 1)]);
+    let st = statuses(&[("idx", SOLID, Some(1)), ("ans", FRAGILE, Some(2))]);
+    let c = fx.run(&ev, &st, args());
+    assert_eq!(t3(&c), tup("idx", SOLID, "drill:idx"));
+    assert!(reason(&c).contains("d98, gone cold"));
+    // d98 warm again: d115 is servable and the fragile move gets its own
+    // drill, as before
+    let ev = evidence(vec![drill_rep("First Lit", "idx", 3)]);
+    assert_eq!(
+        t3(&fx.run(&ev, &st, args())),
+        tup("ans", FRAGILE, "drill:ans")
+    );
+}
+
 /// 2026-08-31: substring-enumeration (MISSING, banked) became a prereq of
 /// the window node; the window node still had a drill undone and a held
 /// dependent, so rule 0c served the window drill over the atom under it.
