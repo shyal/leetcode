@@ -3159,7 +3159,7 @@ def target_pass_rate():
 # so it is skipped.
 # kg_readme elo rates these games, kg_curve fits P(solve) on them.
 
-BUDGET_MIN = {"Easy": 10, "Medium": 25, "Hard": 45}
+BUDGET_MIN = {"Easy": 10, "Medium": 30, "Hard": 45}
 NEXT_TIER = {"Easy": "Medium", "Medium": "Hard", "Hard": "Hard"}
 
 
