@@ -442,18 +442,35 @@ pub fn trivial_easies(
 }
 
 /// kg_next.review_queue: due problems minus the unservable ones and the
-/// ones held behind an "after" predecessor that is not warm.
+/// ones held behind an "after" predecessor that is not warm, clustered by
+/// primary move: groups ordered by their earliest due date, problems inside
+/// a group by due date. Three variations of one move in a row, and the most
+/// overdue problem still comes first.
 pub fn review_queue(
     ctx: &Ctx,
     ev: &Evidence,
     pv: &PView,
     today: NaiveDate,
 ) -> Vec<(String, NaiveDate, i64)> {
-    due_problems(ev, today, Some(pv))
+    let due: Vec<_> = due_problems(ev, today, Some(pv))
         .into_iter()
         .filter(|(p, _, _)| !ctx.unservable(p, pv.get(p).unwrap()))
         .filter(|(p, _, _)| held_behind(ctx, p, pv, ev, today).is_none())
-        .collect()
+        .collect();
+    let primary = |p: &str| pv.get(p).and_then(|q| q.moves.first().cloned());
+    let mut earliest: HashMap<Option<String>, NaiveDate> = HashMap::new();
+    for (p, d, _) in &due {
+        earliest
+            .entry(primary(p))
+            .and_modify(|e| *e = (*e).min(*d))
+            .or_insert(*d);
+    }
+    let mut out = due;
+    out.sort_by_key(|(p, d, _)| {
+        let m = primary(p);
+        (earliest[&m], m, *d, pnum_key(p))
+    });
+    out
 }
 
 /// kg_next.drill_clock_reason.
