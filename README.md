@@ -31,6 +31,7 @@ Right of the dotted line is a simulation: the picker running on its own for six 
 <!-- PROBLEM_RATING_MONTH_CHART -->
 
 ![Rating of the problems attempted in the last 30 days](https://shyal.s3.amazonaws.com/problem_rating_month_20260916022214.svg)
+
 <!-- /PROBLEM_RATING_MONTH_CHART -->
 
 ## Hours
@@ -55,7 +56,7 @@ Extrapolating noisy data. What could go wrong.
 
 ## Progress
 
-The two projections above are extrapolations. This one isn't. The model that scores my solves knows the problem's rating and how well i remember the moves, and nothing about hours or time, because adding those didn't help it predict anything. So it assumes i'm not improving. This chart is my last 30 first sights minus what the model expected. Inside the band, the model is right. Above it for a while, i'm getting better and the model hasn't caught up yet.
+If the blue line is above 0, i'm performing better than the model expects, and vice versa for under.
 
 <!-- PROGRESS_CHART -->
 
@@ -73,9 +74,7 @@ The two projections above are extrapolations. This one isn't. The model that sco
 
 ## Rank badges
 
-The two rank badges put the Elo on LeetCode's contest scale. "vs all rated" is the share of all rated users at or above it, read off LeetCode's global ranking (snapshot in `data/leetcode_rank_table.json`, refreshed with `make rank-table`). "vs 20+ contests" is the share of a random sample of users with at least 20 attended contests, so it is an estimate from a few hundred people and moves a few points between snapshots.
-
-The first one flatters me. Most rated users entered one contest, lost points, and never came back, so a rating a little above 1500 clears the bulk of them. The second one is the comparison that counts. Both read a problem-solving Elo, scored on first sights against [zerotrac] problem ratings, on a contest scale; a contest also has a 90 minute clock over four problems, which this does not measure.
+The `vs all rated` elo score is flattering, as the pool includes constestants who entered 1 contest then gave up. The one that matters is the `vs 20+ contests`.
 
 [zerotrac]: https://zerotrac.github.io/leetcode_problem_rating/
 [CLIST]: https://clist.by/
