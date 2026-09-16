@@ -25875,6 +25875,16 @@
       },
       "judge": "deepseek-chat",
       "summary": "The drill subclasses UnionFind and implements union_shared, which walks each account's emails, using an owner dict to map each email to the first account that claimed it; on a repeat email it unions the current account with the earlier owner. It then prints the owner map and calls find(2) and find(3), confirming the merges (0 1). The notes mark this as Learning, indicating the union-find approach was given and copied."
+    },
+    "solved/d_Merge_Accounts_2026_09_16T00_22_31_953276_00_00Z.py": {
+      "date": "2026-09-16",
+      "problem": "drill",
+      "moves": {
+        "union-find": "clean",
+        "dict-arbitrary-value": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The Solution subclasses UnionFind and mergeAccounts walks the accounts, calling self.find(account) once per account to get its root, then adds each email into persons[root], a defaultdict(set). The union_shared helper (from the base class) performs the merges beforehand, so the find calls resolve accounts sharing an email to the same root. The required constraint of at most one find per account is met, and all assertions pass."
     }
   }
 }
