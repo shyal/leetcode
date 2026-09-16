@@ -11,6 +11,7 @@
 //   kg_extract --model sonnet     # default is $JUDGE_MODEL, else fable
 //   kg_extract --stub             # placeholder entry for the staged solve (no model call)
 //   kg_extract --file F --commit  # the detached judge: judge F, fold, refit, commit
+//   kg_extract --file F --dry     # judge F, print the verdict JSON, write nothing
 //   kg_extract --pending          # also re-judge every placeholder still pending
 //   kg_extract --rejudge          # also every verdict not from the current model
 //   kg_extract --review           # second opinion on every live verdict (or --file)
@@ -214,7 +215,7 @@ fn leetcode_rejection(notes: &str) -> Option<String> {
 fn runtime_note(status: &str, detail: &str) -> String {
     match status {
         "leetcode" => format!(
-            "LEETCODE RESULT (authoritative, outranks the local run, which only saw the file's own asserts): the code was SUBMITTED to leetcode and rejected: {detail}. The solution does NOT solve the problem. Mark 'struggled' the move responsible and quote the verdict in the note: for Time Limit Exceeded, the move whose complexity is too high (a brute force standing in for the canonical technique condemns every move of that brute force); for Wrong Answer or Runtime Error, the move the defect belongs to. At least one move must be 'struggled'."
+            "LEETCODE RESULT (authoritative, outranks the local run, which only saw the file's own asserts): the code was SUBMITTED to leetcode and rejected: {detail}. The solution does NOT solve the problem. Quote the verdict in the note. For Time Limit Exceeded: every move the code exercised ran correctly and stays 'clean', the loops of a brute force included; a slow move is not a wrong move. The failure is the canonical move the code LACKS, the one the brute force stands in for: mark that ONE move 'struggled' (the central move of the canonical walk given in this prompt), even though the code never wrote it, and name it in the note. If the code has every canonical move and is still too slow, mark 'struggled' the canonical move written too slowly. For Wrong Answer or Runtime Error: mark 'struggled' the ONE move the defect belongs to. At least one move must be 'struggled'."
         ),
         "passed" => format!(
             "RUNTIME RESULT (authoritative): the file was EXECUTED and exited 0 — every active assertion passed and no exception was raised. The solution WORKS. Do NOT report bugs, failing assertions, or undefined names; if you think you see one, you have misread the code. Note that `assert f(x) is False` PASSES when f(x) returns False — a negative expectation is not a failure. Judge only WHICH technique moves the working code exercises.{}",
@@ -224,7 +225,7 @@ fn runtime_note(status: &str, detail: &str) -> String {
             "RUNTIME RESULT (authoritative): the file was EXECUTED and exited NON-ZERO. It genuinely fails. Use the traceback below as the evidence for any 'struggled' verdict, and quote the real error in the note. Attribute the failure to the ONE move the defective line belongs to; the moves that ran correctly around it stay 'clean'.\n{detail}"
         ),
         "timeout" => format!(
-            "RUNTIME RESULT (authoritative): the file was EXECUTED and TIMED OUT ({detail}). Treat the move responsible for the complexity blowup as 'struggled'."
+            "RUNTIME RESULT (authoritative): the file was EXECUTED and TIMED OUT ({detail}). The moves the code exercised stay 'clean'; mark 'struggled' the ONE canonical move the code lacks that a faster solution needs (the central move of the canonical walk given in this prompt), or, if every canonical move is present, the one written too slowly."
         ),
         _ => format!(
             "RUNTIME RESULT: the file could not be executed, so judge statically — but assume the code works unless a bug is unmistakable. ({detail})"
@@ -886,7 +887,7 @@ Taxonomy (use ONLY these ids):
 Rules:
 - {}
 - Every file is EXECUTED for you before you see it, and the result is stated in the prompt. That result OUTWEIGHS your reading of the source in every case. If the run passed, the code is correct — no "struggled" for suspected bugs, and no note claiming a failure. Only a non-zero exit, a timeout, or the candidate's own notes (looked-up/hints/TLE/failed) justify "struggled".
-- A `LEETCODE:` line in the notes is leetcode's own verdict on the submitted code and outranks the local run: "Accepted" confirms the code; "Time Limit Exceeded" marks the move responsible for the complexity "struggled"; "Wrong Answer" or "Runtime Error" marks the move the defect belongs to "struggled". Quote the verdict in the note.
+- A `LEETCODE:` line in the notes is leetcode's own verdict on the submitted code and outranks the local run: "Accepted" confirms the code; "Time Limit Exceeded" marks "struggled" the canonical move the code lacks, the one a brute force stands in for, never the brute force's own moves, which ran correctly and stay "clean"; "Wrong Answer" or "Runtime Error" marks the move the defect belongs to "struggled". Quote the verdict in the note.
 - Judge the code as written, not the problem's canonical solution. Batch math on a streaming-carrier problem means the streaming move was NOT exercised — if the canonical solution's central move was sidestepped by an alternative approach, record that move as "avoided".
 - Verdicts: "clean" (executed correctly), "struggled" (bugs/confusion visible in code or notes, e.g. notes saying looked-up/hints/TLE/failed), "avoided" (canonical move sidestepped).
 - A failing run condemns ONE move, not the whole walk. Find the defect - the line the traceback points at, the wrong bound, the missing case - and mark "struggled" only on the move that line belongs to. Every other move the code exercised correctly stays "clean": an IndexError in a grid boundary test is not evidence against the recursion or the memoization that ran fine around it. If the defect belongs to no node in the taxonomy - index arithmetic, an off-by-one in a bound, a typo - mark NO move "struggled" and say where the defect was in the note.
@@ -1107,7 +1108,7 @@ fn judge_spots(console: &Console, ctx: &Ctx, model: &str) {
 fn main() {
     let argv: Vec<String> = std::env::args().skip(1).collect();
     if argv.iter().any(|a| a == "-h" || a == "--help") {
-        println!("usage: kg_extract [--limit N] [--model M] [--workers N] [--followup] [--stub] [--file F] [--pending] [--rejudge] [--review] [--commit]");
+        println!("usage: kg_extract [--limit N] [--model M] [--workers N] [--followup] [--stub] [--file F] [--pending] [--rejudge] [--review] [--commit] [--dry]");
         return;
     }
     let flag = |name: &str| -> Option<String> {
@@ -1132,13 +1133,14 @@ fn main() {
     }
     let limit: usize = flag("--limit").and_then(|s| s.parse().ok()).unwrap_or(0);
     let workers: usize = flag("--workers").and_then(|s| s.parse().ok()).unwrap_or(8);
-    let (followup_mode, stub, pending, rejudge, review, commit) = (
+    let (followup_mode, stub, pending, rejudge, review, commit, dry) = (
         argv.iter().any(|a| a == "--followup"),
         argv.iter().any(|a| a == "--stub"),
         argv.iter().any(|a| a == "--pending"),
         argv.iter().any(|a| a == "--rejudge"),
         argv.iter().any(|a| a == "--review"),
         argv.iter().any(|a| a == "--commit"),
+        argv.iter().any(|a| a == "--dry"),
     );
     let file = flag("--file");
 
@@ -1313,6 +1315,15 @@ fn main() {
                     continue;
                 }
             };
+            if dry {
+                // the live judge test: the verdict as the model returned it
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&judged.result).unwrap_or_default()
+                );
+                done += 1;
+                continue;
+            }
             let result = &judged.result;
             let fname_problem = problem_of_fname(&path);
             let solve_date =
@@ -1710,6 +1721,18 @@ mod tests {
     use super::*;
 
     const SOLVE: &str = "\"\"\"\n1. Two Sum\n\nGiven an array of integers, return indices of the two numbers that add to\ntarget.\n\n---\nPeeked at the editorial for the complement trick.\n\"\"\"\n\nfrom typing import List\n\n\nclass Solution:\n    def twoSum(self, nums: List[int], target: int) -> List[int]:\n        seen = {}  # running dict, built as we scan\n        for i, n in enumerate(nums):\n            if target - n in seen:\n                return [seen[target - n], i]\n            seen[n] = i\n\n\nsol = Solution()\nassert sol.twoSum([2, 7, 11, 15], 9) == [0, 1]\n";
+
+    /// A TLE is a missing move, not a broken one: the brute force's own
+    /// loops stay clean (974 on 2026-09-16 pinned it on the enumeration).
+    #[test]
+    fn tle_blames_the_missing_move_not_the_brute_force() {
+        let note = runtime_note("leetcode", "Time Limit Exceeded (66/76 cases)");
+        assert!(note.contains("the canonical move the code LACKS"));
+        assert!(note.contains("stays 'clean', the loops of a brute force included"));
+        assert!(!note.contains("condemns every move"));
+        let note = runtime_note("timeout", "exceeded 20s");
+        assert!(note.contains("The moves the code exercised stay 'clean'"));
+    }
 
     /// utils/tests/test_kg_extract.py: the notes survive the statement strip.
     #[test]
