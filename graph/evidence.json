@@ -27168,6 +27168,20 @@
       "note": "LeetCode: Accepted (0 ms, 19.3 MB)",
       "summary": "The code builds a set from nums, then loops while original is in the set, doubling original each time, and returns it. This exercises set-membership for the O(1) containment check and generate-and-test-neighbors by walking the implicit chain original, 2*original, 4*original... validating each candidate against the set. The run exited 0 and LeetCode reports Accepted (0 ms, 19.3 MB); the notes contain no hints or look-ups.",
       "seconds": 85
+    },
+    "solved/d_Month_Over_Month_Change_2026_09_16T21_21_21_141570_00_00Z.py": {
+      "date": "2026-09-17",
+      "problem": "drill",
+      "moves": {
+        "sql-window-offset": "clean"
+      },
+      "assist": {
+        "sql-window-offset": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say 'Forgot about lag' and 'Assisted'; the LAG window function is the required move.",
+      "summary": "The query selects month, amount, and amount - lag(amount) over (order by month) as change from Revenue, so the first row's change is NULL and each later row subtracts the previous month's amount. This exercises the sql-window-offset move via LAG. The notes state the candidate forgot about lag and were assisted, and both example assertions pass.",
+      "seconds": 229
     }
   }
 }
