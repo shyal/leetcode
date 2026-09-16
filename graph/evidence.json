@@ -25950,6 +25950,17 @@
       "followup": "not solved",
       "note": "LEETCODE: Runtime Error (Line 1: ModuleNotFoundError: No module named 'rich') \u2014 the harness-only `table`/`tabulate` calls are the defect; the O(n^2) DP itself is correct but does not meet the O(n log n) follow-up.",
       "summary": "The code builds a 1D dp array initialized to 1 and fills it with a nested loop, setting dp[i] = max(dp[i], dp[j]+1) whenever nums[j] < nums[i], then returns max(dp). It exercises dp-state-formulate and dp-1d-rolling, but routes around the canonical streaming/patience-sorting move and the binary-search-boundary that would give O(n log n). The notes say 'Learning', and the LeetCode submission was rejected with a Runtime Error from the harness-only rich import, so the solution does not solve the problem as submitted."
+    },
+    "solved/p2433_Find_The_Original_Array_of_Prefix_Xor_2026_09_16T03_39_15_302708_00_00Z.py": {
+      "date": "2026-09-16",
+      "problem": "2433",
+      "moves": {
+        "xor-cancellation": "clean",
+        "running-sum": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "One-liner: pref[0] plus pairwise XOR of adjacent prefixes; notes show the 5^x=2 hand-derivation.",
+      "summary": "The solution returns pref[0] followed by a ^ b for each adjacent pair in pref, recovering the original array because XOR of consecutive prefix-xors cancels the shared prefix. It exercises xor-cancellation and the running/prefix accumulation shape, and the notes show a manual 5 ^ x = 2 bit derivation. LeetCode reports Accepted (11 ms, 36.7 MB) and all local assertions pass."
     }
   }
 }
