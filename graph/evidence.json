@@ -27385,6 +27385,16 @@
       "note": "Drill targets monotonic-queue; the MonotonicQueue(Type.decreasing) push/popleft/front usage exercises it directly and all assertions passed.",
       "summary": "The code builds a decreasing MonotonicQueue, pushes each (value, index) pair, evicts the front when its index falls out of the k-window, and appends the front value to res. This exercises the monotonic-queue move: push pops smaller values from the back so the largest sits at the front, and popleft removes the expired front. All assertions passed on execution.",
       "seconds": 384
+    },
+    "solved/d_How_Many_Companies_2026_09_16T22_29_24_867999_00_00Z.py": {
+      "date": "2026-09-17",
+      "problem": "drill",
+      "moves": {
+        "union-find": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The Solution subclasses UnionFind and counts components by starting from len(self.parent) and subtracting self.union(a, b) for each pair, since union returns 1 only when it actually merges two distinct sets. The drill exercises union-find directly, and all assertions pass, including self-pairs and duplicate edges that must not reduce the count.",
+      "seconds": 135
     }
   }
 }
