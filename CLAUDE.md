@@ -84,3 +84,11 @@
 - "spoiled" / "spoiler" / "spoiling". Not in code, data, docs, tests, or chat.
   Assist levels are none, hint, walkthrough, learning. A drill's solution
   shown is a learning rep: the copy that every node's first rep is.
+
+# Harness helpers
+
+- Any code shown to the operator uses the harness builtins from
+  `utils/harness/` (`table`, `like`, `cells`, `nbrs`, `tabulate`, `rich_print`,
+  `draw_tree`, `draw_linked_list`, `draw_graph`, ...; full list in
+  `stubs/custom_builtins.pyi`). Never hand-roll `[0] * n` or a print loop
+  when a helper exists (settled 2026-09-16).
