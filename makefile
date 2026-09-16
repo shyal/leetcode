@@ -201,6 +201,11 @@ SLOW_TESTS = --ignore=utils/tests/test_runner.py
 test-fast: $(EXT)
 	@.venv/bin/pytest -q -p no:cacheprovider $(SLOW_TESTS)
 
+# the live judge: real DeepSeek calls on solve files whose verdict was once
+# corrected by hand (utils/tests/test_judge_live.py). Opt-in, never in check.
+test-judge: $(RS_BIN)/kg_extract
+	@KG_LIVE_JUDGE=1 .venv/bin/pytest -q -p no:cacheprovider utils/tests/test_judge_live.py
+
 cov: $(EXT)
 	@.venv/bin/pytest -q -p no:cacheprovider $(SLOW_TESTS) --cov --cov-report=term-missing
 
