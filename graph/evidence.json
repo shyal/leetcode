@@ -25996,6 +25996,21 @@
       "judge": "deepseek-chat",
       "note": "Notes mention trial and error over ~4 minutes; LeetCode verdict Accepted (0 ms, 19.3 MB).",
       "summary": "The code binary-searches the answer space [0, x] for the largest mid with mid*mid <= x, using the upper-mid template (mid = (left+right+1)//2) so left converges to the floor square root. It exercises binary-search-on-answer with the feasibility check mid*mid > x, and the boundary variant that finds the last index where the predicate holds. The notes say it was solved in about 4 minutes with some trial and error, and LeetCode reports Accepted."
+    },
+    "solved/p210_Course_Schedule_II_2026_09_16T06_11_08_695130_00_00Z.py": {
+      "date": "2026-09-16",
+      "problem": "210",
+      "moves": {
+        "graph-adjacency-build": "clean",
+        "topological-order": "clean"
+      },
+      "assist": {
+        "topological-order": "learning",
+        "graph-adjacency-build": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say the BFS/in-degree stage was not understood and was learned; LeetCode verdict Accepted (4 ms, 20.3 MB).",
+      "summary": "The code builds an adjacency dict adj from prerequisite pairs, counts in-degrees, seeds a deque with zero-in-degree courses, and pops/explores neighbors while decrementing in-degrees, appending a course only when its count hits zero. It returns res if all courses were emitted, else []. This exercises graph-adjacency-build and topological-order (Kahn's algorithm). The notes state the adjacency, in-degrees, and queue were understood but the BFS decrement step was not, and the candidate marks it as learned; LeetCode accepted the submission."
     }
   }
 }
