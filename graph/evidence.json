@@ -27407,6 +27407,17 @@
       "note": "Drill trains union-find; the code subclasses UnionFind and calls self.union/self.find, with a dict mapping email->first account index as the merge key.",
       "summary": "The code subclasses UnionFind and, for each account, records the first index seen for each email in an `owner` dict; when an email reappears it calls `self.union(i, owner[email])` to merge the two accounts. It then returns the owner map and the assertions check `find` results across several account lists. The union-find move and the dict-as-arbitrary-value move are both exercised and the run passed; the notes only say it 'feels like cramming'.",
       "seconds": 340
+    },
+    "solved/p684_Redundant_Connection_2026_09_16T22_51_13_334594_00_00Z.py": {
+      "date": "2026-09-17",
+      "problem": "684",
+      "moves": {
+        "union-find": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Runtime Error (Line 28: IndexError: list index out of range) - a typo in union: parent[a] = pb where parent[pa] = pb was meant. Union-find written correctly otherwise; per the judge rule a typo condemns no move. The local asserts were 14 in-order single cycles and could not catch it (edge-case block added 2026-09-17).",
+      "summary": "The code builds a parent map over all edge endpoints, defines recursive find and a union that returns False when both endpoints already share a root, then collects every edge that closes a cycle and returns the last one. The union-find move is the canonical one here; one typo, parent[a] = pb for parent[pa] = pb, left the old root behind when a was not a root. LeetCode rejected the submission with Runtime Error (Line 28: IndexError: list index out of range), and the local asserts only passed because the small test cases happened to produce a non-empty res.",
+      "seconds": 777
     }
   }
 }
