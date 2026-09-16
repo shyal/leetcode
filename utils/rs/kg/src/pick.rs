@@ -193,7 +193,8 @@ use crate::clock::{due_problems, last_attempt};
 use crate::ctx::{Ctx, PView};
 use crate::data::{is_numeric_id, max_asleep, parse_date, pnum_key, Rec};
 use crate::drills::{
-    anki, cold_drill, drill_capped, drill_held, drills_left, group_caps, group_reps, last_drilled,
+    anki, cold_drill, drill_capped, drill_held, drill_node, drills_left, group_caps, group_reps,
+    last_drilled,
 };
 use crate::evidence::Evidence;
 use crate::model::{problem_solve_p, solve_model, solve_ratings, target_pass_rate, SolveState};
@@ -880,6 +881,35 @@ impl<'a> Picker<'a> {
         Some((pre, drill_id))
     }
 
+    /// A banked node with no drill to serve: its files wait on a drill of
+    /// another node gone cold (drills::wanted_drills). Serve that drill on
+    /// its own node, the way the opener serves a held prereq's.
+    fn rewarm(&self, n: &str) -> Option<Choice> {
+        let pv = self.pv.borrow();
+        for path in self.ctx.bank_paths(n).iter() {
+            for a in self.ctx.drill_after(path) {
+                if warm(self.ctx, &a, &pv, self.ev, self.today, false) != Some(false) {
+                    continue;
+                }
+                let Some(pre) = self.ctx.drill_path(&a).as_deref().and_then(drill_node) else {
+                    continue;
+                };
+                if pre == n || !self.ctx.nodes.contains_key(&pre) {
+                    continue;
+                }
+                if let Some(d) = self.due(&pre) {
+                    return Some(Choice::new(
+                        &pre,
+                        self.status(&pre).0,
+                        &d,
+                        format!("{n} waits on {a}, gone cold - drill {pre} first"),
+                    ));
+                }
+            }
+        }
+        None
+    }
+
     fn drill_for(&self, n: &str) -> Option<(String, String)> {
         match self.due(n) {
             Some(d) => Some((n.to_string(), d)),
@@ -1065,7 +1095,7 @@ impl<'a> Picker<'a> {
             return Some(Choice::new(n, status, &drill_id, reason));
         }
         if drill_gated(self.ctx, n, status, last, self.today) {
-            return None;
+            return self.rewarm(n);
         }
         if k == Kind::Floor && self.immature.contains(n) {
             if let Some(proof) = self.prove(n) {

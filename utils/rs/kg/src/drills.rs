@@ -146,6 +146,74 @@ fn sync_caches(ctx: &Ctx, ev: &Evidence) {
     c.due_drill.retain(|(n, _, _, _), _| !hit(n));
     c.drills_left.retain(|(n, _), _| !hit(n));
     c.cold.retain(|(n, _), _| !hit(n));
+    c.wanted.clear();
+}
+
+/// The node a bank file belongs to: drills/<node>/<file>.
+pub fn drill_node(path: &Path) -> Option<String> {
+    path.parent()?.file_name()?.to_str().map(String::from)
+}
+
+/// The cold drills a held drill waits on. A bank file of a node that is
+/// not SOLID names in `after` a drill whose latest rep has gone cold; that
+/// node cannot be served its own drill until the predecessor is warm
+/// again, and the predecessor's own node, SOLID and off its clock, never
+/// serves it. So the predecessor is wanted: due on its own node today,
+/// whatever its clock says, and so is any cold drill it waits on in turn
+/// (binary-search-on-answer, FRAGILE behind d115 after d98 of
+/// binary-search-index, starved 19 days in the 2026-09-16 simulation).
+fn wanted_drills(ctx: &Ctx, ev: &Evidence, day: NaiveDate) -> Rc<HashSet<PathBuf>> {
+    if let Some(w) = ev.cold_cache().wanted.get(&day) {
+        return w.clone();
+    }
+    let ro = &ctx.ro;
+    let mut frontier: Vec<PathBuf> = Vec::new();
+    for n in ctx.nodes.keys() {
+        if node_status(ctx, n, ev, day).0 != SOLID {
+            frontier.extend(ctx.bank_paths(n).iter().cloned());
+        }
+    }
+    let mut wanted: HashSet<PathBuf> = HashSet::new();
+    let mut seen: HashSet<PathBuf> = HashSet::new();
+    while let Some(p) = frontier.pop() {
+        if !seen.insert(p.clone()) {
+            continue;
+        }
+        for a in ctx.drill_after(&p) {
+            if ctx.vertex_kind(&a, &ro.map) != Some("drill")
+                || warm(ctx, &a, ro, ev, day, false) != Some(false)
+            {
+                continue;
+            }
+            if let Some(ap) = ctx.drill_path(&a) {
+                wanted.insert(ap.clone());
+                frontier.push(ap);
+            }
+        }
+    }
+    let w = Rc::new(wanted);
+    ev.cold_cache().wanted.insert(day, w.clone());
+    w
+}
+
+/// The wanted file of `node` to serve today: servable, not yet done
+/// today, least recently drilled first.
+fn wanted_drill(ctx: &Ctx, node: &str, ev: &Evidence, day: NaiveDate) -> Option<PathBuf> {
+    let wanted = wanted_drills(ctx, ev, day);
+    let mine: Vec<PathBuf> = ctx
+        .bank_paths(node)
+        .iter()
+        .filter(|p| wanted.contains(*p))
+        .cloned()
+        .collect();
+    if mine.is_empty() {
+        return None;
+    }
+    let today = day.format("%Y-%m-%d").to_string();
+    servable_drills(ctx, &mine, ev, Some(node), false)
+        .into_iter()
+        .filter(|p| last_drilled(ctx, p, ev) < today)
+        .min_by_key(|p| last_drilled(ctx, p, ev))
 }
 
 /// A bank file landed for `node` mid-run (kg_simulate authors one): the
@@ -583,6 +651,13 @@ pub fn due_drill(
     assisted: bool,
 ) -> Option<PathBuf> {
     sync_caches(ctx, ev);
+    if !early && !assisted {
+        // a wanted file outranks the node's own clock; the answer depends
+        // on every node's status, so it is never memoised per node
+        if let Some(p) = wanted_drill(ctx, node, ev, day) {
+            return Some(p);
+        }
+    }
     let key = (node.to_string(), day, early, assisted);
     if let Some(d) = ev.cold_cache().due_drill.get(&key) {
         return d.clone();

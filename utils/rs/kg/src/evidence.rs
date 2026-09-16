@@ -55,6 +55,8 @@ pub struct Caches {
     pub due_drill: HashMap<(String, NaiveDate, bool, bool), Option<PathBuf>>,
     /// kg_lib.drills_left per (node, early)
     pub drills_left: HashMap<(String, bool), bool>,
+    /// drills::wanted_drills per day: the cold drills a held drill waits on
+    pub wanted: HashMap<NaiveDate, Rc<HashSet<PathBuf>>>,
     /// the records appended since the drill caches were last checked:
     /// (moves, drill basename, problem). drills::sync_caches drops the
     /// entries a record can have changed (kg_lib recomputes; the answer
