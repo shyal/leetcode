@@ -27374,6 +27374,17 @@
       "note": "gain() computes new ratio (a+1)/(t+1) minus old ratio a/t, the marginal gain of adding one cat.",
       "summary": "The file defines Solution.gain(a, t) returning ((a+1)/(t+1)) - (a/t), the change in the cat-to-total ratio from adding one more cat, and prints gain(1, 2) = 0.1666... The code exercises the marginal-gain move directly: new value minus old value. The remaining assertions are commented out, so only the single print ran.",
       "seconds": 60
+    },
+    "solved/d_Largest_Of_The_Last_K_2026_09_16T22_25_49_273366_00_00Z.py": {
+      "date": "2026-09-17",
+      "problem": "drill",
+      "moves": {
+        "monotonic-queue": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets monotonic-queue; the MonotonicQueue(Type.decreasing) push/popleft/front usage exercises it directly and all assertions passed.",
+      "summary": "The code builds a decreasing MonotonicQueue, pushes each (value, index) pair, evicts the front when its index falls out of the k-window, and appends the front value to res. This exercises the monotonic-queue move: push pops smaller values from the back so the largest sits at the front, and popleft removes the expired front. All assertions passed on execution.",
+      "seconds": 384
     }
   }
 }
