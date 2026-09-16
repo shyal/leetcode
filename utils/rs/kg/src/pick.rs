@@ -196,7 +196,7 @@ use crate::drills::{
     anki, cold_drill, drill_capped, drill_held, drills_left, group_caps, group_reps, last_drilled,
 };
 use crate::evidence::Evidence;
-use crate::model::{problem_solve_p, solve_model, solve_ratings, target_pass_rate};
+use crate::model::{problem_solve_p, solve_model, solve_ratings, target_pass_rate, SolveState};
 use crate::recog;
 use crate::status::{
     all_statuses, cooled, current_recall, gentleness, input_tree, is_solid, last_solved,
@@ -561,13 +561,7 @@ struct Picker<'a> {
     gain: HashMap<String, i64>,
     dodged: HashMap<String, String>,
     under: HashMap<String, String>,
-    model: RefCell<
-        Option<(
-            HashMap<String, f64>,
-            Option<HashMap<String, f64>>,
-            HashMap<String, f64>,
-        )>,
-    >,
+    model: RefCell<Option<SolveState>>,
     // pure per pick: memoized (the Python recomputes them; the answers
     // are the same, only sooner)
     due_memo: RefCell<HashMap<String, Option<String>>>,
@@ -893,13 +887,7 @@ impl<'a> Picker<'a> {
         }
     }
 
-    fn solve_state(
-        &self,
-    ) -> (
-        HashMap<String, f64>,
-        Option<HashMap<String, f64>>,
-        HashMap<String, f64>,
-    ) {
+    fn solve_state(&self) -> SolveState {
         if let Some(s) = self.model.borrow().as_ref() {
             return s.clone();
         }
@@ -914,7 +902,12 @@ impl<'a> Picker<'a> {
         } else {
             HashMap::new()
         };
-        let state = (recall, coef, ratings);
+        let counts = if coef.is_some() {
+            self.pv.borrow().carrier_counts(self.ctx).as_ref().clone()
+        } else {
+            HashMap::new()
+        };
+        let state = (recall, coef, ratings, counts);
         *self.model.borrow_mut() = Some(state.clone());
         state
     }
@@ -938,11 +931,11 @@ impl<'a> Picker<'a> {
                 .collect()
         };
         let aim = target_pass_rate();
-        let (recall, coef, ratings) = self.solve_state();
+        let (recall, coef, ratings, counts) = self.solve_state();
         {
             let pv = self.pv.borrow();
             let informative = |p: &str| -> (bool, f64) {
-                let odds = problem_solve_p(p, &pv, &recall, coef.as_ref(), &ratings);
+                let odds = problem_solve_p(p, &pv, &recall, coef.as_ref(), &ratings, &counts);
                 match odds {
                     None => (true, 0.0),
                     Some(o) => (false, (o - aim).abs()),
@@ -979,7 +972,7 @@ impl<'a> Picker<'a> {
             } else {
                 &["Easy", "Medium"]
             };
-            let state = (recall, coef, ratings);
+            let state = (recall, coef, ratings, counts);
             predicted_carrier(
                 self.ctx,
                 target,
