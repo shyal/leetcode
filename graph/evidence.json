@@ -27300,6 +27300,17 @@
       "note": "Notes mark the file as Learning; the code builds each club's member set and unions co-members into adj[i], then discards self.",
       "summary": "The code builds an adjacency list of sets, one per club index, and for each club's member list unions all co-members into each member's set, then removes self-loops. This is the group-overlap adjacency move: clubs act as nodes whose shared members connect them, with no person-to-person edges and no pairwise element tests, meeting the O(n*L) requirement. The notes label the file as Learning, so the approach was given and copied.",
       "seconds": 487
+    },
+    "solved/d_Count_Cells_2026_09_16T22_00_25_184365_00_00Z.py": {
+      "date": "2026-09-17",
+      "problem": "drill",
+      "moves": {
+        "grid-neighbors": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Uses the harness `cells(grid)` iterator to visit every cell; no explicit delta offsets written.",
+      "summary": "The code counts how many cells in the grid equal v by iterating over `cells(grid)` and adding `grid[i][j] == v` to a running total. It exercises the grid-neighbors node only through the harness's `cells` helper, which enumerates all cell coordinates; the cardinal-offset enumeration itself is not written out. All assertions pass, including the 1000x1000 case.",
+      "seconds": 87
     }
   }
 }
