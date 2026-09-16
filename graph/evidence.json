@@ -25974,6 +25974,17 @@
       "judge": "deepseek-chat",
       "note": "LEETCODE: Time Limit Exceeded (66/76 cases). The brute force ran correctly; the missing move is prefix-sum-hashmap (the remainder count), which the O(n^2) pair loop stood in for. Notes say 'Solving as brute force. TLE.' Re-attributed by hand on 2026-09-16: the judge had pinned the TLE on substring-enumeration.",
       "summary": "The code builds a prefix-sum array with accumulate and a range_sum lambda, then enumerates every (i, j) subarray with two nested loops and counts those whose range sum is divisible by k. It exercises prefix-sums and running-sum, but routes around the canonical prefix-sum-hashmap, counter-build, streaming-ask-then-record, and derived-key-lookup moves. The notes state it was solved as a brute force and LeetCode rejected it with Time Limit Exceeded (66/76 cases)."
+    },
+    "solved/p2094_Finding_3-Digit_Even_Numbers_2026_09_16T04_21_42_080888_00_00Z.py": {
+      "date": "2026-09-16",
+      "problem": "2094",
+      "moves": {
+        "set-membership": "clean",
+        "substring-enumeration": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Canonical counter-build + divmod-decompose sidestepped by brute-force permutations; LeetCode Accepted at 7661 ms.",
+      "summary": "The code brute-forces every 3-permutation of digits, skips leading zeros, folds each tuple into a number with reduce, keeps even ones in a set, and returns the sorted list. It exercises set-membership for dedupe and permutation enumeration rather than the canonical counter-build and divmod-decompose walk. LeetCode accepted it at 7661 ms, and the local assertions all pass."
     }
   }
 }
