@@ -27344,6 +27344,15 @@
       "note": "Drill trains heap-top-k: heapify on [ratio, x, y] triples then heappop repeatedly yields ascending ratio order; the source guard confirms no sort/key= was used.",
       "summary": "The code builds a list of [x/y, x, y] triples from the classes, heapifies it, and pops repeatedly, appending the [x, y] payloads so the result comes out in ascending ratio order. This exercises heap-top-k via heapify plus repeated heappop, and the file's own assertion checks that no sort or key= appears in the solution body. All assertions passed and the run exited 0.",
       "seconds": 158
+    },
+    "solved/d_Swap_First_Two_2026_09_16T22_11_33_439840_00_00Z.py": {
+      "date": "2026-09-17",
+      "problem": "drill",
+      "moves": {},
+      "judge": "deepseek-chat",
+      "note": "Handles the head-swap with a direct pointer re-link (m.next, c.next = c.next, m) and an early return, so no dummy node is used.",
+      "summary": "The code swaps the first two nodes of a linked list by relinking head and head.next directly, returning the new head c, with an early return for lists shorter than two. It exercises pointer re-linking but sidesteps the dummy-node splice the drill targets, since the head case is handled by the early return instead. All assertions passed on execution.",
+      "seconds": 136
     }
   }
 }
