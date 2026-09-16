@@ -27353,6 +27353,16 @@
       "note": "Handles the head-swap with a direct pointer re-link (m.next, c.next = c.next, m) and an early return, so no dummy node is used.",
       "summary": "The code swaps the first two nodes of a linked list by relinking head and head.next directly, returning the new head c, with an early return for lists shorter than two. It exercises pointer re-linking but sidesteps the dummy-node splice the drill targets, since the head case is handled by the early return instead. All assertions passed on execution.",
       "seconds": 136
+    },
+    "solved/d_Remove_Value_2026_09_16T22_15_42_952949_00_00Z.py": {
+      "date": "2026-09-17",
+      "problem": "drill",
+      "moves": {
+        "ll-dummy-splice": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The code builds a dummy node `d = pre = ListNode(0, head)` and walks `pre` through the list, re-linking `pre.next = pre.next.next` whenever the next value equals `val`, then returns `d.next`. This exercises the dummy-splice move directly, including the all-matching and empty-list cases. All assertions passed on execution.",
+      "seconds": 141
     }
   }
 }
