@@ -25924,6 +25924,16 @@
       },
       "judge": "deepseek-chat",
       "summary": "The drill defines Solution.gain(a, t) as the marginal gain of adding one cat: (a+1)/(t+1) - a/t, i.e. the new ratio minus the old ratio. The assertions check the formula at several (a, t) pairs, including the zero-gain case gain(2,2)==0.0 and a large-value case, and all pass. This exercises the marginal-gain move directly, with no notes indicating any help or recognition difficulty."
+    },
+    "solved/d_Boys_Ratio_Order_2026_09_16T02_20_44_006553_00_00Z.py": {
+      "date": "2026-09-16",
+      "problem": "drill",
+      "moves": {
+        "heap-top-k": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill asserts no sort/key= is used; solution builds a min-heap of [ratio, x, y] and pops all n entries, ordering by ratio.",
+      "summary": "The code builds a list of [x/y, x, y] triples from the classes, heapifies it, then pops every entry and returns the [x, y] tails, yielding ascending ratio order. This exercises the heap-top-k move: a heap keyed on the ratio orders the pairs, and the drill's assertion confirms no sort or key= was used. The run exited 0 with all assertions passing, including the 100k-element case."
     }
   }
 }
