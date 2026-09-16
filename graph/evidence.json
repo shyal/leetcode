@@ -25915,6 +25915,15 @@
       "judge": "deepseek-chat",
       "note": "AssertionError on the last assert: left 0.7966666666666666 vs right 0.7966666666666667 \u2014 a float-equality defect in the test line, not in the heap logic; LEETCODE: Accepted (2480 ms, 59.3 MB).",
       "summary": "The code computes each class's marginal gain (p+1)/(t+1) - p/t, builds a max-heap of (gain, p, t), and for each extra student pops the top, increments p and t, and pushes the recomputed gain back; the answer is the mean of p/t over the heap. This exercises heap-simulation (repeated pop-transform-push) and heap-top-k (heap keyed on the best gain), while the canonical sort/greedy/backtracking/memoization moves are not used. The notes say the leetcode hints gave the approach away and it was learned, and the run fails only on the final assert comparing 0.7966666666666666 to 0.7966666666666667 with exact equality."
+    },
+    "solved/d_One_More_Cat_2026_09_16T02_17_34_161860_00_00Z.py": {
+      "date": "2026-09-16",
+      "problem": "drill",
+      "moves": {
+        "marginal-gain": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The drill defines Solution.gain(a, t) as the marginal gain of adding one cat: (a+1)/(t+1) - a/t, i.e. the new ratio minus the old ratio. The assertions check the formula at several (a, t) pairs, including the zero-gain case gain(2,2)==0.0 and a large-value case, and all pass. This exercises the marginal-gain move directly, with no notes indicating any help or recognition difficulty."
     }
   }
 }
