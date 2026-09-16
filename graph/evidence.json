@@ -27333,6 +27333,17 @@
       "note": "Uses harness helpers cells() and nbrs() to enumerate cardinal neighbors; all assertions passed.",
       "summary": "The code builds a result grid with like(grid), then for every cell produced by cells(grid) it sets rs[i][j] to the count of neighbors returned by nbrs(grid, i, j). This exercises the grid-neighbors move: cardinal offsets are enumerated by the helper and each neighbor is counted. The file ran cleanly and all assertions, including the aliasing check on t, passed.",
       "seconds": 91
+    },
+    "solved/d_Boys_Ratio_Order_2026_09_16T22_08_19_515345_00_00Z.py": {
+      "date": "2026-09-17",
+      "problem": "drill",
+      "moves": {
+        "heap-top-k": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill trains heap-top-k: heapify on [ratio, x, y] triples then heappop repeatedly yields ascending ratio order; the source guard confirms no sort/key= was used.",
+      "summary": "The code builds a list of [x/y, x, y] triples from the classes, heapifies it, and pops repeatedly, appending the [x, y] payloads so the result comes out in ascending ratio order. This exercises heap-top-k via heapify plus repeated heappop, and the file's own assertion checks that no sort or key= appears in the solution body. All assertions passed and the run exited 0.",
+      "seconds": 158
     }
   }
 }
