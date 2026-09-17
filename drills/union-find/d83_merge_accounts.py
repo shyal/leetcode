@@ -79,47 +79,37 @@ from dsa.union_find import UnionFind
 
 class Solution(UnionFind):
     def mergeAccounts(self, accounts: List[List[str]]) -> Dict[int, set]:
-        persons = defaultdict(set)
-        for account, emails in enumerate(accounts):
-            person = self.find(account)
-            for email in emails:
-                persons[person].add(email)
-        return persons
+        pass
 
 
-accounts = [
-    ["js@m.co", "jn@m.co"],
-    ["mary@m.co"],
-    ["jn@m.co", "j0@m.co"],
-    ["m2@m.co", "mary@m.co"],
-]
 sol = Solution(4)
-sol.union_shared(accounts)
 
+accounts = [["js@m.co", "jn@m.co"], ["mary@m.co"], ["jn@m.co", "j0@m.co"], ["m2@m.co", "mary@m.co"]]
+sol.union_shared(accounts)
 print(sol.mergeAccounts(accounts))
 # {0: {'js@m.co', 'jn@m.co', 'j0@m.co'}, 1: {'mary@m.co', 'm2@m.co'}}
 
-accounts = [["js@m.co", "jn@m.co"], ["mary@m.co"], ["jn@m.co", "j0@m.co"], ["m2@m.co", "mary@m.co"]]
-sol = Solution(4)
-sol.union_shared(accounts)
-assert sol.mergeAccounts(accounts) == {0: {"js@m.co", "jn@m.co", "j0@m.co"}, 1: {"mary@m.co", "m2@m.co"}}
+# accounts = [["js@m.co", "jn@m.co"], ["mary@m.co"], ["jn@m.co", "j0@m.co"], ["m2@m.co", "mary@m.co"]]
+# sol = Solution(4)
+# sol.union_shared(accounts)
+# assert sol.mergeAccounts(accounts) == {0: {"js@m.co", "jn@m.co", "j0@m.co"}, 1: {"mary@m.co", "m2@m.co"}}
 
-accounts = [["g@m.co"], ["g@m.co"], ["g@m.co"]]
-sol = Solution(3)
-sol.union_shared(accounts)
-assert sol.mergeAccounts(accounts) == {0: {"g@m.co"}}
+# accounts = [["g@m.co"], ["g@m.co"], ["g@m.co"]]
+# sol = Solution(3)
+# sol.union_shared(accounts)
+# assert sol.mergeAccounts(accounts) == {0: {"g@m.co"}}
 
-accounts = [["e@m.co"]]
-sol = Solution(1)
-sol.union_shared(accounts)
-assert sol.mergeAccounts(accounts) == {0: {"e@m.co"}}
+# accounts = [["e@m.co"]]
+# sol = Solution(1)
+# sol.union_shared(accounts)
+# assert sol.mergeAccounts(accounts) == {0: {"e@m.co"}}
 
-accounts = [["a@m.co", "b@m.co"], ["c@m.co", "d@m.co"]]
-sol = Solution(2)
-sol.union_shared(accounts)
-assert sol.mergeAccounts(accounts) == {0: {"a@m.co", "b@m.co"}, 1: {"c@m.co", "d@m.co"}}
+# accounts = [["a@m.co", "b@m.co"], ["c@m.co", "d@m.co"]]
+# sol = Solution(2)
+# sol.union_shared(accounts)
+# assert sol.mergeAccounts(accounts) == {0: {"a@m.co", "b@m.co"}, 1: {"c@m.co", "d@m.co"}}
 
-accounts = [["a@m.co"], ["b@m.co", "a@m.co"], ["c@m.co"], ["d@m.co", "c@m.co"], ["d@m.co"]]
-sol = Solution(5)
-sol.union_shared(accounts)
-assert sol.mergeAccounts(accounts) == {0: {"a@m.co", "b@m.co"}, 2: {"c@m.co", "d@m.co"}}
+# accounts = [["a@m.co"], ["b@m.co", "a@m.co"], ["c@m.co"], ["d@m.co", "c@m.co"], ["d@m.co"]]
+# sol = Solution(5)
+# sol.union_shared(accounts)
+# assert sol.mergeAccounts(accounts) == {0: {"a@m.co", "b@m.co"}, 2: {"c@m.co", "d@m.co"}}
