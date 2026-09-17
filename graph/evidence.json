@@ -27684,6 +27684,16 @@
       "note": "Never-shrink variant: when zeros > k, left advances one step without a while loop, so the window width never decreases.",
       "summary": "The code scans nums once, counting zeros in the current window and tracking the best width seen. When zeros exceeds k it advances left by one and decrements zeros only if the departing element was a zero, so the window slides at constant width rather than shrinking. This is the never-shrink budget window, and all assertions pass with output 6.",
       "seconds": 201
+    },
+    "solved/d_All_Substrings_2026_09_17T22_36_26_052217_00_00Z.py": {
+      "date": "2026-09-18",
+      "problem": "drill",
+      "moves": {
+        "substring-enumeration": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The code yields every substring of s using two nested loops: an outer start index i and an inner end index j, slicing s[i:j+1] for each pair. This is the by-start form of substring enumeration, and the @as_list decorator materializes the generator so the assertions compare lists. All assertions passed on execution, including the duplicate-heavy 'aaa' and 'abca' cases and the length-55 check for a 10-character string.",
+      "seconds": 90
     }
   }
 }
