@@ -27673,6 +27673,17 @@
       "judge": "deepseek-chat",
       "summary": "The code walks the weights once, keeping a running total per section and starting a new section (sections += 1, total = w) whenever adding the next weight would exceed cap; a weight larger than cap returns 0. This exercises the running-sum move, accumulating and resetting the total as it scans. All assertions passed and the file exited 0.",
       "seconds": 142
+    },
+    "solved/d_Slide_Never_Shrink_2026_09_17T22_34_35_112662_00_00Z.py": {
+      "date": "2026-09-18",
+      "problem": "drill",
+      "moves": {
+        "sliding-window-budget": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Never-shrink variant: when zeros > k, left advances one step without a while loop, so the window width never decreases.",
+      "summary": "The code scans nums once, counting zeros in the current window and tracking the best width seen. When zeros exceeds k it advances left by one and decrements zeros only if the departing element was a zero, so the window slides at constant width rather than shrinking. This is the never-shrink budget window, and all assertions pass with output 6.",
+      "seconds": 201
     }
   }
 }
