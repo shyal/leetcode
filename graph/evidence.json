@@ -27751,6 +27751,18 @@
       "note": "Drill trains union-find: counts roots via self.find(v) == i over parent[]; all assertions passed.",
       "summary": "The Solution subclasses UnionFind and countCompanies sums i == self.find(v) over enumerate(self.parent), counting nodes that are their own root. The drill sets parent arrays directly and checks the head count across two-head, single-head, unmerged, single-employee, chain, and every-third cases. All assertions passed and the file exited 0.",
       "seconds": 125
+    },
+    "solved/d_Companies_Among_2026_09_17T23_17_25_341429_00_00Z.py": {
+      "date": "2026-09-18",
+      "problem": "drill",
+      "moves": {
+        "union-find": "clean",
+        "set-membership": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets union-find; code subclasses UnionFind and calls self.find(x) per employee, then counts distinct roots via a set.",
+      "summary": "The Solution subclasses UnionFind and countCompaniesAmong maps each employee to its root with self.find(x), then returns len(set(...)) of those roots. This exercises union-find's find path and set-membership to deduplicate heads. All assertions pass, including the no-employee, single-employee, duplicate-employee, and 1000-unmerged cases.",
+      "seconds": 147
     }
   }
 }
