@@ -27512,6 +27512,20 @@
       "note": "Uses harness nbrs() for cardinal neighbors; marks cells '+' on enqueue/dequeue to avoid revisits.",
       "summary": "The code runs a BFS from the entrance using a deque of (x, y, dist), marking visited cells with '+' and returning dist when it dequeues a boundary cell that is not the entrance. Neighbors come from the harness nbrs() helper, so grid-neighbors and graph-bfs-shortest are exercised; the multi-source variant is not used since there is a single entrance. All assertions pass, including the -1 cases and the 100x100 all-wall case.",
       "seconds": 813
+    },
+    "solved/d_Not_Boring_Movies_2026_09_17T20_46_08_120639_00_00Z.py": {
+      "date": "2026-09-18",
+      "problem": "drill",
+      "moves": {
+        "sql-filter-select": "clean"
+      },
+      "assist": {
+        "sql-filter-select": "hint"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say the LIKE syntax for '%boring%' was forgotten; used description != 'boring' instead, which passes the given examples.",
+      "summary": "The query selects all columns from Cinema, filters with WHERE on id % 2 != 0 and description != 'boring', and orders by rating descending. It exercises the sql-filter-select move in one SELECT. The notes say the candidate could not recall the LIKE syntax for '%boring%' and was assisted on the description condition, using inequality instead.",
+      "seconds": 390
     }
   }
 }
