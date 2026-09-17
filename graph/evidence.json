@@ -27571,6 +27571,17 @@
       "note": "Drill targets bit-flags; enum.Flag members via auto(), union with |=, and Color[n] lookup all exercised.",
       "summary": "The Solution.seen method starts from Color(0) and ORs in each named color via col |= Color[n], accumulating a Flag value that deduplicates repeated names. The assertions confirm union of red|blue, the empty Color(0), single members, and idempotence under repetition. This exercises the bit-flags move: named states as one Flag value, union with |, and membership by name lookup.",
       "seconds": 49
+    },
+    "solved/d_Sort_Bounded_Values_2026_09_17T21_48_03_169573_00_00Z.py": {
+      "date": "2026-09-18",
+      "problem": "drill",
+      "moves": {
+        "counting-sort-buckets": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets counting-sort-buckets; buckets array indexed by value, then emitted in order.",
+      "summary": "The code allocates a fixed 101-slot buckets array, increments buckets[n] for each input value, then walks the buckets in index order yielding each value v times. This is the counting-sort-buckets move: the small value domain is indexed directly instead of sorting. All assertions passed on execution.",
+      "seconds": 163
     }
   }
 }
