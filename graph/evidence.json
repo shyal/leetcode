@@ -27729,6 +27729,17 @@
       "note": "Drill targets two-sequence-align; the 2D table with a[i]==b[j] diagonal +1 else max of left/up is exactly the two-prefix recurrence.",
       "summary": "The code pads both strings with a leading space, builds a 2D table via table(len(a), len(b)), and fills it with cells(dp, start=1). Matching characters take dp[i-1][j-1]+1; otherwise the cell takes max(dp[i-1][j], dp[i][j-1]), and the answer is dp[-1][-1]. This exercises two-sequence-align and dp-2d-grid, and all assertions including the 1000-character case pass.",
       "seconds": 284
+    },
+    "solved/d_Find_Roots_2026_09_17T23_08_35_464922_00_00Z.py": {
+      "date": "2026-09-18",
+      "problem": "drill",
+      "moves": {
+        "union-find": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill trains the find half of union-find: recursive parent chase to the root, no path compression or union.",
+      "summary": "The file defines buildFind, which returns a recursive find closure that walks parent[x] until it reaches a self-parent root. The assertions exercise chains of varying length, a self-loop, and a single-element parent array, all passing. Only the find/root-resolution half of union-find is present; union and path compression are not implemented.",
+      "seconds": 61
     }
   }
 }
