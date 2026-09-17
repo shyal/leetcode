@@ -27560,6 +27560,17 @@
       "note": "Drill trains binary-search-on-answer via a last-true predicate boundary search; all assertions pass, call count <= 31 confirms logarithmic halving.",
       "summary": "The Solution.lastTrue method binary-searches the last integer in [lo, hi] for which the predicate ok returns True, using mid = (lo + hi + 1) // 2 and moving lo to mid on success or hi to mid - 1 otherwise. It exercises the last-true boundary template and the binary-search-on-answer pattern, where the predicate stands in for a feasibility check over the answer space. All assertions pass, including the 10**9 range with at most 31 calls, confirming logarithmic behavior. No notes indicate any assistance or recognition difficulty.",
       "seconds": 444
+    },
+    "solved/d_Colors_Seen_2026_09_17T21_44_27_309693_00_00Z.py": {
+      "date": "2026-09-18",
+      "problem": "drill",
+      "moves": {
+        "bit-flags": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets bit-flags; enum.Flag members via auto(), union with |=, and Color[n] lookup all exercised.",
+      "summary": "The Solution.seen method starts from Color(0) and ORs in each named color via col |= Color[n], accumulating a Flag value that deduplicates repeated names. The assertions confirm union of red|blue, the empty Color(0), single members, and idempotence under repetition. This exercises the bit-flags move: named states as one Flag value, union with |, and membership by name lookup.",
+      "seconds": 49
     }
   }
 }
