@@ -38,6 +38,7 @@ use std::time::{Duration, Instant};
 use chrono::{DateTime, Utc};
 use indexmap::IndexMap;
 use kg::bank::unlocks;
+use kg::clock::is_studied;
 use kg::console::Console;
 use kg::ctx::{Ctx, PView};
 use kg::data::{
@@ -307,7 +308,9 @@ fn problem_of_fname(path: &str) -> Option<(String, String)> {
 /// The placeholder `make solved` files before the judge runs: the rep,
 /// dated, on the moves the file is FOR - a drill's TRAINS, a problem's
 /// canonical walk - marked clean; a FAILED file records the rep with no
-/// moves at all. Assist read from the level word in the notes.
+/// moves at all. Assist read from the level word in the notes. A STUDIED
+/// file is not judged: its entry has no moves, no assist and no `pending`
+/// stamp, and is the record (kg::clock::is_studied).
 pub fn stub_entry(
     path: &str,
     code: &str,
@@ -326,7 +329,8 @@ pub fn stub_entry(
         let m = problem_moves(&p);
         (p, m)
     };
-    let failed = basename(path).contains("_FAILED_");
+    let studied = is_studied(path);
+    let failed = basename(path).contains("_FAILED_") || studied;
     let moves: Vec<String> = if failed {
         vec![]
     } else {
@@ -343,6 +347,9 @@ pub fn stub_entry(
     );
     entry.insert("problem".into(), json!(problem));
     entry.insert("moves".into(), Value::Object(moves_map));
+    if studied {
+        return Value::Object(entry);
+    }
     entry.insert(
         "pending".into(),
         json!(now.format("%Y-%m-%dT%H:%M:%S+00:00").to_string()),
@@ -371,7 +378,9 @@ pub fn judge_title(path: &str) -> String {
         Some(m) => format!(
             "{}. {}",
             &m[1],
-            m[2].replace("_FAILED", "").replace('_', " ")
+            m[2].replace("_FAILED", "")
+                .replace("_STUDIED", "")
+                .replace('_', " ")
         ),
         None => base,
     }
@@ -1191,6 +1200,10 @@ fn main() {
                 .as_object()
                 .map(|m| m.keys().map(String::as_str).collect())
                 .unwrap_or_default();
+            if is_studied(&path) {
+                console.print("[dim]studied: filed with no moves; nothing to judge.[/dim]");
+                return;
+            }
             console.print(&format!(
                 "[dim]placeholder filed on {}; the judge runs detached.[/dim]",
                 if moves.is_empty() {
@@ -1224,6 +1237,7 @@ fn main() {
         Some(f) => vec![f.strip_prefix("./").unwrap_or(f).to_string()],
         None => files
             .iter()
+            .filter(|f| !is_studied(f))
             .filter(|f| match evidence.by_fname.get(*f) {
                 None => true,
                 Some(&i) => {
@@ -1929,6 +1943,23 @@ mod tests {
         assert_eq!(e["moves"], json!({}));
         assert_eq!(e["problem"], "drill");
         assert!(e["pending"].as_str().is_some_and(|p| !p.is_empty()));
+        // a studied file: no moves, no assist, and no judge to wait for
+        let e = stub_entry(
+            "solved/p1539_Kth_Missing_STUDIED_2026_09_06T04_31_57_473199_00_00Z.py",
+            "notes: learning, copied it all",
+            &nodes(),
+            &problem_moves,
+            &drills,
+            Utc::now(),
+        );
+        assert_eq!(e["moves"], json!({}));
+        assert_eq!(e["problem"], "1539");
+        assert!(e.get("pending").is_none());
+        assert!(e.get("assist").is_none());
+        assert_eq!(
+            judge_title("solved/p1539_Kth_Missing_STUDIED_2026_09_06T04_31_57_473199_00_00Z.py"),
+            "1539. Kth Missing"
+        );
         // unknown trains are dropped and the rep still exists
         let e = stub_entry(
             "solved/d_X_2026_09_06T04_31_57_473199_00_00Z.py",

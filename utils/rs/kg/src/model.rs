@@ -512,6 +512,12 @@ pub fn scored_games(ctx: &Ctx, ev: &Evidence) -> Vec<Game> {
         if !is_numeric_id(&pnum) || budget_min(&diff).is_none() {
             continue;
         }
+        // a studied file is no game, but the problem has been seen: the
+        // next scored rep of it is a repeat
+        if crate::clock::is_studied(fname) {
+            seen.insert(pnum);
+            continue;
+        }
         let level = rec.assist_any();
         let failed = fname.contains("FAILED");
         // the record's own clock; a record older than the field

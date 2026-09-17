@@ -26,7 +26,7 @@ pub fn solving_days(ctx: &Ctx) -> HashSet<NaiveDate> {
         .flatten()
     {
         let name = e.file_name().to_string_lossy().to_string();
-        if name.contains("FAILED") || !name.ends_with(".py") {
+        if name.contains("FAILED") || kg::clock::is_studied(&name) || !name.ends_with(".py") {
             continue;
         }
         if let Some(m) = re.captures(&name) {

@@ -67,6 +67,15 @@ and generate combination drills ("rote sheets").
   A `pending` entry is the queue: `make next` counts them in its footer and respawns
   any older than ten minutes; `make kg-extract` re-judges them all in line.
 
+  A `make studied` file (`_STUDIED_` in the name, kg::clock::is_studied) is the
+  one record with no judge: the problem was read, run, played with, submitted
+  maybe, and nothing was scored. Its entry has no moves, no assist and no
+  `pending` stamp, so no node, the curve, the Elo and `make stats` never see it.
+  What does see it: the problem's own card opens (below, graded `again`),
+  `last_solved` cools it as a carrier, and `make rep` counts it, so the next
+  rep is a repeat and the first-exposure answer is spent. `make drop` leaves
+  none of that behind, and the picker serves the problem again as never seen.
+
   The placeholder also carries `seconds`, the active time on the clock when
   `make solved` ran, and every later rewrite of the entry keeps it. The Elo's
   games (`scored_games`) read it from the record; records from before the field
@@ -201,7 +210,7 @@ had never been solved cleanly since; the picker could not see any of them.
 
 `kg_lib.problem_due` gives a problem a card, and only when an attempt at it
 needed help or ended in walking away: a copied solution (`learning`), a
-walkthrough, a hint, or a FAILED file (`OPENS_CARD`). A struggled move on an
+walkthrough, a hint, a FAILED file, or a STUDIED one (`OPENS_CARD`). A struggled move on an
 otherwise unaided solve does not open one — the judge's verdict already
 shrinks that node's stability, which is the node curve's job, and 52 such
 problems from autumn 2025 would sit ahead of this week's on any overdue-first
@@ -211,9 +220,9 @@ The grades are the drill clock's (`anki_answer`), which is the point: only an
 unaided all-clean rep is Good, so the help that put the problem on the list
 can never be what takes it off.
 
-    again   a fail, a copy, a walkthrough, or a struggle    due in 3 days
-    hard    a hinted clean rep                              1.2x further out
-    good    an unaided clean rep                            card retired
+    again   a fail, a study, a copy, a walkthrough, a struggle    due in 3 days
+    hard    a hinted clean rep                                    1.2x further out
+    good    an unaided clean rep                                  card retired
 
 Retired, not rescheduled: the debt is paid and the node curve carries the
 problem from there. A later bad attempt opens a new card. The graduating

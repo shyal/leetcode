@@ -5,7 +5,7 @@
 use chrono::Duration;
 
 use super::*;
-use crate::clock::problem_due;
+use crate::clock::{attempt_label, problem_due, PROBLEM_GRADUATING_DAYS};
 use crate::data::test_env;
 use crate::drills::{anki_due, anki_frontier, anki_next_if_good, due_drill};
 use crate::pick::review_queue;
@@ -327,6 +327,75 @@ fn a_clean_first_solve_is_never_re_served_as_a_review() {
     let ev = evidence(vec![solve("1", &[("q1", "clean")], 30)]);
     assert_eq!(problem_due(&ev, "1"), None);
     assert!(!reason(&fx.run(&ev, &st, args())).contains("waiting for"));
+}
+
+/// `make studied`: the file carries the marker and the record no moves.
+fn studied(pnum: &str, days_ago: i64) -> (String, Rec) {
+    let (_, r) = solve(pnum, &[], days_ago);
+    (format!("solved/p{pnum}_STUDIED_{days_ago}.py"), r)
+}
+
+/// A problem read and played with, nothing scored: no node sees it, but
+/// the card opens like a copied solution's - three days, then unaided.
+#[test]
+fn a_studied_problem_opens_its_card_and_touches_no_node() {
+    let ev = evidence(vec![studied("1", 0)]);
+    assert_eq!(
+        attempt_label("solved/p1_STUDIED_0.py", ev.rec(0)),
+        "studied"
+    );
+    assert_eq!(
+        problem_due(&ev, "1"),
+        Some((
+            ago(0) + Duration::days(PROBLEM_GRADUATING_DAYS),
+            PROBLEM_GRADUATING_DAYS
+        ))
+    );
+    assert!(!owned(&ev, "q1"));
+    assert_eq!(crate::status::last_clean_solve(&ev, "1"), "");
+    // the clean rep three days on retires it
+    let ev = evidence(vec![studied("1", 3), solve("1", &[("q1", "clean")], 0)]);
+    assert_eq!(problem_due(&ev, "1"), None);
+}
+
+/// The picker sees a studied problem as seen: cooled as a carrier, and
+/// served back on its card once that is due, not as a fresh carrier of
+/// the move tomorrow.
+#[test]
+fn a_studied_problem_is_not_re_served_before_its_card_is_due() {
+    let mut fx = Fx::picker();
+    fx.nodes(&["q1"])
+        .problems(vec![("1", problem(&["q1"])), ("2", problem(&["q1"]))]);
+    let st = statuses(&[("q1", STALE, Some(60))]);
+    let ev = evidence(vec![solve("2", &[("q1", "clean")], 60), studied("1", 1)]);
+    assert_ne!(pnum(&fx.run(&ev, &st, args())), "1");
+    let ev = evidence(vec![
+        solve("2", &[("q1", "clean")], 60),
+        studied("1", PROBLEM_GRADUATING_DAYS),
+    ]);
+    assert_eq!(pnum(&fx.run(&ev, &st, args())), "1");
+}
+
+/// No game: Elo and `make stats` never see it. The next scored rep of the
+/// problem is a repeat, since it has been seen.
+#[test]
+fn a_studied_problem_is_no_game_but_the_next_rep_is_a_repeat() {
+    let mut fx = Fx::picker();
+    fx.nodes(&["q1"]).problem("1", problem(&["q1"]));
+    let ctx = fx.ctx();
+    *ctx.solve_times.borrow_mut() = Some(vec![]);
+    let timed = |mut r: (String, Rec)| {
+        r.1.seconds = Some(600);
+        r
+    };
+    let ev = evidence(vec![
+        studied("1", 5),
+        timed(solve("1", &[("q1", "clean")], 0)),
+    ]);
+    let games = crate::model::scored_games(&ctx, &ev);
+    assert_eq!(games.len(), 1);
+    assert!(!games[0].first);
+    assert_eq!(games[0].score, 1.0);
 }
 
 #[test]

@@ -78,6 +78,9 @@ fn attempts(ctx: &Ctx, ev: &Evidence) -> Vec<Att> {
         let Some(r) = ratings.get(&pnum) else {
             continue;
         };
+        if kg::clock::is_studied(ev.fname(i)) {
+            continue; // read, not attempted
+        }
         let outcome = if ev.fname(i).contains("FAILED") {
             "failed"
         } else {
