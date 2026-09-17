@@ -27706,6 +27706,17 @@
       "note": "Drill targets sliding-window-variable: grow right, shrink left while len(count) >= k, recording the window length before each shrink.",
       "summary": "The code scans s with a right pointer, maintaining a defaultdict count of characters in the current window. While the window holds at least k distinct characters it records the window length as a candidate best, then shrinks from the left, deleting keys that hit zero. It exercises the variable sliding-window move (shrink while the invariant holds) and the counter-build move; all assertions pass and the run exits 0.",
       "seconds": 262
+    },
+    "solved/d_Level_Groups_2026_09_17T22_54_02_757349_00_00Z.py": {
+      "date": "2026-09-18",
+      "problem": "drill",
+      "moves": {
+        "tree-bfs-levels": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "BFS via deque of (node, level) pairs; groups nodes by level in a defaultdict and returns sorted levels.",
+      "summary": "The code runs a BFS over a nested-list tree using a deque seeded with [tree, 0], popping each node with its level, appending node[0] to a defaultdict keyed by level, and enqueueing children at level+1. It then returns the level lists in sorted order. This exercises tree-bfs-levels: the queue processes nodes layer by layer and depth is tracked as the level. All assertions passed.",
+      "seconds": 206
     }
   }
 }
