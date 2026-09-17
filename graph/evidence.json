@@ -27526,6 +27526,17 @@
       "note": "Notes say the LIKE syntax for '%boring%' was forgotten; used description != 'boring' instead, which passes the given examples.",
       "summary": "The query selects all columns from Cinema, filters with WHERE on id % 2 != 0 and description != 'boring', and orders by rating descending. It exercises the sql-filter-select move in one SELECT. The notes say the candidate could not recall the LIKE syntax for '%boring%' and was assisted on the description condition, using inequality instead.",
       "seconds": 390
+    },
+    "solved/d_Choose_From_an_Array_2026_09_17T21_13_39_039440_00_00Z.py": {
+      "date": "2026-09-18",
+      "problem": "drill",
+      "moves": {
+        "backtracking-start-index": "clean",
+        "backtracking-choose-undo": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The code generates all k-element combinations of nums with a recursive helper(i) that loops j from i to the end, appends nums[j], recurses with j+1 so each element is used once and order is preserved, then pops. It exercises backtracking-start-index (the suffix start at j+1) and backtracking-choose-undo (append/recurse/pop with a path[:] copy at completion). All assertions pass, including the 1140 distinct triples from range(20).",
+      "seconds": 360
     }
   }
 }
