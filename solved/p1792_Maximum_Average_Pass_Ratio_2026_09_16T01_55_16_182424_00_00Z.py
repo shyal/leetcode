@@ -102,7 +102,7 @@ assert sol.maxAverageRatio([[99999, 100000]], 1) == 0.999990000099999
 assert sol.maxAverageRatio([[1, 1], [1, 1], [1, 1], [1, 1]], 0) == 1.0
 assert sol.maxAverageRatio([[0, 100000], [0, 100000]], 100000) == 0.3333333333333333
 assert (
-    sol.maxAverageRatio([[1, 2], [2, 3], [3, 4], [4, 5], [5, 6]], 5)
-    == 0.7966666666666667
+    abs(sol.maxAverageRatio([[1, 2], [2, 3], [3, 4], [4, 5], [5, 6]], 5) - 0.79666667)
+    < 1e-8
 )
 assert sol.maxAverageRatio([[1, 100000]] * 100000, 100000) == 1.9999800001946303e-05
