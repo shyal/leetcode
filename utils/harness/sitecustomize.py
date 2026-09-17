@@ -319,6 +319,7 @@ builtins.generate_and_print_random_bst = generate_and_print_random_bst
 builtins.generate_full_binary_tree = generate_full_binary_tree
 builtins.generate_random_tree = generate_random_tree
 builtins.build_graph_from_edge_list = build_graph_from_edge_list
+builtins.build_nary_tree = build_nary_tree
 
 # grids
 builtins.CARDINALS = CARDINALS
@@ -326,6 +327,8 @@ builtins.DIAGONALS = DIAGONALS
 builtins.ALL_EIGHT = ALL_EIGHT
 builtins.cells = cells
 builtins.nbrs = nbrs
+builtins.is_edge = is_edge
+builtins.edges = edges
 builtins.table = table
 builtins.like = like
 builtins.grid_bfs = grid_bfs
@@ -392,6 +395,7 @@ builtins.bisect = bisect
 builtins.re = re
 builtins.operator = operator
 
+# heaps
 builtins.heapq = heapq
 builtins.heapify = heapq.heapify
 builtins.heappop = heapq.heappop
@@ -428,7 +432,6 @@ builtins.gcd = gcd
 builtins.inf = inf
 builtins.isclose = isclose
 builtins.dropwhile = dropwhile
-builtins.build_nary_tree = build_nary_tree
 
 # random, as leetcode preloads it: the module by name plus the common functions bare
 builtins.random = random
@@ -455,6 +458,7 @@ def ceil_div(a: int, b: int) -> int:
     return (a + b - 1) // b
 
 
+# misc
 builtins.batched = batched
 builtins.ceil_div = ceil_div
 

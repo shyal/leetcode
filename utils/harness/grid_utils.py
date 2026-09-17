@@ -1,7 +1,8 @@
 # grid_utils.py
 #
 # Grid helpers preloaded by sitecustomize: scan a grid, list a cell's
-# in-bounds neighbours, build a table by shape or by size, multi-source BFS.
+# in-bounds neighbours, test for and list the border cells, build a table
+# by shape or by size, multi-source BFS.
 
 from collections import deque
 from typing import Any, Callable, Iterator, List, Sequence, Tuple
@@ -28,6 +29,18 @@ def nbrs(
         nr, nc = r + dr, c + dc
         if 0 <= nr < len(grid) and 0 <= nc < len(grid[0]):
             yield nr, nc
+
+
+def is_edge(grid: Sequence[Sequence[Any]], r: int, c: int) -> bool:
+    """True if (r, c) lies on the first or last row or column of grid."""
+    return r == 0 or c == 0 or r == len(grid) - 1 or c == len(grid[0]) - 1
+
+
+def edges(grid: Sequence[Sequence[Any]]) -> Iterator[Cell]:
+    """Every (i, j) on the border of grid, each once, in row-major order."""
+    for i, j in cells(grid):
+        if is_edge(grid, i, j):
+            yield i, j
 
 
 def table(*dims: int, fill: Any = 0) -> List[Any]:
