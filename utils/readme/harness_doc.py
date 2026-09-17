@@ -34,7 +34,7 @@ ASSIGN = re.compile(r"^builtins\.(\w+)\s*=")
 def sections(src):
     """(section title, [names]) pairs in source order; only the `# word` lines
     right before `builtins.` assignments count as titles."""
-    out = []
+    out: list[tuple[str, list[str]]] = []
     title = None
     for line in src.splitlines():
         m = SECTION.match(line)
@@ -58,7 +58,7 @@ def is_ours(obj):
         path = inspect.getsourcefile(obj)
     except TypeError:
         return False
-    return bool(path) and os.path.abspath(path).startswith(OURS)
+    return path is not None and os.path.abspath(path).startswith(OURS)
 
 
 def signature(name, obj):
@@ -78,7 +78,11 @@ def signature(name, obj):
     if inspect.isclass(getattr(builtins, name, None)) and node.args.args:
         node.args.args = node.args.args[1:]
     params = ast.unparse(node.args).replace("=", " = ")
-    ret = f" -> {ast.unparse(node.returns)}" if node.returns and not prefix.startswith("class") else ""
+    ret = (
+        f" -> {ast.unparse(node.returns)}"
+        if node.returns and not prefix.startswith("class")
+        else ""
+    )
     return f"{prefix}({params}){ret}"
 
 
@@ -90,7 +94,11 @@ def entry(name):
         if not is_ours(obj):
             return None
         doc = inspect.getdoc(obj) or ""
-        return f"### `{signature(name, obj)}`\n\n{doc}\n" if doc else f"### `{signature(name, obj)}`\n"
+        return (
+            f"### `{signature(name, obj)}`\n\n{doc}\n"
+            if doc
+            else f"### `{signature(name, obj)}`\n"
+        )
     if isinstance(obj, tuple) and all(isinstance(x, tuple) for x in obj):
         return f"### `{name}`\n\n`{obj!r}`\n"
     return None
