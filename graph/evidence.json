@@ -27605,6 +27605,17 @@
       "note": "Drill on event-sweep: the reachable-sum band (min+1, max+limit) is the interval swept to decide 0/1/2 turns.",
       "summary": "The code computes the interval of totals reachable with one turn as (min(a,b)+1, max(a,b)+limit) and returns 0 if a+b already equals T, 1 if T falls in that band, else 2. This is the event-sweep idea applied to a single interval: the band's endpoints act as the boundary events and the membership test is the sweep. All assertions pass and the printed result is 1.",
       "seconds": 81
+    },
+    "solved/d_Cut_At_The_Middle_2026_09_17T21_53_36_911627_00_00Z.py": {
+      "date": "2026-09-18",
+      "problem": "drill",
+      "moves": {
+        "fast-slow-pointers": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Loop condition fast.next.next keeps slow at the last node of the first half for both even and odd lengths.",
+      "summary": "The code splits a linked list in half by advancing slow one step and fast two steps until fast can no longer jump two ahead, then cuts at slow.next. It exercises the fast-slow-pointers move, with the loop guard tuned so slow lands on the last node of the first half for both even and odd lengths. All assertions, including the 50000-element case, passed.",
+      "seconds": 169
     }
   }
 }
