@@ -27449,6 +27449,17 @@
       "note": "Notes say the group-counting line (sum of roots) was hinted; the union-find structure itself was written unaided. LeetCode: Accepted (39 ms, 22.6 MB).",
       "summary": "The code builds a union-find over row-nodes (\"r{r}\") and column-nodes (\"c{c}\"), unions each stone's row with its column, then counts distinct roots and returns len(stones) - groups. It exercises union-find with path compression, plus the inverted-index idea of mapping each row/column to the stones sharing it. The notes say the candidate was hinted on the final group-counting line and got everything else themselves; LeetCode accepted the submission.",
       "seconds": 1910
+    },
+    "solved/d_Companies_Left_2026_09_17T00_36_14_024660_00_00Z.py": {
+      "date": "2026-09-17",
+      "problem": "drill",
+      "moves": {
+        "union-find": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Counts roots by x == parent[x]; exercises the union-find parent-array representation.",
+      "summary": "The Solution subclasses UnionFind and countCompanies sums the indices where parent[x] equals x, i.e. counts the roots of the disjoint-set forest. The drill sets parent arrays directly and asserts the root count across several configurations, all passing. This exercises the union-find parent-array/root-identification move.",
+      "seconds": 150
     }
   }
 }
