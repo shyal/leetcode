@@ -482,7 +482,13 @@ pub fn solves_today(ctx: &Ctx) -> Vec<String> {
     let mut solves: HashSet<String> = HashSet::new();
     for (ts, _, files) in &st.recent {
         if *ts >= midnight {
-            solves.extend(files.iter().cloned());
+            // a study is not a solve: it warms nothing up
+            solves.extend(
+                files
+                    .iter()
+                    .filter(|f| !crate::clock::is_studied(f))
+                    .cloned(),
+            );
         }
     }
     let mut v: Vec<String> = solves.into_iter().collect();
@@ -622,7 +628,11 @@ fn mine_solve_times(root: &Path) -> Vec<SolveRep> {
             .filter_map(|l| l.strip_prefix("solved/"))
             .filter(|l| l.ends_with(".py") && !l.contains(char::is_whitespace))
             .collect();
-        if added.len() != 1 || added[0].contains("FAILED") || !(0 < secs && secs < 36000) {
+        if added.len() != 1
+            || added[0].contains("FAILED")
+            || crate::clock::is_studied(added[0])
+            || !(0 < secs && secs < 36000)
+        {
             continue;
         }
         let name = added[0];

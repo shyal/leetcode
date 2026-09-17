@@ -7,6 +7,10 @@
 //                        current.py into solved/, clear it, park the
 //                        frozen commit message in .solve_meta.json
 //                        (untracked, gitignored). No git.
+//   kg_solved --failed   the same, filed as a walk-away (_FAILED_)
+//   kg_solved --studied  the same, filed as a study (_STUDIED_): the
+//                        problem was read and played with, nothing is
+//                        scored. No judge: the placeholder is the record.
 //   kg_extract --stub    placeholder evidence for the filed solve, no
 //                        model call (a spot rep is judged here, in line:
 //                        its walk is revealed after the judge)
@@ -92,7 +96,7 @@ fn clean_title(title: &str) -> String {
 /// solved/ filename for a finished attempt. Stamped in UTC on purpose - the
 /// same clock as git - and anything that needs the calendar day converts
 /// with kg_lib.manila_date_from_filename rather than reading the digits.
-fn solved_filename(problem_id: &str, title: &str, failed: bool, now: DateTime<Utc>) -> String {
+fn solved_filename(problem_id: &str, title: &str, marker: &str, now: DateTime<Utc>) -> String {
     // datetime.isoformat(): the microseconds only when they are not zero
     let iso = if now.timestamp_subsec_micros() == 0 {
         now.format("%Y-%m-%dT%H:%M:%S+00:00").to_string()
@@ -109,7 +113,6 @@ fn solved_filename(problem_id: &str, title: &str, failed: bool, now: DateTime<Ut
             }
         })
         .collect();
-    let marker = if failed { "_FAILED" } else { "" };
     let prefix = if problem_id == "drill" {
         "d".to_string()
     } else {
@@ -181,7 +184,7 @@ fn spot_file_phase(
             .trim_end(),
         kg::pyjson::dumps(&footer, None)
     );
-    let mut filename = solved_filename(&pnum, &title, false, Utc::now());
+    let mut filename = solved_filename(&pnum, &title, "", Utc::now());
     filename.truncate(filename.len() - 3);
     filename.push_str(".md");
     // s<num>_ marks a spot rep the way p<num>_ marks a solve
@@ -210,7 +213,7 @@ fn now() -> i64 {
 }
 
 /// Freeze the clock and archive the attempt. No git.
-fn file_phase(console: &Console, root: &Path, failed: bool) {
+fn file_phase(console: &Console, root: &Path, failed: bool, studied: bool) {
     if Path::new(META).exists() {
         // a stage whose file is gone is a leftover, not a resume: `make drop`
         // git-cleans the filed solve but spares the gitignored META, and the
@@ -247,6 +250,12 @@ fn file_phase(console: &Console, root: &Path, failed: bool) {
     };
 
     if spot_pending() {
+        if studied {
+            console.print(
+                "[yellow]a spot rep is not studied, it is answered: run make solved.[/yellow]",
+            );
+            return;
+        }
         spot_file_phase(console, root, failed, &solve_time, &slept_line);
         return;
     }
@@ -262,7 +271,18 @@ fn file_phase(console: &Console, root: &Path, failed: bool) {
         console.print("[red]Could not parse problem id and title from current.py. Exiting.[/red]");
         return;
     };
-    let filename = solved_filename(&problem_id, &title, failed, Utc::now());
+    if studied && problem_id == "drill" {
+        console.print("[red]a drill is a rep, not a study: make solved or make failed.[/red]");
+        return;
+    }
+    let marker = if failed {
+        "_FAILED"
+    } else if studied {
+        "_STUDIED"
+    } else {
+        ""
+    };
+    let filename = solved_filename(&problem_id, &title, marker, Utc::now());
     if failed {
         content.push_str(&format!(
             "\n\n# FAILED: walked away after {solve_time}; no working solution.\n# Judge the moves actually attempted as struggled, not clean.\n"
@@ -280,6 +300,11 @@ fn file_phase(console: &Console, root: &Path, failed: bool) {
     if failed {
         message = format!("failed: {message}");
     }
+    // no clock in a study's message: solve_seconds_today reads the trailer
+    // as time spent solving
+    if studied {
+        message = format!("studied: {problem_id}. {title}");
+    }
     // the meta is written BEFORE current.py is cleared: a kill between the
     // two re-runs into the staged branch above instead of filing twice
     kg::pyjson::save(
@@ -289,6 +314,12 @@ fn file_phase(console: &Console, root: &Path, failed: bool) {
     )
     .expect("write .solve_meta.json");
     std::fs::write("current.py", "").expect("clear current.py");
+    if studied {
+        console.print(&format!(
+            "[green]filed[/green] [bold]{filepath}[/bold]; nothing scored, the problem's card opens."
+        ));
+        return;
+    }
     console.print(&format!(
         "[green]filed[/green] [bold]{filepath}[/bold] [cyan]({solve_time})[/cyan]; the commit lands after the judge."
     ));
@@ -417,13 +448,14 @@ fn main() {
     }
     let args: Vec<String> = std::env::args().skip(1).collect();
     let failed = args.iter().any(|a| a == "--failed");
+    let studied = args.iter().any(|a| a == "--studied");
     let commit = args.iter().any(|a| a == "--commit");
     let root = repo_root();
     let console = Console::full_width();
     if commit {
         commit_phase(&console, &root);
     } else {
-        file_phase(&console, &root, failed);
+        file_phase(&console, &root, failed, studied);
     }
 }
 
@@ -433,13 +465,19 @@ mod tests {
 
     #[test]
     fn filenames() {
-        let f = solved_filename("1004", "Max Consecutive Ones III", false, Utc::now());
+        let f = solved_filename("1004", "Max Consecutive Ones III", "", Utc::now());
         assert!(f.starts_with("p1004_Max_Consecutive_Ones_III_20"), "{f}");
         assert!(f.ends_with("Z.py"));
         assert!(f
             .chars()
             .all(|c| c.is_alphanumeric() || c == '_' || c == '.'));
-        let d = solved_filename("drill", "Paid Orders Per Customer", true, Utc::now());
+        let d = solved_filename("drill", "Paid Orders Per Customer", "_FAILED", Utc::now());
+        let s = solved_filename("636", "Exclusive Time of Functions", "_STUDIED", Utc::now());
+        assert!(
+            s.starts_with("p636_Exclusive_Time_of_Functions_STUDIED_"),
+            "{s}"
+        );
+        assert!(kg::clock::is_studied(&s));
         assert!(d.starts_with("d_Paid_Orders_Per_Customer_FAILED_"), "{d}");
         assert_eq!(clean_title("It's a (test) - ok!"), "Its_a_test_-_ok");
     }
@@ -459,7 +497,7 @@ mod tests {
         let name = solved_filename(
             "drill",
             "Number Scanner",
-            false,
+            "",
             utc(2026, 8, 23, 19, 44, 54, 884512),
         );
         assert_eq!(
@@ -477,7 +515,7 @@ mod tests {
         let name = solved_filename(
             "560",
             "Subarray Sum Equals K",
-            false,
+            "",
             utc(2026, 8, 23, 9, 5, 0, 0),
         );
         assert!(
@@ -495,7 +533,7 @@ mod tests {
         let name = solved_filename(
             "227",
             "Basic Calculator II",
-            true,
+            "_FAILED",
             utc(2026, 8, 23, 23, 59, 59, 0),
         );
         assert!(name.contains("_FAILED_"));

@@ -1,4 +1,4 @@
-.PHONY: harness-doc stats submit lc-login ext check fmt fmt-check lint types complexity duplicates test-fast cov rust audit secrets all asserts drop learning mirror q prepare force unforce preflight dependents kg-extract kg-status kg-viz rep movie next dive drill spot hard is_session_start readme rank-table residuals simulate sleep wake solved failed test timer elo viz graph snippets
+.PHONY: harness-doc stats submit lc-login ext check fmt fmt-check lint types complexity duplicates test-fast cov rust audit secrets all asserts drop learning mirror q prepare force unforce preflight dependents kg-extract kg-status kg-viz rep movie next dive drill spot hard is_session_start readme rank-table residuals simulate sleep wake solved failed studied test timer elo viz graph snippets
 
 all: $(if $(filter master,$(shell git rev-parse --abbrev-ref HEAD)),graph/leet.db) $(EXT)
 	@cp utils/harness/sitecustomize.py .venv/lib/python3.10/site-packages/
@@ -161,6 +161,16 @@ lc-login:
 # solve-time trailer, placeholder -> struggled evidence), honest label
 failed: $(RS_BIN)/kg_solved $(RS_BIN)/kg_extract
 	@$(RS_BIN)/kg_solved --failed
+	@$(RS_BIN)/kg_extract --stub
+	@$(RS_BIN)/kg_solved --commit
+
+# file the current problem as STUDIED: read, run, played with, submitted
+# maybe, and nothing scored. The record has no moves (no node, no curve,
+# no Elo, no stats row) but it opens the problem's card (kg::clock) and
+# cools it as a carrier, so the next serve is a repeat and not tomorrow.
+# `make drop` instead leaves the picker thinking you never saw it.
+studied: $(RS_BIN)/kg_solved $(RS_BIN)/kg_extract
+	@$(RS_BIN)/kg_solved --studied
 	@$(RS_BIN)/kg_extract --stub
 	@$(RS_BIN)/kg_solved --commit
 

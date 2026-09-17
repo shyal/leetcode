@@ -1,6 +1,6 @@
 // A problem's own review clock (kg_lib.problem_due and company): opened by
-// help or a walk-away, pushed out by a hinted clean rep, retired by an
-// unaided clean one. One grade per day, the day's last attempt.
+// help, a walk-away or a study, pushed out by a hinted clean rep, retired
+// by an unaided clean one. One grade per day, the day's last attempt.
 
 use std::collections::HashMap;
 
@@ -12,12 +12,25 @@ use crate::drills::ANKI_HARD_FACTOR;
 use crate::evidence::Evidence;
 
 pub const PROBLEM_GRADUATING_DAYS: i64 = 3;
-pub const OPENS_CARD: [&str; 4] = ["failed", "learning", "walkthrough", "hint"];
+pub const OPENS_CARD: [&str; 5] = ["failed", "studied", "learning", "walkthrough", "hint"];
 
-/// kg_lib.attempt_label: failed / unmapped / struggled / clean / the level.
+/// A `make studied` file: the problem was read, run, played with, and no
+/// attempt was scored. The record carries no moves, so no node sees it;
+/// it opens the problem's card like a copied solution and cools the
+/// problem as a carrier (status::last_solved), so the next serve is a
+/// repeat and not tomorrow.
+pub fn is_studied(fname: &str) -> bool {
+    fname.contains("STUDIED")
+}
+
+/// kg_lib.attempt_label: failed / studied / unmapped / struggled / clean /
+/// the level.
 pub fn attempt_label(fname: &str, rec: &Rec) -> String {
     if fname.contains("FAILED") {
         return "failed".into();
+    }
+    if is_studied(fname) {
+        return "studied".into();
     }
     if rec.moves.is_empty() {
         return "unmapped".into();

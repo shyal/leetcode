@@ -22,6 +22,7 @@
 use std::path::{Path, PathBuf};
 
 use chrono::NaiveDate;
+use kg::clock::attempt_label;
 use kg::ctx::{Ctx, PView};
 use kg::data::{load_envrc, repo_root, Assist, Rec};
 use kg::evidence::Evidence;
@@ -213,10 +214,11 @@ fn assist_tag(a: &Assist) -> String {
 
 fn rep_lines(reps: &[(&str, &str, usize)], ev: &Evidence) -> Vec<String> {
     let mut out = Vec::new();
-    for (n, (d, _, idx)) in reps.iter().enumerate() {
+    for (n, (d, fname, idx)) in reps.iter().enumerate() {
         let rec: &Rec = ev.rec(*idx);
         let verdict = if rec.moves.is_empty() {
-            "-".to_string()
+            // failed / studied / unmapped
+            attempt_label(fname, rec)
         } else {
             rec.moves
                 .iter()
