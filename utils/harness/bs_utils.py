@@ -1,6 +1,7 @@
 import inspect
 import shutil
 import sys
+from bisect import bisect_left
 from typing import Any, Callable, Optional
 
 from rich import print
@@ -193,3 +194,31 @@ def viz_binary_search(func: Optional[Callable] = None, width: Optional[int] = No
         return wrapper
 
     return decorator
+
+
+def first_true(lo: int, hi: int, ok: Callable[[int], bool]) -> int:
+    """Smallest x in [lo, hi] with ok(x) True; ok is False then True.
+
+    Returns hi + 1 when ok is False on the whole range."""
+    return lo + bisect_left(range(lo, hi + 1), True, key=ok)
+
+
+def last_true(lo: int, hi: int, ok: Callable[[int], bool]) -> int:
+    """Largest x in [lo, hi] with ok(x) True; ok is True then False.
+
+    Returns lo - 1 when ok is False on the whole range."""
+    return first_true(lo, hi, lambda x: not ok(x)) - 1
+
+
+def first_false(lo: int, hi: int, ok: Callable[[int], bool]) -> int:
+    """Smallest x in [lo, hi] with ok(x) False; ok is True then False.
+
+    Returns hi + 1 when ok is True on the whole range."""
+    return first_true(lo, hi, lambda x: not ok(x))
+
+
+def last_false(lo: int, hi: int, ok: Callable[[int], bool]) -> int:
+    """Largest x in [lo, hi] with ok(x) False; ok is False then True.
+
+    Returns lo - 1 when ok is True on the whole range."""
+    return first_true(lo, hi, ok) - 1
