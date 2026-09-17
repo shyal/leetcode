@@ -27717,6 +27717,18 @@
       "note": "BFS via deque of (node, level) pairs; groups nodes by level in a defaultdict and returns sorted levels.",
       "summary": "The code runs a BFS over a nested-list tree using a deque seeded with [tree, 0], popping each node with its level, appending node[0] to a defaultdict keyed by level, and enqueueing children at level+1. It then returns the level lists in sorted order. This exercises tree-bfs-levels: the queue processes nodes layer by layer and depth is tracked as the level. All assertions passed.",
       "seconds": 206
+    },
+    "solved/d_Longest_Common_Subsequence_2026_09_17T23_00_13_084284_00_00Z.py": {
+      "date": "2026-09-18",
+      "problem": "drill",
+      "moves": {
+        "two-sequence-align": "clean",
+        "dp-2d-grid": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets two-sequence-align; the 2D table with a[i]==b[j] diagonal +1 else max of left/up is exactly the two-prefix recurrence.",
+      "summary": "The code pads both strings with a leading space, builds a 2D table via table(len(a), len(b)), and fills it with cells(dp, start=1). Matching characters take dp[i-1][j-1]+1; otherwise the cell takes max(dp[i-1][j], dp[i][j-1]), and the answer is dp[-1][-1]. This exercises two-sequence-align and dp-2d-grid, and all assertions including the 1000-character case pass.",
+      "seconds": 284
     }
   }
 }
