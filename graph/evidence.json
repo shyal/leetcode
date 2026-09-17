@@ -27763,6 +27763,19 @@
       "note": "Drill targets union-find; code subclasses UnionFind and calls self.find(x) per employee, then counts distinct roots via a set.",
       "summary": "The Solution subclasses UnionFind and countCompaniesAmong maps each employee to its root with self.find(x), then returns len(set(...)) of those roots. This exercises union-find's find path and set-membership to deduplicate heads. All assertions pass, including the no-employee, single-employee, duplicate-employee, and 1000-unmerged cases.",
       "seconds": 147
+    },
+    "solved/d_Merge_Accounts_2026_09_17T23_43_59_837643_00_00Z.py": {
+      "date": "2026-09-18",
+      "problem": "drill",
+      "moves": {
+        "union-find": "clean",
+        "dict-arbitrary-value": "clean",
+        "graph-inverted-index": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill on union-find; union_shared builds the merges, mergeAccounts calls self.find once per account and groups emails by root.",
+      "summary": "The Solution subclasses UnionFind; union_shared(accounts) performs the merges, then mergeAccounts walks each account once, calls self.find(account) to get its root, and adds every email into persons[root], a defaultdict(set). This exercises union-find (find per account), dict-arbitrary-value (root as key), and an inverted index from person to emails. All assertions passed and the notes describe the approach without claiming any help.",
+      "seconds": 258
     }
   }
 }
