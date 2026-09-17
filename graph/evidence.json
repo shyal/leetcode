@@ -27790,6 +27790,24 @@
       "note": "Notes say 'Learning'; no dummy node used, but the splice/re-link move is exercised via simultaneous tuple assignment.",
       "summary": "The code interleaves two linked lists by walking b and re-linking a.next, b.next, a, b in one simultaneous tuple assignment, returning the original head a. It exercises the splice/re-link move (ll-dummy-splice) without a dummy node, and all assertions including the 25000-element case pass. The notes mark the work as Learning.",
       "seconds": 202
+    },
+    "solved/p47_Permutations_II_2026_09_17T23_57_30_646282_00_00Z.py": {
+      "date": "2026-09-18",
+      "problem": "47",
+      "moves": {
+        "backtracking-choose-undo": "clean",
+        "backtracking-dedupe-siblings": "clean",
+        "backtracking-mark-unmark": "clean"
+      },
+      "assist": {
+        "backtracking-choose-undo": "learning",
+        "backtracking-dedupe-siblings": "learning",
+        "backtracking-mark-unmark": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "notes say 'Learning'; helper(j+1) is a harmless off-by-one since the used[] guard governs the loop",
+      "summary": "The code sorts nums, then recurses over positions, appending nums[j] to path and marking used[j] before the call and popping/unmarking after, recording a copy of path when its length reaches len(nums). Duplicate permutations are pruned by skipping nums[j] == nums[j-1] when the previous equal value is not currently used. All three canonical backtracking moves are exercised and the assertions pass; the notes state 'Learning'.",
+      "seconds": 542
     }
   }
 }
