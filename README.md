@@ -72,9 +72,25 @@ If the blue line is above 0, i'm performing better than the model expects, and v
 
 <!-- /BACKLOG_CHART -->
 
-## Rank badges
+## Fair word of warning
 
-The `vs all rated` elo score is flattering, as the pool includes constestants who entered 1 contest then gave up. The one that matters is the `vs 20+ contests`.
+### Commit history
+
+This repo literally has one commit for everything i touch, so it's a firehose.
+
+The tooling is close to 100% LLM generated. It is not reviewed by a human (yet). I've built many flashcard type applications and memory aids over the years, so this is a combination of various pre-existing flashcard techniques, adapted for leetcode in a DG. I never sat down and designed this, it evolved over time, and at the time of writing, the tooling is still changing quite a lot. Eventually, i expect tooling commits to reduce significantly, and for commits to only be readmes, solves, drills, and changes to the graph.
+
+This repo _may_ appear over-engineered, and like i'm enjoying the process of building the tooling more than solving. That's not the case. Becoming really good at leetcode / CP takes years and, if done right, turns into a small daily time investment. So the intricacy of the tooling reflects the life expectancy of this repo.
+
+Moreover, when i'm contracting, this repo has to perform exactly right, while my attention priorities change. So i'm using this window of opportunity to get it right.
+
+### My progress
+
+I currently consider my progress to be wanting. This is a grind. I'm not gifted at solving algorithms on the fly, and need to build a huge memory bank before i start feeling really at ease. In many ways, i'm the ideal user and test subject for this repo.
+
+### Rating badges
+
+The `vs all rated` elo score is flattering, as the pool includes contestants who entered 1 contest then gave up. The one that matters is the `vs 20+ contests`.
 
 [zerotrac]: https://zerotrac.github.io/leetcode_problem_rating/
 [CLIST]: https://clist.by/
