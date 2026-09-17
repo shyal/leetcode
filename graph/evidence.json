@@ -27640,6 +27640,18 @@
       "note": "Notes mark the file as Learning; the solution was given and copied.",
       "summary": "The code builds an adjacency list of sets, one per club index, then for each club's member list it unions that member's set with all co-members, and finally discards each club's own index. This is the group-overlap adjacency move: clubs become nodes connected when they share a member, done in O(n*L) with no person-to-person edges. The file ran clean and all assertions passed; the notes label it Learning.",
       "seconds": 549
+    },
+    "solved/d_Swap_First_Two_2026_09_17T22_19_53_416069_00_00Z.py": {
+      "date": "2026-09-18",
+      "problem": "drill",
+      "moves": {},
+      "judge": "deepseek-chat",
+      "note": "Drill targets ll-dummy-splice; code swaps the first two nodes by re-linking pointers directly (ret = head.next; head.next.next, head.next = head, head.next.next) without a dummy node.",
+      "summary": "The solution swaps the first two nodes of a linked list by saving head.next as the new head, then re-linking the two nodes' next pointers in a single tuple assignment, with an early return for lists shorter than two. It exercises direct pointer re-linking rather than the targeted ll-dummy-splice move, so the dummy-node technique is avoided. All assertions passed under the harness.",
+      "unmapped": [
+        "direct pointer re-link of first two nodes"
+      ],
+      "seconds": 118
     }
   }
 }
