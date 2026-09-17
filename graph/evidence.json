@@ -27500,6 +27500,18 @@
         "greedy nearest-value heuristic"
       ],
       "seconds": 1619
+    },
+    "solved/p1926_Nearest_Exit_from_Entrance_in_Maze_2026_09_17T03_55_10_489872_00_00Z.py": {
+      "date": "2026-09-17",
+      "problem": "1926",
+      "moves": {
+        "graph-bfs-shortest": "clean",
+        "grid-neighbors": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Uses harness nbrs() for cardinal neighbors; marks cells '+' on enqueue/dequeue to avoid revisits.",
+      "summary": "The code runs a BFS from the entrance using a deque of (x, y, dist), marking visited cells with '+' and returning dist when it dequeues a boundary cell that is not the entrance. Neighbors come from the harness nbrs() helper, so grid-neighbors and graph-bfs-shortest are exercised; the multi-source variant is not used since there is a single entrance. All assertions pass, including the -1 cases and the 100x100 all-wall case.",
+      "seconds": 813
     }
   }
 }
