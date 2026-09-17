@@ -27740,6 +27740,17 @@
       "note": "Drill trains the find half of union-find: recursive parent chase to the root, no path compression or union.",
       "summary": "The file defines buildFind, which returns a recursive find closure that walks parent[x] until it reaches a self-parent root. The assertions exercise chains of varying length, a self-loop, and a single-element parent array, all passing. Only the find/root-resolution half of union-find is present; union and path compression are not implemented.",
       "seconds": 61
+    },
+    "solved/d_Companies_Left_2026_09_17T23_14_31_231159_00_00Z.py": {
+      "date": "2026-09-18",
+      "problem": "drill",
+      "moves": {
+        "union-find": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill trains union-find: counts roots via self.find(v) == i over parent[]; all assertions passed.",
+      "summary": "The Solution subclasses UnionFind and countCompanies sums i == self.find(v) over enumerate(self.parent), counting nodes that are their own root. The drill sets parent arrays directly and checks the head count across two-head, single-head, unmerged, single-employee, chain, and every-third cases. All assertions passed and the file exited 0.",
+      "seconds": 125
     }
   }
 }
