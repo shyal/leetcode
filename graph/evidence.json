@@ -27663,6 +27663,16 @@
       "note": "Drill targets recursive-descent; atom() recurses into expr() for parenthesized sub-expressions, sharing one cursor.",
       "summary": "The Solution subclasses Parser and overrides atom() to handle parentheses by advancing past '(', recursively calling expr(), then advancing past ')', otherwise delegating to number(). The assertions confirm nested and redundant parentheses parse into the correct TreeNode structure with the cursor ending at the string length. This exercises recursive-descent: a bracketed sub-expression is a recursive call sharing the single cursor.",
       "seconds": 85
+    },
+    "solved/d_Sections_Under_Cap_2026_09_17T22_26_20_243188_00_00Z.py": {
+      "date": "2026-09-18",
+      "problem": "drill",
+      "moves": {
+        "running-sum": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The code walks the weights once, keeping a running total per section and starting a new section (sections += 1, total = w) whenever adding the next weight would exceed cap; a weight larger than cap returns 0. This exercises the running-sum move, accumulating and resetting the total as it scans. All assertions passed and the file exited 0.",
+      "seconds": 142
     }
   }
 }
