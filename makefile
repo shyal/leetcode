@@ -1,4 +1,4 @@
-.PHONY: stats submit lc-login ext check fmt fmt-check lint types complexity duplicates test-fast cov rust audit secrets all asserts drop learning mirror q prepare force unforce preflight dependents kg-extract kg-status kg-viz rep movie next dive drill spot hard is_session_start readme rank-table residuals simulate sleep wake solved failed test timer elo viz graph snippets
+.PHONY: harness-doc stats submit lc-login ext check fmt fmt-check lint types complexity duplicates test-fast cov rust audit secrets all asserts drop learning mirror q prepare force unforce preflight dependents kg-extract kg-status kg-viz rep movie next dive drill spot hard is_session_start readme rank-table residuals simulate sleep wake solved failed test timer elo viz graph snippets
 
 all: $(if $(filter master,$(shell git rev-parse --abbrev-ref HEAD)),graph/leet.db) $(EXT)
 	@cp utils/harness/sitecustomize.py .venv/lib/python3.10/site-packages/
@@ -147,11 +147,13 @@ solved: $(RS_BIN)/kg_solved $(RS_BIN)/kg_force $(RS_BIN)/kg_extract $(RS_BIN)/lc
 
 # submit current.py's last `class Solution` to leetcode and write the verdict
 # into its notes (LEETCODE: Accepted / Time Limit Exceeded ...) for the judge.
-# make solved does this itself; the cookie file comes from make lc-login,
-# which copies the login out of a browser exposing devtools at LC_CDP_ENDPOINT.
+# make solved does this itself. The requests run inside the browser exposing
+# devtools at LC_CDP_ENDPOINT (misc/lc_fetch.mjs): only a real browser gets
+# every solution past Cloudflare.
 submit: $(RS_BIN)/lc_submit
 	@$(RS_BIN)/lc_submit $(filter-out $@,$(MAKECMDGOALS))
 
+# copy the leetcode login out of that browser into the cookie file lc_mocks reads
 lc-login:
 	@node misc/lc_cookies.mjs
 
@@ -284,6 +286,11 @@ chat: $(RS_BIN)/kg_chat
 # rank-table: $(RS_BIN)/kg_readme
 	@$(RS_BIN)/kg_readme rank-table
 
+# utils/harness/README.md: the reference for the helpers sitecustomize
+# preloads (signatures and docstrings), read off the running harness.
+harness-doc:
+	@.venv/bin/python3 utils/readme/harness_doc.py
+
 # make readme is implemented in Rust (utils/rs/kg_readme): the charts and
 # badges the README carries (problem rating, hours, onsite, progress,
 # backlog, the rate gauge, and the Elo, streak, rank and rate badges), then
@@ -292,7 +299,7 @@ chat: $(RS_BIN)/kg_chat
 #   kg_positions_svg kg_solvetime_svg kg_connectivity_svg kg_rates_svg
 #   kg_commits_svg kg_zpd_svg kg_reach_svg kg_3d_svg
 #   kg_full_svg kg_compression_svg, and $(MOVIE_BIN)
-readme: $(MOCK_BIN) $(RS_BIN)/estimate $(RS_BIN)/kg_readme
+readme: harness-doc $(MOCK_BIN) $(RS_BIN)/estimate $(RS_BIN)/kg_readme
 	@$(RS_BIN)/kg_readme
 	@$(RS_BIN)/estimate
 	@AWS_PROFILE=readme-uploader $(RS_BIN)/kg_readme update

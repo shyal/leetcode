@@ -419,12 +419,12 @@ def test_lc_submit_show_and_auto_without_network(tmp_path):
     d.write_text('"""\nDRILL: X\n"""\n\nclass Solution:\n    pass\n')
     p = run("lc_submit", "--auto", "--file", str(d))
     assert p.returncode == 0 and p.stdout == "" and p.stderr == ""
-    # no cookie file: --auto is silent too, a plain run says what is missing
-    env = {"LC_COOKIE_FILE": str(tmp_path / "none.json")}
+    # no browser: --auto is silent too, a plain run says what is missing
+    env = {"LC_CDP_ENDPOINT": ""}
     p = run("lc_submit", "--auto", "--file", str(f), env=env)
     assert p.returncode == 0 and p.stdout == ""
     p = run("lc_submit", "--file", str(f), env=env)
-    assert p.returncode == 1 and "make lc-login" in p.stderr
+    assert p.returncode == 1 and "LC_CDP_ENDPOINT" in p.stderr
 
 
 # --- kg_dive, learning ----------------------------------------------------------
