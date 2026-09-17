@@ -27776,6 +27776,20 @@
       "note": "Drill on union-find; union_shared builds the merges, mergeAccounts calls self.find once per account and groups emails by root.",
       "summary": "The Solution subclasses UnionFind; union_shared(accounts) performs the merges, then mergeAccounts walks each account once, calls self.find(account) to get its root, and adds every email into persons[root], a defaultdict(set). This exercises union-find (find per account), dict-arbitrary-value (root as key), and an inverted index from person to emails. All assertions passed and the notes describe the approach without claiming any help.",
       "seconds": 258
+    },
+    "solved/d_Interleave_2026_09_17T23_48_08_274333_00_00Z.py": {
+      "date": "2026-09-18",
+      "problem": "drill",
+      "moves": {
+        "ll-dummy-splice": "clean"
+      },
+      "assist": {
+        "ll-dummy-splice": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say 'Learning'; no dummy node used, but the splice/re-link move is exercised via simultaneous tuple assignment.",
+      "summary": "The code interleaves two linked lists by walking b and re-linking a.next, b.next, a, b in one simultaneous tuple assignment, returning the original head a. It exercises the splice/re-link move (ll-dummy-splice) without a dummy node, and all assertions including the 25000-element case pass. The notes mark the work as Learning.",
+      "seconds": 202
     }
   }
 }
