@@ -31,13 +31,18 @@ def drill_for(reference):
 
 def spliced(drill_src, reference_src):
     """The drill file with its Solution stub replaced by the reference and
-    every commented-out assert (and any `name = ...` setup line an
-    assert needs) turned on."""
-    head, _, rest = drill_src.partition("class Solution:")
-    _, _, tail = rest.partition("\n\n\nsol = Solution()")
-    assert tail, "drill has no `sol = Solution()` line after the class"
-    body = re.sub(r"^# ((?:assert |\w+ = ).*)$", r"\1", tail, flags=re.M)
-    return head + reference_src + "\n\nsol = Solution()" + body
+    every commented-out assert (and any `name = ...` or `sol.method(...)`
+    setup line an assert needs) turned on. The class may extend a dsa/
+    class and the constructor may take arguments."""
+    cls = re.search(r"^class Solution(\([^)]*\))?:", drill_src, flags=re.M)
+    assert cls, "drill has no `class Solution` line"
+    head, rest = drill_src[: cls.start()], drill_src[cls.end() :]
+    _, sep, tail = rest.partition("\n\n\nsol = Solution(")
+    assert sep, "drill has no `sol = Solution(...)` line after the class"
+    body = re.sub(
+        r"^# ((?:assert |[\w.\[\]]+ = |sol\.\w+\().*)$", r"\1", tail, flags=re.M
+    )
+    return head + reference_src + "\n\nsol = Solution(" + body
 
 
 @pytest.mark.parametrize("reference", REFERENCES, ids=os.path.basename)
