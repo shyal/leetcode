@@ -34,7 +34,11 @@ fn mtime(p: &Path) -> Option<SystemTime> {
     std::fs::metadata(p).and_then(|m| m.modified()).ok()
 }
 
+/// The numbers off a fresh load, or None while the file is mid-write
+/// (a writer that is not pyjson::save): the caller keeps the last frame
+/// and tries again next tick.
 fn load(root: &Path) -> Option<Numbers> {
+    kg::data::read_json(&root.join("graph/evidence.json"))?;
     let (ctx, recs) = Ctx::load(root.to_path_buf());
     numbers(&ctx, &Evidence::new(recs))
 }
@@ -261,8 +265,10 @@ pub fn run(ctx: &Ctx, ev: &Evidence, once: bool) {
     while !stop {
         let now = mtime(&evidence);
         if now != seen {
-            seen = now;
-            n = load(&root);
+            if let Some(fresh) = load(&root) {
+                seen = now;
+                n = Some(fresh);
+            }
         }
         let _ = terminal.draw(|f| draw(f, n.as_ref()));
         if event::poll(Duration::from_secs(1)).unwrap_or(false) {

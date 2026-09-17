@@ -335,9 +335,17 @@ impl Drop for EvidenceLock {
 }
 
 /// json.dump(v, f, indent=indent): the file as Python leaves it, no
-/// trailing newline.
+/// trailing newline. Written to a sibling temp file and renamed over the
+/// target, so a reader polling the path (make elo) never sees a half
+/// file: graph/evidence.json is over a megabyte.
 pub fn save(path: &std::path::Path, v: &Value, indent: Option<usize>) -> std::io::Result<()> {
-    std::fs::write(path, dumps(v, indent))
+    let name = path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .ok_or_else(|| std::io::Error::other("save: no file name"))?;
+    let tmp = path.with_file_name(format!(".{name}.tmp"));
+    std::fs::write(&tmp, dumps(v, indent))?;
+    std::fs::rename(&tmp, path)
 }
 
 /// kg_lib.save_problems for one entry: merged over what graph/problems.json
