@@ -27472,6 +27472,20 @@
       "note": "Drill targets union-find; find() is inherited from UnionFind and exercised via self.find, with set() deduping roots.",
       "summary": "The Solution subclasses UnionFind and countCompaniesAmong maps each employee through self.find, then counts distinct roots with len(set(...)). The drill exercises union-find path compression through the inherited find, plus set-membership deduplication of the resulting roots. All assertions pass, including the two-heads, single-head, empty, duplicate, and 1000-singleton cases.",
       "seconds": 100
+    },
+    "solved/p1319_Number_of_Operations_to_Make_Network_Connected_2026_09_17T01_37_59_848906_00_00Z.py": {
+      "date": "2026-09-17",
+      "problem": "1319",
+      "moves": {
+        "union-find": "clean"
+      },
+      "assist": {
+        "union-find": "hint"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Accepted (43 ms, 32.6 MB). Notes say the spare-cables feasibility check was assisted.",
+      "summary": "The code builds a parent array with path-halving find and a union that returns whether two nodes were merged, then counts unique roots to get the number of components N and computes spare = C - uc. It returns -1 when there are fewer than n-1 cables or fewer spare cables than N-1, otherwise N-1. The union-find move is exercised cleanly; the notes say the spare/N-1 feasibility check was assisted.",
+      "seconds": 2275
     }
   }
 }
