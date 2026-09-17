@@ -27460,6 +27460,18 @@
       "note": "Counts roots by x == parent[x]; exercises the union-find parent-array representation.",
       "summary": "The Solution subclasses UnionFind and countCompanies sums the indices where parent[x] equals x, i.e. counts the roots of the disjoint-set forest. The drill sets parent arrays directly and asserts the root count across several configurations, all passing. This exercises the union-find parent-array/root-identification move.",
       "seconds": 150
+    },
+    "solved/d_Companies_Among_2026_09_17T00_41_24_207756_00_00Z.py": {
+      "date": "2026-09-17",
+      "problem": "drill",
+      "moves": {
+        "union-find": "clean",
+        "set-membership": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets union-find; find() is inherited from UnionFind and exercised via self.find, with set() deduping roots.",
+      "summary": "The Solution subclasses UnionFind and countCompaniesAmong maps each employee through self.find, then counts distinct roots with len(set(...)). The drill exercises union-find path compression through the inherited find, plus set-membership deduplication of the resulting roots. All assertions pass, including the two-heads, single-head, empty, duplicate, and 1000-singleton cases.",
+      "seconds": 100
     }
   }
 }
