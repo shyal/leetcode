@@ -12,6 +12,10 @@
 //! cache, so none is ever guessed, and each line carries the case it covers
 //! as a trailing comment.
 //!
+//! A float answer is compared within 1e-9, not by `==`: the reference sums
+//! in whatever order its heap or dict hands back, and the last bit of that
+//! sum differs between machines (1792 failed CI on Linux over 1 ulp).
+//!
 //! Run it again on the same problem and the block grows: the cases already
 //! covered are handed to the model as labels it must look past, and the new
 //! lines are appended under them.
@@ -155,6 +159,27 @@ pub fn covered(code: &str) -> Vec<String> {
         .collect()
 }
 
+/// A float literal, possibly signed: `0.5`, `-1e-5`. The one answer shape
+/// that `==` cannot freeze across machines.
+fn is_float(text: &str) -> bool {
+    fn float(e: &Expr) -> bool {
+        matches!(e, Expr::NumberLiteral(n) if matches!(n.value, Number::Float(_)))
+    }
+    parse_expression(text).is_ok_and(|p| match &*p.syntax().body {
+        Expr::UnaryOp(u) if matches!(u.op, UnaryOp::UAdd | UnaryOp::USub) => float(&u.operand),
+        e => float(e),
+    })
+}
+
+/// The assert line for a frozen answer.
+fn assert_line(expr: &str, rep: &str, label: &str) -> String {
+    if is_float(rep) {
+        format!("assert abs({expr} - {rep}) < 1e-9  # {label}")
+    } else {
+        format!("assert {expr} == {rep}  # {label}")
+    }
+}
+
 fn is_num(e: &Expr) -> bool {
     matches!(e, Expr::NumberLiteral(_))
 }
@@ -270,7 +295,7 @@ pub fn extra_asserts(
     let mut lines: Vec<String> = Vec::new();
     let mut seen: HashSet<String> = already.iter().cloned().collect();
     for (expr, label, rep) in freeze(run, code, &proposed) {
-        let line = format!("assert {expr} == {rep}  # {label}");
+        let line = assert_line(&expr, &rep, &label);
         if seen.contains(&label) || line.len() > MAX_LINE {
             continue;
         }
@@ -348,6 +373,24 @@ mod tests {
             "1 + 2",
         ] {
             assert!(!is_literal(bad), "{bad}");
+        }
+    }
+
+    #[test]
+    fn float_answers_get_a_tolerance() {
+        assert_eq!(
+            assert_line("S().f(1)", "0.5", "half"),
+            "assert abs(S().f(1) - 0.5) < 1e-9  # half"
+        );
+        assert_eq!(
+            assert_line("S().f(1)", "-1e-05", "tiny"),
+            "assert abs(S().f(1) - -1e-05) < 1e-9  # tiny"
+        );
+        for exact in ["1", "-1", "True", "[0.5]", "'0.5'", "None"] {
+            assert_eq!(
+                assert_line("S().f(1)", exact, "x"),
+                format!("assert S().f(1) == {exact}  # x")
+            );
         }
     }
 
