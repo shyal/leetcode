@@ -11,13 +11,15 @@
 //   lc_submit --check F...    # print "F: <names>" for every file whose submission
 //                             # uses a name leetcode lacks; exit 1 if any (the corpus test)
 //
-// Login: the cookie file LC_COOKIE_FILE (default ~/.leetcode_cookies.json)
-// holding {"LEETCODE_SESSION": ..., "csrftoken": ...}; `make lc-login`
-// writes it from a browser (misc/lc_cookies.mjs).
+// Transport: every request to leetcode runs inside the browser at
+// LC_CDP_ENDPOINT (misc/lc_fetch.mjs), so it carries the browser's login and
+// passes Cloudflare; a copied cookie does not (the WAF 403s "(a or b) or
+// (c or d)" from anything but a real browser, 2026-09-17).
 //
 // What is submitted: see strip.rs.
 
-use std::path::{Path, PathBuf};
+use std::io::Write;
+use std::process::{Command, Stdio};
 use std::time::Duration;
 
 use kg::console::Console;
@@ -25,7 +27,6 @@ use serde_json::{json, Value};
 
 mod strip;
 
-const UA: &str = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
 const QUESTION_QUERY: &str =
     "query q($slug: String!) { question(titleSlug: $slug) { questionId } }";
 
@@ -42,96 +43,101 @@ fn slug_of(code: &str) -> Option<String> {
     (!slug.is_empty()).then(|| slug.to_string())
 }
 
-fn cookie_file() -> PathBuf {
-    if let Ok(p) = std::env::var("LC_COOKIE_FILE") {
-        return PathBuf::from(p);
+fn no_browser() -> bool {
+    std::env::var("LC_CDP_ENDPOINT").map_or(true, |v| v.is_empty())
+}
+
+/// One request to leetcode.com through the browser: (status, body).
+fn fetch(method: &str, path: &str, body: Option<&Value>) -> Result<(u16, String), String> {
+    if no_browser() {
+        return Err("no browser: set LC_CDP_ENDPOINT to its devtools endpoint".into());
     }
-    let home = std::env::var("HOME").unwrap_or_default();
-    Path::new(&home).join(".leetcode_cookies.json")
+    let script = kg::data::repo_root().join("misc/lc_fetch.mjs");
+    let mut child = Command::new("node")
+        .arg(script)
+        .arg(method)
+        .arg(path)
+        .stdin(if body.is_some() {
+            Stdio::piped()
+        } else {
+            Stdio::null()
+        })
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| format!("node: {e}"))?;
+    if let Some(b) = body {
+        let mut stdin = child.stdin.take().ok_or("node: no stdin")?;
+        stdin
+            .write_all(b.to_string().as_bytes())
+            .map_err(|e| format!("node: {e}"))?;
+    }
+    let out = child.wait_with_output().map_err(|e| format!("node: {e}"))?;
+    if !out.status.success() {
+        return Err(String::from_utf8_lossy(&out.stderr).trim().to_string());
+    }
+    let text = String::from_utf8_lossy(&out.stdout).into_owned();
+    let (status, rest) = text.split_once('\n').unwrap_or((&text, ""));
+    let status = status
+        .parse()
+        .map_err(|_| format!("lc_fetch: no status in {text:?}"))?;
+    Ok((status, rest.to_string()))
 }
 
-struct Login {
-    cookie: String,
-    csrf: String,
+fn json_of(body: &str) -> Result<Value, String> {
+    serde_json::from_str(body).map_err(|_| format!("leetcode sent no json: {body:.200}"))
 }
 
-fn login() -> Option<Login> {
-    let jar = kg::pyjson::load(&cookie_file())?;
-    let session = jar.get("LEETCODE_SESSION")?.as_str()?.to_string();
-    let csrf = jar.get("csrftoken")?.as_str()?.to_string();
-    Some(Login {
-        cookie: format!("LEETCODE_SESSION={session}; csrftoken={csrf}"),
-        csrf,
-    })
-}
-
-fn question_id(slug: &str) -> String {
-    let mut resp = ureq::post("https://leetcode.com/graphql/")
-        .header("Content-Type", "application/json")
-        .header("User-Agent", UA)
-        .send_json(json!({"query": QUESTION_QUERY, "variables": {"slug": slug}}))
-        .unwrap_or_else(|e| die(&format!("graphql: {e}")));
-    let data: Value = resp
-        .body_mut()
-        .read_json()
-        .unwrap_or_else(|e| die(&format!("graphql: {e}")));
-    match data["data"]["question"]["questionId"].as_str() {
-        Some(id) => id.to_string(),
-        None => die(&format!("leetcode knows no problem with slug {slug}")),
+fn question_id(slug: &str) -> Result<String, String> {
+    let (_, body) = fetch(
+        "POST",
+        "/graphql/",
+        Some(&json!({"query": QUESTION_QUERY, "variables": {"slug": slug}})),
+    )?;
+    match json_of(&body)?["data"]["question"]["questionId"].as_str() {
+        Some(id) => Ok(id.to_string()),
+        None => Err(format!("leetcode knows no problem with slug {slug}")),
     }
 }
 
 /// One POST; a 429 (leetcode allows a submission every few seconds) is
 /// waited out and retried a few times.
-fn submit(login: &Login, slug: &str, qid: &str, code: &str) -> Result<u64, String> {
+fn submit(slug: &str, qid: &str, code: &str) -> Result<u64, String> {
     let mut wait = 5;
     loop {
-        match submit_once(login, slug, qid, code) {
-            Err(ureq::Error::StatusCode(429)) if wait <= 40 => {
+        let (status, body) = fetch(
+            "POST",
+            &format!("/problems/{slug}/submit/"),
+            Some(&json!({"lang": "python3", "question_id": qid, "typed_code": code})),
+        )?;
+        match status {
+            429 if wait <= 40 => {
                 eprintln!("leetcode is rate limiting; retrying in {wait}s");
                 std::thread::sleep(Duration::from_secs(wait));
                 wait *= 2;
             }
-            Err(ureq::Error::StatusCode(403)) => {
-                return Err("leetcode refused the login (403): run make lc-login".to_string())
+            403 => {
+                return Err(
+                    "leetcode refused the submission (403): is the browser logged in?".into(),
+                )
             }
-            Err(e) => return Err(format!("submit: {e}")),
-            Ok(id) => return Ok(id),
+            200 => {
+                return json_of(&body)?["submission_id"]
+                    .as_u64()
+                    .ok_or_else(|| format!("no submission_id in {body:.200}"))
+            }
+            _ => return Err(format!("submit: http {status}")),
         }
     }
 }
 
-fn submit_once(login: &Login, slug: &str, qid: &str, code: &str) -> Result<u64, ureq::Error> {
-    let url = format!("https://leetcode.com/problems/{slug}/submit/");
-    let mut resp = ureq::post(&url)
-        .header("Content-Type", "application/json")
-        .header("User-Agent", UA)
-        .header("Cookie", &login.cookie)
-        .header("x-csrftoken", &login.csrf)
-        .header("Referer", &format!("https://leetcode.com/problems/{slug}/"))
-        .header("Origin", "https://leetcode.com")
-        .send_json(json!({"lang": "python3", "question_id": qid, "typed_code": code}))?;
-    let data: Value = resp.body_mut().read_json()?;
-    data["submission_id"]
-        .as_u64()
-        .ok_or_else(|| ureq::Error::BadUri(format!("no submission_id in {data}")))
-}
-
 /// Poll until the judge is done; returns the check payload.
-fn wait_verdict(login: &Login, id: u64) -> Result<Value, String> {
-    let url = format!("https://leetcode.com/submissions/detail/{id}/check/");
+fn wait_verdict(id: u64) -> Result<Value, String> {
+    let path = format!("/submissions/detail/{id}/check/");
     for _ in 0..90 {
         std::thread::sleep(Duration::from_secs(1));
-        let mut resp = ureq::get(&url)
-            .header("User-Agent", UA)
-            .header("Cookie", &login.cookie)
-            .header("Referer", "https://leetcode.com/")
-            .call()
-            .map_err(|e| format!("check: {e}"))?;
-        let data: Value = resp
-            .body_mut()
-            .read_json()
-            .map_err(|e| format!("check: {e}"))?;
+        let (_, body) = fetch("GET", &path, None)?;
+        let data = json_of(&body).map_err(|e| format!("check: {e}"))?;
         if data["state"].as_str() == Some("SUCCESS") {
             return Ok(data);
         }
@@ -262,23 +268,17 @@ fn main() {
         }
         die(&msg);
     }
-    let Some(login) = login() else {
-        if auto {
-            return;
-        }
-        die(&format!(
-            "no login: {} is missing (make lc-login)",
-            cookie_file().display()
-        ));
-    };
+    if auto && no_browser() {
+        return; // no browser to submit through: make solved goes on without a verdict
+    }
 
     let outcome = (|| {
-        let qid = question_id(&slug);
-        let id = submit(&login, &slug, &qid, &class)?;
+        let qid = question_id(&slug)?;
+        let id = submit(&slug, &qid, &class)?;
         console.print(&format!(
             "[dim]submitted {slug} as {id}; waiting for leetcode...[/dim]"
         ));
-        wait_verdict(&login, id)
+        wait_verdict(id)
     })();
     let verdict = match outcome {
         Ok(v) => v,

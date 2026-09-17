@@ -9,7 +9,7 @@
 #   utils/history/lc_mocks.py --show     # print the cache as a table
 #
 # Login: the cookie file LC_COOKIE_FILE (default ~/.leetcode_cookies.json)
-# written by `make lc-login`, the same one lc_submit reads. The queries are
+# written by `make lc-login`. The queries are
 # the ones the reports page itself runs (interviewSessions, then
 # sessionAndReportData per session).
 

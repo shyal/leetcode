@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // lc_cookies - copy the leetcode.com login cookies out of a running browser
-// that exposes the Chrome DevTools Protocol, into the file utils/rs/lc_submit
+// that exposes the Chrome DevTools Protocol, into the file utils/history/lc_mocks.py
 // reads. Plain CDP over node's own WebSocket, no dependencies.
 //
 //   LC_CDP_ENDPOINT   the browser's devtools http endpoint (required)
