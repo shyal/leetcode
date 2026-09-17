@@ -56,6 +56,30 @@ Each node has:
 
 Trace a binary search: one bar per step, mid marked ✓/✗ by ok(mid).
 
+### `first_true(lo: int, hi: int, ok: Callable[[int], bool]) -> int`
+
+Smallest x in [lo, hi] with ok(x) True; ok is False then True.
+
+Returns hi + 1 when ok is False on the whole range.
+
+### `last_true(lo: int, hi: int, ok: Callable[[int], bool]) -> int`
+
+Largest x in [lo, hi] with ok(x) True; ok is True then False.
+
+Returns lo - 1 when ok is False on the whole range.
+
+### `first_false(lo: int, hi: int, ok: Callable[[int], bool]) -> int`
+
+Smallest x in [lo, hi] with ok(x) False; ok is True then False.
+
+Returns hi + 1 when ok is True on the whole range.
+
+### `last_false(lo: int, hi: int, ok: Callable[[int], bool]) -> int`
+
+Largest x in [lo, hi] with ok(x) False; ok is False then True.
+
+Returns lo - 1 when ok is True on the whole range.
+
 ### `draw_ascii_graph(graph: Dict[Any, Union[Dict[Any, Any], List[Any]]]) -> None`
 
 Utility function to draw a graph (stored as dict of dicts or dict of lists) in the terminal using PHART for ASCII rendering.
