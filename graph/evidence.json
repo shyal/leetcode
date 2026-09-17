@@ -27694,6 +27694,18 @@
       "judge": "deepseek-chat",
       "summary": "The code yields every substring of s using two nested loops: an outer start index i and an inner end index j, slicing s[i:j+1] for each pair. This is the by-start form of substring enumeration, and the @as_list decorator materializes the generator so the assertions compare lists. All assertions passed on execution, including the duplicate-heavy 'aaa' and 'abca' cases and the length-55 check for a 10-character string.",
       "seconds": 90
+    },
+    "solved/d_Shrink_While_Valid_2026_09_17T22_47_52_896269_00_00Z.py": {
+      "date": "2026-09-18",
+      "problem": "drill",
+      "moves": {
+        "sliding-window-variable": "clean",
+        "counter-build": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets sliding-window-variable: grow right, shrink left while len(count) >= k, recording the window length before each shrink.",
+      "summary": "The code scans s with a right pointer, maintaining a defaultdict count of characters in the current window. While the window holds at least k distinct characters it records the window length as a candidate best, then shrinks from the left, deleting keys that hit zero. It exercises the variable sliding-window move (shrink while the invariant holds) and the counter-build move; all assertions pass and the run exits 0.",
+      "seconds": 262
     }
   }
 }
