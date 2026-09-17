@@ -72,6 +72,34 @@ If the blue line is above 0, i'm performing better than the model expects, and v
 
 <!-- /BACKLOG_CHART -->
 
+## Sitecustomize, harness and helpers
+
+Leetcode's python sitecustomize is full of everything one needs for solving, without needing to import much at all. This repo mimics that, and also adds a lot of very useful helpers for DSA solving.
+
+Here's an example of `1926. Nearest Exit from Entrance in Maze`:
+
+```python
+class Solution:
+    def nearestExit(self, maze: List[List[str]], entrance: List[int]) -> int:
+        q = deque([[entrance[0], entrance[1], 0]])
+        maze[entrance[0]][entrance[1]] = "+"
+        while q:
+            x, y, dist = q.popleft()
+            if is_edge(maze, x, y) and maze[x][y] != "+":
+                return dist
+            maze[x][y] = "+"
+            for nx, ny in nbrs(maze, x, y):
+                if maze[nx][ny] != "+":
+                    q.append([nx, ny, dist + 1])
+        return -1
+```
+
+I've written a lot, in the past, about how Python's expressive syntax is really helpful for minimal solutions. However i still find some features of the language to be lacking for things one has to do constantly when solving, like getting indices for the neighbours of a cell in a matrix, that are within the bounds of a matrix.. this can consume many lines and minutes of solving.
+
+With this growing library of harness helpers, my solves are starting to read more and more like pseudocode, which has always been one of Python's ideals. Overall i think i have a stronger ability for language than i do for maths / raw solving ability, so for me, creating an expressive set of helpers and treating them like builtins / part of the language itself feels like the natural path.
+
+You can find the full harness in [utils/harness/README.md](utils/harness/README.md).
+
 ## Fair word of warning
 
 ### This readme

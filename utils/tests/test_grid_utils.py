@@ -1,4 +1,4 @@
-from grid_utils import cells, like, table
+from grid_utils import cells, edges, is_edge, like, table
 
 
 def test_cells_row_major():
@@ -31,3 +31,33 @@ def test_table_three_dimensions_nests():
 
 def test_like_copies_the_shape_only():
     assert like([[1, 2, 3], [4, 5, 6]], fill=-1) == [[-1, -1, -1], [-1, -1, -1]]
+
+
+def test_is_edge_on_each_side_and_not_inside():
+    g = table(3, 4)
+    assert is_edge(g, 0, 2)
+    assert is_edge(g, 2, 1)
+    assert is_edge(g, 1, 0)
+    assert is_edge(g, 1, 3)
+    assert not is_edge(g, 1, 1)
+    assert not is_edge(g, 1, 2)
+
+
+def test_edges_lists_the_border_once_in_row_major_order():
+    assert list(edges(table(3, 4))) == [
+        (0, 0),
+        (0, 1),
+        (0, 2),
+        (0, 3),
+        (1, 0),
+        (1, 3),
+        (2, 0),
+        (2, 1),
+        (2, 2),
+        (2, 3),
+    ]
+
+
+def test_edges_of_a_single_row_or_column_is_every_cell():
+    assert list(edges(table(1, 3))) == [(0, 0), (0, 1), (0, 2)]
+    assert list(edges(table(3, 1))) == [(0, 0), (1, 0), (2, 0)]
