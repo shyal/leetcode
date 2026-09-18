@@ -27857,6 +27857,20 @@
       "judge": "deepseek-chat",
       "summary": "The query groups the Teacher table by teacher_id and uses count(distinct subject_id) as cnt, so each subject is counted once per teacher regardless of duplicate rows. This exercises the group-aggregate move with a COUNT(DISTINCT) inside the group. Both example assertions passed and the runner printed the expected two-row result.",
       "seconds": 140
+    },
+    "solved/d_Stack_Both_Sides_2026_09_18T21_43_38_821694_00_00Z.py": {
+      "date": "2026-09-19",
+      "problem": "drill",
+      "moves": {
+        "sql-set-union": "clean"
+      },
+      "assist": {
+        "sql-set-union": "hint"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say 'Looked as the graph, saw set union so technically hinted'; UNION ALL keeps repeats as required.",
+      "summary": "The query unpivots the two columns into one id column by selecting requester_id and UNION ALL-ing accepter_id from the same table, so each row contributes two ids and repeats are preserved. This exercises the sql-set-union move with UNION ALL rather than deduping UNION. The notes say the candidate saw it as a graph and only recognised the set-union shape after a hint.",
+      "seconds": 142
     }
   }
 }
