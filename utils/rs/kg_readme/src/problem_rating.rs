@@ -10,11 +10,13 @@
 // attempts.
 //
 // Past today the chart is a forecast: the real picker run forward HORIZON
-// days on simulated evidence (utils/rs/kg_simulate --attempts-json), once
-// per seed in SEEDS, the runs cached in graph/problem_forecast.json for
-// CACHE_DAYS. Each first sight plays an Elo game priced as elo.rs prices
-// one, stepped from the Elo the history ends on. --forecast reruns now;
-// --no-forecast skips the fan.
+// days on simulated evidence (utils/rs/kg_simulate --json), once per seed
+// in SEEDS, the runs cached in graph/problem_forecast.json for CACHE_DAYS.
+// Each first sight plays an Elo game priced as elo.rs prices one, stepped
+// from the Elo the history ends on. --forecast reruns now; --no-forecast
+// skips the fan. The same runs carry a day-by-day series (solves by kind,
+// STALE and FRAGILE counts, the review backlog) that backlog.rs draws
+// after its history, so one set of runs serves both charts.
 //
 // Ported from utils/readme/kg_problem_rating_svg (Python) on 2026-09-13.
 
@@ -116,14 +118,34 @@ fn trailing_median(att: &[Att]) -> Vec<(NaiveDate, f64)> {
     by_day
 }
 
-struct Run {
-    seed: i64,
-    start: NaiveDate,
-    attempts: Vec<Value>,
+pub struct Run {
+    pub seed: i64,
+    pub start: NaiveDate,
+    /// every attempt on a numbered problem: date, problem, difficulty,
+    /// rating, first, score
+    pub attempts: Vec<Value>,
+    /// one row per simulated day: day, solves (by kind), stale, fragile,
+    /// missing, open, due, drills_due, onsite, screen, hard
+    pub series: Vec<Value>,
+    pub hours: f64,
+    pub source: String,
+}
+
+impl Run {
+    fn from_value(seed: i64, start: NaiveDate, r: &Value) -> Run {
+        Run {
+            seed,
+            start,
+            attempts: r["attempts"].as_array().cloned().unwrap_or_default(),
+            series: r["series"].as_array().cloned().unwrap_or_default(),
+            hours: r["hours"].as_f64().unwrap_or(0.0),
+            source: r["source"].as_str().unwrap_or("").to_string(),
+        }
+    }
 }
 
 /// One run of the real picker, HORIZON days from today, as the simulator
-/// prints it under --attempts-json; None when the run cannot start.
+/// prints it under --json; None when the run cannot start.
 fn simulate(root: &Path, seed: i64) -> Option<Value> {
     // the sibling binary of this workspace build
     let bin = std::env::current_exe()
@@ -136,7 +158,7 @@ fn simulate(root: &Path, seed: i64) -> Option<Value> {
             &seed.to_string(),
             "--days",
             &HORIZON.to_string(),
-            "--attempts-json",
+            "--json",
         ])
         .current_dir(root)
         .output()
@@ -156,7 +178,7 @@ fn cache_path(ctx: &Ctx) -> std::path::PathBuf {
 }
 
 /// The cached runs when written within CACHE_DAYS with the same seeds and
-/// horizon; else None.
+/// horizon, every run carrying its series; else None.
 fn cached_runs(ctx: &Ctx) -> Option<Vec<Run>> {
     let c: Value = serde_json::from_str(&std::fs::read_to_string(cache_path(ctx)).ok()?).ok()?;
     let start = parse_date(c.get("start")?.as_str()?);
@@ -166,17 +188,29 @@ fn cached_runs(ctx: &Ctx) -> Option<Vec<Run>> {
     {
         return None;
     }
+    let runs = c["runs"].as_array()?;
+    if runs.iter().any(|r| !r["series"].is_array()) {
+        return None;
+    }
     Some(
-        c["runs"]
-            .as_array()?
-            .iter()
-            .map(|r| Run {
-                seed: r["seed"].as_i64().unwrap_or(0),
-                start,
-                attempts: r["attempts"].as_array().cloned().unwrap_or_default(),
-            })
+        runs.iter()
+            .map(|r| Run::from_value(r["seed"].as_i64().unwrap_or(0), start, r))
             .collect(),
     )
+}
+
+/// The runs behind the forecast: the cache when it is fresh, else every
+/// seed run now; none under --no-forecast. --forecast reruns now.
+pub fn forecast_runs(ctx: &Ctx, args: &[String]) -> Vec<Run> {
+    if args.iter().any(|a| a == "--no-forecast") {
+        return Vec::new();
+    }
+    let runs = if args.iter().any(|a| a == "--forecast") {
+        None
+    } else {
+        cached_runs(ctx)
+    };
+    runs.unwrap_or_else(|| fresh_runs(ctx))
 }
 
 /// Run every seed, one process each, and write the cache.
@@ -202,16 +236,18 @@ fn fresh_runs(ctx: &Ctx) -> Vec<Run> {
         "start": start,
         "seeds": SEEDS,
         "horizon": HORIZON,
-        "runs": runs.iter().map(|(s, r)| json!({"seed": s, "attempts": r["attempts"]})).collect::<Vec<_>>(),
+        "runs": runs.iter().map(|(s, r)| json!({
+            "seed": s,
+            "hours": r["hours"],
+            "source": r["source"],
+            "attempts": r["attempts"],
+            "series": r["series"],
+        })).collect::<Vec<_>>(),
     });
     std::fs::write(cache_path(ctx), serde_json::to_string(&cache).unwrap()).expect("write cache");
     let start = parse_date(&start);
     runs.into_iter()
-        .map(|(seed, r)| Run {
-            seed,
-            start,
-            attempts: r["attempts"].as_array().cloned().unwrap_or_default(),
-        })
+        .map(|(seed, r)| Run::from_value(seed, start, &r))
         .collect()
 }
 
@@ -227,15 +263,7 @@ struct Forecast {
 /// continued over them, and the Elo and its moving average stepped on
 /// from the history's games up to the start day.
 fn forecast(ctx: &Ctx, ev: &Evidence, att: &[Att], args: &[String]) -> Vec<Forecast> {
-    if args.iter().any(|a| a == "--no-forecast") {
-        return Vec::new();
-    }
-    let runs = if args.iter().any(|a| a == "--forecast") {
-        None
-    } else {
-        cached_runs(ctx)
-    };
-    let runs = runs.unwrap_or_else(|| fresh_runs(ctx));
+    let runs = forecast_runs(ctx, args);
     let gs = elo::games(ctx, ev);
     let (ratings, imputed) = elo::pricing(ctx);
     let mut out = Vec::new();

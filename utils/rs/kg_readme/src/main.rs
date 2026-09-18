@@ -9,7 +9,7 @@
 //
 // <chart> is one of elo, streak, rank, rate, problem-rating, backlog,
 // problem-rating-month, hours, onsite, progress. The forecast flags reach
-// problem-rating.
+// problem-rating and backlog, which share the cached runs.
 //
 // Ported from the utils/readme/*_svg scripts and update_readme.py
 // (Python) on 2026-09-13.
@@ -69,7 +69,7 @@ fn main() {
             "rate" => rate::render(&ctx, &ev),
             "problem-rating" => problem_rating::render(&ctx, &ev, &args),
             "problem-rating-month" => problem_rating::render_month(&ctx, &ev),
-            "backlog" => backlog::render(&ctx, &ev),
+            "backlog" => backlog::render(&ctx, &ev, &args),
             "hours" => hours::render(&ctx, &ev),
             "onsite" => onsite::render(&ctx, &ev),
             "progress" => progress::render(&ctx, &ev),
