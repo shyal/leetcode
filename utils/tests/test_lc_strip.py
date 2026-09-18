@@ -2,9 +2,9 @@
 send, checked for names leetcode lacks. A shape the stripper has not met
 (a helper class above Solution, a design class, a harness alias) shows up
 here before it shows up as a NameError on leetcode. The list below is the
-solves that genuinely cannot be sent: they call a harness drawing function
-inside the class. A new entry is a stripper regression or a new such
-solve; a stale one is a fix, and comes out."""
+solves that genuinely cannot be sent: they call a harness drawing or
+printing function inside the class. A new entry is a stripper regression or
+a new such solve; a stale one is a fix, and comes out."""
 
 import glob
 import os
@@ -22,6 +22,7 @@ DRAWING_INSIDE_THE_CLASS = {
     "p215_Kth_Largest_Element_in_an_Array_2025_10_01T21_36_57_881287.py": "draw_heap",
     "p215_Kth_Largest_Element_in_an_Array_2025_10_13T23_55_00_633244_00_00Z.py": "draw_heap",
     "p227_Basic_Calculator_II_FAILED_2026_08_18T23_51_13_723603_00_00Z.py": "draw_tree",
+    "p300_Longest_Increasing_Subsequence_2026_09_16T03_03_42_528410_00_00Z.py": "tabulate",
     "p310_Minimum_Height_Trees_2025_11_07T09_13_20_081069_00_00Z.py": "draw_graphviz",
     "p310_Minimum_Height_Trees_2025_11_09T08_25_21_052230_00_00Z.py": "draw_graphviz",
     "p310_Minimum_Height_Trees_2025_11_10T09_02_24_023743_00_00Z.py": "draw_graphviz",

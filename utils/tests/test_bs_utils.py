@@ -17,7 +17,12 @@ def test_first_true_all_false_is_hi_plus_one():
 
 def test_first_true_is_logarithmic():
     calls = []
-    assert first_true(1, 10**9, lambda x: calls.append(x) or x >= 5) == 5
+
+    def ok(x):
+        calls.append(x)
+        return x >= 5
+
+    assert first_true(1, 10**9, ok) == 5
     assert len(calls) <= 31
 
 
@@ -37,7 +42,12 @@ def test_last_true_all_false_is_lo_minus_one():
 
 def test_last_true_is_logarithmic():
     calls = []
-    assert last_true(1, 10**9, lambda x: calls.append(x) or x <= 5) == 5
+
+    def ok(x):
+        calls.append(x)
+        return x <= 5
+
+    assert last_true(1, 10**9, ok) == 5
     assert len(calls) <= 31
 
 
