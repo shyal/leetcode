@@ -27883,6 +27883,18 @@
       "note": "helper(j+1) passes an unused index; the used[] flag is what actually gates candidates, so the recursion still enumerates all permutations correctly.",
       "summary": "The code builds permutations by recursing over positions, marking used[j] before appending nums[j] and unmarking/popping after the recursive call, recording a copy of path when its length reaches len(nums). It exercises backtracking-mark-unmark (the used flag raised and lowered around each candidate) and backtracking-choose-undo (append/pop of path). All assertions pass, including the 8-element case producing 40320 distinct permutations.",
       "seconds": 124
+    },
+    "solved/d_Each_Element_Once_2026_09_18T21_52_24_062553_00_00Z.py": {
+      "date": "2026-09-19",
+      "problem": "drill",
+      "moves": {
+        "backtracking-start-index": "clean",
+        "backtracking-choose-undo": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets backtracking-start-index; helper(j+1) enforces each element used once, with append/pop choose-undo.",
+      "summary": "The code recursively builds combinations summing to target, using a start index i so each element is used at most once (helper(j+1)), and appends/pops path entries around each recursive call. It exercises backtracking-start-index and backtracking-choose-undo. All assertions passed, including the 806-combination count for range(1,21) with target 40.",
+      "seconds": 207
     }
   }
 }
