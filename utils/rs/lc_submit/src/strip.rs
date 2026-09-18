@@ -22,10 +22,28 @@ use ruff_text_size::{Ranged, TextRange};
 /// Preloaded by the harness, absent on leetcode: their top-level names are
 /// pasted in when the submission uses them. sitecustomize's
 /// `builtins.xor = operator.xor` lines count as definitions of the bare name.
-pub const HELPER_FILES: [&str; 3] = [
+/// Only the modules a solution may call belong here; the drawing, building
+/// and read-back modules stay out so that a class calling them is refused
+/// (`every_solve_time_builtin_is_submittable` keeps the two sets apart).
+pub const HELPER_FILES: [&str; 6] = [
     "utils/harness/sitecustomize.py",
     "utils/harness/grid_utils.py",
+    "utils/harness/bs_utils.py",
+    "utils/harness/combo_utils.py",
+    "utils/harness/gen_utils.py",
     "dsa/maxheapq.py",
+];
+
+/// Modules the harness imports that leetcode does not install: a helper
+/// that needs one (tabulate, pprint) is never sent, so the class calling it
+/// is refused by name.
+const NOT_ON_LEETCODE: [&str; 6] = [
+    "rich",
+    "tabulate",
+    "PrettyPrintTree",
+    "colorama",
+    "graphviz",
+    "networkx",
 ];
 
 /// Modules leetcode's python3 preamble star-imports (as the harness mirrors).
@@ -157,11 +175,23 @@ fn free_names(stmt: &Stmt) -> BTreeSet<String> {
 }
 
 /// One top-level definition: the name it binds, its source (decorators
-/// included) and the names it uses.
+/// included), the names it uses, and whether it imports a module leetcode
+/// lacks.
 struct Block {
     name: String,
     source: String,
     uses: BTreeSet<String>,
+    unrunnable: bool,
+}
+
+fn imports_missing_module(stmt: &Stmt) -> bool {
+    let top = |m: &str| m.split('.').next().unwrap_or("").to_string();
+    let roots: Vec<String> = match stmt {
+        Stmt::Import(i) => i.names.iter().map(|a| top(&a.name)).collect(),
+        Stmt::ImportFrom(i) => i.module.iter().map(|m| top(m)).collect(),
+        _ => vec![],
+    };
+    roots.iter().any(|r| NOT_ON_LEETCODE.contains(&r.as_str()))
 }
 
 fn stmt_source(src: &str, stmt: &Stmt) -> String {
@@ -295,6 +325,7 @@ fn blocks(root: &Path, src: &str, skip: Option<&Stmt>) -> Vec<Block> {
                 name,
                 source: source.clone(),
                 uses: uses.clone(),
+                unrunnable: imports_missing_module(stmt),
             });
         }
     }
@@ -318,6 +349,36 @@ fn dsa_imports(src: &str) -> Vec<String> {
             _ => None,
         })
         .collect()
+}
+
+/// Drop every helper block leetcode cannot run: one importing a module it
+/// lacks, or one using a name no remaining block defines (`_drawer_for`
+/// calls the drawing functions), and so on to a fixed point.
+fn prune_unrunnable(candidates: &mut Vec<Block>, given: &HashSet<&str>) {
+    let mut dead = vec![false; candidates.len()];
+    loop {
+        let defined: HashSet<&str> = candidates
+            .iter()
+            .zip(&dead)
+            .filter(|(_, d)| !**d)
+            .map(|(b, _)| b.name.as_str())
+            .collect();
+        let mut changed = false;
+        for (i, b) in candidates.iter().enumerate() {
+            let lacks = |u: &String| {
+                !given.contains(u.as_str()) && *u != b.name && !defined.contains(u.as_str())
+            };
+            if !dead[i] && (b.unrunnable || b.uses.iter().any(lacks)) {
+                dead[i] = true;
+                changed = true;
+            }
+        }
+        if !changed {
+            break;
+        }
+    }
+    let mut it = dead.into_iter();
+    candidates.retain(|_| !it.next().unwrap_or(false));
 }
 
 /// The class to submit: the last `class Solution`, else the last class.
@@ -352,6 +413,7 @@ pub fn strip(root: &Path, src: &str) -> Option<String> {
             candidates.extend(blocks(root, &text, None));
         }
     }
+    prune_unrunnable(&mut candidates, &given);
     let own = blocks(root, src, Some(target));
     let known: HashSet<String> = candidates
         .iter()
@@ -546,6 +608,54 @@ mod tests {
             undefined_names(&root(), &draw),
             BTreeSet::from(["draw_tree".to_string()])
         );
+    }
+
+    /// Harness builtins a solution never calls: they print, draw, build a
+    /// test input or read a structure back. Everything else sitecustomize
+    /// puts into builtins must strip to code leetcode can run.
+    const TEST_ONLY: &str = "\
+tabulate print_orig pprint rich_print draw_tree draw_linked_list draw_general_tree \
+get_level_order debug_var debug_vars draw_ascii_graph draw_graphviz draw_graph draw_heap \
+build_tree generate_and_print_random_bst generate_full_binary_tree generate_random_tree \
+build_graph_from_edge_list build_nary_tree get_adj_list build_graph get_list_values \
+print_linked_list build_linked_list find_node get_inorder is_balanced is_valid_bst same_rows";
+
+    #[test]
+    fn every_solve_time_builtin_is_submittable() {
+        let root = root();
+        let src = std::fs::read_to_string(root.join(HELPER_FILES[0])).unwrap();
+        let parsed = ruff_python_parser::parse_module(&src).unwrap();
+        let names: Vec<String> = parsed
+            .syntax()
+            .body
+            .iter()
+            .filter_map(|s| builtins_alias(&src, s).map(|(n, _)| n))
+            .collect();
+        assert!(names.len() > 100, "{names:?}");
+        let test_only: HashSet<&str> = TEST_ONLY.split_whitespace().collect();
+        for name in &names {
+            let out = strip(
+                &root,
+                &format!("{DOC}class Solution:\n    def f(self, a):\n        return {name}(a)\n"),
+            )
+            .unwrap();
+            let missing = undefined_names(&root, &out);
+            if test_only.contains(name.as_str()) {
+                assert_eq!(
+                    missing,
+                    BTreeSet::from([name.clone()]),
+                    "{name} is on TEST_ONLY but strips to code leetcode can run"
+                );
+            } else {
+                assert!(
+                    missing.is_empty(),
+                    "{name}: leetcode lacks {missing:?} in:\n{out}"
+                );
+            }
+        }
+        for name in test_only {
+            assert!(names.contains(&name.to_string()), "{name} is not a builtin");
+        }
     }
 
     #[test]
