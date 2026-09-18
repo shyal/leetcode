@@ -27820,6 +27820,17 @@
       "note": "Uses harness first_true over [0, sum(weights)] with can_ship feasibility check; all assertions pass.",
       "summary": "The code defines can_ship(cap), which greedily scans weights accumulating a running total and starting a new day's split whenever adding the next package would exceed cap, returning whether splits <= days. The answer is found by first_true(0, sum(weights), can_ship), a binary search over the capacity answer space using that feasibility predicate. Both the binary-search-on-answer and running-sum moves are exercised, and all assertions including the large 50000-element cases pass.",
       "seconds": 572
+    },
+    "solved/p2187_Minimum_Time_to_Complete_Trips_2026_09_18T00_38_28_767110_00_00Z.py": {
+      "date": "2026-09-18",
+      "problem": "2187",
+      "moves": {
+        "binary-search-on-answer": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Uses harness first_true over [0, sum(time)*totalTrips] with feasibility trips(t) = sum(t//x) >= totalTrips.",
+      "summary": "The code defines a feasibility function trips(t) that counts total trips completed by time t as sum(t // x for x in time), then binary-searches the answer space with first_true over the range 0 to sum(time)*totalTrips to find the smallest t meeting totalTrips. This exercises binary-search-on-answer cleanly. All assertions passed with exit 0, and no notes indicate any hints or look-ups.",
+      "seconds": 768
     }
   }
 }
