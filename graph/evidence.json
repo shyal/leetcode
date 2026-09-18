@@ -27808,6 +27808,18 @@
       "note": "notes say 'Learning'; helper(j+1) is a harmless off-by-one since the used[] guard governs the loop",
       "summary": "The code sorts nums, then recurses over positions, appending nums[j] to path and marking used[j] before the call and popping/unmarking after, recording a copy of path when its length reaches len(nums). Duplicate permutations are pruned by skipping nums[j] == nums[j-1] when the previous equal value is not currently used. All three canonical backtracking moves are exercised and the assertions pass; the notes state 'Learning'.",
       "seconds": 542
+    },
+    "solved/p1011_Capacity_To_Ship_Packages_Within_D_Days_2026_09_18T00_12_25_090922_00_00Z.py": {
+      "date": "2026-09-18",
+      "problem": "1011",
+      "moves": {
+        "binary-search-on-answer": "clean",
+        "running-sum": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Uses harness first_true over [0, sum(weights)] with can_ship feasibility check; all assertions pass.",
+      "summary": "The code defines can_ship(cap), which greedily scans weights accumulating a running total and starting a new day's split whenever adding the next package would exceed cap, returning whether splits <= days. The answer is found by first_true(0, sum(weights), can_ship), a binary search over the capacity answer space using that feasibility predicate. Both the binary-search-on-answer and running-sum moves are exercised, and all assertions including the large 50000-element cases pass.",
+      "seconds": 572
     }
   }
 }
