@@ -27895,6 +27895,17 @@
       "note": "Drill targets backtracking-start-index; helper(j+1) enforces each element used once, with append/pop choose-undo.",
       "summary": "The code recursively builds combinations summing to target, using a start index i so each element is used at most once (helper(j+1)), and appends/pops path entries around each recursive call. It exercises backtracking-start-index and backtracking-choose-undo. All assertions passed, including the 806-combination count for range(1,21) with target 40.",
       "seconds": 207
+    },
+    "solved/d_First_True_2026_09_18T21_53_27_069332_00_00Z.py": {
+      "date": "2026-09-19",
+      "problem": "drill",
+      "moves": {
+        "binary-search-boundary": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Delegates to harness first_true; the <=31 calls assertion confirms logarithmic halving.",
+      "summary": "The Solution.firstTrue method wraps the harness first_true(lo, hi, ok) to return the first integer where the monotone predicate flips true. The assertions cover the boundary cases (lo==hi, predicate true at lo, true only at hi, and a 10^9 range) and the call-count check confirms the search halves the interval rather than scanning. This exercises the binary-search-boundary move, finding the first index where the predicate becomes true.",
+      "seconds": 26
     }
   }
 }
