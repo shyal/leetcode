@@ -34,6 +34,10 @@ Constraints:
 
     1 <= time.length <= 10^5
     1 <= time[i], totalTrips <= 10^7
+
+---
+
+LEETCODE: Accepted (2015 ms, 32.2 MB)
 """
 
 
