@@ -37,22 +37,42 @@ page ??= opened;
 const ws = new WebSocket(page.webSocketDebuggerUrl);
 await new Promise((r) => (ws.onopen = r));
 let nextId = 1;
-const evaluate = (expression) =>
+// A reply never comes for an evaluate sent while the page navigates, so
+// every call gives up after a while.
+const evaluate = (expression, timeoutMs = 5000) =>
   new Promise((resolve) => {
     const id = nextId++;
+    const timer = setTimeout(() => {
+      ws.removeEventListener("message", onMessage);
+      resolve({ error: `no reply from the browser in ${timeoutMs}ms` });
+    }, timeoutMs);
     const onMessage = (m) => {
       const reply = JSON.parse(m.data);
       if (reply.id !== id) return;
+      clearTimeout(timer);
       ws.removeEventListener("message", onMessage);
-      resolve(reply.result?.result?.value ?? reply);
+      const details = reply.result?.exceptionDetails;
+      if (details) resolve({ error: details.exception?.description ?? details.text });
+      else resolve(reply.result?.result?.value ?? reply);
     };
     ws.addEventListener("message", onMessage);
     ws.send(JSON.stringify({ id, method: "Runtime.evaluate", params: { expression, awaitPromise: true, returnByValue: true } }));
   });
 
-// A freshly opened tab has no cookies until the page has loaded.
-for (let i = 0; i < 50 && !(await evaluate("document.cookie.includes('csrftoken=')")); i++) {
+// A freshly opened tab has no cookies until the page has loaded, and
+// Cloudflare may first serve a challenge page (/?__cf_chl_rt_tk=...) that
+// redirects a moment later; a fetch started during that redirect is aborted.
+const settled = `document.readyState === "complete"
+  && !location.href.includes("__cf_chl")
+  && document.cookie.includes("csrftoken=")`;
+let ready = false;
+for (let i = 0; i < 30 && !(ready = (await evaluate(settled, 1000)) === true); i++) {
   await new Promise((r) => setTimeout(r, 200));
+}
+if (!ready) {
+  ws.close();
+  console.error("lc_fetch: the leetcode tab is stuck on a Cloudflare challenge; open it in the browser and let it pass");
+  process.exit(1);
 }
 const request = {
   method,
@@ -65,7 +85,7 @@ const expr = `(async () => {
   const r = await fetch(${JSON.stringify(path)}, req);
   return [r.status, await r.text()];
 })()`;
-const result = await evaluate(expr);
+const result = await evaluate(expr, 30000);
 ws.close();
 if (opened) await fetch(`${endpoint}/json/close/${opened.id}`);
 if (!Array.isArray(result)) {
