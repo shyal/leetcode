@@ -27871,6 +27871,18 @@
       "note": "Notes say 'Looked as the graph, saw set union so technically hinted'; UNION ALL keeps repeats as required.",
       "summary": "The query unpivots the two columns into one id column by selecting requester_id and UNION ALL-ing accepter_id from the same table, so each row contributes two ids and repeats are preserved. This exercises the sql-set-union move with UNION ALL rather than deduping UNION. The notes say the candidate saw it as a graph and only recognised the set-union shape after a hint.",
       "seconds": 142
+    },
+    "solved/d_Permutations_2026_09_18T21_46_40_984019_00_00Z.py": {
+      "date": "2026-09-19",
+      "problem": "drill",
+      "moves": {
+        "backtracking-mark-unmark": "clean",
+        "backtracking-choose-undo": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "helper(j+1) passes an unused index; the used[] flag is what actually gates candidates, so the recursion still enumerates all permutations correctly.",
+      "summary": "The code builds permutations by recursing over positions, marking used[j] before appending nums[j] and unmarking/popping after the recursive call, recording a copy of path when its length reaches len(nums). It exercises backtracking-mark-unmark (the used flag raised and lowered around each candidate) and backtracking-choose-undo (append/pop of path). All assertions pass, including the 8-element case producing 40320 distinct permutations.",
+      "seconds": 124
     }
   }
 }
