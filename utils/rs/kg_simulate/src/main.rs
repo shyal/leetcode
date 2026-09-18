@@ -67,9 +67,12 @@
 // for the test suite. The operator's knobs are a session's preferences
 // and moved with them - the anki scheduler and the one-new-drill cap ran
 // the picker dry of problems after ten weeks on 2026-09-12 - so the
-// forecast is of the picker, not of the .envrc of the day.
-// TARGET_PASS_RATE is the exception: it says what "ready" means, is read
-// first, and is honoured.
+// forecast is of the picker, not of the .envrc of the day. Three
+// exceptions: TARGET_PASS_RATE says what "ready" means, is read first,
+// and is honoured; DRILL_SCHEDULER (the file's SM-2 clock under anki,
+// the node's status otherwise) and KG_GROUP_CAP (so many reps of a group
+// a day) decide when a drill is served and stay, so the run answers the
+// same due files at the same rate the operator does (sim::KEPT_KNOBS).
 //
 // The random stream is CPython's (kg::mock::PyRandom), so a seed draws the
 // trajectory the Python original drew.
@@ -223,6 +226,9 @@ fn main() {
                     "stale": d.stale,
                     "fragile": d.fragile,
                     "missing": d.missing,
+                    "open": d.open,
+                    "due": d.due,
+                    "drills_due": d.drills_due,
                     "onsite": d.onsite,
                     "screen": d.screen,
                     "hard": d.hard,

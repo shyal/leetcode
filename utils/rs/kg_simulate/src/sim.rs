@@ -333,6 +333,10 @@ pub struct DayRow {
     pub stale: i64,
     pub fragile: i64,
     pub missing: i64,
+    /// the review backlog at the end of the day (kg::clock::backlog)
+    pub open: i64,
+    pub due: i64,
+    pub drills_due: i64,
     pub onsite: f64,
     pub screen: f64,
     pub hard: f64,
@@ -391,10 +395,22 @@ fn pct0(x: f64) -> String {
 /// The .envrc knobs leave the environment for the run (conftest does the
 /// same for the suite): the run is the picker on its own rules, not the
 /// .envrc of the day. TARGET_PASS_RATE says what "ready" means and is read
-/// before this. Returns what was dropped, for the caller to put back.
+/// before this. Two more stay, the ones that decide when a drill is
+/// served: DRILL_SCHEDULER (by the file's SM-2 clock, or by the node's
+/// status) and KG_GROUP_CAP (so many reps of a group per day). The
+/// README's backlog chart counts due drills by that clock, and the real
+/// backlog is the capped group draining one rep a day; a run without them
+/// either leaves every file overdue and never answered or clears the
+/// pile on day one (2026-09-18). Returns what was dropped, for the caller
+/// to put back.
+pub const KEPT_KNOBS: [&str; 2] = ["DRILL_SCHEDULER", "KG_GROUP_CAP"];
+
 pub fn drop_knobs(root: &Path) -> Vec<(String, String)> {
     let mut saved = Vec::new();
     for (name, _) in kg::data::envrc_pairs(root) {
+        if KEPT_KNOBS.contains(&name.as_str()) {
+            continue;
+        }
         if let Ok(v) = std::env::var(&name) {
             saved.push((name.clone(), v));
             std::env::remove_var(&name);
@@ -906,12 +922,16 @@ fn run_(
             *end.entry(s.0).or_insert(0) += 1;
         }
         let end = |s| end.get(&s).copied().unwrap_or(0);
+        let (open, due, drills_due) = kg::clock::backlog(ctx, &ev, day);
         series.push(DayRow {
             day,
             solves: today_kind,
             stale: end(STALE),
             fragile: end(FRAGILE),
             missing: end(MISSING),
+            open,
+            due,
+            drills_due,
             onsite,
             screen,
             hard: phard,

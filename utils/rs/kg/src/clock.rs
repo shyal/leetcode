@@ -6,9 +6,9 @@ use std::collections::HashMap;
 
 use chrono::{Duration, NaiveDate};
 
-use crate::ctx::PView;
+use crate::ctx::{Ctx, PView};
 use crate::data::{is_numeric_id, parse_date, pnum_key, Rec};
-use crate::drills::ANKI_HARD_FACTOR;
+use crate::drills::{anki_due, ANKI_HARD_FACTOR};
 use crate::evidence::Evidence;
 
 pub const PROBLEM_GRADUATING_DAYS: i64 = 3;
@@ -54,6 +54,32 @@ pub fn problem_grade(fname: &str, rec: &Rec) -> Option<&'static str> {
         "unmapped" => None,
         _ => Some("again"),
     }
+}
+
+/// The review backlog on `day`, from the evidence on file: (open cards,
+/// due cards, due drills). An open card is a problem on a review clock
+/// of its own (problem_due); it is due once the clock has run out. A due
+/// drill is a bank file done at least once whose SM-2 clock (anki_due)
+/// has run out. The README's backlog chart draws this day by day and
+/// kg_simulate reports it at the end of every simulated day.
+pub fn backlog(ctx: &Ctx, ev: &Evidence, day: NaiveDate) -> (i64, i64, i64) {
+    let cards: Vec<NaiveDate> = ev
+        .by_problem
+        .keys()
+        .filter(|p| p.chars().next().is_some_and(|c| c.is_ascii_digit()))
+        .filter_map(|p| problem_due(ev, p))
+        .map(|c| c.0)
+        .collect();
+    let drills = ctx
+        .every_bank_path()
+        .iter()
+        .filter(|p| anki_due(ctx, p, ev).is_some_and(|a| a.0 <= day))
+        .count();
+    (
+        cards.len() as i64,
+        cards.iter().filter(|&&d| d <= day).count() as i64,
+        drills as i64,
+    )
 }
 
 /// kg_lib.problem_attempts: (date, fname, rec index), oldest first.

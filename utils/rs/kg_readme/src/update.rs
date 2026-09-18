@@ -62,7 +62,7 @@ const CHARTS: [(&str, &str, &str, &str, bool); 12] = [
         "graph/backlog.svg",
         "backlog",
         "BACKLOG_CHART",
-        "Review backlog: open cards, due cards, due drills",
+        "Backlog and forecast: review cards, solves by kind, STALE and FRAGILE nodes",
         false,
     ),
     (

@@ -24,7 +24,7 @@ Right of the dotted line is a simulation: the picker running on its own for six 
 
 <!-- PROBLEM_RATING_CHART -->
 
-![Rating of the problems attempted](https://shyal.s3.amazonaws.com/problem_rating_20260918015638.svg)
+![Rating of the problems attempted](https://shyal.s3.amazonaws.com/problem_rating_20260918024830.svg)
 
 <!-- /PROBLEM_RATING_CHART -->
 
@@ -68,7 +68,7 @@ If the blue line is above 0, i'm performing better than the model expects, and v
 
 <!-- BACKLOG_CHART -->
 
-![Review backlog: open cards, due cards, due drills](https://shyal.s3.amazonaws.com/backlog_20260918015638.svg)
+![Backlog and forecast: review cards, solves by kind, STALE and FRAGILE nodes](https://shyal.s3.amazonaws.com/backlog_20260918024830.svg)
 
 <!-- /BACKLOG_CHART -->
 
