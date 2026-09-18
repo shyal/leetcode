@@ -27929,6 +27929,17 @@
       "note": "Drill targets counting-sort-buckets: buckets[0]*101 indexed by value, then a running total over the bucket array gives each value's count of smaller elements.",
       "summary": "The code builds a fixed 101-slot bucket array indexed by value, incrementing buckets[n] for each number. It then sweeps the buckets in order, recording counts[i] = total (the number of elements seen so far) before adding v, so each present value maps to how many values are smaller. Finally it maps each original number through counts. This exercises counting-sort-buckets and a running prefix total; all assertions passed.",
       "seconds": 299
+    },
+    "solved/d_Kth_Smallest_Bounded_Value_2026_09_18T22_07_22_091594_00_00Z.py": {
+      "date": "2026-09-19",
+      "problem": "drill",
+      "moves": {
+        "counting-sort-buckets": "clean",
+        "running-sum": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The code builds a fixed-size bucket array indexed by value (buckets[n] += 1), then scans the buckets accumulating a running total and returns the index where the cumulative count reaches k. This exercises counting-sort-buckets as the core move, with a running-sum scan over the buckets to locate the kth smallest. All assertions passed and the file exited 0.",
+      "seconds": 222
     }
   }
 }
