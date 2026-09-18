@@ -27831,6 +27831,22 @@
       "note": "Uses harness first_true over [0, sum(time)*totalTrips] with feasibility trips(t) = sum(t//x) >= totalTrips.",
       "summary": "The code defines a feasibility function trips(t) that counts total trips completed by time t as sum(t // x for x in time), then binary-searches the answer space with first_true over the range 0 to sum(time)*totalTrips to find the smallest t meeting totalTrips. This exercises binary-search-on-answer cleanly. All assertions passed with exit 0, and no notes indicate any hints or look-ups.",
       "seconds": 768
+    },
+    "solved/p322_Coin_Change_2026_09_18T01_55_46_945224_00_00Z.py": {
+      "date": "2026-09-18",
+      "problem": "322",
+      "moves": {
+        "dp-state-formulate": "clean",
+        "dp-1d-rolling": "clean"
+      },
+      "assist": {
+        "dp-state-formulate": "learning",
+        "dp-1d-rolling": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say 'Learning.' and show the candidate working out the DP table by hand; LEETCODE: Accepted (365 ms, 19.8 MB).",
+      "summary": "The code builds a 1D dp table where dp[a] is the fewest coins to make amount a, filling it forward from dp[0]=0 and taking the min over dp[a-c]+1 for each usable coin. This exercises dp-state-formulate and dp-1d-rolling. The notes show the candidate hand-drawing the table and writing 'Learning.', and LeetCode reports Accepted (365 ms, 19.8 MB).",
+      "seconds": 2243
     }
   }
 }
