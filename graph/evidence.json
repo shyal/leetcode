@@ -27906,6 +27906,17 @@
       "note": "Delegates to harness first_true; the <=31 calls assertion confirms logarithmic halving.",
       "summary": "The Solution.firstTrue method wraps the harness first_true(lo, hi, ok) to return the first integer where the monotone predicate flips true. The assertions cover the boundary cases (lo==hi, predicate true at lo, true only at hi, and a 10^9 range) and the call-count check confirms the search halves the interval rather than scanning. This exercises the binary-search-boundary move, finding the first index where the predicate becomes true.",
       "seconds": 26
+    },
+    "solved/d_Names_In_Palette_2026_09_18T21_54_45_033724_00_00Z.py": {
+      "date": "2026-09-19",
+      "problem": "drill",
+      "moves": {
+        "bit-flags": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets bit-flags: Color(Flag) with auto() members, union via |, membership test with `in`.",
+      "summary": "Defines a Color Flag enum with red/green/blue auto() members and a present() generator that yields each name whose Color[name] is a member of the palette flag. The palette is built by OR-ing flags (Color.red | Color.blue) and tested with `in`, exercising the bit-flags move. All assertions pass, including the empty palette Color(0) and duplicate-name cases.",
+      "seconds": 69
     }
   }
 }
