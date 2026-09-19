@@ -28109,6 +28109,16 @@
       "note": "Drill targets event-sweep; the code instead solves the reachability band directly with min/max bounds rather than sweeping +1/-1 boundary events.",
       "summary": "The code computes the number of turns needed to reach total T from knobs a and b with a per-turn limit, using a band lambda that gives the interval (min+1, max+limit). It returns 0 if a+b already equals T, 1 if T falls inside the band, else 2. All assertions pass and the file exits 0. The drill's target move event-sweep is not literally exercised; the solution uses direct interval bounds instead.",
       "seconds": 61
+    },
+    "solved/d_Clubs_Sharing_A_Member_2026_09_19T22_21_29_931737_00_00Z.py": {
+      "date": "2026-09-20",
+      "problem": "drill",
+      "moves": {
+        "graph-overlap-adjacency": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The code builds an adjacency set per club by iterating each person's club list and unioning that list into every club's set, then discards self-loops. This is the group-overlap adjacency move: clubs become nodes connected when they share a member, done in O(n*L) with no person-to-person edges. All assertions passed and the notes are empty.",
+      "seconds": 235
     }
   }
 }
