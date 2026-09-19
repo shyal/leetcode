@@ -28036,6 +28036,17 @@
       "note": "Notes say 'Learning' and remark on union argument order; drill's required union-find move exercised and all assertions passed.",
       "summary": "The code subclasses UnionFind and builds an owner dict mapping each email to the first account index that saw it; on a repeat email it calls self.union(account, owner[email]) to merge the two accounts, then returns the owner map. It exercises union-find (find/union via the inherited class) and dict-arbitrary-value for the email->account mapping. All assertions passed at exit 0. The notes say 'Learning' and note that the order of union's arguments matters.",
       "seconds": 363
+    },
+    "solved/d_Fix_Names_2026_09_19T21_50_43_644618_00_00Z.py": {
+      "date": "2026-09-20",
+      "problem": "drill",
+      "moves": {
+        "sql-string-functions": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Uses upper/lower/substr with || concatenation; substr(name,0,2) exploits sqlite's 1-based indexing to grab the first char.",
+      "summary": "The query selects user_id and rebuilds name as upper(substr(name,0,2)) concatenated with lower(substr(name,2)), so the first character is upper-cased and the rest lower-cased. This exercises the sql-string-functions move (UPPER/LOWER/SUBSTR and || concatenation) and passes both example assertions. No notes indicate any assistance or recognition difficulty.",
+      "seconds": 434
     }
   }
 }
