@@ -28153,6 +28153,26 @@
       "note": "Drill targets union-find; find/union exercised via UnionFind subclass, owner dict maps email->root.",
       "summary": "The Solution subclasses UnionFind and walks each account, calling find(account) to get a root and using an owner dict to map each email to the first root that claimed it; on a repeat email it unions the current root with the stored owner. The run printed the expected owner mapping and the expected roots (find(2)=0, find(3)=1), so the union-find find/union moves and the dict-as-owner-lookup move both executed correctly. No notes indicate any help or recognition difficulty.",
       "seconds": 251
+    },
+    "solved/p968_Binary_Tree_Cameras_2026_09_19T23_00_30_892618_00_00Z.py": {
+      "date": "2026-09-20",
+      "problem": "968",
+      "moves": {
+        "tree-dfs-recursive": "clean",
+        "tree-combine-returns": "clean",
+        "tree-global-across-subtrees": "clean",
+        "bit-flags": "clean"
+      },
+      "assist": {
+        "tree-combine-returns": "learning",
+        "bit-flags": "learning",
+        "tree-dfs-recursive": "learning",
+        "tree-global-across-subtrees": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say 'Learning' and mention forgetting the 'in' operator for Flag; LEETCODE: Accepted (15 ms, 19.6 MB).",
+      "summary": "The solution recurses over the tree with helper(n), returning a State Flag (camera/covered) from each subtree and combining the left and right returns to decide whether the current node needs a camera, incrementing self.count. It exercises tree-dfs-recursive, tree-combine-returns, tree-global-across-subtrees, and bit-flags. The notes say 'Learning' and mention forgetting the 'in' operator that makes Flag syntactically useful, and the LeetCode verdict is Accepted.",
+      "seconds": 2421
     }
   }
 }
