@@ -28141,6 +28141,18 @@
       "note": "Drill on marginal-gain: gain(a,t) = (a+1)/(t+1) - a/t, the change from adding one unit.",
       "summary": "The Solution.gain method computes the marginal gain of adding one to the numerator a while the denominator t also grows by one, returning (a+1)/(t+1) - a/t. The assertions check this difference against hand-computed fractions, including the zero-gain case gain(2,2) and a large-value case. The code exercises the marginal-gain move directly as new value minus old value.",
       "seconds": 44
+    },
+    "solved/d_Claim_Or_Merge_2026_09_19T22_33_35_905916_00_00Z.py": {
+      "date": "2026-09-20",
+      "problem": "drill",
+      "moves": {
+        "union-find": "clean",
+        "dict-arbitrary-value": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets union-find; find/union exercised via UnionFind subclass, owner dict maps email->root.",
+      "summary": "The Solution subclasses UnionFind and walks each account, calling find(account) to get a root and using an owner dict to map each email to the first root that claimed it; on a repeat email it unions the current root with the stored owner. The run printed the expected owner mapping and the expected roots (find(2)=0, find(3)=1), so the union-find find/union moves and the dict-as-owner-lookup move both executed correctly. No notes indicate any help or recognition difficulty.",
+      "seconds": 251
     }
   }
 }
