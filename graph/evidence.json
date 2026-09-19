@@ -28061,6 +28061,20 @@
       "note": "notes say 'Forgot about the over (order by turn) syntax. Assisted.'",
       "summary": "The query selects turn and sum(weight) over (order by turn) as total from Queue, producing a running total per turn in one pass. It exercises the sql-window-running move with a SUM window ordered by turn. The notes state the candidate forgot the OVER (ORDER BY turn) syntax and were assisted on it.",
       "seconds": 740
+    },
+    "solved/d_Interleave_2026_09_19T22_11_23_965017_00_00Z.py": {
+      "date": "2026-09-20",
+      "problem": "drill",
+      "moves": {
+        "ll-dummy-splice": "clean"
+      },
+      "assist": {
+        "ll-dummy-splice": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say 'Learning'; no dummy node used but the splice/re-link of next pointers is exercised.",
+      "summary": "The code interleaves two linked lists by repeatedly swapping a.next, b.next, a, b in a single tuple assignment, returning the original head a. It exercises in-place pointer re-linking (ll-dummy-splice shape, though without a dummy node). The notes mark it as Learning, and all assertions including the 25000-element case passed.",
+      "seconds": 141
     }
   }
 }
