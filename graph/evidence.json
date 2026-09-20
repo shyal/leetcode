@@ -28610,6 +28610,18 @@
       "note": "countCompanies counts roots via self.find(v) == i over parent; all assertions pass.",
       "summary": "The Solution subclasses UnionFind and countCompanies sums i == self.find(v) over enumerate(self.parent), counting distinct roots. The drill exercises union-find by relying on find to resolve each node to its representative. All assertions, including the 999-element every-third-head case, pass and the program prints 2.",
       "seconds": 82
+    },
+    "solved/p105_Construct_Binary_Tree_from_Preorder_and_Inorder_Traversal_2026_09_20T21_12_09_673277_00_00Z.py": {
+      "date": "2026-09-21",
+      "problem": "105",
+      "moves": {
+        "tree-build-from-traversals": "clean",
+        "tree-dfs-recursive": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Uses list.index and slicing rather than a hashmap of inorder positions, so it is O(n^2) but Accepted.",
+      "summary": "The code takes preorder[0] as the root, finds its position in inorder with inorder.index, splits inorder into left and right slices, and recurses on the corresponding preorder slices to build the tree. This exercises tree-build-from-traversals and the recursive tree construction directly. LeetCode reports Accepted (67 ms, 90.7 MB); the notes describe the root/split reasoning. No follow-up bound (O(n) via a position map) is implemented.",
+      "seconds": 853
     }
   }
 }
