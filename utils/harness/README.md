@@ -226,6 +226,20 @@ Row i of a and row i of b hold the same elements, in any order.
 
 The rows themselves stay in order: an adjacency list keyed by index.
 
+### `same_seq(a: Iterable[Any], b: Iterable[Any]) -> bool`
+
+The same elements in the same order, whatever the container.
+
+A tuple from divmod against a list in the assert: (1, 2) matches [1, 2].
+
+### `uses(cls: type, *helpers: Callable[..., Any]) -> bool`
+
+Every helper is called somewhere in the source of cls.
+
+Raises AssertionError naming the first helper cls never calls. The
+check reads the class as written, so it lives in the test block of a
+solve and goes with the asserts, never to leetcode.
+
 ### `triples(n: int, type: Maker = tuple) -> Iterator[Any]`
 
 Every (i, j, k) with 0 <= i < j < k < n, in lexicographic order.
