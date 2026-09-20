@@ -28577,6 +28577,17 @@
       "note": "Drill only builds the parent array via [*range(n)]; find/union are not exercised.",
       "summary": "The file defines Solution.buildParent(n), which returns [*range(n)] \u2014 the identity parent array where each element is its own root. The drill's required line is met: the parent array is constructed and the assertions confirm its contents, including a manual parent[1] = 0 link. Only the initialization rung of union-find is trained here; find and union are not present.",
       "seconds": 16
+    },
+    "solved/d_Find_with_Path_Compression_2026_09_20T20_38_06_430210_00_00Z.py": {
+      "date": "2026-09-21",
+      "problem": "drill",
+      "moves": {
+        "union-find": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets union-find; recursive find with path compression rewrites parent[x] to the root, verified by the parent-array assertions.",
+      "summary": "The Solution subclasses UnionFind and overrides find with a recursive path-compression walk: it recurses to the root, then sets parent[x] to that root on the way back. The driver builds several parent chains by hand and asserts both the returned root and the fully flattened parent array, including a multi-chain case and a single-node case. All assertions pass and the printed output shows the flattened array [4, 4, 4, 4, 4].",
+      "seconds": 78
     }
   }
 }
