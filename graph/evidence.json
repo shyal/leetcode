@@ -28421,6 +28421,18 @@
       "note": "Drill targets bit-flags; uses enum.Flag with auto(), union via |, and membership test `Color[n] in a | b`.",
       "summary": "Defines a Color enum.Flag with auto() members and a Solution.either that unions the two flag arguments with | and tests each requested name with `Color[n] in a | b`, yielding matches. The @as_list decorator collects the generator into a list. All assertions pass, exercising the bit-flags move: named states as one Flag value, union with |, and membership test with in.",
       "seconds": 32
+    },
+    "solved/d_Smaller_Before_2026_09_20T19_17_23_553883_00_00Z.py": {
+      "date": "2026-09-21",
+      "problem": "drill",
+      "moves": {
+        "dp-1d-rolling": "clean",
+        "substring-enumeration": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "O(n^2) pair enumeration fills dp[i] by counting earlier smaller elements; no monotonic-stack/fenwick optimization.",
+      "summary": "The code builds a 1D table dp of length n and, using pairs(len(nums)) to enumerate every (j, i) with j < i, increments dp[i] whenever nums[j] < nums[i]. This is a rolling 1D accumulation over the pair enumeration, and all assertions pass including the 2500-element case. The notes contain no mention of hints, look-ups, or failures.",
+      "seconds": 75
     }
   }
 }
