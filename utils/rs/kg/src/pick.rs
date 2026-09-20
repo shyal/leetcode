@@ -126,10 +126,15 @@
 //      problem that beat you untouched, and on 2026-09-09 25 problems had
 //      an unpaid one. A card is opened by help or a walk-away (a copied
 //      solution, a walkthrough, a hint, a FAILED file), pushed out by a
-//      hinted clean rep, and retired by an unaided clean one - the help
-//      that put the problem on the list can never be what takes it off.
-//      3 days, not the bank's 1: a next-morning rep on a problem whose
-//      solution was on the screen yesterday is a typing exercise.
+//      hinted clean rep, and retired once unaided clean reps have held it
+//      at 7 and then 21 days (2026-09-20; before that the first unaided
+//      rep retired it, and 1 of the 11 such recoveries the node curve
+//      later re-served had held) - the help that put the problem on the
+//      list can never be what takes it off. 3 days, not the bank's 1: a
+//      next-morning rep on a problem whose solution was on the screen
+//      yesterday is a typing exercise. A recovered problem's retest waits
+//      on a clean rep of the drill under the move it recovered
+//      (drills::recovery_wait), and that drill is wanted on its own node.
 //   3b. frontier mover (PLAN.md phase 4), step d above: a due node with no
 //      UNSOLVED mapped carrier (one it has never been given is waited for
 //      even when warm, asleep, or spent today; one it has already solved is
@@ -469,6 +474,20 @@ pub fn review_queue(
             Some(h) => {
                 if trace {
                     eprintln!("review {p}: held behind {h}");
+                }
+                false
+            }
+            None => true,
+        })
+        // a recovered problem is retested only once the drill under the
+        // move it recovered has a clean rep since the recovery: the
+        // drill is the retrieval between the copy and the retest
+        // (drills::recovery_wait; the drill itself is wanted, so it is
+        // served on its own node)
+        .filter(|(p, _, _)| match crate::drills::recovery_wait(ctx, ev, p) {
+            Some(f) => {
+                if trace {
+                    eprintln!("review {p}: waiting on {}", f.display());
                 }
                 false
             }
@@ -1273,12 +1292,12 @@ impl<'a> Picker<'a> {
                         .then_with(|| a.cmp(b))
                 })
                 .unwrap();
-            return Some(Choice::new(
-                target,
-                self.status(target).0,
-                &pnum,
-                format!("{label} on this problem {age}d ago - the unaided rep it is waiting for"),
-            ));
+            let reason = if label == "clean" {
+                format!("solved unaided {age}d ago after help - the rep that shows it held")
+            } else {
+                format!("{label} on this problem {age}d ago - the unaided rep it is waiting for")
+            };
+            return Some(Choice::new(target, self.status(target).0, &pnum, reason));
         }
         None
     }

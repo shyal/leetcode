@@ -6,7 +6,7 @@
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
-use chrono::NaiveDate;
+use chrono::{Duration, NaiveDate};
 
 use crate::ctx::{Ctx, PView};
 use crate::data::{env_str, is_numeric_id, read_json};
@@ -598,6 +598,442 @@ pub fn elo_games(
         out.push((g, r, before));
     }
     out
+}
+
+/// How far the Elo you carried into a game may sit above the problem for
+/// the problem to count as at your level.
+pub const AT_RATING_BAND: f64 = 100.0;
+
+/// The two counts that answer "progressing or grinding" (2026-09-20):
+/// gain, first-sight games on problems at your level (rating within
+/// AT_RATING_BAND under the Elo carried into the game) and how many were
+/// won cold; and retention, problems recovered (a lost game - a fail, a
+/// copy or a walkthrough - then an unaided pass) that were retested and
+/// passed unaided again, over the clock or not. The window applies to the first
+/// sight and to the retest; `pending` counts every recovery still waiting
+/// for its retest, whatever the window. `make stats` prints both under
+/// the totals, and the note of 2026-09-20 fixes the baseline: 5 cold of
+/// 14 tried in September, 1 held of 11 retests since August.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Ground {
+    pub tried: usize,
+    pub cold: usize,
+    pub retested: usize,
+    pub held: usize,
+    pub pending: usize,
+}
+
+impl Ground {
+    /// Over elo_games, oldest first; `since` limits the first sights and
+    /// the retests to a window.
+    pub fn of(games: &[(Game, f64, f64)], since: Option<NaiveDate>) -> Ground {
+        let inside = |g: &Game| since.is_none_or(|s| crate::data::parse_date(&g.date) >= s);
+        let lost = |g: &Game| g.failed || g.assist == "learning" || g.assist == "walkthrough";
+        let mut out = Ground::default();
+        // per problem: (last game lost, the game before that was a recovery)
+        let mut state: HashMap<&str, (bool, bool)> = HashMap::new();
+        for (g, rating, before) in games {
+            if g.first && *rating >= before - AT_RATING_BAND && inside(g) {
+                out.tried += 1;
+                out.cold += usize::from(g.score == 1.0);
+            }
+            // an unaided pass, over the clock or not: the retest asks
+            // whether the memory held, not whether it was fast
+            let won = !g.failed && g.assist == "none";
+            let (was_lost, recovered) = state
+                .get(g.problem.as_str())
+                .copied()
+                .unwrap_or((false, false));
+            if recovered && inside(g) {
+                out.retested += 1;
+                out.held += usize::from(won);
+            }
+            let now_recovered = was_lost && won;
+            state.insert(g.problem.as_str(), (lost(g), now_recovered));
+        }
+        out.pending = state.values().filter(|(_, r)| *r).count();
+        out
+    }
+
+    /// Two sentences; `window` is "the last 7 days" or "all time".
+    pub fn rows(&self, window: &str) -> Vec<(String, String, String)> {
+        let pct = |a: usize, b: usize| {
+            if b == 0 {
+                "-".to_string()
+            } else {
+                format!("{:.0}%", 100.0 * a as f64 / b as f64)
+            }
+        };
+        vec![
+            (
+                format!(
+                    "In {window} you tried {} problems at your level for the first time and solved {} of them with no help and within the time limit (",
+                    self.tried, self.cold
+                ),
+                pct(self.cold, self.tried),
+                ").".to_string(),
+            ),
+            (
+                format!(
+                    "{} problems you had failed and later solved were given to you again; you solved {} of them again with no help (",
+                    self.retested, self.held
+                ),
+                pct(self.held, self.retested),
+                format!("). {} more have not been given again yet.", self.pending),
+            ),
+        ]
+    }
+}
+
+/// The Elo replayed over first-sight games only, oldest first: (date,
+/// elo carried into the game). A repeat proves memory of one problem,
+/// not level; this series is the one `make progress` reads.
+pub fn elo_first_sight(games: &[(Game, f64, f64)]) -> (Vec<(NaiveDate, f64)>, f64) {
+    let mut elo = ELO_START;
+    let mut out = Vec::new();
+    for (g, r, _) in games {
+        if !g.first {
+            continue;
+        }
+        out.push((crate::data::parse_date(&g.date), elo));
+        elo += ELO_K * (g.score - 1.0 / (1.0 + 10f64.powf((r - elo) / 400.0)));
+    }
+    (out, elo)
+}
+
+// ---- proven rating ---------------------------------------------------------
+
+/// The window of the proven rating: the last PROVEN_WINDOW first sights.
+pub const PROVEN_WINDOW: usize = 30;
+
+/// What one first-sight game proves (settled 2026-09-20): an unaided win
+/// inside the clock proves the problem's rating, a pass that fell short
+/// of that (a hint, or over the clock) the rating less 200, a fail or a
+/// copy the rating less 400. A win proves nothing beyond the problem:
+/// three hundred wins on 1250s prove 1250, where Elo read them as 1900
+/// (a 1250 problem cannot tell a 1700 from a 1900, so Elo climbs until
+/// the slip rate matches its expectation). `score` is the proven score
+/// of first_sight_games, not the Elo score: a slow pass is 0 to the Elo
+/// and 0.5 here, since the solution was found, only late.
+pub fn proven_score(rating: f64, score: f64) -> f64 {
+    if score >= 1.0 {
+        rating
+    } else if score >= 0.5 {
+        rating - 200.0
+    } else {
+        rating - 400.0
+    }
+}
+
+/// [(date, proven rating)] one per first-sight game from the
+/// PROVEN_WINDOW-th on: the mean of the last PROVEN_WINDOW scores.
+pub fn proven_series(games: &[(NaiveDate, f64, f64)]) -> Vec<(NaiveDate, f64)> {
+    let scores: Vec<f64> = games.iter().map(|(_, r, s)| proven_score(*r, *s)).collect();
+    let n = PROVEN_WINDOW;
+    if scores.len() < n {
+        return vec![];
+    }
+    (n - 1..scores.len())
+        .map(|i| {
+            let mean = scores[i + 1 - n..=i].iter().sum::<f64>() / n as f64;
+            (games[i].0, mean)
+        })
+        .collect()
+}
+
+/// The first-sight games of elo_games as (date, rating, proven score).
+/// The proven score is the Elo score except for a pass over the clock,
+/// which the Elo scores 0 and the proven rating 0.5: it was solved, late.
+pub fn first_sight_games(games: &[(Game, f64, f64)]) -> Vec<(NaiveDate, f64, f64)> {
+    games
+        .iter()
+        .filter(|(g, _, _)| g.first)
+        .map(|(g, r, _)| {
+            let passed = !g.failed && (g.assist == "none" || g.assist == "hint");
+            let score = if passed { g.score.max(0.5) } else { g.score };
+            (crate::data::parse_date(&g.date), *r, score)
+        })
+        .collect()
+}
+
+// ---- make progress -------------------------------------------------------
+
+/// The Elo has to move this much over PROGRESS_LEVEL_DAYS to count as a
+/// move at all; under it the level is called flat.
+pub const PROGRESS_LEVEL_POINTS: f64 = 50.0;
+pub const PROGRESS_LEVEL_DAYS: i64 = 90;
+pub const PROGRESS_WINDOW_DAYS: i64 = 30;
+/// A drill holds once this many unaided clean reps in a row end its history.
+pub const PROGRESS_HOLD_REPS: usize = 3;
+
+fn month_name(d: NaiveDate) -> &'static str {
+    use chrono::Datelike;
+    [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+    ][d.month0() as usize]
+}
+
+fn plain(node: &str, ctx: &Ctx) -> String {
+    ctx.nodes
+        .get(node)
+        .map(|n| n.name.to_lowercase())
+        .unwrap_or_else(|| node.replace('-', " "))
+}
+
+fn number(n: usize) -> String {
+    match n {
+        0 => "none".into(),
+        1 => "one".into(),
+        2 => "two".into(),
+        3 => "three".into(),
+        4 => "four".into(),
+        5 => "five".into(),
+        6 => "six".into(),
+        7 => "seven".into(),
+        8 => "eight".into(),
+        9 => "nine".into(),
+        _ => n.to_string(),
+    }
+}
+
+/// `make progress`: three paragraphs. The verdict on whether the level is
+/// moving and why; whether the drills hold and which turned into unaided
+/// solves this month; what is queued to change it. Plain words: no rate,
+/// no repo idiom (2026-09-20, the day the two `make stats` sentences took
+/// six rewrites to read).
+pub fn progress(ctx: &Ctx, ev: &Evidence, today: NaiveDate) -> Vec<String> {
+    let ratings = solve_ratings(ctx);
+    let games = elo_games(ctx, ev, &ratings);
+    let since = today - Duration::days(PROGRESS_WINDOW_DAYS);
+    let recent: Vec<&(Game, f64, f64)> = games
+        .iter()
+        .filter(|(g, _, _)| crate::data::parse_date(&g.date) >= since)
+        .collect();
+    let mut out = Vec::new();
+    if recent.len() < 5 {
+        out.push("You're not training.".to_string());
+        out.push(format!(
+            "{} problems in the last {} days. Nothing can be said about the level on that.",
+            number(recent.len()).to_uppercase_first(),
+            PROGRESS_WINDOW_DAYS
+        ));
+        return out;
+    }
+    // the level: the proven rating (proven_series) now against 90 days
+    // ago. Elo, every-game or first-sight, was inflated by the 2025 easies
+    // (settled 2026-09-20); a peak built on them is never a level to beat.
+    let proven = proven_series(&first_sight_games(&games));
+    let level_since = today - Duration::days(PROGRESS_LEVEL_DAYS);
+    let now = proven.last().map(|(_, e)| *e);
+    let then = proven
+        .iter()
+        .find(|(d, _)| *d >= level_since)
+        .map(|(_, e)| *e);
+    let delta = match (now, then) {
+        (Some(n), Some(t)) => n - t,
+        _ => 0.0,
+    };
+    let best_before = proven
+        .iter()
+        .filter(|(d, _)| *d < level_since)
+        .map(|(_, e)| *e)
+        .fold(None::<f64>, |b, e| Some(b.map_or(e, |b| b.max(e))));
+    let ten = |x: f64| (x / 10.0).round() as i64 * 10;
+    let level = match (now, best_before) {
+        (Some(n), Some(b)) if n > b => format!(
+            "The rating you have proven on problems never seen before is about {}, the highest it has been.",
+            ten(n)
+        ),
+        (Some(n), Some(b)) if b - n >= PROGRESS_LEVEL_POINTS => format!(
+            "The rating you have proven on problems never seen before is about {}, {} under its best.",
+            ten(n),
+            ten(b - n)
+        ),
+        (Some(n), _) => format!(
+            "The rating you have proven on problems never seen before is about {}.",
+            ten(n)
+        ),
+        _ => String::new(),
+    };
+    let ground = Ground::of(&games, Some(since));
+    let lost = recent
+        .iter()
+        .filter(|(g, _, _)| g.failed || g.assist == "learning" || g.assist == "walkthrough")
+        .count();
+
+    if delta >= PROGRESS_LEVEL_POINTS {
+        out.push("You're progressing.".to_string());
+        out.push(format!(
+            "The rating you have proven on problems never seen before is up about {} points since {}, to about {}{}.",
+            ten(delta),
+            month_name(level_since),
+            ten(now.unwrap_or(0.0)),
+            if level.contains("highest") {
+                ", the highest it has been"
+            } else {
+                ""
+            }
+        ));
+    } else if delta <= -PROGRESS_LEVEL_POINTS {
+        out.push("You're slipping.".to_string());
+        out.push(format!(
+            "The rating you have proven on problems never seen before is down about {} points since {}, to about {}.",
+            ten(-delta),
+            month_name(level_since),
+            ten(now.unwrap_or(0.0))
+        ));
+    } else if ground.cold == 0 {
+        out.push("You're stalled.".to_string());
+        out.push(format!(
+            "No new problem at your level was solved without help in the last {} days, and the level cannot move on reviews and drills alone. {level}",
+            PROGRESS_WINDOW_DAYS
+        ));
+    } else if ground.retested >= 3 && ground.held * 2 < ground.retested {
+        out.push("You're grinding.".to_string());
+        out.push(format!(
+            "You solve new problems at your level and lose them within weeks, so the level does not move. {level}"
+        ));
+    } else if lost * 2 > recent.len() {
+        out.push("You're rebuilding.".to_string());
+        out.push(format!(
+            "Most of the last {} days went to problems you had failed or copied, and new problems at your level are getting solved. {level} It moves once the rebuilt ones stay solved.",
+            PROGRESS_WINDOW_DAYS
+        ));
+    } else {
+        out.push("You're gaining, and whether it stays is not known yet.".to_string());
+        out.push(format!(
+            "New problems at your level are being solved without help. Too few have been asked a second time to say whether they stay solved. {level}"
+        ));
+    }
+
+    // the drills: holding, and which turned into unaided solves this month
+    let mut holding = 0usize;
+    let mut held_nodes: HashMap<String, Vec<NaiveDate>> = HashMap::new();
+    for path in ctx.every_bank_path() {
+        let key = ctx.drill_evidence_key(&path);
+        let reps = ev.drill_reps(&key);
+        let mut by_day: Vec<(String, &'static str)> = Vec::new();
+        for &i in reps.iter() {
+            let (d, _, ri) = &ev.drills[i];
+            let a = crate::drills::anki_answer(ev.rec(*ri));
+            match by_day.iter_mut().find(|(day, _)| day == d) {
+                Some(slot) => slot.1 = a,
+                None => by_day.push((d.clone(), a)),
+            }
+        }
+        by_day.sort();
+        let n = by_day.len();
+        if n >= PROGRESS_HOLD_REPS
+            && by_day[n - PROGRESS_HOLD_REPS..]
+                .iter()
+                .all(|(_, a)| *a == "good")
+            && crate::data::parse_date(&by_day[n - 1].0) >= since
+        {
+            holding += 1;
+        }
+        if let Some(node) = crate::drills::drill_node(&path) {
+            let goods = by_day
+                .iter()
+                .filter(|(_, a)| *a == "good")
+                .map(|(d, _)| crate::data::parse_date(d));
+            held_nodes.entry(node).or_default().extend(goods);
+        }
+    }
+    // an unaided solve at level this month, first sight or won back, with a
+    // clean drill rep on one of its moves in the three weeks before
+    let mut turned: Vec<(String, String)> = Vec::new();
+    for (g, rating, before) in &games {
+        let d = crate::data::parse_date(&g.date);
+        if d < since || g.failed || g.assist != "none" || *rating < before - AT_RATING_BAND {
+            continue;
+        }
+        let mv = g.moves.iter().find(|m| {
+            held_nodes
+                .get(*m)
+                .is_some_and(|ds| ds.iter().any(|x| *x < d && d - *x <= Duration::days(21)))
+        });
+        if let Some(m) = mv {
+            let title = ctx
+                .meta_title(&g.problem)
+                .unwrap_or_else(|| g.problem.clone());
+            turned.push((plain(m, ctx), title));
+        }
+    }
+    let mut by_move: Vec<(String, Vec<String>)> = Vec::new();
+    for (m, t) in turned {
+        match by_move.iter_mut().find(|(k, _)| *k == m) {
+            Some(slot) => slot.1.push(t),
+            None => by_move.push((m, vec![t])),
+        }
+    }
+    if holding == 0 {
+        out.push(
+            "Your drills are not holding yet: none has three clean runs in a row this month."
+                .to_string(),
+        );
+    } else {
+        let mut p = format!(
+            "Your drills are holding: {} of them have stayed clean for three runs or more.",
+            number(holding)
+        );
+        if by_move.is_empty() {
+            p.push_str(" None of them turned into a solved problem this month.");
+        } else {
+            // the three most recent moves, the rest a count
+            let total = by_move.len();
+            let list: Vec<String> = by_move
+                .iter()
+                .rev()
+                .take(3)
+                .map(|(m, ts)| format!("{m} ({})", ts.join(", ")))
+                .collect();
+            let more = if total > 3 {
+                format!(", and {} more", number(total - 3))
+            } else {
+                String::new()
+            };
+            p.push_str(&format!(
+                " {} turned into problems solved without help this month: {}{more}.",
+                number(total).to_uppercase_first(),
+                list.join("; ")
+            ));
+        }
+        out.push(p);
+    }
+
+    // what is queued
+    if ground.pending > 0 {
+        out.push(format!(
+            "{} problems you had failed and later solved are waiting to be asked again, each after a drill on its move. That is where the level moves or does not.",
+            number(ground.pending).to_uppercase_first()
+        ));
+    }
+    out
+}
+
+trait UpperFirst {
+    fn to_uppercase_first(&self) -> String;
+}
+
+impl UpperFirst for String {
+    fn to_uppercase_first(&self) -> String {
+        let mut c = self.chars();
+        match c.next() {
+            Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
+            None => String::new(),
+        }
+    }
 }
 
 /// kg_lib.elo_drift: (points per day, its standard error), least squares of

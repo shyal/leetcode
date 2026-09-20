@@ -81,7 +81,17 @@ and generate combination drills ("rote sheets").
   games (`scored_games`) read it from the record; records from before the field
   (2026-09-16) are timed from their commit message. `make stats [DAYS|all]`
   lists the games over a window with the totals: pass/fail, inside the clock,
-  first sight against repeat, games won.
+  first sight against repeat, games won, and under them the two counts that
+  say whether ground is gained and kept (`model::Ground`, 2026-09-20): first
+  sights within 100 Elo of your own solved cold, and recovered problems (a
+  lost game, then an unaided pass) that passed unaided again on their retest.
+  The 2026-09-20 baseline: 10 cold of 26 tried over 30 days, 5 held of 16
+  retests ever, 37 recoveries waiting for theirs. `make progress` is the same
+  question answered in three paragraphs of plain English and no numbers
+  (`model::progress`): a verdict (progressing, slipping, grinding, stalled,
+  rebuilding, gaining), whether the drills hold and which turned into unaided
+  solves this month, and what is queued; `KG_TODAY=YYYY-MM-DD make progress`
+  gives the answer as it stood on a past day.
 
 ## The drill bank (../drills/)
 
@@ -222,14 +232,28 @@ can never be what takes it off.
 
     again   a fail, a study, a copy, a walkthrough, a struggle    due in 3 days
     hard    a hinted clean rep                                    1.2x further out
-    good    an unaided clean rep                                  card retired
+    good    an unaided clean rep                                  retest in 7 days,
+                                                                  then 21, then retired
 
-Retired, not rescheduled: the debt is paid and the node curve carries the
-problem from there. A later bad attempt opens a new card. The graduating
-interval is 3 days where a bank file's is 1 — a drill is three minutes, copy
-today and rote tomorrow, but a problem is seventeen, and a next-morning rep on
-one whose solution was on the screen yesterday grades Good for the wrong
-reason and retires a debt that was never paid.
+The card retires on the third unaided rep, not the first (2026-09-20). Until
+then the first one retired it and the node curve carried the problem from
+there; of the 21 problems recovered that way since June, 11 had come back on
+the curve, weeks later, and 1 held. One retrieval is not a memory, and the
+curve was asking after it was gone. A later bad attempt opens a new card at
+3 days again. The graduating interval is 3 days where a bank file's is 1 - a
+drill is three minutes, copy today and rote tomorrow, but a problem is
+seventeen, and a next-morning rep on one whose solution was on the screen
+yesterday grades Good for the wrong reason.
+
+A recovered problem's retest waits on the drill under the move it recovered
+(`drills::recovery_wait`): of the moves the recovering solve walked, the ones
+the help touched or the judge marked, or all of them when the bad attempts
+were judged on other moves. Until a bank file of such a move has an unaided
+clean rep dated after the recovery, the card is held and the drill is wanted
+on its own node, whatever its clock says. The drill is the retrieval between
+the copy and the retest. A recovered problem none of whose moves has a bank
+file waits on nothing, and `make next` lists it in its footer ("recovered
+without a drill under the move"), so one gets built.
 
 Serving is rule 2c in `kg_next.pick`: under due drills and the moves that are
 broken (FRAGILE) or on their graduating floor, above the spaced re-solve of a

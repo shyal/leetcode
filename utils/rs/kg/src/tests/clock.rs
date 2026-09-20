@@ -5,9 +5,15 @@
 use chrono::Duration;
 
 use super::*;
-use crate::clock::{attempt_label, problem_due, PROBLEM_GRADUATING_DAYS};
+use crate::clock::{
+    attempt_label, problem_due, recovered_on, recovery_moves, PROBLEM_GRADUATING_DAYS,
+    PROBLEM_HOLD_DAYS,
+};
 use crate::data::test_env;
-use crate::drills::{anki_due, anki_frontier, anki_next_if_good, due_drill};
+use crate::drills::{
+    anki_due, anki_frontier, anki_next_if_good, due_drill, recoveries_without_drill, recovery_wait,
+};
+use crate::model::{first_sight_games, proven_score, proven_series, Game, Ground, PROVEN_WINDOW};
 use crate::pick::review_queue;
 use crate::status::{graduation_due, owned};
 
@@ -353,9 +359,213 @@ fn a_studied_problem_opens_its_card_and_touches_no_node() {
     );
     assert!(!owned(&ev, "q1"));
     assert_eq!(crate::status::last_clean_solve(&ev, "1"), "");
-    // the clean rep three days on retires it
+    // the clean rep three days on does not retire it: a retest in a week
     let ev = evidence(vec![studied("1", 3), solve("1", &[("q1", "clean")], 0)]);
+    assert_eq!(
+        problem_due(&ev, "1"),
+        Some((
+            ago(0) + Duration::days(PROBLEM_HOLD_DAYS[0]),
+            PROBLEM_HOLD_DAYS[0]
+        ))
+    );
+}
+
+/// Until 2026-09-20 the first unaided rep retired the card, and of the
+/// recoveries the node curve later re-served one in eleven had held. Now
+/// the card asks again a week after the recovery and three weeks after
+/// that, and retires on the third unaided rep. A fail in between starts
+/// over at three days.
+#[test]
+fn a_recovered_problem_is_retested_at_a_week_and_three_weeks_before_it_retires() {
+    let good = |days: i64| solve("1", &[("q1", "clean")], days);
+    let ev = evidence(vec![assisted("1", &[("q1", "clean")], 40), good(37)]);
+    assert_eq!(problem_due(&ev, "1"), Some((ago(30), 7)));
+    let ev = evidence(vec![
+        assisted("1", &[("q1", "clean")], 40),
+        good(37),
+        good(30),
+    ]);
+    assert_eq!(problem_due(&ev, "1"), Some((ago(9), 21)));
+    let ev = evidence(vec![
+        assisted("1", &[("q1", "clean")], 40),
+        good(37),
+        good(30),
+        good(9),
+    ]);
     assert_eq!(problem_due(&ev, "1"), None);
+    // a fail on the retest reopens the card at three days, holds forgotten
+    let ev = evidence(vec![
+        assisted("1", &[("q1", "clean")], 40),
+        good(37),
+        good(30),
+        (
+            format!("solved/p1_FAILED_{}.py", 9),
+            solve("1", &[("q1", "struggled")], 9).1,
+        ),
+    ]);
+    assert_eq!(
+        problem_due(&ev, "1"),
+        Some((ago(6), PROBLEM_GRADUATING_DAYS))
+    );
+    let ev = evidence(vec![
+        assisted("1", &[("q1", "clean")], 40),
+        good(37),
+        good(30),
+        (
+            format!("solved/p1_FAILED_{}.py", 9),
+            solve("1", &[("q1", "struggled")], 9).1,
+        ),
+        good(6),
+    ]);
+    assert_eq!(problem_due(&ev, "1"), Some((ago(6) + Duration::days(7), 7)));
+    assert_eq!(recovered_on(&ev, "1"), Some(ago(6)));
+    assert_eq!(recovery_moves(&ev, "1"), vec!["q1".to_string()]);
+}
+
+/// The retest of a recovered problem waits on a clean rep, since the
+/// recovery, of the drill under the move the help touched; that drill is
+/// wanted on its own node whatever its clock says. A move the help never
+/// touched has nothing to wait for.
+#[test]
+fn a_recovery_waits_on_the_drill_under_the_move_it_recovered() {
+    let mut fx = Fx::picker();
+    // reviews ahead of the floor rep problem 2 would otherwise be
+    fx.nodes(&["q1", "q2"])
+        .problems(vec![("1", problem(&["q1", "q2"])), ("2", problem(&["q1"]))]);
+    test_env("REVIEWS_FIRST", "1");
+    let path = fx.bank("q1", "Under Q1", "a.py", "d1", &[]);
+    let st = statuses(&[("q1", SOLID, Some(1)), ("q2", SOLID, Some(1))]);
+    // copied on q1 alone, then solved unaided a week ago: due, but waiting
+    let base = vec![
+        solve_a(
+            "1",
+            &[("q1", "clean"), ("q2", "clean")],
+            10,
+            assist_map(&[("q1", "learning")]),
+        ),
+        solve("1", &[("q1", "clean"), ("q2", "clean")], 7),
+    ];
+    let ev = evidence(base.clone());
+    assert_eq!(recovery_moves(&ev, "1"), vec!["q1".to_string()]);
+    assert_eq!(recovery_wait(&fx.ctx(), &ev, "1"), Some(path.clone()));
+    assert!(review_queue(&fx.ctx(), &ev, &fx.pv(), today()).is_empty());
+    assert_eq!(
+        due_drill(&fx.ctx(), "q1", &ev, today(), false, false),
+        Some(path.clone())
+    );
+    // a clean rep of the drill before the recovery: warm, so held_behind
+    // lets the review through, and the recovery wait is what holds it
+    let mut ev1 = base.clone();
+    ev1.push(drill_rep("Under Q1", "q1", 8));
+    let ev1 = evidence(ev1);
+    assert_eq!(recovery_wait(&fx.ctx(), &ev1, "1"), Some(path.clone()));
+    assert!(review_queue(&fx.ctx(), &ev1, &fx.pv(), today()).is_empty());
+    assert_ne!(pnum(&fx.run(&ev1, &st, args())), "1");
+    assert_eq!(
+        due_drill(&fx.ctx(), "q1", &ev1, today(), false, false),
+        Some(path.clone())
+    );
+    // a clean rep of the drill since the recovery frees the retest
+    let mut ev2 = base.clone();
+    ev2.push(drill_rep("Under Q1", "q1", 0));
+    let ev2 = evidence(ev2);
+    assert_eq!(recovery_wait(&fx.ctx(), &ev2, "1"), None);
+    assert_eq!(pnum(&fx.run(&ev2, &st, args())), "1");
+    assert!(reason(&fx.run(&ev2, &st, args())).contains("shows it held"));
+}
+
+/// A recovered problem whose move has no bank file waits on nothing and
+/// is named for the footer, so a drill gets built under it.
+#[test]
+fn a_recovery_with_no_drill_under_it_is_named() {
+    let mut fx = Fx::picker();
+    fx.nodes(&["q1"]).problem("1", problem(&["q1"]));
+    let ev = evidence(vec![
+        assisted("1", &[("q1", "clean")], 10),
+        solve("1", &[("q1", "clean")], 7),
+    ]);
+    assert_eq!(recovery_wait(&fx.ctx(), &ev, "1"), None);
+    assert_eq!(
+        recoveries_without_drill(&fx.ctx(), &ev),
+        vec![("1".to_string(), vec!["q1".to_string()])]
+    );
+    assert_eq!(review_queue(&fx.ctx(), &ev, &fx.pv(), today()).len(), 1);
+}
+
+// --------------------------------------------------------------------------
+// the two counts under make stats: gain and retention
+// --------------------------------------------------------------------------
+
+fn game(problem: &str, days_ago: i64, first: bool, failed: bool, assist: &str, over: bool) -> Game {
+    let score = if failed || assist == "learning" || over {
+        0.0
+    } else if assist == "hint" {
+        0.5
+    } else {
+        1.0
+    };
+    Game {
+        date: iso(days_ago),
+        problem: problem.to_string(),
+        difficulty: "Medium".to_string(),
+        score,
+        moves: vec![],
+        fname: String::new(),
+        first,
+        failed,
+        seconds: Some(600),
+        over,
+        assist: assist.to_string(),
+    }
+}
+
+/// Gain is a first sight within 100 of the Elo carried into the game,
+/// solved cold; retention is a lost game, then an unaided pass, then the
+/// next game on the problem passed unaided again. The window applies to
+/// the first sight and to the retest, never to the history behind them.
+#[test]
+fn ground_counts_first_sights_at_your_level_and_recoveries_that_held() {
+    let games = vec![
+        (game("1", 40, true, false, "none", false), 1600.0, 1650.0), // at level, cold
+        (game("2", 39, true, false, "none", false), 1400.0, 1650.0), // too easy
+        (game("3", 38, true, true, "none", false), 1700.0, 1650.0),  // at level, lost
+        (game("3", 30, false, false, "none", false), 1700.0, 1640.0), // recovered
+        (game("3", 20, false, false, "none", true), 1700.0, 1650.0), // retest: held, over the clock
+        (
+            game("4", 35, true, false, "learning", false),
+            1650.0,
+            1650.0,
+        ), // copied
+        (game("4", 25, false, false, "none", false), 1650.0, 1650.0), // recovered
+        (
+            game("4", 5, false, false, "learning", false),
+            1650.0,
+            1650.0,
+        ), // retest: lost
+        (game("5", 15, true, false, "hint", false), 1650.0, 1650.0), // at level, hinted
+        (game("6", 12, true, true, "none", false), 1650.0, 1650.0),  // lost
+        (game("6", 3, false, false, "none", false), 1650.0, 1650.0), // recovered, pending
+    ];
+    assert_eq!(
+        Ground::of(&games, None),
+        Ground {
+            tried: 5,
+            cold: 1,
+            retested: 2,
+            held: 1,
+            pending: 1
+        }
+    );
+    assert_eq!(
+        Ground::of(&games, Some(ago(14))),
+        Ground {
+            tried: 1,
+            cold: 0,
+            retested: 1,
+            held: 0,
+            pending: 1
+        }
+    );
 }
 
 /// The picker sees a studied problem as seen: cooled as a carrier, and
@@ -625,4 +835,47 @@ fn unservable_covers_both_reasons() {
     assert!(ctx.unservable("1", &problem(&["a"])));
     assert!(ctx.unservable("2", &problem(&["a"]).banned()));
     assert!(!ctx.unservable("2", &problem(&["a"])));
+}
+
+/// The proven rating (2026-09-20): a win proves the problem's rating and
+/// nothing more, a hint 200 less, a loss 400 less; the mean of the last
+/// PROVEN_WINDOW first sights, drawn only once that many exist. Thirty
+/// easy wins prove the easy rating, where Elo read them as 1900.
+#[test]
+fn proven_rating_is_what_the_last_thirty_first_sights_proved() {
+    assert_eq!(proven_score(1250.0, 1.0), 1250.0);
+    assert_eq!(proven_score(1800.0, 0.5), 1600.0);
+    assert_eq!(proven_score(1800.0, 0.0), 1400.0);
+    let easy: Vec<(NaiveDate, f64, f64)> = (0..PROVEN_WINDOW)
+        .map(|i| (ago(60 - i as i64), 1250.0, 1.0))
+        .collect();
+    assert!(proven_series(&easy[..PROVEN_WINDOW - 1]).is_empty());
+    let s = proven_series(&easy);
+    assert_eq!(s.len(), 1);
+    assert_eq!(s[0].1, 1250.0);
+    // a run of hard problems, half lost, outranks every easy win
+    let mut mixed = easy.clone();
+    for i in 0..PROVEN_WINDOW {
+        let won = if i % 2 == 0 { 1.0 } else { 0.0 };
+        mixed.push((ago(29 - i as i64), 1800.0, won));
+    }
+    let s = proven_series(&mixed);
+    assert_eq!(s.last().unwrap().1, 1600.0);
+}
+
+/// A pass over the clock is 0 to the Elo and 0.5 to the proven rating: a
+/// late solution is a solution, short of a cold win, not a copy. A fail,
+/// a copy, and a repeat never reach the series.
+#[test]
+fn proven_rating_scores_a_slow_pass_as_a_hint() {
+    let games = vec![
+        (game("1", 5, true, false, "none", true), 1800.0, 1500.0),
+        (game("2", 4, true, false, "hint", true), 1800.0, 1500.0),
+        (game("3", 3, true, true, "none", false), 1800.0, 1500.0),
+        (game("4", 2, true, false, "learning", false), 1800.0, 1500.0),
+        (game("1", 1, false, false, "none", false), 1800.0, 1500.0),
+    ];
+    let fs = first_sight_games(&games);
+    let scores: Vec<f64> = fs.iter().map(|(_, _, s)| *s).collect();
+    assert_eq!(scores, vec![0.5, 0.5, 0.0, 0.0]);
 }

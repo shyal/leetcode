@@ -478,6 +478,8 @@ fn draw(ctx: &Ctx, ev: &Evidence, args: &[String], days: Option<i64>) {
     let mut med = trailing_median(&att);
     let gs = elo::games(ctx, ev);
     let (mut elo_hist, mut ma) = (elo::elo(&gs, START), elo::elo_ma(&gs, START, &[]));
+    // the proven rating (kg::model::proven_series, settled 2026-09-20)
+    let mut proven = elo::proven(&gs);
     let fc = if days.is_some() {
         Vec::new()
     } else {
@@ -494,6 +496,7 @@ fn draw(ctx: &Ctx, ev: &Evidence, args: &[String], days: Option<i64>) {
             med.retain(|m| m.0 >= since);
             elo_hist.retain(|e| e.0 >= since);
             ma.retain(|m| m.0 >= since);
+            proven.retain(|m| m.0 >= since);
             if att.is_empty() {
                 println!("no rated attempts in the last {n} days");
                 return;
@@ -592,6 +595,7 @@ fn draw(ctx: &Ctx, ev: &Evidence, args: &[String], days: Option<i64>) {
         (&elo_hist, ELO, elo_opacity().as_str()),
         (&ma, MA_LINE, "1"),
         (&med, DOT, "1"),
+        (&proven, elo::PROVEN_LINE, "1"),
     ] {
         for run in runs(series) {
             svg.push(format!(
@@ -609,6 +613,7 @@ fn draw(ctx: &Ctx, ev: &Evidence, args: &[String], days: Option<i64>) {
             (&elo_hist, ELO, "elo"),
             (&ma, MA_LINE, "average"),
             (&med, DOT, "median"),
+            (&proven, elo::PROVEN_LINE, "proven"),
         ],
         x_of,
         y_of,
@@ -627,6 +632,15 @@ fn draw(ctx: &Ctx, ev: &Evidence, args: &[String], days: Option<i64>) {
         &mut svg,
         MA_LINE,
         &format!("{MA} game moving average"),
+        false,
+    );
+    legend.line(
+        &mut svg,
+        elo::PROVEN_LINE,
+        &format!(
+            "proven rating, last {} first sights",
+            kg::model::PROVEN_WINDOW
+        ),
         false,
     );
     if !fc.is_empty() {

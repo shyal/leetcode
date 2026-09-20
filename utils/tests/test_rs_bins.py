@@ -560,3 +560,20 @@ def test_kg_readme_now_once_is_the_elo_panel():
         " games, ",
     ]:
         assert s in frame
+
+
+def test_kg_progress_is_three_short_paragraphs_of_sentences():
+    """`make progress`: a verdict line, then plain sentences; no table, no
+    percentage, none of the repo's idioms (2026-09-20)."""
+    for day in ("2026-08-15", "2026-09-20"):
+        p = run("kg_progress", env={"KG_TODAY": day, "NO_COLOR": "1"})
+        assert p.returncode == 0, p.stderr
+        paras = [x.strip() for x in p.stdout.strip().split("\n\n") if x.strip()]
+        assert 2 <= len(paras) <= 4, p.stdout
+        assert paras[0].startswith("You're "), paras[0]
+        assert paras[0].endswith("."), paras[0]
+        text = " ".join(paras)
+        assert "%" not in text
+        assert "│" not in text
+        for word in ("cold", "clock", "first sight", "gained:", "kept:", "met "):
+            assert word not in text, word

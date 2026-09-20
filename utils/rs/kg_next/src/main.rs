@@ -465,7 +465,48 @@ fn build_footer(
     if let Some(l) = judge_line(ctx, ev) {
         items.push(FooterItem::Line(l));
     }
+    if let Some(t) = recovery_table(ctx, ev) {
+        items.push(FooterItem::Table(t));
+    }
     items
+}
+
+const RECOVERY_ROWS: usize = 6;
+
+/// The recovered problems whose move has no bank file: nothing can be
+/// served under them before the retest, so the footer names them, most
+/// recent recovery first (a drill built under the move takes one off).
+fn recovery_table(ctx: &Ctx, ev: &Evidence) -> Option<Table> {
+    let mut bare = kg::drills::recoveries_without_drill(ctx, ev);
+    if bare.is_empty() {
+        return None;
+    }
+    bare.sort_by_key(|(p, _)| std::cmp::Reverse(kg::clock::recovered_on(ev, p)));
+    let n = bare.len();
+    let title = format!("recovered without a drill under the move: {n} - the retest waits on one");
+    let mut table = Table::plain(
+        &["problem", "recovered", "move"],
+        Some(&title),
+        BoxKind::Rounded,
+    );
+    for (p, moves) in bare.iter().take(RECOVERY_ROWS) {
+        let name = ctx
+            .meta_title(p)
+            .map(|t| format!("{p}. {t}"))
+            .unwrap_or_else(|| format!("{p}."));
+        let when = kg::clock::recovered_on(ev, p)
+            .map(|d| d.to_string())
+            .unwrap_or_default();
+        table.add_row(&[name, when, moves.join(", ")]);
+    }
+    if n > RECOVERY_ROWS {
+        table.add_row(&[
+            format!("+{} more", n - RECOVERY_ROWS),
+            String::new(),
+            String::new(),
+        ]);
+    }
+    Some(table)
 }
 
 /// kg_next.gate_table + kg_lib.gates without copying the table: every

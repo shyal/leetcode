@@ -350,12 +350,38 @@ pub fn render(ctx: &Ctx, ev: &Evidence) {
         "<polyline points=\"{}\" fill=\"none\" stroke=\"{MA_LINE}\" stroke-width=\"2\"/>",
         points(&elo::elo_ma(&gs, elo::START, &[]), x_of, y_of)
     ));
+    // the proven rating (kg::model::proven_series): the level line that the
+    // easy problems of 2025 cannot inflate (settled 2026-09-20)
+    let proven = elo::proven(&gs);
+    svg.push(format!(
+        "<polyline points=\"{}\" fill=\"none\" stroke=\"{}\" stroke-width=\"2\"/>",
+        points(&proven, x_of, y_of),
+        elo::PROVEN_LINE
+    ));
+    if let Some((d, v)) = proven.last() {
+        svg.push(format!(
+            "<text x=\"{}\" y=\"{}\" text-anchor=\"end\" font-size=\"12\" fill=\"{}\">{}</text>",
+            f1(x_of(*d)),
+            f1(y_of(*v) + 16.0),
+            elo::PROVEN_LINE,
+            f0(*v)
+        ));
+    }
     let mut legend = Legend::new(ML, true, MT - 18);
     legend.line(&mut svg, ELO, "elo", false);
     legend.line(
         &mut svg,
         MA_LINE,
         &format!("{MA} game moving average"),
+        false,
+    );
+    legend.line(
+        &mut svg,
+        elo::PROVEN_LINE,
+        &format!(
+            "proven rating, last {} first sights",
+            kg::model::PROVEN_WINDOW
+        ),
         false,
     );
     legend.line(

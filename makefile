@@ -1,4 +1,4 @@
-.PHONY: harness-doc stats submit lc-login ext check fmt fmt-check lint types complexity duplicates test-fast cov rust audit secrets all asserts drop learning mirror q prepare force unforce preflight dependents kg-extract kg-status kg-viz rep movie next dive drill spot hard is_session_start readme rank-table residuals simulate sleep wake solved failed studied test timer elo viz graph snippets
+.PHONY: harness-doc stats progress submit lc-login ext check fmt fmt-check lint types complexity duplicates test-fast cov rust audit secrets all asserts drop learning mirror q prepare force unforce preflight dependents kg-extract kg-status kg-viz rep movie next dive drill spot hard is_session_start readme rank-table residuals simulate sleep wake solved failed studied test timer elo viz graph snippets
 
 all: $(if $(filter master,$(shell git rev-parse --abbrev-ref HEAD)),graph/leet.db) $(EXT)
 	@cp utils/harness/sitecustomize.py .venv/lib/python3.10/site-packages/
@@ -43,6 +43,11 @@ kg-status: $(RS_BIN)/kg_status
 # the clock, first sight against repeat
 stats: $(RS_BIN)/kg_stats
 	@$(RS_BIN)/kg_stats $(filter-out $@,$(MAKECMDGOALS))
+
+# make progress: "am i progressing", three paragraphs of plain English
+# (KG_TODAY=YYYY-MM-DD for the answer as of a past day)
+progress: $(RS_BIN)/kg_progress
+	@$(RS_BIN)/kg_progress
 
 rep: $(RS_BIN)/kg_rep
 	@$(RS_BIN)/kg_rep $(filter-out $@,$(MAKECMDGOALS))

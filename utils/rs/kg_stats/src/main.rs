@@ -10,7 +10,10 @@
 // or learning rep, or a pass over its tier's clock (10/25/45 minutes for
 // Easy/Medium/Hard, the next tier up on a followup) is 0; a pass on a hint
 // is 1/2; a clean pass inside the clock is 1. Then the totals: pass/fail,
-// inside the clock, first sight against repeat.
+// inside the clock, first sight against repeat, and under them the two
+// counts that say whether ground is being gained and kept (model::Ground):
+// first sights at your level solved cold, and recovered problems that
+// held on their retest.
 //
 // Written 2026-09-16, the night these questions took four git-log queries
 // to answer by hand. The seconds come from the record itself
@@ -22,7 +25,7 @@ use kg::console::Console;
 use kg::ctx::Ctx;
 use kg::data::{load_envrc, repo_root};
 use kg::evidence::Evidence;
-use kg::model::{scored_games, Game, Summary};
+use kg::model::{elo_games, scored_games, solve_ratings, Game, Ground, Summary};
 use kg::table::{print_table, BoxKind, Table};
 
 fn window_days(args: &[String]) -> Option<i64> {
@@ -125,6 +128,16 @@ fn main() {
     print_table(&console, &table);
 
     for (before, ratio, after) in Summary::of(&games).rows() {
+        console.print(&format!("{before}[bold green]{ratio}[/bold green]{after}"));
+    }
+    // gain and retention need the games before the window: the Elo carried
+    // into each game, and whether an earlier game on the problem was lost
+    let all = elo_games(&ctx, &ev, &solve_ratings(&ctx));
+    let window = match window_days(&args) {
+        Some(d) => format!("the last {d} days"),
+        None => "all time".to_string(),
+    };
+    for (before, ratio, after) in Ground::of(&all, since).rows(&window) {
         console.print(&format!("{before}[bold green]{ratio}[/bold green]{after}"));
     }
 }

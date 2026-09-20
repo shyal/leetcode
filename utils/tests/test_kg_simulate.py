@@ -21,6 +21,13 @@ Two guards on a 60-day run at a fixed pace and seed:
 
 The run depends on graph/*.json and the fitted curve, both of which change
 with every solve, so the caps carry a margin over what was observed.
+
+The two .envrc knobs the run keeps (sim::KEPT_KNOBS) are fixed here like
+the pace and the seed: conftest drops every .envrc name before collection
+and CI has no .envrc, so without them the run is the node scheduler with
+no group cap, which served nothing for 17 days on 2026-09-18 while the
+same run passed on the operator's machine, where the binary reads the
+knobs back from the file.
 """
 
 import glob
@@ -38,6 +45,7 @@ HOURS = 1.5
 SEED = 1
 RUSTY_CAP = 10  # observed 5-8 over seeds 1-5 on 2026-08-31, day 1 excluded
 STARVED_DAYS = 14  # kg::status::STARVED_DAYS
+KNOBS = {"DRILL_SCHEDULER": "anki", "KG_GROUP_CAP": "sql=2,linked-lists=1"}
 
 
 @pytest.fixture(scope="module")
@@ -60,6 +68,7 @@ def run():
         capture_output=True,
         text=True,
         cwd=ROOT,
+        env={**os.environ, **KNOBS},
     )
     if proc.returncode != 0:
         pytest.skip(proc.stderr.strip() or "kg_simulate could not start")

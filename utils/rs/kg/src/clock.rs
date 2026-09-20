@@ -1,6 +1,12 @@
 // A problem's own review clock (kg_lib.problem_due and company): opened by
-// help, a walk-away or a study, pushed out by a hinted clean rep, retired
-// by an unaided clean one. One grade per day, the day's last attempt.
+// help, a walk-away or a study, pushed out by a hinted clean rep, and
+// retired only once unaided clean reps have held it at 7 and then 21 days
+// (PROBLEM_HOLD_DAYS). One grade per day, the day's last attempt.
+//
+// Until 2026-09-20 the first unaided rep retired the card. Of the 21
+// problems recovered that way since June, 11 had come back on the node
+// curve, weeks later, and 1 held: the recovery was one retrieval, and the
+// memory it built was gone before the curve asked again.
 
 use std::collections::HashMap;
 
@@ -12,6 +18,9 @@ use crate::drills::{anki_due, ANKI_HARD_FACTOR};
 use crate::evidence::Evidence;
 
 pub const PROBLEM_GRADUATING_DAYS: i64 = 3;
+/// The retests an unaided rep must survive before the card retires: the
+/// first a week after the recovery, the next three weeks after that.
+pub const PROBLEM_HOLD_DAYS: [i64; 2] = [7, 21];
 pub const OPENS_CARD: [&str; 5] = ["failed", "studied", "learning", "walkthrough", "hint"];
 
 /// A `make studied` file: the problem was read, run, played with, and no
@@ -104,7 +113,7 @@ pub fn problem_due(ev: &Evidence, pnum: &str) -> Option<(NaiveDate, i64)> {
         }
     }
     by_day.sort_by(|a, b| a.0.cmp(b.0));
-    let (mut interval, mut last): (i64, Option<&str>) = (0, None);
+    let (mut interval, mut last, mut holds): (i64, Option<&str>, usize) = (0, None, 0);
     for (d, fname, i) in by_day {
         let rec = ev.rec(i);
         let answer = problem_grade(fname, rec).unwrap();
@@ -113,8 +122,15 @@ pub fn problem_due(ev: &Evidence, pnum: &str) -> Option<(NaiveDate, i64)> {
         }
         match answer {
             "good" => {
-                interval = 0;
-                last = None;
+                if holds == PROBLEM_HOLD_DAYS.len() {
+                    interval = 0;
+                    last = None;
+                    holds = 0;
+                } else {
+                    interval = PROBLEM_HOLD_DAYS[holds];
+                    last = Some(d);
+                    holds += 1;
+                }
             }
             "hard" => {
                 interval = if interval == 0 {
@@ -127,11 +143,60 @@ pub fn problem_due(ev: &Evidence, pnum: &str) -> Option<(NaiveDate, i64)> {
             _ => {
                 interval = PROBLEM_GRADUATING_DAYS;
                 last = Some(d);
+                holds = 0;
             }
         }
     }
     let last = last?;
     Some((parse_date(last) + Duration::days(interval), interval))
+}
+
+/// A problem recovered and waiting for the retest that shows it held:
+/// its card is open and the last graded attempt was an unaided clean
+/// one. Returns the recovery date.
+pub fn recovered_on(ev: &Evidence, pnum: &str) -> Option<NaiveDate> {
+    problem_due(ev, pnum)?;
+    let (when, label) = last_attempt(ev, pnum)?;
+    (label == "clean").then_some(when)
+}
+
+/// The moves the recovery has to hold: of the moves the recovering solve
+/// walked, the ones that were not clean or carried help on an attempt
+/// since the card last opened. When the bad attempts were judged on other
+/// moves (a wrong approach, 684 failed on a depth first search and was
+/// recovered with union find), every move of the recovering solve.
+pub fn recovery_moves(ev: &Evidence, pnum: &str) -> Vec<String> {
+    let mut run: Vec<usize> = Vec::new();
+    for (_, fname, i) in problem_attempts(ev, pnum) {
+        let rec = ev.rec(i);
+        if problem_grade(fname, rec) == Some("again") {
+            run.clear();
+        }
+        run.push(i);
+    }
+    let Some(&last) = run.last() else {
+        return vec![];
+    };
+    let walked: Vec<String> = ev.rec(last).moves.keys().cloned().collect();
+    let mut weak: Vec<String> = Vec::new();
+    for i in run {
+        let rec = ev.rec(i);
+        for (m, v) in &rec.moves {
+            let helped = match &rec.assist {
+                crate::data::Assist::None => false,
+                crate::data::Assist::Level(l) => l != "none",
+                crate::data::Assist::Map(map) => map.get(m).is_some_and(|l| l != "none"),
+            };
+            if (v != "clean" || helped) && walked.contains(m) && !weak.contains(m) {
+                weak.push(m.clone());
+            }
+        }
+    }
+    if weak.is_empty() {
+        walked
+    } else {
+        weak
+    }
 }
 
 /// kg_lib.due_problems: [(pnum, due, interval)] most overdue first, limited

@@ -31,6 +31,9 @@ pub const K: f64 = 32.0;
 pub const START: f64 = 1200.0;
 pub const RANKS: [(i64, &str, &str); 2] = [(2200, "guardian", GOLD), (1850, "knight", BLUE)];
 pub const MA_LINE: &str = "#e3b341";
+/// the proven rating (kg::model::proven_series), the line that cancels
+/// the easy-problem inflation of both Elos (settled 2026-09-20)
+pub const PROVEN_LINE: &str = "#f778ba";
 pub const MA: usize = 60;
 pub const LINE: &str = GREEN;
 
@@ -164,6 +167,12 @@ pub fn elo_ma(gs: &[G], start: f64, tail: &[(NaiveDate, f64)]) -> Vec<(NaiveDate
     last_per_day(out)
 }
 
+/// [(date, proven rating after the day's last game)] one per day with a
+/// game, from the PROVEN_WINDOW-th game on (kg::model::proven_series).
+pub fn proven(gs: &[G]) -> Vec<(NaiveDate, f64)> {
+    last_per_day(kg::model::proven_series(gs))
+}
+
 pub fn rank_of(r: f64) -> (String, &'static str) {
     for (cut, name, color) in RANKS {
         if r >= cut as f64 {
@@ -234,9 +243,11 @@ pub fn render(ctx: &Ctx, ev: &Evidence) {
     rank_bands(&mut svg, &RANKS, y_of, ML, W, MR, top);
     value_ticks(&mut svg, lo, hi, 100, y_of, ML, W - MR);
     month_ticks(&mut svg, d0, d1, x_of, top, bottom, 1);
+    let proven = proven(&gs);
     for (series, color, opacity) in [
         (&hist, LINE, elo_opacity().as_str()),
         (&elo_ma(&gs, START, &[]), MA_LINE, "1"),
+        (&proven, PROVEN_LINE, "1"),
     ] {
         for run in runs(series) {
             svg.push(format!(
@@ -253,6 +264,23 @@ pub fn render(ctx: &Ctx, ev: &Evidence) {
         &format!("{MA} game moving average"),
         false,
     );
+    legend.line(
+        &mut svg,
+        PROVEN_LINE,
+        &format!(
+            "proven rating, last {} first sights",
+            kg::model::PROVEN_WINDOW
+        ),
+        false,
+    );
+    if let Some((d, v)) = proven.last() {
+        svg.push(format!(
+            "<text x=\"{}\" y=\"{}\" text-anchor=\"end\" font-size=\"12\" fill=\"{PROVEN_LINE}\">{}</text>",
+            f1(x_of(*d)),
+            f1(y_of(*v) + 16.0),
+            f0(*v)
+        ));
+    }
     let last = hist[hist.len() - 1].1;
     svg.push(format!(
         "<circle cx=\"{}\" cy=\"{}\" r=\"4\" fill=\"{LINE}\"/>",
