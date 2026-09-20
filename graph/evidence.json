@@ -28665,6 +28665,19 @@
       "note": "LEETCODE: Accepted (3 ms, 19.9 MB); notes say the dedupe condition was assisted and that a seen-set alternative was considered.",
       "summary": "The code sorts nums, then recurses with a used[] flag array: it appends nums[j], marks used[j], recurses, then unmarks and pops, recording a copy of path when its length reaches len(nums). Duplicate permutations are pruned by skipping nums[j] when it equals nums[j-1] and nums[j-1] is unused, which is the sibling-dedupe rule. The notes say the dedupe condition was assisted and that a seen-set approach was also possible; LeetCode accepted the submission.",
       "seconds": 842
+    },
+    "solved/p433_Minimum_Genetic_Mutation_2026_09_20T22_04_05_137561_00_00Z.py": {
+      "date": "2026-09-21",
+      "problem": "433",
+      "moves": {
+        "graph-bfs-shortest": "clean",
+        "generate-and-test-neighbors": "clean",
+        "set-membership": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "BFS over bank genes; neighbors generated on the fly by counting differing characters (sum(a != b for a, b in zip(g, b)) == 1) rather than materializing an adjacency list.",
+      "summary": "The code runs a BFS from startGene using a deque of (gene, distance) pairs and a seen set, returning dist when endGene is dequeued. Neighbors are never materialized: for each dequeued gene it scans the bank and admits any gene differing in exactly one character, checking membership in seen first. This exercises graph-bfs-shortest, generate-and-test-neighbors, and set-membership; all assertions pass and LeetCode reports Accepted (0 ms).",
+      "seconds": 332
     }
   }
 }
