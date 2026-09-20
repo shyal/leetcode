@@ -28599,6 +28599,17 @@
       "note": "count starts at len(parent) and decrements by union's return value, so redundant/self edges correctly leave the count unchanged.",
       "summary": "The Solution subclasses UnionFind and counts components by starting from the number of nodes and subtracting 1 for each successful union. It exercises union-find's find/union with component counting, and the assertions confirm redundant edges and self-pairs do not reduce the count. The file ran cleanly with no notes indicating help or recognition issues.",
       "seconds": 98
+    },
+    "solved/d_Companies_Left_2026_09_20T20_42_22_585894_00_00Z.py": {
+      "date": "2026-09-21",
+      "problem": "drill",
+      "moves": {
+        "union-find": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "countCompanies counts roots via self.find(v) == i over parent; all assertions pass.",
+      "summary": "The Solution subclasses UnionFind and countCompanies sums i == self.find(v) over enumerate(self.parent), counting distinct roots. The drill exercises union-find by relying on find to resolve each node to its representative. All assertions, including the 999-element every-third-head case, pass and the program prints 2.",
+      "seconds": 82
     }
   }
 }
