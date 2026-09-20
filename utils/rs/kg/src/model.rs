@@ -917,6 +917,22 @@ pub fn progress(ctx: &Ctx, ev: &Evidence, today: NaiveDate) -> Vec<String> {
         ));
     }
 
+    // the level can only rise when harder problems are served, so the
+    // paragraph names what was served: a rise on a steady serving level is
+    // his, a rise that only tracks the serving level is the picker's
+    let fs = first_sight_games(&games);
+    if fs.len() >= PROVEN_WINDOW {
+        let served: Vec<f64> = fs[fs.len() - PROVEN_WINDOW..]
+            .iter()
+            .map(|(_, r, _)| *r)
+            .collect();
+        out[1].push_str(&format!(
+            " The median rating of those {} problems was about {}; the proven rating can only rise when that does.",
+            PROVEN_WINDOW,
+            ten(median(&served))
+        ));
+    }
+
     // the drills: holding, and which turned into unaided solves this month
     let mut holding = 0usize;
     let mut held_nodes: HashMap<String, Vec<NaiveDate>> = HashMap::new();
