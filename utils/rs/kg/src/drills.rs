@@ -55,6 +55,12 @@ pub fn last_drilled(ctx: &Ctx, path: &Path, ev: &Evidence) -> String {
 /// kg_lib.latest_drill_rep: the most recent record of this bank file
 /// (same-day reps ordered by the solved filename).
 pub fn latest_drill_rep<'a>(ctx: &Ctx, path: &Path, ev: &'a Evidence) -> Option<&'a Rec> {
+    latest_drill_index(ctx, path, ev).map(|i| ev.rec(ev.drills[i].2))
+}
+
+/// The most recent rep's index into ev.drills, so a caller can read the
+/// solved filename next to the record.
+fn latest_drill_index(ctx: &Ctx, path: &Path, ev: &Evidence) -> Option<usize> {
     let key = ctx.drill_evidence_key(path);
     // Python's max keeps the first of equal keys
     let mut best: Option<usize> = None;
@@ -71,25 +77,34 @@ pub fn latest_drill_rep<'a>(ctx: &Ctx, path: &Path, ev: &'a Evidence) -> Option<
             best = Some(i);
         }
     }
-    best.map(|i| ev.rec(ev.drills[i].2))
+    best
+}
+
+/// The latest rep as (solved filename, record), the pair Rec::drill_clean
+/// and anki_answer grade.
+fn latest_drill<'a>(ctx: &Ctx, path: &Path, ev: &'a Evidence) -> Option<(&'a str, &'a Rec)> {
+    latest_drill_index(ctx, path, ev).map(|i| {
+        let (_, base, ri) = &ev.drills[i];
+        (base.as_str(), ev.rec(*ri))
+    })
 }
 
 pub fn drill_clean(ctx: &Ctx, path: &Path, ev: &Evidence) -> bool {
-    latest_drill_rep(ctx, path, ev).is_some_and(Rec::all_clean)
+    latest_drill(ctx, path, ev).is_some_and(|(base, rec)| rec.drill_clean(base))
 }
 
 pub fn drill_assisted(ctx: &Ctx, path: &Path, ev: &Evidence) -> bool {
-    match latest_drill_rep(ctx, path, ev) {
+    match latest_drill(ctx, path, ev) {
         None => false,
-        Some(rec) => !(rec.all_clean() && rec.assist_any() == "none"),
+        Some((base, rec)) => !(rec.drill_clean(base) && rec.assist_any() == "none"),
     }
 }
 
 pub fn drill_warm(ctx: &Ctx, path: &Path, ev: &Evidence, today: NaiveDate) -> bool {
-    match latest_drill_rep(ctx, path, ev) {
+    match latest_drill(ctx, path, ev) {
         None => false,
-        Some(rec) => {
-            rec.all_clean()
+        Some((base, rec)) => {
+            rec.drill_clean(base)
                 && rec.assist_any() == "none"
                 && (today - parse_date(&rec.date)).num_days() <= SOLID_WINDOW_DAYS
         }
@@ -206,7 +221,7 @@ pub fn last_clean_drilled(ctx: &Ctx, path: &Path, ev: &Evidence) -> String {
     let key = ctx.drill_evidence_key(path);
     ev.drill_reps(&key)
         .iter()
-        .filter(|&&i| anki_answer(ev.rec(ev.drills[i].2)) == "good")
+        .filter(|&&i| anki_answer(&ev.drills[i].1, ev.rec(ev.drills[i].2)) == "good")
         .map(|&i| ev.drills[i].0.as_str())
         .max()
         .unwrap_or("")
@@ -451,8 +466,9 @@ fn drills_left_uncached(ctx: &Ctx, node: &str, ev: &Evidence, early: bool) -> bo
 
 // ---- the SM-2 clock ----------------------------------------------------
 
-pub fn anki_answer(rec: &Rec) -> &'static str {
-    if rec.all_clean() {
+/// `base` is the rep's solved filename as ev.drills carries it.
+pub fn anki_answer(base: &str, rec: &Rec) -> &'static str {
+    if rec.drill_clean(base) {
         match rec.assist_any() {
             "none" => return "good",
             "hint" => return "hard",
@@ -514,17 +530,18 @@ fn anki_state(key: &str, ev: &Evidence) -> Option<AnkiState> {
     }
     let mut by_day: Vec<(String, usize)> = Vec::new();
     for i in reps {
-        let (d, _, ri) = &ev.drills[i];
+        let d = &ev.drills[i].0;
         match by_day.iter_mut().find(|(day, _)| day == d) {
-            Some(slot) => slot.1 = *ri,
-            None => by_day.push((d.clone(), *ri)),
+            Some(slot) => slot.1 = i,
+            None => by_day.push((d.clone(), i)),
         }
     }
     by_day.sort_by(|a, b| a.0.cmp(&b.0));
     let (mut interval, mut ease) = (0i64, ANKI_EASE);
     let mut last = String::new();
-    for (d, ri) in by_day {
-        match anki_answer(ev.rec(ri)) {
+    for (d, i) in by_day {
+        let (_, base, ri) = &ev.drills[i];
+        match anki_answer(base, ev.rec(*ri)) {
             "good" => interval = anki_good(interval, ease),
             "hard" => {
                 interval = if interval == 0 {

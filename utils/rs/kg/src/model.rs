@@ -884,8 +884,8 @@ impl Progress {
 fn drill_days(ev: &Evidence, key: &str) -> Vec<(String, &'static str)> {
     let mut by_day: Vec<(String, &'static str)> = Vec::new();
     for &i in ev.drill_reps(key).iter() {
-        let (d, _, ri) = &ev.drills[i];
-        let a = crate::drills::anki_answer(ev.rec(*ri));
+        let (d, base, ri) = &ev.drills[i];
+        let a = crate::drills::anki_answer(base, ev.rec(*ri));
         match by_day.iter_mut().find(|(day, _)| day == d) {
             Some(slot) => slot.1 = a,
             None => by_day.push((d.clone(), a)),

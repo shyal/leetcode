@@ -433,6 +433,22 @@ impl Rec {
     pub fn all_clean(&self) -> bool {
         !self.moves.is_empty() && self.moves.values().all(|v| v == "clean")
     }
+
+    /// A drill rep that counts as clean: every mapped move clean, or a judged
+    /// rep of a file that did not fail on which the judge mapped no move at
+    /// all. A drill is one move by construction, and a step filed under a
+    /// bigger node (a closed-form range under event-sweep) never shows that
+    /// node's name in its correct code; the judge writes "not present" and
+    /// an empty map, and all_clean read that as a miss, so the file came
+    /// back every day (d95, 8 reps in 10 days, 2026-09-21). `base` is the
+    /// solved filename, lowercased, as ev.drills carries it.
+    pub fn drill_clean(&self, base: &str) -> bool {
+        self.all_clean()
+            || (self.moves.is_empty()
+                && self.judge.is_some()
+                && self.pending.is_none()
+                && !base.to_lowercase().contains("failed"))
+    }
 }
 
 #[derive(Clone, Debug, Default)]

@@ -11,7 +11,8 @@ use crate::clock::{
 };
 use crate::data::test_env;
 use crate::drills::{
-    anki_due, anki_frontier, anki_next_if_good, due_drill, recoveries_without_drill, recovery_wait,
+    anki_due, anki_frontier, anki_next_if_good, drill_clean, drill_warm, due_drill,
+    recoveries_without_drill, recovery_wait,
 };
 use crate::model::{first_sight_games, proven_score, proven_series, Game, Ground, PROVEN_WINDOW};
 use crate::pick::review_queue;
@@ -64,6 +65,67 @@ fn the_anki_clock_grades_a_drill_file_from_its_own_reps() {
     assert_eq!(
         anki_due(&ctx, &path, &copy),
         Some((ago(3) + Duration::days(1), 1))
+    );
+}
+
+/// A judged rep on which the judge mapped no move grades Good: a drill is
+/// one move by construction, and a closed-form step filed under a bigger
+/// node (d95 Turn One Dial under event-sweep) never shows that node's
+/// name in its correct code. Before 2026-09-21 the empty map graded Again
+/// and the file came back every day. A FAILED file, a placeholder still
+/// pending its verdict, and a hinted rep keep their grades.
+#[test]
+fn a_passing_rep_the_judge_mapped_no_move_on_grades_good() {
+    let mut fx = Fx::new();
+    let path = fx.bank("n", "Clock", "c.py", "d1", &[]);
+    let ctx = fx.ctx();
+    let unmapped = |days: i64, assist: Assist| {
+        let (f, mut r) = drill_rep_a("Clock", "n", days, assist);
+        r.moves.clear();
+        r.judge = Some("judge".into());
+        (f, r)
+    };
+    let good = evidence(vec![
+        unmapped(10, Assist::None),
+        unmapped(9, Assist::None),
+        unmapped(6, Assist::None),
+    ]);
+    assert_eq!(
+        anki_due(&ctx, &path, &good),
+        Some((ago(6) + Duration::days(8), 8))
+    );
+    assert!(drill_clean(&ctx, &path, &good));
+    assert!(drill_warm(&ctx, &path, &good, today()));
+    let hinted = evidence(vec![
+        unmapped(10, Assist::None),
+        unmapped(9, assist_map(&[("n", "hint")])),
+    ]);
+    assert_eq!(
+        anki_due(&ctx, &path, &hinted),
+        Some((ago(9) + Duration::days(2), 2))
+    );
+    let (_, r) = unmapped(5, Assist::None);
+    let failed = evidence(vec![
+        unmapped(10, Assist::None),
+        unmapped(9, Assist::None),
+        ("solved/d_Clock_FAILED_5.py".into(), r),
+    ]);
+    assert_eq!(
+        anki_due(&ctx, &path, &failed),
+        Some((ago(5) + Duration::days(1), 1))
+    );
+    assert!(!drill_clean(&ctx, &path, &failed));
+    let (f, mut r) = unmapped(5, Assist::None);
+    r.judge = None;
+    r.pending = Some("pending".into());
+    let placeholder = evidence(vec![
+        unmapped(10, Assist::None),
+        unmapped(9, Assist::None),
+        (f, r),
+    ]);
+    assert_eq!(
+        anki_due(&ctx, &path, &placeholder),
+        Some((ago(5) + Duration::days(1), 1))
     );
 }
 
