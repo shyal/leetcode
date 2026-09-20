@@ -28376,6 +28376,19 @@
       "note": "Notes say the CASE WHEN ... THEN ... ELSE ... END syntax was forgotten and hinted.",
       "summary": "The query left-joins Customers to Orders so every customer survives, then groups by c.id and sums a CASE expression that counts only 'paid' rows, giving 0 for Bob and Cal. This exercises the left-join-keep, group-aggregate, and conditional-aggregate moves. The notes say the CASE WHEN syntax was forgotten and hinted.",
       "seconds": 601
+    },
+    "solved/d_Remove_Value_2026_09_20T19_05_04_610901_00_00Z.py": {
+      "date": "2026-09-21",
+      "problem": "drill",
+      "moves": {
+        "ll-dummy-splice": "clean"
+      },
+      "assist": {
+        "ll-dummy-splice": "learning"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The drill builds a dummy node d = pre = ListNode(0, head) and walks pre through the list, re-linking pre.next = pre.next.next whenever the next value equals val, returning d.next. This exercises the dummy-splice move: the sentinel removes the head-deletion special case and the re-link deletes in place. The notes mark the file as Learning, so the dummy-splice technique was given and copied.",
+      "seconds": 229
     }
   }
 }
