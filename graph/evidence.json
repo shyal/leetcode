@@ -28678,6 +28678,18 @@
       "note": "BFS over bank genes; neighbors generated on the fly by counting differing characters (sum(a != b for a, b in zip(g, b)) == 1) rather than materializing an adjacency list.",
       "summary": "The code runs a BFS from startGene using a deque of (gene, distance) pairs and a seen set, returning dist when endGene is dequeued. Neighbors are never materialized: for each dequeued gene it scans the bank and admits any gene differing in exactly one character, checking membership in seen first. This exercises graph-bfs-shortest, generate-and-test-neighbors, and set-membership; all assertions pass and LeetCode reports Accepted (0 ms).",
       "seconds": 332
+    },
+    "solved/p1248_Count_Number_of_Nice_Subarrays_2026_09_20T22_36_12_160385_00_00Z.py": {
+      "date": "2026-09-21",
+      "problem": "1248",
+      "moves": {
+        "prefix-sums": "struggled",
+        "substring-enumeration": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Time Limit Exceeded (14/38 cases); notes say 'Could not think of the optimal solution.' The brute force enumerates every (i, j) subarray and recomputes sum(x % 2) each time, so the canonical prefix-sum-hashmap move (count subarrays with odd-count prefix difference k) is absent.",
+      "summary": "The code's numberOfSubarrays just delegates to numberOfSubarraysBruteForce, which double-loops over every (i, j) subarray and recomputes the odd count with sum(x % 2 for x in nums[i:j+1]), collecting matches in res. That exercises substring-enumeration correctly on the small asserts, but the canonical prefix-sums / streaming-ask-then-record / prefix-sum-hashmap walk is never written. The notes state the optimal solution could not be found, and LeetCode rejected the submission with Time Limit Exceeded at 14/38 cases.",
+      "seconds": 1625
     }
   }
 }

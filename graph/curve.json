@@ -2,14 +2,14 @@
   "_comment": "Personal forgetting curve fitted by utils/kg/kg_curve. P(recall) = (1-slip)*(1 + gap/s)^(-beta), s = exp(a + b*log1p(cleans) - c*struggles - d*assist + e*(conn - conn_mean)); cleans counts distinct clean days, same-day reps are one rep. conn is the node's log2 carrier count, frozen below at fit time; consumers that ignore e are assuming average connectivity. \"solve\" is the cold-solve model fitted by fit_solve: logit P(solve cold, unaided, inside the clock) = the listed coefficients over (rating - 1500)/400, the walk's summed log recall, and its count of never-met moves; features not listed did not earn their place on held-out games. node_status() calls a node SOLID while the memory component (1 + gap/s)^(-beta) >= target_retention; delete this file to fall back to the flat 42-day window.",
   "model": "power-law-slip",
   "params": {
-    "a": 4.0637,
-    "b": 0.221,
-    "c": 0.0156,
+    "a": 4.0713,
+    "b": 0.2308,
+    "c": 0.0131,
     "d": 0.0,
-    "e": 0.7982,
-    "conn_mean": 3.2985,
-    "beta": 0.0799,
-    "slip": 0.1049
+    "e": 0.7673,
+    "conn_mean": 3.2993,
+    "beta": 0.0787,
+    "slip": 0.1073
   },
   "conn": {
     "backtracking-choose-undo": 3.807,
@@ -97,36 +97,36 @@
   },
   "target_retention": 0.9,
   "mass": {
-    "beta": 0.704,
-    "se": 0.2107,
-    "n": 515,
+    "beta": 0.7228,
+    "se": 0.2103,
+    "n": 516,
     "by_difficulty": {
-      "Easy": 1.7749,
-      "Medium": -0.4073,
-      "Hard": -1.4068
+      "Easy": 1.7283,
+      "Medium": -0.4673,
+      "Hard": -1.4478
     }
   },
   "solve": {
-    "games": 746,
+    "games": 747,
     "features": {
-      "intercept": 1.0623,
-      "rating": -0.7235,
+      "intercept": 1.0651,
+      "rating": -0.721,
       "length": -0.5096
     },
     "se": {
       "intercept": 0.1386,
       "rating": 0.1383,
-      "length": 0.1791
+      "length": 0.1792
     },
     "intercept_se": 0.1386,
     "elo": {
-      "now": 1671.1,
-      "drift_per_day": 0.1568,
-      "drift_se": 0.02551
+      "now": 1683.5,
+      "drift_per_day": 0.15771,
+      "drift_se": 0.02547
     },
     "lambda": 1.0,
-    "cv_loglik": -0.588,
-    "baseline_cv_loglik": -0.6271,
+    "cv_loglik": -0.5874,
+    "baseline_cv_loglik": -0.6263,
     "rejected": [
       "recall",
       "unseen",
@@ -134,11 +134,11 @@
     ]
   },
   "fit": {
-    "trials": 629,
-    "loglik": -0.3696,
-    "baseline_loglik": -0.3748,
+    "trials": 630,
+    "loglik": -0.3727,
+    "baseline_loglik": -0.3775,
     "since": "2026-06-01",
     "half_life": 0,
-    "effective_trials": 629.0
+    "effective_trials": 630.0
   }
 }
