@@ -28534,6 +28534,16 @@
       "note": "Drill trains stack-nested-eval: the running `op` is pushed with each number, and the sign is applied at push time rather than by a nested-scope pop; the required output line is met.",
       "summary": "The code scans the string with a sentinel '+' appended, accumulating digits into `num` and, on each operator, pushing `num` or `-num` onto `stack` according to the previous `op`, then resetting `num` and storing the new operator. It returns the list of signed numbers, and all assertions pass. The stack carries the sign context across the scan, which is the stack-nested-eval shape, though the sign is applied at push rather than by popping a nested scope.",
       "seconds": 174
+    },
+    "solved/d_Nested_Boxes_2026_09_20T20_00_45_932874_00_00Z.py": {
+      "date": "2026-09-21",
+      "problem": "drill",
+      "moves": {
+        "stack-nested-eval": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The code scans the string once, keeping a stack of partial weights: digits add into the current top, '(' pushes a fresh 0 scope, and ')' pops the inner scope and folds it into the parent as prev*2. This is the stack-nested-eval move, exercised cleanly across all nine assertions (output 11). No notes indicate any help or recognition difficulty.",
+      "seconds": 286
     }
   }
 }
