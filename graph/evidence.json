@@ -28522,6 +28522,18 @@
       "note": "Drill targets stack-nested-eval; the code pushes signed terms onto a stack and sums, exercising the push/combine shape rather than true nested-scope evaluation.",
       "summary": "The tally method walks the string with a sentinel '+' appended, accumulating digits into num and pushing each signed term onto a stack, then returns sum(stack). It exercises the stack-nested-eval push-and-combine shape and a digit-peeling accumulation loop. The file ran and printed 134; the assertions are commented out.",
       "seconds": 118
+    },
+    "solved/d_Read_The_Signed_Numbers_2026_09_20T19_55_49_782269_00_00Z.py": {
+      "date": "2026-09-21",
+      "problem": "drill",
+      "moves": {
+        "stack-nested-eval": "clean",
+        "divmod-decompose": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill trains stack-nested-eval: the running `op` is pushed with each number, and the sign is applied at push time rather than by a nested-scope pop; the required output line is met.",
+      "summary": "The code scans the string with a sentinel '+' appended, accumulating digits into `num` and, on each operator, pushing `num` or `-num` onto `stack` according to the previous `op`, then resetting `num` and storing the new operator. It returns the list of signed numbers, and all assertions pass. The stack carries the sign context across the scan, which is the stack-nested-eval shape, though the sign is applied at push rather than by popping a nested scope.",
+      "seconds": 174
     }
   }
 }
