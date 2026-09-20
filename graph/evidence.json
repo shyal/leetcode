@@ -28555,6 +28555,17 @@
       "note": "The window is kept at constant width once a zero is inside: when zeros>0 the left edge advances one step per iteration, so the width never decreases and best ends as the answer.",
       "summary": "The code scans nums once with right, counting zeros in the current window. When a zero is present it advances left by one and drops a zero if the leaving element was 0, so the window slides at constant width rather than shrinking; best tracks right-left+1. This is the budget-window shape for the at-most-one-zero variant, and all assertions pass.",
       "seconds": 121
+    },
+    "solved/d_Union_Links_Head_to_Head_2026_09_20T20_35_46_697762_00_00Z.py": {
+      "date": "2026-09-21",
+      "problem": "drill",
+      "moves": {
+        "union-find": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill overrides union() to link roots directly (parent[pa]=pb) without rank/size or path compression; all assertions pass.",
+      "summary": "The file subclasses UnionFind and overrides union() to find both roots and, when they differ, hang one root under the other, returning True; equal roots return False. It exercises the union-find move by building chains via direct parent assignments and checking the resulting parent arrays across singletons, self-unions, and multi-company merges. The run exited 0 with all assertions passing.",
+      "seconds": 86
     }
   }
 }
