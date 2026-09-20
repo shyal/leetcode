@@ -25,8 +25,9 @@ use ruff_text_size::{Ranged, TextRange};
 /// Only the modules a solution may call belong here; the drawing, building
 /// and read-back modules stay out so that a class calling them is refused
 /// (`every_solve_time_builtin_is_submittable` keeps the two sets apart).
-pub const HELPER_FILES: [&str; 6] = [
+pub const HELPER_FILES: [&str; 7] = [
     "utils/harness/sitecustomize.py",
+    "utils/harness/adj_utils.py",
     "utils/harness/grid_utils.py",
     "utils/harness/bs_utils.py",
     "utils/harness/combo_utils.py",

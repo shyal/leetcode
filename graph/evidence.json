@@ -28244,6 +28244,22 @@
         "O(n^2) pair enumeration via pairs()"
       ],
       "seconds": 183
+    },
+    "solved/p210_Course_Schedule_II_2026_09_20T02_42_13_022114_00_00Z.py": {
+      "date": "2026-09-20",
+      "problem": "210",
+      "moves": {
+        "graph-adjacency-build": "clean",
+        "topological-order": "clean"
+      },
+      "assist": {
+        "graph-adjacency-build": "learning",
+        "topological-order": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Accepted (8 ms, 20.6 MB); notes say 'Learning' and that adjacency/indegrees helpers were built.",
+      "summary": "The code builds an adjacency list and indegree array via the harness helpers adjacency(prerequisites, reverse=True) and indegrees(...), then runs Kahn's algorithm: seed a deque with all zero-indegree courses, pop, append to res, decrement neighbors' degrees, and enqueue any that reach zero. It returns res only if it covers all numCourses, otherwise []. The notes state this was a learning exercise with the two helpers, and LeetCode accepted the submission.",
+      "seconds": 2614
     }
   }
 }

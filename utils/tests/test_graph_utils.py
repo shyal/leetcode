@@ -28,3 +28,53 @@ def test_mixed_dict_values():
         1: {2: 1},
         2: {3: 7},
     }
+
+
+from adj_utils import adjacency, indegrees  # noqa: E402
+
+
+def test_adjacency_directed_seeds_isolated_nodes():
+    adj = adjacency([[0, 1], [0, 2], [1, 3]], 5)
+    assert dict(adj) == {0: [1, 2], 1: [3], 2: [], 3: [], 4: []}
+
+
+def test_adjacency_reverse_reads_b_to_a():
+    adj = adjacency([[1, 0], [2, 0], [3, 1], [3, 2]], 4, reverse=True)
+    assert dict(adj) == {0: [1, 2], 1: [3], 2: [3], 3: []}
+
+
+def test_adjacency_undirected_adds_both_ways():
+    adj = adjacency([[0, 1], [1, 2]], directed=False)
+    assert dict(adj) == {0: [1], 1: [0, 2], 2: [1]}
+
+
+def test_adjacency_weighted_is_dict_of_dicts():
+    adj = adjacency([[0, 1, 5], [1, 2, 7]], 3, weighted=True)
+    assert dict(adj) == {0: {1: 5}, 1: {2: 7}, 2: {}}
+
+
+def test_adjacency_missing_key_reads_empty():
+    assert adjacency([[0, 1]])[9] == []
+
+
+def test_indegrees_default_reads_zero_for_unseen():
+    indeg = indegrees([[0, 1], [0, 2], [1, 2]])
+    assert dict(indeg) == {1: 1, 2: 2}
+    assert indeg[7] == 0
+
+
+def test_indegrees_with_n_seeds_every_node():
+    assert dict(indegrees([[0, 1], [0, 2], [1, 2]], 4)) == {0: 0, 1: 1, 2: 2, 3: 0}
+
+
+def test_indegrees_reverse_counts_into_a():
+    assert indegrees([[1, 0], [2, 0], [3, 1], [3, 2]], 4, reverse=True, type=list) == [
+        0,
+        1,
+        1,
+        2,
+    ]
+
+
+def test_indegrees_list_type():
+    assert indegrees([[0, 1]], 3, type=list) == [0, 1, 0]

@@ -78,11 +78,11 @@ from typing import (
     overload as overload,
 )
 
+# utils
+from adj_utils import *
 from assert_utils import *
 from bs_utils import *
 from bst_utils import *
-
-# utils
 from combo_utils import *
 from debug_utils import *
 from gen_utils import *
@@ -323,6 +323,8 @@ builtins.generate_and_print_random_bst = generate_and_print_random_bst
 builtins.generate_full_binary_tree = generate_full_binary_tree
 builtins.generate_random_tree = generate_random_tree
 builtins.build_graph_from_edge_list = build_graph_from_edge_list
+builtins.adjacency = adjacency
+builtins.indegrees = indegrees
 builtins.build_nary_tree = build_nary_tree
 
 # grids
