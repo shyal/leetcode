@@ -28649,6 +28649,22 @@
       "note": "Notes say the intuition for max(self.count, left + right) was not fully there, but the code is correct and LeetCode Accepted.",
       "summary": "helper recurses on n.left and n.right, returns max(left, right) + 1 as the height contribution, and updates self.count with left + right at each node, so the diameter is captured where a path bends through a node. This exercises tree-dfs-recursive, tree-combine-returns, and tree-global-across-subtrees. The notes say the candidate figured it out but the intuition for the global update was not really there; LeetCode reports Accepted (4 ms, 22.1 MB).",
       "seconds": 512
+    },
+    "solved/p47_Permutations_II_2026_09_20T21_57_17_116613_00_00Z.py": {
+      "date": "2026-09-21",
+      "problem": "47",
+      "moves": {
+        "backtracking-choose-undo": "clean",
+        "backtracking-dedupe-siblings": "clean",
+        "backtracking-mark-unmark": "clean"
+      },
+      "assist": {
+        "backtracking-dedupe-siblings": "walkthrough"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Accepted (3 ms, 19.9 MB); notes say the dedupe condition was assisted and that a seen-set alternative was considered.",
+      "summary": "The code sorts nums, then recurses with a used[] flag array: it appends nums[j], marks used[j], recurses, then unmarks and pops, recording a copy of path when its length reaches len(nums). Duplicate permutations are pruned by skipping nums[j] when it equals nums[j-1] and nums[j-1] is unused, which is the sibling-dedupe rule. The notes say the dedupe condition was assisted and that a seen-set approach was also possible; LeetCode accepted the submission.",
+      "seconds": 842
     }
   }
 }
