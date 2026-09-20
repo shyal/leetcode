@@ -28690,6 +28690,23 @@
       "note": "LEETCODE: Time Limit Exceeded (14/38 cases); notes say 'Could not think of the optimal solution.' The brute force enumerates every (i, j) subarray and recomputes sum(x % 2) each time, so the canonical prefix-sum-hashmap move (count subarrays with odd-count prefix difference k) is absent.",
       "summary": "The code's numberOfSubarrays just delegates to numberOfSubarraysBruteForce, which double-loops over every (i, j) subarray and recomputes the odd count with sum(x % 2 for x in nums[i:j+1]), collecting matches in res. That exercises substring-enumeration correctly on the small asserts, but the canonical prefix-sums / streaming-ask-then-record / prefix-sum-hashmap walk is never written. The notes state the optimal solution could not be found, and LeetCode rejected the submission with Time Limit Exceeded at 14/38 cases.",
       "seconds": 1625
+    },
+    "solved/d_Subarrays_Summing_To_Target_2026_09_20T22_46_52_651366_00_00Z.py": {
+      "date": "2026-09-21",
+      "problem": "drill",
+      "moves": {
+        "prefix-sum-hashmap": "clean",
+        "streaming-ask-then-record": "clean",
+        "derived-key-lookup": "clean",
+        "running-sum": "clean"
+      },
+      "assist": {
+        "prefix-sum-hashmap": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say 'Learning'; the prefix-sum-hashmap recurrence was given and copied.",
+      "summary": "The code counts subarrays summing to target by keeping a defaultdict of prefix-sum frequencies seeded with D[0]=1, then for each value adds D[prefix-target] to res before recording the current prefix. This exercises the prefix-sum-hashmap move, the streaming ask-then-record ordering, the derived-key lookup of prefix-target, and the running-sum accumulation. All assertions pass, including the 10**5 cases. The notes mark the session as Learning, so the prefix-sum-hashmap move is recorded as copied.",
+      "seconds": 177
     }
   }
 }
