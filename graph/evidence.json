@@ -28410,6 +28410,17 @@
       "judge": "deepseek-chat",
       "summary": "Defines a Color enum.Flag with red/green/blue members from auto(), then both() intersects the two flag values with a & b and tests membership of each named member via `Color[n] in a & b`, yielding the names present in both. This exercises the bit-flags move: named states as one Flag value, union with |, and membership test with `in`. All assertions pass, including the empty-flag and duplicate-name cases.",
       "seconds": 97
+    },
+    "solved/d_Held_By_Either_2026_09_20T19_15_07_223281_00_00Z.py": {
+      "date": "2026-09-21",
+      "problem": "drill",
+      "moves": {
+        "bit-flags": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets bit-flags; uses enum.Flag with auto(), union via |, and membership test `Color[n] in a | b`.",
+      "summary": "Defines a Color enum.Flag with auto() members and a Solution.either that unions the two flag arguments with | and tests each requested name with `Color[n] in a | b`, yielding matches. The @as_list decorator collects the generator into a list. All assertions pass, exercising the bit-flags move: named states as one Flag value, union with |, and membership test with in.",
+      "seconds": 32
     }
   }
 }
