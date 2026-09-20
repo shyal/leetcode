@@ -28566,6 +28566,17 @@
       "note": "Drill overrides union() to link roots directly (parent[pa]=pb) without rank/size or path compression; all assertions pass.",
       "summary": "The file subclasses UnionFind and overrides union() to find both roots and, when they differ, hang one root under the other, returning True; equal roots return False. It exercises the union-find move by building chains via direct parent assignments and checking the resulting parent arrays across singletons, self-unions, and multi-company merges. The run exited 0 with all assertions passing.",
       "seconds": 86
+    },
+    "solved/d_Build_Parents_2026_09_20T20_36_38_457843_00_00Z.py": {
+      "date": "2026-09-21",
+      "problem": "drill",
+      "moves": {
+        "union-find": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill only builds the parent array via [*range(n)]; find/union are not exercised.",
+      "summary": "The file defines Solution.buildParent(n), which returns [*range(n)] \u2014 the identity parent array where each element is its own root. The drill's required line is met: the parent array is constructed and the assertions confirm its contents, including a manual parent[1] = 0 link. Only the initialization rung of union-find is trained here; find and union are not present.",
+      "seconds": 16
     }
   }
 }
