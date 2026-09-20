@@ -28230,6 +28230,20 @@
       "note": "LEETCODE: Accepted (1302 ms, 19.6 MB); notes say 'Learning'.",
       "summary": "The code builds a dp array of ones and, for each i, scans all j < i, setting dp[i] = max(dp[i], dp[j]+1) when nums[j] < nums[i], then returns max(dp). This exercises the O(n^2) DP formulation and 1D table fill, but routes around the streaming/patience-sorting approach, so streaming-ask-then-record is avoided. The notes mark the work as Learning, and the O(n log n) follow-up is not met by this quadratic solution.",
       "seconds": 1529
+    },
+    "solved/d_Smaller_Before_2026_09_20T01_20_27_416317_00_00Z.py": {
+      "date": "2026-09-20",
+      "problem": "drill",
+      "moves": {
+        "dp-1d-rolling": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "dp[i] accumulates count of earlier smaller elements; O(n^2) brute force, not the O(n log n) canonical.",
+      "summary": "The code builds a 1D table dp of zeros and, for every ordered pair (j, i) with j < i, adds 1 to dp[i] when nums[j] < nums[i], returning the per-index count of smaller preceding elements. It exercises the dp-1d-rolling node by filling a 1D array forward from a zero base case, though the accumulation is a direct O(n^2) pair scan rather than a rolling recurrence. All assertions pass, including the 2500-element case.",
+      "unmapped": [
+        "O(n^2) pair enumeration via pairs()"
+      ],
+      "seconds": 183
     }
   }
 }
