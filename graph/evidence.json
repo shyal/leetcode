@@ -28510,6 +28510,18 @@
       "note": "term() overrides the grammar rule for * and /, left-associating via a while loop; expr()/atom() inherited from Parser.",
       "summary": "The Solution subclasses Parser and overrides term() to parse multiplicative expressions, looping while the current char is * or / and building a left-leaning TreeNode with atom() on each side. The inherited expr() drives the top-level parse, and the assertions confirm correct precedence and left-associativity for cases like 2+3*4/6, 100/10/5, and 3*4-2*5. The run exited 0 with all assertions passing, exercising the recursive-descent move.",
       "seconds": 99
+    },
+    "solved/d_Ledger_Tally_2026_09_20T19_52_43_644693_00_00Z.py": {
+      "date": "2026-09-21",
+      "problem": "drill",
+      "moves": {
+        "stack-nested-eval": "clean",
+        "divmod-decompose": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets stack-nested-eval; the code pushes signed terms onto a stack and sums, exercising the push/combine shape rather than true nested-scope evaluation.",
+      "summary": "The tally method walks the string with a sentinel '+' appended, accumulating digits into num and pushing each signed term onto a stack, then returns sum(stack). It exercises the stack-nested-eval push-and-combine shape and a digit-peeling accumulation loop. The file ran and printed 134; the assertions are commented out.",
+      "seconds": 118
     }
   }
 }
