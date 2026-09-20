@@ -345,6 +345,7 @@ builtins.as_list = as_list
 # index combinations
 builtins.pairs = pairs
 builtins.same_rows = same_rows
+builtins.uses = uses
 builtins.triples = triples
 
 # utilities

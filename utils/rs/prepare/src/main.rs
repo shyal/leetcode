@@ -33,6 +33,7 @@ use kg::evidence::Evidence;
 use kg::git::{clear_branch, sleep_records};
 use prepare::assert_gen::{extra_asserts, has_extra, strip_fences};
 use prepare::stub::{sanitize, strip_solution, structure_problems};
+use prepare::uses::{helpers_for, with_uses_line};
 use prepare::{cache_load, cache_save, pool, pyrun};
 use serde_json::{json, Value};
 
@@ -703,6 +704,13 @@ option loses, where one pass misses a later better choice. At most 12 lines.
         if !clear_branch(root, &key) {
             return;
         }
+        // the walk says which harness helpers the solve is expected to call
+        let helpers = ctx
+            .all_problems()
+            .get(&key)
+            .map(helpers_for)
+            .unwrap_or_default();
+        let code = with_uses_line(code, &helpers);
         let git = |args: &[&str]| {
             let out = Command::new("git")
                 .args(args)

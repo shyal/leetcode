@@ -7,6 +7,7 @@
 pub mod assert_gen;
 pub mod pyrun;
 pub mod stub;
+pub mod uses;
 
 use std::path::{Path, PathBuf};
 

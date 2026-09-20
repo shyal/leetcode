@@ -43,6 +43,7 @@ sol = Solution()
 
 print(dict(sol.handshakes([[11, 12, 15], [14, 15], [16, 14], [19]])))  # {11: [12, 15], 12: [11], 15: [11, 14], 14: [15, 16], 16: [14], 19: []}
 
+# assert uses(Solution, adjacency)
 # assert sol.handshakes([[11, 12, 15], [14, 15], [16, 14], [19]]) == {11: [12, 15], 12: [11], 15: [11, 14], 14: [15, 16], 16: [14], 19: []}
 # assert sol.handshakes([[13], [13], [13]]) == {13: []}
 # assert sol.handshakes([[17]]) == {17: []}

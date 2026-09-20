@@ -40,14 +40,18 @@ def indegrees(
     edges: List[Any],
     n: Optional[int] = None,
     reverse: bool = False,
+    directed: bool = True,
     type: Any = defaultdict,
 ) -> Any:
     """In-degree of every node from an edge list, each edge [a, b] counting
     one into b. Default is a defaultdict(int), any node reading 0; with n,
     nodes 0 to n - 1 are all keys. type=list needs n and returns a plain
-    list. reverse reads each edge as b to a."""
+    list. reverse reads each edge as b to a. directed=False counts the edge
+    into a as well, so the result is the plain degree of every node."""
     indeg: Any
     if type is list:
+        if n is None:
+            raise ValueError("type=list needs n")
         indeg = table(n)
     else:
         indeg = defaultdict(int)
@@ -58,4 +62,6 @@ def indegrees(
         if reverse:
             a, b = b, a
         indeg[b] += 1
+        if not directed:
+            indeg[a] += 1
     return indeg

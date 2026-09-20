@@ -38,6 +38,7 @@ sol = Solution()
 
 print(sol.inDegrees(4, [[0, 1], [0, 2], [1, 3], [2, 3]]))  # [0, 1, 1, 2]
 
+# assert uses(Solution, indegrees)
 # assert sol.inDegrees(4, [[0, 1], [0, 2], [1, 3], [2, 3]]) == [0, 1, 1, 2]
 # assert sol.inDegrees(3, []) == [0, 0, 0]
 # assert sol.inDegrees(2, [[1, 0]]) == [1, 0]

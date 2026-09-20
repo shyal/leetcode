@@ -137,6 +137,22 @@ seed: fixes the tree; the global random state is untouched.
 
 ### `build_graph_from_edge_list(edges, type = 'undirected')`
 
+### `adjacency(edges: List[Any], n: Optional[int] = None, reverse: bool = False, directed: bool = True, weighted: bool = False) -> Any`
+
+Adjacency from an edge list. Each edge is [a, b] or, with weighted,
+[a, b, w]. Unweighted returns a dict of lists in edge order; weighted a
+dict of dicts, adj[a][b] = w. With n, nodes 0 to n - 1 are all keys,
+isolated ones with an empty list. reverse reads each edge as b to a.
+directed=False adds both directions.
+
+### `indegrees(edges: List[Any], n: Optional[int] = None, reverse: bool = False, directed: bool = True, type: Any = defaultdict) -> Any`
+
+In-degree of every node from an edge list, each edge [a, b] counting
+one into b. Default is a defaultdict(int), any node reading 0; with n,
+nodes 0 to n - 1 are all keys. type=list needs n and returns a plain
+list. reverse reads each edge as b to a. directed=False counts the edge
+into a as well, so the result is the plain degree of every node.
+
 ### `build_nary_tree(arr: List[Optional[int]]) -> Optional[Node]`
 
 ## grids
