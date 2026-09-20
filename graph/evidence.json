@@ -28211,6 +28211,25 @@
       "note": "Canonical binary-search-on-answer not applicable; solved via row-by-row DP simulation.",
       "summary": "The code simulates the champagne tower row by row: starting with row = [poured], each iteration builds nxt of length r+2 and distributes half of each glass's excess (amt-1)/2 to the two glasses below, then returns min(1, row[query_glass]). It exercises a rolling 1D DP state (dp-1d-rolling) with the recurrence formulated before coding (dp-state-formulate). The notes say 'Learning' and LeetCode reports Accepted (31 ms, 19.4 MB).",
       "seconds": 1941
+    },
+    "solved/p300_Longest_Increasing_Subsequence_2026_09_20T01_16_25_414100_00_00Z.py": {
+      "date": "2026-09-20",
+      "problem": "300",
+      "moves": {
+        "dp-state-formulate": "clean",
+        "dp-1d-rolling": "clean",
+        "substring-enumeration": "clean"
+      },
+      "assist": {
+        "dp-state-formulate": "learning",
+        "dp-1d-rolling": "learning",
+        "substring-enumeration": "learning"
+      },
+      "judge": "deepseek-chat",
+      "followup": "not solved",
+      "note": "LEETCODE: Accepted (1302 ms, 19.6 MB); notes say 'Learning'.",
+      "summary": "The code builds a dp array of ones and, for each i, scans all j < i, setting dp[i] = max(dp[i], dp[j]+1) when nums[j] < nums[i], then returns max(dp). This exercises the O(n^2) DP formulation and 1D table fill, but routes around the streaming/patience-sorting approach, so streaming-ask-then-record is avoided. The notes mark the work as Learning, and the O(n log n) follow-up is not met by this quadratic solution.",
+      "seconds": 1529
     }
   }
 }
