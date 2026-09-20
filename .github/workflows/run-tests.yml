@@ -55,6 +55,11 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt
+      # the release build of the workspace is most of the job (5m36s of 8m on
+      # 2026-09-20); the cache is keyed on Cargo.lock and restored per branch
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: utils/rs
       - run: make rust
       - name: cargo audit
         run: |
@@ -80,6 +85,11 @@ jobs:
           distribution: temurin
           java-version: "17"
       - uses: dtolnay/rust-toolchain@stable
+      # the release build of the workspace is most of the job (5m36s of 8m on
+      # 2026-09-20); the cache is keyed on Cargo.lock and restored per branch
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: utils/rs
       - name: Install
         run: |
           python -m venv .venv
@@ -89,4 +99,7 @@ jobs:
       - name: Build the Rust binaries the tests run, and the kg_rs extension kg_lib imports
         run: make ext
       - name: pytest with the coverage floor
-        run: .venv/bin/pytest --cov --cov-report=term
+        # -n auto: the 1300-solve sweep in utils/tests/test_runner.py is one
+        # import per solve, nothing shared, so it splits across the runner's
+        # cores; --durations names the slowest tests in the log
+        run: .venv/bin/pytest -n auto --durations=20 --cov --cov-report=term
