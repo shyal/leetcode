@@ -1,4 +1,4 @@
-.PHONY: harness-doc stats progress submit lc-login ext check fmt fmt-check lint types complexity duplicates test-fast cov rust audit secrets all asserts drop learning mirror q prepare force unforce preflight dependents kg-extract kg-status kg-viz rep movie next dive drill spot hard is_session_start readme rank-table residuals simulate sleep wake solved failed studied test timer elo viz graph snippets
+.PHONY: all asserts audit chat check complexity cov curve dependents dive drill drop duplicates elo ext failed fmt fmt-check force graph hard harness-doc is_session_start kg-extract kg-status kg-viz lc-login lc-mocks learning lint mirror mock movie next predict preflight prepare prog progress q queue rank-table readme rep residuals rust secrets simulate sleep snippets solved spot stats studied submit test test-fast test-judge timer today types unforce viz wake
 
 all: $(if $(filter master,$(shell git rev-parse --abbrev-ref HEAD)),graph/leet.db) $(EXT)
 	@cp utils/harness/sitecustomize.py .venv/lib/python3.10/site-packages/
@@ -162,6 +162,11 @@ submit: $(RS_BIN)/lc_submit
 lc-login:
 	@node misc/lc_cookies.mjs
 
+# pull every leetcode mock assessment into data/mock_assessments.json
+# (make lc-mocks show prints the cache as a table)
+lc-mocks:
+	@.venv/bin/python3 utils/history/lc_mocks.py $(patsubst show,--show,$(filter-out $@,$(MAKECMDGOALS)))
+
 # file the current attempt as a FAILED one: same flow as solved (archive,
 # solve-time trailer, placeholder -> struggled evidence), honest label
 failed: $(RS_BIN)/kg_solved $(RS_BIN)/kg_extract
@@ -303,7 +308,9 @@ prog: $(RS_BIN)/kg_readme
 chat: $(RS_BIN)/kg_chat
 	@$(RS_BIN)/kg_chat $(filter-out $@,$(MAKECMDGOALS))
 
-# rank-table: $(RS_BIN)/kg_readme
+# make rank-table: refresh data/leetcode_rank_table.json, the population
+# snapshot the rank badge is read against
+rank-table: $(RS_BIN)/kg_readme
 	@$(RS_BIN)/kg_readme rank-table
 
 # utils/harness/README.md: the reference for the helpers sitecustomize
@@ -314,11 +321,9 @@ harness-doc:
 # make readme is implemented in Rust (utils/rs/kg_readme): the charts and
 # badges the README carries (problem rating, hours, onsite, progress,
 # backlog, the rate gauge, and the Elo, streak, rank and rate badges), then
-# the S3 upload and the README's generated regions. The renderers that are
-# no longer linked still work standalone from Python if a chart comes back:
-#   kg_positions_svg kg_solvetime_svg kg_connectivity_svg kg_rates_svg
-#   kg_commits_svg kg_zpd_svg kg_reach_svg kg_3d_svg
-#   kg_full_svg kg_compression_svg, and $(MOVIE_BIN)
+# the S3 upload and the README's generated regions. The movie is
+# $(MOVIE_BIN); the old Python chart renderers were deleted, they live in
+# git history before 2026-09-21 if a chart comes back.
 readme: harness-doc $(MOCK_BIN) $(RS_BIN)/estimate $(RS_BIN)/kg_readme
 	@$(RS_BIN)/kg_readme
 	@$(RS_BIN)/estimate

@@ -267,16 +267,4 @@ impl Evidence {
     pub fn cold_cache(&self) -> std::cell::RefMut<'_, Caches> {
         self.caches.borrow_mut()
     }
-
-    /// The evidence with only the records dated on or before `cut`, as its
-    /// own indexed table (kg_next.due_on's `seen`).
-    pub fn up_to(&self, cut: &str) -> Evidence {
-        Evidence::new(
-            self.recs
-                .iter()
-                .filter(|(_, r)| r.date.as_str() <= cut)
-                .cloned()
-                .collect(),
-        )
-    }
 }

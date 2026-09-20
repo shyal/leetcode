@@ -10,7 +10,7 @@ use std::collections::{HashMap, HashSet};
 use chrono::NaiveDate;
 
 use crate::ctx::{Ctx, PView};
-use crate::data::{is_numeric_id, parse_date, pnum_key, Problem, Problems, SOLID_WINDOW_DAYS};
+use crate::data::{parse_date, pnum_key, Problem, Problems, SOLID_WINDOW_DAYS};
 use crate::drills::{drill_clean, drill_warm, latest_drill_rep, node_drill_hold};
 use crate::evidence::Evidence;
 use crate::model::{target_pass_rate, walk_informative, SolveState};
@@ -592,10 +592,6 @@ pub fn carrier_counts(problems: &Problems) -> HashMap<String, i64> {
         }
     }
     counts
-}
-
-pub fn numeric_problems(pv: &PView) -> Vec<String> {
-    pv.keys().into_iter().filter(|k| is_numeric_id(k)).collect()
 }
 
 /// kg_lib.dependents: one row per problem or drill whose "after" names

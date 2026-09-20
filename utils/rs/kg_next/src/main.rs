@@ -23,7 +23,7 @@ use kg::mock::PyRandom;
 use serde_json::Value;
 
 use kg::clock::{last_attempt, problem_attempts, problem_due};
-use kg::console::{Console, Line};
+use kg::console::Console;
 use kg::ctx::{Ctx, PView};
 use kg::data::{load_envrc, repo_root};
 use kg::drills::{
@@ -43,9 +43,7 @@ use kg::pick::{
 };
 use kg::queue::{queue_table, QUEUE_LEN};
 use kg::recog;
-use kg::render::{
-    animate, degree_color, display, faces, prespawn_dot, render_in_background, Dot, PreDot,
-};
+use kg::render::{animate, display, faces, prespawn_dot, render_in_background, Dot, PreDot};
 use kg::status::{
     all_statuses, carry_bar, immature_nodes, input_tree, node_axes, node_degree, owned, st, Status,
     Statuses, FRAGILE, MISSING, SOLID, STALE,
@@ -1578,9 +1576,4 @@ fn nothing_to_serve(run: &Run, asleep: &[String], exclude: &HashSet<String>, sho
             kg::table::print_table(console, &table);
         }
     }
-}
-
-#[allow(dead_code)]
-fn unused(_: &[Line]) {
-    let _ = degree_color(0.0);
 }

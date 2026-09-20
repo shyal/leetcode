@@ -18,7 +18,7 @@ Set `PRETTY_PRINT=1` and `print` becomes `pprint`.
 
 ## pretty printing
 
-### `tabulate(tabular_data, headers = (), row_labels = (), tablefmt = 'github')`
+### `tabulate(tabular_data, headers = (), row_labels = ())`
 
 Print a grid as a colored table. With no headers, columns and rows are
 labelled by index, like a dp table. A flat list is one row.

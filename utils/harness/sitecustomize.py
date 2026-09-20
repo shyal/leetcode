@@ -94,7 +94,6 @@ from linked_list_utils import *
 # pretty printing
 from rich import print as rich_print
 from rich.console import Console
-from tabulate import tabulate as tabulate_orig
 from tree_utils import *
 
 # types
@@ -142,7 +141,7 @@ def _cell_style(v, ranks):
     return "yellow"
 
 
-def tabulate(tabular_data, headers=(), row_labels=(), tablefmt="github"):
+def tabulate(tabular_data, headers=(), row_labels=()):
     """Print a grid as a colored table. With no headers, columns and rows are
     labelled by index, like a dp table. A flat list is one row."""
     from rich.table import Table  # ~20ms, only when a table is printed

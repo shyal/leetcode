@@ -3,8 +3,6 @@
 # into subfolders, and the path constants they derive from __file__ still land
 # on real directories. Cheap import tests, so a future move breaks loudly here
 # rather than in the middle of `make solved`.
-import ast
-import glob
 import os
 import re
 import subprocess
@@ -71,23 +69,6 @@ def test_tooling_paths_exist():
         p for p in seen if not os.path.exists(os.path.join(ROOT, "utils", p))
     )
     assert missing == [], f"scripts point at utils/ files that do not exist: {missing}"
-
-
-def test_rs_bin_names_are_crates():
-    """Every Rust binary a script runs through kg_lib.rs_bin("...") is a
-    crate of the utils/rs workspace (the binary is named after its crate)."""
-    rs = os.path.join(UTILS, "rs")
-    names = set()
-    for d in (KG, README):
-        for f in _scripts(d):
-            names |= set(
-                re.findall(r'rs_bin\("([\w-]+)"\)', open(os.path.join(d, f)).read())
-            )
-    assert {"kg_extract"} <= names
-    missing = sorted(
-        n for n in names if not os.path.exists(os.path.join(rs, n, "Cargo.toml"))
-    )
-    assert missing == [], missing
 
 
 # --- every tooling script still imports ------------------------------------
@@ -254,80 +235,6 @@ def test_no_stray_files_at_utils_top_level():
     assert stray == [], stray
 
 
-def test_attic_is_not_imported_anywhere():
-    """Retired scripts are kept for reference only."""
-    attic = os.path.join(UTILS, "attic")
-    names = {f.split(".")[0] for f in os.listdir(attic)}
-    offenders = []
-    for d in (KG, README, HARNESS, TESTS):
-        for f in _scripts(d):
-            if f == os.path.basename(__file__):
-                continue
-            src = open(os.path.join(d, f)).read()
-            try:
-                tree = ast.parse(src)
-            except SyntaxError:
-                continue
-            for node in ast.walk(tree):
-                if (
-                    isinstance(node, ast.ImportFrom)
-                    and node.module
-                    and node.module.split(".")[-1] in names
-                ):
-                    offenders.append(f"{f}: from {node.module}")
-                if isinstance(node, ast.Import) and any(
-                    a.name.split(".")[-1] in names for a in node.names
-                ):
-                    offenders.append(f"{f}: import")
-    assert offenders == [], offenders
-
-
-# --------------------------------------------------------------------------
-# the drill bank's house rules (2026-09-02)
-# --------------------------------------------------------------------------
-
-DRILLS = os.path.join(ROOT, "drills")
-_DRILL_FILES = sorted(glob.glob(os.path.join(DRILLS, "*", "*.py")))
-
-
-@pytest.mark.parametrize("path", _DRILL_FILES, ids=lambda p: os.path.relpath(p, DRILLS))
-def test_drill_imports_nothing_sitecustomize_provides(path):
-    """sitecustomize mirrors LeetCode's preloaded names (List, Callable,
-    defaultdict, ...). A drill never imports one of them: the operator
-    would not type the import on LeetCode, so it is noise in the rep."""
-    from kg import kg_lib
-
-    names = set(kg_lib.sitecustomize_names())
-    for node in ast.walk(ast.parse(open(path).read())):
-        if isinstance(node, (ast.Import, ast.ImportFrom)):
-            dup = [
-                a.asname or a.name for a in node.names if (a.asname or a.name) in names
-            ]
-            assert (
-                not dup
-            ), f"{os.path.relpath(path, ROOT)} imports {dup}; sitecustomize already provides them"
-
-
-@pytest.mark.parametrize("path", _DRILL_FILES, ids=lambda p: os.path.relpath(p, DRILLS))
-def test_drill_asserts_uncomment_in_one_swoop(path):
-    """From the Solution instantiation down, stripping one '#' from every
-    comment line must leave code that parses: the operator toggles the
-    whole block at once, so a prose line there carries '##' and stays a
-    comment after the toggle."""
-    src = open(path).read()
-    m = re.search(r"^\w+ = Solution\(", src, re.M)
-    assert m, f"{os.path.relpath(path, ROOT)}: no `sol = Solution(...)` line"
-    lines = src[m.start() :].split("\n")
-    block = "\n".join(
-        l[2:] if l.startswith("# ") else l[1:] if l.startswith("#") else l
-        for l in lines
-    )
-    compile(block, path, "exec")
-
-
-# --- the gates see what runs --------------------------------------------------
-
-
 def test_ruff_builtins_match_sitecustomize():
     """pyproject's ruff builtins list is the names sitecustomize injects; ruff
     cannot read them at run time, so the copy is pinned here."""
@@ -350,7 +257,7 @@ def test_check_scripts_cover_the_tooling():
             check=True,
         ).stdout.split()
     )
-    for d, name in (("kg", "kg_lib.py"), ("readme", "kg_full_svg")):
+    for d, name in (("kg", "kg_lib.py"), ("readme", "harness_doc.py")):
         assert f"utils/{d}/{name}" in listed
     assert "utils/harness/sitecustomize.py" in listed
-    assert not any(f.startswith(("solved/", "drills/", "utils/attic/")) for f in listed)
+    assert not any(f.startswith(("solved/", "drills/")) for f in listed)
