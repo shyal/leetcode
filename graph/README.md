@@ -206,7 +206,12 @@ hinted all-clean is Hard, a walkthrough, a copy or a struggle is Again. A new
 file graduates at 1 day. Good multiplies the interval by the ease (250% to
 start), so a file always answered Good runs 1, 3, 8, 20, 50 days. Hard
 multiplies by 1.2 and lowers the ease; Again sends the file back to 1 day and
-lowers the ease more. A file never done is due. A SOLID node with a due file
+lowers the ease more. From 3 days on the interval is fuzzed, as in Anki: a
+shift of up to 15% (10% from a week, 5% from three weeks, at least a day),
+drawn from a hash of the file and its rep count rather than a random source,
+so `make next` stays a function of the evidence. Files first done together
+drift apart instead of coming back as one batch (2026-09-21). A file never
+done is due. A SOLID node with a due file
 enters the frontier after FRAGILE and floor moves and before STALE ones; the
 "after" holds, the once-a-day rule and the group cap still apply, and a node
 that is not SOLID trains on its bank as before. The node curve and the

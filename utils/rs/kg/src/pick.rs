@@ -2285,12 +2285,15 @@ pub fn upcoming(
     out
 }
 
-pub fn review_line(drills: i64, solves: i64, reached: bool) -> String {
+/// The "ahead" line names its window: the counts are what the replay
+/// serves over the next `days` days under the caps, not a list for
+/// today (2026-09-21: "17 drills" read as today's due pile).
+pub fn review_line(drills: i64, solves: i64, reached: bool, days: i64) -> String {
     if drills == 0 && solves == 0 {
         return if reached {
             "review ahead: none - this pick is new ground".to_string()
         } else {
-            "review ahead: none, and nothing new to serve either".to_string()
+            format!("review ahead: none in the next {days} days, and nothing new to serve either")
         };
     }
     let mut parts = Vec::new();
@@ -2312,7 +2315,7 @@ pub fn review_line(drills: i64, solves: i64, reached: bool) -> String {
         "and still nothing new"
     };
     format!(
-        "review ahead: {}, {tail} (if every rep is clean)",
+        "review ahead: {} over the next {days} days, {tail} (if every rep is clean)",
         parts.join(", ")
     )
 }

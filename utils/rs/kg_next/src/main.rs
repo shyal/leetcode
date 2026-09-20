@@ -275,7 +275,13 @@ fn headline(ctx: &Ctx, pnum: &str, pv: &PView, ev: &Evidence) -> String {
     parts.join(" [dim]·[/dim] ")
 }
 
-fn header_line(secs: i64, clock_len: usize, reviews: usize) -> String {
+/// The header: the time solved today and the drill clock. `held` is
+/// (group, files the group cap holds back today) for every capped group
+/// with a due file it will not let through; the line then says how many
+/// of the due files the day can actually serve, so the count is never
+/// read as a promise (2026-09-21: "17 due" with 14 sql files behind a cap
+/// of 2).
+fn header_line(secs: i64, clock_len: usize, reviews: usize, held: &[(String, usize)]) -> String {
     let mut parts = Vec::new();
     if secs != 0 {
         let (h, m) = ((secs / 60) / 60, (secs / 60) % 60);
@@ -287,12 +293,50 @@ fn header_line(secs: i64, clock_len: usize, reviews: usize) -> String {
         parts.push(format!("today [bold]{t}[/bold] solving"));
     }
     if clock_len != 0 {
-        parts.push(format!(
+        let mut line = format!(
             "drill clock [bold]{clock_len}[/bold] due ({reviews} review, {} never done)",
             clock_len - reviews
-        ));
+        );
+        let back: usize = held.iter().map(|(_, n)| n).sum();
+        if back != 0 {
+            let caps: Vec<String> = held
+                .iter()
+                .map(|(g, n)| format!("the {g} cap holds {n} back"))
+                .collect();
+            line.push_str(&format!(
+                "; {}, leaving [bold]{}[/bold] servable today",
+                caps.join(" and "),
+                clock_len - back
+            ));
+        }
+        parts.push(line);
     }
     parts.join(" [dim]·[/dim] ")
+}
+
+/// For every capped group, how many of the clock's due files its cap
+/// holds back today: the group's due files beyond the reps the cap still
+/// allows. Groups with nothing held back are left out.
+fn held_by_caps(
+    ctx: &Ctx,
+    ev: &Evidence,
+    today: NaiveDate,
+    clock: &[(std::path::PathBuf, String)],
+) -> Vec<(String, usize)> {
+    let mut caps = group_caps();
+    caps.sort();
+    let mut out = Vec::new();
+    for (g, cap) in caps {
+        let due = clock
+            .iter()
+            .filter(|(_, node)| ctx.group_of(node) == Some(g.as_str()))
+            .count();
+        let left = (cap - group_reps(ctx, &g, ev, today)).max(0) as usize;
+        if due > left {
+            out.push((g, due - left));
+        }
+    }
+    out
 }
 
 fn pace_line(fc: Option<(f64, f64, f64)>) -> Option<String> {
@@ -305,6 +349,9 @@ fn pace_line(fc: Option<(f64, f64, f64)>) -> Option<String> {
         m(b)
     ))
 }
+
+/// How far the "ahead" replay looks.
+const AHEAD_DAYS: i64 = 14;
 
 fn ahead_line(line: &str) -> String {
     format!(
@@ -1014,7 +1061,8 @@ fn run_main(run: &Run, asleep: &[String], woken: &[String]) {
         (vec![], 0)
     };
     trace("clock");
-    let head = header_line(solve_seconds_today(ctx), clock.len(), reviews);
+    let held = held_by_caps(ctx, ev, today, &clock);
+    let head = header_line(solve_seconds_today(ctx), clock.len(), reviews, &held);
     trace("header");
     if !head.is_empty() {
         console.print(&format!("[dim]{head}[/dim]"));
@@ -1189,10 +1237,10 @@ fn run_main(run: &Run, asleep: &[String], woken: &[String]) {
             asleep,
             &solved_today_pnums(ctx),
             args.group.as_deref(),
-            14,
+            AHEAD_DAYS,
             200,
         );
-        Some(review_line(d, s, r))
+        Some(review_line(d, s, r, AHEAD_DAYS))
     };
 
     if pnum.starts_with("drill:") {

@@ -26,6 +26,13 @@ pub const ANKI_HARD_EASE_STEP: f64 = 0.15;
 pub const ANKI_AGAIN_EASE_STEP: f64 = 0.20;
 pub const ANKI_GRADUATING_DAYS: i64 = 1;
 pub const ANKI_MAX_INTERVAL: i64 = 365;
+/// Fuzz: an interval of at least this many days is shifted by a share of
+/// itself, so files first done together drift apart instead of coming
+/// back in one batch (Anki's fuzz). The share is 15% under a week, 10%
+/// under three weeks, 5% beyond, never less than a day either way. The
+/// shift is a hash of the file's evidence key and its rep count, so the
+/// clock stays a pure function of the evidence.
+pub const ANKI_FUZZ_MIN_DAYS: i64 = 3;
 
 /// kg_lib.drill_scheduler: "node" or "anki" (DRILL_SCHEDULER).
 pub fn drill_scheduler() -> String {
@@ -496,20 +503,46 @@ pub fn anki_due_key(key: &str, ev: &Evidence) -> Option<(NaiveDate, i64)> {
 /// (the day it comes back, that interval). A file never done graduates
 /// to one day.
 pub fn anki_next_if_good(key: &str, ev: &Evidence, today: NaiveDate) -> (NaiveDate, i64) {
-    let (interval, ease) = anki_state(key, ev).map_or((0, ANKI_EASE), |s| (s.interval, s.ease));
-    let next = anki_good(interval, ease);
+    let (interval, ease, reps) =
+        anki_state(key, ev).map_or((0, ANKI_EASE, 0), |s| (s.interval, s.ease, s.reps));
+    let next = anki_fuzz(anki_good(interval, ease), key, reps);
     (today + Duration::days(next), next)
 }
 
 /// The clock's state after the file's last rep: the day of that rep, the
-/// interval it set and the ease it left.
+/// interval it set, the ease it left and the number of days it was done on.
 struct AnkiState {
     last: String,
     interval: i64,
     ease: f64,
+    reps: usize,
 }
 
-fn anki_good(interval: i64, ease: f64) -> i64 {
+/// The fuzzed interval: `interval` shifted by up to its fuzz share, the
+/// shift drawn from a hash of (key, rep). See ANKI_FUZZ_MIN_DAYS.
+pub fn anki_fuzz(interval: i64, key: &str, rep: usize) -> i64 {
+    if interval < ANKI_FUZZ_MIN_DAYS {
+        return interval;
+    }
+    let share = if interval < 7 {
+        0.15
+    } else if interval < 21 {
+        0.10
+    } else {
+        0.05
+    };
+    let width = ((interval as f64 * share).round() as i64).max(1);
+    // FNV-1a over the key and the rep count: stable across Rust releases
+    let mut h: u64 = 0xcbf2_9ce4_8422_2325;
+    for b in key.bytes().chain(rep.to_le_bytes()) {
+        h ^= u64::from(b);
+        h = h.wrapping_mul(0x0000_0100_0000_01b3);
+    }
+    let shift = (h % (2 * width as u64 + 1)) as i64 - width;
+    (interval + shift).clamp(ANKI_FUZZ_MIN_DAYS, ANKI_MAX_INTERVAL)
+}
+
+pub(crate) fn anki_good(interval: i64, ease: f64) -> i64 {
     let next = if interval == 0 {
         ANKI_GRADUATING_DAYS
     } else {
@@ -539,6 +572,7 @@ fn anki_state(key: &str, ev: &Evidence) -> Option<AnkiState> {
     by_day.sort_by(|a, b| a.0.cmp(&b.0));
     let (mut interval, mut ease) = (0i64, ANKI_EASE);
     let mut last = String::new();
+    let mut days_done = 0usize;
     for (d, i) in by_day {
         let (_, base, ri) = &ev.drills[i];
         match anki_answer(base, ev.rec(*ri)) {
@@ -556,13 +590,15 @@ fn anki_state(key: &str, ev: &Evidence) -> Option<AnkiState> {
                 ease = ANKI_EASE_MIN.max(ease - ANKI_AGAIN_EASE_STEP);
             }
         }
-        interval = interval.min(ANKI_MAX_INTERVAL);
+        interval = anki_fuzz(interval.min(ANKI_MAX_INTERVAL), key, days_done);
+        days_done += 1;
         last = d;
     }
     Some(AnkiState {
         last,
         interval,
         ease,
+        reps: days_done,
     })
 }
 

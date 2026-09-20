@@ -100,16 +100,20 @@ fn review_ahead_restores_the_clock() {
 #[test]
 fn review_line_wording() {
     assert_eq!(
-        review_line(2, 1, true),
-        "review ahead: 2 drills, 1 problem, then new ground (if every rep is clean)"
+        review_line(2, 1, true, 14),
+        "review ahead: 2 drills, 1 problem over the next 14 days, then new ground (if every rep is clean)"
     );
     assert_eq!(
-        review_line(0, 0, true),
+        review_line(0, 0, true, 14),
         "review ahead: none - this pick is new ground"
     );
     assert_eq!(
-        review_line(3, 0, false),
-        "review ahead: 3 drills, and still nothing new (if every rep is clean)"
+        review_line(0, 0, false, 14),
+        "review ahead: none in the next 14 days, and nothing new to serve either"
+    );
+    assert_eq!(
+        review_line(3, 0, false, 7),
+        "review ahead: 3 drills over the next 7 days, and still nothing new (if every rep is clean)"
     );
 }
 

@@ -11,8 +11,8 @@ use crate::clock::{
 };
 use crate::data::test_env;
 use crate::drills::{
-    anki_due, anki_frontier, anki_next_if_good, drill_clean, drill_warm, due_drill,
-    recoveries_without_drill, recovery_wait,
+    anki_due, anki_frontier, anki_fuzz, anki_good, anki_next_if_good, drill_clean, drill_warm,
+    due_drill, recoveries_without_drill, recovery_wait, ANKI_EASE, ANKI_FUZZ_MIN_DAYS,
 };
 use crate::model::{first_sight_games, proven_score, proven_series, Game, Ground, PROVEN_WINDOW};
 use crate::pick::review_queue;
@@ -22,23 +22,35 @@ use crate::status::{graduation_due, owned};
 // the drill clock
 // --------------------------------------------------------------------------
 
-/// SM-2 per bank file: Good runs 1, 3, 8, 20, 50 days; Hard (a hinted
-/// clean) stretches by 1.2; Again (a struggle, a walkthrough or a copy)
-/// goes back to one day. A file never done has no clock and is due.
+/// SM-2 per bank file: Good runs 1, 3, 8, 20, 50 days before fuzz; Hard
+/// (a hinted clean) stretches by 1.2; Again (a struggle, a walkthrough or
+/// a copy) goes back to one day. A file never done has no clock and is
+/// due. From 3 days on every interval is fuzzed (anki_fuzz), so the
+/// chain is checked step by step against the fuzz of the unfuzzed step.
 #[test]
 fn the_anki_clock_grades_a_drill_file_from_its_own_reps() {
     let mut fx = Fx::new();
     let path = fx.bank("n", "Clock", "c.py", "d1", &[]);
     let ctx = fx.ctx();
+    let key = ctx.drill_evidence_key(&path);
     assert_eq!(anki_due(&ctx, &path, &no_evidence()), None);
     let mut ivl = vec![];
     let mut reps = vec![];
-    for days in [60, 59, 56, 48, 28] {
-        // 1, 3, 8, 20 apart
-        reps.push(drill_rep("Clock", "n", days));
-        ivl.push(anki_due(&ctx, &path, &evidence(reps.clone())).unwrap().1);
+    let mut day = 60;
+    for rep in 0..5 {
+        reps.push(drill_rep("Clock", "n", day));
+        let got = anki_due(&ctx, &path, &evidence(reps.clone())).unwrap().1;
+        let want = anki_fuzz(
+            anki_good(ivl.last().copied().unwrap_or(0), ANKI_EASE),
+            &key,
+            rep,
+        );
+        assert_eq!(got, want, "rep {rep}");
+        ivl.push(got);
+        day -= got;
     }
-    assert_eq!(ivl, vec![1, 3, 8, 20, 50]);
+    assert_eq!(ivl[0], 1);
+    assert!(ivl.windows(2).all(|w| w[0] < w[1]), "{ivl:?}");
     let hard = evidence(vec![
         drill_rep("Clock", "n", 10),
         drill_rep_a("Clock", "n", 9, assist_map(&[("n", "hint")])),
@@ -68,6 +80,58 @@ fn the_anki_clock_grades_a_drill_file_from_its_own_reps() {
     );
 }
 
+/// The fuzz: nothing under 3 days, then a shift of up to 15% (10% from a
+/// week, 5% from three weeks), at least a day either way, drawn from a
+/// hash of the file's key and its rep count, so the same call always
+/// gives the same answer and files done together drift apart. Before
+/// 2026-09-21 every file first done on one day came back on one day.
+#[test]
+fn the_fuzz_spreads_files_done_together_without_a_random_source() {
+    assert_eq!(ANKI_FUZZ_MIN_DAYS, 3);
+    assert_eq!(anki_fuzz(1, "a", 0), 1);
+    assert_eq!(anki_fuzz(2, "a", 0), 2);
+    assert_eq!(anki_fuzz(8, "a", 2), anki_fuzz(8, "a", 2));
+    for (ivl, width) in [(3, 1), (8, 1), (20, 2), (50, 3), (365, 18)] {
+        for k in 0..40 {
+            let got = anki_fuzz(ivl, &format!("d{k}"), 3);
+            assert!((got - ivl).abs() <= width, "{ivl}: {got}");
+            assert!(got <= 365);
+        }
+    }
+    let at_20: HashSet<i64> = (0..12)
+        .map(|k| anki_fuzz(20, &format!("d{k}"), 3))
+        .collect();
+    assert!(at_20.len() > 1, "twelve files fuzzed to one day: {at_20:?}");
+    // the same reps on a batch of files: their due days are not one day
+    let mut fx = Fx::new();
+    let paths: Vec<_> = (0..12)
+        .map(|k| {
+            fx.bank(
+                "n",
+                &format!("Batch{k}"),
+                &format!("b{k}.py"),
+                &format!("d{k}"),
+                &[],
+            )
+        })
+        .collect();
+    let ctx = fx.ctx();
+    let mut reps = vec![];
+    for k in 0..12 {
+        for days in [30, 29, 26] {
+            reps.push(drill_rep(&format!("Batch{k}"), "n", days));
+        }
+    }
+    let ev = evidence(reps);
+    let due: HashSet<NaiveDate> = paths
+        .iter()
+        .map(|p| anki_due(&ctx, p, &ev).unwrap().0)
+        .collect();
+    assert!(due.len() > 1, "a batch came back on one day: {due:?}");
+    let (next, ivl) = anki_next_if_good(&ctx.drill_evidence_key(&paths[0]), &ev, today());
+    assert_eq!(next, today() + Duration::days(ivl));
+}
+
 /// A judged rep on which the judge mapped no move grades Good: a drill is
 /// one move by construction, and a closed-form step filed under a bigger
 /// node (d95 Turn One Dial under event-sweep) never shows that node's
@@ -90,9 +154,11 @@ fn a_passing_rep_the_judge_mapped_no_move_on_grades_good() {
         unmapped(9, Assist::None),
         unmapped(6, Assist::None),
     ]);
+    let key = ctx.drill_evidence_key(&path);
+    let third = anki_fuzz(anki_good(anki_fuzz(3, &key, 1), ANKI_EASE), &key, 2);
     assert_eq!(
         anki_due(&ctx, &path, &good),
-        Some((ago(6) + Duration::days(8), 8))
+        Some((ago(6) + Duration::days(third), third))
     );
     assert!(drill_clean(&ctx, &path, &good));
     assert!(drill_warm(&ctx, &path, &good, today()));
@@ -142,24 +208,31 @@ fn a_clean_rep_today_projects_the_next_due_day() {
         anki_next_if_good(&key, &no_evidence(), today()),
         (today() + Duration::days(1), 1)
     );
+    let fz = |ivl: i64, rep: usize| anki_fuzz(ivl, &key, rep);
     let good = evidence(vec![
         drill_rep("Clock", "n", 60),
         drill_rep("Clock", "n", 59),
         drill_rep("Clock", "n", 56),
     ]);
+    // 1, 3, 8, 20 before fuzz; each fuzzed interval feeds the next step
+    let third = fz(anki_good(fz(3, 1), ANKI_EASE), 2);
+    let fourth = fz(anki_good(third, ANKI_EASE), 3);
     assert_eq!(
         anki_next_if_good(&key, &good, today()),
-        (today() + Duration::days(20), 20)
+        (today() + Duration::days(fourth), fourth)
     );
     let hard = evidence(vec![
         drill_rep("Clock", "n", 10),
         drill_rep("Clock", "n", 9),
         drill_rep_a("Clock", "n", 6, assist_map(&[("n", "hint")])),
     ]);
-    // 3 * 1.2 = 4 on the Hard, then 4 * 2.35 = 9
+    // 3 * 1.2 = 4 on the Hard, then 4 * 2.35 = 9, fuzz at each step
+    let second = fz(3, 1);
+    let third = fz((second + 1).max((second as f64 * 1.2 + 0.5) as i64), 2);
+    let fourth = fz(anki_good(third, 2.35), 3);
     assert_eq!(
         anki_next_if_good(&key, &hard, today()),
-        (today() + Duration::days(9), 9)
+        (today() + Duration::days(fourth), fourth)
     );
     let again = evidence(vec![
         drill_rep("Clock", "n", 10),
