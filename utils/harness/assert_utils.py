@@ -16,6 +16,14 @@ def same_rows(a: Sequence[Iterable[Any]], b: Sequence[Iterable[Any]]) -> bool:
     return len(a) == len(b) and all(set(x) == set(y) for x, y in zip(a, b))
 
 
+def same_seq(a: Iterable[Any], b: Iterable[Any]) -> bool:
+    """The same elements in the same order, whatever the container.
+
+    A tuple from divmod against a list in the assert: (1, 2) matches [1, 2].
+    """
+    return list(a) == list(b)
+
+
 def uses(cls: type, *helpers: Callable[..., Any]) -> bool:
     """Every helper is called somewhere in the source of cls.
 

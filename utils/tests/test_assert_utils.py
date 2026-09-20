@@ -1,6 +1,6 @@
 import pytest
 from adj_utils import adjacency, indegrees
-from assert_utils import same_rows, uses
+from assert_utils import same_rows, same_seq, uses
 
 
 def test_same_rows_ignores_order_inside_a_row():
@@ -32,3 +32,13 @@ def test_uses_passes_when_every_helper_is_called():
 def test_uses_names_the_helper_the_class_never_calls():
     with pytest.raises(AssertionError, match="Uses never calls indegrees"):
         uses(Uses, adjacency, indegrees)
+
+
+def test_same_seq_tuple_against_list():
+    assert same_seq((1, 2), [1, 2])
+    assert same_seq([1, 2], (1, 2))
+
+
+def test_same_seq_keeps_order():
+    assert not same_seq((1, 2), [2, 1])
+    assert not same_seq((1,), [1, 2])
