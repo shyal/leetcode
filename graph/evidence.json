@@ -28358,6 +28358,24 @@
       "judge": "deepseek-chat",
       "summary": "The query selects u.unique_id and e.name from Employees as e with a LEFT JOIN to EmployeeUNI as u on e.id = u.id, so every employee row is kept and unmatched ones get NULL for unique_id. Both example assertions pass, including the empty EmployeeUNI case where all rows are NULL. This exercises the left-join-keep move directly.",
       "seconds": 208
+    },
+    "solved/d_Paid_Orders_Per_Customer_2026_09_20T18_59_17_148835_00_00Z.py": {
+      "date": "2026-09-21",
+      "problem": "drill",
+      "moves": {
+        "sql-join-left-keep": "clean",
+        "sql-group-aggregate": "clean",
+        "sql-conditional-aggregate": "clean"
+      },
+      "assist": {
+        "sql-conditional-aggregate": "hint",
+        "sql-join-left-keep": "hint",
+        "sql-group-aggregate": "hint"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say the CASE WHEN ... THEN ... ELSE ... END syntax was forgotten and hinted.",
+      "summary": "The query left-joins Customers to Orders so every customer survives, then groups by c.id and sums a CASE expression that counts only 'paid' rows, giving 0 for Bob and Cal. This exercises the left-join-keep, group-aggregate, and conditional-aggregate moves. The notes say the CASE WHEN syntax was forgotten and hinted.",
+      "seconds": 601
     }
   }
 }
