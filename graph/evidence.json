@@ -28499,6 +28499,17 @@
       "note": "Drill trains index-conversion: rows counted from the bottom (n-r-1) and alternating row direction (c vs n-c-1) via a parity test.",
       "summary": "The single method index converts a grid cell (r, c) into a flat index by counting rows from the bottom with n - r - 1, multiplying by n, and adding c or n - c - 1 depending on the parity of the bottom-up row. All 17 assertions pass and the printed value is 10. The notes mark the work as Learning, so the index-conversion move is recorded with that assist level.",
       "seconds": 204
+    },
+    "solved/d_Multi-Buy_2026_09_20T19_50_17_182352_00_00Z.py": {
+      "date": "2026-09-21",
+      "problem": "drill",
+      "moves": {
+        "recursive-descent": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "term() overrides the grammar rule for * and /, left-associating via a while loop; expr()/atom() inherited from Parser.",
+      "summary": "The Solution subclasses Parser and overrides term() to parse multiplicative expressions, looping while the current char is * or / and building a left-leaning TreeNode with atom() on each side. The inherited expr() drives the top-level parse, and the assertions confirm correct precedence and left-associativity for cases like 2+3*4/6, 100/10/5, and 3*4-2*5. The run exited 0 with all assertions passing, exercising the recursive-descent move.",
+      "seconds": 99
     }
   }
 }
