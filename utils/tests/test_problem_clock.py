@@ -197,3 +197,20 @@ def test_last_attempt_names_what_happened_and_when():
     e = ev(rec(1, 10, {"a": "clean"}, assist="learning"), rec(1, 3, {}))
     when, label = last_attempt("1", e)
     assert (when, label) == (date.today() - timedelta(days=10), "learning")
+
+
+def test_a_new_dict_at_a_freed_dicts_address_gets_its_own_index():
+    """kg_lib.ev_index caches on id(evidence). A dict built right after an
+    equal-sized one is freed can land at the same address; the cache must
+    not hand it the old index (the CI-only failure of the assisted-rep
+    test, 2026-09-21)."""
+    for _ in range(50):
+        e = ev(rec(1, 10, {"a": "clean"}, assist="learning"), rec(1, 2, {"a": "clean"}))
+        assert problem_due("1", e) is None
+        del e
+        e = ev(
+            rec(1, 10, {"a": "clean"}, assist="learning"),
+            rec(1, 2, {"a": "clean"}, assist="hint"),
+        )
+        assert problem_due("1", e), "a hint rep must leave the card open"
+        del e

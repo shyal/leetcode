@@ -256,7 +256,11 @@ class _EvidenceIndex:
         self.last = fname
 
 
-_EV_INDEX: dict = {}  # id(evidence) -> _EvidenceIndex
+# id(evidence) -> (evidence, _EvidenceIndex). The dict itself is held so its
+# address cannot pass to a new dict of the same length while the index lives:
+# without that, a test dict freed and rebuilt at the same address was handed
+# the previous dict's index.
+_EV_INDEX: dict = {}
 
 
 def ev_index(evidence):
@@ -265,7 +269,7 @@ def ev_index(evidence):
     rebuilt otherwise."""
     from itertools import islice
 
-    idx = _EV_INDEX.get(id(evidence))
+    _, idx = _EV_INDEX.get(id(evidence), (None, None))
     n = len(evidence)
     if idx is not None and idx.n == n:
         return idx
@@ -281,7 +285,7 @@ def ev_index(evidence):
     for fname, rec in evidence.items():
         idx.add(fname, rec)
     _EV_INDEX.clear()
-    _EV_INDEX[id(evidence)] = idx
+    _EV_INDEX[id(evidence)] = (evidence, idx)
     return idx
 
 
