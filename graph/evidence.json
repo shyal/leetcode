@@ -28588,6 +28588,17 @@
       "note": "Drill targets union-find; recursive find with path compression rewrites parent[x] to the root, verified by the parent-array assertions.",
       "summary": "The Solution subclasses UnionFind and overrides find with a recursive path-compression walk: it recurses to the root, then sets parent[x] to that root on the way back. The driver builds several parent chains by hand and asserts both the returned root and the fully flattened parent array, including a multi-chain case and a single-node case. All assertions pass and the printed output shows the flattened array [4, 4, 4, 4, 4].",
       "seconds": 78
+    },
+    "solved/d_How_Many_Companies_2026_09_20T20_40_13_861762_00_00Z.py": {
+      "date": "2026-09-21",
+      "problem": "drill",
+      "moves": {
+        "union-find": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "count starts at len(parent) and decrements by union's return value, so redundant/self edges correctly leave the count unchanged.",
+      "summary": "The Solution subclasses UnionFind and counts components by starting from the number of nodes and subtracting 1 for each successful union. It exercises union-find's find/union with component counting, and the assertions confirm redundant edges and self-pairs do not reduce the count. The file ran cleanly with no notes indicating help or recognition issues.",
+      "seconds": 98
     }
   }
 }
