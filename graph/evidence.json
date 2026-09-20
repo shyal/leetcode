@@ -28622,6 +28622,20 @@
       "note": "Uses list.index and slicing rather than a hashmap of inorder positions, so it is O(n^2) but Accepted.",
       "summary": "The code takes preorder[0] as the root, finds its position in inorder with inorder.index, splits inorder into left and right slices, and recurses on the corresponding preorder slices to build the tree. This exercises tree-build-from-traversals and the recursive tree construction directly. LeetCode reports Accepted (67 ms, 90.7 MB); the notes describe the root/split reasoning. No follow-up bound (O(n) via a position map) is implemented.",
       "seconds": 853
+    },
+    "solved/p40_Combination_Sum_II_2026_09_20T21_23_53_790126_00_00Z.py": {
+      "date": "2026-09-21",
+      "problem": "40",
+      "moves": {
+        "backtracking-choose-undo": "clean",
+        "backtracking-dedupe-siblings": "clean",
+        "backtracking-start-index": "clean",
+        "running-sum": "clean",
+        "sort-then-adjacent": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The solution sorts candidates, then recurses with helper(i, total), appending candidates[j] to path, recursing at j+1, and popping to undo. The sibling-duplicate skip (j > i and candidates[j] == candidates[j-1]) relies on the sort placing equal values adjacent, and total is carried down as a running sum with early return when it exceeds target. All assertions passed and LeetCode reports Accepted (23 ms, 19.6 MB).",
+      "seconds": 274
     }
   }
 }

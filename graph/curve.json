@@ -2,14 +2,14 @@
   "_comment": "Personal forgetting curve fitted by utils/kg/kg_curve. P(recall) = (1-slip)*(1 + gap/s)^(-beta), s = exp(a + b*log1p(cleans) - c*struggles - d*assist + e*(conn - conn_mean)); cleans counts distinct clean days, same-day reps are one rep. conn is the node's log2 carrier count, frozen below at fit time; consumers that ignore e are assuming average connectivity. \"solve\" is the cold-solve model fitted by fit_solve: logit P(solve cold, unaided, inside the clock) = the listed coefficients over (rating - 1500)/400, the walk's summed log recall, and its count of never-met moves; features not listed did not earn their place on held-out games. node_status() calls a node SOLID while the memory component (1 + gap/s)^(-beta) >= target_retention; delete this file to fall back to the flat 42-day window.",
   "model": "power-law-slip",
   "params": {
-    "a": 4.0663,
-    "b": 0.2209,
-    "c": 0.021,
+    "a": 4.0662,
+    "b": 0.2235,
+    "c": 0.0197,
     "d": 0.0,
-    "e": 0.7822,
-    "conn_mean": 3.2924,
-    "beta": 0.0786,
-    "slip": 0.1071
+    "e": 0.7866,
+    "conn_mean": 3.2959,
+    "beta": 0.079,
+    "slip": 0.1064
   },
   "conn": {
     "backtracking-choose-undo": 3.807,
@@ -107,26 +107,26 @@
     }
   },
   "solve": {
-    "games": 742,
+    "games": 743,
     "features": {
-      "intercept": 1.0689,
-      "rating": -0.7197,
-      "length": -0.5285
+      "intercept": 1.0638,
+      "rating": -0.7198,
+      "length": -0.5141
     },
     "se": {
-      "intercept": 0.1388,
+      "intercept": 0.1386,
       "rating": 0.1383,
-      "length": 0.1801
+      "length": 0.1795
     },
-    "intercept_se": 0.1388,
+    "intercept_se": 0.1386,
     "elo": {
-      "now": 1653.7,
-      "drift_per_day": 0.15521,
-      "drift_se": 0.02571
+      "now": 1668.7,
+      "drift_per_day": 0.15544,
+      "drift_se": 0.02566
     },
     "lambda": 1.0,
-    "cv_loglik": -0.5878,
-    "baseline_cv_loglik": -0.6272,
+    "cv_loglik": -0.5879,
+    "baseline_cv_loglik": -0.6268,
     "rejected": [
       "recall",
       "unseen",
@@ -134,11 +134,11 @@
     ]
   },
   "fit": {
-    "trials": 620,
-    "loglik": -0.3734,
-    "baseline_loglik": -0.3783,
+    "trials": 623,
+    "loglik": -0.3721,
+    "baseline_loglik": -0.3772,
     "since": "2026-06-01",
     "half_life": 0,
-    "effective_trials": 620.0
+    "effective_trials": 623.0
   }
 }
