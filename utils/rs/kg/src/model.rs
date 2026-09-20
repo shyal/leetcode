@@ -9,7 +9,7 @@ use std::path::Path;
 use chrono::{Duration, NaiveDate};
 
 use crate::ctx::{Ctx, PView};
-use crate::data::{env_str, is_numeric_id, read_json};
+use crate::data::{env_str, is_numeric_id, read_json, rejected_by_leetcode};
 use crate::evidence::Evidence;
 use crate::git::mined_solve_times;
 use crate::status::node_conn;
@@ -370,7 +370,7 @@ pub struct Game {
     pub fname: String,
     /// first sight: no earlier scored game on the problem
     pub first: bool,
-    /// a FAILED file
+    /// a FAILED file, or a submission leetcode rejected
     pub failed: bool,
     pub seconds: Option<i64>,
     /// a pass that ran past its tier's clock (budget_min)
@@ -519,7 +519,8 @@ pub fn scored_games(ctx: &Ctx, ev: &Evidence) -> Vec<Game> {
             continue;
         }
         let level = rec.assist_any();
-        let failed = fname.contains("FAILED");
+        // a walk-away, or a submission leetcode rejected (TLE, WA, RE)
+        let failed = fname.contains("FAILED") || rejected_by_leetcode(&ctx.root, fname);
         // the record's own clock; a record older than the field
         // (2026-09-16) falls back to the time mined from its commit
         let seconds = rec.seconds.or_else(|| secs.get(fname).copied());

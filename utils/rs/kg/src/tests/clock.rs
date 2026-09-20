@@ -743,6 +743,41 @@ fn a_studied_problem_is_no_game_but_the_next_rep_is_a_repeat() {
     assert_eq!(games[0].score, 1.0);
 }
 
+/// A submission leetcode rejected is a lost game, whatever the file is
+/// named: `make solved` writes the verdict into the notes but files the
+/// attempt without the FAILED mark, and seven TLEs scored as wins between
+/// 2026-09-13 and 2026-09-21. An acceptance changes nothing.
+#[test]
+fn a_leetcode_rejection_in_the_notes_scores_as_a_fail() {
+    let mut fx = Fx::picker();
+    fx.nodes(&["q1"]).problem("1", problem(&["q1"]));
+    let ctx = fx.ctx();
+    *ctx.solve_times.borrow_mut() = Some(vec![]);
+    let timed = |mut r: (String, Rec)| {
+        r.1.seconds = Some(600);
+        r
+    };
+    let write = |r: &(String, Rec), verdict: &str| {
+        let path = fx.dir.0.join(&r.0);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(
+            path,
+            format!("\"\"\"\n1. X\n\n---\n\nLEETCODE: {verdict}\n\"\"\"\n"),
+        )
+        .unwrap();
+    };
+    let tle = timed(solve("1", &[("q1", "struggled")], 5));
+    write(&tle, "Time Limit Exceeded (14/38 cases)");
+    let ok = timed(solve("1", &[("q1", "clean")], 0));
+    write(&ok, "Accepted (85 ms, 30 MB)");
+    let games = crate::model::scored_games(&ctx, &evidence(vec![tle, ok]));
+    assert_eq!(games.len(), 2);
+    assert!(games[0].failed);
+    assert_eq!(games[0].score, 0.0);
+    assert!(!games[1].failed);
+    assert_eq!(games[1].score, 1.0);
+}
+
 #[test]
 fn a_review_outranks_the_spaced_re_solve_of_a_stale_move() {
     let mut fx = Fx::picker();

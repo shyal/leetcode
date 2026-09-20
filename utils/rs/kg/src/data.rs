@@ -641,6 +641,32 @@ pub fn is_numeric_id(s: &str) -> bool {
     s.chars().next().is_some_and(|c| c.is_ascii_digit())
 }
 
+// ---- leetcode's verdict ------------------------------------------------------
+
+/// The `LEETCODE:` line lc_submit wrote into a solve's notes, when it is not
+/// an acceptance: leetcode's verdict outranks the local run, which only saw
+/// the file's own asserts (2542 on 2026-09-14: clean locally, TLE there).
+/// The line sits in the docstring, or as a `# LEETCODE:` comment when the
+/// file has none.
+pub fn leetcode_rejection(text: &str) -> Option<String> {
+    text.lines()
+        .map(|l| l.trim().trim_start_matches('#').trim_start())
+        .filter_map(|l| l.strip_prefix("LEETCODE:"))
+        .map(str::trim)
+        .find(|v| !v.starts_with("Accepted"))
+        .map(str::to_string)
+}
+
+/// Whether the solve file under `root` carries a leetcode rejection. A
+/// rejected submission is a lost game whatever the file is named: seven
+/// TLEs were filed as passes between 2026-09-13 and 2026-09-21 because the
+/// scorer read only the FAILED mark of `make failed`.
+pub fn rejected_by_leetcode(root: &std::path::Path, fname: &str) -> bool {
+    std::fs::read_to_string(root.join(fname))
+        .ok()
+        .is_some_and(|t| leetcode_rejection(&t).is_some())
+}
+
 // ---- the assist axis --------------------------------------------------------
 
 /// kg_lib.notes_assist_level: the heaviest assist level the candidate's own

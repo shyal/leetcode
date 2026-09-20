@@ -41,6 +41,7 @@ use kg::bank::unlocks;
 use kg::clock::is_studied;
 use kg::console::Console;
 use kg::ctx::{Ctx, PView};
+use kg::data::leetcode_rejection;
 use kg::data::{
     apply_assist_floor, harness_env_note, load_envrc, manila_date_from_filename, normalise_assist,
     notes_assist_level, repo_root, DrillMap, Rec,
@@ -198,18 +199,6 @@ fn run_solve(root: &Path, path: &str) -> (String, String) {
             ),
         ),
     }
-}
-
-/// The `LEETCODE:` line lc_submit wrote into the notes, when it is not an
-/// acceptance: leetcode's verdict outranks the local run, which only saw
-/// the file's own asserts (2542 on 2026-09-14: clean locally, TLE there).
-fn leetcode_rejection(notes: &str) -> Option<String> {
-    notes
-        .lines()
-        .filter_map(|l| l.trim().strip_prefix("LEETCODE:"))
-        .map(str::trim)
-        .find(|v| !v.starts_with("Accepted"))
-        .map(str::to_string)
 }
 
 /// One authoritative paragraph about the run, for the judge's prompt.
