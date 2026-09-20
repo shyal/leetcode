@@ -28195,6 +28195,22 @@
       "note": "Drill targets bit-flags: Color(Flag) with auto() members, union via a | b, membership test with `in`.",
       "summary": "Defines a Color enum.Flag with red/green/blue from auto(), then either() unions the two flag arguments with `a | b` and yields each name whose Color[name] is a member of that union. The @as_list decorator materializes the generator, and all assertions pass, including empty flags and repeated names. This exercises the bit-flags move: named states packed into one Flag value, combined with | and tested with in.",
       "seconds": 74
+    },
+    "solved/p799_Champagne_Tower_2026_09_20T00_27_27_260558_00_00Z.py": {
+      "date": "2026-09-20",
+      "problem": "799",
+      "moves": {
+        "dp-1d-rolling": "clean",
+        "dp-state-formulate": "clean"
+      },
+      "assist": {
+        "dp-1d-rolling": "learning",
+        "dp-state-formulate": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Canonical binary-search-on-answer not applicable; solved via row-by-row DP simulation.",
+      "summary": "The code simulates the champagne tower row by row: starting with row = [poured], each iteration builds nxt of length r+2 and distributes half of each glass's excess (amt-1)/2 to the two glasses below, then returns min(1, row[query_glass]). It exercises a rolling 1D DP state (dp-1d-rolling) with the recurrence formulated before coding (dp-state-formulate). The notes say 'Learning' and LeetCode reports Accepted (31 ms, 19.4 MB).",
+      "seconds": 1941
     }
   }
 }
