@@ -28544,6 +28544,17 @@
       "judge": "deepseek-chat",
       "summary": "The code scans the string once, keeping a stack of partial weights: digits add into the current top, '(' pushes a fresh 0 scope, and ')' pops the inner scope and folds it into the parent as prev*2. This is the stack-nested-eval move, exercised cleanly across all nine assertions (output 11). No notes indicate any help or recognition difficulty.",
       "seconds": 286
+    },
+    "solved/d_Longest_Run_of_Ones_2026_09_20T20_34_06_302677_00_00Z.py": {
+      "date": "2026-09-21",
+      "problem": "drill",
+      "moves": {
+        "sliding-window-budget": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "The window is kept at constant width once a zero is inside: when zeros>0 the left edge advances one step per iteration, so the width never decreases and best ends as the answer.",
+      "summary": "The code scans nums once with right, counting zeros in the current window. When a zero is present it advances left by one and drops a zero if the leaving element was 0, so the window slides at constant width rather than shrinking; best tracks right-left+1. This is the budget-window shape for the at-most-one-zero variant, and all assertions pass.",
+      "seconds": 121
     }
   }
 }
