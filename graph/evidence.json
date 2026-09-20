@@ -28348,6 +28348,16 @@
       "note": "Two-pass replace: first the two-digit 'i#' forms (10-26), then single digits (1-9); order matters so '10#' isn't eaten by the '1' pass.",
       "summary": "The solution repeatedly calls s.replace to substitute the two-digit 'i#' tokens (10-26) with letters j-z, then substitutes the remaining single digits 1-9 with a-i, returning the transformed string. This exercises string-build-transform by decomposing and reassembling the string through successive replacements. The run exited 0 and LeetCode reports Accepted (0 ms, 19.2 MB); no notes were provided.",
       "seconds": 356
+    },
+    "solved/d_Unique_Id_Or_Null_2026_09_20T18_48_39_892957_00_00Z.py": {
+      "date": "2026-09-21",
+      "problem": "drill",
+      "moves": {
+        "sql-join-left-keep": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The query selects u.unique_id and e.name from Employees as e with a LEFT JOIN to EmployeeUNI as u on e.id = u.id, so every employee row is kept and unmatched ones get NULL for unique_id. Both example assertions pass, including the empty EmployeeUNI case where all rows are NULL. This exercises the left-join-keep move directly.",
+      "seconds": 208
     }
   }
 }
