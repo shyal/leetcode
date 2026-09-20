@@ -1,5 +1,5 @@
-# REFERENCE: d132 Bottom Up Cell
+# REFERENCE: d131 Bottom Up Cell
 class Solution:
     def cell(self, n, k):
-        r, c = divmod(k - 1, n)
+        r, c = divmod(k, n)
         return [n - 1 - r, c]
