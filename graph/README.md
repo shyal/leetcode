@@ -91,7 +91,12 @@ and generate combination drills ("rote sheets").
   (`model::progress`): a verdict (progressing, slipping, grinding, stalled,
   rebuilding, gaining), whether the drills hold and which turned into unaided
   solves this month, and what is queued; `KG_TODAY=YYYY-MM-DD make progress`
-  gives the answer as it stood on a past day.
+  gives the answer as it stood on a past day. `make prog` is the same numbers
+  (`model::progress_numbers`) as a live panel, the `make elo` of the proven
+  rating: the proven rating large, its history, gauges against 90 days ago,
+  its best before that and the median rating served, the two ground sentences
+  of the last 30 days, and the drills that hold; the border colour is the
+  verdict. It redraws when graph/evidence.json changes; q quits.
 
 ## The drill bank (../drills/)
 

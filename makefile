@@ -294,6 +294,11 @@ timer: $(RS_BIN)/timer
 elo: $(RS_BIN)/kg_readme
 	@$(RS_BIN)/kg_readme now
 
+# make prog: the numbers behind make progress as a live panel (the make elo
+# of the proven rating); KG_TODAY=YYYY-MM-DD for a past day
+prog: $(RS_BIN)/kg_readme
+	@$(RS_BIN)/kg_readme prog
+
 # this branch's Claude Code conversation: resumed if it exists, started if not
 chat: $(RS_BIN)/kg_chat
 	@$(RS_BIN)/kg_chat $(filter-out $@,$(MAKECMDGOALS))

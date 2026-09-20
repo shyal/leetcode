@@ -5,6 +5,7 @@
 //   kg_readme update                # upload + rewrite README.md
 //   kg_readme rank-table            # refresh data/leetcode_rank_table.json
 //   kg_readme now [--once]          # the Elo dashboard (make elo); --once is one frame
+//   kg_readme prog [--once]         # the progress dashboard (make prog)
 //   kg_readme <chart> [--forecast | --no-forecast]
 //
 // <chart> is one of elo, streak, rank, rate, problem-rating, backlog,
@@ -21,6 +22,7 @@ mod elo;
 mod hours;
 mod onsite;
 mod problem_rating;
+mod prog;
 mod progress;
 mod rank;
 mod rank_fetch;
@@ -76,9 +78,10 @@ fn main() {
             "update" => update::run(&ctx, &ev),
             "rank-table" => rank_fetch::run(&ctx),
             "now" => dash::run(&ctx, &ev, args.iter().any(|a| a == "--once")),
+            "prog" => prog::run(&ctx, &ev, args.iter().any(|a| a == "--once")),
             other => {
                 eprintln!(
-                    "kg_readme: unknown target {other}; one of {}, update, rank-table, now",
+                    "kg_readme: unknown target {other}; one of {}, update, rank-table, now, prog",
                     CHARTS.join(", ")
                 );
                 std::process::exit(2);

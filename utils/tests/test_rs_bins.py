@@ -562,6 +562,27 @@ def test_kg_readme_now_once_is_the_elo_panel():
         assert s in frame
 
 
+def test_kg_readme_prog_once_is_the_progress_panel():
+    """`make prog`: the numbers behind `make progress` as one panel, and the
+    same answer as of a past day under KG_TODAY."""
+    env = {**os.environ, "COLUMNS": "100", "LINES": "34", "KG_TODAY": "2026-09-20"}
+    p = run("kg_readme", "prog", "--once", env=env)
+    assert p.returncode == 0, p.stderr
+    frame = p.stdout
+    assert frame.startswith("╭") and frame.rstrip().endswith("╯")
+    for s in [
+        "You're ",
+        "proven rating  · ",
+        "90 days ago",
+        "best before",
+        "served median",
+        "last 30 days",
+        "at your level for the first time",
+        "drills have held for 3 clean runs or more",
+    ]:
+        assert s in frame, s
+
+
 def test_kg_progress_is_three_short_paragraphs_of_sentences():
     """`make progress`: a verdict line, then plain sentences; no table, no
     percentage, none of the repo's idioms (2026-09-20)."""

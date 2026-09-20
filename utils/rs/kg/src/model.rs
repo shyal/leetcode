@@ -765,6 +765,9 @@ pub const PROGRESS_LEVEL_DAYS: i64 = 90;
 pub const PROGRESS_WINDOW_DAYS: i64 = 30;
 /// A drill holds once this many unaided clean reps in a row end its history.
 pub const PROGRESS_HOLD_REPS: usize = 3;
+/// An unaided solve counts as the drill's once a clean rep on one of its
+/// moves fell inside this many days before it.
+pub const PROGRESS_TURNED_DAYS: i64 = 21;
 
 fn month_name(d: NaiveDate) -> &'static str {
     use chrono::Datelike;
@@ -807,50 +810,213 @@ fn number(n: usize) -> String {
     }
 }
 
-/// `make progress`: three paragraphs. The verdict on whether the level is
-/// moving and why; whether the drills hold and which turned into unaided
-/// solves this month; what is queued to change it. Plain words: no rate,
-/// no repo idiom (2026-09-20, the day the two `make stats` sentences took
-/// six rewrites to read).
-pub fn progress(ctx: &Ctx, ev: &Evidence, today: NaiveDate) -> Vec<String> {
-    let ratings = solve_ratings(ctx);
-    let games = elo_games(ctx, ev, &ratings);
-    let since = today - Duration::days(PROGRESS_WINDOW_DAYS);
-    let recent: Vec<&(Game, f64, f64)> = games
-        .iter()
-        .filter(|(g, _, _)| crate::data::parse_date(&g.date) >= since)
-        .collect();
-    let mut out = Vec::new();
-    if recent.len() < 5 {
-        out.push("You're not training.".to_string());
-        out.push(format!(
-            "{} problems in the last {} days. Nothing can be said about the level on that.",
-            number(recent.len()).to_uppercase_first(),
-            PROGRESS_WINDOW_DAYS
-        ));
-        return out;
+/// The numbers behind `make progress` and the `make prog` panel
+/// (2026-09-20). One load, two readers: the prose in `progress` and the
+/// panel in kg_readme read the same struct.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Progress {
+    /// scored games in the last PROGRESS_WINDOW_DAYS, repeats included
+    pub recent: usize,
+    /// of those, lost: a fail, a copy or a walkthrough
+    pub lost: usize,
+    /// (date, proven rating) one per first sight from the PROVEN_WINDOW-th on
+    pub proven: Vec<(NaiveDate, f64)>,
+    /// the proven rating now, once PROVEN_WINDOW first sights exist
+    pub now: Option<f64>,
+    /// the proven rating PROGRESS_LEVEL_DAYS ago (the first point on or after)
+    pub then: Option<f64>,
+    /// the best proven rating from before those PROGRESS_LEVEL_DAYS
+    pub best_before: Option<f64>,
+    /// the median rating of the last PROVEN_WINDOW first sights served
+    pub served: Option<f64>,
+    /// gain and retention over the last PROGRESS_WINDOW_DAYS
+    pub ground: Ground,
+    /// drills whose last PROGRESS_HOLD_REPS days of reps were all clean,
+    /// the last inside the window
+    pub holding: usize,
+    /// (move, problem titles) unaided solves at level this month with a
+    /// clean drill rep on the move in the three weeks before, oldest first
+    pub turned: Vec<(String, Vec<String>)>,
+}
+
+impl Progress {
+    /// now less then, 0 without both
+    pub fn delta(&self) -> f64 {
+        match (self.now, self.then) {
+            (Some(n), Some(t)) => n - t,
+            _ => 0.0,
+        }
     }
+
+    /// The one-word verdict of `make progress`, lower case: progressing,
+    /// slipping, stalled, grinding, rebuilding, gaining; "not training"
+    /// under five games in the window.
+    pub fn verdict(&self) -> &'static str {
+        let g = &self.ground;
+        if self.recent < 5 {
+            "not training"
+        } else if self.delta() >= PROGRESS_LEVEL_POINTS {
+            "progressing"
+        } else if self.delta() <= -PROGRESS_LEVEL_POINTS {
+            "slipping"
+        } else if g.cold == 0 {
+            "stalled"
+        } else if g.retested >= 3 && g.held * 2 < g.retested {
+            "grinding"
+        } else if self.lost * 2 > self.recent {
+            "rebuilding"
+        } else {
+            "gaining"
+        }
+    }
+
+    /// whether now is the highest the proven rating has been
+    pub fn at_best(&self) -> bool {
+        match (self.now, self.best_before) {
+            (Some(n), Some(b)) => n > b,
+            _ => false,
+        }
+    }
+}
+
+/// The reps of one drill folded to one answer per day, oldest first: the
+/// day's last answer stands.
+fn drill_days(ev: &Evidence, key: &str) -> Vec<(String, &'static str)> {
+    let mut by_day: Vec<(String, &'static str)> = Vec::new();
+    for &i in ev.drill_reps(key).iter() {
+        let (d, _, ri) = &ev.drills[i];
+        let a = crate::drills::anki_answer(ev.rec(*ri));
+        match by_day.iter_mut().find(|(day, _)| day == d) {
+            Some(slot) => slot.1 = a,
+            None => by_day.push((d.clone(), a)),
+        }
+    }
+    by_day.sort();
+    by_day
+}
+
+/// The numbers as of `today`: games and drill reps after it are left out,
+/// so KG_TODAY gives the panel as it stood on a past day.
+pub fn progress_numbers(ctx: &Ctx, ev: &Evidence, today: NaiveDate) -> Progress {
+    let ratings = solve_ratings(ctx);
+    let mut games = elo_games(ctx, ev, &ratings);
+    games.retain(|(g, _, _)| crate::data::parse_date(&g.date) <= today);
+    let since = today - Duration::days(PROGRESS_WINDOW_DAYS);
+    let lost_game = |g: &Game| g.failed || g.assist == "learning" || g.assist == "walkthrough";
+    let recent: Vec<&Game> = games
+        .iter()
+        .map(|(g, _, _)| g)
+        .filter(|g| crate::data::parse_date(&g.date) >= since)
+        .collect();
+    let mut out = Progress {
+        recent: recent.len(),
+        lost: recent.iter().filter(|g| lost_game(g)).count(),
+        ..Progress::default()
+    };
     // the level: the proven rating (proven_series) now against 90 days
     // ago. Elo, every-game or first-sight, was inflated by the 2025 easies
     // (settled 2026-09-20); a peak built on them is never a level to beat.
-    let proven = proven_series(&first_sight_games(&games));
+    let fs = first_sight_games(&games);
+    out.proven = proven_series(&fs);
     let level_since = today - Duration::days(PROGRESS_LEVEL_DAYS);
-    let now = proven.last().map(|(_, e)| *e);
-    let then = proven
+    out.now = out.proven.last().map(|(_, e)| *e);
+    out.then = out
+        .proven
         .iter()
         .find(|(d, _)| *d >= level_since)
         .map(|(_, e)| *e);
-    let delta = match (now, then) {
-        (Some(n), Some(t)) => n - t,
-        _ => 0.0,
-    };
-    let best_before = proven
+    out.best_before = out
+        .proven
         .iter()
         .filter(|(d, _)| *d < level_since)
         .map(|(_, e)| *e)
         .fold(None::<f64>, |b, e| Some(b.map_or(e, |b| b.max(e))));
+    // the level can only rise when harder problems are served, so the
+    // median served is kept beside it: a rise on a steady serving level is
+    // his, a rise that only tracks the serving level is the picker's
+    if fs.len() >= PROVEN_WINDOW {
+        let served: Vec<f64> = fs[fs.len() - PROVEN_WINDOW..]
+            .iter()
+            .map(|(_, r, _)| *r)
+            .collect();
+        out.served = Some(median(&served));
+    }
+    out.ground = Ground::of(&games, Some(since));
+
+    // the drills: holding, and which turned into unaided solves this month
+    let mut held_nodes: HashMap<String, Vec<NaiveDate>> = HashMap::new();
+    for path in ctx.every_bank_path() {
+        let mut by_day = drill_days(ev, &ctx.drill_evidence_key(&path));
+        by_day.retain(|(d, _)| crate::data::parse_date(d) <= today);
+        let n = by_day.len();
+        if n >= PROGRESS_HOLD_REPS
+            && by_day[n - PROGRESS_HOLD_REPS..]
+                .iter()
+                .all(|(_, a)| *a == "good")
+            && crate::data::parse_date(&by_day[n - 1].0) >= since
+        {
+            out.holding += 1;
+        }
+        if let Some(node) = crate::drills::drill_node(&path) {
+            let goods = by_day
+                .iter()
+                .filter(|(_, a)| *a == "good")
+                .map(|(d, _)| crate::data::parse_date(d));
+            held_nodes.entry(node).or_default().extend(goods);
+        }
+    }
+    // an unaided solve at level this month, first sight or won back, with a
+    // clean drill rep on one of its moves in the three weeks before
+    for (g, rating, before) in &games {
+        let d = crate::data::parse_date(&g.date);
+        if d < since || g.failed || g.assist != "none" || *rating < before - AT_RATING_BAND {
+            continue;
+        }
+        let mv = g.moves.iter().find(|m| {
+            held_nodes.get(*m).is_some_and(|ds| {
+                ds.iter()
+                    .any(|x| *x < d && d - *x <= Duration::days(PROGRESS_TURNED_DAYS))
+            })
+        });
+        let Some(m) = mv else {
+            continue;
+        };
+        let title = ctx
+            .meta_title(&g.problem)
+            .unwrap_or_else(|| g.problem.clone());
+        let m = plain(m, ctx);
+        match out.turned.iter_mut().find(|(k, _)| *k == m) {
+            Some(slot) => slot.1.push(title),
+            None => out.turned.push((m, vec![title])),
+        }
+    }
+    out
+}
+
+/// `make progress`: three paragraphs. The verdict on whether the level is
+/// moving and why; whether the drills hold and which turned into unaided
+/// solves this month; what is queued. Plain words: no rate,
+/// no repo idiom (2026-09-20, the day the two `make stats` sentences took
+/// six rewrites to read).
+pub fn progress(ctx: &Ctx, ev: &Evidence, today: NaiveDate) -> Vec<String> {
+    progress_text(&progress_numbers(ctx, ev, today), today)
+}
+
+pub fn progress_text(p: &Progress, today: NaiveDate) -> Vec<String> {
+    let mut out = Vec::new();
+    if p.verdict() == "not training" {
+        out.push("You're not training.".to_string());
+        out.push(format!(
+            "{} problems in the last {} days. Nothing can be said about the level on that.",
+            number(p.recent).to_uppercase_first(),
+            PROGRESS_WINDOW_DAYS
+        ));
+        return out;
+    }
+    let level_since = today - Duration::days(PROGRESS_LEVEL_DAYS);
     let ten = |x: f64| (x / 10.0).round() as i64 * 10;
-    let level = match (now, best_before) {
+    let now = p.now.unwrap_or(0.0);
+    let level = match (p.now, p.best_before) {
         (Some(n), Some(b)) if n > b => format!(
             "The rating you have proven on problems never seen before is about {}, the highest it has been.",
             ten(n)
@@ -866,149 +1032,83 @@ pub fn progress(ctx: &Ctx, ev: &Evidence, today: NaiveDate) -> Vec<String> {
         ),
         _ => String::new(),
     };
-    let ground = Ground::of(&games, Some(since));
-    let lost = recent
-        .iter()
-        .filter(|(g, _, _)| g.failed || g.assist == "learning" || g.assist == "walkthrough")
-        .count();
-
-    if delta >= PROGRESS_LEVEL_POINTS {
-        out.push("You're progressing.".to_string());
-        out.push(format!(
-            "The rating you have proven on problems never seen before is up about {} points since {}, to about {}{}.",
-            ten(delta),
-            month_name(level_since),
-            ten(now.unwrap_or(0.0)),
-            if level.contains("highest") {
-                ", the highest it has been"
-            } else {
-                ""
-            }
-        ));
-    } else if delta <= -PROGRESS_LEVEL_POINTS {
-        out.push("You're slipping.".to_string());
-        out.push(format!(
-            "The rating you have proven on problems never seen before is down about {} points since {}, to about {}.",
-            ten(-delta),
-            month_name(level_since),
-            ten(now.unwrap_or(0.0))
-        ));
-    } else if ground.cold == 0 {
-        out.push("You're stalled.".to_string());
-        out.push(format!(
-            "No new problem at your level was solved without help in the last {} days, and the level cannot move on reviews and drills alone. {level}",
-            PROGRESS_WINDOW_DAYS
-        ));
-    } else if ground.retested >= 3 && ground.held * 2 < ground.retested {
-        out.push("You're grinding.".to_string());
-        out.push(format!(
-            "You solve new problems at your level and lose them within weeks, so the level does not move. {level}"
-        ));
-    } else if lost * 2 > recent.len() {
-        out.push("You're rebuilding.".to_string());
-        out.push(format!(
-            "Most of the last {} days went to problems you had failed or copied, and new problems at your level are getting solved. {level} It moves once the rebuilt ones stay solved.",
-            PROGRESS_WINDOW_DAYS
-        ));
-    } else {
-        out.push("You're gaining, and whether it stays is not known yet.".to_string());
-        out.push(format!(
-            "New problems at your level are being solved without help. Too few have been asked a second time to say whether they stay solved. {level}"
-        ));
+    let delta = p.delta();
+    match p.verdict() {
+        "progressing" => {
+            out.push("You're progressing.".to_string());
+            out.push(format!(
+                "The rating you have proven on problems never seen before is up about {} points since {}, to about {}{}.",
+                ten(delta),
+                month_name(level_since),
+                ten(now),
+                if p.at_best() {
+                    ", the highest it has been"
+                } else {
+                    ""
+                }
+            ));
+        }
+        "slipping" => {
+            out.push("You're slipping.".to_string());
+            out.push(format!(
+                "The rating you have proven on problems never seen before is down about {} points since {}, to about {}.",
+                ten(-delta),
+                month_name(level_since),
+                ten(now)
+            ));
+        }
+        "stalled" => {
+            out.push("You're stalled.".to_string());
+            out.push(format!(
+                "No new problem at your level was solved without help in the last {} days, and the level cannot move on reviews and drills alone. {level}",
+                PROGRESS_WINDOW_DAYS
+            ));
+        }
+        "grinding" => {
+            out.push("You're grinding.".to_string());
+            out.push(format!(
+                "You solve new problems at your level and lose them within weeks, so the level does not move. {level}"
+            ));
+        }
+        "rebuilding" => {
+            out.push("You're rebuilding.".to_string());
+            out.push(format!(
+                "Most of the last {} days went to problems you had failed or copied, and new problems at your level are getting solved. {level} It moves once the rebuilt ones stay solved.",
+                PROGRESS_WINDOW_DAYS
+            ));
+        }
+        _ => {
+            out.push("You're gaining, and whether it stays is not known yet.".to_string());
+            out.push(format!(
+                "New problems at your level are being solved without help. Too few have been asked a second time to say whether they stay solved. {level}"
+            ));
+        }
     }
-
-    // the level can only rise when harder problems are served, so the
-    // paragraph names what was served: a rise on a steady serving level is
-    // his, a rise that only tracks the serving level is the picker's
-    let fs = first_sight_games(&games);
-    if fs.len() >= PROVEN_WINDOW {
-        let served: Vec<f64> = fs[fs.len() - PROVEN_WINDOW..]
-            .iter()
-            .map(|(_, r, _)| *r)
-            .collect();
+    if let Some(served) = p.served {
         out[1].push_str(&format!(
             " The median rating of those {} problems was about {}; the proven rating can only rise when that does.",
             PROVEN_WINDOW,
-            ten(median(&served))
+            ten(served)
         ));
     }
 
-    // the drills: holding, and which turned into unaided solves this month
-    let mut holding = 0usize;
-    let mut held_nodes: HashMap<String, Vec<NaiveDate>> = HashMap::new();
-    for path in ctx.every_bank_path() {
-        let key = ctx.drill_evidence_key(&path);
-        let reps = ev.drill_reps(&key);
-        let mut by_day: Vec<(String, &'static str)> = Vec::new();
-        for &i in reps.iter() {
-            let (d, _, ri) = &ev.drills[i];
-            let a = crate::drills::anki_answer(ev.rec(*ri));
-            match by_day.iter_mut().find(|(day, _)| day == d) {
-                Some(slot) => slot.1 = a,
-                None => by_day.push((d.clone(), a)),
-            }
-        }
-        by_day.sort();
-        let n = by_day.len();
-        if n >= PROGRESS_HOLD_REPS
-            && by_day[n - PROGRESS_HOLD_REPS..]
-                .iter()
-                .all(|(_, a)| *a == "good")
-            && crate::data::parse_date(&by_day[n - 1].0) >= since
-        {
-            holding += 1;
-        }
-        if let Some(node) = crate::drills::drill_node(&path) {
-            let goods = by_day
-                .iter()
-                .filter(|(_, a)| *a == "good")
-                .map(|(d, _)| crate::data::parse_date(d));
-            held_nodes.entry(node).or_default().extend(goods);
-        }
-    }
-    // an unaided solve at level this month, first sight or won back, with a
-    // clean drill rep on one of its moves in the three weeks before
-    let mut turned: Vec<(String, String)> = Vec::new();
-    for (g, rating, before) in &games {
-        let d = crate::data::parse_date(&g.date);
-        if d < since || g.failed || g.assist != "none" || *rating < before - AT_RATING_BAND {
-            continue;
-        }
-        let mv = g.moves.iter().find(|m| {
-            held_nodes
-                .get(*m)
-                .is_some_and(|ds| ds.iter().any(|x| *x < d && d - *x <= Duration::days(21)))
-        });
-        if let Some(m) = mv {
-            let title = ctx
-                .meta_title(&g.problem)
-                .unwrap_or_else(|| g.problem.clone());
-            turned.push((plain(m, ctx), title));
-        }
-    }
-    let mut by_move: Vec<(String, Vec<String>)> = Vec::new();
-    for (m, t) in turned {
-        match by_move.iter_mut().find(|(k, _)| *k == m) {
-            Some(slot) => slot.1.push(t),
-            None => by_move.push((m, vec![t])),
-        }
-    }
-    if holding == 0 {
+    if p.holding == 0 {
         out.push(
             "Your drills are not holding yet: none has three clean runs in a row this month."
                 .to_string(),
         );
     } else {
-        let mut p = format!(
+        let mut para = format!(
             "Your drills are holding: {} of them have stayed clean for three runs or more.",
-            number(holding)
+            number(p.holding)
         );
-        if by_move.is_empty() {
-            p.push_str(" None of them turned into a solved problem this month.");
+        if p.turned.is_empty() {
+            para.push_str(" None of them turned into a solved problem this month.");
         } else {
             // the three most recent moves, the rest a count
-            let total = by_move.len();
-            let list: Vec<String> = by_move
+            let total = p.turned.len();
+            let list: Vec<String> = p
+                .turned
                 .iter()
                 .rev()
                 .take(3)
@@ -1019,20 +1119,20 @@ pub fn progress(ctx: &Ctx, ev: &Evidence, today: NaiveDate) -> Vec<String> {
             } else {
                 String::new()
             };
-            p.push_str(&format!(
+            para.push_str(&format!(
                 " {} turned into problems solved without help this month: {}{more}.",
                 number(total).to_uppercase_first(),
                 list.join("; ")
             ));
         }
-        out.push(p);
+        out.push(para);
     }
 
     // what is queued
-    if ground.pending > 0 {
+    if p.ground.pending > 0 {
         out.push(format!(
             "{} problems you had failed and later solved are waiting to be asked again, each after a drill on its move. That is where the level moves or does not.",
-            number(ground.pending).to_uppercase_first()
+            number(p.ground.pending).to_uppercase_first()
         ));
     }
     out

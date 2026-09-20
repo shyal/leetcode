@@ -5,6 +5,9 @@
 // second and the numbers recomputed when it changes, so a `make solved`
 // shows up on its own. q, Esc or Ctrl+C quits. `--once` prints one frame
 // and exits (the tests).
+//
+// The polling loop, the big digits, the gauge rows and the one-frame
+// capture are the `Panel` machinery, shared with prog.rs (make prog).
 
 use std::path::Path;
 use std::time::{Duration, SystemTime};
@@ -34,13 +37,21 @@ fn mtime(p: &Path) -> Option<SystemTime> {
     std::fs::metadata(p).and_then(|m| m.modified()).ok()
 }
 
+/// One live panel: what to show and how to reload it when the evidence
+/// changes.
+pub trait Panel: Sized {
+    /// The numbers off a fresh load of the evidence.
+    fn compute(ctx: &Ctx, ev: &Evidence) -> Option<Self>;
+    fn draw(&self, frame: &mut Frame);
+}
+
 /// The numbers off a fresh load, or None while the file is mid-write
 /// (a writer that is not pyjson::save): the caller keeps the last frame
 /// and tries again next tick.
-fn load(root: &Path) -> Option<Numbers> {
+fn load<P: Panel>(root: &Path) -> Option<P> {
     kg::data::read_json(&root.join("graph/evidence.json"))?;
     let (ctx, recs) = Ctx::load(root.to_path_buf());
-    numbers(&ctx, &Evidence::new(recs))
+    P::compute(&ctx, &Evidence::new(recs))
 }
 
 /// (rank colour, rank line) for an Elo: gold past guardian, blue past
@@ -60,7 +71,7 @@ fn rank(r: f64) -> (Color, String) {
 
 /// The Elo as large figlet digits, stepping down to smaller fonts and
 /// finally plain text when the area is too small.
-fn big_number(r: f64, width: usize, height: usize) -> Vec<String> {
+pub fn big_number(r: f64, width: usize, height: usize) -> Vec<String> {
     let face = format!("{r:.0}");
     let first = std::env::var("TIMER_FONT").unwrap_or_else(|_| "doh".to_string());
     for font in [first.as_str(), "univers", "big"] {
@@ -82,7 +93,7 @@ fn big_number(r: f64, width: usize, height: usize) -> Vec<String> {
     vec![face]
 }
 
-fn signed(d: f64) -> String {
+pub fn signed(d: f64) -> String {
     format!("{:+.0}", d)
 }
 
@@ -101,14 +112,7 @@ fn draw_numbers(frame: &mut Frame, n: &Numbers) {
             Style::new().dim(),
         ),
     ]);
-    let block = Block::bordered()
-        .border_type(BorderType::Rounded)
-        .border_style(Style::new().fg(c))
-        .title(Line::from("first-sight elo").bold().centered())
-        .title_bottom(subtitle.centered())
-        .padding(Padding::new(3, 3, 1, 1));
-    let inner = block.inner(frame.area());
-    frame.render_widget(block, frame.area());
+    let inner = framed(frame, "first-sight elo".to_string(), subtitle, c);
 
     // (label, value, note) one gauge each
     let rows: Vec<(String, f64, String)> = [
@@ -138,43 +142,74 @@ fn draw_numbers(frame: &mut Frame, n: &Numbers) {
     ])
     .areas(inner);
 
-    let lines = big_number(
-        n.elo,
-        number_area.width as usize,
-        number_area.height as usize,
-    );
-    let [number_area] = Layout::vertical([Constraint::Length(lines.len() as u16)])
+    big_digits(frame, number_area, n.elo, c);
+
+    if spark_h > 0 {
+        let hist: Vec<f64> = n.history.iter().map(|x| x.1).collect();
+        sparkline(frame, spark_area, &hist, c);
+    }
+
+    gauge_rows(frame, rows_area, &rows, c);
+
+    if week_h > 0 {
+        let text = ratio_lines(format!("last {WEEK} days"), week);
+        frame.render_widget(Paragraph::new(text), week_area);
+    }
+}
+
+/// The rounded border in the panel's colour with the title on top and
+/// the subtitle below; returns the padded area inside it.
+pub fn framed(frame: &mut Frame, title: String, subtitle: Line<'static>, c: Color) -> Rect {
+    let block = Block::bordered()
+        .border_type(BorderType::Rounded)
+        .border_style(Style::new().fg(c))
+        .title(Line::from(title).bold().fg(c).centered())
+        .title_bottom(subtitle.centered())
+        .padding(Padding::new(3, 3, 1, 1));
+    let inner = block.inner(frame.area());
+    frame.render_widget(block, frame.area());
+    inner
+}
+
+/// The big number, centred in `area` in the largest font that fits.
+pub fn big_digits(frame: &mut Frame, area: Rect, value: f64, c: Color) {
+    let lines = big_number(value, area.width as usize, area.height as usize);
+    let [area] = Layout::vertical([Constraint::Length(lines.len() as u16)])
         .flex(Flex::Center)
-        .areas(number_area);
+        .areas(area);
     let text: Vec<Line> = lines.into_iter().map(Line::from).collect();
     frame.render_widget(
         Paragraph::new(text)
             .style(Style::new().fg(c).add_modifier(Modifier::BOLD))
             .centered(),
-        number_area,
+        area,
     );
+}
 
-    if spark_h > 0 {
-        let w = spark_area.width as usize;
-        let tail = &n.history[n.history.len().saturating_sub(w)..];
-        let lo = tail.iter().map(|x| x.1).fold(f64::INFINITY, f64::min);
-        // newest at the right edge: RightToLeft draws data[0] there
-        let data: Vec<u64> = tail.iter().rev().map(|x| (x.1 - lo + 1.0) as u64).collect();
-        frame.render_widget(
-            Sparkline::default()
-                .data(&data)
-                .direction(RenderDirection::RightToLeft)
-                .style(c),
-            spark_area,
-        );
-    }
+/// The big number's history as a sparkline, newest at the right edge.
+pub fn sparkline(frame: &mut Frame, area: Rect, history: &[f64], c: Color) {
+    let w = area.width as usize;
+    let tail = &history[history.len().saturating_sub(w)..];
+    let lo = tail.iter().copied().fold(f64::INFINITY, f64::min);
+    // newest at the right edge: RightToLeft draws data[0] there
+    let data: Vec<u64> = tail.iter().rev().map(|x| (x - lo + 1.0) as u64).collect();
+    frame.render_widget(
+        Sparkline::default()
+            .data(&data)
+            .direction(RenderDirection::RightToLeft)
+            .style(c),
+        area,
+    );
+}
 
-    // label(16) | gauge | value(5) | note(5), one space between
+/// label(16) | gauge | value(5) | note(5), one space between, one row
+/// per (label, value, note); the gauges run from START to TOP.
+pub fn gauge_rows(frame: &mut Frame, area: Rect, rows: &[(String, f64, String)], c: Color) {
     for (i, (label, value, note)) in rows.iter().enumerate() {
         let row = Rect {
-            y: rows_area.y + i as u16,
+            y: area.y + i as u16,
             height: 1,
-            ..rows_area
+            ..area
         };
         let [desc, gauge, mark, right] = Layout::horizontal([
             Constraint::Length(16),
@@ -197,24 +232,35 @@ fn draw_numbers(frame: &mut Frame, n: &Numbers) {
         frame.render_widget(Paragraph::new(format!("{value:.0}")).bold(), mark);
         frame.render_widget(Paragraph::new(note.as_str()).dim().right_aligned(), right);
     }
+}
 
-    if week_h > 0 {
-        // the ratios bright: they are what the panel is open for
-        let mut text = vec![Line::from(format!("last {WEEK} days").bold())];
-        text.extend(week.into_iter().map(|(before, ratio, after)| {
-            Line::from(vec![
-                Span::styled(before, Style::new().dim()),
-                Span::styled(ratio, Style::new().fg(Color::LightGreen).bold()),
-                Span::styled(after, Style::new().dim()),
-            ])
-        }));
-        frame.render_widget(Paragraph::new(text), week_area);
+/// Sentences with their ratio bright, under a bold heading: the ratios
+/// are what the panel is open for.
+pub fn ratio_lines(heading: String, rows: Vec<(String, String, String)>) -> Vec<Line<'static>> {
+    let mut text = vec![Line::from(heading.bold())];
+    text.extend(rows.into_iter().map(|(before, ratio, after)| {
+        Line::from(vec![
+            Span::styled(before, Style::new().dim()),
+            Span::styled(ratio, Style::new().fg(Color::LightGreen).bold()),
+            Span::styled(after, Style::new().dim()),
+        ])
+    }));
+    text
+}
+
+impl Panel for Numbers {
+    fn compute(ctx: &Ctx, ev: &Evidence) -> Option<Self> {
+        numbers(ctx, ev)
+    }
+
+    fn draw(&self, frame: &mut Frame) {
+        draw_numbers(frame, self)
     }
 }
 
-fn draw(frame: &mut Frame, n: Option<&Numbers>) {
+fn draw<P: Panel>(frame: &mut Frame, n: Option<&P>) {
     match n {
-        Some(n) => draw_numbers(frame, n),
+        Some(n) => n.draw(frame),
         None => frame.render_widget(
             Paragraph::new("no scored attempts").dim().centered(),
             frame.area(),
@@ -223,7 +269,7 @@ fn draw(frame: &mut Frame, n: Option<&Numbers>) {
 }
 
 /// One frame as plain text (no colour), for `--once` and the tests.
-fn frame_text(n: Option<&Numbers>, width: u16, height: u16) -> String {
+pub fn frame_text<P: Panel>(n: Option<&P>, width: u16, height: u16) -> String {
     let mut terminal = Terminal::new(TestBackend::new(width, height)).expect("test backend");
     terminal.draw(|f| draw(f, n)).expect("draw");
     let buf = terminal.backend().buffer();
@@ -248,9 +294,15 @@ fn quits(ev: &Event) -> bool {
 }
 
 pub fn run(ctx: &Ctx, ev: &Evidence, once: bool) {
+    run_panel(numbers(ctx, ev), once);
+}
+
+/// Show `first`, then reload and redraw whenever graph/evidence.json
+/// changes, until q, Esc or Ctrl+C. `once` prints one frame and returns.
+pub fn run_panel<P: Panel>(first: Option<P>, once: bool) {
     let root = repo_root();
     let evidence = root.join("graph/evidence.json");
-    let mut n = numbers(ctx, ev);
+    let mut n = first;
     if once {
         let (w, h) = ratatui::crossterm::terminal::size()
             .ok()
@@ -265,7 +317,7 @@ pub fn run(ctx: &Ctx, ev: &Evidence, once: bool) {
     while !stop {
         let now = mtime(&evidence);
         if now != seen {
-            if let Some(fresh) = load(&root) {
+            if let Some(fresh) = load::<P>(&root) {
                 seen = now;
                 n = Some(fresh);
             }
