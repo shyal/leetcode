@@ -28805,6 +28805,19 @@
       "judge": "deepseek-chat",
       "summary": "The drill builds every string taking one element from each group by recursing over group index i, appending groups[i][j] to path, recursing to i+1, then popping it back off. The choose/undo pair around the recursive call is the targeted move, and the base case at i == len(groups) records a joined copy of path. All assertions pass, including the 2^8 case producing 256 distinct strings.",
       "seconds": 561
+    },
+    "solved/d_No_Repeat_Siblings_2026_09_21T06_27_50_586747_00_00Z.py": {
+      "date": "2026-09-21",
+      "problem": "drill",
+      "moves": {
+        "backtracking-dedupe-siblings": "clean",
+        "backtracking-choose-undo": "clean",
+        "backtracking-start-index": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Dedupe relies on the input being sorted; the drill's test inputs are already sorted, so the skip `j > i and nums[j] == nums[j-1]` works.",
+      "summary": "The code builds subsets by recursing from a start index i, appending a copy of path at every node, then looping j from i and skipping a candidate equal to its predecessor when j > i. That skip is the sibling-dedupe move, paired with choose/undo via path.append and path.pop and the start-index recursion helper(j+1). All assertions passed, including the 12-identical-element case yielding 13 subsets.",
+      "seconds": 176
     }
   }
 }
