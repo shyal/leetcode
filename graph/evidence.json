@@ -28818,6 +28818,17 @@
       "note": "Dedupe relies on the input being sorted; the drill's test inputs are already sorted, so the skip `j > i and nums[j] == nums[j-1]` works.",
       "summary": "The code builds subsets by recursing from a start index i, appending a copy of path at every node, then looping j from i and skipping a candidate equal to its predecessor when j > i. That skip is the sibling-dedupe move, paired with choose/undo via path.append and path.pop and the start-index recursion helper(j+1). All assertions passed, including the 12-identical-element case yielding 13 subsets.",
       "seconds": 176
+    },
+    "solved/d_Triples_2026_09_21T06_29_34_563112_00_00Z.py": {
+      "date": "2026-09-21",
+      "problem": "drill",
+      "moves": {
+        "backtracking-start-index": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Nested loops with i+1, j+1 bounds are the start-index move without recursion.",
+      "summary": "The code yields all increasing triples of indices below n using three nested loops whose bounds start at the previous index plus one, which is the start-index move expressed iteratively. The @as_list decorator materializes the generator, and the assertions confirm the count and ordering for n=5, 2, 3, and 30. The run exited 0 with all assertions passing.",
+      "seconds": 73
     }
   }
 }
