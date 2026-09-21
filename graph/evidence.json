@@ -28795,6 +28795,16 @@
       "note": "Delegates to harness last_true; the <=31 call assertion confirms logarithmic halving.",
       "summary": "The Solution.lastTrue method delegates to the harness last_true(lo, hi, ok), which finds the last index where the monotone predicate holds. The assertions cover the boundary cases (single element, predicate true at lo, predicate true at hi, large 1e9 range) and the call-count check confirms the search is logarithmic rather than linear. All assertions passed with exit 0.",
       "seconds": 33
+    },
+    "solved/d_One_From_Each_2026_09_21T03_02_26_714978_00_00Z.py": {
+      "date": "2026-09-21",
+      "problem": "drill",
+      "moves": {
+        "backtracking-choose-undo": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The drill builds every string taking one element from each group by recursing over group index i, appending groups[i][j] to path, recursing to i+1, then popping it back off. The choose/undo pair around the recursive call is the targeted move, and the base case at i == len(groups) records a joined copy of path. All assertions pass, including the 2^8 case producing 256 distinct strings.",
+      "seconds": 561
     }
   }
 }
