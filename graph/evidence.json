@@ -29016,6 +29016,17 @@
       "note": "Uses levels(q) to drive BFS by depth; visited set keyed on (node, distance) so a node can be revisited at a new distance, matching the required O(k*(n+m)) bound.",
       "summary": "The Solution.reachable method seeds a deque with node 0 and a seen set holding (0,0), then iterates levels(q) so each layer carries its depth d. For every neighbor it adds (nxt, d+1) to seen and the queue only when d < k and the pair is new, returning the full set of reachable (node, distance) pairs. This exercises BFS-by-layers with a distance-aware visited set, and the assertions confirm the k=0, self-loop, and cycle cases.",
       "seconds": 1183
+    },
+    "solved/d_Clubs_Sharing_A_Member_2026_09_21T23_54_09_952111_00_00Z.py": {
+      "date": "2026-09-22",
+      "problem": "drill",
+      "moves": {
+        "graph-overlap-adjacency": "clean",
+        "set-algebra": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The code builds one set per club and, for each club's member list, unions that list into every member's set, so two clubs become adjacent exactly when they share a member. It then removes each club's own index from its set and returns the list of sets. This exercises graph-overlap-adjacency directly, with set-algebra (update/remove) doing the membership work, and all four assertions pass.",
+      "seconds": 178
     }
   }
 }
