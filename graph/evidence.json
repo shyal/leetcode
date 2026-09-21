@@ -28862,6 +28862,17 @@
       "note": "The pair generation is delegated to the harness `pairs(n, type=list)` helper; the candidate's own code only wraps it, so the start-index enumeration is exercised by the helper rather than written out.",
       "summary": "The Solution.pairs method returns the harness-provided pairs(n, type=list) helper, which enumerates all index pairs (a, b) with a < b. The assertions confirm the output for n=4, n=1, n=2, and n=30 (435 unique pairs). The candidate wrote no explicit nested loop or recursion; the start-index enumeration lives in the preloaded helper.",
       "seconds": 59
+    },
+    "solved/d_Choose_From_an_Array_2026_09_21T06_46_06_954431_00_00Z.py": {
+      "date": "2026-09-21",
+      "problem": "drill",
+      "moves": {
+        "backtracking-start-index": "clean",
+        "backtracking-choose-undo": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The code builds all k-element combinations by recursing with a start index i, looping j from i to the end, appending nums[j], recursing on j+1, then popping. The start-index bound (j+1) enforces each element used once and in order, and the append/pop pair undoes each choice. The run exited 0 with all assertions passing, including the 1140 distinct triples from range(20).",
+      "seconds": 127
     }
   }
 }
