@@ -28840,6 +28840,17 @@
       "judge": "deepseek-chat",
       "summary": "The code builds combinations summing to target via a recursive helper(i, total) that loops j from i to len(nums), appends nums[j], recurses with helper(j, ...) so the same index can be reused, then pops. The start-index move is exercised by passing j (not j+1) into the recursion, and choose/undo by the append/pop pair. All assertions passed on execution.",
       "seconds": 453
+    },
+    "solved/d_Record_Every_Node_2026_09_21T06_42_14_364190_00_00Z.py": {
+      "date": "2026-09-21",
+      "problem": "drill",
+      "moves": {
+        "backtracking-start-index": "clean",
+        "backtracking-choose-undo": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The Solution.subsets helper records curr[:] at every call, then loops j from i to len(nums), appending nums[j], recursing with helper(j+1), and popping. The start index i is passed forward so each candidate is used once and combinations are generated in order, and the append/pop pair undoes each choice. All assertions pass, including the 2^16 count for range(16).",
+      "seconds": 35
     }
   }
 }
