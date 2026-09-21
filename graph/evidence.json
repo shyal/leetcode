@@ -28905,6 +28905,18 @@
       "judge": "deepseek-chat",
       "summary": "The generator substringsByEnd loops the end index i from 0 to len(s) and the start index j from 0 to i-1, yielding s[j:i], so substrings are enumerated by end position. The @as_list decorator collects the yields, and all assertions on \"abc\", \"aaa\", \"a\", \"ab\", \"abca\", and the length-55 case pass. This exercises the substring-enumeration move in its by-end form.",
       "seconds": 201
+    },
+    "solved/p621_Task_Scheduler_2026_09_21T07_30_56_208695_00_00Z.py": {
+      "date": "2026-09-21",
+      "problem": "621",
+      "moves": {
+        "counter-build": "clean",
+        "heap-simulation": "struggled"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Wrong Answer (61/72 cases) \u2014 the heap-simulation tie-break/round-robin is wrong; the candidate's own notes say 'I give up' and that a deque round-robin was needed but never written.",
+      "summary": "The code builds a Counter of task frequencies, pushes [next_available_time, -count, task] entries into a heap, and pops a task whenever its cooldown has elapsed, otherwise emitting a 'pause' and advancing time. It exercises counter-build cleanly, but the heap-simulation is wrong: the heap orders by next_time then count, so it does not round-robin among ready tasks and produces extra pauses, failing the ['B','C','D','A','A','A','A','G'], 1 case. The notes describe trying a deque round-robin and then giving up; the deque-recent-window move was never written.",
+      "seconds": 1918
     }
   }
 }
