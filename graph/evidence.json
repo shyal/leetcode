@@ -28929,6 +28929,19 @@
       "note": "LEETCODE: Accepted (11 ms, 19.6 MB)",
       "summary": "The code builds a heap of [value, index] pairs, then for each of k operations pops the smallest value, multiplies it by multiplier, and pushes it back. It then sorts the heap by original index and returns the values. This exercises heap-simulation (repeatedly pop extreme, transform, push back) and sort-by-custom-key (key=lambda x: x[1] to restore original order). LeetCode accepted the submission.",
       "seconds": 340
+    },
+    "solved/p767_Reorganize_String_2026_09_21T08_04_56_583604_00_00Z.py": {
+      "date": "2026-09-21",
+      "problem": "767",
+      "moves": {
+        "counter-build": "clean",
+        "heap-simulation": "clean",
+        "heap-top-k": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Uses a max-heap with a one-step 'keep' buffer to avoid reusing the same letter consecutively; returns '' when a leftover remains.",
+      "summary": "The code builds a Counter of character frequencies, turns it into a max-heap of [count, letter] pairs, and repeatedly pops the most frequent letter, appending it to res while holding the previous letter in a keep buffer so it cannot be reused immediately. It re-pushes the buffered letter and decrements the popped count, returning the string only if no leftover remains. The run exited 0 and LeetCode reports Accepted (5 ms, 19.6 MB).",
+      "seconds": 420
     }
   }
 }
