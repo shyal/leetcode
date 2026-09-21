@@ -28736,6 +28736,20 @@
       "note": "BFS over (node, steps) states; notes say 'Learning'.",
       "summary": "The code builds an adjacency structure with adjacency(edges, n=n), then runs a BFS over (node, steps) states using levels(q), recording each state in seen so a node is only expanded at a given step count once. Nodes reached at exactly k steps are collected in out. The notes say 'Learning', so the BFS move is marked as assisted.",
       "seconds": 2145
+    },
+    "solved/p934_Shortest_Bridge_FAILED_2026_09_21T02_27_04_827297_00_00Z.py": {
+      "date": "2026-09-21",
+      "problem": "934",
+      "moves": {
+        "graph-dfs-visited": "clean",
+        "multi-source-bfs": "clean",
+        "grid-neighbors": "clean",
+        "graph-bfs-shortest": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say 'FAILED: walked away after 29m 24s; no working solution' \u2014 the file ran and printed a distance table but the candidate's own note records the attempt as failed.",
+      "summary": "The code tags each island with a DFS (tag) using a tags grid, then seeds a deque with every land cell carrying its island tag and runs a multi-source BFS over water cells, recording each cell's distance in res and printing when a cell of a different tag is reached. It uses nbrs/cells helpers for grid neighbors and tabulate to display the distance grid. The candidate's note says they walked away after 29 minutes with no working solution, and the assertions are all commented out.",
+      "seconds": 1764
     }
   }
 }
