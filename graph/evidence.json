@@ -28884,6 +28884,17 @@
       "note": "Greedy partition: total accumulates the current section's sum and resets to n when adding n would exceed cap.",
       "summary": "The code walks weights once, keeping a running total for the current section; when total + n exceeds cap it starts a new section (res += 1) and resets total to n, otherwise it adds n to total. This exercises the running-sum move, accumulating and resetting a scan state. The file ran and printed 5; the assertion lines are commented out.",
       "seconds": 73
+    },
+    "solved/d_Each_Element_Once_2026_09_21T06_50_22_506578_00_00Z.py": {
+      "date": "2026-09-21",
+      "problem": "drill",
+      "moves": {
+        "backtracking-start-index": "clean",
+        "backtracking-choose-undo": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The helper recurses over the suffix starting at index i, appending nums[j] and recursing with j+1 so each element is used at most once, then popping to undo the choice. It records a copy of curr when total equals target and prunes when total exceeds it. All assertions pass, including the 806-combination case for range(1,21) with target 40.",
+      "seconds": 131
     }
   }
 }
