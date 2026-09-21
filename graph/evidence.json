@@ -28707,6 +28707,19 @@
       "note": "Notes say 'Learning'; the prefix-sum-hashmap recurrence was given and copied.",
       "summary": "The code counts subarrays summing to target by keeping a defaultdict of prefix-sum frequencies seeded with D[0]=1, then for each value adds D[prefix-target] to res before recording the current prefix. This exercises the prefix-sum-hashmap move, the streaming ask-then-record ordering, the derived-key lookup of prefix-target, and the running-sum accumulation. All assertions pass, including the 10**5 cases. The notes mark the session as Learning, so the prefix-sum-hashmap move is recorded as copied.",
       "seconds": 177
+    },
+    "solved/p1129_Shortest_Path_with_Alternating_Colors_2026_09_21T00_23_45_236538_00_00Z.py": {
+      "date": "2026-09-21",
+      "problem": "1129",
+      "moves": {
+        "graph-adjacency-build": "clean",
+        "graph-bfs-shortest": "struggled",
+        "streaming-ask-then-record": "struggled"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Wrong Answer (28/91 cases). The BFS never tracks visited (node, color) states, so it re-expands nodes and the alternating-color invariant is checked only after the fact on the recorded color list rather than enforced during expansion.",
+      "summary": "The code builds an adjacency dict G mapping each node to [neighbor, color] pairs, then runs a separate BFS from node 0 to each target, carrying the full color list and checking alternation only when the target is reached. It never marks (node, color) states visited, so paths are re-explored and the first arrival is not guaranteed to be the shortest valid alternating path. The notes say it passes 24 cases and the candidate is unsure why others fail; LeetCode rejected it with Wrong Answer (28/91 cases).",
+      "seconds": 3432
     }
   }
 }
