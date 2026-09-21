@@ -29000,6 +29000,22 @@
       "note": "Uses bisect_left to find the first True and subtracts one; the all-False case returns len-1 via bisect_left == len.",
       "summary": "The solution calls bisect_left(lit, True) to locate the first lit bulb and returns one less, which is the last off bulb. This exercises the binary-search-index move through the bisect library rather than a hand-written while/mid loop. All assertions pass, including the all-False and all-True edge cases.",
       "seconds": 183
+    },
+    "solved/d_Node_Step_Pairs_2026_09_21T23_08_04_342820_00_00Z.py": {
+      "date": "2026-09-22",
+      "problem": "drill",
+      "moves": {
+        "graph-bfs-shortest": "clean",
+        "graph-adjacency-build": "clean",
+        "seen-state-cycle-detect": "clean"
+      },
+      "assist": {
+        "graph-bfs-shortest": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Uses levels(q) to drive BFS by depth; visited set keyed on (node, distance) so a node can be revisited at a new distance, matching the required O(k*(n+m)) bound.",
+      "summary": "The Solution.reachable method seeds a deque with node 0 and a seen set holding (0,0), then iterates levels(q) so each layer carries its depth d. For every neighbor it adds (nxt, d+1) to seen and the queue only when d < k and the pair is new, returning the full set of reachable (node, distance) pairs. This exercises BFS-by-layers with a distance-aware visited set, and the assertions confirm the k=0, self-loop, and cycle cases.",
+      "seconds": 1183
     }
   }
 }
