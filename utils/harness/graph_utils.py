@@ -36,7 +36,7 @@ def draw_graph(G: Dict[Any, Union[Dict[Any, Any], Any]]) -> None:
         return
 
     try:
-        from colorama import Fore, Style
+        import colorama  # noqa: F401
     except ImportError:
         print("Please install colorama: pip install colorama")
         return
@@ -83,14 +83,7 @@ def draw_graph(G: Dict[Any, Union[Dict[Any, Any], Any]]) -> None:
                     val = G[src][dst]
 
             if val is not None:
-                val_str = str(val)
-                # Example coloring based on value
-                if val == 1:
-                    val_str = Fore.RED + val_str + Style.RESET_ALL
-                elif val == 0:
-                    val_str = Fore.BLUE + val_str + Style.RESET_ALL
-                # Add more colors as needed
-                row.append(val_str)
+                row.append(_cell(val))
             else:
                 row.append("")
         table.append(row)
@@ -129,20 +122,64 @@ def as_dict_of_dicts(G: Any) -> Any:
         G = dict(enumerate(G))
     if not isinstance(G, dict):
         return G
-    if all(isinstance(v, (dict, list, tuple, set)) for v in G.values()):
-        return {
-            k: (v if isinstance(v, dict) else {dst: 1 for dst in v})
-            for k, v in G.items()
-        }
     out: Dict[Any, Dict[Any, Any]] = {}
     for k, v in G.items():
         if isinstance(v, dict):
             out[k] = v
         elif isinstance(v, (list, tuple, set)):
-            out[k] = {dst: 1 for dst in v}
+            out[k] = _labelled_neighbors(v)
         else:
             out[k] = {} if v == k else {v: 1}
     return out
+
+
+def _labelled_neighbors(nbrs: Any) -> Dict[Any, Any]:
+    """A neighbour list holds ints, or tuples whose first element is the
+    neighbour and the rest its label: (b, w) for a weight, (b, "red") for
+    a colour, (b, w, idx) for several. Two tuples to the same neighbour
+    (parallel edges) collect their labels in a list."""
+    out: Dict[Any, Any] = {}
+    for item in nbrs:
+        if isinstance(item, (list, tuple)) and len(item) >= 2:
+            dst, label = item[0], item[1] if len(item) == 2 else tuple(item[1:])
+        else:
+            dst, label = item, 1
+        if dst in out:
+            out[dst] = (out[dst] if isinstance(out[dst], list) else [out[dst]]) + [
+                label
+            ]
+        else:
+            out[dst] = label
+    return out
+
+
+_COLOURS = ("red", "blue", "green", "yellow", "magenta", "cyan", "white", "black")
+
+
+def _edge_colour(label: Any) -> Optional[str]:
+    """The colour name a label carries, if any."""
+    if isinstance(label, str) and label.lower() in _COLOURS:
+        return label.lower()
+    if label == 1:
+        return "red"
+    if label == 0:
+        return "blue"
+    return None
+
+
+def _cell(val: Any) -> str:
+    """Render one adjacency-matrix cell: colour names in their colour,
+    tuple labels space-joined, parallel edges one per line."""
+    from colorama import Fore, Style
+
+    if isinstance(val, list):
+        return "\n".join(_cell(v) for v in val)
+    if isinstance(val, tuple):
+        return " ".join(_cell(v) for v in val)
+    colour = _edge_colour(val)
+    if colour is None:
+        return str(val)
+    return getattr(Fore, colour.upper()) + str(val) + Style.RESET_ALL
 
 
 def is_edge_list(edges):
@@ -242,19 +279,9 @@ def draw_graphviz(
         else:
             raise ValueError("Invalid graph format")
         for dst, weight in items:
-            label = None
-            if weight is not None:
-                if show_weights:
-                    label = str(weight)
-                elif weight not in (0, 1):
-                    label = str(weight)
-            if weight is not None and weight in (0, 1):
-                edge_attr = {"color": "red" if weight == 1 else "blue"}
-            else:
-                edge_attr = {}
-            if label:
-                edge_attr["label"] = label
-            dot.edge(str(src), str(dst), **edge_attr)
+            labels = weight if isinstance(weight, list) else [weight]
+            for one in labels:
+                dot.edge(str(src), str(dst), **_edge_attrs(one, show_weights))
 
     try:
         # Try to get ASCII output
@@ -275,6 +302,27 @@ def draw_graphviz(
             # Fallback: print DOT source
             print("\nDOT source:\n")
             print(dot.source)
+
+
+def _edge_attrs(weight: Any, show_weights: bool) -> Dict[str, str]:
+    """Graphviz attributes for one edge label: a colour name (or 0/1)
+    colours the arrow, anything else becomes the arrow's text."""
+    attrs: Dict[str, str] = {}
+    if weight is None:
+        return attrs
+    parts = weight if isinstance(weight, tuple) else (weight,)
+    text = []
+    for part in parts:
+        colour = _edge_colour(part)
+        if colour is not None and "color" not in attrs:
+            attrs["color"] = colour
+            if show_weights or isinstance(part, str):
+                text.append(str(part))
+        else:
+            text.append(str(part))
+    if text:
+        attrs["label"] = " ".join(text)
+    return attrs
 
 
 def _colorize_ascii_graph(text: str) -> str:

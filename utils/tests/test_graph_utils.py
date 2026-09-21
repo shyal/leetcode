@@ -78,3 +78,29 @@ def test_indegrees_reverse_counts_into_a():
 
 def test_indegrees_list_type():
     assert indegrees([[0, 1]], 3, type=list) == [0, 1, 0]
+
+
+def test_neighbor_tuples_carry_their_label():
+    assert as_dict_of_dicts({0: [(1, "red"), (2, 5)], 1: []}) == {
+        0: {1: "red", 2: 5},
+        1: {},
+    }
+
+
+def test_parallel_edges_collect_labels():
+    G = {0: [[1, "red"], [1, "blue"]]}
+    assert as_dict_of_dicts(G) == {0: {1: ["red", "blue"]}}
+
+
+def test_longer_tuples_keep_the_rest_as_label():
+    assert as_dict_of_dicts({0: [(1, 5, "x")]}) == {0: {1: (5, "x")}}
+
+
+def test_draw_graph_colours_named_edges(capsys):
+    from graph_utils import draw_graph
+
+    draw_graph({0: [(1, "red"), (1, "blue")], 1: [(2, 7)]})
+    out = capsys.readouterr().out
+    assert "\x1b[31mred" in out
+    assert "\x1b[34mblue" in out
+    assert "7" in out
