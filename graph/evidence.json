@@ -28917,6 +28917,18 @@
       "note": "LEETCODE: Wrong Answer (61/72 cases) \u2014 the heap-simulation tie-break/round-robin is wrong; the candidate's own notes say 'I give up' and that a deque round-robin was needed but never written.",
       "summary": "The code builds a Counter of task frequencies, pushes [next_available_time, -count, task] entries into a heap, and pops a task whenever its cooldown has elapsed, otherwise emitting a 'pause' and advancing time. It exercises counter-build cleanly, but the heap-simulation is wrong: the heap orders by next_time then count, so it does not round-robin among ready tasks and produces extra pauses, failing the ['B','C','D','A','A','A','A','G'], 1 case. The notes describe trying a deque round-robin and then giving up; the deque-recent-window move was never written.",
       "seconds": 1918
+    },
+    "solved/p3264_Final_Array_State_After_K_Multiplication_Operations_I_2026_09_21T07_42_55_311188_00_00Z.py": {
+      "date": "2026-09-21",
+      "problem": "3264",
+      "moves": {
+        "heap-simulation": "clean",
+        "sort-by-custom-key": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Accepted (11 ms, 19.6 MB)",
+      "summary": "The code builds a heap of [value, index] pairs, then for each of k operations pops the smallest value, multiplies it by multiplier, and pushes it back. It then sorts the heap by original index and returns the values. This exercises heap-simulation (repeatedly pop extreme, transform, push back) and sort-by-custom-key (key=lambda x: x[1] to restore original order). LeetCode accepted the submission.",
+      "seconds": 340
     }
   }
 }
