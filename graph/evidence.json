@@ -28829,6 +28829,17 @@
       "note": "Nested loops with i+1, j+1 bounds are the start-index move without recursion.",
       "summary": "The code yields all increasing triples of indices below n using three nested loops whose bounds start at the previous index plus one, which is the start-index move expressed iteratively. The @as_list decorator materializes the generator, and the assertions confirm the count and ordering for n=5, 2, 3, and 30. The run exited 0 with all assertions passing.",
       "seconds": 73
+    },
+    "solved/d_Reuse_Allowed_2026_09_21T06_40_27_697180_00_00Z.py": {
+      "date": "2026-09-21",
+      "problem": "drill",
+      "moves": {
+        "backtracking-start-index": "clean",
+        "backtracking-choose-undo": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The code builds combinations summing to target via a recursive helper(i, total) that loops j from i to len(nums), appends nums[j], recurses with helper(j, ...) so the same index can be reused, then pops. The start-index move is exercised by passing j (not j+1) into the recursion, and choose/undo by the append/pop pair. All assertions passed on execution.",
+      "seconds": 453
     }
   }
 }
