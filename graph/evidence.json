@@ -28976,6 +28976,19 @@
       "judge": "deepseek-chat",
       "summary": "The query joins Employees to itself, aliasing the two copies e and m, and matches e.reports_to = m.employee_id to pull each employee's manager name. The inner join naturally drops rows with NULL reports_to, so only employees with a manager appear, satisfying the required single-query, no-subquery constraint. Both example assertions passed.",
       "seconds": 269
+    },
+    "solved/d_Interleave_2026_09_21T22_44_24_254464_00_00Z.py": {
+      "date": "2026-09-22",
+      "problem": "drill",
+      "moves": {
+        "ll-dummy-splice": "clean"
+      },
+      "assist": {
+        "ll-dummy-splice": "learning"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The code interleaves two linked lists by walking b and repeatedly swapping a.next, b.next, a, b in a single tuple assignment, returning the original head a. It exercises in-place pointer re-linking of two lists, the splice-style rewiring the drill targets, though it uses the existing head rather than a dummy node. The notes say 'Learning', indicating the solution was given and copied.",
+      "seconds": 200
     }
   }
 }
