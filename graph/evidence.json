@@ -28942,6 +28942,17 @@
       "note": "Uses a max-heap with a one-step 'keep' buffer to avoid reusing the same letter consecutively; returns '' when a leftover remains.",
       "summary": "The code builds a Counter of character frequencies, turns it into a max-heap of [count, letter] pairs, and repeatedly pops the most frequent letter, appending it to res while holding the previous letter in a keep buffer so it cannot be reused immediately. It re-pushes the buffered letter and decrements the popped count, returning the string only if no leftover remains. The run exited 0 and LeetCode reports Accepted (5 ms, 19.6 MB).",
       "seconds": 420
+    },
+    "solved/p2527_Find_Xor-Beauty_of_Array_2026_09_21T08_12_04_045915_00_00Z.py": {
+      "date": "2026-09-21",
+      "problem": "2527",
+      "moves": {
+        "xor-cancellation": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "reduce(xor, nums) collapses the triple-XOR beauty to the plain XOR of the array; LeetCode Accepted (3 ms).",
+      "summary": "The solution reduces the whole array with the xor operator, relying on the identity that the xor-beauty of all triples collapses to the XOR of the elements themselves. It exercises xor-cancellation directly: duplicate values annihilate and the surviving bits remain. The file ran clean and LeetCode reports Accepted at 3 ms.",
+      "seconds": 378
     }
   }
 }
