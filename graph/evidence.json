@@ -28851,6 +28851,17 @@
       "judge": "deepseek-chat",
       "summary": "The Solution.subsets helper records curr[:] at every call, then loops j from i to len(nums), appending nums[j], recursing with helper(j+1), and popping. The start index i is passed forward so each candidate is used once and combinations are generated in order, and the append/pop pair undoes each choice. All assertions pass, including the 2^16 count for range(16).",
       "seconds": 35
+    },
+    "solved/d_Pairs_2026_09_21T06_43_25_741028_00_00Z.py": {
+      "date": "2026-09-21",
+      "problem": "drill",
+      "moves": {
+        "backtracking-start-index": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "The pair generation is delegated to the harness `pairs(n, type=list)` helper; the candidate's own code only wraps it, so the start-index enumeration is exercised by the helper rather than written out.",
+      "summary": "The Solution.pairs method returns the harness-provided pairs(n, type=list) helper, which enumerates all index pairs (a, b) with a < b. The assertions confirm the output for n=4, n=1, n=2, and n=30 (435 unique pairs). The candidate wrote no explicit nested loop or recursion; the start-index enumeration lives in the preloaded helper.",
+      "seconds": 59
     }
   }
 }
