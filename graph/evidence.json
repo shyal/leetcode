@@ -28750,6 +28750,17 @@
       "note": "Notes say 'FAILED: walked away after 29m 24s; no working solution' \u2014 the file ran and printed a distance table but the candidate's own note records the attempt as failed.",
       "summary": "The code tags each island with a DFS (tag) using a tags grid, then seeds a deque with every land cell carrying its island tag and runs a multi-source BFS over water cells, recording each cell's distance in res and printing when a cell of a different tag is reached. It uses nbrs/cells helpers for grid neighbors and tabulate to display the distance grid. The candidate's note says they walked away after 29 minutes with no working solution, and the assertions are all commented out.",
       "seconds": 1764
+    },
+    "solved/d_Fixed_Slide_2026_09_21T02_38_33_003756_00_00Z.py": {
+      "date": "2026-09-21",
+      "problem": "drill",
+      "moves": {
+        "sliding-window-fixed": "clean",
+        "counter-build": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The code slides a fixed window of size k over s, adding s[i] to a defaultdict count and, once i >= k, decrementing and deleting the leaving character s[left] before advancing left. It tracks the maximum number of distinct characters seen via len(count) and returns best. This exercises the fixed sliding-window add-entering/drop-leaving pattern together with a Counter-style frequency map, and all assertions pass.",
+      "seconds": 182
     }
   }
 }
