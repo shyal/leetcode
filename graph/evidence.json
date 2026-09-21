@@ -28966,6 +28966,16 @@
       "note": "LEFT JOIN self-join with WHERE m.manager_id IS NULL implements the anti-join; avoids the forbidden NOT IN with NULL.",
       "summary": "The query self-joins Employees as e to Employees as m on m.manager_id = e.employee_id, then keeps rows where m.manager_id IS NULL, i.e. employees who appear as nobody's manager. This is the anti-join pattern done with a LEFT JOIN and an IS NULL filter, plus a self-join and a GROUP BY on employee_id. Both example assertions passed, and the NULL manager_id case is handled without the forbidden NOT IN.",
       "seconds": 418
+    },
+    "solved/d_Manager_Name_2026_09_21T22_40_03_172599_00_00Z.py": {
+      "date": "2026-09-22",
+      "problem": "drill",
+      "moves": {
+        "sql-self-join": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The query joins Employees to itself, aliasing the two copies e and m, and matches e.reports_to = m.employee_id to pull each employee's manager name. The inner join naturally drops rows with NULL reports_to, so only employees with a manager appear, satisfying the required single-query, no-subquery constraint. Both example assertions passed.",
+      "seconds": 269
     }
   }
 }
