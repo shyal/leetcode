@@ -1,7 +1,7 @@
 # adj_utils.py
 
 from collections import defaultdict
-from typing import Any, List, Optional
+from typing import Any, Deque, Iterator, List, Optional, Tuple
 
 from grid_utils import table
 
@@ -65,3 +65,22 @@ def indegrees(
         if not directed:
             indeg[a] += 1
     return indeg
+
+
+def levels(q: Deque[Any], grouped: bool = False) -> Iterator[Tuple[int, Any]]:
+    """Level-order BFS over a deque the caller keeps pushing onto.
+
+    Yields (d, item) for every item popped, where d is the level the item
+    was pushed at, starting from 0 for the items already in q. The caller
+    appends the next level's items to q inside the loop body and keeps
+    its own seen set. With grouped=True yields (d, items) once per level,
+    items being the whole level as a list.
+    """
+    d = 0
+    while q:
+        if grouped:
+            yield d, [q.popleft() for _ in range(len(q))]
+        else:
+            for _ in range(len(q)):
+                yield d, q.popleft()
+        d += 1

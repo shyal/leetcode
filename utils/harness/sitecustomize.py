@@ -324,6 +324,7 @@ builtins.generate_random_tree = generate_random_tree
 builtins.build_graph_from_edge_list = build_graph_from_edge_list
 builtins.adjacency = adjacency
 builtins.indegrees = indegrees
+builtins.levels = levels
 builtins.build_nary_tree = build_nary_tree
 
 # grids

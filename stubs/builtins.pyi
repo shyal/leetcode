@@ -3124,6 +3124,9 @@ def adjacency(
     directed: bool = True,
     weighted: bool = False,
 ) -> Any: ...
+def levels(
+    q: _deque[T], grouped: bool = ...
+) -> Iterator[Tuple[int, Any]]: ...
 def indegrees(
     edges: Sequence[Sequence[Any]],
     n: Optional[int] = None,

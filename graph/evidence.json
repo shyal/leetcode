@@ -28720,6 +28720,22 @@
       "note": "LEETCODE: Wrong Answer (28/91 cases). The BFS never tracks visited (node, color) states, so it re-expands nodes and the alternating-color invariant is checked only after the fact on the recorded color list rather than enforced during expansion.",
       "summary": "The code builds an adjacency dict G mapping each node to [neighbor, color] pairs, then runs a separate BFS from node 0 to each target, carrying the full color list and checking alternation only when the target is reached. It never marks (node, color) states visited, so paths are re-explored and the first arrival is not guaranteed to be the shortest valid alternating path. The notes say it passes 24 cases and the candidate is unsure why others fail; LeetCode rejected it with Wrong Answer (28/91 cases).",
       "seconds": 3432
+    },
+    "solved/d_Exact_Length_Walks_2026_09_21T01_26_21_335248_00_00Z.py": {
+      "date": "2026-09-21",
+      "problem": "drill",
+      "moves": {
+        "graph-bfs-shortest": "clean",
+        "graph-adjacency-build": "clean",
+        "seen-state-cycle-detect": "clean"
+      },
+      "assist": {
+        "graph-bfs-shortest": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "BFS over (node, steps) states; notes say 'Learning'.",
+      "summary": "The code builds an adjacency structure with adjacency(edges, n=n), then runs a BFS over (node, steps) states using levels(q), recording each state in seen so a node is only expanded at a given step count once. Nodes reached at exactly k steps are collected in out. The notes say 'Learning', so the BFS move is marked as assisted.",
+      "seconds": 2145
     }
   }
 }
