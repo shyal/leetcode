@@ -28953,6 +28953,19 @@
       "note": "reduce(xor, nums) collapses the triple-XOR beauty to the plain XOR of the array; LeetCode Accepted (3 ms).",
       "summary": "The solution reduces the whole array with the xor operator, relying on the identity that the xor-beauty of all triples collapses to the XOR of the elements themselves. It exercises xor-cancellation directly: duplicate values annihilate and the surviving bits remain. The file ran clean and LeetCode reports Accepted at 3 ms.",
       "seconds": 378
+    },
+    "solved/d_Employees_Who_Manage_Nobody_2026_09_21T22_35_12_765204_00_00Z.py": {
+      "date": "2026-09-22",
+      "problem": "drill",
+      "moves": {
+        "sql-anti-join": "clean",
+        "sql-self-join": "clean",
+        "sql-join-left-keep": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEFT JOIN self-join with WHERE m.manager_id IS NULL implements the anti-join; avoids the forbidden NOT IN with NULL.",
+      "summary": "The query self-joins Employees as e to Employees as m on m.manager_id = e.employee_id, then keeps rows where m.manager_id IS NULL, i.e. employees who appear as nobody's manager. This is the anti-join pattern done with a LEFT JOIN and an IS NULL filter, plus a self-join and a GROUP BY on employee_id. Both example assertions passed, and the NULL manager_id case is handled without the forbidden NOT IN.",
+      "seconds": 418
     }
   }
 }
