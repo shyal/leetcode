@@ -29402,6 +29402,17 @@
       "note": "Drill targets binary-search-on-answer; the code implements the first-false boundary template (lo=mid+1 on ok, hi=mid otherwise) and all assertions pass.",
       "summary": "The Solution.firstFalse method runs a halving loop over [lo, hi), advancing lo past mid when ok(mid) is true and pulling hi down to mid otherwise, returning the first index where the predicate is false. It exercises the binary-search-boundary template, verified by the assertions including the 10**9 range and the <=31 call-count check. The file executed cleanly with no notes claiming help or recognition trouble.",
       "seconds": 122
+    },
+    "solved/d_Last_False_2026_09_22T18_57_35_091691_00_00Z.py": {
+      "date": "2026-09-23",
+      "problem": "drill",
+      "moves": {
+        "binary-search-boundary": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets binary-search-on-answer; the code implements the last-False boundary variant with mid=(lo+hi+1)//2 and hi=mid-1 on ok, returning lo.",
+      "summary": "The Solution.lastFalse method binary-searches the last index where the predicate ok is False, using the upper-mid rounding (lo+hi+1)//2 so lo converges to the last False position. It exercises the binary-search-boundary move, and the assertions confirm the boundary cases (lo==hi, predicate always true/false, large range) plus a call-count bound of 31 for 1e9. The file ran clean with exit 0 and no notes indicating help or recognition trouble.",
+      "seconds": 88
     }
   }
 }
