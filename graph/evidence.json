@@ -29413,6 +29413,16 @@
       "note": "Drill targets binary-search-on-answer; the code implements the last-False boundary variant with mid=(lo+hi+1)//2 and hi=mid-1 on ok, returning lo.",
       "summary": "The Solution.lastFalse method binary-searches the last index where the predicate ok is False, using the upper-mid rounding (lo+hi+1)//2 so lo converges to the last False position. It exercises the binary-search-boundary move, and the assertions confirm the boundary cases (lo==hi, predicate always true/false, large range) plus a call-count bound of 31 for 1e9. The file ran clean with exit 0 and no notes indicating help or recognition trouble.",
       "seconds": 88
+    },
+    "solved/d_Colors_Seen_2026_09_22T19_00_28_021863_00_00Z.py": {
+      "date": "2026-09-23",
+      "problem": "drill",
+      "moves": {
+        "bit-flags": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The drill defines a Color enum.Flag with red/green/blue members from auto(), then Solution.seen folds a list of color names into a single flag value by OR-ing Color[n] into an accumulator starting at Color(0). This exercises the bit-flags move: named states packed into one Flag value, combined with |= and compared against unions like Color.red | Color.blue. All assertions pass, including the empty list returning Color(0) and repeated names collapsing under idempotent OR.",
+      "seconds": 157
     }
   }
 }
