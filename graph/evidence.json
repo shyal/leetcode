@@ -29499,6 +29499,17 @@
       "judge": "deepseek-chat",
       "summary": "The Solution subclasses UnionFind and counts distinct companies by mapping each employee through self.find(x) and taking len(set(...)) of the resulting roots. This exercises the union-find find operation to resolve each node to its representative, plus set-membership to deduplicate roots. The assertions cover two heads, a post-union single head, empty input, a repeated employee, and 1000 unmerged employees, all passing with output 2.",
       "seconds": 63
+    },
+    "solved/d_First_True_2026_09_22T19_40_01_030347_00_00Z.py": {
+      "date": "2026-09-23",
+      "problem": "drill",
+      "moves": {
+        "binary-search-boundary": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets binary-search-on-answer; the code implements the first-true boundary template (lo<hi, hi=mid on ok, lo=mid+1 otherwise) and the harness's avoids() confirms no builtin bisect/first_true helper was used.",
+      "summary": "The Solution.firstTrue method runs a lo<hi binary search: mid=(lo+hi)//2, and when the predicate ok(mid) is true it moves hi to mid, otherwise lo to mid+1, returning lo as the first index where ok flips true. The assertions exercise the boundary on squares (x*x>=50 gives 8), on identity thresholds, on lo==hi and lo+1==hi edge cases, and on a 1..10^9 range where the call list is checked to stay within 31 probes. The avoids() check confirms the builtin first_true/last_true/bisect helpers were not used, so the boundary template was written out by hand.",
+      "seconds": 78
     }
   }
 }
