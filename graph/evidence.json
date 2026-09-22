@@ -29378,6 +29378,19 @@
       "note": "Notes say the candidate first wrote sum(price)*sum(units) and was hinted to sum(price*units); the final query groups by product_id and sums the per-row product.",
       "summary": "The query selects product_id and sum(price * units) as revenue from Sales, grouping by product_id, so the per-row product is formed before aggregation. It exercises the group-aggregate move with one aggregate per group. The notes say the candidate initially wrote sum(price) * sum(units) and was hinted to the correct per-row product form.",
       "seconds": 347
+    },
+    "solved/d_Remove_Value_2026_09_22T18_53_24_666086_00_00Z.py": {
+      "date": "2026-09-23",
+      "problem": "drill",
+      "moves": {
+        "ll-dummy-splice": "clean"
+      },
+      "assist": {
+        "ll-dummy-splice": "learning"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The code builds a dummy node d pointing at head, walks curr through the list, and when curr.next.val equals val it re-links curr.next = curr.next.next to splice the node out, otherwise advances curr. This exercises the dummy-splice move directly, and the assertions cover head removal, all-equal, empty, and single-node cases. The notes say the approach was learned, and describe the splice as making the unwanted node unreachable rather than iterating over it.",
+      "seconds": 367
     }
   }
 }
