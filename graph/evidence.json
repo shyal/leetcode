@@ -29125,6 +29125,17 @@
       "note": "Notes say the time function was right but the binary-search body was a struggle; LEETCODE: Accepted (1868 ms, 33.8 MB).",
       "summary": "The code defines a time(speed) helper that sums ceil(x/speed) for all but the last distance and x/speed for the last, then binary-searches speed in [1, 10**7] for the first value where time(speed) <= hour, returning lo. It exercises binary-search-on-answer with a feasibility check, the leftmost-true boundary template, and a running sum inside time(). The notes say the time function was correct but the binary-search body was where the candidate struggled; LeetCode accepted the submission.",
       "seconds": 2323
+    },
+    "solved/d_First_False_2026_09_22T02_23_48_771753_00_00Z.py": {
+      "date": "2026-09-22",
+      "problem": "drill",
+      "moves": {
+        "binary-search-boundary": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets binary-search-on-answer; the code implements the first-false boundary template with lo=mid+1 / hi=mid and returns lo, verified by the assertions including the <=31 call bound.",
+      "summary": "The Solution.firstFalse method runs a halving loop over [lo, hi): when ok(mid) is true it moves lo to mid+1, otherwise hi to mid, and returns lo as the first index where the predicate is false. The assertions confirm the boundary behavior on squares, thresholds, degenerate ranges, and a 10**9 range with at most 31 calls. This exercises the binary-search-boundary template, which is the drill's target move.",
+      "seconds": 238
     }
   }
 }
