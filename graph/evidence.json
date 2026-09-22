@@ -29100,6 +29100,18 @@
       "note": "Drill trains union-find; the email->first-account dict plus self.union on repeats merges accounts sharing an email.",
       "summary": "The Solution subclasses UnionFind and walks each account's emails, storing the first account index seen for each email in res and calling self.union(account, res[email]) when an email reappears. The assertions confirm the merges: find(2)==0 and find(3)==1 in the first case, and the three-account shared-email case collapses to root 0. All assertions passed with exit 0.",
       "seconds": 178
+    },
+    "solved/d_Merge_Accounts_2026_09_22T00_49_34_184131_00_00Z.py": {
+      "date": "2026-09-22",
+      "problem": "drill",
+      "moves": {
+        "union-find": "clean",
+        "dict-arbitrary-value": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "REQUIRED constraint met: self.find called exactly once per account, no account-to-account pair tests.",
+      "summary": "The Solution subclasses UnionFind and mergeAccounts walks the accounts, calling self.find(account) once per account to get its root person, then adds each email into persons[root], a defaultdict(set). The union-find structure itself is built by the harness's union_shared before mergeAccounts runs, so the code exercises the find/root lookup and the dict-of-sets grouping. All assertions passed and the required at-most-one-find-per-account constraint is satisfied.",
+      "seconds": 328
     }
   }
 }
