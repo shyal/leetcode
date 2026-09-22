@@ -29353,6 +29353,17 @@
       "note": "LEETCODE: Time Limit Exceeded (63/114 cases) \u2014 the O(limit * n) brute force over every target T stands in for the missing difference-array/prefix-sum sweep; notes say assisted with inattention errors like confusing a,b with lo,hi.",
       "summary": "The code pairs nums[i] with nums[~i], computes for each pair the target range [min+1, max+limit] where one move suffices, and sums the per-target cost over all pairs, then takes the minimum over every candidate target T from 2 to 2*limit. It exercises the converging two-pointer pairing and the algebraic solve-for-target cost function correctly, but recomputes the full cost for each T instead of accumulating a difference array, so it times out on LeetCode (63/114). The notes say the work was assisted and that the errors were inattention slips like swapping a,b with lo,hi.",
       "seconds": 1605
+    },
+    "solved/d_Orders_In_A_Date_Window_2026_09_22T18_36_12_795628_00_00Z.py": {
+      "date": "2026-09-23",
+      "problem": "drill",
+      "moves": {
+        "sql-filter-select": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "REQUIRED comparison naming both ends met via order_date >= date('2024-03-01') and order_date <= date('2024-03-31'); no LIKE, no Python.",
+      "summary": "The query selects id from Orders with a WHERE clause bounding order_date between date('2024-03-01') and date('2024-03-31'), using two comparisons that name both ends of the window. It exercises sql-filter-select and passed both example assertions, returning ids 2,3,4 and an empty result for the out-of-window year.",
+      "seconds": 196
     }
   }
 }
