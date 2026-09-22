@@ -152,8 +152,12 @@ pub fn problem_due(ev: &Evidence, pnum: &str) -> Option<(NaiveDate, i64)> {
 }
 
 /// A problem recovered and waiting for the retest that shows it held:
-/// its card is open and the last graded attempt was an unaided clean
-/// one. Returns the recovery date.
+/// its card is open, the last graded attempt was an unaided clean one,
+/// and the graded attempt before it was not (a fail, or help). Two clean
+/// attempts in a row are a retest passed, not a recovery: 40 solved
+/// clean a year after its last clean solve opened a wait on a drill
+/// under every one of its moves (d7, 2026-09-22). Returns the recovery
+/// date.
 pub fn recovered_on(ev: &Evidence, pnum: &str) -> Option<NaiveDate> {
     recovered_at(ev, pnum).map(|(_, d)| d)
 }
@@ -161,8 +165,16 @@ pub fn recovered_on(ev: &Evidence, pnum: &str) -> Option<NaiveDate> {
 /// recovered_on with the moment the recovering file was filed in front.
 pub fn recovered_at(ev: &Evidence, pnum: &str) -> Option<(String, NaiveDate)> {
     problem_due(ev, pnum)?;
-    let (filed, when, label) = last_attempt_filed(ev, pnum)?;
-    (label == "clean").then_some((filed, when))
+    let graded: Vec<(&str, &str, usize)> = problem_attempts(ev, pnum)
+        .into_iter()
+        .filter(|(_, fname, i)| problem_grade(fname, ev.rec(*i)).is_some())
+        .collect();
+    let [.., (_, before, bi), (d, fname, i)] = graded.as_slice() else {
+        return None;
+    };
+    let recovered = attempt_label(fname, ev.rec(*i)) == "clean"
+        && problem_grade(before, ev.rec(*bi)) != Some("good");
+    recovered.then(|| (filed_at(fname, d), parse_date(d)))
 }
 
 /// The moves the recovery has to hold: of the moves the recovering solve

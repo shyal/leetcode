@@ -609,6 +609,41 @@ fn a_recovery_waits_on_the_drill_under_the_move_it_recovered() {
     assert!(reason(&fx.run(&ev2, &st, args())).contains("shows it held"));
 }
 
+/// Two clean attempts in a row are a retest passed, not a recovery: a
+/// clean solve a year after the last clean one opens no wait on the
+/// drills under its moves (40, 2026-09-22). A clean solve after a hint
+/// or a fail does.
+#[test]
+fn a_clean_solve_after_a_clean_solve_is_no_recovery() {
+    let mut fx = Fx::picker();
+    fx.nodes(&["q1"]).problem("1", problem(&["q1"]));
+    let path = fx.bank("q1", "Under Q1", "a.py", "d1", &[]);
+    let ev = evidence(vec![
+        assisted("1", &[("q1", "clean")], 400),
+        solve("1", &[("q1", "clean")], 399),
+        solve("1", &[("q1", "clean")], 0),
+    ]);
+    assert_eq!(recovered_on(&ev, "1"), None);
+    assert_eq!(recovery_wait(&fx.ctx(), &ev, "1"), None);
+    let ev = evidence(vec![
+        solve("1", &[("q1", "clean")], 399),
+        solve_a("1", &[("q1", "clean")], 5, assist_map(&[("q1", "hint")])),
+        solve("1", &[("q1", "clean")], 0),
+    ]);
+    assert_eq!(recovered_on(&ev, "1"), Some(today()));
+    assert_eq!(recovery_wait(&fx.ctx(), &ev, "1"), Some(path.clone()));
+    let ev = evidence(vec![
+        solve("1", &[("q1", "clean")], 399),
+        (
+            "solved/p1_FAILED_5.py".to_string(),
+            solve("1", &[("q1", "struggled")], 5).1,
+        ),
+        solve("1", &[("q1", "clean")], 0),
+    ]);
+    assert_eq!(recovered_on(&ev, "1"), Some(today()));
+    assert_eq!(recovery_wait(&fx.ctx(), &ev, "1"), Some(path));
+}
+
 /// The clean rep served right after the recovery, the same day, is the
 /// rep the wait asked for: since the recovery means since the recovering
 /// file was filed, to the second, not since that day. 543 recovered at
