@@ -29588,6 +29588,20 @@
       "note": "Canonical counter-build/dict-arbitrary-value sidestepped by a difference-array event sweep over a fixed 3000-slot bucket array.",
       "summary": "The code builds a fixed 3000-slot difference array, adds +1 at each birth and -1 at each death, then scans the buckets accumulating a running count and tracking the year where the count first exceeds the running maximum. This exercises event-sweep, counting-sort-buckets, running-sum, and running-extreme rather than the canonical Counter/dict approach. The run exited 0 and LeetCode reports Accepted (8 ms, 19.2 MB); the notes are empty.",
       "seconds": 516
+    },
+    "solved/p712_Minimum_ASCII_Delete_Sum_for_Two_Strings_2026_09_22T20_45_06_351404_00_00Z.py": {
+      "date": "2026-09-23",
+      "problem": "712",
+      "moves": {
+        "dp-state-formulate": "clean",
+        "two-sequence-align": "clean",
+        "memoize-recursion": "clean",
+        "substring-enumeration": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Top-down @cache recursion over (a, b) suffixes; LeetCode Accepted (1191 ms, 480.9 MB).",
+      "summary": "The code defines a cached helper(a, b) over suffixes of the two strings: when the last characters match it recurses on both shortened; otherwise it takes the min of deleting a's last char (plus its ord) or b's last char. This exercises the two-sequence alignment recurrence and memoization rather than an iterative 2D table. All assertions pass and LeetCode reports Accepted.",
+      "seconds": 220
     }
   }
 }
