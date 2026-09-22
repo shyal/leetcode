@@ -2,12 +2,12 @@
   "_comment": "Personal forgetting curve fitted by utils/kg/kg_curve. P(recall) = (1-slip)*(1 + gap/s)^(-beta), s = exp(a + b*log1p(cleans) - c*struggles - d*assist + e*(conn - conn_mean)); cleans counts distinct clean days, same-day reps are one rep. conn is the node's log2 carrier count, frozen below at fit time; consumers that ignore e are assuming average connectivity. \"solve\" is the cold-solve model fitted by fit_solve: logit P(solve cold, unaided, inside the clock) = the listed coefficients over (rating - 1500)/400, the walk's summed log recall, and its count of never-met moves; features not listed did not earn their place on held-out games. node_status() calls a node SOLID while the memory component (1 + gap/s)^(-beta) >= target_retention; delete this file to fall back to the flat 42-day window.",
   "model": "power-law-slip",
   "params": {
-    "a": 4.012,
-    "b": 0.2549,
+    "a": 4.0127,
+    "b": 0.2559,
     "c": 0.2219,
-    "d": 0.1888,
-    "e": 0.7569,
-    "conn_mean": 3.3077,
+    "d": 0.1885,
+    "e": 0.757,
+    "conn_mean": 3.3121,
     "beta": 0.0856,
     "slip": 0.0982
   },
@@ -31,7 +31,7 @@
     "dict-arbitrary-value": 5.044,
     "divmod-decompose": 5.044,
     "dp-1d-rolling": 3.907,
-    "dp-2d-grid": 2.807,
+    "dp-2d-grid": 3.0,
     "dp-state-formulate": 3.907,
     "event-sweep": 1.585,
     "fast-slow-pointers": 2.322,
@@ -91,42 +91,42 @@
     "trie-build-walk": 2.0,
     "two-pointers-converging": 4.7,
     "two-pointers-read-write": 2.807,
-    "two-sequence-align": 2.807,
+    "two-sequence-align": 3.0,
     "union-find": 2.585,
     "xor-cancellation": 3.459
   },
   "target_retention": 0.9,
   "mass": {
-    "beta": 0.7052,
+    "beta": 0.6984,
     "se": 0.21,
-    "n": 521,
+    "n": 522,
     "by_difficulty": {
-      "Easy": 1.773,
-      "Medium": -0.4529,
-      "Hard": -1.5634
+      "Easy": 1.79,
+      "Medium": -0.4349,
+      "Hard": -1.5557
     }
   },
   "solve": {
-    "games": 776,
+    "games": 777,
     "features": {
-      "intercept": 1.007,
-      "rating": -0.8082,
-      "length": -0.4912
+      "intercept": 1.0107,
+      "rating": -0.8038,
+      "length": -0.4921
     },
     "se": {
       "intercept": 0.1364,
-      "rating": 0.1351,
+      "rating": 0.1349,
       "length": 0.1756
     },
     "intercept_se": 0.1364,
     "elo": {
-      "now": 1676.0,
-      "drift_per_day": 0.11403,
-      "drift_se": 0.02382
+      "now": 1693.4,
+      "drift_per_day": 0.11479,
+      "drift_se": 0.02379
     },
     "lambda": 1.0,
-    "cv_loglik": -0.5941,
-    "baseline_cv_loglik": -0.6414,
+    "cv_loglik": -0.5928,
+    "baseline_cv_loglik": -0.6392,
     "rejected": [
       "recall",
       "unseen",

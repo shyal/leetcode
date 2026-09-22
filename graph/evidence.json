@@ -29676,6 +29676,18 @@
       "note": "LEETCODE: Memory Limit Exceeded (50/50 cases) \u2014 the canonical two-sequence-align walk stores only lengths and reconstructs the string by backtracking; this code stores the full string in every cell, which is the memory blowup.",
       "summary": "The code builds a 2D table over the two strings, filling each cell with the actual shortest common supersequence string: on a character match it appends to the diagonal, otherwise it takes the shorter of the up/left candidates. It exercises two-sequence alignment and grid DP, but stores whole strings per cell instead of lengths. The notes say Learning, and LeetCode rejected the submission with Memory Limit Exceeded on all 50 cases.",
       "seconds": 2911
+    },
+    "solved/p718_Maximum_Length_of_Repeated_Subarray_2026_09_22T22_42_59_244327_00_00Z.py": {
+      "date": "2026-09-23",
+      "problem": "718",
+      "moves": {
+        "two-sequence-align": "clean",
+        "dp-2d-grid": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LeetCode: Accepted (1531 ms, 44.4 MB)",
+      "summary": "The code builds a 2D dp table over the two arrays (padded with sentinel rows/columns) and fills each cell with dp[i-1][j-1]+1 when a[i]==b[j], tracking the running maximum. This is the two-sequence-alignment recurrence specialized to a contiguous-match (subarray) variant, laid out as a 2D grid DP. The run exited 0 and LeetCode reports Accepted.",
+      "seconds": 412
     }
   }
 }
