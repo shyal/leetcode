@@ -29284,6 +29284,18 @@
       "judge": "deepseek-chat",
       "summary": "The code builds a Counter over nums and unpacks its two counts into a and b, then returns a * b, the number of cross pairs between the two distinct values. This exercises counter-build and the pair-count-formula move (a*b pairs across two groups). All assertions passed on execution.",
       "seconds": 73
+    },
+    "solved/p297_Serialize_and_Deserialize_Binary_Tree_2026_09_22T07_00_16_303486_00_00Z.py": {
+      "date": "2026-09-22",
+      "problem": "297",
+      "moves": {
+        "tree-dfs-recursive": "clean",
+        "string-build-transform": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Runtime Error (Line 25: NameError: name 'Codec' is not defined) \u2014 the defect is the stray `Codec = Solution` line, not a taxonomy move; the serialize/deserialize logic itself ran correctly under the local asserts.",
+      "summary": "The code defines serialize, which does a preorder DFS appending str(n.val) or \"null\" and joins with commas, and deserialize, which walks the split tokens with an iterator and rebuilds nodes recursively. Both canonical moves \u2014 tree-dfs-recursive and string-build-transform \u2014 are exercised correctly and pass the file's own asserts. The submission was rejected with Runtime Error (Line 25: NameError: name 'Codec' is not defined), caused by the leftover `Codec = Solution` line rather than by the traversal or string logic.",
+      "seconds": 1147
     }
   }
 }
