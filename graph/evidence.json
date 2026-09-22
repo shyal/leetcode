@@ -29185,6 +29185,23 @@
       "note": "LEETCODE: Accepted (7 ms, 19.5 MB); notes say a hint revealed the binary-search-on-answer framing and a second hint pointed at the running sum.",
       "summary": "The solution calls first_true over a guessed capacity, using min_chunks(nums, x) <= k as the monotone predicate, so the answer is found by binary search on the answer space. The feasibility check inside min_chunks is the running-sum/greedy split that accumulates until the capacity is exceeded. The notes say the candidate took a hint that the solution is binary search, and another hint to use a running sum, and describe the canSplit(cap) = split(cap) <= k step as a leap in intuition.",
       "seconds": 3312
+    },
+    "solved/p91_Decode_Ways_2026_09_22T04_04_30_527752_00_00Z.py": {
+      "date": "2026-09-22",
+      "problem": "91",
+      "moves": {
+        "memoize-recursion": "clean",
+        "dp-state-formulate": "clean",
+        "substring-enumeration": "clean"
+      },
+      "assist": {
+        "memoize-recursion": "walkthrough",
+        "dp-state-formulate": "walkthrough"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Accepted (4 ms, 19.7 MB); notes say 'Assisted'.",
+      "summary": "The code defines a cached recursive helper decode(pos) that returns 1 at the end of the string, 0 when the current digit is '0', and otherwise sums decode(pos+1) with decode(pos+2) when the two-character slice parses to at most 26. @cache turns the exponential branching into a linear recurrence over positions, and the state (position in the string) is named before the recurrence is written. The notes say the solution was assisted, and the LeetCode verdict was Accepted.",
+      "seconds": 1568
     }
   }
 }
