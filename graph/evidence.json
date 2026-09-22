@@ -29321,6 +29321,21 @@
       "note": "helper(j+1) passes an unused index; the used[] flag, not the start index, drives candidate selection, so the recursion still enumerates all permutations.",
       "summary": "The code builds permutations by recursing with a path list and a used[] boolean array: at each call it appends an unused nums[j], marks used[j], recurses, then unmarks and pops. This exercises backtracking-choose-undo (append/pop) and backtracking-mark-unmark (used[j] True/False) together, recording a copy of path when its length reaches len(nums). The file ran clean and LeetCode reports Accepted (3 ms, 19.8 MB); notes are empty.",
       "seconds": 138
+    },
+    "solved/p76_Minimum_Window_Substring_2026_09_22T07_50_24_246870_00_00Z.py": {
+      "date": "2026-09-22",
+      "problem": "76",
+      "moves": {
+        "sliding-window-variable": "clean",
+        "counter-build": "clean",
+        "counter-multiset-ops": "clean",
+        "streaming-ask-then-record": "clean"
+      },
+      "judge": "deepseek-chat",
+      "followup": "solved",
+      "note": "LEETCODE: Accepted (731 ms, 19.7 MB); counts_match re-scans the whole tcount each window check, but the O(m+n) bound is met since tcount size is bounded by the alphabet.",
+      "summary": "The code builds a Multiset of t and a running Multiset of the current window, then grows right and shrinks left while counts_match confirms every required character count is satisfied, recording the shortest substring. It exercises counter-build, counter-multiset-ops (the counts_match comparison), and a variable sliding window with streaming ask-then-record bookkeeping. The notes are empty and LeetCode reports Accepted.",
+      "seconds": 1056
     }
   }
 }
