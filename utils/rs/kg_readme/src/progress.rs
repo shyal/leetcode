@@ -19,7 +19,7 @@ use chrono::NaiveDate;
 use kg::ctx::Ctx;
 use kg::data::parse_date;
 use kg::evidence::Evidence;
-use kg::model::{elo_games, solve_ratings};
+use kg::model::{elo_games, solve_ratings, PRICED_FEATURES};
 use serde_json::Value;
 
 use crate::common::*;
@@ -81,7 +81,7 @@ pub fn first_sight_rows(ctx: &Ctx, ev: &Evidence) -> Vec<Row> {
             continue;
         }
         let z = c("intercept")
-            + ["rating", "recall", "unseen"]
+            + PRICED_FEATURES[1..]
                 .iter()
                 .fold(0.0, |a, k| a + c(k) * f[*k].as_f64().unwrap());
         out.push((parse_date(d), y, 1.0 / (1.0 + (-z).exp())));

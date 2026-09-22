@@ -220,6 +220,18 @@ Steps from the nearest source to every cell; -1 where none reaches.
 A cell is entered only if ok(grid[cell]) holds. Sources are entered
 unconditionally at distance 0.
 
+## sequences
+
+### `lcs(a: Sequence[Any], b: Sequence[Any], full: bool = False, type: Any = int) -> Any`
+
+Longest common subsequence of a and b.
+
+Row i and column j of the table stand for the prefixes a[:i] and b[:j],
+so row 0 and column 0 are the empty prefix. With type=int (the default)
+each cell holds the length; with type=str, list or tuple it holds one
+LCS itself, built as that type. Plain lcs(a, b) is the last cell,
+dp[-1][-1]; full returns the whole table.
+
 ## generators
 
 ### `as_list(f: Callable[..., Iterator[T]]) -> Callable[..., List[T]]`
