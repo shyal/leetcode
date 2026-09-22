@@ -29423,6 +29423,16 @@
       "judge": "deepseek-chat",
       "summary": "The drill defines a Color enum.Flag with red/green/blue members from auto(), then Solution.seen folds a list of color names into a single flag value by OR-ing Color[n] into an accumulator starting at Color(0). This exercises the bit-flags move: named states packed into one Flag value, combined with |= and compared against unions like Color.red | Color.blue. All assertions pass, including the empty list returning Color(0) and repeated names collapsing under idempotent OR.",
       "seconds": 157
+    },
+    "solved/d_Cut_At_The_Middle_2026_09_22T19_07_53_597178_00_00Z.py": {
+      "date": "2026-09-23",
+      "problem": "drill",
+      "moves": {
+        "fast-slow-pointers": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The drill walks a linked list with slow and fast pointers, advancing slow by one and fast by two while fast.next.next exists, then severs the list at slow.next and returns the two halves. The loop condition handles both even and odd lengths, giving the first half the extra node on odd counts, and the assertions confirm the split for lengths 2 through 50000. This exercises the fast-slow-pointers move cleanly.",
+      "seconds": 426
     }
   }
 }
