@@ -518,7 +518,10 @@ pub fn scored_games(ctx: &Ctx, ev: &Evidence) -> Vec<Game> {
             seen.insert(pnum);
             continue;
         }
-        let level = rec.assist_any();
+        let level = match rec.assist_any() {
+            "none" if crate::data::served_by_combos(&ctx.root, fname) => "hint",
+            l => l,
+        };
         // a walk-away, or a submission leetcode rejected (TLE, WA, RE)
         let failed = fname.contains("FAILED") || rejected_by_leetcode(&ctx.root, fname);
         // the record's own clock; a record older than the field

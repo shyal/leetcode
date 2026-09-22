@@ -861,6 +861,42 @@ fn a_leetcode_rejection_in_the_notes_scores_as_a_fail() {
     assert_eq!(games[1].score, 1.0);
 }
 
+/// A problem served from a combos chain names its technique before it is
+/// opened, so an unaided solve of it scores as a hint. A heavier assist
+/// keeps its own score.
+#[test]
+fn a_combos_solve_scores_as_a_hint_at_best() {
+    let mut fx = Fx::picker();
+    fx.nodes(&["q1"])
+        .problems(vec![("1", problem(&["q1"])), ("2", problem(&["q1"]))]);
+    let ctx = fx.ctx();
+    *ctx.solve_times.borrow_mut() = Some(vec![]);
+    let timed = |mut r: (String, Rec)| {
+        r.1.seconds = Some(600);
+        r
+    };
+    let write = |r: &(String, Rec)| {
+        let path = fx.dir.0.join(&r.0);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        let note = crate::data::COMBO_NOTE_PREFIX;
+        std::fs::write(
+            path,
+            format!("{note}x, problem 1 of 2.\n\"\"\"\n1. X\n\"\"\"\n"),
+        )
+        .unwrap();
+    };
+    let clean = timed(solve("1", &[("q1", "clean")], 5));
+    write(&clean);
+    let mut walked = timed(solve("2", &[("q1", "clean")], 0));
+    walked.1.assist = crate::data::Assist::Level("walkthrough".into());
+    write(&walked);
+    let games = crate::model::scored_games(&ctx, &evidence(vec![clean, walked]));
+    assert_eq!(games.len(), 2);
+    assert_eq!(games[0].assist, "hint");
+    assert_eq!(games[0].score, 0.5);
+    assert_eq!(games[1].score, 0.0);
+}
+
 #[test]
 fn a_review_outranks_the_spaced_re_solve_of_a_stale_move() {
     let mut fx = Fx::picker();

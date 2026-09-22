@@ -147,8 +147,9 @@ fn main() {
     console.print(&format!("[bold]make prepare {}[/bold]", next.id));
     let pos = steps.iter().position(|st| st.id == next.id).unwrap_or(0) + 1;
     let note = format!(
-        "# combo chain: {name}, problem {pos} of {total}. Run `make combos {name}` to see\n\
+        "{prefix}{name}, problem {pos} of {total}. Run `make combos {name}` to see\n\
          # the chain and what is done today; the chain is saved in graph/chains/{name}.json.",
+        prefix = kg::data::COMBO_NOTE_PREFIX,
         total = steps.len()
     );
     let status = std::process::Command::new(kg::data::rs_bin(&ctx.root, "prepare"))

@@ -685,6 +685,17 @@ pub fn rejected_by_leetcode(root: &std::path::Path, fname: &str) -> bool {
         .is_some_and(|t| leetcode_rejection(&t).is_some())
 }
 
+/// The first line kg_combos writes into a problem it serves from a chain.
+pub const COMBO_NOTE_PREFIX: &str = "# combo chain: ";
+
+/// The solve was served from a combos chain, so the technique was named
+/// before the problem was opened: it scores as a hint at best.
+pub fn served_by_combos(root: &std::path::Path, fname: &str) -> bool {
+    std::fs::read_to_string(root.join(fname))
+        .ok()
+        .is_some_and(|t| t.starts_with(COMBO_NOTE_PREFIX))
+}
+
 // ---- the assist axis --------------------------------------------------------
 
 /// kg_lib.notes_assist_level: the heaviest assist level the candidate's own
