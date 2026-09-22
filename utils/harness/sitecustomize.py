@@ -95,6 +95,7 @@ from linked_list_utils import *
 # pretty printing
 from rich import print as rich_print
 from rich.console import Console
+from seq_utils import *
 from tree_utils import *
 
 # types
@@ -340,6 +341,9 @@ builtins.edges = edges
 builtins.table = table
 builtins.like = like
 builtins.grid_bfs = grid_bfs
+
+# sequences
+builtins.lcs = lcs
 
 # generators
 builtins.as_list = as_list

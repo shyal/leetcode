@@ -179,6 +179,7 @@ HARNESS_MODULES = [
     "bs_utils",
     "debug_utils",
     "heap_utils",
+    "seq_utils",
 ]
 
 
