@@ -29136,6 +29136,17 @@
       "note": "Drill targets binary-search-on-answer; the code implements the first-false boundary template with lo=mid+1 / hi=mid and returns lo, verified by the assertions including the <=31 call bound.",
       "summary": "The Solution.firstFalse method runs a halving loop over [lo, hi): when ok(mid) is true it moves lo to mid+1, otherwise hi to mid, and returns lo as the first index where the predicate is false. The assertions confirm the boundary behavior on squares, thresholds, degenerate ranges, and a 10**9 range with at most 31 calls. This exercises the binary-search-boundary template, which is the drill's target move.",
       "seconds": 238
+    },
+    "solved/d_Last_False_2026_09_22T02_28_46_086585_00_00Z.py": {
+      "date": "2026-09-22",
+      "problem": "drill",
+      "moves": {
+        "binary-search-boundary": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets binary-search-on-answer; the code implements the last-False boundary variant with mid=(lo+hi+1)//2 and returns lo.",
+      "summary": "The Solution.lastFalse method binary-searches the last index where the predicate ok is False, using the upper-mid rounding (lo+hi+1)//2 so lo converges to the boundary and returns it. The assertions cover the boundary cases (predicate always true, always false, single-element range, and a 10^9 range with a call-count bound of 31), all of which pass. The code exercises the binary-search boundary move and avoids the preloaded bisect/first_true/last_true helpers.",
+      "seconds": 278
     }
   }
 }
