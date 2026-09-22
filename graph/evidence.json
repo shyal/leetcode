@@ -29699,6 +29699,18 @@
       "note": "Delegates to the harness-provided lcs helper; LeetCode verdict Accepted (2705 ms, 405.1 MB).",
       "summary": "The solution reduces the problem to a two-sequence alignment: it calls lcs(s, s[::-1], type=str) and returns the length of the result, so the longest palindromic subsequence equals the LCS of the string with its reverse. The only taxonomy move exercised is two-sequence-align, and it is exercised by the helper rather than by an in-file DP table. All local assertions pass and the notes record LeetCode Accepted at 2705 ms / 405.1 MB.",
       "seconds": 147
+    },
+    "solved/p1312_Minimum_Insertion_Steps_to_Make_a_String_Palindrome_2026_09_22T23_33_04_394328_00_00Z.py": {
+      "date": "2026-09-23",
+      "problem": "1312",
+      "moves": {
+        "two-sequence-align": "clean",
+        "memoize-recursion": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LeetCode Accepted (2043 ms, 417.3 MB); dp compares s[i] against s[::-1][j] and halves the edit distance.",
+      "summary": "The code memoizes a two-prefix recurrence dp(i, j) over s and its reverse, consuming from one side or both when characters match, then returns half the resulting edit distance. It exercises two-sequence-align and memoize-recursion, and all assertions pass with LeetCode reporting Accepted. The commented-out mindist variant shows the same alignment move written directly on the reversed string.",
+      "seconds": 1258
     }
   }
 }
