@@ -29296,6 +29296,19 @@
       "note": "LEETCODE: Runtime Error (Line 25: NameError: name 'Codec' is not defined) \u2014 the defect is the stray `Codec = Solution` line, not a taxonomy move; the serialize/deserialize logic itself ran correctly under the local asserts.",
       "summary": "The code defines serialize, which does a preorder DFS appending str(n.val) or \"null\" and joins with commas, and deserialize, which walks the split tokens with an iterator and rebuilds nodes recursively. Both canonical moves \u2014 tree-dfs-recursive and string-build-transform \u2014 are exercised correctly and pass the file's own asserts. The submission was rejected with Runtime Error (Line 25: NameError: name 'Codec' is not defined), caused by the leftover `Codec = Solution` line rather than by the traversal or string logic.",
       "seconds": 1147
+    },
+    "solved/p1143_Longest_Common_Subsequence_2026_09_22T07_12_24_060368_00_00Z.py": {
+      "date": "2026-09-22",
+      "problem": "1143",
+      "moves": {
+        "dp-state-formulate": "clean",
+        "two-sequence-align": "clean",
+        "dp-2d-grid": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LeetCode: Accepted (390 ms, 44.5 MB)",
+      "summary": "The code pads both strings with a leading space and builds a 2D table via table(len(a), len(b)), then fills it with cells(dp, start=1): on a character match it takes dp[i-1][j-1]+1, otherwise the max of the left and top neighbors, returning dp[-1][-1]. This exercises the two-sequence alignment recurrence over a 2D DP grid with the state formulated as prefix lengths of the two strings. The run exited 0 and LeetCode reports Accepted (390 ms, 44.5 MB); the notes are empty.",
+      "seconds": 441
     }
   }
 }
