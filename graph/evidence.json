@@ -29488,6 +29488,17 @@
       "note": "Notes say 'Learning'; the prefix-sum-hashmap drill ran clean and all assertions passed.",
       "summary": "countSubarrays keeps a running prefix sum and a defaultdict D seeded with D[0]=1, then at each element adds D[prefix-target] to res before recording D[prefix]. This is the prefix-sum-hashmap shape: query the past for prefix-k, then record the present prefix. The drill's required node executed correctly and all assertions passed; the notes mark the work as 'Learning'.",
       "seconds": 205
+    },
+    "solved/d_Companies_Among_2026_09_22T19_38_27_231581_00_00Z.py": {
+      "date": "2026-09-23",
+      "problem": "drill",
+      "moves": {
+        "union-find": "clean",
+        "set-membership": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The Solution subclasses UnionFind and counts distinct companies by mapping each employee through self.find(x) and taking len(set(...)) of the resulting roots. This exercises the union-find find operation to resolve each node to its representative, plus set-membership to deduplicate roots. The assertions cover two heads, a post-union single head, empty input, a repeated employee, and 1000 unmerged employees, all passing with output 2.",
+      "seconds": 63
     }
   }
 }
