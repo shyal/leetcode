@@ -29574,6 +29574,20 @@
       "note": "The count <= 10**4 guard is a redundant safety bound; the fast/slow meeting detection is the actual cycle test.",
       "summary": "The code runs slow and fast pointers from head, advancing slow by one and fast by two, and returns True when they meet, otherwise False when fast runs off the end. It exercises fast-slow-pointers and the floyd-cycle meeting detection, with a count guard capping iterations at 10**4. The file executed cleanly and LeetCode reports Accepted (46 ms, 22.7 MB); the notes are empty. It uses only two pointer variables, so it meets the O(1) memory follow-up.",
       "seconds": 366
+    },
+    "solved/p1854_Maximum_Population_Year_2026_09_22T20_35_18_327164_00_00Z.py": {
+      "date": "2026-09-23",
+      "problem": "1854",
+      "moves": {
+        "event-sweep": "clean",
+        "counting-sort-buckets": "clean",
+        "running-sum": "clean",
+        "running-extreme": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Canonical counter-build/dict-arbitrary-value sidestepped by a difference-array event sweep over a fixed 3000-slot bucket array.",
+      "summary": "The code builds a fixed 3000-slot difference array, adds +1 at each birth and -1 at each death, then scans the buckets accumulating a running count and tracking the year where the count first exceeds the running maximum. This exercises event-sweep, counting-sort-buckets, running-sum, and running-extreme rather than the canonical Counter/dict approach. The run exited 0 and LeetCode reports Accepted (8 ms, 19.2 MB); the notes are empty.",
+      "seconds": 516
     }
   }
 }
