@@ -29645,6 +29645,19 @@
       "note": "LEETCODE: Accepted (235 ms, 92.1 MB); the 500-length stress assertions are commented out, so the memoized recursion is not shown to meet the constraint bound.",
       "summary": "The code defines helper(a, b) over suffixes of the two strings: if the last characters match it recurses on both shortened by one, otherwise it takes the min of deleting from either side plus one, with @cache memoizing the two-prefix states. This exercises two-sequence-align and the state formulation directly, and the memoization keeps it linear in the number of (i, j) pairs. All active assertions pass and LeetCode reports Accepted; the large 500-character stress tests are commented out.",
       "seconds": 185
+    },
+    "solved/p72_Edit_Distance_2026_09_22T21_41_18_996270_00_00Z.py": {
+      "date": "2026-09-23",
+      "problem": "72",
+      "moves": {
+        "memoize-recursion": "clean",
+        "dp-state-formulate": "clean",
+        "two-sequence-align": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Top-down @cache recursion over (a, b) suffixes; LeetCode Accepted (51 ms, 29.2 MB).",
+      "summary": "The solution defines a cached helper(a, b) over suffixes of the two strings: empty-base returns the other length, equal last characters recurse on both trimmed, otherwise it takes the min of delete-from-a, delete-from-b, and substitute plus one. This exercises memoize-recursion, dp-state-formulate, and two-sequence-align, and all assertions pass with LeetCode Accepted. The notes are empty, so no assist or recognition misses are recorded.",
+      "seconds": 55
     }
   }
 }
