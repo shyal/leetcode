@@ -29058,6 +29058,23 @@
       "note": "Drill targets prefix-sums; accumulate builds the prefix array and each query is acc[b] - acc[a-1] (guarded for a==0).",
       "summary": "The code builds a prefix-sum array with accumulate(nums), then answers each (a, b) query as acc[b] minus acc[a-1], using 0 when a is 0. This exercises the prefix-sums move directly: any range sum is the difference of two prefixes. The file ran and printed [6, 9, 1], matching the expected output.",
       "seconds": 70
+    },
+    "solved/d_Subarrays_Summing_To_Target_2026_09_22T00_08_34_204459_00_00Z.py": {
+      "date": "2026-09-22",
+      "problem": "drill",
+      "moves": {
+        "prefix-sum-hashmap": "clean",
+        "streaming-ask-then-record": "clean",
+        "derived-key-lookup": "clean",
+        "running-sum": "clean"
+      },
+      "assist": {
+        "prefix-sum-hashmap": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say 'Learning'; the prefix-sum-hashmap drill ran and printed 3.",
+      "summary": "The code keeps a running prefix sum and a defaultdict counting how many times each prefix has been seen, seeded with D[0]=1. At each value it adds D[prefix - target] to res, then records the current prefix, which is the prefix-sum-hashmap move with the derived key prefix-target. The file executed and printed 3; the notes mark it as Learning.",
+      "seconds": 370
     }
   }
 }
