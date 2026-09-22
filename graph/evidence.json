@@ -29169,6 +29169,22 @@
       "note": "Drill targets binary-search-on-answer; the code implements the last-true boundary template with mid=(lo+hi+1)//2 and returns lo.",
       "summary": "The Solution.lastTrue method binary-searches the last index where the predicate ok(mid) holds, using the upper-mid rounding (lo+hi+1)//2 so lo advances to mid on success and hi drops to mid-1 on failure, returning lo. The assertions confirm the boundary cases (all-true, all-false, single point, 1e9 range) and that the call count stays within 31, i.e. logarithmic. This exercises the binary-search-boundary move, the last-true variant of the binary-search-on-answer family.",
       "seconds": 60
+    },
+    "solved/p410_Split_Array_Largest_Sum_2026_09_22T03_37_16_526008_00_00Z.py": {
+      "date": "2026-09-22",
+      "problem": "410",
+      "moves": {
+        "binary-search-on-answer": "clean",
+        "running-sum": "clean"
+      },
+      "assist": {
+        "binary-search-on-answer": "hint",
+        "running-sum": "hint"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Accepted (7 ms, 19.5 MB); notes say a hint revealed the binary-search-on-answer framing and a second hint pointed at the running sum.",
+      "summary": "The solution calls first_true over a guessed capacity, using min_chunks(nums, x) <= k as the monotone predicate, so the answer is found by binary search on the answer space. The feasibility check inside min_chunks is the running-sum/greedy split that accumulates until the capacity is exceeded. The notes say the candidate took a hint that the solution is binary search, and another hint to use a running sum, and describe the canSplit(cap) = split(cap) <= k step as a leap in intuition.",
+      "seconds": 3312
     }
   }
 }

@@ -2,6 +2,7 @@ import inspect
 import shutil
 import sys
 from bisect import bisect_left
+from math import inf
 from typing import Any, Callable, Optional
 
 from rich import print
@@ -222,3 +223,21 @@ def last_false(lo: int, hi: int, ok: Callable[[int], bool]) -> int:
 
     Returns lo - 1 when ok is True on the whole range."""
     return first_true(lo, hi, ok) - 1
+
+
+def min_chunks(nums: list[int], cap: int) -> float:
+    """Fewest contiguous chunks of nums with every chunk summing to at most cap.
+
+    Greedy: extend the current chunk while it fits, cut when the next number
+    would push it past cap. Returns inf when a single number exceeds cap."""
+    total = 0
+    chunks = 1
+    for n in nums:
+        if n > cap:
+            return inf
+        if total + n > cap:
+            chunks += 1
+            total = n
+        else:
+            total += n
+    return chunks

@@ -311,6 +311,7 @@ builtins.first_true = first_true
 builtins.last_true = last_true
 builtins.first_false = first_false
 builtins.last_false = last_false
+builtins.min_chunks = min_chunks
 builtins.draw_ascii_graph = draw_ascii_graph
 builtins.draw_graphviz = draw_graphviz
 builtins.draw_graph = draw_graph
