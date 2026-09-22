@@ -80,6 +80,13 @@ Largest x in [lo, hi] with ok(x) False; ok is False then True.
 
 Returns lo - 1 when ok is True on the whole range.
 
+### `min_chunks(nums: list[int], cap: int) -> float`
+
+Fewest contiguous chunks of nums with every chunk summing to at most cap.
+
+Greedy: extend the current chunk while it fits, cut when the next number
+would push it past cap. Returns inf when a single number exceeds cap.
+
 ### `draw_ascii_graph(graph: Dict[Any, Union[Dict[Any, Any], List[Any]]]) -> None`
 
 Utility function to draw a graph (stored as dict of dicts or dict of lists) in the terminal using PHART for ASCII rendering.
@@ -152,6 +159,16 @@ one into b. Default is a defaultdict(int), any node reading 0; with n,
 nodes 0 to n - 1 are all keys. type=list needs n and returns a plain
 list. reverse reads each edge as b to a. directed=False counts the edge
 into a as well, so the result is the plain degree of every node.
+
+### `levels(q: Deque[Any], grouped: bool = False) -> Iterator[Tuple[int, Any]]`
+
+Level-order BFS over a deque the caller keeps pushing onto.
+
+Yields (d, item) for every item popped, where d is the level the item
+was pushed at, starting from 0 for the items already in q. The caller
+appends the next level's items to q inside the loop body and keeps
+its own seen set. With grouped=True yields (d, items) once per level,
+items being the whole level as a list.
 
 ### `build_nary_tree(arr: List[Optional[int]]) -> Optional[Node]`
 
@@ -239,6 +256,14 @@ Every helper is called somewhere in the source of cls.
 Raises AssertionError naming the first helper cls never calls. The
 check reads the class as written, so it lives in the test block of a
 solve and goes with the asserts, never to leetcode.
+
+### `avoids(cls: type, *helpers: Callable[..., Any]) -> bool`
+
+No helper is called anywhere in the source of cls.
+
+The mirror of uses: for a drill whose rep is writing the helper by
+hand, so a call to the library version is a fail. Raises
+AssertionError naming the first helper cls calls.
 
 ### `triples(n: int, type: Maker = tuple) -> Iterator[Any]`
 
