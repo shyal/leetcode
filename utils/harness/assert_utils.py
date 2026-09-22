@@ -31,13 +31,36 @@ def uses(cls: type, *helpers: Callable[..., Any]) -> bool:
     check reads the class as written, so it lives in the test block of a
     solve and goes with the asserts, never to leetcode.
     """
-    tree = ast.parse(inspect.getsource(cls))
-    called = {
-        node.func.id
-        for node in ast.walk(tree)
-        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
-    }
+    called = _calls(cls)
     for h in helpers:
         if h.__name__ not in called:
             raise AssertionError(f"{cls.__name__} never calls {h.__name__}")
     return True
+
+
+def avoids(cls: type, *helpers: Callable[..., Any]) -> bool:
+    """No helper is called anywhere in the source of cls.
+
+    The mirror of uses: for a drill whose rep is writing the helper by
+    hand, so a call to the library version is a fail. Raises
+    AssertionError naming the first helper cls calls.
+    """
+    called = _calls(cls)
+    for h in helpers:
+        if h.__name__ in called:
+            raise AssertionError(f"{cls.__name__} calls {h.__name__}")
+    return True
+
+
+def _calls(cls: type) -> set[str]:
+    """The names called in the source of cls: f(...) and m.f(...) both as f."""
+    tree = ast.parse(inspect.getsource(cls))
+    called = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        if isinstance(node.func, ast.Name):
+            called.add(node.func.id)
+        elif isinstance(node.func, ast.Attribute):
+            called.add(node.func.attr)
+    return called

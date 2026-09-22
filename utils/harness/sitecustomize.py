@@ -347,6 +347,7 @@ builtins.pairs = pairs
 builtins.same_rows = same_rows
 builtins.same_seq = same_seq
 builtins.uses = uses
+builtins.avoids = avoids
 builtins.triples = triples
 
 # utilities

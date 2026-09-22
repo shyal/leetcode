@@ -27,9 +27,10 @@ Constraints:
     ok(hi) is True.
     ok is False for a prefix of [lo, hi] and True for the rest.
 
-    REQUIRED: must call ok O(log(hi - lo)) times. NO scan from lo. The
-    loop must end on every input; a step that leaves lo and hi unchanged
-    is a fail.
+    REQUIRED: must write the loop over lo and hi yourself and call ok
+    O(log(hi - lo)) times. NO scan from lo. NO first_true, NO last_true,
+    NO first_false, NO last_false, NO bisect. The loop must end on every
+    input; a step that leaves lo and hi unchanged is a fail.
 """
 
 
@@ -56,3 +57,4 @@ print(sol.firstTrue(1, 100, lambda x: x * x >= 50))  # 8
 # calls = []
 # assert sol.firstTrue(1, 10**9, lambda x: calls.append(x) or x >= 5) == 5
 # assert len(calls) <= 31
+# assert avoids(Solution, first_true, last_true, first_false, last_false, bisect_left, bisect_right)
