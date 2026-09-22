@@ -32,6 +32,24 @@ pub fn parse_date(s: &str) -> NaiveDate {
     NaiveDate::parse_from_str(s, "%Y-%m-%d").unwrap_or_else(|_| panic!("bad date {s:?}"))
 }
 
+/// The moment a solved/ file was filed, as text that sorts in time order:
+/// "2026-09-21T02:52:00" read from a name make solved wrote, in either
+/// case. A name with no timestamp (the test fixtures) gives the record's
+/// date alone, which sorts before every stamp of that day.
+pub fn filed_at(fname: &str, date: &str) -> String {
+    static RE: std::sync::OnceLock<regex::Regex> = std::sync::OnceLock::new();
+    let re = RE.get_or_init(|| {
+        regex::Regex::new(r"(\d{4})_(\d{2})_(\d{2})[Tt](\d{2})_(\d{2})_(\d{2})").unwrap()
+    });
+    match re.captures(fname) {
+        Some(c) => format!(
+            "{}-{}-{}T{}:{}:{}",
+            &c[1], &c[2], &c[3], &c[4], &c[5], &c[6]
+        ),
+        None => date.to_string(),
+    }
+}
+
 /// kg_lib.rs_bin: the Rust binary `name` of the utils/rs workspace, next to
 /// the running one (they are built together), else under target/release.
 pub fn rs_bin(root: &Path, name: &str) -> PathBuf {

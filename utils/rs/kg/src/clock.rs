@@ -13,7 +13,7 @@ use std::collections::HashMap;
 use chrono::{Duration, NaiveDate};
 
 use crate::ctx::{Ctx, PView};
-use crate::data::{is_numeric_id, parse_date, pnum_key, Rec};
+use crate::data::{filed_at, is_numeric_id, parse_date, pnum_key, Rec};
 use crate::drills::{anki_due, ANKI_HARD_FACTOR};
 use crate::evidence::Evidence;
 
@@ -155,9 +155,14 @@ pub fn problem_due(ev: &Evidence, pnum: &str) -> Option<(NaiveDate, i64)> {
 /// its card is open and the last graded attempt was an unaided clean
 /// one. Returns the recovery date.
 pub fn recovered_on(ev: &Evidence, pnum: &str) -> Option<NaiveDate> {
+    recovered_at(ev, pnum).map(|(_, d)| d)
+}
+
+/// recovered_on with the moment the recovering file was filed in front.
+pub fn recovered_at(ev: &Evidence, pnum: &str) -> Option<(String, NaiveDate)> {
     problem_due(ev, pnum)?;
-    let (when, label) = last_attempt(ev, pnum)?;
-    (label == "clean").then_some(when)
+    let (filed, when, label) = last_attempt_filed(ev, pnum)?;
+    (label == "clean").then_some((filed, when))
 }
 
 /// The moves the recovery has to hold: of the moves the recovering solve
@@ -239,10 +244,16 @@ pub fn due_problems(
 
 /// kg_lib.last_attempt: (date, label) of the latest graded attempt.
 pub fn last_attempt(ev: &Evidence, pnum: &str) -> Option<(NaiveDate, String)> {
+    last_attempt_filed(ev, pnum).map(|(_, d, label)| (d, label))
+}
+
+/// last_attempt with the moment the file was filed (data::filed_at) in
+/// front, for the same-day comparisons a date alone cannot make.
+pub fn last_attempt_filed(ev: &Evidence, pnum: &str) -> Option<(String, NaiveDate, String)> {
     for (d, fname, i) in problem_attempts(ev, pnum).into_iter().rev() {
         let rec = ev.rec(i);
         if problem_grade(fname, rec).is_some() {
-            return Some((parse_date(d), attempt_label(fname, rec)));
+            return Some((filed_at(fname, d), parse_date(d), attempt_label(fname, rec)));
         }
     }
     None

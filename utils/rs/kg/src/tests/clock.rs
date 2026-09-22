@@ -609,6 +609,46 @@ fn a_recovery_waits_on_the_drill_under_the_move_it_recovered() {
     assert!(reason(&fx.run(&ev2, &st, args())).contains("shows it held"));
 }
 
+/// The clean rep served right after the recovery, the same day, is the
+/// rep the wait asked for: since the recovery means since the recovering
+/// file was filed, to the second, not since that day. 543 recovered at
+/// 05:39 and d68 was served under it at 10:52; on dates alone the wait
+/// held and served d68 again the next morning (2026-09-22).
+#[test]
+fn a_drill_rep_later_the_same_day_frees_the_recovery() {
+    let mut fx = Fx::picker();
+    fx.nodes(&["q1"]).problem("1", problem(&["q1"]));
+    let path = fx.bank("q1", "Under Q1", "a.py", "d1", &[]);
+    let day = iso(0).replace('-', "_");
+    let recovered = (
+        format!("solved/p1_Named_{day}T05_39_31_579135_00_00Z.py"),
+        solve("1", &[("q1", "clean")], 0).1,
+    );
+    let base = vec![assisted("1", &[("q1", "clean")], 10), recovered];
+    assert_eq!(recovered_on(&evidence(base.clone()), "1"), Some(today()));
+    // the drill rep before the recovery that morning: still waiting
+    let mut ev1 = base.clone();
+    ev1.push(drill_file(
+        &format!("solved/d_Under_Q1_{day}T02_52_00_170272_00_00Z.py"),
+        "q1",
+        0,
+        Assist::None,
+    ));
+    assert_eq!(
+        recovery_wait(&fx.ctx(), &evidence(ev1), "1"),
+        Some(path.clone())
+    );
+    // the drill rep after it: the wait is met
+    let mut ev2 = base.clone();
+    ev2.push(drill_file(
+        &format!("solved/d_Under_Q1_{day}T10_52_00_170272_00_00Z.py"),
+        "q1",
+        0,
+        Assist::None,
+    ));
+    assert_eq!(recovery_wait(&fx.ctx(), &evidence(ev2), "1"), None);
+}
+
 /// A recovered problem whose move has no bank file waits on nothing and
 /// is named for the footer, so a drill gets built under it.
 #[test]
