@@ -29336,6 +29336,23 @@
       "note": "LEETCODE: Accepted (731 ms, 19.7 MB); counts_match re-scans the whole tcount each window check, but the O(m+n) bound is met since tcount size is bounded by the alphabet.",
       "summary": "The code builds a Multiset of t and a running Multiset of the current window, then grows right and shrinks left while counts_match confirms every required character count is satisfied, recording the shortest substring. It exercises counter-build, counter-multiset-ops (the counts_match comparison), and a variable sliding window with streaming ask-then-record bookkeeping. The notes are empty and LeetCode reports Accepted.",
       "seconds": 1056
+    },
+    "solved/p1674_Minimum_Moves_to_Make_Array_Complementary_2026_09_22T08_26_37_252223_00_00Z.py": {
+      "date": "2026-09-22",
+      "problem": "1674",
+      "moves": {
+        "two-pointers-converging": "clean",
+        "solve-pair-condition": "clean",
+        "prefix-sums": "struggled"
+      },
+      "assist": {
+        "two-pointers-converging": "walkthrough",
+        "solve-pair-condition": "walkthrough"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Time Limit Exceeded (63/114 cases) \u2014 the O(limit * n) brute force over every target T stands in for the missing difference-array/prefix-sum sweep; notes say assisted with inattention errors like confusing a,b with lo,hi.",
+      "summary": "The code pairs nums[i] with nums[~i], computes for each pair the target range [min+1, max+limit] where one move suffices, and sums the per-target cost over all pairs, then takes the minimum over every candidate target T from 2 to 2*limit. It exercises the converging two-pointer pairing and the algebraic solve-for-target cost function correctly, but recomputes the full cost for each T instead of accumulating a difference array, so it times out on LeetCode (63/114). The notes say the work was assisted and that the errors were inattention slips like swapping a,b with lo,hi.",
+      "seconds": 1605
     }
   }
 }

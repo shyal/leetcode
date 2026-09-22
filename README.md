@@ -24,13 +24,13 @@ Right of the dotted line is a simulation: the picker running on its own for six 
 
 <!-- PROBLEM_RATING_CHART -->
 
-![Rating of the problems attempted](https://shyal.s3.amazonaws.com/problem_rating_20260922041843.svg)
+![Rating of the problems attempted](https://shyal.s3.amazonaws.com/problem_rating_20260922082821.svg)
 
 <!-- /PROBLEM_RATING_CHART -->
 
 <!-- PROBLEM_RATING_MONTH_CHART -->
 
-![Rating of the problems attempted in the last 30 days](https://shyal.s3.amazonaws.com/problem_rating_month_20260922041843.svg)
+![Rating of the problems attempted in the last 30 days](https://shyal.s3.amazonaws.com/problem_rating_month_20260922082821.svg)
 
 <!-- /PROBLEM_RATING_MONTH_CHART -->
 
@@ -50,7 +50,7 @@ Extrapolating noisy data. What could go wrong.
 
 <!-- ONSITE_CHART -->
 
-![Elo history and its projection to the onsite line, on dates](https://shyal.s3.amazonaws.com/onsite_20260922041843.svg)
+![Elo history and its projection to the onsite line, on dates](https://shyal.s3.amazonaws.com/onsite_20260922082821.svg)
 
 <!-- /ONSITE_CHART -->
 
@@ -60,7 +60,7 @@ If the blue line is above 0, i'm performing better than the model expects, and v
 
 <!-- PROGRESS_CHART -->
 
-![Actual minus model on the last 30 first sights](https://shyal.s3.amazonaws.com/progress_20260922041843.svg)
+![Actual minus model on the last 30 first sights](https://shyal.s3.amazonaws.com/progress_20260922082821.svg)
 
 <!-- /PROGRESS_CHART -->
 
@@ -68,7 +68,7 @@ If the blue line is above 0, i'm performing better than the model expects, and v
 
 <!-- BACKLOG_CHART -->
 
-![Backlog and forecast: review cards, solves by kind, STALE and FRAGILE nodes](https://shyal.s3.amazonaws.com/backlog_20260922041843.svg)
+![Backlog and forecast: review cards, solves by kind, STALE and FRAGILE nodes](https://shyal.s3.amazonaws.com/backlog_20260922082821.svg)
 
 <!-- /BACKLOG_CHART -->
 
