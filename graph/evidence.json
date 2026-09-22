@@ -29688,6 +29688,17 @@
       "note": "LeetCode: Accepted (1531 ms, 44.4 MB)",
       "summary": "The code builds a 2D dp table over the two arrays (padded with sentinel rows/columns) and fills each cell with dp[i-1][j-1]+1 when a[i]==b[j], tracking the running maximum. This is the two-sequence-alignment recurrence specialized to a contiguous-match (subarray) variant, laid out as a 2D grid DP. The run exited 0 and LeetCode reports Accepted.",
       "seconds": 412
+    },
+    "solved/p516_Longest_Palindromic_Subsequence_2026_09_22T22_45_40_310683_00_00Z.py": {
+      "date": "2026-09-23",
+      "problem": "516",
+      "moves": {
+        "two-sequence-align": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Delegates to the harness-provided lcs helper; LeetCode verdict Accepted (2705 ms, 405.1 MB).",
+      "summary": "The solution reduces the problem to a two-sequence alignment: it calls lcs(s, s[::-1], type=str) and returns the length of the result, so the longest palindromic subsequence equals the LCS of the string with its reverse. The only taxonomy move exercised is two-sequence-align, and it is exercised by the helper rather than by an in-file DP table. All local assertions pass and the notes record LeetCode Accepted at 2705 ms / 405.1 MB.",
+      "seconds": 147
     }
   }
 }
