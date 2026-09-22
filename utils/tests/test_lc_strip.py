@@ -32,6 +32,7 @@ DRAWING_INSIDE_THE_CLASS = {
     "p767_Reorganize_String_2025_10_14T02_37_54_600554_00_00Z.py": "draw_heap",
     "p802_Find_Eventual_Safe_States_2025_11_05T10_18_05_709286_00_00Z.py": "draw_graphviz",
     "p86_Partition_List_2025_10_09T20_38_35_470961_00_00Z.py": "draw_linked_list",
+    "p934_Shortest_Bridge_FAILED_2026_09_21T02_27_04_827297_00_00Z.py": "tabulate",
     "p947_Most_Stones_Removed_with_Same_Row_or_Column_2025_11_04T23_13_11_644520_00_00Z.py": "draw_graphviz",
     "p973_K_Closest_Points_to_Origin_2025_10_14T03_32_17_909605_00_00Z.py": "draw_heap",
 }

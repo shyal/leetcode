@@ -330,6 +330,8 @@ fn a_file_due_on_the_clock_outranks_every_other_rule() {
     let ev = evidence(vec![
         solve("1", &[("a", "clean")], 2),
         solve("2", &[("b", "clean")], 20),
+        // a rep of it three days ago: waiting, not aged (aging, below)
+        drill_rep("Any Drill", "b", 3),
     ]);
     let st = statuses(&[
         ("a", SOLID, Some(2)),
@@ -787,10 +789,16 @@ fn a_studied_problem_is_not_re_served_before_its_card_is_due() {
     fx.nodes(&["q1"])
         .problems(vec![("1", problem(&["q1"])), ("2", problem(&["q1"]))]);
     let st = statuses(&[("q1", STALE, Some(60))]);
-    let ev = evidence(vec![solve("2", &[("q1", "clean")], 60), studied("1", 1)]);
+    // the drill rep three days ago: q1 is waiting, not aged (aging, below)
+    let ev = evidence(vec![
+        solve("2", &[("q1", "clean")], 60),
+        drill_rep("Any Drill", "q1", 3),
+        studied("1", 1),
+    ]);
     assert_ne!(pnum(&fx.run(&ev, &st, args())), "1");
     let ev = evidence(vec![
         solve("2", &[("q1", "clean")], 60),
+        drill_rep("Any Drill", "q1", 3),
         studied("1", PROBLEM_GRADUATING_DAYS),
     ]);
     assert_eq!(pnum(&fx.run(&ev, &st, args())), "1");
@@ -862,7 +870,75 @@ fn a_review_outranks_the_spaced_re_solve_of_a_stale_move() {
     let ev = evidence(vec![
         assisted("1", &[("q1", "clean")], 30),
         solve("2", &[("q2", "clean")], 60),
+        // a rep of it three days ago: waiting, not aged (aging, below)
+        drill_rep("Any Drill", "q2", 3),
     ]);
+    assert_eq!(pnum(&fx.run(&ev, &st, args())), "1");
+}
+
+// --------------------------------------------------------------------------
+// aging: a due move that lost every pick for AGING_DAYS days goes first
+// --------------------------------------------------------------------------
+
+/// 2026-09-22: a stale move sat 26 days behind 24 due problem reviews,
+/// since rule 2c fires before the first stale move on every pick and the
+/// day ran out of hours before the reviews ran out. A due move that has
+/// waited AGING_DAYS days with nothing aimed at it is served first; a rep
+/// of it three days ago, of any verdict, means it is waiting, not aged.
+#[test]
+fn a_stale_move_that_waited_a_week_outranks_the_reviews() {
+    let mut fx = Fx::picker();
+    fx.nodes(&["q1", "q2"])
+        .problems(vec![("1", problem(&["q1"])), ("2", problem(&["q2"]))]);
+    let st = statuses(&[("q1", SOLID, Some(1)), ("q2", STALE, Some(60))]);
+    let mut ev = vec![
+        assisted("1", &[("q1", "clean")], 30),
+        solve("2", &[("q2", "clean")], 60),
+    ];
+    assert_eq!(
+        t3(&fx.run(&evidence(ev.clone()), &st, args())),
+        tup("q2", STALE, "2")
+    );
+    ev.push(drill_rep("Any Drill", "q2", 3));
+    assert_eq!(pnum(&fx.run(&evidence(ev), &st, args())), "1");
+}
+
+/// The clock too: a young sql move at its floor never got its rep because
+/// the clock filled the group's two daily slots every morning.
+#[test]
+fn an_aged_move_takes_the_first_slot_before_the_clock() {
+    let mut fx = Fx::picker();
+    test_env("DRILL_SCHEDULER", "anki");
+    test_env("KG_GROUP_CAP", "sql=1");
+    fx.nodes(&["a", "b"])
+        .group(&["a", "b"], "sql")
+        .problems(vec![("1", problem(&["a"])), ("2", problem(&["b"]))]);
+    let st = statuses(&[("a", SOLID, Some(2)), ("b", STALE, Some(60))]);
+    let ev = evidence(vec![
+        solve("1", &[("a", "clean")], 2),
+        solve("2", &[("b", "clean")], 60),
+    ]);
+    fx.stubs().clock = vec![(PathBuf::from("drills/a/a.py"), "a".into())];
+    assert_eq!(t3(&fx.run(&ev, &st, args())), tup("b", STALE, "2"));
+    // the cap still counts: one sql rep today and the group is done
+    let ev = evidence(vec![
+        solve("1", &[("a", "clean")], 2),
+        solve("2", &[("b", "clean")], 60),
+        solve("2", &[("b", "struggled")], 0),
+    ]);
+    assert!(fx.run(&ev, &st, args().exclude(&["2"])).is_none());
+}
+
+/// A move never met is new ground, the frontier's last kind by design:
+/// it does not age, however long its prereqs have been solid.
+#[test]
+fn a_move_never_met_does_not_age() {
+    let mut fx = Fx::picker();
+    fx.nodes(&["p", "m"])
+        .prereqs("m", &["p"])
+        .problems(vec![("1", problem(&["p"])), ("2", problem(&["p", "m"]))]);
+    let st = statuses(&[("p", SOLID, Some(30)), ("m", MISSING, None)]);
+    let ev = evidence(vec![assisted("1", &[("p", "clean")], 30)]);
     assert_eq!(pnum(&fx.run(&ev, &st, args())), "1");
 }
 

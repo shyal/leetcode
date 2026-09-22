@@ -8,6 +8,24 @@
 // moved here.)
 //
 // Picking rules (same preference order the /next coach uses):
+//   AGING (2026-09-22): a due move that has been due AGING_DAYS days in a
+//      row with nothing aimed at it (waiting, the same count make next
+//      reports as starved at STARVED_DAYS) is served first, ahead of the
+//      clock and the review queue, longest wait first. Every rule below
+//      ranks something above something else, and each of those is right
+//      one pick at a time; what none of them sees is the move that loses
+//      every time. Three did on 2026-09-22: a stale move behind 24
+//      problem reviews (rule 2c fires before the first stale move on every
+//      pick, and the day ran out of hours before the reviews ran out), a
+//      young sql move at its floor behind a group cap the clock filled
+//      every morning, and a stale move with no bank behind both. The
+//      served move is whatever its kind would get anywhere else in the
+//      frontier (serve: its drill, the drill opening its hold, a carrier);
+//      a move nothing can serve is skipped, so an unservable move never
+//      holds the clock. Under the group cap: the cap still counts, aging
+//      only takes the first slot of the day before the clock does. A
+//      move with no evidence at all is new ground, the frontier's last
+//      kind by design, and does not age.
 //   THE CLOCK (DRILL_SCHEDULER=anki, .envrc): every bank file keeps an SM-2
 //      clock of its own (drills::anki_due), and a file due on its clock is
 //      served before anything below - before the plan, the session-start
@@ -207,8 +225,8 @@ use crate::recog;
 use crate::status::{
     all_statuses, cooled, current_recall, gentleness, input_tree, is_solid, last_solved,
     latest_carrier, node_degree, node_status, owned, rank_summits, route_gaps, st, tree_size,
-    Status, Statuses, CARRIER_COOLDOWN_DAYS, DEEP_STALE_DAYS, FRAGILE, MISSING, SOLID, STALE,
-    STARVED_DAYS,
+    Status, Statuses, AGING_DAYS, CARRIER_COOLDOWN_DAYS, DEEP_STALE_DAYS, FRAGILE, MISSING, SOLID,
+    STALE, STARVED_DAYS,
 };
 use seam::{
     anki_due, anki_frontier, drill_gated, due_drill, graduation_due, has_drill_bank,
@@ -1383,35 +1401,7 @@ pub fn pick(
         .map(|(g, _)| g.clone())
         .collect();
 
-    // the clock
-    if anki() {
-        let scope: Vec<String> = ctx
-            .nodes
-            .keys()
-            .filter(|n| args.group.is_none() || ctx.group_of(n) == args.group.as_deref())
-            .cloned()
-            .collect();
-        for (path, node) in anki_frontier(ctx, ev, today, None, Some(&scope), args.assisted) {
-            let drill_id = format!("drill:{node}");
-            if args.exclude.contains(&drill_id) || !statuses.contains_key(&node) {
-                continue;
-            }
-            if ctx.group_of(&node).is_some_and(|g| capped.contains(g)) {
-                continue;
-            }
-            if drill_capped(ctx, &path, ev, today) {
-                continue;
-            }
-            return Some(Choice::new(
-                &node,
-                statuses[&node].0,
-                &drill_id,
-                drill_clock_reason(ctx, Some(&path), ev, today),
-            ));
-        }
-    }
-
-    ptrace("clock", t);
+    ptrace("caps", t);
     let t = std::time::Instant::now();
     let (immature, degrees, carr, unl, gain) = {
         let p = pv.borrow();
@@ -1470,6 +1460,65 @@ pub fn pick(
         kind_memo: RefCell::new(HashMap::new()),
         opener_memo: RefCell::new(HashMap::new()),
     };
+
+    // aging: the move that has lost every pick for AGING_DAYS days; a
+    // move never met is the frontier's new ground, not a wait
+    let mut aged: Vec<(String, i64)> = {
+        let p = pv.borrow();
+        waiting(ctx, &p, ev, today, AGING_DAYS, STARVED_DAYS)
+    };
+    aged.retain(|(n, days)| {
+        picker.in_scope(n)
+            && picker.kind(n).is_some()
+            && !ev.node_entries(n).is_empty()
+            // the wait started after the status's own last date
+            && picker.status(n).1.is_none_or(|l| (today - l).num_days() >= *days)
+    });
+    aged.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
+    let aged_ids: Vec<String> = aged.iter().map(|(n, _)| n.clone()).collect();
+    for (n, days) in &aged {
+        if let Some(mut c) = picker.serve(n, &aged_ids) {
+            if ctx.group_of(&c.target).is_some_and(|g| capped.contains(g)) {
+                continue;
+            }
+            c.reason = format!("due {days} days with nothing aimed at it - {}", c.reason);
+            ptrace("aging", t);
+            return Some(c);
+        }
+    }
+    ptrace("aging", t);
+    let t = std::time::Instant::now();
+
+    // the clock
+    if anki() {
+        let scope: Vec<String> = ctx
+            .nodes
+            .keys()
+            .filter(|n| args.group.is_none() || ctx.group_of(n) == args.group.as_deref())
+            .cloned()
+            .collect();
+        for (path, node) in anki_frontier(ctx, ev, today, None, Some(&scope), args.assisted) {
+            let drill_id = format!("drill:{node}");
+            if args.exclude.contains(&drill_id) || !statuses.contains_key(&node) {
+                continue;
+            }
+            if ctx.group_of(&node).is_some_and(|g| capped.contains(g)) {
+                continue;
+            }
+            if drill_capped(ctx, &path, ev, today) {
+                continue;
+            }
+            return Some(Choice::new(
+                &node,
+                statuses[&node].0,
+                &drill_id,
+                drill_clock_reason(ctx, Some(&path), ev, today),
+            ));
+        }
+    }
+
+    ptrace("clock", t);
+    let t = std::time::Instant::now();
 
     // REVIEWS_FIRST=1: a due review outranks every other rule
     let mut reviewed = false;
@@ -2009,6 +2058,20 @@ pub fn due_on(
 /// kg_next.starved: {move: days} for every move due today that has been
 /// due STARVED_DAYS or more days in a row with no rep aimed at it.
 pub fn starved(ctx: &Ctx, pv: &PView, ev: &Evidence, today: NaiveDate) -> Vec<(String, i64)> {
+    waiting(ctx, pv, ev, today, STARVED_DAYS, 365)
+}
+
+/// {move: days} for every move due today that has been due `min_days` or
+/// more days in a row with no rep of it in that time; the count stops at
+/// `limit` days back.
+pub fn waiting(
+    ctx: &Ctx,
+    pv: &PView,
+    ev: &Evidence,
+    today: NaiveDate,
+    min_days: i64,
+    limit: i64,
+) -> Vec<(String, i64)> {
     let carr = pv.carrier_counts(ctx);
     let mut cache: HashMap<String, Evidence> = HashMap::new();
     let mut out = Vec::new();
@@ -2016,13 +2079,13 @@ pub fn starved(ctx: &Ctx, pv: &PView, ev: &Evidence, today: NaiveDate) -> Vec<(S
         let last = ev.node_entries(n).iter().map(|e| e.date).max();
         let (mut days, mut day) = (0i64, today);
         while last.is_none_or(|l| day > l)
-            && days < 365
+            && days < limit
             && due_on(ctx, n, ev, &carr, day, &mut cache)
         {
             days += 1;
             day -= Duration::days(1);
         }
-        if days >= STARVED_DAYS {
+        if days >= min_days {
             out.push((n.clone(), days));
         }
     }

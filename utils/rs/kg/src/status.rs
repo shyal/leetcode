@@ -38,6 +38,9 @@ pub type Statuses = HashMap<String, (Status, Option<NaiveDate>)>;
 
 pub const DEEP_STALE_DAYS: i64 = 2 * SOLID_WINDOW_DAYS;
 pub const STARVED_DAYS: i64 = 14;
+/// pick.rs, aging: a due move that has waited this many days in a row
+/// with nothing aimed at it is served ahead of the clock and the reviews
+pub const AGING_DAYS: i64 = STARVED_DAYS / 2;
 pub const MATURE_SPACING_DAYS: i64 = 5;
 pub const MATURE_CARRY_MEDIUMS: i64 = 2;
 pub const BREADTH_FULL: i64 = 3;

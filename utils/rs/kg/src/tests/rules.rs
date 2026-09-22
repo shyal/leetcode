@@ -769,6 +769,9 @@ fn a_drill_due_move_is_served_before_a_more_overdue_unbanked_one() {
     let ev = evidence(vec![
         solve("1", &[("banked", "clean")], 5),
         solve("2", &[("bare", "clean")], 40),
+        // a rep of it six days ago: waiting, not aged (clock.rs, aging),
+        // and its one carrier cooled
+        solve("2", &[("bare", "struggled")], 6),
     ]);
     let st = statuses(&[("banked", SOLID, Some(5)), ("bare", SOLID, Some(40))]);
     fx.stubs().bank = set(&["banked"]);

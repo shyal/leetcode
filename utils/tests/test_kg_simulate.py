@@ -17,7 +17,12 @@ Two guards on a 60-day run at a fixed pace and seed:
     got no drill from the stale rule; rule 0c gave up on a prereq that was
     itself held instead of climbing to the root of the chain; a node whose
     carriers wait on a problem with every move SOLID (310 after 210 after
-    207) had nothing re-solve that problem.
+    207) had nothing re-solve that problem. Three more failed it on
+    2026-09-22 and were fixed by one rule: a stale move behind 24 due
+    problem reviews, a young sql move at its floor behind a group cap the
+    clock filled every morning, and a stale move with no bank behind both.
+    A due move that has waited AGING_DAYS (7) days with nothing aimed at it
+    is now served first (pick.rs, aging).
 
 The run depends on graph/*.json and the fitted curve, both of which change
 with every solve, so the caps carry a margin over what was observed.
