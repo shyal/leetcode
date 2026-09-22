@@ -29449,6 +29449,17 @@
       "note": "BFS keyed on (node, distance) rather than node alone, so revisits at new depths are kept; levels() drives the layer-by-layer expansion.",
       "summary": "The Solution.reachable method runs a single BFS from node 0 using a deque seeded with (0,0) and a seen set of (node, distance) pairs, expanding neighbors only while d < k and recording each new (nxt, d+1). The levels() helper supplies the current depth and node per layer, so the visited key includes distance and revisits at a new depth are not dropped. All assertions pass, including the cycle case that yields (1,4) and the k=0 and self-loop cases.",
       "seconds": 939
+    },
+    "solved/d_Largest_Of_The_Last_K_2026_09_22T19_29_21_891781_00_00Z.py": {
+      "date": "2026-09-23",
+      "problem": "drill",
+      "moves": {
+        "monotonic-queue": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets monotonic-queue; the MonotonicQueue(Type.decreasing) push/popleft/front usage exercises it directly.",
+      "summary": "The solution wraps a MonotonicQueue in decreasing mode, pushing [value, index] pairs and popping the front when its index falls out of the k-window, then appending the front value as the running maximum. All assertions pass, including the negative and single-element cases. The monotonic-queue move is exercised cleanly via push, front, and popleft.",
+      "seconds": 157
     }
   }
 }
