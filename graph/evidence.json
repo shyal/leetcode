@@ -29309,6 +29309,18 @@
       "note": "LeetCode: Accepted (390 ms, 44.5 MB)",
       "summary": "The code pads both strings with a leading space and builds a 2D table via table(len(a), len(b)), then fills it with cells(dp, start=1): on a character match it takes dp[i-1][j-1]+1, otherwise the max of the left and top neighbors, returning dp[-1][-1]. This exercises the two-sequence alignment recurrence over a 2D DP grid with the state formulated as prefix lengths of the two strings. The run exited 0 and LeetCode reports Accepted (390 ms, 44.5 MB); the notes are empty.",
       "seconds": 441
+    },
+    "solved/p46_Permutations_2026_09_22T07_16_40_912818_00_00Z.py": {
+      "date": "2026-09-22",
+      "problem": "46",
+      "moves": {
+        "backtracking-choose-undo": "clean",
+        "backtracking-mark-unmark": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "helper(j+1) passes an unused index; the used[] flag, not the start index, drives candidate selection, so the recursion still enumerates all permutations.",
+      "summary": "The code builds permutations by recursing with a path list and a used[] boolean array: at each call it appends an unused nums[j], marks used[j], recurses, then unmarks and pops. This exercises backtracking-choose-undo (append/pop) and backtracking-mark-unmark (used[j] True/False) together, recording a copy of path when its length reaches len(nums). The file ran clean and LeetCode reports Accepted (3 ms, 19.8 MB); notes are empty.",
+      "seconds": 138
     }
   }
 }
