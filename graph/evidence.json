@@ -29256,6 +29256,23 @@
       "note": "LEETCODE: Accepted (0 ms, 19.3 MB); notes say 'Learning' and 'Drills built and problem gated.'",
       "summary": "The code builds a Counter of nums, then iterates its values keeping a running `left` count of elements already passed; for each distinct value c it computes right = n - left - c and adds left*c*right, the number of triplets with one element from each of the three groups. This is the batch pair-count-formula applied to group sizes, plus counter-build for the value frequencies. The notes mark the session as Learning and the LeetCode verdict is Accepted.",
       "seconds": 2231
+    },
+    "solved/p205_Isomorphic_Strings_2026_09_22T06_33_17_873866_00_00Z.py": {
+      "date": "2026-09-22",
+      "problem": "205",
+      "moves": {
+        "dict-arbitrary-value": "clean",
+        "bijection-check": "clean",
+        "set-membership": "clean"
+      },
+      "assist": {
+        "dict-arbitrary-value": "walkthrough",
+        "bijection-check": "walkthrough"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say 'Assisted' and describe placing the `b in paired_with.values()` check in the wrong block; LEETCODE: Accepted (15 ms, 22.5 MB).",
+      "summary": "The code zips s and t into pairs, then walks them building paired_with, a dict from each character of s to its image in t. On a first sighting of a it rejects the pair if b already appears among paired_with.values(); on a repeat it rejects if the stored image differs. This exercises dict-arbitrary-value and bijection-check (the values() scan enforces the one-to-one direction), plus a set-membership-style membership test; the notes say the candidate was assisted and initially put the values() check in the wrong block, and LeetCode accepted the submission.",
+      "seconds": 2042
     }
   }
 }
