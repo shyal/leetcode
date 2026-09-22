@@ -29391,6 +29391,17 @@
       "judge": "deepseek-chat",
       "summary": "The code builds a dummy node d pointing at head, walks curr through the list, and when curr.next.val equals val it re-links curr.next = curr.next.next to splice the node out, otherwise advances curr. This exercises the dummy-splice move directly, and the assertions cover head removal, all-equal, empty, and single-node cases. The notes say the approach was learned, and describe the splice as making the unwanted node unreachable rather than iterating over it.",
       "seconds": 367
+    },
+    "solved/d_First_False_2026_09_22T18_55_48_368701_00_00Z.py": {
+      "date": "2026-09-23",
+      "problem": "drill",
+      "moves": {
+        "binary-search-boundary": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets binary-search-on-answer; the code implements the first-false boundary template (lo=mid+1 on ok, hi=mid otherwise) and all assertions pass.",
+      "summary": "The Solution.firstFalse method runs a halving loop over [lo, hi), advancing lo past mid when ok(mid) is true and pulling hi down to mid otherwise, returning the first index where the predicate is false. It exercises the binary-search-boundary template, verified by the assertions including the 10**9 range and the <=31 call-count check. The file executed cleanly with no notes claiming help or recognition trouble.",
+      "seconds": 122
     }
   }
 }
