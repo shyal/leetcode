@@ -29088,6 +29088,18 @@
       "judge": "deepseek-chat",
       "summary": "The drill subclasses UnionFind and counts distinct companies by mapping each employee to its root via self.find(x) and taking len(set(...)). It exercises the union-find find/root-resolution move, and the assertions cover two heads, one head after a merge, empty input, duplicates, and fully disjoint sets. The notes mark this as Learning, indicating the solution was given and copied.",
       "seconds": 289
+    },
+    "solved/d_Claim_Or_Merge_2026_09_22T00_18_28_861757_00_00Z.py": {
+      "date": "2026-09-22",
+      "problem": "drill",
+      "moves": {
+        "union-find": "clean",
+        "dict-arbitrary-value": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill trains union-find; the email->first-account dict plus self.union on repeats merges accounts sharing an email.",
+      "summary": "The Solution subclasses UnionFind and walks each account's emails, storing the first account index seen for each email in res and calling self.union(account, res[email]) when an email reappears. The assertions confirm the merges: find(2)==0 and find(3)==1 in the first case, and the three-account shared-email case collapses to root 0. All assertions passed with exit 0.",
+      "seconds": 178
     }
   }
 }
