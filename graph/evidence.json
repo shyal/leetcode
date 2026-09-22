@@ -29364,6 +29364,20 @@
       "note": "REQUIRED comparison naming both ends met via order_date >= date('2024-03-01') and order_date <= date('2024-03-31'); no LIKE, no Python.",
       "summary": "The query selects id from Orders with a WHERE clause bounding order_date between date('2024-03-01') and date('2024-03-31'), using two comparisons that name both ends of the window. It exercises sql-filter-select and passed both example assertions, returning ids 2,3,4 and an empty result for the out-of-window year.",
       "seconds": 196
+    },
+    "solved/d_Revenue_Per_Product_2026_09_22T18_42_13_971913_00_00Z.py": {
+      "date": "2026-09-23",
+      "problem": "drill",
+      "moves": {
+        "sql-group-aggregate": "clean"
+      },
+      "assist": {
+        "sql-group-aggregate": "hint"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say the candidate first wrote sum(price)*sum(units) and was hinted to sum(price*units); the final query groups by product_id and sums the per-row product.",
+      "summary": "The query selects product_id and sum(price * units) as revenue from Sales, grouping by product_id, so the per-row product is formed before aggregation. It exercises the group-aggregate move with one aggregate per group. The notes say the candidate initially wrote sum(price) * sum(units) and was hinted to the correct per-row product form.",
+      "seconds": 347
     }
   }
 }
