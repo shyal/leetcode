@@ -29158,6 +29158,17 @@
       "note": "Drill targets binary-search-on-answer; the code implements the first-true boundary template with lo<hi, mid=(lo+hi)//2, hi=mid / lo=mid+1, returning lo.",
       "summary": "The Solution.firstTrue method binary-searches the range [lo, hi) for the first value where the predicate ok returns True, halving with mid=(lo+hi)//2 and moving hi=mid on success or lo=mid+1 otherwise, then returns lo. The assertions confirm boundary cases (single element, exact endpoints, 10**9 range) and that the call count stays within 31, i.e. logarithmic. This exercises the binary-search-boundary move; no notes indicate any assistance or recognition difficulty.",
       "seconds": 96
+    },
+    "solved/d_Last_True_2026_09_22T02_32_08_053602_00_00Z.py": {
+      "date": "2026-09-22",
+      "problem": "drill",
+      "moves": {
+        "binary-search-boundary": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets binary-search-on-answer; the code implements the last-true boundary template with mid=(lo+hi+1)//2 and returns lo.",
+      "summary": "The Solution.lastTrue method binary-searches the last index where the predicate ok(mid) holds, using the upper-mid rounding (lo+hi+1)//2 so lo advances to mid on success and hi drops to mid-1 on failure, returning lo. The assertions confirm the boundary cases (all-true, all-false, single point, 1e9 range) and that the call count stays within 31, i.e. logarithmic. This exercises the binary-search-boundary move, the last-true variant of the binary-search-on-answer family.",
+      "seconds": 60
     }
   }
 }
