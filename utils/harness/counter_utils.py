@@ -7,7 +7,7 @@ from collections import Counter
 from typing import Any
 
 
-class Multiset(Counter):  # type: ignore[type-arg]
+class Multiset(Counter[Any]):
     """A Counter whose keys vanish when their count hits 0.
 
     `m[k] += 1` and `m[k] -= 1` are the whole interface. With a plain
