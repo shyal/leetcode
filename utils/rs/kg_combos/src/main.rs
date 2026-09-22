@@ -1,0 +1,160 @@
+// kg_combos - serve a chain of problems in order, in one sitting.
+//
+//   kg_combos                          # list the chains in graph/chains/
+//   kg_combos two-sequence-align       # the chain, with what is done today
+//   kg_combos two-sequence-align prepare   # `make prepare` its next problem
+//
+// A chain file lists problems that fill the same table, ordered so each one
+// is one change from an earlier one. A problem counts as done when it has an
+// evidence record dated today. Its "change" line is printed only once it is
+// done: before the solve it would give away the move. `prepare` puts a
+// comment at the top of current.py naming the chain and where it is saved.
+
+use kg::console::Console;
+use kg::ctx::Ctx;
+use kg::data::{load_envrc, repo_root};
+use kg::evidence::Evidence;
+use kg::table::{print_table, Table};
+use serde_json::Value;
+use std::path::Path;
+
+const USAGE: &str = "usage: kg_combos [-h] [chain] [{prepare}]";
+
+struct Step {
+    id: String,
+    title: String,
+    from: Option<String>,
+    change: Option<String>,
+}
+
+fn chain_names(dir: &Path) -> Vec<String> {
+    let mut names: Vec<String> = std::fs::read_dir(dir)
+        .map(|rd| {
+            rd.filter_map(|e| e.ok())
+                .filter_map(|e| {
+                    let p = e.path();
+                    (p.extension()? == "json").then(|| p.file_stem()?.to_str().map(String::from))?
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    names.sort();
+    names
+}
+
+fn load_chain(path: &Path) -> Vec<Step> {
+    let text = std::fs::read_to_string(path).unwrap_or_else(|e| {
+        eprintln!("cannot read {}: {e}", path.display());
+        std::process::exit(1);
+    });
+    let v: Value = serde_json::from_str(&text).unwrap_or_else(|e| {
+        eprintln!("{} is not valid json: {e}", path.display());
+        std::process::exit(1);
+    });
+    let s = |x: &Value| x.as_str().map(String::from);
+    v["order"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|id| {
+            let id = id.as_str()?.to_string();
+            let p = &v["problems"][&id];
+            Some(Step {
+                title: s(&p["title"]).unwrap_or_default(),
+                from: s(&p["from"]),
+                change: s(&p["change"]),
+                id,
+            })
+        })
+        .collect()
+}
+
+fn main() {
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    if args.iter().any(|a| a == "-h" || a == "--help") {
+        println!("{USAGE}\n\nServe a chain of closely related problems in order.\n\n  chain     a file name in graph/chains/ (optional when there is only one)\n  prepare   `make prepare` the first problem in the chain not done today");
+        return;
+    }
+    let prepare = args.iter().any(|a| a == "prepare");
+    let rest: Vec<&String> = args.iter().filter(|a| *a != "prepare").collect();
+    let root = repo_root();
+    load_envrc(&root);
+    let (ctx, recs) = Ctx::load(root);
+    let console = Console::full_width();
+    let dir = ctx.graph_dir().join("chains");
+    let names = chain_names(&dir);
+
+    let name = match rest.as_slice() {
+        [n] => (*n).clone(),
+        [] if names.len() == 1 => names[0].clone(),
+        [] => {
+            console.print("[bold]The chains in graph/chains/:[/bold]");
+            for n in &names {
+                console.print(&format!("  make combos {n}"));
+            }
+            return;
+        }
+        _ => {
+            eprintln!("{USAGE}");
+            std::process::exit(2);
+        }
+    };
+    let path = dir.join(format!("{name}.json"));
+    if !path.exists() {
+        console.print(&format!(
+            "[red]There is no chain called {name}. The chains are: {}.[/red]",
+            names.join(", ")
+        ));
+        std::process::exit(1);
+    }
+    let steps = load_chain(&path);
+    let ev = Evidence::new(recs);
+    let today = ctx.today().format("%Y-%m-%d").to_string();
+    let done = |id: &str| ev.problem_recs(id).iter().any(|(d, _, _)| *d == today);
+
+    let mut table = Table::bare(&["#", "problem", "today", "change"], true, 2);
+    for (i, st) in steps.iter().enumerate() {
+        let (mark, change) = if done(&st.id) {
+            let change = match (&st.from, &st.change) {
+                (Some(f), Some(c)) => format!("{f} + {c}"),
+                _ => "the base".to_string(),
+            };
+            ("[green]done[/green]".to_string(), change)
+        } else {
+            (String::new(), String::new())
+        };
+        table.add_row(&[
+            (i + 1).to_string(),
+            format!("{}. {}", st.id, st.title),
+            mark,
+            change,
+        ]);
+    }
+    console.print(&format!("[bold]The {name} chain[/bold]"));
+    print_table(&console, &table);
+
+    let Some(next) = steps.iter().find(|st| !done(&st.id)) else {
+        console.print("You have done every problem in this chain today.");
+        return;
+    };
+    if !prepare {
+        console.print(&format!(
+            "The next problem is {}. {}. Run `make combos {name} prepare` to start it.",
+            next.id, next.title
+        ));
+        return;
+    }
+    console.print(&format!("[bold]make prepare {}[/bold]", next.id));
+    let pos = steps.iter().position(|st| st.id == next.id).unwrap_or(0) + 1;
+    let note = format!(
+        "# combo chain: {name}, problem {pos} of {total}. Run `make combos {name}` to see\n\
+         # the chain and what is done today; the chain is saved in graph/chains/{name}.json.",
+        total = steps.len()
+    );
+    let status = std::process::Command::new(kg::data::rs_bin(&ctx.root, "prepare"))
+        .arg(&next.id)
+        .env("KG_COMBO_NOTE", note)
+        .current_dir(&ctx.root)
+        .status();
+    std::process::exit(status.ok().and_then(|s| s.code()).unwrap_or(1));
+}

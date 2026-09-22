@@ -1,4 +1,4 @@
-.PHONY: all asserts audit chat check complexity cov curve dependents dive drill drop duplicates elo ext failed fmt fmt-check force graph hard harness-doc is_session_start kg-extract kg-status kg-viz lc-login lc-mocks learning lint mirror mock movie next predict preflight prepare prog progress q queue rank-table readme rep residuals rust secrets simulate sleep snippets solved spot stats studied submit test test-fast test-judge timer today types unforce viz wake
+.PHONY: all asserts audit chat check combos complexity cov curve dependents dive drill drop duplicates elo ext failed fmt fmt-check force graph hard harness-doc is_session_start kg-extract kg-status kg-viz lc-login lc-mocks learning lint mirror mock movie next predict preflight prepare prog progress q queue rank-table readme rep residuals rust secrets simulate sleep snippets solved spot stats studied submit test test-fast test-judge timer today types unforce viz wake
 
 all: $(if $(filter master,$(shell git rev-parse --abbrev-ref HEAD)),graph/leet.db) $(EXT)
 	@cp utils/harness/sitecustomize.py .venv/lib/python3.10/site-packages/
@@ -14,7 +14,7 @@ learning: $(RS_BIN)/learning
 	@$(RS_BIN)/learning
 
 prepare: $(RS_BIN)/prepare
-	@if [ "$(firstword $(MAKECMDGOALS))" != next ] && [ "$(firstword $(MAKECMDGOALS))" != dependents ]; then $(RS_BIN)/prepare $(filter-out $@,$(MAKECMDGOALS)); fi
+	@if [ "$(firstword $(MAKECMDGOALS))" != next ] && [ "$(firstword $(MAKECMDGOALS))" != dependents ] && [ "$(firstword $(MAKECMDGOALS))" != combos ]; then $(RS_BIN)/prepare $(filter-out $@,$(MAKECMDGOALS)); fi
 
 
 force: $(RS_BIN)/kg_force
@@ -54,6 +54,10 @@ rep: $(RS_BIN)/kg_rep
 
 dependents: $(RS_BIN)/kg_dependents
 	@$(RS_BIN)/kg_dependents $(filter-out $@,$(MAKECMDGOALS))
+
+# serve a chain from graph/chains/ in order: `make combos [chain] [prepare]`
+combos: $(RS_BIN)/kg_combos
+	@$(RS_BIN)/kg_combos $(filter-out $@,$(MAKECMDGOALS))
 
 kg-viz: $(RS_BIN)/kg_viz
 	@$(RS_BIN)/kg_viz

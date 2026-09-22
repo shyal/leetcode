@@ -1,0 +1,21 @@
+{
+  "_comment": "A chain: problems that fill the same table, ordered so each one is one change from an earlier one. Solve them in order, in one sitting, to see the change. diag = dp[i-1][j-1], up = dp[i-1][j], left = dp[i][j-1]; a, b = the current characters x[i-1], y[j-1]. Drafted 2026-09-23 from the cached solutions; 583 uses the direct deletion table, 516 and 1312 use s against s[::-1].",
+  "base": "1143",
+  "order": ["1143", "1035", "583", "712", "72", "1092", "718", "516", "1312", "115", "1458", "97", "44", "10"],
+  "problems": {
+    "1143": {"title": "Longest Common Subsequence", "holds": "kept length", "match": "diag + 1", "mismatch": "max(up, left)", "border": "0", "answer": "corner", "from": null, "change": null},
+    "1035": {"title": "Uncrossed Lines", "holds": "kept length", "match": "diag + 1", "mismatch": "max(up, left)", "border": "0", "answer": "corner", "from": "1143", "change": "integer arrays instead of strings"},
+    "583": {"title": "Delete Operation for Two Strings", "holds": "deletions", "match": "diag", "mismatch": "1 + min(up, left)", "border": "i, j", "answer": "corner", "from": "1143", "change": "count what you drop instead of what you keep"},
+    "712": {"title": "Minimum ASCII Delete Sum for Two Strings", "holds": "deletion cost", "match": "diag", "mismatch": "min(up + ord(a), left + ord(b))", "border": "prefix sums of ord", "answer": "corner", "from": "583", "change": "a deletion costs ord(c) instead of 1"},
+    "72": {"title": "Edit Distance", "holds": "edits", "match": "diag", "mismatch": "1 + min(up, left, diag)", "border": "i, j", "answer": "corner", "from": "583", "change": "add replace"},
+    "1092": {"title": "Shortest Common Supersequence", "holds": "kept length", "match": "diag + 1", "mismatch": "max(up, left)", "border": "0", "answer": "walk back from the corner, build the string", "from": "1143", "change": "return the string, not the number"},
+    "718": {"title": "Maximum Length of Repeated Subarray", "holds": "run length", "match": "diag + 1", "mismatch": "0", "border": "0", "answer": "max over all cells", "from": "1143", "change": "a mismatch ends the run"},
+    "516": {"title": "Longest Palindromic Subsequence", "holds": "kept length", "match": "diag + 1", "mismatch": "max(up, left)", "border": "0", "answer": "corner", "from": "1143", "change": "1143 on s and s[::-1]"},
+    "1312": {"title": "Minimum Insertion Steps to Make a String Palindrome", "holds": "insertions", "match": "diag", "mismatch": "1 + min(up, left)", "border": "i, j", "answer": "corner / 2, or n - 516", "from": "516", "change": "583 on s and s[::-1]: count what you add instead of what you keep"},
+    "115": {"title": "Distinct Subsequences", "holds": "number of ways", "match": "diag + up", "mismatch": "up", "border": "column 0 = 1", "answer": "corner", "from": "1143", "change": "count ways (sum), and only s may drop characters"},
+    "1458": {"title": "Max Dot Product of Two Subsequences", "holds": "best sum", "match": "product + max(diag, 0)", "mismatch": "max(up, left)", "border": "-inf", "answer": "corner", "from": "1143", "change": "a match scores a product, the result can't be empty"},
+    "97": {"title": "Interleaving String", "holds": "reachable (bool)", "match": "(up and a == c) or (left and b == c), c = s3[i+j-1]", "mismatch": "same", "border": "prefix checks", "answer": "corner", "from": "1143", "change": "bool table, a third string gives the target character"},
+    "44": {"title": "Wildcard Matching", "holds": "matches (bool)", "match": "diag, ? matches anything", "mismatch": "*: up or left", "border": "leading *s", "answer": "corner", "from": "97", "change": "the pattern picks the move"},
+    "10": {"title": "Regular Expression Matching", "holds": "matches (bool)", "match": "diag, . matches anything", "mismatch": "*: two columns left, or up if the character before * matches", "border": "a* prefixes", "answer": "corner", "from": "44", "change": "* repeats the character before it"}
+  }
+}

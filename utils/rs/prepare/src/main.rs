@@ -711,6 +711,12 @@ option loses, where one pass misses a later better choice. At most 12 lines.
             .map(helpers_for)
             .unwrap_or_default();
         let code = with_uses_line(code, &helpers);
+        // kg_combos passes the chain this problem belongs to, so whoever
+        // reads current.py (Claude included) knows where to look for it
+        let code = match std::env::var("KG_COMBO_NOTE") {
+            Ok(note) if !note.is_empty() => format!("{note}\n{code}"),
+            _ => code,
+        };
         let git = |args: &[&str]| {
             let out = Command::new("git")
                 .args(args)
