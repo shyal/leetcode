@@ -84,6 +84,7 @@ from assert_utils import *
 from bs_utils import *
 from bst_utils import *
 from combo_utils import *
+from counter_utils import *
 from debug_utils import *
 from gen_utils import *
 from graph_utils import *
@@ -382,6 +383,7 @@ builtins.bisect_left = bisect.bisect_left
 builtins.bisect_right = bisect.bisect_right
 builtins.chain = chain
 builtins.Counter = Counter
+builtins.Multiset = Multiset
 builtins.OrderedDict = OrderedDict
 builtins.add = operator.add
 builtins.iadd = operator.iadd

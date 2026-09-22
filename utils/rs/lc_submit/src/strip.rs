@@ -5,8 +5,8 @@
 //! The submitted class is the last top-level `class Solution`; a design
 //! problem has none, so there it is the last top-level class of any name.
 //! Above it go, dependencies first: helpers the harness preloads and
-//! leetcode lacks (HELPER_FILES: cells, nbrs, like, grid_bfs, the maxheap
-//! functions), the dsa modules the file imports from, then the file's own
+//! leetcode lacks (HELPER_FILES: cells, nbrs, like, grid_bfs, Multiset, the
+//! maxheap functions), the dsa modules the file imports from, then the file's own
 //! functions, classes, constants and stdlib imports. A name is "used" when
 //! the class loads it and binds it nowhere (a parameter called `root` does
 //! not pull `root = build_tree(...)` in), and an own assignment that itself
@@ -25,12 +25,13 @@ use ruff_text_size::{Ranged, TextRange};
 /// Only the modules a solution may call belong here; the drawing, building
 /// and read-back modules stay out so that a class calling them is refused
 /// (`every_solve_time_builtin_is_submittable` keeps the two sets apart).
-pub const HELPER_FILES: [&str; 7] = [
+pub const HELPER_FILES: [&str; 8] = [
     "utils/harness/sitecustomize.py",
     "utils/harness/adj_utils.py",
     "utils/harness/grid_utils.py",
     "utils/harness/bs_utils.py",
     "utils/harness/combo_utils.py",
+    "utils/harness/counter_utils.py",
     "utils/harness/gen_utils.py",
     "dsa/maxheapq.py",
 ];

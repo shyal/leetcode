@@ -293,6 +293,15 @@ Each triple is built by type: tuple by default, list for a LeetCode answer.
 
 Check if the tree is a valid BST using inorder traversal.
 
+### `class Multiset(self, iterable = None, /, **kwds)`
+
+A Counter whose keys vanish when their count hits 0.
+
+`m[k] += 1` and `m[k] -= 1` are the whole interface. With a plain
+Counter, `m[k] -= 1` leaves the key behind at 0, so `len(m)` and
+`k in m` stop meaning what a sliding window needs them to mean.
+Negative counts are kept: only an exact 0 deletes.
+
 ## heaps
 
 ### `maxheapify(h: list) -> None`
