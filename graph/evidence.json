@@ -29213,6 +29213,20 @@
       "note": "LeetCode: Accepted (0 ms, 19.3 MB)",
       "summary": "The solution reduces the game to a parity check: divisorGame returns n % 2 == 0, so even n wins and odd n loses. This exercises the modular-cycle move, using % to capture the alternating win/loss pattern. The assertions cover even, odd, and edge values including 0, and the run exited 0 with LeetCode reporting Accepted.",
       "seconds": 36
+    },
+    "solved/p3314_Construct_the_Minimum_Bitwise_Array_I_2026_09_22T04_14_06_509381_00_00Z.py": {
+      "date": "2026-09-22",
+      "problem": "3314",
+      "moves": {
+        "bit-iterate": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LeetCode: Accepted (141 ms, 19.4 MB). The intended algebraic solve for j (j | (j+1) == v) is sidestepped by an O(v) linear scan over candidate j.",
+      "summary": "For each value v in nums, the code scans j from 0 to v-1, computes r = j | (j + 1), and appends the first j whose OR equals v, or -1 if none is found. It exercises bit-iterate (the OR of j and j+1) but routes around the canonical solve-pair-condition move, which would solve j | (j+1) = v algebraically instead of brute-forcing candidates. The run passed all assertions and LeetCode accepted it at 141 ms.",
+      "unmapped": [
+        "brute-force scan for j"
+      ],
+      "seconds": 407
     }
   }
 }
