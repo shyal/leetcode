@@ -29602,6 +29602,19 @@
       "note": "Top-down @cache recursion over (a, b) suffixes; LeetCode Accepted (1191 ms, 480.9 MB).",
       "summary": "The code defines a cached helper(a, b) over suffixes of the two strings: when the last characters match it recurses on both shortened; otherwise it takes the min of deleting a's last char (plus its ord) or b's last char. This exercises the two-sequence alignment recurrence and memoization rather than an iterative 2D table. All assertions pass and LeetCode reports Accepted.",
       "seconds": 220
+    },
+    "solved/p1143_Longest_Common_Subsequence_2026_09_22T21_16_28_238226_00_00Z.py": {
+      "date": "2026-09-23",
+      "problem": "1143",
+      "moves": {
+        "dp-state-formulate": "clean",
+        "two-sequence-align": "clean",
+        "dp-2d-grid": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Uses harness helpers table() and cells() to build and iterate the 2D DP; LeetCode verdict Accepted (335 ms, 44.3 MB).",
+      "summary": "The code pads both strings with a leading space and builds a 2D table via table(len(a), len(b)), then iterates cells(dp, start=1). At each (i, j) it sets dp[i][j] = dp[i-1][j-1] + 1 when a[i] == b[j], otherwise max(dp[i-1][j], dp[i][j-1]), returning dp[-1][-1]. This exercises the two-prefix recurrence over two sequences and the grid DP fill; the run exited 0 and LeetCode reports Accepted.",
+      "seconds": 185
     }
   }
 }
