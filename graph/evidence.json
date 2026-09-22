@@ -29112,6 +29112,19 @@
       "note": "REQUIRED constraint met: self.find called exactly once per account, no account-to-account pair tests.",
       "summary": "The Solution subclasses UnionFind and mergeAccounts walks the accounts, calling self.find(account) once per account to get its root person, then adds each email into persons[root], a defaultdict(set). The union-find structure itself is built by the harness's union_shared before mergeAccounts runs, so the code exercises the find/root lookup and the dict-of-sets grouping. All assertions passed and the required at-most-one-find-per-account constraint is satisfied.",
       "seconds": 328
+    },
+    "solved/p1870_Minimum_Speed_to_Arrive_on_Time_2026_09_22T02_05_52_738402_00_00Z.py": {
+      "date": "2026-09-22",
+      "problem": "1870",
+      "moves": {
+        "binary-search-on-answer": "struggled",
+        "binary-search-boundary": "struggled",
+        "running-sum": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say the time function was right but the binary-search body was a struggle; LEETCODE: Accepted (1868 ms, 33.8 MB).",
+      "summary": "The code defines a time(speed) helper that sums ceil(x/speed) for all but the last distance and x/speed for the last, then binary-searches speed in [1, 10**7] for the first value where time(speed) <= hour, returning lo. It exercises binary-search-on-answer with a feasibility check, the leftmost-true boundary template, and a running sum inside time(). The notes say the time function was correct but the binary-search body was where the candidate struggled; LeetCode accepted the submission.",
+      "seconds": 2323
     }
   }
 }
