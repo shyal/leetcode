@@ -29561,6 +29561,19 @@
       "judge": "deepseek-chat",
       "summary": "The code builds combinations with a recursive helper that appends j to curr, recurses on j+1, then pops j, recording a copy of curr when its length reaches k. The start index i bounds each loop so candidates come from the suffix and each element is used once, exercising choose-undo and start-index backtracking. All assertions passed and LeetCode reports Accepted (115 ms, 61.5 MB); the notes are empty.",
       "seconds": 90
+    },
+    "solved/p141_Linked_List_Cycle_2026_09_22T20_20_06_567806_00_00Z.py": {
+      "date": "2026-09-23",
+      "problem": "141",
+      "moves": {
+        "fast-slow-pointers": "clean",
+        "floyd-cycle": "clean"
+      },
+      "judge": "deepseek-chat",
+      "followup": "solved",
+      "note": "The count <= 10**4 guard is a redundant safety bound; the fast/slow meeting detection is the actual cycle test.",
+      "summary": "The code runs slow and fast pointers from head, advancing slow by one and fast by two, and returns True when they meet, otherwise False when fast runs off the end. It exercises fast-slow-pointers and the floyd-cycle meeting detection, with a count guard capping iterations at 10**4. The file executed cleanly and LeetCode reports Accepted (46 ms, 22.7 MB); the notes are empty. It uses only two pointer variables, so it meets the O(1) memory follow-up.",
+      "seconds": 366
     }
   }
 }
