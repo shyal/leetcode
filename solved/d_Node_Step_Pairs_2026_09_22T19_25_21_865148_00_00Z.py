@@ -45,13 +45,25 @@ Constraints:
 
     REQUIRED: O(k * (n + m)), one breadth-first search from node 0. A
     visited set keyed on the node alone drops (1, 4) from Example 1.
+
+---
+
+Learning
+
 """
 
 
 class Solution:
 
     def reachable(self, G: Dict[int, List[int]], k: int) -> set[tuple[int, int]]:
-        pass
+        q = deque([0])
+        seen = set([(0, 0)])
+        for d, node in levels(q):
+            for nxt in G[node]:
+                if d < k and (nxt, d + 1) not in seen:
+                    seen.add((nxt, d + 1))
+                    q.append(nxt)
+        return seen
 
 
 sol = Solution()
@@ -61,14 +73,31 @@ print(
     sol.reachable({0: [1], 1: [2], 2: [3], 3: [1]}, 4)
 )  # {(0, 0), (1, 1), (2, 2), (3, 3), (1, 4)}
 
-# assert sol.reachable({0: [1], 1: [2], 2: [3], 3: [1]}, 4) == {(0, 0), (1, 1), (1, 4), (2, 2), (3, 3)}
-# assert sol.reachable({0: [1], 1: [2], 2: [3], 3: [1]}, 0) == {(0, 0)}
-# assert sol.reachable({0: [1], 1: [2], 2: [3], 3: [1]}, 2) == {(0, 0), (1, 1), (2, 2)}
-# assert sol.reachable({0: [1, 2], 1: [2], 2: [0]}, 2) == {(0, 0), (0, 2), (1, 1), (2, 1), (2, 2)}
-# assert sol.reachable({0: [1], 1: [2], 2: []}, 3) == {(0, 0), (1, 1), (2, 2)}
-# assert sol.reachable({0: [1], 1: [1]}, 3) == {(0, 0), (1, 1), (1, 2), (1, 3)}
-# assert sol.reachable({0: []}, 5) == {(0, 0)}
-# assert sol.reachable({0: [1], 1: [0]}, 3) == {(0, 0), (0, 2), (1, 1), (1, 3)}
-# assert sol.reachable({0: [1, 2], 1: [3], 2: [3], 3: []}, 2) == {(0, 0), (1, 1), (2, 1), (3, 2)}
-# assert sol.reachable({0: [0]}, 2) == {(0, 0), (0, 1), (0, 2)}
-# assert sol.reachable({0: [], 1: [2], 2: [1]}, 2) == {(0, 0)}
+assert sol.reachable({0: [1], 1: [2], 2: [3], 3: [1]}, 4) == {
+    (0, 0),
+    (1, 1),
+    (1, 4),
+    (2, 2),
+    (3, 3),
+}
+assert sol.reachable({0: [1], 1: [2], 2: [3], 3: [1]}, 0) == {(0, 0)}
+assert sol.reachable({0: [1], 1: [2], 2: [3], 3: [1]}, 2) == {(0, 0), (1, 1), (2, 2)}
+assert sol.reachable({0: [1, 2], 1: [2], 2: [0]}, 2) == {
+    (0, 0),
+    (0, 2),
+    (1, 1),
+    (2, 1),
+    (2, 2),
+}
+assert sol.reachable({0: [1], 1: [2], 2: []}, 3) == {(0, 0), (1, 1), (2, 2)}
+assert sol.reachable({0: [1], 1: [1]}, 3) == {(0, 0), (1, 1), (1, 2), (1, 3)}
+assert sol.reachable({0: []}, 5) == {(0, 0)}
+assert sol.reachable({0: [1], 1: [0]}, 3) == {(0, 0), (0, 2), (1, 1), (1, 3)}
+assert sol.reachable({0: [1, 2], 1: [3], 2: [3], 3: []}, 2) == {
+    (0, 0),
+    (1, 1),
+    (2, 1),
+    (3, 2),
+}
+assert sol.reachable({0: [0]}, 2) == {(0, 0), (0, 1), (0, 2)}
+assert sol.reachable({0: [], 1: [2], 2: [1]}, 2) == {(0, 0)}
