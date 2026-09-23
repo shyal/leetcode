@@ -29950,6 +29950,17 @@
       "note": "Drill targets index-conversion: r*n+c maps a grid cell to its flat index; ran clean.",
       "summary": "The code builds an n x n grid via table(n, n), then walks every cell with cells(grid) and writes r * n + c into it, converting each (row, col) pair to its flat index. All assertions pass, including the 20x20 corner checks. This exercises the index-conversion move cleanly.",
       "seconds": 52
+    },
+    "solved/d_Top_Down_Index_Alternating_2026_09_23T21_37_12_234805_00_00Z.py": {
+      "date": "2026-09-24",
+      "problem": "drill",
+      "moves": {
+        "index-conversion": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets index-conversion; the alternating row direction is handled by mirroring the column index (n-1-c) on odd rows.",
+      "summary": "The code builds an n x n grid via table(n, n) and fills each cell by converting the (row, col) pair into a flat number r*n + c, mirroring the column on odd rows with n-1-c so the numbering snakes. This exercises index-conversion, applying the grid's alternating row orientation to the flat index. All assertions for n=2..6 and n=20 passed on execution.",
+      "seconds": 45
     }
   }
 }
