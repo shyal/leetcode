@@ -29807,6 +29807,20 @@
       "note": "Notes say 'used sum / count instead of avg' and 'Hinted'; final code uses round(avg(...),2) grouped by project_id, rounding in SQL as required.",
       "summary": "The query groups the Project table by project_id and computes round(avg(experience_years), 2) as average_years, satisfying the requirement that rounding happen in SQL on the aggregate. Both example assertions pass, producing (1, 2.0), (2, 2.5) and (5, 1.33). The notes indicate the candidate was hinted and initially used sum/count instead of avg.",
       "seconds": 331
+    },
+    "solved/d_Interleave_2026_09_23T20_12_19_005759_00_00Z.py": {
+      "date": "2026-09-24",
+      "problem": "drill",
+      "moves": {
+        "ll-dummy-splice": "clean"
+      },
+      "assist": {
+        "ll-dummy-splice": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say 'Learning'; the code re-links nodes in place with a tuple swap rather than using a dummy node, but the splice/re-link move is exercised.",
+      "summary": "The code interleaves two lists by repeatedly swapping a.next, b.next, a, b in a single tuple assignment, threading b's nodes between a's nodes and returning the original head a. It exercises the in-place re-link/splice move (ll-dummy-splice) without a dummy node. The notes mark the work as 'Learning', and the assertion block is commented out, so only the printed [1, 4, 2, 5, 3] case ran.",
+      "seconds": 339
     }
   }
 }
