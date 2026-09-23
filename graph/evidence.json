@@ -29972,6 +29972,17 @@
       "note": "Drill targets index-conversion; the row flip (n-1-r)*n + c maps grid cell to bottom-up flat index.",
       "summary": "The code builds an n x n grid via table(n, n), then for each cell (r, c) assigns ((n-1-r)*n)+c, converting the row-major index so rows count from the bottom. All assertions for n=2..6 and n=20 pass, exercising the index-conversion move. No notes indicate any help or recognition difficulty.",
       "seconds": 165
+    },
+    "solved/d_Bottom_Up_Index_Alternating_2026_09_23T21_56_56_377583_00_00Z.py": {
+      "date": "2026-09-24",
+      "problem": "drill",
+      "moves": {
+        "index-conversion": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets index-conversion: rows counted from the bottom (a = n-1-r) and alternating row direction (c vs n-1-c) via divmod-style flat index a*n + col.",
+      "summary": "The code builds an n x n grid and fills each cell by converting the row r to a bottom-up row a = n-1-r, then computing a flat index a*n plus a column that is mirrored (n-1-c) on odd rows. This exercises index-conversion with both bottom-up row counting and alternating row direction. All assertions pass and the run exits 0.",
+      "seconds": 117
     }
   }
 }
