@@ -1,4 +1,7 @@
 # REFERENCE: d135 Bottom Up Index
 class Solution:
-    def index(self, n, r, c):
-        return (n - 1 - r) * n + c
+    def numbered(self, n):
+        grid = table(n, n)
+        for r, c in cells(grid):
+            grid[r][c] = (n - 1 - r) * n + c
+        return grid
