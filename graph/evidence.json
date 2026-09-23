@@ -29793,6 +29793,20 @@
       "note": "One query, one aggregate; product formed per row before summing, as required.",
       "summary": "The query selects product_id and sum(price * units) as revenue from Sales, grouping by product_id. This exercises the group-aggregate move: one row per product with the per-row product summed. Both example assertions passed and the required one-query, one-aggregate constraint is met.",
       "seconds": 93
+    },
+    "solved/d_Average_Years_Per_Project_2026_09_23T20_05_54_980591_00_00Z.py": {
+      "date": "2026-09-24",
+      "problem": "drill",
+      "moves": {
+        "sql-group-aggregate": "clean"
+      },
+      "assist": {
+        "sql-group-aggregate": "hint"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say 'used sum / count instead of avg' and 'Hinted'; final code uses round(avg(...),2) grouped by project_id, rounding in SQL as required.",
+      "summary": "The query groups the Project table by project_id and computes round(avg(experience_years), 2) as average_years, satisfying the requirement that rounding happen in SQL on the aggregate. Both example assertions pass, producing (1, 2.0), (2, 2.5) and (5, 1.33). The notes indicate the candidate was hinted and initially used sum/count instead of avg.",
+      "seconds": 331
     }
   }
 }
