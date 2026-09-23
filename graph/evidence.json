@@ -29939,6 +29939,17 @@
       "note": "Drill targets index-conversion; flat index k mapped to grid via k//n and k%n with row flipped as n-1-k//n.",
       "summary": "The code builds an n x n grid and fills it by iterating flat index k from 0 to n*n-1, converting each k to a cell with divmod-style k//n and k%n, then flipping the row with n-1-k//n so numbering runs bottom-up. All assertions for n=2..6 and n=20 pass. This exercises the index-conversion move (flat index to grid cell with orientation).",
       "seconds": 212
+    },
+    "solved/d_Top_Down_Index_2026_09_23T21_36_16_360247_00_00Z.py": {
+      "date": "2026-09-24",
+      "problem": "drill",
+      "moves": {
+        "index-conversion": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets index-conversion: r*n+c maps a grid cell to its flat index; ran clean.",
+      "summary": "The code builds an n x n grid via table(n, n), then walks every cell with cells(grid) and writes r * n + c into it, converting each (row, col) pair to its flat index. All assertions pass, including the 20x20 corner checks. This exercises the index-conversion move cleanly.",
+      "seconds": 52
     }
   }
 }
