@@ -29895,6 +29895,17 @@
       "note": "Uses harness `levels(q)` to drive BFS layers; visited set keyed on (node, distance) so revisits at new depths are kept, matching the required O(k*(n+m)) single BFS.",
       "summary": "The Solution.reachable method runs a single breadth-first search from node 0 using a deque seeded with 0 and a seen set of (node, distance) pairs. It iterates the queue via the harness levels() generator, expanding each node's neighbors only while d < k and recording (nxt, d+1) when unseen, so a node can reappear at a later distance. All assertions pass, including the Example 1 case where node 1 is reached again at distance 4. The notes contain no mention of hints or look-ups.",
       "seconds": 194
+    },
+    "solved/d_Count_Cells_2026_09_23T21_03_39_447183_00_00Z.py": {
+      "date": "2026-09-24",
+      "problem": "drill",
+      "moves": {
+        "grid-neighbors": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill uses the harness `cells(grid)` iterator to enumerate every cell; no explicit delta offsets written.",
+      "summary": "The Solution.count walks every cell via the harness `cells(grid)` iterator and increments a counter when grid[i][j] equals v. It exercises the grid-neighbors node by enumerating cells, though the offset arithmetic is delegated to the injected helper rather than written out. All assertions passed and the file exited 0.",
+      "seconds": 602
     }
   }
 }
