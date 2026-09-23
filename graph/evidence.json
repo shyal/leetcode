@@ -30010,6 +30010,19 @@
       "note": "Drill targets recursive-descent; expr() consumes numbers and folds +/- into a left-leaning TreeNode, sharing the Parser cursor.",
       "summary": "Solution subclasses Parser and implements expr() by reading a number, then looping while the cursor is on '+' or '-', folding each operator and following number into a left-leaning TreeNode. The assertions confirm the tree shape for '120+45-30', '7', '10-100+1000', and '1+2+3+4', and the run exited 0. This exercises the recursive-descent move: a grammar rule as a function sharing one cursor.",
       "seconds": 122
+    },
+    "solved/p712_Minimum_ASCII_Delete_Sum_for_Two_Strings_2026_09_23T22_43_14_482655_00_00Z.py": {
+      "date": "2026-09-24",
+      "problem": "712",
+      "moves": {
+        "dp-state-formulate": "clean",
+        "two-sequence-align": "clean",
+        "memoize-recursion": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "helper_indices is the memoized two-sequence recurrence; helper (string-slicing variant) is defined but unused; dp-2d-grid avoided since the table is implicit via @cache rather than filled iteratively.",
+      "summary": "The code defines a memoized recursion helper_indices(i, j) over suffix indices of s1 and s2: on matching characters it moves diagonally, otherwise it takes the min of deleting s1[i] or s2[j] plus that character's ASCII value, with base cases summing the remaining prefix. This exercises two-sequence-align and dp-state-formulate, with memoize-recursion via @cache; the iterative dp-2d-grid table is not built. A second string-slicing helper is defined but never called. LeetCode reports Accepted (687 ms, 225.6 MB).",
+      "seconds": 698
     }
   }
 }
