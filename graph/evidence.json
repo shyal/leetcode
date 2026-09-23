@@ -29729,6 +29729,18 @@
       "note": "Notes say 'Out of my depth... Learning' and LEETCODE: Accepted (527 ms, 75.7 MB).",
       "summary": "The code pads s and t with a leading space and fills a 2D table where dp[i][j] counts subsequences of s[:i] equal to t[:j], taking dp[i-1][j] and adding dp[i-1][j-1] when the characters match. This exercises the two-sequence alignment recurrence over a 2D grid. The notes state the candidate was out of their depth and learning, and LeetCode accepted the submission.",
       "seconds": 2400
+    },
+    "solved/p1458_Max_Dot_Product_of_Two_Subsequences_2026_09_23T00_51_31_520288_00_00Z.py": {
+      "date": "2026-09-23",
+      "problem": "1458",
+      "moves": {
+        "two-sequence-align": "struggled",
+        "dp-2d-grid": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Wrong Answer (65/70 cases) \u2014 the two-sequence recurrence is wrong: it never allows skipping both indices without consuming a pair, so all-negative cases (e.g. [-1,-1],[1,1]) can't fall back to the single best pair.",
+      "summary": "The code builds a 2D dp table over the two arrays (padded with a leading 1) and fills each cell with max of nums1[i]*nums2[j]+dp[i-1][j-1], dp[i-1][j], dp[i][j-1], tracking the running maximum and returning it. It exercises the two-sequence alignment recurrence and a 2D grid fill. LeetCode rejected it with Wrong Answer on 65/70 cases, so the recurrence does not correctly handle the non-empty-subsequence requirement.",
+      "seconds": 1784
     }
   }
 }
