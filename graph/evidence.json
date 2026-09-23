@@ -29961,6 +29961,17 @@
       "note": "Drill targets index-conversion; the alternating row direction is handled by mirroring the column index (n-1-c) on odd rows.",
       "summary": "The code builds an n x n grid via table(n, n) and fills each cell by converting the (row, col) pair into a flat number r*n + c, mirroring the column on odd rows with n-1-c so the numbering snakes. This exercises index-conversion, applying the grid's alternating row orientation to the flat index. All assertions for n=2..6 and n=20 passed on execution.",
       "seconds": 45
+    },
+    "solved/d_Bottom_Up_Index_2026_09_23T21_40_33_866193_00_00Z.py": {
+      "date": "2026-09-24",
+      "problem": "drill",
+      "moves": {
+        "index-conversion": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets index-conversion; the row flip (n-1-r)*n + c maps grid cell to bottom-up flat index.",
+      "summary": "The code builds an n x n grid via table(n, n), then for each cell (r, c) assigns ((n-1-r)*n)+c, converting the row-major index so rows count from the bottom. All assertions for n=2..6 and n=20 pass, exercising the index-conversion move. No notes indicate any help or recognition difficulty.",
+      "seconds": 165
     }
   }
 }
