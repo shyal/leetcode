@@ -29882,6 +29882,19 @@
       "note": "Drill targets dp-1d-rolling; the rolling state is `count` (number of a's seen so far) accumulated into `res` on each b.",
       "summary": "The code scans the string once, keeping a running count of 'a's seen and adding that count to res whenever a 'b' appears, which counts all (a, b) subsequence pairs. This exercises the rolling 1D state (count) and running-sum accumulation. All assertions passed, including the large 50000/50000 case.",
       "seconds": 119
+    },
+    "solved/d_Node_Step_Pairs_2026_09_23T20_53_06_423880_00_00Z.py": {
+      "date": "2026-09-24",
+      "problem": "drill",
+      "moves": {
+        "graph-bfs-shortest": "clean",
+        "graph-adjacency-build": "clean",
+        "seen-state-cycle-detect": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Uses harness `levels(q)` to drive BFS layers; visited set keyed on (node, distance) so revisits at new depths are kept, matching the required O(k*(n+m)) single BFS.",
+      "summary": "The Solution.reachable method runs a single breadth-first search from node 0 using a deque seeded with 0 and a seen set of (node, distance) pairs. It iterates the queue via the harness levels() generator, expanding each node's neighbors only while d < k and recording (nxt, d+1) when unseen, so a node can reappear at a later distance. All assertions pass, including the Example 1 case where node 1 is reached again at distance 4. The notes contain no mention of hints or look-ups.",
+      "seconds": 194
     }
   }
 }
