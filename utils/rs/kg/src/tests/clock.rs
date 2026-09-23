@@ -14,7 +14,7 @@ use crate::drills::{
     anki_due, anki_frontier, anki_fuzz, anki_good, anki_next_if_good, drill_clean, drill_warm,
     due_drill, recoveries_without_drill, recovery_wait, ANKI_EASE, ANKI_FUZZ_MIN_DAYS,
 };
-use crate::model::{first_sight_games, proven_score, proven_series, Game, Ground, PROVEN_WINDOW};
+use crate::model::{proven_game_score, proven_score, proven_series, Game, Ground, PROVEN_WINDOW};
 use crate::pick::review_queue;
 use crate::status::{graduation_due, owned};
 
@@ -862,10 +862,11 @@ fn a_leetcode_rejection_in_the_notes_scores_as_a_fail() {
 }
 
 /// A problem served from a combos chain names its technique before it is
-/// opened, so an unaided solve of it scores as a hint. A heavier assist
+/// opened, so an unaided solve of it is a chain solve: half a game to the
+/// Elo, no first sight to the proven rating or the stats. A heavier assist
 /// keeps its own score.
 #[test]
-fn a_combos_solve_scores_as_a_hint_at_best() {
+fn a_combos_solve_is_a_chain_solve() {
     let mut fx = Fx::picker();
     fx.nodes(&["q1"])
         .problems(vec![("1", problem(&["q1"])), ("2", problem(&["q1"]))]);
@@ -892,9 +893,17 @@ fn a_combos_solve_scores_as_a_hint_at_best() {
     write(&walked);
     let games = crate::model::scored_games(&ctx, &evidence(vec![clean, walked]));
     assert_eq!(games.len(), 2);
-    assert_eq!(games[0].assist, "hint");
+    assert_eq!(games[0].assist, "chain");
     assert_eq!(games[0].score, 0.5);
     assert_eq!(games[1].score, 0.0);
+    let s = crate::model::Summary::of(&games);
+    assert_eq!((s.first, s.chain, s.chain_inside), (1, 1, 1));
+    assert!(s
+        .lines()
+        .contains(&"chain: 1 (1 pass / 0 fail, 100%, 1 inside the clock)".to_string()));
+    assert!(s
+        .lines()
+        .contains(&"repeat: 0 (0 pass / 0 fail, -)".to_string()));
 }
 
 #[test]
@@ -1221,18 +1230,16 @@ fn proven_rating_is_what_the_last_thirty_first_sights_proved() {
 }
 
 /// A pass over the clock is 0 to the Elo and 0.5 to the proven rating: a
-/// late solution is a solution, short of a cold win, not a copy. A fail,
-/// a copy, and a repeat never reach the series.
+/// late solution is a solution, short of a cold win, not a copy. A fail
+/// and a copy prove nothing.
 #[test]
 fn proven_rating_scores_a_slow_pass_as_a_hint() {
-    let games = vec![
-        (game("1", 5, true, false, "none", true), 1800.0, 1500.0),
-        (game("2", 4, true, false, "hint", true), 1800.0, 1500.0),
-        (game("3", 3, true, true, "none", false), 1800.0, 1500.0),
-        (game("4", 2, true, false, "learning", false), 1800.0, 1500.0),
-        (game("1", 1, false, false, "none", false), 1800.0, 1500.0),
+    let games = [
+        game("1", 5, true, false, "none", true),
+        game("2", 4, true, false, "hint", true),
+        game("3", 3, true, true, "none", false),
+        game("4", 2, true, false, "learning", false),
     ];
-    let fs = first_sight_games(&games);
-    let scores: Vec<f64> = fs.iter().map(|(_, _, s)| *s).collect();
+    let scores: Vec<f64> = games.iter().map(proven_game_score).collect();
     assert_eq!(scores, vec![0.5, 0.5, 0.0, 0.0]);
 }

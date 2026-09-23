@@ -368,15 +368,28 @@ pub struct Game {
     pub score: f64,
     pub moves: Vec<String>,
     pub fname: String,
-    /// first sight: no earlier scored game on the problem
+    /// first sight: on the day of the problem's first evidenced attempt,
+    /// with no studied file before it. Every first-sight measure reads it:
+    /// make stats, the Elo, the proven rating.
     pub first: bool,
     /// a FAILED file, or a submission leetcode rejected
     pub failed: bool,
     pub seconds: Option<i64>,
     /// a pass that ran past its tier's clock (budget_min)
     pub over: bool,
-    /// the heaviest assist level on the solve
+    /// the heaviest assist level on the solve, or "chain" for an unaided
+    /// solve served from a combos chain
     pub assist: String,
+}
+
+impl Game {
+    /// Served from a combos chain: the technique was named before the
+    /// problem was opened. It proves the technique can be carried out,
+    /// not that it would be recognised cold, so it is kept out of every
+    /// first-sight measure.
+    pub fn chain(&self) -> bool {
+        self.assist == "chain"
+    }
 }
 
 /// The totals `make stats` prints and `make elo` shows under its gauges:
@@ -389,8 +402,13 @@ pub struct Summary {
     pub inside: usize,
     /// passes over the clock
     pub over: usize,
+    /// first sights, chain solves left out
     pub first: usize,
     pub first_fails: usize,
+    /// solves served from a combos chain, first sight or not
+    pub chain: usize,
+    pub chain_fails: usize,
+    pub chain_inside: usize,
     /// the sum of the scores: what the Elo saw
     pub won: f64,
 }
@@ -403,8 +421,14 @@ impl Summary {
             s.fails += usize::from(g.failed);
             s.inside += usize::from(!g.failed && !g.over);
             s.over += usize::from(g.over);
-            s.first += usize::from(g.first);
-            s.first_fails += usize::from(g.first && g.failed);
+            if g.chain() {
+                s.chain += 1;
+                s.chain_fails += usize::from(g.failed);
+                s.chain_inside += usize::from(!g.failed && !g.over);
+            } else {
+                s.first += usize::from(g.first);
+                s.first_fails += usize::from(g.first && g.failed);
+            }
             s.won += g.score;
         }
         s
@@ -414,7 +438,7 @@ impl Summary {
         self.solves - self.fails
     }
 
-    /// The five lines as (before, ratio, after): the ratio is the part a
+    /// The lines as (before, ratio, after): the ratio is the part a
     /// caller colours. `lines()` joins them.
     pub fn rows(&self) -> Vec<(String, String, String)> {
         let pct = |a: usize, b: usize| {
@@ -424,9 +448,9 @@ impl Summary {
                 format!("{:.0}%", 100.0 * a as f64 / b as f64)
             }
         };
-        let repeats = self.solves - self.first;
-        let repeat_fails = self.fails - self.first_fails;
-        vec![
+        let repeats = self.solves - self.first - self.chain;
+        let repeat_fails = self.fails - self.first_fails - self.chain_fails;
+        let mut rows = vec![
             (
                 format!(
                     "{} solves: {} pass / {} fail (",
@@ -471,10 +495,26 @@ impl Summary {
                 pct((self.won * 2.0).round() as usize, self.solves * 2),
                 ", what the Elo sees)".to_string(),
             ),
-        ]
+        ];
+        if self.chain > 0 {
+            rows.insert(
+                4,
+                (
+                    format!(
+                        "chain: {} ({} pass / {} fail, ",
+                        self.chain,
+                        self.chain - self.chain_fails,
+                        self.chain_fails
+                    ),
+                    pct(self.chain - self.chain_fails, self.chain),
+                    format!(", {} inside the clock)", self.chain_inside),
+                ),
+            );
+        }
+        rows
     }
 
-    /// The five lines, plain text.
+    /// The lines, plain text.
     pub fn lines(&self) -> Vec<String> {
         self.rows()
             .into_iter()
@@ -503,7 +543,8 @@ pub fn scored_games(ctx: &Ctx, ev: &Evidence) -> Vec<Game> {
         (ev.rec(a).date.as_str(), ev.fname(a)).cmp(&(ev.rec(b).date.as_str(), ev.fname(b)))
     });
     let mut out = Vec::new();
-    let mut seen: HashSet<String> = HashSet::new();
+    let first_day = first_dates(ev);
+    let mut studied: HashSet<String> = HashSet::new();
     for i in order {
         let rec = ev.rec(i);
         let fname = ev.fname(i);
@@ -512,14 +553,14 @@ pub fn scored_games(ctx: &Ctx, ev: &Evidence) -> Vec<Game> {
         if !is_numeric_id(&pnum) || budget_min(&diff).is_none() {
             continue;
         }
-        // a studied file is no game, but the problem has been seen: the
-        // next scored rep of it is a repeat
+        // a studied file is no game, but the problem has been seen: no
+        // later rep of it is a first sight
         if crate::clock::is_studied(fname) {
-            seen.insert(pnum);
+            studied.insert(pnum);
             continue;
         }
         let level = match rec.assist_any() {
-            "none" if crate::data::served_by_combos(&ctx.root, fname) => "hint",
+            "none" if crate::data::served_by_combos(&ctx.root, fname) => "chain",
             l => l,
         };
         // a walk-away, or a submission leetcode rejected (TLE, WA, RE)
@@ -541,7 +582,7 @@ pub fn scored_games(ctx: &Ctx, ev: &Evidence) -> Vec<Game> {
             }
             if over {
                 0.0
-            } else if level == "hint" {
+            } else if level == "hint" || level == "chain" {
                 0.5
             } else {
                 1.0
@@ -554,7 +595,7 @@ pub fn scored_games(ctx: &Ctx, ev: &Evidence) -> Vec<Game> {
             score,
             moves: rec.moves.keys().cloned().collect(),
             fname: fname.to_string(),
-            first: seen.insert(pnum),
+            first: first_day.get(&pnum) == Some(&rec.date) && !studied.contains(&pnum),
             failed,
             seconds,
             over,
@@ -637,7 +678,7 @@ impl Ground {
         // per problem: (last game lost, the game before that was a recovery)
         let mut state: HashMap<&str, (bool, bool)> = HashMap::new();
         for (g, rating, before) in games {
-            if g.first && *rating >= before - AT_RATING_BAND && inside(g) {
+            if g.first && !g.chain() && *rating >= before - AT_RATING_BAND && inside(g) {
                 out.tried += 1;
                 out.cold += usize::from(g.score == 1.0);
             }
@@ -689,20 +730,113 @@ impl Ground {
     }
 }
 
-/// The Elo replayed over first-sight games only, oldest first: (date,
-/// elo carried into the game). A repeat proves memory of one problem,
-/// not level; this series is the one `make progress` reads.
-pub fn elo_first_sight(games: &[(Game, f64, f64)]) -> (Vec<(NaiveDate, f64)>, f64) {
-    let mut elo = ELO_START;
-    let mut out = Vec::new();
-    for (g, r, _) in games {
-        if !g.first {
-            continue;
-        }
-        out.push((crate::data::parse_date(&g.date), elo));
-        elo += ELO_K * (g.score - 1.0 / (1.0 + 10f64.powf((r - elo) / 400.0)));
+// ---- first-sight Elo -------------------------------------------------------
+
+// The one first-sight Elo: the number on `make elo` and the README badge.
+// Problem ratings are zerotrac's (data/leetcode_ratings.tsv); a problem
+// that never ran in a contest gets the median contest rating of its
+// difficulty. Only first sights are games (Game::first), a chain solve
+// left out. Standard Elo, ELO_K from ELO_START. The picker keeps its own
+// over every timed attempt (elo_games, settled 2026-09-12).
+
+/// (date, problem rating, score): one scored first-sight game.
+pub type FirstSight = (NaiveDate, f64, f64);
+
+/// data/leetcode_ratings.tsv in file order: (problem, rating).
+pub fn load_ratings(ctx: &Ctx) -> Vec<(String, f64)> {
+    let text = std::fs::read_to_string(ctx.root.join("data/leetcode_ratings.tsv"))
+        .expect("data/leetcode_ratings.tsv");
+    text.lines()
+        .skip(1)
+        .map(|l| {
+            let mut f = l.split('\t');
+            let r: f64 = f.next().unwrap().parse().unwrap();
+            (f.next().unwrap().to_string(), r)
+        })
+        .collect()
+}
+
+/// problem -> date of its first evidenced attempt, timed or not.
+pub fn first_dates(ev: &Evidence) -> HashMap<String, String> {
+    let mut order: Vec<usize> = (0..ev.len()).collect();
+    order.sort_by(|&a, &b| (&ev.rec(a).date, ev.fname(a)).cmp(&(&ev.rec(b).date, ev.fname(b))));
+    let mut first = HashMap::new();
+    for i in order {
+        let rec = ev.rec(i);
+        first
+            .entry(rec.problem.clone().unwrap_or_default())
+            .or_insert_with(|| rec.date.clone());
     }
-    (out, elo)
+    first
+}
+
+/// (problem -> contest rating, difficulty -> the median rating of its
+/// rated problems): what a game is priced at.
+pub fn pricing(ctx: &Ctx) -> (HashMap<String, f64>, HashMap<String, f64>) {
+    let ratings = load_ratings(ctx);
+    let mut by_diff: HashMap<String, Vec<f64>> = HashMap::new();
+    for (pid, rt) in &ratings {
+        if let Some(d) = ctx.meta.get(pid).and_then(|m| m.difficulty.clone()) {
+            by_diff.entry(d).or_default().push(*rt);
+        }
+    }
+    (
+        ratings.into_iter().collect(),
+        by_diff.into_iter().map(|(d, v)| (d, median(&v))).collect(),
+    )
+}
+
+pub fn price(
+    ratings: &HashMap<String, f64>,
+    imputed: &HashMap<String, f64>,
+    problem: &str,
+    difficulty: &str,
+) -> f64 {
+    match ratings.get(problem) {
+        Some(r) => *r,
+        None => *imputed
+            .get(difficulty)
+            .unwrap_or_else(|| panic!("no median rating for {difficulty}")),
+    }
+}
+
+/// The scored first-sight attempts oldest first, each game's score
+/// read through `score`; a chain solve is no first sight (Game::chain).
+fn first_sights(ctx: &Ctx, ev: &Evidence, score: fn(&Game) -> f64) -> Vec<FirstSight> {
+    let (ratings, imputed) = pricing(ctx);
+    scored_games(ctx, ev)
+        .into_iter()
+        .filter(|g| g.first && !g.chain())
+        .map(|g| {
+            (
+                crate::data::parse_date(&g.date),
+                price(&ratings, &imputed, &g.problem, &g.difficulty),
+                score(&g),
+            )
+        })
+        .collect()
+}
+
+/// [(date, problem rating, Elo score)]: the games of the first-sight Elo.
+pub fn first_sight_elo_games(ctx: &Ctx, ev: &Evidence) -> Vec<FirstSight> {
+    first_sights(ctx, ev, |g| g.score)
+}
+
+/// [(date, problem rating, proven score)]: the same games, scored for
+/// the proven rating (proven_game_score).
+pub fn proven_games(ctx: &Ctx, ev: &Evidence) -> Vec<FirstSight> {
+    first_sights(ctx, ev, proven_game_score)
+}
+
+/// [(date, rating after the game)] one per game, from `start`.
+pub fn elo_after(gs: &[FirstSight], start: f64) -> Vec<(NaiveDate, f64)> {
+    let mut r = start;
+    gs.iter()
+        .map(|(d, rp, s)| {
+            r += ELO_K * (s - 1.0 / (1.0 + 10f64.powf((rp - r) / 400.0)));
+            (*d, r)
+        })
+        .collect()
 }
 
 // ---- proven rating ---------------------------------------------------------
@@ -717,7 +851,7 @@ pub const PROVEN_WINDOW: usize = 30;
 /// three hundred wins on 1250s prove 1250, where Elo read them as 1900
 /// (a 1250 problem cannot tell a 1700 from a 1900, so Elo climbs until
 /// the slip rate matches its expectation). `score` is the proven score
-/// of first_sight_games, not the Elo score: a slow pass is 0 to the Elo
+/// of proven_games, not the Elo score: a slow pass is 0 to the Elo
 /// and 0.5 here, since the solution was found, only late.
 pub fn proven_score(rating: f64, score: f64) -> f64 {
     if score >= 1.0 {
@@ -745,19 +879,16 @@ pub fn proven_series(games: &[(NaiveDate, f64, f64)]) -> Vec<(NaiveDate, f64)> {
         .collect()
 }
 
-/// The first-sight games of elo_games as (date, rating, proven score).
-/// The proven score is the Elo score except for a pass over the clock,
-/// which the Elo scores 0 and the proven rating 0.5: it was solved, late.
-pub fn first_sight_games(games: &[(Game, f64, f64)]) -> Vec<(NaiveDate, f64, f64)> {
-    games
-        .iter()
-        .filter(|(g, _, _)| g.first)
-        .map(|(g, r, _)| {
-            let passed = !g.failed && (g.assist == "none" || g.assist == "hint");
-            let score = if passed { g.score.max(0.5) } else { g.score };
-            (crate::data::parse_date(&g.date), *r, score)
-        })
-        .collect()
+/// A first-sight game's proven score: the Elo score except for a pass
+/// over the clock, which the Elo scores 0 and the proven rating 0.5: it
+/// was solved, late.
+pub fn proven_game_score(g: &Game) -> f64 {
+    let passed = !g.failed && (g.assist == "none" || g.assist == "hint");
+    if passed {
+        g.score.max(0.5)
+    } else {
+        g.score
+    }
 }
 
 // ---- make progress -------------------------------------------------------
@@ -920,7 +1051,8 @@ pub fn progress_numbers(ctx: &Ctx, ev: &Evidence, today: NaiveDate) -> Progress 
     // the level: the proven rating (proven_series) now against 90 days
     // ago. Elo, every-game or first-sight, was inflated by the 2025 easies
     // (settled 2026-09-20); a peak built on them is never a level to beat.
-    let fs = first_sight_games(&games);
+    let mut fs = proven_games(ctx, ev);
+    fs.retain(|(d, _, _)| *d <= today);
     out.proven = proven_series(&fs);
     let level_since = today - Duration::days(PROGRESS_LEVEL_DAYS);
     out.now = out.proven.last().map(|(_, e)| *e);

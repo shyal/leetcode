@@ -35,18 +35,19 @@ fn main() {
     if args.iter().any(|a| a == "--elo") {
         // both Elo series by month: every game, and first sights only
         let games = kg::model::elo_games(&ctx, &ev, &kg::model::solve_ratings(&ctx));
-        let (fs, _) = kg::model::elo_first_sight(&games);
-        let pv = kg::model::proven_series(&kg::model::first_sight_games(&games));
+        let fs = kg::model::elo_after(
+            &kg::model::first_sight_elo_games(&ctx, &ev),
+            kg::model::ELO_START,
+        );
+        let pv = kg::model::proven_series(&kg::model::proven_games(&ctx, &ev));
         let mut months: Vec<String> = games
             .iter()
             .map(|(g, _, _)| g.date[..7].to_string())
             .collect();
         months.dedup();
         let peak = fs.iter().map(|(_, e)| *e).fold(0.0, f64::max);
-        println!(
-            "first-sight peak {peak:.0}, now {:.0}",
-            kg::model::elo_first_sight(&games).1
-        );
+        let now = fs.last().map_or(kg::model::ELO_START, |(_, e)| *e);
+        println!("first-sight peak {peak:.0}, now {now:.0}");
         println!("month    every game   first sight   proven");
         for m in months {
             let all = games

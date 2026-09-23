@@ -49,8 +49,9 @@ const ELO: &str = GREEN;
 const SIM: &str = "#6e7681";
 const TODAY: &str = "#f0f6fc";
 // (outcome, label, colour, opacity) heaviest last
-const OUTCOMES: [(&str, &str, &str, &str); 5] = [
+const OUTCOMES: [(&str, &str, &str, &str); 6] = [
     ("none", "unaided", DOT, "0.35"),
+    ("chain", "chain", "#39c5cf", "0.9"),
     ("hint", "hint", "#d29922", "0.9"),
     ("walkthrough", "walkthrough", "#db6d28", "0.9"),
     ("learning", "learning", "#a371f7", "0.9"),
@@ -83,10 +84,10 @@ fn attempts(ctx: &Ctx, ev: &Evidence) -> Vec<Att> {
         if kg::clock::is_studied(ev.fname(i)) {
             continue; // read, not attempted
         }
-        let outcome = if ev.fname(i).contains("FAILED") {
-            "failed"
-        } else {
-            rec.assist_any()
+        let outcome = match rec.assist_any() {
+            _ if ev.fname(i).contains("FAILED") => "failed",
+            "none" if kg::data::served_by_combos(&ctx.root, ev.fname(i)) => "chain",
+            l => l,
         };
         out.push((parse_date(&rec.date), *r, outcome.to_string()));
     }
@@ -479,7 +480,7 @@ fn draw(ctx: &Ctx, ev: &Evidence, args: &[String], days: Option<i64>) {
     let gs = elo::games(ctx, ev);
     let (mut elo_hist, mut ma) = (elo::elo(&gs, START), elo::elo_ma(&gs, START, &[]));
     // the proven rating (kg::model::proven_series, settled 2026-09-20)
-    let mut proven = elo::proven(&gs);
+    let mut proven = elo::proven(ctx, ev);
     let fc = if days.is_some() {
         Vec::new()
     } else {

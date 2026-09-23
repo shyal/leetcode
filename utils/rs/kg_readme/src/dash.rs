@@ -356,6 +356,7 @@ mod tests {
                 first: 5,
                 first_fails: 2,
                 won: 15.5,
+                ..Default::default()
             },
         }
     }

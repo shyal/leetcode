@@ -352,7 +352,7 @@ pub fn render(ctx: &Ctx, ev: &Evidence) {
     ));
     // the proven rating (kg::model::proven_series): the level line that the
     // easy problems of 2025 cannot inflate (settled 2026-09-20)
-    let proven = elo::proven(&gs);
+    let proven = elo::proven(ctx, ev);
     svg.push(format!(
         "<polyline points=\"{}\" fill=\"none\" stroke=\"{}\" stroke-width=\"2\"/>",
         points(&proven, x_of, y_of),
