@@ -29906,6 +29906,17 @@
       "note": "Drill uses the harness `cells(grid)` iterator to enumerate every cell; no explicit delta offsets written.",
       "summary": "The Solution.count walks every cell via the harness `cells(grid)` iterator and increments a counter when grid[i][j] equals v. It exercises the grid-neighbors node by enumerating cells, though the offset arithmetic is delegated to the injected helper rather than written out. All assertions passed and the file exited 0.",
       "seconds": 602
+    },
+    "solved/d_Neighbour_Values_2026_09_23T21_05_28_329678_00_00Z.py": {
+      "date": "2026-09-24",
+      "problem": "drill",
+      "moves": {
+        "grid-neighbors": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets grid-neighbors; uses the harness nbrs(grid, r, c) helper to enumerate in-bounds cardinal neighbors.",
+      "summary": "The solution calls nbrs(grid, r, c) to enumerate the in-bounds cardinal neighbors of a cell and maps each (i, j) pair to grid[i][j], returning the values via the @as_list decorator. All assertions pass, including corner, single-cell, single-row, and single-column cases. This exercises the grid-neighbors move directly.",
+      "seconds": 85
     }
   }
 }
