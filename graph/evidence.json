@@ -29846,6 +29846,18 @@
       "note": "Drill trains bit-flags: enum.Flag members via auto(), union with |, membership test with `in`.",
       "summary": "The code defines a Color(Flag) enum with red/green/blue from auto(), then both() iterates the given names, looks each up with Color[n], and yields it when `col in a and col in b` \u2014 a membership test on the flag value. The driver builds unions with | and checks the intersection of two flag sets, including the empty Color(0) case. All assertions passed on execution.",
       "seconds": 137
+    },
+    "solved/d_Smaller_Before_2026_09_23T20_36_02_821818_00_00Z.py": {
+      "date": "2026-09-24",
+      "problem": "drill",
+      "moves": {},
+      "judge": "deepseek-chat",
+      "note": "Drill targets dp-1d-rolling but the code uses an O(n^2) nested pair scan (pairs + table), not a rolling 1D DP; the DP move is sidestepped.",
+      "summary": "The code counts, for each index i, how many earlier indices j have nums[j] < nums[i], by iterating over all index pairs and incrementing res[i]. It uses table to allocate the result and pairs to enumerate (j, i) with j < i. The targeted dp-1d-rolling move is not exercised; the solution is a brute-force double loop. All assertions pass.",
+      "unmapped": [
+        "brute-force pair enumeration"
+      ],
+      "seconds": 969
     }
   }
 }
