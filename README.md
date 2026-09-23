@@ -1,4 +1,4 @@
-[![Run Tests](https://github.com/shyal/leetcode/actions/workflows/run-tests.yml/badge.svg)](https://github.com/shyal/leetcode/actions/workflows/run-tests.yml) <!-- ELO_BADGE -->![Elo](https://shyal.s3.amazonaws.com/elo_badge_20260922230505.svg)<!-- /ELO_BADGE --> <!-- STREAK_BADGE -->![Streak](https://shyal.s3.amazonaws.com/streak_badge_20260922041843.svg)<!-- /STREAK_BADGE --> <!-- RANK_ALL_BADGE -->![Elo against all rated LeetCode users](https://shyal.s3.amazonaws.com/rank_all_badge_20260922230505.svg)<!-- /RANK_ALL_BADGE --> <!-- RANK_REGULARS_BADGE -->![Elo against users with 20 or more contests](https://shyal.s3.amazonaws.com/rank_regulars_badge_20260922230505.svg)<!-- /RANK_REGULARS_BADGE --> <!-- RATE_BADGE -->![First-sight Elo per 100 hours](https://shyal.s3.amazonaws.com/rate_badge_20260922230505.svg)<!-- /RATE_BADGE -->
+[![Run Tests](https://github.com/shyal/leetcode/actions/workflows/run-tests.yml/badge.svg)](https://github.com/shyal/leetcode/actions/workflows/run-tests.yml) <!-- ELO_BADGE -->![Elo](https://shyal.s3.amazonaws.com/elo_badge_20260923013554.svg)<!-- /ELO_BADGE --> <!-- STREAK_BADGE -->![Streak](https://shyal.s3.amazonaws.com/streak_badge_20260923013554.svg)<!-- /STREAK_BADGE --> <!-- RANK_ALL_BADGE -->![Elo against all rated LeetCode users](https://shyal.s3.amazonaws.com/rank_all_badge_20260923013554.svg)<!-- /RANK_ALL_BADGE --> <!-- RANK_REGULARS_BADGE -->![Elo against users with 20 or more contests](https://shyal.s3.amazonaws.com/rank_regulars_badge_20260923013554.svg)<!-- /RANK_REGULARS_BADGE --> <!-- RATE_BADGE -->![First-sight Elo per 100 hours](https://shyal.s3.amazonaws.com/rate_badge_20260923013554.svg)<!-- /RATE_BADGE -->
 
 This is my leetcode repo. It uses [zerotrac] and [CLIST] so leetcode questions actually have an Elo rating attached to them, and has drills on an Anki schedule, a directed graph of moves, problems and drills that tries to categorize every leetcode question, a duolingo-style memory decay curve for nodes, and a pretty complex picker algorithm.
 
@@ -6,15 +6,15 @@ The biggest insight so far has been that i've been "grinding" well below my Elo,
 
 This probably explains why so many leetcode users refer to the infamous "leetcode grind", since leetcode does not let people pick questions that match their current Elo (unlike topcoder).
 
-Every Elo on this page is scored on first sight only: the first time i meet a problem, on a clock. Re-solving a problem i already know is not a game, because part of that win is remembering the answer. The picker keeps its own Elo over every attempt for its own purposes, and that number is higher; it is not shown here. My current Elo moving average (over the last <!-- ELO_MA_WINDOW -->60<!-- /ELO_MA_WINDOW --> games) is <!-- ELO_MA -->1663<!-- /ELO_MA -->.
+Every Elo on this page is scored on first sight only: the first time i meet a problem, on a clock. Re-solving a problem i already know is not a game, because part of that win is remembering the answer. The picker keeps its own Elo over every attempt for its own purposes, and that number is higher; it is not shown here. My current Elo moving average (over the last <!-- ELO_MA_WINDOW -->60<!-- /ELO_MA_WINDOW --> games) is <!-- ELO_MA -->1660<!-- /ELO_MA -->.
 
 <!-- RATE_GAUGE -->
 
-![Elo per 100 hours on problems seen for the first time](https://shyal.s3.amazonaws.com/rate_gauge_20260922230505.svg)
+![Elo per 100 hours on problems seen for the first time](https://shyal.s3.amazonaws.com/rate_gauge_20260923013554.svg)
 
 <!-- /RATE_GAUGE -->
 
-The gauge is my Elo gains on problems i've seen for the first time: <!-- FS_RATE -->+41<!-- /FS_RATE --> Elo per 100h. Over the first <!-- FS_WINDOW -->60<!-- /FS_WINDOW --> days i was playing at <!-- FS_EARLY -->1590<!-- /FS_EARLY -->, over the last <!-- FS_WINDOW -->60<!-- /FS_WINDOW --> at <!-- FS_LATE -->1680<!-- /FS_LATE -->, divided by the hours in between. It's also the number the onsite chart below uses to guess when i get there. The hours chart is the raw Elo against hours over everything, old picking strategy included, so it looks a lot worse.
+The gauge is my Elo gains on problems i've seen for the first time: <!-- FS_RATE -->+33<!-- /FS_RATE --> Elo per 100h. Over the first <!-- FS_WINDOW -->60<!-- /FS_WINDOW --> days i was playing at <!-- FS_EARLY -->1590<!-- /FS_EARLY -->, over the last <!-- FS_WINDOW -->60<!-- /FS_WINDOW --> at <!-- FS_LATE -->1664<!-- /FS_LATE -->, divided by the hours in between. It's also the number the onsite chart below uses to guess when i get there. The hours chart is the raw Elo against hours over everything, old picking strategy included, so it looks a lot worse.
 
 ## Problems
 
@@ -24,13 +24,13 @@ Right of the dotted line is a simulation: the picker running on its own for six 
 
 <!-- PROBLEM_RATING_CHART -->
 
-![Rating of the problems attempted](https://shyal.s3.amazonaws.com/problem_rating_20260922230505.svg)
+![Rating of the problems attempted](https://shyal.s3.amazonaws.com/problem_rating_20260923013554.svg)
 
 <!-- /PROBLEM_RATING_CHART -->
 
 <!-- PROBLEM_RATING_MONTH_CHART -->
 
-![Rating of the problems attempted in the last 30 days](https://shyal.s3.amazonaws.com/problem_rating_month_20260922230505.svg)
+![Rating of the problems attempted in the last 30 days](https://shyal.s3.amazonaws.com/problem_rating_month_20260923013554.svg)
 
 <!-- /PROBLEM_RATING_MONTH_CHART -->
 
@@ -40,7 +40,7 @@ The study showed a 200 point gain at about 200 problems above one's rating, roug
 
 <!-- HOURS_CHART -->
 
-![Elo against hours of recorded solving, with the Carnegie Mellon rate](https://shyal.s3.amazonaws.com/hours_20260922230505.svg)
+![Elo against hours of recorded solving, with the Carnegie Mellon rate](https://shyal.s3.amazonaws.com/hours_20260923013554.svg)
 
 <!-- /HOURS_CHART -->
 
@@ -50,7 +50,7 @@ Extrapolating noisy data. What could go wrong.
 
 <!-- ONSITE_CHART -->
 
-![Elo history and its projection to the onsite line, on dates](https://shyal.s3.amazonaws.com/onsite_20260922230505.svg)
+![Elo history and its projection to the onsite line, on dates](https://shyal.s3.amazonaws.com/onsite_20260923013554.svg)
 
 <!-- /ONSITE_CHART -->
 
@@ -60,7 +60,7 @@ If the blue line is above 0, i'm performing better than the model expects, and v
 
 <!-- PROGRESS_CHART -->
 
-![Actual minus model on the last 30 first sights](https://shyal.s3.amazonaws.com/progress_20260922230505.svg)
+![Actual minus model on the last 30 first sights](https://shyal.s3.amazonaws.com/progress_20260923013554.svg)
 
 <!-- /PROGRESS_CHART -->
 
@@ -68,7 +68,7 @@ If the blue line is above 0, i'm performing better than the model expects, and v
 
 <!-- BACKLOG_CHART -->
 
-![Backlog and forecast: review cards, solves by kind, STALE and FRAGILE nodes](https://shyal.s3.amazonaws.com/backlog_20260922225107.svg)
+![Backlog and forecast: review cards, solves by kind, STALE and FRAGILE nodes](https://shyal.s3.amazonaws.com/backlog_20260923013554.svg)
 
 <!-- /BACKLOG_CHART -->
 
