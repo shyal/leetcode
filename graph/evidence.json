@@ -29983,6 +29983,22 @@
       "note": "Drill targets index-conversion: rows counted from the bottom (a = n-1-r) and alternating row direction (c vs n-1-c) via divmod-style flat index a*n + col.",
       "summary": "The code builds an n x n grid and fills each cell by converting the row r to a bottom-up row a = n-1-r, then computing a flat index a*n plus a column that is mirrored (n-1-c) on odd rows. This exercises index-conversion with both bottom-up row counting and alternating row direction. All assertions pass and the run exits 0.",
       "seconds": 117
+    },
+    "solved/d_Subarrays_Summing_To_Target_2026_09_23T22_00_48_224898_00_00Z.py": {
+      "date": "2026-09-24",
+      "problem": "drill",
+      "moves": {
+        "prefix-sum-hashmap": "clean",
+        "running-sum": "clean",
+        "streaming-ask-then-record": "clean"
+      },
+      "assist": {
+        "prefix-sum-hashmap": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets prefix-sum-hashmap; notes say 'Learning'.",
+      "summary": "countSubarrays keeps a running prefix sum and a defaultdict D seeded with D[0]=1, then for each value adds D[prefix-target] to res before recording D[prefix]. This is the prefix-sum-hashmap move (560 shape), with the running-sum accumulation and the ask-the-past-then-record ordering. The file ran and printed 3; the notes mark it as Learning.",
+      "seconds": 178
     }
   }
 }
