@@ -1,0 +1,172 @@
+{
+  "_comment": "Held-out test set and lures for the two-sequence-align chain. Serve one at a time, cold, days apart, mixed with other problems; never in sequence and never labelled as part of the chain.",
+  "chain": "two-sequence-align",
+  "test": {
+    "3503": {
+      "title": "Longest Palindrome After Substring Concatenation I",
+      "rating": 1548.2,
+      "holds": "run length of s[:i] against reversed t[:j]",
+      "closest": "718",
+      "change": "718 on s and t[::-1], then add the longest palindrome that starts right after the run",
+      "disguise": "asks for a palindrome built from two substrings; no table in sight",
+      "sources": [
+        "research/doocs-leetcode/solution/3500-3599/3503.Longest Palindrome After Substring Concatenation I/README_EN.md",
+        "research/lc-solutions/3503.longest-palindrome-after-substring-concatenation-i/6594668.md"
+      ]
+    },
+    "3290": {
+      "title": "Maximum Multiplication Score",
+      "rating": 1692.2,
+      "holds": "best score using a[:i] against b[:j]",
+      "closest": "1458",
+      "change": "only b may skip, every a[i] must be used; a has exactly 4 entries",
+      "disguise": "a is fixed length 4, reads like pick 4 indices",
+      "sources": [
+        "research/doocs-leetcode/solution/3200-3299/3290.Maximum Multiplication Score/README_EN.md",
+        "https://algo.monster/liteproblems/3290"
+      ]
+    },
+    "1638": {
+      "title": "Count Substrings That Differ by One Character",
+      "rating": 1744.8,
+      "holds": "run of equal characters ending at s[i-1], t[j-1] (and a second table for the run starting there)",
+      "closest": "718",
+      "change": "718 table read from both ends; a mismatch cell scores (left run + 1) * (right run + 1)",
+      "disguise": "a counting question about substrings that differ in one place",
+      "sources": [
+        "research/doocs-leetcode/solution/1600-1699/1638.Count Substrings That Differ by One Character/README_EN.md",
+        "research/lc-solutions/1638.count-substrings-that-differ-by-one-character/917701.md",
+        "https://walkccc.me/LeetCode/problems/1638/"
+      ]
+    },
+    "3836": {
+      "title": "Maximum Score Using Exactly K Pairs",
+      "rating": 1988.0,
+      "holds": "best score of exactly p pairs from nums1[:i], nums2[:j]",
+      "closest": "1458",
+      "change": "a third index p counts the pairs; exactly k of them",
+      "disguise": "phrased as choosing index pairs with increasing i and j",
+      "sources": [
+        "research/doocs-leetcode/solution/3800-3899/3836.Maximum Score Using Exactly K Pairs/README_EN.md"
+      ]
+    },
+    "3316": {
+      "title": "Find Maximum Removals From Source String",
+      "rating": 2062.3,
+      "holds": "most removals in source[:i] while pattern[:j] is matched",
+      "closest": "115",
+      "change": "max instead of sum; up adds 1 when index i-1 is removable",
+      "disguise": "phrased as deleting indices while keeping a subsequence",
+      "sources": [
+        "research/doocs-leetcode/solution/3300-3399/3316.Find Maximum Removals From Source String/README_EN.md",
+        "https://algo.monster/liteproblems/3316"
+      ]
+    },
+    "1639": {
+      "title": "Number of Ways to Form a Target String Given a Dictionary",
+      "rating": 2081.7,
+      "holds": "ways to form target[:i] using columns [:j]",
+      "closest": "115",
+      "change": "a match multiplies by how many words have that letter in column j",
+      "disguise": "a dictionary of words; the second sequence is the columns, not a string",
+      "sources": [
+        "research/doocs-leetcode/solution/1600-1699/1639.Number of Ways to Form a Target String Given a Dictionary/README_EN.md",
+        "https://algo.monster/liteproblems/1639"
+      ]
+    },
+    "2430": {
+      "title": "Maximum Deletions on a String",
+      "rating": 2101.9,
+      "holds": "length of the common prefix of s[i:] and s[j:]",
+      "closest": "718",
+      "change": "718 suffix table on s against itself, then a 1D dp that reads it",
+      "disguise": "one string, a deletion game; the table is a helper",
+      "sources": [
+        "research/doocs-leetcode/solution/2400-2499/2430.Maximum Deletions on a String/README_EN.md",
+        "research/lc-solutions/2430.maximum-deletions-on-a-string/2648900.md"
+      ]
+    },
+    "3981": {
+      "title": "Count Distinct Ways to Form Target from Two Strings",
+      "rating": 2128.4,
+      "holds": "ways to form target[k:] from word1[i:] and word2[j:]",
+      "closest": "97",
+      "change": "97 with counting (115) instead of bool; both strings may skip; each must be used once",
+      "disguise": "three strings and a count; reads like a combinatorics question",
+      "sources": [
+        "research/lc-solutions/3981.count-distinct-ways-to-form-target-from-two-strings/8376006.md",
+        "https://leetcode.ca/2026-08-18-3981-Count-Distinct-Ways-to-Form-Target-from-Two-Strings/"
+      ]
+    },
+    "3388": {
+      "title": "Count Beautiful Splits in an Array",
+      "rating": 2364.7,
+      "holds": "length of the common prefix of nums[i:] and nums[j:]",
+      "closest": "718",
+      "change": "718 suffix table on nums against itself, then count splits with it",
+      "disguise": "one array, a split-counting question about prefixes",
+      "sources": [
+        "research/doocs-leetcode/solution/3300-3399/3388.Count Beautiful Splits in an Array/README_EN.md"
+      ]
+    }
+  },
+  "lures": {
+    "3983": {
+      "title": "Subsequence After One Replacement",
+      "rating": 1754.7,
+      "looks_like": "s against t, subsequence with one change; reads like 115 or 72",
+      "actually": "greedy two pointers; one pointer with the replacement unused, one with it spent",
+      "sources": [
+        "research/doocs-leetcode/solution/3900-3999/3983.Subsequence After One Replacement/README_EN.md"
+      ]
+    },
+    "214": {
+      "title": "Shortest Palindrome",
+      "rating": 1827.2,
+      "looks_like": "add characters to make a palindrome; reads like 1312 on s and s[::-1]",
+      "actually": "longest palindromic prefix via KMP failure function on s + '#' + s[::-1] (or rolling hash); insertions only at the front",
+      "sources": [
+        "research/doocs-leetcode/solution/0200-0299/0214.Shortest Palindrome/README_EN.md",
+        "https://algo.monster/liteproblems/214"
+      ]
+    },
+    "2800": {
+      "title": "Shortest String That Contains Three Strings",
+      "rating": 1855.6,
+      "looks_like": "shortest string containing others; reads like 1092",
+      "actually": "substrings, not subsequences: try the 6 orders and merge by largest overlap",
+      "sources": [
+        "research/doocs-leetcode/solution/2800-2899/2800.Shortest String That Contains Three Strings/README_EN.md"
+      ]
+    },
+    "3472": {
+      "title": "Longest Palindromic Subsequence After at Most K Operations",
+      "rating": 1883.8,
+      "looks_like": "516 plus a budget k; tempts s against s[::-1]",
+      "actually": "interval dp on one string, dfs(i, j, k) over s[i..j]; the reversed-copy table double counts the cost",
+      "sources": [
+        "research/doocs-leetcode/solution/3400-3499/3472.Longest Palindromic Subsequence After at Most K Operations/README_EN.md"
+      ]
+    },
+    "940": {
+      "title": "Distinct Subsequences II",
+      "rating": 1985.2,
+      "looks_like": "counting subsequences; reads like 115",
+      "actually": "1D dp over the last character, 26 counters",
+      "sources": [
+        "research/doocs-leetcode/solution/0900-0999/0940.Distinct Subsequences II/README_EN.md",
+        "https://algo.monster/liteproblems/940"
+      ]
+    },
+    "2193": {
+      "title": "Minimum Number of Moves to Make Palindrome",
+      "rating": 2090.7,
+      "looks_like": "make a string a palindrome with fewest moves; reads like 1312",
+      "actually": "greedy: fix the outer pair, swap its match inward, count adjacent swaps",
+      "sources": [
+        "research/doocs-leetcode/solution/2100-2199/2193.Minimum Number of Moves to Make Palindrome/README_EN.md",
+        "https://algo.monster/liteproblems/2193"
+      ]
+    }
+  }
+}
