@@ -29782,6 +29782,17 @@
       "note": "Drill targets dp-1d-rolling; the code keeps two rolling scalars (a, count) updated in one forward pass, the rolling-variable form of the 1D DP.",
       "summary": "The code scans s once, keeping a running count of 'a's seen so far and adding that count to the answer whenever a 'b' appears, so each 'b' contributes the number of preceding 'a's. This is the rolling-variable form of the 1D DP (dp-1d-rolling) plus a running-sum accumulation. All assertions pass, including the 50000/50000 stress case.",
       "seconds": 322
+    },
+    "solved/d_Revenue_Per_Product_2026_09_23T20_00_12_160245_00_00Z.py": {
+      "date": "2026-09-24",
+      "problem": "drill",
+      "moves": {
+        "sql-group-aggregate": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "One query, one aggregate; product formed per row before summing, as required.",
+      "summary": "The query selects product_id and sum(price * units) as revenue from Sales, grouping by product_id. This exercises the group-aggregate move: one row per product with the per-row product summed. Both example assertions passed and the required one-query, one-aggregate constraint is met.",
+      "seconds": 93
     }
   }
 }
