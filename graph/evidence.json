@@ -29821,6 +29821,20 @@
       "note": "Notes say 'Learning'; the code re-links nodes in place with a tuple swap rather than using a dummy node, but the splice/re-link move is exercised.",
       "summary": "The code interleaves two lists by repeatedly swapping a.next, b.next, a, b in a single tuple assignment, threading b's nodes between a's nodes and returning the original head a. It exercises the in-place re-link/splice move (ll-dummy-splice) without a dummy node. The notes mark the work as 'Learning', and the assertion block is commented out, so only the printed [1, 4, 2, 5, 3] case ran.",
       "seconds": 339
+    },
+    "solved/d_Floor_True_2026_09_23T20_14_52_327493_00_00Z.py": {
+      "date": "2026-09-24",
+      "problem": "drill",
+      "moves": {
+        "binary-search-boundary": "clean"
+      },
+      "assist": {
+        "binary-search-boundary": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets binary-search-on-answer; code implements the last-true boundary variant (lo=mid+1 on ok, return hi) and passes all assertions including the <=31-call bound.",
+      "summary": "The file defines Solution.floorTrue, a binary search that returns the last index where the predicate ok is true by moving lo up on success and hi down on failure, returning hi. It exercises the binary-search-boundary move, verified by assertions over ranges up to 1e9 and a call-count check. The notes state 'Learning.'",
+      "seconds": 125
     }
   }
 }
