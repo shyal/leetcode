@@ -29999,6 +29999,17 @@
       "note": "Drill targets prefix-sum-hashmap; notes say 'Learning'.",
       "summary": "countSubarrays keeps a running prefix sum and a defaultdict D seeded with D[0]=1, then for each value adds D[prefix-target] to res before recording D[prefix]. This is the prefix-sum-hashmap move (560 shape), with the running-sum accumulation and the ask-the-past-then-record ordering. The file ran and printed 3; the notes mark it as Learning.",
       "seconds": 178
+    },
+    "solved/d_Tape_Reader_2026_09_23T22_03_10_075772_00_00Z.py": {
+      "date": "2026-09-24",
+      "problem": "drill",
+      "moves": {
+        "recursive-descent": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets recursive-descent; expr() consumes numbers and folds +/- into a left-leaning TreeNode, sharing the Parser cursor.",
+      "summary": "Solution subclasses Parser and implements expr() by reading a number, then looping while the cursor is on '+' or '-', folding each operator and following number into a left-leaning TreeNode. The assertions confirm the tree shape for '120+45-30', '7', '10-100+1000', and '1+2+3+4', and the run exited 0. This exercises the recursive-descent move: a grammar rule as a function sharing one cursor.",
+      "seconds": 122
     }
   }
 }
