@@ -30134,6 +30134,18 @@
       "judge": "deepseek-chat",
       "summary": "The code keeps a running prefix sum and a defaultdict D seeded with D[0]=1, then for each value adds D[prefix - target] to res before recording D[prefix] += 1. This is the prefix-sum-hashmap shape: each subarray ending at the current index is counted by asking whether the complementary prefix has been seen. The running sum, the derived lookup key prefix-target, and the ask-then-record ordering are all exercised, and all assertions pass.",
       "seconds": 97
+    },
+    "solved/d_Longest_Common_Subsequence_2026_09_24T20_54_55_565577_00_00Z.py": {
+      "date": "2026-09-25",
+      "problem": "drill",
+      "moves": {
+        "two-sequence-align": "clean",
+        "dp-2d-grid": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets two-sequence-align; the 2D table with a[i]==b[j] -> dp[i-1][j-1]+1 else max(dp[i-1][j], dp[i][j-1]) is the canonical two-prefix recurrence.",
+      "summary": "The code pads both strings with a leading space, builds a 2D table via table(len(a), len(b)), and fills it with cells(dp, start=1): on a character match it takes dp[i-1][j-1]+1, otherwise the max of the top and left neighbors, returning dp[-1][-1]. This exercises two-sequence-align and the grid DP fill. All assertions passed and the run exited 0; the notes contain no mention of hints or look-ups.",
+      "seconds": 266
     }
   }
 }
