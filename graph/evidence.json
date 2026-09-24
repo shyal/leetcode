@@ -30191,6 +30191,17 @@
       "note": "Local assert sol.arrival_hour([1, 3, 2], 3) == 2.7 failed: got 2.6666666666666665 (the test's expected value is wrong; ceil(1/3)+ceil(3/3)+2/3 = 2.666...). LeetCode verdict: Accepted.",
       "summary": "The code computes arrival_hour by summing ceil(x/speed) for all but the last distance and x/speed for the last, then binary-searches the smallest speed in 1..10^9 for which arrival_hour <= hour, returning -1 when even 10^9 is too slow. The search uses first_true over the monotone on_time predicate, which is binary-search-on-answer, and the arrival time is built with a running sum. The local run exited non-zero on an assert whose expected value 2.7 is itself incorrect, while the LeetCode submission was Accepted.",
       "seconds": 1525
+    },
+    "solved/d_First_True_2026_09_24T23_26_13_174618_00_00Z.py": {
+      "date": "2026-09-25",
+      "problem": "drill",
+      "moves": {
+        "binary-search-boundary": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill trains the first-true boundary template; all assertions pass and the call-count bound (<=31) confirms logarithmic halving.",
+      "summary": "The file defines Solution.firstTrue(lo, hi, ok), which halves the range while lo < hi, moving hi to mid when ok(mid) holds and lo to mid+1 otherwise, returning lo as the first index where the predicate flips true. The assertions exercise the boundary cases (lo==hi, hi==lo+1, predicate always true, predicate only true at hi) and a 1..10^9 range where the recorded call list stays within 31 probes. This is the binary-search-boundary move, and the run exited 0 with output 8.",
+      "seconds": 62
     }
   }
 }
