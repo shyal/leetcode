@@ -537,12 +537,24 @@ def test_kg_extract_stub_with_nothing_staged(tmp_path):
     assert p.stdout.strip() == "nothing staged - no placeholder to write."
 
 
-def test_kg_readme_streak_badge_and_unknown_target():
-    p = run("kg_readme", "streak")
+def test_kg_readme_streak_badge_and_unknown_target(tmp_path):
+    # a root of its own: graph/ is links to the real files, solved/ holds
+    # two days, and the badge is written here instead of into the repo
+    for name in os.listdir(ROOT):
+        if name not in ("graph", "solved"):
+            (tmp_path / name).symlink_to(os.path.join(ROOT, name))
+    (tmp_path / "graph").mkdir()
+    for name in os.listdir(os.path.join(ROOT, "graph")):
+        if name != "streak_badge.svg":
+            (tmp_path / "graph" / name).symlink_to(os.path.join(ROOT, "graph", name))
+    (tmp_path / "solved").mkdir()
+    for stamp in ("2020_01_01T10_00_00", "2020_01_02T10_00_00"):
+        (tmp_path / "solved" / f"p1_Two_Sum_{stamp}_000000_00_00Z.py").write_text("")
+    p = run("kg_readme", "streak", env={"KG_ROOT": str(tmp_path)})
     assert p.returncode == 0, p.stderr
     assert p.stdout.startswith("wrote ") and "streak_badge.svg" in p.stdout
-    svg = open(os.path.join(ROOT, "graph", "streak_badge.svg")).read()
-    assert svg.startswith("<svg ") and "streak" in svg and "best" in svg
+    svg = (tmp_path / "graph" / "streak_badge.svg").read_text()
+    assert svg.startswith("<svg ") and "0 days · best 2" in svg
     p = run("kg_readme", "bogus")
     assert p.returncode == 2 and "unknown target bogus" in p.stderr
 

@@ -120,6 +120,41 @@ pub fn drill_warm(ctx: &Ctx, path: &Path, ev: &Evidence, today: NaiveDate) -> bo
     }
 }
 
+/// DRILL_GATE_REPS: how many unaided clean reps, each on a day of its
+/// own, a drill needs before a problem whose "after" names it is served.
+/// Unset means 1. Drills that wait on drills keep the one-rep bar.
+pub fn drill_gate_reps() -> usize {
+    env_str("DRILL_GATE_REPS")
+        .trim()
+        .parse()
+        .unwrap_or(1)
+        .max(1)
+}
+
+/// The bar a drill clears before it releases a problem: its latest rep is
+/// an unaided clean, and at least DRILL_GATE_REPS unaided cleans fall on
+/// distinct days. No age limit: the drill clock decides when the drill
+/// comes back, and the gate reads only how that rep went.
+pub fn drill_gate_warm(ctx: &Ctx, path: &Path, ev: &Evidence) -> bool {
+    if !latest_drill(ctx, path, ev)
+        .is_some_and(|(base, rec)| rec.drill_clean(base) && rec.assist_any() == "none")
+    {
+        return false;
+    }
+    let key = ctx.drill_evidence_key(path);
+    let days: HashSet<&str> = ev
+        .drill_reps(&key)
+        .iter()
+        .filter(|&&i| {
+            let (_, base, ri) = &ev.drills[i];
+            let rec = ev.rec(*ri);
+            rec.drill_clean(base) && rec.assist_any() == "none"
+        })
+        .map(|&i| ev.drills[i].0.as_str())
+        .collect();
+    days.len() >= drill_gate_reps()
+}
+
 /// kg_lib.servable_drills: files whose "after" ids are all warm and whose
 /// other TRAINS nodes are owned.
 pub fn servable_drills(

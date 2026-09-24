@@ -163,6 +163,13 @@ graduating floor also review on the drill when the node has a bank and a
 drill is due; the carrier is the test once no drill is (2026-09-02).
 Without a bank the spaced re-solve stays on the carrier.
 
+A problem whose `after` names a drill waits for `DRILL_GATE_REPS` unaided
+clean reps of that drill, each on a different day, and the latest rep
+must be one of them (`drills::drill_gate_warm`). There is no age limit: the
+drill clock decides when the drill comes back. Unset means 1. Drills that wait
+on drills keep the one-rep bar. It was set to 3 after one rep of d147 served
+799. Champagne Tower the same minute (2026-09-25).
+
 ## Warmup count (`NEXT_WARMUP_COUNT`)
 
 `NEXT_WARMUP_COUNT=2` in `.envrc` (the default) is how many solves open a

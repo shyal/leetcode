@@ -5,7 +5,7 @@ use std::collections::HashSet;
 
 use super::*;
 use crate::bank::{dependents, easiest_first, gates, held_behind, Dependent};
-use crate::data::{Assist, SOLID_WINDOW_DAYS};
+use crate::data::{test_env, Assist, SOLID_WINDOW_DAYS};
 use crate::drills::{drill_clean, drill_held, drill_warm, drills_left, due_drill, servable_drills};
 use crate::status::{graduation_due, node_status, owned, GRAD_LADDER_SPARSE};
 
@@ -46,6 +46,48 @@ fn a_warm_drill_releases_the_problem() {
     fx.problem("713", problem(&["sw"]).after(&["d1"]));
     let ev = evidence(vec![drill_rep("Count by Contribution", "sw", 3)]);
     assert_eq!(held(&fx, "713", &ev), None);
+}
+
+/// DRILL_GATE_REPS=3: one clean rep of the gate drill is not enough to
+/// serve the problem (d147 then 799, 2026-09-25). Three clean reps on one
+/// day are still one day; three days release it, however long ago. A
+/// struggled latest rep holds it again.
+#[test]
+fn a_drill_gate_needs_drill_gate_reps_days() {
+    let mut fx = Fx::new();
+    test_env("DRILL_GATE_REPS", "3");
+    fx.bank("sw", "Count by Contribution", "d0.py", "d1", &[]);
+    fx.problem("713", problem(&["sw"]).after(&["d1"]));
+    let one = evidence(vec![drill_rep("Count by Contribution", "sw", 0)]);
+    assert_eq!(held(&fx, "713", &one), Some("d1".into()));
+    let same_day = evidence(vec![
+        drill_file("solved/d_Count_by_Contribution_a.py", "sw", 0, Assist::None),
+        drill_file("solved/d_Count_by_Contribution_b.py", "sw", 0, Assist::None),
+        drill_file("solved/d_Count_by_Contribution_c.py", "sw", 0, Assist::None),
+    ]);
+    assert_eq!(held(&fx, "713", &same_day), Some("d1".into()));
+    let three = evidence(vec![
+        drill_rep("Count by Contribution", "sw", 9),
+        drill_rep("Count by Contribution", "sw", 4),
+        drill_rep("Count by Contribution", "sw", 0),
+    ]);
+    assert_eq!(held(&fx, "713", &three), None);
+    // 714 walks a node with no bank, so only the "after" gate reads d9
+    fx.bank("pre", "Old Gate", "d9.py", "d9", &[]);
+    fx.problem("714", problem(&["plain"]).after(&["d9"]));
+    let old = evidence(vec![
+        drill_rep("Old Gate", "pre", 120),
+        drill_rep("Old Gate", "pre", 90),
+        drill_rep("Old Gate", "pre", 60),
+    ]);
+    assert_eq!(held(&fx, "714", &old), None);
+    let failed_review = evidence(vec![
+        drill_rep("Count by Contribution", "sw", 9),
+        drill_rep("Count by Contribution", "sw", 4),
+        drill_rep("Count by Contribution", "sw", 2),
+        drill_rep_v("Count by Contribution", "sw", 0, "struggled", Assist::None),
+    ]);
+    assert_eq!(held(&fx, "713", &failed_review), Some("d1".into()));
 }
 
 /// Same bar as a drill releasing the next drill of its node: the unaided

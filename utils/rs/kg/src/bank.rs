@@ -11,7 +11,7 @@ use chrono::NaiveDate;
 
 use crate::ctx::{Ctx, PView};
 use crate::data::{parse_date, pnum_key, Problem, Problems, SOLID_WINDOW_DAYS};
-use crate::drills::{drill_clean, drill_warm, latest_drill_rep, node_drill_hold};
+use crate::drills::{drill_clean, drill_gate_warm, drill_warm, latest_drill_rep, node_drill_hold};
 use crate::evidence::Evidence;
 use crate::model::{target_pass_rate, walk_informative, SolveState};
 use crate::status::{
@@ -83,7 +83,13 @@ pub fn held_behind(
         if unservable {
             continue;
         }
-        if warm(ctx, pred, problems, ev, today, false) == Some(false) {
+        let cold = if ctx.vertex_kind(pred, &problems.map) == Some("drill") {
+            ctx.drill_path(pred)
+                .is_none_or(|p| !drill_gate_warm(ctx, &p, ev))
+        } else {
+            warm(ctx, pred, problems, ev, today, false) == Some(false)
+        };
+        if cold {
             return Some(pred.clone());
         }
     }
