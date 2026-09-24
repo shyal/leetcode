@@ -90,6 +90,7 @@ class Py(str):
     div = None  # (a, b) when the expression is exactly a / b
     rng = None  # (lo, hi_exclusive) when the expression is a range
     parts = None  # the member types when a type is a parenthesized tuple
+    call = False  # a call that dropped its brackets, `f x`
 
 
 HELPERS = {
@@ -712,14 +713,23 @@ class Parser:
             return False
         return not (t[1] == "first" and self.at("in", 2))
 
-    def postfix(self):
+    def postfix(self, nested=False):
         """A call may drop its brackets when it has one argument: `f x` is
         f(x), `print len xs` is print(len(xs)), and it binds tighter than any
-        operator, so `len xs - 1` is len(xs) - 1."""
+        operator, so `len xs - 1` is len(xs) - 1.
+
+        A `for` after the argument makes it a generator: `set f y for y in
+        xs` is set(f(y) for y in xs). The innermost call `f y` is the
+        generator's element, so it leaves the `for` to the call around it."""
         named = self.peek()[0] == "NAME"
         e = self.postfix_chain()
         if named and self.operand_next():
-            return self.special(e, [self.postfix()], [])
+            arg = self.postfix(nested=True)
+            if self.at("for") and (arg.call or not nested):
+                arg = Py(f"{arg}{self.comprehension()}")
+            out = self.special(e, [arg], [])
+            out.call = True
+            return out
         return e
 
     def postfix_chain(self):

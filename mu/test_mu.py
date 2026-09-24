@@ -200,6 +200,14 @@ def test_one_argument_calls_drop_their_brackets():
     assert "a[0] if a else s - 1" in out
 
 
+def test_a_bracketless_call_takes_a_generator():
+    src = "def f(a: [int]) -> int\n  return len set self.find y for y in a\n"
+    out = transpile(src)
+    assert "len(set(self.find(y) for y in a))" in out
+    src = "def g(a: [int]) -> int\n  sum x for x in a if x > 0\n"
+    assert "sum(x for x in a if x > 0)" in transpile(src)
+
+
 def test_string_prefixes():
     out = transpile("def f(a: str) -> str\n  b = f' {a}'\n  r'\\d' + b\n")
     assert "b = f' {a}'" in out
