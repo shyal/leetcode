@@ -89,7 +89,7 @@ def test_every_drill_runs_green_from_current_mu(ref, tmp_path):
     (tmp_path / "current.mu").write_text(solved(stub(drill), open(ref).read()))
     run = session(tmp_path, "run")
     assert run.returncode == 0, run.stdout[-1500:] + run.stderr[-1500:]
-    assert "Running the drill from current.mu." in run.stderr
+    assert "Running from current.mu." in run.stderr
 
 
 def test_the_stub_translates_the_asserts():
@@ -130,7 +130,7 @@ def test_a_whole_session(prefix, tmp_path):
     assert session(tmp_path, "stub").returncode == 0
     served = (tmp_path / "current.mu").read_text()
     assert served == (tmp_path / ".mu_stub").read_text()
-    assert "Running the drill from current.mu." in session(tmp_path, "run").stderr
+    assert "Running from current.mu." in session(tmp_path, "run").stderr
 
     (tmp_path / "current.mu").write_text(
         solved(served, open(ref).read(), "peeked at the loop")
@@ -189,3 +189,81 @@ def test_nothing_to_do_without_current_mu(tmp_path):
     shutil.copy(drill_for(reference("d115_")), tmp_path / "current.py")
     assert session(tmp_path, "fold").returncode == 0
     assert "mu source" not in (tmp_path / "current.py").read_text()
+
+
+PROBLEM = '''"""
+URL: https://leetcode.com/problems/two-sum/description/
+
+1. Two Sum
+
+Given nums and target, return the indices of the two numbers that add up
+to target.
+"""
+
+
+class Solution:
+    def twoSum(self, nums: List[int], target: int) -> List[int]:
+        pass
+
+
+sol = Solution()
+
+# assert sol.twoSum([2, 7, 11, 15], 9) == [0, 1]
+'''
+
+TWO_SUM = """def twoSum(nums: [int], target: int) -> [int]
+  seen = {}
+  for i, x in nums
+    if target - x in seen
+      return [seen[target - x], i]
+    seen[x] = i
+"""
+
+
+def test_a_problem_is_served_run_submitted_and_folded(tmp_path):
+    (tmp_path / "current.py").write_text(PROBLEM)
+    assert "Wrote current.mu" in session(tmp_path, "stub").stdout
+    work = (tmp_path / "current.mu").read_text()
+    assert work.startswith("# URL: https://leetcode.com/problems/two-sum/")
+    work = work.replace(
+        "def twoSum(nums: [int], target: int) -> [int]\n  pass\n", TWO_SUM
+    )
+    work = work.replace("# assert", "assert")
+    (tmp_path / "current.mu").write_text(work)
+    assert session(tmp_path, "run").returncode == 0
+    # make submit sends the transpiled copy while current.mu holds the work
+    assert session(tmp_path, "build").stdout.strip() == ".mu_current.py"
+    sent = (tmp_path / ".mu_current.py").read_text()
+    assert "URL: https://leetcode.com/problems/two-sum/" in sent
+    assert "seen[x] = i" in sent
+    session(tmp_path, "fold")
+    assert "# mu source (current.mu)" in (tmp_path / "current.py").read_text()
+    assert session(tmp_path, "build").stdout.strip() == "current.py"
+
+
+def test_a_problem_mu_cannot_write_is_left_to_current_py(tmp_path):
+    design = PROBLEM.replace("class Solution:", "class StockPrice:")
+    (tmp_path / "current.py").write_text(design)
+    assert "solve it in current.py" in session(tmp_path, "stub").stdout
+    assert not (tmp_path / "current.mu").exists()
+    given = PROBLEM.replace(
+        "sol = Solution()",
+        "class Master:\n    def guess(self, w: str) -> int:\n        return 0\n\n\nsol = Solution()",
+    )
+    (tmp_path / "current.py").write_text(given)
+    out = session(tmp_path, "stub")
+    assert out.returncode == 0 and "solve it in current.py" in out.stdout
+
+
+@pytest.mark.parametrize(
+    "annotation, want",
+    [
+        ("Optional['Node']", "Node?"),
+        ("'Optional[Node]'", "Node?"),
+        ("TreeNode | None", "TreeNode?"),
+    ],
+)
+def test_optional_annotations(annotation, want):
+    from session import mu_type
+
+    assert mu_type(__import__("ast").parse(annotation, mode="eval").body) == want

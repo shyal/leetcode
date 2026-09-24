@@ -21,7 +21,7 @@ from collections import Counter
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from mu import HELPERS, TOKEN, MuError, compile_stmts  # noqa: E402
+from mu import HELPERS, TOKEN, MuError, compile_stmts, tokenize  # noqa: E402
 
 OUT = "__mu_out__"
 # same rule as the VS Code extension: these lines open a block
@@ -118,6 +118,11 @@ def open_brackets(src):
 def needs_more(lines, block):
     """(read another line?, in block mode?) for the lines typed so far."""
     src = "\n".join(lines)
+    try:
+        tokenize(src)
+    except MuError as err:
+        if err.eof:  # an open triple-quoted string owns its blank lines
+            return True, block
     if open_brackets(src) > 0:
         return True, block
     if block:

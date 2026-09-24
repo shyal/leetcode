@@ -215,3 +215,38 @@ def test_string_prefixes():
     assert (
         fmt("def f(a: str) -> str\n  f' {a}'\n") == "def f(a: str) -> str\n  f' {a}'\n"
     )
+
+
+def test_chained_assignment():
+    src = (
+        "def f(n: int) -> int\n  a = b = n\n  def g()\n    a = b = 0\n  g()\n  a + b\n"
+    )
+    out = transpile(src)
+    assert "a = b = n" in out
+    assert "nonlocal a, b" in out  # every target of the chain is bound
+    assert "return a + b" in out
+    assert (
+        fmt("def f() -> int\n  a=b  =1\n  a\n") == "def f() -> int\n  a = b = 1\n  a\n"
+    )
+    with pytest.raises(MuError):
+        transpile("def f() -> int\n  a += b = 1\n  a\n")
+
+
+def test_triple_quoted_strings_span_lines():
+    src = (
+        "def f() -> str\n"
+        "  a = '''one\n"
+        '  two\'\'\' + """x"""\n'
+        '  b = f"""{a}\n'
+        "\n"
+        'it\'s "quoted" """\n'
+        "  b\n"
+    )
+    out = transpile(src)
+    ns = {}
+    exec(out, ns)
+    assert ns["Solution"]().f() == 'one\n  twox\n\nit\'s "quoted" '
+    assert fmt(src) == src  # the string's own lines are never touched
+    assert fmt(fmt(src)) == fmt(src)
+    with pytest.raises(MuError, match="line 2: unclosed ''' string"):
+        transpile("def f() -> str\n  '''abc\n")

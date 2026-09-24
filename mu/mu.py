@@ -40,16 +40,41 @@ TOKEN = re.compile(
 )
 
 
+TRIPLE = re.compile(r"[fFrRbB]{0,2}('''|\"\"\")")
+
+
 class MuError(Exception):
     def __init__(self, msg, eof=False):
         super().__init__(msg)
         self.eof = eof  # the input ended early: more lines may complete it
 
 
+def triple(lines, k, pos):
+    """The triple-quoted string that starts at lines[k][pos], which may run
+    over several lines: (text, k, pos) with k and pos just past its closing
+    quotes. None when no triple quote starts there."""
+    m = TRIPLE.match(lines[k], pos)
+    if not m:
+        return None
+    quote, first, parts, at = m.group(1), k, [], m.end()
+    while True:
+        end = lines[k].find(quote, at)
+        if end >= 0:
+            parts.append(lines[k][pos : end + 3])
+            return "\n".join(parts), k, end + 3
+        parts.append(lines[k][pos:])
+        k, pos, at = k + 1, 0, 0
+        if k == len(lines):
+            raise MuError(f"line {first + 1}: unclosed {quote} string", eof=True)
+
+
 def tokenize(src):
     """Tokens are (kind, value, line). Blocks are marked by INDENT and DEDENT."""
     toks, indents, depth = [], [0], 0
-    for n, line in enumerate(src.splitlines(), 1):
+    lines, k = src.splitlines(), -1
+    while k + 1 < len(lines):
+        k += 1
+        n, line = k + 1, lines[k]
         if depth == 0:
             body = line.strip()
             if not body or body.startswith("#"):
@@ -65,6 +90,12 @@ def tokenize(src):
                 raise MuError(f"line {n}: indentation does not match any block")
         pos = 0
         while pos < len(line):
+            long = triple(lines, k, pos)
+            if long:
+                text, k, pos = long
+                line = lines[k]
+                toks.append(("STR", text, n))
+                continue
             m = TOKEN.match(line, pos)
             if not m:
                 raise MuError(f"line {n}: unexpected character {line[pos]!r}")
@@ -456,7 +487,12 @@ class Parser:
                 s = ("push", f"{lhs}.append({self.expr()})")
             elif self.peek()[1] in AUGMENTED and self.peek()[0] == "OP":
                 op = self.next()[1]
-                s = ("assign", lhs, op, self.exprlist())
+                rhs = self.exprlist()
+                while op == "=" and self.at("="):
+                    # chained: `a = b = 0` keeps every target in lhs
+                    self.next()
+                    lhs, rhs = Py(f"{lhs} = {rhs}"), self.exprlist()
+                s = ("assign", lhs, op, rhs)
             else:
                 s = ("expr", lhs)
         if newline or self.peek()[0] == "NEWLINE":
@@ -999,12 +1035,19 @@ def split_top(text):
     return parts + [cur.strip()]
 
 
+def targets(lhs):
+    """The plain names an assignment's left side binds: `a, b = c = ...`."""
+    return {
+        t for side in lhs.split(" = ") for t in split_top(side) if NAME.fullmatch(t)
+    }
+
+
 def assigned(stmts):
     """Plain names a block assigns with = or op=, not inside nested defs."""
     out = set()
     for s in stmts:
         if s[0] == "assign":
-            out |= {t for t in split_top(s[1]) if NAME.fullmatch(t)}
+            out |= targets(s[1])
         for body in children(s):
             out |= assigned(body)
     return out
@@ -1015,7 +1058,7 @@ def bound(stmts):
     out = set()
     for s in stmts:
         if s[0] == "assign":
-            out |= {t for t in split_top(s[1]) if NAME.fullmatch(t)}
+            out |= targets(s[1])
         elif s[0] in ("def", "memo"):
             out.add(s[1])
         elif s[0] == "for":
@@ -1334,7 +1377,10 @@ def fmt(src):
     moved onto its own indented line. A bracketed expression split over
     several lines is joined into one. fmt(fmt(s)) == fmt(s)."""
     lines, indents, buf, depth, blank, level = [], [0], [], 0, False, 0
-    for n, line in enumerate(src.splitlines(), 1):
+    rows, k = src.splitlines(), -1
+    while k + 1 < len(rows):
+        k += 1
+        n, line = k + 1, rows[k]
         if depth == 0:
             body = line.strip()
             if not body:
@@ -1360,6 +1406,12 @@ def fmt(src):
             blank = False
         pos = 0
         while pos < len(line):
+            long = triple(rows, k, pos)
+            if long:
+                text, k, pos = long
+                line = rows[k]
+                buf.append(("STR", text))
+                continue
             m = TOKEN.match(line, pos)
             if not m:
                 raise MuError(f"line {n}: unexpected character {line[pos]!r}")

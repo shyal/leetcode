@@ -13,8 +13,8 @@ is_session_start: $(RS_BIN)/is_session_start
 learning: $(RS_BIN)/learning
 	@$(RS_BIN)/learning
 
-# every serve ends here (`make next prepare` runs next, then this): a drill
-# also gets its mu signature in current.mu
+# every serve ends here (`make next prepare` runs next, then this): the
+# drill or problem also gets its mu signature in current.mu
 prepare: $(RS_BIN)/prepare
 	@if [ "$(firstword $(MAKECMDGOALS))" != next ] && [ "$(firstword $(MAKECMDGOALS))" != dependents ] && [ "$(firstword $(MAKECMDGOALS))" != combos ]; then $(RS_BIN)/prepare $(filter-out $@,$(MAKECMDGOALS)) || exit 1; fi; .venv/bin/python3 mu/session.py stub
 
@@ -161,9 +161,11 @@ solved: $(RS_BIN)/kg_solved $(RS_BIN)/kg_force $(RS_BIN)/kg_extract $(RS_BIN)/lc
 # into its notes (LEETCODE: Accepted / Time Limit Exceeded ...) for the judge.
 # make solved does this itself. The requests run inside the browser exposing
 # devtools at LC_CDP_ENDPOINT (misc/lc_fetch.mjs): only a real browser gets
-# every solution past Cloudflare.
+# every solution past Cloudflare. While current.mu holds the work, its
+# transpiled copy (.mu_current.py) is sent and the verdict lands there;
+# make solved folds the mu in first and records the verdict in current.py.
 submit: $(RS_BIN)/lc_submit
-	@$(RS_BIN)/lc_submit $(filter-out $@,$(MAKECMDGOALS))
+	@f="$$(.venv/bin/python3 mu/session.py build)" || exit 1; $(RS_BIN)/lc_submit --file "$$f" $(filter-out $@,$(MAKECMDGOALS))
 
 # copy the leetcode login out of that browser into the cookie file lc_mocks reads
 lc-login:

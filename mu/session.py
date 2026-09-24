@@ -1,11 +1,12 @@
 """The mu side of a solve: current.mu, the one file to work in.
 
-    python mu/session.py stub    after serving a drill: write current.mu
-    python mu/session.py run     `make`: run the drill from current.mu
+    python mu/session.py stub    after serving: write current.mu
+    python mu/session.py run     `make`: run the solve from current.mu
+    python mu/session.py build   `make submit`: the file to submit
     python mu/session.py fold    `make solved`: file the mu solution in current.py
 
-current.mu holds the drill's statement as comments, a `# ---` line with
-your notes under it, the Solution defs, and then the drill's setup and
+current.mu holds the statement as comments, a `# ---` line with
+your notes under it, the Solution defs, and then the setup and
 asserts, translated to mu and commented as served. current.py stays as
 served; run and fold take its docstring and imports from the top and
 put current.mu, transpiled, under them.
@@ -46,7 +47,16 @@ def mu_type(node):
     if node is None:
         return None
     if isinstance(node, ast.Constant):
+        if isinstance(node.value, str):  # a quoted annotation: 'Optional[Node]'
+            return mu_type(ast.parse(node.value, mode="eval").body)
         return "none" if node.value is None else str(node.value)
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.BitOr):
+        sides = [node.left, node.right]
+        rest = [
+            n for n in sides if not (isinstance(n, ast.Constant) and n.value is None)
+        ]
+        if len(rest) == 1:  # TreeNode | None
+            return f"{mu_type(rest[0])}?"
     if isinstance(node, ast.Name):
         return {"None": "none"}.get(node.id, node.id)
     if isinstance(node, ast.Subscript):
@@ -156,8 +166,9 @@ def mu_lines(stmts, ind):
             out.append(
                 pad + ("return" if s.value is None else f"return {bare(s.value)}")
             )
-        elif isinstance(s, ast.Assign) and len(s.targets) == 1:
-            out.append(f"{pad}{bare(s.targets[0])} = {bare(s.value)}")
+        elif isinstance(s, ast.Assign):
+            lhs = " = ".join(bare(t) for t in s.targets)
+            out.append(f"{pad}{lhs} = {bare(s.value)}")
         else:
             out.append(pad + mu_expr(s))
     return out
@@ -231,8 +242,8 @@ def mu_script(tail):
 
 
 def stub(py_src):
-    """current.mu for a served drill: the statement as comments, a `# ---`
-    line for notes, the Solution defs with empty bodies, then the drill's
+    """current.mu for a served drill or problem: the statement as comments, a `# ---`
+    line for notes, the Solution defs with empty bodies, then the
     setup and asserts in mu. None when current.py has no Solution."""
     m = CLASS.search(py_src)
     tree = parse(py_src)
@@ -272,7 +283,7 @@ def title(text, comment=False):
 
 
 def belongs(root):
-    """current.mu is the drill in current.py: it is not empty, current.py
+    """current.mu is the solve in current.py: it is not empty, current.py
     has a Solution class, and their titles agree."""
     mu, py = root / MU, root / CURRENT
     if not (mu.exists() and py.exists() and mu.read_text().strip()):
@@ -354,16 +365,25 @@ def cmd_stub(root):
     py = root / CURRENT
     if not py.exists():
         return 0
-    text = stub(py.read_text())
-    if text is None or not text.startswith("# DRILL:"):
-        return 0  # drills only: a leetcode submission takes the bare class
+    try:
+        text = stub(py.read_text())
+        if text is not None:
+            transpile(text)  # a stub that does not transpile would only fail at `make`
+    except (MuError, SyntaxError) as err:
+        print(f"mu cannot write this one ({err}), so solve it in current.py.")
+        return 0
+    if text is None:
+        print(
+            "This one has no Solution class, which mu cannot write yet, so solve it in current.py."
+        )
+        return 0
     mu = root / MU
     if written(root):
         if belongs(root):
-            print("current.mu already holds work on this drill, so it was left alone.")
+            print("current.mu already holds work on this one, so it was left alone.")
             return 0
         (root / PREV).write_text(mu.read_text())
-        print(f"current.mu held work on another drill; it was moved to {PREV}.")
+        print(f"current.mu held work on another solve; it was moved to {PREV}.")
     mu.write_text(text)
     (root / STUB).write_text(text)
     print("Wrote current.mu: the statement, the signature and the asserts, in mu.")
@@ -380,8 +400,24 @@ def cmd_run(root):
             return 1
         target = root / RUN
         target.write_text(code)
-        print("Running the drill from current.mu.", file=sys.stderr)
+        print("Running from current.mu.", file=sys.stderr)
     os.execv(sys.executable, [sys.executable, str(target)])
+
+
+def cmd_build(root):
+    """Print the file `make submit` sends: current.mu transpiled into
+    .mu_current.py when current.mu holds the work, else current.py."""
+    if not (belongs(root) and written(root)):
+        print(CURRENT)
+        return 0
+    try:
+        code = spliced((root / CURRENT).read_text(), (root / MU).read_text())
+    except MuError as err:
+        print(f"current.mu: {err}", file=sys.stderr)
+        return 1
+    (root / RUN).write_text(code)
+    print(RUN)
+    return 0
 
 
 def cmd_fold(root):
@@ -402,7 +438,7 @@ def cmd_fold(root):
 
 
 if __name__ == "__main__":
-    commands = {"stub": cmd_stub, "run": cmd_run, "fold": cmd_fold}
+    commands = {"stub": cmd_stub, "run": cmd_run, "build": cmd_build, "fold": cmd_fold}
     if len(sys.argv) != 2 or sys.argv[1] not in commands:
         sys.exit(__doc__)
     sys.exit(commands[sys.argv[1]](Path.cwd()))

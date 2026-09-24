@@ -74,6 +74,8 @@ def test_show_py(repl):
         (["x = [1,", "2]"], False, (False, False)),
         (["memo f(a) ="], False, (True, True)),
         (["x = "], False, (False, False)),
+        (["s = '''a", ""], False, (True, False)),  # the blank line is the string's
+        (["s = '''a", "", "b'''"], False, (False, False)),
     ],
 )
 def test_needs_more(lines, block, want):
