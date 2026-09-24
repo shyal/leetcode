@@ -29,20 +29,46 @@ def drill_for(reference):
     return hits[0]
 
 
+# a line the asserts need: an assert, `name = ...` or `name += ...`, or a
+# `sol.method(...)` call
+SETUP = r"(?:assert |[\w.\[\]]+ (?:[-+*/]|//)?= |sol\.\w+\()"
+
+
 def spliced(drill_src, reference_src):
     """The drill file with its Solution stub replaced by the reference and
-    every commented-out assert (and any `name = ...` or `sol.method(...)`
-    setup line an assert needs) turned on. The class may extend a dsa/
-    class and the constructor may take arguments."""
+    every commented-out assert (and any setup line an assert needs) turned
+    on. The class may extend a dsa/ class, the constructor may take
+    arguments, and the instance may have any name (`p = Solution(S)`)."""
     cls = re.search(r"^class Solution(\([^)]*\))?:", drill_src, flags=re.M)
     assert cls, "drill has no `class Solution` line"
     head, rest = drill_src[: cls.start()], drill_src[cls.end() :]
-    _, sep, tail = rest.partition("\n\n\nsol = Solution(")
-    assert sep, "drill has no `sol = Solution(...)` line after the class"
-    body = re.sub(
-        r"^# ((?:assert |[\w.\[\]]+ = |sol\.\w+\().*)$", r"\1", tail, flags=re.M
-    )
-    return head + reference_src + "\n\nsol = Solution(" + body
+    after = re.search(r"^\S", rest, flags=re.M)
+    assert after, "drill has nothing after the Solution class"
+    tail = rest[after.start() :]
+    assert re.search(r"= Solution\(", tail), "drill never builds a Solution"
+    body = re.sub(rf"^# ({SETUP}.*)$", r"\1", tail, flags=re.M)
+    return head + reference_src + "\n\n\n" + continued(body)
+
+
+def continued(body):
+    """Turn on the commented lines that continue an assert left open, as in
+    `assert f(x) == [` followed by `#     [1, 2],` and `# ]`."""
+    out, depth = [], 0
+    for line in body.split("\n"):
+        if depth > 0 and line.startswith("#"):
+            line = line[2:] if line.startswith("# ") else line[1:]
+        elif not re.match(SETUP, line):
+            out.append(line)
+            continue
+        depth = max(0, depth + brackets(line))
+        out.append(line)
+    return "\n".join(out)
+
+
+def brackets(line):
+    """Opened minus closed brackets on a line, outside string literals."""
+    code = re.sub(r"'[^']*'|\"[^\"]*\"", "", line.split("  #")[0])
+    return sum(code.count(c) for c in "([{") - sum(code.count(c) for c in ")]}")
 
 
 @pytest.mark.parametrize("reference", REFERENCES, ids=os.path.basename)

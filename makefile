@@ -1,4 +1,4 @@
-.PHONY: all asserts audit chat check combos complexity cov curve dependents dive drill drop duplicates elo ext failed fmt fmt-check force graph hard harness-doc is_session_start kg-extract kg-status kg-viz lc-login lc-mocks learning lint mirror mock movie next predict preflight prepare prog progress q queue rank-table readme rep residuals rust secrets simulate sleep snippets solved spot stats studied submit test test-fast test-judge timer today types unforce viz wake
+.PHONY: all asserts audit chat check combos complexity cov curve dependents dive drill drop duplicates elo ext failed fmt fmt-check force graph hard harness-doc is_session_start kg-extract kg-status kg-viz lc-login lc-mocks learning lint mirror mock movie mu mu-vscode next predict preflight prepare prog progress q queue rank-table readme rep residuals rust secrets simulate sleep snippets solved spot stats studied submit test test-fast test-judge timer today types unforce viz wake
 
 all: $(if $(filter master,$(shell git rev-parse --abbrev-ref HEAD)),graph/leet.db) $(EXT)
 	@cp utils/harness/sitecustomize.py .venv/lib/python3.10/site-packages/
@@ -248,6 +248,15 @@ test: $(EXT)
 snippets:
 	@cp misc/vscode-snippets/* "$$HOME/Library/Application Support/Code/User/snippets/"
 	@echo "deployed: $$(ls misc/vscode-snippets | tr '\n' ' ')"
+
+# mu REPL: expressions print their value, blocks read until a blank line, :help
+mu:
+	@.venv/bin/python3 mu/repl.py
+
+# links mu/vscode into VS Code's extensions (highlighting + formatter); reload the window after
+mu-vscode:
+	@ln -sfn "$(CURDIR)/mu/vscode" "$$HOME/.vscode/extensions/leet.mu-0.0.1"
+	@echo "linked: $$HOME/.vscode/extensions/leet.mu-0.0.1 -> mu/vscode"
 
 viz:
 	@.venv/bin/python3 dsa/viz.py

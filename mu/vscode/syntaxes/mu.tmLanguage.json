@@ -1,0 +1,158 @@
+{
+  "name": "mu",
+  "scopeName": "source.mu",
+  "patterns": [
+    {
+      "include": "#comment"
+    },
+    {
+      "include": "#string"
+    },
+    {
+      "include": "#def"
+    },
+    {
+      "include": "#memo"
+    },
+    {
+      "include": "#fold"
+    },
+    {
+      "include": "#keyword"
+    },
+    {
+      "include": "#constant"
+    },
+    {
+      "include": "#number"
+    },
+    {
+      "include": "#builtin"
+    },
+    {
+      "include": "#type"
+    },
+    {
+      "include": "#call"
+    },
+    {
+      "include": "#operator"
+    }
+  ],
+  "repository": {
+    "comment": {
+      "name": "comment.line.number-sign.mu",
+      "match": "#.*$"
+    },
+    "string": {
+      "patterns": [
+        {
+          "name": "string.quoted.single.mu",
+          "match": "'[^'\\n]*'"
+        },
+        {
+          "name": "string.quoted.double.mu",
+          "match": "\"[^\"\\n]*\""
+        }
+      ]
+    },
+    "def": {
+      "match": "\\b(def)\\s+([A-Za-z_]\\w*)",
+      "captures": {
+        "1": {
+          "name": "storage.type.function.mu"
+        },
+        "2": {
+          "name": "entity.name.function.mu"
+        }
+      }
+    },
+    "memo": {
+      "match": "\\b(memo)\\s+([A-Za-z_]\\w*)",
+      "captures": {
+        "1": {
+          "name": "storage.modifier.memo.mu"
+        },
+        "2": {
+          "name": "entity.name.function.mu"
+        }
+      }
+    },
+    "fold": {
+      "match": "\\b(sum|max|min|count)\\s+(?=(for|from)\\b)",
+      "captures": {
+        "1": {
+          "name": "keyword.other.fold.mu"
+        }
+      }
+    },
+    "keyword": {
+      "patterns": [
+        {
+          "name": "keyword.control.import.mu",
+          "match": "^\\s*(import|from|extends)\\b"
+        },
+        {
+          "name": "keyword.control.mu",
+          "match": "\\b(for|in|if|elif|else|while|return|break|continue|pass|del)\\b"
+        },
+        {
+          "name": "keyword.other.mu",
+          "match": "\\b(from|first)\\b"
+        },
+        {
+          "name": "keyword.operator.logical.mu",
+          "match": "\\b(and|or|not|is)\\b"
+        }
+      ]
+    },
+    "constant": {
+      "name": "constant.language.mu",
+      "match": "\\b(true|false|none|inf)\\b"
+    },
+    "number": {
+      "name": "constant.numeric.mu",
+      "match": "\\b\\d+(\\.\\d+)?(?!\\.\\d)"
+    },
+    "builtin": {
+      "name": "support.function.builtin.mu",
+      "match": "\\b(len|max|min|sum|abs|sort|scan|counter|ceil|floor|cells|nbrs|components|graph|dijkstra)\\b(?=\\s*\\()"
+    },
+    "type": {
+      "name": "support.type.mu",
+      "match": "\\b(int|str|char|bool|float)\\b"
+    },
+    "call": {
+      "match": "\\b([A-Za-z_]\\w*)(?=\\()",
+      "captures": {
+        "1": {
+          "name": "entity.name.function.call.mu"
+        }
+      }
+    },
+    "operator": {
+      "patterns": [
+        {
+          "name": "keyword.operator.pop.mu",
+          "match": "\\.(?!\\.)(?=\\s*(?:$|#|[^\\w\\s.]|(?:if|else|and|or|for|in|is|not|from)\\b))"
+        },
+        {
+          "name": "keyword.operator.range.mu",
+          "match": "\\.\\.<|\\.\\."
+        },
+        {
+          "name": "keyword.operator.arrow.mu",
+          "match": "->|<-"
+        },
+        {
+          "name": "keyword.operator.case.mu",
+          "match": "^\\s*\\|"
+        },
+        {
+          "name": "keyword.operator.mu",
+          "match": "<<=|>>=|\\*\\*=|//=|==|!=|<=|>=|\\+=|-=|\\*=|/=|%=|&=|\\|=|\\^=|<<|>>|//|\\*\\*|[-+*/%<>=&|^~?]"
+        }
+      ]
+    }
+  }
+}
