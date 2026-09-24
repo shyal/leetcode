@@ -30167,6 +30167,18 @@
       "note": "Drill trains dp-1d-rolling: each row is built from the previous row's excesses, one forward pass.",
       "summary": "The code builds each next row from the current row by computing excess = (amt - 1) / 2 for every cell and adding it to the two cells below, using a table helper to allocate the wider row. This is a single forward rolling pass over the row, exercising dp-1d-rolling. All assertions passed on execution.",
       "seconds": 366
+    },
+    "solved/p1011_Capacity_To_Ship_Packages_Within_D_Days_2026_09_24T22_36_39_618673_00_00Z.py": {
+      "date": "2026-09-25",
+      "problem": "1011",
+      "moves": {
+        "binary-search-on-answer": "clean",
+        "running-sum": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "first_true(1, sum(weights), can_ship) is the harness's least-true binary search over the capacity space; can_ship's total/res loop is the running-sum feasibility check.",
+      "summary": "The code binary-searches the answer space of capacities from 1 to sum(weights) using first_true with the monotone predicate can_ship. can_ship walks the weights once, accumulating a running total and incrementing a day counter whenever adding the next package would exceed the capacity, returning whether the day count fits within days. All assertions passed and LeetCode reports Accepted (227 ms, 24.2 MB); the notes are empty.",
+      "seconds": 420
     }
   }
 }
