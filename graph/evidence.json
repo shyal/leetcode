@@ -30071,6 +30071,16 @@
       "note": "Notes say 'Assisted'; the query is a single GROUP BY with SUM/ROUND.",
       "summary": "The query selects product_id and computes round(sum(price * units) * 1.0 / sum(units), 2) grouped by product_id, giving the weighted average price per product. It exercises sql-group-aggregate with a real-division guard via * 1.0. The notes mark the file as assisted.",
       "seconds": 325
+    },
+    "solved/d_Remove_Value_2026_09_24T20_34_57_376263_00_00Z.py": {
+      "date": "2026-09-25",
+      "problem": "drill",
+      "moves": {
+        "ll-dummy-splice": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The code builds a dummy node in front of the list, then walks with curr starting at the dummy, re-linking curr.next past any node whose val equals the target and otherwise advancing curr, finally returning d.next. This exercises the dummy-splice move directly, and the assertions cover head removal, all-equal, empty, and single-node cases. No notes indicate any help or recognition difficulty.",
+      "seconds": 290
     }
   }
 }
