@@ -30146,6 +30146,16 @@
       "note": "Drill targets two-sequence-align; the 2D table with a[i]==b[j] -> dp[i-1][j-1]+1 else max(dp[i-1][j], dp[i][j-1]) is the canonical two-prefix recurrence.",
       "summary": "The code pads both strings with a leading space, builds a 2D table via table(len(a), len(b)), and fills it with cells(dp, start=1): on a character match it takes dp[i-1][j-1]+1, otherwise the max of the top and left neighbors, returning dp[-1][-1]. This exercises two-sequence-align and the grid DP fill. All assertions passed and the run exited 0; the notes contain no mention of hints or look-ups.",
       "seconds": 266
+    },
+    "solved/d_Companies_Among_2026_09_24T20_59_06_162996_00_00Z.py": {
+      "date": "2026-09-25",
+      "problem": "drill",
+      "moves": {
+        "union-find": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The solution subclasses UnionFind and answers countCompaniesAmong by mapping each employee through self.find and taking the size of the resulting set of roots. This exercises the union-find find operation to collapse members to their component representative, then counts distinct components. The file ran cleanly, passing all assertions including the 1000-element case.",
+      "seconds": 224
     }
   }
 }
