@@ -30179,6 +30179,18 @@
       "note": "first_true(1, sum(weights), can_ship) is the harness's least-true binary search over the capacity space; can_ship's total/res loop is the running-sum feasibility check.",
       "summary": "The code binary-searches the answer space of capacities from 1 to sum(weights) using first_true with the monotone predicate can_ship. can_ship walks the weights once, accumulating a running total and incrementing a day counter whenever adding the next package would exceed the capacity, returning whether the day count fits within days. All assertions passed and LeetCode reports Accepted (227 ms, 24.2 MB); the notes are empty.",
       "seconds": 420
+    },
+    "solved/p1870_Minimum_Speed_to_Arrive_on_Time_2026_09_24T23_14_56_517182_00_00Z.py": {
+      "date": "2026-09-25",
+      "problem": "1870",
+      "moves": {
+        "binary-search-on-answer": "clean",
+        "running-sum": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Local assert sol.arrival_hour([1, 3, 2], 3) == 2.7 failed: got 2.6666666666666665 (the test's expected value is wrong; ceil(1/3)+ceil(3/3)+2/3 = 2.666...). LeetCode verdict: Accepted.",
+      "summary": "The code computes arrival_hour by summing ceil(x/speed) for all but the last distance and x/speed for the last, then binary-searches the smallest speed in 1..10^9 for which arrival_hour <= hour, returning -1 when even 10^9 is too slow. The search uses first_true over the monotone on_time predicate, which is binary-search-on-answer, and the arrival time is built with a running sum. The local run exited non-zero on an assert whose expected value 2.7 is itself incorrect, while the LeetCode submission was Accepted.",
+      "seconds": 1525
     }
   }
 }
