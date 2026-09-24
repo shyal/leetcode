@@ -178,3 +178,23 @@ def test_fmt_moves_one_line_bodies_onto_their_own_line():
         "    return 3\n"
     )
     assert fmt(fmt(src)) == fmt(src)
+
+
+def test_one_argument_calls_drop_their_brackets():
+    src = (
+        "def f(nums: [int], grid: [[int]], v: int) -> int\n"
+        "  x = len nums - 1\n"
+        "  print len nums\n"
+        "  y = max(x, 3) + int '7'\n"
+        "  count for (i, j) in cells grid if grid[i][j] == v\n"
+    )
+    out = transpile(src)
+    assert "x = len(nums) - 1" in out
+    assert "print(len(nums))" in out
+    assert "y = max(x, 3) + int('7')" in out
+    assert "for (i, j) in cells(grid) if" in out
+    # keywords, operators and brackets end the argument
+    out = transpile(
+        "def g(a: [int], s: [int]) -> int\n  helper(1)\n  a[0] if a else s -1\n"
+    )
+    assert "a[0] if a else s - 1" in out

@@ -7,6 +7,10 @@ import re
 import sys
 
 KEYWORDS = {"from", "in", "not", "and", "or", "if", "else", "is"}
+# names that end a call written without brackets
+NOT_ARGS = {"from", "in", "not", "and", "or", "if", "else", "is", "for", "while"}
+NOT_ARGS |= {"elif", "def", "memo", "return", "del", "assert", "pass", "break"}
+NOT_ARGS |= {"continue", "import", "extends"}
 AUGMENTED = {
     "=",
     "+=",
@@ -697,7 +701,28 @@ class Parser:
             return Py(f"{e} ** {self.unary()}")
         return e
 
+    def operand_next(self):
+        """The next token can start an argument of a call without brackets."""
+        t = self.peek()
+        if t[0] in ("NUM", "STR"):
+            return True
+        if t[0] != "NAME" or t[1] in NOT_ARGS:
+            return False
+        if t[1] in FOLDS and (self.at("for", 1) or self.at("from", 1)):
+            return False
+        return not (t[1] == "first" and self.at("in", 2))
+
     def postfix(self):
+        """A call may drop its brackets when it has one argument: `f x` is
+        f(x), `print len xs` is print(len(xs)), and it binds tighter than any
+        operator, so `len xs - 1` is len(xs) - 1."""
+        named = self.peek()[0] == "NAME"
+        e = self.postfix_chain()
+        if named and self.operand_next():
+            return self.special(e, [self.postfix()], [])
+        return e
+
+    def postfix_chain(self):
         e = self.primary()
         while True:
             if self.at("("):

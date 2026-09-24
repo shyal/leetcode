@@ -89,7 +89,9 @@ def highlight(line):
                 style = "type"
             elif prev in ("def", "memo"):
                 style = "defname"
-            elif nxt == "(":
+            elif (
+                nxt == "(" or v in BUILTINS and (nxt[:1].isalnum() or nxt[:1] in "'\"_")
+            ):
                 style = "builtin" if v in BUILTINS else "call"
         elif g == "op":
             pop = v == "." and not (
