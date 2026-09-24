@@ -30057,6 +30057,20 @@
       "note": "Rounding done in SQL via round(avg(...), 2), satisfying the REQUIRED/FORBIDDEN constraints.",
       "summary": "The query selects project_id and round(avg(experience_years), 2) from Project, grouping by project_id. This exercises the group-aggregate move: one row per project with AVG, and the rounding is performed in SQL on the aggregate as required. Both example assertions passed, including the 1.33 case.",
       "seconds": 240
+    },
+    "solved/d_Average_Price_Per_Product_2026_09_24T20_29_49_734831_00_00Z.py": {
+      "date": "2026-09-25",
+      "problem": "drill",
+      "moves": {
+        "sql-group-aggregate": "clean"
+      },
+      "assist": {
+        "sql-group-aggregate": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say 'Assisted'; the query is a single GROUP BY with SUM/ROUND.",
+      "summary": "The query selects product_id and computes round(sum(price * units) * 1.0 / sum(units), 2) grouped by product_id, giving the weighted average price per product. It exercises sql-group-aggregate with a real-division guard via * 1.0. The notes mark the file as assisted.",
+      "seconds": 325
     }
   }
 }
