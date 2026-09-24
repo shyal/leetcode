@@ -30202,6 +30202,16 @@
       "note": "Drill trains the first-true boundary template; all assertions pass and the call-count bound (<=31) confirms logarithmic halving.",
       "summary": "The file defines Solution.firstTrue(lo, hi, ok), which halves the range while lo < hi, moving hi to mid when ok(mid) holds and lo to mid+1 otherwise, returning lo as the first index where the predicate flips true. The assertions exercise the boundary cases (lo==hi, hi==lo+1, predicate always true, predicate only true at hi) and a 1..10^9 range where the recorded call list stays within 31 probes. This is the binary-search-boundary move, and the run exited 0 with output 8.",
       "seconds": 62
+    },
+    "solved/d_Last_True_2026_09_24T23_51_47_422929_00_00Z.py": {
+      "date": "2026-09-25",
+      "problem": "drill",
+      "moves": {
+        "binary-search-boundary": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The drill implements lastTrue(lo, hi, ok) with the upper-mid template: mid = (lo+hi+1)//2, move lo up when ok(mid) holds, otherwise hi = mid-1, returning lo. This is the rightmost/LAST index where the monotone predicate flips true, exercised across the assertions including the 1..10^9 range in at most 31 calls. The file ran clean with no notes claiming help.",
+      "seconds": 88
     }
   }
 }
