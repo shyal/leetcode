@@ -94,30 +94,18 @@ class Solution:
         return -1
 ```
 
-Here's `210. Course Schedule II` (Khan's algorithm)
+You can find the full harness in [utils/harness/README.md](utils/harness/README.md).
+
+And here's LCS, using an experimental DSA DSL called `mu` created specifically for this repo:
 
 ```python
-class Solution:
-    def findOrder(self, numCourses: int, prerequisites: List[List[int]]) -> List[int]:
-        adj = adjacency(prerequisites, reverse=True)
-        deg = indegrees(prerequisites, reverse=True)
-        q = deque(filter(lambda x: deg[x] == 0, range(numCourses)))
-        res = []
-        while q:
-            c = q.popleft()
-            res.append(c)
-            for nxt in adj[c]:
-                deg[nxt] -= 1
-                if deg[nxt] == 0:
-                    q.append(nxt)
-        return res if len(res) == numCourses else []
+def lcs(a: str, b: str) -> int
+  memo f(i, j) =
+    | i == len a or j == len b  -> 0
+    | a[i] == b[j]              -> 1 + f(i + 1, j + 1)
+    | else                      -> max(f(i + 1, j), f(i, j + 1))
+  f(0, 0)
 ```
-
-I've written a lot, in the past, about how Python's expressive syntax is really helpful for minimal solutions. However i still find some features of the language to be lacking for things one has to do constantly when solving, like getting indices for the neighbours of a cell in a matrix, that are within the bounds of a matrix.. this can consume many lines and minutes of solving.
-
-With this growing library of harness helpers, my solves are starting to read more and more like pseudocode, which has always been one of Python's ideals. Overall i think i have a stronger ability for language than i do for maths / raw solving ability, so for me, creating an expressive set of helpers and treating them like builtins / part of the language itself feels like the natural path.
-
-You can find the full harness in [utils/harness/README.md](utils/harness/README.md).
 
 ## Fair word of warning
 

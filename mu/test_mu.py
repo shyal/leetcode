@@ -198,3 +198,12 @@ def test_one_argument_calls_drop_their_brackets():
         "def g(a: [int], s: [int]) -> int\n  helper(1)\n  a[0] if a else s -1\n"
     )
     assert "a[0] if a else s - 1" in out
+
+
+def test_string_prefixes():
+    out = transpile("def f(a: str) -> str\n  b = f' {a}'\n  r'\\d' + b\n")
+    assert "b = f' {a}'" in out
+    assert "return r'\\d' + b" in out
+    assert (
+        fmt("def f(a: str) -> str\n  f' {a}'\n") == "def f(a: str) -> str\n  f' {a}'\n"
+    )

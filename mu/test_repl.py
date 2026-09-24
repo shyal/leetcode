@@ -122,3 +122,9 @@ def test_pop_at_the_prompt(repl):
     assert repl.run("s.append(5)") == []  # None prints nothing
     assert styles("s . + 1")["."] == "range"
     assert styles("s.x")["."] == ""
+
+
+def test_f_strings_at_the_prompt(repl):
+    repl.run("a = 'xy'")
+    assert repl.run("f' {a}'") == ["' xy'"]
+    assert styles("f' {a}'")["f' {a}'"] == "str"
