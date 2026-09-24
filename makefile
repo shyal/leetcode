@@ -2,7 +2,7 @@
 
 all: $(if $(filter master,$(shell git rev-parse --abbrev-ref HEAD)),graph/leet.db) $(EXT)
 	@cp utils/harness/sitecustomize.py .venv/lib/python3.10/site-packages/
-	@.venv/bin/python3 current.py
+	@.venv/bin/python3 mu/session.py run
 
 today: $(RS_BIN)/kg_today
 	@$(RS_BIN)/kg_today $(patsubst rebuild,--force,$(filter-out $@,$(MAKECMDGOALS)))
@@ -13,8 +13,10 @@ is_session_start: $(RS_BIN)/is_session_start
 learning: $(RS_BIN)/learning
 	@$(RS_BIN)/learning
 
+# every serve ends here (`make next prepare` runs next, then this): a drill
+# also gets its mu signature in current.mu
 prepare: $(RS_BIN)/prepare
-	@if [ "$(firstword $(MAKECMDGOALS))" != next ] && [ "$(firstword $(MAKECMDGOALS))" != dependents ] && [ "$(firstword $(MAKECMDGOALS))" != combos ]; then $(RS_BIN)/prepare $(filter-out $@,$(MAKECMDGOALS)); fi
+	@if [ "$(firstword $(MAKECMDGOALS))" != next ] && [ "$(firstword $(MAKECMDGOALS))" != dependents ] && [ "$(firstword $(MAKECMDGOALS))" != combos ]; then $(RS_BIN)/prepare $(filter-out $@,$(MAKECMDGOALS)) || exit 1; fi; .venv/bin/python3 mu/session.py stub
 
 
 force: $(RS_BIN)/kg_force
@@ -148,6 +150,7 @@ drop:
 # done. Seconds, not the judge's minute. Ctrl-C anywhere: re-run
 # `make solved`, every step resumes (utils/rs/kg_solved).
 solved: $(RS_BIN)/kg_solved $(RS_BIN)/kg_force $(RS_BIN)/kg_extract $(RS_BIN)/lc_submit
+	@.venv/bin/python3 mu/session.py fold
 	@$(RS_BIN)/kg_force --check
 	@$(RS_BIN)/lc_submit --auto
 	@$(RS_BIN)/kg_solved
@@ -299,6 +302,7 @@ hard: $(RS_BIN)/kg_hard
 
 drill: $(RS_BIN)/drill
 	@$(RS_BIN)/drill $(filter-out $@,$(MAKECMDGOALS))
+	@.venv/bin/python3 mu/session.py stub
 
 # a recognition rep, asked for: same as `make prepare spot`, served whether
 # or not make next says one is due (the SPOT_EVERY ratio only governs that)
