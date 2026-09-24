@@ -34,7 +34,7 @@ OPENS_BLOCK = re.compile(
 # highlighting: the same classes as mu/vscode/syntaxes/mu.tmLanguage.json
 CONTROL = {"def", "memo", "for", "in", "if", "elif", "else", "while", "return"}
 CONTROL |= {"break", "continue", "and", "or", "not", "is", "pass", "del"}
-CONTROL |= {"import", "extends"}
+CONTROL |= {"import", "extends", "assert"}
 FOLD_WORDS = {"from", "first"}
 CONSTANTS = {"true", "false", "none", "inf"}
 TYPES = {"int", "str", "char", "bool", "float"}

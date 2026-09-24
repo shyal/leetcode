@@ -28,7 +28,7 @@ CONSTANTS = {"true": "True", "false": "False", "none": "None"}
 TOKEN = re.compile(
     r"(?P<ws>[ \t]+)"
     r"|(?P<comment>#.*)"
-    r"|(?P<num>\d+\.\d+|\d+)"
+    r"|(?P<num>\d[\d_]*(?:\.\d[\d_]*)?(?:[eE][-+]?\d+)?)"
     r"|(?P<str>'[^'\n]*'|\"[^\"\n]*\")"
     r"|(?P<name>[A-Za-z_]\w*)"
     r"|(?P<op>\.\.<|\.\.|->|<-|//=|<<=|>>=|\*\*=|==|!=|<=|>=|\+=|-=|\*=|/=|%=|&=|\|=|\^="
@@ -336,25 +336,29 @@ class Parser:
 
     def program(self):
         """imports, an optional `extends Base`, top-level assignments
-        (constants, a Flag class), and defs."""
-        defs, self.base, self.globals = [], None, []
+        (constants, a Flag class), the defs of Solution, then a script: any
+        statements, run after the class. Once the script starts, a def is a
+        plain function, not a method."""
+        defs, self.base, self.globals, self.script = [], None, [], []
+        self.script_line = None  # where the script starts
         while self.peek()[0] != "EOF":
-            if self.at("import") or self.at("from"):
+            t = self.peek()
+            if self.script_line is None and (self.at("import") or self.at("from")):
                 self.imports.add(self.import_line())
-            elif self.at("extends"):
+            elif self.script_line is None and self.at("extends"):
                 self.next()
                 self.base = self.expect_kind("NAME")
                 self.expect_kind("NEWLINE")
-            elif self.at("def"):
+            elif self.script_line is None and self.at("def"):
                 defs.append(self.stmt())
             else:
-                t = self.peek()
                 s = self.stmt()
-                if s[0] != "assign":
-                    raise MuError(
-                        f"line {t[2]}: a program is imports, extends, assignments, and defs"
-                    )
-                self.globals.append(s)
+                if not defs and s[0] == "assign":
+                    self.globals.append(s)
+                else:
+                    if self.script_line is None:
+                        self.script_line = t[2]
+                    self.script.append(s)
         return defs
 
     def import_line(self):
@@ -436,6 +440,9 @@ class Parser:
         elif self.at("del"):
             self.next()
             s = ("del", self.exprlist())
+        elif self.at("assert"):
+            self.next()
+            s = ("assert", self.exprlist())
         else:
             lhs = self.exprlist()
             if self.at("<-"):
@@ -743,9 +750,23 @@ class Parser:
             return Py(CONSTANTS.get(val, val))
         if val == "(":
             self.next()
-            e = self.exprlist()
+            if self.at(")"):
+                self.next()
+                return Py("()")
+            parts = [self.expr()]
+            if self.at("for"):  # a generator: (e for x in xs)
+                gen = self.comprehension()
+                self.expect(")")
+                return Py(f"({parts[0]}{gen})")
+            one = False  # (x,) is a one-element tuple
+            while self.at(","):
+                self.next()
+                if self.at(")"):
+                    one = len(parts) == 1
+                    break
+                parts.append(self.expr())
             self.expect(")")
-            return Py(f"({e})")
+            return Py(f"({', '.join(parts)}{',' if one else ''})")
         if val == "[":
             return self.collection("[", "]")
         if val == "{":
@@ -1041,6 +1062,8 @@ class Emitter:
             self.out(ind, s[1])
         elif kind == "del":
             self.out(ind, f"del {s[1]}")
+        elif kind == "assert":
+            self.out(ind, f"assert {s[1]}")
         elif kind == "expr":
             self.out(ind, last.format(s[1]) if last else s[1])
         elif kind == "foldblock":
@@ -1124,6 +1147,10 @@ def transpile(src):
         parts.append("sys.setrecursionlimit(1 << 20)")
     parts += [HELPERS[h][2] for h in p.helpers]
     parts.append("\n".join(e.lines))
+    if p.script:
+        script = Emitter(method=False)  # a def here is a plain function
+        script.block(p.script, 0)
+        parts.append("\n".join(script.lines))
     return "\n\n\n".join(parts) + "\n"
 
 

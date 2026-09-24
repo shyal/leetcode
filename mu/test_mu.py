@@ -49,7 +49,6 @@ def test_example(path):
 @pytest.mark.parametrize(
     "src, message",
     [
-        ("x\n", "a program is imports, extends, assignments, and defs"),
         ("def f(a: int) -> int\n  sum for x in a\n    y = x\n", "must be a value"),
         ("def f(a: int) -> int\n  first k in a if k\n", "needs a range"),
         ("def f(a: int) -> int\n    x = 1\n  x\n", "indentation"),
