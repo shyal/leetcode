@@ -90,7 +90,7 @@ assert sol.minSpeedOnTime([1, 1, 100000], 2.01) == 10000000
 assert sol.arrival_hour([1, 1, 100000], 10000000) == 2.01
 assert sol.arrival_hour([1, 3, 2], 1) == 6
 assert sol.on_time([1, 3, 2], 1, 6) == True
-assert sol.arrival_hour([1, 3, 2], 3) == 2.7
+assert sol.arrival_hour([1, 3, 2], 3) == 2 + 2 / 3
 assert sol.on_time([1, 3, 2], 3, 2.7) == True
 assert sol.minSpeedOnTime([1, 3, 2], 6) == 1
 assert sol.minSpeedOnTime([1, 3, 2], 2.7) == 3

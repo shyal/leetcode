@@ -11,12 +11,14 @@
 # change to a draw function shows up here on the next run.
 
 import builtins
+import importlib
 import io
 import os
 import re
 import sys
 import textwrap
 from contextlib import redirect_stdout
+from typing import Any
 
 from rich.console import Console
 
@@ -114,13 +116,12 @@ ANSI = re.compile(r"\x1b\[[0-9;]*m")
 
 def run(code):
     """What code prints, without colours."""
-    import sitecustomize
+    # by name, so mypy does not follow it into the file the type gate skips
+    sitecustomize: Any = importlib.import_module("sitecustomize")
 
     buf = io.StringIO()
     old = sitecustomize.console
-    sitecustomize.console = Console(
-        file=buf, color_system=None, width=100
-    )
+    sitecustomize.console = Console(file=buf, color_system=None, width=100)
     try:
         with redirect_stdout(buf):
             exec(code, {"__builtins__": builtins})
