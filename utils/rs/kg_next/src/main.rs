@@ -23,13 +23,13 @@ use kg::mock::PyRandom;
 use serde_json::Value;
 
 use kg::clock::{last_attempt, problem_attempts, problem_due};
-use kg::console::Console;
+use kg::console::{Console, Text};
 use kg::ctx::{Ctx, PView};
 use kg::data::{load_envrc, repo_root};
 use kg::drills::{
-    anki, anki_due, anki_frontier, anki_next_if_good, cold_drill, drill_held, drill_recall,
-    drill_review_cap, drill_reviews_today, due_drill, group_caps, group_reps, new_drill_cap,
-    new_drills_today, reviews_first,
+    anki, anki_frontier, anki_next_if_good, cold_drill, drill_held, drill_recall, drill_review_cap,
+    drill_reviews_today, due_drill, group_caps, group_reps, new_drill_cap, new_drills_today,
+    reviews_first,
 };
 use kg::evidence::Evidence;
 use kg::git::{
@@ -273,14 +273,21 @@ fn headline(ctx: &Ctx, pnum: &str, pv: &PView, ev: &Evidence) -> String {
     parts.join(" [dim]·[/dim] ")
 }
 
-/// The header: the time solved today and the drill clock. `held` is
-/// (group, files the group cap holds back today) for every capped group
-/// with a due file it will not let through; the line then says how many
-/// of the due files the day can actually serve, so the count is never
-/// read as a promise (2026-09-21: "17 due" with 14 sql files behind a cap
-/// of 2).
-fn header_line(secs: i64, clock_len: usize, reviews: usize, held: &[(String, usize)]) -> String {
-    let mut parts = Vec::new();
+/// The header. It leads with what today can serve, drills and problems,
+/// from the replay (2026-09-25:
+/// "the info i care about the most is how many drills and problems are
+/// due today"). The details follow: the time solved today, the whole due
+/// pile, and what each cap holds back. `held` is (group, files the group
+/// cap holds back today) for every capped group with a due file it will
+/// not let through.
+fn header_line(secs: i64, held: &[(String, usize)], (drills, problems): (usize, usize)) -> String {
+    let plural = |n: usize, w: &str| format!("{n} {w}{}", if n == 1 { "" } else { "s" });
+    let back: usize = held.iter().map(|(_, n)| n).sum();
+    let mut line = format!(
+        "[bold]Due today: {} and {}.[/bold]",
+        plural(drills, "drill"),
+        plural(problems, "problem")
+    );
     if secs != 0 {
         let (h, m) = ((secs / 60) / 60, (secs / 60) % 60);
         let t = if h != 0 {
@@ -288,28 +295,18 @@ fn header_line(secs: i64, clock_len: usize, reviews: usize, held: &[(String, usi
         } else {
             format!("{m}m")
         };
-        parts.push(format!("today [bold]{t}[/bold] solving"));
+        line.push_str(&format!(" You have solved for {t} today."));
     }
-    if clock_len != 0 {
-        let mut line = format!(
-            "drill clock [bold]{clock_len}[/bold] due ({reviews} review, {} never done)",
-            clock_len - reviews
-        );
-        let back: usize = held.iter().map(|(_, n)| n).sum();
-        if back != 0 {
-            let caps: Vec<String> = held
-                .iter()
-                .map(|(g, n)| format!("the {g} cap holds {n} back"))
-                .collect();
-            line.push_str(&format!(
-                "; {}, leaving [bold]{}[/bold] servable today",
-                caps.join(" and "),
-                clock_len - back
-            ));
-        }
-        parts.push(line);
+    if back != 0 {
+        let caps: Vec<String> = held.iter().map(|(g, n)| format!("{n} {g}")).collect();
+        line.push_str(&format!(
+            " {} {} over today's limits: {}.",
+            plural(back, "more drill"),
+            if back == 1 { "is" } else { "are" },
+            caps.join(" and ")
+        ));
     }
-    parts.join(" [dim]·[/dim] ")
+    line
 }
 
 /// For every capped group, how many of the clock's due files its cap
@@ -352,10 +349,14 @@ fn pace_line(fc: Option<(f64, f64, f64)>) -> Option<String> {
 const AHEAD_DAYS: i64 = 14;
 
 fn ahead_line(line: &str) -> String {
-    format!(
-        "[dim]ahead[/dim] {}",
-        line.strip_prefix("review ahead: ").unwrap_or(line)
-    )
+    format!("[dim]{line}[/dim]")
+}
+
+/// A body line wrapped once, at the panel's inner width (the console
+/// width less the border and padding), so panel() has nothing left to
+/// re-wrap and no word is stranded on a line of its own.
+fn print_in_panel(console: &Console, markup: &str) {
+    console.print_text(&Text::from_markup(markup), console.width - 4);
 }
 
 fn park_table(ctx: &Ctx, pv: &PView, ev: &Evidence, statuses: &Statuses) -> Option<Table> {
@@ -1042,25 +1043,37 @@ fn run_main(run: &Run, asleep: &[String], woken: &[String]) {
     trace("session start");
 
     // the clock, announced
-    let (clock, reviews) = if anki() {
+    let clock = if anki() {
         let scope: Vec<String> = ctx
             .nodes
             .keys()
             .filter(|n| args.group.is_none() || ctx.group_of(n) == args.group.as_deref())
             .cloned()
             .collect();
-        let clock = anki_frontier(ctx, ev, today, None, Some(&scope), args.assisted);
-        let reviews = clock
-            .iter()
-            .filter(|(p, _)| anki_due(ctx, p, ev).is_some())
-            .count();
-        (clock, reviews)
+        anki_frontier(ctx, ev, today, None, Some(&scope), args.assisted)
     } else {
-        (vec![], 0)
+        vec![]
     };
     trace("clock");
     let held = held_by_caps(ctx, ev, today, &clock);
-    let head = header_line(solve_seconds_today(ctx), clock.len(), reviews, &held);
+    // today's counts are the replay's first day: what the picker serves
+    // before anything new, so a drill served off the clock (the drill
+    // under a problem waiting to be retested) counts too
+    let (drills_today, problems_today, _) = review_ahead(
+        ctx,
+        &run.pv.borrow(),
+        ev,
+        asleep,
+        &solved_today_pnums(ctx),
+        args.group.as_deref(),
+        1,
+        200,
+    );
+    let head = header_line(
+        solve_seconds_today(ctx),
+        &held,
+        (drills_today as usize, problems_today as usize),
+    );
     trace("header");
     if !head.is_empty() {
         console.print(&format!("[dim]{head}[/dim]"));
@@ -1305,7 +1318,7 @@ fn run_main(run: &Run, asleep: &[String], woken: &[String]) {
             console.print(&p);
         }
         if let Some(a) = ahead() {
-            console.print(&ahead_line(&a));
+            print_in_panel(console, &ahead_line(&a));
         }
         trace("review ahead");
         let body = console.end_capture();
@@ -1424,7 +1437,7 @@ fn run_main(run: &Run, asleep: &[String], woken: &[String]) {
         console.print(&pl);
     }
     if let Some(a) = ahead() {
-        console.print(&ahead_line(&a));
+        print_in_panel(console, &ahead_line(&a));
     }
     trace("review ahead");
     let body = console.end_capture();

@@ -2236,7 +2236,7 @@ pub fn review_ahead(
     group: Option<&str>,
     days: i64,
     cap: i64,
-) -> (i64, i64, bool) {
+) -> (i64, i64, Option<i64>) {
     let t = std::time::Instant::now();
     let mut ev = ev.clone();
     let pv = RefCell::new(pv.clone());
@@ -2269,7 +2269,7 @@ pub fn review_ahead(
                     break;
                 };
                 if exploratory(choice.status, &choice.reason) {
-                    return (drills, solves, true);
+                    return (drills, solves, Some(day_no));
                 }
                 seq += 1;
                 let Some((is_drill, pnum)) =
@@ -2290,7 +2290,7 @@ pub fn review_ahead(
             }
             exclude = HashSet::new();
         }
-        (drills, solves, false)
+        (drills, solves, None)
     })();
     ctx.freeze(real);
     result
@@ -2348,37 +2348,38 @@ pub fn upcoming(
     out
 }
 
-/// The "ahead" line names its window: the counts are what the replay
-/// serves over the next `days` days under the caps, not a list for
-/// today (2026-09-21: "17 drills" read as today's due pile).
-pub fn review_line(drills: i64, solves: i64, reached: bool, days: i64) -> String {
-    if drills == 0 && solves == 0 {
-        return if reached {
-            "review ahead: none - this pick is new ground".to_string()
-        } else {
-            format!("review ahead: none in the next {days} days, and nothing new to serve either")
-        };
-    }
+/// The "ahead" line: the review before the first pick that is new, and
+/// the day that pick comes. `reached` is that day, counted from today;
+/// None when no new pick comes within `days` days. The counts stop at
+/// the new pick, so they are never a total for the window (2026-09-25:
+/// "won't more drills become due in the next 14 days?").
+pub fn review_line(drills: i64, solves: i64, reached: Option<i64>, days: i64) -> String {
+    let plural = |n: i64, w: &str| format!("{n} {w}{}", if n == 1 { "" } else { "s" });
     let mut parts = Vec::new();
     if drills != 0 {
-        parts.push(format!(
-            "{drills} drill{}",
-            if drills != 1 { "s" } else { "" }
-        ));
+        parts.push(plural(drills, "drill"));
     }
     if solves != 0 {
-        parts.push(format!(
-            "{solves} problem{}",
-            if solves != 1 { "s" } else { "" }
-        ));
+        parts.push(plural(solves, "problem"));
     }
-    let tail = if reached {
-        "then new ground"
-    } else {
-        "and still nothing new"
-    };
-    format!(
-        "review ahead: {} over the next {days} days, {tail} (if every rep is clean)",
-        parts.join(", ")
-    )
+    let review = parts.join(" and ");
+    match reached {
+        Some(0) if review.is_empty() => "This pick is something you have never seen.".to_string(),
+        Some(d) => {
+            let when = match d {
+                0 => "today".to_string(),
+                1 => "tomorrow".to_string(),
+                _ => format!("in {d} days"),
+            };
+            if review.is_empty() {
+                format!("The next pick you have never seen comes {when}, with no review before it.")
+            } else {
+                format!("After {review}, the next pick is something you have never seen ({when}).")
+            }
+        }
+        None if review.is_empty() => format!(
+            "Nothing comes back for review in the next {days} days, and there is nothing new to serve either."
+        ),
+        None => format!("Nothing new in the next {days} days: {review} to review first."),
+    }
 }

@@ -84,7 +84,7 @@ pub fn queue_table(
             "Odds",
             "First sight",
         ],
-        Some(&format!("queue (elo {elo:.0}, every rep clean)")),
+        Some(&format!("queue (elo {elo:.0})")),
         BoxKind::Rounded,
     );
     for row in rows {

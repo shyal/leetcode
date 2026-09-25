@@ -19,7 +19,7 @@ use crate::pick::{park_full_lines, review_ahead, review_line, withheld, Choice};
 // review_ahead: the review between now and the first pick that is new ground
 // --------------------------------------------------------------------------
 
-fn ahead(fx: &Fx, ev: &Evidence) -> (i64, i64, bool) {
+fn ahead(fx: &Fx, ev: &Evidence) -> (i64, i64, Option<i64>) {
     review_ahead(&fx.ctx(), &fx.pv(), ev, &[], &HashSet::new(), None, 14, 200)
 }
 
@@ -36,7 +36,7 @@ fn review_ahead_counts_a_gated_drill_before_the_summit() {
         solve("1", &[("a", "struggled")], 1),
         solve("3", &[("b", "clean")], 1),
     ]);
-    assert_eq!(ahead(&fx, &ev), (1, 0, true));
+    assert_eq!(ahead(&fx, &ev), (1, 0, Some(0)));
 }
 
 /// An ordinary stale move re-solves its carrier: that is one problem of
@@ -48,7 +48,7 @@ fn review_ahead_counts_a_stale_re_solve_as_a_problem() {
         .nodes(&["a"])
         .problems(vec![("1", problem(&["a"])), ("2", hard(&["a"]))]);
     let ev = evidence(vec![solve("1", &[("a", "clean")], SOLID_WINDOW_DAYS + 5)]);
-    assert_eq!(ahead(&fx, &ev), (0, 1, true));
+    assert_eq!(ahead(&fx, &ev), (0, 1, Some(0)));
 }
 
 /// Every move solid: the first pick is already the summit.
@@ -57,7 +57,7 @@ fn review_ahead_is_zero_when_the_pick_is_new_ground() {
     let mut fx = Fx::picker();
     fx.flat_window().nodes(&["a"]).problem("2", hard(&["a"]));
     let ev = evidence(vec![solve("1", &[("a", "clean")], 1)]);
-    assert_eq!(ahead(&fx, &ev), (0, 0, true));
+    assert_eq!(ahead(&fx, &ev), (0, 0, Some(0)));
 }
 
 /// The granted rep changes what is served next: once the prereq's drill
@@ -76,7 +76,7 @@ fn review_ahead_follows_a_released_dependent() {
         &[("a", "struggled"), ("b", "struggled")],
         1,
     )]);
-    assert_eq!(ahead(&fx, &ev), (2, 0, true));
+    assert_eq!(ahead(&fx, &ev), (2, 0, Some(0)));
 }
 
 #[test]
@@ -100,20 +100,32 @@ fn review_ahead_restores_the_clock() {
 #[test]
 fn review_line_wording() {
     assert_eq!(
-        review_line(2, 1, true, 14),
-        "review ahead: 2 drills, 1 problem over the next 14 days, then new ground (if every rep is clean)"
+        review_line(10, 33, Some(0), 14),
+        "After 10 drills and 33 problems, the next pick is something you have never seen (today)."
     );
     assert_eq!(
-        review_line(0, 0, true, 14),
-        "review ahead: none - this pick is new ground"
+        review_line(1, 0, Some(1), 14),
+        "After 1 drill, the next pick is something you have never seen (tomorrow)."
     );
     assert_eq!(
-        review_line(0, 0, false, 14),
-        "review ahead: none in the next 14 days, and nothing new to serve either"
+        review_line(0, 2, Some(3), 14),
+        "After 2 problems, the next pick is something you have never seen (in 3 days)."
     );
     assert_eq!(
-        review_line(3, 0, false, 7),
-        "review ahead: 3 drills over the next 7 days, and still nothing new (if every rep is clean)"
+        review_line(0, 0, Some(0), 14),
+        "This pick is something you have never seen."
+    );
+    assert_eq!(
+        review_line(0, 0, Some(2), 14),
+        "The next pick you have never seen comes in 2 days, with no review before it."
+    );
+    assert_eq!(
+        review_line(0, 0, None, 14),
+        "Nothing comes back for review in the next 14 days, and there is nothing new to serve either."
+    );
+    assert_eq!(
+        review_line(3, 0, None, 7),
+        "Nothing new in the next 7 days: 3 drills to review first."
     );
 }
 
