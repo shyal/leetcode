@@ -30313,6 +30313,21 @@
       "note": "Notes say 'Forgot about the dense_rank window function. Assisted.'",
       "summary": "The query selects score and dense_rank() over (order by score desc) from Scores, which gives equal scores the same rank with no gaps. Both example assertions pass, confirming the dense-rank window behavior. The notes state the candidate forgot the dense_rank window function and was assisted.",
       "seconds": 271
+    },
+    "solved/d_Department_Top_Three_Salaries_2026_09_25T23_37_22_698925_00_00Z.py": {
+      "date": "2026-09-26",
+      "problem": "drill",
+      "moves": {
+        "sql-window-rank": "clean",
+        "sql-subquery": "clean"
+      },
+      "assist": {
+        "sql-window-rank": "learning",
+        "sql-subquery": "learning"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The query builds a CTE `ranked` that computes `dense_rank() over (partition by departmentId order by salary desc)` and then filters `rnk <= 3` in the outer select. This exercises the window-rank move (DENSE_RANK partitioned per department, filtered outside the window query) and the subquery/CTE move. Both examples pass, including the tie case where Joe and Randy both appear.",
+      "seconds": 661
     }
   }
 }
