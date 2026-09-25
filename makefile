@@ -1,4 +1,4 @@
-.PHONY: all asserts audit chat check combos complexity cov curve dependents dive drill drop duplicates elo ext failed fmt fmt-check force graph hard harness-doc is_session_start kg-extract kg-status kg-viz lc-login lc-mocks learning lint mirror mock movie mu mu-vscode next predict preflight prepare prog progress q queue rank-table readme rep residuals rust secrets simulate sleep snippets solved spot stats studied submit test test-fast test-judge timer today types unforce viz wake
+.PHONY: all asserts audit chat check combos complexity cov curve dependents dive drawing-doc drill drop duplicates elo ext failed fmt fmt-check force graph hard harness-doc is_session_start kg-extract kg-status kg-viz lc-login lc-mocks learning lint mirror mock movie mu mu-vscode next predict preflight prepare prog progress q queue rank-table readme rep residuals rust secrets simulate sleep snippets solved spot stats studied submit test test-fast test-judge timer today types unforce viz wake
 
 all: $(if $(filter master,$(shell git rev-parse --abbrev-ref HEAD)),graph/leet.db) $(EXT)
 	@cp utils/harness/sitecustomize.py .venv/lib/python3.10/site-packages/
@@ -337,13 +337,17 @@ rank-table: $(RS_BIN)/kg_readme
 harness-doc:
 	@.venv/bin/python3 utils/readme/harness_doc.py
 
+# the drawing functions page, utils/harness/DRAWING.md
+drawing-doc:
+	@.venv/bin/python3 utils/readme/drawing_doc.py
+
 # make readme is implemented in Rust (utils/rs/kg_readme): the charts and
 # badges the README carries (problem rating, hours, onsite, progress,
 # backlog, the rate gauge, and the Elo, streak, rank and rate badges), then
 # the S3 upload and the README's generated regions. The movie is
 # $(MOVIE_BIN); the old Python chart renderers were deleted, they live in
 # git history before 2026-09-21 if a chart comes back.
-readme: harness-doc $(MOCK_BIN) $(RS_BIN)/estimate $(RS_BIN)/kg_readme
+readme: harness-doc drawing-doc $(MOCK_BIN) $(RS_BIN)/estimate $(RS_BIN)/kg_readme
 	@$(RS_BIN)/kg_readme
 	@$(RS_BIN)/estimate
 	@AWS_PROFILE=readme-uploader $(RS_BIN)/kg_readme update

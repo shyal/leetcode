@@ -96,6 +96,21 @@ class Solution:
 
 You can find the full harness in [utils/harness/README.md](utils/harness/README.md).
 
+```python
+root = build_tree([4, 2, 7, 1, 3, 6, 9])
+draw_tree(root)
+```
+
+```text
+      [4]
+   ┌───┴───┐
+  [2]     [7]
+ ┌─┴─┐   ┌─┴─┐
+[1] [3] [6] [9]
+```
+
+The drawing functions, with examples: [utils/harness/DRAWING.md](utils/harness/DRAWING.md).
+
 And here's LCS, using an experimental DSA DSL called `mu` created specifically for this repo:
 
 ```python
