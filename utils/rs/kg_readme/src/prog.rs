@@ -2,7 +2,7 @@
 // sits open in a terminal split beside `make elo`. The big number is the
 // proven rating (kg::model::proven_series); under it its history as a
 // sparkline, then one gauge each for the proven rating now, 90 days ago,
-// its best before that, and the median rating served; then the two
+// its best, and the median rating served; then the two
 // ground sentences of the last 30 days and the drills that hold. The
 // border carries the verdict of `make progress`: green progressing, cyan
 // gaining, blue rebuilding, yellow grinding or stalled, red slipping.
@@ -49,12 +49,16 @@ fn verdict(p: &Progress) -> (Color, &'static str) {
     (c, v)
 }
 
-/// The dim note after the verdict: the move since PROGRESS_LEVEL_DAYS
-/// ago and whether now is the best.
+/// The dim note after the verdict: the move against the problems served
+/// since PROGRESS_LEVEL_DAYS ago and whether now is the best.
 fn note(p: &Prog) -> String {
     let since = p.today - chrono::Duration::days(PROGRESS_LEVEL_DAYS);
     let mut out = match (p.p.now, p.p.then) {
-        (Some(_), Some(_)) => format!("  · {} since {}", signed(p.p.delta()), since.format("%B")),
+        (Some(_), Some(_)) => format!(
+            "  · {} against the problems served since {}",
+            signed(p.p.delta()),
+            since.format("%B")
+        ),
         _ => format!("  · under {PROVEN_WINDOW} first sights"),
     };
     if p.p.at_best() {
@@ -129,8 +133,7 @@ impl Panel for Prog {
                     signed(t - now),
                 )
             }),
-            p.best_before
-                .map(|b| ("best before".to_string(), b, signed(b - now))),
+            p.best.map(|b| ("best".to_string(), b, signed(b - now))),
             p.served
                 .map(|s| ("served median".to_string(), s, signed(s - now))),
         ]
@@ -206,8 +209,9 @@ mod tests {
                 proven: (0..10).map(|i| (d, 1300.0 + i as f64 * 19.0)).collect(),
                 now: Some(1471.0),
                 then: Some(1290.0),
-                best_before: Some(1400.0),
+                best: Some(1400.0),
                 served: Some(1650.0),
+                served_then: Some(1550.0),
                 ground: Ground {
                     tried: 26,
                     cold: 10,
@@ -234,11 +238,11 @@ mod tests {
         assert!(f.lines().all(|l| l.chars().count() <= 100));
         for s in [
             "You're progressing.",
-            "proven rating  · +181 since June, the highest it has been",
+            "proven rating  · +81 against the problems served since June, the highest it has been",
             "90 days ago",
             "1290",
             "-181",
-            "best before",
+            "best",
             "1400",
             "-71",
             "served median",
@@ -264,7 +268,7 @@ mod tests {
     fn verdict_colours() {
         let mut s = sample();
         assert_eq!(verdict(&s.p), (Color::Green, "progressing"));
-        s.p.then = Some(1500.0);
+        s.p.then = Some(1400.0);
         assert_eq!(verdict(&s.p), (Color::Yellow, "grinding"));
         s.p.recent = 2;
         assert_eq!(verdict(&s.p).1, "not training");

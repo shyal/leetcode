@@ -586,7 +586,7 @@ def test_kg_readme_prog_once_is_the_progress_panel():
         "You're ",
         "proven rating  · ",
         "90 days ago",
-        "best before",
+        "best ",
         "served median",
         "last 30 days",
         "at your level for the first time",

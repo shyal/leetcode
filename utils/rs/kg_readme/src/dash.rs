@@ -384,7 +384,7 @@ mod tests {
             "inside the clock: 22 of 32 (69%, 3 passes over time)",
             "first sight: 5 (3 pass / 2 fail, 60%)",
             "repeat: 27 (22 pass / 5 fail, 81%)",
-            "games won: 15.5 of 32 (48%, what the Elo sees)",
+            "games won: 15.5 of 32 (48%, repeats included: the picker's Elo)",
         ] {
             assert!(f.contains(s), "missing {s:?}\n{f}");
         }
