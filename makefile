@@ -1,4 +1,4 @@
-.PHONY: all asserts audit chat check combos complexity cov curve dependents dive drawing-doc drill drop duplicates elo ext failed fmt fmt-check force graph hard harness-doc is_session_start kg-extract kg-status kg-viz lc-login lc-mocks learning lint mirror mock movie mu mu-vscode next predict preflight prepare prog progress q queue rank-table readme rep residuals rust secrets simulate sleep snippets solved spot stats studied submit test test-fast test-judge timer today types unforce viz wake
+.PHONY: all asserts audit chat check combos complexity cov curve dependents dive drawing-doc drill drop duplicates elo ext failed fmt fmt-check force graph hard harness-doc is_session_start kg-extract kg-status kg-viz lc-login lc-mocks learning lint mirror mock movie mu mu-chrome mu-vscode next predict preflight prepare prog progress q queue rank-table readme rep residuals rust secrets simulate sleep snippets solved spot stats studied submit test test-fast test-judge timer today types unforce viz wake
 
 all: $(if $(filter master,$(shell git rev-parse --abbrev-ref HEAD)),graph/leet.db) $(EXT)
 	@cp utils/harness/sitecustomize.py .venv/lib/python3.10/site-packages/
@@ -262,6 +262,17 @@ mu:
 mu-vscode:
 	@ln -sfn "$(CURDIR)/mu/vscode" "$$HOME/.vscode/extensions/leet.mu-0.0.1"
 	@echo "linked: $$HOME/.vscode/extensions/leet.mu-0.0.1 -> mu/vscode"
+
+# builds mu/chrome, the Chrome extension: a mu panel that submits to
+# leetcode, and problem ratings on leetcode's pages. Load it once at
+# chrome://extensions (Developer mode, Load unpacked, pick mu/chrome);
+# after a change to mu.py, run this again and press reload there.
+PYODIDE := https://cdn.jsdelivr.net/pyodide/v0.27.7/full
+mu-chrome:
+	@mkdir -p mu/chrome/pyodide
+	@for f in pyodide.js pyodide.asm.js pyodide.asm.wasm python_stdlib.zip pyodide-lock.json; do \
+		[ -s mu/chrome/pyodide/$$f ] || curl -sfo mu/chrome/pyodide/$$f $(PYODIDE)/$$f || exit 1; done
+	@.venv/bin/python3 mu/chrome/build.py
 
 viz:
 	@.venv/bin/python3 dsa/viz.py

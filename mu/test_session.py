@@ -15,7 +15,7 @@ sys.path[:0] = [HERE, os.path.join(ROOT, "utils", "tests")]
 from session import SETUP, stub  # noqa: E402
 from test_reference_solutions import PY, drill_for  # noqa: E402
 
-from mu import Parser, transpile  # noqa: E402
+from mu import VERSION, Parser, transpile  # noqa: E402
 
 REFERENCES = sorted(
     glob.glob(os.path.join(ROOT, "graph", "node_notes", "*", "d[0-9]*.mu"))
@@ -146,7 +146,7 @@ def test_a_whole_session(prefix, tmp_path):
     assert folded.startswith('"""')
     doc = folded.split('"""')[1]
     assert "\n---\npeeked at the loop\n" in doc  # the notes, where the judge reads them
-    quoted = folded.split("# mu source (current.mu)")[1].split("\n\n")[0]
+    quoted = folded.split(f"# mu {VERSION}\n")[1].split("\n\n")[0]
     assert "# def " in quoted and "# DRILL" not in quoted and "# assert" not in quoted
     assert (tmp_path / "current.mu").read_text() == ""
     assert not (tmp_path / ".mu_stub").exists()
@@ -188,7 +188,7 @@ def test_a_mu_syntax_error_names_the_line(tmp_path):
 def test_nothing_to_do_without_current_mu(tmp_path):
     shutil.copy(drill_for(reference("d115_")), tmp_path / "current.py")
     assert session(tmp_path, "fold").returncode == 0
-    assert "mu source" not in (tmp_path / "current.py").read_text()
+    assert f"# mu {VERSION}" not in (tmp_path / "current.py").read_text()
 
 
 PROBLEM = '''"""
@@ -237,7 +237,7 @@ def test_a_problem_is_served_run_submitted_and_folded(tmp_path):
     assert "URL: https://leetcode.com/problems/two-sum/" in sent
     assert "seen[x] = i" in sent
     session(tmp_path, "fold")
-    assert "# mu source (current.mu)" in (tmp_path / "current.py").read_text()
+    assert f"# mu {VERSION}\n# def twoSum" in (tmp_path / "current.py").read_text()
     assert session(tmp_path, "build").stdout.strip() == "current.py"
 
 

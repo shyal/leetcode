@@ -1,0 +1,15 @@
+:root { --bg: #fff; --fg: #1a1a1a; --dim: #777; --line: #ddd; --err: #c0392b; --ok: #2e7d32; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #1e1e1e; --fg: #e0e0e0; --dim: #999; --line: #3a3a3a; --err: #ef6f61; --ok: #7bc47f; }
+}
+body { margin: 0; padding: 8px; background: var(--bg); color: var(--fg); font: 13px system-ui, sans-serif;
+  display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; gap: 6px; }
+header { display: flex; justify-content: space-between; color: var(--dim); }
+#status.err { color: var(--err); }
+#status.ok { color: var(--ok); }
+textarea, pre { font: 13px ui-monospace, Menlo, monospace; background: var(--bg); color: var(--fg);
+  border: 1px solid var(--line); border-radius: 4px; padding: 6px; margin: 0; tab-size: 2; }
+textarea { flex: 3; resize: none; }
+pre { flex: 2; overflow: auto; color: var(--dim); white-space: pre; }
+.buttons { display: flex; gap: 6px; }
+button { flex: 1; padding: 6px; }

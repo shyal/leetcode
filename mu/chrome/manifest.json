@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "mu for LeetCode",
+  "version": "0.0.1",
+  "description": "Write the solution in mu, submit the Python it compiles to, and see problem ratings.",
+  "permissions": ["sidePanel", "scripting", "storage", "tabs", "offscreen"],
+  "host_permissions": ["https://leetcode.com/*"],
+  "background": { "service_worker": "background.js" },
+  "action": { "default_title": "mu" },
+  "side_panel": { "default_path": "panel.html" },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  },
+  "content_scripts": [
+    { "matches": ["https://leetcode.com/*"], "js": ["ratings.js"], "run_at": "document_idle" },
+    { "matches": ["https://leetcode.com/problems/*"], "js": ["mu_bridge.js"], "run_at": "document_start" },
+    { "matches": ["https://leetcode.com/problems/*"], "js": ["mu_page.js"], "run_at": "document_start", "world": "MAIN" }
+  ],
+  "web_accessible_resources": [
+    { "resources": ["ratings.json"], "matches": ["https://leetcode.com/*"] }
+  ]
+}

@@ -398,8 +398,43 @@ fn target_class(body: &[Stmt]) -> Option<&Stmt> {
         .copied()
 }
 
+/// The quoted mu source that `make solved` and `make submit` put above
+/// the transpiled class: the last top-level comment block before `end`
+/// that starts with a mu header. The AST drops comments, so it is found
+/// in the text. A `# mu 0.2` header is sent with the block. Solves filed
+/// before the version was recorded open with `# mu source (current.mu)`
+/// and two more lines down to a bare `#`; those stay home and the quoted
+/// mu goes alone.
+fn mu_source(src: &str, end: usize) -> Option<String> {
+    let before = &src[..end];
+    let is_header = |ln: &str| {
+        ln.starts_with("# mu source")
+            || ln
+                .strip_prefix("# mu ")
+                .is_some_and(|v| !v.is_empty() && v.chars().all(|c| c.is_ascii_digit() || c == '.'))
+    };
+    let mut starts = vec![0];
+    starts.extend(before.match_indices('\n').map(|(i, _)| i + 1));
+    let at = starts
+        .into_iter()
+        .rfind(|&i| is_header(before[i..].lines().next().unwrap_or("")))?;
+    let block: Vec<&str> = before[at..]
+        .lines()
+        .take_while(|ln| ln.starts_with('#'))
+        .collect();
+    if !block[0].starts_with("# mu source") {
+        return Some(block.join("\n"));
+    }
+    // the mu's own blank lines are bare `#` lines too, so look in three
+    let body = match block.iter().take(3).position(|ln| ln.trim_end() == "#") {
+        Some(k) => &block[k + 1..],
+        None => &block[1..],
+    };
+    Some(body.join("\n"))
+}
+
 /// The code to submit for the solve file `src`; None when it does not
-/// parse or has no class.
+/// parse or has no class. A quoted mu source goes first, as comments.
 pub fn strip(root: &Path, src: &str) -> Option<String> {
     let parsed = ruff_python_parser::parse_module(src).ok()?;
     let target = target_class(&parsed.syntax().body)?;
@@ -461,7 +496,11 @@ pub fn strip(root: &Path, src: &str) -> Option<String> {
         }
     }
     parts.push(main_source);
-    Some(parts.join("\n\n\n") + "\n")
+    let code = parts.join("\n\n\n") + "\n";
+    Some(match mu_source(src, target.start().to_usize()) {
+        Some(mu) => format!("{mu}\n\n{code}"),
+        None => code,
+    })
 }
 
 /// The free names of a submission that leetcode will not have: what its
@@ -504,6 +543,27 @@ mod tests {
         assert_eq!(
             strip(&root(), &src).unwrap(),
             "class Solution:\n    def a(self):\n        # final\n        return 2\n"
+        );
+    }
+
+    #[test]
+    fn the_mu_source_goes_first_as_comments() {
+        let class = "class Solution:\n    def a(self) -> int:\n        return 1\n";
+        let asserts = "\n\nsol = Solution()\n\nassert sol.a() == 1\n";
+        let src = format!("{DOC}# mu 0.2\n# def a -> int\n#\n#   1\n\n{class}{asserts}");
+        assert_eq!(
+            strip(&root(), &src).unwrap(),
+            format!("# mu 0.2\n# def a -> int\n#\n#   1\n\n{class}")
+        );
+        // filed before the version was recorded: the old header stays home
+        let src = format!(
+            "{DOC}# mu source (current.mu), the candidate's solution. The Python\n\
+             # under it is the transpiler's output, and it is what ran.\n#\n\
+             # def a -> int\n#   1\n\n{class}{asserts}"
+        );
+        assert_eq!(
+            strip(&root(), &src).unwrap(),
+            format!("# def a -> int\n#   1\n\n{class}")
         );
     }
 

@@ -22,7 +22,7 @@ import warnings
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from mu import MuError, Parser, fmt, transpile  # noqa: E402
+from mu import VERSION, MuError, Parser, fmt, transpile  # noqa: E402
 
 CURRENT, MU, STUB, RUN = "current.py", "current.mu", ".mu_stub", ".mu_current.py"
 PREV = "current.mu.prev"
@@ -336,7 +336,8 @@ def solution(mu_src):
 def spliced(py_src, mu_src, show_source=False):
     """current.py's docstring and imports, then current.mu transpiled (the
     class and the asserts). With show_source, the notes go into the
-    docstring after `---` and the mu solution is quoted above the class."""
+    docstring after `---` and the mu solution is quoted above the class,
+    under a `# mu <version>` line."""
     m = CLASS.search(py_src)
     if not m:
         raise MuError("current.py has no `class Solution` to replace")
@@ -350,11 +351,7 @@ def spliced(py_src, mu_src, show_source=False):
                 body = doc.group(1).rstrip("\n") + sep + said + "\n"
                 head = head[: doc.start(1)] + body + head[doc.end(1) :]
         quoted = "\n".join(f"# {ln}".rstrip() for ln in solution(mu_src).splitlines())
-        code = (
-            "# mu source (current.mu), the candidate's solution. The Python\n"
-            "# under it is the transpiler's output, and it is what ran.\n#\n"
-            f"{quoted}\n\n{code}"
-        )
+        code = f"# mu {VERSION}\n{quoted}\n\n{code}"
     return head + code
 
 
@@ -406,12 +403,15 @@ def cmd_run(root):
 
 def cmd_build(root):
     """Print the file `make submit` sends: current.mu transpiled into
-    .mu_current.py when current.mu holds the work, else current.py."""
+    .mu_current.py when current.mu holds the work, else current.py. The
+    mu solution is quoted above the class, and leetcode gets it too."""
     if not (belongs(root) and written(root)):
         print(CURRENT)
         return 0
     try:
-        code = spliced((root / CURRENT).read_text(), (root / MU).read_text())
+        code = spliced(
+            (root / CURRENT).read_text(), (root / MU).read_text(), show_source=True
+        )
     except MuError as err:
         print(f"current.mu: {err}", file=sys.stderr)
         return 1
