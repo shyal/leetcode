@@ -13,7 +13,9 @@
 // inside the clock, first sight against repeat, and under them the two
 // counts that say whether ground is being gained and kept (model::Ground):
 // first sights at your level solved cold, and recovered problems that
-// held on their retest.
+// held on their retest. Last, transfer (model::Transfer): first sights
+// whose moves were all practiced before, on drills or other problems,
+// against first sights that needed a move not practiced yet.
 //
 // Written 2026-09-16, the night these questions took four git-log queries
 // to answer by hand. The seconds come from the record itself
@@ -25,7 +27,7 @@ use kg::console::Console;
 use kg::ctx::Ctx;
 use kg::data::{load_envrc, repo_root};
 use kg::evidence::Evidence;
-use kg::model::{elo_games, scored_games, solve_ratings, Game, Ground, Summary};
+use kg::model::{elo_games, scored_games, solve_ratings, Game, Ground, Summary, Transfer};
 use kg::table::{print_table, BoxKind, Table};
 
 fn window_days(args: &[String]) -> Option<i64> {
@@ -138,6 +140,13 @@ fn main() {
         None => "all time".to_string(),
     };
     for (before, ratio, after) in Ground::of(&all, since).rows(&window) {
+        console.print(&format!("{before}[bold green]{ratio}[/bold green]{after}"));
+    }
+    // transfer needs every record before the window: a move practiced
+    // before the first sight, on a drill or on another problem
+    let every: Vec<Game> = all.into_iter().map(|(g, _, _)| g).collect();
+    let transfer = Transfer::of(&every, &ev, ctx.all_problems(), since);
+    for (before, ratio, after) in transfer.rows(&window) {
         console.print(&format!("{before}[bold green]{ratio}[/bold green]{after}"));
     }
 }

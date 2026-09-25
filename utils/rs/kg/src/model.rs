@@ -730,6 +730,83 @@ impl Ground {
     }
 }
 
+/// Transfer: whether what was practiced carries over to problems never
+/// seen. Every first sight in the window (a chain solve left out) is split
+/// by whether each move its problem needs (problems.json) was in some
+/// record, a drill or another problem, dated before the game. A move
+/// practiced elsewhere cannot hand over this problem's answer, so a cold
+/// win in the first group is the technique carrying over, not a memory of
+/// the problem. All time on 2026-09-25: 280 cold of 388 with every move
+/// practiced (72%), 21 of 41 with a move new (51%).
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Transfer {
+    pub practiced: usize,
+    pub practiced_cold: usize,
+    pub new: usize,
+    pub new_cold: usize,
+}
+
+impl Transfer {
+    pub fn of(
+        games: &[Game],
+        ev: &Evidence,
+        problems: &crate::data::Problems,
+        since: Option<NaiveDate>,
+    ) -> Transfer {
+        let mut out = Transfer::default();
+        for g in games {
+            let day = crate::data::parse_date(&g.date);
+            if !g.first || g.chain() || since.is_some_and(|s| day < s) {
+                continue;
+            }
+            let Some(p) = problems.get(&g.problem).filter(|p| !p.moves.is_empty()) else {
+                continue;
+            };
+            let cold = usize::from(g.score == 1.0);
+            if p.moves
+                .iter()
+                .all(|m| ev.node_entries(m).iter().any(|e| e.date < day))
+            {
+                out.practiced += 1;
+                out.practiced_cold += cold;
+            } else {
+                out.new += 1;
+                out.new_cold += cold;
+            }
+        }
+        out
+    }
+
+    /// One sentence; `window` is "the last 7 days" or "all time".
+    pub fn rows(&self, window: &str) -> Vec<(String, String, String)> {
+        let pct = |a: usize, b: usize| {
+            if b == 0 {
+                "-".to_string()
+            } else {
+                format!("{:.0}%", 100.0 * a as f64 / b as f64)
+            }
+        };
+        vec![
+            (
+                format!(
+                    "In {window}, of {} new problems whose techniques you had all practiced on other problems or drills, you solved {} with no help and within the time limit (",
+                    self.practiced, self.practiced_cold
+                ),
+                pct(self.practiced_cold, self.practiced),
+                ");".to_string(),
+            ),
+            (
+                format!(
+                    "of {} new problems that needed a technique you had not practiced, you solved {} (",
+                    self.new, self.new_cold
+                ),
+                pct(self.new_cold, self.new),
+                ").".to_string(),
+            ),
+        ]
+    }
+}
+
 // ---- first-sight Elo -------------------------------------------------------
 
 // The one first-sight Elo: the number on `make elo` and the README badge.

@@ -14,7 +14,9 @@ use crate::drills::{
     anki_due, anki_frontier, anki_fuzz, anki_good, anki_next_if_good, drill_clean, drill_warm,
     due_drill, recoveries_without_drill, recovery_wait, ANKI_EASE, ANKI_FUZZ_MIN_DAYS,
 };
-use crate::model::{proven_game_score, proven_score, proven_series, Game, Ground, PROVEN_WINDOW};
+use crate::model::{
+    proven_game_score, proven_score, proven_series, Game, Ground, Transfer, PROVEN_WINDOW,
+};
 use crate::pick::review_queue;
 use crate::status::{graduation_due, owned};
 
@@ -776,6 +778,60 @@ fn ground_counts_first_sights_at_your_level_and_recoveries_that_held() {
             retested: 1,
             held: 0,
             pending: 1
+        }
+    );
+}
+
+/// A first sight counts as practiced when every move its problem needs
+/// has a record, a drill or another problem, dated before the game; a
+/// move met only on the same day is new. Repeats and chain solves are
+/// no first sights, and the window applies to the game, never to the
+/// practice behind it.
+#[test]
+fn transfer_splits_first_sights_by_moves_practiced_before() {
+    let mut problems = crate::data::Problems::new();
+    for (k, moves) in [
+        ("1", &["a", "b"][..]),
+        ("2", &["a", "c"][..]),
+        ("3", &["a"][..]),
+        ("4", &["b"][..]),
+        ("5", &["d"][..]),
+    ] {
+        problems.insert(k.to_string(), problem(moves));
+    }
+    let ev = evidence(vec![
+        solve("9", &[("a", "clean")], 50),
+        drill_rep("Bee", "b", 45),
+        solve("1", &[("a", "clean"), ("b", "clean")], 40),
+        solve("2", &[("a", "clean"), ("c", "clean")], 30),
+        solve("3", &[("a", "clean")], 20),
+        drill_rep("Dee", "d", 10),
+        solve("5", &[("d", "clean")], 10),
+    ]);
+    let games = vec![
+        game("1", 40, true, false, "none", false), // a and b before: cold
+        game("2", 30, true, true, "none", false),  // c new: lost
+        game("3", 20, true, false, "hint", false), // a before: hinted
+        game("3", 15, false, false, "none", false), // repeat
+        game("4", 12, true, false, "chain", false), // chain
+        game("5", 10, true, false, "none", false), // d met the same day: new, cold
+    ];
+    assert_eq!(
+        Transfer::of(&games, &ev, &problems, None),
+        Transfer {
+            practiced: 2,
+            practiced_cold: 1,
+            new: 2,
+            new_cold: 1
+        }
+    );
+    assert_eq!(
+        Transfer::of(&games, &ev, &problems, Some(ago(25))),
+        Transfer {
+            practiced: 1,
+            practiced_cold: 0,
+            new: 1,
+            new_cold: 1
         }
     );
 }
