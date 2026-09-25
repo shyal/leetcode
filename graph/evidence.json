@@ -30257,6 +30257,19 @@
       "note": "Seeds every 0 into the queue at distance 0 and expands in rings; the seen set is added on pop as well as on enqueue, which is redundant but harmless.",
       "summary": "The code builds a Grid, seeds a deque with every 0 cell at distance 0, and runs a multi-source BFS using nbrs for cardinal neighbors, recording dist into res for 1-cells and filling any unreached cell with 0. This exercises multi-source-bfs and graph-bfs-shortest (ring expansion gives nearest-zero distance) plus grid-neighbors. LeetCode reports Accepted (623 ms, 24.1 MB) and the local run passed all assertions.",
       "seconds": 791
+    },
+    "solved/p2034_Stock_Price_Fluctuation_2026_09_25T03_40_21_189647_00_00Z.py": {
+      "date": "2026-09-25",
+      "problem": "2034",
+      "moves": {
+        "heap-lazy-eviction": "clean",
+        "dict-arbitrary-value": "clean",
+        "streaming-ask-then-record": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LeetCode Accepted (354 ms, 71.1 MB).",
+      "summary": "The class keeps three heaps (max-heap on timestamp for current, max-heap and min-heap on price) plus an updates dict mapping a corrected timestamp to its latest price and a seen set. Each query peeks the relevant heap and pops stale entries whose timestamp appears in updates with a different price, so lazy eviction discards outdated records. The updates dict stores the authoritative latest price per timestamp, and the seen set distinguishes first insert from correction. All assertions passed and LeetCode reported Accepted.",
+      "seconds": 1143
     }
   }
 }
