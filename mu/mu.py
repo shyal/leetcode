@@ -207,11 +207,23 @@ def nbrs(
     if c is None:
         r, c = r
     eq = val if eq is None else eq
-    for dr, dc in dirs:
-        nr, nc = r + dr, c + dc
-        if 0 <= nr < len(grid) and 0 <= nc < len(grid[0]):
-            if _holds(grid[nr][nc], eq, lt, lte, gt, gte):
-                yield nr, nc""",
+    row = list.__getitem__ if isinstance(grid, list) else lambda g, i: g[i]
+    m, n = len(grid), len(row(grid, 0))
+    if dirs is CARDINALS:
+        out = []
+        if r > 0:
+            out.append((r - 1, c))
+        if c > 0:
+            out.append((r, c - 1))
+        if c + 1 < n:
+            out.append((r, c + 1))
+        if r + 1 < m:
+            out.append((r + 1, c))
+    else:
+        out = [(r + dr, c + dc) for dr, dc in dirs if 0 <= r + dr < m and 0 <= c + dc < n]
+    if eq is None and lt is None and lte is None and gt is None and gte is None:
+        return out
+    return [(i, j) for i, j in out if _holds(row(grid, i)[j], eq, lt, lte, gt, gte)]""",
     ),
     "table": (
         [],
@@ -261,25 +273,27 @@ def nbrs(
         """def levels(
     q, grid=None, seen=None, grouped=False, eq=None, lt=None, lte=None, gt=None, gte=None
 ):
-    def keep(x):
-        v = x if grid is None else grid[x[0]][x[1]]
-        if not _holds(v, eq, lt, lte, gt, gte) or (seen is not None and x in seen):
-            return False
-        if seen is not None:
-            seen.add(x)
-        return True
-
+    bare = eq is None and lt is None and lte is None and gt is None and gte is None
+    row = list.__getitem__ if isinstance(grid, list) else lambda g, i: g[i]
     d = 0
     while q:
-        popped = (q.popleft() for _ in range(len(q)))
-        if grouped:
-            level = [x for x in popped if keep(x)]
-            if level:
-                yield d, level
-        else:
-            for x in popped:
-                if keep(x):
-                    yield d, x
+        level = []
+        for _ in range(len(q)):
+            x = q.popleft()
+            if seen is not None and x in seen:
+                continue
+            if not bare:
+                v = x if grid is None else row(grid, x[0])[x[1]]
+                if not _holds(v, eq, lt, lte, gt, gte):
+                    continue
+            if seen is not None:
+                seen.add(x)
+            if grouped:
+                level.append(x)
+            else:
+                yield d, x
+        if grouped and level:
+            yield d, level
         d += 1""",
     ),
     "adjacency": (
