@@ -14,7 +14,7 @@ import pytest
 
 HERE = Path(__file__).parent
 sys.path.insert(0, str(HERE))
-from mu import MuError, fmt, transpile  # noqa: E402
+from mu import VERSION, MuError, fmt, transpile  # noqa: E402
 
 CACHE = HERE.parent / ".prepare_cache"
 EXAMPLES = sorted((HERE / "examples").glob("*.mu"))
@@ -258,3 +258,13 @@ def test_triple_quoted_strings_span_lines():
     assert fmt(fmt(src)) == fmt(src)
     with pytest.raises(MuError, match="line 2: unclosed ''' string"):
         transpile("def f() -> str\n  '''abc\n")
+
+
+def test_every_spec_version_is_linked_from_the_readme():
+    """The current version has a spec, and the readme links every spec."""
+    specs = sorted(p.name for p in (HERE / "spec").glob("v*.md"))
+    assert f"v{VERSION}.md" in specs
+    readme = (HERE.parent / "README.md").read_text()
+    section = readme.split("## Sitecustomize, harness and helpers")[1].split("\n## ")[0]
+    linked = re.findall(r"\(mu/spec/(v[\d.]+\.md)\)", section)
+    assert sorted(linked) == specs

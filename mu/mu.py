@@ -1,10 +1,15 @@
 """mu: a small language for LeetCode, transpiled to Python.
 
 python mu/mu.py file.mu        print the Python for LeetCode
+python mu/mu.py --version      print the language version
+
+The language is specified in mu/spec/v<VERSION>.md.
 """
 
 import re
 import sys
+
+VERSION = "0.2"
 
 KEYWORDS = {"from", "in", "not", "and", "or", "if", "else", "is"}
 # names that end a call written without brackets
@@ -1446,6 +1451,8 @@ def fmt(src):
 
 if __name__ == "__main__":
     args = sys.argv[1:]
+    if args == ["--version"]:
+        sys.exit(print(f"mu {VERSION}"))
     run = transpile
     if args[:1] == ["--fmt"]:
         run, args = fmt, args[1:]
