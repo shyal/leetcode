@@ -30352,6 +30352,17 @@
       "judge": "deepseek-chat",
       "summary": "The drill defines a Color enum.Flag with red/green/blue members and a present method that walks the names list, looks each name up as Color[n], and keeps it when `Color[n] in palette` tests membership in the combined flag value. The palette is built by unioning members with `|` (Color.red | Color.blue), and the empty palette Color(0) correctly yields no names. All assertions pass, exercising the bit-flags move of unioning named states and testing membership with `in`.",
       "seconds": 83
+    },
+    "solved/d_Split_The_Excess_2026_09_25T23_51_38_389212_00_00Z.py": {
+      "date": "2026-09-26",
+      "problem": "drill",
+      "moves": {
+        "dp-1d-rolling": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill's REQUIRED line met: nextRow builds the next row from the current row's excesses, one rolling step.",
+      "summary": "nextRow allocates a result row of len(row)+1 via the table helper, then for each amount computes excess = (amt-1)/2 and, when positive, pours it into res[i] and res[i+1]. This is a single forward rolling step of the 1D DP, exercised cleanly across the assertions. The notes describe the mental model shift: operating in the row itself and pouring down rather than taking from above.",
+      "seconds": 400
     }
   }
 }
