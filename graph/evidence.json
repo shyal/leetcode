@@ -30244,6 +30244,19 @@
       "note": "mu one-liner: first_true(1, 10**15, x -> sum(x // y for y in time) >= totalTrips) is binary search on the answer with a feasibility check.",
       "summary": "The solution binary-searches the answer space from 1 to 10**15, using first_true to find the least x where the feasibility predicate sum(x // y for y in time) >= totalTrips holds. The predicate counts how many trips all buses complete by time x. LeetCode accepted it at 1819 ms, and the local run passed all assertions.",
       "seconds": 1198
+    },
+    "solved/p542_01_Matrix_2026_09_25T01_54_14_064144_00_00Z.py": {
+      "date": "2026-09-25",
+      "problem": "542",
+      "moves": {
+        "multi-source-bfs": "clean",
+        "graph-bfs-shortest": "clean",
+        "grid-neighbors": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Seeds every 0 into the queue at distance 0 and expands in rings; the seen set is added on pop as well as on enqueue, which is redundant but harmless.",
+      "summary": "The code builds a Grid, seeds a deque with every 0 cell at distance 0, and runs a multi-source BFS using nbrs for cardinal neighbors, recording dist into res for 1-cells and filling any unreached cell with 0. This exercises multi-source-bfs and graph-bfs-shortest (ring expansion gives nearest-zero distance) plus grid-neighbors. LeetCode reports Accepted (623 ms, 24.1 MB) and the local run passed all assertions.",
+      "seconds": 791
     }
   }
 }
