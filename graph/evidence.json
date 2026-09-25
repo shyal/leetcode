@@ -30222,6 +30222,17 @@
       "judge": "deepseek-chat",
       "summary": "The drill implements firstFalse(lo, hi, ok), a halving search that returns the first index where the predicate ok flips false, using the lo=mid+1 / hi=mid template and returning lo. It exercises the binary-search-boundary move, and the assertions confirm the boundary cases (empty range, predicate always true/false, large 1e9 range within 31 calls). The file ran clean with no notes indicating help or recognition trouble.",
       "seconds": 88
+    },
+    "solved/d_Last_False_2026_09_25T00_46_46_346232_00_00Z.py": {
+      "date": "2026-09-25",
+      "problem": "drill",
+      "moves": {
+        "binary-search-boundary": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill trains the last-False boundary variant: mid=(lo+hi+1)//2 with hi=mid-1 on ok, lo=mid otherwise; all assertions pass and the call-count check confirms O(log n).",
+      "summary": "The file defines Solution.lastFalse, a binary search over the integer range [lo, hi] that returns the last index where the predicate ok is False. It uses the upper-mid rounding (lo+hi+1)//2 so the loop terminates, moving hi to mid-1 when ok(mid) holds and lo to mid otherwise. The assertions cover the boundary cases (all-true, all-false, single point, 1e9 range) and a call-count check confirming logarithmic behavior; the run exited 0 with output 7.",
+      "seconds": 104
     }
   }
 }
