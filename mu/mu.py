@@ -9,7 +9,7 @@ The language is specified in mu/spec/v<VERSION>.md.
 import re
 import sys
 
-VERSION = "0.3"
+VERSION = "0.4"
 
 KEYWORDS = {"from", "in", "not", "and", "or", "if", "else", "is"}
 # names that end a call written without brackets
@@ -231,6 +231,8 @@ def nbrs(
         """def table(*dims, fill=0):
     if len(dims) == 1:
         return [fill] * dims[0]
+    if len(dims) == 2:
+        return [[fill] * dims[1] for _ in range(dims[0])]
     return [table(*dims[1:], fill=fill) for _ in range(dims[0])]""",
     ),
     "like": (
@@ -503,17 +505,18 @@ class Parser:
             return ("import", self.import_line())
         if self.at("def"):
             return self.def_stmt()
-        if self.at("memo"):
+        if self.at("memo") and self.peek(1)[0] == "NAME":
             return self.memo_stmt()
         if self.at("for"):
             self.next()
             tgt, enum = self.target()
             self.expect("in")
             it = self.expr()
-            return ("for", tgt, f"enumerate({it})" if enum else it, self.block())
+            it = f"enumerate({it})" if enum else it
+            return ("for", tgt, it, self.block(), self.loop_else())
         if self.at("while"):
             self.next()
-            return ("while", self.expr(), self.block())
+            return ("while", self.expr(), self.block(), self.loop_else())
         if self.at("if"):
             arms = []
             self.next()
@@ -537,6 +540,13 @@ class Parser:
             self.expect_kind("NEWLINE")
             return ("expr", head)
         return self.simple(newline=True)
+
+    def loop_else(self):
+        """The block of a loop's `else`, run when the loop ends without break."""
+        if self.at("else"):
+            self.next()
+            return self.block()
+        return None
 
     def simple(self, newline=False):
         if self.at("return"):
@@ -996,14 +1006,19 @@ class Parser:
                     break
             if self.toks[j][1] == "->":
                 self.next()
-                names = [self.expect_kind("NAME")]
-                while self.at(","):
-                    self.next()
+                names = []
+                while not self.at(")"):
                     names.append(self.expect_kind("NAME"))
+                    if not self.at(")"):
+                        self.expect(",")
                 self.expect(")")
                 self.expect("->")
+                if not names:  # () -> e takes nothing: defaultdict(() -> [0, 0])
+                    return Py(f"lambda: {self.expr()}")
                 names = [f"_{k}" if n == "_" else n for k, n in enumerate(names)]
-                return Py(f"lambda _t: (lambda {', '.join(names)}: {self.expr()})(*_t)")
+                # (a, b) -> e takes a and b, or one pair it unpacks
+                inner = f"(lambda {', '.join(names)}: {self.expr()})"
+                return Py(f"lambda *_a: {inner}(*(_a[0] if len(_a) == 1 else _a))")
         e = self.expr()
         if self.at("for"):
             return Py(f"{e}{self.comprehension()}")
@@ -1145,9 +1160,9 @@ def bound(stmts):
 def children(s):
     """The blocks inside a statement, except a nested def's own body."""
     if s[0] == "for":
-        return [s[3]]
+        return [s[3]] + ([s[4]] if s[4] else [])
     if s[0] == "while":
-        return [s[2]]
+        return [s[2]] + ([s[3]] if s[3] else [])
     if s[0] == "if":
         return [b for _, b in s[1]] + ([s[2]] if s[2] else [])
     if s[0] == "foldblock":
@@ -1188,12 +1203,14 @@ class Emitter:
                     self.out(ind + 1, f"if {guard}:")
                     self.out(ind + 2, f"return {val}")
         elif kind == "for":
-            _, tgt, it, body = s
+            _, tgt, it, body, other = s
             self.out(ind, f"for {tgt} in {it}:")
             self.block(body, ind + 1)
+            self.loop_else(other, ind)
         elif kind == "while":
             self.out(ind, f"while {s[1]}:")
             self.block(s[2], ind + 1)
+            self.loop_else(s[3], ind)
         elif kind == "if":
             _, arms, other = s
             for k, (cond, body) in enumerate(arms):
@@ -1219,6 +1236,11 @@ class Emitter:
         elif kind == "foldblock":
             self.foldblock(s, ind, last)
 
+    def loop_else(self, other, ind):
+        if other:
+            self.out(ind, "else:")
+            self.block(other, ind + 1)
+
     def def_(self, s, ind):
         _, name, params, ret, body = s
         top = not self.scopes  # a method of Solution, or a REPL function
@@ -1231,10 +1253,18 @@ class Emitter:
             shared = assigned(body) & set().union(*self.scopes) - names
             if shared:
                 self.out(ind + 1, f"nonlocal {', '.join(sorted(shared))}")
+        grids = []
         if top:
             for p, t in params:
                 if t and t.startswith("list[list["):
-                    self.out(ind + 1, f"{p} = Grid({p})")
+                    grids.append(p)
+                    self.out(ind + 1, f"_in_{p}, {p} = {p}, Grid({p})")
+                    self.out(ind + 1, f"_w_{p} = {p}")
+        if grids:
+            # the rows go back into the caller's list, so an in-place
+            # sort, reverse or append on the grid reaches the caller
+            self.out(ind + 1, "try:")
+            ind += 1
         self.scopes.append(names | bound(body))
         if top and any(b[0] == "memo" for b in body):
             # memo recursion can run 10^4+ deep: evaluate on a big stack
@@ -1247,6 +1277,10 @@ class Emitter:
         else:
             self.block(body, ind + 1, returns="return {}")
         self.scopes.pop()
+        if grids:
+            self.out(ind, "finally:")
+            for p in grids:
+                self.out(ind + 1, f"_in_{p}[:] = _w_{p}")
 
     def foldblock(self, s, ind, last):
         _, op, start, tgt, it, where, body = s
@@ -1326,9 +1360,13 @@ STATEMENT_WORDS = {
 TIGHT = {"..", "..<", "."}
 
 
-def gap(prev, cur, unary, subscript):
-    """The spacing written between two tokens on one line."""
+def gap(prev, cur, unary, subscript, paren=False):
+    """The spacing written between two tokens on one line. Inside round
+    brackets `=` names an argument and is tight: f(xs, by=key)."""
     (pk, pv), (ck, cv) = prev, cur
+    if paren and "=" in (pv, cv) and "OP" in (pk, ck):
+        if (pk, pv) == ("OP", "=") or (ck, cv) == ("OP", "="):
+            return ""
     if ck == "COMMENT" or ck == "POP":
         return "  " if ck == "COMMENT" else " "
     if ck == "OP" and cv in (",", ":", ")", "]", "}", "?"):
@@ -1364,12 +1402,14 @@ def render(toks):
     for t in pop_dots(toks):
         pk, pv = prev or ("OP", "(")
         if prev is not None:
-            out.append(gap(prev, t, unary, bool(stack) and stack[-1]))
+            sub = bool(stack) and stack[-1] is True
+            out.append(gap(prev, t, unary, sub, bool(stack) and stack[-1] == "("))
         if t[0] == "OP" and t[1] in "([{":
             # `[` right after a value opens a subscript, where `:` is tight
             after_value = pk in ("NAME", "NUM", "STR") and pv not in STATEMENT_WORDS
             after_value = after_value or pk == "OP" and pv in ")]}"
-            stack.append(t[1] == "[" and prev is not None and after_value)
+            sub = t[1] == "[" and prev is not None and after_value
+            stack.append(True if sub else t[1])
         elif t[0] == "OP" and t[1] in ")]}" and stack:
             stack.pop()
         opens = prev is None or pk == "OP" and pv not in ")]}" or pv in STATEMENT_WORDS

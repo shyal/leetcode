@@ -1,4 +1,4 @@
-.PHONY: all asserts audit chat check combos complexity cov curve dependents dive drawing-doc drill drop duplicates elo ext failed fmt fmt-check force graph hard harness-doc is_session_start kg-extract kg-status kg-viz lc-login lc-mocks learning lint mirror mock movie mu mu-chrome mu-vscode next predict preflight prepare prog progress q queue rank-table readme rep residuals rust secrets simulate sleep snippets solved spot stats studied submit test test-fast test-judge timer today types unforce viz wake
+.PHONY: all asserts audit chat check combos complexity cov curve dependents dive drawing-doc drill drop duplicates elo ext failed fmt fmt-check force graph hard harness-doc is_session_start kg-extract kg-status kg-viz lc-login lc-mocks learning lint mirror mock movie mu mu-chrome mu-vscode next predict preflight prepare prog progress q queue rank-table readme rep residuals rust secrets short simulate sleep snippets solved spot stats studied submit test test-fast test-judge timer today types unforce viz wake
 
 all: $(if $(filter master,$(shell git rev-parse --abbrev-ref HEAD)),graph/leet.db) $(EXT)
 	@cp utils/harness/sitecustomize.py .venv/lib/python3.10/site-packages/
@@ -257,6 +257,13 @@ snippets:
 # mu REPL: expressions print their value, blocks read until a blank line, :help
 mu:
 	@.venv/bin/python3 mu/repl.py
+
+# shorter mu for every cached problem, through claude -p on haiku, in the
+# background; resumes where it stopped (mu/shorten.py). Log: /tmp/mu_short/run.log
+short:
+	@mkdir -p /tmp/mu_short
+	@nohup .venv/bin/python mu/shorten.py --model haiku all > /tmp/mu_short/run.log 2>&1 &
+	@echo "running: tail -f /tmp/mu_short/run.log, results in /tmp/mu_short/NNNN.mu"
 
 # links mu/vscode into VS Code's extensions (highlighting + formatter); reload the window after
 mu-vscode:
