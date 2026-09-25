@@ -163,15 +163,16 @@ HELPERS = {
         raise err[0]
     return out[0]""",
     ),
-    # cells, nbrs, table, like, pairs, levels, adjacency, indegrees copy the
+    # cells, nbrs, table, like, put, pairs, levels, adjacency, indegrees copy the
     # utils/harness builtins; test_mu.py checks they agree
     "cells": (
         [],
         [],
-        """def cells(grid, start=0):
+        """def cells(grid, start=0, val=None):
     for i in range(start, len(grid)):
         for j in range(start, len(grid[0])):
-            yield i, j""",
+            if val is None or grid[i][j] == val:
+                yield i, j""",
     ),
     "nbrs": (
         [],
@@ -179,15 +180,16 @@ HELPERS = {
         """CARDINALS = ((-1, 0), (0, -1), (0, 1), (1, 0))
 
 
-def nbrs(grid, r, c=None, dirs=CARDINALS):
+def nbrs(grid, r, c=None, dirs=CARDINALS, val=None):
     \"\"\"On-grid cells next to (r, c): up, left, right, down. nbrs(grid, p)
-    takes the cell as one pair.\"\"\"
+    takes the cell as one pair. With val, only the cells holding val.\"\"\"
     if c is None:
         r, c = r
     for dr, dc in dirs:
         nr, nc = r + dr, c + dc
         if 0 <= nr < len(grid) and 0 <= nc < len(grid[0]):
-            yield nr, nc""",
+            if val is None or grid[nr][nc] == val:
+                yield nr, nc""",
     ),
     "table": (
         [],
@@ -202,6 +204,13 @@ def nbrs(grid, r, c=None, dirs=CARDINALS):
         ["table"],
         """def like(grid, fill=0):
     return table(len(grid), len(grid[0]), fill=fill)""",
+    ),
+    "put": (
+        [],
+        [],
+        """def put(grid, at, v):
+    for i, j in at:
+        grid[i][j] = v""",
     ),
     "pairs": (
         [],

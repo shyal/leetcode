@@ -2,10 +2,10 @@
 #
 # Grid helpers preloaded by sitecustomize: scan a grid, list a cell's
 # in-bounds neighbours, test for and list the border cells, build a table
-# by shape or by size, multi-source BFS.
+# by shape or by size, write one value into many cells, multi-source BFS.
 
 from collections import deque
-from typing import Any, Callable, Iterator, List, Sequence, Tuple
+from typing import Any, Callable, Iterable, Iterator, List, Sequence, Tuple
 
 Cell = Tuple[int, int]
 
@@ -14,21 +14,31 @@ DIAGONALS: Tuple[Cell, ...] = ((-1, -1), (-1, 1), (1, -1), (1, 1))
 ALL_EIGHT: Tuple[Cell, ...] = CARDINALS + DIAGONALS
 
 
-def cells(grid: Sequence[Sequence[Any]], start: int = 0) -> Iterator[Cell]:
-    """Every (i, j) of grid with i >= start and j >= start, in row-major order."""
+def cells(
+    grid: Sequence[Sequence[Any]], start: int = 0, val: Any = None
+) -> Iterator[Cell]:
+    """Every (i, j) of grid with i >= start and j >= start, in row-major order.
+    With val, only the cells where grid[i][j] == val."""
     for i in range(start, len(grid)):
         for j in range(start, len(grid[0])):
-            yield i, j
+            if val is None or grid[i][j] == val:
+                yield i, j
 
 
 def nbrs(
-    grid: Sequence[Sequence[Any]], r: int, c: int, dirs: Sequence[Cell] = CARDINALS
+    grid: Sequence[Sequence[Any]],
+    r: int,
+    c: int,
+    dirs: Sequence[Cell] = CARDINALS,
+    val: Any = None,
 ) -> Iterator[Cell]:
-    """The cells (r + dr, c + dc) for (dr, dc) in dirs that lie on grid."""
+    """The cells (r + dr, c + dc) for (dr, dc) in dirs that lie on grid.
+    With val, only the cells where grid[nr][nc] == val."""
     for dr, dc in dirs:
         nr, nc = r + dr, c + dc
         if 0 <= nr < len(grid) and 0 <= nc < len(grid[0]):
-            yield nr, nc
+            if val is None or grid[nr][nc] == val:
+                yield nr, nc
 
 
 def is_edge(grid: Sequence[Sequence[Any]], r: int, c: int) -> bool:
@@ -56,6 +66,12 @@ def table(*dims: int, fill: Any = 0) -> List[Any]:
 def like(grid: Sequence[Sequence[Any]], fill: Any = 0) -> List[List[Any]]:
     """A new table with the shape of grid, every cell set to fill."""
     return table(len(grid), len(grid[0]), fill=fill)
+
+
+def put(grid: List[List[Any]], at: Iterable[Cell], v: Any) -> None:
+    """Set grid[i][j] = v for every (i, j) in at."""
+    for i, j in at:
+        grid[i][j] = v
 
 
 def grid_bfs(

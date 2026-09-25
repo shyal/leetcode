@@ -107,6 +107,19 @@ def lcs(a: str, b: str) -> int
   f(0, 0)
 ```
 
+542. 01 Matrix:
+
+```python
+def updateMatrix(mat: [[int]]) -> [[int]]
+  q = deque(cells(mat, val=0))
+  put(mat, cells(mat, val=1), inf)
+  for (d, p) in levels(q)
+    for n in nbrs(mat, p, val=inf)
+      mat[n] = d + 1
+      q <- n
+  mat
+```
+
 ## Fair word of warning
 
 ### This readme

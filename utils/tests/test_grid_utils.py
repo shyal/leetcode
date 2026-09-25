@@ -1,4 +1,4 @@
-from grid_utils import cells, edges, is_edge, like, table
+from grid_utils import cells, edges, is_edge, like, nbrs, put, table
 
 
 def test_cells_row_major():
@@ -11,6 +11,24 @@ def test_cells_start_skips_row_zero_and_column_zero():
 
 def test_cells_start_past_the_edge_is_empty():
     assert list(cells(table(2, 2), start=2)) == []
+
+
+def test_cells_val_keeps_only_matching_cells():
+    assert list(cells([[0, 1, 0], [1, 1, 0]], val=0)) == [(0, 0), (0, 2), (1, 2)]
+
+
+def test_cells_val_combines_with_start():
+    assert list(cells([[1, 1], [1, 1]], start=1, val=1)) == [(1, 1)]
+
+
+def test_nbrs_val_keeps_only_matching_neighbours():
+    assert list(nbrs([[0, 1, 0], [1, 0, 1]], 0, 1, val=0)) == [(0, 0), (0, 2), (1, 1)]
+
+
+def test_put_writes_v_at_every_cell():
+    grid = [[0, 1, 1], [1, 0, 0]]
+    put(grid, cells(grid, val=1), 7)
+    assert grid == [[0, 7, 7], [7, 0, 0]]
 
 
 def test_table_one_dimension_is_a_flat_list():

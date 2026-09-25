@@ -340,6 +340,7 @@ builtins.is_edge = is_edge
 builtins.edges = edges
 builtins.table = table
 builtins.like = like
+builtins.put = put
 builtins.grid_bfs = grid_bfs
 
 # sequences

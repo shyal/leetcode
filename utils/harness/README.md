@@ -186,13 +186,15 @@ items being the whole level as a list.
 
 `((-1, 0), (0, -1), (0, 1), (1, 0), (-1, -1), (-1, 1), (1, -1), (1, 1))`
 
-### `cells(grid: Sequence[Sequence[Any]], start: int = 0) -> Iterator[Cell]`
+### `cells(grid: Sequence[Sequence[Any]], start: int = 0, val: Any = None) -> Iterator[Cell]`
 
 Every (i, j) of grid with i >= start and j >= start, in row-major order.
+With val, only the cells where grid[i][j] == val.
 
-### `nbrs(grid: Sequence[Sequence[Any]], r: int, c: int, dirs: Sequence[Cell] = CARDINALS) -> Iterator[Cell]`
+### `nbrs(grid: Sequence[Sequence[Any]], r: int, c: int, dirs: Sequence[Cell] = CARDINALS, val: Any = None) -> Iterator[Cell]`
 
 The cells (r + dr, c + dc) for (dr, dc) in dirs that lie on grid.
+With val, only the cells where grid[nr][nc] == val.
 
 ### `is_edge(grid: Sequence[Sequence[Any]], r: int, c: int) -> bool`
 
@@ -212,6 +214,10 @@ rows distinct lists; table(l, m, n) nests one level deeper.
 ### `like(grid: Sequence[Sequence[Any]], fill: Any = 0) -> List[List[Any]]`
 
 A new table with the shape of grid, every cell set to fill.
+
+### `put(grid: List[List[Any]], at: Iterable[Cell], v: Any) -> None`
+
+Set grid[i][j] = v for every (i, j) in at.
 
 ### `grid_bfs(grid: Sequence[Sequence[Any]], sources: Sequence[Cell], ok: Callable[[Any], bool] = lambda v: True, dirs: Sequence[Cell] = CARDINALS) -> List[List[int]]`
 

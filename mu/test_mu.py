@@ -99,7 +99,7 @@ def test_library_copies_agree_with_the_harness():
     from mu import HELPERS
 
     ns = {}
-    names = ("cells", "nbrs", "table", "like", "pairs", "levels", "adjacency")
+    names = ("cells", "nbrs", "table", "like", "put", "pairs", "levels", "adjacency")
     for name in names + ("indegrees",):
         for imp in HELPERS[name][0]:
             exec(imp, ns)
@@ -107,11 +107,19 @@ def test_library_copies_agree_with_the_harness():
     grid = [[1, 2, 3], [4, 5, 6]]
     assert list(ns["cells"](grid)) == list(grid_utils.cells(grid))
     assert list(ns["cells"](grid, 1)) == list(grid_utils.cells(grid, 1))
+    assert list(ns["cells"](grid, val=5)) == list(grid_utils.cells(grid, val=5))
     for r, c in grid_utils.cells(grid):
         assert list(ns["nbrs"](grid, r, c)) == list(grid_utils.nbrs(grid, r, c))
         assert list(ns["nbrs"](grid, (r, c))) == list(grid_utils.nbrs(grid, r, c))
+        assert list(ns["nbrs"](grid, (r, c), val=5)) == list(
+            grid_utils.nbrs(grid, r, c, val=5)
+        )
     assert ns["table"](2, 3, fill=7) == grid_utils.table(2, 3, fill=7)
     assert ns["like"](grid, fill=-1) == grid_utils.like(grid, fill=-1)
+    a, b = [[1, 2], [1, 3]], [[1, 2], [1, 3]]
+    ns["put"](a, [(0, 0), (1, 0)], 9)
+    grid_utils.put(b, [(0, 0), (1, 0)], 9)
+    assert a == b == [[9, 2], [9, 3]]
     assert list(ns["pairs"](4)) == list(combo_utils.pairs(4))
     assert list(ns["levels"](deque([1, 2]))) == list(adj_utils.levels(deque([1, 2])))
     edges = [[0, 1, 5], [1, 2, 6], [2, 0, 7]]
