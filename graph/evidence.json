@@ -30233,6 +30233,17 @@
       "note": "Drill trains the last-False boundary variant: mid=(lo+hi+1)//2 with hi=mid-1 on ok, lo=mid otherwise; all assertions pass and the call-count check confirms O(log n).",
       "summary": "The file defines Solution.lastFalse, a binary search over the integer range [lo, hi] that returns the last index where the predicate ok is False. It uses the upper-mid rounding (lo+hi+1)//2 so the loop terminates, moving hi to mid-1 when ok(mid) holds and lo to mid otherwise. The assertions cover the boundary cases (all-true, all-false, single point, 1e9 range) and a call-count check confirming logarithmic behavior; the run exited 0 with output 7.",
       "seconds": 104
+    },
+    "solved/p2187_Minimum_Time_to_Complete_Trips_2026_09_25T01_07_25_363629_00_00Z.py": {
+      "date": "2026-09-25",
+      "problem": "2187",
+      "moves": {
+        "binary-search-on-answer": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "mu one-liner: first_true(1, 10**15, x -> sum(x // y for y in time) >= totalTrips) is binary search on the answer with a feasibility check.",
+      "summary": "The solution binary-searches the answer space from 1 to 10**15, using first_true to find the least x where the feasibility predicate sum(x // y for y in time) >= totalTrips holds. The predicate counts how many trips all buses complete by time x. LeetCode accepted it at 1819 ms, and the local run passed all assertions.",
+      "seconds": 1198
     }
   }
 }
