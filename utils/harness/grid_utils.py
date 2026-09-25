@@ -2,7 +2,8 @@
 #
 # Grid helpers preloaded by sitecustomize: scan a grid, list a cell's
 # in-bounds neighbours, test for and list the border cells, build a table
-# by shape or by size, write one value into many cells, multi-source BFS.
+# by shape or by size, read a grid's shape, write one value into many cells,
+# multi-source BFS.
 
 from collections import deque
 from typing import Any, Callable, Iterable, Iterator, List, Sequence, Tuple
@@ -14,14 +15,42 @@ DIAGONALS: Tuple[Cell, ...] = ((-1, -1), (-1, 1), (1, -1), (1, 1))
 ALL_EIGHT: Tuple[Cell, ...] = CARDINALS + DIAGONALS
 
 
+def _holds(
+    v: Any,
+    eq: Any = None,
+    lt: Any = None,
+    lte: Any = None,
+    gt: Any = None,
+    gte: Any = None,
+) -> bool:
+    """True if v passes every comparison given: v == eq, v < lt, v <= lte,
+    v > gt, v >= gte. A comparison left as None is not tested."""
+    return (
+        (eq is None or v == eq)
+        and (lt is None or v < lt)
+        and (lte is None or v <= lte)
+        and (gt is None or v > gt)
+        and (gte is None or v >= gte)
+    )
+
+
 def cells(
-    grid: Sequence[Sequence[Any]], start: int = 0, val: Any = None
+    grid: Sequence[Sequence[Any]],
+    start: int = 0,
+    val: Any = None,
+    eq: Any = None,
+    lt: Any = None,
+    lte: Any = None,
+    gt: Any = None,
+    gte: Any = None,
 ) -> Iterator[Cell]:
     """Every (i, j) of grid with i >= start and j >= start, in row-major order.
-    With val, only the cells where grid[i][j] == val."""
+    With eq, lt, lte, gt or gte, only the cells whose value passes them all
+    (see _holds). val is the old name for eq."""
+    eq = val if eq is None else eq
     for i in range(start, len(grid)):
         for j in range(start, len(grid[0])):
-            if val is None or grid[i][j] == val:
+            if _holds(grid[i][j], eq, lt, lte, gt, gte):
                 yield i, j
 
 
@@ -31,13 +60,20 @@ def nbrs(
     c: int,
     dirs: Sequence[Cell] = CARDINALS,
     val: Any = None,
+    eq: Any = None,
+    lt: Any = None,
+    lte: Any = None,
+    gt: Any = None,
+    gte: Any = None,
 ) -> Iterator[Cell]:
     """The cells (r + dr, c + dc) for (dr, dc) in dirs that lie on grid.
-    With val, only the cells where grid[nr][nc] == val."""
+    With eq, lt, lte, gt or gte, only the cells whose value passes them all
+    (see _holds). val is the old name for eq."""
+    eq = val if eq is None else eq
     for dr, dc in dirs:
         nr, nc = r + dr, c + dc
         if 0 <= nr < len(grid) and 0 <= nc < len(grid[0]):
-            if val is None or grid[nr][nc] == val:
+            if _holds(grid[nr][nc], eq, lt, lte, gt, gte):
                 yield nr, nc
 
 
@@ -66,6 +102,22 @@ def table(*dims: int, fill: Any = 0) -> List[Any]:
 def like(grid: Sequence[Sequence[Any]], fill: Any = 0) -> List[List[Any]]:
     """A new table with the shape of grid, every cell set to fill."""
     return table(len(grid), len(grid[0]), fill=fill)
+
+
+def shape(*seqs: Any, last_index: bool = False) -> Tuple[int, ...]:
+    """The sizes of a nested list, or of several sequences side by side.
+
+    shape(grid) follows grid[0] down while it is a list: (rows, cols, ...).
+    shape(a, b) is (len(a), len(b)). With last_index, every size less one:
+    the index of the last cell."""
+    if len(seqs) == 1:
+        dims, x = [len(seqs[0])], seqs[0]
+        while dims[-1] and isinstance(x[0], list):
+            x = x[0]
+            dims.append(len(x))
+    else:
+        dims = [len(s) for s in seqs]
+    return tuple(d - 1 for d in dims) if last_index else tuple(dims)
 
 
 def put(grid: List[List[Any]], at: Iterable[Cell], v: Any) -> None:

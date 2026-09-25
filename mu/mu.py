@@ -9,7 +9,7 @@ The language is specified in mu/spec/v<VERSION>.md.
 import re
 import sys
 
-VERSION = "0.2"
+VERSION = "0.3"
 
 KEYWORDS = {"from", "in", "not", "and", "or", "if", "else", "is"}
 # names that end a call written without brackets
@@ -168,32 +168,49 @@ HELPERS = {
         raise err[0]
     return out[0]""",
     ),
-    # cells, nbrs, table, like, put, pairs, levels, adjacency, indegrees copy the
+    # cells, nbrs, table, like, shape, put, pairs, levels, adjacency, indegrees copy the
     # utils/harness builtins; test_mu.py checks they agree
+    "_holds": (
+        [],
+        [],
+        """def _holds(v, eq=None, lt=None, lte=None, gt=None, gte=None):
+    return (
+        (eq is None or v == eq)
+        and (lt is None or v < lt)
+        and (lte is None or v <= lte)
+        and (gt is None or v > gt)
+        and (gte is None or v >= gte)
+    )""",
+    ),
     "cells": (
         [],
-        [],
-        """def cells(grid, start=0, val=None):
+        ["_holds"],
+        """def cells(grid, start=0, val=None, eq=None, lt=None, lte=None, gt=None, gte=None):
+    eq = val if eq is None else eq
     for i in range(start, len(grid)):
         for j in range(start, len(grid[0])):
-            if val is None or grid[i][j] == val:
+            if _holds(grid[i][j], eq, lt, lte, gt, gte):
                 yield i, j""",
     ),
     "nbrs": (
         [],
-        [],
+        ["_holds"],
         """CARDINALS = ((-1, 0), (0, -1), (0, 1), (1, 0))
 
 
-def nbrs(grid, r, c=None, dirs=CARDINALS, val=None):
+def nbrs(
+    grid, r, c=None, dirs=CARDINALS, val=None, eq=None, lt=None, lte=None, gt=None, gte=None
+):
     \"\"\"On-grid cells next to (r, c): up, left, right, down. nbrs(grid, p)
-    takes the cell as one pair. With val, only the cells holding val.\"\"\"
+    takes the cell as one pair. With eq, lt, lte, gt or gte, only the cells
+    whose value passes them all. val is the old name for eq.\"\"\"
     if c is None:
         r, c = r
+    eq = val if eq is None else eq
     for dr, dc in dirs:
         nr, nc = r + dr, c + dc
         if 0 <= nr < len(grid) and 0 <= nc < len(grid[0]):
-            if val is None or grid[nr][nc] == val:
+            if _holds(grid[nr][nc], eq, lt, lte, gt, gte):
                 yield nr, nc""",
     ),
     "table": (
@@ -209,6 +226,19 @@ def nbrs(grid, r, c=None, dirs=CARDINALS, val=None):
         ["table"],
         """def like(grid, fill=0):
     return table(len(grid), len(grid[0]), fill=fill)""",
+    ),
+    "shape": (
+        [],
+        [],
+        """def shape(*seqs, last_index=False):
+    if len(seqs) == 1:
+        dims, x = [len(seqs[0])], seqs[0]
+        while dims[-1] and isinstance(x[0], list):
+            x = x[0]
+            dims.append(len(x))
+    else:
+        dims = [len(s) for s in seqs]
+    return tuple(d - 1 for d in dims) if last_index else tuple(dims)""",
     ),
     "put": (
         [],
@@ -227,15 +257,29 @@ def nbrs(grid, r, c=None, dirs=CARDINALS, val=None):
     ),
     "levels": (
         [],
-        [],
-        """def levels(q, grouped=False):
+        ["_holds"],
+        """def levels(
+    q, grid=None, seen=None, grouped=False, eq=None, lt=None, lte=None, gt=None, gte=None
+):
+    def keep(x):
+        v = x if grid is None else grid[x[0]][x[1]]
+        if not _holds(v, eq, lt, lte, gt, gte) or (seen is not None and x in seen):
+            return False
+        if seen is not None:
+            seen.add(x)
+        return True
+
     d = 0
     while q:
+        popped = (q.popleft() for _ in range(len(q)))
         if grouped:
-            yield d, [q.popleft() for _ in range(len(q))]
+            level = [x for x in popped if keep(x)]
+            if level:
+                yield d, level
         else:
-            for _ in range(len(q)):
-                yield d, q.popleft()
+            for x in popped:
+                if keep(x):
+                    yield d, x
         d += 1""",
     ),
     "adjacency": (

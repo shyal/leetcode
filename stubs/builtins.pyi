@@ -3026,7 +3026,14 @@ CARDINALS: Tuple[Tuple[int, int], ...]
 DIAGONALS: Tuple[Tuple[int, int], ...]
 ALL_EIGHT: Tuple[Tuple[int, int], ...]
 def cells(
-    grid: Sequence[Sequence[Any]], start: int = 0, val: Any = None
+    grid: Sequence[Sequence[Any]],
+    start: int = 0,
+    val: Any = None,
+    eq: Any = None,
+    lt: Any = None,
+    lte: Any = None,
+    gt: Any = None,
+    gte: Any = None,
 ) -> Iterator[Tuple[int, int]]: ...
 def nbrs(
     grid: Sequence[Sequence[Any]],
@@ -3034,11 +3041,17 @@ def nbrs(
     c: int,
     dirs: Sequence[Tuple[int, int]] = ...,
     val: Any = None,
+    eq: Any = None,
+    lt: Any = None,
+    lte: Any = None,
+    gt: Any = None,
+    gte: Any = None,
 ) -> Iterator[Tuple[int, int]]: ...
 def is_edge(grid: Sequence[Sequence[Any]], r: int, c: int) -> bool: ...
 def edges(grid: Sequence[Sequence[Any]]) -> Iterator[Tuple[int, int]]: ...
 def table(*dims: int, fill: Any = 0) -> List[Any]: ...
 def like(grid: Sequence[Sequence[Any]], fill: Any = 0) -> List[List[Any]]: ...
+def shape(*seqs: Any, last_index: bool = False) -> Tuple[int, ...]: ...
 def put(grid: List[List[Any]], at: Iterable[Tuple[int, int]], v: Any) -> None: ...
 def lcs(
     a: Sequence[Any], b: Sequence[Any], full: bool = False, type: Any = ...
@@ -3137,7 +3150,15 @@ def adjacency(
     weighted: bool = False,
 ) -> Any: ...
 def levels(
-    q: _deque[T], grouped: bool = ...
+    q: _deque[T],
+    grid: Any = None,
+    seen: Any = None,
+    grouped: bool = ...,
+    eq: Any = None,
+    lt: Any = None,
+    lte: Any = None,
+    gt: Any = None,
+    gte: Any = None,
 ) -> Iterator[Tuple[int, Any]]: ...
 def indegrees(
     edges: Sequence[Sequence[Any]],

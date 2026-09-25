@@ -99,7 +99,18 @@ def test_library_copies_agree_with_the_harness():
     from mu import HELPERS
 
     ns = {}
-    names = ("cells", "nbrs", "table", "like", "put", "pairs", "levels", "adjacency")
+    names = (
+        "_holds",
+        "cells",
+        "nbrs",
+        "table",
+        "like",
+        "shape",
+        "put",
+        "pairs",
+        "levels",
+        "adjacency",
+    )
     for name in names + ("indegrees",):
         for imp in HELPERS[name][0]:
             exec(imp, ns)
@@ -107,21 +118,40 @@ def test_library_copies_agree_with_the_harness():
     grid = [[1, 2, 3], [4, 5, 6]]
     assert list(ns["cells"](grid)) == list(grid_utils.cells(grid))
     assert list(ns["cells"](grid, 1)) == list(grid_utils.cells(grid, 1))
-    assert list(ns["cells"](grid, val=5)) == list(grid_utils.cells(grid, val=5))
+    for kw in (
+        {"eq": 5},
+        {"val": 5},
+        {"lt": 3},
+        {"lte": 3},
+        {"gt": 4},
+        {"gte": 2, "lt": 6},
+    ):
+        assert list(ns["cells"](grid, **kw)) == list(grid_utils.cells(grid, **kw))
     for r, c in grid_utils.cells(grid):
         assert list(ns["nbrs"](grid, r, c)) == list(grid_utils.nbrs(grid, r, c))
         assert list(ns["nbrs"](grid, (r, c))) == list(grid_utils.nbrs(grid, r, c))
-        assert list(ns["nbrs"](grid, (r, c), val=5)) == list(
-            grid_utils.nbrs(grid, r, c, val=5)
+        assert list(ns["nbrs"](grid, (r, c), gte=3)) == list(
+            grid_utils.nbrs(grid, r, c, gte=3)
         )
     assert ns["table"](2, 3, fill=7) == grid_utils.table(2, 3, fill=7)
     assert ns["like"](grid, fill=-1) == grid_utils.like(grid, fill=-1)
+    for args in ((grid,), ([],), ("abcde", "ace")):
+        for li in (False, True):
+            assert ns["shape"](*args, last_index=li) == grid_utils.shape(
+                *args, last_index=li
+            )
     a, b = [[1, 2], [1, 3]], [[1, 2], [1, 3]]
     ns["put"](a, [(0, 0), (1, 0)], 9)
     grid_utils.put(b, [(0, 0), (1, 0)], 9)
     assert a == b == [[9, 2], [9, 3]]
     assert list(ns["pairs"](4)) == list(combo_utils.pairs(4))
     assert list(ns["levels"](deque([1, 2]))) == list(adj_utils.levels(deque([1, 2])))
+    a, b = set(), set()
+    got = list(ns["levels"](deque([(0, 0), (0, 0), (1, 1)]), grid, a, gte=2))
+    assert got == list(
+        adj_utils.levels(deque([(0, 0), (0, 0), (1, 1)]), grid, b, gte=2)
+    )
+    assert a == b == {(1, 1)}
     edges = [[0, 1, 5], [1, 2, 6], [2, 0, 7]]
     for kw in (
         {},

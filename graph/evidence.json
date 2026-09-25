@@ -30283,6 +30283,22 @@
       "note": "Body is `pass`; the file only prints None. Notes say FAILED: walked away after 48m 31s; no working solution.",
       "summary": "The class method maximumSafenessFactor has an empty body (`pass`), so the single print emits None and no safeness computation happens. None of the intended moves \u2014 seeding a multi-source BFS from every 1-cell, expanding over grid neighbors, or using BFS layers as shortest distance to the nearest thief \u2014 appear in the code. The candidate's own note records walking away after 48m 31s with no working solution.",
       "seconds": 2911
+    },
+    "solved/d_Reach_The_Far_Corner_2026_09_25T08_19_12_487983_00_00Z.py": {
+      "date": "2026-09-25",
+      "problem": "drill",
+      "moves": {
+        "graph-bfs-shortest": "clean",
+        "grid-neighbors": "clean",
+        "graph-dfs-visited": "clean"
+      },
+      "assist": {
+        "graph-bfs-shortest": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets graph-bfs-shortest; levels() drives the BFS ring by ring and nbrs() enumerates cardinal neighbors, with seen guarding revisits.",
+      "summary": "The code builds a BFS over the grid using the harness helpers levels() and nbrs(): a deque seeded with (0,0) is expanded level by level, keeping only cells whose value passes gte=k and adding each to seen, then checks whether the bottom-right cell (shape(grid, last_index=True)) was reached. This exercises graph-bfs-shortest (layered expansion), grid-neighbors (cardinal offsets via nbrs), and a visited set. The notes say 'Learning' and mention building the shape helper; all assertions passed.",
+      "seconds": 2280
     }
   }
 }

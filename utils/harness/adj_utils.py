@@ -1,9 +1,9 @@
 # adj_utils.py
 
 from collections import defaultdict
-from typing import Any, Deque, Iterator, List, Optional, Tuple
+from typing import Any, Deque, Iterator, List, Optional, Set, Tuple
 
-from grid_utils import table
+from grid_utils import _holds, table
 
 
 def adjacency(
@@ -67,20 +67,48 @@ def indegrees(
     return indeg
 
 
-def levels(q: Deque[Any], grouped: bool = False) -> Iterator[Tuple[int, Any]]:
+def levels(
+    q: Deque[Any],
+    grid: Optional[Any] = None,
+    seen: Optional[Set[Any]] = None,
+    grouped: bool = False,
+    eq: Any = None,
+    lt: Any = None,
+    lte: Any = None,
+    gt: Any = None,
+    gte: Any = None,
+) -> Iterator[Tuple[int, Any]]:
     """Level-order BFS over a deque the caller keeps pushing onto.
 
     Yields (d, item) for every item popped, where d is the level the item
     was pushed at, starting from 0 for the items already in q. The caller
-    appends the next level's items to q inside the loop body and keeps
-    its own seen set. With grouped=True yields (d, items) once per level,
-    items being the whole level as a list.
+    appends the next level's items to q inside the loop body. With grouped=True
+    yields (d, items) once per level, items being the whole level as a list.
+
+    Every popped item is checked before it is yielded. With eq, lt, lte, gt or
+    gte, an item whose value fails one of them is dropped; the value is
+    grid[item[0]][item[1]] when grid is given, else the item itself. With
+    seen, an item already in seen is dropped and a kept item is added to it,
+    so the caller can push without checking.
     """
+
+    def keep(x: Any) -> bool:
+        v = x if grid is None else grid[x[0]][x[1]]
+        if not _holds(v, eq, lt, lte, gt, gte) or (seen is not None and x in seen):
+            return False
+        if seen is not None:
+            seen.add(x)
+        return True
+
     d = 0
     while q:
+        popped = (q.popleft() for _ in range(len(q)))
         if grouped:
-            yield d, [q.popleft() for _ in range(len(q))]
+            level = [x for x in popped if keep(x)]
+            if level:
+                yield d, level
         else:
-            for _ in range(len(q)):
-                yield d, q.popleft()
+            for x in popped:
+                if keep(x):
+                    yield d, x
         d += 1

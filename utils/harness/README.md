@@ -160,15 +160,20 @@ nodes 0 to n - 1 are all keys. type=list needs n and returns a plain
 list. reverse reads each edge as b to a. directed=False counts the edge
 into a as well, so the result is the plain degree of every node.
 
-### `levels(q: Deque[Any], grouped: bool = False) -> Iterator[Tuple[int, Any]]`
+### `levels(q: Deque[Any], grid: Optional[Any] = None, seen: Optional[Set[Any]] = None, grouped: bool = False, eq: Any = None, lt: Any = None, lte: Any = None, gt: Any = None, gte: Any = None) -> Iterator[Tuple[int, Any]]`
 
 Level-order BFS over a deque the caller keeps pushing onto.
 
 Yields (d, item) for every item popped, where d is the level the item
 was pushed at, starting from 0 for the items already in q. The caller
-appends the next level's items to q inside the loop body and keeps
-its own seen set. With grouped=True yields (d, items) once per level,
-items being the whole level as a list.
+appends the next level's items to q inside the loop body. With grouped=True
+yields (d, items) once per level, items being the whole level as a list.
+
+Every popped item is checked before it is yielded. With eq, lt, lte, gt or
+gte, an item whose value fails one of them is dropped; the value is
+grid[item[0]][item[1]] when grid is given, else the item itself. With
+seen, an item already in seen is dropped and a kept item is added to it,
+so the caller can push without checking.
 
 ### `build_nary_tree(arr: List[Optional[int]]) -> Optional[Node]`
 
@@ -186,15 +191,17 @@ items being the whole level as a list.
 
 `((-1, 0), (0, -1), (0, 1), (1, 0), (-1, -1), (-1, 1), (1, -1), (1, 1))`
 
-### `cells(grid: Sequence[Sequence[Any]], start: int = 0, val: Any = None) -> Iterator[Cell]`
+### `cells(grid: Sequence[Sequence[Any]], start: int = 0, val: Any = None, eq: Any = None, lt: Any = None, lte: Any = None, gt: Any = None, gte: Any = None) -> Iterator[Cell]`
 
 Every (i, j) of grid with i >= start and j >= start, in row-major order.
-With val, only the cells where grid[i][j] == val.
+With eq, lt, lte, gt or gte, only the cells whose value passes them all
+(see _holds). val is the old name for eq.
 
-### `nbrs(grid: Sequence[Sequence[Any]], r: int, c: int, dirs: Sequence[Cell] = CARDINALS, val: Any = None) -> Iterator[Cell]`
+### `nbrs(grid: Sequence[Sequence[Any]], r: int, c: int, dirs: Sequence[Cell] = CARDINALS, val: Any = None, eq: Any = None, lt: Any = None, lte: Any = None, gt: Any = None, gte: Any = None) -> Iterator[Cell]`
 
 The cells (r + dr, c + dc) for (dr, dc) in dirs that lie on grid.
-With val, only the cells where grid[nr][nc] == val.
+With eq, lt, lte, gt or gte, only the cells whose value passes them all
+(see _holds). val is the old name for eq.
 
 ### `is_edge(grid: Sequence[Sequence[Any]], r: int, c: int) -> bool`
 
@@ -214,6 +221,14 @@ rows distinct lists; table(l, m, n) nests one level deeper.
 ### `like(grid: Sequence[Sequence[Any]], fill: Any = 0) -> List[List[Any]]`
 
 A new table with the shape of grid, every cell set to fill.
+
+### `shape(*seqs: Any, last_index: bool = False) -> Tuple[int, ...]`
+
+The sizes of a nested list, or of several sequences side by side.
+
+shape(grid) follows grid[0] down while it is a list: (rows, cols, ...).
+shape(a, b) is (len(a), len(b)). With last_index, every size less one:
+the index of the last cell.
 
 ### `put(grid: List[List[Any]], at: Iterable[Cell], v: Any) -> None`
 
