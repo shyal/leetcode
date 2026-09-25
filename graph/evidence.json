@@ -30299,6 +30299,20 @@
       "note": "Drill targets graph-bfs-shortest; levels() drives the BFS ring by ring and nbrs() enumerates cardinal neighbors, with seen guarding revisits.",
       "summary": "The code builds a BFS over the grid using the harness helpers levels() and nbrs(): a deque seeded with (0,0) is expanded level by level, keeping only cells whose value passes gte=k and adding each to seen, then checks whether the bottom-right cell (shape(grid, last_index=True)) was reached. This exercises graph-bfs-shortest (layered expansion), grid-neighbors (cardinal offsets via nbrs), and a visited set. The notes say 'Learning' and mention building the shape helper; all assertions passed.",
       "seconds": 2280
+    },
+    "solved/d_Dense_Rank_Scores_2026_09_25T23_26_09_127205_00_00Z.py": {
+      "date": "2026-09-26",
+      "problem": "drill",
+      "moves": {
+        "sql-window-rank": "clean"
+      },
+      "assist": {
+        "sql-window-rank": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say 'Forgot about the dense_rank window function. Assisted.'",
+      "summary": "The query selects score and dense_rank() over (order by score desc) from Scores, which gives equal scores the same rank with no gaps. Both example assertions pass, confirming the dense-rank window behavior. The notes state the candidate forgot the dense_rank window function and was assisted.",
+      "seconds": 271
     }
   }
 }
