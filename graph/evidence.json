@@ -30464,6 +30464,17 @@
       "note": "Drill targets recursive-descent; the scanner is a single cursor-driven rule function (number) that peels digits and stops at the operator, with the caller advancing the shared cursor.",
       "summary": "The Solution holds a string S and a shared cursor i; number() walks the cursor while the current char is a digit, accumulating num = num*10 + int(ch), then returns a TreeNode and leaves i at the operator. The driver calls number() repeatedly, advancing i past each '+'/'-' between calls, and the assertions confirm the cursor lands exactly on the operators and at end of input. This exercises the recursive-descent pattern of one grammar rule as a function over a shared cursor, plus digit peeling via the multiply-and-add loop.",
       "seconds": 213
+    },
+    "solved/d_Floor_True_2026_09_26T01_18_18_415670_00_00Z.py": {
+      "date": "2026-09-26",
+      "problem": "drill",
+      "moves": {
+        "binary-search-on-answer": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill trains the last-true boundary variant of binary search on a predicate; all assertions pass, including the <=31 call bound on 1..1e9.",
+      "summary": "The file defines floorTrue(lo, hi, ok), a binary search that returns the greatest x in [lo, hi] for which the monotone predicate ok(x) holds, by moving lo up on ok(mid) and hi down otherwise and returning hi. It is exercised against constant, boundary, single-point, and 1e9-range predicates, and the call-count assertion confirms logarithmic behavior. The drill's target move, binary-search-on-answer, is exercised cleanly.",
+      "seconds": 170
     }
   }
 }
