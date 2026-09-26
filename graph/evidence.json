@@ -30441,6 +30441,17 @@
       "note": "Drill targets sort-by-custom-key; the (value, index) tuple key sorts by value with index as tiebreaker, then x[1] extracts the original positions.",
       "summary": "The solution builds (value, index) pairs with enumerate and sorts them, relying on tuple ordering to sort by value and break ties by index, then maps each pair to its index. This exercises sort-by-custom-key via the derived tuple key. All assertions passed, including the 100000-element case.",
       "seconds": 257
+    },
+    "solved/d_Claim_Or_Merge_2026_09_26T01_11_22_509470_00_00Z.py": {
+      "date": "2026-09-26",
+      "problem": "drill",
+      "moves": {
+        "union-find": "clean",
+        "dict-arbitrary-value": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The Solution extends UnionFind and union_shared walks each account's emails, keeping a res dict from email to the first account index that claimed it; on a repeat email it calls self.union(i, res[email]) to merge the two accounts. This exercises union-find (find/union via the inherited class, verified by the find assertions) and dict-arbitrary-value (email -> owning index). All assertions passed on execution.",
+      "seconds": 221
     }
   }
 }
