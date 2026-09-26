@@ -30363,6 +30363,22 @@
       "note": "Drill's REQUIRED line met: nextRow builds the next row from the current row's excesses, one rolling step.",
       "summary": "nextRow allocates a result row of len(row)+1 via the table helper, then for each amount computes excess = (amt-1)/2 and, when positive, pours it into res[i] and res[i+1]. This is a single forward rolling step of the 1D DP, exercised cleanly across the assertions. The notes describe the mental model shift: operating in the row itself and pouring down rather than taking from above.",
       "seconds": 400
+    },
+    "solved/d_Node_Step_Pairs_2026_09_26T00_02_27_187896_00_00Z.py": {
+      "date": "2026-09-26",
+      "problem": "drill",
+      "moves": {
+        "graph-bfs-shortest": "clean",
+        "graph-adjacency-build": "clean",
+        "seen-state-cycle-detect": "clean"
+      },
+      "assist": {
+        "graph-bfs-shortest": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "BFS keyed on (node, distance) rather than node alone, so revisits at new depths are kept; all assertions passed.",
+      "summary": "The Solution.reachable method seeds a deque with node 0 and a seen set holding (0,0), then uses the harness levels() generator to walk the graph in BFS layers, adding (nxt, d+1) to seen and the queue whenever d < k and the pair is new. Keying visited on the (node, distance) pair rather than the node alone is what preserves entries like (1,4) in the cyclic example. All eleven assertions, including k=0, self-loops, and two-cycles, passed.",
+      "seconds": 595
     }
   }
 }
