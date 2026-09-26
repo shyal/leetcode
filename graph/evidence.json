@@ -30851,6 +30851,18 @@
       "note": "DRILL targeting stack-nested-eval; the code parses numbers with a digit accumulator and a sentinel '+', not a nested-scope stack, so stack-nested-eval is not exercised.",
       "summary": "The code walks s + '+' with a running num, multiplying by 10 and adding each digit, and appends num to st whenever a non-digit is seen, returning the list of parsed integers. It exercises digit peeling via the num = num*10 + int(c) accumulator rather than the targeted stack-nested-eval move. All assertions passed on execution.",
       "seconds": 141
+    },
+    "solved/d_Ledger_Tally_2026_09_26T23_30_23_407239_00_00Z.py": {
+      "date": "2026-09-27",
+      "problem": "drill",
+      "moves": {
+        "stack-nested-eval": "clean",
+        "divmod-decompose": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "DRILL targeting stack-nested-eval; the required line is met.",
+      "summary": "The code parses an arithmetic string by accumulating digits into num and, on each operator, pushing the signed number onto a list s, then returns sum(s). It exercises the stack-nested-eval move by pushing partial signed terms and combining them at the end, and uses digit peeling (num*10+int(c)) to build multi-digit numbers. All assertions passed with output 134.",
+      "seconds": 261
     }
   }
 }
