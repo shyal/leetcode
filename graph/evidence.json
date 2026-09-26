@@ -30487,6 +30487,17 @@
       "note": "The `curr` guard skips values greater than the last start, so each run is walked once from its low end; the while loop probes v+1, v+2 ... against the set.",
       "summary": "The code builds a set of nums and scans the list, using a `curr` marker to only start a walk at a value not greater than the previous start, then extends v upward while v is in the set, tracking the max run length in res. It exercises set-membership for the O(1) probes and generate-and-test-neighbors by walking the implicit consecutive chain one step at a time. All assertions passed with exit 0, and the notes contain no mention of hints or failures.",
       "seconds": 284
+    },
+    "solved/d_Sum_Of_Squares_2026_09_26T01_35_47_116443_00_00Z.py": {
+      "date": "2026-09-26",
+      "problem": "drill",
+      "moves": {
+        "running-sum": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill for running-sum; the fold `sum for x in nums: x*x` accumulates the total in one pass.",
+      "summary": "The solution returns sum(x*x for x in nums), squaring each element and accumulating the total in a single pass. This exercises the running-sum move, matching the mu fold `sum for x in nums: x*x`. All assertions passed, including the large 100000-element case.",
+      "seconds": 146
     }
   }
 }
