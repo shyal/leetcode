@@ -30772,6 +30772,17 @@
       "note": "mu source uses a fold `max from -1 for n in nums if n % 2 == 0: n`; the transpiled Python uses max with a generator and default=-1.",
       "summary": "The code returns the largest even number in nums, or -1 if none exists. The mu source expresses this as a fold taking the max over even elements starting from -1, and the transpiled Python uses max with a filtered generator and default=-1. All assertions passed, exercising the running-extreme move.",
       "seconds": 60
+    },
+    "solved/d_Count_Evens_2026_09_26T22_59_33_122252_00_00Z.py": {
+      "date": "2026-09-27",
+      "problem": "drill",
+      "moves": {
+        "running-sum": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "DRILL targeting running-sum; the mu fold `count from 0 for n in nums if n % 2 == 0: 1` accumulates a running count over the scan.",
+      "summary": "The mu source counts even numbers with a fold that starts at 0 and adds 1 for each n where n % 2 == 0; the transpiled Python expresses this as 0 + sum(1 for n in nums if n % 2 == 0). This exercises the running-sum move by accumulating a total while scanning the list. All assertions passed, including the folds check on the count method.",
+      "seconds": 42
     }
   }
 }
