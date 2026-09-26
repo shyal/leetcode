@@ -30680,6 +30680,19 @@
       "judge": "deepseek-chat",
       "summary": "The code scans the string once, keeping a running count of 'a's seen so far and adding that count to res each time a 'b' is encountered, so every 'a' before a 'b' forms one subsequence. This exercises the rolling 1D state (a, res updated in place) and streaming pair accumulation, counting each pair at its second member. All assertions pass, including the 50000/50000 stress case.",
       "seconds": 140
+    },
+    "solved/d_Node_Step_Pairs_2026_09_26T21_58_28_206494_00_00Z.py": {
+      "date": "2026-09-27",
+      "problem": "drill",
+      "moves": {
+        "graph-bfs-shortest": "clean",
+        "graph-adjacency-build": "clean",
+        "seen-state-cycle-detect": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "REQUIRED O(k*(n+m)) single BFS met: levels() yields (d, node) and seen is keyed on (node, distance), so (1,4) is kept.",
+      "summary": "The code runs one breadth-first search from node 0 using the harness levels() generator, which yields (depth, node) pairs level by level. It records each (node, distance) pair in seen and only enqueues a neighbor when d < k and the pair is new, so revisiting a node at a different depth is allowed. All assertions pass, including the Example 1 case that keeps (1, 4). The notes are empty.",
+      "seconds": 413
     }
   }
 }
