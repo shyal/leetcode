@@ -401,6 +401,7 @@ class Parser:
         self.imports = set()
         self.helpers = []
         self.memo_used = False
+        self.folds = []  # (op, from, if, block) for each fold, for folds() in asserts
 
     # token helpers
 
@@ -1071,7 +1072,11 @@ class Parser:
         if self.at("if"):
             self.next()
             where = self.or_()
-        if allow_block and self.peek()[0] == "NEWLINE" and self.peek(1)[0] == "INDENT":
+        block = (
+            allow_block and self.peek()[0] == "NEWLINE" and self.peek(1)[0] == "INDENT"
+        )
+        self.folds.append((op, start is not None, where is not None, block))
+        if block:
             return (op, start, tgt, it, where)
         body = None
         if self.at(":"):

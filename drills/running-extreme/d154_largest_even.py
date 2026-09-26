@@ -46,3 +46,4 @@ print(sol.largestEven([3, 8, 5, 6, 1]))  # 8
 # assert sol.largestEven([9, 9, 2, 9]) == 2
 # assert sol.largestEven([10**9, 10**9 - 1]) == 1000000000
 # assert sol.largestEven([1] * 100000) == -1
+# assert folds(Solution, "max", start=True, where=True)

@@ -42,3 +42,4 @@ print(sol.sumOfSquares([1, 2, 3]))  # 14
 # assert sol.sumOfSquares([0, 5, -2]) == 29
 # assert sol.sumOfSquares([-1, -1, -1]) == 3
 # assert sol.sumOfSquares([1000] * 100000) == 100000000000
+# assert folds(Solution, "sum")

@@ -45,3 +45,4 @@ print(sol.sumOfPositives([-5, 2, 7, -1]))  # 9
 # assert sol.sumOfPositives([-5]) == 0
 # assert sol.sumOfPositives([1, 2, 3]) == 6
 # assert sol.sumOfPositives([1000, -1000] * 50000) == 50000000
+# assert folds(Solution, "sum", where=True)

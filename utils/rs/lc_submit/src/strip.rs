@@ -693,7 +693,7 @@ tabulate print_orig pprint rich_print draw_tree draw_linked_list draw_general_tr
 get_level_order debug_var debug_vars draw_ascii_graph draw_graphviz draw_graph draw_heap \
 build_tree generate_and_print_random_bst generate_full_binary_tree generate_random_tree \
 build_graph_from_edge_list build_nary_tree get_adj_list build_graph get_list_values \
-print_linked_list build_linked_list find_node get_inorder is_balanced is_valid_bst same_rows same_seq uses avoids";
+print_linked_list build_linked_list find_node get_inorder is_balanced is_valid_bst same_rows same_seq uses avoids folds";
 
     #[test]
     fn every_solve_time_builtin_is_submittable() {

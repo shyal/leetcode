@@ -391,7 +391,9 @@ def cmd_run(root):
     target = root / CURRENT
     if belongs(root):
         try:
-            code = spliced(target.read_text(), (root / MU).read_text())
+            code = spliced(
+                target.read_text(), (root / MU).read_text(), show_source=True
+            )
         except MuError as err:
             print(f"current.mu: {err}", file=sys.stderr)
             return 1

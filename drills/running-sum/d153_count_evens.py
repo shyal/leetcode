@@ -49,3 +49,4 @@ print(sol.countEvens([3, 4, 7, 8, 9]))  # 2
 # assert sol.countEvens([7]) == 0
 # assert sol.countEvens([6]) == 1
 # assert sol.countEvens(list(range(-1000, 1000))) == 1000
+# assert folds(Solution, "count", where=True)

@@ -356,6 +356,7 @@ builtins.same_rows = same_rows
 builtins.same_seq = same_seq
 builtins.uses = uses
 builtins.avoids = avoids
+builtins.folds = folds
 builtins.triples = triples
 
 # utilities

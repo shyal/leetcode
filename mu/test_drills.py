@@ -14,7 +14,8 @@ ROOT = os.path.dirname(HERE)
 sys.path[:0] = [HERE, os.path.join(ROOT, "utils", "tests")]
 from test_reference_solutions import PY, drill_for, spliced  # noqa: E402
 
-from mu import transpile  # noqa: E402
+from mu import VERSION, transpile  # noqa: E402
+from session import solution  # noqa: E402
 
 REFERENCES = sorted(
     glob.glob(os.path.join(ROOT, "graph", "node_notes", "*", "d[0-9]*.mu"))
@@ -24,7 +25,9 @@ REFERENCES = sorted(
 @pytest.mark.parametrize("reference", REFERENCES, ids=os.path.basename)
 def test_mu_reference_passes_its_drill(reference, tmp_path):
     drill = drill_for(reference)
-    src = spliced(open(drill).read(), transpile(open(reference).read()))
+    mu_src = open(reference).read()
+    quoted = "\n".join(f"# {ln}".rstrip() for ln in solution(mu_src).splitlines())
+    src = spliced(open(drill).read(), f"# mu {VERSION}\n{quoted}\n\n" + transpile(mu_src))
     assert "assert " in src, f"{drill} has no asserts"
     script = tmp_path / os.path.basename(drill)
     script.write_text(src)

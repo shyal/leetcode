@@ -43,3 +43,4 @@ print(sol.equalPairs([1, 2, 3, 1, 1, 3]))  # 4
 # assert sol.equalPairs([4, 5, 4]) == 1
 # assert sol.equalPairs([1, 2, 1, 2]) == 2
 # assert sol.equalPairs([7] * 100000) == 4999950000
+# assert folds(Solution, "sum", block=True)
