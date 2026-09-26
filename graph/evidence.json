@@ -30509,6 +30509,17 @@
       "note": "DRILL targeting running-sum; the fold `sum for x in nums if x > 0: x` accumulates the total while scanning, and the required `folds(Solution, 'sum', where=True)` line is met.",
       "summary": "The solution sums the positive elements of nums with a generator expression inside sum(), filtering x > 0 as it scans. This exercises the running-sum move: a total accumulated over the sequence in one pass. All assertions passed, including the large 100000-element case and the required folds check, with no notes indicating help or difficulty.",
       "seconds": 155
+    },
+    "solved/d_Largest_Even_2026_09_26T02_01_01_234163_00_00Z.py": {
+      "date": "2026-09-26",
+      "problem": "drill",
+      "moves": {
+        "running-extreme": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets running-extreme; the mu source uses `max from -1 for x in nums if x % 2 == 0: x`, a fold that tracks the best-so-far with a default of -1.",
+      "summary": "The solution returns the largest even number in nums, or -1 when none exists. It does this with a max fold over the filtered evens, seeded with -1 as the default, which is the running-extreme move the drill trains. All assertions passed and the folds check confirms the max fold with start and where clauses.",
+      "seconds": 166
     }
   }
 }
