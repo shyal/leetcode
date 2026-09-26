@@ -585,6 +585,17 @@ class Parser:
                 return ("foldblock", *head, self.block())
             self.expect_kind("NEWLINE")
             return ("expr", head)
+        if (
+            self.at("ret")
+            and self.peek(1)[0] == "NAME"
+            and (self.at("=", 2) or self.at(",", 2))
+        ):
+            # `ret res = [first]`, `ret res, k = [], 0`: res is the def's
+            # return value
+            self.next()
+            name = self.peek()[1]
+            s = self.simple(newline=True)
+            return ("assign", *s[1:], name)
         return self.simple(newline=True)
 
     def loop_else(self):
@@ -646,7 +657,12 @@ class Parser:
         if self.at("->"):
             self.next()
             ret = self.type()
-        return ("def", name, params, ret, self.block())
+        body = self.block()
+        if len([s for s in body if ret_name([s])]) > 1:
+            raise MuError(f"{name} has more than one ret line")
+        if any(ret_name(b) for s in body for b in children(s)):
+            raise MuError("a ret line must be a line of the def's own body")
+        return ("def", name, params, ret, body)
 
     def memo_stmt(self):
         self.expect("memo")
@@ -1230,6 +1246,14 @@ def bound(stmts):
     return out
 
 
+def ret_name(stmts):
+    """The name a `ret` line of this block declares, or None."""
+    for s in stmts:
+        if s[0] == "assign" and len(s) == 5:
+            return s[4]
+    return None
+
+
 def children(s):
     """The blocks inside a statement, except a nested def's own body."""
     if s[0] == "for":
@@ -1253,6 +1277,7 @@ class Emitter:
         self.fresh = 0
         self.method = method
         self.scopes = []  # names bound by each enclosing def
+        self.rets = []  # the ret name of each enclosing def, or None
 
     def out(self, ind, s):
         self.lines.append("    " * ind + s)
@@ -1295,7 +1320,8 @@ class Emitter:
         elif kind == "assign":
             self.out(ind, f"{s[1]} {s[2]} {s[3]}")
         elif kind == "return":
-            self.out(ind, "return" if s[1] is None else f"return {s[1]}")
+            val = s[1] if s[1] is not None else (self.rets or [None])[-1]
+            self.out(ind, "return" if val is None else f"return {val}")
         elif kind in ("break", "continue", "pass"):
             self.out(ind, kind)
         elif kind in ("import", "push"):
@@ -1339,17 +1365,25 @@ class Emitter:
             self.out(ind + 1, "try:")
             ind += 1
         self.scopes.append(names | bound(body))
+        res = ret_name(body)
+        self.rets.append(res)
+        returns = False if res else "return {}"
         if top and any(b[0] == "memo" for b in body):
             # memo recursion can run 10^4+ deep: evaluate on a big stack
             self.out(ind + 1, "def run():")
             shared = assigned(body) & names
             if shared:
                 self.out(ind + 2, f"nonlocal {', '.join(sorted(shared))}")
-            self.block(body, ind + 2, returns="return {}")
+            self.block(body, ind + 2, returns=returns)
+            if res:
+                self.out(ind + 2, f"return {res}")
             self.out(ind + 1, "return deep(run)")
         else:
-            self.block(body, ind + 1, returns="return {}")
+            self.block(body, ind + 1, returns=returns)
+            if res:
+                self.out(ind + 1, f"return {res}")
         self.scopes.pop()
+        self.rets.pop()
         if grids:
             self.out(ind, "finally:")
             for p in grids:

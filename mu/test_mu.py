@@ -52,11 +52,37 @@ def test_example(path):
         ("def f(a: int) -> int\n  sum for x in a\n    y = x\n", "must be a value"),
         ("def f(a: int) -> int\n  first k in a if k\n", "needs a range"),
         ("def f(a: int) -> int\n    x = 1\n  x\n", "indentation"),
+        ("def f(a: int) -> int\n  ret x = 1\n  ret y = 2\n", "more than one ret"),
+        ("def f(a: int) -> int\n  for i in a\n    ret x = i\n", "own body"),
     ],
 )
 def test_errors(src, message):
     with pytest.raises(MuError, match=re.escape(message)):
         transpile(src)
+
+
+def test_ret_names_the_return_value():
+    src = (
+        "def decode(encoded: [int], first: int) -> [int]\n"
+        "  ret res = [first]\n"
+        "  for i in range len encoded\n"
+        "    if encoded[i] < 0\n"
+        "      return\n"
+        "    res <- encoded[i] ^ res[i]\n"
+        "  ret = 0\n"
+    )
+    ns: dict = {}
+    exec(transpile(src), ns)
+    decode = ns["Solution"]().decode
+    assert decode([1, 2, 3], 1) == [1, 0, 2, 1]
+    assert decode([1, -1, 3], 1) == [1, 0]
+
+
+def test_ret_takes_the_first_name_of_a_tuple_assignment():
+    src = "def f() -> int\n  ret res, foo = 0, 10\n  res += foo\n"
+    ns: dict = {}
+    exec(transpile(src), ns)
+    assert ns["Solution"]().f() == 10
 
 
 @pytest.mark.parametrize("path", EXAMPLES, ids=lambda p: p.stem)
