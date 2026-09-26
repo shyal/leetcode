@@ -9,7 +9,7 @@ The language is specified in mu/spec/v<VERSION>.md.
 import re
 import sys
 
-VERSION = "0.4"
+VERSION = "0.5"
 
 KEYWORDS = {"from", "in", "not", "and", "or", "if", "else", "is"}
 # names that end a call written without brackets
@@ -298,6 +298,47 @@ def nbrs(
             yield d, level
         d += 1""",
     ),
+    "heap": (
+        ["from heapq import heapify, heappop, heappush"],
+        [],
+        """class heap:
+    class _Rev:
+        __slots__ = "x"
+
+        def __init__(self, x):
+            self.x = x
+
+        def __lt__(self, o):
+            return o.x < self.x
+
+    def __init__(self, items=(), type=min):
+        self.rev = type is max
+        self.h = [self.wrap(x) for x in items]
+        heapify(self.h)
+
+    def wrap(self, x):
+        return heap._Rev(x) if self.rev else x
+
+    def unwrap(self, x):
+        return x.x if self.rev else x
+
+    def push(self, x):
+        heappush(self.h, self.wrap(x))
+
+    append = push
+
+    def pop(self):
+        return self.unwrap(heappop(self.h))
+
+    def peek(self):
+        return self.unwrap(self.h[0])
+
+    def __len__(self):
+        return len(self.h)
+
+    def __iter__(self):
+        return (self.unwrap(x) for x in self.h)""",
+    ),
     "adjacency": (
         ["from collections import defaultdict"],
         [],
@@ -510,10 +551,14 @@ class Parser:
             return self.memo_stmt()
         if self.at("for"):
             self.next()
-            tgt, enum = self.target()
-            self.expect("in")
-            it = self.expr()
-            it = f"enumerate({it})" if enum else it
+            it = self.repeat()
+            if it is None:
+                tgt, enum = self.target()
+                self.expect("in")
+                it = self.expr()
+                it = f"enumerate({it})" if enum else it
+            else:
+                tgt = "_"
             return ("for", tgt, it, self.block(), self.loop_else())
         if self.at("while"):
             self.next()
@@ -570,7 +615,7 @@ class Parser:
                 s = ("push", f"{lhs}.append({self.expr()})")
             elif self.peek()[1] in AUGMENTED and self.peek()[0] == "OP":
                 op = self.next()[1]
-                rhs = self.exprlist()
+                rhs = self.arg() if op == "=" and self.lambda_ahead() else self.exprlist()
                 while op == "=" and self.at("="):
                     # chained: `a = b = 0` keeps every target in lhs
                     self.next()
@@ -681,6 +726,20 @@ class Parser:
             self.need("from typing import Optional")
             t = Py(f"Optional[{t}]")
         return t
+
+    def repeat(self):
+        """`for xs` with no `in`: the iterable of a loop that names no
+        variable, or None when a target and `in` follow."""
+        start = self.i
+        try:
+            self.target()
+            if self.at("in"):
+                self.i = start
+                return None
+        except MuError:
+            pass
+        self.i = start
+        return self.expr()
 
     def target(self):
         """`x`, `(a, b)`, or `i, x`; the last one enumerates."""
@@ -990,22 +1049,31 @@ class Parser:
         self.expect(")")
         return self.special(fn, args, kwargs)
 
+    def lambda_ahead(self):
+        """Whether `x ->` or `(a, b) ->` starts here."""
+        if self.peek()[0] == "NAME":
+            return self.at("->", 1)
+        if not self.at("("):
+            return False
+        j, depth = self.i, 0
+        while True:
+            v = self.toks[j][1]
+            depth += v == "("
+            depth -= v == ")"
+            j += 1
+            if depth == 0 or self.toks[j][0] in ("NEWLINE", "EOF"):
+                break
+        return depth == 0 and self.toks[j][1] == "->"
+
     def arg(self):
-        """A call argument; the only place a lambda `x -> e` may appear."""
+        """A call argument or the value of `f = x -> e`: the two places a
+        lambda may appear."""
         if self.peek()[0] == "NAME" and self.at("->", 1):
             name = self.next()[1]
             self.next()
             return Py(f"lambda {name}: {self.expr()}")
         if self.at("("):
-            j, depth = self.i, 0
-            while True:
-                v = self.toks[j][1]
-                depth += v == "("
-                depth -= v == ")"
-                j += 1
-                if depth == 0:
-                    break
-            if self.toks[j][1] == "->":
+            if self.lambda_ahead():
                 self.next()
                 names = []
                 while not self.at(")"):

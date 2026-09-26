@@ -270,6 +270,38 @@ def test_chained_assignment():
         transpile("def f() -> int\n  a += b = 1\n  a\n")
 
 
+def test_a_loop_may_name_no_variable():
+    src = "def f(n: int) -> int\n  k = 0\n  for 0..<n\n    k += 2\n  k\n"
+    out = transpile(src)
+    assert "for _ in range(0, n):" in out
+    ns = {}
+    exec(out, ns)
+    assert ns["Solution"]().f(3) == 6
+    assert fmt(src) == src
+    assert "for i, x in enumerate(xs):" in transpile(
+        "def f(xs: [int]) -> int\n  k = 0\n  for i, x in xs\n    k += i\n  k\n"
+    )
+
+def test_a_lambda_may_be_assigned_to_a_name():
+    src = "def f(a: int, b: int) -> int\n  add = (x, y) -> x + y\n  add(a, b)\n"
+    ns = {}
+    exec(transpile(src), ns)
+    assert ns["Solution"]().f(2, 3) == 5
+    assert fmt(src) == src
+
+
+def test_heap_pushes_and_pops_with_the_list_operators():
+    src = (
+        "def f(xs: [int]) -> [int]\n"
+        "  lo, hi = heap(xs), heap(xs, type=max)\n"
+        "  lo <- 0\n"
+        "  hi <- 99\n"
+        "  [lo ., hi ., hi.peek(), len(lo)]\n"
+    )
+    ns = {}
+    exec(transpile(src), ns)
+    assert ns["Solution"]().f([5, 1, 7]) == [0, 99, 7, 3]
+
 def test_triple_quoted_strings_span_lines():
     src = (
         "def f() -> str\n"

@@ -552,9 +552,8 @@ class Printer:
                 head = f"{pad}while {self.top(s.test)}"
             else:
                 names, it = self.loop_head(s.target, s.iter)
-                head = (
-                    f"{pad}for {names} in {self.check(it, self.expr(it, LAMBDA + 1))}"
-                )
+                into = "" if names == "_" else f"{names} in "
+                head = f"{pad}for {into}{self.check(it, self.expr(it, LAMBDA + 1))}"
             return [head] + self.block(s.body, ind + 1) + other
         if isinstance(s, ast.Assign):
             if len(s.targets) == 1 and isinstance(s.value, ast.Lambda):
