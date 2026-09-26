@@ -14,7 +14,7 @@ Set `PRETTY_PRINT=1` and `print` becomes `pprint`.
 
 ### `class GraphNode(val = 0, neighbors = None)`
 
-### `class Node(val: Any, children: Optional[Dict[Any, 'Node']] = None)`
+### `class Node(val: Any, children: Optional[Dict[Any, 'Node']] = None, parent: Optional['Node'] = None)`
 
 ## pretty printing
 
@@ -177,6 +177,16 @@ so the caller can push without checking.
 
 ### `build_nary_tree(arr: List[Optional[int]]) -> Optional[Node]`
 
+### `build_general_tree(nested: List[Any]) -> GeneralNode`
+
+A general tree from its nested form [val, [child, child, ...]], where
+each child is again [val, [...]]. Children get keys 0, 1, 2, ...
+
+### `get_general_tree(root: Optional[GeneralNode]) -> Optional[List[Any]]`
+
+The nested form [val, [child, child, ...]] of a general tree, the
+inverse of build_general_tree. Children come in the order of .children.
+
 ## grids
 
 ### `CARDINALS`
@@ -297,6 +307,16 @@ No helper is called anywhere in the source of cls.
 The mirror of uses: for a drill whose rep is writing the helper by
 hand, so a call to the library version is a fail. Raises
 AssertionError naming the first helper cls calls.
+
+### `folds(cls: type, op: str, start: bool = False, where: bool = False, block: bool = False) -> bool`
+
+The mu source of cls has a fold of op (sum, max, min, count) with
+each form asked for: start is `from e`, where is `if cond`, block is
+a block in place of `: value`.
+
+The mu source is the `# mu <version>` block quoted above the class in
+its file. A Python solve has no such block and no fold to check, so
+it passes. Raises AssertionError naming the fold it did not find.
 
 ### `triples(n: int, type: Maker = tuple) -> Iterator[Any]`
 
