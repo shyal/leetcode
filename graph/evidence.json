@@ -30840,6 +30840,17 @@
       "judge": "deepseek-chat",
       "summary": "The Solution subclass overrides atom() to handle parenthesized sub-expressions: on '(' it advances, recursively calls self.expr(), advances past ')', and returns the inner tree; otherwise it delegates to self.number(). The inherited expr/term machinery drives precedence, and the assertions confirm nested parentheses, unary grouping like ((7)), and multi-operator expressions all parse correctly. The run exited 0 with every assertion passing.",
       "seconds": 95
+    },
+    "solved/d_Read_The_Numbers_2026_09_26T23_25_27_815633_00_00Z.py": {
+      "date": "2026-09-27",
+      "problem": "drill",
+      "moves": {
+        "divmod-decompose": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "DRILL targeting stack-nested-eval; the code parses numbers with a digit accumulator and a sentinel '+', not a nested-scope stack, so stack-nested-eval is not exercised.",
+      "summary": "The code walks s + '+' with a running num, multiplying by 10 and adding each digit, and appends num to st whenever a non-digit is seen, returning the list of parsed integers. It exercises digit peeling via the num = num*10 + int(c) accumulator rather than the targeted stack-nested-eval move. All assertions passed on execution.",
+      "seconds": 141
     }
   }
 }
