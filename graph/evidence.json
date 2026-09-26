@@ -30797,6 +30797,24 @@
       "note": "notes say 'Learning'",
       "summary": "The code builds a call tree from start/end events by keeping a stack of nodes: on 'start' it pushes a new child of the current top, on 'end' it pops the node and computes its duration from the stored start time. This exercises stack-nested-eval, pushing the partial context on entering a nested scope and popping/combining when it closes. The run exited 0 and the printed tree matches the expected nesting. The notes mark the work as Learning.",
       "seconds": 520
+    },
+    "solved/d_Exclusive_From_Call_Tree_2026_09_26T23_15_22_909444_00_00Z.py": {
+      "date": "2026-09-27",
+      "problem": "drill",
+      "moves": {
+        "stack-nested-eval": "clean",
+        "tree-dfs-recursive": "clean",
+        "tree-carry-down": "clean"
+      },
+      "assist": {
+        "stack-nested-eval": "learning",
+        "tree-dfs-recursive": "learning",
+        "tree-carry-down": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "notes say 'learning'; the mu source adds child duration to the child and subtracts it from the parent when not root, accumulating exclusive time in res.",
+      "summary": "The code walks the call tree with a recursive visit, adding each child's dur to res[child.id] and, for non-root nodes, subtracting that dur from res[node.id], so each function's exclusive time is its own duration minus its children's. It exercises recursive tree DFS with the parent's identity carried down through the recursion, and the nested-scope accounting that pushes/combines partial results per node. The notes mark the work as learning.",
+      "seconds": 250
     }
   }
 }
