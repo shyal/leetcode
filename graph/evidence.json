@@ -30629,6 +30629,20 @@
       "note": "notes say 'Forgot about min(id) as id' with ASSIST learning",
       "summary": "The query selects min(id) as id and email from Person grouped by email, so each email keeps its smallest id. This exercises the dedupe-keep-one move via GROUP BY with MIN(id), plus group aggregation. The notes state the candidate forgot min(id) as id and mark the help as learning.",
       "seconds": 399
+    },
+    "solved/d_Dense_Rank_Scores_2026_09_26T20_32_54_521487_00_00Z.py": {
+      "date": "2026-09-27",
+      "problem": "drill",
+      "moves": {
+        "sql-window-rank": "clean"
+      },
+      "assist": {
+        "sql-window-rank": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say 'Passed an argument to dense_rank / Learning'; DENSE_RANK() OVER (ORDER BY score DESC) gives the required no-hole ranking.",
+      "summary": "The query selects score and dense_rank() over (order by score desc) as rank from Scores, which makes tied scores share a rank with no gaps. It exercises the sql-window-rank move directly, and both example assertions pass. The notes indicate the dense_rank argument was given as learning help.",
+      "seconds": 169
     }
   }
 }
