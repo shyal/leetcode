@@ -30614,6 +30614,21 @@
       "note": "Notes show a stuck first attempt, then 'looking at notes from previous solve' and 'Learning......'; LEETCODE: Accepted (432 ms, 19.7 MB).",
       "summary": "The code builds a 1D dp table of size amount+1, sets dp[0]=0, and for each amount a takes the min over coins c<=a of dp[a-c]+1, returning -1 when dp[amount] stays inf. This exercises the state formulation (dp[a] = fewest coins for amount a) and the 1D rolling fill forward from the base case. The notes record an initial attempt that got stuck on the recurrence, then a look at a previous solve and 'Learning......'; the LeetCode verdict was Accepted.",
       "seconds": 1592
+    },
+    "solved/d_Keep_Smallest_Id_Per_Email_2026_09_26T20_29_38_410257_00_00Z.py": {
+      "date": "2026-09-27",
+      "problem": "drill",
+      "moves": {
+        "sql-dedupe-keep-one": "clean",
+        "sql-group-aggregate": "clean"
+      },
+      "assist": {
+        "sql-dedupe-keep-one": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "notes say 'Forgot about min(id) as id' with ASSIST learning",
+      "summary": "The query selects min(id) as id and email from Person grouped by email, so each email keeps its smallest id. This exercises the dedupe-keep-one move via GROUP BY with MIN(id), plus group aggregation. The notes state the candidate forgot min(id) as id and mark the help as learning.",
+      "seconds": 399
     }
   }
 }
