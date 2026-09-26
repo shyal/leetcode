@@ -30379,6 +30379,22 @@
       "note": "BFS keyed on (node, distance) rather than node alone, so revisits at new depths are kept; all assertions passed.",
       "summary": "The Solution.reachable method seeds a deque with node 0 and a seen set holding (0,0), then uses the harness levels() generator to walk the graph in BFS layers, adding (nxt, d+1) to seen and the queue whenever d < k and the pair is new. Keying visited on the (node, distance) pair rather than the node alone is what preserves entries like (1,4) in the cyclic example. All eleven assertions, including k=0, self-loops, and two-cycles, passed.",
       "seconds": 595
+    },
+    "solved/d_Reach_The_Far_Corner_2026_09_26T00_22_12_894954_00_00Z.py": {
+      "date": "2026-09-26",
+      "problem": "drill",
+      "moves": {
+        "graph-bfs-shortest": "clean",
+        "grid-neighbors": "clean",
+        "graph-dfs-visited": "clean"
+      },
+      "assist": {
+        "graph-bfs-shortest": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "mu source uses levels/nbrs helpers; BFS seeded at (0,0), expands ring by ring, checks far corner in seen.",
+      "summary": "The mu source seeds a deque with (0,0), walks levels() to expand the frontier ring by ring, and adds nbrs() of each cell, filtering neighbors with gte=k. It records visited cells in seen and answers by testing whether the bottom-right corner (shape with last_index=True) is in seen. The drill's graph-bfs-shortest move is exercised cleanly; the notes mark the work as Learning.",
+      "seconds": 852
     }
   }
 }
