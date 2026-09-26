@@ -30395,6 +30395,16 @@
       "note": "mu source uses levels/nbrs helpers; BFS seeded at (0,0), expands ring by ring, checks far corner in seen.",
       "summary": "The mu source seeds a deque with (0,0), walks levels() to expand the frontier ring by ring, and adds nbrs() of each cell, filtering neighbors with gte=k. It records visited cells in seen and answers by testing whether the bottom-right corner (shape with last_index=True) is in seen. The drill's graph-bfs-shortest move is exercised cleanly; the notes mark the work as Learning.",
       "seconds": 852
+    },
+    "solved/d_Clubs_Sharing_A_Member_2026_09_26T00_47_47_517266_00_00Z.py": {
+      "date": "2026-09-26",
+      "problem": "drill",
+      "moves": {
+        "graph-overlap-adjacency": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The code builds one set per club, then for each club's member list it unions that list into every member's set, so two clubs become adjacent exactly when they share a member; it then removes each club from its own set and returns the lists. This is the group-overlap adjacency move done in O(n*L) with no person-to-person edges or pair tests, and all four assertions passed.",
+      "seconds": 304
     }
   }
 }
