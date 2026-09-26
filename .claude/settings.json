@@ -17,6 +17,10 @@
                     {
                         "type": "command",
                         "command": "cd \"$CLAUDE_PROJECT_DIR\" && utils/rs/target/release/kg_chat --check 2>/dev/null || true"
+                    },
+                    {
+                        "type": "command",
+                        "command": "cd \"$CLAUDE_PROJECT_DIR\" && h=$(shasum -a 256 .hooks.json 2>/dev/null | cut -d\" \" -f1); p=$(grep -o 'CONFIG_SHA256: &str = \"[0-9a-f]*\"' utils/rs/kg/src/hooks.rs | grep -o '[0-9a-f]\\{64\\}'); if [ -z \"$h\" ] || [ \"$h\" != \"$p\" ] || ! git diff --quiet HEAD -- utils/rs/kg/src/hooks.rs; then echo \"SERVE HOOKS TAMPERED: .hooks.json is missing or changed, or the hook runner has uncommitted edits. Follow the Serve hooks rule in CLAUDE.md.\"; fi; true"
                     }
                 ]
             }

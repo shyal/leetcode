@@ -319,6 +319,9 @@ fn main() {
     }
     let root = repo_root();
     load_envrc(&root);
+    if !key_only && !context {
+        kg::hooks::gate(&root, "next");
+    }
     let (ctx, recs) = Ctx::load(root);
     let ev = Evidence::new(recs);
     let console = Console::full_width();

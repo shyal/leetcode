@@ -145,6 +145,7 @@ fn main() {
         console.print("[red]current.py is not empty — finish or clear it first.[/red]");
         std::process::exit(1);
     }
+    kg::hooks::gate(&ctx.root, "drill");
 
     let content = std::fs::read_to_string(&path).expect("read the drill");
     let title = Regex::new(r"(?m)^\s*DRILL:\s*(.+)$")

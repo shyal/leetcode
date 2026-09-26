@@ -978,6 +978,9 @@ fn main() {
     trace("start");
     let root = repo_root();
     load_envrc(&root);
+    if !std::env::args().any(|a| a == "-h" || a == "--help") {
+        kg::hooks::gate(&root, "next");
+    }
     // a terminal run will draw: dot starts now and gets the graph later
     let argv: Vec<String> = std::env::args().skip(1).collect();
     let will_draw = kg::console::stdout_is_tty()

@@ -779,6 +779,12 @@ fn main() {
         }
     }
 
+    // a new problem is served only when every pre-serve hook passes;
+    // warming the cache serves nothing
+    if !args.warm && !args.numbers.is_empty() {
+        kg::hooks::gate(&root, "problem");
+    }
+
     let job = std::sync::Arc::new(Job {
         root,
         warm: args.warm,

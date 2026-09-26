@@ -170,6 +170,7 @@ fn main() {
             std::process::exit(1);
         }
     };
+    kg::hooks::gate(&ctx.root, "spot");
     git(&["checkout", "master"]);
     std::fs::write(
         ctx.root.join("current.md"),
