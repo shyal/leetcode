@@ -53,3 +53,27 @@ def test_bst_and_given_values():
     assert get_level_order(root) == [9, 4, 7]
     with pytest.raises(ValueError):
         generate_random_tree(3, values=[1])
+
+
+def test_node_parent_links_into_children():
+    from Types import Node
+
+    root = Node("main")
+    a = Node({"fid": 0}, parent=root)
+    b = Node({"fid": 1}, parent=a)
+    assert root.children == {0: a}
+    assert a.children == {0: b}
+    assert b.children == {}
+
+
+def test_general_tree_nested_form_round_trips():
+    from tree_utils import build_general_tree, get_general_tree
+
+    nested = [
+        {},
+        [[{"id": 0, "dur": 7}, [[{"id": 1, "dur": 4}, []]]], [{"id": 2, "dur": 1}, []]],
+    ]
+    root = build_general_tree(nested)
+    assert root.children[0].children[0].val == {"id": 1, "dur": 4}
+    assert get_general_tree(root) == nested
+    assert get_general_tree(None) is None

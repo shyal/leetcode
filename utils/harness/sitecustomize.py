@@ -329,6 +329,8 @@ builtins.adjacency = adjacency
 builtins.indegrees = indegrees
 builtins.levels = levels
 builtins.build_nary_tree = build_nary_tree
+builtins.build_general_tree = build_general_tree
+builtins.get_general_tree = get_general_tree
 
 # grids
 builtins.CARDINALS = CARDINALS

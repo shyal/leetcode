@@ -51,9 +51,17 @@ class GraphNode:
 
 
 class Node:
-    def __init__(self, val: Any, children: Optional[Dict[Any, "Node"]] = None):
+    # parent=p adds the new node to p.children, as anytree's Node(name, parent=p)
+    def __init__(
+        self,
+        val: Any,
+        children: Optional[Dict[Any, "Node"]] = None,
+        parent: Optional["Node"] = None,
+    ):
         self.val = val
         self.children = children if children is not None else {}
+        if parent is not None:
+            parent.children[len(parent.children)] = self
 
 
 # class Node:

@@ -5,6 +5,7 @@ from collections import deque
 from typing import Any, Iterable, List, Optional
 
 from colorama import Fore, Style
+from Types import Node as GeneralNode
 from Types import TreeNode
 
 
@@ -280,3 +281,19 @@ def build_nary_tree(arr: List[Optional[int]]) -> Optional[Node]:
             i += 1
         i += 1  # skip the null
     return root
+
+
+def build_general_tree(nested: List[Any]) -> GeneralNode:
+    """A general tree from its nested form [val, [child, child, ...]], where
+    each child is again [val, [...]]. Children get keys 0, 1, 2, ..."""
+    val, kids = nested
+    return GeneralNode(val, {i: build_general_tree(kid) for i, kid in enumerate(kids)})
+
+
+def get_general_tree(root: Optional[GeneralNode]) -> Optional[List[Any]]:
+    """The nested form [val, [child, child, ...]] of a general tree, the
+    inverse of build_general_tree. Children come in the order of .children."""
+    if root is None:
+        return None
+    kids = root.children.values() if isinstance(root.children, dict) else root.children
+    return [root.val, [get_general_tree(kid) for kid in kids]]
