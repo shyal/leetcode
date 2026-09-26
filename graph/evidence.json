@@ -30783,6 +30783,20 @@
       "note": "DRILL targeting running-sum; the mu fold `count from 0 for n in nums if n % 2 == 0: 1` accumulates a running count over the scan.",
       "summary": "The mu source counts even numbers with a fold that starts at 0 and adds 1 for each n where n % 2 == 0; the transpiled Python expresses this as 0 + sum(1 for n in nums if n % 2 == 0). This exercises the running-sum move by accumulating a total while scanning the list. All assertions passed, including the folds check on the count method.",
       "seconds": 42
+    },
+    "solved/d_Call_Tree_2026_09_26T23_08_34_969663_00_00Z.py": {
+      "date": "2026-09-27",
+      "problem": "drill",
+      "moves": {
+        "stack-nested-eval": "clean"
+      },
+      "assist": {
+        "stack-nested-eval": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "notes say 'Learning'",
+      "summary": "The code builds a call tree from start/end events by keeping a stack of nodes: on 'start' it pushes a new child of the current top, on 'end' it pops the node and computes its duration from the stored start time. This exercises stack-nested-eval, pushing the partial context on entering a nested scope and popping/combining when it closes. The run exited 0 and the printed tree matches the expected nesting. The notes mark the work as Learning.",
+      "seconds": 520
     }
   }
 }
