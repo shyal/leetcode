@@ -30643,6 +30643,21 @@
       "note": "Notes say 'Passed an argument to dense_rank / Learning'; DENSE_RANK() OVER (ORDER BY score DESC) gives the required no-hole ranking.",
       "summary": "The query selects score and dense_rank() over (order by score desc) as rank from Scores, which makes tied scores share a rank with no gaps. It exercises the sql-window-rank move directly, and both example assertions pass. The notes indicate the dense_rank argument was given as learning help.",
       "seconds": 169
+    },
+    "solved/d_Reverse_First_K_2026_09_26T20_59_24_323433_00_00Z.py": {
+      "date": "2026-09-27",
+      "problem": "drill",
+      "moves": {
+        "ll-pointer-reversal": "clean",
+        "ll-dummy-splice": "clean"
+      },
+      "assist": {
+        "ll-pointer-reversal": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "mu source uses a dummy node and head-insertion loop to reverse the first k nodes; notes say Learning.",
+      "summary": "The mu source builds a dummy node d and, for k iterations, head-inserts each node h into d.next while advancing h, then splices the untouched tail via t.next = h. This exercises ll-pointer-reversal (flipping the first k links) and ll-dummy-splice (dummy head avoids special-casing the new head). All assertions pass, including k=1, k=len, and a 5000-node case; the notes mark the work as Learning.",
+      "seconds": 1576
     }
   }
 }
