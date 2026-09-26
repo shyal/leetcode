@@ -30863,6 +30863,24 @@
       "note": "DRILL targeting stack-nested-eval; the required line is met.",
       "summary": "The code parses an arithmetic string by accumulating digits into num and, on each operator, pushing the signed number onto a list s, then returns sum(s). It exercises the stack-nested-eval move by pushing partial signed terms and combining them at the end, and uses digit peeling (num*10+int(c)) to build multi-digit numbers. All assertions passed with output 134.",
       "seconds": 261
+    },
+    "solved/p2059_Minimum_Operations_to_Convert_Number_2026_09_26T23_58_04_751442_00_00Z.py": {
+      "date": "2026-09-27",
+      "problem": "2059",
+      "moves": {
+        "graph-bfs-shortest": "clean",
+        "generate-and-test-neighbors": "clean",
+        "seen-state-cycle-detect": "clean"
+      },
+      "assist": {
+        "graph-bfs-shortest": "learning",
+        "generate-and-test-neighbors": "learning",
+        "seen-state-cycle-detect": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Accepted (3689 ms, 191.3 MB); notes say Learning.",
+      "summary": "The code runs a BFS from start using the harness levels() generator, which yields (depth, value) pairs and dedupes via a seen set. At each value it checks goal, then if 0 <= x <= 1000 generates neighbors x+n, x-n, x^n for every n in nums and appends them to the deque. This exercises graph-bfs-shortest, generate-and-test-neighbors, and seen-state-cycle-detect; the notes mark the work as Learning.",
+      "seconds": 1651
     }
   }
 }
