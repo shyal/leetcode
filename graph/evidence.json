@@ -30452,6 +30452,18 @@
       "judge": "deepseek-chat",
       "summary": "The Solution extends UnionFind and union_shared walks each account's emails, keeping a res dict from email to the first account index that claimed it; on a repeat email it calls self.union(i, res[email]) to merge the two accounts. This exercises union-find (find/union via the inherited class, verified by the find assertions) and dict-arbitrary-value (email -> owning index). All assertions passed on execution.",
       "seconds": 221
+    },
+    "solved/d_Number_Scanner_2026_09_26T01_15_16_280565_00_00Z.py": {
+      "date": "2026-09-26",
+      "problem": "drill",
+      "moves": {
+        "recursive-descent": "clean",
+        "divmod-decompose": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets recursive-descent; the scanner is a single cursor-driven rule function (number) that peels digits and stops at the operator, with the caller advancing the shared cursor.",
+      "summary": "The Solution holds a string S and a shared cursor i; number() walks the cursor while the current char is a digit, accumulating num = num*10 + int(ch), then returns a TreeNode and leaves i at the operator. The driver calls number() repeatedly, advancing i past each '+'/'-' between calls, and the assertions confirm the cursor lands exactly on the operators and at end of input. This exercises the recursive-descent pattern of one grammar rule as a function over a shared cursor, plus digit peeling via the multiply-and-add loop.",
+      "seconds": 213
     }
   }
 }
