@@ -30727,6 +30727,19 @@
       "judge": "deepseek-chat",
       "summary": "The drill builds an n x n grid with table(n, n) and fills each cell via cells(grid), setting grid[r][c] = (n - 1 - r) * n + c so rows are numbered from the bottom. This exercises index-conversion: the flat value is derived from the row/column pair with the row counted from the bottom. All assertions passed on execution.",
       "seconds": 122
+    },
+    "solved/d_Subarrays_Summing_To_Target_2026_09_26T22_48_54_275455_00_00Z.py": {
+      "date": "2026-09-27",
+      "problem": "drill",
+      "moves": {
+        "prefix-sum-hashmap": "clean",
+        "streaming-ask-then-record": "clean",
+        "derived-key-lookup": "clean",
+        "running-sum": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The mu source and its transpiled Solution.countSubarrays keep a running prefix sum and a defaultdict D of prefix counts seeded with D[0]=1. At each value it adds D[prefix - target] to res, then records the current prefix, which is the prefix-sum-hashmap move with the derived key prefix-target and the ask-then-record streaming order. All assertions passed, including the 10^5-element cases.",
+      "seconds": 242
     }
   }
 }
