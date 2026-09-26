@@ -30598,6 +30598,22 @@
       "note": "DRILL: stack-nested-eval; notes say 'Learning'",
       "summary": "The code computes exclusive durations by recursing over the general tree with v(n): for each child it adds the child's dur to res[child id], and when n is not the root it subtracts that same dur from res[n id], so a parent's total is reduced by each child's time. The recursion carries the root reference down to decide whether to subtract, and the result table is indexed by function id. The notes mark the work as Learning.",
       "seconds": 273
+    },
+    "solved/p322_Coin_Change_2026_09_26T08_06_01_605772_00_00Z.py": {
+      "date": "2026-09-26",
+      "problem": "322",
+      "moves": {
+        "dp-state-formulate": "clean",
+        "dp-1d-rolling": "clean"
+      },
+      "assist": {
+        "dp-state-formulate": "learning",
+        "dp-1d-rolling": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes show a stuck first attempt, then 'looking at notes from previous solve' and 'Learning......'; LEETCODE: Accepted (432 ms, 19.7 MB).",
+      "summary": "The code builds a 1D dp table of size amount+1, sets dp[0]=0, and for each amount a takes the min over coins c<=a of dp[a-c]+1, returning -1 when dp[amount] stays inf. This exercises the state formulation (dp[a] = fewest coins for amount a) and the 1D rolling fill forward from the base case. The notes record an initial attempt that got stuck on the recurrence, then a look at a previous solve and 'Learning......'; the LeetCode verdict was Accepted.",
+      "seconds": 1592
     }
   }
 }
