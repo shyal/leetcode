@@ -30717,6 +30717,16 @@
       "note": "Drill targets grid-neighbors; the code enumerates every cell via the harness `cells(grid)` generator (nested row/col loops) and counts matches, exercising full grid traversal rather than cardinal-offset neighbor expansion.",
       "summary": "The mu source defines count(grid, v) as a fold over cells(grid), summing 1 for each cell whose value equals v. The transpiled Solution.count wraps the grid in a Grid and returns that sum. All assertions pass, including the 1000x1000 case, so the grid enumeration and counting run correctly.",
       "seconds": 100
+    },
+    "solved/d_Bottom_Up_Index_2026_09_26T22_38_31_133254_00_00Z.py": {
+      "date": "2026-09-27",
+      "problem": "drill",
+      "moves": {
+        "index-conversion": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The drill builds an n x n grid with table(n, n) and fills each cell via cells(grid), setting grid[r][c] = (n - 1 - r) * n + c so rows are numbered from the bottom. This exercises index-conversion: the flat value is derived from the row/column pair with the row counted from the bottom. All assertions passed on execution.",
+      "seconds": 122
     }
   }
 }
