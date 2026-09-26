@@ -30693,6 +30693,19 @@
       "note": "REQUIRED O(k*(n+m)) single BFS met: levels() yields (d, node) and seen is keyed on (node, distance), so (1,4) is kept.",
       "summary": "The code runs one breadth-first search from node 0 using the harness levels() generator, which yields (depth, node) pairs level by level. It records each (node, distance) pair in seen and only enqueues a neighbor when d < k and the pair is new, so revisiting a node at a different depth is allowed. All assertions pass, including the Example 1 case that keeps (1, 4). The notes are empty.",
       "seconds": 413
+    },
+    "solved/d_Reach_The_Far_Corner_2026_09_26T22_33_53_344457_00_00Z.py": {
+      "date": "2026-09-27",
+      "problem": "drill",
+      "moves": {
+        "graph-bfs-shortest": "clean",
+        "grid-neighbors": "clean",
+        "graph-dfs-visited": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets graph-bfs-shortest; BFS via levels() with seen set and nbrs() cardinal offsets, all assertions passed.",
+      "summary": "The solution runs a BFS from (0,0) using the harness levels() generator, which yields (distance, cell) pairs level by level, and nbrs() to enumerate cardinal neighbors. A seen set prevents revisits, and the answer checks whether the bottom-right cell (shape(grid, last_index=True)) was reached. All assertions passed, including the 400x400 cases, so the BFS shortest-path and grid-neighbor moves are exercised cleanly.",
+      "seconds": 372
     }
   }
 }
