@@ -30830,6 +30830,16 @@
       "note": "Notes say 'Learning'; mu source shows the pair count accumulated as acc += got at each element.",
       "summary": "The code walks nums once, keeping a Counter of values seen so far; at each element it reads the prior count, increments it, and adds that prior count to acc, so each equal pair is counted at its second member. This exercises streaming-accumulate-pairs and counter-build. The notes mark the work as Learning, and the mu source mirrors the same accumulate-as-you-go loop.",
       "seconds": 280
+    },
+    "solved/d_Bundle_Refunds_2026_09_26T23_22_44_790616_00_00Z.py": {
+      "date": "2026-09-27",
+      "problem": "drill",
+      "moves": {
+        "recursive-descent": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The Solution subclass overrides atom() to handle parenthesized sub-expressions: on '(' it advances, recursively calls self.expr(), advances past ')', and returns the inner tree; otherwise it delegates to self.number(). The inherited expr/term machinery drives precedence, and the assertions confirm nested parentheses, unary grouping like ((7)), and multi-operator expressions all parse correctly. The run exited 0 with every assertion passing.",
+      "seconds": 95
     }
   }
 }
