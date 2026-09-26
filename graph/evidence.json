@@ -30658,6 +30658,17 @@
       "note": "mu source uses a dummy node and head-insertion loop to reverse the first k nodes; notes say Learning.",
       "summary": "The mu source builds a dummy node d and, for k iterations, head-inserts each node h into d.next while advancing h, then splices the untouched tail via t.next = h. This exercises ll-pointer-reversal (flipping the first k links) and ll-dummy-splice (dummy head avoids special-casing the new head). All assertions pass, including k=1, k=len, and a 5000-node case; the notes mark the work as Learning.",
       "seconds": 1576
+    },
+    "solved/d_Pick_One_Letter_2026_09_26T21_02_35_412605_00_00Z.py": {
+      "date": "2026-09-27",
+      "problem": "drill",
+      "moves": {
+        "running-sum": "clean",
+        "dp-1d-rolling": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The code walks the string once, keeping a running count of matches to c and appending the count after each character, so res[i] is the number of c's in the first i characters. This exercises running-sum accumulation and the rolling 1D state (count carried forward, res built incrementally). All assertions passed, including the 100000-character case.",
+      "seconds": 176
     }
   }
 }
