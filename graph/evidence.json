@@ -30520,6 +30520,17 @@
       "note": "Drill targets running-extreme; the mu source uses `max from -1 for x in nums if x % 2 == 0: x`, a fold that tracks the best-so-far with a default of -1.",
       "summary": "The solution returns the largest even number in nums, or -1 when none exists. It does this with a max fold over the filtered evens, seeded with -1 as the default, which is the running-extreme move the drill trains. All assertions passed and the folds check confirms the max fold with start and where clauses.",
       "seconds": 166
+    },
+    "solved/d_Count_Evens_2026_09_26T02_04_32_647728_00_00Z.py": {
+      "date": "2026-09-26",
+      "problem": "drill",
+      "moves": {
+        "running-sum": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "mu source uses `count from 0 for x in nums if x % 2 == 0: 1`, a fold that accumulates a running total; the transpiled Python uses sum(1 for ...).",
+      "summary": "The mu source counts even numbers with a `count from 0` fold, accumulating 1 for each element satisfying x % 2 == 0; the transpiled Python mirrors this with sum(1 for x in nums if x % 2 == 0). This exercises the running-sum move by accumulating a total while scanning. All assertions passed, including the folds check on the 'count' method.",
+      "seconds": 105
     }
   }
 }
