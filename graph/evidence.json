@@ -30582,6 +30582,22 @@
       "note": "notes say 'Learning'",
       "summary": "The code walks the event list once, pushing a new Node onto a stack on each 'start' and popping on each 'end' to compute dur = t - start + 1, attaching children to the current top of the stack. This is the stack-nested-eval move: the stack holds the open call frames, and closing a frame pops and combines its context. All assertions passed; the notes mark the work as Learning.",
       "seconds": 673
+    },
+    "solved/d_Exclusive_From_Call_Tree_2026_09_26T07_08_14_297808_00_00Z.py": {
+      "date": "2026-09-26",
+      "problem": "drill",
+      "moves": {
+        "stack-nested-eval": "clean",
+        "tree-dfs-recursive": "clean",
+        "tree-carry-down": "clean"
+      },
+      "assist": {
+        "stack-nested-eval": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "DRILL: stack-nested-eval; notes say 'Learning'",
+      "summary": "The code computes exclusive durations by recursing over the general tree with v(n): for each child it adds the child's dur to res[child id], and when n is not the root it subtracts that same dur from res[n id], so a parent's total is reduced by each child's time. The recursion carries the root reference down to decide whether to subtract, and the result table is indexed by function id. The notes mark the work as Learning.",
+      "seconds": 273
     }
   }
 }
