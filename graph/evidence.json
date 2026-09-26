@@ -30706,6 +30706,17 @@
       "note": "Drill targets graph-bfs-shortest; BFS via levels() with seen set and nbrs() cardinal offsets, all assertions passed.",
       "summary": "The solution runs a BFS from (0,0) using the harness levels() generator, which yields (distance, cell) pairs level by level, and nbrs() to enumerate cardinal neighbors. A seen set prevents revisits, and the answer checks whether the bottom-right cell (shape(grid, last_index=True)) was reached. All assertions passed, including the 400x400 cases, so the BFS shortest-path and grid-neighbor moves are exercised cleanly.",
       "seconds": 372
+    },
+    "solved/d_Count_Cells_2026_09_26T22_35_49_942794_00_00Z.py": {
+      "date": "2026-09-27",
+      "problem": "drill",
+      "moves": {
+        "grid-neighbors": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets grid-neighbors; the code enumerates every cell via the harness `cells(grid)` generator (nested row/col loops) and counts matches, exercising full grid traversal rather than cardinal-offset neighbor expansion.",
+      "summary": "The mu source defines count(grid, v) as a fold over cells(grid), summing 1 for each cell whose value equals v. The transpiled Solution.count wraps the grid in a Grid and returns that sum. All assertions pass, including the 1000x1000 case, so the grid enumeration and counting run correctly.",
+      "seconds": 100
     }
   }
 }
