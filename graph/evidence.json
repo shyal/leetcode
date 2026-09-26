@@ -30475,6 +30475,18 @@
       "note": "Drill trains the last-true boundary variant of binary search on a predicate; all assertions pass, including the <=31 call bound on 1..1e9.",
       "summary": "The file defines floorTrue(lo, hi, ok), a binary search that returns the greatest x in [lo, hi] for which the monotone predicate ok(x) holds, by moving lo up on ok(mid) and hi down otherwise and returning hi. It is exercised against constant, boundary, single-point, and 1e9-range predicates, and the call-count assertion confirms logarithmic behavior. The drill's target move, binary-search-on-answer, is exercised cleanly.",
       "seconds": 170
+    },
+    "solved/p128_Longest_Consecutive_Sequence_2026_09_26T01_23_42_453479_00_00Z.py": {
+      "date": "2026-09-26",
+      "problem": "128",
+      "moves": {
+        "set-membership": "clean",
+        "generate-and-test-neighbors": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "The `curr` guard skips values greater than the last start, so each run is walked once from its low end; the while loop probes v+1, v+2 ... against the set.",
+      "summary": "The code builds a set of nums and scans the list, using a `curr` marker to only start a walk at a value not greater than the previous start, then extends v upward while v is in the set, tracking the max run length in res. It exercises set-membership for the O(1) probes and generate-and-test-neighbors by walking the implicit consecutive chain one step at a time. All assertions passed with exit 0, and the notes contain no mention of hints or failures.",
+      "seconds": 284
     }
   }
 }
