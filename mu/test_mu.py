@@ -296,6 +296,17 @@ def test_chained_assignment():
         transpile("def f() -> int\n  a += b = 1\n  a\n")
 
 
+def test_assignment_converts_targets():
+    src = "def f(log: str) -> int\n  int(id), ev, int(t) = log.split ':'\n  id + t\n"
+    out = transpile(src)
+    assert "id, ev, t = log.split(':')" in out
+    assert "id, t = int(id), int(t)" in out
+    ns = {}
+    exec(out, ns)
+    assert ns["Solution"]().f("0:start:3") == 3
+    assert fmt(src) == src
+
+
 def test_a_loop_may_name_no_variable():
     src = "def f(n: int) -> int\n  k = 0\n  for 0..<n\n    k += 2\n  k\n"
     out = transpile(src)

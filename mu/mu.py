@@ -127,6 +127,7 @@ class Py(str):
     rng = None  # (lo, hi_exclusive) when the expression is a range
     parts = None  # the member types when a type is a parenthesized tuple
     call = False  # a call that dropped its brackets, `f x`
+    convert = None  # the line after `int(a), b = ...` that converts a
 
 
 HELPERS = {
@@ -631,6 +632,8 @@ class Parser:
                     # chained: `a = b = 0` keeps every target in lhs
                     self.next()
                     lhs, rhs = Py(f"{lhs} = {rhs}"), self.exprlist()
+                if op == "=":
+                    lhs = converted(lhs)
                 s = ("assign", lhs, op, rhs)
             else:
                 s = ("expr", lhs)
@@ -1211,6 +1214,22 @@ def split_top(text):
     return parts + [cur.strip()]
 
 
+CONVERT = re.compile(r"([A-Za-z_][\w.]*)\(([A-Za-z_]\w*)\)")
+
+
+def converted(lhs):
+    """`int(a), b = ...` assigns a and b, then passes a through int. The
+    left side comes back as `a, b`, with the second line in `convert`."""
+    parts = split_top(lhs)
+    calls = [(p, CONVERT.fullmatch(p)) for p in parts]
+    if " = " in lhs or not any(m for _, m in calls):
+        return lhs
+    out = Py(", ".join(m.group(2) if m else p for p, m in calls))
+    names = ", ".join(m.group(2) for _, m in calls if m)
+    out.convert = f"{names} = {', '.join(p for p, m in calls if m)}"
+    return out
+
+
 def targets(lhs):
     """The plain names an assignment's left side binds: `a, b = c = ...`."""
     return {
@@ -1319,6 +1338,8 @@ class Emitter:
                 self.block(other, ind + 1, returns=last)
         elif kind == "assign":
             self.out(ind, f"{s[1]} {s[2]} {s[3]}")
+            if getattr(s[1], "convert", None):
+                self.out(ind, s[1].convert)
         elif kind == "return":
             val = s[1] if s[1] is not None else (self.rets or [None])[-1]
             self.out(ind, "return" if val is None else f"return {val}")
