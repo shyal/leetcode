@@ -30815,6 +30815,21 @@
       "note": "notes say 'learning'; the mu source adds child duration to the child and subtracts it from the parent when not root, accumulating exclusive time in res.",
       "summary": "The code walks the call tree with a recursive visit, adding each child's dur to res[child.id] and, for non-root nodes, subtracting that dur from res[node.id], so each function's exclusive time is its own duration minus its children's. It exercises recursive tree DFS with the parent's identity carried down through the recursion, and the nested-scope accounting that pushes/combines partial results per node. The notes mark the work as learning.",
       "seconds": 250
+    },
+    "solved/d_Equal_Pairs_2026_09_26T23_20_22_747534_00_00Z.py": {
+      "date": "2026-09-27",
+      "problem": "drill",
+      "moves": {
+        "streaming-accumulate-pairs": "clean",
+        "counter-build": "clean"
+      },
+      "assist": {
+        "streaming-accumulate-pairs": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say 'Learning'; mu source shows the pair count accumulated as acc += got at each element.",
+      "summary": "The code walks nums once, keeping a Counter of values seen so far; at each element it reads the prior count, increments it, and adds that prior count to acc, so each equal pair is counted at its second member. This exercises streaming-accumulate-pairs and counter-build. The notes mark the work as Learning, and the mu source mirrors the same accumulate-as-you-go loop.",
+      "seconds": 280
     }
   }
 }
