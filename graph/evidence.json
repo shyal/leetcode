@@ -30531,6 +30531,21 @@
       "note": "mu source uses `count from 0 for x in nums if x % 2 == 0: 1`, a fold that accumulates a running total; the transpiled Python uses sum(1 for ...).",
       "summary": "The mu source counts even numbers with a `count from 0` fold, accumulating 1 for each element satisfying x % 2 == 0; the transpiled Python mirrors this with sum(1 for x in nums if x % 2 == 0). This exercises the running-sum move by accumulating a total while scanning. All assertions passed, including the folds check on the 'count' method.",
       "seconds": 105
+    },
+    "solved/d_Equal_Pairs_2026_09_26T02_15_47_921297_00_00Z.py": {
+      "date": "2026-09-26",
+      "problem": "drill",
+      "moves": {
+        "streaming-accumulate-pairs": "clean",
+        "counter-build": "clean"
+      },
+      "assist": {
+        "streaming-accumulate-pairs": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say 'Learning'; the mu source shows the accumulate-pairs loop written out.",
+      "summary": "The code counts equal pairs in one pass: for each x it reads the running count cnt[x], adds that to acc, then increments cnt[x]. This exercises counter-build and streaming-accumulate-pairs, counting each pair at its second member rather than returning early. The notes mark the work as Learning.",
+      "seconds": 652
     }
   }
 }
