@@ -30761,6 +30761,17 @@
       "judge": "deepseek-chat",
       "summary": "The mu source defines sumOfPositives as a fold summing n over nums where n >= 0, transpiled to a generator expression inside sum(). It exercises running-sum by accumulating a total while scanning the list, filtering negatives with the guard. All assertions passed, including the large 100000-element case, and the harness check folds(Solution, 'sum', where=True) confirms the fold form.",
       "seconds": 45
+    },
+    "solved/d_Largest_Even_2026_09_26T22_57_55_374323_00_00Z.py": {
+      "date": "2026-09-27",
+      "problem": "drill",
+      "moves": {
+        "running-extreme": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "mu source uses a fold `max from -1 for n in nums if n % 2 == 0: n`; the transpiled Python uses max with a generator and default=-1.",
+      "summary": "The code returns the largest even number in nums, or -1 if none exists. The mu source expresses this as a fold taking the max over even elements starting from -1, and the transpiled Python uses max with a filtered generator and default=-1. All assertions passed, exercising the running-extreme move.",
+      "seconds": 60
     }
   }
 }
