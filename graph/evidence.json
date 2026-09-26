@@ -30430,6 +30430,17 @@
       "note": "Notes say 'Didn't look at the grammar line. Hinted.'",
       "summary": "The Solution subclass overrides atom() to handle parenthesized sub-expressions by advancing past '(', recursively calling expr(), and advancing past ')', otherwise delegating to number(). The drill exercises recursive descent: a bracketed sub-expression is a recursive call, and the assertions confirm nested parens, unary grouping, and multi-operator expressions all parse correctly. The notes state the candidate did not look at the grammar line and was hinted.",
       "seconds": 552
+    },
+    "solved/d_Indices_By_Value_2026_09_26T01_07_27_608599_00_00Z.py": {
+      "date": "2026-09-26",
+      "problem": "drill",
+      "moves": {
+        "sort-by-custom-key": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets sort-by-custom-key; the (value, index) tuple key sorts by value with index as tiebreaker, then x[1] extracts the original positions.",
+      "summary": "The solution builds (value, index) pairs with enumerate and sorts them, relying on tuple ordering to sort by value and break ties by index, then maps each pair to its index. This exercises sort-by-custom-key via the derived tuple key. All assertions passed, including the 100000-element case.",
+      "seconds": 257
     }
   }
 }
