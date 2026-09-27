@@ -30992,6 +30992,20 @@
       "judge": "deepseek-chat",
       "summary": "The drill copies nums with [...nums] and sorts it with the numeric comparator (a, b) => a - b, then returns sorted[2]. The copy keeps the caller's array unchanged, which the final assertion checks, and the comparator makes [10, 9, 100] sort numerically so the third smallest is 100. All assertions passed on execution.",
       "seconds": 97
+    },
+    "solved/d_Dense_Rank_Scores_2026_09_27T22_08_11_667554_00_00Z.py": {
+      "date": "2026-09-28",
+      "problem": "drill",
+      "moves": {
+        "sql-window-rank": "clean"
+      },
+      "assist": {
+        "sql-window-rank": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "DRILL: DENSE_RANK() OVER (ORDER BY score DESC) satisfies the required tie-preserving, hole-free ranking.",
+      "summary": "The query selects score and dense_rank() over (order by score desc) as rank from Scores, which gives equal scores the same rank with no gaps. Both example assertions pass, producing the expected (score, rank) rows. The notes mark this as a Learning drill, so the window-rank move was given and copied.",
+      "seconds": 235
     }
   }
 }
