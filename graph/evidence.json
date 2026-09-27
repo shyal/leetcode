@@ -31069,6 +31069,22 @@
       "judge": "deepseek-chat",
       "summary": "The code walks the event list once, pushing a new Node onto a stack on each 'start' and popping on each 'end', then computing dur from the popped node's start time. The stack holds the current nesting path, so each node's parent is stack[-1] at push time, which is the stack-nested-eval move. All assertions passed on the executed run.",
       "seconds": 436
+    },
+    "solved/d_Exclusive_From_Call_Tree_2026_09_27T23_02_27_085875_00_00Z.py": {
+      "date": "2026-09-28",
+      "problem": "drill",
+      "moves": {
+        "stack-nested-eval": "clean",
+        "tree-dfs-recursive": "clean",
+        "tree-carry-down": "clean"
+      },
+      "assist": {
+        "stack-nested-eval": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "mu source: visit adds child dur to res[child.id] and subtracts child dur from the parent when not root, accumulating exclusive time down the tree.",
+      "summary": "The mu source defines visit(node), which for each child adds the child's dur to res[child.id] and, when node is not the root, subtracts that dur from res[node.id], then recurses; the transpiled Solution.exclusive builds res with table(n) and returns it. The nested-scope accumulation is carried through the recursion rather than an explicit stack, and all assertions pass. The notes mark the work as Learning.",
+      "seconds": 290
     }
   }
 }
