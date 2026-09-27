@@ -324,6 +324,30 @@ Every (i, j, k) with 0 <= i < j < k < n, in lexicographic order.
 
 Each triple is built by type: tuple by default, list for a LeetCode answer.
 
+## digits
+
+### `to_digits(num: Union[int, str], reverse: bool = False) -> List[int]`
+
+The digits of num as ints, most significant first.
+
+With reverse=True the least significant digit comes first, so digit i
+is the coefficient of 10**i. A negative int loses its sign.
+
+### `to_int(digits: List[int], reverse: bool = False) -> int`
+
+The int whose digits are the list, most significant first.
+
+With reverse=True the list is read least significant first, the inverse
+of to_digits(num, reverse=True). An empty list is 0.
+
+### `even(n: int) -> bool`
+
+True when n is even.
+
+### `odd(n: int) -> bool`
+
+True when n is odd.
+
 ## utilities
 
 ### `get_adj_list(node: Optional[GraphNode]) -> List[List[int]]`

@@ -241,6 +241,57 @@ def test_a_problem_is_served_run_submitted_and_folded(tmp_path):
     assert session(tmp_path, "build").stdout.strip() == "current.py"
 
 
+def test_debug_writes_the_python_and_a_line_map(tmp_path):
+    import json
+
+    (tmp_path / "current.py").write_text(PROBLEM)
+    session(tmp_path, "stub")
+    # before any work, the debugger runs current.py itself
+    assert session(tmp_path, "debug").stdout.strip() == "current.py"
+    assert not (tmp_path / ".mu_current.map.json").exists()
+    work = (tmp_path / "current.mu").read_text()
+    work = work.replace(
+        "def twoSum(nums: [int], target: int) -> [int]\n  pass\n", TWO_SUM
+    )
+    (tmp_path / "current.mu").write_text(work)
+    assert session(tmp_path, "debug").stdout.strip() == ".mu_current.py"
+    py = (tmp_path / ".mu_current.py").read_text().split("\n")
+    m = json.loads((tmp_path / ".mu_current.map.json").read_text())
+    assert m["file"] == "current.mu"
+    mu = work.split("\n")
+    seen = set()
+    for py_line, mu_line in m["lines"].items():
+        # every mapped python line comes from a mu line of code, in order
+        assert py[int(py_line) - 1].strip()
+        assert mu[mu_line - 1].strip() and not mu[mu_line - 1].startswith("#")
+        seen.add(mu_line)
+    assert mu.index("    seen[x] = i") + 1 in seen
+    assert py.index("            seen[x] = i") + 1 in {int(k) for k in m["lines"]}
+    assert m["lines"][str(py.index("            seen[x] = i") + 1)] == (
+        mu.index("    seen[x] = i") + 1
+    )
+    session(tmp_path, "fold")
+    assert not (tmp_path / ".mu_current.map.json").exists()
+    # the solve filed, current.py empty: current.mu still debugs on its own
+    (tmp_path / "current.py").write_text("")
+    (tmp_path / "current.mu").write_text(work)
+    assert session(tmp_path, "debug").stdout.strip() == ".mu_current.py"
+    m = json.loads((tmp_path / ".mu_current.map.json").read_text())
+    assert m["file"] == "current.mu"
+    py = (tmp_path / ".mu_current.py").read_text().split("\n")
+    assert m["lines"][str(py.index("            seen[x] = i") + 1)] == (
+        mu.index("    seen[x] = i") + 1
+    )
+    ran = python(tmp_path, ".mu_current.py")
+    assert ran.returncode == 0, ran.stdout[-1500:] + ran.stderr[-1500:]
+    # any other mu file, by path
+    (tmp_path / "other.mu").write_text(TWO_SUM)
+    assert session(tmp_path, "debug", "other.mu").stdout.strip() == ".mu_current.py"
+    m = json.loads((tmp_path / ".mu_current.map.json").read_text())
+    assert m["file"] == "other.mu"
+    assert 2 in set(m["lines"].values())
+
+
 def test_a_problem_mu_cannot_write_is_left_to_current_py(tmp_path):
     design = PROBLEM.replace("class Solution:", "class StockPrice:")
     (tmp_path / "current.py").write_text(design)

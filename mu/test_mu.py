@@ -120,6 +120,7 @@ def test_library_copies_agree_with_the_harness():
     sys.path.insert(0, str(HERE.parent / "utils" / "harness"))
     import adj_utils
     import combo_utils
+    import digit_utils
     import grid_utils
 
     from mu import HELPERS
@@ -136,6 +137,10 @@ def test_library_copies_agree_with_the_harness():
         "pairs",
         "levels",
         "adjacency",
+        "to_digits",
+        "to_int",
+        "even",
+        "odd",
     )
     for name in names + ("indegrees",):
         for imp in HELPERS[name][0]:
@@ -171,6 +176,15 @@ def test_library_copies_agree_with_the_harness():
     grid_utils.put(b, [(0, 0), (1, 0)], 9)
     assert a == b == [[9, 2], [9, 3]]
     assert list(ns["pairs"](4)) == list(combo_utils.pairs(4))
+    for num in (0, 7, 65875, "0042", -31):
+        for rev in (False, True):
+            assert ns["to_digits"](num, rev) == digit_utils.to_digits(num, rev)
+    for ds in ([], [0, 0, 4, 2], [8, 7, 6, 5, 5]):
+        for rev in (False, True):
+            assert ns["to_int"](ds, rev) == digit_utils.to_int(ds, rev)
+    for n in range(-3, 4):
+        assert ns["even"](n) == digit_utils.even(n)
+        assert ns["odd"](n) == digit_utils.odd(n)
     assert list(ns["levels"](deque([1, 2]))) == list(adj_utils.levels(deque([1, 2])))
     a, b = set(), set()
     got = list(ns["levels"](deque([(0, 0), (0, 0), (1, 1)]), grid, a, gte=2))
@@ -218,6 +232,11 @@ def test_pop_dot():
     assert fmt("def f(s: [int]) -> int\n  res[s.] = 1\n  s .\n  s.x\n") == (
         "def f(s: [int]) -> int\n  res[s .] = 1\n  s .\n  s.x\n"
     )
+
+
+def test_fmt_keeps_a_space_after_a_pop_in_a_comprehension():
+    src = "def f(h: [int]) -> [int]\n  [h .for _ in 0..1]\n"
+    assert fmt(src) == "def f(h: [int]) -> [int]\n  [h . for _ in 0..1]\n"
 
 
 def test_fmt_moves_one_line_bodies_onto_their_own_line():
@@ -319,6 +338,7 @@ def test_a_loop_may_name_no_variable():
         "def f(xs: [int]) -> int\n  k = 0\n  for i, x in xs\n    k += i\n  k\n"
     )
 
+
 def test_a_lambda_may_be_assigned_to_a_name():
     src = "def f(a: int, b: int) -> int\n  add = (x, y) -> x + y\n  add(a, b)\n"
     ns = {}
@@ -339,6 +359,7 @@ def test_heap_pushes_and_pops_with_the_list_operators():
     exec(transpile(src), ns)
     assert ns["Solution"]().f([5, 1, 7]) == [0, 99, 7, 3]
 
+
 def test_triple_quoted_strings_span_lines():
     src = (
         "def f() -> str\n"
@@ -357,6 +378,84 @@ def test_triple_quoted_strings_span_lines():
     assert fmt(fmt(src)) == fmt(src)
     with pytest.raises(MuError, match="line 2: unclosed ''' string"):
         transpile("def f() -> str\n  '''abc\n")
+
+
+def test_vscode_grammar_highlights_every_helper():
+    """The VS Code grammar's builtin rule names every mu helper, so a new
+    helper cannot ship without highlighting."""
+    import json
+
+    grammar = json.loads(
+        (HERE / "vscode" / "syntaxes" / "mu.tmLanguage.json").read_text()
+    )
+    rule = grammar["repository"]["builtin"]["match"]
+    listed = set(re.search(r"\\b\((.*?)\)\\b", rule).group(1).split("|"))
+    from mu import HELPERS
+
+    # Grid and deep are pasted in by the transpiler, never written in mu
+    helpers = {h for h in HELPERS if not h.startswith("_")} - {"Grid", "deep"}
+    assert helpers <= listed, sorted(helpers - listed)
+
+
+def test_transpile_maps_every_python_line_to_its_mu_line():
+    """transpile(src, mapped=True) gives, per output line, the mu line it
+    came from; pasted helpers, blank lines and the class line have none."""
+    src = (HERE / "examples" / "2231.mu").read_text()
+    code, origin = transpile(src, mapped=True)
+    lines = code.split("\n")
+    assert len(origin) == len(lines) - 1  # the trailing newline
+    mu = src.split("\n")
+    for line, o in zip(lines, origin):
+        if o is None:
+            continue
+        assert mu[o - 1].strip() and not mu[o - 1].startswith("#"), (line, o)
+    assert origin[lines.index("class Solution:")] is None
+    assert origin[lines.index("    def largestInteger(self, num: int) -> int:")] == 2
+    assert origin[lines.index("        ds = to_digits(num)")] == 3
+    assert (
+        origin[lines.index("        return to_int([by[d % 2].pop() for d in ds])")] == 5
+    )
+    # a file with globals and a script maps the same way
+    src = "N = 3\ndef f(a: int) -> int\n  a + N\n\nprint(Solution().f(1))\n"
+    code, origin = transpile(src, mapped=True)
+    lines = code.split("\n")
+    assert len(origin) == len(lines) - 1
+    assert origin[lines.index("N = 3")] == 1
+    assert origin[lines.index("        return a + N")] == 3
+    assert origin[lines.index("print(Solution().f(1))")] == 5
+
+
+def test_vscode_debug_adapter():
+    """The debug adapter's own tests (mu/vscode/adapter.test.js): the
+    protocol rewriting, and a live run against the bundled debugpy when the
+    Python Debugger extension is installed."""
+    import shutil
+    import subprocess
+
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("node is not installed")
+    run = subprocess.run(
+        [node, "--test", str(HERE / "vscode" / "adapter.test.js")],
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    assert run.returncode == 0, run.stdout[-3000:] + run.stderr[-3000:]
+
+
+def test_a_helper_passed_by_name_is_pasted():
+    """`even` in `sort(ds, by=even)` or `[even, odd]` is a use of the helper,
+    so its source goes into the output; a file that binds the name keeps its
+    own."""
+    src = "def f(ds: [int]) -> [int]\n  sort(ds, by=even)\n"
+    assert "def even(n):" in transpile(src)
+    src = "def f(ds: [int]) -> [int]\n  [r for r in [even, odd]]\n"
+    out = transpile(src)
+    assert "def even(n):" in out and "def odd(n):" in out
+    src = "def f(ds: [int], odd: int) -> int\n  even = 1\n  even + odd\n"
+    out = transpile(src)
+    assert "def even(n):" not in out and "def odd(n):" not in out
 
 
 def test_every_spec_version_is_linked_from_the_readme():

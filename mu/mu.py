@@ -9,7 +9,7 @@ The language is specified in mu/spec/v<VERSION>.md.
 import re
 import sys
 
-VERSION = "0.5"
+VERSION = "0.6"
 
 KEYWORDS = {"from", "in", "not", "and", "or", "if", "else", "is"}
 # names that end a call written without brackets
@@ -169,8 +169,9 @@ HELPERS = {
         raise err[0]
     return out[0]""",
     ),
-    # cells, nbrs, table, like, shape, put, pairs, levels, adjacency, indegrees copy the
-    # utils/harness builtins; test_mu.py checks they agree
+    # cells, nbrs, table, like, shape, put, pairs, levels, adjacency, indegrees,
+    # to_digits, to_int, even, odd copy the utils/harness builtins; test_mu.py
+    # checks they agree
     "_holds": (
         [],
         [],
@@ -269,6 +270,34 @@ def nbrs(
     for i in range(n):
         for j in range(i + 1, n):
             yield type((i, j))""",
+    ),
+    "to_digits": (
+        [],
+        [],
+        """def to_digits(num, reverse=False):
+    ds = [int(c) for c in str(num).lstrip("-")]
+    return ds[::-1] if reverse else ds""",
+    ),
+    "to_int": (
+        [],
+        [],
+        """def to_int(digits, reverse=False):
+    out = 0
+    for d in digits[::-1] if reverse else digits:
+        out = out * 10 + d
+    return out""",
+    ),
+    "even": (
+        [],
+        [],
+        """def even(n):
+    return n % 2 == 0""",
+    ),
+    "odd": (
+        [],
+        [],
+        """def odd(n):
+    return n % 2 == 1""",
     ),
     "levels": (
         [],
@@ -440,6 +469,8 @@ class Parser:
     def __init__(self, src):
         self.toks = tokenize(src)
         self.i = 0
+        self.at_line = {}  # id(stmt) -> the mu line it starts on, for the debugger
+        self.bare = set()  # helper names used without a call: sort(ds, by=even)
         self.imports = set()
         self.helpers = []
         self.memo_used = False
@@ -543,6 +574,12 @@ class Parser:
         return body
 
     def stmt(self):
+        line = self.peek()[2]
+        node = self.stmt_at()
+        self.at_line[id(node)] = line
+        return node
+
+    def stmt_at(self):
         t = self.peek()
         if self.at("import") or self.at("from"):
             return ("import", self.import_line())
@@ -627,7 +664,9 @@ class Parser:
                 s = ("push", f"{lhs}.append({self.expr()})")
             elif self.peek()[1] in AUGMENTED and self.peek()[0] == "OP":
                 op = self.next()[1]
-                rhs = self.arg() if op == "=" and self.lambda_ahead() else self.exprlist()
+                rhs = (
+                    self.arg() if op == "=" and self.lambda_ahead() else self.exprlist()
+                )
                 while op == "=" and self.at("="):
                     # chained: `a = b = 0` keeps every target in lhs
                     self.next()
@@ -979,6 +1018,8 @@ class Parser:
             self.next()
             if val == "inf":
                 self.need("from math import inf")
+            if val in HELPERS:
+                self.bare.add(val)
             return Py(CONSTANTS.get(val, val))
         if val == "(":
             self.next()
@@ -1248,20 +1289,23 @@ def assigned(stmts):
     return out
 
 
-def bound(stmts):
-    """Every name a block binds: assignments, loop targets, defs."""
+def bound(stmts, params=False):
+    """Every name a block binds: assignments, loop targets, defs. With
+    params, the parameters of every def too."""
     out = set()
     for s in stmts:
         if s[0] == "assign":
             out |= targets(s[1])
         elif s[0] in ("def", "memo"):
             out.add(s[1])
+            if params:
+                out |= {p if s[0] == "memo" else p[0] for p in s[2]}
         elif s[0] == "for":
             out |= set(NAME.findall(s[1]))
         elif s[0] == "foldblock":
             out |= set(NAME.findall(s[3]))
         for body in children(s):
-            out |= bound(body)
+            out |= bound(body, params)
     return out
 
 
@@ -1291,8 +1335,11 @@ class Emitter:
     `last`: "return {}" in a def, something else at the REPL's top level.
     A nested def that assigns a name an enclosing def binds gets `nonlocal`."""
 
-    def __init__(self, method=True):
+    def __init__(self, method=True, at_line=None):
         self.lines = []
+        self.origin = []  # the mu line each output line comes from, or None
+        self.at_line = at_line or {}
+        self.src_line = None
         self.fresh = 0
         self.method = method
         self.scopes = []  # names bound by each enclosing def
@@ -1300,12 +1347,14 @@ class Emitter:
 
     def out(self, ind, s):
         self.lines.append("    " * ind + s)
+        self.origin.append(self.src_line)
 
     def block(self, stmts, ind, returns=False):
         for k, s in enumerate(stmts):
             self.stmt(s, ind, returns if k == len(stmts) - 1 else False)
 
     def stmt(self, s, ind, last):
+        self.src_line = self.at_line.get(id(s), self.src_line)
         kind = s[0]
         if kind == "def":
             self.def_(s, ind)
@@ -1437,12 +1486,38 @@ class Emitter:
             self.out(ind, last.format(acc))
 
 
-def transpile(src):
+def bound_anywhere(stmts):
+    """Every name the whole file binds, def bodies and parameters included."""
+    out = bound(stmts, params=True)
+    for s in stmts:
+        if s[0] == "def":
+            out |= bound_anywhere(s[4])
+        for body in children(s):
+            out |= bound_anywhere(body)
+    return out
+
+
+def spread(e):
+    """e.origin with one entry per output line: an emitted string may hold
+    a newline of its own (the blank line after the globals)."""
+    out = []
+    for line, o in zip(e.lines, e.origin):
+        out += [o] * (line.count("\n") + 1)
+    return out
+
+
+def transpile(src, mapped=False):
+    """The Python for a mu file. With mapped, also a list with one entry per
+    output line: the mu line it comes from, or None for a pasted helper."""
     p = Parser(src)
     defs = p.program()
     if any(t and t.startswith("list[list[") for d in defs for _, t in d[2]):
         p.need(helper="Grid")
-    e = Emitter()
+    # a helper passed by name, `sort(ds, by=even)`, is pasted like one called,
+    # unless the file binds that name itself
+    for name in sorted(p.bare - bound_anywhere(p.globals + defs + p.script)):
+        p.need(helper=name)
+    e = Emitter(at_line=p.at_line)
     for g in p.globals:
         e.stmt(g, 0, False)
     if p.globals:
@@ -1459,11 +1534,24 @@ def transpile(src):
         parts.append("sys.setrecursionlimit(1 << 20)")
     parts += [HELPERS[h][2] for h in p.helpers]
     parts.append("\n".join(e.lines))
+    origins = [[None] * (part.count("\n") + 1) for part in parts[:-1]]
+    origins.append(spread(e))
     if p.script:
-        script = Emitter(method=False)  # a def here is a plain function
+        script = Emitter(
+            method=False, at_line=p.at_line
+        )  # a def here is a plain function
         script.block(p.script, 0)
         parts.append("\n".join(script.lines))
-    return "\n\n\n".join(parts) + "\n"
+        origins.append(spread(script))
+    code = "\n\n\n".join(parts) + "\n"
+    if not mapped:
+        return code
+    origin = []
+    for k, o in enumerate(origins):
+        if k:
+            origin += [None, None]  # the two blank lines between parts
+        origin += o
+    return code, origin
 
 
 def compile_stmts(src, last="_ = {}"):
@@ -1501,6 +1589,8 @@ def gap(prev, cur, unary, subscript, paren=False):
         return ""
     if pk == "OP" and pv in "([{":
         return ""
+    if pk == "POP":
+        return " "  # a pop inside a comprehension: `[h . for _ in xs]`
     if cv in TIGHT or pv in TIGHT or unary:
         return ""
     if subscript and pk == "OP" and pv == ":":

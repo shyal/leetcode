@@ -86,6 +86,7 @@ from bst_utils import *
 from combo_utils import *
 from counter_utils import *
 from debug_utils import *
+from digit_utils import *
 from gen_utils import *
 from graph_utils import *
 from grid_utils import *
@@ -360,6 +361,12 @@ builtins.uses = uses
 builtins.avoids = avoids
 builtins.folds = folds
 builtins.triples = triples
+
+# digits
+builtins.to_digits = to_digits
+builtins.to_int = to_int
+builtins.even = even
+builtins.odd = odd
 
 # utilities
 builtins.deque = deque

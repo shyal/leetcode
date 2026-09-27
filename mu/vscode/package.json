@@ -4,21 +4,40 @@
   "description": "Highlighting and formatting for mu, a small language for LeetCode",
   "version": "0.0.1",
   "publisher": "leet",
-  "engines": { "vscode": "^1.80.0" },
-  "categories": ["Programming Languages", "Formatters"],
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Formatters",
+    "Debuggers"
+  ],
   "main": "./extension.js",
-  "activationEvents": ["onLanguage:mu"],
+  "activationEvents": [
+    "onLanguage:mu",
+    "onCommand:mu.debug",
+    "onDebugResolve:mu",
+    "onDebugDynamicConfigurations:mu"
+  ],
   "contributes": {
     "languages": [
       {
         "id": "mu",
-        "aliases": ["mu"],
-        "extensions": [".mu"],
+        "aliases": [
+          "mu"
+        ],
+        "extensions": [
+          ".mu"
+        ],
         "configuration": "./language-configuration.json"
       }
     ],
     "grammars": [
-      { "language": "mu", "scopeName": "source.mu", "path": "./syntaxes/mu.tmLanguage.json" }
+      {
+        "language": "mu",
+        "scopeName": "source.mu",
+        "path": "./syntaxes/mu.tmLanguage.json"
+      }
     ],
     "configuration": {
       "title": "mu",
@@ -27,11 +46,89 @@
           "type": "string",
           "default": "python3",
           "description": "Python interpreter that runs the formatter (mu.py --fmt)."
+        },
+        "mu.debugLogDir": {
+          "type": "string",
+          "default": "",
+          "description": "When set, the mu debug adapter writes debugpy's logs to this folder (debugpy.adapter --log-dir)."
         }
       }
     },
     "configurationDefaults": {
-      "[mu]": { "editor.tabSize": 2, "editor.insertSpaces": true, "editor.formatOnSave": true }
-    }
-  }
+      "[mu]": {
+        "editor.tabSize": 2,
+        "editor.insertSpaces": true,
+        "editor.formatOnSave": true
+      }
+    },
+    "commands": [
+      {
+        "command": "mu.debug",
+        "title": "Debug mu file",
+        "category": "mu",
+        "icon": "$(debug-alt)"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "mu.debug",
+        "key": "F5",
+        "when": "editorLangId == mu"
+      }
+    ],
+    "menus": {
+      "editor/title/run": [
+        {
+          "command": "mu.debug",
+          "when": "editorLangId == mu",
+          "group": "navigation"
+        }
+      ]
+    },
+    "breakpoints": [
+      {
+        "language": "mu"
+      }
+    ],
+    "debuggers": [
+      {
+        "type": "mu",
+        "label": "mu",
+        "languages": [
+          "mu"
+        ],
+        "configurationAttributes": {
+          "launch": {
+            "properties": {
+              "console": {
+                "type": "string",
+                "description": "Where the solve runs: internalConsole (default, the Debug Console), integratedTerminal or externalTerminal."
+              }
+            }
+          }
+        },
+        "initialConfigurations": [
+          {
+            "type": "mu",
+            "request": "launch",
+            "name": "mu: current.mu"
+          }
+        ],
+        "configurationSnippets": [
+          {
+            "label": "mu: debug current.mu",
+            "description": "Transpile current.mu and debug it, stepping through the mu file.",
+            "body": {
+              "type": "mu",
+              "request": "launch",
+              "name": "mu: current.mu"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "extensionDependencies": [
+    "ms-python.debugpy"
+  ]
 }

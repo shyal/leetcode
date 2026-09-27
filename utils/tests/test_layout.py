@@ -180,6 +180,7 @@ HARNESS_MODULES = [
     "debug_utils",
     "heap_utils",
     "seq_utils",
+    "digit_utils",
 ]
 
 

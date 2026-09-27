@@ -6,7 +6,7 @@
 //! problem has none, so there it is the last top-level class of any name.
 //! Above it go, dependencies first: helpers the harness preloads and
 //! leetcode lacks (HELPER_FILES: cells, nbrs, like, grid_bfs, Multiset, the
-//! maxheap functions, lcs), the dsa modules the file imports from, then the file's own
+//! maxheap functions, lcs, to_digits), the dsa modules the file imports from, then the file's own
 //! functions, classes, constants and stdlib imports. A name is "used" when
 //! the class loads it and binds it nowhere (a parameter called `root` does
 //! not pull `root = build_tree(...)` in), and an own assignment that itself
@@ -25,7 +25,7 @@ use ruff_text_size::{Ranged, TextRange};
 /// Only the modules a solution may call belong here; the drawing, building
 /// and read-back modules stay out so that a class calling them is refused
 /// (`every_solve_time_builtin_is_submittable` keeps the two sets apart).
-pub const HELPER_FILES: [&str; 9] = [
+pub const HELPER_FILES: [&str; 10] = [
     "utils/harness/sitecustomize.py",
     "utils/harness/adj_utils.py",
     "utils/harness/grid_utils.py",
@@ -34,6 +34,7 @@ pub const HELPER_FILES: [&str; 9] = [
     "utils/harness/counter_utils.py",
     "utils/harness/gen_utils.py",
     "utils/harness/seq_utils.py",
+    "utils/harness/digit_utils.py",
     "dsa/maxheapq.py",
 ];
 

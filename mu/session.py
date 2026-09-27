@@ -4,6 +4,7 @@
     python mu/session.py run     `make`: run the solve from current.mu
     python mu/session.py build   `make submit`: the file to submit
     python mu/session.py fold    `make solved`: file the mu solution in current.py
+    python mu/session.py debug [file.mu]   VS Code: write .mu_current.py and its line map
 
 current.mu holds the statement as comments, a `# ---` line with
 your notes under it, the Solution defs, and then the setup and
@@ -14,6 +15,7 @@ put current.mu, transpiled, under them.
 
 import ast
 import io
+import json
 import os
 import re
 import sys
@@ -25,6 +27,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from mu import VERSION, MuError, Parser, fmt, transpile  # noqa: E402
 
 CURRENT, MU, STUB, RUN = "current.py", "current.mu", ".mu_stub", ".mu_current.py"
+MAP = ".mu_current.map.json"
 PREV = "current.mu.prev"
 CLASS = re.compile(r"^class Solution(\([^)]*\))?:", flags=re.M)
 # a commented line the asserts need: an assert, `name = ...`, `name += ...`
@@ -333,15 +336,17 @@ def solution(mu_src):
     return "\n".join(lines[start:end]).strip("\n")
 
 
-def spliced(py_src, mu_src, show_source=False):
+def spliced(py_src, mu_src, show_source=False, mapped=False):
     """current.py's docstring and imports, then current.mu transpiled (the
     class and the asserts). With show_source, the notes go into the
     docstring after `---` and the mu solution is quoted above the class,
-    under a `# mu <version>` line."""
+    under a `# mu <version>` line. With mapped, also {python line: mu line},
+    both 1-based, for every line that came from current.mu."""
     m = CLASS.search(py_src)
     if not m:
         raise MuError("current.py has no `class Solution` to replace")
-    head, code = py_src[: m.start()], transpile(mu_src)
+    head = py_src[: m.start()]
+    code, origin = transpile(mu_src, mapped=True)
     if show_source:
         said = notes(mu_src)
         if said:
@@ -352,7 +357,12 @@ def spliced(py_src, mu_src, show_source=False):
                 head = head[: doc.start(1)] + body + head[doc.end(1) :]
         quoted = "\n".join(f"# {ln}".rstrip() for ln in solution(mu_src).splitlines())
         code = f"# mu {VERSION}\n{quoted}\n\n{code}"
-    return head + code
+    out = head + code
+    if not mapped:
+        return out
+    skip = out.count("\n") - len(origin)  # lines above the transpiled code
+    lines = {skip + k + 1: o for k, o in enumerate(origin) if o is not None}
+    return out, lines
 
 
 # the commands
@@ -422,6 +432,41 @@ def cmd_build(root):
     return 0
 
 
+def cmd_debug(root, target=None):
+    """Write .mu_current.py for the debugger, with .mu_current.map.json
+    beside it: {"file": <the mu file>, "lines": {python line: mu line}}.
+    current.mu is spliced into current.py when it is the live solve; any
+    other mu file, or current.mu once the solve is filed, is transpiled on
+    its own. Prints the file to debug: .mu_current.py, or current.py when
+    there is no mu to debug."""
+    mu = root / (target or MU)
+    current = target in (None, MU) and belongs(root)
+    live = current and written(root)
+    untouched = current and not live  # the stub as served: debug current.py
+    if untouched or not (mu.exists() and mu.read_text().strip()):
+        (root / MAP).unlink(missing_ok=True)
+        print(CURRENT)
+        return 0
+    try:
+        if live:
+            code, lines = spliced(
+                (root / CURRENT).read_text(),
+                mu.read_text(),
+                show_source=True,
+                mapped=True,
+            )
+        else:
+            code, origin = transpile(mu.read_text(), mapped=True)
+            lines = {k + 1: o for k, o in enumerate(origin) if o is not None}
+    except MuError as err:
+        print(f"{mu.name}: {err}", file=sys.stderr)
+        return 1
+    (root / RUN).write_text(code)
+    (root / MAP).write_text(json.dumps({"file": target or MU, "lines": lines}))
+    print(RUN)
+    return 0
+
+
 def cmd_fold(root):
     if not belongs(root) or not written(root):
         return 0
@@ -433,14 +478,23 @@ def cmd_fold(root):
         return 1
     py.write_text(code)
     (root / MU).write_text("")
-    for name in (STUB, RUN):
+    for name in (STUB, RUN, MAP):
         (root / name).unlink(missing_ok=True)
     print("Filed the mu solution and your notes into current.py.")
     return 0
 
 
 if __name__ == "__main__":
-    commands = {"stub": cmd_stub, "run": cmd_run, "build": cmd_build, "fold": cmd_fold}
-    if len(sys.argv) != 2 or sys.argv[1] not in commands:
+    commands = {
+        "stub": cmd_stub,
+        "run": cmd_run,
+        "build": cmd_build,
+        "fold": cmd_fold,
+        "debug": cmd_debug,
+    }
+    argv = sys.argv[1:]
+    if argv[:1] == ["debug"] and len(argv) == 2:
+        sys.exit(cmd_debug(Path.cwd(), argv[1]))
+    if len(argv) != 1 or argv[0] not in commands:
         sys.exit(__doc__)
-    sys.exit(commands[sys.argv[1]](Path.cwd()))
+    sys.exit(commands[argv[0]](Path.cwd()))
