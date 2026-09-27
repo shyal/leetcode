@@ -6,7 +6,9 @@ use std::collections::HashSet;
 use super::*;
 use crate::bank::{dependents, easiest_first, gates, held_behind, Dependent};
 use crate::data::{test_env, Assist, SOLID_WINDOW_DAYS};
-use crate::drills::{drill_clean, drill_held, drill_warm, drills_left, due_drill, servable_drills};
+use crate::drills::{
+    drill_clean, drill_held, drill_warm, drills_left, due_drill, new_drills_ready, servable_drills,
+};
 use crate::status::{graduation_due, node_status, owned, GRAD_LADDER_SPARSE};
 
 fn held(fx: &Fx, pnum: &str, ev: &Evidence) -> Option<String> {
@@ -1398,4 +1400,24 @@ fn a_typescript_bank_file_is_a_drill() {
     assert_eq!(ctx.drill_trains(&ts), vec!["ts-node".to_string()]);
     assert_eq!(ctx.drill_evidence_key(&ts), "d_order_total_");
     assert!(ctx.has_drill_bank("ts-node"));
+}
+
+/// The header names the never-done drills the day can serve: a fresh
+/// bank file with its "after" warm counts, one behind a cold "after" does
+/// not, and a file already done is a review, not a fresh drill.
+#[test]
+fn fresh_drills_ready_counts_the_servable_never_done_files() {
+    let mut fx = Fx::new();
+    fx.bank("some-node", "Lower", "d0.py", "d1", &[]);
+    fx.bank("some-node", "Upper", "d1.py", "d2", &["d1"]);
+    let ctx = fx.ctx();
+    let none = evidence(vec![]);
+    assert_eq!(new_drills_ready(&ctx, &none, ctx.today()), 1);
+    let done = evidence(vec![drill_file(
+        "solved/d_Lower_1.py",
+        "some-node",
+        0,
+        Assist::None,
+    )]);
+    assert_eq!(new_drills_ready(&ctx, &done, ctx.today()), 1);
 }

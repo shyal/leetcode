@@ -11,7 +11,6 @@ import shutil
 import subprocess
 
 import pytest
-
 from test_reference_solutions import ROOT, drill_for
 
 REFERENCES = sorted(

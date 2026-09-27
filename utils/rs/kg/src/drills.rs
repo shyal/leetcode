@@ -186,6 +186,39 @@ pub fn servable_drills(
     out
 }
 
+/// Bank files never done that could be served today: their "after" ids
+/// warm, their other TRAINS nodes owned, their group under its cap for
+/// the day, within the day's new-drill budget. What the header names
+/// beside the due reviews, so a new bank (the ts drills, 2026-09-27) is
+/// announced and not only served.
+pub fn new_drills_ready(ctx: &Ctx, ev: &Evidence, day: NaiveDate) -> usize {
+    let full: Vec<String> = group_caps()
+        .into_iter()
+        .filter(|(g, cap)| group_reps(ctx, g, ev, day) >= *cap)
+        .map(|(g, _)| g)
+        .collect();
+    let fresh: Vec<PathBuf> = ctx
+        .every_bank_path()
+        .into_iter()
+        .filter(|p| last_drilled(ctx, p, ev).is_empty())
+        .collect();
+    let ready = fresh
+        .iter()
+        .filter(|p| {
+            let trains = ctx.drill_trains(p);
+            let own = trains.first().map(String::as_str);
+            let capped = own
+                .and_then(|n| ctx.group_of(n))
+                .is_some_and(|g| full.iter().any(|f| f == g));
+            !capped && !servable_drills(ctx, std::slice::from_ref(p), ev, own, false).is_empty()
+        })
+        .count();
+    match new_drills_left(ev, day) {
+        Some(left) => ready.min(left.max(0) as usize),
+        None => ready,
+    }
+}
+
 /// Drop the cached due_drill / cold_drill / drills_left answers the
 /// records appended since can have changed (Ctx::deps), keep the rest.
 fn sync_caches(ctx: &Ctx, ev: &Evidence) {

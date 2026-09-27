@@ -280,7 +280,12 @@ fn headline(ctx: &Ctx, pnum: &str, pv: &PView, ev: &Evidence) -> String {
 /// pile, and what each cap holds back. `held` is (group, files the group
 /// cap holds back today) for every capped group with a due file it will
 /// not let through.
-fn header_line(secs: i64, held: &[(String, usize)], (drills, problems): (usize, usize)) -> String {
+fn header_line(
+    secs: i64,
+    held: &[(String, usize)],
+    (drills, problems): (usize, usize),
+    fresh: usize,
+) -> String {
     let plural = |n: usize, w: &str| format!("{n} {w}{}", if n == 1 { "" } else { "s" });
     let back: usize = held.iter().map(|(_, n)| n).sum();
     let mut line = format!(
@@ -288,6 +293,13 @@ fn header_line(secs: i64, held: &[(String, usize)], (drills, problems): (usize, 
         plural(drills, "drill"),
         plural(problems, "problem")
     );
+    if fresh != 0 {
+        line.push_str(&format!(
+            " {} you have never done {} ready.",
+            plural(fresh, "drill"),
+            if fresh == 1 { "is" } else { "are" }
+        ));
+    }
     if secs != 0 {
         let (h, m) = ((secs / 60) / 60, (secs / 60) % 60);
         let t = if h != 0 {
@@ -1075,6 +1087,7 @@ fn run_main(run: &Run, asleep: &[String], woken: &[String]) {
         solve_seconds_today(ctx),
         &held,
         (drills_today as usize, problems_today as usize),
+        kg::drills::new_drills_ready(ctx, ev, today),
     );
     trace("header");
     if !head.is_empty() {
