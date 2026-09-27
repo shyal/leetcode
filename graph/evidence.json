@@ -31006,6 +31006,16 @@
       "note": "DRILL: DENSE_RANK() OVER (ORDER BY score DESC) satisfies the required tie-preserving, hole-free ranking.",
       "summary": "The query selects score and dense_rank() over (order by score desc) as rank from Scores, which gives equal scores the same rank with no gaps. Both example assertions pass, producing the expected (score, rank) rows. The notes mark this as a Learning drill, so the window-rank move was given and copied.",
       "seconds": 235
+    },
+    "solved/d_Rank_Within_Each_Team_2026_09_27T22_12_49_238136_00_00Z.py": {
+      "date": "2026-09-28",
+      "problem": "drill",
+      "moves": {
+        "sql-window-rank": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The query uses dense_rank() over (partition by team order by points desc) to restart ranking at 1 per team with shared ranks and no holes. This exercises the sql-window-rank move directly, and both example assertions passed. No notes indicate any help or recognition difficulty.",
+      "seconds": 264
     }
   }
 }
