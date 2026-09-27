@@ -31027,6 +31027,17 @@
       "note": "No dummy node used; head is kept as the first list's head and re-linking is done in place with a tuple swap.",
       "summary": "The code interleaves two linked lists by keeping head = a and, while b is non-empty, swapping a.next, b.next, a, b in one tuple assignment so nodes alternate. It exercises in-place re-linking of next pointers without a dummy node, and the harness's build_linked_list/get_list_values confirm the weave on all assertions including the 25000-element case. The notes are empty, so no help or recognition issues are recorded.",
       "seconds": 353
+    },
+    "solved/d_Neighbour_Counts_2026_09_27T22_23_07_322125_00_00Z.py": {
+      "date": "2026-09-28",
+      "problem": "drill",
+      "moves": {
+        "grid-neighbors": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets grid-neighbors; the solution calls the harness nbrs(grid, i, j) which enumerates the four cardinal offsets and bounds-checks them.",
+      "summary": "The solution builds an output grid with like(grid), then for every cell via cells(grid) sets res[i][j] to len(nbrs(grid, i, j)). The neighbour enumeration and bounds filtering live in the harness nbrs helper, which the code invokes per cell. All assertions passed, including the single-cell, single-row, and single-column edge cases.",
+      "seconds": 149
     }
   }
 }
