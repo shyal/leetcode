@@ -30,7 +30,7 @@
 import assert from "node:assert/strict";
 
 function thirdSmallest(nums: number[]): number {
-
+  throw new Error("not implemented");
 }
 
 console.log(thirdSmallest([10, 9, 100]));

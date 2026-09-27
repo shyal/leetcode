@@ -30,7 +30,7 @@
 import assert from "node:assert/strict";
 
 function mixedSum(values: (number | string)[]): number {
-
+  throw new Error("not implemented");
 }
 
 console.log(mixedSum(["2", 1, 3]));

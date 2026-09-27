@@ -31,7 +31,7 @@
 import assert from "node:assert/strict";
 
 function firstRepeat(nums: number[]): number {
-
+  throw new Error("not implemented");
 }
 
 console.log(firstRepeat([3, 4, 4, 3]));

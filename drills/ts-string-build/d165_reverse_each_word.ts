@@ -31,7 +31,7 @@
 import assert from "node:assert/strict";
 
 function reverseEachWord(s: string): string {
-
+  throw new Error("not implemented");
 }
 
 console.log(reverseEachWord("one two three"));

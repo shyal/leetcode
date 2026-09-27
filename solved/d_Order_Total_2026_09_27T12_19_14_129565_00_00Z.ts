@@ -31,17 +31,37 @@
 
 import assert from "node:assert/strict";
 
-type Item = {
-
-};
+type Item = { name: string; price: number; qty?: number };
 
 function orderTotal(items: Item[]): number {
-  throw new Error("not implemented");
+  let total: number = 0;
+  for (const item of items) {
+    total += item.price * (item.qty ?? 1);
+  }
+  return total;
 }
 
-console.log(orderTotal([{ name: "pen", price: 2, qty: 3 }, { name: "pad", price: 5 }]));
+console.log(
+  orderTotal([
+    { name: "pen", price: 2, qty: 3 },
+    { name: "pad", price: 5 },
+  ]),
+);
 
-// assert.deepEqual(orderTotal([{ name: "pen", price: 2, qty: 3 }, { name: "pad", price: 5 }]), 11);
-// assert.deepEqual(orderTotal([]), 0);
-// assert.deepEqual(orderTotal([{ name: "cup", price: 4, qty: 0 }]), 0);
-// assert.deepEqual(orderTotal([{ name: "ink", price: 3 }, { name: "clip", price: 1, qty: 10 }, { name: "tape", price: 2 }]), 15);
+assert.deepEqual(
+  orderTotal([
+    { name: "pen", price: 2, qty: 3 },
+    { name: "pad", price: 5 },
+  ]),
+  11,
+);
+assert.deepEqual(orderTotal([]), 0);
+assert.deepEqual(orderTotal([{ name: "cup", price: 4, qty: 0 }]), 0);
+assert.deepEqual(
+  orderTotal([
+    { name: "ink", price: 3 },
+    { name: "clip", price: 1, qty: 10 },
+    { name: "tape", price: 2 },
+  ]),
+  15,
+);

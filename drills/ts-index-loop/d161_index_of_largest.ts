@@ -31,7 +31,7 @@
 import assert from "node:assert/strict";
 
 function indexOfLargest(nums: number[]): number {
-
+  throw new Error("not implemented");
 }
 
 console.log(indexOfLargest([9, 2, 5]));

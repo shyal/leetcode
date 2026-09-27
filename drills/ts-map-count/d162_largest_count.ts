@@ -30,7 +30,7 @@
 import assert from "node:assert/strict";
 
 function largestCount(words: string[]): number {
-
+  throw new Error("not implemented");
 }
 
 console.log(largestCount(["a", "b", "a"]));

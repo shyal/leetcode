@@ -30,7 +30,7 @@
 import assert from "node:assert/strict";
 
 function positiveTotal(nums: number[]): number {
-
+  throw new Error("not implemented");
 }
 
 console.log(positiveTotal([3, -1, 4]));
