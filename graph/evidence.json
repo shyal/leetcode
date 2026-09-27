@@ -30881,6 +30881,23 @@
       "note": "LEETCODE: Accepted (3689 ms, 191.3 MB); notes say Learning.",
       "summary": "The code runs a BFS from start using the harness levels() generator, which yields (depth, value) pairs and dedupes via a seen set. At each value it checks goal, then if 0 <= x <= 1000 generates neighbors x+n, x-n, x^n for every n in nums and appends them to the deque. This exercises graph-bfs-shortest, generate-and-test-neighbors, and seen-state-cycle-detect; the notes mark the work as Learning.",
       "seconds": 1651
+    },
+    "solved/p378_Kth_Smallest_Element_in_a_Sorted_Matrix_2026_09_27T00_15_28_847361_00_00Z.py": {
+      "date": "2026-09-27",
+      "problem": "378",
+      "moves": {
+        "heap-top-k": "clean",
+        "heap-simulation": "clean"
+      },
+      "assist": {
+        "heap-top-k": "learning",
+        "heap-simulation": "learning"
+      },
+      "judge": "deepseek-chat",
+      "followup": "not solved",
+      "note": "LEETCODE: Accepted (119 ms, 24.7 MB); notes say 'recognition failure.. on something i solved 13 days ago' and 'learning'",
+      "summary": "The code builds a max-heap wrapper and pushes every cell of the matrix, popping whenever the heap exceeds size k, so the root ends as the kth smallest. It exercises heap-top-k (bounded heap of size k) and heap-simulation (push/pop the extreme repeatedly). The notes report a recognition failure on a problem solved 13 days earlier and mark the work as learning; LeetCode accepted it at 119 ms. The follow-up asks for O(1) memory or O(n) time, and the heap approach uses O(k) memory and O(n^2 log k) time, so it is not solved.",
+      "seconds": 881
     }
   }
 }
