@@ -31016,6 +31016,17 @@
       "judge": "deepseek-chat",
       "summary": "The query uses dense_rank() over (partition by team order by points desc) to restart ranking at 1 per team with shared ranks and no holes. This exercises the sql-window-rank move directly, and both example assertions passed. No notes indicate any help or recognition difficulty.",
       "seconds": 264
+    },
+    "solved/d_Interleave_2026_09_27T22_19_07_677983_00_00Z.py": {
+      "date": "2026-09-28",
+      "problem": "drill",
+      "moves": {
+        "ll-dummy-splice": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "No dummy node used; head is kept as the first list's head and re-linking is done in place with a tuple swap.",
+      "summary": "The code interleaves two linked lists by keeping head = a and, while b is non-empty, swapping a.next, b.next, a, b in one tuple assignment so nodes alternate. It exercises in-place re-linking of next pointers without a dummy node, and the harness's build_linked_list/get_list_values confirm the weave on all assertions including the 25000-element case. The notes are empty, so no help or recognition issues are recorded.",
+      "seconds": 353
     }
   }
 }
