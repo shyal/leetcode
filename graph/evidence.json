@@ -31049,6 +31049,16 @@
       "note": "Drill targets index-conversion: rows counted from the bottom via (n-1-r), alternating row direction via even((n-1-r)) and (n-1-c).",
       "summary": "The code builds an n x n grid with table(n, n) and fills each cell by converting the row index to a bottom-up row (n-1-r), then choosing the column as c or n-1-c depending on whether that bottom-up row is even. This exercises index-conversion: the flat value (n-1-r)*n + column is mapped back through the grid's orientation (rows from the bottom, alternating direction). All assertions for n = 2..6 and n = 20 passed.",
       "seconds": 348
+    },
+    "solved/d_Order_By_Other_Array_2026_09_27T22_33_29_558455_00_00Z.py": {
+      "date": "2026-09-28",
+      "problem": "drill",
+      "moves": {
+        "sort-by-custom-key": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The solution zips nums1 with its indices and sorts by a lambda key that reads nums2 at the paired index, then extracts the original values. This exercises sort-by-custom-key directly, using a derived key from a parallel array. All assertions passed on execution.",
+      "seconds": 211
     }
   }
 }
