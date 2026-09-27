@@ -22,10 +22,14 @@ REFERENCES = sorted(
 def drill_for(reference):
     node = os.path.basename(os.path.dirname(reference))
     did = os.path.basename(reference).split("_")[0]
-    hits = glob.glob(os.path.join(ROOT, "drills", node, f"{did}_*.py"))
+    hits = [
+        p
+        for p in glob.glob(os.path.join(ROOT, "drills", node, f"{did}_*.*"))
+        if os.path.splitext(p)[1] in (".py", ".ts")
+    ]
     assert (
         len(hits) == 1
-    ), f"{reference}: expected one drill drills/{node}/{did}_*.py, got {hits}"
+    ), f"{reference}: expected one drill drills/{node}/{did}_*, got {hits}"
     return hits[0]
 
 

@@ -1214,6 +1214,100 @@
       "hint": "Compute the quantity after the unit is added and subtract the quantity before; the difference is what a greedy step compares.",
       "prereqs": [],
       "drill": "Growth of a ratio a/t when one is added to both a and t."
+    },
+    {
+      "id": "ts-typed-function",
+      "group": "ts",
+      "added": "2026-09-27",
+      "name": "Typed function and for..of",
+      "desc": "function f(xs: number[]): number, a for..of loop over an array; let for a value that changes, const otherwise.",
+      "hint": "Every TypeScript rep starts with a signature typed at both ends; write it before the body.",
+      "prereqs": [],
+      "drill": "Sum of the positive elements."
+    },
+    {
+      "id": "ts-index-loop",
+      "group": "ts",
+      "added": "2026-09-27",
+      "name": "Index loop",
+      "desc": "for (let i = 0; i < xs.length; i++) with xs[i]; the loop for anything that needs the position or a neighbour.",
+      "hint": "The answer is an index or compares neighbours: for..of cannot give it, the counted loop can.",
+      "prereqs": [
+        "ts-typed-function"
+      ],
+      "drill": "First index of the largest element."
+    },
+    {
+      "id": "ts-map-count",
+      "group": "ts",
+      "added": "2026-09-27",
+      "name": "Map to count",
+      "desc": "new Map<string, number>(), get with ?? 0 then set; for (const [k, v] of m) and m.values() to read it back.",
+      "hint": "Counting or grouping by key: a Map with typed key and value, never an object literal as a dictionary.",
+      "prereqs": [
+        "ts-typed-function"
+      ],
+      "drill": "How many times the most frequent word appears."
+    },
+    {
+      "id": "ts-set-membership",
+      "group": "ts",
+      "added": "2026-09-27",
+      "name": "Set membership",
+      "desc": "new Set<number>(), has before add, size; seen-before in one pass.",
+      "hint": "'Already seen', 'distinct', 'duplicate': a Set answers has() in O(1).",
+      "prereqs": [
+        "ts-typed-function"
+      ],
+      "drill": "First element equal to an earlier one, or -1."
+    },
+    {
+      "id": "ts-sort-comparator",
+      "group": "ts",
+      "added": "2026-09-27",
+      "name": "Sort with a comparator",
+      "desc": "xs.sort((a, b) => a - b): the default sort compares strings, so [10, 9, 100] sorts wrong; sort mutates, [...xs].sort or toSorted keeps the input.",
+      "hint": "Numbers to order: always pass the comparator, and copy first when the caller keeps the array.",
+      "prereqs": [
+        "ts-typed-function"
+      ],
+      "drill": "Third smallest element, input unchanged."
+    },
+    {
+      "id": "ts-string-build",
+      "group": "ts",
+      "added": "2026-09-27",
+      "name": "String to array and back",
+      "desc": "s.split(' '), w.split('').reverse().join(''), .map on the pieces; strings are immutable so edits happen on an array.",
+      "hint": "Rewriting a string: split into pieces, transform them, join; never concatenate in a loop.",
+      "prereqs": [
+        "ts-typed-function"
+      ],
+      "drill": "Reverse every word of a sentence."
+    },
+    {
+      "id": "ts-object-type",
+      "group": "ts",
+      "added": "2026-09-27",
+      "name": "Object type with an optional field",
+      "desc": "type Item = { name: string; price: number; qty?: number } or interface; a missing field is undefined, read with ?? not ||.",
+      "hint": "Records with named fields: declare the shape once, mark what may be missing with ?, default it with ??.",
+      "prereqs": [
+        "ts-typed-function"
+      ],
+      "drill": "Order total with an optional quantity."
+    },
+    {
+      "id": "ts-union-narrowing",
+      "group": "ts",
+      "added": "2026-09-27",
+      "name": "Union type and typeof narrowing",
+      "desc": "(number | string)[]; typeof v === 'string' narrows v inside the branch; Number(s) parses.",
+      "hint": "A value that can be one of several types: name the union, narrow with typeof before using it.",
+      "prereqs": [
+        "ts-object-type"
+      ],
+      "drill": "Sum of numbers and numeric strings."
     }
   ]
 }

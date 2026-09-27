@@ -19,6 +19,7 @@ pub mod evidence;
 pub mod figlet;
 pub mod git;
 pub mod hooks;
+pub mod lang;
 pub mod linalg;
 pub mod llm;
 pub mod mock;

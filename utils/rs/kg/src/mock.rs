@@ -178,7 +178,10 @@ impl EvRec {
 /// stripped, or the last _token when there is none. None for a problem solve.
 pub fn drill_key(fname: &str) -> Option<String> {
     let base = fname.rsplit('/').next().unwrap_or(fname).to_lowercase();
-    let stem = base.strip_suffix(".py").unwrap_or(&base);
+    let stem = crate::lang::LANGS
+        .iter()
+        .find_map(|l| base.strip_suffix(&format!(".{}", l.ext)))
+        .unwrap_or(&base);
     if !stem.starts_with("d_") {
         return None;
     }

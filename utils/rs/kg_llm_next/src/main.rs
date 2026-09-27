@@ -347,9 +347,8 @@ fn main() {
     });
     render_pick(&console, &pick, cached, &words);
     if prepare {
-        let cur = ctx.root.join("current.py");
-        if std::fs::read_to_string(&cur).is_ok_and(|s| !s.trim().is_empty()) {
-            console.print("[yellow]current.py is not empty - record it (make solved) before preparing the next one.[/yellow]");
+        if let Some((cur, _)) = kg::lang::busy(&ctx.root) {
+            console.print(&format!("[yellow]{} is not empty - record it (make solved) before preparing the next one.[/yellow]", cur.file_name().unwrap().to_string_lossy()));
             std::process::exit(1);
         }
         let _ = Command::new(kg::data::rs_bin(&ctx.root, "prepare"))

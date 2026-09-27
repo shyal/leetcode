@@ -47,9 +47,10 @@ use kg::data::{
     notes_assist_level, repo_root, DrillMap, Rec,
 };
 use kg::evidence::Evidence;
+use kg::lang::Lang;
 use kg::llm::claude_json;
 use kg::pyjson;
-use kg::pysrc::{module_docstring, notes_of};
+use kg::pysrc::module_docstring;
 use kg::recog;
 use kg::status::{all_statuses, node_status, SOLID};
 use regex::Regex;
@@ -69,14 +70,17 @@ fn basename(path: &str) -> &str {
     path.rsplit('/').next().unwrap_or(path)
 }
 
+/// The language of a solve file by its extension; Python for anything else
+/// (an old copy, a spot rep's markdown).
+fn lang_of(path: &str) -> &'static Lang {
+    kg::lang::of_path(Path::new(path)).unwrap_or(&kg::lang::PYTHON)
+}
+
 /// Drop the leading problem statement, keep the code AND the candidate's
-/// notes (below the `---` rule in the docstring), then the raw body.
-pub fn strip_statement(code: &str) -> String {
-    let body = Regex::new(r#"(?s)^""".*?"""\s*"#)
-        .unwrap()
-        .replace(code, "")
-        .into_owned();
-    let notes = notes_of(code);
+/// notes (below the `---` rule in the statement block), then the raw body.
+pub fn strip_statement(code: &str, lang: &Lang) -> String {
+    let body = kg::lang::strip_header(code, lang);
+    let notes = kg::lang::notes_of(code, lang);
     if notes.trim().is_empty() {
         body
     } else {
@@ -111,30 +115,33 @@ pub fn followup_of(code: &str) -> String {
     first.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
-/// Execute a solve file the way the candidate does: (status, detail).
+/// Execute a solve file the way the candidate does: (status, detail). A
+/// language with a checker (tsc for TypeScript) runs it first; a file that
+/// does not type-check fails with the diagnostics as its detail.
 fn run_solve(root: &Path, path: &str) -> (String, String) {
-    let py = root.join(".venv/bin/python3");
-    let py = if py.exists() {
-        py
-    } else {
-        PathBuf::from("python3")
-    };
-    let pythonpath = format!(
-        "{}:{}:{}:{}",
-        root.display(),
-        root.join("utils").display(),
-        root.join("utils/harness").display(),
-        std::env::var("PYTHONPATH").unwrap_or_default()
-    );
+    let lang = lang_of(path);
     let abs = if Path::new(path).is_absolute() {
         PathBuf::from(path)
     } else {
         root.join(path)
     };
-    let child = Command::new(py)
-        .arg(&abs)
-        .current_dir(root)
-        .env("PYTHONPATH", pythonpath)
+    if let Some((ok, diagnostics)) = kg::lang::check(root, &abs, lang) {
+        if !ok {
+            let tail: String = diagnostics
+                .chars()
+                .rev()
+                .take(800)
+                .collect::<Vec<_>>()
+                .into_iter()
+                .rev()
+                .collect();
+            return (
+                "failed".into(),
+                format!("{} rejected the file:\n{}", "the type checker", tail.trim()),
+            );
+        }
+    }
+    let child = kg::lang::command(root, &abs, lang)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn();
@@ -260,16 +267,22 @@ pub fn record_alt_walk(
 /// A drill is a drill even when its filename lacks the d_ prefix: the
 /// DRILL: header is authoritative.
 fn is_drill_file(path: &str, code: &str) -> bool {
-    basename(path).starts_with("d_") || Regex::new(r"(?m)^\s*\**DRILL:").unwrap().is_match(code)
+    basename(path).starts_with("d_")
+        || Regex::new(&format!(r"(?m)^\s*{}\**DRILL:", kg::lang::comment_prefix()))
+            .unwrap()
+            .is_match(code)
 }
 
 /// The nodes a drill file trains: its DRILL title looked up in drills.json
 /// (the "trains" list), a TRAINS header only for an old solved copy whose
 /// title the bank no longer carries.
 pub fn trains_in(code: &str, drills: &DrillMap) -> Vec<String> {
-    if let Some(m) = Regex::new(r"(?m)^\s*\**DRILL:\**\s*(.+?)\s*$")
-        .unwrap()
-        .captures(code)
+    if let Some(m) = Regex::new(&format!(
+        r"(?m)^\s*{}\**DRILL:\**\s*(.+?)\s*$",
+        kg::lang::comment_prefix()
+    ))
+    .unwrap()
+    .captures(code)
     {
         let title = m[1].to_string();
         for entry in drills.values().rev() {
@@ -343,7 +356,8 @@ pub fn stub_entry(
         "pending".into(),
         json!(now.format("%Y-%m-%dT%H:%M:%S+00:00").to_string()),
     );
-    if let Some(a) = apply_assist_floor(None, notes_assist_level(&notes_of(code)), &moves) {
+    let notes = kg::lang::notes_of(code, lang_of(path));
+    if let Some(a) = apply_assist_floor(None, notes_assist_level(&notes), &moves) {
         entry.insert("assist".into(), assist_json(&a));
     }
     Value::Object(entry)
@@ -810,8 +824,9 @@ fn extract_one(
     } else {
         vec![]
     };
-    let body: String = strip_statement(&code).chars().take(6000).collect();
-    let (status, detail) = match leetcode_rejection(&notes_of(&code)) {
+    let lang = lang_of(path);
+    let body: String = strip_statement(&code, lang).chars().take(6000).collect();
+    let (status, detail) = match leetcode_rejection(&kg::lang::notes_of(&code, lang)) {
         Some(verdict) => ("leetcode".to_string(), verdict),
         None => run_solve(root, path),
     };
@@ -828,6 +843,12 @@ fn extract_one(
     if !followup.is_empty() {
         prompt = format!(
             "The statement ends with a follow-up question: {followup} Judge whether the code as written meets it and answer in \"followup\": \"solved\" or \"not solved\".\n\n{prompt}"
+        );
+    }
+    if lang.ext != kg::lang::PYTHON.ext {
+        prompt = format!(
+            "This file is {} (a .{} drill), not Python: the statement and the candidate's notes are the leading `{}` comment block, and the code under it is what ran. Judge the {} as written.\n\n{prompt}",
+            lang.name, lang.ext, lang.comment, lang.name
         );
     }
     if is_drill {
@@ -847,7 +868,7 @@ fn extract_one(
     if let Some(prior) = prior {
         prompt = format!("{prompt}\n\n{}", review_block(prior));
     }
-    let notes = notes_of(&code);
+    let notes = kg::lang::notes_of(&code, lang);
     let result = claude_json(&prompt, system, model, 2).map_err(|e| e.to_string())?;
     Ok(Judged {
         result,
@@ -1126,7 +1147,10 @@ fn main() {
     if let Some(f) = flag("--strip") {
         print!(
             "{}",
-            strip_statement(&std::fs::read_to_string(&f).unwrap_or_default())
+            strip_statement(
+                &std::fs::read_to_string(&f).unwrap_or_default(),
+                lang_of(&f)
+            )
         );
         return;
     }
@@ -1212,7 +1236,7 @@ fn main() {
             .into_iter()
             .flatten()
             .filter_map(Result::ok)
-            .filter(|e| e.path().extension().is_some_and(|x| x == "py"))
+            .filter(|e| kg::lang::is_source(&e.path()))
             .map(|e| {
                 let m = e
                     .metadata()
@@ -1746,14 +1770,18 @@ mod tests {
     /// utils/tests/test_kg_extract.py: the notes survive the statement strip.
     #[test]
     fn notes_and_code_survive_the_statement_strip() {
-        let out = strip_statement(SOLVE);
+        let out = strip_statement(SOLVE, &kg::lang::PYTHON);
         assert!(out.contains("Peeked at the editorial"));
         assert!(!out.contains("Given an array of integers"));
         assert!(out.contains("def twoSum") && out.contains("running dict, built as we scan"));
         let code = "class Solution:\n    pass\n";
-        assert_eq!(strip_statement(code), code);
+        assert_eq!(strip_statement(code, &kg::lang::PYTHON), code);
         let broken = "\"\"\"\n1. Two Sum\n\n---\nGave up.\n\"\"\"\n\ndef f(:\n";
-        assert!(strip_statement(broken).contains("def f(:"));
+        assert!(strip_statement(broken, &kg::lang::PYTHON).contains("def f(:"));
+        let ts = "// DRILL: A\n// TRAINS: t\n//\n// ---\n// peeked\n\nfunction f(): number {\n  return 1;\n}\n";
+        let out = strip_statement(ts, &kg::lang::TYPESCRIPT);
+        assert!(out.starts_with("notes: \n\npeeked\n\nfunction f()"));
+        assert!(!out.contains("DRILL:"));
     }
 
     #[test]

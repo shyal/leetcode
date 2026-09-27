@@ -210,7 +210,10 @@ fn park(ctx: &Ctx, pv: &PView, ev: &Evidence, problem: Option<String>) {
         // the working tree — sweeping them onto the parked branch would strip
         // them from master's checkout. --allow-empty: the sleeping commit is
         // the park timestamp even when current.py is already committed.
-        git.checked(&["add", "current.py"]);
+        let names = kg::lang::current_names();
+        let mut add = vec!["add", "--ignore-errors", "--"];
+        add.extend(names.iter().map(String::as_str));
+        git.checked(&add);
         git.checked(&["commit", "--allow-empty", "-m", &msg]);
         git.checked(&["branch", "-M", &pnum, &slept_branch]);
         git.checked(&["checkout", "master"]);

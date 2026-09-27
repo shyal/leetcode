@@ -139,7 +139,10 @@ def test_authoring_follows_the_measured_rate(run):
         for n in json.load(open(os.path.join(ROOT, "graph", "nodes.json")))["nodes"]
     ]
     bankless = sum(
-        1 for n in nodes if not glob.glob(os.path.join(ROOT, "drills", n, "*.py"))
+        1
+        for n in nodes
+        if not glob.glob(os.path.join(ROOT, "drills", n, "*.py"))
+        and not glob.glob(os.path.join(ROOT, "drills", n, "*.ts"))
     )
     assert a["nodes"] == min(int(a["rate"] * run["day"] + 1e-9), bankless)
     assert a["files"] >= a["nodes"]

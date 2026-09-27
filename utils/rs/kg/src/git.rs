@@ -626,7 +626,10 @@ fn mine_solve_times(root: &Path) -> Vec<SolveRep> {
         let added: Vec<&str> = tail
             .lines()
             .filter_map(|l| l.strip_prefix("solved/"))
-            .filter(|l| l.ends_with(".py") && !l.contains(char::is_whitespace))
+            .filter(|l| {
+                crate::lang::of_path(std::path::Path::new(l)).is_some()
+                    && !l.contains(char::is_whitespace)
+            })
             .collect();
         if added.len() != 1
             || added[0].contains("FAILED")

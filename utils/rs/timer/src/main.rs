@@ -34,7 +34,6 @@ use ratatui::style::{Color, Modifier, Style, Stylize};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, BorderType, Padding, Paragraph};
 use ratatui::{Frame, Terminal};
-use regex::Regex;
 
 fn now() -> f64 {
     std::time::SystemTime::now()
@@ -52,30 +51,10 @@ fn git(root: &std::path::Path, args: &[&str]) -> String {
         .unwrap_or_default()
 }
 
-/// ("drill", title) or (number, title) from the first docstring of
-/// current.py, as kg_solved reads it.
+/// ("drill", title) or (number, title) from the statement block of the
+/// current file, as kg_solved reads it.
 fn parse_current(root: &std::path::Path) -> Option<(String, String)> {
-    let content = std::fs::read_to_string(root.join("current.py")).ok()?;
-    let doc = Regex::new(r#"(?s)"""(.*?)""""#)
-        .unwrap()
-        .captures(&content)?[1]
-        .trim()
-        .to_string();
-    let drill = Regex::new(r"^DRILL:\s*(.+)").unwrap();
-    let prob = Regex::new(r"^(\d+[a-zA-Z]?)\.\s*(.+)").unwrap();
-    for line in doc.split('\n') {
-        let line = line.trim();
-        if line.is_empty() {
-            continue;
-        }
-        if let Some(m) = drill.captures(line) {
-            return Some(("drill".to_string(), m[1].trim().to_string()));
-        }
-        if let Some(m) = prob.captures(line) {
-            return Some((m[1].trim().to_string(), m[2].trim().to_string()));
-        }
-    }
-    None
+    kg::lang::current_subject(root).map(|(_, _, id, title, _)| (id, title))
 }
 
 /// (label, forecast minutes) for the attempt in current.py.
@@ -118,10 +97,7 @@ fn active_branch(root: &std::path::Path) -> Option<String> {
     if matches!(b.as_str(), "" | "master" | "HEAD") {
         return None;
     }
-    std::fs::read_to_string(root.join("current.py"))
-        .ok()
-        .filter(|s| !s.trim().is_empty())
-        .map(|_| b)
+    kg::lang::busy(root).map(|_| b)
 }
 
 /// The elapsed clock as large figlet digits. Font from $TIMER_FONT (default

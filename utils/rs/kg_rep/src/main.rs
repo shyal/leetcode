@@ -27,7 +27,6 @@ use kg::ctx::{Ctx, PView};
 use kg::data::{load_envrc, repo_root, Assist, Rec};
 use kg::evidence::Evidence;
 use kg::status::{node_axes, node_curve};
-use regex::Regex;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Kind {
@@ -38,22 +37,13 @@ pub enum Kind {
 
 /// ("drill", title) or ("problem", number) from the first docstring of
 /// current.py; None when it holds neither.
-pub fn parse_current(path: &Path) -> Option<(Kind, String)> {
-    let content = std::fs::read_to_string(path).ok()?;
-    let block = Regex::new(r#"(?s)"""(.*?)""""#).unwrap();
-    let body = block.captures(&content)?.get(1)?.as_str().to_string();
-    let drill = Regex::new(r"^\**DRILL:\**\s*(.+)").unwrap();
-    let problem = Regex::new(r"^(\d+[a-zA-Z]?)\.\s+\S").unwrap();
-    for line in body.lines() {
-        let line = line.trim();
-        if let Some(d) = drill.captures(line) {
-            return Some((Kind::Drill, d[1].trim().to_string()));
-        }
-        if let Some(p) = problem.captures(line) {
-            return Some((Kind::Problem, p[1].to_string()));
-        }
-    }
-    None
+pub fn parse_current(root: &Path) -> Option<(Kind, String)> {
+    let (_, _, id, title, _) = kg::lang::current_subject(root)?;
+    Some(if id == "drill" {
+        (Kind::Drill, title)
+    } else {
+        (Kind::Problem, id)
+    })
 }
 
 /// os.path.abspath: the working directory joined, "." and ".." folded.
@@ -98,7 +88,7 @@ fn resolve(
     problems: &PView,
 ) -> Result<(Kind, String), Option<String>> {
     let Some(r) = reference else {
-        return match parse_current(&ctx.root.join("current.py")) {
+        return match parse_current(&ctx.root) {
             Some((Kind::Drill, key)) => Ok((
                 Kind::Drill,
                 ctx.drill_path(&key)
@@ -457,14 +447,27 @@ mod tests {
         std::fs::create_dir_all(&dir).unwrap();
         let f = dir.join("current.py");
         std::fs::write(&f, "\"\"\"\n1004. Max Consecutive Ones III\n\"\"\"\n").unwrap();
-        assert_eq!(parse_current(&f), Some((Kind::Problem, "1004".to_string())));
+        assert_eq!(
+            parse_current(&dir),
+            Some((Kind::Problem, "1004".to_string()))
+        );
         std::fs::write(&f, "\"\"\"\n**DRILL:** Paid Orders Per Customer\n\"\"\"\n").unwrap();
         assert_eq!(
-            parse_current(&f),
+            parse_current(&dir),
             Some((Kind::Drill, "Paid Orders Per Customer".to_string()))
         );
         std::fs::write(&f, "x = 1\n").unwrap();
-        assert_eq!(parse_current(&f), None);
+        assert_eq!(parse_current(&dir), None);
+        std::fs::write(&f, "").unwrap();
+        std::fs::write(
+            dir.join("current.ts"),
+            "// DRILL: Order Total\n// TRAINS: t\n",
+        )
+        .unwrap();
+        assert_eq!(
+            parse_current(&dir),
+            Some((Kind::Drill, "Order Total".to_string()))
+        );
         std::fs::remove_dir_all(&dir).unwrap();
     }
 

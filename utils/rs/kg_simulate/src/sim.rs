@@ -145,7 +145,7 @@ pub fn bank_history(
             "--date=short",
             "--name-only",
             "--",
-            "drills/*/*.py",
+            "drills/*/*.*",
         ])
         .current_dir(root)
         .output()
@@ -156,7 +156,10 @@ pub fn bank_history(
     for line in out.lines() {
         if let Some(rest) = line.strip_prefix('\0') {
             d = Some(kg::data::parse_date(rest));
-        } else if line.starts_with("drills/") && root.join(line).exists() {
+        } else if line.starts_with("drills/")
+            && kg::lang::is_source(std::path::Path::new(line))
+            && root.join(line).exists()
+        {
             let d = d.expect("git log prints the date line before its files");
             let e = first.entry(line.to_string()).or_insert(d);
             *e = (*e).min(d);
@@ -179,7 +182,7 @@ pub fn bank_history(
                     files
                         .filter_map(Result::ok)
                         .map(|f| f.path())
-                        .filter(|p| p.extension().is_some_and(|x| x == "py") && !hidden(p)),
+                        .filter(|p| kg::lang::is_source(p) && !hidden(p)),
                 );
             }
         }
@@ -252,7 +255,7 @@ impl ScratchBank {
                 };
                 for f in files.filter_map(Result::ok) {
                     let path = f.path();
-                    if path.extension().is_none_or(|x| x != "py") {
+                    if !kg::lang::is_source(&path) {
                         continue;
                     }
                     let dir = root.join(&node);

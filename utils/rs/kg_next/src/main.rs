@@ -799,9 +799,8 @@ impl<'a> Run<'a> {
         if !self.args.prepare {
             return;
         }
-        let cur = self.ctx.root.join("current.py");
-        if std::fs::read_to_string(&cur).is_ok_and(|s| !s.trim().is_empty()) {
-            self.console.print("[yellow]current.py is not empty \u{2014} record it (make solved) before preparing the next one.[/yellow]");
+        if let Some((cur, _)) = kg::lang::busy(&self.ctx.root) {
+            self.console.print(&format!("[yellow]{} is not empty \u{2014} record it (make solved) before preparing the next one.[/yellow]", cur.file_name().unwrap().to_string_lossy()));
             self.flush_footer();
             std::process::exit(1);
         }
@@ -1468,7 +1467,7 @@ fn run_main(run: &Run, asleep: &[String], woken: &[String]) {
 fn kg_next_drill_title(path: &std::path::Path) -> String {
     if let Ok(text) = std::fs::read_to_string(path) {
         for line in text.lines() {
-            let t = line.trim_start();
+            let t = kg::lang::uncomment(line);
             if let Some(rest) = t.strip_prefix("DRILL:") {
                 let rest = rest.trim_end_matches('\r');
                 if !rest.is_empty() {

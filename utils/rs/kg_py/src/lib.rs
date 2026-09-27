@@ -16,9 +16,17 @@ fn degree_color(degree: f64) -> String {
     kg::render::degree_color(degree)
 }
 
+/// kg_lib.source_extensions: the file extensions a bank or solved file can
+/// have, one per language in kg::lang, Python first.
+#[pyfunction]
+fn source_extensions() -> Vec<String> {
+    kg::lang::LANGS.iter().map(|l| l.ext.to_string()).collect()
+}
+
 #[pymodule]
 fn kg_rs(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(drill_key, m)?)?;
+    m.add_function(wrap_pyfunction!(source_extensions, m)?)?;
     m.add_function(wrap_pyfunction!(degree_color, m)?)?;
     Ok(())
 }

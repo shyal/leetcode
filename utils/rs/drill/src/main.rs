@@ -140,19 +140,27 @@ fn main() {
         .unwrap()
         .clone();
 
-    let current = ctx.root.join("current.py");
-    if std::fs::read_to_string(&current).is_ok_and(|s| !s.trim().is_empty()) {
-        console.print("[red]current.py is not empty — finish or clear it first.[/red]");
+    let lang = kg::lang::of_path(&path).expect("a bank file has a known extension");
+    let current_name = kg::lang::current_name(lang);
+    let current = ctx.root.join(&current_name);
+    if let Some((busy, _)) = kg::lang::busy(&ctx.root) {
+        console.print(&format!(
+            "[red]{} is not empty — finish or clear it first.[/red]",
+            busy.file_name().unwrap().to_string_lossy()
+        ));
         std::process::exit(1);
     }
     kg::hooks::gate(&ctx.root, "drill");
 
     let content = std::fs::read_to_string(&path).expect("read the drill");
-    let title = Regex::new(r"(?m)^\s*DRILL:\s*(.+)$")
-        .unwrap()
-        .captures(&content)
-        .map(|m| m[1].trim().to_string())
-        .unwrap_or_else(|| path.file_stem().unwrap().to_string_lossy().into_owned());
+    let title = Regex::new(&format!(
+        r"(?m)^\s*{}DRILL:\s*(.+)$",
+        kg::lang::comment_prefix()
+    ))
+    .unwrap()
+    .captures(&content)
+    .map(|m| m[1].trim().to_string())
+    .unwrap_or_else(|| path.file_stem().unwrap().to_string_lossy().into_owned());
     let node_id = path
         .parent()
         .and_then(|d| d.file_name())
@@ -184,13 +192,13 @@ fn main() {
     // same branch flow as prepare: stub committed on a branch off master,
     // which `make solved` later squash-merges back and deletes
     git(&["checkout", "master"]);
-    std::fs::write(&current, &content).expect("write current.py");
+    std::fs::write(&current, &content).expect("write the current file");
     git(&["checkout", "-b", &branch]);
     git(&["add", "."]);
     git(&["commit", "-m", &format!("drill: {title}")]);
 
     console.print(&format!(
-        "Loaded [bold]{}. {title}[/bold] ({}) into current.py on branch [bold]{branch}[/bold]  [dim](last drilled: {})[/dim]",
+        "Loaded [bold]{}. {title}[/bold] ({}) into {current_name} on branch [bold]{branch}[/bold]  [dim](last drilled: {})[/dim]",
         did.unwrap_or_default(),
         path.display(),
         when_of(&path)

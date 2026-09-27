@@ -18,7 +18,7 @@ from datetime import date, datetime, timedelta, timezone
 # utils/rs/kg as a Python extension (utils/rs/kg_py; `make ext` installs it).
 # The functions imported here used to be defined below; each pointer comment
 # marks where. New ports are added here and the Python body deleted.
-from kg_rs import degree_color, drill_key  # noqa: F401
+from kg_rs import degree_color, drill_key, source_extensions  # noqa: F401
 
 # The system clock runs UTC but the operator lives in Manila (UTC+8);
 # "today" everywhere in the toolchain means the Manila calendar day.
@@ -736,9 +736,10 @@ def _drill_header(path):
             text = f.read()
     except OSError:
         return None, []
-    m = re.search(r"^\s*DRILL:\s*(.+)$", text, flags=re.M)
+    # the header is a docstring in Python and a comment block elsewhere
+    m = re.search(r"^\s*(?://|#)?\s*DRILL:\s*(.+)$", text, flags=re.M)
     title = m.group(1).strip() if m else None
-    m = re.search(r"^\s*TRAINS:\s*([a-z0-9\-, ]+)$", text, flags=re.M)
+    m = re.search(r"^\s*(?://|#)?\s*TRAINS:\s*([a-z0-9\-, ]+)$", text, flags=re.M)
     trains = [t.strip() for t in m.group(1).split(",") if t.strip()] if m else []
     _DRILL_HEADERS[path] = (st.st_mtime_ns, st.st_size, title, trains)
     return title, trains
@@ -761,7 +762,7 @@ def drill_solved_stem(path):
 
 def bank_paths(node_id="*"):
     """The bank files of a node (or of every node), in drill-id order: the
-    files are named d<id>_<slug>.py so they are easy to find, and a plain
+    files are named d<id>_<slug>.<ext> so they are easy to find, and a plain
     string sort would put d76 before d8. Files without an id sort last, by
     name. Where nothing else separates two drills (both never done), the
     lower id is served first."""
@@ -770,7 +771,16 @@ def bank_paths(node_id="*"):
         i = drill_id(path)
         return (int(i[1:]) if i else 10**9, os.path.basename(path))
 
-    return sorted(glob.glob(os.path.join(DRILLS_DIR, node_id, "*.py")), key=key)
+    return sorted(source_files(os.path.join(DRILLS_DIR, node_id)), key=key)
+
+
+def source_files(directory):
+    """The bank files in a directory: one glob per language extension
+    (kg_rs.source_extensions, the kg::lang table)."""
+    out = []
+    for ext in source_extensions():
+        out.extend(glob.glob(os.path.join(directory, f"*.{ext}")))
+    return sorted(out)
 
 
 _DRILL_PATHS: dict = {}  # DRILLS_DIR -> {DRILL title: bank path}
@@ -785,8 +795,8 @@ def drill_path(ref):
     paths = _DRILL_PATHS.get(DRILLS_DIR)
     if paths is None or title not in paths:
         paths = {}
-        for path in sorted(
-            glob.glob(os.path.join(DRILLS_DIR, "*", "*.py"))
+        for path in source_files(
+            os.path.join(DRILLS_DIR, "*")
         ):  # not bank_paths: it needs drill_id
             t = drill_title(path)
             if t is not None:

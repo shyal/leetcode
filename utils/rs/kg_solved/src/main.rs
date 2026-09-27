@@ -40,47 +40,15 @@ use kg::data::{load_evidence_recs, repo_root};
 use kg::git::{active_seconds, spawn_judge};
 use kg::recog;
 use kg::table::panel_expanded;
-use regex::Regex;
 use serde_json::{json, Value};
 
 const META: &str = ".solve_meta.json";
 
-/// (problem id or "drill", title, content) from current.py's first docstring.
-fn parse_current(path: &str) -> Option<(String, String, String)> {
-    let content = std::fs::read_to_string(path).ok()?;
-    let block = Regex::new(r#"(?s)"""(.*?)""""#).unwrap();
-    let doc = block
-        .captures(&content)?
-        .get(1)?
-        .as_str()
-        .trim()
-        .to_string();
-    let lines: Vec<&str> = doc.split('\n').collect();
-    let drill = Regex::new(r"^DRILL:\s*(.+)").unwrap();
-    let prob = Regex::new(r"^(\d+[a-zA-Z]?)\.\s*(.+)").unwrap();
-    for line in &lines {
-        let line = line.trim();
-        if line.is_empty() {
-            continue;
-        }
-        if let Some(m) = drill.captures(line) {
-            return Some(("drill".to_string(), m[1].trim().to_string(), content));
-        }
-        if let Some(m) = prob.captures(line) {
-            return Some((m[1].trim().to_string(), m[2].trim().to_string(), content));
-        }
-    }
-    // not in the first lines: the line after a url
-    for (i, line) in lines.iter().enumerate() {
-        if line.trim().starts_with("https://") {
-            if let Some(next) = lines.get(i + 1) {
-                if let Some(m) = prob.captures(next.trim()) {
-                    return Some((m[1].trim().to_string(), m[2].trim().to_string(), content));
-                }
-            }
-        }
-    }
-    None
+/// (problem id or "drill", title, content, language) from the statement
+/// block of the current file holding work (kg::lang::current_subject).
+fn parse_current(root: &Path) -> Option<(String, String, String, &'static kg::lang::Lang)> {
+    let (_, lang, id, title, content) = kg::lang::current_subject(root)?;
+    Some((id, title, content, lang))
 }
 
 /// re.sub(r"[^\w\s-]", "", title).strip().replace(" ", "_")
@@ -96,7 +64,13 @@ fn clean_title(title: &str) -> String {
 /// solved/ filename for a finished attempt. Stamped in UTC on purpose - the
 /// same clock as git - and anything that needs the calendar day converts
 /// with kg_lib.manila_date_from_filename rather than reading the digits.
-fn solved_filename(problem_id: &str, title: &str, marker: &str, now: DateTime<Utc>) -> String {
+fn solved_filename(
+    problem_id: &str,
+    title: &str,
+    marker: &str,
+    now: DateTime<Utc>,
+    ext: &str,
+) -> String {
     // datetime.isoformat(): the microseconds only when they are not zero
     let iso = if now.timestamp_subsec_micros() == 0 {
         now.format("%Y-%m-%dT%H:%M:%S+00:00").to_string()
@@ -118,18 +92,18 @@ fn solved_filename(problem_id: &str, title: &str, marker: &str, now: DateTime<Ut
     } else {
         format!("p{problem_id}")
     };
-    format!("{prefix}_{}{marker}_{sanitized}.py", clean_title(title))
+    format!("{prefix}_{}{marker}_{sanitized}.{ext}", clean_title(title))
 }
 
 fn read_nonempty(path: &str) -> bool {
     std::fs::read_to_string(path).is_ok_and(|s| !s.trim().is_empty())
 }
 
-/// A recognition rep is on the branch: current.md has content (and
-/// current.py does not). `make solved` files it under recognition/ instead
+/// A recognition rep is on the branch: current.md has content (and no
+/// current.<ext> does). `make solved` files it under recognition/ instead
 /// of solved/; the judge (kg_extract) scores it after this phase.
 fn spot_pending() -> bool {
-    read_nonempty("current.md") && !read_nonempty("current.py")
+    read_nonempty("current.md") && kg::lang::busy(Path::new(".")).is_none()
 }
 
 fn git_branch() -> String {
@@ -184,9 +158,7 @@ fn spot_file_phase(
             .trim_end(),
         kg::pyjson::dumps(&footer, None)
     );
-    let mut filename = solved_filename(&pnum, &title, "", Utc::now());
-    filename.truncate(filename.len() - 3);
-    filename.push_str(".md");
+    let filename = solved_filename(&pnum, &title, "", Utc::now(), "md");
     // s<num>_ marks a spot rep the way p<num>_ marks a solve
     let filename = format!("s{}", &filename[1..]);
     let _ = std::fs::create_dir_all("recognition");
@@ -259,16 +231,15 @@ fn file_phase(console: &Console, root: &Path, failed: bool, studied: bool) {
         spot_file_phase(console, root, failed, &solve_time, &slept_line);
         return;
     }
-    if !Path::new("current.py").exists() {
-        console.print("[red]current.py does not exist. Exiting.[/red]");
-        return;
-    }
-    if !read_nonempty("current.py") {
+    let Some((current, lang)) = kg::lang::busy(Path::new(".")) else {
         console.print("[red]current.py is empty — nothing to file.[/red]");
         return;
-    }
-    let Some((problem_id, title, mut content)) = parse_current("current.py") else {
-        console.print("[red]Could not parse problem id and title from current.py. Exiting.[/red]");
+    };
+    let current_name = current.file_name().unwrap().to_string_lossy().into_owned();
+    let Some((problem_id, title, mut content, _)) = parse_current(Path::new(".")) else {
+        console.print(&format!(
+            "[red]Could not parse problem id and title from {current_name}. Exiting.[/red]"
+        ));
         return;
     };
     if studied && problem_id == "drill" {
@@ -282,10 +253,11 @@ fn file_phase(console: &Console, root: &Path, failed: bool, studied: bool) {
     } else {
         ""
     };
-    let filename = solved_filename(&problem_id, &title, marker, Utc::now());
+    let filename = solved_filename(&problem_id, &title, marker, Utc::now(), lang.ext);
     if failed {
+        let c = lang.comment;
         content.push_str(&format!(
-            "\n\n# FAILED: walked away after {solve_time}; no working solution.\n# Judge the moves actually attempted as struggled, not clean.\n"
+            "\n\n{c} FAILED: walked away after {solve_time}; no working solution.\n{c} Judge the moves actually attempted as struggled, not clean.\n"
         ));
     }
     let _ = std::fs::create_dir_all("./solved");
@@ -305,15 +277,15 @@ fn file_phase(console: &Console, root: &Path, failed: bool, studied: bool) {
     if studied {
         message = format!("studied: {problem_id}. {title}");
     }
-    // the meta is written BEFORE current.py is cleared: a kill between the
-    // two re-runs into the staged branch above instead of filing twice
+    // the meta is written BEFORE the current file is cleared: a kill between
+    // the two re-runs into the staged branch above instead of filing twice
     kg::pyjson::save(
         Path::new(META),
         &json!({"message": message, "file": filepath, "seconds": active}),
         None,
     )
     .expect("write .solve_meta.json");
-    std::fs::write("current.py", "").expect("clear current.py");
+    std::fs::write(&current, "").expect("clear the current file");
     if studied {
         console.print(&format!(
             "[green]filed[/green] [bold]{filepath}[/bold]; nothing scored, the problem's card opens."
@@ -465,14 +437,26 @@ mod tests {
 
     #[test]
     fn filenames() {
-        let f = solved_filename("1004", "Max Consecutive Ones III", "", Utc::now());
+        let f = solved_filename("1004", "Max Consecutive Ones III", "", Utc::now(), "py");
         assert!(f.starts_with("p1004_Max_Consecutive_Ones_III_20"), "{f}");
         assert!(f.ends_with("Z.py"));
         assert!(f
             .chars()
             .all(|c| c.is_alphanumeric() || c == '_' || c == '.'));
-        let d = solved_filename("drill", "Paid Orders Per Customer", "_FAILED", Utc::now());
-        let s = solved_filename("636", "Exclusive Time of Functions", "_STUDIED", Utc::now());
+        let d = solved_filename(
+            "drill",
+            "Paid Orders Per Customer",
+            "_FAILED",
+            Utc::now(),
+            "py",
+        );
+        let s = solved_filename(
+            "636",
+            "Exclusive Time of Functions",
+            "_STUDIED",
+            Utc::now(),
+            "py",
+        );
         assert!(
             s.starts_with("p636_Exclusive_Time_of_Functions_STUDIED_"),
             "{s}"
@@ -499,6 +483,7 @@ mod tests {
             "Number Scanner",
             "",
             utc(2026, 8, 23, 19, 44, 54, 884512),
+            "py",
         );
         assert_eq!(
             name,
@@ -517,6 +502,7 @@ mod tests {
             "Subarray Sum Equals K",
             "",
             utc(2026, 8, 23, 9, 5, 0, 0),
+            "py",
         );
         assert!(
             name.starts_with("p560_Subarray_Sum_Equals_K_2026_08_23T09_05_00"),
@@ -535,6 +521,7 @@ mod tests {
             "Basic Calculator II",
             "_FAILED",
             utc(2026, 8, 23, 23, 59, 59, 0),
+            "py",
         );
         assert!(name.contains("_FAILED_"));
         assert_eq!(

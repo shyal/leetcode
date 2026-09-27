@@ -79,7 +79,9 @@ fn main() {
     let root = repo_root();
     load_envrc(&root);
     let console = Console::full_width();
-    for f in ["current.py", "current.md"] {
+    let mut files = kg::lang::current_names();
+    files.push("current.md".to_string());
+    for f in &files {
         if std::fs::read_to_string(root.join(f)).is_ok_and(|s| !s.trim().is_empty()) {
             console.print(&format!("[red]{f} is not empty - record it (make solved) before preparing the next one.[/red]"));
             std::process::exit(1);

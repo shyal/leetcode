@@ -84,6 +84,11 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install tsc (TypeScript drills type-check before they run, dsa/ts.py)
+        run: npm install -g typescript
       - uses: dtolnay/rust-toolchain@stable
       # the release build of the workspace is most of the job (5m36s of 8m on
       # 2026-09-20); the cache is keyed on Cargo.lock and restored per branch

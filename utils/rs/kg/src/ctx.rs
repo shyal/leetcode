@@ -316,7 +316,8 @@ impl Ctx {
 
     // ---- the bank directory ----------------------------------------------
 
-    /// kg_lib.bank_files: drills/<node>/*.py in filename order, memoised.
+    /// kg_lib.bank_files: drills/<node>/*.<ext> for every language in
+    /// kg::lang, in filename order, memoised.
     pub fn bank_files(&self, node: &str) -> Rc<Vec<PathBuf>> {
         if let Some(v) = self.bank_files.borrow().get(node) {
             return v.clone();
@@ -335,7 +336,7 @@ impl Ctx {
             .map(|rd| {
                 rd.filter_map(Result::ok)
                     .map(|e| e.path())
-                    .filter(|p| p.extension().is_some_and(|x| x == "py"))
+                    .filter(|p| crate::lang::is_source(p))
                     .filter(|p| {
                         !p.file_name()
                             .and_then(|n| n.to_str())
@@ -440,7 +441,7 @@ impl Ctx {
         let mut title = None;
         let mut trains = Vec::new();
         for line in text.lines() {
-            let t = line.trim_start();
+            let t = crate::lang::uncomment(line);
             if title.is_none() {
                 if let Some(rest) = t.strip_prefix("DRILL:") {
                     // r"^\s*DRILL:\s*(.+)$": at least one character after

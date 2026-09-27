@@ -1379,3 +1379,23 @@ fn a_move_at_its_floor_gets_its_bank_again() {
     assert!(graduation_due(&reps, "some-node", 0).unwrap().0 > today());
     assert_eq!(due(&fx, "some-node", &reps), None);
 }
+
+/// A bank file in any language kg::lang knows is a drill: a .ts file whose
+/// header is a `//` comment block is found, titled and keyed like a .py
+/// one, and a file with an unknown extension is not a drill.
+#[test]
+fn a_typescript_bank_file_is_a_drill() {
+    let fx = Fx::new();
+    let ts = fx.bank_file(
+        "ts-node",
+        "d9_total.ts",
+        "// DRILL: Order Total\n// TRAINS: ts-node\n\nfunction total(): number {\n  return 1;\n}\n",
+    );
+    fx.bank_file("ts-node", "notes.md", "DRILL: Not A Drill\n");
+    let ctx = fx.ctx();
+    assert_eq!(*ctx.bank_paths("ts-node"), vec![ts.clone()]);
+    assert_eq!(ctx.drill_title(&ts).as_deref(), Some("Order Total"));
+    assert_eq!(ctx.drill_trains(&ts), vec!["ts-node".to_string()]);
+    assert_eq!(ctx.drill_evidence_key(&ts), "d_order_total_");
+    assert!(ctx.has_drill_bank("ts-node"));
+}

@@ -370,7 +370,7 @@ def spliced(py_src, mu_src, show_source=False, mapped=False):
 
 def cmd_stub(root):
     py = root / CURRENT
-    if not py.exists():
+    if not py.exists() or not py.read_text().strip():
         return 0
     try:
         text = stub(py.read_text())
