@@ -31038,6 +31038,17 @@
       "note": "Drill targets grid-neighbors; the solution calls the harness nbrs(grid, i, j) which enumerates the four cardinal offsets and bounds-checks them.",
       "summary": "The solution builds an output grid with like(grid), then for every cell via cells(grid) sets res[i][j] to len(nbrs(grid, i, j)). The neighbour enumeration and bounds filtering live in the harness nbrs helper, which the code invokes per cell. All assertions passed, including the single-cell, single-row, and single-column edge cases.",
       "seconds": 149
+    },
+    "solved/d_Bottom_Up_Index_Alternating_2026_09_27T22_29_39_504474_00_00Z.py": {
+      "date": "2026-09-28",
+      "problem": "drill",
+      "moves": {
+        "index-conversion": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets index-conversion: rows counted from the bottom via (n-1-r), alternating row direction via even((n-1-r)) and (n-1-c).",
+      "summary": "The code builds an n x n grid with table(n, n) and fills each cell by converting the row index to a bottom-up row (n-1-r), then choosing the column as c or n-1-c depending on whether that bottom-up row is even. This exercises index-conversion: the flat value (n-1-r)*n + column is mapped back through the grid's orientation (rows from the bottom, alternating direction). All assertions for n = 2..6 and n = 20 passed.",
+      "seconds": 348
     }
   }
 }
