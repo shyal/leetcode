@@ -31261,6 +31261,18 @@
       "judge": "deepseek-chat",
       "summary": "The solution builds a Counter over nums and unpacks its two values into a and b, then returns a * b, the number of cross pairs between the two distinct values. This exercises counter-build and the pair-count-formula move (a*b pairs across two groups) in a single expression. All assertions passed, including the large 50000/50000 case.",
       "seconds": 49
+    },
+    "solved/p338_Counting_Bits_2026_09_28T05_02_23_683049_00_00Z.py": {
+      "date": "2026-09-28",
+      "problem": "338",
+      "moves": {
+        "divmod-decompose": "clean"
+      },
+      "judge": "deepseek-chat",
+      "followup": "not solved",
+      "note": "LeetCode verdict: Accepted (139 ms, 20.5 MB); the O(n log n) per-number digit decomposition sidesteps the O(n) DP and bit tricks.",
+      "summary": "The code builds the answer with a list comprehension over 0..n, and for each i calls to_digits(i, base=2), which peels binary digits with a divmod loop, then sums the 1 digits. That exercises divmod-decompose, but neither the canonical dp-1d-rolling recurrence (bits[i] = bits[i>>1] + (i&1)) nor bit-iterate (shift/AND popcount) appears, so both are avoided. The notes are empty and the LeetCode verdict is Accepted; the single-pass O(n) follow-up is not met since each number is decomposed independently.",
+      "seconds": 205
     }
   }
 }
