@@ -31419,6 +31419,18 @@
       "note": "Drill on dp-1d-rolling: dp[a] = min(dp[a-c]+1) over coins, base dp[0]=0, inf sentinel mapped to -1.",
       "summary": "The code builds a 1D table dp of size amount+1 filled with inf, sets dp[0]=0, and fills forward with dp[a] = min(dp[a-c]+1 for coins c <= a), returning -1 when dp[amount] stays inf. This exercises the dp-1d-rolling move directly. The run printed 2 for coins [1,3,4], amount 6, and exited 0.",
       "seconds": 202
+    },
+    "solved/d_Plus_One_Or_Double_2026_09_28T23_37_10_677411_00_00Z.py": {
+      "date": "2026-09-29",
+      "problem": "drill",
+      "moves": {
+        "generate-and-test-neighbors": "clean",
+        "graph-bfs-shortest": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "mu source: BFS over implicit graph, neighbors c+1 and c*2 generated on the fly and bounded by lte=limit; levels() helper is the harness's.",
+      "summary": "The mu source seeds a deque with a and walks it with the harness levels() BFS generator, generating each state's neighbors c+1 and c*2 on the fly and pruning states above limit; the first level where c equals b is returned, else -1. This exercises generate-and-test-neighbors (implicit graph, no materialized edges) and graph-bfs-shortest (level = minimum moves). All assertions passed, including the 1->1024 case at depth 10 and the unreachable 1024 with limit 1023.",
+      "seconds": 164
     }
   }
 }
