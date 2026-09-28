@@ -479,11 +479,26 @@ def test_kg_llm_next_key_and_context_without_a_model_call():
     assert set(ctx) == {
         "today",
         "elo",
+        "unseen_candidates",
         "picker",
+        "serve",
         "failed_without_a_clean_unaided_rep_since",
+        "history",
         "reps",
+        "latest_solves",
     }
     assert ctx["picker"] and isinstance(ctx["reps"], list)
+    # the whole history is in view: every older rep is one line, the
+    # first sight of a problem says so, and the last solves carry code
+    assert len(ctx["history"]) > 500
+    assert any(" first sight " in line for line in ctx["history"])
+    assert ctx["latest_solves"] and all("code" in s for s in ctx["latest_solves"])
+    assert set(ctx["serve"]) == {"last_7_days", "last_30_days"}
+    # new ground: unseen, rated, never a problem with a rep
+    seen = {r.get("problem") for r in ctx["reps"]}
+    assert ctx["unseen_candidates"] and all(
+        c["problem"] not in seen and c["rating"] for c in ctx["unseen_candidates"]
+    )
 
 
 # --- kg_today (a scratch plan dir, no model call) --------------------------------

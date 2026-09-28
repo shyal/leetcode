@@ -129,6 +129,10 @@ fn deepseek_once(prompt: &str, system_prompt: &str, model: &str) -> Result<Value
     chat_once("https://api.deepseek.com/chat/completions", &key, body)
 }
 
+/// Prompts longer than this are piped to `claude` on stdin instead of
+/// being passed as an argument (macOS caps the argument list at 1 MiB).
+const STDIN_OVER: usize = 100_000;
+
 fn once(prompt: &str, system_prompt: &str, model: &str) -> Result<Value, LlmError> {
     if model.starts_with("deepseek") {
         return deepseek_once(prompt, system_prompt, model);
@@ -136,10 +140,18 @@ fn once(prompt: &str, system_prompt: &str, model: &str) -> Result<Value, LlmErro
     if model.starts_with("gpt-") {
         return openai_once(prompt, system_prompt, model);
     }
-    let out = Command::new("claude")
+    // A prompt too long for an argument list (a whole solve history) goes
+    // down stdin, which `claude -p` appends to the prompt.
+    let piped = prompt.len() > STDIN_OVER;
+    let lead = if piped {
+        "The context follows."
+    } else {
+        prompt
+    };
+    let mut child = Command::new("claude")
         .args([
             "-p",
-            prompt,
+            lead,
             "--system-prompt",
             system_prompt,
             "--model",
@@ -147,7 +159,24 @@ fn once(prompt: &str, system_prompt: &str, model: &str) -> Result<Value, LlmErro
             "--output-format",
             "json",
         ])
-        .output()
+        .stdin(if piped {
+            std::process::Stdio::piped()
+        } else {
+            std::process::Stdio::null()
+        })
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .map_err(|e| LlmError::Spawn(e.to_string()))?;
+    if piped {
+        use std::io::Write;
+        let mut stdin = child.stdin.take().expect("piped stdin");
+        stdin
+            .write_all(prompt.as_bytes())
+            .map_err(|e| LlmError::Spawn(e.to_string()))?;
+    }
+    let out = child
+        .wait_with_output()
         .map_err(|e| LlmError::Spawn(e.to_string()))?;
     if !out.status.success() {
         let err = String::from_utf8_lossy(&out.stderr);
