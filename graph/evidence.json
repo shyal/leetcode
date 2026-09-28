@@ -31085,6 +31085,21 @@
       "note": "mu source: visit adds child dur to res[child.id] and subtracts child dur from the parent when not root, accumulating exclusive time down the tree.",
       "summary": "The mu source defines visit(node), which for each child adds the child's dur to res[child.id] and, when node is not the root, subtracts that dur from res[node.id], then recurses; the transpiled Solution.exclusive builds res with table(n) and returns it. The nested-scope accumulation is carried through the recursion rather than an explicit stack, and all assertions pass. The notes mark the work as Learning.",
       "seconds": 290
+    },
+    "solved/d_Equal_Pairs_2026_09_28T00_27_38_545149_00_00Z.py": {
+      "date": "2026-09-28",
+      "problem": "drill",
+      "moves": {
+        "streaming-accumulate-pairs": "clean",
+        "counter-build": "clean"
+      },
+      "assist": {
+        "streaming-accumulate-pairs": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "mu source shows the fold: got = C[n] before increment, acc += got; notes say learning.",
+      "summary": "The code counts equal pairs in one pass: for each n it reads the running count C[n] as the number of earlier matches, adds that to acc, then increments C[n]. This exercises streaming-accumulate-pairs (each pair counted at its second member) and counter-build. The mu source mirrors the same fold, and the notes mark it as learning.",
+      "seconds": 183
     }
   }
 }
