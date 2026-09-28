@@ -178,10 +178,14 @@ def test_library_copies_agree_with_the_harness():
     assert list(ns["pairs"](4)) == list(combo_utils.pairs(4))
     for num in (0, 7, 65875, "0042", -31):
         for rev in (False, True):
-            assert ns["to_digits"](num, rev) == digit_utils.to_digits(num, rev)
-    for ds in ([], [0, 0, 4, 2], [8, 7, 6, 5, 5]):
+            for base in (10, 2, 7):
+                assert ns["to_digits"](num, rev, base) == digit_utils.to_digits(
+                    num, rev, base
+                )
+    for ds in ([], [0, 0, 4, 2], [8, 7, 6, 5, 5], [1, 0, 1, 1]):
         for rev in (False, True):
-            assert ns["to_int"](ds, rev) == digit_utils.to_int(ds, rev)
+            for base in (10, 2, 16):
+                assert ns["to_int"](ds, rev, base) == digit_utils.to_int(ds, rev, base)
     for n in range(-3, 4):
         assert ns["even"](n) == digit_utils.even(n)
         assert ns["odd"](n) == digit_utils.odd(n)

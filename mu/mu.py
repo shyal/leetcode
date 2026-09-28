@@ -274,17 +274,27 @@ def nbrs(
     "to_digits": (
         [],
         [],
-        """def to_digits(num, reverse=False):
-    ds = [int(c) for c in str(num).lstrip("-")]
+        """def to_digits(num, reverse=False, base=10):
+    if isinstance(num, str):
+        ds = [int(c, base) for c in num.lstrip("-")]
+    else:
+        num = abs(num)
+        ds = []
+        while True:
+            num, d = divmod(num, base)
+            ds.append(d)
+            if num == 0:
+                break
+        ds.reverse()
     return ds[::-1] if reverse else ds""",
     ),
     "to_int": (
         [],
         [],
-        """def to_int(digits, reverse=False):
+        """def to_int(digits, reverse=False, base=10):
     out = 0
     for d in digits[::-1] if reverse else digits:
-        out = out * 10 + d
+        out = out * base + d
     return out""",
     ),
     "even": (
