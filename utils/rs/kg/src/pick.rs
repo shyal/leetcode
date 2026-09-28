@@ -62,7 +62,10 @@
 //      and a day of those is not a day of reviews. Reviews are never
 //      withheld, and there is no override: the cap is on the whole day's
 //      new ground, not on one bank, so naming a group or cramming it does
-//      not lift it. Unset, the default, is no cap.
+//      not lift it. Unset, the default, is no cap. KG_NEW_CAP (e.g. sql=0
+//      in .envrc) is the same cap per group: that many first exposures
+//      touching the group today, and the group's unseen files wait, its
+//      reviews unaffected. 0 pauses the group's new ground outright.
 //   0g. drill review cap (MAX_DRILL_REVIEWS, e.g. 6 in .envrc): once that
 //      many bank files already met have come back today, a file with a rep
 //      waits until tomorrow, on the clock and on the frontier alike. The
@@ -1940,7 +1943,7 @@ pub fn blocked_frontier(
             out.push((
                 nid.clone(),
                 status,
-                "its drill is due, the day's drill budget is spent (MAX_NEW_DRILLS / MAX_DRILL_REVIEWS)".to_string(),
+                "its drill is due, the day's drill budget is spent (MAX_NEW_DRILLS / KG_NEW_CAP / MAX_DRILL_REVIEWS)".to_string(),
                 false,
             ));
             continue;

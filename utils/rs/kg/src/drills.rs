@@ -210,7 +210,9 @@ pub fn new_drills_ready(ctx: &Ctx, ev: &Evidence, day: NaiveDate) -> usize {
             let capped = own
                 .and_then(|n| ctx.group_of(n))
                 .is_some_and(|g| full.iter().any(|f| f == g));
-            !capped && !servable_drills(ctx, std::slice::from_ref(p), ev, own, false).is_empty()
+            !capped
+                && group_new_left(ctx, p, ev, day).is_none_or(|l| l > 0)
+                && !servable_drills(ctx, std::slice::from_ref(p), ev, own, false).is_empty()
         })
         .count();
     match new_drills_left(ev, day) {
@@ -915,7 +917,18 @@ fn due_drill_uncached(
 
 /// kg_lib.group_caps: KG_GROUP_CAP, "sql=3,graphs=2".
 pub fn group_caps() -> Vec<(String, i64)> {
-    let raw = env_str("KG_GROUP_CAP");
+    parse_caps("KG_GROUP_CAP")
+}
+
+/// KG_NEW_CAP, "sql=0": per group, how many bank files may be met for the
+/// first time in a day. The group's half of MAX_NEW_DRILLS: 0 pauses the
+/// group's unseen files while its reviews go on (2026-09-29, sql).
+pub fn group_new_caps() -> Vec<(String, i64)> {
+    parse_caps("KG_NEW_CAP")
+}
+
+fn parse_caps(name: &str) -> Vec<(String, i64)> {
+    let raw = env_str(name);
     let mut out: Vec<(String, i64)> = Vec::new();
     for part in raw.split(',') {
         let (name, count) = part.split_once('=').unwrap_or((part, ""));
@@ -977,18 +990,41 @@ pub fn new_drills_left(ev: &Evidence, day: NaiveDate) -> Option<i64> {
     new_drill_cap().map(|c| c - new_drills_today(ev, day))
 }
 
+/// First reps dated `day` whose walk touches the group.
+pub fn group_new_reps(ctx: &Ctx, group: &str, ev: &Evidence, day: NaiveDate) -> i64 {
+    let d = day.format("%Y-%m-%d").to_string();
+    ev.date_recs(&d)
+        .iter()
+        .filter(|i| ev.first_reps.contains(i))
+        .filter(|&&i| {
+            ev.rec(i)
+                .moves
+                .keys()
+                .any(|m| ctx.group_of(m) == Some(group))
+        })
+        .count() as i64
+}
+
+/// KG_NEW_CAP for this file's group, less the group's first reps today;
+/// None when the file's group has no cap.
+pub fn group_new_left(ctx: &Ctx, path: &Path, ev: &Evidence, day: NaiveDate) -> Option<i64> {
+    let group = ctx.group_of(&drill_node(path)?)?;
+    let (_, cap) = group_new_caps().into_iter().find(|(g, _)| g == group)?;
+    Some(cap - group_new_reps(ctx, group, ev, day))
+}
+
 pub fn drill_reviews_left(ev: &Evidence, day: NaiveDate) -> Option<i64> {
     drill_review_cap().map(|c| c - drill_reviews_today(ev, day))
 }
 
 /// kg_lib.drill_capped: the day's budget for this file is spent.
 pub fn drill_capped(ctx: &Ctx, path: &Path, ev: &Evidence, day: NaiveDate) -> bool {
-    let left = if !last_drilled(ctx, path, ev).is_empty() {
-        drill_reviews_left(ev, day)
+    let spent = |left: Option<i64>| left.is_some_and(|l| l <= 0);
+    if !last_drilled(ctx, path, ev).is_empty() {
+        spent(drill_reviews_left(ev, day))
     } else {
-        new_drills_left(ev, day)
-    };
-    left.is_some_and(|l| l <= 0)
+        spent(new_drills_left(ev, day)) || spent(group_new_left(ctx, path, ev, day))
+    }
 }
 
 /// kg_lib.group_reps: reps dated `day` whose walk touches the group.

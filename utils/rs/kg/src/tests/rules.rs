@@ -8,8 +8,8 @@ use super::*;
 use crate::bank::unlocks;
 use crate::data::{test_env, Assist};
 use crate::drills::{
-    drill_review_cap, drill_reviews_left, drill_reviews_today, group_caps, group_reps,
-    new_drill_cap, new_drills_left, new_drills_today,
+    drill_review_cap, drill_reviews_left, drill_reviews_today, group_caps, group_new_caps,
+    group_new_left, group_reps, new_drill_cap, new_drills_left, new_drills_today,
 };
 use crate::pick::{ready_hards, routed_around, starved};
 use crate::recog::{self, Recog, RecogRec};
@@ -353,6 +353,96 @@ fn the_new_drill_cap_holds_the_frontier_too() {
     assert!(fx.run(&ev, &st, args()).is_none());
     assert!(fx.run(&ev, &st, args().group("sql")).is_none());
     assert!(fx.run(&ev, &st, args().cram().early()).is_none());
+}
+
+/// KG_NEW_CAP=sql=0: a sql bank file never drilled is withheld, on the
+/// clock and on the frontier; a sql file with a rep is a review and is
+/// served; a never-drilled file of another group is served.
+#[test]
+fn the_group_new_cap_pauses_one_groups_unseen_files() {
+    let mut fx = Fx::picker();
+    test_env("DRILL_SCHEDULER", "anki");
+    test_env("KG_NEW_CAP", "sql=0");
+    fx.nodes(&["q1", "q2", "q3"])
+        .group(&["q1", "q2"], "sql")
+        .group(&["q3"], "trees")
+        .problems(vec![
+            ("1", problem(&["q1"])),
+            ("2", problem(&["q2"])),
+            ("3", problem(&["q3"])),
+        ]);
+    let st = statuses(&[
+        ("q1", SOLID, Some(1)),
+        ("q2", SOLID, Some(1)),
+        ("q3", SOLID, Some(1)),
+    ]);
+    fx.stubs().clock = vec![
+        (PathBuf::from("drills/q1/a.py"), "q1".into()),
+        (PathBuf::from("drills/q2/b.py"), "q2".into()),
+        (PathBuf::from("drills/q3/c.py"), "q3".into()),
+    ];
+    // a.py never drilled and sql paused: skipped; b.py has a rep, a review
+    let ev = evidence(vec![drill_file(
+        "solved/d_B_2026_01_01T00_00_00_000000_00_00Z.py",
+        "q2",
+        3,
+        Assist::None,
+    )]);
+    assert_eq!(pnum(&fx.run(&ev, &st, args())), "drill:q2");
+    assert_eq!(
+        group_new_left(
+            &fx.ctx(),
+            std::path::Path::new("drills/q1/a.py"),
+            &ev,
+            today()
+        ),
+        Some(0)
+    );
+    assert_eq!(
+        group_new_left(
+            &fx.ctx(),
+            std::path::Path::new("drills/q3/c.py"),
+            &ev,
+            today()
+        ),
+        None
+    );
+    // c.py ahead of b.py on the clock: trees is uncapped, served new
+    fx.stubs().clock = vec![
+        (PathBuf::from("drills/q1/a.py"), "q1".into()),
+        (PathBuf::from("drills/q3/c.py"), "q3".into()),
+        (PathBuf::from("drills/q2/b.py"), "q2".into()),
+    ];
+    assert_eq!(pnum(&fx.run(&ev, &st, args())), "drill:q3");
+    // only the paused file due: the picker falls through to its problem
+    // rules, and naming or cramming the group does not lift the pause
+    fx.stubs().clock = vec![(PathBuf::from("drills/q1/a.py"), "q1".into())];
+    let no_drill = |c: Option<Choice>| !pnum(&c).starts_with("drill:");
+    assert!(no_drill(fx.run(&ev, &st, args())));
+    assert!(no_drill(fx.run(&ev, &st, args().group("sql"))));
+    assert!(no_drill(fx.run(&ev, &st, args().cram().early())));
+    // a MISSING sql node's first drill is withheld on the frontier too
+    fx.stubs().clock.clear();
+    fx.stubs().bank = set(&["q1"]);
+    let st = statuses(&[
+        ("q1", MISSING, None),
+        ("q2", SOLID, Some(1)),
+        ("q3", SOLID, Some(1)),
+    ]);
+    assert!(no_drill(fx.run(&ev, &st, args())));
+    assert!(no_drill(fx.run(&ev, &st, args().group("sql"))));
+}
+
+#[test]
+fn group_new_knob_parses_like_the_group_cap() {
+    let _fx = Fx::new();
+    test_env("KG_NEW_CAP", "sql=0, trees=2,bad,x=");
+    assert_eq!(
+        group_new_caps(),
+        vec![("sql".to_string(), 0), ("trees".to_string(), 2)]
+    );
+    test_env("KG_NEW_CAP", "");
+    assert!(group_new_caps().is_empty());
 }
 
 #[test]
