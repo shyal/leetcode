@@ -1184,12 +1184,15 @@ class Parser:
         if fn == "scan":
             self.need("from itertools import accumulate")
             op, xs = args
-            if op == "+":
-                return Py(f"accumulate({xs})")
             if op == "*":
                 self.need("import operator")
                 op = "operator.mul"
-            return Py(f"accumulate({xs}, {op})")
+            call = f"accumulate({xs})" if op == "+" else f"accumulate({xs}, {op})"
+            if kw.pop("reverse", None) == "True":
+                # scan from the right: fold the reversed list, then flip it back
+                call = f"accumulate({xs}[::-1])" if op == "+" else f"accumulate({xs}[::-1], {op})"
+                return Py(f"list({call})[::-1]")
+            return Py(call)
         if fn == "counter":
             self.need("from collections import Counter")
             fn = "Counter"
