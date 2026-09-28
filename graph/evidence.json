@@ -31408,6 +31408,17 @@
       "note": "Drill targets binary-search-on-answer; the code implements the last-true boundary search (lo=mid+1 on ok, return hi), verified by assertions including the 1e9 range and <=31 calls.",
       "summary": "The file defines floorTrue(lo, hi, ok), a while lo<=hi halving loop that moves lo up when ok(mid) holds and hi down otherwise, returning hi as the last index where the predicate is true. It also defines first_true/first_false/last_false/last_true helpers built on bisect_left. The assertions exercise the boundary search across edge cases (single element, full range, 1e9 range) and confirm the call count stays logarithmic; the run exited 0.",
       "seconds": 138
+    },
+    "solved/d_Fewest_Coins_2026_09_28T23_20_17_735814_00_00Z.py": {
+      "date": "2026-09-29",
+      "problem": "drill",
+      "moves": {
+        "dp-1d-rolling": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill on dp-1d-rolling: dp[a] = min(dp[a-c]+1) over coins, base dp[0]=0, inf sentinel mapped to -1.",
+      "summary": "The code builds a 1D table dp of size amount+1 filled with inf, sets dp[0]=0, and fills forward with dp[a] = min(dp[a-c]+1 for coins c <= a), returning -1 when dp[amount] stays inf. This exercises the dp-1d-rolling move directly. The run printed 2 for coins [1,3,4], amount 6, and exited 0.",
+      "seconds": 202
     }
   }
 }
