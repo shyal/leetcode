@@ -31298,6 +31298,19 @@
       "note": "Body is `pass`; notes say FAILED after 26m 44s with no working solution.",
       "summary": "The file contains only a skeleton: maxMoves has a `pass` body, so no grid traversal, recursion, or memoization was written. The candidate's own note records FAILED after 26m 44s with no working solution, so the canonical tree-dfs-recursive, memoize-recursion, and tree-combine-returns moves were attempted but never completed.",
       "seconds": 1604
+    },
+    "solved/p416_Partition_Equal_Subset_Sum_2026_09_28T06_53_23_028249_00_00Z.py": {
+      "date": "2026-09-28",
+      "problem": "416",
+      "moves": {
+        "memoize-recursion": "struggled",
+        "backtracking-choose-undo": "clean",
+        "running-sum": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Time Limit Exceeded (39/149 cases) \u2014 the brute-force subset recursion lacks the memoization the canonical walk needs.",
+      "summary": "The code sums nums, rejects odd totals, and recurses over subsets via helper(i, total), looping j from i and recursing on helper(j+1, total+nums[i]) to search for a subset hitting k. The running sum and the choose/recurse structure are exercised, but the recursion is unmemoized, so the same (i, total) states are re-explored. The notes show the candidate tried greedy, prefix sums, counts, and combinations before settling on brute force, and LeetCode rejected it with Time Limit Exceeded (39/149 cases).",
+      "seconds": 1651
     }
   }
 }
