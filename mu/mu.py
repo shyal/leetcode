@@ -309,6 +309,14 @@ def nbrs(
         """def odd(n):
     return n % 2 == 1""",
     ),
+    "in_bounds": (
+        [],
+        [],
+        """def in_bounds(grid, r, c=None):
+    if c is None:
+        r, c = r
+    return 0 <= r < len(grid) and 0 <= c < len(grid[0])""",
+    ),
     "is_edge": (
         [],
         [],

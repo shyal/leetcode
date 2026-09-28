@@ -213,6 +213,11 @@ The cells (r + dr, c + dc) for (dr, dc) in dirs that lie on grid.
 With eq, lt, lte, gt or gte, only the cells whose value passes them all
 (see _holds). val is the old name for eq.
 
+### `in_bounds(grid: Sequence[Sequence[Any]], r: Any, c: Optional[int] = None) -> bool`
+
+True if (r, c) is a cell of grid. in_bounds(grid, p) takes the cell as
+one pair.
+
 ### `is_edge(grid: Sequence[Sequence[Any]], r: int, c: int) -> bool`
 
 True if (r, c) lies on the first or last row or column of grid.
@@ -326,19 +331,21 @@ Each triple is built by type: tuple by default, list for a LeetCode answer.
 
 ## digits
 
-### `to_digits(num: Union[int, str], reverse: bool = False) -> List[int]`
+### `to_digits(num: Union[int, str], reverse: bool = False, base: int = 10) -> List[int]`
 
-The digits of num as ints, most significant first.
+The digits of num in the given base as ints, most significant first.
 
 With reverse=True the least significant digit comes first, so digit i
-is the coefficient of 10**i. A negative int loses its sign.
+is the coefficient of base**i. A negative int loses its sign. A str is
+read one character at a time, so leading zeros are kept; base=2 gives
+the bits.
 
-### `to_int(digits: List[int], reverse: bool = False) -> int`
+### `to_int(digits: List[int], reverse: bool = False, base: int = 10) -> int`
 
-The int whose digits are the list, most significant first.
+The int whose digits in the given base are the list, most significant first.
 
 With reverse=True the list is read least significant first, the inverse
-of to_digits(num, reverse=True). An empty list is 0.
+of to_digits(num, reverse=True). An empty list is 0. base=2 reads bits.
 
 ### `even(n: int) -> bool`
 

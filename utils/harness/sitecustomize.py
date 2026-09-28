@@ -339,6 +339,7 @@ builtins.DIAGONALS = DIAGONALS
 builtins.ALL_EIGHT = ALL_EIGHT
 builtins.cells = cells
 builtins.nbrs = nbrs
+builtins.in_bounds = in_bounds
 builtins.is_edge = is_edge
 builtins.edges = edges
 builtins.table = table

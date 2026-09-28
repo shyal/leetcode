@@ -6,7 +6,7 @@
 # multi-source BFS.
 
 from collections import deque
-from typing import Any, Callable, Iterable, Iterator, List, Sequence, Tuple
+from typing import Any, Callable, Iterable, Iterator, List, Optional, Sequence, Tuple
 
 Cell = Tuple[int, int]
 
@@ -72,9 +72,17 @@ def nbrs(
     eq = val if eq is None else eq
     for dr, dc in dirs:
         nr, nc = r + dr, c + dc
-        if 0 <= nr < len(grid) and 0 <= nc < len(grid[0]):
+        if in_bounds(grid, nr, nc):
             if _holds(grid[nr][nc], eq, lt, lte, gt, gte):
                 yield nr, nc
+
+
+def in_bounds(grid: Sequence[Sequence[Any]], r: Any, c: Optional[int] = None) -> bool:
+    """True if (r, c) is a cell of grid. in_bounds(grid, p) takes the cell as
+    one pair."""
+    if c is None:
+        r, c = r
+    return 0 <= r < len(grid) and 0 <= c < len(grid[0])
 
 
 def is_edge(grid: Sequence[Sequence[Any]], r: int, c: int) -> bool:

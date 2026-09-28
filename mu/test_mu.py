@@ -144,6 +144,7 @@ def test_library_copies_agree_with_the_harness():
         "to_int",
         "even",
         "odd",
+        "in_bounds",
         "is_edge",
         "edges",
         "grid_bfs",
@@ -226,6 +227,10 @@ def test_library_copies_agree_with_the_harness():
     )
     for r, c in grid_utils.cells(grid):
         assert ns["is_edge"](grid, r, c) == grid_utils.is_edge(grid, r, c)
+    for r in range(-1, 3):
+        for c in range(-1, 4):
+            assert ns["in_bounds"](grid, r, c) == grid_utils.in_bounds(grid, r, c)
+            assert ns["in_bounds"](grid, (r, c)) == grid_utils.in_bounds(grid, (r, c))
     assert list(ns["edges"](grid)) == list(grid_utils.edges(grid))
     maze = [[0, 1, 0], [0, 0, 0], [1, 1, 0]]
     for kw in ({}, {"ok": lambda v: v == 0}):

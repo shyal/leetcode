@@ -1,4 +1,4 @@
-from grid_utils import cells, edges, is_edge, like, nbrs, put, shape, table
+from grid_utils import cells, edges, in_bounds, is_edge, like, nbrs, put, shape, table
 
 
 def test_cells_row_major():
@@ -73,6 +73,17 @@ def test_table_three_dimensions_nests():
 
 def test_like_copies_the_shape_only():
     assert like([[1, 2, 3], [4, 5, 6]], fill=-1) == [[-1, -1, -1], [-1, -1, -1]]
+
+
+def test_in_bounds_accepts_corners_and_rejects_each_side():
+    g = table(3, 4)
+    assert in_bounds(g, 0, 0)
+    assert in_bounds(g, 2, 3)
+    assert in_bounds(g, (1, 2))
+    assert not in_bounds(g, -1, 0)
+    assert not in_bounds(g, 3, 0)
+    assert not in_bounds(g, 0, -1)
+    assert not in_bounds(g, (0, 4))
 
 
 def test_is_edge_on_each_side_and_not_inside():
