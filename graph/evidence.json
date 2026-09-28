@@ -31397,6 +31397,17 @@
       "note": "Upper-mid binary search (mid = (lo+hi+1)//2) finds the last False in a sorted boolean array; all assertions passed.",
       "summary": "The code binary-searches a sorted boolean array for the last False, using lo/hi with an upper-biased mid and moving hi down when lit[mid] is True, lo up otherwise. It exercises the classic binary-search-index template and returns lo. All assertions, including the 100000-element cases, passed.",
       "seconds": 96
+    },
+    "solved/d_Floor_True_2026_09_28T23_05_48_543784_00_00Z.py": {
+      "date": "2026-09-29",
+      "problem": "drill",
+      "moves": {
+        "binary-search-boundary": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets binary-search-on-answer; the code implements the last-true boundary search (lo=mid+1 on ok, return hi), verified by assertions including the 1e9 range and <=31 calls.",
+      "summary": "The file defines floorTrue(lo, hi, ok), a while lo<=hi halving loop that moves lo up when ok(mid) holds and hi down otherwise, returning hi as the last index where the predicate is true. It also defines first_true/first_false/last_false/last_true helpers built on bisect_left. The assertions exercise the boundary search across edge cases (single element, full range, 1e9 range) and confirm the call count stays logarithmic; the run exited 0.",
+      "seconds": 138
     }
   }
 }
