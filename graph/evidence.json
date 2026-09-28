@@ -31336,6 +31336,18 @@
       "note": "Drill's required line met: arr[-1] - len(arr) is the index-value-gap formula for a sorted strictly-increasing positive array.",
       "summary": "The solution returns arr[-1] - len(arr) for a sorted strictly-increasing array of positive integers, which counts how many positive integers are missing below the last element. This is exactly the index-value-gap move: index i should hold i+1, so the gap between the final value and the count of present values is the number missing. All assertions passed, including the single-element and [1, 100] cases.",
       "seconds": 75
+    },
+    "solved/d_Plus_One_Or_Double_2026_09_28T14_06_30_865623_00_00Z.py": {
+      "date": "2026-09-28",
+      "problem": "drill",
+      "moves": {
+        "generate-and-test-neighbors": "clean",
+        "graph-bfs-shortest": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets generate-and-test-neighbors; the code enumerates [c+1, c*2] as the perturbation space and validates via the seen set and lte=limit bound.",
+      "summary": "The solution runs a BFS from a using the harness levels() generator, which yields (depth, value) pairs and dedupes via a seen set. At each node it generates the two neighbors c+1 and c*2, appends them to the deque, and returns the depth when c equals b, or -1 if the search exhausts under the limit. This exercises generate-and-test-neighbors (the implicit +1/*2 move space validated against seen and the limit) and graph-bfs-shortest (layered expansion giving minimum moves). All assertions passed with no notes of hints or failures.",
+      "seconds": 396
     }
   }
 }
