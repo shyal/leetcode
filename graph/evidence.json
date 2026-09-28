@@ -31311,6 +31311,20 @@
       "note": "LEETCODE: Time Limit Exceeded (39/149 cases) \u2014 the brute-force subset recursion lacks the memoization the canonical walk needs.",
       "summary": "The code sums nums, rejects odd totals, and recurses over subsets via helper(i, total), looping j from i and recursing on helper(j+1, total+nums[i]) to search for a subset hitting k. The running sum and the choose/recurse structure are exercised, but the recursion is unmemoized, so the same (i, total) states are re-explored. The notes show the candidate tried greedy, prefix sums, counts, and combinations before settling on brute force, and LeetCode rejected it with Time Limit Exceeded (39/149 cases).",
       "seconds": 1651
+    },
+    "solved/d_Fewest_Coins_2026_09_28T13_25_44_764154_00_00Z.py": {
+      "date": "2026-09-28",
+      "problem": "drill",
+      "moves": {
+        "dp-1d-rolling": "clean"
+      },
+      "assist": {
+        "dp-1d-rolling": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "mu source: res = [0] + table(amount, fill=inf), then res[a] = min(res[a-c]+1 for c in coins if c<=a); notes say 'learning'.",
+      "summary": "The code builds a 1D table res of size amount+1, seeded with 0 at index 0 and inf elsewhere, then fills it forward: for each a it takes the min over coins c<=a of res[a-c]+1, returning -1 when res[amount] stays inf. This exercises the dp-1d-rolling move, filling the table forward from base cases. The notes say 'learning', so the recurrence was given and copied.",
+      "seconds": 371
     }
   }
 }
