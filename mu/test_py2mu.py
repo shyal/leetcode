@@ -281,7 +281,7 @@ def test_lambdas_and_loop_else():
             d[1][0] = 3
         return d[1][0] + xs[0]
         """)
-    assert "defaultdict(() -> [0, 0])" in got
+    assert "{:() -> [0, 0]}" in got
     assert "cmp_to_key((a, b) -> b - a)" in got
     assert "\n  else\n" in got
     runs("from functools import cmp_to_key\n" + got, f"f({GRID})", 5)

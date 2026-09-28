@@ -408,6 +408,8 @@ class Printer:
             }
         elif name == "Counter":
             func = "counter"
+        elif name == "defaultdict" and len(node.args) == 1 and not kwargs:
+            return "{:" + self.arg(node.args[0]) + "}", ATOM
         elif name == "accumulate" and not kwargs and len(node.args) in (1, 2):
             op = ast.unparse(node.args[1]) if len(node.args) == 2 else "+"
             if op in ("+", "operator.mul"):

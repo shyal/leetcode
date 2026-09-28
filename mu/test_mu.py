@@ -347,6 +347,26 @@ def test_a_lambda_may_be_assigned_to_a_name():
     assert fmt(src) == src
 
 
+def test_a_brace_literal_starting_with_a_colon_is_a_defaultdict():
+    src = (
+        "def f(xs: [int]) -> int\n"
+        "  d = {:list}\n"
+        "  e = {:() -> [0, 0]}\n"
+        "  s = {1}\n"
+        "  for x in xs\n"
+        "    d[x % 2] <- x\n"
+        "    e[x][0] += 1\n"
+        "  len(d[0]) + e[3][0] + len(s)\n"
+    )
+    py = transpile(src)
+    assert "from collections import defaultdict" in py
+    assert "defaultdict(list)" in py and "defaultdict(lambda: [0, 0])" in py
+    ns = {}
+    exec(py, ns)
+    assert ns["Solution"]().f([2, 3, 4]) == 4
+    assert fmt(src) == src
+
+
 def test_heap_pushes_and_pops_with_the_list_operators():
     src = (
         "def f(xs: [int]) -> [int]\n"

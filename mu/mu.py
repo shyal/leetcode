@@ -1051,6 +1051,12 @@ class Parser:
         if self.at(close):
             self.next()
             return Py(open_ + close)
+        if open_ == "{" and self.at(":"):  # {:list} is defaultdict(list)
+            self.next()
+            default = self.arg()
+            self.expect(close)
+            self.need("from collections import defaultdict")
+            return Py(f"defaultdict({default})")
         first = self.item(open_)
         if self.at("for"):
             gen = self.comprehension()
@@ -1636,6 +1642,8 @@ def render(toks):
             and opens
             or t[1] == "*"
             and (prev is None or pv in "([{,")
+            or t[1] == ":"
+            and (pk, pv) == ("OP", "{")  # {:list} keeps the default tight
         )
         out.append(t[1])
         prev = t
