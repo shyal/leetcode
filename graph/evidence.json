@@ -31232,6 +31232,24 @@
       "note": "mu source builds an undirected adjacency dict via defaultdict(list), appending each guest to the host's list and the host to each guest's list.",
       "summary": "The mu source builds an adjacency mapping res from each party list: it seeds res[guests[0]] and, for every other guest, appends guest to the host's list and the host to the guest's list, giving an undirected adjacency dict. The transpiled Solution.handshakes does the same with a defaultdict(list) and passes all assertions, including repeated guests and single-member parties. This exercises graph-adjacency-build.",
       "seconds": 106
+    },
+    "solved/p1319_Number_of_Operations_to_Make_Network_Connected_2026_09_28T04_45_05_251646_00_00Z.py": {
+      "date": "2026-09-28",
+      "problem": "1319",
+      "moves": {
+        "union-find": "clean",
+        "graph-adjacency-build": "clean",
+        "pair-count-formula": "clean"
+      },
+      "assist": {
+        "union-find": "learning",
+        "graph-adjacency-build": "learning",
+        "pair-count-formula": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "LeetCode Accepted (832 ms, 42.1 MB); notes say 'still learning' and 'not seeing the num_groups - 1 answer'",
+      "summary": "The code builds an adjacency dict, runs UnionFind over the connections counting successful unions as num_merged, then computes num_redundant = num_cables - num_merged and returns num_groups - 1 when enough spare cables exist, else -1. It exercises union-find, adjacency construction, and the group-count arithmetic. The notes say the candidate was still learning and did not see the num_groups - 1 answer, though the submitted code was Accepted.",
+      "seconds": 2324
     }
   }
 }
