@@ -31325,6 +31325,17 @@
       "note": "mu source: res = [0] + table(amount, fill=inf), then res[a] = min(res[a-c]+1 for c in coins if c<=a); notes say 'learning'.",
       "summary": "The code builds a 1D table res of size amount+1, seeded with 0 at index 0 and inf elsewhere, then fills it forward: for each a it takes the min over coins c<=a of res[a-c]+1, returning -1 when res[amount] stays inf. This exercises the dp-1d-rolling move, filling the table forward from base cases. The notes say 'learning', so the recurrence was given and copied.",
       "seconds": 371
+    },
+    "solved/d_Count_Missing_Integers_2026_09_28T13_31_32_371065_00_00Z.py": {
+      "date": "2026-09-28",
+      "problem": "drill",
+      "moves": {
+        "index-value-gap": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill's required line met: arr[-1] - len(arr) is the index-value-gap formula for a sorted strictly-increasing positive array.",
+      "summary": "The solution returns arr[-1] - len(arr) for a sorted strictly-increasing array of positive integers, which counts how many positive integers are missing below the last element. This is exactly the index-value-gap move: index i should hold i+1, so the gap between the final value and the count of present values is the number missing. All assertions passed, including the single-element and [1, 100] cases.",
+      "seconds": 75
     }
   }
 }
