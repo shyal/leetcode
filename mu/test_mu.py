@@ -119,9 +119,12 @@ def test_library_copies_agree_with_the_harness():
 
     sys.path.insert(0, str(HERE.parent / "utils" / "harness"))
     import adj_utils
+    import bs_utils
     import combo_utils
+    import counter_utils
     import digit_utils
     import grid_utils
+    from sitecustomize import ceil_div
 
     from mu import HELPERS
 
@@ -141,6 +144,17 @@ def test_library_copies_agree_with_the_harness():
         "to_int",
         "even",
         "odd",
+        "is_edge",
+        "edges",
+        "grid_bfs",
+        "triples",
+        "ceil_div",
+        "first_true",
+        "last_true",
+        "first_false",
+        "last_false",
+        "min_chunks",
+        "Multiset",
     )
     for name in names + ("indegrees",):
         for imp in HELPERS[name][0]:
@@ -210,6 +224,30 @@ def test_library_copies_agree_with_the_harness():
     assert ns["indegrees"](edges, 3, type=list) == adj_utils.indegrees(
         edges, 3, type=list
     )
+    for r, c in grid_utils.cells(grid):
+        assert ns["is_edge"](grid, r, c) == grid_utils.is_edge(grid, r, c)
+    assert list(ns["edges"](grid)) == list(grid_utils.edges(grid))
+    maze = [[0, 1, 0], [0, 0, 0], [1, 1, 0]]
+    for kw in ({}, {"ok": lambda v: v == 0}):
+        assert ns["grid_bfs"](maze, [(0, 0)], **kw) == grid_utils.grid_bfs(
+            maze, [(0, 0)], **kw
+        )
+    assert list(ns["triples"](5)) == list(combo_utils.triples(5))
+    for a in range(0, 12):
+        for b in range(1, 5):
+            assert ns["ceil_div"](a, b) == ceil_div(a, b)
+    for k in range(-1, 12):
+        ok = lambda x, k=k: x >= k  # noqa: E731
+        for f in ("first_true", "last_true", "first_false", "last_false"):
+            assert ns[f](0, 10, ok) == getattr(bs_utils, f)(0, 10, ok)
+    for nums in ([], [3, 1, 4, 1, 5], [9, 2]):
+        for cap in (1, 5, 8, 100):
+            assert ns["min_chunks"](nums, cap) == bs_utils.min_chunks(nums, cap)
+    a, b = ns["Multiset"]("aab"), counter_utils.Multiset("aab")
+    for op in ("a", "a", "b", "c"):
+        a[op] -= 1
+        b[op] -= 1
+        assert dict(a) == dict(b) and len(a) == len(b)
 
 
 def test_push_operator():

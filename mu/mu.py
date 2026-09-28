@@ -309,6 +309,106 @@ def nbrs(
         """def odd(n):
     return n % 2 == 1""",
     ),
+    "is_edge": (
+        [],
+        [],
+        """def is_edge(grid, r, c):
+    return r == 0 or c == 0 or r == len(grid) - 1 or c == len(grid[0]) - 1""",
+    ),
+    "edges": (
+        [],
+        ["cells", "is_edge"],
+        """def edges(grid):
+    for i, j in cells(grid):
+        if is_edge(grid, i, j):
+            yield i, j""",
+    ),
+    "grid_bfs": (
+        ["from collections import deque"],
+        ["like", "nbrs"],
+        """def grid_bfs(grid, sources, ok=lambda v: True, dirs=CARDINALS):
+    dist = like(grid, -1)
+    q = deque(sources)
+    for r, c in sources:
+        dist[r][c] = 0
+    while q:
+        r, c = q.popleft()
+        for nr, nc in nbrs(grid, r, c, dirs):
+            if dist[nr][nc] == -1 and ok(grid[nr][nc]):
+                dist[nr][nc] = dist[r][c] + 1
+                q.append((nr, nc))
+    return dist""",
+    ),
+    "triples": (
+        [],
+        [],
+        """def triples(n, type=tuple):
+    for i in range(n):
+        for j in range(i + 1, n):
+            for k in range(j + 1, n):
+                yield type((i, j, k))""",
+    ),
+    "ceil_div": (
+        [],
+        [],
+        """def ceil_div(a, b):
+    return (a + b - 1) // b""",
+    ),
+    "first_true": (
+        ["from bisect import bisect_left"],
+        [],
+        """def first_true(lo, hi, ok):
+    return lo + bisect_left(range(lo, hi + 1), True, key=ok)""",
+    ),
+    "last_true": (
+        [],
+        ["first_true"],
+        """def last_true(lo, hi, ok):
+    return first_true(lo, hi, lambda x: not ok(x)) - 1""",
+    ),
+    "first_false": (
+        [],
+        ["first_true"],
+        """def first_false(lo, hi, ok):
+    return first_true(lo, hi, lambda x: not ok(x))""",
+    ),
+    "last_false": (
+        [],
+        ["first_true"],
+        """def last_false(lo, hi, ok):
+    return first_true(lo, hi, ok) - 1""",
+    ),
+    "min_chunks": (
+        ["from math import inf"],
+        [],
+        """def min_chunks(nums, cap):
+    total = 0
+    chunks = 1
+    for n in nums:
+        if n > cap:
+            return inf
+        if total + n > cap:
+            chunks += 1
+            total = n
+        else:
+            total += n
+    return chunks""",
+    ),
+    "Multiset": (
+        ["from collections import Counter"],
+        [],
+        """class Multiset(Counter):
+    def __setitem__(self, key, value):
+        if value == 0:
+            self.pop(key, None)
+        else:
+            super().__setitem__(key, value)
+
+    def update(self, iterable=None, /, **kwds):
+        super().update(iterable, **kwds)
+        for key in [k for k, v in self.items() if v == 0]:
+            del self[key]""",
+    ),
     "levels": (
         [],
         ["_holds"],
