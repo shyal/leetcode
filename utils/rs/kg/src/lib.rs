@@ -16,6 +16,7 @@ pub mod ctx;
 pub mod data;
 pub mod drills;
 pub mod evidence;
+pub mod fails;
 pub mod figlet;
 pub mod git;
 pub mod hooks;

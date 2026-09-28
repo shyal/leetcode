@@ -107,6 +107,15 @@ route everything automatically:
     DRILL: Next Greater Index      <- title (instead of "290. Word Pattern")
     TRAINS: monotonic-stack        <- node id(s) this drill evidences
 
+A fail is not finished until it has a drill (2026-09-28). `make failed`
+files a walk-away only when the notes carry a `WHERE:` line, his own account
+of where the failure was, six words or more. The fail then stays open until
+the problem's `after` list in `problems.json` names a drill (799 names d147).
+While any open fail (a failed problem with no clean unaided rep after it)
+has no such drill, `make next`, `make next llm` and `make prepare <n>` refuse
+and list the problems waiting; `make drill` still serves, so the drill is
+the way out. The code is `utils/rs/kg/src/fails.rs`.
+
 Workflow is identical to leetcode problems: `make drill <node-id>` (or
 `make prepare <node-id>` — prepare routes non-numeric targets here) copies the
 least-recently-drilled file into current.py and commits it on a branch named

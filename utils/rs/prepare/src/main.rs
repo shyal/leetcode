@@ -783,6 +783,9 @@ fn main() {
     // warming the cache serves nothing
     if !args.warm && !args.numbers.is_empty() {
         kg::hooks::gate(&root, "problem");
+        // and never while a fail waits for its drill
+        let (ctx, recs) = Ctx::load(root.clone());
+        kg::fails::gate(&ctx, &Evidence::new(recs));
     }
 
     let job = std::sync::Arc::new(Job {

@@ -636,6 +636,9 @@ fn main() {
     }
     let (ctx, recs) = Ctx::load(root);
     let ev = Evidence::new(recs);
+    if !key_only && !context {
+        kg::fails::gate(&ctx, &ev);
+    }
     let console = Console::full_width();
     let today = ctx.today().format("%Y-%m-%d").to_string();
     if key_only {

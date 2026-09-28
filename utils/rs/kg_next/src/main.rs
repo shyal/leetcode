@@ -1105,6 +1105,14 @@ fn run_main(run: &Run, asleep: &[String], woken: &[String]) {
     }
 
     trace("spot");
+    // a fail is not finished until it has a drill: while one waits, only
+    // drills are served, and the waiting problems are named first
+    let waiting = kg::fails::open_fails(ev, &kg::fails::covered(ctx));
+    if !waiting.is_empty() {
+        console.print(&kg::fails::refusal_text(ctx, &waiting));
+        console.blank();
+    }
+    let problems_held = !waiting.is_empty();
     let mut exclude: HashSet<String> = solved_today_pnums(ctx);
     let mut choice: Option<Choice> = None;
     let mut shown = 0usize;
@@ -1207,12 +1215,21 @@ fn run_main(run: &Run, asleep: &[String], woken: &[String]) {
                 choice = None;
                 refused = true;
             }
+            if problems_held
+                && choice
+                    .as_ref()
+                    .is_some_and(|c| !c.pnum.starts_with("drill:"))
+            {
+                choice = None;
+            }
             shown = if choice.is_some() { 1 } else { 0 };
         }
     }
 
     if choice.is_none() {
-        for _ in 0..args.n.max(1) {
+        let mut tries = 0;
+        while shown < args.n.max(1) && tries < 60 {
+            tries += 1;
             let pa = PickArgs {
                 asleep: asleep.to_vec(),
                 woken: woken.to_vec(),
@@ -1225,6 +1242,12 @@ fn run_main(run: &Run, asleep: &[String], woken: &[String]) {
             };
             choice = pick(ctx, &run.pv, ev, statuses, &pa);
             let Some(c) = &choice else { break };
+            if problems_held && !c.pnum.starts_with("drill:") {
+                // a problem while a fail waits: pass it over, ask again
+                exclude.insert(c.pnum.clone());
+                choice = None;
+                continue;
+            }
             if withheld(Some(c), asleep) {
                 choice = None;
                 refused = true;
