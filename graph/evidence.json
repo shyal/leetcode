@@ -31362,6 +31362,16 @@
       "note": "Notes mark the drill as learning; the query uses lag(amount) over (order by month) in one pass, first row NULL.",
       "summary": "The query selects month, amount, and amount - lag(amount) over (order by month) from Revenue, giving each row its previous month's amount via a window offset and leaving the first row NULL. This exercises sql-window-offset in a single pass, satisfying the required one-pass and NULL-first-row constraints. The notes label the drill as learning.",
       "seconds": 143
+    },
+    "solved/d_Second_Distinct_Salary_2026_09_28T22_54_32_774634_00_00Z.py": {
+      "date": "2026-09-29",
+      "problem": "drill",
+      "moves": {
+        "sql-nth-value": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The query selects DISTINCT salary, orders descending, and uses LIMIT 1 OFFSET 1 to skip the highest distinct salary and return the second. This is the DISTINCT + ORDER BY + LIMIT/OFFSET scalar-subquery shape for the Nth value, and both example assertions pass. No notes indicate any help or recognition difficulty.",
+      "seconds": 179
     }
   }
 }
