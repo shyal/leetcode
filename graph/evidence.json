@@ -31273,6 +31273,18 @@
       "note": "LeetCode verdict: Accepted (139 ms, 20.5 MB); the O(n log n) per-number digit decomposition sidesteps the O(n) DP and bit tricks.",
       "summary": "The code builds the answer with a list comprehension over 0..n, and for each i calls to_digits(i, base=2), which peels binary digits with a divmod loop, then sums the 1 digits. That exercises divmod-decompose, but neither the canonical dp-1d-rolling recurrence (bits[i] = bits[i>>1] + (i&1)) nor bit-iterate (shift/AND popcount) appears, so both are avoided. The notes are empty and the LeetCode verdict is Accepted; the single-pass O(n) follow-up is not met since each number is decomposed independently.",
       "seconds": 205
+    },
+    "solved/p42_Trapping_Rain_Water_2026_09_28T05_12_37_330775_00_00Z.py": {
+      "date": "2026-09-28",
+      "problem": "42",
+      "moves": {
+        "running-extreme": "clean",
+        "prefix-suffix-two-pass": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Canonical two-pointer walk sidestepped by the prefix/suffix max arrays; LeetCode Accepted (19 ms, 21.3 MB).",
+      "summary": "The code builds left_max with accumulate(height, max) and right_max with accumulate over the reversed list, then takes min_of = min(left, right) per index and sums min_of[i] - height[i]. It exercises running-extreme twice (the two accumulate scans) and prefix-suffix-two-pass, but routes around the canonical two-pointers-converging walk. Notes describe exactly this left-max/right-max/min/diff plan, and LeetCode reports Accepted.",
+      "seconds": 275
     }
   }
 }
