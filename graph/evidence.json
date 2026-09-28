@@ -31194,6 +31194,22 @@
       "judge": "deepseek-chat",
       "summary": "mixedSum takes a (number | string)[] and accumulates a total, using typeof v === \"string\" to narrow each element and Number(v) to parse strings while adding numbers directly. The loop is a for..of over the array, so the union narrowing is the central move exercised. All assertions passed and the program printed 6.",
       "seconds": 165
+    },
+    "solved/p947_Most_Stones_Removed_with_Same_Row_or_Column_2026_09_28T03_10_38_264440_00_00Z.py": {
+      "date": "2026-09-28",
+      "problem": "947",
+      "moves": {
+        "union-find": "clean",
+        "graph-adjacency-build": "clean"
+      },
+      "assist": {
+        "union-find": "learning",
+        "graph-adjacency-build": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Accepted (39 ms, 22.5 MB); notes say Learning.",
+      "summary": "The code builds a union-find over row-nodes r{r} and column-nodes c{c}, unions each stone's row with its column, then counts roots among parent keys and returns len(stones) - groups. It exercises union-find with path compression and the row/column node construction that turns stones into a graph. The notes mark the work as Learning, and LeetCode accepted the submission.",
+      "seconds": 948
     }
   }
 }
