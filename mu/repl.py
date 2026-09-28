@@ -26,7 +26,7 @@ from mu import HELPERS, TOKEN, MuError, compile_stmts, tokenize  # noqa: E402
 OUT = "__mu_out__"
 # same rule as the VS Code extension: these lines open a block
 OPENS_BLOCK = re.compile(
-    r"^\s*(def\b.*|else\s*|memo\b.*=\s*|(for|while|if|elif)\b[^:]*"
+    r"^\s*(def\b.*|else\s*|memo\b(?:[^=]*|.*=)\s*|(for|while|if|elif)\b[^:]*"
     r"|(sum|max|min|count)\s+(from\s+.+\s+)?for\b[^:]*)$"
 )
 

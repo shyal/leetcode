@@ -838,6 +838,11 @@ class Parser:
             if not self.at(")"):
                 self.expect(",")
         self.expect(")")
+        if not self.at("="):  # block form: a def, cached
+            body = self.block()
+            if any(ret_name([s]) for s in body):
+                raise MuError(f"memo {name} cannot have a ret line")
+            return ("def", name, [(p, None) for p in params], None, body, "memo")
         self.expect("=")
         cases = []
         if self.peek()[0] != "NEWLINE":
@@ -1298,7 +1303,11 @@ class Parser:
             call = f"accumulate({xs})" if op == "+" else f"accumulate({xs}, {op})"
             if kw.pop("reverse", None) == "True":
                 # scan from the right: fold the reversed list, then flip it back
-                call = f"accumulate({xs}[::-1])" if op == "+" else f"accumulate({xs}[::-1], {op})"
+                call = (
+                    f"accumulate({xs}[::-1])"
+                    if op == "+"
+                    else f"accumulate({xs}[::-1], {op})"
+                )
                 return Py(f"list({call})[::-1]")
             return Py(call)
         if fn == "counter":
@@ -1436,6 +1445,11 @@ def bound(stmts, params=False):
     return out
 
 
+def is_memo(s):
+    """A memo statement in either form: cases, or a cached def."""
+    return s[0] == "memo" or (s[0] == "def" and len(s) > 5)
+
+
 def ret_name(stmts):
     """The name a `ret` line of this block declares, or None."""
     for s in stmts:
@@ -1538,12 +1552,14 @@ class Emitter:
             self.block(other, ind + 1)
 
     def def_(self, s, ind):
-        _, name, params, ret, body = s
+        _, name, params, ret, body = s[:5]
         top = not self.scopes  # a method of Solution, or a REPL function
         names = {p for p, _ in params}
         sig = ["self"] * (self.method and top)
         sig += [p if t is None else f"{p}: {t}" for p, t in params]
         arrow = f" -> {ret}" if ret else ""
+        if is_memo(s):
+            self.out(ind, "@cache")
         self.out(ind, f"def {name}({', '.join(sig)}){arrow}:")
         if self.scopes:
             shared = assigned(body) & set().union(*self.scopes) - names
@@ -1565,7 +1581,7 @@ class Emitter:
         res = ret_name(body)
         self.rets.append(res)
         returns = False if res else "return {}"
-        if top and any(b[0] == "memo" for b in body):
+        if top and any(is_memo(b) for b in body):
             # memo recursion can run 10^4+ deep: evaluate on a big stack
             self.out(ind + 1, "def run():")
             shared = assigned(body) & names

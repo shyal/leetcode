@@ -655,13 +655,12 @@ class Printer:
             if memo:
                 return memo
         ret = mu_type(fn.returns) if typed else None
-        head = f"{pad}def {fn.name}({self.params(fn, typed)})"
-        head += f" -> {ret}" if ret else ""
-        body = self.block(fn.body, ind + 1, tail=True)
-        if cached:  # a body mu's memo cannot say: cache it by hand
-            body_end = [f"{pad}{fn.name} = cache({fn.name})"]
-            return [head] + body + body_end
-        return [head] + body
+        if cached:  # a body the case form cannot say: memo's block form
+            head = f"{pad}memo {fn.name}({self.params(fn, False)})"
+        else:
+            head = f"{pad}def {fn.name}({self.params(fn, typed)})"
+            head += f" -> {ret}" if ret else ""
+        return [head] + self.block(fn.body, ind + 1, tail=True)
 
     def is_cache(self, d):
         if isinstance(d, ast.Call):

@@ -543,3 +543,29 @@ def test_every_spec_version_is_linked_from_the_readme():
     section = readme.split("## Sitecustomize, harness and helpers")[1].split("\n## ")[0]
     linked = re.findall(r"\(mu/spec/(v[\d.]+\.md)\)", section)
     assert sorted(linked) == specs
+
+
+def test_memo_block_form_is_a_cached_def_on_a_deep_stack():
+    src = (
+        "def f(n: int) -> int\n"
+        "  memo g(i)\n"
+        "    m = []\n"
+        "    if i < n\n"
+        "      m <- g(i + 1)\n"
+        "    return max(m) + 1 if m else 0\n"
+        "  return g(0)\n"
+    )
+    py = transpile(src)
+    assert "@cache\n        def g(i):" in py.replace("    def run():\n", "").replace(
+        "            ", "        "
+    )
+    ns = {}
+    exec(py, ns)
+    assert ns["Solution"]().f(20000) == 20000
+    assert fmt(src) == src
+
+
+def test_memo_block_form_rejects_ret():
+    src = "def f(n: int) -> int\n  memo g(i)\n    ret x = i\n  g(n)\n"
+    with pytest.raises(MuError):
+        transpile(src)
