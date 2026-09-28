@@ -31221,6 +31221,17 @@
       "note": "Drill's REQUIRED line met: groups() buckets each index by self.find(i) into a defaultdict, exercising the find/representative side of union-find.",
       "summary": "The Solution subclasses UnionFind and its groups() walks every index 0..len(parent)-1, calls self.find(i) to get the representative, and appends i into a defaultdict(list) keyed by that root. The assertions set parent arrays directly and check the resulting root->members mapping, including all-singletons and all-one-component cases. The file ran clean, exercising the union-find find/representative move; no notes claim any help.",
       "seconds": 223
+    },
+    "solved/d_Shake_Hands_With_The_Host_2026_09_28T03_57_20_421504_00_00Z.py": {
+      "date": "2026-09-28",
+      "problem": "drill",
+      "moves": {
+        "graph-adjacency-build": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "mu source builds an undirected adjacency dict via defaultdict(list), appending each guest to the host's list and the host to each guest's list.",
+      "summary": "The mu source builds an adjacency mapping res from each party list: it seeds res[guests[0]] and, for every other guest, appends guest to the host's list and the host to the guest's list, giving an undirected adjacency dict. The transpiled Solution.handshakes does the same with a defaultdict(list) and passes all assertions, including repeated guests and single-member parties. This exercises graph-adjacency-build.",
+      "seconds": 106
     }
   }
 }
