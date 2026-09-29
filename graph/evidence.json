@@ -31797,6 +31797,17 @@
       "note": "Notes say the lag syntax was remembered but the amount - lag subtraction was forgotten; the code nonetheless uses LAG(amount) OVER (ORDER BY month) and subtracts it, giving NULL for the first row.",
       "summary": "The query selects month and amount and computes change as amount minus LAG(amount) OVER (ORDER BY month), so the first row's change is NULL and each later row is the difference from the previous month. This exercises the sql-window-offset move via LAG. The notes state the lag syntax was remembered but the amount - lag subtraction was forgotten, and the assist level is learning.",
       "seconds": 140
+    },
+    "solved/d_Stack_Both_Sides_2026_09_29T20_25_59_172421_00_00Z.py": {
+      "date": "2026-09-30",
+      "problem": "drill",
+      "moves": {
+        "sql-set-union": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "UNION ALL stacks requester_id and accepter_id into one id column, preserving repeats as required.",
+      "summary": "The query selects requester_id as id from RequestAccepted and UNION ALLs it with accepter_id as id from the same table, producing two rows per input row with duplicates kept. This exercises the sql-set-union move via UNION ALL to unpivot two columns into one. Both example assertions passed and the notes are empty.",
+      "seconds": 115
     }
   }
 }
