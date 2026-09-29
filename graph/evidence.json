@@ -31868,6 +31868,17 @@
       "note": "Uses harness levels() BFS generator; visited set keyed on (node, distance) so revisits at new depths are kept, matching the required O(k*(n+m)) single BFS.",
       "summary": "The Solution.reachable method seeds a deque with node 0 and walks it with the harness levels() generator, which yields (depth, node) pairs level by level. It records each (node, d) pair in seen and enqueues neighbors at d+1 unless that pair is already seen, skipping depths past k. The visited set is keyed on the pair rather than the node alone, so node 1 reappears as (1, 4) in Example 1. All assertions passed; the notes are empty.",
       "seconds": 215
+    },
+    "solved/d_Clubs_Sharing_A_Member_2026_09_29T21_38_29_926085_00_00Z.py": {
+      "date": "2026-09-30",
+      "problem": "drill",
+      "moves": {
+        "graph-overlap-adjacency": "clean",
+        "set-algebra": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The code builds one set per club, then for each club's member list updates every member-club's set with the whole list, so clubs sharing a member become adjacent; it then discards self and converts to lists. This exercises graph-overlap-adjacency (groups as nodes connected when they share a member) and set-algebra (update/discard). All assertions passed with no notes.",
+      "seconds": 442
     }
   }
 }
