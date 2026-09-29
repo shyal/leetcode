@@ -2,11 +2,11 @@
 DRILL: Longest Path From Zero
 TRAINS: memoize-recursion
 
-Start on node 0 of the directed graph G. G maps each node to the list of
-nodes its edges point to, and no path returns to a node it has left. The
-longest path from a node is one edge more than the longest path from the
-best of the nodes it points to. A node with no edges has a longest path of
-zero. For example, with G = {0: [1, 2], 1: [2], 2: []}:
+G is a DAG (directed acyclic graph) as an adjacency list: G[u] is the
+list of nodes u points to. Start on node 0. Let L(u) be the number of
+edges on the longest path starting at u. If G[u] is empty, L(u) = 0.
+Otherwise L(u) = 1 + max(L(v) for v in G[u]). For example, with
+G = {0: [1, 2], 1: [2], 2: []}:
 
     0 ---> 1
      \     |

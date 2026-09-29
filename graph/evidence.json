@@ -31618,6 +31618,20 @@
       "note": "Drill targets stack-nested-eval; the code accumulates digits and pushes each signed number onto st, flushing on each operator.",
       "summary": "The code scans s with a sentinel '+' appended, accumulating digits into num and, on each operator, pushing num (negated if op is '-') onto the list st, then resetting num and updating op. It exercises the stack-nested-eval move by pushing each parsed signed number as it closes a scope, and digit peeling via num = num*10 + int(c). All assertions pass and the notes contain no mention of hints or failures.",
       "seconds": 188
+    },
+    "solved/d_Longest_Path_From_Zero_2026_09_29T04_38_10_254852_00_00Z.py": {
+      "date": "2026-09-29",
+      "problem": "drill",
+      "moves": {
+        "memoize-recursion": "clean"
+      },
+      "assist": {
+        "memoize-recursion": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "mu source shows memo longest(u) = max((1 + longest(v) for v in G[u]), default=0); notes mark the drill as Learning.",
+      "summary": "The solution defines a cached recursive function longest(u) that returns the max over successors of 1 + longest(v), defaulting to 0 at a sink, and calls longest(0) inside a deep-stack thread. This exercises memoize-recursion: each node's longest path is computed once and reused, giving O(n + m). The notes label the drill as Learning, and the run exited 0 with output 2 for the sample graph.",
+      "seconds": 1246
     }
   }
 }
