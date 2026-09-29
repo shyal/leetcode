@@ -182,6 +182,7 @@ lc-mocks:
 # file the current attempt as a FAILED one: same flow as solved (archive,
 # solve-time trailer, placeholder -> struggled evidence), honest label
 failed: $(RS_BIN)/kg_solved $(RS_BIN)/kg_extract
+	@.venv/bin/python3 mu/session.py fold
 	@$(RS_BIN)/kg_solved --failed
 	@$(RS_BIN)/kg_extract --stub
 	@$(RS_BIN)/kg_solved --commit
@@ -192,6 +193,7 @@ failed: $(RS_BIN)/kg_solved $(RS_BIN)/kg_extract
 # cools it as a carrier, so the next serve is a repeat and not tomorrow.
 # `make drop` instead leaves the picker thinking you never saw it.
 studied: $(RS_BIN)/kg_solved $(RS_BIN)/kg_extract
+	@.venv/bin/python3 mu/session.py fold
 	@$(RS_BIN)/kg_solved --studied
 	@$(RS_BIN)/kg_extract --stub
 	@$(RS_BIN)/kg_solved --commit

@@ -31700,6 +31700,18 @@
       "note": "Drill targets binary-search-on-answer; the code implements the last-False boundary search with the (lo+hi+1)//2 upper-mid template, verified by assertions including the <=31 call bound.",
       "summary": "The Solution.lastFalse walks lo..hi with an upper-mid binary search, moving lo to mid when ok(mid) is false and hi to mid-1 otherwise, returning the last index where the predicate is false. It exercises the binary-search-boundary move (leftmost/rightmost flip of a monotone predicate), and the assertions confirm the boundary cases and the logarithmic call count. The file also defines first_true/first_false/last_true helpers via bisect_left, but the drill's required move is the hand-written boundary search, which ran clean.",
       "seconds": 74
+    },
+    "solved/p153_Find_Minimum_in_Rotated_Sorted_Array_FAILED_2026_09_29T05_37_48_082996_00_00Z.py": {
+      "date": "2026-09-29",
+      "problem": "153",
+      "moves": {
+        "binary-search-index": "clean",
+        "rotated-array-pivot": "struggled"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say 'Failed / WHERE: could not see the comparison nums[mid] > nums[hi]' \u2014 the pivot comparison was not recognised; the run itself exited 0.",
+      "summary": "The code runs a lo/hi binary search, halving with mid = (lo + hi) // 2 and moving lo = mid + 1 when nums[mid] > nums[hi], else hi = mid, then returns nums[lo]. That exercises the classic binary-search index template cleanly, but the rotated-array pivot decision is the move the notes say was not seen ('could not see the comparison nums[mid] > nums[hi]'), and the notes report the attempt as failed after 36m 21s. The single assertion on a rotated array passes.",
+      "seconds": 2181
     }
   }
 }
