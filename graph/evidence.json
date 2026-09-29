@@ -31756,6 +31756,20 @@
       "note": "Notes say 'Learning - building drill - gating' and 'blank on the recurrence, the cell reading an earlier cell: dp[i] = max(dp[i], dp[j] + 1) when nums[j] < nums[i]'; file footer says FAILED after 24m 29s.",
       "summary": "The code builds a dp table and uses the harness pairs() helper to enumerate all (j, i) index pairs, updating dp[i] = max(dp[i], dp[j] + 1) whenever nums[j] < nums[i], then returns max(dp) + 1. It exercises the O(n^2) pair enumeration and a running max over the table, but the notes state the candidate was blank on the recurrence and was walked through it as a learning drill, and the file is marked FAILED after 24m 29s. The O(n log n) follow-up is not met, since the solution is quadratic.",
       "seconds": 1469
+    },
+    "solved/d_Longest_Ending_Here_2026_09_29T07_36_57_871292_00_00Z.py": {
+      "date": "2026-09-29",
+      "problem": "drill",
+      "moves": {
+        "dp-1d-rolling": "clean"
+      },
+      "assist": {
+        "dp-1d-rolling": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say 'Learning'; dp table filled forward with dp[i] = max(dp[i], dp[j]+1) over all j<i.",
+      "summary": "The code builds a 1D dp table filled with 1s and, for every pair j<i, updates dp[i] = max(dp[i], dp[j]+1) when nums[j] < nums[i], returning the per-index longest increasing run ending there. This exercises the dp-1d-rolling move, filled forward from the base case of 1. The notes mark the work as Learning, and all assertions pass.",
+      "seconds": 432
     }
   }
 }
