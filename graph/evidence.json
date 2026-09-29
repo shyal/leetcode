@@ -31590,6 +31590,22 @@
       "judge": "deepseek-chat",
       "summary": "The code runs a single BFS from node 0 using a deque seeded with (0, 0), recording each node's distance in a seen dict on first dequeue and pushing neighbors at dist+1; it returns the seen pairs as a set. This exercises graph-bfs-shortest (layered expansion gives fewest steps) and reads the adjacency directly from the input dict. All assertions passed, including the cycle and unreachable-node cases.",
       "seconds": 400
+    },
+    "solved/d_Fewest_Cells_Between_2026_09_29T03_29_19_935756_00_00Z.py": {
+      "date": "2026-09-29",
+      "problem": "drill",
+      "moves": {
+        "multi-source-bfs": "clean",
+        "graph-bfs-shortest": "clean",
+        "grid-neighbors": "clean"
+      },
+      "assist": {
+        "multi-source-bfs": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say 'Learning'; all assertions passed, output 3.",
+      "summary": "The solution seeds a deque with every cell equal to 1 via cells(grid, eq=1), then expands in BFS rings using levels(q, seen=set()) and nbrs(grid, c), returning d-1 when a cell equal to 2 is reached. This exercises multi-source BFS, grid-neighbor expansion, and BFS shortest-distance layering. The notes mark the work as Learning.",
+      "seconds": 807
     }
   }
 }
