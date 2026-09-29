@@ -31989,6 +31989,16 @@
       "note": "Notes say 'Learning'; mu source shows the nested-scope subtraction (dur minus direct children's dur) applied per node in one DFS visit.",
       "summary": "The mu source defines visit(node), which for every non-root node adds node.dur minus the sum of its direct children's dur into res[id], then recurses into each child; the transpiled Python does the same with a table(n) result array. This exercises the nested-scope evaluation move (each node's own value computed from its immediate children, not its grandparent) plus recursive tree DFS, all in a single visit per node. The notes mark the file as Learning, and the run passed all assertions.",
       "seconds": 346
+    },
+    "solved/d_Nested_Boxes_2026_09_29T23_32_13_203366_00_00Z.py": {
+      "date": "2026-09-30",
+      "problem": "drill",
+      "moves": {
+        "stack-nested-eval": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The code walks the string once, keeping a stack of partial sums: digits add to the current top, '(' pushes a fresh 0, and ')' pops the inner value and folds it into the parent doubled. This is the stack-nested-eval move, exercised cleanly, and all assertions pass with output 11.",
+      "seconds": 130
     }
   }
 }
