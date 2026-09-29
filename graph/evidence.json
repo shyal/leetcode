@@ -31721,6 +31721,20 @@
       "note": "Drill targets rotated-array-pivot, but the code sidesteps binary search entirely: it compares every element to nums[-1] in a list comprehension, so no pivot is located.",
       "summary": "The solution returns a list of booleans by comparing each element n to the last element nums[-1] in a single comprehension. This works because in a rotated sorted array the last element is the minimum, so n <= nums[-1] identifies the post-drop suffix. The targeted rotated-array-pivot move is avoided: no binary search or mid-vs-end comparison is performed, only a linear scan against the tail.",
       "seconds": 173
+    },
+    "solved/p2094_Finding_3-Digit_Even_Numbers_2026_09_29T06_22_59_431949_00_00Z.py": {
+      "date": "2026-09-29",
+      "problem": "2094",
+      "moves": {
+        "backtracking-choose-undo": "clean",
+        "backtracking-mark-unmark": "clean",
+        "backtracking-start-index": "clean",
+        "sort-by-custom-key": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Accepted (6511 ms, 467.9 MB) \u2014 brute-force permutation backtracking with a take[] mask and set() dedupe, not the canonical Counter + divmod digit enumeration.",
+      "summary": "The code sorts nums, then recursively builds 3-digit numbers by choosing unused indices via a take[] mask, appending totals that are even and >= 100, and finally returns sorted(set(ret)). It exercises backtracking-choose-undo, backtracking-mark-unmark, and backtracking-start-index, with sort-by-custom-key for the initial ordering. The canonical counter-build and divmod-decompose moves are sidestepped entirely; the notes show an earlier mu version with a sibling-dedupe comment that was commented out, and LeetCode accepted the brute force at 6511 ms.",
+      "seconds": 1279
     }
   }
 }
