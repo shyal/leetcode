@@ -31855,6 +31855,19 @@
       "note": "Uses harness levels() generator for BFS layering; seen dict records first-visit distance.",
       "summary": "The code runs a single BFS from node 0 using the harness levels() generator, which yields (distance, node) pairs level by level. A seen dict records each node's first-visit distance, and the result is returned as a set of (node, distance) pairs. The adjacency is read directly from the input dict G, and the required O(n+m) single-BFS behavior is met, with each node appearing once at its fewest steps.",
       "seconds": 239
+    },
+    "solved/d_Node_Step_Pairs_2026_09_29T21_30_07_283803_00_00Z.py": {
+      "date": "2026-09-30",
+      "problem": "drill",
+      "moves": {
+        "graph-bfs-shortest": "clean",
+        "graph-adjacency-build": "clean",
+        "seen-state-cycle-detect": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Uses harness levels() BFS generator; visited set keyed on (node, distance) so revisits at new depths are kept, matching the required O(k*(n+m)) single BFS.",
+      "summary": "The Solution.reachable method seeds a deque with node 0 and walks it with the harness levels() generator, which yields (depth, node) pairs level by level. It records each (node, d) pair in seen and enqueues neighbors at d+1 unless that pair is already seen, skipping depths past k. The visited set is keyed on the pair rather than the node alone, so node 1 reappears as (1, 4) in Example 1. All assertions passed; the notes are empty.",
+      "seconds": 215
     }
   }
 }
