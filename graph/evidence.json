@@ -31905,6 +31905,19 @@
       "note": "Drill targets memoize-recursion; @cache on longest(u) with max over children, wrapped in deep() for stack depth.",
       "summary": "The code defines longest(u) as max(1 + longest(v) for v in G[u]) with default 0, decorated with @cache so each node's longest path is computed once, then returns longest(0). It runs the recursion on a large-stack thread via deep() to survive deep graphs. All assertions pass, exercising the memoized recurrence the drill targets.",
       "seconds": 575
+    },
+    "solved/d_Fewest_Cells_Between_2026_09_29T23_00_37_511403_00_00Z.py": {
+      "date": "2026-09-30",
+      "problem": "drill",
+      "moves": {
+        "multi-source-bfs": "clean",
+        "grid-neighbors": "clean",
+        "graph-bfs-shortest": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill on multi-source-bfs; all assertions passed, output 3.",
+      "summary": "The solution seeds a deque with every cell equal to 1 via cells(grid, eq=1), then expands in BFS rings using levels(), checking each popped cell's neighbors for a 2 and enqueueing neighbors equal to 0. This exercises multi-source BFS (all sources at distance 0), grid-neighbors via nbrs, and graph-bfs-shortest layering. All assertions passed with no notes of hints or failures.",
+      "seconds": 55
     }
   }
 }
