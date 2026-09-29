@@ -31891,6 +31891,20 @@
       "note": "Drill targeting greedy-sort-take; sorts each flag group and pops the largest per position.",
       "summary": "The code splits nums into two groups by flag, sorts each group ascending, then for each flag pops the largest remaining value from the matching sorted list. This exercises sort-then-take greedily per group and uses a dict keyed by the boolean flag as buckets. All assertions passed on execution.",
       "seconds": 747
+    },
+    "solved/d_Longest_Path_From_Zero_2026_09_29T22_20_06_249236_00_00Z.py": {
+      "date": "2026-09-30",
+      "problem": "drill",
+      "moves": {
+        "memoize-recursion": "clean"
+      },
+      "assist": {
+        "memoize-recursion": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets memoize-recursion; @cache on longest(u) with max over children, wrapped in deep() for stack depth.",
+      "summary": "The code defines longest(u) as max(1 + longest(v) for v in G[u]) with default 0, decorated with @cache so each node's longest path is computed once, then returns longest(0). It runs the recursion on a large-stack thread via deep() to survive deep graphs. All assertions pass, exercising the memoized recurrence the drill targets.",
+      "seconds": 575
     }
   }
 }
