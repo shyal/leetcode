@@ -373,6 +373,44 @@ def test_assignment_converts_targets():
     assert fmt(src) == src
 
 
+def test_a_loop_that_names_no_variable_reads_the_item_as_underscore():
+    src = "def f(ps: [(int, int)]) -> int\n  ret s = 0\n  for ps\n    s += _[0]\n"
+    out = transpile(src)
+    assert "for _ in ps:" in out
+    ns = {}
+    exec(out, ns)
+    assert ns["Solution"]().f([(1, 9), (2, 9)]) == 3
+    assert fmt(src) == src
+
+
+@pytest.mark.parametrize(
+    "body, want",
+    [
+        ("sum for xs: _ * _", 14),
+        ("max from 0 for xs if _ < 3: _", 2),
+        ("count for xs if _ > 1", 2),
+        ("sum for xs\n    y = _ * 2\n    y", 12),
+    ],
+)
+def test_a_fold_that_names_no_variable_reads_the_item_as_underscore(body, want):
+    src = f"def f(xs: [int]) -> int\n  {body}\n"
+    out = transpile(src)
+    assert "for _ in xs" in out
+    ns = {}
+    exec(out, ns)
+    assert ns["Solution"]().f([1, 2, 3]) == want
+    assert fmt(src) == src
+
+
+def test_a_fold_over_an_attribute_call_names_no_variable():
+    src = "def f(d: {str: int}) -> int\n  sum for d.values(): _\n"
+    out = transpile(src)
+    assert "sum(_ for _ in d.values())" in out
+    ns = {}
+    exec(out, ns)
+    assert ns["Solution"]().f({"a": 2, "b": 5}) == 7
+
+
 def test_a_loop_may_name_no_variable():
     src = "def f(n: int) -> int\n  k = 0\n  for 0..<n\n    k += 2\n  k\n"
     out = transpile(src)
@@ -462,6 +500,18 @@ def test_vscode_grammar_highlights_every_helper():
     # Grid and deep are pasted in by the transpiler, never written in mu
     helpers = {h for h in HELPERS if not h.startswith("_")} - {"Grid", "deep"}
     assert helpers <= listed, sorted(helpers - listed)
+
+
+def test_vscode_grammar_highlights_the_item_underscore():
+    import json
+
+    grammar = json.loads(
+        (HERE / "vscode" / "syntaxes" / "mu.tmLanguage.json").read_text()
+    )
+    rule = re.compile(grammar["repository"]["item"]["match"])
+    assert rule.search("sum for xs: _ * 2")
+    assert not rule.search("_x = 0") and not rule.search("x_ = 0")
+    assert {"include": "#item"} in grammar["patterns"]
 
 
 def test_transpile_maps_every_python_line_to_its_mu_line():

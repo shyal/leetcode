@@ -31470,6 +31470,22 @@
       "judge": "deepseek-chat",
       "summary": "The file defines Solution.gain(a, t) returning ((a + 1) / (t + 1)) - (a / t), the change in the ratio a/t from adding one to both numerator and denominator. It exercises the marginal-gain move directly, computing new value minus old value, and the assertions confirm the formula across several inputs including the large 99999/100000 case. The run exited 0 with output 0.16666666666666663, and the notes contain no mention of hints or look-ups.",
       "seconds": 61
+    },
+    "solved/d_Exclusive_From_Call_Tree_2026_09_29T01_26_02_257434_00_00Z.py": {
+      "date": "2026-09-29",
+      "problem": "drill",
+      "moves": {
+        "tree-dfs-recursive": "clean",
+        "tree-combine-returns": "clean",
+        "stack-nested-eval": "clean"
+      },
+      "assist": {
+        "stack-nested-eval": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say 'This solution is the most intuitive' and the file is marked Learning; the post-order visit subtracts each child's dur from its parent only, one visit per node.",
+      "summary": "The code does a single post-order DFS over the call tree: visit recurses into every child first, then adds node.val['dur'] minus the sum of its direct children's dur into res at the node's id, skipping the root. This exercises recursive tree DFS, combining child results at the node, and the nested-scope evaluation shape where a parent's total is reduced by its immediate children only. The notes label the solution as the most intuitive and the file is marked Learning, so the nested-eval move is recorded as learning.",
+      "seconds": 2770
     }
   }
 }

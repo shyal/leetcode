@@ -911,16 +911,18 @@ class Parser:
     def repeat(self):
         """`for xs` with no `in`: the iterable of a loop that names no
         variable, or None when a target and `in` follow."""
+        return None if self.names_a_target() else self.expr()
+
+    def names_a_target(self):
+        """True when a target and `in` come next, as in `for x in xs`."""
         start = self.i
         try:
             self.target()
-            if self.at("in"):
-                self.i = start
-                return None
+            return self.at("in")
         except MuError:
-            pass
-        self.i = start
-        return self.expr()
+            return False
+        finally:
+            self.i = start
 
     def target(self):
         """`x`, `(a, b)`, or `i, x`; the last one enumerates."""
@@ -1321,17 +1323,21 @@ class Parser:
         return Py(f"{fn}({', '.join(parts)})")
 
     def fold(self, allow_block=False):
-        """sum|max|min|count [from e] for target in iter [if cond] (: body | block)."""
+        """sum|max|min|count [from e] for [target in] iter [if cond] (: body | block).
+        With no `target in`, the item is `_`."""
         op = self.next()[1]
         start = None
         if self.at("from"):
             self.next()
             start = self.arith()
         self.expect("for")
-        tgt, enum = self.target()
-        self.expect("in")
-        it = self.or_()
-        it = f"enumerate({it})" if enum else it
+        if self.names_a_target():
+            tgt, enum = self.target()
+            self.expect("in")
+            it = self.or_()
+            it = f"enumerate({it})" if enum else it
+        else:
+            tgt, it = "_", self.or_()
         where = None
         if self.at("if"):
             self.next()

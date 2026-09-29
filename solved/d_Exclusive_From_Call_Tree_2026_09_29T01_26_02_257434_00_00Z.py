@@ -83,55 +83,53 @@ Constraints:
     A call three levels deep must be subtracted from its parent only,
     never from its grandparent; an answer right two levels deep and wrong
     three levels deep is the failure this kills.
+---
+Learning
+
+This solution is the most intuitive.
 """
 
 
-class Solution:
+# mu 0.6
+# def exclusive(n: int, root: Node) -> [int]
+#   def visit(node)
+#     for child in node.children.values()
+#       visit(child)
+#     if node is not root
+#       res[node.val['id']] += node.val['dur'] - sum for node.children.values(): _.val["dur"]
+#   ret res = table(n)
+#   visit(root)
 
-    def exclusive(self, n: int, root: Node) -> List[int]:
-        pass
+def table(*dims, fill=0):
+    if len(dims) == 1:
+        return [fill] * dims[0]
+    if len(dims) == 2:
+        return [[fill] * dims[1] for _ in range(dims[0])]
+    return [table(*dims[1:], fill=fill) for _ in range(dims[0])]
+
+
+class Solution:
+    def exclusive(self, n: int, root: Node) -> list[int]:
+        def visit(node):
+            for child in node.children.values():
+                visit(child)
+            if node is not root:
+                res[node.val['id']] += node.val['dur'] - sum(_.val["dur"] for _ in node.children.values())
+        res = table(n)
+        visit(root)
+        return res
 
 
 sol = Solution()
-
-root = build_general_tree([{}, [[{"id": 0, "dur": 7}, [[{"id": 1, "dur": 4}, []]]]]])
+root = build_general_tree([{}, [[{'id': 0, 'dur': 7}, [[{'id': 1, 'dur': 4}, []]]]]])
 draw_general_tree(root)
-print(sol.exclusive(2, root))  # [3, 4]
-
-# assert sol.exclusive(
-#     2, build_general_tree([{}, [[{"id": 0, "dur": 7}, [[{"id": 1, "dur": 4}, []]]]]])
-# ) == [3, 4]
-# assert sol.exclusive(
-#     2,
-#     build_general_tree(
-#         [{}, [[{"id": 0, "dur": 6}, [[{"id": 0, "dur": 4}, [[{"id": 1, "dur": 2}, []]]]]]]]
-#     ),
-# ) == [4, 2]
-# assert sol.exclusive(
-#     3,
-#     build_general_tree(
-#         [{}, [[{"id": 0, "dur": 6}, [[{"id": 1, "dur": 2}, []], [{"id": 2, "dur": 2}, []]]], [{"id": 1, "dur": 2}, []]]]
-#     ),
-# ) == [2, 4, 2]
-# assert sol.exclusive(1, build_general_tree([{}, [[{"id": 0, "dur": 1}, []]]])) == [1]
-# assert sol.exclusive(
-#     2, build_general_tree([{}, [[{"id": 0, "dur": 1}, []], [{"id": 1, "dur": 1}, []]]])
-# ) == [1, 1]
-# assert sol.exclusive(
-#     1, build_general_tree([{}, [[{"id": 0, "dur": 8}, [[{"id": 0, "dur": 4}, []], [{"id": 0, "dur": 1}, []]]]]])
-# ) == [8]
-# assert sol.exclusive(
-#     3,
-#     build_general_tree(
-#         [{}, [[{"id": 0, "dur": 4}, [[{"id": 1, "dur": 1}, []], [{"id": 2, "dur": 1}, []]]]]]
-#     ),
-# ) == [2, 1, 1]
-# assert sol.exclusive(
-#     1,
-#     build_general_tree(
-#         [{}, [[{"id": 0, "dur": 6}, [[{"id": 0, "dur": 4}, [[{"id": 0, "dur": 2}, []]]]]]]]
-#     ),
-# ) == [6]
-# assert sol.exclusive(
-#     2, build_general_tree([{}, [[{"id": 1, "dur": 1000000000}, [[{"id": 0, "dur": 1}, []]]]]])
-# ) == [1, 999999999]
+print(sol.exclusive(2, root))
+assert sol.exclusive(2, build_general_tree([{}, [[{'id': 0, 'dur': 7}, [[{'id': 1, 'dur': 4}, []]]]]])) == [3, 4]
+assert sol.exclusive(2, build_general_tree([{}, [[{'id': 0, 'dur': 6}, [[{'id': 0, 'dur': 4}, [[{'id': 1, 'dur': 2}, []]]]]]]])) == [4, 2]
+assert sol.exclusive(3, build_general_tree([{}, [[{'id': 0, 'dur': 6}, [[{'id': 1, 'dur': 2}, []], [{'id': 2, 'dur': 2}, []]]], [{'id': 1, 'dur': 2}, []]]])) == [2, 4, 2]
+assert sol.exclusive(1, build_general_tree([{}, [[{'id': 0, 'dur': 1}, []]]])) == [1]
+assert sol.exclusive(2, build_general_tree([{}, [[{'id': 0, 'dur': 1}, []], [{'id': 1, 'dur': 1}, []]]])) == [1, 1]
+assert sol.exclusive(1, build_general_tree([{}, [[{'id': 0, 'dur': 8}, [[{'id': 0, 'dur': 4}, []], [{'id': 0, 'dur': 1}, []]]]]])) == [8]
+assert sol.exclusive(3, build_general_tree([{}, [[{'id': 0, 'dur': 4}, [[{'id': 1, 'dur': 1}, []], [{'id': 2, 'dur': 1}, []]]]]])) == [2, 1, 1]
+assert sol.exclusive(1, build_general_tree([{}, [[{'id': 0, 'dur': 6}, [[{'id': 0, 'dur': 4}, [[{'id': 0, 'dur': 2}, []]]]]]]])) == [6]
+assert sol.exclusive(2, build_general_tree([{}, [[{'id': 1, 'dur': 1000000000}, [[{'id': 0, 'dur': 1}, []]]]]])) == [1, 999999999]

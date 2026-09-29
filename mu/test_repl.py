@@ -104,6 +104,8 @@ def test_highlight_classes():
     assert got["0"] == "num" and got[">="] == "op"
     assert styles("max(a, b)")["max"] == "builtin"
     assert styles("x = inf")["inf"] == "const"
+    got = styles("sum for xs: _ * _x")
+    assert got["_"] == "item" and got["_x"] == ""
 
 
 def test_highlight_survives_half_typed_input():

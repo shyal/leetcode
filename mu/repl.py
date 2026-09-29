@@ -44,6 +44,7 @@ STYLE = {
     "mu.control": "#c678dd bold",
     "mu.fold": "#ff79c6 bold",
     "mu.const": "#56b6c2 bold",
+    "mu.item": "#e06c75 italic",
     "mu.num": "#d19a66",
     "mu.str": "#98c379",
     "mu.comment": "#7f848e italic",
@@ -85,6 +86,8 @@ def highlight(line):
                 style = "control"
             elif v in CONSTANTS:
                 style = "const"
+            elif v == "_":
+                style = "item"
             elif v in TYPES:
                 style = "type"
             elif prev in ("def", "memo"):
