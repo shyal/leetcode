@@ -31606,6 +31606,18 @@
       "note": "Notes say 'Learning'; all assertions passed, output 3.",
       "summary": "The solution seeds a deque with every cell equal to 1 via cells(grid, eq=1), then expands in BFS rings using levels(q, seen=set()) and nbrs(grid, c), returning d-1 when a cell equal to 2 is reached. This exercises multi-source BFS, grid-neighbor expansion, and BFS shortest-distance layering. The notes mark the work as Learning.",
       "seconds": 807
+    },
+    "solved/d_Read_The_Signed_Numbers_2026_09_29T03_32_40_889716_00_00Z.py": {
+      "date": "2026-09-29",
+      "problem": "drill",
+      "moves": {
+        "stack-nested-eval": "clean",
+        "divmod-decompose": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets stack-nested-eval; the code accumulates digits and pushes each signed number onto st, flushing on each operator.",
+      "summary": "The code scans s with a sentinel '+' appended, accumulating digits into num and, on each operator, pushing num (negated if op is '-') onto the list st, then resetting num and updating op. It exercises the stack-nested-eval move by pushing each parsed signed number as it closes a scope, and digit peeling via num = num*10 + int(c). All assertions pass and the notes contain no mention of hints or failures.",
+      "seconds": 188
     }
   }
 }
