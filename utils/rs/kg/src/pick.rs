@@ -1232,18 +1232,30 @@ impl<'a> Picker<'a> {
                 }
             }
             {
+                // Price a fresh carrier by the odds the fit gives it against
+                // TARGET_PASS_RATE, as the proving rule does; gentleness
+                // (difficulty tier, walk size) only breaks ties. Sorting by
+                // gentleness alone served Mediums rated 300 to 650 above the
+                // proven rating for two weeks (2026-09-16 to 2026-09-29).
                 let pv = self.pv.borrow();
+                let aim = target_pass_rate();
+                let (recall, coef, ratings, counts) = self.solve_state();
+                let price = |p: &str| -> (bool, f64) {
+                    match problem_solve_p(p, &pv, &recall, coef.as_ref(), &ratings, &counts) {
+                        None => (true, 0.0),
+                        Some(o) => (false, (o - aim).abs()),
+                    }
+                };
                 cands.sort_by(|a, b| {
-                    (
-                        !last_solved(self.ev, a).is_empty(),
-                        gentleness(self.ctx, a, &pv),
-                        last_solved(self.ev, a),
-                    )
-                        .cmp(&(
-                            !last_solved(self.ev, b).is_empty(),
-                            gentleness(self.ctx, b, &pv),
-                            last_solved(self.ev, b),
-                        ))
+                    let pa = price(a);
+                    let pb = price(b);
+                    (!last_solved(self.ev, a).is_empty(), pa.0)
+                        .cmp(&(!last_solved(self.ev, b).is_empty(), pb.0))
+                        .then_with(|| pa.1.partial_cmp(&pb.1).unwrap())
+                        .then_with(|| {
+                            (gentleness(self.ctx, a, &pv), last_solved(self.ev, a))
+                                .cmp(&(gentleness(self.ctx, b, &pv), last_solved(self.ev, b)))
+                        })
                         .then_with(|| {
                             self.ctx
                                 .acceptance(b)

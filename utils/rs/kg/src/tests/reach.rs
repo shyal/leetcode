@@ -268,6 +268,33 @@ fn an_unpriced_carrier_sorts_behind_the_priced_ones() {
     assert_eq!(pnum(&fx.run(&no_evidence(), &st, args())), "2");
 }
 
+/// 2026-09-16 to 2026-09-29: the fresh-carrier rule sorted by gentleness
+/// alone (difficulty tier, walk size), blind to rating, and served Mediums
+/// 300 to 650 points above the proven rating for two weeks. It now prices
+/// like the proving rule: the carrier the cold-solve model puts nearest
+/// the target pass rate wins, gentleness only breaks ties.
+#[test]
+fn the_fresh_carrier_nearest_the_target_pass_rate_wins() {
+    let mut fx = Fx::picker();
+    // problem 1 (Easy) sits at p = 0.27, problem 2 (Medium) at p = 0.50
+    flat_model(&mut fx, &[("1", 2000.0), ("2", 1500.0)]);
+    fx.nodes(&["new"])
+        .problems(vec![("1", easy(&["new"])), ("2", problem(&["new"]))]);
+    let st = statuses(&[("new", MISSING, None)]);
+    assert_eq!(pnum(&fx.run(&no_evidence(), &st, args())), "2");
+}
+
+/// Without a fit every fresh carrier is unpriced and the old gentleness
+/// order still holds: the Easy goes first.
+#[test]
+fn unpriced_fresh_carriers_keep_the_gentleness_order() {
+    let mut fx = Fx::picker();
+    fx.nodes(&["new"])
+        .problems(vec![("1", easy(&["new"])), ("2", problem(&["new"]))]);
+    let st = statuses(&[("new", MISSING, None)]);
+    assert_eq!(pnum(&fx.run(&no_evidence(), &st, args())), "1");
+}
+
 /// 2026-09-13: multi-source-bfs had every proving carrier solved, and the
 /// drafted fallback served 2812 at rating 2154 (7% odds) on connectivity
 /// alone. The drafted tier now takes the proving path's order: among
