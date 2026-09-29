@@ -31808,6 +31808,19 @@
       "note": "UNION ALL stacks requester_id and accepter_id into one id column, preserving repeats as required.",
       "summary": "The query selects requester_id as id from RequestAccepted and UNION ALLs it with accepter_id as id from the same table, producing two rows per input row with duplicates kept. This exercises the sql-set-union move via UNION ALL to unpivot two columns into one. Both example assertions passed and the notes are empty.",
       "seconds": 115
+    },
+    "solved/d_Nth_From_End_2026_09_29T20_32_59_799185_00_00Z.py": {
+      "date": "2026-09-30",
+      "problem": "drill",
+      "moves": {
+        "ll-offset-arithmetic": "clean"
+      },
+      "assist": {
+        "ll-offset-arithmetic": "learning"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The code advances a fast pointer f by n steps, then walks both w and f together until f falls off the end, leaving w on the nth-from-end node and returning w.val. This is the head-start gap technique (ll-offset-arithmetic), exercised correctly across all assertions including the 30000-node cases. The notes say 'Learning', indicating the solution was given and copied.",
+      "seconds": 399
     }
   }
 }
