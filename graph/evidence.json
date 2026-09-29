@@ -31735,6 +31735,27 @@
       "note": "LEETCODE: Accepted (6511 ms, 467.9 MB) \u2014 brute-force permutation backtracking with a take[] mask and set() dedupe, not the canonical Counter + divmod digit enumeration.",
       "summary": "The code sorts nums, then recursively builds 3-digit numbers by choosing unused indices via a take[] mask, appending totals that are even and >= 100, and finally returns sorted(set(ret)). It exercises backtracking-choose-undo, backtracking-mark-unmark, and backtracking-start-index, with sort-by-custom-key for the initial ordering. The canonical counter-build and divmod-decompose moves are sidestepped entirely; the notes show an earlier mu version with a sibling-dedupe comment that was commented out, and LeetCode accepted the brute force at 6511 ms.",
       "seconds": 1279
+    },
+    "solved/p300_Longest_Increasing_Subsequence_FAILED_2026_09_29T07_22_13_300730_00_00Z.py": {
+      "date": "2026-09-29",
+      "problem": "300",
+      "moves": {
+        "dp-state-formulate": "struggled",
+        "dp-1d-rolling": "struggled",
+        "substring-enumeration": "clean",
+        "running-extreme": "clean"
+      },
+      "assist": {
+        "dp-state-formulate": "learning",
+        "dp-1d-rolling": "learning",
+        "substring-enumeration": "learning",
+        "running-extreme": "learning"
+      },
+      "judge": "deepseek-chat",
+      "followup": "not solved",
+      "note": "Notes say 'Learning - building drill - gating' and 'blank on the recurrence, the cell reading an earlier cell: dp[i] = max(dp[i], dp[j] + 1) when nums[j] < nums[i]'; file footer says FAILED after 24m 29s.",
+      "summary": "The code builds a dp table and uses the harness pairs() helper to enumerate all (j, i) index pairs, updating dp[i] = max(dp[i], dp[j] + 1) whenever nums[j] < nums[i], then returns max(dp) + 1. It exercises the O(n^2) pair enumeration and a running max over the table, but the notes state the candidate was blank on the recurrence and was walked through it as a learning drill, and the file is marked FAILED after 24m 29s. The O(n log n) follow-up is not met, since the solution is quadratic.",
+      "seconds": 1469
     }
   }
 }
