@@ -213,6 +213,22 @@ under its moving average in the elo, hours, onsite and problem rating charts.
 simulated attempts and its dashed forecast lines in the problem rating chart. Either takes
 a number from 0 to 1 in `.envrc`; anything else falls back to the default.
 
+## Target pass rate (`TARGET_PASS_RATE`)
+
+`TARGET_PASS_RATE=0.5` in `.envrc` (the default) is the score a served problem
+should come out at: the fit in `curve.json` gives every candidate walk its
+cold-solve odds, and the picker serves the walk nearest the aim. The aim is
+not the target itself. It is the target plus the shortfall of the last 20
+first sights: their mean score (a clean pass inside the clock is 1, a pass on
+a hint 1/2, a fail or a pass over the clock 0, the same quantity the fit
+predicts) against the target. First sights scoring 0.30 against a target of
+0.50 aim the picker at problems the fit puts at 0.70; scoring 0.60 aims it at
+0.40; scoring at the target aims at the target. Fewer than 10 first sights on
+record leave the aim on the target, and the aim stays between 0.1 and 0.9.
+`make next` prints the aim under the headline whenever it is off the target.
+The simulators (`make mock`, `make simulate`) read the target as what ready
+means and never the aim.
+
 ## Group cap (`KG_GROUP_CAP`)
 
 `KG_GROUP_CAP=sql=3` in `.envrc` (`sql=3,graphs=2` for several) caps how many

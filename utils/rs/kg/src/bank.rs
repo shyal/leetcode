@@ -13,7 +13,7 @@ use crate::ctx::{Ctx, PView};
 use crate::data::{parse_date, pnum_key, Problem, Problems, SOLID_WINDOW_DAYS};
 use crate::drills::{drill_clean, drill_gate_warm, drill_warm, latest_drill_rep, node_drill_hold};
 use crate::evidence::Evidence;
-use crate::model::{target_pass_rate, walk_informative, SolveState};
+use crate::model::{aim_pass_rate, walk_informative, SolveState};
 use crate::status::{
     carry_bar, diff_rank, input_tree, is_solid, last_clean_solve, owned, Statuses, MISSING, SOLID,
     STALE,
@@ -363,8 +363,8 @@ fn first_walk_per_problem(dm: &DraftMatrix, sel: &[bool]) -> Vec<usize> {
 
 /// kg_lib.predicted_carrier: the best drafted problem whose walk needs
 /// nothing but the target, promoted in memory as (pnum, entry). With a
-/// `state` the walk the cold-solve model prices closest to the target pass
-/// rate comes first; unpriced walks keep the connectivity order behind it.
+/// `state` the walk the cold-solve model prices closest to the aim
+/// (model::aim_pass_rate) comes first; unpriced walks keep the connectivity order behind it.
 #[allow(clippy::too_many_arguments)]
 pub fn predicted_carrier(
     ctx: &Ctx,
@@ -430,7 +430,7 @@ pub fn predicted_carrier(
     if best.is_empty() {
         return None;
     }
-    let aim = target_pass_rate();
+    let aim = aim_pass_rate(ctx, ev).aim;
     best.sort_by(|a, b| {
         let ia = walk_informative(&a.0, &a.1, state, aim);
         let ib = walk_informative(&b.0, &b.1, state, aim);

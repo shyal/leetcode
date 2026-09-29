@@ -121,7 +121,6 @@ pub fn problem_solve_p(
     Some(1.0 / (1.0 + (-solve_logit(coef, rating, &t)).exp()))
 }
 
-/// kg_lib.target_pass_rate: TARGET_PASS_RATE in (0, 1), else 0.5.
 /// kg_next.solve_state: (node recall today, the fitted cold-solve
 /// coefficients, problem ratings, carrier counts) - what prices a walk.
 /// Computed once per pick and handed to every rating-aware sort.
@@ -214,6 +213,8 @@ pub fn retention_cycle(ctx: &Ctx, ev: &Evidence) -> i64 {
     windows[windows.len() / 2] as i64
 }
 
+/// kg_lib.target_pass_rate: TARGET_PASS_RATE in (0, 1), else 0.5. What
+/// "ready" means to the simulators; the picker aims at aim_pass_rate.
 pub fn target_pass_rate() -> f64 {
     let raw = env_str("TARGET_PASS_RATE");
     if raw.is_empty() {
@@ -222,6 +223,64 @@ pub fn target_pass_rate() -> f64 {
     match raw.trim().parse::<f64>() {
         Ok(v) if v > 0.0 && v < 1.0 => v,
         _ => 0.5,
+    }
+}
+
+/// The window of the aim: the last AIM_WINDOW first sights.
+pub const AIM_WINDOW: usize = 20;
+/// Fewer first sights than this in the window and the aim is the target.
+pub const AIM_MIN_GAMES: usize = 10;
+/// The aim never leaves this range, whatever the window scored.
+pub const AIM_BOUNDS: (f64, f64) = (0.1, 0.9);
+
+/// What the picker aims the cold-solve odds at (settled 2026-09-29).
+#[derive(Clone, Debug, PartialEq)]
+pub struct Aim {
+    /// TARGET_PASS_RATE
+    pub target: f64,
+    /// first sights in the window
+    pub games: usize,
+    /// the mean of their scores, the quantity the fit predicts; None
+    /// under AIM_MIN_GAMES games
+    pub scored: Option<f64>,
+    /// the odds the fit should give a served problem
+    pub aim: f64,
+}
+
+/// The picker prices a walk by the fit's odds and serves the one nearest
+/// the target. A walk the fit puts at the target has not scored at the
+/// target: the first sights of September 2026 scored well under it, and
+/// the target in .envrc was raised by hand from 0.50 to 0.65 to make up
+/// the shortfall. This is that hand rule made automatic. The aim is the
+/// target plus the shortfall of the last AIM_WINDOW first sights, their
+/// mean score (the quantity the fit predicts) against the target: scoring
+/// 0.30 against a target of 0.50 aims at 0.70, scoring 0.60 aims at
+/// 0.40. A window scoring at the target aims at the target. Under
+/// AIM_MIN_GAMES games the aim is the target; it stays inside AIM_BOUNDS.
+pub fn aim_pass_rate(ctx: &Ctx, ev: &Evidence) -> Aim {
+    let target = target_pass_rate();
+    let scores: Vec<f64> = scored_games(ctx, ev)
+        .iter()
+        .filter(|g| g.first && !g.chain())
+        .map(|g| g.score)
+        .collect();
+    let recent = &scores[scores.len().saturating_sub(AIM_WINDOW)..];
+    let games = recent.len();
+    if games < AIM_MIN_GAMES {
+        return Aim {
+            target,
+            games,
+            scored: None,
+            aim: target,
+        };
+    }
+    let scored = recent.iter().sum::<f64>() / games as f64;
+    let aim = (target + (target - scored)).clamp(AIM_BOUNDS.0, AIM_BOUNDS.1);
+    Aim {
+        target,
+        games,
+        scored: Some(scored),
+        aim,
     }
 }
 

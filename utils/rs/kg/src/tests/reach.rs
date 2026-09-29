@@ -233,6 +233,68 @@ fn the_proving_carrier_nearest_the_target_pass_rate_wins() {
     assert_eq!(pnum(&fx.run(&no_evidence(), &st, args())), "1");
 }
 
+/// Ten first sights over the clock, each scored 0: the window says the
+/// fit's odds run high, so the aim moves off the target by the shortfall
+/// (0.50 against a target of 0.50 aims at 1.0, clamped to 0.9) and the
+/// carrier the fit puts at 0.73 is now the nearer one. Before 2026-09-29
+/// the aim was TARGET_PASS_RATE itself, raised by hand when a fortnight
+/// ran brutal.
+#[test]
+fn a_brutal_window_of_first_sights_raises_the_aim() {
+    let mut fx = Fx::picker();
+    flat_model(&mut fx, &[("1", 1500.0), ("2", 1100.0)]);
+    fx.nodes(&["a", "b", "z"]);
+    fx.problems(vec![
+        ("1", problem(&["a", "b"])),
+        ("2", problem(&["a", "b"])),
+    ]);
+    let st = statuses(&[
+        ("a", SOLID, Some(1)),
+        ("b", SOLID, Some(1)),
+        ("z", SOLID, Some(1)),
+    ]);
+    fx.stubs().immature.insert("b".into());
+    fx.stubs().gain = map(&[("b", 40)]);
+    let ev = evidence(over_the_clock(&mut fx, 10));
+    assert_eq!(pnum(&fx.run(&ev, &st, args())), "2");
+}
+
+/// Under AIM_MIN_GAMES first sights the window says nothing and the aim
+/// is the target: the carrier at 0.50 keeps the rep.
+#[test]
+fn a_short_window_leaves_the_aim_on_the_target() {
+    let mut fx = Fx::picker();
+    flat_model(&mut fx, &[("1", 1500.0), ("2", 1100.0)]);
+    fx.nodes(&["a", "b", "z"]);
+    fx.problems(vec![
+        ("1", problem(&["a", "b"])),
+        ("2", problem(&["a", "b"])),
+    ]);
+    let st = statuses(&[
+        ("a", SOLID, Some(1)),
+        ("b", SOLID, Some(1)),
+        ("z", SOLID, Some(1)),
+    ]);
+    fx.stubs().immature.insert("b".into());
+    fx.stubs().gain = map(&[("b", 40)]);
+    let ev = evidence(over_the_clock(&mut fx, crate::model::AIM_MIN_GAMES - 1));
+    assert_eq!(pnum(&fx.run(&ev, &st, args())), "1");
+}
+
+/// `n` first sights on `z`, each a pass an hour long: over a Medium's
+/// clock, scored 0, and no fail (no drill gate opens).
+fn over_the_clock(fx: &mut Fx, n: usize) -> Vec<(String, Rec)> {
+    (0..n)
+        .map(|i| {
+            let num = format!("{}", 101 + i);
+            fx.problem(&num, problem(&["z"]));
+            let mut r = solve(&num, &[("z", "clean")], i as i64 + 1);
+            r.1.seconds = Some(3600);
+            r
+        })
+        .collect()
+}
+
 /// The fit can keep a `length` term (it did on 2026-09-16, at -0.60) and
 /// the picker must price it: at one rating, the intercept puts a one-move
 /// walk above the target and the length term brings a two-move walk down

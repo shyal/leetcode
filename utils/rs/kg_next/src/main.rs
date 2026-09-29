@@ -265,6 +265,19 @@ fn rating_line(ctx: &Ctx, pnum: &str, ev: &Evidence) -> Option<String> {
     Some(line)
 }
 
+/// The aim's line under the headline, when the last first sights moved
+/// it off the target (model::aim_pass_rate); None while it is the target.
+fn aim_line(a: &kg::model::Aim) -> Option<String> {
+    let scored = a.scored?;
+    if (a.aim - a.target).abs() < 0.005 {
+        return None;
+    }
+    Some(format!(
+        "[dim]aimed at odds {:.2}: the last {} first sights scored {:.2} against a target of {:.2}[/dim]",
+        a.aim, a.games, scored, a.target
+    ))
+}
+
 fn headline(ctx: &Ctx, pnum: &str, pv: &PView, ev: &Evidence) -> String {
     let parts: Vec<String> = [difficulty_line(ctx, pnum, pv), rating_line(ctx, pnum, ev)]
         .into_iter()
@@ -1446,6 +1459,9 @@ fn run_main(run: &Run, asleep: &[String], woken: &[String]) {
 
     console.begin_capture();
     console.print(&headline(ctx, &pnum, &run.pv.borrow(), ev));
+    if let Some(line) = aim_line(&kg::model::aim_pass_rate(ctx, ev)) {
+        console.print(&line);
+    }
     if p.predicted {
         console.print("[yellow]⚠ drafted walk, not yet evidenced \u{2014} your solve is what maps this problem[/yellow]");
     }

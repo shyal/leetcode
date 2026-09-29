@@ -223,7 +223,7 @@ use crate::drills::{
     last_drilled,
 };
 use crate::evidence::Evidence;
-use crate::model::{problem_solve_p, solve_model, solve_ratings, target_pass_rate, SolveState};
+use crate::model::{aim_pass_rate, problem_solve_p, solve_model, solve_ratings, SolveState};
 use crate::recog;
 use crate::status::{
     all_statuses, cooled, current_recall, gentleness, input_tree, is_solid, last_solved,
@@ -603,6 +603,8 @@ struct Picker<'a> {
     dodged: HashMap<String, String>,
     under: HashMap<String, String>,
     model: RefCell<Option<SolveState>>,
+    /// model::aim_pass_rate, once per pick
+    aim: RefCell<Option<f64>>,
     // pure per pick: memoized (the Python recomputes them; the answers
     // are the same, only sooner)
     due_memo: RefCell<HashMap<String, Option<String>>>,
@@ -957,6 +959,16 @@ impl<'a> Picker<'a> {
         }
     }
 
+    /// The odds a served problem should show under the fit.
+    fn aim(&self) -> f64 {
+        if let Some(a) = *self.aim.borrow() {
+            return a;
+        }
+        let a = aim_pass_rate(self.ctx, self.ev).aim;
+        *self.aim.borrow_mut() = Some(a);
+        a
+    }
+
     fn solve_state(&self) -> SolveState {
         if let Some(s) = self.model.borrow().as_ref() {
             return s.clone();
@@ -1000,7 +1012,7 @@ impl<'a> Picker<'a> {
                 })
                 .collect()
         };
-        let aim = target_pass_rate();
+        let aim = self.aim();
         let (recall, coef, ratings, counts) = self.solve_state();
         {
             let pv = self.pv.borrow();
@@ -1233,12 +1245,12 @@ impl<'a> Picker<'a> {
             }
             {
                 // Price a fresh carrier by the odds the fit gives it against
-                // TARGET_PASS_RATE, as the proving rule does; gentleness
+                // the aim (model::aim_pass_rate), as the proving rule does; gentleness
                 // (difficulty tier, walk size) only breaks ties. Sorting by
                 // gentleness alone served Mediums rated 300 to 650 above the
                 // proven rating for two weeks (2026-09-16 to 2026-09-29).
                 let pv = self.pv.borrow();
-                let aim = target_pass_rate();
+                let aim = self.aim();
                 let (recall, coef, ratings, counts) = self.solve_state();
                 let price = |p: &str| -> (bool, f64) {
                     match problem_solve_p(p, &pv, &recall, coef.as_ref(), &ratings, &counts) {
@@ -1471,6 +1483,7 @@ pub fn pick(
         dodged,
         under,
         model: RefCell::new(None),
+        aim: RefCell::new(None),
         due_memo: RefCell::new(HashMap::new()),
         kind_memo: RefCell::new(HashMap::new()),
         opener_memo: RefCell::new(HashMap::new()),
