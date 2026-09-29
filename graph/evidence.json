@@ -31918,6 +31918,19 @@
       "note": "Drill on multi-source-bfs; all assertions passed, output 3.",
       "summary": "The solution seeds a deque with every cell equal to 1 via cells(grid, eq=1), then expands in BFS rings using levels(), checking each popped cell's neighbors for a 2 and enqueueing neighbors equal to 0. This exercises multi-source BFS (all sources at distance 0), grid-neighbors via nbrs, and graph-bfs-shortest layering. All assertions passed with no notes of hints or failures.",
       "seconds": 55
+    },
+    "solved/d_Subarrays_Summing_To_Target_2026_09_29T23_11_16_370241_00_00Z.py": {
+      "date": "2026-09-30",
+      "problem": "drill",
+      "moves": {
+        "prefix-sum-hashmap": "clean",
+        "streaming-ask-then-record": "clean",
+        "derived-key-lookup": "clean",
+        "running-sum": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The code keeps a running prefix sum and a defaultdict D mapping each prefix value to how many times it has occurred, seeded with D[0] = 1. At each element it adds the element to prefix, adds D[prefix - target] to res (the count of earlier prefixes that would close a subarray summing to target), then records the current prefix. This exercises the prefix-sum-hashmap move, with the derived key prefix - target and the ask-then-record streaming order. The run exited 0 and printed 3.",
+      "seconds": 263
     }
   }
 }
