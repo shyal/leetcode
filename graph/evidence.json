@@ -31951,6 +31951,17 @@
       "note": "Drill's required line `folds(Solution, 'sum')` is met; the mu source `sum for x in nums: x * x` is the running-sum fold.",
       "summary": "The solution sums the squares of the input list with a single generator expression `sum(x * x for x in nums)`, exercising the running-sum fold. The mu source writes the same fold as `sum for x in nums: x * x`. All assertions pass, including the large 100000-element case, and the drill's required `folds(Solution, 'sum')` line is satisfied.",
       "seconds": 32
+    },
+    "solved/d_Largest_Even_2026_09_29T23_17_53_980839_00_00Z.py": {
+      "date": "2026-09-30",
+      "problem": "drill",
+      "moves": {
+        "running-extreme": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "mu source uses `max from -1 for n in nums if even(n): n`, a fold with a start value; the transpiled Python uses max(-1, max(..., default=-1)).",
+      "summary": "The code returns the largest even number in nums, or -1 when none exists. It filters with even(n) and reduces with a max fold seeded at -1, exercising the running-extreme move. All assertions passed and the mu source shows the same fold written as `max from -1`.",
+      "seconds": 116
     }
   }
 }
