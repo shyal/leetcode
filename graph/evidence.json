@@ -31632,6 +31632,18 @@
       "note": "mu source shows memo longest(u) = max((1 + longest(v) for v in G[u]), default=0); notes mark the drill as Learning.",
       "summary": "The solution defines a cached recursive function longest(u) that returns the max over successors of 1 + longest(v), defaulting to 0 at a sink, and calls longest(0) inside a deep-stack thread. This exercises memoize-recursion: each node's longest path is computed once and reused, giving O(n + m). The notes label the drill as Learning, and the run exited 0 with output 2 for the sample graph.",
       "seconds": 1246
+    },
+    "solved/d_Largest_By_Flag_2026_09_29T04_46_30_623287_00_00Z.py": {
+      "date": "2026-09-29",
+      "problem": "drill",
+      "moves": {
+        "greedy-sort-take": "clean",
+        "counting-sort-buckets": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targeting greedy-sort-take; groups values by flag into a defaultdict, sorts each group, and pops the largest per position.",
+      "summary": "The code buckets each value into D[f] by its flag, sorts both buckets ascending, then for each flag pops the current largest from that bucket. This exercises greedy-sort-take (sort then take the extreme) and counting-sort-buckets (indexing an array by the boolean flag value). All assertions passed on execution.",
+      "seconds": 485
     }
   }
 }
