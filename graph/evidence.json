@@ -31712,6 +31712,15 @@
       "note": "Notes say 'Failed / WHERE: could not see the comparison nums[mid] > nums[hi]' \u2014 the pivot comparison was not recognised; the run itself exited 0.",
       "summary": "The code runs a lo/hi binary search, halving with mid = (lo + hi) // 2 and moving lo = mid + 1 when nums[mid] > nums[hi], else hi = mid, then returns nums[lo]. That exercises the classic binary-search index template cleanly, but the rotated-array pivot decision is the move the notes say was not seen ('could not see the comparison nums[mid] > nums[hi]'), and the notes report the attempt as failed after 36m 21s. The single assertion on a rotated array passes.",
       "seconds": 2181
+    },
+    "solved/d_After_The_Drop_2026_09_29T06_00_05_213474_00_00Z.py": {
+      "date": "2026-09-29",
+      "problem": "drill",
+      "moves": {},
+      "judge": "deepseek-chat",
+      "note": "Drill targets rotated-array-pivot, but the code sidesteps binary search entirely: it compares every element to nums[-1] in a list comprehension, so no pivot is located.",
+      "summary": "The solution returns a list of booleans by comparing each element n to the last element nums[-1] in a single comprehension. This works because in a rotated sorted array the last element is the minimum, so n <= nums[-1] identifies the post-drop suffix. The targeted rotated-array-pivot move is avoided: no binary search or mid-vs-end comparison is performed, only a linear scan against the tail.",
+      "seconds": 173
     }
   }
 }
