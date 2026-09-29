@@ -31486,6 +31486,17 @@
       "note": "Notes say 'This solution is the most intuitive' and the file is marked Learning; the post-order visit subtracts each child's dur from its parent only, one visit per node.",
       "summary": "The code does a single post-order DFS over the call tree: visit recurses into every child first, then adds node.val['dur'] minus the sum of its direct children's dur into res at the node's id, skipping the root. This exercises recursive tree DFS, combining child results at the node, and the nested-scope evaluation shape where a parent's total is reduced by its immediate children only. The notes label the solution as the most intuitive and the file is marked Learning, so the nested-eval move is recorded as learning.",
       "seconds": 2770
+    },
+    "solved/d_Equal_Pairs_2026_09_29T01_30_49_350421_00_00Z.py": {
+      "date": "2026-09-29",
+      "problem": "drill",
+      "moves": {
+        "streaming-accumulate-pairs": "clean",
+        "counter-build": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The code counts equal pairs in one pass: for each n it reads the running count c[n], adds that count to acc, then increments c[n]. This exercises streaming-accumulate-pairs (each pair counted at its second member) and counter-build (defaultdict(int) value->count). All assertions passed, including the 100000-element case.",
+      "seconds": 226
     }
   }
 }
