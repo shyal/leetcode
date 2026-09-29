@@ -1,4 +1,4 @@
-.PHONY: all asserts audit chat check combos complexity cov curve dependents dive drawing-doc drill drop duplicates elo ext failed fmt fmt-check force graph hard harness-doc is_session_start kg-extract kg-status kg-viz lc-login lc-mocks learning lint mirror mock movie mu mu-chrome mu-vscode next predict preflight prepare prog progress q queue rank-table readme rep residuals rust secrets short simulate sleep snippets solved spot stats studied submit test test-fast test-judge timer today types unforce viz wake
+.PHONY: all asserts audit chat check combos complexity cov curve dependents dive drawing-doc drill drop duplicates elo ext failed fmt fmt-check force graph hard harness-doc is_session_start kg-extract kg-status kg-viz lc-login lc-mocks learning lint mirror mock movie mu mu-chrome mu-vscode muviz next predict preflight prepare prog progress q queue rank-table readme rep residuals rust secrets short simulate sleep snippets solved spot stats studied submit test test-fast test-judge timer today types unforce viz wake
 
 # `make` runs the current file: current.py through mu/session.py (which
 # splices current.mu in when it holds the work), any other language's
@@ -258,6 +258,11 @@ test: $(EXT)
 snippets:
 	@cp misc/vscode-snippets/* "$$HOME/Library/Application Support/Code/User/snippets/"
 	@echo "deployed: $$(ls misc/vscode-snippets | tr '\n' ' ')"
+
+# step through the demo call in current.mu, one frame per line that changed
+# something (Enter steps, q quits); `make muviz print` prints every frame
+muviz:
+	@PYTHONPATH=.:utils:utils/harness .venv/bin/python3 mu/viz.py $(if $(filter print,$(MAKECMDGOALS)),--all)
 
 # mu REPL: expressions print their value, blocks read until a blank line, :help
 mu:
