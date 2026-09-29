@@ -31973,6 +31973,22 @@
       "note": "mu source: `count from 0 for n in nums if even(n): 1` is a fold accumulating a running count; transpiled to sum(1 for ...).",
       "summary": "The mu source counts even numbers with a fold starting from 0, adding 1 for each n where even(n) holds; the transpiled Python expresses this as 0 + sum(1 for n in nums if even(n)). This exercises the running-sum move as an accumulated count over the scan. All assertions passed and the folds check confirms the count fold.",
       "seconds": 39
+    },
+    "solved/d_Exclusive_From_Call_Tree_2026_09_29T23_25_00_592878_00_00Z.py": {
+      "date": "2026-09-30",
+      "problem": "drill",
+      "moves": {
+        "stack-nested-eval": "clean",
+        "tree-dfs-recursive": "clean",
+        "tree-carry-down": "clean"
+      },
+      "assist": {
+        "stack-nested-eval": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say 'Learning'; mu source shows the nested-scope subtraction (dur minus direct children's dur) applied per node in one DFS visit.",
+      "summary": "The mu source defines visit(node), which for every non-root node adds node.dur minus the sum of its direct children's dur into res[id], then recurses into each child; the transpiled Python does the same with a table(n) result array. This exercises the nested-scope evaluation move (each node's own value computed from its immediate children, not its grandparent) plus recursive tree DFS, all in a single visit per node. The notes mark the file as Learning, and the run passed all assertions.",
+      "seconds": 346
     }
   }
 }
