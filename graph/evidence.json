@@ -31940,6 +31940,17 @@
       "note": "Drill targets rotated-array-pivot, but the code never binary-searches; it compares every element to nums[-1] in a list comprehension, sidestepping the pivot move.",
       "summary": "The solution returns a list comprehension marking each x as x <= nums[-1], i.e. whether it lies at or after the rotation's minimum. It passes all assertions but exercises no binary search: the pivot is found by a linear scan against the last element rather than by comparing mid to an end and halving. The targeted rotated-array-pivot move is therefore avoided.",
       "seconds": 174
+    },
+    "solved/d_Sum_Of_Squares_2026_09_29T23_15_34_095406_00_00Z.py": {
+      "date": "2026-09-30",
+      "problem": "drill",
+      "moves": {
+        "running-sum": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill's required line `folds(Solution, 'sum')` is met; the mu source `sum for x in nums: x * x` is the running-sum fold.",
+      "summary": "The solution sums the squares of the input list with a single generator expression `sum(x * x for x in nums)`, exercising the running-sum fold. The mu source writes the same fold as `sum for x in nums: x * x`. All assertions pass, including the large 100000-element case, and the drill's required `folds(Solution, 'sum')` line is satisfied.",
+      "seconds": 32
     }
   }
 }
