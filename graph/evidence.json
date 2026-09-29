@@ -31579,6 +31579,17 @@
       "note": "Drill trains union-find: groups() calls self.find(i) for each node and buckets by root; all assertions passed.",
       "summary": "The Solution subclasses UnionFind and implements groups() by iterating over every index, calling self.find(i) to get the root, and appending i into a defaultdict keyed by that root. This exercises the union-find find operation as the grouping primitive, and the run exited 0 with every assertion passing. No notes indicate any help or recognition difficulty.",
       "seconds": 197
+    },
+    "solved/d_Node_Distance_Pairs_2026_09_29T03_15_30_529548_00_00Z.py": {
+      "date": "2026-09-29",
+      "problem": "drill",
+      "moves": {
+        "graph-bfs-shortest": "clean",
+        "graph-adjacency-build": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The code runs a single BFS from node 0 using a deque seeded with (0, 0), recording each node's distance in a seen dict on first dequeue and pushing neighbors at dist+1; it returns the seen pairs as a set. This exercises graph-bfs-shortest (layered expansion gives fewest steps) and reads the adjacency directly from the input dict. All assertions passed, including the cycle and unreachable-node cases.",
+      "seconds": 400
     }
   }
 }
