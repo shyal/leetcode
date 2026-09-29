@@ -31832,6 +31832,17 @@
       "note": "Drill on dp-1d-rolling: each output cell is built from the previous row's excess, a single forward pass over a 1D table.",
       "summary": "The code computes one row of the excess-splitting recurrence: for each cell it takes (row[i]-1)/2, and if positive adds that excess to res[i] and res[i+1] in a freshly allocated table of length len(row)+1. This is a forward fill of a 1D table from the previous row's values, exercising dp-1d-rolling. All assertions pass, including the large 10**9 case.",
       "seconds": 323
+    },
+    "solved/d_Longest_Ending_Here_2026_09_29T21_00_22_224883_00_00Z.py": {
+      "date": "2026-09-30",
+      "problem": "drill",
+      "moves": {
+        "dp-1d-rolling": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets dp-1d-rolling; dp table filled forward with dp[i]=max(dp[i],dp[j]+1) over pairs(j,i) with j<i.",
+      "summary": "The code builds a 1D dp table initialized to 1 and fills it forward: for each pair (j, i) with j < i, if nums[j] < nums[i] it updates dp[i] = max(dp[i], dp[j] + 1), returning the per-index longest increasing subsequence ending at i. This exercises the dp-1d-rolling move, filling the table from base cases using previously computed entries. All assertions passed on execution.",
+      "seconds": 1266
     }
   }
 }

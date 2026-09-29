@@ -183,6 +183,29 @@ CASES = {
         """,
         1,
     ),
+    "pairs back": (
+        """
+        row = grid[1]
+        n = len(row)
+        dp = [0] * n
+        for i in range(n):
+            for j in range(i):
+                if row[j] < row[i]:
+                    dp[i] += 1
+        return dp[-1]
+        """,
+        """
+        def f(grid: [[int]]) -> int
+          row = grid[1]
+          n = len(row)
+          dp = [0] * n
+          for (j, i) in pairs(n, back=true)
+            if row[j] < row[i]
+              dp[i] += 1
+          dp[-1]
+        """,
+        1,
+    ),
     "first true": (
         """
         lo, hi = 0, 100

@@ -135,7 +135,7 @@ def updateMatrix(mat: [[int]]) -> [[int]]
   mat
 ```
 
-mu language spec: [v0.1](mu/spec/v0.1.md), [v0.2](mu/spec/v0.2.md), [v0.3](mu/spec/v0.3.md), [v0.4](mu/spec/v0.4.md), [v0.5](mu/spec/v0.5.md), [v0.6](mu/spec/v0.6.md)
+mu language spec: [v0.1](mu/spec/v0.1.md), [v0.2](mu/spec/v0.2.md), [v0.3](mu/spec/v0.3.md), [v0.4](mu/spec/v0.4.md), [v0.5](mu/spec/v0.5.md), [v0.6](mu/spec/v0.6.md), [v0.7](mu/spec/v0.7.md)
 
 ## Fair word of warning
 

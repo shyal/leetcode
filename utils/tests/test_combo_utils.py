@@ -7,6 +7,12 @@ def test_pairs_lexicographic():
     assert list(pairs(4)) == [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
 
 
+def test_pairs_back_groups_by_later_index():
+    assert list(pairs(4, back=True)) == [(0, 1), (0, 2), (1, 2), (0, 3), (1, 3), (2, 3)]
+    assert sorted(pairs(7, back=True)) == list(pairs(7))
+    assert list(pairs(1, back=True)) == []
+
+
 def test_pairs_too_small_is_empty():
     assert list(pairs(1)) == []
 

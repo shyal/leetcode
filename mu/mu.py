@@ -9,7 +9,7 @@ The language is specified in mu/spec/v<VERSION>.md.
 import re
 import sys
 
-VERSION = "0.6"
+VERSION = "0.7"
 
 KEYWORDS = {"from", "in", "not", "and", "or", "if", "else", "is"}
 # names that end a call written without brackets
@@ -266,7 +266,12 @@ def nbrs(
     "pairs": (
         [],
         [],
-        """def pairs(n, type=tuple):
+        """def pairs(n, type=tuple, back=False):
+    if back:
+        for j in range(n):
+            for i in range(j):
+                yield type((i, j))
+        return
     for i in range(n):
         for j in range(i + 1, n):
             yield type((i, j))""",

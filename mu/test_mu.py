@@ -191,6 +191,7 @@ def test_library_copies_agree_with_the_harness():
     grid_utils.put(b, [(0, 0), (1, 0)], 9)
     assert a == b == [[9, 2], [9, 3]]
     assert list(ns["pairs"](4)) == list(combo_utils.pairs(4))
+    assert list(ns["pairs"](4, back=True)) == list(combo_utils.pairs(4, back=True))
     for num in (0, 7, 65875, "0042", -31):
         for rev in (False, True):
             for base in (10, 2, 7):

@@ -2,7 +2,7 @@
 class Solution:
     def numPrevSmaller(self, nums):
         dp = table(len(nums), fill=0)
-        for j, i in pairs(len(nums)):
+        for j, i in pairs(len(nums), back=True):
             if nums[j] < nums[i]:
                 dp[i] += 1
         return dp

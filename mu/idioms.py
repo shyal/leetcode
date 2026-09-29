@@ -1003,10 +1003,17 @@ class Rules:
             return None
         outer, inner, body = loops
         a, b = range_args(outer.iter), range_args(inner.iter)
-        if not a or not b or not is_int(a[0], 0) or not same(a[1], b[1]):
+        if not a or not b or not is_int(a[0], 0) or has_break(body):
+            return None
+        if is_int(b[0], 0) and same(b[1], load(outer.target.id)):
+            # for j in range(n): for i in range(j) is pairs(n, back=True)
+            target = pair(inner.target, outer.target, ast.Store())
+            it = call("pairs", a[1], back=ast.Constant(True))
+            return [ast.For(target, it, body, [], lineno=0)], 1
+        if not same(a[1], b[1]):
             return None
         want = ast.BinOp(load(outer.target.id), ast.Add(), ast.Constant(1))
-        if not same(Canon(b[0]), Canon(want)) or has_break(body):
+        if not same(Canon(b[0]), Canon(want)):
             return None
         target = pair(outer.target, inner.target, ast.Store())
         return [ast.For(target, call("pairs", a[1]), body, [], lineno=0)], 1
