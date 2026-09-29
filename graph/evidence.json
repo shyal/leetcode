@@ -31678,6 +31678,17 @@
       "note": "Drill targets binary-search-on-answer; the code implements the last-true boundary template with mid=(lo+hi+1)//2 and lo=mid, verified by the <=31-call assertion on a 1e9 range.",
       "summary": "The file defines lastTrue(lo, hi, ok), which binary-searches for the last index where the monotone predicate ok holds, using mid = (lo + hi + 1) // 2 and moving lo = mid on success or hi = mid - 1 otherwise. It also provides first_true/first_false/last_false helpers built on bisect_left. The assertions confirm the boundary behavior across edge cases and that a 1e9 range resolves in at most 31 calls, and the run exited 0.",
       "seconds": 91
+    },
+    "solved/d_First_False_2026_09_29T04_59_28_211704_00_00Z.py": {
+      "date": "2026-09-29",
+      "problem": "drill",
+      "moves": {
+        "binary-search-boundary": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets binary-search-on-answer; the code implements the first-false boundary template (lo<hi, mid, ok->lo=mid+1 else hi=mid), which is the boundary-search move.",
+      "summary": "The Solution.firstFalse method runs a halving loop over [lo, hi] that advances lo past every index where ok(mid) is true and pulls hi down otherwise, returning the first index where ok fails. The assertions confirm it finds the boundary for x*x<=50 (8), for x<50 (50), for the degenerate lo==hi case, and within 31 calls on a 1e9 range. The file also defines first_true/last_true/first_false/last_false helpers via bisect_left, but the drill's required boundary loop is exercised directly.",
+      "seconds": 51
     }
   }
 }
