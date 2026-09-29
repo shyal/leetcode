@@ -31931,6 +31931,15 @@
       "judge": "deepseek-chat",
       "summary": "The code keeps a running prefix sum and a defaultdict D mapping each prefix value to how many times it has occurred, seeded with D[0] = 1. At each element it adds the element to prefix, adds D[prefix - target] to res (the count of earlier prefixes that would close a subarray summing to target), then records the current prefix. This exercises the prefix-sum-hashmap move, with the derived key prefix - target and the ask-then-record streaming order. The run exited 0 and printed 3.",
       "seconds": 263
+    },
+    "solved/d_After_The_Drop_2026_09_29T23_14_36_566873_00_00Z.py": {
+      "date": "2026-09-30",
+      "problem": "drill",
+      "moves": {},
+      "judge": "deepseek-chat",
+      "note": "Drill targets rotated-array-pivot, but the code never binary-searches; it compares every element to nums[-1] in a list comprehension, sidestepping the pivot move.",
+      "summary": "The solution returns a list comprehension marking each x as x <= nums[-1], i.e. whether it lies at or after the rotation's minimum. It passes all assertions but exercises no binary search: the pivot is found by a linear scan against the last element rather than by comparing mid to an end and halving. The targeted rotated-array-pivot move is therefore avoided.",
+      "seconds": 174
     }
   }
 }
