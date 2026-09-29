@@ -1,11 +1,21 @@
 """
 DRILL: Node Step Pairs
 
-Given a directed graph G and an integer k, return a set of pairs (x, d).
-The dict G maps each node to the list of nodes its edges point to.
-You start on node 0, and each step moves you along one edge. The pair
-(x, d) is in the set when you can be on node x after exactly d steps,
-for d from 0 to k. You may visit a node or an edge more than once.
+Start on node 0 of the directed graph G. Each step, move along one edge,
+for at most k steps. For example, with G = {0: [1], 1: [2], 2: [3], 3: [1]}
+and k = 4:
+
+    0 -> 1 -> 2
+         ^    |
+         |    v
+         +--- 3
+
+we traverse as so: 0 -> 1 -> 2 -> 3 -> 1.
+
+Return the traversal as a set of pairs (node_value, distance). The
+node_value is the value of the node. The distance is how many steps you
+have taken to get there, so node 1 appears as (1, 1) and as (1, 4).
+When a node has several edges, follow every one of them.
 
 Example 1:
 

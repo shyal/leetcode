@@ -31431,6 +31431,22 @@
       "note": "mu source: BFS over implicit graph, neighbors c+1 and c*2 generated on the fly and bounded by lte=limit; levels() helper is the harness's.",
       "summary": "The mu source seeds a deque with a and walks it with the harness levels() BFS generator, generating each state's neighbors c+1 and c*2 on the fly and pruning states above limit; the first level where c equals b is returned, else -1. This exercises generate-and-test-neighbors (implicit graph, no materialized edges) and graph-bfs-shortest (level = minimum moves). All assertions passed, including the 1->1024 case at depth 10 and the unreachable 1024 with limit 1023.",
       "seconds": 164
+    },
+    "solved/d_Node_Step_Pairs_2026_09_29T00_18_17_978746_00_00Z.py": {
+      "date": "2026-09-29",
+      "problem": "drill",
+      "moves": {
+        "graph-bfs-shortest": "clean",
+        "graph-adjacency-build": "clean",
+        "seen-state-cycle-detect": "clean"
+      },
+      "assist": {
+        "graph-bfs-shortest": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say 'Learning'; REQUIRED O(k*(n+m)) single BFS from node 0 is met, with seen keyed on (node, distance) so (1,4) is kept.",
+      "summary": "The Solution.reachable builds a deque seeded with node 0 and walks it with the harness levels() generator, which yields (distance, node) pairs level by level. At each node it skips when d == k and otherwise records (a, d+1) in the seen set before appending a, so the visited set is keyed on the (node, distance) pair rather than the node alone. This keeps repeated visits at different depths, as in Example 1 where (1, 4) survives. The notes mark the file as Learning, and the required single breadth-first search within O(k*(n+m)) is satisfied.",
+      "seconds": 2263
     }
   }
 }
