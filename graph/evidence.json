@@ -31460,6 +31460,16 @@
       "note": "mu source uses levels() BFS with seen set and nbrs() cardinal offsets; gte=k filters cells below threshold.",
       "summary": "The mu source seeds a deque with (0,0), walks the grid in BFS levels via levels(), and expands each cell with nbrs() cardinal offsets, recording visited cells in seen. It returns whether the bottom-right corner (shape with last_index=True) is in seen. The gte=k filter restricts traversal to cells whose value is at least k. All assertions pass, including the 400x400 cases.",
       "seconds": 309
+    },
+    "solved/d_One_More_Cat_2026_09_29T00_24_52_304001_00_00Z.py": {
+      "date": "2026-09-29",
+      "problem": "drill",
+      "moves": {
+        "marginal-gain": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The file defines Solution.gain(a, t) returning ((a + 1) / (t + 1)) - (a / t), the change in the ratio a/t from adding one to both numerator and denominator. It exercises the marginal-gain move directly, computing new value minus old value, and the assertions confirm the formula across several inputs including the large 99999/100000 case. The run exited 0 with output 0.16666666666666663, and the notes contain no mention of hints or look-ups.",
+      "seconds": 61
     }
   }
 }
