@@ -32340,6 +32340,20 @@
       "judge": "deepseek-chat",
       "summary": "The code uses a MonotonicQueue(Type.decreasing) to maintain the maximum over the last k elements: each element is pushed with its index, the front is popped when it falls out of the window (front index <= i - k), and the front value is appended to res. This exercises the monotonic-queue move and the fixed sliding-window bookkeeping. All assertions passed and the printed output matches the expected [1, 3, 3, 3, 5, 5, 6, 7]; the notes contain no mention of hints or look-ups.",
       "seconds": 266
+    },
+    "solved/d_Subarray_Sum_Equals_K_2026_09_30T23_11_21_384649_00_00Z.py": {
+      "date": "2026-10-01",
+      "problem": "drill",
+      "moves": {
+        "prefix-sum-hashmap": "clean",
+        "streaming-ask-then-record": "clean",
+        "derived-key-lookup": "clean",
+        "running-sum": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "D[0]=1 seeds the empty prefix; res += D[prefix-k] queries the past before D[prefix] += 1 records the present.",
+      "summary": "The code keeps a defaultdict D of prefix-sum counts seeded with D[0]=1, walks nums accumulating prefix, adds D[prefix-k] to res, then increments D[prefix]. This exercises prefix-sum-hashmap, the ask-then-record streaming order, derived-key lookup of prefix-k, and a running sum. All assertions passed, including the 20000-element cases.",
+      "seconds": 66
     }
   }
 }
