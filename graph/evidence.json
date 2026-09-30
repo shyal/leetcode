@@ -32254,6 +32254,18 @@
         "greedy split largest chunk"
       ],
       "seconds": 462
+    },
+    "solved/d_Equal_Pairs_2026_09_30T22_06_01_134030_00_00Z.py": {
+      "date": "2026-10-01",
+      "problem": "drill",
+      "moves": {
+        "streaming-accumulate-pairs": "clean",
+        "counter-build": "clean",
+        "streaming-ask-then-record": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The code counts equal pairs in a single pass: for each value n it reads the running count c[n] as the number of matching earlier elements, adds that to acc, then increments c[n]. This exercises streaming-accumulate-pairs (each pair counted at its second member), streaming-ask-then-record (query the past before recording the present), and counter-build via defaultdict(int). All assertions passed, including the 100000-element case.",
+      "seconds": 74
     }
   }
 }
