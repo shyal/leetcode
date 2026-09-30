@@ -32387,6 +32387,19 @@
       "note": "Single post-order visit subtracts each node's direct children's dur from its own, so a grandchild is never subtracted from its grandparent.",
       "summary": "The code defines a recursive visit that, for every non-root node, adds node.dur minus the sum of its direct children's dur into res[id], then recurses into each child. A single traversal of the general tree produces the exclusive durations, satisfying the one-visit requirement. All assertions pass, including the three-level case where a grandchild is subtracted only from its parent.",
       "seconds": 410
+    },
+    "solved/d_Kahn_Queue_Loop_2026_09_30T23_39_11_922549_00_00Z.py": {
+      "date": "2026-10-01",
+      "problem": "drill",
+      "moves": {
+        "topological-order": "clean",
+        "graph-adjacency-build": "clean",
+        "deque-recent-window": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Kahn's algorithm: reverse adjacency + indegrees, seed queue with zero-degree nodes, decrement on pop, return [] when len(res) != numCourses.",
+      "summary": "The code builds a reversed adjacency list and indegree counts, seeds a deque with all zero-indegree courses, then repeatedly pops a node, appends it to res, and decrements its neighbors' indegrees, enqueueing any that reach zero. It returns res only when it covers all courses, otherwise [] for a cycle. All assertions pass, including the cycle cases and the 2000-node chains, and the notes describe the indegree bookkeeping and the cycle detection.",
+      "seconds": 248
     }
   }
 }

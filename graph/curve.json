@@ -2,14 +2,14 @@
   "_comment": "Personal forgetting curve fitted by utils/kg/kg_curve. P(recall) = (1-slip)*(1 + gap/s)^(-beta), s = exp(a + b*log1p(cleans) - c*struggles - d*assist + e*(conn - conn_mean)); cleans counts distinct clean days, same-day reps are one rep. conn is the node's log2 carrier count, frozen below at fit time; consumers that ignore e are assuming average connectivity. \"solve\" is the cold-solve model fitted by fit_solve: logit P(solve cold, unaided, inside the clock) = the listed coefficients over (rating - 1500)/400, the walk's summed log recall, and its count of never-met moves; features not listed did not earn their place on held-out games. node_status() calls a node SOLID while the memory component (1 + gap/s)^(-beta) >= target_retention; delete this file to fall back to the flat 42-day window.",
   "model": "power-law-slip",
   "params": {
-    "a": 3.9415,
-    "b": 0.062,
-    "c": 0.3617,
-    "d": 0.1028,
+    "a": 3.9394,
+    "b": 0.0587,
+    "c": 0.3669,
+    "d": 0.1019,
     "e": 0.6697,
-    "conn_mean": 3.332,
-    "beta": 0.0929,
-    "slip": 0.0769
+    "conn_mean": 3.329,
+    "beta": 0.0933,
+    "slip": 0.0764
   },
   "conn": {
     "backtracking-choose-undo": 3.807,
@@ -134,11 +134,11 @@
     ]
   },
   "fit": {
-    "trials": 880,
-    "loglik": -0.3294,
-    "baseline_loglik": -0.3374,
+    "trials": 883,
+    "loglik": -0.3286,
+    "baseline_loglik": -0.3366,
     "since": "2026-06-01",
     "half_life": 0,
-    "effective_trials": 880.0
+    "effective_trials": 883.0
   }
 }
