@@ -32071,6 +32071,17 @@
       "note": "Canonical binary-search-on-answer not applicable; solved by row-by-row DP simulation.",
       "summary": "The code simulates the champagne tower row by row: dp starts as [poured], and fill_next_row computes each glass's excess over 1, splitting half to each child in a new row of length len(dp)+1. After query_row iterations it returns min(dp[query_glass], 1). This exercises the 1D rolling DP move; the curated binary-search-on-answer walk is not used. LeetCode accepted it (31 ms, 19.4 MB) and all local assertions passed.",
       "seconds": 879
+    },
+    "solved/d_Smaller_Before_2026_09_30T03_28_17_449078_00_00Z.py": {
+      "date": "2026-09-30",
+      "problem": "drill",
+      "moves": {
+        "dp-1d-rolling": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets dp-1d-rolling; the res[i] = max(res[j], res[i]+1) recurrence fills the 1D table forward from base cases.",
+      "summary": "The code builds a 1D table res of zeros and, for every pair (j, i) with j < i, updates res[i] = max(res[j], res[i] + 1) when nums[j] < nums[i], then returns res. This exercises the dp-1d-rolling move: a 1D table filled forward from base cases via a recurrence. The run exited 0 and printed [0, 0, 2, 1, 4, 3, 6]. No notes indicate any help or recognition difficulty.",
+      "seconds": 535
     }
   }
 }
