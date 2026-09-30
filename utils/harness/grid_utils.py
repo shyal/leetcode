@@ -2,10 +2,11 @@
 #
 # Grid helpers preloaded by sitecustomize: scan a grid, list a cell's
 # in-bounds neighbours, test for and list the border cells, build a table
-# by shape or by size, read a grid's shape, write one value into many cells,
-# multi-source BFS.
+# by shape or by size, read a grid's shape, write one value or a stream of
+# values into many cells, read or set a row or a column, multi-source BFS.
 
 from collections import deque
+from itertools import repeat
 from typing import Any, Callable, Iterable, Iterator, List, Optional, Sequence, Tuple
 
 Cell = Tuple[int, int]
@@ -128,10 +129,40 @@ def shape(*seqs: Any, last_index: bool = False) -> Tuple[int, ...]:
     return tuple(d - 1 for d in dims) if last_index else tuple(dims)
 
 
+def _spread(v: Any) -> Iterator[Any]:
+    """v itself forever if it is one value, else v's items in order."""
+    if isinstance(v, str) or not isinstance(v, Iterable):
+        return repeat(v)
+    return iter(v)
+
+
 def put(grid: List[List[Any]], at: Iterable[Cell], v: Any) -> None:
-    """Set grid[i][j] = v for every (i, j) in at."""
-    for i, j in at:
-        grid[i][j] = v
+    """Set grid[i][j] = v for every (i, j) in at.
+
+    v is one value, or an iterable read once per cell in the order of at:
+    put(dp, cells(dp), accumulate(...))."""
+    for (i, j), x in zip(at, _spread(v)):
+        grid[i][j] = x
+
+
+def row(grid: Sequence[Sequence[Any]], i: int) -> List[Any]:
+    """A copy of row i."""
+    return list(grid[i])
+
+
+def col(grid: Sequence[Sequence[Any]], j: int) -> List[Any]:
+    """A copy of column j, top to bottom."""
+    return [r[j] for r in grid]
+
+
+def set_row(grid: List[List[Any]], i: int, v: Any) -> None:
+    """Set every cell of row i to v, one value or an iterable read left to right."""
+    put(grid, ((i, j) for j in range(len(grid[i]))), v)
+
+
+def set_col(grid: List[List[Any]], j: int, v: Any) -> None:
+    """Set every cell of column j to v, one value or an iterable read top to bottom."""
+    put(grid, ((i, j) for i in range(len(grid))), v)
 
 
 def grid_bfs(

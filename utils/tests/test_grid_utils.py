@@ -1,4 +1,20 @@
-from grid_utils import cells, edges, in_bounds, is_edge, like, nbrs, put, shape, table
+from itertools import accumulate
+
+from grid_utils import (
+    cells,
+    col,
+    edges,
+    in_bounds,
+    is_edge,
+    like,
+    nbrs,
+    put,
+    row,
+    set_col,
+    set_row,
+    shape,
+    table,
+)
 
 
 def test_cells_row_major():
@@ -53,6 +69,36 @@ def test_put_writes_v_at_every_cell():
     grid = [[0, 1, 1], [1, 0, 0]]
     put(grid, cells(grid, eq=1), 7)
     assert grid == [[0, 7, 7], [7, 0, 0]]
+
+
+def test_put_reads_an_iterable_once_per_cell():
+    grid = [[0, 1, 1], [1, 0, 0]]
+    put(grid, cells(grid, eq=1), accumulate([1, 2, 3]))
+    assert grid == [[0, 1, 3], [6, 0, 0]]
+
+
+def test_put_writes_a_string_whole():
+    grid = [[0, 0]]
+    put(grid, cells(grid), "ab")
+    assert grid == [["ab", "ab"]]
+
+
+def test_row_and_col_are_copies():
+    grid = [[1, 2, 3], [4, 5, 6]]
+    r, c = row(grid, 1), col(grid, 2)
+    assert r == [4, 5, 6] and c == [3, 6]
+    r[0] = c[0] = 0
+    assert grid == [[1, 2, 3], [4, 5, 6]]
+
+
+def test_set_row_and_set_col_take_a_value_or_an_iterable():
+    grid = like([[1, 2, 3], [4, 5, 6]])
+    set_row(grid, 0, accumulate([1, 2, 3]))
+    set_col(grid, 0, accumulate([1, 4]))
+    set_row(grid, 1, 9)
+    assert grid == [[1, 3, 6], [9, 9, 9]]
+    set_col(grid, 2, -1)
+    assert grid == [[1, 3, -1], [9, 9, -1]]
 
 
 def test_table_one_dimension_is_a_flat_list():

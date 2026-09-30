@@ -346,6 +346,10 @@ builtins.table = table
 builtins.like = like
 builtins.shape = shape
 builtins.put = put
+builtins.row = row
+builtins.col = col
+builtins.set_row = set_row
+builtins.set_col = set_col
 builtins.grid_bfs = grid_bfs
 
 # sequences

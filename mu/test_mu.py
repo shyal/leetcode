@@ -136,7 +136,12 @@ def test_library_copies_agree_with_the_harness():
         "table",
         "like",
         "shape",
+        "_spread",
         "put",
+        "row",
+        "col",
+        "set_row",
+        "set_col",
         "pairs",
         "levels",
         "adjacency",
@@ -190,6 +195,17 @@ def test_library_copies_agree_with_the_harness():
     ns["put"](a, [(0, 0), (1, 0)], 9)
     grid_utils.put(b, [(0, 0), (1, 0)], 9)
     assert a == b == [[9, 2], [9, 3]]
+    ns["put"](a, [(0, 1), (1, 1)], iter([5, 6]))
+    grid_utils.put(b, [(0, 1), (1, 1)], iter([5, 6]))
+    assert a == b == [[9, 5], [9, 6]]
+    assert ns["row"](grid, 1) == grid_utils.row(grid, 1) == [4, 5, 6]
+    assert ns["col"](grid, 2) == grid_utils.col(grid, 2) == [3, 6]
+    for f, g in (("set_row", grid_utils.set_row), ("set_col", grid_utils.set_col)):
+        for v in (0, iter([7, 8])):
+            a, b = [[1, 2], [1, 3]], [[1, 2], [1, 3]]
+            ns[f](a, 1, v)
+            g(b, 1, v if v == 0 else iter([7, 8]))
+            assert a == b
     assert list(ns["pairs"](4)) == list(combo_utils.pairs(4))
     assert list(ns["pairs"](4, back=True)) == list(combo_utils.pairs(4, back=True))
     for num in (0, 7, 65875, "0042", -31):
