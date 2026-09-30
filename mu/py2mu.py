@@ -139,9 +139,44 @@ class Canon(ast.NodeTransformer):
             return body.func
         return None
 
+    @staticmethod
+    def or_if(node):
+        """The three spellings of `x or d if v`, as `d if x == v else x`
+        with the walrus that mu writes removed."""
+        if not isinstance(node, ast.IfExp):
+            return None
+        t = node.test
+        if not isinstance(t, ast.Compare) or len(t.ops) != 1:
+            return None
+        op, left, right, body, orelse = (
+            t.ops[0],
+            t.left,
+            t.comparators[0],
+            node.body,
+            node.orelse,
+        )
+        if isinstance(left, ast.NamedExpr) and left.target.id == "_v":
+            left = left.value
+            orelse = (
+                left if isinstance(orelse, ast.Name) and orelse.id == "_v" else orelse
+            )
+        if isinstance(op, ast.Eq) and ast.dump(left) == ast.dump(orelse):
+            x, d, v = left, body, right
+        elif isinstance(op, ast.NotEq) and ast.dump(left) == ast.dump(body):
+            x, d, v = left, orelse, right
+        elif (
+            isinstance(op, ast.Lt)
+            and ast.dump(left) == ast.dump(body)
+            and ast.dump(right) == "Name(id='inf', ctx=Load())"
+        ):
+            x, d, v = left, orelse, right
+        else:
+            return None
+        return ast.IfExp(ast.Compare(x, [ast.Eq()], [v]), d, x)
+
     def generic_visit(self, node):
         node = super().generic_visit(node)
-        inner = self.pair_lambda(node)
+        inner = self.pair_lambda(node) or self.or_if(node)
         if inner:
             return inner
         if hasattr(node, "ctx"):
@@ -294,9 +329,37 @@ class Printer:
         return " ".join(parts), CMP
 
     def e_IfExp(self, node):
+        found = self.or_if(node)
+        if found:
+            x, d, v = found
+            return (
+                f"{self.expr(x, AND)} or {self.expr(d, AND)} if {self.expr(v, OR)}",
+                IFEXP,
+            )
         body = self.expr(node.body, OR)
         test = self.expr(node.test, OR)
         return f"{body} if {test} else {self.expr(node.orelse, IFEXP)}", IFEXP
+
+    def or_if(self, node):
+        """(x, d, v) when node is `x if x != v else d`, `x if x < inf else d`
+        or `d if x == v else x`: mu's `x or d if v`."""
+        t = node.test
+        if not isinstance(t, ast.Compare) or len(t.ops) != 1:
+            return None
+        op, (left, right) = t.ops[0], (t.left, t.comparators[0])
+        same = ast.dump(left) == ast.dump(node.body)
+        if same and isinstance(op, ast.NotEq):
+            return left, node.orelse, right
+        if (
+            same
+            and isinstance(op, ast.Lt)
+            and isinstance(right, ast.Name)
+            and right.id == "inf"
+        ):
+            return left, node.orelse, right
+        if isinstance(op, ast.Eq) and ast.dump(left) == ast.dump(node.orelse):
+            return left, node.body, right
+        return None
 
     def e_Attribute(self, node):
         return f"{self.expr(node.value, POSTFIX)}.{node.attr}", POSTFIX

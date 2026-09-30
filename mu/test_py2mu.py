@@ -340,3 +340,18 @@ def test_differential_finds_a_wrong_translation():
     cases = [("f", ["[1, 2, 3]"]), ("f", ["[3, 1]"])]
     assert differential(right, right, cases, PYTHON) == {"compared": 2}
     assert "differs" in differential(right, wrong, cases, PYTHON)
+
+
+@pytest.mark.parametrize(
+    "py",
+    [
+        "return t if t < inf else -1",
+        "return t if t != inf else -1",
+        "return -1 if t == inf else t",
+    ],
+)
+def test_or_if_forms_translate_to_one_line(py):
+    body = f"t = min(grid[0])\n{py}"
+    assert mu_of(body).splitlines()[-1] == "  t or -1 if inf"
+    runs(mu_of(body), "f([[2, 1]])", 1)
+    runs(mu_of(body), "f([[inf]])", -1)

@@ -128,6 +128,7 @@ class Py(str):
     parts = None  # the member types when a type is a parenthesized tuple
     call = False  # a call that dropped its brackets, `f x`
     convert = None  # the line after `int(a), b = ...` that converts a
+    orparts = None  # (x, d) when the expression is exactly x or d
 
 
 HELPERS = {
@@ -994,15 +995,26 @@ class Parser:
         if self.at("if") and not self.at(":", 1):
             self.next()
             cond = self.or_()
+            if e.orparts and not self.at("else"):
+                return self.or_if(e.orparts, cond)
             self.expect("else")
             return Py(f"{e} if {cond} else {self.expr()}")
         return e
+
+    def or_if(self, parts, sentinel):
+        """`x or d if v`: x, or d when x equals v. x is evaluated once."""
+        x, d = parts
+        if NAME.fullmatch(x):
+            return Py(f"({d} if {x} == {sentinel} else {x})")
+        return Py(f"({d} if (_v := {x}) == {sentinel} else _v)")
 
     def or_(self):
         e = self.and_()
         while self.at("or"):
             self.next()
-            e = Py(f"{e} or {self.and_()}")
+            lhs, rhs = e, self.and_()
+            e = Py(f"{lhs} or {rhs}")
+            e.orparts = (lhs, rhs)
         return e
 
     def and_(self):

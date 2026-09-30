@@ -98,7 +98,7 @@ def test_fmt_messy():
         "        |a==0->0\n"
         "        |a<0->inf\n"
         "        |else->1+min for c in coins:f(a-c)\n"
-        "    f(amount) if f(amount)<inf else -1\n"
+        "    f(amount) or -1 if inf\n"
     )
     want = (HERE / "examples" / "0322.mu").read_text()
     assert fmt(messy) == want
@@ -636,3 +636,32 @@ def test_memo_block_form_rejects_ret():
     src = "def f(n: int) -> int\n  memo g(i)\n    ret x = i\n  g(n)\n"
     with pytest.raises(MuError):
         transpile(src)
+
+
+def test_or_if_is_x_or_d_when_x_equals_v():
+    out = transpile(
+        "def f(t: int, dp: [int]) -> int\n  a = t or -1 if inf\n  dp[t] or -1 if inf\n"
+    )
+    assert "a = (-1 if t == inf else t)" in out
+    assert "return (-1 if (_v := dp[t]) == inf else _v)" in out
+    ns = {}
+    exec(out, ns)
+    assert ns["Solution"]().f(1, [0, 3]) == 3
+    assert ns["Solution"]().f(1, [0, float("inf")]) == -1
+    out = transpile("def g(t: int) -> int\n  t or -1 if inf\n")
+    exec(out, ns)
+    assert ns["Solution"]().g(4) == 4
+    assert ns["Solution"]().g(float("inf")) == -1
+
+
+def test_or_if_needs_an_or_and_keeps_the_ternary():
+    assert "x if c else y" in transpile(
+        "def f(x: int, c: bool, y: int) -> int\n  x if c else y\n"
+    )
+    assert "(x or y) if c else 0" in transpile(
+        "def f(x: int, c: bool, y: int) -> int\n  (x or y) if c else 0\n"
+    ) or "x or y if c else 0" in transpile(
+        "def f(x: int, c: bool, y: int) -> int\n  x or y if c else 0\n"
+    )
+    with pytest.raises(MuError):
+        transpile("def f(x: int, c: bool) -> int\n  x if c\n")
