@@ -32177,6 +32177,22 @@
       "note": "mu source shows the whole solution; notes say 'Learning'.",
       "summary": "The code counts pairs whose difference is divisible by m by reducing each number to n % m and looking up how many earlier numbers shared that residue, then recording the current one. It exercises derived-key-lookup (the residue as key), streaming-ask-then-record, counter-build, and streaming-accumulate-pairs. All assertions pass, including the 10^5-size cases. The notes mark the work as Learning.",
       "seconds": 425
+    },
+    "solved/p210_Course_Schedule_II_2026_09_30T11_58_17_422026_00_00Z.py": {
+      "date": "2026-09-30",
+      "problem": "210",
+      "moves": {
+        "graph-adjacency-build": "clean",
+        "topological-order": "clean"
+      },
+      "assist": {
+        "topological-order": "learning",
+        "graph-adjacency-build": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say the first attempt was a plain BFS, not a topological sort; LEETCODE: Accepted (3 ms, 20.6 MB).",
+      "summary": "The final code builds an adjacency list with adjacency(prerequisites, numCourses) and an in-degree dict deg, seeds a deque with the zero-degree courses, and runs Kahn's algorithm: pop a node, append it to res, decrement each neighbor's degree, and enqueue when it hits zero. It returns res[::-1] when all courses were emitted, else []. The notes describe an earlier attempt that used levels/seen as a standard BFS and failed a case, and say the topological sort was learned rather than recognized.",
+      "seconds": 1772
     }
   }
 }
