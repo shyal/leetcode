@@ -32132,6 +32132,21 @@
         "greedy split-first-longest-chunk"
       ],
       "seconds": 547
+    },
+    "solved/p560_Subarray_Sum_Equals_K_2026_09_30T06_12_26_184568_00_00Z.py": {
+      "date": "2026-09-30",
+      "problem": "560",
+      "moves": {
+        "prefix-sums": "clean",
+        "streaming-ask-then-record": "clean",
+        "derived-key-lookup": "clean",
+        "streaming-accumulate-pairs": "clean",
+        "prefix-sum-hashmap": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LeetCode: Accepted (51 ms, 23.9 MB)",
+      "summary": "The code keeps a running prefix sum and a defaultdict D mapping each prefix value to how many times it has occurred, seeded with D[0]=1. At each element it asks D[prefix-k] for the count of past prefixes that would close a subarray summing to k, adds that count to res, then records the current prefix. This exercises prefix sums, the ask-then-record streaming order, the derived key prefix-k, pair accumulation via counts, and the prefix-sum hashmap. Notes are empty and LeetCode reports Accepted.",
+      "seconds": 1407
     }
   }
 }
