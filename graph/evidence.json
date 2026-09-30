@@ -32209,6 +32209,16 @@
       "note": "Notes say 'Use Kahn's algorithm' and the mu source is given as the learning solution; the loop body is the required Kahn queue loop.",
       "summary": "The code builds a reversed adjacency list and indegree map with the harness helpers, seeds a deque with all zero-indegree courses, then repeatedly popleft a course, append it to res, and decrement its successors' degrees, enqueueing any that reach zero. It returns res only when its length equals numCourses, so cycles yield []. The notes state the approach was given as a learning solution ('Use Kahn's algorithm'), and all assertions pass.",
       "seconds": 892
+    },
+    "solved/d_Month_Over_Month_Change_2026_09_30T21_32_43_004788_00_00Z.py": {
+      "date": "2026-10-01",
+      "problem": "drill",
+      "moves": {
+        "sql-window-offset": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The query selects month, amount, and amount minus lag(amount, 1) over (order by month) from Revenue, using a window offset to compare each row with the previous month. The first row's change is NULL and equal amounts give 0, matching both examples. The single required move, sql-window-offset, is exercised cleanly and the run passed.",
+      "seconds": 160
     }
   }
 }
