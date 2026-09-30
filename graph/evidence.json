@@ -32106,6 +32106,20 @@
       "note": "mu source: single pass keeping running count of 'a' and accumulating a*(c=='b') into res.",
       "summary": "The mu source walks the string once, maintaining a running count a of 'a's seen so far and adding a * (c == 'b') to res at each 'b', which counts each AB pair at its second member. This is the rolling 1D DP state (count of a's, count of pairs) updated in place, exercised cleanly. All assertions pass, including the 50000/50000 stress case.",
       "seconds": 125
+    },
+    "solved/d_Fewest_Coins_2026_09_30T03_47_28_092970_00_00Z.py": {
+      "date": "2026-09-30",
+      "problem": "drill",
+      "moves": {
+        "dp-1d-rolling": "clean"
+      },
+      "assist": {
+        "dp-1d-rolling": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "DRILL targeting dp-1d-rolling; ran clean, all assertions passed.",
+      "summary": "The code builds a 1D dp table of size amount+1 filled with inf, sets dp[0]=0, then fills forward: for each amount a it tries every coin c <= a and takes dp[a] = min(dp[a], dp[a-c]+1). It returns -1 when dp[amount] is still inf. This exercises dp-1d-rolling cleanly, and the notes mark the work as learning.",
+      "seconds": 399
     }
   }
 }
