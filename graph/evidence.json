@@ -32266,6 +32266,20 @@
       "judge": "deepseek-chat",
       "summary": "The code counts equal pairs in a single pass: for each value n it reads the running count c[n] as the number of matching earlier elements, adds that to acc, then increments c[n]. This exercises streaming-accumulate-pairs (each pair counted at its second member), streaming-ask-then-record (query the past before recording the present), and counter-build via defaultdict(int). All assertions passed, including the 100000-element case.",
       "seconds": 74
+    },
+    "solved/d_Divisible_Difference_Pairs_2026_09_30T22_14_07_656108_00_00Z.py": {
+      "date": "2026-10-01",
+      "problem": "drill",
+      "moves": {
+        "derived-key-lookup": "clean",
+        "streaming-ask-then-record": "clean",
+        "streaming-accumulate-pairs": "clean",
+        "counter-build": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill on derived-key-lookup: key is n % m, queried before recording.",
+      "summary": "The code builds a defaultdict count of residues n % m, and for each n it looks up the count of the same residue seen so far, adds that to acc, then records n. This exercises derived-key-lookup (the key is n % m, not n), streaming-ask-then-record (query the running count before incrementing), streaming-accumulate-pairs (pairs += matches in the past), and counter-build. All assertions passed and the run exited 0.",
+      "seconds": 480
     }
   }
 }
