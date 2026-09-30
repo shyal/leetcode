@@ -54,6 +54,8 @@ def test_example(path):
         ("def f(a: int) -> int\n    x = 1\n  x\n", "indentation"),
         ("def f(a: int) -> int\n  ret x = 1\n  ret y = 2\n", "more than one ret"),
         ("def f(a: int) -> int\n  for i in a\n    ret x = i\n", "own body"),
+        ("@as_list\nx = 1\n", "a decorator goes above a def or a memo"),
+        ("def f(a: int) -> int\n  a\n@as_list\n", "a decorator goes above a def"),
     ],
 )
 def test_errors(src, message):
@@ -123,6 +125,7 @@ def test_library_copies_agree_with_the_harness():
     import combo_utils
     import counter_utils
     import digit_utils
+    import gen_utils
     import grid_utils
     from sitecustomize import ceil_div
 
@@ -130,6 +133,7 @@ def test_library_copies_agree_with_the_harness():
 
     ns = {}
     names = (
+        "as_list",
         "_holds",
         "cells",
         "nbrs",
@@ -166,6 +170,9 @@ def test_library_copies_agree_with_the_harness():
         for imp in HELPERS[name][0]:
             exec(imp, ns)
         exec(HELPERS[name][2], ns)
+    for wrap in (ns["as_list"], gen_utils.as_list):
+        upto = wrap(lambda n: (i for i in range(n)))
+        assert upto(3) == [0, 1, 2] and upto(0) == []
     grid = [[1, 2, 3], [4, 5, 6]]
     assert list(ns["cells"](grid)) == list(grid_utils.cells(grid))
     assert list(ns["cells"](grid, 1)) == list(grid_utils.cells(grid, 1))
@@ -665,3 +672,110 @@ def test_or_if_needs_an_or_and_keeps_the_ternary():
     )
     with pytest.raises(MuError):
         transpile("def f(x: int, c: bool) -> int\n  x if c\n")
+
+
+def test_as_list_returns_the_yields_of_a_def_as_a_list():
+    src = (
+        "# 78. Subsets\n"
+        "@as_list\n"
+        "def subsets(nums: [int]) -> [[int]]\n"
+        "  for mask in 0..<(1 << len(nums))\n"
+        "    yield [x for i, x in nums if mask >> i & 1]\n"
+    )
+    py = transpile(src)
+    assert "    @as_list\n    def subsets(self, nums" in py
+    assert "def as_list(f):" in py and "from functools import wraps" in py
+    ns = {}
+    exec(py, ns)
+    assert ns["Solution"]().subsets([1, 2]) == [[], [1], [2], [1, 2]]
+    assert fmt(src) == src
+    assert fmt(src.replace("@as_list", "@ as_list")) == src
+
+
+def test_decorators_stack_and_take_arguments():
+    src = (
+        "def f(n: int) -> int\n"
+        "  def add(k)\n"
+        "    def wrap(fn)\n"
+        "      h = x -> fn(x) + k\n"
+        "      h\n"
+        "    wrap\n"
+        "  def double(fn)\n"
+        "    h = x -> fn(x) * 2\n"
+        "    h\n"
+        "  @double\n"
+        "  @add(1)\n"
+        "  def g(x)\n"
+        "    x\n"
+        "  g(n)\n"
+    )
+    py = transpile(src)
+    assert "        @double\n        @add(1)\n        def g(x):" in py
+    ns = {}
+    exec(py, ns)
+    assert ns["Solution"]().f(5) == 12  # add runs first, then double
+    assert fmt(src) == src
+
+
+def test_a_decorator_above_a_memo_wraps_the_cached_function():
+    src = (
+        "def f(n: int) -> int\n"
+        "  def double(fn)\n"
+        "    h = x -> fn(x) * 2\n"
+        "    h\n"
+        "  @double\n"
+        "  memo g(i) =\n"
+        "    | i == 0 -> 1\n"
+        "    | else   -> g(i - 1)\n"
+        "  @double\n"
+        "  memo h(i)\n"
+        "    return i\n"
+        "  g(n) + h(n)\n"
+    )
+    py = transpile(src)
+    assert py.count("@double\n            @cache\n            def ") == 2
+    ns = {}
+    exec(py, ns)
+    assert ns["Solution"]().f(2) == 8 + 4
+    assert fmt(src) == src
+
+
+def test_yield_is_a_statement():
+    src = (
+        "def f(n: int)\n"
+        "  for i in 0..<n\n"
+        "    if i == 2: yield\n"
+        "    yield i, -i\n"
+        "  yield from [7]\n"
+        "  yield n\n"
+    )
+    py = transpile(src)
+    assert "return yield" not in py  # a last line that yields is not returned
+    ns = {}
+    exec(py, ns)
+    got = list(ns["Solution"]().f(3))
+    assert got == [(0, 0), (1, -1), None, (2, -2), 7, 3]
+
+
+def test_a_def_that_yields_and_defines_a_memo_runs_on_the_deep_stack():
+    src = (
+        "@as_list\n"
+        "def f(g: [[int]]) -> [int]\n"
+        "  memo depth(i) =\n"
+        "    | i == 0 -> 0\n"
+        "    | else   -> 1 + depth(i - 1)\n"
+        "  for (i, j) in cells(g)\n"
+        "    yield depth(g[i, j])\n"
+    )
+    ns = {}
+    exec(transpile(src), ns)
+    assert ns["Solution"]().f([[20000, 1], [2, 3]]) == [20000, 1, 2, 3]
+
+
+def test_decorator_lines_map_to_their_own_mu_lines():
+    src = "@as_list\ndef f(n: int) -> [int]\n  yield n\n"
+    code, origin = transpile(src, mapped=True)
+    at = {line.strip(): o for line, o in zip(code.split("\n"), origin) if o}
+    assert at["@as_list"] == 1
+    assert at["def f(self, n: int) -> list[int]:"] == 2
+    assert at["yield n"] == 3

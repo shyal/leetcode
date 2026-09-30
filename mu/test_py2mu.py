@@ -355,3 +355,35 @@ def test_or_if_forms_translate_to_one_line(py):
     assert mu_of(body).splitlines()[-1] == "  t or -1 if inf"
     runs(mu_of(body), "f([[2, 1]])", 1)
     runs(mu_of(body), "f([[inf]])", -1)
+
+
+def test_decorators_and_yields_translate():
+    got = mu_of(
+        """
+        @wraps(len)
+        @cache
+        def depth(i):
+            return 0 if i == 0 else 1 + depth(i - 1)
+        for row in grid:
+            yield depth(row[0]), row[1]
+        yield from grid[0]
+        yield
+        """,
+        sig="f(self, grid: List[List[int]])",
+    )
+    assert "  @wraps(len)\n  memo depth(i) = " in got
+    assert "    yield depth(row[0]), row[1]\n  yield from grid[0]\n  yield\n" in got
+    src = "class Solution:\n    @as_list\n    def f(self, n: int) -> List[int]:\n        yield n\n"
+    assert translate(src) == "@as_list\ndef f(n: int) -> [int]\n  yield n\n"
+    runs(translate(src), "f(3)", [3])
+
+
+@pytest.mark.parametrize(
+    "decorators",
+    ["@staticmethod", "@cache\n    @as_list"],
+    ids=["takes no self", "cache is not nearest the def"],
+)
+def test_decorators_mu_cannot_say_are_refused(decorators):
+    src = f"class Solution:\n    {decorators}\n    def f(n):\n        return n\n"
+    with pytest.raises(Untranslatable, match="decorators of f"):
+        translate(src)

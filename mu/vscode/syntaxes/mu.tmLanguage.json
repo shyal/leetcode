@@ -9,6 +9,9 @@
       "include": "#string"
     },
     {
+      "include": "#decorator"
+    },
+    {
       "include": "#def"
     },
     {
@@ -72,6 +75,17 @@
         }
       ]
     },
+    "decorator": {
+      "match": "^\\s*(@)\\s*([A-Za-z_][\\w.]*)",
+      "captures": {
+        "1": {
+          "name": "punctuation.definition.decorator.mu"
+        },
+        "2": {
+          "name": "entity.name.function.decorator.mu"
+        }
+      }
+    },
     "def": {
       "match": "\\b(def)\\s+([A-Za-z_]\\w*)",
       "captures": {
@@ -125,7 +139,7 @@
         },
         {
           "name": "keyword.control.mu",
-          "match": "\\b(for|in|if|elif|else|while|return|break|continue|pass|del|assert)\\b"
+          "match": "\\b(for|in|if|elif|else|while|return|yield|break|continue|pass|del|assert)\\b"
         },
         {
           "name": "keyword.other.mu",
@@ -151,7 +165,7 @@
     },
     "builtin": {
       "name": "support.function.builtin.mu",
-      "match": "\\b(len|max|min|sum|abs|sort|sorted|scan|counter|ceil|floor|cells|nbrs|table|like|shape|put|row|col|set_row|set_col|pairs|levels|adjacency|indegrees|components|graph|dijkstra|heap|to_digits|to_int|even|odd|in_bounds|is_edge|edges|grid_bfs|triples|ceil_div|first_true|last_true|first_false|last_false|min_chunks|Multiset)\\b(?=\\s*[(\\w'\\\"])"
+      "match": "\\b(len|max|min|sum|abs|sort|sorted|scan|counter|ceil|floor|as_list|cells|nbrs|table|like|shape|put|row|col|set_row|set_col|pairs|levels|adjacency|indegrees|components|graph|dijkstra|heap|to_digits|to_int|even|odd|in_bounds|is_edge|edges|grid_bfs|triples|ceil_div|first_true|last_true|first_false|last_false|min_chunks|Multiset)\\b(?=\\s*[(\\w'\\\"])"
     },
     "type": {
       "name": "support.type.mu",

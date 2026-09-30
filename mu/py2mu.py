@@ -71,6 +71,8 @@ CMPOPS = {
 UNARY_OPS = {ast.USub: "-", ast.Invert: "~", ast.Not: "not "}
 CONSTANTS = {True: "true", False: "false", None: "none"}
 CACHE_DECORATORS = {"cache", "lru_cache", "functools.cache", "functools.lru_cache"}
+# decorators whose function takes no self
+NO_SELF = {"staticmethod", "classmethod", "property"}
 
 
 def call_name(node):
@@ -632,6 +634,11 @@ class Printer:
         if isinstance(s, ast.AugAssign):
             op = BINOPS[type(s.op)][0]
             return [f"{pad}{self.bare(s.target)} {op}= {self.value(s.value)}"]
+        if isinstance(s, ast.Expr) and isinstance(s.value, ast.Yield):
+            v = s.value.value
+            return [pad + "yield" + (f" {self.bare(v)}" if v else "")]
+        if isinstance(s, ast.Expr) and isinstance(s.value, ast.YieldFrom):
+            return [f"{pad}yield from {self.top(s.value.value)}"]
         if isinstance(s, ast.Expr):
             return [pad + self.expr_stmt(s.value)]
         if isinstance(s, (ast.Break, ast.Continue)):
@@ -711,19 +718,24 @@ class Printer:
     def def_(self, fn, ind, typed=False):
         pad = "  " * ind
         cached = [d for d in fn.decorator_list if self.is_cache(d)]
-        if len(cached) != len(fn.decorator_list):
+        others = [d for d in fn.decorator_list if not self.is_cache(d)]
+        # mu writes the cache nearest the def, and gives every method a self
+        if fn.decorator_list != others + cached or any(
+            ast.unparse(d) in NO_SELF for d in others
+        ):
             raise Untranslatable(f"no mu form for the decorators of {fn.name}")
+        above = [f"{pad}@{self.top(d)}" for d in others]
         if cached:
             memo = self.memo(fn, ind)
             if memo:
-                return memo
+                return above + memo
         ret = mu_type(fn.returns) if typed else None
         if cached:  # a body the case form cannot say: memo's block form
             head = f"{pad}memo {fn.name}({self.params(fn, False)})"
         else:
             head = f"{pad}def {fn.name}({self.params(fn, typed)})"
             head += f" -> {ret}" if ret else ""
-        return [head] + self.block(fn.body, ind + 1, tail=True)
+        return above + [head] + self.block(fn.body, ind + 1, tail=True)
 
     def is_cache(self, d):
         if isinstance(d, ast.Call):

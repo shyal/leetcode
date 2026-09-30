@@ -15,7 +15,7 @@ KEYWORDS = {"from", "in", "not", "and", "or", "if", "else", "is"}
 # names that end a call written without brackets
 NOT_ARGS = {"from", "in", "not", "and", "or", "if", "else", "is", "for", "while"}
 NOT_ARGS |= {"elif", "def", "memo", "return", "del", "assert", "pass", "break"}
-NOT_ARGS |= {"continue", "import", "extends"}
+NOT_ARGS |= {"continue", "import", "extends", "yield"}
 AUGMENTED = {
     "=",
     "+=",
@@ -41,7 +41,7 @@ TOKEN = re.compile(
     r"|(?P<str>[fFrRbB]{0,2}'[^'\n]*'|[fFrRbB]{0,2}\"[^\"\n]*\")"
     r"|(?P<name>[A-Za-z_]\w*)"
     r"|(?P<op>\.\.<|\.\.|->|<-|//=|<<=|>>=|\*\*=|==|!=|<=|>=|\+=|-=|\*=|/=|%=|&=|\|=|\^="
-    r"|<<|>>|//|\*\*|[-+*/%<>=()\[\]{},:|.&^~?])"
+    r"|<<|>>|//|\*\*|[-+*/%<>=()\[\]{},:|.&^~?@])"
 )
 
 
@@ -131,6 +131,12 @@ class Py(str):
     orparts = None  # (x, d) when the expression is exactly x or d
 
 
+class Decorated(tuple):
+    """A def or memo statement with `@` lines above it."""
+
+    decorators = ()  # (mu line, Python expression) for each `@` line
+
+
 HELPERS = {
     "Grid": (
         [],
@@ -170,7 +176,17 @@ HELPERS = {
         raise err[0]
     return out[0]""",
     ),
-    # cells, nbrs, table, like, shape, put, row, col, set_row, set_col, pairs, levels, adjacency, indegrees,
+    "as_list": (
+        ["from functools import wraps"],
+        [],
+        """def as_list(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        return list(f(*args, **kwargs))
+
+    return wrapper""",
+    ),
+    # as_list, cells, nbrs, table, like, shape, put, row, col, set_row, set_col, pairs, levels, adjacency, indegrees,
     # to_digits, to_int, even, odd copy the utils/harness builtins; test_mu.py
     # checks they agree
     "_holds": (
@@ -689,7 +705,7 @@ class Parser:
                 self.next()
                 self.base = self.expect_kind("NAME")
                 self.expect_kind("NEWLINE")
-            elif self.script_line is None and self.at("def"):
+            elif self.script_line is None and self.def_ahead():
                 defs.append(self.stmt())
             else:
                 s = self.stmt()
@@ -700,6 +716,15 @@ class Parser:
                         self.script_line = t[2]
                     self.script.append(s)
         return defs
+
+    def def_ahead(self):
+        """Whether a def starts here, under any `@` lines."""
+        j = self.i
+        while self.toks[j][:2] == ("OP", "@"):
+            while self.toks[j][0] not in ("NEWLINE", "EOF"):
+                j += 1
+            j += self.toks[j][0] == "NEWLINE"
+        return self.toks[j][:2] == ("NAME", "def")
 
     def import_line(self):
         """`import a.b` or `from a.b import c, d`, passed through to Python."""
@@ -730,10 +755,30 @@ class Parser:
         return body
 
     def stmt(self):
+        decorators = self.decorators()
         line = self.peek()[2]
         node = self.stmt_at()
+        if decorators:
+            node = Decorated(node)
+            node.decorators = decorators
         self.at_line[id(node)] = line
         return node
+
+    def decorators(self):
+        """The `@f` lines above a def or a memo: (line, expression) for each.
+        The expression passes through to Python."""
+        out = []
+        while self.at("@"):
+            line = self.next()[2]
+            out.append((line, self.expr()))
+            self.expect_kind("NEWLINE")
+        if out and not (self.at("def") or self.at("memo")):
+            t = self.peek()
+            raise MuError(
+                f"line {out[-1][0]}: a decorator goes above a def or a memo",
+                t[0] == "EOF",
+            )
+        return out
 
     def stmt_at(self):
         t = self.peek()
@@ -806,6 +851,13 @@ class Parser:
             s = ("return", val)
         elif self.at("break") or self.at("continue") or self.at("pass"):
             s = (self.next()[1],)
+        elif self.at("yield"):
+            self.next()
+            if self.at("from"):
+                self.next()
+                s = ("yield", f"from {self.expr()}")
+            else:
+                s = ("yield", None if self.peek()[0] == "NEWLINE" else self.exprlist())
         elif self.at("del"):
             self.next()
             s = ("del", self.exprlist())
@@ -1513,6 +1565,11 @@ def ret_name(stmts):
     return None
 
 
+def yields(stmts):
+    """Whether a block has a yield line of its own, not in a nested def."""
+    return any(s[0] == "yield" or any(yields(b) for b in children(s)) for s in stmts)
+
+
 def children(s):
     """The blocks inside a statement, except a nested def's own body."""
     if s[0] == "for":
@@ -1556,6 +1613,7 @@ class Emitter:
             self.def_(s, ind)
         elif kind == "memo":
             _, name, params, cases = s
+            self.decorators(s, ind)
             self.out(ind, "@cache")
             self.out(ind, f"def {name}({', '.join(params)}):")
             for guard, val in cases:
@@ -1592,6 +1650,8 @@ class Emitter:
             self.out(ind, kind)
         elif kind in ("import", "push"):
             self.out(ind, s[1])
+        elif kind == "yield":
+            self.out(ind, "yield" if s[1] is None else f"yield {s[1]}")
         elif kind == "del":
             self.out(ind, f"del {s[1]}")
         elif kind == "assert":
@@ -1606,6 +1666,14 @@ class Emitter:
             self.out(ind, "else:")
             self.block(other, ind + 1)
 
+    def decorators(self, s, ind):
+        """The `@` lines of a def or a memo, each mapped to its own mu line."""
+        line = self.src_line
+        for at, d in getattr(s, "decorators", ()):
+            self.src_line = at
+            self.out(ind, f"@{d}")
+        self.src_line = line
+
     def def_(self, s, ind):
         _, name, params, ret, body = s[:5]
         top = not self.scopes  # a method of Solution, or a REPL function
@@ -1613,6 +1681,7 @@ class Emitter:
         sig = ["self"] * (self.method and top)
         sig += [p if t is None else f"{p}: {t}" for p, t in params]
         arrow = f" -> {ret}" if ret else ""
+        self.decorators(s, ind)
         if is_memo(s):
             self.out(ind, "@cache")
         self.out(ind, f"def {name}({', '.join(sig)}){arrow}:")
@@ -1645,7 +1714,12 @@ class Emitter:
             self.block(body, ind + 2, returns=returns)
             if res:
                 self.out(ind + 2, f"return {res}")
-            self.out(ind + 1, "return deep(run)")
+            if yields(body):
+                # run is a generator: exhaust it on the big stack, then
+                # yield its items from here
+                self.out(ind + 1, "yield from deep(lambda: list(run()))")
+            else:
+                self.out(ind + 1, "return deep(run)")
         else:
             self.block(body, ind + 1, returns=returns)
             if res:
@@ -1769,7 +1843,7 @@ def compile_stmts(src, last="_ = {}"):
 
 STATEMENT_WORDS = {
     "def", "memo", "for", "in", "if", "elif", "else", "while", "return", "and",
-    "or", "not", "from", "first", "break", "continue",
+    "or", "not", "from", "first", "break", "continue", "yield",
 }  # fmt: skip
 TIGHT = {"..", "..<", "."}
 
@@ -1785,7 +1859,7 @@ def gap(prev, cur, unary, subscript, paren=False):
         return "  " if ck == "COMMENT" else " "
     if ck == "OP" and cv in (",", ":", ")", "]", "}", "?"):
         return ""
-    if pk == "OP" and pv in "([{":
+    if pk == "OP" and pv in "([{@":
         return ""
     if pk == "POP":
         return " "  # a pop inside a comprehension: `[h . for _ in xs]`
@@ -1928,9 +2002,10 @@ def fmt(src):
                 if ind != indents[-1]:
                     raise MuError(f"line {n}: indentation does not match any block")
                 level = len(indents) - 1
-            # a top-level def gets a blank line above it and its comments
-            top = level == 0 and (body.startswith("def ") or body.startswith("#"))
-            after_comment = lines and lines[-1] and lines[-1][1].startswith("#")
+            # a top-level def gets a blank line above it, its decorators
+            # and its comments
+            top = level == 0 and body.startswith(("def ", "#", "@"))
+            after_comment = lines and lines[-1] and lines[-1][1].startswith(("#", "@"))
             if lines and (blank or top and lines[-1] is not None and not after_comment):
                 lines.append(None)
             blank = False
