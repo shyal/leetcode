@@ -32320,6 +32320,15 @@
       "judge": "deepseek-chat",
       "summary": "The code builds an n x n grid with table(n, n) and fills each cell by converting the (row, col) pair into a flat number: r * n + c for even rows, and r * n + (n - 1 - c) for odd rows, producing the alternating snake numbering. It exercises index-conversion, mapping a grid cell to a linear index with the row direction mirrored on odd rows. The run exited 0 and printed the expected 4x4 alternating grid.",
       "seconds": 154
+    },
+    "solved/d_Longest_Path_From_Zero_2026_09_30T22_39_30_173209_00_00Z.py": {
+      "date": "2026-10-01",
+      "problem": "drill",
+      "moves": {},
+      "judge": "deepseek-chat",
+      "note": "REQUIRED O(n+m) memoization not implemented; plain recursion recomputes each node's longest path on every visit.",
+      "summary": "The code defines longest(node) as max([1 + longest(n) for n in G[node]], default=0) and returns longest(0), recursing over the DAG without any cache. It passes all the small assertions, but the required O(n + m) bound is not met because no memoization is applied, so shared subpaths are recomputed. The notes mark the file as Learning, indicating the solution was given rather than recalled.",
+      "seconds": 217
     }
   }
 }
