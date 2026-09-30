@@ -32049,6 +32049,17 @@
       "judge": "deepseek-chat",
       "summary": "The code enumerates every substring of s with two nested loops: an outer start index i and an inner end index j from i to len(s)-1, appending the slice s[i:j+1] to res. This is the by-start form of substring enumeration, and all assertions pass, including the count of 55 for a length-10 string.",
       "seconds": 267
+    },
+    "solved/d_Floor_True_2026_09_30T01_15_38_042645_00_00Z.py": {
+      "date": "2026-09-30",
+      "problem": "drill",
+      "moves": {
+        "binary-search-boundary": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets binary-search-on-answer; the code implements the last-true boundary search (lo=mid+1 on ok, hi=mid-1 otherwise, return hi), which is the boundary template.",
+      "summary": "The file defines floorTrue(lo, hi, ok), a while lo<=hi binary search that moves lo up when ok(mid) holds and hi down otherwise, returning hi as the last index where the predicate is true. It also defines first_true/first_false/last_false/last_true helpers built on bisect_left. The assertions exercise the boundary search across edge cases (single element, full range, 1e9 range) and confirm the call count stays within ~31, and the run exited 0.",
+      "seconds": 107
     }
   }
 }
