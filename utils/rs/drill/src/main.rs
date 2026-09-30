@@ -204,13 +204,5 @@ fn main() {
         when_of(&path)
     ));
     console.print("Solve it, then `make solved` as usual.");
-    // the Claude Code pane follows the branch: its conversation is the drill's
-    let chat = std::env::current_exe()
-        .ok()
-        .and_then(|p| p.parent().map(|d| d.join("kg_chat")))
-        .unwrap_or_else(|| ctx.root.join("utils/rs/target/release/kg_chat"));
-    let _ = Command::new(chat)
-        .arg("--switch")
-        .current_dir(&ctx.root)
-        .status();
+    // the Claude Code pane follows the branch: the Makefile's last step
 }

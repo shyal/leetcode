@@ -5,10 +5,12 @@
 //   kg_chat --check           # UserPromptSubmit hook: warn when the running
 //                             # session is not this branch's own
 //   kg_chat --switch          # restart the Claude Code in this repo's iTerm2
-//                             # pane on this branch's conversation (called by
-//                             # make drill, make next prepare, make wake, and
-//                             # by make solved, failed, sleep, drop on the way
-//                             # back to master)
+//                             # pane on this branch's conversation: the last
+//                             # step of make drill, prepare, spot, sleep,
+//                             # wake, solved, failed, studied and drop. It
+//                             # returns at once (the restart runs detached)
+//                             # and does nothing when the pane is already on
+//                             # this branch's conversation
 //
 // A problem's branch is its number, a drill's its graph id (d82), so the
 // branch names the thing being worked on. Its session id is a fixed
@@ -23,14 +25,15 @@
 // that is now checked out. So the pane follows the branch without anything
 // being typed into it (typed-ahead input is flushed when claude restores
 // the terminal, which is why typing `make chat` after the exit never ran).
-// The loop notes claude's pid in .chat.json; --switch only touches a
-// claude that the loop started.
+// The loop notes claude's pid and branch in .chat.json; --switch only
+// touches a claude that the loop started, and only when the branch has
+// changed under it.
 //
 // Ported from utils/kg/chat (Python) on 2026-09-12.
 
 use std::io::Read;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
 use std::time::Duration;
 
 use serde_json::{json, Value};
@@ -63,7 +66,8 @@ struct Chat {
     root: PathBuf,
     /// ~/.claude/projects/<root with / as ->
     project_dir: PathBuf,
-    /// {"pid": claude started by the loop, "switch": true while a restart is wanted}
+    /// {"pid": claude started by the loop, "branch": the branch it was
+    /// started on, "switch": true while a restart is wanted}
     state: PathBuf,
 }
 
@@ -153,19 +157,61 @@ impl Chat {
         }
     }
 
-    /// Exit the claude that `make chat` is running in this repo's iTerm2
-    /// pane; the loop starts it again on the branch now checked out.
-    /// Nothing to do when no such claude is running.
-    fn switch(&self) {
-        let mut state = self.load_state();
+    /// The pid and tty of the claude that `make chat` is running in this
+    /// repo's iTerm2 pane, or None with the reason printed.
+    fn running(&self) -> Option<(i64, String)> {
+        let state = self.load_state();
         let pid = state.get("pid").and_then(Value::as_i64);
         let tty = pid.filter(|p| alive(*p)).and_then(|p| self.claude_tty(p));
         let (Some(pid), Some(tty)) = (pid, tty) else {
             println!(
                 "no `make chat` running in this repo - start claude with `make chat` and it follows the branch"
             );
+            return None;
+        };
+        Some((pid, tty))
+    }
+
+    /// Restart the pane's claude on the branch now checked out, unless it
+    /// is already there (or a restart is under way). The work happens in a
+    /// detached copy of this binary, so the make that asked returns at once.
+    fn switch(&self) {
+        if self.running().is_none() {
+            return;
+        }
+        let state = self.load_state();
+        let same = state.get("branch").and_then(Value::as_str) == Some(self.branch().as_str());
+        let pending = state
+            .get("switch")
+            .and_then(Value::as_bool)
+            .unwrap_or(false);
+        if same || pending {
+            return;
+        }
+        let Ok(exe) = std::env::current_exe() else {
             return;
         };
+        let mut cmd = Command::new(exe);
+        cmd.arg("--switch-now")
+            .current_dir(&self.root)
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null());
+        #[cfg(unix)]
+        {
+            use std::os::unix::process::CommandExt;
+            cmd.process_group(0);
+        }
+        let _ = cmd.spawn();
+    }
+
+    /// Exit the claude that `make chat` is running in this repo's iTerm2
+    /// pane; the loop starts it again on the branch now checked out.
+    fn switch_now(&self) {
+        let Some((pid, tty)) = self.running() else {
+            return;
+        };
+        let mut state = self.load_state();
         state["switch"] = Value::Bool(true);
         self.save_state(&state);
         let sid = osascript(&format!(
@@ -231,7 +277,7 @@ end tell"#
                     std::process::exit(1);
                 }
             };
-            self.save_state(&json!({"pid": child.id()}));
+            self.save_state(&json!({"pid": child.id(), "branch": self.branch()}));
             let code = child.wait().ok().and_then(|s| s.code()).unwrap_or(1);
             let state = self.load_state();
             let _ = std::fs::remove_file(&self.state);
@@ -298,6 +344,7 @@ fn main() {
     match args.first().map(String::as_str) {
         Some("--check") => chat.check(),
         Some("--switch") => chat.switch(),
+        Some("--switch-now") => chat.switch_now(),
         _ => chat.run_loop(&args),
     }
 }

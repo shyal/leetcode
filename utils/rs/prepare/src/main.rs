@@ -739,12 +739,7 @@ option loses, where one pass misses a later better choice. At most 12 lines.
         git(&["checkout", "-b", &key]);
         git(&["add", "."]);
         git(&["commit", "-m", &problem_title]);
-        // the Claude Code pane follows the branch: its conversation is the
-        // problem's
-        let _ = Command::new(rs_bin(root, "kg_chat"))
-            .arg("--switch")
-            .current_dir(root)
-            .status();
+        // the Claude Code pane follows the branch: the Makefile's last step
     }
 }
 

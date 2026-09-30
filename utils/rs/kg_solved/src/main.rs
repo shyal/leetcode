@@ -367,12 +367,7 @@ fn commit_phase(console: &Console, root: &Path) {
     }
     let _ = std::fs::remove_file(META);
     finish(console, root, &meta);
-    // the Claude Code pane follows the branch: a fresh conversation on master
-    let chat = std::env::current_exe()
-        .ok()
-        .and_then(|p| p.parent().map(|d| d.join("kg_chat")))
-        .unwrap_or_else(|| root.join("utils/rs/target/release/kg_chat"));
-    let _ = Command::new(chat).arg("--switch").status();
+    // the Claude Code pane follows the branch: the Makefile's last step
 }
 
 fn print_panel(console: &Console, text: &str, title: &str) {

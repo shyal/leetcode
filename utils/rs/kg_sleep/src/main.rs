@@ -97,17 +97,6 @@ fn now() -> i64 {
         .unwrap_or(0)
 }
 
-fn switch_chat(root: &Path) {
-    let chat = std::env::current_exe()
-        .ok()
-        .and_then(|p| p.parent().map(|d| d.join("kg_chat")))
-        .unwrap_or_else(|| root.join("utils/rs/target/release/kg_chat"));
-    let _ = Command::new(chat)
-        .arg("--switch")
-        .current_dir(root)
-        .status();
-}
-
 fn wake(ctx: &Ctx, pv: &PView, ev: &Evidence, problem: Option<String>) {
     let git = Git { root: &ctx.root };
     let pnum = match problem {
@@ -164,8 +153,6 @@ fn wake(ctx: &Ctx, pv: &PView, ev: &Evidence, problem: Option<String>) {
         hm(active),
         hm(slept)
     );
-    // the Claude Code pane follows the branch: back to the problem's conversation
-    switch_chat(&ctx.root);
 }
 
 fn park(ctx: &Ctx, pv: &PView, ev: &Evidence, problem: Option<String>) {
@@ -221,8 +208,6 @@ fn park(ctx: &Ctx, pv: &PView, ev: &Evidence, problem: Option<String>) {
             "WIP parked on branch {slept_branch} ({} fought); back on master.",
             hm(fought)
         );
-        // the Claude Code pane follows the branch: a fresh conversation on master
-        switch_chat(&ctx.root);
     } else if git.branch_exists(&pnum) {
         // park an attempt whose branch exists but isn't checked out: stamp
         // the marker on it, rename, come back to where we were

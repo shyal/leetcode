@@ -17,9 +17,12 @@ learning: $(RS_BIN)/learning
 	@$(RS_BIN)/learning
 
 # every serve ends here (`make next prepare` runs next, then this): the
-# drill or problem also gets its mu signature in current.mu
-prepare: $(RS_BIN)/prepare
+# drill or problem also gets its mu signature in current.mu, and last the
+# Claude Code pane follows the branch (kg_chat --switch: detached, a no-op
+# when the pane is already on this branch)
+prepare: $(RS_BIN)/prepare $(RS_BIN)/kg_chat
 	@if [ "$(firstword $(MAKECMDGOALS))" != next ] && [ "$(firstword $(MAKECMDGOALS))" != dependents ] && [ "$(firstword $(MAKECMDGOALS))" != combos ]; then $(RS_BIN)/prepare $(filter-out $@,$(MAKECMDGOALS)) || exit 1; fi; .venv/bin/python3 mu/session.py stub
+	@$(RS_BIN)/kg_chat --switch
 
 
 force: $(RS_BIN)/kg_force
@@ -125,11 +128,13 @@ MOVIE_BIN := $(RS_BIN)/kg_movie
 movie: $(MOVIE_BIN)
 	@$(MOVIE_BIN) $(filter-out $@,$(MAKECMDGOALS))
 
-sleep: $(RS_BIN)/kg_sleep
+sleep: $(RS_BIN)/kg_sleep $(RS_BIN)/kg_chat
 	@$(RS_BIN)/kg_sleep $(filter-out $@,$(MAKECMDGOALS))
+	@$(RS_BIN)/kg_chat --switch
 
-wake: $(RS_BIN)/kg_sleep
+wake: $(RS_BIN)/kg_sleep $(RS_BIN)/kg_chat
 	@$(RS_BIN)/kg_sleep --wake $(filter-out $@,$(MAKECMDGOALS))
+	@$(RS_BIN)/kg_chat --switch
 
 # make queue [-- --size N]: the next N (default 10) problems the picker
 # would serve, rating against elo (the table under make next). make queue gate [-- --gap 50] [-- --apply]:
@@ -151,14 +156,16 @@ drop:
 # call) -> ONE commit carrying solve + placeholder, with the frozen time in
 # the message -> the judge spawned detached; it commits its verdict when
 # done. Seconds, not the judge's minute. Ctrl-C anywhere: re-run
-# `make solved`, every step resumes (utils/rs/kg_solved).
-solved: $(RS_BIN)/kg_solved $(RS_BIN)/kg_force $(RS_BIN)/kg_extract $(RS_BIN)/lc_submit
+# `make solved`, every step resumes (utils/rs/kg_solved). Last, the Claude
+# Code pane follows the branch back to master (detached).
+solved: $(RS_BIN)/kg_solved $(RS_BIN)/kg_force $(RS_BIN)/kg_extract $(RS_BIN)/lc_submit $(RS_BIN)/kg_chat
 	@.venv/bin/python3 mu/session.py fold
 	@$(RS_BIN)/kg_force --check
 	@$(RS_BIN)/lc_submit --auto
 	@$(RS_BIN)/kg_solved
 	@$(RS_BIN)/kg_extract --stub
 	@$(RS_BIN)/kg_solved --commit
+	@$(RS_BIN)/kg_chat --switch
 
 # submit current.py's last `class Solution` to leetcode and write the verdict
 # into its notes (LEETCODE: Accepted / Time Limit Exceeded ...) for the judge.
@@ -181,22 +188,24 @@ lc-mocks:
 
 # file the current attempt as a FAILED one: same flow as solved (archive,
 # solve-time trailer, placeholder -> struggled evidence), honest label
-failed: $(RS_BIN)/kg_solved $(RS_BIN)/kg_extract
+failed: $(RS_BIN)/kg_solved $(RS_BIN)/kg_extract $(RS_BIN)/kg_chat
 	@.venv/bin/python3 mu/session.py fold
 	@$(RS_BIN)/kg_solved --failed
 	@$(RS_BIN)/kg_extract --stub
 	@$(RS_BIN)/kg_solved --commit
+	@$(RS_BIN)/kg_chat --switch
 
 # file the current problem as STUDIED: read, run, played with, submitted
 # maybe, and nothing scored. The record has no moves (no node, no curve,
 # no Elo, no stats row) but it opens the problem's card (kg::clock) and
 # cools it as a carrier, so the next serve is a repeat and not tomorrow.
 # `make drop` instead leaves the picker thinking you never saw it.
-studied: $(RS_BIN)/kg_solved $(RS_BIN)/kg_extract
+studied: $(RS_BIN)/kg_solved $(RS_BIN)/kg_extract $(RS_BIN)/kg_chat
 	@.venv/bin/python3 mu/session.py fold
 	@$(RS_BIN)/kg_solved --studied
 	@$(RS_BIN)/kg_extract --stub
 	@$(RS_BIN)/kg_solved --commit
+	@$(RS_BIN)/kg_chat --switch
 
 # --- code quality gates -------------------------------------------------------
 # make check is the aggregate every change to utils/ or dsa/ must pass (CI runs
@@ -330,14 +339,16 @@ dive: $(RS_BIN)/kg_dive
 hard: $(RS_BIN)/kg_hard
 	@if [ "$(firstword $(MAKECMDGOALS))" != spot ]; then $(RS_BIN)/kg_hard $(patsubst graph,--graph,$(filter-out $@,$(MAKECMDGOALS))); fi
 
-drill: $(RS_BIN)/drill
+drill: $(RS_BIN)/drill $(RS_BIN)/kg_chat
 	@$(RS_BIN)/drill $(filter-out $@,$(MAKECMDGOALS))
 	@.venv/bin/python3 mu/session.py stub
+	@$(RS_BIN)/kg_chat --switch
 
 # a recognition rep, asked for: same as `make prepare spot`, served whether
 # or not make next says one is due (the SPOT_EVERY ratio only governs that)
-spot: $(RS_BIN)/spot
+spot: $(RS_BIN)/spot $(RS_BIN)/kg_chat
 	@$(RS_BIN)/spot $(filter-out $@,$(MAKECMDGOALS))
+	@$(RS_BIN)/kg_chat --switch
 
 timer: $(RS_BIN)/timer
 	@$(RS_BIN)/timer
