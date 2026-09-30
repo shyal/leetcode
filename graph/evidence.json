@@ -32147,6 +32147,19 @@
       "note": "LeetCode: Accepted (51 ms, 23.9 MB)",
       "summary": "The code keeps a running prefix sum and a defaultdict D mapping each prefix value to how many times it has occurred, seeded with D[0]=1. At each element it asks D[prefix-k] for the count of past prefixes that would close a subarray summing to k, adds that count to res, then records the current prefix. This exercises prefix sums, the ask-then-record streaming order, the derived key prefix-k, pair accumulation via counts, and the prefix-sum hashmap. Notes are empty and LeetCode reports Accepted.",
       "seconds": 1407
+    },
+    "solved/d_Subarray_Sum_Equals_K_2026_09_30T09_47_39_110031_00_00Z.py": {
+      "date": "2026-09-30",
+      "problem": "drill",
+      "moves": {
+        "prefix-sum-hashmap": "clean",
+        "streaming-ask-then-record": "clean",
+        "derived-key-lookup": "clean",
+        "running-sum": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The code keeps a defaultdict D mapping each running prefix sum to how many times it has occurred, seeded with D[0]=1, and for each element adds to prefix then adds D[prefix-k] to res before recording the current prefix. This is the prefix-sum-hashmap move: each subarray summing to k is counted by asking the past for prefix-k, with the running sum carried in prefix. All assertions pass, including the large 20000-element cases, and the notes contain no mention of hints or failures.",
+      "seconds": 155
     }
   }
 }
