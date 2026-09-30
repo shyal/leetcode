@@ -32441,6 +32441,17 @@
       "judge": "deepseek-chat",
       "summary": "The drill builds a Set<number> and walks nums once, returning the first value for which set.has(n) is true and otherwise adding it with set.add(n), falling back to -1. This exercises ts-set-membership: has-before-add in a single pass. The file ran and printed 4; the assertion lines are commented out, and the notes contain no claim of help or recognition trouble.",
       "seconds": 103
+    },
+    "solved/d_Third_Smallest_2026_09_30T23_54_11_544903_00_00Z.ts": {
+      "date": "2026-10-01",
+      "problem": "drill",
+      "moves": {
+        "ts-sort-comparator": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets ts-sort-comparator; [...nums].sort((a,b)=>a-b) copies before sorting so the input stays [3,1,2].",
+      "summary": "The drill's thirdSmallest copies nums with the spread, sorts the copy with the numeric comparator (a, b) => a - b, and returns index 2. The comparator is the trained move: without it the default string sort would order [10, 9, 100] wrongly, and the copy keeps the caller's array unmutated, which the final assertion checks. The file ran and all assertions passed.",
+      "seconds": 75
     }
   }
 }
