@@ -32193,6 +32193,22 @@
       "note": "Notes say the first attempt was a plain BFS, not a topological sort; LEETCODE: Accepted (3 ms, 20.6 MB).",
       "summary": "The final code builds an adjacency list with adjacency(prerequisites, numCourses) and an in-degree dict deg, seeds a deque with the zero-degree courses, and runs Kahn's algorithm: pop a node, append it to res, decrement each neighbor's degree, and enqueue when it hits zero. It returns res[::-1] when all courses were emitted, else []. The notes describe an earlier attempt that used levels/seen as a standard BFS and failed a case, and say the topological sort was learned rather than recognized.",
       "seconds": 1772
+    },
+    "solved/d_Kahn_Queue_Loop_2026_09_30T12_32_24_679257_00_00Z.py": {
+      "date": "2026-09-30",
+      "problem": "drill",
+      "moves": {
+        "topological-order": "clean",
+        "graph-adjacency-build": "clean",
+        "deque-recent-window": "clean"
+      },
+      "assist": {
+        "topological-order": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say 'Use Kahn's algorithm' and the mu source is given as the learning solution; the loop body is the required Kahn queue loop.",
+      "summary": "The code builds a reversed adjacency list and indegree map with the harness helpers, seeds a deque with all zero-indegree courses, then repeatedly popleft a course, append it to res, and decrement its successors' degrees, enqueueing any that reach zero. It returns res only when its length equals numCourses, so cycles yield []. The notes state the approach was given as a learning solution ('Use Kahn's algorithm'), and all assertions pass.",
+      "seconds": 892
     }
   }
 }

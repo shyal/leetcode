@@ -18,18 +18,17 @@ append it to res. Each course in its adj list now waits for one fewer
 prerequisite, so lower its count by one. When a count reaches 0, append
 that course to q.
 
-For example, with numCourses = 4 and
-prerequisites = [[1, 0], [2, 0], [3, 1], [3, 2]]
+For example, with numCourses = 6 and
+prerequisites = [[2, 3], [1, 2], [0, 1], [0, 4], [4, 5], [5, 1]]
 
-    .--> 1 --.
-    |        v
-    0        3
-    |        ^
-    '--> 2 --'
+    3 --> 2 --> 1 --> 5 --> 4 --> 0
+                |                 ^
+                '-----------------'
 
-we take the courses as so: 0, 1, 2, 3. Taking 0 lowers the counts of 1
-and 2 to 0. Taking 1 lowers the count of 3 from 2 to 1, so 3 stays out
-of q. Taking 2 lowers it to 0, and 3 joins q.
+we take the courses as so: 3, 2, 1, 5, 4, 0. Course 0 has prerequisites
+1 and 4, so its count starts at 2. Taking 1 lowers the count of 0 to 1,
+so 0 stays out of q. It also lowers the count of 5 to 0, so 5 joins q.
+Taking 4 lowers the count of 0 to 0, and 0 joins q.
 
 A course on a cycle never reaches count 0. It is never taken, res comes
 out short, and the stub's last line returns [].
@@ -38,21 +37,23 @@ Use Kahn's algorithm.
 
 Example 1:
 
-Input: numCourses = 4, prerequisites = [[1, 0], [2, 0], [3, 1], [3, 2]]
-Output: [0, 1, 2, 3]
-Explanation: [0, 2, 1, 3] is also correct.
+Input: numCourses = 6, prerequisites = [[2, 3], [1, 2], [0, 1], [0, 4], [4, 5], [5, 1]]
+Output: [3, 2, 1, 5, 4, 0]
+Explanation: course 0 has prerequisites 1 and 4. It is taken after 4,
+which is the later of the two. No other order is correct.
 
 Example 2:
 
-Input: numCourses = 4, prerequisites = [[1, 0], [2, 1], [3, 2], [3, 0]]
+Input: numCourses = 4, prerequisites = [[1, 0], [2, 0], [3, 1], [3, 2]]
 
-    0 --> 1 --> 2 --> 3
-    |                 ^
-    '-----------------'
+    .--> 1 --.
+    |        v
+    0        3
+    |        ^
+    '--> 2 --'
 
 Output: [0, 1, 2, 3]
-Explanation: course 3 has prerequisites 0 and 2. It is taken after 2,
-which is the later of the two.
+Explanation: [0, 2, 1, 3] is also correct.
 
 Example 3:
 
@@ -91,7 +92,7 @@ class Solution:
 
 sol = Solution()
 
-print(sol.findOrder(4, [[1, 0], [2, 0], [3, 1], [3, 2]]))  # [0, 1, 2, 3]
+print(sol.findOrder(6, [[2, 3], [1, 2], [0, 1], [0, 4], [4, 5], [5, 1]]))  # [3, 2, 1, 5, 4, 0]
 
 # assert sol.findOrder(4, [[1, 0], [2, 0], [3, 1], [3, 2]]) in (
 #     [0, 1, 2, 3],
@@ -118,6 +119,7 @@ print(sol.findOrder(4, [[1, 0], [2, 0], [3, 1], [3, 2]]))  # [0, 1, 2, 3]
 #     [1, 0, 2],
 # )
 # assert sol.findOrder(6, [[1, 0], [2, 1], [3, 2], [4, 3], [4, 0], [5, 4]]) == [0, 1, 2, 3, 4, 5]
+# assert sol.findOrder(6, [[2, 3], [1, 2], [0, 1], [0, 4], [4, 5], [5, 1]]) == [3, 2, 1, 5, 4, 0]
 # assert sol.findOrder(5, [[0, 4], [1, 4], [2, 0], [2, 1], [3, 2]]) in (
 #     [4, 0, 1, 2, 3],
 #     [4, 1, 0, 2, 3],
