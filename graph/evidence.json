@@ -32026,6 +32026,19 @@
       "judge": "deepseek-chat",
       "summary": "The code splits the input on spaces, reverses each word by splitting it into characters, reversing the array, and joining it back, then rejoins the words with spaces. It exercises the ts-string-build move: split, transform the pieces, and reassemble. The notes say the solution was given and copied (Learning).",
       "seconds": 114
+    },
+    "solved/p64_Minimum_Path_Sum_2026_09_30T00_40_35_165425_00_00Z.py": {
+      "date": "2026-09-30",
+      "problem": "64",
+      "moves": {
+        "dp-state-formulate": "clean",
+        "dp-2d-grid": "clean",
+        "prefix-sums": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes show the candidate first considered BFS, rejected it as greedy, and settled on DP; LEETCODE: Accepted (27 ms, 21.9 MB).",
+      "summary": "The code builds a full 2D dp table with like(grid), fills the first row via accumulate and the first column via a running p, then for every interior cell sets dp[row][col] = min(dp[row-1][col], dp[row][col-1]) + grid[row][col], returning the bottom-right entry. It exercises the 2D grid DP recurrence and prefix-sum accumulation for the first row/column, but keeps a full table rather than rolling 1D rows. The notes record that BFS was considered and rejected as greedy before the DP formulation was chosen, and LeetCode accepted the submission.",
+      "seconds": 1128
     }
   }
 }
