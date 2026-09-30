@@ -32219,6 +32219,16 @@
       "judge": "deepseek-chat",
       "summary": "The query selects month, amount, and amount minus lag(amount, 1) over (order by month) from Revenue, using a window offset to compare each row with the previous month. The first row's change is NULL and equal amounts give 0, matching both examples. The single required move, sql-window-offset, is exercised cleanly and the run passed.",
       "seconds": 160
+    },
+    "solved/d_Running_Total_2026_09_30T21_35_04_094014_00_00Z.py": {
+      "date": "2026-10-01",
+      "problem": "drill",
+      "moves": {
+        "sql-window-running": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The query selects turn and sum(weight) over (order by turn) as total from Queue, computing a running total with a window function in a single pass. This exercises the sql-window-running move, and both example assertions pass. No notes indicate any help or difficulty.",
+      "seconds": 122
     }
   }
 }
