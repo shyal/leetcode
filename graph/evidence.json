@@ -32160,6 +32160,23 @@
       "judge": "deepseek-chat",
       "summary": "The code keeps a defaultdict D mapping each running prefix sum to how many times it has occurred, seeded with D[0]=1, and for each element adds to prefix then adds D[prefix-k] to res before recording the current prefix. This is the prefix-sum-hashmap move: each subarray summing to k is counted by asking the past for prefix-k, with the running sum carried in prefix. All assertions pass, including the large 20000-element cases, and the notes contain no mention of hints or failures.",
       "seconds": 155
+    },
+    "solved/d_Divisible_Difference_Pairs_2026_09_30T11_02_35_841715_00_00Z.py": {
+      "date": "2026-09-30",
+      "problem": "drill",
+      "moves": {
+        "derived-key-lookup": "clean",
+        "streaming-ask-then-record": "clean",
+        "counter-build": "clean",
+        "streaming-accumulate-pairs": "clean"
+      },
+      "assist": {
+        "derived-key-lookup": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "mu source shows the whole solution; notes say 'Learning'.",
+      "summary": "The code counts pairs whose difference is divisible by m by reducing each number to n % m and looking up how many earlier numbers shared that residue, then recording the current one. It exercises derived-key-lookup (the residue as key), streaming-ask-then-record, counter-build, and streaming-accumulate-pairs. All assertions pass, including the 10^5-size cases. The notes mark the work as Learning.",
+      "seconds": 425
     }
   }
 }
