@@ -32329,6 +32329,17 @@
       "note": "REQUIRED O(n+m) memoization not implemented; plain recursion recomputes each node's longest path on every visit.",
       "summary": "The code defines longest(node) as max([1 + longest(n) for n in G[node]], default=0) and returns longest(0), recursing over the DAG without any cache. It passes all the small assertions, but the required O(n + m) bound is not met because no memoization is applied, so shared subpaths are recomputed. The notes mark the file as Learning, indicating the solution was given rather than recalled.",
       "seconds": 217
+    },
+    "solved/d_Largest_Of_The_Last_K_2026_09_30T23_07_09_527843_00_00Z.py": {
+      "date": "2026-10-01",
+      "problem": "drill",
+      "moves": {
+        "monotonic-queue": "clean",
+        "sliding-window-fixed": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The code uses a MonotonicQueue(Type.decreasing) to maintain the maximum over the last k elements: each element is pushed with its index, the front is popped when it falls out of the window (front index <= i - k), and the front value is appended to res. This exercises the monotonic-queue move and the fixed sliding-window bookkeeping. All assertions passed and the printed output matches the expected [1, 3, 3, 3, 5, 5, 6, 7]; the notes contain no mention of hints or look-ups.",
+      "seconds": 266
     }
   }
 }

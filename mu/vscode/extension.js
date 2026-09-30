@@ -1,5 +1,7 @@
-// Formats .mu files by piping the document through `mu.py --fmt -`, and
-// debugs current.mu: `session.py debug` writes .mu_current.py with a line
+// Formats .mu files by piping the document through `mu.py --fmt -`, answers
+// hover, completion, go-to-definition and signature help through `ide.py`
+// (one process per workspace root, JSON lines both ways), and debugs
+// current.mu: `session.py debug` writes .mu_current.py with a line
 // map, and the `mu` debug type runs debugpy on the Python behind a proxy
 // (adapter.js) that keeps the editor on the mu file.
 const vscode = require("vscode");
@@ -10,6 +12,7 @@ const { Rewriter, Framer } = require("./adapter");
 
 const MU = path.join(__dirname, "..", "mu.py");
 const SESSION = path.join(__dirname, "..", "session.py");
+const IDE = path.join(__dirname, "..", "ide.py");
 
 function format(document) {
   const python = vscode.workspace.getConfiguration("mu").get("python");
@@ -163,6 +166,150 @@ class MuDebugAdapter {
   }
 }
 
+// The ide backend: started on the first request, again after it exits.
+// A request that gets no reply within five seconds resolves to null.
+class MuIde {
+  constructor() {
+    this.child = null;
+    this.root = null;
+    this.pending = new Map(); // id -> resolve
+    this.seq = 0;
+    this.buffer = "";
+    this.warned = false;
+  }
+
+  start(root) {
+    this.root = root;
+    this.buffer = "";
+    const child = spawn(solvePython(root), [IDE], { cwd: root });
+    child.stdout.setEncoding("utf8");
+    child.stdout.on("data", (chunk) => {
+      this.buffer += chunk;
+      let nl;
+      while ((nl = this.buffer.indexOf("\n")) >= 0) {
+        const line = this.buffer.slice(0, nl);
+        this.buffer = this.buffer.slice(nl + 1);
+        let msg;
+        try {
+          msg = JSON.parse(line);
+        } catch {
+          continue;
+        }
+        const resolve = this.pending.get(msg.id);
+        if (!resolve) continue;
+        this.pending.delete(msg.id);
+        if (msg.error) console.error(`mu ide: ${msg.error}`);
+        resolve(msg.error ? null : msg.result);
+      }
+    });
+    child.stderr.on("data", (d) => {
+      const text = String(d).trim();
+      console.error(`mu ide: ${text}`);
+      if (!this.warned && text.includes("jedi")) {
+        this.warned = true;
+        vscode.window.showErrorMessage(`mu ide: ${text}`);
+      }
+    });
+    child.on("exit", () => {
+      if (this.child === child) this.child = null;
+      for (const resolve of this.pending.values()) resolve(null);
+      this.pending.clear();
+    });
+    this.child = child;
+  }
+
+  request(cmd, document, position) {
+    const folder = vscode.workspace.getWorkspaceFolder(document.uri);
+    const root = (folder && folder.uri.fsPath) || workspaceRoot();
+    if (!root) return Promise.resolve(null);
+    if (!this.child || this.root !== root) {
+      if (this.child) this.child.kill();
+      this.start(root);
+    }
+    const id = ++this.seq;
+    const req = { id, cmd, root, text: document.getText(), line: position.line, col: position.character };
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => {
+        if (this.pending.delete(id)) resolve(null);
+      }, 5000);
+      this.pending.set(id, (result) => {
+        clearTimeout(timer);
+        resolve(result);
+      });
+      this.child.stdin.write(JSON.stringify(req) + "\n");
+    });
+  }
+
+  dispose() {
+    if (this.child) this.child.kill();
+  }
+}
+
+const KINDS = {
+  function: vscode.CompletionItemKind.Function,
+  class: vscode.CompletionItemKind.Class,
+  module: vscode.CompletionItemKind.Module,
+  variable: vscode.CompletionItemKind.Variable,
+  keyword: vscode.CompletionItemKind.Keyword,
+  property: vscode.CompletionItemKind.Property,
+};
+
+const fenced = (text) => new vscode.MarkdownString("```mu\n" + text + "\n```");
+
+// The language features, each one request to the backend. A definition
+// with no path is in the document itself.
+function providers(ide) {
+  const location = (document, d) =>
+    new vscode.Location(d.path ? vscode.Uri.file(d.path) : document.uri, new vscode.Position(d.line, d.col));
+  return [
+    vscode.languages.registerHoverProvider("mu", {
+      async provideHover(document, position) {
+        const r = await ide.request("hover", document, position);
+        return r ? new vscode.Hover(new vscode.MarkdownString(r.contents)) : null;
+      },
+    }),
+    vscode.languages.registerDefinitionProvider("mu", {
+      async provideDefinition(document, position) {
+        const r = await ide.request("definition", document, position);
+        return (r || []).map((d) => location(document, d));
+      },
+    }),
+    vscode.languages.registerCompletionItemProvider(
+      "mu",
+      {
+        async provideCompletionItems(document, position) {
+          const r = await ide.request("complete", document, position);
+          return (r || []).map((c) => {
+            const item = new vscode.CompletionItem(c.label, KINDS[c.kind] || vscode.CompletionItemKind.Variable);
+            if (c.detail) item.detail = c.detail;
+            if (c.doc) item.documentation = fenced(c.doc);
+            return item;
+          });
+        },
+      },
+      "."
+    ),
+    vscode.languages.registerSignatureHelpProvider(
+      "mu",
+      {
+        async provideSignatureHelp(document, position) {
+          const r = await ide.request("signature", document, position);
+          if (!r) return null;
+          const sig = new vscode.SignatureInformation(r.label, r.doc ? fenced(r.doc) : undefined);
+          sig.parameters = r.params.map((p) => new vscode.ParameterInformation(p));
+          const help = new vscode.SignatureHelp();
+          help.signatures = [sig];
+          help.activeSignature = 0;
+          help.activeParameter = Math.min(r.active, Math.max(r.params.length - 1, 0));
+          return help;
+        },
+      },
+      "(",
+      ","
+    ),
+  ];
+}
+
 async function debug() {
   const root = workspaceRoot();
   if (!root) return vscode.window.showErrorMessage("mu debug: open the repo as a workspace folder");
@@ -171,7 +318,10 @@ async function debug() {
 }
 
 function activate(context) {
+  const ide = new MuIde();
   context.subscriptions.push(
+    ide,
+    ...providers(ide),
     vscode.languages.registerDocumentFormattingEditProvider("mu", { provideDocumentFormattingEdits: format }),
     vscode.commands.registerCommand("mu.debug", debug),
     vscode.debug.registerDebugConfigurationProvider("mu", new MuConfigurationProvider()),

@@ -284,7 +284,8 @@ short:
 	@nohup .venv/bin/python mu/shorten.py --model haiku all > /tmp/mu_short/run.log 2>&1 &
 	@echo "running: tail -f /tmp/mu_short/run.log, results in /tmp/mu_short/NNNN.mu"
 
-# links mu/vscode into VS Code's extensions (highlighting + formatter); reload the window after
+# links mu/vscode into VS Code's extensions (highlighting, formatter, hover,
+# completion, go-to-definition, debugger); reload the window after
 mu-vscode:
 	@ln -sfn "$(CURDIR)/mu/vscode" "$$HOME/.vscode/extensions/leet.mu-0.0.1"
 	@echo "linked: $$HOME/.vscode/extensions/leet.mu-0.0.1 -> mu/vscode"
