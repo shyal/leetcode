@@ -32374,6 +32374,19 @@
       "judge": "deepseek-chat",
       "summary": "The code walks the event list once, pushing a new Node onto a stack on each 'start' and popping on each 'end', setting the popped node's duration from the elapsed time. This is the stack-nested-eval move: entering a nested scope pushes the parent context, and closing it pops and combines. All assertions passed on execution.",
       "seconds": 243
+    },
+    "solved/d_Exclusive_From_Call_Tree_2026_09_30T23_33_15_402941_00_00Z.py": {
+      "date": "2026-10-01",
+      "problem": "drill",
+      "moves": {
+        "tree-dfs-recursive": "clean",
+        "tree-carry-down": "clean",
+        "stack-nested-eval": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Single post-order visit subtracts each node's direct children's dur from its own, so a grandchild is never subtracted from its grandparent.",
+      "summary": "The code defines a recursive visit that, for every non-root node, adds node.dur minus the sum of its direct children's dur into res[id], then recurses into each child. A single traversal of the general tree produces the exclusive durations, satisfying the one-visit requirement. All assertions pass, including the three-level case where a grandchild is subtracted only from its parent.",
+      "seconds": 410
     }
   }
 }
