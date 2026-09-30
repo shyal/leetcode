@@ -32082,6 +32082,18 @@
       "note": "Drill targets dp-1d-rolling; the res[i] = max(res[j], res[i]+1) recurrence fills the 1D table forward from base cases.",
       "summary": "The code builds a 1D table res of zeros and, for every pair (j, i) with j < i, updates res[i] = max(res[j], res[i] + 1) when nums[j] < nums[i], then returns res. This exercises the dp-1d-rolling move: a 1D table filled forward from base cases via a recurrence. The run exited 0 and printed [0, 0, 2, 1, 4, 3, 6]. No notes indicate any help or recognition difficulty.",
       "seconds": 535
+    },
+    "solved/d_Pick_One_Letter_2026_09_30T03_34_40_687380_00_00Z.py": {
+      "date": "2026-09-30",
+      "problem": "drill",
+      "moves": {
+        "dp-1d-rolling": "clean",
+        "running-sum": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "mu source uses scan (accumulate) to build the running count of c over [0, *s]; the transpiled lambda is convoluted but the fold is the move.",
+      "summary": "The code builds a prefix-count array by folding over [0, *s] with accumulate, adding 1 whenever the current character equals c, so each output index holds the number of c's seen so far. This exercises the 1D rolling DP/prefix accumulation move and the running-sum move. All assertions pass, including the 100000-length case, and the mu source shows the same scan fold.",
+      "seconds": 354
     }
   }
 }
