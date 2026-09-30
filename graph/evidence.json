@@ -32280,6 +32280,16 @@
       "note": "Drill on derived-key-lookup: key is n % m, queried before recording.",
       "summary": "The code builds a defaultdict count of residues n % m, and for each n it looks up the count of the same residue seen so far, adds that to acc, then records n. This exercises derived-key-lookup (the key is n % m, not n), streaming-ask-then-record (query the running count before incrementing), streaming-accumulate-pairs (pairs += matches in the past), and counter-build. All assertions passed and the run exited 0.",
       "seconds": 480
+    },
+    "solved/d_Split_The_Excess_2026_09_30T22_16_55_266736_00_00Z.py": {
+      "date": "2026-10-01",
+      "problem": "drill",
+      "moves": {
+        "dp-1d-rolling": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The drill builds the next row of a champagne-tower-style state: for each cell, the excess over 1 is halved and pushed into the two cells below, with a new array sized len(row)+1. This is a single forward pass over a 1D state array, exercising dp-1d-rolling. All assertions passed on execution.",
+      "seconds": 160
     }
   }
 }
