@@ -32039,6 +32039,16 @@
       "note": "Notes show the candidate first considered BFS, rejected it as greedy, and settled on DP; LEETCODE: Accepted (27 ms, 21.9 MB).",
       "summary": "The code builds a full 2D dp table with like(grid), fills the first row via accumulate and the first column via a running p, then for every interior cell sets dp[row][col] = min(dp[row-1][col], dp[row][col-1]) + grid[row][col], returning the bottom-right entry. It exercises the 2D grid DP recurrence and prefix-sum accumulation for the first row/column, but keeps a full table rather than rolling 1D rows. The notes record that BFS was considered and rejected as greedy before the DP formulation was chosen, and LeetCode accepted the submission.",
       "seconds": 1128
+    },
+    "solved/d_All_Substrings_2026_09_30T01_05_02_232096_00_00Z.py": {
+      "date": "2026-09-30",
+      "problem": "drill",
+      "moves": {
+        "substring-enumeration": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The code enumerates every substring of s with two nested loops: an outer start index i and an inner end index j from i to len(s)-1, appending the slice s[i:j+1] to res. This is the by-start form of substring enumeration, and all assertions pass, including the count of 55 for a length-10 string.",
+      "seconds": 267
     }
   }
 }
