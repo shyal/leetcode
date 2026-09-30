@@ -249,6 +249,25 @@ the index of the last cell.
 
 Set grid[i][j] = v for every (i, j) in at.
 
+v is one value, or an iterable read once per cell in the order of at:
+put(dp, cells(dp), accumulate(...)).
+
+### `row(grid: Sequence[Sequence[Any]], i: int) -> List[Any]`
+
+A copy of row i.
+
+### `col(grid: Sequence[Sequence[Any]], j: int) -> List[Any]`
+
+A copy of column j, top to bottom.
+
+### `set_row(grid: List[List[Any]], i: int, v: Any) -> None`
+
+Set every cell of row i to v, one value or an iterable read left to right.
+
+### `set_col(grid: List[List[Any]], j: int, v: Any) -> None`
+
+Set every cell of column j to v, one value or an iterable read top to bottom.
+
 ### `grid_bfs(grid: Sequence[Sequence[Any]], sources: Sequence[Cell], ok: Callable[[Any], bool] = lambda v: True, dirs: Sequence[Cell] = CARDINALS) -> List[List[int]]`
 
 Steps from the nearest source to every cell; -1 where none reaches.
@@ -279,9 +298,13 @@ LeetCode expects it.
 
 ## index combinations
 
-### `pairs(n: int, type: Maker = tuple) -> Iterator[Any]`
+### `pairs(n: int, type: Maker = tuple, back: bool = False) -> Iterator[Any]`
 
 Every (i, j) with 0 <= i < j < n, in lexicographic order.
+
+With back, the pairs are grouped by the later index instead: for each
+j in turn, every (i, j) with i < j. That is the dp order, where cell j
+looks back at every earlier cell.
 
 Each pair is built by type: tuple by default, list for a LeetCode answer.
 
