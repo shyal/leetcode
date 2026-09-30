@@ -32354,6 +32354,16 @@
       "note": "D[0]=1 seeds the empty prefix; res += D[prefix-k] queries the past before D[prefix] += 1 records the present.",
       "summary": "The code keeps a defaultdict D of prefix-sum counts seeded with D[0]=1, walks nums accumulating prefix, adds D[prefix-k] to res, then increments D[prefix]. This exercises prefix-sum-hashmap, the ask-then-record streaming order, derived-key lookup of prefix-k, and a running sum. All assertions passed, including the 20000-element cases.",
       "seconds": 66
+    },
+    "solved/d_Sum_Of_Positives_2026_09_30T23_18_42_194047_00_00Z.py": {
+      "date": "2026-10-01",
+      "problem": "drill",
+      "moves": {
+        "running-sum": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The mu source defines sumOfPositives as a fold summing n over nums where n > 0, transpiled to a generator expression inside sum(). It exercises the running-sum move by accumulating a total while scanning the list, filtering negatives and zero. All assertions passed, including the large repeated-list case, and the required folds line is met.",
+      "seconds": 33
     }
   }
 }
