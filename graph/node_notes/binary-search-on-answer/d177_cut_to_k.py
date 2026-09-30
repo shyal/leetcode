@@ -1,10 +1,9 @@
 # REFERENCE: d177 Cut To K
 class Solution:
     def cutToK(self, chunks, k):
-        out = [list(c) for c in chunks]
-        while len(out) < k:
-            for i, c in enumerate(out):
+        while len(chunks) < k:
+            for i, c in enumerate(chunks):
                 if len(c) > 1:
-                    out[i : i + 1] = [[c[0]], c[1:]]
+                    chunks[i : i + 1] = [[c[0]], c[1:]]
                     break
-        return out
+        return chunks

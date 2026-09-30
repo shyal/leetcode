@@ -33,9 +33,9 @@ Constraints:
     len(chunks) <= k <= the total count of numbers
 
     REQUIRED: every returned chunk must be a run of one input chunk, in the
-    original order, and the input must come back unchanged. NO flattening the
-    chunks into one list, NO merging two chunks, NO reordering, NO sorted.
-    Returning anything other than exactly k chunks is a fail.
+    original order. NO flattening the chunks into one list, NO merging two
+    chunks, NO reordering, NO sorted. Returning anything other than exactly
+    k chunks is a fail.
 """
 
 
@@ -57,11 +57,9 @@ print(sol.cutToK([[1, 2], [3], [4, 5]], 4))  # [[1], [2], [3], [4, 5]]
 # assert sol.cutToK([[1, 2, 3]], 2) == [[1], [2, 3]]
 # assert sol.cutToK([[1, 2, 3]], 3) == [[1], [2], [3]]
 # assert sol.cutToK([[0, 0], [0]], 3) == [[0], [0], [0]]
-# kept = [[7, 2, 5], [10, 8]]
-# assert sol.cutToK(kept, 5) == [[7], [2], [5], [10], [8]]
-# assert kept == [[7, 2, 5], [10, 8]]
-# assert max(sum(c) for c in sol.cutToK(kept, 2)) <= 18
-# assert max(sum(c) for c in sol.cutToK(kept, 3)) <= 18
-# assert max(sum(c) for c in sol.cutToK(kept, 4)) <= 18
-# assert max(sum(c) for c in sol.cutToK(kept, 5)) <= 18
+# assert sol.cutToK([[7, 2, 5], [10, 8]], 5) == [[7], [2], [5], [10], [8]]
+# assert max(sum(c) for c in sol.cutToK([[7, 2, 5], [10, 8]], 2)) <= 18
+# assert max(sum(c) for c in sol.cutToK([[7, 2, 5], [10, 8]], 3)) <= 18
+# assert max(sum(c) for c in sol.cutToK([[7, 2, 5], [10, 8]], 4)) <= 18
+# assert max(sum(c) for c in sol.cutToK([[7, 2, 5], [10, 8]], 5)) <= 18
 # assert avoids(Solution, sorted)

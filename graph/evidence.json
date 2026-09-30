@@ -32120,6 +32120,18 @@
       "note": "DRILL targeting dp-1d-rolling; ran clean, all assertions passed.",
       "summary": "The code builds a 1D dp table of size amount+1 filled with inf, sets dp[0]=0, then fills forward: for each amount a it tries every coin c <= a and takes dp[a] = min(dp[a], dp[a-c]+1). It returns -1 when dp[amount] is still inf. This exercises dp-1d-rolling cleanly, and the notes mark the work as learning.",
       "seconds": 399
+    },
+    "solved/d_Cut_To_K_2026_09_30T05_45_38_727468_00_00Z.py": {
+      "date": "2026-09-30",
+      "problem": "drill",
+      "moves": {},
+      "judge": "deepseek-chat",
+      "note": "Drill targets binary-search-on-answer but the code greedily splits the first chunk longer than 1 until len(chunks) == k; no search over an answer space.",
+      "summary": "The code repeatedly scans chunks and splits the first chunk with more than one element into [c[0]] and c[1:], looping until the number of chunks reaches k. It exercises a greedy in-place split rather than the drill's targeted binary-search-on-answer move, which is absent. The notes say 'Learning', indicating the approach was given rather than recalled.",
+      "unmapped": [
+        "greedy split-first-longest-chunk"
+      ],
+      "seconds": 547
     }
   }
 }
