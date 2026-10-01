@@ -970,6 +970,12 @@ pub fn reviews_first() -> bool {
     !(raw.is_empty() || raw == "0")
 }
 
+/// REVIEWS_WITHIN_BAND: a due problem review rated more than this many
+/// points above his elo is not served. Unset, every due review is.
+pub fn reviews_band() -> Option<f64> {
+    env_int("REVIEWS_WITHIN_BAND").map(|b| b as f64)
+}
+
 pub fn new_drills_today(ev: &Evidence, day: NaiveDate) -> i64 {
     let d = day.format("%Y-%m-%d").to_string();
     ev.date_recs(&d)

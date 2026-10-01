@@ -322,6 +322,15 @@ the footer prints how many are due, and the pick itself says what the debt is
 ("the solution was given and copied 311d ago") — a problem last seen ten
 months ago otherwise reads as a random repeat.
 
+`REVIEWS_WITHIN_BAND=50` in `.envrc` holds a due review rated more than 50
+points above your elo (`pick::above_band`). A card opens on a failed or helped
+attempt at any rating, and from 2026-09-16 to 2026-09-29 new problems were
+served 300 to 650 above the proven rating; their reviews then filled the
+queue with problems out of reach (2026-10-01). A held review keeps its card
+and stays due; it is served once your elo comes within the band of its
+rating. A review rated below you, and one nothing rates, is never held. The
+footer of `make next` counts the held ones. Unset, every due review is served.
+
 ## Dive (`make dive`)
 
 `make next <group>` (currently `make next sql` and `make next spark`; `--group <g>` on kg_next for any group)

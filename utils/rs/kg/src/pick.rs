@@ -134,7 +134,8 @@
 //   evening each broke a rule that did not know them.
 //   2c. a problem on a review clock of its own (clock::problem_due), unless
 //      an "after" predecessor of it is not warm (the hold serves the
-//      predecessor's own review first), served
+//      predecessor's own review first) or it is rated more than
+//      REVIEWS_WITHIN_BAND above his elo (above_band, 2026-10-01), served
 //      between the drill-clock moves and STALE ones - or, with REVIEWS_FIRST=1
 //      (.envrc; drills::reviews_first), ahead of every other rule, the
 //      sleeping-problem warm-up and the session-start easy included
@@ -470,6 +471,27 @@ pub fn trivial_easies(
     cands.into_iter().map(|c| c.4).collect()
 }
 
+/// The due reviews rated more than REVIEWS_WITHIN_BAND above his elo
+/// (drills::reviews_band), most overdue first. review_queue leaves them
+/// out and the footer of make next counts them. A review is a problem he
+/// failed or needed help on, at any rating, and from 2026-09-16 to
+/// 2026-09-29 the picker served new problems 300 to 650 above him; their
+/// reviews then filled the queue with problems out of his reach
+/// (2026-10-01). The card stays open and due. A problem nothing rates is
+/// never held.
+pub fn above_band(ctx: &Ctx, ev: &Evidence, pv: &PView, today: NaiveDate) -> Vec<String> {
+    let Some(band) = crate::drills::reviews_band() else {
+        return Vec::new();
+    };
+    let ceiling = crate::model::elo_now(ctx, ev) + band;
+    let ratings = solve_ratings(ctx);
+    due_problems(ev, today, Some(pv))
+        .into_iter()
+        .filter(|(p, _, _)| ratings.get(p).is_some_and(|r| *r > ceiling))
+        .map(|(p, _, _)| p)
+        .collect()
+}
+
 /// kg_next.review_queue: due problems minus the unservable ones and the
 /// ones held behind an "after" predecessor that is not warm, clustered by
 /// primary move: groups ordered by their earliest due date, problems inside
@@ -482,12 +504,20 @@ pub fn review_queue(
     today: NaiveDate,
 ) -> Vec<(String, NaiveDate, i64)> {
     let trace = std::env::var("KG_TRACE").is_ok();
+    let above = above_band(ctx, ev, pv, today);
     let due: Vec<_> = due_problems(ev, today, Some(pv))
         .into_iter()
         .filter(|(p, _, _)| {
             let drop = ctx.unservable(p, pv.get(p).unwrap());
             if drop && trace {
                 eprintln!("review {p}: unservable");
+            }
+            !drop
+        })
+        .filter(|(p, _, _)| {
+            let drop = above.contains(p);
+            if drop && trace {
+                eprintln!("review {p}: rated above the band");
             }
             !drop
         })

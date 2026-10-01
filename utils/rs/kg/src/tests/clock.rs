@@ -1241,6 +1241,50 @@ fn reviews_are_clustered_by_primary_move() {
     assert_eq!(queue, strs(&["1", "2", "3"]));
 }
 
+/// 2026-10-01: with REVIEWS_WITHIN_BAND=50 a due review rated more than 50
+/// above his elo is left out of the queue and counted by above_band. One
+/// inside the band, one below him and one nothing rates are all served.
+/// Unset, every due review is served.
+#[test]
+fn a_review_above_the_band_is_held() {
+    use crate::model::elo_now;
+    use crate::pick::above_band;
+    let mut fx = Fx::picker();
+    fx.nodes(&["q1"]).problems(vec![
+        ("1", problem(&["q1"])),
+        ("2", problem(&["q1"])),
+        ("3", problem(&["q1"])),
+        ("4", problem(&["q1"])),
+    ]);
+    let ev = evidence(vec![
+        assisted("1", &[("q1", "clean")], 40),
+        assisted("2", &[("q1", "clean")], 30),
+        assisted("3", &[("q1", "clean")], 20),
+        assisted("4", &[("q1", "clean")], 10),
+    ]);
+    fx.stubs().solve_ratings = Some(fmap(&[("1", 3000.0), ("2", 1300.0), ("3", 800.0)]));
+    let queue = |fx: &Fx| -> Vec<String> {
+        review_queue(&fx.ctx(), &ev, &fx.pv(), today())
+            .into_iter()
+            .map(|(p, _, _)| p)
+            .collect()
+    };
+    assert_eq!(queue(&fx), strs(&["1", "2", "3", "4"]));
+    assert!(above_band(&fx.ctx(), &ev, &fx.pv(), today()).is_empty());
+    // the smallest whole band that still reaches problem 2
+    let reach = (1300.0 - elo_now(&fx.ctx(), &ev)).ceil() as i64;
+    assert!(reach > 1);
+    test_env("REVIEWS_WITHIN_BAND", &reach.to_string());
+    assert_eq!(queue(&fx), strs(&["2", "3", "4"]));
+    assert_eq!(above_band(&fx.ctx(), &ev, &fx.pv(), today()), strs(&["1"]));
+    test_env("REVIEWS_WITHIN_BAND", &(reach - 1).to_string());
+    assert_eq!(queue(&fx), strs(&["3", "4"]));
+    assert_eq!(
+        above_band(&fx.ctx(), &ev, &fx.pv(), today()),
+        strs(&["1", "2"])
+    );
+}
+
 #[test]
 fn a_paid_only_summit_is_never_offered() {
     let mut fx = Fx::picker();
