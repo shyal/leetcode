@@ -32657,6 +32657,20 @@
       "judge": "deepseek-chat",
       "summary": "The query joins Employees to itself, aliasing the manager side as e and the report side as r on r.reports_to = e.employee_id, then groups by e.employee_id and aggregates count(r.employee_id) and round(avg(r.age)). This exercises the self-join and group-aggregate moves in a single query, and both example assertions passed.",
       "seconds": 442
+    },
+    "solved/d_Reverse_First_K_2026_10_01T23_33_27_729071_00_00Z.py": {
+      "date": "2026-10-02",
+      "problem": "drill",
+      "moves": {
+        "ll-pointer-reversal": "clean"
+      },
+      "assist": {
+        "ll-pointer-reversal": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "k is ignored: the whole list is reversed, not the first k nodes",
+      "summary": "The drill reverses a linked list by walking it once and flipping each next pointer with the tuple assignment d.next, head.next, head = head, d.next, head.next, then reattaching the original head t to the reversed tail. That exercises ll-pointer-reversal. The notes mark the work as Learning, and the k parameter is never used, so the first-k behavior the drill targets is not implemented.",
+      "seconds": 505
     }
   }
 }
