@@ -32462,6 +32462,18 @@
       "judge": "deepseek-chat",
       "summary": "The code splits the input on spaces, reverses each word by splitting into characters, reversing, and rejoining, then joins the words back with spaces. It exercises the ts-string-build move: split on a delimiter, transform the pieces with map, and reassemble with join. All assertions passed and the run exited 0.",
       "seconds": 71
+    },
+    "solved/d_Merge_Accounts_2026_10_01T00_00_05_519243_00_00Z.py": {
+      "date": "2026-10-01",
+      "problem": "drill",
+      "moves": {
+        "union-find": "clean",
+        "dict-arbitrary-value": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "REQUIRED line met: self.find called once per account, no pair tests.",
+      "summary": "The drill extends UnionFind and implements mergeAccounts: it enumerates accounts, calls self.find(account) once per account to get the owning person, and adds each email into persons[holder], a defaultdict(set). The union-find move is exercised through the inherited find, and the dict-arbitrary-value move stores the email sets keyed by root. All assertions passed; the notes describe the approach without claiming any help.",
+      "seconds": 182
     }
   }
 }
