@@ -32616,6 +32616,26 @@
       "note": "LEETCODE: Accepted (25 ms, 37.4 MB)",
       "summary": "The solution builds the answer as pref[0] followed by pref[i] ^ pref[i+1] for each adjacent pair, using the fact that XORing a prefix with the next prefix cancels the shared prefix and leaves the original element. It exercises xor-cancellation directly; the running-sum/prefix accumulation shape is sidestepped by the pairwise list comprehension. The notes are empty and LeetCode reports Accepted.",
       "seconds": 225
+    },
+    "solved/p47_Permutations_II_2026_10_01T03_01_06_390375_00_00Z.py": {
+      "date": "2026-10-01",
+      "problem": "47",
+      "moves": {
+        "backtracking-choose-undo": "clean",
+        "backtracking-mark-unmark": "clean",
+        "backtracking-dedupe-siblings": "clean",
+        "set-membership": "clean"
+      },
+      "assist": {
+        "backtracking-dedupe-siblings": "hint",
+        "backtracking-choose-undo": "hint",
+        "backtracking-mark-unmark": "hint",
+        "set-membership": "hint"
+      },
+      "judge": "deepseek-chat",
+      "note": "Dedupe done with a per-call `seen` set rather than sort+skip; notes say 'hinted'.",
+      "summary": "The code builds permutations by recursion: at each level it loops over indices, skips used ones and values already tried at this level via a local `seen` set, appends the value, marks `use[j]`, recurses, then unmarks and pops. This exercises choose-undo, mark-unmark, and sibling dedupe (via set membership rather than the sort-and-skip variant). The notes say 'hinted' and LeetCode reports Accepted (3 ms, 19.8 MB).",
+      "seconds": 744
     }
   }
 }
