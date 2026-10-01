@@ -32683,6 +32683,19 @@
         "greedy split-first-longest-chunk"
       ],
       "seconds": 292
+    },
+    "solved/d_Node_Step_Pairs_2026_10_01T23_49_15_289279_00_00Z.py": {
+      "date": "2026-10-02",
+      "problem": "drill",
+      "moves": {
+        "graph-bfs-shortest": "clean",
+        "graph-adjacency-build": "clean",
+        "deque-recent-window": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Visited set keyed on (node, dist) rather than node alone, so revisits at new distances are kept, as the REQUIRED line demands.",
+      "summary": "The code runs a single BFS from node 0 using a deque of (node, dist) pairs, adding each pair to a seen set and enqueueing neighbors at dist+1 when that pair is unseen, stopping once dist exceeds k. Keying the visited set on (node, dist) preserves repeat visits like (1, 4), which the node-only variant would drop. All assertions pass, including the cycle and self-loop cases.",
+      "seconds": 519
     }
   }
 }
