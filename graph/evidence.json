@@ -32538,6 +32538,17 @@
       "note": "Drill targets rotated-array-pivot, but the code compares each element to nums[-1] in a single comprehension; no binary search or mid-vs-end comparison is exercised.",
       "summary": "The solution returns a list of booleans by comparing every element n to the last element nums[-1] in one list comprehension. It passes all assertions, but it never performs a binary search or compares mid against an end to locate the pivot, so the targeted rotated-array-pivot move is sidestepped. No notes indicate any assistance or recognition difficulty.",
       "seconds": 41
+    },
+    "solved/d_Longest_Ending_Here_2026_10_01T00_20_15_184037_00_00Z.py": {
+      "date": "2026-10-01",
+      "problem": "drill",
+      "moves": {
+        "dp-1d-rolling": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "mu source: dp table filled with 1, pairs(back=True) gives j<i, dp[i]=max(dp[i],dp[j]+1) when nums[j]<nums[i]",
+      "summary": "The mu source builds a 1D dp table of ones and iterates all pairs (j, i) with j < i, updating dp[i] = max(dp[i], dp[j] + 1) whenever nums[j] < nums[i], so dp[i] is the length of the longest increasing subsequence ending at i. This exercises the dp-1d-rolling move: a 1D table filled forward from base cases. All assertions passed, including the 2500-element increasing case.",
+      "seconds": 181
     }
   }
 }
