@@ -32646,6 +32646,17 @@
       "judge": "deepseek-chat",
       "summary": "The query selects id, movie, description, rating from Cinema with a WHERE clause excluding descriptions matching '%boring%' and keeping odd ids, then orders by rating descending. This exercises the sql-filter-select move: column selection, WHERE filtering with LIKE and modulo, and ORDER BY. Both example assertions passed.",
       "seconds": 258
+    },
+    "solved/d_Reports_Per_Manager_2026_10_01T23_24_03_753513_00_00Z.py": {
+      "date": "2026-10-02",
+      "problem": "drill",
+      "moves": {
+        "sql-self-join": "clean",
+        "sql-group-aggregate": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The query joins Employees to itself, aliasing the manager side as e and the report side as r on r.reports_to = e.employee_id, then groups by e.employee_id and aggregates count(r.employee_id) and round(avg(r.age)). This exercises the self-join and group-aggregate moves in a single query, and both example assertions passed.",
+      "seconds": 442
     }
   }
 }
