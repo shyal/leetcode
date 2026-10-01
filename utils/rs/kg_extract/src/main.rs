@@ -33,7 +33,7 @@ use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::mpsc;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use chrono::{DateTime, Utc};
 use indexmap::IndexMap;
@@ -125,87 +125,7 @@ fn run_solve(root: &Path, path: &str) -> (String, String) {
     } else {
         root.join(path)
     };
-    if let Some((ok, diagnostics)) = kg::lang::check(root, &abs, lang) {
-        if !ok {
-            let tail: String = diagnostics
-                .chars()
-                .rev()
-                .take(800)
-                .collect::<Vec<_>>()
-                .into_iter()
-                .rev()
-                .collect();
-            return (
-                "failed".into(),
-                format!("{} rejected the file:\n{}", "the type checker", tail.trim()),
-            );
-        }
-    }
-    let child = kg::lang::command(root, &abs, lang)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn();
-    let mut child = match child {
-        Ok(c) => c,
-        Err(e) => {
-            return (
-                "unknown".into(),
-                format!(
-                    "could not execute: {}",
-                    e.to_string().chars().take(200).collect::<String>()
-                ),
-            )
-        }
-    };
-    let mut out_pipe = child.stdout.take().unwrap();
-    let mut err_pipe = child.stderr.take().unwrap();
-    let out_t = std::thread::spawn(move || {
-        let mut s = String::new();
-        let _ = std::io::Read::read_to_string(&mut out_pipe, &mut s);
-        s
-    });
-    let err_t = std::thread::spawn(move || {
-        let mut s = String::new();
-        let _ = std::io::Read::read_to_string(&mut err_pipe, &mut s);
-        s
-    });
-    let start = Instant::now();
-    let status = loop {
-        if let Ok(Some(st)) = child.try_wait() {
-            break Some(st);
-        }
-        if start.elapsed() > Duration::from_secs(RUN_TIMEOUT) {
-            let _ = child.kill();
-            let _ = child.wait();
-            break None;
-        }
-        std::thread::sleep(Duration::from_millis(50));
-    };
-    let stdout = out_t.join().unwrap_or_default();
-    let stderr = err_t.join().unwrap_or_default();
-    let tail = |s: &str, n: usize| -> String {
-        let t = s.trim();
-        let chars: Vec<char> = t.chars().collect();
-        chars[chars.len().saturating_sub(n)..].iter().collect()
-    };
-    match status {
-        None => (
-            "timeout".into(),
-            format!("exceeded {RUN_TIMEOUT}s — likely TLE or an infinite loop"),
-        ),
-        Some(st) if st.success() => ("passed".into(), tail(&stdout, 600)),
-        Some(_) => (
-            "failed".into(),
-            tail(
-                if stderr.trim().is_empty() {
-                    &stdout
-                } else {
-                    &stderr
-                },
-                800,
-            ),
-        ),
-    }
+    kg::lang::run(root, &abs, lang, RUN_TIMEOUT)
 }
 
 /// One authoritative paragraph about the run, for the judge's prompt.

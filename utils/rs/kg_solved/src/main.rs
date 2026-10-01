@@ -184,6 +184,36 @@ fn now() -> i64 {
         .unwrap_or(0)
 }
 
+/// The seconds a file may run before make solved calls it stuck: the
+/// judge's own limit (kg_extract RUN_TIMEOUT).
+const RUN_TIMEOUT: u64 = 30;
+
+/// The last line of a run's output: the error itself, under the traceback.
+fn last_line(detail: &str) -> &str {
+    detail.trim().lines().last().unwrap_or("").trim()
+}
+
+/// make solved files only a file that passes when run. A drill whose
+/// second assert failed was filed as solved on 2026-10-01 and turned CI
+/// red: test_solved runs every file in solved/ that is not _FAILED_. A
+/// file that could not be started at all is not refused: that is the
+/// machine, not the solve.
+fn refuse_a_failing_file(console: &Console, root: &Path, current: &Path, lang: &kg::lang::Lang) {
+    let abs = if current.is_absolute() {
+        current.to_path_buf()
+    } else {
+        root.join(current)
+    };
+    let (status, detail) = kg::lang::run(root, &abs, lang, RUN_TIMEOUT);
+    if status == "failed" || status == "timeout" {
+        console.print(&format!(
+            "[red]not filed.[/red] The file does not pass when run: {}. Fix it and run make solved again, or run make failed.",
+            last_line(&detail)
+        ));
+        std::process::exit(1);
+    }
+}
+
 /// Freeze the clock and archive the attempt. No git.
 fn file_phase(console: &Console, root: &Path, failed: bool, studied: bool) {
     if Path::new(META).exists() {
@@ -252,6 +282,9 @@ fn file_phase(console: &Console, root: &Path, failed: bool, studied: bool) {
             kg::fails::WHERE_WORDS
         ));
         std::process::exit(1);
+    }
+    if !failed && !studied {
+        refuse_a_failing_file(console, root, &current, lang);
     }
     let marker = if failed {
         "_FAILED"
@@ -436,6 +469,15 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn last_line_is_the_error_under_the_traceback() {
+        assert_eq!(
+            last_line("Traceback (most recent call last):\n  File x\nAssertionError\n"),
+            "AssertionError"
+        );
+        assert_eq!(last_line(""), "");
+    }
 
     #[test]
     fn filenames() {

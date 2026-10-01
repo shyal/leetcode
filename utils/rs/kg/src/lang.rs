@@ -6,7 +6,8 @@
 // the serve, `make`, the judge and the archive all read this table.
 
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
+use std::time::{Duration, Instant};
 
 use crate::pysrc::{cleandoc, module_docstring};
 
@@ -245,9 +246,117 @@ pub fn command(root: &Path, path: &Path, lang: &Lang) -> Command {
     cmd
 }
 
+/// Execute a file the way the candidate does: (status, detail), the status
+/// one of passed, failed, timeout, unknown. A language with a checker runs
+/// it first; a file that does not type-check fails with the diagnostics as
+/// its detail. `timeout` is in seconds. The judge reads the result
+/// (kg_extract) and make solved refuses a file that does not pass
+/// (kg_solved).
+pub fn run(root: &Path, abs: &Path, lang: &Lang, timeout: u64) -> (String, String) {
+    if let Some((ok, diagnostics)) = check(root, abs, lang) {
+        if !ok {
+            let tail: String = diagnostics
+                .chars()
+                .rev()
+                .take(800)
+                .collect::<Vec<_>>()
+                .into_iter()
+                .rev()
+                .collect();
+            return (
+                "failed".into(),
+                format!("{} rejected the file:\n{}", "the type checker", tail.trim()),
+            );
+        }
+    }
+    let child = command(root, abs, lang)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn();
+    let mut child = match child {
+        Ok(c) => c,
+        Err(e) => {
+            return (
+                "unknown".into(),
+                format!(
+                    "could not execute: {}",
+                    e.to_string().chars().take(200).collect::<String>()
+                ),
+            )
+        }
+    };
+    let mut out_pipe = child.stdout.take().unwrap();
+    let mut err_pipe = child.stderr.take().unwrap();
+    let out_t = std::thread::spawn(move || {
+        let mut s = String::new();
+        let _ = std::io::Read::read_to_string(&mut out_pipe, &mut s);
+        s
+    });
+    let err_t = std::thread::spawn(move || {
+        let mut s = String::new();
+        let _ = std::io::Read::read_to_string(&mut err_pipe, &mut s);
+        s
+    });
+    let start = Instant::now();
+    let status = loop {
+        if let Ok(Some(st)) = child.try_wait() {
+            break Some(st);
+        }
+        if start.elapsed() > Duration::from_secs(timeout) {
+            let _ = child.kill();
+            let _ = child.wait();
+            break None;
+        }
+        std::thread::sleep(Duration::from_millis(50));
+    };
+    let stdout = out_t.join().unwrap_or_default();
+    let stderr = err_t.join().unwrap_or_default();
+    let tail = |s: &str, n: usize| -> String {
+        let t = s.trim();
+        let chars: Vec<char> = t.chars().collect();
+        chars[chars.len().saturating_sub(n)..].iter().collect()
+    };
+    match status {
+        None => (
+            "timeout".into(),
+            format!("exceeded {timeout}s — likely TLE or an infinite loop"),
+        ),
+        Some(st) if st.success() => ("passed".into(), tail(&stdout, 600)),
+        Some(_) => (
+            "failed".into(),
+            tail(
+                if stderr.trim().is_empty() {
+                    &stdout
+                } else {
+                    &stderr
+                },
+                800,
+            ),
+        ),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// 2026-10-01: a file whose assert fails is reported failed with the
+    /// error as the detail, and one that exits 0 is passed; make solved
+    /// refuses the first.
+    #[test]
+    fn run_reports_a_failing_assert() {
+        let dir = std::env::temp_dir().join(format!("kg_lang_run_{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let bad = dir.join("bad.py");
+        std::fs::write(&bad, "assert 1 + 1 == 3\n").unwrap();
+        let (status, detail) = run(&dir, &bad, &PYTHON, 30);
+        assert_eq!(status, "failed");
+        assert!(detail.contains("AssertionError"), "{detail}");
+        let good = dir.join("good.py");
+        std::fs::write(&good, "assert 1 + 1 == 2\n").unwrap();
+        assert_eq!(run(&dir, &good, &PYTHON, 30).0, "passed");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 
     const TS: &str = "// DRILL: Order Total\n// TRAINS: ts-object-type\n//\n// Given items, return the total.\n//\n// ---\n// looked up ??\n\nfunction orderTotal(): number {\n  return 1;\n}\n";
 
