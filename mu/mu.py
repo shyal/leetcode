@@ -1304,7 +1304,8 @@ class Parser:
         e = self.expr()
         if open_ == "{" and self.at(":"):
             self.next()
-            e = Py(f"{e}: {self.expr()}")
+            v = self.arg() if self.lambda_ahead() else self.expr()
+            e = Py(f"{e}: {v}")
         return e
 
     def comprehension(self):
@@ -1342,7 +1343,9 @@ class Parser:
         return self.special(fn, args, kwargs)
 
     def lambda_ahead(self):
-        """Whether `x ->` or `(a, b) ->` starts here."""
+        """Whether `x ->`, `(a, b) ->` or a bare `->` starts here."""
+        if self.at("->"):
+            return True
         if self.peek()[0] == "NAME":
             return self.at("->", 1)
         if not self.at("("):
@@ -1357,13 +1360,26 @@ class Parser:
                 break
         return depth == 0 and self.toks[j][1] == "->"
 
+    def body(self):
+        """The body of a lambda: an expression, or a push `xs <- e`."""
+        e = self.expr()
+        if self.at("<-"):
+            self.next()
+            e = Py(f"{e}.append({self.expr()})")
+        return e
+
     def arg(self):
-        """A call argument or the value of `f = x -> e`: the two places a
-        lambda may appear."""
+        """A call argument, the value of `f = x -> e` or a dict value: the
+        three places a lambda may appear."""
+        if self.at("->"):
+            # -> e names no argument: _ is the argument, or the tuple of them
+            self.next()
+            inner = f"(lambda _: {self.body()})"
+            return Py(f"lambda *_a: {inner}(_a[0] if len(_a) == 1 else _a)")
         if self.peek()[0] == "NAME" and self.at("->", 1):
             name = self.next()[1]
             self.next()
-            return Py(f"lambda {name}: {self.expr()}")
+            return Py(f"lambda {name}: {self.body()}")
         if self.at("("):
             if self.lambda_ahead():
                 self.next()
@@ -1375,10 +1391,10 @@ class Parser:
                 self.expect(")")
                 self.expect("->")
                 if not names:  # () -> e takes nothing: defaultdict(() -> [0, 0])
-                    return Py(f"lambda: {self.expr()}")
+                    return Py(f"lambda: {self.body()}")
                 names = [f"_{k}" if n == "_" else n for k, n in enumerate(names)]
                 # (a, b) -> e takes a and b, or one pair it unpacks
-                inner = f"(lambda {', '.join(names)}: {self.expr()})"
+                inner = f"(lambda {', '.join(names)}: {self.body()})"
                 return Py(f"lambda *_a: {inner}(*(_a[0] if len(_a) == 1 else _a))")
         e = self.expr()
         if self.at("for"):

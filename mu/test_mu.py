@@ -779,3 +779,41 @@ def test_decorator_lines_map_to_their_own_mu_lines():
     assert at["@as_list"] == 1
     assert at["def f(self, n: int) -> list[int]:"] == 2
     assert at["yield n"] == 3
+
+
+def test_a_lambda_may_be_a_dict_value_and_its_body_a_push():
+    src = (
+        "def f(x: int) -> [int]\n"
+        "  stack = []\n"
+        "  ops = {\n"
+        "    '+': n -> stack <- n,\n"
+        "    '-': (s, n) -> s <- -n,\n"
+        "    '*': (a, b) -> a * b\n"
+        "  }\n"
+        "  ops['+'](x)\n"
+        "  ops['-'](stack, x)\n"
+        "  stack <- ops['*'](x, x)\n"
+        "  stack\n"
+    )
+    ns: dict = {}
+    exec(transpile(src), ns)
+    assert ns["Solution"]().f(3) == [3, -3, 9]
+    src = "def f(d: [int]) -> int\n  {k: (k, 1) for k in d}\n"
+    assert "{k: (k, 1) for k in d}" in transpile(src)
+
+
+def test_a_lambda_may_name_no_argument():
+    """`-> e` reads one argument as `_`, several as the tuple `_`."""
+    src = (
+        "def f(xs: [int]) -> [int]\n"
+        "  stack = []\n"
+        "  ops = {'+': -> _[0] <- _[1], '2': -> _ * 2}\n"
+        "  ops['+'](stack, ops['2'](xs[0]))\n"
+        "  double = -> _ * 2\n"
+        "  stack <- double(xs[1])\n"
+        "  stack + sorted(xs, key=-> -_)\n"
+    )
+    ns: dict = {}
+    exec(transpile(src), ns)
+    assert ns["Solution"]().f([1, 5]) == [2, 10, 5, 1]
+    assert fmt(src) == src
