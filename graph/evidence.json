@@ -32485,6 +32485,17 @@
       "note": "Drill targets binary-search-on-answer; the code implements the first-true boundary template (lo<hi, mid, hi=mid / lo=mid+1) and passes all assertions including the <=31 call bound.",
       "summary": "The file defines firstTrue(lo, hi, ok) as the classic leftmost-true binary search: while lo < hi, compute mid, and move hi to mid when ok(mid) holds, else lo to mid+1, returning lo. It also wraps first_true/first_false/last_true/last_false helpers around bisect_left, but the Solution.firstTrue method is the exercised move. All assertions pass, including the 10^9 range with at most 31 calls, confirming the boundary search runs in logarithmic time.",
       "seconds": 64
+    },
+    "solved/d_Last_True_2026_10_01T00_11_18_085091_00_00Z.py": {
+      "date": "2026-10-01",
+      "problem": "drill",
+      "moves": {
+        "binary-search-boundary": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets binary-search-on-answer; the code implements the last-true boundary template with mid=(lo+hi+1)//2 and returns lo.",
+      "summary": "The Solution.lastTrue method runs the classic last-true boundary binary search: it computes mid with the upper-biased (lo+hi+1)//2, moves lo up when ok(mid) holds and hi down otherwise, returning lo. The assertions confirm it finds the last index satisfying the predicate, including the 10**9 range in at most 31 calls. The file also defines first_true/first_false/last_false/last_true helpers built on bisect_left, but the exercised move is the boundary binary search.",
+      "seconds": 68
     }
   }
 }
