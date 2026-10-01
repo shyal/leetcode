@@ -32707,6 +32707,20 @@
       "note": "Drill targets grid-neighbors; the code enumerates every cell via the harness `cells(grid)` generator and counts matches, exercising the grid cell enumeration move.",
       "summary": "The solution counts cells equal to v by iterating over all (i, j) positions produced by the harness `cells(grid)` generator and summing 1 for each match. It exercises the grid-neighbors/cell-enumeration move through the shared `cells` helper rather than hand-written offset arithmetic. All assertions passed, including the 1000x1000 case.",
       "seconds": 70
+    },
+    "solved/d_Bottom_Up_Cell_Alternating_2026_10_01T23_57_02_717919_00_00Z.py": {
+      "date": "2026-10-02",
+      "problem": "drill",
+      "moves": {
+        "index-conversion": "clean"
+      },
+      "assist": {
+        "index-conversion": "hint"
+      },
+      "judge": "deepseek-chat",
+      "note": "notes say 'hint'",
+      "summary": "The code fills an n x n grid by iterating k from 0 to n*n-1, converting the flat index into a row counted from the bottom (n-1-k//n) and a column that alternates direction per row (k%n or n-1-(k%n)). This exercises index-conversion: flat index to grid cell with bottom-up rows and alternating row direction. All assertions pass, and the notes indicate a hint was given.",
+      "seconds": 321
     }
   }
 }
