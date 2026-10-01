@@ -32592,6 +32592,19 @@
       "judge": "deepseek-chat",
       "summary": "The code fills an n x n grid by iterating k from 0 to n*n-1, converting the flat index k into a row via n-1-k//n (rows counted from the bottom) and a column that alternates direction by row parity, then writes k at that cell. This exercises index-conversion: flat index to grid cell with bottom-up orientation and alternating row direction. All assertions pass, including the n=20 corner checks.",
       "seconds": 187
+    },
+    "solved/d_Plus_One_Or_Double_2026_10_01T02_42_14_701636_00_00Z.py": {
+      "date": "2026-10-01",
+      "problem": "drill",
+      "moves": {
+        "generate-and-test-neighbors": "clean",
+        "graph-bfs-shortest": "clean",
+        "seen-state-cycle-detect": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "BFS over implicit graph: neighbors v+1 and v*2 generated on the fly and validated against the limit bound.",
+      "summary": "The code runs a BFS from a to b where each state v generates two neighbors, v+1 and v*2, and prunes any value outside [0, limit]. It tracks visited (dist, v) pairs in a set and returns the distance when b is reached, else -1. This exercises generate-and-test-neighbors, graph-bfs-shortest, and seen-state-cycle-detect; all assertions passed with no notes of help or difficulty.",
+      "seconds": 364
     }
   }
 }
