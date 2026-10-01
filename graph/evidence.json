@@ -32549,6 +32549,19 @@
       "note": "mu source: dp table filled with 1, pairs(back=True) gives j<i, dp[i]=max(dp[i],dp[j]+1) when nums[j]<nums[i]",
       "summary": "The mu source builds a 1D dp table of ones and iterates all pairs (j, i) with j < i, updating dp[i] = max(dp[i], dp[j] + 1) whenever nums[j] < nums[i], so dp[i] is the length of the longest increasing subsequence ending at i. This exercises the dp-1d-rolling move: a 1D table filled forward from base cases. All assertions passed, including the 2500-element increasing case.",
       "seconds": 181
+    },
+    "solved/p227_Basic_Calculator_II_2026_10_01T00_26_36_171909_00_00Z.py": {
+      "date": "2026-10-01",
+      "problem": "227",
+      "moves": {
+        "stack-nested-eval": "clean",
+        "running-sum": "clean",
+        "divmod-decompose": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Digit accumulation num = num*10 + int(c) peels the number; the stack holds signed terms with * and / applied to the top before pushing.",
+      "summary": "The code scans s with a trailing '+', accumulating multi-digit numbers and using a stack to defer addition and subtraction while applying * and / immediately to the top of the stack. It exercises stack-nested-eval (push partial terms, pop and combine on higher-precedence operators), running-sum (final sum(stack)), and digit decomposition. All assertions passed and the run exited 0.",
+      "seconds": 280
     }
   }
 }
