@@ -1554,3 +1554,32 @@ fn a_summit_is_held_while_its_entry_move_failed_to_recognize() {
     );
     assert_eq!(summits(&cleared), strs(&["84"]));
 }
+
+/// 2026-10-01: 909. Snakes and Ladders is a LeetCode Medium rated 2019.5.
+/// The label shown comes from the rating, so it reads Hard; a problem
+/// nothing rates keeps LeetCode's label. The time limit never reads the
+/// display label.
+#[test]
+fn the_display_label_follows_the_rating() {
+    use crate::model::{budget_min, display_difficulty, rating_label, EASY_BELOW, HARD_FROM};
+    let mut fx = Fx::picker();
+    fx.stubs().solve_ratings = Some(fmap(&[("909", 2019.5), ("1", 1200.0)]));
+    fx.nodes(&["a"]).problems(vec![
+        ("909", problem(&["a"])),
+        ("1", problem(&["a"])),
+        ("2", hard(&["a"])),
+    ]);
+    let (ctx, pv) = (fx.ctx(), fx.pv());
+    assert_eq!(display_difficulty(&ctx, "909", &pv), "Hard");
+    assert_eq!(display_difficulty(&ctx, "1", &pv), "Easy");
+    assert_eq!(display_difficulty(&ctx, "2", &pv), "Hard");
+    assert_eq!(ctx.problem_difficulty("909", &pv.map), "Medium");
+    assert_eq!(
+        budget_min(&ctx.problem_difficulty("909", &pv.map)),
+        Some(30)
+    );
+    assert_eq!(rating_label(EASY_BELOW - 0.1), "Easy");
+    assert_eq!(rating_label(EASY_BELOW), "Medium");
+    assert_eq!(rating_label(HARD_FROM - 0.1), "Medium");
+    assert_eq!(rating_label(HARD_FROM), "Hard");
+}

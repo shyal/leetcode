@@ -34,6 +34,37 @@ pub fn next_tier(d: &str) -> &str {
     }
 }
 
+// ---- the display label ---------------------------------------------------
+
+/// The cut points of the display label, fitted 2026-10-01 on the 2572
+/// problems zerotrac rates. Each is the rating at which the two LeetCode
+/// labels are wrong at the same rate: 11% of Easies sit at or above
+/// EASY_BELOW and 11% of Mediums below it, 12% of Mediums sit at or above
+/// HARD_FROM and 12% of Hards below it.
+pub const EASY_BELOW: f64 = 1379.0;
+pub const HARD_FROM: f64 = 1969.0;
+
+/// The label a contest rating earns. It is for display only: the time
+/// limit (budget_min) and every picker rule keep LeetCode's label.
+pub fn rating_label(rating: f64) -> &'static str {
+    if rating < EASY_BELOW {
+        "Easy"
+    } else if rating < HARD_FROM {
+        "Medium"
+    } else {
+        "Hard"
+    }
+}
+
+/// The label shown for a problem: the one its rating earns, or LeetCode's
+/// when nothing rates it.
+pub fn display_difficulty(ctx: &Ctx, pnum: &str, pv: &PView) -> String {
+    match solve_ratings(ctx).get(pnum) {
+        Some(r) => rating_label(*r).to_string(),
+        None => ctx.problem_difficulty(pnum, &pv.map),
+    }
+}
+
 /// kg_lib.solve_model: the fitted coefficients, or None.
 pub fn solve_model(ctx: &Ctx) -> Option<HashMap<String, f64>> {
     #[cfg(test)]

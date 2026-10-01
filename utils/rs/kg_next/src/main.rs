@@ -36,12 +36,14 @@ use kg::git::{
     is_session_start, is_stale, pending_judgements, sleep_rows, sleep_state, solve_seconds_today,
     solved_today_pnums, spawn_judge,
 };
-use kg::model::{drill_forecast, elo_now, solve_forecast, solve_ratings, ELO_K};
+use kg::model::{
+    display_difficulty, drill_forecast, elo_now, solve_forecast, solve_ratings, ELO_K,
+};
 use kg::pick::{
     blocked_frontier, park_full_lines, parked_summits, pick, review_ahead, review_line,
     review_queue, starved, unmapped_summits, withheld, Choice, PickArgs,
 };
-use kg::queue::{queue_table, QUEUE_LEN};
+use kg::queue::{difficulty_colour, queue_table, QUEUE_LEN};
 use kg::recog;
 use kg::render::{animate, display, faces, prespawn_dot, render_in_background, Dot, PreDot};
 use kg::status::{
@@ -213,21 +215,21 @@ fn problem_url(ctx: &Ctx, pnum: &str) -> String {
     }
 }
 
+/// LeetCode's label, then the label the rating earns. The time limit
+/// follows LeetCode's.
 fn difficulty_line(ctx: &Ctx, pnum: &str, pv: &PView) -> Option<String> {
-    let diff = ctx.problem_difficulty(pnum, &pv.map);
+    let leetcode = ctx.problem_difficulty(pnum, &pv.map);
+    let real = display_difficulty(ctx, pnum, pv);
     let acc = ctx.meta.get(pnum).and_then(|m| m.acceptance);
-    if diff.is_empty() && acc.is_none() {
+    if leetcode.is_empty() && real.is_empty() && acc.is_none() {
         return None;
     }
     let mut parts = Vec::new();
-    if !diff.is_empty() {
-        let style = match diff.as_str() {
-            "Easy" => "green",
-            "Medium" => "yellow",
-            "Hard" => "red",
-            _ => "dim",
-        };
-        parts.push(format!("[{style}]{diff}[/{style}]"));
+    for (name, d) in [("leetcode", &leetcode), ("real", &real)] {
+        if !d.is_empty() {
+            let style = difficulty_colour(d);
+            parts.push(format!("[dim]{name}[/dim] [{style}]{d}[/{style}]"));
+        }
     }
     if let Some(a) = acc {
         parts.push(format!("[dim]{a:.1}% accepted[/dim]"));

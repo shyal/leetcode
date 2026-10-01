@@ -6,19 +6,21 @@
 
 use crate::ctx::{Ctx, PView};
 use crate::evidence::Evidence;
-use crate::model::{elo_now, solve_ratings};
+use crate::model::{display_difficulty, elo_now, solve_ratings};
 use crate::pick::upcoming;
 use crate::table::{BoxKind, Table};
 
 pub const QUEUE_LEN: usize = 10;
 const DAYS: i64 = 30;
 
-/// One row of the queue: number, title, difficulty, rating (None when the
-/// problem has no contest rating), and whether serving it would be a first
+/// One row of the queue: number, title, LeetCode's label, the label the
+/// rating earns (model::display_difficulty), rating (None when the problem has no contest
+/// rating), and whether serving it would be a first
 /// sight (no record of the problem in the evidence).
 pub struct QueueRow {
     pub pnum: String,
     pub title: String,
+    pub leetcode: String,
     pub difficulty: String,
     pub rating: Option<f64>,
     pub first_sight: bool,
@@ -41,7 +43,8 @@ pub fn queue_rows(
                 .or_else(|| ctx.all_problems().get(&pnum))
                 .map(|p| p.title.clone())
                 .unwrap_or_default(),
-            difficulty: ctx.problem_difficulty(&pnum, &pv.map),
+            leetcode: ctx.problem_difficulty(&pnum, &pv.map),
+            difficulty: display_difficulty(ctx, &pnum, pv),
             rating: ratings.get(&pnum).copied(),
             first_sight: ev.problem_recs(&pnum).is_empty(),
             pnum,
@@ -58,6 +61,16 @@ pub fn gap_colour(gap: f64) -> &'static str {
         "yellow"
     } else {
         "green"
+    }
+}
+
+/// The colour of a difficulty label.
+pub fn difficulty_colour(d: &str) -> &'static str {
+    match d {
+        "Easy" => "green",
+        "Medium" => "yellow",
+        "Hard" => "red",
+        _ => "dim",
     }
 }
 
@@ -78,7 +91,8 @@ pub fn queue_table(
     let mut table = Table::plain(
         &[
             "Problem",
-            "Difficulty",
+            "LeetCode",
+            "Real",
             "Rating",
             "Gap",
             "Odds",
@@ -88,11 +102,9 @@ pub fn queue_table(
         BoxKind::Rounded,
     );
     for row in rows {
-        let style = match row.difficulty.as_str() {
-            "Easy" => "green",
-            "Medium" => "yellow",
-            "Hard" => "red",
-            _ => "dim",
+        let label = |d: &str| {
+            let style = difficulty_colour(d);
+            format!("[{style}]{d}[/{style}]")
         };
         let [r, g, o] = match row.rating {
             None => ["-".into(), "-".into(), "-".into()],
@@ -109,7 +121,8 @@ pub fn queue_table(
         };
         table.add_row(&[
             format!("{}. {}", row.pnum, row.title),
-            format!("[{style}]{}[/{style}]", row.difficulty),
+            label(&row.leetcode),
+            label(&row.difficulty),
             r,
             g,
             o,
