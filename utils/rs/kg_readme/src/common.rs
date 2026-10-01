@@ -91,6 +91,18 @@ pub fn runs<T: Clone>(series: &[(NaiveDate, T)]) -> Vec<Vec<(NaiveDate, T)>> {
     out
 }
 
+/// The series with its last value carried to `day`, so that every line of
+/// a chart ends on the day it was drawn and not on the day of its own last
+/// game (2026-10-01).
+pub fn carried(mut series: Vec<(NaiveDate, f64)>, day: NaiveDate) -> Vec<(NaiveDate, f64)> {
+    if let Some(&(d, v)) = series.last() {
+        if d < day {
+            series.push((day, v));
+        }
+    }
+    series
+}
+
 pub fn points<F: Fn(NaiveDate) -> f64, G: Fn(f64) -> f64>(
     run: &[(NaiveDate, f64)],
     x_of: F,
@@ -345,6 +357,20 @@ mod tests {
         assert_eq!(pyf(62.0), "62.0");
         assert_eq!(pyf(114.60000000000001), "114.60000000000001");
         assert_eq!(pyf(0.35), "0.35");
+    }
+
+    /// 2026-10-01: a line whose last game is two days old still ends on
+    /// the day of the run, at its last value; one that already ends there,
+    /// and an empty one, are left alone.
+    #[test]
+    fn carried_ends_the_line_on_the_day_of_the_run() {
+        let d = |n| NaiveDate::from_ymd_opt(2026, 10, n).unwrap();
+        assert_eq!(
+            carried(vec![(d(1), 5.0), (d(2), 7.0)], d(4)),
+            vec![(d(1), 5.0), (d(2), 7.0), (d(4), 7.0)]
+        );
+        assert_eq!(carried(vec![(d(4), 7.0)], d(4)), vec![(d(4), 7.0)]);
+        assert_eq!(carried(Vec::new(), d(4)), Vec::new());
     }
 
     #[test]

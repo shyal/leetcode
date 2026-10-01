@@ -476,20 +476,19 @@ fn draw(ctx: &Ctx, ev: &Evidence, args: &[String], days: Option<i64>) {
         println!("no rated attempts");
         return;
     }
-    let mut med = trailing_median(&att);
     let gs = elo::games(ctx, ev);
-    let (mut elo_hist, mut ma) = (elo::elo(&gs, START), elo::elo_ma(&gs, START, &[]));
-    // the proven rating (kg::model::proven_series, settled 2026-09-20)
-    let mut proven = elo::proven(ctx, ev);
     let fc = if days.is_some() {
         Vec::new()
     } else {
         forecast(ctx, ev, &att, args)
     };
-    let today = elo_hist
-        .last()
-        .map(|e| e.0.max(att[att.len() - 1].0))
-        .unwrap_or(att[att.len() - 1].0);
+    // every line ends on the day of the run
+    let today = ctx.today().max(att[att.len() - 1].0);
+    let mut med = carried(trailing_median(&att), today);
+    let mut elo_hist = carried(elo::elo(&gs, START), today);
+    let mut ma = carried(elo::elo_ma(&gs, START, &[]), today);
+    // the proven rating (kg::model::proven_series, settled 2026-09-20)
+    let mut proven = carried(elo::proven(ctx, ev), today);
     let d0 = match days {
         Some(n) => {
             let since = today - Duration::days(n);

@@ -117,8 +117,10 @@ pub fn render(ctx: &Ctx, ev: &Evidence) {
         println!("no scored attempts");
         return;
     }
-    let hist = elo(&gs, START);
-    let (d0, d1) = (hist[0].0, hist[hist.len() - 1].0);
+    // every line ends on the day of the run
+    let today = ctx.today().max(gs[gs.len() - 1].0);
+    let hist = carried(elo(&gs, START), today);
+    let (d0, d1) = (hist[0].0, today);
     let span = days_between(d0, d1).max(1);
     let (top, bottom) = (MT, H - MB);
     let vals: Vec<f64> = hist.iter().map(|x| x.1).collect();
@@ -154,10 +156,10 @@ pub fn render(ctx: &Ctx, ev: &Evidence) {
     rank_bands(&mut svg, &RANKS, y_of, ML, W, MR, top);
     value_ticks(&mut svg, lo, hi, 100, y_of, ML, W - MR);
     month_ticks(&mut svg, d0, d1, x_of, top, bottom, 1);
-    let proven = proven(ctx, ev);
+    let proven = carried(proven(ctx, ev), today);
     for (series, color, opacity) in [
         (&hist, LINE, elo_opacity().as_str()),
-        (&elo_ma(&gs, START, &[]), MA_LINE, "1"),
+        (&carried(elo_ma(&gs, START, &[]), today), MA_LINE, "1"),
         (&proven, PROVEN_LINE, "1"),
     ] {
         for run in runs(series) {
