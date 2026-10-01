@@ -32605,6 +32605,17 @@
       "note": "BFS over implicit graph: neighbors v+1 and v*2 generated on the fly and validated against the limit bound.",
       "summary": "The code runs a BFS from a to b where each state v generates two neighbors, v+1 and v*2, and prunes any value outside [0, limit]. It tracks visited (dist, v) pairs in a set and returns the distance when b is reached, else -1. This exercises generate-and-test-neighbors, graph-bfs-shortest, and seen-state-cycle-detect; all assertions passed with no notes of help or difficulty.",
       "seconds": 364
+    },
+    "solved/p2433_Find_The_Original_Array_of_Prefix_Xor_2026_10_01T02_46_44_726710_00_00Z.py": {
+      "date": "2026-10-01",
+      "problem": "2433",
+      "moves": {
+        "xor-cancellation": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Accepted (25 ms, 37.4 MB)",
+      "summary": "The solution builds the answer as pref[0] followed by pref[i] ^ pref[i+1] for each adjacent pair, using the fact that XORing a prefix with the next prefix cancels the shared prefix and leaves the original element. It exercises xor-cancellation directly; the running-sum/prefix accumulation shape is sidestepped by the pairwise list comprehension. The notes are empty and LeetCode reports Accepted.",
+      "seconds": 225
     }
   }
 }
