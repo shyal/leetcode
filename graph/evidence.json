@@ -32496,6 +32496,17 @@
       "note": "Drill targets binary-search-on-answer; the code implements the last-true boundary template with mid=(lo+hi+1)//2 and returns lo.",
       "summary": "The Solution.lastTrue method runs the classic last-true boundary binary search: it computes mid with the upper-biased (lo+hi+1)//2, moves lo up when ok(mid) holds and hi down otherwise, returning lo. The assertions confirm it finds the last index satisfying the predicate, including the 10**9 range in at most 31 calls. The file also defines first_true/first_false/last_false/last_true helpers built on bisect_left, but the exercised move is the boundary binary search.",
       "seconds": 68
+    },
+    "solved/d_First_False_2026_10_01T00_13_03_525397_00_00Z.py": {
+      "date": "2026-10-01",
+      "problem": "drill",
+      "moves": {
+        "binary-search-boundary": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets binary-search-on-answer; the code implements the first-false boundary template (lo<hi, mid, ok->lo=mid+1 else hi=mid) and all assertions pass.",
+      "summary": "The Solution.firstFalse method runs the classic boundary binary search: while lo < hi it computes mid and moves lo to mid+1 when ok(mid) holds, otherwise hi to mid, returning lo as the first index where the predicate flips false. The drill's required move, binary-search-boundary, is exercised cleanly and the run exited 0 with all assertions passing, including the call-count bound of 31 for a 1e9 range. No notes indicate any help or recognition difficulty.",
+      "seconds": 74
     }
   }
 }
