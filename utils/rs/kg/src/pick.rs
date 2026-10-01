@@ -2235,7 +2235,10 @@ fn grant(
 ) -> Option<(bool, String)> {
     let stamp = format!("{}T{:06}_00_00Z", day.format("%Y_%m_%d"), seq);
     let (moves, fname, problem, is_drill) = if choice.is_drill() {
-        let path = due_drill(ctx, &choice.target, ev, day, false, false)?;
+        // the file pick()'s due() named: its clock's, else the cold one
+        // it fell back to (kg_next resolves it the same way)
+        let path = due_drill(ctx, &choice.target, ev, day, false, false)
+            .or_else(|| cold_drill(ctx, &choice.target, ev, day, true))?;
         let mut moves = ctx.drill_trains(&path);
         if moves.is_empty() {
             moves = vec![choice.target.clone()];

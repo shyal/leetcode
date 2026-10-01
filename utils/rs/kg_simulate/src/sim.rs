@@ -11,7 +11,7 @@ use chrono::{Duration, NaiveDate};
 use indexmap::IndexMap;
 use kg::ctx::{Ctx, PView};
 use kg::data::{Assist, Rec};
-use kg::drills::{bank_authored, due_drill};
+use kg::drills::{bank_authored, cold_drill, due_drill};
 use kg::evidence::Evidence;
 use kg::git::{mined_solve_times, sleep_state};
 use kg::mock::PyRandom;
@@ -756,7 +756,14 @@ fn run_(
             );
             let (kind, moves, fname, problem): (String, Vec<String>, String, String);
             if pnum.starts_with("drill:") {
-                let Some(path) = due_drill(ctx, &target_node, &ev, day, false, false) else {
+                // the file pick()'s due() named, resolved the way kg_next
+                // resolves it: its clock's, else the cold one it fell back
+                // to. Without the fallback a cold pick ended the day, and
+                // the run went dry while make next would have served
+                // (2026-10-01)
+                let Some(path) = due_drill(ctx, &target_node, &ev, day, false, false)
+                    .or_else(|| cold_drill(ctx, &target_node, &ev, day, true))
+                else {
                     break;
                 };
                 kind = "drill".to_string();
