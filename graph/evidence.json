@@ -32518,6 +32518,17 @@
       "note": "Uses the (lo+hi+1)//2 upper-mid template to find the last index where ok is false; all assertions pass, including the <=31 call bound on 1..1e9.",
       "summary": "The drill implements lastFalse with a while lo < hi loop, computing mid = (lo + hi + 1) // 2 and moving hi to mid-1 when ok(mid) is true, else lo to mid, returning lo. This is the binary-search-boundary move for the last index where the predicate is false, exercised cleanly across the assertions including the 1..10^9 range and the call-count bound. The file also defines first_true/first_false/last_true helpers via bisect_left, but the Solution method itself uses the hand-rolled template. No notes indicate any help or recognition difficulty.",
       "seconds": 61
+    },
+    "solved/d_Floor_True_2026_10_01T00_16_09_785352_00_00Z.py": {
+      "date": "2026-10-01",
+      "problem": "drill",
+      "moves": {
+        "binary-search-boundary": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets binary-search-on-answer; the code implements the last-true boundary search (lo=mid+1 on ok, hi=mid-1 otherwise, return hi), which is the boundary template.",
+      "summary": "The file defines floorTrue(lo, hi, ok), a binary search that finds the last index where the monotone predicate ok holds, moving lo up on true and hi down on false and returning hi. It is exercised by assertions over ranges up to 1e9, including a call-count check confirming logarithmic behavior. The helper functions first_true/first_false/last_true/last_false are defined but the assertion requires them to be avoided, so only the boundary search move is exercised.",
+      "seconds": 78
     }
   }
 }
