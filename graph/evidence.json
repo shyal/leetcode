@@ -32671,6 +32671,18 @@
       "note": "k is ignored: the whole list is reversed, not the first k nodes",
       "summary": "The drill reverses a linked list by walking it once and flipping each next pointer with the tuple assignment d.next, head.next, head = head, d.next, head.next, then reattaching the original head t to the reversed tail. That exercises ll-pointer-reversal. The notes mark the work as Learning, and the k parameter is never used, so the first-k behavior the drill targets is not implemented.",
       "seconds": 505
+    },
+    "solved/d_Cut_To_K_2026_10_01T23_39_58_580508_00_00Z.py": {
+      "date": "2026-10-02",
+      "problem": "drill",
+      "moves": {},
+      "judge": "deepseek-chat",
+      "note": "Drill targets binary-search-on-answer but the code greedily splits the first chunk longer than 1 in a while loop; no search over an answer space is present.",
+      "summary": "The code repeatedly scans chunks and splits the first chunk with length > 1 into its head and tail, looping until len(chunks) reaches k. It exercises a greedy in-place list splice rather than any binary search over a candidate answer, so the targeted binary-search-on-answer move is sidestepped. All assertions passed and the run exited 0.",
+      "unmapped": [
+        "greedy split-first-longest-chunk"
+      ],
+      "seconds": 292
     }
   }
 }
