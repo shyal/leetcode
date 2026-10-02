@@ -32816,6 +32816,18 @@
       "judge": "deepseek-chat",
       "summary": "The mu source defines permute with a recursive helper that marks used[j] before recursing, appends nums[j] to path, then pops and unmarks on return, recording a copy of path when its length reaches len(nums). This is the backtracking-mark-unmark move, exercised correctly and confirmed by the run producing all 6 permutations of [1,2,3] and the larger assertions. No notes indicate any help or recognition difficulty.",
       "seconds": 124
+    },
+    "solved/p205_Isomorphic_Strings_2026_10_02T01_36_01_787878_00_00Z.py": {
+      "date": "2026-10-02",
+      "problem": "205",
+      "moves": {
+        "dict-arbitrary-value": "clean",
+        "bijection-check": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "mu source builds position lists per character and compares them pairwise via zip; the transpiled class uses defaultdict(list) the same way.",
+      "summary": "The code records, for each character in A and in B, the list of its positions, then zips the two dicts together and checks that each paired character's position lists are equal. This exercises dict-arbitrary-value (position lists as dict values) and bijection-check (the two-way correspondence between A's and B's characters). The mu source and the transpiled class agree, all assertions pass, and LeetCode reports Accepted (7 ms, 22.1 MB).",
+      "seconds": 1543
     }
   }
 }
