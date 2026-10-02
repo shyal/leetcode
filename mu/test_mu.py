@@ -305,6 +305,62 @@ def test_pop_dot():
     )
 
 
+def test_a_push_is_a_comprehension_element():
+    src = "def f(s: str) -> dict\n  pos = {:list}\n  [pos[v] <- i for i, v in s]\n  pos\n"
+    assert "[pos[v].append(i) for i, v in enumerate(s)]" in transpile(src)
+    assert fmt(src.replace(" <- ", "<-")) == src
+    assert "(a.append(x * 2) for x in a)" in transpile(
+        "def f(a: [int]) -> int\n  g = (a <- x * 2 for x in a)\n  0\n"
+    )
+    assert "[out.append(st.pop()) for _ in range(0, 2)]" in transpile(
+        "def f(st: [int], out: [int]) -> int\n  [out <- st . for _ in 0..<2]\n  0\n"
+    )
+
+
+def run_f(src, *args):
+    ns = {}
+    exec(transpile(src), ns)
+    return ns["Solution"]().f(*args)
+
+
+def test_a_default_dict_collects_under_each_key():
+    src = "def f(s: str) -> dict\n  {:list: c <- i for i, c in s}\n"
+    assert "_pushed(defaultdict(list), ((c, i) for i, c in enumerate(s)))" in transpile(src)
+    assert run_f(src, "egg") == {"e": [0], "g": [1, 2]}
+    assert fmt(src.replace(": c <- i", ":c<-i")) == src
+    src = "def f(es: [[int]]) -> dict\n  {:set: b <- a for (a, b) in es}\n"
+    assert run_f(src, [[1, 0], [2, 0], [1, 0]]) == {0: {1, 2}}
+    src = "def f(xs: [int]) -> dict\n  {:() -> [9]: x % 2 <- x for x in xs if x != 2}\n"
+    assert run_f(src, [0, 1, 2, 3]) == {0: [9, 0], 1: [9, 1, 3]}
+
+
+def test_a_default_dict_updates_each_key_in_place():
+    src = "def f(s: str) -> dict\n  {:int: c += 1 for c in s}\n"
+    assert "_updated(defaultdict(int), ((c, 1) for c in s), iadd)" in transpile(src)
+    assert run_f(src, "egg") == {"e": 1, "g": 2}
+    assert fmt(src) == src
+    src = "def f(ps: [(int, {int})]) -> dict\n  {:set: k |= xs for (k, xs) in ps}\n"
+    assert run_f(src, [(1, {2}), (1, {3})]) == {1: {2, 3}}
+
+
+@pytest.mark.parametrize(
+    "body, message",
+    [
+        ("{:list: v <- 1}", "expected 'for' after v <- 1"),
+        ("{:list: v for v in s}", "expected <- or an operator like \\+=, got 'for'"),
+        ("{:list: v = 1 for v in s}", "expected <- or an operator like \\+=, got '='"),
+    ],
+)
+def test_a_collecting_default_dict_says_what_is_missing(body, message):
+    with pytest.raises(MuError, match=f"line 2: {message}"):
+        transpile(f"def f(s: str) -> dict\n  {body}\n")
+
+
+def test_a_push_in_brackets_needs_a_for():
+    with pytest.raises(MuError, match="line 2: a push in brackets needs a for"):
+        transpile("def f(a: [int]) -> int\n  [a <- 1, 2]\n")
+
+
 def test_fmt_keeps_a_space_after_a_pop_in_a_comprehension():
     src = "def f(h: [int]) -> [int]\n  [h .for _ in 0..1]\n"
     assert fmt(src) == "def f(h: [int]) -> [int]\n  [h . for _ in 0..1]\n"

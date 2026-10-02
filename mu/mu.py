@@ -31,6 +31,20 @@ AUGMENTED = {
     "<<=",
     ">>=",
 }
+IN_PLACE = {
+    "+=": "iadd",
+    "-=": "isub",
+    "*=": "imul",
+    "/=": "itruediv",
+    "//=": "ifloordiv",
+    "%=": "imod",
+    "**=": "ipow",
+    "|=": "ior",
+    "&=": "iand",
+    "^=": "ixor",
+    "<<=": "ilshift",
+    ">>=": "irshift",
+}
 FOLDS = {"sum", "max", "min", "count"}
 CONSTANTS = {"true": "True", "false": "False", "none": "None"}
 
@@ -272,6 +286,30 @@ def nbrs(
     else:
         dims = [len(s) for s in seqs]
     return tuple(d - 1 for d in dims) if last_index else tuple(dims)""",
+    ),
+    "_pushed": (
+        [],
+        [],
+        """def _pushed(d, pairs):
+    for k, v in pairs:
+        d[k].append(v)
+    return d""",
+    ),
+    "_added": (
+        [],
+        [],
+        """def _added(d, pairs):
+    for k, v in pairs:
+        d[k].add(v)
+    return d""",
+    ),
+    "_updated": (
+        [],
+        [],
+        """def _updated(d, pairs, op):
+    for k, v in pairs:
+        d[k] = op(d[k], v)
+    return d""",
     ),
     "_spread": (
         ["from itertools import repeat", "from typing import Iterable"],
@@ -1252,7 +1290,7 @@ class Parser:
             if self.at(")"):
                 self.next()
                 return Py("()")
-            parts = [self.expr()]
+            parts = [self.pushed(self.expr())]
             if self.at("for"):  # a generator: (e for x in xs)
                 gen = self.comprehension()
                 self.expect(")")
@@ -1280,10 +1318,12 @@ class Parser:
         if open_ == "{" and self.at(":"):  # {:list} is defaultdict(list)
             self.next()
             default = self.arg()
-            self.expect(close)
             self.need("from collections import defaultdict")
-            return Py(f"defaultdict({default})")
-        first = self.item(open_)
+            if self.at(close):
+                self.next()
+                return Py(f"defaultdict({default})")
+            return self.collected(default, close)
+        first = self.pushed(self.item(open_))
         if self.at("for"):
             gen = self.comprehension()
             self.expect(close)
@@ -1306,6 +1346,39 @@ class Parser:
             self.next()
             v = self.arg() if self.lambda_ahead() else self.expr()
             e = Py(f"{e}: {v}")
+        return e
+
+    def collected(self, default, close):
+        """{:list: k <- v for ...} applies `<- v` to the entry at k for each
+        item, and is the dict. The operator is a push or an augmented
+        assignment: {:int: k += 1 for ...}."""
+        self.expect(":")
+        key = self.expr()
+        kind, op, line = self.next()[:3]
+        if op != "<-" and (kind != "OP" or op not in IN_PLACE):
+            raise MuError(f"line {line}: expected <- or an operator like +=, got {op!r}")
+        val = self.expr()
+        if not self.at("for"):
+            raise MuError(f"line {line}: expected 'for' after {key} {op} {val}")
+        pairs = f"(({key}, {val}){self.comprehension()})"
+        self.expect(close)
+        d = f"defaultdict({default})"
+        if op == "<-":
+            helper = "_added" if default == "set" else "_pushed"
+            self.need(helper=helper)
+            return Py(f"{helper}({d}, {pairs})")
+        self.need(f"from operator import {IN_PLACE[op]}", "_updated")
+        return Py(f"_updated({d}, {pairs}, {IN_PLACE[op]})")
+
+    def pushed(self, e):
+        """The element of a comprehension may be a push: `[d[v] <- i for
+        i, v in s]` appends i to d[v] for each item."""
+        if not self.at("<-"):
+            return e
+        line = self.next()[2]
+        e = Py(f"{e}.append({self.expr()})")
+        if not self.at("for"):
+            raise MuError(f"line {line}: a push in brackets needs a for")
         return e
 
     def comprehension(self):
