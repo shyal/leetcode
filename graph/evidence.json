@@ -32897,6 +32897,20 @@
         "min/max arithmetic on two values"
       ],
       "seconds": 41
+    },
+    "solved/d_Turn_Knobs_To_A_Total_2026_10_02T03_27_57_581781_00_00Z.py": {
+      "date": "2026-10-02",
+      "problem": "drill",
+      "moves": {
+        "event-sweep": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "The drill targets event-sweep, but the code never builds boundary events or sweeps; it computes a single interval [min+1, max+limit] and tests membership, so the target move was not exercised.",
+      "summary": "The code defines numTurns, which returns 0 when a+b equals V, otherwise computes the band (min(a,b)+1, max(a,b)+limit) and returns 1 if V lies inside it, else 2. It is a direct interval-membership check with no event construction or sweep. All assertions passed, but the targeted event-sweep move does not appear in the code.",
+      "unmapped": [
+        "interval band membership check"
+      ],
+      "seconds": 432
     }
   }
 }
