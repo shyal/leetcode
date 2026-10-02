@@ -1324,7 +1324,7 @@ fn main() {
     // warped tick clock), so the strip stays in step with the P(pass)
     // chart's playhead and positions.svg under event-rate pacing.
     let cal_x = |i: usize| i as f64 / (n_ticks - 1).max(1) as f64 * width;
-    let split_x = switch.map_or(width, &cal_x);
+    let split_x = switch.map_or(width, cal_x);
     if split_x > 0.0 {
         writeln!(out_svg, "<rect x=\"0\" y=\"0\" width=\"{split_x:.1}\" height=\"{ERA_STRIP_H}\" fill=\"{ERA_PRE_INK}\" opacity=\"0.55\"/>").unwrap();
     }
