@@ -32783,6 +32783,17 @@
       "judge": "deepseek-chat",
       "summary": "The code builds an n x n grid with table(n, n) and fills it by walking k from 0 to n*n-1, converting the flat index to a cell with grid[k // n][k % n] = k. That divmod conversion from flat index to row/column is the targeted index-conversion move, and the assertions confirm the row-major layout for several sizes. The run exited 0 with all assertions passing.",
       "seconds": 62
+    },
+    "solved/d_Longest_Path_From_Zero_2026_10_02T00_46_10_524018_00_00Z.py": {
+      "date": "2026-10-02",
+      "problem": "drill",
+      "moves": {
+        "memoize-recursion": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "deep() thread wrapper is harness-style plumbing; the memoized recurrence longest(n) = max(1 + longest(v)) is the graded move",
+      "summary": "The code defines longest(n) as max([1 + longest(v) for v in G[n]], default=0) decorated with @cache, so each node's longest path is computed once and reused, and runs it inside a deep() thread with a raised recursion limit. All assertions pass, including the chain, diamond, and unreachable-node cases. The memoize-recursion move is exercised cleanly; no notes indicate hints or look-ups.",
+      "seconds": 215
     }
   }
 }
