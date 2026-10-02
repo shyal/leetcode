@@ -32758,6 +32758,17 @@
       "note": "groups() walks every element, calls find(e) to get its root, and buckets elements by root in a defaultdict(list).",
       "summary": "The Solution subclasses UnionFind and implements groups() by iterating over range(len(self.parent)), calling self.find(e) on each element, and appending e to a defaultdict keyed by the returned root. This exercises the union-find move: find() resolves each element to its representative, and the buckets are the components. The file ran clean, with all assertions on the parent arrays passing.",
       "seconds": 127
+    },
+    "solved/d_Claim_Or_Merge_2026_10_02T00_17_49_663998_00_00Z.py": {
+      "date": "2026-10-02",
+      "problem": "drill",
+      "moves": {
+        "union-find": "clean",
+        "dict-arbitrary-value": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The drill extends UnionFind and implements union_shared, walking each account's emails and using an owners dict to map an email to the first account index that claimed it; on a repeat email it calls self.union(i, owners[email]) to merge the two accounts. This exercises union-find (find/union via the inherited class) and dict-arbitrary-value (storing the owning account index per email). All assertions passed on execution, including the transitive merges across accounts.",
+      "seconds": 204
     }
   }
 }
