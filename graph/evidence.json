@@ -32936,6 +32936,19 @@
       "note": "helper returns max(left,right)+1 up while self.res tracks left+right at each node; notes say the solve 'will never make sense to me' but LeetCode verdict is Accepted.",
       "summary": "The code defines helper(n), which recurses into n.left and n.right, returns max(left, right) + 1 as the height of the subtree, and updates self.res with left + right at every node. That is the diameter shape: one value returned upward, a global best combined from both children at each node. All assertions passed and LeetCode reports Accepted (6 ms, 22.2 MB); the notes only say the solve will never make sense to the candidate.",
       "seconds": 587
+    },
+    "solved/p378_Kth_Smallest_Element_in_a_Sorted_Matrix_2026_10_02T03_50_29_027957_00_00Z.py": {
+      "date": "2026-10-02",
+      "problem": "378",
+      "moves": {
+        "heap-top-k": "clean",
+        "heap-simulation": "clean"
+      },
+      "judge": "deepseek-chat",
+      "followup": "not solved",
+      "note": "LeetCode: Accepted (118 ms, 24.5 MB)",
+      "summary": "The code wraps a max-heap in a small `heap` class and scans every cell of the matrix via `cells`, pushing each value and popping whenever the heap exceeds size k, so the root ends as the kth smallest. This exercises heap-top-k (bounded heap holding the k largest) and heap-simulation (repeated push/pop of the extreme). The follow-up asks for O(1) memory or O(n) time; the code uses O(k) heap memory and O(n^2 log k) time, so it does not meet it. LeetCode accepted the submission.",
+      "seconds": 448
     }
   }
 }
