@@ -32721,6 +32721,22 @@
       "note": "notes say 'hint'",
       "summary": "The code fills an n x n grid by iterating k from 0 to n*n-1, converting the flat index into a row counted from the bottom (n-1-k//n) and a column that alternates direction per row (k%n or n-1-(k%n)). This exercises index-conversion: flat index to grid cell with bottom-up rows and alternating row direction. All assertions pass, and the notes indicate a hint was given.",
       "seconds": 321
+    },
+    "solved/d_Fewest_Cells_Between_2026_10_02T00_05_26_662872_00_00Z.py": {
+      "date": "2026-10-02",
+      "problem": "drill",
+      "moves": {
+        "multi-source-bfs": "clean",
+        "graph-bfs-shortest": "clean",
+        "grid-neighbors": "clean"
+      },
+      "assist": {
+        "multi-source-bfs": "hint"
+      },
+      "judge": "deepseek-chat",
+      "note": "notes say 'Hint'",
+      "summary": "The solution seeds a deque with every cell equal to 1 via cells(grid, eq=1), then runs levels() BFS over the grid, expanding each node with nbrs() and returning d-1 when it reaches a 2. This exercises multi-source BFS (all sources at distance 0), grid-neighbors expansion, and BFS shortest-distance layering. The notes only say 'Hint'.",
+      "seconds": 459
     }
   }
 }
