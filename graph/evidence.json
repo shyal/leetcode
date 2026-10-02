@@ -32949,6 +32949,19 @@
       "note": "LeetCode: Accepted (118 ms, 24.5 MB)",
       "summary": "The code wraps a max-heap in a small `heap` class and scans every cell of the matrix via `cells`, pushing each value and popping whenever the heap exceeds size k, so the root ends as the kth smallest. This exercises heap-top-k (bounded heap holding the k largest) and heap-simulation (repeated push/pop of the extreme). The follow-up asks for O(1) memory or O(n) time; the code uses O(k) heap memory and O(n^2 log k) time, so it does not meet it. LeetCode accepted the submission.",
       "seconds": 448
+    },
+    "solved/p1319_Number_of_Operations_to_Make_Network_Connected_2026_10_02T12_59_57_709320_00_00Z.py": {
+      "date": "2026-10-02",
+      "problem": "1319",
+      "moves": {
+        "union-find": "clean",
+        "graph-adjacency-build": "clean",
+        "set-membership": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "adjacency() is built but never used; the answer comes from union-find plus a set of roots.",
+      "summary": "The code builds a parent array and defines find with path compression and union that returns whether two nodes were merged. It counts successful unions over connections, computes spare edges as len(connections) - unions, counts components via a set of find(x) roots, and returns -1 when spares < groups - 1 else groups - 1. The adjacency helper is constructed but unused; the run passed all assertions and LeetCode accepted it.",
+      "seconds": 753
     }
   }
 }
