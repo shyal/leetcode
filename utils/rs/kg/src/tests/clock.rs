@@ -8,8 +8,8 @@ use super::*;
 use crate::clock::{attempt_label, problem_due, PROBLEM_GRADUATING_DAYS, PROBLEM_HOLD_DAYS};
 use crate::data::test_env;
 use crate::drills::{
-    anki_due, anki_frontier, anki_fuzz, anki_good, anki_next_if_good, drill_clean, drill_warm,
-    due_drill, ANKI_EASE, ANKI_FUZZ_MIN_DAYS,
+    anki_due, anki_frontier, anki_fuzz, anki_good, anki_good_after, anki_next_if_good, drill_clean,
+    drill_warm, due_drill, ANKI_EASE, ANKI_FUZZ_MIN_DAYS,
 };
 use crate::model::{
     proven_game_score, proven_score, proven_series, Game, Ground, Transfer, PROVEN_WINDOW,
@@ -241,6 +241,45 @@ fn a_clean_rep_today_projects_the_next_due_day() {
     assert_eq!(
         anki_next_if_good(&key, &again, today()),
         (today() + Duration::days(2), 2)
+    );
+}
+
+/// A clean rep before the due day grows the days waited, not the whole
+/// interval, and never brings the file back before the day it was due:
+/// 2 days into a 66 day interval leaves 64, not 165. A rep on the due
+/// day or after it is the plain Good step.
+#[test]
+fn a_clean_rep_before_the_due_day_does_not_grow_the_interval() {
+    assert_eq!(anki_good_after(66, ANKI_EASE, 2), 64);
+    assert_eq!(anki_good_after(66, ANKI_EASE, 60), 150);
+    assert_eq!(anki_good_after(66, ANKI_EASE, 66), anki_good(66, ANKI_EASE));
+    assert_eq!(anki_good_after(66, ANKI_EASE, 90), anki_good(66, ANKI_EASE));
+    let mut fx = Fx::new();
+    let path = fx.bank("n", "Clock", "c.py", "d1", &[]);
+    let ctx = fx.ctx();
+    let key = ctx.drill_evidence_key(&path);
+    let fz = |ivl: i64, rep: usize| anki_fuzz(ivl, &key, rep);
+    let on_time = vec![
+        drill_rep("Clock", "n", 60),
+        drill_rep("Clock", "n", 59),
+        drill_rep("Clock", "n", 56),
+    ];
+    let third = fz(anki_good(fz(3, 1), ANKI_EASE), 2);
+    // the fourth rep one day after the third, days before it was due
+    let mut early = on_time.clone();
+    early.push(drill_rep("Clock", "n", 55));
+    let fourth = fz(anki_good_after(third, ANKI_EASE, 1), 3);
+    assert!(fourth < anki_good(third, ANKI_EASE));
+    assert_eq!(
+        anki_due(&ctx, &path, &evidence(early)),
+        Some((ago(55) + Duration::days(fourth), fourth))
+    );
+    // the projection reads the days waited up to today the same way
+    let young = evidence(vec![drill_rep("Clock", "n", 2), drill_rep("Clock", "n", 1)]);
+    let next = fz(anki_good_after(fz(3, 1), ANKI_EASE, 1), 2);
+    assert_eq!(
+        anki_next_if_good(&key, &young, today()),
+        (today() + Duration::days(next), next)
     );
 }
 

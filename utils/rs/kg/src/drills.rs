@@ -514,10 +514,26 @@ pub fn anki_due_key(key: &str, ev: &Evidence) -> Option<(NaiveDate, i64)> {
 /// (the day it comes back, that interval). A file never done graduates
 /// to one day.
 pub fn anki_next_if_good(key: &str, ev: &Evidence, today: NaiveDate) -> (NaiveDate, i64) {
-    let (interval, ease, reps) =
-        anki_state(key, ev).map_or((0, ANKI_EASE, 0), |s| (s.interval, s.ease, s.reps));
-    let next = anki_fuzz(anki_good(interval, ease), key, reps);
+    let next = match anki_state(key, ev) {
+        None => anki_good(0, ANKI_EASE),
+        Some(s) => {
+            let waited = (today - parse_date(&s.last)).num_days();
+            anki_fuzz(anki_good_after(s.interval, s.ease, waited), key, s.reps)
+        }
+    };
     (today + Duration::days(next), next)
+}
+
+/// Good after `waited` days. A rep on or past its due day grows the
+/// interval (anki_good). A rep before it has only shown the days it
+/// waited, so those are what grow, and the file never comes back sooner
+/// than the day it was already due (d74 done 2 days into a 66 day
+/// interval was projected to 166, 2026-10-02).
+pub(crate) fn anki_good_after(interval: i64, ease: f64, waited: i64) -> i64 {
+    if waited >= interval {
+        return anki_good(interval, ease);
+    }
+    (interval - waited).max(anki_good(waited, ease))
 }
 
 /// The clock's state after the file's last rep: the day of that rep, the
@@ -587,7 +603,11 @@ fn anki_state(key: &str, ev: &Evidence) -> Option<AnkiState> {
     for (d, i) in by_day {
         let (_, base, ri) = &ev.drills[i];
         match anki_answer(base, ev.rec(*ri)) {
-            "good" => interval = anki_good(interval, ease),
+            "good" if last.is_empty() => interval = anki_good(interval, ease),
+            "good" => {
+                let waited = (parse_date(&d) - parse_date(&last)).num_days();
+                interval = anki_good_after(interval, ease, waited);
+            }
             "hard" => {
                 interval = if interval == 0 {
                     ANKI_GRADUATING_DAYS
