@@ -32974,6 +32974,19 @@
       "note": "Uses first_true/bisect_left to find the first index where nums[x] <= nums[-1], the boundary form of the rotated pivot search.",
       "summary": "The code finds the minimum by locating the first index where nums[x] <= nums[-1], implemented via a first_true helper built on bisect_left over the index range. This exercises the boundary binary search and the rotated-array pivot comparison against the last element. All assertions passed on execution, and the notes contain no mention of hints or look-ups.",
       "seconds": 319
+    },
+    "solved/p1870_Minimum_Speed_to_Arrive_on_Time_2026_10_02T13_39_44_391404_00_00Z.py": {
+      "date": "2026-10-02",
+      "problem": "1870",
+      "moves": {
+        "binary-search-on-answer": "clean",
+        "binary-search-boundary": "clean",
+        "running-sum": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LeetCode verdict: Accepted (2180 ms, 33.8 MB).",
+      "summary": "The code defines travelTime, which sums ceil(d/speed) for all but the last leg and d/speed for the last, and canReach comparing that total to hour. minSpeedOnTime first rejects infeasible cases by testing speed 10**7, then binary-searches the answer space [1, 10**7] with lo<hi and hi=mid / lo=mid+1, returning lo. This exercises binary-search-on-answer with the leftmost-feasible boundary template, plus a running sum inside travelTime. The notes carry a LeetCode Accepted verdict.",
+      "seconds": 626
     }
   }
 }
