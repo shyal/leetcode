@@ -897,7 +897,7 @@ fn rusty_moves_outrank_the_graduating_floor() {
 /// once the band reaches it. A problem he woke himself is not held.
 #[test]
 fn a_first_sight_above_the_band_is_held() {
-    use crate::model::elo_now;
+    use crate::model::first_sight_elo_now;
     use crate::pick::first_sights_above_band;
     let mut fx = Fx::picker();
     fx.nodes(&["new"]).problems(vec![
@@ -907,7 +907,8 @@ fn a_first_sight_above_the_band_is_held() {
     ]);
     let st = statuses(&[("new", MISSING, None)]);
     let ev = no_evidence();
-    let elo = elo_now(&fx.ctx(), &ev);
+    ratings_tsv(&fx, &[]);
+    let elo = first_sight_elo_now(&fx.ctx(), &ev);
     fx.stubs().solve_ratings = Some(fmap(&[
         ("1", elo + 0.5),
         ("2", elo + 100.0),
@@ -928,6 +929,36 @@ fn a_first_sight_above_the_band_is_held() {
         pnum(&fx.run(&ev, &st, args().exclude(&["1", "3"]).woken(&["2"]))),
         "2"
     );
+}
+
+/// 2026-10-02: the bands measure from his first-sight Elo, not from the
+/// Elo over every attempt. A second win on problem 1 is a repeat: it
+/// raises elo_now and leaves the first-sight Elo where the first win put
+/// it. Problem 2, rated between the two, is held.
+#[test]
+fn the_band_measures_from_the_first_sight_elo() {
+    use crate::model::{elo_now, first_sight_elo_now, ELO_K, ELO_START};
+    use crate::pick::first_sights_above_band;
+    let mut fx = Fx::picker();
+    fx.nodes(&["new"])
+        .problems(vec![("1", problem(&["new"])), ("2", problem(&["new"]))]);
+    let first_sight = ELO_START + ELO_K / 2.0;
+    ratings_tsv(&fx, &[("1", ELO_START)]);
+    fx.stubs().solve_ratings = Some(fmap(&[("1", ELO_START), ("2", first_sight + 1.0)]));
+    let timed = |mut r: (String, Rec)| {
+        r.1.seconds = Some(600);
+        r
+    };
+    let ev = evidence(vec![
+        timed(solve("1", &[("new", "clean")], 5)),
+        timed(solve("1", &[("new", "clean")], 1)),
+    ]);
+    let ctx = fx.ctx();
+    *ctx.solve_times.borrow_mut() = Some(vec![]);
+    assert_eq!(first_sight_elo_now(&ctx, &ev), first_sight);
+    assert!(elo_now(&ctx, &ev) > first_sight + 1.0);
+    test_env("FIRST_SIGHT_WITHIN_BAND", "0");
+    assert_eq!(first_sights_above_band(&ctx, &ev), set(&["2"]));
 }
 
 // --------------------------------------------------------------------------

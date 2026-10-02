@@ -1136,7 +1136,7 @@ fn reviews_are_clustered_by_primary_move() {
 /// Unset, every due review is served.
 #[test]
 fn a_review_above_the_band_is_held() {
-    use crate::model::elo_now;
+    use crate::model::first_sight_elo_now;
     use crate::pick::above_band;
     let mut fx = Fx::picker();
     fx.nodes(&["q1"]).problems(vec![
@@ -1152,6 +1152,10 @@ fn a_review_above_the_band_is_held() {
         assisted("4", &[("q1", "clean")], 10),
     ]);
     fx.stubs().solve_ratings = Some(fmap(&[("1", 3000.0), ("2", 1300.0), ("3", 800.0)]));
+    ratings_tsv(
+        &fx,
+        &[("1", 3000.0), ("2", 1300.0), ("3", 800.0), ("4", 1200.0)],
+    );
     let queue = |fx: &Fx| -> Vec<String> {
         review_queue(&fx.ctx(), &ev, &fx.pv(), today())
             .into_iter()
@@ -1161,7 +1165,7 @@ fn a_review_above_the_band_is_held() {
     assert_eq!(queue(&fx), strs(&["1", "2", "3", "4"]));
     assert!(above_band(&fx.ctx(), &ev, &fx.pv(), today()).is_empty());
     // the smallest whole band that still reaches problem 2
-    let reach = (1300.0 - elo_now(&fx.ctx(), &ev)).ceil() as i64;
+    let reach = (1300.0 - first_sight_elo_now(&fx.ctx(), &ev)).ceil() as i64;
     assert!(reach > 1);
     test_env("REVIEWS_WITHIN_BAND", &reach.to_string());
     assert_eq!(queue(&fx), strs(&["2", "3", "4"]));

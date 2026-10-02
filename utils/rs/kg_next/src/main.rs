@@ -37,7 +37,7 @@ use kg::git::{
     solved_today_pnums, spawn_judge,
 };
 use kg::model::{
-    display_difficulty, drill_forecast, elo_now, solve_forecast, solve_ratings, ELO_K,
+    display_difficulty, drill_forecast, first_sight_elo_now, solve_forecast, solve_ratings, ELO_K,
 };
 use kg::pick::{
     above_band, blocked_frontier, first_sights_above_band, park_full_lines, parked_summits, pick,
@@ -239,7 +239,7 @@ fn difficulty_line(ctx: &Ctx, pnum: &str, pv: &PView) -> Option<String> {
 
 fn rating_line(ctx: &Ctx, pnum: &str, ev: &Evidence) -> Option<String> {
     let rating = *solve_ratings(ctx).get(pnum)?;
-    let elo = elo_now(ctx, ev);
+    let elo = first_sight_elo_now(ctx, ev);
     let gap = rating - elo;
     let odds = 1.0 / (1.0 + 10f64.powf(gap / 400.0));
     let colour = if gap > 100.0 {

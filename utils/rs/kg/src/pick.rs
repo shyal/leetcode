@@ -481,7 +481,7 @@ pub fn above_band(ctx: &Ctx, ev: &Evidence, pv: &PView, today: NaiveDate) -> Vec
     let Some(band) = crate::drills::reviews_band() else {
         return Vec::new();
     };
-    let ceiling = crate::model::elo_now(ctx, ev) + band;
+    let ceiling = crate::model::first_sight_elo_now(ctx, ev) + band;
     let ratings = solve_ratings(ctx);
     due_problems(ev, today, Some(pv))
         .into_iter()
@@ -501,7 +501,7 @@ pub fn first_sights_above_band(ctx: &Ctx, ev: &Evidence) -> HashSet<String> {
     let Some(band) = crate::drills::first_sight_band() else {
         return HashSet::new();
     };
-    let ceiling = crate::model::elo_now(ctx, ev) + band;
+    let ceiling = crate::model::first_sight_elo_now(ctx, ev) + band;
     let seen = ev.solved_problems();
     solve_ratings(ctx)
         .into_iter()

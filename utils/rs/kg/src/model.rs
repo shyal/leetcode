@@ -1544,7 +1544,17 @@ pub fn walk_mass(walk: &[String], counts: &HashMap<String, i64>) -> f64 {
     (m as f64).ln_1p()
 }
 
-/// kg_lib.elo_now: his Elo after the last scored game.
+/// His first-sight Elo after the last first-sight game, or ELO_START with
+/// none: the elo the picker, the queue and both bands rate a problem
+/// against (2026-10-02). elo_now also scores repeats, which are easier to
+/// win, so it runs higher.
+pub fn first_sight_elo_now(ctx: &Ctx, ev: &Evidence) -> f64 {
+    elo_after(&first_sight_elo_games(ctx, ev), ELO_START)
+        .last()
+        .map_or(ELO_START, |x| x.1)
+}
+
+/// kg_lib.elo_now: his Elo after the last scored game, repeats included.
 pub fn elo_now(ctx: &Ctx, ev: &Evidence) -> f64 {
     let games = scored_games(ctx, ev);
     let ratings = solve_ratings(ctx);

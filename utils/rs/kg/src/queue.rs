@@ -6,7 +6,7 @@
 
 use crate::ctx::{Ctx, PView};
 use crate::evidence::Evidence;
-use crate::model::{display_difficulty, elo_now, solve_ratings};
+use crate::model::{display_difficulty, first_sight_elo_now, solve_ratings};
 use crate::pick::upcoming;
 use crate::table::{BoxKind, Table};
 
@@ -87,7 +87,7 @@ pub fn queue_table(
     if rows.is_empty() {
         return None;
     }
-    let elo = elo_now(ctx, ev);
+    let elo = first_sight_elo_now(ctx, ev);
     let mut table = Table::plain(
         &[
             "Problem",

@@ -26,7 +26,7 @@ use kg::data::{load_envrc, repo_root};
 use kg::evidence::Evidence;
 use kg::git::sleep_state;
 use kg::llm::{claude_json, judge_model};
-use kg::model::elo_now;
+use kg::model::first_sight_elo_now;
 use kg::pyjson::{self, dumps};
 use kg::queue::{gap_colour, queue_rows, queue_table, QueueRow, QUEUE_LEN};
 use kg::table::{print_table, BoxKind, Table};
@@ -309,7 +309,7 @@ fn main() {
         return;
     }
 
-    let elo = elo_now(&ctx, &ev);
+    let elo = first_sight_elo_now(&ctx, &ev);
     let rows = queue_rows(&ctx, &pv, &ev, &asleep, args.size);
     let context = build_context(&ctx, &rows, elo, args.gap);
     if args.context {

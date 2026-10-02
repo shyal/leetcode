@@ -33,7 +33,7 @@ use kg::drills::first_sight_band;
 use kg::evidence::{drill_key, Evidence};
 use kg::git::mined_solve_times;
 use kg::llm::claude_json;
-use kg::model::{elo_now, solve_ratings};
+use kg::model::{first_sight_elo_now, solve_ratings};
 use kg::pyjson::{self, dumps};
 use kg::table::panel_titled;
 use regex::Regex;
@@ -515,7 +515,7 @@ fn build_context(ctx: &Ctx, ev: &Evidence, words: &[String]) -> Value {
     let mut summaries = Summaries::load(ctx);
     let history = history_lines(ctx, ev, &ratings, since, &mut summaries);
     summaries.save();
-    let elo = elo_now(ctx, ev);
+    let elo = first_sight_elo_now(ctx, ev);
     json!({
         "today": ctx.today().format("%Y-%m-%d").to_string(),
         "elo": round_i(elo),

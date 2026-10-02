@@ -556,6 +556,18 @@ impl Fx {
     }
 }
 
+/// Writes data/leetcode_ratings.tsv, the ratings the first-sight Elo
+/// prices its games with, into the fixture.
+pub fn ratings_tsv(fx: &Fx, pairs: &[(&str, f64)]) {
+    let dir = fx.dir.0.join("data");
+    std::fs::create_dir_all(&dir).unwrap();
+    let mut text = String::from("rating\tid\tslug\n");
+    for (p, r) in pairs {
+        text.push_str(&format!("{r}\t{p}\tx\n"));
+    }
+    std::fs::write(dir.join("leetcode_ratings.tsv"), text).unwrap();
+}
+
 pub fn map(pairs: &[(&str, i64)]) -> HashMap<String, i64> {
     pairs.iter().map(|(k, v)| (k.to_string(), *v)).collect()
 }
