@@ -32923,6 +32923,19 @@
       "note": "Target node binary-search-index; the code exercises the boundary variant (first index where lit[mid] is true).",
       "summary": "The code binary-searches a boolean array for the first True, using lo/hi with hi=mid on a true hit and lo=mid+1 otherwise, returning lo. It exercises the binary-search boundary move (leftmost index where the predicate flips true). All assertions passed, including the 100000-element cases.",
       "seconds": 107
+    },
+    "solved/p543_Diameter_of_Binary_Tree_2026_10_02T03_42_33_002092_00_00Z.py": {
+      "date": "2026-10-02",
+      "problem": "543",
+      "moves": {
+        "tree-dfs-recursive": "clean",
+        "tree-combine-returns": "clean",
+        "tree-global-across-subtrees": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "helper returns max(left,right)+1 up while self.res tracks left+right at each node; notes say the solve 'will never make sense to me' but LeetCode verdict is Accepted.",
+      "summary": "The code defines helper(n), which recurses into n.left and n.right, returns max(left, right) + 1 as the height of the subtree, and updates self.res with left + right at every node. That is the diameter shape: one value returned upward, a global best combined from both children at each node. All assertions passed and LeetCode reports Accepted (6 ms, 22.2 MB); the notes only say the solve will never make sense to the candidate.",
+      "seconds": 587
     }
   }
 }
