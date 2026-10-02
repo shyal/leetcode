@@ -12,9 +12,7 @@ use chrono::{Duration, NaiveDate};
 
 use crate::bank::warm;
 use crate::ctx::Ctx;
-use crate::data::{
-    assist_weight, env_str, filed_at, is_numeric_id, parse_date, Rec, SOLID_WINDOW_DAYS,
-};
+use crate::data::{assist_weight, env_str, parse_date, Rec, SOLID_WINDOW_DAYS};
 use crate::evidence::{drill_key, Evidence};
 use crate::status::{
     graduation_due, input_tree, node_status, owned, Statuses, DEEP_STALE_DAYS, FRAGILE, MISSING,
@@ -285,70 +283,9 @@ fn wanted_drills(ctx: &Ctx, ev: &Evidence, day: NaiveDate) -> Rc<HashSet<PathBuf
             }
         }
     }
-    // a recovery wants the drill under the move it recovered: the retest
-    // waits for a clean rep of it since the recovery (recovery_wait)
-    for (_, path) in recovery_waits(ctx, ev) {
-        wanted.insert(path);
-    }
     let w = Rc::new(wanted);
     ev.cold_cache().wanted.insert(day, w.clone());
     w
-}
-
-/// The moment of the file's last unaided clean rep (data::filed_at), ""
-/// when it has none.
-fn last_clean_drilled_at(ctx: &Ctx, path: &Path, ev: &Evidence) -> String {
-    let key = ctx.drill_evidence_key(path);
-    ev.drill_reps(&key)
-        .iter()
-        .filter(|&&i| anki_answer(&ev.drills[i].1, ev.rec(ev.drills[i].2)) == "good")
-        .map(|&i| filed_at(&ev.drills[i].1, &ev.drills[i].0))
-        .max()
-        .unwrap_or_default()
-}
-
-/// The bank file a recovered problem's retest waits on: a drill of a move
-/// the help touched, with no clean rep since the recovery. The least
-/// recently drilled one when there are several. Since means after the
-/// recovering file was filed, to the second: the drill rep served right
-/// after the recovery, the same day, is the rep the wait asked for (d68
-/// under 543, served again the next morning, 2026-09-22).
-pub fn recovery_wait(ctx: &Ctx, ev: &Evidence, pnum: &str) -> Option<PathBuf> {
-    let (since, _) = crate::clock::recovered_at(ev, pnum)?;
-    crate::clock::recovery_moves(ev, pnum)
-        .iter()
-        .flat_map(|m| ctx.bank_paths(m).iter().cloned().collect::<Vec<_>>())
-        .filter(|p| last_clean_drilled_at(ctx, p, ev) <= since)
-        .min_by_key(|p| last_drilled(ctx, p, ev))
-}
-
-/// Every recovered problem still waiting on a drill: (problem, file).
-pub fn recovery_waits(ctx: &Ctx, ev: &Evidence) -> Vec<(String, PathBuf)> {
-    let mut out: Vec<(String, PathBuf)> = ev
-        .by_problem
-        .keys()
-        .filter(|p| is_numeric_id(p))
-        .filter_map(|p| recovery_wait(ctx, ev, p).map(|f| (p.clone(), f)))
-        .collect();
-    out.sort_by_key(|(p, _)| crate::data::pnum_key(p));
-    out
-}
-
-/// The recovered problems none of whose moves has a bank file: (problem,
-/// the moves). Nothing can be served under them, so the footer says so.
-pub fn recoveries_without_drill(ctx: &Ctx, ev: &Evidence) -> Vec<(String, Vec<String>)> {
-    let mut out: Vec<(String, Vec<String>)> = Vec::new();
-    for p in ev.by_problem.keys() {
-        if !is_numeric_id(p) || crate::clock::recovered_on(ev, p).is_none() {
-            continue;
-        }
-        let moves = crate::clock::recovery_moves(ev, p);
-        if !moves.is_empty() && moves.iter().all(|m| ctx.bank_paths(m).is_empty()) {
-            out.push((p.clone(), moves));
-        }
-    }
-    out.sort_by_key(|(p, _)| crate::data::pnum_key(p));
-    out
 }
 
 /// The wanted file of `node` to serve today: servable, not yet done

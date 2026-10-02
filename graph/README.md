@@ -305,16 +305,6 @@ drill is three minutes, copy today and rote tomorrow, but a problem is
 seventeen, and a next-morning rep on one whose solution was on the screen
 yesterday grades Good for the wrong reason.
 
-A recovered problem's retest waits on the drill under the move it recovered
-(`drills::recovery_wait`): of the moves the recovering solve walked, the ones
-the help touched or the judge marked, or all of them when the bad attempts
-were judged on other moves. Until a bank file of such a move has an unaided
-clean rep dated after the recovery, the card is held and the drill is wanted
-on its own node, whatever its clock says. The drill is the retrieval between
-the copy and the retest. A recovered problem none of whose moves has a bank
-file waits on nothing, and `make next` lists it in its footer ("recovered
-without a drill under the move"), so one gets built.
-
 Serving is rule 2c in `kg_next.pick`: under due drills and the moves that are
 broken (FRAGILE) or on their graduating floor, above the spaced re-solve of a
 stale move. Those are reps; this is a debt. One is served per pick at most, so

@@ -154,9 +154,7 @@
 //      later re-served had held) - the help that put the problem on the
 //      list can never be what takes it off. 3 days, not the bank's 1: a
 //      next-morning rep on a problem whose solution was on the screen
-//      yesterday is a typing exercise. A recovered problem's retest waits
-//      on a clean rep of the drill under the move it recovered
-//      (drills::recovery_wait), and that drill is wanted on its own node.
+//      yesterday is a typing exercise.
 //   3b. frontier mover (PLAN.md phase 4), step d above: a due node with no
 //      UNSOLVED mapped carrier (one it has never been given is waited for
 //      even when warm, asleep, or spent today; one it has already solved is
@@ -525,20 +523,6 @@ pub fn review_queue(
             Some(h) => {
                 if trace {
                     eprintln!("review {p}: held behind {h}");
-                }
-                false
-            }
-            None => true,
-        })
-        // a recovered problem is retested only once the drill under the
-        // move it recovered has a clean rep since the recovery: the
-        // drill is the retrieval between the copy and the retest
-        // (drills::recovery_wait; the drill itself is wanted, so it is
-        // served on its own node)
-        .filter(|(p, _, _)| match crate::drills::recovery_wait(ctx, ev, p) {
-            Some(f) => {
-                if trace {
-                    eprintln!("review {p}: waiting on {}", f.display());
                 }
                 false
             }

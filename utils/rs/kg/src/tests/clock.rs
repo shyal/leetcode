@@ -5,14 +5,11 @@
 use chrono::Duration;
 
 use super::*;
-use crate::clock::{
-    attempt_label, problem_due, recovered_on, recovery_moves, PROBLEM_GRADUATING_DAYS,
-    PROBLEM_HOLD_DAYS,
-};
+use crate::clock::{attempt_label, problem_due, PROBLEM_GRADUATING_DAYS, PROBLEM_HOLD_DAYS};
 use crate::data::test_env;
 use crate::drills::{
     anki_due, anki_frontier, anki_fuzz, anki_good, anki_next_if_good, drill_clean, drill_warm,
-    due_drill, recoveries_without_drill, recovery_wait, ANKI_EASE, ANKI_FUZZ_MIN_DAYS,
+    due_drill, ANKI_EASE, ANKI_FUZZ_MIN_DAYS,
 };
 use crate::model::{
     proven_game_score, proven_score, proven_series, Game, Ground, Transfer, PROVEN_WINDOW,
@@ -557,153 +554,6 @@ fn a_recovered_problem_is_retested_at_a_week_and_three_weeks_before_it_retires()
         good(6),
     ]);
     assert_eq!(problem_due(&ev, "1"), Some((ago(6) + Duration::days(7), 7)));
-    assert_eq!(recovered_on(&ev, "1"), Some(ago(6)));
-    assert_eq!(recovery_moves(&ev, "1"), vec!["q1".to_string()]);
-}
-
-/// The retest of a recovered problem waits on a clean rep, since the
-/// recovery, of the drill under the move the help touched; that drill is
-/// wanted on its own node whatever its clock says. A move the help never
-/// touched has nothing to wait for.
-#[test]
-fn a_recovery_waits_on_the_drill_under_the_move_it_recovered() {
-    let mut fx = Fx::picker();
-    // reviews ahead of the floor rep problem 2 would otherwise be
-    fx.nodes(&["q1", "q2"])
-        .problems(vec![("1", problem(&["q1", "q2"])), ("2", problem(&["q1"]))]);
-    test_env("REVIEWS_FIRST", "1");
-    let path = fx.bank("q1", "Under Q1", "a.py", "d1", &[]);
-    let st = statuses(&[("q1", SOLID, Some(1)), ("q2", SOLID, Some(1))]);
-    // copied on q1 alone, then solved unaided a week ago: due, but waiting
-    let base = vec![
-        solve_a(
-            "1",
-            &[("q1", "clean"), ("q2", "clean")],
-            10,
-            assist_map(&[("q1", "learning")]),
-        ),
-        solve("1", &[("q1", "clean"), ("q2", "clean")], 7),
-    ];
-    let ev = evidence(base.clone());
-    assert_eq!(recovery_moves(&ev, "1"), vec!["q1".to_string()]);
-    assert_eq!(recovery_wait(&fx.ctx(), &ev, "1"), Some(path.clone()));
-    assert!(review_queue(&fx.ctx(), &ev, &fx.pv(), today()).is_empty());
-    assert_eq!(
-        due_drill(&fx.ctx(), "q1", &ev, today(), false, false),
-        Some(path.clone())
-    );
-    // a clean rep of the drill before the recovery: warm, so held_behind
-    // lets the review through, and the recovery wait is what holds it
-    let mut ev1 = base.clone();
-    ev1.push(drill_rep("Under Q1", "q1", 8));
-    let ev1 = evidence(ev1);
-    assert_eq!(recovery_wait(&fx.ctx(), &ev1, "1"), Some(path.clone()));
-    assert!(review_queue(&fx.ctx(), &ev1, &fx.pv(), today()).is_empty());
-    assert_ne!(pnum(&fx.run(&ev1, &st, args())), "1");
-    assert_eq!(
-        due_drill(&fx.ctx(), "q1", &ev1, today(), false, false),
-        Some(path.clone())
-    );
-    // a clean rep of the drill since the recovery frees the retest
-    let mut ev2 = base.clone();
-    ev2.push(drill_rep("Under Q1", "q1", 0));
-    let ev2 = evidence(ev2);
-    assert_eq!(recovery_wait(&fx.ctx(), &ev2, "1"), None);
-    assert_eq!(pnum(&fx.run(&ev2, &st, args())), "1");
-    assert!(reason(&fx.run(&ev2, &st, args())).contains("shows it held"));
-}
-
-/// Two clean attempts in a row are a retest passed, not a recovery: a
-/// clean solve a year after the last clean one opens no wait on the
-/// drills under its moves (40, 2026-09-22). A clean solve after a hint
-/// or a fail does.
-#[test]
-fn a_clean_solve_after_a_clean_solve_is_no_recovery() {
-    let mut fx = Fx::picker();
-    fx.nodes(&["q1"]).problem("1", problem(&["q1"]));
-    let path = fx.bank("q1", "Under Q1", "a.py", "d1", &[]);
-    let ev = evidence(vec![
-        assisted("1", &[("q1", "clean")], 400),
-        solve("1", &[("q1", "clean")], 399),
-        solve("1", &[("q1", "clean")], 0),
-    ]);
-    assert_eq!(recovered_on(&ev, "1"), None);
-    assert_eq!(recovery_wait(&fx.ctx(), &ev, "1"), None);
-    let ev = evidence(vec![
-        solve("1", &[("q1", "clean")], 399),
-        solve_a("1", &[("q1", "clean")], 5, assist_map(&[("q1", "hint")])),
-        solve("1", &[("q1", "clean")], 0),
-    ]);
-    assert_eq!(recovered_on(&ev, "1"), Some(today()));
-    assert_eq!(recovery_wait(&fx.ctx(), &ev, "1"), Some(path.clone()));
-    let ev = evidence(vec![
-        solve("1", &[("q1", "clean")], 399),
-        (
-            "solved/p1_FAILED_5.py".to_string(),
-            solve("1", &[("q1", "struggled")], 5).1,
-        ),
-        solve("1", &[("q1", "clean")], 0),
-    ]);
-    assert_eq!(recovered_on(&ev, "1"), Some(today()));
-    assert_eq!(recovery_wait(&fx.ctx(), &ev, "1"), Some(path));
-}
-
-/// The clean rep served right after the recovery, the same day, is the
-/// rep the wait asked for: since the recovery means since the recovering
-/// file was filed, to the second, not since that day. 543 recovered at
-/// 05:39 and d68 was served under it at 10:52; on dates alone the wait
-/// held and served d68 again the next morning (2026-09-22).
-#[test]
-fn a_drill_rep_later_the_same_day_frees_the_recovery() {
-    let mut fx = Fx::picker();
-    fx.nodes(&["q1"]).problem("1", problem(&["q1"]));
-    let path = fx.bank("q1", "Under Q1", "a.py", "d1", &[]);
-    let day = iso(0).replace('-', "_");
-    let recovered = (
-        format!("solved/p1_Named_{day}T05_39_31_579135_00_00Z.py"),
-        solve("1", &[("q1", "clean")], 0).1,
-    );
-    let base = vec![assisted("1", &[("q1", "clean")], 10), recovered];
-    assert_eq!(recovered_on(&evidence(base.clone()), "1"), Some(today()));
-    // the drill rep before the recovery that morning: still waiting
-    let mut ev1 = base.clone();
-    ev1.push(drill_file(
-        &format!("solved/d_Under_Q1_{day}T02_52_00_170272_00_00Z.py"),
-        "q1",
-        0,
-        Assist::None,
-    ));
-    assert_eq!(
-        recovery_wait(&fx.ctx(), &evidence(ev1), "1"),
-        Some(path.clone())
-    );
-    // the drill rep after it: the wait is met
-    let mut ev2 = base.clone();
-    ev2.push(drill_file(
-        &format!("solved/d_Under_Q1_{day}T10_52_00_170272_00_00Z.py"),
-        "q1",
-        0,
-        Assist::None,
-    ));
-    assert_eq!(recovery_wait(&fx.ctx(), &evidence(ev2), "1"), None);
-}
-
-/// A recovered problem whose move has no bank file waits on nothing and
-/// is named for the footer, so a drill gets built under it.
-#[test]
-fn a_recovery_with_no_drill_under_it_is_named() {
-    let mut fx = Fx::picker();
-    fx.nodes(&["q1"]).problem("1", problem(&["q1"]));
-    let ev = evidence(vec![
-        assisted("1", &[("q1", "clean")], 10),
-        solve("1", &[("q1", "clean")], 7),
-    ]);
-    assert_eq!(recovery_wait(&fx.ctx(), &ev, "1"), None);
-    assert_eq!(
-        recoveries_without_drill(&fx.ctx(), &ev),
-        vec![("1".to_string(), vec!["q1".to_string()])]
-    );
-    assert_eq!(review_queue(&fx.ctx(), &ev, &fx.pv(), today()).len(), 1);
 }
 
 // --------------------------------------------------------------------------
