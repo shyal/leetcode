@@ -718,8 +718,30 @@ struct Judged {
     result: Value,
     is_drill: bool,
     trains: Vec<String>,
+    /// the file ran and every assert held, and it is not filed as FAILED
+    passed: bool,
     notes: String,
     followup: String,
+}
+
+/// A drill whose run passed is a rep of the nodes it trains, whatever the
+/// model says of them: a target node it left out or marked "avoided" is
+/// recorded "clean". The drill's asserts and REQUIRED line define the move,
+/// not the node's name (After The Drop, d175: three passing reps of the
+/// reference solution's own line were each judged "avoided" for holding no
+/// binary search, recorded with no moves, and the drill stood at rep 0 on
+/// 2026-10-02). A "struggled" verdict stays: it comes from the notes.
+fn passed_drill_moves(
+    mut moves: IndexMap<String, String>,
+    trains: &[String],
+    nodes: &HashSet<String>,
+) -> IndexMap<String, String> {
+    for t in trains.iter().filter(|t| nodes.contains(*t)) {
+        if moves.get(t).is_none_or(|v| v == "avoided") {
+            moves.insert(t.clone(), "clean".to_string());
+        }
+    }
+    moves
 }
 
 /// The line that opens a drill's prompt. A passing drill is judged on its
@@ -799,10 +821,12 @@ fn extract_one(
     }
     let notes = kg::lang::notes_of(&code, lang);
     let result = claude_json(&prompt, system, model, 2).map_err(|e| e.to_string())?;
+    let passed = status == "passed" && !basename(path).contains("_FAILED_") && !is_studied(path);
     Ok(Judged {
         result,
         is_drill,
         trains,
+        passed,
         notes,
         followup,
     })
@@ -1301,6 +1325,11 @@ fn main() {
                 .filter(|(k, _)| node_set.contains(*k))
                 .map(|(k, v)| (k.clone(), v.clone()))
                 .collect();
+            let judged_moves = if judged.is_drill && judged.passed {
+                passed_drill_moves(judged_moves, &judged.trains, &node_set)
+            } else {
+                judged_moves
+            };
             let rejected: Vec<String> = all_moves
                 .keys()
                 .filter(|k| !node_set.contains(*k))
@@ -1694,6 +1723,36 @@ mod tests {
         assert!(!note.contains("condemns every move"));
         let note = runtime_note("timeout", "exceeded 20s");
         assert!(note.contains("The moves the code exercised stay 'clean'"));
+    }
+
+    /// A passing drill is a rep of its node, whatever the model says
+    /// (After The Drop, d175, 2026-10-02).
+    #[test]
+    fn a_passing_drill_always_counts_on_its_node() {
+        let nodes: HashSet<String> = ["pivot", "other"].iter().map(|s| s.to_string()).collect();
+        let trains = vec!["pivot".to_string(), "gone".to_string()];
+        let mk = |pairs: &[(&str, &str)]| -> IndexMap<String, String> {
+            pairs
+                .iter()
+                .map(|(k, v)| (k.to_string(), v.to_string()))
+                .collect()
+        };
+        // left out: recorded clean
+        let m = passed_drill_moves(mk(&[]), &trains, &nodes);
+        assert_eq!(m, mk(&[("pivot", "clean")]));
+        // judged avoided: recorded clean, other moves untouched
+        let m = passed_drill_moves(
+            mk(&[("pivot", "avoided"), ("other", "clean")]),
+            &trains,
+            &nodes,
+        );
+        assert_eq!(m["pivot"], "clean");
+        assert_eq!(m["other"], "clean");
+        // struggled comes from the notes and stays
+        let m = passed_drill_moves(mk(&[("pivot", "struggled")]), &trains, &nodes);
+        assert_eq!(m["pivot"], "struggled");
+        // a trains id that is no node is never invented
+        assert!(!m.contains_key("gone"));
     }
 
     /// A failed drill marks its node only when the defect is in the move
