@@ -32862,6 +32862,16 @@
       "note": "Notes say 'There's a super efficient algorithm for this, but i can't remember it, so i'll try bf for now'; LeetCode verdict Accepted (263 ms).",
       "summary": "The code brute-forces all index triples i<j<k with three nested loops and counts those whose three values are pairwise distinct, returning res. It exercises the triple-enumeration loop shape but routes around the canonical pair-count-formula move, which would group equal values and combine group sizes arithmetically. The notes state the candidate could not recall the efficient algorithm and fell back to brute force; LeetCode accepted it at 263 ms.",
       "seconds": 194
+    },
+    "solved/d_Substrings_by_End_2026_10_02T02_47_53_857086_00_00Z.py": {
+      "date": "2026-10-02",
+      "problem": "drill",
+      "moves": {
+        "substring-enumeration": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The drill enumerates every substring of s by end position: pairs(len(s)+1, back=True) yields (i, j) with j as the outer loop and i < j, and each s[i:j] is yielded, wrapped by as_list into a list. This exercises substring-enumeration by end, the loop shape of the counting window and prefix DP. All assertions pass, including the length-55 check for a 10-character string.",
+      "seconds": 84
     }
   }
 }
