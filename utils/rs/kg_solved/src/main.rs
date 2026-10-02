@@ -297,7 +297,7 @@ fn file_phase(console: &Console, root: &Path, failed: bool, studied: bool) {
     if failed {
         let c = lang.comment;
         content.push_str(&format!(
-            "\n\n{c} FAILED: walked away after {solve_time}; no working solution.\n{c} Judge the moves actually attempted as struggled, not clean.\n"
+            "\n\n{c} FAILED: walked away after {solve_time}; no working solution.\n{c} Judge the move the defect is in as struggled, not clean. A move the code never reached gets no verdict.\n"
         ));
     }
     let _ = std::fs::create_dir_all("./solved");

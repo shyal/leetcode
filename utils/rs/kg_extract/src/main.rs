@@ -722,6 +722,23 @@ struct Judged {
     followup: String,
 }
 
+/// The line that opens a drill's prompt. A passing drill is judged on its
+/// target nodes. A failing one is judged on them only when the defect is in
+/// the target move: a failed rep whose code never reached the move says
+/// nothing about it (Cut To K, 2026-09-30: a slice bug in the split marked
+/// binary-search-on-answer struggled and turned the node FRAGILE, while
+/// the summary of the same verdict said the move was not exercised).
+fn drill_lead(trains: &[String]) -> String {
+    format!(
+        "This is a DRILL file targeting these taxonomy nodes: {}. If the run passed, judge at least those moves. If the run failed, mark a target node \"struggled\" ONLY when the defect is in that move itself. When the code never reached the target move, or the defect lies in other code (a slice, an index, a helper, a typo), leave the target node OUT of \"moves\" and say where the defect was in the note. A FAILED line in the notes does not change this.",
+        if trains.is_empty() {
+            "unknown".to_string()
+        } else {
+            trains.join(", ")
+        }
+    )
+}
+
 /// Read + claude call only - no shared state touched here.
 fn extract_one(
     root: &Path,
@@ -767,10 +784,7 @@ fn extract_one(
         );
     }
     if is_drill {
-        prompt = format!(
-            "This is a DRILL file targeting these taxonomy nodes: {}. Judge at least those moves.\n\n{prompt}",
-            if trains.is_empty() { "unknown".to_string() } else { trains.join(", ") }
-        );
+        prompt = format!("{}\n\n{prompt}", drill_lead(&trains));
     } else if let Some((pnum, _)) = problem_of_fname(path) {
         let canon = canon_of(&pnum);
         if !canon.is_empty() {
@@ -1680,6 +1694,19 @@ mod tests {
         assert!(!note.contains("condemns every move"));
         let note = runtime_note("timeout", "exceeded 20s");
         assert!(note.contains("The moves the code exercised stay 'clean'"));
+    }
+
+    /// A failed drill marks its node only when the defect is in the move
+    /// (Cut To K, 2026-09-30).
+    #[test]
+    fn a_failed_drill_does_not_mark_a_move_it_never_reached() {
+        let lead = drill_lead(&["binary-search-on-answer".to_string()]);
+        assert!(lead.contains("targeting these taxonomy nodes: binary-search-on-answer."));
+        assert!(lead.contains("If the run passed, judge at least those moves."));
+        assert!(lead.contains("ONLY when the defect is in that move itself"));
+        assert!(lead.contains("leave the target node OUT of \"moves\""));
+        assert!(!lead.contains(". Judge at least those moves."));
+        assert!(drill_lead(&[]).contains("nodes: unknown."));
     }
 
     /// utils/tests/test_kg_extract.py: the notes survive the statement strip.
