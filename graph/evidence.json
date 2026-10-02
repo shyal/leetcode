@@ -33000,6 +33000,18 @@
       "note": "Follow-up asks for O(n) without converting to int; code converts via to_int and simulates, so not solved.",
       "summary": "The code converts the binary string to an integer with to_int, then loops: while num != 1 it increments count and either halves (even) or adds one (odd). It exercises base conversion, parity testing via modulo, and a running count. LeetCode accepted it at 3 ms; the notes are empty.",
       "seconds": 491
+    },
+    "solved/p50_Powx_n_2026_10_02T14_34_51_819373_00_00Z.py": {
+      "date": "2026-10-02",
+      "problem": "50",
+      "moves": {
+        "memoize-recursion": "clean",
+        "dp-state-formulate": "struggled"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Time Limit Exceeded (2/309 cases); the code lacks the negative-exponent handling (is_neg is computed but never used) and the n==0 base case, so it recurses forever on negative n.",
+      "summary": "The code computes x**n by recursive halving: even n squares x and halves n, odd n multiplies one x and recurses on (n-1)//2. It exercises the halving recurrence but never uses the is_neg flag it computes, and has no n==0 base case, so negative exponents recurse without terminating. The notes say the candidate had only a vague idea and dropped the problem after solving positive numbers, leaving negative numbers unfinished; LeetCode rejected the submission with Time Limit Exceeded (2/309 cases).",
+      "seconds": 1806
     }
   }
 }
