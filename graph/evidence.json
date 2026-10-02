@@ -32794,6 +32794,18 @@
       "note": "deep() thread wrapper is harness-style plumbing; the memoized recurrence longest(n) = max(1 + longest(v)) is the graded move",
       "summary": "The code defines longest(n) as max([1 + longest(v) for v in G[n]], default=0) decorated with @cache, so each node's longest path is computed once and reused, and runs it inside a deep() thread with a raised recursion limit. All assertions pass, including the chain, diamond, and unreachable-node cases. The memoize-recursion move is exercised cleanly; no notes indicate hints or look-ups.",
       "seconds": 215
+    },
+    "solved/d_No_Repeat_Siblings_2026_10_02T01_07_03_727163_00_00Z.py": {
+      "date": "2026-10-02",
+      "problem": "drill",
+      "moves": {
+        "backtracking-choose-undo": "clean",
+        "backtracking-start-index": "clean",
+        "backtracking-dedupe-siblings": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The mu source defines helper(i) which records a copy of path, then loops j from i, skipping j>i when nums[j-1]==nums[j], appends nums[j], recurses at j+1, and pops. This exercises choose-undo backtracking, the start-index suffix recursion, and the sibling-dedupe skip. All assertions passed, including the duplicate-heavy [5]*12 case yielding 13 subsets.",
+      "seconds": 178
     }
   }
 }
