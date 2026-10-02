@@ -321,6 +321,15 @@ and stays due; it is served once your elo comes within the band of its
 rating. A review rated below you, and one nothing rates, is never held. The
 footer of `make next` counts the held ones. Unset, every due review is served.
 
+`FIRST_SIGHT_WITHIN_BAND` in `.envrc` does the same for a problem you have
+never attempted (`pick::first_sights_above_band`): one rated more than that
+many points above your elo is excluded from every rule of the picker, and
+`make next llm` narrows its pool of unseen candidates to the same ceiling.
+With both set to 0 nothing rated above your elo is served, and a harder
+problem arrives only when the elo rises. A problem nothing rates is never
+held, and a problem you wake with `make wake` is served at any rating. The
+footer of `make next` counts the held problems that are in the graph.
+
 ## Dive (`make dive`)
 
 `make next <group>` (currently `make next sql` and `make next spark`; `--group <g>` on kg_next for any group)

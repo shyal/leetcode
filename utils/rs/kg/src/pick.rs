@@ -490,6 +490,26 @@ pub fn above_band(ctx: &Ctx, ev: &Evidence, pv: &PView, today: NaiveDate) -> Vec
         .collect()
 }
 
+/// The problems he has never attempted that are rated more than
+/// FIRST_SIGHT_WITHIN_BAND above his elo (drills::first_sight_band). pick()
+/// excludes them, so no rule serves one: not as a fresh carrier, a drafted
+/// one, a predecessor, a session-start easy or a Hard. REVIEWS_WITHIN_BAND
+/// holds the problems he has attempted; this holds the ones he has not
+/// (2026-10-02). A held problem is served once his elo comes within the
+/// band of its rating. A problem nothing rates is never held.
+pub fn first_sights_above_band(ctx: &Ctx, ev: &Evidence) -> HashSet<String> {
+    let Some(band) = crate::drills::first_sight_band() else {
+        return HashSet::new();
+    };
+    let ceiling = crate::model::elo_now(ctx, ev) + band;
+    let seen = ev.solved_problems();
+    solve_ratings(ctx)
+        .into_iter()
+        .filter(|(p, r)| *r > ceiling && !seen.contains(p))
+        .map(|(p, _)| p)
+        .collect()
+}
+
 /// kg_next.review_queue: due problems minus the unservable ones and the
 /// ones held behind an "after" predecessor that is not warm, clustered by
 /// primary move: groups ordered by their earliest due date, problems inside
@@ -1426,6 +1446,15 @@ pub fn pick(
     args: &PickArgs,
 ) -> Option<Choice> {
     let t = std::time::Instant::now();
+    // FIRST_SIGHT_WITHIN_BAND: a new problem above the band is excluded
+    // from every rule; a problem he woke himself is his call
+    let mut held = first_sights_above_band(ctx, ev);
+    held.retain(|p| !args.woken.contains(p));
+    let banded = PickArgs {
+        exclude: args.exclude.union(&held).cloned().collect(),
+        ..args.clone()
+    };
+    let args = &banded;
     let early = args.early || args.assisted;
     let cram = args.cram || early;
     let today = ctx.today();

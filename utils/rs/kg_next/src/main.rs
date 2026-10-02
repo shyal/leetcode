@@ -28,8 +28,8 @@ use kg::ctx::{Ctx, PView};
 use kg::data::{load_envrc, repo_root};
 use kg::drills::{
     anki, anki_frontier, anki_next_if_good, cold_drill, drill_held, drill_recall, drill_review_cap,
-    drill_reviews_today, due_drill, group_caps, group_reps, new_drill_cap, new_drills_today,
-    reviews_band, reviews_first,
+    drill_reviews_today, due_drill, first_sight_band, group_caps, group_reps, new_drill_cap,
+    new_drills_today, reviews_band, reviews_first,
 };
 use kg::evidence::Evidence;
 use kg::git::{
@@ -40,8 +40,8 @@ use kg::model::{
     display_difficulty, drill_forecast, elo_now, solve_forecast, solve_ratings, ELO_K,
 };
 use kg::pick::{
-    above_band, blocked_frontier, park_full_lines, parked_summits, pick, review_ahead, review_line,
-    review_queue, starved, unmapped_summits, withheld, Choice, PickArgs,
+    above_band, blocked_frontier, first_sights_above_band, park_full_lines, parked_summits, pick,
+    review_ahead, review_line, review_queue, starved, unmapped_summits, withheld, Choice, PickArgs,
 };
 use kg::queue::{difficulty_colour, queue_table, QUEUE_LEN};
 use kg::recog;
@@ -486,6 +486,16 @@ fn caps_table(ctx: &Ctx, pv: &PView, ev: &Evidence, today: NaiveDate) -> Option<
             "reviews above the band".into(),
             format!("[yellow]{} held[/yellow]", above.len()),
             format!("rated more than {band:.0} above your elo (REVIEWS_WITHIN_BAND)"),
+        ]);
+    }
+    let unseen = first_sights_above_band(ctx, ev);
+    let held = pv.map.keys().filter(|p| unseen.contains(*p)).count();
+    if held > 0 {
+        let band = first_sight_band().unwrap_or(0.0);
+        rows.push([
+            "new problems above the band".into(),
+            format!("[yellow]{held} held[/yellow]"),
+            format!("rated more than {band:.0} above your elo (FIRST_SIGHT_WITHIN_BAND)"),
         ]);
     }
     if rows.is_empty() {

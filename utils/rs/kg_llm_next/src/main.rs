@@ -29,6 +29,7 @@ use chrono::Duration;
 use kg::console::{Console, Text};
 use kg::ctx::Ctx;
 use kg::data::{load_envrc, repo_root};
+use kg::drills::first_sight_band;
 use kg::evidence::{drill_key, Evidence};
 use kg::git::mined_solve_times;
 use kg::llm::claude_json;
@@ -475,11 +476,13 @@ fn unseen_candidates(
     elo: f64,
 ) -> Vec<Value> {
     let seen = ev.solved_problems();
+    // FIRST_SIGHT_WITHIN_BAND narrows the band above him, never widens it
+    let above = first_sight_band().map_or(BAND_ABOVE, |b| b.min(BAND_ABOVE));
     let mut pool: Vec<(f64, &String)> = ratings
         .iter()
         .filter(|(p, r)| {
             **r >= elo - BAND_BELOW
-                && **r <= elo + BAND_ABOVE
+                && **r <= elo + above
                 && !seen.contains(*p)
                 && ctx
                     .meta

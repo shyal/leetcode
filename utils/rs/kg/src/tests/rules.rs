@@ -890,6 +890,46 @@ fn rusty_moves_outrank_the_graduating_floor() {
     assert_eq!(target(&fx.run(&ev, &st, args())), "rusty");
 }
 
+/// 2026-10-02: with FIRST_SIGHT_WITHIN_BAND set, a problem he has never
+/// attempted that is rated above his elo plus the band is served by no
+/// rule. Unset, problem 1 is the pick. With the band at 0 it is held and
+/// problem 3, rated below him, is served; problem 2, held too, is served
+/// once the band reaches it. A problem he woke himself is not held.
+#[test]
+fn a_first_sight_above_the_band_is_held() {
+    use crate::model::elo_now;
+    use crate::pick::first_sights_above_band;
+    let mut fx = Fx::picker();
+    fx.nodes(&["new"]).problems(vec![
+        ("1", problem(&["new"])),
+        ("2", problem(&["new"])),
+        ("3", problem(&["new"])),
+    ]);
+    let st = statuses(&[("new", MISSING, None)]);
+    let ev = no_evidence();
+    let elo = elo_now(&fx.ctx(), &ev);
+    fx.stubs().solve_ratings = Some(fmap(&[
+        ("1", elo + 0.5),
+        ("2", elo + 100.0),
+        ("3", elo - 400.0),
+    ]));
+    assert!(first_sights_above_band(&fx.ctx(), &ev).is_empty());
+    let unset = pnum(&fx.run(&ev, &st, args()));
+    test_env("FIRST_SIGHT_WITHIN_BAND", "0");
+    assert_eq!(first_sights_above_band(&fx.ctx(), &ev), set(&["1", "2"]));
+    assert_eq!(pnum(&fx.run(&ev, &st, args())), "3");
+    assert_ne!(unset, "3");
+    test_env("FIRST_SIGHT_WITHIN_BAND", "100");
+    assert_eq!(first_sights_above_band(&fx.ctx(), &ev), set(&[]));
+    test_env("FIRST_SIGHT_WITHIN_BAND", "99");
+    assert_eq!(first_sights_above_band(&fx.ctx(), &ev), set(&["2"]));
+    assert!(fx.run(&ev, &st, args().exclude(&["1", "3"])).is_none());
+    assert_eq!(
+        pnum(&fx.run(&ev, &st, args().exclude(&["1", "3"]).woken(&["2"]))),
+        "2"
+    );
+}
+
 // --------------------------------------------------------------------------
 // MISSING: one genuinely new move, prereqs all solid
 // --------------------------------------------------------------------------
