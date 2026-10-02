@@ -32851,6 +32851,17 @@
       "note": "LeetCode: Accepted (32 ms, 20.4 MB)",
       "summary": "The code defines ways(i) as the number of decodings of the suffix starting at i, caching it with @cache so each index is computed once. At each index it takes the one-digit branch ways(i+1) and, when the two-character slice is <= '26', adds ways(i+2), with base cases for i == len(s) and a leading '0'. The recursion is wrapped in a deep() helper that runs it on a large-stack thread. LeetCode accepted the submission.",
       "seconds": 625
+    },
+    "solved/p2475_Number_of_Unequal_Triplets_in_Array_2026_10_02T02_45_23_932921_00_00Z.py": {
+      "date": "2026-10-02",
+      "problem": "2475",
+      "moves": {
+        "substring-enumeration": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say 'There's a super efficient algorithm for this, but i can't remember it, so i'll try bf for now'; LeetCode verdict Accepted (263 ms).",
+      "summary": "The code brute-forces all index triples i<j<k with three nested loops and counts those whose three values are pairwise distinct, returning res. It exercises the triple-enumeration loop shape but routes around the canonical pair-count-formula move, which would group equal values and combine group sizes arithmetically. The notes state the candidate could not recall the efficient algorithm and fell back to brute force; LeetCode accepted it at 263 ms.",
+      "seconds": 194
     }
   }
 }
