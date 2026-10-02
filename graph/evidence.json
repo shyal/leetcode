@@ -32962,6 +32962,18 @@
       "note": "adjacency() is built but never used; the answer comes from union-find plus a set of roots.",
       "summary": "The code builds a parent array and defines find with path compression and union that returns whether two nodes were merged. It counts successful unions over connections, computes spare edges as len(connections) - unions, counts components via a set of find(x) roots, and returns -1 when spares < groups - 1 else groups - 1. The adjacency helper is constructed but unused; the run passed all assertions and LeetCode accepted it.",
       "seconds": 753
+    },
+    "solved/p153_Find_Minimum_in_Rotated_Sorted_Array_2026_10_02T13_24_59_332998_00_00Z.py": {
+      "date": "2026-10-02",
+      "problem": "153",
+      "moves": {
+        "binary-search-boundary": "clean",
+        "rotated-array-pivot": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Uses first_true/bisect_left to find the first index where nums[x] <= nums[-1], the boundary form of the rotated pivot search.",
+      "summary": "The code finds the minimum by locating the first index where nums[x] <= nums[-1], implemented via a first_true helper built on bisect_left over the index range. This exercises the boundary binary search and the rotated-array pivot comparison against the last element. All assertions passed on execution, and the notes contain no mention of hints or look-ups.",
+      "seconds": 319
     }
   }
 }
