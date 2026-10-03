@@ -33012,6 +33012,19 @@
       "note": "LEETCODE: Time Limit Exceeded (2/309 cases); the code lacks the negative-exponent handling (is_neg is computed but never used) and the n==0 base case, so it recurses forever on negative n.",
       "summary": "The code computes x**n by recursive halving: even n squares x and halves n, odd n multiplies one x and recurses on (n-1)//2. It exercises the halving recurrence but never uses the is_neg flag it computes, and has no n==0 base case, so negative exponents recurse without terminating. The notes say the candidate had only a vague idea and dropped the problem after solving positive numbers, leaving negative numbers unfinished; LeetCode rejected the submission with Time Limit Exceeded (2/309 cases).",
       "seconds": 1806
+    },
+    "solved/d_Month_Over_Month_Change_2026_10_03T02_01_34_264168_00_00Z.py": {
+      "date": "2026-10-03",
+      "problem": "drill",
+      "moves": {
+        "sql-window-offset": "clean"
+      },
+      "assist": {
+        "sql-window-offset": "learning"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The query selects month, amount, and amount minus lag(amount) over (order by month) as change from Revenue. This exercises the sql-window-offset move: LAG compares each row with its previous month, and the first row naturally yields NULL. The run passed and produced the expected table including the NULL first change.",
+      "seconds": 107
     }
   }
 }
