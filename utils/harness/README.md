@@ -390,6 +390,19 @@ True when n is odd.
 
 ### `build_linked_list(vals)`
 
+### `linked_list_reverse_k(h: Optional[ListNode], k: float = inf) -> Tuple[Optional[ListNode], Optional[ListNode]]`
+
+Reverse the first k nodes of the list at h, in place.
+
+Returns the new head and the new tail. The tail is the node that was h,
+and its next is the first node that was not reversed. With k left out,
+or a list shorter than k, the whole list is reversed and the tail's next
+is None.
+
+>>> head, tail = linked_list_reverse_k(build_linked_list([1, 2, 3, 4, 5]), 3)
+>>> get_list_values(head), tail.val
+([3, 2, 1, 4, 5], 1)
+
 ### `find_node(root, val)`
 
 ### `get_inorder(root: Optional[TreeNode]) -> List[int]`
@@ -408,6 +421,21 @@ A Counter whose keys vanish when their count hits 0.
 Counter, `m[k] -= 1` leaves the key behind at 0, so `len(m)` and
 `k in m` stop meaning what a sliding window needs them to mean.
 Negative counts are kept: only an exact 0 deletes.
+
+### `count_pairs(xs: Iterable[Any], by: Optional[Callable[[Any], Any]] = None, want: Optional[Callable[[Any], Any]] = None) -> int`
+
+Count the index pairs i < j with by(xs[i]) == want(xs[j]), in one pass.
+
+by(x) is the key x is stored under and want(x) is the key x looks up.
+With by left out the key is x itself; with want left out it is by, so
+plain count_pairs(xs) counts the pairs of equal values.
+
+>>> count_pairs([1, 2, 3, 1, 1, 3])
+4
+>>> count_pairs([1, 6, 3, 11, 8], by=lambda x: x % 5)
+4
+>>> count_pairs([3, 1, 4, 6, 3], want=lambda x: x - 2)
+2
 
 ## heaps
 
