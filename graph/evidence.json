@@ -33214,6 +33214,17 @@
       "judge": "deepseek-chat",
       "summary": "The code builds a 1D dp table of size amount+1, seeded with dp[0]=0 and inf elsewhere, then fills it forward: for each amount a it tries every coin c <= a and takes dp[a] = min(dp[a], dp[a-c]+1). This is the classic rolling 1D coin-change DP, and the final dp[-1] is returned as -1 when still inf. All assertions passed, including the large amount=10000 case.",
       "seconds": 285
+    },
+    "solved/d_Longest_Ending_Here_2026_10_04T03_40_40_394247_00_00Z.py": {
+      "date": "2026-10-04",
+      "problem": "drill",
+      "moves": {
+        "dp-1d-rolling": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "mu source: dp table filled with 1, pairs(back=True) iterates j<i, dp[i]=max(dp[i],dp[j]+1) when nums[j]<nums[i]; all assertions passed.",
+      "summary": "The mu source builds a dp table of ones and iterates all pairs (j, i) with j < i via pairs(..., back=True), updating dp[i] = max(dp[i], dp[j] + 1) whenever nums[j] < nums[i]. This is the 1D rolling DP for longest increasing subsequence ending at each index, and the returned list matches every assertion including the 2500-length case. The run exited 0 with all assertions passing.",
+      "seconds": 275
     }
   }
 }
