@@ -33035,6 +33035,21 @@
       "judge": "deepseek-chat",
       "summary": "The query selects month, amount, and amount - lag(amount) over (order by month) as change from Revenue, using LAG to compare each row with its previous month. This exercises the window-offset move, and the first row's change comes out NULL as required. Both example assertions passed.",
       "seconds": 112
+    },
+    "solved/d_Approved_Count_Per_Country_2026_10_04T00_47_59_364079_00_00Z.py": {
+      "date": "2026-10-04",
+      "problem": "drill",
+      "moves": {
+        "sql-conditional-aggregate": "clean",
+        "sql-group-aggregate": "clean"
+      },
+      "assist": {
+        "sql-conditional-aggregate": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say the CASE WHEN ... THEN ... ELSE ... END syntax was forgotten and given; the query uses SUM(CASE WHEN state='approved' THEN 1 ELSE 0 END) with GROUP BY country, so declined-only countries show 0.",
+      "summary": "The query selects country and SUM(CASE WHEN state = 'approved' THEN 1 ELSE 0 END) as approved_count, grouped by country. This exercises the conditional-aggregate move (pivoting the approved state into a 0/1 flag summed per group) and the group-aggregate move, and it avoids a WHERE on state so declined-only countries still appear with 0. The notes state the CASE WHEN/THEN/ELSE/END syntax was forgotten and provided, and both example assertions passed.",
+      "seconds": 370
     }
   }
 }
