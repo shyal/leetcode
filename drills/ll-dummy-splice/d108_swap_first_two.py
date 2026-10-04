@@ -32,7 +32,6 @@ Constraints:
 
 class Solution:
     def swapFirstTwo(self, head: Optional[ListNode]) -> Optional[ListNode]:
-        # moon can = con me
         pass
 
 

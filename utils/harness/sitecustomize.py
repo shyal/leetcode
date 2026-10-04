@@ -92,6 +92,7 @@ from graph_utils import *
 from grid_utils import *
 from heap_utils import *
 from linked_list_utils import *
+from ll_utils import *
 
 # pretty printing
 from rich import print as rich_print
@@ -380,6 +381,7 @@ builtins.build_graph = build_graph
 builtins.get_list_values = get_list_values
 builtins.print_linked_list = print_linked_list
 builtins.build_linked_list = build_linked_list
+builtins.linked_list_reverse_k = linked_list_reverse_k
 builtins.find_node = find_node
 builtins.get_inorder = get_inorder
 builtins.is_balanced = is_balanced

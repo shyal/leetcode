@@ -33,9 +33,6 @@ Constraints:
 
 class Solution:
     def reverseFirstK(self, head: ListNode, k: int) -> ListNode:
-        # don't hunt him = him don't hunt, k times
-        # try hunt = him
-        # don't
         pass
 
 

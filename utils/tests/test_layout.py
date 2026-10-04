@@ -173,6 +173,7 @@ HARNESS_MODULES = [
     "tree_utils",
     "bst_utils",
     "linked_list_utils",
+    "ll_utils",
     "graph_utils",
     "grid_utils",
     "combo_utils",

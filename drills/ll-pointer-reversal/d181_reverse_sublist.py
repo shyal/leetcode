@@ -32,8 +32,6 @@ Constraints:
 
 class Solution:
     def reverseSublist(self, h: ListNode) -> Tuple[ListNode, ListNode]:
-        # don't hunt him = him don't hunt
-        # don't try
         pass
 
 
