@@ -33096,6 +33096,17 @@
       "note": "Drill trains the in-degree counting step of topological order; the harness helper indegrees builds the in-degree array by tallying each edge's destination.",
       "summary": "The solution calls the harness helper indegrees(edges, n, type=list), which allocates a zero table of size n and increments indeg[b] for every edge, returning the in-degree array. This exercises the in-degree counting that feeds Kahn's topological order. All assertions pass, including the empty-edge and single-edge cases.",
       "seconds": 108
+    },
+    "solved/d_Longest_Common_Subsequence_2026_10_04T02_03_37_134638_00_00Z.py": {
+      "date": "2026-10-04",
+      "problem": "drill",
+      "moves": {
+        "two-sequence-align": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "mu source: dp[i][j] = dp[i-1][j-1]+1 if a[i]==b[j] else max(dp[i-1][j], dp[i][j-1]); all assertions passed.",
+      "summary": "The mu source builds a 2D table over the two strings (prefixed with a space for 1-based indexing) and fills each cell from the diagonal on a character match, otherwise from the top or left neighbor. This is the two-sequence alignment recurrence, exercised cleanly and confirmed by the passing assertions including the 1000x1000 case.",
+      "seconds": 223
     }
   }
 }
