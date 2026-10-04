@@ -33074,6 +33074,17 @@
       "judge": "deepseek-chat",
       "summary": "min_chunks walks the weights once, keeping a running total for the current chunk; when adding the next weight would exceed cap it increments chunks and resets total to that weight, otherwise it accumulates. It also returns inf if any single weight exceeds cap. The running-sum accumulation is the exercised move, and all assertions passed.",
       "seconds": 38
+    },
+    "solved/d_How_Many_Companies_2026_10_04T01_44_24_479247_00_00Z.py": {
+      "date": "2026-10-04",
+      "problem": "drill",
+      "moves": {
+        "union-find": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets union-find; Solution extends UnionFind, unions each pair, and returns len(self.groups()).",
+      "summary": "The Solution subclasses UnionFind and countCompanies unions every (a, b) pair, then returns the number of groups via len(self.groups()). All assertions pass, including the self-loop [0,0] and duplicate-edge cases. The union-find move is exercised directly through the inherited union and groups methods.",
+      "seconds": 133
     }
   }
 }
