@@ -33248,6 +33248,22 @@
       "judge": "deepseek-chat",
       "summary": "The code walks the event list once, pushing a new Node on 'start' and popping on 'end', then computes each node's duration from its start time. This is the stack-nested-eval move: entering a nested scope pushes the parent context, closing it pops and combines. All assertions passed, including the nested and sibling cases.",
       "seconds": 394
+    },
+    "solved/d_Exclusive_From_Call_Tree_2026_10_04T13_01_41_561014_00_00Z.py": {
+      "date": "2026-10-04",
+      "problem": "drill",
+      "moves": {
+        "tree-dfs-recursive": "clean",
+        "tree-carry-down": "clean",
+        "stack-nested-eval": "clean"
+      },
+      "assist": {
+        "stack-nested-eval": "hint"
+      },
+      "judge": "deepseek-chat",
+      "note": "Hint in notes about += vs = for res[node.val['id']]; the drill's target stack-nested-eval was sidestepped by a recursive tree walk that subtracts direct children's durations.",
+      "summary": "The code walks the call tree recursively with visit(node), and for every node except the root adds node.dur minus the sum of its direct children's dur into res[node.val['id']], so each call's exclusive time is computed in one pass. It exercises tree-dfs-recursive and tree-carry-down (the root check and the res table), but the drill's target stack-nested-eval is avoided because the nested-scope accounting is done by direct-child subtraction rather than a push/pop stack. The notes mention a hint about using += instead of = for the res entry.",
+      "seconds": 644
     }
   }
 }
