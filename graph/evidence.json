@@ -33118,6 +33118,17 @@
       "note": "Nested loops with j starting at i+1 enumerate each unordered pair once; the back=True branch mirrors it with i<j.",
       "summary": "The code generates all unordered pairs of indices below n using nested loops where the inner loop starts at i+1, so each pair is produced once in sorted order. The back=True variant does the same with the loops swapped. The assertions confirm the ordering, the empty case for n=1, and the count of 435 distinct pairs for n=30.",
       "seconds": 35
+    },
+    "solved/d_Reuse_Allowed_2026_10_04T02_18_30_009593_00_00Z.py": {
+      "date": "2026-10-04",
+      "problem": "drill",
+      "moves": {
+        "backtracking-start-index": "clean",
+        "backtracking-choose-undo": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The code recurses with helper(i, total), looping j from i to len(nums), appending nums[j], recursing with helper(j, ...) so the same element can be reused, then popping. This exercises backtracking-start-index (the next call starts at j, not j+1) together with choose/undo via path.append/path.pop. All assertions passed, including the reuse case [3,3,3] and the dedupe check.",
+      "seconds": 215
     }
   }
 }
