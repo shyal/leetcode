@@ -33154,6 +33154,16 @@
       "note": "floorTrue uses the (lo+hi+1)//2 upper-mid template to find the last index where ok holds; all assertions passed, including the <=31 call bound on 1..1e9.",
       "summary": "The drill implements floorTrue, a binary search that finds the greatest value in [lo, hi] satisfying the monotone predicate ok, using the upper-mid (lo+hi+1)//2 template and returning lo. It exercises the binary-search-boundary move, converging on the last true index, and the run passed all assertions including the logarithmic call-count check. The mu source header documents the same loop, and the helper functions first_true/last_true/first_false/last_false are present but the tested move is the boundary search itself.",
       "seconds": 159
+    },
+    "solved/d_Colors_Seen_2026_10_04T02_40_23_827304_00_00Z.py": {
+      "date": "2026-10-04",
+      "problem": "drill",
+      "moves": {
+        "bit-flags": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The drill builds a Color Flag enum from the string 'red green blue' and ORs together Color[n] for each name in the input, starting from Color(0). This exercises the bit-flags move: named members from auto(), union with |, and testing membership. All assertions pass, including the empty list returning Color(0) and repeated names collapsing to a single flag.",
+      "seconds": 220
     }
   }
 }
