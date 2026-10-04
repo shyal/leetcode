@@ -1,10 +1,13 @@
 # counter_utils.py
 #
-# A Counter that drops a key the moment its count reaches 0, so `len(m)`
-# is the number of distinct keys present and `k in m` means m[k] != 0.
+# Multiset: a Counter that drops a key the moment its count reaches 0, so
+# `len(m)` is the number of distinct keys present and `k in m` means
+# m[k] != 0.
+#
+# count_pairs: the one-pass count of index pairs whose keys match.
 
 from collections import Counter
-from typing import Any
+from typing import Any, Callable, Iterable, Optional
 
 
 class Multiset(Counter[Any]):
@@ -27,3 +30,36 @@ class Multiset(Counter[Any]):
         super().update(iterable, **kwds)
         for key in [k for k, v in self.items() if v == 0]:
             del self[key]
+
+
+def count_pairs(
+    xs: Iterable[Any],
+    by: Optional[Callable[[Any], Any]] = None,
+    want: Optional[Callable[[Any], Any]] = None,
+) -> int:
+    """Count the index pairs i < j with by(xs[i]) == want(xs[j]), in one pass.
+
+    by(x) is the key x is stored under and want(x) is the key x looks up.
+    With by left out the key is x itself; with want left out it is by, so
+    plain count_pairs(xs) counts the pairs of equal values.
+
+    >>> count_pairs([1, 2, 3, 1, 1, 3])
+    4
+    >>> count_pairs([1, 6, 3, 11, 8], by=lambda x: x % 5)
+    4
+    >>> count_pairs([3, 1, 4, 6, 3], want=lambda x: x - 2)
+    2
+    """
+    if by is None:
+
+        def by(x: Any) -> Any:
+            return x
+
+    if want is None:
+        want = by
+    cnt: Counter[Any] = Counter()
+    res = 0
+    for x in xs:
+        res += cnt[want(x)]
+        cnt[by(x)] += 1
+    return res

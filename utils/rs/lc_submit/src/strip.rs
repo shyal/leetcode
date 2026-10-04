@@ -5,7 +5,7 @@
 //! The submitted class is the last top-level `class Solution`; a design
 //! problem has none, so there it is the last top-level class of any name.
 //! Above it go, dependencies first: helpers the harness preloads and
-//! leetcode lacks (HELPER_FILES: cells, nbrs, like, grid_bfs, Multiset, the
+//! leetcode lacks (HELPER_FILES: cells, nbrs, like, grid_bfs, Multiset, count_pairs, the
 //! maxheap functions, lcs, to_digits, linked_list_reverse_k), the dsa modules the file imports from, then the file's own
 //! functions, classes, constants and stdlib imports. A name is "used" when
 //! the class loads it and binds it nowhere (a parameter called `root` does
