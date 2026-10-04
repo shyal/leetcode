@@ -33129,6 +33129,19 @@
       "judge": "deepseek-chat",
       "summary": "The code recurses with helper(i, total), looping j from i to len(nums), appending nums[j], recursing with helper(j, ...) so the same element can be reused, then popping. This exercises backtracking-start-index (the next call starts at j, not j+1) together with choose/undo via path.append/path.pop. All assertions passed, including the reuse case [3,3,3] and the dedupe check.",
       "seconds": 215
+    },
+    "solved/d_Shrink_While_Valid_2026_10_04T02_33_15_822583_00_00Z.py": {
+      "date": "2026-10-04",
+      "problem": "drill",
+      "moves": {
+        "sliding-window-variable": "clean",
+        "counter-build": "clean",
+        "streaming-ask-then-record": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say the placement of the best-update inside the while loop was the tricky part to remember; the run passed all assertions.",
+      "summary": "The code grows a window over s with a Multiset (Counter subclass that drops zero-count keys), and while the number of distinct characters is at least k it records the window length when exactly k distinct are present, then shrinks from the left. This exercises the variable sliding window, the counter build, and the ask-then-record streaming pattern. The notes say the candidate had to work out that the best-length update belongs inside the while loop, and all assertions passed.",
+      "seconds": 863
     }
   }
 }
