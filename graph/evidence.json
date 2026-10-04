@@ -33204,6 +33204,16 @@
       "judge": "deepseek-chat",
       "summary": "The solution builds a defaultdict(list) mapping each character to the list of its positions, using a helper _pushed that appends each (char, index) pair from enumerate(s). This exercises dict-arbitrary-value by storing index lists as dict values. All assertions pass, including the 100000-character case.",
       "seconds": 84
+    },
+    "solved/d_Fewest_Coins_2026_10_04T03_35_26_602894_00_00Z.py": {
+      "date": "2026-10-04",
+      "problem": "drill",
+      "moves": {
+        "dp-1d-rolling": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The code builds a 1D dp table of size amount+1, seeded with dp[0]=0 and inf elsewhere, then fills it forward: for each amount a it tries every coin c <= a and takes dp[a] = min(dp[a], dp[a-c]+1). This is the classic rolling 1D coin-change DP, and the final dp[-1] is returned as -1 when still inf. All assertions passed, including the large amount=10000 case.",
+      "seconds": 285
     }
   }
 }
