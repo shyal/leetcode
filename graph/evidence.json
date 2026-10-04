@@ -33142,6 +33142,18 @@
       "note": "Notes say the placement of the best-update inside the while loop was the tricky part to remember; the run passed all assertions.",
       "summary": "The code grows a window over s with a Multiset (Counter subclass that drops zero-count keys), and while the number of distinct characters is at least k it records the window length when exactly k distinct are present, then shrinks from the left. This exercises the variable sliding window, the counter build, and the ask-then-record streaming pattern. The notes say the candidate had to work out that the best-length update belongs inside the while loop, and all assertions passed.",
       "seconds": 863
+    },
+    "solved/d_Floor_True_2026_10_04T02_36_12_001483_00_00Z.py": {
+      "date": "2026-10-04",
+      "problem": "drill",
+      "moves": {
+        "binary-search-boundary": "clean",
+        "binary-search-on-answer": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "floorTrue uses the (lo+hi+1)//2 upper-mid template to find the last index where ok holds; all assertions passed, including the <=31 call bound on 1..1e9.",
+      "summary": "The drill implements floorTrue, a binary search that finds the greatest value in [lo, hi] satisfying the monotone predicate ok, using the upper-mid (lo+hi+1)//2 template and returning lo. It exercises the binary-search-boundary move, converging on the last true index, and the run passed all assertions including the logarithmic call-count check. The mu source header documents the same loop, and the helper functions first_true/last_true/first_false/last_false are present but the tested move is the boundary search itself.",
+      "seconds": 159
     }
   }
 }
