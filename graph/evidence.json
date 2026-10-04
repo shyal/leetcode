@@ -33264,6 +33264,18 @@
       "note": "Hint in notes about += vs = for res[node.val['id']]; the drill's target stack-nested-eval was sidestepped by a recursive tree walk that subtracts direct children's durations.",
       "summary": "The code walks the call tree recursively with visit(node), and for every node except the root adds node.dur minus the sum of its direct children's dur into res[node.val['id']], so each call's exclusive time is computed in one pass. It exercises tree-dfs-recursive and tree-carry-down (the root check and the res table), but the drill's target stack-nested-eval is avoided because the nested-scope accounting is done by direct-child subtraction rather than a push/pop stack. The notes mention a hint about using += instead of = for the res entry.",
       "seconds": 644
+    },
+    "solved/d_Count_Pairs_2026_10_04T13_07_37_369833_00_00Z.py": {
+      "date": "2026-10-04",
+      "problem": "drill",
+      "moves": {
+        "streaming-accumulate-pairs": "clean",
+        "counter-build": "clean",
+        "derived-key-lookup": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The code walks xs once, keeping a Counter of keys seen so far; at each element it looks up cnt[want(x)] to count matches in the past, then records cnt[by(x)] and adds the match count to acc, so each pair is counted at its second member. This exercises streaming-accumulate-pairs, counter-build, and derived-key-lookup (want(x) transforms the value into the lookup key). All assertions passed and the run exited 0.",
+      "seconds": 255
     }
   }
 }
