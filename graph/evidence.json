@@ -33025,6 +33025,16 @@
       "judge": "deepseek-chat",
       "summary": "The query selects month, amount, and amount minus lag(amount) over (order by month) as change from Revenue. This exercises the sql-window-offset move: LAG compares each row with its previous month, and the first row naturally yields NULL. The run passed and produced the expected table including the NULL first change.",
       "seconds": 107
+    },
+    "solved/d_Month_Over_Month_Change_2026_10_04T00_41_22_815678_00_00Z.py": {
+      "date": "2026-10-04",
+      "problem": "drill",
+      "moves": {
+        "sql-window-offset": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The query selects month, amount, and amount - lag(amount) over (order by month) as change from Revenue, using LAG to compare each row with its previous month. This exercises the window-offset move, and the first row's change comes out NULL as required. Both example assertions passed.",
+      "seconds": 112
     }
   }
 }
