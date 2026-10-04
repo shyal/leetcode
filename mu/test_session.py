@@ -318,3 +318,11 @@ def test_optional_annotations(annotation, want):
     from session import mu_type
 
     assert mu_type(__import__("ast").parse(annotation, mode="eval").body) == want
+
+
+def test_the_stub_keeps_a_comment_written_in_the_solution_body():
+    src = open("drills/ll-pointer-reversal/d184_reverse_k.py").read()
+    text = stub(src)
+    kept = "  # don't hunt him = him don't hunt\n  # try hunt = him\n  # don't try\n  pass\n"
+    assert kept in text
+    transpile(text)

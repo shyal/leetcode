@@ -177,7 +177,14 @@ def mu_lines(stmts, ind):
     return out
 
 
-def mu_def(fn):
+def body_comments(fn, py_lines):
+    """The whole-line comments inside a def, as mu body lines. The syntax
+    tree drops them, and a drill's mnemonic is one of them."""
+    span = py_lines[fn.lineno : fn.end_lineno]
+    return ["  " + ln.strip() for ln in span if ln.strip().startswith("#")]
+
+
+def mu_def(fn, comments=()):
     params = []
     for a in fn.args.args[1:]:  # past self
         t = mu_type(a.annotation)
@@ -187,7 +194,7 @@ def mu_def(fn):
     body = mu_lines(fn.body, 1)
     if not body or body[-1] == "":
         body.append("  pass")
-    return "\n".join([head] + body)
+    return "\n".join([head] + list(comments) + body)
 
 
 def brackets(line):
@@ -262,7 +269,8 @@ def stub(py_src):
     if cls.bases:
         parts.append(f"extends {ast.unparse(cls.bases[0])}")
     fns = [n for n in cls.body if isinstance(n, ast.FunctionDef)]
-    parts.append("\n\n".join(mu_def(fn) for fn in fns))
+    py_lines = py_src.splitlines()
+    parts.append("\n\n".join(mu_def(fn, body_comments(fn, py_lines)) for fn in fns))
     rest = py_src[m.end() :]
     after = re.search(r"^\S", rest, flags=re.M)
     if after:
