@@ -33225,6 +33225,19 @@
       "note": "mu source: dp table filled with 1, pairs(back=True) iterates j<i, dp[i]=max(dp[i],dp[j]+1) when nums[j]<nums[i]; all assertions passed.",
       "summary": "The mu source builds a dp table of ones and iterates all pairs (j, i) with j < i via pairs(..., back=True), updating dp[i] = max(dp[i], dp[j] + 1) whenever nums[j] < nums[i]. This is the 1D rolling DP for longest increasing subsequence ending at each index, and the returned list matches every assertion including the 2500-length case. The run exited 0 with all assertions passing.",
       "seconds": 275
+    },
+    "solved/d_Reach_The_Far_Corner_2026_10_04T03_53_00_927494_00_00Z.py": {
+      "date": "2026-10-04",
+      "problem": "drill",
+      "moves": {
+        "graph-bfs-shortest": "clean",
+        "grid-neighbors": "clean",
+        "graph-dfs-visited": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "mu source uses levels() BFS with seen set and nbrs() cardinal expansion; all assertions passed.",
+      "summary": "The mu solution seeds a deque with (0,0), walks the grid in BFS levels via levels(), expanding each cell with nbrs() cardinal neighbors and recording visits in a seen set, then checks whether the bottom-right corner (shape(grid, last_index=True)) is in seen. It exercises graph-bfs-shortest, grid-neighbors, and graph-dfs-visited (visited-set reachability). All assertions passed with no notes of help or recognition trouble.",
+      "seconds": 715
     }
   }
 }
