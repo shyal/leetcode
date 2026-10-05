@@ -33574,6 +33574,16 @@
       "note": "AssertionError: maximumPossibleSize([4, 2, 5, 3, 5]) returned 4, expected 3; the heap-pop/push loop never makes the array non-decreasing and the notes say 'brute force was terrible idea' and 'walked away after 25m 15s; no working solution'.",
       "summary": "The code heapifies nums and repeatedly pops three smallest values, pushing the two larger ones back, then returns len(h). The loop's is_increasing check and the heap-simulation never produce the required non-decreasing array, so the assertion on [4, 2, 5, 3, 5] fails with 4 instead of 3. The notes record a brute-force attempt and that the candidate walked away after 25 minutes with no working solution.",
       "seconds": 1515
+    },
+    "solved/d_Month_Over_Month_Change_2026_10_05T22_54_21_368001_00_00Z.py": {
+      "date": "2026-10-06",
+      "problem": "drill",
+      "moves": {
+        "sql-window-offset": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The query selects month, amount, and amount minus lag(amount) over (order by month) from Revenue, using LAG to compare each row with its previous month. This exercises the sql-window-offset move directly, and the first row's change comes out NULL as required. Both example assertions passed.",
+      "seconds": 162
     }
   }
 }
