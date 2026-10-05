@@ -33509,6 +33509,17 @@
       "note": "atom() overrides the grammar rule for parenthesized sub-expressions, recursing into expr() and advancing past the closing paren; all assertions passed.",
       "summary": "The Solution subclass overrides atom() so that a '(' triggers advance(), a recursive call to expr(), and advance() past the ')', otherwise falling back to number(). This exercises recursive-descent: the bracketed sub-expression is a recursive call sharing the parser cursor, and the run exited 0 with every assertion passing, including nested parens and the flat '42' case.",
       "seconds": 149
+    },
+    "solved/d_Multi-Buy_2026_10_05T02_49_27_803691_00_00Z.py": {
+      "date": "2026-10-05",
+      "problem": "drill",
+      "moves": {
+        "recursive-descent": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "term() overrides the grammar's multiplicative level: atom() is the recursive call, the while loop handles left-associative */ chains, and expr() drives precedence.",
+      "summary": "The Solution subclass overrides term() in the recursive-descent Parser: it parses an atom, then loops while the cursor sits on '*' or '/', consuming the operator and recursing into atom() to build a left-leaning TreeNode. The assertions confirm precedence and left-associativity across '2+3*4/6', '10-2*3', '100/10/5', '3*4-2*5', and the single-atom '7'. The run exited 0 with all assertions passing.",
+      "seconds": 163
     }
   }
 }
