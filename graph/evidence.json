@@ -33486,6 +33486,18 @@
       "note": "D[0]=1 seeds the empty prefix; each step queries D[prefix-target] before recording D[prefix].",
       "summary": "The code keeps a defaultdict D of prefix-sum counts seeded with D[0]=1, walks vals accumulating prefix, adds D[prefix-target] to res, then increments D[prefix]. This is the prefix-sum-hashmap shape: at each element it asks the running summary of the past for prefix-target before recording the present prefix, with the target derived from the current prefix. All assertions pass, including the 10**5 cases.",
       "seconds": 258
+    },
+    "solved/d_Subarray_Sum_Equals_K_2026_10_05T02_43_44_390139_00_00Z.py": {
+      "date": "2026-10-05",
+      "problem": "drill",
+      "moves": {
+        "prefix-sum-hashmap": "clean",
+        "streaming-ask-then-record": "clean",
+        "derived-key-lookup": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The code keeps a defaultdict D mapping prefix sums to their counts, seeded with D[0]=1, and walks nums once accumulating prefix. At each element it adds D[prefix - k] to res (the count of past prefixes that leave a subarray summing to k) and then records the current prefix. This is the prefix-sum-hashmap move, with the derived key prefix-k and the ask-then-record streaming order. All assertions passed, including the large 20000-element cases.",
+      "seconds": 38
     }
   }
 }
