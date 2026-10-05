@@ -33562,6 +33562,18 @@
       "note": "x & (x - 1) clears the lowest set bit; all assertions passed.",
       "summary": "The solution implements clearLowestSetBit as x & (x - 1), the standard bit trick that clears the lowest set bit. It exercises bit-iterate by operating on the bit pattern directly rather than converting to a string. All assertions passed, including the avoids check confirming no bin/str/format use.",
       "seconds": 40
+    },
+    "solved/p3523_Make_Array_Non-decreasing_FAILED_2026_10_05T04_17_48_075824_00_00Z.py": {
+      "date": "2026-10-05",
+      "problem": "3523",
+      "moves": {
+        "heap-simulation": "struggled",
+        "running-extreme": "struggled"
+      },
+      "judge": "deepseek-chat",
+      "note": "AssertionError: maximumPossibleSize([4, 2, 5, 3, 5]) returned 4, expected 3; the heap-pop/push loop never makes the array non-decreasing and the notes say 'brute force was terrible idea' and 'walked away after 25m 15s; no working solution'.",
+      "summary": "The code heapifies nums and repeatedly pops three smallest values, pushing the two larger ones back, then returns len(h). The loop's is_increasing check and the heap-simulation never produce the required non-decreasing array, so the assertion on [4, 2, 5, 3, 5] fails with 4 instead of 3. The notes record a brute-force attempt and that the candidate walked away after 25 minutes with no working solution.",
+      "seconds": 1515
     }
   }
 }

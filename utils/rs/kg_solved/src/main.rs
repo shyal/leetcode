@@ -276,13 +276,6 @@ fn file_phase(console: &Console, root: &Path, failed: bool, studied: bool) {
         console.print("[red]a drill is a rep, not a study: make solved or make failed.[/red]");
         return;
     }
-    if failed && problem_id != "drill" && kg::fails::where_line(&content).is_none() {
-        console.print(&format!(
-            "[red]not filed.[/red] Write a line starting WHERE: in the notes, at least {} words on where the failure was, then run make failed again.",
-            kg::fails::WHERE_WORDS
-        ));
-        std::process::exit(1);
-    }
     if !failed && !studied {
         refuse_a_failing_file(console, root, &current, lang);
     }

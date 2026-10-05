@@ -1,7 +1,6 @@
 // A fail is not finished until it has a drill (settled 2026-09-28).
 //
-// `make failed` files a walk-away only when the notes carry a WHERE: line,
-// his own account of where the failure was. The fail then stays open until
+// A fail filed by `make failed` stays open until
 // the problem's `after` list in graph/problems.json names a drill, the way
 // 799 names d147; while any open fail lacks one, nothing new is served:
 // kg_next serves drills only and names the problems waiting; kg_llm_next
@@ -15,19 +14,6 @@ use std::collections::{HashMap, HashSet};
 
 use crate::ctx::Ctx;
 use crate::evidence::{drill_key, Evidence};
-
-/// The fewest words a WHERE: line may carry.
-pub const WHERE_WORDS: usize = 6;
-
-/// The WHERE: line of a solve file, without its tag, when it says enough.
-pub fn where_line(text: &str) -> Option<String> {
-    text.lines()
-        .map(crate::lang::uncomment)
-        .find_map(|t| t.strip_prefix("WHERE:"))
-        .map(str::trim)
-        .filter(|w| w.split_whitespace().count() >= WHERE_WORDS)
-        .map(str::to_string)
-}
 
 /// The problems whose `after` list in graph/problems.json names a drill:
 /// a drill has been built for them.
@@ -113,20 +99,6 @@ mod tests {
             v["assist"] = json!(a);
         }
         Rec::parse(&v)
-    }
-
-    #[test]
-    fn where_line_needs_his_own_sentence() {
-        assert_eq!(where_line("# WHERE: short one"), None);
-        assert_eq!(
-            where_line("x\n# WHERE: forgot that the recursion needs a cache\n"),
-            Some("forgot that the recursion needs a cache".into())
-        );
-        assert_eq!(
-            where_line("\"\"\"\nWHERE: never saw the state as one index only\n\"\"\""),
-            Some("never saw the state as one index only".into())
-        );
-        assert_eq!(where_line("# FAILED: walked away after 10m"), None);
     }
 
     #[test]

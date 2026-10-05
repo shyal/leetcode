@@ -107,10 +107,8 @@ route everything automatically:
     DRILL: Next Greater Index      <- title (instead of "290. Word Pattern")
     TRAINS: monotonic-stack        <- node id(s) this drill evidences
 
-A fail is not finished until it has a drill (2026-09-28). `make failed`
-files a walk-away only when the notes carry a `WHERE:` line, his own account
-of where the failure was, six words or more. The fail then stays open until
-the problem's `after` list in `problems.json` names a drill (799 names d147).
+A fail is not finished until it has a drill (2026-09-28). A fail filed by
+`make failed` stays open until the problem's `after` list in `problems.json` names a drill (799 names d147).
 While any open fail (a failed problem with no clean unaided rep after it)
 has no such drill, `make next`, `make next llm` and `make prepare <n>` refuse
 and list the problems waiting; `make drill` still serves, so the drill is
