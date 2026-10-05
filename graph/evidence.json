@@ -33533,6 +33533,24 @@
       "note": "LeetCode: Accepted (0 ms, 19.2 MB)",
       "summary": "The code splits num into digits with to_digits, tags each digit's parity with even(x), buckets the digits by parity into lists, sorts each bucket, then rebuilds the number by popping the largest remaining digit of the matching parity at each position via to_int. It exercises digit decomposition (divmod-decompose), the parity-bucket sort-and-take greedy (greedy-sort-take), and reassembly of the transformed parts (string-build-transform). The notes are empty and LeetCode reports Accepted.",
       "seconds": 336
+    },
+    "solved/p2429_Minimize_XOR_2026_10_05T03_30_47_463497_00_00Z.py": {
+      "date": "2026-10-05",
+      "problem": "2429",
+      "moves": {
+        "bit-iterate": "clean",
+        "divmod-decompose": "clean",
+        "generate-and-test-neighbors": "struggled"
+      },
+      "assist": {
+        "bit-iterate": "hint",
+        "divmod-decompose": "hint",
+        "generate-and-test-neighbors": "hint"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Time Limit Exceeded (3/280 cases) \u2014 the brute force enumerates permutations of the digit multiset instead of the canonical greedy bit construction (turn off low bits of num1, then set low bits from num2's popcount); notes say the leetcode hints restricted the search space and the candidate dropped the problem.",
+      "summary": "The code converts num1 and num2 to binary digits with to_digits, builds a digit multiset padded with zeros, and brute-forces every permutation via permutations, converting each back with to_int and keeping the x minimizing x ^ num1. It exercises divmod-based digit decomposition and bitwise XOR comparison, but the canonical greedy bit-count construction is absent, so it times out. The notes record that the leetcode hints about turning off bits of num1 and setting low bits from num2 were used to restrict the search, and that the candidate ran out of time and dropped the problem.",
+      "seconds": 1851
     }
   }
 }
