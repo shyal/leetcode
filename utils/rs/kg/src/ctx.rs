@@ -330,8 +330,15 @@ impl Ctx {
     }
 
     /// glob(drills/<node>/*.py), sorted: what kg_lib reads on every
-    /// bank_paths call.
+    /// bank_paths call. A drill disabled in drills.json is not in the bank.
     fn glob_bank_files(&self, node: &str) -> Vec<PathBuf> {
+        let mut out = self.glob_drill_files(node);
+        out.retain(|p| !self.drill_disabled(p));
+        out
+    }
+
+    /// Every drill file of a node, disabled ones too.
+    fn glob_drill_files(&self, node: &str) -> Vec<PathBuf> {
         let mut out: Vec<PathBuf> = std::fs::read_dir(self.drills_dir().join(node))
             .map(|rd| {
                 rd.filter_map(Result::ok)
@@ -384,13 +391,22 @@ impl Ctx {
     }
 
     fn all_bank_paths(&self) -> Vec<PathBuf> {
+        let mut out = self.all_drill_files();
+        out.retain(|p| !self.drill_disabled(p));
+        out
+    }
+
+    /// Every drill file under drills/, disabled ones too: what an id or a
+    /// title resolves against (drill_path), so `make drill d10` and an
+    /// "after" edge still find a disabled drill.
+    pub fn all_drill_files(&self) -> Vec<PathBuf> {
         let mut out = Vec::new();
         if let Ok(rd) = std::fs::read_dir(self.drills_dir()) {
             for e in rd.filter_map(Result::ok) {
                 if e.path().is_dir() {
                     if let Some(name) = e.file_name().to_str() {
                         if !name.starts_with('.') {
-                            out.extend(self.bank_files(name).iter().cloned());
+                            out.extend(self.glob_drill_files(name));
                         }
                     }
                 }
@@ -526,7 +542,7 @@ impl Ctx {
             return Some(p);
         }
         let mut paths: HashMap<String, PathBuf> = HashMap::new();
-        for path in self.all_bank_paths() {
+        for path in self.all_drill_files() {
             if let Some(t) = self.drill_title(&path) {
                 paths.entry(t).or_insert(path);
             }
@@ -554,6 +570,13 @@ impl Ctx {
         } else {
             None
         }
+    }
+
+    /// "disabled": true on the drill's drills.json entry.
+    pub fn drill_disabled(&self, path: &Path) -> bool {
+        self.drill_id(path)
+            .and_then(|i| self.drills.get(&i))
+            .is_some_and(|d| d.disabled)
     }
 
     /// kg_lib.drill_after: the ids this drill comes after.

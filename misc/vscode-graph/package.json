@@ -1,0 +1,36 @@
+{
+  "name": "graph",
+  "displayName": "leet graph",
+  "description": "The technique graph around the problem or drill in current.py: nodes, drills and problems, their files and reps, and the switch that takes a drill out of the bank",
+  "version": "0.0.1",
+  "publisher": "leet",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./extension.js",
+  "activationEvents": [
+    "onCommand:leetGraph.open"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "leetGraph.open",
+        "title": "Open graph explorer",
+        "category": "leet",
+        "icon": "$(type-hierarchy)"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "leetGraph.open",
+          "when": "resourceFilename =~ /^current\\.(py|mu|ts)$/",
+          "group": "navigation"
+        }
+      ]
+    }
+  }
+}

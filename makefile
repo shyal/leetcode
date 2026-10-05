@@ -1,4 +1,4 @@
-.PHONY: all asserts audit chat check combos complexity cov curve dependents dive drawing-doc drill drop duplicates elo ext failed fmt fmt-check force graph hard harness-doc is_session_start kg-extract kg-status kg-viz lc-login lc-mocks learning lint mirror mock movie mu mu-chrome mu-vscode muviz next predict preflight prepare prog progress q queue rank-table readme rep residuals rust secrets short simulate sleep snippets solved spot stats studied submit test test-fast test-judge timer today types unforce viz wake
+.PHONY: all asserts audit chat check combos complexity cov curve dependents dive drawing-doc drill drop duplicates elo ext failed fmt fmt-check force graph graph-vscode hard harness-doc is_session_start kg-extract kg-status kg-viz lc-login lc-mocks learning lint mirror mock movie mu mu-chrome mu-vscode muviz next predict preflight prepare prog progress q queue rank-table readme rep residuals rust secrets short simulate sleep snippets solved spot stats studied submit test test-fast test-judge timer today types unforce viz wake
 
 # `make` runs the current file: current.py through mu/session.py (which
 # splices current.mu in when it holds the work), any other language's
@@ -289,6 +289,14 @@ short:
 mu-vscode:
 	@ln -sfn "$(CURDIR)/mu/vscode" "$$HOME/.vscode/extensions/leet.mu-0.0.1"
 	@echo "linked: $$HOME/.vscode/extensions/leet.mu-0.0.1 -> mu/vscode"
+
+# builds kg_explore and links misc/vscode-graph into VS Code's extensions:
+# the graph around current.py, each vertex's files and reps, and the switch
+# that takes a drill out of the bank ("leet: Open graph explorer"); reload
+# the window after
+graph-vscode: $(RS_BIN)/kg_explore
+	@ln -sfn "$(CURDIR)/misc/vscode-graph" "$$HOME/.vscode/extensions/leet.graph-0.0.1"
+	@echo "linked: $$HOME/.vscode/extensions/leet.graph-0.0.1 -> misc/vscode-graph"
 
 # builds mu/chrome, the Chrome extension: a mu panel that submits to
 # leetcode, and problem ratings on leetcode's pages. Load it once at

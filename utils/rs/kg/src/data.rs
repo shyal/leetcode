@@ -474,6 +474,9 @@ pub struct DrillEntry {
     pub title: String,
     pub after: Vec<String>,
     pub trains: Option<Vec<String>>,
+    /// "disabled": true in drills.json: the file stays where it is and is
+    /// left out of every bank listing (Ctx::bank_files).
+    pub disabled: bool,
 }
 
 pub type DrillMap = IndexMap<String, DrillEntry>;
@@ -589,6 +592,7 @@ pub fn load_drills(root: &Path) -> DrillMap {
                     .to_string(),
                 after: str_list(d.get("after")),
                 trains: d.get("trains").map(|t| str_list(Some(t))),
+                disabled: d.get("disabled").and_then(Value::as_bool).unwrap_or(false),
             },
         );
     }

@@ -189,7 +189,7 @@ fn main() -> rusqlite::Result<()> {
         }
     }
 
-    for path in ctx.every_bank_path().iter() {
+    for path in ctx.all_drill_files().iter() {
         let Some(title) = ctx.drill_title(path) else {
             continue;
         };

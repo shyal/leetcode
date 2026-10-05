@@ -1,0 +1,81 @@
+:root {
+  --solid: var(--vscode-charts-green, #3fb950);
+  --stale: var(--vscode-charts-yellow, #d29922);
+  --fragile: var(--vscode-charts-red, #f85149);
+  --dim: var(--vscode-disabledForeground, #808080);
+  --due: var(--vscode-charts-orange, #db6d28);
+  --line: var(--vscode-editorWidget-border, #555);
+}
+html, body { height: 100%; margin: 0; padding: 0; }
+body {
+  display: flex;
+  flex-direction: column;
+  color: var(--vscode-foreground);
+  background: var(--vscode-editor-background);
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+}
+header {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+}
+#search {
+  width: 320px;
+  padding: 4px 6px;
+  color: var(--vscode-input-foreground);
+  background: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border, var(--line));
+}
+button {
+  padding: 4px 10px;
+  color: var(--vscode-button-foreground);
+  background: var(--vscode-button-background);
+  border: 0;
+  cursor: pointer;
+}
+button:hover { background: var(--vscode-button-hoverBackground); }
+button:disabled { opacity: 0.45; cursor: default; }
+button.quiet {
+  color: var(--vscode-button-secondaryForeground);
+  background: var(--vscode-button-secondaryBackground);
+}
+#message { color: var(--fragile); }
+main { flex: 1; display: flex; min-height: 0; }
+#canvas { flex: 1; overflow: auto; padding: 12px; }
+#detail {
+  width: 380px;
+  overflow: auto;
+  padding: 12px 14px;
+  border-left: 1px solid var(--line);
+}
+#detail h2 { margin: 0 0 4px; font-size: 1.15em; }
+#detail p { margin: 6px 0; line-height: 1.4; }
+#detail .buttons { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+#detail table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+#detail th, #detail td { text-align: left; padding: 3px 6px 3px 0; vertical-align: top; }
+#detail th { color: var(--dim); font-weight: normal; }
+#detail tr.rep td:nth-child(2) { white-space: nowrap; }
+#detail tr.rep { cursor: pointer; }
+#detail tr.rep:hover td { background: var(--vscode-list-hoverBackground); }
+#detail tr.note td { color: var(--dim); padding-bottom: 8px; }
+a.ref { color: var(--vscode-textLink-foreground); cursor: pointer; text-decoration: none; }
+a.ref:hover { text-decoration: underline; }
+
+.vertex { cursor: pointer; }
+.vertex rect { fill: var(--vscode-editorWidget-background, transparent); stroke: var(--dim); stroke-width: 1.5; }
+.vertex text { fill: var(--vscode-foreground, currentColor); font-size: 12px; dominant-baseline: central; }
+.vertex.solid rect { stroke: var(--solid); }
+.vertex.stale rect { stroke: var(--stale); }
+.vertex.fragile rect { stroke: var(--fragile); }
+.vertex.missing text { fill: var(--dim); }
+.vertex.focus rect { stroke-width: 3; fill: var(--vscode-list-activeSelectionBackground, transparent); }
+.vertex.current text { font-weight: bold; }
+.vertex.disabled rect { stroke: var(--dim); stroke-dasharray: 4 3; }
+.vertex.disabled text { fill: var(--dim); text-decoration: line-through; }
+.vertex .due { fill: var(--due); }
+.more text { fill: var(--vscode-textLink-foreground); font-size: 12px; cursor: pointer; dominant-baseline: central; }
+.edge { fill: none; stroke: var(--line); stroke-width: 1.2; }
+.edge.focus { stroke: var(--vscode-foreground, currentColor); stroke-width: 1.6; }

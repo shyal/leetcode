@@ -107,13 +107,17 @@ pub fn drill_assisted(ctx: &Ctx, path: &Path, ev: &Evidence) -> bool {
     }
 }
 
+/// A disabled drill is never served again, so its last rep does not age:
+/// with the window it would go cold and hold every drill that comes after
+/// it for good.
 pub fn drill_warm(ctx: &Ctx, path: &Path, ev: &Evidence, today: NaiveDate) -> bool {
     match latest_drill(ctx, path, ev) {
         None => false,
         Some((base, rec)) => {
             rec.drill_clean(base)
                 && rec.assist_any() == "none"
-                && (today - parse_date(&rec.date)).num_days() <= SOLID_WINDOW_DAYS
+                && (ctx.drill_disabled(path)
+                    || (today - parse_date(&rec.date)).num_days() <= SOLID_WINDOW_DAYS)
         }
     }
 }
@@ -151,6 +155,47 @@ pub fn drill_gate_warm(ctx: &Ctx, path: &Path, ev: &Evidence) -> bool {
         .map(|&i| ev.drills[i].0.as_str())
         .collect();
     days.len() >= drill_gate_reps()
+}
+
+/// The problems that keep a drill from being disabled: each names it in
+/// its "after" list and the drill has not cleared drill_gate_warm. The
+/// flag clears no gate (held_behind reads the reps either way), so
+/// disabling such a drill would leave the problem waiting on a drill
+/// nothing serves.
+pub fn disable_refused_by(ctx: &Ctx, did: &str, ev: &Evidence) -> Vec<String> {
+    if ctx
+        .drill_path(did)
+        .is_some_and(|p| drill_gate_warm(ctx, &p, ev))
+    {
+        return Vec::new();
+    }
+    ctx.ro
+        .map
+        .iter()
+        .filter(|(_, p)| p.after.iter().any(|a| a == did))
+        .map(|(id, _)| id.clone())
+        .collect()
+}
+
+/// Set or clear "disabled" on a drill's entry in graph/drills.json. The
+/// rest of the file is written back as it was read. Err names an id the
+/// file does not carry.
+pub fn set_disabled(root: &Path, did: &str, on: bool) -> Result<(), String> {
+    let path = root.join("graph/drills.json");
+    let mut v = crate::pyjson::load(&path).ok_or("graph/drills.json could not be read")?;
+    let entry = v["drills"]
+        .get_mut(did)
+        .and_then(serde_json::Value::as_object_mut)
+        .ok_or(format!("{did} is not a drill id in graph/drills.json"))?;
+    if on {
+        entry.insert("disabled".to_string(), serde_json::Value::Bool(true));
+    } else {
+        entry.remove("disabled");
+    }
+    let tmp = path.with_file_name(".drills.json.tmp");
+    std::fs::write(&tmp, crate::pyjson::dumps(&v, Some(2)) + "\n")
+        .and_then(|_| std::fs::rename(&tmp, &path))
+        .map_err(|e| e.to_string())
 }
 
 /// kg_lib.servable_drills: files whose "after" ids are all warm and whose

@@ -2000,6 +2000,7 @@ mod tests {
                 title: "Slide, Never Shrink".into(),
                 after: vec![],
                 trains: Some(vec!["two-pointers".into()]),
+                disabled: false,
             },
         );
         let no_header = DRILL.replace("TRAINS: sliding-window, prefix-sum\n", "");

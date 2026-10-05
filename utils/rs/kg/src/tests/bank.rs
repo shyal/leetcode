@@ -7,7 +7,8 @@ use super::*;
 use crate::bank::{dependents, easiest_first, gates, held_behind, Dependent};
 use crate::data::{test_env, Assist, SOLID_WINDOW_DAYS};
 use crate::drills::{
-    drill_clean, drill_held, drill_warm, drills_left, due_drill, new_drills_ready, servable_drills,
+    disable_refused_by, drill_clean, drill_held, drill_warm, drills_left, due_drill,
+    new_drills_ready, servable_drills, set_disabled,
 };
 use crate::status::{graduation_due, node_status, owned, GRAD_LADDER_SPARSE};
 
@@ -1420,4 +1421,96 @@ fn fresh_drills_ready_counts_the_servable_never_done_files() {
         Assist::None,
     )]);
     assert_eq!(new_drills_ready(&ctx, &done, ctx.today()), 1);
+}
+
+// --------------------------------------------------------------------------
+// "disabled": true in drills.json: the drill is out of the bank
+// --------------------------------------------------------------------------
+
+/// Lower, then Upper after it, Lower disabled. Lower is in no bank listing,
+/// so nothing picks it and its node is not held on it; its id still
+/// resolves, which is how `make drill d1` reaches it. Its last rep is 60 days old, past the solid window, and Upper
+/// is still released: a disabled drill's last rep does not age.
+#[test]
+fn a_disabled_drill_is_out_of_the_bank_and_holds_nothing() {
+    let mut fx = Fx::new();
+    let lower = fx.bank("some-node", "Lower", "d0.py", "d1", &[]);
+    let upper = fx.bank("some-node", "Upper", "d1.py", "d2", &["d1"]);
+    fx.drills.get_mut("d1").unwrap().disabled = true;
+    let ctx = fx.ctx();
+    assert_eq!(*ctx.bank_paths("some-node"), vec![upper.clone()]);
+    assert_eq!(*ctx.bank_files("some-node"), vec![upper.clone()]);
+    assert_eq!(ctx.every_bank_path(), vec![upper.clone()]);
+    assert_eq!(ctx.drill_path("d1"), Some(lower.clone()));
+    assert!(60 > SOLID_WINDOW_DAYS);
+    let ev = evidence(vec![
+        drill_rep("Lower", "some-node", 60),
+        drill_rep("Upper", "some-node", 50),
+    ]);
+    assert_eq!(due(&fx, "some-node", &ev), Some(upper.clone()));
+    // asked for by id (`make drill d1`), it is still handed over
+    let both = vec![lower, upper];
+    assert_eq!(
+        servable_drills(&ctx, &both, &ev, Some("some-node"), false),
+        both
+    );
+}
+
+/// The flag does not release what the drill had not earned. Lower's last
+/// rep was hinted: Upper stays held. 713 names Lower in its "after" and
+/// Lower was never done: 713 stays held, disabled or not.
+#[test]
+fn disabling_a_drill_clears_no_gate() {
+    let mut fx = Fx::new();
+    fx.bank("some-node", "Lower", "d0.py", "d1", &[]);
+    let upper = fx.bank("some-node", "Upper", "d1.py", "d2", &["d1"]);
+    fx.problem("713", problem(&["plain"]).after(&["d1"]));
+    fx.drills.get_mut("d1").unwrap().disabled = true;
+    assert_eq!(held(&fx, "713", &no_evidence()), Some("d1".into()));
+    let hinted = evidence(vec![drill_rep_a("Lower", "some-node", 3, level("hint"))]);
+    assert!(servable_drills(&fx.ctx(), &[upper], &hinted, Some("some-node"), false).is_empty());
+    assert_eq!(held(&fx, "713", &hinted), Some("d1".into()));
+}
+
+/// A node whose only drill is disabled has no bank: the picker treats it
+/// as it treats a node no drill was ever written for.
+#[test]
+fn a_node_with_every_drill_disabled_has_no_bank() {
+    let mut fx = Fx::new();
+    fx.bank("some-node", "Lower", "d0.py", "d1", &[]);
+    assert!(fx.ctx().has_drill_bank("some-node"));
+    fx.drills.get_mut("d1").unwrap().disabled = true;
+    assert!(!fx.ctx().has_drill_bank("some-node"));
+}
+
+/// 713 names Lower in its "after". Until Lower clears the gate the flag is
+/// refused, and the refusal names 713; once it has, nothing refuses.
+#[test]
+fn a_drill_a_problem_waits_on_cannot_be_disabled() {
+    let mut fx = Fx::new();
+    fx.bank("some-node", "Lower", "d0.py", "d1", &[]);
+    fx.bank("some-node", "Upper", "d1.py", "d2", &["d1"]);
+    fx.problem("713", problem(&["plain"]).after(&["d1"]));
+    let ctx = fx.ctx();
+    assert_eq!(disable_refused_by(&ctx, "d1", &no_evidence()), vec!["713"]);
+    assert!(disable_refused_by(&ctx, "d2", &no_evidence()).is_empty());
+    let done = evidence(vec![drill_rep("Lower", "some-node", 3)]);
+    assert!(disable_refused_by(&ctx, "d1", &done).is_empty());
+}
+
+/// The flag is written and removed in place; every other byte of
+/// drills.json survives the round trip.
+#[test]
+fn set_disabled_round_trips_the_file() {
+    let fx = Fx::new();
+    let path = fx.dir.0.join("graph/drills.json");
+    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    let before = "{\n  \"drills\": {\n    \"d1\": {\n      \"title\": \"Lower\",\n      \"after\": []\n    }\n  }\n}\n";
+    std::fs::write(&path, before).unwrap();
+    set_disabled(&fx.dir.0, "d1", true).unwrap();
+    let on = crate::data::load_drills(&fx.dir.0);
+    assert!(on["d1"].disabled);
+    set_disabled(&fx.dir.0, "d1", false).unwrap();
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), before);
+    assert!(set_disabled(&fx.dir.0, "d9", true).is_err());
 }

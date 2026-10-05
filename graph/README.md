@@ -241,6 +241,31 @@ the review-ahead line replays under the same cap. The footer prints the count
 The graduating floor is what made this necessary: drills re-fire at 3/10/25
 days, and one bank of nineteen sql nodes could fill every session (2026-09-04).
 
+## Disabled drills and the graph explorer
+
+`"disabled": true` on a drill's entry in `graph/drills.json` takes the drill
+out of the bank. The file, its reference solution and its evidence stay where
+they are; `Ctx::bank_files` leaves the file out of every bank listing, so the
+picker never chooses it, its node is not held on it, and a node whose drills
+are all disabled is treated as a node with no bank. `make drill d10` still
+serves a disabled drill: asking by id is the override.
+
+The flag clears no gate. A drill or problem whose `after` names a disabled
+drill still reads that drill's reps: the latest must be an unaided clean one,
+and a problem still needs its `DRILL_GATE_REPS` days. The one difference is
+that a disabled drill's last rep does not age out of the solid window, since
+nothing will serve it again. A drill that a problem's `after` names cannot be
+disabled before it has cleared that gate (`drills::disable_refused_by`).
+
+`make graph-vscode` links the explorer (`misc/vscode-graph`) into VS Code;
+the command is "leet: Open graph explorer". It draws the vertex in current.py
+in the middle, what it comes after on the left and what comes after it on the
+right, two edges out. A click on a vertex makes it the focus and lists its
+reps, with buttons for the drill file or the cached statement and stub, the
+reference solution, and Disable or Enable. Every number it shows comes from
+`kg_explore` (`graph`, `show <id>`, `disable <id>`, `enable <id>`); the
+extension computes nothing.
+
 ## Drill clock (`DRILL_SCHEDULER`)
 
 By default a drill is served when its node is due: FRAGILE, STALE, MISSING, or

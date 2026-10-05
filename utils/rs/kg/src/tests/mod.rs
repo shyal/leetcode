@@ -464,6 +464,7 @@ impl Fx {
                 title: title.to_string(),
                 after: strs(after),
                 trains: None,
+                disabled: false,
             },
         );
         path
@@ -488,6 +489,7 @@ impl Fx {
                     title: title.to_string(),
                     after: strs(after),
                     trains: None,
+                    disabled: false,
                 },
             );
         }
