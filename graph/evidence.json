@@ -33674,6 +33674,22 @@
       "note": "mu source shows cnt[want(x)] queried before cnt[by(x)] += 1, accumulating got into acc; notes say Learning.",
       "summary": "The code walks xs once, at each element querying cnt[want(x)] for matches already seen, then recording cnt[by(x)] += 1 and adding the match count into acc. This exercises streaming-accumulate-pairs, counter-build, and derived-key-lookup. All assertions passed, including the 10^5 duplicate case; the notes mark the work as Learning.",
       "seconds": 275
+    },
+    "solved/d_Divisible_Difference_Pairs_2026_10_05T23_37_56_071879_00_00Z.py": {
+      "date": "2026-10-06",
+      "problem": "drill",
+      "moves": {
+        "derived-key-lookup": "clean",
+        "pair-count-formula": "clean"
+      },
+      "assist": {
+        "derived-key-lookup": "learning",
+        "pair-count-formula": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "count_pairs(nums, by=x -> x % m) groups by the derived key x % m and counts pairs within each group; notes say Learning.",
+      "summary": "The solution calls count_pairs with a key function by=lambda x: x % m, so each element is transformed into its remainder and pairs are counted within equal-remainder groups. This exercises derived-key-lookup (the in-hand value becomes the lookup key) and pair-count-formula (batch counting over group sizes). The notes mark the work as Learning.",
+      "seconds": 307
     }
   }
 }
