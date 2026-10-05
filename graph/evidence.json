@@ -33395,6 +33395,16 @@
       "note": "BFS via harness levels() generator; seen dict records first-visit distance, giving fewest steps.",
       "summary": "The Solution.distances method seeds a deque with node 0 and iterates the harness levels() generator, which yields (depth, node) pairs level by level. Each node is recorded in seen with its first-seen depth, so every node gets its fewest steps, and the result is returned as a set of (node, distance) pairs. All assertions pass, including the cycle and unreachable-node cases.",
       "seconds": 461
+    },
+    "solved/d_Clubs_Sharing_A_Member_2026_10_05T01_36_41_032192_00_00Z.py": {
+      "date": "2026-10-05",
+      "problem": "drill",
+      "moves": {
+        "graph-overlap-adjacency": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The code builds one set per club, then for each club's member list updates every member's set with the whole list, so two clubs become adjacent exactly when they share a member; it then discards each club's own index and returns the sets as lists. This is the graph-overlap-adjacency move, done in O(n*L) with no person-to-person edges. All four assertions passed on the run.",
+      "seconds": 247
     }
   }
 }
