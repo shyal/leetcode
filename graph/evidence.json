@@ -33439,6 +33439,17 @@
       "note": "Row index converted bottom-up via n-1-r, then alternating column direction chosen by parity of that converted row index.",
       "summary": "The code builds an n x n grid and fills each cell with (n-1-r)*n plus either c or n-1-c depending on the parity of the bottom-up row index n-1-r. This exercises index-conversion: the flat row index is flipped to count rows from the bottom and the column is mirrored on alternating rows. All assertions passed, including the n=20 corner checks.",
       "seconds": 121
+    },
+    "solved/d_Bottom_Up_Cell_Alternating_2026_10_05T01_54_29_782316_00_00Z.py": {
+      "date": "2026-10-05",
+      "problem": "drill",
+      "moves": {
+        "index-conversion": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "k//n and k%n convert flat index to row/col; row counted from bottom (n-1-k//n) and column mirrored on odd rows.",
+      "summary": "The code fills an n x n grid by iterating k from 0 to n*n-1, converting the flat index into a row counted from the bottom and a column that alternates direction per row band. It exercises index-conversion via divmod-style k//n and k%n, with the row flipped by n-1-(k//n) and the column mirrored on odd bands. All assertions pass, including the n=20 boundary checks.",
+      "seconds": 226
     }
   }
 }
