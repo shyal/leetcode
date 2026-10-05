@@ -33405,6 +33405,18 @@
       "judge": "deepseek-chat",
       "summary": "The code builds one set per club, then for each club's member list updates every member's set with the whole list, so two clubs become adjacent exactly when they share a member; it then discards each club's own index and returns the sets as lists. This is the graph-overlap-adjacency move, done in O(n*L) with no person-to-person edges. All four assertions passed on the run.",
       "seconds": 247
+    },
+    "solved/d_Largest_By_Flag_2026_10_05T01_42_51_639937_00_00Z.py": {
+      "date": "2026-10-05",
+      "problem": "drill",
+      "moves": {
+        "greedy-sort-take": "clean",
+        "counting-sort-buckets": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Groups values by flag into a defaultdict, sorts each group, then pops the largest per flag in order.",
+      "summary": "The code buckets each value into lists[flag] via a defaultdict, sorts both the False and True buckets ascending, then walks the flag list and pops the largest remaining value from the matching bucket. This exercises the greedy-sort-take move (sort then take the extreme) and the counting-sort-buckets move (indexing an array by the boolean flag). All assertions passed on execution.",
+      "seconds": 361
     }
   }
 }
