@@ -33606,6 +33606,20 @@
       "note": "Reversal done by head-insertion into a dummy node's next chain; t tracks the original head as the new tail.",
       "summary": "The code reverses the first k nodes of a linked list by repeatedly splicing each node to the front of a dummy node's chain (d.next, h.next, h = h, d.next, h.next), then reattaches the original head t to the remaining list. It exercises ll-pointer-reversal and ll-dummy-splice, and all assertions pass including the 5000-node case.",
       "seconds": 212
+    },
+    "solved/d_After_The_Drop_2026_10_05T23_02_46_315099_00_00Z.py": {
+      "date": "2026-10-06",
+      "problem": "drill",
+      "moves": {
+        "rotated-array-pivot": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "The drill targets rotated-array-pivot, but the code never binary-searches; it compares every element to nums[-1] in a single list comprehension, so the target move was not exercised.",
+      "summary": "The solution returns a list comprehension comparing each nums[i] to nums[-1], marking True when the element is at or below the last value. It runs in one linear pass with no binary search, so the rotated-array-pivot move the drill targets is absent. All assertions passed.",
+      "unmapped": [
+        "compare each element to last element"
+      ],
+      "seconds": 53
     }
   }
 }
