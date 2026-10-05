@@ -7,13 +7,23 @@
 // and prepare <n> refuse outright. The drill is the way out and the only
 // one.
 //
+// `FAIL_GATE=0` in .envrc switches the gate off (2026-10-06); unset or
+// anything else keeps it on. Off, open_fails reports nothing, so every
+// caller serves as if no fail waited.
+//
 // This gate is the repo's own; the health hooks in hooks.rs are separate
 // and untouched.
 
 use std::collections::{HashMap, HashSet};
 
 use crate::ctx::Ctx;
+use crate::data::env_str;
 use crate::evidence::{drill_key, Evidence};
+
+/// FAIL_GATE=0 switches the gate off; unset or anything else keeps it on.
+pub fn enabled() -> bool {
+    env_str("FAIL_GATE").trim() != "0"
+}
 
 /// The problems whose `after` list in graph/problems.json names a drill:
 /// a drill has been built for them.
@@ -28,8 +38,11 @@ pub fn covered(ctx: &Ctx) -> HashSet<String> {
 
 /// (problem, date of the fail) for every problem whose latest fail has no
 /// clean unaided problem rep after it and no drill built for it, oldest
-/// fail first.
+/// fail first. Empty while FAIL_GATE=0.
 pub fn open_fails(ev: &Evidence, covered: &HashSet<String>) -> Vec<(String, String)> {
+    if !enabled() {
+        return Vec::new();
+    }
     let mut last_fail: HashMap<String, String> = HashMap::new();
     let mut last_clean: HashMap<String, String> = HashMap::new();
     for (path, rec) in &ev.recs {
@@ -90,7 +103,7 @@ pub fn gate(ctx: &Ctx, ev: &Evidence) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::data::Rec;
+    use crate::data::{test_env, Rec};
     use serde_json::json;
 
     fn rec(date: &str, problem: &str, verdict: &str, assist: Option<&str>) -> Rec {
@@ -143,5 +156,21 @@ mod tests {
                 ("2".to_string(), "2026-09-02".to_string())
             ]
         );
+    }
+
+    #[test]
+    fn fail_gate_0_reports_no_open_fail() {
+        let ev = Evidence::new(vec![(
+            "solved/p4_D_FAILED_x.py".into(),
+            rec("2026-08-30", "4", "struggled", None),
+        )]);
+        let covered: HashSet<String> = HashSet::new();
+        assert_eq!(open_fails(&ev, &covered).len(), 1);
+        test_env("FAIL_GATE", "0");
+        assert!(!enabled());
+        assert!(open_fails(&ev, &covered).is_empty());
+        test_env("FAIL_GATE", "1");
+        assert!(enabled());
+        assert_eq!(open_fails(&ev, &covered).len(), 1);
     }
 }

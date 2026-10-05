@@ -112,7 +112,9 @@ A fail is not finished until it has a drill (2026-09-28). A fail filed by
 While any open fail (a failed problem with no clean unaided rep after it)
 has no such drill, `make next`, `make next llm` and `make prepare <n>` refuse
 and list the problems waiting; `make drill` still serves, so the drill is
-the way out. The code is `utils/rs/kg/src/fails.rs`.
+the way out. The code is `utils/rs/kg/src/fails.rs`. `FAIL_GATE=0` in
+`.envrc` switches the gate off and problems are served with the fail still
+open (2026-10-06); unset, the gate is on.
 
 Workflow is identical to leetcode problems: `make drill <node-id>` (or
 `make prepare <node-id>` — prepare routes non-numeric targets here) copies the
