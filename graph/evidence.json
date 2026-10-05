@@ -33551,6 +33551,17 @@
       "note": "LEETCODE: Time Limit Exceeded (3/280 cases) \u2014 the brute force enumerates permutations of the digit multiset instead of the canonical greedy bit construction (turn off low bits of num1, then set low bits from num2's popcount); notes say the leetcode hints restricted the search space and the candidate dropped the problem.",
       "summary": "The code converts num1 and num2 to binary digits with to_digits, builds a digit multiset padded with zeros, and brute-forces every permutation via permutations, converting each back with to_int and keeping the x minimizing x ^ num1. It exercises divmod-based digit decomposition and bitwise XOR comparison, but the canonical greedy bit-count construction is absent, so it times out. The notes record that the leetcode hints about turning off bits of num1 and setting low bits from num2 were used to restrict the search, and that the candidate ran out of time and dropped the problem.",
       "seconds": 1851
+    },
+    "solved/d_Clear_Lowest_Set_Bit_2026_10_05T03_36_37_285129_00_00Z.py": {
+      "date": "2026-10-05",
+      "problem": "drill",
+      "moves": {
+        "bit-iterate": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "x & (x - 1) clears the lowest set bit; all assertions passed.",
+      "summary": "The solution implements clearLowestSetBit as x & (x - 1), the standard bit trick that clears the lowest set bit. It exercises bit-iterate by operating on the bit pattern directly rather than converting to a string. All assertions passed, including the avoids check confirming no bin/str/format use.",
+      "seconds": 40
     }
   }
 }
