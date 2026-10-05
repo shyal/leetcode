@@ -306,7 +306,9 @@ def test_pop_dot():
 
 
 def test_a_push_is_a_comprehension_element():
-    src = "def f(s: str) -> dict\n  pos = {:list}\n  [pos[v] <- i for i, v in s]\n  pos\n"
+    src = (
+        "def f(s: str) -> dict\n  pos = {:list}\n  [pos[v] <- i for i, v in s]\n  pos\n"
+    )
     assert "[pos[v].append(i) for i, v in enumerate(s)]" in transpile(src)
     assert fmt(src.replace(" <- ", "<-")) == src
     assert "(a.append(x * 2) for x in a)" in transpile(
@@ -325,7 +327,9 @@ def run_f(src, *args):
 
 def test_a_default_dict_collects_under_each_key():
     src = "def f(s: str) -> dict\n  {:list: c <- i for i, c in s}\n"
-    assert "_pushed(defaultdict(list), ((c, i) for i, c in enumerate(s)))" in transpile(src)
+    assert "_pushed(defaultdict(list), ((c, i) for i, c in enumerate(s)))" in transpile(
+        src
+    )
     assert run_f(src, "egg") == {"e": [0], "g": [1, 2]}
     assert fmt(src.replace(": c <- i", ":c<-i")) == src
     src = "def f(es: [[int]]) -> dict\n  {:set: b <- a for (a, b) in es}\n"
@@ -451,6 +455,89 @@ def test_assignment_converts_targets():
     exec(out, ns)
     assert ns["Solution"]().f("0:start:3") == 3
     assert fmt(src) == src
+
+
+def run(src, *args):
+    ns = {}
+    exec(transpile(src), ns)
+    return ns["Solution"]().f(*args)
+
+
+def test_a_value_left_of_assignment_binds_its_new_names():
+    src = "def f(nums: [int]) -> int\n  a * b = counter(nums).values()\n"
+    out = transpile(src)
+    assert "a, b = Counter(nums).values()" in out
+    assert "return a * b" in out
+    assert run(src, [1, 1, 2, 2, 2]) == 6
+    assert fmt(src) == src
+
+
+def test_a_value_side_reads_what_is_called_or_already_bound():
+    # n is a parameter and abs is called: only r and c are new
+    src = "def f(k: int, n: int) -> int\n  abs(n - r - 1) * n + c = divmod(k, n)\n"
+    assert "r, c = divmod(k, n)" in transpile(src)
+    assert run(src, 7, 3) == 1
+    # a builtin passed by name is read, and so is a comprehension's variable
+    src = "def f(p: [[int]]) -> int\n  sum(map(abs, a)) * len([x for x in b]) = p\n"
+    assert "a, b = p" in transpile(src)
+    assert run(src, [[-1, 2], [0, 0, 0]]) == 9
+
+
+def test_value_sides_chain_right_to_left():
+    src = (
+        "def f(nums: [int]) -> int\n"
+        "  double = x -> x * 2\n"
+        "  a * 10 = int(a) * double(float(b)) = counter(nums).values()\n"
+    )
+    out = transpile(src)
+    assert "a, b = Counter(nums).values()" in out
+    assert "a = int(a) * double(float(b))" in out
+    assert "return a * 10" in out
+    assert run(src, [1, 1, 2, 2, 2]) == 120
+    assert fmt(src) == src
+
+
+def test_a_target_left_of_a_value_side_is_assigned_it():
+    src = (
+        "def f(h: [int]) -> int\n"
+        "  ret best = 0\n"
+        "  for i in 0..<len(h)\n"
+        "    best = max(best, area) = x * i = h[i]\n"
+    )
+    out = transpile(src)
+    assert "x = h[i]" in out and "area = x * i" in out
+    assert "best = max(best, area)" in out
+    assert run(src, [5, 1, 4]) == 8
+
+
+def test_a_subscript_of_a_new_name_is_a_value_side():
+    src = "def f() -> int\n  sum(x[:3]) = x[::-1] = 0..10\n"
+    out = transpile(src)
+    assert "x = range(0, 10 + 1)" in out and "x = x[::-1]" in out
+    assert run(src) == 27
+    # a subscript of a bound name is still a target
+    src = "def f(xs: [int]) -> [int]\n  xs[0] = a + b = xs[1:]\n  xs\n"
+    assert "xs[0] = a + b" in transpile(src)
+    assert run(src, [0, 2, 3]) == [5, 2, 3]
+    # and so is every subscript on a line with no value side
+    assert "x[0] = y[0] = 5" in transpile("def f() -> int\n  x[0] = y[0] = 5\n")
+
+
+def test_a_value_side_needs_a_new_name():
+    with pytest.raises(MuError, match="line 2: `k \\* n` binds no new name"):
+        transpile("def f(k: int, n: int) -> int\n  k * n = divmod(k, n)\n")
+    with pytest.raises(MuError, match="a ret line takes one plain assignment"):
+        transpile("def f(p: [int]) -> int\n  ret r = a * b = p\n")
+
+
+def test_one_conversion_alone_is_the_value_of_a_last_line():
+    src = "def f(n: int) -> int\n  sum(ds) = to_digits(n)\n"
+    assert run(src, 123) == 6
+    # anywhere else it converts and goes on, as before
+    src = "def f(s: str) -> int\n  int(a) = s\n  a + 1\n"
+    out = transpile(src)
+    assert "a = int(a)" in out and "return a + 1" in out
+    assert run(src, "41") == 42
 
 
 def test_a_loop_that_names_no_variable_reads_the_item_as_underscore():

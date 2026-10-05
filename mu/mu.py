@@ -6,6 +6,8 @@ python mu/mu.py --version      print the language version
 The language is specified in mu/spec/v<VERSION>.md.
 """
 
+import ast
+import builtins
 import re
 import sys
 
@@ -685,6 +687,7 @@ class Parser:
         self.helpers = []
         self.memo_used = False
         self.folds = []  # (op, from, if, block) for each fold, for folds() in asserts
+        self.known = [set()]  # names bound so far: the file's, then each open def's
 
     # token helpers
 
@@ -746,13 +749,13 @@ class Parser:
             elif self.script_line is None and self.def_ahead():
                 defs.append(self.stmt())
             else:
-                s = self.stmt()
-                if not defs and s[0] == "assign":
-                    self.globals.append(s)
-                else:
-                    if self.script_line is None:
-                        self.script_line = t[2]
-                    self.script.append(s)
+                for s in flat(self.stmt()):
+                    if not defs and s[0] == "assign":
+                        self.globals.append(s)
+                    else:
+                        if self.script_line is None:
+                            self.script_line = t[2]
+                        self.script.append(s)
         return defs
 
     def def_ahead(self):
@@ -770,25 +773,27 @@ class Parser:
         while self.peek()[0] != "NEWLINE":
             words.append(self.next()[1])
         self.next()
-        return " ".join(words).replace(" . ", ".").replace(" ,", ",")
+        line = " ".join(words).replace(" . ", ".").replace(" ,", ",")
+        self.known[0] |= imported(line)
+        return line
 
     def statements(self):
         """Any statements, for the REPL."""
         out = []
         while self.peek()[0] != "EOF":
-            out.append(self.stmt())
+            out += flat(self.stmt())
         return out
 
     def block(self):
         """An indented block, or one statement after ':' on the same line."""
         if self.at(":"):
             self.next()
-            return [self.simple()]
+            return flat(self.simple())
         self.expect_kind("NEWLINE")
         self.expect_kind("INDENT")
         body = []
         while self.peek()[0] != "DEDENT":
-            body.append(self.stmt())
+            body += flat(self.stmt())
         self.next()
         return body
 
@@ -799,7 +804,8 @@ class Parser:
         if decorators:
             node = Decorated(node)
             node.decorators = decorators
-        self.at_line[id(node)] = line
+        for s in flat(node):
+            self.at_line[id(s)] = line
         return node
 
     def decorators(self):
@@ -836,6 +842,7 @@ class Parser:
                 it = f"enumerate({it})" if enum else it
             else:
                 tgt = "_"
+            self.known[-1] |= set(NAME.findall(tgt))
             return ("for", tgt, it, self.block(), self.loop_else())
         if self.at("while"):
             self.next()
@@ -859,6 +866,7 @@ class Parser:
         ):
             head = self.fold(allow_block=True)
             if isinstance(head, tuple):
+                self.known[-1] |= set(NAME.findall(head[2]))
                 return ("foldblock", *head, self.block())
             self.expect_kind("NEWLINE")
             return ("expr", head)
@@ -872,6 +880,8 @@ class Parser:
             self.next()
             name = self.peek()[1]
             s = self.simple(newline=True)
+            if s[0] != "assign":
+                raise MuError(f"line {t[2]}: a ret line takes one plain assignment")
             return ("assign", *s[1:], name)
         return self.simple(newline=True)
 
@@ -903,6 +913,7 @@ class Parser:
             self.next()
             s = ("assert", self.exprlist())
         else:
+            line = self.peek()[2]
             lhs = self.exprlist()
             if self.at("<-"):
                 # push: `stack <- x` appends x
@@ -913,18 +924,56 @@ class Parser:
                 rhs = (
                     self.arg() if op == "=" and self.lambda_ahead() else self.exprlist()
                 )
+                sides = [lhs]
                 while op == "=" and self.at("="):
                     # chained: `a = b = 0` keeps every target in lhs
                     self.next()
+                    sides.append(rhs)
                     lhs, rhs = Py(f"{lhs} = {rhs}"), self.exprlist()
-                if op == "=":
-                    lhs = converted(lhs)
-                s = ("assign", lhs, op, rhs)
+                # `int(a) = x` alone converts a, as `int(a), b = x` does
+                alone = op == "=" and len(sides) == 1 and CONVERT.fullmatch(lhs)
+                if op == "=" and not alone and any(computed(x) for x in sides):
+                    s = self.stages(sides, rhs, line)
+                else:
+                    if op == "=":
+                        lhs = converted(lhs)
+                        self.known[-1] |= targets(lhs)
+                    s = ("assign", lhs, op, rhs)
+                    if alone:
+                        # and a is the line's value, when the block ends here
+                        s = ("stages", [s, ("tail", lhs)])
             else:
                 s = ("expr", lhs)
         if newline or self.peek()[0] == "NEWLINE":
             self.expect_kind("NEWLINE")
         return s
+
+    def stages(self, sides, rhs, line):
+        """`a * b = pair`: a side of `=` that is a value, not a target. Each
+        such side binds its new names from the value on its right, one name
+        to the whole value and several by unpacking, then is that value for
+        the side on its left. The names are bound right to left."""
+        seen = GLOBAL_NAMES.union(*self.known)
+        out, waiting, val = [], [], rhs
+        for side in reversed(sides):
+            if not computed(side, seen):
+                waiting.insert(0, side)
+                continue
+            names = [n for n in free_names(side) if n not in seen]
+            if not names:
+                read = ", ".join(free_names(side))
+                why = f"{read} already defined" if read else "it names nothing"
+                raise MuError(f"line {line}: `{side}` binds no new name: {why}")
+            lhs = " = ".join(waiting + [", ".join(names)])
+            out.append(("assign", Py(lhs), "=", val))
+            self.known[-1] |= targets(" = ".join(waiting))
+            waiting, val = [], side
+        if waiting:
+            self.known[-1] |= targets(" = ".join(waiting))
+            out.append(("assign", Py(" = ".join(waiting)), "=", val))
+        else:
+            out.append(("expr", val))
+        return ("stages", out)
 
     def def_stmt(self):
         self.expect("def")
@@ -945,7 +994,10 @@ class Parser:
         if self.at("->"):
             self.next()
             ret = self.type()
+        self.known[-1].add(name)
+        self.known.append({p for p, _ in params})
         body = self.block()
+        self.known.pop()
         if len([s for s in body if ret_name([s])]) > 1:
             raise MuError(f"{name} has more than one ret line")
         if any(ret_name(b) for s in body for b in children(s)):
@@ -966,8 +1018,11 @@ class Parser:
             if not self.at(")"):
                 self.expect(",")
         self.expect(")")
+        self.known[-1].add(name)
         if not self.at("="):  # block form: a def, cached
+            self.known.append(set(params))
             body = self.block()
+            self.known.pop()
             if any(ret_name([s]) for s in body):
                 raise MuError(f"memo {name} cannot have a ret line")
             return ("def", name, [(p, None) for p in params], None, body, "memo")
@@ -1356,7 +1411,9 @@ class Parser:
         key = self.expr()
         kind, op, line = self.next()[:3]
         if op != "<-" and (kind != "OP" or op not in IN_PLACE):
-            raise MuError(f"line {line}: expected <- or an operator like +=, got {op!r}")
+            raise MuError(
+                f"line {line}: expected <- or an operator like +=, got {op!r}"
+            )
         val = self.expr()
         if not self.at("for"):
             raise MuError(f"line {line}: expected 'for' after {key} {op} {val}")
@@ -1572,6 +1629,9 @@ class Parser:
 
 
 NAME = re.compile(r"[A-Za-z_]\w*")
+# names a mu file reads without binding them
+GLOBAL_NAMES = set(dir(builtins)) | set(HELPERS) | {"inf", "self"}
+GLOBAL_NAMES |= {"ascii_lowercase", "ascii_uppercase", "ascii_letters"}
 
 
 def split_top(text):
@@ -1601,6 +1661,75 @@ def converted(lhs):
     names = ", ".join(m.group(2) for _, m in calls if m)
     out.convert = f"{names} = {', '.join(p for p, m in calls if m)}"
     return out
+
+
+TARGETS = (ast.Name, ast.Tuple, ast.List, ast.Subscript, ast.Attribute, ast.Starred)
+
+
+def computed(side, seen=None):
+    """Whether one side of `=` is a value: an operation, a call, a
+    comparison, anything Python could not assign to. With seen, the names
+    bound so far, `x[::-1]` is a value too when x is not among them."""
+    try:
+        node = ast.parse(side.strip(), mode="eval").body
+    except SyntaxError:
+        return False
+    if seen is not None and isinstance(node, (ast.Subscript, ast.Attribute)):
+        while isinstance(node, (ast.Subscript, ast.Attribute)):
+            node = node.value
+        return isinstance(node, ast.Name) and node.id not in seen
+    return not isinstance(node, TARGETS)
+
+
+def free_names(side):
+    """The names an expression reads, in the order they first appear. A name
+    that is called is left out, and so is one the expression binds itself:
+    the argument of a lambda, the variable of a comprehension."""
+    found = []
+
+    def visit(node, own):
+        if isinstance(node, ast.Name):
+            if node.id not in own:
+                found.append((node.lineno, node.col_offset, node.id))
+        elif isinstance(node, ast.Lambda):
+            a = node.args
+            args = a.posonlyargs + a.args + a.kwonlyargs + [a.vararg, a.kwarg]
+            visit(node.body, own | {x.arg for x in args if x})
+        elif isinstance(
+            node, (ast.ListComp, ast.SetComp, ast.GeneratorExp, ast.DictComp)
+        ):
+            for gen in node.generators:
+                visit(gen.iter, own)
+                own = own | {
+                    n.id for n in ast.walk(gen.target) if isinstance(n, ast.Name)
+                }
+                for cond in gen.ifs:
+                    visit(cond, own)
+            for part in ("elt", "key", "value"):
+                if hasattr(node, part):
+                    visit(getattr(node, part), own)
+        else:
+            for child in ast.iter_child_nodes(node):
+                if not (
+                    isinstance(node, ast.Call)
+                    and child is node.func
+                    and isinstance(child, ast.Name)
+                ):
+                    visit(child, own)
+
+    visit(ast.parse(side.strip(), mode="eval").body, frozenset())
+    return list(dict.fromkeys(name for _, _, name in sorted(found)))
+
+
+def imported(line):
+    """The names an import line binds."""
+    names = line.split(" import ")[-1] if line.startswith("from ") else line[7:]
+    return {n.split(" as ")[-1].strip().split(".")[0] for n in names.split(",")}
+
+
+def flat(node):
+    """The statements one parsed line stands for: `a * b = pair` is two."""
+    return node[1] if node[0] == "stages" else [node]
 
 
 def targets(lhs):
@@ -1747,6 +1876,9 @@ class Emitter:
             self.out(ind, f"assert {s[1]}")
         elif kind == "expr":
             self.out(ind, last.format(s[1]) if last else s[1])
+        elif kind == "tail" and last:
+            # the value of `int(a) = x`, wanted only as a block's last line
+            self.out(ind, last.format(s[1]))
         elif kind == "foldblock":
             self.foldblock(s, ind, last)
 
