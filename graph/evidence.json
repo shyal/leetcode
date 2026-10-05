@@ -33498,6 +33498,17 @@
       "judge": "deepseek-chat",
       "summary": "The code keeps a defaultdict D mapping prefix sums to their counts, seeded with D[0]=1, and walks nums once accumulating prefix. At each element it adds D[prefix - k] to res (the count of past prefixes that leave a subarray summing to k) and then records the current prefix. This is the prefix-sum-hashmap move, with the derived key prefix-k and the ask-then-record streaming order. All assertions passed, including the large 20000-element cases.",
       "seconds": 38
+    },
+    "solved/d_Bundle_Refunds_2026_10_05T02_46_21_615908_00_00Z.py": {
+      "date": "2026-10-05",
+      "problem": "drill",
+      "moves": {
+        "recursive-descent": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "atom() overrides the grammar rule for parenthesized sub-expressions, recursing into expr() and advancing past the closing paren; all assertions passed.",
+      "summary": "The Solution subclass overrides atom() so that a '(' triggers advance(), a recursive call to expr(), and advance() past the ')', otherwise falling back to number(). This exercises recursive-descent: the bracketed sub-expression is a recursive call sharing the parser cursor, and the run exited 0 with every assertion passing, including nested parens and the flat '42' case.",
+      "seconds": 149
     }
   }
 }
