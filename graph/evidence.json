@@ -33291,6 +33291,17 @@
       "note": "Notes say 'Failed again... Learning' and give a mnemonic for the syntax; the run passed with SUM(CASE WHEN state='approved' THEN 1 ELSE 0 END) grouped by country.",
       "summary": "The query selects country and SUM(CASE WHEN state = 'approved' THEN 1 ELSE 0 END) as approved_count from Transactions, grouped by country, so declined-only countries still appear with 0. It exercises the conditional-aggregate pivot and GROUP BY aggregation, and both example assertions pass. The notes say the candidate failed previously and is learning, with a mnemonic for the CASE syntax.",
       "seconds": 418
+    },
+    "solved/d_Approved_Transactions_Per_Country_2026_10_05T00_28_21_909877_00_00Z.py": {
+      "date": "2026-10-05",
+      "problem": "drill",
+      "moves": {
+        "sql-conditional-aggregate": "clean",
+        "sql-group-aggregate": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The query groups Transactions by country and computes trans_count with count(id), approved_count and approved_total_amount with sum(case when state = 'approved' ...), and trans_total_amount with sum(amount). This exercises conditional aggregation and group aggregation in a single GROUP BY pass, with no WHERE on state and no self-join. Both example assertions passed, including the FR case where nothing is approved and the sums are 0.",
+      "seconds": 275
     }
   }
 }
