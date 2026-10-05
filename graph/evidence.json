@@ -33428,6 +33428,17 @@
       "note": "Rows counted from the bottom via (n-1-r)*n + c; grid built with table and iterated with cells.",
       "summary": "The code builds an n x n grid with table(n, n) and fills each cell using (n - 1 - r) * n + c, so row 0 holds the largest numbers and the last row holds 0..n-1. This exercises index-conversion by mapping a top-down row index to a bottom-up numbering. All assertions pass, including the n=20 boundary checks.",
       "seconds": 70
+    },
+    "solved/d_Bottom_Up_Index_Alternating_2026_10_05T01_50_26_721336_00_00Z.py": {
+      "date": "2026-10-05",
+      "problem": "drill",
+      "moves": {
+        "index-conversion": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Row index converted bottom-up via n-1-r, then alternating column direction chosen by parity of that converted row index.",
+      "summary": "The code builds an n x n grid and fills each cell with (n-1-r)*n plus either c or n-1-c depending on the parity of the bottom-up row index n-1-r. This exercises index-conversion: the flat row index is flipped to count rows from the bottom and the column is mirrored on alternating rows. All assertions passed, including the n=20 corner checks.",
+      "seconds": 121
     }
   }
 }
