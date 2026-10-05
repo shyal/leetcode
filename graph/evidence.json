@@ -33594,6 +33594,18 @@
       "judge": "deepseek-chat",
       "summary": "The query selects recordDate and date(recordDate, \"+1 day\") as next_date from Weather, using the engine's date arithmetic to advance each date by one day. This exercises sql-date-arithmetic, correctly rolling over month and year ends (2015-01-31 to 2015-02-01, 2015-12-31 to 2016-01-01). The run exited 0 with all assertions passing.",
       "seconds": 175
+    },
+    "solved/d_Reverse_K_2026_10_05T23_01_20_718220_00_00Z.py": {
+      "date": "2026-10-06",
+      "problem": "drill",
+      "moves": {
+        "ll-pointer-reversal": "clean",
+        "ll-dummy-splice": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Reversal done by head-insertion into a dummy node's next chain; t tracks the original head as the new tail.",
+      "summary": "The code reverses the first k nodes of a linked list by repeatedly splicing each node to the front of a dummy node's chain (d.next, h.next, h = h, d.next, h.next), then reattaches the original head t to the remaining list. It exercises ll-pointer-reversal and ll-dummy-splice, and all assertions pass including the 5000-node case.",
+      "seconds": 212
     }
   }
 }
