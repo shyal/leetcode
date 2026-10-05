@@ -33450,6 +33450,17 @@
       "note": "k//n and k%n convert flat index to row/col; row counted from bottom (n-1-k//n) and column mirrored on odd rows.",
       "summary": "The code fills an n x n grid by iterating k from 0 to n*n-1, converting the flat index into a row counted from the bottom and a column that alternates direction per row band. It exercises index-conversion via divmod-style k//n and k%n, with the row flipped by n-1-(k//n) and the column mirrored on odd bands. All assertions pass, including the n=20 boundary checks.",
       "seconds": 226
+    },
+    "solved/d_Longest_Path_From_Zero_2026_10_05T01_57_39_275375_00_00Z.py": {
+      "date": "2026-10-05",
+      "problem": "drill",
+      "moves": {
+        "memoize-recursion": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "The deep() thread wrapper is harness plumbing; the memoized recurrence longest(u) = max(1 + longest(v)) is the graded move.",
+      "summary": "The code defines longest(u) with @cache, returning max over children of 1 + longest(v) with default 0, and calls longest(0) inside a deep() thread wrapper. This exercises memoize-recursion, computing each node's longest path once and reusing it. All assertions passed, including the examples and extra DAG cases.",
+      "seconds": 162
     }
   }
 }
