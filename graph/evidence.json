@@ -33520,6 +33520,19 @@
       "note": "term() overrides the grammar's multiplicative level: atom() is the recursive call, the while loop handles left-associative */ chains, and expr() drives precedence.",
       "summary": "The Solution subclass overrides term() in the recursive-descent Parser: it parses an atom, then loops while the cursor sits on '*' or '/', consuming the operator and recursing into atom() to build a left-leaning TreeNode. The assertions confirm precedence and left-associativity across '2+3*4/6', '10-2*3', '100/10/5', '3*4-2*5', and the single-atom '7'. The run exited 0 with all assertions passing.",
       "seconds": 163
+    },
+    "solved/p2231_Largest_Number_After_Digit_Swaps_by_Parity_2026_10_05T02_56_13_499842_00_00Z.py": {
+      "date": "2026-10-05",
+      "problem": "2231",
+      "moves": {
+        "string-build-transform": "clean",
+        "greedy-sort-take": "clean",
+        "divmod-decompose": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LeetCode: Accepted (0 ms, 19.2 MB)",
+      "summary": "The code splits num into digits with to_digits, tags each digit's parity with even(x), buckets the digits by parity into lists, sorts each bucket, then rebuilds the number by popping the largest remaining digit of the matching parity at each position via to_int. It exercises digit decomposition (divmod-decompose), the parity-bucket sort-and-take greedy (greedy-sort-take), and reassembly of the transformed parts (string-build-transform). The notes are empty and LeetCode reports Accepted.",
+      "seconds": 336
     }
   }
 }
