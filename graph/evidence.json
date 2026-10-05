@@ -33472,6 +33472,20 @@
       "judge": "deepseek-chat",
       "summary": "The code builds a Counter over nums and unpacks its two values into a and b, then returns a * b. This exercises counter-build and the pair-count-formula move (a*b pairs across the two groups). All assertions passed, including the large 50000/50000 case.",
       "seconds": 86
+    },
+    "solved/d_Subarrays_Summing_To_Target_2026_10_05T02_40_55_172827_00_00Z.py": {
+      "date": "2026-10-05",
+      "problem": "drill",
+      "moves": {
+        "prefix-sum-hashmap": "clean",
+        "streaming-ask-then-record": "clean",
+        "derived-key-lookup": "clean",
+        "counter-build": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "D[0]=1 seeds the empty prefix; each step queries D[prefix-target] before recording D[prefix].",
+      "summary": "The code keeps a defaultdict D of prefix-sum counts seeded with D[0]=1, walks vals accumulating prefix, adds D[prefix-target] to res, then increments D[prefix]. This is the prefix-sum-hashmap shape: at each element it asks the running summary of the past for prefix-target before recording the present prefix, with the target derived from the current prefix. All assertions pass, including the 10**5 cases.",
+      "seconds": 258
     }
   }
 }
