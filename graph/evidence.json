@@ -33658,6 +33658,22 @@
       "note": "mu source shows the streaming shape: got = c[n] before c[n] += 1, then acc += got; the transpiled Python matches.",
       "summary": "The code counts equal pairs in one pass: for each n it reads the running count c[n] into got, increments c[n], and adds got to acc, so each pair is counted at its second member. This exercises streaming-accumulate-pairs and counter-build. All assertions passed, including the 100000-element case, and the mu source confirms the same order of query-then-record.",
       "seconds": 129
+    },
+    "solved/d_Count_Pairs_2026_10_05T23_31_49_326686_00_00Z.py": {
+      "date": "2026-10-06",
+      "problem": "drill",
+      "moves": {
+        "streaming-accumulate-pairs": "clean",
+        "counter-build": "clean",
+        "derived-key-lookup": "clean"
+      },
+      "assist": {
+        "streaming-accumulate-pairs": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "mu source shows cnt[want(x)] queried before cnt[by(x)] += 1, accumulating got into acc; notes say Learning.",
+      "summary": "The code walks xs once, at each element querying cnt[want(x)] for matches already seen, then recording cnt[by(x)] += 1 and adding the match count into acc. This exercises streaming-accumulate-pairs, counter-build, and derived-key-lookup. All assertions passed, including the 10^5 duplicate case; the notes mark the work as Learning.",
+      "seconds": 275
     }
   }
 }
