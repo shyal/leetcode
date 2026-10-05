@@ -33417,6 +33417,17 @@
       "note": "Groups values by flag into a defaultdict, sorts each group, then pops the largest per flag in order.",
       "summary": "The code buckets each value into lists[flag] via a defaultdict, sorts both the False and True buckets ascending, then walks the flag list and pops the largest remaining value from the matching bucket. This exercises the greedy-sort-take move (sort then take the extreme) and the counting-sort-buckets move (indexing an array by the boolean flag). All assertions passed on execution.",
       "seconds": 361
+    },
+    "solved/d_Bottom_Up_Index_2026_10_05T01_48_08_658908_00_00Z.py": {
+      "date": "2026-10-05",
+      "problem": "drill",
+      "moves": {
+        "index-conversion": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Rows counted from the bottom via (n-1-r)*n + c; grid built with table and iterated with cells.",
+      "summary": "The code builds an n x n grid with table(n, n) and fills each cell using (n - 1 - r) * n + c, so row 0 holds the largest numbers and the last row holds 0..n-1. This exercises index-conversion by mapping a top-down row index to a bottom-up numbering. All assertions pass, including the n=20 boundary checks.",
+      "seconds": 70
     }
   }
 }
