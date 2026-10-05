@@ -33276,6 +33276,21 @@
       "judge": "deepseek-chat",
       "summary": "The code walks xs once, keeping a Counter of keys seen so far; at each element it looks up cnt[want(x)] to count matches in the past, then records cnt[by(x)] and adds the match count to acc, so each pair is counted at its second member. This exercises streaming-accumulate-pairs, counter-build, and derived-key-lookup (want(x) transforms the value into the lookup key). All assertions passed and the run exited 0.",
       "seconds": 255
+    },
+    "solved/d_Approved_Count_Per_Country_2026_10_05T00_23_23_664764_00_00Z.py": {
+      "date": "2026-10-05",
+      "problem": "drill",
+      "moves": {
+        "sql-conditional-aggregate": "clean",
+        "sql-group-aggregate": "clean"
+      },
+      "assist": {
+        "sql-conditional-aggregate": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say 'Failed again... Learning' and give a mnemonic for the syntax; the run passed with SUM(CASE WHEN state='approved' THEN 1 ELSE 0 END) grouped by country.",
+      "summary": "The query selects country and SUM(CASE WHEN state = 'approved' THEN 1 ELSE 0 END) as approved_count from Transactions, grouped by country, so declined-only countries still appear with 0. It exercises the conditional-aggregate pivot and GROUP BY aggregation, and both example assertions pass. The notes say the candidate failed previously and is learning, with a mnemonic for the CASE syntax.",
+      "seconds": 418
     }
   }
 }
