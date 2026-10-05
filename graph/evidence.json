@@ -33349,6 +33349,20 @@
       "judge": "deepseek-chat",
       "summary": "mixedSum walks the (number | string)[] array with a for..of loop, using typeof val === \"string\" to narrow the branch and Number(val) to parse strings, otherwise adding the number directly into res. The run exited 0 with all assertions passing, exercising the union-narrowing move. No notes indicate any help or recognition difficulty.",
       "seconds": 84
+    },
+    "solved/d_Cut_To_K_2026_10_05T00_47_49_189493_00_00Z.py": {
+      "date": "2026-10-05",
+      "problem": "drill",
+      "moves": {
+        "binary-search-on-answer": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "The drill targets binary-search-on-answer but the code never searches an answer space; it repeatedly splits the first chunk longer than one until len(chunks) reaches k.",
+      "summary": "The code loops while the number of chunks is below k, scanning for the first chunk with more than one element and replacing it in place with its head and tail via a slice assignment, then returns the chunks. It exercises no binary search or answer-space feasibility check; the target move binary-search-on-answer is absent. All assertions passed.",
+      "unmapped": [
+        "greedy split-first-longest-chunk loop"
+      ],
+      "seconds": 201
     }
   }
 }
