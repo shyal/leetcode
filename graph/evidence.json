@@ -33690,6 +33690,20 @@
       "note": "count_pairs(nums, by=x -> x % m) groups by the derived key x % m and counts pairs within each group; notes say Learning.",
       "summary": "The solution calls count_pairs with a key function by=lambda x: x % m, so each element is transformed into its remainder and pairs are counted within equal-remainder groups. This exercises derived-key-lookup (the in-hand value becomes the lookup key) and pair-count-formula (batch counting over group sizes). The notes mark the work as Learning.",
       "seconds": 307
+    },
+    "solved/d_Cut_At_The_Middle_2026_10_05T23_42_22_978924_00_00Z.py": {
+      "date": "2026-10-06",
+      "problem": "drill",
+      "moves": {
+        "fast-slow-pointers": "clean"
+      },
+      "assist": {
+        "fast-slow-pointers": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say Learning, so assist is learning on the fast-slow-pointer move.",
+      "summary": "The code uses slow and fast pointers starting at head, advancing slow by one and fast by two while fast.next and fast.next.next exist, so slow lands on the last node of the first half. It then detaches second = slow.next and sets slow.next = None, returning the two halves. All assertions pass, including the 50000-element case, and the notes mark the work as Learning.",
+      "seconds": 82
     }
   }
 }
