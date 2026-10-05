@@ -33317,6 +33317,18 @@
       "note": "Notes say 'Learning'; the mu source reverses the first k nodes via dummy-head splice and returns the new head and old tail.",
       "summary": "The code reverses the first k nodes of a linked list using a dummy node d and a triple assignment that flips each next pointer, then reattaches the old tail t to the remaining list. It exercises ll-pointer-reversal and ll-dummy-splice, and all assertions pass. The notes mark the work as Learning.",
       "seconds": 313
+    },
+    "solved/d_Kahn_Queue_Loop_2026_10_05T00_40_42_129360_00_00Z.py": {
+      "date": "2026-10-05",
+      "problem": "drill",
+      "moves": {
+        "topological-order": "clean",
+        "graph-adjacency-build": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Kahn's algorithm via adjacency/indegrees helpers with reverse=True; queue seeded from zero-indegree nodes, decrementing neighbors and appending when count hits 0; cycle detected by len(res) != numCourses.",
+      "summary": "The code builds a reversed adjacency list and indegree map from the prerequisites, seeds a deque with all zero-indegree courses, then repeatedly pops a course, appends it to res, and decrements its neighbors' indegrees, enqueuing any that reach zero. It returns res only when its length equals numCourses, otherwise []. This exercises topological-order (Kahn's) and graph-adjacency-build; all assertions passed.",
+      "seconds": 282
     }
   }
 }
