@@ -33646,6 +33646,18 @@
       "note": "helper returns (val, is_unival) up while self.count is updated at each node combining left and right results; all assertions passed.",
       "summary": "The code runs a recursive helper that returns each node's value and whether its subtree is univalue, incrementing self.count at leaves and at any node whose children are univalue and whose values all match. This exercises tree-dfs-recursive, tree-combine-returns, and the target tree-global-across-subtrees, where a global count is updated from the combined left/right results. All eight assertions passed with output 4.",
       "seconds": 441
+    },
+    "solved/d_Equal_Pairs_2026_10_05T23_26_49_001684_00_00Z.py": {
+      "date": "2026-10-06",
+      "problem": "drill",
+      "moves": {
+        "streaming-accumulate-pairs": "clean",
+        "counter-build": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "mu source shows the streaming shape: got = c[n] before c[n] += 1, then acc += got; the transpiled Python matches.",
+      "summary": "The code counts equal pairs in one pass: for each n it reads the running count c[n] into got, increments c[n], and adds got to acc, so each pair is counted at its second member. This exercises streaming-accumulate-pairs and counter-build. All assertions passed, including the 100000-element case, and the mu source confirms the same order of query-then-record.",
+      "seconds": 129
     }
   }
 }
