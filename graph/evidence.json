@@ -33633,6 +33633,19 @@
       "note": "Drill targets sliding-window-budget, but the code solves the run-length problem with a running counter reset on 0 plus a running max; no window/budget move is present.",
       "summary": "The code scans nums once, incrementing count on a 1 and resetting it to 0 on a 0, while _max tracks the largest count seen. It exercises a running-sum style counter and a running-extreme best-so-far, not the targeted sliding-window-budget move. All assertions passed and the run exited 0.",
       "seconds": 664
+    },
+    "solved/d_Count_Univalue_Subtrees_2026_10_05T23_23_30_293524_00_00Z.py": {
+      "date": "2026-10-06",
+      "problem": "drill",
+      "moves": {
+        "tree-global-across-subtrees": "clean",
+        "tree-combine-returns": "clean",
+        "tree-dfs-recursive": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "helper returns (val, is_unival) up while self.count is updated at each node combining left and right results; all assertions passed.",
+      "summary": "The code runs a recursive helper that returns each node's value and whether its subtree is univalue, incrementing self.count at leaves and at any node whose children are univalue and whose values all match. This exercises tree-dfs-recursive, tree-combine-returns, and the target tree-global-across-subtrees, where a global count is updated from the combined left/right results. All eight assertions passed with output 4.",
+      "seconds": 441
     }
   }
 }
