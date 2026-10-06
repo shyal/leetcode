@@ -31,8 +31,14 @@ pub const TYPESCRIPT: Lang = Lang {
     comment: "//",
 };
 
+pub const RUST: Lang = Lang {
+    name: "Rust",
+    ext: "rs",
+    comment: "//",
+};
+
 /// Python first: it is the default wherever one file is looked for.
-pub const LANGS: [&Lang; 2] = [&PYTHON, &TYPESCRIPT];
+pub const LANGS: [&Lang; 3] = [&PYTHON, &TYPESCRIPT, &RUST];
 
 /// The declarations tsc needs for the node builtins a drill imports
 /// (`node:assert/strict`), kept in the repo so no npm install is needed.
@@ -181,27 +187,52 @@ pub fn current_subject(root: &Path) -> Option<(PathBuf, &'static Lang, String, S
     Some((path, lang, id, title, text))
 }
 
+/// Where rustc puts the binary for a Rust file: under the system temp
+/// directory, named after the file's path, so nothing lands in the repo
+/// and two files never share a binary.
+pub fn rust_binary(path: &Path) -> PathBuf {
+    let abs = std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
+    let name: String = abs
+        .to_string_lossy()
+        .chars()
+        .map(|c| if c.is_ascii_alphanumeric() { c } else { '_' })
+        .collect();
+    let dir = std::env::temp_dir().join("kg_rust");
+    let _ = std::fs::create_dir_all(&dir);
+    dir.join(name)
+}
+
 /// The type check a language runs before the file: (passed, diagnostics),
 /// or None for a language with no separate checker. TypeScript: tsc in
-/// strict mode over the file and the node declarations.
+/// strict mode over the file and the node declarations. Rust: rustc, which
+/// is the type check and the build in one; the binary it writes is what
+/// `command` runs.
 pub fn check(root: &Path, path: &Path, lang: &Lang) -> Option<(bool, String)> {
-    if lang.ext != TYPESCRIPT.ext {
+    let out = if lang.ext == TYPESCRIPT.ext {
+        Command::new("tsc")
+            .args([
+                "--noEmit",
+                "--strict",
+                "--target",
+                "es2022",
+                "--lib",
+                "es2022,dom",
+                "--types",
+            ])
+            .arg(root.join(TS_DECLARATIONS))
+            .arg(path)
+            .current_dir(root)
+            .output()
+    } else if lang.ext == RUST.ext {
+        Command::new("rustc")
+            .args(["--edition", "2021", "--crate-name", "current", "-o"])
+            .arg(rust_binary(path))
+            .arg(path)
+            .current_dir(root)
+            .output()
+    } else {
         return None;
-    }
-    let out = Command::new("tsc")
-        .args([
-            "--noEmit",
-            "--strict",
-            "--target",
-            "es2022",
-            "--lib",
-            "es2022,dom",
-            "--types",
-        ])
-        .arg(root.join(TS_DECLARATIONS))
-        .arg(path)
-        .current_dir(root)
-        .output();
+    };
     Some(match out {
         Ok(o) => (
             o.status.success(),
@@ -211,18 +242,27 @@ pub fn check(root: &Path, path: &Path, lang: &Lang) -> Option<(bool, String)> {
                 String::from_utf8_lossy(&o.stderr)
             ),
         ),
-        Err(e) => (false, format!("tsc: {e}")),
+        Err(e) => (
+            false,
+            format!(
+                "{}: {e}",
+                if lang.ext == RUST.ext { "rustc" } else { "tsc" }
+            ),
+        ),
     })
 }
 
 /// The command that runs the file the way the candidate does: the venv's
-/// python with the harness on PYTHONPATH, or node stripping types.
+/// python with the harness on PYTHONPATH, node stripping types, or the
+/// binary rustc wrote in `check`.
 pub fn command(root: &Path, path: &Path, lang: &Lang) -> Command {
     let mut cmd = if lang.ext == TYPESCRIPT.ext {
         let mut c = Command::new("node");
         c.args(["--experimental-strip-types", "--no-warnings"])
             .arg(path);
         c
+    } else if lang.ext == RUST.ext {
+        Command::new(rust_binary(path))
     } else {
         let py = root.join(".venv/bin/python3");
         let mut c = Command::new(if py.exists() {
@@ -265,7 +305,15 @@ pub fn run(root: &Path, abs: &Path, lang: &Lang, timeout: u64) -> (String, Strin
                 .collect();
             return (
                 "failed".into(),
-                format!("{} rejected the file:\n{}", "the type checker", tail.trim()),
+                format!(
+                    "{} rejected the file:\n{}",
+                    if lang.ext == RUST.ext {
+                        "rustc"
+                    } else {
+                        "the type checker"
+                    },
+                    tail.trim()
+                ),
             );
         }
     }
@@ -368,7 +416,44 @@ mod tests {
         );
         assert_eq!(of_path(Path::new("current.py")).unwrap().ext, "py");
         assert!(of_path(Path::new("current.md")).is_none());
-        assert_eq!(current_names(), vec!["current.py", "current.ts"]);
+        assert_eq!(of_ext("rs").unwrap().name, "Rust");
+        assert_eq!(
+            current_names(),
+            vec!["current.py", "current.ts", "current.rs"]
+        );
+    }
+
+    /// A Rust file is compiled by rustc in `check` and its binary run by
+    /// `command`: one that does not compile fails with the diagnostics, one
+    /// whose assert panics fails with the panic, one that exits 0 passes.
+    #[test]
+    fn rust_is_compiled_then_run() {
+        if Command::new("rustc").arg("--version").output().is_err() {
+            return;
+        }
+        let dir = std::env::temp_dir().join(format!("kg_lang_rust_{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let broken = dir.join("broken.rs");
+        std::fs::write(&broken, "fn main() { let x: i32 = \"a\"; }\n").unwrap();
+        let (status, detail) = run(&dir, &broken, &RUST, 60);
+        assert_eq!(status, "failed");
+        assert!(
+            detail.contains("rustc rejected") && detail.contains("mismatched types"),
+            "{detail}"
+        );
+        let bad = dir.join("bad.rs");
+        std::fs::write(&bad, "fn main() { assert_eq!(1 + 1, 3); }\n").unwrap();
+        let (status, detail) = run(&dir, &bad, &RUST, 60);
+        assert_eq!(status, "failed");
+        assert!(detail.contains("assertion"), "{detail}");
+        let good = dir.join("good.rs");
+        std::fs::write(
+            &good,
+            "fn main() { assert_eq!(1 + 1, 2); println!(\"ok\"); }\n",
+        )
+        .unwrap();
+        assert_eq!(run(&dir, &good, &RUST, 60), ("passed".into(), "ok".into()));
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]

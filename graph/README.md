@@ -140,8 +140,8 @@ drill is not served while an id it comes after is not warm (`kg_lib.held_behind`
 ### Languages (utils/rs/kg/src/lang.rs)
 
 A drill file is written in one of the languages in the `kg::lang` table:
-Python (`.py`, the house language, which mu compiles to) or TypeScript
-(`.ts`). The extension is the whole of it. A `.ts` drill carries its
+Python (`.py`, the house language, which mu compiles to), TypeScript
+(`.ts`) or Rust (`.rs`). The extension is the whole of it. A `.ts` drill carries its
 statement as the leading `//` comment block, the same `DRILL:` and `TRAINS:`
 lines, the function stub, a `console.log` demo and the asserts commented out
 with `//`, written against `node:assert/strict`. `make drill` serves it as
@@ -153,6 +153,18 @@ the table, so a further language is one more entry there plus its
 toolchain. `utils/harness/ts/node.d.ts` declares the node builtins the
 drills import, so tsc needs no npm install; `tsconfig.json` points the
 editor at it.
+
+A `.rs` drill has the same shape: the statement as the leading `//` block,
+the function the statement names missing or stubbed with `todo!()`, and a
+`fn main` that prints the demo and holds the asserts commented out with
+`//`. `make drill` serves it as `current.rs`; `make` compiles it with
+`rustc --edition 2021` into a binary under the system temp directory and
+runs that; a file that does not compile fails with rustc's diagnostics as
+its detail, the way a `.ts` file that tsc rejects does. The reference under
+`node_notes/` is the bare items (`fn`, `const`) above `fn main`;
+`test_rs_references.py` splices it in above the drill's `fn main` and runs
+it. The drills are ported from Rustlings and the Rust Book, chapter by
+chapter, never invented.
 
 ### Reference solutions (node_notes/<node>/dNNN_<slug>.py)
 
@@ -168,7 +180,7 @@ mnemonic phrases as plain lines, never code.
 `utils/tests/test_reference_solutions.py` splices each reference into its
 drill file in place of the stub, turns the commented-out asserts on, and runs
 it; `test_ts_references.py` does the same for a `.ts` reference under a `.ts`
-drill. A reference with no drill, or one that fails its drill, fails `make check`.
+drill, and `test_rs_references.py` for a `.rs` reference. A reference with no drill, or one that fails its drill, fails `make check`.
 Write the reference before the drill statement; a drill with no reference is
 not finished. The reference is what gets shown on a first rep or on "dunno";
 it is never pasted into current.py.
