@@ -1,16 +1,18 @@
 // kg_readme - the README pipeline: the charts and badges under graph/, the
 // S3 upload and the README's generated regions.
 //
-//   kg_readme                       # every chart and badge (make readme)
+//   kg_readme                       # the README's charts (make readme): the gauges
 //   kg_readme update                # upload + rewrite README.md
 //   kg_readme rank-table            # refresh data/leetcode_rank_table.json
 //   kg_readme now [--once]          # the Elo dashboard (make elo); --once is one frame
 //   kg_readme prog [--once]         # the progress dashboard (make prog)
 //   kg_readme <chart> [--forecast | --no-forecast]
 //
-// <chart> is one of elo, streak, rank, rate, problem-rating, backlog,
-// problem-rating-month, hours, onsite, progress. The forecast flags reach
-// problem-rating and backlog, which share the cached runs.
+// <chart> is one of gauges, elo, streak, rank, rate, problem-rating,
+// backlog, problem-rating-month, hours, onsite, progress. The README shows
+// the gauges alone (2026-10-06); the Elo charts stay drawable by name and
+// feed make elo and make prog. The forecast flags reach problem-rating and
+// backlog, which share the cached runs.
 //
 // Ported from the utils/readme/*_svg scripts and update_readme.py
 // (Python) on 2026-09-13.
@@ -19,6 +21,7 @@ mod backlog;
 mod common;
 mod dash;
 mod elo;
+mod gauges;
 mod hours;
 mod onsite;
 mod problem_rating;
@@ -34,7 +37,12 @@ use kg::ctx::Ctx;
 use kg::data::{load_envrc, repo_root};
 use kg::evidence::Evidence;
 
-const CHARTS: [&str; 10] = [
+/// What `make readme` draws: the charts README.md shows.
+const CHARTS: [&str; 1] = ["gauges"];
+
+/// Every chart, for `kg_readme <chart>` and the usage line.
+const ALL: [&str; 11] = [
+    "gauges",
     "elo",
     "streak",
     "rank",
@@ -65,6 +73,7 @@ fn main() {
     };
     for name in names {
         match name {
+            "gauges" => gauges::render(&ctx, &ev),
             "elo" => elo::render(&ctx, &ev),
             "streak" => streak::render(&ctx),
             "rank" => rank::render(&ctx, &ev),
@@ -82,7 +91,7 @@ fn main() {
             other => {
                 eprintln!(
                     "kg_readme: unknown target {other}; one of {}, update, rank-table, now, prog",
-                    CHARTS.join(", ")
+                    ALL.join(", ")
                 );
                 std::process::exit(2);
             }

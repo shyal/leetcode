@@ -23,92 +23,18 @@ use kg::evidence::Evidence;
 use regex::Regex;
 use serde_json::Value;
 
-use crate::common::f0;
-use crate::{elo, hours, onsite};
-
 const BUCKET: &str = "shyal";
 
 // (graph file, s3 prefix, README region, alt text, inline region?)
-const CHARTS: [(&str, &str, &str, &str, bool); 12] = [
-    (
-        "graph/problem_rating.svg",
-        "problem_rating",
-        "PROBLEM_RATING_CHART",
-        "Rating of the problems attempted",
-        false,
-    ),
-    (
-        "graph/problem_rating_month.svg",
-        "problem_rating_month",
-        "PROBLEM_RATING_MONTH_CHART",
-        "Rating of the problems attempted in the last 30 days",
-        false,
-    ),
-    (
-        "graph/hours.svg",
-        "hours",
-        "HOURS_CHART",
-        "Elo against hours of recorded solving, with the Carnegie Mellon rate",
-        false,
-    ),
-    (
-        "graph/onsite.svg",
-        "onsite",
-        "ONSITE_CHART",
-        "Elo history and its projection to the onsite line, on dates",
-        false,
-    ),
-    (
-        "graph/backlog.svg",
-        "backlog",
-        "BACKLOG_CHART",
-        "Backlog and forecast: review cards, solves by kind, STALE and FRAGILE nodes",
-        false,
-    ),
-    (
-        "graph/progress.svg",
-        "progress",
-        "PROGRESS_CHART",
-        "Actual minus model on the last 30 first sights",
-        false,
-    ),
-    ("graph/elo_badge.svg", "elo_badge", "ELO_BADGE", "Elo", true),
-    (
-        "graph/streak_badge.svg",
-        "streak_badge",
-        "STREAK_BADGE",
-        "Streak",
-        true,
-    ),
-    (
-        "graph/rank_all_badge.svg",
-        "rank_all_badge",
-        "RANK_ALL_BADGE",
-        "Elo against all rated LeetCode users",
-        true,
-    ),
-    (
-        "graph/rank_regulars_badge.svg",
-        "rank_regulars_badge",
-        "RANK_REGULARS_BADGE",
-        "Elo against users with 20 or more contests",
-        true,
-    ),
-    (
-        "graph/rate_badge.svg",
-        "rate_badge",
-        "RATE_BADGE",
-        "First-sight Elo per 100 hours",
-        true,
-    ),
-    (
-        "graph/rate_gauge.svg",
-        "rate_gauge",
-        "RATE_GAUGE",
-        "Elo per 100 hours on problems seen for the first time",
-        false,
-    ),
-];
+// The Elo charts and badges left the README on 2026-10-06; the gauges are
+// what it shows.
+const CHARTS: [(&str, &str, &str, &str, bool); 1] = [(
+    "graph/gauges.svg",
+    "gauges",
+    "GAUGES",
+    "Progress: algorithms first sight, algorithms current reach, python, typescript, rust, sql",
+    false,
+)];
 
 fn aws(args: &[&str]) -> Option<Vec<u8>> {
     let out = Command::new("aws").args(args).output().ok()?;
@@ -218,7 +144,7 @@ pub fn fill_inline(text: &str, name: &str, value: &str) -> String {
     .to_string()
 }
 
-pub fn run(ctx: &Ctx, ev: &Evidence) {
+pub fn run(ctx: &Ctx, _ev: &Evidence) {
     let readme_path = ctx.root.join("README.md");
     let mut readme = std::fs::read_to_string(&readme_path).expect("README.md");
     let key_re =
@@ -298,33 +224,6 @@ pub fn run(ctx: &Ctx, ev: &Evidence) {
     }
     println!("uploaded {}, unchanged {unchanged}", upload_jobs.len());
 
-    // inline numbers the prose claims, so they can never go stale
-    readme = fill_inline(&readme, "N_NODES", &ctx.nodes.len().to_string());
-    if let Some(r) = kg::data::read_json(&ctx.graph_dir().join("reach.json")) {
-        readme = fill_inline(&readme, "N_BANK", &kg::data::value_str(&r["catalog"]));
-        let reach = r["predicted_reach"].as_f64().unwrap_or(0.0);
-        readme = fill_inline(
-            &readme,
-            "N_REACH_TODAY",
-            &format!("~{}", f0((reach / 100.0).round_ties_even() * 100.0)),
-        );
-    }
-    // the Elo figures the prose quotes, from the chart code so the text
-    // and the charts never disagree
-    let gs = elo::games(ctx, ev);
-    let ma = elo::elo_ma(&gs, elo::START, &[]);
-    let (fs_rate, fs_early, fs_late) = onsite::first_sight_rate(&gs, &hours::hours_by_day(ctx));
-    readme = fill_inline(&readme, "FS_RATE", &format!("{:+.0}", fs_rate * 100.0));
-    readme = fill_inline(&readme, "FS_EARLY", &f0(fs_early));
-    readme = fill_inline(&readme, "FS_LATE", &f0(fs_late));
-    readme = fill_inline(&readme, "FS_WINDOW", &onsite::FS_WINDOW.to_string());
-    readme = fill_inline(
-        &readme,
-        "SERVED_MEDIAN",
-        &f0(onsite::served(&gs).last().unwrap().1),
-    );
-    readme = fill_inline(&readme, "ELO_MA", &f0(ma.last().unwrap().1));
-    readme = fill_inline(&readme, "ELO_MA_WINDOW", &elo::MA.to_string());
     for (region, markdown, inline) in images {
         readme = if inline {
             fill_inline(&readme, region, &markdown)
