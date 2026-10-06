@@ -33727,6 +33727,18 @@
       "note": "LeetCode: Accepted (5 ms, 19.4 MB); returns lo-1 as the floor when no exact square is found.",
       "summary": "The code binary-searches the answer space [0, x] for the integer square root, comparing mid*mid against x and moving lo or hi accordingly, returning mid on an exact hit and lo-1 otherwise. It exercises binary-search-on-answer and the boundary/floor variant of binary search. All assertions passed and LeetCode reports Accepted (5 ms, 19.4 MB); the notes are empty.",
       "seconds": 474
+    },
+    "solved/p2909_Minimum_Sum_of_Mountain_Triplets_II_2026_10_06T00_56_15_948831_00_00Z.py": {
+      "date": "2026-10-06",
+      "problem": "2909",
+      "moves": {
+        "substring-enumeration": "clean",
+        "prefix-suffix-two-pass": "struggled"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Time Limit Exceeded (730/788 cases); the O(n^3) triple loop ran correctly but the canonical prefix-min / suffix-min two-pass move is absent, and the notes say 'I was only able to produce the brute force solution.'",
+      "summary": "The code enumerates every middle index j and every pair (i, k) around it with three nested loops, keeping the minimum nums[i]+nums[j]+nums[k] where nums[i] < nums[j] and nums[k] < nums[j], returning -1 when res stays inf. That brute-force enumeration ran correctly on all the local asserts, but the notes admit only the brute force was produced and the precomputed prefix-min/suffix-min two-pass idea was left as a comment. LeetCode rejected the submission with Time Limit Exceeded at 730/788 cases.",
+      "seconds": 1276
     }
   }
 }
