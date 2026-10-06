@@ -9,7 +9,8 @@ use crate::bank::unlocks;
 use crate::data::{test_env, Assist};
 use crate::drills::{
     drill_review_cap, drill_reviews_left, drill_reviews_today, group_caps, group_new_caps,
-    group_new_left, group_reps, new_drill_cap, new_drills_left, new_drills_today,
+    group_new_left, group_reps, new_drill_cap, new_drills_left, new_drills_today, problems_left,
+    problems_today,
 };
 use crate::pick::{ready_hards, routed_around, starved};
 use crate::recog::{self, Recog, RecogRec};
@@ -1657,4 +1658,112 @@ fn the_display_label_follows_the_rating() {
     assert_eq!(rating_label(EASY_BELOW), "Medium");
     assert_eq!(rating_label(HARD_FROM - 0.1), "Medium");
     assert_eq!(rating_label(HARD_FROM), "Hard");
+}
+
+/// KG_GROUP_CAP=algorithms=1 (2026-10-06): one rep on any algorithm group
+/// spends the day for all of them, and a track group (sql, rust, python,
+/// ts, design) is neither counted nor held by it.
+#[test]
+fn the_algorithms_cap_covers_every_algorithm_group_together() {
+    let mut fx = Fx::picker();
+    test_env("KG_GROUP_CAP", "algorithms=1");
+    fx.nodes(&["a", "b", "q"])
+        .group(&["a"], "trees")
+        .group(&["b"], "graphs")
+        .group(&["q"], "sql")
+        .problems(vec![
+            ("1", problem(&["a"])),
+            ("2", problem(&["b"])),
+            ("3", problem(&["q"])),
+        ]);
+    let st = statuses(&[
+        ("a", FRAGILE, Some(1)),
+        ("b", FRAGILE, Some(1)),
+        ("q", STALE, Some(40)),
+    ]);
+    // nothing done today: an algorithm move is served
+    let t = target(&fx.run(&no_evidence(), &st, args()));
+    assert!(t == "a" || t == "b", "{t}");
+    // one tree rep today: graphs waits with trees, sql is served
+    let ev = evidence(vec![solve("1", &[("a", "clean")], 0)]);
+    assert_eq!(target(&fx.run(&ev, &st, args().exclude(&["1"]))), "q");
+    let ctx = fx.ctx();
+    assert_eq!(group_reps(&ctx, "algorithms", &ev, today()), 1);
+    assert_eq!(group_reps(&ctx, "trees", &ev, today()), 1);
+    // a sql rep is not an algorithm rep
+    let sql = evidence(vec![solve("3", &[("q", "clean")], 0)]);
+    assert_eq!(group_reps(&ctx, "algorithms", &sql, today()), 0);
+    let t = target(&fx.run(&sql, &st, args().exclude(&["3"])));
+    assert!(t == "a" || t == "b", "{t}");
+    // naming a group goes past the cap
+    assert_eq!(
+        target(&fx.run(&ev, &st, args().exclude(&["1"]).group("graphs"))),
+        "b"
+    );
+}
+
+/// KG_NEW_CAP=algorithms=0: a never-drilled file of any algorithm group is
+/// withheld, a track's file is not, and a group's own cap still counts
+/// when it is the smaller.
+#[test]
+fn the_algorithms_new_cap_pauses_unseen_files_of_every_algorithm_group() {
+    let mut fx = Fx::picker();
+    test_env("KG_NEW_CAP", "algorithms=0,sql=2");
+    fx.nodes(&["a", "q"])
+        .group(&["a"], "trees")
+        .group(&["q"], "sql");
+    let ctx = fx.ctx();
+    let left =
+        |path: &str| group_new_left(&ctx, std::path::Path::new(path), &no_evidence(), today());
+    assert_eq!(left("drills/a/x.py"), Some(0));
+    assert_eq!(left("drills/q/y.py"), Some(2));
+    test_env("KG_NEW_CAP", "algorithms=3,trees=1");
+    assert_eq!(left("drills/a/x.py"), Some(1));
+}
+
+/// MAX_PROBLEMS=1 (2026-10-06): with one problem filed today, no problem is
+/// served, first sight or review; a drill on the clock still is, and
+/// naming the group goes past the cap.
+#[test]
+fn the_daily_problem_cap_leaves_the_bank_only() {
+    let mut fx = Fx::picker();
+    test_env("DRILL_SCHEDULER", "anki");
+    test_env("MAX_PROBLEMS", "1");
+    fx.nodes(&["t", "other"])
+        .group(&["t"], "trees")
+        .group(&["other"], "graphs")
+        .problems(vec![("1", problem(&["t"])), ("2", problem(&["t"]))]);
+    let st = statuses(&[("t", FRAGILE, Some(1)), ("other", SOLID, Some(1))]);
+    // nothing filed today: the fragile move's problem is served
+    assert_eq!(
+        pnum(&fx.run(&no_evidence(), &st, args().exclude(&["1"]))),
+        "2"
+    );
+    // one problem filed today: problem 2 is out of every rule
+    let ev = evidence(vec![solve("1", &[("t", "clean")], 0)]);
+    assert_eq!(problems_today(&ev, today()), 1);
+    assert_eq!(problems_left(&ev, today()), Some(0));
+    assert!(fx.run(&ev, &st, args().exclude(&["1"])).is_none());
+    // a due drill is still served
+    fx.stubs().clock = vec![(PathBuf::from("drills/other/b.py"), "other".into())];
+    assert_eq!(
+        pnum(&fx.run(&ev, &st, args().exclude(&["1"]))),
+        "drill:other"
+    );
+    // a drill rep is not a problem
+    let drilled = evidence(vec![drill_file(
+        "solved/d_B_0.py",
+        "other",
+        0,
+        Assist::None,
+    )]);
+    assert_eq!(problems_today(&drilled, today()), 0);
+    // naming the group goes past the cap
+    fx.stubs().clock.clear();
+    assert_eq!(
+        pnum(&fx.run(&ev, &st, args().exclude(&["1"]).group("trees"))),
+        "2"
+    );
+    test_env("MAX_PROBLEMS", "");
+    assert_eq!(problems_left(&ev, today()), None);
 }

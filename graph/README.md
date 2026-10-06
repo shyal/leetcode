@@ -253,6 +253,22 @@ the review-ahead line replays under the same cap. The footer prints the count
 The graduating floor is what made this necessary: drills re-fire at 3/10/25
 days, and one bank of nineteen sql nodes could fill every session (2026-09-04).
 
+The name `algorithms` stands for every group that is not a track (`python`,
+`ts`, `rust`, `sql`, `design`; `kg::drills::TRACK_GROUPS`) taken together:
+`KG_GROUP_CAP=algorithms=3` is three reps a day over graphs, trees, strings
+and the rest, and `KG_NEW_CAP=algorithms=0` pauses the unseen files of all of
+them. A group's own cap still counts, and the smaller of the two decides
+(2026-10-06).
+
+## Daily problem cap (`MAX_PROBLEMS`)
+
+`MAX_PROBLEMS=1` in `.envrc` is how many problems, first sights and reviews
+together, the default `make next` serves in a day. A problem is any file filed
+today that is not a bank drill. Past the cap every problem leaves every rule
+and the bank is what is left; the budget table prints `problems 1/1`. Naming a
+group, cramming, or waking a problem goes past it. Unset, there is no limit
+(2026-10-06).
+
 ## Disabled drills and the graph explorer
 
 `"disabled": true` on a drill's entry in `graph/drills.json` takes the drill

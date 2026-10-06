@@ -427,10 +427,24 @@ fn caps_table(ctx: &Ctx, pv: &PView, ev: &Evidence, today: NaiveDate) -> Option<
         rows.push([
             g.clone(),
             cap_cell(k, c),
-            if k >= c {
+            if k >= c && g == kg::drills::ALGORITHMS {
+                "at the cap - make next <group> to go past it".to_string()
+            } else if k >= c {
                 format!("at the cap - make next {g} to go past it")
             } else {
                 "KG_GROUP_CAP".to_string()
+            },
+        ]);
+    }
+    if let Some(cap) = kg::drills::problem_cap() {
+        let k = kg::drills::problems_today(ev, today);
+        rows.push([
+            "problems".into(),
+            cap_cell(k, cap),
+            if k >= cap {
+                "at the cap - drills only until tomorrow".into()
+            } else {
+                "MAX_PROBLEMS".into()
             },
         ]);
     }

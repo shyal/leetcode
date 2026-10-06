@@ -218,8 +218,7 @@ use crate::clock::{due_problems, last_attempt};
 use crate::ctx::{Ctx, PView};
 use crate::data::{is_numeric_id, max_asleep, parse_date, pnum_key, Rec};
 use crate::drills::{
-    anki, cold_drill, drill_capped, drill_held, drill_node, drills_left, group_caps, group_reps,
-    last_drilled,
+    anki, cold_drill, drill_capped, drill_held, drill_node, drills_left, group_caps, last_drilled,
 };
 use crate::evidence::Evidence;
 use crate::model::{aim_pass_rate, problem_solve_p, solve_model, solve_ratings, SolveState};
@@ -1453,6 +1452,15 @@ pub fn pick(
     // FIRST_SIGHT_WITHIN_BAND: a new problem outside the band is excluded
     // from every rule; a problem he woke himself is his call
     let mut held = first_sights_outside_band(ctx, ev);
+    // MAX_PROBLEMS: the day's problems are spent, so every problem leaves
+    // every rule and the bank is what is left; naming a group or cramming
+    // goes past it, like a group cap
+    if args.group.is_none()
+        && !(args.cram || args.early || args.assisted)
+        && crate::drills::problems_left(ev, ctx.today()).is_some_and(|l| l <= 0)
+    {
+        held.extend(ctx.all_problems().keys().cloned());
+    }
     held.retain(|p| !args.woken.contains(p));
     let banded = PickArgs {
         exclude: args.exclude.union(&held).cloned().collect(),
@@ -1469,11 +1477,7 @@ pub fn pick(
     } else {
         group_caps()
     };
-    let capped: HashSet<String> = caps
-        .iter()
-        .filter(|(g, c)| group_reps(ctx, g, ev, today) >= *c)
-        .map(|(g, _)| g.clone())
-        .collect();
+    let capped: HashSet<String> = crate::drills::capped_groups(ctx, ev, today, &caps);
 
     ptrace("caps", t);
     let t = std::time::Instant::now();

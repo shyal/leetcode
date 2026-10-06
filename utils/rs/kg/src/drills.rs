@@ -235,11 +235,7 @@ pub fn servable_drills(
 /// beside the due reviews, so a new bank (the ts drills, 2026-09-27) is
 /// announced and not only served.
 pub fn new_drills_ready(ctx: &Ctx, ev: &Evidence, day: NaiveDate) -> usize {
-    let full: Vec<String> = group_caps()
-        .into_iter()
-        .filter(|(g, cap)| group_reps(ctx, g, ev, day) >= *cap)
-        .map(|(g, _)| g)
-        .collect();
+    let full = capped_groups(ctx, ev, day, &group_caps());
     let fresh: Vec<PathBuf> = ctx
         .every_bank_path()
         .into_iter()
@@ -252,7 +248,7 @@ pub fn new_drills_ready(ctx: &Ctx, ev: &Evidence, day: NaiveDate) -> usize {
             let own = trains.first().map(String::as_str);
             let capped = own
                 .and_then(|n| ctx.group_of(n))
-                .is_some_and(|g| full.iter().any(|f| f == g));
+                .is_some_and(|g| full.contains(g));
             !capped
                 && group_new_left(ctx, p, ev, day).is_none_or(|l| l > 0)
                 && !servable_drills(ctx, std::slice::from_ref(p), ev, own, false).is_empty()
@@ -917,9 +913,73 @@ fn due_drill_uncached(
 
 // ---- the budgets --------------------------------------------------------
 
+/// The groups that are not algorithms: one per language or track
+/// (kg_readme's gauges draw one dial each).
+pub const TRACK_GROUPS: [&str; 5] = ["python", "ts", "rust", "sql", "design"];
+
+/// The name KG_GROUP_CAP and KG_NEW_CAP accept for every algorithm group
+/// taken together: "algorithms=3" is three reps a day over graphs, trees,
+/// strings and the rest, whatever their own caps say (2026-10-06).
+pub const ALGORITHMS: &str = "algorithms";
+
+/// Whether `group` covers the node: its own group, or the aggregate when
+/// the node's group is not a track.
+pub fn in_group(ctx: &Ctx, node: &str, group: &str) -> bool {
+    ctx.group_of(node)
+        .is_some_and(|g| g == group || (group == ALGORITHMS && !TRACK_GROUPS.contains(&g)))
+}
+
+/// The groups at their KG_GROUP_CAP for the day, by their own names: the
+/// aggregate at its cap stands for every algorithm group in the graph.
+pub fn capped_groups(
+    ctx: &Ctx,
+    ev: &Evidence,
+    day: NaiveDate,
+    caps: &[(String, i64)],
+) -> HashSet<String> {
+    let mut out = HashSet::new();
+    for (g, cap) in caps {
+        if group_reps(ctx, g, ev, day) < *cap {
+            continue;
+        }
+        if g == ALGORITHMS {
+            out.extend(
+                ctx.nodes
+                    .values()
+                    .filter_map(|n| n.group.clone())
+                    .filter(|g| !TRACK_GROUPS.contains(&g.as_str())),
+            );
+        } else {
+            out.insert(g.clone());
+        }
+    }
+    out
+}
+
 /// kg_lib.group_caps: KG_GROUP_CAP, "sql=3,graphs=2".
 pub fn group_caps() -> Vec<(String, i64)> {
     parse_caps("KG_GROUP_CAP")
+}
+
+/// MAX_PROBLEMS: how many problems, first sights and reviews together, are
+/// served in a day. Past it the picker serves drills only, until tomorrow;
+/// naming a group, cramming or waking a problem goes past it. Unset, no
+/// limit (2026-10-06).
+pub fn problem_cap() -> Option<i64> {
+    env_int("MAX_PROBLEMS")
+}
+
+/// The records dated `day` that are problems, not bank drills.
+pub fn problems_today(ev: &Evidence, day: NaiveDate) -> i64 {
+    let d = day.format("%Y-%m-%d").to_string();
+    ev.date_recs(&d)
+        .iter()
+        .filter(|&&i| drill_key(ev.fname(i)).is_none())
+        .count() as i64
+}
+
+pub fn problems_left(ev: &Evidence, day: NaiveDate) -> Option<i64> {
+    problem_cap().map(|c| c - problems_today(ev, day))
 }
 
 /// KG_NEW_CAP, "sql=0": per group, how many bank files may be met for the
@@ -1014,21 +1074,20 @@ pub fn group_new_reps(ctx: &Ctx, group: &str, ev: &Evidence, day: NaiveDate) -> 
     ev.date_recs(&d)
         .iter()
         .filter(|i| ev.first_reps.contains(i))
-        .filter(|&&i| {
-            ev.rec(i)
-                .moves
-                .keys()
-                .any(|m| ctx.group_of(m) == Some(group))
-        })
+        .filter(|&&i| ev.rec(i).moves.keys().any(|m| in_group(ctx, m, group)))
         .count() as i64
 }
 
 /// KG_NEW_CAP for this file's group, less the group's first reps today;
-/// None when the file's group has no cap.
+/// None when the file's group has no cap. The aggregate cap counts for a
+/// file of any algorithm group, and the smaller of the two is what is left.
 pub fn group_new_left(ctx: &Ctx, path: &Path, ev: &Evidence, day: NaiveDate) -> Option<i64> {
-    let group = ctx.group_of(&drill_node(path)?)?;
-    let (_, cap) = group_new_caps().into_iter().find(|(g, _)| g == group)?;
-    Some(cap - group_new_reps(ctx, group, ev, day))
+    let node = drill_node(path)?;
+    group_new_caps()
+        .into_iter()
+        .filter(|(g, _)| in_group(ctx, &node, g))
+        .map(|(g, cap)| cap - group_new_reps(ctx, &g, ev, day))
+        .min()
 }
 
 pub fn drill_reviews_left(ev: &Evidence, day: NaiveDate) -> Option<i64> {
@@ -1050,12 +1109,7 @@ pub fn group_reps(ctx: &Ctx, group: &str, ev: &Evidence, day: NaiveDate) -> i64 
     let d = day.format("%Y-%m-%d").to_string();
     ev.date_recs(&d)
         .iter()
-        .filter(|&&i| {
-            ev.rec(i)
-                .moves
-                .keys()
-                .any(|m| ctx.group_of(m) == Some(group))
-        })
+        .filter(|&&i| ev.rec(i).moves.keys().any(|m| in_group(ctx, m, group)))
         .count() as i64
 }
 
