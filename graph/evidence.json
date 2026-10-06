@@ -33762,6 +33762,22 @@
       "note": "Brute force recomputes both halves per split; LeetCode Accepted (69 ms).",
       "summary": "The code loops over every split index i, counts zeros in s[:i] and ones in s[i:] with generator sums, and keeps the max in _max. It exercises substring-enumeration over split points and a running-extreme-style max update, but recomputes each half from scratch rather than carrying a running sum. LeetCode accepted it at 69 ms; the notes contain no hints or look-ups.",
       "seconds": 382
+    },
+    "solved/p2483_Minimum_Penalty_for_a_Shop_2026_10_06T02_14_22_455842_00_00Z.py": {
+      "date": "2026-10-06",
+      "problem": "2483",
+      "moves": {
+        "running-sum": "clean",
+        "running-extreme": "clean"
+      },
+      "assist": {
+        "running-sum": "walkthrough",
+        "running-extreme": "walkthrough"
+      },
+      "judge": "deepseek-chat",
+      "note": "The O(n^2) penalty helper is dead code; the accepted solution uses the running-sum sweep. Notes say 'Assisted'.",
+      "summary": "The solution starts p at the count of 'Y' (penalty for closing at hour 0), then sweeps j over the string, decrementing p on 'Y' and incrementing on 'N', tracking the minimum with best_hour/best_penalty. This exercises running-sum and running-extreme. The penalty helper is defined but never called. The notes say 'Assisted' and LeetCode reports Accepted (43 ms, 19.9 MB).",
+      "seconds": 1128
     }
   }
 }
