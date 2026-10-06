@@ -299,11 +299,15 @@ pub fn run(ctx: &Ctx, ev: &Evidence, once: bool) {
 
 /// Show `first`, then reload and redraw whenever graph/evidence.json
 /// changes, until q, Esc or Ctrl+C. `once` prints one frame and returns.
+/// Without a terminal on both stdin and stdout (a pipe, a subprocess,
+/// Claude's shell) the live panel cannot start, so one frame is printed
+/// as if `--once` had been given.
 pub fn run_panel<P: Panel>(first: Option<P>, once: bool) {
+    use std::io::IsTerminal;
     let root = repo_root();
     let evidence = root.join("graph/evidence.json");
     let mut n = first;
-    if once {
+    if once || !std::io::stdin().is_terminal() || !std::io::stdout().is_terminal() {
         let (w, h) = ratatui::crossterm::terminal::size()
             .ok()
             .filter(|(w, h)| *w > 0 && *h > 0)
