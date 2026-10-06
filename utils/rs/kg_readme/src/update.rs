@@ -32,7 +32,7 @@ const CHARTS: [(&str, &str, &str, &str, bool); 1] = [(
     "graph/gauges.svg",
     "gauges",
     "GAUGES",
-    "Progress: algorithms first sight, algorithms current reach, python, typescript, rust, sql",
+    "Progress: algorithms first sight, algorithms current reach, python, typescript, rust, sql, systems design",
     false,
 )];
 

@@ -25,7 +25,7 @@ def drill_for(reference):
     hits = [
         p
         for p in glob.glob(os.path.join(ROOT, "drills", node, f"{did}_*.*"))
-        if os.path.splitext(p)[1] in (".py", ".ts", ".rs")
+        if os.path.splitext(p)[1] in (".py", ".ts", ".rs", ".markdown")
     ]
     assert (
         len(hits) == 1

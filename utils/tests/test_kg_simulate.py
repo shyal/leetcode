@@ -144,6 +144,7 @@ def test_authoring_follows_the_measured_rate(run):
         if not glob.glob(os.path.join(ROOT, "drills", n, "*.py"))
         and not glob.glob(os.path.join(ROOT, "drills", n, "*.ts"))
         and not glob.glob(os.path.join(ROOT, "drills", n, "*.rs"))
+        and not glob.glob(os.path.join(ROOT, "drills", n, "*.markdown"))
     )
     assert a["nodes"] == min(int(a["rate"] * run["day"] + 1e-9), bankless)
     assert a["files"] >= a["nodes"]

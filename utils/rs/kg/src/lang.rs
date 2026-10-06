@@ -37,8 +37,38 @@ pub const RUST: Lang = Lang {
     comment: "//",
 };
 
+/// A systems design drill: prose, not code. The file is markdown under
+/// the `.markdown` extension (current.md is the recognition rep's), with
+/// no comment prefix: the statement is everything above the `## Answer`
+/// line and the candidate's answer is everything under it. Nothing runs;
+/// the judge reads the answer against the drill's reference.
+pub const DESIGN: Lang = Lang {
+    name: "Design",
+    ext: "markdown",
+    comment: "",
+};
+
+/// The line that ends a design drill's statement and opens the answer.
+pub const ANSWER_MARK: &str = "## Answer";
+
+/// An answer shorter than this many words is no answer.
+pub const DESIGN_MIN_WORDS: usize = 30;
+
 /// Python first: it is the default wherever one file is looked for.
-pub const LANGS: [&Lang; 3] = [&PYTHON, &TYPESCRIPT, &RUST];
+pub const LANGS: [&Lang; 4] = [&PYTHON, &TYPESCRIPT, &RUST, &DESIGN];
+
+/// (statement, answer) of a design file, split at the first ANSWER_MARK
+/// line; the whole text is statement when the mark is missing.
+pub fn design_parts(text: &str) -> (&str, &str) {
+    let mut at = 0;
+    for line in text.split_inclusive('\n') {
+        if line.trim_end() == ANSWER_MARK {
+            return (&text[..at], &text[at + line.len()..]);
+        }
+        at += line.len();
+    }
+    (text, "")
+}
 
 /// The declarations tsc needs for the node builtins a drill imports
 /// (`node:assert/strict`), kept in the repo so no npm install is needed.
@@ -72,6 +102,7 @@ pub fn uncomment(line: &str) -> &str {
     let t = line.trim_start();
     LANGS
         .iter()
+        .filter(|l| !l.comment.is_empty())
         .find_map(|l| t.strip_prefix(l.comment))
         .map_or(t, str::trim_start)
 }
@@ -79,7 +110,11 @@ pub fn uncomment(line: &str) -> &str {
 /// A regex fragment for an optional comment prefix at the start of a
 /// line, for the header regexes the tools run over a whole file.
 pub fn comment_prefix() -> String {
-    let alts: Vec<String> = LANGS.iter().map(|l| regex::escape(l.comment)).collect();
+    let alts: Vec<String> = LANGS
+        .iter()
+        .filter(|l| !l.comment.is_empty())
+        .map(|l| regex::escape(l.comment))
+        .collect();
     format!(r"(?:{})?\s*", alts.join("|"))
 }
 
@@ -103,6 +138,10 @@ pub fn header(text: &str, lang: &Lang) -> Option<String> {
     if lang.ext == PYTHON.ext {
         return module_docstring(text);
     }
+    if lang.ext == DESIGN.ext {
+        let statement = design_parts(text).0.trim();
+        return (!statement.is_empty()).then(|| statement.to_string());
+    }
     let mut lines = Vec::new();
     for line in text.lines() {
         let t = line.trim_start();
@@ -124,6 +163,9 @@ pub fn strip_header(text: &str, lang: &Lang) -> String {
             .unwrap()
             .replace(text, "")
             .into_owned();
+    }
+    if lang.ext == DESIGN.ext {
+        return design_parts(text).1.trim_start_matches('\n').to_string();
     }
     let mut seen = false;
     let mut out = Vec::new();
@@ -263,6 +305,9 @@ pub fn command(root: &Path, path: &Path, lang: &Lang) -> Command {
         c
     } else if lang.ext == RUST.ext {
         Command::new(rust_binary(path))
+    } else if lang.ext == DESIGN.ext {
+        // nothing runs; `run` answers for a design file before this
+        Command::new("true")
     } else {
         let py = root.join(".venv/bin/python3");
         let mut c = Command::new(if py.exists() {
@@ -286,6 +331,28 @@ pub fn command(root: &Path, path: &Path, lang: &Lang) -> Command {
     cmd
 }
 
+/// A design file has nothing to execute. It passes when an answer of at
+/// least DESIGN_MIN_WORDS words is written under the ANSWER_MARK line;
+/// whether the answer is right is the judge's call, against the
+/// reference.
+pub fn design_written(abs: &Path) -> (String, String) {
+    let text = std::fs::read_to_string(abs).unwrap_or_default();
+    let words = design_parts(&text).1.split_whitespace().count();
+    if words >= DESIGN_MIN_WORDS {
+        (
+            "passed".into(),
+            format!("an answer of {words} words is written"),
+        )
+    } else {
+        (
+            "failed".into(),
+            format!(
+                "no answer yet: {words} words under the `{ANSWER_MARK}` line, at least {DESIGN_MIN_WORDS} are needed"
+            ),
+        )
+    }
+}
+
 /// Execute a file the way the candidate does: (status, detail), the status
 /// one of passed, failed, timeout, unknown. A language with a checker runs
 /// it first; a file that does not type-check fails with the diagnostics as
@@ -293,6 +360,9 @@ pub fn command(root: &Path, path: &Path, lang: &Lang) -> Command {
 /// (kg_extract) and make solved refuses a file that does not pass
 /// (kg_solved).
 pub fn run(root: &Path, abs: &Path, lang: &Lang, timeout: u64) -> (String, String) {
+    if lang.ext == DESIGN.ext {
+        return design_written(abs);
+    }
     if let Some((ok, diagnostics)) = check(root, abs, lang) {
         if !ok {
             let tail: String = diagnostics
@@ -419,8 +489,53 @@ mod tests {
         assert_eq!(of_ext("rs").unwrap().name, "Rust");
         assert_eq!(
             current_names(),
-            vec!["current.py", "current.ts", "current.rs"]
+            vec!["current.py", "current.ts", "current.rs", "current.markdown"]
         );
+        assert_eq!(
+            of_path(Path::new("drills/x/d1_a.markdown")).unwrap().name,
+            "Design"
+        );
+        assert!(of_path(Path::new("current.md")).is_none());
+    }
+
+    const DESIGN_FILE: &str = "DRILL: Cache Aside\nTRAINS: design-cache\n\nDescribe the read path.\n\n## Answer\n\nLook in the cache first.\n";
+
+    /// A design drill is prose: the statement is above `## Answer`, the
+    /// answer below; no comment prefix is stripped and a `#` heading in
+    /// another language's file still reads as a comment.
+    #[test]
+    fn a_design_file_splits_at_the_answer_line() {
+        let h = header(DESIGN_FILE, &DESIGN).unwrap();
+        assert!(
+            h.starts_with("DRILL: Cache Aside\nTRAINS: design-cache")
+                && h.ends_with("the read path.")
+        );
+        assert_eq!(
+            strip_header(DESIGN_FILE, &DESIGN),
+            "Look in the cache first.\n"
+        );
+        assert_eq!(subject(&h), Some(("drill".into(), "Cache Aside".into())));
+        assert_eq!(design_parts("no mark here"), ("no mark here", ""));
+        assert_eq!(uncomment("DRILL: X"), "DRILL: X");
+        assert_eq!(uncomment("# DRILL: X"), "DRILL: X");
+    }
+
+    /// Nothing runs for a design file: it passes once an answer of
+    /// DESIGN_MIN_WORDS words is under the mark, and fails as unwritten
+    /// before that.
+    #[test]
+    fn a_design_file_passes_when_an_answer_is_written() {
+        let dir = std::env::temp_dir().join(format!("kg_lang_design_{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let f = dir.join("current.markdown");
+        std::fs::write(&f, DESIGN_FILE).unwrap();
+        let (status, detail) = run(&dir, &f, &DESIGN, 5);
+        assert_eq!(status, "failed");
+        assert!(detail.contains("no answer yet: 5 words"), "{detail}");
+        let long = format!("{DESIGN_FILE}{}", "word ".repeat(DESIGN_MIN_WORDS));
+        std::fs::write(&f, long).unwrap();
+        assert_eq!(run(&dir, &f, &DESIGN, 5).0, "passed");
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     /// A Rust file is compiled by rustc in `check` and its binary run by

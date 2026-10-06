@@ -1808,6 +1808,526 @@
       "prereqs": [],
       "drill": "A function that logs at two levels.",
       "source": "https://docs.python.org/3/tutorial/stdlib2.html#logging"
+    },
+    {
+      "id": "design-performance-scalability",
+      "group": "design",
+      "added": "2026-10-06",
+      "name": "Performance vs scalability",
+      "desc": "A performance problem: the system is slow for a single user.",
+      "hint": "A slow system: ask whether it is slow for one user or only under load before proposing anything.",
+      "prereqs": [],
+      "drill": "Slow For One Or Slow Under Load.",
+      "source": "https://github.com/donnemartin/system-design-primer#performance-vs-scalability"
+    },
+    {
+      "id": "design-latency-throughput",
+      "group": "design",
+      "added": "2026-10-06",
+      "name": "Latency vs throughput",
+      "desc": "Latency is the time to perform some action or to produce some result.",
+      "hint": "Two numbers describe every component: how long one action takes and how many it does per second.",
+      "prereqs": [],
+      "drill": "Latency And Throughput.",
+      "source": "https://github.com/donnemartin/system-design-primer#latency-vs-throughput"
+    },
+    {
+      "id": "design-cap",
+      "group": "design",
+      "added": "2026-10-06",
+      "name": "CAP theorem",
+      "desc": "Consistency: every read receives the most recent write or an error.",
+      "hint": "Replicated data and a network that can split: choose between answering with possibly old data and refusing to answer.",
+      "prereqs": [],
+      "drill": "Two Of Three.",
+      "source": "https://github.com/donnemartin/system-design-primer#cap-theorem"
+    },
+    {
+      "id": "design-consistency-patterns",
+      "group": "design",
+      "added": "2026-10-06",
+      "name": "Consistency patterns",
+      "desc": "Weak: after a write, reads may or may not see it; best effort. Seen in memcached; suits VoIP, video chat and realtime multiplayer games.",
+      "hint": "Several copies of the same data: decide what a read may see just after a write.",
+      "prereqs": [
+        "design-cap"
+      ],
+      "drill": "Weak Eventual Strong.",
+      "source": "https://github.com/donnemartin/system-design-primer#consistency-patterns"
+    },
+    {
+      "id": "design-failover",
+      "group": "design",
+      "added": "2026-10-06",
+      "name": "Fail-over",
+      "desc": "Active-passive: heartbeats are sent between the active server and the passive server on standby. If the heartbeat is interrupted, the passive server takes over the active's IP address and resumes service.",
+      "hint": "One server is a single point of failure: add a second and decide whether it waits or shares the load.",
+      "prereqs": [],
+      "drill": "Active Passive Active Active.",
+      "source": "https://github.com/donnemartin/system-design-primer#fail-over"
+    },
+    {
+      "id": "design-availability-numbers",
+      "group": "design",
+      "added": "2026-10-06",
+      "name": "Availability in numbers",
+      "desc": "99.9%, three 9s: 8 hours 45 minutes 57 seconds of downtime per year.",
+      "hint": "An availability target is a downtime budget; components in a chain multiply, components side by side multiply their failures.",
+      "prereqs": [],
+      "drill": "Nines.",
+      "source": "https://github.com/donnemartin/system-design-primer#availability-in-numbers"
+    },
+    {
+      "id": "design-dns",
+      "group": "design",
+      "added": "2026-10-06",
+      "name": "Domain name system",
+      "desc": "DNS translates a domain name such as www.example.com to an IP address.",
+      "hint": "A client finds a server by name: DNS answers, and every layer on the way caches the answer.",
+      "prereqs": [],
+      "drill": "Name To Address.",
+      "source": "https://github.com/donnemartin/system-design-primer#domain-name-system"
+    },
+    {
+      "id": "design-cdn",
+      "group": "design",
+      "added": "2026-10-06",
+      "name": "Content delivery network",
+      "desc": "A CDN is a globally distributed network of proxy servers that serves content from locations closer to the user, generally static files.",
+      "hint": "Static files and users far away: serve them from a CDN, and choose who puts the content there.",
+      "prereqs": [
+        "design-dns"
+      ],
+      "drill": "Push Or Pull.",
+      "source": "https://github.com/donnemartin/system-design-primer#content-delivery-network"
+    },
+    {
+      "id": "design-load-balancer",
+      "group": "design",
+      "added": "2026-10-06",
+      "name": "Load balancer",
+      "desc": "It prevents requests from going to unhealthy servers.",
+      "hint": "More than one server behind one address: a load balancer picks the server, by packet header or by request content.",
+      "prereqs": [],
+      "drill": "Layer Four Or Seven.",
+      "source": "https://github.com/donnemartin/system-design-primer#load-balancer"
+    },
+    {
+      "id": "design-horizontal-scaling",
+      "group": "design",
+      "added": "2026-10-06",
+      "name": "Horizontal scaling",
+      "desc": "Horizontal scaling, scaling out, adds more commodity machines; vertical scaling, scaling up, moves a single server to more expensive hardware.",
+      "hint": "One server at its limit: add machines, and then nothing about a user may live on any one of them.",
+      "prereqs": [
+        "design-load-balancer"
+      ],
+      "drill": "Scale Out.",
+      "source": "https://github.com/donnemartin/system-design-primer#horizontal-scaling"
+    },
+    {
+      "id": "design-reverse-proxy",
+      "group": "design",
+      "added": "2026-10-06",
+      "name": "Reverse proxy",
+      "desc": "A reverse proxy is a web server that centralises internal services and provides unified interfaces to the public.",
+      "hint": "The public should see one interface, not your servers: put a reverse proxy in front, even of a single server.",
+      "prereqs": [
+        "design-load-balancer"
+      ],
+      "drill": "In Front Of One Server.",
+      "source": "https://github.com/donnemartin/system-design-primer#reverse-proxy-web-server"
+    },
+    {
+      "id": "design-service-discovery",
+      "group": "design",
+      "added": "2026-10-06",
+      "name": "Application layer and service discovery",
+      "desc": "Separating the web layer from the application layer lets you scale and configure the two independently; a new API adds application servers without necessarily adding web servers.",
+      "hint": "Many small services that come and go: each registers itself, and callers look the address up.",
+      "prereqs": [],
+      "drill": "Finding A Service.",
+      "source": "https://github.com/donnemartin/system-design-primer#application-layer"
+    },
+    {
+      "id": "design-replication",
+      "group": "design",
+      "added": "2026-10-06",
+      "name": "Database replication",
+      "desc": "Master-slave: the master serves reads and writes and replicates writes to one or more slaves, which serve only reads.",
+      "hint": "Reads outgrow one database: copy it, and decide how many of the copies accept writes.",
+      "prereqs": [],
+      "drill": "One Writer Or Two.",
+      "source": "https://github.com/donnemartin/system-design-primer#master-slave-replication"
+    },
+    {
+      "id": "design-federation",
+      "group": "design",
+      "added": "2026-10-06",
+      "name": "Federation",
+      "desc": "Federation, or functional partitioning, splits databases by function: for example forums, users and products in three databases instead of one.",
+      "hint": "One database serves unrelated features: give each feature its own database.",
+      "prereqs": [
+        "design-replication"
+      ],
+      "drill": "Split By Function.",
+      "source": "https://github.com/donnemartin/system-design-primer#federation"
+    },
+    {
+      "id": "design-sharding",
+      "group": "design",
+      "added": "2026-10-06",
+      "name": "Sharding",
+      "desc": "Sharding distributes data across different databases so that each database manages only a subset of the data.",
+      "hint": "One table too large for one database: spread its rows over several, by a key.",
+      "prereqs": [
+        "design-federation"
+      ],
+      "drill": "Split By Row.",
+      "source": "https://github.com/donnemartin/system-design-primer#sharding"
+    },
+    {
+      "id": "design-denormalization",
+      "group": "design",
+      "added": "2026-10-06",
+      "name": "Denormalization",
+      "desc": "Denormalization improves read performance at the expense of some write performance.",
+      "hint": "Reads far outnumber writes and each read joins tables: store the joined result, and pay when writing.",
+      "prereqs": [],
+      "drill": "Pay On Write.",
+      "source": "https://github.com/donnemartin/system-design-primer#denormalization"
+    },
+    {
+      "id": "design-indices",
+      "group": "design",
+      "added": "2026-10-06",
+      "name": "SQL tuning: indices",
+      "desc": "Benchmark and profile first: benchmark by simulating high load, with a tool such as ab; profile with a tool such as the slow query log.",
+      "hint": "A query is slow: measure first, then index the columns it filters, groups, orders or joins on.",
+      "prereqs": [],
+      "drill": "What An Index Costs.",
+      "source": "https://github.com/donnemartin/system-design-primer#sql-tuning"
+    },
+    {
+      "id": "design-nosql-types",
+      "group": "design",
+      "added": "2026-10-06",
+      "name": "NoSQL store types",
+      "desc": "Key-value store: a hash table, O(1) reads and writes, often backed by memory or SSD. Used for simple data models or rapidly changing data, such as an in-memory cache layer. Redis, Memcached.",
+      "hint": "Data that is not rows and joins: pick the store whose abstraction is the access pattern.",
+      "prereqs": [],
+      "drill": "Four Kinds Of NoSQL.",
+      "source": "https://github.com/donnemartin/system-design-primer#nosql"
+    },
+    {
+      "id": "design-sql-or-nosql",
+      "group": "design",
+      "added": "2026-10-06",
+      "name": "SQL or NoSQL",
+      "desc": "SQL, four out of: structured data; strict schema; relational data; need for complex joins; transactions; clear patterns for scaling; more established developers, community, code and tools; lookups by index are very fast.",
+      "hint": "A new data store to choose: decide from the shape of the data and the load, not from habit.",
+      "prereqs": [
+        "design-nosql-types"
+      ],
+      "drill": "SQL Or NoSQL.",
+      "source": "https://github.com/donnemartin/system-design-primer#sql-or-nosql"
+    },
+    {
+      "id": "design-cache-aside",
+      "group": "design",
+      "added": "2026-10-06",
+      "name": "Cache-aside",
+      "desc": "Look for the entry in the cache, which misses.",
+      "hint": "Read-heavy data and a slow store: the application checks the cache first and fills it on a miss.",
+      "prereqs": [],
+      "drill": "Cache Aside.",
+      "source": "https://github.com/donnemartin/system-design-primer#cache-aside"
+    },
+    {
+      "id": "design-write-through",
+      "group": "design",
+      "added": "2026-10-06",
+      "name": "Write-through",
+      "desc": "The application adds or updates the entry in the cache.",
+      "hint": "The cache must never be stale: write to the cache, and let the cache write to the store before returning.",
+      "prereqs": [
+        "design-cache-aside"
+      ],
+      "drill": "Write Through.",
+      "source": "https://github.com/donnemartin/system-design-primer#write-through"
+    },
+    {
+      "id": "design-write-behind",
+      "group": "design",
+      "added": "2026-10-06",
+      "name": "Write-behind",
+      "desc": "The application adds or updates the entry in the cache.",
+      "hint": "Writes must be fast and a short loss is tolerable: write to the cache now, to the store later.",
+      "prereqs": [
+        "design-write-through"
+      ],
+      "drill": "Write Behind.",
+      "source": "https://github.com/donnemartin/system-design-primer#write-behind-write-back"
+    },
+    {
+      "id": "design-refresh-ahead",
+      "group": "design",
+      "added": "2026-10-06",
+      "name": "Refresh-ahead",
+      "desc": "The cache automatically refreshes any recently accessed entry before it expires.",
+      "hint": "Hot entries keep expiring under readers: refresh them before they expire.",
+      "prereqs": [
+        "design-cache-aside"
+      ],
+      "drill": "Refresh Ahead.",
+      "source": "https://github.com/donnemartin/system-design-primer#refresh-ahead"
+    },
+    {
+      "id": "design-message-queue",
+      "group": "design",
+      "added": "2026-10-06",
+      "name": "Message queues",
+      "desc": "A message queue receives, holds and delivers messages.",
+      "hint": "An operation too slow to finish inside the request: queue it, answer the user, let a worker do it.",
+      "prereqs": [],
+      "drill": "Do It Later.",
+      "source": "https://github.com/donnemartin/system-design-primer#message-queues"
+    },
+    {
+      "id": "design-back-pressure",
+      "group": "design",
+      "added": "2026-10-06",
+      "name": "Back pressure",
+      "desc": "A queue that grows significantly can become larger than memory, which causes cache misses, disk reads and slower performance.",
+      "hint": "A queue that grows without bound makes everything slow: cap it and refuse the excess.",
+      "prereqs": [
+        "design-message-queue"
+      ],
+      "drill": "Back Pressure.",
+      "source": "https://github.com/donnemartin/system-design-primer#back-pressure"
+    },
+    {
+      "id": "design-tcp-udp",
+      "group": "design",
+      "added": "2026-10-06",
+      "name": "TCP and UDP",
+      "desc": "TCP is connection-oriented, set up and torn down with a handshake; all packets sent are guaranteed to reach the destination in the original order and without corruption.",
+      "hint": "Bytes between two machines: choose between everything arriving in order and nothing waiting for a resend.",
+      "prereqs": [],
+      "drill": "TCP Or UDP.",
+      "source": "https://github.com/donnemartin/system-design-primer#transmission-control-protocol-tcp"
+    },
+    {
+      "id": "design-rpc-rest",
+      "group": "design",
+      "added": "2026-10-06",
+      "name": "RPC and REST",
+      "desc": "RPC exposes behaviours: the client causes a procedure to execute on a remote server, coded as if it were a local call. It is often used for internal communication, for performance.",
+      "hint": "An API between services or for the public: expose behaviours as calls, or data as resources.",
+      "prereqs": [],
+      "drill": "RPC Or REST.",
+      "source": "https://github.com/donnemartin/system-design-primer#remote-procedure-call-rpc"
+    },
+    {
+      "id": "design-powers-of-two",
+      "group": "design",
+      "added": "2026-10-06",
+      "name": "Powers of two",
+      "desc": "2^10 = 1024, about 1 thousand, 1 KB.",
+      "hint": "A size estimate by hand: every unit is a power of two, and each ten powers is a thousand.",
+      "prereqs": [],
+      "drill": "Powers Of Two.",
+      "source": "https://github.com/donnemartin/system-design-primer#powers-of-two-table"
+    },
+    {
+      "id": "design-latency-numbers",
+      "group": "design",
+      "added": "2026-10-06",
+      "name": "Latency numbers",
+      "desc": "Main memory reference: 100 ns.",
+      "hint": "Is the disk, the network or the memory the slow part: the order of magnitude of each is known.",
+      "prereqs": [
+        "design-powers-of-two"
+      ],
+      "drill": "Latency Numbers.",
+      "source": "https://github.com/donnemartin/system-design-primer#latency-numbers-every-programmer-should-know"
+    },
+    {
+      "id": "design-interview-steps",
+      "group": "design",
+      "added": "2026-10-06",
+      "name": "Approaching a design question",
+      "desc": "Step 1: outline use cases, constraints and assumptions.",
+      "hint": "An open-ended design question: lead it through the same four steps every time.",
+      "prereqs": [],
+      "drill": "Four Steps.",
+      "source": "https://github.com/donnemartin/system-design-primer#how-to-approach-a-system-design-interview-question"
+    },
+    {
+      "id": "design-token-bucket",
+      "group": "design",
+      "added": "2026-10-06",
+      "name": "Rate limiting: token bucket",
+      "desc": "Each user has a bucket of tokens; every request removes one token from that user's bucket.",
+      "hint": "One client must not be able to take the API down: give each a bucket of tokens that refills at the allowed rate.",
+      "prereqs": [],
+      "drill": "Token Bucket.",
+      "source": "https://stripe.com/blog/rate-limiters"
+    },
+    {
+      "id": "design-sliding-window-counter",
+      "group": "design",
+      "added": "2026-10-06",
+      "name": "Rate limiting: sliding window counter",
+      "desc": "rate = previous count * ((period - elapsed) / period) + current count.",
+      "hint": "A fixed window lets a burst through at each reset: weigh the previous window in.",
+      "prereqs": [
+        "design-token-bucket"
+      ],
+      "drill": "Sliding Window Counter.",
+      "source": "https://blog.cloudflare.com/counting-things-a-lot-of-different-things/"
+    },
+    {
+      "id": "design-idempotency-key",
+      "group": "design",
+      "added": "2026-10-06",
+      "name": "Idempotency keys",
+      "desc": "The initial connection can fail as the client tries to connect.",
+      "hint": "A request that must happen exactly once over a network that drops replies: the client names the operation, the server remembers the name.",
+      "prereqs": [],
+      "drill": "Charge Once.",
+      "source": "https://stripe.com/blog/idempotency"
+    },
+    {
+      "id": "design-retry-backoff",
+      "group": "design",
+      "added": "2026-10-06",
+      "name": "Retries: exponential backoff and jitter",
+      "desc": "The client waits a brief initial time after the first failure, then a time proportional to 2^n, where n is the number of failures so far.",
+      "hint": "Clients retrying a failing server make it worse: wait longer each time, and not all at the same moment.",
+      "prereqs": [
+        "design-idempotency-key"
+      ],
+      "drill": "Back Off With Jitter.",
+      "source": "https://stripe.com/blog/idempotency"
+    },
+    {
+      "id": "design-pastebin",
+      "group": "design",
+      "added": "2026-10-06",
+      "name": "Design: Pastebin or Bit.ly",
+      "desc": "4 paste writes per second, 40 reads per second, 12.7 GB of new content per month: 1.27 KB * 10 million.",
+      "hint": "A short link to stored content: a table from link to location, the content in an object store, a cache in front of the reads.",
+      "prereqs": [
+        "design-interview-steps",
+        "design-cache-aside",
+        "design-replication"
+      ],
+      "drill": "Pastebin.",
+      "source": "https://github.com/donnemartin/system-design-primer/blob/master/solutions/system_design/pastebin/README.md"
+    },
+    {
+      "id": "design-twitter-timeline",
+      "group": "design",
+      "added": "2026-10-06",
+      "name": "Design: Twitter timeline and search",
+      "desc": "6,000 tweets per second, 60,000 tweets delivered on fanout per second, 100,000 read requests per second, 4,000 search requests per second.",
+      "hint": "A feed read far more than it is written: build each reader's timeline when the tweet is posted, in memory.",
+      "prereqs": [
+        "design-interview-steps",
+        "design-message-queue",
+        "design-sql-or-nosql"
+      ],
+      "drill": "Twitter Timeline.",
+      "source": "https://github.com/donnemartin/system-design-primer/blob/master/solutions/system_design/twitter/README.md"
+    },
+    {
+      "id": "design-web-crawler",
+      "group": "design",
+      "added": "2026-10-06",
+      "name": "Design: web crawler",
+      "desc": "2 PB of stored page content per month: 500 KB * 4 billion. 1,600 write requests per second. 40,000 search requests per second.",
+      "hint": "A crawl is a graph traversal that must not loop: remember a signature of every page seen.",
+      "prereqs": [
+        "design-interview-steps",
+        "design-nosql-types",
+        "design-message-queue"
+      ],
+      "drill": "Web Crawler.",
+      "source": "https://github.com/donnemartin/system-design-primer/blob/master/solutions/system_design/web_crawler/README.md"
+    },
+    {
+      "id": "design-mint",
+      "group": "design",
+      "added": "2026-10-06",
+      "name": "Design: Mint.com",
+      "desc": "2,000 transactions per second, 200 read requests per second, 250 GB of new content per month; write heavy, 10:1 write to read.",
+      "hint": "A write-heavy import that takes a while per account: queue it, keep the raw files, aggregate off the main database.",
+      "prereqs": [
+        "design-interview-steps",
+        "design-message-queue"
+      ],
+      "drill": "Mint.",
+      "source": "https://github.com/donnemartin/system-design-primer/blob/master/solutions/system_design/mint/README.md"
+    },
+    {
+      "id": "design-social-graph",
+      "group": "design",
+      "added": "2026-10-06",
+      "name": "Design: social network data structures",
+      "desc": "5 billion friend relationships: 100 million users * 50. 400 search requests per second.",
+      "hint": "A graph too big for one machine: shard the vertices, and every step of the search becomes a lookup.",
+      "prereqs": [
+        "design-interview-steps",
+        "design-sharding"
+      ],
+      "drill": "Shortest Path Between Users.",
+      "source": "https://github.com/donnemartin/system-design-primer/blob/master/solutions/system_design/social_graph/README.md"
+    },
+    {
+      "id": "design-query-cache",
+      "group": "design",
+      "added": "2026-10-06",
+      "name": "Design: key-value cache for a search engine",
+      "desc": "4,000 requests per second; 2.7 TB of cache data per month: 270 bytes * 10 billion.",
+      "hint": "A cache with limited memory in front of an expensive lookup: evict the least recently used, spread it by hash.",
+      "prereqs": [
+        "design-interview-steps",
+        "design-cache-aside",
+        "design-sharding"
+      ],
+      "drill": "Query Cache.",
+      "source": "https://github.com/donnemartin/system-design-primer/blob/master/solutions/system_design/query_cache/README.md"
+    },
+    {
+      "id": "design-sales-rank",
+      "group": "design",
+      "added": "2026-10-06",
+      "name": "Design: Amazon sales rank by category",
+      "desc": "400 transactions per second, 40,000 read requests per second, 40 GB of new content per month.",
+      "hint": "A ranking that may be an hour old: compute it in batch from the logs, serve it from a table and a cache.",
+      "prereqs": [
+        "design-interview-steps",
+        "design-replication"
+      ],
+      "drill": "Sales Rank.",
+      "source": "https://github.com/donnemartin/system-design-primer/blob/master/solutions/system_design/sales_rank/README.md"
+    },
+    {
+      "id": "design-scaling-aws",
+      "group": "design",
+      "added": "2026-10-06",
+      "name": "Design: scaling to millions of users",
+      "desc": "400 writes per second, 40,000 reads per second, 1 TB of new content per month.",
+      "hint": "Growth arrives in stages: at each one measure, find the bottleneck, and add the one component that removes it.",
+      "prereqs": [
+        "design-interview-steps",
+        "design-horizontal-scaling",
+        "design-replication",
+        "design-cdn"
+      ],
+      "drill": "One Box To Millions.",
+      "source": "https://github.com/donnemartin/system-design-primer/blob/master/solutions/system_design/scaling_aws/README.md"
     }
   ]
 }

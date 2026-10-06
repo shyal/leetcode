@@ -43,7 +43,7 @@ use crate::common::*;
 /// (group id, shown name, planned nodes, where the plan comes from).
 /// Algorithms is every other group and needs no plan: its denominator is
 /// the catalog.
-pub const LANGUAGES: [(&str, &str, i64, &str); 4] = [
+pub const LANGUAGES: [(&str, &str, i64, &str); 5] = [
     ("python", "python", 38, "The Python Tutorial, one node per section that names a construct (utils/history/backfill_python.py)"),
     (
         "ts",
@@ -57,6 +57,12 @@ pub const LANGUAGES: [(&str, &str, i64, &str); 4] = [
         "sql",
         25,
         "the LeetCode SQL 50 study plan, grouped into moves",
+    ),
+    (
+        "design",
+        "systems design",
+        42,
+        "the System Design Primer, 30 building blocks and its 8 worked designs, plus 4 blocks from the Stripe and Cloudflare posts on rate limiting and idempotency",
     ),
 ];
 

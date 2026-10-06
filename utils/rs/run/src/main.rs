@@ -21,6 +21,13 @@ fn main() {
             std::process::exit(status.code().unwrap_or(1));
         }
     };
+    if lang.ext == kg::lang::DESIGN.ext {
+        // a design drill is prose: nothing runs, the check is that an
+        // answer is written
+        let (status, detail) = kg::lang::run(&root, &path, lang, 5);
+        println!("{detail}");
+        std::process::exit(if status == "passed" { 0 } else { 1 });
+    }
     let mut checked = true;
     if let Some((ok, diagnostics)) = kg::lang::check(&root, &path, lang) {
         if !ok {

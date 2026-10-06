@@ -141,7 +141,7 @@ drill is not served while an id it comes after is not warm (`kg_lib.held_behind`
 
 A drill file is written in one of the languages in the `kg::lang` table:
 Python (`.py`, the house language, which mu compiles to), TypeScript
-(`.ts`) or Rust (`.rs`). The extension is the whole of it. A `.ts` drill carries its
+(`.ts`), Rust (`.rs`) or Design (`.markdown`, prose). The extension is the whole of it. A `.ts` drill carries its
 statement as the leading `//` comment block, the same `DRILL:` and `TRAINS:`
 lines, the function stub, a `console.log` demo and the asserts commented out
 with `//`, written against `node:assert/strict`. `make drill` serves it as
@@ -153,6 +153,18 @@ the table, so a further language is one more entry there plus its
 toolchain. `utils/harness/ts/node.d.ts` declares the node builtins the
 drills import, so tsc needs no npm install; `tsconfig.json` points the
 editor at it.
+
+A systems design drill is prose, a `.markdown` file (`current.md` is the
+recognition rep's): the `DRILL:`, `TRAINS:` and `REQUIRED:` lines and the
+statement above a `## Answer` line, the answer written under it. Nothing
+runs: `make` and `make solved` pass the file once an answer of thirty words is
+there, and the judge grades the answer against the reference,
+`graph/node_notes/<node>/dNNN_<slug>.markdown`, whose `REQUIRED` points must
+all be stated and whose `SOURCE:` line names where they come from
+(`kg_extract` `design_lead`). `test_design_references.py` checks the shape of
+both files. The `design` group is built from the System Design Primer, its
+building blocks and its eight worked designs, and from the Stripe and
+Cloudflare posts on rate limiting and idempotency.
 
 A `.rs` drill has the same shape: the statement as the leading `//` block,
 the function the statement names missing or stubbed with `todo!()`, and a

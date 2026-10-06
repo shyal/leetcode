@@ -761,6 +761,50 @@ fn drill_lead(trains: &[String]) -> String {
     )
 }
 
+/// The reference answer of a design drill: graph/node_notes/<node>/
+/// <drill id>_*.markdown, the drill found by its DRILL title in
+/// drills.json. None when the title, the node or the file is missing.
+pub fn design_reference(
+    root: &Path,
+    code: &str,
+    drills: &DrillMap,
+    trains: &[String],
+) -> Option<String> {
+    let doc = kg::lang::header(code, &kg::lang::DESIGN)?;
+    let (_, title) = kg::lang::subject(&doc)?;
+    let did = drills
+        .iter()
+        .find(|(_, e)| e.title == title)
+        .map(|(id, _)| id.clone())?;
+    let dir = root.join("graph/node_notes").join(trains.first()?);
+    let prefix = format!("{did}_");
+    let mut hits: Vec<PathBuf> = std::fs::read_dir(dir)
+        .ok()?
+        .flatten()
+        .map(|e| e.path())
+        .filter(|p| {
+            p.extension().and_then(|e| e.to_str()) == Some(kg::lang::DESIGN.ext)
+                && p.file_name()
+                    .and_then(|n| n.to_str())
+                    .is_some_and(|n| n.starts_with(&prefix))
+        })
+        .collect();
+    hits.sort();
+    std::fs::read_to_string(hits.first()?).ok()
+}
+
+/// What the judge is told about a design drill: nothing ran, the answer
+/// is prose, and it is graded against the reference's required points.
+fn design_lead(root: &Path, code: &str, drills: &DrillMap, trains: &[String]) -> String {
+    let statement = kg::lang::header(code, &kg::lang::DESIGN).unwrap_or_default();
+    let reference = design_reference(root, code, drills, trains).unwrap_or_else(|| {
+        "none on file: grade against the REQUIRED line of the statement".to_string()
+    });
+    format!(
+        "This file is a systems design drill: prose, not code. NOTHING WAS EXECUTED; the runtime result in this prompt only says that an answer was written, never that it is right. The candidate's answer is the text at the end of this prompt. Grade it against the REFERENCE: the target node is \"clean\" when the answer states every point under the reference's REQUIRED heading correctly, in any words and any order; it is \"struggled\" when a required point is missing or wrong. Name each missing or wrong point in the note. Correct detail beyond the reference is never a fault, and style is not graded.\n\nSTATEMENT:\n{statement}\n\nREFERENCE:\n{reference}"
+    )
+}
+
 /// Read + claude call only - no shared state touched here.
 fn extract_one(
     root: &Path,
@@ -799,7 +843,9 @@ fn extract_one(
             "The statement ends with a follow-up question: {followup} Judge whether the code as written meets it and answer in \"followup\": \"solved\" or \"not solved\".\n\n{prompt}"
         );
     }
-    if lang.ext != kg::lang::PYTHON.ext {
+    if lang.ext == kg::lang::DESIGN.ext {
+        prompt = format!("{}\n\n{prompt}", design_lead(root, &code, drills, &trains));
+    } else if lang.ext != kg::lang::PYTHON.ext {
         prompt = format!(
             "This file is {} (a .{} drill), not Python: the statement and the candidate's notes are the leading `{}` comment block, and the code under it is what ran. Judge the {} as written.\n\n{prompt}",
             lang.name, lang.ext, lang.comment, lang.name
@@ -1712,6 +1758,46 @@ mod tests {
     use super::*;
 
     const SOLVE: &str = "\"\"\"\n1. Two Sum\n\nGiven an array of integers, return indices of the two numbers that add to\ntarget.\n\n---\nPeeked at the editorial for the complement trick.\n\"\"\"\n\nfrom typing import List\n\n\nclass Solution:\n    def twoSum(self, nums: List[int], target: int) -> List[int]:\n        seen = {}  # running dict, built as we scan\n        for i, n in enumerate(nums):\n            if target - n in seen:\n                return [seen[target - n], i]\n            seen[n] = i\n\n\nsol = Solution()\nassert sol.twoSum([2, 7, 11, 15], 9) == [0, 1]\n";
+
+    /// A design drill is graded against its reference: the lead carries
+    /// the statement and the reference found by the DRILL title, and says
+    /// that nothing ran.
+    #[test]
+    fn a_design_drill_is_graded_against_its_reference() {
+        let root = std::env::temp_dir().join(format!("kg_extract_design_{}", std::process::id()));
+        let notes = root.join("graph/node_notes/design-cache-aside");
+        std::fs::create_dir_all(&notes).unwrap();
+        std::fs::write(
+            notes.join("d900_cache_aside.markdown"),
+            "REQUIRED\n- look in the cache first\n",
+        )
+        .unwrap();
+        let mut drills = DrillMap::new();
+        drills.insert(
+            "d900".to_string(),
+            kg::data::DrillEntry {
+                title: "Cache Aside".into(),
+                after: vec![],
+                trains: Some(vec!["design-cache-aside".into()]),
+                disabled: false,
+            },
+        );
+        let code = "DRILL: Cache Aside\nTRAINS: design-cache-aside\n\nDescribe the read path.\n\n## Answer\n\nCache first.\n";
+        let trains = trains_in(code, &drills);
+        assert_eq!(trains, vec!["design-cache-aside".to_string()]);
+        assert_eq!(
+            design_reference(&root, code, &drills, &trains).unwrap(),
+            "REQUIRED\n- look in the cache first\n"
+        );
+        let lead = design_lead(&root, code, &drills, &trains);
+        assert!(lead.contains("NOTHING WAS EXECUTED"));
+        assert!(lead.contains("STATEMENT:\nDRILL: Cache Aside"));
+        assert!(lead.contains("REFERENCE:\nREQUIRED\n- look in the cache first"));
+        assert_eq!(strip_statement(code, &kg::lang::DESIGN), "Cache first.\n");
+        // no reference on file: the judge is told so
+        assert!(design_lead(&root, code, &drills, &[]).contains("none on file"));
+        let _ = std::fs::remove_dir_all(&root);
+    }
 
     /// A TLE is a missing move, not a broken one: the brute force's own
     /// loops stay clean (974 on 2026-09-16 pinned it on the enumeration).
