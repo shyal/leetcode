@@ -33750,6 +33750,18 @@
       "note": "Notes say FAILED: walked away after 12m 58s; the code recomputes max/min per index instead of the prefix/suffix two-pass.",
       "summary": "The code loops over each index i, computes the max of nums[0..i] and the min of nums[i..n-1] with generator expressions, and keeps the smallest instability that is <= k, returning its index or -1. It exercises running-extreme-style scanning but recomputes the extremes inside the loop rather than precomputing prefix maxima and suffix minima, so the prefix-suffix-two-pass move is sidestepped. The notes record the attempt as FAILED after about 13 minutes with no working solution.",
       "seconds": 778
+    },
+    "solved/p1422_Maximum_Score_After_Splitting_a_String_2026_10_06T01_33_06_491283_00_00Z.py": {
+      "date": "2026-10-06",
+      "problem": "1422",
+      "moves": {
+        "substring-enumeration": "clean",
+        "running-sum": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Brute force recomputes both halves per split; LeetCode Accepted (69 ms).",
+      "summary": "The code loops over every split index i, counts zeros in s[:i] and ones in s[i:] with generator sums, and keeps the max in _max. It exercises substring-enumeration over split points and a running-extreme-style max update, but recomputes each half from scratch rather than carrying a running sum. LeetCode accepted it at 69 ms; the notes contain no hints or look-ups.",
+      "seconds": 382
     }
   }
 }
