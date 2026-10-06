@@ -476,12 +476,13 @@ fn unseen_candidates(
     elo: f64,
 ) -> Vec<Value> {
     let seen = ev.solved_problems();
-    // FIRST_SIGHT_WITHIN_BAND narrows the band above him, never widens it
+    // FIRST_SIGHT_WITHIN_BAND narrows the band on both sides, never widens it
     let above = first_sight_band().map_or(BAND_ABOVE, |b| b.min(BAND_ABOVE));
+    let below = first_sight_band().map_or(BAND_BELOW, |b| b.min(BAND_BELOW));
     let mut pool: Vec<(f64, &String)> = ratings
         .iter()
         .filter(|(p, r)| {
-            **r >= elo - BAND_BELOW
+            **r >= elo - below
                 && **r <= elo + above
                 && !seen.contains(*p)
                 && ctx

@@ -979,10 +979,13 @@ pub fn reviews_band() -> Option<f64> {
 }
 
 /// FIRST_SIGHT_WITHIN_BAND: a problem he has never attempted, rated more
-/// than this many points above his elo, is not served. Unset, no rating
-/// holds a new problem.
+/// than this many points from his elo, above or below, is not served. A
+/// band of 0 would serve nothing, so 0 means unset (2026-10-06). Unset,
+/// no rating holds a new problem.
 pub fn first_sight_band() -> Option<f64> {
-    env_int("FIRST_SIGHT_WITHIN_BAND").map(|b| b as f64)
+    env_int("FIRST_SIGHT_WITHIN_BAND")
+        .filter(|b| *b > 0)
+        .map(|b| b as f64)
 }
 
 pub fn new_drills_today(ev: &Evidence, day: NaiveDate) -> i64 {

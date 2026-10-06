@@ -40,7 +40,7 @@ use kg::model::{
     display_difficulty, drill_forecast, first_sight_elo_now, solve_forecast, solve_ratings, ELO_K,
 };
 use kg::pick::{
-    above_band, blocked_frontier, first_sights_above_band, park_full_lines, parked_summits, pick,
+    above_band, blocked_frontier, first_sights_outside_band, park_full_lines, parked_summits, pick,
     review_ahead, review_line, review_queue, starved, unmapped_summits, withheld, Choice, PickArgs,
 };
 use kg::queue::{difficulty_colour, queue_table, QUEUE_LEN};
@@ -488,14 +488,14 @@ fn caps_table(ctx: &Ctx, pv: &PView, ev: &Evidence, today: NaiveDate) -> Option<
             format!("rated more than {band:.0} above your elo (REVIEWS_WITHIN_BAND)"),
         ]);
     }
-    let unseen = first_sights_above_band(ctx, ev);
+    let unseen = first_sights_outside_band(ctx, ev);
     let held = pv.map.keys().filter(|p| unseen.contains(*p)).count();
     if held > 0 {
         let band = first_sight_band().unwrap_or(0.0);
         rows.push([
-            "new problems above the band".into(),
+            "new problems outside the band".into(),
             format!("[yellow]{held} held[/yellow]"),
-            format!("rated more than {band:.0} above your elo (FIRST_SIGHT_WITHIN_BAND)"),
+            format!("rated more than {band:.0} from your elo (FIRST_SIGHT_WITHIN_BAND)"),
         ]);
     }
     if rows.is_empty() {

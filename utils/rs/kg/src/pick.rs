@@ -491,21 +491,25 @@ pub fn above_band(ctx: &Ctx, ev: &Evidence, pv: &PView, today: NaiveDate) -> Vec
 }
 
 /// The problems he has never attempted that are rated more than
-/// FIRST_SIGHT_WITHIN_BAND above his elo (drills::first_sight_band). pick()
-/// excludes them, so no rule serves one: not as a fresh carrier, a drafted
-/// one, a predecessor, a session-start easy or a Hard. REVIEWS_WITHIN_BAND
-/// holds the problems he has attempted; this holds the ones he has not
-/// (2026-10-02). A held problem is served once his elo comes within the
-/// band of its rating. A problem nothing rates is never held.
-pub fn first_sights_above_band(ctx: &Ctx, ev: &Evidence) -> HashSet<String> {
+/// FIRST_SIGHT_WITHIN_BAND from his elo, above or below
+/// (drills::first_sight_band). pick() excludes them, so no rule serves
+/// one: not as a fresh carrier, a drafted one, a predecessor, a
+/// session-start easy or a Hard. REVIEWS_WITHIN_BAND holds the problems
+/// he has attempted; this holds the ones he has not (2026-10-02). The band
+/// has a floor as well as a ceiling since 2026-10-06: a week of first
+/// sights served 120 to 420 below his elo cost more per loss than a win
+/// on them could earn, so the rating could only fall. A held problem is
+/// served once his elo comes within the band of its rating. A problem
+/// nothing rates is never held.
+pub fn first_sights_outside_band(ctx: &Ctx, ev: &Evidence) -> HashSet<String> {
     let Some(band) = crate::drills::first_sight_band() else {
         return HashSet::new();
     };
-    let ceiling = crate::model::first_sight_elo_now(ctx, ev) + band;
+    let elo = crate::model::first_sight_elo_now(ctx, ev);
     let seen = ev.solved_problems();
     solve_ratings(ctx)
         .into_iter()
-        .filter(|(p, r)| *r > ceiling && !seen.contains(p))
+        .filter(|(p, r)| (*r - elo).abs() > band && !seen.contains(p))
         .map(|(p, _)| p)
         .collect()
 }
@@ -1446,9 +1450,9 @@ pub fn pick(
     args: &PickArgs,
 ) -> Option<Choice> {
     let t = std::time::Instant::now();
-    // FIRST_SIGHT_WITHIN_BAND: a new problem above the band is excluded
+    // FIRST_SIGHT_WITHIN_BAND: a new problem outside the band is excluded
     // from every rule; a problem he woke himself is his call
-    let mut held = first_sights_above_band(ctx, ev);
+    let mut held = first_sights_outside_band(ctx, ev);
     held.retain(|p| !args.woken.contains(p));
     let banded = PickArgs {
         exclude: args.exclude.union(&held).cloned().collect(),

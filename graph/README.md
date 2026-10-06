@@ -347,13 +347,18 @@ rating. A review rated below you, and one nothing rates, is never held. The
 footer of `make next` counts the held ones. Unset, every due review is served.
 
 `FIRST_SIGHT_WITHIN_BAND` in `.envrc` does the same for a problem you have
-never attempted (`pick::first_sights_above_band`): one rated more than that
-many points above your elo is excluded from every rule of the picker, and
-`make next llm` narrows its pool of unseen candidates to the same ceiling.
-With both set to 0 nothing rated above your elo is served, and a harder
-problem arrives only when the elo rises. A problem nothing rates is never
-held, and a problem you wake with `make wake` is served at any rating. The
-footer of `make next` counts the held problems that are in the graph.
+never attempted (`pick::first_sights_outside_band`), on both sides: one
+rated more than that many points above or below your elo is excluded from
+every rule of the picker, and `make next llm` narrows its pool of unseen
+candidates to the same band. A band of 0 would serve nothing, so 0 means
+unset. The floor was added on 2026-10-06, after a week in which the six new
+problems served sat 120 to 420 below the elo; a loss to a problem rated
+below you costs more than a win on it earns, so a one-sided band could only
+pull the rating down. Set to 50, a new problem is served only within 50
+points of your elo either way, and a win and a loss move it by about the
+same amount. A problem nothing rates is never held, and a problem you wake
+with `make wake` is served at any rating. The footer of `make next` counts
+the held problems that are in the graph.
 
 ## Dive (`make dive`)
 
