@@ -17,11 +17,14 @@ learning: $(RS_BIN)/learning
 	@$(RS_BIN)/learning
 
 # every serve ends here (`make next prepare` runs next, then this): the
-# drill or problem also gets its mu signature in current.mu, and last the
-# Claude Code pane follows the branch (kg_chat --switch: detached, a no-op
-# when the pane is already on this branch)
-prepare: $(RS_BIN)/prepare $(RS_BIN)/kg_chat
+# drill or problem also gets its mu signature in current.mu, VS Code opens
+# the served file (kg_open: current.mu, current.<ext> or current.md, so
+# the tab and its language are never picked by hand), and last the Claude
+# Code pane follows the branch (kg_chat --switch: detached, a no-op when
+# the pane is already on this branch)
+prepare: $(RS_BIN)/prepare $(RS_BIN)/kg_chat $(RS_BIN)/kg_open
 	@if [ "$(firstword $(MAKECMDGOALS))" != next ] && [ "$(firstword $(MAKECMDGOALS))" != dependents ] && [ "$(firstword $(MAKECMDGOALS))" != combos ]; then $(RS_BIN)/prepare $(filter-out $@,$(MAKECMDGOALS)) || exit 1; fi; .venv/bin/python3 mu/session.py stub
+	@$(RS_BIN)/kg_open
 	@$(RS_BIN)/kg_chat --switch
 
 
@@ -348,15 +351,17 @@ dive: $(RS_BIN)/kg_dive
 hard: $(RS_BIN)/kg_hard
 	@if [ "$(firstword $(MAKECMDGOALS))" != spot ]; then $(RS_BIN)/kg_hard $(patsubst graph,--graph,$(filter-out $@,$(MAKECMDGOALS))); fi
 
-drill: $(RS_BIN)/drill $(RS_BIN)/kg_chat
+drill: $(RS_BIN)/drill $(RS_BIN)/kg_chat $(RS_BIN)/kg_open
 	@$(RS_BIN)/drill $(filter-out $@,$(MAKECMDGOALS))
 	@.venv/bin/python3 mu/session.py stub
+	@$(RS_BIN)/kg_open
 	@$(RS_BIN)/kg_chat --switch
 
 # a recognition rep, asked for: same as `make prepare spot`, served whether
 # or not make next says one is due (the SPOT_EVERY ratio only governs that)
-spot: $(RS_BIN)/spot $(RS_BIN)/kg_chat
+spot: $(RS_BIN)/spot $(RS_BIN)/kg_chat $(RS_BIN)/kg_open
 	@$(RS_BIN)/spot $(filter-out $@,$(MAKECMDGOALS))
+	@$(RS_BIN)/kg_open
 	@$(RS_BIN)/kg_chat --switch
 
 timer: $(RS_BIN)/timer
