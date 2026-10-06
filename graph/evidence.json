@@ -33739,6 +33739,17 @@
       "note": "LEETCODE: Time Limit Exceeded (730/788 cases); the O(n^3) triple loop ran correctly but the canonical prefix-min / suffix-min two-pass move is absent, and the notes say 'I was only able to produce the brute force solution.'",
       "summary": "The code enumerates every middle index j and every pair (i, k) around it with three nested loops, keeping the minimum nums[i]+nums[j]+nums[k] where nums[i] < nums[j] and nums[k] < nums[j], returning -1 when res stays inf. That brute-force enumeration ran correctly on all the local asserts, but the notes admit only the brute force was produced and the precomputed prefix-min/suffix-min two-pass idea was left as a comment. LeetCode rejected the submission with Time Limit Exceeded at 730/788 cases.",
       "seconds": 1276
+    },
+    "solved/p3903_Smallest_Stable_Index_I_FAILED_2026_10_06T01_10_02_962585_00_00Z.py": {
+      "date": "2026-10-06",
+      "problem": "3903",
+      "moves": {
+        "running-extreme": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say FAILED: walked away after 12m 58s; the code recomputes max/min per index instead of the prefix/suffix two-pass.",
+      "summary": "The code loops over each index i, computes the max of nums[0..i] and the min of nums[i..n-1] with generator expressions, and keeps the smallest instability that is <= k, returning its index or -1. It exercises running-extreme-style scanning but recomputes the extremes inside the loop rather than precomputing prefix maxima and suffix minima, so the prefix-suffix-two-pass move is sidestepped. The notes record the attempt as FAILED after about 13 minutes with no working solution.",
+      "seconds": 778
     }
   }
 }
