@@ -1,10 +1,10 @@
 [![Run Tests](https://github.com/shyal/leetcode/actions/workflows/run-tests.yml/badge.svg)](https://github.com/shyal/leetcode/actions/workflows/run-tests.yml)
 
-This is an amalgamation of leetcode problems, as well as several language drills.
+This is a mix of leetcode problems, as well as several language drills.
 
 <!-- GAUGES -->
 
-![Progress: algorithms first sight, algorithms current reach, python, typescript, rust, sql](graph/gauges.svg)
+![Progress: algorithms first sight, algorithms current reach, python, typescript, rust, sql](https://shyal.s3.amazonaws.com/gauges_20261006113552.svg)
 
 <!-- /GAUGES -->
 
