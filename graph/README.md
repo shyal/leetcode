@@ -157,14 +157,16 @@ editor at it.
 A systems design drill is prose, a `.markdown` file (`current.md` is the
 recognition rep's): the `DRILL:`, `TRAINS:` and `REQUIRED:` lines and the
 statement above a `## Answer` line, the answer written under it. Nothing
-runs: `make` and `make solved` pass the file once an answer of thirty words is
-there, and the judge grades the answer against the reference,
+runs: `make` and `make solved` pass the file once an answer, of a word or
+more, is there, and the judge grades the answer against the reference,
 `graph/node_notes/<node>/dNNN_<slug>.markdown`, whose `REQUIRED` points must
 all be stated and whose `SOURCE:` line names where they come from
 (`kg_extract` `design_lead`). `test_design_references.py` checks the shape of
-both files. The `design` group is built from the System Design Primer, its
-building blocks and its eight worked designs, and from the Stripe and
-Cloudflare posts on rate limiting and idempotency.
+both files. The `design` group is the eight worked designs of the System
+Design Primer, one drill per question of each design. The building blocks
+(caching, replication, CAP, the latency numbers) are facts, and a fact is a
+flashcard, not a file: they are studied in Anki from the primer's own deck,
+`resources/flash_cards/System Design.apkg`, not here (2026-10-07).
 
 A `.rs` drill has the same shape: the statement as the leading `//` block,
 the function the statement names missing or stubbed with `todo!()`, and a

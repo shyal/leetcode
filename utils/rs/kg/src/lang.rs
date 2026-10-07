@@ -51,8 +51,9 @@ pub const DESIGN: Lang = Lang {
 /// The line that ends a design drill's statement and opens the answer.
 pub const ANSWER_MARK: &str = "## Answer";
 
-/// An answer shorter than this many words is no answer.
-pub const DESIGN_MIN_WORDS: usize = 30;
+/// An answer shorter than this many words is no answer. One word is
+/// enough: a design drill asks one fact, and "99.8%" is a whole answer.
+pub const DESIGN_MIN_WORDS: usize = 1;
 
 /// Python first: it is the default wherever one file is looked for.
 pub const LANGS: [&Lang; 4] = [&PYTHON, &TYPESCRIPT, &RUST, &DESIGN];
@@ -528,10 +529,11 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("kg_lang_design_{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let f = dir.join("current.markdown");
-        std::fs::write(&f, DESIGN_FILE).unwrap();
+        let (statement, _) = design_parts(DESIGN_FILE);
+        std::fs::write(&f, format!("{statement}## Answer\n\n")).unwrap();
         let (status, detail) = run(&dir, &f, &DESIGN, 5);
         assert_eq!(status, "failed");
-        assert!(detail.contains("no answer yet: 5 words"), "{detail}");
+        assert!(detail.contains("no answer yet: 0 words"), "{detail}");
         let long = format!("{DESIGN_FILE}{}", "word ".repeat(DESIGN_MIN_WORDS));
         std::fs::write(&f, long).unwrap();
         assert_eq!(run(&dir, &f, &DESIGN, 5).0, "passed");

@@ -32,7 +32,7 @@ def test_design_reference_has_a_source_and_required_points(reference):
     assert re.search(r"^SOURCE: .*https://", text, flags=re.M), reference
     head, _, points = text.partition("\nREQUIRED\n")
     required = re.findall(r"^- \S", points.split("\n\n")[0], flags=re.M)
-    assert len(required) >= 2, f"{reference}: fewer than two REQUIRED points"
+    assert len(required) >= 1, f"{reference}: no REQUIRED point"
     node = os.path.basename(os.path.dirname(reference))
     assert f"TRAINS: {node}\n" in open(drill).read()
 
