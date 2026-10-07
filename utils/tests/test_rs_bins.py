@@ -425,6 +425,11 @@ def test_lc_submit_show_and_auto_without_network(tmp_path):
     assert p.returncode == 0 and p.stdout == ""
     p = run("lc_submit", "--file", str(f), env=env)
     assert p.returncode == 1 and "LC_CDP_ENDPOINT" in p.stderr
+    # --force changes nothing on a skipped submit; the gate it lifts is the
+    # verdict (lc_submit's own tests cover which verdicts pass it)
+    p = run("lc_submit", "--auto", "--force", "--file", str(f), env=env)
+    assert p.returncode == 0 and p.stdout == ""
+    assert "--force" in run("lc_submit", "--help").stdout
 
 
 # --- kg_dive, learning ----------------------------------------------------------

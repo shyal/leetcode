@@ -6,7 +6,10 @@
 //   lc_submit                 # submit current.py, write "LEETCODE: <verdict>" into its notes
 //   lc_submit --file F        # another file
 //   lc_submit --auto          # the `make solved` step: silently skip a drill (no URL
-//                             # line) or a missing cookie file; never fail the make
+//                             # line) or a missing browser; exit 1 when leetcode's
+//                             # verdict is anything but Accepted, so the make stops
+//   lc_submit --auto --force  # record the verdict and exit 0 whatever it is
+//                             # (`make solved FORCE=1`)
 //   lc_submit --show          # print the code that would be submitted and stop
 //   lc_submit --check F...    # print "F: <names>" for every file whose submission
 //                             # uses a name leetcode lacks; exit 1 if any (the corpus test)
@@ -217,13 +220,14 @@ fn check(files: &[String]) -> i32 {
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     if args.iter().any(|a| a == "--help" || a == "-h") {
-        println!("usage: lc_submit [--file F] [--auto] [--show] | --check F...");
+        println!("usage: lc_submit [--file F] [--auto [--force]] [--show] | --check F...");
         return;
     }
     if args.first().is_some_and(|a| a == "--check") {
         std::process::exit(check(&args[1..]));
     }
     let auto = args.iter().any(|a| a == "--auto");
+    let force = args.iter().any(|a| a == "--force");
     let show = args.iter().any(|a| a == "--show");
     let file = args
         .iter()
@@ -289,11 +293,7 @@ fn main() {
         Err(e) => die(&e),
     };
     let line = verdict_line(&verdict);
-    let colour = if line.starts_with("Accepted") {
-        "green"
-    } else {
-        "red"
-    };
+    let colour = if rejected(&line) { "red" } else { "green" };
     console.print(&format!("[{colour}]LEETCODE: {line}[/{colour}]"));
     if line.starts_with("Wrong Answer") {
         let s = |k: &str| verdict[k].as_str().unwrap_or("").trim().replace('\n', " ");
@@ -305,6 +305,19 @@ fn main() {
         ));
     }
     std::fs::write(&file, record(&code, &line)).unwrap_or_else(|e| die(&format!("{file}: {e}")));
+    if auto && !force && rejected(&line) {
+        console.print(
+            "[red]leetcode did not accept this solution, so it is not filed. Fix it and run \
+             `make solved` again, or `make solved FORCE=1` to file it as it is.[/red]",
+        );
+        std::process::exit(1);
+    }
+}
+
+/// True when leetcode's verdict line is anything but Accepted: the gate
+/// `make solved` stops on.
+fn rejected(line: &str) -> bool {
+    !line.starts_with("Accepted")
 }
 
 #[cfg(test)]
@@ -312,6 +325,14 @@ mod tests {
     use super::*;
 
     const FILE: &str = "\"\"\"\nURL: https://leetcode.com/problems/two-sum/description/?envType=x\n\n1. Two Sum\n\nGiven nums, return.\n\n---\n\nmy notes\n\"\"\"\n\n\nclass Solution:\n    def twoSum(self, nums):\n        return [0, 1]\n\n\nclass Solution:\n    def twoSum(self, nums):\n        # final\n        return [1, 0]\n\n\nsol = Solution()\n\nassert sol.twoSum([1]) == [1, 0]\n";
+
+    #[test]
+    fn only_accepted_passes_the_gate() {
+        assert!(!rejected("Accepted (85 ms, 30.1 MB)"));
+        assert!(rejected("Time Limit Exceeded (34/58 cases)"));
+        assert!(rejected("Wrong Answer (3/58 cases)"));
+        assert!(rejected("Runtime Error"));
+    }
 
     #[test]
     fn slug_from_url_line() {
