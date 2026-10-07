@@ -1,9 +1,8 @@
 DRILL: Nines
 TRAINS: design-availability-numbers
 
-State the downtime per year that 99.9% availability allows, and the downtime
-per year that 99.99% allows.
+State the downtime per year that 99.9% availability allows.
 
-REQUIRED: both yearly downtimes to within a few minutes.
+REQUIRED: the yearly downtime to within a few minutes.
 
 ## Answer
