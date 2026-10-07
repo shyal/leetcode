@@ -1,116 +1,127 @@
 {
-  "_comment": "A chain: a senior backend live-coding round, as drills. The recruiter said problem solving rather than algorithms, so each drill is a small backend component with an invariant to keep. Solve them in order, in one sitting, talking as in the interview: restate the problem, state the invariant, write the simplest solution that works, say where it breaks, fix it, test it, then say what changes at ten times the load. state = what is kept, event = what happens on a call, invariant = what must stay true. Drafted 2026-10-07 from the sources named on each node in nodes.json. The order book is two drills because the round asks for best and cancel first and matching after; settlement is three because place, settle and void are three invariants.",
-  "base": "d292",
+  "_comment": "A chain: a senior backend live-coding round, as real LeetCode design problems. Each keeps some state, changes it on a call, and has a rule that must stay true. Solve them in order, in one sitting, talking as in the interview: restate the problem, state the rule, write the simplest solution that works, say where it breaks, fix it, test it, then say what changes at ten times the load. state = what is kept, event = what happens on a call, invariant = what must stay true. Rebuilt 2026-10-08 from the cached editorials in research/doocs-leetcode (the 2026-10-07 draft of invented drills was withdrawn: the questions were made up and the seq rule in Order Status From Events was incoherent). The ordering follows the clist rating. Token Bucket (d292) is the rate limiter question, which has no LeetCode number; it is the standard form from the sources on its node.",
+  "base": "2043",
   "order": [
+    "2043",
+    "1656",
+    "1396",
+    "1797",
     "d292",
-    "d297",
-    "d289",
-    "d290",
-    "d293",
-    "d296",
-    "d288",
-    "d298",
-    "d291",
-    "d299",
-    "d294",
-    "d295"
+    "981",
+    "146",
+    "1801",
+    "2034",
+    "3508",
+    "1348"
   ],
   "problems": {
-    "d292": {
-      "title": "Token Bucket",
-      "state": "per user: tokens and the time of the last refill",
-      "event": "refill by elapsed time times rate, cap at capacity, take one or refuse",
-      "invariant": "tokens never exceed capacity; a user never gets more than rate per second on average",
+    "2043": {
+      "title": "Simple Bank System",
+      "rating": 1356.2,
+      "state": "balance per account",
+      "event": "check the account numbers and the balance, then move the money",
+      "invariant": "a balance never goes below zero; an invalid account changes nothing",
+      "source": "research/doocs-leetcode/solution/2000-2099/2043.Simple Bank System/README_EN.md",
       "from": null,
       "change": null
     },
-    "d297": {
-      "title": "Hits In The Last Minute",
-      "state": "per user: a deque of the timestamps inside the window",
-      "event": "pop the front while it is out of the window, append now, return the length",
-      "invariant": "the deque holds exactly the hits inside the window",
-      "from": "d292",
-      "change": "per-user state is a deque of timestamps instead of two numbers; the window is kept by evicting the front"
+    "1656": {
+      "title": "Design an Ordered Stream",
+      "rating": 1418.8,
+      "state": "a slot per id and a pointer to the first empty slot",
+      "event": "insert fills its slot, then releases from the pointer while the slot is filled",
+      "invariant": "every id below the pointer has been released, in id order",
+      "source": "research/doocs-leetcode/solution/1600-1699/1656.Design an Ordered Stream/README_EN.md",
+      "from": "2043",
+      "change": "the check is a gap in the ids, not a balance; out-of-order arrivals wait in their slot until the gap fills"
     },
-    "d289": {
-      "title": "Order Status From Events",
-      "state": "last seq, open qty and status per order; open total per user",
-      "event": "apply only when seq is greater than the last applied; add the delta to the user's total",
-      "invariant": "a duplicate or stale event changes nothing",
-      "from": "d297",
-      "change": "the key is an order and events change its state; a sequence number drops duplicates and stale events"
+    "1396": {
+      "title": "Design Underground System",
+      "rating": 1464.5,
+      "state": "per rider: the open check-in; per route: total time and trip count",
+      "event": "check-out closes the rider's record and adds its time to the route",
+      "invariant": "the average is total divided by count, never recomputed from trips",
+      "source": "research/doocs-leetcode/solution/1300-1399/1396.Design Underground System/README_EN.md",
+      "from": "2043",
+      "change": "two tables: per-key open state, and an aggregate kept as a running sum"
     },
-    "d290": {
-      "title": "Reorder A Late Feed",
-      "state": "a heap of (ts, value); the watermark = max ts seen - L",
-      "event": "push holds, raises the watermark, releases the heap up to it; a push below the watermark is dropped",
-      "invariant": "released timestamps never go backwards",
-      "from": "d289",
-      "change": "out-of-order events are held in a heap until the watermark passes them, instead of dropped"
+    "1797": {
+      "title": "Design Authentication Manager",
+      "rating": 1534.1,
+      "state": "expiry time per token",
+      "event": "generate sets now + ttl; renew does the same only while unexpired; count scans the expiries",
+      "invariant": "a token is live exactly when its expiry is after now",
+      "source": "research/doocs-leetcode/solution/1700-1799/1797.Design Authentication Manager/README_EN.md",
+      "from": "1396",
+      "change": "the record is a time, and the check compares it with now"
     },
-    "d293": {
-      "title": "Cache With Expiry",
-      "state": "value and expiry per key; a heap of (expiry, key)",
-      "event": "get checks the expiry; expire pops due entries, skipping stale ones",
-      "invariant": "an entry is never returned at or after its expiry",
-      "from": "d290",
-      "change": "the heap holds expiries instead of timestamps, and a re-set key leaves a stale entry to skip"
+    "d292": {
+      "title": "Token Bucket",
+      "state": "per user: tokens and the time of the last refill",
+      "event": "refill by elapsed time times rate, cap at capacity, take a token or refuse",
+      "invariant": "tokens never exceed capacity; a user never gets more than rate per second on average",
+      "from": "1797",
+      "change": "time refills a count instead of expiring a record; the refuse is the rate limit"
     },
-    "d296": {
-      "title": "Match An Order",
-      "state": "the OrderBook from dsa/order_book.py",
-      "event": "place takes from the other side's best level while the prices cross, then rests the remainder",
-      "invariant": "best price first, earliest order first at one price; a fill is at the resting price",
-      "from": "d293",
-      "change": "the heap is a heap of prices per side with a queue at each price; a loop on best and fill is the whole match"
+    "981": {
+      "title": "Time Based Key-Value Store",
+      "rating": 1574.8,
+      "state": "per key: the list of (time, value) in set order",
+      "event": "set appends; get binary-searches for the last time at or before the query",
+      "invariant": "each key's list is sorted by time because set times strictly increase",
+      "source": "research/doocs-leetcode/solution/0900-0999/0981.Time Based Key-Value Store/README_EN.md",
+      "from": "1797",
+      "change": "keep every version with its time instead of the latest; read by binary search"
     },
-    "d288": {
-      "title": "Price Levels",
-      "state": "per side: a queue per price, a heap of prices, a level total; orders by id",
-      "event": "add rests; cancel sets the remaining quantity to 0; best drops dead heads and empty levels; fill takes from the head",
-      "invariant": "the top of the heap is a live level with a live head, after best",
-      "from": "d296",
-      "change": "the structure Match An Order was given: write add, cancel, best and fill yourself"
+    "146": {
+      "title": "LRU Cache",
+      "rating": 1681.0,
+      "state": "a dict from key to node, and a doubly linked list in recency order",
+      "event": "get moves the node to the front; put inserts at the front and evicts the tail over capacity",
+      "invariant": "the list order is the recency order, and the dict and the list hold the same keys",
+      "source": "research/doocs-leetcode/solution/0100-0199/0146.LRU Cache/README_EN.md",
+      "from": "981",
+      "change": "eviction, by use instead of by time; the order lives in a linked list so a move is O(1)"
     },
-    "d298": {
-      "title": "Reserve Liability",
-      "state": "per user: balance and reserved liability; per open order: user and liability",
-      "event": "place reserves the worst-case loss or refuses; cancel releases it",
-      "invariant": "reserved never exceeds the balance",
-      "from": "d288",
-      "change": "per-user money instead of per-market orders: an order reserves its worst-case loss, cancel releases it"
+    "1801": {
+      "title": "Number of Orders in the Backlog",
+      "rating": 1711.1,
+      "state": "a max-heap of buy orders and a min-heap of sell orders",
+      "event": "a new order takes from the other side's top while the prices cross; what is left rests on its own heap",
+      "invariant": "the heaps hold only unmatched orders and each top is that side's best price",
+      "source": "research/doocs-leetcode/solution/1800-1899/1801.Number of Orders in the Backlog/README_EN.md",
+      "from": "146",
+      "change": "two heaps instead of a list; matching is a loop on the other side's top"
     },
-    "d291": {
-      "title": "Settle Once",
-      "state": "balances; the bets per market; seen event ids; winner per market",
-      "event": "settle pays stake * odds to the winners once",
-      "invariant": "a replayed event changes nothing; a market settles at most once",
-      "from": "d289",
-      "change": "dedupe by an event id in a set instead of a sequence number; the state that changes is money"
+    "2034": {
+      "title": "Stock Price Fluctuation",
+      "rating": 1831.9,
+      "state": "price per timestamp, the latest timestamp, and a max-heap and min-heap of (price, timestamp)",
+      "event": "update overwrites the price for its timestamp; maximum and minimum pop the top while it disagrees with the table",
+      "invariant": "a heap top is answered only when the table still holds that price at that timestamp",
+      "source": "research/doocs-leetcode/solution/2000-2099/2034.Stock Price Fluctuation/README_EN.md",
+      "from": "1801",
+      "change": "updates arrive out of order and correct earlier ones; the table is the truth and stale heap entries are skipped when they surface"
     },
-    "d299": {
-      "title": "Void A Market",
-      "state": "balances; the bets per market; winner per settled market; seen event ids; void markets",
-      "event": "void returns every stake, takes back the payout if settled, once",
-      "invariant": "a replayed event changes nothing; a market is undone at most once",
-      "from": "d291",
-      "change": "the reverse of settle: take back the payout and return every stake, guarded the same way"
+    "3508": {
+      "title": "Implement Router",
+      "rating": 1851.2,
+      "state": "a set of packets in the router, a FIFO deque with a capacity, and per destination a timestamp list plus a count of forwarded packets",
+      "event": "add refuses a duplicate and evicts the oldest at capacity; forward pops the front; getCount binary-searches the timestamps",
+      "invariant": "the set holds exactly the packets in the deque",
+      "source": "research/doocs-leetcode/solution/3500-3599/3508.Implement Router/README_EN.md",
+      "from": "2034",
+      "change": "dedupe by a key in a set, and a capacity that evicts the oldest; the count query is a binary search over times"
     },
-    "d294": {
-      "title": "Lost Update",
-      "state": "balance and version per account",
-      "event": "debit checks the caller's version against the current one, then the funds, then writes and bumps",
-      "invariant": "two writers that read the same version cannot both succeed",
-      "from": "d298",
-      "change": "two callers at once on one balance; the version number is what makes the second write fail"
-    },
-    "d295": {
-      "title": "Most Active Users In The Last Day",
-      "state": "the Bets table",
-      "event": "filter by a window computed from now, group by user, order by count then id",
-      "invariant": "a bet exactly 24 hours old counts",
-      "from": "d297",
-      "change": "the window question in SQL: the per-user count is a GROUP BY, the window is date arithmetic"
+    "1348": {
+      "title": "Tweet Counts Per Frequency",
+      "rating": 2036.7,
+      "state": "per name: the sorted times of its records",
+      "event": "record inserts a time; the query counts each bucket by two binary searches",
+      "invariant": "each name's times stay sorted",
+      "source": "research/doocs-leetcode/solution/1300-1399/1348.Tweet Counts Per Frequency/README_EN.md",
+      "from": "981",
+      "change": "a count per window bucket instead of a single lookup; the window is sliced by binary search"
     }
   }
 }
