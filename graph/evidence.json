@@ -36370,6 +36370,19 @@
       "judge": "deepseek-chat",
       "note": "99.9% and 99.99% yearly downtimes given only as raw minute counts (525.6 and 52.56 min) rather than 8h45m57s and 52m36s; sequence formula A*B = 0.998001 correct; parallel formula 1-(1-A)(1-B) written but result left unevaluated and the candidate's own note says 'parallel wrong'.",
       "seconds": 918
+    },
+    "solved/d_Total_Users_Per_Contest_2026_10_07T01_02_21_010264_00_00Z.py": {
+      "date": "2026-10-07",
+      "problem": "drill",
+      "moves": {
+        "sql-subquery": "clean"
+      },
+      "assist": {
+        "sql-subquery": "learning"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The query selects contest_id from Register and attaches a scalar subquery (select count(*) from Users) as total_users, so the user count is computed at run time from the Users table rather than hard-coded or joined into the grouped query. The scalar subquery is the target move and it ran correctly, producing the expected output for both examples.",
+      "seconds": 322
     }
   }
 }
