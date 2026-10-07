@@ -36468,6 +36468,20 @@
       "note": "LeetCode Accepted (3 ms, 19.9 MB); notes say Learning.",
       "summary": "OrderedStream stores values in a fixed array indexed by idKey (table(n+1, fill=None)) and keeps a ptr at the next expected id. insert writes the value at its index, then advances ptr while the slot is filled, collecting the contiguous run into out. This exercises value-indexed bucket storage plus a read pointer that only moves forward, matching the accepted submission.",
       "seconds": 342
+    },
+    "solved/p1396_Design_Underground_System_2026_10_07T23_17_57_483331_00_00Z.py": {
+      "date": "2026-10-08",
+      "problem": "1396",
+      "moves": {
+        "dict-arbitrary-value": "clean",
+        "streaming-ask-then-record": "clean",
+        "running-sum": "clean",
+        "derived-key-lookup": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LeetCode: Accepted (29 ms, 29.3 MB)",
+      "summary": "The UndergroundSystem class keeps a per-customer dict data mapping id to (station, check-in time), and a defaultdict travels keyed by (start, end) station pair holding each trip's duration. checkIn records the customer's station and time; checkOut looks up the past check-in, computes t - start_time, deletes the entry, and appends the duration to the pair's list. getAverageTime returns sum(travels)/len(travels) for the requested pair. The run exited 0 and LeetCode reports Accepted.",
+      "seconds": 922
     }
   }
 }
