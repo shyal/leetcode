@@ -36383,6 +36383,20 @@
       "judge": "deepseek-chat",
       "summary": "The query selects contest_id from Register and attaches a scalar subquery (select count(*) from Users) as total_users, so the user count is computed at run time from the Users table rather than hard-coded or joined into the grouped query. The scalar subquery is the target move and it ran correctly, producing the expected output for both examples.",
       "seconds": 322
+    },
+    "solved/d_Keep_Smallest_Id_Per_Email_2026_10_07T01_06_08_768674_00_00Z.py": {
+      "date": "2026-10-07",
+      "problem": "drill",
+      "moves": {
+        "sql-dedupe-keep-one": "clean",
+        "sql-group-aggregate": "clean"
+      },
+      "assist": {
+        "sql-dedupe-keep-one": "learning"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The query selects min(id) as id and email from Person grouped by email, so each email keeps its smallest id in one pass. This exercises sql-dedupe-keep-one together with sql-group-aggregate, and both example assertions passed. The notes are empty and the file is marked Learning.",
+      "seconds": 181
     }
   }
 }
