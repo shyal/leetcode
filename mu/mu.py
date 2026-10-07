@@ -145,6 +145,9 @@ class Py(str):
     call = False  # a call that dropped its brackets, `f x`
     convert = None  # the line after `int(a), b = ...` that converts a
     orparts = None  # (x, d) when the expression is exactly x or d
+    cmpparts: "tuple[str, str, str] | None" = (
+        None  # (a, op, b) when the expression is exactly a op b
+    )
 
 
 class Decorated(tuple):
@@ -1133,7 +1136,7 @@ class Parser:
         while self.at(","):
             self.next()
             parts.append(self.expr())
-        return ", ".join(parts)
+        return parts[0] if len(parts) == 1 else ", ".join(parts)
 
     def expr(self):
         e = self.or_()
@@ -1197,7 +1200,9 @@ class Parser:
                     op = "is not"
             else:
                 return e
-            e = Py(f"{e} {op} {self.range_()}")
+            lhs, rhs = e, self.range_()
+            e = Py(f"{lhs} {op} {rhs}")
+            e.cmpparts = None if getattr(lhs, "cmpparts", None) else (lhs, op, rhs)
 
     def range_(self):
         e = self.bitor()
@@ -1873,7 +1878,18 @@ class Emitter:
         elif kind == "del":
             self.out(ind, f"del {s[1]}")
         elif kind == "assert":
-            self.out(ind, f"assert {s[1]}")
+            parts = getattr(s[1], "cmpparts", None)
+            if parts:
+                # both sides are evaluated once, so the message on a fail
+                # shows the values the assert saw, not a second run of them
+                lhs, op, rhs = parts
+                self.out(ind, f"_l, _r = {lhs}, {rhs}")
+                msg = "left : {_l!r}\\nright: {_r!r}" + (
+                    "" if op == "==" else f"\\nop   : {op}"
+                )
+                self.out(ind, f'assert _l {op} _r, f"{msg}"')
+            else:
+                self.out(ind, f"assert {s[1]}")
         elif kind == "expr":
             self.out(ind, last.format(s[1]) if last else s[1])
         elif kind == "tail" and last:

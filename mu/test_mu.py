@@ -960,3 +960,28 @@ def test_a_lambda_may_name_no_argument():
     exec(transpile(src), ns)
     assert ns["Solution"]().f([1, 5]) == [2, 10, 5, 1]
     assert fmt(src) == src
+
+
+def test_assert_compares_values_it_saw_once():
+    """`assert a == b` evaluates each side once and names both values on a
+    fail, so a side with side effects is not run a second time."""
+    out = transpile(
+        "def f(x: int) -> int\n  x + 1\n\nassert f(1) == 2\nassert f(1) is true\n"
+    )
+    assert "_l, _r = f(1), 2\n" in out
+    assert 'assert _l == _r, f"left : {_l!r}\\nright: {_r!r}"' in out
+    assert 'assert _l is _r, f"left : {_l!r}\\nright: {_r!r}\\nop   : is"' in out
+    src = "calls = []\n\ndef g() -> bool\n  calls <- 1\n  len(calls) == 1\n\nassert Solution().g() == false\n"
+    ns = {}
+    try:
+        exec(transpile(src), ns)
+    except AssertionError as err:
+        assert str(err) == "left : True\nright: False"
+    assert len(ns["calls"]) == 1
+    # a chained comparison, a message and a boolean expression keep the plain form
+    out = transpile(
+        "assert 1 < f(1) < 3\nassert f(1) == 2, 'msg'\nassert f(1) == 2 or f(2) == 3\n"
+    )
+    assert "assert 1 < f(1) < 3\n" in out
+    assert "assert f(1) == 2, 'msg'\n" in out
+    assert "assert f(1) == 2 or f(2) == 3\n" in out
