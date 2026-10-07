@@ -1,8 +1,10 @@
 {
-  "_comment": "A chain: a senior backend live-coding round, as real LeetCode design problems. Each keeps some state, changes it on a call, and has a rule that must stay true. Solve them in order, in one sitting, talking as in the interview: restate the problem, state the rule, write the simplest solution that works, say where it breaks, fix it, test it, then say what changes at ten times the load. state = what is kept, event = what happens on a call, invariant = what must stay true. Rebuilt 2026-10-08 from the cached editorials in research/doocs-leetcode (the 2026-10-07 draft of invented drills was withdrawn: the questions were made up and the seq rule in Order Status From Events was incoherent). The ordering follows the clist rating. Token Bucket (d292) is the rate limiter question, which has no LeetCode number; it is the standard form from the sources on its node.",
+  "_comment": "A chain: a senior backend live-coding round, as real LeetCode design problems. Each keeps some state, changes it on a call, and has a rule that must stay true. Solve them in order, in a single sitting, talking as in the interview: restate the problem, state the rule, write the simplest solution that works, say where it breaks, fix it, test it, then say what changes at ten times the load. state = what is kept, event = what happens on a call, invariant = what must stay true. Rebuilt 2026-10-08 from the cached editorials in research/doocs-leetcode (the 2026-10-07 draft of invented drills was withdrawn: the questions were made up and the seq rule in Order Status From Events was incoherent). The ordering follows the clist rating. The drills (d292 Token Bucket, d298 Reserve Liability, d294 Lost Update, d291 Settle Once, d299 Void A Market) carry the principles no LeetCode problem covers: rate limiting, reserving against a balance, the version check against a lost update, and idempotency on money; each is the standard form from the sources on its node.",
   "base": "2043",
   "order": [
     "2043",
+    "d298",
+    "d294",
     "1656",
     "1396",
     "1797",
@@ -12,6 +14,8 @@
     "1801",
     "2034",
     "3508",
+    "d291",
+    "d299",
     "1348"
   ],
   "problems": {
@@ -122,6 +126,38 @@
       "source": "research/doocs-leetcode/solution/1300-1399/1348.Tweet Counts Per Frequency/README_EN.md",
       "from": "981",
       "change": "a count per window bucket instead of a single lookup; the window is sliced by binary search"
+    },
+    "d298": {
+      "title": "Reserve Liability",
+      "state": "per user: balance and reserved liability; per open order: user and liability",
+      "event": "place reserves the worst-case loss or refuses; cancel releases it",
+      "invariant": "reserved never exceeds the balance",
+      "from": "2043",
+      "change": "reserve the worst-case loss instead of deducting; available is balance minus reserved"
+    },
+    "d294": {
+      "title": "Lost Update",
+      "state": "balance and version per account",
+      "event": "debit checks the caller's version against the account's current version, then the funds, then writes and bumps",
+      "invariant": "two writers that read the same version cannot both succeed",
+      "from": "d298",
+      "change": "two writers read the same balance; a version number makes the second write fail"
+    },
+    "d291": {
+      "title": "Settle Once",
+      "state": "balances; the bets per market; seen event ids; winner per market",
+      "event": "settle pays stake * odds to the winners once",
+      "invariant": "a replayed event changes nothing; a market settles at most once",
+      "from": "3508",
+      "change": "dedupe by event id in a set, and the state that changes is money; a market pays once"
+    },
+    "d299": {
+      "title": "Void A Market",
+      "state": "balances; the bets per market; winner per settled market; seen event ids; void markets",
+      "event": "void returns every stake, takes back the payout if settled, once",
+      "invariant": "a replayed event changes nothing; a market is undone at most once",
+      "from": "d291",
+      "change": "the reverse of settle: take back the payout and return every stake, guarded the same way"
     }
   }
 }

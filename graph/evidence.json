@@ -36440,6 +36440,18 @@
       },
       "pending": "2026-10-07T10:53:36+00:00",
       "seconds": 921
+    },
+    "solved/p2043_Simple_Bank_System_2026_10_07T20_55_58_786460_00_00Z.py": {
+      "date": "2026-10-08",
+      "problem": "2043",
+      "moves": {
+        "dict-arbitrary-value": "clean",
+        "index-conversion": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Uses a 1-indexed list (self.b = [0] + balance) rather than a dict; account validity via 0 < n < len(self.b).",
+      "summary": "The Bank class stores balances in a 1-indexed list built by prepending a 0, so account numbers map directly to list indices. accountIsValid checks 0 < n < len(self.b), and transfer, deposit, and withdraw each validate accounts and sufficient funds before mutating balances. The code exercises index conversion (account number to list position) and the arbitrary-value mapping idea, though via a list rather than a dict. LeetCode accepted it at 23 ms.",
+      "seconds": 497
     }
   }
 }
