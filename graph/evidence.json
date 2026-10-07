@@ -36452,6 +36452,22 @@
       "note": "Uses a 1-indexed list (self.b = [0] + balance) rather than a dict; account validity via 0 < n < len(self.b).",
       "summary": "The Bank class stores balances in a 1-indexed list built by prepending a 0, so account numbers map directly to list indices. accountIsValid checks 0 < n < len(self.b), and transfer, deposit, and withdraw each validate accounts and sufficient funds before mutating balances. The code exercises index conversion (account number to list position) and the arbitrary-value mapping idea, though via a list rather than a dict. LeetCode accepted it at 23 ms.",
       "seconds": 497
+    },
+    "solved/p1656_Design_an_Ordered_Stream_2026_10_07T21_31_43_517373_00_00Z.py": {
+      "date": "2026-10-08",
+      "problem": "1656",
+      "moves": {
+        "counting-sort-buckets": "clean",
+        "two-pointers-read-write": "clean"
+      },
+      "assist": {
+        "counting-sort-buckets": "learning",
+        "two-pointers-read-write": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "LeetCode Accepted (3 ms, 19.9 MB); notes say Learning.",
+      "summary": "OrderedStream stores values in a fixed array indexed by idKey (table(n+1, fill=None)) and keeps a ptr at the next expected id. insert writes the value at its index, then advances ptr while the slot is filled, collecting the contiguous run into out. This exercises value-indexed bucket storage plus a read pointer that only moves forward, matching the accepted submission.",
+      "seconds": 342
     }
   }
 }
