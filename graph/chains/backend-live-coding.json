@@ -1,0 +1,116 @@
+{
+  "_comment": "A chain: a senior backend live-coding round, as drills. The recruiter said problem solving rather than algorithms, so each drill is a small backend component with an invariant to keep. Solve them in order, in one sitting, talking as in the interview: restate the problem, state the invariant, write the simplest solution that works, say where it breaks, fix it, test it, then say what changes at ten times the load. state = what is kept, event = what happens on a call, invariant = what must stay true. Drafted 2026-10-07 from the sources named on each node in nodes.json. The order book is two drills because the round asks for best and cancel first and matching after; settlement is three because place, settle and void are three invariants.",
+  "base": "d292",
+  "order": [
+    "d292",
+    "d297",
+    "d289",
+    "d290",
+    "d293",
+    "d296",
+    "d288",
+    "d298",
+    "d291",
+    "d299",
+    "d294",
+    "d295"
+  ],
+  "problems": {
+    "d292": {
+      "title": "Token Bucket",
+      "state": "per user: tokens and the time of the last refill",
+      "event": "refill by elapsed time times rate, cap at capacity, take one or refuse",
+      "invariant": "tokens never exceed capacity; a user never gets more than rate per second on average",
+      "from": null,
+      "change": null
+    },
+    "d297": {
+      "title": "Hits In The Last Minute",
+      "state": "per user: a deque of the timestamps inside the window",
+      "event": "pop the front while it is out of the window, append now, return the length",
+      "invariant": "the deque holds exactly the hits inside the window",
+      "from": "d292",
+      "change": "per-user state is a deque of timestamps instead of two numbers; the window is kept by evicting the front"
+    },
+    "d289": {
+      "title": "Order Status From Events",
+      "state": "last seq, open qty and status per order; open total per user",
+      "event": "apply only when seq is greater than the last applied; add the delta to the user's total",
+      "invariant": "a duplicate or stale event changes nothing",
+      "from": "d297",
+      "change": "the key is an order and events change its state; a sequence number drops duplicates and stale events"
+    },
+    "d290": {
+      "title": "Reorder A Late Feed",
+      "state": "a heap of (ts, value); the watermark = max ts seen - L",
+      "event": "push holds, raises the watermark, releases the heap up to it; a push below the watermark is dropped",
+      "invariant": "released timestamps never go backwards",
+      "from": "d289",
+      "change": "out-of-order events are held in a heap until the watermark passes them, instead of dropped"
+    },
+    "d293": {
+      "title": "Cache With Expiry",
+      "state": "value and expiry per key; a heap of (expiry, key)",
+      "event": "get checks the expiry; expire pops due entries, skipping stale ones",
+      "invariant": "an entry is never returned at or after its expiry",
+      "from": "d290",
+      "change": "the heap holds expiries instead of timestamps, and a re-set key leaves a stale entry to skip"
+    },
+    "d296": {
+      "title": "Match An Order",
+      "state": "the OrderBook from dsa/order_book.py",
+      "event": "place takes from the other side's best level while the prices cross, then rests the remainder",
+      "invariant": "best price first, earliest order first at one price; a fill is at the resting price",
+      "from": "d293",
+      "change": "the heap is a heap of prices per side with a queue at each price; a loop on best and fill is the whole match"
+    },
+    "d288": {
+      "title": "Price Levels",
+      "state": "per side: a queue per price, a heap of prices, a level total; orders by id",
+      "event": "add rests; cancel sets the remaining quantity to 0; best drops dead heads and empty levels; fill takes from the head",
+      "invariant": "the top of the heap is a live level with a live head, after best",
+      "from": "d296",
+      "change": "the structure Match An Order was given: write add, cancel, best and fill yourself"
+    },
+    "d298": {
+      "title": "Reserve Liability",
+      "state": "per user: balance and reserved liability; per open order: user and liability",
+      "event": "place reserves the worst-case loss or refuses; cancel releases it",
+      "invariant": "reserved never exceeds the balance",
+      "from": "d288",
+      "change": "per-user money instead of per-market orders: an order reserves its worst-case loss, cancel releases it"
+    },
+    "d291": {
+      "title": "Settle Once",
+      "state": "balances; the bets per market; seen event ids; winner per market",
+      "event": "settle pays stake * odds to the winners once",
+      "invariant": "a replayed event changes nothing; a market settles at most once",
+      "from": "d289",
+      "change": "dedupe by an event id in a set instead of a sequence number; the state that changes is money"
+    },
+    "d299": {
+      "title": "Void A Market",
+      "state": "balances; the bets per market; winner per settled market; seen event ids; void markets",
+      "event": "void returns every stake, takes back the payout if settled, once",
+      "invariant": "a replayed event changes nothing; a market is undone at most once",
+      "from": "d291",
+      "change": "the reverse of settle: take back the payout and return every stake, guarded the same way"
+    },
+    "d294": {
+      "title": "Lost Update",
+      "state": "balance and version per account",
+      "event": "debit checks the caller's version against the current one, then the funds, then writes and bumps",
+      "invariant": "two writers that read the same version cannot both succeed",
+      "from": "d298",
+      "change": "two callers at once on one balance; the version number is what makes the second write fail"
+    },
+    "d295": {
+      "title": "Most Active Users In The Last Day",
+      "state": "the Bets table",
+      "event": "filter by a window computed from now, group by user, order by count then id",
+      "invariant": "a bet exactly 24 hours old counts",
+      "from": "d297",
+      "change": "the window question in SQL: the per-user count is a GROUP BY, the window is date arithmetic"
+    }
+  }
+}

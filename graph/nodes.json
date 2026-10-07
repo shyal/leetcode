@@ -1896,6 +1896,129 @@
       "prereqs": [],
       "drill": "Scaling Numbers. Scaling Single Box. Scaling First Separation. Scaling Web Tier. Scaling Read Heavy Database. Scaling Autoscaling. Scaling Method.",
       "source": "https://github.com/donnemartin/system-design-primer/blob/master/solutions/system_design/scaling_aws/README.md"
+    },
+    {
+      "id": "order-book-levels",
+      "group": "backend",
+      "added": "2026-10-07",
+      "name": "Order book: price levels",
+      "desc": "A FIFO queue of order ids per price, a heap of prices per side, the quantity resting at each level. best drops cancelled orders and empty levels lazily; cancel sets an order's remaining quantity to 0; fill takes from the head of the best level.",
+      "hint": "Best price from the heap, earliest order from that level's queue; a cancelled order is dropped when it reaches the head.",
+      "prereqs": [
+        "heap-top-k"
+      ],
+      "drill": "Price Levels.",
+      "source": "https://tuna.is-a.dev/blog/order-book-matching-engine",
+      "refs": [
+        "dsa/order_book.py"
+      ]
+    },
+    {
+      "id": "order-book-match",
+      "group": "backend",
+      "added": "2026-10-07",
+      "name": "Order book: match an order",
+      "desc": "A new order consumes the other side's best level while the prices cross, earliest order first; each fill is at the resting price; what is left of the new order rests.",
+      "hint": "Loop: best of the other side, stop when it no longer crosses, fill from its head, then rest the remainder.",
+      "prereqs": [
+        "order-book-levels"
+      ],
+      "drill": "Match An Order.",
+      "source": "https://tuna.is-a.dev/blog/order-book-matching-engine"
+    },
+    {
+      "id": "event-state-by-seq",
+      "group": "backend",
+      "added": "2026-10-07",
+      "name": "Event state by sequence number",
+      "desc": "Per-key state from an at-least-once feed: an event is applied only when its sequence number is greater than the last applied for its key, so duplicates and stale events drop out.",
+      "hint": "Keep last seq per key and a running total per owner; update the total by the delta of open quantity.",
+      "prereqs": [
+        "derived-key-lookup"
+      ],
+      "drill": "Order Status From Events.",
+      "source": "https://microservices.io/post/microservices/patterns/2020/10/16/idempotent-consumer.html"
+    },
+    {
+      "id": "late-event-buffer",
+      "group": "backend",
+      "added": "2026-10-07",
+      "name": "Watermark buffer for late events",
+      "desc": "Buffer out-of-order events in a heap by timestamp; the watermark is the largest timestamp seen minus the allowed lateness; release everything at or below it, drop what arrives below it.",
+      "hint": "Watermark = max ts - L. Release while heap top <= watermark. A push at or below the watermark is too late.",
+      "prereqs": [
+        "heap-top-k"
+      ],
+      "drill": "Reorder A Late Feed.",
+      "source": "https://nightlies.apache.org/flink/flink-docs-stable/docs/concepts/time/"
+    },
+    {
+      "id": "idempotent-settlement",
+      "group": "backend",
+      "added": "2026-10-07",
+      "name": "Idempotent settlement",
+      "desc": "A set of seen event ids makes settle and void safe to replay; the market's state (settled, void) blocks a second settlement or a second void; void takes back the recorded payout and returns the stakes.",
+      "hint": "Check the event id first, then the market state, then move money. Keep the winner per market so void can undo the payout.",
+      "prereqs": [],
+      "drill": "Settle Once. Void A Market.",
+      "source": "https://www.conduktor.io/glossary/idempotent-consumer-pattern"
+    },
+    {
+      "id": "token-bucket-limit",
+      "group": "backend",
+      "added": "2026-10-07",
+      "name": "Token bucket rate limit",
+      "desc": "Per key: a token count and the time of the last refill. Refill lazily by elapsed time times rate, cap at capacity, then take one token or refuse.",
+      "hint": "Two numbers per key. Refill at the call from the elapsed time; no timer.",
+      "prereqs": [],
+      "drill": "Token Bucket.",
+      "source": "https://en.wikipedia.org/wiki/Token_bucket"
+    },
+    {
+      "id": "ttl-cache",
+      "group": "backend",
+      "added": "2026-10-07",
+      "name": "Cache with TTL expiry",
+      "desc": "Expiry per key plus a heap of (expiry, key); get checks expiry lazily; expire pops the heap while the top is due, skipping entries whose expiry no longer matches the key's.",
+      "hint": "A re-set key leaves a stale heap entry: compare the popped expiry with the key's current one before removing.",
+      "prereqs": [
+        "heap-top-k"
+      ],
+      "drill": "Cache With Expiry.",
+      "source": "https://redis.io/docs/latest/commands/expire/"
+    },
+    {
+      "id": "version-check-update",
+      "group": "backend",
+      "added": "2026-10-07",
+      "name": "Optimistic version check",
+      "desc": "Read returns a version with the value; a write succeeds only when the caller's version matches the current one, then bumps it. Two concurrent read-modify-writes cannot both succeed.",
+      "hint": "Compare the version inside the write, read the balance inside the write, never trust a balance the caller passes.",
+      "prereqs": [],
+      "drill": "Lost Update.",
+      "source": "https://vladmihalcea.com/a-beginners-guide-to-database-locking-and-the-lost-update-phenomena"
+    },
+    {
+      "id": "sliding-window-log",
+      "group": "backend",
+      "added": "2026-10-07",
+      "name": "Sliding window log",
+      "desc": "A deque of timestamps per key. On each hit, pop the front while it is outside the window, append the new timestamp; the length is the count in the window.",
+      "hint": "Evict from the front before counting; memory is the hits inside the window, nothing older.",
+      "prereqs": [],
+      "drill": "Hits In The Last Minute.",
+      "source": "https://www.figma.com/blog/an-alternative-approach-to-rate-limiting/"
+    },
+    {
+      "id": "liability-reserve",
+      "group": "backend",
+      "added": "2026-10-07",
+      "name": "Liability reserve",
+      "desc": "Per user: balance and the liability reserved on open orders; available = balance - reserved. A back order risks its stake, a lay order risks stake * (odds - 1). place refuses an order whose liability is above available, cancel releases it.",
+      "hint": "Reserve the worst-case loss on place, release it on cancel; the balance itself moves only at settlement.",
+      "prereqs": [],
+      "drill": "Reserve Liability.",
+      "source": "https://www.omnicalculator.com/other/matched-betting"
     }
   ]
 }

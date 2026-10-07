@@ -31,6 +31,10 @@ struct Step {
     change: Option<String>,
 }
 
+fn is_drill_id(id: &str) -> bool {
+    id.len() > 1 && id.starts_with('d') && id[1..].chars().all(|c| c.is_ascii_digit())
+}
+
 fn chain_names(dir: &Path) -> Vec<String> {
     let mut names: Vec<String> = std::fs::read_dir(dir)
         .map(|rd| {
@@ -85,14 +89,28 @@ fn stamp(fname: &str) -> &str {
 /// Walk the chain's solves in time order. Each solve adds its problem to the
 /// current lap; when the lap holds every problem, it counts as finished and
 /// empties. Returns the finished laps and the problems in the current one.
-fn laps(root: &Path, ev: &Evidence, name: &str, steps: &[Step]) -> (usize, HashSet<String>) {
+fn laps(ctx: &Ctx, ev: &Evidence, name: &str, steps: &[Step]) -> (usize, HashSet<String>) {
+    let root = &ctx.root;
     let note = format!("{}{name},", kg::data::COMBO_NOTE_PREFIX);
     let mut solves: Vec<(&str, &str)> = steps
         .iter()
         .flat_map(|st| {
-            ev.problem_recs(&st.id)
-                .into_iter()
-                .map(move |(_, f, _)| (f, st.id.as_str()))
+            // a drill id (d14) is keyed in the evidence by its bank file,
+            // a problem by its number
+            let files: Vec<&str> = if is_drill_id(&st.id) {
+                ctx.drill_path(&st.id)
+                    .map(|p| {
+                        let key = ctx.drill_evidence_key(&p);
+                        ev.drill_reps(&key)
+                            .iter()
+                            .map(|&i| ev.recs[ev.drills[i].2].0.as_str())
+                            .collect()
+                    })
+                    .unwrap_or_default()
+            } else {
+                ev.problem_recs(&st.id).into_iter().map(|(_, f, _)| f).collect()
+            };
+            files.into_iter().map(move |f| (f, st.id.as_str()))
         })
         .filter(|(f, _)| std::fs::read_to_string(root.join(f)).is_ok_and(|t| t.starts_with(&note)))
         .collect();
@@ -148,7 +166,7 @@ fn main() {
     }
     let steps = load_chain(&path);
     let ev = Evidence::new(recs);
-    let (laps, lap) = laps(&ctx.root, &ev, &name, &steps);
+    let (laps, lap) = laps(&ctx, &ev, &name, &steps);
     let done = |id: &str| lap.contains(id);
 
     let mut table = Table::bare(&["#", "problem", "this lap", "change"], true, 2);

@@ -153,6 +153,13 @@ fn main() {
     kg::hooks::gate(&ctx.root, "drill");
 
     let content = std::fs::read_to_string(&path).expect("read the drill");
+    // kg_combos passes the chain this drill belongs to, the way it does for
+    // a problem through prepare: the note at the top of the current file is
+    // what counts the solve toward the chain's lap
+    let content = match std::env::var("KG_COMBO_NOTE") {
+        Ok(note) if !note.is_empty() => format!("{note}\n{content}"),
+        _ => content,
+    };
     let title = Regex::new(&format!(
         r"(?m)^\s*{}DRILL:\s*(.+)$",
         kg::lang::comment_prefix()
