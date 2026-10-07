@@ -36421,6 +36421,16 @@
       "judge": "deepseek-chat",
       "note": "States the formula (1 - 0.999) * (360 * 24 * 60) but never gives the required yearly downtime figure (8h 45m 57s, ~526 minutes); the 360-day year also yields 525,600 minutes only by coincidence of the reference's own 360*24*60.",
       "seconds": 102
+    },
+    "solved/d_Token_Bucket_2026_10_07T10_38_14_796970_00_00Z.py": {
+      "date": "2026-10-07",
+      "problem": "drill",
+      "moves": {
+        "token-bucket-limit": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The Solution class keeps per-user token counts and last-refill timestamps in two dicts, lazily refilling by elapsed time times rate, capping at capacity, then taking one token or refusing. This is exactly the token-bucket-limit move: O(1) per call, O(1) state per user, no timer or full pass. All assertions passed and the run exited 0.",
+      "seconds": 945
     }
   }
 }
