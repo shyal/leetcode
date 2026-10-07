@@ -36482,6 +36482,18 @@
       "note": "LeetCode: Accepted (29 ms, 29.3 MB)",
       "summary": "The UndergroundSystem class keeps a per-customer dict data mapping id to (station, check-in time), and a defaultdict travels keyed by (start, end) station pair holding each trip's duration. checkIn records the customer's station and time; checkOut looks up the past check-in, computes t - start_time, deletes the entry, and appends the duration to the pair's list. getAverageTime returns sum(travels)/len(travels) for the requested pair. The run exited 0 and LeetCode reports Accepted.",
       "seconds": 922
+    },
+    "solved/p1797_Design_Authentication_Manager_2026_10_07T23_24_42_013294_00_00Z.py": {
+      "date": "2026-10-08",
+      "problem": "1797",
+      "moves": {
+        "dict-arbitrary-value": "clean",
+        "ttl-cache": "struggled"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Wrong Answer (72/91 cases) \u2014 renew does not check expiry, so an expired token is renewed instead of ignored.",
+      "summary": "The class stores each tokenId mapped to the time it was generated or last renewed in self.tokens, and countUnexpiredTokens filters that dict for entries whose stored time plus ttl is still greater than currentTime. generate records the current time and renew overwrites it whenever the tokenId is present. The defect is in renew: it never checks whether the existing token has already expired, so an expired token gets renewed, which is the expiry-checking move the ttl-cache node covers. The local asserts on the example pass, but the submission was rejected with Wrong Answer on 72/91 cases.",
+      "seconds": 296
     }
   }
 }
