@@ -36494,6 +36494,17 @@
       "note": "LEETCODE: Wrong Answer (72/91 cases) \u2014 renew does not check expiry, so an expired token is renewed instead of ignored.",
       "summary": "The class stores each tokenId mapped to the time it was generated or last renewed in self.tokens, and countUnexpiredTokens filters that dict for entries whose stored time plus ttl is still greater than currentTime. generate records the current time and renew overwrites it whenever the tokenId is present. The defect is in renew: it never checks whether the existing token has already expired, so an expired token gets renewed, which is the expiry-checking move the ttl-cache node covers. The local asserts on the example pass, but the submission was rejected with Wrong Answer on 72/91 cases.",
       "seconds": 296
+    },
+    "solved/p981_Time_Based_Key-Value_Store_2026_10_07T23_50_36_735149_00_00Z.py": {
+      "date": "2026-10-08",
+      "problem": "981",
+      "moves": {
+        "dict-arbitrary-value": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "get() sorts the key's timestamps on every call and scans in reverse instead of binary-searching the sorted timestamp list; LeetCode Accepted at 8282 ms.",
+      "summary": "TimeMap stores a nested defaultdict of key -> {timestamp: value} in set(), and get() checks for an exact timestamp hit, otherwise sorts the timestamps and scans in reverse for the largest one <= timestamp. The dict-as-store move is exercised, but the canonical binary-search-boundary lookup over the strictly increasing timestamps is sidestepped by a per-call sort and linear scan. The notes are empty; LeetCode reports Accepted at 8282 ms.",
+      "seconds": 1044
     }
   }
 }

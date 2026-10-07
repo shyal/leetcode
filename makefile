@@ -161,10 +161,14 @@ drop:
 # done. Seconds, not the judge's minute. Ctrl-C anywhere: re-run
 # `make solved`, every step resumes (utils/rs/kg_solved). Last, the Claude
 # Code pane follows the branch back to master (detached).
+# The leetcode submission is a gate: any verdict but Accepted stops here,
+# with the verdict written into the file. `make solved FORCE=1` files the
+# solve whatever leetcode said. (A variable, not a word: `force` is the
+# constrained-solve target above, and make rejects `--force` itself.)
 solved: $(RS_BIN)/kg_solved $(RS_BIN)/kg_force $(RS_BIN)/kg_extract $(RS_BIN)/lc_submit $(RS_BIN)/kg_chat
 	@.venv/bin/python3 mu/session.py fold
 	@$(RS_BIN)/kg_force --check
-	@$(RS_BIN)/lc_submit --auto
+	@$(RS_BIN)/lc_submit --auto $(if $(FORCE),--force)
 	@$(RS_BIN)/kg_solved
 	@$(RS_BIN)/kg_extract --stub
 	@$(RS_BIN)/kg_solved --commit
