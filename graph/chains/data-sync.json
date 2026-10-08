@@ -1,0 +1,196 @@
+{
+  "_comment": "A chain: a main store plus side structures that must stay in step with it. Each problem keeps two or more containers, every write touches more than one of them, and a read trusts the side structure only while the main store agrees. The two ways to keep them in step are eager (fix the side structure on every write: 380, 146, 432, 460, 3508) and lazy (push a fresh entry, skip stale ones on read: 2349, 3885, 3408, 2034, 2353, 3815, 1172). Solve them in order, in a single sitting. state = what is kept, event = what happens on a call, invariant = what must stay true between calls. Built 2026-10-08 from the cached editorials in research/doocs-leetcode. The ordering follows the clist rating.",
+  "assist": "none",
+  "base": "2671",
+  "order": [
+    "2671",
+    "2349",
+    "3885",
+    "3829",
+    "3709",
+    "380",
+    "146",
+    "2353",
+    "3408",
+    "2034",
+    "3508",
+    "3815",
+    "432",
+    "381",
+    "460",
+    "895",
+    "1172"
+  ],
+  "problems": {
+    "2671": {
+      "title": "Frequency Tracker",
+      "rating": 1509.6,
+      "state": "cnt: count per number; freq: how many numbers have each count",
+      "event": "add and deleteOne take the number out of its old count's bucket, change cnt, and put it in the new bucket",
+      "invariant": "freq[c] is the number of keys whose cnt is c",
+      "source": "research/doocs-leetcode/solution/2600-2699/2671.Frequency Tracker/README_EN.md",
+      "from": null,
+      "change": null
+    },
+    "2349": {
+      "title": "Design a Number Container System",
+      "rating": 1540.2,
+      "state": "index to number; per number a min-heap of its indices",
+      "event": "change overwrites the index's number and pushes the index on the new number's heap; find pops the heap top while the table says it holds another number",
+      "invariant": "the table is the truth; a heap entry is valid only while the table agrees with it",
+      "source": "research/doocs-leetcode/solution/2300-2399/2349.Design a Number Container System/README_EN.md",
+      "from": "2671",
+      "change": "the second structure is a heap per key instead of a counter, and stale entries are left in it and skipped on read"
+    },
+    "3885": {
+      "title": "Design Event Manager",
+      "rating": 1548.0,
+      "state": "id to priority; a heap of (-priority, id)",
+      "event": "updatePriority writes the table and pushes a fresh pair; pollHighest pops the top while its priority disagrees with the table or the id is gone",
+      "invariant": "the top of the heap is answered only when the table still holds that priority for that id",
+      "source": "research/doocs-leetcode/solution/3800-3899/3885.Design Event Manager/README_EN.md",
+      "from": "2349",
+      "change": "a single heap instead of a heap per key, with the same lazy skip"
+    },
+    "3829": {
+      "title": "Design Ride Sharing System",
+      "rating": 1594.0,
+      "state": "a counter t; a sorted set of waiting riders and of free drivers as (t, id); rider id to its t",
+      "event": "add records (t, id) and bumps t; match pops the smallest t from both; cancel looks up the rider's t and removes that pair",
+      "invariant": "each waiting rider is in the set exactly once, under the t the table holds for it",
+      "source": "research/doocs-leetcode/solution/3800-3899/3829.Design Ride Sharing System/README_EN.md",
+      "from": "3885",
+      "change": "the side table exists so a delete by id can find its entry in the ordered set"
+    },
+    "3709": {
+      "title": "Design Exam Scores Tracker",
+      "rating": 1647.5,
+      "state": "times: the record times in order; pre: prefix sums of the scores, same length plus 1",
+      "event": "record appends to both; totalScore binary-searches the two ends in times and subtracts the two prefix sums",
+      "invariant": "pre[i] is the sum of the first i scores, and times is sorted because records arrive in time order",
+      "source": "research/doocs-leetcode/solution/3700-3799/3709.Design Exam Scores Tracker/README_EN.md",
+      "from": "2671",
+      "change": "two lists appended in step instead of two dicts; the read is a range query by binary search"
+    },
+    "380": {
+      "title": "Insert Delete GetRandom O(1)",
+      "rating": 1679.0,
+      "state": "a list of the values; value to its index in the list",
+      "event": "insert appends and records the index; remove moves the last value into the hole, fixes its index, and pops the end",
+      "invariant": "d[v] is the index of v in the list, for every v in the list",
+      "source": "research/doocs-leetcode/solution/0300-0399/0380.Insert Delete GetRandom O(1)/README_EN.md",
+      "from": "3709",
+      "change": "a delete in the middle of the list is made O(1) by swapping with the last entry and repairing the index of the moved value"
+    },
+    "146": {
+      "title": "LRU Cache",
+      "rating": 1681.0,
+      "state": "key to node; a doubly linked list of the nodes in recency order",
+      "event": "get moves the node to the front; put inserts at the front and evicts the tail over capacity",
+      "invariant": "the dict and the list hold the same keys, and the list order is the recency order",
+      "source": "research/doocs-leetcode/solution/0100-0199/0146.LRU Cache/README_EN.md",
+      "from": "380",
+      "change": "the list keeps an order instead of a position, so the side structure is a linked list and the dict points at nodes"
+    },
+    "2353": {
+      "title": "Design a Food Rating System",
+      "rating": 1781.8,
+      "state": "food to (rating, cuisine); per cuisine a heap of (-rating, food)",
+      "event": "changeRating writes the table and pushes a fresh pair; highestRated pops the top while its rating disagrees with the table",
+      "invariant": "a heap entry is answered only when the table still holds that rating for that food",
+      "source": "research/doocs-leetcode/solution/2300-2399/2353.Design a Food Rating System/README_EN.md",
+      "from": "2349",
+      "change": "the table carries two fields, and the heap key is a pair with a tie-break"
+    },
+    "3408": {
+      "title": "Design Task Manager",
+      "rating": 1806.5,
+      "state": "task id to (user, priority); a heap of (-priority, -task id)",
+      "event": "add and edit write the table and push a fresh pair; rmv deletes from the table only; execTop pops while the top is gone or stale",
+      "invariant": "a heap entry is valid only while the table holds that task at that priority",
+      "source": "research/doocs-leetcode/solution/3400-3499/3408.Design Task Manager/README_EN.md",
+      "from": "3885",
+      "change": "a delete arrives too; it touches the table only and the heap finds out on pop"
+    },
+    "2034": {
+      "title": "Stock Price Fluctuation",
+      "rating": 1831.9,
+      "state": "price per timestamp, the latest timestamp, and a max-heap and min-heap of (price, timestamp)",
+      "event": "update overwrites the price for its timestamp and pushes on both heaps; maximum and minimum pop the top while it disagrees with the table",
+      "invariant": "a heap top is answered only when the table still holds that price at that timestamp",
+      "source": "research/doocs-leetcode/solution/2000-2099/2034.Stock Price Fluctuation/README_EN.md",
+      "from": "3408",
+      "change": "two heaps over the same table, both read lazily"
+    },
+    "3508": {
+      "title": "Implement Router",
+      "rating": 1851.2,
+      "state": "a set of the packets in the router, a FIFO deque with a capacity, and per destination a deque of timestamps",
+      "event": "add refuses a duplicate and evicts the front at capacity; forward pops the front; both pop the destination's timestamp deque too; getCount binary-searches that deque",
+      "invariant": "the set holds exactly the packets in the deque, and each destination's deque holds exactly its packets' timestamps, in order",
+      "source": "research/doocs-leetcode/solution/3500-3599/3508.Implement Router/README_EN.md",
+      "from": "2034",
+      "change": "three structures; the side deques are popped eagerly, not lazily, because the packet leaving is always the oldest of its destination"
+    },
+    "3815": {
+      "title": "Design Auction System",
+      "rating": 1853.8,
+      "state": "per item a heap of (-amount, user); per user and item the current amount",
+      "event": "add, update and remove write the user table and push a fresh pair; getHighestBidder pops while the top disagrees with the user table",
+      "invariant": "a heap entry is valid only while the user table holds that amount for that user and item",
+      "source": "research/doocs-leetcode/solution/3800-3899/3815.Design Auction System/README_EN.md",
+      "from": "2353",
+      "change": "the table is two levels deep, user then item, and a removed bid leaves a stale entry to skip"
+    },
+    "432": {
+      "title": "All O`one Data Structure",
+      "rating": 1924.1,
+      "state": "key to its bucket node; a doubly linked list of buckets in count order, each bucket a count and a set of keys",
+      "event": "inc and dec move the key to the neighbouring bucket, creating it when missing and dropping a bucket that empties",
+      "invariant": "buckets are in strictly increasing count order and no bucket is empty, so the ends are the min and max",
+      "source": "research/doocs-leetcode/solution/0400-0499/0432.All O`one Data Structure/README_EN.md",
+      "from": "146",
+      "change": "the list holds groups of keys by count instead of single keys, and a key moves between neighbouring groups"
+    },
+    "381": {
+      "title": "Insert Delete GetRandom O(1) - Duplicates allowed",
+      "rating": 1956.2,
+      "state": "a list of the values; value to the set of its indices in the list",
+      "event": "insert appends and adds the index; remove takes an index of the value, moves the last value into it, fixes that value's index set, and pops the end",
+      "invariant": "d[v] is exactly the set of positions of v in the list",
+      "source": "research/doocs-leetcode/solution/0300-0399/0381.Insert Delete GetRandom O(1) - Duplicates allowed/README_EN.md",
+      "from": "380",
+      "change": "the index becomes a set of indices, and the swap must update the moved value's set before the removed value's set"
+    },
+    "460": {
+      "title": "LFU Cache",
+      "rating": 1978.9,
+      "state": "key to node; per count a doubly linked list of nodes in recency order; the smallest count in use",
+      "event": "get and put move the node from its count's list to the next count's list; eviction pops the tail of the list for the smallest count",
+      "invariant": "every key is in exactly the list of its count, and min_freq is the smallest non-empty count",
+      "source": "research/doocs-leetcode/solution/0400-0499/0460.LFU Cache/README_EN.md",
+      "from": "432",
+      "change": "the buckets are LRU lists, so the tie inside a count is broken by recency"
+    },
+    "895": {
+      "title": "Maximum Frequency Stack",
+      "rating": 2027.9,
+      "state": "count per value; per count a stack of the values that reached it; the largest count",
+      "event": "push adds the value to the stack of its new count; pop takes from the stack of the largest count and lowers the count",
+      "invariant": "the stack for count c holds, in push order, every value whose count is at least c",
+      "source": "research/doocs-leetcode/solution/0800-0899/0895.Maximum Frequency Stack/README_EN.md",
+      "from": "2671",
+      "change": "the count-of-counts becomes a stack per count, so a value sits in several stacks at once"
+    },
+    "1172": {
+      "title": "Dinner Plate Stacks",
+      "rating": 2110.0,
+      "state": "a list of stacks; a min-heap of the indices of stacks that are not full",
+      "event": "push goes to the smallest not-full index; popAtStack adds the index back; pop drops empty stacks off the end",
+      "invariant": "every stack with room is in the heap, and no index past the last stack is answered",
+      "source": "research/doocs-leetcode/solution/1100-1199/1172.Dinner Plate Stacks/README_EN.md",
+      "from": "3829",
+      "change": "the ordered side structure is a free list of slots, and entries past the end become stale"
+    }
+  }
+}
