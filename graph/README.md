@@ -402,6 +402,12 @@ and stays due; it is served once your elo comes within the band of its
 rating. A review rated below you, and one nothing rates, is never held. The
 footer of `make next` counts the held ones. Unset, every due review is served.
 
+`NO_REVIEWS=1` in `.envrc` (`drills::no_reviews`, 2026-10-09) turns reviews
+off outright: no pick is a problem you have solved before. Rule 2c serves
+nothing, a stale move gets a carrier it has never had instead of the spaced
+re-solve, and a move whose every carrier is solved waits. The cards stay open
+and due, the footer counts them, and unsetting the switch serves them again.
+
 `FIRST_SIGHT_WITHIN_BAND` in `.envrc` does the same for a problem you have
 never attempted (`pick::first_sights_outside_band`), on both sides: one
 rated more than that many points above or below your elo is excluded from

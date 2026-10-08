@@ -132,6 +132,10 @@
 //   Before this the same six steps lived in six rule bodies, each with its
 //   own copy of "due" and "how to get past a hold", and three holds in one
 //   evening each broke a rule that did not know them.
+//   NO_REVIEWS=1 (.envrc; drills::no_reviews, 2026-10-09): no pick is a
+//   problem he has solved before. Rule 2c serves nothing, step c never
+//   re-solves, and every carrier list is cut to problems with no solve.
+//   The review cards stay open; the footer counts them.
 //   2c. a problem on a review clock of its own (clock::problem_due), unless
 //      an "after" predecessor of it is not warm (the hold serves the
 //      predecessor's own review first) or it is rated more than
@@ -440,8 +444,12 @@ pub fn trivial_easies(
     today: NaiveDate,
 ) -> Vec<String> {
     let mut cands: Vec<(i64, (usize, usize), f64, String, String)> = Vec::new();
+    let no_reviews = crate::drills::no_reviews();
     for (pnum, p) in &pv.map {
         if ctx.unservable(pnum, p) || p.difficulty() != "Easy" || p.moves.is_empty() {
+            continue;
+        }
+        if no_reviews && !last_solved(ev, pnum).is_empty() {
             continue;
         }
         if !p
@@ -789,6 +797,7 @@ impl<'a> Picker<'a> {
                     let pm = pv.get(&pr).map(|p| p.moves.clone()).unwrap_or_default();
                     let hard = pv.get(&pr).is_some_and(|p| p.is_hard());
                     if hard
+                        || (crate::drills::no_reviews() && !last_solved(self.ev, &pr).is_empty())
                         || self.args.asleep.contains(&pr)
                         || self.args.exclude.contains(&pr)
                         || !cooled(self.ev, &pr, self.today)
@@ -1038,6 +1047,7 @@ impl<'a> Picker<'a> {
         if waiting != 0 {
             why.push_str(&format!("; {waiting} drafted problems wait on it"));
         }
+        let no_reviews = crate::drills::no_reviews();
         let mut cands: Vec<String> = {
             let pv = self.pv.borrow();
             proving_carriers(self.ctx, target, &pv, self.statuses, self.ev, self.today)
@@ -1046,6 +1056,7 @@ impl<'a> Picker<'a> {
                     !self.args.asleep.contains(c)
                         && !self.args.exclude.contains(c.as_str())
                         && cooled(self.ev, c, self.today)
+                        && !(no_reviews && !last_solved(self.ev, c).is_empty())
                 })
                 .collect()
         };
@@ -1200,12 +1211,14 @@ impl<'a> Picker<'a> {
             .filter(|c| last_solved(self.ev, c).is_empty())
             .cloned()
             .collect();
+        let no_reviews = crate::drills::no_reviews();
         let mut cands: Vec<String> = mapped
             .iter()
             .filter(|c| {
                 !self.args.asleep.contains(c)
                     && !self.args.exclude.contains(c.as_str())
                     && cooled(self.ev, c, self.today)
+                    && !(no_reviews && !last_solved(self.ev, c).is_empty())
             })
             .cloned()
             .collect();
@@ -1257,7 +1270,7 @@ impl<'a> Picker<'a> {
                     ),
                 ));
             }
-            if k == Kind::Stale && !deep {
+            if k == Kind::Stale && !deep && !no_reviews {
                 let carrier = latest_carrier(self.ev, n);
                 let pnum = match carrier {
                     Some((_, _, Some(p))) if cands.contains(&p) => p,
@@ -1341,6 +1354,9 @@ impl<'a> Picker<'a> {
 
     /// rule 2c: a problem on a review clock of its own.
     fn review(&self) -> Option<Choice> {
+        if crate::drills::no_reviews() {
+            return None;
+        }
         let pv = self.pv.borrow();
         for (pnum, _due, _interval) in review_queue(self.ctx, self.ev, &pv, self.today) {
             let trace = std::env::var("KG_TRACE").is_ok();
@@ -1682,6 +1698,7 @@ pub fn pick(
                     }
                     continue;
                 }
+                let no_reviews = crate::drills::no_reviews();
                 let mut cands: Vec<String> = {
                     let p = pv.borrow();
                     carriers_for(ctx, &target, &p, statuses, ev, today)
@@ -1690,6 +1707,7 @@ pub fn pick(
                             !args.asleep.contains(c)
                                 && !args.exclude.contains(c)
                                 && cooled(ev, c, today)
+                                && !(no_reviews && !last_solved(ev, c).is_empty())
                         })
                         .collect()
                 };

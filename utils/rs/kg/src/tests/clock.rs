@@ -1375,6 +1375,72 @@ fn a_review_above_the_band_is_held() {
     );
 }
 
+/// 2026-10-09: NO_REVIEWS=1 serves first sights only. A due review loses
+/// to a stale move; the stale move's spaced re-solve of its own carrier
+/// becomes a fresh carrier; a stale move whose every carrier is solved
+/// serves nothing; and the review queue the footer counts is unchanged.
+#[test]
+fn no_reviews_serves_first_sights_only() {
+    let mut fx = Fx::picker();
+    fx.nodes(&["q1", "q2"]).problems(vec![
+        ("1", problem(&["q1"])),
+        ("2", problem(&["q2"])),
+        ("3", problem(&["q2"])),
+    ]);
+    let st = statuses(&[("q1", SOLID, Some(1)), ("q2", STALE, Some(60))]);
+    let ev = evidence(vec![
+        assisted("1", &[("q1", "clean")], 30),
+        solve("2", &[("q2", "clean")], 60),
+        drill_rep("Any Drill", "q2", 3),
+    ]);
+    // the review of 1 outranks the re-solve of 2
+    assert_eq!(pnum(&fx.run(&ev, &st, args())), "1");
+    test_env("NO_REVIEWS", "1");
+    // no review, no re-solve: the stale move gets the carrier never solved
+    assert_eq!(t3(&fx.run(&ev, &st, args())), tup("q2", STALE, "3"));
+    assert_eq!(
+        review_queue(&fx.ctx(), &ev, &fx.pv(), today())
+            .into_iter()
+            .map(|(p, _, _)| p)
+            .collect::<Vec<_>>(),
+        strs(&["1"])
+    );
+    // every carrier of q2 solved: nothing to serve, no repeat
+    let ev = evidence(vec![
+        assisted("1", &[("q1", "clean")], 30),
+        solve("2", &[("q2", "clean")], 60),
+        solve("3", &[("q2", "clean")], 59),
+        drill_rep("Any Drill", "q2", 3),
+    ]);
+    assert!(fx.run(&ev, &st, args()).is_none());
+    test_env("NO_REVIEWS", "0");
+    assert_eq!(pnum(&fx.run(&ev, &st, args())), "1");
+}
+
+/// NO_REVIEWS reaches rule 0b too: the ground under a sleeping problem
+/// is warmed on a carrier never solved, and when every carrier is solved
+/// the sleeper's ground waits.
+#[test]
+fn no_reviews_warms_a_sleeper_on_a_fresh_carrier_only() {
+    let mut fx = Fx::picker();
+    fx.nodes(&["q1"]).problems(vec![
+        ("1", problem(&["q1"])),
+        ("2", problem(&["q1"])),
+        ("9", hard(&["q1"])),
+    ]);
+    let st = statuses(&[("q1", STALE, Some(60))]);
+    let a = || args().asleep(&["9"]);
+    let both = evidence(vec![
+        solve("1", &[("q1", "clean")], 61),
+        solve("2", &[("q1", "clean")], 60),
+    ]);
+    assert_eq!(t3(&fx.run(&both, &st, a())), tup("q1", STALE, "1"));
+    test_env("NO_REVIEWS", "1");
+    assert!(fx.run(&both, &st, a()).is_none());
+    let one = evidence(vec![solve("2", &[("q1", "clean")], 60)]);
+    assert_eq!(t3(&fx.run(&one, &st, a())), tup("q1", STALE, "1"));
+}
+
 #[test]
 fn a_paid_only_summit_is_never_offered() {
     let mut fx = Fx::picker();

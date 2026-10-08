@@ -1032,6 +1032,17 @@ pub fn reviews_first() -> bool {
     !(raw.is_empty() || raw == "0")
 }
 
+/// NO_REVIEWS: set to anything but "" or "0", the picker serves no problem
+/// he has solved before. Rule 2c is empty, the frontier's spaced re-solve
+/// and its "re-solve: no fresh carrier" fallback are skipped, and every
+/// candidate list is cut to problems with no solve (2026-10-09). The
+/// review cards stay open and due; the footer counts them.
+pub fn no_reviews() -> bool {
+    let raw = env_str("NO_REVIEWS");
+    let raw = raw.trim();
+    !(raw.is_empty() || raw == "0")
+}
+
 /// REVIEWS_WITHIN_BAND: a due problem review rated more than this many
 /// points above his elo is not served. Unset, every due review is.
 pub fn reviews_band() -> Option<f64> {

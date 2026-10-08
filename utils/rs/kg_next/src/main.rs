@@ -29,7 +29,7 @@ use kg::data::{load_envrc, repo_root};
 use kg::drills::{
     anki, anki_frontier, anki_next_if_good, cold_drill, drill_held, drill_recall, drill_review_cap,
     drill_reviews_today, due_drill, first_sight_band, group_caps, group_reps, new_drill_cap,
-    new_drills_today, reviews_band, reviews_first,
+    new_drills_today, no_reviews, reviews_band, reviews_first,
 };
 use kg::evidence::Evidence;
 use kg::git::{
@@ -483,9 +483,13 @@ fn caps_table(ctx: &Ctx, pv: &PView, ev: &Evidence, today: NaiveDate) -> Option<
                 pv.get(oldest).unwrap().title
             ));
         }
-        note.push_str("due until an unaided clean rep");
-        if reviews_first() {
-            note.push_str(" (REVIEWS_FIRST)");
+        if no_reviews() {
+            note.push_str("held: the picker serves first sights only (NO_REVIEWS)");
+        } else {
+            note.push_str("due until an unaided clean rep");
+            if reviews_first() {
+                note.push_str(" (REVIEWS_FIRST)");
+            }
         }
         rows.push([
             "problem reviews".into(),
