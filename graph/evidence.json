@@ -36593,6 +36593,19 @@
       "note": "TypeError: heappop() argument must be list, not int \u2014 self.d[index] holds the number, not a heap; the eviction heap was never built.",
       "summary": "The class keeps self.d (index->number), self.h (number->heap of indices) and self.used, with change pushing the index onto h[number] and find returning h[number][0] or -1. The eviction path is broken: change calls heappop(self.d[index]), but self.d[index] is the stored number, so the run dies with TypeError: heappop() argument must be list, not int. The dict-arbitrary-value mapping of index to number works, but the lazy-eviction heap that should discard stale indices was never implemented, and the notes describe the intended heap approach without it.",
       "seconds": 1471
+    },
+    "solved/p977_Squares_of_a_Sorted_Array_2026_10_08T21_14_30_120710_00_00Z.py": {
+      "date": "2026-10-09",
+      "problem": "977",
+      "moves": {
+        "py-list-comprehension": "clean",
+        "py-sorted-key": "clean"
+      },
+      "judge": "deepseek-chat",
+      "followup": "not solved",
+      "note": "mu source: list(sorted([x * x for x in nums])) \u2014 O(n log n) sort, sidesteps the O(n) two-pointer/boundary walk",
+      "summary": "The solution squares every element with a list comprehension and sorts the result, then returns it. It exercises py-list-comprehension and py-sorted-key but routes around both canonical moves: no binary-search-boundary to find the sign split and no two-pointers-converging merge. LeetCode accepted it at 3 ms, but the O(n) follow-up is not met since the sort dominates.",
+      "seconds": 149
     }
   }
 }
