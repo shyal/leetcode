@@ -36581,6 +36581,18 @@
       "note": "LeetCode: Accepted (118 ms, 74.5 MB); comments note the O(N) values() scan was replaced by the count-of-counts dict.",
       "summary": "FrequencyTracker keeps two defaultdicts: d maps number to its count, and f maps a count to how many numbers have it. add and deleteOne move a number between buckets in f, deleting zero entries, and hasFrequency is just `frequency in self.f`, an O(1) membership test on the count-of-counts. The code exercises counter-build, counts-as-data, and dict-arbitrary-value; the notes mention the naive values() scan was too slow and the f dict was the fix.",
       "seconds": 1373
+    },
+    "solved/p2349_Design_a_Number_Container_System_FAILED_2026_10_08T20_45_14_196824_00_00Z.py": {
+      "date": "2026-10-09",
+      "problem": "2349",
+      "moves": {
+        "heap-lazy-eviction": "struggled",
+        "dict-arbitrary-value": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "TypeError: heappop() argument must be list, not int \u2014 self.d[index] holds the number, not a heap; the eviction heap was never built.",
+      "summary": "The class keeps self.d (index->number), self.h (number->heap of indices) and self.used, with change pushing the index onto h[number] and find returning h[number][0] or -1. The eviction path is broken: change calls heappop(self.d[index]), but self.d[index] is the stored number, so the run dies with TypeError: heappop() argument must be list, not int. The dict-arbitrary-value mapping of index to number works, but the lazy-eviction heap that should discard stale indices was never implemented, and the notes describe the intended heap approach without it.",
+      "seconds": 1471
     }
   }
 }
