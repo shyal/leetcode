@@ -281,15 +281,16 @@ fn a_short_window_leaves_the_aim_on_the_target() {
     assert_eq!(pnum(&fx.run(&ev, &st, args())), "1");
 }
 
-/// `n` first sights on `z`, each a pass an hour long: over a Medium's
-/// clock, scored 0, and no fail (no drill gate opens).
+/// `n` first sights on `z`, each a pass two hours long: over the contest
+/// clock whatever sits beside it, scored 0, and no fail (no drill gate
+/// opens).
 fn over_the_clock(fx: &mut Fx, n: usize) -> Vec<(String, Rec)> {
     (0..n)
         .map(|i| {
             let num = format!("{}", 101 + i);
             fx.problem(&num, problem(&["z"]));
             let mut r = solve(&num, &[("z", "clean")], i as i64 + 1);
-            r.1.seconds = Some(3600);
+            r.1.seconds = Some(7200);
             r
         })
         .collect()

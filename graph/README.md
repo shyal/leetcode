@@ -79,7 +79,21 @@ and generate combination drills ("rote sheets").
   The placeholder also carries `seconds`, the active time on the clock when
   `make solved` ran, and every later rewrite of the entry keeps it. The Elo's
   games (`scored_games`) read it from the record; records from before the field
-  (2026-09-16) are timed from their commit message. `make stats [DAYS|all]`
+  (2026-09-16) are timed from their commit message. The clock a pass is judged
+  against is the contest's (`model::contest_fit`, 2026-10-08): four problems,
+  90 minutes, scored by how many are solved. The pass takes the slot its
+  rating sits in (`SLOT_CUTS`, fitted on zerotrac's contest slots), the other
+  three slots are filled by your own first sights from those slots, drawn
+  uniformly, a fail sinks the time spent before giving up, and passes are
+  taken shortest first. A pass is inside the clock when it is taken within the
+  90 minutes in at least half the draws. Solving the easy problem fast, or
+  giving up early, leaves time for the others, and that is where it counts.
+  The flat 10/30/45 minute budgets this replaced had no source; they survive
+  as caps on what a companion can cost (`companion_cap_min`), so a solve slept
+  through at the keyboard does not sink every contest it is drawn into. A chain solve
+  is a first sight like any other; what it scores is the chain's own call, the
+  `assist` field of its file in `graph/chains/`: `none` for a plain unaided
+  solve, `hint` (the default) for half a game. `make stats [DAYS|all]`
   lists the games over a window with the totals: pass/fail, inside the clock,
   first sight against repeat, games won, and under them the two counts that
   say whether ground is gained and kept (`model::Ground`, 2026-09-20): first

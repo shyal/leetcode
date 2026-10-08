@@ -18,20 +18,104 @@ pub const ELO_K: f64 = 32.0;
 pub const ELO_START: f64 = 1200.0;
 pub const FORECAST_WARM_DAYS: i64 = 30;
 
-pub fn budget_min(d: &str) -> Option<i64> {
+/// The three LeetCode labels: a problem under any other label is no game.
+pub fn is_tier(d: &str) -> bool {
+    matches!(d, "Easy" | "Medium" | "Hard")
+}
+
+/// The most a first sight costs the contests it is drawn into as a
+/// companion (contest_fit), by its label. These were the flat
+/// per-problem clocks until 2026-10-08; as caps they keep a solve slept
+/// through at the keyboard from sinking every contest it lands in. The
+/// pass being timed is never capped: it took as long as it took.
+pub fn companion_cap_min(d: &str) -> i64 {
     match d {
-        "Easy" => Some(10),
-        "Medium" => Some(30),
-        "Hard" => Some(45),
-        _ => None,
+        "Easy" => 10,
+        "Medium" => 30,
+        _ => 45,
     }
 }
 
-pub fn next_tier(d: &str) -> &str {
-    match d {
-        "Easy" => "Medium",
-        _ => "Hard",
+// ---- the contest clock -----------------------------------------------------
+
+// The clock is the contest's (settled 2026-10-08): four problems, 90
+// minutes, scored by how many are solved, with time only a tiebreaker.
+// No real format times a problem on its own, and the flat 10/30/45
+// budgets this replaced had no source. A pass is timed against the
+// contest it would sit in: its slot is read off its rating, the other
+// three slots are filled by your own first sights from those slots, and
+// the pass is inside the clock when it fits beside them (contest_fit).
+// Solving an easy problem fast, or giving up on a problem early, leaves
+// time for the others, and this is where that time is counted.
+
+pub const CONTEST_MIN: i64 = 90;
+pub const CONTEST_SLOTS: usize = 4;
+
+/// The slot cut points, fitted 2026-10-08 on the 2603 problems in
+/// zerotrac's ratings.txt that name their contest slot, the way
+/// EASY_BELOW was: the rating at which the two adjacent slots are
+/// mislabelled at the same rate. 17% of Q1s sit at or above 1365 and
+/// 17% of Q2s below it; 21% either side of 1663 (Q2/Q3); 21% either
+/// side of 2035 (Q3/Q4).
+pub const SLOT_CUTS: [f64; 3] = [1365.0, 1663.0, 2035.0];
+
+/// The contest slot (0 to 3, for Q1 to Q4) a rating sits in.
+pub fn contest_slot(rating: f64) -> usize {
+    SLOT_CUTS.iter().filter(|c| rating >= **c).count()
+}
+
+/// The slot of a problem no contest rated, from its LeetCode label.
+pub fn label_slot(difficulty: &str) -> usize {
+    match difficulty {
+        "Easy" => 0,
+        "Hard" => 2,
+        _ => 1,
     }
+}
+
+/// How often a pass of `seconds` in `slot` fits a contest drawn around
+/// it. `others[j]` holds your first sights in slot j as (seconds,
+/// failed), the seconds capped at companion_cap_min; each other slot is
+/// filled by one of them, drawn uniformly, and a slot with no games in
+/// it stays empty. A fail sinks the time spent before giving up, up to
+/// the cap. Passes are taken shortest first, so a pass
+/// no longer than this one is taken before it and costs its time, and
+/// a longer one is taken after it and costs nothing. The result is the
+/// fraction of draws in which this pass is taken within CONTEST_MIN,
+/// counting in whole minutes rounded up.
+pub fn contest_fit(seconds: i64, slot: usize, others: &[Vec<(i64, bool)>]) -> f64 {
+    let minutes = |s: i64| ((s + 59) / 60) as usize;
+    let cap = CONTEST_MIN as usize;
+    let mine = minutes(seconds);
+    if mine > cap {
+        return 0.0;
+    }
+    let left = cap - mine;
+    // dist[k] = P(the slots so far cost k minutes), k <= left
+    let mut dist = vec![0.0; left + 1];
+    dist[0] = 1.0;
+    for (j, games) in others.iter().enumerate() {
+        if j == slot || games.is_empty() {
+            continue;
+        }
+        let w = 1.0 / games.len() as f64;
+        let mut next = vec![0.0; left + 1];
+        for &(s, failed) in games {
+            let cost = if failed || s <= seconds {
+                minutes(s)
+            } else {
+                0
+            };
+            if cost > left {
+                continue; // this draw never fits
+            }
+            for k in 0..=left - cost {
+                next[k + cost] += dist[k] * w;
+            }
+        }
+        dist = next;
+    }
+    dist.iter().sum()
 }
 
 // ---- the display label ---------------------------------------------------
@@ -45,7 +129,8 @@ pub const EASY_BELOW: f64 = 1379.0;
 pub const HARD_FROM: f64 = 1969.0;
 
 /// The label a contest rating earns. It is for display only: the time
-/// limit (budget_min) and every picker rule keep LeetCode's label.
+/// picker's rules keep LeetCode's label; the clock reads the rating
+/// (contest_slot).
 pub fn rating_label(rating: f64) -> &'static str {
     if rating < EASY_BELOW {
         "Easy"
@@ -292,7 +377,7 @@ pub fn aim_pass_rate(ctx: &Ctx, ev: &Evidence) -> Aim {
     let target = target_pass_rate();
     let scores: Vec<f64> = scored_games(ctx, ev)
         .iter()
-        .filter(|g| g.first && !g.chain())
+        .filter(|g| g.first)
         .map(|g| g.score)
         .collect();
     let recent = &scores[scores.len().saturating_sub(AIM_WINDOW)..];
@@ -465,20 +550,28 @@ pub struct Game {
     /// a FAILED file, or a submission leetcode rejected
     pub failed: bool,
     pub seconds: Option<i64>,
-    /// a pass that ran past its tier's clock (budget_min)
+    /// how often the pass fits a contest beside your other first sights
+    /// (contest_fit); None for a fail
+    pub fit: Option<f64>,
+    /// a pass that fits fewer than half the contests drawn around it
     pub over: bool,
-    /// the heaviest assist level on the solve, or "chain" for an unaided
-    /// solve served from a combos chain
+    /// the heaviest assist level on the solve; "chain" for an unaided
+    /// solve served from a combos chain whose assist is "hint"
+    /// (data::chain_assist), "none" for one from a chain whose assist
+    /// is "none"
     pub assist: String,
+    /// served from a combos chain, whatever the chain's assist
+    pub chain: bool,
 }
 
 impl Game {
-    /// Served from a combos chain: the technique was named before the
-    /// problem was opened. It proves the technique can be carried out,
-    /// not that it would be recognised cold, so it is kept out of every
-    /// first-sight measure.
+    /// Served from a combos chain. A chain says in its own file what a
+    /// solve from it scores (data::chain_assist): a plain unaided solve,
+    /// or a hinted one at 1/2 because the chain names the technique. It
+    /// is a first sight either way (settled 2026-10-08; until then chain
+    /// solves were kept out of every first-sight measure).
     pub fn chain(&self) -> bool {
-        self.assist == "chain"
+        self.chain
     }
 }
 
@@ -492,13 +585,17 @@ pub struct Summary {
     pub inside: usize,
     /// passes over the clock
     pub over: usize,
-    /// first sights, chain solves left out
+    /// first sights, chain solves included
     pub first: usize,
     pub first_fails: usize,
     /// solves served from a combos chain, first sight or not
     pub chain: usize,
     pub chain_fails: usize,
     pub chain_inside: usize,
+    /// the chain solves that were repeats, so the repeat line can leave
+    /// them out
+    pub chain_repeats: usize,
+    pub chain_repeat_fails: usize,
     /// the sum of the scores: what the Elo saw
     pub won: f64,
 }
@@ -515,10 +612,11 @@ impl Summary {
                 s.chain += 1;
                 s.chain_fails += usize::from(g.failed);
                 s.chain_inside += usize::from(!g.failed && !g.over);
-            } else {
-                s.first += usize::from(g.first);
-                s.first_fails += usize::from(g.first && g.failed);
+                s.chain_repeats += usize::from(!g.first);
+                s.chain_repeat_fails += usize::from(!g.first && g.failed);
             }
+            s.first += usize::from(g.first);
+            s.first_fails += usize::from(g.first && g.failed);
             s.won += g.score;
         }
         s
@@ -538,8 +636,8 @@ impl Summary {
                 format!("{:.0}%", 100.0 * a as f64 / b as f64)
             }
         };
-        let repeats = self.solves - self.first - self.chain;
-        let repeat_fails = self.fails - self.first_fails - self.chain_fails;
+        let repeats = self.solves - self.first - self.chain_repeats;
+        let repeat_fails = self.fails - self.first_fails - self.chain_repeat_fails;
         let mut rows = vec![
             (
                 format!(
@@ -635,12 +733,13 @@ pub fn scored_games(ctx: &Ctx, ev: &Evidence) -> Vec<Game> {
     let mut out = Vec::new();
     let first_day = first_dates(ev);
     let mut studied: HashSet<String> = HashSet::new();
+    let mut chain_assists: HashMap<String, String> = HashMap::new();
     for i in order {
         let rec = ev.rec(i);
         let fname = ev.fname(i);
         let pnum = rec.problem.clone().unwrap_or_default();
         let diff = ctx.problem_difficulty(&pnum, &problems);
-        if !is_numeric_id(&pnum) || budget_min(&diff).is_none() {
+        if !is_numeric_id(&pnum) || !is_tier(&diff) {
             continue;
         }
         // a studied file is no game, but the problem has been seen: no
@@ -649,48 +748,72 @@ pub fn scored_games(ctx: &Ctx, ev: &Evidence) -> Vec<Game> {
             studied.insert(pnum);
             continue;
         }
-        let level = match rec.assist_any() {
-            "none" if crate::data::served_by_combos(&ctx.root, fname) => "chain",
-            l => l,
+        let chain = crate::data::combo_chain_of(&ctx.root, fname);
+        let level = match (rec.assist_any(), &chain) {
+            ("none", Some(name)) => {
+                let assist = chain_assists
+                    .entry(name.clone())
+                    .or_insert_with(|| crate::data::chain_assist(&ctx.root, name));
+                if assist == "none" {
+                    "none"
+                } else {
+                    "chain"
+                }
+            }
+            (l, _) => l,
         };
         // a walk-away, or a submission leetcode rejected (TLE, WA, RE)
         let failed = fname.contains("FAILED") || rejected_by_leetcode(&ctx.root, fname);
         // the record's own clock; a record older than the field
         // (2026-09-16) falls back to the time mined from its commit
         let seconds = rec.seconds.or_else(|| secs.get(fname).copied());
-        let tier = if rec.followup.as_deref() == Some("solved") {
-            next_tier(&diff).to_string()
-        } else {
-            diff.clone()
-        };
-        let over = !failed && seconds.is_some_and(|s| s > budget_min(&tier).unwrap() * 60);
-        let score = if failed || level == "walkthrough" || level == "learning" {
-            0.0
-        } else {
-            if seconds.is_none() {
-                continue;
-            }
-            if over {
-                0.0
-            } else if level == "hint" || level == "chain" {
-                0.5
-            } else {
-                1.0
-            }
-        };
+        // a pass with no time on record is no game
+        if !failed && seconds.is_none() {
+            continue;
+        }
         out.push(Game {
             date: rec.date.clone(),
             problem: pnum.clone(),
             difficulty: diff,
-            score,
+            score: 0.0,
             moves: rec.moves.keys().cloned().collect(),
             fname: fname.to_string(),
             first: first_day.get(&pnum) == Some(&rec.date) && !studied.contains(&pnum),
             failed,
             seconds,
-            over,
+            fit: None,
+            over: false,
             assist: level.to_string(),
+            chain: chain.is_some(),
         });
+    }
+    // the contest clock: every pass is timed beside your first sights
+    // in the other slots, over the whole record
+    let ratings = solve_ratings(ctx);
+    let slot = |g: &Game| match ratings.get(&g.problem) {
+        Some(r) => contest_slot(*r),
+        None => label_slot(&g.difficulty),
+    };
+    let mut slots: Vec<Vec<(i64, bool)>> = vec![vec![]; CONTEST_SLOTS];
+    for g in out.iter().filter(|g| g.first) {
+        if let Some(s) = g.seconds {
+            let cap = companion_cap_min(&g.difficulty) * 60;
+            slots[slot(g)].push((s.min(cap), g.failed));
+        }
+    }
+    for g in out.iter_mut() {
+        if let Some(s) = g.seconds.filter(|_| !g.failed) {
+            let fit = contest_fit(s, slot(g), &slots);
+            g.fit = Some(fit);
+            g.over = fit < 0.5;
+        }
+        g.score = if g.failed || g.over || g.assist == "walkthrough" || g.assist == "learning" {
+            0.0
+        } else if g.assist == "hint" || g.assist == "chain" {
+            0.5
+        } else {
+            1.0
+        };
     }
     out
 }
@@ -768,7 +891,7 @@ impl Ground {
         // per problem: (last game lost, the game before that was a recovery)
         let mut state: HashMap<&str, (bool, bool)> = HashMap::new();
         for (g, rating, before) in games {
-            if g.first && !g.chain() && *rating >= before - AT_RATING_BAND && inside(g) {
+            if g.first && *rating >= before - AT_RATING_BAND && inside(g) {
                 out.tried += 1;
                 out.cold += usize::from(g.score == 1.0);
             }
@@ -846,7 +969,7 @@ impl Transfer {
         let mut out = Transfer::default();
         for g in games {
             let day = crate::data::parse_date(&g.date);
-            if !g.first || g.chain() || since.is_some_and(|s| day < s) {
+            if !g.first || since.is_some_and(|s| day < s) {
                 continue;
             }
             let Some(p) = problems.get(&g.problem).filter(|p| !p.moves.is_empty()) else {
@@ -902,9 +1025,10 @@ impl Transfer {
 // The one first-sight Elo: the number on `make elo` and the README badge.
 // Problem ratings are zerotrac's (data/leetcode_ratings.tsv); a problem
 // that never ran in a contest gets the median contest rating of its
-// difficulty. Only first sights are games (Game::first), a chain solve
-// left out. Standard Elo, ELO_K from ELO_START. The picker keeps its own
-// over every timed attempt (elo_games, settled 2026-09-12).
+// difficulty. Only first sights are games (Game::first), chain solves
+// among them since 2026-10-08. Standard Elo, ELO_K from ELO_START. The
+// picker keeps its own over every timed attempt (elo_games, settled
+// 2026-09-12).
 
 /// (date, problem rating, score): one scored first-sight game.
 pub type FirstSight = (NaiveDate, f64, f64);
@@ -968,12 +1092,12 @@ pub fn price(
 }
 
 /// The scored first-sight attempts oldest first, each game's score
-/// read through `score`; a chain solve is no first sight (Game::chain).
+/// read through `score`.
 fn first_sights(ctx: &Ctx, ev: &Evidence, score: fn(&Game) -> f64) -> Vec<FirstSight> {
     let (ratings, imputed) = pricing(ctx);
     scored_games(ctx, ev)
         .into_iter()
-        .filter(|g| g.first && !g.chain())
+        .filter(|g| g.first)
         .map(|g| {
             (
                 crate::data::parse_date(&g.date),

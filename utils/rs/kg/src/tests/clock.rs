@@ -602,7 +602,7 @@ fn a_recovered_problem_is_retested_at_a_week_and_three_weeks_before_it_retires()
 fn game(problem: &str, days_ago: i64, first: bool, failed: bool, assist: &str, over: bool) -> Game {
     let score = if failed || assist == "learning" || over {
         0.0
-    } else if assist == "hint" {
+    } else if assist == "hint" || assist == "chain" {
         0.5
     } else {
         1.0
@@ -617,8 +617,10 @@ fn game(problem: &str, days_ago: i64, first: bool, failed: bool, assist: &str, o
         first,
         failed,
         seconds: Some(600),
+        fit: (!failed).then_some(if over { 0.0 } else { 1.0 }),
         over,
         assist: assist.to_string(),
+        chain: assist == "chain",
     }
 }
 
@@ -673,9 +675,9 @@ fn ground_counts_first_sights_at_your_level_and_recoveries_that_held() {
 
 /// A first sight counts as practiced when every move its problem needs
 /// has a record, a drill or another problem, dated before the game; a
-/// move met only on the same day is new. Repeats and chain solves are
-/// no first sights, and the window applies to the game, never to the
-/// practice behind it.
+/// move met only on the same day is new. A repeat is no first sight; a
+/// chain solve is one, scored as a hint (2026-10-08). The window applies
+/// to the game, never to the practice behind it.
 #[test]
 fn transfer_splits_first_sights_by_moves_practiced_before() {
     let mut problems = crate::data::Problems::new();
@@ -702,13 +704,13 @@ fn transfer_splits_first_sights_by_moves_practiced_before() {
         game("2", 30, true, true, "none", false),  // c new: lost
         game("3", 20, true, false, "hint", false), // a before: hinted
         game("3", 15, false, false, "none", false), // repeat
-        game("4", 12, true, false, "chain", false), // chain
+        game("4", 12, true, false, "chain", false), // chain: b before, hinted
         game("5", 10, true, false, "none", false), // d met the same day: new, cold
     ];
     assert_eq!(
         Transfer::of(&games, &ev, &problems, None),
         Transfer {
-            practiced: 2,
+            practiced: 3,
             practiced_cold: 1,
             new: 2,
             new_cold: 1
@@ -717,7 +719,7 @@ fn transfer_splits_first_sights_by_moves_practiced_before() {
     assert_eq!(
         Transfer::of(&games, &ev, &problems, Some(ago(25))),
         Transfer {
-            practiced: 1,
+            practiced: 2,
             practiced_cold: 0,
             new: 1,
             new_cold: 1
@@ -806,15 +808,18 @@ fn a_leetcode_rejection_in_the_notes_scores_as_a_fail() {
     assert_eq!(games[1].score, 1.0);
 }
 
-/// A problem served from a combos chain names its technique before it is
-/// opened, so an unaided solve of it is a chain solve: half a game to the
-/// Elo, no first sight to the proven rating or the stats. A heavier assist
-/// keeps its own score.
+/// A problem served from a combos chain is a chain solve, and a first
+/// sight like any other (settled 2026-10-08; before that it was kept out
+/// of every first-sight measure). What it scores is the chain's call,
+/// its "assist" field: absent or "hint", the chain names the technique
+/// and an unaided solve is half a game to the Elo, like a hint. A
+/// heavier assist keeps its own score, and is a chain solve all the same.
 #[test]
 fn a_combos_solve_is_a_chain_solve() {
     let mut fx = Fx::picker();
     fx.nodes(&["q1"])
         .problems(vec![("1", problem(&["q1"])), ("2", problem(&["q1"]))]);
+    ratings_tsv(&fx, &[("1", 1500.0), ("2", 1500.0)]);
     let ctx = fx.ctx();
     *ctx.solve_times.borrow_mut() = Some(vec![]);
     let timed = |mut r: (String, Rec)| {
@@ -836,19 +841,211 @@ fn a_combos_solve_is_a_chain_solve() {
     let mut walked = timed(solve("2", &[("q1", "clean")], 0));
     walked.1.assist = crate::data::Assist::Level("walkthrough".into());
     write(&walked);
-    let games = crate::model::scored_games(&ctx, &evidence(vec![clean, walked]));
+    let ev = evidence(vec![clean, walked]);
+    let games = crate::model::scored_games(&ctx, &ev);
     assert_eq!(games.len(), 2);
     assert_eq!(games[0].assist, "chain");
     assert_eq!(games[0].score, 0.5);
     assert_eq!(games[1].score, 0.0);
     let s = crate::model::Summary::of(&games);
-    assert_eq!((s.first, s.chain, s.chain_inside), (1, 1, 1));
+    assert_eq!((s.first, s.chain, s.chain_inside), (2, 2, 2));
+    assert_eq!(crate::model::first_sight_elo_games(&ctx, &ev).len(), 2);
     assert!(s
         .lines()
-        .contains(&"chain: 1 (1 pass / 0 fail, 100%, 1 inside the clock)".to_string()));
+        .contains(&"chain: 2 (2 pass / 0 fail, 100%, 2 inside the clock)".to_string()));
     assert!(s
         .lines()
         .contains(&"repeat: 0 (0 pass / 0 fail, -)".to_string()));
+}
+
+/// A chain whose file says `"assist": "none"` gives nothing away, and an
+/// unaided solve served from it is a plain unaided solve: a full game,
+/// assist "none", and still a chain solve on the chain line. Any other
+/// value of the field, or no field, reads as "hint".
+#[test]
+fn a_chain_says_what_its_solves_score() {
+    let mut fx = Fx::picker();
+    fx.nodes(&["q1"])
+        .problems(vec![("1", problem(&["q1"])), ("2", problem(&["q1"]))]);
+    ratings_tsv(&fx, &[("1", 1500.0), ("2", 1500.0)]);
+    let chains = fx.dir.0.join("graph/chains");
+    std::fs::create_dir_all(&chains).unwrap();
+    std::fs::write(
+        chains.join("open.json"),
+        r#"{"assist": "none", "order": []}"#,
+    )
+    .unwrap();
+    std::fs::write(
+        chains.join("odd.json"),
+        r#"{"assist": "full", "order": []}"#,
+    )
+    .unwrap();
+    assert_eq!(crate::data::chain_assist(&fx.dir.0, "open"), "none");
+    assert_eq!(crate::data::chain_assist(&fx.dir.0, "odd"), "hint");
+    assert_eq!(crate::data::chain_assist(&fx.dir.0, "missing"), "hint");
+    let ctx = fx.ctx();
+    *ctx.solve_times.borrow_mut() = Some(vec![]);
+    let served = |r: &(String, Rec), chain: &str| {
+        let path = fx.dir.0.join(&r.0);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        let note = crate::data::COMBO_NOTE_PREFIX;
+        std::fs::write(path, format!("{note}{chain}, problem 1 of 2.\n")).unwrap();
+    };
+    let mut a = solve("1", &[("q1", "clean")], 5);
+    a.1.seconds = Some(600);
+    served(&a, "open");
+    let mut b = solve("2", &[("q1", "clean")], 0);
+    b.1.seconds = Some(600);
+    served(&b, "odd");
+    assert_eq!(
+        crate::data::combo_chain_of(&fx.dir.0, &a.0),
+        Some("open".to_string())
+    );
+    let games = crate::model::scored_games(&ctx, &evidence(vec![a, b]));
+    assert_eq!(
+        (games[0].assist.as_str(), games[0].chain, games[0].score),
+        ("none", true, 1.0)
+    );
+    assert_eq!(
+        (games[1].assist.as_str(), games[1].chain, games[1].score),
+        ("chain", true, 0.5)
+    );
+    let s = crate::model::Summary::of(&games);
+    assert_eq!((s.first, s.chain, s.chain_inside), (2, 2, 2));
+}
+
+// --------------------------------------------------------------------------
+// the contest clock
+// --------------------------------------------------------------------------
+
+/// A first sight on a problem rated `rating`, `seconds` long, `days_ago`;
+/// a FAILED file when `failed`.
+fn timed(
+    fx: &mut Fx,
+    pnum: &str,
+    rating: f64,
+    seconds: i64,
+    failed: bool,
+    days_ago: i64,
+) -> (String, Rec) {
+    fx.problem(pnum, problem(&["q1"]));
+    fx.stubs()
+        .solve_ratings
+        .get_or_insert_with(HashMap::new)
+        .insert(pnum.to_string(), rating);
+    let mut r = solve(pnum, &[("q1", "clean")], days_ago);
+    if failed {
+        r.0 = format!("solved/p{pnum}_FAILED_{days_ago}.py");
+    }
+    r.1.seconds = Some(seconds);
+    r
+}
+
+fn find<'a>(games: &'a [Game], pnum: &str) -> &'a Game {
+    games.iter().find(|g| g.problem == pnum).unwrap()
+}
+
+/// The slot cut points and the fit itself. A 35 minute pass in Q2 fits a
+/// 90 minute contest beside a 5 minute Q1 and a 20 minute Q3 (60 of 90),
+/// so it is inside. Drawn beside a 40 minute Q3 fail it does not (the
+/// fail sinks its 40 minutes: 80 of 90 before the Q4), and a Q4 that
+/// took 20 minutes tips it over. A pass longer than this one is taken
+/// after it and costs it nothing.
+#[test]
+fn a_pass_fits_the_contest_beside_the_other_slots() {
+    use crate::model::{contest_fit, contest_slot};
+    assert_eq!(
+        [1200.0, 1365.0, 1662.9, 1663.0, 2034.9, 2035.0, 2600.0].map(contest_slot),
+        [0, 1, 1, 2, 2, 3, 3]
+    );
+    let m = |x: i64| x * 60;
+    let slots = vec![vec![(m(5), false)], vec![], vec![(m(20), false)], vec![]];
+    assert_eq!(contest_fit(m(35), 1, &slots), 1.0);
+    let slots = vec![
+        vec![(m(5), false)],
+        vec![],
+        vec![(m(20), false), (m(40), true)],
+        vec![(m(20), false), (m(50), false)],
+    ];
+    // Q3: 20 min pass or 40 min fail; Q4: 20 min pass (taken first) or 50
+    // min pass (taken after this one, free). Fits in 3 of the 4 draws.
+    assert_eq!(contest_fit(m(35), 1, &slots), 0.75);
+    assert_eq!(contest_fit(m(91), 1, &slots), 0.0);
+}
+
+/// scored_games times every pass against the contest drawn from your own
+/// first sights in the other slots, read off the problem ratings. The same
+/// 35 minute Medium is inside the clock beside quick companions and over
+/// it beside a long Hard fail (45 at the cap) and a 10 minute Q4; the
+/// slow pass is 0 to the Elo, as before.
+#[test]
+fn the_contest_clock_reads_the_other_slots_from_the_record() {
+    let mut fx = Fx::picker();
+    fx.nodes(&["q1"]);
+    let a = timed(&mut fx, "1", 1500.0, 35 * 60, false, 1);
+    let b = timed(&mut fx, "2", 1250.0, 5 * 60, false, 2);
+    let c = timed(&mut fx, "3", 1800.0, 20 * 60, false, 3);
+    let ctx = fx.ctx();
+    *ctx.solve_times.borrow_mut() = Some(vec![]);
+    let games = crate::model::scored_games(&ctx, &evidence(vec![a, b, c]));
+    let g = find(&games, "1");
+    assert_eq!((g.fit, g.over, g.score), (Some(1.0), false, 1.0));
+
+    let mut fx = Fx::picker();
+    fx.nodes(&["q1"]);
+    let a = timed(&mut fx, "1", 1500.0, 35 * 60, false, 1);
+    let b = timed(&mut fx, "2", 1250.0, 5 * 60, false, 2);
+    let c = timed(&mut fx, "3", 1800.0, 60 * 60, true, 3);
+    fx.problem("3", hard(&["q1"]));
+    let d = timed(&mut fx, "4", 2300.0, 10 * 60, false, 4);
+    let ctx = fx.ctx();
+    *ctx.solve_times.borrow_mut() = Some(vec![]);
+    let games = crate::model::scored_games(&ctx, &evidence(vec![a, b, c, d]));
+    let g = find(&games, "1");
+    assert_eq!((g.fit, g.over, g.score), (Some(0.0), true, 0.0));
+    let f = find(&games, "3");
+    assert_eq!((f.fit, f.failed, f.score), (None, true, 0.0));
+    assert_eq!(crate::model::Summary::of(&games).inside, 2);
+}
+
+/// A companion costs at most its label's cap, 10/30/45 minutes: a three
+/// hour Hard beside a 35 minute Medium costs 45, and the Medium fits (80
+/// of 90). The pass being timed is not capped: three hours is over.
+#[test]
+fn a_companion_costs_at_most_its_labels_cap() {
+    let mut fx = Fx::picker();
+    fx.nodes(&["q1"]);
+    let a = timed(&mut fx, "1", 1500.0, 35 * 60, false, 1);
+    let b = timed(&mut fx, "2", 1800.0, 3 * 3600, false, 2);
+    fx.problem("2", hard(&["q1"]));
+    let ctx = fx.ctx();
+    *ctx.solve_times.borrow_mut() = Some(vec![]);
+    let games = crate::model::scored_games(&ctx, &evidence(vec![a, b]));
+    assert_eq!(find(&games, "1").fit, Some(1.0));
+    assert_eq!(find(&games, "2").fit, Some(0.0));
+}
+
+/// A problem no contest rated takes its slot from its LeetCode label
+/// (Easy Q1, Medium Q2, Hard Q3), and a slot you have no games in stays
+/// empty: a lone 80 minute pass fits.
+#[test]
+fn an_unrated_problem_takes_its_slot_from_its_label() {
+    let mut fx = Fx::picker();
+    fx.nodes(&["q1"]);
+    fx.problem("1", easy(&["q1"]));
+    fx.problem("2", problem(&["q1"]));
+    fx.stubs().solve_ratings = Some(HashMap::new());
+    let mut a = solve("1", &[("q1", "clean")], 1);
+    a.1.seconds = Some(80 * 60);
+    let mut b = solve("2", &[("q1", "clean")], 2);
+    b.1.seconds = Some(15 * 60);
+    let ctx = fx.ctx();
+    *ctx.solve_times.borrow_mut() = Some(vec![]);
+    let games = crate::model::scored_games(&ctx, &evidence(vec![a.clone()]));
+    assert_eq!(find(&games, "1").fit, Some(1.0));
+    let games = crate::model::scored_games(&ctx, &evidence(vec![a, b]));
+    assert_eq!(find(&games, "1").fit, Some(0.0));
+    assert_eq!(find(&games, "2").fit, Some(1.0));
 }
 
 #[test]

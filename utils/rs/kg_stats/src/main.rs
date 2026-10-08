@@ -49,7 +49,8 @@ fn result_cell(g: &Game) -> String {
     if g.failed {
         "[red]fail[/red]".to_string()
     } else if g.over {
-        "[yellow]pass, over[/yellow]".to_string()
+        let fit = g.fit.map_or(0.0, |f| 100.0 * f);
+        format!("[yellow]pass, over (fits {fit:.0}%)[/yellow]")
     } else if g.assist == "none" {
         "[green]pass[/green]".to_string()
     } else {

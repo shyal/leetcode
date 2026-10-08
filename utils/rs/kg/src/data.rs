@@ -692,12 +692,35 @@ pub fn rejected_by_leetcode(root: &std::path::Path, fname: &str) -> bool {
 /// The first line kg_combos writes into a problem it serves from a chain.
 pub const COMBO_NOTE_PREFIX: &str = "# combo chain: ";
 
-/// The solve was served from a combos chain, so the technique was named
-/// before the problem was opened: it scores as a hint at best.
+/// The solve was served from a combos chain: its file starts with the
+/// chain's note. See `chain_assist` for what that does to its score.
 pub fn served_by_combos(root: &std::path::Path, fname: &str) -> bool {
-    std::fs::read_to_string(root.join(fname))
+    combo_chain_of(root, fname).is_some()
+}
+
+/// The name of the chain a solve was served from (`# combo chain: <name>,
+/// problem 3 of 7.`), or None for a solve not served from a chain.
+pub fn combo_chain_of(root: &std::path::Path, fname: &str) -> Option<String> {
+    let text = std::fs::read_to_string(root.join(fname)).ok()?;
+    let rest = text.strip_prefix(COMBO_NOTE_PREFIX)?;
+    let name = rest.split([',', '\n']).next()?.trim();
+    (!name.is_empty()).then(|| name.to_string())
+}
+
+/// What a solve served from the chain `name` scores (2026-10-08): the
+/// chain's own "assist" field in graph/chains/<name>.json. "none" means
+/// the chain gives nothing away and an unaided solve from it is a plain
+/// unaided solve; "hint" means naming the chain names the technique, and
+/// the solve scores as a hinted one, 1/2. A chain without the field, or
+/// one that cannot be read, is "hint", the rule before the field.
+pub fn chain_assist(root: &std::path::Path, name: &str) -> String {
+    let path = root.join("graph/chains").join(format!("{name}.json"));
+    std::fs::read_to_string(path)
         .ok()
-        .is_some_and(|t| t.starts_with(COMBO_NOTE_PREFIX))
+        .and_then(|t| serde_json::from_str::<Value>(&t).ok())
+        .and_then(|v| v.get("assist")?.as_str().map(String::from))
+        .filter(|a| a == "none" || a == "hint")
+        .unwrap_or_else(|| "hint".to_string())
 }
 
 // ---- the assist axis --------------------------------------------------------

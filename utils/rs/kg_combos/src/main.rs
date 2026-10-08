@@ -11,7 +11,10 @@
 // file starts with the chain's note count. A problem's "change" line is
 // printed only once it is done this lap: before the solve it would give away
 // the move. `prepare` puts a comment at the top of current.py naming the
-// chain and where it is saved.
+// chain and where it is saved. A chain's "assist" field says what an
+// unaided solve served from it scores (kg::data::chain_assist): "none",
+// a plain unaided solve, or "hint" (the default), half a game, because
+// the chain's name gives the technique away.
 
 use kg::console::Console;
 use kg::ctx::Ctx;
@@ -108,7 +111,10 @@ fn laps(ctx: &Ctx, ev: &Evidence, name: &str, steps: &[Step]) -> (usize, HashSet
                     })
                     .unwrap_or_default()
             } else {
-                ev.problem_recs(&st.id).into_iter().map(|(_, f, _)| f).collect()
+                ev.problem_recs(&st.id)
+                    .into_iter()
+                    .map(|(_, f, _)| f)
+                    .collect()
             };
             files.into_iter().map(move |f| (f, st.id.as_str()))
         })
