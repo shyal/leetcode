@@ -985,3 +985,40 @@ def test_assert_compares_values_it_saw_once():
     assert "assert 1 < f(1) < 3\n" in out
     assert "assert f(1) == 2, 'msg'\n" in out
     assert "assert f(1) == 2 or f(2) == 3\n" in out
+
+
+def test_run_file_asserts_report_the_values_they_saw(tmp_path):
+    """`make` compiles the solve's bare `assert L == R` so a fail names both
+    sides as the assert saw them: a side with side effects runs once, the
+    line number is the assert's own, and the traceback starts at the file."""
+    import io
+    from contextlib import redirect_stderr
+
+    sys.path.insert(0, str(Path(__file__).parent))
+    import session
+
+    f = tmp_path / "current.py"
+    f.write_text(
+        "from collections import deque\n"
+        "d = deque([[1], [2]])\n"
+        "assert d.popleft() == [2]\n"
+    )
+    err = io.StringIO()
+    with redirect_stderr(err):
+        status = session.run_file(f)
+    assert status == 1
+    lines = err.getvalue().splitlines()
+    assert lines[0] == "Traceback (most recent call last):"
+    assert lines[1] == f'  File "{f}", line 3, in <module>'
+    assert lines[-2:] == ["AssertionError: left : [1]", "right: [2]"]
+
+    # other operators are named; a chain or a message is left as written
+    def fails(src):
+        try:
+            exec(session.compiled(src, "x"), {})
+        except AssertionError as e:
+            return str(e)
+
+    assert fails("assert 1 is 2\n") == "left : 1\nright: 2\nop   : is"
+    assert fails("assert 1 < 2 < 2\n") == ""
+    assert fails("assert 1 == 2, 'm'\n") == "m"

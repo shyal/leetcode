@@ -36533,6 +36533,19 @@
       "note": "LeetCode Accepted (605 ms, 59 MB); mu source uses a custom heap wrapper with max/min variants.",
       "summary": "The mu source keeps a max-heap of buy orders and a min-heap of sell orders, and for each incoming order repeatedly pops the best opposing price while it crosses, consuming min(amount, resting) and pushing back any remainder before resting the leftover. This exercises heap-simulation, order-book-match, and order-book-levels, with the final total taken modulo 10**9+7. The run exited 0 and LeetCode reports Accepted (605 ms, 59 MB); the notes contain no hints or look-ups.",
       "seconds": 2097
+    },
+    "solved/p3508_Implement_Router_2026_10_08T02_03_07_790580_00_00Z.py": {
+      "date": "2026-10-08",
+      "problem": "3508",
+      "moves": {
+        "deque-recent-window": "clean",
+        "set-membership": "struggled",
+        "binary-search-boundary": "struggled"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Time Limit Exceeded (744/753 cases) \u2014 the O(n) duplicate scan and O(n) getCount scan stand in for the missing per-destination sorted timestamp lists with binary-search range counting.",
+      "summary": "The Router keeps a deque of [source, destination, timestamp] packets, evicting the oldest with popleft when memoryLimit is exceeded, and forwardPacket pops the front. addPacket checks duplicates by scanning the whole deque with `not in`, and getCount linearly scans every stored packet for matching destination and timestamp range. The notes call it a brute-force solve and say the packet information needs to be compressed with ranges; LeetCode rejected it with Time Limit Exceeded at 744/753 cases.",
+      "seconds": 1982
     }
   }
 }

@@ -16,7 +16,6 @@ put current.mu, transpiled, under them.
 import ast
 import io
 import json
-import os
 import re
 import sys
 import tokenize
@@ -405,6 +404,61 @@ def cmd_stub(root):
     return 0
 
 
+OPS = {
+    ast.Eq: "==",
+    ast.NotEq: "!=",
+    ast.Lt: "<",
+    ast.LtE: "<=",
+    ast.Gt: ">",
+    ast.GtE: ">=",
+    ast.Is: "is",
+    ast.IsNot: "is not",
+    ast.In: "in",
+    ast.NotIn: "not in",
+}
+
+
+def compiled(src, filename):
+    """Compile src with every bare `assert L op R` reporting both sides.
+    Each side is bound as it is evaluated, `(_l := L) op (_r := R)`, so the
+    message shows the values the assert saw and a side with side effects
+    is not run a second time. Line numbers are kept."""
+    tree = ast.parse(src, filename)
+    for node in ast.walk(tree):
+        test = node.test if isinstance(node, ast.Assert) and node.msg is None else None
+        if not (isinstance(test, ast.Compare) and len(test.ops) == 1):
+            continue
+        op = OPS[type(test.ops[0])]
+        test.left = ast.NamedExpr(ast.Name("_l", ast.Store()), test.left)
+        test.comparators[0] = ast.NamedExpr(
+            ast.Name("_r", ast.Store()), test.comparators[0]
+        )
+        msg = "left : {_l!r}\\nright: {_r!r}" + (
+            "" if op == "==" else f"\\nop   : {op}"
+        )
+        node.msg = ast.parse(f'f"{msg}"', mode="eval").body
+        ast.copy_location(node.msg, node)
+    return compile(ast.fix_missing_locations(tree), filename, "exec")
+
+
+def run_file(target):
+    """Run target as a script, like `python target`, with its asserts
+    compiled by `compiled`. On an uncaught exception the traceback starts
+    at the script's own frame, and the exit status is 1."""
+    import traceback
+
+    sys.argv = [str(target)]
+    code = compiled(target.read_text(), str(target))
+    try:
+        exec(code, {"__name__": "__main__", "__file__": str(target)})
+    except SystemExit:
+        raise
+    except BaseException as err:  # noqa: BLE001
+        traceback.print_exception(type(err), err, err.__traceback__.tb_next)
+        return 1
+    return 0
+
+
 def cmd_run(root):
     target = root / CURRENT
     if belongs(root):
@@ -418,7 +472,7 @@ def cmd_run(root):
         target = root / RUN
         target.write_text(code)
         print("Running from current.mu.", file=sys.stderr)
-    os.execv(sys.executable, [sys.executable, str(target)])
+    return run_file(target)
 
 
 def cmd_build(root):
