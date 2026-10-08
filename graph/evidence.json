@@ -36568,6 +36568,19 @@
       "note": "LEETCODE: Accepted (807 ms, 68.8 MB); notes say Learning.",
       "summary": "The Router keeps a deque of packets in arrival order, a set for O(1) duplicate rejection, and a per-destination deque of timestamps. addPacket evicts the oldest packet when the memory limit is exceeded, forwardPacket pops the front, and getCount uses first_true/last_true binary searches over the destination's timestamp deque to count packets in a time range. All three canonical moves (deque-recent-window, set-membership, binary-search-boundary) are exercised and the run passed; the notes mark the work as Learning.",
       "seconds": 1692
+    },
+    "solved/p2671_Frequency_Tracker_2026_10_08T10_06_11_820064_00_00Z.py": {
+      "date": "2026-10-08",
+      "problem": "2671",
+      "moves": {
+        "counter-build": "clean",
+        "counts-as-data": "clean",
+        "dict-arbitrary-value": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LeetCode: Accepted (118 ms, 74.5 MB); comments note the O(N) values() scan was replaced by the count-of-counts dict.",
+      "summary": "FrequencyTracker keeps two defaultdicts: d maps number to its count, and f maps a count to how many numbers have it. add and deleteOne move a number between buckets in f, deleting zero entries, and hasFrequency is just `frequency in self.f`, an O(1) membership test on the count-of-counts. The code exercises counter-build, counts-as-data, and dict-arbitrary-value; the notes mention the naive values() scan was too slow and the f dict was the fix.",
+      "seconds": 1373
     }
   }
 }
