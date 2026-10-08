@@ -1,13 +1,13 @@
 // kg_combos - serve a chain of problems in order, in one sitting.
 //
 //   kg_combos                          # list the chains in graph/chains/
-//   kg_combos two-sequence-align       # the chain, with what is done this lap
+//   kg_combos two-sequence-align       # the chain, with what is done this pass
 //   kg_combos two-sequence-align prepare   # `make prepare` its next problem
 //
 // A chain file lists problems that fill the same table, ordered so each one
-// is one change from an earlier one. The chain loops. A lap is done when
-// every problem in it has been solved from the chain since the last lap
-// ended; then the next lap starts from the first problem. Only solves whose
+// is one change from an earlier one. The chain loops. A pass is done when
+// every problem in it has been solved from the chain since the last pass
+// ended; then the next pass starts from the first problem. Only solves whose
 // file starts with the chain's note count. A problem's "state", "event",
 // "invariant", "from" and "change" fields are notes in the json and are never
 // printed: each is the solution. `prepare` puts a comment at the top of
@@ -105,9 +105,9 @@ fn verdict(g: &kg::model::Game) -> String {
 }
 
 /// Walk the chain's solves in time order. Each solve adds its problem to the
-/// current lap; when the lap holds every problem, it counts as finished and
-/// empties. Returns the finished laps and the problems in the current one.
-fn laps(ctx: &Ctx, ev: &Evidence, name: &str, steps: &[Step]) -> (usize, HashSet<String>) {
+/// current pass; when the pass holds every problem, it counts as finished and
+/// empties. Returns the finished passes and the problems in the current one.
+fn chain_passes(ctx: &Ctx, ev: &Evidence, name: &str, steps: &[Step]) -> (usize, HashSet<String>) {
     let root = &ctx.root;
     let note = format!("{}{name},", kg::data::COMBO_NOTE_PREFIX);
     let mut solves: Vec<(&str, &str)> = steps
@@ -136,21 +136,21 @@ fn laps(ctx: &Ctx, ev: &Evidence, name: &str, steps: &[Step]) -> (usize, HashSet
         .filter(|(f, _)| std::fs::read_to_string(root.join(f)).is_ok_and(|t| t.starts_with(&note)))
         .collect();
     solves.sort_by_key(|(f, _)| stamp(f));
-    let (mut finished, mut lap) = (0, HashSet::new());
+    let (mut finished, mut pass) = (0, HashSet::new());
     for (_, id) in solves {
-        lap.insert(id.to_string());
-        if lap.len() == steps.len() {
+        pass.insert(id.to_string());
+        if pass.len() == steps.len() {
             finished += 1;
-            lap.clear();
+            pass.clear();
         }
     }
-    (finished, lap)
+    (finished, pass)
 }
 
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     if args.iter().any(|a| a == "-h" || a == "--help") {
-        println!("{USAGE}\n\nServe a chain of closely related problems in order.\n\n  chain     a file name in graph/chains/ (optional when there is only one)\n  prepare   `make prepare` the first problem in the chain not done this lap");
+        println!("{USAGE}\n\nServe a chain of closely related problems in order.\n\n  chain     a file name in graph/chains/ (optional when there is only one)\n  prepare   `make prepare` the first problem in the chain not done this pass");
         return;
     }
     let prepare = args.iter().any(|a| a == "prepare");
@@ -187,8 +187,8 @@ fn main() {
     }
     let steps = load_chain(&path);
     let ev = Evidence::new(recs);
-    let (laps, lap) = laps(&ctx, &ev, &name, &steps);
-    let done = |id: &str| lap.contains(id);
+    let (finished, pass) = chain_passes(&ctx, &ev, &name, &steps);
+    let done = |id: &str| pass.contains(id);
 
     // rating: the contest rating, coloured by its gap to his elo like the
     // queue (red 100 above, yellow inside 100, green below), and the label
@@ -204,7 +204,7 @@ fn main() {
     };
     let mut table = Table::bare(
         &[
-            "#", "problem", "rating", "label", "leetcode", "tries", "verdicts", "last", "this lap",
+            "#", "problem", "rating", "label", "leetcode", "tries", "verdicts", "last", "this pass",
         ],
         true,
         2,
@@ -255,9 +255,9 @@ fn main() {
         ]);
     }
     console.print(&format!(
-        "[bold]The {name} chain, lap {}[/bold]. You have finished it {laps} {}.",
-        laps + 1,
-        if laps == 1 { "time" } else { "times" }
+        "[bold]The {name} chain, pass {}[/bold]. You have finished it {finished} {}.",
+        finished + 1,
+        if finished == 1 { "time" } else { "times" }
     ));
     print_table(&console, &table);
     let on_chain: Vec<&kg::model::Game> = games
@@ -281,7 +281,7 @@ fn main() {
         ));
     }
 
-    // laps() empties the lap as soon as it is full, so there is always a next
+    // chain_passes() empties the pass as soon as it is full, so there is always a next
     let Some(next) = steps.iter().find(|st| !done(&st.id)) else {
         return;
     };
@@ -296,7 +296,7 @@ fn main() {
     let pos = steps.iter().position(|st| st.id == next.id).unwrap_or(0) + 1;
     let note = format!(
         "{prefix}{name}, problem {pos} of {total}. Run `make combos {name}` to see\n\
-         # the chain and what is done this lap; the chain is saved in graph/chains/{name}.json.",
+         # the chain and what is done this pass; the chain is saved in graph/chains/{name}.json.",
         prefix = kg::data::COMBO_NOTE_PREFIX,
         total = steps.len()
     );
