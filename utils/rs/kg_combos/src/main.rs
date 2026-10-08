@@ -8,10 +8,10 @@
 // is one change from an earlier one. The chain loops. A lap is done when
 // every problem in it has been solved from the chain since the last lap
 // ended; then the next lap starts from the first problem. Only solves whose
-// file starts with the chain's note count. A problem's "change" line is
-// printed only once it is done this lap: before the solve it would give away
-// the move. `prepare` puts a comment at the top of current.py naming the
-// chain and where it is saved. A chain's "assist" field says what an
+// file starts with the chain's note count. A problem's "state", "event",
+// "invariant", "from" and "change" fields are notes in the json and are never
+// printed: each is the solution. `prepare` puts a comment at the top of
+// current.py naming the chain and where it is saved. A chain's "assist" field says what an
 // unaided solve served from it scores (kg::data::chain_assist): "none",
 // a plain unaided solve, or "hint" (the default), half a game, because
 // the chain's name gives the technique away.
@@ -30,8 +30,6 @@ const USAGE: &str = "usage: kg_combos [-h] [chain] [{prepare}]";
 struct Step {
     id: String,
     title: String,
-    from: Option<String>,
-    change: Option<String>,
 }
 
 fn is_drill_id(id: &str) -> bool {
@@ -72,8 +70,6 @@ fn load_chain(path: &Path) -> Vec<Step> {
             let p = &v["problems"][&id];
             Some(Step {
                 title: s(&p["title"]).unwrap_or_default(),
-                from: s(&p["from"]),
-                change: s(&p["change"]),
                 id,
             })
         })
@@ -175,22 +171,17 @@ fn main() {
     let (laps, lap) = laps(&ctx, &ev, &name, &steps);
     let done = |id: &str| lap.contains(id);
 
-    let mut table = Table::bare(&["#", "problem", "this lap", "change"], true, 2);
+    let mut table = Table::bare(&["#", "problem", "this lap"], true, 2);
     for (i, st) in steps.iter().enumerate() {
-        let (mark, change) = if done(&st.id) {
-            let change = match (&st.from, &st.change) {
-                (Some(f), Some(c)) => format!("{f} + {c}"),
-                _ => "the base".to_string(),
-            };
-            ("[green]done[/green]".to_string(), change)
+        let mark = if done(&st.id) {
+            "[green]done[/green]"
         } else {
-            (String::new(), String::new())
+            ""
         };
         table.add_row(&[
             (i + 1).to_string(),
             format!("{}. {}", st.id, st.title),
-            mark,
-            change,
+            mark.to_string(),
         ]);
     }
     console.print(&format!(
