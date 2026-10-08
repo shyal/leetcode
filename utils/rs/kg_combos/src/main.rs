@@ -85,6 +85,25 @@ fn stamp(fname: &str) -> &str {
         .map_or(fname, |head| &fname[head.len()..])
 }
 
+/// A game's verdict as `make stats` words it, with the minutes on the
+/// clock when they are on file: fail, pass, pass over the clock, or a
+/// pass with the assist level that was used.
+fn verdict(g: &kg::model::Game) -> String {
+    let mins = g
+        .seconds
+        .map(|s| format!(" {}m", s / 60))
+        .unwrap_or_default();
+    if g.failed {
+        "[red]fail[/red]".to_string()
+    } else if g.over {
+        format!("[yellow]over{mins}[/yellow]")
+    } else if g.assist == "none" {
+        format!("[green]pass{mins}[/green]")
+    } else {
+        format!("[cyan]{}{mins}[/cyan]", g.assist)
+    }
+}
+
 /// Walk the chain's solves in time order. Each solve adds its problem to the
 /// current lap; when the lap holds every problem, it counts as finished and
 /// empties. Returns the finished laps and the problems in the current one.
@@ -171,8 +190,49 @@ fn main() {
     let (laps, lap) = laps(&ctx, &ev, &name, &steps);
     let done = |id: &str| lap.contains(id);
 
-    let mut table = Table::bare(&["#", "problem", "this lap"], true, 2);
+    // rating: the contest rating, coloured by its gap to his elo like the
+    // queue (red 100 above, yellow inside 100, green below), and the label
+    // it earns (kg::model::rating_label); leetcode: LeetCode's own label;
+    // tries: every attempt on file, oldest first, worded like make stats
+    let ratings = kg::model::solve_ratings(&ctx);
+    let elo = kg::model::first_sight_elo_now(&ctx, &ev);
+    let games = kg::model::scored_games(&ctx, &ev);
+    let today = ctx.today();
+    let painted = |d: &str| {
+        let c = kg::queue::difficulty_colour(d);
+        format!("[{c}]{d}[/{c}]")
+    };
+    let mut table = Table::bare(
+        &[
+            "#", "problem", "rating", "label", "leetcode", "tries", "verdicts", "last", "this lap",
+        ],
+        true,
+        2,
+    );
     for (i, st) in steps.iter().enumerate() {
+        let (rating, label) = match ratings.get(&st.id) {
+            Some(r) => {
+                let c = kg::queue::gap_colour(*r - elo);
+                (
+                    format!("[{c}]{r:.0}[/{c}]"),
+                    painted(kg::model::rating_label(*r)),
+                )
+            }
+            None => (String::new(), String::new()),
+        };
+        let mine: Vec<&kg::model::Game> = games.iter().filter(|g| g.problem == st.id).collect();
+        let verdicts: Vec<String> = mine.iter().map(|g| verdict(g)).collect();
+        let last = mine
+            .last()
+            .map(|g| {
+                let days = (today - kg::data::parse_date(&g.date)).num_days();
+                match days {
+                    0 => "today".to_string(),
+                    1 => "yesterday".to_string(),
+                    _ => format!("{days}d ago"),
+                }
+            })
+            .unwrap_or_default();
         let mark = if done(&st.id) {
             "[green]done[/green]"
         } else {
@@ -181,6 +241,16 @@ fn main() {
         table.add_row(&[
             (i + 1).to_string(),
             format!("{}. {}", st.id, st.title),
+            rating,
+            label,
+            painted(&ctx.meta_difficulty(&st.id)),
+            if mine.is_empty() {
+                String::new()
+            } else {
+                mine.len().to_string()
+            },
+            verdicts.join(", "),
+            last,
             mark.to_string(),
         ]);
     }
@@ -190,6 +260,26 @@ fn main() {
         if laps == 1 { "time" } else { "times" }
     ));
     print_table(&console, &table);
+    let on_chain: Vec<&kg::model::Game> = games
+        .iter()
+        .filter(|g| steps.iter().any(|st| st.id == g.problem))
+        .collect();
+    if !on_chain.is_empty() {
+        let fails = on_chain.iter().filter(|g| g.failed).count();
+        let helped = on_chain
+            .iter()
+            .filter(|g| !g.failed && g.assist != "none")
+            .count();
+        let passes = on_chain.len() - fails - helped;
+        let secs: i64 = on_chain.iter().filter_map(|g| g.seconds).sum();
+        console.print(&format!(
+            "Across the chain: [green]{passes} unaided {}[/green], [cyan]{helped} with help[/cyan], [red]{fails} {}[/red], {}h {:02}m on the clock.",
+            if passes == 1 { "pass" } else { "passes" },
+            if fails == 1 { "fail" } else { "fails" },
+            secs / 3600,
+            secs % 3600 / 60
+        ));
+    }
 
     // laps() empties the lap as soon as it is full, so there is always a next
     let Some(next) = steps.iter().find(|st| !done(&st.id)) else {
