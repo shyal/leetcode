@@ -36519,6 +36519,20 @@
       "note": "Uses OrderedDict.move_to_end + popitem(last=False) instead of a hand-rolled doubly linked list; LeetCode Accepted (24 ms, 29.2 MB).",
       "summary": "The LRUCache wraps an OrderedDict keyed by cache key, with get doing move_to_end on a hit and put doing move_to_end on an existing key, inserting/overwriting, then popping from the front while len exceeds capacity. This exercises dict-arbitrary-value (the dict holds the values and the recency order) and the ttl-cache eviction shape (lazy front eviction on overflow). The notes record a prior failing case about overwriting counting as a use, which the current put handles; LeetCode reports Accepted.",
       "seconds": 848
+    },
+    "solved/p1801_Number_of_Orders_in_the_Backlog_2026_10_08T00_41_43_800692_00_00Z.py": {
+      "date": "2026-10-08",
+      "problem": "1801",
+      "moves": {
+        "heap-simulation": "clean",
+        "order-book-match": "clean",
+        "order-book-levels": "clean",
+        "modular-cycle": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LeetCode Accepted (605 ms, 59 MB); mu source uses a custom heap wrapper with max/min variants.",
+      "summary": "The mu source keeps a max-heap of buy orders and a min-heap of sell orders, and for each incoming order repeatedly pops the best opposing price while it crosses, consuming min(amount, resting) and pushing back any remainder before resting the leftover. This exercises heap-simulation, order-book-match, and order-book-levels, with the final total taken modulo 10**9+7. The run exited 0 and LeetCode reports Accepted (605 ms, 59 MB); the notes contain no hints or look-ups.",
+      "seconds": 2097
     }
   }
 }
