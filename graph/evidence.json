@@ -36505,6 +36505,18 @@
       "note": "get() sorts the key's timestamps on every call and scans in reverse instead of binary-searching the sorted timestamp list; LeetCode Accepted at 8282 ms.",
       "summary": "TimeMap stores a nested defaultdict of key -> {timestamp: value} in set(), and get() checks for an exact timestamp hit, otherwise sorts the timestamps and scans in reverse for the largest one <= timestamp. The dict-as-store move is exercised, but the canonical binary-search-boundary lookup over the strictly increasing timestamps is sidestepped by a per-call sort and linear scan. The notes are empty; LeetCode reports Accepted at 8282 ms.",
       "seconds": 1044
+    },
+    "solved/p146_LRU_Cache_2026_10_08T00_05_14_180901_00_00Z.py": {
+      "date": "2026-10-08",
+      "problem": "146",
+      "moves": {
+        "dict-arbitrary-value": "clean",
+        "ttl-cache": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Uses OrderedDict.move_to_end + popitem(last=False) instead of a hand-rolled doubly linked list; LeetCode Accepted (24 ms, 29.2 MB).",
+      "summary": "The LRUCache wraps an OrderedDict keyed by cache key, with get doing move_to_end on a hit and put doing move_to_end on an existing key, inserting/overwriting, then popping from the front while len exceeds capacity. This exercises dict-arbitrary-value (the dict holds the values and the recency order) and the ttl-cache eviction shape (lazy front eviction on overflow). The notes record a prior failing case about overwriting counting as a use, which the current put handles; LeetCode reports Accepted.",
+      "seconds": 848
     }
   }
 }
