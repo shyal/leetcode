@@ -36546,6 +36546,28 @@
       "note": "LEETCODE: Time Limit Exceeded (744/753 cases) \u2014 the O(n) duplicate scan and O(n) getCount scan stand in for the missing per-destination sorted timestamp lists with binary-search range counting.",
       "summary": "The Router keeps a deque of [source, destination, timestamp] packets, evicting the oldest with popleft when memoryLimit is exceeded, and forwardPacket pops the front. addPacket checks duplicates by scanning the whole deque with `not in`, and getCount linearly scans every stored packet for matching destination and timestamp range. The notes call it a brute-force solve and say the packet information needs to be compressed with ranges; LeetCode rejected it with Time Limit Exceeded at 744/753 cases.",
       "seconds": 1982
+    },
+    "solved/p3508_Implement_Router_2026_10_08T09_13_25_642095_00_00Z.py": {
+      "date": "2026-10-08",
+      "problem": "3508",
+      "moves": {
+        "deque-recent-window": "clean",
+        "set-membership": "clean",
+        "binary-search-boundary": "clean",
+        "dict-arbitrary-value": "clean",
+        "streaming-ask-then-record": "clean"
+      },
+      "assist": {
+        "deque-recent-window": "learning",
+        "set-membership": "learning",
+        "binary-search-boundary": "learning",
+        "dict-arbitrary-value": "learning",
+        "streaming-ask-then-record": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Accepted (807 ms, 68.8 MB); notes say Learning.",
+      "summary": "The Router keeps a deque of packets in arrival order, a set for O(1) duplicate rejection, and a per-destination deque of timestamps. addPacket evicts the oldest packet when the memory limit is exceeded, forwardPacket pops the front, and getCount uses first_true/last_true binary searches over the destination's timestamp deque to count packets in a time range. All three canonical moves (deque-recent-window, set-membership, binary-search-boundary) are exercised and the run passed; the notes mark the work as Learning.",
+      "seconds": 1692
     }
   }
 }
