@@ -36436,9 +36436,11 @@
       "date": "2026-10-07",
       "problem": "drill",
       "moves": {
-        "sliding-window-log": "clean"
+        "sliding-window-log": "clean",
+        "deque-recent-window": "clean"
       },
-      "pending": "2026-10-07T10:53:36+00:00",
+      "judge": "deepseek-chat",
+      "summary": "The Solution keeps a deque of [user, now] events and a per-user count dict; each hit appends the new event, increments the user's count, then pops from the front while the oldest timestamp is at or before now - window, decrementing that user's count. It returns the current user's count, giving O(1) amortised per call and keeping only in-window requests. The drill's sliding-window-log target is exercised cleanly, along with the deque-recent-window eviction pattern, and all assertions pass.",
       "seconds": 921
     },
     "solved/p2043_Simple_Bank_System_2026_10_07T20_55_58_786460_00_00Z.py": {
