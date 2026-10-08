@@ -36615,6 +36615,18 @@
       "note": "Linear scan returns the first letter > target, else letters[0]; the canonical binary-search boundary move is sidestepped.",
       "summary": "The code loops over letters and returns the first character strictly greater than target, falling back to letters[0] when none is greater. This is a linear scan, so the canonical binary-search-boundary move is avoided. LeetCode accepted it at 0 ms, and the notes are empty.",
       "seconds": 123
+    },
+    "solved/p2349_Design_a_Number_Container_System_2026_10_08T22_03_58_071360_00_00Z.py": {
+      "date": "2026-10-09",
+      "problem": "2349",
+      "moves": {
+        "heap-lazy-eviction": "clean",
+        "dict-arbitrary-value": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say 'After much pain'; LeetCode verdict Accepted (114 ms, 75.8 MB).",
+      "summary": "NumberContainers keeps a dict d mapping index to its current number and a defaultdict of heaps h mapping each number to a min-heap of indices that have held it. change pushes the index onto h[number] and overwrites d[index]; find peeks the heap's smallest index and pops stale entries whose d[index] no longer equals number, returning the first live index or -1. This exercises heap-lazy-eviction and dict-arbitrary-value, and the file's assertions all pass with LeetCode reporting Accepted.",
+      "seconds": 971
     }
   }
 }
