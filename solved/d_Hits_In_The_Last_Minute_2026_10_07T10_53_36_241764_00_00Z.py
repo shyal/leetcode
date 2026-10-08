@@ -1,5 +1,5 @@
-# combo chain: backend-live-coding, problem 2 of 12. Run `make combos backend-live-coding` to see
-# the chain and what is done this lap; the chain is saved in graph/chains/backend-live-coding.json.
+# combo chain: backend, problem 2 of 12. Run `make combos backend` to see
+# the chain and what is done this lap; the chain is saved in graph/chains/backend.json.
 """
 DRILL: Hits In The Last Minute
 TRAINS: sliding-window-log

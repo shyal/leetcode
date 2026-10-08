@@ -1,5 +1,5 @@
-# combo chain: backend-live-coding, problem 2 of 10. Run `make combos backend-live-coding` to see
-# the chain and what is done this lap; the chain is saved in graph/chains/backend-live-coding.json.
+# combo chain: backend, problem 2 of 10. Run `make combos backend` to see
+# the chain and what is done this lap; the chain is saved in graph/chains/backend.json.
 """
 URL: https://leetcode.com/problems/design-an-ordered-stream/description/?envType=problem-list-v2&envId=vn57k9wr
 
