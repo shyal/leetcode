@@ -185,6 +185,140 @@ def test_a_mu_syntax_error_names_the_line(tmp_path):
     assert run.stderr.startswith("current.mu: line 3:")
 
 
+def test_a_failed_assert_names_the_mu_line(tmp_path):
+    shutil.copy(drill_for(reference("d115_")), tmp_path / "current.py")
+    session(tmp_path, "stub")
+    served = (tmp_path / "current.mu").read_text()
+    work = solved(served, reference_wrong("d115_"))
+    (tmp_path / "current.mu").write_text(work)
+    run = session(tmp_path, "run")
+    assert run.returncode == 1
+    lines = work.split("\n")
+    first = next(k for k, ln in enumerate(lines, 1) if ln.startswith("assert "))
+    assert f'current.mu", line {first}, in <module>\n    {lines[first - 1]}\n' in (
+        run.stderr
+    )
+    assert "AssertionError: left : " in run.stderr
+    # nothing is written: the mu runs in place
+    assert not (tmp_path / ".mu_current.py").exists()
+    assert ".mu_current.py" not in run.stderr
+
+
+def reference_wrong(prefix):
+    """A reference solution with its last line's value off by one."""
+    text = open(reference(prefix)).read().rstrip("\n")
+    return text + " + 1\n"
+
+
+def test_an_exception_in_the_solution_names_the_mu_line(tmp_path):
+    (tmp_path / "current.py").write_text(PROBLEM)
+    session(tmp_path, "stub")
+    work = (tmp_path / "current.mu").read_text()
+    body = "def twoSum(nums: [int], target: int) -> [int]\n  seen = {}\n  nums[len(nums)]\n"
+    work = work.replace("def twoSum(nums: [int], target: int) -> [int]\n  pass\n", body)
+    work = work.replace("# assert", "assert")
+    (tmp_path / "current.mu").write_text(work)
+    run = session(tmp_path, "run")
+    assert run.returncode == 1
+    at = work.split("\n").index("  nums[len(nums)]") + 1
+    assert f'current.mu", line {at}, in twoSum\n    nums[len(nums)]\n' in run.stderr
+    assert run.stderr.rstrip().endswith("IndexError: list index out of range")
+
+
+def test_a_frame_in_a_pasted_helper_shows_its_own_source(tmp_path):
+    (tmp_path / "current.py").write_text(PROBLEM)
+    session(tmp_path, "stub")
+    work = (tmp_path / "current.mu").read_text()
+    body = (
+        "def twoSum(nums: [int], target: int) -> [int]\n"
+        "  [first_true(0, 3, x -> nums[x + 10] > 0)]\n"
+    )
+    work = work.replace("def twoSum(nums: [int], target: int) -> [int]\n  pass\n", body)
+    work = work.replace("# assert", "assert")
+    (tmp_path / "current.mu").write_text(work)
+    run = session(tmp_path, "run")
+    assert run.returncode == 1
+    helper = 'File "<mu helpers>", line '
+    assert helper in run.stderr
+    shown = run.stderr.split(helper)[1].split("\n")[1]
+    assert shown.strip() == "return lo + bisect_left(range(lo, hi + 1), True, key=ok)"
+    at = work.split("\n").index("  [first_true(0, 3, x -> nums[x + 10] > 0)]") + 1
+    assert f'current.mu", line {at}, in <lambda>' in run.stderr
+
+
+def test_the_avoids_gate_reads_the_class_through_the_transpiler(tmp_path):
+    drill = open(drill_for(reference("d123_"))).read()
+    (tmp_path / "current.py").write_text(drill)
+    served = stub(drill)
+    head = "def byRatio(classes: [[int]]) -> [[int]]\n  pass\n"
+    assert head in served
+    work = served.replace(head, head.replace("pass", "classes.sort()\n  classes"))
+    work = work.replace("# assert avoids", "assert avoids")
+    (tmp_path / "current.mu").write_text(work)
+    run = session(tmp_path, "run")
+    assert run.returncode == 1
+    assert run.stderr.rstrip().endswith("AssertionError: Solution calls sort")
+    (tmp_path / "current.py").write_text(
+        PROBLEM.replace("# assert", 'assert folds(Solution, "sum")\n# assert')
+    )
+    session(tmp_path, "stub")
+    served = (tmp_path / "current.mu").read_text()
+    served = served.replace("# assert folds", "assert folds")
+    head = "def twoSum(nums: [int], target: int) -> [int]\n  pass\n"
+    assert head in served
+    plain = served.replace(
+        head, "def twoSum(nums: [int], target: int) -> [int]\n  [sum(nums)]\n"
+    )
+    (tmp_path / "current.mu").write_text(plain)
+    run = session(tmp_path, "run")
+    assert run.returncode == 1
+    assert "Solution has no fold `sum for x in xs: value`" in run.stderr
+    folded = served.replace(
+        head,
+        "def twoSum(nums: [int], target: int) -> [int]\n  [sum for x in nums: x]\n",
+    )
+    (tmp_path / "current.mu").write_text(folded)
+    assert session(tmp_path, "run").returncode == 0
+    # a fold in the script, under the asserts, does not count
+    (tmp_path / "current.mu").write_text(plain + "\ntotal = sum for x in [1, 2]: x\n")
+    assert session(tmp_path, "run").returncode == 1
+    # filed into current.py, the gate reads the quoted mu block there
+    session(tmp_path, "fold")
+    assert "no fold" in python(tmp_path).stderr
+
+
+def test_the_traceback_is_coloured_on_request(tmp_path):
+    (tmp_path / "current.py").write_text(PROBLEM)
+    session(tmp_path, "stub")
+    work = (tmp_path / "current.mu").read_text().replace("# assert", "assert")
+    (tmp_path / "current.mu").write_text(work)
+    plain = session(tmp_path, "run").stderr  # a pipe: no colour
+    assert "\033[" not in plain
+    run = session(tmp_path, "run", "--color")
+    assert run.returncode == 1
+    at = work.split("\n").index("assert sol.twoSum([2, 7, 11, 15], 9) == [0, 1]") + 1
+    assert f'File "\033[2mcurrent.mu\033[0m", line \033[33m{at}\033[0m' in run.stderr
+    assert "\033[31m\033[1mAssertionError\033[0m: \033[31mleft :\033[0m None" in (
+        run.stderr
+    )
+    assert "\033[32mright:\033[0m [0, 1]" in run.stderr
+    assert "\033[" not in session(tmp_path, "run", "--no-color").stderr
+
+
+def test_any_mu_file_runs_on_its_own(tmp_path):
+    script = "\nsol = Solution()\nassert sol.twoSum([3, 3], 6) == [0]\n"
+    (tmp_path / "other.mu").write_text(TWO_SUM + script)
+    run = session(tmp_path, "run", "other.mu")
+    assert run.returncode == 1
+    assert "Running from current.mu" not in run.stderr
+    assert 'File "other.mu", line 9, in <module>' in run.stderr.replace(
+        str(tmp_path) + "/", ""
+    )
+    assert "left : [0, 1]\nright: [0]" in run.stderr
+    (tmp_path / "other.mu").write_text(TWO_SUM + script.replace("[0]", "[0, 1]"))
+    assert session(tmp_path, "run", "other.mu").returncode == 0
+
+
 def test_nothing_to_do_without_current_mu(tmp_path):
     shutil.copy(drill_for(reference("d115_")), tmp_path / "current.py")
     assert session(tmp_path, "fold").returncode == 0

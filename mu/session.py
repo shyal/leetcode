@@ -1,7 +1,9 @@
 """The mu side of a solve: current.mu, the one file to work in.
 
     python mu/session.py stub    after serving: write current.mu
-    python mu/session.py run     `make`: run the solve from current.mu
+    python mu/session.py run [file.mu] [--color|--no-color]
+                                 `make`: run the solve from current.mu, in place;
+                                 or any mu file on its own
     python mu/session.py build   `make submit`: the file to submit
     python mu/session.py fold    `make solved`: file the mu solution in current.py
     python mu/session.py debug [file.mu]   VS Code: write .mu_current.py and its line map
@@ -10,12 +12,17 @@ current.mu holds the statement as comments, a `# ---` line with
 your notes under it, the Solution defs, and then the setup and
 asserts, translated to mu and commented as served. current.py stays as
 served; run and fold take its docstring and imports from the top and
-put current.mu, transpiled, under them.
+put current.mu, transpiled, under them. run writes no file: the Python is
+compiled under current.mu's name with each statement at its mu line, so a
+failed assert or an exception reports the line in current.mu. The harness
+helpers pasted in by the transpiler are compiled apart, as <mu helpers>.
 """
 
 import ast
 import io
 import json
+import linecache
+import os
 import re
 import sys
 import tokenize
@@ -27,6 +34,7 @@ from mu import VERSION, MuError, Parser, fmt, transpile  # noqa: E402
 
 CURRENT, MU, STUB, RUN = "current.py", "current.mu", ".mu_stub", ".mu_current.py"
 MAP = ".mu_current.map.json"
+HELPERS = "<mu helpers>"  # the file name of the pasted helpers' frames
 PREV = "current.mu.prev"
 CLASS = re.compile(r"^class Solution(\([^)]*\))?:", flags=re.M)
 # a commented line the asserts need: an assert, `name = ...`, `name += ...`
@@ -418,12 +426,11 @@ OPS = {
 }
 
 
-def compiled(src, filename):
-    """Compile src with every bare `assert L op R` reporting both sides.
-    Each side is bound as it is evaluated, `(_l := L) op (_r := R)`, so the
-    message shows the values the assert saw and a side with side effects
-    is not run a second time. Line numbers are kept."""
-    tree = ast.parse(src, filename)
+def with_messages(tree):
+    """Every bare `assert L op R` in tree reports both sides. Each side is
+    bound as it is evaluated, `(_l := L) op (_r := R)`, so the message
+    shows the values the assert saw and a side with side effects is not
+    run a second time. Line numbers are kept."""
     for node in ast.walk(tree):
         test = node.test if isinstance(node, ast.Assert) and node.msg is None else None
         if not (isinstance(test, ast.Compare) and len(test.ops) == 1):
@@ -438,41 +445,172 @@ def compiled(src, filename):
         )
         node.msg = ast.parse(f'f"{msg}"', mode="eval").body
         ast.copy_location(node.msg, node)
-    return compile(ast.fix_missing_locations(tree), filename, "exec")
+    return ast.fix_missing_locations(tree)
 
 
-def run_file(target):
-    """Run target as a script, like `python target`, with its asserts
-    compiled by `compiled`. On an uncaught exception the traceback starts
-    at the script's own frame, and the exit status is 1."""
+def compiled(src, filename):
+    """src compiled as filename, its asserts through `with_messages`."""
+    return compile(with_messages(ast.parse(src, filename)), filename, "exec")
+
+
+def mu_line(origin, k):
+    """The mu line behind Python line k (1-based). A line with no origin,
+    such as `class Solution:` or a blank, takes the nearest mu line before
+    it, or after it when none comes before."""
+    before = [o for o in origin[:k] if o is not None]
+    if before:
+        return before[-1]
+    after = [o for o in origin[k:] if o is not None]
+    return after[0] if after else 1
+
+
+def relocated(tree, origin):
+    """tree with every node moved from its Python line to the mu line it
+    came from, so the code it compiles to reports current.mu's lines."""
+    for node in ast.walk(tree):
+        if not hasattr(node, "lineno"):
+            continue
+        node.lineno = mu_line(origin, node.lineno)
+        if getattr(node, "end_lineno", None) is not None:
+            node.end_lineno = max(node.lineno, mu_line(origin, node.end_lineno))
+    return tree
+
+
+def mu_code(mu_src, filename):
+    """A mu file as two code objects, (helpers, program). The program is
+    the file's own statements, the class and the script, each at its mu
+    line under filename. The helpers are the imports and harness functions
+    the transpiler pastes in, under the name HELPERS; their source is kept
+    in linecache so a traceback through one still shows the line."""
+    code, origin = transpile(mu_src, mapped=True)
+    try:
+        tree = ast.parse(code)
+    except SyntaxError as err:
+        raise MuError(f"line {mu_line(origin, err.lineno or 1)}: {err.msg}") from None
+    own = [
+        s
+        for s in tree.body
+        if isinstance(s, ast.ClassDef) or origin[s.lineno - 1] is not None
+    ]
+    helpers = [s for s in tree.body if s not in own]
+    linecache.cache[HELPERS] = (len(code), None, code.splitlines(True), HELPERS)
+    program = relocated(with_messages(ast.Module(own, type_ignores=[])), origin)
+    return (
+        compile(ast.Module(helpers, type_ignores=[]), HELPERS, "exec"),
+        compile(program, filename, "exec"),
+    )
+
+
+FRAME = re.compile(r'^  File "(.*?)", line (\d+), in (.*)$')
+RAISED = re.compile(r"^([A-Z]\w*(?:\.\w+)*)(: .*)?$")
+BOLD, DIM, RED, GREEN, YELLOW, MAGENTA, RESET = (
+    "\033[1m",
+    "\033[2m",
+    "\033[31m",
+    "\033[32m",
+    "\033[33m",
+    "\033[35m",
+    "\033[0m",
+)
+
+
+def painted(text):
+    """A traceback with colour: each frame's file dim and its line number
+    yellow, the source line bold, the exception red, and in an assert's
+    message the left side (what the code gave) red and the right side
+    (what the assert wanted) green. Paths under the working directory are
+    shortened to relative ones either way."""
+    out = []
+    for line in text.rstrip("\n").split("\n"):
+        m = FRAME.match(line)
+        if m:
+            file, n, fn = m.groups()
+            if os.path.isabs(file) and file.startswith(os.getcwd() + os.sep):
+                file = os.path.relpath(file)
+            line = f'  File "{DIM}{file}{RESET}", line {YELLOW}{n}{RESET}, in {MAGENTA}{fn}{RESET}'
+        elif line.startswith("    "):
+            line = f"{BOLD}{line}{RESET}"
+        elif RAISED.match(line):
+            name, rest = RAISED.match(line).groups()
+            line = f"{RED}{BOLD}{name}{RESET}{rest or ''}"
+            line = line.replace(": left : ", f": {RED}left :{RESET} ", 1)
+        elif line.startswith("right: "):
+            line = f"{GREEN}right:{RESET}" + line[6:]
+        out.append(line)
+    return "\n".join(out) + "\n"
+
+
+def run(codes, target, color=False):
+    """Run the code objects in order, like `python target`: in a fresh
+    `__main__` module whose file is target, so `inspect` (the harness's
+    uses, avoids and folds) reads the class from there and not from this
+    script. On an uncaught exception the traceback starts at the script's
+    own frame, through `painted` when color is on, and the exit status
+    is 1."""
     import traceback
+    import types
 
     sys.argv = [str(target)]
-    code = compiled(target.read_text(), str(target))
+    main = types.ModuleType("__main__")
+    main.__file__ = str(target)
+    sys.modules["__main__"] = main
     try:
-        exec(code, {"__name__": "__main__", "__file__": str(target)})
+        for code in codes:
+            exec(code, main.__dict__)
     except SystemExit:
         raise
     except BaseException as err:  # noqa: BLE001
-        traceback.print_exception(type(err), err, err.__traceback__.tb_next)
+        text = "".join(
+            traceback.format_exception(type(err), err, err.__traceback__.tb_next)
+        )
+        sys.stderr.write(painted(text) if color else text)
         return 1
     return 0
 
 
-def cmd_run(root):
-    target = root / CURRENT
-    if belongs(root):
+def run_file(target, color=False):
+    """Run target as a script, with its asserts compiled by `compiled`."""
+    return run([compiled(target.read_text(), str(target))], target, color)
+
+
+def cmd_run(root, *args):
+    """`make`: run current.mu in place when it is the solve, else current.py.
+    current.py's head, the docstring and imports above its class, runs
+    first under its own name, then current.mu's code under its own. No
+    file is written. `run FILE.mu` runs any mu file on its own, with no
+    current.py head. The traceback is coloured on a terminal, or with
+    --color; --no-color turns it off."""
+    color = sys.stderr.isatty()
+    files = []
+    for a in args:
+        if a == "--color":
+            color = True
+        elif a == "--no-color":
+            color = False
+        else:
+            files.append(a)
+    if len(files) > 1:
+        sys.exit(__doc__)
+    if files and not (files[0] == MU and belongs(root)):
+        mu = root / files[0]
         try:
-            code = spliced(
-                target.read_text(), (root / MU).read_text(), show_source=True
-            )
+            codes = mu_code(mu.read_text(), str(mu))
         except MuError as err:
-            print(f"current.mu: {err}", file=sys.stderr)
+            print(f"{files[0]}: {err}", file=sys.stderr)
             return 1
-        target = root / RUN
-        target.write_text(code)
-        print("Running from current.mu.", file=sys.stderr)
-    return run_file(target)
+        return run(list(codes), mu, color)
+    py = root / CURRENT
+    if not belongs(root):
+        return run_file(py, color)
+    py_src = py.read_text()
+    head = py_src[: CLASS.search(py_src).start()]
+    try:
+        helpers, program = mu_code((root / MU).read_text(), str(root / MU))
+    except MuError as err:
+        print(f"current.mu: {err}", file=sys.stderr)
+        return 1
+    print("Running from current.mu.", file=sys.stderr)
+    return run([compile(head, str(py), "exec"), helpers, program], root / MU, color)
 
 
 def cmd_build(root):
@@ -557,6 +695,8 @@ if __name__ == "__main__":
     argv = sys.argv[1:]
     if argv[:1] == ["debug"] and len(argv) == 2:
         sys.exit(cmd_debug(Path.cwd(), argv[1]))
+    if argv[:1] == ["run"]:
+        sys.exit(cmd_run(Path.cwd(), *argv[1:]))
     if len(argv) != 1 or argv[0] not in commands:
         sys.exit(__doc__)
     sys.exit(commands[argv[0]](Path.cwd()))

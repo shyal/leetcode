@@ -1,8 +1,9 @@
 .PHONY: all asserts audit chat check combos complexity cov curve dependents dive drawing-doc drill drop duplicates elo ext failed fmt fmt-check force graph graph-vscode hard harness-doc is_session_start kg-extract kg-status kg-viz lc-login lc-mocks learning lint mirror mock movie mu mu-chrome mu-vscode muviz next predict preflight prepare prog progress q queue rank-table readme rep residuals rust secrets short simulate sleep snippets solved spot stats studied submit test test-fast test-judge timer today types unforce viz wake
 
 # `make` runs the current file: current.py through mu/session.py (which
-# splices current.mu in when it holds the work), any other language's
-# current.<ext> through its toolchain (utils/rs/run, the kg::lang table)
+# runs current.mu in place when it holds the work, every error at its mu
+# line), any other language's current.<ext> through its toolchain
+# (utils/rs/run, the kg::lang table)
 all: $(if $(filter master,$(shell git rev-parse --abbrev-ref HEAD)),graph/leet.db) $(EXT) $(RS_BIN)/run
 	@cp utils/harness/sitecustomize.py .venv/lib/python3.10/site-packages/
 	@$(RS_BIN)/run

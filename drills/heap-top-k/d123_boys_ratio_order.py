@@ -53,5 +53,4 @@ print(sol.byRatio([[3, 4], [1, 2], [2, 3]]))  # [[1, 2], [2, 3], [3, 4]]
 # assert sol.byRatio([[5, 5], [1, 100], [50, 99]]) == [[1, 100], [50, 99], [5, 5]]
 # big = [[1, s] for s in range(2, 100002)]
 # assert sol.byRatio(big) == big[::-1]
-# src = open(__file__).read().split("sol = Solution()")[0]
-# assert "sort" not in src.split('"""')[2] and "key=" not in src.split('"""')[2]
+# assert avoids(Solution, sorted, list.sort, heapq.nsmallest, heapq.nlargest)

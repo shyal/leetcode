@@ -90,8 +90,17 @@ def folds(
 
 
 def _mu_source(cls: type) -> str | None:
-    """The mu solution quoted under `# mu <version>` in the file of cls."""
-    lines = open(inspect.getsourcefile(cls) or "").read().split("\n")
+    """The mu solution of cls. A class run from a mu file (`make` on
+    current.mu) is that file's defs, above its script; one from a Python
+    file is the solution quoted there under `# mu <version>`."""
+    file = inspect.getsourcefile(cls) or ""
+    src = open(file).read()
+    if file.endswith(".mu"):
+        p = _mu_parser()(src)
+        p.program()
+        end = (p.script_line or src.count("\n") + 2) - 1
+        return "\n".join(src.split("\n")[:end])
+    lines = src.split("\n")
     for k, line in enumerate(lines):
         if re.match(r"# mu \d", line):
             out = []
@@ -103,22 +112,39 @@ def _mu_source(cls: type) -> str | None:
     return None
 
 
-def _mu_parser() -> Any:
-    """mu's Parser, loaded from mu/mu.py by path: the name mu is also the
-    directory, so a plain import can find the wrong one."""
+def _mu() -> Any:
+    """mu/mu.py, loaded by path: the name mu is also the directory, so a
+    plain import can find the wrong one."""
     path = os.path.join(os.path.dirname(__file__), "..", "..", "mu", "mu.py")
-    spec = importlib.util.spec_from_file_location("_mu_for_folds", path)
+    spec = importlib.util.spec_from_file_location("_mu_for_asserts", path)
     assert spec and spec.loader
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
-    return mod.Parser
+    return mod
+
+
+def _mu_parser() -> Any:
+    """mu's Parser."""
+    return _mu().Parser
+
+
+def _class_source(cls: type) -> ast.AST:
+    """The Python of cls as written: its source parsed, or, for a class run
+    from a mu file, that file transpiled and the class picked out."""
+    file = inspect.getsourcefile(cls) or ""
+    if not file.endswith(".mu"):
+        return ast.parse(inspect.getsource(cls))
+    tree = ast.parse(_mu().transpile(open(file).read()))
+    for node in tree.body:
+        if isinstance(node, ast.ClassDef) and node.name == cls.__name__:
+            return node
+    raise OSError(f"could not find class {cls.__name__} in {file}")
 
 
 def _calls(cls: type) -> set[str]:
     """The names called in the source of cls: f(...) and m.f(...) both as f."""
-    tree = ast.parse(inspect.getsource(cls))
     called = set()
-    for node in ast.walk(tree):
+    for node in ast.walk(_class_source(cls)):
         if not isinstance(node, ast.Call):
             continue
         if isinstance(node.func, ast.Name):
