@@ -36730,6 +36730,16 @@
       "note": "Notes say the subquery syntax was forgotten and looked up; the scalar subquery (select count(*) from users) is the required move and it ran correctly.",
       "summary": "The query selects distinct contest_id from Register and pairs each with a scalar subquery (select count(*) from users) as total_users, so the count comes from Users at run time rather than a hard-coded number. It exercises the scalar-subquery move and a basic SELECT DISTINCT. The notes say the candidate keeps forgetting the parenthesized subquery syntax, which is the move the drill targets.",
       "seconds": 226
+    },
+    "solved/d_Dense_Rank_Scores_2026_10_09T23_03_30_883741_00_00Z.py": {
+      "date": "2026-10-10",
+      "problem": "drill",
+      "moves": {
+        "sql-window-rank": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The query selects score and dense_rank() over (order by score desc) as rank from Scores, which gives ties the same rank with no gaps. Both example assertions passed, confirming the dense-rank window move. No notes indicate any help or recognition difficulty.",
+      "seconds": 252
     }
   }
 }
