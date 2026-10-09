@@ -36675,6 +36675,20 @@
       "judge": "deepseek-chat",
       "summary": "The query selects month, amount, and amount - lag(amount) over (order by month) as change from Revenue. The LAG window function compares each row with its previous month, giving NULL for the first row and the month-over-month difference otherwise, which matches both examples. This exercises the sql-window-offset move directly.",
       "seconds": 109
+    },
+    "solved/d_Largest_Count_2026_10_09T22_34_42_904150_00_00Z.ts": {
+      "date": "2026-10-10",
+      "problem": "drill",
+      "moves": {
+        "ts-map-count": "clean"
+      },
+      "assist": {
+        "ts-map-count": "hint"
+      },
+      "judge": "deepseek-chat",
+      "note": "Hint was about Math.max needing spread arguments, not the map counting itself.",
+      "summary": "The code builds a Map<string, number> counting each word with cnt.get(w) ?? 0 then set, and returns Math.max(...cnt.values()). It exercises ts-map-count cleanly. The notes record a hint about spreading the values into Math.max rather than passing an array.",
+      "seconds": 389
     }
   }
 }
