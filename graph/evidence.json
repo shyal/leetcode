@@ -36638,6 +36638,20 @@
       "note": "One-liner: abs(count('L') - count('R')) + count('_'); LeetCode Accepted (0 ms, 18.9 MB).",
       "summary": "The solution counts the L and R characters in the moves string, takes the absolute difference, and adds the count of underscores. It is a single arithmetic expression over str.count calls, exercising string decomposition and reassembly of the answer from character counts. The notes are empty and LeetCode reports Accepted at 0 ms.",
       "seconds": 179
+    },
+    "solved/p2344_Minimum_Deletions_to_Make_Array_Divisible_2026_10_09T07_56_28_471623_00_00Z.py": {
+      "date": "2026-10-09",
+      "problem": "2344",
+      "moves": {
+        "gcd-reduction": "struggled",
+        "sort-then-adjacent": "clean",
+        "set-membership": "clean",
+        "counting-sort-buckets": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Time Limit Exceeded (38/49 cases); notes say 'need a binary search' and 'no clear true false boundary, so not a binary search' \u2014 the canonical move is gcd(numsDivide) then the smallest nums element dividing it, which the brute force stands in for.",
+      "summary": "The code sorts the distinct nums, scans them in order, and returns the count of elements below the first one that divides every element of numsDivide, else -1. It exercises set-membership (set(nums)), sort-then-adjacent (sorted distinct scan), and counting-sort-buckets (the final count of smaller elements). The notes show the candidate tried a binary-search variant, concluded there was no monotone boundary, and fell back to brute force; LeetCode rejected it with Time Limit Exceeded (38/49 cases). The canonical gcd(numsDivide) reduction was never written.",
+      "seconds": 1506
     }
   }
 }
