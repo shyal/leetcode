@@ -36652,6 +36652,19 @@
       "note": "LEETCODE: Time Limit Exceeded (38/49 cases); notes say 'need a binary search' and 'no clear true false boundary, so not a binary search' \u2014 the canonical move is gcd(numsDivide) then the smallest nums element dividing it, which the brute force stands in for.",
       "summary": "The code sorts the distinct nums, scans them in order, and returns the count of elements below the first one that divides every element of numsDivide, else -1. It exercises set-membership (set(nums)), sort-then-adjacent (sorted distinct scan), and counting-sort-buckets (the final count of smaller elements). The notes show the candidate tried a binary-search variant, concluded there was no monotone boundary, and fell back to brute force; LeetCode rejected it with Time Limit Exceeded (38/49 cases). The canonical gcd(numsDivide) reduction was never written.",
       "seconds": 1506
+    },
+    "solved/d_Plus_One_Or_Double_2026_10_09T22_25_09_814656_00_00Z.py": {
+      "date": "2026-10-10",
+      "problem": "drill",
+      "moves": {
+        "generate-and-test-neighbors": "clean",
+        "graph-bfs-shortest": "clean",
+        "set-membership": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "BFS over implicit graph: from each c, generate c+1 and c*2 as neighbors, validate against limit, dedupe via seen set; levels() yields distance.",
+      "summary": "The code runs a BFS from a to b, generating the two implicit neighbors c+1 and c*2 at each step, skipping values outside [0, limit], and returning the level distance when b is reached. It exercises generate-and-test-neighbors (perturbation space enumerated and validated), graph-bfs-shortest (levels give minimum moves), and set-membership (seen set dedupes). All assertions passed with exit 0.",
+      "seconds": 313
     }
   }
 }
