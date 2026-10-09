@@ -36718,6 +36718,18 @@
       "judge": "deepseek-chat",
       "summary": "Defines fn square(x: i32) -> i32 returning x * x, with every parameter and the return type written after ->. main prints square(3) and asserts square(3)==9, square(0)==0, square(-4)==16, and square(40000)==1600000000; the run exited 0. The notes say only 'Learning'.",
       "seconds": 122
+    },
+    "solved/d_Total_Users_Per_Contest_2026_10_09T22_58_25_656094_00_00Z.py": {
+      "date": "2026-10-10",
+      "problem": "drill",
+      "moves": {
+        "sql-subquery": "clean",
+        "sql-filter-select": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say the subquery syntax was forgotten and looked up; the scalar subquery (select count(*) from users) is the required move and it ran correctly.",
+      "summary": "The query selects distinct contest_id from Register and pairs each with a scalar subquery (select count(*) from users) as total_users, so the count comes from Users at run time rather than a hard-coded number. It exercises the scalar-subquery move and a basic SELECT DISTINCT. The notes say the candidate keeps forgetting the parenthesized subquery syntax, which is the move the drill targets.",
+      "seconds": 226
     }
   }
 }
