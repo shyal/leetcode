@@ -2,14 +2,14 @@
   "_comment": "Personal forgetting curve fitted by utils/kg/kg_curve. P(recall) = (1-slip)*(1 + gap/s)^(-beta), s = exp(a + b*log1p(cleans) - c*struggles - d*assist + e*(conn - conn_mean)); cleans counts distinct clean days, same-day reps are one rep. conn is the node's log2 carrier count, frozen below at fit time; consumers that ignore e are assuming average connectivity. \"solve\" is the cold-solve model fitted by fit_solve: logit P(solve cold, unaided, inside the clock) = the listed coefficients over (rating - 1500)/400, the walk's summed log recall, and its count of never-met moves; features not listed did not earn their place on held-out games. node_status() calls a node SOLID while the memory component (1 + gap/s)^(-beta) >= target_retention; delete this file to fall back to the flat 42-day window.",
   "model": "power-law-slip",
   "params": {
-    "a": 3.8342,
-    "b": 0.1308,
-    "c": 0.3371,
+    "a": 3.8341,
+    "b": 0.1305,
+    "c": 0.3374,
     "d": 0.0928,
-    "e": -0.2643,
-    "conn_mean": 2.2946,
+    "e": -0.2638,
+    "conn_mean": 2.2963,
     "beta": 0.1109,
-    "slip": 0.0496
+    "slip": 0.0495
   },
   "conn": {
     "backtracking-choose-undo": 3.807,
@@ -17,7 +17,7 @@
     "backtracking-mark-unmark": 2.322,
     "backtracking-start-index": 3.0,
     "bijection-check": 1.585,
-    "binary-search-boundary": 3.7,
+    "binary-search-boundary": 3.807,
     "binary-search-index": 3.7,
     "binary-search-on-answer": 4.0,
     "bit-iterate": 3.459,
@@ -100,34 +100,34 @@
   },
   "target_retention": 0.9,
   "mass": {
-    "beta": -0.2738,
-    "se": 0.1172,
-    "n": 560,
+    "beta": -0.2899,
+    "se": 0.1159,
+    "n": 561,
     "by_difficulty": {
-      "Easy": 3.8597,
-      "Medium": 1.162,
-      "Hard": 0.0601
+      "Easy": 3.8768,
+      "Medium": 1.1558,
+      "Hard": 0.0692
     }
   },
   "solve": {
-    "games": 847,
+    "games": 848,
     "features": {
-      "intercept": 1.4582,
-      "rating": -1.895
+      "intercept": 1.4437,
+      "rating": -1.902
     },
     "se": {
-      "intercept": 0.1021,
-      "rating": 0.1629
+      "intercept": 0.1017,
+      "rating": 0.1628
     },
-    "intercept_se": 0.1021,
+    "intercept_se": 0.1017,
     "elo": {
-      "now": 1627.4,
-      "drift_per_day": -0.0165,
-      "drift_se": 0.02942
+      "now": 1608.9,
+      "drift_per_day": -0.0261,
+      "drift_se": 0.02957
     },
     "lambda": 1.0,
-    "cv_loglik": -0.4476,
-    "baseline_cv_loglik": -0.5781,
+    "cv_loglik": -0.4502,
+    "baseline_cv_loglik": -0.5823,
     "rejected": [
       "recall",
       "unseen",
