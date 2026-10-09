@@ -36665,6 +36665,16 @@
       "note": "BFS over implicit graph: from each c, generate c+1 and c*2 as neighbors, validate against limit, dedupe via seen set; levels() yields distance.",
       "summary": "The code runs a BFS from a to b, generating the two implicit neighbors c+1 and c*2 at each step, skipping values outside [0, limit], and returning the level distance when b is reached. It exercises generate-and-test-neighbors (perturbation space enumerated and validated), graph-bfs-shortest (levels give minimum moves), and set-membership (seen set dedupes). All assertions passed with exit 0.",
       "seconds": 313
+    },
+    "solved/d_Month_Over_Month_Change_2026_10_09T22_28_07_060749_00_00Z.py": {
+      "date": "2026-10-10",
+      "problem": "drill",
+      "moves": {
+        "sql-window-offset": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The query selects month, amount, and amount - lag(amount) over (order by month) as change from Revenue. The LAG window function compares each row with its previous month, giving NULL for the first row and the month-over-month difference otherwise, which matches both examples. This exercises the sql-window-offset move directly.",
+      "seconds": 109
     }
   }
 }
