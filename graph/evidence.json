@@ -36789,6 +36789,20 @@
       "note": "LEETCODE: Accepted (7 ms, 21.5 MB); mutates board by tagging cells, so the O(1)-memory/no-modification follow-up is not met",
       "summary": "The code counts battleships by scanning cells for 'X', incrementing count, then running a recursive explore that tags the cell and recurses into cardinal 'X' neighbours via nbrs, so each ship is consumed once. It exercises grid-neighbour enumeration and DFS-with-visited (tagging stands in for a visited set). The notes say the question was poorly worded and that it is number of islands. LeetCode accepted it, but it modifies the board and uses recursion, so the one-pass O(1)-memory follow-up is not solved.",
       "seconds": 673
+    },
+    "solved/p2780_Minimum_Index_of_a_Valid_Split_2026_10_10T03_12_26_866029_00_00Z.py": {
+      "date": "2026-10-10",
+      "problem": "2780",
+      "moves": {
+        "counter-build": "clean",
+        "streaming-ask-then-record": "clean",
+        "counts-as-data": "struggled",
+        "running-extreme": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Time Limit Exceeded (912/917 cases) \u2014 the per-step max(rem_counts.items()) recompute is the missing O(1) dominant-element tracking; notes say 'not sure how to cleanly get the max item & count from the back'.",
+      "summary": "The code builds a Counter of all nums, then walks once maintaining a running max of the left prefix counts while decrementing the right Counter, checking the dominant-element condition at each index. The streaming ask-then-record and running-extreme moves ran correctly, but the right-side dominant element is recomputed with max(rem_counts.items()) every iteration, which is the O(n) scan the canonical solution replaces with a single tracked dominant. The notes admit the candidate did not know how to get the max item and count from the back cleanly, and LeetCode rejected the submission with Time Limit Exceeded at 912/917 cases.",
+      "seconds": 2270
     }
   }
 }
