@@ -1,6 +1,8 @@
 // make elo: the Elo numbers behind the README chart, as a ratatui panel
 // that sits open in a terminal split. The big number is the first-sight
-// Elo; under it the history as a sparkline, then one gauge per number
+// Elo; under it the last FS_WINDOW days as a line chart, dates along the
+// bottom and ratings up the side, in every row the digits leave; then one
+// gauge per number
 // from START to the guardian cutoff. graph/evidence.json is polled once a
 // second and the numbers recomputed when it changes, so a `make solved`
 // shows up on its own. q, Esc or Ctrl+C quits. `--once` prints one frame
@@ -12,6 +14,7 @@
 use std::path::Path;
 use std::time::{Duration, SystemTime};
 
+use chrono::NaiveDate;
 use kg::console::terminal_columns;
 use kg::ctx::Ctx;
 use kg::data::repo_root;
@@ -21,9 +24,10 @@ use ratatui::backend::TestBackend;
 use ratatui::crossterm::event::{self, Event, KeyCode, KeyEventKind, KeyModifiers};
 use ratatui::layout::{Constraint, Flex, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style, Stylize};
+use ratatui::symbols::Marker;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{
-    Block, BorderType, LineGauge, Padding, Paragraph, RenderDirection, Sparkline,
+    Axis, Block, BorderType, Chart, Dataset, GraphType, LineGauge, Padding, Paragraph,
 };
 use ratatui::{Frame, Terminal};
 
@@ -132,10 +136,11 @@ fn draw_numbers(frame: &mut Frame, n: &Numbers) {
     // the week's totals under the gauges, dropped first when the panel is short
     let week = n.week.rows();
     let week_h = u16::from(inner.height >= 16) * (week.len() as u16 + 1);
-    let spark_h = u16::from(inner.height >= 12) * 3;
+    let fixed = 1 + rows.len() as u16 + week_h;
+    let (number_c, spark_c) = split(inner, fixed, n.elo);
     let [number_area, spark_area, _, rows_area, week_area] = Layout::vertical([
-        Constraint::Fill(1),
-        Constraint::Length(spark_h),
+        number_c,
+        spark_c,
         Constraint::Length(1),
         Constraint::Length(rows.len() as u16),
         Constraint::Length(week_h),
@@ -144,9 +149,8 @@ fn draw_numbers(frame: &mut Frame, n: &Numbers) {
 
     big_digits(frame, number_area, n.elo, c);
 
-    if spark_h > 0 {
-        let hist: Vec<f64> = n.history.iter().map(|x| x.1).collect();
-        sparkline(frame, spark_area, &hist, c);
+    if spark_area.height > 0 {
+        chart(frame, spark_area, &n.history, n.today, FS_WINDOW, c);
     }
 
     gauge_rows(frame, rows_area, &rows, c);
@@ -171,6 +175,103 @@ pub fn framed(frame: &mut Frame, title: String, subtitle: Line<'static>, c: Colo
     inner
 }
 
+/// How the rows above the gauges split between the big number and the
+/// chart: the number takes the rows its largest fitting font needs plus
+/// one above and one below, the chart every row left. Under CHART_MIN
+/// rows left there is no chart and the number takes all.
+pub fn split(inner: Rect, fixed: u16, value: f64) -> (Constraint, Constraint) {
+    let spare = inner.height.saturating_sub(fixed + CHART_MIN);
+    let font = big_number(value, inner.width as usize, spare.saturating_sub(2) as usize);
+    let digits = font.len() as u16 + 2;
+    if spare >= digits {
+        (Constraint::Length(digits), Constraint::Fill(1))
+    } else {
+        (Constraint::Fill(1), Constraint::Length(0))
+    }
+}
+
+/// The fewest rows a chart is worth drawing in: one for the dates, the
+/// rest for the line.
+const CHART_MIN: u16 = 5;
+
+/// `history` is (date, value after the day's last game) one per day with
+/// a game. The value on each of the last `days` calendar days, the day's
+/// own when it had a game, else the last one before it; days before the
+/// first entry are left out. Returns the first day and the values from it
+/// to `today`.
+pub fn daily(
+    history: &[(NaiveDate, f64)],
+    today: NaiveDate,
+    days: i64,
+) -> Option<(NaiveDate, Vec<f64>)> {
+    let first = history.first()?.0;
+    let from = first.max(today - chrono::Duration::days(days - 1));
+    let mut out = Vec::new();
+    let mut i = 0;
+    let mut last = history[0].1;
+    for d in from.iter_days().take_while(|d| *d <= today) {
+        while i < history.len() && history[i].0 <= d {
+            last = history[i].1;
+            i += 1;
+        }
+        out.push(last);
+    }
+    Some((from, out))
+}
+
+/// The big number's last `days` days as a line, one point per calendar
+/// day (see `daily`). The dates of the first, middle and last day run
+/// along the bottom; the lowest, middle and highest rating in the window,
+/// rounded out to tens, up the side.
+pub fn chart(
+    frame: &mut Frame,
+    area: Rect,
+    history: &[(NaiveDate, f64)],
+    today: NaiveDate,
+    days: i64,
+    c: Color,
+) {
+    let Some((from, vals)) = daily(history, today, days) else {
+        return;
+    };
+    let n = vals.len();
+    let lo = (vals.iter().copied().fold(f64::INFINITY, f64::min) / 10.0).floor() * 10.0;
+    let hi = (vals.iter().copied().fold(f64::NEG_INFINITY, f64::max) / 10.0).ceil() * 10.0;
+    let hi = hi.max(lo + 10.0);
+    let points: Vec<(f64, f64)> = vals
+        .iter()
+        .enumerate()
+        .map(|(i, v)| (i as f64, *v))
+        .collect();
+    let day = |i: usize| {
+        (from + chrono::Duration::days(i as i64))
+            .format("%b %-d")
+            .to_string()
+    };
+    let x_labels = vec![day(0), day(n / 2), day(n - 1)];
+    let y_labels = vec![
+        format!("{lo:.0}"),
+        format!("{:.0}", (lo + hi) / 2.0),
+        format!("{hi:.0}"),
+    ];
+    let dim = Style::new().dim();
+    frame.render_widget(
+        Chart::new(vec![Dataset::default()
+            .marker(Marker::Braille)
+            .graph_type(GraphType::Line)
+            .style(Style::new().fg(c))
+            .data(&points)])
+        .x_axis(
+            Axis::default()
+                .bounds([0.0, (n.max(2) - 1) as f64])
+                .labels(x_labels)
+                .style(dim),
+        )
+        .y_axis(Axis::default().bounds([lo, hi]).labels(y_labels).style(dim)),
+        area,
+    );
+}
+
 /// The big number, centred in `area` in the largest font that fits.
 pub fn big_digits(frame: &mut Frame, area: Rect, value: f64, c: Color) {
     let lines = big_number(value, area.width as usize, area.height as usize);
@@ -182,22 +283,6 @@ pub fn big_digits(frame: &mut Frame, area: Rect, value: f64, c: Color) {
         Paragraph::new(text)
             .style(Style::new().fg(c).add_modifier(Modifier::BOLD))
             .centered(),
-        area,
-    );
-}
-
-/// The big number's history as a sparkline, newest at the right edge.
-pub fn sparkline(frame: &mut Frame, area: Rect, history: &[f64], c: Color) {
-    let w = area.width as usize;
-    let tail = &history[history.len().saturating_sub(w)..];
-    let lo = tail.iter().copied().fold(f64::INFINITY, f64::min);
-    // newest at the right edge: RightToLeft draws data[0] there
-    let data: Vec<u64> = tail.iter().rev().map(|x| (x - lo + 1.0) as u64).collect();
-    frame.render_widget(
-        Sparkline::default()
-            .data(&data)
-            .direction(RenderDirection::RightToLeft)
-            .style(c),
         area,
     );
 }
@@ -348,7 +433,10 @@ mod tests {
             ma: Some(1610.0),
             late: 1771.0,
             picker: 1690.0,
-            history: (0..10).map(|i| (d, 1600.0 + i as f64 * 9.0)).collect(),
+            history: (0..10)
+                .map(|i| (d + chrono::Duration::days(i), 1600.0 + i as f64 * 9.0))
+                .collect(),
+            today: d + chrono::Duration::days(9),
             games: 427,
             wins: 297,
             draws: 6,
@@ -393,6 +481,39 @@ mod tests {
             assert!(f.contains(s), "missing {s:?}\n{f}");
         }
         assert!(frame_text(Some(&sample()), 40, 8).contains("1681"));
+    }
+
+    #[test]
+    fn daily_carries_the_last_value_over_days_without_a_game() {
+        let d = |n| NaiveDate::from_ymd_opt(2026, 10, 1).unwrap() + chrono::Duration::days(n);
+        let h = [(d(0), 1600.0), (d(2), 1620.0), (d(5), 1590.0)];
+        // the whole span, rest days carried
+        assert_eq!(
+            daily(&h, d(6), 60),
+            Some((
+                d(0),
+                vec![1600.0, 1600.0, 1620.0, 1620.0, 1620.0, 1590.0, 1590.0]
+            ))
+        );
+        // a window shorter than the span starts inside it
+        assert_eq!(
+            daily(&h, d(6), 3),
+            Some((d(4), vec![1620.0, 1590.0, 1590.0]))
+        );
+        assert_eq!(daily(&[], d(6), 60), None);
+    }
+
+    #[test]
+    fn tall_panel_charts_the_window_with_dates_and_ratings() {
+        let f = frame_text(Some(&sample()), 62, 44);
+        // the sample runs Sep 1 to Sep 10, 1600 to 1681: the axes say so
+        for s in ["Sep 1", "Sep 6", "Sep 10", "1600", "1645", "1690"] {
+            assert!(f.contains(s), "missing {s:?}\n{f}");
+        }
+        let braille = |ch: char| ('\u{2801}'..='\u{28ff}').contains(&ch);
+        let line_rows = f.lines().filter(|l| l.chars().any(braille)).count();
+        assert!(line_rows > 3, "{line_rows} chart rows\n{f}");
+        assert!(f.contains("1681"));
     }
 
     #[test]

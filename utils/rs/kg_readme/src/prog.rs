@@ -1,7 +1,8 @@
 // make prog: the numbers behind `make progress`, as a ratatui panel that
 // sits open in a terminal split beside `make elo`. The big number is the
-// proven rating (kg::model::proven_series); under it its history as a
-// sparkline, then one gauge each for the proven rating now, 90 days ago,
+// proven rating (kg::model::proven_series); under it its last
+// PROGRESS_LEVEL_DAYS days as a line chart, dates along the bottom and
+// ratings up the side, in every row the digits leave; then one gauge each for the proven rating now, 90 days ago,
 // its best, and the median rating served; then the two
 // ground sentences of the last 30 days and the drills that hold. The
 // border carries the verdict of `make progress`: green progressing, cyan
@@ -24,7 +25,7 @@ use ratatui::widgets::{Paragraph, Wrap};
 use ratatui::Frame;
 
 use crate::dash::{
-    big_digits, framed, gauge_rows, ratio_lines, run_panel, signed, sparkline, Panel,
+    big_digits, chart, framed, gauge_rows, ratio_lines, run_panel, signed, split, Panel,
 };
 
 /// How many of the moves that turned into unaided solves are listed.
@@ -153,17 +154,6 @@ impl Panel for Prog {
         let wrapped = |para: &Paragraph| para.line_count(inner.width) as u16;
         let ground_h = u16::from(inner.height >= 16) * wrapped(&ground);
         let drills_h = u16::from(inner.height >= 20) * (wrapped(&drills) + 1);
-        let spark_h = u16::from(inner.height >= 12) * 3;
-        let [number_area, spark_area, _, rows_area, ground_area, drills_area] = Layout::vertical([
-            Constraint::Fill(1),
-            Constraint::Length(spark_h),
-            Constraint::Length(1),
-            Constraint::Length(rows.len() as u16),
-            Constraint::Length(ground_h),
-            Constraint::Length(drills_h),
-        ])
-        .areas(inner);
-
         // under PROVEN_WINDOW first sights there is no proven rating yet:
         // the games in the window stand in
         let face = if p.now.is_some() {
@@ -171,11 +161,29 @@ impl Panel for Prog {
         } else {
             p.recent as f64
         };
+        let fixed = 1 + rows.len() as u16 + ground_h + drills_h;
+        let (number_c, spark_c) = split(inner, fixed, face);
+        let [number_area, spark_area, _, rows_area, ground_area, drills_area] = Layout::vertical([
+            number_c,
+            spark_c,
+            Constraint::Length(1),
+            Constraint::Length(rows.len() as u16),
+            Constraint::Length(ground_h),
+            Constraint::Length(drills_h),
+        ])
+        .areas(inner);
+
         big_digits(frame, number_area, face, c);
 
-        if spark_h > 0 {
-            let hist: Vec<f64> = p.proven.iter().map(|x| x.1).collect();
-            sparkline(frame, spark_area, &hist, c);
+        if spark_area.height > 0 {
+            chart(
+                frame,
+                spark_area,
+                &p.proven,
+                self.today,
+                PROGRESS_LEVEL_DAYS,
+                c,
+            );
         }
         gauge_rows(frame, rows_area, &rows, c);
         if ground_h > 0 {

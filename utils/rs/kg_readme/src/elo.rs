@@ -232,6 +232,8 @@ pub struct Numbers {
     pub picker: f64,
     /// (date, Elo after the day's last game) one per day with a game
     pub history: Vec<(NaiveDate, f64)>,
+    /// the day the panel is drawn for; the sparkline ends on it
+    pub today: NaiveDate,
     pub games: usize,
     pub wins: usize,
     pub draws: usize,
@@ -261,6 +263,7 @@ pub fn numbers(ctx: &Ctx, ev: &Evidence) -> Option<Numbers> {
         late,
         picker: kg::model::elo_now(ctx, ev),
         history,
+        today: ctx.today(),
         games: gs.len(),
         wins: gs.iter().filter(|g| g.2 == 1.0).count(),
         draws: gs.iter().filter(|g| g.2 == 0.5).count(),
