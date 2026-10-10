@@ -36776,6 +36776,19 @@
       "judge": "deepseek-chat",
       "note": "AssertionError: left : 171, right: 133 \u2014 the prefix arrays are misaligned: mins[k-1] is the min up to k-1, not the min strictly between i and k, so the pair (maxes[k-2], mins[k-1]) can pick j before i.",
       "seconds": 1298
+    },
+    "solved/p419_Battleships_in_a_Board_2026_10_10T02_33_50_831184_00_00Z.py": {
+      "date": "2026-10-10",
+      "problem": "419",
+      "moves": {
+        "graph-dfs-visited": "clean",
+        "grid-neighbors": "clean"
+      },
+      "judge": "deepseek-chat",
+      "followup": "not solved",
+      "note": "LEETCODE: Accepted (7 ms, 21.5 MB); mutates board by tagging cells, so the O(1)-memory/no-modification follow-up is not met",
+      "summary": "The code counts battleships by scanning cells for 'X', incrementing count, then running a recursive explore that tags the cell and recurses into cardinal 'X' neighbours via nbrs, so each ship is consumed once. It exercises grid-neighbour enumeration and DFS-with-visited (tagging stands in for a visited set). The notes say the question was poorly worded and that it is number of islands. LeetCode accepted it, but it modifies the board and uses recursion, so the one-pass O(1)-memory follow-up is not solved.",
+      "seconds": 673
     }
   }
 }
