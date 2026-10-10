@@ -36853,6 +36853,24 @@
       "note": "LEETCODE: Accepted (30 ms, 54.1 MB); notes show the greedy approach was reasoned out by hand before coding.",
       "summary": "The code scans the triplets once, and for each triplet checks three conditions: whether it can supply target[0] while staying within the other two target bounds, and likewise for target[1] and target[2], setting a flag in res for each. It returns all(res), so the answer is true only when every target coordinate is covered by some triplet that does not exceed the target elsewhere. The notes describe working out this greedy condition manually (the BFS idea was set aside), and LeetCode accepted the submission.",
       "seconds": 884
+    },
+    "solved/p987_Vertical_Order_Traversal_of_a_Binary_Tree_2026_10_10T10_25_42_196591_00_00Z.py": {
+      "date": "2026-10-10",
+      "problem": "987",
+      "moves": {
+        "tree-bfs-levels": "clean",
+        "sort-by-custom-key": "clean",
+        "dict-arbitrary-value": "clean"
+      },
+      "assist": {
+        "tree-bfs-levels": "hint",
+        "sort-by-custom-key": "hint",
+        "dict-arbitrary-value": "hint"
+      },
+      "judge": "deepseek-chat",
+      "note": "Hinted with: out[c].extend(sorted(res[r][c])) and return [out[c] for c in min_col..max_col]",
+      "summary": "The code runs a BFS over the tree carrying (row, col) coordinates, storing node values in a nested defaultdict keyed by row then column. It then finds the column range, sorts each (row, col) bucket, and concatenates buckets column by column into the output. The notes say the candidate was hinted on the final assembly line and the return expression; LeetCode accepted the submission.",
+      "seconds": 2050
     }
   }
 }
