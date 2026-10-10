@@ -36803,6 +36803,20 @@
       "note": "LEETCODE: Time Limit Exceeded (912/917 cases) \u2014 the per-step max(rem_counts.items()) recompute is the missing O(1) dominant-element tracking; notes say 'not sure how to cleanly get the max item & count from the back'.",
       "summary": "The code builds a Counter of all nums, then walks once maintaining a running max of the left prefix counts while decrementing the right Counter, checking the dominant-element condition at each index. The streaming ask-then-record and running-extreme moves ran correctly, but the right-side dominant element is recomputed with max(rem_counts.items()) every iteration, which is the O(n) scan the canonical solution replaces with a single tracked dominant. The notes admit the candidate did not know how to get the max item and count from the back cleanly, and LeetCode rejected the submission with Time Limit Exceeded at 912/917 cases.",
       "seconds": 2270
+    },
+    "solved/p893_Groups_of_Special-Equivalent_Strings_2026_10_10T03_57_43_780022_00_00Z.py": {
+      "date": "2026-10-10",
+      "problem": "893",
+      "moves": {
+        "py-list-comprehension": "clean",
+        "py-sorted-key": "clean",
+        "py-sets": "clean",
+        "py-dict-methods": "clean",
+        "py-str-methods": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The code canonicalizes each word by splitting its even-index and odd-index characters into two lists, sorting each, then reassembling with pop() in original parity order, and returns the number of distinct canonical forms via len(set(words)). It exercises list comprehensions, sorting, defaultdict usage, and set membership. All assertions passed with exit 0.",
+      "seconds": 511
     }
   }
 }
