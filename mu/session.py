@@ -9,18 +9,16 @@
     python mu/session.py debug [file.mu]   VS Code: write .mu_current.py and its line map
 
 current.mu holds the statement as comments, a `# ---` line with
-your notes under it, the Solution defs, and then the setup and
-asserts, translated to mu and commented as served. current.py stays as
-served; run and fold take its docstring and imports from the top and
-put current.mu, transpiled, under them. run writes no file: the Python is
-compiled under current.mu's name with each statement at its mu line, so a
-failed assert or an exception reports the line in current.mu. The harness
-helpers pasted in by the transpiler are compiled apart, as <mu helpers>.
-
-A drill of the python group (a TRAINS node whose group in graph/nodes.json
-is "python") trains Python itself, which mu has no word for, so it is
-solved in current.py: stub writes no current.mu for it and empties a
-stale one, and run runs current.py.
+your notes under it, the solve (the classes and defs of current.py:
+`class Solution`, a design problem's class, a given helper), and then
+the setup and asserts, translated to mu and commented as served.
+current.py stays as served; run and fold take its docstring and imports
+from the top and put current.mu, transpiled, under them. run writes no
+file: the Python is compiled under current.mu's name with each statement
+at its mu line, so a failed assert or an exception reports the line in
+current.mu. The harness helpers pasted in by the transpiler are compiled
+apart, as <mu helpers>. While current.mu is still the stub as served, run
+runs current.py, so a drill mu has no word for is solved there.
 """
 
 import ast
@@ -38,12 +36,10 @@ sys.path.insert(0, str(Path(__file__).parent))
 from mu import VERSION, MuError, Parser, fmt, transpile  # noqa: E402
 
 CURRENT, MU, STUB, RUN = "current.py", "current.mu", ".mu_stub", ".mu_current.py"
-NODES = Path(__file__).resolve().parent.parent / "graph" / "nodes.json"
-PY_GROUP = "python"  # the group of the nodes solved in current.py, never in mu
 MAP = ".mu_current.map.json"
 HELPERS = "<mu helpers>"  # the file name of the pasted helpers' frames
 PREV = "current.mu.prev"
-CLASS = re.compile(r"^class Solution(\([^)]*\))?:", flags=re.M)
+SOLVE = (ast.ClassDef, ast.FunctionDef)  # the top-level nodes a solve is made of
 # a commented line the asserts need: an assert, `name = ...`, `name += ...`
 # or a `sol.method(...)` call (utils/tests/test_reference_solutions.py SETUP)
 SETUP = r"(?:assert |[\w.\[\]]+ (?:[-+*/]|//)?= |sol\.\w+\()"
@@ -167,7 +163,7 @@ def mu_lines(stmts, ind):
             out += [f"{pad}def {s.targets[0].id}({args})"]
             out += [f"{pad}  {mu_expr(s.value.body)}", ""]
         elif isinstance(s, ast.FunctionDef):
-            args = ", ".join(a.arg for a in s.args.args)
+            args = ", ".join(a.arg for a in plain_params(s))
             out.append(f"{pad}def {s.name}({args})")
             out += mu_lines(s.body, ind + 1) or [f"{pad}  pass"]
             out.append("")
@@ -198,9 +194,22 @@ def body_comments(fn, py_lines):
     return ["  " + ln.strip() for ln in span if ln.strip().startswith("#")]
 
 
+def plain_params(fn):
+    """The parameters of a def mu can write: positional, no default, no
+    *args or **kwargs, no decorator. A method's self is dropped: mu adds it."""
+    a = fn.args
+    if a.defaults or a.kwonlyargs or a.vararg or a.kwarg or a.posonlyargs:
+        raise MuError(f"{fn.name} has a parameter mu cannot write")
+    if fn.decorator_list:
+        raise MuError(f"{fn.name} has a decorator")
+    args = a.args
+    return args[1:] if args and args[0].arg == "self" else args
+
+
 def mu_def(fn, comments=()):
+    """A Python def as a mu def."""
     params = []
-    for a in fn.args.args[1:]:  # past self
+    for a in plain_params(fn):
         t = mu_type(a.annotation)
         params.append(a.arg if t is None else f"{a.arg}: {t}")
     ret = mu_type(fn.returns)
@@ -209,6 +218,85 @@ def mu_def(fn, comments=()):
     if not body or body[-1] == "":
         body.append("  pass")
     return "\n".join([head] + list(comments) + body)
+
+
+def mu_class(cls, py_lines):
+    """A Python class as a mu class: `class Name extends Base`, its
+    methods as defs, its attributes as assignments."""
+    above = [f"@{ast.unparse(d)}" for d in cls.decorator_list]
+    head = f"class {cls.name}"
+    if cls.bases:
+        head += " extends " + ", ".join(ast.unparse(b) for b in cls.bases)
+    body = []
+    for n in cls.body:
+        if isinstance(n, ast.FunctionDef):
+            lines = mu_def(n, body_comments(n, py_lines)).split("\n")
+            body += [f"  {ln}" if ln else "" for ln in lines] + [""]
+        elif isinstance(n, ast.Expr) and isinstance(n.value, ast.Constant):
+            continue  # a docstring
+        else:
+            body += mu_lines([n], 1)
+    while body and body[-1] == "":
+        body.pop()
+    return "\n".join(above + [head] + (body or ["  pass"]))
+
+
+def placeholder(n):
+    """A class or def served to be written: its body is only `pass`."""
+    body = [
+        s
+        for s in n.body
+        if not (isinstance(s, ast.Expr) and isinstance(s.value, ast.Constant))
+    ]
+    return len(body) == 1 and isinstance(body[0], ast.Pass)
+
+
+def solve_nodes(tree):
+    """The top-level nodes of current.py that are the solve, in order: `class
+    Solution`, the `pass`-bodied classes and defs just above it (served to
+    be written; a class with a body above it is given, and stays Python),
+    and the classes and defs that follow it. Without a Solution class, the
+    first run of classes and defs (a design problem's class). [] when there
+    is none."""
+    nodes = tree.body
+    sol = next(
+        (
+            k
+            for k, n in enumerate(nodes)
+            if isinstance(n, ast.ClassDef) and n.name == "Solution"
+        ),
+        None,
+    )
+    if sol is None:
+        i = next((k for k, n in enumerate(nodes) if isinstance(n, SOLVE)), None)
+        if i is None:
+            return []
+    else:
+        i = sol
+        while i > 0 and isinstance(nodes[i - 1], SOLVE) and placeholder(nodes[i - 1]):
+            i -= 1
+    j = i if sol is None else sol
+    while j + 1 < len(nodes) and isinstance(nodes[j + 1], SOLVE):
+        j += 1
+    return nodes[i : j + 1]
+
+
+def solve_span(py_src):
+    """(start, end), character offsets in current.py: from the first line of
+    the solve (a decorator counts) to the first line at column 0 after it,
+    where the setup and asserts begin. None when current.py has no solve."""
+    nodes = solve_nodes(parse(py_src))
+    if not nodes:
+        return None
+    lines = py_src.splitlines(keepends=True)
+    offsets = [0]
+    for ln in lines:
+        offsets.append(offsets[-1] + len(ln))
+    first = min([nodes[0].lineno] + [d.lineno for d in nodes[0].decorator_list])
+    k = nodes[-1].end_lineno  # 0-based index of the line after the solve
+    while k < len(lines) and (not lines[k].strip() or lines[k][0] in " \t"):
+        k += 1
+    return offsets[first - 1], offsets[k]
 
 
 def brackets(line):
@@ -267,28 +355,25 @@ def mu_script(tail):
 
 def stub(py_src):
     """current.mu for a served drill or problem: the statement as comments, a `# ---`
-    line for notes, the Solution defs with empty bodies, then the
-    setup and asserts in mu. None when current.py has no Solution."""
-    m = CLASS.search(py_src)
+    line for notes, the classes and defs of the solve with their bodies as
+    served (empty, mostly), then the setup and asserts in mu. None when
+    current.py has no class or def."""
     tree = parse(py_src)
-    cls = next(
-        (n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == "Solution"),
-        None,
-    )
-    if cls is None or not m:
+    nodes = solve_nodes(tree)
+    if not nodes:
         return None
     doc = ast.get_docstring(tree) or ""
     head = [f"# {ln}".rstrip() for ln in doc.strip("\n").splitlines()]
     parts = ["\n".join(head + ["#", "# ---", ""])] if doc.strip() else []
-    if cls.bases:
-        parts.append(f"extends {ast.unparse(cls.bases[0])}")
-    fns = [n for n in cls.body if isinstance(n, ast.FunctionDef)]
     py_lines = py_src.splitlines()
-    parts.append("\n\n".join(mu_def(fn, body_comments(fn, py_lines)) for fn in fns))
-    rest = py_src[m.end() :]
-    after = re.search(r"^\S", rest, flags=re.M)
-    if after:
-        parts.append(mu_script(rest[after.start() :]))
+    for n in nodes:
+        if isinstance(n, ast.ClassDef):
+            parts.append(mu_class(n, py_lines))
+        else:
+            parts.append(mu_def(n, body_comments(n, py_lines)))
+    _, end = solve_span(py_src)
+    if end < len(py_src):
+        parts.append(mu_script(py_src[end:]))
     return fmt("\n\n".join(parts) + "\n")
 
 
@@ -307,37 +392,18 @@ def title(text, comment=False):
     return next((ln.strip() for ln in doc.splitlines() if ln.strip()), "")
 
 
-def trains(py_src):
-    """The TRAINS ids of a drill's docstring; [] for a problem."""
-    try:
-        doc = ast.get_docstring(parse(py_src)) or ""
-    except SyntaxError:
-        return []
-    for line in doc.splitlines():
-        if line.strip().startswith("TRAINS:"):
-            ids = line.strip()[len("TRAINS:") :].split(",")
-            return [t.strip() for t in ids if t.strip()]
-    return []
-
-
-def python_group(py_src, nodes=NODES):
-    """current.py trains a node of the python group: the Python feature is
-    the drill, and mu has no word for it."""
-    ids = trains(py_src)
-    if not ids or not nodes.exists():
-        return False
-    groups = {n["id"]: n.get("group") for n in json.loads(nodes.read_text())["nodes"]}
-    return any(groups.get(i) == PY_GROUP for i in ids)
-
-
 def belongs(root):
     """current.mu is the solve in current.py: it is not empty, current.py
-    has a Solution class, and their titles agree."""
+    has a solve (a class or a def), and their titles agree."""
     mu, py = root / MU, root / CURRENT
     if not (mu.exists() and py.exists() and mu.read_text().strip()):
         return False
     py_src = py.read_text()
-    return bool(CLASS.search(py_src)) and title(py_src) == title(mu.read_text(), True)
+    try:
+        span = solve_span(py_src)
+    except SyntaxError:
+        return False
+    return span is not None and title(py_src) == title(mu.read_text(), True)
 
 
 def written(root):
@@ -383,14 +449,14 @@ def solution(mu_src):
 
 def spliced(py_src, mu_src, show_source=False, mapped=False):
     """current.py's docstring and imports, then current.mu transpiled (the
-    class and the asserts). With show_source, the notes go into the
-    docstring after `---` and the mu solution is quoted above the class,
+    solve and the asserts). With show_source, the notes go into the
+    docstring after `---` and the mu solution is quoted above the solve,
     under a `# mu <version>` line. With mapped, also {python line: mu line},
     both 1-based, for every line that came from current.mu."""
-    m = CLASS.search(py_src)
-    if not m:
-        raise MuError("current.py has no `class Solution` to replace")
-    head = py_src[: m.start()]
+    span = solve_span(py_src)
+    if span is None:
+        raise MuError("current.py has no class or def to replace")
+    head = py_src[: span[0]]
     code, origin = transpile(mu_src, mapped=True)
     if show_source:
         said = notes(mu_src)
@@ -418,15 +484,6 @@ def cmd_stub(root):
     if not py.exists() or not py.read_text().strip():
         return 0
     mu = root / MU
-    if python_group(py.read_text()):
-        if written(root):
-            (root / PREV).write_text(mu.read_text())
-            print(f"current.mu held work on another solve; it was moved to {PREV}.")
-        if mu.exists():
-            mu.write_text("")
-        (root / STUB).unlink(missing_ok=True)
-        print("This one trains Python itself, so solve it in current.py; mu stays out.")
-        return 0
     try:
         text = stub(py.read_text())
         if text is not None:
@@ -435,9 +492,7 @@ def cmd_stub(root):
         print(f"mu cannot write this one ({err}), so solve it in current.py.")
         return 0
     if text is None:
-        print(
-            "This one has no Solution class, which mu cannot write yet, so solve it in current.py."
-        )
+        print("This one has no class or def, so solve it in current.py.")
         return 0
     if written(root):
         if belongs(root):
@@ -613,12 +668,12 @@ def run_file(target, color=False):
 
 
 def cmd_run(root, *args):
-    """`make`: run current.mu in place when it is the solve, else current.py.
-    current.py's head, the docstring and imports above its class, runs
-    first under its own name, then current.mu's code under its own. No
-    file is written. `run FILE.mu` runs any mu file on its own, with no
-    current.py head. The traceback is coloured on a terminal, or with
-    --color; --no-color turns it off."""
+    """`make`: run current.mu in place when it is the solve and holds more
+    than the stub, else current.py. current.py's head, the docstring and
+    imports above its solve, runs first under its own name, then
+    current.mu's code under its own. No file is written. `run FILE.mu`
+    runs any mu file on its own, with no current.py head. The traceback is
+    coloured on a terminal, or with --color; --no-color turns it off."""
     color = sys.stderr.isatty()
     files = []
     for a in args:
@@ -639,10 +694,10 @@ def cmd_run(root, *args):
             return 1
         return run(list(codes), mu, color)
     py = root / CURRENT
-    if not belongs(root):
+    if not (belongs(root) and written(root)):
         return run_file(py, color)
     py_src = py.read_text()
-    head = py_src[: CLASS.search(py_src).start()]
+    head = py_src[: solve_span(py_src)[0]]
     try:
         helpers, program = mu_code((root / MU).read_text(), str(root / MU))
     except MuError as err:

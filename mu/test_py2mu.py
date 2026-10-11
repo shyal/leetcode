@@ -246,7 +246,8 @@ CASES = {
 def test_idiom(case):
     body, want, value = CASES[case]
     got = mu_of(body)
-    assert got == textwrap.dedent(want).lstrip("\n")
+    want = textwrap.indent(textwrap.dedent(want).lstrip("\n"), "  ")
+    assert got == "class Solution\n" + want
     edges = [[1, 0], [1, 2]]
     runs(got, f"f({edges if case == 'adjacency' else GRID})", value)
 
@@ -306,7 +307,7 @@ def test_lambdas_and_loop_else():
         """)
     assert "{:() -> [0, 0]}" in got
     assert "cmp_to_key((a, b) -> b - a)" in got
-    assert "\n  else\n" in got
+    assert "\n    else\n" in got
     runs("from functools import cmp_to_key\n" + got, f"f({GRID})", 5)
 
 
@@ -314,7 +315,7 @@ def test_lambdas_and_loop_else():
 def test_cached_problem_passes_its_asserts(num):
     row = one(num)
     assert row["status"] == "pass", row.get("why")
-    assert row["mu_lines"] < row["py_lines"]
+    assert row["mu_lines"] <= row["py_lines"]  # the class line counts on both sides
 
 
 def test_mutations_keep_shape():
@@ -352,7 +353,7 @@ def test_differential_finds_a_wrong_translation():
 )
 def test_or_if_forms_translate_to_one_line(py):
     body = f"t = min(grid[0])\n{py}"
-    assert mu_of(body).splitlines()[-1] == "  t or -1 if inf"
+    assert mu_of(body).splitlines()[-1] == "    t or -1 if inf"
     runs(mu_of(body), "f([[2, 1]])", 1)
     runs(mu_of(body), "f([[inf]])", -1)
 
@@ -371,10 +372,15 @@ def test_decorators_and_yields_translate():
         """,
         sig="f(self, grid: List[List[int]])",
     )
-    assert "  @wraps(len)\n  memo depth(i) = " in got
-    assert "    yield depth(row[0]), row[1]\n  yield from grid[0]\n  yield\n" in got
+    assert "    @wraps(len)\n    memo depth(i) = " in got
+    assert (
+        "      yield depth(row[0]), row[1]\n    yield from grid[0]\n    yield\n" in got
+    )
     src = "class Solution:\n    @as_list\n    def f(self, n: int) -> List[int]:\n        yield n\n"
-    assert translate(src) == "@as_list\ndef f(n: int) -> [int]\n  yield n\n"
+    assert (
+        translate(src)
+        == "class Solution\n  @as_list\n  def f(n: int) -> [int]\n    yield n\n"
+    )
     runs(translate(src), "f(3)", [3])
 
 

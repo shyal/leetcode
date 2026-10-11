@@ -2,8 +2,8 @@
 // VS Code, so the right tab, with the right language, is in front of the
 // candidate without him picking a file. Which file: current.mu when it
 // holds this Python serve (mu/session.py stub wrote it, and its first
-// line is current.py's title; a python-group drill gets no stub and is
-// solved in current.py), else the busy current.<ext> (kg::lang,
+// line is current.py's title; a serve mu could not write gets no stub
+// and is solved in current.py), else the busy current.<ext> (kg::lang,
 // current.rs or current.ts), else current.md (a recognition rep).
 // `code -r` reuses the open window. A missing `code`, or no file, is
 // silent: the serve has already succeeded.
@@ -104,10 +104,10 @@ mod tests {
         assert_eq!(served_file(&d), Some(d.join("current.mu")));
     }
 
-    /// A python-group drill gets no stub, so current.mu is empty or holds
-    /// an earlier solve: current.py opens.
+    /// A serve mu could not write gets no stub, so current.mu is empty or
+    /// holds an earlier solve: current.py opens.
     #[test]
-    fn a_python_group_serve_opens_current_py_over_a_stale_mu() {
+    fn a_serve_without_a_stub_opens_current_py_over_a_stale_mu() {
         let d = dir("py");
         std::fs::write(
             d.join("current.py"),

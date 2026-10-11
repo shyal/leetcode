@@ -23,21 +23,23 @@ from test_session import solved  # noqa: E402
 
 from mu import MuError  # noqa: E402
 
-MEMO = """def longestPath(G: {int: [int]}) -> int
-  memo longest(u) = max((1 + longest(v) for v in G[u]), default=0)
-  longest(0)
+MEMO = """class Solution
+  def longestPath(G: {int: [int]}) -> int
+    memo longest(u) = max((1 + longest(v) for v in G[u]), default=0)
+    longest(0)
 
 sol = Solution()
 print(sol.longestPath({0: [1, 2], 1: [2], 2: []}))
 assert sol.longestPath({0: [1, 2], 1: [2], 2: []}) == 2
 """
 
-ROW = """def longestEndingAt(nums: [int]) -> [int]
-  dp = table(len(nums), fill=1)
-  for (j, i) in pairs(len(nums), back=True)
-    if nums[j] < nums[i]
-      dp[i] = max(dp[i], dp[j] + 1)
-  dp
+ROW = """class Solution
+  def longestEndingAt(nums: [int]) -> [int]
+    dp = table(len(nums), fill=1)
+    for (j, i) in pairs(len(nums), back=True)
+      if nums[j] < nums[i]
+        dp[i] = max(dp[i], dp[j] + 1)
+    dp
 
 sol = Solution()
 print(sol.longestEndingAt([3, 1, 2]))

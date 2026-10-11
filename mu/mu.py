@@ -11,13 +11,13 @@ import builtins
 import re
 import sys
 
-VERSION = "0.7"
+VERSION = "0.8"
 
 KEYWORDS = {"from", "in", "not", "and", "or", "if", "else", "is"}
 # names that end a call written without brackets
 NOT_ARGS = {"from", "in", "not", "and", "or", "if", "else", "is", "for", "while"}
 NOT_ARGS |= {"elif", "def", "memo", "return", "del", "assert", "pass", "break"}
-NOT_ARGS |= {"continue", "import", "extends", "yield"}
+NOT_ARGS |= {"continue", "import", "extends", "yield", "class"}
 AUGMENTED = {
     "=",
     "+=",
@@ -735,40 +735,36 @@ class Parser:
     # statements
 
     def program(self):
-        """imports, an optional `extends Base`, top-level assignments
-        (constants, a Flag class), the defs of Solution, then a script: any
-        statements, run after the class. Once the script starts, a def is a
-        plain function, not a method."""
-        defs, self.base, self.globals, self.script = [], None, [], []
+        """imports, top-level assignments (constants, a Flag class), then
+        the classes and defs of the file, in order, then a script: any
+        statements, run after them. A def inside a class is a method; a
+        top-level def is a plain function."""
+        tops, self.globals, self.script = [], [], []
         self.script_line = None  # where the script starts
         while self.peek()[0] != "EOF":
             t = self.peek()
             if self.script_line is None and (self.at("import") or self.at("from")):
                 self.imports.add(self.import_line())
-            elif self.script_line is None and self.at("extends"):
-                self.next()
-                self.base = self.expect_kind("NAME")
-                self.expect_kind("NEWLINE")
-            elif self.script_line is None and self.def_ahead():
-                defs.append(self.stmt())
+            elif self.script_line is None and self.top_ahead():
+                tops.append(self.stmt())
             else:
                 for s in flat(self.stmt()):
-                    if not defs and s[0] == "assign":
+                    if not tops and s[0] == "assign":
                         self.globals.append(s)
                     else:
                         if self.script_line is None:
                             self.script_line = t[2]
                         self.script.append(s)
-        return defs
+        return tops
 
-    def def_ahead(self):
-        """Whether a def starts here, under any `@` lines."""
+    def top_ahead(self):
+        """Whether a class or a def starts here, under any `@` lines."""
         j = self.i
         while self.toks[j][:2] == ("OP", "@"):
             while self.toks[j][0] not in ("NEWLINE", "EOF"):
                 j += 1
             j += self.toks[j][0] == "NEWLINE"
-        return self.toks[j][:2] == ("NAME", "def")
+        return self.toks[j][:2] in (("NAME", "def"), ("NAME", "class"))
 
     def import_line(self):
         """`import a.b` or `from a.b import c, d`, passed through to Python."""
@@ -819,10 +815,10 @@ class Parser:
             line = self.next()[2]
             out.append((line, self.expr()))
             self.expect_kind("NEWLINE")
-        if out and not (self.at("def") or self.at("memo")):
+        if out and not (self.at("def") or self.at("memo") or self.at("class")):
             t = self.peek()
             raise MuError(
-                f"line {out[-1][0]}: a decorator goes above a def or a memo",
+                f"line {out[-1][0]}: a decorator goes above a def, a memo or a class",
                 t[0] == "EOF",
             )
         return out
@@ -833,6 +829,12 @@ class Parser:
             return ("import", self.import_line())
         if self.at("def"):
             return self.def_stmt()
+        if self.at("class"):
+            return self.class_stmt()
+        if self.at("extends"):
+            raise MuError(
+                f"line {t[2]}: extends goes on the class line: class Solution extends Base"
+            )
         if self.at("memo") and self.peek(1)[0] == "NAME":
             return self.memo_stmt()
         if self.at("for"):
@@ -1006,6 +1008,26 @@ class Parser:
         if any(ret_name(b) for s in body for b in children(s)):
             raise MuError("a ret line must be a line of the def's own body")
         return ("def", name, params, ret, body)
+
+    def class_stmt(self):
+        """`class Name`, or `class Name extends Base`, then its body: defs,
+        which are its methods, and assignments, its attributes."""
+        line = self.expect("class")[2]
+        name = self.expect_kind("NAME")
+        base = None
+        if self.at("extends"):
+            self.next()
+            base = self.expect_kind("NAME")
+            while self.at("."):
+                self.next()
+                base += "." + self.expect_kind("NAME")
+        self.known[-1].add(name)
+        self.known.append(set())
+        body = self.block()
+        self.known.pop()
+        if any(s[0] == "class" for s in body):
+            raise MuError(f"line {line}: a class holds no class")
+        return ("class", name, base, body)
 
     def memo_stmt(self):
         self.expect("memo")
@@ -1762,9 +1784,9 @@ def bound(stmts, params=False):
     for s in stmts:
         if s[0] == "assign":
             out |= targets(s[1])
-        elif s[0] in ("def", "memo"):
+        elif s[0] in ("def", "memo", "class"):
             out.add(s[1])
-            if params:
+            if params and s[0] != "class":
                 out |= {p if s[0] == "memo" else p[0] for p in s[2]}
         elif s[0] == "for":
             out |= set(NAME.findall(s[1]))
@@ -1809,15 +1831,16 @@ def children(s):
 class Emitter:
     """Writes Python. A block's last value goes through the format string
     `last`: "return {}" in a def, something else at the REPL's top level.
-    A nested def that assigns a name an enclosing def binds gets `nonlocal`."""
+    A nested def that assigns a name an enclosing def binds gets `nonlocal`.
+    Inside a class body (`method`), a def directly under it is a method."""
 
-    def __init__(self, method=True, at_line=None):
+    def __init__(self, at_line=None):
         self.lines = []
         self.origin = []  # the mu line each output line comes from, or None
         self.at_line = at_line or {}
         self.src_line = None
         self.fresh = 0
-        self.method = method
+        self.method = False  # inside a class body: a def is a method
         self.scopes = []  # names bound by each enclosing def
         self.rets = []  # the ret name of each enclosing def, or None
 
@@ -1834,6 +1857,8 @@ class Emitter:
         kind = s[0]
         if kind == "def":
             self.def_(s, ind)
+        elif kind == "class":
+            self.class_(s, ind)
         elif kind == "memo":
             _, name, params, cases = s
             self.decorators(s, ind)
@@ -1911,9 +1936,24 @@ class Emitter:
             self.out(ind, f"@{d}")
         self.src_line = line
 
+    def class_(self, s, ind):
+        """A class: its defs are methods, given a `self`; a def nested in a
+        method is a plain function. Methods are set one blank line apart."""
+        _, name, base, body = s
+        self.decorators(s, ind)
+        self.out(ind, f"class {name}({base}):" if base else f"class {name}:")
+        was, self.method = self.method, True
+        for k, b in enumerate(body):
+            if k and (b[0] in ("def", "memo") or body[k - 1][0] in ("def", "memo")):
+                self.out(0, "")
+            self.stmt(b, ind + 1, False)
+        if not body:
+            self.out(ind + 1, "pass")
+        self.method = was
+
     def def_(self, s, ind):
         _, name, params, ret, body = s[:5]
-        top = not self.scopes  # a method of Solution, or a REPL function
+        top = not self.scopes  # a method, or a top-level function
         names = {p for p, _ in params}
         sig = ["self"] * (self.method and top)
         sig += [p if t is None else f"{p}: {t}" for p, t in params]
@@ -1941,7 +1981,8 @@ class Emitter:
         self.scopes.append(names | bound(body))
         res = ret_name(body)
         self.rets.append(res)
-        returns = False if res else "return {}"
+        # a def typed `-> none`, and __init__, return nothing on their own
+        returns = False if res or ret == "None" or name == "__init__" else "return {}"
         if top and any(is_memo(b) for b in body):
             # memo recursion can run 10^4+ deep: evaluate on a big stack
             self.out(ind + 1, "def run():")
@@ -2001,6 +2042,8 @@ def bound_anywhere(stmts):
     for s in stmts:
         if s[0] == "def":
             out |= bound_anywhere(s[4])
+        elif s[0] == "class":
+            out |= bound_anywhere(s[3])
         for body in children(s):
             out |= bound_anywhere(body)
     return out
@@ -2019,23 +2062,22 @@ def transpile(src, mapped=False):
     """The Python for a mu file. With mapped, also a list with one entry per
     output line: the mu line it comes from, or None for a pasted helper."""
     p = Parser(src)
-    defs = p.program()
-    if any(t and t.startswith("list[list[") for d in defs for _, t in d[2]):
+    tops = p.program()
+    if any(t and t.startswith("list[list[") for d in grid_defs(tops) for _, t in d[2]):
         p.need(helper="Grid")
     # a helper passed by name, `sort(ds, by=even)`, is pasted like one called,
     # unless the file binds that name itself
-    for name in sorted(p.bare - bound_anywhere(p.globals + defs + p.script)):
+    for name in sorted(p.bare - bound_anywhere(p.globals + tops + p.script)):
         p.need(helper=name)
     e = Emitter(at_line=p.at_line)
     for g in p.globals:
         e.stmt(g, 0, False)
-    if p.globals:
+    if p.globals and tops:
         e.out(0, "\n")
-    e.out(0, f"class Solution({p.base}):" if p.base else "class Solution:")
-    for k, d in enumerate(defs):
+    for k, d in enumerate(tops):
         if k:
-            e.out(0, "")
-        e.stmt(d, 1, False)
+            e.out(0, "\n")
+        e.stmt(d, 0, False)
     parts = []
     if p.imports:
         parts.append("\n".join(sorted(p.imports)))
@@ -2046,9 +2088,7 @@ def transpile(src, mapped=False):
     origins = [[None] * (part.count("\n") + 1) for part in parts[:-1]]
     origins.append(spread(e))
     if p.script:
-        script = Emitter(
-            method=False, at_line=p.at_line
-        )  # a def here is a plain function
+        script = Emitter(at_line=p.at_line)
         script.block(p.script, 0)
         parts.append("\n".join(script.lines))
         origins.append(spread(script))
@@ -2063,15 +2103,25 @@ def transpile(src, mapped=False):
     return code, origin
 
 
+def grid_defs(stmts):
+    """The defs that take grids: top-level defs and the methods of classes."""
+    out = []
+    for s in stmts:
+        if s[0] == "def":
+            out.append(s)
+        elif s[0] == "class":
+            out += [b for b in s[3] if b[0] == "def"]
+    return out
+
+
 def compile_stmts(src, last="_ = {}"):
     """Top-level statements to Python, for the REPL: (imports, helpers, code).
     The value of a final expression goes through `last`."""
     p = Parser(src)
     stmts = p.statements()
-    defs = [s for s in stmts if s[0] == "def"]
-    if any(t and t.startswith("list[list[") for d in defs for _, t in d[2]):
+    if any(t and t.startswith("list[list[") for d in grid_defs(stmts) for _, t in d[2]):
         p.need(helper="Grid")
-    e = Emitter(method=False)
+    e = Emitter()
     e.block(stmts, 0, returns=last)
     return sorted(p.imports), list(p.helpers), "\n".join(e.lines) + "\n"
 
@@ -2080,7 +2130,7 @@ def compile_stmts(src, last="_ = {}"):
 
 STATEMENT_WORDS = {
     "def", "memo", "for", "in", "if", "elif", "else", "while", "return", "and",
-    "or", "not", "from", "first", "break", "continue", "yield",
+    "or", "not", "from", "first", "break", "continue", "yield", "class", "extends",
 }  # fmt: skip
 TIGHT = {"..", "..<", "."}
 
@@ -2211,13 +2261,27 @@ def align_cases(lines):
     return lines
 
 
+def set_apart(prev, level, body, in_class):
+    """Whether a blank line goes above this line: a top-level def or class,
+    its decorators and its comments, and a method of a class are set apart,
+    except right under a block header or under a comment or decorator."""
+    if prev is None:
+        return False
+    top = body.startswith(("def ", "memo ", "class ", "#", "@")) and (
+        level == 0 or level == 1 and in_class
+    )
+    return top and not prev[1].startswith(("#", "@")) and prev[0] >= level
+
+
 def fmt(src):
     """Reprint a mu program: two-space blocks, one space around binary
     operators, no space in ranges, `->` aligned down a memo's cases, one
-    blank line between top-level defs, and every one-line body (`if c: x`)
-    moved onto its own indented line. A bracketed expression split over
-    several lines is joined into one. fmt(fmt(s)) == fmt(s)."""
+    blank line between top-level defs and classes and between the methods
+    of a class, and every one-line body (`if c: x`) moved onto its own
+    indented line. A bracketed expression split over several lines is
+    joined into one. fmt(fmt(s)) == fmt(s)."""
     lines, indents, buf, depth, blank, level = [], [0], [], 0, False, 0
+    in_class = False  # the current top-level block is a class
     rows, k = src.splitlines(), -1
     while k + 1 < len(rows):
         k += 1
@@ -2239,11 +2303,9 @@ def fmt(src):
                 if ind != indents[-1]:
                     raise MuError(f"line {n}: indentation does not match any block")
                 level = len(indents) - 1
-            # a top-level def gets a blank line above it, its decorators
-            # and its comments
-            top = level == 0 and body.startswith(("def ", "#", "@"))
-            after_comment = lines and lines[-1] and lines[-1][1].startswith(("#", "@"))
-            if lines and (blank or top and lines[-1] is not None and not after_comment):
+            if level == 0 and not body.startswith(("#", "@")):
+                in_class = body.startswith("class ")
+            if lines and (blank or set_apart(lines[-1], level, body, in_class)):
                 lines.append(None)
             blank = False
         pos = 0

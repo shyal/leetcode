@@ -2,9 +2,9 @@
 
 # `make` runs the current file: current.py through mu/session.py (which
 # runs current.mu in place when it holds the work, every error at its mu
-# line; a python-group drill has no current.mu and runs as current.py),
-# any other language's current.<ext> through its toolchain (utils/rs/run,
-# the kg::lang table)
+# line; current.mu still the stub as served runs as current.py), any
+# other language's current.<ext> through its toolchain (utils/rs/run, the
+# kg::lang table)
 all: $(if $(filter master,$(shell git rev-parse --abbrev-ref HEAD)),graph/leet.db) $(EXT) $(RS_BIN)/run
 	@cp utils/harness/sitecustomize.py .venv/lib/python3.10/site-packages/
 	@$(RS_BIN)/run
@@ -19,9 +19,9 @@ learning: $(RS_BIN)/learning
 	@$(RS_BIN)/learning
 
 # every serve ends here (`make next prepare` runs next, then this): the
-# drill or problem also gets its mu signature in current.mu (not a
-# python-group drill: that one is solved in current.py, and a stale
-# current.mu is emptied), VS Code opens the served file (kg_open:
+# drill or problem also gets its classes and signatures in current.mu
+# (one mu has no word for is left to current.py), VS Code opens the
+# served file (kg_open:
 # current.mu, current.<ext> or current.md, so the tab and its language
 # are never picked by hand), and last the Claude
 # Code pane follows the branch (kg_chat --switch: detached, a no-op when

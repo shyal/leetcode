@@ -927,7 +927,8 @@ def translate(src, entries=None, title=None, square=False, fired=None):
         raise Untranslatable("helper methods shared by several entries")
     p = Printer()
     out = [f"# {title}"] if title else []
-    for fn in tops:
+    out.append("class Solution")
+    for k, fn in enumerate(tops):
         # class attributes and helper methods move inside the entry
         fn.body = attrs + helpers + fn.body
         got = Rules(fn, tree, square).run()
@@ -941,7 +942,7 @@ def translate(src, entries=None, title=None, square=False, fired=None):
         ] + fn.body
         unshadow(fn, shared=frozenset(norm.attrs))
         rename_helper_clashes(fn)
-        out += [""] + p.def_(fn, 0, typed=True)
+        out += ([""] if k else []) + p.def_(fn, 1, typed=True)
     return fmt("\n".join(out).strip("\n") + "\n")
 
 

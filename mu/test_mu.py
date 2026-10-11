@@ -54,7 +54,7 @@ def test_example(path):
         ("def f(a: int) -> int\n    x = 1\n  x\n", "indentation"),
         ("def f(a: int) -> int\n  ret x = 1\n  ret y = 2\n", "more than one ret"),
         ("def f(a: int) -> int\n  for i in a\n    ret x = i\n", "own body"),
-        ("@as_list\nx = 1\n", "a decorator goes above a def or a memo"),
+        ("@as_list\nx = 1\n", "a decorator goes above a def, a memo or a class"),
         ("def f(a: int) -> int\n  a\n@as_list\n", "a decorator goes above a def"),
     ],
 )
@@ -75,7 +75,7 @@ def test_ret_names_the_return_value():
     )
     ns: dict = {}
     exec(transpile(src), ns)
-    decode = ns["Solution"]().decode
+    decode = ns["decode"]
     assert decode([1, 2, 3], 1) == [1, 0, 2, 1]
     assert decode([1, -1, 3], 1) == [1, 0]
 
@@ -84,7 +84,7 @@ def test_ret_takes_the_first_name_of_a_tuple_assignment():
     src = "def f() -> int\n  ret res, foo = 0, 10\n  res += foo\n"
     ns: dict = {}
     exec(transpile(src), ns)
-    assert ns["Solution"]().f() == 10
+    assert ns["f"]() == 10
 
 
 @pytest.mark.parametrize("path", EXAMPLES, ids=lambda p: p.stem)
@@ -95,12 +95,13 @@ def test_examples_are_formatted(path):
 def test_fmt_messy():
     messy = (
         "# 322. Coin Change\n"
-        "def coinChange(coins:[int],amount:int)->int\n"
-        "    memo f(a)=\n"
-        "        |a==0->0\n"
-        "        |a<0->inf\n"
-        "        |else->1+min for c in coins:f(a-c)\n"
-        "    f(amount) or -1 if inf\n"
+        "class Solution\n"
+        "    def coinChange(coins:[int],amount:int)->int\n"
+        "        memo f(a)=\n"
+        "            |a==0->0\n"
+        "            |a<0->inf\n"
+        "            |else->1+min for c in coins:f(a-c)\n"
+        "        f(amount) or -1 if inf\n"
     )
     want = (HERE / "examples" / "0322.mu").read_text()
     assert fmt(messy) == want
@@ -294,7 +295,7 @@ def test_pop_dot():
     src = "def f(stack: [int], res: [int]) -> int\n  res[stack .] = 1\n  stack .\n  x = stack . + 1\n  stack.count(x)\n"
     out = transpile(src)
     assert "res[stack.pop()] = 1" in out
-    assert "        stack.pop()" in out
+    assert "    stack.pop()" in out
     assert "x = stack.pop() + 1" in out
     assert "return stack.count(x)" in out  # a name after the dot is an attribute
     assert "w = s.pop() if s else 0" in transpile(
@@ -322,7 +323,7 @@ def test_a_push_is_a_comprehension_element():
 def run_f(src, *args):
     ns = {}
     exec(transpile(src), ns)
-    return ns["Solution"]().f(*args)
+    return ns["f"](*args)
 
 
 def test_a_default_dict_collects_under_each_key():
@@ -453,14 +454,14 @@ def test_assignment_converts_targets():
     assert "id, t = int(id), int(t)" in out
     ns = {}
     exec(out, ns)
-    assert ns["Solution"]().f("0:start:3") == 3
+    assert ns["f"]("0:start:3") == 3
     assert fmt(src) == src
 
 
 def run(src, *args):
     ns = {}
     exec(transpile(src), ns)
-    return ns["Solution"]().f(*args)
+    return ns["f"](*args)
 
 
 def test_a_value_left_of_assignment_binds_its_new_names():
@@ -546,7 +547,7 @@ def test_a_loop_that_names_no_variable_reads_the_item_as_underscore():
     assert "for _ in ps:" in out
     ns = {}
     exec(out, ns)
-    assert ns["Solution"]().f([(1, 9), (2, 9)]) == 3
+    assert ns["f"]([(1, 9), (2, 9)]) == 3
     assert fmt(src) == src
 
 
@@ -565,7 +566,7 @@ def test_a_fold_that_names_no_variable_reads_the_item_as_underscore(body, want):
     assert "for _ in xs" in out
     ns = {}
     exec(out, ns)
-    assert ns["Solution"]().f([1, 2, 3]) == want
+    assert ns["f"]([1, 2, 3]) == want
     assert fmt(src) == src
 
 
@@ -575,7 +576,7 @@ def test_a_fold_over_an_attribute_call_names_no_variable():
     assert "sum(_ for _ in d.values())" in out
     ns = {}
     exec(out, ns)
-    assert ns["Solution"]().f({"a": 2, "b": 5}) == 7
+    assert ns["f"]({"a": 2, "b": 5}) == 7
 
 
 def test_a_loop_may_name_no_variable():
@@ -584,7 +585,7 @@ def test_a_loop_may_name_no_variable():
     assert "for _ in range(0, n):" in out
     ns = {}
     exec(out, ns)
-    assert ns["Solution"]().f(3) == 6
+    assert ns["f"](3) == 6
     assert fmt(src) == src
     assert "for i, x in enumerate(xs):" in transpile(
         "def f(xs: [int]) -> int\n  k = 0\n  for i, x in xs\n    k += i\n  k\n"
@@ -595,7 +596,7 @@ def test_a_lambda_may_be_assigned_to_a_name():
     src = "def f(a: int, b: int) -> int\n  add = (x, y) -> x + y\n  add(a, b)\n"
     ns = {}
     exec(transpile(src), ns)
-    assert ns["Solution"]().f(2, 3) == 5
+    assert ns["f"](2, 3) == 5
     assert fmt(src) == src
 
 
@@ -615,7 +616,7 @@ def test_a_brace_literal_starting_with_a_colon_is_a_defaultdict():
     assert "defaultdict(list)" in py and "defaultdict(lambda: [0, 0])" in py
     ns = {}
     exec(py, ns)
-    assert ns["Solution"]().f([2, 3, 4]) == 4
+    assert ns["f"]([2, 3, 4]) == 4
     assert fmt(src) == src
 
 
@@ -629,7 +630,7 @@ def test_heap_pushes_and_pops_with_the_list_operators():
     )
     ns = {}
     exec(transpile(src), ns)
-    assert ns["Solution"]().f([5, 1, 7]) == [0, 99, 7, 3]
+    assert ns["f"]([5, 1, 7]) == [0, 99, 7, 3]
 
 
 def test_triple_quoted_strings_span_lines():
@@ -645,7 +646,7 @@ def test_triple_quoted_strings_span_lines():
     out = transpile(src)
     ns = {}
     exec(out, ns)
-    assert ns["Solution"]().f() == 'one\n  twox\n\nit\'s "quoted" '
+    assert ns["f"]() == 'one\n  twox\n\nit\'s "quoted" '
     assert fmt(src) == src  # the string's own lines are never touched
     assert fmt(fmt(src)) == fmt(src)
     with pytest.raises(MuError, match="line 2: unclosed ''' string"):
@@ -693,20 +694,20 @@ def test_transpile_maps_every_python_line_to_its_mu_line():
         if o is None:
             continue
         assert mu[o - 1].strip() and not mu[o - 1].startswith("#"), (line, o)
-    assert origin[lines.index("class Solution:")] is None
-    assert origin[lines.index("    def largestInteger(self, num: int) -> int:")] == 2
-    assert origin[lines.index("        ds = to_digits(num)")] == 3
+    assert origin[lines.index("class Solution:")] == 2
+    assert origin[lines.index("    def largestInteger(self, num: int) -> int:")] == 3
+    assert origin[lines.index("        ds = to_digits(num)")] == 4
     assert (
-        origin[lines.index("        return to_int([by[d % 2].pop() for d in ds])")] == 5
+        origin[lines.index("        return to_int([by[d % 2].pop() for d in ds])")] == 6
     )
     # a file with globals and a script maps the same way
-    src = "N = 3\ndef f(a: int) -> int\n  a + N\n\nprint(Solution().f(1))\n"
+    src = "N = 3\ndef f(a: int) -> int\n  a + N\n\nprint(f(1))\n"
     code, origin = transpile(src, mapped=True)
     lines = code.split("\n")
     assert len(origin) == len(lines) - 1
     assert origin[lines.index("N = 3")] == 1
-    assert origin[lines.index("        return a + N")] == 3
-    assert origin[lines.index("print(Solution().f(1))")] == 5
+    assert origin[lines.index("    return a + N")] == 3
+    assert origin[lines.index("print(f(1))")] == 5
 
 
 def test_vscode_debug_adapter():
@@ -778,7 +779,7 @@ def test_memo_block_form_is_a_cached_def_on_a_deep_stack():
     )
     ns = {}
     exec(py, ns)
-    assert ns["Solution"]().f(20000) == 20000
+    assert ns["f"](20000) == 20000
     assert fmt(src) == src
 
 
@@ -796,12 +797,12 @@ def test_or_if_is_x_or_d_when_x_equals_v():
     assert "return (-1 if (_v := dp[t]) == inf else _v)" in out
     ns = {}
     exec(out, ns)
-    assert ns["Solution"]().f(1, [0, 3]) == 3
-    assert ns["Solution"]().f(1, [0, float("inf")]) == -1
+    assert ns["f"](1, [0, 3]) == 3
+    assert ns["f"](1, [0, float("inf")]) == -1
     out = transpile("def g(t: int) -> int\n  t or -1 if inf\n")
     exec(out, ns)
-    assert ns["Solution"]().g(4) == 4
-    assert ns["Solution"]().g(float("inf")) == -1
+    assert ns["g"](4) == 4
+    assert ns["g"](float("inf")) == -1
 
 
 def test_or_if_needs_an_or_and_keeps_the_ternary():
@@ -826,11 +827,11 @@ def test_as_list_returns_the_yields_of_a_def_as_a_list():
         "    yield [x for i, x in nums if mask >> i & 1]\n"
     )
     py = transpile(src)
-    assert "    @as_list\n    def subsets(self, nums" in py
+    assert "@as_list\ndef subsets(nums" in py
     assert "def as_list(f):" in py and "from functools import wraps" in py
     ns = {}
     exec(py, ns)
-    assert ns["Solution"]().subsets([1, 2]) == [[], [1], [2], [1, 2]]
+    assert ns["subsets"]([1, 2]) == [[], [1], [2], [1, 2]]
     assert fmt(src) == src
     assert fmt(src.replace("@as_list", "@ as_list")) == src
 
@@ -853,10 +854,10 @@ def test_decorators_stack_and_take_arguments():
         "  g(n)\n"
     )
     py = transpile(src)
-    assert "        @double\n        @add(1)\n        def g(x):" in py
+    assert "    @double\n    @add(1)\n    def g(x):" in py
     ns = {}
     exec(py, ns)
-    assert ns["Solution"]().f(5) == 12  # add runs first, then double
+    assert ns["f"](5) == 12  # add runs first, then double
     assert fmt(src) == src
 
 
@@ -876,10 +877,10 @@ def test_a_decorator_above_a_memo_wraps_the_cached_function():
         "  g(n) + h(n)\n"
     )
     py = transpile(src)
-    assert py.count("@double\n            @cache\n            def ") == 2
+    assert py.count("@double\n        @cache\n        def ") == 2
     ns = {}
     exec(py, ns)
-    assert ns["Solution"]().f(2) == 8 + 4
+    assert ns["f"](2) == 8 + 4
     assert fmt(src) == src
 
 
@@ -896,7 +897,7 @@ def test_yield_is_a_statement():
     assert "return yield" not in py  # a last line that yields is not returned
     ns = {}
     exec(py, ns)
-    got = list(ns["Solution"]().f(3))
+    got = list(ns["f"](3))
     assert got == [(0, 0), (1, -1), None, (2, -2), 7, 3]
 
 
@@ -912,7 +913,7 @@ def test_a_def_that_yields_and_defines_a_memo_runs_on_the_deep_stack():
     )
     ns = {}
     exec(transpile(src), ns)
-    assert ns["Solution"]().f([[20000, 1], [2, 3]]) == [20000, 1, 2, 3]
+    assert ns["f"]([[20000, 1], [2, 3]]) == [20000, 1, 2, 3]
 
 
 def test_decorator_lines_map_to_their_own_mu_lines():
@@ -920,7 +921,7 @@ def test_decorator_lines_map_to_their_own_mu_lines():
     code, origin = transpile(src, mapped=True)
     at = {line.strip(): o for line, o in zip(code.split("\n"), origin) if o}
     assert at["@as_list"] == 1
-    assert at["def f(self, n: int) -> list[int]:"] == 2
+    assert at["def f(n: int) -> list[int]:"] == 2
     assert at["yield n"] == 3
 
 
@@ -940,7 +941,7 @@ def test_a_lambda_may_be_a_dict_value_and_its_body_a_push():
     )
     ns: dict = {}
     exec(transpile(src), ns)
-    assert ns["Solution"]().f(3) == [3, -3, 9]
+    assert ns["f"](3) == [3, -3, 9]
     src = "def f(d: [int]) -> int\n  {k: (k, 1) for k in d}\n"
     assert "{k: (k, 1) for k in d}" in transpile(src)
 
@@ -958,7 +959,7 @@ def test_a_lambda_may_name_no_argument():
     )
     ns: dict = {}
     exec(transpile(src), ns)
-    assert ns["Solution"]().f([1, 5]) == [2, 10, 5, 1]
+    assert ns["f"]([1, 5]) == [2, 10, 5, 1]
     assert fmt(src) == src
 
 
@@ -971,7 +972,7 @@ def test_assert_compares_values_it_saw_once():
     assert "_l, _r = f(1), 2\n" in out
     assert 'assert _l == _r, f"left : {_l!r}\\nright: {_r!r}"' in out
     assert 'assert _l is _r, f"left : {_l!r}\\nright: {_r!r}\\nop   : is"' in out
-    src = "calls = []\n\ndef g() -> bool\n  calls <- 1\n  len(calls) == 1\n\nassert Solution().g() == false\n"
+    src = "calls = []\n\ndef g() -> bool\n  calls <- 1\n  len(calls) == 1\n\nassert g() == false\n"
     ns = {}
     try:
         exec(transpile(src), ns)
@@ -1022,3 +1023,67 @@ def test_run_file_asserts_report_the_values_they_saw(tmp_path):
     assert fails("assert 1 is 2\n") == "left : 1\nright: 2\nop   : is"
     assert fails("assert 1 < 2 < 2\n") == ""
     assert fails("assert 1 == 2, 'm'\n") == "m"
+
+
+def test_classes():
+    src = (
+        "from collections import OrderedDict\n\n"
+        "class LRUCache\n"
+        "  def __init__(capacity: int)\n"
+        "    self.d = OrderedDict()\n"
+        "    self.cap = capacity\n\n"
+        "  def get(key: int) -> int\n"
+        "    if key not in self.d\n"
+        "      return -1\n"
+        "    self.d.move_to_end(key)\n"
+        "    self.d[key]\n\n"
+        "  def put(key: int, value: int) -> none\n"
+        "    self.d[key] = value\n"
+        "    self.d.move_to_end(key)\n"
+        "    if len(self.d) > self.cap\n"
+        "      self.d.popitem(last=false)\n\n"
+        "def twice(x: int) -> int\n"
+        "  def inner(y)\n"
+        "    y * 2\n"
+        "  inner(x)\n\n"
+        "class Solution extends LRUCache\n"
+        "  def peek() -> int\n"
+        "    self.cap\n\n"
+        "c = LRUCache(2)\n"
+        "c.put(1, 1)\n"
+        "c.put(2, 2)\n"
+        "c.put(3, 3)\n"
+    )
+    out = transpile(src)
+    assert "class LRUCache:\n    def __init__(self, capacity: int):\n" in out
+    assert "    def get(self, key: int) -> int:\n" in out
+    assert "    def put(self, key: int, value: int) -> None:\n" in out
+    assert (
+        "\ndef twice(x: int) -> int:\n    def inner(y):\n        return y * 2\n" in out
+    )
+    assert "class Solution(LRUCache):\n    def peek(self) -> int:\n" in out
+    # __init__ and a def typed -> none return nothing; the others their last line
+    assert (
+        "return self.cap = capacity" not in out
+        and "        return self.d[key]\n" in out
+    )
+    assert "return self.d.popitem" not in out
+    ns = {}
+    exec(out, ns)
+    assert ns["c"].get(1) == -1 and ns["c"].get(3) == 3 and ns["twice"](4) == 8
+    assert ns["Solution"](5).peek() == 5
+    # a decorator goes above a class too
+    out = transpile("@dataclass\nclass P\n  x = 0\n")
+    assert out.endswith("@dataclass\nclass P:\n    x = 0\n")
+    # the 0.7 form is refused with a pointer to the class line
+    with pytest.raises(MuError, match="extends goes on the class line"):
+        transpile("extends Base\ndef f() -> int\n  1\n")
+    with pytest.raises(MuError, match="a class holds no class"):
+        transpile("class A\n  class B\n    pass\n")
+
+
+def test_fmt_sets_the_methods_of_a_class_apart():
+    src = "class A\n  def f()\n    1\n  def g()\n    2\n  x = 3\n\n\n\nclass B\n  pass\ndef h()\n  4\n"
+    want = "class A\n  def f()\n    1\n\n  def g()\n    2\n  x = 3\n\nclass B\n  pass\n\ndef h()\n  4\n"
+    assert fmt(src) == want
+    assert fmt(want) == want

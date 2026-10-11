@@ -23,6 +23,7 @@ import argparse
 import builtins
 import functools
 import hashlib
+import inspect
 import io
 import os
 import re
@@ -415,6 +416,8 @@ class Tracer:
             return None
         if code.co_name == "<module>" or code.co_name.startswith("<"):
             return None
+        if not code.co_flags & inspect.CO_OPTIMIZED:
+            return None  # a class body being built, not a call
         if code.co_firstlineno not in self.lines:
             return None  # a pasted helper
         self.state[id(frame)] = (snapshot(frame.f_locals), None)
@@ -469,7 +472,7 @@ class Tracer:
         marks = cursors(self.line, local)
         if not changed and not marks:
             return
-        if self.src[line - 1].startswith(("def ", "extends ")):
+        if self.src[line - 1].lstrip().startswith(("def ", "class ")):
             return  # the arguments arriving, or a grid argument wrapped
         self.add("line", f"{frame.f_code.co_name}  line {line}")
         self.source(line)
@@ -547,10 +550,12 @@ class Tracer:
     def window(self, line):
         """The def block holding the mu line, or the whole solution."""
         lo = line - 1
-        while lo > 0 and not self.src[lo].startswith(("def ", "extends ")):
+        while lo > 0 and not self.src[lo].lstrip().startswith(("def ", "class ")):
             lo -= 1
         hi = line
-        while hi < self.end - 1 and not self.src[hi].startswith(("def ", "extends ")):
+        while hi < self.end - 1 and not self.src[hi].lstrip().startswith(
+            ("def ", "class ")
+        ):
             hi += 1
         while hi > lo and not self.src[hi - 1].strip():
             hi -= 1

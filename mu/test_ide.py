@@ -29,7 +29,7 @@ def largestOfLastK(nums: [int], k: int) -> [int]
     res <- f(i, 0)
   res
 
-sol = Solution()
+res = largestOfLastK([1], 1)
 """
 
 
@@ -47,7 +47,7 @@ def test_repair_blanks_only_the_broken_lines():
     code, origin, blanked = ide.repaired(TEXT.split("\n"))
     assert blanked == {12, 13}
     assert "res.append(f(i, 0))" in code
-    assert origin[-1] == 18  # `sol = Solution()` is mu line 18, 1-based
+    assert origin[-1] == 18  # `res = largestOfLastK([1], 1)` is mu line 18, 1-based
 
 
 def test_hover_gives_mu_types():

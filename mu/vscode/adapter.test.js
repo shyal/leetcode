@@ -131,12 +131,13 @@ sol = Solution()
 # assert sol.twoSum([2, 7, 11, 15], 9) == [0, 1]
 `;
 
-const TWO_SUM = `def twoSum(nums: [int], target: int) -> [int]
-  seen = {}
-  for i, x in nums
-    if target - x in seen
-      return [seen[target - x], i]
-    seen[x] = i
+const TWO_SUM = `class Solution
+  def twoSum(nums: [int], target: int) -> [int]
+    seen = {}
+    for i, x in nums
+      if target - x in seen
+        return [seen[target - x], i]
+      seen[x] = i
 `;
 
 // console: internalConsole runs the solve under the adapter; integratedTerminal
@@ -148,7 +149,7 @@ for (const console of ["internalConsole", "integratedTerminal"]) live(`stepping 
   const session = path.join(ROOT, "mu", "session.py");
   execFileSync(VENV, [session, "stub"], { cwd: dir, env });
   const stub = fs.readFileSync(path.join(dir, "current.mu"), "utf8");
-  const work = stub.replace("def twoSum(nums: [int], target: int) -> [int]\n  pass\n", TWO_SUM).replace("# assert", "assert");
+  const work = stub.replace("class Solution\n  def twoSum(nums: [int], target: int) -> [int]\n    pass\n", TWO_SUM).replace("# assert", "assert");
   fs.writeFileSync(path.join(dir, "current.mu"), work);
   const target = execFileSync(VENV, [session, "debug"], { cwd: dir, env }).toString().trim();
   assert.equal(target, ".mu_current.py");
@@ -214,17 +215,17 @@ for (const console of ["internalConsole", "integratedTerminal"]) live(`stepping 
     await request("initialize", { adapterID: "mu", clientID: "test", linesStartAt1: true, columnsStartAt1: true, pathFormat: "path", supportsRunInTerminalRequest: true });
     const launch = request("launch", { type: "python", request: "launch", name: "t", program: pyPath, python: [VENV], cwd: dir, console, justMyCode: false });
     await until((m) => m.type === "event" && m.event === "initialized");
-    const bps = await request("setBreakpoints", { source: { path: muPath }, breakpoints: [{ line: at("  seen = {}") }] });
+    const bps = await request("setBreakpoints", { source: { path: muPath }, breakpoints: [{ line: at("    seen = {}") }] });
     assert.equal(bps.body.breakpoints[0].verified, true);
     assert.equal(path.basename(bps.body.breakpoints[0].source.path), "current.mu");
-    assert.equal(bps.body.breakpoints[0].line, at("  seen = {}"));
+    assert.equal(bps.body.breakpoints[0].line, at("    seen = {}"));
     await request("configurationDone");
     await launch;
 
     let ev = await stopped();
     assert.equal(ev.body.reason, "breakpoint");
     const threadId = ev.body.threadId;
-    assert.deepEqual(await top(threadId), ["current.mu", at("  seen = {}")]);
+    assert.deepEqual(await top(threadId), ["current.mu", at("    seen = {}")]);
 
     // step over: the loop header, then the if, then the assignment, then back to the header
     const walk = [];
@@ -234,7 +235,7 @@ for (const console of ["internalConsole", "integratedTerminal"]) live(`stepping 
       assert.equal(ev.body.reason, "step");
       walk.push((await top(threadId))[1]);
     }
-    assert.deepEqual(walk, [at("  for i, x in nums"), at("    if target - x in seen"), at("    seen[x] = i"), at("  for i, x in nums")]);
+    assert.deepEqual(walk, [at("    for i, x in nums"), at("      if target - x in seen"), at("      seen[x] = i"), at("    for i, x in nums")]);
 
     await request("continue", { threadId });
     await until((m) => m.type === "event" && (m.event === "terminated" || m.event === "exited"));
