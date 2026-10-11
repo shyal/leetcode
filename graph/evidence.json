@@ -36892,6 +36892,17 @@
       "judge": "deepseek-chat",
       "summary": "The query joins Sales and Product on product_id with an inner join, selecting product_name, year and price. The inner join drops Samsung (no sales) and the sale with product_id 999 (no product), matching both examples. The drill's required join move is exercised and the run passed.",
       "seconds": 165
+    },
+    "solved/d_Not_Referred_By_Customer_Two_2026_10_11T00_55_10_031226_00_00Z.py": {
+      "date": "2026-10-11",
+      "problem": "drill",
+      "moves": {
+        "sql-null-semantics": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Uses `referee_id is not 2`, which keeps NULL rows (IS NOT is null-safe), satisfying the required NULL semantics and avoiding the forbidden bare inequality.",
+      "summary": "The query selects name from Customer where referee_id is not 2. Because IS NOT treats NULL as distinct from 2, rows with a NULL referee_id (Will, Jane, Bill) are retained while Alex and Mark are excluded. Both example assertions passed, exercising the null-safe comparison move.",
+      "seconds": 123
     }
   }
 }
