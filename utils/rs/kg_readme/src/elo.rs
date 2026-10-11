@@ -84,6 +84,16 @@ pub fn proven(ctx: &Ctx, ev: &Evidence) -> Vec<(NaiveDate, f64)> {
     last_per_day(kg::model::proven_series(&kg::model::proven_games(ctx, ev)))
 }
 
+/// "N games of M first sights" when the Elo left some out (the easies
+/// past the contest's share, kg::model::easy_share), else "N games".
+pub fn games_phrase(games: usize, left_out: usize) -> String {
+    if left_out == 0 {
+        format!("{games} games")
+    } else {
+        format!("{games} games of {} first sights", games + left_out)
+    }
+}
+
 pub fn rank_of(r: f64) -> (String, &'static str) {
     for (cut, name, color) in RANKS {
         if r >= cut as f64 {
@@ -147,9 +157,9 @@ pub fn render(ctx: &Ctx, ev: &Evidence) {
         format!("<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 {W} {H}\" font-family=\"Helvetica,sans-serif\">"),
         format!("<rect width=\"{W}\" height=\"{H}\" fill=\"{BG}\"/>"),
         format!(
-            "<text x=\"{}\" y=\"26\" text-anchor=\"middle\" font-size=\"11\" fill=\"{MUTED}\">{} games, {n_win} wins, {n_draw} draws, {} losses</text>",
+            "<text x=\"{}\" y=\"26\" text-anchor=\"middle\" font-size=\"11\" fill=\"{MUTED}\">{}, {n_win} wins, {n_draw} draws, {} losses</text>",
             f0(W as f64 / 2.0),
-            gs.len(),
+            games_phrase(gs.len(), kg::model::easies_left_out(ctx, ev)),
             gs.len() - n_win - n_draw
         ),
     ];
@@ -237,6 +247,9 @@ pub struct Numbers {
     pub games: usize,
     pub wins: usize,
     pub draws: usize,
+    /// the first sights that are not games: the easies past the
+    /// contest's share (kg::model::easy_share)
+    pub left_out: usize,
     /// every scored game of the last WEEK days, repeats included, as
     /// `make stats` counts them
     pub week: kg::model::Summary,
@@ -267,6 +280,7 @@ pub fn numbers(ctx: &Ctx, ev: &Evidence) -> Option<Numbers> {
         games: gs.len(),
         wins: gs.iter().filter(|g| g.2 == 1.0).count(),
         draws: gs.iter().filter(|g| g.2 == 0.5).count(),
+        left_out: kg::model::easies_left_out(ctx, ev),
         week,
     })
 }
