@@ -460,3 +460,28 @@ def test_the_stub_keeps_a_comment_written_in_the_solution_body():
     kept = "  # don't hunt him = him don't hunt\n  # try hunt = him\n  # don't try\n  pass\n"
     assert kept in text
     transpile(text)
+
+
+def test_a_python_group_drill_is_solved_in_current_py(tmp_path):
+    """The python group trains Python itself (match, with, logging), which
+    mu has no word for: stub writes no current.mu, empties a stale one,
+    moves written work aside, and run runs current.py."""
+    drill = glob.glob(os.path.join(ROOT, "drills", "py-logging", "d203_*.py"))[0]
+    (tmp_path / "current.py").write_text(open(drill).read())
+    stale = "# DRILL: Last True\n\ndef f()\n  1\n"
+    (tmp_path / "current.mu").write_text(stale)
+    (tmp_path / ".mu_stub").write_text(stale)
+    out = session(tmp_path, "stub")
+    assert out.returncode == 0
+    assert "solve it in current.py" in out.stdout
+    assert (tmp_path / "current.mu").read_text() == ""
+    assert not (tmp_path / ".mu_stub").exists()
+    assert not (tmp_path / "current.mu.prev").exists()
+    run = session(tmp_path, "run")
+    assert "Running from current.mu." not in run.stderr
+    assert run.returncode == 0 and run.stdout == "None\n"  # the served print, as is
+    work = "# DRILL: Last True\n\ndef f()\n  2\n"
+    (tmp_path / "current.mu").write_text(work)
+    assert "moved to current.mu.prev" in session(tmp_path, "stub").stdout
+    assert (tmp_path / "current.mu.prev").read_text() == work
+    assert (tmp_path / "current.mu").read_text() == ""

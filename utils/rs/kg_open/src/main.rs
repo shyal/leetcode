@@ -1,10 +1,12 @@
 // kg_open - the last step of every serve: open the file the serve wrote in
 // VS Code, so the right tab, with the right language, is in front of the
 // candidate without him picking a file. Which file: current.mu when it
-// holds the stub of a Python serve (mu is what he writes), else the busy
-// current.<ext> (kg::lang, current.rs or current.ts), else current.md (a
-// recognition rep). `code -r` reuses the open window. A missing `code`,
-// or no file, is silent: the serve has already succeeded.
+// holds this Python serve (mu/session.py stub wrote it, and its first
+// line is current.py's title; a python-group drill gets no stub and is
+// solved in current.py), else the busy current.<ext> (kg::lang,
+// current.rs or current.ts), else current.md (a recognition rep).
+// `code -r` reuses the open window. A missing `code`, or no file, is
+// silent: the serve has already succeeded.
 
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -17,12 +19,36 @@ pub fn served_file(root: &Path) -> Option<PathBuf> {
             .then_some(p)
     };
     match kg::lang::busy(root) {
-        Some((path, lang)) if lang.ext == kg::lang::PYTHON.ext => {
-            nonempty(root.join("current.mu")).or(Some(path))
-        }
+        Some((path, lang)) if lang.ext == kg::lang::PYTHON.ext => nonempty(root.join("current.mu"))
+            .filter(|mu| mu_belongs(mu, &path))
+            .or(Some(path)),
         Some((path, _)) => Some(path),
         None => nonempty(root.join("current.md")),
     }
+}
+
+/// current.mu is current.py's serve: its first line, a comment, is the
+/// first line of current.py's docstring (mu/session.py `belongs`). A
+/// stale current.mu from an earlier solve is not opened.
+fn mu_belongs(mu: &Path, py: &Path) -> bool {
+    let first = |text: &str| -> Option<String> {
+        text.lines()
+            .map(str::trim)
+            .find(|l| !l.is_empty())
+            .map(String::from)
+    };
+    let mu_title = std::fs::read_to_string(mu).ok().and_then(|s| {
+        let line = first(&s)?;
+        Some(
+            line.strip_prefix('#')
+                .map_or(line.clone(), |r| r.trim().to_string()),
+        )
+    });
+    let py_title = std::fs::read_to_string(py)
+        .ok()
+        .and_then(|s| kg::lang::header(&s, &kg::lang::PYTHON))
+        .and_then(|h| first(&h));
+    mu_title.is_some() && mu_title == py_title
 }
 
 /// `code` on PATH, else the macOS app bundle's copy.
@@ -68,10 +94,30 @@ mod tests {
     #[test]
     fn a_python_serve_opens_its_mu_when_the_stub_was_written() {
         let d = dir("mu");
-        std::fs::write(d.join("current.py"), "class Solution: pass\n").unwrap();
+        std::fs::write(
+            d.join("current.py"),
+            "\"\"\"\nDRILL: X\n\"\"\"\nclass Solution: pass\n",
+        )
+        .unwrap();
         assert_eq!(served_file(&d), Some(d.join("current.py")));
         std::fs::write(d.join("current.mu"), "# DRILL: X\n").unwrap();
         assert_eq!(served_file(&d), Some(d.join("current.mu")));
+    }
+
+    /// A python-group drill gets no stub, so current.mu is empty or holds
+    /// an earlier solve: current.py opens.
+    #[test]
+    fn a_python_group_serve_opens_current_py_over_a_stale_mu() {
+        let d = dir("py");
+        std::fs::write(
+            d.join("current.py"),
+            "\"\"\"\nDRILL: Config Warning\nTRAINS: py-logging\n\"\"\"\nclass Solution: pass\n",
+        )
+        .unwrap();
+        std::fs::write(d.join("current.mu"), "# DRILL: X\n").unwrap();
+        assert_eq!(served_file(&d), Some(d.join("current.py")));
+        std::fs::write(d.join("current.mu"), "").unwrap();
+        assert_eq!(served_file(&d), Some(d.join("current.py")));
     }
 
     #[test]
