@@ -37126,6 +37126,23 @@
       "note": "LeetCode Accepted (423 ms, 59.9 MB); deep() thread wrapper only raises the recursion limit.",
       "summary": "helper(row, col) is a @cache'd recursion that tries the three forward diagonal/right neighbors, keeps those in bounds with a larger value, and returns max(moves, default=0) + (1 if moves else 0); the answer is the max over all starting rows in column 0. This exercises tree-dfs-recursive, memoize-recursion, tree-combine-returns, and grid-neighbors. The notes are empty and LeetCode reports Accepted.",
       "seconds": 1224
+    },
+    "solved/p300_Longest_Increasing_Subsequence_2026_10_11T18_58_39_942374_00_00Z.py": {
+      "date": "2026-10-12",
+      "problem": "300",
+      "moves": {
+        "dp-state-formulate": "clean",
+        "dp-1d-rolling": "clean"
+      },
+      "assist": {
+        "dp-state-formulate": "learning",
+        "dp-1d-rolling": "learning"
+      },
+      "judge": "deepseek-chat",
+      "followup": "not solved",
+      "note": "LEETCODE: Accepted (2220 ms, 19.6 MB) \u2014 O(n^2) DP, so the O(n log n) follow-up is not met.",
+      "summary": "The code fills a 1D dp table initialized to 1 and, for every pair (i, j) with i < j, sets dp[j] = max(dp[i] + 1, dp[j]) when nums[i] < nums[j], returning max(dp). It exercises the recurrence formulation and the 1D rolling table, but routes around the streaming/patience-sorting approach and the binary-search boundary that the O(n log n) follow-up needs. The notes say the recurrence was learned rather than recalled, and LeetCode accepted the O(n^2) submission at 2220 ms.",
+      "seconds": 1378
     }
   }
 }
