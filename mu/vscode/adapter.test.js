@@ -134,7 +134,7 @@ sol = Solution()
 const TWO_SUM = `class Solution
   def twoSum(nums: [int], target: int) -> [int]
     seen = {}
-    for i, x in nums
+    for ~i, x in nums
       if target - x in seen
         return [seen[target - x], i]
       seen[x] = i
@@ -235,7 +235,7 @@ for (const console of ["internalConsole", "integratedTerminal"]) live(`stepping 
       assert.equal(ev.body.reason, "step");
       walk.push((await top(threadId))[1]);
     }
-    assert.deepEqual(walk, [at("    for i, x in nums"), at("      if target - x in seen"), at("      seen[x] = i"), at("    for i, x in nums")]);
+    assert.deepEqual(walk, [at("    for ~i, x in nums"), at("      if target - x in seen"), at("      seen[x] = i"), at("    for ~i, x in nums")]);
 
     await request("continue", { threadId });
     await until((m) => m.type === "event" && (m.event === "terminated" || m.event === "exited"));

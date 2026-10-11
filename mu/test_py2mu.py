@@ -48,7 +48,7 @@ CASES = {
         """
         def f(grid: [[int]]) -> int
           out = []
-          for i, x in grid[0]
+          for ~i, x in grid[0]
             if x == true or x is none
               out <- i
             elif len(out) > 0
@@ -132,7 +132,7 @@ CASES = {
         """
         def f(grid: [[int]]) -> int
           seen = like(grid, fill=false)
-          sum for (r, c) in cells(grid, eq=1)
+          sum for r, c in cells(grid, eq=1)
             seen[r][c] = true
             1
         """,
@@ -155,8 +155,8 @@ CASES = {
         """
         def f(grid: [[int]]) -> int
           q, seen = deque([(0, 0)]), {(0, 0)}
-          for (_, (r, c)) in levels(q)
-            for (nr, nc) in nbrs(grid, r, c)
+          for _, (r, c) in levels(q)
+            for nr, nc in nbrs(grid, r, c)
               if (nr, nc) not in seen
                 seen.add((nr, nc))
                 q <- (nr, nc)
@@ -179,7 +179,7 @@ CASES = {
         def f(grid: [[int]]) -> int
           row = grid[1]
           n = len(row)
-          count for (i, j) in pairs(n) if row[i] == row[j]
+          count for i, j in pairs(n) if row[i] == row[j]
         """,
         1,
     ),
@@ -199,7 +199,7 @@ CASES = {
           row = grid[1]
           n = len(row)
           dp = [0] * n
-          for (j, i) in pairs(n, back=true)
+          for j, i in pairs(n, back=true)
             if row[j] < row[i]
               dp[i] += 1
           dp[-1]

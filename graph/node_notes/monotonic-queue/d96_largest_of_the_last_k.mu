@@ -5,7 +5,7 @@ class Solution
   def largestOfLastK(nums: [int], k: int) -> [int]
     q = MonotonicQueue(Type.decreasing)
     res = []
-    for i, x in nums
+    for ~i, x in nums
       q.push((x, i))
       if q.front()[1] <= i - k
         q.popleft()

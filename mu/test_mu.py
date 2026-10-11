@@ -216,12 +216,13 @@ def test_library_copies_agree_with_the_harness():
             assert a == b
     assert list(ns["pairs"](4)) == list(combo_utils.pairs(4))
     assert list(ns["pairs"](4, back=True)) == list(combo_utils.pairs(4, back=True))
-    for num in (0, 7, 65875, "0042", -31):
+    cases = [(n, b) for n in (0, 7, 65875, -31) for b in (10, 2, 7)]
+    cases += [("0042", 10), ("1011", 2)]  # a str is read a character at a time
+    for num, base in cases:
         for rev in (False, True):
-            for base in (10, 2, 7):
-                assert ns["to_digits"](num, rev, base) == digit_utils.to_digits(
-                    num, rev, base
-                )
+            assert ns["to_digits"](num, rev, base) == digit_utils.to_digits(
+                num, rev, base
+            )
     for ds in ([], [0, 0, 4, 2], [8, 7, 6, 5, 5], [1, 0, 1, 1]):
         for rev in (False, True):
             for base in (10, 2, 16):
@@ -307,9 +308,7 @@ def test_pop_dot():
 
 
 def test_a_push_is_a_comprehension_element():
-    src = (
-        "def f(s: str) -> dict\n  pos = {:list}\n  [pos[v] <- i for i, v in s]\n  pos\n"
-    )
+    src = "def f(s: str) -> dict\n  pos = {:list}\n  [pos[v] <- i for ~i, v in s]\n  pos\n"
     assert "[pos[v].append(i) for i, v in enumerate(s)]" in transpile(src)
     assert fmt(src.replace(" <- ", "<-")) == src
     assert "(a.append(x * 2) for x in a)" in transpile(
@@ -327,7 +326,7 @@ def run_f(src, *args):
 
 
 def test_a_default_dict_collects_under_each_key():
-    src = "def f(s: str) -> dict\n  {:list: c <- i for i, c in s}\n"
+    src = "def f(s: str) -> dict\n  {:list: c <- i for ~i, c in s}\n"
     assert "_pushed(defaultdict(list), ((c, i) for i, c in enumerate(s)))" in transpile(
         src
     )
@@ -588,8 +587,32 @@ def test_a_loop_may_name_no_variable():
     assert ns["f"](3) == 6
     assert fmt(src) == src
     assert "for i, x in enumerate(xs):" in transpile(
-        "def f(xs: [int]) -> int\n  k = 0\n  for i, x in xs\n    k += i\n  k\n"
+        "def f(xs: [int]) -> int\n  k = 0\n  for ~i, x in xs\n    k += i\n  k\n"
     )
+
+
+def test_a_tilde_marks_the_index_of_a_loop():
+    def loop(head):
+        src = f"def f(xs: [int], es: [[int]]) -> int\n  k = 0\n  for {head}\n    k += 1\n  k\n"
+        return next(ln.strip() for ln in transpile(src).splitlines() if "for " in ln)
+
+    assert loop("~i in xs") == "for i in range(len(xs)):"
+    assert loop("~i, x in xs") == "for i, x in enumerate(xs):"
+    assert loop("~i, (a, b) in es") == "for i, (a, b) in enumerate(es):"
+    assert loop("a, b in es") == "for a, b in es:"
+    assert loop("(a, b) in es") == "for (a, b) in es:"
+    assert loop("a, b, c in es") == "for a, b, c in es:"
+    assert "for i, x in enumerate(xs)" in transpile(
+        "def f(xs: [int]) -> int\n  sum for ~i, x in xs: i * x\n"
+    )
+    assert "[x for i, x in enumerate(xs) if i]" in transpile(
+        "def f(xs: [int]) -> [int]\n  [x for ~i, x in xs if i]\n"
+    )
+    with pytest.raises(MuError, match="first name only"):
+        loop("a, ~i in es")
+    with pytest.raises(MuError, match=r"write ~i, \(a, b\)"):
+        loop("~i, a, b in es")
+    assert fmt("for ~ i,x in xs\n  k += i\n") == "for ~i, x in xs\n  k += i\n"
 
 
 def test_a_lambda_may_be_assigned_to_a_name():
@@ -758,12 +781,11 @@ def test_scan_reverse_folds_from_the_right():
 
 
 def test_every_spec_version_is_linked_from_the_readme():
-    """The current version has a spec, and the readme links every spec."""
+    """The current version has a spec, and HARNESS.md links every spec."""
     specs = sorted(p.name for p in (HERE / "spec").glob("v*.md"))
     assert f"v{VERSION}.md" in specs
-    readme = (HERE.parent / "README.md").read_text()
-    section = readme.split("## Sitecustomize, harness and helpers")[1].split("\n## ")[0]
-    linked = re.findall(r"\(mu/spec/(v[\d.]+\.md)\)", section)
+    harness = (HERE.parent / "HARNESS.md").read_text()
+    linked = re.findall(r"\(mu/spec/(v[\d.]+\.md)\)", harness)
     assert sorted(linked) == specs
 
 
@@ -828,7 +850,7 @@ def test_as_list_returns_the_yields_of_a_def_as_a_list():
         "@as_list\n"
         "def subsets(nums: [int]) -> [[int]]\n"
         "  for mask in 0..<(1 << len(nums))\n"
-        "    yield [x for i, x in nums if mask >> i & 1]\n"
+        "    yield [x for ~i, x in nums if mask >> i & 1]\n"
     )
     py = transpile(src)
     assert "@as_list\ndef subsets(nums" in py

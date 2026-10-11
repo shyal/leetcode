@@ -22,7 +22,7 @@ def largestOfLastK(nums: [int], k: int) -> [int]
   memo f(i, j) =
     | i == 0 -> 0
     | else -> f(i - 1, j)
-  for i, n in nums
+  for ~i, n in nums
     q.pu
     if x ==
     d = nbrs(grid, i,
@@ -55,7 +55,7 @@ def test_hover_gives_mu_types():
     assert ide.hover(req("hover", 4, 32))["contents"] == "```mu\nk: int\n```"
     assert ide.hover(req("hover", 5, 2))["contents"] == "```mu\nq: MonotonicQueue\n```"
     assert ide.hover(req("hover", 6, 3))["contents"] == "```mu\nres: [int]\n```"
-    assert ide.hover(req("hover", 10, 9))["contents"] == "```mu\nn: int\n```"
+    assert ide.hover(req("hover", 10, 10))["contents"] == "```mu\nn: int\n```"
 
 
 def test_hover_on_a_def_of_the_file_shows_its_line():
@@ -168,7 +168,7 @@ def test_completion_filters_by_the_prefix():
 
 
 def test_completion_in_a_loop_header():
-    labels = [c["label"] for c in ide.complete(req("complete", 10, 16))]
+    labels = [c["label"] for c in ide.complete(req("complete", 10, 17))]
     assert labels == ["nums"]
 
 

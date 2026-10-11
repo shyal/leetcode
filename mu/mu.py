@@ -11,7 +11,7 @@ import builtins
 import re
 import sys
 
-VERSION = "0.8"
+VERSION = "0.9"
 
 KEYWORDS = {"from", "in", "not", "and", "or", "if", "else", "is"}
 # names that end a call written without brackets
@@ -148,6 +148,11 @@ class Py(str):
     cmpparts: "tuple[str, str, str] | None" = (
         None  # (a, op, b) when the expression is exactly a op b
     )
+
+
+class TargetError(MuError):
+    """A `~` in the wrong place in a loop target. `names_a_target` lets it
+    through, so the misuse is reported instead of read as `for xs`."""
 
 
 class Decorated(tuple):
@@ -841,10 +846,9 @@ class Parser:
             self.next()
             it = self.repeat()
             if it is None:
-                tgt, enum = self.target()
+                tgt, wrap = self.target()
                 self.expect("in")
-                it = self.expr()
-                it = f"enumerate({it})" if enum else it
+                it = iterable(self.expr(), wrap)
             else:
                 tgt = "_"
             self.known[-1] |= set(NAME.findall(tgt))
@@ -1127,18 +1131,42 @@ class Parser:
         try:
             self.target()
             return self.at("in")
+        except TargetError:
+            return True
         except MuError:
             return False
         finally:
             self.i = start
 
     def target(self):
-        """`x`, `(a, b)`, or `i, x`; the last one enumerates."""
-        first = self.pattern()
-        if self.at(","):
+        """The names a loop binds, and how its iterable is wrapped: `x` or
+        `a, b` (None, the iterable as written), `~i` ("range", the indices
+        of the iterable), or `~i, x` ("enumerate", index and item). `~`
+        marks the index, and only the first name may carry it."""
+        if self.at("~"):
             self.next()
-            return f"{first}, {self.pattern()}", True
-        return first, False
+            index = self.expect_kind("NAME")
+            if not self.at(","):
+                return index, "range"
+            self.next()
+            item = self.pattern()
+            if self.at(","):
+                raise TargetError(
+                    f"line {self.peek()[2]}: ~{index}, a, b: write ~{index}, (a, b)"
+                )
+            return f"{index}, {item}", "enumerate"
+        first = self.pattern()
+        if not self.at(","):
+            return first, None
+        parts = [first]
+        while self.at(","):
+            self.next()
+            if self.at("~"):
+                raise TargetError(
+                    f"line {self.peek()[2]}: ~ goes on the first name only"
+                )
+            parts.append(self.pattern())
+        return ", ".join(parts), None
 
     def pattern(self):
         if self.at("("):
@@ -1470,10 +1498,9 @@ class Parser:
         out = ""
         while self.at("for"):
             self.next()
-            tgt, enum = self.target()
+            tgt, wrap = self.target()
             self.expect("in")
-            it = self.or_()
-            out += f" for {tgt} in {f'enumerate({it})' if enum else it}"
+            out += f" for {tgt} in {iterable(self.or_(), wrap)}"
             while self.at("if"):
                 self.next()
                 out += f" if {self.or_()}"
@@ -1606,10 +1633,9 @@ class Parser:
             start = self.arith()
         self.expect("for")
         if self.names_a_target():
-            tgt, enum = self.target()
+            tgt, wrap = self.target()
             self.expect("in")
-            it = self.or_()
-            it = f"enumerate({it})" if enum else it
+            it = iterable(self.or_(), wrap)
         else:
             tgt, it = "_", self.or_()
         where = None
@@ -1757,6 +1783,15 @@ def imported(line):
 def flat(node):
     """The statements one parsed line stands for: `a * b = pair` is two."""
     return node[1] if node[0] == "stages" else [node]
+
+
+def iterable(it, wrap):
+    """The Python iterable of a loop whose target was parsed by `target`."""
+    if wrap == "range":
+        return Py(f"range(len({it}))")
+    if wrap == "enumerate":
+        return Py(f"enumerate({it})")
+    return it
 
 
 def targets(lhs):

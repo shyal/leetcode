@@ -2,7 +2,7 @@
 class Solution
   def nextRow(row: [float]) -> [float]
     new_row = table(len(row) + 1, fill = 0)
-    for c, amt in row
+    for ~c, amt in row
       excess = (amt - 1) / 2
       if excess > 0
         new_row[c] += excess

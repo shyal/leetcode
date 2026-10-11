@@ -2,7 +2,7 @@
 class Solution
   def maxDistinct(s: str, k: int) -> int
     count = defaultdict(int)
-    max from 0 for i, v in s
+    max from 0 for ~i, v in s
       count[v] += 1
       if i >= k
         count[s[i - k]] -= 1

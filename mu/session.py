@@ -93,15 +93,17 @@ def mu_type(node):
 
 
 def loop_head(target, it):
-    """The target and iterable of a Python loop, in mu: `for i, x in xs`
-    enumerates, so a Python `enumerate(xs)` drops the call, and plain
-    unpacking gets brackets, `for (a, b) in pairs`."""
+    """The target and iterable of a Python loop, in mu: `~` marks the
+    index, so `for i, x in enumerate(xs)` is `for ~i, x in xs`, and a
+    pair unpacks without brackets, `for a, b in pairs`."""
     enum = isinstance(it, ast.Call) and ast.unparse(it.func) == "enumerate"
     enum = enum and len(it.args) == 1 and not it.keywords
     if not isinstance(target, ast.Tuple):
         return ast.unparse(target), it
-    names = ", ".join(ast.unparse(e) for e in target.elts)
-    return (names, it.args[0]) if enum else (f"({names})", it)
+    names = [ast.unparse(e) for e in target.elts]
+    if enum and len(names) == 2 and isinstance(target.elts[0], ast.Name):
+        return f"~{names[0]}, {names[1]}", it.args[0]
+    return ", ".join(names), it
 
 
 class ToMu(ast.NodeTransformer):
@@ -138,6 +140,28 @@ class ToMu(ast.NodeTransformer):
         names, it = loop_head(node.target, node.iter)
         node.target, node.iter = ast.Name(id=names), it
         return node
+
+    def visit_Dict(self, node):
+        """mu has no `**m` in a dict literal: `{**a, k: v}` is `a | {k: v}`."""
+        self.generic_visit(node)
+        if None not in node.keys:
+            return node
+        parts, keys, values = [], [], []
+        for k, v in zip(node.keys, node.values):
+            if k is not None:
+                keys.append(k)
+                values.append(v)
+                continue
+            if keys:
+                parts.append(ast.Dict(keys=keys, values=values))
+                keys, values = [], []
+            parts.append(v)
+        if keys:
+            parts.append(ast.Dict(keys=keys, values=values))
+        out = parts[0]
+        for part in parts[1:]:
+            out = ast.BinOp(out, ast.BitOr(), part)
+        return out
 
 
 def mu_expr(node):

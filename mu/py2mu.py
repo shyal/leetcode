@@ -126,8 +126,10 @@ class Normalize(ast.NodeTransformer):
 
 
 class Canon(ast.NodeTransformer):
-    """What the comparison ignores: load or store, keyword order, and the
-    wrapper that lets mu's (a, b) -> e also take one pair."""
+    """What the comparison ignores: load or store, keyword order, the
+    wrapper that lets mu's (a, b) -> e also take one pair, and the 0 that
+    visit_Call puts in front of range(n), which `for ~i in xs` writes
+    back as range(len(xs))."""
 
     @staticmethod
     def pair_lambda(node):
@@ -185,6 +187,8 @@ class Canon(ast.NodeTransformer):
             node.ctx = ast.Load()
         if isinstance(node, ast.Call):
             node.keywords.sort(key=lambda k: k.arg or "")
+            if call_name(node) == "range" and len(node.args) == 1:
+                node.args.insert(0, ast.Constant(0))
         return node
 
 
@@ -566,11 +570,27 @@ class Printer:
         return f"{lo_text}..<{self.expr(hi, BOR)}"
 
     def loop_head(self, target, it):
-        """`for i, x in xs` enumerates; plain unpacking is bracketed."""
+        """`for i, x in enumerate(xs)` is `for ~i, x in xs`; `for i in
+        range(len(xs))` is `for ~i in xs`; a pair unpacks without brackets."""
         enum = call_name(it) == "enumerate" and len(it.args) == 1 and not it.keywords
         if isinstance(target, ast.Tuple) and len(target.elts) == 2 and enum:
-            return ", ".join(self.pattern(e) for e in target.elts), it.args[0]
+            i, x = target.elts
+            if isinstance(i, ast.Name):
+                return f"~{i.id}, {self.pattern(x)}", it.args[0]
+        if isinstance(target, ast.Name) and self.indices_of(it) is not None:
+            return f"~{target.id}", self.indices_of(it)
+        if isinstance(target, ast.Tuple):
+            return ", ".join(self.pattern(e) for e in target.elts), it
         return self.pattern(target), it
+
+    def indices_of(self, it):
+        """xs when it is range(len(xs)); visit_Call has made it range(0, len(xs))."""
+        if call_name(it) != "range" or len(it.args) != 2 or it.keywords:
+            return None
+        lo, hi = it.args
+        if not is_const(lo, 0) or call_name(hi) != "len" or len(hi.args) != 1:
+            return None
+        return hi.args[0] if not hi.keywords else None
 
     def pattern(self, node):
         if isinstance(node, ast.Name):

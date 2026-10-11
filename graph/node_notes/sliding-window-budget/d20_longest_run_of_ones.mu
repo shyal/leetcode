@@ -2,7 +2,7 @@
 class Solution
   def findMaxConsecutiveOnes(nums: [int]) -> int
     zeros, left = 0, 0
-    for right, v in nums
+    for ~right, v in nums
       if v == 0
         zeros += 1
       if zeros

@@ -3,7 +3,7 @@ class Solution
   def shortestAtLeast(s: str, k: int) -> int
     count = defaultdict(int)
     best, left = inf, 0
-    for right, v in s
+    for ~right, v in s
       count[v] += 1
       while len(count) >= k
         best = min(best, right - left + 1)

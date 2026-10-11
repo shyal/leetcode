@@ -227,7 +227,9 @@ SHOW = Path("/tmp/mu_short")  # every shorter solution, to read
 
 def log(line):
     with LOCK:
-        sys.stdout.write(f"{time.strftime('%H:%M:%S')} {line}\n")  # not the harness print
+        sys.stdout.write(
+            f"{time.strftime('%H:%M:%S')} {line}\n"
+        )  # not the harness print
         sys.stdout.flush()
 
 
