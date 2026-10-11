@@ -36914,6 +36914,20 @@
       "note": "Reversal done by head-insertion into a dummy node (d.next, h.next, h = h, d.next, h.next), not the prev/curr flip, but it is the same pointer-reversal move and all assertions passed.",
       "summary": "The drill reverses the first k nodes of a linked list by repeatedly splicing the current head to the front of a dummy-anchored list, then reattaches the untouched remainder via t.next = h and returns the new head and the tail of the reversed block. It exercises ll-pointer-reversal through the head-insertion loop. The run exited 0 with every assertion passing, including the 5000-node case.",
       "seconds": 350
+    },
+    "solved/d_Swap_First_Two_2026_10_11T01_30_23_043019_00_00Z.py": {
+      "date": "2026-10-11",
+      "problem": "drill",
+      "moves": {
+        "ll-dummy-splice": "clean"
+      },
+      "assist": {
+        "ll-dummy-splice": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Solution delegates to the harness helper linked_list_reverse_k(head, 2)[0]; the candidate's own notes say 'forgot about our little helper' and mark it Learning, so the dummy-splice move was not written by hand.",
+      "summary": "The file defines swapFirstTwo, which returns linked_list_reverse_k(head, 2)[0], reusing the harness helper to reverse the first two nodes and take the new head. All assertions pass, including the empty, single-node, and 100-node cases. The notes say the candidate forgot the helper and label it Learning, so the targeted dummy-splice move was sidestepped rather than exercised.",
+      "seconds": 409
     }
   }
 }
