@@ -37027,6 +37027,21 @@
       "note": "Notes record TLE on the unsorted memoized version and 'walked away after 40m 44s; no working solution'; the shipped code only searches the two smallest columns per row, which is not the general recurrence.",
       "summary": "The code sorts each row into (original column, value) pairs, then memoizes helper(row, col) over the two smallest entries of each row, adding the current value to the best child whose original column differs. It exercises sort-by-custom-key, memoize-recursion and grid-neighbors, but the state formulation is wrong: restricting the top-level and child search to the two smallest columns does not cover the general case, and the notes say the unsorted version TLE'd and the session ended after 40m 44s with no working solution.",
       "seconds": 2444
+    },
+    "solved/d_Island_Key_2026_10_11T16_37_50_813468_00_00Z.py": {
+      "date": "2026-10-12",
+      "problem": "drill",
+      "moves": {
+        "sql-gaps-islands": "clean",
+        "sql-window-rank": "clean"
+      },
+      "assist": {
+        "sql-gaps-islands": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes mark the file as Learning; the mu source and the SQL both use id - row_number() over (order by id) as the island key.",
+      "summary": "The query selects id and id - row_number() over (order by id) as grp from Seats, so consecutive ids share a constant key and each gap starts a new group. This exercises the gaps-and-islands move via a window rank, and both example assertions pass. The notes label the file Learning, indicating the solution was given and copied.",
+      "seconds": 248
     }
   }
 }
