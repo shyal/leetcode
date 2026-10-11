@@ -1159,3 +1159,36 @@ def test_fmt_sets_the_methods_of_a_class_apart():
     want = "class A\n  def f()\n    1\n\n  def g()\n    2\n  x = 3\n\nclass B\n  pass\n\ndef h()\n  4\n"
     assert fmt(src) == want
     assert fmt(want) == want
+
+
+def test_c_style_conditional():
+    def one(body):
+        return transpile(f"def f(x: int, y: int) -> int\n  {body}\n")
+
+    assert "return x if x > 0 else -x" in one("x > 0 ? x : -x")
+    assert "return 1 if x else 2 if y else 3" in one("x ? 1 : y ? 2 : 3")
+    assert "return (1 if y else 2) if x else 3" in one("x ? (y ? 1 : 2) : 3")
+    assert "return (1 if y else 2) if x else 3" in one("x ? y ? 1 : 2 : 3")
+    assert "{1: 2 if x else 3}" in one("{1: x ? 2 : 3}")
+    assert "sum(x if x > 0 else -x for x in [x, y])" in one(
+        "sum for x in [x, y]: x > 0 ? x : -x"
+    )
+    assert "[1][0 if x else 1]" in one("[1][x ? 0 : 1]")
+    src = "def f(x: int) -> int\n  count for x in [x] if x ? 1 : 0: 2\n"
+    with pytest.raises(MuError, match="no `\\? :` in a fold's if"):
+        transpile(src)
+    assert run("def f(x: int) -> str\n  x > 0 ? 'R' : x < 0 ? 'L' : '.'\n", -2) == "L"
+
+
+def test_the_formatter_spaces_a_conditional_and_keeps_a_type_tight():
+    assert fmt("y = x>0?'R':x<0?'L':'.'\n") == "y = x > 0 ? 'R' : x < 0 ? 'L' : '.'\n"
+    assert fmt("y = x ? -1 : (1)\n") == "y = x ? -1 : (1)\n"
+    assert fmt("def f(a: int?, b: [int]?) -> str?\n  a\n") == (
+        "def f(a: int?, b: [int]?) -> str?\n  a\n"
+    )
+    assert fmt("d = {1: x ? 2 : 3}\n") == "d = {1: x ? 2 : 3}\n"
+    assert fmt("if x ? a : b: k += 1\n") == "if x ? a : b\n  k += 1\n"
+    assert (
+        fmt("y = sum for x in xs: x>0?x:-x\n")
+        == "y = sum for x in xs: x > 0 ? x : -x\n"
+    )

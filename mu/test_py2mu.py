@@ -135,7 +135,7 @@ CASES = {
         """,
         """
         def f(grid: [[int]]) -> int
-          5 if grid[0][0] == 1 else 6
+          grid[0][0] == 1 ? 5 : 6
         """,
         5,
     ),

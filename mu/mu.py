@@ -148,6 +148,7 @@ class Py(str):
     cmpparts: "tuple[str, str, str] | None" = (
         None  # (a, op, b) when the expression is exactly a op b
     )
+    cond = False  # a conditional expression, `a if c else b`, unbracketed
 
 
 class TargetError(MuError):
@@ -1202,14 +1203,30 @@ class Parser:
 
     def expr(self):
         e = self.or_()
+        if self.at("?"):
+            return self.ternary(e)
         if self.at("if") and not self.at(":", 1):
             self.next()
             cond = self.or_()
             if e.orparts and not self.at("else"):
                 return self.or_if(e.orparts, cond)
             self.expect("else")
-            return Py(f"{e} if {cond} else {self.expr()}")
+            out = Py(f"{e} if {cond} else {self.expr()}")
+            out.cond = True
+            return out
         return e
+
+    def ternary(self, cond):
+        """`c ? a : b` is Python's `a if c else b`. It nests to the right:
+        `c ? a : d ? b : e` is a when c, else b when d, else e. A conditional
+        in the `a` branch is bracketed so Python reads it as the branch."""
+        self.expect("?")
+        a = self.expr()
+        self.expect(":")
+        b = self.expr()
+        out = Py(f"{f'({a})' if a.cond else a} if {cond} else {b}")
+        out.cond = True
+        return out
 
     def or_if(self, parts, sentinel):
         """`x or d if v`: x, or d when x equals v. x is evaluated once."""
@@ -1654,6 +1671,10 @@ class Parser:
         if self.at("if"):
             self.next()
             where = self.or_()
+            if self.at("?"):
+                raise MuError(
+                    f"line {self.peek()[2]}: no `? :` in a fold's if; bracket it"
+                )
         block = (
             allow_block and self.peek()[0] == "NEWLINE" and self.peek(1)[0] == "INDENT"
         )
@@ -2195,6 +2216,8 @@ def gap(prev, cur, unary, subscript, paren=False):
             return ""
     if ck == "COMMENT" or ck == "POP":
         return "  " if ck == "COMMENT" else " "
+    if "TERN" in (pk, ck):
+        return " "
     if ck == "OP" and cv in (",", ":", ")", "]", "}", "?"):
         return ""
     if pk == "OP" and pv in "([{@":
@@ -2225,9 +2248,36 @@ def pop_dots(toks):
     return out
 
 
+TYPE_AFTER_Q = {",", ")", "]", "}", "=", "->", ":"}
+
+
+def mark_ternaries(toks):
+    """A `?` that starts an expression, and the `:` that answers it, are
+    marked TERN so the formatter spaces them: `c ? a : b`. A `?` that ends a
+    type, `int?`, is followed by nothing or by a bracket, a comma, `=`,
+    `->` or `:`, and stays an OP."""
+    out, open_at, depth = list(toks), [], 0
+    for k, (kind, val) in enumerate(toks):
+        if kind != "OP":
+            continue
+        if val in "([{":
+            depth += 1
+        elif val in ")]}":
+            depth -= 1
+        elif val == "?":
+            nxt = toks[k + 1] if k + 1 < len(toks) else None
+            if nxt and nxt[0] != "COMMENT" and nxt[1] not in TYPE_AFTER_Q:
+                out[k] = ("TERN", "?")
+                open_at.append(depth)
+        elif val == ":" and open_at and open_at[-1] == depth:
+            open_at.pop()
+            out[k] = ("TERN", ":")
+    return out
+
+
 def render(toks):
     out, prev, unary, stack = [], None, False, []
-    for t in pop_dots(toks):
+    for t in pop_dots(mark_ternaries(toks)):
         pk, pv = prev or ("OP", "(")
         if prev is not None:
             sub = bool(stack) and stack[-1] is True
@@ -2241,6 +2291,7 @@ def render(toks):
         elif t[0] == "OP" and t[1] in ")]}" and stack:
             stack.pop()
         opens = prev is None or pk == "OP" and pv not in ")]}" or pv in STATEMENT_WORDS
+        opens = opens or pk == "TERN"
         unary = t[0] == "OP" and (
             t[1] in ("-", "~")
             and opens
@@ -2267,7 +2318,7 @@ def split_inline(toks):
     if not toks or toks[0][0] != "NAME" or toks[0][1] not in BLOCK_WORDS:
         return toks, []
     depth, folds = 0, 0
-    for k, (kind, val) in enumerate(toks):
+    for k, (kind, val) in enumerate(mark_ternaries(toks)):
         if kind == "OP" and val in "([{":
             depth += 1
         elif kind == "OP" and val in ")]}":

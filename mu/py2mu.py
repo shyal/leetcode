@@ -347,9 +347,9 @@ class Printer:
                 f"{self.expr(x, AND)} or {self.expr(d, AND)} if {self.expr(v, OR)}",
                 IFEXP,
             )
-        body = self.expr(node.body, OR)
         test = self.expr(node.test, OR)
-        return f"{body} if {test} else {self.expr(node.orelse, IFEXP)}", IFEXP
+        body = self.expr(node.body, IFEXP)
+        return f"{test} ? {body} : {self.expr(node.orelse, IFEXP)}", IFEXP
 
     def or_if(self, node):
         """(x, d, v) when node is `x if x != v else d`, `x if x < inf else d`
