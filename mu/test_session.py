@@ -365,7 +365,7 @@ sol = Solution()
 TWO_SUM = """class Solution
   def twoSum(nums: [int], target: int) -> [int]
     seen = {}
-    for ~i, x in nums
+    for >i, x in nums
       if target - x in seen
         return [seen[target - x], i]
       seen[x] = i
@@ -505,7 +505,9 @@ def test_optional_annotations(annotation, want):
 
 
 def test_the_stub_keeps_a_comment_written_in_the_solution_body():
-    src = open("drills/ll-pointer-reversal/d184_reverse_k.py").read()
+    src = open(
+        os.path.join(ROOT, "drills", "ll-pointer-reversal", "d184_reverse_k.py")
+    ).read()
     text = stub(src)
     kept = "    # don't hunt him = him don't hunt\n    # try hunt = him\n    # don't try\n    pass\n"
     assert kept in text

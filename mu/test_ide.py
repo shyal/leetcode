@@ -22,7 +22,7 @@ def largestOfLastK(nums: [int], k: int) -> [int]
   memo f(i, j) =
     | i == 0 -> 0
     | else -> f(i - 1, j)
-  for ~i, n in nums
+  for >i, n in nums
     q.pu
     if x ==
     d = nbrs(grid, i,

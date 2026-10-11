@@ -3,7 +3,7 @@ class Solution
   def lengthOfLongestSubstring(s: str) -> int
     cnt = counter()
     lo = 0
-    max from 0 for ~hi, c in s
+    max from 0 for >hi, c in s
       cnt[c] += 1
       while cnt[c] > 1
         cnt[s[lo]] -= 1

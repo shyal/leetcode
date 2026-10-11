@@ -25,7 +25,7 @@ def test_expressions_and_names(repl):
 def test_first_and_folds(repl):
     assert repl.run("first x in 1..100 if x * x >= 50") == ["8"]
     assert repl.run("sum for i in 1..3: i * i") == ["14"]
-    assert repl.run("max from 0 for ~i, c in 'abca'\n  i") == ["3"]
+    assert repl.run("max from 0 for >i, c in 'abca'\n  i") == ["3"]
 
 
 def test_def_and_memo(repl):

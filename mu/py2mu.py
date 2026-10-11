@@ -80,6 +80,11 @@ def call_name(node):
 
 
 def is_const(node, value):
+    """True for the literal `value`; a negative one is written -1, which the
+    parser reads as the negation of 1."""
+    neg = isinstance(value, int) and value < 0
+    if neg and isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.USub):
+        return is_const(node.operand, -value)
     return isinstance(node, ast.Constant) and node.value == value
 
 
@@ -128,7 +133,7 @@ class Normalize(ast.NodeTransformer):
 class Canon(ast.NodeTransformer):
     """What the comparison ignores: load or store, keyword order, the
     wrapper that lets mu's (a, b) -> e also take one pair, and the 0 that
-    visit_Call puts in front of range(n), which `for ~i in xs` writes
+    visit_Call puts in front of range(n), which `for >i in xs` writes
     back as range(len(xs))."""
 
     @staticmethod
@@ -570,15 +575,22 @@ class Printer:
         return f"{lo_text}..<{self.expr(hi, BOR)}"
 
     def loop_head(self, target, it):
-        """`for i, x in enumerate(xs)` is `for ~i, x in xs`; `for i in
-        range(len(xs))` is `for ~i in xs`; a pair unpacks without brackets."""
+        """`for i, x in enumerate(xs)` is `for >i, x in xs`; `for i in
+        range(len(xs))` is `for >i in xs`; the same loops right to left,
+        `range(len(xs) - 1, -1, -1)` and its zip with `reversed(xs)`, are
+        `for <i in xs` and `for <i, x in xs`; a pair unpacks without
+        brackets."""
         enum = call_name(it) == "enumerate" and len(it.args) == 1 and not it.keywords
-        if isinstance(target, ast.Tuple) and len(target.elts) == 2 and enum:
+        if isinstance(target, ast.Tuple) and len(target.elts) == 2:
             i, x = target.elts
-            if isinstance(i, ast.Name):
-                return f"~{i.id}, {self.pattern(x)}", it.args[0]
+            if isinstance(i, ast.Name) and enum:
+                return f">{i.id}, {self.pattern(x)}", it.args[0]
+            if isinstance(i, ast.Name) and self.indices_back_of(it, x) is not None:
+                return f"<{i.id}, {self.pattern(x)}", self.indices_back_of(it, x)
         if isinstance(target, ast.Name) and self.indices_of(it) is not None:
-            return f"~{target.id}", self.indices_of(it)
+            return f">{target.id}", self.indices_of(it)
+        if isinstance(target, ast.Name) and self.indices_back_of(it) is not None:
+            return f"<{target.id}", self.indices_back_of(it)
         if isinstance(target, ast.Tuple):
             return ", ".join(self.pattern(e) for e in target.elts), it
         return self.pattern(target), it
@@ -591,6 +603,32 @@ class Printer:
         if not is_const(lo, 0) or call_name(hi) != "len" or len(hi.args) != 1:
             return None
         return hi.args[0] if not hi.keywords else None
+
+    def indices_back_of(self, it, item=None):
+        """xs when it is range(len(xs) - 1, -1, -1) or reversed(range(len(xs))),
+        or, with an item, zip(range(len(xs) - 1, -1, -1), reversed(xs))."""
+        if item is not None:
+            if call_name(it) != "zip" or len(it.args) != 2 or it.keywords:
+                return None
+            rng, rev = it.args
+            xs = self.indices_back_of(rng)
+            if xs is None or call_name(rev) != "reversed" or len(rev.args) != 1:
+                return None
+            return xs if ast.unparse(rev.args[0]) == ast.unparse(xs) else None
+        if call_name(it) == "reversed" and len(it.args) == 1 and not it.keywords:
+            return self.indices_of(it.args[0])
+        if call_name(it) != "range" or len(it.args) != 3 or it.keywords:
+            return None
+        hi, stop, step = it.args
+        if not is_const(stop, -1) or not is_const(step, -1):
+            return None
+        if not (isinstance(hi, ast.BinOp) and isinstance(hi.op, ast.Sub)):
+            return None
+        if not is_const(hi.right, 1) or call_name(hi.left) != "len":
+            return None
+        return (
+            hi.left.args[0] if len(hi.left.args) == 1 and not hi.left.keywords else None
+        )
 
     def pattern(self, node):
         if isinstance(node, ast.Name):

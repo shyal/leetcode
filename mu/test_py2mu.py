@@ -48,7 +48,7 @@ CASES = {
         """
         def f(grid: [[int]]) -> int
           out = []
-          for ~i, x in grid[0]
+          for >i, x in grid[0]
             if x == true or x is none
               out <- i
             elif len(out) > 0
@@ -56,6 +56,28 @@ CASES = {
           len(out)
         """,
         0,
+    ),
+    "backward": (
+        """
+        out = []
+        for i in range(len(grid[0]) - 1, -1, -1):
+            out.append(i)
+        for i, x in zip(range(len(grid[0]) - 1, -1, -1), reversed(grid[0])):
+            out.append(i * x)
+        for i in reversed(range(len(grid))):
+            out.append(i)
+        return sum(out)
+        """,
+        """
+        def f(grid: [[int]]) -> int
+          out = [i for <i in grid[0]]
+          for <i, x in grid[0]
+            out <- i * x
+          for <i in grid
+            out <- i
+          sum(out)
+        """,
+        8,
     ),
     "comprehension": (
         """

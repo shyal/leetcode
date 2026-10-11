@@ -11,7 +11,7 @@ import builtins
 import re
 import sys
 
-VERSION = "0.9"
+VERSION = "0.10"
 
 KEYWORDS = {"from", "in", "not", "and", "or", "if", "else", "is"}
 # names that end a call written without brackets
@@ -151,8 +151,8 @@ class Py(str):
 
 
 class TargetError(MuError):
-    """A `~` in the wrong place in a loop target. `names_a_target` lets it
-    through, so the misuse is reported instead of read as `for xs`."""
+    """A `>` or `<` in the wrong place in a loop target. `names_a_target`
+    lets it through, so the misuse is reported instead of read as `for xs`."""
 
 
 class Decorated(tuple):
@@ -861,13 +861,9 @@ class Parser:
             self.next()
             arms.append((self.expr(), self.block()))
             while self.at("elif"):
-                self.next()
-                arms.append((self.expr(), self.block()))
-            other = None
-            if self.at("else"):
-                self.next()
-                other = self.block()
-            return ("if", arms, other)
+                line = self.next()[2]
+                arms.append((self.expr(), self.headed(self.block(), line)))
+            return ("if", arms, self.loop_else())
         if (
             t[1] in FOLDS
             and t[0] == "NAME"
@@ -895,11 +891,18 @@ class Parser:
         return self.simple(newline=True)
 
     def loop_else(self):
-        """The block of a loop's `else`, run when the loop ends without break."""
+        """The block of an `else`: a loop's, run when the loop ends without
+        break, or an if's."""
         if self.at("else"):
-            self.next()
-            return self.block()
+            line = self.next()[2]
+            return self.headed(self.block(), line)
         return None
+
+    def headed(self, body, line):
+        """A block whose header (`elif`, `else`) sits on its own mu line:
+        the emitter maps the header to that line, not to the statement before."""
+        self.at_line[id(body)] = line
+        return body
 
     def simple(self, newline=False):
         if self.at("return"):
@@ -1140,30 +1143,39 @@ class Parser:
 
     def target(self):
         """The names a loop binds, and how its iterable is wrapped: `x` or
-        `a, b` (None, the iterable as written), `~i` ("range", the indices
-        of the iterable), or `~i, x` ("enumerate", index and item). `~`
-        marks the index, and only the first name may carry it."""
+        `a, b` (None, the iterable as written), `>i` ("range", the indices
+        of the iterable), or `>i, x` ("enumerate", index and item). `>`
+        marks the index and runs left to right; `<` marks it and runs right
+        to left ("range_back", "enumerate_back"). Only the first name may
+        carry the mark."""
         if self.at("~"):
-            self.next()
+            raise TargetError(
+                f"line {self.peek()[2]}: ~ no longer marks the index: "
+                "write >i for the index, <i for the index from the end"
+            )
+        if self.at(">") or self.at("<"):
+            mark = self.next()[1]
+            back = "_back" if mark == "<" else ""
             index = self.expect_kind("NAME")
             if not self.at(","):
-                return index, "range"
+                return index, "range" + back
             self.next()
             item = self.pattern()
             if self.at(","):
                 raise TargetError(
-                    f"line {self.peek()[2]}: ~{index}, a, b: write ~{index}, (a, b)"
+                    f"line {self.peek()[2]}: {mark}{index}, a, b: "
+                    f"write {mark}{index}, (a, b)"
                 )
-            return f"{index}, {item}", "enumerate"
+            return f"{index}, {item}", "enumerate" + back
         first = self.pattern()
         if not self.at(","):
             return first, None
         parts = [first]
         while self.at(","):
             self.next()
-            if self.at("~"):
+            if self.at(">") or self.at("<"):
                 raise TargetError(
-                    f"line {self.peek()[2]}: ~ goes on the first name only"
+                    f"line {self.peek()[2]}: {self.peek()[1]} goes on the first name only"
                 )
             parts.append(self.pattern())
         return ", ".join(parts), None
@@ -1791,6 +1803,10 @@ def iterable(it, wrap):
         return Py(f"range(len({it}))")
     if wrap == "enumerate":
         return Py(f"enumerate({it})")
+    if wrap == "range_back":
+        return Py(f"range(len({it}) - 1, -1, -1)")
+    if wrap == "enumerate_back":
+        return Py(f"zip(range(len({it}) - 1, -1, -1), reversed({it}))")
     return it
 
 
@@ -1917,11 +1933,10 @@ class Emitter:
         elif kind == "if":
             _, arms, other = s
             for k, (cond, body) in enumerate(arms):
+                self.src_line = self.at_line.get(id(body), self.src_line)
                 self.out(ind, f"{'if' if k == 0 else 'elif'} {cond}:")
                 self.block(body, ind + 1, returns=last)
-            if other:
-                self.out(ind, "else:")
-                self.block(other, ind + 1, returns=last)
+            self.loop_else(other, ind, returns=last)
         elif kind == "assign":
             self.out(ind, f"{s[1]} {s[2]} {s[3]}")
             if getattr(s[1], "convert", None):
@@ -1958,10 +1973,11 @@ class Emitter:
         elif kind == "foldblock":
             self.foldblock(s, ind, last)
 
-    def loop_else(self, other, ind):
+    def loop_else(self, other, ind, returns=False):
         if other:
+            self.src_line = self.at_line.get(id(other), self.src_line)
             self.out(ind, "else:")
-            self.block(other, ind + 1)
+            self.block(other, ind + 1, returns=returns)
 
     def decorators(self, s, ind):
         """The `@` lines of a def or a memo, each mapped to its own mu line."""
@@ -2228,6 +2244,8 @@ def render(toks):
         unary = t[0] == "OP" and (
             t[1] in ("-", "~")
             and opens
+            or t[1] in ("<", ">")
+            and pv == "for"  # the loop mark: for >i, x in xs
             or t[1] == "*"
             and (prev is None or pv in "([{,")
             or t[1] == ":"

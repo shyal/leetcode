@@ -93,8 +93,8 @@ def mu_type(node):
 
 
 def loop_head(target, it):
-    """The target and iterable of a Python loop, in mu: `~` marks the
-    index, so `for i, x in enumerate(xs)` is `for ~i, x in xs`, and a
+    """The target and iterable of a Python loop, in mu: `>` marks the
+    index, so `for i, x in enumerate(xs)` is `for >i, x in xs`, and a
     pair unpacks without brackets, `for a, b in pairs`."""
     enum = isinstance(it, ast.Call) and ast.unparse(it.func) == "enumerate"
     enum = enum and len(it.args) == 1 and not it.keywords
@@ -102,7 +102,7 @@ def loop_head(target, it):
         return ast.unparse(target), it
     names = [ast.unparse(e) for e in target.elts]
     if enum and len(names) == 2 and isinstance(target.elts[0], ast.Name):
-        return f"~{names[0]}, {names[1]}", it.args[0]
+        return f">{names[0]}, {names[1]}", it.args[0]
     return ", ".join(names), it
 
 

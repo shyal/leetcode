@@ -5,7 +5,7 @@ class Solution
     D[0] = 1
     prefix = 0
     res = 0
-    for ~i, n in nums
+    for >i, n in nums
       prefix += n
       if D[prefix - k]
         res += D[prefix - k]

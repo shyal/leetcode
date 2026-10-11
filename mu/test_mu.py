@@ -308,7 +308,7 @@ def test_pop_dot():
 
 
 def test_a_push_is_a_comprehension_element():
-    src = "def f(s: str) -> dict\n  pos = {:list}\n  [pos[v] <- i for ~i, v in s]\n  pos\n"
+    src = "def f(s: str) -> dict\n  pos = {:list}\n  [pos[v] <- i for >i, v in s]\n  pos\n"
     assert "[pos[v].append(i) for i, v in enumerate(s)]" in transpile(src)
     assert fmt(src.replace(" <- ", "<-")) == src
     assert "(a.append(x * 2) for x in a)" in transpile(
@@ -326,7 +326,7 @@ def run_f(src, *args):
 
 
 def test_a_default_dict_collects_under_each_key():
-    src = "def f(s: str) -> dict\n  {:list: c <- i for ~i, c in s}\n"
+    src = "def f(s: str) -> dict\n  {:list: c <- i for >i, c in s}\n"
     assert "_pushed(defaultdict(list), ((c, i) for i, c in enumerate(s)))" in transpile(
         src
     )
@@ -587,32 +587,57 @@ def test_a_loop_may_name_no_variable():
     assert ns["f"](3) == 6
     assert fmt(src) == src
     assert "for i, x in enumerate(xs):" in transpile(
-        "def f(xs: [int]) -> int\n  k = 0\n  for ~i, x in xs\n    k += i\n  k\n"
+        "def f(xs: [int]) -> int\n  k = 0\n  for >i, x in xs\n    k += i\n  k\n"
     )
 
 
-def test_a_tilde_marks_the_index_of_a_loop():
+def test_a_mark_gives_the_index_of_a_loop():
     def loop(head):
         src = f"def f(xs: [int], es: [[int]]) -> int\n  k = 0\n  for {head}\n    k += 1\n  k\n"
         return next(ln.strip() for ln in transpile(src).splitlines() if "for " in ln)
 
-    assert loop("~i in xs") == "for i in range(len(xs)):"
-    assert loop("~i, x in xs") == "for i, x in enumerate(xs):"
-    assert loop("~i, (a, b) in es") == "for i, (a, b) in enumerate(es):"
+    assert loop(">i in xs") == "for i in range(len(xs)):"
+    assert loop(">i, x in xs") == "for i, x in enumerate(xs):"
+    assert loop(">i, (a, b) in es") == "for i, (a, b) in enumerate(es):"
+    assert loop("<i in xs") == "for i in range(len(xs) - 1, -1, -1):"
+    assert (
+        loop("<i, x in xs")
+        == "for i, x in zip(range(len(xs) - 1, -1, -1), reversed(xs)):"
+    )
     assert loop("a, b in es") == "for a, b in es:"
     assert loop("(a, b) in es") == "for (a, b) in es:"
-    assert loop("a, b, c in es") == "for a, b, c in es:"
-    assert "for i, x in enumerate(xs)" in transpile(
-        "def f(xs: [int]) -> int\n  sum for ~i, x in xs: i * x\n"
+    assert loop("x in xs") == "for x in xs:"
+    assert (
+        transpile("def f(xs: [int]) -> int\n  sum for >i, x in xs: i * x\n").count(
+            "enumerate(xs)"
+        )
+        == 1
     )
-    assert "[x for i, x in enumerate(xs) if i]" in transpile(
-        "def f(xs: [int]) -> [int]\n  [x for ~i, x in xs if i]\n"
+    assert (
+        transpile("def f(xs: [int]) -> [int]\n  [x for <i, x in xs if i]\n").count(
+            "reversed(xs)"
+        )
+        == 1
     )
-    with pytest.raises(MuError, match="first name only"):
-        loop("a, ~i in es")
-    with pytest.raises(MuError, match=r"write ~i, \(a, b\)"):
-        loop("~i, a, b in es")
-    assert fmt("for ~ i,x in xs\n  k += i\n") == "for ~i, x in xs\n  k += i\n"
+    with pytest.raises(MuError, match="~ no longer marks the index"):
+        loop("~i, x in xs")
+    with pytest.raises(MuError, match="> goes on the first name only"):
+        loop("a, >i in es")
+    with pytest.raises(MuError, match=r"write <i, \(a, b\)"):
+        loop("<i, a, b in es")
+    assert fmt("for > i,x in xs\n  k += i\n") == "for >i, x in xs\n  k += i\n"
+    assert fmt("for < i in xs\n  k += i\n") == "for <i in xs\n  k += i\n"
+    assert fmt("if a<b\n  k += i\n") == "if a < b\n  k += i\n"
+
+
+def test_a_backward_loop_runs_the_indices_down():
+    src = (
+        "def f(s: str) -> [int]\n  out = []\n  for <i, c in s\n"
+        "    out <- i if c == 'a' else -1\n  out\n"
+    )
+    assert run(src, "aba") == [2, -1, 0]
+    src = "def f(s: str) -> [int]\n  [i for <i in s]\n"
+    assert run(src, "abc") == [2, 1, 0]
 
 
 def test_a_lambda_may_be_assigned_to_a_name():
@@ -850,7 +875,7 @@ def test_as_list_returns_the_yields_of_a_def_as_a_list():
         "@as_list\n"
         "def subsets(nums: [int]) -> [[int]]\n"
         "  for mask in 0..<(1 << len(nums))\n"
-        "    yield [x for ~i, x in nums if mask >> i & 1]\n"
+        "    yield [x for >i, x in nums if mask >> i & 1]\n"
     )
     py = transpile(src)
     assert "@as_list\ndef subsets(nums" in py
@@ -949,6 +974,27 @@ def test_decorator_lines_map_to_their_own_mu_lines():
     assert at["@as_list"] == 1
     assert at["def f(n: int) -> list[int]:"] == 2
     assert at["yield n"] == 3
+
+
+def test_elif_and_else_headers_map_to_their_own_mu_lines():
+    src = (
+        "def f(c: str) -> int\n"
+        "  if c == 'R'\n"
+        "    1\n"
+        "  elif c == 'L'\n"
+        "    2\n"
+        "  else\n"
+        "    3\n"
+    )
+    code, origin = transpile(src, mapped=True)
+    at = {line.strip(): o for line, o in zip(code.split("\n"), origin) if o}
+    assert at["if c == 'R':"] == 2
+    assert at["elif c == 'L':"] == 4
+    assert at["else:"] == 6
+    src = "def f(n: int) -> int\n  for i in range n\n    break\n  else\n    0\n"
+    code, origin = transpile(src, mapped=True)
+    at = {line.strip(): o for line, o in zip(code.split("\n"), origin) if o}
+    assert at["else:"] == 4
 
 
 def test_a_lambda_may_be_a_dict_value_and_its_body_a_push():

@@ -4,7 +4,7 @@ from dsa.union_find import UnionFind
 class Solution extends UnionFind
   def union_shared(accounts: [[str]]) -> {str: int}
     owner = {}
-    for ~x, emails in accounts
+    for >x, emails in accounts
       for email in emails
         first = owner.setdefault(email, x)
         if first != x
