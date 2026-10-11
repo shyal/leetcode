@@ -404,6 +404,15 @@ def test_lc_solutions_usage_without_network():
     assert run("lc_solutions", "--help").returncode == 0
 
 
+def test_lc_sync_help_and_no_browser():
+    assert run("lc_sync", "--help").returncode == 0
+    p = run("lc_sync", env={"LC_CDP_ENDPOINT": ""})
+    assert p.returncode == 1 and "LC_CDP_ENDPOINT" in p.stderr
+    # --show reads the file alone; with or without one it is a sentence
+    p = run("lc_sync", "--show", env={"LC_CDP_ENDPOINT": ""})
+    assert p.returncode == 0 and p.stdout.endswith(".\n")
+
+
 def test_lc_submit_show_and_auto_without_network(tmp_path):
     f = tmp_path / "current.py"
     f.write_text(

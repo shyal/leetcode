@@ -544,8 +544,10 @@ pub struct Game {
     pub moves: Vec<String>,
     pub fname: String,
     /// first sight: on the day of the problem's first evidenced attempt,
-    /// with no studied file before it. Every first-sight measure reads it:
-    /// make stats, the Elo, the proven rating.
+    /// with no studied file before it, and no accepted submission on the
+    /// leetcode account before that day (account_first_dates, make
+    /// lc-sync). Every first-sight measure reads it: make stats, the Elo,
+    /// the proven rating.
     pub first: bool,
     /// a FAILED file, or a submission leetcode rejected
     pub failed: bool,
@@ -732,6 +734,7 @@ pub fn scored_games(ctx: &Ctx, ev: &Evidence) -> Vec<Game> {
     });
     let mut out = Vec::new();
     let first_day = first_dates(ev);
+    let account = account_first_dates(&ctx.root);
     let mut studied: HashSet<String> = HashSet::new();
     let mut chain_assists: HashMap<String, String> = HashMap::new();
     for i in order {
@@ -778,7 +781,9 @@ pub fn scored_games(ctx: &Ctx, ev: &Evidence) -> Vec<Game> {
             score: 0.0,
             moves: rec.moves.keys().cloned().collect(),
             fname: fname.to_string(),
-            first: first_day.get(&pnum) == Some(&rec.date) && !studied.contains(&pnum),
+            first: first_day.get(&pnum) == Some(&rec.date)
+                && !studied.contains(&pnum)
+                && account.get(&pnum).is_none_or(|d| *d >= rec.date),
             failed,
             seconds,
             fit: None,
@@ -1061,6 +1066,29 @@ pub fn first_dates(ev: &Evidence) -> HashMap<String, String> {
             .or_insert_with(|| rec.date.clone());
     }
     first
+}
+
+/// problem -> the local day of the leetcode account's first accepted
+/// submission of it (data/leetcode_submissions.json, written by make
+/// lc-sync); empty with no file. A first sight (Game::first) has none
+/// before its day: the account goes back to 2020, the evidence to
+/// October 2025, and a problem solved in between is a repeat here
+/// whatever solved/ holds (settled 2026-10-11).
+pub fn account_first_dates(root: &std::path::Path) -> HashMap<String, String> {
+    let mut out: HashMap<String, String> = HashMap::new();
+    let Some(v) = crate::data::read_json(&root.join("data/leetcode_submissions.json")) else {
+        return out;
+    };
+    for s in v["submissions"].as_array().into_iter().flatten() {
+        let (Some(n), Some(d)) = (s["number"].as_str(), s["date"].as_str()) else {
+            continue;
+        };
+        let e = out.entry(n.to_string()).or_insert_with(|| d.to_string());
+        if d < e.as_str() {
+            *e = d.to_string();
+        }
+    }
+    out
 }
 
 /// (problem -> contest rating, difficulty -> the median rating of its

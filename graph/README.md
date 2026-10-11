@@ -90,7 +90,15 @@ and generate combination drills ("rote sheets").
   2025; the rule leaves 237 out and takes that era's Elo from 1970 to 1890,
   the rest of the 2000 being 65 mediums won of 92. `make elo` says how many
   it left out. The proven rating reads every first sight, since a win there
-  proves only the problem's rating. The clock a pass is judged
+  proves only the problem's rating. A first sight is the account's first,
+  too (2026-10-11): `make lc-sync` pulls every accepted submission on the
+  leetcode account into `data/leetcode_submissions.json` (`lc_sync`, through
+  the browser at `LC_CDP_ENDPOINT` like `lc_submit`), and a solve of a problem
+  the account had accepted before that day is a repeat, whatever `solved/`
+  holds (`model::account_first_dates`). The account goes back to 2020 and the
+  evidence to October 2025; the study-list classics solved in between came
+  back in the Grok era as first sights. `make lc-sync show` says how many.
+  The clock a pass is judged
   against is the contest's (`model::contest_fit`, 2026-10-08): four problems,
   90 minutes, scored by how many are solved. The pass takes the slot its
   rating sits in (`SLOT_CUTS`, fitted on zerotrac's contest slots), the other

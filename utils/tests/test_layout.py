@@ -155,6 +155,7 @@ def test_mock_binary_paths_agree():
         "spot",
         "lc_solutions",
         "lc_submit",
+        "lc_sync",
         "kg_dive",
         "learning",
         "kg_hard",

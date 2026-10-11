@@ -1460,6 +1460,48 @@ fn unservable_covers_both_reasons() {
     assert!(!ctx.unservable("2", &problem(&["a"])));
 }
 
+/// A first sight is the account's first too (2026-10-11): a problem
+/// leetcode accepted from this account before the day of its first file
+/// in solved/ is a repeat, whatever the repo saw. The account goes back
+/// to 2020, the evidence to October 2025. An acceptance on the day itself
+/// is the solve's own submission (make solved submits), so that day still
+/// counts; with no file every first sight stands.
+#[test]
+fn a_problem_the_account_solved_earlier_is_no_first_sight() {
+    let mut fx = Fx::picker();
+    fx.nodes(&["q1"]).problems(vec![
+        ("1", problem(&["q1"])),
+        ("2", problem(&["q1"])),
+        ("3", problem(&["q1"])),
+    ]);
+    ratings_tsv(&fx, &[("1", 1500.0), ("2", 1500.0), ("3", 1500.0)]);
+    let today = iso(5);
+    submissions_json(&fx, &[("1", "2020-07-23"), ("2", &today), ("1", &today)]);
+    let ctx = fx.ctx();
+    *ctx.solve_times.borrow_mut() = Some(vec![]);
+    let recs: Vec<(String, Rec)> = ["1", "2", "3"]
+        .iter()
+        .map(|k| {
+            let mut r = solve(k, &[("q1", "clean")], 5);
+            r.1.seconds = Some(600);
+            r
+        })
+        .collect();
+    let ev = evidence(recs);
+    let games = crate::model::scored_games(&ctx, &ev);
+    let first: Vec<bool> = games.iter().map(|g| g.first).collect();
+    assert_eq!(first, vec![false, true, true]);
+    let s = crate::model::Summary::of(&games);
+    assert_eq!((s.solves, s.first), (3, 2));
+    assert_eq!(crate::model::first_sight_elo_games(&ctx, &ev).len(), 2);
+    assert_eq!(
+        crate::model::account_first_dates(&fx.dir.0)
+            .get("1")
+            .map(String::as_str),
+        Some("2020-07-23")
+    );
+}
+
 /// The contest's share of easies (2026-10-11): of any EASY_WINDOW games
 /// the Elo counts in a row, at most EASY_QUOTA are Easy, and an Easy past
 /// the quota is not a game. The window is over the games counted, not

@@ -570,6 +570,29 @@ pub fn ratings_tsv(fx: &Fx, pairs: &[(&str, f64)]) {
     std::fs::write(dir.join("leetcode_ratings.tsv"), text).unwrap();
 }
 
+/// data/leetcode_submissions.json under Fx::dir: one accepted submission
+/// per (problem, day), the shape make lc-sync writes.
+pub fn submissions_json(fx: &Fx, pairs: &[(&str, &str)]) {
+    let dir = fx.dir.0.join("data");
+    std::fs::create_dir_all(&dir).unwrap();
+    let subs: Vec<serde_json::Value> = pairs
+        .iter()
+        .enumerate()
+        .map(|(i, (p, d))| {
+            serde_json::json!({
+                "id": i + 1, "number": p, "slug": format!("p{p}"), "date": d,
+                "timestamp": 0, "lang": "python3"
+            })
+        })
+        .collect();
+    let doc = serde_json::json!({"submissions": subs});
+    std::fs::write(
+        dir.join("leetcode_submissions.json"),
+        serde_json::to_string_pretty(&doc).unwrap(),
+    )
+    .unwrap();
+}
+
 pub fn map(pairs: &[(&str, i64)]) -> HashMap<String, i64> {
     pairs.iter().map(|(k, v)| (k.to_string(), *v)).collect()
 }
