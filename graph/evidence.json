@@ -36903,6 +36903,17 @@
       "note": "Uses `referee_id is not 2`, which keeps NULL rows (IS NOT is null-safe), satisfying the required NULL semantics and avoiding the forbidden bare inequality.",
       "summary": "The query selects name from Customer where referee_id is not 2. Because IS NOT treats NULL as distinct from 2, rows with a NULL referee_id (Will, Jane, Bill) are retained while Alex and Mark are excluded. Both example assertions passed, exercising the null-safe comparison move.",
       "seconds": 123
+    },
+    "solved/d_Reverse_K_2026_10_11T01_07_58_330021_00_00Z.py": {
+      "date": "2026-10-11",
+      "problem": "drill",
+      "moves": {
+        "ll-pointer-reversal": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Reversal done by head-insertion into a dummy node (d.next, h.next, h = h, d.next, h.next), not the prev/curr flip, but it is the same pointer-reversal move and all assertions passed.",
+      "summary": "The drill reverses the first k nodes of a linked list by repeatedly splicing the current head to the front of a dummy-anchored list, then reattaches the untouched remainder via t.next = h and returns the new head and the tail of the reversed block. It exercises ll-pointer-reversal through the head-insertion loop. The run exited 0 with every assertion passing, including the 5000-node case.",
+      "seconds": 350
     }
   }
 }
