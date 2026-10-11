@@ -273,11 +273,14 @@ def pprint(*args, **kwargs):
     return None
 
 
-# Adding a builtin touches four places: the `builtins.x = x` line below,
+# Adding a builtin touches five places: the `builtins.x = x` line below,
 # the ruff builtins list in pyproject.toml (test_layout pins the two equal),
 # stubs/custom_builtins.pyi and stubs/builtins.pyi (Pylance reads the stub
-# through python.analysis.stubPath). Then `make all` copies this file into
-# the venv.
+# through python.analysis.stubPath; test_layout checks both name every
+# helper defined under utils/harness), and the builtin rule of
+# mu/vscode/syntaxes/mu.tmLanguage.json (mu/test_mu.py checks it). The mu
+# ide reads this file for completion and hover, so it needs no edit. Then
+# `make all` copies this file into the venv.
 
 # types
 builtins.List = List

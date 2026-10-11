@@ -654,19 +654,23 @@ def test_triple_quoted_strings_span_lines():
 
 
 def test_vscode_grammar_highlights_every_helper():
-    """The VS Code grammar's builtin rule names every mu helper, so a new
-    helper cannot ship without highlighting."""
+    """The VS Code grammar's builtin rule names every mu helper and every
+    harness helper sitecustomize preloads, so a new helper cannot ship
+    without highlighting."""
     import json
+
+    import ide
+
+    from mu import HELPERS
 
     grammar = json.loads(
         (HERE / "vscode" / "syntaxes" / "mu.tmLanguage.json").read_text()
     )
     rule = grammar["repository"]["builtin"]["match"]
     listed = set(re.search(r"\\b\((.*?)\)\\b", rule).group(1).split("|"))
-    from mu import HELPERS
-
     # Grid and deep are pasted in by the transpiler, never written in mu
     helpers = {h for h in HELPERS if not h.startswith("_")} - {"Grid", "deep"}
+    helpers |= set(ide.harness_names())
     assert helpers <= listed, sorted(helpers - listed)
 
 

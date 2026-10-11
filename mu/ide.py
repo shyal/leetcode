@@ -72,9 +72,6 @@ def spec_lines():
     return at
 
 
-HELPERS = helper_docs()
-
-
 @cache
 def harness_defs():
     """name -> (path, 0-based line) of every def and class in utils/harness."""
@@ -84,6 +81,66 @@ def harness_defs():
         for m in DEFINED.finditer(text):
             out.setdefault(m.group(1), (str(path), text[: m.start()].count("\n")))
     return out
+
+
+def harness_names():
+    """Every name sitecustomize puts into builtins that utils/harness itself
+    defines: the helpers a solution may call, the builders and the drawers.
+    The stdlib names it also injects, deque or Counter, are not helpers."""
+    src = (HARNESS / "sitecustomize.py").read_text()
+    injected = set(re.findall(r"^builtins\.(\w+)\s*=", src, flags=re.M))
+    return sorted(injected & set(harness_defs()))
+
+
+def params_of(args):
+    """The parameters of an ast.arguments as written in a call, without
+    annotations or self: `h, k=inf`."""
+    names = [a.arg for a in args.posonlyargs + args.args]
+    defaults = [None] * (len(names) - len(args.defaults)) + list(args.defaults)
+    parts = [
+        n if d is None else f"{n}={ast.unparse(d)}" for n, d in zip(names, defaults)
+    ]
+    if args.vararg:
+        parts.append("*" + args.vararg.arg)
+    for a, d in zip(args.kwonlyargs, args.kw_defaults):
+        parts.append(a.arg if d is None else f"{a.arg}={ast.unparse(d)}")
+    if args.kwarg:
+        parts.append("**" + args.kwarg.arg)
+    return ", ".join(p for p in parts if p != "self")
+
+
+@cache
+def harness_tree(path):
+    """name -> the ast def or class of that name at the top of the file."""
+    body = ast.parse(Path(path).read_text()).body
+    return {n.name: n for n in body if isinstance(n, (ast.FunctionDef, ast.ClassDef))}
+
+
+def args_of(node):
+    """The parameters of a def, or of a class's __init__; none if it has none."""
+    if isinstance(node, ast.FunctionDef):
+        return node.args
+    inits = [n for n in node.body if isinstance(n, ast.FunctionDef)]
+    init = next((n for n in inits if n.name == "__init__"), None)
+    return init.args if init else ast.arguments([], [], None, [], [], None, [])
+
+
+def harness_docs():
+    """name -> [`call  # first docstring line`] for every harness helper,
+    read from its def; a class is written as a call of its __init__."""
+    docs = {}
+    for name in harness_names():
+        node = harness_tree(harness_defs()[name][0])[name]
+        doc = (ast.get_docstring(node) or "").split("\n", 1)[0].strip()
+        call = f"{name}({params_of(args_of(node))})"
+        docs[name] = [f"{call}  # {doc}" if doc else call]
+    return docs
+
+
+# the spec's lines first; a harness helper the spec does not list gets its def
+HELPERS = helper_docs()
+for _name, _lines in harness_docs().items():
+    HELPERS.setdefault(_name, _lines)
 
 
 def depth_after(text, depth):
@@ -331,7 +388,7 @@ def definition(req):
         w = word_at(f.text, f.col)
         loc = helper_location(w[0]) if w else None
         return [{"path": loc[0], "line": loc[1], "col": loc[2]}] if loc else []
-    (line, col), _ = f.at()
+    (line, col), word = f.at()
     out = []
     for n in script(f.code, f.root).goto(line, col, follow_imports=True):
         if n.module_path is None:
@@ -342,6 +399,8 @@ def definition(req):
             loc = (str(n.module_path), n.line - 1, n.column)
         if loc and loc not in out:
             out.append(loc)
+    if not out and helper_location(word):  # a harness helper Jedi never sees
+        out.append(helper_location(word))
     return [{"path": p, "line": ln, "col": c} for p, ln, c in out]
 
 

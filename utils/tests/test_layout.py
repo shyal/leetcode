@@ -251,6 +251,30 @@ def test_ruff_builtins_match_sitecustomize():
     assert cfg["tool"]["ruff"]["builtins"] == kg_lib.sitecustomize_names()
 
 
+def test_stubs_cover_every_harness_helper():
+    """Pylance reads stubs/builtins.pyi through python.analysis.stubPath, and
+    stubs/custom_builtins.pyi is its harness half. Every helper sitecustomize
+    preloads from utils/harness has a def or class in both, so the editor
+    completes and types it."""
+    sys.path.insert(0, os.path.join(ROOT, "mu"))
+    import ide
+
+    from kg import kg_lib
+
+    harness_defs = set()
+    for name in os.listdir(HARNESS):
+        if name.endswith(".py"):
+            with open(os.path.join(HARNESS, name)) as f:
+                harness_defs |= set(re.findall(r"^(?:def|class) (\w+)", f.read(), re.M))
+    helpers = sorted(set(kg_lib.sitecustomize_names()) & harness_defs)
+    assert helpers and helpers == ide.harness_names()
+    for stub in ("builtins.pyi", "custom_builtins.pyi"):
+        with open(os.path.join(ROOT, "stubs", stub)) as f:
+            stubbed = set(re.findall(r"^(?:def|class) (\w+)", f.read(), re.M))
+        missing = set(helpers) - stubbed
+        assert not missing, f"{stub} lacks {sorted(missing)}"
+
+
 def test_check_scripts_cover_the_tooling():
     """utils/check/pyfiles lists every tooling script the makefile runs."""
     listed = set(

@@ -120,6 +120,46 @@ def test_completion_lists_scope_keywords_and_helpers():
     assert "self" not in labels
 
 
+def test_harness_names_are_the_preloaded_helpers():
+    """A helper is a name sitecustomize injects that utils/harness defines;
+    the stdlib names it also injects are not helpers."""
+    names = ide.harness_names()
+    assert {"nbrs", "linked_list_reverse_k", "draw_linked_list", "ListNode"} <= set(
+        names
+    )
+    assert not {"deque", "Counter", "cache", "inf"} & set(names)
+
+
+def test_completion_lists_every_harness_helper():
+    """Every preloaded helper completes, not only the ones the spec lists."""
+    labels = {c["label"] for c in ide.complete(req("complete", 12, 4))}
+    missing = set(ide.harness_names()) - labels
+    assert not missing, sorted(missing)
+
+
+def test_completion_of_a_harness_helper_shows_its_def():
+    text = TEXT.replace("    if x ==\n", "    linked_list\n")
+    got = ide.complete(req("complete", 12, 15, text))
+    assert [c["label"] for c in got] == ["linked_list_reverse_k"]
+    assert got[0]["detail"].startswith("linked_list_reverse_k(h, k=inf)  # Reverse")
+
+
+def test_hover_and_definition_of_a_harness_helper():
+    text = TEXT.replace("    if x ==\n", "    linked_list_reverse_k(nums, 2)\n")
+    hover = ide.hover(req("hover", 12, 8, text))["contents"]
+    assert hover.startswith("```mu\nlinked_list_reverse_k(h, k=inf)")
+    [d] = ide.definition(req("definition", 12, 8, text))
+    assert d["path"] == os.path.join(ROOT, "utils", "harness", "ll_utils.py")
+    assert "def linked_list_reverse_k(" in open(d["path"]).read().split("\n")[d["line"]]
+
+
+def test_signature_of_a_harness_helper():
+    text = TEXT.replace("    if x ==\n", "    linked_list_reverse_k(nums, \n")
+    got = ide.signature(req("signature", 12, 32, text))
+    assert got["label"] == "linked_list_reverse_k(h, k=inf)"
+    assert got["active"] == 1
+
+
 def test_completion_filters_by_the_prefix():
     text = TEXT.replace("    if x ==\n", "    nb\n")
     got = ide.complete(req("complete", 12, 6, text))
