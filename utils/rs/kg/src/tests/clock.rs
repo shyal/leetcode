@@ -1220,6 +1220,92 @@ fn reviews_first_still_yields_to_the_drill_clock() {
     assert_eq!(pnum(&fx.run(&ev, &st, args())), "drill:q2");
 }
 
+/// A solve of `pnum` filed today at `hh`:00, the stamp in the name so
+/// data::filed_at orders it (the fixture names carry none).
+fn solved_today_at(pnum: &str, moves: &[(&str, &str)], hh: u32) -> (String, Rec) {
+    let (_, r) = solve(pnum, moves, 0);
+    let day = iso(0).replace('-', "_");
+    (
+        format!("solved/p{pnum}_{day}T{hh:02}_00_00_000000_00_00Z.py"),
+        r,
+    )
+}
+
+/// Rule 2d: q1's problem 1 is due for review and 3 is a first sight.
+/// After he reviews 2 today, 3 comes before 1; after he first-sights 3,
+/// 1 comes as usual. The review is never skipped, only moved behind
+/// one first sight.
+#[test]
+fn reviews_are_scattered_among_first_sights() {
+    let mut fx = Fx::picker();
+    test_env("REVIEWS_FIRST", "1");
+    fx.nodes(&["q1", "q2"]).problems(vec![
+        ("1", problem(&["q1"])),
+        ("2", problem(&["q2"])),
+        ("3", problem(&["q2"])),
+    ]);
+    let st = statuses(&[("q1", SOLID, Some(1)), ("q2", FRAGILE, Some(5))]);
+    let before = vec![
+        assisted("1", &[("q1", "clean")], 30),
+        solve("2", &[("q2", "clean")], 5),
+    ];
+    assert_eq!(pnum(&fx.run(&evidence(before.clone()), &st, args())), "1");
+
+    let mut after_review = before.clone();
+    after_review.push(solved_today_at("2", &[("q2", "clean")], 9));
+    assert_eq!(pnum(&fx.run(&evidence(after_review), &st, args())), "3");
+
+    let mut after_first_sight = before.clone();
+    after_first_sight.push(solved_today_at("3", &[("q2", "clean")], 9));
+    assert_eq!(
+        pnum(&fx.run(&evidence(after_first_sight), &st, args())),
+        "1"
+    );
+}
+
+/// The last problem of the day decides, by the moment it was filed, not
+/// by problem number; a drill rep after it does not reset it.
+#[test]
+fn the_last_problem_filed_today_decides_the_scatter() {
+    let mut fx = Fx::picker();
+    test_env("REVIEWS_FIRST", "1");
+    fx.nodes(&["q1", "q2"]).problems(vec![
+        ("1", problem(&["q1"])),
+        ("2", problem(&["q2"])),
+        ("3", problem(&["q2"])),
+        ("4", problem(&["q2"])),
+    ]);
+    let st = statuses(&[("q1", SOLID, Some(1)), ("q2", FRAGILE, Some(5))]);
+    let mut ev = vec![
+        assisted("1", &[("q1", "clean")], 30),
+        solve("2", &[("q2", "clean")], 5),
+        solved_today_at("3", &[("q2", "clean")], 8),
+        solved_today_at("2", &[("q2", "clean")], 9),
+        drill_rep("a", "q2", 0),
+    ];
+    assert_eq!(pnum(&fx.run(&evidence(ev.clone()), &st, args())), "4");
+    // filed later than the review of 2, though 2 sorts after 1 by name
+    ev.push(solved_today_at("1", &[("q1", "clean")], 10));
+    // 1 is now the last problem and was a review as well: still a first sight
+    assert_eq!(pnum(&fx.run(&evidence(ev), &st, args())), "4");
+}
+
+/// With no first sight to serve, the next review comes as before.
+#[test]
+fn after_a_review_the_next_review_comes_when_nothing_is_new() {
+    let mut fx = Fx::picker();
+    test_env("REVIEWS_FIRST", "1");
+    fx.nodes(&["q1", "q2"])
+        .problems(vec![("1", problem(&["q1"])), ("2", problem(&["q2"]))]);
+    let st = statuses(&[("q1", SOLID, Some(1)), ("q2", SOLID, Some(0))]);
+    let ev = evidence(vec![
+        assisted("1", &[("q1", "clean")], 30),
+        solve("2", &[("q2", "clean")], 5),
+        solved_today_at("2", &[("q2", "clean")], 9),
+    ]);
+    assert_eq!(pnum(&fx.run(&ev, &st, args())), "1");
+}
+
 #[test]
 fn a_review_outranks_a_summit() {
     let mut fx = Fx::picker();

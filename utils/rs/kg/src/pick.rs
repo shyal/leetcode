@@ -159,6 +159,15 @@
 //      list can never be what takes it off. 3 days, not the bank's 1: a
 //      next-morning rep on a problem whose solution was on the screen
 //      yesterday is a typing exercise.
+//   2d. reviews scattered (2026-10-12): when the problem he finished last
+//      today was one he had solved before, the next problem is a first
+//      sight if any rule can serve one. pick() runs once with every
+//      problem he has ever solved excluded and takes that pick unless it
+//      is withheld (rule 0b) or there is none; only then does the
+//      ordinary pass run and 2c serve the next review. Drills in between
+//      do not count: the last problem record of the day decides. Before
+//      this, REVIEWS_FIRST=1 served every due review back to back and
+//      the first sights came only once the queue was empty.
 //   3b. frontier mover (PLAN.md phase 4), step d above: a due node with no
 //      UNSOLVED mapped carrier (one it has never been given is waited for
 //      even when warm, asleep, or spent today; one it has already solved is
@@ -1456,8 +1465,55 @@ impl PartialOrd for SortSub {
     }
 }
 
+/// The record of the problem he finished last today, by the moment its
+/// file was filed (data::filed_at; file order breaks a tie). Drills are
+/// not problems. None before the first problem of the day.
+pub fn last_problem_today(ev: &Evidence, today: NaiveDate) -> Option<usize> {
+    let t = today.format("%Y-%m-%d").to_string();
+    ev.date_recs(&t)
+        .iter()
+        .copied()
+        .filter(|&i| ev.rec(i).problem.as_deref().is_some_and(is_numeric_id))
+        .max_by_key(|&i| (crate::data::filed_at(ev.fname(i), &ev.rec(i).date), i))
+}
+
+/// kg_next.after_a_review: the problem he finished last today was one he
+/// had solved before (rule 2d). The next problem is then a first sight
+/// when any rule can serve one.
+pub fn after_a_review(ev: &Evidence, today: NaiveDate) -> bool {
+    last_problem_today(ev, today).is_some_and(|i| {
+        let pnum = ev.rec(i).problem_str();
+        ev.problem_recs(&pnum).len() >= 2
+    })
+}
+
 /// kg_next.pick: (target, status, pnum, reason) or None.
 pub fn pick(
+    ctx: &Ctx,
+    pv: &RefCell<PView>,
+    ev: &Evidence,
+    statuses: &Statuses,
+    args: &PickArgs,
+) -> Option<Choice> {
+    // rule 2d: after a review, a first sight if any rule can serve one
+    if after_a_review(ev, ctx.today()) && !crate::drills::no_reviews() {
+        let solved_ever: HashSet<String> = ev.recs.iter().map(|(_, r)| r.problem_str()).collect();
+        let fresh = PickArgs {
+            exclude: args.exclude.union(&solved_ever).cloned().collect(),
+            ..args.clone()
+        };
+        let choice = pick_pass(ctx, pv, ev, statuses, &fresh);
+        if choice.is_some() && !withheld(choice.as_ref(), &args.asleep) {
+            if std::env::var("KG_TRACE").is_ok() {
+                eprintln!("after a review: a first sight before the next one");
+            }
+            return choice;
+        }
+    }
+    pick_pass(ctx, pv, ev, statuses, args)
+}
+
+fn pick_pass(
     ctx: &Ctx,
     pv: &RefCell<PView>,
     ev: &Evidence,
@@ -1840,17 +1896,7 @@ pub fn pick(
 
     // rule 6: an unsolved drafted problem entirely in reach
     if args.group.is_none() {
-        let t = today.format("%Y-%m-%d").to_string();
-        let mut solved_today: Vec<(&str, usize)> = ev
-            .date_recs(&t)
-            .iter()
-            .filter(|&&i| ev.rec(i).problem.as_deref().is_some_and(is_numeric_id))
-            .map(|&i| (ev.fname(i), i))
-            .collect();
-        solved_today.sort_by(|a, b| a.0.cmp(b.0));
-        let last = solved_today
-            .last()
-            .map(|(_, i)| ev.rec(*i).problem.clone().unwrap());
+        let last = last_problem_today(ev, today).map(|i| ev.rec(i).problem_str());
         let first = match &last {
             Some(l) if ctx.problem_difficulty(l, &pv.borrow().map) == "Hard" => "Medium",
             _ => "Hard",
