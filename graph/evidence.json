@@ -36953,6 +36953,18 @@
       "note": "Notes say Learning; assist placed on the target move.",
       "summary": "The drill defines sum_to_n(n: u64) -> u64, which binds `let mut total: u64 = 0` and accumulates `total += i` over `for i in 1..=n`, returning total. This exercises the rust-let-mut move: a mutable binding plus the inclusive range 1..=n. The notes say \"Learning\", so the solution was given and copied.",
       "seconds": 154
+    },
+    "solved/p322_Coin_Change_2026_10_11T01_58_45_785486_00_00Z.py": {
+      "date": "2026-10-11",
+      "problem": "322",
+      "moves": {
+        "dp-state-formulate": "clean",
+        "dp-1d-rolling": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Accepted (455 ms, 19.7 MB)",
+      "summary": "The mu source defines dp as [0] plus a table of inf of length amount, then fills it forward: for each amount a and each coin c <= a, dp[a] = min(dp[a], dp[a-c]+1), returning -1 when dp[-1] is still inf. This exercises the 1D rolling DP over the amount state with the coin-recurrence, and the state/recurrence/base cases are formulated before coding. All assertions passed and LeetCode accepted the submission.",
+      "seconds": 251
     }
   }
 }
