@@ -36965,6 +36965,19 @@
       "note": "LEETCODE: Accepted (455 ms, 19.7 MB)",
       "summary": "The mu source defines dp as [0] plus a table of inf of length amount, then fills it forward: for each amount a and each coin c <= a, dp[a] = min(dp[a], dp[a-c]+1), returning -1 when dp[-1] is still inf. This exercises the 1D rolling DP over the amount state with the coin-recurrence, and the state/recurrence/base cases are formulated before coding. All assertions passed and LeetCode accepted the submission.",
       "seconds": 251
+    },
+    "solved/p2232_Minimize_Result_by_Adding_Parentheses_to_Expression_2026_10_11T02_16_00_902887_00_00Z.py": {
+      "date": "2026-10-11",
+      "problem": "2232",
+      "moves": {
+        "substring-enumeration": "clean",
+        "string-build-transform": "clean",
+        "running-extreme": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Accepted (11 ms, 19.3 MB)",
+      "summary": "The code splits the expression on '+', then uses two nested loops over every split point i in left and j in right, building each candidate string with the parentheses and optional '*' multipliers, evaluating it with eval, and keeping the smallest via _min. It exercises substring enumeration over both operands, string building/reassembly (the final ''.join(e.split('*')) strips the multipliers), and a running-extreme scan. The notes describe working each side independently, and LeetCode reports Accepted.",
+      "seconds": 784
     }
   }
 }
