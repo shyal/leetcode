@@ -37013,6 +37013,20 @@
       "note": "LeetCode: Accepted (17 ms, 26.4 MB)",
       "summary": "The code builds a defaultdict(list) keyed by file content, splitting each path entry on spaces and each file on '(' to extract filename and content, then appends path + '/' + filename. It returns the groups whose length exceeds 1 via a list comprehension. The notes walk through the input/output format and the expansion and deduping the problem requires.",
       "seconds": 832
+    },
+    "solved/p1289_Minimum_Falling_Path_Sum_II_FAILED_2026_10_11T15_16_44_572831_00_00Z.py": {
+      "date": "2026-10-11",
+      "problem": "1289",
+      "moves": {
+        "memoize-recursion": "clean",
+        "dp-state-formulate": "struggled",
+        "sort-by-custom-key": "clean",
+        "grid-neighbors": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes record TLE on the unsorted memoized version and 'walked away after 40m 44s; no working solution'; the shipped code only searches the two smallest columns per row, which is not the general recurrence.",
+      "summary": "The code sorts each row into (original column, value) pairs, then memoizes helper(row, col) over the two smallest entries of each row, adding the current value to the best child whose original column differs. It exercises sort-by-custom-key, memoize-recursion and grid-neighbors, but the state formulation is wrong: restricting the top-level and child search to the two smallest columns does not cover the general case, and the notes say the unsorted version TLE'd and the session ended after 40m 44s with no working solution.",
+      "seconds": 2444
     }
   }
 }
