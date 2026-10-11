@@ -16,6 +16,11 @@ put current.mu, transpiled, under them. run writes no file: the Python is
 compiled under current.mu's name with each statement at its mu line, so a
 failed assert or an exception reports the line in current.mu. The harness
 helpers pasted in by the transpiler are compiled apart, as <mu helpers>.
+
+A drill of the python group (a TRAINS node whose group in graph/nodes.json
+is "python") trains Python itself, which mu has no word for, so it is
+solved in current.py: stub writes no current.mu for it and empties a
+stale one, and run runs current.py.
 """
 
 import ast
@@ -33,6 +38,8 @@ sys.path.insert(0, str(Path(__file__).parent))
 from mu import VERSION, MuError, Parser, fmt, transpile  # noqa: E402
 
 CURRENT, MU, STUB, RUN = "current.py", "current.mu", ".mu_stub", ".mu_current.py"
+NODES = Path(__file__).resolve().parent.parent / "graph" / "nodes.json"
+PY_GROUP = "python"  # the group of the nodes solved in current.py, never in mu
 MAP = ".mu_current.map.json"
 HELPERS = "<mu helpers>"  # the file name of the pasted helpers' frames
 PREV = "current.mu.prev"
@@ -300,6 +307,29 @@ def title(text, comment=False):
     return next((ln.strip() for ln in doc.splitlines() if ln.strip()), "")
 
 
+def trains(py_src):
+    """The TRAINS ids of a drill's docstring; [] for a problem."""
+    try:
+        doc = ast.get_docstring(parse(py_src)) or ""
+    except SyntaxError:
+        return []
+    for line in doc.splitlines():
+        if line.strip().startswith("TRAINS:"):
+            ids = line.strip()[len("TRAINS:") :].split(",")
+            return [t.strip() for t in ids if t.strip()]
+    return []
+
+
+def python_group(py_src, nodes=NODES):
+    """current.py trains a node of the python group: the Python feature is
+    the drill, and mu has no word for it."""
+    ids = trains(py_src)
+    if not ids or not nodes.exists():
+        return False
+    groups = {n["id"]: n.get("group") for n in json.loads(nodes.read_text())["nodes"]}
+    return any(groups.get(i) == PY_GROUP for i in ids)
+
+
 def belongs(root):
     """current.mu is the solve in current.py: it is not empty, current.py
     has a Solution class, and their titles agree."""
@@ -387,6 +417,16 @@ def cmd_stub(root):
     py = root / CURRENT
     if not py.exists() or not py.read_text().strip():
         return 0
+    mu = root / MU
+    if python_group(py.read_text()):
+        if written(root):
+            (root / PREV).write_text(mu.read_text())
+            print(f"current.mu held work on another solve; it was moved to {PREV}.")
+        if mu.exists():
+            mu.write_text("")
+        (root / STUB).unlink(missing_ok=True)
+        print("This one trains Python itself, so solve it in current.py; mu stays out.")
+        return 0
     try:
         text = stub(py.read_text())
         if text is not None:
@@ -399,7 +439,6 @@ def cmd_stub(root):
             "This one has no Solution class, which mu cannot write yet, so solve it in current.py."
         )
         return 0
-    mu = root / MU
     if written(root):
         if belongs(root):
             print("current.mu already holds work on this one, so it was left alone.")
