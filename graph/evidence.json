@@ -37143,6 +37143,18 @@
       "note": "LEETCODE: Accepted (2220 ms, 19.6 MB) \u2014 O(n^2) DP, so the O(n log n) follow-up is not met.",
       "summary": "The code fills a 1D dp table initialized to 1 and, for every pair (i, j) with i < j, sets dp[j] = max(dp[i] + 1, dp[j]) when nums[i] < nums[j], returning max(dp). It exercises the recurrence formulation and the 1D rolling table, but routes around the streaming/patience-sorting approach and the binary-search boundary that the O(n log n) follow-up needs. The notes say the recurrence was learned rather than recalled, and LeetCode accepted the O(n^2) submission at 2220 ms.",
       "seconds": 1378
+    },
+    "solved/p838_Push_Dominoes_2026_10_11T20_05_54_905129_00_00Z.py": {
+      "date": "2026-10-12",
+      "problem": "838",
+      "moves": {
+        "string-build-transform": "clean",
+        "seen-state-cycle-detect": "struggled"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Time Limit Exceeded (44/45 cases) - the canonical move is the two-pass force/prefix-suffix sweep (or BFS), which the code lacks; the replace-loop simulation stands in for it.",
+      "summary": "The code repeatedly applies string replacements ('R.'->'Rr', '.L'->'lL', 'rL'->'.L', then r->R, l->L) until the string stops changing, using the equality of successive states as the termination test. It exercises string-build-transform and a seen-state/equilibrium check, and the local asserts pass, but the submitted version was rejected with Time Limit Exceeded (44/45 cases). The notes describe the same simulation approach and an abandoned second attempt that also TLE'd, ending with 'i give up'.",
+      "seconds": 2160
     }
   }
 }

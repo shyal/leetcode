@@ -2,14 +2,14 @@
   "_comment": "Personal forgetting curve fitted by utils/kg/kg_curve. P(recall) = (1-slip)*(1 + gap/s)^(-beta), s = exp(a + b*log1p(cleans) - c*struggles - d*assist + e*(conn - conn_mean)); cleans counts distinct clean days, same-day reps are one rep. conn is the node's log2 carrier count, frozen below at fit time; consumers that ignore e are assuming average connectivity. \"solve\" is the cold-solve model fitted by fit_solve: logit P(solve cold, unaided, inside the clock) = the listed coefficients over (rating - 1500)/400, the walk's summed log recall, and its count of never-met moves; features not listed did not earn their place on held-out games. node_status() calls a node SOLID while the memory component (1 + gap/s)^(-beta) >= target_retention; delete this file to fall back to the flat 42-day window.",
   "model": "power-law-slip",
   "params": {
-    "a": 3.8253,
-    "b": 0.0512,
-    "c": 0.328,
-    "d": 0.0744,
-    "e": -0.2598,
-    "conn_mean": 2.4634,
-    "beta": 0.1072,
-    "slip": 0.051
+    "a": 3.8174,
+    "b": 0.0326,
+    "c": 0.3222,
+    "d": 0.0724,
+    "e": -0.2557,
+    "conn_mean": 2.4676,
+    "beta": 0.1067,
+    "slip": 0.0511
   },
   "conn": {
     "backtracking-choose-undo": 3.907,
@@ -73,7 +73,7 @@
     "rotated-array-pivot": 1.585,
     "running-extreme": 5.615,
     "running-sum": 6.267,
-    "seen-state-cycle-detect": 2.585,
+    "seen-state-cycle-detect": 2.807,
     "set-algebra": 3.907,
     "set-membership": 5.555,
     "sliding-window-budget": 1.0,
@@ -86,7 +86,7 @@
     "stack-nested-eval": 2.585,
     "streaming-accumulate-pairs": 3.0,
     "streaming-ask-then-record": 5.672,
-    "string-build-transform": 5.858,
+    "string-build-transform": 5.883,
     "substring-enumeration": 2.807,
     "topological-order": 2.0,
     "tree-bfs-levels": 1.585,
@@ -105,34 +105,34 @@
   },
   "target_retention": 0.9,
   "mass": {
-    "beta": -0.2584,
-    "se": 0.1082,
-    "n": 574,
+    "beta": -0.267,
+    "se": 0.1077,
+    "n": 575,
     "by_difficulty": {
-      "Easy": 3.8664,
-      "Medium": 1.1944,
-      "Hard": -0.1662
+      "Easy": 3.8758,
+      "Medium": 1.1842,
+      "Hard": -0.16
     }
   },
   "solve": {
-    "games": 864,
+    "games": 865,
     "features": {
-      "intercept": 1.4454,
-      "rating": -1.9
+      "intercept": 1.4397,
+      "rating": -1.9024
     },
     "se": {
-      "intercept": 0.1005,
+      "intercept": 0.1003,
       "rating": 0.1626
     },
-    "intercept_se": 0.1005,
+    "intercept_se": 0.1003,
     "elo": {
-      "now": 1673.8,
-      "drift_per_day": -0.03605,
-      "drift_se": 0.0289
+      "now": 1656.2,
+      "drift_per_day": -0.03684,
+      "drift_se": 0.02886
     },
     "lambda": 1.0,
-    "cv_loglik": -0.4555,
-    "baseline_cv_loglik": -0.5867,
+    "cv_loglik": -0.4565,
+    "baseline_cv_loglik": -0.5879,
     "rejected": [
       "recall",
       "unseen",
@@ -141,11 +141,11 @@
     ]
   },
   "fit": {
-    "trials": 1551,
-    "loglik": -0.2607,
-    "baseline_loglik": -0.2675,
+    "trials": 1553,
+    "loglik": -0.2621,
+    "baseline_loglik": -0.2688,
     "since": "2026-06-01",
     "half_life": 0,
-    "effective_trials": 1551.0
+    "effective_trials": 1553.0
   }
 }
