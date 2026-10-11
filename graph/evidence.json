@@ -37112,6 +37112,20 @@
       "judge": "deepseek-chat",
       "summary": "The drill defines picky_eater, an if/else-if/else chain comparing the &str food with == against \"strawberry\" and \"potato\" and returning a &str from each branch. main prints the result for \"strawberry\", producing \"Yummy!\", and the remaining assertions are commented out. The run exited 0, exercising the rust-else-if move as written.",
       "seconds": 190
+    },
+    "solved/p2684_Maximum_Number_of_Moves_in_a_Grid_2026_10_11T17_50_38_072317_00_00Z.py": {
+      "date": "2026-10-12",
+      "problem": "2684",
+      "moves": {
+        "tree-dfs-recursive": "clean",
+        "memoize-recursion": "clean",
+        "tree-combine-returns": "clean",
+        "grid-neighbors": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LeetCode Accepted (423 ms, 59.9 MB); deep() thread wrapper only raises the recursion limit.",
+      "summary": "helper(row, col) is a @cache'd recursion that tries the three forward diagonal/right neighbors, keeps those in bounds with a larger value, and returns max(moves, default=0) + (1 if moves else 0); the answer is the max over all starting rows in column 0. This exercises tree-dfs-recursive, memoize-recursion, tree-combine-returns, and grid-neighbors. The notes are empty and LeetCode reports Accepted.",
+      "seconds": 1224
     }
   }
 }
