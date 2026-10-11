@@ -37042,6 +37042,16 @@
       "note": "Notes mark the file as Learning; the mu source and the SQL both use id - row_number() over (order by id) as the island key.",
       "summary": "The query selects id and id - row_number() over (order by id) as grp from Seats, so consecutive ids share a constant key and each gap starts a new group. This exercises the gaps-and-islands move via a window rank, and both example assertions pass. The notes label the file Learning, indicating the solution was given and copied.",
       "seconds": 248
+    },
+    "solved/d_Not_Boring_Movies_2026_10_11T16_40_07_861574_00_00Z.py": {
+      "date": "2026-10-12",
+      "problem": "drill",
+      "moves": {
+        "sql-filter-select": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The query selects all columns from Cinema, filters with WHERE on id % 2 != 0 and description NOT LIKE '%boring%', and orders by rating descending. This exercises the sql-filter-select move: SELECT columns, WHERE conditions, and ORDER BY in one statement. Both example assertions passed.",
+      "seconds": 115
     }
   }
 }
