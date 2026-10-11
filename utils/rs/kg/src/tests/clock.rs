@@ -12,7 +12,8 @@ use crate::drills::{
     drill_warm, due_drill, ANKI_EASE, ANKI_FUZZ_MIN_DAYS,
 };
 use crate::model::{
-    proven_game_score, proven_score, proven_series, Game, Ground, Transfer, PROVEN_WINDOW,
+    easy_share, proven_game_score, proven_score, proven_series, Game, Ground, Transfer, EASY_QUOTA,
+    EASY_WINDOW, PROVEN_WINDOW,
 };
 use crate::pick::review_queue;
 use crate::status::{graduation_due, owned};
@@ -1457,6 +1458,80 @@ fn unservable_covers_both_reasons() {
     assert!(ctx.unservable("1", &problem(&["a"])));
     assert!(ctx.unservable("2", &problem(&["a"]).banned()));
     assert!(!ctx.unservable("2", &problem(&["a"])));
+}
+
+/// The contest's share of easies (2026-10-11): of any EASY_WINDOW games
+/// the Elo counts in a row, at most EASY_QUOTA are Easy, and an Easy past
+/// the quota is not a game. The window is over the games counted, not
+/// the games played: a run of easies counts EASY_QUOTA however long it is,
+/// and the next Easy counts once EASY_WINDOW - EASY_QUOTA harder games
+/// have. The proven rating reads every first sight; a win there proves
+/// only the problem's rating.
+#[test]
+fn an_easy_past_the_contests_share_is_not_a_game() {
+    let (e, m, h) = ("Easy", "Medium", "Hard");
+    // a contest's own mix counts whole: two easies, two mediums, a hard
+    assert_eq!(easy_share(&[e, e, m, m, h, e, e, m, m, h]), vec![true; 10]);
+    // so does the honest week: mediums with an easy and a hard here and there
+    assert_eq!(
+        easy_share(&[m, e, m, m, h, m, e, m, m, m, e, h]),
+        vec![true; 12]
+    );
+    // fifty easies in a row count EASY_QUOTA
+    let run = easy_share(&[e; 50]);
+    assert_eq!(run.iter().filter(|k| **k).count(), EASY_QUOTA);
+    assert_eq!(&run[..3], &[true, true, false]);
+    // after the run two mediums are not enough, three harder games are:
+    // the run's two easies have left the window, so two more count, and
+    // the quota is full again at the third
+    let mut d = vec![e; 50];
+    d.extend([m, m, e, h, e, e, e]);
+    let k = easy_share(&d);
+    assert_eq!(&k[50..], &[true, true, false, true, true, true, false]);
+    assert_eq!(EASY_WINDOW - EASY_QUOTA, 3);
+
+    // seven easies then a medium: three games to the Elo, eight first
+    // sights to the proven rating, five left out
+    let mut fx = Fx::picker();
+    fx.nodes(&["q1"]);
+    let keys = ["1", "2", "3", "4", "5", "6", "7", "8"];
+    let ps = keys
+        .iter()
+        .map(|k| {
+            (
+                *k,
+                if *k == "8" {
+                    problem(&["q1"])
+                } else {
+                    easy(&["q1"])
+                },
+            )
+        })
+        .collect();
+    fx.problems(ps);
+    let rt: Vec<(&str, f64)> = keys
+        .iter()
+        .map(|k| (*k, if *k == "8" { 1500.0 } else { 1250.0 }))
+        .collect();
+    ratings_tsv(&fx, &rt);
+    let ctx = fx.ctx();
+    *ctx.solve_times.borrow_mut() = Some(vec![]);
+    let recs: Vec<(String, Rec)> = keys
+        .iter()
+        .enumerate()
+        .map(|(i, k)| {
+            let mut r = solve(k, &[("q1", "clean")], 8 - i as i64);
+            r.1.seconds = Some(600);
+            r
+        })
+        .collect();
+    let ev = evidence(recs);
+    let games = crate::model::scored_games(&ctx, &ev);
+    assert_eq!(games.len(), 8);
+    assert!(games.iter().all(|g| g.first));
+    assert_eq!(crate::model::first_sight_elo_games(&ctx, &ev).len(), 3);
+    assert_eq!(crate::model::proven_games(&ctx, &ev).len(), 8);
+    assert_eq!(crate::model::easies_left_out(&ctx, &ev), 5);
 }
 
 /// The proven rating (2026-09-20): a win proves the problem's rating and

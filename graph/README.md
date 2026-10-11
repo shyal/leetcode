@@ -79,7 +79,18 @@ and generate combination drills ("rote sheets").
   The placeholder also carries `seconds`, the active time on the clock when
   `make solved` ran, and every later rewrite of the entry keeps it. The Elo's
   games (`scored_games`) read it from the record; records from before the field
-  (2026-09-16) are timed from their commit message. The clock a pass is judged
+  (2026-09-16) are timed from their commit message. An Easy is a game only
+  within the contest's share (`model::easy_share`, 2026-10-11): of any five
+  games the Elo counts in a row at most two are Easy, two easies, two mediums
+  and a hard being the generous reading of a weekly contest. An Easy past
+  that is left out, not scored against you; the window is over the games
+  counted, so a run of easies counts two however long it is, and the next
+  Easy counts once three harder games have. Of the 466 first sights to
+  2026-10-11, 293 were Easy, in runs of fifty through October and November
+  2025; the rule leaves 237 out and takes that era's Elo from 1970 to 1890,
+  the rest of the 2000 being 65 mediums won of 92. `make elo` says how many
+  it left out. The proven rating reads every first sight, since a win there
+  proves only the problem's rating. The clock a pass is judged
   against is the contest's (`model::contest_fit`, 2026-10-08): four problems,
   90 minutes, scored by how many are solved. The pass takes the slot its
   rating sits in (`SLOT_CUTS`, fitted on zerotrac's contest slots), the other

@@ -31,7 +31,7 @@ use ratatui::widgets::{
 };
 use ratatui::{Frame, Terminal};
 
-use crate::elo::{numbers, Numbers, MA, RANKS, START, WEEK};
+use crate::elo::{games_phrase, numbers, Numbers, MA, RANKS, START, WEEK};
 use crate::onsite::FS_WINDOW;
 
 /// The gauges run from START to the top cutoff.
@@ -107,8 +107,8 @@ fn draw_numbers(frame: &mut Frame, n: &Numbers) {
         Span::styled(rank_line, Style::new().fg(c)),
         Span::styled(
             format!(
-                "  · {} games, {} wins, {} draws, {} losses",
-                n.games,
+                "  · {}, {} wins, {} draws, {} losses",
+                games_phrase(n.games, n.left_out),
                 n.wins,
                 n.draws,
                 n.games - n.wins - n.draws
@@ -181,7 +181,11 @@ pub fn framed(frame: &mut Frame, title: String, subtitle: Line<'static>, c: Colo
 /// rows left there is no chart and the number takes all.
 pub fn split(inner: Rect, fixed: u16, value: f64) -> (Constraint, Constraint) {
     let spare = inner.height.saturating_sub(fixed + CHART_MIN);
-    let font = big_number(value, inner.width as usize, spare.saturating_sub(2) as usize);
+    let font = big_number(
+        value,
+        inner.width as usize,
+        spare.saturating_sub(2) as usize,
+    );
     let digits = font.len() as u16 + 2;
     if spare >= digits {
         (Constraint::Length(digits), Constraint::Fill(1))
@@ -440,6 +444,7 @@ mod tests {
             games: 427,
             wins: 297,
             draws: 6,
+            left_out: 237,
             week: kg::model::Summary {
                 solves: 32,
                 fails: 7,
@@ -461,7 +466,7 @@ mod tests {
         for s in [
             "first-sight elo",
             "169 to knight",
-            "427 games, 297 wins, 6 draws, 124 losses",
+            "427 games of 664 first sights, 297 wins, 6 draws, 124 losses",
             "60 game average",
             "1610",
             "-71",
@@ -481,6 +486,11 @@ mod tests {
             assert!(f.contains(s), "missing {s:?}\n{f}");
         }
         assert!(frame_text(Some(&sample()), 40, 8).contains("1681"));
+        let none = Numbers {
+            left_out: 0,
+            ..sample()
+        };
+        assert!(frame_text(Some(&none), 80, 24).contains("427 games, 297 wins"));
     }
 
     #[test]

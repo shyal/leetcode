@@ -1026,9 +1026,11 @@ impl Transfer {
 // Problem ratings are zerotrac's (data/leetcode_ratings.tsv); a problem
 // that never ran in a contest gets the median contest rating of its
 // difficulty. Only first sights are games (Game::first), chain solves
-// among them since 2026-10-08. Standard Elo, ELO_K from ELO_START. The
+// among them since 2026-10-08, and only the easies within the contest's
+// share (easy_share, 2026-10-11). Standard Elo, ELO_K from ELO_START. The
 // picker keeps its own over every timed attempt (elo_games, settled
-// 2026-09-12).
+// 2026-09-12). The proven rating (below) reads every first sight: a win
+// there proves only the problem's rating, so easies cannot inflate it.
 
 /// (date, problem rating, score): one scored first-sight game.
 pub type FirstSight = (NaiveDate, f64, f64);
@@ -1091,13 +1093,12 @@ pub fn price(
     }
 }
 
-/// The scored first-sight attempts oldest first, each game's score
-/// read through `score`.
-fn first_sights(ctx: &Ctx, ev: &Evidence, score: fn(&Game) -> f64) -> Vec<FirstSight> {
+/// `games` priced (pricing), oldest first, each game's score read
+/// through `score`.
+fn priced(ctx: &Ctx, games: Vec<Game>, score: fn(&Game) -> f64) -> Vec<FirstSight> {
     let (ratings, imputed) = pricing(ctx);
-    scored_games(ctx, ev)
+    games
         .into_iter()
-        .filter(|g| g.first)
         .map(|g| {
             (
                 crate::data::parse_date(&g.date),
@@ -1108,15 +1109,76 @@ fn first_sights(ctx: &Ctx, ev: &Evidence, score: fn(&Game) -> f64) -> Vec<FirstS
         .collect()
 }
 
-/// [(date, problem rating, Elo score)]: the games of the first-sight Elo.
-pub fn first_sight_elo_games(ctx: &Ctx, ev: &Evidence) -> Vec<FirstSight> {
-    first_sights(ctx, ev, |g| g.score)
+/// Every scored first-sight attempt, oldest first.
+fn first_sights(ctx: &Ctx, ev: &Evidence) -> Vec<Game> {
+    scored_games(ctx, ev)
+        .into_iter()
+        .filter(|g| g.first)
+        .collect()
 }
 
-/// [(date, problem rating, proven score)]: the same games, scored for
-/// the proven rating (proven_game_score).
+/// The contest's share of easies (settled 2026-10-11). A weekly contest
+/// is four problems, one of them Easy; two easies, two mediums and a hard
+/// is the generous reading, and that is the quota: of any EASY_WINDOW
+/// games the Elo counts in a row, at most EASY_QUOTA are Easy. An Easy
+/// past the quota is not a game. It is left out of the Elo, not scored
+/// against it, because the solve was real; it just proves nothing a
+/// contest would ask. Of the 466 first sights to 2026-10-11, 293 were
+/// Easy, in runs of fifty through October and November 2025; the rule
+/// leaves 237 of them out and takes that era's Elo from 1970 to 1890.
+/// The rest of the 2000 was 65 mediums won of 92, which Elo at K=32
+/// reads as it should.
+pub const EASY_WINDOW: usize = 5;
+pub const EASY_QUOTA: usize = 2;
+
+/// Which of `difficulties`, oldest first, the Elo counts: every problem
+/// that is not Easy, and an Easy only while fewer than EASY_QUOTA of the
+/// EASY_WINDOW - 1 games counted before it are Easy. The window is over
+/// the games counted, not the games played, so fifty easies in a row
+/// count two, and the next Easy counts once three harder games have.
+pub fn easy_share(difficulties: &[&str]) -> Vec<bool> {
+    let mut counted: Vec<bool> = Vec::new(); // true for each Easy counted
+    difficulties
+        .iter()
+        .map(|d| {
+            let easy = *d == "Easy";
+            let tail = counted.len().saturating_sub(EASY_WINDOW - 1);
+            let keep = !easy || counted[tail..].iter().filter(|e| **e).count() < EASY_QUOTA;
+            if keep {
+                counted.push(easy);
+            }
+            keep
+        })
+        .collect()
+}
+
+/// The first-sight games the Elo counts (easy_share), oldest first.
+fn counted_first_sights(ctx: &Ctx, ev: &Evidence) -> Vec<Game> {
+    let games = first_sights(ctx, ev);
+    let difficulties: Vec<&str> = games.iter().map(|g| g.difficulty.as_str()).collect();
+    let keep = easy_share(&difficulties);
+    games
+        .into_iter()
+        .zip(keep)
+        .filter_map(|(g, k)| k.then_some(g))
+        .collect()
+}
+
+/// [(date, problem rating, Elo score)]: the games of the first-sight Elo,
+/// the first sights within the contest's share of easies.
+pub fn first_sight_elo_games(ctx: &Ctx, ev: &Evidence) -> Vec<FirstSight> {
+    priced(ctx, counted_first_sights(ctx, ev), |g| g.score)
+}
+
+/// How many first sights the Elo leaves out: the easies past the quota.
+pub fn easies_left_out(ctx: &Ctx, ev: &Evidence) -> usize {
+    first_sights(ctx, ev).len() - counted_first_sights(ctx, ev).len()
+}
+
+/// [(date, problem rating, proven score)]: every first sight, the easies
+/// past the quota too, scored for the proven rating (proven_game_score).
 pub fn proven_games(ctx: &Ctx, ev: &Evidence) -> Vec<FirstSight> {
-    first_sights(ctx, ev, proven_game_score)
+    priced(ctx, first_sights(ctx, ev), proven_game_score)
 }
 
 /// [(date, rating after the game)] one per game, from `start`.
