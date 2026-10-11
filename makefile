@@ -1,4 +1,4 @@
-.PHONY: all asserts audit chat check combos complexity cov curve dependents dive drawing-doc drill drop duplicates elo ext failed fmt fmt-check force graph graph-vscode hard harness-doc is_session_start kg-extract kg-status kg-viz lc-login lc-mocks learning lint mirror mock movie mu mu-chrome mu-vscode muviz next predict preflight prepare prog progress q queue rank-table readme rep residuals rust secrets short simulate sleep snippets solved spot stats studied submit test test-fast test-judge timer today types unforce viz wake
+.PHONY: all asserts audit chat check combos complexity cov curve dependents dive drawing-doc drill drop duplicates elo ext failed fmt fmt-check force graph graph-vscode hard harness-doc is_session_start kg-extract kg-status kg-viz lc-login lc-mocks lc-sync learning lint mirror mock movie mu mu-chrome mu-vscode muviz next predict preflight prepare prog progress q queue rank-table readme rep residuals rust secrets short simulate sleep snippets solved spot stats studied submit test test-fast test-judge timer today types unforce viz wake
 
 # `make` runs the current file: current.py through mu/session.py (which
 # runs current.mu in place when it holds the work, every error at its mu
@@ -193,6 +193,14 @@ lc-login:
 # (make lc-mocks show prints the cache as a table)
 lc-mocks:
 	@.venv/bin/python3 utils/history/lc_mocks.py $(patsubst show,--show,$(filter-out $@,$(MAKECMDGOALS)))
+
+# pull every accepted submission on the leetcode account into
+# data/leetcode_submissions.json, through the browser lc_submit uses: a first
+# sight is then the account's first solve, not the first file in solved/.
+# `make lc-sync show` prints the totals from the file; `make lc-sync all`
+# pulls the whole account again.
+lc-sync: $(RS_BIN)/lc_sync
+	@$(RS_BIN)/lc_sync $(patsubst show,--show,$(patsubst all,--all,$(filter-out $@,$(MAKECMDGOALS))))
 
 # file the current attempt as a FAILED one: same flow as solved (archive,
 # solve-time trailer, placeholder -> struggled evidence), honest label

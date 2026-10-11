@@ -31,8 +31,35 @@ if (!process.stdin.isTTY) for await (const chunk of process.stdin) body += chunk
 
 const targets = await (await fetch(`${endpoint}/json`)).json();
 let page = targets.find((t) => t.type === "page" && t.url.startsWith("https://leetcode.com/"));
-// No leetcode tab: open one for the request and close it after.
-const opened = page ? null : await (await fetch(`${endpoint}/json/new?https://leetcode.com/`, { method: "PUT" })).json();
+// No leetcode tab: open one behind the current tab for the request and
+// close it after. /json/new would activate the new tab and bring the
+// browser to the front, once per request (lc_sync makes a hundred in a
+// row, 2026-10-11); Target.createTarget with background set opens it
+// quietly, over the browser-level socket.
+const openBackground = async () => {
+  const { webSocketDebuggerUrl } = await (await fetch(`${endpoint}/json/version`)).json();
+  const bws = new WebSocket(webSocketDebuggerUrl);
+  await new Promise((r) => (bws.onopen = r));
+  const reply = await new Promise((r) => {
+    bws.onmessage = (m) => r(JSON.parse(m.data));
+    bws.send(
+      JSON.stringify({
+        id: 1,
+        method: "Target.createTarget",
+        params: { url: "https://leetcode.com/", background: true },
+      }),
+    );
+  });
+  bws.close();
+  const id = reply.result?.targetId;
+  if (!id) {
+    console.error(`lc_fetch: the browser opened no tab: ${JSON.stringify(reply)}`);
+    process.exit(1);
+  }
+  const base = new URL(webSocketDebuggerUrl);
+  return { id, webSocketDebuggerUrl: `${base.protocol}//${base.host}/devtools/page/${id}` };
+};
+const opened = page ? null : await openBackground();
 page ??= opened;
 const ws = new WebSocket(page.webSocketDebuggerUrl);
 await new Promise((r) => (ws.onopen = r));
