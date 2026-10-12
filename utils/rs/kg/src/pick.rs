@@ -32,7 +32,13 @@
 //      easy, the sleep rules, the frontier and the summits.
 //      Reviews most overdue first, then files never done, atoms first
 //      (drills::anki_frontier). No hold and no node status withholds a due
-//      file. The daily group cap (KG_GROUP_CAP, rule 0e) does: a group at
+//      file. The drill band does (DRILLS_WITHIN_BAND, 2026-10-12): a file
+//      whose every rated target problem (the ones whose "after" names
+//      it, else its node's) sits more than the band below his elo or
+//      more than twice it above is off the clock until the elo reaches
+//      it; the extra band width above is the lead, so the drill's reps
+//      land before the problem itself is servable. A file with no rated
+//      target is never held. The daily group cap (KG_GROUP_CAP, rule 0e) does: a group at
 //      its cap is out of the clock too, or one bank fills every session
 //      (2026-09-06, sql). `make next <group>` scopes the clock to the group
 //      and is the override. The

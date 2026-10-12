@@ -723,7 +723,9 @@ pub fn anki_rank(
 
 /// kg_lib.anki_frontier: every bank file due on its own clock, as (path,
 /// node): reviews most overdue first, then files never done, atoms
-/// first; a due drill's due predecessors come before it.
+/// first; a due drill's due predecessors come before it. A file the
+/// drill band holds (drills_outside_band) is out, and so it is as a
+/// predecessor.
 /// kg_lib.anki_rank of every bank file for (day, assisted) at depth 0,
 /// computed once per evidence version; a file the assisted filter drops
 /// is absent.
@@ -767,6 +769,7 @@ pub fn anki_frontier(
         None => nodes.keys().cloned().collect(),
     };
     ids.sort();
+    let held = drills_outside_band(ctx, ev);
     let mut ranked: Vec<(AnkiKey, PathBuf, String)> = Vec::new();
     for node in &ids {
         let depth = if nodes.contains_key(node) {
@@ -784,6 +787,9 @@ pub fn anki_frontier(
                 None => anki_rank(ctx, path, ev, day, depth),
             };
             if let Some(mut key) = hit {
+                if held.contains(path) {
+                    continue;
+                }
                 if key.0 == 1 {
                     key.2 = depth;
                 }
@@ -825,7 +831,9 @@ pub fn anki_frontier(
     out
 }
 
-/// kg_lib.due_drill: the bank file to serve a node today, or None.
+/// kg_lib.due_drill: the bank file to serve a node today, or None. A
+/// file the drill band holds (drills_outside_band) is served by neither
+/// the clock nor the status rules.
 pub fn due_drill(
     ctx: &Ctx,
     node: &str,
@@ -884,7 +892,9 @@ fn due_drill_uncached(
         && !drills_left(ctx, node, ev, false)
         && !at_floor;
     let today = day.format("%Y-%m-%d").to_string();
+    let held = drills_outside_band(ctx, ev);
     let mut candidates: Vec<PathBuf> = ctx.bank_paths(node).as_ref().clone();
+    candidates.retain(|p| !held.contains(p));
     if assisted || holds {
         candidates.retain(|p| drill_assisted(ctx, p, ev));
     }
@@ -1057,6 +1067,79 @@ pub fn first_sight_band() -> Option<f64> {
     env_int("FIRST_SIGHT_WITHIN_BAND")
         .filter(|b| *b > 0)
         .map(|b| b as f64)
+}
+
+/// DRILLS_WITHIN_BAND: a bank file whose every rated target problem is
+/// rated more than this many points below his elo, or more than twice
+/// this many above it, is off the clock (drills_outside_band). A band of
+/// 0 would hold every rated drill, so 0 means unset. Unset, no rating
+/// holds a drill.
+pub fn drills_band() -> Option<f64> {
+    env_int("DRILLS_WITHIN_BAND")
+        .filter(|b| *b > 0)
+        .map(|b| b as f64)
+}
+
+/// The bank files the drill band holds off the clock (2026-10-12). A
+/// file's targets are the problems whose "after" names its drill id;
+/// a file no "after" names targets the problems that walk its node. The
+/// file is held when it has a rated target and none is rated within
+/// DRILLS_WITHIN_BAND below his first-sight elo or within twice that
+/// above it. The upper side is wider than the band on first sights by
+/// one band width, the lead: a drill wakes while its target is still
+/// held, so three spaced reps fit before the problem is servable. A file
+/// with no target, or none that is rated (the sql, design and language
+/// banks), is never held. Computed once per evidence length and band.
+pub fn drills_outside_band(ctx: &Ctx, ev: &Evidence) -> Rc<HashSet<PathBuf>> {
+    let key = (ev.recs.len(), drills_band().map_or(0, |b| b as i64));
+    if let Some((k, held)) = ev.cold_cache().band_held.as_ref() {
+        if *k == key {
+            return held.clone();
+        }
+    }
+    let held = Rc::new(drills_outside_band_uncached(ctx, ev));
+    ev.cold_cache().band_held = Some((key, held.clone()));
+    held
+}
+
+fn drills_outside_band_uncached(ctx: &Ctx, ev: &Evidence) -> HashSet<PathBuf> {
+    let mut held = HashSet::new();
+    let Some(band) = drills_band() else {
+        return held;
+    };
+    let elo = crate::model::first_sight_elo_now(ctx, ev);
+    let (lo, hi) = (elo - band, elo + 2.0 * band);
+    let ratings = crate::model::solve_ratings(ctx);
+    let mut by_drill: HashMap<String, Vec<f64>> = HashMap::new();
+    let mut by_node: HashMap<String, Vec<f64>> = HashMap::new();
+    for (pnum, p) in ctx.ro.map.iter() {
+        let Some(r) = ratings.get(pnum).copied() else {
+            continue;
+        };
+        for a in &p.after {
+            by_drill.entry(a.clone()).or_default().push(r);
+        }
+        for m in crate::bank::walk_nodes(p) {
+            by_node.entry(m).or_default().push(r);
+        }
+    }
+    let inside = |rs: &[f64]| rs.iter().any(|r| (lo..=hi).contains(r));
+    for node in ctx.nodes.keys() {
+        for path in ctx.bank_paths(node).iter() {
+            let gated = ctx.drill_id(path).and_then(|i| by_drill.get(&i));
+            let targets = match gated {
+                Some(rs) => rs,
+                None => match by_node.get(node) {
+                    Some(rs) => rs,
+                    None => continue,
+                },
+            };
+            if !inside(targets) {
+                held.insert(path.clone());
+            }
+        }
+    }
+    held
 }
 
 pub fn new_drills_today(ev: &Evidence, day: NaiveDate) -> i64 {

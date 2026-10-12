@@ -478,6 +478,85 @@ fn a_due_drill_waits_for_a_due_ancestor_past_one_that_is_not_due() {
     assert_eq!(basenames(&f), strs(&["r.py", "c.py"]));
 }
 
+/// 2026-10-12: with DRILLS_WITHIN_BAND set, a bank file is off the clock
+/// while every rated problem it targets sits more than the band below
+/// his elo or more than twice the band above it. A file's targets are
+/// the problems whose "after" names its drill id; a file no "after"
+/// names targets the problems that walk its node. Unset, or 0, every due
+/// file is served. With the band at 50 and the elo at 1200: Gated (1300,
+/// one band width above the band, the lead) stays; High (1350) and Low
+/// (1100) go; Mixed (1100 and 1210) stays on its one target inside;
+/// Plain, named by no "after", stays on its node's problem at 1190;
+/// Loose, on a node whose only problem is rated 1400, goes; Free, on a
+/// node no rated problem walks, stays. A held file is no predecessor
+/// either: Child, after High, comes without it.
+#[test]
+fn a_drill_whose_targets_are_outside_the_band_is_off_the_clock() {
+    use crate::drills::drills_outside_band;
+    use crate::model::ELO_START;
+    let mut fx = Fx::new();
+    test_env("DRILL_SCHEDULER", "anki");
+    fx.bank("a", "Gated", "g.py", "d1", &[]);
+    let high = fx.bank("a", "High", "h.py", "d2", &[]);
+    let low = fx.bank("a", "Low", "l.py", "d3", &[]);
+    fx.bank("a", "Mixed", "m.py", "d4", &[]);
+    fx.bank("b", "Plain", "p.py", "d5", &[]);
+    let loose = fx.bank("c", "Loose", "o.py", "d6", &[]);
+    fx.bank("d", "Free", "f.py", "d7", &[]);
+    fx.bank("a", "Child", "k.py", "d8", &["d2"]);
+    let after = |moves: &[&str], ids: &[&str]| Problem {
+        after: strs(ids),
+        ..problem(moves)
+    };
+    fx.nodes(&["a", "b", "c", "d"]).problems(vec![
+        ("1", after(&["a"], &["d1"])),
+        ("2", after(&["a"], &["d2"])),
+        ("3", after(&["a"], &["d3"])),
+        ("4", after(&["a"], &["d4"])),
+        ("5", after(&["a"], &["d4"])),
+        ("6", problem(&["b"])),
+        ("7", problem(&["c"])),
+    ]);
+    ratings_tsv(
+        &fx,
+        &[
+            ("1", ELO_START + 100.0),
+            ("2", ELO_START + 150.0),
+            ("3", ELO_START - 100.0),
+            ("4", ELO_START - 100.0),
+            ("5", ELO_START + 10.0),
+            ("6", ELO_START - 10.0),
+            ("7", ELO_START + 200.0),
+        ],
+    );
+    let ev = no_evidence();
+    let ctx = fx.ctx();
+    let all = strs(&["g.py", "h.py", "l.py", "m.py", "p.py", "o.py", "f.py", "k.py"]);
+    assert!(drills_outside_band(&ctx, &ev).is_empty());
+    let f = anki_frontier(&ctx, &ev, today(), Some(&fx.nodes), None, false);
+    assert_eq!(basenames(&f), all);
+    test_env("DRILLS_WITHIN_BAND", "0");
+    let ctx = fx.ctx();
+    assert!(drills_outside_band(&ctx, &ev).is_empty());
+    test_env("DRILLS_WITHIN_BAND", "50");
+    let ctx = fx.ctx();
+    assert_eq!(
+        *drills_outside_band(&ctx, &ev),
+        [high.clone(), low, loose].into_iter().collect()
+    );
+    let f = anki_frontier(&ctx, &ev, today(), Some(&fx.nodes), None, false);
+    assert_eq!(basenames(&f), strs(&["g.py", "m.py", "p.py", "f.py", "k.py"]));
+    // the held file is not served as a predecessor of a due one
+    assert!(!f.iter().any(|(p, _)| *p == high));
+    assert_eq!(due_drill(&ctx, "c", &ev, today(), false, false), None);
+    test_env("DRILLS_WITHIN_BAND", "100");
+    let ctx = fx.ctx();
+    assert_eq!(
+        basenames(&anki_frontier(&ctx, &ev, today(), Some(&fx.nodes), None, false)),
+        all
+    );
+}
+
 // --------------------------------------------------------------------------
 // rule 2c: a problem on its own review clock
 // --------------------------------------------------------------------------

@@ -441,6 +441,22 @@ same amount. A problem nothing rates is never held, and a problem you wake
 with `make wake` is served at any rating. The footer of `make next` counts
 the held problems that are in the graph.
 
+`DRILLS_WITHIN_BAND` in `.envrc` (`drills::drills_outside_band`, 2026-10-12)
+does the same for the drill clock. A bank file's targets are the problems
+whose `after` list names its drill id; a file no `after` names targets the
+problems that walk its node. The file is off the clock, and served by no
+status rule either, while none of its rated targets is within the band
+below your elo or within twice the band above it. The upper side is one
+band wider than the band on first sights: a drill wakes while its target is
+still held, so three spaced reps fit before the problem becomes servable.
+A file with no target, or none that is rated (the sql, design and language
+banks), is never held. A held file is not served as a predecessor of a due
+one either. 0 means unset. On 2026-10-12, with the elo at 1636 and the band
+at 50, the rule held 17 of the 41 due drills that gate a problem: twelve
+whose targets sat above 1736, four whose targets sat below 1586, and one
+mixed. The two drills built for 829. Consecutive Numbers Sum, rated 1694,
+stayed on the clock through the lead.
+
 ## Dive (`make dive`)
 
 `make next <group>` (currently `make next sql` and `make next spark`; `--group <g>` on kg_next for any group)

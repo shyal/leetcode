@@ -51,6 +51,9 @@ pub struct Caches {
     /// kg_lib.anki_rank per bank file for (day, assisted), plus whether the
     /// file's latest rep was assisted
     pub anki: HashMap<(NaiveDate, bool), Rc<HashMap<PathBuf, Option<crate::drills::AnkiKey>>>>,
+    /// drills::drills_outside_band per (evidence length, band): the bank
+    /// files whose every rated target sits outside the drill band
+    pub band_held: Option<((usize, i64), Rc<HashSet<PathBuf>>)>,
     /// kg_lib.due_drill per (node, day, early, assisted)
     pub due_drill: HashMap<(String, NaiveDate, bool, bool), Option<PathBuf>>,
     /// kg_lib.drills_left per (node, early)
