@@ -37155,6 +37155,19 @@
       "note": "LEETCODE: Time Limit Exceeded (44/45 cases) - the canonical move is the two-pass force/prefix-suffix sweep (or BFS), which the code lacks; the replace-loop simulation stands in for it.",
       "summary": "The code repeatedly applies string replacements ('R.'->'Rr', '.L'->'lL', 'rL'->'.L', then r->R, l->L) until the string stops changing, using the equality of successive states as the termination test. It exercises string-build-transform and a seen-state/equilibrium check, and the local asserts pass, but the submitted version was rejected with Time Limit Exceeded (44/45 cases). The notes describe the same simulation approach and an abandoned second attempt that also TLE'd, ending with 'i give up'.",
       "seconds": 2160
+    },
+    "solved/p1975_Maximum_Matrix_Sum_2026_10_12T00_30_29_554243_00_00Z.py": {
+      "date": "2026-10-12",
+      "problem": "1975",
+      "moves": {
+        "running-sum": "clean",
+        "running-extreme": "clean",
+        "grid-neighbors": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "mu source: single pass over cells() accumulating count of negatives, total of abs values, and min abs; parity of count decides whether to subtract 2*min.",
+      "summary": "The mu source walks every cell once via cells(matrix), accumulating the number of negative entries, the sum of absolute values, and the smallest absolute value. If the negative count is even it returns the total; otherwise it returns total minus twice the minimum absolute value. The code exercises a running sum, a running minimum, and grid iteration; LeetCode accepted it (323 ms, 29.3 MB) and the notes reason about flipping rows/columns by parity of minus signs.",
+      "seconds": 1190
     }
   }
 }
