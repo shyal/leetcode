@@ -37179,6 +37179,19 @@
       "note": "Notes show 29m of dead-end exploration (7+8, 4+5+6) before landing on the k*a + k(k-1)/2 divisibility test; the file's own FAILED header is contradicted by the authoritative run, which exits 0 and prints 2.",
       "summary": "The code counts representations of n as a sum of k consecutive positive integers by testing each k while k(k-1)/2 < n and checking whether n - k(k-1)/2 is divisible by k, incrementing res on each hit. It exercises the consecutive-sum-split move, iterating k up to about sqrt(2n). The notes record a long struggle with the arithmetic (7+8, 4+5+6, 16's single way) and a FAILED header, but the executed run exits 0 and prints 2.",
       "seconds": 1772
+    },
+    "solved/p382_Linked_List_Random_Node_2026_10_12T02_15_11_923929_00_00Z.py": {
+      "date": "2026-10-12",
+      "problem": "382",
+      "moves": {
+        "streaming-ask-then-record": "clean",
+        "counter-build": "clean"
+      },
+      "judge": "deepseek-chat",
+      "followup": "solved",
+      "note": "Reservoir sampling: one pass, each node replaces val with probability 1/i; O(1) space, length unknown.",
+      "summary": "The code implements reservoir sampling in getRandom: it walks the list once with curr and i, and with probability 1/i replaces val with the current node's value, giving each node equal probability. The test builds a 3-node list, calls getRandom 30000 times, and uses Counter to check the counts are near n/3. LeetCode accepted it (11 ms, 23.3 MB), and the follow-up is met since it uses O(1) extra space and never needs the length.",
+      "seconds": 1307
     }
   }
 }
