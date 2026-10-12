@@ -37192,6 +37192,22 @@
       "note": "Reservoir sampling: one pass, each node replaces val with probability 1/i; O(1) space, length unknown.",
       "summary": "The code implements reservoir sampling in getRandom: it walks the list once with curr and i, and with probability 1/i replaces val with the current node's value, giving each node equal probability. The test builds a 3-node list, calls getRandom 30000 times, and uses Counter to check the counts are near n/3. LeetCode accepted it (11 ms, 23.3 MB), and the follow-up is met since it uses O(1) extra space and never needs the length.",
       "seconds": 1307
+    },
+    "solved/p789_Escape_The_Ghosts_2026_10_12T03_35_55_473345_00_00Z.py": {
+      "date": "2026-10-12",
+      "problem": "789",
+      "moves": {
+        "multi-source-bfs": "struggled",
+        "grid-neighbors": "clean",
+        "graph-bfs-shortest": "clean"
+      },
+      "assist": {
+        "multi-source-bfs": "walkthrough"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Wrong Answer (0/77 cases). The code builds a multi-source BFS over an unbounded grid instead of the canonical Manhattan-distance comparison; the notes say 'used the wrong technique, so TLE' and 'I was also assisted with the multi-bfs because sloppy'.",
+      "summary": "The solution seeds a deque with the ghosts and Pacman, then runs a level-order BFS over an unbounded grid using CARDINALS offsets, returning whichever type reaches the target first. It exercises grid-neighbors and graph-bfs-shortest, but the central move is a multi-source BFS rather than the canonical Manhattan-distance race. The notes record that the wrong technique was used and that the multi-BFS was assisted; LeetCode rejected it with Wrong Answer (0/77 cases).",
+      "seconds": 2459
     }
   }
 }
