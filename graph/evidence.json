@@ -37168,6 +37168,17 @@
       "note": "mu source: single pass over cells() accumulating count of negatives, total of abs values, and min abs; parity of count decides whether to subtract 2*min.",
       "summary": "The mu source walks every cell once via cells(matrix), accumulating the number of negative entries, the sum of absolute values, and the smallest absolute value. If the negative count is even it returns the total; otherwise it returns total minus twice the minimum absolute value. The code exercises a running sum, a running minimum, and grid iteration; LeetCode accepted it (323 ms, 29.3 MB) and the notes reason about flipping rows/columns by parity of minus signs.",
       "seconds": 1190
+    },
+    "solved/p829_Consecutive_Numbers_Sum_FAILED_2026_10_12T01_12_39_390284_00_00Z.py": {
+      "date": "2026-10-12",
+      "problem": "829",
+      "moves": {
+        "consecutive-sum-split": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes show 29m of dead-end exploration (7+8, 4+5+6) before landing on the k*a + k(k-1)/2 divisibility test; the file's own FAILED header is contradicted by the authoritative run, which exits 0 and prints 2.",
+      "summary": "The code counts representations of n as a sum of k consecutive positive integers by testing each k while k(k-1)/2 < n and checking whether n - k(k-1)/2 is divisible by k, incrementing res on each hit. It exercises the consecutive-sum-split move, iterating k up to about sqrt(2n). The notes record a long struggle with the arithmetic (7+8, 4+5+6, 16's single way) and a FAILED header, but the executed run exits 0 and prints 2.",
+      "seconds": 1772
     }
   }
 }
