@@ -15,6 +15,7 @@ BIN = os.path.join(ROOT, "utils", "rs", "target", "release", "lc_submit")
 
 DRAWING_INSIDE_THE_CLASS = {
     "p1046_Last_Stone_Weight_2025_10_13T07_44_22_668857_00_00Z.py": "draw_heap",
+    "p1289_Minimum_Falling_Path_Sum_II_FAILED_2026_10_11T15_16_44_572831_00_00Z.py": "tabulate",
     "p143_Reorder_List_2025_10_09T09_54_24_913679_00_00Z.py": "draw_linked_list",
     "p1584_Min_Cost_to_Connect_All_Points_2025_11_09T09_20_08_818826_00_00Z.py": "draw_graphviz",
     "p210_Course_Schedule_II_2025_11_05T00_38_43_280026_00_00Z.py": "draw_graphviz",

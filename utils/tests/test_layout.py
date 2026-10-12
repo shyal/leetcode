@@ -167,10 +167,10 @@ def test_mock_binary_paths_agree():
 
 
 # --- the harness stays a flat namespace (what solves import) --------------
+# Each module re-exports its pydsa module (../pydsa) under the old flat name.
 
 HARNESS_MODULES = [
     "Types",
-    "TreeFormatter",
     "tree_utils",
     "bst_utils",
     "linked_list_utils",
@@ -254,20 +254,25 @@ def test_ruff_builtins_match_sitecustomize():
 def test_stubs_cover_every_harness_helper():
     """Pylance reads stubs/builtins.pyi through python.analysis.stubPath, and
     stubs/custom_builtins.pyi is its harness half. Every helper sitecustomize
-    preloads from utils/harness has a def or class in both, so the editor
-    completes and types it."""
+    preloads from pydsa or utils/harness has a def or class in both, so the
+    editor completes and types it."""
     sys.path.insert(0, os.path.join(ROOT, "mu"))
-    import ide
+    import leetmu  # noqa: F401
+    import pydsa
+    from mulang import ide
 
     from kg import kg_lib
 
     harness_defs = set()
-    for name in os.listdir(HARNESS):
-        if name.endswith(".py"):
-            with open(os.path.join(HARNESS, name)) as f:
-                harness_defs |= set(re.findall(r"^(?:def|class) (\w+)", f.read(), re.M))
+    for d in (os.path.dirname(pydsa.__file__), HARNESS):
+        for name in os.listdir(d):
+            if name.endswith(".py"):
+                with open(os.path.join(d, name)) as f:
+                    harness_defs |= set(
+                        re.findall(r"^(?:def|class) (\w+)", f.read(), re.M)
+                    )
     helpers = sorted(set(kg_lib.sitecustomize_names()) & harness_defs)
-    assert helpers and helpers == ide.harness_names()
+    assert helpers and set(helpers) <= set(ide.preloaded())
     for stub in ("builtins.pyi", "custom_builtins.pyi"):
         with open(os.path.join(ROOT, "stubs", stub)) as f:
             stubbed = set(re.findall(r"^(?:def|class) (\w+)", f.read(), re.M))

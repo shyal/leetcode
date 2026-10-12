@@ -42,9 +42,8 @@ from rich.text import Text
 from rich.tree import Tree
 
 sys.path.insert(0, str(Path(__file__).parent))
+from mulang import MuError, Parser, transpile  # noqa: E402
 from session import CURRENT, MU, belongs, spliced, written  # noqa: E402
-
-from mu import MuError, Parser, transpile  # noqa: E402
 
 RUN = ".mu_current.py"  # the traced code, written so inspect can read it
 LIMIT = 1500  # frames; a longer run is cut with a note

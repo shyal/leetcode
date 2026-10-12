@@ -12,10 +12,9 @@ import pytest
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path[:0] = [HERE, os.path.join(ROOT, "utils", "tests")]
+from mulang import VERSION, Parser, transpile  # noqa: E402
 from session import SETUP, stub  # noqa: E402
 from test_reference_solutions import PY, drill_for  # noqa: E402
-
-from mu import VERSION, Parser, transpile  # noqa: E402
 
 REFERENCES = sorted(
     glob.glob(os.path.join(ROOT, "graph", "node_notes", "*", "d[0-9]*.mu"))
@@ -499,7 +498,7 @@ def test_a_problem_mu_cannot_write_is_left_to_current_py(tmp_path):
     ],
 )
 def test_optional_annotations(annotation, want):
-    from session import mu_type
+    from mulang import mu_type
 
     assert mu_type(__import__("ast").parse(annotation, mode="eval").body) == want
 

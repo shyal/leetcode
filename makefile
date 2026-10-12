@@ -294,7 +294,7 @@ muviz:
 
 # mu REPL: expressions print their value, blocks read until a blank line, :help
 mu:
-	@.venv/bin/python3 mu/repl.py
+	@.venv/bin/python3 -m mulang.repl
 
 # shorter mu for every cached problem, through claude -p on haiku, in the
 # background; resumes where it stopped (mu/shorten.py). Log: /tmp/mu_short/run.log
@@ -303,11 +303,13 @@ short:
 	@nohup .venv/bin/python mu/shorten.py --model haiku all > /tmp/mu_short/run.log 2>&1 &
 	@echo "running: tail -f /tmp/mu_short/run.log, results in /tmp/mu_short/NNNN.mu"
 
-# links mu/vscode into VS Code's extensions (highlighting, formatter, hover,
-# completion, go-to-definition, debugger); reload the window after
+# links the mu repo's vscode/ (../mu, installed editable as mulang) into VS
+# Code's extensions (highlighting, formatter, hover, completion,
+# go-to-definition, debugger); reload the window after
+MU_REPO = $(shell .venv/bin/python3 -c 'import mulang, os; print(os.path.dirname(os.path.dirname(mulang.__file__)))')
 mu-vscode:
-	@ln -sfn "$(CURDIR)/mu/vscode" "$$HOME/.vscode/extensions/leet.mu-0.0.1"
-	@echo "linked: $$HOME/.vscode/extensions/leet.mu-0.0.1 -> mu/vscode"
+	@ln -sfn "$(MU_REPO)/vscode" "$$HOME/.vscode/extensions/leet.mu-0.0.1"
+	@echo "linked: $$HOME/.vscode/extensions/leet.mu-0.0.1 -> $(MU_REPO)/vscode"
 
 # builds kg_explore and links misc/vscode-graph into VS Code's extensions:
 # the graph around current.py, each vertex's files and reps, and the switch
@@ -320,7 +322,7 @@ graph-vscode: $(RS_BIN)/kg_explore
 # builds mu/chrome, the Chrome extension: a mu panel that submits to
 # leetcode, and problem ratings on leetcode's pages. Load it once at
 # chrome://extensions (Developer mode, Load unpacked, pick mu/chrome);
-# after a change to mu.py, run this again and press reload there.
+# after a change to mulang or pydsa, run this again and press reload there.
 PYODIDE := https://cdn.jsdelivr.net/pyodide/v0.27.7/full
 mu-chrome:
 	@mkdir -p mu/chrome/pyodide

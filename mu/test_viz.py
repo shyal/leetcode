@@ -16,12 +16,11 @@ sys.path[:0] = [
     os.path.join(ROOT, "utils", "tests"),
 ]
 import viz  # noqa: E402
+from mulang import MuError  # noqa: E402
 from session import stub  # noqa: E402
 from test_drills import REFERENCES  # noqa: E402
 from test_reference_solutions import drill_for  # noqa: E402
 from test_session import solved  # noqa: E402
-
-from mu import MuError  # noqa: E402
 
 MEMO = """class Solution
   def longestPath(G: {int: [int]}) -> int

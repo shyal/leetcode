@@ -33,7 +33,8 @@ import warnings
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from mu import VERSION, MuError, Parser, fmt, transpile  # noqa: E402
+import leetmu  # noqa: E402, F401  (the profile: pydsa helpers, harness names)
+from mulang import VERSION, MuError, Parser, fmt, mu_type, transpile  # noqa: E402
 
 CURRENT, MU, STUB, RUN = "current.py", "current.mu", ".mu_stub", ".mu_current.py"
 MAP = ".mu_current.map.json"
@@ -53,43 +54,6 @@ def parse(src):
 
 
 # Python to mu
-
-
-def mu_type(node):
-    """A Python annotation written as a mu type."""
-    if node is None:
-        return None
-    if isinstance(node, ast.Constant):
-        if isinstance(node.value, str):  # a quoted annotation: 'Optional[Node]'
-            return mu_type(ast.parse(node.value, mode="eval").body)
-        return "none" if node.value is None else str(node.value)
-    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.BitOr):
-        sides = [node.left, node.right]
-        rest = [
-            n for n in sides if not (isinstance(n, ast.Constant) and n.value is None)
-        ]
-        if len(rest) == 1:  # TreeNode | None
-            return f"{mu_type(rest[0])}?"
-    if isinstance(node, ast.Name):
-        return {"None": "none"}.get(node.id, node.id)
-    if isinstance(node, ast.Subscript):
-        head = ast.unparse(node.value).split(".")[-1].lower()
-        args = node.slice.elts if isinstance(node.slice, ast.Tuple) else [node.slice]
-        if head == "list":
-            return f"[{mu_type(args[0])}]"
-        if head == "dict":
-            return f"{{{mu_type(args[0])}: {mu_type(args[1])}}}"
-        if head == "set":
-            return f"{{{mu_type(args[0])}}}"
-        if head == "tuple":
-            return "(" + ", ".join(mu_type(a) for a in args) + ")"
-        if head == "optional":
-            return f"{mu_type(args[0])}?"
-        if head == "callable":
-            params = [mu_type(a) for a in args[0].elts]
-            takes = params[0] if len(params) == 1 else "(" + ", ".join(params) + ")"
-            return f"{takes} -> {mu_type(args[1])}"
-    return ast.unparse(node)
 
 
 def loop_head(target, it):

@@ -393,25 +393,9 @@ Here is the `sitecustomize.py`. Use builtins when necessary.
 
 {sitecustomize}
 
-Here are utility functions:
+Here is the reference for every helper it preloads, with signatures and docstrings:
 
-
-
-{tree_utils}
-
-
-
-
-{bst_utils}
-
-
-
-
-{linked_list_utils}
-
-
-{graph_utils}
-
+{helpers}
 
 IMPORTANT: sitecustomize.py injects a large set of names into `builtins`. Do NOT import ANY of these \u{2014}
 they are already available without imports:
@@ -500,10 +484,7 @@ Python3 code snippet (use this for the Solution class and method signature):
 {python_stub}
 ",
         sitecustomize = read(root, "utils/harness/sitecustomize.py"),
-        tree_utils = read(root, "utils/harness/tree_utils.py"),
-        bst_utils = read(root, "utils/harness/bst_utils.py"),
-        linked_list_utils = read(root, "utils/harness/linked_list_utils.py"),
-        graph_utils = read(root, "utils/harness/graph_utils.py"),
+        helpers = read(root, "utils/harness/README.md"),
         example_stub = EXAMPLE_STUB,
         title = q.title,
         difficulty = q.difficulty,

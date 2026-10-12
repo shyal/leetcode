@@ -4,6 +4,9 @@ import re
 import sys
 
 # This file mirrors LeetCode's preloads for solves run inside the repo venv.
+# The helpers themselves live in the pydsa package (../pydsa, installed
+# editable); the utils/harness modules re-export them under the flat
+# names a solve may import.
 # Any other interpreter that inherits PYTHONPATH=./utils (litecli, uv tools,
 # system python) lacks rich/tabulate and would print "Error in sitecustomize".
 # site.py swallows exactly one thing silently: an ImportError whose name is
@@ -93,6 +96,16 @@ from grid_utils import *
 from heap_utils import *
 from linked_list_utils import *
 from ll_utils import *
+from pydsa.arith import batched, ceil_div
+from pydsa.heaps import (
+    maxheapify,
+    maxheapitems,
+    maxheappeek,
+    maxheappop,
+    maxheappush,
+    maxheappushpop,
+    maxheapreplace,
+)
 
 # pretty printing
 from rich import print as rich_print
@@ -102,16 +115,6 @@ from tree_utils import *
 
 # types
 from Types import GraphNode, ListNode, Node, TreeNode
-
-from dsa.maxheapq import (
-    maxheapify,
-    maxheapitems,
-    maxheappeek,
-    maxheappop,
-    maxheappush,
-    maxheappushpop,
-    maxheapreplace,
-)
 
 console = Console()
 
@@ -482,19 +485,6 @@ builtins.shuffle = shuffle
 builtins.sample = sample
 builtins.uniform = uniform
 builtins.getrandbits = getrandbits
-
-
-def batched(s, n=1):
-    r = list(range(0, len(s), n))
-    return [s[a:b] for a, b in zip_longest(r, r[1:])]
-
-
-def ceil_div(a: int, b: int) -> int:
-    if b <= 0:
-        raise ValueError("Denominator b must be positive.")
-    if a < 0:
-        raise ValueError("Numerator a must be non-negative.")
-    return (a + b - 1) // b
 
 
 # misc

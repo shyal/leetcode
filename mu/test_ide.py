@@ -1,5 +1,5 @@
-"""mu/ide.py: hover, completion, go-to-definition and signature help answer
-on a file that is mid-edit, through the transpiled Python and its line map."""
+"""mulang.ide on this repo: the leet profile's names complete and resolve,
+a drill's import from dsa/ resolves, the hover types are mu types."""
 
 import json
 import os
@@ -9,7 +9,8 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
-import ide  # noqa: E402
+import leetmu  # noqa: E402, F401
+from mulang import ide  # noqa: E402
 
 # line 12 is half typed, line 13 never closes its bracket
 TEXT = """# DRILL: Largest Of The Last K
@@ -62,7 +63,7 @@ def test_hover_on_a_def_of_the_file_shows_its_line():
     assert ide.hover(req("hover", 14, 12))["contents"] == "```mu\nmemo f(i, j) =\n```"
 
 
-def test_hover_on_a_helper_quotes_the_spec():
+def test_hover_on_a_helper_quotes_helpers_md():
     got = ide.hover(req("hover", 13, 10))["contents"]
     assert got.startswith("```mu\nnbrs(grid, i, j)")
     assert "nbrs(grid, p, eq=inf)" in got
@@ -91,9 +92,11 @@ def test_definition_of_an_import_is_its_class():
     assert d["line"] == 8
 
 
-def test_definition_of_a_helper_is_its_harness_source():
+def test_definition_of_a_helper_is_its_pydsa_source():
+    import pydsa.grid
+
     [d] = ide.definition(req("definition", 13, 10))
-    assert d["path"] == os.path.join(ROOT, "utils", "harness", "grid_utils.py")
+    assert d["path"] == pydsa.grid.__file__
     assert "def nbrs(" in open(d["path"]).read().split("\n")[d["line"]]
 
 
@@ -120,10 +123,10 @@ def test_completion_lists_scope_keywords_and_helpers():
     assert "self" not in labels
 
 
-def test_harness_names_are_the_preloaded_helpers():
-    """A helper is a name sitecustomize injects that utils/harness defines;
-    the stdlib names it also injects are not helpers."""
-    names = ide.harness_names()
+def test_preloaded_names_are_the_harness_helpers():
+    """A preloaded name is one sitecustomize injects that pydsa or utils/harness
+    defines; the stdlib names it also injects are not."""
+    names = ide.preloaded()
     assert {"nbrs", "linked_list_reverse_k", "draw_linked_list", "ListNode"} <= set(
         names
     )
@@ -131,9 +134,9 @@ def test_harness_names_are_the_preloaded_helpers():
 
 
 def test_completion_lists_every_harness_helper():
-    """Every preloaded helper completes, not only the ones the spec lists."""
+    """Every preloaded helper completes, not only the ones HELPERS.md lists."""
     labels = {c["label"] for c in ide.complete(req("complete", 12, 4))}
-    missing = set(ide.harness_names()) - labels
+    missing = set(ide.preloaded()) - labels
     assert not missing, sorted(missing)
 
 
@@ -149,7 +152,9 @@ def test_hover_and_definition_of_a_harness_helper():
     hover = ide.hover(req("hover", 12, 8, text))["contents"]
     assert hover.startswith("```mu\nlinked_list_reverse_k(h, k=inf)")
     [d] = ide.definition(req("definition", 12, 8, text))
-    assert d["path"] == os.path.join(ROOT, "utils", "harness", "ll_utils.py")
+    import pydsa.linked
+
+    assert d["path"] == pydsa.linked.__file__
     assert "def linked_list_reverse_k(" in open(d["path"]).read().split("\n")[d["line"]]
 
 
@@ -193,7 +198,7 @@ def test_a_bad_request_is_an_error_reply_not_a_crash():
 
 def test_serve_round_trip():
     run = subprocess.run(
-        [sys.executable, os.path.join(HERE, "ide.py")],
+        [sys.executable, "-m", "mulang.ide"],
         input=json.dumps(req("hover", 5, 2)) + "\n",
         capture_output=True,
         text=True,

@@ -2,14 +2,14 @@
 // offscreen document on the first compile; the panel and the mu mode in
 // LeetCode's editor both reach it through the background page.
 
-const CALLS = { submission: "submit.submission", transpile: "mu.transpile", starter: "submit.starter" };
+const CALLS = { submission: "submit.submission", transpile: "mulang.transpile", starter: "submit.starter" };
 
 const ready = (async () => {
   const py = await loadPyodide({ indexURL: chrome.runtime.getURL("pyodide/") });
-  for (const f of ["mu.py", "session.py", "submit.py"]) {
+  for (const f of ["mulang.py", "leetmu.py", "session.py", "submit.py"]) {
     py.FS.writeFile(`/home/pyodide/${f}`, await (await fetch(f)).text());
   }
-  py.runPython('import sys; sys.path.insert(0, "/home/pyodide"); import mu, submit');
+  py.runPython('import sys; sys.path.insert(0, "/home/pyodide"); import mulang, submit');
   return py;
 })();
 

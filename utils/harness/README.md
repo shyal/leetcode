@@ -455,8 +455,12 @@ plain count_pairs(xs) counts the pairs of equal values.
 
 ## misc
 
-### `batched(s, n = 1)`
+### `batched(s: Sequence[Any], n: int = 1) -> List[Any]`
+
+s cut into pieces of n; the last piece holds what is left.
 
 ### `ceil_div(a: int, b: int) -> int`
+
+a / b rounded up, for a >= 0 and b > 0.
 
 ### `run_with_input(input_str, main)`

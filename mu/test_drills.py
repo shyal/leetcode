@@ -12,10 +12,9 @@ import pytest
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path[:0] = [HERE, os.path.join(ROOT, "utils", "tests")]
+from mulang import VERSION, transpile  # noqa: E402
 from session import solution  # noqa: E402
 from test_reference_solutions import PY, drill_for, spliced  # noqa: E402
-
-from mu import VERSION, transpile  # noqa: E402
 
 REFERENCES = sorted(
     glob.glob(os.path.join(ROOT, "graph", "node_notes", "*", "d[0-9]*.mu"))

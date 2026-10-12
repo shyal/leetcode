@@ -10,9 +10,8 @@ which does not parse, so every empty def first gets a `pass`."""
 
 import re
 
+from mulang import VERSION, transpile
 from session import stub
-
-from mu import VERSION, transpile
 
 DEF = re.compile(r"^(\s*)def .*:\s*$")
 

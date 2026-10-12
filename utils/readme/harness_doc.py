@@ -8,8 +8,8 @@
 # The doc is read off the running harness, never hand-written: the script
 # runs under the venv, where sitecustomize has already loaded, walks the
 # `builtins.x = y` lines of sitecustomize.py in order under their `# section`
-# comments, and keeps the names whose object is defined in the repo
-# (utils/harness or dsa).
+# comments, and keeps the names whose object is ours: defined in pydsa,
+# utils/harness or dsa.
 # Stdlib names the harness mirrors (deque, heappush, ...) are left out; they
 # are documented by Python. Each kept name gets its signature and docstring.
 
@@ -21,9 +21,11 @@ import re
 import sys
 import textwrap
 
+import pydsa
+
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 HARNESS = os.path.join(ROOT, "utils", "harness")
-OURS = (HARNESS, os.path.join(ROOT, "dsa"))
+OURS = (os.path.dirname(pydsa.__file__), HARNESS, os.path.join(ROOT, "dsa"))
 SITECUSTOMIZE = os.path.join(HARNESS, "sitecustomize.py")
 OUT = os.path.join(HARNESS, "README.md")
 
@@ -50,7 +52,7 @@ def sections(src):
 
 
 def is_ours(obj):
-    """True if obj is defined under utils/harness or dsa (or in the venv's
+    """True if obj is defined in pydsa, utils/harness or dsa (or in the venv's
     copy of sitecustomize, which is where the running one was loaded from)."""
     if getattr(obj, "__module__", None) == "sitecustomize":
         return True

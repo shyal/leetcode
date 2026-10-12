@@ -26,11 +26,13 @@ from pathlib import Path
 
 HERE = Path(__file__).parent
 sys.path.insert(0, str(HERE))
-from py2mu import CACHE, check, code_lines, one  # noqa: E402
+import leetmu  # noqa: E402, F401
+import mulang  # noqa: E402
+from mulang import MuError, fmt, transpile  # noqa: E402
+from mulang.py2mu import CACHE, check, code_lines, one  # noqa: E402
 
-from mu import MuError, fmt, transpile  # noqa: E402
-
-SPEC = HERE / "spec" / "v0.5.md"
+# the mu repo, installed editable, holds the specs beside the package
+SPEC = Path(mulang.__file__).parent.parent / "spec" / "v0.5.md"
 STORE = HERE / ".shorten.json"
 MODEL = "gpt-5-mini"
 WIDTH = 100  # a longer line is lines packed into one, not fewer lines

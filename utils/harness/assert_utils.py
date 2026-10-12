@@ -4,7 +4,6 @@
 # right up to some order the problem does not fix.
 
 import ast
-import importlib.util
 import inspect
 import os
 import re
@@ -113,14 +112,12 @@ def _mu_source(cls: type) -> str | None:
 
 
 def _mu() -> Any:
-    """mu/mu.py, loaded by path: the name mu is also the directory, so a
-    plain import can find the wrong one."""
-    path = os.path.join(os.path.dirname(__file__), "..", "..", "mu", "mu.py")
-    spec = importlib.util.spec_from_file_location("_mu_for_asserts", path)
-    assert spec and spec.loader
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    return mod
+    """mulang, with the leet profile loaded: mu/leetmu.py registers the
+    pydsa helpers, so the transpiled class names the calls it makes."""
+    import mulang
+
+    mulang.profile(os.path.join(os.path.dirname(__file__), "..", ".."))
+    return mulang
 
 
 def _mu_parser() -> Any:
