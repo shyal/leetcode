@@ -37208,6 +37208,18 @@
       "note": "LEETCODE: Wrong Answer (0/77 cases). The code builds a multi-source BFS over an unbounded grid instead of the canonical Manhattan-distance comparison; the notes say 'used the wrong technique, so TLE' and 'I was also assisted with the multi-bfs because sloppy'.",
       "summary": "The solution seeds a deque with the ghosts and Pacman, then runs a level-order BFS over an unbounded grid using CARDINALS offsets, returning whichever type reaches the target first. It exercises grid-neighbors and graph-bfs-shortest, but the central move is a multi-source BFS rather than the canonical Manhattan-distance race. The notes record that the wrong technique was used and that the multi-BFS was assisted; LeetCode rejected it with Wrong Answer (0/77 cases).",
       "seconds": 2459
+    },
+    "solved/p1578_Minimum_Time_to_Make_Rope_Colorful_2026_10_12T10_06_34_294172_00_00Z.py": {
+      "date": "2026-10-12",
+      "problem": "1578",
+      "moves": {
+        "sort-by-custom-key": "clean",
+        "running-sum": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Accepted (267 ms, 35.2 MB); groups built with groupby, each run's cost = total - max via sorted(reverse=True)",
+      "summary": "The code groups consecutive equal colors with groupby(enumerate(colors)), then for each run of length > 1 adds sum(neededTime slice) minus the max of that slice, tracking the slice offset as it goes. It exercises grouping by a derived key, a running total, and a sort to pick the max. Notes describe the duplicate-group/cheapest-balloon idea; LeetCode reports Accepted.",
+      "seconds": 865
     }
   }
 }
