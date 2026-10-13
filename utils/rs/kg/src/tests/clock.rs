@@ -1690,6 +1690,44 @@ fn a_problem_the_account_solved_earlier_is_no_first_sight() {
     );
 }
 
+/// The serve labels a pick a first sight by the same rule the Elo scores
+/// it (model::first_sight_open, 2026-10-13): no record in the evidence
+/// and no acceptance on the account before today. Before this the queue
+/// and `make rep` read the evidence alone, and 398 was served as a first
+/// sight on 2026-10-13 and then scored as a repeat of 2020-08-25. An
+/// acceptance today is the solve's own submission and does not count; a
+/// problem with a record is never open, whatever the account holds.
+#[test]
+fn the_serve_calls_a_first_sight_what_the_elo_will_score_as_one() {
+    let mut fx = Fx::picker();
+    fx.nodes(&["q1"]).problems(vec![
+        ("1", problem(&["q1"])),
+        ("2", problem(&["q1"])),
+        ("3", problem(&["q1"])),
+        ("4", problem(&["q1"])),
+    ]);
+    let today = iso(0);
+    submissions_json(&fx, &[("1", "2020-07-23"), ("2", &today), ("4", "2020-07-23")]);
+    let ctx = fx.ctx();
+    let ev = evidence(vec![solve("4", &[("q1", "clean")], 4)]);
+    let account = crate::model::account_first_dates(&ctx.root);
+    let open = |p: &str| crate::model::first_sight_open(&ev, &account, p, &today);
+    assert!(!open("1"), "accepted on the account in 2020");
+    assert!(open("2"), "accepted today: the solve's own submission");
+    assert!(open("3"), "never seen anywhere");
+    assert!(!open("4"), "a record in the evidence");
+    assert_eq!(
+        crate::model::account_repeat(&account, "1", &today).as_deref(),
+        Some("2020-07-23")
+    );
+    assert_eq!(crate::model::account_repeat(&account, "2", &today), None);
+    let rows = crate::queue::queue_rows(&ctx, &fx.pv(), &ev, &[], 10);
+    assert!(rows.iter().any(|r| r.pnum == "1"), "the picker serves 1");
+    for r in &rows {
+        assert_eq!(r.first_sight, open(&r.pnum), "queue row {}", r.pnum);
+    }
+}
+
 /// The contest's share of easies (2026-10-11): of any EASY_WINDOW games
 /// the Elo counts in a row, at most EASY_QUOTA are Easy, and an Easy past
 /// the quota is not a game. The window is over the games counted, not

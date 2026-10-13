@@ -37,7 +37,8 @@ use kg::git::{
     solved_today_pnums, spawn_judge,
 };
 use kg::model::{
-    display_difficulty, drill_forecast, first_sight_elo_now, solve_forecast, solve_ratings, ELO_K,
+    account_first_dates, account_repeat, display_difficulty, drill_forecast, first_sight_elo_now,
+    solve_forecast, solve_ratings, ELO_K,
 };
 use kg::pick::{
     above_band, blocked_frontier, first_sights_outside_band, park_full_lines, parked_summits, pick,
@@ -256,13 +257,25 @@ fn rating_line(ctx: &Ctx, pnum: &str, ev: &Evidence) -> Option<String> {
         gap,
         odds * 100.0
     );
-    // a first sight: the Elo a solve and a fail would carry away
+    // a first sight: the Elo a solve and a fail would carry away. A problem
+    // the account accepted before today is a repeat whatever the evidence
+    // holds (model::first_sight_open), and the line says so instead.
     if problem_attempts(ev, pnum).is_empty() {
-        line.push_str(&format!(
-            " [dim]·[/dim] [dim]solve[/dim] [green]{:+.0}[/green] [dim]fail[/dim] [red]{:+.0}[/red]",
-            ELO_K * (1.0 - odds),
-            -ELO_K * odds
-        ));
+        let repeat = account_repeat(
+            &account_first_dates(&ctx.root),
+            pnum,
+            &ctx.today().to_string(),
+        );
+        match repeat {
+            Some(d) => line.push_str(&format!(
+                " [dim]·[/dim] [yellow]repeat[/yellow] [dim]accepted on the account {d}, no first-sight game[/dim]"
+            )),
+            None => line.push_str(&format!(
+                " [dim]·[/dim] [dim]solve[/dim] [green]{:+.0}[/green] [dim]fail[/dim] [red]{:+.0}[/red]",
+                ELO_K * (1.0 - odds),
+                -ELO_K * odds
+            )),
+        }
     }
     Some(line)
 }
