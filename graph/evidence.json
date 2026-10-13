@@ -37230,6 +37230,16 @@
       "judge": "deepseek-chat",
       "summary": "The query selects teacher_id and count(distinct subject_id) as cnt from Teacher, grouping by teacher_id so each teacher gets one row with their distinct subject count. This exercises the group-aggregate move with COUNT(DISTINCT) to dedupe subjects within each group. Both example assertions passed and the run exited 0.",
       "seconds": 80
+    },
+    "solved/d_Unique_Id_Or_Null_2026_10_13T01_00_17_708852_00_00Z.py": {
+      "date": "2026-10-13",
+      "problem": "drill",
+      "moves": {
+        "sql-join-left-keep": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The query selects u.unique_id and e.name from Employees e LEFT JOIN EmployeeUNI u ON e.id = u.id, keeping every employee row with NULL where no unique_id matches. This exercises the left-join-keep move, and both example assertions passed.",
+      "seconds": 271
     }
   }
 }
