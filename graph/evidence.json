@@ -37321,6 +37321,17 @@
       "note": "Nested loops with i+1, j+1 bounds are the start-index move without recursion; all assertions passed.",
       "summary": "The code generates all index triples by three nested loops whose bounds start at the previous index plus one (i+1, j+1), which is the start-index technique expressed iteratively. The Solution wraps the generator and converts each tuple to a list. The run exited 0 with every assertion passing, including the n=30 count of 4060 distinct triples.",
       "seconds": 40
+    },
+    "solved/d_Choose_From_an_Array_2026_10_13T02_37_24_918717_00_00Z.py": {
+      "date": "2026-10-13",
+      "problem": "drill",
+      "moves": {
+        "backtracking-start-index": "clean",
+        "backtracking-choose-undo": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The mu source defines choose(nums, k) with a recursive helper(i) that appends nums[j] to path, recurses on helper(j + 1), then pops, recording a copy of path when its length reaches k. The start index i bounds the loop so each combination is built from the suffix and used once, and the append/pop pair undoes each choice. The run passed all assertions, including the 1140 distinct triples from range(20).",
+      "seconds": 156
     }
   }
 }
