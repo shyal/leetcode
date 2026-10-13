@@ -37297,6 +37297,19 @@
       "judge": "deepseek-chat",
       "summary": "The Rust drill defines square_of_larger(a, b), which binds `let larger = if a > b { a } else { b };` and returns larger * larger. The if-expression as the right side of a let, with both branches the same type and a semicolon after the closing brace, is exactly the rust-if-binding move. main prints the result for (-4, 2) and asserts five cases, all passing with exit 0.",
       "seconds": 143
+    },
+    "solved/d_Node_Step_Pairs_2026_10_13T02_32_00_963625_00_00Z.py": {
+      "date": "2026-10-13",
+      "problem": "drill",
+      "moves": {
+        "graph-bfs-shortest": "clean",
+        "graph-adjacency-build": "clean",
+        "seen-state-cycle-detect": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "BFS uses the harness `levels` generator to yield (depth, node) pairs; the visited set is keyed on (node, distance) so a node can reappear at a later depth, matching the required O(k*(n+m)) bound.",
+      "summary": "The code runs a breadth-first search from node 0 using the harness `levels` generator, which yields each node together with its depth. It records (node, distance) pairs in a `seen` set and stops once depth exceeds k, so a node reached again at a larger distance is kept as a distinct pair. All assertions pass, including the cycle case that yields (1, 4).",
+      "seconds": 232
     }
   }
 }
