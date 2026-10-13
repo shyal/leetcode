@@ -37553,6 +37553,17 @@
       "note": "The reversal loop `d.next, h.next, h = h, d.next, h.next` flips each next pointer with prev/curr bookkeeping; the dummy node d is used as the prev anchor and t captures the original head as the new tail.",
       "summary": "The code reverses a linked list in place using a dummy node d as the prev anchor and a simultaneous tuple assignment to flip each next pointer while advancing h. It returns the new head (d.next) and the original head t as the new tail. All assertions passed, exercising the ll-pointer-reversal move cleanly.",
       "seconds": 162
+    },
+    "solved/d_Record_Every_Node_2026_10_13T23_51_11_824925_00_00Z.py": {
+      "date": "2026-10-14",
+      "problem": "drill",
+      "moves": {
+        "backtracking-start-index": "clean",
+        "backtracking-choose-undo": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The mu source defines subsets via a recursive helper(i) that records a copy of path at every node, then loops j from i to len(nums), appending nums[j], recursing on j+1, and popping. This exercises backtracking-start-index (the suffix from i, next call at j+1) together with choose/undo. All assertions passed, including the 2^16 count and sortedness checks.",
+      "seconds": 125
     }
   }
 }
