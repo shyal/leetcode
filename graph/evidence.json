@@ -37495,6 +37495,18 @@
       "note": "Notes say 'Hinted'; LeetCode Accepted (97 ms, 57.1 MB).",
       "summary": "RandomizedSet keeps a list vals plus a dict pos mapping each value to its index. insert checks membership in pos and appends; remove swaps the last element into the removed value's slot, updates pos for the moved element, pops the list, and deletes the key; getRandom returns random.choice(vals). The notes say the solution was hinted, and LeetCode accepted it.",
       "seconds": 2012
+    },
+    "solved/p153_Find_Minimum_in_Rotated_Sorted_Array_2026_10_13T12_14_13_633589_00_00Z.py": {
+      "date": "2026-10-13",
+      "problem": "153",
+      "moves": {
+        "binary-search-index": "clean",
+        "rotated-array-pivot": "clean",
+        "binary-search-boundary": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The code binary-searches for the minimum by comparing nums[mid] against the last element: if nums[mid] <= nums[-1] the minimum lies at or left of mid (hi = mid), otherwise it lies right of mid (lo = mid + 1), converging on the pivot index. This exercises the classic halving template, the rotated-array pivot comparison against an end, and the leftmost-true boundary form. All assertions passed and LeetCode reports Accepted (0 ms, 19.5 MB); the notes are empty.",
+      "seconds": 207
     }
   }
 }
