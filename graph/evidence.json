@@ -37433,6 +37433,19 @@
       "note": "Dedupe done with a per-call `seen` set rather than the sorted-adjacent skip, but it is the same sibling-dedupe move.",
       "summary": "The code builds permutations by recursing over indices, appending nums[j] to path, recursing, then popping and clearing used[j]. Duplicate branches are pruned with a per-call `seen` set that skips a value already tried at this level, and `used` marks which indices are currently in the path. All assertions pass and LeetCode reports Accepted (3 ms, 20 MB).",
       "seconds": 1050
+    },
+    "solved/p169_Majority_Element_2026_10_13T09_26_10_239652_00_00Z.py": {
+      "date": "2026-10-13",
+      "problem": "169",
+      "moves": {
+        "streaming-ask-then-record": "clean",
+        "running-sum": "clean"
+      },
+      "judge": "deepseek-chat",
+      "followup": "solved",
+      "note": "Notes say 'I have no recollection of Boyer moor, so re-doing this' \u2014 the Counter/counts-as-data route was not recognised; the code instead runs Boyer-Moore voting.",
+      "summary": "The code implements Boyer-Moore voting: it keeps a candidate and a count, resets the candidate when the count hits 0, and increments or decrements via [-1, 1][n == cand]. It never builds a Counter or reads counts as data, so those canonical moves are avoided. The notes state the candidate had no recollection of Boyer-Moore and re-derived it, and LeetCode reports Accepted (17 ms, 21.6 MB). The single pass with two variables meets the linear-time, O(1)-space follow-up.",
+      "seconds": 1073
     }
   }
 }
