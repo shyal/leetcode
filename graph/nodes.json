@@ -1371,25 +1371,25 @@
       "id": "rust-else-if",
       "group": "rust",
       "added": "2026-10-06",
-      "name": "else if chain over &str",
-      "desc": "if food == \"strawberry\" { .. } else if food == \"potato\" { .. } else { .. }: &str compares with ==, and every branch returns the same type.",
+      "name": "else if chain",
+      "desc": "if n % 4 == 0 { 4 } else if n % 3 == 0 { 3 } else { 0 }: the first true condition picks the branch, and every branch returns the same type.",
       "hint": "Several cases in order with a default: an if / else if / else chain, every branch the same type or rustc rejects it.",
       "prereqs": [
         "rust-if-expression"
       ],
-      "drill": "Picky eater: three foods, three answers."
+      "drill": "First of 4, 3, 2 that divides n, else 0."
     },
     {
       "id": "rust-if-binding",
       "group": "rust",
       "added": "2026-10-06",
-      "name": "let bound to an if chain",
-      "desc": "let identifier = if .. { 1 } else if .. { 2 } else { 4 };: an if chain as the right side of a let, a semicolon after its last brace, all branches one integer type.",
-      "hint": "A value computed by cases and used afterwards: bind the whole if chain with one let, then read it.",
+      "name": "let bound to an if",
+      "desc": "let larger = if a > b { a } else { b };: an if as the right side of a let, a semicolon after its last brace, both branches one type.",
+      "hint": "A value computed by cases and used afterwards: bind the whole if with one let, then read it.",
       "prereqs": [
         "rust-else-if"
       ],
-      "drill": "Animal habitat in two if chains."
+      "drill": "Square of the larger of two integers, the larger bound by a let."
     },
     {
       "id": "py-slicing",
