@@ -37518,6 +37518,20 @@
       "note": "SQLite substr is 1-indexed, so substr(name, 0, 2) yields the first character; upper() || lower(substr(name, 2)) builds the fixed name in SQL.",
       "summary": "The query selects user_id and rebuilds name in SQL with upper(substr(name, 0, 2)) || lower(substr(name, 2)), so the first character is upper-cased and the rest lower-cased. Both example assertions passed, exercising the sql-string-functions move (UPPER/LOWER/SUBSTR and || concatenation). No notes were provided.",
       "seconds": 208
+    },
+    "solved/d_Employees_Who_Manage_Nobody_2026_10_13T23_42_39_344747_00_00Z.py": {
+      "date": "2026-10-14",
+      "problem": "drill",
+      "moves": {
+        "sql-anti-join": "clean",
+        "sql-join-left-keep": "clean",
+        "sql-group-aggregate": "clean",
+        "sql-having-filter-groups": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Uses LEFT JOIN + HAVING m.manager_id IS NULL instead of NOT IN, satisfying the FORBIDDEN constraint.",
+      "summary": "The query self-joins Employees as e to Employees as m on m.manager_id = e.employee_id, keeping every left row via LEFT JOIN. Grouping by e.employee_id and filtering with HAVING m.manager_id IS NULL returns employees who are nobody's manager, including those with NULL manager_id. Both example assertions passed, and the anti-join is expressed without NOT IN, meeting the required constraint.",
+      "seconds": 363
     }
   }
 }
