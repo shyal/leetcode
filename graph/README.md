@@ -98,6 +98,14 @@ and generate combination drills ("rote sheets").
   holds (`model::account_first_dates`). The account goes back to 2020 and the
   evidence to October 2025; the study-list classics solved in between came
   back in the Grok era as first sights. `make lc-sync show` says how many.
+  The serve labels a pick by the same rule (`model::first_sight_open`,
+  2026-10-13): the queue's first-sight column, `make rep` and the prompt
+  hook's line, and the Elo swing under `make next` all read the account
+  too, and a problem it accepted before today is named a repeat with the
+  date. Until then they read the evidence alone: 398 was served as a
+  first sight and scored as a repeat of 2020-08-25. The picker still
+  serves such a problem as new; 139 problems in `problems.json` are in
+  that state.
   The clock a pass is judged
   against is the contest's (`model::contest_fit`, 2026-10-08): four problems,
   90 minutes, scored by how many are solved. The pass takes the slot its

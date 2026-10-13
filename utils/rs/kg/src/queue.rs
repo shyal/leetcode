@@ -6,7 +6,9 @@
 
 use crate::ctx::{Ctx, PView};
 use crate::evidence::Evidence;
-use crate::model::{display_difficulty, first_sight_elo_now, solve_ratings};
+use crate::model::{
+    account_first_dates, display_difficulty, first_sight_elo_now, first_sight_open, solve_ratings,
+};
 use crate::pick::upcoming;
 use crate::table::{BoxKind, Table};
 
@@ -15,8 +17,9 @@ const DAYS: i64 = 30;
 
 /// One row of the queue: number, title, LeetCode's label, the label the
 /// rating earns (model::display_difficulty), rating (None when the problem has no contest
-/// rating), and whether serving it would be a first
-/// sight (no record of the problem in the evidence).
+/// rating), and whether serving it would be a first sight (no record of
+/// the problem in the evidence and no earlier acceptance on the leetcode
+/// account, model::first_sight_open).
 pub struct QueueRow {
     pub pnum: String,
     pub title: String,
@@ -35,6 +38,8 @@ pub fn queue_rows(
     len: usize,
 ) -> Vec<QueueRow> {
     let ratings = solve_ratings(ctx);
+    let account = account_first_dates(&ctx.root);
+    let today = ctx.today().to_string();
     upcoming(ctx, pv, ev, len, asleep, DAYS)
         .into_iter()
         .map(|pnum| QueueRow {
@@ -46,7 +51,7 @@ pub fn queue_rows(
             leetcode: ctx.problem_difficulty(&pnum, &pv.map),
             difficulty: display_difficulty(ctx, &pnum, pv),
             rating: ratings.get(&pnum).copied(),
-            first_sight: ev.problem_recs(&pnum).is_empty(),
+            first_sight: first_sight_open(ev, &account, &pnum, &today),
             pnum,
         })
         .collect()

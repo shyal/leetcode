@@ -1091,6 +1091,29 @@ pub fn account_first_dates(root: &std::path::Path) -> HashMap<String, String> {
     out
 }
 
+/// The account's first acceptance of `pnum` when it came before `day`
+/// (an ISO date): the problem is a repeat for the Elo and the proven
+/// rating whatever the evidence holds (Game::first). None otherwise.
+pub fn account_repeat(account: &HashMap<String, String>, pnum: &str, day: &str) -> Option<String> {
+    account.get(pnum).filter(|d| d.as_str() < day).cloned()
+}
+
+/// Whether a solve of `pnum` on `day` would be a first sight: no record of
+/// it in the evidence and no acceptance on the account before that day.
+/// The serve reads this where it labels a pick a first sight (the queue,
+/// `make rep`, the hook line, the Elo swing under `make next`), so the
+/// label agrees with Game::first. Before 2026-10-13 those read the
+/// evidence alone: 398 was served as a first sight and scored as a
+/// repeat of 2020-08-25.
+pub fn first_sight_open(
+    ev: &Evidence,
+    account: &HashMap<String, String>,
+    pnum: &str,
+    day: &str,
+) -> bool {
+    ev.problem_recs(pnum).is_empty() && account_repeat(account, pnum, day).is_none()
+}
+
 /// (problem -> contest rating, difficulty -> the median rating of its
 /// rated problems): what a game is priced at.
 pub fn pricing(ctx: &Ctx) -> (HashMap<String, f64>, HashMap<String, f64>) {

@@ -16,6 +16,12 @@
 // nodes' earlier drills showed. On "i don't know" at rep 1 the answer is
 // given (CLAUDE.md, Coaching).
 //
+// First exposure is read from solved/. A first sight for the Elo and the
+// proven rating is also the leetcode account's first (model::first_sight_open,
+// 2026-10-11): a problem the account accepted years ago is rep 1 here and
+// still no game, and both the report and the hook line say so (2026-10-13:
+// 398 was served as a first sight and scored as a repeat of 2020-08-25).
+//
 // Ported from utils/kg/kg_rep (Python) on 2026-09-12; the Python was
 // deleted once the two agreed on every problem, drill and node.
 
@@ -26,6 +32,7 @@ use kg::clock::attempt_label;
 use kg::ctx::{Ctx, PView};
 use kg::data::{load_envrc, repo_root, Assist, Rec};
 use kg::evidence::Evidence;
+use kg::model::{account_first_dates, account_repeat};
 use kg::status::{node_axes, node_curve};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -241,6 +248,18 @@ fn first_rep_verdict(n: usize) -> String {
     }
 }
 
+/// The account's first acceptance of the problem when it came before
+/// today: a repeat for the Elo and the proven rating, whatever rep this is.
+fn account_repeat_of(ctx: &Ctx, pnum: &str, today: NaiveDate) -> Option<String> {
+    account_repeat(&account_first_dates(&ctx.root), pnum, &today.to_string())
+}
+
+fn account_line(date: &str) -> String {
+    format!(
+        "leetcode account: accepted {date}. A repeat for the Elo and the proven rating, not a first sight."
+    )
+}
+
 fn report_drill(ctx: &Ctx, path: &str, ev: &Evidence, pv: &PView, today: NaiveDate) -> Vec<String> {
     let p = Path::new(path);
     let is_file = p.is_file();
@@ -304,6 +323,9 @@ fn report_problem(
         lines.push(format!("after: {}", after.join(", ")));
     }
     lines.push(first_rep_verdict(reps.len()));
+    if let Some(d) = account_repeat_of(ctx, pnum, today) {
+        lines.push(account_line(&d));
+    }
     lines.extend(rep_lines(&reps, ev));
     if let Some(moves) = p.map(|p| &p.moves).filter(|m| !m.is_empty()) {
         lines.push("moves:".to_string());
@@ -361,7 +383,7 @@ fn one_line(
         Kind::Node => return None,
     };
     let n = reps.len() + 1;
-    let rep = if n == 1 {
+    let mut rep = if n == 1 {
         "rep 1 = FIRST EXPOSURE, answer on \"i don't know\"".to_string()
     } else {
         format!(
@@ -369,6 +391,11 @@ fn one_line(
             reps[reps.len() - 1].0
         )
     };
+    if kind == Kind::Problem {
+        if let Some(d) = account_repeat_of(ctx, key, today) {
+            rep.push_str(&format!(", account accepted {d}: no first-sight game"));
+        }
+    }
     let st = nodes
         .iter()
         .map(|m| format!("{m} {}", node_curve(ctx, m, ev, today).0))
