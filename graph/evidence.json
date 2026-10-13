@@ -37266,6 +37266,17 @@
       "note": "Notes say 'Learning'; the mu source shows the dummy-node splice written out.",
       "summary": "The code builds a dummy node in front of the list (d = pre = ListNode(next=head)), then walks with pre, re-linking pre.next = pre.next.next whenever pre.next.val equals val, and returns d.next. This exercises the dummy-node splice move, which handles the head-removal case without a special branch. The notes mark the work as Learning.",
       "seconds": 363
+    },
+    "solved/d_Nth_From_End_2026_10_13T02_08_37_158563_00_00Z.py": {
+      "date": "2026-10-13",
+      "problem": "drill",
+      "moves": {
+        "ll-offset-arithmetic": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Single-pass two-pointer with a head-start gap: fast advances n steps ahead, then both move until fast falls off; slow lands on the nth-from-end node.",
+      "summary": "The code keeps fast and slow at head, advances fast while decrementing n, and once n goes negative moves slow too, so the gap of n is maintained until fast reaches the end; slow.val is the answer. This exercises the offset-arithmetic move (nth-from-end via a head-start gap) in one pass. All assertions passed, including the 30000-node cases.",
+      "seconds": 101
     }
   }
 }
