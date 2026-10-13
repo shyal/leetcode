@@ -37532,6 +37532,16 @@
       "note": "Uses LEFT JOIN + HAVING m.manager_id IS NULL instead of NOT IN, satisfying the FORBIDDEN constraint.",
       "summary": "The query self-joins Employees as e to Employees as m on m.manager_id = e.employee_id, keeping every left row via LEFT JOIN. Grouping by e.employee_id and filtering with HAVING m.manager_id IS NULL returns employees who are nobody's manager, including those with NULL manager_id. Both example assertions passed, and the anti-join is expressed without NOT IN, meeting the required constraint.",
       "seconds": 363
+    },
+    "solved/d_Revenue_Per_Product_2026_10_13T23_45_40_858004_00_00Z.py": {
+      "date": "2026-10-14",
+      "problem": "drill",
+      "moves": {
+        "sql-group-aggregate": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The query selects product_id and sum(price * units) as revenue from Sales, grouping by product_id. The per-row product is formed inside the aggregate before summing, satisfying the required one-query, one-aggregate constraint. Both example assertions passed, producing (1, 800) and (2, 3900).",
+      "seconds": 135
     }
   }
 }
