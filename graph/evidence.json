@@ -37240,6 +37240,18 @@
       "judge": "deepseek-chat",
       "summary": "The query selects u.unique_id and e.name from Employees e LEFT JOIN EmployeeUNI u ON e.id = u.id, keeping every employee row with NULL where no unique_id matches. This exercises the left-join-keep move, and both example assertions passed.",
       "seconds": 271
+    },
+    "solved/d_Paid_Orders_Per_Customer_2026_10_13T01_20_56_689569_00_00Z.py": {
+      "date": "2026-10-13",
+      "problem": "drill",
+      "moves": {
+        "sql-join-left-keep": "clean",
+        "sql-group-aggregate": "clean",
+        "sql-conditional-aggregate": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The query left-joins Customers to Orders on c.id = o.customer_id so every customer survives, then groups by c.id and sums a CASE that counts only 'paid' rows, giving 0 for Bob and Cal. This exercises the left-join-keep and group-aggregate targets plus conditional aggregation. The run exited 0 and produced the expected Ann 2, Bob 0, Cal 0 output.",
+      "seconds": 420
     }
   }
 }
