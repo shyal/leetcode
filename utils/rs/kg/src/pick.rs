@@ -63,6 +63,12 @@
 //      graduating floor made drills persistent enough for one bank to fill
 //      every session (2026-09-04, sql). `make next <group>` ignores the
 //      cap; the footer shows the count. review_ahead replays under it.
+//      A due problem review (rule 2c) is never withheld by it
+//      (2026-10-13): drills count toward the cap, ten drill reviews
+//      filled algorithms=5 before the first problem, and rule 2c then
+//      refused all 22 due reviews while rule 6 kept serving first sights
+//      (11 repeats to 30 first sights that week). The cap is on new
+//      ground, as the new-drill cap below already says.
 //   0f. new-drill cap (MAX_NEW_DRILLS, e.g. 3 in .envrc): once that many
 //      bank files have been met for the first time today, a file never
 //      drilled waits until tomorrow - on the clock and on the frontier
@@ -686,12 +692,6 @@ impl<'a> Picker<'a> {
                     || self.ctx.group_of(n).is_none()
             }
         }
-    }
-
-    fn group_capped(&self, n: &str) -> bool {
-        self.ctx
-            .group_of(n)
-            .is_some_and(|g| self.capped.contains(g))
     }
 
     fn status(&self, n: &str) -> (Status, Option<NaiveDate>) {
@@ -1407,12 +1407,6 @@ impl<'a> Picker<'a> {
             if moves.is_empty() || !moves.iter().all(|m| self.ctx.nodes.contains_key(m)) {
                 if trace {
                     eprintln!("review {pnum}: a move is not in the graph");
-                }
-                continue;
-            }
-            if moves.iter().any(|m| self.group_capped(m)) {
-                if trace {
-                    eprintln!("review {pnum}: group at its cap");
                 }
                 continue;
             }

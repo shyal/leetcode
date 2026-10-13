@@ -579,6 +579,38 @@ fn a_problem_that_needed_help_comes_back_on_its_own() {
     assert_eq!(pnum(&fx.run(&ev, &st, args())), "1");
 }
 
+/// 2026-10-13: drills count toward KG_GROUP_CAP, ten drill reviews filled
+/// algorithms=5 before the first problem, and rule 2c refused every due
+/// review for the day while rule 6 kept serving first sights. The cap is
+/// on new ground; a review is a debt and is served under it.
+#[test]
+fn a_due_review_is_served_past_the_group_cap() {
+    let mut fx = Fx::picker();
+    test_env("KG_GROUP_CAP", "sql=1");
+    fx.nodes(&["q1", "other"])
+        .group(&["q1"], "sql")
+        .group(&["other"], "trees")
+        .problems(vec![
+            ("1", problem(&["q1"])),
+            ("2", problem(&["q1"])),
+            ("3", problem(&["other"])),
+        ]);
+    let st = statuses(&[("q1", SOLID, Some(1)), ("other", STALE, Some(40))]);
+    // one sql rep today, at the cap, and a sql review due since a month
+    let ev = evidence(vec![
+        assisted("1", &[("q1", "clean")], 30),
+        solve("2", &[("q1", "clean")], 0),
+    ]);
+    assert_eq!(pnum(&fx.run(&ev, &st, args().exclude(&["2"]))), "1");
+    // the cap still holds new ground on the group: with no review due,
+    // the stale tree move is served, not another sql carrier
+    let ev = evidence(vec![solve("2", &[("q1", "clean")], 0)]);
+    assert_eq!(
+        target(&fx.run(&ev, &st, args().exclude(&["2"]))),
+        "other"
+    );
+}
+
 /// It may still be picked as a carrier; what it must not be is a debt.
 #[test]
 fn a_clean_first_solve_is_never_re_served_as_a_review() {
@@ -1426,21 +1458,6 @@ fn a_sleeping_or_spent_problem_is_not_served_for_review() {
     let ev = evidence(vec![assisted("1", &[("q1", "clean")], 30)]);
     assert!(fx.run(&ev, &st, args().asleep(&["1"])).is_none());
     assert!(fx.run(&ev, &st, args().exclude(&["1"])).is_none());
-}
-
-#[test]
-fn a_review_respects_the_daily_group_cap() {
-    let mut fx = Fx::picker();
-    test_env("KG_GROUP_CAP", "sql=1");
-    fx.nodes(&["q1"])
-        .group(&["q1"], "sql")
-        .problem("1", problem(&["q1"]));
-    let st = statuses(&[("q1", SOLID, Some(1))]);
-    let ev = evidence(vec![
-        assisted("1", &[("q1", "clean")], 30),
-        solve("2", &[("q1", "clean")], 0),
-    ]);
-    assert!(fx.run(&ev, &st, args()).is_none());
 }
 
 /// The pick is rendered off the target node, so it has to be one the
