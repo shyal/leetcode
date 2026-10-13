@@ -656,6 +656,28 @@ fn a_solid_graph_serves_an_unsolved_drafted_hard() {
     assert!(reason(&c).contains("in reach"));
 }
 
+/// A banned draft is never served in reach either: rule 6 reads the
+/// drafted catalog itself, so it needs the same check the frontier mover
+/// has (1583, 2026-10-13, banned and still first in the queue).
+#[test]
+fn a_banned_draft_is_never_served_in_reach() {
+    let mut fx = Fx::picker();
+    fx.nodes(&["a", "b"])
+        .problem("1", problem(&["a", "b"]))
+        .draft("9001", drafted(&["a", "b"]).banned(), "Hard")
+        .draft("9002", drafted(&["a", "b"]), "Hard");
+    let st = statuses(&[("a", SOLID, Some(1)), ("b", SOLID, Some(1))]);
+    let c = fx.run(&no_evidence(), &st, args());
+    assert_eq!(pnum(&c), "9002");
+    assert!(reason(&c).contains("in reach"));
+    let mut fx = Fx::picker();
+    fx.nodes(&["a", "b"])
+        .problem("1", problem(&["a", "b"]))
+        .draft("9001", drafted(&["a", "b"]).banned(), "Hard");
+    let st = statuses(&[("a", SOLID, Some(1)), ("b", SOLID, Some(1))]);
+    assert!(fx.run(&no_evidence(), &st, args()).is_none());
+}
+
 /// A Hard opens the day; after a Hard solved today the next pick is a
 /// Medium, after that Medium a Hard again. Easies come last either way.
 #[test]

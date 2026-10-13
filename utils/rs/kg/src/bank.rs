@@ -563,7 +563,10 @@ pub fn drafted_in_reach(
     for r in rows {
         let w = &dm.walks[r.wi];
         let num = &dm.problems[w.prob];
-        if skip.contains(num) || held_behind(ctx, num, predicted, ev, today).is_some() {
+        if skip.contains(num)
+            || predicted.get(num).is_some_and(|p| ctx.unservable(num, p))
+            || held_behind(ctx, num, predicted, ev, today).is_some()
+        {
             continue;
         }
         let title = ctx
