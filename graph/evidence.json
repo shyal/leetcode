@@ -37377,6 +37377,19 @@
       "note": "LEETCODE: Accepted (155 ms, 24.9 MB)",
       "summary": "The code scans the string once, incrementing count on '[' and decrementing it on ']' with a floor of 0 via max(count - 1, 0), then returns ceil(count / 2) computed as -(-count // 2). This running-sum balance tracks unmatched closing brackets without an explicit stack, so the stack-matching move is sidestepped. The notes describe the same floor-at-zero reasoning, and LeetCode accepted the submission.",
       "seconds": 403
+    },
+    "solved/p398_Random_Pick_Index_2026_10_13T04_15_38_056785_00_00Z.py": {
+      "date": "2026-10-13",
+      "problem": "398",
+      "moves": {
+        "counter-build": "clean",
+        "dict-arbitrary-value": "clean",
+        "modular-cycle": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LeetCode: Accepted (51 ms, 30.9 MB)",
+      "summary": "The constructor builds a Counter of the values and a defaultdict(list) mapping each value to the list of its indices via the _pushed helper. pick looks up the count n for the target and returns indices[target][floor(random.random() * n)], giving a uniform random index. The run passed and LeetCode accepted it.",
+      "seconds": 434
     }
   }
 }
