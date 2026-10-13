@@ -86,20 +86,28 @@ residuals: $(RS_BIN)/kg_residuals
 	@$(RS_BIN)/kg_residuals
 
 # The Rust tooling is one cargo workspace, utils/rs: the kg library and one
-# binary per target (kg_next, kg_mock, kg_movie). One build produces all of
-# them. RS_SRC is every file the build depends on.
+# binary per target (kg_next, kg_mock, kg_movie). Each package is named
+# after its binary, so a target builds its own package alone: a whole
+# workspace build after one edit to the kg library took 3m54s with the
+# release profile's LTO, two binaries 52s (measured 2026-10-13). Cargo's
+# output is shown so a rebuild is visible while it runs. RS_SRC is every
+# file the build depends on.
 RS_DIR := utils/rs
 RS_SRC := $(RS_DIR)/Cargo.toml $(wildcard $(RS_DIR)/*/Cargo.toml) $(wildcard $(RS_DIR)/*/build.rs) $(wildcard $(RS_DIR)/*/src/*.rs)
 RS_BIN := $(RS_DIR)/target/release
 
 $(RS_BIN)/%: $(RS_SRC)
-	@cargo build --release --quiet --manifest-path $(RS_DIR)/Cargo.toml
+	@cargo build --release --manifest-path $(RS_DIR)/Cargo.toml -p $*
 
 # kg_rs: the kg library as a Python extension (utils/rs/kg_py), copied into
 # the venv so utils/kg/kg_lib.py can import it. make all and the test
 # targets depend on it; CI runs make ext before pytest.
 EXT_SRC := $(RS_BIN)/libkg_rs.$(if $(filter Darwin,$(shell uname)),dylib,so)
 EXT := .venv/lib/python3.10/site-packages/kg_rs.abi3.so
+
+# The extension's file is not named after its package, so it has its own rule.
+$(EXT_SRC): $(RS_SRC)
+	@cargo build --release --manifest-path $(RS_DIR)/Cargo.toml -p kg_py
 
 # copy then rename: cp straight over the loaded extension keeps its inode,
 # and macOS then kills every python that imports it (Killed: 9, invalid
