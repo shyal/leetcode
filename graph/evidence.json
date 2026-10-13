@@ -37353,6 +37353,19 @@
       "judge": "deepseek-chat",
       "summary": "The drill sorts a copy of the input with [...nums].sort((a, b) => a - b) and returns index 2, exercising the numeric comparator that the default string sort would get wrong. The copy keeps the caller's array unchanged, which the final assertion checks. All assertions passed and the run exited 0.",
       "seconds": 99
+    },
+    "solved/p3829_Design_Ride_Sharing_System_2026_10_13T03_46_21_281849_00_00Z.py": {
+      "date": "2026-10-13",
+      "problem": "3829",
+      "moves": {
+        "deque-recent-window": "clean",
+        "set-membership": "clean",
+        "streaming-ask-then-record": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Accepted (58 ms, 20.3 MB); an earlier submission got Wrong Answer (800/844) on cancelRider before addRider, fixed by guarding with addedRiders.",
+      "summary": "The class keeps two deques, riders and drivers, appending on add and popleft-ing on match, plus a cancelledRiders set and an addedRiders set. matchDriverWithRider lazily pops cancelled riders from the front of the riders deque before pairing the front driver with the front rider, returning [-1, -1] when either side is empty. cancelRider only records a cancellation when the rider is in addedRiders, which is the fix for the earlier Wrong Answer on cancelling a rider before it was added. The notes describe the two-deque idea and walk through the sample test case.",
+      "seconds": 1196
     }
   }
 }
