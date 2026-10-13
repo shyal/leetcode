@@ -343,12 +343,15 @@ short:
 	@echo "running: tail -f /tmp/mu_short/run.log, results in /tmp/mu_short/NNNN.mu"
 
 # links the mu repo's vscode/ (../mu, installed editable as mulang) into VS
-# Code's extensions (highlighting, formatter, hover, completion,
-# go-to-definition, debugger); reload the window after
+# Code's extensions as the development copy of the marketplace extension
+# shyal.mu (highlighting, formatter, hover, completion, go-to-definition,
+# debugger); reload the window after. Uninstall the marketplace copy first,
+# or VS Code loads whichever has the higher version.
 MU_REPO = $(shell .venv/bin/python3 -c 'import mulang, os; print(os.path.dirname(os.path.dirname(mulang.__file__)))')
 mu-vscode:
-	@ln -sfn "$(MU_REPO)/vscode" "$$HOME/.vscode/extensions/leet.mu-0.0.1"
-	@echo "linked: $$HOME/.vscode/extensions/leet.mu-0.0.1 -> $(MU_REPO)/vscode"
+	@rm -f "$$HOME/.vscode/extensions/leet.mu-0.0.1"
+	@ln -sfn "$(MU_REPO)/vscode" "$$HOME/.vscode/extensions/shyal.mu-dev"
+	@echo "linked: $$HOME/.vscode/extensions/shyal.mu-dev -> $(MU_REPO)/vscode"
 
 # builds kg_explore and links misc/vscode-graph into VS Code's extensions:
 # the graph around current.py, each vertex's files and reps, and the switch
