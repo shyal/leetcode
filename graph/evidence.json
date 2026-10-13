@@ -37542,6 +37542,17 @@
       "judge": "deepseek-chat",
       "summary": "The query selects product_id and sum(price * units) as revenue from Sales, grouping by product_id. The per-row product is formed inside the aggregate before summing, satisfying the required one-query, one-aggregate constraint. Both example assertions passed, producing (1, 800) and (2, 3900).",
       "seconds": 135
+    },
+    "solved/d_Reverse_Sublist_2026_10_13T23_48_41_780788_00_00Z.py": {
+      "date": "2026-10-14",
+      "problem": "drill",
+      "moves": {
+        "ll-pointer-reversal": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "The reversal loop `d.next, h.next, h = h, d.next, h.next` flips each next pointer with prev/curr bookkeeping; the dummy node d is used as the prev anchor and t captures the original head as the new tail.",
+      "summary": "The code reverses a linked list in place using a dummy node d as the prev anchor and a simultaneous tuple assignment to flip each next pointer while advancing h. It returns the new head (d.next) and the original head t as the new tail. All assertions passed, exercising the ll-pointer-reversal move cleanly.",
+      "seconds": 162
     }
   }
 }
