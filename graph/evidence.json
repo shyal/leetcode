@@ -37220,6 +37220,16 @@
       "note": "LEETCODE: Accepted (267 ms, 35.2 MB); groups built with groupby, each run's cost = total - max via sorted(reverse=True)",
       "summary": "The code groups consecutive equal colors with groupby(enumerate(colors)), then for each run of length > 1 adds sum(neededTime slice) minus the max of that slice, tracking the slice offset as it goes. It exercises grouping by a derived key, a running total, and a sort to pick the max. Notes describe the duplicate-group/cheapest-balloon idea; LeetCode reports Accepted.",
       "seconds": 865
+    },
+    "solved/d_Distinct_Subjects_Per_Teacher_2026_10_13T00_55_17_853267_00_00Z.py": {
+      "date": "2026-10-13",
+      "problem": "drill",
+      "moves": {
+        "sql-group-aggregate": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The query selects teacher_id and count(distinct subject_id) as cnt from Teacher, grouping by teacher_id so each teacher gets one row with their distinct subject count. This exercises the group-aggregate move with COUNT(DISTINCT) to dedupe subjects within each group. Both example assertions passed and the run exited 0.",
+      "seconds": 80
     }
   }
 }
