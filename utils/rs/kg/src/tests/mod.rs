@@ -558,6 +558,22 @@ impl Fx {
     }
 }
 
+/// Writes data/crowd.json, the counts kg_crowd syncs, into the fixture:
+/// one (problem, submissions, likes, dislikes) per row.
+pub fn crowd_json(fx: &Fx, rows: &[(&str, i64, i64, i64)]) {
+    let mut m = serde_json::Map::new();
+    for (p, submissions, likes, dislikes) in rows {
+        let s = crate::crowd::Stats {
+            submissions: *submissions,
+            likes: *likes,
+            dislikes: *dislikes,
+        };
+        m.insert(p.to_string(), crate::crowd::entry("x", s, &iso(0)));
+    }
+    std::fs::create_dir_all(fx.dir.0.join("data")).unwrap();
+    crate::crowd::save(&fx.dir.0, &m).unwrap();
+}
+
 /// Writes data/leetcode_ratings.tsv, the ratings the first-sight Elo
 /// prices its games with, into the fixture.
 pub fn ratings_tsv(fx: &Fx, pairs: &[(&str, f64)]) {

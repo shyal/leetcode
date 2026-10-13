@@ -63,6 +63,9 @@ pub struct Ctx {
     pub git_prefetch: RefCell<Option<std::thread::JoinHandle<crate::git::GitState>>>,
     pub solve_times: RefCell<Option<Vec<(String, NaiveDate, i64, String)>>>,
     pub ratings: RefCell<Option<HashMap<String, f64>>>,
+    /// data/crowd.json, the submission, like and dislike counts
+    /// (crowd::Crowd), read on the first ask.
+    crowd: RefCell<Option<crate::crowd::Crowd>>,
     /// The stand-ins the picker tests put in place of the disk reads and
     /// the tables months of evidence derive (see Stubs); None everywhere
     /// but under a test that sets them.
@@ -143,6 +146,7 @@ impl Ctx {
             drill_ids: RefCell::new(None),
             solve_times: RefCell::new(None),
             ratings: RefCell::new(None),
+            crowd: RefCell::new(None),
             stubs: RefCell::new(None),
             root,
         }
@@ -193,6 +197,7 @@ impl Ctx {
             drill_ids: RefCell::new(None),
             solve_times: RefCell::new(None),
             ratings: RefCell::new(None),
+            crowd: RefCell::new(None),
             #[cfg(test)]
             stubs: RefCell::new(None),
             root,
@@ -288,6 +293,37 @@ impl Ctx {
     /// kg_lib.unservable: banned or paid-only.
     pub fn unservable(&self, pnum: &str, p: &Problem) -> bool {
         p.banned || self.paid_only(pnum)
+    }
+
+    fn crowd<T>(&self, f: impl FnOnce(&crate::crowd::Crowd) -> T) -> T {
+        if self.crowd.borrow().is_none() {
+            *self.crowd.borrow_mut() = Some(crate::crowd::Crowd::read(&self.root));
+        }
+        f(self.crowd.borrow().as_ref().expect("crowd read"))
+    }
+
+    /// The crowd dislikes the problem, or almost nobody does it
+    /// (crowd::Crowd::downranked). The picker's carrier sorts put such a
+    /// problem after every other candidate of the rule.
+    pub fn downranked(&self, pnum: &str) -> bool {
+        self.crowd(|c| c.downranked(pnum))
+    }
+
+    /// crowd::Crowd::obscure on the problem.
+    pub fn obscure(&self, pnum: &str) -> bool {
+        self.crowd(|c| c.obscure(pnum))
+    }
+
+    /// The problem's submission, like and dislike counts, None when
+    /// data/crowd.json has no record of it.
+    pub fn crowd_stats(&self, pnum: &str) -> Option<crate::crowd::Stats> {
+        self.crowd(|c| c.get(pnum))
+    }
+
+    /// crowd::tiebreak on the problem: most attempted first, then fewest
+    /// dislikes, no record last.
+    pub fn crowd_key(&self, pnum: &str) -> (std::cmp::Reverse<Option<i64>>, i64) {
+        crate::crowd::tiebreak(self.crowd_stats(pnum))
     }
 
     /// kg_lib.problem_difficulty: the table first, metadata as fallback.

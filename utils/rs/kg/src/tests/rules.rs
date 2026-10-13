@@ -668,6 +668,97 @@ fn acceptance_still_breaks_a_genuine_tie() {
     assert_eq!(pnum(&fx.run(&no_evidence(), &st, args())), "1");
 }
 
+/// A problem the crowd dislikes (data/crowd.json, synced by kg_crowd: the
+/// lower bound of its dislike share reaches a half) is served after every
+/// other candidate of the rule, whatever its acceptance or popularity.
+/// CROWD_DOWNRANK=0 restores the tie (2026-10-13).
+#[test]
+fn a_disliked_problem_sorts_last() {
+    let mut fx = Fx::picker();
+    fx.nodes(&["target"])
+        .problems(vec![
+            ("1", problem(&["target"])),
+            ("2", problem(&["target"])),
+        ])
+        .acceptance("1", 70.0)
+        .acceptance("2", 30.0);
+    crowd_json(&fx, &[("1", 1_000_000, 100, 900), ("2", 2_000_000, 50, 50)]);
+    let st = statuses(&[("target", FRAGILE, Some(1))]);
+    assert_eq!(pnum(&fx.run(&no_evidence(), &st, args())), "2");
+    test_env("CROWD_DOWNRANK", "0");
+    assert_eq!(pnum(&fx.run(&no_evidence(), &st, args())), "1");
+    test_env("CROWD_DOWNRANK", "");
+}
+
+/// A problem almost nobody does (the bottom quarter of the crowd file by
+/// submissions) is served after every other candidate of the rule too,
+/// whatever its acceptance. 1017. Convert to Base -2: 67k attempts, 65%
+/// likes, first in the queue on 2026-10-13.
+#[test]
+fn an_obscure_problem_sorts_last() {
+    let mut fx = Fx::picker();
+    fx.nodes(&["target"])
+        .problems(vec![
+            ("1", problem(&["target"])),
+            ("2", problem(&["target"])),
+        ])
+        .acceptance("1", 90.0)
+        .acceptance("2", 30.0);
+    crowd_json(
+        &fx,
+        &[
+            ("1", 10_000, 583, 316),
+            ("2", 300_000, 900, 100),
+            ("3", 200_000, 900, 100),
+            ("4", 400_000, 900, 100),
+        ],
+    );
+    let st = statuses(&[("target", FRAGILE, Some(1))]);
+    assert_eq!(pnum(&fx.run(&no_evidence(), &st, args())), "2");
+}
+
+/// Among candidates tied on odds, gentleness and freshness, the one more
+/// people have attempted comes first, ahead of acceptance: companies ask
+/// what everyone knows, and acceptance alone was lifting new problems,
+/// which only the contest crowd had attempted (2026-10-13).
+#[test]
+fn the_more_attempted_problem_wins_a_tie() {
+    let mut fx = Fx::picker();
+    fx.nodes(&["target"])
+        .problems(vec![
+            ("1", problem(&["target"])),
+            ("2", problem(&["target"])),
+        ])
+        .acceptance("1", 70.0)
+        .acceptance("2", 30.0);
+    crowd_json(&fx, &[("1", 50_000, 52, 52), ("2", 8_000_000, 25_000, 900)]);
+    let st = statuses(&[("target", FRAGILE, Some(1))]);
+    assert_eq!(pnum(&fx.run(&no_evidence(), &st, args())), "2");
+}
+
+/// At the same popularity (the same half-decade of submissions) the
+/// problem with the smaller share of dislikes comes first, still ahead of
+/// acceptance. A problem with no record comes after one with a record.
+#[test]
+fn fewer_dislikes_win_at_equal_popularity() {
+    let mut fx = Fx::picker();
+    fx.nodes(&["target"])
+        .problems(vec![
+            ("1", problem(&["target"])),
+            ("2", problem(&["target"])),
+            ("3", problem(&["target"])),
+        ])
+        .acceptance("1", 70.0)
+        .acceptance("2", 30.0)
+        .acceptance("3", 90.0);
+    crowd_json(
+        &fx,
+        &[("1", 1_000_000, 900, 100), ("2", 1_200_000, 980, 20)],
+    );
+    let st = statuses(&[("target", FRAGILE, Some(1))]);
+    assert_eq!(pnum(&fx.run(&no_evidence(), &st, args())), "2");
+}
+
 #[test]
 fn easier_carrier_wins_over_a_harder_one() {
     let mut fx = Fx::picker();

@@ -188,6 +188,34 @@ def test_kg_queue_table_and_context():
     assert run("kg_queue", "gate", "--gap", "x").returncode == 2
 
 
+def test_kg_discuss_show_and_usage():
+    # --show reads data/discuss_verdicts.json and asks nothing: one line
+    # per queued problem, verdict or "no verdict yet"
+    p = run("kg_discuss", "--show", "--size", "3")
+    assert p.returncode == 0, p.stderr
+    lines = p.stdout.splitlines()
+    assert len(lines) == 3
+    assert all(
+        re.match(r"\d+\. .+: (good|mixed|bad) \(\d+\) - |\d+\. .+: no verdict yet", ln)
+        for ln in lines
+    )
+    assert run("kg_discuss", "--size", "0").returncode == 2
+    assert run("kg_discuss", "--bogus").returncode == 2
+
+
+def test_kg_crowd_usage_and_show():
+    # --show reads data/crowd.json and fetches nothing: one line per problem
+    p = run("kg_crowd", "--show", "1", "2")
+    assert p.returncode == 0, p.stderr
+    lines = p.stdout.splitlines()
+    assert len(lines) == 2
+    assert all(re.match(r"\d+\. .*: (\S+ submissions, |no record)", ln) for ln in lines)
+    assert run("kg_crowd", "--stale", "x").returncode == 2
+    assert run("kg_crowd", "--bogus").returncode == 2
+    assert run("kg_crowd", "--help").returncode == 0
+    assert run("kg_discuss", "--help").returncode == 0
+
+
 def test_kg_viz_source_is_dot_with_clusters_and_legend():
     p = run("kg_viz", "--source")
     assert p.returncode == 0, p.stderr

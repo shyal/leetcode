@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Template: `make crowd-install` fills in @ROOT@, copies it to
+     ~/Library/LaunchAgents and loads it. kg_crowd keeps data/crowd.json,
+     every free problem's submission, like and dislike counts, fresh
+     (utils/rs/kg_crowd); the picker ranks on it. -->
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.orb.leet-crowd</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>@ROOT@/utils/rs/target/release/kg_crowd</string>
+	</array>
+	<key>WorkingDirectory</key>
+	<string>@ROOT@</string>
+	<!-- Run at login and hourly; a run that fails (no network) is tried
+	     again on the next hour. -->
+	<key>RunAtLoad</key>
+	<true/>
+	<key>StartInterval</key>
+	<integer>3600</integer>
+	<key>ThrottleInterval</key>
+	<integer>300</integer>
+	<key>ProcessType</key>
+	<string>Background</string>
+	<key>StandardOutPath</key>
+	<string>@ROOT@/data/crowd.log</string>
+	<key>StandardErrorPath</key>
+	<string>@ROOT@/data/crowd.log</string>
+</dict>
+</plist>

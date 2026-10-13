@@ -102,6 +102,7 @@ pub fn queue_table(
             "Gap",
             "Odds",
             "First sight",
+            "Crowd",
         ],
         Some(&format!("queue (elo {elo:.0})")),
         BoxKind::Rounded,
@@ -136,7 +137,31 @@ pub fn queue_table(
             } else {
                 "[dim]no[/dim]".into()
             },
+            crowd_cell(ctx, &row.pnum),
         ]);
     }
     Some(table)
+}
+
+/// The crowd column: submissions and the dislike share, red when the
+/// crowd dislikes the problem (crowd::Stats::bad), yellow when almost
+/// nobody does it (crowd::Crowd::obscure), dim when unsynced.
+pub fn crowd_cell(ctx: &Ctx, pnum: &str) -> String {
+    match ctx.crowd_stats(pnum) {
+        None => "[dim]-[/dim]".into(),
+        Some(s) => {
+            let text = format!(
+                "{} {}%",
+                crate::crowd::compact(s.submissions),
+                s.dislike_pct()
+            );
+            if s.bad() {
+                format!("[red]{text}[/red]")
+            } else if ctx.obscure(pnum) {
+                format!("[yellow]{text}[/yellow]")
+            } else {
+                text
+            }
+        }
+    }
 }

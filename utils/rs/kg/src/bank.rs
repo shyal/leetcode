@@ -548,13 +548,19 @@ pub fn drafted_in_reach(
         .filter(|r| r.rank >= 0)
         .collect();
     // np.lexsort((pkey, -acc, -mass, -rank)): rank desc, mass desc, acc
-    // desc, pkey asc, stable
+    // desc, pkey asc, stable. Since 2026-10-13 the crowd comes first and
+    // before acceptance: a problem the crowd dislikes, or almost nobody
+    // does, after every other (ctx::downranked); among the rest the most
+    // attempted first, then the fewest dislikes (ctx::crowd_key).
     rows.sort_by(|a, b| {
         let pa = dm.walks[a.wi].prob;
         let pb = dm.walks[b.wi].prob;
-        b.rank
-            .cmp(&a.rank)
+        let (na, nb) = (&dm.problems[pa], &dm.problems[pb]);
+        ctx.downranked(na)
+            .cmp(&ctx.downranked(nb))
+            .then_with(|| b.rank.cmp(&a.rank))
             .then_with(|| b.mass.partial_cmp(&a.mass).unwrap())
+            .then_with(|| ctx.crowd_key(na).cmp(&ctx.crowd_key(nb)))
             .then_with(|| dm.acc[pb].partial_cmp(&dm.acc[pa]).unwrap())
             .then_with(|| dm.pkey[pa].cmp(&dm.pkey[pb]))
     });

@@ -9,6 +9,13 @@
 // ~/.openai_key_leet, else OPENAI_API_KEY). `deepseek` alone means deepseek-chat. The judge reads
 // its default model from JUDGE_MODEL, so `export JUDGE_MODEL=deepseek` in
 // .envrc switches every verdict over; the claude aliases still work.
+//
+// A model with a slash in its name (`qwen/qwen3.8-27b`) is one LM Studio
+// has loaded: it goes to LM Studio's native chat endpoint on this machine
+// (LMSTUDIO_URL, default http://localhost:1234) with reasoning switched
+// off. The OpenAI-compatible endpoint there ignores every thinking knob
+// (chat_template_kwargs, /no_think, enable_thinking: all tried
+// 2026-10-13); the native one honours `"reasoning": "off"`.
 
 use std::process::Command;
 
@@ -133,12 +140,69 @@ fn deepseek_once(prompt: &str, system_prompt: &str, model: &str) -> Result<Value
 /// being passed as an argument (macOS caps the argument list at 1 MiB).
 const STDIN_OVER: usize = 100_000;
 
+/// LM Studio's base URL: LMSTUDIO_URL, else the default port.
+pub fn lmstudio_url() -> String {
+    std::env::var("LMSTUDIO_URL")
+        .ok()
+        .map(|u| u.trim().trim_end_matches('/').to_string())
+        .filter(|u| !u.is_empty())
+        .unwrap_or_else(|| "http://localhost:1234".to_string())
+}
+
+/// True for a model LM Studio serves: a publisher/name id, as LM Studio
+/// lists them. No API model carries a slash.
+pub fn is_lmstudio(model: &str) -> bool {
+    model.contains('/')
+}
+
+/// One LM Studio completion, reasoning off, JSON object answer. The
+/// native endpoint takes the prompts as two strings and answers with an
+/// `output` list whose `message` item carries the text.
+fn lmstudio_once(prompt: &str, system_prompt: &str, model: &str) -> Result<Value, LlmError> {
+    let body = serde_json::json!({
+        "model": model,
+        "system_prompt": system_prompt,
+        "input": prompt,
+        "reasoning": "off",
+        "temperature": 0,
+        "max_output_tokens": 1000,
+    });
+    let agent: ureq::Agent = ureq::Agent::config_builder()
+        .timeout_global(Some(std::time::Duration::from_secs(600)))
+        .build()
+        .into();
+    let mut resp = agent
+        .post(&format!("{}/api/v1/chat", lmstudio_url()))
+        .header("Content-Type", "application/json")
+        .send_json(&body)
+        .map_err(|e| LlmError::Exit(1, e.to_string().chars().take(500).collect()))?;
+    let envelope: Value = resp
+        .body_mut()
+        .read_json()
+        .map_err(|e| LlmError::NotJson(e.to_string().chars().take(200).collect()))?;
+    if std::env::var("KG_LLM_USAGE").is_ok() {
+        eprintln!("usage: {}", envelope["stats"]);
+    }
+    let text = envelope["output"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|o| o["type"] == "message")
+        .filter_map(|o| o["content"].as_str())
+        .collect::<Vec<_>>()
+        .join("\n");
+    first_object(&text)
+}
+
 fn once(prompt: &str, system_prompt: &str, model: &str) -> Result<Value, LlmError> {
     if model.starts_with("deepseek") {
         return deepseek_once(prompt, system_prompt, model);
     }
     if model.starts_with("gpt-") {
         return openai_once(prompt, system_prompt, model);
+    }
+    if is_lmstudio(model) {
+        return lmstudio_once(prompt, system_prompt, model);
     }
     // A prompt too long for an argument list (a whole solve history) goes
     // down stdin, which `claude -p` appends to the prompt.

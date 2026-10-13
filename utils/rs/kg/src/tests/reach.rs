@@ -7,6 +7,7 @@ use std::collections::HashSet;
 
 use super::*;
 use crate::bank::unlocks;
+use crate::data::test_env;
 
 // --------------------------------------------------------------------------
 // the frontier mover (PLAN.md phase 4)
@@ -702,6 +703,57 @@ fn drafted_hards_and_mediums_alternate_within_a_day() {
         pnum(&fx.run(&ev, &st, args().exclude(&["9002", "9001"]))),
         "9003"
     );
+}
+
+/// Among drafted problems in reach, one the crowd dislikes, or almost
+/// nobody does (data/crowd.json: the bottom quarter by submissions),
+/// comes after every other, whatever its difficulty or acceptance. 1017.
+/// Convert to Base -2 was first in the queue on 2026-10-13 with 67k
+/// attempts; 481. Magical String with 78% dislikes.
+#[test]
+fn a_disliked_or_obscure_draft_is_served_after_the_others() {
+    let mut fx = Fx::picker();
+    fx.nodes(&["a"])
+        .problem("1", problem(&["a"]))
+        .draft("1017", drafted(&["a"]), "Hard")
+        .draft("481", drafted(&["a"]), "Hard")
+        .draft("9003", drafted(&["a"]), "Medium")
+        .acceptance("1017", 90.0)
+        .acceptance("481", 80.0)
+        .acceptance("9003", 30.0);
+    crowd_json(
+        &fx,
+        &[
+            ("1017", 67_000, 583, 316),
+            ("481", 1_000_000, 394, 1438),
+            ("9003", 1_000_000, 900, 100),
+            ("9004", 2_000_000, 900, 100),
+        ],
+    );
+    let st = statuses(&[("a", SOLID, Some(1))]);
+    assert_eq!(pnum(&fx.run(&no_evidence(), &st, args())), "9003");
+    test_env("CROWD_DOWNRANK", "0");
+    assert_eq!(pnum(&fx.run(&no_evidence(), &st, args())), "1017");
+    test_env("CROWD_DOWNRANK", "");
+}
+
+/// Among drafted problems tied on difficulty and mass, the one more
+/// people have attempted comes first, ahead of acceptance.
+#[test]
+fn the_more_attempted_draft_wins_a_tie() {
+    let mut fx = Fx::picker();
+    fx.nodes(&["a"])
+        .problem("1", problem(&["a"]))
+        .draft("9001", drafted(&["a"]), "Hard")
+        .draft("9002", drafted(&["a"]), "Hard")
+        .acceptance("9001", 90.0)
+        .acceptance("9002", 30.0);
+    crowd_json(
+        &fx,
+        &[("9001", 50_000, 52, 52), ("9002", 8_000_000, 25_000, 900)],
+    );
+    let st = statuses(&[("a", SOLID, Some(1))]);
+    assert_eq!(pnum(&fx.run(&no_evidence(), &st, args())), "9002");
 }
 
 #[test]

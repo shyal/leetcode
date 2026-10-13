@@ -1094,10 +1094,16 @@ impl<'a> Picker<'a> {
             cands.sort_by(|a, b| {
                 let ia = informative(a);
                 let ib = informative(b);
-                ia.0.cmp(&ib.0)
+                // a problem the crowd dislikes, or almost nobody does, comes last
+                self.ctx
+                    .downranked(a)
+                    .cmp(&self.ctx.downranked(b))
+                    .then_with(|| ia.0.cmp(&ib.0))
                     .then_with(|| ia.1.partial_cmp(&ib.1).unwrap())
                     .then_with(|| gentleness(self.ctx, a, &pv).cmp(&gentleness(self.ctx, b, &pv)))
                     .then_with(|| last_solved(self.ev, a).cmp(&last_solved(self.ev, b)))
+                    // the crowd: most attempted first, then fewest dislikes
+                    .then_with(|| self.ctx.crowd_key(a).cmp(&self.ctx.crowd_key(b)))
                     .then_with(|| {
                         self.ctx
                             .acceptance(b)
@@ -1331,13 +1337,24 @@ impl<'a> Picker<'a> {
                 cands.sort_by(|a, b| {
                     let pa = price(a);
                     let pb = price(b);
-                    (!last_solved(self.ev, a).is_empty(), pa.0)
-                        .cmp(&(!last_solved(self.ev, b).is_empty(), pb.0))
+                    // a problem the crowd dislikes, or almost nobody does, comes last
+                    (
+                        self.ctx.downranked(a),
+                        !last_solved(self.ev, a).is_empty(),
+                        pa.0,
+                    )
+                        .cmp(&(
+                            self.ctx.downranked(b),
+                            !last_solved(self.ev, b).is_empty(),
+                            pb.0,
+                        ))
                         .then_with(|| pa.1.partial_cmp(&pb.1).unwrap())
                         .then_with(|| {
                             (gentleness(self.ctx, a, &pv), last_solved(self.ev, a))
                                 .cmp(&(gentleness(self.ctx, b, &pv), last_solved(self.ev, b)))
                         })
+                        // the crowd: most attempted first, then fewest dislikes
+                        .then_with(|| self.ctx.crowd_key(a).cmp(&self.ctx.crowd_key(b)))
                         .then_with(|| {
                             self.ctx
                                 .acceptance(b)
@@ -1682,7 +1699,6 @@ fn pick_pass(
     }
     ptrace("aging", t);
     let t = std::time::Instant::now();
-
 
     // REVIEWS_FIRST=1: a due review outranks every other rule
     let mut reviewed = false;
@@ -2486,6 +2502,7 @@ pub fn upcoming(
                 break;
             };
             seq += 1;
+            let reason = choice.reason.clone();
             let Some((is_drill, pnum)) = grant(ctx, &pv, &mut ev, &mut statuses, &choice, day, seq)
             else {
                 break;
@@ -2494,6 +2511,9 @@ pub fn upcoming(
                 break; // the pick ignored exclude: the day is spent
             }
             if !is_drill {
+                if std::env::var("KG_TRACE").is_ok() {
+                    eprintln!("queue {pnum}: {reason}");
+                }
                 out.push(pnum.clone());
             }
             exclude.insert(pnum);

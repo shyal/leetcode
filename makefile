@@ -1,4 +1,4 @@
-.PHONY: all asserts audit chat check combos complexity cov curve dependents dive drawing-doc drill drop duplicates elo ext failed fmt fmt-check force graph graph-vscode hard harness-doc is_session_start kg-extract kg-status kg-viz lc-login lc-mocks lc-sync learning lint mirror mock movie mu mu-chrome mu-vscode muviz next predict preflight prepare prog progress q queue rank-table readme rep residuals rust secrets short simulate sleep snippets solved spot stats studied submit test test-fast test-judge timer today types unforce viz wake
+.PHONY: all asserts audit chat check combos complexity cov curve dependents crowd crowd-install crowd-uninstall discuss dive drawing-doc drill drop duplicates elo ext failed fmt fmt-check force graph graph-vscode hard harness-doc is_session_start kg-extract kg-status kg-viz lc-login lc-mocks lc-sync learning lint mirror mock movie mu mu-chrome mu-vscode muviz next predict preflight prepare prog progress q queue rank-table readme rep residuals rust secrets short simulate sleep snippets solved spot stats studied submit test test-fast test-judge timer today types unforce viz wake
 
 # `make` runs the current file: current.py through mu/session.py (which
 # runs current.mu in place when it holds the work, every error at its mu
@@ -157,6 +157,37 @@ wake: $(RS_BIN)/kg_sleep $(RS_BIN)/kg_chat
 # ones rated GAP or more above elo; --apply writes them into "after".
 queue: $(RS_BIN)/kg_queue
 	@$(RS_BIN)/kg_queue $(filter-out $@,$(MAKECMDGOALS))
+
+# make crowd [-- --limit N | --stale DAYS | --show | PROBLEM...]: sync
+# data/crowd.json, every free problem's submission, like and dislike counts
+# (utils/rs/kg_crowd). The picker ranks on it: a problem the crowd dislikes,
+# or one in the bottom quarter by attempts, is served after every other
+# candidate of its rule, and among ties the most attempted problem comes
+# first; CROWD_DOWNRANK=0 turns all of it off.
+# make crowd-install loads the launchd job that runs it hourly
+# (misc/com.orb.leet-crowd.plist, log in data/crowd.log);
+# make crowd-uninstall removes it.
+crowd: $(RS_BIN)/kg_crowd
+	@$(RS_BIN)/kg_crowd $(filter-out $@,$(MAKECMDGOALS))
+
+CROWD_LABEL := com.orb.leet-crowd
+CROWD_PLIST := $(HOME)/Library/LaunchAgents/$(CROWD_LABEL).plist
+
+crowd-install: $(RS_BIN)/kg_crowd
+	@sed -e 's|@ROOT@|$(CURDIR)|g' misc/$(CROWD_LABEL).plist > $(CROWD_PLIST)
+	@launchctl bootout gui/$$(id -u)/$(CROWD_LABEL) 2>/dev/null; \
+	launchctl bootstrap gui/$$(id -u) $(CROWD_PLIST) && echo "$(CROWD_LABEL) loaded: hourly, log in data/crowd.log"
+
+crowd-uninstall:
+	@launchctl bootout gui/$$(id -u)/$(CROWD_LABEL) 2>/dev/null; rm -f $(CROWD_PLIST); echo "$(CROWD_LABEL) removed"
+
+# make discuss PROBLEM...: why the crowd dislikes a problem. Pulls the most
+# upvoted comments under it and asks a model which complain about the
+# statement (utils/rs/kg_discuss, data/discuss_verdicts.json). Read on
+# demand; nothing in it enters a pick. make discuss -- --show PROBLEM...
+# prints the saved verdicts.
+discuss: $(RS_BIN)/kg_discuss
+	@$(RS_BIN)/kg_discuss $(filter-out $@,$(MAKECMDGOALS))
 
 # nuke the current branch, no questions asked: discard the working tree,
 # switch to master, delete the branch. refuses on master.
