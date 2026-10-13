@@ -37366,6 +37366,17 @@
       "note": "LEETCODE: Accepted (58 ms, 20.3 MB); an earlier submission got Wrong Answer (800/844) on cancelRider before addRider, fixed by guarding with addedRiders.",
       "summary": "The class keeps two deques, riders and drivers, appending on add and popleft-ing on match, plus a cancelledRiders set and an addedRiders set. matchDriverWithRider lazily pops cancelled riders from the front of the riders deque before pairing the front driver with the front rider, returning [-1, -1] when either side is empty. cancelRider only records a cancellation when the rider is in addedRiders, which is the fix for the earlier Wrong Answer on cancelling a rider before it was added. The notes describe the two-deque idea and walk through the sample test case.",
       "seconds": 1196
+    },
+    "solved/p1963_Minimum_Number_of_Swaps_to_Make_the_String_Balanced_2026_10_13T04_05_55_609141_00_00Z.py": {
+      "date": "2026-10-13",
+      "problem": "1963",
+      "moves": {
+        "running-sum": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Accepted (155 ms, 24.9 MB)",
+      "summary": "The code scans the string once, incrementing count on '[' and decrementing it on ']' with a floor of 0 via max(count - 1, 0), then returns ceil(count / 2) computed as -(-count // 2). This running-sum balance tracks unmatched closing brackets without an explicit stack, so the stack-matching move is sidestepped. The notes describe the same floor-at-zero reasoning, and LeetCode accepted the submission.",
+      "seconds": 403
     }
   }
 }
