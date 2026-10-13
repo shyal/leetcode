@@ -37252,6 +37252,20 @@
       "judge": "deepseek-chat",
       "summary": "The query left-joins Customers to Orders on c.id = o.customer_id so every customer survives, then groups by c.id and sums a CASE that counts only 'paid' rows, giving 0 for Bob and Cal. This exercises the left-join-keep and group-aggregate targets plus conditional aggregation. The run exited 0 and produced the expected Ann 2, Bob 0, Cal 0 output.",
       "seconds": 420
+    },
+    "solved/d_Remove_Value_2026_10_13T01_27_25_937060_00_00Z.py": {
+      "date": "2026-10-13",
+      "problem": "drill",
+      "moves": {
+        "ll-dummy-splice": "clean"
+      },
+      "assist": {
+        "ll-dummy-splice": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say 'Learning'; the mu source shows the dummy-node splice written out.",
+      "summary": "The code builds a dummy node in front of the list (d = pre = ListNode(next=head)), then walks with pre, re-linking pre.next = pre.next.next whenever pre.next.val equals val, and returns d.next. This exercises the dummy-node splice move, which handles the head-removal case without a special branch. The notes mark the work as Learning.",
+      "seconds": 363
     }
   }
 }
