@@ -37446,6 +37446,26 @@
       "note": "Notes say 'I have no recollection of Boyer moor, so re-doing this' \u2014 the Counter/counts-as-data route was not recognised; the code instead runs Boyer-Moore voting.",
       "summary": "The code implements Boyer-Moore voting: it keeps a candidate and a count, resets the candidate when the count hits 0, and increments or decrements via [-1, 1][n == cand]. It never builds a Counter or reads counts as data, so those canonical moves are avoided. The notes state the candidate had no recollection of Boyer-Moore and re-derived it, and LeetCode reports Accepted (17 ms, 21.6 MB). The single pass with two variables meets the linear-time, O(1)-space follow-up.",
       "seconds": 1073
+    },
+    "solved/p229_Majority_Element_II_2026_10_13T11_12_27_328502_00_00Z.py": {
+      "date": "2026-10-13",
+      "problem": "229",
+      "moves": {
+        "streaming-ask-then-record": "clean",
+        "counter-build": "clean"
+      },
+      "assist": {
+        "streaming-ask-then-record": "hint",
+        "counter-build": "hint"
+      },
+      "judge": "deepseek-chat",
+      "followup": "solved",
+      "note": "Notes say 'Hinted' and 'let's implement boyer moor'; LEETCODE: Accepted (7 ms, 22.3 MB).",
+      "summary": "The code runs the Boyer-Moore two-candidate vote: it walks nums once, incrementing a candidate's count on a match, seeding an empty slot, or decrementing both counts otherwise, then filters the two candidates with nums.count(c) > len(nums)//3. The final verification uses a Counter-style count over the list. The notes say the counter approach was easy but the follow-up was hinted, and the submission was Accepted.",
+      "unmapped": [
+        "Boyer-Moore two-candidate voting"
+      ],
+      "seconds": 1650
     }
   }
 }
