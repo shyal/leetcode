@@ -37420,6 +37420,19 @@
       "note": "Notes say 'Learning'; LeetCode: Accepted (3 ms, 19.7 MB).",
       "summary": "The code keeps a running max product hi and min product lo, swapping them when v is negative, then updates hi = max(v, hi*v) and lo = min(v, lo*v) and tracks best = max(best, hi). This exercises a rolling two-variable DP over the array with a running-extreme best-so-far. The notes say 'Learning' and LeetCode reports Accepted (3 ms, 19.7 MB).",
       "seconds": 2227
+    },
+    "solved/p47_Permutations_II_2026_10_13T08_43_39_610267_00_00Z.py": {
+      "date": "2026-10-13",
+      "problem": "47",
+      "moves": {
+        "backtracking-choose-undo": "clean",
+        "backtracking-dedupe-siblings": "clean",
+        "backtracking-mark-unmark": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Dedupe done with a per-call `seen` set rather than the sorted-adjacent skip, but it is the same sibling-dedupe move.",
+      "summary": "The code builds permutations by recursing over indices, appending nums[j] to path, recursing, then popping and clearing used[j]. Duplicate branches are pruned with a per-call `seen` set that skips a value already tried at this level, and `used` marks which indices are currently in the path. All assertions pass and LeetCode reports Accepted (3 ms, 20 MB).",
+      "seconds": 1050
     }
   }
 }
