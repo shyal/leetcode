@@ -22,8 +22,10 @@
 //      served move is whatever its kind would get anywhere else in the
 //      frontier (serve: its drill, the drill opening its hold, a carrier);
 //      a move nothing can serve is skipped, so an unservable move never
-//      holds the clock. Under the group cap: the cap still counts, aging
-//      only takes the first slot of the day before the clock does. A
+//      holds the clock. Under the group cap: the cap still counts. Aging
+//      runs after the clock (2026-10-13; before that it took the first
+//      slot of the day ahead of it, and a FRAGILE move starved seven days
+//      held five due drills behind a promoted draft all day). A
 //      move with no evidence at all is new ground, the frontier's last
 //      kind by design, and does not age.
 //   THE CLOCK (DRILL_SCHEDULER=anki, .envrc): every bank file keeps an SM-2
@@ -105,9 +107,12 @@
 //   degree of the weaker axis (status::node_axes). The list is sorted:
 //     1. the rusty ground under a sleeping problem first, so it is woken
 //        onto warm moves;
-//     2. then FRAGILE, floor, drill clock, STALE, THIN, MISSING - a stale
-//        move is being lost, a thin one is only unproven, and both come
-//        before new ground;
+//     2. then the drill clock, FRAGILE, floor, STALE, THIN, MISSING - a
+//        file due on its clock comes before everything (2026-10-13: a
+//        FRAGILE move's carriers, pulled into the band by a falling elo,
+//        held five due drills behind problems for a day), a stale move is
+//        being lost, a thin one is only unproven, and both come before
+//        new ground;
 //     3. then, within a status, moves a drill can serve before moves only
 //        a problem can - the bank is the asset, a drill is three minutes
 //        to a problem's seventeen;
@@ -632,9 +637,9 @@ enum Kind {
 
 fn order(k: Kind) -> i64 {
     match k {
-        Kind::Fragile => 0,
-        Kind::Floor => 1,
-        Kind::Drill => 2,
+        Kind::Drill => 0,
+        Kind::Fragile => 1,
+        Kind::Floor => 2,
         Kind::Stale => 3,
         Kind::Thin => 4,
         Kind::Missing => 5,
@@ -1618,35 +1623,9 @@ fn pick_pass(
         opener_memo: RefCell::new(HashMap::new()),
     };
 
-    // aging: the move that has lost every pick for AGING_DAYS days; a
-    // move never met is the frontier's new ground, not a wait
-    let mut aged: Vec<(String, i64)> = {
-        let p = pv.borrow();
-        waiting(ctx, &p, ev, today, AGING_DAYS, STARVED_DAYS)
-    };
-    aged.retain(|(n, days)| {
-        picker.in_scope(n)
-            && picker.kind(n).is_some()
-            && !ev.node_entries(n).is_empty()
-            // the wait started after the status's own last date
-            && picker.status(n).1.is_none_or(|l| (today - l).num_days() >= *days)
-    });
-    aged.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
-    let aged_ids: Vec<String> = aged.iter().map(|(n, _)| n.clone()).collect();
-    for (n, days) in &aged {
-        if let Some(mut c) = picker.serve(n, &aged_ids) {
-            if ctx.group_of(&c.target).is_some_and(|g| capped.contains(g)) {
-                continue;
-            }
-            c.reason = format!("due {days} days with nothing aimed at it - {}", c.reason);
-            ptrace("aging", t);
-            return Some(c);
-        }
-    }
-    ptrace("aging", t);
-    let t = std::time::Instant::now();
-
-    // the clock
+    // the clock: a file due on its own clock outranks the aging rule below
+    // (2026-10-13: a FRAGILE move starved seven days took the first slot
+    // through a promoted draft and five due drills never came)
     if anki() {
         let scope: Vec<String> = ctx
             .nodes
@@ -1676,6 +1655,34 @@ fn pick_pass(
 
     ptrace("clock", t);
     let t = std::time::Instant::now();
+    // aging: the move that has lost every pick for AGING_DAYS days; a
+    // move never met is the frontier's new ground, not a wait
+    let mut aged: Vec<(String, i64)> = {
+        let p = pv.borrow();
+        waiting(ctx, &p, ev, today, AGING_DAYS, STARVED_DAYS)
+    };
+    aged.retain(|(n, days)| {
+        picker.in_scope(n)
+            && picker.kind(n).is_some()
+            && !ev.node_entries(n).is_empty()
+            // the wait started after the status's own last date
+            && picker.status(n).1.is_none_or(|l| (today - l).num_days() >= *days)
+    });
+    aged.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
+    let aged_ids: Vec<String> = aged.iter().map(|(n, _)| n.clone()).collect();
+    for (n, days) in &aged {
+        if let Some(mut c) = picker.serve(n, &aged_ids) {
+            if ctx.group_of(&c.target).is_some_and(|g| capped.contains(g)) {
+                continue;
+            }
+            c.reason = format!("due {days} days with nothing aimed at it - {}", c.reason);
+            ptrace("aging", t);
+            return Some(c);
+        }
+    }
+    ptrace("aging", t);
+    let t = std::time::Instant::now();
+
 
     // REVIEWS_FIRST=1: a due review outranks every other rule
     let mut reviewed = false;

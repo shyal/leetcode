@@ -62,6 +62,23 @@ fn an_evidenced_carrier_outranks_promotion() {
     assert_eq!(pnum(&fx.run(&no_evidence(), &st, args())), "1");
 }
 
+/// A banned draft is never promoted: the blacklist holds for drafted
+/// carriers as for evidenced ones (graph/README; 1813, 2026-10-13, banned
+/// and served the same morning).
+#[test]
+fn a_banned_draft_is_never_promoted() {
+    let mut fx = Fx::picker();
+    fx.nodes(&["m"])
+        .draft("9001", drafted(&["m"]).banned(), "Easy")
+        .draft("9002", drafted(&["m"]), "Easy");
+    let st = statuses(&[("m", FRAGILE, Some(1))]);
+    assert_eq!(pnum(&fx.run(&no_evidence(), &st, args())), "9002");
+    let mut fx = Fx::picker();
+    fx.nodes(&["m"]).draft("9001", drafted(&["m"]).banned(), "Easy");
+    let st = statuses(&[("m", FRAGILE, Some(1))]);
+    assert!(fx.run(&no_evidence(), &st, args()).is_none());
+}
+
 /// A mapped carrier the move has never been given is "not today", not
 /// "never": an evidenced walk outranks a drafted guess, so the node waits
 /// for its carrier to wake instead of promoting.

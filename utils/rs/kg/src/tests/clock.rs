@@ -1170,10 +1170,12 @@ fn a_stale_move_that_waited_a_week_outranks_the_reviews() {
     assert_eq!(pnum(&fx.run(&evidence(ev), &st, args())), "1");
 }
 
-/// The clock too: a young sql move at its floor never got its rep because
-/// the clock filled the group's two daily slots every morning.
+/// The clock comes first even then: an aged move waits for the drill due
+/// on its own clock (2026-10-13; the reverse rule, from 2026-09-10, let a
+/// FRAGILE move starved seven days hold five due drills behind a promoted
+/// draft all day).
 #[test]
-fn an_aged_move_takes_the_first_slot_before_the_clock() {
+fn the_clock_takes_the_first_slot_before_an_aged_move() {
     let mut fx = Fx::picker();
     test_env("DRILL_SCHEDULER", "anki");
     test_env("KG_GROUP_CAP", "sql=1");
@@ -1186,7 +1188,11 @@ fn an_aged_move_takes_the_first_slot_before_the_clock() {
         solve("2", &[("b", "clean")], 60),
     ]);
     fx.stubs().clock = vec![(PathBuf::from("drills/a/a.py"), "a".into())];
-    assert_eq!(t3(&fx.run(&ev, &st, args())), tup("b", STALE, "2"));
+    assert_eq!(t3(&fx.run(&ev, &st, args())), tup("a", SOLID, "drill:a"));
+    assert_eq!(
+        t3(&fx.run(&ev, &st, args().exclude(&["drill:a"]))),
+        tup("b", STALE, "2")
+    );
     // the cap still counts: one sql rep today and the group is done
     let ev = evidence(vec![
         solve("1", &[("a", "clean")], 2),
@@ -1217,6 +1223,23 @@ fn a_fragile_move_still_goes_first() {
         .problems(vec![("1", problem(&["q1"])), ("2", problem(&["q2"]))]);
     let st = statuses(&[("q1", SOLID, Some(1)), ("q2", FRAGILE, Some(20))]);
     let ev = evidence(vec![assisted("1", &[("q1", "clean")], 30)]);
+    assert_eq!(pnum(&fx.run(&ev, &st, args())), "2");
+}
+
+/// A file due on its clock comes before a FRAGILE move's carrier: on
+/// 2026-10-13 a FRAGILE move whose carriers a falling elo had pulled into
+/// the band took the first slot all day, and five due drills never came.
+#[test]
+fn the_drill_clock_outranks_a_fragile_move() {
+    let mut fx = Fx::picker();
+    test_env("DRILL_SCHEDULER", "anki");
+    fx.nodes(&["q1", "q2"])
+        .problems(vec![("1", problem(&["q1"])), ("2", problem(&["q2"]))]);
+    let st = statuses(&[("q1", SOLID, Some(1)), ("q2", FRAGILE, Some(20))]);
+    fx.stubs().clock = vec![(PathBuf::from("drills/q1/a.py"), "q1".into())];
+    let ev = evidence(vec![assisted("1", &[("q1", "clean")], 30)]);
+    assert_eq!(pnum(&fx.run(&ev, &st, args())), "drill:q1");
+    fx.stubs().clock = vec![];
     assert_eq!(pnum(&fx.run(&ev, &st, args())), "2");
 }
 

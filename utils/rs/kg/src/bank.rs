@@ -412,6 +412,7 @@ pub fn predicted_carrier(
         let num = &dm.problems[w.prob];
         let diff = &dm.diff[w.prob];
         if skip.contains(num)
+            || predicted.get(num).is_some_and(|p| ctx.unservable(num, p))
             || !(diff == "Easy" || diff == "Medium")
             || !difficulties.contains(&diff.as_str())
         {
