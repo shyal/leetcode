@@ -37601,6 +37601,16 @@
       "note": "Drill targets binary-search-on-answer; the code implements the first-false boundary search with the while lo<hi / mid / hi=mid / lo=mid+1 template, verified by the call-count assertion (<=31 for range 1..1e9).",
       "summary": "The Solution.firstFalse runs a classic halving loop over [lo, hi], moving hi to mid when ok(mid) is false and lo to mid+1 otherwise, returning lo as the first index where the predicate fails. The module also defines first_true/last_true/last_false wrappers built on bisect_left. All assertions pass, including the boundary cases (lo==hi, predicate always true/false) and the call-count check confirming logarithmic behavior.",
       "seconds": 33
+    },
+    "solved/d_First_Repeat_2026_10_14T00_06_43_964360_00_00Z.ts": {
+      "date": "2026-10-14",
+      "problem": "drill",
+      "moves": {
+        "ts-set-membership": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The drill builds a Set<number> and walks the array once, checking set.has(num) before set.add(num) and returning the first value already seen, else -1. This exercises ts-set-membership (has before add, seen-before in one pass). The file ran and printed 4; the assertion lines are commented out.",
+      "seconds": 109
     }
   }
 }
