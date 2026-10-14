@@ -37564,6 +37564,20 @@
       "judge": "deepseek-chat",
       "summary": "The mu source defines subsets via a recursive helper(i) that records a copy of path at every node, then loops j from i to len(nums), appending nums[j], recursing on j+1, and popping. This exercises backtracking-start-index (the suffix from i, next call at j+1) together with choose/undo. All assertions passed, including the 2^16 count and sortedness checks.",
       "seconds": 125
+    },
+    "solved/d_Slide_Never_Shrink_2026_10_14T00_02_31_127083_00_00Z.py": {
+      "date": "2026-10-14",
+      "problem": "drill",
+      "moves": {
+        "sliding-window-budget": "clean"
+      },
+      "assist": {
+        "sliding-window-budget": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say 'Learning'; the window slides right at constant width when zeros exceed k, so the width never decreases.",
+      "summary": "The code keeps a left/right window over nums, counting zeros; when zeros exceeds k it advances left by one (decrementing zeros if the leaving element was 0) rather than shrinking, so the window width never decreases and best ends as the answer. This is the never-shrink budget window, exercised correctly on all assertions. The notes mark the work as Learning.",
+      "seconds": 636
     }
   }
 }
