@@ -37660,6 +37660,19 @@
       "judge": "deepseek-chat",
       "summary": "The query groups the Project table by project_id and computes round(avg(experience_years), 2) as average_years, so the rounding happens in SQL on the aggregate. Both example assertions passed, producing 2.0/2.5 and 1.33. The notes are empty.",
       "seconds": 111
+    },
+    "solved/d_Average_Price_Per_Product_2026_10_14T23_29_48_587339_00_00Z.py": {
+      "date": "2026-10-15",
+      "problem": "drill",
+      "moves": {
+        "sql-group-aggregate": "clean"
+      },
+      "assist": {
+        "sql-group-aggregate": "hint"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The query groups Sales by product_id and computes round(sum(price * units) * 1.0 / sum(units), 2) as average_price, using the * 1.0 trick to force real division. It exercises the group-aggregate move with SUM and ROUND over each product group. The notes record a hint about forgetting the * 1.0 trick for real division.",
+      "seconds": 281
     }
   }
 }
