@@ -37709,6 +37709,18 @@
       "note": "Uses the upper-mid (lo+hi+1)//2 template to find the last index where ok(mid) holds; all assertions passed.",
       "summary": "The Solution.lastTrue method binary-searches the range [lo, hi] using mid = (lo + hi + 1) // 2, moving lo up when ok(mid) is true and hi down otherwise, returning the last true index. The drill exercises the binary-search-boundary move (leftmost/rightmost flip of a monotone predicate), verified against many cases including a 1e9 range and a call-count bound. The run exited 0 with all assertions passing.",
       "seconds": 114
+    },
+    "solved/d_Last_False_2026_10_14T23_43_31_691316_00_00Z.py": {
+      "date": "2026-10-15",
+      "problem": "drill",
+      "moves": {
+        "binary-search-boundary": "clean",
+        "binary-search-on-answer": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets binary-search-on-answer; the code implements the last-false boundary search with mid=(lo+hi+1)//2 and returns lo, verified by the 31-call bound assertion.",
+      "summary": "The Solution.lastFalse runs a halving loop with mid = (lo + hi + 1) // 2, moving lo up when ok(mid) is false and hi down otherwise, returning lo as the last index where the predicate is false. The assertions confirm the boundary for predicates that flip at various points, including the lo == hi case and a 10^9 range within 31 calls. The helper functions first_true/last_true/first_false/last_false are defined but the avoids() check confirms the solution does not call them.",
+      "seconds": 46
     }
   }
 }
