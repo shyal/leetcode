@@ -43,7 +43,7 @@ class Solution:
         self, h: Optional[ListNode], k: int
     ) -> Tuple[Optional[ListNode], Optional[ListNode]]:
         # don't hunt him = him don't hunt
-        # try hunt = him
+        # tan him
         # don't try
         pass
 

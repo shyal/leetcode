@@ -8,7 +8,7 @@ class Solution
       d.next, h.next, h = h, d.next, h.next
       k -= 1
     if t
-      # try hunt = him
+      # tan him
       t.next = h
     # don't try
     d.next, t
