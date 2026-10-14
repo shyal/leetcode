@@ -37721,6 +37721,20 @@
       "note": "Drill targets binary-search-on-answer; the code implements the last-false boundary search with mid=(lo+hi+1)//2 and returns lo, verified by the 31-call bound assertion.",
       "summary": "The Solution.lastFalse runs a halving loop with mid = (lo + hi + 1) // 2, moving lo up when ok(mid) is false and hi down otherwise, returning lo as the last index where the predicate is false. The assertions confirm the boundary for predicates that flip at various points, including the lo == hi case and a 10^9 range within 31 calls. The helper functions first_true/last_true/first_false/last_false are defined but the avoids() check confirms the solution does not call them.",
       "seconds": 46
+    },
+    "solved/d_Count_Smaller_Values_2026_10_14T23_58_09_228888_00_00Z.py": {
+      "date": "2026-10-15",
+      "problem": "drill",
+      "moves": {
+        "counting-sort-buckets": "clean"
+      },
+      "assist": {
+        "counting-sort-buckets": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets counting-sort-buckets; the code indexes a 101-slot array by value, then sweeps it accumulating a running count to map each value to the number of smaller values.",
+      "summary": "The code builds a fixed 101-slot bucket array indexed by value, counts occurrences, then sweeps the buckets in order keeping a running total of values seen so far and records that total as the count of smaller values for each present value. It returns the mapped counts for the original input. The notes mark this as a Learning drill, so the bucket technique was given and copied.",
+      "seconds": 782
     }
   }
 }
