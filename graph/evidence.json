@@ -37621,6 +37621,19 @@
       "judge": "deepseek-chat",
       "summary": "The drill splits the input on spaces, reverses each word by splitting it into characters, reversing the array, and joining it back, then rejoins the words with spaces. It exercises the ts-string-build move: split, per-piece transform, and reassemble. The run exited 0 and all assertions passed, with no notes claiming help or recognition trouble.",
       "seconds": 111
+    },
+    "solved/p378_Kth_Smallest_Element_in_a_Sorted_Matrix_2026_10_14T00_11_51_215894_00_00Z.py": {
+      "date": "2026-10-14",
+      "problem": "378",
+      "moves": {
+        "heap-top-k": "clean",
+        "heap-simulation": "clean"
+      },
+      "judge": "deepseek-chat",
+      "followup": "not solved",
+      "note": "LeetCode: Accepted (105 ms, 24.9 MB); uses a max-heap of size k over all n^2 cells rather than the canonical k-way merge of rows.",
+      "summary": "The code builds a max-heap (via a reversed wrapper class) and pushes every cell of the matrix, popping whenever the heap exceeds k, so the root ends as the kth smallest. It exercises heap-top-k and heap-simulation by streaming all n^2 values through a bounded heap. The notes are empty and LeetCode reports Accepted. It does not use the sorted-row structure (no k-way merge / binary-search-on-answer), so the follow-up O(1) memory / O(n) time question is not met.",
+      "seconds": 161
     }
   }
 }
