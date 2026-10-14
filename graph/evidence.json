@@ -37589,6 +37589,18 @@
       "judge": "deepseek-chat",
       "summary": "The drill implements firstTrue with the classic lo<hi / mid=(lo+hi)//2 / hi=mid-or-lo=mid+1 halving loop, returning the leftmost index where the monotone predicate ok flips true. It also defines first_true via bisect_left, plus first_false/last_false/last_true wrappers, and the assertions cover boundary cases (lo==hi, hi==lo+1, predicate true at both ends, and a 1e9 range with a call-count bound). All assertions passed and the run exited 0.",
       "seconds": 60
+    },
+    "solved/d_First_False_2026_10_14T00_04_46_179229_00_00Z.py": {
+      "date": "2026-10-14",
+      "problem": "drill",
+      "moves": {
+        "binary-search-boundary": "clean",
+        "binary-search-on-answer": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets binary-search-on-answer; the code implements the first-false boundary search with the while lo<hi / mid / hi=mid / lo=mid+1 template, verified by the call-count assertion (<=31 for range 1..1e9).",
+      "summary": "The Solution.firstFalse runs a classic halving loop over [lo, hi], moving hi to mid when ok(mid) is false and lo to mid+1 otherwise, returning lo as the first index where the predicate fails. The module also defines first_true/last_true/last_false wrappers built on bisect_left. All assertions pass, including the boundary cases (lo==hi, predicate always true/false) and the call-count check confirming logarithmic behavior.",
+      "seconds": 33
     }
   }
 }
