@@ -37578,6 +37578,17 @@
       "note": "Notes say 'Learning'; the window slides right at constant width when zeros exceed k, so the width never decreases.",
       "summary": "The code keeps a left/right window over nums, counting zeros; when zeros exceeds k it advances left by one (decrementing zeros if the leaving element was 0) rather than shrinking, so the window width never decreases and best ends as the answer. This is the never-shrink budget window, exercised correctly on all assertions. The notes mark the work as Learning.",
       "seconds": 636
+    },
+    "solved/d_First_True_2026_10_14T00_04_04_016913_00_00Z.py": {
+      "date": "2026-10-14",
+      "problem": "drill",
+      "moves": {
+        "binary-search-boundary": "clean",
+        "binary-search-on-answer": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The drill implements firstTrue with the classic lo<hi / mid=(lo+hi)//2 / hi=mid-or-lo=mid+1 halving loop, returning the leftmost index where the monotone predicate ok flips true. It also defines first_true via bisect_left, plus first_false/last_false/last_true wrappers, and the assertions cover boundary cases (lo==hi, hi==lo+1, predicate true at both ends, and a 1e9 range with a call-count bound). All assertions passed and the run exited 0.",
+      "seconds": 60
     }
   }
 }
