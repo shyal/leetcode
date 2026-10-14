@@ -37673,6 +37673,16 @@
       "judge": "deepseek-chat",
       "summary": "The query groups Sales by product_id and computes round(sum(price * units) * 1.0 / sum(units), 2) as average_price, using the * 1.0 trick to force real division. It exercises the group-aggregate move with SUM and ROUND over each product group. The notes record a hint about forgetting the * 1.0 trick for real division.",
       "seconds": 281
+    },
+    "solved/d_Dense_Rank_Scores_2026_10_14T23_32_14_529554_00_00Z.py": {
+      "date": "2026-10-15",
+      "problem": "drill",
+      "moves": {
+        "sql-window-rank": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The query selects score and dense_rank() over (order by score desc) as rank from Scores, using the window-rank move to give tied scores the same rank with no gaps. Both example assertions passed, producing the expected (score, rank) rows. The notes contain only the problem statement and schema, with no mention of hints or look-ups.",
+      "seconds": 119
     }
   }
 }
