@@ -37925,6 +37925,22 @@
       "judge": "deepseek-chat",
       "summary": "The query uses dense_rank() over (partition by team order by points desc) to restart ranking at 1 per team with shared ranks and no holes. The run passed and produced the expected output for both examples. The notes say the candidate forgot about 'partition by' and marked the work as learning, with a recognition miss on the window-rank move.",
       "seconds": 274
+    },
+    "solved/d_Department_Top_Three_Salaries_2026_10_15T20_36_24_202559_00_00Z.py": {
+      "date": "2026-10-16",
+      "problem": "drill",
+      "moves": {
+        "sql-window-rank": "clean",
+        "sql-subquery": "clean"
+      },
+      "assist": {
+        "sql-window-rank": "learning",
+        "sql-subquery": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "CTE with dense_rank() over (partition by departmentId order by salary desc) filtered by rnk <= 3 in the outer query; ties preserved.",
+      "summary": "The query builds a CTE `ranked` that computes dense_rank() over each department ordered by salary descending, then the outer select filters rnk <= 3. This exercises the window-rank move (dense_rank partitioned per department) and the subquery/CTE move (the ranked result wrapped and filtered outside). Both example assertions passed, and the notes contain no hints or look-ups.",
+      "seconds": 400
     }
   }
 }
