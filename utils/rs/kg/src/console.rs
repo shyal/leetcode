@@ -465,20 +465,26 @@ pub struct Console {
 }
 
 pub fn terminal_columns() -> usize {
+    measured_columns().unwrap_or(80)
+}
+
+/// The width from COLUMNS or from the terminal on stdout; None when
+/// neither gives one (stdout is a pipe or a file and COLUMNS is unset).
+pub fn measured_columns() -> Option<usize> {
     if let Ok(v) = std::env::var("COLUMNS") {
         if let Ok(n) = v.trim().parse::<usize>() {
             if n > 0 {
-                return n;
+                return Some(n);
             }
         }
     }
     unsafe {
         let mut ws: libc::winsize = std::mem::zeroed();
         if libc::ioctl(libc::STDOUT_FILENO, libc::TIOCGWINSZ, &mut ws) == 0 && ws.ws_col > 0 {
-            return ws.ws_col as usize;
+            return Some(ws.ws_col as usize);
         }
     }
-    80
+    None
 }
 
 pub fn stdout_is_tty() -> bool {

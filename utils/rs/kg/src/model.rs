@@ -977,14 +977,11 @@ impl Transfer {
             if !g.first || since.is_some_and(|s| day < s) {
                 continue;
             }
-            let Some(p) = problems.get(&g.problem).filter(|p| !p.moves.is_empty()) else {
+            let Some(practiced) = moves_practiced(g, ev, problems) else {
                 continue;
             };
             let cold = usize::from(g.score == 1.0);
-            if p.moves
-                .iter()
-                .all(|m| ev.node_entries(m).iter().any(|e| e.date < day))
-            {
+            if practiced {
                 out.practiced += 1;
                 out.practiced_cold += cold;
             } else {
@@ -1022,6 +1019,75 @@ impl Transfer {
                 ").".to_string(),
             ),
         ]
+    }
+}
+
+/// Whether every move the game's problem needs (problems.json) has a
+/// record, a drill or another problem, dated before the game; None when
+/// the problem lists no moves.
+pub fn moves_practiced(g: &Game, ev: &Evidence, problems: &crate::data::Problems) -> Option<bool> {
+    let day = crate::data::parse_date(&g.date);
+    let p = problems.get(&g.problem).filter(|p| !p.moves.is_empty())?;
+    Some(
+        p.moves
+            .iter()
+            .all(|m| ev.node_entries(m).iter().any(|e| e.date < day)),
+    )
+}
+
+/// Width of one band in the rating table of `make stats`.
+pub const RATING_BAND: f64 = 100.0;
+
+/// One rating band of the games in a window: the first sights, the first
+/// sights whose moves were all practiced before (as Transfer counts
+/// them), and the repeats, each with its cold wins (score 1). Asked on
+/// 2026-10-16: Summary and Transfer put every rating together, so a fall
+/// with the rating reads as a fall in transfer.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Band {
+    /// the lowest rating in the band, a multiple of RATING_BAND
+    pub low: i64,
+    pub first: usize,
+    pub first_cold: usize,
+    pub practiced: usize,
+    pub practiced_cold: usize,
+    pub repeat: usize,
+    pub repeat_cold: usize,
+}
+
+impl Band {
+    /// The bands of `games`, lowest first; a game whose problem has no
+    /// rating is left out.
+    pub fn of(
+        games: &[Game],
+        ev: &Evidence,
+        problems: &crate::data::Problems,
+        rating: impl Fn(&str) -> Option<f64>,
+    ) -> Vec<Band> {
+        let mut bands: std::collections::BTreeMap<i64, Band> = Default::default();
+        for g in games {
+            let Some(r) = rating(&g.problem) else {
+                continue;
+            };
+            let low = ((r / RATING_BAND).floor() * RATING_BAND) as i64;
+            let b = bands.entry(low).or_insert_with(|| Band {
+                low,
+                ..Default::default()
+            });
+            let cold = usize::from(g.score == 1.0);
+            if g.first {
+                b.first += 1;
+                b.first_cold += cold;
+                if moves_practiced(g, ev, problems) == Some(true) {
+                    b.practiced += 1;
+                    b.practiced_cold += cold;
+                }
+            } else {
+                b.repeat += 1;
+                b.repeat_cold += cold;
+            }
+        }
+        bands.into_values().collect()
     }
 }
 

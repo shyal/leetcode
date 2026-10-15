@@ -27,7 +27,7 @@ use kg::console::Console;
 use kg::ctx::Ctx;
 use kg::data::{load_envrc, repo_root};
 use kg::evidence::Evidence;
-use kg::model::{elo_games, scored_games, solve_ratings, Game, Ground, Summary, Transfer};
+use kg::model::{elo_games, scored_games, solve_ratings, Band, Game, Ground, Summary, Transfer};
 use kg::table::{print_table, BoxKind, Table};
 
 fn window_days(args: &[String]) -> Option<i64> {
@@ -66,6 +66,14 @@ fn score_cell(score: f64) -> String {
     } else {
         "0".to_string()
     }
+}
+
+/// "6 of 21 (29%)", or "-" for no games.
+fn cold_cell(cold: usize, n: usize) -> String {
+    if n == 0 {
+        return "-".to_string();
+    }
+    format!("{cold} of {n} ({:.0}%)", 100.0 * cold as f64 / n as f64)
 }
 
 fn main() {
@@ -150,4 +158,28 @@ fn main() {
     for (before, ratio, after) in transfer.rows(&window) {
         console.print(&format!("{before}[bold green]{ratio}[/bold green]{after}"));
     }
+
+    // the same counts by problem rating: the totals above put every
+    // rating together
+    let mut by_rating = Table::plain(
+        &[
+            "rating",
+            "first sights",
+            "first, all moves practiced",
+            "repeats",
+        ],
+        Some("solved cold (no help, inside the clock), by problem rating"),
+        BoxKind::Rounded,
+    );
+    let rating = |p: &str| ratings.get(p).and_then(|v| v.as_f64());
+    for b in Band::of(&games, &ev, ctx.all_problems(), rating) {
+        by_rating.add_row(&[
+            format!("{}-{}", b.low, b.low + kg::model::RATING_BAND as i64 - 1),
+            cold_cell(b.first_cold, b.first),
+            cold_cell(b.practiced_cold, b.practiced),
+            cold_cell(b.repeat_cold, b.repeat),
+        ]);
+    }
+    console.print("");
+    print_table(&console, &by_rating);
 }

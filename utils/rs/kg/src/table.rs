@@ -778,6 +778,18 @@ pub fn panel_titled(body: &[Line], title: &str, width: usize, left: bool) -> Vec
     out
 }
 
+/// A table printed to a pipe or a file (no terminal, COLUMNS unset)
+/// keeps its natural width: at the 80-column fallback the wide tables
+/// of `make stats` collapsed to one column under `!` and for Claude
+/// (2026-10-16).
 pub fn print_table(console: &Console, table: &Table) {
-    console.print_lines(table.render(console.width));
+    let width = match crate::console::measured_columns() {
+        Some(_) => console.width,
+        None => UNBOUNDED_WIDTH,
+    };
+    console.print_lines(table.render(width));
 }
+
+/// The width a table gets when nothing measures one; tables never
+/// expand, so they render at their natural width under it.
+const UNBOUNDED_WIDTH: usize = 1000;

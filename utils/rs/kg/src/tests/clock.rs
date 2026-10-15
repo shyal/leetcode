@@ -12,8 +12,8 @@ use crate::drills::{
     drill_warm, due_drill, ANKI_EASE, ANKI_FUZZ_MIN_DAYS,
 };
 use crate::model::{
-    easy_share, proven_game_score, proven_score, proven_series, Game, Ground, Transfer, EASY_QUOTA,
-    EASY_WINDOW, PROVEN_WINDOW,
+    easy_share, proven_game_score, proven_score, proven_series, Band, Game, Ground, Transfer,
+    EASY_QUOTA, EASY_WINDOW, PROVEN_WINDOW,
 };
 use crate::pick::review_queue;
 use crate::status::{graduation_due, owned};
@@ -1870,4 +1870,58 @@ fn proven_rating_scores_a_slow_pass_as_a_hint() {
     ];
     let scores: Vec<f64> = games.iter().map(proven_game_score).collect();
     assert_eq!(scores, vec![0.5, 0.5, 0.0, 0.0]);
+}
+
+/// Each game goes to the band of its problem's rating, RATING_BAND wide:
+/// a first sight counts once in "first" and once more in "practiced" when
+/// every move was practiced before it; a repeat counts only in "repeat".
+/// A problem with no rating is left out.
+#[test]
+fn band_splits_games_by_problem_rating() {
+    let mut problems = crate::data::Problems::new();
+    for (k, moves) in [("1", &["a"][..]), ("2", &["c"][..]), ("3", &["a"][..])] {
+        problems.insert(k.to_string(), problem(moves));
+    }
+    let ev = evidence(vec![
+        drill_rep("Ay", "a", 50),
+        solve("1", &[("a", "clean")], 40),
+        solve("2", &[("c", "clean")], 30),
+        solve("3", &[("a", "clean")], 20),
+    ]);
+    let games = vec![
+        game("1", 40, true, false, "none", false), // 1550, a before: cold
+        game("2", 30, true, true, "none", false),  // 1599, c new: lost
+        game("1", 25, false, false, "none", false), // 1550 repeat: cold
+        game("3", 20, true, false, "none", false), // 1700, a before: cold
+        game("4", 10, true, false, "none", false), // no rating
+    ];
+    let rating = |p: &str| match p {
+        "1" => Some(1550.0),
+        "2" => Some(1599.9),
+        "3" => Some(1700.0),
+        _ => None,
+    };
+    assert_eq!(
+        Band::of(&games, &ev, &problems, rating),
+        vec![
+            Band {
+                low: 1500,
+                first: 2,
+                first_cold: 1,
+                practiced: 1,
+                practiced_cold: 1,
+                repeat: 1,
+                repeat_cold: 1
+            },
+            Band {
+                low: 1700,
+                first: 1,
+                first_cold: 1,
+                practiced: 1,
+                practiced_cold: 1,
+                repeat: 0,
+                repeat_cold: 0
+            },
+        ]
+    );
 }
