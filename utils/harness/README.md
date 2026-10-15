@@ -148,7 +148,7 @@ seed: fixes the tree; the global random state is untouched.
 
 Adjacency from an edge list. Each edge is [a, b] or, with weighted,
 [a, b, w]. Unweighted returns a dict of lists in edge order; weighted a
-dict of dicts, adj[a][b] = w. With n, nodes 0 to n - 1 are all keys,
+dict of dicts, `adj[a][b] = w`. With n, nodes 0 to n - 1 are all keys,
 isolated ones with an empty list. reverse reads each edge as b to a.
 directed=False adds both directions.
 
@@ -171,7 +171,7 @@ yields (d, items) once per level, items being the whole level as a list.
 
 Every popped item is checked before it is yielded. With eq, lt, lte, gt or
 gte, an item whose value fails one of them is dropped; the value is
-grid[item[0]][item[1]] when grid is given, else the item itself. With
+`grid[item[0]][item[1]]` when grid is given, else the item itself. With
 seen, an item already in seen is dropped and a kept item is added to it,
 so the caller can push without checking.
 
@@ -207,11 +207,12 @@ Every (i, j) of grid with i >= start and j >= start, in row-major order.
 With eq, lt, lte, gt or gte, only the cells whose value passes them all
 (see _holds). val is the old name for eq.
 
-### `nbrs(grid: Sequence[Sequence[Any]], r: int, c: int, dirs: Sequence[Cell] = CARDINALS, val: Any = None, eq: Any = None, lt: Any = None, lte: Any = None, gt: Any = None, gte: Any = None) -> Iterator[Cell]`
+### `nbrs(grid: Sequence[Sequence[Any]], r: Any, c: Optional[int] = None, dirs: Sequence[Cell] = CARDINALS, val: Any = None, eq: Any = None, lt: Any = None, lte: Any = None, gt: Any = None, gte: Any = None) -> Iterator[Cell]`
 
 The cells (r + dr, c + dc) for (dr, dc) in dirs that lie on grid.
-With eq, lt, lte, gt or gte, only the cells whose value passes them all
-(see _holds). val is the old name for eq.
+nbrs(grid, p) takes the cell as one pair. With eq, lt, lte, gt or gte,
+only the cells whose value passes them all (see _holds). val is the
+old name for eq.
 
 ### `in_bounds(grid: Sequence[Sequence[Any]], r: Any, c: Optional[int] = None) -> bool`
 
@@ -247,7 +248,7 @@ the index of the last cell.
 
 ### `put(grid: List[List[Any]], at: Iterable[Cell], v: Any) -> None`
 
-Set grid[i][j] = v for every (i, j) in at.
+Set `grid[i][j] = v` for every (i, j) in at.
 
 v is one value, or an iterable read once per cell in the order of at:
 put(dp, cells(dp), accumulate(...)).
@@ -285,7 +286,7 @@ Row i and column j of the table stand for the prefixes a[:i] and b[:j],
 so row 0 and column 0 are the empty prefix. With type=int (the default)
 each cell holds the length; with type=str, list or tuple it holds one
 LCS itself, built as that type. Plain lcs(a, b) is the last cell,
-dp[-1][-1]; full returns the whole table.
+`dp[-1][-1]`; full returns the whole table.
 
 ## generators
 
