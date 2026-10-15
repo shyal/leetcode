@@ -37941,6 +37941,17 @@
       "note": "CTE with dense_rank() over (partition by departmentId order by salary desc) filtered by rnk <= 3 in the outer query; ties preserved.",
       "summary": "The query builds a CTE `ranked` that computes dense_rank() over each department ordered by salary descending, then the outer select filters rnk <= 3. This exercises the window-rank move (dense_rank partitioned per department) and the subquery/CTE move (the ranked result wrapped and filtered outside). Both example assertions passed, and the notes contain no hints or look-ups.",
       "seconds": 400
+    },
+    "solved/d_Reverse_First_K_2026_10_15T20_38_35_368697_00_00Z.py": {
+      "date": "2026-10-16",
+      "problem": "drill",
+      "moves": {
+        "ll-pointer-reversal": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "The reversal itself lives in the harness helper linked_list_reverse_k; the candidate's code delegates to it, and the run passed all assertions.",
+      "summary": "The Solution.reverseFirstK method delegates to the harness helper linked_list_reverse_k, returning the reversed head for the first k nodes. The drill's assertions cover k=1, k=n, k in the middle, and a 5000-element list, all passing. The pointer-reversal move is exercised through the helper rather than written inline.",
+      "seconds": 50
     }
   }
 }
