@@ -37790,8 +37790,19 @@
     "solved/p554_Brick_Wall_2026_10_15T01_07_23_403433_00_00Z.py": {
       "date": "2026-10-15",
       "problem": "554",
-      "moves": {},
-      "pending": "2026-10-15T01:07:23+00:00",
+      "moves": {
+        "counter-build": "clean",
+        "counts-as-data": "clean",
+        "prefix-sums": "clean"
+      },
+      "assist": {
+        "counter-build": "hint",
+        "counts-as-data": "hint",
+        "prefix-sums": "hint"
+      },
+      "judge": "deepseek-chat",
+      "note": "notes say 'hinted'; LEETCODE: Accepted (8 ms, 23 MB)",
+      "summary": "The code walks each row, accumulating a running prefix sum c over all bricks except the last, and tallies how many rows have an edge at each position in a defaultdict count. The answer is len(wall) minus the largest tally, i.e. the fewest bricks crossed. It exercises prefix sums, counter building, and reading the counts as the dataset; the notes say it was hinted and that the question is questionable.",
       "seconds": 1884
     },
     "solved/d_Sum_Of_A_Run_2026_10_15T01_16_21_377156_00_00Z.py": {
@@ -37800,10 +37811,12 @@
       "moves": {
         "consecutive-sum-split": "clean"
       },
-      "pending": "2026-10-15T01:16:21+00:00",
       "assist": {
         "consecutive-sum-split": "learning"
       },
+      "judge": "deepseek-chat",
+      "note": "Notes say 'Learning'; the code computes the closed-form sum of k consecutive integers starting at n, the arithmetic half of the consecutive-sum-split move, but never tests k values to count ways.",
+      "summary": "The file defines Solution.sumOfRun(n, k) returning k * (2*n + k - 1) // 2, the closed form for the sum of k consecutive integers starting at n, and prints the result for (4, 3) as 15. It exercises the arithmetic identity behind consecutive-sum-split but not the loop that tests each k while k(k-1)/2 < n to count representations. The notes mark the work as Learning.",
       "seconds": 117
     },
     "solved/d_Split_Into_A_Run_2026_10_15T01_19_04_116597_00_00Z.py": {
@@ -37812,43 +37825,56 @@
       "moves": {
         "consecutive-sum-split": "clean"
       },
-      "pending": "2026-10-15T01:19:04+00:00",
       "assist": {
         "consecutive-sum-split": "learning"
       },
+      "judge": "deepseek-chat",
+      "note": "mu source: rest = n - k*(k-1)//2; rest > 0 and rest % k == 0 \u2014 the k consecutive integers sum to k*a + k(k-1)/2, so n is such a sum exactly when n - k(k-1)/2 is a positive multiple of k.",
+      "summary": "The mu solution computes rest = n - k*(k-1)//2 and returns whether rest is positive and divisible by k, the closed-form test for n being a sum of k consecutive positive integers. It exercises the consecutive-sum-split move directly, with no loop over k. The notes mark the file as Learning, so the solution was given and copied.",
       "seconds": 156
     },
     "solved/d_Equal_Pairs_2026_10_15T01_50_55_341970_00_00Z.py": {
       "date": "2026-10-15",
       "problem": "drill",
       "moves": {
-        "streaming-accumulate-pairs": "clean"
+        "streaming-accumulate-pairs": "clean",
+        "counter-build": "clean",
+        "streaming-ask-then-record": "clean"
       },
-      "pending": "2026-10-15T01:50:55+00:00",
+      "judge": "deepseek-chat",
+      "summary": "The code counts equal pairs by walking nums once, reading the running count C[n] before incrementing it, and adding that count to acc. This exercises streaming-accumulate-pairs (each pair counted at its second member), counter-build (defaultdict(int) tally), and streaming-ask-then-record (query the past count, then record the present). All assertions passed, including the 100000-element case.",
       "seconds": 110
     },
     "solved/d_Count_Pairs_2026_10_15T01_54_30_428456_00_00Z.py": {
       "date": "2026-10-15",
       "problem": "drill",
       "moves": {
-        "streaming-accumulate-pairs": "clean"
+        "streaming-accumulate-pairs": "clean",
+        "streaming-ask-then-record": "clean",
+        "derived-key-lookup": "clean",
+        "counter-build": "clean"
       },
-      "pending": "2026-10-15T01:54:30+00:00",
       "assist": {
         "streaming-accumulate-pairs": "learning"
       },
+      "judge": "deepseek-chat",
+      "note": "mu source shows the fold `sum for x in xs` accumulating matches; notes say Learning.",
+      "summary": "The code walks xs once, keeping a Counter of keys seen so far; at each x it looks up the count for want(x), adds it to acc, then records by(x). This exercises streaming-ask-then-record, derived-key-lookup, counter-build, and streaming-accumulate-pairs, counting each pair at its second member rather than returning early. All assertions pass, including the large 10^5 cases, and the notes mark the work as Learning.",
       "seconds": 192
     },
     "solved/d_Divisible_Difference_Pairs_2026_10_15T02_17_28_752486_00_00Z.py": {
       "date": "2026-10-15",
       "problem": "drill",
       "moves": {
-        "derived-key-lookup": "clean"
+        "derived-key-lookup": "clean",
+        "pair-count-formula": "clean"
       },
-      "pending": "2026-10-15T02:17:28+00:00",
       "assist": {
         "derived-key-lookup": "learning"
       },
+      "judge": "deepseek-chat",
+      "note": "Solution delegates to harness count_pairs with by=lambda x: x % m; the residue is the derived key.",
+      "summary": "The solution calls count_pairs(nums, by=lambda x: x % m), grouping elements by their residue modulo m and counting pairs within each group. The derived key is the residue x % m, and the pair counting is handled by the harness helper. The notes mark this as a Learning drill, so the approach was given and copied.",
       "seconds": 836
     },
     "solved/d_Indices_Of_Each_Character_2026_10_15T02_19_36_292619_00_00Z.py": {
@@ -37857,23 +37883,34 @@
       "moves": {
         "dict-arbitrary-value": "clean"
       },
-      "pending": "2026-10-15T02:19:36+00:00",
+      "judge": "deepseek-chat",
+      "summary": "The solution builds a defaultdict(list) mapping each character to the list of its indices, using a helper _pushed that appends each (value, index) pair from enumerate(s). This exercises dict-arbitrary-value by choosing the index list as the stored value. All assertions, including the 100000-character case, passed on execution.",
       "seconds": 92
     },
     "solved/d_Pick_One_Letter_2026_10_15T02_21_45_878420_00_00Z.py": {
       "date": "2026-10-15",
       "problem": "drill",
       "moves": {
+        "running-sum": "clean",
         "dp-1d-rolling": "clean"
       },
-      "pending": "2026-10-15T02:21:45+00:00",
+      "judge": "deepseek-chat",
+      "note": "Target node dp-1d-rolling is not exercised: the code is a single-pass running count, not a filled 1D DP table.",
+      "summary": "The generator countPicks walks s once, yielding the running count of c before each character and incrementing count when ch == c, then yields the final count; as_list wraps it into a list. All assertions pass, including the 100000-character case. The move exercised is a running-sum scan; the targeted dp-1d-rolling table fill never appears.",
       "seconds": 110
     },
     "solved/p3598_Longest_Common_Prefix_Between_Adjacent_Strings_After_Removals_FAILED_2026_10_15T02_53_38_056654_00_00Z.py": {
       "date": "2026-10-15",
       "problem": "3598",
-      "moves": {},
-      "pending": "2026-10-15T02:53:38+00:00",
+      "moves": {
+        "prefix-suffix-two-pass": "clean",
+        "string-build-transform": "clean",
+        "memoize-recursion": "clean",
+        "substring-enumeration": "struggled"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Time Limit Exceeded (705/718 cases) - the O(n^2) brute force recomputes prefix_lenth for every removal; the canonical prefix/suffix precompute is present in the commented mu block but the submitted code lacks it.",
+      "summary": "The submitted code brute-forces each removal: for every index it rebuilds the array without that word and scans all adjacent pairs, calling prefix_lenth on each. The commented mu block shows the intended prefix/suffix two-pass with a bridge term, but the running code never uses it. LeetCode rejected it with Time Limit Exceeded at 705/718 cases, and the notes say the candidate walked away after 30m 48s with no working solution.",
       "seconds": 1848
     }
   }
