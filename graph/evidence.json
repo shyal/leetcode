@@ -37952,6 +37952,16 @@
       "note": "The reversal itself lives in the harness helper linked_list_reverse_k; the candidate's code delegates to it, and the run passed all assertions.",
       "summary": "The Solution.reverseFirstK method delegates to the harness helper linked_list_reverse_k, returning the reversed head for the first k nodes. The drill's assertions cover k=1, k=n, k in the middle, and a 5000-element list, all passing. The pointer-reversal move is exercised through the helper rather than written inline.",
       "seconds": 50
+    },
+    "solved/d_Manager_Name_2026_10_15T20_42_42_043605_00_00Z.py": {
+      "date": "2026-10-16",
+      "problem": "drill",
+      "moves": {
+        "sql-self-join": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The query joins Employees to itself, aliasing the reporting row as e and the manager row as m, matching e.reports_to = m.employee_id, and selects e.name with m.name as manager_name. The inner join drops rows with NULL reports_to, so only employees who have a manager appear. Both example assertions passed.",
+      "seconds": 229
     }
   }
 }
