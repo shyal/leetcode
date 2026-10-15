@@ -37745,6 +37745,18 @@
       "judge": "deepseek-chat",
       "summary": "The solution sums the squares of the input list with a generator expression inside sum, exercising the running-sum accumulation move. All assertions passed, including the large 100000-element case, and the mu source shows the same fold. No notes indicate any help or recognition difficulty.",
       "seconds": 30
+    },
+    "solved/d_Index_Of_Largest_2026_10_15T00_06_17_365848_00_00Z.ts": {
+      "date": "2026-10-15",
+      "problem": "drill",
+      "moves": {
+        "ts-index-loop": "clean",
+        "ts-set-membership": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "The set.has/add bookkeeping is redundant for finding the first index of the max, but the run passed all assertions.",
+      "summary": "The function scans nums with a classic for (let i = 0; i < nums.length; i += 1) index loop, tracking max and the index where it first appears. It also keeps a Set of seen maxima, checking has before add, though that set does not affect the returned index. All four assertions passed, including the duplicate-max case [1, 7, 7] returning 1.",
+      "seconds": 434
     }
   }
 }
