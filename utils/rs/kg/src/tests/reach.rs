@@ -75,7 +75,8 @@ fn a_banned_draft_is_never_promoted() {
     let st = statuses(&[("m", FRAGILE, Some(1))]);
     assert_eq!(pnum(&fx.run(&no_evidence(), &st, args())), "9002");
     let mut fx = Fx::picker();
-    fx.nodes(&["m"]).draft("9001", drafted(&["m"]).banned(), "Easy");
+    fx.nodes(&["m"])
+        .draft("9001", drafted(&["m"]).banned(), "Easy");
     let st = statuses(&[("m", FRAGILE, Some(1))]);
     assert!(fx.run(&no_evidence(), &st, args()).is_none());
 }

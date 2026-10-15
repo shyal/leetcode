@@ -10,6 +10,8 @@ import glob
 import os
 import subprocess
 
+import pytest
+
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 BIN = os.path.join(ROOT, "utils", "rs", "target", "release", "lc_submit")
 
@@ -23,6 +25,7 @@ DRAWING_INSIDE_THE_CLASS = {
     "p215_Kth_Largest_Element_in_an_Array_2025_10_01T21_36_57_881287.py": "draw_heap",
     "p215_Kth_Largest_Element_in_an_Array_2025_10_13T23_55_00_633244_00_00Z.py": "draw_heap",
     "p227_Basic_Calculator_II_FAILED_2026_08_18T23_51_13_723603_00_00Z.py": "draw_tree",
+    "p3071_Minimum_Operations_to_Write_the_Letter_Y_on_a_Grid_FAILED_2026_10_13T05_05_57_171114_00_00Z.py": "tabulate",
     "p300_Longest_Increasing_Subsequence_2026_09_16T03_03_42_528410_00_00Z.py": "tabulate",
     "p310_Minimum_Height_Trees_2025_11_07T09_13_20_081069_00_00Z.py": "draw_graphviz",
     "p310_Minimum_Height_Trees_2025_11_09T08_25_21_052230_00_00Z.py": "draw_graphviz",
@@ -37,6 +40,27 @@ DRAWING_INSIDE_THE_CLASS = {
     "p947_Most_Stones_Removed_with_Same_Row_or_Column_2025_11_04T23_13_11_644520_00_00Z.py": "draw_graphviz",
     "p973_K_Closest_Points_to_Origin_2025_10_14T03_32_17_909605_00_00Z.py": "draw_heap",
 }
+
+
+@pytest.fixture(scope="module", autouse=True)
+def build_lc_submit():
+    # under pytest -n auto this file can run on a worker before any other
+    # test has built the workspace
+    subprocess.run(
+        [
+            "cargo",
+            "build",
+            "--release",
+            "--quiet",
+            "-p",
+            "lc_submit",
+            "--manifest-path",
+            os.path.join(ROOT, "utils", "rs", "Cargo.toml"),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
 
 
 def test_every_filed_solve_strips_to_what_leetcode_can_run():

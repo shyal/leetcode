@@ -1076,7 +1076,7 @@ impl<'a> Picker<'a> {
                     !self.args.asleep.contains(c)
                         && !self.args.exclude.contains(c.as_str())
                         && cooled(self.ev, c, self.today)
-                        && !(no_reviews && !last_solved(self.ev, c).is_empty())
+                        && (!no_reviews || last_solved(self.ev, c).is_empty())
                 })
                 .collect()
         };
@@ -1244,7 +1244,7 @@ impl<'a> Picker<'a> {
                 !self.args.asleep.contains(c)
                     && !self.args.exclude.contains(c.as_str())
                     && cooled(self.ev, c, self.today)
-                    && !(no_reviews && !last_solved(self.ev, c).is_empty())
+                    && (!no_reviews || last_solved(self.ev, c).is_empty())
             })
             .cloned()
             .collect();
@@ -1786,7 +1786,7 @@ fn pick_pass(
                             !args.asleep.contains(c)
                                 && !args.exclude.contains(c)
                                 && cooled(ev, c, today)
-                                && !(no_reviews && !last_solved(ev, c).is_empty())
+                                && (!no_reviews || last_solved(ev, c).is_empty())
                         })
                         .collect()
                 };

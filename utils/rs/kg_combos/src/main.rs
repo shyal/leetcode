@@ -204,7 +204,15 @@ fn main() {
     };
     let mut table = Table::bare(
         &[
-            "#", "problem", "rating", "label", "leetcode", "tries", "verdicts", "last", "this pass",
+            "#",
+            "problem",
+            "rating",
+            "label",
+            "leetcode",
+            "tries",
+            "verdicts",
+            "last",
+            "this pass",
         ],
         true,
         2,

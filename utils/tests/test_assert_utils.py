@@ -1,6 +1,6 @@
 import pytest
-from adj_utils import adjacency, indegrees
 from assert_utils import same_rows, same_seq, uses
+from pydsa.adj import adjacency, indegrees
 
 
 def test_same_rows_ignores_order_inside_a_row():
