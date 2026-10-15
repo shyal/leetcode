@@ -37912,6 +37912,19 @@
       "note": "LEETCODE: Time Limit Exceeded (705/718 cases) - the O(n^2) brute force recomputes prefix_lenth for every removal; the canonical prefix/suffix precompute is present in the commented mu block but the submitted code lacks it.",
       "summary": "The submitted code brute-forces each removal: for every index it rebuilds the array without that word and scans all adjacent pairs, calling prefix_lenth on each. The commented mu block shows the intended prefix/suffix two-pass with a bridge term, but the running code never uses it. LeetCode rejected it with Time Limit Exceeded at 705/718 cases, and the notes say the candidate walked away after 30m 48s with no working solution.",
       "seconds": 1848
+    },
+    "solved/d_Rank_Within_Each_Team_2026_10_15T20_28_58_248336_00_00Z.py": {
+      "date": "2026-10-16",
+      "problem": "drill",
+      "moves": {
+        "sql-window-rank": "clean"
+      },
+      "assist": {
+        "sql-window-rank": "learning"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The query uses dense_rank() over (partition by team order by points desc) to restart ranking at 1 per team with shared ranks and no holes. The run passed and produced the expected output for both examples. The notes say the candidate forgot about 'partition by' and marked the work as learning, with a recognition miss on the window-rank move.",
+      "seconds": 274
     }
   }
 }
