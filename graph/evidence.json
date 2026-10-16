@@ -38176,6 +38176,17 @@
       "note": "Two mu versions shown; the second (peeked buffer) is the one that ran and was Accepted.",
       "summary": "The PeekingIterator wraps an Iterator and buffers one element in self.peeked: peek() pulls and stores the next value if nothing is buffered, next() returns the buffer and clears it or delegates, and hasNext() reports True while a buffered value exists. This exercises the ask-then-record pattern of querying the running state before advancing. The mu source shows two attempts, the first peeking directly into the underlying iterator's index and the second using the peeked buffer, which is the version that ran and was Accepted (49 ms). The follow-up asks for a generic design, but the code is typed to integer lists and does not address it.",
       "seconds": 736
+    },
+    "solved/p1319_Number_of_Operations_to_Make_Network_Connected_2026_10_16T18_12_01_045666_00_00Z.py": {
+      "date": "2026-10-17",
+      "problem": "1319",
+      "moves": {
+        "union-find": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Accepted (4350 ms, 34 MB); find lacks path compression so it is slow but correct",
+      "summary": "The code builds a parent array and defines find/union, counting successful unions as it walks the connections, then counts distinct roots with a set to get the number of groups. It computes spare cables as num_cables - joined and returns groups - 1 when spare is enough, else -1. This exercises union-find; the notes are empty and LeetCode accepted the submission.",
+      "seconds": 1014
     }
   }
 }
