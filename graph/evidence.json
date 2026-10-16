@@ -38022,6 +38022,16 @@
       "judge": "deepseek-chat",
       "summary": "The code walks the event stream once, pushing a new Node on each 'start' and popping on each 'end', then computing dur from the popped node's start time. This is the stack-nested-eval move: entering a nested scope pushes the partial context, closing it pops and combines. All assertions passed, so the target move is clean.",
       "seconds": 378
+    },
+    "solved/d_Fewest_Coins_2026_10_16T02_17_43_540305_00_00Z.py": {
+      "date": "2026-10-16",
+      "problem": "drill",
+      "moves": {
+        "dp-1d-rolling": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The code builds a 1D dp table of size amount+1 filled with inf, sets dp[0]=0, then fills forward: for each amount a it tries every coin c <= a and takes min(dp[a], dp[a-c]+1). It returns -1 when dp[-1] is still inf. The run passed all assertions, exercising the 1D rolling DP move.",
+      "seconds": 248
     }
   }
 }
