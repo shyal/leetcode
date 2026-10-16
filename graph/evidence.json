@@ -38106,6 +38106,24 @@
       "note": "LeetCode verdict Accepted (3 ms, 19.1 MB).",
       "summary": "The code precomputes suffix minima with accumulate(nums[::-1], min) reversed, then scans left to right keeping a running maximum _max and returns the first index where _max - _min[i] <= k, else -1. It exercises the running-extreme move (max-so-far while scanning) and the prefix-suffix-two-pass move (suffix-min array combined with the left-to-right running max). The notes are empty and LeetCode reports Accepted.",
       "seconds": 303
+    },
+    "solved/p2447_Number_of_Subarrays_With_GCD_Equal_to_K_2026_10_16T14_34_30_729787_00_00Z.py": {
+      "date": "2026-10-16",
+      "problem": "2447",
+      "moves": {
+        "substring-enumeration": "clean",
+        "gcd-reduction": "clean",
+        "running-sum": "clean"
+      },
+      "assist": {
+        "gcd-reduction": "learning",
+        "substring-enumeration": "learning",
+        "running-sum": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Accepted (63 ms, 19.2 MB); notes say 'Got solution from Claude' and 'Learning'",
+      "summary": "The final Solution loops over each start i, keeps a running gcd g starting at 0, extends the subarray one element at a time, breaks when g % k != 0, and counts when g == k. This exercises substring enumeration by start, gcd reduction, and a running accumulator. The notes show a brute-force pairs version, a failed divisibility/counter attempt, and state the accepted approach was obtained from Claude and marked Learning.",
+      "seconds": 2194
     }
   }
 }
