@@ -38138,6 +38138,20 @@
       "note": "LeetCode: Accepted (1 ms, 19.3 MB)",
       "summary": "The code splits num into digits with to_digits (divmod loop), records each position's parity, buckets the even and odd digits into lists, sorts each ascending, then rebuilds the number by popping the largest remaining digit of the matching parity at each position via to_int. This exercises digit decomposition, parity bucketing, and the greedy sort-then-take reconstruction. The notes are empty and LeetCode reports Accepted.",
       "seconds": 362
+    },
+    "solved/p172_Factorial_Trailing_Zeroes_2026_10_16T15_34_01_540578_00_00Z.py": {
+      "date": "2026-10-16",
+      "problem": "172",
+      "moves": {
+        "divmod-decompose": "clean",
+        "binary-search-boundary": "clean",
+        "modular-cycle": "clean"
+      },
+      "judge": "deepseek-chat",
+      "followup": "not solved",
+      "note": "LeetCode: Accepted (6747 ms, 34.2 MB) \u2014 the log-time follow-up is not met: factorial(n) is computed in O(n) and the digit count uses math.log on the huge integer.",
+      "summary": "The code computes factorial(n) with a while loop, takes ceil(log10(fact)) as the digit count, then uses first_true (bisect_left over a monotone predicate) to find the first power of 10 that does not divide fact, returning that index minus one. It exercises divmod-based digit decomposition, a binary-search boundary via bisect_left, and modular divisibility checks. The notes carry LeetCode's Accepted verdict at 6747 ms; the logarithmic-time follow-up is not satisfied because the factorial is built in O(n) and math.log is applied to the full integer.",
+      "seconds": 1596
     }
   }
 }
