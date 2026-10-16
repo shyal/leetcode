@@ -32,7 +32,7 @@ from collections import Counter, OrderedDict, defaultdict, deque
 from collections.abc import Callable as Callable
 from functools import *
 from itertools import *
-from math import ceil, floor, gcd, inf, isclose, log2, log10, prod, sqrt
+from math import ceil, floor, gcd, inf, isclose, log, log2, log10, prod, sqrt
 from random import (
     choice,
     choices,
@@ -96,7 +96,7 @@ from grid_utils import *
 from heap_utils import *
 from linked_list_utils import *
 from ll_utils import *
-from pydsa.arith import batched, ceil_div
+from pydsa.arith import batched, ceil_div, factorial
 from pydsa.heaps import (
     maxheapify,
     maxheapitems,
@@ -377,6 +377,7 @@ builtins.triples = triples
 # digits
 builtins.to_digits = to_digits
 builtins.to_int = to_int
+builtins.num_digits = num_digits
 builtins.even = even
 builtins.odd = odd
 
@@ -394,6 +395,7 @@ builtins.is_balanced = is_balanced
 builtins.is_valid_bst = is_valid_bst
 builtins.groupby = groupby
 builtins.combinations = combinations
+builtins.log = log
 builtins.log10 = log10
 builtins.log2 = log2
 builtins.floor = floor
@@ -491,6 +493,7 @@ builtins.getrandbits = getrandbits
 # misc
 builtins.batched = batched
 builtins.ceil_div = ceil_div
+builtins.factorial = factorial
 
 
 import sys

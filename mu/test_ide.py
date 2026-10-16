@@ -174,7 +174,7 @@ def test_completion_filters_by_the_prefix():
 
 def test_completion_in_a_loop_header():
     labels = [c["label"] for c in ide.complete(req("complete", 10, 17))]
-    assert labels == ["nums"]
+    assert labels == ["nums", "num_digits"]
 
 
 def test_signature_inside_a_call():

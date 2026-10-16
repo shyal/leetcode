@@ -43,6 +43,7 @@ grid_bfs(grid, sources)               # steps from the nearest source to every c
 grid_bfs(grid, sources, ok=v -> v == 0)  # enters a cell only if ok(grid[cell]); also dirs
 triples(n)                            # every (i, j, k) with 0 <= i < j < k < n
 ceil_div(a, b)                        # (a + b - 1) // b
+factorial(n)                          # n!, for n >= 0; factorial(0) is 1
 first_true(lo, hi, ok)                # smallest x in lo..hi with ok(x); hi + 1 if none
 last_true(lo, hi, ok)                 # largest x in lo..hi with ok(x); lo - 1 if none
 first_false(lo, hi, ok)               # smallest x in lo..hi without ok(x); hi + 1 if none
@@ -57,6 +58,7 @@ to_int(ds)                            # the int with these digits, most signific
 to_int(ds, reverse=True)              # the inverse of to_digits(num, reverse=True)
 to_digits(num, base=2)                # the bits of num, most significant first; any base works
 to_int(bits, base=2)                  # the int with these bits; any base works
+num_digits(num)                       # the count of digits of num; 0 has one digit; also base=
 even(n)                               # n % 2 == 0
 odd(n)                                # n % 2 == 1
 ```

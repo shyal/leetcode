@@ -403,7 +403,7 @@ they are already available without imports:
 - Collections: Counter, defaultdict, OrderedDict, deque
 - Functools/itertools: cache, reduce, chain, combinations, permutations, product, accumulate,
   groupby, pairwise, zip_longest, takewhile, dropwhile, starmap, islice, compress
-- Math: gcd, isclose, log2, log10, floor, ceil, prod, sqrt, maxsize
+- Math: gcd, isclose, log, log2, log10, floor, ceil, prod, sqrt, maxsize
 - Heapq: heapify, heappop, heappush, nlargest, nsmallest
 - Bisect: bisect_left, bisect_right
 - Strings: ascii_letters, ascii_lowercase, ascii_uppercase, digits, hexdigits
