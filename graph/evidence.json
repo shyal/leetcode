@@ -38074,6 +38074,16 @@
       "note": "Drill rung: buildParent returns [*range(0, n)], the identity parent array union-find starts from; the mutation assertion confirms it is a plain list.",
       "summary": "The drill builds the initial parent array for union-find by returning [*range(0, n)], so parent[i] == i for every index. The assertions check n=4, n=1, and that the returned list is mutable (parent[1] = 0). This exercises the union-find setup move only; no find or union is implemented.",
       "seconds": 26
+    },
+    "solved/d_Find_Roots_2026_10_16T02_31_56_823251_00_00Z.py": {
+      "date": "2026-10-16",
+      "problem": "drill",
+      "moves": {
+        "union-find": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The code builds a find function over a parent array: find(x) returns x when x is its own parent, otherwise recurses on parent[x]. The drill exercises the find half of union-find, and the assertions confirm it resolves roots across chains, self-loops, and a single-element array. The run exited 0 with all assertions passing.",
+      "seconds": 68
     }
   }
 }
