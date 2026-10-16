@@ -38152,6 +38152,18 @@
       "note": "LeetCode: Accepted (6747 ms, 34.2 MB) \u2014 the log-time follow-up is not met: factorial(n) is computed in O(n) and the digit count uses math.log on the huge integer.",
       "summary": "The code computes factorial(n) with a while loop, takes ceil(log10(fact)) as the digit count, then uses first_true (bisect_left over a monotone predicate) to find the first power of 10 that does not divide fact, returning that index minus one. It exercises divmod-based digit decomposition, a binary-search boundary via bisect_left, and modular divisibility checks. The notes carry LeetCode's Accepted verdict at 6747 ms; the logarithmic-time follow-up is not satisfied because the factorial is built in O(n) and math.log is applied to the full integer.",
       "seconds": 1596
+    },
+    "solved/p46_Permutations_2026_10_16T16_04_08_183365_00_00Z.py": {
+      "date": "2026-10-17",
+      "problem": "46",
+      "moves": {
+        "backtracking-choose-undo": "clean",
+        "backtracking-mark-unmark": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LeetCode: Accepted (1 ms, 19.2 MB)",
+      "summary": "The code builds permutations with a recursive helper that appends nums[j] to path, recurses, then pops it, and flips used[j] True before the call and False after. The base case copies path[::] into res when its length equals len(nums). Both the choose/undo and mark/unmark moves are exercised, and the run passed all assertions with LeetCode reporting Accepted.",
+      "seconds": 253
     }
   }
 }
