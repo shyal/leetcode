@@ -38063,6 +38063,17 @@
       "judge": "deepseek-chat",
       "summary": "The Solution keeps a per-user deque of hit timestamps and a window size. On each hit it pops timestamps from the front while they fall outside the window, appends the new timestamp, and returns the deque length. This is exactly the sliding-window-log move, and the run passed all assertions.",
       "seconds": 465
+    },
+    "solved/d_Build_Parents_2026_10_16T02_30_40_105452_00_00Z.py": {
+      "date": "2026-10-16",
+      "problem": "drill",
+      "moves": {
+        "union-find": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill rung: buildParent returns [*range(0, n)], the identity parent array union-find starts from; the mutation assertion confirms it is a plain list.",
+      "summary": "The drill builds the initial parent array for union-find by returning [*range(0, n)], so parent[i] == i for every index. The assertions check n=4, n=1, and that the returned list is mutable (parent[1] = 0). This exercises the union-find setup move only; no find or union is implemented.",
+      "seconds": 26
     }
   }
 }
