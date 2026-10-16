@@ -38164,6 +38164,18 @@
       "note": "LeetCode: Accepted (1 ms, 19.2 MB)",
       "summary": "The code builds permutations with a recursive helper that appends nums[j] to path, recurses, then pops it, and flips used[j] True before the call and False after. The base case copies path[::] into res when its length equals len(nums). Both the choose/undo and mark/unmark moves are exercised, and the run passed all assertions with LeetCode reporting Accepted.",
       "seconds": 253
+    },
+    "solved/p284_Peeking_Iterator_2026_10_16T17_37_37_940324_00_00Z.py": {
+      "date": "2026-10-17",
+      "problem": "284",
+      "moves": {
+        "streaming-ask-then-record": "clean"
+      },
+      "judge": "deepseek-chat",
+      "followup": "not solved",
+      "note": "Two mu versions shown; the second (peeked buffer) is the one that ran and was Accepted.",
+      "summary": "The PeekingIterator wraps an Iterator and buffers one element in self.peeked: peek() pulls and stores the next value if nothing is buffered, next() returns the buffer and clears it or delegates, and hasNext() reports True while a buffered value exists. This exercises the ask-then-record pattern of querying the running state before advancing. The mu source shows two attempts, the first peeking directly into the underlying iterator's index and the second using the peeked buffer, which is the version that ran and was Accepted (49 ms). The follow-up asks for a generic design, but the code is typed to integer lists and does not address it.",
+      "seconds": 736
     }
   }
 }
