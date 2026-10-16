@@ -438,6 +438,22 @@ plain count_pairs(xs) counts the pairs of equal values.
 >>> count_pairs([3, 1, 4, 6, 3], want=lambda x: x - 2)
 2
 
+### `max_diff(xs: Iterable[Any], by: Optional[Callable[[Any], Any]] = None, reverse: bool = False) -> List[Any]`
+
+The largest by(xs[j]) - by(xs[i]) with i < j, so far, for each j
+from 1: one value per index after the first.
+
+by(x) is the value compared; with by left out it is x itself. reverse
+flips the difference to by(xs[i]) - by(xs[j]): the largest fall, not
+the largest rise.
+
+>>> max_diff([12, 6, 1, 2, 7])
+[-6, -5, 1, 6]
+>>> max_diff([12, 6, 1, 2, 7], reverse=True)
+[6, 11, 11, 11]
+>>> max([0, *max_diff([7, 6, 4, 3, 1])])
+0
+
 ## heaps
 
 ### `maxheapify(h: list) -> None`
