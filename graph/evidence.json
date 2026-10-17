@@ -38187,6 +38187,17 @@
       "note": "LEETCODE: Accepted (4350 ms, 34 MB); find lacks path compression so it is slow but correct",
       "summary": "The code builds a parent array and defines find/union, counting successful unions as it walks the connections, then counts distinct roots with a set to get the number of groups. It computes spare cables as num_cables - joined and returns groups - 1 when spare is enough, else -1. This exercises union-find; the notes are empty and LeetCode accepted the submission.",
       "seconds": 1014
+    },
+    "solved/d_Reports_Per_Manager_2026_10_17T22_29_40_136684_00_00Z.py": {
+      "date": "2026-10-18",
+      "problem": "drill",
+      "moves": {
+        "sql-self-join": "clean",
+        "sql-group-aggregate": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The query self-joins Employees as e and r on e.employee_id = r.reports_to, so each manager row pairs with their direct reports. It groups by e.employee_id and aggregates count(r.employee_id) and round(sum(r.age)*1.0/count(...)) for the report count and average age. Both target moves, the self-join and the group aggregate, are exercised and the run passed both examples.",
+      "seconds": 364
     }
   }
 }

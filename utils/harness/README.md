@@ -371,6 +371,13 @@ The int whose digits in the given base are the list, most significant first.
 With reverse=True the list is read least significant first, the inverse
 of to_digits(num, reverse=True). An empty list is 0. base=2 reads bits.
 
+### `num_digits(num: int, base: int = 10) -> int`
+
+The count of digits of num in the given base; 0 has one digit.
+
+A negative int loses its sign. It does not convert num to a str, so it
+is fast on big ints and has no int max str digits limit.
+
 ### `even(n: int) -> bool`
 
 True when n is even.
@@ -479,5 +486,9 @@ s cut into pieces of n; the last piece holds what is left.
 ### `ceil_div(a: int, b: int) -> int`
 
 a / b rounded up, for a >= 0 and b > 0.
+
+### `factorial(n: int) -> int`
+
+n! = n * (n - 1) * ... * 2 * 1, for n >= 0; 0! is 1.
 
 ### `run_with_input(input_str, main)`

@@ -4,7 +4,7 @@ This is a mix of leetcode problems, as well as several language drills.
 
 <!-- GAUGES -->
 
-![Progress: algorithms first sight, algorithms current reach, python, typescript, rust, sql, systems design](https://shyal.s3.amazonaws.com/gauges_20261016103503.svg)
+![Progress: algorithms first sight, algorithms current reach, python, typescript, rust, sql, systems design](https://shyal.s3.amazonaws.com/gauges_20261018062157.svg)
 
 <!-- /GAUGES -->
 
