@@ -38209,6 +38209,19 @@
       "judge": "deepseek-chat",
       "summary": "The query groups Transactions by country and computes approved_count with sum(case when state = 'approved' then 1 else 0 end), so declined-only countries still appear with 0. It exercises the conditional-aggregate pivot and the GROUP BY aggregate in one pass, and both example assertions passed.",
       "seconds": 126
+    },
+    "solved/d_Second_Distinct_Salary_2026_10_17T22_38_47_839364_00_00Z.py": {
+      "date": "2026-10-18",
+      "problem": "drill",
+      "moves": {
+        "sql-nth-value": "clean"
+      },
+      "assist": {
+        "sql-nth-value": "hint"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The query selects DISTINCT salary, orders descending, and uses LIMIT 1 OFFSET 1 to skip past the highest distinct salary, wrapped so a missing second value yields one NULL row. Both example assertions pass, including the repeated-300 case where DISTINCT collapses duplicates to 100.",
+      "seconds": 298
     }
   }
 }
