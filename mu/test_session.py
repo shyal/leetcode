@@ -187,6 +187,35 @@ def test_a_current_mu_for_another_drill_is_not_run(tmp_path):
     assert "current.mu" not in run.stderr
 
 
+def test_drill_fill_leaves_the_heaviest_lines_of_the_latest_solve(tmp_path):
+    """DRILL_FILL: the drill server notes the fill in the statement and writes
+    .mu_fill; the stub gives the solved file's mu solve with its heaviest
+    half put as `pass` (the prefix sums and the answer), setup and the
+    count kept, and the filled stub still runs."""
+    ref = reference("d11_")
+    (tmp_path / "solved").mkdir()
+    (tmp_path / "solved" / "d_x.py").write_text(
+        f"# mu {VERSION}\n"
+        + "".join(f"# {ln}\n" for ln in open(ref).read().split("\n")[1:])
+    )
+    drill = open(drill_for(ref)).read()
+    at = [m.start() for m in re.finditer('"""', drill)][1]
+    note = "\nDRILL_FILL: part of the solve is given, from solved/d_x.py.\n"
+    (tmp_path / "current.py").write_text(drill[:at] + note + drill[at:])
+    (tmp_path / ".mu_fill").write_text('{"source": "solved/d_x.py", "blank": [1, 2]}')
+    assert "DRILL_FILL gives" in session(tmp_path, "stub").stdout
+    mu = (tmp_path / "current.mu").read_text()
+    assert "    count = table(101" in mu and "      count[x] += 1\n" in mu
+    assert "    pass\n    pass\n" in mu and "scan" not in mu
+    transpile(mu)
+
+
+def test_drill_fill_is_left_out_for_another_drill(tmp_path):
+    (tmp_path / "current.py").write_text(open(drill_for(reference("d11_"))).read())
+    (tmp_path / ".mu_fill").write_text('{"source": "solved/d_x.py", "blank": [1, 2]}')
+    assert "DRILL_FILL" not in session(tmp_path, "stub").stdout
+
+
 def test_a_mu_syntax_error_names_the_line(tmp_path):
     shutil.copy(drill_for(reference("d115_")), tmp_path / "current.py")
     (tmp_path / "current.mu").write_text(

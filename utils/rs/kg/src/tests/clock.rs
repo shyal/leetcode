@@ -1925,3 +1925,36 @@ fn band_splits_games_by_problem_rating() {
         ]
     );
 }
+
+// --------------------------------------------------------------------------
+// DRILL_FILL
+// --------------------------------------------------------------------------
+
+/// The Good reps in a row count from the end; an Again or a Hard starts
+/// the count again. After k Good reps in a row 1/(k+1) of the solve is
+/// left to write; with no streak, all of it.
+#[test]
+fn drill_fill_leaves_less_of_the_solve_with_each_good_rep_in_a_row() {
+    use crate::drills::{fill_share, good_streak};
+    let mut fx = Fx::new();
+    let path = fx.bank("n", "Fill", "f.py", "d1", &[]);
+    let ctx = fx.ctx();
+    let key = ctx.drill_evidence_key(&path);
+    assert_eq!(good_streak(&key, &no_evidence()), (0, None));
+    let ev = evidence(vec![
+        drill_rep("Fill", "n", 20),
+        drill_rep_v("Fill", "n", 15, "fragile", Assist::None),
+        drill_rep("Fill", "n", 10),
+        drill_rep("Fill", "n", 5),
+        drill_rep("Fill", "n", 2),
+    ]);
+    assert_eq!(good_streak(&key, &ev), (3, Some("solved/d_Fill_2.py")));
+    let hinted = evidence(vec![
+        drill_rep("Fill", "n", 10),
+        drill_rep_a("Fill", "n", 5, assist_map(&[("n", "hint")])),
+    ]);
+    assert_eq!(good_streak(&key, &hinted), (0, None));
+    assert_eq!(fill_share(0), None);
+    assert_eq!(fill_share(1), Some((1, 2)));
+    assert_eq!(fill_share(3), Some((1, 4)));
+}

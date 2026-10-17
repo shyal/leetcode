@@ -26,7 +26,7 @@ learning: $(RS_BIN)/learning
 # are never picked by hand), and last the Claude
 # Code pane follows the branch (kg_chat --switch: detached, a no-op when
 # the pane is already on this branch)
-prepare: $(RS_BIN)/prepare $(RS_BIN)/kg_chat $(RS_BIN)/kg_open
+prepare: $(RS_BIN)/prepare $(RS_BIN)/drill $(RS_BIN)/kg_chat $(RS_BIN)/kg_open
 	@if [ "$(firstword $(MAKECMDGOALS))" != next ] && [ "$(firstword $(MAKECMDGOALS))" != dependents ] && [ "$(firstword $(MAKECMDGOALS))" != combos ]; then $(RS_BIN)/prepare $(filter-out $@,$(MAKECMDGOALS)) || exit 1; fi; .venv/bin/python3 mu/session.py stub
 	@$(RS_BIN)/kg_open
 	@$(RS_BIN)/kg_chat --switch

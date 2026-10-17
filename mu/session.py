@@ -1,6 +1,7 @@
 """The mu side of a solve: current.mu, the one file to work in.
 
-    python mu/session.py stub    after serving: write current.mu
+    python mu/session.py stub    after serving: write current.mu (DRILL_FILL:
+                                 the top of the solve given, from .mu_fill)
     python mu/session.py run [file.mu] [--color|--no-color]
                                  `make`: run the solve from current.mu, in place;
                                  or any mu file on its own
@@ -38,6 +39,7 @@ from mulang import VERSION, MuError, Parser, fmt, mu_type, transpile  # noqa: E4
 
 CURRENT, MU, STUB, RUN = "current.py", "current.mu", ".mu_stub", ".mu_current.py"
 MAP = ".mu_current.map.json"
+FILL = ".mu_fill"  # DRILL_FILL: the solved file and share the drill server gives
 HELPERS = "<mu helpers>"  # the file name of the pasted helpers' frames
 PREV = "current.mu.prev"
 SOLVE = (ast.ClassDef, ast.FunctionDef)  # the top-level nodes a solve is made of
@@ -341,24 +343,162 @@ def mu_script(tail):
     return re.sub(r"\n{3,}", "\n\n", "\n".join(out)).strip("\n")
 
 
-def stub(py_src):
+def solve_mu(py_src):
+    """The classes and defs of a Python file's solve, in mu."""
+    py_lines = py_src.splitlines()
+    return "\n\n".join(
+        mu_class(n, py_lines)
+        if isinstance(n, ast.ClassDef)
+        else mu_def(n, body_comments(n, py_lines))
+        for n in solve_nodes(parse(py_src))
+    )
+
+
+def solved_mu(py_src):
+    """The solve of a solved file in mu: the `# mu` quote `make solved` puts
+    above the class, else the Python classes and defs translated."""
+    quote = re.search(r"^# mu \d+\.\d+\n((?:#.*\n?)*)", py_src, flags=re.M)
+    if quote is None:
+        return solve_mu(py_src)
+    lines = quote.group(1).split("\n")
+    return "\n".join(ln[2:] if ln.startswith("# ") else ln[1:] for ln in lines).strip(
+        "\n"
+    )
+
+
+BODIES = ("body", "orelse", "handlers", "finalbody", "cases")
+# the nodes that carry no logic: a name, a constant, a load or store
+PLAIN = (ast.Name, ast.Constant, ast.expr_context, ast.keyword, ast.arg, ast.arguments)
+
+
+def weight(stmt):
+    """The logic in one statement, its nested bodies left out: the nodes of
+    its own expressions, without names and constants, so `count[x] += 1`
+    is 3 (the augmented assign, the subscript, the add). 0 for a statement
+    that reads no name but the functions it calls (`count = 0`, `seen =
+    [0] * 101`): setup, given first."""
+    own = [v for f, v in ast.iter_fields(stmt) if f not in BODIES]
+    nodes = [
+        n
+        for v in own
+        for x in (v if isinstance(v, list) else [v])
+        if isinstance(x, ast.AST)
+        for n in ast.walk(x)
+    ]
+    called = {id(n.func) for n in nodes if isinstance(n, ast.Call)}
+    reads = any(
+        isinstance(n, ast.Name) and isinstance(n.ctx, ast.Load) and id(n) not in called
+        for n in nodes
+    )
+    return reads * (1 + sum(not isinstance(n, PLAIN) for n in nodes))
+
+
+def blanks(solve, num, den):
+    """The mu lines of the solve to leave to write: num/den of its simple
+    statements (rounded up, at least one, never all), the heaviest first,
+    a later line first among equals; then every compound statement whose
+    statements are all left, and that has no else, elif, except or finally,
+    so it is written whole."""
+    code, origin = transpile(solve, mapped=True)
+    tree = parse(code)
+    line = lambda s: origin[s.lineno - 1] if s.lineno - 1 < len(origin) else None
+    defs = (ast.ClassDef, ast.FunctionDef)
+    simple = [
+        s
+        for s in ast.walk(tree)
+        if isinstance(s, ast.stmt)
+        and not isinstance(s, defs)
+        and not any(getattr(s, f, None) for f in BODIES)
+        and line(s) is not None
+    ]
+    if len(simple) < 2:
+        return set()
+    k = min(len(simple) - 1, -(-len(simple) * num // den))
+    heavy = sorted(simple, key=lambda s: (weight(s), line(s)), reverse=True)
+    left = {line(s) for s in heavy[:k]}
+
+    def whole(s):
+        inner = [
+            c
+            for f in BODIES
+            for c in getattr(s, f, None) or []
+            if isinstance(c, ast.stmt)
+        ]
+        if not inner:
+            return line(s) in left
+        done = all([whole(c) for c in inner])
+        if isinstance(s, defs):
+            return False
+        if (
+            done
+            and not any(getattr(s, f, None) for f in BODIES[1:])
+            and line(s) is not None
+        ):
+            left.add(line(s))
+        return done and line(s) in left
+
+    for s in tree.body:
+        whole(s)
+    return left
+
+
+def filled(solve, num, den):
+    """DRILL_FILL: the solve with the lines blanks() picks replaced by
+    `pass` at their indent; a line nested under a `pass` is dropped. None
+    when there is nothing to leave."""
+    left = blanks(solve, num, den)
+    if not left:
+        return None
+    out, under = [], None
+    for k, ln in enumerate(solve.split("\n"), 1):
+        indent = len(ln) - len(ln.lstrip())
+        if ln.strip() and under is not None and indent > under:
+            continue
+        under = None
+        if k in left:
+            out.append(" " * indent + "pass")
+            under = indent
+        else:
+            out.append(ln)
+    return "\n".join(out)
+
+
+def names(tree):
+    return {
+        n.name for n in ast.walk(tree) if isinstance(n, (ast.ClassDef, ast.FunctionDef))
+    }
+
+
+def drill_fill(root, py_src):
+    """The filled solve for current.py when the drill server wrote .mu_fill
+    for it, else None: the solved file must have every class and def of
+    the solve as served."""
+    try:
+        spec = json.loads((root / FILL).read_text())
+        source = (root / spec["source"]).read_text()
+    except (OSError, ValueError, KeyError):
+        return None
+    if f"from {spec['source']}" not in py_src:
+        return None
+    solve = solved_mu(source)
+    served = names(ast.Module(body=solve_nodes(parse(py_src)), type_ignores=[]))
+    if not served <= names(parse(transpile(solve))):
+        return None
+    return filled(solve, *spec["blank"])
+
+
+def stub(py_src, solve=None):
     """current.mu for a served drill or problem: the statement as comments, a `# ---`
     line for notes, the classes and defs of the solve with their bodies as
-    served (empty, mostly), then the setup and asserts in mu. None when
-    current.py has no class or def."""
+    served (empty, mostly; `solve` in their place when given), then the
+    setup and asserts in mu. None when current.py has no class or def."""
     tree = parse(py_src)
-    nodes = solve_nodes(tree)
-    if not nodes:
+    if not solve_nodes(tree):
         return None
     doc = ast.get_docstring(tree) or ""
     head = [f"# {ln}".rstrip() for ln in doc.strip("\n").splitlines()]
     parts = ["\n".join(head + ["#", "# ---", ""])] if doc.strip() else []
-    py_lines = py_src.splitlines()
-    for n in nodes:
-        if isinstance(n, ast.ClassDef):
-            parts.append(mu_class(n, py_lines))
-        else:
-            parts.append(mu_def(n, body_comments(n, py_lines)))
+    parts.append(solve or solve_mu(py_src))
     _, end = solve_span(py_src)
     if end < len(py_src):
         parts.append(mu_script(py_src[end:]))
@@ -482,15 +622,28 @@ def cmd_stub(root):
     if text is None:
         print("This one has no class or def, so solve it in current.py.")
         return 0
+    given = None
+    try:
+        solve = drill_fill(root, py.read_text())
+        if solve is not None:
+            given = stub(py.read_text(), solve)
+            transpile(given)
+    except (MuError, SyntaxError):
+        given = None
     if written(root):
         if belongs(root):
             print("current.mu already holds work on this one, so it was left alone.")
             return 0
         (root / PREV).write_text(mu.read_text())
         print(f"current.mu held work on another solve; it was moved to {PREV}.")
-    mu.write_text(text)
-    (root / STUB).write_text(text)
-    print("Wrote current.mu: the statement, the signature and the asserts, in mu.")
+    mu.write_text(given or text)
+    (root / STUB).write_text(given or text)
+    if given:
+        print(
+            "Wrote current.mu: DRILL_FILL gives the top of the solve; write the lines marked pass."
+        )
+    else:
+        print("Wrote current.mu: the statement, the signature and the asserts, in mu.")
     return 0
 
 
@@ -760,7 +913,7 @@ def cmd_fold(root):
         return 1
     py.write_text(code)
     (root / MU).write_text("")
-    for name in (STUB, RUN, MAP):
+    for name in (STUB, RUN, MAP, FILL):
         (root / name).unlink(missing_ok=True)
     print("Filed the mu solution and your notes into current.py.")
     return 0

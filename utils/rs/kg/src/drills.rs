@@ -690,6 +690,44 @@ pub fn drill_queue_key(key: &str, ev: &Evidence) -> (NaiveDate, String) {
     (due, last)
 }
 
+// ---- DRILL_FILL --------------------------------------------------------
+
+/// DRILL_FILL=1 in .envrc: a bank file with Good reps in a row is served
+/// with part of its solve given, from the latest of those reps; unset or
+/// 0 serves every file empty.
+pub fn drill_fill_on() -> bool {
+    env_str("DRILL_FILL").trim() == "1"
+}
+
+/// The Good reps in a row at the end of a bank file's evidence (an Again
+/// or a Hard starts the count again), and the solved file of the latest.
+pub fn good_streak<'a>(key: &str, ev: &'a Evidence) -> (usize, Option<&'a str>) {
+    let mut reps: Vec<usize> = ev.drill_reps(key).to_vec();
+    reps.sort_by(|&a, &b| {
+        let (da, ba, _) = &ev.drills[a];
+        let (db, bb, _) = &ev.drills[b];
+        (da, ba).cmp(&(db, bb))
+    });
+    let streak = reps
+        .iter()
+        .rev()
+        .take_while(|&&i| {
+            let (_, base, ri) = &ev.drills[i];
+            anki_answer(base, ev.rec(*ri)) == "good"
+        })
+        .count();
+    let latest = (streak > 0).then(|| ev.recs[ev.drills[*reps.last().unwrap()].2].0.as_str());
+    (streak, latest)
+}
+
+/// The share of the solve's statements left to write, as (numerator,
+/// denominator): 1/(k+1) after k Good reps in a row (1/2, 1/3, 1/4, ...),
+/// None with no Good streak. The serving side leaves the heaviest
+/// statements, at least one.
+pub fn fill_share(streak: usize) -> Option<(usize, usize)> {
+    (streak > 0).then_some((1, streak + 1))
+}
+
 /// kg_lib.anki_rank: the sort key of a file due today, or None.
 pub type AnkiKey = (i64, NaiveDate, usize, usize, PathBuf);
 
