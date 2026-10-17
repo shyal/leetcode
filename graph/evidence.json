@@ -38198,6 +38198,17 @@
       "judge": "deepseek-chat",
       "summary": "The query self-joins Employees as e and r on e.employee_id = r.reports_to, so each manager row pairs with their direct reports. It groups by e.employee_id and aggregates count(r.employee_id) and round(sum(r.age)*1.0/count(...)) for the report count and average age. Both target moves, the self-join and the group aggregate, are exercised and the run passed both examples.",
       "seconds": 364
+    },
+    "solved/d_Approved_Count_Per_Country_2026_10_17T22_32_31_395533_00_00Z.py": {
+      "date": "2026-10-18",
+      "problem": "drill",
+      "moves": {
+        "sql-conditional-aggregate": "clean",
+        "sql-group-aggregate": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The query groups Transactions by country and computes approved_count with sum(case when state = 'approved' then 1 else 0 end), so declined-only countries still appear with 0. It exercises the conditional-aggregate pivot and the GROUP BY aggregate in one pass, and both example assertions passed.",
+      "seconds": 126
     }
   }
 }
