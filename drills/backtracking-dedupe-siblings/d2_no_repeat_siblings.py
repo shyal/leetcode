@@ -30,8 +30,7 @@ Constraints:
     REQUIRED: one backtracking pass. A subset joins the answer the
     moment it is built, and no subset is ever built twice. NO set or
     tuple de-duplication of the answer, NO Counter of the input, no
-    comparing a candidate against subsets already collected. NO sort
-    of nums.
+    comparing a candidate against subsets already collected.
 """
 
 
