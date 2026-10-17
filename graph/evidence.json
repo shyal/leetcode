@@ -38274,6 +38274,20 @@
       "judge": "deepseek-chat",
       "summary": "The code builds a fixed 101-slot bucket array indexed by value, increments buckets[n] for each element, then walks the buckets accumulating a running total and returns the index where the total reaches k. This is the counting-sort-buckets move exercised directly, and all assertions passed.",
       "seconds": 44
+    },
+    "solved/d_Smaller_Before_2026_10_17T23_54_34_683218_00_00Z.py": {
+      "date": "2026-10-18",
+      "problem": "drill",
+      "moves": {
+        "dp-1d-rolling": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "The code counts smaller predecessors with a nested pairs loop over all (i, j) pairs, not a rolling DP; the target dp-1d-rolling move was never reached.",
+      "summary": "numPrevSmaller builds a zero table and, for every pair i < j, adds 1 to res[j] when nums[i] < nums[j], giving an O(n^2) count of smaller elements before each index. It uses the harness pairs helper and a table allocation, not any DP recurrence or rolling state. The run passed all assertions, but the targeted dp-1d-rolling technique is absent from the code.",
+      "unmapped": [
+        "brute-force pair enumeration counting smaller predecessors"
+      ],
+      "seconds": 167
     }
   }
 }
