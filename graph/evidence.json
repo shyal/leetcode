@@ -38308,6 +38308,21 @@
       "judge": "deepseek-chat",
       "summary": "The mu source defines a cached recursion `max_dist(n)` that takes the max over `G[n]` of `max_dist(nxt) + 1`, and the transpiled class wraps it in a hand-written `cache` decorator plus a `deep` thread runner for stack depth. The memoized recurrence is the target move and it ran correctly across all assertions, including the 200-node chains. No notes indicate any help or recognition trouble.",
       "seconds": 283
+    },
+    "solved/d_Read_The_Numbers_2026_10_18T00_22_54_445118_00_00Z.py": {
+      "date": "2026-10-18",
+      "problem": "drill",
+      "moves": {
+        "divmod-decompose": "clean",
+        "stack-nested-eval": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "The drill targets stack-nested-eval, but the code never uses a stack or nested scopes; it accumulates digits and flushes on each non-digit, so the target node is not exercised.",
+      "summary": "getNumbers walks s + '+' and, for each character, either folds a digit into num with num*10+int(c) or appends num to res and resets it. This is a digit-decomposition/accumulation move, not a nested-scope stack evaluation, so the targeted stack-nested-eval move does not appear. All assertions passed.",
+      "unmapped": [
+        "digit accumulation via num*10+int(c)"
+      ],
+      "seconds": 172
     }
   }
 }
