@@ -38386,6 +38386,18 @@
       "judge": "deepseek-chat",
       "summary": "The file declares a module-level constant SECONDS_PER_HOUR: u32 = 60 * 60 with an explicit type and SCREAMING_SNAKE_CASE name, then multiplies it by the hours argument in hours_to_seconds. main prints the result for 3 and asserts several values including the constant itself. The run exited 0 with output 10800.",
       "seconds": 82
+    },
+    "solved/d_Kahn_Queue_Loop_2026_10_18T01_20_40_458295_00_00Z.py": {
+      "date": "2026-10-18",
+      "problem": "drill",
+      "moves": {
+        "topological-order": "clean",
+        "graph-adjacency-build": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Kahn's algorithm: indegree queue, decrement on pop, res length check for cycle detection; harness helpers adjacency/indegrees build the graph.",
+      "summary": "The code builds a reversed adjacency list and indegree map via the harness helpers, seeds a deque with zero-indegree courses, and pops nodes appending to res while decrementing neighbors' degrees and enqueuing those that reach zero. It returns res only when its length equals numCourses, otherwise []. All assertions pass, including the cycle cases returning [].",
+      "seconds": 246
     }
   }
 }
