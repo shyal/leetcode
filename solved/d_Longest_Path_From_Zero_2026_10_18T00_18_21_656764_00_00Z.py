@@ -1,0 +1,141 @@
+"""
+DRILL: Longest Path From Zero
+TRAINS: memoize-recursion
+
+G is a DAG (directed acyclic graph) as an adjacency list: G[u] is the
+list of nodes u points to. Start on node 0. Let L(u) be the number of
+edges on the longest path starting at u. If G[u] is empty, L(u) = 0.
+Otherwise L(u) = 1 + max(L(v) for v in G[u]). For example, with
+G = {0: [1, 2], 1: [2], 2: []}:
+
+    0 ---> 1
+     \     |
+      \    v
+       +-> 2
+
+the longest path from 2 is 0, from 1 it is 1, and from 0 it is 2 through
+node 1.
+
+Return the number of edges on the longest path from node 0.
+
+Example 1:
+
+Input: G = {0: [1, 2], 1: [2], 2: []}
+Output: 2
+
+Example 2:
+
+Input: G = {0: [1], 1: [2], 2: [3], 3: []}
+Output: 3
+
+    0 -> 1 -> 2 -> 3
+
+Example 3:
+
+Input: G = {0: [], 1: [0]}
+Output: 0
+
+    1 -> 0
+
+Explanation: Node 0 has no edges, and node 1 is never reached.
+
+Constraints:
+
+    1 <= len(G) <= 200
+    Every node in a list is a key of G.
+    No path visits a node twice.
+
+    REQUIRED: O(n + m) time. The longest path from each node must be
+    computed once and remembered. Recomputing it on every visit walks
+    every path in the graph, and a graph of 200 nodes where each node
+    points to the next two has more paths than the clock allows.
+"""
+
+
+# mu 0.12
+# class Solution
+#   def longestPath(G: {int: [int]}) -> int
+#     memo max_dist(n)
+#       dist = 0
+#       for nxt in G[n]
+#         dist = max(max_dist(nxt) + 1, dist)
+#       dist
+#     max_dist(0)
+
+import sys
+import threading
+
+
+sys.setrecursionlimit(1 << 20)
+
+
+def cache(fn):
+    """Memoise fn on its arguments. Pure Python, so a deep memo recursion
+    is not cut short by the C recursion limit of Python 3.12 and 3.13."""
+    memo = {}
+
+    def cached(*args, **kwargs):
+        key = (args, tuple(sorted(kwargs.items()))) if kwargs else args
+        if key not in memo:
+            memo[key] = fn(*args, **kwargs)
+        return memo[key]
+
+    cached.__name__, cached.__doc__, cached.__wrapped__ = fn.__name__, fn.__doc__, fn
+    return cached
+
+
+def deep(fn):
+    """Run fn on a thread with a 256 MB stack, so deep memo recursion fits."""
+    out, err = [], []
+
+    def target():
+        try:
+            out.append(fn())
+        except BaseException as e:
+            err.append(e)
+
+    threading.stack_size(1 << 28)
+    t = threading.Thread(target=target)
+    t.start()
+    t.join()
+    if err:
+        raise err[0]
+    return out[0]
+
+
+class Solution:
+    def longestPath(self, G: dict[int, list[int]]) -> int:
+        def run():
+            @cache
+            def max_dist(n):
+                dist = 0
+                for nxt in G[n]:
+                    dist = max(max_dist(nxt) + 1, dist)
+                return dist
+            return max_dist(0)
+        return deep(run)
+
+
+sol = Solution()
+draw_graphviz({0: [1, 2], 1: [2], 2: []}, type='directed')
+print(sol.longestPath({0: [1, 2], 1: [2], 2: []}))
+_l, _r = sol.longestPath({0: [1, 2], 1: [2], 2: []}), 2
+assert _l == _r, f"left : {_l!r}\nright: {_r!r}"
+_l, _r = sol.longestPath({0: [1], 1: [2], 2: [3], 3: []}), 3
+assert _l == _r, f"left : {_l!r}\nright: {_r!r}"
+_l, _r = sol.longestPath({0: [], 1: [0]}), 0
+assert _l == _r, f"left : {_l!r}\nright: {_r!r}"
+_l, _r = sol.longestPath({0: []}), 0
+assert _l == _r, f"left : {_l!r}\nright: {_r!r}"
+_l, _r = sol.longestPath({0: [1, 2], 1: [], 2: []}), 1
+assert _l == _r, f"left : {_l!r}\nright: {_r!r}"
+_l, _r = sol.longestPath({0: [1, 2], 1: [3], 2: [3], 3: [4], 4: []}), 3
+assert _l == _r, f"left : {_l!r}\nright: {_r!r}"
+_l, _r = sol.longestPath({0: [3, 1], 1: [2], 2: [], 3: []}), 2
+assert _l == _r, f"left : {_l!r}\nright: {_r!r}"
+_l, _r = sol.longestPath({0: [1, 2], 1: [4], 2: [3], 3: [4], 4: []}), 3
+assert _l == _r, f"left : {_l!r}\nright: {_r!r}"
+_l, _r = sol.longestPath({i: [i + 1] for i in range(0, 199)} | {199: []}), 199
+assert _l == _r, f"left : {_l!r}\nright: {_r!r}"
+_l, _r = sol.longestPath({i: [i + 1, i + 2] for i in range(0, 198)} | {198: [199], 199: []}), 199
+assert _l == _r, f"left : {_l!r}\nright: {_r!r}"
