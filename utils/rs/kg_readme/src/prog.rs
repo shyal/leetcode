@@ -50,13 +50,13 @@ fn verdict(p: &Progress) -> (Color, &'static str) {
     (c, v)
 }
 
-/// The dim note after the verdict: the move against the problems served
-/// since PROGRESS_LEVEL_DAYS ago and whether now is the best.
+/// The dim note after the verdict: the move since PROGRESS_LEVEL_DAYS
+/// ago and whether now is the best.
 fn note(p: &Prog) -> String {
     let since = p.today - chrono::Duration::days(PROGRESS_LEVEL_DAYS);
     let mut out = match (p.p.now, p.p.then) {
         (Some(_), Some(_)) => format!(
-            "  · {} against the problems served since {}",
+            "  · {} since {}",
             signed(p.p.delta()),
             since.format("%B")
         ),
@@ -219,7 +219,8 @@ mod tests {
                 then: Some(1290.0),
                 best: Some(1400.0),
                 served: Some(1650.0),
-                served_then: Some(1550.0),
+                se_now: Some(60.0),
+                se_then: Some(60.0),
                 ground: Ground {
                     tried: 26,
                     cold: 10,
@@ -246,7 +247,7 @@ mod tests {
         assert!(f.lines().all(|l| l.chars().count() <= 100));
         for s in [
             "You're progressing.",
-            "proven rating  · +81 against the problems served since June, the highest it has been",
+            "proven rating  · +181 since June, the highest it has been",
             "90 days ago",
             "1290",
             "-181",

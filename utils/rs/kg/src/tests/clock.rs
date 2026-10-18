@@ -12,7 +12,7 @@ use crate::drills::{
     drill_warm, due_drill, ANKI_EASE, ANKI_FUZZ_MIN_DAYS,
 };
 use crate::model::{
-    easy_share, proven_game_score, proven_score, proven_series, Band, Game, Ground, Transfer,
+    easy_share, proven_fit, proven_game_score, proven_series, Band, Game, Ground, Transfer,
     EASY_QUOTA, EASY_WINDOW, PROVEN_WINDOW,
 };
 use crate::pick::review_queue;
@@ -1854,30 +1854,38 @@ fn an_easy_past_the_contests_share_is_not_a_game() {
     assert_eq!(crate::model::easies_left_out(&ctx, &ev), 5);
 }
 
-/// The proven rating (2026-09-20): a win proves the problem's rating and
-/// nothing more, a hint 200 less, a loss 400 less; the mean of the last
-/// PROVEN_WINDOW first sights, drawn only once that many exist. Thirty
-/// easy wins prove the easy rating, where Elo read them as 1900.
+/// The proven rating (2026-10-18): the Elo-curve fit to the last
+/// PROVEN_WINDOW first sights, drawn only once that many exist. Half won
+/// at 1800 fits 1800; a fail costs less on a harder problem; a win proves
+/// nothing beyond the problem, so thirty easy wins prove the easy rating.
 #[test]
-fn proven_rating_is_what_the_last_thirty_first_sights_proved() {
-    assert_eq!(proven_score(1250.0, 1.0), 1250.0);
-    assert_eq!(proven_score(1800.0, 0.5), 1600.0);
-    assert_eq!(proven_score(1800.0, 0.0), 1400.0);
-    let easy: Vec<(NaiveDate, f64, f64)> = (0..PROVEN_WINDOW)
-        .map(|i| (ago(60 - i as i64), 1250.0, 1.0))
-        .collect();
+fn proven_rating_is_the_fit_to_the_last_thirty_first_sights() {
+    let at = |r: f64, won: &dyn Fn(usize) -> f64| -> Vec<(NaiveDate, f64, f64)> {
+        (0..PROVEN_WINDOW)
+            .map(|i| (ago(60 - i as i64), r, won(i)))
+            .collect()
+    };
+    let easy = at(1250.0, &|_| 1.0);
     assert!(proven_series(&easy[..PROVEN_WINDOW - 1]).is_empty());
     let s = proven_series(&easy);
     assert_eq!(s.len(), 1);
     assert_eq!(s[0].1, 1250.0);
-    // a run of hard problems, half lost, outranks every easy win
-    let mut mixed = easy.clone();
-    for i in 0..PROVEN_WINDOW {
-        let won = if i % 2 == 0 { 1.0 } else { 0.0 };
-        mixed.push((ago(29 - i as i64), 1800.0, won));
-    }
-    let s = proven_series(&mixed);
-    assert_eq!(s.last().unwrap().1, 1600.0);
+    let half = at(1800.0, &|i| if i % 2 == 0 { 1.0 } else { 0.0 });
+    assert!((proven_fit(&half).0 - 1800.0).abs() < 1e-6);
+    // the same games, one win turned to a fail: the harder problem costs less
+    let one_fail = |r: f64| {
+        let mut g = at(1600.0, &|i| if i % 2 == 0 { 1.0 } else { 0.0 });
+        g[0] = (g[0].0, r, 0.0);
+        proven_fit(&g).0
+    };
+    assert!(one_fail(2000.0) > one_fail(1400.0));
+    // a pass short of a cold win lands between the two
+    let mut slow = half.clone();
+    slow[0].2 = 0.5;
+    let mut lost = half.clone();
+    lost[0].2 = 0.0;
+    assert!(proven_fit(&lost).0 < proven_fit(&slow).0);
+    assert!(proven_fit(&slow).0 < proven_fit(&half).0);
 }
 
 /// A pass over the clock is 0 to the Elo and 0.5 to the proven rating: a

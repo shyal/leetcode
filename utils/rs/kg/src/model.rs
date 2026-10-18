@@ -1356,37 +1356,74 @@ pub fn elo_after(gs: &[FirstSight], start: f64) -> Vec<(NaiveDate, f64)> {
 /// The window of the proven rating: the last PROVEN_WINDOW first sights.
 pub const PROVEN_WINDOW: usize = 30;
 
-/// What one first-sight game proves (settled 2026-09-20): an unaided win
-/// inside the clock proves the problem's rating, a pass that fell short
-/// of that (a hint, or over the clock) the rating less 200, a fail or a
-/// copy the rating less 400. A win proves nothing beyond the problem:
-/// three hundred wins on 1250s prove 1250, where Elo read them as 1900
-/// (a 1250 problem cannot tell a 1700 from a 1900, so Elo climbs until
-/// the slip rate matches its expectation). `score` is the proven score
-/// of proven_games, not the Elo score: a slow pass is 0 to the Elo
-/// and 0.5 here, since the solution was found, only late.
-pub fn proven_score(rating: f64, score: f64) -> f64 {
-    if score >= 1.0 {
-        rating
-    } else if score >= 0.5 {
-        rating - 200.0
-    } else {
-        rating - 400.0
+/// The spread of the prior on the fitted rating, in rating points: the
+/// prior sits on the window's median problem rating. It keeps a window of
+/// wins only finite; on a window with losses in it the games outweigh it.
+pub const PROVEN_PRIOR_SD: f64 = 200.0;
+
+/// (rating, standard error) fitted to one window of first sights
+/// (2026-10-18): the rating that makes the scores most likely under the
+/// Elo curve, P(win) = 1 / (1 + 10^((problem - rating) / 400)), with a
+/// pass short of a cold win scored 0.5 and a fail or a copy 0. A fail on
+/// a 2000 costs less than a fail on a 1400, so the rating is not held
+/// under the problems served. It replaces the mean of a per-game score
+/// (2026-09-20: the rating, less 200 for a hint, less 400 for a fail),
+/// which could never rise above the problems served. A win proves
+/// nothing beyond the problem (a 1250 cannot tell a 1700 from a 1900),
+/// so the fit is held to the median rating of the problems won cold in
+/// the window. The hardest one won was tried first: one Hard among
+/// twenty-nine easy wins let 2025 fit 1950.
+pub fn proven_fit(games: &[(NaiveDate, f64, f64)]) -> (f64, f64) {
+    let s = 400.0 / std::f64::consts::LN_10;
+    let rs: Vec<f64> = games.iter().map(|(_, r, _)| *r).collect();
+    let mu = median(&rs);
+    let prior = 1.0 / (PROVEN_PRIOR_SD * PROVEN_PRIOR_SD);
+    let mut t = mu;
+    let mut info = prior;
+    for _ in 0..50 {
+        let mut grad = -(t - mu) * prior;
+        info = prior;
+        for (_, r, y) in games {
+            let p = 1.0 / (1.0 + 10f64.powf((r - t) / 400.0));
+            grad += (y.clamp(0.0, 1.0) - p) / s;
+            info += p * (1.0 - p) / (s * s);
+        }
+        let step = grad / info;
+        t += step;
+        if step.abs() < 1e-6 {
+            break;
+        }
     }
+    let won: Vec<f64> = games
+        .iter()
+        .filter(|(_, _, y)| *y >= 1.0)
+        .map(|(_, r, _)| *r)
+        .collect();
+    if !won.is_empty() {
+        t = t.min(median(&won));
+    }
+    (t, 1.0 / info.sqrt())
 }
 
 /// [(date, proven rating)] one per first-sight game from the
-/// PROVEN_WINDOW-th on: the mean of the last PROVEN_WINDOW scores.
+/// PROVEN_WINDOW-th on: proven_fit over the last PROVEN_WINDOW games.
 pub fn proven_series(games: &[(NaiveDate, f64, f64)]) -> Vec<(NaiveDate, f64)> {
-    let scores: Vec<f64> = games.iter().map(|(_, r, s)| proven_score(*r, *s)).collect();
+    proven_fits(games)
+        .into_iter()
+        .map(|(d, r, _)| (d, r))
+        .collect()
+}
+
+/// proven_series with each point's standard error.
+pub fn proven_fits(games: &[(NaiveDate, f64, f64)]) -> Vec<(NaiveDate, f64, f64)> {
     let n = PROVEN_WINDOW;
-    if scores.len() < n {
+    if games.len() < n {
         return vec![];
     }
-    (n - 1..scores.len())
+    (n - 1..games.len())
         .map(|i| {
-            let mean = scores[i + 1 - n..=i].iter().sum::<f64>() / n as f64;
-            (games[i].0, mean)
+            let (r, se) = proven_fit(&games[i + 1 - n..=i]);
+            (games[i].0, r, se)
         })
         .collect()
 }
@@ -1420,9 +1457,12 @@ pub fn proven_game_score(g: &Game) -> f64 {
 
 // ---- make progress -------------------------------------------------------
 
-/// The Elo has to move this much over PROGRESS_LEVEL_DAYS to count as a
-/// move at all; under it the level is called flat.
+/// The best has to lead the rating now by this much to be named.
 pub const PROGRESS_LEVEL_POINTS: f64 = 50.0;
+/// The rating has to move this many standard errors of the difference
+/// (proven_fit, now and PROGRESS_LEVEL_DAYS ago) to count as a move at
+/// all; under it the level is called flat.
+pub const PROGRESS_LEVEL_Z: f64 = 2.0;
 pub const PROGRESS_LEVEL_DAYS: i64 = 90;
 pub const PROGRESS_WINDOW_DAYS: i64 = 30;
 /// A drill holds once this many unaided clean reps in a row end its history.
@@ -1485,14 +1525,16 @@ pub struct Progress {
     pub proven: Vec<(NaiveDate, f64)>,
     /// the proven rating now, once PROVEN_WINDOW first sights exist
     pub now: Option<f64>,
+    /// the standard error of `now`
+    pub se_now: Option<f64>,
     /// the proven rating PROGRESS_LEVEL_DAYS ago (the first point on or after)
     pub then: Option<f64>,
+    /// the standard error of `then`
+    pub se_then: Option<f64>,
     /// the best proven rating before now, over the whole series
     pub best: Option<f64>,
     /// the median rating of the last PROVEN_WINDOW first sights served
     pub served: Option<f64>,
-    /// the same median at the point `then` was read
-    pub served_then: Option<f64>,
     /// gain and retention over the last PROGRESS_WINDOW_DAYS
     pub ground: Ground,
     /// drills whose last PROGRESS_HOLD_REPS days of reps were all clean,
@@ -1504,23 +1546,23 @@ pub struct Progress {
 }
 
 impl Progress {
-    /// The proven rating less the median rating served, now and then.
-    /// A fail still proves its rating less 400, so the proven rating
-    /// rises with the serving level on its own; only this gap says
-    /// whether he did better on what he was given (2026-09-25).
-    pub fn gap(&self) -> Option<f64> {
-        Some(self.now? - self.served?)
-    }
-
-    pub fn gap_then(&self) -> Option<f64> {
-        Some(self.then? - self.served_then?)
-    }
-
-    /// the gap now less the gap then, 0 without both
+    /// The proven rating now less then, 0 without both. The fit credits
+    /// a harder problem on its own, so the rating is read directly; the
+    /// gap to the median served (2026-09-25) is gone: the mean it was
+    /// read on could not rise above the problems served (2026-10-18).
     pub fn delta(&self) -> f64 {
-        match (self.gap(), self.gap_then()) {
+        match (self.now, self.then) {
             (Some(n), Some(t)) => n - t,
             _ => 0.0,
+        }
+    }
+
+    /// The smallest delta that counts as a move: PROGRESS_LEVEL_Z
+    /// standard errors of the difference, infinite without both.
+    pub fn level_bar(&self) -> f64 {
+        match (self.se_now, self.se_then) {
+            (Some(a), Some(b)) => PROGRESS_LEVEL_Z * (a * a + b * b).sqrt(),
+            _ => f64::INFINITY,
         }
     }
 
@@ -1531,9 +1573,9 @@ impl Progress {
         let g = &self.ground;
         if self.recent < 5 {
             "not training"
-        } else if self.delta() >= PROGRESS_LEVEL_POINTS {
+        } else if self.delta() >= self.level_bar() {
             "progressing"
-        } else if self.delta() <= -PROGRESS_LEVEL_POINTS {
+        } else if self.delta() <= -self.level_bar() {
             "slipping"
         } else if g.cold == 0 {
             "stalled"
@@ -1594,17 +1636,15 @@ pub fn progress_numbers(ctx: &Ctx, ev: &Evidence, today: NaiveDate) -> Progress 
     // (settled 2026-09-20); a peak built on them is never a level to beat.
     let mut fs = proven_games(ctx, ev);
     fs.retain(|(d, _, _)| *d <= today);
-    out.proven = proven_series(&fs);
+    let fits = proven_fits(&fs);
+    out.proven = fits.iter().map(|(d, r, _)| (*d, *r)).collect();
     let level_since = today - Duration::days(PROGRESS_LEVEL_DAYS);
-    out.now = out.proven.last().map(|(_, e)| *e);
-    // the level rises with the serving level on its own, so the median
-    // served is read at the same points: a rise on a steady serving level
-    // is his, a rise that only tracks the serving level is the picker's
-    let served = served_series(&fs);
-    let then_at = out.proven.iter().position(|(d, _)| *d >= level_since);
-    out.then = then_at.map(|i| out.proven[i].1);
-    out.served_then = then_at.map(|i| served[i]);
-    out.served = served.last().copied();
+    out.now = fits.last().map(|(_, r, _)| *r);
+    out.se_now = fits.last().map(|(_, _, se)| *se);
+    let then_at = fits.iter().position(|(d, _, _)| *d >= level_since);
+    out.then = then_at.map(|i| fits[i].1);
+    out.se_then = then_at.map(|i| fits[i].2);
+    out.served = served_series(&fs).last().copied();
     let before_now = &out.proven[..out.proven.len().saturating_sub(1)];
     out.best = before_now
         .iter()
@@ -1672,23 +1712,15 @@ pub fn progress(ctx: &Ctx, ev: &Evidence, today: NaiveDate) -> Vec<String> {
     progress_text(&progress_numbers(ctx, ev, today), today)
 }
 
-/// The two gaps in words: "It was 260 under the median rating of the
-/// problems you were given in June (1550 against 1290) and is 180 under
-/// it now (1650 against 1470)".
+/// The two ratings in words: "It was about 1830 then and is about 1650
+/// now, each correct to about 100".
 fn against(p: &Progress, ten: impl Fn(f64) -> i64) -> String {
-    let side = |g: f64| match ten(g) {
-        0 => "level with".to_string(),
-        x if x < 0 => format!("{} under", -x),
-        x => format!("{x} over"),
-    };
+    let se = p.se_now.unwrap_or(0.0).max(p.se_then.unwrap_or(0.0));
     format!(
-        "It was {} the median rating of the problems you were given then ({} against {}) and is {} it now ({} against {})",
-        side(p.gap_then().unwrap_or(0.0)),
+        "It was about {} then and is about {} now, each correct to about {}",
         ten(p.then.unwrap_or(0.0)),
-        ten(p.served_then.unwrap_or(0.0)),
-        side(p.gap().unwrap_or(0.0)),
         ten(p.now.unwrap_or(0.0)),
-        ten(p.served.unwrap_or(0.0)),
+        ten(se),
     )
 }
 
@@ -1727,7 +1759,7 @@ pub fn progress_text(p: &Progress, today: NaiveDate) -> Vec<String> {
         "progressing" => {
             out.push("You're progressing.".to_string());
             out.push(format!(
-                "Against the problems you were given, the rating you have proven on problems never seen before is up about {} points since {}. {}{}.",
+                "The rating you have proven on problems never seen before is up about {} points since {}. {}{}.",
                 ten(delta),
                 month_name(level_since),
                 against(p, ten),
@@ -1741,7 +1773,7 @@ pub fn progress_text(p: &Progress, today: NaiveDate) -> Vec<String> {
         "slipping" => {
             out.push("You're slipping.".to_string());
             out.push(format!(
-                "Against the problems you were given, the rating you have proven on problems never seen before is down about {} points since {}. {}.",
+                "The rating you have proven on problems never seen before is down about {} points since {}. {}.",
                 ten(-delta),
                 month_name(level_since),
                 against(p, ten)
@@ -1774,11 +1806,11 @@ pub fn progress_text(p: &Progress, today: NaiveDate) -> Vec<String> {
             ));
         }
     }
-    if let (Some(served), false) = (p.served, moved) {
+    if let (Some(then), false) = (p.then, moved) {
         out[1].push_str(&format!(
-            " The median rating of those {} problems was about {}; the proven rating can only rise when that does.",
-            PROVEN_WINDOW,
-            ten(served)
+            " It was about {} in {}; the change since is smaller than the error of the two ratings.",
+            ten(then),
+            month_name(level_since)
         ));
     }
 
