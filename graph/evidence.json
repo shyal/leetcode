@@ -38433,6 +38433,19 @@
       "note": "mu source shows the O(n) prefix/suffix-min scan; the triple-loop brute force in the class body is the transpiler's fallback, not what ran.",
       "summary": "The mu source builds L = running min from the left and R = running min from the right with accumulate, then scans each index n checking L[i] < n and R[i] < n and minimizing L[i]+n+R[i], returning -1 when no triplet exists. That is the prefix-suffix-two-pass move; the O(n^3) triple loop over i<j<k in the pasted class body sidesteps it but is not the executed solution. LeetCode reports Accepted (70 ms).",
       "seconds": 1841
+    },
+    "solved/p2780_Minimum_Index_of_a_Valid_Split_2026_10_18T06_24_46_346060_00_00Z.py": {
+      "date": "2026-10-18",
+      "problem": "2780",
+      "moves": {
+        "counter-build": "clean",
+        "streaming-ask-then-record": "clean",
+        "counts-as-data": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "No running-extreme: the code returns on the first valid split rather than tracking a best-so-far.",
+      "summary": "The code builds a full Counter of nums, then walks once with a running Counter cf, incrementing cf[n] before testing whether cf[n] is a strict majority of the prefix and counts[n]-cf[n] a strict majority of the suffix, returning the first index that satisfies both. It exercises counter-build, streaming-ask-then-record and counts-as-data; there is no running-extreme because it returns on the first match. LeetCode reports Accepted (103 ms, 35.7 MB) and the notes are empty.",
+      "seconds": 1492
     }
   }
 }
