@@ -38526,6 +38526,20 @@
       "note": "Solution reduces the game to parity: even(n) via n % 2 == 0; notes describe the divisor reasoning.",
       "summary": "The code answers divisorGame with a single parity test, even(n) returning n % 2 == 0, so the whole game collapses to whether n is even. That exercises the modular-cycle move through the % 2 check. The notes reason about divisors and picking x so n - x > 0, and LeetCode reports Accepted (0 ms, 19 MB).",
       "seconds": 347
+    },
+    "solved/p643_Maximum_Average_Subarray_I_2026_10_18T13_47_43_892362_00_00Z.py": {
+      "date": "2026-10-18",
+      "problem": "643",
+      "moves": {
+        "sliding-window-fixed": "clean",
+        "running-sum": "clean",
+        "running-extreme": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Window sum is carried as avg*k, scaled back and forth each step; LeetCode verdict Accepted (96 ms, 29 MB).",
+      "summary": "The code seeds avg from sum(nums[:k])/k, then slides a fixed window of size k by multiplying avg by k, subtracting nums[i-k], adding nums[i], and dividing by k again, tracking max_avg with max(). It exercises the fixed sliding window, a running sum carried in scaled form, and a running extreme. The notes are empty and LeetCode reports Accepted.",
+      "seconds": 636,
+      "learning": true
     }
   }
 }
