@@ -38408,6 +38408,20 @@
       "judge": "deepseek-chat",
       "summary": "The mu source and its transpiled Solution.countSubarrays keep a running prefix sum and a defaultdict D of prefix counts seeded with D[0]=1; at each element it adds D[prefix - target] to res, then records the current prefix. This is the prefix-sum-hashmap move, counting subarrays summing to target in one pass. All assertions passed, including the 10^5-length cases.",
       "seconds": 140
+    },
+    "solved/p1801_Number_of_Orders_in_the_Backlog_2026_10_18T02_52_27_163002_00_00Z.py": {
+      "date": "2026-10-18",
+      "problem": "1801",
+      "moves": {
+        "heap-simulation": "clean",
+        "order-book-match": "clean",
+        "order-book-levels": "clean",
+        "modular-cycle": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Custom heap class with max/min comparators; match() pops the crossing best level, fills min(count, book_count), pushes the remainder back, and rests leftovers.",
+      "summary": "The code keeps a max-heap of buy orders and a min-heap of sell orders, and match() consumes the opposite book's best level while prices cross, pushing back any partial level and resting the unfilled remainder. Backlog is the sum of remaining counts modulo 1e9+7. It exercises heap-simulation, order-book-match, order-book-levels and modular-cycle, all passing the assertions.",
+      "seconds": 3594
     }
   }
 }
