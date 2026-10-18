@@ -65,6 +65,10 @@ pub struct Caches {
     /// entries a record can have changed (kg_lib recomputes; the answer
     /// is the same).
     pub push_log: Vec<(Vec<String>, Option<String>, Option<String>)>,
+    /// model::scored_games: (records it covers, the games, the files with
+    /// a mined solve time). model::scored_games decides whether the
+    /// records appended after it change it.
+    pub scored: Option<(usize, Rc<Vec<crate::model::Game>>, Rc<HashSet<String>>)>,
 }
 
 #[derive(Clone)]
