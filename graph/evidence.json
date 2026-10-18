@@ -38474,6 +38474,19 @@
       "judge": "deepseek-chat",
       "summary": "The class stores each token's generation time in a plain dict `self.tokens` and answers expiry by comparing `self.tokens[tokenId] + self.ttl > currentTime`; `countUnexpiredTokens` scans every token and counts the live ones. The dict-as-arbitrary-value move is exercised, but there is no expiry heap or lazy eviction, so the ttl-cache move is sidestepped by a full scan. LeetCode reports Accepted (258 ms, 20.7 MB).",
       "seconds": 498
+    },
+    "solved/p2384_Largest_Palindromic_Number_FAILED_2026_10_18T08_24_17_426388_00_00Z.py": {
+      "date": "2026-10-18",
+      "problem": "2384",
+      "moves": {
+        "counter-build": "clean",
+        "counts-as-data": "struggled",
+        "string-build-transform": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "AssertionError: left '100000000000000000000000000000000000001' vs right '100000000000000000001' \u2014 the odd-count bookkeeping (counts[0] -= 1, ones[0] as middle) mis-handles the zero counts, and the leading-zero trim res[first_non_zero:-first_non_zero] is wrong.",
+      "summary": "The code builds a Counter of digits, collects odd-count digits into ones, decrements counts[0] for each odd digit with count > 1, then assembles half-pairs into res and mirrors it around ones[0]. It fails on '100000000000000000001', producing a string with far too many zeros because the odd-count adjustment and the leading-zero trim are both off. The notes show a hand-worked example and the file ends with 'walked away after 29m 18s; no working solution'.",
+      "seconds": 1758
     }
   }
 }
