@@ -38553,6 +38553,22 @@
       "summary": "The code scans nums once, keeping a running count that increments while n > prev and resets to 1 otherwise, and tracks best = max(best, count) each step. This exercises the running-extreme and running-sum moves. The notes carry a LeetCode Accepted verdict.",
       "seconds": 877,
       "learning": true
+    },
+    "solved/p40_Combination_Sum_II_2026_10_18T14_19_07_057571_00_00Z.py": {
+      "date": "2026-10-18",
+      "problem": "40",
+      "moves": {
+        "backtracking-choose-undo": "clean",
+        "backtracking-dedupe-siblings": "clean",
+        "backtracking-start-index": "clean",
+        "running-sum": "clean",
+        "sort-then-adjacent": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LeetCode: Accepted (21 ms, 19.4 MB).",
+      "summary": "The mu source sorts candidates, then recurses with helper(i, t), appending candidates[j] to path, recursing at j+1 with t + candidates[j], and popping on return. Sibling duplicates are skipped with `j > i and candidates[j-1] == candidates[j]`, and the running sum t is compared against target for both the record and the prune. All five canonical moves are exercised directly.",
+      "seconds": 313,
+      "learning": true
     }
   }
 }
