@@ -38464,6 +38464,16 @@
       "note": "LEETCODE: Accepted (80 ms, 21.4 MB); notes say ASSIST: learning.",
       "summary": "The code builds an inverted index G from each ingredient to the recipes that need it, plus an indegree count per recipe, then runs Kahn's algorithm seeded with the supplies: each ingredient popped from the deque decrements its recipes' indegrees, and a recipe reaching zero is appended to made and enqueued. This exercises graph-inverted-index and topological-order directly. The notes mark ASSIST: learning, and LeetCode reports Accepted.",
       "seconds": 2323
+    },
+    "solved/p1797_Design_Authentication_Manager_2026_10_18T07_53_16_821553_00_00Z.py": {
+      "date": "2026-10-18",
+      "problem": "1797",
+      "moves": {
+        "dict-arbitrary-value": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The class stores each token's generation time in a plain dict `self.tokens` and answers expiry by comparing `self.tokens[tokenId] + self.ttl > currentTime`; `countUnexpiredTokens` scans every token and counts the live ones. The dict-as-arbitrary-value move is exercised, but there is no expiry heap or lazy eviction, so the ttl-cache move is sidestepped by a full scan. LeetCode reports Accepted (258 ms, 20.7 MB).",
+      "seconds": 498
     }
   }
 }
