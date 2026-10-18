@@ -1,5 +1,5 @@
 """
-DRILL: Longest Ending Here
+DRILL: Longest Increasing Subsequence Ending At Each Index
 TRAINS: dp-1d-rolling
 
 Given an integer array nums. Make a table dp with one cell per index of

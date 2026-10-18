@@ -1,7 +1,8 @@
 """The mu side of a solve: current.mu, the one file to work in.
 
     python mu/session.py stub    after serving: write current.mu (DRILL_FILL:
-                                 the top of the solve given, from .mu_fill)
+                                 the top of the solve given, when .mu_fill
+                                 names this drill)
     python mu/session.py run [file.mu] [--color|--no-color]
                                  `make`: run the solve from current.mu, in place;
                                  or any mu file on its own
@@ -471,14 +472,14 @@ def names(tree):
 
 def drill_fill(root, py_src):
     """The filled solve for current.py when the drill server wrote .mu_fill
-    for it, else None: the solved file must have every class and def of
-    the solve as served."""
+    for this drill (its title), else None: the solved file must have every
+    class and def of the solve as served."""
     try:
         spec = json.loads((root / FILL).read_text())
         source = (root / spec["source"]).read_text()
     except (OSError, ValueError, KeyError):
         return None
-    if f"from {spec['source']}" not in py_src:
+    if spec.get("drill") != title(py_src):
         return None
     solve = solved_mu(source)
     served = names(ast.Module(body=solve_nodes(parse(py_src)), type_ignores=[]))

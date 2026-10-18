@@ -1,6 +1,7 @@
 """The mu side of a solve: stub at serve, run while solving, fold at solved."""
 
 import glob
+import json
 import os
 import re
 import shutil
@@ -13,7 +14,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path[:0] = [HERE, os.path.join(ROOT, "utils", "tests")]
 from mulang import VERSION, Parser, transpile  # noqa: E402
-from session import SETUP, stub  # noqa: E402
+from session import SETUP, stub, title  # noqa: E402
 from test_reference_solutions import PY, drill_for  # noqa: E402
 
 REFERENCES = sorted(
@@ -188,10 +189,10 @@ def test_a_current_mu_for_another_drill_is_not_run(tmp_path):
 
 
 def test_drill_fill_leaves_the_heaviest_lines_of_the_latest_solve(tmp_path):
-    """DRILL_FILL: the drill server notes the fill in the statement and writes
-    .mu_fill; the stub gives the solved file's mu solve with its heaviest
-    half put as `pass` (the prefix sums and the answer), setup and the
-    count kept, and the filled stub still runs."""
+    """DRILL_FILL: the drill server writes .mu_fill naming the drill; the
+    statement says nothing. The stub gives the solved file's mu solve with
+    its heaviest half put as `pass` (the prefix sums and the answer), setup
+    and the count kept, and the filled stub still runs."""
     ref = reference("d11_")
     (tmp_path / "solved").mkdir()
     (tmp_path / "solved" / "d_x.py").write_text(
@@ -199,10 +200,10 @@ def test_drill_fill_leaves_the_heaviest_lines_of_the_latest_solve(tmp_path):
         + "".join(f"# {ln}\n" for ln in open(ref).read().split("\n")[1:])
     )
     drill = open(drill_for(ref)).read()
-    at = [m.start() for m in re.finditer('"""', drill)][1]
-    note = "\nDRILL_FILL: part of the solve is given, from solved/d_x.py.\n"
-    (tmp_path / "current.py").write_text(drill[:at] + note + drill[at:])
-    (tmp_path / ".mu_fill").write_text('{"source": "solved/d_x.py", "blank": [1, 2]}')
+    (tmp_path / "current.py").write_text(drill)
+    assert "DRILL_FILL" not in drill
+    fill = {"drill": title(drill), "source": "solved/d_x.py", "blank": [1, 2]}
+    (tmp_path / ".mu_fill").write_text(json.dumps(fill))
     assert "DRILL_FILL gives" in session(tmp_path, "stub").stdout
     mu = (tmp_path / "current.mu").read_text()
     assert "    count = table(101" in mu and "      count[x] += 1\n" in mu
@@ -212,7 +213,8 @@ def test_drill_fill_leaves_the_heaviest_lines_of_the_latest_solve(tmp_path):
 
 def test_drill_fill_is_left_out_for_another_drill(tmp_path):
     (tmp_path / "current.py").write_text(open(drill_for(reference("d11_"))).read())
-    (tmp_path / ".mu_fill").write_text('{"source": "solved/d_x.py", "blank": [1, 2]}')
+    fill = {"drill": "Another Drill", "source": "solved/d_x.py", "blank": [1, 2]}
+    (tmp_path / ".mu_fill").write_text(json.dumps(fill))
     assert "DRILL_FILL" not in session(tmp_path, "stub").stdout
 
 

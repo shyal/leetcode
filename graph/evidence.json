@@ -34341,7 +34341,7 @@
       "summary": "The code builds a dp table and uses the harness pairs() helper to enumerate all (j, i) index pairs, updating dp[i] = max(dp[i], dp[j] + 1) whenever nums[j] < nums[i], then returns max(dp) + 1. It exercises the O(n^2) pair enumeration and a running max over the table, but the notes state the candidate was blank on the recurrence and was walked through it as a learning drill, and the file is marked FAILED after 24m 29s. The O(n log n) follow-up is not met, since the solution is quadratic.",
       "seconds": 1469
     },
-    "solved/d_Longest_Ending_Here_2026_09_29T07_36_57_871292_00_00Z.py": {
+    "solved/d_Longest_Increasing_Subsequence_Ending_At_Each_Index_2026_09_29T07_36_57_871292_00_00Z.py": {
       "date": "2026-09-29",
       "problem": "drill",
       "moves": {
@@ -34417,7 +34417,7 @@
       "summary": "The code computes one row of the excess-splitting recurrence: for each cell it takes (row[i]-1)/2, and if positive adds that excess to res[i] and res[i+1] in a freshly allocated table of length len(row)+1. This is a forward fill of a 1D table from the previous row's values, exercising dp-1d-rolling. All assertions pass, including the large 10**9 case.",
       "seconds": 323
     },
-    "solved/d_Longest_Ending_Here_2026_09_29T21_00_22_224883_00_00Z.py": {
+    "solved/d_Longest_Increasing_Subsequence_Ending_At_Each_Index_2026_09_29T21_00_22_224883_00_00Z.py": {
       "date": "2026-09-30",
       "problem": "drill",
       "moves": {
@@ -35125,7 +35125,7 @@
       "summary": "The solution returns a list of booleans by comparing every element n to the last element nums[-1] in one list comprehension. It passes all assertions, but it never performs a binary search or compares mid against an end to locate the pivot, so the targeted rotated-array-pivot move is sidestepped. No notes indicate any assistance or recognition difficulty.",
       "seconds": 41
     },
-    "solved/d_Longest_Ending_Here_2026_10_01T00_20_15_184037_00_00Z.py": {
+    "solved/d_Longest_Increasing_Subsequence_Ending_At_Each_Index_2026_10_01T00_20_15_184037_00_00Z.py": {
       "date": "2026-10-01",
       "problem": "drill",
       "moves": {
@@ -35797,7 +35797,7 @@
       "summary": "The code builds a 1D dp table of size amount+1, seeded with dp[0]=0 and inf elsewhere, then fills it forward: for each amount a it tries every coin c <= a and takes dp[a] = min(dp[a], dp[a-c]+1). This is the classic rolling 1D coin-change DP, and the final dp[-1] is returned as -1 when still inf. All assertions passed, including the large amount=10000 case.",
       "seconds": 285
     },
-    "solved/d_Longest_Ending_Here_2026_10_04T03_40_40_394247_00_00Z.py": {
+    "solved/d_Longest_Increasing_Subsequence_Ending_At_Each_Index_2026_10_04T03_40_40_394247_00_00Z.py": {
       "date": "2026-10-04",
       "problem": "drill",
       "moves": {
@@ -38288,6 +38288,16 @@
         "brute-force pair enumeration counting smaller predecessors"
       ],
       "seconds": 167
+    },
+    "solved/d_Longest_Increasing_Subsequence_Ending_At_Each_Index_2026_10_18T00_04_43_672965_00_00Z.py": {
+      "date": "2026-10-18",
+      "problem": "drill",
+      "moves": {
+        "dp-1d-rolling": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The mu source builds a 1D dp table filled with 1 and fills it forward: for each pair (j, i) with j < i, if nums[j] < nums[i] it sets dp[i] = max(dp[j] + 1, dp[i]). This is the 1D rolling DP recurrence for LIS ending at each index, and all assertions including the 2500-element case pass.",
+      "seconds": 558
     }
   }
 }

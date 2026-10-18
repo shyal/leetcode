@@ -1,4 +1,4 @@
-# REFERENCE: d176 Longest Ending Here
+# REFERENCE: d176 Longest Increasing Subsequence Ending At Each Index
 class Solution:
     def longestEndingAt(self, nums):
         dp = table(len(nums), fill=1)

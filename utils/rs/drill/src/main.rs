@@ -163,34 +163,6 @@ fn main() {
         Ok(note) if !note.is_empty() => format!("{note}\n{content}"),
         _ => content,
     };
-    // DRILL_FILL: after Good reps in a row, the latest one's solve is
-    // given but for its heaviest statements. .mu_fill tells `mu/session.py stub` which
-    // file and what share; the statement says so, and the solved file
-    // keeps that line.
-    let fill_path = ctx.root.join(".mu_fill");
-    let _ = std::fs::remove_file(&fill_path);
-    let (streak, latest) = good_streak(&ctx.drill_evidence_key(&path), &ev);
-    let fill = fill_share(streak).filter(|_| drill_fill_on()).zip(latest);
-    let content = match fill {
-        Some(((num, den), source)) if lang.name == "Python" => {
-            let note = format!(
-                "\nDRILL_FILL: part of the solve is given, from {source} \
-                 ({streak} Good reps in a row). Write the lines marked pass.\n"
-            );
-            match content.match_indices("\"\"\"").nth(1) {
-                Some((at, _)) => {
-                    std::fs::write(
-                        &fill_path,
-                        serde_json::json!({"source": source, "blank": [num, den]}).to_string(),
-                    )
-                    .expect("write .mu_fill");
-                    format!("{}{note}{}", &content[..at], &content[at..])
-                }
-                None => content,
-            }
-        }
-        _ => content,
-    };
     let title = Regex::new(&format!(
         r"(?m)^\s*{}DRILL:\s*(.+)$",
         kg::lang::comment_prefix()
@@ -199,6 +171,24 @@ fn main() {
     .captures(&content)
     .map(|m| m[1].trim().to_string())
     .unwrap_or_else(|| path.file_stem().unwrap().to_string_lossy().into_owned());
+    // DRILL_FILL: after Good reps in a row, the latest one's solve is
+    // given but for its heaviest statements. .mu_fill tells `mu/session.py
+    // stub` which drill, which file and what share; the statement says
+    // nothing about it.
+    let fill_path = ctx.root.join(".mu_fill");
+    let _ = std::fs::remove_file(&fill_path);
+    let (streak, latest) = good_streak(&ctx.drill_evidence_key(&path), &ev);
+    let fill = fill_share(streak).filter(|_| drill_fill_on()).zip(latest);
+    if let Some(((num, den), source)) = fill {
+        if lang.name == "Python" {
+            std::fs::write(
+                &fill_path,
+                serde_json::json!({"drill": title, "source": source, "blank": [num, den]})
+                    .to_string(),
+            )
+            .expect("write .mu_fill");
+        }
+    }
     let node_id = path
         .parent()
         .and_then(|d| d.file_name())
