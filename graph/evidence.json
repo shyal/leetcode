@@ -38398,6 +38398,16 @@
       "note": "Kahn's algorithm: indegree queue, decrement on pop, res length check for cycle detection; harness helpers adjacency/indegrees build the graph.",
       "summary": "The code builds a reversed adjacency list and indegree map via the harness helpers, seeds a deque with zero-indegree courses, and pops nodes appending to res while decrementing neighbors' degrees and enqueuing those that reach zero. It returns res only when its length equals numCourses, otherwise []. All assertions pass, including the cycle cases returning [].",
       "seconds": 246
+    },
+    "solved/d_Subarrays_Summing_To_Target_2026_10_18T01_24_02_756877_00_00Z.py": {
+      "date": "2026-10-18",
+      "problem": "drill",
+      "moves": {
+        "prefix-sum-hashmap": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The mu source and its transpiled Solution.countSubarrays keep a running prefix sum and a defaultdict D of prefix counts seeded with D[0]=1; at each element it adds D[prefix - target] to res, then records the current prefix. This is the prefix-sum-hashmap move, counting subarrays summing to target in one pass. All assertions passed, including the 10^5-length cases.",
+      "seconds": 140
     }
   }
 }
