@@ -865,6 +865,7 @@ fn run_(
                     note: None,
                     judge: None,
                     seconds: None,
+                    learning: false,
                 },
             );
             if problem != "drill" {

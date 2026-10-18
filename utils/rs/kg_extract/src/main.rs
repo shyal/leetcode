@@ -1207,6 +1207,10 @@ fn main() {
             if let Some(secs) = meta.get("seconds").and_then(Value::as_i64) {
                 entry["seconds"] = json!(secs);
             }
+            // a learning solve (kg::learning), carried the same way
+            if meta.get("learning").and_then(Value::as_bool) == Some(true) {
+                entry["learning"] = json!(true);
+            }
             pyjson::store_evidence_entry(&ctx.root, &path, &entry)
                 .expect("write graph/evidence.json");
             let moves: Vec<&str> = entry["moves"]

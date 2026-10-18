@@ -1067,6 +1067,129 @@ fn main() {
     kg::pick::ptrace("dump", std::time::Instant::now());
 }
 
+/// Learning mode (kg::learning): a first sight is served only when its
+/// gates are named and warm. One with no "after" list gets one from the
+/// gate model; a cold gate is served in its place, and the same check
+/// runs on the gate. A repeat, or a problem with no rating, is served as
+/// it is.
+fn learning_route(run: &Run, c: Choice, asleep: &[String]) -> Choice {
+    let (console, ctx, ev, today) = (run.console, run.ctx, &run.ev, run.today);
+    let ratings = solve_ratings(ctx);
+    let account = account_first_dates(&ctx.root);
+    let day = today.format("%Y-%m-%d").to_string();
+    let mut skip = solved_today_pnums(ctx);
+    skip.extend(asleep.iter().cloned());
+    let mut pnum = c.pnum.clone();
+    let mut reason = c.reason.clone();
+    let mut seen: HashSet<String> = HashSet::new();
+    while seen.insert(pnum.clone()) {
+        if !kg::model::first_sight_open(ev, &account, &pnum, &day) {
+            break;
+        }
+        let mut after = ctx
+            .all_problems()
+            .get(&pnum)
+            .map(|p| p.after.clone())
+            .unwrap_or_default();
+        if after.is_empty() {
+            let Some(&rating) = ratings.get(&pnum) else {
+                break;
+            };
+            after = ask_gates(console, ctx, ev, &pnum, rating);
+        }
+        match kg::learning::cold_gate(ctx, &after, &run.pv.borrow(), ev, today, &skip) {
+            Some(g) => {
+                reason = format!("learning: {pnum} waits on {g} - {g} first");
+                pnum = g;
+            }
+            None => break,
+        }
+    }
+    if pnum == c.pnum {
+        return c;
+    }
+    if !run.pv.borrow().contains(&pnum) {
+        let entry = ctx
+            .predicted
+            .get(&pnum)
+            .or_else(|| ctx.all_problems().get(&pnum))
+            .cloned()
+            .expect("a gate is a problem in graph/problems.json");
+        run.pv.borrow_mut().insert(pnum.clone(), entry);
+    }
+    let target = run
+        .pv
+        .borrow()
+        .get(&pnum)
+        .and_then(|p| p.moves.first().cloned())
+        .unwrap_or_default();
+    Choice {
+        status: st(&run.statuses, &target).0,
+        target,
+        pnum,
+        reason,
+    }
+}
+
+/// The gate step on one first sight (kg::queue): the gates the model
+/// names are written into its "after" list, and returned. None named, or
+/// the model failed: an empty list, and the problem is served as it is.
+fn ask_gates(console: &Console, ctx: &Ctx, ev: &Evidence, pnum: &str, rating: f64) -> Vec<String> {
+    let title = ctx
+        .all_problems()
+        .get(pnum)
+        .map(|p| p.title.clone())
+        .or_else(|| ctx.meta_title(pnum))
+        .unwrap_or_default();
+    let row = kg::queue::QueueRow {
+        pnum: pnum.to_string(),
+        title: title.clone(),
+        leetcode: String::new(),
+        difficulty: String::new(),
+        rating: Some(rating),
+        first_sight: true,
+    };
+    let context = kg::queue::gate_context(ctx, &[&row], first_sight_elo_now(ctx, ev));
+    let model = kg::llm::judge_model("deepseek");
+    console.print(&format!(
+        "[dim]learning: {pnum}. {title} has no gates - asking {model}[/dim]"
+    ));
+    let prompt = kg::pyjson::dumps(&context, Some(1));
+    let reply = match kg::llm::claude_json(&prompt, kg::queue::GATE_SYSTEM_PROMPT, &model, 2) {
+        Ok(v) => v,
+        Err(e) => {
+            console.print(&format!(
+                "[yellow]{e}; {pnum} is served with no gates[/yellow]"
+            ));
+            return vec![];
+        }
+    };
+    let gates = kg::queue::valid_gates(&reply, &context);
+    if gates.is_empty() {
+        console.print(&format!(
+            "[yellow]the model named no gate; {pnum} is served with no gates[/yellow]"
+        ));
+        return vec![];
+    }
+    let after = kg::queue::merged_after(ctx, &gates)
+        .into_iter()
+        .find(|(p, _)| p == pnum)
+        .map(|(_, a)| a)
+        .unwrap_or_default();
+    if let Err(e) = kg::queue::apply_gates(ctx, &gates) {
+        console.print(&format!("[red]{e}: the gates are not written[/red]"));
+    }
+    for g in &gates {
+        let gt = ctx
+            .all_problems()
+            .get(&g.gate)
+            .map(|p| p.title.clone())
+            .unwrap_or_default();
+        console.print(&format!("[dim]  after {}. {gt}: {}[/dim]", g.gate, g.why));
+    }
+    after
+}
+
 fn run_main(run: &Run, asleep: &[String], woken: &[String]) {
     let (console, ctx, args, ev, statuses, today) = (
         run.console,
@@ -1282,6 +1405,12 @@ fn run_main(run: &Run, asleep: &[String], woken: &[String]) {
         }
     }
     trace("pick");
+    let choice = match choice {
+        Some(c) if kg::learning::enabled() && !c.pnum.starts_with("drill:") => {
+            Some(learning_route(run, c, asleep))
+        }
+        c => c,
+    };
     if refused && choice.is_none() {
         for line in park_full_lines(asleep) {
             console.print(&line);

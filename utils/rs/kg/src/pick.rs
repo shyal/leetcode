@@ -2384,6 +2384,7 @@ fn grant(
         note: None,
         judge: None,
         seconds: None,
+        learning: false,
     };
     ev.push(fname, rec);
     for m in &moves {

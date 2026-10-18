@@ -312,12 +312,14 @@ fn file_phase(console: &Console, root: &Path, failed: bool, studied: bool) {
     }
     // the meta is written BEFORE the current file is cleared: a kill between
     // the two re-runs into the staged branch above instead of filing twice
-    kg::pyjson::save(
-        Path::new(META),
-        &json!({"message": message, "file": filepath, "seconds": active}),
-        None,
-    )
-    .expect("write .solve_meta.json");
+    let mut meta = json!({"message": message, "file": filepath, "seconds": active});
+    // LEARNING=1: the solve is evidence for its moves and no game for the
+    // rating (kg::learning); a drill and a study are no game anyway
+    let learning = kg::learning::enabled() && problem_id != "drill" && !studied;
+    if learning {
+        meta["learning"] = json!(true);
+    }
+    kg::pyjson::save(Path::new(META), &meta, None).expect("write .solve_meta.json");
     std::fs::write(&current, "").expect("clear the current file");
     if studied {
         console.print(&format!(
@@ -326,7 +328,8 @@ fn file_phase(console: &Console, root: &Path, failed: bool, studied: bool) {
         return;
     }
     console.print(&format!(
-        "[green]filed[/green] [bold]{filepath}[/bold] [cyan]({solve_time})[/cyan]; the commit lands after the judge."
+        "[green]filed[/green] [bold]{filepath}[/bold] [cyan]({solve_time})[/cyan]{}; the commit lands after the judge.",
+        if learning { ", learning: no rating change" } else { "" }
     ));
 }
 
@@ -451,6 +454,8 @@ fn main() {
     let studied = args.iter().any(|a| a == "--studied");
     let commit = args.iter().any(|a| a == "--commit");
     let root = repo_root();
+    // LEARNING (kg::learning) is read from .envrc, as kg_next reads it
+    kg::data::load_envrc(&root);
     let console = Console::full_width();
     if commit {
         commit_phase(&console, &root);

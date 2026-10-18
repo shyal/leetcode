@@ -1340,6 +1340,7 @@ mod tests {
             note: None,
             judge: None,
             seconds: None,
+            learning: false,
         }
     }
 

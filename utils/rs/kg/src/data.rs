@@ -358,6 +358,9 @@ pub struct Rec {
     /// kg_solved and filed with the placeholder; None on a record older
     /// than the field (2026-09-16), whose time is mined from its commit
     pub seconds: Option<i64>,
+    /// filed while LEARNING=1 (kg::learning): evidence for the moves, no
+    /// game for the rating
+    pub learning: bool,
 }
 
 pub const ASSIST_LEVELS: [&str; 4] = ["none", "hint", "walkthrough", "learning"];
@@ -398,6 +401,7 @@ impl Rec {
             note: v.get("note").and_then(Value::as_str).map(String::from),
             judge: v.get("judge").and_then(Value::as_str).map(String::from),
             seconds: v.get("seconds").and_then(Value::as_i64),
+            learning: v.get("learning").and_then(Value::as_bool) == Some(true),
         }
     }
 

@@ -24,6 +24,7 @@ pub mod git;
 pub mod hooks;
 pub mod lang;
 pub mod lc;
+pub mod learning;
 pub mod linalg;
 pub mod llm;
 pub mod mock;

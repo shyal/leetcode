@@ -19,6 +19,7 @@
 mod bank;
 mod clock;
 mod frontier;
+mod learning;
 mod reach;
 mod rules;
 
@@ -203,6 +204,7 @@ fn rec(date: String, problem: &str, moves: &[(&str, &str)], assist: Assist) -> R
         note: None,
         judge: None,
         seconds: None,
+        learning: false,
     }
 }
 

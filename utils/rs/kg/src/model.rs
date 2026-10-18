@@ -757,6 +757,7 @@ fn adds_no_game(ctx: &Ctx, ev: &Evidence, i: usize, mined: &HashSet<String>) -> 
             .is_none_or(|d| d <= rec.date.as_str())
     };
     rec.seconds.is_none()
+        && !rec.learning
         && !fname.contains("FAILED")
         && !crate::clock::is_studied(fname)
         && !mined.contains(fname)
@@ -790,6 +791,12 @@ fn build_scored_games(ctx: &Ctx, ev: &Evidence) -> (Vec<Game>, HashSet<String>) 
         // a studied file is no game, but the problem has been seen: no
         // later rep of it is a first sight
         if crate::clock::is_studied(fname) {
+            studied.insert(pnum);
+            continue;
+        }
+        // a learning solve is no game either, and the problem has been
+        // seen the same way (kg::learning)
+        if rec.learning {
             studied.insert(pnum);
             continue;
         }
