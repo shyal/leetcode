@@ -2,10 +2,11 @@
 // its cold gates.
 
 use super::*;
-use crate::learning::cold_gate;
+use crate::learning::gate_state;
+use crate::learning::GateState::{self, Cold, Held, Warm};
 
-fn cold(fx: &Fx, after: &[&str], ev: &Evidence, skip: &[&str]) -> Option<String> {
-    cold_gate(&fx.ctx(), &strs(after), &fx.pv(), ev, today(), &set(skip))
+fn state(fx: &Fx, after: &[&str], ev: &Evidence, skip: &[&str]) -> GateState {
+    gate_state(&fx.ctx(), &strs(after), &fx.pv(), ev, today(), &set(skip))
 }
 
 /// A learning solve is evidence for the moves but no game for the
@@ -30,8 +31,8 @@ fn a_learning_solve_is_no_game_and_the_next_rep_is_a_repeat() {
     assert!(!games[0].first);
 }
 
-/// 1366 comes after 2215 and 49. Neither solved: the first is served.
-/// 2215 solved clean today: 49. Both clean: nothing holds 1366.
+/// 1366 comes after 2215 and 49. Neither solved: 2215 is served first.
+/// 2215 solved clean today: 49. Both clean: 1366 is served.
 #[test]
 fn the_first_gate_not_warm_is_served() {
     let mut fx = Fx::new();
@@ -41,36 +42,43 @@ fn the_first_gate_not_warm_is_served() {
         ("49", problem(&["q1"])),
     ]);
     let gates = ["2215", "49"];
-    assert_eq!(cold(&fx, &gates, &no_evidence(), &[]), Some("2215".into()));
+    assert_eq!(state(&fx, &gates, &no_evidence(), &[]), Cold("2215".into()));
     let one = evidence(vec![solve("2215", &[("q1", "clean")], 0)]);
-    assert_eq!(cold(&fx, &gates, &one, &[]), Some("49".into()));
+    assert_eq!(state(&fx, &gates, &one, &[]), Cold("49".into()));
     let both = evidence(vec![
         solve("2215", &[("q1", "clean")], 0),
         solve("49", &[("q1", "clean")], 3),
     ]);
-    assert_eq!(cold(&fx, &gates, &both, &[]), None);
+    assert_eq!(state(&fx, &gates, &both, &[]), Warm);
 }
 
-/// A clean solve older than SOLID_WINDOW_DAYS is cold again, a gate in
-/// `skip` is passed over, and a drill in the list is the picker's.
+/// A clean solve older than SOLID_WINDOW_DAYS is cold again. A cold gate
+/// in `skip` (asleep, solved today) holds the problem, and so does a
+/// drill gate with no clean rep; a banned gate counts for nothing.
 #[test]
-fn an_old_solve_is_cold_and_skip_and_drills_pass() {
+fn a_gate_that_cannot_be_served_holds_the_problem() {
     let mut fx = Fx::new();
     fx.bank("q1", "Count by Contribution", "d0.py", "d1", &[]);
-    fx.problems(vec![("2215", problem(&["q1"])), ("49", problem(&["q1"]))]);
+    let mut banned = problem(&["q1"]);
+    banned.banned = true;
+    fx.problems(vec![
+        ("2215", problem(&["q1"])),
+        ("49", problem(&["q1"])),
+        ("506", banned),
+    ]);
     let old = evidence(vec![solve(
         "2215",
         &[("q1", "clean")],
         crate::data::SOLID_WINDOW_DAYS + 1,
     )]);
-    assert_eq!(cold(&fx, &["2215"], &old, &[]), Some("2215".into()));
+    assert_eq!(state(&fx, &["2215"], &old, &[]), Cold("2215".into()));
     assert_eq!(
-        cold(&fx, &["2215", "49"], &old, &["2215"]),
-        Some("49".into())
+        state(&fx, &["2215", "49"], &old, &["2215"]),
+        Held("2215".into())
     );
-    assert_eq!(cold(&fx, &["d1"], &no_evidence(), &[]), None);
+    assert_eq!(state(&fx, &["d1"], &no_evidence(), &[]), Held("d1".into()));
+    assert_eq!(state(&fx, &["506"], &no_evidence(), &[]), Warm);
 }
-
 /// Two gates on one target land in one "after" list, beside the gate it
 /// had: a write per gate kept only the last one.
 #[test]
