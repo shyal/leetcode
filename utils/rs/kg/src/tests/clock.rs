@@ -1143,7 +1143,10 @@ fn the_scored_games_memo_survives_a_replay_record_only() {
     *ctx.solve_times.borrow_mut() = Some(vec![]);
     let mut ev = evidence(vec![a, b]);
     let before = crate::model::scored_games(&ctx, &ev).len();
-    ev.push("solved/p1_replay.py".to_string(), solve("1", &[("q1", "clean")], 0).1);
+    ev.push(
+        "solved/p1_replay.py".to_string(),
+        solve("1", &[("q1", "clean")], 0).1,
+    );
     assert_eq!(crate::model::scored_games(&ctx, &ev).len(), before);
     assert_eq!(ev.cold_cache().scored.as_ref().map(|s| s.0), Some(ev.len()));
     ev.push(e.0, e.1);
@@ -1611,6 +1614,16 @@ fn a_review_above_the_band_is_held() {
         above_band(&fx.ctx(), &ev, &fx.pv(), today()),
         strs(&["1", "2"])
     );
+    // learning mode: the band has a floor as well; a band that reaches
+    // 1200 below his elo but not 800 holds 3 and keeps 4
+    let elo = first_sight_elo_now(&fx.ctx(), &ev);
+    test_env("LEARNING", "1");
+    test_env(
+        "REVIEWS_WITHIN_BAND",
+        &((elo - 1200.0).ceil() as i64).to_string(),
+    );
+    assert_eq!(queue(&fx), strs(&["4"]));
+    test_env("LEARNING", "");
 }
 
 /// 2026-10-09: NO_REVIEWS=1 serves first sights only. A due review loses

@@ -252,6 +252,9 @@ pub struct Problem {
     pub walks: Vec<Walk>,
     pub draft: bool,
     pub predicted: bool,
+    /// learning mode (kg::learning): a piece of the problem that none of
+    /// his clean solves isolates, so it is held
+    pub uncovered: bool,
 }
 
 impl Problem {
@@ -302,6 +305,7 @@ pub fn parse_problem(v: &Value) -> Problem {
             .map(|a| a.iter().map(|w| str_list(Some(w))).collect())
             .unwrap_or_default(),
         after: str_list(v.get("after")),
+        uncovered: v.get("uncovered").is_some_and(truthy),
         banned: v.get("banned").is_some_and(truthy),
         note: v.get("note").and_then(Value::as_str).map(String::from),
         unmapped: str_list(v.get("unmapped")),

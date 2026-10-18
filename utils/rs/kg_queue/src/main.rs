@@ -164,7 +164,7 @@ fn main() {
 
     let elo = first_sight_elo_now(&ctx, &ev);
     let rows = queue_rows(&ctx, &pv, &ev, &asleep, args.size);
-    let context = gate_context(&ctx, &targets(&rows, elo, args.gap), elo);
+    let context = gate_context(&ctx, &targets(&rows, elo, args.gap), elo, None);
     if args.context {
         println!("{}", dumps(&context, Some(1)));
         return;

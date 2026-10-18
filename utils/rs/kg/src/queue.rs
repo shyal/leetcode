@@ -31,6 +31,10 @@ pub const QUEUE_LEN: usize = 10;
 const DAYS: i64 = 30;
 pub const GATE_MARGIN: f64 = 150.0;
 
+/// The gate prompt for learning mode: the candidates are his clean
+/// solves, and the reply also counts the pieces none of them isolates.
+pub const LEARNING_GATE_SYSTEM_PROMPT: &str = "You maintain the prerequisite edges of one operator's leetcode practice\ngraph. A gate is a plainer problem that isolates one piece of a harder\ntarget problem. The candidates are problems the operator has already\nsolved cleanly. Each target comes with its solution; read it and name the\npieces yourself.\n\nFor each target, name one gate per distinct piece, up to three, taken from\nthe candidates only, each isolating that piece as purely as possible.\nNever name a problem that is not in the candidates. A piece that no\ncandidate isolates gets no gate: count it in `uncovered`. Never force a\ncandidate onto a piece it does not isolate.\n\nWriting rules for `why`: one short declarative sentence in plain English.\nRefer to problems by number and title only. Never name a technique, a\nmove, or a data structure.\n\nReply with one JSON object and nothing else:\n{\"gates\": [{\"problem\": \"<target number>\", \"gate\": \"<candidate number>\", \"why\": \"<one sentence>\"}], \"uncovered\": <number of pieces with no gate>}\n";
+
 pub const GATE_SYSTEM_PROMPT: &str = "You maintain the prerequisite edges of one operator's leetcode practice\ngraph. A gate is a plainer problem that isolates one piece of a harder\ntarget problem, so that a clean solve of the gate proves the piece before\nthe target is served. Each target comes with its solution; read it and\nname the pieces yourself.\n\nFor each target, name up to three gates, taken from the candidates only,\none per distinct piece, each isolating that piece as purely as possible.\nNever name a problem that is not in the candidates. Never repeat a problem\nalready in the target's after list.\n\nWriting rules for `why`: one short declarative sentence in plain English.\nRefer to problems by number and title only. Never name a technique, a\nmove, or a data structure.\n\nReply with one JSON object and nothing else:\n{\"gates\": [{\"problem\": \"<target number>\", \"gate\": \"<candidate number>\", \"why\": \"<one sentence>\"}]}\n";
 
 /// One row of the queue: number, title, LeetCode's label, the label the
@@ -185,12 +189,13 @@ pub fn crowd_cell(ctx: &Ctx, pnum: &str) -> String {
 }
 
 /// Every rated problem at least GATE_MARGIN below the lowest target, by
-/// number, with its title. Drafted and evidenced alike; nothing else
-/// filters them.
+/// number, with its title, and in `only` when it is given. Drafted and
+/// evidenced alike; nothing else filters them.
 fn candidates(
     ctx: &Ctx,
     targets: &[&QueueRow],
     ratings: &HashMap<String, f64>,
+    only: Option<&HashSet<String>>,
 ) -> Vec<(String, String, f64)> {
     let ceiling = targets
         .iter()
@@ -200,6 +205,7 @@ fn candidates(
     let mut out: Vec<(String, String, f64)> = ratings
         .iter()
         .filter(|(k, r)| **r <= ceiling && !targets.iter().any(|t| &t.pnum == *k))
+        .filter(|(k, _)| only.is_none_or(|o| o.contains(*k)))
         .filter_map(|(k, r)| {
             let title = ctx
                 .all_problems()
@@ -222,8 +228,13 @@ fn solution(ctx: &Ctx, pnum: &str) -> String {
 }
 
 /// What the gate model reads: the targets with their solutions, and the
-/// candidates below them.
-pub fn gate_context(ctx: &Ctx, targets: &[&QueueRow], elo: f64) -> Value {
+/// candidates below them (only those in `only`, when it is given).
+pub fn gate_context(
+    ctx: &Ctx,
+    targets: &[&QueueRow],
+    elo: f64,
+    only: Option<&HashSet<String>>,
+) -> Value {
     let ratings = solve_ratings(ctx);
     let target_json: Vec<Value> = targets
         .iter()
@@ -238,7 +249,7 @@ pub fn gate_context(ctx: &Ctx, targets: &[&QueueRow], elo: f64) -> Value {
             })
         })
         .collect();
-    let cand_json: Vec<Value> = candidates(ctx, targets, &ratings)
+    let cand_json: Vec<Value> = candidates(ctx, targets, &ratings, only)
         .into_iter()
         .map(|(k, title, r)| {
             json!({ "problem": k, "title": title, "rating": r.round_ties_even() as i64 })

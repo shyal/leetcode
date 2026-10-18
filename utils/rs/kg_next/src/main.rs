@@ -36,7 +36,6 @@ use kg::git::{
     is_session_start, is_stale, pending_judgements, sleep_rows, sleep_state, solve_seconds_today,
     solved_today_pnums, spawn_judge,
 };
-use kg::learning::GateState;
 use kg::model::{
     account_first_dates, account_repeat, display_difficulty, drill_forecast, first_sight_elo_now,
     solve_forecast, solve_ratings, ELO_K,
@@ -1070,91 +1069,49 @@ fn main() {
 
 /// What learning mode does with a pick.
 enum Route {
-    /// the pick, or the gate it waits on
     Serve(Choice),
-    /// the pick cannot be cleared now: pick the next one
+    /// the pick is not gated by his solves: pick the next one
     Hold(String),
     /// the gate model failed: serve nothing
     Fail(String),
 }
 
-/// Learning mode (kg::learning): a problem is served only when its gates
-/// are named and warm. One with no "after" list gets one from the gate
-/// model; a cold gate is served in its place, and the same check runs on
-/// the gate. Only a problem with no plainer candidate is served with no
-/// gates.
-fn learning_route(run: &Run, c: Choice, asleep: &[String]) -> Route {
-    let (console, ctx, ev, today) = (run.console, run.ctx, &run.ev, run.today);
-    let (ratings, imputed) = kg::model::pricing(ctx);
-    let mut skip = solved_today_pnums(ctx);
-    skip.extend(asleep.iter().cloned());
-    let mut pnum = c.pnum.clone();
-    let mut reason = c.reason.clone();
-    let mut seen: HashSet<String> = HashSet::new();
-    loop {
-        if !seen.insert(pnum.clone()) {
-            return Route::Hold(format!("its gates come back to {pnum}"));
-        }
-        let mut after = ctx
-            .all_problems()
-            .get(&pnum)
-            .map(|p| p.after.clone())
-            .unwrap_or_default();
-        if after.is_empty() {
-            let diff = ctx.problem_difficulty(&pnum, ctx.all_problems());
-            let Some(rating) = ratings.get(&pnum).or_else(|| imputed.get(&diff)).copied() else {
-                return Route::Hold(format!("{pnum} has no rating to find gates below"));
-            };
-            match ask_gates(console, ctx, ev, &pnum, rating) {
-                Err(e) => return Route::Fail(e),
-                Ok(None) => break, // the floor: nothing plainer exists
-                Ok(Some(g)) if g.is_empty() => {
-                    return Route::Hold(format!("the model named no gate for {pnum}"));
-                }
-                Ok(Some(g)) => after = g,
+/// Learning mode (kg::learning): the pick is served only when each gate
+/// in its "after" list is solved clean. One with no list gets one from
+/// the gate model, from his clean solves only; a piece none of them
+/// isolates marks the problem `uncovered`, and it is held.
+fn learning_route(run: &Run, c: Choice) -> Route {
+    let (console, ctx, ev) = (run.console, run.ctx, &run.ev);
+    let pnum = c.pnum.clone();
+    let entry = ctx.all_problems().get(&pnum);
+    if entry.is_some_and(|p| p.uncovered) {
+        return Route::Hold(format!("a piece of {pnum} has none of your clean solves"));
+    }
+    let mut after = entry.map(|p| p.after.clone()).unwrap_or_default();
+    if after.is_empty() {
+        let (ratings, imputed) = kg::model::pricing(ctx);
+        let diff = ctx.problem_difficulty(&pnum, ctx.all_problems());
+        let Some(rating) = ratings.get(&pnum).or_else(|| imputed.get(&diff)).copied() else {
+            return Route::Hold(format!("{pnum} has no rating to find gates below"));
+        };
+        match ask_gates(console, ctx, ev, &pnum, rating) {
+            Err(e) => return Route::Fail(e),
+            Ok(None) => {
+                return Route::Hold(format!("a piece of {pnum} has none of your clean solves"));
             }
-        }
-        let state = kg::learning::gate_state(ctx, &after, &run.pv.borrow(), ev, today, &skip);
-        match state {
-            GateState::Warm => break,
-            GateState::Held(g) => {
-                return Route::Hold(format!("{pnum} waits on {g}, which cannot be served now"));
-            }
-            GateState::Cold(g) => {
-                reason = format!("learning: {pnum} waits on {g} - {g} first");
-                pnum = g;
-            }
+            Ok(Some(g)) => after = g,
         }
     }
-    if pnum == c.pnum {
-        return Route::Serve(c);
+    match kg::learning::unmet_gate(ctx, &after, &run.pv.borrow(), ev) {
+        Some(g) => Route::Hold(format!("{pnum} waits on {g}, not solved clean")),
+        None => Route::Serve(c),
     }
-    if !run.pv.borrow().contains(&pnum) {
-        let entry = ctx
-            .predicted
-            .get(&pnum)
-            .or_else(|| ctx.all_problems().get(&pnum))
-            .cloned()
-            .expect("a gate is a problem in graph/problems.json");
-        run.pv.borrow_mut().insert(pnum.clone(), entry);
-    }
-    let target = run
-        .pv
-        .borrow()
-        .get(&pnum)
-        .and_then(|p| p.moves.first().cloned())
-        .unwrap_or_default();
-    Route::Serve(Choice {
-        status: st(&run.statuses, &target).0,
-        target,
-        pnum,
-        reason,
-    })
 }
 
-/// The gate step on one problem (kg::queue): the gates the model names
-/// are written into its "after" list, and returned. None: no plainer
-/// candidate exists. An empty list: the model named none.
+/// The gate step on one problem (kg::queue), with his clean solves as the
+/// candidates. The gates are written into its "after" list and returned.
+/// None: no gate list covers every piece, so the problem is marked
+/// `uncovered` in graph/problems.json.
 fn ask_gates(
     console: &Console,
     ctx: &Ctx,
@@ -1176,20 +1133,27 @@ fn ask_gates(
         rating: Some(rating),
         first_sight: true,
     };
-    let context = kg::queue::gate_context(ctx, &[&row], first_sight_elo_now(ctx, ev));
+    let solved = kg::learning::solved_clean(ev);
+    let context =
+        kg::queue::gate_context(ctx, &[&row], first_sight_elo_now(ctx, ev), Some(&solved));
+    let uncover = || {
+        kg::pyjson::save_problem_entry(&ctx.root, pnum, &serde_json::json!({ "uncovered": true }))
+            .map(|_| None)
+            .map_err(|e| e.to_string())
+    };
     if context["candidates"].as_array().is_none_or(Vec::is_empty) {
-        return Ok(None);
+        return uncover();
     }
     let model = kg::llm::judge_model("deepseek");
     console.print(&format!(
         "[dim]learning: {pnum}. {title} has no gates - asking {model}[/dim]"
     ));
     let prompt = kg::pyjson::dumps(&context, Some(1));
-    let reply = kg::llm::claude_json(&prompt, kg::queue::GATE_SYSTEM_PROMPT, &model, 2)
+    let reply = kg::llm::claude_json(&prompt, kg::queue::LEARNING_GATE_SYSTEM_PROMPT, &model, 2)
         .map_err(|e| e.to_string())?;
     let gates = kg::queue::valid_gates(&reply, &context);
-    if gates.is_empty() {
-        return Ok(Some(vec![]));
+    if gates.is_empty() || reply["uncovered"].as_u64().unwrap_or(0) > 0 {
+        return uncover();
     }
     let after = kg::queue::merged_after(ctx, &gates)
         .into_iter()
@@ -1420,7 +1384,7 @@ fn run_main(run: &Run, asleep: &[String], woken: &[String]) {
             }
             if kg::learning::enabled() && !c.pnum.starts_with("drill:") {
                 let picked = c.pnum.clone();
-                match learning_route(run, c.clone(), asleep) {
+                match learning_route(run, c.clone()) {
                     Route::Serve(g) => choice = Some(g),
                     Route::Hold(why) => {
                         console.print(&format!("[dim]learning: {picked} held - {why}[/dim]"));

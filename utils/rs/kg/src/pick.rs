@@ -509,16 +509,24 @@ pub fn trivial_easies(
 /// 2026-09-29 the picker served new problems 300 to 650 above him; their
 /// reviews then filled the queue with problems out of his reach
 /// (2026-10-01). The card stays open and due. A problem nothing rates is
-/// never held.
+/// never held. In learning mode (kg::learning) the band has a floor too:
+/// a review more than the band below his elo is held the same way
+/// (2026-10-18).
 pub fn above_band(ctx: &Ctx, ev: &Evidence, pv: &PView, today: NaiveDate) -> Vec<String> {
     let Some(band) = crate::drills::reviews_band() else {
         return Vec::new();
     };
-    let ceiling = crate::model::first_sight_elo_now(ctx, ev) + band;
+    let elo = crate::model::first_sight_elo_now(ctx, ev);
+    let ceiling = elo + band;
+    let floor = if crate::learning::enabled() {
+        elo - band
+    } else {
+        f64::NEG_INFINITY
+    };
     let ratings = solve_ratings(ctx);
     due_problems(ev, today, Some(pv))
         .into_iter()
-        .filter(|(p, _, _)| ratings.get(p).is_some_and(|r| *r > ceiling))
+        .filter(|(p, _, _)| ratings.get(p).is_some_and(|r| *r > ceiling || *r < floor))
         .map(|(p, _, _)| p)
         .collect()
 }

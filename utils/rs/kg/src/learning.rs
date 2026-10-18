@@ -6,74 +6,54 @@
 // leaves it out the way it leaves out a studied file. A later rep of the
 // problem is a repeat.
 //
-// Learning mode gates every problem it serves (kg_next), at every rating,
-// repeats too: a problem with no "after" list gets one from the gate
-// model (kg::queue), and a gate that is not warm is served in its place.
-// The same check runs on the gate. A problem the check cannot clear is
-// held, and the picker picks the next one. Only a problem with no plainer
-// candidate below it (the floor) is served with no gates.
+// Learning mode serves a problem in his band only when it is gated by
+// his own solves (kg_next): a problem with no "after" list gets one from
+// the gate model (kg::queue), whose candidates are the problems he has
+// solved clean, so no gate is ever served. A problem whose gates are not
+// all solved clean, or with a piece none of his solves isolates, is held,
+// and the picker picks the next one.
 // Unset or anything but 1 switches the mode off.
 
 use std::collections::HashSet;
 
-use chrono::NaiveDate;
-
-use crate::bank::warm;
 use crate::ctx::{Ctx, PView};
 use crate::data::env_str;
 use crate::drills::drill_gate_warm;
 use crate::evidence::Evidence;
+use crate::status::last_clean_solve;
 
 /// LEARNING=1 switches the mode on.
 pub fn enabled() -> bool {
     env_str("LEARNING").trim() == "1"
 }
 
-/// What a problem's "after" list asks before it is served.
-#[derive(Debug, PartialEq)]
-pub enum GateState {
-    /// every gate warm: serve the problem
-    Warm,
-    /// this gate first: serve it, with the same check on it
-    Cold(String),
-    /// a gate that is not warm and cannot be served now (asleep, solved
-    /// today, a drill that is not warm): hold the problem
-    Held(String),
+/// The problems with a clean solve on record: the gate candidates.
+pub fn solved_clean(ev: &Evidence) -> HashSet<String> {
+    ev.recs
+        .iter()
+        .map(|(_, r)| r.problem_str())
+        .filter(|p| !last_clean_solve(ev, p).is_empty())
+        .collect()
 }
 
-/// The state of `after`, gate by gate in its order; the first gate that
-/// is not warm decides. A problem gate is warm with a clean solve in the
-/// last SOLID_WINDOW_DAYS, a drill gate with DRILL_GATE_REPS clean days.
-/// A banned or paid-only gate can never be served and counts for nothing.
-pub fn gate_state(
-    ctx: &Ctx,
-    after: &[String],
-    pv: &PView,
-    ev: &Evidence,
-    today: NaiveDate,
-    skip: &HashSet<String>,
-) -> GateState {
-    for g in after {
-        if ctx.vertex_kind(g, &pv.map) == Some("drill") {
-            let warm = ctx
-                .drill_path(g)
-                .is_some_and(|p| drill_gate_warm(ctx, &p, ev));
-            if !warm {
-                return GateState::Held(g.clone());
+/// The first gate in `after` that does not clear the problem, or None. A
+/// problem gate clears it with a clean solve on record, a drill gate with
+/// DRILL_GATE_REPS clean days. A banned or paid-only gate counts for
+/// nothing.
+pub fn unmet_gate(ctx: &Ctx, after: &[String], pv: &PView, ev: &Evidence) -> Option<String> {
+    after
+        .iter()
+        .find(|g| {
+            if ctx.vertex_kind(g, &pv.map) == Some("drill") {
+                return !ctx
+                    .drill_path(g)
+                    .is_some_and(|p| drill_gate_warm(ctx, &p, ev));
             }
-            continue;
-        }
-        let servable = match pv.get(g).or_else(|| ctx.ro.get(g)) {
-            Some(p) => !ctx.unservable(g, p),
-            None => !ctx.paid_only(g),
-        };
-        if !servable || warm(ctx, g, pv, ev, today, false) != Some(false) {
-            continue;
-        }
-        if skip.contains(g) {
-            return GateState::Held(g.clone());
-        }
-        return GateState::Cold(g.clone());
-    }
-    GateState::Warm
+            let servable = match pv.get(g).or_else(|| ctx.ro.get(g)) {
+                Some(p) => !ctx.unservable(g, p),
+                None => !ctx.paid_only(g),
+            };
+            servable && last_clean_solve(ev, g).is_empty()
+        })
+        .cloned()
 }
