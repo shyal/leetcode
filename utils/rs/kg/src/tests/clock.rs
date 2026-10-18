@@ -1129,6 +1129,29 @@ fn the_contest_clock_reads_the_other_slots_from_the_record() {
     assert_eq!(crate::model::Summary::of(&games).inside, 2);
 }
 
+/// scored_games is memoized on the evidence. A record the replay appends
+/// (no time, no file) adds no game and keeps the memo; a timed record
+/// adds a game and rebuilds it.
+#[test]
+fn the_scored_games_memo_survives_a_replay_record_only() {
+    let mut fx = Fx::picker();
+    fx.nodes(&["q1"]);
+    let a = timed(&mut fx, "1", 1500.0, 35 * 60, false, 1);
+    let b = timed(&mut fx, "2", 1250.0, 5 * 60, false, 2);
+    let e = timed(&mut fx, "5", 1300.0, 10 * 60, false, 0);
+    let ctx = fx.ctx();
+    *ctx.solve_times.borrow_mut() = Some(vec![]);
+    let mut ev = evidence(vec![a, b]);
+    let before = crate::model::scored_games(&ctx, &ev).len();
+    ev.push("solved/p1_replay.py".to_string(), solve("1", &[("q1", "clean")], 0).1);
+    assert_eq!(crate::model::scored_games(&ctx, &ev).len(), before);
+    assert_eq!(ev.cold_cache().scored.as_ref().map(|s| s.0), Some(ev.len()));
+    ev.push(e.0, e.1);
+    let games = crate::model::scored_games(&ctx, &ev);
+    assert_eq!(games.len(), before + 1);
+    assert_eq!(find(&games, "5").seconds, Some(600));
+}
+
 /// A companion costs at most its label's cap, 10/30/45 minutes: a three
 /// hour Hard beside a 35 minute Medium costs 45, and the Medium fits (80
 /// of 90). The pass being timed is not capped: three hours is over.

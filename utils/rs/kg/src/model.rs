@@ -5,6 +5,7 @@
 
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
+use std::rc::Rc;
 
 use chrono::{Duration, NaiveDate};
 
@@ -721,8 +722,49 @@ pub fn games_since(games: &[Game], since: NaiveDate) -> Vec<&Game> {
         .collect()
 }
 
-/// kg_lib.scored_games over the evidence, oldest first.
+/// kg_lib.scored_games over the evidence, oldest first. Memoized on the
+/// evidence: a pick asks for it many times (the band, the queue, the
+/// replay) and each build reads files for every record. The replay
+/// appends records between the calls; those add no game, so the memo
+/// stays.
 pub fn scored_games(ctx: &Ctx, ev: &Evidence) -> Vec<Game> {
+    let memo = ev.cold_cache().scored.clone();
+    if let Some((n, games, mined)) = memo {
+        if (n..ev.len()).all(|i| adds_no_game(ctx, ev, i, &mined)) {
+            if n < ev.len() {
+                ev.cold_cache().scored = Some((ev.len(), games.clone(), mined));
+            }
+            return games.as_ref().clone();
+        }
+    }
+    let (out, mined) = build_scored_games(ctx, ev);
+    ev.cold_cache().scored = Some((ev.len(), Rc::new(out.clone()), Rc::new(mined)));
+    out
+}
+
+/// Record `i` is no game (no time, not failed, no file on disk) and
+/// leaves the others as they are: not a studied file, and not before
+/// its problem's first record (the date `first` is measured from).
+fn adds_no_game(ctx: &Ctx, ev: &Evidence, i: usize, mined: &HashSet<String>) -> bool {
+    let (fname, rec) = (ev.fname(i), ev.rec(i));
+    let after_first = || {
+        let Some(p) = &rec.problem else { return true };
+        ev.problem_recs(p)
+            .iter()
+            .filter(|(_, _, j)| *j < i)
+            .map(|(d, _, _)| *d)
+            .min()
+            .is_none_or(|d| d <= rec.date.as_str())
+    };
+    rec.seconds.is_none()
+        && !fname.contains("FAILED")
+        && !crate::clock::is_studied(fname)
+        && !mined.contains(fname)
+        && !ctx.root.join(fname).exists()
+        && after_first()
+}
+
+fn build_scored_games(ctx: &Ctx, ev: &Evidence) -> (Vec<Game>, HashSet<String>) {
     let problems = ctx.evidenced();
     let secs: HashMap<String, i64> = mined_solve_times(ctx)
         .into_iter()
@@ -820,7 +862,7 @@ pub fn scored_games(ctx: &Ctx, ev: &Evidence) -> Vec<Game> {
             1.0
         };
     }
-    out
+    (out, secs.into_keys().collect())
 }
 
 /// kg_lib.elo_games: every scored game with the Elo he carried INTO it and
