@@ -666,9 +666,9 @@ fn main() {
     });
     render_pick(&console, &pick, cached, &words);
     if prepare {
-        if let Some((cur, _)) = kg::lang::busy(&ctx.root) {
-            console.print(&format!("[yellow]{} is not empty - record it (make solved) before preparing the next one.[/yellow]", cur.file_name().unwrap().to_string_lossy()));
-            std::process::exit(1);
+        for prev in kg::lang::set_aside(&ctx.root) {
+            let name = prev.file_name().unwrap().to_string_lossy();
+            console.print(&format!("{} held work; it was moved to {name}.", name.trim_end_matches(".prev")));
         }
         let _ = Command::new(kg::data::rs_bin(&ctx.root, "prepare"))
             .arg(kg::data::value_str(&pick["problem"]))

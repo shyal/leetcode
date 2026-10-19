@@ -38692,6 +38692,18 @@
       "judge": "deepseek-chat",
       "summary": "The code defines sum_to_n, which declares `let mut total: u64 = 0` and accumulates each i from 0..=n into it in a for loop, returning total. This exercises the mutable-binding move directly. The run exited 0 with all assertions passing, printing 6.",
       "seconds": 18
+    },
+    "solved/d_Total_Users_Per_Contest_2026_10_19T23_46_16_897767_00_00Z.py": {
+      "date": "2026-10-20",
+      "problem": "drill",
+      "moves": {
+        "sql-subquery": "clean",
+        "sql-filter-select": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Scalar subquery (select count(*) from Users) supplies the total; DISTINCT on contest_id gives one row per contest.",
+      "summary": "The query selects distinct contest_id from Register and pairs it with a scalar subquery counting all rows in Users, so total_users is the full user count at run time. This exercises the scalar-subquery move and a basic filter/select with DISTINCT. Both examples ran and passed.",
+      "seconds": 419
     }
   }
 }

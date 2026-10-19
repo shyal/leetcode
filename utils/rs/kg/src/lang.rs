@@ -132,6 +132,23 @@ pub fn busy(root: &Path) -> Option<(PathBuf, &'static Lang)> {
         .find(|(p, _)| nonempty(p))
 }
 
+/// Every current file holding work, copied to `<name>.prev` and emptied,
+/// so a serve can write the next one over it.
+pub fn set_aside(root: &Path) -> Vec<PathBuf> {
+    let mut moved = Vec::new();
+    for l in LANGS {
+        let path = root.join(current_name(l));
+        if !nonempty(&path) {
+            continue;
+        }
+        let prev = root.join(format!("{}.prev", current_name(l)));
+        std::fs::copy(&path, &prev).expect("copy current file to .prev");
+        std::fs::write(&path, "").expect("empty current file");
+        moved.push(prev);
+    }
+    moved
+}
+
 /// The statement block: the module docstring in Python, the leading
 /// comment block in every other language, with the comment prefix
 /// removed and cleaned the way inspect.cleandoc cleans a docstring.
@@ -629,6 +646,20 @@ mod tests {
         assert_eq!(busy(&dir).unwrap().1.ext, "ts");
         std::fs::write(dir.join("current.py"), "x = 1\n").unwrap();
         assert_eq!(busy(&dir).unwrap().1.ext, "py");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn set_aside_moves_work_to_prev_and_empties_the_file() {
+        let dir = std::env::temp_dir().join(format!("lang_aside_{}", std::process::id()));
+        let _ = std::fs::create_dir_all(&dir);
+        std::fs::write(dir.join("current.py"), "\n").unwrap();
+        std::fs::write(dir.join("current.rs"), "fn f() {}\n").unwrap();
+        assert_eq!(set_aside(&dir), vec![dir.join("current.rs.prev")]);
+        assert_eq!(std::fs::read_to_string(dir.join("current.rs.prev")).unwrap(), "fn f() {}\n");
+        assert_eq!(std::fs::read_to_string(dir.join("current.rs")).unwrap(), "");
+        assert!(!dir.join("current.py.prev").exists());
+        assert!(busy(&dir).is_none());
         let _ = std::fs::remove_dir_all(&dir);
     }
 }

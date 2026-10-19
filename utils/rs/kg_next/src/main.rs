@@ -835,10 +835,9 @@ impl<'a> Run<'a> {
         if !self.args.prepare {
             return;
         }
-        if let Some((cur, _)) = kg::lang::busy(&self.ctx.root) {
-            self.console.print(&format!("[yellow]{} is not empty \u{2014} record it (make solved) before preparing the next one.[/yellow]", cur.file_name().unwrap().to_string_lossy()));
-            self.flush_footer();
-            std::process::exit(1);
+        for prev in kg::lang::set_aside(&self.ctx.root) {
+            let name = prev.file_name().unwrap().to_string_lossy();
+            self.console.print(&format!("{} held work; it was moved to {name}.", name.trim_end_matches(".prev")));
         }
         let tool = if force { "kg_force" } else { "prepare" };
         let _ = Command::new(kg::data::rs_bin(&self.ctx.root, tool))
