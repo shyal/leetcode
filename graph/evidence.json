@@ -38729,6 +38729,18 @@
       "note": "The Grid wrapper and the try/finally restore of accounts are scaffolding; the union-find work is in union_shared.",
       "summary": "union_shared walks each account's emails, keeping an owner dict from email to the first account index that claimed it; when an email reappears it calls self.union(i, owner[email]) to merge the two accounts. The Solution subclasses UnionFind, so find/union come from the harness class, and the assertions confirm the merges (find(2)==0, find(3)==1, etc.). The Grid class and the try/finally that restores accounts are transpiler scaffolding around the loop.",
       "seconds": 229
+    },
+    "solved/d_First_Lit_Bulb_2026_10_19T23_57_51_175647_00_00Z.py": {
+      "date": "2026-10-20",
+      "problem": "drill",
+      "moves": {
+        "binary-search-boundary": "clean",
+        "binary-search-index": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "first_true uses bisect_left with key=ok to find the first True index; all assertions passed.",
+      "summary": "The solution defines first_true(lo, hi, ok) as lo + bisect_left(range(lo, hi+1), True, key=ok), which locates the first index where the predicate holds. firstLit calls it over the boolean array with lambda x: lit[x]. The run exited 0 with all assertions passing, including the 100000-element cases.",
+      "seconds": 67
     }
   }
 }
