@@ -16,7 +16,7 @@ Example 2:
 
 Input: head = [1, 2, 3, 4, 5]
 Output: ([1, 2, 3], [4, 5])
-Explanation: five nodes, so the first list keeps three.
+Explanation: five nodes, so the first list gets three.
 
 Example 3:
 

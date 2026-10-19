@@ -50,7 +50,7 @@ Output:
 | 3       | X    |
 | 4       | Zoe  |
 +---------+------+
-Explanation: A single character is upper-cased; an all-caps name keeps only its first letter upper.
+Explanation: A single character is upper-cased; an all-caps name has only its first letter upper.
 
 Constraints:
 

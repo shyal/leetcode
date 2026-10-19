@@ -57,7 +57,7 @@ Output:
 | 2  | 7.0   |
 | 3  | 7.0   |
 +----+-------+
-Explanation: There is only one distinct score, so every row is kept.
+Explanation: There is only one distinct score, so every row is in the output.
 
 Constraints:
 

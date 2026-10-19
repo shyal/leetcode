@@ -9,7 +9,7 @@ billion read requests and 10 billion searches per month.
 
 Give two measures that bound the memory the design uses.
 
-REQUIRED: two bounds. Keeping every tweet of every user in the cache is the
+REQUIRED: two bounds. Every tweet of every user in the cache is the
 fail.
 
 ## Answer

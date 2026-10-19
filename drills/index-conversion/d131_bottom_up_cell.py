@@ -37,7 +37,7 @@ Constraints:
 
     2 <= n <= 20
 
-    REQUIRED: keep the stub's loop over k. Each k goes to its cell by
+    REQUIRED: do not change the stub's loop over k. Each k goes to its cell by
     O(1) arithmetic on n and k. NO counter carried from one k to the
     next.
 """

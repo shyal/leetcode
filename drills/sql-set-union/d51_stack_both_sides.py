@@ -61,7 +61,7 @@ Constraints:
     1 <= number of rows <= 10^4
 
     REQUIRED: the result has exactly twice as many rows as the table;
-    repeats are kept.
+    repeats are in the output.
 
     FORBIDDEN: anything that drops repeats; Python.
 

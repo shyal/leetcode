@@ -5,7 +5,7 @@ TRAINS: binary-search-on-answer
 Given a list of chunks of non-negative integers and an integer k, return
 exactly k chunks. Take the leftmost chunk holding two or more numbers, cut
 it into its first number and the rest, and repeat until there are k chunks.
-Keep the chunks in order.
+Do not change the order of the chunks.
 
 Example 1:
 

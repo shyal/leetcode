@@ -20,7 +20,7 @@ Example 3:
 
 Input: a = "abc", b = "cba"
 Output: 1
-Explanation: order is kept, so a common subsequence of length 2 would have
+Explanation: the order does not change, so a common subsequence of length 2 would have
 to appear in the same direction in both. Only single characters do.
 
 Constraints:

@@ -27,7 +27,7 @@ prerequisites = [[2, 3], [1, 2], [0, 1], [0, 4], [4, 5], [5, 1]]
 
 we take the courses as so: 3, 2, 1, 5, 4, 0. Course 0 has prerequisites
 1 and 4, so its count starts at 2. Taking 1 lowers the count of 0 to 1,
-so 0 stays out of q. It also lowers the count of 5 to 0, so 5 joins q.
+so 0 does not go into q. It also lowers the count of 5 to 0, so 5 joins q.
 Taking 4 lowers the count of 0 to 0, and 0 joins q.
 
 A course on a cycle never reaches count 0. It is never taken, res comes
@@ -73,7 +73,7 @@ Constraints:
     0 <= len(prerequisites) <= 5000
     All pairs are distinct, and a != b.
 
-    REQUIRED: keep the stub's lines and write only the loop body. It must
+    REQUIRED: do not change the stub's lines and write only the loop body. It must
     run in O(numCourses + len(prerequisites)) time. NO seen set.
 """
 

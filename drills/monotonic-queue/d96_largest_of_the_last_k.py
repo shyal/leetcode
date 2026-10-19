@@ -4,7 +4,7 @@ DRILL: Largest Of The Last K
 Given an integer array nums and an integer k, return an array res of the
 same length where res[i] is the largest of nums[i] and the k - 1 values
 before it. While fewer than k values have been seen, use all of them.
-Keep the candidates in a monotonic queue.
+Put the candidates in a monotonic queue.
 
 Example 1:
 

@@ -6,7 +6,7 @@ Given an employee x, return the head of x. Solution extends UnionFind from
 dsa/union_find.py: self.parent[i] is the manager of employee i, and an
 employee who is their own manager is a head. Write find so that after the
 call every employee on the walk from x reports directly to the head.
-Employees off the walk keep their manager. Management chains never
+The manager of an employee off the walk does not change. Management chains never
 contain cycles.
 
 Example 1:

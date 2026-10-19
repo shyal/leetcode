@@ -27,7 +27,7 @@
 //
 //     REQUIRED: O(n); the parameter is typed with a declared type or
 //     interface in which qty is optional; a missing qty is 1 and a qty of 0
-//     stays 0. NO any, NO ||.
+//     is 0. NO any, NO ||.
 
 import assert from "node:assert/strict";
 

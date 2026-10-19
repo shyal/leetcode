@@ -4,7 +4,7 @@ DRILL: Read The Signed Numbers
 Given a string s of nonnegative integers separated by single '+' or '-'
 characters, return the numbers in the order they appear, each with its
 sign. A number that follows a '-' is negated. The first number and any
-number that follows a '+' stay as they are.
+number that follows a '+' do not change.
 
 Example 1:
 

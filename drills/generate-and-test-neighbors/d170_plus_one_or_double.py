@@ -4,7 +4,7 @@ TRAINS: generate-and-test-neighbors
 
 Given integers a, b and limit, return the fewest moves that turn a into b,
 or -1 when no sequence of moves does. One move replaces x with x + 1 or
-with 2 * x. Every value along the way must stay between 0 and limit.
+with 2 * x. Every value along the way must be between 0 and limit.
 
 Example 1:
 

@@ -25,7 +25,7 @@ Constraints:
 
     0 <= len(data) <= 10^5
 
-    REQUIRED: Reverse keeps an index, __iter__ returns self, and
+    REQUIRED: Reverse has an index, __iter__ returns self, and
     __next__ returns the next element or raises StopIteration when the
     index reaches 0. NO reversed(), NO slicing, NO yield, NO copy of
     data.

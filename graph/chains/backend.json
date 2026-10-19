@@ -1,5 +1,5 @@
 {
-  "_comment": "A chain: a senior backend live-coding round, as real LeetCode design problems. Each keeps some state, changes it on a call, and has a rule that must stay true. Solve them in order, in a single sitting, talking as in the interview: restate the problem, state the rule, write the simplest solution that works, say where it breaks, fix it, test it, then say what changes at ten times the load. state = what is kept, event = what happens on a call, invariant = what must stay true. Rebuilt 2026-10-08 from the cached editorials in research/doocs-leetcode (the 2026-10-07 draft of invented drills was withdrawn: the questions were made up and the seq rule in Order Status From Events was incoherent). The ordering follows the clist rating.",
+  "_comment": "A chain: a senior backend live-coding round, as real LeetCode design problems. Each stores some state, changes it on a call, and has a rule that must be true. Solve them in order, in a single sitting, talking as in the interview: restate the problem, state the rule, write the simplest solution that works, say where it breaks, fix it, test it, then say what changes at ten times the load. state = what is stored, event = what happens on a call, invariant = what must be true. Rebuilt 2026-10-08 from the cached editorials in research/doocs-leetcode (the 2026-10-07 draft of invented drills was withdrawn: the questions were made up and the seq rule in Order Status From Events was incoherent). The ordering follows the clist rating.",
   "assist": "none",
   "base": "2043",
   "order": [
@@ -43,7 +43,7 @@
       "invariant": "the average is total divided by count, never recomputed from trips",
       "source": "research/doocs-leetcode/solution/1300-1399/1396.Design Underground System/README_EN.md",
       "from": "2043",
-      "change": "two tables: per-key open state, and an aggregate kept as a running sum"
+      "change": "two tables: per-key open state, and an aggregate stored as a running sum"
     },
     "1797": {
       "title": "Design Authentication Manager",
@@ -63,7 +63,7 @@
       "invariant": "each key's list is sorted by time because set times strictly increase",
       "source": "research/doocs-leetcode/solution/0900-0999/0981.Time Based Key-Value Store/README_EN.md",
       "from": "1797",
-      "change": "keep every version with its time instead of the latest; read by binary search"
+      "change": "store every version with its time instead of the latest; read by binary search"
     },
     "146": {
       "title": "LRU Cache",
@@ -110,7 +110,7 @@
       "rating": 2036.7,
       "state": "per name: the sorted times of its records",
       "event": "record inserts a time; the query counts each bucket by two binary searches",
-      "invariant": "each name's times stay sorted",
+      "invariant": "each name's times are sorted",
       "source": "research/doocs-leetcode/solution/1300-1399/1348.Tweet Counts Per Frequency/README_EN.md",
       "from": "981",
       "change": "a count per window bucket instead of a single lookup; the window is sliced by binary search"

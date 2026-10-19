@@ -2,7 +2,7 @@
 // TRAINS: ts-string-build
 //
 // Given a string `s` of words separated by single spaces, return the string
-// with every word reversed and the word order kept.
+// with every word reversed and the word order unchanged.
 //
 // Example 1:
 //

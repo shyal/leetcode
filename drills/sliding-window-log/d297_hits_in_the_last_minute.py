@@ -29,7 +29,7 @@ Constraints:
     up to 10^6 calls
 
     REQUIRED: O(1) amortised per call, and the memory per user is that
-    user's requests inside the window: nothing older is kept. NO scan of
+    user's requests inside the window: remove older requests. NO scan of
     every request to count.
 """
 

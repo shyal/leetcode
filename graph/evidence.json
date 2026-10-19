@@ -38657,6 +38657,20 @@
       "note": "Uses GROUP BY email with HAVING min(id) to keep the smallest id per email; sqlite tolerates the bare id column here.",
       "summary": "The query groups Person by email and filters with HAVING min(id), returning one row per email carrying the smallest id. This exercises the dedupe-keep-one move, picking the survivor via MIN(id) within each group. Both example assertions passed.",
       "seconds": 135
+    },
+    "solved/d_Running_Total_2026_10_19T23_32_03_482180_00_00Z.py": {
+      "date": "2026-10-20",
+      "problem": "drill",
+      "moves": {
+        "sql-window-running": "clean"
+      },
+      "assist": {
+        "sql-window-running": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "The query uses SUM(weight) OVER (ORDER BY turn ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) as total, a single-pass running total with no self-join or correlated subquery.",
+      "summary": "The query selects turn and a running total of weight computed with a window SUM ordered by turn, bounded from unbounded preceding to the current row. This is a single pass over Queue with a window function, satisfying the required move and avoiding the forbidden self-join and correlated subquery. The runner executed it against both examples and printed the expected totals.",
+      "seconds": 407
     }
   }
 }

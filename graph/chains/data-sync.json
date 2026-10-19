@@ -1,5 +1,5 @@
 {
-  "_comment": "A chain: a main store plus side structures that must stay in step with it. Each problem keeps two or more containers, every write touches more than one of them, and a read trusts the side structure only while the main store agrees. The two ways to keep them in step are eager (fix the side structure on every write: 380, 146, 432, 460, 3508) and lazy (push a fresh entry, skip stale ones on read: 2349, 3885, 3408, 2034, 2353, 3815, 1172). Solve them in order, in a single sitting. state = what is kept, event = what happens on a call, invariant = what must stay true between calls. Built 2026-10-08 from the cached editorials in research/doocs-leetcode. The ordering follows the clist rating.",
+  "_comment": "A chain: a main store plus side structures that must agree with it. Each problem has two or more containers, every write touches more than one of them, and a read trusts the side structure only while the main store agrees. The two ways to make them agree are eager (fix the side structure on every write: 380, 146, 432, 460, 3508) and lazy (push a fresh entry, skip stale ones on read: 2349, 3885, 3408, 2034, 2353, 3815, 1172). Solve them in order, in a single sitting. state = what is stored, event = what happens on a call, invariant = what must be true between calls. Built 2026-10-08 from the cached editorials in research/doocs-leetcode. The ordering follows the clist rating.",
   "assist": "none",
   "base": "2671",
   "order": [
@@ -90,7 +90,7 @@
       "invariant": "the dict and the list hold the same keys, and the list order is the recency order",
       "source": "research/doocs-leetcode/solution/0100-0199/0146.LRU Cache/README_EN.md",
       "from": "380",
-      "change": "the list keeps an order instead of a position, so the side structure is a linked list and the dict points at nodes"
+      "change": "the list stores an order instead of a position, so the side structure is a linked list and the dict points at nodes"
     },
     "2353": {
       "title": "Design a Food Rating System",

@@ -19,7 +19,7 @@ Example 2:
 
 Input: nums = [2, 9, 6, 7, 1], flag = [False, True, True, False, False]
 Output: [7, 9, 6, 2, 1]
-Explanation: The True values 9, 6 keep positions 1 and 2. The False
+Explanation: The True values 9, 6 do not move from positions 1 and 2. The False
 values 2, 7, 1 fill positions 0, 3 and 4 as 7, 2, 1.
 
 Example 3:

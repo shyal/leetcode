@@ -1,9 +1,13 @@
 """
 DRILL: Running Total
 
-Given the table `Queue`, return `turn` and `total` for every row, where
-`total` is the sum of `weight` over every row whose `turn` is less than or
-equal to this row's `turn`. No ordering required.
+Given a table Queue, return turn and total for every row.
+
+For each row, total is the sum of weight for all rows whose turn is less
+than or equal to that row's turn. In other words, each row's total includes
+its own weight and the weights of all rows with earlier turns.
+
+The output may be in any order.
 
 Table: Queue
 
@@ -13,7 +17,7 @@ Table: Queue
     | weight      | int  |
     | turn        | int  |
     +-------------+------+
-    turn holds every integer from 1 to n exactly once.
+    turn contains every integer from 1 to n exactly once.
 
 Example 1:
 
@@ -34,7 +38,13 @@ Output:
 | 2    | 650   |
 | 3    | 1000  |
 +------+-------+
-Explanation: Turn 2 comes before turn 3 even though its row is stored later: 250 + 400 = 650.
+Explanation:
+
+    Turn 1: 250
+    Turn 2: 250 + 400 = 650
+    Turn 3: 250 + 400 + 350 = 1000
+
+The rows in the input aren't necessarily stored in turn order.
 
 Example 2:
 
@@ -51,20 +61,19 @@ Output:
 +------+-------+
 | 1    | 600   |
 +------+-------+
-Explanation: The first row's total is its own weight.
 
 Constraints:
 
     1 <= number of rows <= 10^5
     1 <= weight <= 1000
 
-    REQUIRED: one pass over Queue with a window function.
+Requirements:
 
-    FORBIDDEN: a self-join; a correlated subquery (summing the earlier rows
-    again for every row is O(n^2)).
-
-    Runner: sqlite3 in memory. Write portable SQL: CASE not IF, COALESCE,
-    || for concatenation, strftime()/julianday()/date() for dates.
+    Calculate the running total using a window function in a single query.
+    Do not use a self-join or a correlated subquery.
+    The calculation must run in O(n) time in terms of the number of rows,
+    excluding any sorting required by the database.
+    The solution must work with SQLite.
 """
 
 from dsa.sql import SQLDrill

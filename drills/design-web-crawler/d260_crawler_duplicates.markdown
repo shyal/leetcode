@@ -10,7 +10,7 @@ page, and 100 billion searches per month.
 Say how the crawler avoids an infinite loop: how it removes duplicate urls,
 and how it detects duplicate content.
 
-REQUIRED: the MapReduce keeping frequency 1 for urls, a content signature
+REQUIRED: the MapReduce that outputs the urls with frequency 1, a content signature
 compared by Jaccard index or cosine similarity. Detecting duplicates by url
 alone is the fail.
 

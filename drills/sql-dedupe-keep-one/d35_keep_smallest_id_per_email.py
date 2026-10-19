@@ -1,7 +1,7 @@
 """
 DRILL: Keep Smallest Id Per Email
 
-Given the table `Person`, return the `id` and `email` of the rows to keep
+Given the table `Person`, return the `id` and `email` of the rows that remain
 after removing duplicate emails: for each `email`, the row with the smallest
 `id`. No ordering required.
 

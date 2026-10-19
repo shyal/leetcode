@@ -45,7 +45,7 @@ Explanation: Call Tree built root from events = [(0, "start", 0), (0, "start", 1
           |
       id 1, dur 2
 
-The outer call of 0 keeps 6 - 4 = 2, the inner call of 0 keeps 4 - 2 = 2, and function 0 gets both.
+The outer call of 0 gets 6 - 4 = 2, the inner call of 0 gets 4 - 2 = 2, and function 0 gets both.
 
 Example 3:
 
@@ -69,7 +69,7 @@ Explanation: Call Tree built root from events = [(0, "start", 0), (1, "start", 1
          |           |
     id 1, dur 2 id 2, dur 2
 
-Call 0 holds two calls, so it keeps 6 - 2 - 2 = 2. Function 1 gets both of its calls: 2 + 2 = 4.
+Call 0 holds two calls, so it gets 6 - 2 - 2 = 2. Function 1 gets both of its calls: 2 + 2 = 4.
 
 Constraints:
 
