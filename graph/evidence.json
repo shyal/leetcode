@@ -38741,6 +38741,18 @@
       "note": "first_true uses bisect_left with key=ok to find the first True index; all assertions passed.",
       "summary": "The solution defines first_true(lo, hi, ok) as lo + bisect_left(range(lo, hi+1), True, key=ok), which locates the first index where the predicate holds. firstLit calls it over the boolean array with lambda x: lit[x]. The run exited 0 with all assertions passing, including the 100000-element cases.",
       "seconds": 67
+    },
+    "solved/d_Last_Off_Bulb_2026_10_19T23_58_43_536307_00_00Z.py": {
+      "date": "2026-10-20",
+      "problem": "drill",
+      "moves": {
+        "binary-search-boundary": "clean",
+        "binary-search-index": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets binary-search-index; the code uses bisect_left over a predicate to find the first True (boundary search), then subtracts one for last_false.",
+      "summary": "The mu source defines lastOff via last_false, which calls first_true built on bisect_left over range(lo, hi+1) with key=ok, then subtracts one. This is a boundary binary search for the first index where the predicate flips true, exercised on the lit array. All assertions passed, including the 100000-element cases.",
+      "seconds": 36
     }
   }
 }
