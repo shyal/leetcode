@@ -38646,6 +38646,17 @@
       "note": "richest_account peeks the min-heap of [-balance, account] and pops stale entries until the top matches the current balance, the lazy-eviction pattern.",
       "summary": "Solution keeps a balances dict and pushes [-balance, account] into a min-heap on every apply. richest_account peeks the heap top, negates the amount, and pops entries whose stored balance no longer matches the dict until a live one is found. balance returns the stored value or 0 for unknown accounts. The run passed all assertions, including the case where bob overtakes alice and later drops back.",
       "seconds": 2011
+    },
+    "solved/d_Keep_Smallest_Id_Per_Email_2026_10_19T23_21_13_670748_00_00Z.py": {
+      "date": "2026-10-20",
+      "problem": "drill",
+      "moves": {
+        "sql-dedupe-keep-one": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Uses GROUP BY email with HAVING min(id) to keep the smallest id per email; sqlite tolerates the bare id column here.",
+      "summary": "The query groups Person by email and filters with HAVING min(id), returning one row per email carrying the smallest id. This exercises the dedupe-keep-one move, picking the survivor via MIN(id) within each group. Both example assertions passed.",
+      "seconds": 135
     }
   }
 }
