@@ -38605,6 +38605,18 @@
         "order-book-match": "learning"
       },
       "seconds": 3983
+    },
+    "solved/d_Simplified_Order_Book_2026_10_19T06_08_33_428009_00_00Z.py": {
+      "date": "2026-10-19",
+      "problem": "drill",
+      "moves": {
+        "order-book-match": "clean",
+        "heap-simulation": "clean",
+        "heap-lazy-eviction": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The code keeps a max-heap of buy orders and a min-heap of sell orders keyed by price and id, and on MATCH repeatedly pops the best level on each side while the prices cross, filling at the resting price and pushing back any remainder. Cancelled ids are tracked in a set and stale heap tops are discarded lazily before each match. The run passed all assertions, exercising the order-book match, heap simulation, and lazy eviction moves.",
+      "seconds": 2857
     }
   }
 }

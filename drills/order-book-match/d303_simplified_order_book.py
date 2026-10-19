@@ -183,3 +183,4 @@ print(sol.process_orders(operations))  # [1, 2, [[1, 2, 100, 3]], 3, [[1, 3, 100
 # assert sol.process_orders([["MATCH"]]) == [[]]
 # assert sol.process_orders([["ADD", "SELL", 95, 3], ["ADD", "BUY", 100, 5], ["MATCH"], ["CANCEL", 2], ["ADD", "SELL", 90, 1], ["MATCH"]]) == [1, 2, [[2, 1, 95, 3]], None, 3, []]
 # assert sol.process_orders([["ADD", "BUY", 100, 4], ["ADD", "SELL", 100, 1], ["ADD", "SELL", 100, 1], ["MATCH"], ["CANCEL", 1], ["CANCEL", 2], ["MATCH"]]) == [1, 2, 3, [[1, 2, 100, 1], [1, 3, 100, 1]], None, None, []]
+# assert sol.process_orders([["ADD", "BUY", 99, 1], ["ADD", "SELL", 100, 1], ["MATCH"]]) == [1, 2, []]
