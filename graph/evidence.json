@@ -38630,6 +38630,18 @@
       "judge": "deepseek-chat",
       "summary": "The code reads the win flag from the final SETTLE operation, then loops over the MATCH records computing profit as (stake // 100) * (odds - 100) when won and -stake otherwise, adding it to the backer's pnl and subtracting it from the layer's, then returns sorted [user_id, pnl] pairs. This exercises the bet-settlement move, including the self-matched case where backer and layer are the same user. The notes say the candidate did not see that the win state had to be read before the loop and flipped the profit accordingly.",
       "seconds": 1637
+    },
+    "solved/d_Account_Tracker_2026_10_19T09_57_10_001272_00_00Z.py": {
+      "date": "2026-10-19",
+      "problem": "drill",
+      "moves": {
+        "heap-lazy-eviction": "clean",
+        "dict-arbitrary-value": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "richest_account peeks the min-heap of [-balance, account] and pops stale entries until the top matches the current balance, the lazy-eviction pattern.",
+      "summary": "Solution keeps a balances dict and pushes [-balance, account] into a min-heap on every apply. richest_account peeks the heap top, negates the amount, and pops entries whose stored balance no longer matches the dict until a live one is found. balance returns the stored value or 0 for unknown accounts. The run passed all assertions, including the case where bob overtakes alice and later drops back.",
+      "seconds": 2011
     }
   }
 }
