@@ -38753,6 +38753,16 @@
       "note": "Drill targets binary-search-index; the code uses bisect_left over a predicate to find the first True (boundary search), then subtracts one for last_false.",
       "summary": "The mu source defines lastOff via last_false, which calls first_true built on bisect_left over range(lo, hi+1) with key=ok, then subtracts one. This is a boundary binary search for the first index where the predicate flips true, exercised on the lit array. All assertions passed, including the 100000-element cases.",
       "seconds": 36
+    },
+    "solved/d_Neighbour_Values_2026_10_19T23_59_32_396395_00_00Z.py": {
+      "date": "2026-10-20",
+      "problem": "drill",
+      "moves": {
+        "grid-neighbors": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The solution calls the harness `nbrs` helper with the grid and cell (r, c), which enumerates the CARDINALS offsets, adds each to the current cell, keeps the pairs inside the bounds, and yields the in-bounds neighbours; the result is unpacked into a list. The drill's target move, grid-neighbors, is exercised through that helper. The run exited 0 and the printed output shows the neighbour values for the centre cell.",
+      "seconds": 41
     }
   }
 }
