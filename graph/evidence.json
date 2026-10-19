@@ -38576,7 +38576,9 @@
       "moves": {
         "sql-set-union": "clean"
       },
-      "pending": "2026-10-19T00:17:48+00:00",
+      "judge": "deepseek-chat",
+      "note": "UNION ALL stacks requester_id and accepter_id into one id column, keeping repeats as required.",
+      "summary": "The query selects requester_id as id from RequestAccepted and UNION ALLs a second select of accepter_id as id, so each row contributes both ids and duplicates are preserved. This exercises the set-union move in its UNION ALL form, which the drill requires. Both example assertions passed.",
       "seconds": 136
     },
     "solved/p1801_Number_of_Orders_in_the_Backlog_2026_10_19T00_53_54_518706_00_00Z.py": {
@@ -38600,10 +38602,12 @@
       "moves": {
         "order-book-match": "clean"
       },
-      "pending": "2026-10-19T02:43:09+00:00",
       "assist": {
         "order-book-match": "learning"
       },
+      "judge": "deepseek-chat",
+      "note": "notes say the sorting requirement was not understood and the solution was given by claude",
+      "summary": "The code keeps a min-heap of sells and a max-heap of buys, and for each incoming order it pops the opposite side's best level while prices cross, filling at the resting price and pushing back any remainder. It maps order ids to heap indices so the remaining book can be reconstructed at the end. The notes say the sorting requirement was not understood and that the solution was spoiled by claude.",
       "seconds": 3983
     },
     "solved/d_Simplified_Order_Book_2026_10_19T06_08_33_428009_00_00Z.py": {
