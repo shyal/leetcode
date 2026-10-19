@@ -1,48 +1,55 @@
 """
 DRILL: Claim Or Merge
 
-Given accounts, where accounts[i] is the list of emails of account i,
-union every two accounts that share an email, and return the dict owner
-mapping each email to the first account that listed it. Solution
-extends UnionFind from dsa/union_find.py over the accounts.
+Given a list of accounts, where accounts[i] is a list of email addresses
+belonging to account i, group accounts that share emails using Union-Find.
 
-The first account to list an email claims it. When a later account
-lists the same email, that account is merged with the owner: self.union.
+Return a dictionary mapping each unique email to the index of the first
+account that listed it.
+
+An email is claimed by the first account that lists it. When a later
+account lists an email that has already been claimed, merge the two
+accounts using Union-Find.
+
+Two accounts can end up in the same group even if they don't share an
+email directly, as long as they are connected through other accounts.
 
 Example 1:
 
 Input: accounts = [["js@m.co", "jn@m.co"], ["mary@m.co"], ["jn@m.co", "j0@m.co"], ["m2@m.co", "mary@m.co"]]
 Output: {"js@m.co": 0, "jn@m.co": 0, "mary@m.co": 1, "j0@m.co": 2, "m2@m.co": 3}
-Explanation: account 2 lists jn@m.co, which account 0 already owns, so
-union(2, 0). Account 3 lists mary@m.co, owned by account 1, so
-union(3, 1).
+Explanation:
 
-    account 0:  js@m.co   jn@m.co
-                            |
-                            | shared: union(2, 0)
-                            |
-    account 2:  jn@m.co   j0@m.co
-
-    account 1:  mary@m.co
-                    |
-                    | shared: union(3, 1)
-                    |
-    account 3:  m2@m.co   mary@m.co
+    - Account 0 claims js@m.co and jn@m.co.
+    - Account 1 claims mary@m.co.
+    - Account 2 lists jn@m.co, which account 0 already claimed.
+      Merge accounts 2 and 0 using union(2, 0).
+    - Account 3 lists mary@m.co, which account 1 already claimed.
+      Merge accounts 3 and 1 using union(3, 1).
 
 Example 2:
 
 Input: accounts = [["g@m.co"], ["g@m.co"], ["g@m.co"]]
 Output: {"g@m.co": 0}
-Explanation: account 0 claims g@m.co. Accounts 1 and 2 each list it, so
-union(1, 0) and union(2, 0).
+Explanation:
+
+    - Account 0 claims g@m.co.
+    - Account 1 lists the same email, so call union(1, 0).
+    - Account 2 lists the same email, so call union(2, 0).
 
 Constraints:
 
     1 <= len(accounts) <= 1000
     1 <= len(accounts[i]) <= 10
 
-    REQUIRED: must do one dict lookup and at most one union per email.
-    NO account-to-account pair tests; NO second pass over accounts.
+Requirements:
+
+    - Perform exactly one dictionary lookup per email.
+    - Call union at most once per email.
+    - Do not compare account pairs directly.
+    - Do not make a second pass over the accounts.
+
+The solution extends UnionFind from dsa/union_find.py.
 """
 
 from dsa.union_find import UnionFind

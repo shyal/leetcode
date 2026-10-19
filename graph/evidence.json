@@ -38717,6 +38717,18 @@
       "judge": "deepseek-chat",
       "summary": "The Solution subclass overrides find with recursive path compression: it recurses to the root, assigns self.parent[x] = self.find(self.parent[x]), and returns the compressed parent. The assertions confirm the parent arrays flatten to the root after each find. The notes say the candidate initially forgot to assign the result of the recursive call and got a hint about it.",
       "seconds": 290
+    },
+    "solved/d_Claim_Or_Merge_2026_10_19T23_56_22_370548_00_00Z.py": {
+      "date": "2026-10-20",
+      "problem": "drill",
+      "moves": {
+        "union-find": "clean",
+        "dict-arbitrary-value": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "The Grid wrapper and the try/finally restore of accounts are scaffolding; the union-find work is in union_shared.",
+      "summary": "union_shared walks each account's emails, keeping an owner dict from email to the first account index that claimed it; when an email reappears it calls self.union(i, owner[email]) to merge the two accounts. The Solution subclasses UnionFind, so find/union come from the harness class, and the assertions confirm the merges (find(2)==0, find(3)==1, etc.). The Grid class and the try/finally that restores accounts are transpiler scaffolding around the loop.",
+      "seconds": 229
     }
   }
 }
