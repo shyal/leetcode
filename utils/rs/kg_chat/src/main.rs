@@ -2,8 +2,6 @@
 //
 //   make chat                 # open (or reopen) this branch's conversation
 //   make chat -- --model x    # extra arguments go to claude as they are
-//   kg_chat --check           # UserPromptSubmit hook: warn when the running
-//                             # session is not this branch's own
 //   kg_chat --switch          # restart the Claude Code in this repo's iTerm2
 //                             # pane on this branch's conversation: the last
 //                             # step of make drill, prepare, spot, sleep,
@@ -31,7 +29,6 @@
 //
 // Ported from utils/kg/chat (Python) on 2026-09-12.
 
-use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::Duration;
@@ -109,23 +106,6 @@ impl Chat {
 
     fn transcript(&self, sid: &str) -> PathBuf {
         self.project_dir.join(format!("{sid}.jsonl"))
-    }
-
-    /// Hook: one line when this session is not the branch's own.
-    fn check(&self) {
-        let mut input = String::new();
-        if std::io::stdin().read_to_string(&mut input).is_err() {
-            return;
-        }
-        let Ok(v) = serde_json::from_str::<Value>(&input) else {
-            return;
-        };
-        let sid = v.get("session_id").and_then(Value::as_str).unwrap_or("");
-        let name = self.branch();
-        if matches!(name.as_str(), "" | "master" | "HEAD") || sid == session_id(&name) {
-            return;
-        }
-        println!("[this is not branch {name}'s conversation - exit and `make chat` to open it]");
     }
 
     /// The tty of the claude process `pid` if it is a claude whose working
@@ -342,7 +322,6 @@ fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let chat = Chat::new();
     match args.first().map(String::as_str) {
-        Some("--check") => chat.check(),
         Some("--switch") => chat.switch(),
         Some("--switch-now") => chat.switch_now(),
         _ => chat.run_loop(&args),
