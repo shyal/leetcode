@@ -38704,6 +38704,19 @@
       "note": "Scalar subquery (select count(*) from Users) supplies the total; DISTINCT on contest_id gives one row per contest.",
       "summary": "The query selects distinct contest_id from Register and pairs it with a scalar subquery counting all rows in Users, so total_users is the full user count at run time. This exercises the scalar-subquery move and a basic filter/select with DISTINCT. Both examples ran and passed.",
       "seconds": 419
+    },
+    "solved/d_Find_with_Path_Compression_2026_10_19T23_52_20_205901_00_00Z.py": {
+      "date": "2026-10-20",
+      "problem": "drill",
+      "moves": {
+        "union-find": "clean"
+      },
+      "assist": {
+        "union-find": "hint"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The Solution subclass overrides find with recursive path compression: it recurses to the root, assigns self.parent[x] = self.find(self.parent[x]), and returns the compressed parent. The assertions confirm the parent arrays flatten to the root after each find. The notes say the candidate initially forgot to assign the result of the recursive call and got a hint about it.",
+      "seconds": 290
     }
   }
 }
