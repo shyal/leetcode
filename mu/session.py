@@ -662,6 +662,11 @@ OPS = {
 }
 
 
+# The assert message: both sides through `pprint.pformat`, on one line each
+# when both fit, else each side indented under its own label.
+SIDES = r"""(lambda l, r: f"left : {l.lstrip()}\nright: {r.lstrip()}" if "\n" not in l + r else f"left :\n{l}\nright:\n{r}")(*(__import__("textwrap").indent(__import__("pprint").pformat(v, width=__import__("shutil").get_terminal_size().columns - 2, sort_dicts=False), "  ") for v in (_l, _r)))"""
+
+
 def with_messages(tree):
     """Every bare `assert L op R` in tree reports both sides. Each side is
     bound as it is evaluated, `(_l := L) op (_r := R)`, so the message
@@ -676,10 +681,8 @@ def with_messages(tree):
         test.comparators[0] = ast.NamedExpr(
             ast.Name("_r", ast.Store()), test.comparators[0]
         )
-        msg = "left : {_l!r}\\nright: {_r!r}" + (
-            "" if op == "==" else f"\\nop   : {op}"
-        )
-        node.msg = ast.parse(f'f"{msg}"', mode="eval").body
+        tail = "" if op == "==" else f' + "\\nop   : {op}"'
+        node.msg = ast.parse(SIDES + tail, mode="eval").body
         ast.copy_location(node.msg, node)
     return ast.fix_missing_locations(tree)
 
@@ -750,16 +753,36 @@ BOLD, DIM, RED, GREEN, YELLOW, MAGENTA, RESET = (
 )
 
 
+def highlighted(value):
+    """value, the text of a Python value, with the colours `rich.print`
+    gives it: numbers, strings, keys and None each in their own colour."""
+    from rich.console import Console
+    from rich.highlighter import ReprHighlighter
+    from rich.text import Text
+
+    console = Console(force_terminal=True, highlight=False, soft_wrap=True)
+    with console.capture() as out:
+        console.print(ReprHighlighter()(Text(value)), end="")
+    return out.get()
+
+
 def painted(text):
     """A traceback with colour: each frame's file dim and its line number
     yellow, the source line bold, the exception red, and in an assert's
     message the left side (what the code gave) red and the right side
-    (what the assert wanted) green. Paths under the working directory are
+    (what the assert wanted) green, each side's value highlighted as
+    `rich.print` shows it. Paths under the working directory are
     shortened to relative ones either way."""
     out = []
+    sides = False
     for line in text.rstrip("\n").split("\n"):
         m = FRAME.match(line)
-        if m:
+        if sides:
+            if line.startswith("right:"):
+                line = f"{GREEN}right:{RESET}" + highlighted(line[6:])
+            elif not line.startswith("op   :"):
+                line = highlighted(line)
+        elif m:
             file, n, fn = m.groups()
             if os.path.isabs(file) and file.startswith(os.getcwd() + os.sep):
                 file = os.path.relpath(file)
@@ -768,10 +791,11 @@ def painted(text):
             line = f"{BOLD}{line}{RESET}"
         elif RAISED.match(line):
             name, rest = RAISED.match(line).groups()
-            line = f"{RED}{BOLD}{name}{RESET}{rest or ''}"
-            line = line.replace(": left : ", f": {RED}left :{RESET} ", 1)
-        elif line.startswith("right: "):
-            line = f"{GREEN}right:{RESET}" + line[6:]
+            rest = rest or ""
+            if rest.startswith(": left :"):
+                sides = True
+                rest = f": {RED}left :{RESET}" + highlighted(rest[8:])
+            line = f"{RED}{BOLD}{name}{RESET}{rest}"
         out.append(line)
     return "\n".join(out) + "\n"
 

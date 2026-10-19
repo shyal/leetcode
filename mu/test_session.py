@@ -14,6 +14,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path[:0] = [HERE, os.path.join(ROOT, "utils", "tests")]
 from mulang import VERSION, Parser, transpile  # noqa: E402
+from session import highlighted  # noqa: E402
 from session import SETUP, stub, title  # noqa: E402
 from test_reference_solutions import PY, drill_for  # noqa: E402
 
@@ -345,10 +346,9 @@ def test_the_traceback_is_coloured_on_request(tmp_path):
     assert run.returncode == 1
     at = work.split("\n").index("assert sol.twoSum([2, 7, 11, 15], 9) == [0, 1]") + 1
     assert f'File "\033[2mcurrent.mu\033[0m", line \033[33m{at}\033[0m' in run.stderr
-    assert "\033[31m\033[1mAssertionError\033[0m: \033[31mleft :\033[0m None" in (
-        run.stderr
-    )
-    assert "\033[32mright:\033[0m [0, 1]" in run.stderr
+    left = "\033[31m\033[1mAssertionError\033[0m: \033[31mleft :\033[0m"
+    assert left + highlighted(" None") in run.stderr
+    assert "\033[32mright:\033[0m" + highlighted(" [0, 1]") in run.stderr
     assert "\033[" not in session(tmp_path, "run", "--no-color").stderr
 
 
