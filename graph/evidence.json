@@ -38822,6 +38822,17 @@
       "note": "The mu source uses the harness `cells(grid)` generator to enumerate every (r, c) cell and counts matches; the transpiled Grid wrapper is the transpiler's, not the candidate's move.",
       "summary": "The mu solution counts cells equal to v by iterating over all (r, c) positions produced by the harness `cells(grid)` helper and filtering on grid[r][c] == v. The transpiler pasted a Grid class and a cells generator above the class; the candidate's own code is the single comprehension in count. All assertions passed, including the 1000x1000 case.",
       "seconds": 173
+    },
+    "solved/d_Mixed_Sum_2026_10_20T00_57_28_803422_00_00Z.ts": {
+      "date": "2026-10-20",
+      "problem": "drill",
+      "moves": {
+        "ts-union-narrowing": "clean",
+        "ts-typed-function": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The function mixedSum loops over a (number | string)[] and uses typeof v == \"string\" to narrow each element, adding Number(v) for strings and v directly for numbers. This exercises union narrowing and a typed function signature with a for..of loop. All assertions passed.",
+      "seconds": 104
     }
   }
 }
