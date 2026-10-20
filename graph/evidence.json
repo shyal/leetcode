@@ -38843,6 +38843,17 @@
       "judge": "deepseek-chat",
       "summary": "The mu source builds an undirected adjacency map in `res` (a defaultdict of lists): for each party, the host is touched via `res[guests[0]]` so it exists even with no guests, then each guest is appended to the host's list and the host to the guest's list. This is the graph-adjacency-build move, exercised correctly and confirmed by the passing assertions including the single-member and duplicate-party cases.",
       "seconds": 258
+    },
+    "solved/d_Slide_Never_Shrink_2026_10_20T01_39_57_898886_00_00Z.py": {
+      "date": "2026-10-20",
+      "problem": "drill",
+      "moves": {
+        "sliding-window-budget": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "The window slides right at constant width when zeros exceeds k (left advances by one, not shrunk to fit), so the width never decreases and best ends as the answer.",
+      "summary": "The code scans nums with a right pointer, counting zeros in the current window. When zeros exceeds k it advances left by one and decrements zeros if that leaving element was a zero, so the window slides at constant width rather than shrinking; best tracks the max width seen. All assertions passed, exercising the budget-window move.",
+      "seconds": 454
     }
   }
 }
