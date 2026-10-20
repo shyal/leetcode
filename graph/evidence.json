@@ -38774,6 +38774,18 @@
       "note": "No dummy node used; the swap is done by re-linking head.next.next and head directly, which is the splice move without the dummy sentinel.",
       "summary": "swapFirstTwo guards the empty/single-node cases, saves head.next as the new head, then re-links the first two nodes with a tuple assignment and returns the saved node. The code exercises in-place re-linking of the first two nodes rather than a dummy-node splice, and all assertions across lengths 0-100 pass.",
       "seconds": 449
+    },
+    "solved/d_Subarray_Sum_Equals_K_2026_10_20T00_17_07_697837_00_00Z.py": {
+      "date": "2026-10-20",
+      "problem": "drill",
+      "moves": {
+        "prefix-sum-hashmap": "clean",
+        "streaming-ask-then-record": "clean",
+        "derived-key-lookup": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The solution keeps a defaultdict D of prefix-sum counts seeded with D[0]=1, then walks nums once accumulating prefix, adding D[prefix - k] to res before recording D[prefix] += 1. This is the prefix-sum-hashmap shape: each step asks the past for prefix-k and then records the present prefix. All assertions passed, including the large and negative-value cases.",
+      "seconds": 144
     }
   }
 }
