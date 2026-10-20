@@ -38922,6 +38922,22 @@
       "summary": "The code builds an adjacency map G from each index i to its outgoing edge, then walks every node and adds i to res[e] for each outgoing edge, accumulating each node's edge score. It returns max(res.items(), key=lambda x: (x[1], -x[0]))[0], which picks the highest score and breaks ties by the smallest node id. The run passed all assertions and LeetCode reported Accepted.",
       "seconds": 923,
       "learning": true
+    },
+    "solved/p1557_Minimum_Number_of_Vertices_to_Reach_All_Nodes_2026_10_20T11_53_06_799535_00_00Z.py": {
+      "date": "2026-10-20",
+      "problem": "1557",
+      "moves": {
+        "graph-adjacency-build": "clean",
+        "counter-build": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LeetCode: Accepted (66 ms, 50.1 MB); solution uses the harness's indegrees helper to count in-degrees and returns vertices with zero in-degree.",
+      "summary": "The solution calls the harness helper indegrees(edges, n) to build a defaultdict of in-degree counts, then returns every key whose count is 0 via a list comprehension. The graph is never traversed; the answer follows from the fact that only vertices with no incoming edge must be sources. The file ran clean and LeetCode reported Accepted.",
+      "unmapped": [
+        "in-degree zero vertex selection"
+      ],
+      "seconds": 525,
+      "learning": true
     }
   }
 }
