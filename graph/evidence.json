@@ -38994,6 +38994,20 @@
       "judge": "deepseek-chat",
       "summary": "The solution implements Dijkstra with a custom binary heap class (heap with _up/_down/_pop) and a seen set, popping the cheapest (weight, node) pair and relaxing its edges, returning the weight when node == t. It correctly avoids the BFS error on the weighted example, returning 5 for 0->1->2. All assertions passed.",
       "seconds": 233
+    },
+    "solved/p3341_Find_Minimum_Time_to_Reach_Last_Room_I_FAILED_2026_10_20T16_27_25_003585_00_00Z.py": {
+      "date": "2026-10-21",
+      "problem": "3341",
+      "moves": {
+        "dijkstra": "struggled",
+        "grid-neighbors": "clean",
+        "heap-simulation": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say FAILED after 21m58s; the Dijkstra relaxation is wrong (pushes moveTime+weight with a separate max m and returns t+m), so the shortest-path move is the defect.",
+      "summary": "The code runs a heap-based search over the grid, popping (weight, t, m, r, c) tuples and pushing neighbors via nbrs, returning t + m at the bottom-right cell. It uses a custom heap class and the harness's nbrs/shape helpers for grid traversal. The relaxation is not a correct Dijkstra: it accumulates moveTime[rr][cc] + weight and tracks a separate max m, so the returned t + m does not equal the true arrival time. The notes record the attempt as FAILED after about 22 minutes with no working solution.",
+      "seconds": 1318,
+      "learning": true
     }
   }
 }
