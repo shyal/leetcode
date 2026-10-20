@@ -38793,8 +38793,24 @@
       "moves": {
         "rotated-array-pivot": "clean"
       },
-      "pending": "2026-10-20T00:46:36+00:00",
+      "judge": "deepseek-chat",
+      "note": "The drill targets rotated-array-pivot, but the code never binary-searches; it compares every element to nums[-1] in a comprehension, so the target move was not exercised.",
+      "summary": "The solution returns a list comprehension comparing each x to nums[-1], marking True where x is at or below the last element. This sidesteps the rotated-array pivot binary search the drill targets, using a single linear pass instead. All assertions passed, but the target move was never reached.",
+      "unmapped": [
+        "compare each element to last element"
+      ],
       "seconds": 99
+    },
+    "solved/d_String_Length_2026_10_20T00_50_21_439936_00_00Z.rs": {
+      "date": "2026-10-20",
+      "problem": "drill",
+      "moves": {
+        "rust-shadowing": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "The shadowing is present as `let len = s.len(); len` \u2014 a second binding named len, though it does not change type here.",
+      "summary": "The function computes s.len() and binds it to a new `let len`, then returns it, exercising a second binding with the same name. The main function prints the length of \"abc\" and asserts three cases, all passing. No notes were given.",
+      "seconds": 221
     }
   }
 }
