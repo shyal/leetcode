@@ -38890,6 +38890,24 @@
       "judge": "deepseek-chat",
       "summary": "The code computes rest = n - k(k-1)/2 and returns whether rest is positive and divisible by k, which is exactly the consecutive-sum-split condition for n being a sum of k consecutive positive integers. The mu source shows the same two-line formula. The notes say 'learning', so the solution was given and copied.",
       "seconds": 48
+    },
+    "solved/p2779_Maximum_Beauty_of_an_Array_After_Applying_Operation_FAILED_2026_10_20T03_10_28_271571_00_00Z.py": {
+      "date": "2026-10-20",
+      "problem": "2779",
+      "moves": {
+        "sort-then-adjacent": "clean",
+        "sliding-window-variable": "struggled",
+        "two-pointers-converging": "clean"
+      },
+      "assist": {
+        "sort-then-adjacent": "hint",
+        "sliding-window-variable": "hint"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Time Limit Exceeded (606/622 cases); the O(n^2) pairs() enumeration stands in for the missing variable sliding window that shrinks left while nums[j]-nums[i] > 2*k.",
+      "summary": "The code sorts nums, then enumerates every (i, j) pair with the local pairs() helper and keeps the widest pair whose difference is at most 2*k, with a k==0 shortcut via Counter. The sort is exercised, but the window is never grown/shrunk incrementally, so the pair enumeration is quadratic and timed out on LeetCode. The notes say the sort and the 'max subarray with A[j]-A[i] <= 2*k' reformulation came from the official hints, and that binary search was considered but rejected.",
+      "seconds": 4252,
+      "learning": true
     }
   }
 }
