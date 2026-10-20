@@ -38811,6 +38811,17 @@
       "note": "The shadowing is present as `let len = s.len(); len` \u2014 a second binding named len, though it does not change type here.",
       "summary": "The function computes s.len() and binds it to a new `let len`, then returns it, exercising a second binding with the same name. The main function prints the length of \"abc\" and asserts three cases, all passing. No notes were given.",
       "seconds": 221
+    },
+    "solved/d_Count_Cells_2026_10_20T00_53_41_830066_00_00Z.py": {
+      "date": "2026-10-20",
+      "problem": "drill",
+      "moves": {
+        "grid-neighbors": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "The mu source uses the harness `cells(grid)` generator to enumerate every (r, c) cell and counts matches; the transpiled Grid wrapper is the transpiler's, not the candidate's move.",
+      "summary": "The mu solution counts cells equal to v by iterating over all (r, c) positions produced by the harness `cells(grid)` helper and filtering on grid[r][c] == v. The transpiler pasted a Grid class and a cells generator above the class; the candidate's own code is the single comprehension in count. All assertions passed, including the 1000x1000 case.",
+      "seconds": 173
     }
   }
 }
