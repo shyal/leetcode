@@ -38957,6 +38957,23 @@
       "summary": "The code builds an adjacency dict G with edges i -> i+1, then for each query appends the new edge and runs a BFS from 0 (or from a when a is past the running minimum, adding a) using the harness levels() generator with a seen set. It exercises adjacency construction, BFS shortest-path layering, and visited-set tracking. The notes say the seen set was hinted to avoid a TLE, and LeetCode accepted the submission.",
       "seconds": 467,
       "learning": true
+    },
+    "solved/p1615_Maximal_Network_Rank_2026_10_20T15_32_11_789889_00_00Z.py": {
+      "date": "2026-10-20",
+      "problem": "1615",
+      "moves": {
+        "graph-adjacency-build": "clean",
+        "set-membership": "clean",
+        "running-extreme": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LeetCode Accepted (1801 ms); O(n^2 * deg) brute force over all pairs, unioning each endpoint's incident edges as sorted tuples in a set to dedupe the shared edge.",
+      "summary": "The code builds an undirected adjacency list with the harness's adjacency helper, then loops over every pair (i, j) from pairs(n). For each pair it forms sorted edge tuples for both endpoints, unions them in a set, takes len(s) as the rank, and keeps the max in res. The set deduplicates the edge shared by i and j, and the running max tracks the best rank across all pairs.",
+      "unmapped": [
+        "pair enumeration via pairs(n)"
+      ],
+      "seconds": 1355,
+      "learning": true
     }
   }
 }
