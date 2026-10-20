@@ -38908,6 +38908,20 @@
       "summary": "The code sorts nums, then enumerates every (i, j) pair with the local pairs() helper and keeps the widest pair whose difference is at most 2*k, with a k==0 shortcut via Counter. The sort is exercised, but the window is never grown/shrunk incrementally, so the pair enumeration is quadratic and timed out on LeetCode. The notes say the sort and the 'max subarray with A[j]-A[i] <= 2*k' reformulation came from the official hints, and that binary search was considered but rejected.",
       "seconds": 4252,
       "learning": true
+    },
+    "solved/p2374_Node_With_Highest_Edge_Score_2026_10_20T11_39_58_797223_00_00Z.py": {
+      "date": "2026-10-20",
+      "problem": "2374",
+      "moves": {
+        "graph-adjacency-build": "clean",
+        "counter-build": "clean",
+        "sort-by-custom-key": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Uses defaultdict(list) adjacency then accumulates scores into a defaultdict(int); max with key=(score, -node) picks the tie-break. LeetCode: Accepted (410 ms, 52 MB).",
+      "summary": "The code builds an adjacency map G from each index i to its outgoing edge, then walks every node and adds i to res[e] for each outgoing edge, accumulating each node's edge score. It returns max(res.items(), key=lambda x: (x[1], -x[0]))[0], which picks the highest score and breaks ties by the smallest node id. The run passed all assertions and LeetCode reported Accepted.",
+      "seconds": 923,
+      "learning": true
     }
   }
 }
