@@ -38763,6 +38763,17 @@
       "judge": "deepseek-chat",
       "summary": "The solution calls the harness `nbrs` helper with the grid and cell (r, c), which enumerates the CARDINALS offsets, adds each to the current cell, keeps the pairs inside the bounds, and yields the in-bounds neighbours; the result is unpacked into a list. The drill's target move, grid-neighbors, is exercised through that helper. The run exited 0 and the printed output shows the neighbour values for the centre cell.",
       "seconds": 41
+    },
+    "solved/d_Swap_First_Two_2026_10_20T00_14_02_571302_00_00Z.py": {
+      "date": "2026-10-20",
+      "problem": "drill",
+      "moves": {
+        "ll-dummy-splice": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "No dummy node used; the swap is done by re-linking head.next.next and head directly, which is the splice move without the dummy sentinel.",
+      "summary": "swapFirstTwo guards the empty/single-node cases, saves head.next as the new head, then re-links the first two nodes with a tuple assignment and returns the saved node. The code exercises in-place re-linking of the first two nodes rather than a dummy-node splice, and all assertions across lengths 0-100 pass.",
+      "seconds": 449
     }
   }
 }
