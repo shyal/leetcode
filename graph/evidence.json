@@ -39305,6 +39305,17 @@
       "note": "BFS over (distance, node) pairs bounded by k; visited set intentionally omitted so revisits at new distances are recorded.",
       "summary": "The mu code runs a breadth-first search from node 0 using a deque of (distance, node) pairs, skipping states with d > k and adding each (node, d) to a result set. Because it keys on the pair rather than the node alone, revisits at new distances like (1, 4) are kept, matching the required O(k*(n+m)) traversal. All assertions passed.",
       "seconds": 237
+    },
+    "solved/d_Count_Smaller_Values_2026_10_21T23_26_24_483350_00_00Z.mu": {
+      "date": "2026-10-22",
+      "problem": "drill",
+      "moves": {
+        "counting-sort-buckets": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "buckets = table(101) indexed by value, then a prefix sweep over the bucket array accumulates counts",
+      "summary": "The code builds a 101-slot bucket array indexed by value, counts each number into it, then sweeps the buckets in order accumulating a running count so each value's bucket holds the number of smaller elements. It finally maps each input back through the bucket array. This exercises counting-sort-buckets directly; the run passed all assertions.",
+      "seconds": 174
     }
   }
 }
