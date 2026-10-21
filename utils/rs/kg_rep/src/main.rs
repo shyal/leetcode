@@ -384,7 +384,7 @@ fn one_line(
     };
     let n = reps.len() + 1;
     let mut rep = if n == 1 {
-        "rep 1 = FIRST EXPOSURE, answer on \"i don't know\"".to_string()
+        "rep 1 = FIRST EXPOSURE, stuck = offer hint, debug method or solution".to_string()
     } else {
         format!(
             "rep {n} (last {}), no answer unless asked",
