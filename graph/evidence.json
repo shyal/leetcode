@@ -39129,6 +39129,22 @@
       "judge": "deepseek-chat",
       "summary": "The mu code reverses the first k nodes of a linked list by walking with a dummy node and flipping each node's next pointer into the dummy's chain, then reattaching the untouched remainder via t.next = h. It exercises the iterative prev/curr pointer-reversal move, and the run passed all assertions including the 5000-element case.",
       "seconds": 222
+    },
+    "solved/d_Island_Key_2026_10_21T22_21_21_445326_00_00Z.mu": {
+      "date": "2026-10-22",
+      "problem": "drill",
+      "moves": {
+        "sql-gaps-islands": "clean",
+        "sql-window-rank": "clean"
+      },
+      "assist": {
+        "sql-window-rank": "hint",
+        "sql-gaps-islands": "hint"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say row_number usage was looked up in docs (hint).",
+      "summary": "The query selects id and id - row_number() over (order by id) from Seats, so consecutive ids share a constant group key and each gap starts a new run. It exercises the gaps-and-islands move (value minus row number) built on a window rank. The notes say the candidate remembered row_number but looked up its usage in the docs.",
+      "seconds": 255
     }
   }
 }
