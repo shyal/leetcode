@@ -39206,6 +39206,21 @@
       "note": "Notes say 'Learning'; the fold accumulates matches from the past at each step via cnt[want(x)] before recording cnt[by(x)] += 1.",
       "summary": "countPairs walks xs once, querying cnt[want(x)] for matches already seen, then records cnt[by(x)] += 1, and sums the per-step matches with a fold. This exercises streaming-accumulate-pairs, derived-key-lookup (want(x) = x-2 or -x%5), and counter-build. The notes mark the work as Learning.",
       "seconds": 310
+    },
+    "solved/d_Divisible_Difference_Pairs_2026_10_21T22_43_20_837550_00_00Z.mu": {
+      "date": "2026-10-22",
+      "problem": "drill",
+      "moves": {
+        "pair-count-formula": "clean",
+        "derived-key-lookup": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "The candidate delegates to the harness helper count_pairs(nums, by=...), so the derived-key-lookup (x % m as key) is done inside the helper, not in the candidate's own code.",
+      "summary": "The solution is a one-liner that calls the harness helper count_pairs with a key function x -> x % m, grouping numbers by residue and counting pairs within each group. The candidate's own code exercises only the pair-count-formula move; the residue-key derivation lives in the helper. All assertions pass, including the large 10^5 cases.",
+      "unmapped": [
+        "group by residue via count_pairs helper"
+      ],
+      "seconds": 69
     }
   }
 }
