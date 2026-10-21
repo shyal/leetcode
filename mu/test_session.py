@@ -427,6 +427,29 @@ def test_a_problem_is_served_run_submitted_and_folded(tmp_path):
     assert session(tmp_path, "build").stdout.strip() == "current.py"
 
 
+def test_a_second_fold_replaces_the_first(tmp_path):
+    """`make solved` folds before it submits; when the submit fails and
+    current.mu is written again, the next fold keeps one quote and one
+    copy of the code, the new one, and the notes once."""
+    (tmp_path / "current.py").write_text(PROBLEM)
+    session(tmp_path, "stub")
+    work = (tmp_path / "current.mu").read_text()
+    work = work.replace("# ---\n", "# ---\n# LEETCODE: Wrong Answer\n")
+    work = work.replace(
+        "class Solution\n  def twoSum(nums: [int], target: int) -> [int]\n    pass\n",
+        TWO_SUM,
+    )
+    (tmp_path / "current.mu").write_text(work)
+    session(tmp_path, "fold")
+    (tmp_path / "current.mu").write_text(work.replace("seen[x] = i", "seen[x] = i  # again"))
+    session(tmp_path, "fold")
+    py = (tmp_path / "current.py").read_text()
+    assert py.count(f"# mu {VERSION}\n") == 1
+    assert py.count("\nclass Solution") == 1
+    assert "seen[x] = i  # again" in py
+    assert py.count("LEETCODE: Wrong Answer") == 1
+
+
 def test_debug_writes_the_python_and_a_line_map(tmp_path):
     import json
 

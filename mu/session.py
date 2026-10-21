@@ -587,9 +587,18 @@ def spliced(py_src, mu_src, show_source=False, mapped=False):
     if span is None:
         raise MuError("current.py has no class or def to replace")
     head = py_src[: span[0]]
+    # current.py folded once already (a `make solved` whose submit failed,
+    # then current.mu written again): the head ends at that fold's quote,
+    # so its quote, imports and helpers are not kept as a second copy
+    folded = re.search(r"^# mu \d+\.\d+\n", head, flags=re.M)
+    if folded:
+        head = head[: folded.start()]
     code, origin = transpile(mu_src, mapped=True)
     if show_source:
         said = notes(mu_src)
+        doc = re.match(r'\s*"""(.*?)"""', head, flags=re.S)
+        if said and doc and doc.group(1).rstrip("\n").endswith(said):
+            said = ""  # the notes are in the docstring from the first fold
         if said:
             doc = re.match(r'\s*"""(.*?)"""', head, flags=re.S)
             if doc:
