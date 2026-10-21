@@ -41,6 +41,10 @@ for filename in os.listdir(solved_dir):
         module_name = filename[:-3]  # Remove .py extension
         pytest.register_assert_rewrite(f"solved.{module_name}")
         modules.append(module_name)
+# solves written in mu, archived as .mu since 2026-10-21, run with mu
+mu_solves = sorted(
+    f for f in os.listdir(solved_dir) if f.endswith(".mu") and "_FAILED" not in f
+)
 
 
 # A solve that never returns must fail with its name, not stall the job: a
@@ -65,6 +69,23 @@ def test_solved(module_name):
             __import__(f"solved.{module_name}")
     finally:
         signal.alarm(0)
+
+
+@pytest.mark.parametrize("name", mu_solves)
+def test_solved_mu(name):
+    root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    path = os.pathsep.join(
+        [root, os.path.join(root, "utils"), os.path.join(root, "utils", "harness")]
+    )
+    run = subprocess.run(
+        [os.path.join(root, ".venv", "bin", "python3"), "-m", "mulang", os.path.join("solved", name)],
+        cwd=root,
+        env=dict(os.environ, PYTHONPATH=path),
+        capture_output=True,
+        text=True,
+        timeout=SOLVE_TIMEOUT,
+    )
+    assert run.returncode == 0, run.stderr[-3000:]
 
 
 def test_current():

@@ -204,6 +204,9 @@ drop:
 # done. Seconds, not the judge's minute. Ctrl-C anywhere: re-run
 # `make solved`, every step resumes (utils/rs/kg_solved). Last, the Claude
 # Code pane follows the branch back to master (detached).
+# A mu solve is archived as solved/*.mu: fold writes current.py for the
+# force check and the submit, then file makes current.mu the file to
+# archive, with the verdict in its notes (mu/session.py).
 # The leetcode submission is a gate: any verdict but Accepted stops here,
 # with the verdict written into the file. `make solved FORCE=1` files the
 # solve whatever leetcode said. (A variable, not a word: `force` is the
@@ -212,6 +215,7 @@ solved: $(RS_BIN)/kg_solved $(RS_BIN)/kg_force $(RS_BIN)/kg_extract $(RS_BIN)/lc
 	@.venv/bin/python3 mu/session.py fold
 	@$(RS_BIN)/kg_force --check
 	@$(RS_BIN)/lc_submit --auto $(if $(FORCE),--force)
+	@.venv/bin/python3 mu/session.py file
 	@$(RS_BIN)/kg_solved
 	@$(RS_BIN)/kg_extract --stub
 	@$(RS_BIN)/kg_solved --commit
@@ -247,7 +251,7 @@ lc-sync: $(RS_BIN)/lc_sync
 # file the current attempt as a FAILED one: same flow as solved (archive,
 # solve-time trailer, placeholder -> struggled evidence), honest label
 failed: $(RS_BIN)/kg_solved $(RS_BIN)/kg_extract $(RS_BIN)/kg_chat
-	@.venv/bin/python3 mu/session.py fold
+	@.venv/bin/python3 mu/session.py file
 	@$(RS_BIN)/kg_solved --failed
 	@$(RS_BIN)/kg_extract --stub
 	@$(RS_BIN)/kg_solved --commit
@@ -259,7 +263,7 @@ failed: $(RS_BIN)/kg_solved $(RS_BIN)/kg_extract $(RS_BIN)/kg_chat
 # cools it as a carrier, so the next serve is a repeat and not tomorrow.
 # `make drop` instead leaves the picker thinking you never saw it.
 studied: $(RS_BIN)/kg_solved $(RS_BIN)/kg_extract $(RS_BIN)/kg_chat
-	@.venv/bin/python3 mu/session.py fold
+	@.venv/bin/python3 mu/session.py file
 	@$(RS_BIN)/kg_solved --studied
 	@$(RS_BIN)/kg_extract --stub
 	@$(RS_BIN)/kg_solved --commit

@@ -79,13 +79,12 @@ fn main() {
     let root = repo_root();
     load_envrc(&root);
     let console = Console::full_width();
-    let mut files = kg::lang::current_names();
-    files.push("current.md".to_string());
-    for f in &files {
-        if std::fs::read_to_string(root.join(f)).is_ok_and(|s| !s.trim().is_empty()) {
-            console.print(&format!("[red]{f} is not empty - record it (make solved) before preparing the next one.[/red]"));
-            std::process::exit(1);
-        }
+    // current.mu as served is no work; lang::busy knows the stub
+    let busy = kg::lang::busy(&root).map(|(p, _)| p.file_name().unwrap().to_string_lossy().into_owned());
+    let md = std::fs::read_to_string(root.join("current.md")).is_ok_and(|s| !s.trim().is_empty());
+    if let Some(f) = busy.or(md.then(|| "current.md".to_string())) {
+        console.print(&format!("[red]{f} is not empty - record it (make solved) before preparing the next one.[/red]"));
+        std::process::exit(1);
     }
     let (ctx, recs) = Ctx::load(root);
     let today = ctx.today();

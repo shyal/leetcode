@@ -172,7 +172,7 @@ impl Solutions {
     /// The operator's own latest solve if there is one (that is the code the
     /// evidenced walk describes), else the validated cache solution.
     fn load_solution(&self, num: &str) -> Option<String> {
-        let re = Regex::new(&format!(r"^p{}_.*\.py$", regex::escape(num))).unwrap();
+        let re = Regex::new(&format!(r"^p{}_.*\.(py|mu)$", regex::escape(num))).unwrap();
         let own = self.solved_files.iter().rfind(|f| re.is_match(f));
         if let Some(f) = own {
             return std::fs::read_to_string(self.solved.join(f)).ok();

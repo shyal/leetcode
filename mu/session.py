@@ -7,7 +7,13 @@
                                  `make`: run the solve from current.mu, in place;
                                  or any mu file on its own
     python mu/session.py build   `make submit`: the file to submit
-    python mu/session.py fold    `make solved`: file the mu solution in current.py
+    python mu/session.py fold    `make solved`: fold the mu solution into current.py,
+                                 the file kg_force and the leetcode submit read
+    python mu/session.py file    `make solved`, after the submit: current.mu becomes
+                                 the file to archive (solved/*.mu), with the
+                                 LEETCODE verdict in its notes, and current.py is
+                                 emptied; a solve mu cannot hold alone is
+                                 archived as the folded current.py
     python mu/session.py debug [file.mu]   VS Code: write .mu_current.py and its line map
 
 current.mu holds the statement as comments, a `# ---` line with
@@ -356,9 +362,12 @@ def solve_mu(py_src):
     )
 
 
-def solved_mu(py_src):
-    """The solve of a solved file in mu: the `# mu` quote `make solved` puts
-    above the class, else the Python classes and defs translated."""
+def solved_mu(py_src, path=None):
+    """The solve of a solved file in mu: a .mu file's own solution, the
+    `# mu` quote `make solved` put above the class of a .py file, else the
+    Python classes and defs translated."""
+    if path is not None and Path(path).suffix == ".mu":
+        return solution(py_src)
     quote = re.search(r"^# mu \d+\.\d+\n((?:#.*\n?)*)", py_src, flags=re.M)
     if quote is None:
         return solve_mu(py_src)
@@ -482,7 +491,7 @@ def drill_fill(root, py_src):
         return None
     if spec.get("drill") != title(py_src):
         return None
-    solve = solved_mu(source)
+    solve = solved_mu(source, spec["source"])
     served = names(ast.Module(body=solve_nodes(parse(py_src)), type_ignores=[]))
     if not served <= names(parse(transpile(solve))):
         return None
@@ -947,10 +956,65 @@ def cmd_fold(root):
         print(f"current.mu: {err}", file=sys.stderr)
         return 1
     py.write_text(code)
-    (root / MU).write_text("")
-    for name in (STUB, RUN, MAP, FILL):
-        (root / name).unlink(missing_ok=True)
-    print("Filed the mu solution and your notes into current.py.")
+    print("Folded the mu solution and your notes into current.py.")
+    return 0
+
+
+# the lines of current.py's head, above the solve, that a .mu file can hold
+IMPORT = re.compile(r"(import \w|from [\w.]+ import )")
+
+
+def filed(py_src, mu_src):
+    """current.mu as solved/ keeps it, or None when the head of current.py
+    (its code above the solve, the fold's quote cut off) holds more than
+    imports, which would not run in mu alone. The LEETCODE verdict that
+    lc_submit wrote into current.py's docstring goes last in the notes, the
+    imports go under the statement, after a `# mu <version>` line."""
+    head = py_src[: solve_span(py_src)[0]]
+    folded = re.search(r"^# mu \d+\.\d+\n", head, flags=re.M)
+    if folded:
+        head = head[: folded.start()]
+    tree = parse(head)
+    doc = ast.get_docstring(tree) or ""
+    code = [n for n in tree.body if not (n is tree.body[0] and doc)]
+    if not all(isinstance(n, (ast.Import, ast.ImportFrom)) for n in code):
+        return None
+    imports = [ast.unparse(n) for n in code]
+    lines = mu_src.rstrip("\n").split("\n")
+    end = next((k for k, ln in enumerate(lines) if not ln.startswith("#")), len(lines))
+    header, body = lines[:end], lines[end:]
+    verdict = re.search(r"^LEETCODE:.*$", doc, flags=re.M)
+    if verdict and f"# {verdict.group()}" not in header:
+        if "# ---" not in header:
+            header += ["#", "# ---"]
+        header.append(f"# {verdict.group()}")
+    while body and not body[0].strip():
+        body.pop(0)
+    top = [f"# mu {VERSION}", *imports]
+    return "\n".join(header + ["", *top, "", *body]) + "\n"
+
+
+def cmd_file(root):
+    py, mu = root / CURRENT, root / MU
+    text = None
+    if belongs(root) and written(root):
+        text = filed(py.read_text(), mu.read_text())
+        if text is None:
+            print("current.py holds more than imports above the solve, so it is filed as Python.")
+            if not re.search(r"^# mu \d+\.\d+\n", py.read_text(), flags=re.M):
+                if cmd_fold(root):  # `make failed` and `make studied` do not fold first
+                    return 1
+    elif mu.exists() and mu.read_text().strip() and not written(root):
+        mu.write_text("")  # the stub as served: no work to keep
+    if text is not None:
+        mu.write_text(text)
+        py.write_text("")
+        print("current.mu is the file to archive.")
+    elif belongs(root):
+        mu.write_text("")  # its solve is folded into current.py
+    if text is not None or not (mu.exists() and mu.read_text().strip()):
+        for name in (STUB, RUN, MAP, FILL):
+            (root / name).unlink(missing_ok=True)
     return 0
 
 
@@ -960,6 +1024,7 @@ if __name__ == "__main__":
         "run": cmd_run,
         "build": cmd_build,
         "fold": cmd_fold,
+        "file": cmd_file,
         "debug": cmd_debug,
     }
     argv = sys.argv[1:]

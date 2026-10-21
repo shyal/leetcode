@@ -162,10 +162,51 @@ def test_a_whole_session(prefix, tmp_path):
     quoted = folded.split(f"# mu {VERSION}\n")[1].split("\n\n")[0]
     assert "# class Solution" in quoted
     assert "# DRILL" not in quoted and "# assert" not in quoted
-    assert (tmp_path / "current.mu").read_text() == ""
-    assert not (tmp_path / ".mu_stub").exists()
     ran = python(tmp_path)
     assert ran.returncode == 0, ran.stdout[-1500:] + ran.stderr[-1500:]
+
+    # file: current.mu is what solved/ keeps, and it runs alone with mu
+    work = (tmp_path / "current.mu").read_text()
+    assert session(tmp_path, "file").returncode == 0
+    archived = (tmp_path / "current.mu").read_text()
+    assert (tmp_path / "current.py").read_text() == ""
+    assert not (tmp_path / ".mu_stub").exists()
+    assert f"\n\n# mu {VERSION}\n" in archived
+    assert archived.split("\n\n")[0] == work.split("\n\n")[0]  # the statement and notes
+    ran = subprocess.run(
+        [PY, "-m", "mulang", "current.mu"],
+        cwd=tmp_path, env=ENV, capture_output=True, text=True, timeout=120,
+    )
+    assert ran.returncode == 0, ran.stdout[-1500:] + ran.stderr[-1500:]
+
+
+def test_file_puts_the_leetcode_verdict_in_the_notes(tmp_path):
+    """lc_submit writes the verdict into the folded current.py's docstring;
+    file carries it into current.mu, last in the notes, where the judge
+    reads it (kg::lang::notes_of)."""
+    ref = reference("d115_")
+    (tmp_path / "current.py").write_text(open(drill_for(ref)).read())
+    session(tmp_path, "stub")
+    served = (tmp_path / "current.mu").read_text()
+    (tmp_path / "current.mu").write_text(solved(served, open(ref).read(), "no help"))
+    session(tmp_path, "fold")
+    py = (tmp_path / "current.py").read_text()
+    (tmp_path / "current.py").write_text(py.replace("no help\n", "no help\nLEETCODE: Accepted\n", 1))
+    session(tmp_path, "file")
+    head = (tmp_path / "current.mu").read_text().split("\n\n")[0]
+    assert head.endswith("# ---\n# no help\n# LEETCODE: Accepted")
+
+
+def test_file_without_mu_work_empties_the_stub(tmp_path):
+    """A drill solved in current.py: file leaves current.py to be archived
+    and empties current.mu, which held only the stub."""
+    shutil.copy(drill_for(reference("d115_")), tmp_path / "current.py")
+    session(tmp_path, "stub")
+    py = (tmp_path / "current.py").read_text()
+    assert session(tmp_path, "file").returncode == 0
+    assert (tmp_path / "current.py").read_text() == py
+    assert (tmp_path / "current.mu").read_text() == ""
+    assert not (tmp_path / ".mu_stub").exists()
 
 
 def test_serving_another_drill_keeps_the_old_work(tmp_path):
@@ -210,6 +251,16 @@ def test_drill_fill_leaves_the_heaviest_lines_of_the_latest_solve(tmp_path):
     assert "    count = table(101" in mu and "      count[x] += 1\n" in mu
     assert "    pass\n    pass\n" in mu and "scan" not in mu
     transpile(mu)
+
+    # a solve archived as .mu gives the same fill
+    (tmp_path / "solved" / "d_y.mu").write_text(
+        f"# DRILL: {title(drill)}\n#\n# ---\n\n# mu {VERSION}\n\n" + open(ref).read().split("\n", 1)[1]
+    )
+    fill["source"] = "solved/d_y.mu"
+    (tmp_path / ".mu_fill").write_text(json.dumps(fill))
+    (tmp_path / "current.mu").write_text("")
+    assert "DRILL_FILL gives" in session(tmp_path, "stub").stdout
+    assert (tmp_path / "current.mu").read_text() == mu
 
 
 def test_drill_fill_is_left_out_for_another_drill(tmp_path):
@@ -424,7 +475,13 @@ def test_a_problem_is_served_run_submitted_and_folded(tmp_path):
         f"# mu {VERSION}\n# class Solution\n#   def twoSum"
         in (tmp_path / "current.py").read_text()
     )
-    assert session(tmp_path, "build").stdout.strip() == "current.py"
+    # current.mu still holds the work until file, so a submit sends its copy
+    assert session(tmp_path, "build").stdout.strip() == ".mu_current.py"
+    session(tmp_path, "file")
+    assert (tmp_path / "current.py").read_text() == ""
+    assert (tmp_path / "current.mu").read_text().startswith(
+        "# URL: https://leetcode.com/problems/two-sum/"
+    )
 
 
 def test_a_second_fold_replaces_the_first(tmp_path):
@@ -481,6 +538,7 @@ def test_debug_writes_the_python_and_a_line_map(tmp_path):
         mu.index("      seen[x] = i") + 1
     )
     session(tmp_path, "fold")
+    session(tmp_path, "file")
     assert not (tmp_path / ".mu_current.map.json").exists()
     # the solve filed, current.py empty: current.mu still debugs on its own
     (tmp_path / "current.py").write_text("")

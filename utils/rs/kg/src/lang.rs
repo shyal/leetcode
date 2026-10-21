@@ -1,6 +1,7 @@
 // The languages a drill or solve file is written in. Python is the house
-// language: every problem, the harness, and mu, which compiles to Python.
-// Any other language is a drill-only file with its own extension, comment
+// language: every problem and the harness. mu compiles to Python and is
+// written in current.mu next to the served current.py; a mu solve is
+// archived as .mu and runs with `mu FILE`. Any other language is a drill-only file with its own extension, comment
 // prefix and toolchain, served as current.<ext> and archived with the same
 // extension. Adding a language is one more entry in LANGS: the bank scan,
 // the serve, `make`, the judge and the archive all read this table.
@@ -22,6 +23,14 @@ pub struct Lang {
 pub const PYTHON: Lang = Lang {
     name: "Python",
     ext: "py",
+    comment: "#",
+};
+
+/// mu, the DSL in current.mu: its statement and notes are the leading `#`
+/// comment block, as stub writes it from current.py's docstring.
+pub const MU: Lang = Lang {
+    name: "mu",
+    ext: "mu",
     comment: "#",
 };
 
@@ -55,8 +64,14 @@ pub const ANSWER_MARK: &str = "## Answer";
 /// enough: a design drill asks one fact, and "99.8%" is a whole answer.
 pub const DESIGN_MIN_WORDS: usize = 1;
 
-/// Python first: it is the default wherever one file is looked for.
-pub const LANGS: [&Lang; 4] = [&PYTHON, &TYPESCRIPT, &RUST, &DESIGN];
+/// Python first: it is the default wherever one file is looked for. mu
+/// second: current.mu holds work only while current.py is empty, which is
+/// how `mu/session.py file` leaves a mu solve for `make solved`.
+pub const LANGS: [&Lang; 5] = [&PYTHON, &MU, &TYPESCRIPT, &RUST, &DESIGN];
+
+/// The copy of current.mu as served (mu/session.py STUB): a current.mu
+/// equal to it holds no work.
+pub const MU_STUB: &str = ".mu_stub";
 
 /// (statement, answer) of a design file, split at the first ANSWER_MARK
 /// line; the whole text is statement when the mark is missing.
@@ -123,13 +138,25 @@ fn nonempty(path: &Path) -> bool {
     std::fs::read_to_string(path).is_ok_and(|s| !s.trim().is_empty())
 }
 
+/// The current file holds work: it is not blank, and for current.mu it is
+/// not the stub as served.
+pub fn holds_work(root: &Path, lang: &Lang) -> bool {
+    let path = root.join(current_name(lang));
+    if !nonempty(&path) {
+        return false;
+    }
+    lang.ext != MU.ext
+        || std::fs::read_to_string(root.join(MU_STUB)).ok()
+            != std::fs::read_to_string(&path).ok()
+}
+
 /// The current file holding work, Python first: `make solved` files it,
 /// a serve refuses while it is there.
 pub fn busy(root: &Path) -> Option<(PathBuf, &'static Lang)> {
     LANGS
         .iter()
+        .find(|l| holds_work(root, l))
         .map(|l| (root.join(current_name(l)), *l))
-        .find(|(p, _)| nonempty(p))
 }
 
 /// Every current file holding work, copied to `<name>.prev` and emptied,
@@ -138,7 +165,7 @@ pub fn set_aside(root: &Path) -> Vec<PathBuf> {
     let mut moved = Vec::new();
     for l in LANGS {
         let path = root.join(current_name(l));
-        if !nonempty(&path) {
+        if !holds_work(root, l) {
             continue;
         }
         let prev = root.join(format!("{}.prev", current_name(l)));
@@ -313,8 +340,8 @@ pub fn check(root: &Path, path: &Path, lang: &Lang) -> Option<(bool, String)> {
 }
 
 /// The command that runs the file the way the candidate does: the venv's
-/// python with the harness on PYTHONPATH, node stripping types, or the
-/// binary rustc wrote in `check`.
+/// python with the harness on PYTHONPATH (`-m mulang` for a mu file), node
+/// stripping types, or the binary rustc wrote in `check`.
 pub fn command(root: &Path, path: &Path, lang: &Lang) -> Command {
     let mut cmd = if lang.ext == TYPESCRIPT.ext {
         let mut c = Command::new("node");
@@ -333,6 +360,9 @@ pub fn command(root: &Path, path: &Path, lang: &Lang) -> Command {
         } else {
             PathBuf::from("python3")
         });
+        if lang.ext == MU.ext {
+            c.args(["-m", "mulang"]);
+        }
         c.arg(path).env(
             "PYTHONPATH",
             format!(
@@ -507,8 +537,9 @@ mod tests {
         assert_eq!(of_ext("rs").unwrap().name, "Rust");
         assert_eq!(
             current_names(),
-            vec!["current.py", "current.ts", "current.rs", "current.markdown"]
+            vec!["current.py", "current.mu", "current.ts", "current.rs", "current.markdown"]
         );
+        assert_eq!(of_path(Path::new("solved/d_A_2026_10_21T00_00_00Z.mu")).unwrap().name, "mu");
         assert_eq!(
             of_path(Path::new("drills/x/d1_a.markdown")).unwrap().name,
             "Design"
@@ -646,6 +677,54 @@ mod tests {
         assert_eq!(busy(&dir).unwrap().1.ext, "ts");
         std::fs::write(dir.join("current.py"), "x = 1\n").unwrap();
         assert_eq!(busy(&dir).unwrap().1.ext, "py");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// 2026-10-21: current.mu as served holds no work; once it differs
+    /// from .mu_stub it does, and with current.py empty it is the file
+    /// `make solved` archives.
+    #[test]
+    fn current_mu_is_busy_once_written() {
+        let dir = std::env::temp_dir().join(format!("lang_busy_mu_{}", std::process::id()));
+        let _ = std::fs::create_dir_all(&dir);
+        std::fs::write(dir.join("current.py"), "").unwrap();
+        std::fs::write(dir.join("current.mu"), "# DRILL: X\n").unwrap();
+        std::fs::write(dir.join(MU_STUB), "# DRILL: X\n").unwrap();
+        assert!(busy(&dir).is_none());
+        assert!(set_aside(&dir).is_empty());
+        std::fs::write(dir.join("current.mu"), "# DRILL: X\n\nx = 1\n").unwrap();
+        assert_eq!(busy(&dir).unwrap().1.ext, "mu");
+        std::fs::write(dir.join("current.py"), "x = 1\n").unwrap();
+        assert_eq!(busy(&dir).unwrap().1.ext, "py");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn mu_header_is_the_comment_block() {
+        let mu = "# DRILL: A\n#\n# ---\n# note\n# LEETCODE: Accepted\n\n# mu 0.12\n\nx = 1\n";
+        assert_eq!(notes_of(mu, &MU), "notes: \n\nnote\nLEETCODE: Accepted");
+        assert_eq!(subject(&header(mu, &MU).unwrap()).unwrap().1, "A");
+        assert_eq!(strip_header(mu, &MU), "x = 1\n");
+    }
+
+    /// 2026-10-21: a .mu file runs with `python -m mulang`; a failing
+    /// assert fails it, as for Python.
+    #[test]
+    fn run_executes_a_mu_file() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
+        if !root.join(".venv/bin/python3").exists() {
+            return;
+        }
+        let dir = std::env::temp_dir().join(format!("kg_lang_mu_{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let good = dir.join("good.mu");
+        std::fs::write(&good, "def f(n: int) -> int\n  n * 2\n\nassert f(2) == 4\n").unwrap();
+        assert_eq!(run(&root, &good, &MU, 30).0, "passed");
+        let bad = dir.join("bad.mu");
+        std::fs::write(&bad, "def f(n: int) -> int\n  n * 2\n\nassert f(2) == 5\n").unwrap();
+        let (status, detail) = run(&root, &bad, &MU, 30);
+        assert_eq!(status, "failed");
+        assert!(detail.contains("AssertionError"), "{detail}");
         let _ = std::fs::remove_dir_all(&dir);
     }
 
