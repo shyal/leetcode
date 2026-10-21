@@ -12,6 +12,8 @@ from pathlib import Path
 
 HERE = Path(__file__).parent
 ROOT = HERE.parent.parent
+# the script's own folder holds the last build's mulang.py; import the live one
+sys.path = [p for p in sys.path if Path(p or ".").resolve() != HERE.resolve()]
 sys.path.insert(0, str(HERE.parent))
 import leetmu  # noqa: E402, F401
 import mulang  # noqa: E402

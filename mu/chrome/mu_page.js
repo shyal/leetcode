@@ -9,9 +9,13 @@
 // submission (the mu quoted as comments, then the Python) goes into
 // LeetCode's editor, and the click goes through. The mu and the choice of
 // mu are kept per problem.
+//
+// Contest pages have a CodeMirror editor and no Monaco. There the mu goes
+// into LeetCode's own editor, and the submission replaces `typed_code` in
+// the request that Run or Submit sends.
 
 (() => {
-  const PROBLEM = /^\/problems\/([^/?#]+)/;
+  const PROBLEM = /^(?:\/contest\/[^/]+)?\/problems\/([^/?#]+)/;
   const BUTTON = '[data-e2e-locator="console-run-button"],[data-e2e-locator="console-submit-button"]';
   const ROW = "div.group.cursor-pointer";
   const OPENS_BLOCK = /^\s*(def|memo|for|if|elif|else|while)\b|\b(sum|max|min|count)\s+(for|from)\b/;
@@ -32,10 +36,18 @@
 
   const slug = () => PROBLEM.exec(location.pathname)?.[1] || null;
   const pyEditor = () => window.monaco?.editor.getEditors().find((e) => e.getModel()?.getLanguageId() === "python3");
+  // the contest editor: CodeMirror 6 keeps its view on the content node (the
+  // test cases are CodeMirror editors too, outside the code editor's box)
+  const cmView = () =>
+    window.monaco ? null : document.querySelector('[data-track-load="code_editor"] .cm-content')?.cmView?.view || null;
+  const cmPython = () => (cmView() && /^(Python3|mu)$/.test(langButton()?.firstChild.data) ? cmView() : null);
+  const pyReady = () => pyEditor() || cmPython();
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const label = (row) => row.textContent.trim();
+  const cmText = (view) => view.state.doc.toString();
+  const cmSet = (view, text) => view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: text } });
 
-  let on = null; // {slug, editor, model, box, status}
+  let on = null; // {slug, editor, model, box, status}, or on a contest page {slug, view, status, text, py}
   let entering = false;
   let passing = false; // our own click on Run / Submit, let through
 
@@ -95,6 +107,7 @@
 
   async function check() {
     if (!on) return;
+    if (on.view) return cmCheck();
     const { model } = on;
     const r = await ask("transpile", { src: model.getValue() });
     if (!on || on.model !== model) return;
@@ -106,7 +119,58 @@
     say(r.ok ? "mu: Cmd+' runs, Cmd+Enter submits" : r.error, !r.ok);
   }
 
+  async function cmCheck() {
+    const mine = on;
+    const r = await ask("transpile", { src: mine.text });
+    if (on !== mine || mine.text !== cmText(mine.view)) return;
+    if (r.ok) mine.py = r.value;
+    say(r.ok ? "mu: Cmd+' runs, Cmd+Enter submits" : r.error, !r.ok);
+  }
+
+  // the contest page: the mu goes into LeetCode's own CodeMirror editor
+  async function enterCm() {
+    const view = cmPython();
+    const s = slug();
+    if (!view || !s || on || entering) return;
+    entering = true;
+    try {
+      let text = await ask("get", { key: `mu:${s}` });
+      if (!text) {
+        const r = await ask("starter", { src: cmText(view) });
+        text = r.ok ? r.value : "";
+      }
+      const host = view.dom.parentElement?.parentElement || view.dom;
+      if (!text) {
+        cmAlert(host, "mu cannot write this one: it has no class Solution.");
+        return;
+      }
+      if (cmText(view) !== text) cmSet(view, text);
+      if (getComputedStyle(host).position === "static") host.style.position = "relative";
+      const status = document.createElement("div");
+      status.style.cssText = "position:absolute;right:0;bottom:0;z-index:20;max-width:100%;padding:2px 8px;" +
+        "font:12px system-ui,sans-serif;opacity:.8;color:#aaa;pointer-events:none;white-space:pre-wrap;";
+      host.append(status);
+      on = { slug: s, view, status, text, py: null, sending: null };
+      ask("set", { key: `mu:on:${s}`, value: true });
+      showLabel("mu");
+      check();
+      view.focus();
+    } finally {
+      entering = false;
+    }
+  }
+
+  function cmAlert(host, text) {
+    const bar = document.createElement("div");
+    bar.textContent = text;
+    bar.style.cssText = "position:absolute;left:0;right:0;bottom:0;z-index:20;padding:4px 8px;" +
+      "font:12px system-ui,sans-serif;background:#5a1d1d;color:#fff;";
+    host.append(bar);
+    setTimeout(() => bar.remove(), 4000);
+  }
+
   async function enter() {
+    if (cmPython()) return enterCm();
     const py = pyEditor();
     const s = slug();
     if (!py || !s || on || entering) return;
@@ -163,9 +227,15 @@
   function leave(forget = true) {
     if (!on) return;
     if (forget) ask("set", { key: `mu:on:${on.slug}`, value: false });
-    on.editor.dispose();
-    on.model.dispose();
-    on.box.remove();
+    if (on.view) {
+      // Python3 gets the compiled mu back, not the mu itself
+      if (forget && on.py && on.view.dom.isConnected) cmSet(on.view, on.py);
+      on.status.remove();
+    } else {
+      on.editor.dispose();
+      on.model.dispose();
+      on.box.remove();
+    }
     on = null;
     showLabel("Python3");
   }
@@ -190,18 +260,45 @@
     if (!on || passing || !button) return;
     e.preventDefault();
     e.stopImmediatePropagation();
-    const r = await ask("submission", { src: on.model.getValue() });
+    const r = await ask("submission", { src: on.view ? cmText(on.view) : on.model.getValue() });
+    if (!on) return;
     if (!r.ok) return say(r.error, true);
-    pyEditor()?.getModel().setValue(r.value);
-    await sleep(150); // LeetCode reads the editor through its change events
+    if (on.view) {
+      on.sending = r.value; // the request's typed_code, swapped below
+    } else {
+      pyEditor()?.getModel().setValue(r.value);
+      await sleep(150); // LeetCode reads the editor through its change events
+    }
     passing = true;
     try {
       button.click();
     } finally {
       passing = false;
     }
-    on?.editor.focus();
+    on?.editor?.focus();
   }, true);
+
+  // on a contest page Run and Submit send the editor's text, the mu: the
+  // request carries the compiled submission instead
+  const SENDS = /\/(interpret_solution|submit)\/?$/;
+  const fetch0 = window.fetch;
+  window.fetch = function (input, init) {
+    const url = typeof input === "string" ? input : input?.url || "";
+    const path = url && new URL(url, location.href).pathname;
+    if (on?.view && on.sending && SENDS.test(path) && typeof init?.body === "string") {
+      try {
+        const body = JSON.parse(init.body);
+        if ("typed_code" in body) {
+          body.typed_code = on.sending;
+          body.lang = "python3";
+          init = { ...init, body: JSON.stringify(body) };
+        }
+      } catch {
+        // not JSON: sent as it is
+      }
+    }
+    return fetch0.call(this, input, init);
+  };
 
   // LeetCode's own shortcuts would send the Python under the mu
   window.addEventListener("keydown", (e) => {
@@ -233,11 +330,12 @@
     py3.after(row);
     row.addEventListener("click", async (e) => {
       e.stopPropagation();
-      if (pyEditor()) {
+      if (pyReady()) {
         document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
       } else {
         py3.click(); // LeetCode switches to Python3 and closes the menu
-        for (let i = 0; i < 30 && !pyEditor(); i++) await sleep(100);
+        for (let i = 0; i < 30 && !pyReady(); i++) await sleep(100);
+        await sleep(200); // CodeMirror gets the Python3 code a moment after the label
       }
       enter();
     });
@@ -252,12 +350,17 @@
   async function tick() {
     for (const menu of document.querySelectorAll('[role="dialog"]')) addRow(menu);
     const s = slug();
-    if (on && (s !== on.slug || !on.box.isConnected)) {
+    if (on && (s !== on.slug || !(on.view ? on.view.dom : on.box).isConnected)) {
       leave(false);
       seen = null; // a rebuilt editor on the same problem gets the mu back
     }
+    if (on?.view && cmText(on.view) !== on.text) {
+      on.text = cmText(on.view);
+      ask("set", { key: `mu:${on.slug}`, value: on.text });
+      check();
+    }
     if (on) showLabel("mu");
-    if (s && !on && !entering && pyEditor() && seen !== s) {
+    if (s && !on && !entering && pyReady() && seen !== s) {
       seen = s;
       if (await ask("get", { key: `mu:on:${s}` })) enter();
     }

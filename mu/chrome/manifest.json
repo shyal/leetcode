@@ -13,8 +13,8 @@
   },
   "content_scripts": [
     { "matches": ["https://leetcode.com/*"], "js": ["ratings.js"], "run_at": "document_idle" },
-    { "matches": ["https://leetcode.com/problems/*"], "js": ["mu_bridge.js"], "run_at": "document_start" },
-    { "matches": ["https://leetcode.com/problems/*"], "js": ["mu_page.js"], "run_at": "document_start", "world": "MAIN" }
+    { "matches": ["https://leetcode.com/problems/*", "https://leetcode.com/contest/*/problems/*"], "js": ["mu_bridge.js"], "run_at": "document_start" },
+    { "matches": ["https://leetcode.com/problems/*", "https://leetcode.com/contest/*/problems/*"], "js": ["mu_page.js"], "run_at": "document_start", "world": "MAIN" }
   ],
   "web_accessible_resources": [
     { "resources": ["ratings.json"], "matches": ["https://leetcode.com/*"] }

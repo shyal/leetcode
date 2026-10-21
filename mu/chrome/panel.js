@@ -5,7 +5,7 @@
 // chrome.storage.local, so each problem opens with what was written for it.
 
 const $ = (id) => document.getElementById(id);
-const PROBLEM = /^https:\/\/leetcode\.com\/problems\/([^/?#]+)/;
+const PROBLEM = /^https:\/\/leetcode\.com(?:\/contest\/[^/]+)?\/problems\/([^/?#]+)/;
 let slug = null;
 let tabId = null;
 let code = null; // the submission for the current mu, or null when it does not compile
