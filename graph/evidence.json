@@ -39294,6 +39294,17 @@
       "judge": "deepseek-chat",
       "summary": "The mu code parses a flat arithmetic string by accumulating digits into num and applying the pending op to res when a non-digit appears, using a sentinel '+' appended to S. It exercises the stack-nested-eval move in its flat form: a running result plus a pending operator context, with no parentheses to push/pop. All assertions passed and the program printed 134.",
       "seconds": 201
+    },
+    "solved/d_Node_Step_Pairs_2026_10_21T23_19_52_281138_00_00Z.mu": {
+      "date": "2026-10-22",
+      "problem": "drill",
+      "moves": {
+        "graph-bfs-shortest": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "BFS over (distance, node) pairs bounded by k; visited set intentionally omitted so revisits at new distances are recorded.",
+      "summary": "The mu code runs a breadth-first search from node 0 using a deque of (distance, node) pairs, skipping states with d > k and adding each (node, d) to a result set. Because it keys on the pair rather than the node alone, revisits at new distances like (1, 4) are kept, matching the required O(k*(n+m)) traversal. All assertions passed.",
+      "seconds": 237
     }
   }
 }
