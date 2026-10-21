@@ -39041,6 +39041,28 @@
       "summary": "The solution runs a best-first search from (0,0) using a custom max-heap keyed on remaining health, subtracting grid[r][c] on pop and skipping cells already in seen. Neighbors come from the harness nbrs cardinal-offset helper, and reaching the bottom-right returns whether health is still at least 1. The notes are empty and LeetCode reports Accepted.",
       "seconds": 598,
       "learning": true
+    },
+    "solved/p1514_Path_with_Maximum_Probability_2026_10_21T04_03_01_217759_00_00Z.py": {
+      "date": "2026-10-21",
+      "problem": "1514",
+      "moves": {
+        "graph-adjacency-build": "clean",
+        "dijkstra": "clean",
+        "set-membership": "clean"
+      },
+      "assist": {
+        "dijkstra": "hint",
+        "graph-adjacency-build": "hint",
+        "set-membership": "hint"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say the official hint was taken: log probabilities so products become sums; LEETCODE: Accepted (283 ms, 31.8 MB).",
+      "summary": "The code builds a weighted undirected adjacency dict with the harness's adjacency helper, then runs a max-heap Dijkstra over log-probabilities: it pops the largest accumulated log cost, skips nodes already in seen, returns math.exp(cost) at end_node, and pushes cost + log(prob) for each neighbor. The log transform turns the product of probabilities into a sum, which is what makes the heap ordering valid. The notes state the official hint was taken for that log trick, and LeetCode reports Accepted.",
+      "unmapped": [
+        "log-transform of probabilities to sums"
+      ],
+      "seconds": 2005,
+      "learning": true
     }
   }
 }
