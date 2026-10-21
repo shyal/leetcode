@@ -39091,6 +39091,20 @@
       "note": "Timing assertions confirm total delay equals the longest chain, not the number of levels.",
       "summary": "The code splits the template on {{...}} placeholders, then uses asyncio.gather over all keys at once, with each key's fill recursively calling mustachify on the resolved value. This exercises async-gather-recursive: sibling lookups run concurrently and nesting resolves recursively, so the measured delay is the longest chain. The notes say the solution was learned/copied.",
       "seconds": 3097
+    },
+    "solved/p1631_Path_With_Minimum_Effort_2026_10_21T09_15_42_643924_00_00Z.py": {
+      "date": "2026-10-21",
+      "problem": "1631",
+      "moves": {
+        "dijkstra": "clean",
+        "grid-neighbors": "clean",
+        "graph-bfs-shortest": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LeetCode: Accepted (1235 ms, 22.4 MB)",
+      "summary": "The mu source runs a Dijkstra-style search: a custom min-heap `heap` seeded with (0,0,0), popping the cheapest (cost, r, c), skipping cells already in `seen`, and pushing neighbors from `nbrs` with cost = max(edge difference, cost). It returns the cost when the popped cell equals `shape(heights, last_index=true)`. The moves exercised are dijkstra, grid-neighbors, and the shortest-path search; the notes carry only the LeetCode Accepted verdict.",
+      "seconds": 415,
+      "learning": true
     }
   }
 }
