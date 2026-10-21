@@ -39077,6 +39077,20 @@
       "summary": "The code builds a weighted directed adjacency dict with adjacency(flights, n=n, directed=True, weighted=True), then runs a min-heap Dijkstra seeded with (0, -1, src), pushing (cost + weight, stops + 1, next) while stops + 1 <= k and skipping states already in the seen set. It returns the cost when the popped airport is dst, else -1. The notes carry a LeetCode Accepted verdict at 874 ms.",
       "seconds": 1416,
       "learning": true
+    },
+    "solved/d_Resolve_Nested_Templates_2026_10_21T06_42_21_645795_00_00Z.py": {
+      "date": "2026-10-21",
+      "problem": "drill",
+      "moves": {
+        "async-gather-recursive": "clean"
+      },
+      "assist": {
+        "async-gather-recursive": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Timing assertions confirm total delay equals the longest chain, not the number of levels.",
+      "summary": "The code splits the template on {{...}} placeholders, then uses asyncio.gather over all keys at once, with each key's fill recursively calling mustachify on the resolved value. This exercises async-gather-recursive: sibling lookups run concurrently and nesting resolves recursively, so the measured delay is the longest chain. The notes say the solution was learned/copied.",
+      "seconds": 3097
     }
   }
 }
