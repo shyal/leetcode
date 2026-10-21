@@ -39063,6 +39063,20 @@
       ],
       "seconds": 2005,
       "learning": true
+    },
+    "solved/p787_Cheapest_Flights_Within_K_Stops_2026_10_21T04_49_05_557691_00_00Z.py": {
+      "date": "2026-10-21",
+      "problem": "787",
+      "moves": {
+        "graph-adjacency-build": "clean",
+        "dijkstra": "clean",
+        "set-membership": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LeetCode: Accepted (874 ms, 27.7 MB); the seen set keyed on (cost, stops, airport) makes it a bounded Dijkstra rather than the canonical Bellman-Ford/DP over stops.",
+      "summary": "The code builds a weighted directed adjacency dict with adjacency(flights, n=n, directed=True, weighted=True), then runs a min-heap Dijkstra seeded with (0, -1, src), pushing (cost + weight, stops + 1, next) while stops + 1 <= k and skipping states already in the seen set. It returns the cost when the popped airport is dst, else -1. The notes carry a LeetCode Accepted verdict at 874 ms.",
+      "seconds": 1416,
+      "learning": true
     }
   }
 }
