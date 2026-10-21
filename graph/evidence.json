@@ -39190,6 +39190,22 @@
       "note": "LAG(amount) OVER (ORDER BY month) gives the previous row's amount; first row yields NULL naturally.",
       "summary": "The query selects month, amount, and amount - lag(amount) over (order by month) from Revenue. This exercises the window-offset move: LAG compares each row with its neighbour, and the first row's change is NULL rather than 0. Both example assertions passed.",
       "seconds": 185
+    },
+    "solved/d_Count_Pairs_2026_10_21T22_42_06_524443_00_00Z.mu": {
+      "date": "2026-10-22",
+      "problem": "drill",
+      "moves": {
+        "streaming-accumulate-pairs": "clean",
+        "derived-key-lookup": "clean",
+        "counter-build": "clean"
+      },
+      "assist": {
+        "streaming-accumulate-pairs": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say 'Learning'; the fold accumulates matches from the past at each step via cnt[want(x)] before recording cnt[by(x)] += 1.",
+      "summary": "countPairs walks xs once, querying cnt[want(x)] for matches already seen, then records cnt[by(x)] += 1, and sums the per-step matches with a fold. This exercises streaming-accumulate-pairs, derived-key-lookup (want(x) = x-2 or -x%5), and counter-build. The notes mark the work as Learning.",
+      "seconds": 310
     }
   }
 }
