@@ -43,7 +43,7 @@ MAP = ".mu_current.map.json"
 FILL = ".mu_fill"  # DRILL_FILL: the solved file and share the drill server gives
 HELPERS = "<mu helpers>"  # the file name of the pasted helpers' frames
 PREV = "current.mu.prev"
-SOLVE = (ast.ClassDef, ast.FunctionDef)  # the top-level nodes a solve is made of
+SOLVE = (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)  # the top-level nodes a solve is made of
 # a commented line the asserts need: an assert, `name = ...`, `name += ...`
 # or a `sol.method(...)` call (utils/tests/test_reference_solutions.py SETUP)
 SETUP = r"(?:assert |[\w.\[\]]+ (?:[-+*/]|//)?= |sol\.\w+\()"
@@ -204,7 +204,8 @@ def mu_def(fn, comments=()):
         t = mu_type(a.annotation)
         params.append(a.arg if t is None else f"{a.arg}: {t}")
     ret = mu_type(fn.returns)
-    head = f"def {fn.name}({', '.join(params)})" + (f" -> {ret}" if ret else "")
+    word = "async def" if isinstance(fn, ast.AsyncFunctionDef) else "def"
+    head = f"{word} {fn.name}({', '.join(params)})" + (f" -> {ret}" if ret else "")
     body = mu_lines(fn.body, 1)
     if not body or body[-1] == "":
         body.append("  pass")
@@ -220,7 +221,7 @@ def mu_class(cls, py_lines):
         head += " extends " + ", ".join(ast.unparse(b) for b in cls.bases)
     body = []
     for n in cls.body:
-        if isinstance(n, ast.FunctionDef):
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
             lines = mu_def(n, body_comments(n, py_lines)).split("\n")
             body += [f"  {ln}" if ln else "" for ln in lines] + [""]
         elif isinstance(n, ast.Expr) and isinstance(n.value, ast.Constant):

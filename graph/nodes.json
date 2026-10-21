@@ -1950,6 +1950,17 @@
       "drill": "Settle Matched Bets."
     },
     {
+      "id": "async-gather-recursive",
+      "group": "backend",
+      "added": "2026-10-21",
+      "name": "Async: resolve nested keys at the same time",
+      "desc": "Each key's value can hold more keys. Start every lookup of a string at the same time with gather, and let each key resolve its own value recursively, so the total time is the longest chain of waits, not the number of levels.",
+      "hint": "Split the template on the placeholders, gather one recursive coroutine per key, join the parts.",
+      "prereqs": [],
+      "drill": "Resolve Nested Templates.",
+      "source": "https://codepen.io/achal-singh/pen/wvebwZY"
+    },
+    {
       "id": "event-state-by-seq",
       "group": "backend",
       "added": "2026-10-07",
