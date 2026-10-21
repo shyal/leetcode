@@ -39263,6 +39263,17 @@
       "note": "Uses cells(grid) to enumerate (r, c) and computes the value as r*n plus c or n-c-1 depending on row parity; the alternating row direction is the index conversion.",
       "summary": "The mu code builds an n x n table, walks every cell with cells(grid), and fills each with r*n plus either c or n-c-1 depending on whether the row is even, producing the alternating snake numbering. The assertions for n=2..6 and the 20x20 corner checks all pass. No notes were given.",
       "seconds": 125
+    },
+    "solved/d_Cut_At_The_Middle_2026_10_21T23_02_44_516916_00_00Z.mu": {
+      "date": "2026-10-22",
+      "problem": "drill",
+      "moves": {
+        "fast-slow-pointers": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "The while condition `fast and fast.next and fast.next.next` stops slow at the middle (left-biased for even lengths); all assertions passed.",
+      "summary": "The mu code advances `slow` one step and `fast` two steps while `fast.next.next` exists, then splits the list at `slow.next` and returns the two heads. This exercises the fast-slow-pointer move to locate the middle, and the assertions confirm the split for even, odd, and large lists. The run exited 0 with every assertion passing.",
+      "seconds": 140
     }
   }
 }
