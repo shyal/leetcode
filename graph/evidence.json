@@ -39027,6 +39027,20 @@
       "summary": "The code builds an adjacency list G from the edges, then runs a heap-based shortest-path search from node 0, recording res[node] on first pop and only pushing neighbors whose arrival time is below disappear[next]. It uses a hand-written heap class and a table(n, fill=-1) result array. The notes mention a hint on the min(G[a].get(b, inf), w) line.",
       "seconds": 3003,
       "learning": true
+    },
+    "solved/p3286_Find_a_Safe_Walk_Through_a_Grid_2026_10_21T03_22_14_434574_00_00Z.py": {
+      "date": "2026-10-21",
+      "problem": "3286",
+      "moves": {
+        "dijkstra": "clean",
+        "grid-neighbors": "clean",
+        "graph-bfs-shortest": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Uses a max-heap on remaining health (best-first / Dijkstra-style) with a seen set; LeetCode verdict Accepted (532 ms).",
+      "summary": "The solution runs a best-first search from (0,0) using a custom max-heap keyed on remaining health, subtracting grid[r][c] on pop and skipping cells already in seen. Neighbors come from the harness nbrs cardinal-offset helper, and reaching the bottom-right returns whether health is still at least 1. The notes are empty and LeetCode reports Accepted.",
+      "seconds": 598,
+      "learning": true
     }
   }
 }
