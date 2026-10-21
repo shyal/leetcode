@@ -65,3 +65,6 @@ mulang.environment(
 )
 mulang.PATHS += [str(ROOT / "utils"), str(HARNESS)]
 mulang.document(ROOT / "mu" / "HELPERS.md")
+# `from pydsa.digits import even` in a mu file reads pydsa/digits.mu, for
+# the modules pydsa writes in mu
+mulang.mu_path(Path(pydsa.__file__).resolve().parent.parent)

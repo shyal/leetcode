@@ -96,7 +96,9 @@ def test_definition_of_a_helper_is_its_pydsa_source():
     import pydsa.grid
 
     [d] = ide.definition(req("definition", 13, 10))
-    assert d["path"] == pydsa.grid.__file__
+    # grid is written in mu: its .mu is the source, and pydsa imports it
+    # from the Python that mu writes (pydsa/_mu.py)
+    assert d["path"] == pydsa.grid.__mu__
     assert "def nbrs(" in open(d["path"]).read().split("\n")[d["line"]]
 
 

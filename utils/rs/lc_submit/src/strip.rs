@@ -76,18 +76,54 @@ pub fn pydsa_dir(root: &Path) -> Option<PathBuf> {
         }
         [root.join("../pydsa/pydsa"), root.join("_deps/pydsa/pydsa")]
             .into_iter()
-            .find(|p| p.join("grid.py").exists())
+            .find(|p| p.join("__init__.py").exists())
     })
     .clone()
+}
+
+/// The Python file each pydsa module is imported from. A module written
+/// in mu has no .py: pydsa imports it from the Python mu writes into its
+/// __pycache__, so the venv's python is asked for each module's __file__.
+fn pydsa_files(root: &Path) -> Vec<PathBuf> {
+    static FILES: OnceLock<Vec<PathBuf>> = OnceLock::new();
+    FILES
+        .get_or_init(|| {
+            let python = root.join(".venv/bin/python3");
+            let names = PYDSA_MODULES.join(" ");
+            let script = "import importlib, sys\nfor m in sys.argv[1].split():\n    print(importlib.import_module('pydsa.' + m).__file__)";
+            let out = python
+                .exists()
+                .then(|| {
+                    std::process::Command::new(&python)
+                        .args(["-c", script, &names])
+                        .output()
+                        .ok()
+                })
+                .flatten()
+                .filter(|o| o.status.success());
+            if let Some(out) = out {
+                return String::from_utf8_lossy(&out.stdout)
+                    .lines()
+                    .map(PathBuf::from)
+                    .collect();
+            }
+            pydsa_dir(root)
+                .map(|dir| {
+                    PYDSA_MODULES
+                        .iter()
+                        .map(|m| dir.join(format!("{m}.py")))
+                        .collect()
+                })
+                .unwrap_or_default()
+        })
+        .clone()
 }
 
 /// The files whose top-level definitions may be pasted: sitecustomize,
 /// then the pydsa modules.
 pub fn helper_files(root: &Path) -> Vec<PathBuf> {
     let mut out = vec![root.join("utils/harness/sitecustomize.py")];
-    if let Some(dir) = pydsa_dir(root) {
-        out.extend(PYDSA_MODULES.iter().map(|m| dir.join(format!("{m}.py"))));
-    }
+    out.extend(pydsa_files(root));
     out
 }
 
