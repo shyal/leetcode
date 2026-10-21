@@ -39316,6 +39316,16 @@
       "note": "buckets = table(101) indexed by value, then a prefix sweep over the bucket array accumulates counts",
       "summary": "The code builds a 101-slot bucket array indexed by value, counts each number into it, then sweeps the buckets in order accumulating a running count so each value's bucket holds the number of smaller elements. It finally maps each input back through the bucket array. This exercises counting-sort-buckets directly; the run passed all assertions.",
       "seconds": 174
+    },
+    "solved/d_Unequal_Pairs_From_Two_Values_2026_10_21T23_30_11_581580_00_00Z.mu": {
+      "date": "2026-10-22",
+      "problem": "drill",
+      "moves": {
+        "pair-count-formula": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The mu solution builds a Counter of the values and computes the answer as the product of the two group sizes (a * b), counting each cross-group pair once by arithmetic on group sizes. This is the pair-count-formula move, and all assertions pass, including the large 50000/50000 case.",
+      "seconds": 67
     }
   }
 }
