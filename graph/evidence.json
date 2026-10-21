@@ -39105,6 +39105,20 @@
       "summary": "The mu source runs a Dijkstra-style search: a custom min-heap `heap` seeded with (0,0,0), popping the cheapest (cost, r, c), skipping cells already in `seen`, and pushing neighbors from `nbrs` with cost = max(edge difference, cost). It returns the cost when the popped cell equals `shape(heights, last_index=true)`. The moves exercised are dijkstra, grid-neighbors, and the shortest-path search; the notes carry only the LeetCode Accepted verdict.",
       "seconds": 415,
       "learning": true
+    },
+    "solved/p1928_Minimum_Cost_to_Reach_Destination_in_Time_FAILED_2026_10_21T10_19_19_047688_00_00Z.py": {
+      "date": "2026-10-21",
+      "problem": "1928",
+      "moves": {
+        "graph-adjacency-build": "clean",
+        "dijkstra": "struggled",
+        "seen-state-cycle-detect": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Memory Limit Exceeded (13/96 cases) - the heap/seen set grows without a per-city best-cost-and-time bound, so the canonical dijkstra-with-time-state pruning is missing.",
+      "summary": "The code builds a weighted undirected adjacency with adjacency(edges, directed=false, weighted=true) and runs a min-heap of (cost, time, city), returning the first city n-1 popped within maxTime. It dedupes on the full (cost, time, city) triple in seen, which lets the heap and set grow unboundedly instead of keeping the best cost per (city, time). LeetCode rejected it with Memory Limit Exceeded at 13/96 cases.",
+      "seconds": 3320,
+      "learning": true
     }
   }
 }
