@@ -39362,6 +39362,27 @@
       ],
       "seconds": 1022,
       "learning": true
+    },
+    "solved/p1048_Longest_String_Chain_FAILED_2026_10_22T09_34_07_218058_00_00Z.mu": {
+      "date": "2026-10-22",
+      "problem": "1048",
+      "moves": {
+        "dp-1d-rolling": "clean",
+        "sort-by-custom-key": "clean",
+        "two-sequence-align": "clean",
+        "derived-key-lookup": "struggled"
+      },
+      "assist": {
+        "derived-key-lookup": "hint",
+        "dp-1d-rolling": "hint",
+        "sort-by-custom-key": "hint",
+        "two-sequence-align": "hint"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Time Limit Exceeded (78/86 cases); the O(n^2 * LCS) pairwise is_pred scan stands in for the canonical move of generating each word's single-letter-deletion predecessors and looking them up in a dict/set, which the hint pointed at.",
+      "summary": "The code sorts words by length, then for every pair (j, i) with lengths differing by one calls is_pred, which checks lcs(A, B) == len(A) via a two-sequence DP, and relaxes dp[i] = max(dp[j]+1, dp[i]). It exercises sort-by-custom-key, a 1D dp table, and two-sequence alignment, but never builds the predecessor lookup the hint describes. LeetCode returned Time Limit Exceeded on 78/86 cases, and the notes record a hint about removing one letter and checking membership quickly.",
+      "seconds": 3413,
+      "learning": true
     }
   }
 }
