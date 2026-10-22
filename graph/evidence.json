@@ -39397,6 +39397,19 @@
       "summary": "The mu code builds a dp table of ones and fills it with a nested pairs(len, back=true) loop, setting dp[i] = max(dp[j]+1, dp[i]) whenever nums[j] < nums[i], then returns max(dp, default=0). This is the classic O(n^2) LIS recurrence: the state is named and filled forward in a 1D table, and each i queries the already-computed past j before recording its own value. LeetCode reports Accepted at 2256 ms, 19.6 MB; the notes are empty.",
       "seconds": 165,
       "learning": true
+    },
+    "solved/p2470_Number_of_Subarrays_With_LCM_Equal_to_K_2026_10_22T10_13_41_165870_00_00Z.mu": {
+      "date": "2026-10-22",
+      "problem": "2470",
+      "moves": {
+        "substring-enumeration": "clean",
+        "gcd-reduction": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LeetCode: Accepted (245 ms, 19.3 MB); early break when l > k prunes the enumeration",
+      "summary": "The code enumerates every subarray with nested loops over start i and end j, extending the running LCM l = lcm(l, nums[j]) and counting when l == k, breaking early once l exceeds k. The lcm helper uses gcd(a, b) for the reduction. The notes carry only the LeetCode verdict, Accepted at 245 ms.",
+      "seconds": 1087,
+      "learning": true
     }
   }
 }
