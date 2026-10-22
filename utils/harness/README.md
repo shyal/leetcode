@@ -355,7 +355,7 @@ Each triple is built by type: tuple by default, list for a LeetCode answer.
 
 ## digits
 
-### `to_digits(num: Union[int, str], reverse: bool = False, base: int = 10) -> List[int]`
+### `to_digits(num: int | str, reverse: bool = False, base: int = 10) -> list[int]`
 
 The digits of num in the given base as ints, most significant first.
 
@@ -364,7 +364,7 @@ is the coefficient of base**i. A negative int loses its sign. A str is
 read one character at a time, so leading zeros are kept; base=2 gives
 the bits.
 
-### `to_int(digits: List[int], reverse: bool = False, base: int = 10) -> int`
+### `to_int(digits: list[int], reverse: bool = False, base: int = 10) -> int`
 
 The int whose digits in the given base are the list, most significant first.
 
