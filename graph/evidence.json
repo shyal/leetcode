@@ -39383,6 +39383,20 @@
       "summary": "The code sorts words by length, then for every pair (j, i) with lengths differing by one calls is_pred, which checks lcs(A, B) == len(A) via a two-sequence DP, and relaxes dp[i] = max(dp[j]+1, dp[i]). It exercises sort-by-custom-key, a 1D dp table, and two-sequence alignment, but never builds the predecessor lookup the hint describes. LeetCode returned Time Limit Exceeded on 78/86 cases, and the notes record a hint about removing one letter and checking membership quickly.",
       "seconds": 3413,
       "learning": true
+    },
+    "solved/p300_Longest_Increasing_Subsequence_2026_10_22T09_42_46_004749_00_00Z.mu": {
+      "date": "2026-10-22",
+      "problem": "300",
+      "moves": {
+        "dp-state-formulate": "clean",
+        "dp-1d-rolling": "clean",
+        "streaming-ask-then-record": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "O(n^2) DP accepted at 2256 ms; the O(n log n) patience-sorting follow-up is not implemented.",
+      "summary": "The mu code builds a dp table of ones and fills it with a nested pairs(len, back=true) loop, setting dp[i] = max(dp[j]+1, dp[i]) whenever nums[j] < nums[i], then returns max(dp, default=0). This is the classic O(n^2) LIS recurrence: the state is named and filled forward in a 1D table, and each i queries the already-computed past j before recording its own value. LeetCode reports Accepted at 2256 ms, 19.6 MB; the notes are empty.",
+      "seconds": 165,
+      "learning": true
     }
   }
 }
