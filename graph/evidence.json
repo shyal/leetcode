@@ -39425,6 +39425,21 @@
       "summary": "The mu code walks nums once with `for >i, n in nums`, checking `if n in D` before recording `D[target - n] = i`, so the query of the past precedes the record. It stores the complement as the key and the index as the value, solving the pair condition target - n algebraically rather than looking up n itself. All four canonical moves are exercised, and the notes report LeetCode Accepted.",
       "seconds": 471,
       "learning": true
+    },
+    "solved/p2359_Find_Closest_Node_to_Given_Two_Nodes_2026_10_22T12_12_12_132910_00_00Z.mu": {
+      "date": "2026-10-22",
+      "problem": "2359",
+      "moves": {
+        "graph-adjacency-build": "clean",
+        "graph-bfs-shortest": "clean",
+        "set-membership": "clean",
+        "sort-by-custom-key": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LeetCode: Accepted (604 ms, 62.5 MB)",
+      "summary": "The mu code builds a successor map G from edges, runs a level-order BFS from each of node1 and node2 using levels() with a shared seen set to record distances, then intersects the two distance maps and picks the node minimizing (max distance, index) via min with a tuple key. It exercises adjacency construction, BFS shortest distances, set membership, and a custom-key min. LeetCode reports Accepted.",
+      "seconds": 1390,
+      "learning": true
     }
   }
 }
