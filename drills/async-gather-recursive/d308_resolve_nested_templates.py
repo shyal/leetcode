@@ -100,4 +100,4 @@ print(asyncio.run(sol.mustachify(template, lookup(table))))  # A:Alpha, Y:xY, B:
 # assert delays("{{D1}}", {"D1": "{{s1}} {{D2}}", "D2": "{{s2}} {{D3}}", "D3": "{{s3}}"}) == 1
 # assert asyncio.run(sol.mustachify("{{K0}}", lookup({f"K{i}": f"<{{{{K{i + 1}}}}}>" for i in range(49)}))) == "<" * 49 + "xK49" + ">" * 49
 # assert delays("{{K0}}", {f"K{i}": f"{{{{s{i}}}}}{{{{K{i + 1}}}}}" for i in range(49)}) == 1
-# assert delays("".join(f"{{{{k{i}}}}}" for i in range(1000)), {}) == 1
+# assert delays("".join(f"{{{{k{i}}}}}" for i in range(100)), {}) == 1

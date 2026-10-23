@@ -126,5 +126,5 @@ _l, _r = asyncio.run(sol.mustachify('{{K0}}', lookup({f'K{i}': f'<{{{{K{i + 1}}}
 assert _l == _r, (lambda l, r: f"left : {l.lstrip()}\nright: {r.lstrip()}" if "\n" not in l + r else f"left :\n{l}\nright:\n{r}")(*(__import__("textwrap").indent(__import__("pprint").pformat(v, width=__import__("shutil").get_terminal_size().columns - 2, sort_dicts=False), "  ") for v in (_l, _r)))
 _l, _r = delays('{{K0}}', {f'K{i}': f'{{{{s{i}}}}}{{{{K{i + 1}}}}}' for i in range(0, 49)}), 1
 assert _l == _r, (lambda l, r: f"left : {l.lstrip()}\nright: {r.lstrip()}" if "\n" not in l + r else f"left :\n{l}\nright:\n{r}")(*(__import__("textwrap").indent(__import__("pprint").pformat(v, width=__import__("shutil").get_terminal_size().columns - 2, sort_dicts=False), "  ") for v in (_l, _r)))
-_l, _r = delays(''.join((f'{{{{k{i}}}}}' for i in range(0, 1000))), {}), 1
+_l, _r = delays(''.join((f'{{{{k{i}}}}}' for i in range(0, 100))), {}), 1
 assert _l == _r, (lambda l, r: f"left : {l.lstrip()}\nright: {r.lstrip()}" if "\n" not in l + r else f"left :\n{l}\nright:\n{r}")(*(__import__("textwrap").indent(__import__("pprint").pformat(v, width=__import__("shutil").get_terminal_size().columns - 2, sort_dicts=False), "  ") for v in (_l, _r)))

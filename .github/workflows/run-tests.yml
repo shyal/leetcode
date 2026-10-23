@@ -61,11 +61,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # lc_submit's tests paste helpers from pydsa (strip.rs: pydsa_dir)
+      # lc_submit's tests paste helpers from pydsa (strip.rs: pydsa_files);
+      # a pydsa module written in mu has no .py, so the venv's python says
+      # which file each module is imported from
       - uses: actions/checkout@v4
         with:
           repository: shyal/pydsa
           path: _deps/pydsa
+      - uses: actions/checkout@v4
+        with:
+          repository: shyal/mu
+          path: _deps/mu
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install pydsa and mu
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install -q -e _deps/pydsa -e _deps/mu
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt
