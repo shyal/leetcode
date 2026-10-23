@@ -39461,6 +39461,17 @@
       "judge": "deepseek-chat",
       "summary": "The query groups Sales by product_id and sums price * units per group as revenue, forming the product per row before aggregating. It exercises sql-group-aggregate with a per-row expression inside SUM. Both example assertions passed.",
       "seconds": 185
+    },
+    "solved/d_Average_Years_Per_Project_2026_10_23T06_26_58_230859_00_00Z.mu": {
+      "date": "2026-10-23",
+      "problem": "drill",
+      "moves": {
+        "sql-group-aggregate": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Rounding done in SQL via round(avg(...), 2) as required.",
+      "summary": "The query groups the Project table by project_id and computes round(avg(experience_years), 2) as average_years, so the rounding happens on the aggregate in SQL. Both example assertions pass, producing 2.0/2.5 and 1.33. The single exercised move is the group-aggregate with AVG and ROUND.",
+      "seconds": 124
     }
   }
 }
