@@ -55,11 +55,7 @@ fn verdict(p: &Progress) -> (Color, &'static str) {
 fn note(p: &Prog) -> String {
     let since = p.today - chrono::Duration::days(PROGRESS_LEVEL_DAYS);
     let mut out = match (p.p.now, p.p.then) {
-        (Some(_), Some(_)) => format!(
-            "  · {} since {}",
-            signed(p.p.delta()),
-            since.format("%B")
-        ),
+        (Some(_), Some(_)) => format!("  · {} since {}", signed(p.p.delta()), since.format("%B")),
         _ => format!("  · under {PROVEN_WINDOW} first sights"),
     };
     if p.p.at_best() {

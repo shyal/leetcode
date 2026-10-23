@@ -668,7 +668,10 @@ fn main() {
     if prepare {
         for prev in kg::lang::set_aside(&ctx.root) {
             let name = prev.file_name().unwrap().to_string_lossy();
-            console.print(&format!("{} held work; it was moved to {name}.", name.trim_end_matches(".prev")));
+            console.print(&format!(
+                "{} held work; it was moved to {name}.",
+                name.trim_end_matches(".prev")
+            ));
         }
         let _ = Command::new(kg::data::rs_bin(&ctx.root, "prepare"))
             .arg(kg::data::value_str(&pick["problem"]))

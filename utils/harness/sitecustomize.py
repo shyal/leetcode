@@ -200,10 +200,16 @@ def _is_adjacency_list(x):
 
 
 def _is_adjacency(x):
-    """A non-empty dict whose values are all containers of neighbors."""
+    """A non-empty dict whose values are all containers of neighbors. A
+    neighbor is a node, so it is hashable: {'trades': [{...}]} is a record,
+    not a graph."""
     if not isinstance(x, dict) or not x:
         return False
-    return all(isinstance(v, (dict, list, tuple, set)) for v in x.values())
+    return all(
+        isinstance(v, (dict, list, tuple, set))
+        and all(isinstance(n, _SCALAR + (tuple,)) for n in v)
+        for v in x.values()
+    )
 
 
 def _graph_node_to_adj(node):

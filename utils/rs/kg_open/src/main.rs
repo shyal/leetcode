@@ -18,7 +18,16 @@ pub fn served_file(root: &Path) -> Option<PathBuf> {
             .is_ok_and(|s| !s.trim().is_empty())
             .then_some(p)
     };
-    match kg::lang::busy(root) {
+    // current.mu is not looked at on its own: a serve empties every current
+    // file first (kg::lang::set_aside), so a current.mu that holds work
+    // here is left from an earlier solve
+    let busy = kg::lang::LANGS
+        .iter()
+        .copied()
+        .filter(|l| l.ext != kg::lang::MU.ext)
+        .find(|l| kg::lang::holds_work(root, l))
+        .map(|l| (root.join(kg::lang::current_name(l)), l));
+    match busy {
         Some((path, lang)) if lang.ext == kg::lang::PYTHON.ext => nonempty(root.join("current.mu"))
             .filter(|mu| mu_belongs(mu, &path))
             .or(Some(path)),

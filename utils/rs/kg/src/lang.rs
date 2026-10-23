@@ -146,8 +146,7 @@ pub fn holds_work(root: &Path, lang: &Lang) -> bool {
         return false;
     }
     lang.ext != MU.ext
-        || std::fs::read_to_string(root.join(MU_STUB)).ok()
-            != std::fs::read_to_string(&path).ok()
+        || std::fs::read_to_string(root.join(MU_STUB)).ok() != std::fs::read_to_string(&path).ok()
 }
 
 /// The current file holding work, Python first: `make solved` files it,
@@ -537,9 +536,20 @@ mod tests {
         assert_eq!(of_ext("rs").unwrap().name, "Rust");
         assert_eq!(
             current_names(),
-            vec!["current.py", "current.mu", "current.ts", "current.rs", "current.markdown"]
+            vec![
+                "current.py",
+                "current.mu",
+                "current.ts",
+                "current.rs",
+                "current.markdown"
+            ]
         );
-        assert_eq!(of_path(Path::new("solved/d_A_2026_10_21T00_00_00Z.mu")).unwrap().name, "mu");
+        assert_eq!(
+            of_path(Path::new("solved/d_A_2026_10_21T00_00_00Z.mu"))
+                .unwrap()
+                .name,
+            "mu"
+        );
         assert_eq!(
             of_path(Path::new("drills/x/d1_a.markdown")).unwrap().name,
             "Design"
@@ -735,7 +745,10 @@ mod tests {
         std::fs::write(dir.join("current.py"), "\n").unwrap();
         std::fs::write(dir.join("current.rs"), "fn f() {}\n").unwrap();
         assert_eq!(set_aside(&dir), vec![dir.join("current.rs.prev")]);
-        assert_eq!(std::fs::read_to_string(dir.join("current.rs.prev")).unwrap(), "fn f() {}\n");
+        assert_eq!(
+            std::fs::read_to_string(dir.join("current.rs.prev")).unwrap(),
+            "fn f() {}\n"
+        );
         assert_eq!(std::fs::read_to_string(dir.join("current.rs")).unwrap(), "");
         assert!(!dir.join("current.py.prev").exists());
         assert!(busy(&dir).is_none());

@@ -93,20 +93,24 @@ def test_run_leaves_the_real_bank_alone(run):
 def test_authoring_follows_the_measured_rate(run):
     """At the measured rate the run banks nodes: the count of banks is the
     rate times the days, rounded down (a fraction of a bank carries over),
-    capped by the nodes that had none."""
+    capped by the nodes that had none. A disabled drill (drills.json) is no
+    bank."""
     a = run["authored"]
     assert a["rate"] >= 0
     nodes = [
         n["id"]
         for n in json.load(open(os.path.join(ROOT, "graph", "nodes.json")))["nodes"]
     ]
+    drills = json.load(open(os.path.join(ROOT, "graph", "drills.json")))["drills"]
+    disabled = {i for i, d in drills.items() if d.get("disabled")}
     bankless = sum(
         1
         for n in nodes
-        if not glob.glob(os.path.join(ROOT, "drills", n, "*.py"))
-        and not glob.glob(os.path.join(ROOT, "drills", n, "*.ts"))
-        and not glob.glob(os.path.join(ROOT, "drills", n, "*.rs"))
-        and not glob.glob(os.path.join(ROOT, "drills", n, "*.markdown"))
+        if not any(
+            os.path.basename(p).split("_")[0] not in disabled
+            for ext in ("py", "mu", "ts", "rs", "markdown")
+            for p in glob.glob(os.path.join(ROOT, "drills", n, f"*.{ext}"))
+        )
     )
     assert a["nodes"] == min(int(a["rate"] * run["day"] + 1e-9), bankless)
     assert a["files"] >= a["nodes"]

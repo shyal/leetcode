@@ -78,7 +78,12 @@ def test_solved_mu(name):
         [root, os.path.join(root, "utils"), os.path.join(root, "utils", "harness")]
     )
     run = subprocess.run(
-        [os.path.join(root, ".venv", "bin", "python3"), "-m", "mulang", os.path.join("solved", name)],
+        [
+            os.path.join(root, ".venv", "bin", "python3"),
+            "-m",
+            "mulang",
+            os.path.join("solved", name),
+        ],
         cwd=root,
         env=dict(os.environ, PYTHONPATH=path),
         capture_output=True,

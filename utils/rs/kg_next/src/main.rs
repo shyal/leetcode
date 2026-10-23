@@ -837,7 +837,10 @@ impl<'a> Run<'a> {
         }
         for prev in kg::lang::set_aside(&self.ctx.root) {
             let name = prev.file_name().unwrap().to_string_lossy();
-            self.console.print(&format!("{} held work; it was moved to {name}.", name.trim_end_matches(".prev")));
+            self.console.print(&format!(
+                "{} held work; it was moved to {name}.",
+                name.trim_end_matches(".prev")
+            ));
         }
         let tool = if force { "kg_force" } else { "prepare" };
         let _ = Command::new(kg::data::rs_bin(&self.ctx.root, tool))

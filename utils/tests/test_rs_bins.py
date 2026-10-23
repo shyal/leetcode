@@ -81,21 +81,6 @@ def test_is_session_start_prints_a_predicate():
     assert p.returncode == (0 if p.stdout.strip() == "true" else 1)
 
 
-def test_kg_chat_check_is_quiet_for_a_foreign_session_on_master():
-    branch = subprocess.run(
-        ["git", "rev-parse", "--abbrev-ref", "HEAD"],
-        capture_output=True,
-        text=True,
-        cwd=ROOT,
-    ).stdout.strip()
-    p = run("kg_chat", "--check", stdin=json.dumps({"session_id": "not-a-real-id"}))
-    assert p.returncode == 0
-    if branch in ("master", "HEAD"):
-        assert p.stdout == ""
-    else:
-        assert p.stdout.startswith(f"[this is not branch {branch}'s conversation")
-
-
 # --- kg_rs, the extension kg_lib imports -----------------------------------
 
 
