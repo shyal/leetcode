@@ -39440,6 +39440,17 @@
       "summary": "The mu code builds a successor map G from edges, runs a level-order BFS from each of node1 and node2 using levels() with a shared seen set to record distances, then intersects the two distance maps and picks the node minimizing (max distance, index) via min with a tuple key. It exercises adjacency construction, BFS shortest distances, set membership, and a custom-key min. LeetCode reports Accepted.",
       "seconds": 1390,
       "learning": true
+    },
+    "solved/d_Interleave_2026_10_23T06_21_36_674647_00_00Z.mu": {
+      "date": "2026-10-23",
+      "problem": "drill",
+      "moves": {
+        "ll-dummy-splice": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "No dummy node used; the interleave is done by in-place next-pointer rewiring via a simultaneous tuple assignment, which is the splice move without a dummy head.",
+      "summary": "The mu code interleaves two lists by walking b and swapping a.next, b.next, a, b in one simultaneous assignment, re-linking nodes in place rather than building a new list. It exercises the splice/re-link move (without a dummy head) and all assertions pass, including the 25000-element case. No notes were given.",
+      "seconds": 444
     }
   }
 }
