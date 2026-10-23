@@ -39472,6 +39472,17 @@
       "note": "Rounding done in SQL via round(avg(...), 2) as required.",
       "summary": "The query groups the Project table by project_id and computes round(avg(experience_years), 2) as average_years, so the rounding happens on the aggregate in SQL. Both example assertions pass, producing 2.0/2.5 and 1.33. The single exercised move is the group-aggregate with AVG and ROUND.",
       "seconds": 124
+    },
+    "solved/d_Average_Price_Per_Product_2026_10_23T06_29_06_873898_00_00Z.mu": {
+      "date": "2026-10-23",
+      "problem": "drill",
+      "moves": {
+        "sql-group-aggregate": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Real division via * 1.0 satisfies the REQUIRED line; no avg(price) used.",
+      "summary": "The query groups Sales by product_id and computes round(sum(price * units) * 1.0 / sum(units), 2) as average_price, using SUM aggregates per group. The * 1.0 forces real division so sqlite does not truncate, and both example assertions pass. No notes indicate any help or recognition trouble.",
+      "seconds": 112
     }
   }
 }
