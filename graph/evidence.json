@@ -40746,6 +40746,20 @@
       "summary": "The RecentCounter keeps a deque of ping timestamps; each ping appends t, then pops from the front while the oldest timestamp is older than t - 3000, and returns the deque length. This is the recent-window deque move, exercised directly. The notes are empty and LeetCode reports Accepted (108 ms, 24.1 MB).",
       "seconds": 428,
       "learning": true
+    },
+    "solved/p3305_Count_of_Substrings_Containing_Every_Vowel_and_K_Consonants_I_2026_10_24T05_05_04_256970_00_00Z.mu": {
+      "date": "2026-10-24",
+      "problem": "3305",
+      "moves": {
+        "substring-enumeration": "clean",
+        "set-membership": "clean",
+        "running-sum": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Brute force over all (i, j) pairs; the O(n) sliding-window follow-up is not implemented.",
+      "summary": "The code enumerates every substring with nested loops over start i and end j, tracking a set of vowels seen and a running consonant count, and adds to count when all five vowels are present and consonants equals k. It exercises substring enumeration, set membership for the vowel test, and a running sum for consonants. The early break when consonants > k prunes the inner loop. The follow-up linear-time bound is not met; this is the O(n^2) brute force.",
+      "seconds": 946,
+      "learning": true
     }
   }
 }
