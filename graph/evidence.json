@@ -40760,6 +40760,19 @@
       "summary": "The code enumerates every substring with nested loops over start i and end j, tracking a set of vowels seen and a running consonant count, and adds to count when all five vowels are present and consonants equals k. It exercises substring enumeration, set membership for the vowel test, and a running sum for consonants. The early break when consonants > k prunes the inner loop. The follow-up linear-time bound is not met; this is the O(n^2) brute force.",
       "seconds": 946,
       "learning": true
+    },
+    "solved/p926_Flip_String_to_Monotone_Increasing_FAILED_2026_10_24T05_41_57_293691_00_00Z.mu": {
+      "date": "2026-10-24",
+      "problem": "926",
+      "moves": {
+        "running-sum": "clean",
+        "dp-1d-rolling": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Two Solution classes; the second (flips/ones rolling DP) is the one bound to sol and passes all assertions. The header says FAILED but the executed code works.",
+      "summary": "The active Solution.minFlipsMonoIncr scans s once, counting ones seen and updating flips = min(flips + 1, ones) on each zero, which is the rolling two-state DP for the minimum flips to make the string monotone. The first Solution class (using s.index('1') and a count of zeros after the first one) is dead code, never instantiated. The notes say 'nope' and the header records walking away after 24m, but the second class as written passes every assertion.",
+      "seconds": 1462,
+      "learning": true
     }
   }
 }
