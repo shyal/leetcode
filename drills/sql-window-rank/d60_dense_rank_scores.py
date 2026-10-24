@@ -1,9 +1,10 @@
 """
 DRILL: Dense Rank Scores
 
-Given the table `Scores`, return `score` and `rank` for every row, ranked
-from highest `score` to lowest. Equal scores share a rank, and the rank
-after a tie is the next consecutive integer: no holes. No ordering required.
+Given the Scores table, return the score and rank for every row in columns
+named score and rank. Assign rank 1 to the highest score. Equal scores share
+the same rank, and each distinct lower score receives the next consecutive
+integer rank, with no gaps. The result rows may appear in any order.
 
 Table: Scores
 
