@@ -40773,6 +40773,19 @@
       "summary": "The active Solution.minFlipsMonoIncr scans s once, counting ones seen and updating flips = min(flips + 1, ones) on each zero, which is the rolling two-state DP for the minimum flips to make the string monotone. The first Solution class (using s.index('1') and a count of zeros after the first one) is dead code, never instantiated. The notes say 'nope' and the header records walking away after 24m, but the second class as written passes every assertion.",
       "seconds": 1462,
       "learning": true
+    },
+    "solved/p503_Next_Greater_Element_II_2026_10_24T11_24_48_865650_00_00Z.mu": {
+      "date": "2026-10-24",
+      "problem": "503",
+      "moves": {
+        "monotonic-stack": "clean",
+        "modular-cycle": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LeetCode: Accepted (54 ms, 21.6 MB)",
+      "summary": "The code wraps a MonotonicStack class whose push pops smaller elements and returns them, then walks nums + nums so each element sees the circular continuation, writing res[ii % n] = v for every popped pair. This exercises the monotonic stack for next-greater relationships and modular indexing for the circular wrap. All assertions passed and LeetCode reports Accepted.",
+      "seconds": 1156,
+      "learning": true
     }
   }
 }
