@@ -40700,6 +40700,17 @@
       "judge": "deepseek-chat",
       "summary": "The mu code builds an n\u00d7n table and fills it by converting each flat index k into a grid cell with k // n and k % n, then flipping the row with n - 1 - k // n so rows count from the bottom. This exercises the index-conversion move directly, and all assertions for n = 2, 3, 4, 5, 6 and 20 pass.",
       "seconds": 81
+    },
+    "solved/d_Fewest_Coins_2026_10_24T03_09_33_510694_00_00Z.mu": {
+      "date": "2026-10-24",
+      "problem": "drill",
+      "drill": "d169",
+      "moves": {
+        "dp-1d-rolling": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The mu code builds a 1D dp table of size amount+1 filled with inf, sets dp[0]=0, then fills it forward: for each amount a it tries every coin c <= a and takes min(dp[a], dp[a-c]+1). The answer is dp[-1], mapped to -1 when still inf. All assertions passed, exercising the 1D rolling DP move.",
+      "seconds": 46
     }
   }
 }
