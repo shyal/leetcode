@@ -39735,6 +39735,17 @@
         "group by remainder via count_pairs helper"
       ],
       "seconds": 70
+    },
+    "solved/d_Minimum_Path_Cost_2026_10_24T02_33_13_050173_00_00Z.mu": {
+      "date": "2026-10-24",
+      "problem": "drill",
+      "moves": {
+        "dijkstra": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Dijkstra with a min-heap of (weight, node), lazy seen-set skip, early return on reaching t; all assertions passed.",
+      "summary": "The mu code implements Dijkstra: it seeds a heap with (0, s), pops the cheapest (weight, node), skips nodes already in seen, returns weight when node == t, and pushes weight + G[node][next] for each neighbour. This exercises the dijkstra move directly, avoiding the BFS-by-edge-count error in Example 1. All assertions passed, including unreachable targets returning -1 and s == t returning 0.",
+      "seconds": 274
     }
   }
 }
