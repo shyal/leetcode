@@ -39706,6 +39706,20 @@
       "note": "Uses triangular-number prefix difference rather than the k*a + k(k-1)/2 split, but the run-sum arithmetic is the target move and it passed.",
       "summary": "The mu code computes the sum of the c consecutive integers starting at s as the difference of two triangular numbers: full = (s+c)(s+c-1)/2 minus prefix = s(s-1)/2. All assertions pass, including the large 10^9 case checked against a range sum. No notes were given.",
       "seconds": 831
+    },
+    "solved/d_Split_Into_A_Run_2026_10_24T02_25_28_879067_00_00Z.mu": {
+      "date": "2026-10-24",
+      "problem": "drill",
+      "moves": {
+        "consecutive-sum-split": "clean"
+      },
+      "assist": {
+        "consecutive-sum-split": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "notes say 'learning'; the code checks a single fixed k via n - k(k-1)/2 divisible by k rather than looping k up to sqrt(2n)",
+      "summary": "The mu code computes the triangular offset k(k-1)/2 via sumOfRun and tests whether n minus that offset is a positive multiple of k, using rest > 0 and rest % k == 0. This exercises the consecutive-sum-split identity for a single k. The notes say 'learning'. The code answers for one given k rather than counting all k, so the sqrt(2n) enumeration is not present.",
+      "seconds": 468
     }
   }
 }
