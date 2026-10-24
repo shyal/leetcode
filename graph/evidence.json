@@ -39579,6 +39579,16 @@
       "judge": "deepseek-chat",
       "summary": "The query uses dense_rank() over (order by score desc) as rank on the Scores table, which gives equal scores the same rank with no gaps. Both example assertions passed, confirming the dense-rank window function was exercised correctly.",
       "seconds": 184
+    },
+    "solved/d_Rank_Within_Each_Team_2026_10_24T00_29_23_525805_00_00Z.mu": {
+      "date": "2026-10-24",
+      "problem": "drill",
+      "moves": {
+        "sql-window-rank": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The query uses dense_rank() over (partition by team order by points desc) to rank players within each team, restarting at 1 per team with shared ranks and no holes. Both example assertions passed, confirming the partition and dense-rank behavior. No notes indicate any help or recognition issue.",
+      "seconds": 247
     }
   }
 }
