@@ -39642,6 +39642,16 @@
       "note": "Notes say 'Hinted'; the window slides at constant width when zeros > k instead of shrinking, so the width never decreases.",
       "summary": "The mu code keeps a left pointer and a zeros count, incrementing zeros on a 0 and, when zeros exceeds k, advancing left by one (decrementing zeros if the leaving element was 0) so the window never shrinks. best is updated as max(best, right - left + 1) each step, which is the never-shrink budget window. All assertions pass, and the notes mark the solve as hinted.",
       "seconds": 699
+    },
+    "solved/d_Indices_Of_Each_Character_2026_10_24T01_32_01_857979_00_00Z.mu": {
+      "date": "2026-10-24",
+      "problem": "drill",
+      "moves": {
+        "dict-arbitrary-value": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The mu solution builds a dict mapping each character to the list of its indices using a fold over the enumerated string, so the dict values are the remembered index lists. It exercises dict-arbitrary-value directly. The run exited 0 and all assertions, including the 100000-character case, passed.",
+      "seconds": 91
     }
   }
 }
