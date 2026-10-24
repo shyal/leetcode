@@ -14,7 +14,7 @@ Set `PRETTY_PRINT=1` and `print` becomes `pprint`.
 
 ### `class GraphNode(val = 0, neighbors = None)`
 
-### `class Node(val: Any, children: Optional[Dict[Any, 'Node']] = None, parent: Optional['Node'] = None)`
+### `class Node(val, children: Optional[dict[Any, 'Node']] = None, parent: Optional['Node'] = None)`
 
 ## pretty printing
 
@@ -35,18 +35,12 @@ Utility function to draw a binary tree in the terminal using PrettyPrintTree.
 Requires 'PrettyPrintTree' library: pip install PrettyPrintTree
 For colors, requires 'colorama': pip install colorama
 Supports node.color attribute for coloring the node value (e.g., 'blue', 'red', etc.).
-Uses horizontal orientation for a wider (bigger) print.
 
-### `draw_linked_list(head)`
+### `draw_linked_list(head) -> None`
 
 ### `draw_general_tree(root: Optional[Node]) -> None`
 
-Draws a general tree (each node may have multiple children).
-Each node has:
-    - .label: str
-    - .children: List[Node]
-
-### `get_level_order(root: Optional[TreeNode]) -> List[Optional[int]]`
+### `get_level_order(root: Optional[TreeNode]) -> list[Optional[int]]`
 
 ### `debug_var(var_name)`
 
@@ -87,15 +81,15 @@ Fewest contiguous chunks of nums with every chunk summing to at most cap.
 Greedy: extend the current chunk while it fits, cut when the next number
 would push it past cap. Returns inf when a single number exceeds cap.
 
-### `draw_ascii_graph(graph: Dict[Any, Union[Dict[Any, Any], List[Any]]]) -> None`
+### `draw_ascii_graph(graph: dict[Any, dict | list]) -> None`
 
 Utility function to draw a graph (stored as dict of dicts or dict of lists) in the terminal using PHART for ASCII rendering.
 Requires 'networkx' and 'phart' libraries: pip install networkx phart
 Supports directed graphs. Edge weights (like 0/1) are ignored in rendering but structure is shown.
 
-### `draw_graphviz(G: Dict[Any, Union[Dict[Any, Any], List[Any]]], png_filename: Optional[str] = None, n = None, type = 'undirected', show_weights: bool = False) -> None`
+### `draw_graphviz(G: dict[Any, dict | list], png_filename: Optional[str] = None, n = None, type = 'undirected', show_weights: bool = False) -> None`
 
-### `draw_graph(G: Dict[Any, Union[Dict[Any, Any], Any]]) -> None`
+### `draw_graph(G: dict[Any, dict | Any]) -> None`
 
 Utility function to draw a graph (stored as dict of dicts, dict of lists, or dict with (row, col) tuples as keys) in the terminal as a colored adjacency matrix.
 Requires 'tabulate' library: pip install tabulate
@@ -103,15 +97,14 @@ For colors, requires 'colorama': pip install colorama
 Colors edges based on values (e.g., 1 in red, 0 in blue).
 Assumes nodes are comparable for sorting.
 
-### `draw_heap(heap_list: List[int]) -> None`
+### `draw_heap(heap_list: list[int]) -> None`
 
 Utility function to draw a heap represented as a list in the terminal.
 The heap list is assumed to be in level-order (array representation of a complete binary tree).
-Leverages build_tree and draw_tree from tree_utils.py.
 
 ## building
 
-### `build_tree(arr: List[Optional[int]]) -> Optional[TreeNode]`
+### `build_tree(arr: list[Optional[int]]) -> Optional[TreeNode]`
 
 Utility function to build a binary tree from a level-order list representation.
 Null/None values are skipped for node creation.
@@ -137,14 +130,14 @@ sparsity in [0, 1]: 0 fills the shallowest slots first, so the tree is
     `sparsity` and shallow otherwise.
 skew in [-1, 1]: -1 always takes a left slot when one is available at
     the chosen depth, 1 always takes a right one, 0 is even.
-values: the node values, in level order; default is 1..size shuffled.
+values: the node values, in the order the tree grows; default is 1..size shuffled.
     With bst=True the values are sorted and assigned in inorder, so the
     tree is a valid BST with the same shape.
 seed: fixes the tree; the global random state is untouched.
 
 ### `build_graph_from_edge_list(edges, type = 'undirected')`
 
-### `adjacency(edges: List[Any], n: Optional[int] = None, reverse: bool = False, directed: bool = True, weighted: bool = False) -> Any`
+### `adjacency(edges: list, n: Optional[int] = None, reverse: bool = False, directed: bool = True, weighted: bool = False)`
 
 Adjacency from an edge list. Each edge is [a, b] or, with weighted,
 [a, b, w]. Unweighted returns a dict of lists in edge order; weighted a
@@ -152,7 +145,7 @@ dict of dicts, `adj[a][b] = w`. With n, nodes 0 to n - 1 are all keys,
 isolated ones with an empty list. reverse reads each edge as b to a.
 directed=False adds both directions.
 
-### `indegrees(edges: List[Any], n: Optional[int] = None, reverse: bool = False, directed: bool = True, type: Any = defaultdict) -> Any`
+### `indegrees(edges: list, n: Optional[int] = None, reverse: bool = False, directed: bool = True, type = defaultdict)`
 
 In-degree of every node from an edge list, each edge [a, b] counting
 one into b. Default is a defaultdict(int), any node reading 0; with n,
@@ -160,7 +153,7 @@ nodes 0 to n - 1 are all keys. type=list needs n and returns a plain
 list. reverse reads each edge as b to a. directed=False counts the edge
 into a as well, so the result is the plain degree of every node.
 
-### `levels(q: Deque[Any], grid: Optional[Any] = None, seen: Optional[Set[Any]] = None, grouped: bool = False, eq: Any = None, lt: Any = None, lte: Any = None, gt: Any = None, gte: Any = None) -> Iterator[Tuple[int, Any]]`
+### `levels(q: Deque, grid = None, seen: Optional[set] = None, grouped: bool = False, eq = None, lt = None, lte = None, gt = None, gte = None) -> Iterator[tuple[int, Any]]`
 
 Level-order BFS over a deque the caller keeps pushing onto.
 
@@ -175,14 +168,14 @@ gte, an item whose value fails one of them is dropped; the value is
 seen, an item already in seen is dropped and a kept item is added to it,
 so the caller can push without checking.
 
-### `build_nary_tree(arr: List[Optional[int]]) -> Optional[Node]`
+### `build_nary_tree(arr: list[Optional[int]]) -> Optional[Node]`
 
-### `build_general_tree(nested: List[Any]) -> GeneralNode`
+### `build_general_tree(nested: list[Any]) -> GeneralNode`
 
 A general tree from its nested form [val, [child, child, ...]], where
 each child is again [val, [...]]. Children get keys 0, 1, 2, ...
 
-### `get_general_tree(root: Optional[GeneralNode]) -> Optional[List[Any]]`
+### `get_general_tree(root: Optional[GeneralNode]) -> Optional[list[Any]]`
 
 The nested form [val, [child, child, ...]] of a general tree, the
 inverse of build_general_tree. Children come in the order of .children.
@@ -201,44 +194,40 @@ inverse of build_general_tree. Children come in the order of .children.
 
 `((-1, 0), (0, -1), (0, 1), (1, 0), (-1, -1), (-1, 1), (1, -1), (1, 1))`
 
-### `cells(grid: Sequence[Sequence[Any]], start: int = 0, val: Any = None, eq: Any = None, lt: Any = None, lte: Any = None, gt: Any = None, gte: Any = None) -> Iterator[Cell]`
+### `cells(grid: Sequence[Sequence[Any]], start: int = 0, val = None, eq = None, lt = None, lte = None, gt = None, gte = None) -> Iterator[Cell]`
 
 Every (i, j) of grid with i >= start and j >= start, in row-major order.
 With eq, lt, lte, gt or gte, only the cells whose value passes them all
 (see _holds). val is the old name for eq.
 
-### `nbrs(grid: Sequence[Sequence[Any]], r: Any, c: Optional[int] = None, dirs: Sequence[Cell] = CARDINALS, val: Any = None, eq: Any = None, lt: Any = None, lte: Any = None, gt: Any = None, gte: Any = None) -> Iterator[Cell]`
+### `nbrs(grid: Sequence[Sequence[Any]], r, c: Optional[int] = None, dirs: Sequence[Cell] = CARDINALS, val = None, eq = None, lt = None, lte = None, gt = None, gte = None) -> Iterator[Cell]`
 
 The cells (r + dr, c + dc) for (dr, dc) in dirs that lie on grid.
 nbrs(grid, p) takes the cell as one pair. With eq, lt, lte, gt or gte,
 only the cells whose value passes them all (see _holds). val is the
 old name for eq.
 
-### `in_bounds(grid: Sequence[Sequence[Any]], r: Any, c: Optional[int] = None) -> bool`
+### `in_bounds(grid: Sequence[Sequence[Any]], r, c: Optional[int] = None) -> bool`
 
 True if (r, c) is a cell of grid. in_bounds(grid, p) takes the cell as
 one pair.
 
 ### `is_edge(grid: Sequence[Sequence[Any]], r: int, c: int) -> bool`
 
-True if (r, c) lies on the first or last row or column of grid.
-
 ### `edges(grid: Sequence[Sequence[Any]]) -> Iterator[Cell]`
 
 Every (i, j) on the border of grid, each once, in row-major order.
 
-### `table(*dims: int, fill: Any = 0) -> List[Any]`
+### `table(*dims: int, fill = 0) -> list`
 
 A new table of the given dimensions, every cell set to fill.
 
 table(n) is a list of n cells; table(m, n) is m rows of n cells, the
 rows distinct lists; table(l, m, n) nests one level deeper.
 
-### `like(grid: Sequence[Sequence[Any]], fill: Any = 0) -> List[List[Any]]`
+### `like(grid: Sequence[Sequence[Any]], fill = 0) -> list[list]`
 
-A new table with the shape of grid, every cell set to fill.
-
-### `shape(*seqs: Any, last_index: bool = False) -> Tuple[int, ...]`
+### `shape(*seqs, last_index: bool = False) -> Tuple[int, ...]`
 
 The sizes of a nested list, or of several sequences side by side.
 
@@ -246,30 +235,30 @@ shape(grid) follows grid[0] down while it is a list: (rows, cols, ...).
 shape(a, b) is (len(a), len(b)). With last_index, every size less one:
 the index of the last cell.
 
-### `put(grid: List[List[Any]], at: Iterable[Cell], v: Any) -> None`
+### `put(grid: List[List[Any]], at: Iterable[Cell], v) -> None`
 
 Set `grid[i][j] = v` for every (i, j) in at.
 
 v is one value, or an iterable read once per cell in the order of at:
 put(dp, cells(dp), accumulate(...)).
 
-### `row(grid: Sequence[Sequence[Any]], i: int) -> List[Any]`
+### `row(grid: Sequence[Sequence[Any]], i: int) -> list`
 
 A copy of row i.
 
-### `col(grid: Sequence[Sequence[Any]], j: int) -> List[Any]`
+### `col(grid: Sequence[Sequence[Any]], j: int) -> list`
 
 A copy of column j, top to bottom.
 
-### `set_row(grid: List[List[Any]], i: int, v: Any) -> None`
+### `set_row(grid: List[List[Any]], i: int, v) -> None`
 
 Set every cell of row i to v, one value or an iterable read left to right.
 
-### `set_col(grid: List[List[Any]], j: int, v: Any) -> None`
+### `set_col(grid: List[List[Any]], j: int, v) -> None`
 
 Set every cell of column j to v, one value or an iterable read top to bottom.
 
-### `grid_bfs(grid: Sequence[Sequence[Any]], sources: Sequence[Cell], ok: Callable[[Any], bool] = lambda v: True, dirs: Sequence[Cell] = CARDINALS) -> List[List[int]]`
+### `grid_bfs(grid: Sequence[Sequence[Any]], sources: Sequence[Cell], ok: Callable[[Any], bool] = lambda v: True, dirs: Sequence[Cell] = CARDINALS) -> list[list[int]]`
 
 Steps from the nearest source to every cell; -1 where none reaches.
 
@@ -278,7 +267,7 @@ unconditionally at distance 0.
 
 ## sequences
 
-### `lcs(a: Sequence[Any], b: Sequence[Any], full: bool = False, type: Any = int) -> Any`
+### `lcs(a: Sequence[Any], b: Sequence[Any], full: bool = False, type = int)`
 
 Longest common subsequence of a and b.
 
@@ -290,7 +279,7 @@ LCS itself, built as that type. Plain lcs(a, b) is the last cell,
 
 ## generators
 
-### `as_list(f: Callable[..., Iterator[T]]) -> Callable[..., List[T]]`
+### `as_list(f: Callable[..., Iterator[T]]) -> Callable[..., list[T]]`
 
 Run a generator function to exhaustion and return its yields as a list.
 
@@ -380,25 +369,21 @@ is fast on big ints and has no int max str digits limit.
 
 ### `even(n: int) -> bool`
 
-True when n is even.
-
 ### `odd(n: int) -> bool`
-
-True when n is odd.
 
 ## utilities
 
-### `get_adj_list(node: Optional[GraphNode]) -> List[List[int]]`
+### `get_adj_list(node: Optional[GraphNode]) -> list[list[int]]`
 
 ### `build_graph(adj: List[List[int]]) -> Optional[GraphNode]`
 
 ### `get_list_values(head)`
 
-### `print_linked_list(head)`
+### `print_linked_list(head) -> None`
 
 ### `build_linked_list(vals)`
 
-### `linked_list_reverse_k(h: Optional[ListNode], k: float = inf) -> Tuple[Optional[ListNode], Optional[ListNode]]`
+### `linked_list_reverse_k(h: Optional[ListNode], k: float = inf) -> tuple[Optional[ListNode], Optional[ListNode]]`
 
 Reverse the first k nodes of the list at h, in place.
 
@@ -413,13 +398,11 @@ is None.
 
 ### `find_node(root, val)`
 
-### `get_inorder(root: Optional[TreeNode]) -> List[int]`
+### `get_inorder(root: Optional[TreeNode]) -> list[int]`
 
 ### `is_balanced(root: Optional[TreeNode]) -> bool`
 
 ### `is_valid_bst(root: Optional[TreeNode]) -> bool`
-
-Check if the tree is a valid BST using inorder traversal.
 
 ### `class Multiset(self, iterable = None, /, **kwds)`
 
@@ -445,7 +428,7 @@ plain count_pairs(xs) counts the pairs of equal values.
 >>> count_pairs([3, 1, 4, 6, 3], want=lambda x: x - 2)
 2
 
-### `max_diff(xs: Iterable[Any], by: Optional[Callable[[Any], Any]] = None, reverse: bool = False, from_right: bool = False) -> List[Any]`
+### `max_diff(xs: Iterable[Any], by: Optional[Callable[[Any], Any]] = None, reverse: bool = False, from_right: bool = False) -> list[Any]`
 
 The largest by(xs[j]) - by(xs[i]) with i < j, so far, for each j
 from 1: one value per index after the first.
@@ -473,27 +456,25 @@ before the last, in index order.
 
 ### `maxheapify(h: list) -> None`
 
-### `maxheappop(h: list) -> Any`
+### `maxheappop(h: list)`
 
-### `maxheappush(h: list, item: Any) -> None`
+### `maxheappush(h: list, item) -> None`
 
-### `maxheappushpop(h: list, item: Any) -> Any`
+### `maxheappushpop(h: list, item)`
 
-### `maxheapreplace(h: list, item: Any) -> Any`
+### `maxheapreplace(h: list, item)`
 
-### `maxheappeek(h: list) -> Any`
+### `maxheappeek(h: list)`
 
 ### `maxheapitems(h: list) -> list`
 
 ## misc
 
-### `batched(s: Sequence[Any], n: int = 1) -> List[Any]`
+### `batched(s: Sequence, n: int = 1) -> list`
 
 s cut into pieces of n; the last piece holds what is left.
 
 ### `ceil_div(a: int, b: int) -> int`
-
-a / b rounded up, for a >= 0 and b > 0.
 
 ### `factorial(n: int) -> int`
 
