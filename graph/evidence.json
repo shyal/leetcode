@@ -40711,6 +40711,18 @@
       "judge": "deepseek-chat",
       "summary": "The mu code builds a 1D dp table of size amount+1 filled with inf, sets dp[0]=0, then fills it forward: for each amount a it tries every coin c <= a and takes min(dp[a], dp[a-c]+1). The answer is dp[-1], mapped to -1 when still inf. All assertions passed, exercising the 1D rolling DP move.",
       "seconds": 46
+    },
+    "solved/d_Count_In-Degrees_2026_10_24T03_10_45_451727_00_00Z.mu": {
+      "date": "2026-10-24",
+      "problem": "drill",
+      "drill": "d97",
+      "moves": {
+        "topological-order": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Uses the harness indegrees helper to build the in-degree array, the counting step that feeds Kahn's topological order.",
+      "summary": "The solution delegates to the harness `indegrees(edges, n, type=list)` helper, which tallies how many edges point into each node. That in-degree array is the counting step that Kahn's topological-order algorithm consumes, and the assertions confirm it on empty, single-edge, and cyclic inputs. No notes were provided.",
+      "seconds": 54
     }
   }
 }
