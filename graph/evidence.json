@@ -39589,6 +39589,22 @@
       "judge": "deepseek-chat",
       "summary": "The query uses dense_rank() over (partition by team order by points desc) to rank players within each team, restarting at 1 per team with shared ranks and no holes. Both example assertions passed, confirming the partition and dense-rank behavior. No notes indicate any help or recognition issue.",
       "seconds": 247
+    },
+    "solved/d_Department_Top_Three_Salaries_2026_10_24T00_37_53_359288_00_00Z.mu": {
+      "date": "2026-10-24",
+      "problem": "drill",
+      "moves": {
+        "sql-window-rank": "clean",
+        "sql-subquery": "clean"
+      },
+      "assist": {
+        "sql-window-rank": "learning",
+        "sql-subquery": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "notes say 'learning'; DENSE_RANK in a subquery filtered by rnk <= 3 keeps ties",
+      "summary": "The query computes DENSE_RANK() OVER (PARTITION BY departmentId ORDER BY salary DESC) inside a subquery and filters rnk <= 3 in the outer query, so ties like Joe and Randy both survive. This exercises the window-rank move and the subquery/CTE wrapper the drill requires. The notes mark the file as 'learning', and both examples pass.",
+      "seconds": 496
     }
   }
 }
