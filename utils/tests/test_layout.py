@@ -266,7 +266,7 @@ def test_stubs_cover_every_harness_helper():
     harness_defs = set()
     for d in (os.path.dirname(pydsa.__file__), HARNESS):
         for name in os.listdir(d):
-            if name.endswith(".py"):
+            if name.endswith((".py", ".mu")):
                 with open(os.path.join(d, name)) as f:
                     harness_defs |= set(
                         re.findall(r"^(?:def|class) (\w+)", f.read(), re.M)
