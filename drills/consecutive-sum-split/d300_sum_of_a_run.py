@@ -2,30 +2,30 @@
 DRILL: Sum Of A Run
 TRAINS: consecutive-sum-split
 
-Given two positive integers n and k, return the sum of the k consecutive
-integers that start at n: n + (n + 1) + ... + (n + k - 1).
+Given two positive integers s and c, return the sum of the c consecutive
+integers that start at s: s + (s + 1) + ... + (s + c - 1).
 
 Example 1:
 
-Input: n = 4, k = 3
+Input: s = 4, c = 3
 Output: 15
 Explanation: 4 + 5 + 6 = 15.
 
 Example 2:
 
-Input: n = 1, k = 100
+Input: s = 1, c = 100
 Output: 5050
 
 Example 3:
 
-Input: n = 7, k = 1
+Input: s = 7, c = 1
 Output: 7
 Explanation: A run of one integer is the integer itself.
 
 Constraints:
 
-    1 <= n <= 10^9
-    1 <= k <= 10^5
+    1 <= s <= 10^9
+    1 <= c <= 10^5
 
     REQUIRED: O(1), one arithmetic expression. NO loop. NO sum. NO range.
 """
@@ -33,7 +33,7 @@ Constraints:
 
 class Solution:
 
-    def sumOfRun(self, n: int, k: int) -> int:
+    def sumOfRun(self, s: int, c: int) -> int:
         pass
 
 
