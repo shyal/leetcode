@@ -40798,6 +40798,21 @@
       "summary": "The mu solution builds a 1D dp table of size amount+1 filled with inf, sets dp[0]=0, then fills forward: for each amount a it tries every coin c <= a and takes min(dp[a], dp[a-c]+1). This is the classic unbounded-knapsack 1D rolling DP, with the state (min coins for amount a) and recurrence formulated directly. The final answer is dp[-1] with inf mapped to -1. LeetCode reports Accepted (448 ms, 19.5 MB); the notes contain no mention of hints or look-ups.",
       "seconds": 254,
       "learning": true
+    },
+    "solved/p2541_Minimum_Operations_to_Make_Array_Equal_II_2026_10_24T15_22_24_299334_00_00Z.mu": {
+      "date": "2026-10-24",
+      "problem": "2541",
+      "moves": {
+        "heap-simulation": "clean",
+        "divmod-decompose": "clean",
+        "py-zip": "clean",
+        "py-list-comprehension": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Accepted (710 ms, 38.3 MB); the heap pairing of positive and negative diffs is heavier than the sum-of-positive-diffs arithmetic the problem allows.",
+      "summary": "The code first rejects cases where k==0 with unequal arrays, or where any |a-b| is not divisible by k, then builds the diffs and splits them into a min-heap of positives and a max-heap of negatives. It repeatedly pops one from each side, moves min(a//k, b//k) operations, and pushes back any remainder, returning -1 if either heap is left non-empty. The moves exercised are heap simulation over the two heaps, divmod-style peeling of the k-sized chunks, and zip/list-comprehension filtering; the notes are empty and LeetCode reports Accepted.",
+      "seconds": 1532,
+      "learning": true
     }
   }
 }

@@ -2,14 +2,14 @@
   "_comment": "Personal forgetting curve fitted by utils/kg/kg_curve. P(recall) = (1-slip)*(1 + gap/s)^(-beta), s = exp(a + b*log1p(cleans) - c*struggles - d*assist + e*(conn - conn_mean)); cleans counts distinct clean days, same-day reps are one rep. conn is the node's log2 carrier count, frozen below at fit time; consumers that ignore e are assuming average connectivity. \"solve\" is the cold-solve model fitted by fit_solve: logit P(solve cold, unaided, inside the clock) = the listed coefficients over (rating - 1500)/400, the walk's summed log recall, and its count of never-met moves; features not listed did not earn their place on held-out games. node_status() calls a node SOLID while the memory component (1 + gap/s)^(-beta) >= target_retention; delete this file to fall back to the flat 42-day window.",
   "model": "power-law-slip",
   "params": {
-    "a": 3.8802,
-    "b": 0.0664,
-    "c": 0.3148,
-    "d": 0.066,
-    "e": -0.2009,
-    "conn_mean": 2.6483,
-    "beta": 0.109,
-    "slip": 0.0556
+    "a": 3.885,
+    "b": 0.077,
+    "c": 0.3147,
+    "d": 0.0687,
+    "e": -0.1904,
+    "conn_mean": 2.6682,
+    "beta": 0.1093,
+    "slip": 0.0557
   },
   "conn": {
     "backtracking-choose-undo": 3.907,
@@ -31,7 +31,7 @@
     "derived-key-lookup": 4.322,
     "dict-arbitrary-value": 5.392,
     "dijkstra": 3.0,
-    "divmod-decompose": 5.17,
+    "divmod-decompose": 5.209,
     "dp-1d-rolling": 4.17,
     "dp-2d-grid": 3.459,
     "dp-state-formulate": 4.17,
@@ -48,7 +48,7 @@
     "greedy-sort-take": 3.17,
     "grid-neighbors": 3.907,
     "heap-lazy-eviction": 3.0,
-    "heap-simulation": 4.17,
+    "heap-simulation": 4.248,
     "heap-top-k": 2.807,
     "index-conversion": 2.807,
     "index-value-gap": 1.0,
@@ -68,12 +68,13 @@
     "prefix-sums": 4.0,
     "py-dict-methods": 1.585,
     "py-enumerate": 1.0,
-    "py-list-comprehension": 1.585,
+    "py-list-comprehension": 2.0,
     "py-sequence-comparison": 1.0,
     "py-sets": 1.0,
     "py-slicing": 1.0,
     "py-sorted-key": 1.0,
     "py-str-methods": 1.0,
+    "py-zip": 1.0,
     "recursive-descent": 1.585,
     "rotated-array-pivot": 1.585,
     "running-extreme": 5.728,
@@ -110,13 +111,13 @@
   },
   "target_retention": 0.9,
   "mass": {
-    "beta": -0.2577,
-    "se": 0.0923,
-    "n": 615,
+    "beta": -0.2565,
+    "se": 0.0924,
+    "n": 616,
     "by_difficulty": {
-      "Easy": 3.8788,
-      "Medium": 1.1382,
-      "Hard": -0.108
+      "Easy": 3.879,
+      "Medium": 1.1437,
+      "Hard": -0.109
     }
   },
   "solve": {
@@ -146,11 +147,11 @@
     ]
   },
   "fit": {
-    "trials": 1786,
-    "loglik": -0.2679,
-    "baseline_loglik": -0.2734,
+    "trials": 1790,
+    "loglik": -0.2676,
+    "baseline_loglik": -0.273,
     "since": "2026-06-01",
     "half_life": 0,
-    "effective_trials": 1786.0
+    "effective_trials": 1790.0
   }
 }
