@@ -40786,6 +40786,18 @@
       "summary": "The code wraps a MonotonicStack class whose push pops smaller elements and returns them, then walks nums + nums so each element sees the circular continuation, writing res[ii % n] = v for every popped pair. This exercises the monotonic stack for next-greater relationships and modular indexing for the circular wrap. All assertions passed and LeetCode reports Accepted.",
       "seconds": 1156,
       "learning": true
+    },
+    "solved/p322_Coin_Change_2026_10_24T11_37_45_132991_00_00Z.mu": {
+      "date": "2026-10-24",
+      "problem": "322",
+      "moves": {
+        "dp-state-formulate": "clean",
+        "dp-1d-rolling": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The mu solution builds a 1D dp table of size amount+1 filled with inf, sets dp[0]=0, then fills forward: for each amount a it tries every coin c <= a and takes min(dp[a], dp[a-c]+1). This is the classic unbounded-knapsack 1D rolling DP, with the state (min coins for amount a) and recurrence formulated directly. The final answer is dp[-1] with inf mapped to -1. LeetCode reports Accepted (448 ms, 19.5 MB); the notes contain no mention of hints or look-ups.",
+      "seconds": 254,
+      "learning": true
     }
   }
 }
