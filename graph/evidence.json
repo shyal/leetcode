@@ -40723,6 +40723,18 @@
       "note": "Uses the harness indegrees helper to build the in-degree array, the counting step that feeds Kahn's topological order.",
       "summary": "The solution delegates to the harness `indegrees(edges, n, type=list)` helper, which tallies how many edges point into each node. That in-degree array is the counting step that Kahn's topological-order algorithm consumes, and the assertions confirm it on empty, single-edge, and cyclic inputs. No notes were provided.",
       "seconds": 54
+    },
+    "solved/d_Permutations_2026_10_24T04_05_28_391957_00_00Z.mu": {
+      "date": "2026-10-24",
+      "problem": "drill",
+      "drill": "d3",
+      "moves": {
+        "backtracking-mark-unmark": "clean",
+        "backtracking-choose-undo": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The mu solution builds permutations with a recursive helper that marks used[j] = true, appends nums[j] to path, recurses, then pops path and clears used[j] = false, recording a copy of path when its length reaches len nums. This is the mark/unmark backtracking pattern over all not-currently-used candidates, with the choose/undo bookkeeping around each recursive call. The run exited 0 and all assertions passed, including the 8-element case producing 40320 distinct permutations; the notes are empty.",
+      "seconds": 132
     }
   }
 }
