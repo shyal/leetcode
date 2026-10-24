@@ -39628,6 +39628,20 @@
       "judge": "deepseek-chat",
       "summary": "The code defines sum_to_n, which binds `let mut sum: u64 = 0` and accumulates `sum += i` over `for i in 1..=n`, then returns sum; main prints sum_to_n(3) and asserts several cases including n=0 and n=1_000_000. The mutable binding and inclusive range are the rust-let-mut move, and the run exited 0 with output 6. The notes say only 'Learning', which is read as the learning assist level on that move.",
       "seconds": 147
+    },
+    "solved/d_Slide_Never_Shrink_2026_10_24T01_30_15_427980_00_00Z.mu": {
+      "date": "2026-10-24",
+      "problem": "drill",
+      "moves": {
+        "sliding-window-budget": "clean"
+      },
+      "assist": {
+        "sliding-window-budget": "hint"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say 'Hinted'; the window slides at constant width when zeros > k instead of shrinking, so the width never decreases.",
+      "summary": "The mu code keeps a left pointer and a zeros count, incrementing zeros on a 0 and, when zeros exceeds k, advancing left by one (decrementing zeros if the leaving element was 0) so the window never shrinks. best is updated as max(best, right - left + 1) each step, which is the never-shrink budget window. All assertions pass, and the notes mark the solve as hinted.",
+      "seconds": 699
     }
   }
 }
