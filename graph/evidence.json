@@ -39605,6 +39605,16 @@
       "note": "notes say 'learning'; DENSE_RANK in a subquery filtered by rnk <= 3 keeps ties",
       "summary": "The query computes DENSE_RANK() OVER (PARTITION BY departmentId ORDER BY salary DESC) inside a subquery and filters rnk <= 3 in the outer query, so ties like Joe and Randy both survive. This exercises the window-rank move and the subquery/CTE wrapper the drill requires. The notes mark the file as 'learning', and both examples pass.",
       "seconds": 496
+    },
+    "solved/d_Hours_To_Seconds_2026_10_24T01_02_34_824944_00_00Z.rs": {
+      "date": "2026-10-24",
+      "problem": "drill",
+      "moves": {
+        "rust-const": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The code declares a module-level constant SECONDS_PER_HOUR: u32 = 60 * 60 with an explicit type and SCREAMING_SNAKE_CASE name, then multiplies it by the hours argument in hours_to_seconds. The assertions confirm the constant and the conversion. This exercises the rust-const move directly.",
+      "seconds": 87
     }
   }
 }
