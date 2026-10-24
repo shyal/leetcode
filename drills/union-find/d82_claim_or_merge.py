@@ -1,6 +1,4 @@
 """
-DRILL: Claim Or Merge
-
 Given a list of accounts, where accounts[i] is a list of email addresses
 belonging to account i, group accounts that share emails using Union-Find.
 

@@ -1,6 +1,4 @@
 """
-DRILL: Orders In A Date Window
-
 Given the table `Orders`, return the `id` of every order whose `order_date`
 is from 2024-03-01 to 2024-03-31, both days included. No ordering required.
 

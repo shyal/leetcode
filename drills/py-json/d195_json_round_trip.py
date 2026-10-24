@@ -1,7 +1,4 @@
 """
-DRILL: JSON Round Trip
-TRAINS: py-json
-
 Given a value `obj` made of dicts, lists, strings, numbers, booleans and
 None, return its JSON text with the keys of every dict in sorted order.
 A second method, `decode`, takes JSON text and returns the value back.

@@ -1,6 +1,4 @@
 """
-DRILL: Kth Smallest Bounded Value
-
 Given an integer array nums whose values all lie between 0 and 100
 inclusive, and an integer k, return the kth smallest value of nums,
 counting duplicates. The value k is 1-based, so k = 1 asks for the

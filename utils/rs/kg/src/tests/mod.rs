@@ -190,6 +190,57 @@ pub fn level(l: &str) -> Assist {
     Assist::Level(l.to_string())
 }
 
+// The drill ids of the test's bank by title, as Fx registers them: a
+// drill rep built by title (drill_rep) or by solved filename (drill_file)
+// carries the id the registry gave that title. A title no Fx registered
+// gets "t:<title>", the id Fx::bank_file gives a file it registers alone.
+thread_local! {
+    static TEST_IDS: RefCell<Vec<(String, String)>> = const { RefCell::new(Vec::new()) };
+}
+
+fn note_test_id(title: &str, id: &str) {
+    TEST_IDS.with(|t| {
+        let mut t = t.borrow_mut();
+        t.retain(|(k, _)| k != title);
+        t.push((title.to_string(), id.to_string()));
+    });
+}
+
+/// The drill id of a title in the test's registry.
+pub fn test_drill_id(title: &str) -> String {
+    TEST_IDS.with(|t| {
+        t.borrow()
+            .iter()
+            .find(|(k, _)| k == title)
+            .map(|(_, v)| v.clone())
+            .unwrap_or_else(|| format!("t:{title}"))
+    })
+}
+
+/// The drill id of a solved filename: the registered title whose
+/// `make solved` stem (d_<Title_With_Underscores>_) the basename starts
+/// with, the longest one when two do; else the stem read as a title.
+fn test_drill_id_of_fname(fname: &str) -> String {
+    let base = fname.rsplit('/').next().unwrap_or(fname).to_lowercase();
+    let hit = TEST_IDS.with(|t| {
+        t.borrow()
+            .iter()
+            .filter(|(k, _)| {
+                base.starts_with(&format!("d_{}_", crate::ctx::clean_title(k).to_lowercase()))
+            })
+            .max_by_key(|(k, _)| k.len())
+            .map(|(_, v)| v.clone())
+    });
+    hit.unwrap_or_else(|| {
+        let base = fname.rsplit('/').next().unwrap_or(fname);
+        let stamp = crate::drills::solved_stamp(base);
+        let stem = &base[..base.len() - stamp.len()];
+        let stem = stem.trim_end_matches('_');
+        let stem = stem.strip_prefix("d_").unwrap_or(stem);
+        format!("t:{}", stem.replace('_', " "))
+    })
+}
+
 fn rec(date: String, problem: &str, moves: &[(&str, &str)], assist: Assist) -> Rec {
     Rec {
         date,
@@ -205,6 +256,7 @@ fn rec(date: String, problem: &str, moves: &[(&str, &str)], assist: Assist) -> R
         judge: None,
         seconds: None,
         learning: false,
+        drill: None,
     }
 }
 
@@ -237,18 +289,16 @@ pub fn drill_rep_v(
     assist: Assist,
 ) -> (String, Rec) {
     let stem = title.replace(' ', "_");
-    (
-        format!("solved/d_{stem}_{days_ago}.py"),
-        rec(iso(days_ago), "drill", &[(node, verdict)], assist),
-    )
+    let mut r = rec(iso(days_ago), "drill", &[(node, verdict)], assist);
+    r.drill = Some(test_drill_id(title));
+    (format!("solved/d_{stem}_{days_ago}.py"), r)
 }
 
 /// A drill rep under a solved/ name of the test's own choosing.
 pub fn drill_file(fname: &str, node: &str, days_ago: i64, assist: Assist) -> (String, Rec) {
-    (
-        fname.to_string(),
-        rec(iso(days_ago), "drill", &[(node, "clean")], assist),
-    )
+    let mut r = rec(iso(days_ago), "drill", &[(node, "clean")], assist);
+    r.drill = Some(test_drill_id_of_fname(fname));
+    (fname.to_string(), r)
 }
 
 pub fn evidence(records: Vec<(String, Rec)>) -> Evidence {
@@ -363,6 +413,7 @@ pub struct Fx {
 impl Fx {
     pub fn new() -> Fx {
         reset_test_env();
+        TEST_IDS.with(|t| t.borrow_mut().clear());
         Fx {
             dir: TempDir::new(),
             nodes: Nodes::new(),
@@ -455,45 +506,102 @@ impl Fx {
         let d = self.dir.0.join("drills").join(node);
         std::fs::create_dir_all(&d).unwrap();
         let path = d.join(fname);
-        std::fs::write(
-            &path,
-            format!("\"\"\"\nDRILL: {title}\nTRAINS: {node}\n\"\"\"\n"),
-        )
-        .unwrap();
+        std::fs::write(&path, format!("\"\"\"\n{title}\n\"\"\"\n")).unwrap();
         self.drills.insert(
             did.to_string(),
             DrillEntry {
                 title: title.to_string(),
+                file: format!("{node}/{fname}"),
                 after: strs(after),
-                trains: None,
+                trains: Some(vec![node.to_string()]),
                 disabled: false,
             },
         );
+        note_test_id(title, did);
         path
     }
 
-    /// A bank file written by hand, no registry entry.
-    pub fn bank_file(&self, node: &str, fname: &str, text: &str) -> PathBuf {
+    /// A bank file written by hand. Its `DRILL: <title>` and
+    /// `TRAINS: <ids>` lines are the fixture's shorthand for a registry
+    /// entry: the file is registered as "t:<title>" until `register` gives
+    /// the title an id. A text with no DRILL line gets no entry.
+    pub fn bank_file(&mut self, node: &str, fname: &str, text: &str) -> PathBuf {
         let d = self.dir.0.join("drills").join(node);
         std::fs::create_dir_all(&d).unwrap();
         let path = d.join(fname);
         std::fs::write(&path, text).unwrap();
+        let field = |key: &str| {
+            text.lines().find_map(|l| {
+                crate::lang::uncomment(l)
+                    .strip_prefix(key)
+                    .map(|r| r.trim().to_string())
+                    .filter(|r| !r.is_empty())
+            })
+        };
+        if let Some(title) = field("DRILL:") {
+            let trains =
+                field("TRAINS:").map(|t| t.split(',').map(|s| s.trim().to_string()).collect());
+            let file = format!("{node}/{fname}");
+            // a file written again under a title the registry has keeps
+            // its id
+            if let Some(e) = self.drills.values_mut().find(|e| e.title == title) {
+                e.file = file;
+                e.trains = trains;
+                return path;
+            }
+            let id = format!("t:{title}");
+            self.drills.insert(
+                id.clone(),
+                DrillEntry {
+                    title: title.clone(),
+                    file,
+                    after: Vec::new(),
+                    trains,
+                    disabled: false,
+                },
+            );
+            note_test_id(&title, &id);
+        }
         path
+    }
+
+    /// Registry entries for bank files no test writes (a stubbed clock's
+    /// paths): (file under drills/, title), each as "t:<title>".
+    pub fn titled(&mut self, files: &[(&str, &str)]) -> &mut Fx {
+        for (file, title) in files {
+            let id = format!("t:{title}");
+            self.drills.insert(
+                id.clone(),
+                DrillEntry {
+                    title: title.to_string(),
+                    file: file.to_string(),
+                    after: Vec::new(),
+                    trains: None,
+                    disabled: false,
+                },
+            );
+            note_test_id(title, &id);
+        }
+        self
     }
 
     /// drills.json for a bank written by hand: register(d1 = "Lower",
     /// d2 = ("Upper", ["d1"])).
     pub fn register(&mut self, specs: &[(&str, &str, &[&str])]) -> &mut Fx {
         for (did, title, after) in specs {
+            // the file bank_file wrote for this title moves to the id
+            let written = self.drills.shift_remove(&format!("t:{title}"));
             self.drills.insert(
                 did.to_string(),
                 DrillEntry {
                     title: title.to_string(),
+                    file: written.as_ref().map(|w| w.file.clone()).unwrap_or_default(),
                     after: strs(after),
-                    trains: None,
+                    trains: written.and_then(|w| w.trains),
                     disabled: false,
                 },
             );
+            note_test_id(title, did);
         }
         self
     }

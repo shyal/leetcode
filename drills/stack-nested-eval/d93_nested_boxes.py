@@ -1,6 +1,4 @@
 """
-DRILL: Nested Boxes
-
 Given a string s of digits and brackets, return its weight. A matching
 '(' and ')' enclose a box. The weight of a box is the sum of the digits
 directly inside it, plus twice the weight of each box directly inside it.

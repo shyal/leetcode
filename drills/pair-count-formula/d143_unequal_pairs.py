@@ -1,6 +1,4 @@
 """
-DRILL: Unequal Pairs
-
 Given an integer array nums, return the number of index pairs (i, j) with
 i < j and nums[i] != nums[j].
 

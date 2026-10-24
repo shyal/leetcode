@@ -2350,6 +2350,7 @@ fn grant(
     seq: usize,
 ) -> Option<(bool, String)> {
     let stamp = format!("{}T{:06}_00_00Z", day.format("%Y_%m_%d"), seq);
+    let mut drill = None;
     let (moves, fname, problem, is_drill) = if choice.is_drill() {
         // the file pick()'s due() named: its clock's, else the cold one
         // it fell back to (kg_next resolves it the same way)
@@ -2359,6 +2360,7 @@ fn grant(
         if moves.is_empty() {
             moves = vec![choice.target.clone()];
         }
+        drill = ctx.drill_id(&path);
         (
             moves,
             format!("solved/d_{}_{stamp}.py", ctx.drill_solved_stem(&path)),
@@ -2393,6 +2395,7 @@ fn grant(
         judge: None,
         seconds: None,
         learning: false,
+        drill,
     };
     ev.push(fname, rec);
     for m in &moves {

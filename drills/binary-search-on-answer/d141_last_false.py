@@ -1,6 +1,4 @@
 """
-DRILL: Last False
-
 Given integers lo and hi and a function ok, return the largest x in
 [lo, hi] with ok(x) False. The function ok is False for every x up to
 some value and True for every x above it. ok(lo) is False.

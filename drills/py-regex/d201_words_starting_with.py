@@ -1,7 +1,4 @@
 """
-DRILL: Words Starting With
-TRAINS: py-regex
-
 Given a sentence `s` of lowercase words and a lowercase letter `c`,
 return the words of s that start with c, in order.
 

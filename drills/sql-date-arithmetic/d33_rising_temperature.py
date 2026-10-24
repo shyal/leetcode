@@ -1,6 +1,4 @@
 """
-DRILL: Rising Temperature
-
 Given the table `Weather`, return the `id` of every day whose `temperature`
 is higher than the previous calendar day's. No ordering required.
 

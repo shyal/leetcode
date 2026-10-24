@@ -1,7 +1,4 @@
 """
-DRILL: Hire
-TRAINS: py-dataclass
-
 Write a dataclass Employee with the fields name, dept and salary, and
 a method `hire` that, given those three values, returns an Employee.
 Two employees with the same three values are equal, and printing one

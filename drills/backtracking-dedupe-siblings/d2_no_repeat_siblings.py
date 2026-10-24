@@ -1,5 +1,4 @@
 """
-DRILL: No Repeat Siblings
 SNIPPET: lcsubsets
 
 Given an array nums sorted in non-decreasing order that may hold repeated

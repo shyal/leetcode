@@ -1,7 +1,4 @@
 """
-DRILL: Longest Increasing Subsequence Ending At Each Index
-TRAINS: dp-1d-rolling
-
 Given an integer array nums. Make a table dp with one cell per index of
 nums, every cell 1. Visit every pair of indices j < i. When nums[j] is
 smaller than nums[i], set dp[i] to the larger of dp[i] and dp[j] + 1.

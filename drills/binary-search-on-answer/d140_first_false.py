@@ -1,6 +1,4 @@
 """
-DRILL: First False
-
 Given integers lo and hi and a function ok, return the smallest x in
 [lo, hi] with ok(x) False. The function ok is True for every x below
 some value and False for that value and every x above it. ok(hi) is False.

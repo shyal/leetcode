@@ -1,6 +1,4 @@
 """
-DRILL: Price At Time Of Sale
-
 Given the tables `Prices` and `UnitsSold`, return each sale's `product_id`,
 `purchase_date` and the `price` in force on that date: the price of the
 product's range that `purchase_date` falls in. No ordering required.

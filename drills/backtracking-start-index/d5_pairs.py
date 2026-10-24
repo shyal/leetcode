@@ -1,6 +1,4 @@
 """
-DRILL: Pairs
-
 Given an integer n, return every pair [a, b] of integers with
 0 <= a < b < n. List the pairs in lexicographic order.
 

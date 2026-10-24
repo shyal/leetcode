@@ -1,6 +1,4 @@
 """
-DRILL: Stack Both Sides
-
 Given the table `RequestAccepted`, return one column `id` holding every
 `requester_id` and every `accepter_id`, one row per appearance. A person who
 appears in three requests appears three times. No ordering required.

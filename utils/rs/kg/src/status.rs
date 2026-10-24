@@ -79,9 +79,9 @@ pub fn node_status_cut(
             continue;
         }
         let fname = ev.fname(e.idx);
-        let first = crate::evidence::drill_key(fname).is_some_and(|k| {
+        let first = rec.drill.as_ref().is_some_and(|k| {
             ev.drill_key_order
-                .get(&k)
+                .get(k)
                 .and_then(|v| v.iter().find(|i| ev.rec(**i).date.as_str() <= cut))
                 == Some(&e.idx)
         });

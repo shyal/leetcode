@@ -1,5 +1,4 @@
 """
-DRILL: Find with Path Compression
 SNIPPET: lcunionfind
 
 Given an employee x, return the head of x. Solution extends UnionFind from

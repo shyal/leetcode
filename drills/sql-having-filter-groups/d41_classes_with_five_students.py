@@ -1,6 +1,4 @@
 """
-DRILL: Classes With At Least Five Students
-
 Given the table `Courses`, return every `class` with at least five
 students. No ordering required.
 

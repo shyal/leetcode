@@ -1,6 +1,4 @@
 """
-DRILL: Order By Other Array
-
 Given two integer arrays nums1 and nums2 of equal length, return the values
 of nums1 reordered so that the nums2 values at the same indices run from
 smallest to largest. All values of nums2 are distinct.

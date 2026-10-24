@@ -30,7 +30,7 @@ use kg::console::{Console, Text};
 use kg::ctx::Ctx;
 use kg::data::{load_envrc, repo_root};
 use kg::drills::first_sight_band;
-use kg::evidence::{drill_key, Evidence};
+use kg::evidence::Evidence;
 use kg::git::mined_solve_times;
 use kg::llm::claude_json;
 use kg::model::{first_sight_elo_now, solve_ratings};
@@ -122,7 +122,7 @@ fn recent_reps(
         );
         item.insert("assist".into(), json!(rec.assist_any()));
         let pnum = rec.problem.clone().unwrap_or_default();
-        if pnum == "drill" || drill_key(path).is_some() {
+        if pnum == "drill" || rec.drill.is_some() {
             let base = path.rsplit('/').next().unwrap_or(path);
             item.insert(
                 "drill".into(),
@@ -181,7 +181,7 @@ fn open_failures(ctx: &Ctx, ev: &Evidence, ratings: &HashMap<String, f64>) -> Ve
         else {
             continue;
         };
-        if drill_key(path).is_some() {
+        if rec.drill.is_some() {
             continue;
         }
         let later = |m: &mut HashMap<String, String>| {
@@ -301,8 +301,8 @@ impl Summaries {
     }
 }
 
-fn is_drill(path: &str, rec: &kg::data::Rec) -> bool {
-    rec.problem.as_deref() == Some("drill") || drill_key(path).is_some()
+fn is_drill(rec: &kg::data::Rec) -> bool {
+    rec.problem.as_deref() == Some("drill") || rec.drill.is_some()
 }
 
 fn outcome(path: &str, rec: &kg::data::Rec) -> String {
@@ -330,7 +330,7 @@ fn dated_reps(ev: &Evidence) -> Vec<(&str, &kg::data::Rec, usize)> {
     idx.into_iter()
         .map(|i| {
             let (path, rec) = &ev.recs[i];
-            let n = if is_drill(path, rec) {
+            let n = if is_drill(rec) {
                 0
             } else {
                 let e = seen
@@ -370,7 +370,7 @@ fn history_lines(
         let mins = secs
             .map(|s| format!(" {}m", round_i(s as f64 / 60.0)))
             .unwrap_or_default();
-        let mut line = if is_drill(path, rec) {
+        let mut line = if is_drill(rec) {
             let base = path.rsplit('/').next().unwrap_or(path);
             format!(
                 "{} drill {}{mins} {}",

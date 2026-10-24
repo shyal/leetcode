@@ -97,11 +97,18 @@ def test_every_evidence_date_matches_its_filename_manila_day():
 
 
 def bank(tmp_path, monkeypatch, node, title):
+    """One bank file, registered in drills.json as r0; its reps carry
+    "drill": "r0"."""
     d = tmp_path / node
     d.mkdir()
     f = d / "r0_x.py"
-    f.write_text(f'"""\nDRILL: {title}\n"""\n')
+    f.write_text('"""\nGiven a string, scan a number.\n"""\n')
     monkeypatch.setattr(kg_lib, "DRILLS_DIR", str(tmp_path))
+    monkeypatch.setattr(
+        kg_lib,
+        "_DRILLS",
+        {"r0": {"title": title, "file": f"{node}/r0_x.py", "trains": [node]}},
+    )
     return str(f)
 
 
@@ -109,7 +116,12 @@ def test_drill_solved_after_manila_midnight_is_not_due_again(tmp_path, monkeypat
     path = bank(tmp_path, monkeypatch, "recursive-descent", "Number Scanner")
     key = "solved/d_Number_Scanner_2026_08_23T19_44_54_884512_00_00Z.py"
     ev = {
-        key: {"date": manila_date_from_filename(key), "problem": "drill", "moves": {}}
+        key: {
+            "date": manila_date_from_filename(key),
+            "problem": "drill",
+            "drill": "r0",
+            "moves": {},
+        }
     }
     today = date(2026, 8, 24)  # Manila day of that solve
     assert last_drilled(path, ev) == "2026-08-24"
@@ -124,6 +136,7 @@ def test_the_utc_date_bug_would_have_reoffered_it(tmp_path, monkeypatch):
         "solved/d_Number_Scanner_2026_08_23T19_44_54_884512_00_00Z.py": {
             "date": "2026-08-23",
             "problem": "drill",
+            "drill": "r0",
             "moves": {},
         }
     }
@@ -134,6 +147,11 @@ def test_drill_solved_yesterday_is_due_today(tmp_path, monkeypatch):
     bank(tmp_path, monkeypatch, "recursive-descent", "Number Scanner")
     key = "solved/d_Number_Scanner_2026_08_22T19_44_54_884512_00_00Z.py"
     ev = {
-        key: {"date": manila_date_from_filename(key), "problem": "drill", "moves": {}}
+        key: {
+            "date": manila_date_from_filename(key),
+            "problem": "drill",
+            "drill": "r0",
+            "moves": {},
+        }
     }
     assert due_drill("recursive-descent", ev, today=date(2026, 8, 24)) is not None

@@ -1,6 +1,4 @@
 """
-DRILL: Human Traffic Of Stadium
-
 Given the table `Stadium`, return `id`, `visit_date` and `people` for every
 row that belongs to a run of three or more rows with consecutive ids, each
 with `people` at least 100. No ordering required.

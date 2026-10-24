@@ -1,6 +1,4 @@
 """
-DRILL: Manager Name
-
 Given the table `Employees`, return `name` and `manager_name` for every
 employee who has a manager: `manager_name` is the `name` of the employee
 that `reports_to` points at. Employees with no manager do not appear. No

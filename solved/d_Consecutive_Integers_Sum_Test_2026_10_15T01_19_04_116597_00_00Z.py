@@ -1,5 +1,5 @@
 """
-DRILL: Split Into A Run
+DRILL: Consecutive Integers Sum Test
 TRAINS: consecutive-sum-split
 
 Given two positive integers n and k, return True if n is the sum of k
@@ -39,53 +39,53 @@ Learning
 
 # mu 0.10
 # class Solution
-#   def splitIntoRun(n: int, k: int) -> bool
+#   def isConsecutiveSum(n: int, k: int) -> bool
 #     rest = n - k * (k - 1) // 2
 #     rest > 0 and rest % k == 0
 
 class Solution:
-    def splitIntoRun(self, n: int, k: int) -> bool:
+    def isConsecutiveSum(self, n: int, k: int) -> bool:
         rest = n - k * (k - 1) // 2
         return rest > 0 and rest % k == 0
 
 
 sol = Solution()
-print(sol.splitIntoRun(15, 3))
-_l, _r = sol.splitIntoRun(15, 3), True
+print(sol.isConsecutiveSum(15, 3))
+_l, _r = sol.isConsecutiveSum(15, 3), True
 assert _l is _r, f"left : {_l!r}\nright: {_r!r}\nop   : is"
-_l, _r = sol.splitIntoRun(15, 4), False
+_l, _r = sol.isConsecutiveSum(15, 4), False
 assert _l is _r, f"left : {_l!r}\nright: {_r!r}\nop   : is"
-_l, _r = sol.splitIntoRun(15, 6), False
+_l, _r = sol.isConsecutiveSum(15, 6), False
 assert _l is _r, f"left : {_l!r}\nright: {_r!r}\nop   : is"
-_l, _r = sol.splitIntoRun(15, 1), True
+_l, _r = sol.isConsecutiveSum(15, 1), True
 assert _l is _r, f"left : {_l!r}\nright: {_r!r}\nop   : is"
-_l, _r = sol.splitIntoRun(15, 2), True
+_l, _r = sol.isConsecutiveSum(15, 2), True
 assert _l is _r, f"left : {_l!r}\nright: {_r!r}\nop   : is"
-_l, _r = sol.splitIntoRun(15, 5), True
+_l, _r = sol.isConsecutiveSum(15, 5), True
 assert _l is _r, f"left : {_l!r}\nright: {_r!r}\nop   : is"
-_l, _r = sol.splitIntoRun(16, 2), False
+_l, _r = sol.isConsecutiveSum(16, 2), False
 assert _l is _r, f"left : {_l!r}\nright: {_r!r}\nop   : is"
-_l, _r = sol.splitIntoRun(16, 3), False
+_l, _r = sol.isConsecutiveSum(16, 3), False
 assert _l is _r, f"left : {_l!r}\nright: {_r!r}\nop   : is"
-_l, _r = sol.splitIntoRun(16, 4), False
+_l, _r = sol.isConsecutiveSum(16, 4), False
 assert _l is _r, f"left : {_l!r}\nright: {_r!r}\nop   : is"
-_l, _r = sol.splitIntoRun(16, 5), False
+_l, _r = sol.isConsecutiveSum(16, 5), False
 assert _l is _r, f"left : {_l!r}\nright: {_r!r}\nop   : is"
-_l, _r = sol.splitIntoRun(9, 2), True
+_l, _r = sol.isConsecutiveSum(9, 2), True
 assert _l is _r, f"left : {_l!r}\nright: {_r!r}\nop   : is"
-_l, _r = sol.splitIntoRun(9, 3), True
+_l, _r = sol.isConsecutiveSum(9, 3), True
 assert _l is _r, f"left : {_l!r}\nright: {_r!r}\nop   : is"
-_l, _r = sol.splitIntoRun(1, 1), True
+_l, _r = sol.isConsecutiveSum(1, 1), True
 assert _l is _r, f"left : {_l!r}\nright: {_r!r}\nop   : is"
-_l, _r = sol.splitIntoRun(1, 2), False
+_l, _r = sol.isConsecutiveSum(1, 2), False
 assert _l is _r, f"left : {_l!r}\nright: {_r!r}\nop   : is"
-_l, _r = sol.splitIntoRun(3, 2), True
+_l, _r = sol.isConsecutiveSum(3, 2), True
 assert _l is _r, f"left : {_l!r}\nright: {_r!r}\nop   : is"
-_l, _r = sol.splitIntoRun(10 ** 9, 44721), False
+_l, _r = sol.isConsecutiveSum(10 ** 9, 44721), False
 assert _l is _r, f"left : {_l!r}\nright: {_r!r}\nop   : is"
-_l, _r = sol.splitIntoRun(10 ** 9, 44720), False
+_l, _r = sol.isConsecutiveSum(10 ** 9, 44720), False
 assert _l is _r, f"left : {_l!r}\nright: {_r!r}\nop   : is"
-_l, _r = sol.splitIntoRun(10 ** 9, 25), True
+_l, _r = sol.isConsecutiveSum(10 ** 9, 25), True
 assert _l is _r, f"left : {_l!r}\nright: {_r!r}\nop   : is"
-_l, _r = sol.splitIntoRun(10 ** 9, 10 ** 5), False
+_l, _r = sol.isConsecutiveSum(10 ** 9, 10 ** 5), False
 assert _l is _r, f"left : {_l!r}\nright: {_r!r}\nop   : is"

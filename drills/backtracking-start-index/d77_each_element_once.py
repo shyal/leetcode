@@ -1,5 +1,4 @@
 """
-DRILL: Each Element Once
 SNIPPET: lccomb
 
 Given an array nums of distinct positive integers in increasing order and

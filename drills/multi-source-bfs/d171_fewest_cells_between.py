@@ -1,7 +1,4 @@
 """
-DRILL: Fewest Cells Between
-TRAINS: multi-source-bfs
-
 Given an n x m grid of 0, 1 and 2, return the fewest 0 cells on a path from
 any 1 cell to any 2 cell. Each step of a path goes to the cell above, below,
 left or right. The grid holds at least one 1 and at least one 2, and some

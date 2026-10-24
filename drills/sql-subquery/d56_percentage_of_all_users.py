@@ -1,6 +1,4 @@
 """
-DRILL: Percentage Of All Users Per Contest
-
 Given the tables `Users` and `Register`, return each `contest_id` with
 `percentage`: the share of all users registered in that contest, as a
 percentage rounded to 2 decimal places. No ordering required.

@@ -1,7 +1,4 @@
 """
-DRILL: Order Book Match Finding
-TRAINS: order-book-match
-
 How would you implement a match-finding system for an order book (buy/sell)?
 
 Implement process_orders(orders) for limit orders processed in input order. A

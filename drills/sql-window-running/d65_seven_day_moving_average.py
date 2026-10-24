@@ -1,6 +1,4 @@
 """
-DRILL: Seven Day Moving Average
-
 Given the table `Customer`, return for every day that has six earlier days
 of data: `visited_on`, `amount` (the total paid over that day and the six
 days before it) and `average_amount` (that total divided by 7, rounded to 2

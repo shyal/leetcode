@@ -1,6 +1,3 @@
-DRILL: Crawler Duplicates
-TRAINS: design-web-crawler
-
 Design a web crawler. The service crawls a list of urls, builds a reverse
 index from words to pages, and a static title and snippet for each page; a
 user searches a term and sees the matching pages. Assume 1 billion links, each

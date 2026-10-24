@@ -1,6 +1,4 @@
 """
-DRILL: Reverse First K
-
 Given the head of a linked list and an integer k, reverse the first k
 nodes and return the new head. The order of the remaining nodes does not
 change, and they follow the reversed part.

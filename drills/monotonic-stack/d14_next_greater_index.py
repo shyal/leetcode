@@ -1,6 +1,4 @@
 """
-DRILL: Next Greater Index
-
 Given an integer array nums, return an array res of the same length where
 res[i] is the INDEX of the first element to the RIGHT of i that is
 strictly greater than nums[i]. If no such element exists, res[i] = -1.

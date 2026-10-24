@@ -1,6 +1,4 @@
 """
-DRILL: Names In Palette
-
 Given a Color value palette and a list names of strings, each one of
 "red", "green" or "blue", return the strings of names whose member is
 held in palette, in the order they appear in names.

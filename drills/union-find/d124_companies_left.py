@@ -1,6 +1,4 @@
 """
-DRILL: Companies Left
-
 Given self.parent, return the number of companies. Solution extends
 UnionFind from dsa/union_find.py: self.parent[i] is the manager of
 employee i, and an employee who is their own manager is a head. A company

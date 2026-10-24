@@ -1,6 +1,3 @@
-// DRILL: String Length
-// TRAINS: rust-shadowing
-//
 // Given a string `s`, return its length. Inside the function, bind the
 // length to the name `s` as well: the string and its length share one
 // name.

@@ -1,6 +1,4 @@
 """
-DRILL: Fix Names
-
 Given the table `Users`, return `user_id` and `name` with the name fixed so
 that only the first character is upper case and the rest are lower case. No
 ordering required.

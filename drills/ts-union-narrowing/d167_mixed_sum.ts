@@ -1,6 +1,3 @@
-// DRILL: Mixed Sum
-// TRAINS: ts-union-narrowing
-//
 // Given an array `values` whose elements are numbers or strings holding a
 // number, return the sum of all of them as a number.
 //

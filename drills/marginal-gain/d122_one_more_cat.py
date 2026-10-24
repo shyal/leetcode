@@ -1,7 +1,4 @@
 """
-DRILL: One More Cat
-TRAINS: marginal-gain
-
 A cage holds t animals, and a of them are cats. The cat ratio of the cage
 is a / t. Given a and t, return how much the cat ratio grows when one more
 cat is put in the cage.

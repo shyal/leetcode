@@ -84,14 +84,6 @@ def test_is_session_start_prints_a_predicate():
 # --- kg_rs, the extension kg_lib imports -----------------------------------
 
 
-def test_kg_rs_drill_key():
-    import kg_rs
-
-    assert kg_rs.drill_key("solved/d_paid_orders_2026_09_03t10.py") == "d_paid_orders"
-    assert kg_rs.drill_key("solved/D_Two_Sum_x.py") == "d_two_sum"
-    assert kg_rs.drill_key("solved/p1004_2026_09_03t10.py") is None
-
-
 def test_kg_rs_degree_color_ends_of_the_ramp():
     import kg_rs
 
@@ -438,7 +430,7 @@ def test_lc_submit_show_and_auto_without_network(tmp_path):
     assert p.stdout == "class Solution:\n    def a(self):\n        return 2\n"
     # a drill has no URL line: --auto is a silent no-op, never a failed make
     d = tmp_path / "drill.py"
-    d.write_text('"""\nDRILL: X\n"""\n\nclass Solution:\n    pass\n')
+    d.write_text('"""\nGiven x, return x.\n"""\n\nclass Solution:\n    pass\n')
     p = run("lc_submit", "--auto", "--file", str(d))
     assert p.returncode == 0 and p.stdout == "" and p.stderr == ""
     # no browser: --auto is silent too, a plain run says what is missing

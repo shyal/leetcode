@@ -1,6 +1,4 @@
 """
-DRILL: Song To Playlists
-
 Given playlists, where playlists[i] is the list of song ids on playlist i,
 return a dict mapping each song id to the indexes of the playlists that
 contain it, in increasing order.

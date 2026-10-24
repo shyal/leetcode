@@ -10,7 +10,7 @@ use std::process::Command;
 use chrono::{Duration, NaiveDate};
 use indexmap::IndexMap;
 use kg::ctx::{Ctx, PView};
-use kg::data::{Assist, Rec};
+use kg::data::{Assist, DrillEntry, Rec};
 use kg::drills::{bank_authored, cold_drill, due_drill};
 use kg::evidence::Evidence;
 use kg::git::{mined_solve_times, sleep_state};
@@ -271,18 +271,28 @@ impl ScratchBank {
         }
     }
 
-    /// Write `files` virtual bank files for node: a DRILL title and a
-    /// TRAINS line, nothing else. No drills.json entry, so the file comes
-    /// after nothing; TRAINS only its node, so it holds on no other.
-    pub fn author(&mut self, node: &str, files: i64) {
+    /// Write `files` virtual bank files for node and register each in the
+    /// run's drill registry: an id past every real one, a title, "trains"
+    /// only its node (so it holds on no other) and no "after" (so it comes
+    /// after nothing).
+    pub fn author(&mut self, ctx: &Ctx, node: &str, files: i64) {
         let d = self.root.join(node);
         let _ = std::fs::create_dir_all(&d);
         for _ in 0..files {
             let k = self.authored.get(node).copied().unwrap_or(0) + 1;
             self.authored.insert(node.to_string(), k);
-            let _ = std::fs::write(
-                d.join(format!("sim_{k}.py")),
-                format!("\"\"\"\nDRILL: Sim {node} {k}\nTRAINS: {node}\n\"\"\"\n"),
+            let total: i64 = self.authored.values().sum();
+            let file = format!("{node}/sim_{k}.py");
+            let _ = std::fs::write(self.root.join(&file), "\"\"\"\nSim\n\"\"\"\n");
+            ctx.register_drill(
+                &format!("d{}", 1_000_000 + total),
+                DrillEntry {
+                    title: format!("Sim {node} {k}"),
+                    file,
+                    after: Vec::new(),
+                    trains: Some(vec![node.to_string()]),
+                    disabled: false,
+                },
             );
         }
     }
@@ -744,9 +754,7 @@ fn run_(
             let pnum = choice.pnum.clone();
             close_streak(&target_node, &mut streak, &mut starved);
             seq += 1;
-            // the exact shape `make solved` writes (kg_lib.FNAME_TS_RE,
-            // drill_key): a hyphenated date made every simulated drill rep
-            // a first rep, so no floor ever advanced (2026-09-06)
+            // the exact shape `make solved` writes (kg_lib.FNAME_TS_RE)
             let (h, rem) = (seq / 3600, seq % 3600);
             let stamp = format!(
                 "{}T{h:02}_{:02}_{:02}_000000_00_00Z",
@@ -755,6 +763,7 @@ fn run_(
                 rem % 60
             );
             let (kind, moves, fname, problem): (String, Vec<String>, String, String);
+            let mut drill = None;
             if pnum.starts_with("drill:") {
                 // the file pick()'s due() named, resolved the way kg_next
                 // resolves it: its clock's, else the cold one it fell back
@@ -776,6 +785,7 @@ fn run_(
                 let stem = ctx.drill_solved_stem(&path);
                 fname = format!("solved/d_{stem}_{stamp}.py");
                 problem = "drill".to_string();
+                drill = ctx.drill_id(&path);
                 exclude.insert(pnum.clone());
             } else {
                 let pvb = pv.borrow();
@@ -866,6 +876,7 @@ fn run_(
                     judge: None,
                     seconds: None,
                     learning: false,
+                    drill,
                 },
             );
             if problem != "drill" {
@@ -921,7 +932,7 @@ fn run_(
                 break; // every node has a bank
             }
             let files = size_pool[rng.randbelow(size_pool.len() as u32) as usize];
-            bank.author(&cands[0], files);
+            bank.author(ctx, &cands[0], files);
             bank_authored(ctx, &ev, &cands[0]);
             authored_files += files;
             author_budget -= 1.0;

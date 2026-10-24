@@ -1,6 +1,4 @@
 """
-DRILL: Average Selling Price With Date Ranges
-
 Given the tables `Prices` and `UnitsSold`, return the average selling price
 of each product, rounded to 2 decimal places: total money taken divided by
 total units, where each unit is priced by the range its `purchase_date`

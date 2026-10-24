@@ -1,6 +1,3 @@
-DRILL: Social Graph Numbers
-TRAINS: design-social-graph
-
 Design the data structures for a social network in which a user searches for
 someone and sees the shortest path to that person. Assume 100 million users,
 50 friends per user on average, 1 billion friend searches per month,

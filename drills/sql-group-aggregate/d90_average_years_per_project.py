@@ -1,6 +1,4 @@
 """
-DRILL: Average Years Per Project
-
 Given the table `Project`, return each `project_id` with `average_years`:
 the average `experience_years` of its employees, rounded to 2 decimal
 places. No ordering required.

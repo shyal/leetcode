@@ -1,6 +1,4 @@
 """
-DRILL: Combinations
-
 Given two integers n and k, return every combination of k distinct
 integers chosen from 1 to n. List each combination in increasing order,
 and list the combinations in lexicographic order.

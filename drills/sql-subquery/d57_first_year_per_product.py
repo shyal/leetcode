@@ -1,6 +1,4 @@
 """
-DRILL: Sales In Each Product's First Year
-
 Given the table `Sales`, return `product_id`, `first_year`, `quantity` and
 `price` for every sale that happened in the first year its product was sold.
 No ordering required.

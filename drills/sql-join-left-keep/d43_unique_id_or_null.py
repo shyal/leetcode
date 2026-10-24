@@ -1,6 +1,4 @@
 """
-DRILL: Unique Id Or Null
-
 Given the tables `Employees` and `EmployeeUNI`, return the `unique_id` and
 `name` of every employee. Show NULL as the `unique_id` when the employee has
 none. No ordering required.

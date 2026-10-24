@@ -1,6 +1,4 @@
 """
-DRILL: Sections Under Cap
-
 Given an array weights and an integer cap, cut weights into the fewest
 contiguous sections whose sums are each at most cap, and return how many
 sections there are. Every weight is at most cap.

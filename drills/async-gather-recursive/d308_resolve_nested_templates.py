@@ -1,7 +1,4 @@
 """
-DRILL: Resolve Nested Templates
-TRAINS: async-gather-recursive
-
 The input is a string template and an async function get_data(key: str) -> str.
 
 A placeholder consists of two opening braces, a key string, and two closing braces, written as {{key}}. Replace each placeholder occurrence with the string returned by await get_data(key). Resolve placeholders in each returned string recursively until the result contains no placeholders. Replace every occurrence, including repeated keys. Keep all text outside placeholders unchanged.

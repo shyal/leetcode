@@ -13,7 +13,7 @@ use chrono::{Duration, NaiveDate};
 use crate::bank::warm;
 use crate::ctx::Ctx;
 use crate::data::{assist_weight, env_str, parse_date, Rec, SOLID_WINDOW_DAYS};
-use crate::evidence::{drill_key, Evidence};
+use crate::evidence::Evidence;
 use crate::status::{
     graduation_due, input_tree, node_status, owned, Statuses, DEEP_STALE_DAYS, FRAGILE, MISSING,
     SOLID, STALE,
@@ -684,10 +684,33 @@ pub fn drill_queue_key(key: &str, ev: &Evidence) -> (NaiveDate, String) {
     let last = ev
         .drill_reps(key)
         .iter()
-        .map(|&i| ev.drills[i].1[key.len()..].to_string())
+        .map(|&i| solved_stamp(&ev.drills[i].1).to_string())
         .max()
         .unwrap_or_default();
     (due, last)
+}
+
+/// The `make solved` timestamp of a solved basename, from its date on
+/// (2026_09_13t07_04_17z.py), or the last _token when it has none.
+pub fn solved_stamp(base: &str) -> &str {
+    let b = base.as_bytes();
+    for i in 0..b.len() {
+        // "_YYYY_MM_DDt": 4 digits, '_', 2 digits, '_', 2 digits, 't'
+        if b[i] == b'_' && i + 12 <= b.len() {
+            let t = &b[i + 1..i + 12];
+            let digits = |r: std::ops::Range<usize>| t[r].iter().all(u8::is_ascii_digit);
+            if digits(0..4)
+                && t[4] == b'_'
+                && digits(5..7)
+                && t[7] == b'_'
+                && digits(8..10)
+                && t[10].eq_ignore_ascii_case(&b't')
+            {
+                return &base[i + 1..];
+            }
+        }
+    }
+    base.rsplit_once('_').map_or(base, |(_, s)| s)
 }
 
 // ---- DRILL_FILL --------------------------------------------------------
@@ -1022,7 +1045,7 @@ pub fn problems_today(ev: &Evidence, day: NaiveDate) -> i64 {
     let d = day.format("%Y-%m-%d").to_string();
     ev.date_recs(&d)
         .iter()
-        .filter(|&&i| drill_key(ev.fname(i)).is_none())
+        .filter(|&&i| !ev.is_drill(i))
         .count() as i64
 }
 
@@ -1192,7 +1215,7 @@ pub fn drill_reviews_today(ev: &Evidence, day: NaiveDate) -> i64 {
     let d = day.format("%Y-%m-%d").to_string();
     ev.date_recs(&d)
         .iter()
-        .filter(|&&i| drill_key(ev.fname(i)).is_some() && !ev.first_reps.contains(&i))
+        .filter(|&&i| ev.is_drill(i) && !ev.first_reps.contains(&i))
         .count() as i64
 }
 
@@ -1327,7 +1350,7 @@ mod tests {
     use crate::data::Assist;
     use indexmap::IndexMap;
 
-    fn rec(date: &str) -> Rec {
+    fn rec(drill: &str, date: &str) -> Rec {
         let mut moves = IndexMap::new();
         moves.insert("grid-neighbors".to_string(), "clean".to_string());
         Rec {
@@ -1341,6 +1364,7 @@ mod tests {
             judge: None,
             seconds: None,
             learning: false,
+            drill: Some(drill.to_string()),
         }
     }
 
@@ -1353,33 +1377,29 @@ mod tests {
         let ev = Evidence::new(vec![
             (
                 "solved/d_Count_Cells_2026_09_13T07_04_17Z.py".to_string(),
-                rec("2026-09-13"),
+                rec("d1", "2026-09-13"),
             ),
             (
                 "solved/d_Neighbour_Values_2026_09_13T07_08_33Z.py".to_string(),
-                rec("2026-09-13"),
+                rec("d2", "2026-09-13"),
             ),
             (
                 "solved/d_Neighbour_Counts_2026_09_13T07_14_11Z.py".to_string(),
-                rec("2026-09-13"),
+                rec("d3", "2026-09-13"),
             ),
             (
                 "solved/d_Count_Cells_2026_09_13T07_15_31Z.py".to_string(),
-                rec("2026-09-13"),
+                rec("d1", "2026-09-13"),
             ),
         ]);
-        let keys = [
-            "d_count_cells_",
-            "d_neighbour_values_",
-            "d_neighbour_counts_",
-        ];
+        let keys = ["d1", "d2", "d3"];
         let next = keys.iter().min_by_key(|k| drill_queue_key(k, &ev)).unwrap();
-        assert_eq!(*next, "d_neighbour_values_");
+        assert_eq!(*next, "d2");
         // the file just solved is at the back
         let last = keys.iter().max_by_key(|k| drill_queue_key(k, &ev)).unwrap();
-        assert_eq!(*last, "d_count_cells_");
+        assert_eq!(*last, "d1");
         // a file never drilled outranks every drilled one
-        assert!(drill_queue_key("d_nearest_one_", &ev) < drill_queue_key(next, &ev));
+        assert!(drill_queue_key("d4", &ev) < drill_queue_key(next, &ev));
     }
 
     #[test]
@@ -1388,18 +1408,18 @@ mod tests {
             // drilled twice: interval 1 then 3, due 09-15
             (
                 "solved/d_A_2026_09_11T01_00_00Z.py".to_string(),
-                rec("2026-09-11"),
+                rec("d1", "2026-09-11"),
             ),
             (
                 "solved/d_A_2026_09_12T01_00_00Z.py".to_string(),
-                rec("2026-09-12"),
+                rec("d1", "2026-09-12"),
             ),
             // drilled once, later in the day, due 09-14
             (
                 "solved/d_B_2026_09_13T09_00_00Z.py".to_string(),
-                rec("2026-09-13"),
+                rec("d2", "2026-09-13"),
             ),
         ]);
-        assert!(drill_queue_key("d_b_", &ev) < drill_queue_key("d_a_", &ev));
+        assert!(drill_queue_key("d2", &ev) < drill_queue_key("d1", &ev));
     }
 }

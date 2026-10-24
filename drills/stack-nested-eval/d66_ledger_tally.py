@@ -1,6 +1,4 @@
 """
-DRILL: Ledger Tally
-
 At closing time a shopkeeper's register prints one long paper tape: every
 sale and refund of the day glued into a single string, e.g. "120+45-30-8+7".
 A '+' means the following amount came in, a '-' means it went out. The tape

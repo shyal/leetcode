@@ -1,6 +1,4 @@
 """
-DRILL: Reports Per Manager
-
 Given the table `Employees`, return `employee_id`, `name`, `reports_count`
 and `average_age` for every employee who has at least one direct report: the
 number of employees reporting to them, and the average `age` of those

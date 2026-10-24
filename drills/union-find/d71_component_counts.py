@@ -1,6 +1,4 @@
 """
-DRILL: How Many Companies
-
 Given n employees numbered 0 to n - 1 and pairs, where pairs[i] = [a, b]
 means a and b work at the same company, return how many companies there
 are. Solution extends UnionFind from dsa/union_find.py, built over the n

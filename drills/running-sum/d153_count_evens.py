@@ -1,6 +1,4 @@
 """
-DRILL: Count Evens
-
 Given an integer array nums, return how many elements of nums are even.
 
 Example 1:

@@ -1,6 +1,4 @@
 """
-DRILL: Not Boring Movies
-
 Given the table `Cinema`, return every row whose `id` is odd and whose
 `description` is not 'boring'. Order the result by `rating`, highest first.
 

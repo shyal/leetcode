@@ -1,7 +1,4 @@
 """
-DRILL: Longest Path From Zero
-TRAINS: memoize-recursion
-
 G is a DAG (directed acyclic graph) as an adjacency list: G[u] is the
 list of nodes u points to. Start on node 0. Let L(u) be the number of
 edges on the longest path starting at u. If G[u] is empty, L(u) = 0.

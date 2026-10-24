@@ -1,6 +1,4 @@
 """
-DRILL: Unequal Pairs From Two Values
-
 Given an integer array nums that contains exactly two distinct values,
 return the number of index pairs (i, j) with i < j and nums[i] != nums[j].
 

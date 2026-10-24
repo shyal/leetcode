@@ -18,7 +18,7 @@ from datetime import date, datetime, timedelta, timezone
 # utils/rs/kg as a Python extension (utils/rs/kg_py; `make ext` installs it).
 # The functions imported here used to be defined below; each pointer comment
 # marks where. New ports are added here and the Python body deleted.
-from kg_rs import degree_color, drill_key, source_extensions  # noqa: F401
+from kg_rs import degree_color, source_extensions  # noqa: F401
 
 # The system clock runs UTC but the operator lives in Manila (UTC+8);
 # "today" everywhere in the toolchain means the Manila calendar day.
@@ -198,11 +198,8 @@ def _load_curve():
 # simulation's case); any other change rebuilds it. Records are never
 # copied - the same dicts, grouped.
 
-# drill_key(fname): the drill a d_ solved file is a rep of - its lowercase
-# basename with the timestamp `make solved` appends stripped (or the last
-# _token when there is none, the shape the tests write); None for a problem
-# solve. Implemented in Rust (utils/rs/kg/src/evidence.rs), imported from
-# kg_rs above.
+# A drill rep is a record with a "drill" id (graph/drills.json), written by
+# `make solved`; a problem solve has none.
 
 
 class _EvidenceIndex:
@@ -221,7 +218,7 @@ class _EvidenceIndex:
         self.by_node = {}  # node -> [(date, verdict, assist, fname, rec)]
         self.by_problem = {}  # problem -> [(date str, fname, rec)]
         self.by_date = {}  # date str -> [(fname, rec)]
-        self.drills = []  # [(date str, lowercase basename, rec)] of d_ files
+        self.drills = []  # [(date str, lowercase basename, rec)] of drill reps
         self.first_reps = set()  # fnames that are the first rep of their drill
         self._drills_seen = set()
         self.n = 0
@@ -236,7 +233,7 @@ class _EvidenceIndex:
         # itself still waits for its unaided rep (drill_warm, drill_assisted
         # read the record, not this index). Evidence is appended in
         # chronological order, so first seen is first done (2026-09-01).
-        key = drill_key(fname)
+        key = rec.get("drill")
         first = key is not None and key not in self._drills_seen
         if first:
             self._drills_seen.add(key)
@@ -249,9 +246,8 @@ class _EvidenceIndex:
         if pnum is not None:
             self.by_problem.setdefault(str(pnum), []).append((rec["date"], fname, rec))
         self.by_date.setdefault(rec["date"], []).append((fname, rec))
-        base = os.path.basename(fname).lower()
-        if base.startswith("d_"):
-            self.drills.append((rec["date"], base, rec))
+        if key is not None:
+            self.drills.append((rec["date"], os.path.basename(fname).lower(), rec))
         self.n += 1
         self.last = fname
 
@@ -716,44 +712,16 @@ def gentleness(pnum, problems, nodes):
     return (tier, tree_size(pnum, problems, nodes))
 
 
-_DRILL_HEADERS: dict = {}  # path -> (mtime_ns, size, DRILL title, TRAINS ids)
-
-
-def _drill_header(path):
-    """(DRILL title or None, TRAINS ids) of a bank file, read once per
-    file version: the picker asks for these thousands of times per pick
-    and the file never changes under it. Keyed on the file's mtime and
-    size so a rewritten file (the test banks, a bank edit) reads fresh."""
-    try:
-        st = os.stat(path)
-    except OSError:
-        return None, []
-    hit = _DRILL_HEADERS.get(path)
-    if hit is not None and hit[0] == st.st_mtime_ns and hit[1] == st.st_size:
-        return hit[2], hit[3]
-    try:
-        with open(path) as f:
-            text = f.read()
-    except OSError:
-        return None, []
-    # the header is a docstring in Python and a comment block elsewhere
-    m = re.search(r"^\s*(?://|#)?\s*DRILL:\s*(.+)$", text, flags=re.M)
-    title = m.group(1).strip() if m else None
-    m = re.search(r"^\s*(?://|#)?\s*TRAINS:\s*([a-z0-9\-, ]+)$", text, flags=re.M)
-    trains = [t.strip() for t in m.group(1).split(",") if t.strip()] if m else []
-    _DRILL_HEADERS[path] = (st.st_mtime_ns, st.st_size, title, trains)
-    return title, trains
-
-
 def drill_title(path):
-    """The DRILL header of a bank file, or None when it has none."""
-    return _drill_header(path)[0]
+    """The drills.json title of a bank file, or None when it has no entry."""
+    i = drill_id(path)
+    return drills()[i].get("title") if i is not None else None
 
 
 def drill_solved_stem(path):
     """The d_-filename stem `make solved` writes for this drill file: its
-    DRILL title cleaned exactly the way utils/rs/kg_solved cleans it. Falls back
-    to the bank filename slug if the header is missing."""
+    title cleaned exactly the way utils/rs/kg_solved cleans it. Falls back
+    to the bank filename slug when the file has no entry."""
     title = drill_title(path)
     if title is None:
         title = os.path.splitext(os.path.basename(path))[0]
@@ -783,30 +751,21 @@ def source_files(directory):
     return sorted(out)
 
 
-_DRILL_PATHS: dict = {}  # DRILLS_DIR -> {DRILL title: bank path}
-
-
 def drill_path(ref):
-    """The bank file for a drill id (d61) or DRILL title, or None. The id
-    is how the graph names a drill; the title is the file's DRILL header
-    and the key of its evidence, so bank files can be renamed or moved
-    without touching the graph."""
-    title = drills().get(ref, {}).get("title", ref)
-    paths = _DRILL_PATHS.get(DRILLS_DIR)
-    if paths is None or title not in paths:
-        paths = {}
-        for path in source_files(
-            os.path.join(DRILLS_DIR, "*")
-        ):  # not bank_paths: it needs drill_id
-            t = drill_title(path)
-            if t is not None:
-                paths.setdefault(t, path)
-        _DRILL_PATHS.clear()
-        _DRILL_PATHS[DRILLS_DIR] = paths
-    return paths.get(title)
+    """The bank file for a drill id (d61) or a title, or None: the
+    drills.json entry's "file", under DRILLS_DIR."""
+    reg = drills()
+    entry = reg.get(ref) or next(
+        (d for d in reg.values() if d.get("title") == ref), None
+    )
+    if not entry or not entry.get("file"):
+        return None
+    return os.path.join(DRILLS_DIR, entry["file"])
 
 
-_DRILLS = None  # drills.json: {id: {"title": DRILL title, "after": [ids], "trains": [node ids]}}
+_DRILLS = (
+    None  # drills.json: {id: {"title", "file", "after": [ids], "trains": [node ids]}}
+)
 
 
 def load_drills():
@@ -820,22 +779,23 @@ def drills():
     return _DRILLS
 
 
-_DRILL_IDS: dict = {}  # {"key": (id(drills()), len), "map": {DRILL title: id}}
+_DRILL_IDS: dict = {}  # {"key": (id(drills()), len), "map": {file: id}}
 
 
 def drill_id(path):
-    """The graph id (d61) of a bank file, by its DRILL title; None when the
-    file has no entry in drills.json. The title index is rebuilt when the
-    registry is replaced or grows (the test banks add to it in place)."""
-    title = drill_title(path)
+    """The graph id (d61) of a bank file: the drills.json entry whose
+    "file" (relative to DRILLS_DIR) it is; None when no entry names it.
+    The index is rebuilt when the registry is replaced or grows (the test
+    banks add to it in place)."""
     reg = drills()
     key = (id(reg), len(reg))
     if _DRILL_IDS.get("key") != key:
         _DRILL_IDS.clear()
         _DRILL_IDS["key"] = key
-        _DRILL_IDS["map"] = {d.get("title"): i for i, d in reversed(list(reg.items()))}
-    i = _DRILL_IDS["map"].get(title)
-    return i if i is not None and reg.get(i, {}).get("title") == title else None
+        _DRILL_IDS["map"] = {
+            d["file"]: i for i, d in reversed(list(reg.items())) if d.get("file")
+        }
+    return _DRILL_IDS["map"].get(os.path.relpath(path, DRILLS_DIR))
 
 
 def drill_after(path):
@@ -845,19 +805,18 @@ def drill_after(path):
 
 
 def last_drilled(path, evidence):
-    """Latest date this bank drill file was solved. Matched on the DRILL
-    title (what d_ solved filenames are built from), not the bank filename —
-    the two rarely coincide."""
-    key = f"d_{drill_solved_stem(path)}_".lower()
-    dates = [d for d, base, _ in ev_index(evidence).drills if base.startswith(key)]
+    """Latest date this bank drill file was solved: its reps are the
+    records whose "drill" is its id."""
+    key = drill_id(path)
+    dates = [d for d, _, rec in ev_index(evidence).drills if rec.get("drill") == key]
     return max(dates) if dates else ""
 
 
 def latest_drill_rep(path, evidence):
     """The most recent solved record of this bank drill, or None. Same-day
     reps are ordered by the solved filename, which carries the timestamp."""
-    key = f"d_{drill_solved_stem(path)}_".lower()
-    reps = [t for t in ev_index(evidence).drills if t[1].startswith(key)]
+    key = drill_id(path)
+    reps = [t for t in ev_index(evidence).drills if t[2].get("drill") == key]
     return max(reps, key=lambda t: t[:2])[2] if reps else None
 
 
@@ -997,12 +956,9 @@ def drill_trains(path):
     drills.json entry, keyed by the stable id so a node rename touches one
     line there and never a bank file or a solved copy. A composite drill
     lists every move it combines, the way a leetcode problem's walk does;
-    the solve evidences all of them. A file with no entry (the test banks,
-    a simulated drill) falls back to its TRAINS header."""
+    the solve evidences all of them. A file with no entry trains nothing."""
     i = drill_id(path)
-    if i is not None and "trains" in drills().get(i, {}):
-        return list(drills()[i]["trains"])
-    return list(_drill_header(path)[1])
+    return list(drills().get(i, {}).get("trains", [])) if i is not None else []
 
 
 _EVIDENCE_RO: dict = {}  # path -> (mtime_ns, size, evidence)
@@ -1032,7 +988,7 @@ def _problems_ro():
 def servable_drills(candidates, evidence, node_id=None, early=False):
     """The bank files open to serve: every id in a drill's "after" list is
     warm (with `early`, the cram walk, an assisted clean of a predecessor
-    drill is enough), and every other node on its TRAINS line is owned, so
+    drill is enough), and every other node in its "trains" list is owned, so
     a drill that combines moves lands on moves the operator has instead of
     teaching two at once. Nothing else orders drills: not the filename,
     not the directory."""

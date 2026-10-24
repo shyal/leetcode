@@ -1,5 +1,4 @@
 """
-DRILL: Record Every Node
 SNIPPET: lcsubsets
 
 Given an array nums of distinct integers, return every subset of nums,

@@ -821,12 +821,15 @@ fn main() {
                 })
                 .unwrap_or_default(),
             assist: kg::mock::assist_map(rec),
+            drill: rec.get("drill").and_then(Value::as_str).map(String::from),
         })
         .collect();
     // the first rep of a drill is unaided at the node level (kg_lib.ev_index)
-    for i in
-        kg::mock::first_drill_reps(evidence.iter().map(|r| (r.fname.as_str(), r.date.as_str())))
-    {
+    for i in kg::mock::first_drill_reps(
+        evidence
+            .iter()
+            .map(|r| (r.drill.as_deref(), r.fname.as_str(), r.date.as_str())),
+    ) {
         evidence[i].assist.clear();
     }
     // chronological, so a historical replay date is just a prefix slice; every

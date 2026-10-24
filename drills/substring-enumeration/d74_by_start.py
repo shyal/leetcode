@@ -1,6 +1,4 @@
 """
-DRILL: All Substrings
-
 Given a string s, return every substring of s, grouped by where it
 starts: every substring starting at index 0 from shortest to longest,
 then every substring starting at index 1, and so on. Two substrings

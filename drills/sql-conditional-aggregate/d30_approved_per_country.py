@@ -1,6 +1,4 @@
 """
-DRILL: Approved Transactions Per Country
-
 Given the table `Transactions`, return for each `country`: `trans_count`
 (all transactions), `approved_count`, `trans_total_amount` (sum of all
 amounts) and `approved_total_amount` (sum of approved amounts). Counts and

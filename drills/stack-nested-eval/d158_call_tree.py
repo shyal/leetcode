@@ -1,6 +1,4 @@
 """
-DRILL: Call Tree
-
 Given events, a list of function calls in time order, each a tuple
 (id, op, t) with op "start" or "end", return the root of the call tree.
 The root is a Node whose val is {}. A start at t adds

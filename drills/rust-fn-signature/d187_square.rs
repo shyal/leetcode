@@ -1,6 +1,3 @@
-// DRILL: Square
-// TRAINS: rust-fn-signature
-//
 // Write a function `square` that takes an integer `num` and returns its
 // square. `main` below calls it; the file does not compile until the
 // function exists.

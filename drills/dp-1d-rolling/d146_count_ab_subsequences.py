@@ -1,7 +1,4 @@
 """
-DRILL: Count AB Subsequences
-TRAINS: dp-1d-rolling
-
 Given a string s, return the number of subsequences of s that equal "ab".
 That is the number of index pairs i < j with s[i] == "a" and s[j] == "b".
 

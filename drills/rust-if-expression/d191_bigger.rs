@@ -1,6 +1,3 @@
-// DRILL: Bigger
-// TRAINS: rust-if-expression
-//
 // Given two integers `a` and `b`, return the bigger one. When they are
 // equal, either one is the answer.
 //

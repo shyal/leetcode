@@ -1,6 +1,3 @@
-// DRILL: First Divisor
-// TRAINS: rust-else-if
-//
 // Given an integer `n`, test the divisors 4, 3 and 2 in that order and
 // return the first that divides n. Return 0 when none of them does.
 //

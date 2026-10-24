@@ -1,6 +1,4 @@
 """
-DRILL: Cut At The Middle
-
 Given the head of a linked list with at least two nodes, cut it into two
 lists and return their heads as a pair (first, second). The first list
 holds the first half of the nodes; when the length is odd the first list

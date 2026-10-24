@@ -1,6 +1,3 @@
-// DRILL: Order Total
-// TRAINS: ts-object-type
-//
 // Given an array `items`, each an object with a `name`, a `price` and an
 // optional `qty`, return the sum of price times qty. A missing qty counts as
 // 1; a qty of 0 counts as 0.

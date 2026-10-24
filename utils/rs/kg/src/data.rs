@@ -365,6 +365,11 @@ pub struct Rec {
     /// filed while LEARNING=1 (kg::learning): evidence for the moves, no
     /// game for the rating
     pub learning: bool,
+    /// the graph id (d300) of the drill this record is a rep of: the
+    /// evidence entry's "drill" field, written by `make solved` from
+    /// .drill.json. None for a problem solve and for a rep of a drill that
+    /// was deleted before the field existed.
+    pub drill: Option<String>,
 }
 
 pub const ASSIST_LEVELS: [&str; 4] = ["none", "hint", "walkthrough", "learning"];
@@ -406,6 +411,7 @@ impl Rec {
             judge: v.get("judge").and_then(Value::as_str).map(String::from),
             seconds: v.get("seconds").and_then(Value::as_i64),
             learning: v.get("learning").and_then(Value::as_bool) == Some(true),
+            drill: v.get("drill").and_then(Value::as_str).map(String::from),
         }
     }
 
@@ -480,6 +486,9 @@ impl Rec {
 #[derive(Clone, Debug, Default)]
 pub struct DrillEntry {
     pub title: String,
+    /// the bank file, relative to the repo root (drills/<node>/d14_x.py):
+    /// the one place a drill id meets its file
+    pub file: String,
     pub after: Vec<String>,
     pub trains: Option<Vec<String>>,
     /// "disabled": true in drills.json: the file stays where it is and is
@@ -595,6 +604,11 @@ pub fn load_drills(root: &Path) -> DrillMap {
             DrillEntry {
                 title: d
                     .get("title")
+                    .and_then(Value::as_str)
+                    .unwrap_or("")
+                    .to_string(),
+                file: d
+                    .get("file")
                     .and_then(Value::as_str)
                     .unwrap_or("")
                     .to_string(),

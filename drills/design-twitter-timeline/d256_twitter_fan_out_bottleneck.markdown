@@ -1,6 +1,3 @@
-DRILL: Twitter Fan Out Bottleneck
-TRAINS: design-twitter-timeline
-
 Design the Twitter timeline. A user posts a tweet; a user views the home
 timeline, the tweets of the people they follow; a user views their own
 timeline; a user searches keywords. Assume 100 million active users, 500

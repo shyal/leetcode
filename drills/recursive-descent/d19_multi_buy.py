@@ -1,6 +1,4 @@
 """
-DRILL: Multi-Buy
-
 A market stall totals an order given as one string, e.g. "2+3*4/6". The
 operators '+' and '-' separate distinct items. The operators '*' and '/'
 are multi-buys and per-unit splits inside a single item, so they bind

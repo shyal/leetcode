@@ -1,6 +1,4 @@
 """
-DRILL: Tape Reader
-
 At closing time a shopkeeper's register prints one long paper tape: every
 sale and refund of the day glued into a single string, e.g. "120+45-30".
 Head office doesn't want a bare total - they want the working itself,

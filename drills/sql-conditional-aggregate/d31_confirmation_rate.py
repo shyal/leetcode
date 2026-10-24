@@ -1,6 +1,4 @@
 """
-DRILL: Confirmation Rate
-
 Given the tables `Signups` and `Confirmations`, return each `user_id` with
 their `confirmation_rate`: the number of 'confirmed' messages divided by the
 number of confirmation messages they received, rounded to 2 decimal places.

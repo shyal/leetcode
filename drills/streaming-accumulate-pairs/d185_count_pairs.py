@@ -1,6 +1,4 @@
 """
-DRILL: Count Pairs
-
 Take every pair of positions i < j in xs. The pair counts when
 by(xs[i]) == want(xs[j]). The function by gives the key a number is stored
 under, and the function want gives the key a number looks for. Return how

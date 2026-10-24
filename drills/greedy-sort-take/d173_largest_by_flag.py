@@ -1,7 +1,4 @@
 """
-DRILL: Largest By Flag
-TRAINS: greedy-sort-take
-
 Given an integer list nums and a boolean list flag of the same length,
 split nums into two lists: the values whose flag is True and the values
 whose flag is False. Sort each list. Then walk flag from left to right.

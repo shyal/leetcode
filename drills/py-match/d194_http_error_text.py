@@ -1,7 +1,4 @@
 """
-DRILL: HTTP Error Text
-TRAINS: py-match
-
 Given an HTTP status code `status`, return its text: "Bad request" for
 400, "Not found" for 404, "I'm a teapot" for 418, "Not allowed" for 401
 and 403, and "Something's wrong with the internet" for any other code.

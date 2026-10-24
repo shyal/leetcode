@@ -1,6 +1,4 @@
 """
-DRILL: Longest Login Streak Per User
-
 Given the table `Logins` with one row per user per day they logged in,
 return `user_id` and `streak`: the length of that user's longest run of
 consecutive calendar days with a login. No ordering required.

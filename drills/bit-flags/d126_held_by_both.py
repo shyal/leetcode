@@ -1,6 +1,4 @@
 """
-DRILL: Held By Both
-
 Given two Color values a and b and a list names of strings, each one of
 "red", "green" or "blue", return the strings of names whose member is
 held by a and by b, in the order they appear in names.

@@ -265,10 +265,10 @@ pub fn store_evidence_entry(
 
 /// `seconds` is the clock's fact, not the judge's: filed once with the
 /// placeholder, it survives every later rewrite of the entry (the judge,
-/// a rejudge, a review) that does not carry it itself. `learning` is
-/// kg_solved's fact the same way.
+/// a rejudge, a review) that does not carry it itself. `learning` and
+/// `drill` (the drill id) are kg_solved's facts the same way.
 pub fn carry_seconds(new: &mut Value, old: &Value) {
-    for key in ["seconds", "learning"] {
+    for key in ["seconds", "learning", "drill"] {
         if new.get(key).is_none() {
             if let Some(s) = old.get(key) {
                 new[key] = s.clone();

@@ -1,6 +1,4 @@
 """
-DRILL: Dense Rank Scores
-
 Given the Scores table, return the score and rank for every row in columns
 named score and rank. Assign rank 1 to the highest score. Equal scores share
 the same rank, and each distinct lower score receives the next consecutive

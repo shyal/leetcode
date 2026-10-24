@@ -1,7 +1,4 @@
 """
-DRILL: Simplified Order Book
-TRAINS: order-book-match
-
 Implement an order book that processes the following operations:
 
 - `ADD side price quantity`: Add a limit order (side is BUY or SELL)

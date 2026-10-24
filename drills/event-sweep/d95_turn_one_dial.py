@@ -1,6 +1,4 @@
 """
-DRILL: Turn One Dial
-
 Given two dials showing a and b, return (lo, hi): the smallest and the
 largest total the dials can show after you turn exactly one of them.
 A dial can be turned to any position from 1 to limit, including the one

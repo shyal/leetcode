@@ -165,6 +165,8 @@ pub struct EvRec {
     pub moves: HashMap<String, String>,
     /// per-move assist level, "none" when absent (kg_lib.assist_of(rec, node))
     pub assist: HashMap<String, String>,
+    /// the entry's "drill" id, None for a problem solve
+    pub drill: Option<String>,
 }
 
 impl EvRec {
@@ -173,48 +175,17 @@ impl EvRec {
     }
 }
 
-/// Mirror of kg_lib.drill_key: the drill a d_ solved file is a rep of, its
-/// lowercase basename with the `make solved` timestamp (_YYYY_MM_DDT...)
-/// stripped, or the last _token when there is none. None for a problem solve.
-pub fn drill_key(fname: &str) -> Option<String> {
-    let base = fname.rsplit('/').next().unwrap_or(fname).to_lowercase();
-    let stem = crate::lang::LANGS
-        .iter()
-        .find_map(|l| base.strip_suffix(&format!(".{}", l.ext)))
-        .unwrap_or(&base);
-    if !stem.starts_with("d_") {
-        return None;
-    }
-    let b = stem.as_bytes();
-    for (i, &c) in b.iter().enumerate() {
-        // "_YYYY_MM_DDt": 4 digits, '_', 2 digits, '_', 2 digits, 't'
-        if c == b'_' && i + 12 <= b.len() {
-            let t = &b[i + 1..i + 12];
-            let digits = |r: std::ops::Range<usize>| t[r].iter().all(u8::is_ascii_digit);
-            if digits(0..4)
-                && t[4] == b'_'
-                && digits(5..7)
-                && t[7] == b'_'
-                && digits(8..10)
-                && t[10] == b't'
-            {
-                return Some(stem[..i].to_string());
-            }
-        }
-    }
-    Some(stem.rsplit_once('_').map_or(stem, |(a, _)| a).to_string())
-}
-
 /// The indices of each drill's first rep (earliest date, then filename):
 /// first exposure to the drill, scored as unaided at the node level
-/// (kg_lib.ev_index, 2026-09-01). `fname_date` yields (fname, date) per rec.
+/// (kg_lib.ev_index, 2026-09-01). `recs` yields (drill id, fname, date)
+/// per rec.
 pub fn first_drill_reps<'a, I>(recs: I) -> Vec<usize>
 where
-    I: IntoIterator<Item = (&'a str, &'a str)>,
+    I: IntoIterator<Item = (Option<&'a str>, &'a str, &'a str)>,
 {
     let mut firsts: HashMap<String, (String, String, usize)> = HashMap::new();
-    for (i, (fname, date)) in recs.into_iter().enumerate() {
-        let Some(key) = drill_key(fname) else {
+    for (i, (drill, fname, date)) in recs.into_iter().enumerate() {
+        let Some(key) = drill.map(String::from) else {
             continue;
         };
         let base = fname.rsplit('/').next().unwrap_or(fname).to_lowercase();

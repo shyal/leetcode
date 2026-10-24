@@ -1,6 +1,4 @@
 """
-DRILL: Average Price Per Product
-
 Given the table `Sales`, return each `product_id` with `average_price`: the
 sum of `price` times `units` divided by the sum of `units`, rounded to 2
 decimal places. No ordering required.

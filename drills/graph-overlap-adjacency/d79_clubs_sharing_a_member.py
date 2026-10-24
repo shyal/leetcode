@@ -1,6 +1,4 @@
 """
-DRILL: Clubs Sharing A Member
-
 There are n clubs, numbered 0 to n - 1. Given n and clubs_of, where
 clubs_of[p] is the list of clubs person p is in, two clubs are connected
 when at least one person is in both. Return the adjacency list adj,

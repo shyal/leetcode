@@ -91,7 +91,8 @@ def test_every_drill_gets_a_stub_with_the_reference_signature(ref):
     s = stub(open(drill_for(ref)).read())
     transpile(s)
     assert signatures(s) == signatures(open(ref).read())
-    assert s.startswith("# DRILL:") and "\n# ---\n" in s
+    assert s.startswith("# ") and "\n# ---\n" in s
+    assert not re.search(r"^# (DRILL|TRAINS):", s, flags=re.M)
 
 
 @pytest.mark.parametrize("ref", REFERENCES, ids=os.path.basename)
@@ -218,7 +219,9 @@ def test_serving_another_drill_keeps_the_old_work(tmp_path):
     (tmp_path / "current.py").write_text(open(drill_for(second)).read())
     assert "moved to current.mu.prev" in session(tmp_path, "stub").stdout
     assert (tmp_path / "current.mu.prev").read_text() == work
-    assert (tmp_path / "current.mu").read_text().startswith("# DRILL: Last True")
+    assert (tmp_path / "current.mu").read_text().startswith(
+        f"# {title(open(drill_for(second)).read())}\n"
+    )
 
 
 def test_a_current_mu_for_another_drill_is_not_run(tmp_path):
@@ -231,8 +234,8 @@ def test_a_current_mu_for_another_drill_is_not_run(tmp_path):
 
 
 def test_drill_fill_leaves_the_heaviest_lines_of_the_latest_solve(tmp_path):
-    """DRILL_FILL: the drill server writes .mu_fill naming the drill; the
-    statement says nothing. The stub gives the solved file's mu solve with
+    """DRILL_FILL: the drill server writes .mu_fill naming the drill by
+    its id, the one .drill.json names; the statement says nothing. The stub gives the solved file's mu solve with
     its heaviest half put as `pass` (the prefix sums and the answer), setup
     and the count kept, and the filled stub still runs."""
     ref = reference("d11_")
@@ -244,7 +247,8 @@ def test_drill_fill_leaves_the_heaviest_lines_of_the_latest_solve(tmp_path):
     drill = open(drill_for(ref)).read()
     (tmp_path / "current.py").write_text(drill)
     assert "DRILL_FILL" not in drill
-    fill = {"drill": title(drill), "source": "solved/d_x.py", "blank": [1, 2]}
+    (tmp_path / ".drill.json").write_text(json.dumps({"drill": "d11"}))
+    fill = {"drill": "d11", "source": "solved/d_x.py", "blank": [1, 2]}
     (tmp_path / ".mu_fill").write_text(json.dumps(fill))
     assert "DRILL_FILL gives" in session(tmp_path, "stub").stdout
     mu = (tmp_path / "current.mu").read_text()
@@ -254,7 +258,7 @@ def test_drill_fill_leaves_the_heaviest_lines_of_the_latest_solve(tmp_path):
 
     # a solve archived as .mu gives the same fill
     (tmp_path / "solved" / "d_y.mu").write_text(
-        f"# DRILL: {title(drill)}\n#\n# ---\n\n# mu {VERSION}\n\n" + open(ref).read().split("\n", 1)[1]
+        f"# {title(drill)}\n#\n# ---\n\n# mu {VERSION}\n\n" + open(ref).read().split("\n", 1)[1]
     )
     fill["source"] = "solved/d_y.mu"
     (tmp_path / ".mu_fill").write_text(json.dumps(fill))
@@ -265,15 +269,17 @@ def test_drill_fill_leaves_the_heaviest_lines_of_the_latest_solve(tmp_path):
 
 def test_drill_fill_is_left_out_for_another_drill(tmp_path):
     (tmp_path / "current.py").write_text(open(drill_for(reference("d11_"))).read())
-    fill = {"drill": "Another Drill", "source": "solved/d_x.py", "blank": [1, 2]}
+    (tmp_path / ".drill.json").write_text(json.dumps({"drill": "d11"}))
+    fill = {"drill": "d12", "source": "solved/d_x.py", "blank": [1, 2]}
     (tmp_path / ".mu_fill").write_text(json.dumps(fill))
     assert "DRILL_FILL" not in session(tmp_path, "stub").stdout
 
 
 def test_a_mu_syntax_error_names_the_line(tmp_path):
-    shutil.copy(drill_for(reference("d115_")), tmp_path / "current.py")
+    drill = drill_for(reference("d115_"))
+    shutil.copy(drill, tmp_path / "current.py")
     (tmp_path / "current.mu").write_text(
-        "# DRILL: First True\ndef firstTrue(lo: int) -> int\n  x = \n"
+        f"# {title(open(drill).read())}\ndef firstTrue(lo: int) -> int\n  x = \n"
     )
     run = session(tmp_path, "run")
     assert run.returncode == 1

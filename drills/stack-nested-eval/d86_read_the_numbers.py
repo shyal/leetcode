@@ -1,6 +1,4 @@
 """
-DRILL: Read The Numbers
-
 Given a string s of nonnegative integers separated by single '+'
 characters, return the integers in the order they appear. The '+'
 separates the numbers and is otherwise ignored.

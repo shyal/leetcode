@@ -588,14 +588,20 @@ fn main() {
         .collect();
     let evidence = evidence_v["evidence"].as_object().unwrap();
     // the first rep of a drill is unaided at the node level (kg_lib.ev_index)
-    let ev_list: Vec<(&str, &str)> = evidence
+    let ev_list: Vec<(Option<&str>, &str, &str)> = evidence
         .iter()
-        .map(|(f, r)| (f.as_str(), r["date"].as_str().unwrap()))
+        .map(|(f, r)| {
+            (
+                r.get("drill").and_then(Value::as_str),
+                f.as_str(),
+                r["date"].as_str().unwrap(),
+            )
+        })
         .collect();
     let first_reps: std::collections::HashSet<&str> =
         kg::mock::first_drill_reps(ev_list.iter().copied())
             .into_iter()
-            .map(|i| ev_list[i].0)
+            .map(|i| ev_list[i].1)
             .collect();
 
     // ---- date ticks: opening dark frame + every day of the history --------
@@ -1424,6 +1430,7 @@ fn main() {
                 })
                 .unwrap_or_default(),
             assist: kg::mock::assist_map(r),
+            drill: r.get("drill").and_then(Value::as_str).map(String::from),
         })
         .collect();
     ev_recs.sort_by(|a, b| a.date.cmp(&b.date));

@@ -1,6 +1,4 @@
 """
-DRILL: Companies Among
-
 Given employees, a list of employee numbers, return how many different
 companies they belong to. Solution extends UnionFind from
 dsa/union_find.py: self.parent[i] is the manager of employee i, an

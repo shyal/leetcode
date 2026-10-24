@@ -1,7 +1,4 @@
 """
-DRILL: Withdraw
-TRAINS: py-custom-exception
-
 Given a `balance` and an `amount`, return the balance after the
 withdrawal. When the amount is more than the balance, raise
 InsufficientFunds, an exception class of your own, carrying the

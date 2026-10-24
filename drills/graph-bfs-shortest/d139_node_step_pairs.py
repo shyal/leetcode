@@ -1,6 +1,4 @@
 """
-DRILL: Node Step Pairs
-
 Start on node 0 of the directed graph G. Each step, move along one edge,
 for at most k steps. For example, with G = {0: [1], 1: [2], 2: [3], 3: [1]}
 and k = 4:

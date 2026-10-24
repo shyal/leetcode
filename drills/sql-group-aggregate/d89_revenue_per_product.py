@@ -1,6 +1,4 @@
 """
-DRILL: Revenue Per Product
-
 Given the table `Sales`, return each `product_id` with its `revenue`: the sum
 over its sales of `price` times `units`. No ordering required.
 

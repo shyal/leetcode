@@ -1,6 +1,4 @@
 """
-DRILL: Fixed Slide
-
 Given a string s and an integer k, return the largest number of different
 characters found in any k consecutive characters of s.
 

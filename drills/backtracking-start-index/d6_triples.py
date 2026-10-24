@@ -1,6 +1,4 @@
 """
-DRILL: Triples
-
 Given an integer n, return every triple [a, b, c] of integers with
 0 <= a < b < c < n. List the triples in lexicographic order.
 

@@ -1,6 +1,4 @@
 """
-DRILL: Paid Orders Per Customer
-
 Given the tables `Customers` and `Orders`, return `name` and `paid_orders`
 for every customer: the number of that customer's orders whose `status` is
 'paid'. A customer with no paid order shows 0. No ordering required.

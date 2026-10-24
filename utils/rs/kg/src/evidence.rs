@@ -1,7 +1,7 @@
 // graph/evidence.json in memory, with the index kg_lib._EvidenceIndex keeps:
-// records grouped by node, by problem and by date, the d_ drill reps, and
-// which record is the first rep of its drill (first exposure, scored as
-// unaided at the node). Records stay in file order; the replay
+// records grouped by node, by problem and by date, the drill reps (the
+// records with a "drill" id), and which record is the first rep of its
+// drill (first exposure, scored as unaided at the node). Records stay in file order; the replay
 // (review_ahead) appends to a copy and the index grows with it.
 
 use std::cell::RefCell;
@@ -21,19 +21,12 @@ pub struct NodeEntry {
     pub idx: usize,
 }
 
-/// kg_lib.drill_key: the drill a d_ solved file is a rep of.
-pub fn drill_key(fname: &str) -> Option<String> {
-    crate::mock::drill_key(fname)
-}
-
 pub fn basename(fname: &str) -> &str {
     fname.rsplit('/').next().unwrap_or(fname)
 }
 
 #[derive(Clone, Default)]
 pub struct Caches {
-    /// drill file key ("d_<stem>_") -> indices into `drills`, in order
-    drill_reps: HashMap<String, Rc<Vec<usize>>>,
     /// the latest verdict per node (kg_lib.dodged_nodes' memo)
     dodged: Option<HashMap<String, String>>,
     /// kg_lib._NODE_DRILL_HOLD: (node, day) -> (servable cold files, cold files)
@@ -61,7 +54,7 @@ pub struct Caches {
     /// drills::wanted_drills per day: the cold drills a held drill waits on
     pub wanted: HashMap<NaiveDate, Rc<HashSet<PathBuf>>>,
     /// the records appended since the drill caches were last checked:
-    /// (moves, drill basename, problem). drills::sync_caches drops the
+    /// (moves, drill id, problem). drills::sync_caches drops the
     /// entries a record can have changed (kg_lib recomputes; the answer
     /// is the same).
     pub push_log: Vec<(Vec<String>, Option<String>, Option<String>)>,
@@ -78,13 +71,14 @@ pub struct Evidence {
     pub by_node: HashMap<String, Vec<NodeEntry>>,
     pub by_problem: HashMap<String, Vec<usize>>,
     pub by_date: HashMap<String, Vec<usize>>,
-    /// (date, lowercase basename, record index) of every d_ file
+    /// (date, lowercase basename, record index) of every drill rep
     pub drills: Vec<(String, String, usize)>,
     pub first_reps: HashSet<usize>,
-    /// record indices per drill key, file order (the first with a date on
+    /// record indices per drill id, file order (the first with a date on
     /// or before a cut is that cut's first rep)
     pub drill_key_order: HashMap<String, Vec<usize>>,
-    drills_seen: HashSet<String>,
+    /// indices into `drills` per drill id, file order
+    drill_reps: HashMap<String, Rc<Vec<usize>>>,
     version: u64,
     caches: RefCell<Caches>,
 }
@@ -100,7 +94,7 @@ impl Evidence {
             drills: Vec::new(),
             first_reps: HashSet::new(),
             drill_key_order: HashMap::new(),
-            drills_seen: HashSet::new(),
+            drill_reps: HashMap::new(),
             version: 0,
             caches: RefCell::new(Caches::default()),
         };
@@ -126,13 +120,14 @@ impl Evidence {
     pub fn push(&mut self, fname: String, rec: Rec) {
         let idx = self.recs.len();
         let d = parse_date(&rec.date);
-        let key = drill_key(&fname);
-        let first = key.as_ref().is_some_and(|k| !self.drills_seen.contains(k));
+        let key = rec.drill.clone();
+        let first = key
+            .as_ref()
+            .is_some_and(|k| !self.drill_key_order.contains_key(k));
         if let Some(k) = &key {
             self.drill_key_order.entry(k.clone()).or_default().push(idx);
         }
         if first {
-            self.drills_seen.insert(key.unwrap());
             self.first_reps.insert(idx);
         }
         for (node, v) in &rec.moves {
@@ -155,35 +150,25 @@ impl Evidence {
         }
         self.by_date.entry(rec.date.clone()).or_default().push(idx);
         let base = basename(&fname).to_lowercase();
-        if base.starts_with("d_") {
-            self.drills.push((rec.date.clone(), base.clone(), idx));
+        if let Some(k) = &key {
+            self.drills.push((rec.date.clone(), base, idx));
+            let di = self.drills.len() - 1;
+            Rc::make_mut(self.drill_reps.entry(k.clone()).or_default()).push(di);
         }
         self.by_fname.insert(fname.clone(), idx);
         // the caches: what the new record can change is dropped, the rest
         // kept (the Python memos extend the same way, kg_lib._IMMATURE)
         let touched: Vec<String> = rec.moves.keys().cloned().collect();
         let problem = rec.problem.clone();
-        let is_drill = base.starts_with("d_");
+        let is_drill = key.is_some();
         self.recs.push((fname, rec));
         self.version += 1;
         let mut c = self.caches.borrow_mut();
-        if is_drill {
-            let di = self.drills.len() - 1;
-            for (key, v) in c.drill_reps.iter_mut() {
-                if base.starts_with(key.as_str()) {
-                    Rc::make_mut(v).push(di);
-                }
-            }
-        }
         c.dodged = None;
         if is_drill {
             c.anki.clear();
         }
-        c.push_log.push((
-            touched.clone(),
-            if is_drill { Some(base.clone()) } else { None },
-            problem.clone(),
-        ));
+        c.push_log.push((touched.clone(), key, problem.clone()));
         c.immature_dirty.extend(touched.iter().cloned());
         c.graduation.retain(|(n, _), _| !touched.contains(n));
         c.axes.retain(|(n, _, _), _| !touched.contains(n));
@@ -220,23 +205,14 @@ impl Evidence {
         self.by_date.get(day).map(Vec::as_slice).unwrap_or(&[])
     }
 
-    /// Indices into `drills` of the reps of one bank file: the d_ records
-    /// whose basename starts with `key` ("d_<stem>_", lowercase), file order.
-    pub fn drill_reps(&self, key: &str) -> Rc<Vec<usize>> {
-        let mut c = self.caches.borrow_mut();
-        if let Some(v) = c.drill_reps.get(key) {
-            return v.clone();
-        }
-        let v: Vec<usize> = self
-            .drills
-            .iter()
-            .enumerate()
-            .filter(|(_, (_, base, _))| base.starts_with(key))
-            .map(|(i, _)| i)
-            .collect();
-        let v = Rc::new(v);
-        c.drill_reps.insert(key.to_string(), v.clone());
-        v
+    /// Indices into `drills` of the reps of one drill id, file order.
+    pub fn drill_reps(&self, id: &str) -> Rc<Vec<usize>> {
+        self.drill_reps.get(id).cloned().unwrap_or_default()
+    }
+
+    /// Whether the record at `idx` is a drill rep.
+    pub fn is_drill(&self, idx: usize) -> bool {
+        self.recs[idx].1.drill.is_some()
     }
 
     /// kg_lib.solved_problems: every problem number with a record.

@@ -1,7 +1,4 @@
 """
-DRILL: Node Distance Pairs
-TRAINS: graph-bfs-shortest
-
 Start on node 0 of the directed graph G. G maps each node to the list of
 nodes its edges point to. Each step, move along one edge. Never visit a
 node twice. For example, with G = {0: [1, 2], 1: [2], 2: [0]}:

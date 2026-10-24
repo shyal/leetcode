@@ -1,6 +1,4 @@
 """
-DRILL: Largest Even
-
 Given an array nums of non-negative integers, return the largest even
 element of nums. Return -1 when nums has no even element.
 

@@ -1,6 +1,4 @@
 """
-DRILL: Longest Common Subsequence
-
 Given two strings a and b, return the length of the longest string that is
 a subsequence of both. A subsequence is what is left after deleting zero or
 more characters from a string, with the order of the rest unchanged.

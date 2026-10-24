@@ -6,10 +6,11 @@
 //   drill monotonic-stack --list
 //
 // The workflow then matches leetcode problems exactly: a branch named after
-// the node is created off master with the stub committed; solve current.py,
-// run `make solved` - the DRILL header and its drills.json entry route it to
-// a d_-prefixed file in solved/ and drill evidence in the graph, and the
-// branch squash-merges into master like any problem branch.
+// the drill id is created off master with the stub committed; solve
+// current.py, run `make solved` - .drill.json (the id written here) and the
+// drill's drills.json entry route it to a d_-prefixed file in solved/ and
+// drill evidence in the graph, and the branch squash-merges into master
+// like any problem branch.
 //
 // Ported from utils/kg/drill (Python) on 2026-09-12.
 
@@ -112,7 +113,7 @@ fn main() {
                 format!(
                     "  [yellow]held by {}[/yellow]",
                     if after.is_empty() {
-                        "TRAINS".to_string()
+                        "trains".to_string()
                     } else {
                         after.join(", ")
                     }
@@ -163,14 +164,16 @@ fn main() {
         Ok(note) if !note.is_empty() => format!("{note}\n{content}"),
         _ => content,
     };
-    let title = Regex::new(&format!(
-        r"(?m)^\s*{}DRILL:\s*(.+)$",
-        kg::lang::comment_prefix()
-    ))
-    .unwrap()
-    .captures(&content)
-    .map(|m| m[1].trim().to_string())
-    .unwrap_or_else(|| path.file_stem().unwrap().to_string_lossy().into_owned());
+    let Some(did) = ctx.drill_id(&path) else {
+        console.print(&format!(
+            "[red]{} has no graph/drills.json entry (its \"file\" field), so its reps could not be tracked.[/red]",
+            path.display()
+        ));
+        std::process::exit(1);
+    };
+    let title = ctx
+        .drill_title(&path)
+        .unwrap_or_else(|| path.file_stem().unwrap().to_string_lossy().into_owned());
     // DRILL_FILL: after Good reps in a row, the latest one's solve is
     // given but for its heaviest statements. .mu_fill tells `mu/session.py
     // stub` which drill, which file and what share; the statement says
@@ -183,21 +186,15 @@ fn main() {
         if lang.name == "Python" {
             std::fs::write(
                 &fill_path,
-                serde_json::json!({"drill": title, "source": source, "blank": [num, den]})
+                serde_json::json!({"drill": did, "source": source, "blank": [num, den]})
                     .to_string(),
             )
             .expect("write .mu_fill");
         }
     }
-    let node_id = path
-        .parent()
-        .and_then(|d| d.file_name())
-        .map(|s| s.to_string_lossy().into_owned())
-        .unwrap_or_default();
     // the branch is the drill's graph id: unique per drill, the way a
     // problem's branch is its number; the node name is shared by its bank
-    let did = ctx.drill_id(&path);
-    let branch = did.clone().unwrap_or(node_id);
+    let branch = did.clone();
 
     if !clear_branch(&ctx.root, &branch) {
         return;
@@ -221,13 +218,14 @@ fn main() {
     // which `make solved` later squash-merges back and deletes
     git(&["checkout", "master"]);
     std::fs::write(&current, &content).expect("write the current file");
+    kg::lang::set_current_drill(&ctx.root, &did).expect("write .drill.json");
     git(&["checkout", "-b", &branch]);
     git(&["add", "."]);
     git(&["commit", "-m", &format!("drill: {title}")]);
 
     console.print(&format!(
         "Loaded [bold]{}. {title}[/bold] ({}) into {current_name} on branch [bold]{branch}[/bold]  [dim](last drilled: {})[/dim]",
-        did.unwrap_or_default(),
+        did,
         path.display(),
         when_of(&path)
     ));

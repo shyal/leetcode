@@ -1,6 +1,4 @@
 """
-DRILL: Sales With Product Names
-
 Given the tables `Sales` and `Product`, return `product_name`, `year` and
 `price` for every sale. No ordering required.
 

@@ -1,6 +1,4 @@
 """
-DRILL: Top Two Distinct Scores
-
 Given the table `Scores`, return `id` and `score` for every row whose
 `score` is among the two highest distinct scores. No ordering required.
 

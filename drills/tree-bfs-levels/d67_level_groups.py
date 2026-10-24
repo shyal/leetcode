@@ -1,6 +1,4 @@
 """
-DRILL: Level Groups
-
 An n-ary tree is encoded as nested lists: each node is [value, *children].
 Return the node values grouped by depth, top to bottom, left to right
 within each level.

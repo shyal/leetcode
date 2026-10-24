@@ -1,7 +1,4 @@
 """
-DRILL: Clear Lowest Set Bit
-TRAINS: bit-iterate
-
 Given a positive integer x, return x with its lowest set bit cleared. A
 bit is set when it is 1. The lowest set bit is the set bit of least
 value. Every other bit of x does not change.

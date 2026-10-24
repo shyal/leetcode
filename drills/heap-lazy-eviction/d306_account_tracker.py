@@ -1,6 +1,4 @@
 """
-DRILL: Account Tracker
-
 Problem: Maintain account balances from transactions.
 
 You're given a sequence of transactions:

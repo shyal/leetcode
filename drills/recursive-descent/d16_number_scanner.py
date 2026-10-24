@@ -1,6 +1,4 @@
 """
-DRILL: Number Scanner
-
 An old sorting machine reads shipping labels with a mechanical head that
 slides along the label one character at a time. Labels mix amounts with
 punctuation, like "120+45-30". You are rebuilding the head.

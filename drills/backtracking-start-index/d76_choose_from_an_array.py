@@ -1,5 +1,4 @@
 """
-DRILL: Choose From an Array
 SNIPPET: lccomb
 
 Given an array nums of distinct integers and an integer k, return every

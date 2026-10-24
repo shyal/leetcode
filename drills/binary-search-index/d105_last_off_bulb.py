@@ -1,6 +1,4 @@
 """
-DRILL: Last Off Bulb
-
 Given a row of bulbs lit, where lit[i] is True when bulb i is on, return
 the index of the last bulb that is off. Every bulb before it is off and
 every bulb after it is on. At least one bulb is off.

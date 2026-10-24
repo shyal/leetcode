@@ -1,7 +1,4 @@
 """
-DRILL: Smaller Before
-TRAINS: dp-1d-rolling
-
 Given an integer array nums, return an array dp of the same length where
 dp[i] is how many values at an index below i are strictly smaller than
 nums[i].

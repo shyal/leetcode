@@ -47,6 +47,7 @@ from mulang import VERSION, MuError, Parser, fmt, mu_type, transpile  # noqa: E4
 CURRENT, MU, STUB, RUN = "current.py", "current.mu", ".mu_stub", ".mu_current.py"
 MAP = ".mu_current.map.json"
 FILL = ".mu_fill"  # DRILL_FILL: the solved file and share the drill server gives
+DRILL = ".drill.json"  # the bank drill the current file holds: {"drill": id}
 HELPERS = "<mu helpers>"  # the file name of the pasted helpers' frames
 PREV = "current.mu.prev"
 SOLVE = (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)  # the top-level nodes a solve is made of
@@ -482,14 +483,15 @@ def names(tree):
 
 def drill_fill(root, py_src):
     """The filled solve for current.py when the drill server wrote .mu_fill
-    for this drill (its title), else None: the solved file must have every
-    class and def of the solve as served."""
+    for this drill (its id, the one .drill.json names), else None: the
+    solved file must have every class and def of the solve as served."""
     try:
         spec = json.loads((root / FILL).read_text())
         source = (root / spec["source"]).read_text()
-    except (OSError, ValueError, KeyError):
+        served = json.loads((root / DRILL).read_text()).get("drill")
+    except (OSError, ValueError, KeyError, AttributeError):
         return None
-    if spec.get("drill") != title(py_src):
+    if not served or spec.get("drill") != served:
         return None
     solve = solved_mu(source, spec["source"])
     served = names(ast.Module(body=solve_nodes(parse(py_src)), type_ignores=[]))
@@ -520,7 +522,7 @@ def stub(py_src, solve=None):
 
 
 def title(text, comment=False):
-    """The first line of a statement: `DRILL: Count Cells`."""
+    """The first line of a statement: `636. Exclusive Time of Functions`."""
     if comment:
         first = text.split("\n", 1)[0]
         return first[1:].strip() if first.startswith("#") else ""

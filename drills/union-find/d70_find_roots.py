@@ -1,6 +1,4 @@
 """
-DRILL: Find Roots
-
 Given parent, a list where parent[i] is the manager of employee i, return
 a function find. An employee who is their own manager is a head. The call
 find(x) follows managers from x and returns the head it reaches.

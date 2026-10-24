@@ -13,7 +13,7 @@ import leetmu  # noqa: E402, F401
 from mulang import ide  # noqa: E402
 
 # line 12 is half typed, line 13 never closes its bracket
-TEXT = """# DRILL: Largest Of The Last K
+TEXT = """# Largest Of The Last K
 # Example
 from dsa.monotonic_queue import MonotonicQueue, Type
 

@@ -1,6 +1,4 @@
 """
-DRILL: Count Smaller Values
-
 Given an integer array nums whose values all lie between 0 and 100
 inclusive, return an array counts where counts[i] is the number of
 elements of nums that are strictly smaller than nums[i].

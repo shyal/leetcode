@@ -1,6 +1,3 @@
-DRILL: Mint Writes
-TRAINS: design-mint
-
 Design Mint.com. A user connects a financial account; the service extracts its
 transactions daily, categorises each one, computes monthly spending by
 category, recommends a budget and notifies the user near or over budget.

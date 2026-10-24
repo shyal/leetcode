@@ -1,6 +1,4 @@
 """
-DRILL: Consecutive Numbers
-
 Given the table `Logs`, return every `num` that appears at least three
 times in a row when the rows are ordered by `id`. Each qualifying `num`
 appears once in the result. No ordering required.

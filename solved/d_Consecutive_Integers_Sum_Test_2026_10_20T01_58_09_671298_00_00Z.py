@@ -1,5 +1,5 @@
 """
-DRILL: Split Into A Run
+DRILL: Consecutive Integers Sum Test
 TRAINS: consecutive-sum-split
 
 Given two positive integers n and k, return True if n is the sum of k
@@ -39,15 +39,15 @@ learning
 
 # mu 0.12
 # class Solution
-#   def splitIntoRun(n: int, k: int) -> bool
+#   def isConsecutiveSum(n: int, k: int) -> bool
 #     rest = n - k * (k - 1) // 2
 #     rest > 0 and rest % k == 0
 
 class Solution:
-    def splitIntoRun(self, n: int, k: int) -> bool:
+    def isConsecutiveSum(self, n: int, k: int) -> bool:
         rest = n - k * (k - 1) // 2
         return rest > 0 and rest % k == 0
 
 
 sol = Solution()
-print(sol.splitIntoRun(15, 3))
+print(sol.isConsecutiveSum(15, 3))

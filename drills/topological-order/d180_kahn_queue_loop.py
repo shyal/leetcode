@@ -1,6 +1,4 @@
 """
-DRILL: Kahn Queue Loop
-
 The pair [a, b] in prerequisites means course b is a prerequisite of
 course a. Return the courses 0 to numCourses - 1 in an order that puts
 every course after all of its prerequisites. Return [] when no such

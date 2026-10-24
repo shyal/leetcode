@@ -775,7 +775,7 @@ fn a_pending_plan_drill_for_the_prereq_holds_the_dependent() {
 /// marked start-index solid with five drills, subsets included, untouched).
 #[test]
 fn a_solid_owned_node_has_no_drill_due() {
-    let fx = Fx::new();
+    let mut fx = Fx::new();
     let d0 = fx.bank_file("some-node", "d0.py", "DRILL: Only One\n");
     let done = drill_file("solved/d_Only_One_1.py", "some-node", 5, Assist::None);
     let ev = evidence(vec![solve("7", &[("some-node", "clean")], 2), done.clone()]);
@@ -823,7 +823,7 @@ fn an_assisted_rung_with_undone_rungs_above_it_is_served_again() {
 /// it, an owned drill is not in it, and the once-a-day rule still holds.
 #[test]
 fn assisted_serves_only_drills_whose_latest_rep_was_assisted() {
-    let fx = Fx::new();
+    let mut fx = Fx::new();
     let mut paths = vec![];
     for (i, t) in ["Owned", "Hinted", "Learning", "Fresh"].iter().enumerate() {
         paths.push(fx.bank_file(
@@ -1104,7 +1104,7 @@ fn the_cram_ladder_climbs_on_an_assisted_clean() {
 /// is the latest rep.
 #[test]
 fn two_same_day_reps_of_one_drill_do_not_crash_the_ladder() {
-    let fx = Fx::new();
+    let mut fx = Fx::new();
     let r1 = fx.bank_file("n", "r1.py", "\"\"\"\nDRILL: R One\nTRAINS: n\n\"\"\"\n");
     let t1 = drill_file("solved/d_R_One_2026_08_30T01.py", "n", 0, Assist::None);
     let (f2, mut rec2) = drill_file("solved/d_R_One_2026_08_30T02.py", "n", 0, Assist::None);
@@ -1388,7 +1388,7 @@ fn a_move_at_its_floor_gets_its_bank_again() {
 /// one, and a file with an unknown extension is not a drill.
 #[test]
 fn a_typescript_bank_file_is_a_drill() {
-    let fx = Fx::new();
+    let mut fx = Fx::new();
     let ts = fx.bank_file(
         "ts-node",
         "d9_total.ts",
@@ -1399,7 +1399,7 @@ fn a_typescript_bank_file_is_a_drill() {
     assert_eq!(*ctx.bank_paths("ts-node"), vec![ts.clone()]);
     assert_eq!(ctx.drill_title(&ts).as_deref(), Some("Order Total"));
     assert_eq!(ctx.drill_trains(&ts), vec!["ts-node".to_string()]);
-    assert_eq!(ctx.drill_evidence_key(&ts), "d_order_total_");
+    assert_eq!(ctx.drill_evidence_key(&ts), "t:Order Total");
     assert!(ctx.has_drill_bank("ts-node"));
 }
 

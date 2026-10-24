@@ -1,6 +1,4 @@
 """
-DRILL: Next Day
-
 Given the table `Weather`, return `recordDate` and `next_day` for every
 row: `next_day` is the calendar date one day after `recordDate`, as
 'YYYY-MM-DD'. No ordering required.

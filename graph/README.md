@@ -52,7 +52,7 @@ and generate combination drills ("rote sheets").
   `make sleep` then re-queues.
 
   The judge does not hold up `make solved`. The file phase writes a placeholder
-  entry - the rep, dated, on the drill's TRAINS (or the problem's canonical walk)
+  entry - the rep, dated, on the drill's "trains" (or the problem's canonical walk)
   marked clean, assist read from the level word in the notes - with a `pending`
   stamp, and commits at once. A detached `kg_extract --file F --commit` then judges
   the file, replaces the entry, refits the curve, and commits the graph files by
@@ -142,11 +142,22 @@ and generate combination drills ("rote sheets").
 ## The drill bank (../drills/)
 
 `drills/<node-id>/*.py` (or `.ts`, see Languages below) is a growing bank of self-authored, leetcode-style drill files —
-statement, `Solution` skeleton, asserts — each targeting one node. The docstring headers
-route everything automatically:
+statement, `Solution` skeleton, asserts — each targeting one node. A bank file
+holds the statement only. Its id, title, node and file are in `graph/drills.json`,
+and nothing reads a title or a node from the file:
 
-    DRILL: Next Greater Index      <- title (instead of "290. Word Pattern")
-    TRAINS: monotonic-stack        <- node id(s) this drill evidences
+    "d14": {
+      "title": "Next Greater Index",               <- what make next and the commit show
+      "file": "monotonic-stack/d14_next_greater_index.py",  <- under drills/
+      "after": [],
+      "trains": ["monotonic-stack"]                <- node id(s) this drill evidences
+    }
+
+`make drill` writes the id to `.drill.json` (`{"drill": "d14"}`) when it serves the
+file. `make solved` reads the id from there, and the evidence entry of the rep gets
+`"drill": "d14"`. The scheduler finds the reps of a drill by that field. A title
+rename is one change in `drills.json`: the reps, the clock and every gate stay
+(2026-10-24, before that the reps were found by the title in the solved filename).
 
 A fail is not finished until it has a drill (2026-09-28). A fail filed by
 `make failed` stays open until the problem's `after` list in `problems.json` names a drill (799 names d147).
@@ -160,16 +171,16 @@ open (2026-10-06); unset, the gate is on.
 Workflow is identical to leetcode problems: `make drill <node-id>` (or
 `make prepare <node-id>` — prepare routes non-numeric targets here) copies the
 least-recently-drilled file into current.py and commits it on a branch named
-after the node, off master; solve; `make solved` files it as
-`solved/d_<title>_<ts>.py` and kg_extract records drill evidence against the TRAINS
-nodes (problem = "drill"; problems.json is never touched; leetcode solve stats ignore
-d-files). Every drill improvised in chat gets deposited here afterwards, so the rote
+after the drill id, off master; solve; `make solved` files it as
+`solved/d_<title>_<ts>.py` (the name is for people; nothing reads it) and kg_extract
+records drill evidence against the "trains" nodes (problem = "drill", drill = the id;
+problems.json is never touched; leetcode solve stats ignore d-files). Every drill improvised in chat gets deposited here afterwards, so the rote
 sheet grows with every gap found.
 
 A drill is a vertex of the graph like a problem or a node. Its id is a number
 like `d14`, assigned once in `graph/drills.json` and never reused (the way
-LeetCode numbers are); the entry carries the DRILL title, which is how the bank
-file and the evidence are found, and its edges: `"after": [ids]`, what the drill
+LeetCode numbers are); the entry carries the title, the bank file, the nodes it
+trains, and its edges: `"after": [ids]`, what the drill
 builds on. `make prepare d14` serves it. One relation covers the whole graph: an
 id in any `after` list (problems.json or drills.json) is a problem number, a
 drill id, or a node id,
@@ -183,21 +194,19 @@ drill is not served while an id it comes after is not warm (`kg_lib.held_behind`
 A drill file is written in one of the languages in the `kg::lang` table:
 Python (`.py`, the house language, which mu compiles to), TypeScript
 (`.ts`), Rust (`.rs`) or Design (`.markdown`, prose). The extension is the whole of it. A `.ts` drill carries its
-statement as the leading `//` comment block, the same `DRILL:` and `TRAINS:`
-lines, the function stub, a `console.log` demo and the asserts commented out
+statement as the leading `//` comment block, the function stub, a `console.log` demo and the asserts commented out
 with `//`, written against `node:assert/strict`. `make drill` serves it as
 `current.ts`; `make` type-checks it with tsc in strict mode and runs it with
 node; `make solved` archives it as `solved/d_<title>_<ts>.ts`, and the judge
 runs it the same way before reading it. The bank scan, the picker, the
-evidence key (`d_<title>_`, extension-free) and the reference test all read
-the table, so a further language is one more entry there plus its
+evidence key and the reference test all read
+the table (the evidence key is the drill id), so a further language is one more entry there plus its
 toolchain. `utils/harness/ts/node.d.ts` declares the node builtins the
 drills import, so tsc needs no npm install; `tsconfig.json` points the
 editor at it.
 
 A systems design drill is prose, a `.markdown` file (`current.md` is the
-recognition rep's): the `DRILL:`, `TRAINS:` and `REQUIRED:` lines and the
-statement above a `## Answer` line, the answer written under it. Nothing
+recognition rep's): the statement and its `REQUIRED:` line above a `## Answer` line, the answer written under it. Nothing
 runs: `make` and `make solved` pass the file once an answer, of a word or
 more, is there, and the judge grades the answer against the reference,
 `graph/node_notes/<node>/dNNN_<slug>.markdown`, whose `REQUIRED` points must

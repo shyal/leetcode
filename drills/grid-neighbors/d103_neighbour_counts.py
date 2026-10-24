@@ -1,6 +1,4 @@
 """
-DRILL: Neighbour Counts
-
 Given a grid of m rows and n columns, return a table of the same shape
 where each cell holds the number of cardinal neighbours of that cell that
 lie on the grid. Use like, cells and nbrs from the harness.

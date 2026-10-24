@@ -1,6 +1,4 @@
 """
-DRILL: Who Has The Most Friends
-
 Given the table `RequestAccepted`, return the `id` and `num` (number of
 friends) of the person with the most friends. An accepted request makes both
 people friends of each other. The test data has a unique answer.

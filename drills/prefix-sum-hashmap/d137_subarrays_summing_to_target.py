@@ -1,6 +1,4 @@
 """
-DRILL: Subarrays Summing To Target
-
 Given an integer array vals and an integer target, return the number of
 contiguous subarrays of vals whose elements sum to target. Values can be
 negative.

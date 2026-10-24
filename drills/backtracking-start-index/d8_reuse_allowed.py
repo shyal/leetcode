@@ -1,5 +1,4 @@
 """
-DRILL: Reuse Allowed
 SNIPPET: lccomb
 
 Given an array nums of distinct positive integers and an integer target,

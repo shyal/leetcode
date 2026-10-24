@@ -1,6 +1,4 @@
 """
-DRILL: First Lit Bulb
-
 Given a row of bulbs lit, where lit[i] is True when bulb i is on, return
 the index of the first bulb that is on. Every bulb before it is off and
 every bulb after it is on. At least one bulb is on.

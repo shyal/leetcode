@@ -1,6 +1,4 @@
 """
-DRILL: Slide, Never Shrink
-
 Given a binary array nums and an integer k, return the length of the
 longest run of consecutive 1s you can make by flipping at most k zeros
 to 1.

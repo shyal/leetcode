@@ -1,6 +1,4 @@
 """
-DRILL: Nth From End
-
 Given the head of a linked list and an integer n, return the value of the
 nth node from the end. The last node is the 1st from the end.
 

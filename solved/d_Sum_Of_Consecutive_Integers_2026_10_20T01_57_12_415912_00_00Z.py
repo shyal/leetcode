@@ -1,5 +1,5 @@
 """
-DRILL: Sum Of A Run
+DRILL: Sum Of Consecutive Integers
 TRAINS: consecutive-sum-split
 
 Given two positive integers n and k, return the sum of the k consecutive
@@ -35,31 +35,31 @@ learning
 
 # mu 0.12
 # class Solution
-#   def sumOfRun(n: int, k: int) -> int
+#   def sumOfConsecutive(n: int, k: int) -> int
 #     k * (2 * n + k - 1) // 2
 
 class Solution:
-    def sumOfRun(self, n: int, k: int) -> int:
+    def sumOfConsecutive(self, n: int, k: int) -> int:
         return k * (2 * n + k - 1) // 2
 
 
 sol = Solution()
-print(sol.sumOfRun(4, 3))
-_l, _r = sol.sumOfRun(4, 3), 15
+print(sol.sumOfConsecutive(4, 3))
+_l, _r = sol.sumOfConsecutive(4, 3), 15
 assert _l == _r, (lambda l, r: f"left : {l.lstrip()}\nright: {r.lstrip()}" if "\n" not in l + r else f"left :\n{l}\nright:\n{r}")(*(__import__("textwrap").indent(__import__("pprint").pformat(v, width=__import__("shutil").get_terminal_size().columns - 2, sort_dicts=False), "  ") for v in (_l, _r)))
-_l, _r = sol.sumOfRun(1, 100), 5050
+_l, _r = sol.sumOfConsecutive(1, 100), 5050
 assert _l == _r, (lambda l, r: f"left : {l.lstrip()}\nright: {r.lstrip()}" if "\n" not in l + r else f"left :\n{l}\nright:\n{r}")(*(__import__("textwrap").indent(__import__("pprint").pformat(v, width=__import__("shutil").get_terminal_size().columns - 2, sort_dicts=False), "  ") for v in (_l, _r)))
-_l, _r = sol.sumOfRun(7, 1), 7
+_l, _r = sol.sumOfConsecutive(7, 1), 7
 assert _l == _r, (lambda l, r: f"left : {l.lstrip()}\nright: {r.lstrip()}" if "\n" not in l + r else f"left :\n{l}\nright:\n{r}")(*(__import__("textwrap").indent(__import__("pprint").pformat(v, width=__import__("shutil").get_terminal_size().columns - 2, sort_dicts=False), "  ") for v in (_l, _r)))
-_l, _r = sol.sumOfRun(7, 2), 15
+_l, _r = sol.sumOfConsecutive(7, 2), 15
 assert _l == _r, (lambda l, r: f"left : {l.lstrip()}\nright: {r.lstrip()}" if "\n" not in l + r else f"left :\n{l}\nright:\n{r}")(*(__import__("textwrap").indent(__import__("pprint").pformat(v, width=__import__("shutil").get_terminal_size().columns - 2, sort_dicts=False), "  ") for v in (_l, _r)))
-_l, _r = sol.sumOfRun(1, 5), 15
+_l, _r = sol.sumOfConsecutive(1, 5), 15
 assert _l == _r, (lambda l, r: f"left : {l.lstrip()}\nright: {r.lstrip()}" if "\n" not in l + r else f"left :\n{l}\nright:\n{r}")(*(__import__("textwrap").indent(__import__("pprint").pformat(v, width=__import__("shutil").get_terminal_size().columns - 2, sort_dicts=False), "  ") for v in (_l, _r)))
-_l, _r = sol.sumOfRun(8, 2), 17
+_l, _r = sol.sumOfConsecutive(8, 2), 17
 assert _l == _r, (lambda l, r: f"left : {l.lstrip()}\nright: {r.lstrip()}" if "\n" not in l + r else f"left :\n{l}\nright:\n{r}")(*(__import__("textwrap").indent(__import__("pprint").pformat(v, width=__import__("shutil").get_terminal_size().columns - 2, sort_dicts=False), "  ") for v in (_l, _r)))
-_l, _r = sol.sumOfRun(100, 3), 303
+_l, _r = sol.sumOfConsecutive(100, 3), 303
 assert _l == _r, (lambda l, r: f"left : {l.lstrip()}\nright: {r.lstrip()}" if "\n" not in l + r else f"left :\n{l}\nright:\n{r}")(*(__import__("textwrap").indent(__import__("pprint").pformat(v, width=__import__("shutil").get_terminal_size().columns - 2, sort_dicts=False), "  ") for v in (_l, _r)))
-_l, _r = sol.sumOfRun(10 ** 9, 10 ** 5), sum(range(10 ** 9, 10 ** 9 + 10 ** 5))
+_l, _r = sol.sumOfConsecutive(10 ** 9, 10 ** 5), sum(range(10 ** 9, 10 ** 9 + 10 ** 5))
 assert _l == _r, (lambda l, r: f"left : {l.lstrip()}\nright: {r.lstrip()}" if "\n" not in l + r else f"left :\n{l}\nright:\n{r}")(*(__import__("textwrap").indent(__import__("pprint").pformat(v, width=__import__("shutil").get_terminal_size().columns - 2, sort_dicts=False), "  ") for v in (_l, _r)))
-_l, _r = sol.sumOfRun(1, 1), 1
+_l, _r = sol.sumOfConsecutive(1, 1), 1
 assert _l == _r, (lambda l, r: f"left : {l.lstrip()}\nright: {r.lstrip()}" if "\n" not in l + r else f"left :\n{l}\nright:\n{r}")(*(__import__("textwrap").indent(__import__("pprint").pformat(v, width=__import__("shutil").get_terminal_size().columns - 2, sort_dicts=False), "  ") for v in (_l, _r)))

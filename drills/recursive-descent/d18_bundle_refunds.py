@@ -1,6 +1,4 @@
 """
-DRILL: Bundle Refunds
-
 A warehouse settles its account as one long string of credits and debits,
 e.g. "12-(3+4-(2))". Related items are grouped in parentheses: a bundle
 is bought or refunded as a whole, and bundles nest. The auditors want the

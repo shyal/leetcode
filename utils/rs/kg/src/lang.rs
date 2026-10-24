@@ -113,7 +113,7 @@ pub fn current_names() -> Vec<String> {
 }
 
 /// A line with any language's comment prefix and the spaces after it
-/// removed: `// DRILL: X` and `DRILL: X` both read `DRILL: X`.
+/// removed: `// URL: x` and `URL: x` both read `URL: x`.
 pub fn uncomment(line: &str) -> &str {
     let t = line.trim_start();
     LANGS
@@ -240,17 +240,14 @@ pub fn notes_of(text: &str, lang: &Lang) -> String {
     }
 }
 
-/// ("drill", title) or (problem number, title) from a statement block:
-/// the first `DRILL:` or `<number>. <title>` line, or the line after a
-/// url, as `make solved` names the archive.
+/// (problem number, title) from a problem's statement block: the first
+/// `<number>. <title>` line, or the line after a url, as `make solved`
+/// names the archive. A drill has no such line: it is named by
+/// .drill.json (current_drill).
 pub fn subject(doc: &str) -> Option<(String, String)> {
-    let drill = regex::Regex::new(r"^\**DRILL:\**\s*(.+)").unwrap();
     let prob = regex::Regex::new(r"^(\d+[a-zA-Z]?)\.\s*(.+)").unwrap();
     let lines: Vec<&str> = doc.lines().map(str::trim).collect();
     for line in &lines {
-        if let Some(m) = drill.captures(line) {
-            return Some(("drill".to_string(), m[1].trim().to_string()));
-        }
         if let Some(m) = prob.captures(line) {
             return Some((m[1].trim().to_string(), m[2].trim().to_string()));
         }
@@ -265,10 +262,46 @@ pub fn subject(doc: &str) -> Option<(String, String)> {
     None
 }
 
+/// The state file `make drill` writes: {"drill": "<id>"}, the bank drill
+/// the current file holds. `make solved` and `prepare` remove it.
+pub const DRILL_STATE: &str = ".drill.json";
+
+/// The id of the drill the current file holds, from .drill.json.
+pub fn current_drill(root: &Path) -> Option<String> {
+    let text = std::fs::read_to_string(root.join(DRILL_STATE)).ok()?;
+    let v: serde_json::Value = serde_json::from_str(&text).ok()?;
+    v.get("drill")
+        .and_then(serde_json::Value::as_str)
+        .filter(|s| !s.is_empty())
+        .map(String::from)
+}
+
+/// Record that the current file holds drill `id` (`make drill`).
+pub fn set_current_drill(root: &Path, id: &str) -> std::io::Result<()> {
+    std::fs::write(
+        root.join(DRILL_STATE),
+        serde_json::json!({ "drill": id }).to_string() + "\n",
+    )
+}
+
+/// The current file holds no drill: a problem was served, or the drill
+/// was filed.
+pub fn clear_current_drill(root: &Path) {
+    let _ = std::fs::remove_file(root.join(DRILL_STATE));
+}
+
 /// What the busy current file is about: (path, language, id, title, text).
+/// The id is "drill" for a bank drill, its title from drills.json.
 pub fn current_subject(root: &Path) -> Option<(PathBuf, &'static Lang, String, String, String)> {
     let (path, lang) = busy(root)?;
     let text = std::fs::read_to_string(&path).ok()?;
+    if let Some(did) = current_drill(root) {
+        let title = crate::data::load_drills(root)
+            .get(&did)
+            .map(|d| d.title.clone())
+            .unwrap_or(did);
+        return Some((path, lang, "drill".to_string(), title, text));
+    }
     let (id, title) = subject(&header(&text, lang)?)?;
     Some((path, lang, id, title, text))
 }
@@ -557,7 +590,7 @@ mod tests {
         assert!(of_path(Path::new("current.md")).is_none());
     }
 
-    const DESIGN_FILE: &str = "DRILL: Cache Aside\nTRAINS: design-cache\n\nDescribe the read path.\n\n## Answer\n\nLook in the cache first.\n";
+    const DESIGN_FILE: &str = "Describe the read path.\n\n## Answer\n\nLook in the cache first.\n";
 
     /// A design drill is prose: the statement is above `## Answer`, the
     /// answer below; no comment prefix is stripped and a `#` heading in
@@ -565,18 +598,14 @@ mod tests {
     #[test]
     fn a_design_file_splits_at_the_answer_line() {
         let h = header(DESIGN_FILE, &DESIGN).unwrap();
-        assert!(
-            h.starts_with("DRILL: Cache Aside\nTRAINS: design-cache")
-                && h.ends_with("the read path.")
-        );
+        assert_eq!(h, "Describe the read path.");
         assert_eq!(
             strip_header(DESIGN_FILE, &DESIGN),
             "Look in the cache first.\n"
         );
-        assert_eq!(subject(&h), Some(("drill".into(), "Cache Aside".into())));
         assert_eq!(design_parts("no mark here"), ("no mark here", ""));
-        assert_eq!(uncomment("DRILL: X"), "DRILL: X");
-        assert_eq!(uncomment("# DRILL: X"), "DRILL: X");
+        assert_eq!(uncomment("URL: X"), "URL: X");
+        assert_eq!(uncomment("# URL: X"), "URL: X");
     }
 
     /// Nothing runs for a design file: it passes once an answer of
@@ -652,12 +681,37 @@ mod tests {
         assert!(re.is_match("x\n// DRILL: a") && re.is_match("DRILL: a") && !re.is_match("no"));
     }
 
+    /// 2026-10-24: a drill is named by .drill.json, so its title is the
+    /// drills.json title and a rename never touches the bank file.
+    #[test]
+    fn a_served_drill_is_named_by_its_state_file() {
+        let dir = std::env::temp_dir().join(format!("kg-lang-drill-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join("graph")).unwrap();
+        std::fs::write(
+            dir.join("graph/drills.json"),
+            r#"{"drills": {"d7": {"title": "Order Total", "file": "n/d7_a.py"}}}"#,
+        )
+        .unwrap();
+        std::fs::write(
+            dir.join("current.py"),
+            "\"\"\"\nGiven items.\n\"\"\"\nx = 1\n",
+        )
+        .unwrap();
+        assert_eq!(current_subject(&dir).map(|s| s.2), None);
+        set_current_drill(&dir, "d7").unwrap();
+        assert_eq!(current_drill(&dir).as_deref(), Some("d7"));
+        let (_, _, id, title, _) = current_subject(&dir).unwrap();
+        assert_eq!((id.as_str(), title.as_str()), ("drill", "Order Total"));
+        clear_current_drill(&dir);
+        assert_eq!(current_drill(&dir), None);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
     #[test]
     fn subjects() {
-        assert_eq!(
-            subject("DRILL: Order Total\nTRAINS: x"),
-            Some(("drill".into(), "Order Total".into()))
-        );
+        // a drill names itself in .drill.json, never in its statement
+        assert_eq!(subject("DRILL: Order Total\nTRAINS: x"), None);
         assert_eq!(
             subject("URL: x\n\n1. Two Sum\n"),
             Some(("1".into(), "Two Sum".into()))
@@ -711,7 +765,7 @@ mod tests {
 
     #[test]
     fn mu_header_is_the_comment_block() {
-        let mu = "# DRILL: A\n#\n# ---\n# note\n# LEETCODE: Accepted\n\n# mu 0.12\n\nx = 1\n";
+        let mu = "# 1. A\n#\n# ---\n# note\n# LEETCODE: Accepted\n\n# mu 0.12\n\nx = 1\n";
         assert_eq!(notes_of(mu, &MU), "notes: \n\nnote\nLEETCODE: Accepted");
         assert_eq!(subject(&header(mu, &MU).unwrap()).unwrap().1, "A");
         assert_eq!(strip_header(mu, &MU), "x = 1\n");

@@ -1,5 +1,4 @@
 """
-DRILL: Colors Seen
 SNIPPET: lcflag
 
 Given a list names of strings, each one of "red", "green" or "blue",

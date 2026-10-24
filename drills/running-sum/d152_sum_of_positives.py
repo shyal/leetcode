@@ -1,6 +1,4 @@
 """
-DRILL: Sum Of Positives
-
 Given an integer array nums, return the sum of the elements of nums that
 are greater than 0. Return 0 when there is none.
 

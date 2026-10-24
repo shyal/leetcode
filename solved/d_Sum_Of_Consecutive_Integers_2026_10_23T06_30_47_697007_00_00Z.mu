@@ -1,4 +1,4 @@
-# DRILL: Sum Of A Run
+# DRILL: Sum Of Consecutive Integers
 # TRAINS: consecutive-sum-split
 #
 # Given two positive integers n and k, return the sum of the k consecutive
@@ -34,19 +34,19 @@
 # mu 0.12
 
 class Solution
-  def sumOfRun(n: int, k: int) -> int
+  def sumOfConsecutive(n: int, k: int) -> int
     k * (2 * n + k - 1) // 2
 
 sol = Solution()
 
-print(sol.sumOfRun(4, 3))  # 15
+print(sol.sumOfConsecutive(4, 3))  # 15
 
-assert sol.sumOfRun(4, 3) == 15
-assert sol.sumOfRun(1, 100) == 5050
-assert sol.sumOfRun(7, 1) == 7
-assert sol.sumOfRun(7, 2) == 15
-assert sol.sumOfRun(1, 5) == 15
-assert sol.sumOfRun(8, 2) == 17
-assert sol.sumOfRun(100, 3) == 303
-assert sol.sumOfRun(10 ** 9, 10 ** 5) == sum(10 ** 9..<10 ** 9 + 10 ** 5)
-assert sol.sumOfRun(1, 1) == 1
+assert sol.sumOfConsecutive(4, 3) == 15
+assert sol.sumOfConsecutive(1, 100) == 5050
+assert sol.sumOfConsecutive(7, 1) == 7
+assert sol.sumOfConsecutive(7, 2) == 15
+assert sol.sumOfConsecutive(1, 5) == 15
+assert sol.sumOfConsecutive(8, 2) == 17
+assert sol.sumOfConsecutive(100, 3) == 303
+assert sol.sumOfConsecutive(10 ** 9, 10 ** 5) == sum(10 ** 9..<10 ** 9 + 10 ** 5)
+assert sol.sumOfConsecutive(1, 1) == 1

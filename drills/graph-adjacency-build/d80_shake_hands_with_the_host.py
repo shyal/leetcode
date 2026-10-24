@@ -1,6 +1,4 @@
 """
-DRILL: Shake Hands With The Host
-
 Given parties, where parties[i] lists the numbered guests at party i in
 arrival order, return the dict adj of who shook hands with whom. The
 parties happen over a week, so a guest can attend several. The first to

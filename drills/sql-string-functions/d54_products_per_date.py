@@ -1,6 +1,4 @@
 """
-DRILL: Products Sold Per Date
-
 Given the table `Activities`, return for each `sell_date`: `num_sold`, the
 number of distinct products sold that day, and `products`, the distinct
 product names sorted lexicographically and joined with commas. No ordering

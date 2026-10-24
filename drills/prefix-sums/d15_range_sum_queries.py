@@ -1,6 +1,4 @@
 """
-DRILL: Range Sum Queries
-
 Given an integer array nums and a list of queries (l, r) - both indices
 INCLUSIVE - return a list with the sum nums[l..r] for each query.
 

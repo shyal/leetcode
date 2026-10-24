@@ -1,6 +1,4 @@
 """
-DRILL: Build Parents
-
 Given n, the number of employees, labeled 0 to n - 1, return the list
 parent, where parent[i] is the manager of employee i. Nobody has been
 assigned a manager yet, so every employee is their own manager.

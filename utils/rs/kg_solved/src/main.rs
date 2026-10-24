@@ -313,6 +313,12 @@ fn file_phase(console: &Console, root: &Path, failed: bool, studied: bool) {
     // the meta is written BEFORE the current file is cleared: a kill between
     // the two re-runs into the staged branch above instead of filing twice
     let mut meta = json!({"message": message, "file": filepath, "seconds": active});
+    // the drill id rides to the placeholder (kg_extract --stub) in the meta
+    if problem_id == "drill" {
+        if let Some(did) = kg::lang::current_drill(Path::new(".")) {
+            meta["drill"] = json!(did);
+        }
+    }
     // LEARNING=1: the solve is evidence for its moves and no game for the
     // rating (kg::learning); a drill and a study are no game anyway
     let learning = kg::learning::enabled() && problem_id != "drill" && !studied;
@@ -321,6 +327,7 @@ fn file_phase(console: &Console, root: &Path, failed: bool, studied: bool) {
     }
     kg::pyjson::save(Path::new(META), &meta, None).expect("write .solve_meta.json");
     std::fs::write(&current, "").expect("clear the current file");
+    kg::lang::clear_current_drill(Path::new("."));
     if studied {
         console.print(&format!(
             "[green]filed[/green] [bold]{filepath}[/bold]; nothing scored, the problem's card opens."

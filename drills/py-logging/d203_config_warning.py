@@ -1,7 +1,4 @@
 """
-DRILL: Config Warning
-TRAINS: py-logging
-
 Given a config file name `filename`, log one warning that the file was
 not found and return the line the logging module produced for it, in
 the form LEVEL:logger:message. The logger is the root logger, the

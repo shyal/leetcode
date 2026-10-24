@@ -1,5 +1,4 @@
 """
-DRILL: Union Links Head to Head
 SNIPPET: lcunionunion
 
 Given employees a and b, merge their companies and return True, or return

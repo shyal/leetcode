@@ -1,7 +1,4 @@
 """
-DRILL: Fewest Coins
-TRAINS: dp-1d-rolling
-
 Given a list coins of coin values and an integer amount, return the fewest
 coins whose values add up to amount, or -1 when no choice of coins does. A
 coin value may be used any number of times.

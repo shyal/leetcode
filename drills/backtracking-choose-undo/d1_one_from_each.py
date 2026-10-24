@@ -1,6 +1,4 @@
 """
-DRILL: One From Each
-
 Given a list of groups, where each group is a list of lowercase letters,
 return every string built by taking one letter from group 0, then one
 from group 1, and so on to the last group. The strings may come back in

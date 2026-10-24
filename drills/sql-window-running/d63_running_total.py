@@ -1,6 +1,4 @@
 """
-DRILL: Running Total
-
 Given a table Queue, return turn and total for every row.
 
 For each row, total is the sum of weight for all rows whose turn is less

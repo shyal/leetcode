@@ -1,6 +1,4 @@
 """
-DRILL: Minimum Path Cost
-
 G is a dict mapping integer nodes to dicts of {neighbour: weight}; s and t are the start and target nodes. Treat G as a directed graph. Return the minimum path cost, the sum of edge weights, from s to t, or -1 if t is unreachable. Return 0 when s equals t. Use Dijkstra's algorithm.
 
 Example 1:

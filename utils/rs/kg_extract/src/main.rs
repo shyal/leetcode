@@ -184,39 +184,11 @@ pub fn record_alt_walk(
     true
 }
 
-/// A drill is a drill even when its filename lacks the d_ prefix: the
-/// DRILL: header is authoritative.
-fn is_drill_file(path: &str, code: &str) -> bool {
-    basename(path).starts_with("d_")
-        || Regex::new(&format!(r"(?m)^\s*{}\**DRILL:", kg::lang::comment_prefix()))
-            .unwrap()
-            .is_match(code)
-}
-
-/// The nodes a drill file trains: its DRILL title looked up in drills.json
-/// (the "trains" list), a TRAINS header only for an old solved copy whose
-/// title the bank no longer carries.
-pub fn trains_in(code: &str, drills: &DrillMap) -> Vec<String> {
-    if let Some(m) = Regex::new(&format!(
-        r"(?m)^\s*{}\**DRILL:\**\s*(.+?)\s*$",
-        kg::lang::comment_prefix()
-    ))
-    .unwrap()
-    .captures(code)
-    {
-        let title = m[1].to_string();
-        for entry in drills.values().rev() {
-            if entry.title == title {
-                if let Some(t) = &entry.trains {
-                    return t.clone();
-                }
-            }
-        }
-    }
-    Regex::new(r"TRAINS:\s*([a-z0-9\-, ]+)")
-        .unwrap()
-        .captures(code)
-        .map(|m| m[1].split(',').map(|t| t.trim().to_string()).collect())
+/// The nodes a drill trains: the "trains" list of its drills.json entry.
+pub fn trains_in(drill: &str, drills: &DrillMap) -> Vec<String> {
+    drills
+        .get(drill)
+        .and_then(|e| e.trains.clone())
         .unwrap_or_default()
 }
 
@@ -228,22 +200,22 @@ fn problem_of_fname(path: &str) -> Option<(String, String)> {
 }
 
 /// The placeholder `make solved` files before the judge runs: the rep,
-/// dated, on the moves the file is FOR - a drill's TRAINS, a problem's
-/// canonical walk - marked clean; a FAILED file records the rep with no
+/// dated, on the moves the file is FOR - a drill's "trains" (`drill` is its
+/// id, from .solve_meta.json), a problem's canonical walk - marked clean; a FAILED file records the rep with no
 /// moves at all. Assist read from the level word in the notes. A STUDIED
 /// file is not judged: its entry has no moves, no assist and no `pending`
 /// stamp, and is the record (kg::clock::is_studied).
 pub fn stub_entry(
     path: &str,
     code: &str,
+    drill: Option<&str>,
     nodes: &HashSet<String>,
     problem_moves: &dyn Fn(&str) -> Vec<String>,
     drills: &DrillMap,
     now: DateTime<Utc>,
 ) -> Value {
-    let is_drill = is_drill_file(path, code);
-    let (problem, moves) = if is_drill {
-        ("drill".to_string(), trains_in(code, drills))
+    let (problem, moves) = if let Some(d) = drill {
+        ("drill".to_string(), trains_in(d, drills))
     } else {
         let p = problem_of_fname(path)
             .map(|(n, _)| n)
@@ -268,6 +240,9 @@ pub fn stub_entry(
         json!(manila_date_from_filename(path).unwrap_or_else(|| "1970-01-01".into())),
     );
     entry.insert("problem".into(), json!(problem));
+    if let Some(d) = drill {
+        entry.insert("drill".into(), json!(d));
+    }
     entry.insert("moves".into(), Value::Object(moves_map));
     if studied {
         return Value::Object(entry);
@@ -717,6 +692,8 @@ fn serve_receipt(
 struct Judged {
     result: Value,
     is_drill: bool,
+    /// the drill id, when the file is a drill rep
+    drill: Option<String>,
     trains: Vec<String>,
     /// the file ran and every assert held, and it is not filed as FAILED
     passed: bool,
@@ -762,20 +739,10 @@ fn drill_lead(trains: &[String]) -> String {
 }
 
 /// The reference answer of a design drill: graph/node_notes/<node>/
-/// <drill id>_*.markdown, the drill found by its DRILL title in
-/// drills.json. None when the title, the node or the file is missing.
-pub fn design_reference(
-    root: &Path,
-    code: &str,
-    drills: &DrillMap,
-    trains: &[String],
-) -> Option<String> {
-    let doc = kg::lang::header(code, &kg::lang::DESIGN)?;
-    let (_, title) = kg::lang::subject(&doc)?;
-    let did = drills
-        .iter()
-        .find(|(_, e)| e.title == title)
-        .map(|(id, _)| id.clone())?;
+/// <drill id>_*.markdown. None when the id, the node or the file is
+/// missing.
+pub fn design_reference(root: &Path, drill: Option<&str>, trains: &[String]) -> Option<String> {
+    let did = drill?;
     let dir = root.join("graph/node_notes").join(trains.first()?);
     let prefix = format!("{did}_");
     let mut hits: Vec<PathBuf> = std::fs::read_dir(dir)
@@ -795,9 +762,9 @@ pub fn design_reference(
 
 /// What the judge is told about a design drill: nothing ran, the answer
 /// is prose, and it is graded against the reference's required points.
-fn design_lead(root: &Path, code: &str, drills: &DrillMap, trains: &[String]) -> String {
+fn design_lead(root: &Path, code: &str, drill: Option<&str>, trains: &[String]) -> String {
     let statement = kg::lang::header(code, &kg::lang::DESIGN).unwrap_or_default();
-    let reference = design_reference(root, code, drills, trains).unwrap_or_else(|| {
+    let reference = design_reference(root, drill, trains).unwrap_or_else(|| {
         "none on file: grade against the REQUIRED line of the statement".to_string()
     });
     format!(
@@ -806,9 +773,11 @@ fn design_lead(root: &Path, code: &str, drills: &DrillMap, trains: &[String]) ->
 }
 
 /// Read + claude call only - no shared state touched here.
+#[allow(clippy::too_many_arguments)]
 fn extract_one(
     root: &Path,
     path: &str,
+    drill: Option<&str>,
     system: &str,
     model: &str,
     drills: &DrillMap,
@@ -816,12 +785,8 @@ fn extract_one(
     prior: Option<&Value>,
 ) -> Result<Judged, String> {
     let code = std::fs::read_to_string(root.join(path)).map_err(|e| e.to_string())?;
-    let is_drill = is_drill_file(path, &code);
-    let trains = if is_drill {
-        trains_in(&code, drills)
-    } else {
-        vec![]
-    };
+    let is_drill = drill.is_some();
+    let trains = drill.map(|d| trains_in(d, drills)).unwrap_or_default();
     let lang = lang_of(path);
     let body: String = strip_statement(&code, lang).chars().take(6000).collect();
     let (status, detail) = match leetcode_rejection(&kg::lang::notes_of(&code, lang)) {
@@ -844,7 +809,7 @@ fn extract_one(
         );
     }
     if lang.ext == kg::lang::DESIGN.ext {
-        prompt = format!("{}\n\n{prompt}", design_lead(root, &code, drills, &trains));
+        prompt = format!("{}\n\n{prompt}", design_lead(root, &code, drill, &trains));
     } else if lang.ext == kg::lang::MU.ext {
         prompt = format!(
             "This file is mu (a .mu file), not Python: the statement and the candidate's notes are the leading `#` comment block, and the mu under it is what ran. Judge the mu as written.\n\n{prompt}"
@@ -875,6 +840,7 @@ fn extract_one(
     Ok(Judged {
         result,
         is_drill,
+        drill: drill.map(String::from),
         trains,
         passed,
         notes,
@@ -914,7 +880,7 @@ Rules:
 - Verdicts: "clean" (executed correctly), "struggled" (bugs/confusion visible in code or notes, e.g. notes saying looked-up/hints/TLE/failed), "avoided" (canonical move sidestepped).
 - A failing run condemns ONE move, not the whole walk. Find the defect - the line the traceback points at, the wrong bound, the missing case - and mark "struggled" only on the move that line belongs to. Every other move the code exercised correctly stays "clean": an IndexError in a grid boundary test is not evidence against the recursion or the memoization that ran fine around it. If the defect belongs to no node in the taxonomy - index arithmetic, an off-by-one in a bound, a typo - mark NO move "struggled" and say where the defect was in the note.
 - A file may hold a comment block headed `# mu <version>` (older files: `# mu source (current.mu)`): the candidate wrote that solution in mu, a small language transpiled to Python, and the class under the block is the transpiler's output, which is what ran. Judge the moves from the mu source and use its names. A `.mu` file is the mu source alone, run with `mu FILE`: there is no transpiled class in it. In mu, `for i, x in xs` enumerates; `sum|max|min|count [from s] for x in xs [if c]: e` is a fold; `first x in lo..hi if ok(x)` is a binary search for the least x with ok(x); `memo f(a) =` with `| guard -> value` lines is cached recursion; `stack <- x` appends; `stack .` pops; the last line of a def is its value. Helpers the transpiler pasted above the class (cells, nbrs, table, like, pairs, levels, adjacency, indegrees, components, graph, dijkstra, Grid, deep) are the harness's, never the candidate's moves.
-- A drill file (DRILL: header) is a rung written to train exactly its TRAINS node. If it ran and its REQUIRED line is met, that node is "clean", whatever API spelling the code used: select("a", "b") trains a column-expression rung as well as select(F.col("a")) does. "avoided" is for a leetcode carrier whose central move was sidestepped, never for a drill that passed.
+- A drill file (the lead above the file says so and names its target nodes) is written to train exactly those nodes. If it ran and its REQUIRED line is met, that node is "clean", whatever API spelling the code used: select("a", "b") trains a column-expression rung as well as select(F.col("a")) does. "avoided" is for a leetcode carrier whose central move was sidestepped, never for a drill that passed.
 - "assist" is a SEPARATE axis from the verdict, read ONLY from the candidate's own notes — never inferred from how the code looks. A confident-looking solve with a note saying it was walked through is "walkthrough"; a messy solve with no note is "none". Levels: "none" (no note claiming help), "hint" (a nudge, a question, a pointer at the wrong branch), "walkthrough" (the approach/recurrence was talked through before the code existed), "learning" (the solution was given and copied). An explicit `ASSIST: <level>` line in the notes overrides your reading. Assist is PER MOVE: when the notes say what the help was on ("assisted on the window bookkeeping, the prefix sums were mine"), put the level on that move only and leave the others out, because a level on a move says the candidate could not recall THAT move unaided. When the notes claim help without saying where, put the level on every move in "moves". Omit the key, or use {{}}, when there was no help.
 - Only include moves with real evidence in this code. 1-6 moves is typical.
 - If a required move has no taxonomy node, put a 3-8 word description in "unmapped".
@@ -1201,6 +1167,7 @@ fn main() {
             let mut entry = stub_entry(
                 &path,
                 &code,
+                meta.get("drill").and_then(Value::as_str),
                 &node_set,
                 &|p| canonical_moves(&problems_raw, p),
                 &ctx.drills,
@@ -1299,6 +1266,14 @@ fn main() {
         return;
     }
 
+    // the drill id each file is a rep of, from its evidence entry
+    let drill_of: HashMap<String, String> = todo
+        .iter()
+        .filter_map(|p| {
+            let i = *evidence.by_fname.get(p)?;
+            Some((p.clone(), evidence.rec(i).drill.clone()?))
+        })
+        .collect();
     // the workers: one claude call each, results handed back as they land
     let (tx, rx) = mpsc::channel::<(String, Result<Judged, String>)>();
     let queue = std::sync::Mutex::new(todo.clone());
@@ -1324,12 +1299,14 @@ fn main() {
             let model = &model;
             let problems_raw = &problems_raw;
             let priors = &priors;
+            let drill_of = &drill_of;
             scope.spawn(move || loop {
                 let next = queue.lock().unwrap().pop();
                 let Some(path) = next else { break };
                 let r = extract_one(
                     &root,
                     &path,
+                    drill_of.get(&path).map(String::as_str),
                     system,
                     model,
                     &drills,
@@ -1458,6 +1435,9 @@ fn main() {
             let mut entry = Map::new();
             entry.insert("date".into(), json!(solve_date));
             entry.insert("problem".into(), json!(problem));
+            if let Some(d) = &judged.drill {
+                entry.insert("drill".into(), json!(d));
+            }
             entry.insert(
                 "moves".into(),
                 Value::Object(moves.iter().map(|(k, v)| (k.clone(), json!(v))).collect()),
@@ -1716,6 +1696,7 @@ fn rejudge_followups(
                 let r = extract_one(
                     &root,
                     &path,
+                    None,
                     system,
                     model,
                     &drills,
@@ -1785,25 +1766,27 @@ mod tests {
             "d900".to_string(),
             kg::data::DrillEntry {
                 title: "Cache Aside".into(),
+                file: "design-cache-aside/d900_cache_aside.markdown".into(),
                 after: vec![],
                 trains: Some(vec!["design-cache-aside".into()]),
                 disabled: false,
             },
         );
-        let code = "DRILL: Cache Aside\nTRAINS: design-cache-aside\n\nDescribe the read path.\n\n## Answer\n\nCache first.\n";
-        let trains = trains_in(code, &drills);
+        let code = "Describe the read path.\n\n## Answer\n\nCache first.\n";
+        let trains = trains_in("d900", &drills);
         assert_eq!(trains, vec!["design-cache-aside".to_string()]);
         assert_eq!(
-            design_reference(&root, code, &drills, &trains).unwrap(),
+            design_reference(&root, Some("d900"), &trains).unwrap(),
             "REQUIRED\n- look in the cache first\n"
         );
-        let lead = design_lead(&root, code, &drills, &trains);
+        let lead = design_lead(&root, code, Some("d900"), &trains);
         assert!(lead.contains("NOTHING WAS EXECUTED"));
-        assert!(lead.contains("STATEMENT:\nDRILL: Cache Aside"));
+        assert!(lead.contains("STATEMENT:\nDescribe the read path."));
         assert!(lead.contains("REFERENCE:\nREQUIRED\n- look in the cache first"));
         assert_eq!(strip_statement(code, &kg::lang::DESIGN), "Cache first.\n");
         // no reference on file: the judge is told so
-        assert!(design_lead(&root, code, &drills, &[]).contains("none on file"));
+        assert!(design_lead(&root, code, Some("d900"), &[]).contains("none on file"));
+        assert!(design_lead(&root, code, None, &trains).contains("none on file"));
         let _ = std::fs::remove_dir_all(&root);
     }
 
@@ -1980,7 +1963,31 @@ mod tests {
     }
 
     /// utils/tests/test_judge_queue.py: the placeholder's shape.
-    const DRILL: &str = "\"\"\"\nDRILL: Slide, Never Shrink\nTRAINS: sliding-window, prefix-sum\nGrow the window.\n\n---\nasked for a walkthrough on the shrink step\n\"\"\"\nclass Solution:\n    pass\n";
+    const DRILL: &str = "\"\"\"\nGrow the window.\n\n---\nasked for a walkthrough on the shrink step\n\"\"\"\nclass Solution:\n    pass\n";
+
+    fn drill_map() -> DrillMap {
+        let mut drills = DrillMap::new();
+        for (id, title, trains) in [
+            (
+                "d9",
+                "Slide, Never Shrink",
+                vec!["sliding-window", "prefix-sum"],
+            ),
+            ("d10", "X", vec!["no-such-node"]),
+        ] {
+            drills.insert(
+                id.into(),
+                kg::data::DrillEntry {
+                    title: title.into(),
+                    file: format!("n/{id}.py"),
+                    after: vec![],
+                    trains: Some(trains.into_iter().map(String::from).collect()),
+                    disabled: false,
+                },
+            );
+        }
+        drills
+    }
 
     fn nodes() -> HashSet<String> {
         ["sliding-window", "prefix-sum", "two-pointers"]
@@ -2007,17 +2014,19 @@ mod tests {
 
     #[test]
     fn placeholders() {
-        let drills = DrillMap::new();
+        let drills = drill_map();
         let path = "solved/d_Slide_Never_Shrink_2026_09_06T04_31_57_473199_00_00Z.py";
         let e = stub_entry(
             path,
             DRILL,
+            Some("d9"),
             &nodes(),
             &problem_moves,
             &drills,
             at(2026, 9, 6, 4, 32),
         );
         assert_eq!(e["problem"], "drill");
+        assert_eq!(e["drill"], "d9");
         assert_eq!(e["date"], "2026-09-06");
         assert_eq!(
             e["moves"],
@@ -2033,12 +2042,14 @@ mod tests {
         let e = stub_entry(
             "solved/p1539_Kth_Missing_2026_09_05T21_08_16_000000_00_00Z.py",
             "\"\"\"\n1539. Kth Missing\n\"\"\"\nclass Solution:\n    pass\n",
+            None,
             &nodes(),
             &problem_moves,
             &drills,
             Utc::now(),
         );
         assert_eq!(e["problem"], "1539");
+        assert!(e.get("drill").is_none());
         assert_eq!(
             e["moves"],
             json!({"two-pointers": "clean", "prefix-sum": "clean"})
@@ -2048,6 +2059,7 @@ mod tests {
         let e = stub_entry(
             "solved/d_Slide_Never_Shrink_FAILED_2026_09_06T04_31_57_473199_00_00Z.py",
             DRILL,
+            Some("d9"),
             &nodes(),
             &problem_moves,
             &drills,
@@ -2060,6 +2072,7 @@ mod tests {
         let e = stub_entry(
             "solved/p1539_Kth_Missing_STUDIED_2026_09_06T04_31_57_473199_00_00Z.py",
             "notes: learning, copied it all",
+            None,
             &nodes(),
             &problem_moves,
             &drills,
@@ -2076,7 +2089,8 @@ mod tests {
         // unknown trains are dropped and the rep still exists
         let e = stub_entry(
             "solved/d_X_2026_09_06T04_31_57_473199_00_00Z.py",
-            "\"\"\"\nDRILL: X\nTRAINS: no-such-node\n\"\"\"\n",
+            "\"\"\"\nX\n\"\"\"\n",
+            Some("d10"),
             &nodes(),
             &problem_moves,
             &drills,
@@ -2086,26 +2100,13 @@ mod tests {
     }
 
     #[test]
-    fn trains_come_from_drills_json_not_the_file() {
-        let mut drills = DrillMap::new();
-        drills.insert(
-            "d9".into(),
-            kg::data::DrillEntry {
-                title: "Slide, Never Shrink".into(),
-                after: vec![],
-                trains: Some(vec!["two-pointers".into()]),
-                disabled: false,
-            },
-        );
-        let no_header = DRILL.replace("TRAINS: sliding-window, prefix-sum\n", "");
+    fn trains_come_from_drills_json_by_id() {
+        let drills = drill_map();
         assert_eq!(
-            trains_in(&no_header, &drills),
-            vec!["two-pointers".to_string()]
-        );
-        assert_eq!(
-            trains_in(DRILL, &DrillMap::new()),
+            trains_in("d9", &drills),
             vec!["sliding-window".to_string(), "prefix-sum".to_string()]
         );
+        assert!(trains_in("d404", &drills).is_empty());
     }
 
     #[test]

@@ -1,6 +1,3 @@
-// DRILL: Positive Total
-// TRAINS: ts-typed-function
-//
 // Given an array of numbers `nums`, return the sum of the elements greater
 // than 0. An array with no positive element sums to 0.
 //

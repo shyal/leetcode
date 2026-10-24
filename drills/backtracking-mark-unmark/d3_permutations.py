@@ -1,6 +1,4 @@
 """
-DRILL: Permutations
-
 Given an array nums of distinct integers, return every ordering of all of
 them. The orderings may come back in any order.
 

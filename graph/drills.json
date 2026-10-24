@@ -1,8 +1,9 @@
 {
-  "_comment": "Drills as vertices of the graph. The key is the drill's id (d1, d2, ...): assigned once, never reused, the way LeetCode numbers are; it is what \"after\" lists, make prepare and make next use. \"title\" is the DRILL header of the bank file (drills/<node>/*.py), which is how the file, its node and its TRAINS line are found, and how evidence is keyed. \"after\": [ids] - what this drill builds on; an id is a drill id, a problem number, or a node id, and the drill is not served until each is warm (kg_lib.warm). Filename order means nothing. Seeded 2026-08-31 from the bank's former filename order. \"trains\" is the list of node ids the drill evidences; it lives here, keyed by the stable id, so a node rename never touches a bank file or a solved copy.",
+  "_comment": "Drills as vertices of the graph. The key is the drill's id (d1, d2, ...): assigned once, never reused, the way LeetCode numbers are; it is what \"after\" lists, make prepare and make next use. \"title\" is what make next, make rep and the commit show; nothing reads it from a file. \"file\" is the bank file, relative to drills/: the one place an id meets its file. A rep's evidence entry carries the id as \"drill\" (written by make solved from .drill.json, 2026-10-24); the reps are found by that, never by the title or a filename. \"after\": [ids] - what this drill builds on; an id is a drill id, a problem number, or a node id, and the drill is not served until each is warm (kg_lib.warm). Filename order means nothing. Seeded 2026-08-31 from the bank's former filename order. \"trains\" is the list of node ids the drill evidences; it lives here, keyed by the stable id, so a node rename never touches a bank file or a solved copy.",
   "drills": {
     "d1": {
       "title": "One From Each",
+      "file": "backtracking-choose-undo/d1_one_from_each.py",
       "after": [],
       "trains": [
         "backtracking-choose-undo"
@@ -10,6 +11,7 @@
     },
     "d2": {
       "title": "No Repeat Siblings",
+      "file": "backtracking-dedupe-siblings/d2_no_repeat_siblings.py",
       "after": [],
       "trains": [
         "backtracking-dedupe-siblings"
@@ -17,6 +19,7 @@
     },
     "d3": {
       "title": "Permutations",
+      "file": "backtracking-mark-unmark/d3_permutations.py",
       "after": [],
       "trains": [
         "backtracking-mark-unmark"
@@ -24,6 +27,7 @@
     },
     "d5": {
       "title": "Pairs",
+      "file": "backtracking-start-index/d5_pairs.py",
       "after": [],
       "trains": [
         "backtracking-start-index"
@@ -31,6 +35,7 @@
     },
     "d6": {
       "title": "Triples",
+      "file": "backtracking-start-index/d6_triples.py",
       "after": [
         "d5"
       ],
@@ -40,6 +45,7 @@
     },
     "d7": {
       "title": "Combinations",
+      "file": "backtracking-start-index/d7_combinations.py",
       "after": [
         "d6"
       ],
@@ -49,6 +55,7 @@
     },
     "d8": {
       "title": "Reuse Allowed",
+      "file": "backtracking-start-index/d8_reuse_allowed.py",
       "after": [
         "d77"
       ],
@@ -58,6 +65,7 @@
     },
     "d9": {
       "title": "Record Every Node",
+      "file": "backtracking-start-index/d9_record_every_node.py",
       "after": [
         "d76"
       ],
@@ -67,6 +75,7 @@
     },
     "d10": {
       "title": "Sort Bounded Values",
+      "file": "counting-sort-buckets/d10_sort_bounded_values.py",
       "after": [],
       "trains": [
         "counting-sort-buckets"
@@ -74,6 +83,7 @@
     },
     "d11": {
       "title": "Count Smaller Values",
+      "file": "counting-sort-buckets/d11_count_smaller_values.py",
       "after": [
         "d10"
       ],
@@ -83,6 +93,7 @@
     },
     "d12": {
       "title": "Kth Smallest Bounded Value",
+      "file": "counting-sort-buckets/d12_kth_smallest_bounded.py",
       "after": [
         "d11"
       ],
@@ -92,6 +103,7 @@
     },
     "d13": {
       "title": "Count Missing Integers",
+      "file": "index-value-gap/d13_count_missing_integers.py",
       "after": [],
       "trains": [
         "index-value-gap"
@@ -99,6 +111,7 @@
     },
     "d14": {
       "title": "Next Greater Index",
+      "file": "monotonic-stack/d14_next_greater_index.py",
       "after": [],
       "trains": [
         "monotonic-stack"
@@ -106,6 +119,7 @@
     },
     "d15": {
       "title": "Range Sum Queries",
+      "file": "prefix-sums/d15_range_sum_queries.py",
       "after": [],
       "trains": [
         "prefix-sums"
@@ -113,6 +127,7 @@
     },
     "d16": {
       "title": "Number Scanner",
+      "file": "recursive-descent/d16_number_scanner.py",
       "after": [],
       "trains": [
         "recursive-descent"
@@ -120,6 +135,7 @@
     },
     "d17": {
       "title": "Tape Reader",
+      "file": "recursive-descent/d17_tape_reader.py",
       "after": [
         "d16"
       ],
@@ -129,6 +145,7 @@
     },
     "d18": {
       "title": "Bundle Refunds",
+      "file": "recursive-descent/d18_bundle_refunds.py",
       "after": [
         "d17"
       ],
@@ -138,6 +155,7 @@
     },
     "d19": {
       "title": "Multi-Buy",
+      "file": "recursive-descent/d19_multi_buy.py",
       "after": [
         "d18"
       ],
@@ -147,6 +165,7 @@
     },
     "d20": {
       "title": "Longest Run of Ones",
+      "file": "sliding-window-budget/d20_longest_run_of_ones.py",
       "after": [],
       "trains": [
         "sliding-window-budget"
@@ -154,6 +173,7 @@
     },
     "d21": {
       "title": "Slide, Never Shrink",
+      "file": "sliding-window-budget/d21_slide_never_shrink.py",
       "after": [
         "d20"
       ],
@@ -163,6 +183,7 @@
     },
     "d22": {
       "title": "Fixed Slide",
+      "file": "sliding-window-fixed/d22_fixed_slide.py",
       "after": [],
       "trains": [
         "sliding-window-fixed"
@@ -170,6 +191,7 @@
     },
     "d24": {
       "title": "Grow and Shrink",
+      "file": "sliding-window-variable/d24_grow_and_shrink.py",
       "after": [
         "d75"
       ],
@@ -179,6 +201,7 @@
     },
     "d25": {
       "title": "Shrink While Valid",
+      "file": "sliding-window-variable/d25_shrink_while_valid.py",
       "after": [
         "d24"
       ],
@@ -188,6 +211,7 @@
     },
     "d28": {
       "title": "Employees Who Manage Nobody",
+      "file": "sql-anti-join/d28_employees_who_manage_nobody.py",
       "after": [],
       "trains": [
         "sql-anti-join"
@@ -195,6 +219,7 @@
     },
     "d29": {
       "title": "Approved Count Per Country",
+      "file": "sql-conditional-aggregate/d29_approved_count_per_country.py",
       "after": [],
       "trains": [
         "sql-conditional-aggregate"
@@ -202,6 +227,7 @@
     },
     "d30": {
       "title": "Approved Transactions Per Country",
+      "file": "sql-conditional-aggregate/d30_approved_per_country.py",
       "after": [
         "d29"
       ],
@@ -211,6 +237,7 @@
     },
     "d31": {
       "title": "Confirmation Rate",
+      "file": "sql-conditional-aggregate/d31_confirmation_rate.py",
       "after": [
         "d30",
         "d44",
@@ -223,6 +250,7 @@
     },
     "d32": {
       "title": "Next Day",
+      "file": "sql-date-arithmetic/d32_next_day.py",
       "after": [],
       "trains": [
         "sql-date-arithmetic"
@@ -230,6 +258,7 @@
     },
     "d33": {
       "title": "Rising Temperature",
+      "file": "sql-date-arithmetic/d33_rising_temperature.py",
       "after": [
         "d32"
       ],
@@ -240,6 +269,7 @@
     },
     "d34": {
       "title": "Monthly Transactions",
+      "file": "sql-date-arithmetic/d34_monthly_transactions.py",
       "after": [
         "d33"
       ],
@@ -250,6 +280,7 @@
     },
     "d35": {
       "title": "Keep Smallest Id Per Email",
+      "file": "sql-dedupe-keep-one/d35_keep_smallest_id_per_email.py",
       "after": [],
       "trains": [
         "sql-dedupe-keep-one"
@@ -257,6 +288,7 @@
     },
     "d36": {
       "title": "Not Boring Movies",
+      "file": "sql-filter-select/d36_not_boring_movies.py",
       "after": [],
       "trains": [
         "sql-filter-select"
@@ -264,6 +296,7 @@
     },
     "d37": {
       "title": "Island Key",
+      "file": "sql-gaps-islands/d37_island_key.py",
       "after": [],
       "trains": [
         "sql-gaps-islands"
@@ -271,6 +304,7 @@
     },
     "d38": {
       "title": "Human Traffic Of Stadium",
+      "file": "sql-gaps-islands/d38_human_traffic_of_stadium.py",
       "after": [
         "d37"
       ],
@@ -281,6 +315,7 @@
     },
     "d39": {
       "title": "Longest Login Streak Per User",
+      "file": "sql-gaps-islands/d39_longest_login_streak.py",
       "after": [
         "d38"
       ],
@@ -291,6 +326,7 @@
     },
     "d40": {
       "title": "Distinct Subjects Per Teacher",
+      "file": "sql-group-aggregate/d40_distinct_subjects_per_teacher.py",
       "after": [],
       "trains": [
         "sql-group-aggregate"
@@ -298,6 +334,7 @@
     },
     "d41": {
       "title": "Classes With At Least Five Students",
+      "file": "sql-having-filter-groups/d41_classes_with_five_students.py",
       "after": [],
       "trains": [
         "sql-having-filter-groups"
@@ -305,6 +342,7 @@
     },
     "d42": {
       "title": "Sales With Product Names",
+      "file": "sql-join-inner/d42_sales_with_product_names.py",
       "after": [],
       "trains": [
         "sql-join-inner"
@@ -312,6 +350,7 @@
     },
     "d43": {
       "title": "Unique Id Or Null",
+      "file": "sql-join-left-keep/d43_unique_id_or_null.py",
       "after": [],
       "trains": [
         "sql-join-left-keep"
@@ -319,6 +358,7 @@
     },
     "d44": {
       "title": "Paid Orders Per Customer",
+      "file": "sql-join-left-keep/d44_paid_orders_per_customer.py",
       "after": [
         "d43"
       ],
@@ -329,6 +369,7 @@
     },
     "d45": {
       "title": "Average Selling Price With Date Ranges",
+      "file": "sql-join-left-keep/d45_condition_in_the_on_clause.py",
       "after": [
         "d44",
         "d91",
@@ -341,6 +382,7 @@
     },
     "d46": {
       "title": "Second Distinct Salary",
+      "file": "sql-nth-value/d46_second_distinct_salary.py",
       "after": [],
       "trains": [
         "sql-nth-value"
@@ -348,6 +390,7 @@
     },
     "d47": {
       "title": "Second Highest Salary",
+      "file": "sql-nth-value/d47_second_highest_salary.py",
       "after": [
         "d46"
       ],
@@ -358,6 +401,7 @@
     },
     "d48": {
       "title": "Not Referred By Customer Two",
+      "file": "sql-null-semantics/d48_not_referred_by_two.py",
       "after": [],
       "trains": [
         "sql-null-semantics"
@@ -365,6 +409,7 @@
     },
     "d49": {
       "title": "Manager Name",
+      "file": "sql-self-join/d49_manager_name.py",
       "after": [],
       "trains": [
         "sql-self-join"
@@ -372,6 +417,7 @@
     },
     "d50": {
       "title": "Reports Per Manager",
+      "file": "sql-self-join/d50_reports_per_manager.py",
       "after": [
         "d49"
       ],
@@ -382,6 +428,7 @@
     },
     "d51": {
       "title": "Stack Both Sides",
+      "file": "sql-set-union/d51_stack_both_sides.py",
       "after": [],
       "trains": [
         "sql-set-union"
@@ -389,6 +436,7 @@
     },
     "d52": {
       "title": "Who Has The Most Friends",
+      "file": "sql-set-union/d52_most_friends.py",
       "after": [
         "d51"
       ],
@@ -399,6 +447,7 @@
     },
     "d53": {
       "title": "Fix Names",
+      "file": "sql-string-functions/d53_fix_names.py",
       "after": [],
       "trains": [
         "sql-string-functions"
@@ -406,6 +455,7 @@
     },
     "d54": {
       "title": "Products Sold Per Date",
+      "file": "sql-string-functions/d54_products_per_date.py",
       "after": [
         "d53"
       ],
@@ -416,6 +466,7 @@
     },
     "d55": {
       "title": "Total Users Per Contest",
+      "file": "sql-subquery/d55_total_users_per_contest.py",
       "after": [],
       "trains": [
         "sql-subquery"
@@ -423,6 +474,7 @@
     },
     "d56": {
       "title": "Percentage Of All Users Per Contest",
+      "file": "sql-subquery/d56_percentage_of_all_users.py",
       "after": [
         "d55",
         "d91"
@@ -433,6 +485,7 @@
     },
     "d57": {
       "title": "Sales In Each Product's First Year",
+      "file": "sql-subquery/d57_first_year_per_product.py",
       "after": [
         "d56"
       ],
@@ -443,6 +496,7 @@
     },
     "d58": {
       "title": "Month Over Month Change",
+      "file": "sql-window-offset/d58_month_over_month_change.py",
       "after": [],
       "trains": [
         "sql-window-offset"
@@ -450,6 +504,7 @@
     },
     "d59": {
       "title": "Consecutive Numbers",
+      "file": "sql-window-offset/d59_consecutive_numbers.py",
       "after": [
         "d58"
       ],
@@ -459,6 +514,7 @@
     },
     "d60": {
       "title": "Dense Rank Scores",
+      "file": "sql-window-rank/d60_dense_rank_scores.py",
       "after": [],
       "trains": [
         "sql-window-rank"
@@ -466,6 +522,7 @@
     },
     "d61": {
       "title": "Department Top Three Salaries",
+      "file": "sql-window-rank/d61_top_three_per_department.py",
       "after": [
         "d149",
         "d150"
@@ -477,6 +534,7 @@
     },
     "d62": {
       "title": "Latest Reading Per Sensor",
+      "file": "sql-window-rank/d62_latest_reading_per_sensor.py",
       "after": [
         "d61"
       ],
@@ -486,6 +544,7 @@
     },
     "d63": {
       "title": "Running Total",
+      "file": "sql-window-running/d63_running_total.py",
       "after": [],
       "trains": [
         "sql-window-running"
@@ -493,6 +552,7 @@
     },
     "d64": {
       "title": "Last Person To Fit In The Bus",
+      "file": "sql-window-running/d64_last_person_to_fit.py",
       "after": [
         "d63"
       ],
@@ -503,6 +563,7 @@
     },
     "d65": {
       "title": "Seven Day Moving Average",
+      "file": "sql-window-running/d65_seven_day_moving_average.py",
       "after": [
         "d64",
         "d90"
@@ -514,6 +575,7 @@
     },
     "d66": {
       "title": "Ledger Tally",
+      "file": "stack-nested-eval/d66_ledger_tally.py",
       "after": [],
       "trains": [
         "stack-nested-eval"
@@ -521,6 +583,7 @@
     },
     "d67": {
       "title": "Level Groups",
+      "file": "tree-bfs-levels/d67_level_groups.py",
       "after": [],
       "trains": [
         "tree-bfs-levels"
@@ -528,6 +591,7 @@
     },
     "d68": {
       "title": "Count Univalue Subtrees",
+      "file": "tree-global-across-subtrees/d68_count_univalue_subtrees.py",
       "after": [],
       "trains": [
         "tree-global-across-subtrees"
@@ -535,6 +599,7 @@
     },
     "d70": {
       "title": "Find Roots",
+      "file": "union-find/d70_find_roots.py",
       "after": [
         "d84"
       ],
@@ -544,6 +609,7 @@
     },
     "d71": {
       "title": "How Many Companies",
+      "file": "union-find/d71_component_counts.py",
       "after": [
         "d73"
       ],
@@ -553,6 +619,7 @@
     },
     "d72": {
       "title": "Find with Path Compression",
+      "file": "union-find/d72_find_with_path_compression.py",
       "after": [
         "d71"
       ],
@@ -562,6 +629,7 @@
     },
     "d73": {
       "title": "Union Links Head to Head",
+      "file": "union-find/d73_union_link_heads.py",
       "after": [
         "d70"
       ],
@@ -571,6 +639,7 @@
     },
     "d74": {
       "title": "All Substrings",
+      "file": "substring-enumeration/d74_by_start.py",
       "after": [],
       "trains": [
         "substring-enumeration"
@@ -578,6 +647,7 @@
     },
     "d75": {
       "title": "Substrings by End",
+      "file": "substring-enumeration/d75_by_end.py",
       "after": [
         "d74"
       ],
@@ -587,6 +657,7 @@
     },
     "d76": {
       "title": "Choose From an Array",
+      "file": "backtracking-start-index/d76_choose_from_an_array.py",
       "after": [
         "d7"
       ],
@@ -596,6 +667,7 @@
     },
     "d77": {
       "title": "Each Element Once",
+      "file": "backtracking-start-index/d77_each_element_once.py",
       "after": [
         "d76"
       ],
@@ -605,6 +677,7 @@
     },
     "d78": {
       "title": "Song To Playlists",
+      "file": "graph-inverted-index/d78_song_to_playlists.py",
       "after": [],
       "trains": [
         "graph-inverted-index"
@@ -612,6 +685,7 @@
     },
     "d79": {
       "title": "Clubs Sharing A Member",
+      "file": "graph-overlap-adjacency/d79_clubs_sharing_a_member.py",
       "after": [],
       "trains": [
         "graph-overlap-adjacency"
@@ -619,6 +693,7 @@
     },
     "d80": {
       "title": "Shake Hands With The Host",
+      "file": "graph-adjacency-build/d80_shake_hands_with_the_host.py",
       "after": [],
       "trains": [
         "graph-adjacency-build"
@@ -626,6 +701,7 @@
     },
     "d82": {
       "title": "Claim Or Merge",
+      "file": "union-find/d82_claim_or_merge.py",
       "after": [
         "d72",
         "d78"
@@ -636,6 +712,7 @@
     },
     "d83": {
       "title": "Merge Accounts",
+      "file": "union-find/d83_merge_accounts.py",
       "after": [
         "d82"
       ],
@@ -645,6 +722,7 @@
     },
     "d84": {
       "title": "Build Parents",
+      "file": "union-find/d84_build_parents.py",
       "after": [],
       "trains": [
         "union-find"
@@ -652,6 +730,7 @@
     },
     "d86": {
       "title": "Read The Numbers",
+      "file": "stack-nested-eval/d86_read_the_numbers.py",
       "after": [
         "d16"
       ],
@@ -661,6 +740,7 @@
     },
     "d87": {
       "title": "Read The Signed Numbers",
+      "file": "stack-nested-eval/d87_read_the_signed_numbers.py",
       "after": [
         "d86"
       ],
@@ -670,6 +750,7 @@
     },
     "d88": {
       "title": "Orders In A Date Window",
+      "file": "sql-filter-select/d88_orders_in_a_date_window.py",
       "after": [
         "d36"
       ],
@@ -679,6 +760,7 @@
     },
     "d89": {
       "title": "Revenue Per Product",
+      "file": "sql-group-aggregate/d89_revenue_per_product.py",
       "after": [
         "d40"
       ],
@@ -688,6 +770,7 @@
     },
     "d90": {
       "title": "Average Years Per Project",
+      "file": "sql-group-aggregate/d90_average_years_per_project.py",
       "after": [
         "d40"
       ],
@@ -697,6 +780,7 @@
     },
     "d91": {
       "title": "Average Price Per Product",
+      "file": "sql-group-aggregate/d91_average_price_per_product.py",
       "after": [
         "d89",
         "d90"
@@ -707,6 +791,7 @@
     },
     "d92": {
       "title": "Price At Time Of Sale",
+      "file": "sql-join-inner/d92_price_at_time_of_sale.py",
       "after": [
         "d42",
         "d88"
@@ -717,6 +802,7 @@
     },
     "d93": {
       "title": "Nested Boxes",
+      "file": "stack-nested-eval/d93_nested_boxes.py",
       "after": [],
       "trains": [
         "stack-nested-eval"
@@ -724,6 +810,7 @@
     },
     "d94": {
       "title": "Longest Common Subsequence",
+      "file": "two-sequence-align/d94_longest_common_subsequence.py",
       "after": [],
       "trains": [
         "two-sequence-align"
@@ -731,6 +818,7 @@
     },
     "d95": {
       "title": "Turn One Dial",
+      "file": "event-sweep/d95_turn_one_dial.py",
       "after": [],
       "trains": [
         "event-sweep"
@@ -738,6 +826,7 @@
     },
     "d96": {
       "title": "Largest Of The Last K",
+      "file": "monotonic-queue/d96_largest_of_the_last_k.py",
       "after": [],
       "trains": [
         "monotonic-queue"
@@ -745,6 +834,7 @@
     },
     "d97": {
       "title": "Count In-Degrees",
+      "file": "topological-order/d97_count_in_degrees.py",
       "after": [],
       "trains": [
         "topological-order"
@@ -752,6 +842,7 @@
     },
     "d98": {
       "title": "First Lit Bulb",
+      "file": "binary-search-index/d98_first_lit_bulb.py",
       "after": [],
       "trains": [
         "binary-search-index"
@@ -759,6 +850,7 @@
     },
     "d101": {
       "title": "Count Cells",
+      "file": "grid-neighbors/d101_count_cells.py",
       "after": [],
       "trains": [
         "grid-neighbors"
@@ -766,6 +858,7 @@
     },
     "d102": {
       "title": "Neighbour Values",
+      "file": "grid-neighbors/d102_neighbour_values.py",
       "after": [],
       "trains": [
         "grid-neighbors"
@@ -773,6 +866,7 @@
     },
     "d103": {
       "title": "Neighbour Counts",
+      "file": "grid-neighbors/d103_neighbour_counts.py",
       "after": [
         "d101",
         "d102"
@@ -783,6 +877,7 @@
     },
     "d105": {
       "title": "Last Off Bulb",
+      "file": "binary-search-index/d105_last_off_bulb.py",
       "after": [
         "d98"
       ],
@@ -792,6 +887,7 @@
     },
     "d106": {
       "title": "Order By Other Array",
+      "file": "sort-by-custom-key/d106_order_by_other_array.py",
       "after": [],
       "trains": [
         "sort-by-custom-key"
@@ -799,6 +895,7 @@
     },
     "d107": {
       "title": "Indices By Value",
+      "file": "sort-by-custom-key/d107_indices_by_value.py",
       "after": [
         "d106"
       ],
@@ -808,6 +905,7 @@
     },
     "d108": {
       "title": "Swap First Two",
+      "file": "ll-dummy-splice/d108_swap_first_two.py",
       "after": [
         "d184"
       ],
@@ -817,6 +915,7 @@
     },
     "d109": {
       "title": "Cut At The Middle",
+      "file": "fast-slow-pointers/d109_cut_at_the_middle.py",
       "after": [],
       "trains": [
         "fast-slow-pointers"
@@ -824,6 +923,7 @@
     },
     "d110": {
       "title": "Interleave",
+      "file": "ll-dummy-splice/d110_interleave.py",
       "after": [
         "d108"
       ],
@@ -833,6 +933,7 @@
     },
     "d111": {
       "title": "Remove Value",
+      "file": "ll-dummy-splice/d111_remove_value.py",
       "after": [],
       "trains": [
         "ll-dummy-splice"
@@ -840,6 +941,7 @@
     },
     "d112": {
       "title": "Reverse First K",
+      "file": "ll-pointer-reversal/d112_reverse_first_k.py",
       "after": [
         "d181",
         "d184"
@@ -850,6 +952,7 @@
     },
     "d113": {
       "title": "Nth From End",
+      "file": "ll-offset-arithmetic/d113_nth_from_end.py",
       "after": [],
       "trains": [
         "ll-offset-arithmetic"
@@ -857,6 +960,7 @@
     },
     "d114": {
       "title": "Sections Under Cap",
+      "file": "running-sum/d114_sections_under_cap.py",
       "after": [],
       "trains": [
         "running-sum"
@@ -864,6 +968,7 @@
     },
     "d115": {
       "title": "First True",
+      "file": "binary-search-on-answer/d115_first_true.py",
       "after": [
         "d98"
       ],
@@ -873,6 +978,7 @@
     },
     "d117": {
       "title": "Colors Seen",
+      "file": "bit-flags/d117_colors_seen.py",
       "after": [],
       "trains": [
         "bit-flags"
@@ -880,6 +986,7 @@
     },
     "d118": {
       "title": "Names In Palette",
+      "file": "bit-flags/d118_names_in_palette.py",
       "after": [
         "d117"
       ],
@@ -889,6 +996,7 @@
     },
     "d119": {
       "title": "Turn Knobs To A Total",
+      "file": "event-sweep/d119_turn_knobs_to_a_total.py",
       "after": [
         "d95"
       ],
@@ -898,6 +1006,7 @@
     },
     "d120": {
       "title": "Last True",
+      "file": "binary-search-on-answer/d120_last_true.py",
       "after": [
         "d115"
       ],
@@ -907,6 +1016,7 @@
     },
     "d122": {
       "title": "One More Cat",
+      "file": "marginal-gain/d122_one_more_cat.py",
       "after": [],
       "trains": [
         "marginal-gain"
@@ -914,6 +1024,7 @@
     },
     "d123": {
       "title": "Boys Ratio Order",
+      "file": "heap-top-k/d123_boys_ratio_order.py",
       "after": [],
       "trains": [
         "heap-top-k"
@@ -921,6 +1032,7 @@
     },
     "d124": {
       "title": "Companies Left",
+      "file": "union-find/d124_companies_left.py",
       "after": [
         "d73"
       ],
@@ -930,6 +1042,7 @@
     },
     "d125": {
       "title": "Companies Among",
+      "file": "union-find/d125_companies_among.py",
       "after": [
         "d124"
       ],
@@ -939,6 +1052,7 @@
     },
     "d126": {
       "title": "Held By Both",
+      "file": "bit-flags/d126_held_by_both.py",
       "after": [
         "d118"
       ],
@@ -948,6 +1062,7 @@
     },
     "d127": {
       "title": "Held By Either",
+      "file": "bit-flags/d127_held_by_either.py",
       "after": [
         "d126"
       ],
@@ -957,6 +1072,7 @@
     },
     "d128": {
       "title": "Smaller Before",
+      "file": "dp-1d-rolling/d128_smaller_before.py",
       "after": [
         "d75"
       ],
@@ -966,6 +1082,7 @@
     },
     "d130": {
       "title": "Top Down Cell",
+      "file": "index-conversion/d130_top_down_cell.py",
       "after": [],
       "trains": [
         "index-conversion"
@@ -973,6 +1090,7 @@
     },
     "d131": {
       "title": "Bottom Up Cell",
+      "file": "index-conversion/d131_bottom_up_cell.py",
       "after": [
         "d130"
       ],
@@ -982,6 +1100,7 @@
     },
     "d133": {
       "title": "Top Down Index",
+      "file": "index-conversion/d133_top_down_index.py",
       "after": [
         "d131"
       ],
@@ -991,6 +1110,7 @@
     },
     "d134": {
       "title": "Top Down Index Alternating",
+      "file": "index-conversion/d134_top_down_index_alternating.py",
       "after": [
         "d133"
       ],
@@ -1000,6 +1120,7 @@
     },
     "d135": {
       "title": "Bottom Up Index",
+      "file": "index-conversion/d135_bottom_up_index.py",
       "after": [
         "d134"
       ],
@@ -1009,6 +1130,7 @@
     },
     "d136": {
       "title": "Bottom Up Index Alternating",
+      "file": "index-conversion/d136_bottom_up_index_alternating.py",
       "after": [
         "d135"
       ],
@@ -1018,6 +1140,7 @@
     },
     "d137": {
       "title": "Subarrays Summing To Target",
+      "file": "prefix-sum-hashmap/d137_subarrays_summing_to_target.py",
       "after": [
         "d15"
       ],
@@ -1027,6 +1150,7 @@
     },
     "d139": {
       "title": "Node Step Pairs",
+      "file": "graph-bfs-shortest/d139_node_step_pairs.py",
       "after": [
         "d80",
         "d67",
@@ -1038,6 +1162,7 @@
     },
     "d140": {
       "title": "First False",
+      "file": "binary-search-on-answer/d140_first_false.py",
       "after": [
         "d115"
       ],
@@ -1047,6 +1172,7 @@
     },
     "d141": {
       "title": "Last False",
+      "file": "binary-search-on-answer/d141_last_false.py",
       "after": [
         "d120"
       ],
@@ -1056,6 +1182,7 @@
     },
     "d142": {
       "title": "Unequal Pairs From Two Values",
+      "file": "pair-count-formula/d142_unequal_pairs_two_values.py",
       "after": [
         "counter-build"
       ],
@@ -1065,6 +1192,7 @@
     },
     "d143": {
       "title": "Unequal Pairs",
+      "file": "pair-count-formula/d143_unequal_pairs.py",
       "after": [
         "d142"
       ],
@@ -1074,6 +1202,7 @@
     },
     "d144": {
       "title": "Floor True",
+      "file": "binary-search-on-answer/d144_floor_true.py",
       "after": [
         "d120"
       ],
@@ -1083,6 +1212,7 @@
     },
     "d145": {
       "title": "Pick One Letter",
+      "file": "dp-1d-rolling/d145_pick_one_letter.py",
       "after": [],
       "trains": [
         "dp-1d-rolling"
@@ -1090,6 +1220,7 @@
     },
     "d146": {
       "title": "Count AB Subsequences",
+      "file": "dp-1d-rolling/d146_count_ab_subsequences.py",
       "after": [
         "d145"
       ],
@@ -1099,18 +1230,21 @@
     },
     "d147": {
       "title": "Split The Excess",
+      "file": "dp-1d-rolling/d147_split_the_excess.py",
       "trains": [
         "dp-1d-rolling"
       ]
     },
     "d148": {
       "title": "Reach The Far Corner",
+      "file": "graph-bfs-shortest/d148_reach_the_far_corner.py",
       "trains": [
         "graph-bfs-shortest"
       ]
     },
     "d149": {
       "title": "Rank Within Each Team",
+      "file": "sql-window-rank/d149_rank_within_each_team.py",
       "after": [
         "d60"
       ],
@@ -1120,6 +1254,7 @@
     },
     "d150": {
       "title": "Top Two Distinct Scores",
+      "file": "sql-subquery/d150_top_two_distinct_scores.py",
       "after": [
         "d60"
       ],
@@ -1129,12 +1264,14 @@
     },
     "d151": {
       "title": "Sum Of Squares",
+      "file": "running-sum/d151_sum_of_squares.py",
       "trains": [
         "running-sum"
       ]
     },
     "d152": {
       "title": "Sum Of Positives",
+      "file": "running-sum/d152_sum_of_positives.py",
       "after": [
         "d151"
       ],
@@ -1144,6 +1281,7 @@
     },
     "d153": {
       "title": "Count Evens",
+      "file": "running-sum/d153_count_evens.py",
       "after": [
         "d152"
       ],
@@ -1153,6 +1291,7 @@
     },
     "d154": {
       "title": "Largest Even",
+      "file": "running-extreme/d154_largest_even.py",
       "after": [
         "d152"
       ],
@@ -1162,6 +1301,7 @@
     },
     "d155": {
       "title": "Equal Pairs",
+      "file": "streaming-accumulate-pairs/d155_equal_pairs.py",
       "after": [
         "d151"
       ],
@@ -1171,6 +1311,7 @@
     },
     "d158": {
       "title": "Call Tree",
+      "file": "stack-nested-eval/d158_call_tree.py",
       "after": [
         "d93"
       ],
@@ -1180,6 +1321,7 @@
     },
     "d159": {
       "title": "Exclusive From Call Tree",
+      "file": "stack-nested-eval/d159_exclusive_from_call_tree.py",
       "after": [
         "d158"
       ],
@@ -1189,6 +1331,7 @@
     },
     "d160": {
       "title": "Positive Total",
+      "file": "ts-typed-function/d160_positive_total.ts",
       "after": [],
       "trains": [
         "ts-typed-function"
@@ -1196,6 +1339,7 @@
     },
     "d161": {
       "title": "Index Of Largest",
+      "file": "ts-index-loop/d161_index_of_largest.ts",
       "after": [
         "d160"
       ],
@@ -1205,6 +1349,7 @@
     },
     "d162": {
       "title": "Largest Count",
+      "file": "ts-map-count/d162_largest_count.ts",
       "after": [
         "d160"
       ],
@@ -1214,6 +1359,7 @@
     },
     "d163": {
       "title": "First Repeat",
+      "file": "ts-set-membership/d163_first_repeat.ts",
       "after": [
         "d160"
       ],
@@ -1223,6 +1369,7 @@
     },
     "d164": {
       "title": "Third Smallest",
+      "file": "ts-sort-comparator/d164_third_smallest.ts",
       "after": [
         "d160"
       ],
@@ -1232,6 +1379,7 @@
     },
     "d165": {
       "title": "Reverse Each Word",
+      "file": "ts-string-build/d165_reverse_each_word.ts",
       "after": [
         "d160"
       ],
@@ -1241,6 +1389,7 @@
     },
     "d166": {
       "title": "Order Total",
+      "file": "ts-object-type/d166_order_total.ts",
       "after": [
         "d160"
       ],
@@ -1250,6 +1399,7 @@
     },
     "d167": {
       "title": "Mixed Sum",
+      "file": "ts-union-narrowing/d167_mixed_sum.ts",
       "after": [
         "d166"
       ],
@@ -1259,6 +1409,7 @@
     },
     "d168": {
       "title": "Companies By Head",
+      "file": "union-find/d168_companies_by_head.py",
       "after": [
         "d125"
       ],
@@ -1268,24 +1419,28 @@
     },
     "d169": {
       "title": "Fewest Coins",
+      "file": "dp-1d-rolling/d169_fewest_coins.py",
       "trains": [
         "dp-1d-rolling"
       ]
     },
     "d170": {
       "title": "Plus One Or Double",
+      "file": "generate-and-test-neighbors/d170_plus_one_or_double.py",
       "trains": [
         "generate-and-test-neighbors"
       ]
     },
     "d171": {
       "title": "Fewest Cells Between",
+      "file": "multi-source-bfs/d171_fewest_cells_between.py",
       "trains": [
         "multi-source-bfs"
       ]
     },
     "d172": {
       "title": "Node Distance Pairs",
+      "file": "graph-bfs-shortest/d172_node_distance_pairs.py",
       "after": [
         "d80",
         "d67"
@@ -1296,18 +1451,21 @@
     },
     "d173": {
       "title": "Largest By Flag",
+      "file": "greedy-sort-take/d173_largest_by_flag.py",
       "trains": [
         "greedy-sort-take"
       ]
     },
     "d174": {
       "title": "Longest Path From Zero",
+      "file": "memoize-recursion/d174_longest_path_from_zero.py",
       "trains": [
         "memoize-recursion"
       ]
     },
     "d175": {
       "title": "After The Drop",
+      "file": "rotated-array-pivot/d175_after_the_drop.py",
       "after": [],
       "trains": [
         "rotated-array-pivot"
@@ -1315,6 +1473,7 @@
     },
     "d176": {
       "title": "Longest Increasing Subsequence Ending At Each Index",
+      "file": "dp-1d-rolling/d176_longest_increasing_subsequence_ending_at_each_index.py",
       "after": [
         "d128"
       ],
@@ -1324,6 +1483,7 @@
     },
     "d177": {
       "title": "Cut To K",
+      "file": "binary-search-on-answer/d177_cut_to_k.py",
       "after": [
         "d115"
       ],
@@ -1333,6 +1493,7 @@
     },
     "d178": {
       "title": "Subarray Sum Equals K",
+      "file": "prefix-sum-hashmap/d178_subarray_sum_equals_k.py",
       "after": [
         "d137"
       ],
@@ -1342,6 +1503,7 @@
     },
     "d179": {
       "title": "Divisible Difference Pairs",
+      "file": "derived-key-lookup/d179_divisible_difference_pairs.py",
       "after": [
         "d155",
         "d185"
@@ -1352,6 +1514,7 @@
     },
     "d180": {
       "title": "Kahn Queue Loop",
+      "file": "topological-order/d180_kahn_queue_loop.py",
       "after": [
         "d97"
       ],
@@ -1361,6 +1524,7 @@
     },
     "d181": {
       "title": "Reverse Sublist",
+      "file": "ll-pointer-reversal/d181_reverse_sublist.py",
       "after": [
         "d184"
       ],
@@ -1370,6 +1534,7 @@
     },
     "d182": {
       "title": "Bottom Up Cell Alternating",
+      "file": "index-conversion/d182_bottom_up_cell_alternating.py",
       "after": [
         "d131",
         "d136"
@@ -1380,6 +1545,7 @@
     },
     "d183": {
       "title": "Indices Of Each Character",
+      "file": "dict-arbitrary-value/d183_indices_of_each_character.py",
       "after": [],
       "trains": [
         "dict-arbitrary-value"
@@ -1387,6 +1553,7 @@
     },
     "d184": {
       "title": "Reverse K",
+      "file": "ll-pointer-reversal/d184_reverse_k.py",
       "after": [],
       "trains": [
         "ll-pointer-reversal"
@@ -1394,6 +1561,7 @@
     },
     "d185": {
       "title": "Count Pairs",
+      "file": "streaming-accumulate-pairs/d185_count_pairs.py",
       "after": [
         "d155"
       ],
@@ -1403,6 +1571,7 @@
     },
     "d186": {
       "title": "Clear Lowest Set Bit",
+      "file": "bit-iterate/d186_clear_lowest_set_bit.py",
       "after": [],
       "trains": [
         "bit-iterate"
@@ -1410,6 +1579,7 @@
     },
     "d187": {
       "title": "Square",
+      "file": "rust-fn-signature/d187_square.rs",
       "after": [],
       "trains": [
         "rust-fn-signature"
@@ -1417,6 +1587,7 @@
     },
     "d188": {
       "title": "Sum To N",
+      "file": "rust-let-mut/d188_sum_to_n.rs",
       "after": [
         "d187"
       ],
@@ -1426,6 +1597,7 @@
     },
     "d189": {
       "title": "String Length",
+      "file": "rust-shadowing/d189_string_length.rs",
       "after": [
         "d187"
       ],
@@ -1435,6 +1607,7 @@
     },
     "d190": {
       "title": "Hours To Seconds",
+      "file": "rust-const/d190_hours_to_seconds.rs",
       "after": [
         "d187"
       ],
@@ -1444,6 +1617,7 @@
     },
     "d191": {
       "title": "Bigger",
+      "file": "rust-if-expression/d191_bigger.rs",
       "after": [
         "d187"
       ],
@@ -1453,6 +1627,7 @@
     },
     "d192": {
       "title": "First Divisor",
+      "file": "rust-else-if/d192_first_divisor.rs",
       "after": [
         "d191"
       ],
@@ -1462,6 +1637,7 @@
     },
     "d193": {
       "title": "Square Of Larger",
+      "file": "rust-if-binding/d193_square_of_larger.rs",
       "after": [
         "d192"
       ],
@@ -1471,6 +1647,7 @@
     },
     "d194": {
       "title": "HTTP Error Text",
+      "file": "py-match/d194_http_error_text.py",
       "after": [],
       "trains": [
         "py-match"
@@ -1478,6 +1655,7 @@
     },
     "d195": {
       "title": "JSON Round Trip",
+      "file": "py-json/d195_json_round_trip.py",
       "after": [],
       "trains": [
         "py-json"
@@ -1485,6 +1663,7 @@
     },
     "d196": {
       "title": "Greet Or Refuse",
+      "file": "py-raise/d196_greet_or_refuse.py",
       "after": [],
       "trains": [
         "py-raise"
@@ -1492,6 +1671,7 @@
     },
     "d197": {
       "title": "Withdraw",
+      "file": "py-custom-exception/d197_withdraw.py",
       "after": [],
       "trains": [
         "py-custom-exception"
@@ -1499,6 +1679,7 @@
     },
     "d198": {
       "title": "Lines Of A File",
+      "file": "py-with/d198_lines_of_a_file.py",
       "after": [],
       "trains": [
         "py-with"
@@ -1506,6 +1687,7 @@
     },
     "d199": {
       "title": "Hire",
+      "file": "py-dataclass/d199_hire.py",
       "after": [],
       "trains": [
         "py-dataclass"
@@ -1513,6 +1695,7 @@
     },
     "d200": {
       "title": "Reverse Iterator",
+      "file": "py-iterator-protocol/d200_reverse_iterator.py",
       "after": [],
       "trains": [
         "py-iterator-protocol"
@@ -1520,6 +1703,7 @@
     },
     "d201": {
       "title": "Words Starting With",
+      "file": "py-regex/d201_words_starting_with.py",
       "after": [],
       "trains": [
         "py-regex"
@@ -1527,6 +1711,7 @@
     },
     "d202": {
       "title": "Days Between",
+      "file": "py-datetime/d202_days_between.py",
       "after": [],
       "trains": [
         "py-datetime"
@@ -1534,6 +1719,7 @@
     },
     "d203": {
       "title": "Config Warning",
+      "file": "py-logging/d203_config_warning.py",
       "after": [],
       "trains": [
         "py-logging"
@@ -1541,6 +1727,7 @@
     },
     "d238": {
       "title": "Pastebin Numbers",
+      "file": "design-pastebin/d238_pastebin_numbers.markdown",
       "after": [],
       "trains": [
         "design-pastebin"
@@ -1548,6 +1735,7 @@
     },
     "d239": {
       "title": "Twitter Numbers",
+      "file": "design-twitter-timeline/d239_twitter_numbers.markdown",
       "after": [],
       "trains": [
         "design-twitter-timeline"
@@ -1555,6 +1743,7 @@
     },
     "d240": {
       "title": "Crawler Numbers",
+      "file": "design-web-crawler/d240_crawler_numbers.markdown",
       "after": [],
       "trains": [
         "design-web-crawler"
@@ -1562,6 +1751,7 @@
     },
     "d241": {
       "title": "Mint Numbers",
+      "file": "design-mint/d241_mint_numbers.markdown",
       "after": [],
       "trains": [
         "design-mint"
@@ -1569,6 +1759,7 @@
     },
     "d242": {
       "title": "Social Graph Numbers",
+      "file": "design-social-graph/d242_social_graph_numbers.markdown",
       "after": [],
       "trains": [
         "design-social-graph"
@@ -1576,6 +1767,7 @@
     },
     "d243": {
       "title": "Query Cache Numbers",
+      "file": "design-query-cache/d243_query_cache_numbers.markdown",
       "after": [],
       "trains": [
         "design-query-cache"
@@ -1583,6 +1775,7 @@
     },
     "d244": {
       "title": "Sales Rank Numbers",
+      "file": "design-sales-rank/d244_sales_rank_numbers.markdown",
       "after": [],
       "trains": [
         "design-sales-rank"
@@ -1590,6 +1783,7 @@
     },
     "d245": {
       "title": "Scaling Numbers",
+      "file": "design-scaling-aws/d245_scaling_numbers.markdown",
       "after": [],
       "trains": [
         "design-scaling-aws"
@@ -1597,6 +1791,7 @@
     },
     "d248": {
       "title": "Pastebin Create",
+      "file": "design-pastebin/d248_pastebin_create.markdown",
       "after": [
         "d238"
       ],
@@ -1606,6 +1801,7 @@
     },
     "d249": {
       "title": "Pastebin Link",
+      "file": "design-pastebin/d249_pastebin_link.markdown",
       "after": [
         "d248"
       ],
@@ -1615,6 +1811,7 @@
     },
     "d250": {
       "title": "Pastebin Read",
+      "file": "design-pastebin/d250_pastebin_read.markdown",
       "after": [
         "d249"
       ],
@@ -1624,6 +1821,7 @@
     },
     "d251": {
       "title": "Pastebin Expiry",
+      "file": "design-pastebin/d251_pastebin_expiry.markdown",
       "after": [
         "d250"
       ],
@@ -1633,6 +1831,7 @@
     },
     "d252": {
       "title": "Pastebin Scaled",
+      "file": "design-pastebin/d252_pastebin_scaled.markdown",
       "after": [
         "d251"
       ],
@@ -1642,6 +1841,7 @@
     },
     "d253": {
       "title": "Twitter Post",
+      "file": "design-twitter-timeline/d253_twitter_post.markdown",
       "after": [
         "d239"
       ],
@@ -1651,6 +1851,7 @@
     },
     "d254": {
       "title": "Twitter Home Timeline Store",
+      "file": "design-twitter-timeline/d254_twitter_home_timeline_store.markdown",
       "after": [
         "d253"
       ],
@@ -1660,6 +1861,7 @@
     },
     "d255": {
       "title": "Twitter Read",
+      "file": "design-twitter-timeline/d255_twitter_read.markdown",
       "after": [
         "d254"
       ],
@@ -1669,6 +1871,7 @@
     },
     "d256": {
       "title": "Twitter Fan Out Bottleneck",
+      "file": "design-twitter-timeline/d256_twitter_fan_out_bottleneck.markdown",
       "after": [
         "d255"
       ],
@@ -1678,6 +1881,7 @@
     },
     "d257": {
       "title": "Twitter Memory Bounds",
+      "file": "design-twitter-timeline/d257_twitter_memory_bounds.markdown",
       "after": [
         "d256"
       ],
@@ -1687,6 +1891,7 @@
     },
     "d258": {
       "title": "Crawler Link Stores",
+      "file": "design-web-crawler/d258_crawler_link_stores.markdown",
       "after": [
         "d240"
       ],
@@ -1696,6 +1901,7 @@
     },
     "d259": {
       "title": "Crawler Loop",
+      "file": "design-web-crawler/d259_crawler_loop.markdown",
       "after": [
         "d258"
       ],
@@ -1705,6 +1911,7 @@
     },
     "d260": {
       "title": "Crawler Duplicates",
+      "file": "design-web-crawler/d260_crawler_duplicates.markdown",
       "after": [
         "d259"
       ],
@@ -1714,6 +1921,7 @@
     },
     "d261": {
       "title": "Crawler Recrawl",
+      "file": "design-web-crawler/d261_crawler_recrawl.markdown",
       "after": [
         "d260"
       ],
@@ -1723,6 +1931,7 @@
     },
     "d262": {
       "title": "Crawler Scaled",
+      "file": "design-web-crawler/d262_crawler_scaled.markdown",
       "after": [
         "d261"
       ],
@@ -1732,6 +1941,7 @@
     },
     "d263": {
       "title": "Mint Triggers",
+      "file": "design-mint/d263_mint_triggers.markdown",
       "after": [
         "d241"
       ],
@@ -1741,6 +1951,7 @@
     },
     "d264": {
       "title": "Mint Extraction Flow",
+      "file": "design-mint/d264_mint_extraction_flow.markdown",
       "after": [
         "d263"
       ],
@@ -1750,6 +1961,7 @@
     },
     "d265": {
       "title": "Mint Category",
+      "file": "design-mint/d265_mint_category.markdown",
       "after": [
         "d264"
       ],
@@ -1759,6 +1971,7 @@
     },
     "d266": {
       "title": "Mint Budget",
+      "file": "design-mint/d266_mint_budget.markdown",
       "after": [
         "d265"
       ],
@@ -1768,6 +1981,7 @@
     },
     "d267": {
       "title": "Mint Writes",
+      "file": "design-mint/d267_mint_writes.markdown",
       "after": [
         "d266"
       ],
@@ -1777,6 +1991,7 @@
     },
     "d268": {
       "title": "Social Graph One Machine",
+      "file": "design-social-graph/d268_social_graph_one_machine.markdown",
       "after": [
         "d242"
       ],
@@ -1786,6 +2001,7 @@
     },
     "d269": {
       "title": "Social Graph Sharding",
+      "file": "design-social-graph/d269_social_graph_sharding.markdown",
       "after": [
         "d268"
       ],
@@ -1795,6 +2011,7 @@
     },
     "d270": {
       "title": "Social Graph Search",
+      "file": "design-social-graph/d270_social_graph_search.markdown",
       "after": [
         "d269"
       ],
@@ -1804,6 +2021,7 @@
     },
     "d271": {
       "title": "Social Graph Optimisations",
+      "file": "design-social-graph/d271_social_graph_optimisations.markdown",
       "after": [
         "d270"
       ],
@@ -1813,6 +2031,7 @@
     },
     "d272": {
       "title": "Query Cache Eviction",
+      "file": "design-query-cache/d272_query_cache_eviction.markdown",
       "after": [
         "d243"
       ],
@@ -1822,6 +2041,7 @@
     },
     "d273": {
       "title": "Query Cache Hit",
+      "file": "design-query-cache/d273_query_cache_hit.markdown",
       "after": [
         "d272"
       ],
@@ -1831,6 +2051,7 @@
     },
     "d274": {
       "title": "Query Cache Miss",
+      "file": "design-query-cache/d274_query_cache_miss.markdown",
       "after": [
         "d273"
       ],
@@ -1840,6 +2061,7 @@
     },
     "d275": {
       "title": "Query Cache Updates",
+      "file": "design-query-cache/d275_query_cache_updates.markdown",
       "after": [
         "d274"
       ],
@@ -1849,6 +2071,7 @@
     },
     "d276": {
       "title": "Query Cache Layout",
+      "file": "design-query-cache/d276_query_cache_layout.markdown",
       "after": [
         "d275"
       ],
@@ -1858,6 +2081,7 @@
     },
     "d277": {
       "title": "Sales Rank Raw Data",
+      "file": "design-sales-rank/d277_sales_rank_raw_data.markdown",
       "after": [
         "d244"
       ],
@@ -1867,6 +2091,7 @@
     },
     "d278": {
       "title": "Sales Rank Computation",
+      "file": "design-sales-rank/d278_sales_rank_computation.markdown",
       "after": [
         "d277"
       ],
@@ -1876,6 +2101,7 @@
     },
     "d279": {
       "title": "Sales Rank Read",
+      "file": "design-sales-rank/d279_sales_rank_read.markdown",
       "after": [
         "d278"
       ],
@@ -1885,6 +2111,7 @@
     },
     "d280": {
       "title": "Sales Rank Reads",
+      "file": "design-sales-rank/d280_sales_rank_reads.markdown",
       "after": [
         "d279"
       ],
@@ -1894,6 +2121,7 @@
     },
     "d281": {
       "title": "Sales Rank Writes",
+      "file": "design-sales-rank/d281_sales_rank_writes.markdown",
       "after": [
         "d280"
       ],
@@ -1903,6 +2131,7 @@
     },
     "d282": {
       "title": "Scaling Single Box",
+      "file": "design-scaling-aws/d282_scaling_single_box.markdown",
       "after": [
         "d245"
       ],
@@ -1912,6 +2141,7 @@
     },
     "d283": {
       "title": "Scaling First Separation",
+      "file": "design-scaling-aws/d283_scaling_first_separation.markdown",
       "after": [
         "d282"
       ],
@@ -1921,6 +2151,7 @@
     },
     "d284": {
       "title": "Scaling Web Tier",
+      "file": "design-scaling-aws/d284_scaling_web_tier.markdown",
       "after": [
         "d283"
       ],
@@ -1930,6 +2161,7 @@
     },
     "d285": {
       "title": "Scaling Read Heavy Database",
+      "file": "design-scaling-aws/d285_scaling_read_heavy_database.markdown",
       "after": [
         "d284"
       ],
@@ -1939,6 +2171,7 @@
     },
     "d286": {
       "title": "Scaling Autoscaling",
+      "file": "design-scaling-aws/d286_scaling_autoscaling.markdown",
       "after": [
         "d285"
       ],
@@ -1948,6 +2181,7 @@
     },
     "d287": {
       "title": "Scaling Method",
+      "file": "design-scaling-aws/d287_scaling_method.markdown",
       "after": [
         "d286"
       ],
@@ -1957,6 +2191,7 @@
     },
     "d297": {
       "title": "Hits In The Last Minute",
+      "file": "sliding-window-log/d297_hits_in_the_last_minute.py",
       "disabled": true,
       "after": [],
       "trains": [
@@ -1964,14 +2199,16 @@
       ]
     },
     "d300": {
-      "title": "Sum Of A Run",
+      "title": "Sum Of Consecutive Integers",
+      "file": "consecutive-sum-split/d300_sum_of_consecutive_integers.py",
       "after": [],
       "trains": [
         "consecutive-sum-split"
       ]
     },
     "d301": {
-      "title": "Split Into A Run",
+      "title": "Consecutive Integers Sum Test",
+      "file": "consecutive-sum-split/d301_consecutive_integers_sum_test.py",
       "after": [
         "d300"
       ],
@@ -1981,6 +2218,7 @@
     },
     "d302": {
       "title": "Order Book Match Finding",
+      "file": "order-book-match/d302_order_book_match_finding.py",
       "after": [],
       "trains": [
         "order-book-match"
@@ -1988,6 +2226,7 @@
     },
     "d303": {
       "title": "Simplified Order Book",
+      "file": "order-book-match/d303_simplified_order_book.py",
       "after": [],
       "trains": [
         "order-book-match"
@@ -1995,6 +2234,7 @@
     },
     "d304": {
       "title": "Betting Exchange Settlement",
+      "file": "order-book-match/d304_betting_exchange_settlement.py",
       "after": [
         "d305"
       ],
@@ -2004,6 +2244,7 @@
     },
     "d305": {
       "title": "Settle Matched Bets",
+      "file": "bet-settlement/d305_settle_matched_bets.py",
       "disabled": true,
       "after": [],
       "trains": [
@@ -2012,6 +2253,7 @@
     },
     "d306": {
       "title": "Account Tracker",
+      "file": "heap-lazy-eviction/d306_account_tracker.py",
       "disabled": true,
       "after": [],
       "trains": [
@@ -2020,6 +2262,7 @@
     },
     "d307": {
       "title": "Minimum Path Cost",
+      "file": "dijkstra/d307_minimum_path_cost.py",
       "after": [],
       "trains": [
         "dijkstra"
@@ -2027,6 +2270,7 @@
     },
     "d308": {
       "title": "Resolve Nested Templates",
+      "file": "async-gather-recursive/d308_resolve_nested_templates.py",
       "after": [],
       "trains": [
         "async-gather-recursive"

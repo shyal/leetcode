@@ -1,7 +1,4 @@
 """
-DRILL: Hits In The Last Minute
-TRAINS: sliding-window-log
-
 Count each user's requests over a sliding window. Solution(window) has
 
     hit(user, now) -> int

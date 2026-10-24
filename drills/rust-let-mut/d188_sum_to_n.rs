@@ -1,6 +1,3 @@
-// DRILL: Sum To N
-// TRAINS: rust-let-mut
-//
 // Given an integer `n`, return the sum 1 + 2 + ... + n. For n = 0 the sum
 // is 0.
 //

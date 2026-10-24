@@ -1,6 +1,4 @@
 """
-DRILL: Swap First Two
-
 Given the head of a linked list, swap the first two nodes and return the
 new head. A list with fewer than two nodes is returned unchanged. The
 nodes move; their val fields do not.

@@ -1,6 +1,4 @@
 """
-DRILL: Merge Accounts
-
 There are email accounts, out in the world. A person may own multiple
 email accounts. An account can have multiple email IDs.
 

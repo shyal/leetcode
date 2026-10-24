@@ -18,7 +18,7 @@ use std::collections::{HashMap, HashSet};
 
 use crate::ctx::Ctx;
 use crate::data::env_str;
-use crate::evidence::{drill_key, Evidence};
+use crate::evidence::Evidence;
 
 /// FAIL_GATE=0 switches the gate off; unset or anything else keeps it on.
 pub fn enabled() -> bool {
@@ -53,7 +53,7 @@ pub fn open_fails(ev: &Evidence, covered: &HashSet<String>) -> Vec<(String, Stri
         else {
             continue;
         };
-        if drill_key(path).is_some() {
+        if rec.drill.is_some() {
             continue;
         }
         let slot = if path.contains("_FAILED_") {

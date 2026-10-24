@@ -1,6 +1,4 @@
 """
-DRILL: Total Users Per Contest
-
 Given the tables `Users` and `Register`, return one row per `contest_id`
 with `total_users`: the number of rows in `Users`. The value is the same on
 every row. No ordering required.

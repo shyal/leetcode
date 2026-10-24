@@ -1,6 +1,4 @@
 """
-DRILL: Shrink While Valid
-
 Given a string s and an integer k, return the length of the shortest
 substring of s that holds at least k different characters. Return 0 if no
 substring holds that many.

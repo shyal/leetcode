@@ -1,6 +1,4 @@
 """
-DRILL: Remove Value
-
 Given the head of a linked list and an integer val, remove every node
 whose value is val and return the head of what remains. The removed
 nodes may be at the head, in the middle, at the tail, or everywhere.

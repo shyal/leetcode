@@ -1,6 +1,4 @@
 """
-DRILL: Grow and Shrink
-
 Given a string s and an integer k, return the length of the longest
 substring of s that holds at most k different characters.
 

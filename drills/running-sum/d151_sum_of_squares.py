@@ -1,6 +1,4 @@
 """
-DRILL: Sum Of Squares
-
 Given an integer array nums, return the sum of x * x over every element x
 of nums.
 

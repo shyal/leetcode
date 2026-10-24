@@ -1,7 +1,4 @@
 """
-DRILL: Greet Or Refuse
-TRAINS: py-raise
-
 Given a string `name`, return "Hi, " followed by the name. When the
 name is empty or only spaces, raise a ValueError whose message is
 "empty name".

@@ -1,6 +1,4 @@
 """
-DRILL: Interleave
-
 Given the heads a and b of two linked lists, where b has as many nodes as
 a or one fewer, weave them into one list that alternates a node of a and
 a node of b, starting with a, and return its head. The nodes move; no

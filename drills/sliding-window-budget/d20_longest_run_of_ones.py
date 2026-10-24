@@ -1,6 +1,4 @@
 """
-DRILL: Longest Run of Ones
-
 Given a binary array nums, return the length of the longest run of
 consecutive 1s.
 

@@ -1,6 +1,3 @@
-// DRILL: Square Of Larger
-// TRAINS: rust-if-binding
-//
 // Given two integers `a` and `b`, return the square of the larger.
 // First bind the larger to the name `larger` with a single let whose
 // value is an if/else, then return larger times larger.

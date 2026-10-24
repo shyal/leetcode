@@ -1,6 +1,4 @@
 """
-DRILL: Island Key
-
 Given the table `Seats`, return `id` and `grp` for every row, where `grp`
 is the same number for every `id` in one run of consecutive ids and a
 different number for each run. Number the rows by `id` starting at 1; `grp`

@@ -1,6 +1,4 @@
 """
-DRILL: Substrings by End
-
 Given a string s, return every substring of s, grouped by where it
 ends: every substring ending at index 0, then every substring ending at
 index 1 from longest (starting at index 0) to shortest, and so on. Two

@@ -1,7 +1,4 @@
 """
-DRILL: Top Down Index Alternating
-TRAINS: index-conversion
-
 Given an integer n, return the n x n grid numbered 0 to n * n - 1,
 starting at the top-left cell. The top row is filled left to right, the
 row below it right to left, and the direction alternates on every row

@@ -1,6 +1,4 @@
 """
-DRILL: Count In-Degrees
-
 Given n nodes numbered 0 to n - 1 and edges, where [a, b] is an edge
 from a to b, return indeg, where indeg[b] is the number of edges into b.
 

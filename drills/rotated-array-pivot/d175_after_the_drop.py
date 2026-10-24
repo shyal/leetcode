@@ -1,7 +1,4 @@
 """
-DRILL: After The Drop
-TRAINS: rotated-array-pivot
-
 Given a rotated sorted array nums of distinct integers, return a list
 of booleans. There is at most one index d with nums[d] < nums[d - 1].
 Entry i is True when i >= d. If no such d exists, every entry is True.

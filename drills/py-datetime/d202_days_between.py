@@ -1,7 +1,4 @@
 """
-DRILL: Days Between
-TRAINS: py-datetime
-
 Given two dates `start` and `end` as ISO strings "YYYY-MM-DD", return
 the number of days from start to end. The result is negative when end
 is before start.

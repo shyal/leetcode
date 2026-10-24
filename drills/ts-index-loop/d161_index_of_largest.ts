@@ -1,6 +1,3 @@
-// DRILL: Index Of Largest
-// TRAINS: ts-index-loop
-//
 // Given a non-empty array of numbers `nums`, return the index of its largest
 // element. When the largest value appears more than once, return its first
 // index.

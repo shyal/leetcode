@@ -1,7 +1,4 @@
 """
-DRILL: Pick One Letter
-TRAINS: dp-1d-rolling
-
 Given a string s and a letter c, return an array ways of length len(s) + 1.
 The value ways[i] is the number of ways to pick one c from the first i
 characters of s.

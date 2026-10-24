@@ -1,6 +1,4 @@
 """
-DRILL: Rank Within Each Team
-
 Given the table `Players`, return `name`, `team` and `rank` for every row.
 The rank counts within the player's own team, from highest `points` to
 lowest, and starts at 1 in every team. Equal points share a rank, and the

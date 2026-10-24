@@ -716,6 +716,8 @@ option loses, where one pass misses a later better choice. At most 12 lines.
         };
         git(&["checkout", "master"]);
         std::fs::write(root.join(file_name), code).expect("write current.py");
+        // a problem, not a drill: no .drill.json may name it
+        kg::lang::clear_current_drill(root);
         println!("Saved stub to {file_name}");
         git(&["checkout", "-b", &key]);
         git(&["add", "."]);

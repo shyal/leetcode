@@ -1,6 +1,4 @@
 """
-DRILL: Department Top Three Salaries
-
 Given the table `Employee`, return `departmentId`, `name` and `salary` for
 every employee whose `salary` is among the three highest distinct salaries
 in their department. No ordering required.

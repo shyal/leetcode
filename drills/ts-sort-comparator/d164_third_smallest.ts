@@ -1,6 +1,3 @@
-// DRILL: Third Smallest
-// TRAINS: ts-sort-comparator
-//
 // Given an array of at least three numbers `nums`, return its third smallest
 // element, counting repeats. The array `nums` must be the same after the call.
 //

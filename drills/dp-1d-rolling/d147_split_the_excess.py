@@ -1,7 +1,4 @@
 """
-DRILL: Split The Excess
-TRAINS: dp-1d-rolling
-
 Given a list row of amounts, return a list new_row of len(row) + 1 amounts.
 Every amount in new_row starts at 0. When row[c] is more than 1, half of the
 excess row[c] - 1 goes to new_row[c] and the other half to new_row[c + 1].

@@ -1,7 +1,4 @@
 """
-DRILL: Settle Matched Bets
-TRAINS: bet-settlement
-
 A betting exchange operates a single market with one selection, such as "Team A wins."
 
 Users submit bets before the event ends. Each bet is one of:

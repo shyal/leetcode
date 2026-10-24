@@ -1,6 +1,4 @@
 """
-DRILL: Companies By Head
-
 Given self.parent, return the dict groups mapping each head to the list
 of employees in that head's company, in increasing order. Solution
 extends UnionFind from dsa/union_find.py: self.parent[i] is the manager

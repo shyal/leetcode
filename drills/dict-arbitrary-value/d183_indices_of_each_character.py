@@ -1,7 +1,4 @@
 """
-DRILL: Indices Of Each Character
-TRAINS: dict-arbitrary-value
-
 Given a string s, return a dict mapping each character of s to the list
 of indices where it occurs, in increasing order.
 

@@ -1,6 +1,4 @@
 """
-DRILL: Sort Bounded Values
-
 Given an integer array nums whose values all lie between 0 and 100
 inclusive, return the same values in non-decreasing order.
 

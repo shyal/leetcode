@@ -1,6 +1,4 @@
 """
-DRILL: Employees Who Manage Nobody
-
 Given the table `Employees`, return the `employee_id` of every employee who
 is not the manager of anyone. No ordering required.
 

@@ -1,6 +1,3 @@
-// DRILL: Hours To Seconds
-// TRAINS: rust-const
-//
 // Given a number of `hours`, return the same duration in seconds. The
 // number of seconds in one hour is a constant named SECONDS_PER_HOUR,
 // declared once at the top of the file, outside every function.

@@ -1,6 +1,4 @@
 """
-DRILL: Turn Knobs To A Total
-
 You are DJing at a party and want to set the volume to V. The mixer
 has two knobs, set at a and b, and you can turn each knob to any
 position from 1 to limit. The volume is a + b. Return the fewest knobs

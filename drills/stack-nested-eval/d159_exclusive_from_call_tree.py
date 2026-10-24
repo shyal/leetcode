@@ -1,6 +1,4 @@
 """
-DRILL: Exclusive From Call Tree
-
 Given an integer n and root, a call tree as built by Call Tree, return
 res, where res[i] is the exclusive time of function i. The root's val is
 {}. Every other node is one call, with val["id"] the function, and

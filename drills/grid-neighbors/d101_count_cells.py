@@ -1,6 +1,4 @@
 """
-DRILL: Count Cells
-
 Given a grid of m rows and n columns and an integer v, return the number
 of cells of grid equal to v. Use cells from the harness.
 

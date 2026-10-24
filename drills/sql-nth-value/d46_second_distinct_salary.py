@@ -1,6 +1,4 @@
 """
-DRILL: Second Distinct Salary
-
 Given the table `Employee`, return the second highest distinct `salary` as
 a single row with one column, `SecondHighestSalary`. The table always holds
 at least two distinct salaries.

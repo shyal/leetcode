@@ -1,5 +1,5 @@
 """
-DRILL: Sum Of A Run
+DRILL: Sum Of Consecutive Integers
 TRAINS: consecutive-sum-split
 
 Given two positive integers n and k, return the sum of the k consecutive
@@ -35,13 +35,13 @@ Learning
 
 # mu 0.10
 # class Solution
-#   def sumOfRun(n: int, k: int) -> int
+#   def sumOfConsecutive(n: int, k: int) -> int
 #     k * (2 * n + k - 1) // 2
 
 class Solution:
-    def sumOfRun(self, n: int, k: int) -> int:
+    def sumOfConsecutive(self, n: int, k: int) -> int:
         return k * (2 * n + k - 1) // 2
 
 
 sol = Solution()
-print(sol.sumOfRun(4, 3))
+print(sol.sumOfConsecutive(4, 3))

@@ -1,7 +1,4 @@
 """
-DRILL: Reverse Iterator
-TRAINS: py-iterator-protocol
-
 Write a class Reverse that iterates over a sequence `data` from its last
 element to its first, and a method `reverse` that returns Reverse(data).
 A for loop over it yields the elements backwards, once.

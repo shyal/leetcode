@@ -1,5 +1,4 @@
 """
-DRILL: Indices By Value
 SNIPPET: lcargsort
 
 Given an integer array nums2 of length n, return the indices 0 to n - 1

@@ -311,6 +311,7 @@ fn the_new_drill_cap_withholds_files_never_drilled() {
         (PathBuf::from("drills/q1/a.py"), "q1".into()),
         (PathBuf::from("drills/q2/b.py"), "q2".into()),
     ];
+    fx.titled(&[("q1/a.py", "A"), ("q2/b.py", "B")]);
     // nothing met today: the first due file is served whether or not it is new
     assert_eq!(pnum(&fx.run(&no_evidence(), &st, args())), "drill:q1");
     // one first exposure today, at the cap: a.py is still never drilled, so
@@ -382,6 +383,7 @@ fn the_group_new_cap_pauses_one_groups_unseen_files() {
         (PathBuf::from("drills/q2/b.py"), "q2".into()),
         (PathBuf::from("drills/q3/c.py"), "q3".into()),
     ];
+    fx.titled(&[("q1/a.py", "A"), ("q2/b.py", "B"), ("q3/c.py", "C")]);
     // a.py never drilled and sql paused: skipped; b.py has a rep, a review
     let ev = evidence(vec![drill_file(
         "solved/d_B_2026_01_01T00_00_00_000000_00_00Z.py",
@@ -497,6 +499,7 @@ fn the_drill_review_cap_withholds_files_already_met() {
         (PathBuf::from("drills/q1/a.py"), "q1".into()),
         (PathBuf::from("drills/q2/b.py"), "q2".into()),
     ];
+    fx.titled(&[("q1/a.py", "A"), ("q2/b.py", "B")]);
     let a3 = drill_file(
         "solved/d_A_2026_01_01T00_00_00_000000_00_00Z.py",
         "q1",

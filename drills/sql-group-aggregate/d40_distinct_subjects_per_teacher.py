@@ -1,6 +1,4 @@
 """
-DRILL: Distinct Subjects Per Teacher
-
 Given the table `Teacher`, return each `teacher_id` with `cnt`, the number
 of distinct subjects they teach. No ordering required.
 

@@ -1,5 +1,5 @@
-# REFERENCE: d301 Split Into A Run
+# REFERENCE: d301 Consecutive Integers Sum Test
 class Solution:
-    def splitIntoRun(self, n, k):
+    def isConsecutiveSum(self, n, k):
         t = k * (k - 1) // 2
         return n > t and (n - t) % k == 0

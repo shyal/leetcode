@@ -127,23 +127,27 @@ fn basename(path: &str) -> &str {
 
 /// [(date, lowercase basename, record index)] of this bank drill, oldest
 /// first.
+/// The reps of a drill: the records whose "drill" is the id of the bank
+/// file at `path`, or of the drills.json title `path` names.
 fn drill_reps<'a>(ctx: &Ctx, path: &str, ev: &'a Evidence) -> Vec<(&'a str, &'a str, usize)> {
-    let stem = if Path::new(path).is_file() {
-        ctx.drill_solved_stem(Path::new(path))
+    let id = if Path::new(path).is_file() {
+        ctx.drill_id(Path::new(path))
     } else {
-        // a title with no bank file: match on the title alone
-        let cleaned: String = basename(path)
-            .chars()
-            .filter(|c| c.is_alphanumeric() || *c == '_' || c.is_whitespace() || *c == '-')
-            .collect();
-        cleaned.trim().replace(' ', "_")
+        ctx.drills
+            .iter()
+            .find(|(_, d)| d.title == basename(path))
+            .map(|(i, _)| i.clone())
     };
-    let key = format!("d_{stem}_").to_lowercase();
+    let Some(id) = id else {
+        return Vec::new();
+    };
     let mut reps: Vec<(&str, &str, usize)> = ev
-        .drills
+        .drill_reps(&id)
         .iter()
-        .filter(|(_, base, _)| base.starts_with(&key))
-        .map(|(d, base, i)| (d.as_str(), base.as_str(), *i))
+        .map(|&di| {
+            let (d, base, i) = &ev.drills[di];
+            (d.as_str(), base.as_str(), *i)
+        })
         .collect();
     reps.sort_by(|a, b| (a.0, a.1).cmp(&(b.0, b.1)));
     reps
@@ -478,19 +482,27 @@ mod tests {
             parse_current(&dir),
             Some((Kind::Problem, "1004".to_string()))
         );
-        std::fs::write(&f, "\"\"\"\n**DRILL:** Paid Orders Per Customer\n\"\"\"\n").unwrap();
+        // a drill is the one .drill.json names, titled by drills.json
+        std::fs::create_dir_all(dir.join("graph")).unwrap();
+        std::fs::write(
+            dir.join("graph/drills.json"),
+            r#"{"drills": {"d5": {"title": "Paid Orders Per Customer", "file": "n/d5.py"},
+                "d6": {"title": "Order Total", "file": "t/d6.ts"}}}"#,
+        )
+        .unwrap();
+        std::fs::write(&f, "\"\"\"\nGiven orders, count them.\n\"\"\"\n").unwrap();
+        kg::lang::set_current_drill(&dir, "d5").unwrap();
         assert_eq!(
             parse_current(&dir),
             Some((Kind::Drill, "Paid Orders Per Customer".to_string()))
         );
+        // no .drill.json and no problem line: neither
+        kg::lang::clear_current_drill(&dir);
         std::fs::write(&f, "x = 1\n").unwrap();
         assert_eq!(parse_current(&dir), None);
         std::fs::write(&f, "").unwrap();
-        std::fs::write(
-            dir.join("current.ts"),
-            "// DRILL: Order Total\n// TRAINS: t\n",
-        )
-        .unwrap();
+        std::fs::write(dir.join("current.ts"), "// Given items, total them.\n").unwrap();
+        kg::lang::set_current_drill(&dir, "d6").unwrap();
         assert_eq!(
             parse_current(&dir),
             Some((Kind::Drill, "Order Total".to_string()))

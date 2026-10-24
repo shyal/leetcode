@@ -15,22 +15,24 @@ use chrono::NaiveDate;
 use crate::bank::DraftMatrix;
 use crate::data::{
     evidenced_view, load_all_problems, load_curve, load_drills, load_metadata, load_nodes,
-    pnum_key, predicted_view, real_today, Curve, DrillMap, Metadata, Nodes, Problem, Problems,
+    pnum_key, predicted_view, real_today, Curve, DrillEntry, DrillMap, Metadata, Nodes, Problem,
+    Problems,
 };
 
 /// The evidence a node's drill scheduling depends on (Ctx::deps).
 pub struct NodeDeps {
     pub nodes: HashSet<String>,
+    /// the drill ids whose reps it reads
     pub drill_keys: Vec<String>,
     pub problems: HashSet<String>,
 }
 
 impl NodeDeps {
-    /// Whether a record with these moves / drill basename / problem can
-    /// change the node's answers.
-    pub fn hit(&self, moves: &[String], base: Option<&str>, problem: Option<&str>) -> bool {
+    /// Whether a record with these moves / drill id / problem can change
+    /// the node's answers.
+    pub fn hit(&self, moves: &[String], drill: Option<&str>, problem: Option<&str>) -> bool {
         moves.iter().any(|m| self.nodes.contains(m))
-            || base.is_some_and(|b| self.drill_keys.iter().any(|k| b.starts_with(k.as_str())))
+            || drill.is_some_and(|d| self.drill_keys.iter().any(|k| k == d))
             || problem.is_some_and(|p| self.problems.contains(p))
     }
 }
@@ -54,10 +56,12 @@ pub struct Ctx {
     bank_files: RefCell<HashMap<String, Rc<Vec<PathBuf>>>>,
     has_bank: RefCell<HashMap<String, bool>>,
     bank_paths: RefCell<HashMap<String, Rc<Vec<PathBuf>>>>,
-    evidence_keys: RefCell<HashMap<PathBuf, String>>,
-    drill_headers: RefCell<HashMap<PathBuf, Rc<(Option<String>, Vec<String>)>>>,
-    drill_paths: RefCell<Option<HashMap<String, PathBuf>>>,
-    drill_ids: RefCell<Option<HashMap<String, String>>>,
+    /// drills.json "file" (under drills_dir) -> drill id, built on the
+    /// first ask
+    drill_ids: RefCell<Option<HashMap<PathBuf, String>>>,
+    /// drills registered after the tables were read (kg_simulate's
+    /// authored bank): looked up after `drills`
+    authored: RefCell<DrillMap>,
     deps: RefCell<HashMap<String, Rc<NodeDeps>>>,
     pub git: RefCell<Option<Rc<crate::git::GitState>>>,
     pub git_prefetch: RefCell<Option<std::thread::JoinHandle<crate::git::GitState>>>,
@@ -137,13 +141,11 @@ impl Ctx {
             bank_files: RefCell::new(HashMap::new()),
             has_bank: RefCell::new(HashMap::new()),
             bank_paths: RefCell::new(HashMap::new()),
-            evidence_keys: RefCell::new(HashMap::new()),
             deps: RefCell::new(HashMap::new()),
             git: RefCell::new(None),
             git_prefetch: RefCell::new(None),
-            drill_headers: RefCell::new(HashMap::new()),
-            drill_paths: RefCell::new(None),
             drill_ids: RefCell::new(None),
+            authored: RefCell::new(DrillMap::new()),
             solve_times: RefCell::new(None),
             ratings: RefCell::new(None),
             crowd: RefCell::new(None),
@@ -188,13 +190,11 @@ impl Ctx {
             bank_files: RefCell::new(HashMap::new()),
             has_bank: RefCell::new(HashMap::new()),
             bank_paths: RefCell::new(HashMap::new()),
-            evidence_keys: RefCell::new(HashMap::new()),
             deps: RefCell::new(HashMap::new()),
             git: RefCell::new(None),
             git_prefetch: RefCell::new(None),
-            drill_headers: RefCell::new(HashMap::new()),
-            drill_paths: RefCell::new(None),
             drill_ids: RefCell::new(None),
+            authored: RefCell::new(DrillMap::new()),
             solve_times: RefCell::new(None),
             ratings: RefCell::new(None),
             crowd: RefCell::new(None),
@@ -484,58 +484,43 @@ impl Ctx {
         files
     }
 
-    /// kg_lib._drill_header: (DRILL title, TRAINS ids) of a bank file.
-    pub fn drill_header(&self, path: &Path) -> Rc<(Option<String>, Vec<String>)> {
-        if let Some(h) = self.drill_headers.borrow().get(path) {
-            return h.clone();
-        }
-        let text = std::fs::read_to_string(path).unwrap_or_default();
-        let mut title = None;
-        let mut trains = Vec::new();
-        for line in text.lines() {
-            let t = crate::lang::uncomment(line);
-            if title.is_none() {
-                if let Some(rest) = t.strip_prefix("DRILL:") {
-                    // r"^\s*DRILL:\s*(.+)$": at least one character after
-                    if !rest.trim_end_matches(['\r']).is_empty() {
-                        title = Some(rest.trim().to_string());
-                    }
-                }
-            }
-            if trains.is_empty() {
-                if let Some(rest) = t.strip_prefix("TRAINS:") {
-                    // r"^\s*TRAINS:\s*([a-z0-9\-, ]+)$": the whole rest of the
-                    // line must be ids, commas and spaces
-                    let rest = rest.trim_start();
-                    let body = rest.trim_end_matches(['\r']);
-                    if !body.is_empty()
-                        && body.chars().all(|c| {
-                            c.is_ascii_lowercase() || c.is_ascii_digit() || "-, ".contains(c)
-                        })
-                    {
-                        trains = body
-                            .split(',')
-                            .map(str::trim)
-                            .filter(|s| !s.is_empty())
-                            .map(String::from)
-                            .collect();
-                    }
-                }
-            }
-        }
-        let h = Rc::new((title, trains));
-        self.drill_headers
-            .borrow_mut()
-            .insert(path.to_path_buf(), h.clone());
-        h
+    /// A drill's drills.json entry, or the entry kg_simulate registered.
+    pub fn drill_entry(&self, id: &str) -> Option<DrillEntry> {
+        self.drills
+            .get(id)
+            .cloned()
+            .or_else(|| self.authored.borrow().get(id).cloned())
     }
 
+    /// Add a drill to the registry after the tables were read: the
+    /// simulator's authored bank files, which have no drills.json entry.
+    pub fn register_drill(&self, id: &str, entry: DrillEntry) {
+        self.authored.borrow_mut().insert(id.to_string(), entry);
+        *self.drill_ids.borrow_mut() = None;
+    }
+
+    /// A bank file's path relative to the bank directory, the form the
+    /// drills.json "file" field holds.
+    fn bank_rel(&self, path: &Path) -> PathBuf {
+        let dir = self.drills_dir();
+        if let Ok(r) = path.strip_prefix(&dir) {
+            return r.to_path_buf();
+        }
+        if let Ok(r) = self.root.join(path).strip_prefix(&dir) {
+            return r.to_path_buf();
+        }
+        path.to_path_buf()
+    }
+
+    /// The drills.json title of a bank file.
     pub fn drill_title(&self, path: &Path) -> Option<String> {
-        self.drill_header(path).0.clone()
+        self.drill_id(path)
+            .and_then(|i| self.drill_entry(&i))
+            .map(|d| d.title)
     }
 
-    /// kg_lib.drill_solved_stem: the DRILL title cleaned as utils/kg/solved
-    /// cleans it (re.sub(r"[^\w\s-]", "") then spaces to underscores).
+    /// The title cleaned as `make solved` cleans it for the solved/
+    /// filename (re.sub(r"[^\w\s-]", "") then spaces to underscores).
     pub fn drill_solved_stem(&self, path: &Path) -> String {
         let title = self.drill_title(path).unwrap_or_else(|| {
             path.file_stem()
@@ -543,95 +528,74 @@ impl Ctx {
                 .unwrap_or("")
                 .to_string()
         });
-        let cleaned: String = title
-            .chars()
-            .filter(|c| c.is_alphanumeric() || *c == '_' || c.is_whitespace() || *c == '-')
-            .collect();
-        cleaned.trim().replace(' ', "_")
+        clean_title(&title)
     }
 
-    /// The evidence key prefix of a bank file: "d_<stem>_" lowercased.
-    pub fn drill_evidence_key(&self, path: &Path) -> String {
-        if let Some(k) = self.evidence_keys.borrow().get(path) {
-            return k.clone();
-        }
-        let k = format!("d_{}_", self.drill_solved_stem(path)).to_lowercase();
-        self.evidence_keys
-            .borrow_mut()
-            .insert(path.to_path_buf(), k.clone());
-        k
-    }
-
-    /// kg_lib.drill_path: the bank file for a drill id or DRILL title.
+    /// The bank file of a drill id (drills.json "file"), or of a title
+    /// (`make rep "Title"`).
     pub fn drill_path(&self, r: &str) -> Option<PathBuf> {
-        let title = self
-            .drills
-            .get(r)
-            .map(|d| d.title.clone())
-            .unwrap_or_else(|| r.to_string());
-        let hit = self
-            .drill_paths
-            .borrow()
-            .as_ref()
-            .and_then(|m| m.get(&title).cloned());
-        if let Some(p) = hit {
-            return Some(p);
-        }
-        let mut paths: HashMap<String, PathBuf> = HashMap::new();
-        for path in self.all_drill_files() {
-            if let Some(t) = self.drill_title(&path) {
-                paths.entry(t).or_insert(path);
+        let file = match self.drill_entry(r) {
+            Some(d) => d.file,
+            None => {
+                let authored = self.authored.borrow();
+                self.drills
+                    .values()
+                    .chain(authored.values())
+                    .find(|d| d.title == r)
+                    .map(|d| d.file.clone())?
             }
+        };
+        if file.is_empty() {
+            return None;
         }
-        let out = paths.get(&title).cloned();
-        *self.drill_paths.borrow_mut() = Some(paths);
-        out
+        Some(self.drills_dir().join(file))
     }
 
-    /// kg_lib.drill_id: the graph id (d61) of a bank file, by its title.
+    /// The graph id (d61) of a bank file: the drills.json entry whose
+    /// "file" it is.
     pub fn drill_id(&self, path: &Path) -> Option<String> {
-        let title = self.drill_title(path)?;
         if self.drill_ids.borrow().is_none() {
-            let mut map: HashMap<String, String> = HashMap::new();
-            // reversed registry: the first id with a title wins
-            for (i, d) in self.drills.iter().rev() {
-                map.insert(d.title.clone(), i.clone());
+            let mut map: HashMap<PathBuf, String> = HashMap::new();
+            let authored = self.authored.borrow();
+            for (i, d) in self.drills.iter().chain(authored.iter()) {
+                if !d.file.is_empty() {
+                    map.entry(PathBuf::from(&d.file))
+                        .or_insert_with(|| i.clone());
+                }
             }
             *self.drill_ids.borrow_mut() = Some(map);
         }
-        let ids = self.drill_ids.borrow();
-        let i = ids.as_ref().unwrap().get(&title)?;
-        if self.drills.get(i).is_some_and(|d| d.title == title) {
-            Some(i.clone())
-        } else {
-            None
-        }
+        let rel = self.bank_rel(path);
+        self.drill_ids.borrow().as_ref().unwrap().get(&rel).cloned()
+    }
+
+    /// The key a bank file's reps carry in the evidence: the "drill" id of
+    /// the entry, "" for a file with no drills.json entry (no rep has it).
+    pub fn drill_evidence_key(&self, path: &Path) -> String {
+        self.drill_id(path).unwrap_or_default()
     }
 
     /// "disabled": true on the drill's drills.json entry.
     pub fn drill_disabled(&self, path: &Path) -> bool {
         self.drill_id(path)
-            .and_then(|i| self.drills.get(&i))
+            .and_then(|i| self.drill_entry(&i))
             .is_some_and(|d| d.disabled)
     }
 
     /// kg_lib.drill_after: the ids this drill comes after.
     pub fn drill_after(&self, path: &Path) -> Vec<String> {
         self.drill_id(path)
-            .and_then(|i| self.drills.get(&i))
-            .map(|d| d.after.clone())
+            .and_then(|i| self.drill_entry(&i))
+            .map(|d| d.after)
             .unwrap_or_default()
     }
 
-    /// kg_lib.drill_trains: the drills.json "trains" list, else the TRAINS
-    /// header.
+    /// The nodes a drill trains: its drills.json "trains" list.
     pub fn drill_trains(&self, path: &Path) -> Vec<String> {
-        if let Some(i) = self.drill_id(path) {
-            if let Some(t) = self.drills.get(&i).and_then(|d| d.trains.clone()) {
-                return t;
-            }
-        }
-        self.drill_header(path).1.clone()
+        self.drill_id(path)
+            .and_then(|i| self.drill_entry(&i))
+            .and_then(|d| d.trains)
+            .unwrap_or_default()
     }
 
     /// What a node's drill scheduling reads from the evidence (kg_lib
@@ -649,14 +613,12 @@ impl Ctx {
             problems: HashSet::new(),
         };
         for path in self.bank_paths(node).iter() {
-            d.drill_keys.push(self.drill_evidence_key(path));
+            d.drill_keys.extend(self.drill_id(path));
             d.nodes.extend(self.drill_trains(path));
             for a in self.drill_after(path) {
                 match self.vertex_kind(&a, &self.ro.map) {
                     Some("drill") => {
-                        if let Some(p) = self.drill_path(&a) {
-                            d.drill_keys.push(self.drill_evidence_key(&p));
-                        }
+                        d.drill_keys.push(a);
                     }
                     Some("node") => {
                         d.nodes.insert(a);
@@ -837,4 +799,15 @@ impl PView {
         self.refresh(ctx);
         self.cache.borrow().counts.clone()
     }
+}
+
+/// re.sub(r"[^\w\s-]", "", title).strip().replace(" ", "_"): a title as
+/// `make solved` writes it into a solved/ filename.
+pub fn clean_title(title: &str) -> String {
+    title
+        .chars()
+        .filter(|c| c.is_alphanumeric() || *c == '_' || c.is_whitespace() || *c == '-')
+        .collect::<String>()
+        .trim()
+        .replace(' ', "_")
 }

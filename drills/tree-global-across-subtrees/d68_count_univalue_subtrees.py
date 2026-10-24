@@ -1,6 +1,4 @@
 """
-DRILL: Count Univalue Subtrees
-
 Given the root of a binary tree, return the number of univalue subtrees.
 A subtree is a node together with all of its descendants. A subtree is
 univalue when every node in it holds the same value.

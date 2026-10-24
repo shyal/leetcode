@@ -1,6 +1,4 @@
 """
-DRILL: Count Missing Integers
-
 Given an array arr of positive integers sorted in a strictly increasing
 order, return the number of positive integers below arr[-1] that are
 missing from the array.

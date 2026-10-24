@@ -1,6 +1,4 @@
 """
-DRILL: Divisible Difference Pairs
-
 Given an integer array nums and an integer m, return the number of index
 pairs (i, j) with i < j such that nums[j] - nums[i] is divisible by m.
 Values can be negative.

@@ -1,7 +1,4 @@
 """
-DRILL: Boys Ratio Order
-TRAINS: heap-top-k
-
 Given a list classes, where classes[i] = [boys_i, students_i] is a class
 with students_i students of whom boys_i are boys, return the classes in
 increasing order of the ratio boys_i / students_i. No two classes share a

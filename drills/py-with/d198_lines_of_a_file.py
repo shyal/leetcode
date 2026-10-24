@@ -1,7 +1,4 @@
 """
-DRILL: Lines Of A File
-TRAINS: py-with
-
 Given the `path` of a text file, return its lines as a list of strings
 without their line endings. The file is closed by the time the method
 returns, whatever happened while reading it.

@@ -1,6 +1,4 @@
 """
-DRILL: Neighbour Values
-
 Given a grid of m rows and n columns and a cell (r, c), return the values
 of the cardinal neighbours of (r, c) that lie on the grid, in the order
 up, left, right, down. Use nbrs from the harness.

@@ -1,6 +1,4 @@
 """
-DRILL: Reverse Sublist
-
 Given the head h of a linked list, reverse the list in place. Return the
 new head and the new tail, in that order. The new tail is the node that
 was h.

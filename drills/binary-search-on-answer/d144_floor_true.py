@@ -1,7 +1,4 @@
 """
-DRILL: Floor True
-TRAINS: binary-search-on-answer
-
 Given integers lo and hi and a function ok, return the largest x in
 [lo, hi] with ok(x) True. The function ok is True for every x up to some
 value and False for every x above it. ok(lo) is True.

@@ -1,6 +1,3 @@
-// DRILL: Largest Count
-// TRAINS: ts-map-count
-//
 // Given a non-empty array of strings `words`, return the number of times the
 // most frequent word appears.
 //

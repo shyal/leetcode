@@ -1,6 +1,3 @@
-// DRILL: First Repeat
-// TRAINS: ts-set-membership
-//
 // Given an array of numbers `nums`, return the first element equal to an
 // earlier element. Return -1 when every element is distinct.
 //

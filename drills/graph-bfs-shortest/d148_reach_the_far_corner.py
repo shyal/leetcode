@@ -1,7 +1,4 @@
 """
-DRILL: Reach The Far Corner
-TRAINS: graph-bfs-shortest
-
 Given an n x m grid of integers and an integer k, return True when you can
 walk from cell (0, 0) to cell (n - 1, m - 1). Each move goes to the cell
 above, below, left or right. You may stand only on cells whose value is at

@@ -1448,7 +1448,12 @@ fn run_main(run: &Run, asleep: &[String], woken: &[String]) {
         let path = due_drill(ctx, &target, ev, today, args.early, args.assisted)
             .or_else(|| cold_drill(ctx, &target, ev, today, true))
             .expect("the drill the pick named");
-        let title = kg_next_drill_title(&path);
+        let title = ctx.drill_title(&path).unwrap_or_else(|| {
+            path.file_stem()
+                .and_then(|s| s.to_str())
+                .unwrap_or("")
+                .to_string()
+        });
         let did = ctx.drill_id(&path);
         let name = match &did {
             Some(d) => format!("{d}. {title}"),
@@ -1650,25 +1655,6 @@ fn run_main(run: &Run, asleep: &[String], woken: &[String]) {
     run.warn_dry(asleep);
     trace("warn dry");
     run.prepare(&pnum, forced);
-}
-
-/// kg_next.drill_title: the DRILL: header, else the filename stem.
-fn kg_next_drill_title(path: &std::path::Path) -> String {
-    if let Ok(text) = std::fs::read_to_string(path) {
-        for line in text.lines() {
-            let t = kg::lang::uncomment(line);
-            if let Some(rest) = t.strip_prefix("DRILL:") {
-                let rest = rest.trim_end_matches('\r');
-                if !rest.is_empty() {
-                    return rest.trim().to_string();
-                }
-            }
-        }
-    }
-    path.file_stem()
-        .and_then(|s| s.to_str())
-        .unwrap_or("")
-        .to_string()
 }
 
 fn nothing_to_serve(run: &Run, asleep: &[String], exclude: &HashSet<String>, shown: usize) {

@@ -4,12 +4,6 @@
 
 use pyo3::prelude::*;
 
-/// kg_lib.drill_key: the drill a d_ solved file is a rep of, or None.
-#[pyfunction]
-fn drill_key(fname: &str) -> Option<String> {
-    kg::evidence::drill_key(fname)
-}
-
 /// kg_lib.degree_color: the hex colour of a degree of ownership in [0, 1].
 #[pyfunction]
 fn degree_color(degree: f64) -> String {
@@ -25,7 +19,6 @@ fn source_extensions() -> Vec<String> {
 
 #[pymodule]
 fn kg_rs(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(drill_key, m)?)?;
     m.add_function(wrap_pyfunction!(source_extensions, m)?)?;
     m.add_function(wrap_pyfunction!(degree_color, m)?)?;
     Ok(())
