@@ -40884,6 +40884,21 @@
       "judge": "deepseek-chat",
       "summary": "The query groups Transactions by country and computes approved_count with sum(case when state = 'approved' then 1 else 0 end), so declined-only countries still appear with 0. It exercises conditional aggregation inside a GROUP BY, and the run produced DE=1, US=2 as expected.",
       "seconds": 110
+    },
+    "solved/d_Sum_Of_Consecutive_Integers_2026_10_26T01_25_25_244297_00_00Z.mu": {
+      "date": "2026-10-26",
+      "problem": "drill",
+      "drill": "d300",
+      "moves": {
+        "consecutive-sum-split": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "The code computes a range sum as full triangular sum minus prefix triangular sum; it does not exercise the consecutive-sum-split move (testing k where n - k(k-1)/2 is a positive multiple of k).",
+      "summary": "The mu code defines sumOfConsecutive(s, c) which returns the sum of the c consecutive integers starting at s, computed as the triangular number of s+c minus the triangular number of s. All assertions pass, including the large 10^9 case. The technique used is an arithmetic-series/prefix-difference formula, not the targeted consecutive-sum-split counting move.",
+      "unmapped": [
+        "arithmetic series sum via prefix difference"
+      ],
+      "seconds": 124
     }
   }
 }
