@@ -40936,6 +40936,19 @@
       "note": "The if/return chain over [4,3,2] picks the first matching divisor; notes say 'learning'.",
       "summary": "first_divisor loops over the fixed array [4, 3, 2] and returns the first d where n % d == 0, falling through to 0. The branching is done with early returns rather than an if/else-if chain, but the first-true-condition selection is exercised. The notes say 'learning', so the assist is recorded on that move.",
       "seconds": 269
+    },
+    "solved/d_Square_Of_Larger_2026_10_26T02_12_14_639811_00_00Z.rs": {
+      "date": "2026-10-26",
+      "problem": "drill",
+      "drill": "d193",
+      "moves": {
+        "rust-if-expression": "clean",
+        "rust-if-binding": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Uses an early-return if statement rather than an if-expression bound with let; the target rust-if-binding is not exercised.",
+      "summary": "The function square_of_larger compares a and b with an if statement and returns a*a early when a > b, otherwise falls through to b*b. It exercises the if-as-statement form, not the let-bound if-expression the drill targets. The run passed all assertions, printing 4.",
+      "seconds": 38
     }
   }
 }
