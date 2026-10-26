@@ -36,7 +36,7 @@
 
 class Solution
   def divisiblePairs(nums: [int], m: int) -> int
-    count_pairs(nums, by= x -> x % m)
+    count_pairs(nums, key=x -> x % m)
 
 sol = Solution()
 

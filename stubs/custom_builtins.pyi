@@ -227,8 +227,8 @@ def set_row(grid: List[List[Any]], i: int, v: Any) -> None: ...
 def set_col(grid: List[List[Any]], j: int, v: Any) -> None: ...
 def count_pairs(
     xs: Iterable[Any],
-    by: Optional[Callable[[Any], Any]] = ...,
-    want: Optional[Callable[[Any], Any]] = ...,
+    key: Optional[Callable[[Any], Any]] = ...,
+    lookup: Optional[Callable[[Any], Any]] = ...,
 ) -> int: ...
 def max_diff(
     xs: Iterable[Any],
