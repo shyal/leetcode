@@ -41174,6 +41174,17 @@
       "note": "Query uses SUM(weight) OVER (ORDER BY turn) for the running total; output column aliased weight rather than total but assertions pass.",
       "summary": "The query selects turn and SUM(weight) OVER (ORDER BY turn) from Queue, computing a running total in a single window-function pass. This exercises the sql-window-running move directly. Both example assertions pass, and the notes contain only the problem statement with no mention of help or look-ups.",
       "seconds": 396
+    },
+    "solved/d_Sum_To_N_2026_10_26T23_50_29_645015_00_00Z.rs": {
+      "date": "2026-10-27",
+      "problem": "drill",
+      "drill": "d188",
+      "moves": {
+        "rust-let-mut": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The code defines sum_to_n, which binds `let mut res: u64 = 0` and accumulates each value of `0..=n` into it with `res += v`, returning res. This exercises the mutable-binding move directly, and the assertions in main all pass, including the large n case.",
+      "seconds": 73
     }
   }
 }
