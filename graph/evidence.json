@@ -41147,6 +41147,18 @@
       "judge": "deepseek-chat",
       "summary": "The query groups Courses by class and applies having count(student) >= 5 to keep only classes with at least five students. It exercises GROUP BY aggregation and the HAVING filter on the aggregate, exactly the targeted move. Both example assertions passed under the sqlite runner.",
       "seconds": 249
+    },
+    "solved/d_Approved_Transactions_Per_Country_2026_10_26T23_42_10_790348_00_00Z.mu": {
+      "date": "2026-10-27",
+      "problem": "drill",
+      "drill": "d30",
+      "moves": {
+        "sql-conditional-aggregate": "clean",
+        "sql-group-aggregate": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The query groups Transactions by country and computes counts and sums in one pass, using SUM(CASE WHEN state = 'approved' THEN ... ELSE 0 END) for the approved count and approved total so they come out 0 rather than NULL. It also uses COUNT(*) and SUM(amount) for the overall totals, satisfying the one-query, one-GROUP BY requirement. Both examples pass.",
+      "seconds": 240
     }
   }
 }
