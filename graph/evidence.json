@@ -41008,6 +41008,19 @@
       "judge": "deepseek-chat",
       "summary": "The mu solution walks xs once, keeping a dict D of counts keyed by by(x). At each element it queries D[want(x)] for matches already seen, then records by(x), summing the per-step matches so each pair is counted at its second member. This exercises streaming-ask-then-record, derived-key-lookup (want(x) = x-2 or -x%5), and streaming-accumulate-pairs; all assertions pass, including the 10^5 cases.",
       "seconds": 959
+    },
+    "solved/d_Fewest_Cells_Between_2026_10_26T03_02_35_533292_00_00Z.mu": {
+      "date": "2026-10-26",
+      "problem": "drill",
+      "drill": "d171",
+      "moves": {
+        "multi-source-bfs": "clean",
+        "grid-neighbors": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Uses harness helpers cells/levels/nbrs; all assertions passed.",
+      "summary": "The code seeds a deque with every cell equal to 1 via cells(grid, eq=1), then walks the grid level by level with levels(q, grid, seen=set([])), expanding each cell with nbrs and returning d-1 when a cell holding 2 is reached. This is a multi-source BFS over grid neighbors, exercised through the harness helpers rather than hand-written loops. All assertions, including the 400x400 cases, passed with exit 0.",
+      "seconds": 822
     }
   }
 }
