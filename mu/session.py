@@ -415,14 +415,23 @@ def blanks(solve, num, den):
     tree = parse(code)
     line = lambda s: origin[s.lineno - 1] if s.lineno - 1 < len(origin) else None
     defs = (ast.ClassDef, ast.FunctionDef)
-    simple = [
-        s
-        for s in ast.walk(tree)
-        if isinstance(s, ast.stmt)
-        and not isinstance(s, defs)
-        and not any(getattr(s, f, None) for f in BODIES)
-        and line(s) is not None
-    ]
+    # transpile adds statements to a mu line (a Grid parameter's wrap on
+    # its def line, the unwrap on the return line): a def line is never
+    # left, and a mu line counts once, as its first statement
+    heads = {line(s) for s in ast.walk(tree) if isinstance(s, defs)}
+    first = {}
+    for s in ast.walk(tree):
+        if (
+            isinstance(s, ast.stmt)
+            and not isinstance(s, defs)
+            and not any(getattr(s, f, None) for f in BODIES)
+            and line(s) is not None
+            and line(s) not in heads
+        ):
+            k = line(s)
+            if k not in first or (s.lineno, s.col_offset) < (first[k].lineno, first[k].col_offset):
+                first[k] = s
+    simple = list(first.values())
     if len(simple) < 2:
         return set()
     k = min(len(simple) - 1, -(-len(simple) * num // den))

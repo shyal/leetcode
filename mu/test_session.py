@@ -15,7 +15,7 @@ ROOT = os.path.dirname(HERE)
 sys.path[:0] = [HERE, os.path.join(ROOT, "utils", "tests")]
 from mulang import VERSION, Parser, transpile  # noqa: E402
 from session import highlighted  # noqa: E402
-from session import SETUP, stub, title  # noqa: E402
+from session import SETUP, filled, stub, title  # noqa: E402
 from test_reference_solutions import PY, drill_for  # noqa: E402
 
 REFERENCES = sorted(
@@ -265,6 +265,16 @@ def test_drill_fill_leaves_the_heaviest_lines_of_the_latest_solve(tmp_path):
     (tmp_path / "current.mu").write_text("")
     assert "DRILL_FILL gives" in session(tmp_path, "stub").stdout
     assert (tmp_path / "current.mu").read_text() == mu
+
+
+def test_drill_fill_keeps_the_def_of_a_list_parameter():
+    """transpile wraps a list parameter in Grid on the def line; that wrap
+    is not a line to write, so the def is kept and the loop is left."""
+    solve = open(reference("d78_")).read().split("\n", 1)[1]
+    mu = filled(solve, 1, 3)
+    assert "  def songToPlaylists(playlists: [[int]]) -> {int: [int]}\n" in mu
+    assert "    pass\n" in mu and "for" not in mu
+    transpile(mu)
 
 
 def test_drill_fill_is_left_out_for_another_drill(tmp_path):
