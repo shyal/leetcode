@@ -40994,6 +40994,20 @@
       "judge": "deepseek-chat",
       "summary": "The mu code grows a window over s with a count map D, and while the number of distinct characters reaches k it records the window length and shrinks from the left, deleting keys that hit zero. This is the variable sliding window with a shrink-while-valid invariant, and all assertions pass.",
       "seconds": 363
+    },
+    "solved/d_Count_Pairs_2026_10_26T02_46_45_158064_00_00Z.mu": {
+      "date": "2026-10-26",
+      "problem": "drill",
+      "drill": "d185",
+      "moves": {
+        "streaming-accumulate-pairs": "clean",
+        "streaming-ask-then-record": "clean",
+        "derived-key-lookup": "clean",
+        "counter-build": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The mu solution walks xs once, keeping a dict D of counts keyed by by(x). At each element it queries D[want(x)] for matches already seen, then records by(x), summing the per-step matches so each pair is counted at its second member. This exercises streaming-ask-then-record, derived-key-lookup (want(x) = x-2 or -x%5), and streaming-accumulate-pairs; all assertions pass, including the 10^5 cases.",
+      "seconds": 959
     }
   }
 }
