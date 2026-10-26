@@ -37,11 +37,11 @@ Learning
 
 # mu 0.7
 # def divisiblePairs(nums: [int], m: int) -> int
-#   count_pairs(nums, by=x -> x % m)
+#   count_pairs(nums, key=x -> x % m)
 
 class Solution:
     def divisiblePairs(self, nums: list[int], m: int) -> int:
-        return count_pairs(nums, by=lambda x: x % m)
+        return count_pairs(nums, key=lambda x: x % m)
 
 
 sol = Solution()

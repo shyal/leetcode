@@ -146,12 +146,15 @@ def test_kg_gaps_table_shape():
 
 
 def test_kg_queue_table_and_context():
-    p = run("kg_queue")
+    # the runner image of 2026-10-21 exports COLUMNS=80, and at 80 the
+    # header wraps onto two lines: the table gets a width the header fits
+    wide = {"COLUMNS": "200"}
+    p = run("kg_queue", env=wide)
     assert p.returncode == 0, p.stderr
     assert p.stdout.startswith("queue (elo ")
     assert "Rating" in p.stdout.splitlines()[2]
     # --size N: N problem rows (a long title wraps onto extra lines)
-    p = run("kg_queue", "--size", "3")
+    p = run("kg_queue", "--size", "3", env=wide)
     assert p.returncode == 0, p.stderr
     assert sum(bool(re.match(r"│ \d+\. ", ln)) for ln in p.stdout.splitlines()) == 3
     assert run("kg_queue", "--size", "0").returncode == 2
