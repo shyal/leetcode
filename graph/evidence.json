@@ -40848,6 +40848,19 @@
       "judge": "deepseek-chat",
       "summary": "The query selects recordDate and computes next_day with sqlite's date(recordDate, '+1 day'), letting the engine handle month and year rollover. This exercises the date-arithmetic move directly, and both example assertions passed.",
       "seconds": 217
+    },
+    "solved/d_Paid_Orders_Per_Customer_2026_10_26T01_18_37_748267_00_00Z.mu": {
+      "date": "2026-10-26",
+      "problem": "drill",
+      "drill": "d44",
+      "moves": {
+        "sql-join-left-keep": "clean",
+        "sql-group-aggregate": "clean",
+        "sql-conditional-aggregate": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The query left-joins Customers to Orders on c.id = o.customer_id so every customer survives, then groups by c.name and sums a CASE that counts only 'paid' rows, giving 0 for Bob and Cal. This exercises the left-join-keep, group-aggregate, and conditional-aggregate moves; the status test sits inside the CASE rather than WHERE, as the drill requires. Both example assertions passed.",
+      "seconds": 297
     }
   }
 }
