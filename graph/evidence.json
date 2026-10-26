@@ -41021,6 +41021,18 @@
       "note": "Uses harness helpers cells/levels/nbrs; all assertions passed.",
       "summary": "The code seeds a deque with every cell equal to 1 via cells(grid, eq=1), then walks the grid level by level with levels(q, grid, seen=set([])), expanding each cell with nbrs and returning d-1 when a cell holding 2 is reached. This is a multi-source BFS over grid neighbors, exercised through the harness helpers rather than hand-written loops. All assertions, including the 400x400 cases, passed with exit 0.",
       "seconds": 822
+    },
+    "solved/p1792_Maximum_Average_Pass_Ratio_2026_10_26T04_26_33_870933_00_00Z.mu": {
+      "date": "2026-10-26",
+      "problem": "1792",
+      "moves": {
+        "heap-simulation": "clean",
+        "marginal-gain": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The code computes each class's marginal gain from adding one student via diff_plus_one, seeds a max-heap with those gains, then repeatedly pops the best class, increments its passes and students, and pushes the recomputed gain back until extraStudents is exhausted; finally it averages the ratios. This exercises heap-simulation and marginal-gain rather than the canonical sort/greedy/backtracking/memoization walk, which is sidestepped. The notes are empty and LeetCode reports Accepted (5530 ms).",
+      "seconds": 436,
+      "learning": true
     }
   }
 }
