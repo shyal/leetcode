@@ -731,10 +731,11 @@ mod tests {
             ),
         )
         .unwrap();
-        let at = |s: &str| {
+        let at2 = |out: &str, s: &str| {
             out.find(s)
                 .unwrap_or_else(|| panic!("{s} missing in:\n{out}"))
         };
+        let at = |s: &str| at2(&out, s);
         assert!(at("CARDINALS") < at("def nbrs(") && at("def nbrs(") < at("def grid_bfs("));
         assert!(at("def like(") < at("def grid_bfs("));
         assert!(!out.contains("def cells("), "named only in a docstring");
@@ -744,7 +745,11 @@ mod tests {
             &format!("{DOC}class Solution:\n    def f(self, h):\n        maxheappush(h, 1)\n"),
         )
         .unwrap();
-        assert!(heap.contains("class _Rev:") && heap.contains("def maxheappush("));
+        // pydsa 0.4.0: the max heap is _push/_down/_pop with _gt as the
+        // order, no wrapper class; a push pastes _gt and _push, not _pop
+        assert!(at2(&heap, "def _gt(") < at2(&heap, "def _push("));
+        assert!(at2(&heap, "def _push(") < at2(&heap, "def maxheappush("));
+        assert!(!heap.contains("def _pop(") && !heap.contains("def _down("));
         assert!(!heap.contains("def maxheappop(") && !heap.contains("__name__"));
     }
 

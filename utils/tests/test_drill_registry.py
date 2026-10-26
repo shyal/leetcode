@@ -26,7 +26,7 @@ def test_every_entry_names_a_bank_file_and_trains_a_node():
 
 
 def test_every_bank_file_has_one_entry():
-    owners = {}
+    owners: dict[str, list[str]] = {}
     for did, d in REGISTRY.items():
         owners.setdefault(d["file"], []).append(did)
     for f in BANK:
