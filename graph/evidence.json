@@ -40872,6 +40872,18 @@
       "judge": "deepseek-chat",
       "summary": "The file defines `fn square(n: i32) -> i32` returning `n * n`, with every parameter and the return type written after `->`, and the last expression without a semicolon as the value. `main` prints `square(3)` and asserts on 3, 0, -4 and 40000. The run exited 0 with output 9.",
       "seconds": 64
+    },
+    "solved/d_Approved_Count_Per_Country_2026_10_26T01_23_02_491928_00_00Z.mu": {
+      "date": "2026-10-26",
+      "problem": "drill",
+      "drill": "d29",
+      "moves": {
+        "sql-conditional-aggregate": "clean",
+        "sql-group-aggregate": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The query groups Transactions by country and computes approved_count with sum(case when state = 'approved' then 1 else 0 end), so declined-only countries still appear with 0. It exercises conditional aggregation inside a GROUP BY, and the run produced DE=1, US=2 as expected.",
+      "seconds": 110
     }
   }
 }
