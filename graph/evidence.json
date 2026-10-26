@@ -41135,6 +41135,18 @@
       "note": "reverseSublist reverses the whole list via dummy head and prev/curr pointer flipping, returning the original head as the new tail; all assertions passed.",
       "summary": "reverseSublist builds a dummy node d, then walks h flipping each node's next pointer onto d.next while advancing h, and returns d.next as the new head with the original head t as the tail. This exercises the dummy-splice and iterative pointer-reversal moves. The drill's assertions on lists of length 1, 2, 3, 5, and 5000 all passed, and the printed output confirms [5, 4, 3, 2, 1] with tail value 1.",
       "seconds": 112
+    },
+    "solved/d_Classes_With_At_Least_Five_Students_2026_10_26T23_37_59_412522_00_00Z.mu": {
+      "date": "2026-10-27",
+      "problem": "drill",
+      "drill": "d41",
+      "moves": {
+        "sql-group-aggregate": "clean",
+        "sql-having-filter-groups": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The query groups Courses by class and applies having count(student) >= 5 to keep only classes with at least five students. It exercises GROUP BY aggregation and the HAVING filter on the aggregate, exactly the targeted move. Both example assertions passed under the sqlite runner.",
+      "seconds": 249
     }
   }
 }
