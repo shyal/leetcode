@@ -379,6 +379,7 @@ builtins.uses = uses
 builtins.avoids = avoids
 builtins.folds = folds
 builtins.triples = triples
+builtins.substrings = substrings
 
 # digits
 builtins.to_digits = to_digits

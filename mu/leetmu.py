@@ -25,7 +25,7 @@ LIBRARY = {
         "cells", "nbrs", "table", "like", "shape", "put", "row", "col", "set_row",
         "set_col", "in_bounds", "is_edge", "edges", "grid_bfs",
     ],
-    combo: ["pairs", "triples"],
+    combo: ["pairs", "triples", "substrings"],
     digits: ["to_digits", "to_int", "num_digits", "even", "odd"],
     arith: ["ceil_div", "factorial"],
     search: ["first_true", "last_true", "first_false", "last_false", "min_chunks"],
