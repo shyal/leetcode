@@ -41159,6 +41159,21 @@
       "judge": "deepseek-chat",
       "summary": "The query groups Transactions by country and computes counts and sums in one pass, using SUM(CASE WHEN state = 'approved' THEN ... ELSE 0 END) for the approved count and approved total so they come out 0 rather than NULL. It also uses COUNT(*) and SUM(amount) for the overall totals, satisfying the one-query, one-GROUP BY requirement. Both examples pass.",
       "seconds": 240
+    },
+    "solved/d_Running_Total_2026_10_26T23_49_07_640561_00_00Z.mu": {
+      "date": "2026-10-27",
+      "problem": "drill",
+      "drill": "d63",
+      "moves": {
+        "sql-window-running": "clean"
+      },
+      "assist": {
+        "sql-window-running": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Query uses SUM(weight) OVER (ORDER BY turn) for the running total; output column aliased weight rather than total but assertions pass.",
+      "summary": "The query selects turn and SUM(weight) OVER (ORDER BY turn) from Queue, computing a running total in a single window-function pass. This exercises the sql-window-running move directly. Both example assertions pass, and the notes contain only the problem statement with no mention of help or look-ups.",
+      "seconds": 396
     }
   }
 }
