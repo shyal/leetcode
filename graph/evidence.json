@@ -40861,6 +40861,17 @@
       "judge": "deepseek-chat",
       "summary": "The query left-joins Customers to Orders on c.id = o.customer_id so every customer survives, then groups by c.name and sums a CASE that counts only 'paid' rows, giving 0 for Bob and Cal. This exercises the left-join-keep, group-aggregate, and conditional-aggregate moves; the status test sits inside the CASE rather than WHERE, as the drill requires. Both example assertions passed.",
       "seconds": 297
+    },
+    "solved/d_Square_2026_10_26T01_20_24_079940_00_00Z.rs": {
+      "date": "2026-10-26",
+      "problem": "drill",
+      "drill": "d187",
+      "moves": {
+        "rust-fn-signature": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The file defines `fn square(n: i32) -> i32` returning `n * n`, with every parameter and the return type written after `->`, and the last expression without a semicolon as the value. `main` prints `square(3)` and asserts on 3, 0, -4 and 40000. The run exited 0 with output 9.",
+      "seconds": 64
     }
   }
 }
