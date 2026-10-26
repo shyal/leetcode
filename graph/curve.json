@@ -2,20 +2,20 @@
   "_comment": "Personal forgetting curve fitted by utils/kg/kg_curve. P(recall) = (1-slip)*(1 + gap/s)^(-beta), s = exp(a + b*log1p(cleans) - c*struggles - d*assist + e*(conn - conn_mean)); cleans counts distinct clean days, same-day reps are one rep. conn is the node's log2 carrier count, frozen below at fit time; consumers that ignore e are assuming average connectivity. \"solve\" is the cold-solve model fitted by fit_solve: logit P(solve cold, unaided, inside the clock) = the listed coefficients over (rating - 1500)/400, the walk's summed log recall, and its count of never-met moves; features not listed did not earn their place on held-out games. node_status() calls a node SOLID while the memory component (1 + gap/s)^(-beta) >= target_retention; delete this file to fall back to the flat 42-day window.",
   "model": "power-law-slip",
   "params": {
-    "a": 3.8947,
-    "b": 0.0917,
-    "c": 0.2903,
-    "d": 0.0698,
-    "e": -0.2008,
-    "conn_mean": 2.6644,
-    "beta": 0.1101,
-    "slip": 0.0552
+    "a": 3.8966,
+    "b": 0.0965,
+    "c": 0.2851,
+    "d": 0.0703,
+    "e": -0.1986,
+    "conn_mean": 2.6728,
+    "beta": 0.1105,
+    "slip": 0.0553
   },
   "conn": {
-    "backtracking-choose-undo": 3.907,
+    "backtracking-choose-undo": 4.0,
     "backtracking-dedupe-siblings": 2.0,
     "backtracking-mark-unmark": 2.322,
-    "backtracking-start-index": 3.0,
+    "backtracking-start-index": 3.17,
     "bijection-check": 1.585,
     "binary-search-boundary": 3.907,
     "binary-search-index": 3.7,
@@ -31,7 +31,7 @@
     "derived-key-lookup": 4.322,
     "dict-arbitrary-value": 5.392,
     "dijkstra": 3.0,
-    "divmod-decompose": 5.209,
+    "divmod-decompose": 5.248,
     "dp-1d-rolling": 4.17,
     "dp-2d-grid": 3.459,
     "dp-state-formulate": 4.17,
@@ -93,7 +93,7 @@
     "streaming-accumulate-pairs": 3.0,
     "streaming-ask-then-record": 5.781,
     "string-build-transform": 5.954,
-    "substring-enumeration": 3.459,
+    "substring-enumeration": 3.585,
     "topological-order": 2.0,
     "tree-bfs-levels": 1.585,
     "tree-build-from-traversals": 1.585,
@@ -111,13 +111,13 @@
   },
   "target_retention": 0.9,
   "mass": {
-    "beta": -0.2549,
-    "se": 0.0923,
-    "n": 617,
+    "beta": -0.2511,
+    "se": 0.0922,
+    "n": 618,
     "by_difficulty": {
-      "Easy": 3.882,
-      "Medium": 1.1421,
-      "Hard": -0.1103
+      "Easy": 3.878,
+      "Medium": 1.1454,
+      "Hard": -0.1129
     }
   },
   "solve": {
@@ -147,11 +147,11 @@
     ]
   },
   "fit": {
-    "trials": 1815,
-    "loglik": -0.265,
-    "baseline_loglik": -0.2703,
+    "trials": 1818,
+    "loglik": -0.2648,
+    "baseline_loglik": -0.27,
     "since": "2026-06-01",
     "half_life": 0,
-    "effective_trials": 1815.0
+    "effective_trials": 1818.0
   }
 }

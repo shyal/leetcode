@@ -41044,6 +41044,21 @@
       "judge": "deepseek-chat",
       "summary": "The mu code builds an inverted index from songs to the playlist indices that contain them, using a dict comprehension over enumerate(playlists) and each song in each playlist. It exercises the graph-inverted-index move directly. The run passed all assertions, including the duplicate-playlist and single-song cases.",
       "seconds": 421
+    },
+    "solved/p2310_Sum_of_Numbers_With_Units_Digit_K_2026_10_26T10_11_38_884306_00_00Z.mu": {
+      "date": "2026-10-26",
+      "problem": "2310",
+      "moves": {
+        "backtracking-choose-undo": "clean",
+        "backtracking-start-index": "clean",
+        "divmod-decompose": "clean",
+        "substring-enumeration": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Accepted (101 ms, 19.7 MB); notes say brute force got TLE before this backtracking version",
+      "summary": "The code builds the list of numbers <= num ending in digit k (arr, stepping by 10), reverses it, and runs a recursive helper that tries each candidate from index j onward, incrementing count and undoing it after the call, returning the first count that hits num exactly. It special-cases k == 0 using to_digits(num)[-1] to check the last digit. The notes say a brute force got TLE and the submitted version was Accepted (101 ms, 19.7 MB).",
+      "seconds": 2831,
+      "learning": true
     }
   }
 }
