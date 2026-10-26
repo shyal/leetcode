@@ -87,7 +87,7 @@ Utility function to draw a graph (stored as dict of dicts or dict of lists) in t
 Requires 'networkx' and 'phart' libraries: pip install networkx phart
 Supports directed graphs. Edge weights (like 0/1) are ignored in rendering but structure is shown.
 
-### `draw_graphviz(G: dict[Any, dict | list], png_filename: Optional[str] = None, n = None, type = 'undirected', show_weights: bool = False) -> None`
+### `draw_graphviz(G: dict[Any, dict | list], png_filename: Optional[str] = None, n = None, directed: bool = False, show_weights: bool = False) -> None`
 
 ### `draw_graph(G: dict[Any, dict | Any]) -> None`
 
@@ -135,7 +135,10 @@ values: the node values, in the order the tree grows; default is 1..size shuffle
     tree is a valid BST with the same shape.
 seed: fixes the tree; the global random state is untouched.
 
-### `build_graph_from_edge_list(edges, type = 'undirected')`
+### `build_graph_from_edge_list(edges, directed: bool = False)`
+
+A dict of dicts from an edge list, every edge weighted 0. directed
+adds each edge one way only, as adjacency does.
 
 ### `adjacency(edges: list, n: Optional[int] = None, reverse: bool = False, directed: bool = True, weighted: bool = False)`
 
@@ -194,29 +197,33 @@ inverse of build_general_tree. Children come in the order of .children.
 
 `((-1, 0), (0, -1), (0, 1), (1, 0), (-1, -1), (-1, 1), (1, -1), (1, 1))`
 
-### `cells(grid: Sequence[Sequence[Any]], start: int = 0, val = None, eq = None, lt = None, lte = None, gt = None, gte = None) -> Iterator[Cell]`
+### `cells(grid: Sequence[Sequence[Any]], start: int = 0, eq = None, lt = None, lte = None, gt = None, gte = None) -> Iterator[Cell]`
 
 Every (i, j) of grid with i >= start and j >= start, in row-major order.
 With eq, lt, lte, gt or gte, only the cells whose value passes them all
-(see _holds). val is the old name for eq.
+(see _holds).
 
-### `nbrs(grid: Sequence[Sequence[Any]], r, c: Optional[int] = None, dirs: Sequence[Cell] = CARDINALS, val = None, eq = None, lt = None, lte = None, gt = None, gte = None) -> Iterator[Cell]`
+### `nbrs(grid: Sequence[Sequence[Any]], r, c: Optional[int] = None, dirs: Sequence[Cell] = CARDINALS, eq = None, lt = None, lte = None, gt = None, gte = None) -> Iterator[Cell]`
 
 The cells (r + dr, c + dc) for (dr, dc) in dirs that lie on grid.
 nbrs(grid, p) takes the cell as one pair. With eq, lt, lte, gt or gte,
-only the cells whose value passes them all (see _holds). val is the
-old name for eq.
+only the cells whose value passes them all (see _holds).
 
 ### `in_bounds(grid: Sequence[Sequence[Any]], r, c: Optional[int] = None) -> bool`
 
 True if (r, c) is a cell of grid. in_bounds(grid, p) takes the cell as
 one pair.
 
-### `is_edge(grid: Sequence[Sequence[Any]], r: int, c: int) -> bool`
+### `is_edge(grid: Sequence[Sequence[Any]], r, c: Optional[int] = None) -> bool`
 
-### `edges(grid: Sequence[Sequence[Any]]) -> Iterator[Cell]`
+True if (r, c) lies on the border of grid. is_edge(grid, p) takes the
+cell as one pair.
+
+### `edges(grid: Sequence[Sequence[Any]], eq = None, lt = None, lte = None, gt = None, gte = None) -> Iterator[Cell]`
 
 Every (i, j) on the border of grid, each once, in row-major order.
+With eq, lt, lte, gt or gte, only the cells whose value passes them all
+(see _holds).
 
 ### `table(*dims: int, fill = 0) -> list`
 
@@ -258,14 +265,13 @@ Set every cell of row i to v, one value or an iterable read left to right.
 
 Set every cell of column j to v, one value or an iterable read top to bottom.
 
-### `grid_bfs(grid: Sequence[Sequence[Any]], sources: Sequence[Cell], ok: Callable[[Any], bool] = lambda v: True, dirs: Sequence[Cell] = CARDINALS) -> list[list[int]]`
+### `grid_bfs(grid: Sequence[Sequence[Any]], sources: Sequence[Cell] | Cell, dirs: Sequence[Cell] = CARDINALS, eq = None, lt = None, lte = None, gt = None, gte = None) -> list[list[int]]`
 
 Steps from the nearest source to every cell; -1 where none reaches.
 
-A cell is entered only if ok(grid[cell]) holds. Sources are entered
-unconditionally at distance 0.
-
-## sequences
+sources is a list of cells, or one cell. With eq, lt, lte, gt or gte,
+only the cells whose value passes them all are entered (see _holds).
+Sources are entered unconditionally at distance 0.
 
 ### `lcs(a: Sequence[Any], b: Sequence[Any], full: bool = False, type = int)`
 
@@ -428,13 +434,13 @@ plain count_pairs(xs) counts the pairs of equal values.
 >>> count_pairs([3, 1, 4, 6, 3], lookup=lambda x: x - 2)
 2
 
-### `max_diff(xs: Iterable[Any], by: Optional[Callable[[Any], Any]] = None, reverse: bool = False, from_right: bool = False) -> list[Any]`
+### `max_diff(xs: Iterable[Any], key: Optional[Callable[[Any], Any]] = None, reverse: bool = False, from_right: bool = False) -> list[Any]`
 
-The largest by(xs[j]) - by(xs[i]) with i < j, so far, for each j
+The largest key(xs[j]) - key(xs[i]) with i < j, so far, for each j
 from 1: one value per index after the first.
 
-by(x) is the value compared; with by left out it is x itself. reverse
-flips the difference to by(xs[i]) - by(xs[j]): the largest fall, not
+key(x) is the value compared; with key left out it is x itself. reverse
+flips the difference to key(xs[i]) - key(xs[j]): the largest fall, not
 the largest rise.
 
 from_right scans from the right end: the value at i is the best

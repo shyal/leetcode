@@ -52,13 +52,13 @@ def lcs(a: str, b: str) -> int
 
 ```python
 def updateMatrix(mat: [[int]]) -> [[int]]
-  q = deque(cells(mat, val=0))
-  put(mat, cells(mat, val=1), inf)
+  q = deque(cells(mat, eq=0))
+  put(mat, cells(mat, eq=1), inf)
   for (d, p) in levels(q)
-    for n in nbrs(mat, p, val=inf)
+    for n in nbrs(mat, p, eq=inf)
       mat[n] = d + 1
       q <- n
   mat
 ```
 
-mu language spec: [v0.1](../mu/spec/v0.1.md), [v0.2](../mu/spec/v0.2.md), [v0.3](../mu/spec/v0.3.md), [v0.4](../mu/spec/v0.4.md), [v0.5](../mu/spec/v0.5.md), [v0.6](../mu/spec/v0.6.md), [v0.7](../mu/spec/v0.7.md), [v0.8](../mu/spec/v0.8.md), [v0.9](../mu/spec/v0.9.md), [v0.10](../mu/spec/v0.10.md)
+mu language spec: [v0.1](../mu/spec/v0.1.md), [v0.2](../mu/spec/v0.2.md), [v0.3](../mu/spec/v0.3.md), [v0.4](../mu/spec/v0.4.md), [v0.5](../mu/spec/v0.5.md), [v0.6](../mu/spec/v0.6.md), [v0.7](../mu/spec/v0.7.md), [v0.8](../mu/spec/v0.8.md), [v0.9](../mu/spec/v0.9.md), [v0.10](../mu/spec/v0.10.md), [v0.11](../mu/spec/v0.11.md), [v0.12](../mu/spec/v0.12.md), [v0.13](../mu/spec/v0.13.md)

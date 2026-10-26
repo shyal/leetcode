@@ -56,7 +56,7 @@ class Solution:
 
 sol = Solution()
 
-draw_graphviz({0: [1, 2], 1: [2], 2: []}, type="directed")
+draw_graphviz({0: [1, 2], 1: [2], 2: []}, directed=True)
 print(sol.longestPath({0: [1, 2], 1: [2], 2: []}))  # 2
 
 # assert sol.longestPath({0: [1, 2], 1: [2], 2: []}) == 2

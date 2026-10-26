@@ -62,7 +62,7 @@ class Solution:
 
 sol = Solution()
 
-draw_graphviz({0: [1, 2], 1: [2], 2: [0]}, type="directed")
+draw_graphviz({0: [1, 2], 1: [2], 2: [0]}, directed=True)
 print(sol.distances({0: [1, 2], 1: [2], 2: [0]}))  # {(0, 0), (1, 1), (2, 1)}
 
 # assert sol.distances({0: [1, 2], 1: [2], 2: [0]}) == {(0, 0), (1, 1), (2, 1)}
