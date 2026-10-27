@@ -41432,6 +41432,22 @@
       "summary": "The mu code defines a cached recursive `moves(r, c)` that returns 0 at the last column and otherwise takes the max over the three forward neighbors whose value exceeds the current cell, adding 1. `maxMoves` takes the max of `moves(r, 0)` over all starting rows. This exercises recursive DFS over the grid, memoization via @cache, and combining child returns at each node, with grid neighbor offsets and bounds checks. LeetCode reports Accepted at 567 ms; the large-grid assertions are commented out.",
       "seconds": 766,
       "learning": true
+    },
+    "solved/p1053_Previous_Permutation_With_One_Swap_2026_10_27T07_38_00_065360_00_00Z.mu": {
+      "date": "2026-10-27",
+      "problem": "1053",
+      "moves": {
+        "substring-enumeration": "clean",
+        "sort-by-custom-key": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Brute force: swaps last element with each earlier index, sorts candidates descending, picks the largest below arr; passes all assertions.",
+      "summary": "The code builds every candidate by swapping the last element with each earlier index into a copy of arr, sorts the candidates in reverse, and returns the largest candidate strictly less than arr, else arr unchanged. It exercises exhaustive swap enumeration and a descending sort with a comparison filter. All assertions passed; the notes show the reasoning that the last digit always changes, leading to this brute-force approach.",
+      "unmapped": [
+        "brute-force swap enumeration"
+      ],
+      "seconds": 1467,
+      "learning": true
     }
   }
 }
