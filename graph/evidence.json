@@ -41552,6 +41552,20 @@
       "note": "COUNT(DISTINCT subject_id) grouped by teacher_id; the DISTINCT inside the aggregate is what satisfies the required one-subject-per-teacher rule.",
       "summary": "The query groups Teacher rows by teacher_id and counts distinct subject_id values per group, aliasing the result cnt. This exercises the group-aggregate move with COUNT(DISTINCT) so repeated subject rows collapse to one. Both example assertions passed, and the notes contain only the statement.",
       "seconds": 118
+    },
+    "solved/d_Reports_Per_Manager_2026_10_27T22_22_19_578867_00_00Z.mu": {
+      "date": "2026-10-28",
+      "problem": "drill",
+      "drill": "d50",
+      "moves": {
+        "sql-self-join": "clean",
+        "sql-group-aggregate": "clean",
+        "sql-conditional-aggregate": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Self-join Employees e to Employees r on e.employee_id = r.reports_to, grouped by manager with conditional SUM(CASE...) counts and a rounded average.",
+      "summary": "The query self-joins Employees as e and r on e.employee_id = r.reports_to, so each manager row pairs with their direct reports. It groups by e.employee_id and computes reports_count and average_age with SUM(CASE WHEN ...) conditional aggregates and round(). Both examples pass, producing the expected manager rows.",
+      "seconds": 526
     }
   }
 }
