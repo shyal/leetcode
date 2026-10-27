@@ -41333,6 +41333,18 @@
       "note": "Uses a 2D table with 1-indexed padding; the two-prefix recurrence consumes from both sides on a match and from one side otherwise.",
       "summary": "The lcs function pads both strings with a leading space and fills a 2D dp table, matching characters via dp[i-1][j-1]+1 and otherwise taking max of the two single-side prefixes. This is the two-sequence alignment recurrence over two prefixes, exercised correctly across all assertions. No notes were provided.",
       "seconds": 250
+    },
+    "solved/d_Find_with_Path_Compression_2026_10_27T01_20_47_212485_00_00Z.mu": {
+      "date": "2026-10-27",
+      "problem": "drill",
+      "drill": "d72",
+      "moves": {
+        "union-find": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill on union-find's find with path compression; the recursive find rewrites parent[x] to the root and the assertions confirm full flattening.",
+      "summary": "The mu code subclasses UnionFind and overrides find recursively: it returns x when x is its own parent, otherwise recurses on parent[x] and stores the root back into parent[x], compressing the path. The driver builds chains by hand (parent[0]=1, parent[1]=2, ...) and asserts that find returns the root and that parent is fully flattened to it. The run exited 0 with output 4 [4, 4, 4, 4, 4], exercising the union-find find-with-path-compression move.",
+      "seconds": 58
     }
   }
 }
