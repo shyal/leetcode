@@ -41345,6 +41345,23 @@
       "note": "Drill on union-find's find with path compression; the recursive find rewrites parent[x] to the root and the assertions confirm full flattening.",
       "summary": "The mu code subclasses UnionFind and overrides find recursively: it returns x when x is its own parent, otherwise recurses on parent[x] and stores the root back into parent[x], compressing the path. The driver builds chains by hand (parent[0]=1, parent[1]=2, ...) and asserts that find returns the root and that parent is fully flattened to it. The run exited 0 with output 4 [4, 4, 4, 4, 4], exercising the union-find find-with-path-compression move.",
       "seconds": 58
+    },
+    "solved/p3021_Alice_and_Bob_Playing_Flower_Game_FAILED_2026_10_27T01_45_21_840814_00_00Z.mu": {
+      "date": "2026-10-27",
+      "problem": "3021",
+      "moves": {
+        "pair-count-formula": "clean",
+        "marginal-gain": "clean"
+      },
+      "assist": {
+        "pair-count-formula": "hint",
+        "marginal-gain": "hint"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say a Claude hint supplied the odd/even counting idea; the file header says FAILED but the run exited 0 with all assertions passing.",
+      "summary": "The mu code counts odd numbers in 1..n and 1..m with a fold using odd(x), derives the even counts by subtraction, and returns odd_n*even_m + even_n*odd_m. That is the pair-count formula applied to the two parity groups, with the even counts obtained as a marginal difference. The notes record that the candidate first framed it as counting pairs, then got a hint from Claude that a sum is odd only when one term is odd and the other even, and switched to counting odds and evens.",
+      "seconds": 1390,
+      "learning": true
     }
   }
 }
