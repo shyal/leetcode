@@ -138,7 +138,7 @@ class Solution:
 
 
 sol = Solution()
-draw_graphviz({0: [1], 1: [2], 2: [3], 3: [1]}, type='directed')
+draw_graphviz({0: [1], 1: [2], 2: [3], 3: [1]}, directed=True)
 print(sol.reachable({0: [1], 1: [2], 2: [3], 3: [1]}, 4))
 assert sol.reachable({0: [1], 1: [2], 2: [3], 3: [1]}, 4) == {(0, 0), (1, 1), (1, 4), (2, 2), (3, 3)}
 assert sol.reachable({0: [1], 1: [2], 2: [3], 3: [1]}, 0) == {(0, 0)}

@@ -72,7 +72,7 @@ LEETCODE: Accepted (39 ms, 22.5 MB)
 #   for (a, b) in stones
 #     union(rk(a), ck(b))
 #
-#   # draw_graphviz(parent, type='directed')
+#   # draw_graphviz(parent, directed=True)
 #
 #   groups = sum(1 for k in parent if k == find(k))
 #   return len(stones) - groups

@@ -144,7 +144,7 @@ class Solution:
 
 sol = Solution()
 G = {0: {1: 2, 2: 9}, 1: {2: 3}, 2: {}}
-draw_graphviz(G, type='directed')
+draw_graphviz(G, directed=True)
 print(sol.min_cost(G, 0, 2))
 _l, _r = sol.min_cost({0: {1: 2, 2: 9}, 1: {2: 3}, 2: {}}, 0, 2), 5
 assert _l == _r, (lambda l, r: f"left : {l.lstrip()}\nright: {r.lstrip()}" if "\n" not in l + r else f"left :\n{l}\nright:\n{r}")(*(__import__("textwrap").indent(__import__("pprint").pformat(v, width=__import__("shutil").get_terminal_size().columns - 2, sort_dicts=False), "  ") for v in (_l, _r)))

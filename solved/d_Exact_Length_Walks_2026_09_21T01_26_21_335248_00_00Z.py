@@ -62,7 +62,7 @@ class Solution:
 
 sol = Solution()
 
-draw_graphviz([[0, 1], [1, 2], [2, 3], [3, 1]], n=4, type="directed")
+draw_graphviz([[0, 1], [1, 2], [2, 3], [3, 1]], n=4, directed=True)
 print(sol.exactWalks(4, [[0, 1], [1, 2], [2, 3], [3, 1]], 4))  # [1]
 
 assert sorted(sol.exactWalks(4, [[0, 1], [1, 2], [2, 3], [3, 1]], 4)) == [1]
