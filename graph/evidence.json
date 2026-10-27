@@ -41540,6 +41540,18 @@
       "judge": "deepseek-chat",
       "summary": "The query selects min(id) and email from Person grouped by email, so each email keeps its smallest id. This exercises the dedupe-keep-one move (MIN(id) per group) together with group aggregation. Both example assertions passed and the printed output matches the expected rows.",
       "seconds": 106
+    },
+    "solved/d_Distinct_Subjects_Per_Teacher_2026_10_27T22_13_20_913684_00_00Z.mu": {
+      "date": "2026-10-28",
+      "problem": "drill",
+      "drill": "d40",
+      "moves": {
+        "sql-group-aggregate": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "COUNT(DISTINCT subject_id) grouped by teacher_id; the DISTINCT inside the aggregate is what satisfies the required one-subject-per-teacher rule.",
+      "summary": "The query groups Teacher rows by teacher_id and counts distinct subject_id values per group, aliasing the result cnt. This exercises the group-aggregate move with COUNT(DISTINCT) so repeated subject rows collapse to one. Both example assertions passed, and the notes contain only the statement.",
+      "seconds": 118
     }
   }
 }
