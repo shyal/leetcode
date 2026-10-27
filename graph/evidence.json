@@ -41460,6 +41460,18 @@
       "summary": "The mu code recurses over indices, marking used[j] before the call and unmarking after, appending nums[j] to path and popping it back \u2014 the choose/undo and mark/unmark pattern. Duplicates are filtered at the leaf by checking tuple(path) against a `seen` set rather than by skipping equal siblings after the sort, so the sibling-dedupe move is sidestepped. All assertions pass and LeetCode reports Accepted (168 ms).",
       "seconds": 593,
       "learning": true
+    },
+    "solved/p641_Design_Circular_Deque_2026_10_27T12_05_54_885751_00_00Z.mu": {
+      "date": "2026-10-27",
+      "problem": "641",
+      "moves": {
+        "deque-recent-window": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Uses collections.deque with appendleft/append/popleft/pop and len checks for capacity; no circular array indexing.",
+      "summary": "MyCircularDeque wraps a collections.deque and enforces capacity with isFull (len == k) and isEmpty (len == 0), inserting at both ends via appendleft/append and removing via popleft/pop, with getFront/getRear reading deque[0] and deque[-1]. The run exited 0 and LeetCode reported Accepted (17 ms, 19.9 MB). The notes are empty, so there is no record of hints or look-ups.",
+      "seconds": 531,
+      "learning": true
     }
   }
 }
