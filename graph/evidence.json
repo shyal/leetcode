@@ -41297,6 +41297,18 @@
       "note": "res += i - D[n] counts all prior pairs minus equal-value prior pairs, then records n; batch arithmetic on group sizes is sidestepped in favor of streaming.",
       "summary": "The mu code walks nums once, keeping a dict D of value counts. At each index i it adds i - D[n] to res (all earlier elements minus those equal to n), then increments D[n]. This exercises streaming ask-then-record and the pair-count arithmetic, though the counting is done incrementally rather than by the batch n(n-1)/2 formula. All assertions pass, including the large 50000/50000 case.",
       "seconds": 255
+    },
+    "solved/d_Slide_Never_Shrink_2026_10_27T00_55_23_172141_00_00Z.mu": {
+      "date": "2026-10-27",
+      "problem": "drill",
+      "drill": "d21",
+      "moves": {
+        "sliding-window-budget": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "The window never shrinks: when zeros > k, left advances one step and the width stays constant, so right - left + 1 ends as the maximum.",
+      "summary": "The mu code scans nums once, counting zeros in the current window; when zeros exceeds k it drops nums[left] if it was a zero and advances left by one, keeping the window width constant rather than shrinking. The answer is right - left + 1 at the end, the never-shrink budget-window shape. All assertions passed with no notes.",
+      "seconds": 85
     }
   }
 }
