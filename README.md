@@ -1,6 +1,6 @@
 [![Run Tests](https://github.com/shyal/leetcode/actions/workflows/run-tests.yml/badge.svg)](https://github.com/shyal/leetcode/actions/workflows/run-tests.yml) <!-- CONTEST_BADGE -->![Virtual contests: the proven rating over their problems](https://shyal.s3.amazonaws.com/contest_badge_20261027140548.svg)<!-- /CONTEST_BADGE -->
 
-This is a mix of leetcode problems, as well as several language drills. The contest badge is my rating over the problems of my [virtual contests](contests/), each problem a game against its rating.
+This is a mix of leetcode problems, as well as several language drills. The contest badge is LeetCode's contest rating formula applied to my [virtual contests](contests/), which LeetCode itself does not rate: my virtual rank against the real field of each contest, sampled.
 
 <!-- GAUGES -->
 

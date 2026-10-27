@@ -41400,6 +41400,22 @@
       "summary": "The mu solution defines trips(x) as the sum of x // y over the bus times, then calls the harness first_true over 1..10**14 with the predicate trips(x) >= totalTrips to find the least feasible time. This is binary search on the answer with a feasibility check. The file ran clean and LeetCode reports Accepted (1692 ms).",
       "seconds": 509,
       "learning": true
+    },
+    "solved/p647_Palindromic_Substrings_2026_10_27T06_35_09_993588_00_00Z.mu": {
+      "date": "2026-10-27",
+      "problem": "647",
+      "moves": {
+        "substring-enumeration": "clean",
+        "memoize-recursion": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LeetCode Accepted but 1202 ms / 223.4 MB: enumerates every substring and memoizes the palindrome test, the O(n^2) brute force rather than the expand-around-center or DP approach.",
+      "summary": "The mu code enumerates every substring via substrings(s), then tests each with a memoized is_palindrome that compares characters from the ends (even length) or from the center outward (odd length), summing the true results into res. It exercises substring enumeration and memoized recursion over the palindrome predicate. The notes are empty; LeetCode reports Accepted at 1202 ms and 223.4 MB, consistent with the brute-force enumeration rather than the linear-expansion or DP solution.",
+      "unmapped": [
+        "palindrome check by mirror comparison"
+      ],
+      "seconds": 1045,
+      "learning": true
     }
   }
 }

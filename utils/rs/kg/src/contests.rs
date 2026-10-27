@@ -81,6 +81,8 @@ pub struct Contest {
     /// the JSON file
     pub path: PathBuf,
     pub contest: String,
+    /// LeetCode's slug, "weekly-contest-525"; the field is sampled by it
+    pub slug: String,
     pub virtual_: bool,
     pub date: NaiveDate,
     pub clock_min: i64,
@@ -130,6 +132,7 @@ impl Contest {
         Contest {
             path: path.to_path_buf(),
             contest: s(v, "contest"),
+            slug: s(v, "slug"),
             virtual_: v["virtual"].as_bool().unwrap_or(false),
             date: NaiveDate::parse_from_str(&s(v, "date"), "%Y-%m-%d")
                 .unwrap_or_else(|_| panic!("{}: date", path.display())),
@@ -175,6 +178,11 @@ impl Contest {
 
     /// The header and the result table: the <!-- CONTEST --> region.
     pub fn markdown(&self) -> String {
+        self.markdown_with(None)
+    }
+
+    /// The header with the rating line when the contest has a standing.
+    pub fn markdown_with(&self, standing: Option<&Standing>) -> String {
         let mut out = vec![format!("# {}", self.title()), String::new()];
         if let Some(intro) = &self.intro {
             out.push(intro.clone());
@@ -195,6 +203,15 @@ impl Contest {
             count_word(self.problems.len())
         ));
         out.push(format!("Score: {} of {}", self.score, self.score_max));
+        if let Some(st) = standing {
+            out.push(format!(
+                "Rating: {} after this contest (performance {}, LeetCode's formula over a sample of {} of the {} participants)",
+                st.rating.round() as i64,
+                st.performance.round() as i64,
+                st.sampled,
+                thousands(st.user_num)
+            ));
+        }
         let wrong = self.wrong();
         let penalty = match wrong {
             0 => String::new(),
@@ -320,6 +337,142 @@ pub fn table(rows: &[Vec<String>]) -> Vec<String> {
     out
 }
 
+// ---- LeetCode's contest rating -----------------------------------------------
+//
+// LeetCode rates a contest in four steps (its 2020 post, as the open
+// predictors implement it): the expected rank is one plus the sum over the
+// field of each participant's chance of beating you under the Elo curve;
+// the rank performed at is the geometric mean of the expected and the
+// actual rank; the performance rating is the rating whose expected rank is
+// that, found by binary search; and the rating moves towards it by
+// 1 / (1 + sum_{i=0}^{k} (5/7)^i), k the contests attended before this one:
+// half on a first contest, 2/9 in the limit. A participant with no contest
+// history is rated 1500, the starting rating.
+//
+// LeetCode does not rate virtual contests. This applies its formula to the
+// virtual rank against the real field, sampled: FIELD_PAGES random pages
+// of the ranking, each user's rating as of the fetch, the sums scaled to
+// the field size (contests/<stem>.field.json, utils/readme/contest_field.mjs).
+
+/// The rating every participant starts at, and the rating of one with no
+/// contest history.
+pub const RATING_START: f64 = 1500.0;
+
+/// The sampled field of one contest.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Field {
+    /// participants in the contest
+    pub user_num: i64,
+    pub fetched: String,
+    /// one rating per sampled user, RATING_START for the unrated
+    pub ratings: Vec<f64>,
+    /// how many of them had a rating
+    pub rated: usize,
+}
+
+impl Field {
+    pub fn from_json(v: &Value) -> Option<Field> {
+        let users = v["users"].as_array()?;
+        let pages = v["pages"].as_array().map(|p| p.len()).unwrap_or(0);
+        let done = v["pages_done"].as_array().map(|p| p.len()).unwrap_or(0);
+        if users.is_empty() || done < pages || users.iter().any(|u| !u["asked"].as_bool().unwrap_or(false)) {
+            return None;
+        }
+        let ratings: Vec<f64> = users
+            .iter()
+            .map(|u| u["rating"].as_f64().unwrap_or(RATING_START))
+            .collect();
+        Some(Field {
+            user_num: v["user_num"].as_i64()?,
+            fetched: s(v, "fetched"),
+            rated: users.iter().filter(|u| u["rating"].is_number()).count(),
+            ratings,
+        })
+    }
+
+    /// 1 + the sum over the field of the chance each participant beats a
+    /// rating of `me`, the sample scaled to the field.
+    pub fn expected_rank(&self, me: f64) -> f64 {
+        let scale = self.user_num as f64 / self.ratings.len() as f64;
+        1.0 + scale * self.ratings.iter().map(|r| beats(*r, me)).sum::<f64>()
+    }
+
+    /// The rating whose expected rank is `rank`.
+    pub fn performance(&self, rank: f64) -> f64 {
+        let (mut lo, mut hi) = (0.0f64, 4000.0f64);
+        while hi - lo > 0.01 {
+            let mid = (lo + hi) / 2.0;
+            if self.expected_rank(mid) < rank {
+                hi = mid;
+            } else {
+                lo = mid;
+            }
+        }
+        (lo + hi) / 2.0
+    }
+}
+
+/// The chance a participant rated `r` beats one rated `me`.
+pub fn beats(r: f64, me: f64) -> f64 {
+    1.0 / (1.0 + 10f64.powf((me - r) / 400.0))
+}
+
+/// How far the rating moves towards the performance: k contests before
+/// this one, 1/2 on the first, 2/9 in the limit.
+pub fn step(k: usize) -> f64 {
+    let s: f64 = (0..=k).map(|i| (5.0f64 / 7.0).powi(i as i32)).sum();
+    1.0 / (1.0 + s)
+}
+
+/// One rated contest: the rating after it and what went into it.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Standing {
+    pub date: NaiveDate,
+    pub contest: String,
+    pub expected_rank: f64,
+    pub performance: f64,
+    /// after the contest
+    pub rating: f64,
+    pub sampled: usize,
+    pub user_num: i64,
+}
+
+impl Contest {
+    /// contests/<stem>.field.json
+    pub fn field_path(&self) -> PathBuf {
+        self.path.with_extension("field.json")
+    }
+
+    /// The sampled field, once contest_field.mjs has completed it.
+    pub fn field(&self) -> Option<Field> {
+        Field::from_json(&crate::data::read_json(&self.field_path())?)
+    }
+}
+
+/// LeetCode's rating over the contests with a field, in the order given,
+/// from RATING_START; a contest without a field is skipped.
+pub fn leetcode_rating(contests: &[&Contest]) -> Vec<Standing> {
+    let mut rating = RATING_START;
+    let mut out = Vec::new();
+    for c in contests {
+        let Some(f) = c.field() else { continue };
+        let expected = f.expected_rank(rating);
+        let performed_at = (expected * c.rank as f64).sqrt();
+        let performance = f.performance(performed_at);
+        rating += (performance - rating) * step(out.len());
+        out.push(Standing {
+            date: c.date,
+            contest: c.contest.clone(),
+            expected_rank: expected,
+            performance,
+            rating,
+            sampled: f.ratings.len(),
+            user_num: f.user_num,
+        });
+    }
+    out
+}
+
 /// Every contest under contests/, by date then file name.
 pub fn load(root: &Path) -> Vec<Contest> {
     let dir = root.join("contests");
@@ -425,6 +578,70 @@ Ratings: CLIST's
         assert!(md.starts_with("<!-- CONTEST -->\n# Weekly Contest 525 (virtual)\n"));
         assert!(md.contains("\n<!-- /CONTEST -->\n\n## Q1. 4092. Binary Digit Score\n"));
         assert!(md.ends_with("\n## Notes\n"));
+    }
+
+    #[test]
+    fn leetcode_step_halves_the_first_move_and_tends_to_two_ninths() {
+        assert!((step(0) - 0.5).abs() < 1e-12);
+        assert!((step(1) - 1.0 / (1.0 + 1.0 + 5.0 / 7.0)).abs() < 1e-12);
+        assert!((step(60) - 2.0 / 9.0).abs() < 1e-6);
+    }
+
+    fn flat_field(n: i64, r: f64) -> Field {
+        Field {
+            user_num: n,
+            fetched: "2026-10-27".to_string(),
+            ratings: vec![r; 100],
+            rated: 100,
+        }
+    }
+
+    #[test]
+    fn expected_rank_and_performance_invert_each_other() {
+        let f = flat_field(10000, 1500.0);
+        // half of a 1500 field beats a 1500
+        assert!((f.expected_rank(1500.0) - 5001.0).abs() < 1e-6);
+        assert!((f.performance(5001.0) - 1500.0).abs() < 0.02);
+        // a stronger rating expects a better rank, and the inverse agrees
+        let er = f.expected_rank(1900.0);
+        assert!(er < 1500.0);
+        assert!((f.performance(er) - 1900.0).abs() < 0.02);
+    }
+
+    #[test]
+    fn leetcode_rating_moves_half_way_on_a_first_contest() {
+        // ranking exactly at the expected rank leaves the rating alone;
+        // ranking first moves it half way to the performance
+        let dir = std::env::temp_dir().join(format!("kg_contests_{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let mut c = weekly_525();
+        c.path = dir.join("2026-10-27_weekly_525.json");
+        let users: Vec<Value> = (0..100)
+            .map(|_| serde_json::json!({"rating": 1500.0, "asked": true}))
+            .collect();
+        std::fs::write(
+            c.field_path(),
+            serde_json::json!({"user_num": 10000, "fetched": "2026-10-27", "pages": [1, 2, 3, 4], "pages_done": [1, 2, 3, 4], "users": users}).to_string(),
+        )
+        .unwrap();
+        c.rank = 5001;
+        let st = leetcode_rating(&[&c]);
+        assert_eq!(st.len(), 1);
+        assert!((st[0].rating - 1500.0).abs() < 0.1, "{:?}", st[0]);
+        c.rank = 1;
+        let st = leetcode_rating(&[&c]);
+        let perf = st[0].performance;
+        assert!(perf > 2000.0);
+        assert!((st[0].rating - (1500.0 + (perf - 1500.0) * 0.5)).abs() < 1e-6);
+        // an incomplete field is no field
+        std::fs::write(
+            c.field_path(),
+            serde_json::json!({"user_num": 10000, "fetched": "2026-10-27", "pages": [1, 2, 3, 4], "pages_done": [1], "users": users}).to_string(),
+        )
+        .unwrap();
+        assert!(c.field().is_none());
+        assert!(leetcode_rating(&[&c]).is_empty());
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 
     #[test]
