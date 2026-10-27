@@ -12,7 +12,9 @@
 //
 // Contest pages have a CodeMirror editor and no Monaco. There the mu goes
 // into LeetCode's own editor, and the submission replaces `typed_code` in
-// the request that Run or Submit sends.
+// the request that Run or Submit sends. That editor indents by Python's
+// four spaces; with mu on, Tab, Shift+Tab, Enter and Backspace indent by
+// mu's two.
 
 (() => {
   const PROBLEM = /^(?:\/contest\/[^/]+)?\/problems\/([^/?#]+)/;
@@ -308,6 +310,49 @@
     e.preventDefault();
     e.stopImmediatePropagation();
     press(which);
+  }, true);
+
+  // the contest editor is LeetCode's, set to Python's four spaces: with mu
+  // on, Tab, Shift+Tab, Enter and Backspace indent by two
+  const STEP = 2;
+  window.addEventListener("keydown", (e) => {
+    if (!on?.view || e.metaKey || e.ctrlKey || e.altKey || !on.view.contentDOM.contains(e.target)) return;
+    const { state } = on.view;
+    const { from, to } = state.selection.main;
+    const line = state.doc.lineAt(from);
+    const col = from - line.from;
+    const lead = line.text.length - line.text.trimStart().length;
+    let tr = null;
+    if (e.key === "Tab" && !e.shiftKey && from === to) {
+      const insert = " ".repeat(STEP - (col % STEP));
+      tr = { changes: { from, insert }, selection: { anchor: from + insert.length } };
+    } else if (e.key === "Tab") {
+      // every line the selection touches moves one step; the selection follows
+      const changes = [];
+      for (let n = line.number; n <= state.doc.lineAt(to).number; n++) {
+        const l = state.doc.line(n);
+        if (!e.shiftKey) {
+          changes.push({ from: l.from, insert: " ".repeat(STEP) });
+        } else {
+          const spaces = l.text.length - l.text.trimStart().length;
+          const cut = Math.min(spaces, spaces % STEP || STEP);
+          if (cut) changes.push({ from: l.from, to: l.from + cut });
+        }
+      }
+      if (!changes.length) return;
+      tr = { changes };
+    } else if (e.key === "Enter") {
+      const before = line.text.slice(0, col);
+      const indent = " ".repeat(Math.min(lead, col) + (OPENS_BLOCK.test(before) ? STEP : 0));
+      const insert = "\n" + indent;
+      tr = { changes: { from, to, insert }, selection: { anchor: from + insert.length } };
+    } else if (e.key === "Backspace" && from === to && col > 0 && col <= lead) {
+      tr = { changes: { from: from - (col % STEP || STEP), to: from } };
+    }
+    if (!tr) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    on.view.dispatch({ ...tr, scrollIntoView: true, userEvent: e.key === "Backspace" ? "delete" : "input" });
   }, true);
 
   // the language menu: a mu row under Python3, and leaving mu on any other choice
