@@ -41416,6 +41416,22 @@
       ],
       "seconds": 1045,
       "learning": true
+    },
+    "solved/p2684_Maximum_Number_of_Moves_in_a_Grid_2026_10_27T07_05_47_047142_00_00Z.mu": {
+      "date": "2026-10-27",
+      "problem": "2684",
+      "moves": {
+        "tree-dfs-recursive": "clean",
+        "memoize-recursion": "clean",
+        "tree-combine-returns": "clean",
+        "grid-neighbors": "clean",
+        "dp-state-formulate": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LeetCode Accepted (567 ms, 56 MB); the large-grid asserts are commented out.",
+      "summary": "The mu code defines a cached recursive `moves(r, c)` that returns 0 at the last column and otherwise takes the max over the three forward neighbors whose value exceeds the current cell, adding 1. `maxMoves` takes the max of `moves(r, 0)` over all starting rows. This exercises recursive DFS over the grid, memoization via @cache, and combining child returns at each node, with grid neighbor offsets and bounds checks. LeetCode reports Accepted at 567 ms; the large-grid assertions are commented out.",
+      "seconds": 766,
+      "learning": true
     }
   }
 }
