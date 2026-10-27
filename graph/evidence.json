@@ -41566,6 +41566,21 @@
       "note": "Self-join Employees e to Employees r on e.employee_id = r.reports_to, grouped by manager with conditional SUM(CASE...) counts and a rounded average.",
       "summary": "The query self-joins Employees as e and r on e.employee_id = r.reports_to, so each manager row pairs with their direct reports. It groups by e.employee_id and computes reports_count and average_age with SUM(CASE WHEN ...) conditional aggregates and round(). Both examples pass, producing the expected manager rows.",
       "seconds": 526
+    },
+    "solved/d_Consecutive_Integers_Sum_Test_2026_10_27T22_30_29_050242_00_00Z.mu": {
+      "date": "2026-10-28",
+      "problem": "drill",
+      "drill": "d301",
+      "moves": {
+        "consecutive-sum-split": "clean"
+      },
+      "assist": {
+        "consecutive-sum-split": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say 'learning'; the code applies the k*a + k(k-1)/2 formula directly.",
+      "summary": "The mu code defines isConsecutiveSum(n, k), which computes rest = n - k*(k-1)//2 and returns whether rest is positive and divisible by k, the closed-form test for n being a sum of k consecutive positive integers. It exercises the consecutive-sum-split move and all assertions pass. The notes state 'learning', indicating the solution was given and copied.",
+      "seconds": 452
     }
   }
 }
