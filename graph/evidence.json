@@ -41667,6 +41667,23 @@
       "judge": "deepseek-chat",
       "summary": "The mu solution counts odd and even elements in each array with fold expressions, then combines them as odd(a)*even(b) + even(a)*odd(b) to get the number of cross-array pairs whose sum is odd. This is the pair-count-formula move applied directly to the two group sizes. All assertions passed, including the large 100000-element cases.",
       "seconds": 169
+    },
+    "solved/d_Exclusive_From_Call_Tree_2026_10_27T23_15_24_890291_00_00Z.mu": {
+      "date": "2026-10-28",
+      "problem": "drill",
+      "drill": "d159",
+      "moves": {
+        "tree-dfs-recursive": "clean",
+        "tree-carry-down": "clean",
+        "stack-nested-eval": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "The mu recursion visits each node once, computing dur minus the sum of direct children's dur and accumulating into res by id; the target stack-nested-eval move is not exercised.",
+      "summary": "The mu defines a recursive closure that, for each node, adds dur minus the sum of its direct children's dur into res[id], then recurses into children. This is a single DFS pass with per-node accumulation, so each call's exclusive time is computed from its immediate children only. All assertions pass, including the three-level case. The target stack-nested-eval move does not appear; the work is done by plain tree recursion.",
+      "unmapped": [
+        "subtract direct children's dur from parent"
+      ],
+      "seconds": 362
     }
   }
 }
