@@ -87,18 +87,41 @@ fn submit(slug: &str, qid: &str, code: &str) -> Result<u64, String> {
     }
 }
 
+/// Polls, one a second, before the wait gives up on the judge.
+const POLLS: usize = 90;
+/// Polls in a row that may fail before the wait gives up: the tab reloads,
+/// or the browser drops one request ("Failed to fetch" on 2026-10-27, and
+/// the one failed poll lost a Wrong Answer: the solve was filed without it).
+const POLL_FAILURES: usize = 5;
+
+/// Poll `once` until it returns the finished check payload. An error is
+/// retried unless POLL_FAILURES of them came in a row.
+fn poll_verdict(mut once: impl FnMut() -> Result<Value, String>) -> Result<Value, String> {
+    let mut failures = 0;
+    for _ in 0..POLLS {
+        match once() {
+            Ok(data) if data["state"].as_str() == Some("SUCCESS") => return Ok(data),
+            Ok(_) => failures = 0,
+            Err(e) => {
+                failures += 1;
+                if failures == POLL_FAILURES {
+                    return Err(e);
+                }
+            }
+        }
+    }
+    Err(format!("leetcode did not finish judging in {POLLS}s"))
+}
+
 /// Poll until the judge is done; returns the check payload.
 fn wait_verdict(id: u64) -> Result<Value, String> {
     let path = format!("/submissions/detail/{id}/check/");
-    for _ in 0..90 {
+    poll_verdict(|| {
         std::thread::sleep(Duration::from_secs(1));
         let (_, body) = fetch("GET", &path, None)?;
-        let data = json_of(&body).map_err(|e| format!("check: {e}"))?;
-        if data["state"].as_str() == Some("SUCCESS") {
-            return Ok(data);
-        }
-    }
-    Err("check: leetcode did not finish judging in 90s".into())
+        json_of(&body)
+    })
+    .map_err(|e| format!("check of submission {id}: {e}"))
 }
 
 /// One line for the notes and the screen: the status, then what qualifies it.
@@ -286,6 +309,32 @@ mod tests {
         assert!(rejected("Time Limit Exceeded (34/58 cases)"));
         assert!(rejected("Wrong Answer (3/58 cases)"));
         assert!(rejected("Runtime Error"));
+    }
+
+    #[test]
+    fn poll_rides_out_a_few_failed_requests() {
+        let mut calls = 0;
+        let got = poll_verdict(|| {
+            calls += 1;
+            match calls {
+                1 => Ok(json!({"state": "PENDING"})),
+                2 | 3 => Err("Failed to fetch".into()),
+                _ => Ok(json!({"state": "SUCCESS", "status_msg": "Accepted"})),
+            }
+        });
+        assert_eq!(got.unwrap()["status_msg"], "Accepted");
+        assert_eq!(calls, 4);
+    }
+
+    #[test]
+    fn poll_gives_up_after_failures_in_a_row() {
+        let mut calls = 0;
+        let got = poll_verdict(|| {
+            calls += 1;
+            Err("Failed to fetch".into())
+        });
+        assert_eq!(got.unwrap_err(), "Failed to fetch");
+        assert_eq!(calls, POLL_FAILURES);
     }
 
     #[test]

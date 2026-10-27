@@ -98,6 +98,7 @@ for (let i = 0; i < 30 && !(ready = (await evaluate(settled, 1000)) === true); i
 }
 if (!ready) {
   ws.close();
+  if (opened) await fetch(`${endpoint}/json/close/${opened.id}`);
   console.error("lc_fetch: the leetcode tab is stuck on a Cloudflare challenge; open it in the browser and let it pass");
   process.exit(1);
 }
