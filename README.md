@@ -1,10 +1,10 @@
-[![Run Tests](https://github.com/shyal/leetcode/actions/workflows/run-tests.yml/badge.svg)](https://github.com/shyal/leetcode/actions/workflows/run-tests.yml) <!-- CONTEST_BADGE -->![Virtual contests: the proven rating over their problems](https://shyal.s3.amazonaws.com/contest_badge_20261027140548.svg)<!-- /CONTEST_BADGE -->
+[![Run Tests](https://github.com/shyal/leetcode/actions/workflows/run-tests.yml/badge.svg)](https://github.com/shyal/leetcode/actions/workflows/run-tests.yml) <!-- CONTEST_BADGE -->![Virtual contests: the proven rating over their problems](https://shyal.s3.amazonaws.com/contest_badge_20261027154116.svg)<!-- /CONTEST_BADGE -->
 
 This is a mix of leetcode problems, as well as several language drills. The contest badge is LeetCode's contest rating formula applied to my [virtual contests](contests/), which LeetCode itself does not rate: my virtual rank against the real field of each contest, sampled.
 
 <!-- GAUGES -->
 
-![Progress: algorithms first sight, algorithms current reach, python, typescript, rust, sql, systems design](https://shyal.s3.amazonaws.com/gauges_20261027140548.svg)
+![Progress: algorithms first sight, algorithms current reach, python, typescript, rust, sql, systems design](https://shyal.s3.amazonaws.com/gauges_20261027154116.svg)
 
 <!-- /GAUGES -->
 
