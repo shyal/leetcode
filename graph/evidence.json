@@ -41227,6 +41227,19 @@
       "summary": "The code keeps a running prefix sum and a dict D mapping each prefix value to how many times it has occurred, seeded with D[0]=1. At each element it adds D[prefix - k] to res before recording the current prefix, so each qualifying subarray is counted at its right endpoint. This exercises prefix sums, the ask-then-record streaming order, the derived key prefix-k, and pair accumulation via the hashmap. LeetCode reports Accepted (49 ms, 23.5 MB) and all local assertions passed.",
       "seconds": 159,
       "learning": true
+    },
+    "solved/d_First_True_2026_10_27T00_20_16_324793_00_00Z.mu": {
+      "date": "2026-10-27",
+      "problem": "drill",
+      "drill": "d115",
+      "moves": {
+        "binary-search-boundary": "clean",
+        "binary-search-on-answer": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Drill targets binary-search-on-answer; the code implements the leftmost-true boundary template (lo<hi, hi=mid on ok, lo=mid+1 otherwise) and all assertions pass.",
+      "summary": "The mu Solution.firstTrue runs a halving loop over [lo, hi) that moves hi to mid when the predicate ok(mid) holds and lo to mid+1 otherwise, returning the first index where ok flips true. The assertions cover squares, thresholds, single-point ranges, and a 10^9 range with a call-count bound of 31, all passing. This exercises the binary-search-boundary move; no notes were provided.",
+      "seconds": 78
     }
   }
 }
