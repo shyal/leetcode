@@ -26,9 +26,11 @@ use serde_json::Value;
 const BUCKET: &str = "shyal";
 
 // (graph file, s3 prefix, README region, alt text, inline region?)
-// The Elo charts and badges left the README on 2026-10-06; the gauges and
-// the virtual contest badge (2026-10-27) are what it shows.
-const CHARTS: [(&str, &str, &str, &str, bool); 2] = [
+// The badges left the README on 2026-10-06. The Elo charts left with them
+// and came back live on 2026-10-27, with the kg_movie charts; the charts
+// whose Python renderers were deleted on 2026-09-20 stay frozen copies in
+// the README's "Earlier charts" section.
+const CHARTS: [(&str, &str, &str, &str, bool); 13] = [
     (
         "graph/gauges.svg",
         "gauges",
@@ -42,6 +44,83 @@ const CHARTS: [(&str, &str, &str, &str, bool); 2] = [
         "CONTEST_BADGE",
         "Virtual contests: the proven rating over their problems",
         true,
+    ),
+    (
+        "graph/kg_movie.svg",
+        "kg_movie",
+        "KG_MOVIE",
+        "Technique graph growing solve by solve",
+        false,
+    ),
+    (
+        "graph/kg_pass.svg",
+        "pass_probability",
+        "PASS_PROB_CHART",
+        "P(pass a mock) over time",
+        false,
+    ),
+    (
+        "graph/kg_swarm.svg",
+        "mock_swarm",
+        "MOCK_SWARM_CHART",
+        "Individual simulated mocks over time",
+        false,
+    ),
+    (
+        "graph/kg_blame.svg",
+        "mock_blame",
+        "MOCK_BLAME_CHART",
+        "Share of simulated problems failed, by group",
+        false,
+    ),
+    (
+        "graph/rate_gauge.svg",
+        "rate_gauge",
+        "RATE_GAUGE",
+        "Elo per 100 hours on problems seen for the first time",
+        false,
+    ),
+    (
+        "graph/problem_rating.svg",
+        "problem_rating",
+        "PROBLEM_RATING_CHART",
+        "Rating of the problems attempted",
+        false,
+    ),
+    (
+        "graph/problem_rating_month.svg",
+        "problem_rating_month",
+        "PROBLEM_RATING_MONTH_CHART",
+        "Rating of the problems attempted in the last 30 days",
+        false,
+    ),
+    (
+        "graph/hours.svg",
+        "hours",
+        "HOURS_CHART",
+        "Elo against hours of recorded solving, with the Carnegie Mellon rate",
+        false,
+    ),
+    (
+        "graph/onsite.svg",
+        "onsite",
+        "ONSITE_CHART",
+        "Elo history and its projection to the onsite line, on dates",
+        false,
+    ),
+    (
+        "graph/progress.svg",
+        "progress",
+        "PROGRESS_CHART",
+        "Actual minus model on the last 30 first sights",
+        false,
+    ),
+    (
+        "graph/backlog.svg",
+        "backlog",
+        "BACKLOG_CHART",
+        "Backlog and forecast: review cards, solves by kind, STALE and FRAGILE nodes",
+        false,
     ),
 ];
 

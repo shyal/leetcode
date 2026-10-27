@@ -1,9 +1,10 @@
 // kg_readme - the README pipeline: the charts and badges under graph/, the
 // S3 upload and the README's generated regions.
 //
-//   kg_readme                       # the README's charts (make readme): the gauges
-//                                   # and the virtual contest badge, which also
-//                                   # renders contests/*.md from contests/*.json
+//   kg_readme                       # the README's charts (make readme): the gauges,
+//                                   # the virtual contest badge (which also renders
+//                                   # contests/*.md from contests/*.json) and the
+//                                   # Elo charts
 //   kg_readme update                # upload + rewrite README.md
 //   kg_readme rank-table            # refresh data/leetcode_rank_table.json
 //   kg_readme now [--once]          # the Elo dashboard (make elo); --once is one frame
@@ -12,9 +13,10 @@
 //
 // <chart> is one of gauges, contest, elo, streak, rank, rate, problem-rating,
 // backlog, problem-rating-month, hours, onsite, progress. The README shows
-// the gauges and the contest badge (2026-10-27); the Elo charts stay drawable by name and
-// feed make elo and make prog. The forecast flags reach problem-rating and
-// backlog, which share the cached runs.
+// the gauges, the contest badge and the Elo charts (live again 2026-10-27;
+// the badges stay drawable by name and feed make elo and make prog). The
+// forecast flags reach problem-rating and backlog, which share the cached
+// runs.
 //
 // Ported from the utils/readme/*_svg scripts and update_readme.py
 // (Python) on 2026-09-13.
@@ -41,7 +43,17 @@ use kg::data::{load_envrc, repo_root};
 use kg::evidence::Evidence;
 
 /// What `make readme` draws: the charts README.md shows.
-const CHARTS: [&str; 2] = ["gauges", "contest"];
+const CHARTS: [&str; 9] = [
+    "gauges",
+    "contest",
+    "rate",
+    "problem-rating",
+    "problem-rating-month",
+    "backlog",
+    "hours",
+    "onsite",
+    "progress",
+];
 
 /// Every chart, for `kg_readme <chart>` and the usage line.
 const ALL: [&str; 12] = [

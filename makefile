@@ -474,13 +474,16 @@ drawing-doc:
 	@.venv/bin/python3 utils/readme/drawing_doc.py
 
 # make readme is implemented in Rust (utils/rs/kg_readme): the charts and
-# badges the README carries (problem rating, hours, onsite, progress,
-# backlog, the rate gauge, and the Elo, streak, rank, rate and virtual
-# contest badges; the contest step also renders contests/*.md from
-# contests/*.json), then the S3 upload and the README's generated regions. The movie is
-# $(MOVIE_BIN); the old Python chart renderers were deleted, they live in
-# git history before 2026-09-21 if a chart comes back.
-readme: harness-doc drawing-doc contest-field $(MOCK_BIN) $(RS_BIN)/estimate $(RS_BIN)/kg_predict $(RS_BIN)/kg_readme
-	@$(RS_BIN)/kg_readme
+# badges the README carries (the gauges, the virtual contest badge, which
+# also renders contests/*.md from contests/*.json, and the Elo charts:
+# problem rating, hours, onsite, progress, backlog, the rate gauge), then
+# the S3 upload and the README's generated regions. $(MOVIE_BIN) draws the
+# technique graph movie and the three mock charts alongside. The old Python
+# chart renderers (the 3D graph, zpd, the forgetting curve, solve time,
+# volume) were deleted on 2026-09-20 with the library they used; they live
+# in git history before 2026-09-21, and their charts are frozen copies in
+# the README.
+readme: harness-doc drawing-doc contest-field $(MOCK_BIN) $(MOVIE_BIN) $(RS_BIN)/estimate $(RS_BIN)/kg_predict $(RS_BIN)/kg_curve $(RS_BIN)/kg_simulate $(RS_BIN)/kg_readme
+	@$(MOVIE_BIN) & p=$$!; $(RS_BIN)/kg_readme; s=$$?; wait $$p && [ $$s -eq 0 ]
 	@$(RS_BIN)/estimate
 	@AWS_PROFILE=readme-uploader $(RS_BIN)/kg_readme update
