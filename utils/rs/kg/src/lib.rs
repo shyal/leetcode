@@ -37,6 +37,7 @@ pub mod recog;
 pub mod render;
 pub mod status;
 pub mod table;
+pub mod tables;
 
 #[cfg(test)]
 mod tests;

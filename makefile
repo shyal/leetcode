@@ -1,4 +1,4 @@
-.PHONY: all asserts audit chat check combos complexity cov curve dependents crowd crowd-install crowd-uninstall discuss dive drawing-doc drill drop duplicates elo ext failed fmt fmt-check force graph graph-vscode hard harness-doc is_session_start kg-extract kg-status kg-viz lc-login lc-mocks lc-sync learning lint mirror mock movie mu mu-chrome mu-vscode muviz next predict preflight prepare prog progress q queue rank-table readme rep residuals rust secrets short simulate sleep snippets solved spot stats studied submit test test-fast test-judge timer today types unforce viz wake
+.PHONY: all asserts audit chat check combos complexity cov curve dependents crowd crowd-install crowd-uninstall discuss dive drawing-doc drill drop duplicates elo ext failed fmt fmt-check force graph graph-vscode hard harness-doc is_session_start kg-extract kg-status kg-viz lc-login lc-mocks lc-sync learning lint mirror mock movie mu mu-chrome mu-vscode muviz next predict preflight prepare prog progress q queue rank-table readme rep residuals rust secrets short simulate sleep snippets solved spot stats studied submit tables test test-fast test-judge timer today types unforce viz wake
 
 # `make` runs the current file: current.py through mu/session.py (which
 # runs current.mu in place when it holds the work, every error at its mu
@@ -167,8 +167,14 @@ queue: $(RS_BIN)/kg_queue
 # make crowd-install loads the launchd job that runs it hourly
 # (misc/com.orb.leet-crowd.plist, log in data/crowd.log);
 # make crowd-uninstall removes it.
+# Each run first refreshes the problem tables a week old (kg::tables):
+# data/problems_metadata.json, data/leetcode_ratings.tsv (zerotrac) and
+# data/clist_problems.json (CLIST). make tables fetches all three now.
 crowd: $(RS_BIN)/kg_crowd
 	@$(RS_BIN)/kg_crowd $(filter-out $@,$(MAKECMDGOALS))
+
+tables: $(RS_BIN)/kg_crowd
+	@$(RS_BIN)/kg_crowd --tables
 
 CROWD_LABEL := com.orb.leet-crowd
 CROWD_PLIST := $(HOME)/Library/LaunchAgents/$(CROWD_LABEL).plist

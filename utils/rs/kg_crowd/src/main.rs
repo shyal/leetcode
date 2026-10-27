@@ -8,17 +8,25 @@
 //   kg_crowd --stale DAYS         # the age that counts as stale
 //   kg_crowd 1733 554             # these problems, whatever their age
 //   kg_crowd --show 1733 554      # print the saved records, fetch nothing
+//   kg_crowd --tables             # fetch the three problem tables now,
+//                                 # whatever their age, and stop
 //
 // The picker ranks on the file (crowd.rs): a disliked problem comes last
 // in its rule, and among ties the most attempted problem comes first.
 // `make crowd-install` loads the launchd job that runs this hourly; with
 // the default cap a week's refresh of the 3000 free problems spreads over
 // eight runs, and a problem is never more than STALE_DAYS behind.
+//
+// A sync first refreshes the problem tables that are a week old
+// (kg::tables: data/problems_metadata.json, data/leetcode_ratings.tsv,
+// data/clist_problems.json), so a contest's new problems enter the
+// metadata and get their crowd record in the same hour.
 
 use kg::crowd::{self, compact, fetch_stats, stats_of, STALE_DAYS};
 use kg::data::{load_envrc, load_metadata, parse_date, real_today, repo_root};
+use kg::tables;
 
-const USAGE: &str = "usage: kg_crowd [--limit N] [--stale DAYS] [--show] [PROBLEM...]";
+const USAGE: &str = "usage: kg_crowd [--limit N] [--stale DAYS] [--show | --tables] [PROBLEM...]";
 const LIMIT: usize = 400;
 /// The pause between requests: LeetCode answers a burst with 404s and
 /// 503s for a minute (2026-10-13).
@@ -28,6 +36,7 @@ struct Args {
     limit: usize,
     stale: i64,
     show: bool,
+    tables: bool,
     problems: Vec<String>,
 }
 
@@ -43,6 +52,7 @@ fn parse_args() -> Args {
         limit: LIMIT,
         stale: STALE_DAYS,
         show: false,
+        tables: false,
         problems: Vec::new(),
     };
     let mut i = 0;
@@ -53,6 +63,7 @@ fn parse_args() -> Args {
                 std::process::exit(0);
             }
             "--show" => a.show = true,
+            "--tables" => a.tables = true,
             "--limit" => {
                 i += 1;
                 a.limit = raw
@@ -97,6 +108,19 @@ fn main() {
     let args = parse_args();
     let root = repo_root();
     load_envrc(&root);
+    if args.tables {
+        for l in tables::refresh(&root, tables::STALE_DAYS, true) {
+            println!("{l}");
+        }
+        return;
+    }
+    if !args.show {
+        for l in tables::refresh(&root, tables::STALE_DAYS, false) {
+            if l.contains("fetched") {
+                println!("{l}");
+            }
+        }
+    }
     let meta = load_metadata(&root);
     let mut records = crowd::load(&root);
     let today = real_today();
