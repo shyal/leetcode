@@ -6,8 +6,9 @@
 //   lc_submit                 # submit current.py, write "LEETCODE: <verdict>" into its notes
 //   lc_submit --file F        # another file
 //   lc_submit --auto          # the `make solved` step: silently skip a drill (no URL
-//                             # line) or a missing browser; exit 1 when leetcode's
-//                             # verdict is anything but Accepted, so the make stops
+//                             # line) or a missing browser, and say so when the notes
+//                             # mark a learning rep; exit 1 when leetcode's verdict
+//                             # is anything but Accepted, so the make stops
 //   lc_submit --auto --force  # record the verdict and exit 0 whatever it is
 //                             # (`make solved FORCE=1`)
 //   lc_submit --show          # print the code that would be submitted and stop
@@ -226,6 +227,13 @@ fn main() {
             "{file}: no `URL: https://leetcode.com/problems/<slug>/` line"
         ));
     };
+    if auto && learning_solve(&code) {
+        console.print(
+            "[yellow]leetcode submit skipped: the notes mark a learning rep, and only \
+             his own solves go on his leetcode record[/yellow]",
+        );
+        return;
+    }
     let Some(class) = strip::strip(&kg::data::repo_root(), &code) else {
         if auto {
             return;
@@ -297,6 +305,16 @@ fn rejected(line: &str) -> bool {
     !line.starts_with("Accepted")
 }
 
+/// The notes under the rule mark the solve as a learning rep, the word
+/// `learning` in plain prose (kg::data::notes_assist_level): a solution he
+/// looked up and copied. `make solved` keeps it off his leetcode record, so
+/// the problems leetcode shows as solved are the ones he solved (2026-10-27).
+/// The statement above the rule is not read, so a problem about learning
+/// rates is submitted as usual.
+fn learning_solve(code: &str) -> bool {
+    kg::data::notes_assist_level(&kg::pysrc::notes_of(code)) == "learning"
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -309,6 +327,15 @@ mod tests {
         assert!(rejected("Time Limit Exceeded (34/58 cases)"));
         assert!(rejected("Wrong Answer (3/58 cases)"));
         assert!(rejected("Runtime Error"));
+    }
+
+    #[test]
+    fn a_learning_rep_is_not_submitted() {
+        assert!(!learning_solve(FILE));
+        let copied = FILE.replace("my notes", "learning rep, copied the solution");
+        assert!(learning_solve(&copied));
+        let statement = FILE.replace("Given nums, return.", "Given a learning rate, return.");
+        assert!(!learning_solve(&statement));
     }
 
     #[test]
