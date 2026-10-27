@@ -41594,6 +41594,18 @@
       "note": "The solution delegates to the harness helper count_pairs with key = x % m, so the derived key (remainder) and the group-size pair arithmetic are exercised by the helper rather than written inline.",
       "summary": "divisiblePairs calls count_pairs on nums with key x -> x % m, grouping values by remainder and counting pairs within each group. The derived-key-lookup move (transforming each value into its remainder key) and the pair-count-formula arithmetic are what make the answer, both supplied through the count_pairs helper. All assertions pass, including the large 10**5 cases. No notes were provided.",
       "seconds": 427
+    },
+    "solved/d_Longest_Increasing_Subsequence_Ending_At_Each_Index_2026_10_27T22_47_05_130762_00_00Z.mu": {
+      "date": "2026-10-28",
+      "problem": "drill",
+      "drill": "d176",
+      "moves": {
+        "dp-1d-rolling": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "O(n^2) DP over all prior indices; the follow-up O(n log n) bound is not met.",
+      "summary": "The mu code builds a dp table filled with 1 and, for each index i, scans all earlier indices j via pairs(len(nums), back=true), updating dp[i] = max(dp[i], dp[j] + 1) when nums[j] < nums[i]. This is the 1D rolling DP for LIS ending at each index, and all assertions pass. The notes are empty.",
+      "seconds": 158
     }
   }
 }
