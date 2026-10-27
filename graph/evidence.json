@@ -41212,6 +41212,21 @@
       "note": "Enumerates every (start, start+size) pair via nested loops over size then start; all assertions passed.",
       "summary": "The mu code loops over each substring size from 1 to n, and for each size over every valid start, yielding s[start:start+size] through the @as_list decorator. This exercises substring-enumeration by start within a fixed length. The run exited 0 with all assertions passing, and the notes only say 'Learning'.",
       "seconds": 337
+    },
+    "solved/p560_Subarray_Sum_Equals_K_2026_10_27T00_18_46_276174_00_00Z.mu": {
+      "date": "2026-10-27",
+      "problem": "560",
+      "moves": {
+        "prefix-sums": "clean",
+        "streaming-ask-then-record": "clean",
+        "derived-key-lookup": "clean",
+        "streaming-accumulate-pairs": "clean",
+        "prefix-sum-hashmap": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The code keeps a running prefix sum and a dict D mapping each prefix value to how many times it has occurred, seeded with D[0]=1. At each element it adds D[prefix - k] to res before recording the current prefix, so each qualifying subarray is counted at its right endpoint. This exercises prefix sums, the ask-then-record streaming order, the derived key prefix-k, and pair accumulation via the hashmap. LeetCode reports Accepted (49 ms, 23.5 MB) and all local assertions passed.",
+      "seconds": 159,
+      "learning": true
     }
   }
 }
