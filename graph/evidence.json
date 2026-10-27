@@ -41240,6 +41240,26 @@
       "note": "Drill targets binary-search-on-answer; the code implements the leftmost-true boundary template (lo<hi, hi=mid on ok, lo=mid+1 otherwise) and all assertions pass.",
       "summary": "The mu Solution.firstTrue runs a halving loop over [lo, hi) that moves hi to mid when the predicate ok(mid) holds and lo to mid+1 otherwise, returning the first index where ok flips true. The assertions cover squares, thresholds, single-point ranges, and a 10^9 range with a call-count bound of 31, all passing. This exercises the binary-search-boundary move; no notes were provided.",
       "seconds": 78
+    },
+    "solved/d_Exclusive_From_Call_Tree_2026_10_27T00_41_10_647020_00_00Z.mu": {
+      "date": "2026-10-27",
+      "problem": "drill",
+      "drill": "d159",
+      "moves": {
+        "tree-dfs-recursive": "clean",
+        "tree-carry-down": "clean",
+        "stack-nested-eval": "clean"
+      },
+      "assist": {
+        "stack-nested-eval": "hint"
+      },
+      "judge": "deepseek-chat",
+      "note": "Hint 'needed += not =' refers to the accumulation; the code uses += correctly. The exclusive-time subtraction is a per-node arithmetic move not in the taxonomy.",
+      "summary": "The mu code defines excl(node), which for every non-root node adds node.dur minus the sum of its children's dur into res[id], then recurses into each child. It is a single recursive DFS over the general tree, visiting each node once, so the O(number of calls) requirement is met. The hint about += versus = was applied correctly, and all assertions pass.",
+      "unmapped": [
+        "subtract children sum from parent dur"
+      ],
+      "seconds": 514
     }
   }
 }
