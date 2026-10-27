@@ -41503,6 +41503,20 @@
       "summary": "The mu code defines a recursive closure that walks the tree post-order, returning True when p or q is found in a subtree, and sets self.lca at the first node where both children report a find or where one child reports a find and the node itself is p or q. It exercises tree-combine-returns and tree-global-across-subtrees, and the run printed 3 for the first case with the other assertions passing. LeetCode reports Accepted (154 ms, 50 MB); the notes are empty.",
       "seconds": 1682,
       "learning": true
+    },
+    "solved/p1123_Lowest_Common_Ancestor_of_Deepest_Leaves_2026_10_27T13_37_34_478321_00_00Z.mu": {
+      "date": "2026-10-27",
+      "problem": "1123",
+      "moves": {
+        "tree-dfs-recursive": "clean",
+        "tree-global-across-subtrees": "clean",
+        "set-membership": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Two DFS passes: first records node values per depth into self.levels, second returns whether a subtree contains a deepest leaf and updates self.lca when both sides (or a side plus the node) qualify.",
+      "summary": "The mu code runs two recursive DFS passes over the tree. The first fills self.levels with node values keyed by depth, then deepest is the set of values at the maximum depth. The second pass returns whether each subtree contains a deepest leaf and sets self.lca at the node where both children (or a child and the node itself) qualify. LeetCode reports Accepted (3 ms, 19.8 MB) and all local assertions pass.",
+      "seconds": 1291,
+      "learning": true
     }
   }
 }

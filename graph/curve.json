@@ -2,13 +2,13 @@
   "_comment": "Personal forgetting curve fitted by utils/kg/kg_curve. P(recall) = (1-slip)*(1 + gap/s)^(-beta), s = exp(a + b*log1p(cleans) - c*struggles - d*assist + e*(conn - conn_mean)); cleans counts distinct clean days, same-day reps are one rep. conn is the node's log2 carrier count, frozen below at fit time; consumers that ignore e are assuming average connectivity. \"solve\" is the cold-solve model fitted by fit_solve: logit P(solve cold, unaided, inside the clock) = the listed coefficients over (rating - 1500)/400, the walk's summed log recall, and its count of never-met moves; features not listed did not earn their place on held-out games. node_status() calls a node SOLID while the memory component (1 + gap/s)^(-beta) >= target_retention; delete this file to fall back to the flat 42-day window.",
   "model": "power-law-slip",
   "params": {
-    "a": 3.9221,
+    "a": 3.9223,
     "b": 0.1311,
-    "c": 0.2423,
-    "d": 0.0779,
-    "e": -0.1494,
-    "conn_mean": 2.7081,
-    "beta": 0.1093,
+    "c": 0.2425,
+    "d": 0.0782,
+    "e": -0.1464,
+    "conn_mean": 2.7107,
+    "beta": 0.1092,
     "slip": 0.0565
   },
   "conn": {
@@ -82,7 +82,7 @@
     "running-sum": 6.392,
     "seen-state-cycle-detect": 3.0,
     "set-algebra": 3.907,
-    "set-membership": 5.807,
+    "set-membership": 5.833,
     "sliding-window-budget": 1.0,
     "sliding-window-fixed": 2.322,
     "sliding-window-variable": 3.17,
@@ -100,8 +100,8 @@
     "tree-build-from-traversals": 1.585,
     "tree-carry-down": 4.087,
     "tree-combine-returns": 4.524,
-    "tree-dfs-recursive": 5.615,
-    "tree-global-across-subtrees": 2.322,
+    "tree-dfs-recursive": 5.644,
+    "tree-global-across-subtrees": 2.585,
     "trie-build-walk": 2.0,
     "ttl-cache": 1.585,
     "two-pointers-converging": 4.755,
@@ -112,13 +112,13 @@
   },
   "target_retention": 0.9,
   "mass": {
-    "beta": -0.2286,
+    "beta": -0.2269,
     "se": 0.0914,
-    "n": 625,
+    "n": 626,
     "by_difficulty": {
-      "Easy": 3.8585,
-      "Medium": 1.1421,
-      "Hard": -0.1285
+      "Easy": 3.8569,
+      "Medium": 1.1468,
+      "Hard": -0.1281
     }
   },
   "solve": {
