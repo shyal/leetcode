@@ -41581,6 +41581,19 @@
       "note": "Notes say 'learning'; the code applies the k*a + k(k-1)/2 formula directly.",
       "summary": "The mu code defines isConsecutiveSum(n, k), which computes rest = n - k*(k-1)//2 and returns whether rest is positive and divisible by k, the closed-form test for n being a sum of k consecutive positive integers. It exercises the consecutive-sum-split move and all assertions pass. The notes state 'learning', indicating the solution was given and copied.",
       "seconds": 452
+    },
+    "solved/d_Divisible_Difference_Pairs_2026_10_27T22_41_30_512105_00_00Z.mu": {
+      "date": "2026-10-28",
+      "problem": "drill",
+      "drill": "d179",
+      "moves": {
+        "derived-key-lookup": "clean",
+        "pair-count-formula": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "The solution delegates to the harness helper count_pairs with key = x % m, so the derived key (remainder) and the group-size pair arithmetic are exercised by the helper rather than written inline.",
+      "summary": "divisiblePairs calls count_pairs on nums with key x -> x % m, grouping values by remainder and counting pairs within each group. The derived-key-lookup move (transforming each value into its remainder key) and the pair-count-formula arithmetic are what make the answer, both supplied through the count_pairs helper. All assertions pass, including the large 10**5 cases. No notes were provided.",
+      "seconds": 427
     }
   }
 }
