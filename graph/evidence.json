@@ -41388,6 +41388,18 @@
       "summary": "createGrid builds an m\u00d7n grid of '#' and runs a BFS from (0,0) with a deque, carrying each path and using a seen set to skip revisited cells. On reaching (m-1,n-1) it writes '.' along that path, then reassembles the rows into strings with a row-building loop. The moves exercised are grid-neighbors (the (1,0)/(0,1) offsets with in_bounds), graph-bfs-shortest (deque layers), and string-build-transform for the output. LeetCode reports Accepted (92 ms, 19.5 MB).",
       "seconds": 837,
       "learning": true
+    },
+    "solved/p2187_Minimum_Time_to_Complete_Trips_2026_10_27T05_55_09_657630_00_00Z.mu": {
+      "date": "2026-10-27",
+      "problem": "2187",
+      "moves": {
+        "binary-search-on-answer": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Uses harness first_true over [1, 10**14] with feasibility trips(x) >= totalTrips; LeetCode Accepted.",
+      "summary": "The mu solution defines trips(x) as the sum of x // y over the bus times, then calls the harness first_true over 1..10**14 with the predicate trips(x) >= totalTrips to find the least feasible time. This is binary search on the answer with a feasibility check. The file ran clean and LeetCode reports Accepted (1692 ms).",
+      "seconds": 509,
+      "learning": true
     }
   }
 }
