@@ -41490,6 +41490,19 @@
       "summary": "The solution builds a Counter of digit frequencies, then walks digits 9 down to 0 appending cnt[d]//2 copies to a left half, taking the first odd-count digit as the middle, and mirrors the left half with left[::-1]. It exercises counter-build, counts-as-data (halving counts, odd check), and string-build-transform (repetition and reversal to assemble the palindrome), with a leading-zero guard. The notes say 'learning', so the approach was given and copied.",
       "seconds": 1204,
       "learning": true
+    },
+    "solved/p236_Lowest_Common_Ancestor_of_a_Binary_Tree_2026_10_27T13_02_00_182136_00_00Z.mu": {
+      "date": "2026-10-27",
+      "problem": "236",
+      "moves": {
+        "tree-combine-returns": "clean",
+        "tree-global-across-subtrees": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Recursive post-order returns whether p or q was found in each subtree; the node where both sides (or one side plus the node itself) are true is recorded in self.lca.",
+      "summary": "The mu code defines a recursive closure that walks the tree post-order, returning True when p or q is found in a subtree, and sets self.lca at the first node where both children report a find or where one child reports a find and the node itself is p or q. It exercises tree-combine-returns and tree-global-across-subtrees, and the run printed 3 for the first case with the other assertions passing. LeetCode reports Accepted (154 ms, 50 MB); the notes are empty.",
+      "seconds": 1682,
+      "learning": true
     }
   }
 }
