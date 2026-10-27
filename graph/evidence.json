@@ -41320,6 +41320,19 @@
       "judge": "deepseek-chat",
       "summary": "The mu code walks the string once, keeping a stack of partial weights. A digit adds to the current top; '(' pushes a fresh 0 scope; ')' pops the inner scope and folds it into the parent as prev*2. This is the nested-scope push/pop-and-combine move, and all assertions pass.",
       "seconds": 50
+    },
+    "solved/d_Longest_Common_Subsequence_2026_10_27T01_18_34_788529_00_00Z.mu": {
+      "date": "2026-10-27",
+      "problem": "drill",
+      "drill": "d94",
+      "moves": {
+        "two-sequence-align": "clean",
+        "dp-2d-grid": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Uses a 2D table with 1-indexed padding; the two-prefix recurrence consumes from both sides on a match and from one side otherwise.",
+      "summary": "The lcs function pads both strings with a leading space and fills a 2D dp table, matching characters via dp[i-1][j-1]+1 and otherwise taking max of the two single-side prefixes. This is the two-sequence alignment recurrence over two prefixes, exercised correctly across all assertions. No notes were provided.",
+      "seconds": 250
     }
   }
 }
