@@ -455,10 +455,11 @@ chat: $(RS_BIN)/kg_chat
 rank-table: $(RS_BIN)/kg_readme
 	@$(RS_BIN)/kg_readme rank-table
 
-# make contest-field: sample the field of every contest in contests/*.json
-# that has none yet (contests/<stem>.field.json), through the Brave
-# session; the virtual contest badge applies LeetCode's rating formula to
-# it. FIELD_PAGES=24 pages of 25 users by default.
+# make contest-field: the field of every contest in contests/*.json that
+# has none yet (contests/<stem>.field.json): each rated participant's
+# rating before the contest, from CLIST's standings (CLIST_USERNAME and
+# CLIST_API_KEY in .envrc). The virtual contest badge applies LeetCode's
+# rating formula to it.
 contest-field:
 	@node utils/readme/contest_field.mjs
 
