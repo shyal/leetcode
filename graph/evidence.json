@@ -41373,6 +41373,21 @@
       "judge": "deepseek-chat",
       "summary": "The mu solution counts negatives in `a` and positives in `b` with two folds, then multiplies the two counts to get the number of cross pairs. This is the pair-count-formula move: count each group once, then multiply group sizes. All assertions passed, including the large 100000-element cases.",
       "seconds": 144
+    },
+    "solved/p3963_Create_Grid_With_Exactly_One_Path_2026_10_27T02_43_14_457159_00_00Z.mu": {
+      "date": "2026-10-27",
+      "problem": "3963",
+      "moves": {
+        "graph-bfs-shortest": "clean",
+        "grid-neighbors": "clean",
+        "graph-adjacency-build": "clean",
+        "string-build-transform": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "BFS over a grid with only down/right moves, carrying the path; the first arrival at (m-1,n-1) paints that path '.' and the rest stays '#'; LeetCode Accepted.",
+      "summary": "createGrid builds an m\u00d7n grid of '#' and runs a BFS from (0,0) with a deque, carrying each path and using a seen set to skip revisited cells. On reaching (m-1,n-1) it writes '.' along that path, then reassembles the rows into strings with a row-building loop. The moves exercised are grid-neighbors (the (1,0)/(0,1) offsets with in_bounds), graph-bfs-shortest (deque layers), and string-build-transform for the output. LeetCode reports Accepted (92 ms, 19.5 MB).",
+      "seconds": 837,
+      "learning": true
     }
   }
 }
