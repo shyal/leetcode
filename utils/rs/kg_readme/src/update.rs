@@ -26,15 +26,24 @@ use serde_json::Value;
 const BUCKET: &str = "shyal";
 
 // (graph file, s3 prefix, README region, alt text, inline region?)
-// The Elo charts and badges left the README on 2026-10-06; the gauges are
-// what it shows.
-const CHARTS: [(&str, &str, &str, &str, bool); 1] = [(
-    "graph/gauges.svg",
-    "gauges",
-    "GAUGES",
-    "Progress: algorithms first sight, algorithms current reach, python, typescript, rust, sql, systems design",
-    false,
-)];
+// The Elo charts and badges left the README on 2026-10-06; the gauges and
+// the virtual contest badge (2026-10-27) are what it shows.
+const CHARTS: [(&str, &str, &str, &str, bool); 2] = [
+    (
+        "graph/gauges.svg",
+        "gauges",
+        "GAUGES",
+        "Progress: algorithms first sight, algorithms current reach, python, typescript, rust, sql, systems design",
+        false,
+    ),
+    (
+        "graph/contest_badge.svg",
+        "contest_badge",
+        "CONTEST_BADGE",
+        "Virtual contests: the proven rating over their problems",
+        true,
+    ),
+];
 
 fn aws(args: &[&str]) -> Option<Vec<u8>> {
     let out = Command::new("aws").args(args).output().ok()?;

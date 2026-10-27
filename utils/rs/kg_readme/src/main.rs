@@ -2,15 +2,17 @@
 // S3 upload and the README's generated regions.
 //
 //   kg_readme                       # the README's charts (make readme): the gauges
+//                                   # and the virtual contest badge, which also
+//                                   # renders contests/*.md from contests/*.json
 //   kg_readme update                # upload + rewrite README.md
 //   kg_readme rank-table            # refresh data/leetcode_rank_table.json
 //   kg_readme now [--once]          # the Elo dashboard (make elo); --once is one frame
 //   kg_readme prog [--once]         # the progress dashboard (make prog)
 //   kg_readme <chart> [--forecast | --no-forecast]
 //
-// <chart> is one of gauges, elo, streak, rank, rate, problem-rating,
+// <chart> is one of gauges, contest, elo, streak, rank, rate, problem-rating,
 // backlog, problem-rating-month, hours, onsite, progress. The README shows
-// the gauges alone (2026-10-06); the Elo charts stay drawable by name and
+// the gauges and the contest badge (2026-10-27); the Elo charts stay drawable by name and
 // feed make elo and make prog. The forecast flags reach problem-rating and
 // backlog, which share the cached runs.
 //
@@ -19,6 +21,7 @@
 
 mod backlog;
 mod common;
+mod contest;
 mod dash;
 mod elo;
 mod gauges;
@@ -38,11 +41,12 @@ use kg::data::{load_envrc, repo_root};
 use kg::evidence::Evidence;
 
 /// What `make readme` draws: the charts README.md shows.
-const CHARTS: [&str; 1] = ["gauges"];
+const CHARTS: [&str; 2] = ["gauges", "contest"];
 
 /// Every chart, for `kg_readme <chart>` and the usage line.
-const ALL: [&str; 11] = [
+const ALL: [&str; 12] = [
     "gauges",
+    "contest",
     "elo",
     "streak",
     "rank",
@@ -74,6 +78,7 @@ fn main() {
     for name in names {
         match name {
             "gauges" => gauges::render(&ctx, &ev),
+            "contest" => contest::render(&ctx),
             "elo" => elo::render(&ctx, &ev),
             "streak" => streak::render(&ctx),
             "rank" => rank::render(&ctx, &ev),
