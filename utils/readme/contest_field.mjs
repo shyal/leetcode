@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // contest_field.mjs: the field of each contest in contests/*.json, written
 // to contests/<stem>.field.json for the virtual contest rating
-// (kg::contests::leetcode_rating). Run by `make contest-field`.
+// (kg::contests::leetcode_rating). Run by `make contest-field`, which
+// `make readme` runs first.
 //
 // LeetCode's rating formula needs the rating of every participant in the
 // field before the contest. CLIST keeps the standings of every LeetCode
@@ -16,7 +17,8 @@
 // rating row for, and the Rust side rates them 1500, LeetCode's rating
 // for a first contest. The field file records both counts.
 //
-// A contest is skipped when its field file exists. Credentials:
+// A contest is skipped when its field file exists, and left for the next
+// run when CLIST has no rating changes for it yet. Credentials:
 // CLIST_USERNAME and CLIST_API_KEY, from the environment or .envrc.
 
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -83,7 +85,10 @@ async function ratings(auth, contestId) {
       if (before !== null) out.push(before);
     }
     process.stdout.write(`  ${out.length} ratings\r`);
-    if (d.objects.length < PAGE) break;
+    // The rating changes of a contest arrive all at once, so a first page
+    // without one means the whole field has none yet: stop here instead
+    // of paging through it (23 pages, paced, for 525 on 2026-10-27).
+    if (!out.length || d.objects.length < PAGE) break;
   }
   process.stdout.write('\n');
   return out;
@@ -112,9 +117,10 @@ async function main() {
       console.log(`${contest.contest}: CLIST contest ${c.id}, ${c.n_statistics} rows`);
       const rs = await ratings(auth, c.id);
       if (!rs.length) {
-        throw new Error(
-          `${contest.contest}: CLIST has its standings but no rating changes yet (LeetCode publishes them a day or two after the contest); run make contest-field again later`,
-        );
+        // Not a failure: LeetCode publishes the rating changes a day or two
+        // after the contest, and make readme runs this again every time.
+        console.log(`${name}: CLIST has its standings but no rating changes yet; left out until the next make readme`);
+        continue;
       }
       const field = {
         source: 'clist',

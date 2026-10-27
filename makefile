@@ -459,7 +459,8 @@ rank-table: $(RS_BIN)/kg_readme
 # has none yet (contests/<stem>.field.json): each rated participant's
 # rating before the contest, from CLIST's standings (CLIST_USERNAME and
 # CLIST_API_KEY in .envrc). The virtual contest badge applies LeetCode's
-# rating formula to it.
+# rating formula to it. make readme runs it first, so a field that CLIST
+# publishes later is picked up by the next make readme.
 contest-field:
 	@node utils/readme/contest_field.mjs
 
@@ -479,7 +480,7 @@ drawing-doc:
 # contests/*.json), then the S3 upload and the README's generated regions. The movie is
 # $(MOVIE_BIN); the old Python chart renderers were deleted, they live in
 # git history before 2026-09-21 if a chart comes back.
-readme: harness-doc drawing-doc $(MOCK_BIN) $(RS_BIN)/estimate $(RS_BIN)/kg_readme
+readme: harness-doc drawing-doc contest-field $(MOCK_BIN) $(RS_BIN)/estimate $(RS_BIN)/kg_predict $(RS_BIN)/kg_readme
 	@$(RS_BIN)/kg_readme
 	@$(RS_BIN)/estimate
 	@AWS_PROFILE=readme-uploader $(RS_BIN)/kg_readme update

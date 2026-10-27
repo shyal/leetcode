@@ -51,7 +51,7 @@ pub fn render(ctx: &Ctx) {
     for c in &virtuals {
         if c.field().is_none() {
             println!(
-                "{}: no field yet (make contest-field), left out of the rating",
+                "{}: no field on CLIST yet, left out of the rating",
                 c.contest
             );
         }
