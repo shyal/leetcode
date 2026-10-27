@@ -41711,6 +41711,20 @@
       "note": "The enumeration is delegated to the harness helper `substrings(s)`, which the code spreads into a list; the drill's target move is exercised via that helper.",
       "summary": "The mu code defines a Solution class whose allSubstrings method returns the list produced by spreading the harness helper substrings(s). It prints the result for 'abc', yielding ['a','ab','abc','b','bc','c']. The substring enumeration is performed by the helper rather than written inline, and the run exited 0.",
       "seconds": 44
+    },
+    "solved/p227_Basic_Calculator_II_2026_10_27T23_36_23_494571_00_00Z.mu": {
+      "date": "2026-10-28",
+      "problem": "227",
+      "moves": {
+        "stack-nested-eval": "clean",
+        "running-sum": "clean",
+        "divmod-decompose": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Uses a stack with a pending operator: pushes signed numbers, pops-and-combines for * and /, then sums the stack; no parentheses handling since the problem has none.",
+      "summary": "The mu code scans s with a trailing '+' sentinel, accumulating digits into num and tracking the pending operator op. On each operator it pushes num (signed for +/-) or pops the top and pushes the combined result for * and /, then finally sums the stack. This exercises the stack-based precedence evaluation, a running sum over the stack, and digit peeling via num*10+int(c). LeetCode reports Accepted (41 ms).",
+      "seconds": 934,
+      "learning": true
     }
   }
 }
