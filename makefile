@@ -466,8 +466,9 @@ drawing-doc:
 
 # make readme is implemented in Rust (utils/rs/kg_readme): the charts and
 # badges the README carries (problem rating, hours, onsite, progress,
-# backlog, the rate gauge, and the Elo, streak, rank and rate badges), then
-# the S3 upload and the README's generated regions. The movie is
+# backlog, the rate gauge, and the Elo, streak, rank, rate and virtual
+# contest badges; the contest step also renders contests/*.md from
+# contests/*.json), then the S3 upload and the README's generated regions. The movie is
 # $(MOVIE_BIN); the old Python chart renderers were deleted, they live in
 # git history before 2026-09-21 if a chart comes back.
 readme: harness-doc drawing-doc $(MOCK_BIN) $(RS_BIN)/estimate $(RS_BIN)/kg_readme

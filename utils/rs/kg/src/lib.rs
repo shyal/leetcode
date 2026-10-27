@@ -12,6 +12,7 @@ pub mod cell_widths;
 pub mod cells;
 pub mod clock;
 pub mod console;
+pub mod contests;
 pub mod crowd;
 pub mod ctx;
 pub mod data;
