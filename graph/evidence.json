@@ -41618,6 +41618,18 @@
       "note": "memo max_dist caches each node's longest distance; the DAG recursion is memoized so each node is computed once.",
       "summary": "The mu code defines a memoized recursive max_dist(n) that returns 1 + the max over children, defaulting to 0 for leaves, and calls it from node 0. The memo directive caches each node's result, giving O(n+m) and exercising memoize-recursion. All assertions passed, including the 200-node chain and branching cases.",
       "seconds": 451
+    },
+    "solved/d_Negative_Positive_Pairs_2026_10_27T22_57_06_967963_00_00Z.mu": {
+      "date": "2026-10-28",
+      "problem": "drill",
+      "drill": "d310",
+      "moves": {
+        "pair-count-formula": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Counts negatives in a and positives in b with folds, then multiplies the two group sizes (a*b cross-group pairs).",
+      "summary": "The mu code counts how many elements of a are negative and how many of b are positive using two folds, then multiplies the two counts to get the number of cross-group pairs. This is the pair-count-formula move: count each group once, then a*b across the two groups. All assertions pass, including the large 100000-element cases.",
+      "seconds": 106
     }
   }
 }
