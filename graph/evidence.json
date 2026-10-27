@@ -41606,6 +41606,18 @@
       "note": "O(n^2) DP over all prior indices; the follow-up O(n log n) bound is not met.",
       "summary": "The mu code builds a dp table filled with 1 and, for each index i, scans all earlier indices j via pairs(len(nums), back=true), updating dp[i] = max(dp[i], dp[j] + 1) when nums[j] < nums[i]. This is the 1D rolling DP for LIS ending at each index, and all assertions pass. The notes are empty.",
       "seconds": 158
+    },
+    "solved/d_Longest_Path_From_Zero_2026_10_27T22_55_03_123466_00_00Z.mu": {
+      "date": "2026-10-28",
+      "problem": "drill",
+      "drill": "d174",
+      "moves": {
+        "memoize-recursion": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "memo max_dist caches each node's longest distance; the DAG recursion is memoized so each node is computed once.",
+      "summary": "The mu code defines a memoized recursive max_dist(n) that returns 1 + the max over children, defaulting to 0 for leaves, and calls it from node 0. The memo directive caches each node's result, giving O(n+m) and exercising memoize-recursion. All assertions passed, including the 200-node chain and branching cases.",
+      "seconds": 451
     }
   }
 }
