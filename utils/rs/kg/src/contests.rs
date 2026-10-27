@@ -205,10 +205,10 @@ impl Contest {
         out.push(format!("Score: {} of {}", self.score, self.score_max));
         if let Some(st) = standing {
             out.push(format!(
-                "Rating: {} after this contest (performance {}, LeetCode's formula over a sample of {} of the {} participants)",
+                "Rating: {} after this contest (performance {}, LeetCode's formula, {} rated of the {} participants)",
                 st.rating.round() as i64,
                 st.performance.round() as i64,
-                st.sampled,
+                thousands(st.sampled as i64),
                 thousands(st.user_num)
             ));
         }
@@ -350,51 +350,54 @@ pub fn table(rows: &[Vec<String>]) -> Vec<String> {
 // history is rated 1500, the starting rating.
 //
 // LeetCode does not rate virtual contests. This applies its formula to the
-// virtual rank against the real field, sampled: FIELD_PAGES random pages
-// of the ranking, each user's rating as of the fetch, the sums scaled to
-// the field size (contests/<stem>.field.json, utils/readme/contest_field.mjs).
+// virtual rank against the real field: every rated participant at the
+// rating they held before the contest, from CLIST's standings
+// (contests/<stem>.field.json, utils/readme/contest_field.mjs), and the
+// participants CLIST has no row for at RATING_START, as LeetCode rates a
+// first contest.
 
 /// The rating every participant starts at, and the rating of one with no
 /// contest history.
 pub const RATING_START: f64 = 1500.0;
 
-/// The sampled field of one contest.
+/// The field of one contest, contests/<stem>.field.json.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Field {
-    /// participants in the contest
+    /// participants in the contest, LeetCode's count
     pub user_num: i64,
     pub fetched: String,
-    /// one rating per sampled user, RATING_START for the unrated
+    /// the rating of each rated participant before the contest
     pub ratings: Vec<f64>,
-    /// how many of them had a rating
+    /// how many participants had a rating: ratings.len()
     pub rated: usize,
 }
 
 impl Field {
     pub fn from_json(v: &Value) -> Option<Field> {
-        let users = v["users"].as_array()?;
-        let pages = v["pages"].as_array().map(|p| p.len()).unwrap_or(0);
-        let done = v["pages_done"].as_array().map(|p| p.len()).unwrap_or(0);
-        if users.is_empty() || done < pages || users.iter().any(|u| !u["asked"].as_bool().unwrap_or(false)) {
+        let ratings: Vec<f64> = v["ratings"]
+            .as_array()?
+            .iter()
+            .filter_map(Value::as_f64)
+            .collect();
+        if ratings.is_empty() {
             return None;
         }
-        let ratings: Vec<f64> = users
-            .iter()
-            .map(|u| u["rating"].as_f64().unwrap_or(RATING_START))
-            .collect();
+        let user_num = v["user_num"].as_i64()?.max(ratings.len() as i64);
         Some(Field {
-            user_num: v["user_num"].as_i64()?,
+            user_num,
             fetched: s(v, "fetched"),
-            rated: users.iter().filter(|u| u["rating"].is_number()).count(),
+            rated: ratings.len(),
             ratings,
         })
     }
 
     /// 1 + the sum over the field of the chance each participant beats a
-    /// rating of `me`, the sample scaled to the field.
+    /// rating of `me`: the rated participants at their rating before the
+    /// contest, the rest at RATING_START.
     pub fn expected_rank(&self, me: f64) -> f64 {
-        let scale = self.user_num as f64 / self.ratings.len() as f64;
-        1.0 + scale * self.ratings.iter().map(|r| beats(*r, me)).sum::<f64>()
+        let rated: f64 = self.ratings.iter().map(|r| beats(*r, me)).sum();
+        let unrated = (self.user_num - self.rated as i64) as f64 * beats(RATING_START, me);
+        1.0 + rated + unrated
     }
 
     /// The rating whose expected rank is `rank`.
@@ -443,7 +446,7 @@ impl Contest {
         self.path.with_extension("field.json")
     }
 
-    /// The sampled field, once contest_field.mjs has completed it.
+    /// The field, once contest_field.mjs has written it.
     pub fn field(&self) -> Option<Field> {
         Field::from_json(&crate::data::read_json(&self.field_path())?)
     }
@@ -480,7 +483,10 @@ pub fn load(root: &Path) -> Vec<Contest> {
         Ok(rd) => rd
             .flatten()
             .map(|e| e.path())
-            .filter(|p| p.extension().is_some_and(|x| x == "json"))
+            .filter(|p| {
+                p.extension().is_some_and(|x| x == "json")
+                    && !p.to_string_lossy().ends_with(".field.json")
+            })
             .collect(),
         Err(_) => return vec![],
     };
@@ -616,12 +622,11 @@ Ratings: CLIST's
         std::fs::create_dir_all(&dir).unwrap();
         let mut c = weekly_525();
         c.path = dir.join("2026-10-27_weekly_525.json");
-        let users: Vec<Value> = (0..100)
-            .map(|_| serde_json::json!({"rating": 1500.0, "asked": true}))
-            .collect();
+        let ratings = vec![1500.0; 100];
         std::fs::write(
             c.field_path(),
-            serde_json::json!({"user_num": 10000, "fetched": "2026-10-27", "pages": [1, 2, 3, 4], "pages_done": [1, 2, 3, 4], "users": users}).to_string(),
+            serde_json::json!({"user_num": 10000, "fetched": "2026-10-27", "ratings": ratings})
+                .to_string(),
         )
         .unwrap();
         c.rank = 5001;
@@ -633,10 +638,11 @@ Ratings: CLIST's
         let perf = st[0].performance;
         assert!(perf > 2000.0);
         assert!((st[0].rating - (1500.0 + (perf - 1500.0) * 0.5)).abs() < 1e-6);
-        // an incomplete field is no field
+        // a field without ratings is no field
         std::fs::write(
             c.field_path(),
-            serde_json::json!({"user_num": 10000, "fetched": "2026-10-27", "pages": [1, 2, 3, 4], "pages_done": [1], "users": users}).to_string(),
+            serde_json::json!({"user_num": 10000, "fetched": "2026-10-27", "ratings": []})
+                .to_string(),
         )
         .unwrap();
         assert!(c.field().is_none());
