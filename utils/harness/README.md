@@ -273,6 +273,8 @@ sources is a list of cells, or one cell. With eq, lt, lte, gt or gte,
 only the cells whose value passes them all are entered (see _holds).
 Sources are entered unconditionally at distance 0.
 
+## sequences
+
 ### `lcs(a: Sequence[Any], b: Sequence[Any], full: bool = False, type = int)`
 
 Longest common subsequence of a and b.
@@ -347,6 +349,15 @@ it passes. Raises AssertionError naming the fold it did not find.
 Every (i, j, k) with 0 <= i < j < k < n, in lexicographic order.
 
 Each triple is built by type: tuple by default, list for a LeetCode answer.
+
+### `substrings(s: Sequence, by: str = 'start') -> Iterator`
+
+Every slice s[i:j] with 0 <= i < j <= len(s), each position once.
+
+by picks the order: "start" groups the slices by where they start,
+shortest first; "end" groups them by where they end, longest first;
+"length" gives every slice of length 1, then of length 2, and so on,
+left to right. A list gives its subarrays the same way.
 
 ## digits
 
