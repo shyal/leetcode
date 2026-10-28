@@ -41912,6 +41912,19 @@
       "note": "LEFT JOIN Employees m ON e.employee_id = m.manager_id with WHERE m.employee_id IS NULL is the anti-join; avoids NOT IN with NULLs.",
       "summary": "The query self-joins Employees as e to Employees as m on e.employee_id = m.manager_id, keeping all left rows, then filters WHERE m.employee_id IS NULL to return employees who are nobody's manager. This exercises the left-join-keep and anti-join moves and sidesteps the forbidden NOT IN with NULLs. Both example assertions passed.",
       "seconds": 225
+    },
+    "solved/d_Island_Key_2026_10_28T22_40_24_801144_00_00Z.mu": {
+      "date": "2026-10-29",
+      "problem": "drill",
+      "drill": "d37",
+      "moves": {
+        "sql-gaps-islands": "clean",
+        "sql-window-rank": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "id - row_number() over (order by id) is the gaps-and-islands key; one pass, no self-join.",
+      "summary": "The query selects id and computes id - row_number() over (order by id) as grp, so consecutive ids share a constant group key. This is the gaps-and-islands move built on a window row_number, satisfying the one-pass, no-self-join requirement. Both example assertions passed.",
+      "seconds": 128
     }
   }
 }
