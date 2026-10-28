@@ -41937,6 +41937,19 @@
       "note": "No dummy node used; the swap is done by re-linking head.next.next and head directly, which is the splice move without the dummy sentinel.",
       "summary": "The mu code swaps the first two nodes of a linked list by re-pointing head.next.next to head and head.next to the old second node, returning the old second node as the new head, with a guard for lists of length 0 or 1. It exercises the re-link/splice move (ll-dummy-splice) though without an actual dummy node. All assertions passed, including the 100-element case.",
       "seconds": 202
+    },
+    "solved/d_Last_True_2026_10_28T22_47_06_354695_00_00Z.mu": {
+      "date": "2026-10-29",
+      "problem": "drill",
+      "drill": "d120",
+      "moves": {
+        "binary-search-boundary": "clean",
+        "binary-search-on-answer": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "lastTrue uses the upper-mid (lo+hi+1)//2 template to find the last index where ok(mid) holds; all assertions passed.",
+      "summary": "The mu code defines Solution.lastTrue, a binary search that keeps the last true position by biasing mid upward with (lo + hi + 1) // 2 and moving lo to mid on success, hi to mid - 1 otherwise. It is exercised against several predicates including x*x <= 50 and a 10^9 bound, with a call-count check confirming logarithmic steps. All assertions passed and the run exited 0.",
+      "seconds": 80
     }
   }
 }
