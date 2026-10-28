@@ -41777,6 +41777,23 @@
       "note": "Delegates to the harness helper count_subarrays with an even(x) key; the pair-count arithmetic is inside that helper, not written here.",
       "summary": "The mu code defines evenSubarrays as a one-line call to the harness helper count_subarrays with key = even(x), then prints and asserts several cases including a 100000-element all-zero array. The counting arithmetic (the n(n+1)/2 style pair formula) lives in the helper rather than in the candidate's own code. The run exited 0 with output 9, so all assertions passed.",
       "seconds": 56
+    },
+    "solved/p2115_Find_All_Possible_Recipes_from_Given_Supplies_2026_10_28T09_52_27_856148_00_00Z.mu": {
+      "date": "2026-10-28",
+      "problem": "2115",
+      "moves": {
+        "graph-inverted-index": "clean",
+        "topological-order": "clean"
+      },
+      "assist": {
+        "graph-inverted-index": "learning",
+        "topological-order": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Kahn's algorithm: builds ingredient->recipe adjacency G, in_deg from ingredient counts, seeds queue with supplies, decrements and enqueues recipes reaching zero.",
+      "summary": "The code builds an inverted index G mapping each ingredient to the recipes that need it, and computes in_deg as the number of ingredients per recipe. It seeds a deque with the supplies and runs Kahn's topological order, decrementing in_deg for each recipe reachable from a made ingredient and enqueuing recipes that hit zero, collecting them in made. The notes say 'Learning'.",
+      "seconds": 993,
+      "learning": true
     }
   }
 }
