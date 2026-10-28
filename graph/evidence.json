@@ -41872,6 +41872,21 @@
       "summary": "The mu code scans arr once, keeping a running maximum in `high` and incrementing `count` whenever `high == i`, the index reached so far. That is the running-extreme plus running-sum shape: a chunk boundary is where the max of the prefix equals its last index. The notes record a 25-minute session ending in FAILED with no working solution, though the file as executed prints 4 for [1, 0, 2, 3, 4].",
       "seconds": 1525,
       "learning": true
+    },
+    "solved/p554_Brick_Wall_2026_10_28T12_32_11_210483_00_00Z.mu": {
+      "date": "2026-10-28",
+      "problem": "554",
+      "moves": {
+        "counter-build": "clean",
+        "counts-as-data": "clean",
+        "prefix-sums": "clean",
+        "dict-arbitrary-value": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "counts[total] += 1 builds a Counter of prefix sums; max over counts.items() picks the most-crossed edge.",
+      "summary": "The code walks each row, accumulating a running total over all but the last brick and incrementing counts[total], so counts holds how many rows have an edge at each prefix position. It then takes the maximum count via max(counts.items(), key=...) and returns len(wall) minus that, with an early return of len(wall) when counts is empty. This exercises counter-build, counts-as-data, and prefix-sums. LeetCode reports Accepted (7 ms, 22.6 MB) and all local assertions passed.",
+      "seconds": 802,
+      "learning": true
     }
   }
 }
