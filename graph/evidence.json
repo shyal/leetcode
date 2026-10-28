@@ -41820,6 +41820,25 @@
       "judge": "deepseek-chat",
       "summary": "The solution calls the harness helper indegrees(edges, n) and returns its values as a list, so the in-degree counting that Kahn's topological order relies on is delegated to the helper. The assertions confirm the counts for several edge lists, including an empty graph and a cycle. No notes were provided.",
       "seconds": 60
+    },
+    "solved/p187_Repeated_DNA_Sequences_2026_10_28T11_29_55_923687_00_00Z.mu": {
+      "date": "2026-10-28",
+      "problem": "187",
+      "moves": {
+        "sliding-window-fixed": "clean",
+        "counter-build": "clean",
+        "counts-as-data": "clean"
+      },
+      "assist": {
+        "sliding-window-fixed": "hint",
+        "counter-build": "hint",
+        "counts-as-data": "hint"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say the candidate first thought it was string matching and only later saw it as counting every substring; LeetCode Accepted (1097 ms).",
+      "summary": "The code walks a fixed 10-character window over s with `for right in 9..<len(s)`, slicing `s[right-9:right+1]` and incrementing a count in the `subs` dict, then returns keys whose count exceeds 1. It exercises a fixed sliding window, a counter build, and reading the counts as the answer. The notes say the candidate was hinted and initially misread the problem as string matching before realizing it was substring counting; LeetCode accepted the submission at 1097 ms.",
+      "seconds": 1015,
+      "learning": true
     }
   }
 }
