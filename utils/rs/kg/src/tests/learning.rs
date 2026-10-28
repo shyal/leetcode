@@ -2,6 +2,8 @@
 // its cold gates.
 
 use super::*;
+use crate::bank::held_behind;
+use crate::data::test_env;
 use crate::learning::{solved_clean, unmet_gate};
 
 fn unmet(fx: &Fx, after: &[&str], ev: &Evidence) -> Option<String> {
@@ -89,4 +91,31 @@ fn two_gates_on_one_target_are_one_list() {
         merged,
         vec![("1366".to_string(), strs(&["3", "49", "2215"]))]
     );
+}
+
+/// 2026-10-28: make next served 208 on the gates it had just written (14,
+/// solved clean a year ago) and the next run held 208 behind 14, cold for
+/// the picker's `warm`, so make next prepare served another problem. In
+/// learning mode the picker's hold is the gate rule: a clean solve however
+/// long ago clears the gate, and no solve holds. Off the mode, the solid
+/// window holds. An uncovered problem is unservable in the mode, so the
+/// queue skips it.
+#[test]
+fn the_picker_holds_by_the_gate_rule_in_learning_mode() {
+    let mut fx = Fx::new();
+    fx.nodes(&["q1"]).problems(vec![
+        ("208", problem(&["q1"]).after(&["14"])),
+        ("14", problem(&["q1"])),
+    ]);
+    let ev = evidence(vec![solve("14", &[("q1", "clean")], 400)]);
+    let held = |ev: &Evidence| held_behind(&fx.ctx(), "208", &fx.pv(), ev, today());
+    assert_eq!(held(&ev), Some("14".into()));
+    test_env("LEARNING", "1");
+    assert_eq!(held(&ev), None);
+    assert_eq!(held(&no_evidence()), Some("14".into()));
+    let mut uncovered = problem(&["q1"]);
+    uncovered.uncovered = true;
+    assert!(fx.ctx().unservable("208", &uncovered));
+    test_env("LEARNING", "");
+    assert!(!fx.ctx().unservable("208", &uncovered));
 }

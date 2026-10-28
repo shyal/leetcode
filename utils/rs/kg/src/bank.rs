@@ -65,6 +65,12 @@ pub fn warm(
 }
 
 /// kg_lib.held_behind: the predecessor this problem waits for, or None.
+/// In learning mode (kg::learning) the "after" hold is the gate rule,
+/// learning::unmet_gate: a problem gate clears with a clean solve however
+/// long ago, where `warm` asks for one inside SOLID_WINDOW_DAYS. The two
+/// rules disagreed (2026-10-28): make next served a problem on the gates
+/// it had just written, and the next run held it behind the same gates
+/// gone cold, so make next prepare served another problem.
 pub fn held_behind(
     ctx: &Ctx,
     pnum: &str,
@@ -74,7 +80,13 @@ pub fn held_behind(
 ) -> Option<String> {
     let entry = problems.get(pnum).or_else(|| ctx.ro.get(pnum));
     let entry = entry?;
-    for pred in &entry.after {
+    let learning = crate::learning::enabled();
+    if learning {
+        if let Some(g) = crate::learning::unmet_gate(ctx, &entry.after, problems, ev) {
+            return Some(g);
+        }
+    }
+    for pred in entry.after.iter().filter(|_| !learning) {
         let pred_entry = problems.get(pred).or_else(|| ctx.ro.get(pred));
         let unservable = match pred_entry {
             Some(p) => ctx.unservable(pred, p),

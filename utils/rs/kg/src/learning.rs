@@ -11,7 +11,10 @@
 // the gate model (kg::queue), whose candidates are the problems he has
 // solved clean, so no gate is ever served. A problem whose gates are not
 // all solved clean, or with a piece none of his solves isolates, is held,
-// and the picker picks the next one.
+// and the picker picks the next one. The picker's own "after" hold
+// (bank::held_behind) is this gate rule while the mode is on, and an
+// uncovered problem is unservable (ctx::unservable), so the queue replay
+// (pick::upcoming) and the serve agree.
 // Unset or anything but 1 switches the mode off.
 
 use std::collections::HashSet;

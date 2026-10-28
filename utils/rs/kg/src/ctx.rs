@@ -290,9 +290,11 @@ impl Ctx {
         self.meta.get(pnum).is_some_and(|m| m.paid_only)
     }
 
-    /// kg_lib.unservable: banned or paid-only.
+    /// kg_lib.unservable: banned or paid-only, or uncovered in learning
+    /// mode (kg::learning), so the queue replay skips it the way the
+    /// picker does.
     pub fn unservable(&self, pnum: &str, p: &Problem) -> bool {
-        p.banned || self.paid_only(pnum)
+        p.banned || self.paid_only(pnum) || (crate::learning::enabled() && p.uncovered)
     }
 
     fn crowd<T>(&self, f: impl FnOnce(&crate::crowd::Crowd) -> T) -> T {
