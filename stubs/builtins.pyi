@@ -3072,6 +3072,11 @@ def count_pairs(
     key: Optional[Callable[[Any], Any]] = ...,
     lookup: Optional[Callable[[Any], Any]] = ...,
 ) -> int: ...
+def count_subarrays(
+    xs: Iterable[Any],
+    key: Callable[..., bool],
+    pairs: bool = ...,
+) -> int: ...
 def max_diff(
     xs: Iterable[Any],
     by: Optional[Callable[[Any], Any]] = ...,

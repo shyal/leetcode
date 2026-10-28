@@ -423,6 +423,7 @@ builtins.chain = chain
 builtins.Counter = Counter
 builtins.Multiset = Multiset
 builtins.count_pairs = count_pairs
+builtins.count_subarrays = count_subarrays
 builtins.max_diff = max_diff
 builtins.OrderedDict = OrderedDict
 builtins.add = operator.add

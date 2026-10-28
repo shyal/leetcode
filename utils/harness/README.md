@@ -445,6 +445,20 @@ plain count_pairs(xs) counts the pairs of equal values.
 >>> count_pairs([3, 1, 4, 6, 3], lookup=lambda x: x - 2)
 2
 
+### `count_subarrays(xs: Iterable[Any], key: Callable[[Any], bool], pairs: bool = False) -> int`
+
+Count the subarrays of xs in which every element passes key, or, with
+pairs, every adjacent pair (a, b) passes key(a, b).
+
+A maximal block that passes holds n * (n + 1) // 2 subarrays for its
+length n; the running count adds the current block length at each step.
+With pairs, a single element has no pair, so a block starts at length 1.
+
+>>> count_subarrays([1, 3, 2, 5, 4], lambda v: v % 2 == 1)
+4
+>>> count_subarrays([3, 2, 1, 4], lambda a, b: b == a - 1, pairs=True)
+7
+
 ### `max_diff(xs: Iterable[Any], key: Optional[Callable[[Any], Any]] = None, reverse: bool = False, from_right: bool = False) -> list[Any]`
 
 The largest key(xs[j]) - key(xs[i]) with i < j, so far, for each j
