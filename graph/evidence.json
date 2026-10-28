@@ -41786,7 +41786,6 @@
         "topological-order": "clean"
       },
       "assist": {
-        "graph-inverted-index": "learning",
         "topological-order": "learning"
       },
       "judge": "deepseek-chat",
@@ -41794,6 +41793,22 @@
       "summary": "The code builds an inverted index G mapping each ingredient to the recipes that need it, and computes in_deg as the number of ingredients per recipe. It seeds a deque with the supplies and runs Kahn's topological order, decrementing in_deg for each recipe reachable from a made ingredient and enqueuing recipes that hit zero, collecting them in made. The notes say 'Learning'.",
       "seconds": 993,
       "learning": true
+    },
+    "solved/d_Kahn_Queue_Loop_2026_10_28T10_23_29_629912_00_00Z.mu": {
+      "date": "2026-10-28",
+      "problem": "drill",
+      "drill": "d180",
+      "moves": {
+        "topological-order": "clean",
+        "graph-adjacency-build": "clean"
+      },
+      "assist": {
+        "topological-order": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say Kahn's algorithm was forgotten and learned; the code implements Kahn's in-degree queue correctly.",
+      "summary": "The mu code builds an adjacency list G and in-degree map in_deg, seeds a deque with zero in-degree courses, then pops nodes, appends them to res, and decrements successors' in-degrees, enqueuing any that reach zero. It returns res when its length equals numCourses, else []. This is Kahn's topological order, and all assertions pass including the cycle cases returning []. The notes state the candidate had forgotten Kahn's algorithm and learned it.",
+      "seconds": 821
     }
   }
 }
