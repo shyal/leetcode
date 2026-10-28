@@ -41899,6 +41899,19 @@
       "note": "SQL uses upper(substr(name,0,2)) || lower(substr(name,2)); sqlite substr with start 0 yields the first character, so the first letter is upper-cased and the rest lowered.",
       "summary": "The query builds the fixed name entirely in SQL: upper(substr(name, 0, 2)) uppercases the first character and lower(substr(name, 2)) lowercases the remainder, joined with ||. Both example assertions pass, producing Alice/Bob and X/Zoe. The notes contain only the problem statement, with no mention of hints or look-ups.",
       "seconds": 108
+    },
+    "solved/d_Employees_Who_Manage_Nobody_2026_10_28T22_37_59_029533_00_00Z.mu": {
+      "date": "2026-10-29",
+      "problem": "drill",
+      "drill": "d28",
+      "moves": {
+        "sql-anti-join": "clean",
+        "sql-join-left-keep": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEFT JOIN Employees m ON e.employee_id = m.manager_id with WHERE m.employee_id IS NULL is the anti-join; avoids NOT IN with NULLs.",
+      "summary": "The query self-joins Employees as e to Employees as m on e.employee_id = m.manager_id, keeping all left rows, then filters WHERE m.employee_id IS NULL to return employees who are nobody's manager. This exercises the left-join-keep and anti-join moves and sidesteps the forbidden NOT IN with NULLs. Both example assertions passed.",
+      "seconds": 225
     }
   }
 }
