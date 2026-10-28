@@ -41725,6 +41725,22 @@
       "summary": "The mu code scans s with a trailing '+' sentinel, accumulating digits into num and tracking the pending operator op. On each operator it pushes num (signed for +/-) or pops the top and pushes the combined result for * and /, then finally sums the stack. This exercises the stack-based precedence evaluation, a running sum over the stack, and digit peeling via num*10+int(c). LeetCode reports Accepted (41 ms).",
       "seconds": 934,
       "learning": true
+    },
+    "solved/p820_Short_Encoding_of_Words_2026_10_28T00_01_45_283847_00_00Z.mu": {
+      "date": "2026-10-28",
+      "problem": "820",
+      "moves": {
+        "solve-pair-condition": "clean",
+        "string-build-transform": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LeetCode: Accepted (6875 ms) \u2014 O(n^2) pairwise endswith comparison rather than a trie/reversed-suffix approach.",
+      "summary": "The code builds a `contained` boolean table and loops over all index pairs with `pairs(len(words))`, marking a word contained when another word ends with it via `endswith`. It then joins the surviving words with '#' and adds a trailing '#', returning the total length. This exercises pairwise suffix-condition checking and string reassembly, but not the canonical trie of reversed words. LeetCode accepted it at 6875 ms.",
+      "unmapped": [
+        "pairwise suffix containment check"
+      ],
+      "seconds": 1300,
+      "learning": true
     }
   }
 }
