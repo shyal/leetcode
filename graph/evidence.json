@@ -41754,6 +41754,17 @@
       "note": "The printed output shows 'c' appearing in the third set, but the assertions passed, so the run is authoritative.",
       "summary": "The mu code builds a set of characters for each character of s, then uses scan with set.union to accumulate a running union across the sequence, producing the set of letters seen in each prefix. This exercises the running-accumulation (prefix-sums) shape and set union. All assertions passed.",
       "seconds": 139
+    },
+    "solved/d_Prefix_Distinct_Counts_2026_10_28T03_17_57_369596_00_00Z.mu": {
+      "date": "2026-10-28",
+      "problem": "drill",
+      "drill": "d313",
+      "moves": {
+        "prefix-sums": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The mu solution builds a set per character and folds them left-to-right with scan(set.union, ...), then takes len of each running set to produce the prefix distinct counts. This exercises the prefix-sums move as a running accumulation over the string, and all assertions pass.",
+      "seconds": 56
     }
   }
 }
