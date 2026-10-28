@@ -41887,6 +41887,18 @@
       "summary": "The code walks each row, accumulating a running total over all but the last brick and incrementing counts[total], so counts holds how many rows have an edge at each prefix position. It then takes the maximum count via max(counts.items(), key=...) and returns len(wall) minus that, with an early return of len(wall) when counts is empty. This exercises counter-build, counts-as-data, and prefix-sums. LeetCode reports Accepted (7 ms, 22.6 MB) and all local assertions passed.",
       "seconds": 802,
       "learning": true
+    },
+    "solved/d_Fix_Names_2026_10_28T22_33_57_754180_00_00Z.mu": {
+      "date": "2026-10-29",
+      "problem": "drill",
+      "drill": "d53",
+      "moves": {
+        "sql-string-functions": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "SQL uses upper(substr(name,0,2)) || lower(substr(name,2)); sqlite substr with start 0 yields the first character, so the first letter is upper-cased and the rest lowered.",
+      "summary": "The query builds the fixed name entirely in SQL: upper(substr(name, 0, 2)) uppercases the first character and lower(substr(name, 2)) lowercases the remainder, joined with ||. Both example assertions pass, producing Alice/Bob and X/Zoe. The notes contain only the problem statement, with no mention of hints or look-ups.",
+      "seconds": 108
     }
   }
 }
