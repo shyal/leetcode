@@ -172,8 +172,14 @@ impl Contest {
             .collect()
     }
 
+    /// The wrong submissions that cost penalty time: LeetCode adds the
+    /// penalty only on problems that were accepted in the end.
     pub fn wrong(&self) -> i64 {
-        self.problems.iter().map(|p| p.wrong).sum()
+        self.problems
+            .iter()
+            .filter(|p| p.accepted_at.is_some())
+            .map(|p| p.wrong)
+            .sum()
     }
 
     /// The header and the result table: the <!-- CONTEST --> region.
@@ -565,7 +571,7 @@ Date: 2026-10-27 (PHT)
 Clock: 90 minutes
 Virtual rank: 6445 of 33,050 (887 solved all four)
 Score: 12 of 18
-Finish time: 01:40:24 (with 15 minutes of penalty for 3 wrong submissions)
+Finish time: 01:40:24 (with 5 minutes of penalty for 1 wrong submission)
 Language: mu (Q1, Q2), Python3 (Q3)
 Ratings: CLIST's
 
