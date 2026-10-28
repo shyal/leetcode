@@ -42004,7 +42004,9 @@
       "moves": {
         "prefix-sums": "clean"
       },
-      "pending": "2026-10-28T23:03:37+00:00",
+      "judge": "deepseek-chat",
+      "note": "The prefix accumulation is done with scan(set.union, ...) over per-character sets rather than numeric prefix sums; the running-prefix combine is the same move.",
+      "summary": "The code maps each character of s to a singleton set, then uses scan(set.union, ...) to fold them left to right, producing the running union at every prefix. This is the prefix-accumulation move applied to sets instead of numbers. All assertions passed, including the length-2000 case.",
       "seconds": 116
     }
   }
