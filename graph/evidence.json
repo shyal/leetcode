@@ -41839,6 +41839,26 @@
       "summary": "The code walks a fixed 10-character window over s with `for right in 9..<len(s)`, slicing `s[right-9:right+1]` and incrementing a count in the `subs` dict, then returns keys whose count exceeds 1. It exercises a fixed sliding window, a counter build, and reading the counts as the answer. The notes say the candidate was hinted and initially misread the problem as string matching before realizing it was substring counting; LeetCode accepted the submission at 1097 ms.",
       "seconds": 1015,
       "learning": true
+    },
+    "solved/p275_H-Index_II_2026_10_28T11_48_09_846356_00_00Z.mu": {
+      "date": "2026-10-28",
+      "problem": "275",
+      "moves": {
+        "py-enumerate": "clean",
+        "py-range": "clean"
+      },
+      "assist": {
+        "py-enumerate": "learning",
+        "py-range": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say 'not doing a binary search, as i trip up on the whole h-index thing'; linear scan from the end instead of O(log n).",
+      "summary": "The code walks the citations array in reverse with enumerate(reversed citations, 1) and returns i-1 at the first position where the citation count falls below the rank, otherwise returning len citations. It exercises reverse iteration and enumerate but routes around the binary-search-boundary move the problem's O(log n) requirement calls for. The notes state the candidate chose not to binary search because the h-index reasoning was unclear, and the run passed all assertions.",
+      "unmapped": [
+        "reverse linear scan from end"
+      ],
+      "seconds": 1081,
+      "learning": true
     }
   }
 }
