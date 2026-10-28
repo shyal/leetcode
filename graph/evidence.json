@@ -41961,6 +41961,18 @@
       "judge": "deepseek-chat",
       "summary": "The mu code implements isConsecutiveSum by computing rest = n - k(k-1)/2 and checking rest > 0 and rest % k == 0, the closed-form test for whether n is a sum of k consecutive positive integers. All assertions pass, including the large-n cases. No notes were provided.",
       "seconds": 65
+    },
+    "solved/d_Node_Step_Pairs_2026_10_28T22_53_33_025179_00_00Z.mu": {
+      "date": "2026-10-29",
+      "problem": "drill",
+      "drill": "d139",
+      "moves": {
+        "graph-bfs-shortest": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Uses levels(q) to walk BFS layer by layer, recording (node, distance) pairs in seen; the visited set is keyed on the pair, not the node alone, so revisits at new distances are kept.",
+      "summary": "The reachable method seeds a deque with 0 and iterates levels(q), giving each node its BFS distance d. It skips pairs already in seen or beyond k, adds (n, d), and enqueues each neighbor. The visited set is keyed on (node, distance) so a node reached again at a larger distance is recorded, matching Example 1's (1, 4). All assertions passed.",
+      "seconds": 287
     }
   }
 }
