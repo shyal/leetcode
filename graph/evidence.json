@@ -42052,6 +42052,18 @@
       "judge": "deepseek-chat",
       "summary": "The mu code enumerates every substring by an outer loop over length and an inner loop over start positions, yielding s[start:start+length] for each. This is the by-length form of substring enumeration, and all assertions pass, including the 55-substring count for a length-10 string.",
       "seconds": 160
+    },
+    "solved/d_Kahn_Queue_Loop_2026_10_28T23_21_16_959042_00_00Z.mu": {
+      "date": "2026-10-29",
+      "problem": "drill",
+      "drill": "d180",
+      "moves": {
+        "topological-order": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Kahn's algorithm: adjacency/indegrees helpers, queue seeded with in-degree-0 nodes, decrement on pop, res length check for cycle.",
+      "summary": "The code builds adjacency and in-degree via the harness helpers, seeds a deque with all zero-in-degree courses, then pops nodes into res while decrementing successors' in-degrees and enqueueing any that reach zero. It returns res only when its length equals numCourses, otherwise []. The notes describe exactly this Kahn's-algorithm reasoning, including why cycle nodes never reach count 0.",
+      "seconds": 351
     }
   }
 }
