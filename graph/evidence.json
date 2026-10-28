@@ -41925,6 +41925,18 @@
       "note": "id - row_number() over (order by id) is the gaps-and-islands key; one pass, no self-join.",
       "summary": "The query selects id and computes id - row_number() over (order by id) as grp, so consecutive ids share a constant group key. This is the gaps-and-islands move built on a window row_number, satisfying the one-pass, no-self-join requirement. Both example assertions passed.",
       "seconds": 128
+    },
+    "solved/d_Swap_First_Two_2026_10_28T22_43_57_163323_00_00Z.mu": {
+      "date": "2026-10-29",
+      "problem": "drill",
+      "drill": "d108",
+      "moves": {
+        "ll-dummy-splice": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "No dummy node used; the swap is done by re-linking head.next.next and head directly, which is the splice move without the dummy sentinel.",
+      "summary": "The mu code swaps the first two nodes of a linked list by re-pointing head.next.next to head and head.next to the old second node, returning the old second node as the new head, with a guard for lists of length 0 or 1. It exercises the re-link/splice move (ll-dummy-splice) though without an actual dummy node. All assertions passed, including the 100-element case.",
+      "seconds": 202
     }
   }
 }
