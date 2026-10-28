@@ -41973,6 +41973,17 @@
       "note": "Uses levels(q) to walk BFS layer by layer, recording (node, distance) pairs in seen; the visited set is keyed on the pair, not the node alone, so revisits at new distances are kept.",
       "summary": "The reachable method seeds a deque with 0 and iterates levels(q), giving each node its BFS distance d. It skips pairs already in seen or beyond k, adds (n, d), and enqueues each neighbor. The visited set is keyed on (node, distance) so a node reached again at a larger distance is recorded, matching Example 1's (1, 4). All assertions passed.",
       "seconds": 287
+    },
+    "solved/d_Odd_Sum_Pairs_2026_10_28T22_56_37_063905_00_00Z.mu": {
+      "date": "2026-10-29",
+      "problem": "drill",
+      "drill": "d311",
+      "moves": {
+        "pair-count-formula": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The solution counts even and odd elements in each array with mu folds, then combines them as (even_a * odd_b) + (odd_a * even_b) to count pairs whose sum is odd. This is the pair-count-formula move: count each group once, then multiply group sizes across the two arrays. All assertions passed, including the large 100000-element cases.",
+      "seconds": 167
     }
   }
 }
