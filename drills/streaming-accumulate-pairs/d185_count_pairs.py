@@ -1,19 +1,19 @@
 """
 Take every pair of positions i < j in xs. The pair counts when
-by(xs[i]) == want(xs[j]). The function by gives the key a number is stored
-under, and the function want gives the key a number looks for. Return how
+key(xs[i]) == lookup(xs[j]). The function key gives the key a number is stored
+under, and the function lookup gives the key a number looks for. Return how
 many pairs count.
 
 Example 1:
 
-Input: xs = [3, 1, 4, 6, 3], by = lambda x: x, want = lambda x: x - 2
+Input: xs = [3, 1, 4, 6, 3], key = lambda x: x, lookup = lambda x: x - 2
 Output: 2
 Explanation: The 6 looks for 4, and a 4 is earlier. The last 3 looks for
 1, and a 1 is earlier. The first 3 looks for 1 too, but no 1 is earlier.
 
 Example 2:
 
-Input: xs = [2, 9, 4, 16, 7, 23], by = lambda x: x % 7, want = lambda x: x % 7
+Input: xs = [2, 9, 4, 16, 7, 23], key = lambda x: x % 7, lookup = lambda x: x % 7
 Output: 6
 Explanation: 2, 9, 16 and 23 all have key 2. Four numbers make 6 pairs.
 
@@ -21,7 +21,7 @@ Constraints:
 
     0 <= len(xs) <= 10^5
     -10^9 <= xs[i] <= 10^9
-    by and want each run in O(1).
+    key and lookup each run in O(1).
 
     REQUIRED: O(n), one pass over xs. NO enumeration of index pairs.
 """
@@ -30,7 +30,7 @@ Constraints:
 class Solution:
 
     def countPairs(
-        self, xs: List[int], by: Callable[[int], int], want: Callable[[int], int]
+        self, xs: List[int], key: Callable[[int], int], lookup: Callable[[int], int]
     ) -> int:
         pass
 

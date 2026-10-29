@@ -1,8 +1,8 @@
 # REFERENCE: d185 Count Pairs
 class Solution
-  def countPairs(xs: [int], by: int -> int, want: int -> int) -> int
+  def countPairs(xs: [int], key: int -> int, lookup: int -> int) -> int
     cnt = counter()
     sum for x in xs
-      got = cnt[want(x)]
-      cnt[by(x)] += 1
+      got = cnt[lookup(x)]
+      cnt[key(x)] += 1
       got
