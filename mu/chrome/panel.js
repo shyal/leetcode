@@ -1,11 +1,16 @@
 // The side panel: mu on top, the Python it compiles to below (compiled
 // by the offscreen document through the background page). Run and
 // Submit put the mu (commented) and the Python into LeetCode's editor and
-// press LeetCode's own button. The mu is kept per problem in
-// chrome.storage.local, so each problem opens with what was written for it.
+// press LeetCode's own button; on an aced.io page Run puts the Python
+// into aced's editor and presses Run code. The mu is kept per page in
+// chrome.storage.local, under the keys the page scripts use, so each one
+// opens with what was written for it.
 
 const $ = (id) => document.getElementById(id);
 const PROBLEM = /^https:\/\/leetcode\.com(?:\/contest\/[^/]+)?\/problems\/([^/?#]+)/;
+const ACED = /^https:\/\/www\.aced\.io\/(practice|questions)\/([^/?#]+)/;
+// the storage key's tail: the LeetCode slug, or aced:practice/<session id>, aced:questions/<number>
+const pageKey = (url) => PROBLEM.exec(url)?.[1] || (ACED.test(url) ? `aced:${ACED.exec(url)[1]}/${ACED.exec(url)[2]}` : null);
 let slug = null;
 let tabId = null;
 let code = null; // the submission for the current mu, or null when it does not compile
@@ -25,20 +30,22 @@ async function compile() {
     $("py").textContent = "";
     return;
   }
-  const [py, sub] = await Promise.all([ask("transpile", src), ask("submission", src)]);
+  // aced runs plain Python with no preloads, and a peer reads it: the
+  // imports it needs on top, and no quoted mu
+  const aced = slug?.startsWith("aced:");
+  const [py, sub] = await Promise.all([ask(aced ? "plain" : "transpile", src), aced ? null : ask("submission", src)]);
   if (src !== $("mu").value) return; // typed on meanwhile: a newer compile follows
   if (!py.ok) return status(py.error, "err");
   $("py").textContent = py.value;
-  code = sub.value;
+  code = aced ? py.value : sub.value;
   status("");
   $("run").disabled = $("submit").disabled = !tabId;
 }
 
 async function follow() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  const m = tab && PROBLEM.exec(tab.url || "");
-  const next = m ? m[1] : null;
-  tabId = m ? tab.id : null;
+  const next = tab ? pageKey(tab.url || "") : null;
+  tabId = next ? tab.id : null;
   if (next === slug) return compile();
   slug = next;
   $("slug").textContent = slug || "no problem open";
@@ -47,16 +54,18 @@ async function follow() {
   compile();
 }
 
-// runs in the page: LeetCode's Monaco editor and its Run / Submit buttons
+// runs in the page: the Monaco editor (LeetCode's Python3, aced's Python)
+// and the Run / Submit button (aced has Run code only)
 function press(code, which) {
   const models = window.monaco?.editor?.getModels?.() || [];
-  const model = models.find((m) => m.getLanguageId() === "python3");
+  const model = models.find((m) => /^python3?$/.test(m.getLanguageId()));
   if (!model) {
-    const langs = models.map((m) => m.getLanguageId()).join(", ");
-    return langs ? `The editor is set to ${langs}. Switch it to Python3.` : "No code editor on this page.";
+    const langs = models.filter((m) => m.getLanguageId() !== "mu").map((m) => m.getLanguageId()).join(", ");
+    return langs ? `The editor is set to ${langs}. Switch it to Python.` : "No code editor on this page.";
   }
   model.setValue(code);
-  const button = document.querySelector(`[data-e2e-locator="console-${which}-button"]`);
+  const button = document.querySelector(`[data-e2e-locator="console-${which}-button"]`) ||
+    (which === "run" ? [...document.querySelectorAll("button")].find((b) => b.textContent.trim().startsWith("Run code")) : null);
   if (!button) return `No ${which} button on this page.`;
   button.click();
   return "";

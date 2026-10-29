@@ -1,10 +1,10 @@
 // The toolbar button opens the mu panel beside the page. Compile requests
-// ({op: "submission" | "transpile" | "starter", src}) from the panel and
-// from the page go to the offscreen document, which runs Pyodide.
+// ({op: "submission" | "plain" | "transpile" | "starter", src}) from the
+// panel and from the page go to the offscreen document, which runs Pyodide.
 
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 
-const OPS = new Set(["submission", "transpile", "starter"]);
+const OPS = new Set(["submission", "plain", "transpile", "starter"]);
 let opening = null;
 
 async function offscreen() {

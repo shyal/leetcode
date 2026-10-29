@@ -1,6 +1,6 @@
 // mu as a language in LeetCode's editor. Runs in the page itself (it
 // needs the page's `monaco`), and reaches the extension through
-// mu_bridge.js.
+// mu_bridge.js; ask, register and OPENS_BLOCK come from mu_common.js.
 //
 // Choosing mu in the language menu sets LeetCode to Python3 and lays a
 // second Monaco editor, holding the mu, over LeetCode's. LeetCode's own
@@ -20,23 +20,7 @@
   const PROBLEM = /^(?:\/contest\/[^/]+)?\/problems\/([^/?#]+)/;
   const BUTTON = '[data-e2e-locator="console-run-button"],[data-e2e-locator="console-submit-button"]';
   const ROW = "div.group.cursor-pointer";
-  // a line that opens a block: a statement header, a fold or a `first` with no
-  // one-line body after `:`, a `{n ->` or a `{` alone at the end of the line
-  const OPENS_BLOCK = /^\s*(def|memo|class|for|if|elif|else|while|try|except|finally|with|async)\b|\b(sum|max|min|count)\s+(for|from)\b[^:]*$|^\s*first\s+\w+\s+in\b[^:]*$|(->|\{)\s*$/;
-
-  let seq = 0;
-  const pending = new Map();
-  window.addEventListener("message", (e) => {
-    if (e.source !== window || e.data?.muRes === undefined) return;
-    pending.get(e.data.muRes)?.(e.data.result);
-    pending.delete(e.data.muRes);
-  });
-  const ask = (op, args = {}) =>
-    new Promise((resolve) => {
-      const id = ++seq;
-      pending.set(id, resolve);
-      window.postMessage({ muReq: id, op, ...args }, "*");
-    });
+  const { OPENS_BLOCK, ask, register } = window.__mu;
 
   const slug = () => PROBLEM.exec(location.pathname)?.[1] || null;
   const pyEditor = () => window.monaco?.editor.getEditors().find((e) => e.getModel()?.getLanguageId() === "python3");
@@ -54,45 +38,6 @@
   let on = null; // {slug, editor, model, box, status}, or on a contest page {slug, view, status, text, py}
   let entering = false;
   let passing = false; // our own click on Run / Submit, let through
-
-  function register() {
-    const { languages } = window.monaco;
-    if (languages.getLanguages().some((l) => l.id === "mu")) return;
-    languages.register({ id: "mu" });
-    languages.setMonarchTokensProvider("mu", {
-      // mulang/ide.py KEYWORDS, plus class
-      keywords: ["def", "memo", "class", "ret", "for", "in", "if", "elif", "else", "while", "return", "break",
-        "continue", "pass", "del", "assert", "yield", "from", "first", "import", "extends", "and", "or", "not",
-        "is", "true", "false", "none", "inf", "lambda", "mu", "with", "as", "try", "except", "finally", "raise",
-        "global", "nonlocal", "async", "await"],
-      builtins: ["len", "max", "min", "sum", "count", "abs", "sort", "scan", "counter", "ceil", "floor",
-        "cells", "nbrs", "components", "graph", "dijkstra"],
-      types: ["int", "str", "char", "bool", "float"],
-      tokenizer: {
-        root: [
-          [/#.*$/, "comment"],
-          [/[fFrRbB]{0,2}"""/, "string", "@double"],
-          [/[fFrRbB]{0,2}'''/, "string", "@single"],
-          [/[fFrRbB]{0,2}"[^"\n]*"/, "string"],
-          [/[fFrRbB]{0,2}'[^'\n]*'/, "string"],
-          [/\d+(\.\d+)?/, "number"],
-          [/[A-Za-z_]\w*/, { cases: { "@keywords": "keyword", "@builtins": "predefined", "@types": "type", "@default": "identifier" } }],
-          [/\.\.<|\.\.|->|<-/, "keyword"],
-        ],
-        double: [[/"""/, "string", "@pop"], [/./, "string"]],
-        single: [[/'''/, "string", "@pop"], [/./, "string"]],
-      },
-    });
-    languages.setLanguageConfiguration("mu", {
-      comments: { lineComment: "#" },
-      brackets: [["(", ")"], ["[", "]"], ["{", "}"]],
-      autoClosingPairs: [
-        { open: "(", close: ")" }, { open: "[", close: "]" }, { open: "{", close: "}" },
-        { open: '"', close: '"' }, { open: "'", close: "'" },
-      ],
-      onEnterRules: [{ beforeText: OPENS_BLOCK, action: { indentAction: languages.IndentAction.Indent } }],
-    });
-  }
 
   // LeetCode's language button: its first child is the label text
   function langButton() {

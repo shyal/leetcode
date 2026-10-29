@@ -2,6 +2,7 @@ import importlib.util
 import os
 import re
 import sys
+import tempfile
 
 # This file mirrors LeetCode's preloads for solves run inside the repo venv.
 # The helpers themselves live in the pydsa package (../pydsa, installed
@@ -13,6 +14,12 @@ import sys
 # 'sitecustomize'. Use it to opt out.
 if importlib.util.find_spec("rich") is None:
     raise ImportError("not the leet venv; skipping sitecustomize", name="sitecustomize")
+
+# Chrome refuses to load the extension in mu/chrome while a __pycache__ sits
+# in it (a name that starts with "_" is reserved), and any import of a module
+# from there writes one. This venv writes every bytecode cache under one
+# prefix outside the repo instead, so no __pycache__ appears in it at all.
+sys.pycache_prefix = os.path.join(tempfile.gettempdir(), "leet-pycache")
 
 site_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(site_dir, "..", "..", "..", ".."))

@@ -378,8 +378,9 @@ graph-vscode: $(RS_BIN)/kg_explore
 	@ln -sfn "$(CURDIR)/misc/vscode-graph" "$$HOME/.vscode/extensions/leet.graph-0.0.1"
 	@echo "linked: $$HOME/.vscode/extensions/leet.graph-0.0.1 -> misc/vscode-graph"
 
-# builds mu/chrome, the Chrome extension: a mu panel that submits to
-# leetcode, and problem ratings on leetcode's pages. Load it once at
+# builds mu/chrome, the Chrome extension: mu in the language menu of
+# leetcode and of aced.io's practice sessions, a mu panel that submits,
+# and problem ratings on leetcode's pages. Load it once at
 # chrome://extensions (Developer mode, Load unpacked, pick mu/chrome);
 # after a change to mulang or pydsa, run this again and press reload there.
 PYODIDE := https://cdn.jsdelivr.net/pyodide/v0.27.7/full
