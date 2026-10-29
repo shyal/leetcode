@@ -87,7 +87,14 @@ Utility function to draw a graph (stored as dict of dicts or dict of lists) in t
 Requires 'networkx' and 'phart' libraries: pip install networkx phart
 Supports directed graphs. Edge weights (like 0/1) are ignored in rendering but structure is shown.
 
-### `draw_graphviz(G: dict[Any, dict | list], png_filename: Optional[str] = None, n = None, directed: bool = False, show_weights: bool = False) -> None`
+### `draw_graphviz(G: dict[Any, dict | list], png_filename: Optional[str] = None, n = None, directed: bool = False, show_weights: bool = False, colours: dict[Any, str] | list[str] | Optional[str] = None, labels: dict[Any, Any] | list[Any] | Optional[str] = None) -> None`
+
+Draw G as a picture in the terminal.
+
+`colours` fills node i with colours[i]: a colour name, or one of the
+letters RGBYWMCK as a LeetCode colours string spells them.
+`labels` writes labels[i] under the name of node i.
+Both take a dict, a list or a string, indexed by node.
 
 ### `draw_graph(G: dict[Any, dict | Any]) -> None`
 
