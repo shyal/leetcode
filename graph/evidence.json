@@ -42266,6 +42266,25 @@
       "note": "notes say 'learning'",
       "summary": "The mu code parses two ISO date strings with date.fromisoformat and returns (b - a).days, exercising the py-datetime move. The run printed 14368 for the sample pair. The notes state 'learning', so the datetime move is marked as given/copied.",
       "seconds": 152
+    },
+    "solved/p1094_Car_Pooling_2026_10_29T23_38_48_226585_00_00Z.mu": {
+      "date": "2026-10-30",
+      "problem": "1094",
+      "moves": {
+        "event-sweep": "struggled",
+        "sort-by-custom-key": "clean",
+        "dict-arbitrary-value": "clean"
+      },
+      "assist": {
+        "event-sweep": "learning",
+        "sort-by-custom-key": "learning",
+        "dict-arbitrary-value": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Wrong Answer (54/61 cases) \u2014 the sweep applies drop_off before pick_up at the same coordinate, so a passenger leaving at x is removed before one boarding at x is added, undercounting the overlap at shared endpoints.",
+      "summary": "The code builds pick_up and drop_off defaultdicts keyed by coordinate, then sweeps the sorted union of coordinates, subtracting drop_off and adding pick_up at each stop and returning False when current_capacity exceeds capacity. The sweep is the canonical event-sweep move, but at a shared coordinate it processes the drop before the pickup, which is the ordering defect behind the Wrong Answer. The notes say it is a copy-pasted previous solution and mark it as learning.",
+      "seconds": 1445,
+      "learning": true
     }
   }
 }
