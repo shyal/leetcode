@@ -42177,6 +42177,17 @@
       "note": "No dummy node used; interleaving done by simultaneous pointer re-linking in a while loop, which the drill accepts as the splice move.",
       "summary": "The mu code interleaves two lists by walking both with a and b, swapping a.next, b.next and advancing both pointers in one tuple assignment, returning the original head a. It exercises in-place re-linking of next pointers rather than a dummy-node splice. The notes say the candidate had to look up the mnemonic, recorded as a hint on the splice move.",
       "seconds": 248
+    },
+    "solved/d_Not_Boring_Movies_2026_10_29T21_37_31_500313_00_00Z.mu": {
+      "date": "2026-10-30",
+      "problem": "drill",
+      "drill": "d36",
+      "moves": {
+        "sql-filter-select": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The query selects all columns from Cinema, filters with WHERE on odd id (id % 2 != 0) and description not like 'boring', and orders by rating descending. This exercises the filter-select move directly in SQL, and both example assertions passed.",
+      "seconds": 182
     }
   }
 }
