@@ -42124,6 +42124,19 @@
       "judge": "deepseek-chat",
       "summary": "The mu solution marks each edge's child as the endpoint whose value letter is later (max by=values), then returns the single index still false via child.index(false). It builds a child-flag array from the edge list rather than an adjacency list, and the run passed all assertions including the 100000-node case.",
       "seconds": 2327
+    },
+    "solved/p1797_Design_Authentication_Manager_2026_10_29T07_31_19_261451_00_00Z.mu": {
+      "date": "2026-10-29",
+      "problem": "1797",
+      "moves": {
+        "dict-arbitrary-value": "clean",
+        "ttl-cache": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Lazy expiry: isExpired compares stored expiry to currentTime; no heap of expiries, so countUnexpiredTokens scans all tokens.",
+      "summary": "The class stores each token's expiry (currentTime + ttl) in self.tokens, a dict keyed by tokenId, and renew overwrites the expiry only when the token exists and is not expired. isExpired compares the stored expiry against currentTime, and countUnexpiredTokens counts tokens whose expiry is still in the future. This exercises dict-arbitrary-value and a lazy TTL check; there is no expiry heap, so counting is a full scan. LeetCode reports Accepted (187 ms, 20.9 MB).",
+      "seconds": 566,
+      "learning": true
     }
   }
 }
