@@ -42215,6 +42215,18 @@
       "note": "Scalar subquery (select count(*) from Users) supplies the total; DISTINCT contest_id gives one row per contest.",
       "summary": "The query selects distinct contest_id from Register and pairs each with a scalar subquery counting all rows of Users, so total_users is the full user count at run time. This exercises the scalar-subquery move. The notes say the candidate had forgotten subquery syntax and was unsure whether to use a subquery or a join.",
       "seconds": 255
+    },
+    "solved/d_Root_By_Earlier_Letter_2026_10_29T21_55_14_587548_00_00Z.mu": {
+      "date": "2026-10-30",
+      "problem": "drill",
+      "drill": "d315",
+      "moves": {
+        "graph-adjacency-build": "clean",
+        "counting-sort-buckets": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The mu solution builds a boolean `child` table indexed by node, marks the larger-lettered endpoint of each edge as a child via `max(a, b, by=values)`, and returns the single index still false \u2014 the root. It exercises building a per-node structure from the edge list and indexing an array by node value rather than sorting. The run exited 0 and all assertions passed, including the 100000-node case.",
+      "seconds": 25
     }
   }
 }
