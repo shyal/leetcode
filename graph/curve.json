@@ -2,14 +2,14 @@
   "_comment": "Personal forgetting curve fitted by utils/kg/kg_curve. P(recall) = (1-slip)*(1 + gap/s)^(-beta), s = exp(a + b*log1p(cleans) - c*struggles - d*assist + e*(conn - conn_mean)); cleans counts distinct clean days, same-day reps are one rep. conn is the node's log2 carrier count, frozen below at fit time; consumers that ignore e are assuming average connectivity. \"solve\" is the cold-solve model fitted by fit_solve: logit P(solve cold, unaided, inside the clock) = the listed coefficients over (rating - 1500)/400, the walk's summed log recall, and its count of never-met moves; features not listed did not earn their place on held-out games. node_status() calls a node SOLID while the memory component (1 + gap/s)^(-beta) >= target_retention; delete this file to fall back to the flat 42-day window.",
   "model": "power-law-slip",
   "params": {
-    "a": 3.9102,
-    "b": 0.0855,
-    "c": 0.2412,
-    "d": 0.0628,
-    "e": -0.2033,
-    "conn_mean": 2.7265,
-    "beta": 0.1104,
-    "slip": 0.0554
+    "a": 3.91,
+    "b": 0.0857,
+    "c": 0.2406,
+    "d": 0.063,
+    "e": -0.2019,
+    "conn_mean": 2.7307,
+    "beta": 0.1105,
+    "slip": 0.0553
   },
   "conn": {
     "backtracking-choose-undo": 4.0,
@@ -29,7 +29,7 @@
     "counts-as-data": 4.954,
     "deque-recent-window": 2.807,
     "derived-key-lookup": 4.322,
-    "dict-arbitrary-value": 5.392,
+    "dict-arbitrary-value": 5.426,
     "dijkstra": 3.0,
     "divmod-decompose": 5.248,
     "dp-1d-rolling": 4.17,
@@ -99,8 +99,8 @@
     "tree-bfs-levels": 1.585,
     "tree-build-from-traversals": 1.585,
     "tree-carry-down": 4.087,
-    "tree-combine-returns": 4.524,
-    "tree-dfs-recursive": 5.644,
+    "tree-combine-returns": 4.585,
+    "tree-dfs-recursive": 5.672,
     "tree-global-across-subtrees": 2.585,
     "trie-build-walk": 2.0,
     "ttl-cache": 1.585,
@@ -112,13 +112,13 @@
   },
   "target_retention": 0.9,
   "mass": {
-    "beta": -0.2099,
-    "se": 0.0897,
-    "n": 631,
+    "beta": -0.2035,
+    "se": 0.0894,
+    "n": 632,
     "by_difficulty": {
-      "Easy": 3.8392,
-      "Medium": 1.1164,
-      "Hard": -0.0286
+      "Easy": 3.8328,
+      "Medium": 1.1163,
+      "Hard": -0.0344
     }
   },
   "solve": {
@@ -148,11 +148,11 @@
     ]
   },
   "fit": {
-    "trials": 1906,
-    "loglik": -0.2629,
-    "baseline_loglik": -0.2678,
+    "trials": 1908,
+    "loglik": -0.2627,
+    "baseline_loglik": -0.2676,
     "since": "2026-06-01",
     "half_life": 0,
-    "effective_trials": 1906.0
+    "effective_trials": 1908.0
   }
 }
