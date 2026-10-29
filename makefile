@@ -1,4 +1,4 @@
-.PHONY: all asserts audit chat check combos complexity cov curve dependents crowd crowd-install crowd-uninstall discuss dive drawing-doc drill drop duplicates elo ext failed fmt fmt-check force graph graph-vscode hard harness-doc is_session_start kg-extract kg-status kg-viz lc-login lc-mocks lc-sync learning lint mirror mock movie mu mu-chrome mu-vscode muviz next predict preflight prepare prog progress q queue rank-table readme rep residuals rust secrets short simulate sleep snippets solved spot stats studied submit tables test test-fast test-judge timer today types unforce viz wake
+.PHONY: all asserts audit tle chat check combos complexity cov curve dependents crowd crowd-install crowd-uninstall discuss dive drawing-doc drill drop duplicates elo ext failed fmt fmt-check force graph graph-vscode hard harness-doc is_session_start kg-extract kg-status kg-viz lc-login lc-mocks lc-sync learning lint mirror mock movie mu mu-chrome mu-vscode muviz next predict preflight prepare prog progress q queue rank-table readme rep residuals rust secrets short simulate sleep snippets solved spot stats studied submit tables test test-fast test-judge timer today types unforce viz wake
 
 # `make` runs the current file: current.py through mu/session.py (which
 # runs current.mu in place when it holds the work, every error at its mu
@@ -50,6 +50,13 @@ kg-extract: $(RS_BIN)/kg_extract $(RS_BIN)/kg_curve $(RS_BIN)/kg_solvecost
 # problems, into .prepare_cache; `make asserts 5 dry` prints them instead.
 asserts: $(RS_BIN)/asserts
 	@$(RS_BIN)/asserts --next $(or $(filter-out $@ dry,$(MAKECMDGOALS)),5) $(patsubst dry,--dry,$(filter dry,$(MAKECMDGOALS)))
+
+# `make tle` folds the case that timed out on leetcode (./tle, pasted from
+# the submission's "Last Executed Input") into the problem's cached asserts
+# as `assert tle(sol.<method>, <num>)`; `make tle lc` fetches the last Time
+# Limit Exceeded submission instead; `make tle 3841` names the problem.
+tle: $(RS_BIN)/tle
+	@$(RS_BIN)/tle $(filter-out $@,$(MAKECMDGOALS))
 
 kg-status: $(RS_BIN)/kg_status
 	@$(RS_BIN)/kg_status

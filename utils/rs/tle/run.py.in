@@ -1,0 +1,69 @@
+# run.py.in: the runner `tle` appends to the reference solution's class: binds the
+# case's lines to the method's parameters, runs the reference on them (the
+# best of three timings) and prints the frozen case as json after MARK.
+import ast
+import inspect
+import json
+import sys
+import time
+
+CASE = json.loads(__CASE__)
+MARK = "__TLE_CASE__"
+
+
+def fail(msg):
+    print(MARK + json.dumps({"error": msg}))
+    sys.exit(1)
+
+
+def literal(text):
+    try:
+        return json.loads(text)
+    except ValueError:
+        return ast.literal_eval(text)
+
+
+methods = [
+    n for n, f in vars(Solution).items() if not n.startswith("_") and callable(f)
+]
+if len(methods) != 1:
+    fail(f"Solution has {len(methods)} methods; a design problem has no one call")
+method = methods[0]
+params = [p for p in inspect.signature(getattr(Solution, method)).parameters]
+params = [p for p in params if p != "self"]
+given = {}
+for i, (name, text) in enumerate(CASE["params"]):
+    key = name if name is not None else (params[i] if i < len(params) else f"#{i}")
+    given[key] = literal(text)
+missing = [p for p in params if p not in given]
+if missing:
+    fail(f"the case has no value for {', '.join(missing)}")
+extra = [k for k in given if k not in params]
+if extra:
+    fail(f"{method} has no parameter {', '.join(extra)}")
+args = [given[p] for p in params]
+seconds = None
+for _ in range(3):
+    fresh = [json.loads(json.dumps(a)) for a in args]
+    start = time.perf_counter()
+    got = getattr(Solution(), method)(*fresh)
+    took = time.perf_counter() - start
+    seconds = took if seconds is None else min(seconds, took)
+if CASE["expected"] is not None and got != literal(CASE["expected"]):
+    fail("the reference solution's answer differs from leetcode's expected output")
+shape = [
+    f"{p} = {a}" if isinstance(a, (int, float)) else f"{p} of {len(a)}"
+    for p, a in zip(params, args)
+]
+print(
+    MARK
+    + json.dumps(
+        {
+            "method": method,
+            "args": args,
+            "expected": got,
+            "seconds": seconds,
+            "shape": ", ".join(shape),
+        }
+    )
+)

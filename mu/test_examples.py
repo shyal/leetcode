@@ -39,6 +39,8 @@ def asserts(stem):
     bad = OUTSIDE_CONSTRAINTS.get(stem, [])
     kept = [a for a in rest if not any(b in " ".join(a.split()) for b in bad)]
     assert len(rest) - len(kept) == len(bad), "an OUTSIDE_CONSTRAINTS entry went stale"
+    # tle and uses are harness builtins; this run has no harness, as LeetCode has none
+    kept = [a for a in kept if not re.match(r"\s*(tle|uses)\(", a)]
     return "\nassert".join([head] + kept)
 
 

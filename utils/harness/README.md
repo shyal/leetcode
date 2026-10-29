@@ -344,6 +344,17 @@ The mu source is the `# mu <version>` block quoted above the class in
 its file. A Python solve has no such block and no fold to check, so
 it passes. Raises AssertionError naming the fold it did not find.
 
+### `tle(method: Callable[..., Any], num: int) -> bool`
+
+method answers the case that timed out on leetcode, in time.
+
+`make tle` saves the case as .prepare_cache/<num>.tle.json: the
+arguments, the answer of the reference solution and the seconds the
+reference takes. The call must return that answer within TLE_SLACK
+times those seconds. Raises AssertionError that names the failure:
+the first answer that differs, or the seconds taken against the
+seconds allowed.
+
 ### `triples(n: int, type: Maker = tuple) -> Iterator[Any]`
 
 Every (i, j, k) with 0 <= i < j < k < n, in lexicographic order.

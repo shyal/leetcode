@@ -378,6 +378,7 @@ builtins.same_seq = same_seq
 builtins.uses = uses
 builtins.avoids = avoids
 builtins.folds = folds
+builtins.tle = tle
 builtins.triples = triples
 builtins.substrings = substrings
 

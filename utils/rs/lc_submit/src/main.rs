@@ -24,7 +24,7 @@
 use std::time::Duration;
 
 use kg::console::Console;
-use kg::lc::{ensure_browser, fetch, json_of, no_browser};
+use kg::lc::{ensure_browser, fetch, json_of, no_browser, slug_of};
 use serde_json::{json, Value};
 
 mod strip;
@@ -35,14 +35,6 @@ const QUESTION_QUERY: &str =
 fn die(msg: &str) -> ! {
     eprintln!("{msg}");
     std::process::exit(1)
-}
-
-/// The problem slug from the file's `URL: https://leetcode.com/problems/<slug>/...` line.
-fn slug_of(code: &str) -> Option<String> {
-    let line = code.lines().find(|l| l.trim_start().starts_with("URL:"))?;
-    let rest = line.split("/problems/").nth(1)?;
-    let slug = rest.split(['/', '?']).next()?;
-    (!slug.is_empty()).then(|| slug.to_string())
 }
 
 fn question_id(slug: &str) -> Result<String, String> {

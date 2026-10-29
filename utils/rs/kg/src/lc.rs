@@ -117,6 +117,15 @@ pub fn fetch(method: &str, path: &str, body: Option<&Value>) -> Result<(u16, Str
     Ok((status, rest.to_string()))
 }
 
+/// The problem slug from a solve file's
+/// `URL: https://leetcode.com/problems/<slug>/...` line.
+pub fn slug_of(code: &str) -> Option<String> {
+    let line = code.lines().find(|l| l.trim_start().starts_with("URL:"))?;
+    let rest = line.split("/problems/").nth(1)?;
+    let slug = rest.split(['/', '?']).next()?;
+    (!slug.is_empty()).then(|| slug.to_string())
+}
+
 pub fn json_of(body: &str) -> Result<Value, String> {
     serde_json::from_str(body).map_err(|_| format!("leetcode sent no json: {body:.200}"))
 }

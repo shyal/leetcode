@@ -20,7 +20,9 @@
   const PROBLEM = /^(?:\/contest\/[^/]+)?\/problems\/([^/?#]+)/;
   const BUTTON = '[data-e2e-locator="console-run-button"],[data-e2e-locator="console-submit-button"]';
   const ROW = "div.group.cursor-pointer";
-  const OPENS_BLOCK = /^\s*(def|memo|for|if|elif|else|while)\b|\b(sum|max|min|count)\s+(for|from)\b/;
+  // a line that opens a block: a statement header, a fold or a `first` with no
+  // one-line body after `:`, a `{n ->` or a `{` alone at the end of the line
+  const OPENS_BLOCK = /^\s*(def|memo|class|for|if|elif|else|while|try|except|finally|with|async)\b|\b(sum|max|min|count)\s+(for|from)\b[^:]*$|^\s*first\s+\w+\s+in\b[^:]*$|(->|\{)\s*$/;
 
   let seq = 0;
   const pending = new Map();
@@ -58,9 +60,11 @@
     if (languages.getLanguages().some((l) => l.id === "mu")) return;
     languages.register({ id: "mu" });
     languages.setMonarchTokensProvider("mu", {
-      keywords: ["def", "memo", "for", "in", "if", "elif", "else", "while", "return", "break", "continue",
-        "pass", "del", "assert", "from", "first", "import", "extends", "and", "or", "not", "is",
-        "true", "false", "none", "inf"],
+      // mulang/ide.py KEYWORDS, plus class
+      keywords: ["def", "memo", "class", "ret", "for", "in", "if", "elif", "else", "while", "return", "break",
+        "continue", "pass", "del", "assert", "yield", "from", "first", "import", "extends", "and", "or", "not",
+        "is", "true", "false", "none", "inf", "lambda", "mu", "with", "as", "try", "except", "finally", "raise",
+        "global", "nonlocal", "async", "await"],
       builtins: ["len", "max", "min", "sum", "count", "abs", "sort", "scan", "counter", "ceil", "floor",
         "cells", "nbrs", "components", "graph", "dijkstra"],
       types: ["int", "str", "char", "bool", "float"],

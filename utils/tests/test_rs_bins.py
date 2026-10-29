@@ -380,6 +380,50 @@ def test_fitters_print_usage():
     assert run("kg_solvecost", "--help").stdout.startswith("usage: kg_solvecost")
 
 
+def test_tle_usage_and_a_scratch_case(tmp_path):
+    """KG_ROOT points tle at a scratch root with one cached solution; the
+    pasted case is frozen by running it, the assert joins the cached file
+    and its stub, and a case missing an argument names it."""
+    assert run("tle", "--help").returncode == 2
+    cache = tmp_path / ".prepare_cache"
+    cache.mkdir()
+    solution = (
+        '"""\nURL: https://leetcode.com/problems/two-sum/\n\n1. Two Sum\n"""\n\n\n'
+        "class Solution:\n"
+        "    def twoSum(self, nums: list[int], target: int) -> list[int]:\n"
+        "        seen = {}\n"
+        "        for i, x in enumerate(nums):\n"
+        "            if target - x in seen:\n"
+        "                return [seen[target - x], i]\n"
+        "            seen[x] = i\n"
+        "        return []\n\n\n"
+        "sol = Solution()\n\n"
+        "print(sol.twoSum([2, 7], 9))  # [0, 1]\n\n"
+        "assert sol.twoSum([2, 7], 9) == [0, 1]\n"
+    )
+    (cache / "1.json").write_text(
+        json.dumps({"title": "Two Sum", "code": "", "solution": solution})
+    )
+    (tmp_path / "tle").write_text("[3, 2, 4]\n6\nexpected = [1, 2]\n")
+    env = {**os.environ, "KG_ROOT": str(tmp_path)}
+    p = subprocess.run(
+        [os.path.join(RS_BIN, "tle"), "1"], capture_output=True, text=True, env=env
+    )
+    assert p.returncode == 0, p.stderr
+    assert "`assert tle(sol.twoSum, 1)` is in the cached solution" in p.stdout
+    case = json.loads((cache / "1.tle.json").read_text())
+    assert case["args"] == [[3, 2, 4], 6] and case["expected"] == [1, 2]
+    assert case["seconds"] > 0 and case["source"].startswith("file ")
+    entry = json.loads((cache / "1.json").read_text())
+    assert entry["solution"].endswith("== [0, 1]\nassert tle(sol.twoSum, 1)\n")
+    assert entry["code"].endswith("# assert tle(sol.twoSum, 1)\n")
+    (tmp_path / "tle").write_text("nums = [3, 2, 4]\n")
+    p = subprocess.run(
+        [os.path.join(RS_BIN, "tle"), "1"], capture_output=True, text=True, env=env
+    )
+    assert p.returncode == 1 and "no value for target" in p.stderr
+
+
 # --- preflight, spot, lc_solutions --------------------------------------------
 
 

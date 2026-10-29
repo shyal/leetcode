@@ -5,9 +5,21 @@
 
 import ast
 import inspect
+import json
 import os
 import re
+import time
 from typing import Any, Callable, Iterable, Sequence
+
+# A solve may take this many times the seconds the reference solution takes
+# on the case that timed out on leetcode. The slack covers the noise of a
+# timing in milliseconds, not a slower algorithm.
+TLE_SLACK = 10.0
+
+_CACHE = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+    ".prepare_cache",
+)
 
 
 def same_rows(a: Sequence[Iterable[Any]], b: Sequence[Iterable[Any]]) -> bool:
@@ -86,6 +98,48 @@ def folds(
         + ["with a block" if block else ": value"]
     ).replace(" :", ":")
     raise AssertionError(f"{cls.__name__} has no fold `{form}`")
+
+
+def tle(method: Callable[..., Any], num: int) -> bool:
+    """method answers the case that timed out on leetcode, in time.
+
+    `make tle` saves the case as .prepare_cache/<num>.tle.json: the
+    arguments, the answer of the reference solution and the seconds the
+    reference takes. The call must return that answer within TLE_SLACK
+    times those seconds. Raises AssertionError that names the failure:
+    the first answer that differs, or the seconds taken against the
+    seconds allowed.
+    """
+    with open(os.path.join(_CACHE, f"{num}.tle.json")) as f:
+        case = json.load(f)
+    start = time.perf_counter()
+    got = method(*case["args"])
+    took = time.perf_counter() - start
+    want = case["expected"]
+    if got != want:
+        raise AssertionError(
+            f"{num}: wrong answer on the case that timed out on leetcode"
+            + _first_difference(got, want)
+        )
+    allowed = TLE_SLACK * case["seconds"]
+    if took > allowed:
+        raise AssertionError(
+            f"{num}: {took:.2f} s on the case that timed out on leetcode, "
+            f"{allowed:.2f} s allowed ({TLE_SLACK:g} times the reference)"
+        )
+    return True
+
+
+def _first_difference(got: Any, want: Any) -> str:
+    """`: answer 12 is False, expected True` for two lists, else empty."""
+    if not (isinstance(got, list) and isinstance(want, list)):
+        return ""
+    if len(got) != len(want):
+        return f": {len(got)} answers, expected {len(want)}"
+    for i, (g, w) in enumerate(zip(got, want)):
+        if g != w:
+            return f": answer {i} is {g!r}, expected {w!r}"
+    return ""
 
 
 def _mu_source(cls: type) -> str | None:

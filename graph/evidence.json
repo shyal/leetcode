@@ -42095,6 +42095,24 @@
       "summary": "The mu solution defines a memoized recursion f(i, j) that returns the set of all XOR values reachable at each cell, combining the sets from the top and left neighbors with grid[i][j] ^ x, then takes min over the set at the last cell. It exercises memoized recursion, a 2D grid recurrence, and XOR bitwise combination. The notes say the candidate could not intuit that the set of every XOR reaching a cell needed to be cached, and mark that as learning.",
       "seconds": 1366,
       "learning": true
+    },
+    "solved/p3841_Palindromic_Path_Queries_in_a_Tree_FAILED_2026_10_29T02_46_32_569177_00_00Z.mu": {
+      "date": "2026-10-29",
+      "problem": "3841",
+      "moves": {
+        "graph-adjacency-build": "clean",
+        "graph-bfs-shortest": "clean",
+        "counter-build": "clean",
+        "counts-as-data": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say the TLE was not solved; the code answers each query with a fresh BFS that rebuilds the whole path, which is the brute force the TLE verdict condemns.",
+      "summary": "The mu code builds an adjacency list with adjacency(edges, n, false, false), then for each query runs a BFS from ui to vi that carries the full path list, and on reaching vi returns counter([s[x] for x in path]). It answers by counting how many character counts in that Counter are odd and checking the total is at most 1. Updates just rewrite s[ui]. The notes say the candidate could not get past the TLE and walked away after 51 minutes.",
+      "unmapped": [
+        "per-query BFS path reconstruction"
+      ],
+      "seconds": 3064,
+      "learning": true
     }
   }
 }
