@@ -42208,10 +42208,12 @@
       "moves": {
         "sql-subquery": "clean"
       },
-      "pending": "2026-10-29T21:53:35+00:00",
       "assist": {
         "sql-subquery": "learning"
       },
+      "judge": "deepseek-chat",
+      "note": "Scalar subquery (select count(*) from Users) supplies the total; DISTINCT contest_id gives one row per contest.",
+      "summary": "The query selects distinct contest_id from Register and pairs each with a scalar subquery counting all rows of Users, so total_users is the full user count at run time. This exercises the scalar-subquery move. The notes say the candidate had forgotten subquery syntax and was unsure whether to use a subquery or a join.",
       "seconds": 255
     }
   }
