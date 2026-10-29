@@ -42137,6 +42137,17 @@
       "summary": "The class stores each token's expiry (currentTime + ttl) in self.tokens, a dict keyed by tokenId, and renew overwrites the expiry only when the token exists and is not expired. isExpired compares the stored expiry against currentTime, and countUnexpiredTokens counts tokens whose expiry is still in the future. This exercises dict-arbitrary-value and a lazy TTL check; there is no expiry heap, so counting is a full scan. LeetCode reports Accepted (187 ms, 20.9 MB).",
       "seconds": 566,
       "learning": true
+    },
+    "solved/d_Longest_Path_From_Zero_2026_10_29T07_36_19_029985_00_00Z.mu": {
+      "date": "2026-10-29",
+      "problem": "drill",
+      "drill": "d174",
+      "moves": {
+        "memoize-recursion": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The mu solution defines a cached recursive helper max_dist(n) that returns 0 for a leaf and otherwise 1 + the max over children, then calls max_dist(0). The @cache decorator memoizes each node's longest distance so it is computed once, meeting the O(n+m) requirement. All assertions passed.",
+      "seconds": 264
     }
   }
 }
