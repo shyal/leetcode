@@ -42296,6 +42296,20 @@
       "judge": "deepseek-chat",
       "summary": "The mu solution builds a dict mapping each character to the list of its indices using a fold over the enumerated string, so the dict values are the index lists. It exercises dict-arbitrary-value by choosing index lists as the remembered value per key. All assertions passed, including the 100000-character case.",
       "seconds": 52
+    },
+    "solved/p2365_Task_Scheduler_II_2026_10_30T00_18_50_596799_00_00Z.mu": {
+      "date": "2026-10-30",
+      "problem": "2365",
+      "moves": {
+        "dict-arbitrary-value": "clean",
+        "streaming-ask-then-record": "clean",
+        "running-sum": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LeetCode: Accepted (118 ms, 39.5 MB)",
+      "summary": "The mu solution keeps a next_run dict mapping each task to the earliest time it may run again, and walks the tasks with a deque, advancing the clock t by the wait when a task is still cooling down and otherwise by one, then recording next_run[curr] = t + space. It exercises a dict of remembered positions, a streaming ask-then-record order, and a running time accumulator. The notes show a small timeline sketch and LeetCode reports Accepted.",
+      "seconds": 533,
+      "learning": true
     }
   }
 }
