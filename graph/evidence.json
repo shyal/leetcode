@@ -42387,6 +42387,21 @@
       "judge": "deepseek-chat",
       "summary": "The mu code builds a dummy node in front of the head, then walks with a `pre` pointer, re-linking `pre.next = pre.next.next` to skip nodes whose value equals `val` and advancing otherwise, returning `d.next`. This exercises the dummy-node splice move directly, and the assertions cover head removal, all-equal, empty, and a long list. The run exited 0 with all assertions passing.",
       "seconds": 135
+    },
+    "solved/d_Sum_Of_Consecutive_Integers_2026_10_30T22_05_46_969854_00_00Z.mu": {
+      "date": "2026-10-31",
+      "problem": "drill",
+      "drill": "d300",
+      "moves": {
+        "consecutive-sum-split": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "The code computes the sum of a consecutive run as full triangular sum minus prefix triangular sum; it does not exercise the consecutive-sum-split counting move (testing k where n - k(k-1)/2 is a positive multiple of k).",
+      "summary": "The mu code defines sumOfConsecutive(s, c) which returns the sum of the c consecutive integers starting at s, computed as the triangular number of s+c-1 minus that of s-1. It prints 15 for (4,3) and all assertions pass. The target move consecutive-sum-split (counting representations as sums of consecutive positive integers) is not present; the code instead does a closed-form arithmetic-series difference.",
+      "unmapped": [
+        "arithmetic series sum via prefix difference"
+      ],
+      "seconds": 175
     }
   }
 }
