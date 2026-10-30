@@ -42364,6 +42364,18 @@
       "note": "Notes say the PARTITION BY ... ORDER BY syntax was not grasped; the query uses DENSE_RANK() OVER (PARTITION BY team ORDER BY points DESC), which restarts per team with shared ranks and no holes.",
       "summary": "The query selects name, team and dense_rank() over (partition by team order by points desc) from Players, so ranks restart at 1 in each team and ties share a rank without gaps. Both example assertions pass, matching the expected output. The notes state the candidate did not get the partition-by/order-by window syntax, and the solution was given as learning material.",
       "seconds": 240
+    },
+    "solved/d_Total_Users_Per_Contest_2026_10_30T22_00_10_682584_00_00Z.mu": {
+      "date": "2026-10-31",
+      "problem": "drill",
+      "drill": "d55",
+      "moves": {
+        "sql-subquery": "clean",
+        "sql-group-aggregate": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The query groups Register by contest_id and uses a scalar subquery (select count(user_id) from Users) to attach the total user count to each contest row. This exercises the scalar-subquery move and the GROUP BY aggregation, and both examples pass.",
+      "seconds": 117
     }
   }
 }
