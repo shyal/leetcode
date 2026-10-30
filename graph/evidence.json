@@ -42310,6 +42310,20 @@
       "summary": "The mu solution keeps a next_run dict mapping each task to the earliest time it may run again, and walks the tasks with a deque, advancing the clock t by the wait when a task is still cooling down and otherwise by one, then recording next_run[curr] = t + space. It exercises a dict of remembered positions, a streaming ask-then-record order, and a running time accumulator. The notes show a small timeline sketch and LeetCode reports Accepted.",
       "seconds": 533,
       "learning": true
+    },
+    "solved/p210_Course_Schedule_II_2026_10_30T01_02_09_878926_00_00Z.mu": {
+      "date": "2026-10-30",
+      "problem": "210",
+      "moves": {
+        "graph-adjacency-build": "clean",
+        "topological-order": "clean",
+        "set-membership": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Kahn's algorithm via adjacency/indegrees helpers; LeetCode Accepted (7 ms).",
+      "summary": "The mu code builds an adjacency list and in-degree array with the harness helpers adjacency and indegrees, then runs Kahn's algorithm: a deque seeded with zero in-degree courses, popping, decrementing neighbors' in-degrees, and appending newly-zero courses to res. A seen set guards against re-processing, and the result is returned only when len(res) == numCourses, otherwise []. The run exited 0 and LeetCode reports Accepted (7 ms, 20.7 MB); the notes contain no mention of hints or look-ups.",
+      "seconds": 418,
+      "learning": true
     }
   }
 }
