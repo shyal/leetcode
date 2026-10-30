@@ -103,7 +103,7 @@ from grid_utils import *
 from heap_utils import *
 from linked_list_utils import *
 from ll_utils import *
-from pydsa.arith import batched, ceil_div, factorial
+from pydsa.arith import batched, ceil_div, factorial, primes
 from pydsa.heaps import (
     maxheapify,
     maxheapitems,
@@ -510,6 +510,7 @@ builtins.getrandbits = getrandbits
 builtins.batched = batched
 builtins.ceil_div = ceil_div
 builtins.factorial = factorial
+builtins.primes = primes
 
 
 import sys

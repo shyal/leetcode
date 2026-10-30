@@ -33,7 +33,7 @@
       keywords: ["def", "memo", "class", "ret", "for", "in", "if", "elif", "else", "while", "return", "break",
         "continue", "pass", "del", "assert", "yield", "from", "first", "import", "extends", "and", "or", "not",
         "is", "true", "false", "none", "inf", "lambda", "mu", "with", "as", "try", "except", "finally", "raise",
-        "global", "nonlocal", "async", "await"],
+        "global", "nonlocal", "async", "await", "by"],
       builtins: ["len", "max", "min", "sum", "count", "abs", "sort", "scan", "counter", "ceil", "floor",
         "cells", "nbrs", "components", "graph", "dijkstra"],
       types: ["int", "str", "char", "bool", "float"],

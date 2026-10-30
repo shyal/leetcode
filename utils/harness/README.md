@@ -529,4 +529,9 @@ s cut into pieces of n; the last piece holds what is left.
 
 n! = n * (n - 1) * ... * 2 * 1, for n >= 0; 0! is 1.
 
+### `primes(n: int) -> list[int]`
+
+The primes below n, in order, by the sieve of Eratosthenes: primes(10)
+is [2, 3, 5, 7], and primes(2) is [].
+
 ### `run_with_input(input_str, main)`
