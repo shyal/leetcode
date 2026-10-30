@@ -529,9 +529,13 @@ s cut into pieces of n; the last piece holds what is left.
 
 n! = n * (n - 1) * ... * 2 * 1, for n >= 0; 0! is 1.
 
-### `primes(n: int) -> list[int]`
+### `primes(lo: int, hi: Optional[int] = None) -> list[int]`
 
-The primes below n, in order, by the sieve of Eratosthenes: primes(10)
-is [2, 3, 5, 7], and primes(2) is [].
+The primes in lo..<hi, in order; primes(n) alone is the primes below n.
+primes(10) is [2, 3, 5, 7] and primes(10, 30) is [11, 13, 17, 19, 23, 29].
+
+A segmented sieve: the primes up to the square root of hi mark their
+multiples in lo..<hi alone, so a short range high up, primes(10**9,
+10**9 + 100), costs the segment and not the billion below it.
 
 ### `run_with_input(input_str, main)`
