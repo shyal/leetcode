@@ -42349,6 +42349,21 @@
       "judge": "deepseek-chat",
       "summary": "The query uses dense_rank() over (order by score desc) as rank on the Scores table, which gives ties the same rank with no gaps. Both example assertions pass, producing the expected score/rank pairs. The drill's required move, a window rank function, is exercised directly.",
       "seconds": 150
+    },
+    "solved/d_Rank_Within_Each_Team_2026_10_30T21_57_49_353454_00_00Z.mu": {
+      "date": "2026-10-31",
+      "problem": "drill",
+      "drill": "d149",
+      "moves": {
+        "sql-window-rank": "clean"
+      },
+      "assist": {
+        "sql-window-rank": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say the PARTITION BY ... ORDER BY syntax was not grasped; the query uses DENSE_RANK() OVER (PARTITION BY team ORDER BY points DESC), which restarts per team with shared ranks and no holes.",
+      "summary": "The query selects name, team and dense_rank() over (partition by team order by points desc) from Players, so ranks restart at 1 in each team and ties share a rank without gaps. Both example assertions pass, matching the expected output. The notes state the candidate did not get the partition-by/order-by window syntax, and the solution was given as learning material.",
+      "seconds": 240
     }
   }
 }
