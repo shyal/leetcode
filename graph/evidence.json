@@ -42571,6 +42571,19 @@
       "summary": "The code builds primes below n by trial division in get_primes, then comboSolves enumerates subsets with a start-index backtracking loop, pushing primes[j] onto path, recursing at j+1, and popping, keeping the longest path whose total stays within s. The backtracking moves are exercised correctly; the prime generation is the slow part, matching the note 'Correct solve, but TLE'. The notes mark the solve as learning.",
       "seconds": 1896,
       "learning": true
+    },
+    "solved/p4079_Prime_Subset_Selection_I_2026_10_31T01_31_04_249047_00_00Z.mu": {
+      "date": "2026-10-31",
+      "problem": "4079",
+      "moves": {
+        "prime-sieve": "clean",
+        "running-sum": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "The code takes primes in ascending order and accumulates until the sum exceeds s; it does not search subsets, so the backtracking moves are not exercised.",
+      "summary": "The solution calls the harness `primes(n)` sieve, then walks the primes in order accumulating `total` and appending each prime to `res` until the running sum would exceed `s`, returning the prefix. It exercises the prime sieve and a running-sum scan. The backtracking-choose-undo and backtracking-start-index moves are not present, since the code relies on the greedy prefix of ascending primes rather than enumerating subsets. All assertions passed.",
+      "seconds": 367,
+      "learning": true
     }
   }
 }
