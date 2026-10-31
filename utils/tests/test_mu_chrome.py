@@ -56,15 +56,16 @@ def test_build_problem_ratings_maps_slugs_and_rounds(tmp_path, monkeypatch):
     ]
     import kg_rs
 
-    ns = {"json": json, "kg_rs": kg_rs}
+    ns: dict = {"json": json, "kg_rs": kg_rs}
     exec(body, ns)  # noqa: S102 - the repo's own file
+    problem_ratings = ns["problem_ratings"]
     write_tables(
         tmp_path,
         zerotrac=[("1", "a", 1200.4), ("2", "b", 2400.0)],
         clist=[("a", 1000), ("b", 2000), ("c", 1500)],
         meta=[("1", "a"), ("2", "b"), ("3", "c")],
     )
-    assert ns["problem_ratings"](tmp_path) == {"a": 1200, "b": 2400, "c": 1800}
+    assert problem_ratings(tmp_path) == {"a": 1200, "b": 2400, "c": 1800}
 
 
 def test_ratings_json_is_slug_to_one_number():
@@ -87,6 +88,7 @@ def submit():
         spec = importlib.util.spec_from_file_location(
             "chrome_submit", CHROME / "submit.py"
         )
+        assert spec and spec.loader
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
         return mod
