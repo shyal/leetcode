@@ -10,6 +10,14 @@
 // LeetCode's editor, and the click goes through. The mu and the choice of
 // mu are kept per problem.
 //
+// LeetCode reports a runtime or compile error at a line of the Python it
+// ran, which is not the mu line: the mu is quoted above the Python, and
+// one mu statement can be several Python lines. Each Run or Submit also
+// compiles the line map (submit.origin), and the result LeetCode polls
+// for (the /check/ response, read through the page's fetch) gets each
+// `Line N` that a mu line is behind rewritten to that mu line, marked
+// `(mu)`; a line of a pasted helper or of LeetCode's driver stays as it is.
+//
 // Contest pages have a CodeMirror editor and no Monaco. There the mu goes
 // into LeetCode's own editor, and the submission replaces `typed_code` in
 // the request that Run or Submit sends. That editor indents by Python's
@@ -36,6 +44,7 @@
   const cmSet = (view, text) => view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: text } });
 
   let on = null; // {slug, editor, model, box, status}, or on a contest page {slug, view, status, text, py}
+  let origin = null; // the last submission's line map: submission line k -> mu line, at index k - 1
   let entering = false;
   let passing = false; // our own click on Run / Submit, let through
 
@@ -188,6 +197,7 @@
       on.box.remove();
     }
     on = null;
+    origin = null;
     showLabel("Python3");
   }
 
@@ -211,9 +221,11 @@
     if (!on || passing || !button) return;
     e.preventDefault();
     e.stopImmediatePropagation();
-    const r = await ask("submission", { src: on.view ? cmText(on.view) : on.model.getValue() });
+    const src = on.view ? cmText(on.view) : on.model.getValue();
+    const [r, o] = await Promise.all([ask("submission", { src }), ask("origin", { src })]);
     if (!on) return;
     if (!r.ok) return say(r.error, true);
+    origin = o.ok ? JSON.parse(o.value) : null;
     if (on.view) {
       on.sending = r.value; // the request's typed_code, swapped below
     } else {
@@ -230,8 +242,12 @@
   }, true);
 
   // on a contest page Run and Submit send the editor's text, the mu: the
-  // request carries the compiled submission instead
+  // request carries the compiled submission instead. On every page the
+  // result of a Run or Submit with mu on comes back with its error lines
+  // moved to the mu.
   const SENDS = /\/(interpret_solution|submit)\/?$/;
+  const CHECK = /\/submissions\/detail\/\d+\/check\/?$/;
+  const ERRORS = ["runtime_error", "full_runtime_error", "compile_error", "full_compile_error"];
   const fetch0 = window.fetch;
   window.fetch = function (input, init) {
     const url = typeof input === "string" ? input : input?.url || "";
@@ -248,8 +264,33 @@
         // not JSON: sent as it is
       }
     }
-    return fetch0.call(this, input, init);
+    const res = fetch0.call(this, input, init);
+    if (!on || !origin || !CHECK.test(path)) return res;
+    return res.then(async (response) => {
+      let data;
+      try {
+        data = await response.clone().json();
+      } catch {
+        return response; // not JSON: shown as it is
+      }
+      if (!ERRORS.some((f) => typeof data[f] === "string")) return response;
+      for (const f of ERRORS) if (typeof data[f] === "string") data[f] = muLines(data[f]);
+      return new Response(JSON.stringify(data), {
+        status: response.status, statusText: response.statusText, headers: response.headers,
+      });
+    });
   };
+
+  // `Line 23 in twoSum (Solution.py)`, `Line 23: ...`, `line 23`: the mu
+  // line behind Python line 23 of the submission in its place, `(mu)` for
+  // `(Solution.py)` on that line
+  function muLines(text) {
+    return text.replace(/\b(Line|line) (\d+)\b([^\n]*)/g, (whole, word, n, rest) => {
+      const line = origin[Number(n) - 1];
+      if (line == null) return whole;
+      return `${word} ${line}${rest.replace(/\(Solution\.py\)/, "(mu)")}`;
+    });
+  }
 
   // LeetCode's own shortcuts would send the Python under the mu
   window.addEventListener("keydown", (e) => {

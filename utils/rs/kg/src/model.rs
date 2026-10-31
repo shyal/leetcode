@@ -501,7 +501,17 @@ pub fn solve_ratings(ctx: &Ctx) -> HashMap<String, f64> {
     if let Some(r) = ctx.ratings.borrow().as_ref() {
         return r.clone();
     }
-    let root = &ctx.root;
+    let out = combined_ratings(&ctx.root);
+    *ctx.ratings.borrow_mut() = Some(out.clone());
+    out
+}
+
+/// The rating of every problem the tables rate, by problem number, from
+/// the data files under root alone: zerotrac's where it rates, else
+/// CLIST's put on zerotrac's scale by the least-squares line through the
+/// problems both rate. The one number every reader of a problem's rating
+/// shows (make next, the README, the Chrome extension through kg_rs).
+pub fn combined_ratings(root: &Path) -> HashMap<String, f64> {
     let clist = clist_ratings(root);
     let zt = zerotrac_ratings(root);
     let mut out: HashMap<String, f64> = HashMap::new();
@@ -530,7 +540,6 @@ pub fn solve_ratings(ctx: &Ctx) -> HashMap<String, f64> {
     for (n, r) in zt {
         out.insert(n, r);
     }
-    *ctx.ratings.borrow_mut() = Some(out.clone());
     out
 }
 

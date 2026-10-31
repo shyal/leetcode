@@ -1,8 +1,9 @@
-// Put the CLIST rating (zerotrac's where CLIST has none) beside every
-// link to a problem: after the title on a problem page, and after the
-// Easy / Med. / Hard label in the rows of the problem lists (the row's
-// title clips anything added to it). Icon links have no text and get none.
-// ratings.json maps slug -> [clist, zerotrac]; `make mu-chrome` writes it.
+// Put the problem's rating beside every link to it: after the title on a
+// problem page, and after the Easy / Med. / Hard label in the rows of the
+// problem lists (the row's title clips anything added to it). Icon links
+// have no text and get none. ratings.json maps slug -> rating, the one
+// number the repo shows for a problem (make next, the README); `make
+// mu-chrome` writes it from kg::model::combined_ratings.
 
 const PROBLEM = /^\/problems\/([^/?#]+)\/?(?:description\/?)?$/;
 const DIFFICULTY = new Set(["Easy", "Med.", "Medium", "Hard"]);
@@ -12,12 +13,11 @@ fetch(chrome.runtime.getURL("ratings.json"))
   .then((ratings) => {
     const label = (a) => {
       const m = PROBLEM.exec(new URL(a.href, location.href).pathname);
-      const r = m && ratings[m[1]];
-      if (!r || a.dataset.muRating || !a.textContent.trim()) return;
-      const [clist, zerotrac] = r;
+      const rating = m && ratings[m[1]];
+      if (!rating || a.dataset.muRating || !a.textContent.trim()) return;
       const span = document.createElement("span");
-      span.textContent = clist ? ` ${clist}` : ` ${zerotrac}`;
-      span.title = clist ? `CLIST rating ${clist}` : `zerotrac rating ${zerotrac}`;
+      span.textContent = ` ${rating}`;
+      span.title = `rating ${rating}`;
       span.style.cssText = "margin-left:6px;font-size:12px;font-weight:600;color:#e8a33d;";
       a.dataset.muRating = "1";
       const leaves = [...a.querySelectorAll("*")].filter((e) => !e.children.length);

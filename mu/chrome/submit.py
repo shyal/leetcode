@@ -4,6 +4,12 @@ submission(src): what goes in LeetCode's editor, `# mu <version>`, the mu
 solution quoted as comments, then the Python it compiles to. lc_submit sends a filed
 solve in the same shape.
 
+origin(src): the mu line behind each line of that submission, as a JSON
+list (line k of the submission at index k - 1), null for a line that is
+no mu statement's: the header, a pasted helper, an import, a blank.
+LeetCode reports an error at a line of the Python it ran; mu_page.js
+puts the mu line in its place.
+
 plain(src): what goes in aced.io's editor, the Python alone, with the
 imports LeetCode preloads (utils/harness/sitecustomize.py mirrors them)
 for the names the Python uses: aced runs plain Python.
@@ -13,6 +19,7 @@ through mu/session.py stub. The starter leaves each def's body empty,
 which does not parse, so every empty def first gets a `pass`."""
 
 import ast
+import json
 import re
 
 from mulang import VERSION, transpile
@@ -42,9 +49,19 @@ PRELOADS = {
 }
 
 
+def header(src):
+    """The lines over the Python in a submission: `# mu <version>`, the mu
+    quoted as comments, one blank line."""
+    return [f"# mu {VERSION}"] + [f"# {ln}".rstrip() for ln in src.strip("\n").splitlines()] + [""]
+
+
 def submission(src):
-    quoted = "\n".join(f"# {ln}".rstrip() for ln in src.strip("\n").splitlines())
-    return f"# mu {VERSION}\n{quoted}\n\n{transpile(src)}"
+    return "\n".join(header(src)) + "\n" + transpile(src)
+
+
+def origin(src):
+    _, lines = transpile(src, mapped=True)
+    return json.dumps([None] * len(header(src)) + lines)
 
 
 def preloads(py):

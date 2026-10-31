@@ -1,14 +1,18 @@
 """Fill mu/chrome with what is not checked in: the mulang package as one
 file, session.py, the leet profile frozen to data (an unpacked extension
 cannot read outside its folder, and Pyodide has no pydsa), and
-ratings.json, slug -> [CLIST rating, zerotrac rating], 0 where a source
-has none. `make mu-chrome` runs it and fetches Pyodide into mu/chrome/pyodide."""
+ratings.json, slug -> the problem's rating, rounded. The rating is the one
+the repo shows everywhere (kg::model::combined_ratings through kg_rs:
+zerotrac's where it rates, else CLIST's on zerotrac's scale), so the
+number on a LeetCode page is the number on make next. `make mu-chrome`
+runs it and fetches Pyodide into mu/chrome/pyodide."""
 
-import csv
 import json
 import shutil
 import sys
 from pathlib import Path
+
+import kg_rs
 
 HERE = Path(__file__).parent
 ROOT = HERE.parent.parent
@@ -17,6 +21,20 @@ sys.path = [p for p in sys.path if Path(p or ".").resolve() != HERE.resolve()]
 sys.path.insert(0, str(HERE.parent))
 import leetmu  # noqa: E402, F401
 import mulang  # noqa: E402
+
+
+def problem_ratings(root):
+    """slug -> rounded rating for every problem the repo rates: kg_rs rates
+    by problem number, data/problems_metadata.json gives each number its
+    slug. A number without a slug there has no page to label."""
+    meta = json.loads((root / "data/problems_metadata.json").read_text())
+    out = {}
+    for num, rating in kg_rs.solve_ratings(str(root)).items():
+        slug = meta.get(num, {}).get("slug")
+        if slug:
+            out[slug] = round(rating)
+    return dict(sorted(out.items()))
+
 
 shutil.copy(mulang.__file__, HERE / "mulang.py")
 shutil.copy(HERE.parent / "session.py", HERE / "session.py")
@@ -35,13 +53,7 @@ frozen = {
 )
 # Chrome refuses to load a folder holding a name that starts with "_"
 shutil.rmtree(HERE / "__pycache__", ignore_errors=True)
-ratings: dict[str, list[int]] = {}
-for row in json.loads((ROOT / "data/clist_problems.json").read_text()):
-    if row.get("rating"):
-        ratings[row["slug"]] = [round(row["rating"]), 0]
-with open(ROOT / "data/leetcode_ratings.tsv") as f:
-    for row in csv.DictReader(f, delimiter="\t"):
-        ratings.setdefault(row["slug"], [0, 0])[1] = round(float(row["rating"]))
+ratings = problem_ratings(ROOT)
 (HERE / "ratings.json").write_text(json.dumps(ratings, separators=(",", ":")))
 print(
     f"mu/chrome: mulang.py, session.py and leetmu.py written, "

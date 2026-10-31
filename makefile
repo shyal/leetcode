@@ -380,11 +380,12 @@ graph-vscode: $(RS_BIN)/kg_explore
 
 # builds mu/chrome, the Chrome extension: mu in the language menu of
 # leetcode and of aced.io's practice sessions, a mu panel that submits,
-# and problem ratings on leetcode's pages. Load it once at
-# chrome://extensions (Developer mode, Load unpacked, pick mu/chrome);
-# after a change to mulang or pydsa, run this again and press reload there.
+# and problem ratings on leetcode's pages, the repo's own numbers through
+# kg_rs. Load it once at chrome://extensions (Developer mode, Load
+# unpacked, pick mu/chrome); after a change to mulang or pydsa, run this
+# again and press reload there.
 PYODIDE := https://cdn.jsdelivr.net/pyodide/v0.27.7/full
-mu-chrome:
+mu-chrome: $(EXT)
 	@mkdir -p mu/chrome/pyodide
 	@for f in pyodide.js pyodide.asm.js pyodide.asm.wasm python_stdlib.zip pyodide-lock.json; do \
 		[ -s mu/chrome/pyodide/$$f ] || curl -sfo mu/chrome/pyodide/$$f $(PYODIDE)/$$f || exit 1; done
