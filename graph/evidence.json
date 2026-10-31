@@ -42518,6 +42518,27 @@
       "judge": "deepseek-chat",
       "summary": "The Reverse class stores the sequence and an index starting at the last position; __iter__ returns self and __next__ returns the current element while decrementing the index, raising StopIteration once the index goes below zero. The assertions confirm list(), next(), and repeated iteration all behave as the iterator protocol requires.",
       "seconds": 293
+    },
+    "solved/p1048_Longest_String_Chain_FAILED_2026_10_31T00_03_27_660947_00_00Z.mu": {
+      "date": "2026-10-31",
+      "problem": "1048",
+      "moves": {
+        "dp-1d-rolling": "clean",
+        "sort-by-custom-key": "clean",
+        "two-sequence-align": "clean",
+        "derived-key-lookup": "struggled"
+      },
+      "assist": {
+        "dp-1d-rolling": "learning",
+        "two-sequence-align": "learning",
+        "sort-by-custom-key": "learning",
+        "derived-key-lookup": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Wrong Answer (83/86 cases). The chain test uses lcs(a,b)==len(a) instead of the canonical derived-key move: delete one character from the longer word and look the result up in the set of words, so the predecessor relation is wrong for many pairs.",
+      "summary": "The code sorts words by length, buckets them by length in wordsLen, and fills dp[word] by scanning every shorter word of length len-1 and testing isChain, which checks len(b)==len(a)+1 and lcs(a,b)==len(a). The dp fill and the sort-by-length key are exercised, but the predecessor test is a two-sequence LCS rather than the derived-key deletion lookup, and the notes say the approach was learned as wrong. LeetCode rejected it with Wrong Answer on 83/86 cases.",
+      "seconds": 3768,
+      "learning": true
     }
   }
 }
