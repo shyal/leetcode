@@ -42539,6 +42539,19 @@
       "summary": "The code sorts words by length, buckets them by length in wordsLen, and fills dp[word] by scanning every shorter word of length len-1 and testing isChain, which checks len(b)==len(a)+1 and lcs(a,b)==len(a). The dp fill and the sort-by-length key are exercised, but the predecessor test is a two-sequence LCS rather than the derived-key deletion lookup, and the notes say the approach was learned as wrong. LeetCode rejected it with Wrong Answer on 83/86 cases.",
       "seconds": 3768,
       "learning": true
+    },
+    "solved/p4078_Three_Fibonacci_Sum_2026_10_31T00_10_23_127225_00_00Z.mu": {
+      "date": "2026-10-31",
+      "problem": "4078",
+      "moves": {
+        "dp-1d-rolling": "clean",
+        "running-sum": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "The loop keeps three rolling Fibonacci values (p, pp, ppp) and tests p+pp+ppp == n each step, breaking once res > n.",
+      "summary": "The code iterates Fibonacci numbers with three rolling variables p, pp, ppp, checking at each step whether the sum of the three consecutive terms equals n, and breaks once the next term exceeds n. It exercises rolling 1D state and a running accumulation of the last three terms. The notes are empty and LeetCode reports Accepted (0 ms, 19.1 MB).",
+      "seconds": 309,
+      "learning": true
     }
   }
 }
