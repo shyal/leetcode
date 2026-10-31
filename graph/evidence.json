@@ -42552,6 +42552,25 @@
       "summary": "The code iterates Fibonacci numbers with three rolling variables p, pp, ppp, checking at each step whether the sum of the three consecutive terms equals n, and breaks once the next term exceeds n. It exercises rolling 1D state and a running accumulation of the last three terms. The notes are empty and LeetCode reports Accepted (0 ms, 19.1 MB).",
       "seconds": 309,
       "learning": true
+    },
+    "solved/p4079_Prime_Subset_Selection_I_2026_10_31T00_56_46_061176_00_00Z.mu": {
+      "date": "2026-10-31",
+      "problem": "4079",
+      "moves": {
+        "backtracking-choose-undo": "clean",
+        "backtracking-start-index": "clean",
+        "prime-sieve": "struggled"
+      },
+      "assist": {
+        "backtracking-choose-undo": "learning",
+        "backtracking-start-index": "learning",
+        "prime-sieve": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say 'Correct solve, but TLE'; get_primes uses trial division (O(n^2)) instead of a sieve, and the large-n assertions are commented out.",
+      "summary": "The code builds primes below n by trial division in get_primes, then comboSolves enumerates subsets with a start-index backtracking loop, pushing primes[j] onto path, recursing at j+1, and popping, keeping the longest path whose total stays within s. The backtracking moves are exercised correctly; the prime generation is the slow part, matching the note 'Correct solve, but TLE'. The notes mark the solve as learning.",
+      "seconds": 1896,
+      "learning": true
     }
   }
 }

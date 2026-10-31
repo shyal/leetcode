@@ -2,20 +2,20 @@
   "_comment": "Personal forgetting curve fitted by utils/kg/kg_curve. P(recall) = (1-slip)*(1 + gap/s)^(-beta), s = exp(a + b*log1p(cleans) - c*struggles - d*assist + e*(conn - conn_mean)); cleans counts distinct clean days, same-day reps are one rep. conn is the node's log2 carrier count, frozen below at fit time; consumers that ignore e are assuming average connectivity. \"solve\" is the cold-solve model fitted by fit_solve: logit P(solve cold, unaided, inside the clock) = the listed coefficients over (rating - 1500)/400, the walk's summed log recall, and its count of never-met moves; features not listed did not earn their place on held-out games. node_status() calls a node SOLID while the memory component (1 + gap/s)^(-beta) >= target_retention; delete this file to fall back to the flat 42-day window.",
   "model": "power-law-slip",
   "params": {
-    "a": 3.9121,
-    "b": 0.0925,
-    "c": 0.2329,
+    "a": 3.912,
+    "b": 0.0926,
+    "c": 0.2325,
     "d": 0.0683,
-    "e": -0.1975,
-    "conn_mean": 2.7315,
-    "beta": 0.1105,
+    "e": -0.1977,
+    "conn_mean": 2.7351,
+    "beta": 0.1106,
     "slip": 0.0549
   },
   "conn": {
-    "backtracking-choose-undo": 4.0,
+    "backtracking-choose-undo": 4.087,
     "backtracking-dedupe-siblings": 2.0,
     "backtracking-mark-unmark": 2.322,
-    "backtracking-start-index": 3.17,
+    "backtracking-start-index": 3.322,
     "bijection-check": 1.585,
     "binary-search-boundary": 3.907,
     "binary-search-index": 3.7,
@@ -67,6 +67,7 @@
     "prefix-suffix-two-pass": 2.0,
     "prefix-sum-hashmap": 2.807,
     "prefix-sums": 4.0,
+    "prime-sieve": 1.0,
     "py-dict-methods": 1.585,
     "py-enumerate": 1.0,
     "py-list-comprehension": 2.0,
@@ -112,13 +113,13 @@
   },
   "target_retention": 0.9,
   "mass": {
-    "beta": -0.1945,
-    "se": 0.0889,
-    "n": 634,
+    "beta": -0.1913,
+    "se": 0.0887,
+    "n": 635,
     "by_difficulty": {
-      "Easy": 3.8278,
-      "Medium": 1.1135,
-      "Hard": -0.0432
+      "Easy": 3.8244,
+      "Medium": 1.0954,
+      "Hard": -0.046
     }
   },
   "solve": {
