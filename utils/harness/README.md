@@ -529,13 +529,17 @@ s cut into pieces of n; the last piece holds what is left.
 
 n! = n * (n - 1) * ... * 2 * 1, for n >= 0; 0! is 1.
 
-### `primes(lo: int, hi: Optional[int] = None) -> list[int]`
+### `primes(lo: Optional[int] = None, hi: Optional[int] = None, count: Optional[int] = None) -> list[int]`
 
-The primes in lo..<hi, in order; primes(n) alone is the primes below n.
-primes(10) is [2, 3, 5, 7] and primes(10, 30) is [11, 13, 17, 19, 23, 29].
+The primes from lo to hi, both ends included, in order; primes(n)
+alone is the primes up to n, and primes(count=k) the first k primes.
+primes(10) is [2, 3, 5, 7], primes(11, 29) is [11, 13, 17, 19, 23, 29]
+and primes(count=4) is [2, 3, 5, 7].
 
 A segmented sieve: the primes up to the square root of hi mark their
-multiples in lo..<hi alone, so a short range high up, primes(10**9,
-10**9 + 100), costs the segment and not the billion below it.
+multiples in lo..hi alone, so a short range high up, primes(10**9,
+10**9 + 100), costs the segment and not the billion below it. The
+first k primes are sieved up to Rosser's bound k (ln k + ln ln k),
+which the k-th prime is under from k = 6 on.
 
 ### `run_with_input(input_str, main)`
