@@ -42595,6 +42595,19 @@
       "judge": "deepseek-chat",
       "summary": "The query uses dense_rank() over (partition by team order by points desc) to rank players within each team, restarting at 1 per team with shared ranks and no holes. This exercises the window-rank move directly, and both example assertions pass, matching the expected output including ties in team A and D.",
       "seconds": 104
+    },
+    "solved/d_Top_Two_Distinct_Scores_2026_11_01T13_02_38_910019_00_00Z.mu": {
+      "date": "2026-11-01",
+      "problem": "drill",
+      "drill": "d150",
+      "moves": {
+        "sql-window-rank": "clean",
+        "sql-subquery": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "The WITH clause computes dense_rank() over score desc and filters rnk <= 2 in the outer query; no scalar subquery for the cutoff.",
+      "summary": "The query builds a CTE `ranked` that selects id, score and dense_rank() over (order by score desc) as rnk from Scores, then selects id and score from ranked where rnk <= 2. This exercises the window-rank move (dense_rank partitioned by nothing, ordered by score) and satisfies the required WITH-clause form. The forbidden scalar-subquery cutoff is not used, so sql-subquery is sidestepped. Both example assertions passed.",
+      "seconds": 472
     }
   }
 }
