@@ -44,8 +44,9 @@ grid_bfs(grid, sources, ok=v -> v == 0)  # enters a cell only if ok(grid[cell]);
 triples(n)                            # every (i, j, k) with 0 <= i < j < k < n
 ceil_div(a, b)                        # (a + b - 1) // b
 factorial(n)                          # n!, for n >= 0; factorial(0) is 1
-primes(n)                             # the primes below n, in order; primes(10) is [2, 3, 5, 7]
-primes(lo, hi)                        # the primes in lo..<hi; primes(10, 30) is [11, 13, 17, 19, 23, 29]
+prime(n)                              # True when n is a prime; prime(1) is False
+primes(n)                             # the primes up to n, in order; primes(10) is [2, 3, 5, 7]
+primes(lo, hi)                        # the primes in lo..hi; primes(11, 29) is [11, 13, 17, 19, 23, 29]
 first_true(lo, hi, ok)                # smallest x in lo..hi with ok(x); hi + 1 if none
 last_true(lo, hi, ok)                 # largest x in lo..hi with ok(x); lo - 1 if none
 first_false(lo, hi, ok)               # smallest x in lo..hi without ok(x); hi + 1 if none

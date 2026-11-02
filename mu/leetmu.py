@@ -27,7 +27,7 @@ LIBRARY = {
     ],
     combo: ["pairs", "triples", "substrings"],
     digits: ["to_digits", "to_int", "num_digits", "even", "odd"],
-    arith: ["ceil_div", "factorial", "primes"],
+    arith: ["ceil_div", "factorial", "prime", "primes"],
     search: ["first_true", "last_true", "first_false", "last_false", "min_chunks"],
     counting: ["Multiset"],
     adj: ["levels", "adjacency", "indegrees", "components", "graph", "dijkstra"],
