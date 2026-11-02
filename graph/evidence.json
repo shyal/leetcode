@@ -42663,6 +42663,18 @@
       "judge": "deepseek-chat",
       "summary": "The solution advances a fast pointer n steps ahead of a slow pointer, then moves both until fast runs off the end, leaving slow on the nth-from-end node. This is the head-start gap technique, exercised correctly and passing all assertions including the 30000-element cases.",
       "seconds": 125
+    },
+    "solved/d_Minimum_Path_Cost_2026_11_02T02_03_27_248969_00_00Z.mu": {
+      "date": "2026-11-02",
+      "problem": "drill",
+      "drill": "d307",
+      "moves": {
+        "dijkstra": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Lazy-deletion Dijkstra: heap of (cost, node), skip nodes already in seen, return cost on reaching t.",
+      "summary": "The mu code implements Dijkstra with a min-heap of (cost, node) pairs, a seen set for lazy deletion, and early return when the target is popped. It relaxes each outgoing edge by pushing G[node][next] + cost. All assertions pass, including the case where BFS would pick the wrong path, and the run exits 0.",
+      "seconds": 509
     }
   }
 }
