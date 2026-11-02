@@ -43034,6 +43034,20 @@
       "note": "The target dp-1d-rolling node is not exercised; the code is a single running-sum scan that yields the count before each character.",
       "summary": "countPicks walks s plus a trailing space, yielding the running count of c before each character and incrementing count when ch equals c. This is a running-sum scan producing the prefix counts, not a 1D DP table. All assertions pass, including the 100000-length case.",
       "seconds": 146
+    },
+    "solved/d_Subarrays_Summing_To_Target_2026_11_02T21_50_10_488125_00_00Z.mu": {
+      "date": "2026-11-03",
+      "problem": "drill",
+      "drill": "d137",
+      "moves": {
+        "prefix-sum-hashmap": "clean",
+        "running-sum": "clean",
+        "dict-arbitrary-value": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "D[0]=1 seeds the empty prefix; each step queries D[prefix-target] before recording D[prefix].",
+      "summary": "countSubarrays keeps a running prefix sum and a dict D mapping prefix values to how many times each has occurred, seeded with D[0]=1. At each element it adds D[prefix - target] to res, then increments D[prefix], so each subarray is counted at its right end. The drill's target move, prefix-sum-hashmap, is exercised directly, alongside the running-sum accumulation and the dict-as-count store.",
+      "seconds": 254
     }
   }
 }
