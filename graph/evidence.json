@@ -42686,6 +42686,18 @@
       "judge": "deepseek-chat",
       "summary": "The solution counts odd and even elements in each array with mu folds, then combines them as (odd_a * even_b) + (even_a * odd_b) to count cross-array pairs whose sum is odd. This is the pair-count-formula move: group sizes multiplied across the two groups rather than enumerating pairs. All assertions passed, including the large 100000-element cases.",
       "seconds": 197
+    },
+    "solved/d_Even_Subarrays_2026_11_02T02_33_24_132683_00_00Z.mu": {
+      "date": "2026-11-02",
+      "problem": "drill",
+      "drill": "d314",
+      "moves": {
+        "pair-count-formula": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Delegates to harness count_subarrays with key=even; the pair-count arithmetic is done by the helper, not visible in the mu.",
+      "summary": "The mu defines evenSubarrays that calls the harness helper count_subarrays(nums, key=even), which counts subarrays whose elements satisfy the even predicate. The pair-count-formula move is exercised through that helper, and all assertions pass, including the 100000-element case. No notes were provided.",
+      "seconds": 125
     }
   }
 }
