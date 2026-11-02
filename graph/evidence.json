@@ -42759,6 +42759,18 @@
       "note": "Enumerates every (start, end) pair via nested loops over length and start, yielding s[start:start+length].",
       "summary": "The mu code loops over every length from 1 to n, then over each start position, yielding the slice s[start:start+length] through the @as_list generator. This is the by-length form of substring enumeration, exercised cleanly and passing all assertions. No notes were provided.",
       "seconds": 234
+    },
+    "solved/d_Pairs_2026_11_02T03_08_52_160506_00_00Z.mu": {
+      "date": "2026-11-02",
+      "problem": "drill",
+      "drill": "d5",
+      "moves": {
+        "backtracking-start-index": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "The pair generation is delegated to the harness `pairs(n, type=list)` helper; the candidate's own code only wraps it in a Solution class and asserts on the output.",
+      "summary": "The file defines a Solution.pairs method that calls the harness helper pairs(n, type=list) and returns the list of index pairs. The assertions check the output for n=4, n=1, n=2, and n=30 (435 unique pairs with a<b). The nested-loop start-index enumeration is done inside the harness helper, not in the candidate's mu code.",
+      "seconds": 69
     }
   }
 }
