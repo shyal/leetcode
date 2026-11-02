@@ -42698,6 +42698,21 @@
       "note": "Delegates to harness count_subarrays with key=even; the pair-count arithmetic is done by the helper, not visible in the mu.",
       "summary": "The mu defines evenSubarrays that calls the harness helper count_subarrays(nums, key=even), which counts subarrays whose elements satisfy the even predicate. The pair-count-formula move is exercised through that helper, and all assertions pass, including the 100000-element case. No notes were provided.",
       "seconds": 125
+    },
+    "solved/d_Prefix_Letter_Sets_2026_11_02T02_35_32_110652_00_00Z.mu": {
+      "date": "2026-11-02",
+      "problem": "drill",
+      "drill": "d312",
+      "moves": {
+        "prefix-sums": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Uses scan(set.union, ...) to accumulate a running set per prefix; the prefix-sums node is exercised as a running-accumulate shape.",
+      "summary": "The code builds a set of characters for each character in s, then uses scan(set.union, ...) to fold them left-to-right into a running union, producing the set of letters seen in each prefix. This is a running-accumulate over the string, the prefix-sums shape applied to set union rather than numeric sums. All assertions pass, including the length-2000 case.",
+      "unmapped": [
+        "running set union via scan"
+      ],
+      "seconds": 92
     }
   }
 }
