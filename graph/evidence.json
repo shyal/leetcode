@@ -42934,6 +42934,20 @@
       "summary": "The code builds a dp table of ones and fills it with a nested pairs loop over (j, i) with back=true, updating dp[i] = max(dp[i], dp[j]+1) when nums[j] < nums[i], then returns max(dp). This is the classic O(n^2) LIS DP: the state and recurrence are formulated, the 1D table is filled forward, and each i queries the already-computed past entries before recording its own value. LeetCode accepted it at 2301 ms; the notes are empty.",
       "seconds": 105,
       "learning": true
+    },
+    "solved/p1311_Get_Watched_Videos_by_Your_Friends_2026_11_02T12_07_05_972107_00_00Z.mu": {
+      "date": "2026-11-02",
+      "problem": "1311",
+      "moves": {
+        "graph-adjacency-build": "clean",
+        "graph-bfs-shortest": "clean",
+        "counter-build": "clean",
+        "sort-by-custom-key": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The mu code builds an adjacency list G from the friends edge list, then runs a BFS from id with a deque of (node, dist) pairs and a seen set, collecting watchedVideos of nodes at exactly the target level into a counts dict. It finishes by sorting counts.items() with a key of [count, video] to order by frequency then name. The moves exercised are adjacency build, BFS with distance, counter accumulation, and custom-key sorting; LeetCode reports Accepted.",
+      "seconds": 1118,
+      "learning": true
     }
   }
 }
