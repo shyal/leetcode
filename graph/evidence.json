@@ -42960,6 +42960,20 @@
       "note": "Real division via * 1.0 satisfies the REQUIRED line; avg(price) not used.",
       "summary": "The query groups Sales by product_id and computes round(sum(price * units) * 1.0 / sum(units), 2) as average_price, a weighted average per group. It exercises sql-group-aggregate with SUM and ROUND, and the * 1.0 forces real division so sqlite does not truncate. Both example assertions passed.",
       "seconds": 140
+    },
+    "solved/d_Running_Total_2026_11_02T21_29_05_819795_00_00Z.mu": {
+      "date": "2026-11-03",
+      "problem": "drill",
+      "drill": "d63",
+      "moves": {
+        "sql-window-running": "clean"
+      },
+      "assist": {
+        "sql-window-running": "hint"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The query selects turn and sum(weight) over (order by turn) as total from Queue, grouped by turn, producing the running total in one window-function pass. The run exited 0 and printed the expected 250/650/1000 table. The notes contain a hint about using OVER (ORDER BY turn).",
+      "seconds": 495
     }
   }
 }
