@@ -43082,6 +43082,19 @@
       "judge": "deepseek-chat",
       "summary": "The function square_of_larger compares a and b with an if, returning a*a when a > b and otherwise falling through to b*b. The if is used as a statement with an early return rather than as a value bound to a let, so the if-expression form is exercised but the if-binding form is not. All assertions pass and the program prints 4.",
       "seconds": 43
+    },
+    "solved/d_Equal_Pairs_2026_11_02T21_55_21_701796_00_00Z.mu": {
+      "date": "2026-11-03",
+      "problem": "drill",
+      "drill": "d155",
+      "moves": {
+        "streaming-accumulate-pairs": "clean",
+        "counter-build": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "The `sum for x in nums` fold accumulates the count of prior equal elements (got = D[x] before incrementing), counting each pair at its second member; the final `folds(Solution, 'sum', block=true)` assertion requires the fold form.",
+      "summary": "The code keeps a dict D of value counts and, for each x in nums, reads the count seen so far (got = D[x]), increments it, and sums the got values, so each equal pair is counted once at its second occurrence. This exercises streaming-accumulate-pairs together with counter-build. All assertions pass, including the 100000-element case, and the final folds assertion confirms the sum-fold form is required.",
+      "seconds": 98
     }
   }
 }
