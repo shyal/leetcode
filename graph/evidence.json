@@ -42853,6 +42853,20 @@
       "judge": "deepseek-chat",
       "summary": "The Solution class wraps json.dumps with sort_keys=True in encode and json.loads in decode, and the assertions confirm round-tripping of dicts, lists, null, booleans and floats. The py-json move is exercised directly through dumps/loads with sort_keys and the round-trip check. The run exited 0 with all assertions passing.",
       "seconds": 186
+    },
+    "solved/p227_Basic_Calculator_II_2026_11_02T03_34_53_429452_00_00Z.mu": {
+      "date": "2026-11-02",
+      "problem": "227",
+      "moves": {
+        "stack-nested-eval": "clean",
+        "running-sum": "clean",
+        "divmod-decompose": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Uses a single stack with a pending operator; * and / pop-and-combine the top, + and - push signed values, then sum(stack).",
+      "summary": "The mu code scans s plus a sentinel '+', accumulating digits into num and applying the pending op when a non-digit appears: '+'/'-' push signed num, '*'/'/' pop the top and push the combined value. A final sum(stack) yields the result. It exercises the stack-based precedence handling (stack-nested-eval shape) plus running-sum and digit peeling; the run passed and LeetCode reports Accepted.",
+      "seconds": 387,
+      "learning": true
     }
   }
 }
