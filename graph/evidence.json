@@ -42608,6 +42608,22 @@
       "note": "The WITH clause computes dense_rank() over score desc and filters rnk <= 2 in the outer query; no scalar subquery for the cutoff.",
       "summary": "The query builds a CTE `ranked` that selects id, score and dense_rank() over (order by score desc) as rnk from Scores, then selects id and score from ranked where rnk <= 2. This exercises the window-rank move (dense_rank partitioned by nothing, ordered by score) and satisfies the required WITH-clause form. The forbidden scalar-subquery cutoff is not used, so sql-subquery is sidestepped. Both example assertions passed.",
       "seconds": 472
+    },
+    "solved/d_Top_Two_Distinct_Scores_2026_11_02T01_25_55_529088_00_00Z.mu": {
+      "date": "2026-11-02",
+      "problem": "drill",
+      "drill": "d150",
+      "moves": {
+        "sql-window-rank": "clean",
+        "sql-subquery": "clean"
+      },
+      "assist": {
+        "sql-subquery": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Dense rank computed in a WITH clause and filtered in the outer query, as required; no scalar subquery for the cutoff.",
+      "summary": "The query builds a CTE `ranked` that computes dense_rank() over score descending, then selects id and score from it where rnk <= 2. This exercises the window-rank move and satisfies the drill's WITH-clause requirement, sidestepping the forbidden scalar-subquery cutoff. The run passed and printed the expected rows for example 1.",
+      "seconds": 599
     }
   }
 }
