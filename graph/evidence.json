@@ -42906,6 +42906,20 @@
       "summary": "The code walks every start index i in 0..len(s)-10, slices the fixed 10-character window s[i:i+10], and tallies it in the counts dict with += 1. It then reads the counts back as data, keeping keys whose value exceeds 1. This exercises the fixed window, counter build, and counts-as-data moves; the window is materialized by slicing rather than incremental add/drop. LeetCode accepted it at 982 ms.",
       "seconds": 332,
       "learning": true
+    },
+    "solved/p113_Path_Sum_II_2026_11_02T09_49_04_233078_00_00Z.mu": {
+      "date": "2026-11-02",
+      "problem": "113",
+      "moves": {
+        "tree-carry-down": "clean",
+        "backtracking-choose-undo": "clean",
+        "tree-dfs-recursive": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Recursive lambda carries running total down and pushes/pops path; leaf check records path[:] copy.",
+      "summary": "The mu code defines a recursive lambda that pushes n.val onto path, adds it to total, and at a leaf compares total to targetSum, appending a copy of path to res. It recurses into both children and pops path on the way out, exercising carry-down state, DFS recursion, and choose/undo backtracking. All assertions pass and LeetCode reports Accepted.",
+      "seconds": 314,
+      "learning": true
     }
   }
 }
