@@ -42641,6 +42641,17 @@
       "note": "Notes say the WITH/partition syntax was fuzzy and the WHERE rnk<=3 filter had a flaw; both were resolved.",
       "summary": "The query builds a CTE `ranked` using dense_rank() over (partition by departmentId order by salary desc), then filters rnk <= 3 in an outer select. This exercises the window-rank move (dense_rank keeps ties like Joe/Randy) and the CTE/subquery move. The notes say the candidate was fuzzy on the WITH ... partition syntax and had a flaw in the WHERE rnk <= 3 filtering, both worked out with learning-level help.",
       "seconds": 573
+    },
+    "solved/d_Average_Years_Per_Project_2026_11_02T01_44_05_833220_00_00Z.mu": {
+      "date": "2026-11-02",
+      "problem": "drill",
+      "drill": "d90",
+      "moves": {
+        "sql-group-aggregate": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The query groups the Project table by project_id and computes round(sum(experience_years)*1.0 / count(experience_years), 2) as average_years, so the rounding happens in SQL on the aggregate. Both example assertions pass, producing 2.0/2.5 and 1.33. No notes indicate any help or recognition trouble.",
+      "seconds": 150
     }
   }
 }
