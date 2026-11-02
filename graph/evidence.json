@@ -42920,6 +42920,20 @@
       "summary": "The mu code defines a recursive lambda that pushes n.val onto path, adds it to total, and at a leaf compares total to targetSum, appending a copy of path to res. It recurses into both children and pops path on the way out, exercising carry-down state, DFS recursion, and choose/undo backtracking. All assertions pass and LeetCode reports Accepted.",
       "seconds": 314,
       "learning": true
+    },
+    "solved/p300_Longest_Increasing_Subsequence_2026_11_02T10_10_32_643481_00_00Z.mu": {
+      "date": "2026-11-02",
+      "problem": "300",
+      "moves": {
+        "dp-state-formulate": "clean",
+        "dp-1d-rolling": "clean",
+        "streaming-ask-then-record": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "O(n^2) DP accepted at 2301 ms; the O(n log n) follow-up is not implemented.",
+      "summary": "The code builds a dp table of ones and fills it with a nested pairs loop over (j, i) with back=true, updating dp[i] = max(dp[i], dp[j]+1) when nums[j] < nums[i], then returns max(dp). This is the classic O(n^2) LIS DP: the state and recurrence are formulated, the 1D table is filled forward, and each i queries the already-computed past entries before recording its own value. LeetCode accepted it at 2301 ms; the notes are empty.",
+      "seconds": 105,
+      "learning": true
     }
   }
 }
