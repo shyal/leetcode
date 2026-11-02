@@ -42747,6 +42747,18 @@
       "note": "The window never shrinks: when zeros > k it slides right at constant width by advancing left once, so right - left + 1 ends as the max.",
       "summary": "The mu code scans nums with a right pointer, counting zeros in the window; when zeros exceeds k it advances left by one (decrementing zeros if nums[left] was 0), keeping the window width constant rather than shrinking. The answer is right - left + 1, the never-shrink budget window. All assertions passed and the notes are empty.",
       "seconds": 141
+    },
+    "solved/d_Substrings_by_Length_2026_11_02T03_06_48_072355_00_00Z.mu": {
+      "date": "2026-11-02",
+      "problem": "drill",
+      "drill": "d309",
+      "moves": {
+        "substring-enumeration": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Enumerates every (start, end) pair via nested loops over length and start, yielding s[start:start+length].",
+      "summary": "The mu code loops over every length from 1 to n, then over each start position, yielding the slice s[start:start+length] through the @as_list generator. This is the by-length form of substring enumeration, exercised cleanly and passing all assertions. No notes were provided.",
+      "seconds": 234
     }
   }
 }
