@@ -42878,6 +42878,19 @@
       "judge": "deepseek-chat",
       "summary": "The solution runs a BFS over the nested-list tree using a deque of (node, depth) pairs, appending each node's value into a dict keyed by depth, then returns the buckets in sorted depth order. This exercises the level-by-level queue traversal with depth tracked per entry. All assertions passed.",
       "seconds": 473
+    },
+    "solved/p397_Integer_Replacement_2026_11_02T08_57_19_144319_00_00Z.mu": {
+      "date": "2026-11-02",
+      "problem": "397",
+      "moves": {
+        "graph-bfs-shortest": "clean",
+        "bit-iterate": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say the analytical approach was abandoned after seeing a discussion comment suggesting BFS; LEETCODE: Accepted (31 ms, 20.5 MB).",
+      "summary": "The mu code runs a BFS over integers: a deque holds (num, dist) pairs, popping the front and pushing num//2 when even, or num+1 and num-1 when odd, returning dist when num reaches 1. This exercises graph-bfs-shortest on an implicit graph, and the even test uses a bitwise AND (bit-iterate). The notes say the candidate struggled with the analytical approach and switched to BFS after reading a discussion comment, and LeetCode accepted the submission.",
+      "seconds": 278,
+      "learning": true
     }
   }
 }
