@@ -42784,6 +42784,18 @@
       "note": "Uses the upper-mid (lo+hi+1)//2 template to find the last index where the predicate is false; all assertions pass, including the 31-call bound on 1e9.",
       "summary": "The mu code implements lastFalse with a while lo < hi loop, computing mid = (lo + hi + 1) // 2 and moving hi to mid-1 when ok(mid) holds, else lo to mid, returning lo. This is the last-false boundary binary search, exercised across many predicate shapes and a 1e9 range with a call-count bound. The run exited 0 with all assertions passing and no notes recorded.",
       "seconds": 57
+    },
+    "solved/d_Cut_At_The_Middle_2026_11_02T03_13_36_520168_00_00Z.mu": {
+      "date": "2026-11-02",
+      "problem": "drill",
+      "drill": "d109",
+      "moves": {
+        "fast-slow-pointers": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "The while condition also checks fast.next.next so slow stops at the last node of the first half; the split is done by slow.next = None.",
+      "summary": "The code uses two pointers, fast and slow, both starting at head; fast advances two nodes per step and slow one, with the loop guarded by fast and fast.next and fast.next.next so slow lands on the last node of the first half. It then cuts the list at slow.next, sets that link to None, and returns the two halves. The assertions cover even, odd, two-element, and large lists, and all pass.",
+      "seconds": 178
     }
   }
 }
