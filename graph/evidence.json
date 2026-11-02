@@ -42985,6 +42985,18 @@
       "judge": "deepseek-chat",
       "summary": "The query selects DISTINCT salary, orders descending, and uses LIMIT 1 OFFSET 1 to skip past the highest distinct salary and return the second. This is the nth-value move wrapped as a scalar query, and both example assertions pass. No notes indicate any help or recognition trouble.",
       "seconds": 229
+    },
+    "solved/d_Reverse_First_K_2026_11_02T21_37_38_699946_00_00Z.mu": {
+      "date": "2026-11-03",
+      "problem": "drill",
+      "drill": "d112",
+      "moves": {
+        "ll-pointer-reversal": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Reversal done by head-insertion into a dummy node's next chain, not the prev/curr flip, but it is an in-place pointer reversal of the first k nodes.",
+      "summary": "reverseFirstK walks the first k nodes, splicing each one to the front of a dummy chain via d.next, h.next, h = h, d.next, h.next, then reattaches the remainder with t.next = h. This exercises in-place pointer reversal of the first k nodes. All assertions pass, including the 5000-element case.",
+      "seconds": 264
     }
   }
 }
