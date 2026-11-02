@@ -43048,6 +43048,17 @@
       "note": "D[0]=1 seeds the empty prefix; each step queries D[prefix-target] before recording D[prefix].",
       "summary": "countSubarrays keeps a running prefix sum and a dict D mapping prefix values to how many times each has occurred, seeded with D[0]=1. At each element it adds D[prefix - target] to res, then increments D[prefix], so each subarray is counted at its right end. The drill's target move, prefix-sum-hashmap, is exercised directly, alongside the running-sum accumulation and the dict-as-count store.",
       "seconds": 254
+    },
+    "solved/d_Hire_2026_11_02T21_51_03_651328_00_00Z.mu": {
+      "date": "2026-11-03",
+      "problem": "drill",
+      "drill": "d199",
+      "moves": {
+        "py-dataclass": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The mu source declares an Employee with @dataclass and typed fields name, dept, salary, then a Solution.hire that constructs and returns one. The generated __init__, __eq__ and __repr__ are what the assertions exercise: equality across instances, inequality on a differing salary, field access, and the repr string. The run exited 0 with all assertions passing.",
+      "seconds": 46
     }
   }
 }
