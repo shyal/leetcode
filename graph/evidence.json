@@ -42771,6 +42771,19 @@
       "note": "The pair generation is delegated to the harness `pairs(n, type=list)` helper; the candidate's own code only wraps it in a Solution class and asserts on the output.",
       "summary": "The file defines a Solution.pairs method that calls the harness helper pairs(n, type=list) and returns the list of index pairs. The assertions check the output for n=4, n=1, n=2, and n=30 (435 unique pairs with a<b). The nested-loop start-index enumeration is done inside the harness helper, not in the candidate's mu code.",
       "seconds": 69
+    },
+    "solved/d_Last_False_2026_11_02T03_10_04_932027_00_00Z.mu": {
+      "date": "2026-11-02",
+      "problem": "drill",
+      "drill": "d141",
+      "moves": {
+        "binary-search-boundary": "clean",
+        "binary-search-on-answer": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Uses the upper-mid (lo+hi+1)//2 template to find the last index where the predicate is false; all assertions pass, including the 31-call bound on 1e9.",
+      "summary": "The mu code implements lastFalse with a while lo < hi loop, computing mid = (lo + hi + 1) // 2 and moving hi to mid-1 when ok(mid) holds, else lo to mid, returning lo. This is the last-false boundary binary search, exercised across many predicate shapes and a 1e9 range with a call-count bound. The run exited 0 with all assertions passing and no notes recorded.",
+      "seconds": 57
     }
   }
 }
