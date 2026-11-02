@@ -43095,6 +43095,25 @@
       "note": "The `sum for x in nums` fold accumulates the count of prior equal elements (got = D[x] before incrementing), counting each pair at its second member; the final `folds(Solution, 'sum', block=true)` assertion requires the fold form.",
       "summary": "The code keeps a dict D of value counts and, for each x in nums, reads the count seen so far (got = D[x]), increments it, and sums the got values, so each equal pair is counted once at its second occurrence. This exercises streaming-accumulate-pairs together with counter-build. All assertions pass, including the 100000-element case, and the final folds assertion confirms the sum-fold form is required.",
       "seconds": 98
+    },
+    "solved/p1218_Longest_Arithmetic_Subsequence_of_Given_Difference_FAILED_2026_11_02T23_29_15_759927_00_00Z.mu": {
+      "date": "2026-11-03",
+      "problem": "1218",
+      "moves": {
+        "dp-1d-rolling": "clean",
+        "dict-arbitrary-value": "clean",
+        "streaming-ask-then-record": "clean"
+      },
+      "assist": {
+        "dp-1d-rolling": "learning",
+        "dict-arbitrary-value": "learning",
+        "streaming-ask-then-record": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "The mu source is the O(n^2) DP; the 'Learning' block is the O(n) dict solution, and the file's own footer says FAILED after 45m 41s with no working solution.",
+      "summary": "The mu code builds a DP table of ones and, for each pair (j, i) with j before i, extends DP[i] when arr[j] + difference == arr[i], returning max(DP). That exercises the 1D DP table and the pair enumeration, not the O(n) hashmap recurrence. The notes label the dict-based dp[x] = dp.get(x - k, 0) + 1 version as 'Learning', and the footer records the attempt as failed after 45m 41s with no working solution.",
+      "seconds": 2741,
+      "learning": true
     }
   }
 }
