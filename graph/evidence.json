@@ -42624,6 +42624,23 @@
       "note": "Dense rank computed in a WITH clause and filtered in the outer query, as required; no scalar subquery for the cutoff.",
       "summary": "The query builds a CTE `ranked` that computes dense_rank() over score descending, then selects id and score from it where rnk <= 2. This exercises the window-rank move and satisfies the drill's WITH-clause requirement, sidestepping the forbidden scalar-subquery cutoff. The run passed and printed the expected rows for example 1.",
       "seconds": 599
+    },
+    "solved/d_Department_Top_Three_Salaries_2026_11_02T01_41_25_582276_00_00Z.mu": {
+      "date": "2026-11-02",
+      "problem": "drill",
+      "drill": "d61",
+      "moves": {
+        "sql-window-rank": "clean",
+        "sql-subquery": "clean"
+      },
+      "assist": {
+        "sql-window-rank": "learning",
+        "sql-subquery": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say the WITH/partition syntax was fuzzy and the WHERE rnk<=3 filter had a flaw; both were resolved.",
+      "summary": "The query builds a CTE `ranked` using dense_rank() over (partition by departmentId order by salary desc), then filters rnk <= 3 in an outer select. This exercises the window-rank move (dense_rank keeps ties like Joe/Randy) and the CTE/subquery move. The notes say the candidate was fuzzy on the WITH ... partition syntax and had a flaw in the WHERE rnk <= 3 filtering, both worked out with learning-level help.",
+      "seconds": 573
     }
   }
 }
