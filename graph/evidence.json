@@ -42948,6 +42948,18 @@
       "summary": "The mu code builds an adjacency list G from the friends edge list, then runs a BFS from id with a deque of (node, dist) pairs and a seen set, collecting watchedVideos of nodes at exactly the target level into a counts dict. It finishes by sorting counts.items() with a key of [count, video] to order by frequency then name. The moves exercised are adjacency build, BFS with distance, counter accumulation, and custom-key sorting; LeetCode reports Accepted.",
       "seconds": 1118,
       "learning": true
+    },
+    "solved/d_Average_Price_Per_Product_2026_11_02T21_20_34_693578_00_00Z.mu": {
+      "date": "2026-11-03",
+      "problem": "drill",
+      "drill": "d91",
+      "moves": {
+        "sql-group-aggregate": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Real division via * 1.0 satisfies the REQUIRED line; avg(price) not used.",
+      "summary": "The query groups Sales by product_id and computes round(sum(price * units) * 1.0 / sum(units), 2) as average_price, a weighted average per group. It exercises sql-group-aggregate with SUM and ROUND, and the * 1.0 forces real division so sqlite does not truncate. Both example assertions passed.",
+      "seconds": 140
     }
   }
 }
