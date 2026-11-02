@@ -42796,6 +42796,18 @@
       "note": "The while condition also checks fast.next.next so slow stops at the last node of the first half; the split is done by slow.next = None.",
       "summary": "The code uses two pointers, fast and slow, both starting at head; fast advances two nodes per step and slow one, with the loop guarded by fast and fast.next and fast.next.next so slow lands on the last node of the first half. It then cuts the list at slow.next, sets that link to None, and returns the two halves. The assertions cover even, odd, two-element, and large lists, and all pass.",
       "seconds": 178
+    },
+    "solved/d_Root_By_Earlier_Letter_2026_11_02T03_19_38_456284_00_00Z.mu": {
+      "date": "2026-11-02",
+      "problem": "drill",
+      "drill": "d315",
+      "moves": {
+        "graph-adjacency-build": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "The code does not build an adjacency list; it marks each child endpoint in a boolean table from the edge list and returns the index still false.",
+      "summary": "The mu code iterates the edge list and, for each edge (a, b), marks the endpoint whose letter is larger as a child in a boolean table. The root is the single index left false. It exercises edge-list scanning and a per-node child flag rather than an adjacency structure, and all assertions pass.",
+      "seconds": 350
     }
   }
 }
