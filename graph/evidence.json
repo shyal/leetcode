@@ -42891,6 +42891,21 @@
       "summary": "The mu code runs a BFS over integers: a deque holds (num, dist) pairs, popping the front and pushing num//2 when even, or num+1 and num-1 when odd, returning dist when num reaches 1. This exercises graph-bfs-shortest on an implicit graph, and the even test uses a bitwise AND (bit-iterate). The notes say the candidate struggled with the analytical approach and switched to BFS after reading a discussion comment, and LeetCode accepted the submission.",
       "seconds": 278,
       "learning": true
+    },
+    "solved/p187_Repeated_DNA_Sequences_2026_11_02T09_42_38_439834_00_00Z.mu": {
+      "date": "2026-11-02",
+      "problem": "187",
+      "moves": {
+        "sliding-window-fixed": "clean",
+        "counter-build": "clean",
+        "counts-as-data": "clean",
+        "substring-enumeration": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "982 ms Accepted; the fixed 10-char window is taken by slicing s[i:i+10] rather than add-entering/drop-leaving, and the counts dict is built with += 1.",
+      "summary": "The code walks every start index i in 0..len(s)-10, slices the fixed 10-character window s[i:i+10], and tallies it in the counts dict with += 1. It then reads the counts back as data, keeping keys whose value exceeds 1. This exercises the fixed window, counter build, and counts-as-data moves; the window is materialized by slicing rather than incremental add/drop. LeetCode accepted it at 982 ms.",
+      "seconds": 332,
+      "learning": true
     }
   }
 }
