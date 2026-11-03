@@ -43127,6 +43127,19 @@
       "note": "The recurrence flips = min(flips+1, ones) is the two-state rolling DP (flip-to-0 vs flip-to-1 prefix), carried in two scalars.",
       "summary": "minFlips scans s once, counting ones seen and maintaining flips as the minimum of flipping the current '0' to '1' (flips+1) or flipping all prior ones to '0' (ones). This is the two-state rolling DP over the prefix, kept in two scalar variables rather than a table. All assertions pass, including the 100k-length cases.",
       "seconds": 49
+    },
+    "solved/d_Maximum_Subarray_Sum_2026_11_03T05_45_08_396312_00_00Z.mu": {
+      "date": "2026-11-03",
+      "problem": "drill",
+      "drill": "d318",
+      "moves": {
+        "running-extreme": "clean",
+        "running-sum": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Kadane's: end tracks the best sum ending at the current element via max(x, end + x), best tracks the running maximum.",
+      "summary": "The mu code implements Kadane's algorithm in maxSubArray: for each x it updates end to max(x, end + x) and best to the running maximum of end. This exercises running-sum (the carried end state) and running-extreme (best-so-far). All assertions pass, including the large negative and positive arrays.",
+      "seconds": 739
     }
   }
 }
