@@ -1,18 +1,21 @@
 """
 Given an integer array nums, return the largest alternating sum of a
 non-empty subarray. The alternating sum of a subarray is its first
-element minus its second plus its third, and so on: the elements at
-even positions in the subarray are added, the elements at odd positions
-are subtracted. Walk nums from the left with two values: the largest
-alternating sum of a subarray that ends at the current element with that
-element added, and the largest with that element subtracted. At each
-element x, the added value is the larger of x on its own and x plus the
-previous subtracted value. The subtracted value is the previous added
-value minus x. Compute both from the previous pair before either
-changes. The answer is the largest value seen in either. For example
-with nums = [-54, 77, 97], the added values are -54, 77, 97 and the
-subtracted values are none, -131, -20. The answer is 97, the subarray
-[97].
+element minus its second plus its third, and so on: the elements at even
+positions in the subarray are added, the elements at odd positions are
+subtracted.
+
+Iterate over nums from the left with two values: the largest alternating
+sum of a subarray that ends at the current element with that element
+added, and the largest with that element subtracted. At each element x,
+the added value is the larger of x on its own and x plus the previous
+subtracted value. The subtracted value is the previous added value minus
+x. Compute both from the previous pair before either changes. The answer
+is the largest value seen in either.
+
+For example with nums = [-54, 77, 97], the added values are -54, 77, 97
+and the subtracted values are none, -131, -20. The answer is 97, the
+subarray [97].
 
 Example 1:
 

@@ -1,14 +1,17 @@
 """
 Given an integer array nums, return the largest sum of a non-empty
-subarray. Walk nums from the left with two values: the largest sum of a
+subarray.
+
+Iterate over nums from the left with two values: the largest sum of a
 subarray that ends at the current element, and the largest sum seen so
 far. At each element x, the subarray that ends at x either starts at x
 or extends the subarray that ended at the element before it: take the
 larger of x and x plus the previous value. Then raise the largest sum
-seen so far to it when it is larger. For example with
-nums = [-2, 1, -3, 4, -1, 2, 1, -5, 4], the sums that end at each
-element are -2, 1, -2, 4, 3, 5, 6, 1, 5. The answer is 6, the subarray
-[4, -1, 2, 1]. This is Kadane's algorithm.
+seen so far to it when it is larger.
+
+For example with nums = [-2, 1, -3, 4, -1, 2, 1, -5, 4], the sums that
+end at each element are -2, 1, -2, 4, 3, 5, 6, 1, 5. The answer is 6,
+the subarray [4, -1, 2, 1]. This is Kadane's algorithm.
 
 Example 1:
 

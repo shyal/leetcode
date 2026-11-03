@@ -1,19 +1,22 @@
 """
 Given an integer array nums, return the largest sum of a non-empty
 subarray from which at most one element is deleted. The subarray must
-stay non-empty after the deletion. Walk nums from the left with two
-values: the largest sum of a subarray that ends at the current element
-with nothing deleted, the kept value, and the largest sum of a subarray
-that ends at the current element with exactly one element deleted, the
-deleted value. At each element x, the deleted value is the larger of x
-plus the previous deleted value and the previous kept value: in the
-second case x itself is the deleted element and the subarray ends at the
-element before it. Then the kept value is the larger of x on its own and
-x plus the previous kept value. Compute the deleted value first, from
-the kept value before it changes. The answer is the largest value seen
-in either. For example with nums = [1, -2, 0, 3], the kept values are
-1, -1, 0, 3 and the deleted values are none, 1, 1, 4. The answer is 4:
-delete -2, the subarray [1, 0, 3].
+stay non-empty after the deletion.
+
+Iterate over nums from the left with two values: the largest sum of a
+subarray that ends at the current element with nothing deleted, the kept
+value, and the largest sum of a subarray that ends at the current
+element with exactly one element deleted, the deleted value. At each
+element x, the deleted value is the larger of x plus the previous
+deleted value and the previous kept value: in the second case x itself
+is the deleted element and the subarray ends at the element before it.
+Then the kept value is the larger of x on its own and x plus the
+previous kept value. Compute the deleted value first, from the kept
+value before it changes. The answer is the largest value seen in either.
+
+For example with nums = [1, -2, 0, 3], the kept values are 1, -1, 0, 3
+and the deleted values are none, 1, 1, 4. The answer is 4: delete -2,
+the subarray [1, 0, 3].
 
 Example 1:
 

@@ -2,15 +2,18 @@
 Given a binary string s, return the minimum number of flips that make s
 monotone increasing. A flip changes a 0 to 1 or a 1 to 0. A binary
 string is monotone increasing when it is some number of 0 followed by
-some number of 1, either number possibly zero. Walk s from left to right
-with two counts, both 0 at the start: the number of 1 seen so far, and
-the minimum flips that make the prefix monotone increasing. At each 1,
-add 1 to the count of 1. At each 0 there are two ways to make the prefix
-monotone increasing. Flip this 0 to 1: the flips so far plus 1. Or flip
-every 1 before it to 0: as many flips as the count of 1. Take the
-smaller. For example with s = "0110", the first 0 takes the smaller of
-0 + 1 and 0, the two 1 raise the count of 1 to 2, and the last 0 takes
-the smaller of 0 + 1 and 2. The answer is 1.
+some number of 1, either number possibly zero.
+
+Iterate over s from left to right with two counts, both 0 at the start:
+the number of 1 seen so far, and the minimum flips that make the prefix
+monotone increasing. At each 1, add 1 to the count of 1. At each 0 there
+are two ways to make the prefix monotone increasing. Flip this 0 to 1:
+the flips so far plus 1. Or flip every 1 before it to 0: as many flips
+as the count of 1. Take the smaller.
+
+For example with s = "0110", the first 0 takes the smaller of 0 + 1 and
+0, the two 1 raise the count of 1 to 2, and the last 0 takes the smaller
+of 0 + 1 and 2. The answer is 1.
 
 Example 1:
 

@@ -43140,6 +43140,22 @@
       "note": "Kadane's: end tracks the best sum ending at the current element via max(x, end + x), best tracks the running maximum.",
       "summary": "The mu code implements Kadane's algorithm in maxSubArray: for each x it updates end to max(x, end + x) and best to the running maximum of end. This exercises running-sum (the carried end state) and running-extreme (best-so-far). All assertions pass, including the large negative and positive arrays.",
       "seconds": 739
+    },
+    "solved/d_Path_Cost_After_Reversing_One_Suffix_2026_11_03T06_00_09_273287_00_00Z.mu": {
+      "date": "2026-11-03",
+      "problem": "drill",
+      "drill": "d321",
+      "moves": {
+        "running-extreme": "clean",
+        "running-sum": "clean"
+      },
+      "assist": {
+        "running-extreme": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say 'Learning'; the max-saving tracking is the running-extreme move.",
+      "summary": "The mu solution walks nums once, accumulating the total adjacent cost in `total` and tracking the best saving in `saving` via max(saving, cost - abs(prev - last)), then returns total - saving. It exercises running-sum and running-extreme. The notes state 'Learning', so the running-extreme move is marked as assisted at the learning level.",
+      "seconds": 867
     }
   }
 }

@@ -1,18 +1,22 @@
 """
-Given an integer array nums, visit its elements in order, starting at
-value 0. Each move from value a to value b costs abs(a - b). Before the
-walk you may reverse a suffix of nums, nums[k:] for any index k. Return
-the smallest total cost. A reversed suffix is walked backwards over the
-same pairs, so every move inside it costs the same as before, and only
-the move into the suffix changes: from the value before nums[k], the
-move into nums[k] becomes a move into the last element of nums. So walk
-nums once with the total cost and the largest saving of any move: the
-cost of the move into nums[k] minus the cost of a move from the same
-value into the last element. Reversing the last element alone changes
-nothing, so the saving is at least 0. The answer is the total minus the
-largest saving. For example with nums = [2, 6, 5] the moves cost 2, 4,
-1 for a total of 7. The move 2 to 6 costs 4 and the move 2 to 5 costs
-3, a saving of 1. The answer is 6, the walk 0, 2, 5, 6.
+Given an integer array nums, return the smallest total cost of the path
+0, nums[0], nums[1], ..., nums[-1] after you reverse one suffix of nums.
+Each pair of consecutive values a, b on the path costs abs(a - b).
+Before you cost the path you reverse a suffix nums[k:] for any index k;
+the last element alone counts, and reversing it changes nothing.
+
+A reversed suffix has the same consecutive pairs in reverse order, so
+every pair inside it costs the same as before. Only the pair into the
+suffix changes: the value before nums[k] is now paired with the last
+element of nums instead of nums[k]. So iterate over nums once with the
+total cost and the largest saving of any pair: the cost of the pair
+(previous value, nums[k]) minus the cost of the pair (previous value,
+last element). The saving is at least 0. The answer is the total minus
+the largest saving.
+
+For example with nums = [2, 6, 5] the path is 0, 2, 6, 5 and its pairs
+cost 2, 4, 1 for a total of 7. The pair (2, 6) costs 4 and the pair (2,
+5) costs 3, a saving of 1. The answer is 6, the path 0, 2, 5, 6.
 
 Example 1:
 
@@ -23,7 +27,7 @@ Example 2:
 
 Input: nums = [9, 1, 2]
 Output: 11
-Explanation: reverse the whole array and walk 0, 2, 1, 9.
+Explanation: reverse the whole array; the path is 0, 2, 1, 9.
 
 Example 3:
 
@@ -37,7 +41,7 @@ Constraints:
     0 <= nums[i] <= 10^9
 
     REQUIRED: O(n) time, a single pass. NO rebuilding the reversed
-    array for each k: n reversals each walked in full is quadratic and
+    array for each k: n reversals each iterated in full is quadratic and
     is the failure mode this drill exists to kill.
 """
 

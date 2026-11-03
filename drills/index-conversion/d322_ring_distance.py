@@ -1,12 +1,14 @@
 """
-Given two positions a and b on a ring of m positions numbered 0 to
-m - 1, where position 0 and position m - 1 are adjacent, return the
-smallest number of steps from a to b. A step moves to an adjacent
-position in either direction. Take the difference abs(a - b): that is
-the number of steps the direct way round. The other way round is m
-minus that. Return the smaller. For example with a = 1, b = 9 and
-m = 10, the direct way is 8 steps and the other way is 2 steps: 1 to 0
-to 9. The answer is 2.
+Given two positions a and b on a ring of m positions numbered 0 to m -
+1, where position 0 and position m - 1 are adjacent, return the smallest
+number of steps from a to b. A step moves to an adjacent position in
+either direction.
+
+Take the difference abs(a - b): that is the number of steps the direct
+way round. The other way round is m minus that. Return the smaller.
+
+For example with a = 1, b = 9 and m = 10, the direct way is 8 steps and
+the other way is 2 steps: 1 to 0 to 9. The answer is 2.
 
 Example 1:
 
