@@ -43415,6 +43415,19 @@
       "note": "O(n^2) DP over pairs(len(dp), back=true); no O(n log n) follow-up bound attempted.",
       "summary": "The mu code builds a dp table filled with 1 and, for each index i, scans earlier indices j in reverse via pairs(len(dp), back=true), updating dp[i] = max(dp[j]+1, dp[i]) when nums[j] < nums[i]. This is the 1D rolling DP recurrence for LIS ending at each index, and all assertions including the 2500-element case pass. No notes were provided.",
       "seconds": 200
+    },
+    "solved/d_Pick_One_Letter_2026_11_04T08_42_50_804843_00_00Z.mu": {
+      "date": "2026-11-04",
+      "problem": "drill",
+      "drill": "d145",
+      "moves": {
+        "running-sum": "clean",
+        "dp-1d-rolling": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "The target dp-1d-rolling node is not exercised; the code is a single running-sum scan that yields the count before incrementing.",
+      "summary": "countPicks walks s plus a trailing space, yielding the running count of c before incrementing it when the current character matches. This is a running-sum scan producing a prefix-count array, not a 1D DP table fill. All assertions pass, including the 100000-length case.",
+      "seconds": 20
     }
   }
 }
