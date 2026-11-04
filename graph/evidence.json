@@ -43590,6 +43590,20 @@
       "judge": "deepseek-chat",
       "summary": "The mu code builds an adjacency list G and in-degree map in_deg from the prerequisites, seeds a deque with all zero-in-degree courses, then runs Kahn's algorithm: pop a node, append it to res, decrement its successors' in-degrees and enqueue any that reach zero. It returns res only when its length equals numCourses, otherwise []. All assertions pass, including the cycle cases and the 2000-node chains.",
       "seconds": 358
+    },
+    "solved/p143_Reorder_List_2026_11_04T21_36_30_237950_00_00Z.mu": {
+      "date": "2026-11-05",
+      "problem": "143",
+      "moves": {
+        "ll-offset-arithmetic": "clean",
+        "ll-pointer-reversal": "clean",
+        "fast-slow-pointers": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Reversal delegated to harness helper linked_list_reverse_k; interleaving done by pointer rewiring without a dummy node.",
+      "summary": "The mu code finds the midpoint with fast/slow pointers (fast advancing two, slow one), cuts the list at slow, reverses the second half via the harness's linked_list_reverse_k, then interleaves the two halves by rewiring a.next and b.next in a single loop. It exercises ll-offset-arithmetic (midpoint split) and ll-pointer-reversal (through the helper), while the dummy-node splice is not used. LeetCode reports Accepted (2 ms, 27.6 MB) and all local assertions pass.",
+      "seconds": 371,
+      "learning": true
     }
   }
 }
