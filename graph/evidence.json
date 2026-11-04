@@ -43194,6 +43194,19 @@
       "judge": "deepseek-chat",
       "summary": "The query groups Transactions by country and computes approved_count with sum(case when state = 'approved' then 1 else 0 end), so declined-only countries still appear with 0. It exercises conditional aggregation inside a GROUP BY, and both example assertions pass.",
       "seconds": 149
+    },
+    "solved/d_Reverse_K_2026_11_04T02_59_37_431446_00_00Z.mu": {
+      "date": "2026-11-04",
+      "problem": "drill",
+      "drill": "d184",
+      "moves": {
+        "ll-pointer-reversal": "clean",
+        "ll-dummy-splice": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "reverseK reverses the first k nodes with a dummy head and re-links the tail to the remainder; all assertions passed.",
+      "summary": "reverseK uses a dummy node d and a loop that flips each node's next pointer into d.next while advancing h, decrementing k, then reattaches the original head t to the remaining list. This exercises pointer reversal plus dummy-node splicing. The run exited 0 with every assertion passing, including the 5000-element case.",
+      "seconds": 93
     }
   }
 }
