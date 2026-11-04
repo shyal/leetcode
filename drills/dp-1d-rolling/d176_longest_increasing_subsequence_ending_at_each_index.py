@@ -1,11 +1,9 @@
 """
-Given an integer array nums. Make a table dp with one cell per index of
-nums, every cell 1. Visit every pair of indices j < i. When nums[j] is
-smaller than nums[i], set dp[i] to the larger of dp[i] and dp[j] + 1.
-For example with nums = [4, 1, 6, 2, 8, 5, 9], the 5 at index 5 sees
-4, 1 and 2 as smaller. Their cells hold 1, 1 and 2, so dp[5] becomes
-2 + 1 = 3. Return dp. The cell dp[i] is the length of the longest
-strictly increasing subsequence of nums that ends at nums[i].
+Given an integer array nums, return an array dp of the same length. The
+cell dp[i] is the length of the longest strictly increasing subsequence of
+nums that ends at index i. For example with nums = [4, 1, 6, 2, 8, 5, 9],
+the longest strictly increasing subsequence that ends at index 5 is
+1, 2, 5, so dp[5] is 3.
 
 Example 1:
 
@@ -22,17 +20,14 @@ Example 3:
 
 Input: nums = [2, 3, 1, 4]
 Output: [1, 2, 1, 3]
-Explanation: three values before the 4 are smaller than it, but their
-cells hold 1, 2 and 1, so dp[3] is 2 + 1 = 3, not 4.
+Explanation: the longest ending at the 4 is 2, 3, 4, so dp[3] is 3.
 
 Constraints:
 
     1 <= len(nums) <= 2500
     -10^4 <= nums[i] <= 10^4
 
-    REQUIRED: O(n^2). NO sorting, NO binary search. Each cell MUST be
-    built from the earlier cells it can follow; counting the smaller
-    values before i returns 4 at the end of Example 3.
+    REQUIRED: O(n^2). NO sorting, NO binary search.
 """
 
 
