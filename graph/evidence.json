@@ -43463,6 +43463,18 @@
       "note": "The GROUP BY e.name is redundant but harmless since names are unique here; the LEFT JOIN is what keeps unmatched employees.",
       "summary": "The query selects u.unique_id and e.name from Employees as e, LEFT JOIN EmployeeUNI as u on e.id = u.id, so every employee row survives with NULL where no unique_id exists. It exercises the left-join-keep move, and both example assertions pass, including the empty EmployeeUNI case. No notes were provided.",
       "seconds": 236
+    },
+    "solved/d_Keep_Smallest_Id_Per_Email_2026_11_04T20_05_08_808732_00_00Z.mu": {
+      "date": "2026-11-05",
+      "problem": "drill",
+      "drill": "d35",
+      "moves": {
+        "sql-dedupe-keep-one": "clean",
+        "sql-group-aggregate": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The query groups Person by email and selects min(id) alongside email, so each email keeps its smallest id. This exercises the dedupe-keep-one move (GROUP BY key with MIN(id)) and the group-aggregate move. Both example assertions passed under the sqlite runner.",
+      "seconds": 65
     }
   }
 }
