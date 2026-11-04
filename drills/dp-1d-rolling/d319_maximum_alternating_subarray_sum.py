@@ -5,18 +5,6 @@ element minus its second plus its third, and so on: the elements at even
 positions in the subarray are added, the elements at odd positions are
 subtracted.
 
-Iterate over nums from the left with two values: the largest alternating
-sum of a subarray that ends at the current element with that element
-added, and the largest with that element subtracted. At each element x,
-the added value is the larger of x on its own and x plus the previous
-subtracted value. The subtracted value is the previous added value minus
-x. Compute both from the previous pair before either changes. The answer
-is the largest value seen in either.
-
-For example with nums = [-54, 77, 97], the added values are -54, 77, 97
-and the subtracted values are none, -131, -20. The answer is 97, the
-subarray [97].
-
 Example 1:
 
 Input: nums = [-54, 77, 97]
@@ -41,10 +29,8 @@ Constraints:
     1 <= len(nums) <= 10^5
     -10^5 <= nums[i] <= 10^5
 
-    REQUIRED: O(n) time, O(1) extra space, a single pass. Both values
-    must come from the previous pair: updating the added value first and
-    reading it for the subtracted value puts x on both sides. NO
-    enumeration of subarrays. The empty subarray is not allowed.
+    REQUIRED: O(n) time, O(1) extra space, a single pass. NO enumeration
+    of subarrays. The empty subarray is not allowed.
 """
 
 
