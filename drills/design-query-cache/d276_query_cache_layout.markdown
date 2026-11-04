@@ -5,7 +5,6 @@ month, 270 bytes per cached entry, and limited memory.
 Give the three ways to store the cache on many machines, the trade of each,
 and the one to choose.
 
-REQUIRED: the three layouts with their trades, the sharded one chosen.
-Choosing a copy per machine is the fail.
+REQUIRED: the three layouts with their trades and the one chosen.
 
 ## Answer

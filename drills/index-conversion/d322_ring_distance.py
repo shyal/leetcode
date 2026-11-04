@@ -27,8 +27,7 @@ Constraints:
     2 <= m <= 10^9
     0 <= a, b < m
 
-    REQUIRED: O(1), arithmetic only. No loop over k. abs(a - b) alone is
-    wrong: it returns 8 on Example 1.
+    REQUIRED: O(1), arithmetic only. NO loop over k.
 """
 
 

@@ -31,10 +31,7 @@ Constraints:
     1 <= len(nums) <= 10^5
     -10^9 <= nums[i] <= 10^9
 
-    REQUIRED: one pass, amortized O(n). No scanning ahead - re-scanning
-    the right side for each index is O(n^2), the failure mode this drill
-    exists to kill. A plain list as a stack, or your own
-    dsa/monotonic_stack.py.
+    REQUIRED: one pass, amortized O(n). NO scanning ahead.
 """
 
 

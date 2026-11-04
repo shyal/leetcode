@@ -27,9 +27,7 @@ Constraints:
     Every start has a matching end, and the innermost running call ends first.
     No two starts share a t, and no two ends share a t.
 
-    REQUIRED: one pass, O(len(events)). NO second pass over events. A
-    start's parent is the innermost call still running, not the last
-    call started; after an end, the next start belongs one level up.
+    REQUIRED: one pass, O(len(events)). NO second pass over events.
 """
 
 

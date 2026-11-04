@@ -26,9 +26,7 @@ Constraints:
 
     0 <= a, b <= limit <= 10^5
 
-    REQUIRED: O(limit) time, one breadth-first search over values. Every
-    reachable value is expanded once. NO greedy choice of the value nearest
-    to b.
+    REQUIRED: O(limit) time. NO greedy choice of the value nearest to b.
 """
 
 

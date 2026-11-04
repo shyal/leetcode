@@ -28,9 +28,7 @@ Constraints:
     1 <= n, m <= 400
     grid[r][c] is 0, 1 or 2
 
-    REQUIRED: O(n * m) time, one breadth-first search whose queue starts with
-    every 1 cell, returning on the first 2 popped. NO distance table, NO
-    second search.
+    REQUIRED: O(n * m) time. NO distance table, NO second search.
 """
 
 

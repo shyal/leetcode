@@ -27,12 +27,7 @@ Constraints:
     1 <= len(s) <= 10^5
     s contains lowercase English letters.
 
-    REQUIRED: one pass, O(n). Both ends of the window move forward only.
-    The window's counts are maintained by one add and one remove, never
-    rebuilt. A legal window can hold a shorter legal window inside it, so
-    measuring a window the moment it first becomes legal is the failure
-    mode this drill exists to kill: it silently returns lengths that are
-    too large.
+    REQUIRED: one pass, O(n). NO rebuilding the window's counts.
 """
 
 

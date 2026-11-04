@@ -23,9 +23,7 @@ Constraints:
     s contains lowercase English letters.
 
     REQUIRED: len(s) * (len(s) + 1) / 2 entries, one per position, in
-    the stated order. NO set, NO deduplication: dropping a repeat is the
-    failure mode this drill exists to kill, and every count built on
-    this list comes out short.
+    the stated order. NO set, NO deduplication.
 
 Note: "everything that ends here, over its starts" is the loop of the
 counting window (713, 992, 2962, 3258) and of every prefix DP where the

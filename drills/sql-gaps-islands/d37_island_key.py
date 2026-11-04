@@ -66,8 +66,7 @@ Constraints:
     1 <= number of rows <= 10^5
     1 <= id <= 10^9
 
-    REQUIRED: one pass over Seats with a window function, rows numbered by
-    id.
+    REQUIRED: one pass over Seats.
 
     FORBIDDEN: a self-join; a correlated subquery; numbering by physical
     order.

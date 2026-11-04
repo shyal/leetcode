@@ -21,9 +21,7 @@
 //     -10^9 <= a, b <= 10^9
 //     a and b are i32
 //
-//     REQUIRED: the body is one if/else whose two branches are the values
-//     a and b, and that if/else is the function's value. NO return keyword,
-//     NO extra variable, NO function call.
+//     REQUIRED: NO return keyword, NO extra variable, NO function call.
 
 fn bigger(a: i32, b: i32) -> i32 {
     todo!()

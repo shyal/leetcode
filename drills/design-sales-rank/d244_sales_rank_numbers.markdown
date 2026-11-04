@@ -6,6 +6,6 @@ bytes per transaction.
 Write the transactions per second, the read requests per second and the new
 content per month.
 
-REQUIRED: the three numbers. Mixing up the read and write rates is the fail.
+REQUIRED: the three numbers.
 
 ## Answer

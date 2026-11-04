@@ -59,8 +59,7 @@ Constraints:
     1 <= number of rows <= 10^4
     0.0 <= rating <= 10.0
 
-    REQUIRED: one SELECT with a WHERE and an ORDER BY; filtering and
-    ordering happen in SQL.
+    REQUIRED: one query; filtering and ordering happen in SQL.
 
     FORBIDDEN: pulling rows into Python and filtering there.
 

@@ -37,9 +37,8 @@ Constraints:
     Parentheses are balanced; every bundle and the whole string start
     with a number or a '('.
 
-    REQUIRED: `atom` peeks at one character and consumes exactly one
-    part - a plain amount or a whole bundle - leaving the cursor just
-    past what it consumed, ')' included.
+    REQUIRED: NO digit read inside `atom`, NO int() inside `atom`, NO
+    regex.
 """
 
 from dsa.recursive_descent import Parser

@@ -35,9 +35,9 @@ Constraints:
 
     2 <= n <= 20
 
-    REQUIRED: do not change the stub's loop over the cells. Each cell gets its
-    number by O(1) arithmetic on n, r and c. NO counter carried from one
-    cell to the next. The parity test is on r: the top row is even.
+    REQUIRED: do not change the stub's loop over the cells. Each cell
+    gets its number by O(1) arithmetic on n, r and c. NO counter carried
+    from one cell to the next.
 """
 
 

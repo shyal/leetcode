@@ -6,7 +6,6 @@ billion read requests and 10 billion searches per month.
 
 Name the bottleneck of the fan out and give two ways to mitigate it.
 
-REQUIRED: the highly-followed user and two mitigations. Fanning out every
-tweet the same way is the fail.
+REQUIRED: the bottleneck and two mitigations.
 
 ## Answer

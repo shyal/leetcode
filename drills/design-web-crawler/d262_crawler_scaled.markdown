@@ -6,7 +6,6 @@ page, and 100 billion searches per month.
 
 Give two measures that scale the crawler.
 
-REQUIRED: two measures. Leaving DNS lookup to the operating system on every
-crawl is the fail.
+REQUIRED: two measures.
 
 ## Answer

@@ -70,8 +70,7 @@ Constraints:
 
     1 <= number of rows <= 10^4
 
-    REQUIRED: the rank is computed per department by a window function and
-    filtered in an outer query or CTE.
+    REQUIRED: one query.
 
     FORBIDDEN: a correlated subquery per row; referencing the window in the
     WHERE of the query that computes it (windows run after WHERE); a rank

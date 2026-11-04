@@ -5,7 +5,6 @@ month, 270 bytes per cached entry, and limited memory.
 Write the requests per second and the cache data per month if every query were
 unique and stored.
 
-REQUIRED: both numbers. Dropping the per-entry size from the monthly total is
-the fail.
+REQUIRED: both numbers.
 
 ## Answer

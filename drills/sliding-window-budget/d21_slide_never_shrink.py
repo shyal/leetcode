@@ -32,11 +32,8 @@ Constraints:
     0 <= k <= len(nums)
     nums[i] is 0 or 1.
 
-    REQUIRED: one pass, O(n), O(1) extra space. left advances at most
-    ONCE per element read: use `if`, NEVER `while`. The width never
-    decreases. Shrinking back to a legal window on every step is the
-    failure mode this drill exists to kill: it is the shape of Grow and
-    Shrink, and writing it here means the drill was not attempted.
+    REQUIRED: one pass, O(n), O(1) extra space. NO `while` loop inside
+    the pass.
 """
 
 

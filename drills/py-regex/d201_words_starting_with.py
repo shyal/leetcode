@@ -22,9 +22,8 @@ Constraints:
     1 <= len(s) <= 10^4
     s has lowercase letters and single spaces only; c is one lowercase letter.
 
-    REQUIRED: one re.findall with a raw-string pattern that anchors on a
-    word boundary \b and takes the rest of the word with [a-z]*. NO
-    split, NO startswith, NO loop over words.
+    REQUIRED: one re.findall. NO split, NO startswith, NO loop over
+    words.
 """
 
 import re

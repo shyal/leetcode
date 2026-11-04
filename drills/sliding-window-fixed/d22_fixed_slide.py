@@ -25,12 +25,8 @@ Constraints:
     1 <= k <= len(s) <= 10^5
     s contains lowercase English letters.
 
-    REQUIRED: one pass, O(n). The window's counts are MAINTAINED across
-    the slide: one character enters on the right and one leaves on the
-    left, and each costs O(1). Rebuilding the summary per window, with
-    Counter(s[i:i+k]) or set(s[i:i+k]) or a fresh scan of the slice, is
-    the failure mode this drill exists to kill. len(s) makes O(n*k) a
-    TLE. A plain dict is fine, or your own dsa/sliding_window.py.
+    REQUIRED: one pass, O(n). NO Counter(s[i:i+k]), NO set(s[i:i+k]), NO
+    fresh scan of the slice per window.
 """
 
 

@@ -5,8 +5,6 @@ bytes per transaction.
 
 Write the two steps of the computation and say where its result goes.
 
-REQUIRED: the MapReduce to (category, product_id) with the summed quantity,
-the distributed sort, the sales_rank table with its indexes. Computing the
-rank with a query per page view is the fail.
+REQUIRED: the computation, the sort and the table.
 
 ## Answer

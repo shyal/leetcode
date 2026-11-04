@@ -6,6 +6,6 @@ graph database.
 
 Name the algorithm when everything fits on one machine.
 
-REQUIRED: breadth first search. Dijkstra on unweighted edges is the fail.
+REQUIRED: one algorithm.
 
 ## Answer

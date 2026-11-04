@@ -56,8 +56,7 @@ Constraints:
 
     1 <= number of rows <= 10^4
 
-    REQUIRED: 'previous' is the previous calendar date, computed by the
-    engine.
+    REQUIRED: 'previous' is the previous calendar date, computed in SQL.
 
     FORBIDDEN: comparing with id - 1 or with the previous physical row;
     Python.

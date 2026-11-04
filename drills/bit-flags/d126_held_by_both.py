@@ -25,9 +25,8 @@ Constraints:
     0 <= len(names) <= 1000
     names[i] is "red", "green" or "blue".
 
-    REQUIRED: O(n). One membership test per name, on one value built
-    from a and b. NO test on a and then on b. NO conversion of a or b
-    to an int, a set or a list.
+    REQUIRED: O(n), one membership test per name. NO test on a and then
+    on b. NO conversion of a or b to an int, a set or a list.
 """
 
 from enum import Flag, auto

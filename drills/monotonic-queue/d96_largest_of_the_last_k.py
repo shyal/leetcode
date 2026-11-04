@@ -22,8 +22,7 @@ Constraints:
     1 <= k <= len(nums) <= 10^5
     -10^4 <= nums[i] <= 10^4
 
-    REQUIRED: one pass, O(n) total. Each value enters the queue once and
-    leaves at most once. NO max() over a slice, NO heap.
+    REQUIRED: one pass, O(n) total. NO max() over a slice, NO heap.
 """
 
 from dsa.monotonic_queue import MonotonicQueue, Type
