@@ -319,6 +319,35 @@ fn under_the_anki_clock_a_solid_node_still_serves_its_due_drill() {
     assert_eq!(due(&held), None);
 }
 
+/// DRILL_SCHEDULER=anki: a node with a drill never done is off its rest,
+/// and the node rule then serves its least recently done file every day.
+/// Under the file clock that file still waits for its due day (d128 came
+/// back 45 days early on 2026-11-05 behind d320, held by the band).
+#[test]
+fn under_the_anki_clock_a_node_off_its_rest_serves_no_file_before_its_due_day() {
+    let mut fx = Fx::new();
+    fx.flat_window();
+    let path = fx.bank("some-node", "Own", "o.py", "d1", &[]);
+    fx.stubs().undone = set(&["some-node"]);
+    let due = |ev: &Evidence| due_drill(&fx.ctx(), "some-node", ev, today(), false, false);
+    let ev = || {
+        evidence(vec![
+            solve("7", &[("some-node", "clean")], 2),
+            drill_rep("Own", "some-node", 9),
+            drill_rep("Own", "some-node", 8),
+            drill_rep("Own", "some-node", 5),
+        ])
+    }; // interval 8: due in 3 days
+    assert_eq!(due(&ev()), Some(path.clone()));
+    test_env("DRILL_SCHEDULER", "anki");
+    assert_eq!(due(&ev()), None);
+    let overdue = evidence(vec![
+        solve("7", &[("some-node", "clean")], 2),
+        drill_rep("Own", "some-node", 5),
+    ]); // interval 1: due 4 days ago
+    assert_eq!(due(&overdue), Some(path));
+}
+
 /// A SOLID node off its floor is not due under the node clock. With
 /// DRILL_SCHEDULER=anki it is due when its bank has a due file, after
 /// FRAGILE and floor moves and before STALE ones, and the reason names

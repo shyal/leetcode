@@ -962,11 +962,18 @@ fn due_drill_uncached(
     if candidates.is_empty() {
         return None;
     }
-    let pool = if assisted {
+    let mut pool = if assisted {
         candidates
     } else {
         servable_drills(ctx, &candidates, ev, Some(node), early)
     };
+    if anki() {
+        // under the file clock no rule serves a file before its due day:
+        // a held never-done file left the node off its rest and the rule
+        // below served its least recent file daily (d128 on 2026-11-05,
+        // 45 days early)
+        pool.retain(|p| anki_due(ctx, p, ev).is_none_or(|(due, _)| due <= day));
+    }
     if pool.is_empty() {
         return None;
     }
