@@ -793,15 +793,60 @@ fn passed_drill_moves(
     moves
 }
 
+/// The statement's REQUIRED paragraph, the one line the candidate saw of
+/// the contract: from `REQUIRED:` to the next blank line of the header,
+/// on one line. "" when the header has none.
+fn required_of(code: &str, lang: &kg::lang::Lang) -> String {
+    let Some(header) = kg::lang::header(code, lang) else {
+        return String::new();
+    };
+    let Some(start) = header.find("REQUIRED:") else {
+        return String::new();
+    };
+    header[start..]
+        .lines()
+        .map(str::trim)
+        .take_while(|l| !l.is_empty())
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+/// The drill's whole contract for the judge: the REQUIRED line the
+/// candidate saw (the bound and the bans) and the drills.json "judge"
+/// text the candidate did not (the members, steps or failure mode that
+/// name the solution). The judge never sees the statement otherwise
+/// (strip_statement), so this is the only place the bans reach it.
+fn contract_of(code: &str, lang: &kg::lang::Lang, drill: Option<&str>, drills: &DrillMap) -> String {
+    let judge = drill
+        .and_then(|d| drills.get(d))
+        .map(|e| e.judge.trim().to_string())
+        .unwrap_or_default();
+    [required_of(code, lang), judge]
+        .into_iter()
+        .filter(|s| !s.is_empty())
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
 /// The line that opens a drill's prompt. A passing drill is judged on its
-/// target nodes. A failing one is judged on them only when the defect is in
+/// target nodes, against the contract: a rep that passed the asserts by a
+/// route the contract rules out (a ban broken, the move sidestepped) is
+/// "struggled", because the asserts cannot tell the move from a stand-in.
+/// A failing one is judged on them only when the defect is in
 /// the target move: a failed rep whose code never reached the move says
 /// nothing about it (Cut To K, 2026-09-30: a slice bug in the split marked
 /// binary-search-on-answer struggled and turned the node FRAGILE, while
 /// the summary of the same verdict said the move was not exercised).
-fn drill_lead(trains: &[String]) -> String {
+fn drill_lead(trains: &[String], contract: &str) -> String {
+    let contract = if contract.is_empty() {
+        String::new()
+    } else {
+        format!(
+            " CONTRACT: {contract} The candidate saw only the REQUIRED part of it. If the run passed but the code does not meet the contract, mark the target node \"struggled\" and name the unmet part in the note."
+        )
+    };
     format!(
-        "This is a DRILL file targeting these taxonomy nodes: {}. If the run passed, judge at least those moves. If the run failed, mark a target node \"struggled\" ONLY when the defect is in that move itself. When the code never reached the target move, or the defect lies in other code (a slice, an index, a helper, a typo), leave the target node OUT of \"moves\" and say where the defect was in the note. A FAILED line in the notes does not change this.",
+        "This is a DRILL file targeting these taxonomy nodes: {}.{contract} If the run passed and the contract is met, judge at least those moves. If the run failed, mark a target node \"struggled\" ONLY when the defect is in that move itself. When the code never reached the target move, or the defect lies in other code (a slice, an index, a helper, a typo), leave the target node OUT of \"moves\" and say where the defect was in the note. A FAILED line in the notes does not change this.",
         if trains.is_empty() {
             "unknown".to_string()
         } else {
@@ -893,7 +938,8 @@ fn extract_one(
         );
     }
     if is_drill {
-        prompt = format!("{}\n\n{prompt}", drill_lead(&trains));
+        let contract = contract_of(&code, lang, drill, drills);
+        prompt = format!("{}\n\n{prompt}", drill_lead(&trains, &contract));
     } else if let Some((pnum, _)) = problem_of_fname(path) {
         let canon = canon_of(&pnum);
         if !canon.is_empty() {
@@ -952,7 +998,7 @@ Rules:
 - Verdicts: "clean" (executed correctly), "struggled" (bugs/confusion visible in code or notes, e.g. notes saying looked-up/hints/TLE/failed), "avoided" (canonical move sidestepped).
 - A failing run condemns ONE move, not the whole walk. Find the defect - the line the traceback points at, the wrong bound, the missing case - and mark "struggled" only on the move that line belongs to. Every other move the code exercised correctly stays "clean": an IndexError in a grid boundary test is not evidence against the recursion or the memoization that ran fine around it. If the defect belongs to no node in the taxonomy - index arithmetic, an off-by-one in a bound, a typo - mark NO move "struggled" and say where the defect was in the note.
 - A file may hold a comment block headed `# mu <version>` (older files: `# mu source (current.mu)`): the candidate wrote that solution in mu, a small language transpiled to Python, and the class under the block is the transpiler's output, which is what ran. Judge the moves from the mu source and use its names. A `.mu` file is the mu source alone, run with `mu FILE`: there is no transpiled class in it. In mu, `for i, x in xs` enumerates; `sum|max|min|count [from s] for x in xs [if c]: e` is a fold; `first x in lo..hi if ok(x)` is a binary search for the least x with ok(x); `memo f(a) =` with `| guard -> value` lines is cached recursion; `stack <- x` appends; `stack .` pops; the last line of a def is its value. Helpers the transpiler pasted above the class (cells, nbrs, table, like, pairs, levels, adjacency, indegrees, components, graph, dijkstra, Grid, deep) are the harness's, never the candidate's moves.
-- A drill file (the lead above the file says so and names its target nodes) is written to train exactly those nodes. If it ran and its REQUIRED line is met, that node is "clean", whatever API spelling the code used: select("a", "b") trains a column-expression rung as well as select(F.col("a")) does. "avoided" is for a leetcode carrier whose central move was sidestepped, never for a drill that passed.
+- A drill file (the lead above the file says so and names its target nodes) is written to train exactly those nodes. If it ran and the CONTRACT in the lead is met, that node is "clean", whatever API spelling the code used: select("a", "b") trains a column-expression rung as well as select(F.col("a")) does. "avoided" is for a leetcode carrier whose central move was sidestepped, never for a drill that passed.
 - "assist" is a SEPARATE axis from the verdict, read ONLY from the candidate's own notes — never inferred from how the code looks. A confident-looking solve with a note saying it was walked through is "walkthrough"; a messy solve with no note is "none". Levels: "none" (no note claiming help), "hint" (a nudge, a question, a pointer at the wrong branch), "walkthrough" (the approach/recurrence was talked through before the code existed), "learning" (the solution was given and copied). An explicit `ASSIST: <level>` line in the notes overrides your reading. Assist is PER MOVE: when the notes say what the help was on ("assisted on the window bookkeeping, the prefix sums were mine"), put the level on that move only and leave the others out, because a level on a move says the candidate could not recall THAT move unaided. When the notes claim help without saying where, put the level on every move in "moves". Omit the key, or use {{}}, when there was no help.
 - Only include moves with real evidence in this code. 1-6 moves is typical.
 - If a required move has no taxonomy node, put a 3-8 word description in "unmapped".
@@ -1820,6 +1866,49 @@ mod tests {
 
     const SOLVE: &str = "\"\"\"\n1. Two Sum\n\nGiven an array of integers, return indices of the two numbers that add to\ntarget.\n\n---\nPeeked at the editorial for the complement trick.\n\"\"\"\n\nfrom typing import List\n\n\nclass Solution:\n    def twoSum(self, nums: List[int], target: int) -> List[int]:\n        seen = {}  # running dict, built as we scan\n        for i, n in enumerate(nums):\n            if target - n in seen:\n                return [seen[target - n], i]\n            seen[n] = i\n\n\nsol = Solution()\nassert sol.twoSum([2, 7, 11, 15], 9) == [0, 1]\n";
 
+    /// The judge never sees a drill's statement, so its lead carries the
+    /// contract: the REQUIRED line the candidate saw, on one line, and the
+    /// drills.json "judge" text the candidate did not. A passing run that
+    /// breaks it is "struggled".
+    #[test]
+    fn a_drill_lead_carries_the_contract() {
+        let code = "\"\"\"\nReverse Iterator\n\nConstraints:\n\n    1 <= len(data)\n\n    REQUIRED: O(1) extra space. NO reversed(),\n    NO slicing.\n\"\"\"\n\n\nclass Solution:\n    pass\n";
+        assert_eq!(
+            required_of(code, &kg::lang::PYTHON),
+            "REQUIRED: O(1) extra space. NO reversed(), NO slicing."
+        );
+        assert_eq!(required_of("\"\"\"\nNo contract\n\"\"\"\n", &kg::lang::PYTHON), "");
+        let mut drills = DrillMap::new();
+        drills.insert(
+            "d200".to_string(),
+            kg::data::DrillEntry {
+                title: "Reverse Iterator".into(),
+                file: "py-iterator-protocol/d200_reverse_iterator.py".into(),
+                after: vec![],
+                trains: Some(vec!["py-iterator-protocol".into()]),
+                disabled: false,
+                judge: "__iter__ returns self; __next__ raises StopIteration at index 0.".into(),
+            },
+        );
+        let contract = contract_of(code, &kg::lang::PYTHON, Some("d200"), &drills);
+        assert_eq!(
+            contract,
+            "REQUIRED: O(1) extra space. NO reversed(), NO slicing. __iter__ returns self; __next__ raises StopIteration at index 0."
+        );
+        // no entry: the REQUIRED line alone
+        assert_eq!(
+            contract_of(code, &kg::lang::PYTHON, Some("d999"), &drills),
+            "REQUIRED: O(1) extra space. NO reversed(), NO slicing."
+        );
+        let lead = drill_lead(&["py-iterator-protocol".to_string()], &contract);
+        assert!(lead.contains(&format!("CONTRACT: {contract} The candidate saw only the REQUIRED part")));
+        assert!(lead.contains("does not meet the contract, mark the target node \"struggled\""));
+        // no contract at all: the lead says nothing of one
+        let bare = drill_lead(&["py-iterator-protocol".to_string()], "");
+        assert!(!bare.contains("CONTRACT"));
+        assert!(bare.starts_with("This is a DRILL file targeting these taxonomy nodes: py-iterator-protocol. If the run passed"));
+    }
+
     /// A design drill is graded against its reference: the lead carries
     /// the statement and the reference found by the DRILL title, and says
     /// that nothing ran.
@@ -1842,6 +1931,7 @@ mod tests {
                 after: vec![],
                 trains: Some(vec!["design-cache-aside".into()]),
                 disabled: false,
+                judge: String::new(),
             },
         );
         let code = "Describe the read path.\n\n## Answer\n\nCache first.\n";
@@ -1908,13 +1998,13 @@ mod tests {
     /// (Cut To K, 2026-09-30).
     #[test]
     fn a_failed_drill_does_not_mark_a_move_it_never_reached() {
-        let lead = drill_lead(&["binary-search-on-answer".to_string()]);
+        let lead = drill_lead(&["binary-search-on-answer".to_string()], "");
         assert!(lead.contains("targeting these taxonomy nodes: binary-search-on-answer."));
-        assert!(lead.contains("If the run passed, judge at least those moves."));
+        assert!(lead.contains("If the run passed and the contract is met, judge at least those moves."));
         assert!(lead.contains("ONLY when the defect is in that move itself"));
         assert!(lead.contains("leave the target node OUT of \"moves\""));
         assert!(!lead.contains(". Judge at least those moves."));
-        assert!(drill_lead(&[]).contains("nodes: unknown."));
+        assert!(drill_lead(&[], "").contains("nodes: unknown."));
     }
 
     /// utils/tests/test_kg_extract.py: the notes survive the statement strip.
@@ -2055,6 +2145,7 @@ mod tests {
                     after: vec![],
                     trains: Some(trains.into_iter().map(String::from).collect()),
                     disabled: false,
+                    judge: String::new(),
                 },
             );
         }

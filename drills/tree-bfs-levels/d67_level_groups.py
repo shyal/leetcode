@@ -26,10 +26,8 @@ Constraints:
 
     1 <= total nodes <= 10^4
 
-    REQUIRED: iterative, with a queue (collections.deque). NO recursion,
-    no depth bookkeeping carried on the nodes or beside them in the
-    queue. Mixing two depths in one output group is the failure mode
-    this drill exists to kill.
+    REQUIRED: iterative. NO recursion, NO depth stored on a node or
+    beside it.
 """
 
 

@@ -30,9 +30,7 @@ Constraints:
     s contains lowercase English letters.
 
     REQUIRED: len(s) * (len(s) + 1) / 2 entries, one per position, in
-    the stated order. NO set, NO deduplication. The outer loop runs over
-    the length from 1 to len(s); the inner loop runs over the start from
-    0 to len(s) - length.
+    the stated order. NO set, NO deduplication.
 
 Note: "shortest first, and stop at the first hit" is the loop of 3076
 and 1062, where the answer is the shortest or longest substring with a

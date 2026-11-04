@@ -8,9 +8,6 @@ month, 500 million read requests per month, 50 bytes per transaction and
 Write the extraction flow from the request to the stored result, component by
 component, and say why it has a queue.
 
-REQUIRED: the Accounts API, the queue because extraction is slow, the
-Transaction Extraction Service, raw logs in the object store, the Category and
-Budget Services, the two SQL tables, the notification. Extracting inside the
-request is the fail.
+REQUIRED: the components in order and what is asynchronous.
 
 ## Answer

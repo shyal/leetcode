@@ -19,9 +19,8 @@ Constraints:
     1 <= len(s) <= 10^5
     s consists of lowercase English letters.
 
-    REQUIRED: must run in O(n) time, in one pass over s. NO `s.index`
-    and NO scan of s for each character: on 10^5 characters that is the
-    fail.
+    REQUIRED: O(n) time, one pass over s. NO `s.index`, NO scan of s for
+    each character.
 """
 
 

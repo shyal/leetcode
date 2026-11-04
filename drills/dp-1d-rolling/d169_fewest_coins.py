@@ -26,8 +26,7 @@ Constraints:
     1 <= coins[i] <= 2^31 - 1
     0 <= amount <= 10^4
 
-    REQUIRED: O(amount * len(coins)) time, one table entry per amount from 0
-    to amount, each built from smaller amounts. NO largest-coin-first; NO
+    REQUIRED: O(amount * len(coins)) time. NO largest-coin-first, NO
     divmod.
 """
 

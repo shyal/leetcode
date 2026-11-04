@@ -28,8 +28,8 @@ Constraints:
     S starts with a digit; operators are always followed by a number.
     Amounts fit in a normal int; the answer may be negative.
 
-    REQUIRED: one pass over the characters. No eval, no split, no regex,
-    no int() on slices - build each amount digit by digit as you walk.
+    REQUIRED: one pass over the characters. NO eval, NO split, NO regex,
+    NO int() on slices.
 """
 
 

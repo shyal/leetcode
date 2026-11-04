@@ -1,5 +1,5 @@
 {
-  "_comment": "Drills as vertices of the graph. The key is the drill's id (d1, d2, ...): assigned once, never reused, the way LeetCode numbers are; it is what \"after\" lists, make prepare and make next use. \"title\" is what make next, make rep and the commit show; nothing reads it from a file. \"file\" is the bank file, relative to drills/: the one place an id meets its file. A rep's evidence entry carries the id as \"drill\" (written by make solved from .drill.json, 2026-10-24); the reps are found by that, never by the title or a filename. \"after\": [ids] - what this drill builds on; an id is a drill id, a problem number, or a node id, and the drill is not served until each is warm (kg_lib.warm). Filename order means nothing. Seeded 2026-08-31 from the bank's former filename order. \"trains\" is the list of node ids the drill evidences; it lives here, keyed by the stable id, so a node rename never touches a bank file or a solved copy.",
+  "_comment": "Drills as vertices of the graph. The key is the drill's id (d1, d2, ...): assigned once, never reused, the way LeetCode numbers are; it is what \"after\" lists, make prepare and make next use. \"title\" is what make next, make rep and the commit show; nothing reads it from a file. \"file\" is the bank file, relative to drills/: the one place an id meets its file. A rep's evidence entry carries the id as \"drill\" (written by make solved from .drill.json, 2026-10-24); the reps are found by that, never by the title or a filename. \"after\": [ids] - what this drill builds on; an id is a drill id, a problem number, or a node id, and the drill is not served until each is warm (kg_lib.warm). Filename order means nothing. Seeded 2026-08-31 from the bank's former filename order. \"trains\" is the list of node ids the drill evidences; it lives here, keyed by the stable id, so a node rename never touches a bank file or a solved copy. \"judge\" (optional) is the part of the drill's contract that names the solution: the members, steps, conditions or failure mode the rep must show. The judge reads it (kg_extract drill_lead); the reader never does, because the statement's REQUIRED line carries only the complexity bound and the bans (2026-11-05).",
   "drills": {
     "d1": {
       "title": "One From Each",
@@ -7,7 +7,8 @@
       "after": [],
       "trains": [
         "backtracking-choose-undo"
-      ]
+      ],
+      "judge": "The candidates at depth d are the letters of groups[d] and nothing else. One list holds the letters chosen so far, for the whole run; it is joined into a string only when the last group has been chosen from."
     },
     "d2": {
       "title": "No Repeat Siblings",
@@ -15,7 +16,8 @@
       "after": [],
       "trains": [
         "backtracking-dedupe-siblings"
-      ]
+      ],
+      "judge": "A subset joins the answer the moment it is built, and no subset is ever built twice."
     },
     "d3": {
       "title": "Permutations",
@@ -23,7 +25,8 @@
       "after": [],
       "trains": [
         "backtracking-mark-unmark"
-      ]
+      ],
+      "judge": "Every call loops over all of nums from index 0 and decides in O(1) whether an element is already in the ordering being built."
     },
     "d5": {
       "title": "Pairs",
@@ -61,7 +64,8 @@
       ],
       "trains": [
         "backtracking-start-index"
-      ]
+      ],
+      "judge": "A partial sum that already exceeds target is never extended."
     },
     "d9": {
       "title": "Record Every Node",
@@ -71,7 +75,8 @@
       ],
       "trains": [
         "backtracking-start-index"
-      ]
+      ],
+      "judge": "Every subset is recorded exactly once, at the moment it is built."
     },
     "d10": {
       "title": "Sort Bounded Values",
@@ -79,7 +84,8 @@
       "after": [],
       "trains": [
         "counting-sort-buckets"
-      ]
+      ],
+      "judge": "A comparison sort over a value domain of 100 is the fail."
     },
     "d11": {
       "title": "Count Smaller Values",
@@ -89,7 +95,8 @@
       ],
       "trains": [
         "counting-sort-buckets"
-      ]
+      ],
+      "judge": "Comparing every pair is the fail; len(nums) makes it a TLE."
     },
     "d12": {
       "title": "Kth Smallest Bounded Value",
@@ -99,7 +106,8 @@
       ],
       "trains": [
         "counting-sort-buckets"
-      ]
+      ],
+      "judge": "Materialising all n values in order to read one of them is the fail."
     },
     "d13": {
       "title": "Count Missing Integers",
@@ -107,7 +115,8 @@
       "after": [],
       "trains": [
         "index-value-gap"
-      ]
+      ],
+      "judge": "Walking arr and counting gaps one by one is the fail."
     },
     "d14": {
       "title": "Next Greater Index",
@@ -115,7 +124,8 @@
       "after": [],
       "trains": [
         "monotonic-stack"
-      ]
+      ],
+      "judge": "Re-scanning the right side for each index is O(n^2), the fail. A plain list as a stack, or dsa/monotonic_stack.py, is fine."
     },
     "d15": {
       "title": "Range Sum Queries",
@@ -123,7 +133,8 @@
       "after": [],
       "trains": [
         "prefix-sums"
-      ]
+      ],
+      "judge": "Re-summing the slice per query is the fail; len(queries) makes O(n) per query a TLE."
     },
     "d16": {
       "title": "Number Scanner",
@@ -131,7 +142,8 @@
       "after": [],
       "trains": [
         "recursive-descent"
-      ]
+      ],
+      "judge": "The head sees one character at a time and builds the amount as it slides. It stops ON the first character that is not a digit, never one past it: every later rung resumes from self.i, so a head that overshoots by one corrupts the whole parse."
     },
     "d17": {
       "title": "Tape Reader",
@@ -141,7 +153,8 @@
       ],
       "trains": [
         "recursive-descent"
-      ]
+      ],
+      "judge": "Every amount is read by calling self.number(). When the tape ends the cursor rests at len(S)."
     },
     "d18": {
       "title": "Bundle Refunds",
@@ -151,7 +164,8 @@
       ],
       "trains": [
         "recursive-descent"
-      ]
+      ],
+      "judge": "`atom` peeks at one character and consumes exactly one part, a plain amount or a whole bundle, leaving the cursor just past what it consumed, ')' included."
     },
     "d19": {
       "title": "Multi-Buy",
@@ -161,7 +175,8 @@
       ],
       "trains": [
         "recursive-descent"
-      ]
+      ],
+      "judge": "`term` never touches a digit: every part is fetched by calling self.atom(). `term` claims only '*' and '/': it stops the moment it sees '+', '-' or the end of the string, and leaves that character unread. Consuming it makes the multi-buy swallow the rest of the order."
     },
     "d20": {
       "title": "Longest Run of Ones",
@@ -169,7 +184,8 @@
       "after": [],
       "trains": [
         "sliding-window-budget"
-      ]
+      ],
+      "judge": "Two pointers; left advances at most once per element read (an if, never a while). A plain streak counter passes the asserts while skipping the slide, and the slide is the rep: it is the fail."
     },
     "d21": {
       "title": "Slide, Never Shrink",
@@ -179,7 +195,8 @@
       ],
       "trains": [
         "sliding-window-budget"
-      ]
+      ],
+      "judge": "left advances at most once per element read and the width never decreases. Shrinking back to a legal window on every step is the fail: it is the shape of Grow and Shrink, and means the drill was not attempted."
     },
     "d22": {
       "title": "Fixed Slide",
@@ -187,7 +204,8 @@
       "after": [],
       "trains": [
         "sliding-window-fixed"
-      ]
+      ],
+      "judge": "The window's counts are maintained across the slide: one character enters on the right and one leaves on the left, each in O(1). Rebuilding the summary per window is the fail; len(s) makes O(n*k) a TLE. A plain dict, or dsa/sliding_window.py, is fine."
     },
     "d24": {
       "title": "Grow and Shrink",
@@ -197,7 +215,8 @@
       ],
       "trains": [
         "sliding-window-variable"
-      ]
+      ],
+      "judge": "Both ends of the window move forward only. The counts are maintained by one add and one remove. Measuring a window that is not legal is the fail: the answers come back too large."
     },
     "d25": {
       "title": "Shrink While Valid",
@@ -207,7 +226,8 @@
       ],
       "trains": [
         "sliding-window-variable"
-      ]
+      ],
+      "judge": "Both ends of the window move forward only. The counts are maintained by one add and one remove. A legal window can hold a shorter legal window inside it, so measuring a window the moment it first becomes legal is the fail: the lengths come back too large."
     },
     "d28": {
       "title": "Employees Who Manage Nobody",
@@ -223,7 +243,8 @@
       "after": [],
       "trains": [
         "sql-conditional-aggregate"
-      ]
+      ],
+      "judge": "One GROUP BY country."
     },
     "d30": {
       "title": "Approved Transactions Per Country",
@@ -233,7 +254,8 @@
       ],
       "trains": [
         "sql-conditional-aggregate"
-      ]
+      ],
+      "judge": "One GROUP BY country."
     },
     "d31": {
       "title": "Confirmation Rate",
@@ -254,7 +276,8 @@
       "after": [],
       "trains": [
         "sql-date-arithmetic"
-      ]
+      ],
+      "judge": "next_day comes from the engine's date arithmetic on recordDate."
     },
     "d33": {
       "title": "Rising Temperature",
@@ -265,7 +288,8 @@
       "trains": [
         "sql-date-arithmetic",
         "sql-self-join"
-      ]
+      ],
+      "judge": "The previous date comes from the engine's date arithmetic; the previous row by id is the fail."
     },
     "d34": {
       "title": "Monthly Transactions",
@@ -292,7 +316,8 @@
       "after": [],
       "trains": [
         "sql-filter-select"
-      ]
+      ],
+      "judge": "One SELECT with a WHERE and an ORDER BY."
     },
     "d37": {
       "title": "Island Key",
@@ -300,7 +325,8 @@
       "after": [],
       "trains": [
         "sql-gaps-islands"
-      ]
+      ],
+      "judge": "A window function numbers the rows by id."
     },
     "d38": {
       "title": "Human Traffic Of Stadium",
@@ -346,7 +372,8 @@
       "after": [],
       "trains": [
         "sql-join-inner"
-      ]
+      ],
+      "judge": "The two tables are joined on product_id."
     },
     "d43": {
       "title": "Unique Id Or Null",
@@ -386,7 +413,8 @@
       "after": [],
       "trains": [
         "sql-nth-value"
-      ]
+      ],
+      "judge": "The query skips past the highest distinct salary."
     },
     "d47": {
       "title": "Second Highest Salary",
@@ -530,7 +558,8 @@
       "trains": [
         "sql-window-rank",
         "sql-subquery"
-      ]
+      ],
+      "judge": "The rank is computed per department by a window function and filtered in an outer query or CTE."
     },
     "d62": {
       "title": "Latest Reading Per Sensor",
@@ -579,7 +608,8 @@
       "after": [],
       "trains": [
         "stack-nested-eval"
-      ]
+      ],
+      "judge": "Each amount is built digit by digit during the walk."
     },
     "d67": {
       "title": "Level Groups",
@@ -587,7 +617,8 @@
       "after": [],
       "trains": [
         "tree-bfs-levels"
-      ]
+      ],
+      "judge": "A queue (collections.deque). Mixing two depths in one output group is the fail."
     },
     "d68": {
       "title": "Count Univalue Subtrees",
@@ -595,7 +626,8 @@
       "after": [],
       "trains": [
         "tree-global-across-subtrees"
-      ]
+      ],
+      "judge": "The count accumulates outside the recursion's returns. Threading it through the return, or re-walking a subtree to test it, is the fail."
     },
     "d70": {
       "title": "Find Roots",
@@ -625,7 +657,8 @@
       ],
       "trains": [
         "union-find"
-      ]
+      ],
+      "judge": "Every employee on the walk ends one hop from the head."
     },
     "d73": {
       "title": "Union Links Head to Head",
@@ -643,7 +676,8 @@
       "after": [],
       "trains": [
         "substring-enumeration"
-      ]
+      ],
+      "judge": "Dropping a repeat is the fail: every count built on this list comes out short."
     },
     "d75": {
       "title": "Substrings by End",
@@ -653,7 +687,8 @@
       ],
       "trains": [
         "substring-enumeration"
-      ]
+      ],
+      "judge": "Dropping a repeat is the fail: every count built on this list comes out short."
     },
     "d76": {
       "title": "Choose From an Array",
@@ -673,7 +708,8 @@
       ],
       "trains": [
         "backtracking-start-index"
-      ]
+      ],
+      "judge": "A combination whose sum already equals or exceeds target is never extended."
     },
     "d78": {
       "title": "Song To Playlists",
@@ -736,7 +772,8 @@
       ],
       "trains": [
         "stack-nested-eval"
-      ]
+      ],
+      "judge": "Each number is built digit by digit during the walk."
     },
     "d87": {
       "title": "Read The Signed Numbers",
@@ -746,7 +783,8 @@
       ],
       "trains": [
         "stack-nested-eval"
-      ]
+      ],
+      "judge": "Each number is built digit by digit during the walk."
     },
     "d88": {
       "title": "Orders In A Date Window",
@@ -756,7 +794,8 @@
       ],
       "trains": [
         "sql-filter-select"
-      ]
+      ],
+      "judge": "The one comparison names both ends of the window."
     },
     "d89": {
       "title": "Revenue Per Product",
@@ -766,7 +805,8 @@
       ],
       "trains": [
         "sql-group-aggregate"
-      ]
+      ],
+      "judge": "The product is formed per row before it is summed."
     },
     "d90": {
       "title": "Average Years Per Project",
@@ -798,7 +838,8 @@
       ],
       "trains": [
         "sql-join-inner"
-      ]
+      ],
+      "judge": "The join matches on the product AND on the date falling in the range."
     },
     "d93": {
       "title": "Nested Boxes",
@@ -806,7 +847,8 @@
       "after": [],
       "trains": [
         "stack-nested-eval"
-      ]
+      ],
+      "judge": "A stack of running weights, one entry per open box."
     },
     "d94": {
       "title": "Longest Common Subsequence",
@@ -814,7 +856,8 @@
       "after": [],
       "trains": [
         "two-sequence-align"
-      ]
+      ],
+      "judge": "Enumerating the subsequences of a and testing each one against b is exponential: the fail."
     },
     "d95": {
       "title": "Turn One Dial",
@@ -830,7 +873,8 @@
       "after": [],
       "trains": [
         "monotonic-queue"
-      ]
+      ],
+      "judge": "Each value enters the queue once and leaves at most once."
     },
     "d97": {
       "title": "Count In-Degrees",
@@ -956,7 +1000,8 @@
       "after": [],
       "trains": [
         "ll-offset-arithmetic"
-      ]
+      ],
+      "judge": "Two pointers n apart."
     },
     "d114": {
       "title": "Sections Under Cap",
@@ -964,7 +1009,8 @@
       "after": [],
       "trains": [
         "running-sum"
-      ]
+      ],
+      "judge": "A section that is still open when the array ends is a section; forgetting it returns one too few."
     },
     "d115": {
       "title": "First True",
@@ -974,7 +1020,8 @@
       ],
       "trains": [
         "binary-search-on-answer"
-      ]
+      ],
+      "judge": "The loop over lo and hi is written by hand and ends on every input; a step that leaves lo and hi unchanged is the fail."
     },
     "d117": {
       "title": "Colors Seen",
@@ -992,7 +1039,8 @@
       ],
       "trains": [
         "bit-flags"
-      ]
+      ],
+      "judge": "The membership test is on palette itself."
     },
     "d119": {
       "title": "Turn Knobs To A Total",
@@ -1012,7 +1060,8 @@
       ],
       "trains": [
         "binary-search-on-answer"
-      ]
+      ],
+      "judge": "The loop over lo and hi is written by hand and ends on every input; a step that leaves lo and hi unchanged is the fail."
     },
     "d122": {
       "title": "One More Cat",
@@ -1020,7 +1069,8 @@
       "after": [],
       "trains": [
         "marginal-gain"
-      ]
+      ],
+      "judge": "The new ratio counts the new cat in both the cats and the animals; a ratio over t alone is the fail."
     },
     "d123": {
       "title": "Boys Ratio Order",
@@ -1028,7 +1078,8 @@
       "after": [],
       "trains": [
         "heap-top-k"
-      ]
+      ],
+      "judge": "A heap whose items carry the ratio as their first element, computed by a function; the classes are popped out in order."
     },
     "d124": {
       "title": "Companies Left",
@@ -1058,7 +1109,8 @@
       ],
       "trains": [
         "bit-flags"
-      ]
+      ],
+      "judge": "The one value tested is built from a and b."
     },
     "d127": {
       "title": "Held By Either",
@@ -1068,7 +1120,8 @@
       ],
       "trains": [
         "bit-flags"
-      ]
+      ],
+      "judge": "The one value tested is built from a and b."
     },
     "d128": {
       "title": "Smaller Before",
@@ -1078,7 +1131,8 @@
       ],
       "trains": [
         "dp-1d-rolling"
-      ]
+      ],
+      "judge": "Every earlier index is compared against i. The test is strictly smaller: counting an equal value is the fail."
     },
     "d130": {
       "title": "Top Down Cell",
@@ -1116,7 +1170,8 @@
       ],
       "trains": [
         "index-conversion"
-      ]
+      ],
+      "judge": "The parity test is on r: the top row is even."
     },
     "d135": {
       "title": "Bottom Up Index",
@@ -1136,7 +1191,8 @@
       ],
       "trains": [
         "index-conversion"
-      ]
+      ],
+      "judge": "The parity test is on the row counted from the bottom, not on r: testing r is the fail on an odd n."
     },
     "d137": {
       "title": "Subarrays Summing To Target",
@@ -1146,7 +1202,8 @@
       ],
       "trains": [
         "prefix-sum-hashmap"
-      ]
+      ],
+      "judge": "Negative values make a two-pointer scan wrong."
     },
     "d139": {
       "title": "Node Step Pairs",
@@ -1158,7 +1215,8 @@
       ],
       "trains": [
         "graph-bfs-shortest"
-      ]
+      ],
+      "judge": "One breadth-first search from node 0. A visited set keyed on the node alone drops (1, 4) from Example 1."
     },
     "d140": {
       "title": "First False",
@@ -1168,7 +1226,8 @@
       ],
       "trains": [
         "binary-search-on-answer"
-      ]
+      ],
+      "judge": "The loop over lo and hi is written by hand and ends on every input; a step that leaves lo and hi unchanged is the fail."
     },
     "d141": {
       "title": "Last False",
@@ -1178,7 +1237,8 @@
       ],
       "trains": [
         "binary-search-on-answer"
-      ]
+      ],
+      "judge": "The loop over lo and hi is written by hand and ends on every input; a step that leaves lo and hi unchanged is the fail."
     },
     "d142": {
       "title": "Unequal Pairs From Two Values",
@@ -1208,7 +1268,8 @@
       ],
       "trains": [
         "binary-search-on-answer"
-      ]
+      ],
+      "judge": "The loop runs while lo <= hi and every step sets lo = mid + 1 or hi = mid - 1; lo = mid or hi = mid is the fail."
     },
     "d145": {
       "title": "Pick One Letter",
@@ -1216,7 +1277,8 @@
       "after": [],
       "trains": [
         "dp-1d-rolling"
-      ]
+      ],
+      "judge": "Each ways[i] is built from ways[i - 1]. Recounting every prefix from scratch is the fail."
     },
     "d146": {
       "title": "Count AB Subsequences",
@@ -1226,21 +1288,24 @@
       ],
       "trains": [
         "dp-1d-rolling"
-      ]
+      ],
+      "judge": "Pairing every b with every earlier index is the fail."
     },
     "d147": {
       "title": "Split The Excess",
       "file": "dp-1d-rolling/d147_split_the_excess.py",
       "trains": [
         "dp-1d-rolling"
-      ]
+      ],
+      "judge": "Each amount sends to both of its targets in the same step."
     },
     "d148": {
       "title": "Reach The Far Corner",
       "file": "graph-bfs-shortest/d148_reach_the_far_corner.py",
       "trains": [
         "graph-bfs-shortest"
-      ]
+      ],
+      "judge": "One breadth-first search from (0, 0). A cell below k is never entered, the first cell included."
     },
     "d149": {
       "title": "Rank Within Each Team",
@@ -1260,7 +1325,8 @@
       ],
       "trains": [
         "sql-subquery"
-      ]
+      ],
+      "judge": "The dense rank is computed in a WITH clause and filtered in the query that reads from it."
     },
     "d151": {
       "title": "Sum Of Squares",
@@ -1317,7 +1383,8 @@
       ],
       "trains": [
         "stack-nested-eval"
-      ]
+      ],
+      "judge": "A start's parent is the innermost call still running, not the last call started; after an end, the next start belongs one level up."
     },
     "d159": {
       "title": "Exclusive From Call Tree",
@@ -1327,7 +1394,8 @@
       ],
       "trains": [
         "stack-nested-eval"
-      ]
+      ],
+      "judge": "A call three levels deep is subtracted from its parent only, never from its grandparent; an answer right two levels deep and wrong three levels deep is the fail."
     },
     "d160": {
       "title": "Positive Total",
@@ -1335,7 +1403,8 @@
       "after": [],
       "trains": [
         "ts-typed-function"
-      ]
+      ],
+      "judge": "The parameter and the return value both carry a type annotation."
     },
     "d161": {
       "title": "Index Of Largest",
@@ -1345,7 +1414,8 @@
       ],
       "trains": [
         "ts-index-loop"
-      ]
+      ],
+      "judge": "The loop is for (let i = 0; ...)."
     },
     "d162": {
       "title": "Largest Count",
@@ -1355,7 +1425,8 @@
       ],
       "trains": [
         "ts-map-count"
-      ]
+      ],
+      "judge": "The pass counts into a Map<string, number>, then takes the largest value."
     },
     "d163": {
       "title": "First Repeat",
@@ -1365,7 +1436,8 @@
       ],
       "trains": [
         "ts-set-membership"
-      ]
+      ],
+      "judge": "A Set<number>, has before add."
     },
     "d164": {
       "title": "Third Smallest",
@@ -1375,7 +1447,8 @@
       ],
       "trains": [
         "ts-sort-comparator"
-      ]
+      ],
+      "judge": "A copy is sorted with a numeric comparator."
     },
     "d165": {
       "title": "Reverse Each Word",
@@ -1385,7 +1458,8 @@
       ],
       "trains": [
         "ts-string-build"
-      ]
+      ],
+      "judge": "split, map and join: each word is turned into an array and back, because strings are immutable."
     },
     "d166": {
       "title": "Order Total",
@@ -1395,7 +1469,8 @@
       ],
       "trains": [
         "ts-object-type"
-      ]
+      ],
+      "judge": "The parameter is typed with a declared type or interface in which qty is optional; a missing qty is 1 and a qty of 0 is 0."
     },
     "d167": {
       "title": "Mixed Sum",
@@ -1405,7 +1480,8 @@
       ],
       "trains": [
         "ts-union-narrowing"
-      ]
+      ],
+      "judge": "The parameter is typed as an array of a union, and each element is narrowed with typeof before use."
     },
     "d168": {
       "title": "Companies By Head",
@@ -1422,21 +1498,24 @@
       "file": "dp-1d-rolling/d169_fewest_coins.py",
       "trains": [
         "dp-1d-rolling"
-      ]
+      ],
+      "judge": "One table entry per amount from 0 to amount, each built from smaller amounts."
     },
     "d170": {
       "title": "Plus One Or Double",
       "file": "generate-and-test-neighbors/d170_plus_one_or_double.py",
       "trains": [
         "generate-and-test-neighbors"
-      ]
+      ],
+      "judge": "One breadth-first search over values; every reachable value is expanded once."
     },
     "d171": {
       "title": "Fewest Cells Between",
       "file": "multi-source-bfs/d171_fewest_cells_between.py",
       "trains": [
         "multi-source-bfs"
-      ]
+      ],
+      "judge": "One breadth-first search whose queue starts with every 1 cell, returning on the first 2 popped."
     },
     "d172": {
       "title": "Node Distance Pairs",
@@ -1447,21 +1526,24 @@
       ],
       "trains": [
         "graph-bfs-shortest"
-      ]
+      ],
+      "judge": "One breadth-first search from node 0. A depth-first search gives (2, 2) in Example 1: the fail."
     },
     "d173": {
       "title": "Largest By Flag",
       "file": "greedy-sort-take/d173_largest_by_flag.py",
       "trains": [
         "greedy-sort-take"
-      ]
+      ],
+      "judge": "Two sorts and one pass over flag; a search per position is O(n^2), the fail."
     },
     "d174": {
       "title": "Longest Path From Zero",
       "file": "memoize-recursion/d174_longest_path_from_zero.py",
       "trains": [
         "memoize-recursion"
-      ]
+      ],
+      "judge": "The longest path from each node is computed once and remembered. Recomputing it on every visit walks every path in the graph, and a graph of 200 nodes where each node points to the next two has more paths than the clock allows."
     },
     "d175": {
       "title": "After The Drop",
@@ -1469,7 +1551,8 @@
       "after": [],
       "trains": [
         "rotated-array-pivot"
-      ]
+      ],
+      "judge": "Every comparison is against one fixed element."
     },
     "d176": {
       "title": "Longest Increasing Subsequence Ending At Each Index",
@@ -1541,7 +1624,8 @@
       ],
       "trains": [
         "index-conversion"
-      ]
+      ],
+      "judge": "The parity test is on the row counted from the bottom, not on r: testing r is the fail on an odd n."
     },
     "d183": {
       "title": "Indices Of Each Character",
@@ -1583,7 +1667,8 @@
       "after": [],
       "trains": [
         "rust-fn-signature"
-      ]
+      ],
+      "judge": "The parameter and the return type are both written in the signature; the body expression ends with no semicolon."
     },
     "d188": {
       "title": "Sum To N",
@@ -1593,7 +1678,8 @@
       ],
       "trains": [
         "rust-let-mut"
-      ]
+      ],
+      "judge": "A running total declared with let mut and a for loop over the range 1..=n that adds to it; the total is the last expression."
     },
     "d189": {
       "title": "String Length",
@@ -1603,7 +1689,8 @@
       ],
       "trains": [
         "rust-shadowing"
-      ]
+      ],
+      "judge": "A second let binding of the name s, holding the length, shadows the parameter; the function returns usize."
     },
     "d190": {
       "title": "Hours To Seconds",
@@ -1613,7 +1700,8 @@
       ],
       "trains": [
         "rust-const"
-      ]
+      ],
+      "judge": "A const item with its type written, in SCREAMING_SNAKE_CASE, at module level; the function multiplies by it."
     },
     "d191": {
       "title": "Bigger",
@@ -1623,7 +1711,8 @@
       ],
       "trains": [
         "rust-if-expression"
-      ]
+      ],
+      "judge": "The body is one if/else whose two branches are the values a and b, and that if/else is the function's value."
     },
     "d193": {
       "title": "Square Of Larger",
@@ -1633,7 +1722,8 @@
       ],
       "trains": [
         "rust-if-binding"
-      ]
+      ],
+      "judge": "let larger = if ... else ...; with both branches i32 and a semicolon after the closing brace; the product larger * larger is the function's value."
     },
     "d195": {
       "title": "JSON Round Trip",
@@ -1641,7 +1731,8 @@
       "after": [],
       "trains": [
         "py-json"
-      ]
+      ],
+      "judge": "json.dumps with sort_keys for encode and json.loads for decode."
     },
     "d196": {
       "title": "Greet Or Refuse",
@@ -1649,7 +1740,8 @@
       "after": [],
       "trains": [
         "py-raise"
-      ]
+      ],
+      "judge": "raise ValueError with the exact message; the caller gets the exception, not a return value."
     },
     "d197": {
       "title": "Withdraw",
@@ -1657,7 +1749,8 @@
       "after": [],
       "trains": [
         "py-custom-exception"
-      ]
+      ],
+      "judge": "class InsufficientFunds(Exception) defined above Solution, with __init__ storing needed and calling super().__init__ with a message; it is raised with the shortfall."
     },
     "d198": {
       "title": "Lines Of A File",
@@ -1665,7 +1758,8 @@
       "after": [],
       "trains": [
         "py-with"
-      ]
+      ],
+      "judge": "The file is opened in a with statement and the file object is iterated line by line."
     },
     "d199": {
       "title": "Hire",
@@ -1673,7 +1767,8 @@
       "after": [],
       "trains": [
         "py-dataclass"
-      ]
+      ],
+      "judge": "@dataclass on Employee with three annotated fields and no methods written by hand; equality and repr come from the decorator."
     },
     "d200": {
       "title": "Reverse Iterator",
@@ -1689,7 +1784,8 @@
       "after": [],
       "trains": [
         "py-regex"
-      ]
+      ],
+      "judge": "A raw-string pattern that anchors on a word boundary \\b and takes the rest of the word with [a-z]*."
     },
     "d202": {
       "title": "Days Between",
@@ -1697,7 +1793,8 @@
       "after": [],
       "trains": [
         "py-datetime"
-      ]
+      ],
+      "judge": "datetime.date.fromisoformat on both strings and the .days of their difference."
     },
     "d238": {
       "title": "Pastebin Numbers",
@@ -1705,7 +1802,8 @@
       "after": [],
       "trains": [
         "design-pastebin"
-      ]
+      ],
+      "judge": "Forgetting that a month is about 2.5 million seconds is the fail."
     },
     "d239": {
       "title": "Twitter Numbers",
@@ -1713,7 +1811,8 @@
       "after": [],
       "trains": [
         "design-twitter-timeline"
-      ]
+      ],
+      "judge": "Leaving the fanout at the tweet rate is the fail."
     },
     "d240": {
       "title": "Crawler Numbers",
@@ -1721,7 +1820,8 @@
       "after": [],
       "trains": [
         "design-web-crawler"
-      ]
+      ],
+      "judge": "Storing 500 KB once per link instead of once per crawl is the fail."
     },
     "d241": {
       "title": "Mint Numbers",
@@ -1729,7 +1829,8 @@
       "after": [],
       "trains": [
         "design-mint"
-      ]
+      ],
+      "judge": "Write heavy. Calling it read heavy is the fail."
     },
     "d242": {
       "title": "Social Graph Numbers",
@@ -1737,7 +1838,8 @@
       "after": [],
       "trains": [
         "design-social-graph"
-      ]
+      ],
+      "judge": "Counting each friendship twice is the fail."
     },
     "d243": {
       "title": "Query Cache Numbers",
@@ -1745,7 +1847,8 @@
       "after": [],
       "trains": [
         "design-query-cache"
-      ]
+      ],
+      "judge": "Dropping the per-entry size from the monthly total is the fail."
     },
     "d244": {
       "title": "Sales Rank Numbers",
@@ -1753,7 +1856,8 @@
       "after": [],
       "trains": [
         "design-sales-rank"
-      ]
+      ],
+      "judge": "Mixing up the read and write rates is the fail."
     },
     "d245": {
       "title": "Scaling Numbers",
@@ -1761,7 +1865,8 @@
       "after": [],
       "trains": [
         "design-scaling-aws"
-      ]
+      ],
+      "judge": "Mixing up the read and write rates is the fail."
     },
     "d248": {
       "title": "Pastebin Create",
@@ -1771,7 +1876,8 @@
       ],
       "trains": [
         "design-pastebin"
-      ]
+      ],
+      "judge": "The SQL row for the metadata, the object store for the text. Storing the paste text in the SQL row is the fail."
     },
     "d249": {
       "title": "Pastebin Link",
@@ -1781,7 +1887,8 @@
       ],
       "trains": [
         "design-pastebin"
-      ]
+      ],
+      "judge": "MD5 then Base 62, the first 7 characters, 62^7 against the links of 3 years. Base 64, whose + and / need escaping in a url, is the fail."
     },
     "d250": {
       "title": "Pastebin Read",
@@ -1791,7 +1898,8 @@
       ],
       "trains": [
         "design-pastebin"
-      ]
+      ],
+      "judge": "The lookup before the fetch, the error when the url is missing. Fetching from the object store before the SQL lookup is the fail."
     },
     "d251": {
       "title": "Pastebin Expiry",
@@ -1801,7 +1909,8 @@
       ],
       "trains": [
         "design-pastebin"
-      ]
+      ],
+      "judge": "The scan on the expiration timestamp. Checking expiry only when a paste is read is the fail."
     },
     "d252": {
       "title": "Pastebin Scaled",
@@ -1811,7 +1920,8 @@
       ],
       "trains": [
         "design-pastebin"
-      ]
+      ],
+      "judge": "The cache, the read replicas, one master-slave for the writes. Sharding the writes at 4 per second is the fail."
     },
     "d253": {
       "title": "Twitter Post",
@@ -1821,7 +1931,8 @@
       ],
       "trains": [
         "design-twitter-timeline"
-      ]
+      ],
+      "judge": "The Write API, the user's own timeline in SQL, the Fan Out Service, the User Graph Service, one insert per follower into the Memory Cache, the asynchronous work over a queue. Building the home timeline with a SQL join at read time is the fail."
     },
     "d254": {
       "title": "Twitter Home Timeline Store",
@@ -1831,7 +1942,8 @@
       ],
       "trains": [
         "design-twitter-timeline"
-      ]
+      ],
+      "judge": "The Memory Cache, a Redis list, chosen for its write rate; the own timeline in SQL. Putting the home timelines in the relational database is the fail."
     },
     "d255": {
       "title": "Twitter Read",
@@ -1841,7 +1953,8 @@
       ],
       "trains": [
         "design-twitter-timeline"
-      ]
+      ],
+      "judge": "The Read API, the Timeline Service, the O(1) read of ids from the Memory Cache, the O(n) multigets of tweet and user info. Fetching each tweet with its own request is the fail."
     },
     "d256": {
       "title": "Twitter Fan Out Bottleneck",
@@ -1851,7 +1964,8 @@
       ],
       "trains": [
         "design-twitter-timeline"
-      ]
+      ],
+      "judge": "The highly-followed user. Fanning out every tweet the same way is the fail."
     },
     "d257": {
       "title": "Twitter Memory Bounds",
@@ -1861,7 +1975,8 @@
       ],
       "trains": [
         "design-twitter-timeline"
-      ]
+      ],
+      "judge": "Every tweet of every user in the cache is the fail."
     },
     "d258": {
       "title": "Crawler Link Stores",
@@ -1871,7 +1986,8 @@
       ],
       "trains": [
         "design-web-crawler"
-      ]
+      ],
+      "judge": "links_to_crawl ranked by popularity, crawled_links with page signatures, a key-value store with the ranking in Redis sorted sets. A single list of links is the fail."
     },
     "d259": {
       "title": "Crawler Loop",
@@ -1881,7 +1997,8 @@
       ],
       "trains": [
         "design-web-crawler"
-      ]
+      ],
+      "judge": "The top ranked link, the signature check against crawled_links, the lower priority on a match, the two queued jobs, the signature, the move from links_to_crawl to crawled_links. Crawling a link before checking its signature is the fail."
     },
     "d260": {
       "title": "Crawler Duplicates",
@@ -1891,7 +2008,8 @@
       ],
       "trains": [
         "design-web-crawler"
-      ]
+      ],
+      "judge": "The MapReduce that outputs the urls with frequency 1, a content signature compared by Jaccard index or cosine similarity. Detecting duplicates by url alone is the fail."
     },
     "d261": {
       "title": "Crawler Recrawl",
@@ -1901,7 +2019,8 @@
       ],
       "trains": [
         "design-web-crawler"
-      ]
+      ],
+      "judge": "The timestamp of the last crawl, a default period, sooner for popular or frequently updated sites. One fixed period for every page is the fail."
     },
     "d262": {
       "title": "Crawler Scaled",
@@ -1911,7 +2030,8 @@
       ],
       "trains": [
         "design-web-crawler"
-      ]
+      ],
+      "judge": "Leaving DNS lookup to the operating system on every crawl is the fail."
     },
     "d263": {
       "title": "Mint Triggers",
@@ -1921,7 +2041,8 @@
       ],
       "trains": [
         "design-mint"
-      ]
+      ],
+      "judge": "The first link, the manual refresh, the daily run for recently active users. Extracting daily for every user is the fail."
     },
     "d264": {
       "title": "Mint Extraction Flow",
@@ -1931,7 +2052,8 @@
       ],
       "trains": [
         "design-mint"
-      ]
+      ],
+      "judge": "The Accounts API, the queue because extraction is slow, the Transaction Extraction Service, raw logs in the object store, the Category and Budget Services, the two SQL tables, the notification. Extracting inside the request is the fail."
     },
     "d265": {
       "title": "Mint Category",
@@ -1941,7 +2063,8 @@
       ],
       "trains": [
         "design-mint"
-      ]
+      ],
+      "judge": "The seller-to-category dictionary of about 12 MB, overrides for the rest. A database lookup per transaction is the fail."
     },
     "d266": {
       "title": "Mint Budget",
@@ -1951,7 +2074,8 @@
       ],
       "trains": [
         "design-mint"
-      ]
+      ],
+      "judge": "The template by income tier, only the overridden categories stored. A row per user per category is the fail."
     },
     "d267": {
       "title": "Mint Writes",
@@ -1961,7 +2085,8 @@
       ],
       "trains": [
         "design-mint"
-      ]
+      ],
+      "judge": "The SQL scaling patterns, NoSQL considered, only a month of transactions in the database. One SQL master taking 2,000 writes per second is the fail."
     },
     "d268": {
       "title": "Social Graph One Machine",
@@ -1971,7 +2096,8 @@
       ],
       "trains": [
         "design-social-graph"
-      ]
+      ],
+      "judge": "Breadth first search. Dijkstra on unweighted edges is the fail."
     },
     "d269": {
       "title": "Social Graph Sharding",
@@ -1981,7 +2107,8 @@
       ],
       "trains": [
         "design-social-graph"
-      ]
+      ],
+      "judge": "Person Servers, the Lookup Service from person id to server. Assuming the graph is in one memory is the fail."
     },
     "d270": {
       "title": "Social Graph Search",
@@ -1991,7 +2118,8 @@
       ],
       "trains": [
         "design-social-graph"
-      ]
+      ],
+      "judge": "The Search API, the User Graph Service, the Lookup Service for the current user, BFS with a Lookup Service call per adjacent node. Reading a neighbour's friends without asking which server holds it is the fail."
     },
     "d271": {
       "title": "Social Graph Optimisations",
@@ -2001,7 +2129,8 @@
       ],
       "trains": [
         "design-social-graph"
-      ]
+      ],
+      "judge": "A single BFS from the source with no limit is the fail."
     },
     "d272": {
       "title": "Query Cache Eviction",
@@ -2011,7 +2140,8 @@
       ],
       "trains": [
         "design-query-cache"
-      ]
+      ],
+      "judge": "LRU, the doubly-linked list with new entries at the head and expiring entries at the tail, the hash table to the list nodes. Evicting by insertion order is the fail."
     },
     "d273": {
       "title": "Query Cache Hit",
@@ -2021,7 +2151,8 @@
       ],
       "trains": [
         "design-query-cache"
-      ]
+      ],
+      "judge": "The parse, the cache check, the entry moved to the front, the cached contents returned. Returning the entry without moving it to the front is the fail."
     },
     "d274": {
       "title": "Query Cache Miss",
@@ -2031,7 +2162,8 @@
       ],
       "trains": [
         "design-query-cache"
-      ]
+      ],
+      "judge": "The Reverse Index Service, the Document Service, the cache updated with the entry at the front. Having the cache fetch the result itself is the fail."
     },
     "d275": {
       "title": "Query Cache Updates",
@@ -2041,7 +2173,8 @@
       ],
       "trains": [
         "design-query-cache"
-      ]
+      ],
+      "judge": "Invalidating entries by hand on every event is the fail."
     },
     "d276": {
       "title": "Query Cache Layout",
@@ -2051,7 +2184,8 @@
       ],
       "trains": [
         "design-query-cache"
-      ]
+      ],
+      "judge": "The sharded one chosen. Choosing a copy per machine is the fail."
     },
     "d277": {
       "title": "Sales Rank Raw Data",
@@ -2061,7 +2195,8 @@
       ],
       "trains": [
         "design-sales-rank"
-      ]
+      ],
+      "judge": "The Sales API logs in an object store. Raw logs in the SQL database are the fail."
     },
     "d278": {
       "title": "Sales Rank Computation",
@@ -2071,7 +2206,8 @@
       ],
       "trains": [
         "design-sales-rank"
-      ]
+      ],
+      "judge": "The MapReduce to (category, product_id) with the summed quantity, the distributed sort, the sales_rank table with its indexes. Computing the rank with a query per page view is the fail."
     },
     "d279": {
       "title": "Sales Rank Read",
@@ -2081,7 +2217,8 @@
       ],
       "trains": [
         "design-sales-rank"
-      ]
+      ],
+      "judge": "The Read API reading the sales_rank table. Reading the raw logs on a request is the fail."
     },
     "d280": {
       "title": "Sales Rank Reads",
@@ -2091,7 +2228,8 @@
       ],
       "trains": [
         "design-sales-rank"
-      ]
+      ],
+      "judge": "The cache for popular content, the read replicas and why they may not be enough. Read replicas alone at 40,000 reads per second is the fail."
     },
     "d281": {
       "title": "Sales Rank Writes",
@@ -2101,7 +2239,8 @@
       ],
       "trains": [
         "design-sales-rank"
-      ]
+      ],
+      "judge": "The SQL scaling patterns, NoSQL considered. One SQL master taking the writes with no plan is the fail."
     },
     "d282": {
       "title": "Scaling Single Box",
@@ -2111,7 +2250,8 @@
       ],
       "trains": [
         "design-scaling-aws"
-      ]
+      ],
+      "judge": "One box with the web server and MySQL, vertical scaling, the cost and the missing redundancy. Jumping to the final design in one step is the fail."
     },
     "d283": {
       "title": "Scaling First Separation",
@@ -2121,7 +2261,8 @@
       ],
       "trains": [
         "design-scaling-aws"
-      ]
+      ],
+      "judge": "Static content to an object store, MySQL to its own box, independent scaling. Moving the database last is the fail."
     },
     "d284": {
       "title": "Scaling Web Tier",
@@ -2131,7 +2272,8 @@
       ],
       "trains": [
         "design-scaling-aws"
-      ]
+      ],
+      "judge": "The load balancer, several web servers across availability zones, MySQL in master-slave failover. A bigger web server is the fail."
     },
     "d285": {
       "title": "Scaling Read Heavy Database",
@@ -2141,7 +2283,8 @@
       ],
       "trains": [
         "design-scaling-aws"
-      ]
+      ],
+      "judge": "The memory cache for hot content and sessions, stateless web servers, read replicas with reads separated from writes. More write masters is the fail."
     },
     "d286": {
       "title": "Scaling Autoscaling",
@@ -2151,7 +2294,8 @@
       ],
       "trains": [
         "design-scaling-aws"
-      ]
+      ],
+      "judge": "Capacity added and removed with traffic. Presenting autoscaling as free is the fail."
     },
     "d287": {
       "title": "Scaling Method",
@@ -2161,7 +2305,8 @@
       ],
       "trains": [
         "design-scaling-aws"
-      ]
+      ],
+      "judge": "Benchmark, profile, address the bottleneck weighing alternatives, repeat. Guessing the bottleneck is the fail."
     },
     "d297": {
       "title": "Hits In The Last Minute",
@@ -2241,7 +2386,8 @@
       "after": [],
       "trains": [
         "dijkstra"
-      ]
+      ],
+      "judge": "Example 1's breadth-first-search error: fewer edges cost more than more edges."
     },
     "d308": {
       "title": "Resolve Nested Templates",
@@ -2260,7 +2406,8 @@
       ],
       "trains": [
         "substring-enumeration"
-      ]
+      ],
+      "judge": "The outer loop runs over the length from 1 to len(s); the inner loop runs over the start from 0 to len(s) - length."
     },
     "d310": {
       "title": "Negative Positive Pairs",
@@ -2288,7 +2435,8 @@
       "after": [],
       "trains": [
         "prefix-sums"
-      ]
+      ],
+      "judge": "The entry at index i is the entry at index i - 1 united with s[i]. Rebuilding each prefix from scratch is quadratic, the fail."
     },
     "d313": {
       "title": "Prefix Distinct Counts",
@@ -2298,7 +2446,8 @@
       ],
       "trains": [
         "prefix-sums"
-      ]
+      ],
+      "judge": "Rebuilding each prefix from scratch is quadratic, the fail."
     },
     "d314": {
       "title": "Even Subarrays",
@@ -2322,7 +2471,8 @@
       "after": [],
       "trains": [
         "prime-sieve"
-      ]
+      ],
+      "judge": "Testing each of 5 * 10^6 integers against its own divisors is the fail."
     },
     "d317": {
       "title": "Flips To Monotone Increasing",
@@ -2330,7 +2480,8 @@
       "after": [],
       "trains": [
         "dp-1d-rolling"
-      ]
+      ],
+      "judge": "The choice is made at every 0, not once for the whole string: the smaller of the count of 0 and the count of 1 returns 2 on \"001001\", the answer is 1."
     },
     "d318": {
       "title": "Maximum Subarray Sum",
@@ -2358,7 +2509,8 @@
       ],
       "trains": [
         "dp-1d-rolling"
-      ]
+      ],
+      "judge": "The deleted value reads the kept value of the element before x, not the kept value that includes x."
     },
     "d322": {
       "title": "Ring Distance",
@@ -2366,7 +2518,8 @@
       "after": [],
       "trains": [
         "index-conversion"
-      ]
+      ],
+      "judge": "abs(a - b) alone is wrong: it returns 8 on Example 1."
     }
   }
 }

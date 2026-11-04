@@ -29,8 +29,8 @@ Constraints:
     The brackets are balanced.
     Every digit is one item on its own: "12" is a 1 and a 2.
 
-    REQUIRED: one pass over the characters with a stack of running weights,
-    one entry per open box. NO recursion, NO second pass.
+    REQUIRED: one pass over the characters. NO recursion, NO second
+    pass.
 """
 
 

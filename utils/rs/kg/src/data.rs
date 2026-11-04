@@ -494,6 +494,12 @@ pub struct DrillEntry {
     /// "disabled": true in drills.json: the file stays where it is and is
     /// left out of every bank listing (Ctx::bank_files).
     pub disabled: bool,
+    /// "judge": the part of the drill's contract that names the solution
+    /// (the members, steps, conditions or failure mode the rep must show).
+    /// Only the judge reads it (kg_extract drill_lead); the statement's
+    /// REQUIRED line, which the candidate sees, carries the complexity
+    /// bound and the bans alone. "" when the entry has none.
+    pub judge: String,
 }
 
 pub type DrillMap = IndexMap<String, DrillEntry>;
@@ -615,6 +621,11 @@ pub fn load_drills(root: &Path) -> DrillMap {
                 after: str_list(d.get("after")),
                 trains: d.get("trains").map(|t| str_list(Some(t))),
                 disabled: d.get("disabled").and_then(Value::as_bool).unwrap_or(false),
+                judge: d
+                    .get("judge")
+                    .and_then(Value::as_str)
+                    .unwrap_or("")
+                    .to_string(),
             },
         );
     }

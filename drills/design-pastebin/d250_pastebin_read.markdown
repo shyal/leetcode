@@ -5,8 +5,6 @@ only, and 1.27 KB stored per paste.
 
 Write the path of a read request, component by component.
 
-REQUIRED: the components in order, the lookup before the fetch, the error when
-the url is missing. Fetching from the object store before the SQL lookup is
-the fail.
+REQUIRED: the components in order and the error case.
 
 ## Answer

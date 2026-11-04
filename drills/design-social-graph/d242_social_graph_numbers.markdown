@@ -6,6 +6,6 @@ graph database.
 
 Write the number of friend relationships and the searches per second.
 
-REQUIRED: both numbers. Counting each friendship twice is the fail.
+REQUIRED: both numbers.
 
 ## Answer

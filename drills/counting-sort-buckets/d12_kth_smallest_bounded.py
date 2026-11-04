@@ -23,9 +23,7 @@ Constraints:
     1 <= k <= len(nums)
 
     REQUIRED: O(n + 100) time and O(100) extra space. NO sort(), NO
-    sorted(), NO heapq, and you must NOT build the sorted array.
-    Materialising all n values in order to read one of them is the
-    failure mode this drill exists to kill.
+    sorted(), NO heapq, NO building the sorted array.
 """
 
 

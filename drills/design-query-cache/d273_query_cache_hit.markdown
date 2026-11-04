@@ -4,8 +4,6 @@ month, 270 bytes per cached entry, and limited memory.
 
 Write the flow of a cache hit.
 
-REQUIRED: the parse, the cache check, the entry moved to the front, the cached
-contents returned. Returning the entry without moving it to the front is the
-fail.
+REQUIRED: the steps in order.
 
 ## Answer

@@ -5,7 +5,6 @@ only, and 1.27 KB stored per paste.
 
 Say how expired pastes are deleted.
 
-REQUIRED: the scan on the expiration timestamp. Checking expiry only when a
-paste is read is the fail.
+REQUIRED: one mechanism.
 
 ## Answer

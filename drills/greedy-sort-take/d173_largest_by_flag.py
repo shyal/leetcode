@@ -29,8 +29,8 @@ Constraints:
     1 <= len(nums) == len(flag) <= 10^5
     0 <= nums[i] <= 10^9
 
-    REQUIRED: O(n log n) time, two sorts and one pass over flag. NO
-    search for the largest value at every position; that is O(n^2).
+    REQUIRED: O(n log n) time. NO search for the largest value at every
+    position.
 """
 
 

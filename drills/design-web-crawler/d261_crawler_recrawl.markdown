@@ -6,8 +6,6 @@ page, and 100 billion searches per month.
 
 Say how the crawler decides when to crawl a page again.
 
-REQUIRED: the timestamp of the last crawl, a default period, sooner for
-popular or frequently updated sites. One fixed period for every page is the
-fail.
+REQUIRED: the record kept per page and the recrawl rule.
 
 ## Answer

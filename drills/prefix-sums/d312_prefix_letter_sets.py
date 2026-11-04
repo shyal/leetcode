@@ -26,10 +26,8 @@ Constraints:
     1 <= len(s) <= 2000
     s contains lowercase English letters.
 
-    REQUIRED: one pass over s. The entry at index i is the entry at
-    index i - 1 united with s[i]. NO set(s[:i + 1]) per index: rebuilding
-    each prefix from scratch is quadratic and is the failure mode this
-    drill exists to kill. Every entry is its own set object.
+    REQUIRED: one pass over s. NO set(s[:i + 1]) per index. Every entry
+    is its own set object.
 
 This is a scan with set.union.
 """

@@ -31,8 +31,7 @@ Constraints:
     1 <= target <= 40
     The elements of nums are distinct and given in increasing order.
 
-    REQUIRED: never extend a combination whose sum already equals or
-    exceeds target. NO fixed length k, NO building every combination and
+    REQUIRED: NO fixed length k, NO building every combination and
     filtering by sum at the end.
 """
 

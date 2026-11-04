@@ -28,10 +28,8 @@ Constraints:
     1 <= len(nums) <= 10^5
     nums[i] is 0 or 1.
 
-    REQUIRED: one pass, O(n), O(1) extra space. Two pointers, and left
-    advances at most ONCE per element read: use `if`, NEVER `while`.
-    A plain streak counter solves this problem while skipping the
-    slide, and the slide is the rep.
+    REQUIRED: one pass, O(n), O(1) extra space. NO `while` loop inside
+    the pass.
 """
 
 

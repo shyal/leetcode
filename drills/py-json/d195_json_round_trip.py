@@ -23,8 +23,7 @@ Constraints:
     obj nests at most 10 levels deep.
     decode(encode(obj)) == obj for every valid obj.
 
-    REQUIRED: json.dumps with sort_keys for encode and json.loads for
-    decode. NO str(), NO repr(), NO eval(), NO hand-built text.
+    REQUIRED: NO str(), NO repr(), NO eval(), NO hand-built text.
 """
 
 import json

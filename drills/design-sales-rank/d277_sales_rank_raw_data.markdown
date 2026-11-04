@@ -5,7 +5,6 @@ bytes per transaction.
 
 Say where the raw sales data is stored.
 
-REQUIRED: the Sales API logs in an object store. Raw logs in the
-SQL database are the fail.
+REQUIRED: where the raw data lands.
 
 ## Answer

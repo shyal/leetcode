@@ -26,9 +26,7 @@ Constraints:
     1 <= len(s) <= 2000
     s contains lowercase English letters.
 
-    REQUIRED: one pass over s. NO len(set(s[:i + 1])) per index:
-    rebuilding each prefix from scratch is quadratic and is the failure
-    mode this drill exists to kill.
+    REQUIRED: one pass over s. NO len(set(s[:i + 1])) per index.
 
 This is the size of each set of d312 Prefix Letter Sets.
 """

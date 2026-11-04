@@ -57,8 +57,7 @@ Constraints:
 
     1 <= number of rows <= 10^4
 
-    REQUIRED: one query, one GROUP BY country; a country with nothing
-    approved shows 0.
+    REQUIRED: one query; a country with nothing approved shows 0.
 
     FORBIDDEN: a WHERE on state (it drops the country entirely); a separate
     query per state.

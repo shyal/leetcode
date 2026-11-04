@@ -26,8 +26,8 @@ Constraints:
     s contains only digits, '+' and '-'. No spaces.
     s starts and ends with a digit; every operator is followed by a digit.
 
-    REQUIRED: one pass over the characters, building each number digit by
-    digit as you walk. NO split, NO regex, NO int() on slices.
+    REQUIRED: one pass over the characters. NO split, NO regex, NO int()
+    on slices.
 """
 
 

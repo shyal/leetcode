@@ -292,6 +292,7 @@ impl ScratchBank {
                     after: Vec::new(),
                     trains: Some(vec![node.to_string()]),
                     disabled: false,
+                    judge: String::new(),
                 },
             );
         }

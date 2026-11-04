@@ -23,9 +23,7 @@
 //     -3 * 10^4 <= a, b <= 3 * 10^4
 //     a and b are i32 and so is the answer
 //
-//     REQUIRED: let larger = if ... else ...; with both branches i32 and a
-//     semicolon after the closing brace; the product larger * larger is the
-//     function's value. NO match, NO mut, NO return keyword, NO method call.
+//     REQUIRED: NO match, NO mut, NO return keyword, NO method call.
 
 fn square_of_larger(a: i32, b: i32) -> i32 {
     todo!()
