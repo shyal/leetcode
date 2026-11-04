@@ -43499,6 +43499,21 @@
       "note": "The dummy node d = ListNode(next=a) anchors the head so the first splice needs no special case; the tuple assignment re-links a.next/b.next in place.",
       "summary": "The mu code builds a dummy node pointing at list a, then walks while both a and b are non-null, swapping next pointers via a tuple assignment so nodes alternate, and returns d.next. This exercises the dummy-splice move: the dummy removes the head special-case while re-linking in place. All assertions pass, including the 25000-element case.",
       "seconds": 133
+    },
+    "solved/d_Sum_Of_Consecutive_Integers_2026_11_04T20_28_08_890655_00_00Z.mu": {
+      "date": "2026-11-05",
+      "problem": "drill",
+      "drill": "d300",
+      "moves": {
+        "consecutive-sum-split": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "The code computes a range sum as full triangular sum minus prefix triangular sum; it does not test k-consecutive-sum splits, so the targeted consecutive-sum-split move is not exercised.",
+      "summary": "The mu code defines sumOfConsecutive(s, c) which returns the sum of the c integers starting at s, computed as the triangular number of s+c minus the triangular number of s. It exercises only closed-form arithmetic on a range, not the consecutive-sum-split technique of testing k values against n - k(k-1)/2. All assertions pass and the program prints 15.",
+      "unmapped": [
+        "arithmetic sum of consecutive range via prefix difference"
+      ],
+      "seconds": 169
     }
   }
 }
