@@ -43475,6 +43475,18 @@
       "judge": "deepseek-chat",
       "summary": "The query groups Person by email and selects min(id) alongside email, so each email keeps its smallest id. This exercises the dedupe-keep-one move (GROUP BY key with MIN(id)) and the group-aggregate move. Both example assertions passed under the sqlite runner.",
       "seconds": 65
+    },
+    "solved/d_Island_Key_2026_11_04T20_09_20_830584_00_00Z.mu": {
+      "date": "2026-11-05",
+      "problem": "drill",
+      "drill": "d37",
+      "moves": {
+        "sql-gaps-islands": "clean",
+        "sql-window-rank": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The query computes id - row_number() over (order by id) as grp, so consecutive ids share a constant group key and each gap starts a new run. This is the gaps-and-islands move built on a window rank, done in one pass over Seats with no self-join or correlated subquery. Both example assertions pass.",
+      "seconds": 143
     }
   }
 }
