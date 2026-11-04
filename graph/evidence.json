@@ -43182,6 +43182,18 @@
       "judge": "deepseek-chat",
       "summary": "The query selects month, amount, and amount minus lag(amount) over (order by month) as change from Revenue, so each row is compared with its previous month and the first row yields NULL. This exercises the LAG window-offset move directly. The notes say the candidate forgot the name and use of the lag window function and marked it as learning.",
       "seconds": 345
+    },
+    "solved/d_Approved_Count_Per_Country_2026_11_04T02_57_22_885419_00_00Z.mu": {
+      "date": "2026-11-04",
+      "problem": "drill",
+      "drill": "d29",
+      "moves": {
+        "sql-conditional-aggregate": "clean",
+        "sql-group-aggregate": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The query groups Transactions by country and computes approved_count with sum(case when state = 'approved' then 1 else 0 end), so declined-only countries still appear with 0. It exercises conditional aggregation inside a GROUP BY, and both example assertions pass.",
+      "seconds": 149
     }
   }
 }
