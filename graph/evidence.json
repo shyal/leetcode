@@ -43554,6 +43554,19 @@
       "judge": "deepseek-chat",
       "summary": "The solution iterates every cell of the grid via the harness helper `cells(grid)`, unpacking each `(r, c)` pair, and counts the cells whose value equals `v`. The grid traversal is the `cells` enumeration rather than a hand-written offset loop, but the run passed all assertions including the 1000x1000 case.",
       "seconds": 67
+    },
+    "solved/d_Ring_Distance_2026_11_04T20_56_57_497168_00_00Z.mu": {
+      "date": "2026-11-05",
+      "problem": "drill",
+      "drill": "d322",
+      "moves": {
+        "modular-cycle": "clean",
+        "index-conversion": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "The circular distance is computed as min(d, m - d) with d = abs(a - b); the wraparound uses m - d rather than an explicit modulo, so index-conversion is not exercised.",
+      "summary": "The mu code defines Solution.dist, which takes the absolute difference d = abs(a - b) and returns min(d, m - d), the shorter of the direct and wraparound distances on a ring of size m. All assertions pass, including the large-m and small-m cases. The wraparound is handled by subtraction from m rather than by a modulo or index conversion, so the targeted index-conversion move does not appear; the modular-cycle idea is what the code exercises.",
+      "seconds": 294
     }
   }
 }

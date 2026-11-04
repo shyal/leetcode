@@ -1,14 +1,10 @@
 """
-Given two positions a and b on a ring of m positions numbered 0 to m -
-1, where position 0 and position m - 1 are adjacent, return the smallest
-number of steps from a to b. A step moves to an adjacent position in
-either direction.
+Given integers a, b and m with 0 <= a, b < m, return the smallest
+integer k >= 0 such that (a + k) mod m == b or (a - k) mod m == b.
 
-Take the difference abs(a - b): that is the number of steps the direct
-way round. The other way round is m minus that. Return the smaller.
-
-For example with a = 1, b = 9 and m = 10, the direct way is 8 steps and
-the other way is 2 steps: 1 to 0 to 9. The answer is 2.
+For example, a = 1, b = 9, m = 10. k = 8 works: (1 + 8) mod 10 == 9.
+k = 2 also works: (1 - 2) mod 10 == -1 mod 10 == 9. No smaller k works.
+Return 2.
 
 Example 1:
 
@@ -24,16 +20,15 @@ Example 3:
 
 Input: a = 0, b = 5, m = 10
 Output: 5
-Explanation: both ways round take 5 steps.
+Explanation: (0 + 5) mod 10 == 5 and (0 - 5) mod 10 == 5. Both need k = 5.
 
 Constraints:
 
     2 <= m <= 10^9
     0 <= a, b < m
 
-    REQUIRED: O(1), arithmetic only. NO loop around the ring. The
-    direct difference alone is the failure mode this drill exists to
-    kill: it returns 8 on a = 1, b = 9, m = 10.
+    REQUIRED: O(1), arithmetic only. No loop over k. abs(a - b) alone is
+    wrong: it returns 8 on Example 1.
 """
 
 
