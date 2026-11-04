@@ -43567,6 +43567,17 @@
       "note": "The circular distance is computed as min(d, m - d) with d = abs(a - b); the wraparound uses m - d rather than an explicit modulo, so index-conversion is not exercised.",
       "summary": "The mu code defines Solution.dist, which takes the absolute difference d = abs(a - b) and returns min(d, m - d), the shorter of the direct and wraparound distances on a ring of size m. All assertions pass, including the large-m and small-m cases. The wraparound is handled by subtraction from m rather than by a modulo or index conversion, so the targeted index-conversion move does not appear; the modular-cycle idea is what the code exercises.",
       "seconds": 294
+    },
+    "solved/d_Reverse_Iterator_2026_11_04T21_03_08_219744_00_00Z.py": {
+      "date": "2026-11-05",
+      "problem": "drill",
+      "drill": "d200",
+      "moves": {
+        "py-iterator-protocol": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The Reverse class implements the iterator protocol: __iter__ returns self and __next__ returns data[self.i] while decrementing the index, raising StopIteration once i drops below zero. The Solution.reverse method wraps the input in a Reverse, and the assertions confirm list(), next(), and repeated iteration all behave correctly.",
+      "seconds": 328
     }
   }
 }
