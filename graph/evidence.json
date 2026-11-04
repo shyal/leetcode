@@ -43411,7 +43411,9 @@
       "moves": {
         "dp-1d-rolling": "clean"
       },
-      "pending": "2026-11-04T08:41:47+00:00",
+      "judge": "deepseek-chat",
+      "note": "O(n^2) DP over pairs(len(dp), back=true); no O(n log n) follow-up bound attempted.",
+      "summary": "The mu code builds a dp table filled with 1 and, for each index i, scans earlier indices j in reverse via pairs(len(dp), back=true), updating dp[i] = max(dp[j]+1, dp[i]) when nums[j] < nums[i]. This is the 1D rolling DP recurrence for LIS ending at each index, and all assertions including the 2500-element case pass. No notes were provided.",
       "seconds": 200
     }
   }
