@@ -43525,6 +43525,24 @@
       "judge": "deepseek-chat",
       "summary": "The mu code builds a 101-slot bucket array indexed by value, counts occurrences, then sweeps the buckets in order accumulating a running count of smaller values and records each value's answer in a dict, finally mapping the original nums through it. This is the counting-sort-buckets move: the small value domain is indexed directly instead of sorting. All assertions passed.",
       "seconds": 72
+    },
+    "solved/d_Maximum_Alternating_Subarray_Sum_2026_11_04T20_49_49_033530_00_00Z.mu": {
+      "date": "2026-11-05",
+      "problem": "drill",
+      "drill": "d319",
+      "moves": {
+        "memoize-recursion": "clean",
+        "dp-state-formulate": "clean",
+        "dp-1d-rolling": "clean"
+      },
+      "assist": {
+        "memoize-recursion": "learning",
+        "dp-state-formulate": "learning",
+        "dp-1d-rolling": "learning"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The mu solution defines a memoized recurrence best(i, s) that either stops at i == n or takes nums[i]*s plus max(0, best(i+1, -s)), then takes the max over all starting indices with sign 1. It exercises memoized recursion and a formulated (index, sign) state rather than a rolling 1D DP table. The notes say 'learning', so the approach was given and copied.",
+      "seconds": 484
     }
   }
 }
