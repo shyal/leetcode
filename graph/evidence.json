@@ -43428,6 +43428,18 @@
       "note": "The target dp-1d-rolling node is not exercised; the code is a single running-sum scan that yields the count before incrementing.",
       "summary": "countPicks walks s plus a trailing space, yielding the running count of c before incrementing it when the current character matches. This is a running-sum scan producing a prefix-count array, not a 1D DP table fill. All assertions pass, including the 100000-length case.",
       "seconds": 20
+    },
+    "solved/d_Divisible_Difference_Pairs_2026_11_04T08_44_06_797119_00_00Z.mu": {
+      "date": "2026-11-04",
+      "problem": "drill",
+      "drill": "d179",
+      "moves": {
+        "derived-key-lookup": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "The solution delegates to the harness helper count_pairs with key = x -> x % m, so the derived key (remainder) is computed and grouped; the pairing arithmetic lives in the helper.",
+      "summary": "The mu code defines divisiblePairs which calls the harness's count_pairs with a key function x -> x % m, grouping numbers by their remainder and counting pairs within each group. The derived-key-lookup move is exercised by transforming each value into its remainder before lookup. All assertions pass, including the large 10^5 cases. No notes were provided.",
+      "seconds": 65
     }
   }
 }
