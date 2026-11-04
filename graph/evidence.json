@@ -43451,6 +43451,18 @@
       "judge": "deepseek-chat",
       "summary": "The function firstRepeat builds a Set<number> and walks nums once, checking set.has(n) before set.add(n) and returning the first value already seen, else -1. This exercises the ts-set-membership move directly. The run exited 0 with all assertions passing.",
       "seconds": 148
+    },
+    "solved/d_Unique_Id_Or_Null_2026_11_04T19_54_59_935681_00_00Z.mu": {
+      "date": "2026-11-05",
+      "problem": "drill",
+      "drill": "d43",
+      "moves": {
+        "sql-join-left-keep": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "The GROUP BY e.name is redundant but harmless since names are unique here; the LEFT JOIN is what keeps unmatched employees.",
+      "summary": "The query selects u.unique_id and e.name from Employees as e, LEFT JOIN EmployeeUNI as u on e.id = u.id, so every employee row survives with NULL where no unique_id exists. It exercises the left-join-keep move, and both example assertions pass, including the empty EmployeeUNI case. No notes were provided.",
+      "seconds": 236
     }
   }
 }
