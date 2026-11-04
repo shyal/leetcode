@@ -365,6 +365,13 @@ fn commit_pushed(git: &Git, sha: &str) -> bool {
 /// cut from it - onto the rewritten commit. All in a temporary worktree;
 /// the checked-out branch is moved only when its new tip has exactly the
 /// tree it has now. Returns (ok, why); on any doubt nothing is moved.
+///
+/// This runs detached, seconds after `make solved`, while the operator
+/// may already be on `make drill`: a branch cut from master in those
+/// seconds is not in the list taken at the start and would hang off the
+/// old history, so after the refs move a second pass replays every
+/// branch that still contains an old tip. Returns (true, why) when the
+/// fold landed but such a branch could not be moved.
 fn fold_into(git: &Git, solve: &str, judge: &str) -> (bool, String) {
     let tmp = std::env::temp_dir().join(format!(
         "judge_{}_{}",
@@ -440,8 +447,9 @@ fn fold_into(git: &Git, solve: &str, judge: &str) -> (bool, String) {
             String::from_utf8_lossy(&git.run(&["rev-parse", "HEAD"], Some(&tmp), &[]).stdout)
                 .trim()
                 .to_string();
-        let mut new: Vec<(String, String, String)> = Vec::new();
-        for (name, old) in &refs {
+        // everything after the solve on the branch at `old`, replayed in
+        // the temporary worktree onto the rewritten commit: its new tip
+        let replay = |name: &str, old: &str| -> Result<String, String> {
             git.run(&["checkout", "-q", "--detach", &rewritten], Some(&tmp), &[]);
             let list = git.out(&["rev-list", "--reverse", &format!("{solve}..{old}")]);
             for c in list.split_whitespace() {
@@ -461,18 +469,23 @@ fn fold_into(git: &Git, solve: &str, judge: &str) -> (bool, String) {
                     let dirty = !git.ok(&["diff", "--quiet"], Some(&tmp), &[]);
                     if staged || dirty {
                         git.run(&["cherry-pick", "--abort"], Some(&tmp), &[]);
-                        return (
-                            false,
-                            format!("{} does not replay cleanly on {name}", &c[..8]),
-                        );
+                        return Err(format!("{} does not replay cleanly on {name}", &c[..8]));
                     }
                     git.run(&["cherry-pick", "--skip"], Some(&tmp), &[]); // became empty: its change is in the fold
                 }
             }
-            let tip =
+            Ok(
                 String::from_utf8_lossy(&git.run(&["rev-parse", "HEAD"], Some(&tmp), &[]).stdout)
                     .trim()
-                    .to_string();
+                    .to_string(),
+            )
+        };
+        let mut new: Vec<(String, String, String)> = Vec::new();
+        for (name, old) in &refs {
+            let tip = match replay(name, old) {
+                Ok(tip) => tip,
+                Err(why) => return (false, why),
+            };
             if *name == current && git.tree(&tip) != git.tree(old) {
                 return (false, format!("the tree of {name} would change"));
             }
@@ -489,7 +502,61 @@ fn fold_into(git: &Git, solve: &str, judge: &str) -> (bool, String) {
                 return (false, "master moved meanwhile".to_string());
             }
         }
-        (true, String::new())
+        // A branch cut from master while the above ran (the next drill's
+        // `checkout -b`) still contains an old tip: nothing else does now.
+        // Replay it the same way. A branch created from here on is cut
+        // from the moved master, so one pass per old tip is complete.
+        let mut left: Vec<String> = Vec::new();
+        for (_, old, _) in &new {
+            let late: Vec<(String, String)> = git
+                .out(&[
+                    "for-each-ref",
+                    "refs/heads",
+                    "--contains",
+                    old,
+                    "--format=%(refname:short) %(objectname)",
+                ])
+                .lines()
+                .filter_map(|l| {
+                    l.split_once(' ')
+                        .map(|(a, b)| (a.to_string(), b.to_string()))
+                })
+                .collect();
+            if late.is_empty() {
+                continue;
+            }
+            // the operator's checkout may have moved too
+            let current = git.out(&["rev-parse", "--abbrev-ref", "HEAD"]);
+            for (name, old) in late {
+                let tip = match replay(&name, &old) {
+                    Ok(tip) => tip,
+                    Err(why) => {
+                        left.push(why);
+                        continue;
+                    }
+                };
+                if name == current && git.tree(&tip) != git.tree(&old) {
+                    left.push(format!("the tree of {name} would change"));
+                    continue;
+                }
+                let r = git.run(
+                    &["update-ref", &format!("refs/heads/{name}"), &tip, &old],
+                    None,
+                    &[],
+                );
+                if !r.status.success() {
+                    left.push(format!("{name} moved meanwhile"));
+                }
+            }
+        }
+        if left.is_empty() {
+            (true, String::new())
+        } else {
+            (
+                true,
+                format!("left on the old history: {}", left.join("; ")),
+            )
+        }
     })();
     git.run(
         &["worktree", "remove", "--force", tmp.to_str().unwrap()],
@@ -601,8 +668,13 @@ pub fn commit_judgement(root: &Path, judged: &[(String, Value)], refit: bool) ->
     let (ok, why) = fold_into(&git, &solve, &judge);
     if ok {
         format!(
-            "judge: folded into {}",
-            git.out(&["show", "-s", "--format=%s", &solve])
+            "judge: folded into {}{}",
+            git.out(&["show", "-s", "--format=%s", &solve]),
+            if why.is_empty() {
+                String::new()
+            } else {
+                format!(" ({why})")
+            }
         )
     } else {
         format!("judge: committed {subject} (not folded: {why})")
@@ -2296,6 +2368,69 @@ mod tests {
             git(&root, &["show", "-s", "--format=%at %ct", "parked"]),
             stamp
         );
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    /// The race behind the recurring evidence.json conflicts (2026-11-04):
+    /// the detached judge folds while `make drill` cuts the next branch off
+    /// master. A post-commit hook plays the drill command inside the fold's
+    /// temporary worktree (the amend fires it): checkout -b off the old
+    /// master in the real worktree, stub committed, solve half typed.
+    #[test]
+    fn a_branch_cut_from_master_during_the_fold_is_rebased_too() {
+        let (root, path) = repo("fold_race");
+        // absolute: a relative hooksPath resolves against the linked worktree
+        let hooks = root.join(".git/hooks");
+        git(
+            &root,
+            &["config", "core.hooksPath", hooks.to_str().unwrap()],
+        );
+        let hook = hooks.join("post-commit");
+        std::fs::write(
+            &hook,
+            format!(
+                "#!/bin/sh\n\
+                 [ \"$(git rev-parse --git-dir)\" = .git ] && exit 0\n\
+                 unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX\n\
+                 git -C '{0}' show-ref -q refs/heads/late && exit 0\n\
+                 git -C '{0}' checkout -q master\n\
+                 git -C '{0}' checkout -qb late\n\
+                 printf '# statement of the next one' > '{0}/current.py'\n\
+                 git -C '{0}' commit -qam 'drill: Next'\n\
+                 printf '# statement of the next one\\n# and my half solve' > '{0}/current.py'\n",
+                root.display()
+            ),
+        )
+        .unwrap();
+        let mut perm = std::fs::metadata(&hook).unwrap().permissions();
+        std::os::unix::fs::PermissionsExt::set_mode(&mut perm, 0o755);
+        std::fs::set_permissions(&hook, perm).unwrap();
+        pyjson::store_evidence_entry(&root, &path, &judged_entry()).unwrap();
+        let out = commit_judgement(&root, &[(path.clone(), judged_entry())], false);
+        assert_eq!(out, "judge: folded into drill: Slide, Never Shrink");
+        assert_eq!(
+            git(&root, &["rev-parse", "--abbrev-ref", "HEAD"]).trim(),
+            "late"
+        );
+        assert_eq!(commits(&root, "master"), vec!["drill: Slide, Never Shrink"]);
+        assert_eq!(
+            commits(&root, "late"),
+            vec!["drill: Next", "drill: Slide, Never Shrink"]
+        );
+        assert_eq!(
+            git(&root, &["merge-base", "master", "late"]).trim(),
+            git(&root, &["rev-parse", "master"]).trim()
+        );
+        assert!(git(&root, &["show", "late:graph/evidence.json"]).contains("never shrinks"));
+        assert_eq!(tracked_status(&root), vec![" M current.py"]);
+        assert!(std::fs::read_to_string(root.join("current.py"))
+            .unwrap()
+            .ends_with("my half solve"));
+        // nothing left for the squash-merge to conflict on
+        git(&root, &["stash", "-q"]);
+        git(&root, &["checkout", "-q", "master"]);
+        git(&root, &["merge", "-q", "--squash", "late"]);
+        assert!(git(&root, &["worktree", "list"]).lines().count() == 1);
         let _ = std::fs::remove_dir_all(&root);
     }
 
