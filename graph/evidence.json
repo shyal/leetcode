@@ -43207,6 +43207,19 @@
       "note": "reverseK reverses the first k nodes with a dummy head and re-links the tail to the remainder; all assertions passed.",
       "summary": "reverseK uses a dummy node d and a loop that flips each node's next pointer into d.next while advancing h, decrementing k, then reattaches the original head t to the remaining list. This exercises pointer reversal plus dummy-node splicing. The run exited 0 with every assertion passing, including the 5000-element case.",
       "seconds": 93
+    },
+    "solved/d_Flips_To_Monotone_Increasing_2026_11_04T03_01_04_798631_00_00Z.mu": {
+      "date": "2026-11-04",
+      "problem": "drill",
+      "drill": "d317",
+      "moves": {
+        "dp-1d-rolling": "clean",
+        "running-sum": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "The DP is the two rolling states flips/ones updated per character; the follow-up (if any) is not addressed.",
+      "summary": "The mu code scans s once, counting ones seen and maintaining flips = min(flips+1, ones) at each '0', which is the rolling two-state DP for minimum flips to a monotone string. It exercises dp-1d-rolling with two rolling variables and a running count of ones. All assertions passed, including the 100k-length cases.",
+      "seconds": 78
     }
   }
 }
