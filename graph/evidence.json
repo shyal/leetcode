@@ -43604,6 +43604,17 @@
       "summary": "The mu code finds the midpoint with fast/slow pointers (fast advancing two, slow one), cuts the list at slow, reverses the second half via the harness's linked_list_reverse_k, then interleaves the two halves by rewiring a.next and b.next in a single loop. It exercises ll-offset-arithmetic (midpoint split) and ll-pointer-reversal (through the helper), while the dummy-node splice is not used. LeetCode reports Accepted (2 ms, 27.6 MB) and all local assertions pass.",
       "seconds": 371,
       "learning": true
+    },
+    "solved/d_Longest_Path_From_Zero_2026_11_04T21_46_16_526981_00_00Z.mu": {
+      "date": "2026-11-05",
+      "problem": "drill",
+      "drill": "d174",
+      "moves": {
+        "memoize-recursion": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The mu solution defines a cached recursive helper max_dist(n) that returns 0 for a leaf and otherwise max(max_dist(x) + 1 for x in G[n]), then calls max_dist(0). The @cache decorator memoizes each node's longest distance so it is computed once, giving O(n + m). All assertions passed, including the 200-node chain and branching graphs.",
+      "seconds": 85
     }
   }
 }
