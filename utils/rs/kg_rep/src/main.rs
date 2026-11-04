@@ -424,7 +424,7 @@ fn main() {
         match a.as_str() {
             "--line" => line = true,
             "-h" | "--help" => {
-                println!("usage: kg_rep [--line] [ref ...]\n\n  ref: problem number, drill id/title/path, node id; default current.py\n  --line: one line for the prompt hook");
+                println!("usage: kg_rep [--line] [ref ...]\n\n  ref: problem number, drill id/title/path, node id; default the served file\n  --line: one line for the prompt hook");
                 return;
             }
             _ => refs.push(a),
@@ -461,7 +461,7 @@ fn main() {
             std::process::exit(1);
         }
         Err(None) => {
-            println!("current.py holds no problem or drill");
+            println!("no current file holds a problem or drill");
             std::process::exit(1);
         }
     };

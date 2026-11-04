@@ -1,4 +1,4 @@
-// learning - file the attempt in current.py as "still learning": archived
+// learning - file the served attempt (kg::lang::served) as "still learning": archived
 // into solved/ with prints commented out, squash-merged to master with a
 // "reschedule" trailer. The older sibling of make solved, kept for the
 // flow it names.
@@ -11,36 +11,13 @@
 use std::process::Command;
 
 use chrono::Utc;
-use regex::Regex;
 
-fn parse_current(path: &str) -> Option<(i64, String, String)> {
+/// (problem number, title, content) of the served file, from its
+/// statement block (kg::lang::header, the docstring or the comment block).
+fn parse_current(path: &std::path::Path, lang: &kg::lang::Lang) -> Option<(i64, String, String)> {
     let content = std::fs::read_to_string(path).ok()?;
-    let doc = Regex::new(r#"(?s)"""(.*?)""""#)
-        .unwrap()
-        .captures(&content)?[1]
-        .trim()
-        .to_string();
-    let lines: Vec<&str> = doc.split('\n').collect();
-    let prob = Regex::new(r"^(\d+)\.\s*(.+)").unwrap();
-    for line in &lines {
-        let line = line.trim();
-        if line.is_empty() {
-            continue;
-        }
-        if let Some(m) = prob.captures(line) {
-            return Some((m[1].parse().ok()?, m[2].trim().to_string(), content));
-        }
-    }
-    for (i, line) in lines.iter().enumerate() {
-        if line.trim().starts_with("https://") {
-            if let Some(next) = lines.get(i + 1) {
-                if let Some(m) = prob.captures(next.trim()) {
-                    return Some((m[1].parse().ok()?, m[2].trim().to_string(), content));
-                }
-            }
-        }
-    }
-    None
+    let (num, title) = kg::lang::subject(&kg::lang::header(&content, lang)?)?;
+    Some((num.parse().ok()?, title, content))
 }
 
 fn comment_out_prints(content: &str) -> String {
@@ -108,12 +85,13 @@ fn main() {
     let delta = (now - start).max(0.0) as i64;
     let solve_time = format!("{}m {}s", delta / 60, delta % 60);
 
-    if !std::path::Path::new("current.py").exists() {
-        println!("current.py does not exist. Exiting.");
+    let Some((current, lang)) = kg::lang::served(std::path::Path::new(".")) else {
+        println!("No current file holds work. Exiting.");
         return;
-    }
-    let Some((num, title, content)) = parse_current("current.py") else {
-        println!("Could not parse problem number and title from current.py. Exiting.");
+    };
+    let name = current.file_name().unwrap().to_string_lossy().into_owned();
+    let Some((num, title, content)) = parse_current(&current, lang) else {
+        println!("Could not parse problem number and title from {name}. Exiting.");
         return;
     };
     let content = comment_out_prints(&content);
@@ -139,11 +117,11 @@ fn main() {
             }
         })
         .collect();
-    let filename = format!("p{num}_{clean_title}_{sanitized}.py");
+    let filename = format!("p{num}_{clean_title}_{sanitized}.{}", lang.ext);
     let _ = std::fs::create_dir_all("./solved");
     let filepath = format!("./solved/{filename}");
     std::fs::write(&filepath, content).expect("write the solve file");
-    std::fs::write("current.py", "").expect("clear current.py");
+    std::fs::write(&current, "").expect("clear the current file");
 
     let message =
         format!("{num}. {title}\n\nsolve time: {solve_time}\nstill learning - reschedule");

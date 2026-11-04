@@ -294,9 +294,12 @@ def test_drill_list_and_unknown_node():
 
 
 def test_kg_solved_files_nothing_from_an_empty_stub(tmp_path):
-    """Run in a scratch directory: the file phase reads current.py from the
-    working directory, so the repo's own attempt is never touched here."""
+    """Run in a scratch directory: the file phase reads the current file
+    from the working directory, so the repo's own attempt is never touched
+    here. A current.mu equal to the stub as served holds no work either."""
     (tmp_path / "current.py").write_text("\n")
+    (tmp_path / "current.mu").write_text("# DRILL: X\n")
+    (tmp_path / ".mu_stub").write_text("# DRILL: X\n")
     p = subprocess.run(
         [os.path.join(RS_BIN, "kg_solved")],
         capture_output=True,
@@ -304,7 +307,7 @@ def test_kg_solved_files_nothing_from_an_empty_stub(tmp_path):
         cwd=tmp_path,
     )
     assert p.returncode == 0, p.stderr
-    assert p.stdout.strip() == "current.py is empty — nothing to file."
+    assert p.stdout.strip() == "no current file holds work - nothing to file."
     assert (
         not (tmp_path / ".solve_meta.json").exists()
         and not (tmp_path / "solved").exists()
@@ -515,7 +518,7 @@ def test_learning_stops_without_a_stub(tmp_path):
         [os.path.join(RS_BIN, "learning")], capture_output=True, text=True, cwd=tmp_path
     )
     assert p.returncode == 0
-    assert p.stdout.strip().endswith("current.py does not exist. Exiting.")
+    assert p.stdout.strip().endswith("No current file holds work. Exiting.")
 
 
 # --- kg_hard, kg_llm_next -------------------------------------------------------

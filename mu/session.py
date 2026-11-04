@@ -1,32 +1,37 @@
 """The mu side of a solve: current.mu, the one file to work in.
 
-    python mu/session.py stub    after serving: write current.mu (DRILL_FILL:
-                                 the top of the solve given, when .mu_fill
-                                 names this drill)
+    python mu/session.py stub    at serve time: turn the Python stub a serve
+                                 wrote into current.py into current.mu, and
+                                 empty current.py (DRILL_FILL: the top of the
+                                 solve given, when .mu_fill names this drill)
     python mu/session.py run [file.mu] [--color|--no-color]
-                                 `make`: run the solve from current.mu, in place;
-                                 or any mu file on its own
-    python mu/session.py build   `make submit`: the file to submit
-    python mu/session.py fold    `make solved`: fold the mu solution into current.py,
-                                 the file kg_force and the leetcode submit read
-    python mu/session.py file    `make solved`, after the submit: current.mu becomes
-                                 the file to archive (solved/*.mu), with the
-                                 LEETCODE verdict in its notes, and current.py is
-                                 emptied; a solve mu cannot hold alone is
-                                 archived as the folded current.py
+                                 `make`: run current.mu in place; or any mu
+                                 file on its own
+    python mu/session.py build   `make submit`, `make solved`: the file to
+                                 submit and to check, .mu_current.py, the mu
+                                 transpiled
+    python mu/session.py file    `make solved`, after the submit: the LEETCODE
+                                 verdict lc_submit wrote into .mu_current.py
+                                 goes last in current.mu's notes, and the
+                                 work files are removed; current.mu is the
+                                 file to archive (solved/*.mu)
     python mu/session.py debug [file.mu]   VS Code: write .mu_current.py and its line map
 
-current.mu holds the statement as comments, a `# ---` line with
-your notes under it, the solve (the classes and defs of current.py:
-`class Solution`, a design problem's class, a given helper), and then
-the setup and asserts, translated to mu and commented as served.
-current.py stays as served; run and fold take its docstring and imports
-from the top and put current.mu, transpiled, under them. run writes no
-file: the Python is compiled under current.mu's name with each statement
-at its mu line, so a failed assert or an exception reports the line in
-current.mu. The harness helpers pasted in by the transpiler are compiled
-apart, as <mu helpers>. While current.mu is still the stub as served, run
-runs current.py, so a drill mu has no word for is solved there.
+current.mu is the whole serve: the statement as comments, a `# ---` line
+with your notes under it, a `# mu <version>` line with the imports, the
+solve (the classes and defs of the Python stub: `class Solution`, a design
+problem's class, a given helper), and then the setup and asserts,
+translated to mu and commented as served. The Python stub is read once,
+by stub, and current.py is left empty. run writes no file: the Python is
+compiled under current.mu's name with each statement at its mu line, so a
+failed assert or an exception reports the line in current.mu. The harness
+helpers pasted in by the transpiler are compiled apart, as <mu helpers>.
+
+A serve mu cannot hold stays in current.py and is solved there: a stub
+with a form mu has no word for (a default argument, a decorator, a given
+helper written with one), or a drill of the python track (graph/nodes.json
+group "python"), whose point is a Python word (match, with, a generator)
+mu does not have.
 """
 
 import ast
@@ -509,17 +514,60 @@ def drill_fill(root, py_src):
     return filled(solve, *spec["blank"])
 
 
+def head_mu(py_src):
+    """A Python stub's head, the code above its solve, for current.mu:
+    (the import lines as they are, the rest in mu). The rest is what the
+    stub gives: a class with a body (a Flag, a Node), a helper def, a
+    constant. MuError when mu has no form for one of them."""
+    head = py_src[: solve_span(py_src)[0]]
+    tree = parse(head)
+    doc = ast.get_docstring(tree) or ""
+    code = [n for n in tree.body if not (n is tree.body[0] and doc)]
+    imports = [ast.unparse(n) for n in code if isinstance(n, (ast.Import, ast.ImportFrom))]
+    py_lines = head.splitlines()
+    given = []
+    for n in code:
+        if isinstance(n, (ast.Import, ast.ImportFrom)):
+            continue
+        if isinstance(n, ast.ClassDef):
+            given.append(mu_class(n, py_lines))
+        elif isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            given.append(mu_def(n, body_comments(n, py_lines)))
+        else:
+            given.append("\n".join(mu_lines([n], 0)))
+    return imports, "\n\n".join(given)
+
+
+def header(py_src):
+    """The statement block current.mu starts with: the comment lines a
+    serve put above the docstring (the combos chain note), as they are,
+    then the docstring as comments, then `#` and `# ---` for the notes.
+    "" for a stub without a docstring."""
+    tree = parse(py_src)
+    doc = ast.get_docstring(tree) or ""
+    if not doc.strip():
+        return ""
+    above = py_src.split("\n")[: tree.body[0].lineno - 1]
+    lines = [ln for ln in above if ln.startswith("#")]
+    lines += [f"# {ln}".rstrip() for ln in doc.strip("\n").splitlines()]
+    return "\n".join(lines + ["#", "# ---"])
+
+
 def stub(py_src, solve=None):
     """current.mu for a served drill or problem: the statement as comments, a `# ---`
-    line for notes, the classes and defs of the solve with their bodies as
-    served (empty, mostly; `solve` in their place when given), then the
-    setup and asserts in mu. None when current.py has no class or def."""
-    tree = parse(py_src)
-    if not solve_nodes(tree):
+    line for notes, a `# mu <version>` line with the stub's imports, the
+    classes and defs of the solve with their bodies as served (empty,
+    mostly; `solve` in their place when given), then the setup and asserts
+    in mu. None when the stub has no class or def; MuError when mu cannot
+    hold it."""
+    if not solve_nodes(parse(py_src)):
         return None
-    doc = ast.get_docstring(tree) or ""
-    head = [f"# {ln}".rstrip() for ln in doc.strip("\n").splitlines()]
-    parts = ["\n".join(head + ["#", "# ---", ""])] if doc.strip() else []
+    head = header(py_src)
+    parts = [head + "\n"] if head else []
+    imports, given = head_mu(py_src)
+    parts.append("\n".join([f"# mu {VERSION}", *imports]))
+    if given:
+        parts.append(given)
     parts.append(solve or solve_mu(py_src))
     _, end = solve_span(py_src)
     if end < len(py_src):
@@ -527,7 +575,7 @@ def stub(py_src, solve=None):
     return fmt("\n\n".join(parts) + "\n")
 
 
-# current.py and current.mu together
+# current.mu, the serve
 
 
 def title(text, comment=False):
@@ -542,24 +590,14 @@ def title(text, comment=False):
     return next((ln.strip() for ln in doc.splitlines() if ln.strip()), "")
 
 
-def belongs(root):
-    """current.mu is the solve in current.py: it is not empty, current.py
-    has a solve (a class or a def), and their titles agree."""
-    mu, py = root / MU, root / CURRENT
-    if not (mu.exists() and py.exists() and mu.read_text().strip()):
-        return False
-    py_src = py.read_text()
-    try:
-        span = solve_span(py_src)
-    except SyntaxError:
-        return False
-    return span is not None and title(py_src) == title(mu.read_text(), True)
+def nonempty(path):
+    return path.exists() and bool(path.read_text().strip())
 
 
 def written(root):
     """current.mu holds more than the stub it was served with."""
     mu, served = root / MU, root / STUB
-    if not mu.exists() or not mu.read_text().strip():
+    if not nonempty(mu):
         return False
     if not served.exists():
         return True
@@ -567,6 +605,27 @@ def written(root):
         return fmt(mu.read_text()) != fmt(served.read_text())
     except MuError:
         return True  # an edit that does not parse yet is still an edit
+
+
+def statement(mu_src):
+    """The statement block of a mu file: its leading comment lines, up to
+    the first blank line, with the `#` taken off."""
+    out = []
+    for line in mu_src.split("\n"):
+        if not line.startswith("#"):
+            if line.strip() or out:
+                break
+            continue
+        out.append(line[2:] if line.startswith("# ") else line[1:])
+    return "\n".join(out)
+
+
+def same_serve(mu_src, text):
+    """current.mu and a fresh stub are serves of the same drill or problem:
+    their statements agree above the `# ---` line (the notes under it are
+    the candidate's)."""
+    cut = lambda s: statement(s).split("\n---", 1)[0]
+    return cut(mu_src) == cut(text)
 
 
 def notes(mu_src):
@@ -586,47 +645,29 @@ def notes(mu_src):
 
 def solution(mu_src):
     """current.mu between the statement block and the script: the part
-    the candidate wrote, quoted for the judge."""
+    the candidate wrote, quoted for the judge. The `# mu` line and the
+    imports above the solve are not his."""
     p = Parser(mu_src)
     p.program()
     lines = mu_src.split("\n")
     end = (p.script_line or len(lines) + 1) - 1
     start = 0
-    while start < end and (not lines[start].strip() or lines[start].startswith("#")):
+    while start < end and (
+        not lines[start].strip() or lines[start].startswith(("#", "import ", "from "))
+    ):
         start += 1
     return "\n".join(lines[start:end]).strip("\n")
 
 
-def spliced(py_src, mu_src, show_source=False, mapped=False):
-    """current.py's docstring and imports, then current.mu transpiled (the
-    solve and the asserts). With show_source, the notes go into the
-    docstring after `---` and the mu solution is quoted above the solve,
-    under a `# mu <version>` line. With mapped, also {python line: mu line},
-    both 1-based, for every line that came from current.mu."""
-    span = solve_span(py_src)
-    if span is None:
-        raise MuError("current.py has no class or def to replace")
-    head = py_src[: span[0]]
-    # current.py folded once already (a `make solved` whose submit failed,
-    # then current.mu written again): the head ends at that fold's quote,
-    # so its quote, imports and helpers are not kept as a second copy
-    folded = re.search(r"^# mu \d+\.\d+\n", head, flags=re.M)
-    if folded:
-        head = head[: folded.start()]
+def python_of(mu_src, mapped=False):
+    """current.mu as the Python file leetcode and the force check get: the
+    statement block as the docstring, the mu solution quoted under a `# mu
+    <version>` line, then the transpiled code. With mapped, also {python
+    line: mu line}, both 1-based, for every line that came from
+    current.mu."""
     code, origin = transpile(mu_src, mapped=True)
-    if show_source:
-        said = notes(mu_src)
-        doc = re.match(r'\s*"""(.*?)"""', head, flags=re.S)
-        if said and doc and doc.group(1).rstrip("\n").endswith(said):
-            said = ""  # the notes are in the docstring from the first fold
-        if said:
-            doc = re.match(r'\s*"""(.*?)"""', head, flags=re.S)
-            if doc:
-                sep = "\n" if "\n---\n" in doc.group(1) else "\n---\n"
-                body = doc.group(1).rstrip("\n") + sep + said + "\n"
-                head = head[: doc.start(1)] + body + head[doc.end(1) :]
-        quoted = "\n".join(f"# {ln}".rstrip() for ln in solution(mu_src).splitlines())
-        code = f"# mu {VERSION}\n{quoted}\n\n{code}"
+    quoted = "\n".join(f"# {ln}".rstrip() for ln in solution(mu_src).splitlines())
+    head = f'"""\n{statement(mu_src)}\n"""\n\n# mu {VERSION}\n{quoted}\n\n'
     out = head + code
     if not mapped:
         return out
@@ -635,40 +676,97 @@ def spliced(py_src, mu_src, show_source=False, mapped=False):
     return out, lines
 
 
+def with_verdict(mu_src, line):
+    """mu_src with `LEETCODE: <line>` last in its notes, under a `# ---`
+    line added when missing, in place of an earlier LEETCODE line."""
+    lines = mu_src.rstrip("\n").split("\n")
+    end = next((k for k, ln in enumerate(lines) if not ln.startswith("#")), len(lines))
+    header = [ln for ln in lines[:end] if not ln.startswith("# LEETCODE:")]
+    if "# ---" not in header:
+        header += ["#", "# ---"]
+    header.append(f"# LEETCODE: {line}")
+    return "\n".join(header + lines[end:]) + "\n"
+
+
+def verdict(root):
+    """The LEETCODE line lc_submit wrote into .mu_current.py's docstring,
+    or None."""
+    sent = root / RUN
+    if not sent.exists():
+        return None
+    doc = re.match(r'\s*"""(.*?)"""', sent.read_text(), flags=re.S)
+    found = re.findall(r"^LEETCODE: (.*)$", doc.group(1), flags=re.M) if doc else []
+    return found[-1].strip() if found else None  # the last: the submit's own
+
+
+def python_track(root):
+    """The served drill is of the python track (graph/nodes.json group
+    "python"): its bank file, named in graph/drills.json by the id
+    .drill.json holds, is under drills/<node>/."""
+    try:
+        did = json.loads((root / DRILL).read_text())["drill"]
+        file = json.loads((root / "graph/drills.json").read_text())["drills"][did]["file"]
+        nodes = json.loads((root / "graph/nodes.json").read_text())["nodes"]
+    except (OSError, ValueError, KeyError, TypeError):
+        return False
+    node = Path(file).parent.name
+    return any(n.get("id") == node and n.get("group") == "python" for n in nodes)
+
+
 # the commands
 
 
 def cmd_stub(root):
-    py = root / CURRENT
-    if not py.exists() or not py.read_text().strip():
+    """The Python stub a serve wrote into current.py becomes current.mu,
+    and current.py is emptied. A serve mu cannot hold is left in
+    current.py, and a current.mu that holds no work is emptied so the
+    Python file is the one open."""
+    py, mu = root / CURRENT, root / MU
+    if not nonempty(py):
         return 0
-    mu = root / MU
+    py_src = py.read_text()
     try:
-        text = stub(py.read_text())
-        if text is not None:
-            transpile(text)  # a stub that does not transpile would only fail at `make`
-    except (MuError, SyntaxError) as err:
-        print(f"mu cannot write this one ({err}), so solve it in current.py.")
-        return 0
+        same = nonempty(mu) and same_serve(mu.read_text(), header(py_src))
+    except SyntaxError:
+        same = False
+    if nonempty(mu) and not same:
+        if written(root):
+            (root / PREV).write_text(mu.read_text())
+            print(f"current.mu held work on another solve; it was moved to {PREV}.")
+        mu.write_text("")
+        (root / STUB).unlink(missing_ok=True)
+    text, why = None, None
+    if python_track(root):
+        why = "a drill of the python track is solved in Python"
+    else:
+        try:
+            text = stub(py_src)
+            if text is None:
+                why = "it has no class or def"
+            else:
+                transpile(text)  # a stub that does not transpile would only fail at `make`
+        except (MuError, SyntaxError) as err:
+            text, why = None, str(err)
     if text is None:
-        print("This one has no class or def, so solve it in current.py.")
+        print(f"mu cannot hold this one ({why}), so solve it in current.py.")
+        return 0
+    if written(root):
+        print("current.mu already holds work on this one, so it was left alone.")
+        py.write_text("")
         return 0
     given = None
     try:
-        solve = drill_fill(root, py.read_text())
+        solve = drill_fill(root, py_src)
         if solve is not None:
-            given = stub(py.read_text(), solve)
+            given = stub(py_src, solve)
             transpile(given)
     except (MuError, SyntaxError):
         given = None
-    if written(root):
-        if belongs(root):
-            print("current.mu already holds work on this one, so it was left alone.")
-            return 0
-        (root / PREV).write_text(mu.read_text())
-        print(f"current.mu held work on another solve; it was moved to {PREV}.")
+    if given is None:
+        (root / FILL).unlink(missing_ok=True)  # .mu_fill stays only when the fill is in
     mu.write_text(given or text)
     (root / STUB).write_text(given or text)
+    py.write_text("")
     if given:
         print(
             "Wrote current.mu: DRILL_FILL gives the top of the solve; write the lines marked pass."
@@ -864,12 +962,10 @@ def run_file(target, color=False):
 
 
 def cmd_run(root, *args):
-    """`make`: run current.mu in place when it is the solve and holds more
-    than the stub, else current.py. current.py's head, the docstring and
-    imports above its solve, runs first under its own name, then
-    current.mu's code under its own. No file is written. `run FILE.mu`
-    runs any mu file on its own, with no current.py head. The traceback is
-    coloured on a terminal, or with --color; --no-color turns it off."""
+    """`make`: run current.mu in place when it holds the serve, else
+    current.py (a serve mu could not hold). No file is written. `run
+    FILE.mu` runs any mu file on its own. The traceback is coloured on a
+    terminal, or with --color; --no-color turns it off."""
     color = sys.stderr.isatty()
     files = []
     for a in args:
@@ -881,39 +977,32 @@ def cmd_run(root, *args):
             files.append(a)
     if len(files) > 1:
         sys.exit(__doc__)
-    if files and not (files[0] == MU and belongs(root)):
-        mu = root / files[0]
-        try:
-            codes = mu_code(mu.read_text(), str(mu))
-        except MuError as err:
-            print(f"{files[0]}: {err}", file=sys.stderr)
-            return 1
-        return run(list(codes), mu, color)
-    py = root / CURRENT
-    if not (belongs(root) and written(root)):
-        return run_file(py, color)
-    py_src = py.read_text()
-    head = py_src[: solve_span(py_src)[0]]
+    mu = root / (files[0] if files else MU)
+    if not files and not nonempty(mu):
+        return run_file(root / CURRENT, color)
+    if not files and (root / FILL).exists() and not written(root):
+        # DRILL_FILL: the stub is the latest solve with its heaviest lines
+        # as `pass`, which does not run until they are written
+        print("DRILL_FILL: write the lines marked pass, then make.", file=sys.stderr)
+        return 0
     try:
-        helpers, program = mu_code((root / MU).read_text(), str(root / MU))
+        codes = mu_code(mu.read_text(), str(mu))
     except MuError as err:
-        print(f"current.mu: {err}", file=sys.stderr)
+        print(f"{mu.name}: {err}", file=sys.stderr)
         return 1
-    print("Running from current.mu.", file=sys.stderr)
-    return run([compile(head, str(py), "exec"), helpers, program], root / MU, color)
+    return run(list(codes), mu, color)
 
 
 def cmd_build(root):
-    """Print the file `make submit` sends: current.mu transpiled into
-    .mu_current.py when current.mu holds the work, else current.py. The
-    mu solution is quoted above the class, and leetcode gets it too."""
-    if not (belongs(root) and written(root)):
+    """Print the file `make submit` sends and `make solved` checks:
+    current.mu transpiled into .mu_current.py when it holds work, else
+    current.py. The mu solution is quoted above the class, and leetcode
+    gets it too."""
+    if not written(root):
         print(CURRENT)
         return 0
     try:
-        code = spliced(
-            (root / CURRENT).read_text(), (root / MU).read_text(), show_source=True
-        )
+        code = python_of((root / MU).read_text())
     except MuError as err:
         print(f"current.mu: {err}", file=sys.stderr)
         return 1
@@ -925,26 +1014,18 @@ def cmd_build(root):
 def cmd_debug(root, target=None):
     """Write .mu_current.py for the debugger, with .mu_current.map.json
     beside it: {"file": <the mu file>, "lines": {python line: mu line}}.
-    current.mu is spliced into current.py when it is the live solve; any
-    other mu file, or current.mu once the solve is filed, is transpiled on
-    its own. Prints the file to debug: .mu_current.py, or current.py when
-    there is no mu to debug."""
+    current.mu gets its statement and the quoted solution above the code,
+    as `make submit` sends it; any other mu file is transpiled on its own.
+    Prints the file to debug: .mu_current.py, or current.py when there is
+    no mu to debug."""
     mu = root / (target or MU)
-    current = target in (None, MU) and belongs(root)
-    live = current and written(root)
-    untouched = current and not live  # the stub as served: debug current.py
-    if untouched or not (mu.exists() and mu.read_text().strip()):
+    if not nonempty(mu):
         (root / MAP).unlink(missing_ok=True)
         print(CURRENT)
         return 0
     try:
-        if live:
-            code, lines = spliced(
-                (root / CURRENT).read_text(),
-                mu.read_text(),
-                show_source=True,
-                mapped=True,
-            )
+        if target in (None, MU):
+            code, lines = python_of(mu.read_text(), mapped=True)
         else:
             code, origin = transpile(mu.read_text(), mapped=True)
             lines = {k + 1: o for k, o in enumerate(origin) if o is not None}
@@ -957,75 +1038,22 @@ def cmd_debug(root, target=None):
     return 0
 
 
-def cmd_fold(root):
-    if not belongs(root) or not written(root):
-        return 0
-    py = root / CURRENT
-    try:
-        code = spliced(py.read_text(), (root / MU).read_text(), show_source=True)
-    except MuError as err:
-        print(f"current.mu: {err}", file=sys.stderr)
-        return 1
-    py.write_text(code)
-    print("Folded the mu solution and your notes into current.py.")
-    return 0
-
-
-# the lines of current.py's head, above the solve, that a .mu file can hold
-IMPORT = re.compile(r"(import \w|from [\w.]+ import )")
-
-
-def filed(py_src, mu_src):
-    """current.mu as solved/ keeps it, or None when the head of current.py
-    (its code above the solve, the fold's quote cut off) holds more than
-    imports, which would not run in mu alone. The LEETCODE verdict that
-    lc_submit wrote into current.py's docstring goes last in the notes, the
-    imports go under the statement, after a `# mu <version>` line."""
-    head = py_src[: solve_span(py_src)[0]]
-    folded = re.search(r"^# mu \d+\.\d+\n", head, flags=re.M)
-    if folded:
-        head = head[: folded.start()]
-    tree = parse(head)
-    doc = ast.get_docstring(tree) or ""
-    code = [n for n in tree.body if not (n is tree.body[0] and doc)]
-    if not all(isinstance(n, (ast.Import, ast.ImportFrom)) for n in code):
-        return None
-    imports = [ast.unparse(n) for n in code]
-    lines = mu_src.rstrip("\n").split("\n")
-    end = next((k for k, ln in enumerate(lines) if not ln.startswith("#")), len(lines))
-    header, body = lines[:end], lines[end:]
-    verdict = re.search(r"^LEETCODE:.*$", doc, flags=re.M)
-    if verdict and f"# {verdict.group()}" not in header:
-        if "# ---" not in header:
-            header += ["#", "# ---"]
-        header.append(f"# {verdict.group()}")
-    while body and not body[0].strip():
-        body.pop(0)
-    top = [f"# mu {VERSION}", *imports]
-    return "\n".join(header + ["", *top, "", *body]) + "\n"
-
-
 def cmd_file(root):
-    py, mu = root / CURRENT, root / MU
-    text = None
-    if belongs(root) and written(root):
-        text = filed(py.read_text(), mu.read_text())
-        if text is None:
-            print("current.py holds more than imports above the solve, so it is filed as Python.")
-            if not re.search(r"^# mu \d+\.\d+\n", py.read_text(), flags=re.M):
-                if cmd_fold(root):  # `make failed` and `make studied` do not fold first
-                    return 1
-    elif mu.exists() and mu.read_text().strip() and not written(root):
-        mu.write_text("")  # the stub as served: no work to keep
-    if text is not None:
-        mu.write_text(text)
-        py.write_text("")
+    """After the submit: current.mu is the file to archive, with the
+    LEETCODE verdict lc_submit wrote into .mu_current.py last in its
+    notes. A current.mu still the stub as served is emptied: nothing to
+    keep. The work files go either way. A serve left in current.py is
+    archived from there, and nothing is done here."""
+    mu = root / MU
+    if written(root):
+        line = verdict(root)
+        if line:
+            mu.write_text(with_verdict(mu.read_text(), line))
         print("current.mu is the file to archive.")
-    elif belongs(root):
-        mu.write_text("")  # its solve is folded into current.py
-    if text is not None or not (mu.exists() and mu.read_text().strip()):
-        for name in (STUB, RUN, MAP, FILL):
-            (root / name).unlink(missing_ok=True)
+    elif nonempty(mu):
+        mu.write_text("")
+    for name in (STUB, RUN, MAP, FILL):
+        (root / name).unlink(missing_ok=True)
     return 0
 
 
@@ -1034,7 +1062,6 @@ if __name__ == "__main__":
         "stub": cmd_stub,
         "run": cmd_run,
         "build": cmd_build,
-        "fold": cmd_fold,
         "file": cmd_file,
         "debug": cmd_debug,
     }

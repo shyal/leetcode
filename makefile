@@ -1,10 +1,9 @@
 .PHONY: all asserts audit tle chat check combos complexity cov curve dependents crowd crowd-install crowd-uninstall discuss dive drawing-doc drill drop duplicates elo ext failed fmt fmt-check force graph graph-vscode hard harness-doc is_session_start kg-extract kg-status kg-viz lc-login lc-mocks lc-sync learning lint mirror mock movie mu mu-chrome mu-vscode muviz next predict preflight prepare prog progress q queue rank-table readme rep residuals rust secrets short simulate sleep snippets solved spot stats studied submit tables test test-fast test-judge timer today types unforce viz wake
 
-# `make` runs the current file: current.py through mu/session.py (which
-# runs current.mu in place when it holds the work, every error at its mu
-# line; current.mu still the stub as served runs as current.py), any
-# other language's current.<ext> through its toolchain (utils/rs/run, the
-# kg::lang table)
+# `make` runs the current file: current.mu in place through mu/session.py
+# (every error at its mu line), or current.py for a serve mu could not
+# hold, any other language's current.<ext> through its toolchain
+# (utils/rs/run, the kg::lang table)
 all: $(if $(filter master,$(shell git rev-parse --abbrev-ref HEAD)),graph/leet.db) $(EXT) $(RS_BIN)/run
 	@cp utils/harness/sitecustomize.py .venv/lib/python3.10/site-packages/
 	@$(RS_BIN)/run
@@ -18,14 +17,17 @@ is_session_start: $(RS_BIN)/is_session_start
 learning: $(RS_BIN)/learning
 	@$(RS_BIN)/learning
 
-# every serve ends here (`make next prepare` runs next, then this): the
-# drill or problem also gets its classes and signatures in current.mu
-# (one mu has no word for is left to current.py), VS Code opens the
-# served file (kg_open:
-# current.mu, current.<ext> or current.md, so the tab and its language
-# are never picked by hand), and last the Claude
-# Code pane follows the branch (kg_chat --switch: detached, a no-op when
-# the pane is already on this branch)
+# every serve ends here (`make next prepare` runs next, then this). The
+# serve itself (prepare, drill) turns its Python stub into current.mu and
+# empties current.py before the branch commit (kg::lang::mu_stub); the
+# stub step here is the same call again, a no-op then, and the one that
+# runs for a serve that did not (a parked problem woken). A serve mu
+# cannot hold (a given helper, a form mu lacks, a drill of the python
+# track) stays in current.py. VS Code opens the served file (kg_open:
+# current.mu, current.py, current.<ext> or current.md, so the tab and
+# its language are never picked by hand), and last the Claude Code pane
+# follows the branch (kg_chat --switch: detached, a no-op when the pane
+# is already on this branch)
 prepare: $(RS_BIN)/prepare $(RS_BIN)/drill $(RS_BIN)/kg_chat $(RS_BIN)/kg_open
 	@if [ "$(firstword $(MAKECMDGOALS))" != next ] && [ "$(firstword $(MAKECMDGOALS))" != dependents ] && [ "$(firstword $(MAKECMDGOALS))" != combos ]; then $(RS_BIN)/prepare $(filter-out $@,$(MAKECMDGOALS)) || exit 1; fi; .venv/bin/python3 mu/session.py stub
 	@$(RS_BIN)/kg_open
@@ -217,30 +219,32 @@ drop:
 # done. Seconds, not the judge's minute. Ctrl-C anywhere: re-run
 # `make solved`, every step resumes (utils/rs/kg_solved). Last, the Claude
 # Code pane follows the branch back to master (detached).
-# A mu solve is archived as solved/*.mu: fold writes current.py for the
-# force check and the submit, then file makes current.mu the file to
-# archive, with the verdict in its notes (mu/session.py).
+# A mu solve is archived as solved/*.mu: build writes .mu_current.py, the
+# transpiled copy the force check and the submit read, then file puts the
+# verdict in current.mu's notes and current.mu is the file to archive
+# (mu/session.py). A solve mu could not hold is current.py throughout.
 # The leetcode submission is a gate: any verdict but Accepted stops here,
 # with the verdict written into the file. `make solved FORCE=1` files the
 # solve whatever leetcode said. (A variable, not a word: `force` is the
 # constrained-solve target above, and make rejects `--force` itself.)
 solved: $(RS_BIN)/kg_solved $(RS_BIN)/kg_force $(RS_BIN)/kg_extract $(RS_BIN)/lc_submit $(RS_BIN)/kg_chat
-	@.venv/bin/python3 mu/session.py fold
-	@$(RS_BIN)/kg_force --check
-	@$(RS_BIN)/lc_submit --auto $(if $(FORCE),--force)
+	@f="$$(.venv/bin/python3 mu/session.py build)" || exit 1; \
+	$(RS_BIN)/kg_force --check && \
+	$(RS_BIN)/lc_submit --auto $(if $(FORCE),--force) --file "$$f"
 	@.venv/bin/python3 mu/session.py file
 	@$(RS_BIN)/kg_solved
 	@$(RS_BIN)/kg_extract --stub
 	@$(RS_BIN)/kg_solved --commit
 	@$(RS_BIN)/kg_chat --switch
 
-# submit current.py's last `class Solution` to leetcode and write the verdict
+# submit the solve's last `class Solution` to leetcode and write the verdict
 # into its notes (LEETCODE: Accepted / Time Limit Exceeded ...) for the judge.
 # make solved does this itself. The requests run inside the browser exposing
 # devtools at LC_CDP_ENDPOINT (misc/lc_fetch.mjs): only a real browser gets
-# every solution past Cloudflare. While current.mu holds the work, its
-# transpiled copy (.mu_current.py) is sent and the verdict lands there;
-# make solved folds the mu in first and records the verdict in current.py.
+# every solution past Cloudflare. The file sent is current.mu's transpiled
+# copy (.mu_current.py, mu/session.py build), where the verdict lands; make
+# solved then carries it into current.mu's notes (mu/session.py file). A
+# solve mu could not hold is current.py, sent and marked as it is.
 submit: $(RS_BIN)/lc_submit
 	@f="$$(.venv/bin/python3 mu/session.py build)" || exit 1; $(RS_BIN)/lc_submit --file "$$f" $(filter-out $@,$(MAKECMDGOALS))
 
