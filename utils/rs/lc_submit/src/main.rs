@@ -1,10 +1,11 @@
-// lc_submit - submit the solution in current.py to leetcode and record the
+// lc_submit - submit a solve file (current.py, or .mu_current.py, the
+// transpiled current.mu that `mu/session.py build` writes) to leetcode and record the
 // verdict in the file's notes, so the judge sees what leetcode saw (a brute
 // force that passes the file's small asserts still TLEs on the real tests;
 // 2542 on 2026-09-14 was judged clean that way).
 //
-//   lc_submit                 # submit current.py, write "LEETCODE: <verdict>" into its notes
-//   lc_submit --file F        # another file
+//   lc_submit --file F        # submit F, write "LEETCODE: <verdict>" into its notes
+//   lc_submit                 # F is current.py
 //   lc_submit --auto          # the `make solved` step: silently skip a drill (no URL
 //                             # line) or a missing browser, and say so when the notes
 //                             # mark a learning rep; exit 1 when leetcode's verdict

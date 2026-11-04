@@ -1,7 +1,9 @@
 // prepare - fetch a leetcode problem, generate a validated solution+asserts
-// file with an LLM, and load its stub into current.py on a branch.
+// file with an LLM, and serve its stub on a branch: written to current.py,
+// then turned into current.mu by mu/session.py stub (current.py stays
+// only for a stub mu cannot hold).
 //
-//   prepare 2413                 # one problem: cache, then branch + current.py
+//   prepare 2413                 # one problem: cache, then branch + current.mu
 //   prepare --warm 1 2 3         # only populate .prepare_cache
 //   prepare --jobs 1 4 5         # problems generated concurrently (default 4)
 //   prepare --model gpt-5-mini 6 # the model for the LLM calls
@@ -719,6 +721,9 @@ option loses, where one pass misses a later better choice. At most 12 lines.
         // a problem, not a drill: no .drill.json may name it
         kg::lang::clear_current_drill(root);
         println!("Saved stub to {file_name}");
+        // the serve is current.mu; current.py stays only for a stub mu
+        // cannot hold (mu/session.py stub says which)
+        kg::lang::mu_stub(root);
         git(&["checkout", "-b", &key]);
         git(&["add", "."]);
         git(&["commit", "-m", &problem_title]);

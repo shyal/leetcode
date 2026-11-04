@@ -1,4 +1,4 @@
-"""The mu side of a solve: stub at serve, run while solving, fold at solved."""
+"""The mu side of a solve: stub at serve, run while solving, build and file at solved."""
 
 import glob
 import json
@@ -15,7 +15,7 @@ ROOT = os.path.dirname(HERE)
 sys.path[:0] = [HERE, os.path.join(ROOT, "utils", "tests")]
 from mulang import VERSION, Parser, transpile  # noqa: E402
 from session import highlighted  # noqa: E402
-from session import SETUP, filled, stub, title  # noqa: E402
+from session import SETUP, filled, stub, title, with_verdict  # noqa: E402
 from test_reference_solutions import PY, drill_for  # noqa: E402
 
 REFERENCES = sorted(
@@ -50,11 +50,15 @@ def signatures(src):
 
 def solved(stub_text, reference_text, note=""):
     """current.mu as the operator leaves it: the stub's statement block,
-    with a note under `# ---`, the reference solution in place of the empty
-    defs, and every assert of the script turned on."""
+    with a note under `# ---`, the `# mu` line and the imports, the
+    reference solution in place of the empty defs, and every assert of the
+    script turned on."""
     lines = stub_text.split("\n")
+    # the solve starts at `class Solution`; a class or def above it is
+    # given (a Flag class) and stays. Without one, at the first class or def
     first = next(
-        i for i, ln in enumerate(lines) if ln.startswith(("class ", "def ", "@"))
+        (i for i, ln in enumerate(lines) if ln == "class Solution"),
+        next(i for i, ln in enumerate(lines) if ln.startswith(("class ", "def ", "@"))),
     )
     head = lines[:first]
     if note:
@@ -86,23 +90,30 @@ def python(cwd, name="current.py"):
     )
 
 
+def with_leetcode(cwd, line):
+    """What lc_submit does after a submit: the verdict goes into the
+    docstring of the file it sent, .mu_current.py."""
+    sent = cwd / ".mu_current.py"
+    text = sent.read_text()
+    doc_end = text.index('"""', 3)
+    sent.write_text(text[:doc_end] + f"\n---\n\nLEETCODE: {line}\n" + text[doc_end:])
+
+
 @pytest.mark.parametrize("ref", REFERENCES, ids=os.path.basename)
 def test_every_drill_gets_a_stub_with_the_reference_signature(ref):
     s = stub(open(drill_for(ref)).read())
     transpile(s)
     assert signatures(s) == signatures(open(ref).read())
-    assert s.startswith("# ") and "\n# ---\n" in s
+    assert s.startswith("# ") and "\n# ---\n" in s and f"\n# mu {VERSION}\n" in s
     assert not re.search(r"^# (DRILL|TRAINS):", s, flags=re.M)
 
 
 @pytest.mark.parametrize("ref", REFERENCES, ids=os.path.basename)
 def test_every_drill_runs_green_from_current_mu(ref, tmp_path):
     drill = open(drill_for(ref)).read()
-    (tmp_path / "current.py").write_text(drill)
     (tmp_path / "current.mu").write_text(solved(stub(drill), open(ref).read()))
     run = session(tmp_path, "run")
     assert run.returncode == 0, run.stdout[-1500:] + run.stderr[-1500:]
-    assert "Running from current.mu." in run.stderr
 
 
 def test_the_stub_translates_the_asserts():
@@ -130,6 +141,13 @@ def test_the_stub_translates_the_asserts():
     assert "    def band(a, b)\n      (min(a, b) + 1, max(a, b) + limit)\n" in s
 
 
+def test_the_stub_keeps_the_imports_under_the_mu_line():
+    src = PROBLEM.replace('"""\n\n\nclass', '"""\n\nimport math\nfrom heapq import heappush\n\n\nclass', 1)
+    s = stub(src)
+    assert f"# ---\n\n# mu {VERSION}\nimport math\nfrom heapq import heappush\n\nclass Solution\n" in s
+    transpile(s)
+
+
 # one drill of each shape: a callable argument, a class built as `p =`,
 # a base class, a helper in the stub, multi-line asserts, a tree
 CASES = ["d115_", "d17_", "d71_", "d119_", "d2_", "d68_"]
@@ -138,13 +156,18 @@ CASES = ["d115_", "d17_", "d71_", "d119_", "d2_", "d68_"]
 @pytest.mark.parametrize("prefix", CASES)
 def test_a_whole_session(prefix, tmp_path):
     ref = reference(prefix)
-    (tmp_path / "current.py").write_text(open(drill_for(ref)).read())
+    drill = open(drill_for(ref)).read()
+    (tmp_path / "current.py").write_text(drill)
 
-    assert session(tmp_path, "stub").returncode == 0
+    assert "Wrote current.mu" in session(tmp_path, "stub").stdout
     served = (tmp_path / "current.mu").read_text()
     assert served == (tmp_path / ".mu_stub").read_text()
-    # the stub alone is not a solve: current.py runs as served
-    assert "Running from current.mu." not in session(tmp_path, "run").stderr
+    # current.mu is the serve: current.py is read once and emptied
+    assert (tmp_path / "current.py").read_text() == ""
+    # the stub alone runs: its asserts are commented out
+    assert session(tmp_path, "run").returncode == 0
+    # and is no work to submit or to file
+    assert session(tmp_path, "build").stdout.strip() == "current.py"
 
     (tmp_path / "current.mu").write_text(
         solved(served, open(ref).read(), "peeked at the loop")
@@ -153,27 +176,34 @@ def test_a_whole_session(prefix, tmp_path):
     assert run.returncode == 0, run.stdout[-1500:] + run.stderr[-1500:]
 
     # serving the same drill again never overwrites the work
+    (tmp_path / "current.py").write_text(drill)
     assert "left alone" in session(tmp_path, "stub").stdout
+    assert (tmp_path / "current.py").read_text() == ""
 
-    assert session(tmp_path, "fold").returncode == 0
-    folded = (tmp_path / "current.py").read_text()
-    assert folded.startswith('"""')
-    doc = folded.split('"""')[1]
+    # build: the file the force check runs and leetcode gets
+    assert session(tmp_path, "build").stdout.strip() == ".mu_current.py"
+    built = (tmp_path / ".mu_current.py").read_text()
+    assert built.startswith('"""')
+    doc = built.split('"""')[1]
     assert "\n---\npeeked at the loop\n" in doc  # the notes, where the judge reads them
-    quoted = folded.split(f"# mu {VERSION}\n")[1].split("\n\n")[0]
+    quoted = built.split(f"# mu {VERSION}\n")[1].split("\n\n")[0]
     assert "# class Solution" in quoted
-    assert "# DRILL" not in quoted and "# assert" not in quoted
-    ran = python(tmp_path)
+    assert "# DRILL" not in quoted and "# assert" not in quoted and "# import" not in quoted
+    ran = python(tmp_path, ".mu_current.py")
     assert ran.returncode == 0, ran.stdout[-1500:] + ran.stderr[-1500:]
 
-    # file: current.mu is what solved/ keeps, and it runs alone with mu
+    # file: current.mu is what solved/ keeps, with the verdict in its
+    # notes, and it runs alone with mu
+    with_leetcode(tmp_path, "Accepted (1 ms)")
     work = (tmp_path / "current.mu").read_text()
-    assert session(tmp_path, "file").returncode == 0
+    assert "current.mu is the file to archive" in session(tmp_path, "file").stdout
     archived = (tmp_path / "current.mu").read_text()
     assert (tmp_path / "current.py").read_text() == ""
     assert not (tmp_path / ".mu_stub").exists()
+    assert not (tmp_path / ".mu_current.py").exists()
     assert f"\n\n# mu {VERSION}\n" in archived
-    assert archived.split("\n\n")[0] == work.split("\n\n")[0]  # the statement and notes
+    head = archived.split("\n\n")[0]
+    assert head == work.split("\n\n")[0] + "\n# LEETCODE: Accepted (1 ms)"
     ran = subprocess.run(
         [PY, "-m", "mulang", "current.mu"],
         cwd=tmp_path, env=ENV, capture_output=True, text=True, timeout=120,
@@ -182,30 +212,35 @@ def test_a_whole_session(prefix, tmp_path):
 
 
 def test_file_puts_the_leetcode_verdict_in_the_notes(tmp_path):
-    """lc_submit writes the verdict into the folded current.py's docstring;
-    file carries it into current.mu, last in the notes, where the judge
-    reads it (kg::lang::notes_of)."""
+    """lc_submit writes the verdict into the docstring of .mu_current.py,
+    the file it sent; file carries it into current.mu, last in the notes,
+    where the judge reads it (kg::lang::notes_of). A verdict from an
+    earlier submit is replaced."""
     ref = reference("d115_")
     (tmp_path / "current.py").write_text(open(drill_for(ref)).read())
     session(tmp_path, "stub")
     served = (tmp_path / "current.mu").read_text()
-    (tmp_path / "current.mu").write_text(solved(served, open(ref).read(), "no help"))
-    session(tmp_path, "fold")
-    py = (tmp_path / "current.py").read_text()
-    (tmp_path / "current.py").write_text(py.replace("no help\n", "no help\nLEETCODE: Accepted\n", 1))
+    work = solved(served, open(ref).read(), "no help")
+    work = work.replace("# no help\n", "# no help\n# LEETCODE: Wrong Answer\n")
+    (tmp_path / "current.mu").write_text(work)
+    session(tmp_path, "build")
+    with_leetcode(tmp_path, "Accepted")
     session(tmp_path, "file")
-    head = (tmp_path / "current.mu").read_text().split("\n\n")[0]
-    assert head.endswith("# ---\n# no help\n# LEETCODE: Accepted")
+    text = (tmp_path / "current.mu").read_text()
+    assert text.split("\n\n")[0].endswith("# ---\n# no help\n# LEETCODE: Accepted")
+    assert text.count("LEETCODE:") == 1
+    # without a `# ---` line the notes are opened for it
+    assert with_verdict("# 1. Two Sum\n\nclass Solution\n", "Accepted") == (
+        "# 1. Two Sum\n#\n# ---\n# LEETCODE: Accepted\n\nclass Solution\n"
+    )
 
 
-def test_file_without_mu_work_empties_the_stub(tmp_path):
-    """A drill solved in current.py: file leaves current.py to be archived
-    and empties current.mu, which held only the stub."""
+def test_file_without_work_empties_the_stub(tmp_path):
+    """A serve never worked on: file leaves nothing to archive."""
     shutil.copy(drill_for(reference("d115_")), tmp_path / "current.py")
     session(tmp_path, "stub")
-    py = (tmp_path / "current.py").read_text()
     assert session(tmp_path, "file").returncode == 0
-    assert (tmp_path / "current.py").read_text() == py
+    assert (tmp_path / "current.py").read_text() == ""
     assert (tmp_path / "current.mu").read_text() == ""
     assert not (tmp_path / ".mu_stub").exists()
 
@@ -224,13 +259,43 @@ def test_serving_another_drill_keeps_the_old_work(tmp_path):
     )
 
 
-def test_a_current_mu_for_another_drill_is_not_run(tmp_path):
+def test_a_stale_stub_of_another_drill_is_replaced(tmp_path):
+    """current.mu still the stub of an earlier serve holds no work: the
+    serve writes over it, and nothing is moved aside."""
     shutil.copy(drill_for(reference("d120_")), tmp_path / "current.py")
-    (tmp_path / "current.mu").write_text(
-        stub(open(drill_for(reference("d115_"))).read())
+    stale = stub(open(drill_for(reference("d115_"))).read())
+    (tmp_path / "current.mu").write_text(stale)
+    (tmp_path / ".mu_stub").write_text(stale)
+    out = session(tmp_path, "stub")
+    assert "Wrote current.mu" in out.stdout and "moved" not in out.stdout
+    assert not (tmp_path / "current.mu.prev").exists()
+    assert (tmp_path / "current.mu").read_text().startswith(
+        f"# {title(open(drill_for(reference('d120_'))).read())}\n"
     )
-    run = session(tmp_path, "run")
-    assert "current.mu" not in run.stderr
+
+
+def test_a_serve_mu_cannot_hold_empties_a_stale_stub(tmp_path):
+    """The Python file is the one to open (kg_open): current.mu holds
+    nothing after a serve left in current.py."""
+    stale = stub(open(drill_for(reference("d115_"))).read())
+    (tmp_path / "current.mu").write_text(stale)
+    (tmp_path / ".mu_stub").write_text(stale)
+    given = PROBLEM.replace("target: int)", "target: int = 0)")
+    (tmp_path / "current.py").write_text(given)
+    assert "solve it in current.py" in session(tmp_path, "stub").stdout
+    assert (tmp_path / "current.mu").read_text() == ""
+    assert not (tmp_path / ".mu_stub").exists()
+    assert (tmp_path / "current.py").read_text() == given
+
+
+def test_the_combos_note_stays_first(tmp_path):
+    """kg_combos puts its note above the docstring; kg::data::combo_chain_of
+    reads the archived file's first line, so it is current.mu's first line."""
+    note = "# combo chain: sweep, problem 2 of 5. Run `make combos sweep` to see\n# the chain.\n"
+    (tmp_path / "current.py").write_text(note + PROBLEM)
+    assert "Wrote current.mu" in session(tmp_path, "stub").stdout
+    work = (tmp_path / "current.mu").read_text()
+    assert work.startswith(note + "# URL: https://leetcode.com/problems/two-sum/")
 
 
 def test_drill_fill_leaves_the_heaviest_lines_of_the_latest_solve(tmp_path):
@@ -255,6 +320,9 @@ def test_drill_fill_leaves_the_heaviest_lines_of_the_latest_solve(tmp_path):
     assert "    count = table(101" in mu and "      count[x] += 1\n" in mu
     assert "    pass\n    pass\n" in mu and "scan" not in mu
     transpile(mu)
+    # the filled stub does not run until the lines are written: `make` says so
+    run = session(tmp_path, "run")
+    assert run.returncode == 0 and run.stderr.strip() == "DRILL_FILL: write the lines marked pass, then make."
 
     # a solve archived as .mu gives the same fill
     (tmp_path / "solved" / "d_y.mu").write_text(
@@ -263,6 +331,7 @@ def test_drill_fill_leaves_the_heaviest_lines_of_the_latest_solve(tmp_path):
     fill["source"] = "solved/d_y.mu"
     (tmp_path / ".mu_fill").write_text(json.dumps(fill))
     (tmp_path / "current.mu").write_text("")
+    (tmp_path / "current.py").write_text(drill)
     assert "DRILL_FILL gives" in session(tmp_path, "stub").stdout
     assert (tmp_path / "current.mu").read_text() == mu
 
@@ -287,7 +356,6 @@ def test_drill_fill_is_left_out_for_another_drill(tmp_path):
 
 def test_a_mu_syntax_error_names_the_line(tmp_path):
     drill = drill_for(reference("d115_"))
-    shutil.copy(drill, tmp_path / "current.py")
     (tmp_path / "current.mu").write_text(
         f"# {title(open(drill).read())}\ndef firstTrue(lo: int) -> int\n  x = \n"
     )
@@ -363,7 +431,6 @@ def test_a_frame_in_a_pasted_helper_shows_its_own_source(tmp_path):
 
 def test_the_avoids_gate_reads_the_class_through_the_transpiler(tmp_path):
     drill = open(drill_for(reference("d123_"))).read()
-    (tmp_path / "current.py").write_text(drill)
     served = stub(drill)
     head = "  def byRatio(classes: [[int]]) -> [[int]]\n    pass\n"
     assert head in served
@@ -397,9 +464,9 @@ def test_the_avoids_gate_reads_the_class_through_the_transpiler(tmp_path):
     # a fold in the script, under the asserts, does not count
     (tmp_path / "current.mu").write_text(plain + "\ntotal = sum for x in [1, 2]: x\n")
     assert session(tmp_path, "run").returncode == 1
-    # filed into current.py, the gate reads the quoted mu block there
-    session(tmp_path, "fold")
-    assert "no fold" in python(tmp_path).stderr
+    # built for the force check, the gate reads the quoted mu block there
+    session(tmp_path, "build")
+    assert "no fold" in python(tmp_path, ".mu_current.py").stderr
 
 
 def test_the_traceback_is_coloured_on_request(tmp_path):
@@ -424,7 +491,6 @@ def test_any_mu_file_runs_on_its_own(tmp_path):
     (tmp_path / "other.mu").write_text(TWO_SUM + script)
     run = session(tmp_path, "run", "other.mu")
     assert run.returncode == 1
-    assert "Running from current.mu" not in run.stderr
     assert 'File "other.mu", line 10, in <module>' in run.stderr.replace(
         str(tmp_path) + "/", ""
     )
@@ -433,10 +499,16 @@ def test_any_mu_file_runs_on_its_own(tmp_path):
     assert session(tmp_path, "run", "other.mu").returncode == 0
 
 
-def test_nothing_to_do_without_current_mu(tmp_path):
+def test_without_current_mu_the_python_file_is_the_one(tmp_path):
+    """A serve left in current.py: `make` runs it, the submit and the
+    force check read it, and file has nothing to do."""
     shutil.copy(drill_for(reference("d115_")), tmp_path / "current.py")
-    assert session(tmp_path, "fold").returncode == 0
-    assert f"# mu {VERSION}" not in (tmp_path / "current.py").read_text()
+    run = session(tmp_path, "run")
+    assert run.returncode == 0 and "current.mu" not in run.stderr
+    assert session(tmp_path, "build").stdout.strip() == "current.py"
+    assert session(tmp_path, "debug").stdout.strip() == "current.py"
+    assert session(tmp_path, "file").returncode == 0
+    assert (tmp_path / "current.py").read_text() == open(drill_for(reference("d115_"))).read()
 
 
 PROBLEM = '''"""
@@ -469,9 +541,10 @@ TWO_SUM = """class Solution
 """
 
 
-def test_a_problem_is_served_run_submitted_and_folded(tmp_path):
+def test_a_problem_is_served_run_submitted_and_filed(tmp_path):
     (tmp_path / "current.py").write_text(PROBLEM)
     assert "Wrote current.mu" in session(tmp_path, "stub").stdout
+    assert (tmp_path / "current.py").read_text() == ""
     work = (tmp_path / "current.mu").read_text()
     assert work.startswith("# URL: https://leetcode.com/problems/two-sum/")
     work = work.replace(
@@ -481,18 +554,16 @@ def test_a_problem_is_served_run_submitted_and_folded(tmp_path):
     work = work.replace("# assert", "assert")
     (tmp_path / "current.mu").write_text(work)
     assert session(tmp_path, "run").returncode == 0
-    # make submit sends the transpiled copy while current.mu holds the work
+    # make submit sends the transpiled copy
     assert session(tmp_path, "build").stdout.strip() == ".mu_current.py"
     sent = (tmp_path / ".mu_current.py").read_text()
-    assert "URL: https://leetcode.com/problems/two-sum/" in sent
+    assert sent.startswith('"""\nURL: https://leetcode.com/problems/two-sum/')
+    assert f"# mu {VERSION}\n# class Solution\n#   def twoSum" in sent
     assert "seen[x] = i" in sent
-    session(tmp_path, "fold")
-    assert (
-        f"# mu {VERSION}\n# class Solution\n#   def twoSum"
-        in (tmp_path / "current.py").read_text()
-    )
-    # current.mu still holds the work until file, so a submit sends its copy
+    assert python(tmp_path, ".mu_current.py").returncode == 0
+    # a second build replaces the first
     assert session(tmp_path, "build").stdout.strip() == ".mu_current.py"
+    assert (tmp_path / ".mu_current.py").read_text() == sent
     session(tmp_path, "file")
     assert (tmp_path / "current.py").read_text() == ""
     assert (tmp_path / "current.mu").read_text().startswith(
@@ -500,37 +571,12 @@ def test_a_problem_is_served_run_submitted_and_folded(tmp_path):
     )
 
 
-def test_a_second_fold_replaces_the_first(tmp_path):
-    """`make solved` folds before it submits; when the submit fails and
-    current.mu is written again, the next fold keeps one quote and one
-    copy of the code, the new one, and the notes once."""
-    (tmp_path / "current.py").write_text(PROBLEM)
-    session(tmp_path, "stub")
-    work = (tmp_path / "current.mu").read_text()
-    work = work.replace("# ---\n", "# ---\n# LEETCODE: Wrong Answer\n")
-    work = work.replace(
-        "class Solution\n  def twoSum(nums: [int], target: int) -> [int]\n    pass\n",
-        TWO_SUM,
-    )
-    (tmp_path / "current.mu").write_text(work)
-    session(tmp_path, "fold")
-    (tmp_path / "current.mu").write_text(work.replace("seen[x] = i", "seen[x] = i  # again"))
-    session(tmp_path, "fold")
-    py = (tmp_path / "current.py").read_text()
-    assert py.count(f"# mu {VERSION}\n") == 1
-    assert py.count("\nclass Solution") == 1
-    assert "seen[x] = i  # again" in py
-    assert py.count("LEETCODE: Wrong Answer") == 1
-
-
 def test_debug_writes_the_python_and_a_line_map(tmp_path):
-    import json
-
-    (tmp_path / "current.py").write_text(PROBLEM)
-    session(tmp_path, "stub")
-    # before any work, the debugger runs current.py itself
+    # before a serve, the debugger runs current.py itself
     assert session(tmp_path, "debug").stdout.strip() == "current.py"
     assert not (tmp_path / ".mu_current.map.json").exists()
+    (tmp_path / "current.py").write_text(PROBLEM)
+    session(tmp_path, "stub")
     work = (tmp_path / "current.mu").read_text()
     work = work.replace(
         "class Solution\n  def twoSum(nums: [int], target: int) -> [int]\n    pass\n",
@@ -553,21 +599,10 @@ def test_debug_writes_the_python_and_a_line_map(tmp_path):
     assert m["lines"][str(py.index("            seen[x] = i") + 1)] == (
         mu.index("      seen[x] = i") + 1
     )
-    session(tmp_path, "fold")
-    session(tmp_path, "file")
-    assert not (tmp_path / ".mu_current.map.json").exists()
-    # the solve filed, current.py empty: current.mu still debugs on its own
-    (tmp_path / "current.py").write_text("")
-    (tmp_path / "current.mu").write_text(work)
-    assert session(tmp_path, "debug").stdout.strip() == ".mu_current.py"
-    m = json.loads((tmp_path / ".mu_current.map.json").read_text())
-    assert m["file"] == "current.mu"
-    py = (tmp_path / ".mu_current.py").read_text().split("\n")
-    assert m["lines"][str(py.index("            seen[x] = i") + 1)] == (
-        mu.index("      seen[x] = i") + 1
-    )
     ran = python(tmp_path, ".mu_current.py")
     assert ran.returncode == 0, ran.stdout[-1500:] + ran.stderr[-1500:]
+    session(tmp_path, "file")
+    assert not (tmp_path / ".mu_current.map.json").exists()
     # any other mu file, by path
     (tmp_path / "other.mu").write_text(TWO_SUM)
     assert session(tmp_path, "debug", "other.mu").stdout.strip() == ".mu_current.py"
@@ -596,25 +631,41 @@ def test_a_design_problem_and_a_given_class_are_written_as_classes(tmp_path):
         "\nclass Master\n  def guess(w: str) -> int\n    return 0\n\nsol = Solution()"
         in work
     )
-    # above Solution, a class with a body is given and stays Python; one
-    # whose body is `pass` is there to be written
+    # above Solution, a class whose body is `pass` is there to be written;
+    # a class with a body, a helper def or a constant is given, in mu too,
+    # under the imports
     above = PROBLEM.replace(
         "class Solution:",
-        "class Color(Flag):\n    red = auto()\n\n\nclass Node:\n    pass\n\n\nclass Solution:",
+        "from enum import Flag, auto\n\nMOD = 10 ** 9 + 7\n\n\nclass Color(Flag):\n    red = auto()\n\n\n"
+        "def twice(x):\n    return 2 * x\n\n\nclass Node:\n    pass\n\n\nclass Solution:",
     )
     (tmp_path / "current.py").write_text(above)
     assert "Wrote current.mu" in session(tmp_path, "stub").stdout
     work = (tmp_path / "current.mu").read_text()
-    assert "Color" not in work and "\nclass Node\n  pass\n\nclass Solution\n" in work
+    assert (
+        f"# mu {VERSION}\nfrom enum import Flag, auto\n\nMOD = 10 ** 9 + 7\n\n"
+        "class Color extends Flag\n  red = auto()\n\n"
+        "def twice(x)\n  return 2 * x\n\nclass Node\n  pass\n\nclass Solution\n"
+    ) in work
+    assert session(tmp_path, "run").returncode == 0
 
 
-def test_a_problem_mu_cannot_write_is_left_to_current_py(tmp_path):
+def test_a_problem_mu_cannot_hold_is_left_to_current_py(tmp_path):
     # a method with a default argument: mu has no form for it
     given = PROBLEM.replace("target: int)", "target: int = 0)")
     (tmp_path / "current.py").write_text(given)
     out = session(tmp_path, "stub")
     assert out.returncode == 0 and "solve it in current.py" in out.stdout
     assert not (tmp_path / "current.mu").exists()
+    assert (tmp_path / "current.py").read_text() == given
+    # a given helper above Solution with a form mu has no word for
+    above = PROBLEM.replace(
+        "class Solution:", "@cache\ndef fib(n):\n    return n\n\n\nclass Solution:"
+    )
+    (tmp_path / "current.py").write_text(above)
+    out = session(tmp_path, "stub")
+    assert "fib has a decorator" in out.stdout and "solve it in current.py" in out.stdout
+    assert (tmp_path / "current.py").read_text() == above
 
 
 @pytest.mark.parametrize(
@@ -636,23 +687,35 @@ def test_the_stub_keeps_a_comment_written_in_the_solution_body():
         os.path.join(ROOT, "drills", "ll-pointer-reversal", "d184_reverse_k.py")
     ).read()
     text = stub(src)
-    kept = "    # don't hunt him = him don't hunt\n    # try hunt = him\n    # don't try\n    pass\n"
+    kept = "    # don't hunt him = him don't hunt\n    # tan him\n    # don't try\n    pass\n"
     assert kept in text
     transpile(text)
 
 
-def test_a_python_group_drill_gets_a_stub_and_the_stub_alone_runs_current_py(tmp_path):
-    """A drill of the python group is served in mu like any other. While
-    current.mu is still the stub as served, run runs current.py, so a
-    drill mu has no word for (match, with, logging) is solved there."""
-    drill = glob.glob(os.path.join(ROOT, "drills", "py-logging", "d203_*.py"))[0]
+def test_a_drill_of_the_python_track_is_served_in_python(tmp_path):
+    """A drill of the python track (graph/nodes.json group "python") is
+    about a Python word mu does not have (match, with, a generator): it
+    stays in current.py, and `make` runs it there. The same file served
+    outside the track gets a stub like any other."""
+    drill = glob.glob(os.path.join(ROOT, "drills", "py-with", "d*.py"))[0]
+    did = os.path.basename(drill).split("_")[0]
+    (tmp_path / "graph").mkdir()
+    (tmp_path / "graph" / "drills.json").write_text(
+        json.dumps({"drills": {did: {"title": "With", "file": f"py-with/{os.path.basename(drill)}"}}})
+    )
+    (tmp_path / "graph" / "nodes.json").write_text(
+        json.dumps({"nodes": [{"id": "py-with", "group": "python"}]})
+    )
+    (tmp_path / ".drill.json").write_text(json.dumps({"drill": did}))
     (tmp_path / "current.py").write_text(open(drill).read())
     out = session(tmp_path, "stub")
-    assert out.returncode == 0 and "Wrote current.mu" in out.stdout
-    assert "\nclass Solution\n  def " in (tmp_path / "current.mu").read_text()
+    assert out.returncode == 0 and "python track" in out.stdout
+    assert (tmp_path / "current.py").read_text() == open(drill).read()
+    assert not (tmp_path / "current.mu").exists()
     run = session(tmp_path, "run")
-    assert "Running from current.mu." not in run.stderr
-    assert run.returncode == 0 and run.stdout == "None\n"  # the served print, as is
-    work = (tmp_path / "current.mu").read_text().replace("    pass\n", "    1\n", 1)
-    (tmp_path / "current.mu").write_text(work)
-    assert "Running from current.mu." in session(tmp_path, "run").stderr
+    assert run.returncode == 0, run.stderr[-800:]
+    assert session(tmp_path, "build").stdout.strip() == "current.py"
+    (tmp_path / ".drill.json").unlink()
+    out = session(tmp_path, "stub")
+    assert "Wrote current.mu" in out.stdout
+    assert "\nclass Solution\n  def " in (tmp_path / "current.mu").read_text()

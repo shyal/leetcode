@@ -1,10 +1,14 @@
 // The languages a drill or solve file is written in. Python is the house
-// language: every problem and the harness. mu compiles to Python and is
-// written in current.mu next to the served current.py; a mu solve is
-// archived as .mu and runs with `mu FILE`. Any other language is a drill-only file with its own extension, comment
-// prefix and toolchain, served as current.<ext> and archived with the same
-// extension. Adding a language is one more entry in LANGS: the bank scan,
-// the serve, `make`, the judge and the archive all read this table.
+// language: every problem, the bank's Python drills and the harness. mu
+// compiles to Python: a Python serve is turned into current.mu by
+// mu/session.py stub (`mu_stub` below) and current.py is left empty; a
+// serve mu cannot hold (a given helper, a form mu lacks, a drill of the
+// python track) stays in current.py. A mu solve is archived as .mu and
+// runs with `mu FILE`. Any other language is a drill-only file with its
+// own extension, comment prefix and toolchain, served as current.<ext>
+// and archived with the same extension. Adding a language is one more
+// entry in LANGS: the bank scan, the serve, `make`, the judge and the
+// archive all read this table.
 
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -66,7 +70,7 @@ pub const DESIGN_MIN_WORDS: usize = 1;
 
 /// Python first: it is the default wherever one file is looked for. mu
 /// second: current.mu holds work only while current.py is empty, which is
-/// how `mu/session.py file` leaves a mu solve for `make solved`.
+/// how a Python serve is left (`mu/session.py stub`).
 pub const LANGS: [&Lang; 5] = [&PYTHON, &MU, &TYPESCRIPT, &RUST, &DESIGN];
 
 /// The copy of current.mu as served (mu/session.py STUB): a current.mu
@@ -156,6 +160,59 @@ pub fn busy(root: &Path) -> Option<(PathBuf, &'static Lang)> {
         .iter()
         .find(|l| holds_work(root, l))
         .map(|l| (root.join(current_name(l)), *l))
+}
+
+/// The file the last serve wrote, worked on or not: another language's
+/// current.<ext> when it holds work (a current.mu left from an earlier
+/// serve does not hide it), else current.mu when it is not empty (a
+/// Python serve mu holds, the stub as served included), else current.py
+/// when it holds work (a serve mu could not hold). None when nothing is
+/// served.
+pub fn served(root: &Path) -> Option<(PathBuf, &'static Lang)> {
+    let other = LANGS
+        .iter()
+        .copied()
+        .filter(|l| l.ext != PYTHON.ext && l.ext != MU.ext)
+        .find(|l| holds_work(root, l));
+    if let Some(lang) = other {
+        return Some((root.join(current_name(lang)), lang));
+    }
+    let mu = root.join(current_name(&MU));
+    if nonempty(&mu) {
+        return Some((mu, &MU));
+    }
+    busy(root)
+}
+
+/// The last step of a Python serve: `mu/session.py stub` turns the stub
+/// the serve wrote into current.py into current.mu and empties
+/// current.py, or leaves current.py alone for a serve mu cannot hold.
+/// What it prints is the serve's own output. A failure ends the serve.
+pub fn mu_stub(root: &Path) {
+    let py = root.join(".venv/bin/python3");
+    let status = Command::new(if py.exists() {
+        py
+    } else {
+        PathBuf::from("python3")
+    })
+    .arg(root.join("mu/session.py"))
+    .arg("stub")
+    .current_dir(root)
+    .env(
+        "PYTHONPATH",
+        format!(
+            "{}:{}:{}:{}",
+            root.display(),
+            root.join("utils").display(),
+            root.join("utils/harness").display(),
+            std::env::var("PYTHONPATH").unwrap_or_default()
+        ),
+    )
+    .status();
+    if !status.is_ok_and(|s| s.success()) {
+        eprintln!("mu/session.py stub failed");
+        std::process::exit(1);
+    }
 }
 
 /// Every current file holding work, copied to `<name>.prev` and emptied,

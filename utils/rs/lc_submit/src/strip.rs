@@ -59,19 +59,16 @@ pub fn pydsa_dir(root: &Path) -> Option<PathBuf> {
         if let Ok(d) = std::env::var("PYDSA_DIR") {
             return Some(PathBuf::from(d));
         }
-        let python = root.join(".venv/bin/python3");
-        if python.exists() {
-            let out = std::process::Command::new(&python)
-                .args([
-                    "-c",
-                    "import pydsa, os; print(os.path.dirname(pydsa.__file__))",
-                ])
-                .output();
-            if let Ok(out) = out {
-                let dir = String::from_utf8_lossy(&out.stdout).trim().to_string();
-                if out.status.success() && !dir.is_empty() {
-                    return Some(PathBuf::from(dir));
-                }
+        let out = std::process::Command::new(venv_python(root))
+            .args([
+                "-c",
+                "import pydsa, os; print(os.path.dirname(pydsa.__file__))",
+            ])
+            .output();
+        if let Ok(out) = out {
+            let dir = String::from_utf8_lossy(&out.stdout).trim().to_string();
+            if out.status.success() && !dir.is_empty() {
+                return Some(PathBuf::from(dir));
             }
         }
         [root.join("../pydsa/pydsa"), root.join("_deps/pydsa/pydsa")]
@@ -81,6 +78,17 @@ pub fn pydsa_dir(root: &Path) -> Option<PathBuf> {
     .clone()
 }
 
+/// The repo's venv python, else the python3 on PATH (a worktree has no
+/// .venv of its own; the shell's activated venv is the same one).
+fn venv_python(root: &Path) -> PathBuf {
+    let python = root.join(".venv/bin/python3");
+    if python.exists() {
+        python
+    } else {
+        PathBuf::from("python3")
+    }
+}
+
 /// The Python file each pydsa module is imported from. A module written
 /// in mu has no .py: pydsa imports it from the Python mu writes into its
 /// __pycache__, so the venv's python is asked for each module's __file__.
@@ -88,18 +96,12 @@ fn pydsa_files(root: &Path) -> Vec<PathBuf> {
     static FILES: OnceLock<Vec<PathBuf>> = OnceLock::new();
     FILES
         .get_or_init(|| {
-            let python = root.join(".venv/bin/python3");
             let names = PYDSA_MODULES.join(" ");
             let script = "import importlib, sys\nfor m in sys.argv[1].split():\n    print(importlib.import_module('pydsa.' + m).__file__)";
-            let out = python
-                .exists()
-                .then(|| {
-                    std::process::Command::new(&python)
-                        .args(["-c", script, &names])
-                        .output()
-                        .ok()
-                })
-                .flatten()
+            let out = std::process::Command::new(venv_python(root))
+                .args(["-c", script, &names])
+                .output()
+                .ok()
                 .filter(|o| o.status.success());
             if let Some(out) = out {
                 return String::from_utf8_lossy(&out.stdout)

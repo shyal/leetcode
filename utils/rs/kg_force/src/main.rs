@@ -69,9 +69,20 @@ fn arm(console: &Console, ctx: &Ctx, num: &str) {
         header.push(format!("#   • {}", blurb(ctx, m)));
     }
     header.push("# (`make unforce` drops the constraint)".to_string());
-    let cur = ctx.root.join("current.py");
-    let body = std::fs::read_to_string(&cur).unwrap_or_default();
-    std::fs::write(&cur, format!("{}\n\n{body}", header.join("\n"))).expect("write current.py");
+    // the header goes on top of the served file: current.mu, or current.py
+    // for a serve mu could not hold. A mu serve's copy as served (.mu_stub)
+    // gets it too, so the header alone is not work (kg::lang::holds_work)
+    let (cur, lang) =
+        kg::lang::served(&ctx.root).unwrap_or((ctx.root.join("current.py"), &kg::lang::PYTHON));
+    let mut files = vec![cur];
+    if lang.ext == kg::lang::MU.ext {
+        files.push(ctx.root.join(kg::lang::MU_STUB));
+    }
+    for file in files {
+        let body = std::fs::read_to_string(&file).unwrap_or_default();
+        std::fs::write(&file, format!("{}\n\n{body}", header.join("\n")))
+            .expect("write the forced header");
+    }
     pyjson::save(
         &ctx.root.join(".force.json"),
         &json!({"problem": num, "moves": moves}),
@@ -125,13 +136,32 @@ fn check(console: &Console, ctx: &Ctx) {
         })
         .unwrap_or_default();
 
-    let cur = ctx.root.join("current.py");
+    // the file to run and to judge: current.mu transpiled (.mu_current.py,
+    // the mu solution quoted above the class), or current.py for a solve
+    // mu could not hold (mu/session.py build)
     let pythonpath = format!(
-        "{}:{}:{}",
+        "{}:{}:{}:{}",
+        ctx.root.display(),
         ctx.root.join("utils").display(),
         ctx.root.join("utils/harness").display(),
         std::env::var("PYTHONPATH").unwrap_or_default()
     );
+    let built = Command::new(ctx.root.join(".venv/bin/python3"))
+        .arg(ctx.root.join("mu/session.py"))
+        .arg("build")
+        .current_dir(&ctx.root)
+        .env("PYTHONPATH", &pythonpath)
+        .output();
+    let cur = match built {
+        Ok(out) if out.status.success() => {
+            ctx.root.join(String::from_utf8_lossy(&out.stdout).trim())
+        }
+        _ => {
+            console
+                .print("[red]⛔ the solve does not transpile - fix it before `make solved`.[/red]");
+            std::process::exit(1);
+        }
+    };
     let mut cmd = Command::new(ctx.root.join(".venv/bin/python3"));
     cmd.arg(&cur)
         .current_dir(&ctx.root)
@@ -191,7 +221,7 @@ fn check(console: &Console, ctx: &Ctx) {
     for m in missing {
         console.print(&format!("  [red]•[/red] {}", blurb(ctx, m)));
     }
-    console.print("[dim]rework current.py and run `make solved` again, or `make unforce` to file it freestyle.[/dim]");
+    console.print("[dim]rework the solve and run `make solved` again, or `make unforce` to file it freestyle.[/dim]");
     std::process::exit(1);
 }
 

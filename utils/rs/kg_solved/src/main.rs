@@ -4,7 +4,7 @@
 // (settled 2026-08-28, after an interrupt cut the judge off mid-ingest):
 //
 //   kg_solved            file phase: freeze the solve time NOW, archive
-//                        current.py into solved/, clear it, park the
+//                        the served file into solved/, clear it, park the
 //                        frozen commit message in .solve_meta.json
 //                        (untracked, gitignored). No git.
 //   kg_solved --failed   the same, filed as a walk-away (_FAILED_)
@@ -262,7 +262,7 @@ fn file_phase(console: &Console, root: &Path, failed: bool, studied: bool) {
         return;
     }
     let Some((current, lang)) = kg::lang::busy(Path::new(".")) else {
-        console.print("[red]current.py is empty — nothing to file.[/red]");
+        console.print("[red]no current file holds work - nothing to file.[/red]");
         return;
     };
     let current_name = current.file_name().unwrap().to_string_lossy().into_owned();

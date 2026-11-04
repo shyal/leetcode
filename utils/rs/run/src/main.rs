@@ -1,6 +1,6 @@
-// run - what `make` does: run the current file. A Python attempt goes
-// through mu/session.py, which splices current.mu in when it holds the
-// work and runs current.py as it is otherwise. Any other language's
+// run - what `make` does: run the current file. A mu or Python attempt
+// goes through mu/session.py, which runs current.mu in place when it
+// holds the serve and current.py otherwise. Any other language's
 // current.<ext> (kg::lang) is type-checked
 // when the language has a checker and then run with its toolchain; the
 // diagnostics print either way, and the exit status is the run's, or 1
@@ -11,7 +11,7 @@ use std::process::Command;
 fn main() {
     let root = kg::data::repo_root();
     let (path, lang) = match kg::lang::busy(&root) {
-        Some((p, l)) if l.ext != kg::lang::PYTHON.ext => (p, l),
+        Some((p, l)) if l.ext != kg::lang::PYTHON.ext && l.ext != kg::lang::MU.ext => (p, l),
         _ => {
             let status = Command::new(root.join(".venv/bin/python3"))
                 .arg(root.join("mu/session.py"))

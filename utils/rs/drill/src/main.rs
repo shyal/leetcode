@@ -1,4 +1,6 @@
-// drill - load a drill from the bank (drills/<node-id>/*.py) into current.py.
+// drill - serve a drill from the bank (drills/<node-id>/*.py): current.mu
+// for a Python drill (mu/session.py stub; current.py stays only for a
+// drill mu cannot hold), current.<ext> for another language.
 //
 //   drill monotonic-stack        # least-recently-drilled servable file for that node
 //   drill d14                    # one drill by its graph id (graph/drills.json)
@@ -7,7 +9,7 @@
 //
 // The workflow then matches leetcode problems exactly: a branch named after
 // the drill id is created off master with the stub committed; solve
-// current.py, run `make solved` - .drill.json (the id written here) and the
+// the served file, run `make solved` - .drill.json (the id written here) and the
 // drill's drills.json entry route it to a d_-prefixed file in solved/ and
 // drill evidence in the graph, and the branch squash-merges into master
 // like any problem branch.
@@ -32,7 +34,7 @@ use regex::Regex;
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     if args.iter().any(|a| a == "-h" || a == "--help") {
-        println!("usage: drill [--list] target\n\nLoad a bank drill into current.py.\n\n  target  node id (drills/<node>/), a drill id (d14), or a path to a drill file\n  --list  list the node's drills and when last drilled");
+        println!("usage: drill [--list] target\n\nServe a bank drill.\n\n  target  node id (drills/<node>/), a drill id (d14), or a path to a drill file\n  --list  list the node's drills and when last drilled");
         return;
     }
     let list = args.iter().any(|a| a == "--list");
@@ -219,14 +221,20 @@ fn main() {
     git(&["checkout", "master"]);
     std::fs::write(&current, &content).expect("write the current file");
     kg::lang::set_current_drill(&ctx.root, &did).expect("write .drill.json");
+    if lang.ext == kg::lang::PYTHON.ext {
+        // the serve is current.mu; current.py stays only for a drill mu
+        // cannot hold (mu/session.py stub says which)
+        kg::lang::mu_stub(&ctx.root);
+    }
     git(&["checkout", "-b", &branch]);
     git(&["add", "."]);
     git(&["commit", "-m", &format!("drill: {title}")]);
 
     console.print(&format!(
-        "Loaded [bold]{}. {title}[/bold] ({}) into {current_name} on branch [bold]{branch}[/bold]  [dim](last drilled: {})[/dim]",
+        "Loaded [bold]{}. {title}[/bold] ({}) into {} on branch [bold]{branch}[/bold]  [dim](last drilled: {})[/dim]",
         did,
         path.display(),
+        kg::lang::served(&ctx.root).map_or(current_name.clone(), |(p, _)| p.file_name().unwrap().to_string_lossy().into_owned()),
         when_of(&path)
     ));
     console.print("Solve it, then `make solved` as usual.");
