@@ -43156,6 +43156,18 @@
       "note": "Notes say 'Learning'; the max-saving tracking is the running-extreme move.",
       "summary": "The mu solution walks nums once, accumulating the total adjacent cost in `total` and tracking the best saving in `saving` via max(saving, cost - abs(prev - last)), then returns total - saving. It exercises running-sum and running-extreme. The notes state 'Learning', so the running-extreme move is marked as assisted at the learning level.",
       "seconds": 867
+    },
+    "solved/d_Not_Referred_By_Customer_Two_2026_11_04T02_48_35_904580_00_00Z.mu": {
+      "date": "2026-11-04",
+      "problem": "drill",
+      "drill": "d48",
+      "moves": {
+        "sql-null-semantics": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Uses `referee_id is not 2`, which in SQLite keeps NULL rows (IS NOT is null-safe), so the NULL-referee customers appear; the forbidden bare `!=` is avoided.",
+      "summary": "The query selects name from Customer with the predicate `referee_id is not 2`, which is null-safe and retains rows whose referee_id is NULL. Both example assertions pass, returning Will, Jane, Bill, Zack and Ann, Ben respectively. The code exercises the NULL-semantics move by using IS NOT rather than a bare inequality.",
+      "seconds": 138
     }
   }
 }
