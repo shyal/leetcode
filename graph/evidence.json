@@ -43487,6 +43487,18 @@
       "judge": "deepseek-chat",
       "summary": "The query computes id - row_number() over (order by id) as grp, so consecutive ids share a constant group key and each gap starts a new run. This is the gaps-and-islands move built on a window rank, done in one pass over Seats with no self-join or correlated subquery. Both example assertions pass.",
       "seconds": 143
+    },
+    "solved/d_Interleave_2026_11_04T20_24_53_502935_00_00Z.mu": {
+      "date": "2026-11-05",
+      "problem": "drill",
+      "drill": "d110",
+      "moves": {
+        "ll-dummy-splice": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "The dummy node d = ListNode(next=a) anchors the head so the first splice needs no special case; the tuple assignment re-links a.next/b.next in place.",
+      "summary": "The mu code builds a dummy node pointing at list a, then walks while both a and b are non-null, swapping next pointers via a tuple assignment so nodes alternate, and returns d.next. This exercises the dummy-splice move: the dummy removes the head special-case while re-linking in place. All assertions pass, including the 25000-element case.",
+      "seconds": 133
     }
   }
 }
