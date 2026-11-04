@@ -25,9 +25,7 @@ Constraints:
     1 <= len(weights) <= 5 * 10^4
     1 <= weights[i] <= cap <= 5 * 10^7
 
-    REQUIRED: one pass, O(n). NO nested loop. A section that is still
-    open when the array ends is a section; forgetting it returns one
-    too few.
+    REQUIRED: one pass, O(n). NO nested loop.
 """
 
 

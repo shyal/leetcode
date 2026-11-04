@@ -41,11 +41,9 @@ Constraints:
     1 <= len(nums) <= 10^5
     -10^4 <= nums[i] <= 10^4
 
-    REQUIRED: O(n) time, O(1) extra space, a single pass. The deleted
-    value must read the kept value of the element before x, not the
-    kept value that includes x. NO prefix and suffix arrays. The empty
-    subarray is not allowed: on [-1, -1, -1, -1] the answer is -1,
-    not 0.
+    REQUIRED: O(n) time, O(1) extra space, a single pass. NO prefix and
+    suffix arrays. The empty subarray is not allowed: on [-1, -1, -1,
+    -1] the answer is -1, not 0.
 """
 
 

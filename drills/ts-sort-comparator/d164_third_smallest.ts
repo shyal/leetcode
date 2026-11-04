@@ -21,8 +21,8 @@
 //     3 <= nums.length <= 10^4
 //     0 <= nums[i] <= 10^6
 //
-//     REQUIRED: sort a copy with a numeric comparator, O(n log n). The input
-//     array must NOT change. NO sort without a comparator.
+//     REQUIRED: O(n log n). The input array must NOT change. NO sort
+//     without a comparator.
 
 import assert from "node:assert/strict";
 

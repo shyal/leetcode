@@ -21,9 +21,7 @@
 //     0 <= n <= 10^6
 //     n is a u64
 //
-//     REQUIRED: a running total declared with let mut and a for loop over
-//     the range 1..=n that adds to it; the total is the last expression.
-//     NO formula, NO iterator sum.
+//     REQUIRED: one for loop. NO formula, NO iterator sum.
 
 fn sum_to_n(n: u64) -> u64 {
     todo!()

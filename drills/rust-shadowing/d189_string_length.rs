@@ -22,9 +22,7 @@
 //     0 <= s.len() <= 10^4
 //     s is ASCII
 //
-//     REQUIRED: a second let binding of the name s, holding the length,
-//     shadows the parameter; the function returns usize. NO mut, NO second
-//     name.
+//     REQUIRED: NO mut, NO second name.
 
 fn string_length(s: &str) -> usize {
     todo!()

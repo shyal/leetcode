@@ -22,11 +22,8 @@ Constraints:
     1 <= len(groups[i]) <= 5
     Every group holds distinct lowercase letters.
 
-    REQUIRED: the candidates at depth d are the letters of groups[d] and
-    nothing else. One list holds the letters chosen so far, for the
-    whole run. NO itertools, NO `path + [x]`, NO building the string on
-    the way down. Join the list into a string only when the last group
-    has been chosen from.
+    REQUIRED: NO itertools, NO `path + [x]`, NO building the string on
+    the way down.
 """
 
 

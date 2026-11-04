@@ -5,7 +5,6 @@ bytes per transaction.
 
 Say what is done about the write load.
 
-REQUIRED: the SQL scaling patterns, NoSQL considered. One SQL master taking
-the writes with no plan is the fail.
+REQUIRED: the scaling patterns and the alternative considered.
 
 ## Answer

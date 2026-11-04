@@ -53,8 +53,7 @@ Constraints:
 
     2 <= number of rows <= 10^4
 
-    REQUIRED: one query that skips past the highest distinct salary;
-    repeated salaries count once.
+    REQUIRED: one query; repeated salaries count once.
 
     FORBIDDEN: a self-join; MAX of the salaries below the MAX.
 

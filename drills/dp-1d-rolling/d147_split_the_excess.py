@@ -26,8 +26,7 @@ Constraints:
     1 <= len(row) <= 100
     0 <= row[c] <= 10^9
 
-    REQUIRED: O(len(row)) time, one pass over row. Each amount sends to
-    both of its targets in the same step. NO closed-form guess.
+    REQUIRED: O(len(row)) time, one pass over row. NO closed-form guess.
 """
 
 

@@ -28,11 +28,8 @@ Constraints:
     1 <= number of nodes <= 1000
     -100 <= Node.val <= 100
 
-    REQUIRED: one pass, O(n). The count must accumulate outside the
-    recursion's returns. Threading the count through the return, or
-    re-walking a subtree to test it, is the failure mode this drill
-    exists to kill. NO tuple returns bundling the count, NO second
-    traversal.
+    REQUIRED: one pass, O(n). NO tuple returns bundling the count, NO
+    second traversal.
 """
 
 

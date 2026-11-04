@@ -21,9 +21,7 @@
 //     1 <= s.length <= 10^4
 //     s has no leading, trailing or double spaces.
 //
-//     REQUIRED: O(n) with split, map and join; strings are immutable, so
-//     each word is turned into an array and back. NO index loop over
-//     characters.
+//     REQUIRED: O(n). NO index loop over characters.
 
 import assert from "node:assert/strict";
 

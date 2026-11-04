@@ -4,6 +4,6 @@ data, 1 billion writes and 100 billion reads per month, and 1 KB per write.
 Write the writes per second, the reads per second and the new content per
 month.
 
-REQUIRED: the three numbers. Mixing up the read and write rates is the fail.
+REQUIRED: the three numbers.
 
 ## Answer

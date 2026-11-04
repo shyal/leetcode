@@ -21,8 +21,7 @@
 //     0 <= values.length <= 10^4
 //     Every string parses as a finite number.
 //
-//     REQUIRED: O(n); the parameter is typed as an array of a union, and each
-//     element is narrowed with typeof before use. NO any, NO as.
+//     REQUIRED: O(n). NO any, NO as.
 
 import assert from "node:assert/strict";
 

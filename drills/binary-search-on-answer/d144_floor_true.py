@@ -24,10 +24,8 @@ Constraints:
     ok(lo) is True.
     ok is True for a prefix of [lo, hi] and False for the rest.
 
-    REQUIRED: must loop while lo <= hi and call ok O(log(hi - lo)) times.
-    Every step must set lo = mid + 1 or hi = mid - 1. NO lo = mid, NO
-    hi = mid, NO scan, NO first_true, NO last_true, NO first_false,
-    NO last_false, NO bisect.
+    REQUIRED: O(log(hi - lo)) calls of ok. NO scan, NO first_true, NO
+    last_true, NO first_false, NO last_false, NO bisect.
 """
 
 

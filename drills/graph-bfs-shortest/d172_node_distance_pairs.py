@@ -48,9 +48,7 @@ Constraints:
     1 <= len(G) <= 100
     Every node in a list is a key of G.
 
-    REQUIRED: O(n + m), one breadth-first search from node 0. Each node
-    must appear once, with its fewest steps. A depth-first search gives
-    (2, 2) in Example 1.
+    REQUIRED: O(n + m). Each node appears once, with its fewest steps.
 """
 
 

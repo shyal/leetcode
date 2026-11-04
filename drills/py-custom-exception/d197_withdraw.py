@@ -23,10 +23,8 @@ Constraints:
 
     0 <= balance, amount <= 10^9
 
-    REQUIRED: class InsufficientFunds(Exception) defined above Solution,
-    with __init__ storing needed and calling super().__init__ with a
-    message; raise it with the shortfall. NO ValueError, NO return of a
-    negative number, NO return of None.
+    REQUIRED: NO ValueError, NO return of a negative number, NO return
+    of None.
 """
 
 

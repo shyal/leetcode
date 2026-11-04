@@ -38,10 +38,7 @@ Constraints:
     1 <= len(s) <= 10^5
     s[i] is 0 or 1.
 
-    REQUIRED: O(n) time, O(1) extra space, a single pass. The choice
-    MUST be made at every 0, not once for the whole string: the smaller
-    of the count of 0 and the count of 1 returns 2 on "001001", the
-    answer is 1.
+    REQUIRED: O(n) time, O(1) extra space, a single pass.
 """
 
 

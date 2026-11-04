@@ -7,9 +7,7 @@ billion read requests and 10 billion searches per month.
 Write the path of posting a tweet, component by component, from the client to
 the home timelines of the followers.
 
-REQUIRED: the Write API, the user's own timeline in SQL, the Fan Out Service,
-the User Graph Service, one insert per follower into the Memory Cache, the
-asynchronous work over a queue. Building the home timeline with a SQL join at
-read time is the fail.
+REQUIRED: the components in order, what is stored where, and what is
+asynchronous.
 
 ## Answer
