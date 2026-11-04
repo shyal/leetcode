@@ -43376,6 +43376,21 @@
       "note": "The window is maintained by adding s[i] and, once i >= k, removing s[left] and advancing left, so the window stays at width k; len(count) gives the distinct count.",
       "summary": "maxDistinct keeps a defaultdict count of characters in a window of width k, adding the entering character and deleting the leaving one as left advances, then takes the max of len(count). This exercises the fixed-size sliding window and a counter build. All assertions passed and the notes are empty.",
       "seconds": 134
+    },
+    "solved/d_Smaller_Before_2026_11_04T08_18_49_468859_00_00Z.mu": {
+      "date": "2026-11-04",
+      "problem": "drill",
+      "drill": "d128",
+      "moves": {
+        "dp-1d-rolling": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "The target dp-1d-rolling move is never reached: the code counts prior smaller values directly with a nested fold over nums[:i], no DP table or rolling state.",
+      "summary": "numPrevSmaller builds a result table and, for each index i, counts how many values in the slice nums[:i] are less than nums[i] using a mu fold. It is a direct O(n^2) count with no dynamic-programming recurrence, so the targeted dp-1d-rolling move is not exercised. All assertions pass, including the 2500-element case.",
+      "unmapped": [
+        "brute-force count of prior smaller elements"
+      ],
+      "seconds": 151
     }
   }
 }
