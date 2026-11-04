@@ -43351,6 +43351,18 @@
       "note": "Uses a 2D table over two prefixes; the follow-up asks for O(n) space, which this full table does not meet.",
       "summary": "The lcs function pads both strings with a leading space and fills a 2D table with table(len(a), len(b)), iterating cells from index 1. When a[i] == b[j] it takes dp[i-1][j-1] + 1, otherwise the max of dp[i-1][j] and dp[i][j-1], returning dp[-1][-1]. This is the two-prefix alignment recurrence over two sequences, exercised correctly, and all assertions pass. The notes are empty.",
       "seconds": 227
+    },
+    "solved/d_Combinations_2026_11_04T08_08_52_000836_00_00Z.mu": {
+      "date": "2026-11-04",
+      "problem": "drill",
+      "drill": "d7",
+      "moves": {
+        "backtracking-start-index": "clean",
+        "backtracking-choose-undo": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The mu code builds combinations with a recursive helper that loops j from the start index i to n, appends j+1 to path, recurses with j+1, then pops. This exercises backtracking-start-index (each call's loop begins at i, next call at j+1) and backtracking-choose-undo (append, recurse, pop, recording a copy of path when its length reaches k). All assertions passed, including the 84 and 190 counts and the sorted/uniqueness checks.",
+      "seconds": 73
     }
   }
 }
