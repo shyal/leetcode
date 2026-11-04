@@ -7,6 +7,7 @@ month, 500 million read requests per month, 50 bytes per transaction and
 
 Say how a transaction gets its category and how large that structure is.
 
-REQUIRED: the lookup structure, its size, and the fallback.
+REQUIRED: the seller-to-category dictionary of about 12 MB, overrides for the
+rest. A database lookup per transaction is the fail.
 
 ## Answer

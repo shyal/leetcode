@@ -22,7 +22,9 @@
 //     0 <= hours <= 10^6
 //     hours is a u32
 //
-//     REQUIRED: NO let, NO literal 3600 inside the function.
+//     REQUIRED: a const item with its type written, in SCREAMING_SNAKE_CASE,
+//     at module level; the function multiplies by it. NO let, NO literal
+//     3600 inside the function.
 
 fn hours_to_seconds(hours: u32) -> u32 {
     todo!()

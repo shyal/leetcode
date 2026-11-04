@@ -24,7 +24,8 @@ Constraints:
     1 <= len(s) <= 10^5
     s and c consist of lowercase English letters, and len(c) == 1.
 
-    REQUIRED: O(len(s)) time. NO s.count, NO slicing.
+    REQUIRED: O(len(s)) time, each ways[i] built from ways[i - 1].
+    Recounting every prefix from scratch is the fail. NO s.count, NO slicing.
 """
 
 

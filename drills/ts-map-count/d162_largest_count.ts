@@ -21,8 +21,8 @@
 //     1 <= words.length <= 10^4
 //     1 <= words[i].length <= 20
 //
-//     REQUIRED: O(n), one pass. NO object literal as the dictionary, NO
-//     sort.
+//     REQUIRED: O(n): one pass counting into a Map<string, number>, then the
+//     largest value. NO object literal as the dictionary, NO sort.
 
 import assert from "node:assert/strict";
 

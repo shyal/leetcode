@@ -4,6 +4,8 @@ month, 270 bytes per cached entry, and limited memory.
 
 Write the flow of a cache miss.
 
-REQUIRED: the components in order and the cache update.
+REQUIRED: the Reverse Index Service, the Document Service, the cache updated
+with the entry at the front. Having the cache fetch the result itself is the
+fail.
 
 ## Answer

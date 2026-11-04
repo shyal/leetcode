@@ -56,7 +56,8 @@ Constraints:
 
     1 <= number of rows <= 10^4
 
-    REQUIRED: one query, one aggregate.
+    REQUIRED: one query, one aggregate; the product is formed per row before
+    it is summed.
 
     FORBIDDEN: sum(price) * sum(units); Python.
 

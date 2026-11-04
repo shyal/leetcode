@@ -23,8 +23,8 @@ Constraints:
     1 <= n <= number of nodes
     0 <= Node.val <= 100
 
-    REQUIRED: one pass, O(1) extra space. NO length count, NO second
-    walk, NO list of nodes.
+    REQUIRED: one pass, O(1) extra space, two pointers n apart. NO length
+    count, NO second walk, NO list of nodes.
 """
 
 

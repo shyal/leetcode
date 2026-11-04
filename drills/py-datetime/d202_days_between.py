@@ -23,8 +23,9 @@ Constraints:
 
     Both dates are valid and between 1900-01-01 and 2100-12-31.
 
-    REQUIRED: NO calendar arithmetic by hand, NO string slicing into
-    year, month and day.
+    REQUIRED: datetime.date.fromisoformat on both strings and the .days
+    of their difference. NO calendar arithmetic by hand, NO string
+    slicing into year, month and day.
 """
 
 import datetime

@@ -51,7 +51,8 @@ Constraints:
     1 <= len(G) <= 100
     0 <= k <= 100
 
-    REQUIRED: O(k * (n + m)).
+    REQUIRED: O(k * (n + m)), one breadth-first search from node 0. A
+    visited set keyed on the node alone drops (1, 4) from Example 1.
 """
 
 

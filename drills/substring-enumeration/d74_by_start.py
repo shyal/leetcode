@@ -21,7 +21,9 @@ Constraints:
     s contains lowercase English letters.
 
     REQUIRED: len(s) * (len(s) + 1) / 2 entries, one per position, in
-    the stated order. NO set, NO deduplication.
+    the stated order. NO set, NO deduplication: dropping a repeat is the
+    failure mode this drill exists to kill, and every count built on
+    this list comes out short.
 
 Note: this loop is the brute force under most substring and subarray
 problems (3, 5, 53, 209, 560, 647). Write it first to see the answer,

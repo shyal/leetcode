@@ -21,7 +21,8 @@
 //     0 <= nums.length <= 10^4
 //     -10^6 <= nums[i] <= 10^6
 //
-//     REQUIRED: O(n), one for..of loop. NO any.
+//     REQUIRED: O(n) with one for..of loop; the parameter and the return
+//     value both carry a type annotation. NO any.
 
 import assert from "node:assert/strict";
 

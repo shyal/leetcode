@@ -28,8 +28,10 @@ Constraints:
 
     0 <= n <= 5 * 10^6
 
-    REQUIRED: O(n log log n). NO trial division per integer. NO call to
-    the primes helper: this drill is where you write it.
+    REQUIRED: O(n log log n). NO trial division per integer: testing
+    each of 5 * 10^6 integers against its own divisors is the failure
+    mode this drill exists to kill. NO call to the primes helper: this
+    drill is where you write it.
 
 This is the sieve of Eratosthenes.
 """

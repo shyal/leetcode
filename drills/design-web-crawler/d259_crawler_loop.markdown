@@ -7,6 +7,9 @@ page, and 100 billion searches per month.
 Write the crawler loop, step by step, from taking a link to filing it as
 crawled.
 
-REQUIRED: the steps in order.
+REQUIRED: the top ranked link, the signature check against crawled_links, the
+lower priority on a match, the two queued jobs, the signature, the move from
+links_to_crawl to crawled_links. Crawling a link before checking its signature
+is the fail.
 
 ## Answer

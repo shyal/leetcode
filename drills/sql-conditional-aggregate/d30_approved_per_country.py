@@ -59,8 +59,8 @@ Constraints:
 
     1 <= number of rows <= 10^4
 
-    REQUIRED: one query; every count and sum is 0, not NULL, when
-    nothing is approved.
+    REQUIRED: one query, one GROUP BY country; every count and sum is 0, not
+    NULL, when nothing is approved.
 
     FORBIDDEN: a WHERE on state; a separate query per state; a self-join.
 

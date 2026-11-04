@@ -26,7 +26,9 @@ Constraints:
     1 <= boys_i <= students_i <= 10^5
     All ratios boys_i / students_i are distinct.
 
-    REQUIRED: NO sort, NO sorted, NO key= argument.
+    REQUIRED: must build a heap whose items carry the ratio as their first
+    element, computed by a function, and pop the classes out in order.
+    NO sort, NO sorted, NO key= argument.
 """
 
 

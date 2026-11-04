@@ -515,7 +515,6 @@ impl Fx {
                 after: strs(after),
                 trains: Some(vec![node.to_string()]),
                 disabled: false,
-                judge: String::new(),
             },
         );
         note_test_id(title, did);
@@ -559,7 +558,6 @@ impl Fx {
                     after: Vec::new(),
                     trains,
                     disabled: false,
-                    judge: String::new(),
                 },
             );
             note_test_id(&title, &id);
@@ -580,7 +578,6 @@ impl Fx {
                     after: Vec::new(),
                     trains: None,
                     disabled: false,
-                    judge: String::new(),
                 },
             );
             note_test_id(title, &id);
@@ -602,7 +599,6 @@ impl Fx {
                     after: strs(after),
                     trains: written.and_then(|w| w.trains),
                     disabled: false,
-                    judge: String::new(),
                 },
             );
             note_test_id(title, did);

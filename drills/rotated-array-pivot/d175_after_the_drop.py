@@ -25,8 +25,8 @@ Constraints:
     -5000 <= nums[i] <= 5000
     All values of nums are distinct.
 
-    REQUIRED: O(n), one comparison per element. NO scan for d, NO
-    sorting, NO min().
+    REQUIRED: O(n), one comparison per element, against ONE fixed
+    element. NO scan for d, NO sorting, NO min().
 """
 
 

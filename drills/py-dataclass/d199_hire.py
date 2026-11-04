@@ -18,7 +18,9 @@ Constraints:
 
     0 <= salary <= 10^7
 
-    REQUIRED: NO __init__, NO __eq__, NO __repr__, NO tuple, NO dict.
+    REQUIRED: @dataclass on Employee with three annotated fields and no
+    methods written by hand; equality and repr come from the decorator.
+    NO __init__, NO __eq__, NO __repr__, NO tuple, NO dict.
 """
 
 from dataclasses import dataclass

@@ -5,6 +5,7 @@ month, 270 bytes per cached entry, and limited memory.
 Give three events after which a cached entry should be updated, and the
 simplest way to handle them.
 
-REQUIRED: the three events and the TTL.
+REQUIRED: the three events and the TTL. Invalidating entries by hand on every
+event is the fail.
 
 ## Answer

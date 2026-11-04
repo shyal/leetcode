@@ -5,6 +5,7 @@ bytes per transaction.
 
 Say what handles the read load.
 
-REQUIRED: two measures and the limit of the second.
+REQUIRED: the cache for popular content, the read replicas and why they may
+not be enough. Read replicas alone at 40,000 reads per second is the fail.
 
 ## Answer

@@ -21,8 +21,9 @@ Constraints:
     -10^9 <= nums[i] <= 10^9
     The elements of nums are distinct.
 
-    REQUIRED: one recursive pass. NO include-or-exclude branch per
-    element, NO bitmask, NO itertools.
+    REQUIRED: one recursive pass that records every subset exactly once,
+    when it is built. NO include-or-exclude branch per element, NO
+    bitmask, NO itertools.
 """
 
 

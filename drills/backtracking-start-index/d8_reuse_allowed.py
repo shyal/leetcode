@@ -31,9 +31,9 @@ Constraints:
     1 <= target <= 40
     The elements of nums are distinct and given in increasing order.
 
-    REQUIRED: never build [3, 2, 2], not even to discard it. NO
-    de-duplicating the answer at the end, NO counting how many times
-    each element is used.
+    REQUIRED: never build [3, 2, 2], not even to discard it. Never extend
+    a partial sum that already exceeds target. NO de-duplicating the
+    answer at the end, NO counting how many times each element is used.
 """
 
 

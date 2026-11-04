@@ -5,7 +5,7 @@ only, and 1.27 KB stored per paste.
 
 Say how the link is generated and why 7 characters are enough for 3 years.
 
-REQUIRED: the hash, the encoding, the length of the link and the capacity
-check.
+REQUIRED: MD5 then Base 62, the first 7 characters, 62^7 against the links of
+3 years. Base 64, whose + and / need escaping in a url, is the fail.
 
 ## Answer

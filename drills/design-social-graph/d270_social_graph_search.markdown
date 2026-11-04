@@ -7,6 +7,8 @@ graph database.
 Write the request path of a search, component by component, and say what the
 search does for each node it visits.
 
-REQUIRED: the components in order and the per-node step.
+REQUIRED: the Search API, the User Graph Service, the Lookup Service for the
+current user, BFS with a Lookup Service call per adjacent node. Reading a
+neighbour's friends without asking which server holds it is the fail.
 
 ## Answer

@@ -3,6 +3,7 @@ data, 1 billion writes and 100 billion reads per month, and 1 KB per write.
 
 Say what is added when the web server bottlenecks at peak hours.
 
-REQUIRED: the three components.
+REQUIRED: the load balancer, several web servers across availability zones,
+MySQL in master-slave failover. A bigger web server is the fail.
 
 ## Answer

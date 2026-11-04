@@ -36,7 +36,9 @@ Constraints:
     S contains only digits, '+' and '-'. No spaces.
     S starts with a digit; operators are always followed by a number.
 
-    REQUIRED: NO digit read inside `expr`, NO int() inside `expr`.
+    REQUIRED: `expr` never touches a digit - every amount is read by
+    calling self.number(). When the tape ends the cursor rests at
+    len(S).
 """
 
 from dsa.recursive_descent import Parser

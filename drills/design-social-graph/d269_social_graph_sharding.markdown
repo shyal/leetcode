@@ -7,6 +7,7 @@ graph database.
 Say how the users are spread over machines and how the machine holding a user
 is found.
 
-REQUIRED: the servers and the service that routes to them.
+REQUIRED: Person Servers, the Lookup Service from person id to server.
+Assuming the graph is in one memory is the fail.
 
 ## Answer

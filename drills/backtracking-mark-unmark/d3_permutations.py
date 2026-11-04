@@ -19,8 +19,10 @@ Constraints:
     -10^9 <= nums[i] <= 10^9
     The values in nums are distinct.
 
-    REQUIRED: NO start index, NO swapping elements of nums, NO removing
-    them from the list, NO scanning the ordering to test membership.
+    REQUIRED: every call loops over ALL of nums, from index 0. Deciding
+    in O(1) whether an element is already in the ordering being built is
+    the drill. NO start index, NO swapping elements of nums, NO removing
+    them from the list, no scanning the ordering to test membership.
 """
 
 

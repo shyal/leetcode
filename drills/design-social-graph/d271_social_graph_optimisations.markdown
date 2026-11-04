@@ -6,6 +6,7 @@ graph database.
 
 Give four optimisations of the search.
 
-REQUIRED: four optimisations.
+REQUIRED: four optimisations. A single BFS from the source with no limit is
+the fail.
 
 ## Answer

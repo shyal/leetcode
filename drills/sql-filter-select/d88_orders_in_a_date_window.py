@@ -53,7 +53,7 @@ Constraints:
 
     1 <= number of rows <= 10^4
 
-    REQUIRED: one comparison.
+    REQUIRED: one comparison that names both ends of the window.
 
     FORBIDDEN: a LIKE pattern on the date text; Python.
 

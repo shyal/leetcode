@@ -25,7 +25,9 @@ Constraints:
     0 <= nums[i] <= 100
 
     REQUIRED: O(n + 100) time. NO sort(), NO sorted(), NO heapq, NO
-    comparison of one element of nums against another.
+    comparison of one element of nums against another. Reaching for a
+    comparison sort when the value domain is tiny is the failure mode
+    this drill exists to kill.
 """
 
 

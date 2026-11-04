@@ -22,7 +22,9 @@
 //     -40000 <= num <= 40000
 //     num is an i32
 //
-//     REQUIRED: one expression in the body. NO return keyword.
+//     REQUIRED: the parameter and the return type are both written in the
+//     signature; the body is one expression and ends with no semicolon.
+//     NO return keyword.
 
 fn main() {
     println!("{}", square(3));

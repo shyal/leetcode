@@ -25,7 +25,8 @@ Constraints:
     1 <= len(s) <= 10^5
     s consists of lowercase English letters.
 
-    REQUIRED: O(len(s)) time, one pass. NO nested loop.
+    REQUIRED: O(len(s)) time, one pass. Pairing every b with every earlier
+    index is the fail. NO nested loop.
 """
 
 

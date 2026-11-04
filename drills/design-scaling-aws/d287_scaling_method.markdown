@@ -3,6 +3,7 @@ data, 1 billion writes and 100 billion reads per month, and 1 KB per write.
 
 State the method repeated at every stage.
 
-REQUIRED: the four steps.
+REQUIRED: benchmark, profile, address the bottleneck weighing alternatives,
+repeat. Guessing the bottleneck is the fail.
 
 ## Answer

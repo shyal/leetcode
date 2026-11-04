@@ -54,7 +54,7 @@ Constraints:
 
     1 <= number of rows <= 10^4
 
-    REQUIRED: next_day is computed in SQL. NO string slicing of
+    REQUIRED: next_day comes from the engine's date arithmetic on
     recordDate.
 
     FORBIDDEN: string slicing; adding 1 to the day number (both break at a

@@ -22,7 +22,9 @@
 //     0 <= items.length <= 10^4
 //     0 <= price, qty <= 10^6
 //
-//     REQUIRED: O(n). NO any, NO ||.
+//     REQUIRED: O(n); the parameter is typed with a declared type or
+//     interface in which qty is optional; a missing qty is 1 and a qty of 0
+//     is 0. NO any, NO ||.
 
 import assert from "node:assert/strict";
 

@@ -81,7 +81,7 @@ Constraints:
 
     1 <= rows in each table <= 10^4
 
-    REQUIRED: one query.
+    REQUIRED: the two tables are joined on product_id.
 
     FORBIDDEN: listing both tables without a join condition (a cross join,
     filtered afterwards or not at all).

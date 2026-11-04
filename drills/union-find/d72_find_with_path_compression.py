@@ -26,8 +26,8 @@ Constraints:
     0 <= x < n
     parent is free of cycles whenever find is called
 
-    REQUIRED: NO partial compression (one level up is not enough), NO
-    copy of parent.
+    REQUIRED: must leave every employee on the walk one hop from the head.
+    NO partial compression (one level up is not enough); NO copy of parent.
 """
 
 from dsa.union_find import UnionFind

@@ -22,8 +22,9 @@ Constraints:
 
     The file has at most 10^5 lines.
 
-    REQUIRED: NO open() outside a with, NO f.close(), NO read() of the
-    whole file.
+    REQUIRED: open the file in a with statement and iterate the file
+    object line by line. NO open() outside a with, NO f.close(), NO
+    read() of the whole file.
 """
 
 import os

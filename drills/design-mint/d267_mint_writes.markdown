@@ -7,7 +7,8 @@ month, 500 million read requests per month, 50 bytes per transaction and
 
 Say what is done about the write load.
 
-REQUIRED: the scaling patterns, the alternative considered, and the retention
-rule.
+REQUIRED: the SQL scaling patterns, NoSQL considered, only a month of transactions
+in the database. One SQL master taking 2,000 writes per second is the
+fail.
 
 ## Answer

@@ -5,6 +5,7 @@ bytes per transaction.
 
 Write the read path, component by component.
 
-REQUIRED: the component and the table it reads.
+REQUIRED: the Read API reading the sales_rank table. Reading the raw logs on a
+request is the fail.
 
 ## Answer

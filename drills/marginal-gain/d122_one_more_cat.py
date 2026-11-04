@@ -24,7 +24,8 @@ Constraints:
 
     1 <= a <= t <= 10^5
 
-    REQUIRED: O(1). NO loop.
+    REQUIRED: must run in O(1). NO loop. The new ratio counts the new cat
+    in both the cats and the animals; a ratio over t alone is a fail.
 """
 
 

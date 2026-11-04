@@ -43,8 +43,11 @@ Constraints:
     S starts with a digit; every operator is followed by a number.
     Runs of '*' and '/' associate left to right.
 
-    REQUIRED: NO digit read inside `term`, NO int() inside `term`, NO
-    regex.
+    REQUIRED: `term` never touches a digit - every part is fetched by
+    calling self.atom(). `term` claims only '*' and '/': it must stop
+    the moment it sees '+', '-' or the end of the string, and leave that
+    character unread. Consuming it is what makes the multi-buy swallow
+    the rest of the order.
 """
 
 

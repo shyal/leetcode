@@ -77,8 +77,10 @@ Constraints:
     1 <= dur <= 10^9
     A call's dur is at least the sum of the dur of the calls directly inside it.
 
-    REQUIRED: one visit per node, O(number of calls). NO second
-    traversal.
+    REQUIRED: one visit per node, O(number of calls). NO second traversal.
+    A call three levels deep must be subtracted from its parent only,
+    never from its grandparent; an answer right two levels deep and wrong
+    three levels deep is the failure this kills.
 """
 
 

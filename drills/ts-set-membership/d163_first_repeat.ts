@@ -22,7 +22,8 @@
 //     0 <= nums.length <= 10^4
 //     0 <= nums[i] <= 10^6
 //
-//     REQUIRED: O(n), one pass. NO indexOf, NO nested loop.
+//     REQUIRED: O(n): one pass with a Set<number>, has before add. NO
+//     indexOf, NO nested loop.
 
 import assert from "node:assert/strict";
 

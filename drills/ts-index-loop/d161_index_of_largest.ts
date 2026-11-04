@@ -22,7 +22,8 @@
 //     1 <= nums.length <= 10^4
 //     -10^6 <= nums[i] <= 10^6
 //
-//     REQUIRED: O(n), one index loop. NO Math.max, NO indexOf.
+//     REQUIRED: O(n) with one index loop, for (let i = 0; ...). NO Math.max,
+//     NO indexOf.
 
 import assert from "node:assert/strict";
 

@@ -42,7 +42,10 @@ Constraints:
     Every node in a list is a key of G.
     No path visits a node twice.
 
-    REQUIRED: O(n + m) time.
+    REQUIRED: O(n + m) time. The longest path from each node must be
+    computed once and remembered. Recomputing it on every visit walks
+    every path in the graph, and a graph of 200 nodes where each node
+    points to the next two has more paths than the clock allows.
 """
 
 

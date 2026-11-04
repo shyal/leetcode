@@ -22,7 +22,9 @@ Constraints:
 
     0 <= len(name) <= 100
 
-    REQUIRED: NO return of None, NO return of an error string, NO print.
+    REQUIRED: raise ValueError with the exact message; the caller gets
+    the exception, not a return value. NO return of None, NO return of
+    an error string, NO print.
 """
 
 

@@ -28,7 +28,8 @@ Constraints:
     0 <= grid[r][c] <= 10^6
     0 <= k <= 10^6
 
-    REQUIRED: O(n * m) time. NO recursion.
+    REQUIRED: O(n * m) time, one breadth-first search from (0, 0). A cell
+    below k must never be entered, the first cell included. NO recursion.
 """
 
 

@@ -28,7 +28,7 @@ Constraints:
     -10^9 <= target <= 10^9
 
     REQUIRED: O(n), one pass over vals. NO enumeration of start and end
-    pairs, NO two-pointer scan.
+    pairs. Negative values make a two-pointer scan wrong.
 """
 
 

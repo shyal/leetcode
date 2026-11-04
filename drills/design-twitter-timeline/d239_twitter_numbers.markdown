@@ -7,6 +7,6 @@ billion read requests and 10 billion searches per month.
 Write the tweets per second, the fanout deliveries per second, the read
 requests per second and the search requests per second.
 
-REQUIRED: the four rates.
+REQUIRED: the four rates. Leaving the fanout at the tweet rate is the fail.
 
 ## Answer

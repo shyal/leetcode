@@ -189,18 +189,6 @@ the solid window; a drill: its latest rep is one; a node: owned). A problem or a
 drill is not served while an id it comes after is not warm (`kg_lib.held_behind`,
 `kg_lib.servable_drills`). Filename order inside `drills/<node>/` means nothing.
 
-A drill's contract is in two places. The statement's `REQUIRED:` line, which
-the reader sees, carries the complexity bound and the bans and nothing else:
-if a reader could write the answer from it, it is the solution. The entry's
-optional `"judge"` text carries the rest, the members, steps, conditions or
-failure mode that name the solution. Only the judge reads it: `kg_extract`
-strips the statement from what the model sees and puts the `REQUIRED` line and
-the `judge` text in the drill's lead as the CONTRACT, and a rep that passed the
-asserts by a route the contract rules out is "struggled" (2026-11-05, d200:
-the REQUIRED line of a drill listed the members of the answer).
-`test_drill_registry.py` refuses a `REQUIRED` line that names the failure mode
-and a `judge` sentence that the statement repeats.
-
 ### Languages (utils/rs/kg/src/lang.rs)
 
 A drill file is written in one of the languages in the `kg::lang` table:

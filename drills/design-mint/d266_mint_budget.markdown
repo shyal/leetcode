@@ -7,6 +7,7 @@ month, 500 million read requests per month, 50 bytes per transaction and
 
 Say how the budget avoids storing 100 million items.
 
-REQUIRED: the template and what is stored per user.
+REQUIRED: the template by income tier, only the overridden categories stored.
+A row per user per category is the fail.
 
 ## Answer

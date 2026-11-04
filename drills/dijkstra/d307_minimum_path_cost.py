@@ -40,7 +40,7 @@ Constraints:
     Every weight is an integer from 0 through 20.
     s and t are integer node keys in G.
 
-    REQUIRED: O((n + m) log n) time. NO breadth-first search.
+    REQUIRED: You must achieve O((n + m) log n) time and avoid Example 1's breadth-first-search error: fewer edges cost more than more edges.
 """
 
 

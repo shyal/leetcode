@@ -21,7 +21,8 @@ Constraints:
     0 <= nums[i] <= 100
 
     REQUIRED: O(n + 100) time. NO sort(), NO sorted(), NO nested loop
-    over nums.
+    over nums. Comparing every pair is the failure mode this drill
+    exists to kill; len(nums) makes it a TLE.
 """
 
 

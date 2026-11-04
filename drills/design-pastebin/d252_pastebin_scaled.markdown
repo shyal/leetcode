@@ -6,6 +6,7 @@ only, and 1.27 KB stored per paste.
 Say what serves the read load and what serves the write load once the design
 is scaled.
 
-REQUIRED: three measures.
+REQUIRED: the cache, the read replicas, one master-slave for the writes.
+Sharding the writes at 4 per second is the fail.
 
 ## Answer

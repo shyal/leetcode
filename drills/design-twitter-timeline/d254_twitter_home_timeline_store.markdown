@@ -7,7 +7,8 @@ billion read requests and 10 billion searches per month.
 Say where the home timelines are stored and why that store, and where a user's
 own timeline is stored.
 
-REQUIRED: the store for the home timeline with its reason, and the store for
-the own timeline.
+REQUIRED: the Memory Cache, a Redis list, chosen for its write rate; the own
+timeline in SQL. Putting the home timelines in the relational database is the
+fail.
 
 ## Answer

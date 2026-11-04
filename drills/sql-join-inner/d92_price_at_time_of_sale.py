@@ -87,7 +87,8 @@ Constraints:
     1 <= rows in Prices <= 10^4
     1 <= rows in UnitsSold <= 10^4
 
-    REQUIRED: one output row per sale.
+    REQUIRED: one output row per sale; the join matches on the product AND
+    on the date falling in the range.
 
     FORBIDDEN: a join on product_id alone (it pairs each sale with every
     range of its product); Python.

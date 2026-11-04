@@ -26,7 +26,8 @@ Constraints:
     1 <= len(nums) <= 2500
     -10^4 <= nums[i] <= 10^4
 
-    REQUIRED: O(n^2). NO sorting.
+    REQUIRED: O(n^2), every earlier index compared against i. NO sorting.
+    The test is strictly smaller: counting an equal value is the fail.
 """
 
 

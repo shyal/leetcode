@@ -26,7 +26,9 @@ Constraints:
     1 <= len(a), len(b) <= 1000
     a and b consist of lowercase English letters.
 
-    REQUIRED: O(len(a) * len(b)) time. NO itertools.
+    REQUIRED: O(len(a) * len(b)) time. Enumerating the subsequences of a
+    and testing each one against b is exponential, the failure mode this
+    drill exists to kill. NO itertools.
 """
 
 

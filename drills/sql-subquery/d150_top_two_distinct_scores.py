@@ -61,7 +61,8 @@ Constraints:
 
     1 <= number of rows <= 10^4
 
-    REQUIRED: one query.
+    REQUIRED: the dense rank must be computed in a WITH clause and filtered
+    in the query that reads from it.
 
     FORBIDDEN: a scalar subquery for the cutoff score; referencing the
     window in the WHERE of the query that computes it.

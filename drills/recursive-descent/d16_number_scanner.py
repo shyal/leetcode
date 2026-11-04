@@ -22,7 +22,11 @@ Constraints:
     `number` is only ever called while the head is parked on a digit.
 
     REQUIRED: one pass over the digit run, O(1) extra space. NO int() on
-    a slice, NO regex, NO lookahead.
+    a slice, NO regex, NO lookahead - the head sees one character at a
+    time and builds the amount as it slides. Where the head comes to
+    rest is half the job: it must stop ON the first character that is
+    not a digit, never one past it. Every later rung resumes from self.i,
+    so a head that overshoots by one silently corrupts the whole parse.
 """
 
 

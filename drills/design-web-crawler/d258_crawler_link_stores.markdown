@@ -7,7 +7,8 @@ page, and 100 billion searches per month.
 Name the two collections of links the crawler stores, what each holds, and
 where they are stored.
 
-REQUIRED: the two stores, what each holds, and the data store type with its
-ranking structure.
+REQUIRED: links_to_crawl ranked by popularity, crawled_links with page
+signatures, a key-value store with the ranking in Redis sorted sets. A
+single list of links is the fail.
 
 ## Answer

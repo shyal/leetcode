@@ -7,6 +7,7 @@ month, 500 million read requests per month, 50 bytes per transaction and
 
 Give the three cases in which transactions are extracted.
 
-REQUIRED: the three triggers.
+REQUIRED: the first link, the manual refresh, the daily run for recently
+active users. Extracting daily for every user is the fail.
 
 ## Answer

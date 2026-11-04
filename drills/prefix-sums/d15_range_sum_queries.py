@@ -23,6 +23,8 @@ Constraints:
     0 <= l <= r < len(nums)
 
     REQUIRED: O(n) precompute once, then O(1) per query.
+    Re-summing the slice per query is the failure mode this drill exists
+    to kill. len(queries) makes O(n) per query a TLE.
 """
 
 

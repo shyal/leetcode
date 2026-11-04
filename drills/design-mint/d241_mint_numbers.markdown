@@ -8,7 +8,7 @@ month, 500 million read requests per month, 50 bytes per transaction and
 Write the transactions per second, the read requests per second and the new
 content per month, and say whether the system is read heavy or write heavy.
 
-REQUIRED: the three numbers and whether the service is read heavy or write
-heavy.
+REQUIRED: the three numbers and write heavy. Calling it read heavy is the
+fail.
 
 ## Answer

@@ -24,7 +24,8 @@ Constraints:
     0 <= len(names) <= 1000
     names[i] is "red", "green" or "blue".
 
-    REQUIRED: O(n). NO conversion of palette to an int, a set or a list.
+    REQUIRED: O(n). The membership test is on palette itself. NO
+    conversion of palette to an int, a set or a list.
 """
 
 from enum import Flag, auto
