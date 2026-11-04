@@ -43363,6 +43363,19 @@
       "judge": "deepseek-chat",
       "summary": "The mu code builds combinations with a recursive helper that loops j from the start index i to n, appends j+1 to path, recurses with j+1, then pops. This exercises backtracking-start-index (each call's loop begins at i, next call at j+1) and backtracking-choose-undo (append, recurse, pop, recording a copy of path when its length reaches k). All assertions passed, including the 84 and 190 counts and the sorted/uniqueness checks.",
       "seconds": 73
+    },
+    "solved/d_Fixed_Slide_2026_11_04T08_16_08_871103_00_00Z.mu": {
+      "date": "2026-11-04",
+      "problem": "drill",
+      "drill": "d22",
+      "moves": {
+        "sliding-window-fixed": "clean",
+        "counter-build": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "The window is maintained by adding s[i] and, once i >= k, removing s[left] and advancing left, so the window stays at width k; len(count) gives the distinct count.",
+      "summary": "maxDistinct keeps a defaultdict count of characters in a window of width k, adding the entering character and deleting the leaving one as left advances, then takes the max of len(count). This exercises the fixed-size sliding window and a counter build. All assertions passed and the notes are empty.",
+      "seconds": 134
     }
   }
 }
