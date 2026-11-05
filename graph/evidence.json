@@ -43717,6 +43717,20 @@
       "note": "Contract requires the dense rank in a WITH clause; the code uses a derived-table subquery in FROM instead, so the WITH-clause part is unmet.",
       "summary": "The query computes dense_rank() over score descending in an inner select and filters rnk <= 2 in the outer query, returning both rows for tied top scores. It exercises window ranking and a derived-table subquery, but the drill contract asked for the rank to be computed in a WITH clause, which the code does not do. The run passed both examples.",
       "seconds": 287
+    },
+    "solved/d_No_Repeat_Siblings_2026_11_05T22_19_34_577444_00_00Z.mu": {
+      "date": "2026-11-06",
+      "problem": "drill",
+      "drill": "d2",
+      "moves": {
+        "backtracking-dedupe-siblings": "clean",
+        "backtracking-choose-undo": "clean",
+        "backtracking-start-index": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Contract met: single recursive pass, subset recorded on entry, sibling skip via j > i and nums[j] == nums[j-1], no set/tuple dedupe of the answer.",
+      "summary": "The mu code builds subsets by recursing from a start index, appending path[:] to res on each call, then looping candidates from i and skipping a value equal to its predecessor when j > i. It pushes nums[j], recurses at j+1, and pops, so each subset is built once and duplicates are pruned at the sibling level rather than by a set. All assertions passed, including the 12-identical-element case.",
+      "seconds": 74
     }
   }
 }
