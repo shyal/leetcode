@@ -43809,6 +43809,17 @@
       "note": "Contract met: single pass, no index-pair enumeration; each pair counted at its second member via D[lookup(x)] before D[key(x)] += 1.",
       "summary": "countPairs walks xs once, querying a Counter with lookup(x) for matches already seen, then recording key(x); the fold sums those per-element match counts. This exercises streaming-accumulate-pairs, counter-build, and derived-key-lookup, and all assertions pass including the 10^5 cases. No notes were provided.",
       "seconds": 26
+    },
+    "solved/d_Reverse_Each_Word_2026_11_05T23_39_28_328754_00_00Z.ts": {
+      "date": "2026-11-06",
+      "problem": "drill",
+      "drill": "d165",
+      "moves": {
+        "ts-string-build": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The solution splits the input on spaces, maps each word through split(\"\").reverse().join(\"\") to reverse its characters, then joins the words back with spaces. This exercises the string-build move: decompose into an array, transform, reassemble, with no index loop over characters. The run exited 0 and all assertions passed.",
+      "seconds": 105
     }
   }
 }
