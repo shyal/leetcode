@@ -43783,6 +43783,18 @@
       "note": "Contract met: single fold expression `count for n in nums: n is even`, no accumulator variable, no loop statement, no list built.",
       "summary": "The mu solution counts even numbers with one fold expression, `count for n in nums: n is even`, which accumulates the running total in a single O(n) pass without an explicit accumulator or loop. All assertions passed, including the range case over -1000..<1000. The notes are empty.",
       "seconds": 39
+    },
+    "solved/d_Call_Tree_2026_11_05T22_58_10_574904_00_00Z.mu": {
+      "date": "2026-11-06",
+      "problem": "drill",
+      "drill": "d158",
+      "moves": {
+        "stack-nested-eval": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Single pass over events; a start pushes a node whose parent is stack[-1] (innermost running call), an end pops and computes dur. Contract met.",
+      "summary": "The mu code walks events once, keeping a stack of running calls. On 'start' it pushes a new Node parented to the current top of the stack; on 'end' it pops the top and sets its duration from the elapsed time. This exercises stack-nested-eval in one O(len(events)) pass, and all assertions passed.",
+      "seconds": 191
     }
   }
 }
