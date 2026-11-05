@@ -43731,6 +43731,23 @@
       "note": "Contract met: single recursive pass, subset recorded on entry, sibling skip via j > i and nums[j] == nums[j-1], no set/tuple dedupe of the answer.",
       "summary": "The mu code builds subsets by recursing from a start index, appending path[:] to res on each call, then looping candidates from i and skipping a value equal to its predecessor when j > i. It pushes nums[j], recurses at j+1, and pops, so each subset is built once and duplicates are pruned at the sibling level rather than by a set. All assertions passed, including the 12-identical-element case.",
       "seconds": 74
+    },
+    "solved/d_Maximum_Alternating_Subarray_Sum_2026_11_05T22_30_41_468729_00_00Z.mu": {
+      "date": "2026-11-06",
+      "problem": "drill",
+      "drill": "d319",
+      "moves": {
+        "memoize-recursion": "clean",
+        "dp-state-formulate": "clean",
+        "dp-1d-rolling": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Contract requires O(n) time, O(1) space, single pass; the code uses memoized recursion over (i, s) states, which is O(n) time but O(n) space and not a rolling 1D DP, so dp-1d-rolling is not exercised.",
+      "summary": "The solution defines a memoized recursive function best(i, s) that returns s*nums[i] plus the max of 0 and the next state with sign flipped, then takes the max over all starting indices. This exercises memoized recursion and state formulation but not the required O(1)-space single-pass rolling DP. The run passed all assertions, but the contract's space and single-pass requirements are unmet.",
+      "unmapped": [
+        "O(1) space single-pass rolling DP"
+      ],
+      "seconds": 233
     }
   }
 }
