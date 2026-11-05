@@ -43820,6 +43820,21 @@
       "judge": "deepseek-chat",
       "summary": "The solution splits the input on spaces, maps each word through split(\"\").reverse().join(\"\") to reverse its characters, then joins the words back with spaces. This exercises the string-build move: decompose into an array, transform, reassemble, with no index loop over characters. The run exited 0 and all assertions passed.",
       "seconds": 105
+    },
+    "solved/d_Tape_Reader_2026_11_05T23_46_15_977148_00_00Z.mu": {
+      "date": "2026-11-06",
+      "problem": "drill",
+      "drill": "d17",
+      "moves": {
+        "recursive-descent": "struggled"
+      },
+      "assist": {
+        "recursive-descent": "hint"
+      },
+      "judge": "deepseek-chat",
+      "note": "Contract unmet: expr() calls self.number() directly for each operand instead of recursing into expr; the candidate's own note says 'hint: recursively called expr instead of number'.",
+      "summary": "The mu Solution extends Parser and defines expr() as a left-associative loop: it reads one number via self.number(), then while the cursor sits on '+' or '-' it consumes the operator and builds a TreeNode with the running left subtree and a freshly read right operand. The run passed all assertions and the cursor ends at len(S), but the contract required every amount to be read by a recursive call to expr rather than number, which the code does not do. The notes record the hint that expr should have been called recursively instead of number.",
+      "seconds": 341
     }
   }
 }
