@@ -43662,6 +43662,21 @@
       "summary": "The constructor calls helper(0), which recursively builds every combination of length n by appending arr[j] to self.path, recursing with j+1, and popping after each call, storing a copy of each complete path in self.res. next() joins self.res[self.i] and advances the index, while hasNext() compares self.i against len(self.res). The run exited 0 and LeetCode reports Accepted (25 ms, 22.5 MB); no notes were provided.",
       "seconds": 916,
       "learning": true
+    },
+    "solved/d_Total_Users_Per_Contest_2026_11_05T22_06_24_091442_00_00Z.mu": {
+      "date": "2026-11-06",
+      "problem": "drill",
+      "drill": "d55",
+      "moves": {
+        "sql-subquery": "clean"
+      },
+      "assist": {
+        "sql-subquery": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Scalar subquery (select count(*) from users) supplies the runtime user count; DISTINCT contest_id gives one row per contest, meeting the contract.",
+      "summary": "The query selects distinct contest_id from Register and pairs each with a scalar subquery counting all rows of Users, so the user total is computed at run time rather than hard-coded. This exercises the scalar-subquery move and satisfies the contract of one row per contest with the count from Users. The notes say the candidate tried UNION ALL first and is learning.",
+      "seconds": 165
     }
   }
 }
