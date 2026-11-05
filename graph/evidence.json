@@ -43677,6 +43677,18 @@
       "note": "Scalar subquery (select count(*) from users) supplies the runtime user count; DISTINCT contest_id gives one row per contest, meeting the contract.",
       "summary": "The query selects distinct contest_id from Register and pairs each with a scalar subquery counting all rows of Users, so the user total is computed at run time rather than hard-coded. This exercises the scalar-subquery move and satisfies the contract of one row per contest with the count from Users. The notes say the candidate tried UNION ALL first and is learning.",
       "seconds": 165
+    },
+    "solved/d_Remove_Value_2026_11_05T22_09_06_951142_00_00Z.mu": {
+      "date": "2026-11-06",
+      "problem": "drill",
+      "drill": "d111",
+      "moves": {
+        "ll-dummy-splice": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Dummy node d in front, single while loop over curr with no head special-case, O(1) space, no value list; contract met.",
+      "summary": "The mu code builds a dummy node pointing at head, then walks curr through the list, re-linking curr.next past any node whose val equals the target and advancing otherwise, returning d.next. This is exactly the dummy-splice move: one pass, no head special case, constant extra space. All assertions passed, including the empty list, all-equal, and the 10000-element case.",
+      "seconds": 106
     }
   }
 }
