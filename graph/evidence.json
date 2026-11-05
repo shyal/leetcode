@@ -43689,6 +43689,18 @@
       "note": "Dummy node d in front, single while loop over curr with no head special-case, O(1) space, no value list; contract met.",
       "summary": "The mu code builds a dummy node pointing at head, then walks curr through the list, re-linking curr.next past any node whose val equals the target and advancing otherwise, returning d.next. This is exactly the dummy-splice move: one pass, no head special case, constant extra space. All assertions passed, including the empty list, all-equal, and the 10000-element case.",
       "seconds": 106
+    },
+    "solved/d_Dense_Rank_Scores_2026_11_05T22_12_12_063280_00_00Z.mu": {
+      "date": "2026-11-06",
+      "problem": "drill",
+      "drill": "d60",
+      "moves": {
+        "sql-window-rank": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "DENSE_RANK() OVER (ORDER BY score DESC) gives ties the same rank with no gaps, meeting the REQUIRED contract and avoiding the forbidden RANK/ROW_NUMBER.",
+      "summary": "The query selects score and dense_rank() over (order by score desc) as rank from Scores. DENSE_RANK assigns equal scores the same rank and the next distinct score the next integer, so both examples pass and the contract is met. No notes indicate any help or recognition difficulty.",
+      "seconds": 105
     }
   }
 }
