@@ -43795,6 +43795,20 @@
       "note": "Single pass over events; a start pushes a node whose parent is stack[-1] (innermost running call), an end pops and computes dur. Contract met.",
       "summary": "The mu code walks events once, keeping a stack of running calls. On 'start' it pushes a new Node parented to the current top of the stack; on 'end' it pops the top and sets its duration from the elapsed time. This exercises stack-nested-eval in one O(len(events)) pass, and all assertions passed.",
       "seconds": 191
+    },
+    "solved/d_Count_Pairs_2026_11_05T23_20_47_174610_00_00Z.mu": {
+      "date": "2026-11-06",
+      "problem": "drill",
+      "drill": "d185",
+      "moves": {
+        "streaming-accumulate-pairs": "clean",
+        "counter-build": "clean",
+        "derived-key-lookup": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Contract met: single pass, no index-pair enumeration; each pair counted at its second member via D[lookup(x)] before D[key(x)] += 1.",
+      "summary": "countPairs walks xs once, querying a Counter with lookup(x) for matches already seen, then recording key(x); the fold sums those per-element match counts. This exercises streaming-accumulate-pairs, counter-build, and derived-key-lookup, and all assertions pass including the 10^5 cases. No notes were provided.",
+      "seconds": 26
     }
   }
 }
