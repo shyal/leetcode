@@ -43701,6 +43701,22 @@
       "note": "DENSE_RANK() OVER (ORDER BY score DESC) gives ties the same rank with no gaps, meeting the REQUIRED contract and avoiding the forbidden RANK/ROW_NUMBER.",
       "summary": "The query selects score and dense_rank() over (order by score desc) as rank from Scores. DENSE_RANK assigns equal scores the same rank and the next distinct score the next integer, so both examples pass and the contract is met. No notes indicate any help or recognition difficulty.",
       "seconds": 105
+    },
+    "solved/d_Top_Two_Distinct_Scores_2026_11_05T22_17_17_624475_00_00Z.mu": {
+      "date": "2026-11-06",
+      "problem": "drill",
+      "drill": "d150",
+      "moves": {
+        "sql-window-rank": "clean",
+        "sql-subquery": "struggled"
+      },
+      "assist": {
+        "sql-subquery": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Contract requires the dense rank in a WITH clause; the code uses a derived-table subquery in FROM instead, so the WITH-clause part is unmet.",
+      "summary": "The query computes dense_rank() over score descending in an inner select and filters rnk <= 2 in the outer query, returning both rows for tied top scores. It exercises window ranking and a derived-table subquery, but the drill contract asked for the rank to be computed in a WITH clause, which the code does not do. The run passed both examples.",
+      "seconds": 287
     }
   }
 }
