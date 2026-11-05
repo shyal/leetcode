@@ -43632,6 +43632,23 @@
       "summary": "The code defines a cost(k) helper that prices buying k items at costBoth and covering the remainder of each need with cost1/cost2, then returns the minimum over k = 0, min(need1, need2), and max(need1, need2). It formulates the trade-off as a state over how many shared purchases to make and evaluates the marginal cost of that choice. The notes mark this as Learning.",
       "seconds": 332,
       "learning": true
+    },
+    "solved/p24_Swap_Nodes_in_Pairs_2026_11_05T04_06_40_580946_00_00Z.mu": {
+      "date": "2026-11-05",
+      "problem": "24",
+      "moves": {
+        "tree-dfs-recursive": "clean",
+        "ll-pointer-reversal": "clean"
+      },
+      "assist": {
+        "tree-dfs-recursive": "learning",
+        "ll-pointer-reversal": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Recursive swap: m.next, c.next = self.swapPairs(c.next), m; notes say 'Learning'.",
+      "summary": "The solution swaps pairs recursively: it takes the first two nodes m and c, recurses on c.next, then re-links m.next to the recursive result and c.next to m, returning c as the new head. This exercises the recursive-descent shape (tree-dfs-recursive) and pointer re-linking (ll-pointer-reversal). The notes mark it as Learning, and all assertions pass.",
+      "seconds": 464,
+      "learning": true
     }
   }
 }
