@@ -43649,6 +43649,19 @@
       "summary": "The solution swaps pairs recursively: it takes the first two nodes m and c, recurses on c.next, then re-links m.next to the recursive result and c.next to m, returning c as the new head. This exercises the recursive-descent shape (tree-dfs-recursive) and pointer re-linking (ll-pointer-reversal). The notes mark it as Learning, and all assertions pass.",
       "seconds": 464,
       "learning": true
+    },
+    "solved/p1286_Iterator_for_Combination_2026_11_05T11_17_16_413571_00_00Z.mu": {
+      "date": "2026-11-05",
+      "problem": "1286",
+      "moves": {
+        "backtracking-choose-undo": "clean",
+        "backtracking-start-index": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Precomputes all combinations in __init__ via helper, then next/hasNext index into self.res.",
+      "summary": "The constructor calls helper(0), which recursively builds every combination of length n by appending arr[j] to self.path, recursing with j+1, and popping after each call, storing a copy of each complete path in self.res. next() joins self.res[self.i] and advances the index, while hasNext() compares self.i against len(self.res). The run exited 0 and LeetCode reports Accepted (25 ms, 22.5 MB); no notes were provided.",
+      "seconds": 916,
+      "learning": true
     }
   }
 }
