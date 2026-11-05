@@ -43615,6 +43615,23 @@
       "judge": "deepseek-chat",
       "summary": "The mu solution defines a cached recursive helper max_dist(n) that returns 0 for a leaf and otherwise max(max_dist(x) + 1 for x in G[n]), then calls max_dist(0). The @cache decorator memoizes each node's longest distance so it is computed once, giving O(n + m). All assertions passed, including the 200-node chain and branching graphs.",
       "seconds": 85
+    },
+    "solved/p3789_Minimum_Cost_to_Acquire_Required_Items_2026_11_05T03_54_37_681838_00_00Z.mu": {
+      "date": "2026-11-05",
+      "problem": "3789",
+      "moves": {
+        "dp-state-formulate": "clean",
+        "marginal-gain": "clean"
+      },
+      "assist": {
+        "dp-state-formulate": "learning",
+        "marginal-gain": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say 'Learning'; solution enumerates three candidate k values (0, min, max of needs) and takes the min of a closed-form cost function.",
+      "summary": "The code defines a cost(k) helper that prices buying k items at costBoth and covering the remainder of each need with cost1/cost2, then returns the minimum over k = 0, min(need1, need2), and max(need1, need2). It formulates the trade-off as a state over how many shared purchases to make and evaluates the marginal cost of that choice. The notes mark this as Learning.",
+      "seconds": 332,
+      "learning": true
     }
   }
 }

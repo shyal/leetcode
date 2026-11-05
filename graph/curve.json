@@ -2,12 +2,12 @@
   "_comment": "Personal forgetting curve fitted by utils/kg/kg_curve. P(recall) = (1-slip)*(1 + gap/s)^(-beta), s = exp(a + b*log1p(cleans) - c*struggles - d*assist + e*(conn - conn_mean)); cleans counts distinct clean days, same-day reps are one rep. conn is the node's log2 carrier count, frozen below at fit time; consumers that ignore e are assuming average connectivity. \"solve\" is the cold-solve model fitted by fit_solve: logit P(solve cold, unaided, inside the clock) = the listed coefficients over (rating - 1500)/400, the walk's summed log recall, and its count of never-met moves; features not listed did not earn their place on held-out games. node_status() calls a node SOLID while the memory component (1 + gap/s)^(-beta) >= target_retention; delete this file to fall back to the flat 42-day window.",
   "model": "power-law-slip",
   "params": {
-    "a": 3.9216,
-    "b": 0.1222,
-    "c": 0.2135,
-    "d": 0.0517,
-    "e": -0.1905,
-    "conn_mean": 2.7399,
+    "a": 3.9217,
+    "b": 0.122,
+    "c": 0.2134,
+    "d": 0.0516,
+    "e": -0.1898,
+    "conn_mean": 2.7422,
     "beta": 0.1204,
     "slip": 0.0531
   },
@@ -34,7 +34,7 @@
     "divmod-decompose": 5.248,
     "dp-1d-rolling": 4.322,
     "dp-2d-grid": 3.585,
-    "dp-state-formulate": 4.248,
+    "dp-state-formulate": 4.322,
     "event-sweep": 1.585,
     "fast-slow-pointers": 2.322,
     "floyd-cycle": 2.0,
@@ -56,7 +56,7 @@
     "ll-dummy-splice": 4.248,
     "ll-offset-arithmetic": 2.322,
     "ll-pointer-reversal": 3.17,
-    "marginal-gain": 1.0,
+    "marginal-gain": 1.585,
     "memoize-recursion": 4.17,
     "modular-cycle": 4.585,
     "monotonic-stack": 2.807,
@@ -113,13 +113,13 @@
   },
   "target_retention": 0.9,
   "mass": {
-    "beta": -0.1848,
-    "se": 0.0877,
-    "n": 639,
+    "beta": -0.1862,
+    "se": 0.0876,
+    "n": 640,
     "by_difficulty": {
-      "Easy": 3.8182,
-      "Medium": 1.0967,
-      "Hard": -0.0517
+      "Easy": 3.8197,
+      "Medium": 1.0852,
+      "Hard": -0.0503
     }
   },
   "solve": {
