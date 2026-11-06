@@ -485,6 +485,30 @@ fn caps_table(ctx: &Ctx, pv: &PView, ev: &Evidence, today: NaiveDate) -> Option<
             },
         ]);
     }
+    for (set, cap) in kg::drills::set_new_caps() {
+        let k = kg::drills::set_reps(ctx, &set, ev, today).0;
+        rows.push([
+            format!("{set} new"),
+            cap_cell(k, cap),
+            if k >= cap {
+                "at the cap - the set's unseen files wait until tomorrow".into()
+            } else {
+                "KG_SET_NEW_CAP".into()
+            },
+        ]);
+    }
+    for (set, cap) in kg::drills::set_review_caps() {
+        let k = kg::drills::set_reps(ctx, &set, ev, today).1;
+        rows.push([
+            format!("{set} reviews"),
+            cap_cell(k, cap),
+            if k >= cap {
+                "at the cap - the set's met files wait until tomorrow".into()
+            } else {
+                "KG_SET_REVIEW_CAP".into()
+            },
+        ]);
+    }
     let due = review_queue(ctx, ev, pv, today);
     if !due.is_empty() {
         let n = due.len();

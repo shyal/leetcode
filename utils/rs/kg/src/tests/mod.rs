@@ -516,6 +516,7 @@ impl Fx {
                 trains: Some(vec![node.to_string()]),
                 disabled: false,
                 judge: String::new(),
+                set: String::new(),
             },
         );
         note_test_id(title, did);
@@ -560,6 +561,7 @@ impl Fx {
                     trains,
                     disabled: false,
                     judge: String::new(),
+                    set: String::new(),
                 },
             );
             note_test_id(&title, &id);
@@ -581,9 +583,21 @@ impl Fx {
                     trains: None,
                     disabled: false,
                     judge: String::new(),
+                    set: String::new(),
                 },
             );
             note_test_id(title, &id);
+        }
+        self
+    }
+
+    /// drills.json "set" on the entries with these titles: in_set(&["A",
+    /// "B"], "pramp").
+    pub fn in_set(&mut self, titles: &[&str], set: &str) -> &mut Fx {
+        for d in self.drills.values_mut() {
+            if titles.contains(&d.title.as_str()) {
+                d.set = set.to_string();
+            }
         }
         self
     }
@@ -603,6 +617,7 @@ impl Fx {
                     trains: written.and_then(|w| w.trains),
                     disabled: false,
                     judge: String::new(),
+                    set: String::new(),
                 },
             );
             note_test_id(title, did);

@@ -500,6 +500,10 @@ pub struct DrillEntry {
     /// REQUIRED line, which the candidate sees, carries the complexity
     /// bound and the bans alone. "" when the entry has none.
     pub judge: String,
+    /// "set": the bank this drill belongs to, as a word (pramp): what
+    /// KG_SET_NEW_CAP and KG_SET_REVIEW_CAP name. "" when the entry has
+    /// none.
+    pub set: String,
 }
 
 pub type DrillMap = IndexMap<String, DrillEntry>;
@@ -623,6 +627,11 @@ pub fn load_drills(root: &Path) -> DrillMap {
                 disabled: d.get("disabled").and_then(Value::as_bool).unwrap_or(false),
                 judge: d
                     .get("judge")
+                    .and_then(Value::as_str)
+                    .unwrap_or("")
+                    .to_string(),
+                set: d
+                    .get("set")
                     .and_then(Value::as_str)
                     .unwrap_or("")
                     .to_string(),

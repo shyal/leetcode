@@ -816,7 +816,12 @@ fn required_of(code: &str, lang: &kg::lang::Lang) -> String {
 /// text the candidate did not (the members, steps or failure mode that
 /// name the solution). The judge never sees the statement otherwise
 /// (strip_statement), so this is the only place the bans reach it.
-fn contract_of(code: &str, lang: &kg::lang::Lang, drill: Option<&str>, drills: &DrillMap) -> String {
+fn contract_of(
+    code: &str,
+    lang: &kg::lang::Lang,
+    drill: Option<&str>,
+    drills: &DrillMap,
+) -> String {
     let judge = drill
         .and_then(|d| drills.get(d))
         .map(|e| e.judge.trim().to_string())
@@ -1877,7 +1882,10 @@ mod tests {
             required_of(code, &kg::lang::PYTHON),
             "REQUIRED: O(1) extra space. NO reversed(), NO slicing."
         );
-        assert_eq!(required_of("\"\"\"\nNo contract\n\"\"\"\n", &kg::lang::PYTHON), "");
+        assert_eq!(
+            required_of("\"\"\"\nNo contract\n\"\"\"\n", &kg::lang::PYTHON),
+            ""
+        );
         let mut drills = DrillMap::new();
         drills.insert(
             "d200".to_string(),
@@ -1888,6 +1896,7 @@ mod tests {
                 trains: Some(vec!["py-iterator-protocol".into()]),
                 disabled: false,
                 judge: "__iter__ returns self; __next__ raises StopIteration at index 0.".into(),
+                set: String::new(),
             },
         );
         let contract = contract_of(code, &kg::lang::PYTHON, Some("d200"), &drills);
@@ -1901,7 +1910,9 @@ mod tests {
             "REQUIRED: O(1) extra space. NO reversed(), NO slicing."
         );
         let lead = drill_lead(&["py-iterator-protocol".to_string()], &contract);
-        assert!(lead.contains(&format!("CONTRACT: {contract} The candidate saw only the REQUIRED part")));
+        assert!(lead.contains(&format!(
+            "CONTRACT: {contract} The candidate saw only the REQUIRED part"
+        )));
         assert!(lead.contains("does not meet the contract, mark the target node \"struggled\""));
         // no contract at all: the lead says nothing of one
         let bare = drill_lead(&["py-iterator-protocol".to_string()], "");
@@ -1932,6 +1943,7 @@ mod tests {
                 trains: Some(vec!["design-cache-aside".into()]),
                 disabled: false,
                 judge: String::new(),
+                set: String::new(),
             },
         );
         let code = "Describe the read path.\n\n## Answer\n\nCache first.\n";
@@ -2000,7 +2012,9 @@ mod tests {
     fn a_failed_drill_does_not_mark_a_move_it_never_reached() {
         let lead = drill_lead(&["binary-search-on-answer".to_string()], "");
         assert!(lead.contains("targeting these taxonomy nodes: binary-search-on-answer."));
-        assert!(lead.contains("If the run passed and the contract is met, judge at least those moves."));
+        assert!(
+            lead.contains("If the run passed and the contract is met, judge at least those moves.")
+        );
         assert!(lead.contains("ONLY when the defect is in that move itself"));
         assert!(lead.contains("leave the target node OUT of \"moves\""));
         assert!(!lead.contains(". Judge at least those moves."));
@@ -2146,6 +2160,7 @@ mod tests {
                     trains: Some(trains.into_iter().map(String::from).collect()),
                     disabled: false,
                     judge: String::new(),
+                    set: String::new(),
                 },
             );
         }

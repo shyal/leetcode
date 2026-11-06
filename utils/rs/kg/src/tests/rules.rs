@@ -1,6 +1,7 @@
 // The frontier rules: what is due, in what order, and on which carrier.
 
 use std::collections::HashSet;
+use std::path::Path;
 
 use chrono::Duration;
 
@@ -10,7 +11,7 @@ use crate::data::{test_env, Assist};
 use crate::drills::{
     drill_review_cap, drill_reviews_left, drill_reviews_today, group_caps, group_new_caps,
     group_new_left, group_reps, new_drill_cap, new_drills_left, new_drills_today, problems_left,
-    problems_today,
+    problems_today, set_new_left, set_reps,
 };
 use crate::pick::{ready_hards, routed_around, starved};
 use crate::recog::{self, Recog, RecogRec};
@@ -521,6 +522,89 @@ fn the_drill_review_cap_withholds_files_already_met() {
         ),
     ]);
     assert_eq!(pnum(&fx.run(&ev, &st, args())), "drill:q2");
+}
+
+/// KG_SET_NEW_CAP=pramp=1, KG_SET_REVIEW_CAP=pramp=1 (2026-11-06): a set
+/// is a word on drills.json entries across any groups. One first exposure
+/// of the set today holds its unseen files, one review holds its met
+/// files, and a file outside the set answers to neither.
+#[test]
+fn the_set_caps_hold_one_bank_apart_from_the_rest() {
+    let mut fx = Fx::picker();
+    test_env("DRILL_SCHEDULER", "anki");
+    test_env("KG_SET_NEW_CAP", "pramp=1");
+    test_env("KG_SET_REVIEW_CAP", "pramp=1");
+    fx.nodes(&["q1", "q2", "q3"]).problems(vec![
+        ("1", problem(&["q1"])),
+        ("2", problem(&["q2"])),
+        ("3", problem(&["q3"])),
+    ]);
+    let st = statuses(&[
+        ("q1", SOLID, Some(1)),
+        ("q2", SOLID, Some(1)),
+        ("q3", SOLID, Some(1)),
+    ]);
+    fx.stubs().clock = vec![
+        (PathBuf::from("drills/q1/a.py"), "q1".into()),
+        (PathBuf::from("drills/q2/b.py"), "q2".into()),
+        (PathBuf::from("drills/q3/c.py"), "q3".into()),
+    ];
+    fx.titled(&[("q1/a.py", "A"), ("q2/b.py", "B"), ("q3/c.py", "C")])
+        .in_set(&["A", "B"], "pramp");
+    let b3 = drill_file(
+        "solved/d_B_2026_01_01T00_00_00_000000_00_00Z.py",
+        "q2",
+        3,
+        Assist::None,
+    );
+    // nothing today: a.py, never drilled, leads the clock
+    assert_eq!(
+        pnum(&fx.run(&evidence(vec![b3.clone()]), &st, args())),
+        "drill:q1"
+    );
+    // one pramp first exposure today (b.py, met for the first time): a.py
+    // waits, and b.py is the set's review, still open
+    let b0 = drill_file(
+        "solved/d_B_2026_01_02T00_00_00_000000_00_00Z.py",
+        "q2",
+        0,
+        Assist::None,
+    );
+    let ev = evidence(vec![b0.clone()]);
+    let ctx = fx.ctx();
+    assert_eq!(set_reps(&ctx, "pramp", &ev, today()), (1, 0));
+    assert_eq!(pnum(&fx.run(&ev, &st, args())), "drill:q2");
+    // a pramp review today as well: both halves spent, c.py outside the
+    // set is served
+    let ev = evidence(vec![b3.clone(), b0.clone()]);
+    assert_eq!(set_reps(&ctx, "pramp", &ev, today()), (0, 1));
+    let a_met = drill_file(
+        "solved/d_A_2026_01_02T00_00_00_000000_00_00Z.py",
+        "q1",
+        0,
+        Assist::None,
+    );
+    let ev = evidence(vec![b3, b0, a_met.clone()]);
+    assert_eq!(set_reps(&ctx, "pramp", &ev, today()), (1, 1));
+    assert_eq!(pnum(&fx.run(&ev, &st, args())), "drill:q3");
+    // a first exposure outside the set spends nothing of the set's budget
+    let c_met = drill_file(
+        "solved/d_C_2026_01_02T00_00_00_000000_00_00Z.py",
+        "q3",
+        0,
+        Assist::None,
+    );
+    let ev = evidence(vec![c_met]);
+    assert_eq!(set_reps(&ctx, "pramp", &ev, today()), (0, 0));
+    assert_eq!(pnum(&fx.run(&ev, &st, args())), "drill:q1");
+    assert_eq!(
+        set_new_left(&ctx, Path::new("drills/q3/c.py"), &ev, today()),
+        None
+    );
+    assert_eq!(
+        set_new_left(&ctx, Path::new("drills/q1/a.py"), &ev, today()),
+        Some(1)
+    );
 }
 
 /// With the day's new drills and its reviews both spent, the bank is

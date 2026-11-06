@@ -80,13 +80,18 @@
 //      in .envrc) is the same cap per group: that many first exposures
 //      touching the group today, and the group's unseen files wait, its
 //      reviews unaffected. 0 pauses the group's new ground outright.
+//      KG_SET_NEW_CAP (e.g. pramp=1) is the same cap per set, the word
+//      a drills.json entry carries as "set": a set cuts across groups,
+//      one bank held apart from the rest (2026-11-06, the Pramp bank).
 //   0g. drill review cap (MAX_DRILL_REVIEWS, e.g. 6 in .envrc): once that
 //      many bank files already met have come back today, a file with a rep
 //      waits until tomorrow, on the clock and on the frontier alike. The
 //      other half of 0f: with 47 files due on the clock, a session is
 //      drills and nothing else and the problems the drills exist for never
 //      get solved. With both budgets spent the picker falls through to its
-//      problem rules. Unset, the default, is no cap.
+//      problem rules. Unset, the default, is no cap. KG_SET_REVIEW_CAP
+//      (e.g. pramp=1) is the same cap per set, the other half of
+//      KG_SET_NEW_CAP.
 //   0b. park full (MAX_ASLEEP problems asleep): review is served as
 //      usual, new ground is not. A pick that is new ground (rule 3, 4, 5, 6
 //      or a plan item that is) is withheld and the parked list is printed

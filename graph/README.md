@@ -336,6 +336,18 @@ and the rest, and `KG_NEW_CAP=algorithms=0` pauses the unseen files of all of
 them. A group's own cap still counts, and the smaller of the two decides
 (2026-10-06).
 
+## Set caps (`KG_SET_NEW_CAP`, `KG_SET_REVIEW_CAP`)
+
+A set is a word on a drills.json entry, `"set": "pramp"`, and it cuts across
+groups: the Pramp bank (d323 to d364, 2026-11-06) trains trees, graphs, DP and
+the rest. `KG_SET_NEW_CAP=pramp=1` in `.envrc` is how many of the set's files
+may be met for the first time in a day, and `KG_SET_REVIEW_CAP=pramp=1` how
+many of its files already met may come back. The two are the set's halves of
+`MAX_NEW_DRILLS` and `MAX_DRILL_REVIEWS`, the way `KG_NEW_CAP` is a group's,
+and the whole-day caps still count on top. A file with no set answers to
+neither. The budget table prints `pramp new 1/1` and `pramp reviews 0/1`.
+`kg::drills::set_reps` is the count.
+
 ## Daily problem cap (`MAX_PROBLEMS`)
 
 `MAX_PROBLEMS=1` in `.envrc` is how many problems, first sights and reviews

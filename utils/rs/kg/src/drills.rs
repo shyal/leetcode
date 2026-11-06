@@ -251,6 +251,7 @@ pub fn new_drills_ready(ctx: &Ctx, ev: &Evidence, day: NaiveDate) -> usize {
                 .is_some_and(|g| full.contains(g));
             !capped
                 && group_new_left(ctx, p, ev, day).is_none_or(|l| l > 0)
+                && set_new_left(ctx, p, ev, day).is_none_or(|l| l > 0)
                 && !servable_drills(ctx, std::slice::from_ref(p), ev, own, false).is_empty()
         })
         .count();
@@ -1256,13 +1257,73 @@ pub fn drill_reviews_left(ev: &Evidence, day: NaiveDate) -> Option<i64> {
     drill_review_cap().map(|c| c - drill_reviews_today(ev, day))
 }
 
+/// KG_SET_NEW_CAP, "pramp=1": per set (the drills.json "set" word), how
+/// many of its bank files may be met for the first time in a day. The
+/// set's half of MAX_NEW_DRILLS, the way KG_NEW_CAP is a group's; a set
+/// cuts across groups (2026-11-06, the Pramp bank).
+pub fn set_new_caps() -> Vec<(String, i64)> {
+    parse_caps("KG_SET_NEW_CAP")
+}
+
+/// KG_SET_REVIEW_CAP, "pramp=1": per set, how many of its files already
+/// met may come back in a day. The set's half of MAX_DRILL_REVIEWS.
+pub fn set_review_caps() -> Vec<(String, i64)> {
+    parse_caps("KG_SET_REVIEW_CAP")
+}
+
+/// The drills.json "set" of a bank file; None when the entry has none.
+pub fn drill_set(ctx: &Ctx, path: &Path) -> Option<String> {
+    ctx.drill_id(path)
+        .and_then(|i| ctx.drill_entry(&i))
+        .map(|d| d.set)
+        .filter(|s| !s.is_empty())
+}
+
+/// The set's drill reps dated `day`: (first exposures, reviews).
+pub fn set_reps(ctx: &Ctx, set: &str, ev: &Evidence, day: NaiveDate) -> (i64, i64) {
+    let d = day.format("%Y-%m-%d").to_string();
+    let (mut new, mut back) = (0, 0);
+    for &i in ev.date_recs(&d) {
+        let Some(id) = ev.rec(i).drill.as_ref() else {
+            continue;
+        };
+        if ctx.drill_entry(id).is_none_or(|e| e.set != set) {
+            continue;
+        }
+        if ev.first_reps.contains(&i) {
+            new += 1;
+        } else {
+            back += 1;
+        }
+    }
+    (new, back)
+}
+
+/// KG_SET_NEW_CAP for this file's set, less the set's first exposures
+/// today; None when the file has no set or its set has no cap.
+pub fn set_new_left(ctx: &Ctx, path: &Path, ev: &Evidence, day: NaiveDate) -> Option<i64> {
+    let set = drill_set(ctx, path)?;
+    let (_, cap) = set_new_caps().into_iter().find(|(s, _)| *s == set)?;
+    Some(cap - set_reps(ctx, &set, ev, day).0)
+}
+
+/// KG_SET_REVIEW_CAP for this file's set, less the set's reviews today;
+/// None when the file has no set or its set has no cap.
+pub fn set_review_left(ctx: &Ctx, path: &Path, ev: &Evidence, day: NaiveDate) -> Option<i64> {
+    let set = drill_set(ctx, path)?;
+    let (_, cap) = set_review_caps().into_iter().find(|(s, _)| *s == set)?;
+    Some(cap - set_reps(ctx, &set, ev, day).1)
+}
+
 /// kg_lib.drill_capped: the day's budget for this file is spent.
 pub fn drill_capped(ctx: &Ctx, path: &Path, ev: &Evidence, day: NaiveDate) -> bool {
     let spent = |left: Option<i64>| left.is_some_and(|l| l <= 0);
     if !last_drilled(ctx, path, ev).is_empty() {
-        spent(drill_reviews_left(ev, day))
+        spent(drill_reviews_left(ev, day)) || spent(set_review_left(ctx, path, ev, day))
     } else {
-        spent(new_drills_left(ev, day)) || spent(group_new_left(ctx, path, ev, day))
+        spent(new_drills_left(ev, day))
+            || spent(group_new_left(ctx, path, ev, day))
+            || spent(set_new_left(ctx, path, ev, day))
     }
 }
 
