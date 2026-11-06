@@ -43835,6 +43835,20 @@
       "note": "Contract unmet: expr() calls self.number() directly for each operand instead of recursing into expr; the candidate's own note says 'hint: recursively called expr instead of number'.",
       "summary": "The mu Solution extends Parser and defines expr() as a left-associative loop: it reads one number via self.number(), then while the cursor sits on '+' or '-' it consumes the operator and builds a TreeNode with the running left subtree and a freshly read right operand. The run passed all assertions and the cursor ends at len(S), but the contract required every amount to be read by a recursive call to expr rather than number, which the code does not do. The notes record the hint that expr should have been called recursively instead of number.",
       "seconds": 341
+    },
+    "solved/p438_Find_All_Anagrams_in_a_String_2026_11_06T00_29_02_565421_00_00Z.mu": {
+      "date": "2026-11-06",
+      "problem": "438",
+      "moves": {
+        "counter-build": "clean",
+        "sliding-window-variable": "clean",
+        "counter-multiset-ops": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Accepted (1042 ms, 19.8 MB); the `while count > orig` shrink uses Counter sub-multiset comparison to keep the window valid.",
+      "summary": "The code builds a Counter of p and a running Counter of the window, growing the right edge with each character and shrinking from `left` while the window Counter exceeds the target via `count > orig`. When the two Counters are equal it records `left` as an anagram start. It exercises counter construction, variable sliding-window growth/shrink, and multiset comparison; the run passed all assertions and LeetCode accepted it.",
+      "seconds": 585,
+      "learning": true
     }
   }
 }
