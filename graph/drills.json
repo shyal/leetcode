@@ -2520,6 +2520,426 @@
         "index-conversion"
       ],
       "judge": "abs(a - b) alone is wrong: it returns 8 on Example 1."
+    },
+    "d323": {
+      "title": "Knapsack",
+      "file": "memoize-recursion/d323_knapsack.py",
+      "after": [],
+      "trains": [
+        "memoize-recursion"
+      ],
+      "judge": "The state is the pair (index of the next item, remaining capacity) and each pair is computed once. An item heavier than the remaining capacity is skipped without a take branch.",
+      "set": "pramp"
+    },
+    "d324": {
+      "title": "Absolute Value Sort",
+      "file": "sort-by-custom-key/d324_absolute_value_sort.py",
+      "after": [],
+      "trains": [
+        "sort-by-custom-key"
+      ],
+      "judge": "One sorted() call whose key is the tuple (abs(x), x): the second member breaks the tie so the negative value comes first.",
+      "set": "pramp"
+    },
+    "d325": {
+      "title": "Array Index & Element Equality",
+      "file": "binary-search-boundary/d325_array_index_and_element_equality.py",
+      "after": [],
+      "trains": [
+        "binary-search-boundary"
+      ],
+      "judge": "The search runs on the sign of arr[mid] - mid, which never decreases along the array; the first index where it is nonnegative is checked for equality.",
+      "set": "pramp"
+    },
+    "d326": {
+      "title": "Array of Array Products",
+      "file": "prefix-suffix-two-pass/d326_array_of_array_products.py",
+      "after": [],
+      "trains": [
+        "prefix-suffix-two-pass"
+      ],
+      "judge": "One pass left to right stores the product of everything before i, one pass right to left multiplies in the product of everything after i. No per-index inner loop.",
+      "set": "pramp"
+    },
+    "d327": {
+      "title": "Array Quadruplet",
+      "file": "two-pointers-converging/d327_array_quadruplet.py",
+      "after": [],
+      "trains": [
+        "two-pointers-converging"
+      ],
+      "judge": "The list is sorted once; two indices run in nested loops and the last two converge from both ends of the remaining suffix, moving the low one up on a small sum and the high one down on a large sum.",
+      "set": "pramp"
+    },
+    "d328": {
+      "title": "Award Budget Cuts",
+      "file": "greedy-sort-take/d328_award_budget_cuts.py",
+      "after": [],
+      "trains": [
+        "greedy-sort-take"
+      ],
+      "judge": "The grants are sorted descending with a 0 appended; the surplus (sum minus newBudget) is reduced by (i + 1) times the drop from grant i to grant i + 1 until it reaches zero or below, and the cap is the next grant plus the overshoot divided by i + 1.",
+      "set": "pramp"
+    },
+    "d329": {
+      "title": "Balanced Tree",
+      "file": "tree-combine-returns/d329_balanced_tree.py",
+      "after": [],
+      "trains": [
+        "tree-combine-returns"
+      ],
+      "judge": "One recursive pass returns the height of each subtree upward and signals an unbalanced subtree with a sentinel such as -1, so no height is computed twice.",
+      "set": "pramp"
+    },
+    "d330": {
+      "title": "Basic Regex Parser",
+      "file": "two-sequence-align/d330_basic_regex_parser.py",
+      "after": [],
+      "trains": [
+        "two-sequence-align"
+      ],
+      "judge": "The state is the pair (index in text, index in pattern), cached. A character followed by '*' branches into skipping the pair and consuming one matching character; a lone character or '.' consumes one.",
+      "set": "pramp"
+    },
+    "d331": {
+      "title": "Bracket Match",
+      "file": "running-sum/d331_bracket_match.py",
+      "after": [],
+      "trains": [
+        "running-sum"
+      ],
+      "judge": "One counter of unmatched '(' so far; a ')' met with the counter at zero is counted as an insertion; the counter left at the end is added to the answer.",
+      "set": "pramp"
+    },
+    "d332": {
+      "title": "BST Successor Search",
+      "file": "bst-invariant/d332_bst_successor_search.py",
+      "after": [],
+      "trains": [
+        "bst-invariant"
+      ],
+      "judge": "One walk down from the root: on a node with a larger value, record it as the candidate and go left; otherwise go right. The last recorded candidate is the answer.",
+      "set": "pramp"
+    },
+    "d333": {
+      "title": "Busiest Time in The Mall",
+      "file": "running-sum/d333_busiest_time_in_the_mall.py",
+      "after": [],
+      "trains": [
+        "running-sum"
+      ],
+      "judge": "One running count of people. The maximum is compared only after the last reading of a timestamp, and only a strictly larger count replaces it.",
+      "set": "pramp"
+    },
+    "d334": {
+      "title": "Decode Variations",
+      "file": "dp-1d-rolling/d334_decode_variations.py",
+      "after": [],
+      "trains": [
+        "dp-1d-rolling"
+      ],
+      "judge": "Two running counts for the suffixes starting one and two positions ahead, read right to left. A '0' digit gives zero ways; a two-digit value of at most 26 adds the count two ahead.",
+      "set": "pramp"
+    },
+    "d335": {
+      "title": "Decrypt Message",
+      "file": "modular-cycle/d335_decrypt_message.py",
+      "after": [],
+      "trains": [
+        "modular-cycle"
+      ],
+      "judge": "Each letter is (encrypted value - running total - 97) % 26 + 97, and the running total adds the decrypted value, starting from 1.",
+      "set": "pramp"
+    },
+    "d336": {
+      "title": "Degrees of Friendship",
+      "file": "graph-bfs-shortest/d336_degrees_of_friendship.py",
+      "after": [],
+      "trains": [
+        "graph-bfs-shortest"
+      ],
+      "judge": "A BFS from userA over the rows of the matrix with a distance per visited user; the walk stops when userB is dequeued, and -1 only when the queue empties.",
+      "set": "pramp"
+    },
+    "d337": {
+      "title": "Deletion Distance",
+      "file": "two-sequence-align/d337_deletion_distance.py",
+      "after": [],
+      "trains": [
+        "two-sequence-align"
+      ],
+      "judge": "State (i, j) over the two prefixes: equal characters advance both, else one deletion plus the better of advancing one side; each pair computed once.",
+      "set": "pramp"
+    },
+    "d338": {
+      "title": "Difference Between Two Strings",
+      "file": "two-sequence-align/d338_difference_between_two_strings.py",
+      "after": [],
+      "trains": [
+        "two-sequence-align"
+      ],
+      "judge": "A cached edit distance over (i, j) first, then a left-to-right walk that keeps a matching letter, removes source[i] when its distance is at most the insertion's, and inserts target[j] otherwise.",
+      "set": "pramp"
+    },
+    "d339": {
+      "title": "Drone Flight Planner",
+      "file": "running-extreme/d339_drone_flight_planner.py",
+      "after": [],
+      "trains": [
+        "running-extreme"
+      ],
+      "judge": "The answer is the highest z on the route minus the first z, from one running maximum.",
+      "set": "pramp"
+    },
+    "d340": {
+      "title": "Find The Duplicates",
+      "file": "two-pointers-converging/d340_find_the_duplicates.py",
+      "after": [],
+      "trains": [
+        "two-pointers-converging"
+      ],
+      "judge": "One index per list; the smaller head advances, equal heads are recorded and both advance.",
+      "set": "pramp"
+    },
+    "d341": {
+      "title": "Flatten a Dictionary",
+      "file": "tree-carry-down/d341_flatten_a_dictionary.py",
+      "after": [],
+      "trains": [
+        "tree-carry-down"
+      ],
+      "judge": "A recursive walk carries the path prefix down; an empty key leaves the prefix unchanged, and a string value is written under the prefix.",
+      "set": "pramp"
+    },
+    "d342": {
+      "title": "Getting a Different Number",
+      "file": "counting-sort-buckets/d342_getting_a_different_number.py",
+      "after": [],
+      "trains": [
+        "counting-sort-buckets"
+      ],
+      "judge": "A boolean table of size n + 1 indexed by value; values above n are ignored. The answer is the first index that is false.",
+      "set": "pramp"
+    },
+    "d343": {
+      "title": "Island Count",
+      "file": "graph-dfs-visited/d343_island_count.py",
+      "after": [],
+      "trains": [
+        "graph-dfs-visited"
+      ],
+      "judge": "Each cell holding 1 starts one count and a DFS or BFS over side neighbours sinks the whole island to 0 before the scan goes on.",
+      "set": "pramp"
+    },
+    "d344": {
+      "title": "K-Messed Array Sort",
+      "file": "heap-top-k/d344_k_messed_array_sort.py",
+      "after": [],
+      "trains": [
+        "heap-top-k"
+      ],
+      "judge": "A min-heap of the first k + 1 elements; each later element pops the heap minimum into the output before it is pushed; the heap is drained at the end.",
+      "set": "pramp"
+    },
+    "d345": {
+      "title": "Largest Smaller BST Key",
+      "file": "bst-invariant/d345_largest_smaller_bst_key.py",
+      "after": [],
+      "trains": [
+        "bst-invariant"
+      ],
+      "judge": "A single root-to-leaf walk: a key smaller than num is recorded and the walk goes right, otherwise it goes left. No stack, no list.",
+      "set": "pramp"
+    },
+    "d346": {
+      "title": "Matrix Spiral Copy",
+      "file": "index-conversion/d346_matrix_spiral_copy.py",
+      "after": [],
+      "trains": [
+        "index-conversion"
+      ],
+      "judge": "Four shrinking bounds (top, bottom, left, right). After the top row and the right column, the bottom row and the left column each check that the bounds still cross.",
+      "set": "pramp"
+    },
+    "d347": {
+      "title": "Merging 2 Packages",
+      "file": "derived-key-lookup/d347_merging_2_packages.py",
+      "after": [],
+      "trains": [
+        "derived-key-lookup"
+      ],
+      "judge": "One dict from weight to its latest index; at each item the partner weight limit - w is looked up before the item is recorded.",
+      "set": "pramp"
+    },
+    "d348": {
+      "title": "Move Zeros To End",
+      "file": "two-pointers-read-write/d348_move_zeros_to_end.py",
+      "after": [],
+      "trains": [
+        "two-pointers-read-write"
+      ],
+      "judge": "A write index that advances only on a non-zero element; the tail from the write index is then filled with zeros.",
+      "set": "pramp"
+    },
+    "d349": {
+      "title": "Number Finder",
+      "file": "binary-search-boundary/d349_number_finder.py",
+      "after": [],
+      "trains": [
+        "binary-search-boundary"
+      ],
+      "judge": "A boundary search for the first index whose value is at least num, then one equality check at that index.",
+      "set": "pramp"
+    },
+    "d350": {
+      "title": "Number of Paths",
+      "file": "dp-2d-grid/d350_number_of_paths.py",
+      "after": [],
+      "trains": [
+        "dp-2d-grid"
+      ],
+      "judge": "An n by n table of path counts filled row by row, with cells where i < j left at zero; each cell adds the cell above and the cell to the left.",
+      "set": "pramp"
+    },
+    "d351": {
+      "title": "Pairs with Specific Difference",
+      "file": "derived-key-lookup/d351_pairs_with_specific_difference.py",
+      "after": [],
+      "trains": [
+        "derived-key-lookup"
+      ],
+      "judge": "A set of the values; for each y in arr order the pair exists when y + k is in the set; k == 0 returns [] before any lookup.",
+      "set": "pramp"
+    },
+    "d352": {
+      "title": "Pancake Sort",
+      "file": "running-extreme/d352_pancake_sort.py",
+      "after": [],
+      "trains": [
+        "running-extreme"
+      ],
+      "judge": "For each end from the last index down: the index of the largest element in the prefix, one flip to bring it to the front, one flip to send it to end.",
+      "set": "pramp"
+    },
+    "d353": {
+      "title": "Root of Number",
+      "file": "binary-search-on-answer/d353_root_of_number.py",
+      "after": [],
+      "trains": [
+        "binary-search-on-answer"
+      ],
+      "judge": "Bisection on the answer interval, whose upper bound is max(1, x) so that x below 1 works, halving until the interval is narrower than the tolerance.",
+      "set": "pramp"
+    },
+    "d354": {
+      "title": "Sales Path",
+      "file": "tree-combine-returns/d354_sales_path.py",
+      "after": [],
+      "trains": [
+        "tree-combine-returns"
+      ],
+      "judge": "A leaf returns its own cost; an inner node returns its cost plus the minimum of its children's returns. One call per node.",
+      "set": "pramp"
+    },
+    "d355": {
+      "title": "Sentence Reverse",
+      "file": "two-pointers-converging/d355_sentence_reverse.py",
+      "after": [],
+      "trains": [
+        "two-pointers-converging"
+      ],
+      "judge": "The whole list is reversed in place, then each word is reversed in place by a converging swap between its two ends.",
+      "set": "pramp"
+    },
+    "d356": {
+      "title": "Sentence Similarity",
+      "file": "union-find/d356_sentence_similarity.py",
+      "after": [],
+      "trains": [
+        "union-find"
+      ],
+      "judge": "A union-find over words: each pair unions its two words, and the sentences are similar when every index pair shares a root.",
+      "set": "pramp"
+    },
+    "d357": {
+      "title": "Shifted Array Search",
+      "file": "rotated-array-pivot/d357_shifted_array_search.py",
+      "after": [],
+      "trains": [
+        "rotated-array-pivot"
+      ],
+      "judge": "At each step one half is sorted; num is placed in or out of that half by comparing with its two ends, and the other half is kept otherwise.",
+      "set": "pramp"
+    },
+    "d358": {
+      "title": "Shortest Word Edit Path",
+      "file": "graph-bfs-shortest/d358_shortest_word_edit_path.py",
+      "after": [],
+      "trains": [
+        "graph-bfs-shortest"
+      ],
+      "judge": "A queue of (word, steps) seeded with source; neighbours come from replacing one letter with each lowercase letter and testing membership in the word set, which drops a word when it is first reached.",
+      "set": "pramp"
+    },
+    "d359": {
+      "title": "Smallest Substring of All Characters",
+      "file": "sliding-window-variable/d359_smallest_substring_of_all_characters.py",
+      "after": [],
+      "trains": [
+        "sliding-window-variable"
+      ],
+      "judge": "A Counter of the wanted characters inside the window grows at the right end; while every wanted character is present the window is recorded and shrunk from the left.",
+      "set": "pramp"
+    },
+    "d360": {
+      "title": "Sudoku Solver",
+      "file": "backtracking-choose-undo/d360_sudoku_solver.py",
+      "after": [],
+      "trains": [
+        "backtracking-choose-undo"
+      ],
+      "judge": "Nine sets per row, per column and per box, seeded from the given digits (a clash among them returns False at once); the blanks are listed once and filled in order, a digit is added to the three sets and the cell before the recursive call and removed after it fails.",
+      "set": "pramp"
+    },
+    "d361": {
+      "title": "Time Planner",
+      "file": "interval-overlap/d361_time_planner.py",
+      "after": [],
+      "trains": [
+        "interval-overlap"
+      ],
+      "judge": "Two indices, one per list. The overlap of the current pair is max of starts to min of ends; the index whose slot ends first advances.",
+      "set": "pramp"
+    },
+    "d362": {
+      "title": "Toeplitz Matrix",
+      "file": "grid-neighbors/d362_toeplitz_matrix.py",
+      "after": [],
+      "trains": [
+        "grid-neighbors"
+      ],
+      "judge": "Every cell at row r >= 1 and column c >= 1 is compared with the cell at (r - 1, c - 1); any mismatch is False.",
+      "set": "pramp"
+    },
+    "d363": {
+      "title": "Validate IP Address",
+      "file": "string-build-transform/d363_validate_ip_address.py",
+      "after": [],
+      "trains": [
+        "string-build-transform"
+      ],
+      "judge": "The string is split on '.' into exactly four parts; each part is all ASCII digits, is '0' or has no leading '0', and converts to at most 255.",
+      "set": "pramp"
+    },
+    "d364": {
+      "title": "Word Count Engine",
+      "file": "counter-build/d364_word_count_engine.py",
+      "after": [],
+      "trains": [
+        "counter-build"
+      ],
+      "judge": "A Counter over lowercased, letters-only tokens, then buckets indexed by count read from the largest count down; the ties keep first-appearance order because the Counter keeps insertion order.",
+      "set": "pramp"
     }
   }
 }
