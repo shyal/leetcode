@@ -1,10 +1,10 @@
-[![Run Tests](https://github.com/shyal/leetcode/actions/workflows/run-tests.yml/badge.svg)](https://github.com/shyal/leetcode/actions/workflows/run-tests.yml) <!-- CONTEST_BADGE -->![Virtual contests: the proven rating over their problems](https://shyal.s3.amazonaws.com/contest_badge_20261103111158.svg)<!-- /CONTEST_BADGE -->
+[![Run Tests](https://github.com/shyal/leetcode/actions/workflows/run-tests.yml/badge.svg)](https://github.com/shyal/leetcode/actions/workflows/run-tests.yml) <!-- CONTEST_BADGE -->![Virtual contests: the proven rating over their problems](https://shyal.s3.amazonaws.com/contest_badge_20261106110921.svg)<!-- /CONTEST_BADGE -->
 
 This is a mix of leetcode problems, as well as several language drills. The contest badge is LeetCode's contest rating formula applied to my [virtual contests](contests/), which LeetCode itself does not rate: my virtual rank against the real field of each contest, sampled.
 
 <!-- GAUGES -->
 
-![Progress: algorithms first sight, algorithms current reach, python, typescript, rust, sql, systems design](https://shyal.s3.amazonaws.com/gauges_20261103111158.svg)
+![Progress: algorithms first sight, algorithms current reach, python, typescript, rust, sql, systems design](https://shyal.s3.amazonaws.com/gauges_20261106110921.svg)
 
 <!-- /GAUGES -->
 
@@ -14,7 +14,7 @@ Each problem is a set of techniques. Each technique is a node, and an edge conne
 
 <!-- KG_MOVIE -->
 
-![Technique graph growing solve by solve](https://shyal.s3.amazonaws.com/kg_movie_20261103111158.svg)
+![Technique graph growing solve by solve](https://shyal.s3.amazonaws.com/kg_movie_20261106110921.svg)
 
 <!-- /KG_MOVIE -->
 
@@ -24,19 +24,19 @@ A Monte Carlo of cold mocks, drawn from the graph state on each date.
 
 <!-- PASS_PROB_CHART -->
 
-![P(pass a mock) over time](https://shyal.s3.amazonaws.com/pass_probability_20261103111158.svg)
+![P(pass a mock) over time](https://shyal.s3.amazonaws.com/pass_probability_20261106110921.svg)
 
 <!-- /PASS_PROB_CHART -->
 
 <!-- MOCK_SWARM_CHART -->
 
-![Individual simulated mocks over time](https://shyal.s3.amazonaws.com/mock_swarm_20261103111158.svg)
+![Individual simulated mocks over time](https://shyal.s3.amazonaws.com/mock_swarm_20261106110921.svg)
 
 <!-- /MOCK_SWARM_CHART -->
 
 <!-- MOCK_BLAME_CHART -->
 
-![Share of simulated problems failed, by group](https://shyal.s3.amazonaws.com/mock_blame_20261103111158.svg)
+![Share of simulated problems failed, by group](https://shyal.s3.amazonaws.com/mock_blame_20261106110921.svg)
 
 <!-- /MOCK_BLAME_CHART -->
 
@@ -52,37 +52,37 @@ Every Elo here is first sight only.
 
 <!-- PROBLEM_RATING_CHART -->
 
-![Rating of the problems attempted](https://shyal.s3.amazonaws.com/problem_rating_20261103111158.svg)
+![Rating of the problems attempted](https://shyal.s3.amazonaws.com/problem_rating_20261106110921.svg)
 
 <!-- /PROBLEM_RATING_CHART -->
 
 <!-- PROBLEM_RATING_MONTH_CHART -->
 
-![Rating of the problems attempted in the last 30 days](https://shyal.s3.amazonaws.com/problem_rating_month_20261103111158.svg)
+![Rating of the problems attempted in the last 30 days](https://shyal.s3.amazonaws.com/problem_rating_month_20261106110921.svg)
 
 <!-- /PROBLEM_RATING_MONTH_CHART -->
 
 <!-- HOURS_CHART -->
 
-![Elo against hours of recorded solving, with the Carnegie Mellon rate](https://shyal.s3.amazonaws.com/hours_20261027164413.svg)
+![Elo against hours of recorded solving, with the Carnegie Mellon rate](https://shyal.s3.amazonaws.com/hours_20261106110921.svg)
 
 <!-- /HOURS_CHART -->
 
 <!-- ONSITE_CHART -->
 
-![Elo history and its projection to the onsite line, on dates](https://shyal.s3.amazonaws.com/onsite_20261103111158.svg)
+![Elo history and its projection to the onsite line, on dates](https://shyal.s3.amazonaws.com/onsite_20261106110921.svg)
 
 <!-- /ONSITE_CHART -->
 
 <!-- PROGRESS_CHART -->
 
-![Actual minus model on the last 30 first sights](https://shyal.s3.amazonaws.com/progress_20261027164413.svg)
+![Actual minus model on the last 30 first sights](https://shyal.s3.amazonaws.com/progress_20261106110921.svg)
 
 <!-- /PROGRESS_CHART -->
 
 <!-- BACKLOG_CHART -->
 
-![Backlog and forecast: review cards, solves by kind, STALE and FRAGILE nodes](https://shyal.s3.amazonaws.com/backlog_20261103111158.svg)
+![Backlog and forecast: review cards, solves by kind, STALE and FRAGILE nodes](https://shyal.s3.amazonaws.com/backlog_20261106110921.svg)
 
 <!-- /BACKLOG_CHART -->
 
