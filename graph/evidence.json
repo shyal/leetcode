@@ -43849,6 +43849,18 @@
       "summary": "The code builds a Counter of p and a running Counter of the window, growing the right edge with each character and shrinking from `left` while the window Counter exceeds the target via `count > orig`. When the two Counters are equal it records `left` as an anagram start. It exercises counter construction, variable sliding-window growth/shrink, and multiset comparison; the run passed all assertions and LeetCode accepted it.",
       "seconds": 585,
       "learning": true
+    },
+    "solved/d_Rank_Within_Each_Team_2026_11_07T00_02_15_886263_00_00Z.mu": {
+      "date": "2026-11-07",
+      "problem": "drill",
+      "drill": "d149",
+      "moves": {
+        "sql-window-rank": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "DENSE_RANK() OVER (PARTITION BY team ORDER BY points DESC) restarts per team, shares ties, and leaves no holes; both examples pass.",
+      "summary": "The query uses dense_rank() over (partition by team order by points desc) to rank players within each team. This restarts at 1 per team, gives tied players the same rank, and skips no numbers, matching both example outputs. The run exited 0 with all assertions passing.",
+      "seconds": 89
     }
   }
 }
