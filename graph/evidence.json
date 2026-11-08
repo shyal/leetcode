@@ -43861,6 +43861,20 @@
       "note": "DENSE_RANK() OVER (PARTITION BY team ORDER BY points DESC) restarts per team, shares ties, and leaves no holes; both examples pass.",
       "summary": "The query uses dense_rank() over (partition by team order by points desc) to rank players within each team. This restarts at 1 per team, gives tied players the same rank, and skips no numbers, matching both example outputs. The run exited 0 with all assertions passing.",
       "seconds": 89
+    },
+    "solved/d_Total_Users_Per_Contest_2026_11_08T06_10_22_588724_00_00Z.mu": {
+      "date": "2026-11-08",
+      "problem": "drill",
+      "drill": "d55",
+      "moves": {
+        "sql-subquery": "clean"
+      },
+      "assist": {
+        "sql-subquery": "hint"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The query selects distinct contest_id from Register and pairs it with a scalar subquery (select count(user_id) from Users) as total_users, so the user count is read from Users at run time rather than hard-coded or joined into the grouped query. Both examples pass, producing one row per contest with the full user count. The notes mark the file as hinted.",
+      "seconds": 249
     }
   }
 }
