@@ -44229,6 +44229,18 @@
       "summary": "The code treats nums as a linked list of indices, advancing slow_i by one and fast_i by two until nums[slow_i] == nums[fast_i], then resets a to 0 and walks both one step at a time until they meet at the cycle entry, returning nums[a]. This exercises Floyd's cycle detection and the fast/slow pointer pattern. The run exited 0 and LeetCode reports Accepted.",
       "seconds": 1709,
       "learning": true
+    },
+    "solved/d_Rank_Within_Each_Team_2026_11_09T20_23_48_213358_00_00Z.mu": {
+      "date": "2026-11-10",
+      "problem": "drill",
+      "drill": "d149",
+      "moves": {
+        "sql-window-rank": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "DENSE_RANK() OVER (PARTITION BY team ORDER BY points DESC) restarts per team, shares ranks on ties, and leaves no holes; both examples pass.",
+      "summary": "The query uses dense_rank() over (partition by team order by points desc) as rank, selecting name, team and rank from Players. This restarts ranking at 1 in each team, gives tied points the same rank, and skips no numbers, matching both example outputs. The run exited 0 with all assertions passing.",
+      "seconds": 146
     }
   }
 }
