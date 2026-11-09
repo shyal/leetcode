@@ -44045,6 +44045,20 @@
       "note": "Contract not met: the solution is memoized recursion over (i, sign) with a max over all start indices, not an O(1)-space single-pass rolling DP; the target dp-1d-rolling is not exercised.",
       "summary": "The mu code defines a memoized `best(i, s)` recurrence that either stops at index i or continues with the opposite sign, then takes the max over every starting index. It also builds a decision-tree graph in `viz` for visualization. The notes say 'Learning', and the approach is top-down memoization rather than the required O(n) single-pass O(1)-space rolling DP, so the drill's contract is not satisfied.",
       "seconds": 1683
+    },
+    "solved/d_Ring_Distance_2026_11_09T02_26_50_214304_00_00Z.mu": {
+      "date": "2026-11-09",
+      "problem": "drill",
+      "drill": "d322",
+      "moves": {
+        "index-conversion": "clean"
+      },
+      "assist": {
+        "index-conversion": "learning"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The mu code computes the circular distance between two positions on a ring of size m as min(abs(a-b), m - abs(a-b)), using only arithmetic in O(1) with no loop. This meets the contract: it does not rely on abs alone, since the min with m - d handles the wraparound. The notes mark it as learning, so the approach was given and copied.",
+      "seconds": 476
     }
   }
 }
