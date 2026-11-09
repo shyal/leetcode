@@ -15,6 +15,10 @@
                                  goes last in current.mu's notes, and the
                                  work files are removed; current.mu is the
                                  file to archive (solved/*.mu)
+    python mu/session.py assert LINE
+                                 `make solved`, on a Wrong Answer: the Python
+                                 assert lc_submit made of the failed case
+                                 goes last in current.mu, in mu, once
     python mu/session.py debug [file.mu]   VS Code: write .mu_current.py and its line map
 
 current.mu is the whole serve: the statement as comments, a `# ---` line
@@ -1057,6 +1061,18 @@ def cmd_file(root):
     return 0
 
 
+def cmd_assert(root, line):
+    """Add the mu form of a Python assert line after the last line of
+    current.mu, unless current.mu has it already."""
+    mu = root / MU
+    text = mu.read_text()
+    new = mu_script(line).strip()
+    if any(old.strip() == new for old in text.splitlines()):
+        return 0
+    mu.write_text(text.rstrip("\n") + "\n" + new + "\n")
+    return 0
+
+
 if __name__ == "__main__":
     commands = {
         "stub": cmd_stub,
@@ -1070,6 +1086,8 @@ if __name__ == "__main__":
         sys.exit(cmd_debug(Path.cwd(), argv[1]))
     if argv[:1] == ["run"]:
         sys.exit(cmd_run(Path.cwd(), *argv[1:]))
+    if argv[:1] == ["assert"] and len(argv) == 2:
+        sys.exit(cmd_assert(Path.cwd(), argv[1]))
     if len(argv) != 1 or argv[0] not in commands:
         sys.exit(__doc__)
     sys.exit(commands[argv[0]](Path.cwd()))

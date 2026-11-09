@@ -44216,6 +44216,19 @@
       "summary": "The code scans s once, pushing (index, '(') onto st for opens, popping on a matching close, and adding the index of any unmatched ')' to rm_keys; leftover stack indices are then added to rm_keys. A generator join rebuilds the string skipping indices in rm_keys, exercising stack matching and set membership. LeetCode reports Accepted (55 ms, 20.8 MB) and all local assertions pass; no notes were given.",
       "seconds": 994,
       "learning": true
+    },
+    "solved/p287_Find_the_Duplicate_Number_2026_11_09T10_46_04_818472_00_00Z.mu": {
+      "date": "2026-11-09",
+      "problem": "287",
+      "moves": {
+        "floyd-cycle": "clean",
+        "fast-slow-pointers": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LeetCode: Accepted (36 ms, 33.3 MB)",
+      "summary": "The code treats nums as a linked list of indices, advancing slow_i by one and fast_i by two until nums[slow_i] == nums[fast_i], then resets a to 0 and walks both one step at a time until they meet at the cycle entry, returning nums[a]. This exercises Floyd's cycle detection and the fast/slow pointer pattern. The run exited 0 and LeetCode reports Accepted.",
+      "seconds": 1709,
+      "learning": true
     }
   }
 }

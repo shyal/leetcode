@@ -29,23 +29,31 @@ use kg::lc::{ensure_browser, fetch, json_of, no_browser, slug_of};
 use serde_json::{json, Value};
 
 mod strip;
+mod wrong;
 
 const QUESTION_QUERY: &str =
-    "query q($slug: String!) { question(titleSlug: $slug) { questionId } }";
+    "query q($slug: String!) { question(titleSlug: $slug) { questionId metaData } }";
 
 fn die(msg: &str) -> ! {
     eprintln!("{msg}");
     std::process::exit(1)
 }
 
-fn question_id(slug: &str) -> Result<String, String> {
+/// The problem's question id and its metaData (the method, the parameter
+/// types and the return type; Null when leetcode sends none).
+fn question_id(slug: &str) -> Result<(String, Value), String> {
     let (_, body) = fetch(
         "POST",
         "/graphql/",
         Some(&json!({"query": QUESTION_QUERY, "variables": {"slug": slug}})),
     )?;
-    match json_of(&body)?["data"]["question"]["questionId"].as_str() {
-        Some(id) => Ok(id.to_string()),
+    let q = &json_of(&body)?["data"]["question"];
+    let meta = q["metaData"]
+        .as_str()
+        .and_then(|m| serde_json::from_str(m).ok())
+        .unwrap_or(Value::Null);
+    match q["questionId"].as_str() {
+        Some(id) => Ok((id.to_string(), meta)),
         None => Err(format!("leetcode knows no problem with slug {slug}")),
     }
 }
@@ -253,16 +261,16 @@ fn main() {
         return; // no browser to submit through: make solved goes on without a verdict
     }
 
-    let outcome = (|| {
+    let outcome = (|| -> Result<(Value, Value), String> {
         ensure_browser()?;
-        let qid = question_id(&slug)?;
+        let (qid, meta) = question_id(&slug)?;
         let id = submit(&slug, &qid, &class)?;
         console.print(&format!(
             "[dim]submitted {slug} as {id}; waiting for leetcode...[/dim]"
         ));
-        wait_verdict(id)
+        Ok((wait_verdict(id)?, meta))
     })();
-    let verdict = match outcome {
+    let (verdict, meta) = match outcome {
         Ok(v) => v,
         Err(e) if auto => {
             console.print(&format!("[yellow]leetcode submit skipped: {e}[/yellow]"));
@@ -281,6 +289,19 @@ fn main() {
             s("expected_output"),
             s("code_output")
         ));
+        let raw = |k: &str| verdict[k].as_str().unwrap_or("").to_string();
+        let root = kg::data::repo_root();
+        match wrong::fold(
+            &root,
+            &file,
+            &code,
+            &meta,
+            &raw("last_testcase"),
+            &raw("expected_output"),
+        ) {
+            Ok(done) => console.print(&format!("[dim]{done}[/dim]")),
+            Err(why) => console.print(&format!("[yellow]no assert added: {why}[/yellow]")),
+        }
     }
     std::fs::write(&file, record(&code, &line)).unwrap_or_else(|e| die(&format!("{file}: {e}")));
     if auto && !force && rejected(&line) {
