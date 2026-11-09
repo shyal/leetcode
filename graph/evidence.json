@@ -43942,6 +43942,18 @@
       "note": "Contract met: O(1) arithmetic on n and k, no loop, no search for the first integer.",
       "summary": "The mu function isConsecutiveSum computes part = n - k*(k-1)//2 and returns whether part is positive and divisible by k, which is the closed-form test for n being a sum of k consecutive positive integers. It uses only constant-time arithmetic on n and k, with no loop or search for the starting integer, satisfying the drill contract. All assertions passed and the notes are empty.",
       "seconds": 963
+    },
+    "solved/d_Flips_To_Monotone_Increasing_2026_11_09T01_38_56_229849_00_00Z.mu": {
+      "date": "2026-11-09",
+      "problem": "drill",
+      "drill": "d317",
+      "moves": {
+        "dp-1d-rolling": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Contract met: single pass, O(1) space, choice made at every '0' via flips = min(flips+1, ones).",
+      "summary": "The mu code scans the string once, counting ones seen so far and, at each '0', taking the smaller of flipping that zero (flips+1) or flipping all prior ones (ones). This is the rolling two-state DP collapsed to two scalars, meeting the O(n) time / O(1) space single-pass contract, and all assertions pass. No notes were provided.",
+      "seconds": 73
     }
   }
 }
