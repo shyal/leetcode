@@ -44335,6 +44335,18 @@
       "note": "BFS via levels(q) with visited keyed on (node, distance) pairs, so revisits at new depths are kept; depth capped at k.",
       "summary": "The reachable function seeds a deque with 0 and walks it with levels(q), which yields (depth, node) pairs level by level. It records each (node, distance) pair in a seen set, skipping pairs already seen or deeper than k, and enqueues every neighbor from G[n]. This is a single BFS bounded by k, keyed on the pair rather than the node alone, so node 1 is captured at both distance 1 and distance 4; all assertions passed.",
       "seconds": 119
+    },
+    "solved/d_Top_Down_Index_2026_11_09T21_09_59_569387_00_00Z.mu": {
+      "date": "2026-11-10",
+      "problem": "drill",
+      "drill": "d133",
+      "moves": {
+        "index-conversion": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Contract met: the stub's `for r, c in cells(grid)` loop is unchanged and each cell is numbered by O(1) arithmetic `r * n + c`, with no counter carried between cells.",
+      "summary": "The solution builds an n\u00d7n grid with `table(n, n)` and walks it with the stub's `for r, c in cells(grid)` loop, assigning each cell `r * n + c` \u2014 a direct row-major flat-index computation from the row and column. This exercises index-conversion in O(1) per cell with no running counter, satisfying the drill contract. The run exited 0 and printed the expected 4\u00d74 grid; the notes are empty.",
+      "seconds": 63
     }
   }
 }
