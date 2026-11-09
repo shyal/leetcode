@@ -43903,6 +43903,18 @@
       "note": "Contract met: one comparison names both ends of the window (date('2024-03-01') <= order_date and order_date <= date('2024-03-31')).",
       "summary": "The query selects id from Orders with a WHERE clause that bounds order_date between two date() literals, using a single chained comparison that names both ends of the window. It exercises sql-filter-select and ran cleanly, returning the expected rows for both examples. No notes indicate any help or recognition trouble.",
       "seconds": 101
+    },
+    "solved/d_Rank_One_Players_2026_11_09T01_19_33_294903_00_00Z.mu": {
+      "date": "2026-11-09",
+      "problem": "drill",
+      "drill": "d365",
+      "moves": {
+        "sql-filter-select": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Contract met: plain WHERE rank = 1, no window function.",
+      "summary": "The query selects name and team from Ranked with a WHERE clause filtering rank = 1, which is exactly the required plain-filter approach with no window function. Both example assertions passed, producing the expected rank-1 rows. The sql-filter-select move is exercised cleanly.",
+      "seconds": 85
     }
   }
 }
