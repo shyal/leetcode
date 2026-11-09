@@ -44121,6 +44121,18 @@
       "note": "scan(set.union, ...) folds the per-character sets left-to-right, so each entry is the previous entry united with s[i] in one pass; no prefix is rebuilt from scratch.",
       "summary": "The code builds a set per character and folds them with scan(set.union, ...), producing each prefix set as the union of the prior prefix and the current character in a single pass. This meets the drill contract: one pass, each entry derived from the previous entry rather than rebuilt. All assertions pass, including the 2000-character case.",
       "seconds": 58
+    },
+    "solved/d_Substrings_by_Length_2026_11_09T03_03_30_784193_00_00Z.mu": {
+      "date": "2026-11-09",
+      "problem": "drill",
+      "drill": "d309",
+      "moves": {
+        "substring-enumeration": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Outer loop over length 1..n, inner over start 0..n-length, yielding s[start:start+length]; no set, no dedupe, order matches the contract.",
+      "summary": "The mu code defines substringsByLength, which loops length from 1 to n and start from 0 to n-length, yielding each slice s[start:start+length] via @as_list. This exercises substring enumeration by length with no deduplication, and the printed output for 'abcd' matches the required order. The run exited 0 with all active assertions passing.",
+      "seconds": 77
     }
   }
 }
