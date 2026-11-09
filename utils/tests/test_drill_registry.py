@@ -86,4 +86,6 @@ def test_judge_text_is_prose_the_statement_does_not_show():
         for sentence in re.split(r"(?<=[.;:])\s+", judge):
             sentence = sentence.strip()
             if len(sentence.split()) >= 4:
-                assert sentence not in required, f"{did}: judge text in the statement: {sentence!r}"
+                assert (
+                    sentence not in required
+                ), f"{did}: judge text in the statement: {sentence!r}"
