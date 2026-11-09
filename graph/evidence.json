@@ -43954,6 +43954,18 @@
       "note": "Contract met: single pass, O(1) space, choice made at every '0' via flips = min(flips+1, ones).",
       "summary": "The mu code scans the string once, counting ones seen so far and, at each '0', taking the smaller of flipping that zero (flips+1) or flipping all prior ones (ones). This is the rolling two-state DP collapsed to two scalars, meeting the O(n) time / O(1) space single-pass contract, and all assertions pass. No notes were provided.",
       "seconds": 73
+    },
+    "solved/d_Top_Down_Index_2026_11_09T01_40_20_371179_00_00Z.mu": {
+      "date": "2026-11-09",
+      "problem": "drill",
+      "drill": "d133",
+      "moves": {
+        "index-conversion": "struggled"
+      },
+      "judge": "deepseek-chat",
+      "note": "Contract unmet: the code uses the loop counter i from cells(grid) instead of computing r*n + c from n, r, c; the number is carried from cell to cell rather than derived by O(1) arithmetic.",
+      "summary": "The solution builds an n\u00d7n grid with table(n, n) and fills it by iterating cells(grid), assigning the running counter i to grid[r][c]. The output is correct for all assertions, but the value comes from the enumeration counter, not from arithmetic on n, r and c, so the required index-conversion move (r*n + c) is not exercised. No notes were provided.",
+      "seconds": 78
     }
   }
 }
