@@ -44059,6 +44059,18 @@
       "judge": "deepseek-chat",
       "summary": "The mu code computes the circular distance between two positions on a ring of size m as min(abs(a-b), m - abs(a-b)), using only arithmetic in O(1) with no loop. This meets the contract: it does not rely on abs alone, since the min with m - d handles the wraparound. The notes mark it as learning, so the approach was given and copied.",
       "seconds": 476
+    },
+    "solved/d_Sum_Of_Positives_2026_11_09T02_45_31_035673_00_00Z.mu": {
+      "date": "2026-11-09",
+      "problem": "drill",
+      "drill": "d152",
+      "moves": {
+        "running-sum": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Contract met: single fold expression `sum for nums: _ > 0 ? _ : 0`, no accumulator variable, no loop statement, O(n).",
+      "summary": "The solution sums the positive elements of nums with one mu fold expression, `sum for nums: _ > 0 ? _ : 0`, mapping each element to itself when positive and to 0 otherwise. This is the running-sum move expressed as a single O(n) fold with no accumulator variable and no loop statement, satisfying the drill contract. All assertions passed, including the large 100000-element case.",
+      "seconds": 95
     }
   }
 }
