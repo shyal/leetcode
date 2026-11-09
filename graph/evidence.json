@@ -44371,6 +44371,22 @@
       "note": "Contract violated: the recursion returns a (val, is_unival) tuple and the count is threaded through the return path (self.count += is_unival inside the recursion), rather than accumulating outside the returns; the run passed but the REQUIRED one-pass, no-tuple-return shape is not met.",
       "summary": "The mu code defines a recursive closure that returns a (value, is_unival) tuple per node and increments self.count inside the recursion, then returns self.count. It passes all assertions and prints 4 for the sample tree. The drill contract asked for the count to accumulate outside the recursion's returns with no tuple bundling, which this code does not do.",
       "seconds": 850
+    },
+    "solved/d_EPI_41_Computing_the_parity_of_a_word_2026_11_09T22_28_01_994349_00_00Z.mu": {
+      "date": "2026-11-10",
+      "problem": "drill",
+      "drill": "d367",
+      "moves": {
+        "bit-iterate": "struggled",
+        "xor-cancellation": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Contract requires O(log n) with the x ^= x>>32,16,8,4,2,1 fold; the code instead loops over every bit (while x: x >>= 1), which is O(n) not O(log n), and never performs the XOR fold.",
+      "summary": "The mu code computes parity by shifting x one bit at a time, XORing res with 1 whenever the low bit is set, and returns res. It exercises bit iteration but not the required XOR-fold reduction, so it runs in O(n) rather than the O(log n) the contract asks for. All assertions passed, including the brute-force comparison against bin(v).count('1') % 2.",
+      "unmapped": [
+        "xor fold of word onto itself"
+      ],
+      "seconds": 142
     }
   }
 }
