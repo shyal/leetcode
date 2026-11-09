@@ -44014,6 +44014,18 @@
       "note": "Contract unmet: no second `let` binding of `s` holding the length; the function just returns `s.len()` directly, so the shadowing move was never exercised.",
       "summary": "The function `string_length` returns `s.len()` in a single expression, and `main` prints and asserts on it. The run passed, but the drill's contract asked for a second `let` binding of the name `s` holding the length to demonstrate shadowing, which the code does not do. No shadowing move is present to judge.",
       "seconds": 44
+    },
+    "solved/d_Index_Of_Largest_2026_11_09T01_50_30_584918_00_00Z.ts": {
+      "date": "2026-11-09",
+      "problem": "drill",
+      "drill": "d161",
+      "moves": {
+        "ts-index-loop": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Contract met: single O(n) index loop, no Math.max, no indexOf.",
+      "summary": "The function indexOfLargest walks nums with a for (let i = 0; i < nums.length; i++) loop, tracking the best value in val and its position in ind, returning ind. It uses the index loop the drill targets, with no Math.max or indexOf, and the assertions pass.",
+      "seconds": 146
     }
   }
 }
