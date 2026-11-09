@@ -43989,6 +43989,19 @@
       "judge": "deepseek-chat",
       "summary": "The solution parses both date strings with datetime.date.fromisoformat and subtracts them, taking .days of the resulting timedelta. This meets the contract: no hand calendar arithmetic and no string slicing into year/month/day. The run exited 0 with all assertions passing, including the negative-difference and same-day cases.",
       "seconds": 64
+    },
+    "solved/d_Maximum_Subarray_Sum_2026_11_09T01_47_05_908783_00_00Z.mu": {
+      "date": "2026-11-09",
+      "problem": "drill",
+      "drill": "d318",
+      "moves": {
+        "running-extreme": "clean",
+        "running-sum": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Kadane's: end tracks the best sum ending at the current element, res tracks the best seen; initialized to -inf so the empty subarray is excluded.",
+      "summary": "The mu code runs Kadane's algorithm in a single pass: for each value it updates end to max(end + v, v) and res to the running maximum, both initialized to -inf so all-negative inputs return the largest element. This exercises the running-extreme and running-sum moves in O(n) time and O(1) space with no subarray enumeration, meeting the contract. All assertions passed, including the all-negative and single-element cases.",
+      "seconds": 193
     }
   }
 }
