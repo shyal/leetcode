@@ -44295,6 +44295,19 @@
       "note": "Uses harness first_true(lo, hi, ok) to find the first index where lit[x] is true; O(log n), contract met.",
       "summary": "The solution calls the harness helper first_true over the index range 0..len(lit)-1 with the predicate lit[x], returning the first index whose bulb is lit. This is a binary search for the first true position, meeting the O(log n) contract without scanning from the left. All assertions passed, including the 100000-element cases.",
       "seconds": 79
+    },
+    "solved/d_Maximum_Alternating_Subarray_Sum_2026_11_09T20_41_53_781872_00_00Z.mu": {
+      "date": "2026-11-10",
+      "problem": "drill",
+      "drill": "d319",
+      "moves": {
+        "memoize-recursion": "clean",
+        "dp-1d-rolling": "struggled"
+      },
+      "judge": "deepseek-chat",
+      "note": "Contract unmet: the solution uses memoized recursion over (sign, index) with an outer loop over start positions, not a single O(1)-space pass; it does not exercise the rolling 1D DP the drill targets.",
+      "summary": "The mu code defines a memoized recursive helper best(s, i) that adds nums[i]*s plus the max of 0 and the next state with flipped sign, then takes the max over every starting index i. It passes all assertions, including the large 100k-element cases, via memoization. The drill's contract asked for an O(n) single-pass, O(1)-space rolling DP, which this code does not implement; it instead enumerates start positions and recurses with caching.",
+      "seconds": 346
     }
   }
 }
