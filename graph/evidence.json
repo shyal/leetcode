@@ -44282,6 +44282,19 @@
       "note": "No dummy node used, but the contract (O(1) space, in-place relink, no val writes) is met by relinking m.next and c.next directly.",
       "summary": "The mu code swaps the first two nodes by holding m=head and c=head.next, then relinking m.next to c.next and c.next to m, returning c as the new head. It guards the empty and single-node cases. This is an in-place relink with O(1) extra space and no writes to val, satisfying the drill contract, and all assertions passed.",
       "seconds": 64
+    },
+    "solved/d_First_Lit_Bulb_2026_11_09T20_35_55_228654_00_00Z.mu": {
+      "date": "2026-11-10",
+      "problem": "drill",
+      "drill": "d98",
+      "moves": {
+        "binary-search-boundary": "clean",
+        "binary-search-index": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Uses harness first_true(lo, hi, ok) to find the first index where lit[x] is true; O(log n), contract met.",
+      "summary": "The solution calls the harness helper first_true over the index range 0..len(lit)-1 with the predicate lit[x], returning the first index whose bulb is lit. This is a binary search for the first true position, meeting the O(log n) contract without scanning from the left. All assertions passed, including the 100000-element cases.",
+      "seconds": 79
     }
   }
 }
