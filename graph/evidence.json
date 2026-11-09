@@ -44359,6 +44359,18 @@
       "note": "O(1) arithmetic: c = abs(a-b), answer min(c, m-c); no loop, meets the contract.",
       "summary": "The mu code computes the ring distance in O(1) as min(abs(a-b), m - abs(a-b)), using modular wraparound arithmetic rather than any loop over k. All assertions pass, including the large-m cases. The contract's O(1) arithmetic requirement is met.",
       "seconds": 56
+    },
+    "solved/d_Count_Univalue_Subtrees_2026_11_09T22_20_07_986051_00_00Z.mu": {
+      "date": "2026-11-10",
+      "problem": "drill",
+      "drill": "d68",
+      "moves": {
+        "tree-global-across-subtrees": "struggled"
+      },
+      "judge": "deepseek-chat",
+      "note": "Contract violated: the recursion returns a (val, is_unival) tuple and the count is threaded through the return path (self.count += is_unival inside the recursion), rather than accumulating outside the returns; the run passed but the REQUIRED one-pass, no-tuple-return shape is not met.",
+      "summary": "The mu code defines a recursive closure that returns a (value, is_unival) tuple per node and increments self.count inside the recursion, then returns self.count. It passes all assertions and prints 4 for the sample tree. The drill contract asked for the count to accumulate outside the recursion's returns with no tuple bundling, which this code does not do.",
+      "seconds": 850
     }
   }
 }
