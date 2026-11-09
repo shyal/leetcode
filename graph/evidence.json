@@ -44158,6 +44158,19 @@
       "note": "Contract requires O(n) bucket-by-count read from largest count down; code instead uses sorted(cnt.items(), key=...), violating NO sorted() and the bucket requirement.",
       "summary": "The mu code lowercases and filters the document to letters and spaces, splits into tokens, records first-appearance index in an `appearance` dict, builds a Counter, then sorts items by (count, -appearance) descending to produce the output. The Counter is built correctly, but the ordering uses sorted() rather than the required O(n) count-bucket scan, so the counter-build contract is not met. All assertions passed.",
       "seconds": 761
+    },
+    "solved/p3021_Alice_and_Bob_Playing_Flower_Game_2026_11_09T04_34_30_956293_00_00Z.mu": {
+      "date": "2026-11-09",
+      "problem": "3021",
+      "moves": {
+        "pair-count-formula": "clean",
+        "marginal-gain": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Counts evens/odds in each range by folding over 1..n and 1..m, then multiplies cross-parity group sizes.",
+      "summary": "The code counts even and odd values in 1..n and 1..m with four folds, then returns x_even*y_odd + x_odd*y_even, the cross-parity pair count. This exercises the pair-count-formula move (a*b pairs across two groups) and the marginal-gain framing of parity. All assertions passed and LeetCode reports Accepted (129 ms, 19.4 MB).",
+      "seconds": 1295,
+      "learning": true
     }
   }
 }
