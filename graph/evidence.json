@@ -44095,6 +44095,20 @@
       "note": "Delegates to harness count_subarrays with key=even; O(n) batch counting, no nested start/end loop.",
       "summary": "The solution calls the harness helper count_subarrays(nums, key=even), which counts qualifying subarrays in one pass rather than enumerating every (start, end) pair. This exercises the pair-count-formula move at O(n), meeting the drill contract. All assertions pass, including the 100000-element case.",
       "seconds": 263
+    },
+    "solved/d_Subarray_Sum_Equals_K_2026_11_09T02_56_00_741979_00_00Z.mu": {
+      "date": "2026-11-09",
+      "problem": "drill",
+      "drill": "d178",
+      "moves": {
+        "prefix-sum-hashmap": "clean",
+        "streaming-ask-then-record": "clean",
+        "derived-key-lookup": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Only the first print is active; the assertion battery is commented out, so the run exercised just the [1,1,1],2 case.",
+      "summary": "The mu code keeps a dict D of prefix-sum counts seeded with D[0]=1, then walks nums accumulating prefix, adds D[prefix - k] to res, and records D[prefix] += 1. This is the prefix-sum-hashmap shape: at each element it queries the past for prefix-k before recording the current prefix. The run printed 2 for [1,1,1] with k=2; the remaining assertions are commented out, so only that one case was checked.",
+      "seconds": 126
     }
   }
 }
