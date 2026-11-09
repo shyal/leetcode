@@ -44323,6 +44323,18 @@
       "note": "Contract met: single O(n) pass over edges marking the child of each parent-child pair by letter comparison, then child.index(false); no per-node root loop.",
       "summary": "The mu code builds a boolean `child` table of size n and walks the edge list once, marking whichever endpoint has the larger letter as a child; the root is the single index still false. This is an O(n) edge sweep rather than an adjacency build, and it satisfies the required linear-time contract. The notes say 'learning', indicating the solution was given and copied.",
       "seconds": 106
+    },
+    "solved/d_Node_Step_Pairs_2026_11_09T21_08_49_557762_00_00Z.mu": {
+      "date": "2026-11-10",
+      "problem": "drill",
+      "drill": "d139",
+      "moves": {
+        "graph-bfs-shortest": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "BFS via levels(q) with visited keyed on (node, distance) pairs, so revisits at new depths are kept; depth capped at k.",
+      "summary": "The reachable function seeds a deque with 0 and walks it with levels(q), which yields (depth, node) pairs level by level. It records each (node, distance) pair in a seen set, skipping pairs already seen or deeper than k, and enqueues every neighbor from G[n]. This is a single BFS bounded by k, keyed on the pair rather than the node alone, so node 1 is captured at both distance 1 and distance 4; all assertions passed.",
+      "seconds": 119
     }
   }
 }
