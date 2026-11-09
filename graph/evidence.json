@@ -43891,6 +43891,18 @@
       "note": "Contract met: dense_rank computed in a WITH clause and filtered in the outer query; no scalar subquery for the cutoff.",
       "summary": "The query builds a CTE `ranked` that computes dense_rank() over score descending, then selects id and score from it where rnk <= 2. This exercises the WITH-clause subquery and window-rank moves, and both examples pass. The notes say the candidate is still unfamiliar with the 'with' syntax.",
       "seconds": 232
+    },
+    "solved/d_Orders_In_A_Date_Window_2026_11_09T01_18_01_712914_00_00Z.mu": {
+      "date": "2026-11-09",
+      "problem": "drill",
+      "drill": "d88",
+      "moves": {
+        "sql-filter-select": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Contract met: one comparison names both ends of the window (date('2024-03-01') <= order_date and order_date <= date('2024-03-31')).",
+      "summary": "The query selects id from Orders with a WHERE clause that bounds order_date between two date() literals, using a single chained comparison that names both ends of the window. It exercises sql-filter-select and ran cleanly, returning the expected rows for both examples. No notes indicate any help or recognition trouble.",
+      "seconds": 101
     }
   }
 }
