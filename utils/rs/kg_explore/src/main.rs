@@ -17,7 +17,9 @@ use kg::bank::held_behind;
 use kg::clock::{attempt_label, problem_due};
 use kg::ctx::{Ctx, PView};
 use kg::data::{load_envrc, repo_root};
-use kg::drills::{anki_due, disable_refused_by, drill_clean, last_drilled, set_disabled};
+use kg::drills::{
+    anki_due, disable_refused_by, drill_clean, last_drilled, set_disabled, CARD_RETIRED,
+};
 use kg::evidence::Evidence;
 use kg::status::node_axes;
 use serde_json::{json, Value};
@@ -128,7 +130,9 @@ fn graph(ctx: &Ctx, ev: &Evidence, pv: &PView) -> Value {
                 "reps": drill_reps(ctx, &path, ev).len(),
                 "last": last_drilled(ctx, &path, ev),
                 "clean": drill_clean(ctx, &path, ev),
-                "due": anki_due(ctx, &path, ev).map(|(d, _)| d.to_string()),
+                "due": anki_due(ctx, &path, ev)
+                .filter(|(d, _)| *d != CARD_RETIRED)
+                .map(|(d, _)| d.to_string()),
             }))
         })
         .collect();
@@ -179,7 +183,9 @@ fn show(ctx: &Ctx, ev: &Evidence, pv: &PView, id: &str) -> Option<Value> {
             "reference": reference(ctx, &path),
             "trains": ctx.drill_trains(&path),
             "after": d.after,
-            "due": anki_due(ctx, &path, ev).map(|(d, _)| d.to_string()),
+            "due": anki_due(ctx, &path, ev)
+                .filter(|(d, _)| *d != CARD_RETIRED)
+                .map(|(d, _)| d.to_string()),
             "refused_by": refused,
             "reps": reps,
         }));

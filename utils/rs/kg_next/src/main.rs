@@ -27,9 +27,9 @@ use kg::console::{Console, Text};
 use kg::ctx::{Ctx, PView};
 use kg::data::{load_envrc, repo_root};
 use kg::drills::{
-    anki, anki_frontier, anki_next_if_good, cold_drill, drill_held, drill_recall, drill_review_cap,
-    drill_reviews_today, due_drill, first_sight_band, group_caps, group_reps, new_drill_cap,
-    new_drills_today, no_reviews, reviews_band, reviews_first,
+    anki, anki_frontier, cold_drill, drill_held, drill_next_if_good, drill_recall,
+    drill_review_cap, drill_reviews_today, due_drill, first_sight_band, group_caps, group_reps,
+    new_drill_cap, new_drills_today, no_reviews, reviews_band, reviews_first,
 };
 use kg::evidence::Evidence;
 use kg::git::{
@@ -759,8 +759,10 @@ impl<'a> Run<'a> {
     /// The clock one step ahead: the day this file comes back if today's
     /// rep is clean.
     fn next_line(&self, path: &std::path::Path) -> String {
-        let (day, ivl) =
-            anki_next_if_good(&self.ctx.drill_evidence_key(path), &self.ev, self.today);
+        let key = self.ctx.drill_evidence_key(path);
+        let Some((day, ivl)) = drill_next_if_good(self.ctx, &key, &self.ev, self.today) else {
+            return "[dim]next:[/dim]   clean today retires it [dim](problem clock: it comes back only after a rep that is not clean)[/dim]".to_string();
+        };
         format!(
             "[dim]next:[/dim]   clean today puts it back in [bold]{ivl}d[/bold] [dim]({})[/dim]",
             day.format("%a %b %-d")

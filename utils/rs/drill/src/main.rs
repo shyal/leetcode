@@ -25,7 +25,7 @@ use kg::ctx::{Ctx, PView};
 use kg::data::{load_envrc, repo_root};
 use kg::drills::{
     anki_due, drill_fill_on, drill_queue_key, fill_share, good_streak, last_drilled,
-    servable_drills,
+    servable_drills, CARD_RETIRED,
 };
 use kg::evidence::Evidence;
 use kg::git::clear_branch;
@@ -96,9 +96,11 @@ fn main() {
         if w.is_empty() {
             "never".to_string()
         } else {
-            let due = anki_due(&ctx, p, &ev)
-                .map(|(d, _)| format!(", due {d}"))
-                .unwrap_or_default();
+            let due = match anki_due(&ctx, p, &ev) {
+                Some((d, _)) if d == CARD_RETIRED => ", retired".to_string(),
+                Some((d, _)) => format!(", due {d}"),
+                None => String::new(),
+            };
             format!("{w}{due}")
         }
     };
@@ -142,7 +144,7 @@ fn main() {
     // bank's first file all day once every file had a rep that day.
     let path = released
         .iter()
-        .min_by_key(|p| drill_queue_key(&ctx.drill_evidence_key(p), &ev))
+        .min_by_key(|p| drill_queue_key(&ctx.drill_evidence_key(p), anki_due(&ctx, p, &ev), &ev))
         .unwrap()
         .clone();
 

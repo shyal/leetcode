@@ -348,6 +348,24 @@ and the whole-day caps still count on top. A file with no set answers to
 neither. The budget table prints `pramp new 1/1` and `pramp reviews 0/1`.
 `kg::drills::set_reps` is the count.
 
+## Set clock (`KG_SET_CLOCK`)
+
+`KG_SET_CLOCK=pramp=problem` in `.envrc` puts the files of a set on the
+problem review clock (below) in place of the drill clock's SM-2
+(`kg::drills::drill_due_key`, 2026-11-09). The grades are the drill clock's:
+
+    clean, no help, no card open     no card: the file is not served again
+    any rep that is not Good         opens a card, due in 3 days
+    hint on an open card             1.2x further out
+    clean, no help, on an open card  retest in 7 days, then 21, then retired
+
+A file never done is due, as before, and `KG_SET_NEW_CAP` still decides how
+many come in a day. A file done with no card open shows `retired` in
+`make drill --list`, and `make next` says "clean today retires it". One
+difference from a problem: a struggled rep opens a card. A problem leaves a
+struggle to the node curve, and a bank file has no node curve of its own.
+A set not named, or any word but `problem`, runs SM-2.
+
 ## Daily problem cap (`MAX_PROBLEMS`)
 
 `MAX_PROBLEMS=1` in `.envrc` is how many problems, first sights and reviews

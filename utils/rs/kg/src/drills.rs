@@ -539,8 +539,104 @@ pub fn anki_answer(base: &str, rec: &Rec) -> &'static str {
 }
 
 /// kg_lib.anki_due: (due date, interval) for a bank file, None never done.
+/// A file of a set on the problem clock (KG_SET_CLOCK) takes the problem
+/// card instead of SM-2; with no card open its due date is CARD_RETIRED.
 pub fn anki_due(ctx: &Ctx, path: &Path, ev: &Evidence) -> Option<(NaiveDate, i64)> {
-    anki_due_key(&ctx.drill_evidence_key(path), ev)
+    drill_due_key(ctx, &ctx.drill_evidence_key(path), ev)
+}
+
+/// The due date of a bank file done at least once whose problem card is
+/// not open: a day no rule reaches, so the file is never served again
+/// unless a later rep opens a card. Nothing prints it as a date.
+pub const CARD_RETIRED: NaiveDate = NaiveDate::MAX;
+
+/// KG_SET_CLOCK, "pramp=problem": per set (the drills.json "set" word),
+/// the clock its bank files run on. "problem" gives each file the
+/// problem review card (clock::card_due) in place of SM-2: a clean
+/// unaided rep with no card open is not served again; a rep that is not
+/// Good opens a card at 3 days, and three clean unaided reps (the last two
+/// at 7 and 21 days) retire it. Any other value, or a set not named,
+/// runs SM-2 (2026-11-09, the Pramp bank).
+pub fn set_clocks() -> Vec<(String, String)> {
+    let mut out: Vec<(String, String)> = Vec::new();
+    for part in env_str("KG_SET_CLOCK").split(',') {
+        let Some((set, clock)) = part.split_once('=') else {
+            continue;
+        };
+        let (set, clock) = (set.trim(), clock.trim().to_lowercase());
+        if set.is_empty() || clock.is_empty() {
+            continue;
+        }
+        match out.iter_mut().find(|(s, _)| s == set) {
+            Some(slot) => slot.1 = clock,
+            None => out.push((set.to_string(), clock)),
+        }
+    }
+    out
+}
+
+/// The file with this evidence key belongs to a set on the problem clock.
+pub fn on_problem_clock(ctx: &Ctx, key: &str) -> bool {
+    let Some(set) = ctx
+        .drill_entry(key)
+        .map(|e| e.set)
+        .filter(|s| !s.is_empty())
+    else {
+        return false;
+    };
+    set_clocks()
+        .iter()
+        .any(|(s, c)| *s == set && c == "problem")
+}
+
+/// The file's reps graded for the problem card: (day, answer, opens),
+/// one per day (the day's last rep), oldest first. Any answer but Good
+/// opens a card.
+fn card_days(key: &str, ev: &Evidence) -> Vec<(String, &'static str, bool)> {
+    drill_days(key, ev)
+        .into_iter()
+        .map(|(d, i)| {
+            let (_, base, ri) = &ev.drills[i];
+            let answer = anki_answer(base, ev.rec(*ri));
+            (d, answer, answer != "good")
+        })
+        .collect()
+}
+
+fn card_of(days: &[(String, &'static str, bool)]) -> Option<(NaiveDate, i64)> {
+    let refs: Vec<(&str, &str, bool)> = days.iter().map(|(d, a, o)| (d.as_str(), *a, *o)).collect();
+    crate::clock::card_due(&refs)
+}
+
+/// anki_due on the file's evidence key, on the clock its set runs on.
+pub fn drill_due_key(ctx: &Ctx, key: &str, ev: &Evidence) -> Option<(NaiveDate, i64)> {
+    if !on_problem_clock(ctx, key) {
+        return anki_due_key(key, ev);
+    }
+    let days = card_days(key, ev);
+    if days.is_empty() {
+        return None;
+    }
+    Some(card_of(&days).unwrap_or((CARD_RETIRED, 0)))
+}
+
+/// The clock one step ahead on the file's own clock: when the file is
+/// answered Good today, (the day it comes back, that interval), or None
+/// when that rep leaves no card open (the problem clock).
+pub fn drill_next_if_good(
+    ctx: &Ctx,
+    key: &str,
+    ev: &Evidence,
+    today: NaiveDate,
+) -> Option<(NaiveDate, i64)> {
+    if !on_problem_clock(ctx, key) {
+        return Some(anki_next_if_good(key, ev, today));
+    }
+    let t = today.format("%Y-%m-%d").to_string();
+    let mut days = card_days(key, ev);
+    days.retain(|(d, _, _)| *d != t);
+    days.push((t, "good", false));
+    card_of(&days)
 }
 
 /// anki_due on the file's evidence key (ctx.drill_evidence_key).
@@ -620,16 +716,15 @@ pub(crate) fn anki_good(interval: i64, ease: f64) -> i64 {
     next.min(ANKI_MAX_INTERVAL)
 }
 
-fn anki_state(key: &str, ev: &Evidence) -> Option<AnkiState> {
+/// The file's reps one per day, the day's last rep: (day, ev.drills
+/// index), oldest first.
+fn drill_days(key: &str, ev: &Evidence) -> Vec<(String, usize)> {
     let mut reps: Vec<usize> = ev.drill_reps(key).to_vec();
     reps.sort_by(|&a, &b| {
         let (da, ba, _) = &ev.drills[a];
         let (db, bb, _) = &ev.drills[b];
         (da, ba).cmp(&(db, bb))
     });
-    if reps.is_empty() {
-        return None;
-    }
     let mut by_day: Vec<(String, usize)> = Vec::new();
     for i in reps {
         let d = &ev.drills[i].0;
@@ -639,6 +734,14 @@ fn anki_state(key: &str, ev: &Evidence) -> Option<AnkiState> {
         }
     }
     by_day.sort_by(|a, b| a.0.cmp(&b.0));
+    by_day
+}
+
+fn anki_state(key: &str, ev: &Evidence) -> Option<AnkiState> {
+    let by_day = drill_days(key, ev);
+    if by_day.is_empty() {
+        return None;
+    }
     let (mut interval, mut ease) = (0i64, ANKI_EASE);
     let mut last = String::new();
     let mut days_done = 0usize;
@@ -680,8 +783,13 @@ fn anki_state(key: &str, ev: &Evidence) -> Option<AnkiState> {
 /// among files due the same day the one solved longest ago. The second
 /// element is the timestamp part of the latest solved basename ("" if
 /// never), so two files solved the same day still order by time.
-pub fn drill_queue_key(key: &str, ev: &Evidence) -> (NaiveDate, String) {
-    let due = anki_due_key(key, ev).map_or(NaiveDate::MIN, |(d, _)| d);
+/// `due` is the file's clock (anki_due).
+pub fn drill_queue_key(
+    key: &str,
+    due: Option<(NaiveDate, i64)>,
+    ev: &Evidence,
+) -> (NaiveDate, String) {
+    let due = due.map_or(NaiveDate::MIN, |(d, _)| d);
     let last = ev
         .drill_reps(key)
         .iter()
@@ -1461,13 +1569,22 @@ mod tests {
             ),
         ]);
         let keys = ["d1", "d2", "d3"];
-        let next = keys.iter().min_by_key(|k| drill_queue_key(k, &ev)).unwrap();
+        let next = keys
+            .iter()
+            .min_by_key(|k| drill_queue_key(k, anki_due_key(k, &ev), &ev))
+            .unwrap();
         assert_eq!(*next, "d2");
         // the file just solved is at the back
-        let last = keys.iter().max_by_key(|k| drill_queue_key(k, &ev)).unwrap();
+        let last = keys
+            .iter()
+            .max_by_key(|k| drill_queue_key(k, anki_due_key(k, &ev), &ev))
+            .unwrap();
         assert_eq!(*last, "d1");
         // a file never drilled outranks every drilled one
-        assert!(drill_queue_key("d4", &ev) < drill_queue_key(next, &ev));
+        assert!(
+            drill_queue_key("d4", anki_due_key("d4", &ev), &ev)
+                < drill_queue_key(next, anki_due_key(next, &ev), &ev)
+        );
     }
 
     #[test]
@@ -1488,6 +1605,9 @@ mod tests {
                 rec("d2", "2026-09-13"),
             ),
         ]);
-        assert!(drill_queue_key("d2", &ev) < drill_queue_key("d1", &ev));
+        assert!(
+            drill_queue_key("d2", anki_due_key("d2", &ev), &ev)
+                < drill_queue_key("d1", anki_due_key("d1", &ev), &ev)
+        );
     }
 }

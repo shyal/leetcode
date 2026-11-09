@@ -9,7 +9,8 @@ use crate::clock::{attempt_label, problem_due, PROBLEM_GRADUATING_DAYS, PROBLEM_
 use crate::data::test_env;
 use crate::drills::{
     anki_due, anki_frontier, anki_fuzz, anki_good, anki_good_after, anki_next_if_good, drill_clean,
-    drill_warm, due_drill, ANKI_EASE, ANKI_FUZZ_MIN_DAYS,
+    drill_next_if_good, drill_warm, due_drill, on_problem_clock, ANKI_EASE, ANKI_FUZZ_MIN_DAYS,
+    CARD_RETIRED,
 };
 use crate::model::{
     easy_share, proven_fit, proven_game_score, proven_series, Band, Game, Ground, Transfer,
@@ -130,6 +131,89 @@ fn the_fuzz_spreads_files_done_together_without_a_random_source() {
     assert!(due.len() > 1, "a batch came back on one day: {due:?}");
     let (next, ivl) = anki_next_if_good(&ctx.drill_evidence_key(&paths[0]), &ev, today());
     assert_eq!(next, today() + Duration::days(ivl));
+}
+
+/// KG_SET_CLOCK=pramp=problem (2026-11-09): a file of the set runs on the
+/// problem card, not SM-2. A clean unaided rep with no card open retires
+/// the file; a hinted rep or a struggle opens a card at 3 days; three
+/// clean unaided reps on an open card (the last two at 7 and 21 days)
+/// retire it. A file never done is still due, and a file outside the
+/// set, or the set with the knob unset, runs SM-2.
+#[test]
+fn a_set_on_the_problem_clock_runs_the_problem_card() {
+    let mut fx = Fx::new();
+    let path = fx.bank("n", "Clock", "c.py", "d1", &[]);
+    let other = fx.bank("n", "Other", "o.py", "d2", &[]);
+    fx.in_set(&["Clock"], "pramp");
+    test_env("KG_SET_CLOCK", "pramp=problem");
+    let ctx = fx.ctx();
+    let key = ctx.drill_evidence_key(&path);
+    assert!(on_problem_clock(&ctx, &key));
+    assert!(!on_problem_clock(&ctx, &ctx.drill_evidence_key(&other)));
+    // never done: due, and a clean first rep today leaves no card
+    assert_eq!(anki_due(&ctx, &path, &no_evidence()), None);
+    assert_eq!(
+        drill_next_if_good(&ctx, &key, &no_evidence(), today()),
+        None
+    );
+    // one clean unaided rep: retired, never served again
+    let clean = evidence(vec![drill_rep("Clock", "n", 10)]);
+    assert_eq!(anki_due(&ctx, &path, &clean), Some((CARD_RETIRED, 0)));
+    // a hint opens a card at 3 days, a struggle too
+    let hinted = evidence(vec![drill_rep_a(
+        "Clock",
+        "n",
+        20,
+        assist_map(&[("n", "hint")]),
+    )]);
+    assert_eq!(
+        anki_due(&ctx, &path, &hinted),
+        Some((ago(20) + Duration::days(3), 3))
+    );
+    let struggled = evidence(vec![drill_rep_v(
+        "Clock",
+        "n",
+        5,
+        "struggled",
+        Assist::None,
+    )]);
+    assert_eq!(
+        anki_due(&ctx, &path, &struggled),
+        Some((ago(5) + Duration::days(3), 3))
+    );
+    assert_eq!(
+        drill_next_if_good(&ctx, &key, &struggled, today()),
+        Some((today() + Duration::days(7), 7))
+    );
+    // the card holds at 7, then 21, and the third clean rep retires it
+    let mut reps = vec![drill_rep_v("Clock", "n", 60, "struggled", Assist::None)];
+    reps.push(drill_rep("Clock", "n", 57));
+    assert_eq!(
+        anki_due(&ctx, &path, &evidence(reps.clone())),
+        Some((ago(57) + Duration::days(7), 7))
+    );
+    reps.push(drill_rep("Clock", "n", 50));
+    assert_eq!(
+        anki_due(&ctx, &path, &evidence(reps.clone())),
+        Some((ago(50) + Duration::days(21), 21))
+    );
+    reps.push(drill_rep("Clock", "n", 29));
+    assert_eq!(
+        anki_due(&ctx, &path, &evidence(reps.clone())),
+        Some((CARD_RETIRED, 0))
+    );
+    // a file outside the set keeps SM-2: one clean rep, back in a day
+    let other_clean = evidence(vec![drill_rep("Other", "n", 10)]);
+    assert_eq!(
+        anki_due(&ctx, &other, &other_clean),
+        Some((ago(10) + Duration::days(1), 1))
+    );
+    // the knob unset: the set runs SM-2 as well
+    test_env("KG_SET_CLOCK", "");
+    assert_eq!(
+        anki_due(&ctx, &path, &clean),
+        Some((ago(10) + Duration::days(1), 1))
+    );
 }
 
 /// A judged rep on which the judge mapped no move grades Good: a drill is

@@ -113,11 +113,29 @@ pub fn problem_due(ev: &Evidence, pnum: &str) -> Option<(NaiveDate, i64)> {
         }
     }
     by_day.sort_by(|a, b| a.0.cmp(b.0));
+    let days: Vec<(&str, &str, bool)> = by_day
+        .into_iter()
+        .map(|(d, fname, i)| {
+            let rec = ev.rec(i);
+            (
+                d,
+                problem_grade(fname, rec).unwrap(),
+                OPENS_CARD.contains(&attempt_label(fname, rec).as_str()),
+            )
+        })
+        .collect();
+    card_due(&days)
+}
+
+/// The card over graded days, oldest first: (day, good / hard / again,
+/// whether this day may open a card). (due date, interval), or None when
+/// no card is open: never opened, or retired by the last hold.
+/// problem_due feeds it a problem's days; a bank file on the problem
+/// clock (KG_SET_CLOCK) feeds it the file's own reps.
+pub fn card_due(days: &[(&str, &str, bool)]) -> Option<(NaiveDate, i64)> {
     let (mut interval, mut last, mut holds): (i64, Option<&str>, usize) = (0, None, 0);
-    for (d, fname, i) in by_day {
-        let rec = ev.rec(i);
-        let answer = problem_grade(fname, rec).unwrap();
-        if interval == 0 && !OPENS_CARD.contains(&attempt_label(fname, rec).as_str()) {
+    for &(d, answer, opens) in days {
+        if interval == 0 && !opens {
             continue;
         }
         match answer {
