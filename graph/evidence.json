@@ -44387,6 +44387,18 @@
         "xor fold of word onto itself"
       ],
       "seconds": 142
+    },
+    "solved/d_Toeplitz_Matrix_2026_11_09T23_59_26_231617_00_00Z.mu": {
+      "date": "2026-11-10",
+      "problem": "drill",
+      "drill": "d362",
+      "moves": {
+        "grid-neighbors": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Contract met: cells(arr, start=1) iterates r>=1, c>=1 comparing arr[r][c] with arr[r-1][c-1], O(rows*cols) time, O(1) extra space, no diagonal list.",
+      "summary": "The mu solution walks every cell with r>=1 and c>=1 via cells(arr, start=1) and ANDs the comparison arr[r][c] == arr[r-1][c-1] into is_top, returning the accumulated boolean. This exercises the grid-neighbors move with the diagonal offset (-1,-1) and meets the O(rows*cols) time / O(1) space contract without materializing any diagonal. All assertions passed and the run exited 0; the notes are empty.",
+      "seconds": 166
     }
   }
 }
