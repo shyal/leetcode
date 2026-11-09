@@ -386,6 +386,7 @@ builtins.uses = uses
 builtins.avoids = avoids
 builtins.folds = folds
 builtins.tle = tle
+builtins.int_ops = int_ops
 builtins.triples = triples
 builtins.substrings = substrings
 

@@ -1514,3 +1514,24 @@ fn set_disabled_round_trips_the_file() {
     assert_eq!(std::fs::read_to_string(&path).unwrap(), before);
     assert!(set_disabled(&fx.dir.0, "d9", true).is_err());
 }
+
+/// 2026-11-10, d368: the node's file is the first file the day's caps
+/// allow. The picker checked the caps on d536 and served the node, and
+/// the node's file was d368, whose set had spent its new cap.
+#[test]
+fn a_node_serves_the_file_its_caps_allow() {
+    let mut fx = Fx::new();
+    test_env("DRILL_SCHEDULER", "anki");
+    test_env("KG_SET_NEW_CAP", "epi=1");
+    let a = fx.bank_file("some-node", "a.py", "DRILL: InSet\nTRAINS: some-node\n");
+    let b = fx.bank_file("some-node", "b.py", "DRILL: Plain\nTRAINS: some-node\n");
+    fx.bank_file("other", "c.py", "DRILL: Met\nTRAINS: other\n");
+    fx.register(&[("d1", "InSet", &[]), ("d2", "Plain", &[]), ("d3", "Met", &[])]);
+    fx.in_set(&["InSet", "Met"], "epi");
+    let none = evidence(vec![]);
+    assert_eq!(due(&fx, "some-node", &none), Some(a.clone()));
+    // c.py met today: the epi new cap is spent, and b.py is not in the set
+    let met = drill_file("solved/d_Met_1.py", "other", 0, Assist::None);
+    let ev = evidence(vec![met]);
+    assert_eq!(due(&fx, "some-node", &ev), Some(b));
+}

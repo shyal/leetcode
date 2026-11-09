@@ -2,7 +2,7 @@ import json
 
 import assert_utils
 import pytest
-from assert_utils import same_rows, same_seq, tle, uses
+from assert_utils import int_ops, same_rows, same_seq, tle, uses
 from pydsa.adj import adjacency, indegrees
 
 
@@ -76,3 +76,34 @@ def test_tle_fails_a_call_slower_than_the_slack_allows(tmp_path, monkeypatch):
         match=r"9: .* s on the case that timed out on leetcode, 0.00 s allowed",
     ):
         tle(lambda xs: [True, False] + sorted(range(10**5))[:0], 9)
+
+
+def fold_parity(x):
+    for shift in (32, 16, 8, 4, 2, 1):
+        x ^= x >> shift
+    return x & 1
+
+
+def loop_parity(x):
+    res = 0
+    while x:
+        if x & 1:
+            res ^= 1
+        x >>= 1
+    return res
+
+
+def test_int_ops_counts_each_operation_on_x_and_on_ints_computed_from_it():
+    # 6 shifts, 6 xors and 1 and
+    assert int_ops(fold_parity, 2 ** 64 - 1) == 13
+
+
+def test_int_ops_tells_a_loop_over_the_bits_from_the_fold():
+    # for each of the 64 bits: a truth test of x, an and, a truth test of
+    # x & 1 and a shift; then the last truth test of x
+    assert int_ops(loop_parity, 2 ** 64 - 1) == 193 + 64
+    assert int_ops(loop_parity, 0) == 1
+
+
+def test_int_ops_does_not_count_ints_that_do_not_come_from_x():
+    assert int_ops(lambda x: sum(range(100)) + 0 * 0, 5) == 0

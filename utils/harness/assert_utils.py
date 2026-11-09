@@ -100,6 +100,47 @@ def folds(
     raise AssertionError(f"{cls.__name__} has no fold `{form}`")
 
 
+class _Counted(int):
+    """An int that counts each operation made on it and on each int
+    computed from it (int_ops)."""
+
+    count = 0
+
+
+def _counted(name: str) -> Callable[..., Any]:
+    base = getattr(int, name)
+
+    def op(self: int, *args: Any) -> Any:
+        _Counted.count += 1
+        out = base(self, *args)
+        return _Counted(out) if type(out) is int else out
+
+    return op
+
+
+for _name in (
+    "__add__", "__radd__", "__sub__", "__rsub__", "__mul__", "__rmul__",
+    "__floordiv__", "__rfloordiv__", "__mod__", "__rmod__", "__pow__",
+    "__rpow__", "__neg__", "__invert__", "__and__", "__rand__", "__or__",
+    "__ror__", "__xor__", "__rxor__", "__lshift__", "__rlshift__",
+    "__rshift__", "__rrshift__", "__lt__", "__le__", "__gt__", "__ge__",
+    "__eq__", "__ne__", "__bool__", "__index__",
+):
+    setattr(_Counted, _name, _counted(_name))
+
+
+def int_ops(method: Callable[..., Any], x: int) -> int:
+    """The number of integer operations method(x) makes on x and on each
+    int computed from x: arithmetic, bitwise, shifts, comparisons, truth
+    tests and use as an index. Operations on ints that do not come from x
+    (a constant table, a result counter) are not counted. An assert on
+    this count holds a solution to a bound on its steps, the way a time
+    limit does, for an input whose size is fixed (a 64-bit word)."""
+    _Counted.count = 0
+    method(_Counted(x))
+    return _Counted.count
+
+
 def tle(method: Callable[..., Any], num: int) -> bool:
     """method answers the case that timed out on leetcode, in time.
 

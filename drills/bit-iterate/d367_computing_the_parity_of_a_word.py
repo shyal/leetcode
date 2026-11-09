@@ -52,5 +52,7 @@ print(sol.parity(0b1011))  # 1
 # assert sol.parity(0x5555555555555555) == 0
 # assert sol.parity(0x8000000100000000) == 0
 # assert sol.parity(0x0000000100000000) == 1
+# assert int_ops(sol.parity, 2 ** 64 - 1) <= 6 * 6  # 6 = log2(64), the word size
+# assert int_ops(sol.parity, 2 ** 63) <= 6 * 6
 # assert all(sol.parity(v) == bin(v).count("1") % 2 for v in range(4096))
 # assert all(sol.parity(v) == bin(v).count("1") % 2 for v in ((i * 0x9E3779B97F4A7C15) % 2 ** 64 for i in range(10 ** 4)))

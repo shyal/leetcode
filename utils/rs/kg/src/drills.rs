@@ -1049,7 +1049,15 @@ fn due_drill_uncached(
             Some(&[node.to_string()]),
             assisted,
         );
-        if let Some((p, _)) = ranked.first() {
+        // the first file the day's budgets allow: the picker checks the caps
+        // file by file and serves the node, and the node's file must be the
+        // file it checked (d368 was served on 2026-11-10 with the epi new
+        // cap spent, because d536 on the same node was not capped)
+        let open = ranked
+            .iter()
+            .find(|(p, _)| !drill_capped(ctx, p, ev, day))
+            .or(ranked.first());
+        if let Some((p, _)) = open {
             return Some(p.clone());
         }
     }
