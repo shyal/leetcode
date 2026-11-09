@@ -43875,6 +43875,22 @@
       "judge": "deepseek-chat",
       "summary": "The query selects distinct contest_id from Register and pairs it with a scalar subquery (select count(user_id) from Users) as total_users, so the user count is read from Users at run time rather than hard-coded or joined into the grouped query. Both examples pass, producing one row per contest with the full user count. The notes mark the file as hinted.",
       "seconds": 249
+    },
+    "solved/d_Top_Two_Distinct_Scores_2026_11_09T01_07_08_261619_00_00Z.mu": {
+      "date": "2026-11-09",
+      "problem": "drill",
+      "drill": "d150",
+      "moves": {
+        "sql-subquery": "clean",
+        "sql-window-rank": "clean"
+      },
+      "assist": {
+        "sql-subquery": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Contract met: dense_rank computed in a WITH clause and filtered in the outer query; no scalar subquery for the cutoff.",
+      "summary": "The query builds a CTE `ranked` that computes dense_rank() over score descending, then selects id and score from it where rnk <= 2. This exercises the WITH-clause subquery and window-rank moves, and both examples pass. The notes say the candidate is still unfamiliar with the 'with' syntax.",
+      "seconds": 232
     }
   }
 }
