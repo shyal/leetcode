@@ -21,8 +21,8 @@
 // Contest pages have a CodeMirror editor and no Monaco. There the mu goes
 // into LeetCode's own editor, and the submission replaces `typed_code` in
 // the request that Run or Submit sends. That editor indents by Python's
-// four spaces; with mu on, Tab, Shift+Tab, Enter and Backspace indent by
-// mu's two.
+// four spaces; with mu on, Tab, Shift+Tab, Cmd+], Cmd+[, Enter and
+// Backspace indent by mu's two.
 
 (() => {
   const PROBLEM = /^(?:\/contest\/[^/]+)?\/problems\/([^/?#]+)/;
@@ -303,10 +303,14 @@
   }, true);
 
   // the contest editor is LeetCode's, set to Python's four spaces: with mu
-  // on, Tab, Shift+Tab, Enter and Backspace indent by two
+  // on, Tab, Shift+Tab, Cmd+], Cmd+[, Enter and Backspace indent by two
   const STEP = 2;
   window.addEventListener("keydown", (e) => {
-    if (!on?.view || e.metaKey || e.ctrlKey || e.altKey || !on.view.contentDOM.contains(e.target)) return;
+    if (!on?.view || e.altKey || !on.view.contentDOM.contains(e.target)) return;
+    // Cmd+] / Cmd+[ (Ctrl on other systems): every line the selection touches, in or out
+    const bracket = (e.metaKey || e.ctrlKey) && (e.key === "]" || e.key === "[");
+    if ((e.metaKey || e.ctrlKey) && !bracket) return;
+    const out = bracket ? e.key === "[" : e.shiftKey;
     const { state } = on.view;
     const { from, to } = state.selection.main;
     const line = state.doc.lineAt(from);
@@ -316,12 +320,12 @@
     if (e.key === "Tab" && !e.shiftKey && from === to) {
       const insert = " ".repeat(STEP - (col % STEP));
       tr = { changes: { from, insert }, selection: { anchor: from + insert.length } };
-    } else if (e.key === "Tab") {
+    } else if (e.key === "Tab" || bracket) {
       // every line the selection touches moves one step; the selection follows
       const changes = [];
       for (let n = line.number; n <= state.doc.lineAt(to).number; n++) {
         const l = state.doc.line(n);
-        if (!e.shiftKey) {
+        if (!out) {
           changes.push({ from: l.from, insert: " ".repeat(STEP) });
         } else {
           const spaces = l.text.length - l.text.trimStart().length;

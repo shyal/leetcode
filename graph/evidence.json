@@ -44145,6 +44145,19 @@
       "note": "Contract met: self.find called once per employee via the comprehension, no pairwise comparison, no sort.",
       "summary": "The mu code subclasses UnionFind and defines groups(), which builds a dict from self.find(x) for every index in 0..<len(self.parent), grouping employees by their root. The tests set parent arrays directly and assert the resulting head-to-members mapping across several shapes (two heads, one head, unmerged, chains, every-third). The run exited 0 with all assertions passing, and the contract of one find per employee with no pairwise comparison or sort is satisfied.",
       "seconds": 84
+    },
+    "solved/d_Word_Count_Engine_2026_11_09T03_22_14_318817_00_00Z.mu": {
+      "date": "2026-11-09",
+      "problem": "drill",
+      "drill": "d364",
+      "moves": {
+        "counter-build": "struggled",
+        "dict-arbitrary-value": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Contract requires O(n) bucket-by-count read from largest count down; code instead uses sorted(cnt.items(), key=...), violating NO sorted() and the bucket requirement.",
+      "summary": "The mu code lowercases and filters the document to letters and spaces, splits into tokens, records first-appearance index in an `appearance` dict, builds a Counter, then sorts items by (count, -appearance) descending to produce the output. The Counter is built correctly, but the ordering uses sorted() rather than the required O(n) count-bucket scan, so the counter-build contract is not met. All assertions passed.",
+      "seconds": 761
     }
   }
 }
