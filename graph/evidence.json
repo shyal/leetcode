@@ -44133,6 +44133,18 @@
       "note": "Outer loop over length 1..n, inner over start 0..n-length, yielding s[start:start+length]; no set, no dedupe, order matches the contract.",
       "summary": "The mu code defines substringsByLength, which loops length from 1 to n and start from 0 to n-length, yielding each slice s[start:start+length] via @as_list. This exercises substring enumeration by length with no deduplication, and the printed output for 'abcd' matches the required order. The run exited 0 with all active assertions passing.",
       "seconds": 77
+    },
+    "solved/d_Companies_By_Head_2026_11_09T03_06_57_360896_00_00Z.mu": {
+      "date": "2026-11-09",
+      "problem": "drill",
+      "drill": "d168",
+      "moves": {
+        "union-find": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Contract met: self.find called once per employee via the comprehension, no pairwise comparison, no sort.",
+      "summary": "The mu code subclasses UnionFind and defines groups(), which builds a dict from self.find(x) for every index in 0..<len(self.parent), grouping employees by their root. The tests set parent arrays directly and assert the resulting head-to-members mapping across several shapes (two heads, one head, unmerged, chains, every-third). The run exited 0 with all assertions passing, and the contract of one find per employee with no pairwise comparison or sort is satisfied.",
+      "seconds": 84
     }
   }
 }
