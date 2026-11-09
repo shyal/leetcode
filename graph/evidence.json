@@ -44308,6 +44308,21 @@
       "note": "Contract unmet: the solution uses memoized recursion over (sign, index) with an outer loop over start positions, not a single O(1)-space pass; it does not exercise the rolling 1D DP the drill targets.",
       "summary": "The mu code defines a memoized recursive helper best(s, i) that adds nums[i]*s plus the max of 0 and the next state with flipped sign, then takes the max over every starting index i. It passes all assertions, including the large 100k-element cases, via memoization. The drill's contract asked for an O(n) single-pass, O(1)-space rolling DP, which this code does not implement; it instead enumerates start positions and recurses with caching.",
       "seconds": 346
+    },
+    "solved/d_Root_By_Earlier_Letter_2026_11_09T21_06_13_794852_00_00Z.mu": {
+      "date": "2026-11-10",
+      "problem": "drill",
+      "drill": "d315",
+      "moves": {
+        "graph-adjacency-build": "clean"
+      },
+      "assist": {
+        "graph-adjacency-build": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Contract met: single O(n) pass over edges marking the child of each parent-child pair by letter comparison, then child.index(false); no per-node root loop.",
+      "summary": "The mu code builds a boolean `child` table of size n and walks the edge list once, marking whichever endpoint has the larger letter as a child; the root is the single index still false. This is an O(n) edge sweep rather than an adjacency build, and it satisfies the required linear-time contract. The notes say 'learning', indicating the solution was given and copied.",
+      "seconds": 106
     }
   }
 }
