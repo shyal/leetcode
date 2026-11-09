@@ -44185,6 +44185,23 @@
       "summary": "The code builds the answer by a recursive backtracking search: at each position it tries digits 1..9, checks the I/D constraint against path[-1], marks the digit in seen, appends to path, recurses, then pops and discards. It returns the first complete path found, which is the lexicographically smallest valid number. The seen set gives O(1) membership and the mark/unmark pattern guards the recursion. LeetCode reports Accepted at 1 ms.",
       "seconds": 514,
       "learning": true
+    },
+    "solved/p24_Swap_Nodes_in_Pairs_2026_11_09T09_20_58_209773_00_00Z.mu": {
+      "date": "2026-11-09",
+      "problem": "24",
+      "moves": {
+        "tree-dfs-recursive": "clean",
+        "ll-pointer-reversal": "clean"
+      },
+      "assist": {
+        "tree-dfs-recursive": "learning",
+        "ll-pointer-reversal": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Recursive re-linking rather than iterative prev/curr reversal, but the pointer flip is present.",
+      "summary": "The solution swaps pairs recursively: swapPairs checks for a missing head or head.next, then sets m.next to the recursive result on c.next and c.next to m, returning c as the new head. This exercises the recursive descent pattern (tree-dfs-recursive shape) and the pointer re-linking of adjacent nodes (ll-pointer-reversal). The notes say 'learning', indicating the solution was given and copied.",
+      "seconds": 276,
+      "learning": true
     }
   }
 }
