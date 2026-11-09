@@ -552,8 +552,7 @@
       "title": "Department Top Three Salaries",
       "file": "sql-window-rank/d61_top_three_per_department.py",
       "after": [
-        "d149",
-        "d150"
+        "d366"
       ],
       "trains": [
         "sql-window-rank",
@@ -1321,7 +1320,8 @@
       "title": "Top Two Distinct Scores",
       "file": "sql-subquery/d150_top_two_distinct_scores.py",
       "after": [
-        "d60"
+        "d60",
+        "d366"
       ],
       "trains": [
         "sql-subquery"
@@ -2940,6 +2940,30 @@
       ],
       "judge": "A Counter over lowercased, letters-only tokens, then buckets indexed by count read from the largest count down; the ties keep first-appearance order because the Counter keeps insertion order.",
       "set": "pramp"
+    },
+    "d365": {
+      "title": "Rank One Players",
+      "file": "sql-filter-select/d365_rank_one_players.py",
+      "after": [
+        "d149"
+      ],
+      "trains": [
+        "sql-filter-select"
+      ],
+      "judge": "A plain WHERE on the stored rank column: rank = 1."
+    },
+    "d366": {
+      "title": "Top Player Per Team",
+      "file": "sql-window-rank/d366_top_player_per_team.py",
+      "after": [
+        "d149",
+        "d365"
+      ],
+      "trains": [
+        "sql-window-rank",
+        "sql-subquery"
+      ],
+      "judge": "The query of d149 (dense_rank partitioned by team, by points descending) is named in a WITH clause, and the query of d365 (rank = 1) reads from it. A WHERE on the window alias in the same query is the failure."
     }
   }
 }
