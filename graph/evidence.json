@@ -44347,6 +44347,18 @@
       "note": "Contract met: the stub's `for r, c in cells(grid)` loop is unchanged and each cell is numbered by O(1) arithmetic `r * n + c`, with no counter carried between cells.",
       "summary": "The solution builds an n\u00d7n grid with `table(n, n)` and walks it with the stub's `for r, c in cells(grid)` loop, assigning each cell `r * n + c` \u2014 a direct row-major flat-index computation from the row and column. This exercises index-conversion in O(1) per cell with no running counter, satisfying the drill contract. The run exited 0 and printed the expected 4\u00d74 grid; the notes are empty.",
       "seconds": 63
+    },
+    "solved/d_Ring_Distance_2026_11_09T21_11_11_303681_00_00Z.mu": {
+      "date": "2026-11-10",
+      "problem": "drill",
+      "drill": "d322",
+      "moves": {
+        "index-conversion": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "O(1) arithmetic: c = abs(a-b), answer min(c, m-c); no loop, meets the contract.",
+      "summary": "The mu code computes the ring distance in O(1) as min(abs(a-b), m - abs(a-b)), using modular wraparound arithmetic rather than any loop over k. All assertions pass, including the large-m cases. The contract's O(1) arithmetic requirement is met.",
+      "seconds": 56
     }
   }
 }
