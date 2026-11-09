@@ -366,6 +366,17 @@ difference from a problem: a struggled rep opens a card. A problem leaves a
 struggle to the node curve, and a bank file has no node curve of its own.
 A set not named, or any word but `problem`, runs SM-2.
 
+## Set order (`KG_SET_ORDER`)
+
+`KG_SET_ORDER=epi` in `.envrc` names the sets whose files are met for the
+first time in id order. The EPI bank (d367 to d535, 2026-11-10) is chapters 4
+to 18 of Elements of Programming Interviews in Python, and its ids are the
+book's order, so the new file of the day is the next problem in the book. A
+file of the set waits while a file of the same set with a lower id has no rep.
+A disabled file does not hold the files after it. `KG_SET_NEW_CAP` still
+decides how many come in a day, and reviews are not in the order.
+`kg::drills::set_order_held` is the rule.
+
 ## Daily problem cap (`MAX_PROBLEMS`)
 
 `MAX_PROBLEMS=1` in `.envrc` is how many problems, first sights and reviews

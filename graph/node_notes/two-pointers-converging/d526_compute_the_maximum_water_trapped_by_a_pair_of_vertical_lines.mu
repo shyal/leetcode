@@ -1,0 +1,11 @@
+# REFERENCE: d526 EPI 17.7 Compute the maximum water trapped by a pair of vertical lines
+class Solution
+  def get_max_trapped_water(heights: [int]) -> int
+    i, j = 0, len(heights) - 1
+    ret best = 0
+    while i < j
+      best = max(best, min(heights[i], heights[j]) * (j - i))
+      if heights[i] < heights[j]
+        i += 1
+      else
+        j -= 1

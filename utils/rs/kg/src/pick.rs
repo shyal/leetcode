@@ -91,7 +91,9 @@
 //      get solved. With both budgets spent the picker falls through to its
 //      problem rules. Unset, the default, is no cap. KG_SET_REVIEW_CAP
 //      (e.g. pramp=1) is the same cap per set, the other half of
-//      KG_SET_NEW_CAP.
+//      KG_SET_NEW_CAP. KG_SET_ORDER (e.g. epi) holds an unseen file of the
+//      set while a file of the set with a lower id has no rep, so the EPI
+//      bank is met in book order (2026-11-10).
 //   0b. park full (MAX_ASLEEP problems asleep): review is served as
 //      usual, new ground is not. A pick that is new ground (rule 3, 4, 5, 6
 //      or a plan item that is) is withheld and the parked list is printed

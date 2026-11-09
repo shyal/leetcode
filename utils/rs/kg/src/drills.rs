@@ -252,6 +252,7 @@ pub fn new_drills_ready(ctx: &Ctx, ev: &Evidence, day: NaiveDate) -> usize {
             !capped
                 && group_new_left(ctx, p, ev, day).is_none_or(|l| l > 0)
                 && set_new_left(ctx, p, ev, day).is_none_or(|l| l > 0)
+                && !set_order_held(ctx, p, ev)
                 && !servable_drills(ctx, std::slice::from_ref(p), ev, own, false).is_empty()
         })
         .count();
@@ -1423,7 +1424,50 @@ pub fn set_review_left(ctx: &Ctx, path: &Path, ev: &Evidence, day: NaiveDate) ->
     Some(cap - set_reps(ctx, &set, ev, day).1)
 }
 
-/// kg_lib.drill_capped: the day's budget for this file is spent.
+/// KG_SET_ORDER, "epi": the sets whose files are met for the first time
+/// in id order. The ids of the EPI bank are the book's order, so the new
+/// file of the day is the next problem in the book (2026-11-10).
+pub fn ordered_sets() -> Vec<String> {
+    env_str("KG_SET_ORDER")
+        .split(',')
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .collect()
+}
+
+/// The sort key of a drill id: d9 before d10. An id that is not d and a
+/// number sorts after every numbered id, by its text.
+pub(crate) fn id_order(id: &str) -> (u64, String) {
+    let num = id.strip_prefix('d').and_then(|n| n.parse::<u64>().ok());
+    (num.unwrap_or(u64::MAX), id.to_string())
+}
+
+/// The file belongs to a set in KG_SET_ORDER and a file of the same set
+/// with a lower id is not drilled yet. A disabled file is never served,
+/// so it does not hold the files after it.
+pub fn set_order_held(ctx: &Ctx, path: &Path, ev: &Evidence) -> bool {
+    let Some(set) = drill_set(ctx, path) else {
+        return false;
+    };
+    if !ordered_sets().contains(&set) {
+        return false;
+    }
+    let Some(own) = ctx.drill_id(path) else {
+        return false;
+    };
+    let own = id_order(&own);
+    ctx.drills.iter().any(|(id, d)| {
+        d.set == set
+            && !d.disabled
+            && id_order(id) < own
+            && ctx
+                .drill_path(id)
+                .is_some_and(|p| last_drilled(ctx, &p, ev).is_empty())
+    })
+}
+
+/// kg_lib.drill_capped: the day's budget for this file is spent, or the
+/// file waits for a file before it in its set (KG_SET_ORDER).
 pub fn drill_capped(ctx: &Ctx, path: &Path, ev: &Evidence, day: NaiveDate) -> bool {
     let spent = |left: Option<i64>| left.is_some_and(|l| l <= 0);
     if !last_drilled(ctx, path, ev).is_empty() {
@@ -1432,6 +1476,7 @@ pub fn drill_capped(ctx: &Ctx, path: &Path, ev: &Evidence, day: NaiveDate) -> bo
         spent(new_drills_left(ev, day))
             || spent(group_new_left(ctx, path, ev, day))
             || spent(set_new_left(ctx, path, ev, day))
+            || set_order_held(ctx, path, ev)
     }
 }
 

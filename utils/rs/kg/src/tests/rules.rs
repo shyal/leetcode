@@ -11,7 +11,7 @@ use crate::data::{test_env, Assist};
 use crate::drills::{
     drill_review_cap, drill_reviews_left, drill_reviews_today, group_caps, group_new_caps,
     group_new_left, group_reps, new_drill_cap, new_drills_left, new_drills_today, problems_left,
-    problems_today, set_new_left, set_reps,
+    id_order, problems_today, set_new_left, set_reps,
 };
 use crate::pick::{ready_hards, routed_around, starved};
 use crate::recog::{self, Recog, RecogRec};
@@ -605,6 +605,47 @@ fn the_set_caps_hold_one_bank_apart_from_the_rest() {
         set_new_left(&ctx, Path::new("drills/q1/a.py"), &ev, today()),
         Some(1)
     );
+}
+
+/// KG_SET_ORDER=epi (2026-11-10): the files of the set are met for the
+/// first time in id order, so the clock's own order does not decide which
+/// new file comes next. Ids d9 and d10 compare as numbers.
+#[test]
+fn an_ordered_set_meets_its_files_in_id_order() {
+    let mut fx = Fx::picker();
+    test_env("DRILL_SCHEDULER", "anki");
+    fx.nodes(&["q1", "q2", "q3"]).problems(vec![
+        ("1", problem(&["q1"])),
+        ("2", problem(&["q2"])),
+        ("3", problem(&["q3"])),
+    ]);
+    let st = statuses(&[
+        ("q1", SOLID, Some(1)),
+        ("q2", SOLID, Some(1)),
+        ("q3", SOLID, Some(1)),
+    ]);
+    fx.stubs().clock = vec![
+        (PathBuf::from("drills/q1/a.py"), "q1".into()),
+        (PathBuf::from("drills/q2/b.py"), "q2".into()),
+        (PathBuf::from("drills/q3/c.py"), "q3".into()),
+    ];
+    // ids t:Z, t:M, t:A: in id order c.py is first and a.py last
+    fx.titled(&[("q1/a.py", "Z"), ("q2/b.py", "M"), ("q3/c.py", "A")])
+        .in_set(&["Z", "M", "A"], "epi");
+    // no order: a.py leads the clock
+    assert_eq!(pnum(&fx.run(&no_evidence(), &st, args())), "drill:q1");
+    test_env("KG_SET_ORDER", "epi");
+    assert_eq!(pnum(&fx.run(&no_evidence(), &st, args())), "drill:q3");
+    // c.py done clean today: b.py is the next file in id order
+    let c3 = drill_file(
+        "solved/d_A_2026_01_02T00_00_00_000000_00_00Z.py",
+        "q3",
+        3,
+        Assist::None,
+    );
+    assert_eq!(pnum(&fx.run(&evidence(vec![c3]), &st, args())), "drill:q2");
+    assert!(id_order("d9") < id_order("d10"));
+    assert!(id_order("d10") < id_order("t:A"));
 }
 
 /// With the day's new drills and its reviews both spent, the bank is
