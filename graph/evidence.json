@@ -44270,6 +44270,18 @@
       "note": "Contract met: WITH clause names the ranked query, outer query filters rnk = 1; no GROUP BY, no WHERE subquery.",
       "summary": "The mu solution builds a CTE `Ranked` using rank() over (partition by team order by points desc), then selects name and team from it where rnk = 1. This exercises the window-rank move and the WITH/subquery move, and both example assertions pass. The contract's O(n log n) shape with a named WITH clause and no GROUP BY or WHERE subquery is satisfied.",
       "seconds": 504
+    },
+    "solved/d_Swap_First_Two_2026_11_09T20_34_30_844741_00_00Z.mu": {
+      "date": "2026-11-10",
+      "problem": "drill",
+      "drill": "d108",
+      "moves": {
+        "ll-dummy-splice": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "No dummy node used, but the contract (O(1) space, in-place relink, no val writes) is met by relinking m.next and c.next directly.",
+      "summary": "The mu code swaps the first two nodes by holding m=head and c=head.next, then relinking m.next to c.next and c.next to m, returning c as the new head. It guards the empty and single-node cases. This is an in-place relink with O(1) extra space and no writes to val, satisfying the drill contract, and all assertions passed.",
+      "seconds": 64
     }
   }
 }
