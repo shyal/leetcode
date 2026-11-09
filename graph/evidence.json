@@ -43966,6 +43966,18 @@
       "note": "Contract unmet: the code uses the loop counter i from cells(grid) instead of computing r*n + c from n, r, c; the number is carried from cell to cell rather than derived by O(1) arithmetic.",
       "summary": "The solution builds an n\u00d7n grid with table(n, n) and fills it by iterating cells(grid), assigning the running counter i to grid[r][c]. The output is correct for all assertions, but the value comes from the enumeration counter, not from arithmetic on n, r and c, so the required index-conversion move (r*n + c) is not exercised. No notes were provided.",
       "seconds": 78
+    },
+    "solved/d_Negative_Positive_Pairs_2026_11_09T01_42_20_811640_00_00Z.mu": {
+      "date": "2026-11-09",
+      "problem": "drill",
+      "drill": "d310",
+      "moves": {
+        "pair-count-formula": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Counts negatives in a and positives in b with folds, then multiplies the two group sizes; O(len(a)+len(b)), no pair loop.",
+      "summary": "The solution counts negative elements in a and positive elements in b using two folds, then multiplies the two counts to get the number of cross pairs. This is the pair-count-formula move (a*b across two groups) done in linear time with no loop over pairs, meeting the contract. All assertions passed.",
+      "seconds": 114
     }
   }
 }
