@@ -44109,6 +44109,18 @@
       "note": "Only the first print is active; the assertion battery is commented out, so the run exercised just the [1,1,1],2 case.",
       "summary": "The mu code keeps a dict D of prefix-sum counts seeded with D[0]=1, then walks nums accumulating prefix, adds D[prefix - k] to res, and records D[prefix] += 1. This is the prefix-sum-hashmap shape: at each element it queries the past for prefix-k before recording the current prefix. The run printed 2 for [1,1,1] with k=2; the remaining assertions are commented out, so only that one case was checked.",
       "seconds": 126
+    },
+    "solved/d_Prefix_Letter_Sets_2026_11_09T03_01_38_651997_00_00Z.mu": {
+      "date": "2026-11-09",
+      "problem": "drill",
+      "drill": "d312",
+      "moves": {
+        "prefix-sums": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "scan(set.union, ...) folds the per-character sets left-to-right, so each entry is the previous entry united with s[i] in one pass; no prefix is rebuilt from scratch.",
+      "summary": "The code builds a set per character and folds them with scan(set.union, ...), producing each prefix set as the union of the prior prefix and the current character in a single pass. This meets the drill contract: one pass, each entry derived from the previous entry rather than rebuilt. All assertions pass, including the 2000-character case.",
+      "seconds": 58
     }
   }
 }
