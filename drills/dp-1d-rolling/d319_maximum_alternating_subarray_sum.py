@@ -7,22 +7,22 @@ subtracted.
 
 Example 1:
 
-Input: nums = [-54, 77, 97]
-Output: 97
-Explanation: the subarray [97]; the whole array gives -54 - 77 + 97 = -34.
+Input: nums = [1, 2, 3]
+Output: 3
+Explanation: the subarray [3]; the whole array gives 1 - 2 + 3 = 2.
 
 Example 2:
 
-Input: nums = [10, -100]
-Output: 110
-Explanation: the whole array, 10 - (-100); the answer ends on a
-subtracted element.
+Input: nums = [1, -5]
+Output: 6
+Explanation: the whole array, 1 - (-5); the answer ends on a subtracted
+element.
 
 Example 3:
 
-Input: nums = [3, 8, 1, 9]
-Output: 16
-Explanation: the subarray [8, 1, 9], 8 - 1 + 9.
+Input: nums = [2, 5, 1, 4]
+Output: 8
+Explanation: the subarray [5, 1, 4], 5 - 1 + 4.
 
 Constraints:
 
@@ -41,11 +41,11 @@ class Solution:
 
 sol = Solution()
 
-print(sol.maxAlternatingSum([-54, 77, 97]))  # 97
+print(sol.maxAlternatingSum([1, 2, 3]))  # 3
 
-# assert sol.maxAlternatingSum([-54, 77, 97]) == 97
-# assert sol.maxAlternatingSum([10, -100]) == 110
-# assert sol.maxAlternatingSum([3, 8, 1, 9]) == 16
+# assert sol.maxAlternatingSum([1, 2, 3]) == 3
+# assert sol.maxAlternatingSum([1, -5]) == 6
+# assert sol.maxAlternatingSum([2, 5, 1, 4]) == 8
 # assert sol.maxAlternatingSum([5, -5, 1]) == 11
 # assert sol.maxAlternatingSum([4, 7]) == 7
 # assert sol.maxAlternatingSum([-72]) == -72

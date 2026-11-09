@@ -44026,6 +44026,25 @@
       "note": "Contract met: single O(n) index loop, no Math.max, no indexOf.",
       "summary": "The function indexOfLargest walks nums with a for (let i = 0; i < nums.length; i++) loop, tracking the best value in val and its position in ind, returning ind. It uses the index loop the drill targets, with no Math.max or indexOf, and the assertions pass.",
       "seconds": 146
+    },
+    "solved/d_Maximum_Alternating_Subarray_Sum_2026_11_09T02_18_40_476151_00_00Z.mu": {
+      "date": "2026-11-09",
+      "problem": "drill",
+      "drill": "d319",
+      "moves": {
+        "memoize-recursion": "clean",
+        "dp-state-formulate": "clean",
+        "dp-1d-rolling": "clean"
+      },
+      "assist": {
+        "memoize-recursion": "learning",
+        "dp-state-formulate": "learning",
+        "dp-1d-rolling": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Contract not met: the solution is memoized recursion over (i, sign) with a max over all start indices, not an O(1)-space single-pass rolling DP; the target dp-1d-rolling is not exercised.",
+      "summary": "The mu code defines a memoized `best(i, s)` recurrence that either stops at index i or continues with the opposite sign, then takes the max over every starting index. It also builds a decision-tree graph in `viz` for visualization. The notes say 'Learning', and the approach is top-down memoization rather than the required O(n) single-pass O(1)-space rolling DP, so the drill's contract is not satisfied.",
+      "seconds": 1683
     }
   }
 }
