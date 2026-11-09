@@ -44202,6 +44202,20 @@
       "summary": "The solution swaps pairs recursively: swapPairs checks for a missing head or head.next, then sets m.next to the recursive result on c.next and c.next to m, returning c as the new head. This exercises the recursive descent pattern (tree-dfs-recursive shape) and the pointer re-linking of adjacent nodes (ll-pointer-reversal). The notes say 'learning', indicating the solution was given and copied.",
       "seconds": 276,
       "learning": true
+    },
+    "solved/p1249_Minimum_Remove_to_Make_Valid_Parentheses_2026_11_09T10_17_20_356956_00_00Z.mu": {
+      "date": "2026-11-09",
+      "problem": "1249",
+      "moves": {
+        "stack-matching": "clean",
+        "set-membership": "clean",
+        "streaming-ask-then-record": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Uses a stack of (index, char) for unmatched opens and a set of removal indices; the follow-up asks for O(n) without extra stack, which this does not meet.",
+      "summary": "The code scans s once, pushing (index, '(') onto st for opens, popping on a matching close, and adding the index of any unmatched ')' to rm_keys; leftover stack indices are then added to rm_keys. A generator join rebuilds the string skipping indices in rm_keys, exercising stack matching and set membership. LeetCode reports Accepted (55 ms, 20.8 MB) and all local assertions pass; no notes were given.",
+      "seconds": 994,
+      "learning": true
     }
   }
 }
