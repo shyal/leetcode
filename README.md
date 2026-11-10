@@ -98,7 +98,7 @@ Solves, drills and commits, read from the git history of this repository.
 
 <!-- COMMITS_CHART -->
 
-![Tooling commits versus solves](https://shyal.s3.amazonaws.com/commits_20261110182820.svg)
+![Tooling commits versus solves](https://shyal.s3.amazonaws.com/commits_20261110184327.svg)
 
 <!-- /COMMITS_CHART -->
 
@@ -116,6 +116,7 @@ The model has one curve for all groups of techniques. The next chart shows, for 
 
 <!-- RESIDUALS_CHART -->
 
+![Residuals per group over time: observed minus predicted recall, in standard deviations](https://shyal.s3.amazonaws.com/residuals_20261110184327.svg)
 <!-- /RESIDUALS_CHART -->
 
 ## Earlier charts
