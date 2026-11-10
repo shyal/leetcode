@@ -266,6 +266,50 @@ impl Params {
 }
 
 /// kg_curve.loglik: the weighted mean log-likelihood (Python's sequential sums).
+/// One gap bucket of the calibration: the model's mean prediction against
+/// the observed unaided-recall rate over the trials with lo <= gap <= hi.
+/// `se` is the standard error of the observed rate under the model,
+/// sqrt(sum p(1-p)) / n.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Bucket {
+    pub lo: i64,
+    pub hi: i64,
+    pub model: f64,
+    pub observed: f64,
+    pub se: f64,
+    pub n: usize,
+}
+
+/// The calibration over GAP_BUCKETS; a bucket with no trial is left out.
+pub fn calibration(trials: &[Trial], p: &Params) -> Vec<Bucket> {
+    let mut out = Vec::new();
+    for (lo, hi) in GAP_BUCKETS {
+        let preds: Vec<(f64, f64)> = trials
+            .iter()
+            .filter(|t| lo <= t.gap && t.gap <= hi)
+            .map(|t| {
+                (
+                    p.pred(t.gap, t.cleans, t.struggles, t.assist, Some(t.conn)),
+                    t.success as f64,
+                )
+            })
+            .collect();
+        if preds.is_empty() {
+            continue;
+        }
+        let n = preds.len() as f64;
+        out.push(Bucket {
+            lo,
+            hi,
+            model: preds.iter().map(|x| x.0).sum::<f64>() / n,
+            observed: preds.iter().map(|x| x.1).sum::<f64>() / n,
+            se: preds.iter().map(|x| x.0 * (1.0 - x.0)).sum::<f64>().sqrt() / n,
+            n: preds.len(),
+        });
+    }
+    out
+}
+
 fn loglik(trials: &[Trial], p: &Params, weights: Option<&[f64]>) -> f64 {
     let mut num = 0.0;
     let mut den = 0.0;
@@ -754,7 +798,7 @@ fn mtime(p: &std::path::Path) -> Option<std::time::SystemTime> {
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     if args.iter().any(|a| a == "-h" || a == "--help") {
-        println!("usage: kg_curve [--if-stale] [--since YYYY-MM-DD] [--half-life DAYS] [--solve-report] [--solve-rows-json]");
+        println!("usage: kg_curve [--if-stale] [--since YYYY-MM-DD] [--half-life DAYS] [--solve-report] [--solve-rows-json] [--calibration-json]");
         return;
     }
     let root = repo_root();
@@ -777,6 +821,7 @@ fn main() {
     let if_stale = args.iter().any(|a| a == "--if-stale");
     let rows_json = args.iter().any(|a| a == "--solve-rows-json");
     let report = args.iter().any(|a| a == "--solve-report");
+    let calibration_json = args.iter().any(|a| a == "--calibration-json");
     // knobs["half_life"]: `args.half_life or 0`, the int 0 when off
     let knob_half = if half_life == 0.0 {
         json!(0)
@@ -835,6 +880,48 @@ fn main() {
     }
 
     let dated = extract_trials(&ctx, &ev, &pv);
+    if calibration_json {
+        // the bridge for kg_readme calibration: the curve in graph/curve.json
+        // against the trials it was fitted on (the knobs the file records)
+        let curve = ctx.curve.as_ref().expect("graph/curve.json");
+        let p = Params {
+            a: curve.a,
+            b: curve.b,
+            c: curve.c,
+            d: curve.d,
+            e: curve.e,
+            conn_mean: curve.conn_mean,
+            beta: curve.beta,
+            slip: curve.slip,
+        };
+        let knobs = curve.raw.get("fit").cloned().unwrap_or_else(|| json!({}));
+        let since = knobs.get("since").and_then(Value::as_str).map(parse_date);
+        let half = knobs
+            .get("half_life")
+            .and_then(Value::as_f64)
+            .filter(|h| *h > 0.0);
+        let (trials, _) = select_trials(&dated, since, half);
+        let buckets: Vec<Value> = calibration(&trials, &p)
+            .iter()
+            .map(|b| {
+                json!({
+                    "lo": b.lo,
+                    "hi": b.hi,
+                    "model": b.model,
+                    "observed": b.observed,
+                    "se": b.se,
+                    "n": b.n,
+                })
+            })
+            .collect();
+        let out = json!({
+            "since": knobs.get("since").cloned().unwrap_or(Value::Null),
+            "trials": trials.len(),
+            "buckets": buckets,
+        });
+        println!("{}", dumps(&out, None));
+        return;
+    }
     let since = since_s.as_deref().map(parse_date);
     let (trials, weights) = select_trials(
         &dated,
@@ -983,25 +1070,14 @@ fn main() {
         ));
     }
     say("calibration (model mean vs observed unaided-recall rate):");
-    for (lo, hi) in GAP_BUCKETS {
-        let rows: Vec<&Trial> = trials
-            .iter()
-            .filter(|t| lo <= t.gap && t.gap <= hi)
-            .collect();
-        if rows.is_empty() {
-            continue;
-        }
-        let obs = rows.iter().map(|t| t.success as f64).sum::<f64>() / rows.len() as f64;
-        let model = rows
-            .iter()
-            .map(|t| p.pred(t.gap, t.cleans, t.struggles, t.assist, Some(t.conn)))
-            .sum::<f64>()
-            / rows.len() as f64;
+    for b in calibration(&trials, &p) {
         say(&format!(
-            "  gap {lo:3}-{hi:3}d: model {:>4}  observed {:>4}  (n={})",
-            pct(model),
-            pct(obs),
-            rows.len()
+            "  gap {:3}-{:3}d: model {:>4}  observed {:>4}  (n={})",
+            b.lo,
+            b.hi,
+            pct(b.model),
+            pct(b.observed),
+            b.n
         ));
     }
     if let Some(feats) = solve
@@ -1075,6 +1151,32 @@ mod tests {
     }
 
     /// utils/tests/test_kg_curve.py, moved here with the fitter.
+    #[test]
+    fn calibration_groups_trials_by_gap_and_skips_an_empty_bucket() {
+        // beta 0: every prediction is 1 - slip
+        let p = Params {
+            a: 3.0,
+            b: 0.0,
+            c: 0.0,
+            d: 0.0,
+            e: 0.0,
+            conn_mean: 4.0,
+            beta: 0.0,
+            slip: 0.2,
+        };
+        let d = day(2026, 7, 1);
+        let trials = vec![dated(3, 1, d), dated(5, 0, d), dated(30, 1, d)];
+        let cal = calibration(&trials, &p);
+        assert_eq!(
+            cal.iter().map(|b| (b.lo, b.hi, b.n)).collect::<Vec<_>>(),
+            vec![(1, 7, 2), (22, 42, 1)]
+        );
+        assert!((cal[0].model - 0.8).abs() < 1e-12);
+        assert!((cal[0].observed - 0.5).abs() < 1e-12);
+        assert!((cal[0].se - (2.0f64 * 0.16).sqrt() / 2.0).abs() < 1e-12);
+        assert!((cal[1].observed - 1.0).abs() < 1e-12);
+    }
+
     #[test]
     fn no_knobs_returns_all_trials_unweighted() {
         let rows = vec![
