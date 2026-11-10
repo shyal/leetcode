@@ -13,12 +13,13 @@
 //
 // <chart> is one of gauges, contest, elo, streak, rank, rate, problem-rating,
 // backlog, problem-rating-month, hours, onsite, progress, rates, commits,
-// calibration, residuals.
+// calibration, residuals, positions.
 // The README shows the gauges, the contest badge, the Elo charts (live
 // again 2026-10-27; the badges stay drawable by name and feed make elo and
 // make prog), the two volume charts (rates, commits; 2026-11-10) and the
-// curve calibration and the residuals per group (2026-11-10). The forecast
-// flags reach problem-rating and backlog, which share the cached runs.
+// curve calibration, the residuals per group and the positions of the
+// nodes on their curves (2026-11-10). The forecast flags reach
+// problem-rating and backlog, which share the cached runs.
 //
 // Ported from the utils/readme/*_svg scripts and update_readme.py
 // (Python) on 2026-09-13.
@@ -32,6 +33,7 @@ mod elo;
 mod gauges;
 mod hours;
 mod onsite;
+mod positions;
 mod problem_rating;
 mod prog;
 mod progress;
@@ -48,7 +50,7 @@ use kg::data::{load_envrc, repo_root};
 use kg::evidence::Evidence;
 
 /// What `make readme` draws: the charts README.md shows.
-const CHARTS: [&str; 13] = [
+const CHARTS: [&str; 14] = [
     "gauges",
     "contest",
     "rate",
@@ -62,10 +64,11 @@ const CHARTS: [&str; 13] = [
     "commits",
     "calibration",
     "residuals",
+    "positions",
 ];
 
 /// Every chart, for `kg_readme <chart>` and the usage line.
-const ALL: [&str; 16] = [
+const ALL: [&str; 17] = [
     "gauges",
     "contest",
     "elo",
@@ -82,6 +85,7 @@ const ALL: [&str; 16] = [
     "commits",
     "calibration",
     "residuals",
+    "positions",
 ];
 
 fn main() {
@@ -118,6 +122,7 @@ fn main() {
             "commits" => volume::render_commits(&ctx),
             "calibration" => calibration::render(&ctx),
             "residuals" => residuals::render(&ctx),
+            "positions" => positions::render(&ctx, &ev),
             "update" => update::run(&ctx, &ev),
             "rank-table" => rank_fetch::run(&ctx),
             "now" => dash::run(&ctx, &ev, args.iter().any(|a| a == "--once")),

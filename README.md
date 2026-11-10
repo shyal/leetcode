@@ -119,6 +119,13 @@ The model has one curve for all groups of techniques. The next chart shows, for 
 ![Residuals per group over time: observed minus predicted recall, in standard deviations](https://shyal.s3.amazonaws.com/residuals_20261110184327.svg)
 <!-- /RESIDUALS_CHART -->
 
+The next chart shows where each technique node is on its curve today. Each line is the curve of one node: the memory component (1 + Δ/s)^(-β) against the days since the last clean rep. A node with a larger stability s has a flatter curve. A node is solid while its memory is at or above the target retention, and stale below it. A node whose last rep was a fail is fragile and is not on a curve.
+
+<!-- POSITIONS_CHART -->
+
+![Nodes on their forgetting curves today: memory against days since the last clean rep](https://shyal.s3.amazonaws.com/positions_20261110205104.svg)
+<!-- /POSITIONS_CHART -->
+
 ## Earlier charts
 
 These charts are frozen copies from earlier versions of this README. Their renderers were deleted on 2026-09-20 with the Python library they used, and the models that drew them have changed since. Before 2026-10, the picker gated what it served, and that gate made the pass and readiness numbers too high. The charts above are redrawn by every `make readme`.
@@ -136,8 +143,6 @@ The picker served a problem only when its input tree had one fragile or stale no
 ### The forgetting curve (2026-09-01)
 
 The model is power-law forgetting with a slip rate: P(recall) = (1 - slip) * (1 + Δ/s)^(-β). The stability s increases with each clean rep and decreases with each fail. The model compares its predictions with the results, per group and over time.
-
-![Nodes sliding down their forgetting curves](https://shyal.s3.amazonaws.com/positions_20260901231024.svg)
 
 ![Review timing](https://shyal.s3.amazonaws.com/review_timing_20260901231024.svg)
 

@@ -109,8 +109,39 @@ pub fn node_curve(
             )
         })
         .collect();
-    let (st, recall, memory) = curve_of(ctx, node, entries, today);
+    let (st, recall, memory, _) = curve_of(ctx, node, entries, today);
     (st.0, st.1, recall, memory)
+}
+
+/// Where a node is on its forgetting curve: (status, days since the last
+/// clean rep, stability in days, memory). None for a node that is not on
+/// a curve: no clean rep, a fail after the last clean rep, or no fitted
+/// curve.
+pub fn node_position(
+    ctx: &Ctx,
+    node: &str,
+    ev: &Evidence,
+    today: NaiveDate,
+) -> Option<(Status, f64, f64, f64)> {
+    ctx.curve.as_ref()?;
+    let entries: Vec<(NaiveDate, &str, &str, &str)> = ev
+        .node_entries(node)
+        .iter()
+        .map(|e| {
+            (
+                e.date,
+                e.verdict.as_str(),
+                e.assist.as_str(),
+                ev.fname(e.idx),
+            )
+        })
+        .collect();
+    let (st, _, memory, stability) = curve_of(ctx, node, entries, today);
+    if st.0 != SOLID && st.0 != STALE {
+        return None;
+    }
+    let gap = (today - st.1?).num_days().max(0) as f64;
+    Some((st.0, gap, stability, memory))
 }
 
 /// The curve over one node's (date, verdict, assist, fname) entries.
@@ -119,9 +150,9 @@ fn curve_of(
     node: &str,
     mut entries: Vec<(NaiveDate, &str, &str, &str)>,
     today: NaiveDate,
-) -> ((Status, Option<NaiveDate>), f64, f64) {
+) -> ((Status, Option<NaiveDate>), f64, f64, f64) {
     if entries.is_empty() {
-        return ((MISSING, None), 0.0, 0.0);
+        return ((MISSING, None), 0.0, 0.0, 0.0);
     }
     entries.sort();
     let (last_date, last_verdict, _, _) = *entries.last().unwrap();
@@ -133,10 +164,10 @@ fn curve_of(
     if (last_verdict == "struggled" || last_verdict == "avoided")
         && clean_dates.last().is_none_or(|c| *c < last_date)
     {
-        return ((FRAGILE, Some(last_date)), 0.0, 0.0);
+        return ((FRAGILE, Some(last_date)), 0.0, 0.0, 0.0);
     }
     if clean_dates.is_empty() {
-        return ((FRAGILE, Some(last_date)), 0.0, 0.0);
+        return ((FRAGILE, Some(last_date)), 0.0, 0.0, 0.0);
     }
     let clean_last = *clean_dates.last().unwrap();
     if let Some(cv) = &ctx.curve {
@@ -162,12 +193,12 @@ fn curve_of(
         } else {
             STALE
         };
-        return ((status, Some(clean_last)), recall, memory);
+        return ((status, Some(clean_last)), recall, memory, stability);
     }
     if today - clean_last <= Duration::days(SOLID_WINDOW_DAYS) {
-        ((SOLID, Some(clean_last)), 1.0, 1.0)
+        ((SOLID, Some(clean_last)), 1.0, 1.0, 0.0)
     } else {
-        ((STALE, Some(clean_last)), 0.0, 0.0)
+        ((STALE, Some(clean_last)), 0.0, 0.0, 0.0)
     }
 }
 
