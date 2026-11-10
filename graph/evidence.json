@@ -44505,6 +44505,19 @@
       ],
       "seconds": 481,
       "learning": true
+    },
+    "solved/d_Top_Player_Per_Team_2026_11_10T23_37_55_268487_00_00Z.mu": {
+      "date": "2026-11-11",
+      "problem": "drill",
+      "drill": "d366",
+      "moves": {
+        "sql-window-rank": "clean",
+        "sql-subquery": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Contract met: WITH clause names the ranked query, outer WHERE filters rnk = 1; no GROUP BY, no subquery in WHERE. Uses rank() rather than dense_rank() but ties at top still both return.",
+      "summary": "The query builds a CTE Ranked that applies rank() over (partition by team order by points desc), then selects name and team from Ranked where rnk = 1. This exercises window ranking and a WITH-clause subquery read by the outer query, satisfying the O(n log n) contract without GROUP BY or a WHERE subquery. Both example assertions passed.",
+      "seconds": 323
     }
   }
 }
