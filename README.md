@@ -112,6 +112,12 @@ The model is power-law forgetting with a slip rate: P(recall) = (1 - slip) * (1 
 
 <!-- /CURVE_CALIBRATION_CHART -->
 
+The model has one curve for all groups of techniques. The next chart shows, for each group, the sum of observed recall minus predicted recall over time, in standard deviations (z). A group below -2 forgets faster than the curve predicts. A group above +2 recalls better than the curve predicts. The white line is all groups together.
+
+<!-- RESIDUALS_CHART -->
+
+<!-- /RESIDUALS_CHART -->
+
 ## Earlier charts
 
 These charts are frozen copies from earlier versions of this README. Their renderers were deleted on 2026-09-20 with the Python library they used, and the models that drew them have changed since. Before 2026-10, the picker gated what it served, and that gate made the pass and readiness numbers too high. The charts above are redrawn by every `make readme`.
@@ -131,8 +137,6 @@ The picker served a problem only when its input tree had one fragile or stale no
 The model is power-law forgetting with a slip rate: P(recall) = (1 - slip) * (1 + Δ/s)^(-β). The stability s increases with each clean rep and decreases with each fail. The model compares its predictions with the results, per group and over time.
 
 ![Nodes sliding down their forgetting curves](https://shyal.s3.amazonaws.com/positions_20260901231024.svg)
-
-![Residuals per group over time](https://shyal.s3.amazonaws.com/residuals_20260901231024.svg)
 
 ![Review timing](https://shyal.s3.amazonaws.com/review_timing_20260901231024.svg)
 
