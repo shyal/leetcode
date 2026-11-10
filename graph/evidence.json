@@ -44559,6 +44559,22 @@
       "note": "One pass with fast/slow n apart, O(1) space, no length count or second walk; contract met.",
       "summary": "The code advances `fast` and `slow` together, with `fast` starting n steps ahead via the `n -= 1` counter, so when `fast` reaches the end `slow` sits on the nth-from-end node and returns `slow.val`. This is a single pass with two pointers n apart and constant extra space, meeting the drill contract. All assertions passed, including the 30000-node cases.",
       "seconds": 79
+    },
+    "solved/d_Maximum_Alternating_Subarray_Sum_2026_11_10T23_57_24_713052_00_00Z.mu": {
+      "date": "2026-11-11",
+      "problem": "drill",
+      "drill": "d319",
+      "moves": {
+        "memoize-recursion": "clean",
+        "dp-1d-rolling": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Contract unmet: uses memoized recursion over (sign, index) with O(n) memo space and a max over all start indices, not an O(1)-space single pass; target dp-1d-rolling not exercised.",
+      "summary": "The code defines a cached recursive helper best(s, i) that returns nums[i]*s plus the max of 0 and the next state with flipped sign, then takes the max over every starting index. It runs correctly on all assertions, but it is memoized recursion with O(n) state rather than the required O(1)-space single pass, so the dp-1d-rolling target is sidestepped. No notes were provided.",
+      "unmapped": [
+        "O(1) space single-pass DP"
+      ],
+      "seconds": 220
     }
   }
 }
