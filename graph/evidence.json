@@ -44423,6 +44423,23 @@
       "note": "O(1) closed form arr[-1] - len arr; no loop, contract met.",
       "summary": "The solution computes the count of missing positive integers in one expression, arr[-1] - len arr, using the fact that a sorted strictly-increasing array of positive ints should hold 1..arr[-1] and the array itself supplies len arr of them. This is the O(1) index-value-gap closed form with no loop, meeting the drill contract. All assertions passed.",
       "seconds": 80
+    },
+    "solved/p2844_Minimum_Operations_to_Make_a_Special_Number_FAILED_2026_11_10T02_04_00_401310_00_00Z.mu": {
+      "date": "2026-11-10",
+      "problem": "2844",
+      "moves": {
+        "string-build-transform": "clean",
+        "derived-key-lookup": "clean",
+        "modular-cycle": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "The trailing comment says FAILED after 59m, but the run exited 0 and all assertions passed; the deletions helper reverses the string and finds the two-digit ending from the back.",
+      "summary": "The code reverses num and, for each of the endings 00/25/50/75, finds the second digit then the first digit to its left, counting deletions as the index of the first digit minus one. It takes the minimum over the four endings, with a fallback of len-1 when a zero exists but no ending is reachable. The moves exercised are string reversal/transform, a derived lookup key (the target ending), and modular reasoning about divisibility by 25. The notes describe the brute-force idea and then the last-two-digits insight; the trailing comment claims failure, but the executed run passed every assertion.",
+      "unmapped": [
+        "reverse-scan for suffix pair"
+      ],
+      "seconds": 3566,
+      "learning": true
     }
   }
 }
