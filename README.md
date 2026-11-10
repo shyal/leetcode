@@ -102,6 +102,14 @@ Solves, drills and commits, read from the git history of this repository.
 
 <!-- /COMMITS_CHART -->
 
+## The forgetting curve
+
+The model is power-law forgetting with a slip rate: P(recall) = (1 - slip) * (1 + Δ/s)^(-β). The stability s increases with each clean rep and decreases with each fail. The chart compares the predictions of the model with the recall results. The recall trials are in groups by the gap since the last rep of the node. A point outside its band shows a gap where the model is wrong.
+
+<!-- CURVE_CALIBRATION_CHART -->
+
+<!-- /CURVE_CALIBRATION_CHART -->
+
 ## Earlier charts
 
 These charts are frozen copies from earlier versions of this README. Their renderers were deleted on 2026-09-20 with the Python library they used, and the models that drew them have changed since. Before 2026-10, the picker gated what it served, and that gate made the pass and readiness numbers too high. The charts above are redrawn by every `make readme`.
@@ -121,8 +129,6 @@ The picker served a problem only when its input tree had one fragile or stale no
 The model is power-law forgetting with a slip rate: P(recall) = (1 - slip) * (1 + Δ/s)^(-β). The stability s increases with each clean rep and decreases with each fail. The model compares its predictions with the results, per group and over time.
 
 ![Nodes sliding down their forgetting curves](https://shyal.s3.amazonaws.com/positions_20260901231024.svg)
-
-![Curve calibration](https://shyal.s3.amazonaws.com/curve_calibration_20260901231024.svg)
 
 ![Residuals per group over time](https://shyal.s3.amazonaws.com/residuals_20260901231024.svg)
 

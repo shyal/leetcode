@@ -503,6 +503,8 @@ drawing-doc:
 # were deleted on 2026-09-20 with the library they used; they live in git
 # history before 2026-09-21, and their charts are frozen copies in the
 # README. The volume charts were ported to Rust on 2026-11-10 and are live.
+# The curve calibration is live since the same day (kg_readme calibration,
+# from kg_curve --calibration-json).
 readme: harness-doc drawing-doc contest-field $(MOCK_BIN) $(MOVIE_BIN) $(RS_BIN)/estimate $(RS_BIN)/kg_predict $(RS_BIN)/kg_curve $(RS_BIN)/kg_simulate $(RS_BIN)/kg_readme
 	@$(MOVIE_BIN) & p=$$!; $(MOVIE_BIN) --map & q=$$!; $(RS_BIN)/kg_readme; s=$$?; wait $$p && wait $$q && [ $$s -eq 0 ]
 	@$(RS_BIN)/estimate

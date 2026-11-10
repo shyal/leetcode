@@ -12,17 +12,19 @@
 //   kg_readme <chart> [--forecast | --no-forecast]
 //
 // <chart> is one of gauges, contest, elo, streak, rank, rate, problem-rating,
-// backlog, problem-rating-month, hours, onsite, progress, rates, commits.
+// backlog, problem-rating-month, hours, onsite, progress, rates, commits,
+// calibration.
 // The README shows the gauges, the contest badge, the Elo charts (live
 // again 2026-10-27; the badges stay drawable by name and feed make elo and
-// make prog) and the two volume charts (rates, commits; 2026-11-10). The
-// forecast flags reach problem-rating and backlog, which share the cached
+// make prog), the two volume charts (rates, commits; 2026-11-10) and the
+// curve calibration (2026-11-10). The forecast flags reach problem-rating and backlog, which share the cached
 // runs.
 //
 // Ported from the utils/readme/*_svg scripts and update_readme.py
 // (Python) on 2026-09-13.
 
 mod backlog;
+mod calibration;
 mod common;
 mod contest;
 mod dash;
@@ -45,7 +47,7 @@ use kg::data::{load_envrc, repo_root};
 use kg::evidence::Evidence;
 
 /// What `make readme` draws: the charts README.md shows.
-const CHARTS: [&str; 11] = [
+const CHARTS: [&str; 12] = [
     "gauges",
     "contest",
     "rate",
@@ -57,10 +59,11 @@ const CHARTS: [&str; 11] = [
     "progress",
     "rates",
     "commits",
+    "calibration",
 ];
 
 /// Every chart, for `kg_readme <chart>` and the usage line.
-const ALL: [&str; 14] = [
+const ALL: [&str; 15] = [
     "gauges",
     "contest",
     "elo",
@@ -75,6 +78,7 @@ const ALL: [&str; 14] = [
     "progress",
     "rates",
     "commits",
+    "calibration",
 ];
 
 fn main() {
@@ -109,6 +113,7 @@ fn main() {
             "progress" => progress::render(&ctx, &ev),
             "rates" => volume::render_rates(&ctx),
             "commits" => volume::render_commits(&ctx),
+            "calibration" => calibration::render(&ctx),
             "update" => update::run(&ctx, &ev),
             "rank-table" => rank_fetch::run(&ctx),
             "now" => dash::run(&ctx, &ev, args.iter().any(|a| a == "--once")),
