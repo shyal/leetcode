@@ -31,8 +31,9 @@ const BUCKET: &str = "shyal";
 // whose Python renderers were deleted on 2026-09-20 stay frozen copies in
 // the README's "Earlier charts" section, except the two volume charts
 // (rates, commits), which volume.rs draws again since 2026-11-10, and the
-// curve calibration, which calibration.rs draws since the same day.
-const CHARTS: [(&str, &str, &str, &str, bool); 16] = [
+// curve calibration and the residuals per group, which calibration.rs and
+// residuals.rs draw since the same day.
+const CHARTS: [(&str, &str, &str, &str, bool); 17] = [
     (
         "graph/gauges.svg",
         "gauges",
@@ -143,6 +144,13 @@ const CHARTS: [(&str, &str, &str, &str, bool); 16] = [
         "curve_calibration",
         "CURVE_CALIBRATION_CHART",
         "Forgetting curve calibration: predicted against observed recall, by gap",
+        false,
+    ),
+    (
+        "graph/residuals.svg",
+        "residuals",
+        "RESIDUALS_CHART",
+        "Residuals per group over time: observed minus predicted recall, in standard deviations",
         false,
     ),
 ];

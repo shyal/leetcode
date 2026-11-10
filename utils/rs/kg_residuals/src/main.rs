@@ -1,6 +1,7 @@
 // kg_residuals - residual diagnostic for the global forgetting curve.
 //
 //   make residuals             # observed - predicted, grouped by wing and node
+//   kg_residuals --series-json # the running z per wing, by date (kg_readme residuals)
 //
 // For every recall trial (same construction as kg_curve.extract_trials, but
 // keeping the node), compute observed - predicted under graph/curve.json.
@@ -17,13 +18,14 @@ use indexmap::IndexMap;
 use kg::ctx::Ctx;
 use kg::data::{assist_weight, load_envrc, parse_date, repo_root, Rec};
 use regex::Regex;
+use serde_json::{json, Value};
 
 const NODE_Z_FLAG: f64 = 1.5; // per-node report threshold
 const NODE_N_MIN: usize = 5;
 const GAP_SPLIT: i64 = 21; // days: short vs long bucket
 
-/// (node, gap_days, success, prior_cleans, prior_struggles, prior_assist)
-type Trial = (String, i64, i64, i64, i64, f64);
+/// (node, gap_days, success, prior_cleans, prior_struggles, prior_assist, date)
+type Trial = (String, i64, i64, i64, i64, f64, String);
 
 fn trials_by_node(recs: &[(String, Rec)]) -> Vec<Trial> {
     let ts_re = Regex::new(r"\d{4}_\d{2}_\d{2}T[\d_]+").unwrap();
@@ -64,7 +66,15 @@ fn trials_by_node(recs: &[(String, Rec)]) -> Vec<Trial> {
                 let gap = (parse_date(d) - last_clean.unwrap()).num_days();
                 if gap >= 1 {
                     let success = i64::from(verdict == "clean" && assist == "none");
-                    out.push((node.clone(), gap, success, cleans, struggles, assisted));
+                    out.push((
+                        node.clone(),
+                        gap,
+                        success,
+                        cleans,
+                        struggles,
+                        assisted,
+                        d.clone(),
+                    ));
                 }
             }
             for (v, a) in reps {
@@ -106,6 +116,37 @@ fn stats(pairs: &[(f64, f64)]) -> Stat {
     (n, obs, exp, z)
 }
 
+/// The running z of one group: (date, z, trials so far) after the trials of
+/// each date, from (date, observed, predicted) in any order.
+fn running(trials: &[(String, f64, f64)]) -> Vec<(String, f64, usize)> {
+    let mut sorted: Vec<&(String, f64, f64)> = trials.iter().collect();
+    sorted.sort_by(|a, b| a.0.cmp(&b.0));
+    let (mut num, mut var) = (0.0f64, 0.0f64);
+    let mut out: Vec<(String, f64, usize)> = Vec::new();
+    for (n, (d, s, p)) in sorted.into_iter().enumerate() {
+        num += s - p;
+        var += p * (1.0 - p);
+        let z = if var > 0.0 { num / var.sqrt() } else { 0.0 };
+        match out.last_mut() {
+            Some(last) if last.0 == *d => *last = (d.clone(), z, n + 1),
+            _ => out.push((d.clone(), z, n + 1)),
+        }
+    }
+    out
+}
+
+/// One group of the series JSON: its name, trial count, last z and points.
+fn series_json(name: &str, trials: &[(String, f64, f64)]) -> Value {
+    let pts = running(trials);
+    let (z, n) = pts.last().map(|p| (p.1, p.2)).unwrap_or((0.0, 0));
+    json!({
+        "group": name,
+        "n": n,
+        "z": z,
+        "points": pts.iter().map(|(d, z, _)| json!([d, z])).collect::<Vec<_>>(),
+    })
+}
+
 fn pct(x: f64) -> String {
     format!("{:.0}%", x * 100.0)
 }
@@ -133,8 +174,16 @@ fn main() {
     // wing -> bucket -> [(obs, p)], in first-seen order like the Python dicts
     let mut agg: IndexMap<String, IndexMap<String, Vec<(f64, f64)>>> = IndexMap::new();
     let mut per_node: IndexMap<String, Vec<(f64, f64)>> = IndexMap::new();
-    for (node, gap, sf, k, m, x) in &trials {
+    // wing -> [(date, obs, p)] and every trial pooled, for --series-json
+    let mut dated: IndexMap<String, Vec<(String, f64, f64)>> = IndexMap::new();
+    let mut pooled: Vec<(String, f64, f64)> = Vec::new();
+    for (node, gap, sf, k, m, x, d) in &trials {
         let p = predict(*gap, *k, *m, *x);
+        dated
+            .entry(wing(node))
+            .or_default()
+            .push((d.clone(), *sf as f64, p));
+        pooled.push((d.clone(), *sf as f64, p));
         agg.entry(wing(node))
             .or_default()
             .entry(bucket(*gap))
@@ -144,6 +193,18 @@ fn main() {
             .entry(node.clone())
             .or_default()
             .push((*sf as f64, p));
+    }
+
+    if std::env::args().any(|a| a == "--series-json") {
+        // the bridge for kg_readme residuals
+        let groups: Vec<Value> = dated.iter().map(|(w, ts)| series_json(w, ts)).collect();
+        let out = json!({
+            "trials": trials.len(),
+            "groups": groups,
+            "pooled": series_json("", &pooled),
+        });
+        println!("{out}");
+        return;
     }
 
     println!("{} trials against curve.json\n", trials.len());
@@ -190,5 +251,52 @@ fn main() {
                 pct(exp)
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn t(d: &str, s: f64, p: f64) -> (String, f64, f64) {
+        (d.to_string(), s, p)
+    }
+
+    #[test]
+    fn running_z_has_one_point_for_each_date_in_date_order() {
+        let pts = running(&[
+            t("2026-06-03", 0.0, 0.5),
+            t("2026-06-01", 1.0, 0.5),
+            t("2026-06-01", 1.0, 0.5),
+        ]);
+        assert_eq!(pts.len(), 2);
+        assert_eq!(pts[0].0, "2026-06-01");
+        // two passes at p = 0.5: (0.5 + 0.5) / sqrt(0.25 + 0.25)
+        assert!((pts[0].1 - 1.0 / 0.5f64.sqrt()).abs() < 1e-9);
+        assert_eq!(pts[0].2, 2);
+        // then one fail: (0.5 + 0.5 - 0.5) / sqrt(0.75)
+        assert!((pts[1].1 - 0.5 / 0.75f64.sqrt()).abs() < 1e-9);
+        assert_eq!(pts[1].2, 3);
+    }
+
+    #[test]
+    fn the_last_running_z_is_the_z_of_stats() {
+        let ts = [
+            t("2026-06-01", 1.0, 0.9),
+            t("2026-06-02", 0.0, 0.8),
+            t("2026-06-05", 1.0, 0.7),
+        ];
+        let pairs: Vec<(f64, f64)> = ts.iter().map(|(_, s, p)| (*s, *p)).collect();
+        let last = running(&ts).last().unwrap().1;
+        assert!((last - stats(&pairs).3).abs() < 1e-9);
+    }
+
+    #[test]
+    fn series_json_carries_the_count_and_the_last_z() {
+        let v = series_json("graphs", &[t("2026-06-01", 1.0, 0.5)]);
+        assert_eq!(v["group"], "graphs");
+        assert_eq!(v["n"], 1);
+        assert_eq!(v["points"][0][0], "2026-06-01");
+        assert_eq!(v["z"], v["points"][0][1]);
     }
 }

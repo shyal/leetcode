@@ -229,6 +229,17 @@ def test_kg_residuals_table():
     assert any("(<=21d)" in l or "(>21d)" in l for l in lines[3:])
 
 
+def test_kg_residuals_series_json():
+    p = run("kg_residuals", "--series-json")
+    assert p.returncode == 0, p.stderr
+    j = json.loads(p.stdout)
+    pooled = j["pooled"]
+    assert pooled["n"] == j["trials"] == sum(g["n"] for g in j["groups"])
+    days = [d for d, _ in pooled["points"]]
+    assert days == sorted(set(days))
+    assert all(g["z"] == g["points"][-1][1] for g in j["groups"])
+
+
 def test_kg_predict_modes_agree():
     text = run("kg_predict", "1.5")
     assert text.returncode == 0, text.stderr
