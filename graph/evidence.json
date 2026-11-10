@@ -44518,6 +44518,23 @@
       "note": "Contract met: WITH clause names the ranked query, outer WHERE filters rnk = 1; no GROUP BY, no subquery in WHERE. Uses rank() rather than dense_rank() but ties at top still both return.",
       "summary": "The query builds a CTE Ranked that applies rank() over (partition by team order by points desc), then selects name and team from Ranked where rnk = 1. This exercises window ranking and a WITH-clause subquery read by the outer query, satisfying the O(n log n) contract without GROUP BY or a WHERE subquery. Both example assertions passed.",
       "seconds": 323
+    },
+    "solved/d_Department_Top_Three_Salaries_2026_11_10T23_48_37_650118_00_00Z.mu": {
+      "date": "2026-11-11",
+      "problem": "drill",
+      "drill": "d61",
+      "moves": {
+        "sql-window-rank": "clean",
+        "sql-subquery": "clean"
+      },
+      "assist": {
+        "sql-window-rank": "hint",
+        "sql-subquery": "hint"
+      },
+      "judge": "deepseek-chat",
+      "note": "Notes say the candidate forgot PARTITION BY and used RANK instead of DENSE_RANK; the final query uses dense_rank() over (partition by departmentId order by salary desc) filtered in an outer query over a CTE.",
+      "summary": "The query builds a CTE that computes dense_rank() over (partition by departmentId order by salary desc), then filters rnk <= 3 in the outer select. This exercises the window-rank move (dense_rank per partition, filtered outside the windowing query) and the subquery/CTE move. The notes record a hint about forgetting PARTITION BY and using RANK instead of DENSE_RANK.",
+      "seconds": 619
     }
   }
 }
