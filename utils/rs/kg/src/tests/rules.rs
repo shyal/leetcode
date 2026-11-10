@@ -10,8 +10,8 @@ use crate::bank::unlocks;
 use crate::data::{test_env, Assist};
 use crate::drills::{
     drill_review_cap, drill_reviews_left, drill_reviews_today, group_caps, group_new_caps,
-    group_new_left, group_reps, new_drill_cap, new_drills_left, new_drills_today, problems_left,
-    id_order, problems_today, set_new_left, set_reps,
+    group_new_left, group_reps, id_order, new_drill_cap, new_drills_left, new_drills_today,
+    problems_left, problems_today, set_new_left, set_reps,
 };
 use crate::pick::{ready_hards, routed_around, starved};
 use crate::recog::{self, Recog, RecogRec};

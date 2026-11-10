@@ -44,7 +44,7 @@ const BANK: &str = GOLD;
 const ALL: &str = RED;
 const ML: i64 = 62;
 const MR: i64 = 24;
-const MT: i64 = 60;
+const MT: i64 = 60 + LEGEND_ROW;
 const MB: i64 = 40;
 
 /// Performance rating of [(problem rating, score)]: the Elo at which the
@@ -267,10 +267,14 @@ pub fn render(ctx: &Ctx, ev: &Evidence) {
             W - MR,
             f1(y)
         ));
+        // above its line, or below it when a target's label is already there
+        let taken = lines
+            .iter()
+            .any(|(t, _, _)| (y_of(*t as f64) + 14.0 - (y - 5.0)).abs() < 13.0);
         svg.push(format!(
             "<text x=\"{}\" y=\"{}\" font-size=\"11\" fill=\"{color}\">{name} {cut}</text>",
             ML + 4,
-            f1(y - 5.0)
+            f1(if taken { y + 14.0 } else { y - 5.0 })
         ));
     }
     for (target, label, color) in &lines {
@@ -296,6 +300,10 @@ pub fn render(ctx: &Ctx, ev: &Evidence) {
     for (rate, _, color) in &rates {
         let end = if *rate > 0.0 {
             cross(*rate, hi as f64).unwrap_or(x1).min(x1)
+        } else if *rate < 0.0 && pace > 0.0 {
+            // a falling line stops at the floor of the plot
+            let days = ((lo as f64 - elo_now) / (rate * pace)).floor() as i64;
+            (today + Duration::days(days.max(0))).min(x1)
         } else {
             x1
         };
@@ -367,7 +375,8 @@ pub fn render(ctx: &Ctx, ev: &Evidence) {
             f0(*v)
         ));
     }
-    let mut legend = Legend::new(ML, true, MT - 18);
+    // two rows: the two rate entries do not fit on the first
+    let mut legend = Legend::new(ML, true, MT - 18 - LEGEND_ROW);
     legend.line(&mut svg, ELO, "elo", false);
     legend.line(
         &mut svg,

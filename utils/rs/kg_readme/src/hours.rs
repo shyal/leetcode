@@ -95,7 +95,10 @@ pub fn at(cum: &[(NaiveDate, f64)], d: NaiveDate) -> f64 {
 pub fn render(ctx: &Ctx, ev: &Evidence) {
     let out = ctx.graph_dir().join("hours.svg");
     let gs = elo::games(ctx, ev);
-    let curve = elo::elo(&gs, elo::START);
+    // every line ends on the day of the run: hours recorded after the last
+    // game (learning mode scores none) are on the axis, the Elo carried flat
+    let today = ctx.today();
+    let curve = carried(elo::elo(&gs, elo::START), today);
     let cum = hours_by_day(ctx);
     let pts: Vec<(f64, f64)> = curve.iter().map(|(d, r)| (at(&cum, *d), *r)).collect();
     let anchor_day = gs[ANCHOR.min(gs.len()) - 1].0;
@@ -174,7 +177,7 @@ pub fn render(ctx: &Ctx, ev: &Evidence) {
         path.join(" "),
         elo_opacity()
     ));
-    let path: Vec<String> = elo::elo_ma(&gs, elo::START, &[])
+    let path: Vec<String> = carried(elo::elo_ma(&gs, elo::START, &[]), today)
         .iter()
         .map(|(d, r)| format!("{},{}", f1(x_of(at(&cum, *d))), f1(y_of(*r))))
         .collect();

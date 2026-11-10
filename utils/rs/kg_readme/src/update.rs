@@ -29,8 +29,9 @@ const BUCKET: &str = "shyal";
 // The badges left the README on 2026-10-06. The Elo charts left with them
 // and came back live on 2026-10-27, with the kg_movie charts; the charts
 // whose Python renderers were deleted on 2026-09-20 stay frozen copies in
-// the README's "Earlier charts" section.
-const CHARTS: [(&str, &str, &str, &str, bool); 13] = [
+// the README's "Earlier charts" section, except the two volume charts
+// (rates, commits), which volume.rs draws again since 2026-11-10.
+const CHARTS: [(&str, &str, &str, &str, bool); 15] = [
     (
         "graph/gauges.svg",
         "gauges",
@@ -120,6 +121,20 @@ const CHARTS: [(&str, &str, &str, &str, bool); 13] = [
         "backlog",
         "BACKLOG_CHART",
         "Backlog and forecast: review cards, solves by kind, STALE and FRAGILE nodes",
+        false,
+    ),
+    (
+        "graph/rates.svg",
+        "rates",
+        "RATES_CHART",
+        "Solves and drills per day",
+        false,
+    ),
+    (
+        "graph/commits.svg",
+        "commits",
+        "COMMITS_CHART",
+        "Tooling commits versus solves",
         false,
     ),
 ];

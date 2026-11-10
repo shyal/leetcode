@@ -95,13 +95,13 @@ def loop_parity(x):
 
 def test_int_ops_counts_each_operation_on_x_and_on_ints_computed_from_it():
     # 6 shifts, 6 xors and 1 and
-    assert int_ops(fold_parity, 2 ** 64 - 1) == 13
+    assert int_ops(fold_parity, 2**64 - 1) == 13
 
 
 def test_int_ops_tells_a_loop_over_the_bits_from_the_fold():
     # for each of the 64 bits: a truth test of x, an and, a truth test of
     # x & 1 and a shift; then the last truth test of x
-    assert int_ops(loop_parity, 2 ** 64 - 1) == 193 + 64
+    assert int_ops(loop_parity, 2**64 - 1) == 193 + 64
     assert int_ops(loop_parity, 0) == 1
 
 

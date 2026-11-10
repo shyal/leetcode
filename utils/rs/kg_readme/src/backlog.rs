@@ -413,7 +413,15 @@ pub fn render(ctx: &Ctx, ev: &Evidence, args: &[String]) {
             &mut svg,
             LANE_NODES,
             nmax * 1.15,
-            if nmax > 12.0 { 5.0 } else { 2.0 },
+            if nmax > 60.0 {
+                25.0
+            } else if nmax > 30.0 {
+                10.0
+            } else if nmax > 12.0 {
+                5.0
+            } else {
+                2.0
+            },
         );
         svg.push(text(
             ML as f64,

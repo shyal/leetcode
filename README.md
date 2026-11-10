@@ -86,6 +86,22 @@ Every Elo here is first sight only.
 
 <!-- /BACKLOG_CHART -->
 
+## Volume
+
+Solves, drills and commits, read from the git history of this repository.
+
+<!-- RATES_CHART -->
+
+![Solves and drills per day](https://shyal.s3.amazonaws.com/rates_20260901225646.svg)
+
+<!-- /RATES_CHART -->
+
+<!-- COMMITS_CHART -->
+
+![Tooling commits versus solves](https://shyal.s3.amazonaws.com/commits_20260901225646.svg)
+
+<!-- /COMMITS_CHART -->
+
 ## Earlier charts
 
 These charts are frozen copies from earlier versions of this README. Their renderers were deleted on 2026-09-20 with the Python library they used, and the models that drew them have changed since. Before 2026-10, the picker gated what it served, and that gate made the pass and readiness numbers too high. The charts above are redrawn by every `make readme`.
@@ -123,12 +139,6 @@ The model is power-law forgetting with a slip rate: P(recall) = (1 - slip) * (1 
 ![Two kinds of sideways](https://shyal.s3.amazonaws.com/yield_time_20260825004153.svg)
 
 ![Problems in reach](https://shyal.s3.amazonaws.com/reach_20260901231024.svg)
-
-### Volume (2026-09-01)
-
-![Solves and drills per day](https://shyal.s3.amazonaws.com/rates_20260901225646.svg)
-
-![Tooling commits versus solves](https://shyal.s3.amazonaws.com/commits_20260901225646.svg)
 
 ## Leetcode sitecustomize, harness and helpers
 

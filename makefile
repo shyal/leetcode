@@ -494,14 +494,15 @@ drawing-doc:
 # make readme is implemented in Rust (utils/rs/kg_readme): the charts and
 # badges the README carries (the gauges, the virtual contest badge, which
 # also renders contests/*.md from contests/*.json, and the Elo charts:
-# problem rating, hours, onsite, progress, backlog, the rate gauge), then
+# problem rating, hours, onsite, progress, backlog, the rate gauge) and the
+# two volume charts (solves and drills per day, cumulative commits), then
 # the S3 upload and the README's generated regions. $(MOVIE_BIN) draws the
 # three mock charts, and $(MOVIE_BIN) --map draws the technique graph as a
 # map (graph/kg_map.svg), which is the graph the README shows. The old Python
-# chart renderers (the 3D graph, zpd, the forgetting curve, solve time,
-# volume) were deleted on 2026-09-20 with the library they used; they live
-# in git history before 2026-09-21, and their charts are frozen copies in
-# the README.
+# chart renderers (the 3D graph, zpd, the forgetting curve, solve time)
+# were deleted on 2026-09-20 with the library they used; they live in git
+# history before 2026-09-21, and their charts are frozen copies in the
+# README. The volume charts were ported to Rust on 2026-11-10 and are live.
 readme: harness-doc drawing-doc contest-field $(MOCK_BIN) $(MOVIE_BIN) $(RS_BIN)/estimate $(RS_BIN)/kg_predict $(RS_BIN)/kg_curve $(RS_BIN)/kg_simulate $(RS_BIN)/kg_readme
 	@$(MOVIE_BIN) & p=$$!; $(MOVIE_BIN) --map & q=$$!; $(RS_BIN)/kg_readme; s=$$?; wait $$p && wait $$q && [ $$s -eq 0 ]
 	@$(RS_BIN)/estimate
