@@ -1,4 +1,4 @@
-.PHONY: all asserts audit tle chat check combos complexity cov curve dependents crowd crowd-install crowd-uninstall discuss dive drawing-doc drill drop duplicates elo ext failed fmt fmt-check force graph graph-vscode hard harness-doc is_session_start kg-extract kg-status kg-viz lc-login lc-mocks lc-sync learning lint mirror mock movie mu mu-chrome mu-vscode muviz next predict preflight prepare prog progress q queue rank-table readme rep residuals rust secrets short simulate sleep snippets solved spot stats studied submit tables test test-fast test-judge timer today types unforce viz wake
+.PHONY: all asserts audit tle chat check combos complexity cov curve dependents crowd crowd-install crowd-uninstall discuss dive drawing-doc drill drop duplicates elo ext failed fmt fmt-check force graph graph-vscode hard harness-doc is_session_start kg-extract kg-status kg-viz lc-login lc-mocks lc-sync learning lint map mirror mock movie mu mu-chrome mu-vscode muviz next predict preflight prepare prog progress q queue rank-table readme rep residuals rust secrets short simulate sleep snippets solved spot stats studied submit tables test test-fast test-judge timer today types unforce viz wake
 
 # `make` runs the current file: current.mu in place through mu/session.py
 # (every error at its mu line), or current.py for a serve mu could not
@@ -151,6 +151,11 @@ MOVIE_BIN := $(RS_BIN)/kg_movie
 
 movie: $(MOVIE_BIN)
 	@$(MOVIE_BIN) $(filter-out $@,$(MAKECMDGOALS))
+
+# make map: the same replay drawn as an old map (a group is a country, a node
+# is a town, a prerequisite is a road) into graph/kg_map.svg
+map: $(MOVIE_BIN)
+	@$(MOVIE_BIN) --map $(filter-out $@,$(MAKECMDGOALS))
 
 sleep: $(RS_BIN)/kg_sleep $(RS_BIN)/kg_chat
 	@$(RS_BIN)/kg_sleep $(filter-out $@,$(MAKECMDGOALS))
@@ -491,12 +496,13 @@ drawing-doc:
 # also renders contests/*.md from contests/*.json, and the Elo charts:
 # problem rating, hours, onsite, progress, backlog, the rate gauge), then
 # the S3 upload and the README's generated regions. $(MOVIE_BIN) draws the
-# technique graph movie and the three mock charts alongside. The old Python
+# three mock charts, and $(MOVIE_BIN) --map draws the technique graph as a
+# map (graph/kg_map.svg), which is the graph the README shows. The old Python
 # chart renderers (the 3D graph, zpd, the forgetting curve, solve time,
 # volume) were deleted on 2026-09-20 with the library they used; they live
 # in git history before 2026-09-21, and their charts are frozen copies in
 # the README.
 readme: harness-doc drawing-doc contest-field $(MOCK_BIN) $(MOVIE_BIN) $(RS_BIN)/estimate $(RS_BIN)/kg_predict $(RS_BIN)/kg_curve $(RS_BIN)/kg_simulate $(RS_BIN)/kg_readme
-	@$(MOVIE_BIN) & p=$$!; $(RS_BIN)/kg_readme; s=$$?; wait $$p && [ $$s -eq 0 ]
+	@$(MOVIE_BIN) & p=$$!; $(MOVIE_BIN) --map & q=$$!; $(RS_BIN)/kg_readme; s=$$?; wait $$p && wait $$q && [ $$s -eq 0 ]
 	@$(RS_BIN)/estimate
 	@AWS_PROFILE=readme-uploader $(RS_BIN)/kg_readme update

@@ -41,6 +41,61 @@ use kg::data::repo_root;
 use kg::mock::{current_recall, pass_rates, run_mocks, Bank, EvRec, PyRandom, SolveModel};
 use kg::render::degree_color;
 
+mod map;
+
+// The colours and fonts of the movie. DARK is the graphviz movie; MAP is the
+// old map (kg_movie --map, graph/kg_map.svg).
+struct Theme {
+    bg: &'static str,
+    ink: &'static str,
+    flash: &'static str, // the problem number of a solve
+    flash_attrs: &'static str,
+    stroke: &'static str,
+    hot: &'static str, // the border on a status change
+    untouched: &'static str,
+    era_pre: &'static str,
+    era_graph: &'static str,
+    font: &'static str,
+    ramp: fn(f64) -> String,
+}
+
+const DARK: Theme = Theme {
+    bg: BG,
+    ink: INK,
+    flash: GOLD,
+    flash_attrs: "",
+    stroke: STROKE_DEF,
+    hot: INK,
+    untouched: UNTOUCHED,
+    era_pre: ERA_PRE_INK,
+    era_graph: ERA_GRAPH_INK,
+    font: "Helvetica,sans-serif",
+    ramp: degree_color,
+};
+
+const MAP: Theme = Theme {
+    bg: "#e6d3a7",
+    ink: "#3b2714",
+    flash: "#a3161a",
+    flash_attrs: " font-weight=\"bold\" stroke=\"#eedcb2\" stroke-width=\"3\" paint-order=\"stroke\"",
+    stroke: "#3b2714",
+    hot: "#e0201b",
+    untouched: "#f3e7c8",
+    era_pre: "#8a7550",
+    era_graph: "#1f4e79",
+    font: map::SERIF,
+    ramp: map_ramp,
+};
+
+// Ownership on the map: vermilion, ochre, verdigris.
+fn map_ramp(degree: f64) -> String {
+    const STOPS: [[f64; 3]; 3] = [[181.0, 62.0, 40.0], [219.0, 166.0, 60.0], [58.0, 125.0, 84.0]];
+    let t = degree.clamp(0.0, 1.0) * 2.0;
+    let (a, b, f) = if t < 1.0 { (STOPS[0], STOPS[1], t) } else { (STOPS[1], STOPS[2], t - 1.0) };
+    let c = |i: usize| (a[i] + (b[i] - a[i]) * f).round() as u8;
+    format!("#{:02x}{:02x}{:02x}", c(0), c(1), c(2))
+}
+
 const DEFAULT_SECONDS: f64 = 10.0;
 const END_FADE_S: f64 = 1.2; // loop-closing dissolve, capped by FADE_FRACTION
 const FADE_FRACTION: f64 = 0.08; // dissolve shrinks with short movies
@@ -468,6 +523,21 @@ fn era_banner(
     halo: &str,
     dur: f64,
 ) -> String {
+    era_banner_in(&DARK, x, y, size, anchor, era_frac, switch_exists, halo, dur)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn era_banner_in(
+    th: &Theme,
+    x: f64,
+    y: f64,
+    size: f64,
+    anchor: &str,
+    era_frac: Option<f64>,
+    switch_exists: bool,
+    halo: &str,
+    dur: f64,
+) -> String {
     let halo_attr = if halo.is_empty() {
         String::new()
     } else {
@@ -475,8 +545,8 @@ fn era_banner(
     };
     let mut s = String::new();
     for (label, ink, show, is_pre) in [
-        (ERA_PRE, ERA_PRE_INK, era_frac != Some(0.0), true),
-        (ERA_GRAPH, ERA_GRAPH_INK, switch_exists, false),
+        (ERA_PRE, th.era_pre, era_frac != Some(0.0), true),
+        (ERA_GRAPH, th.era_graph, switch_exists, false),
     ] {
         if !show {
             continue;
@@ -495,7 +565,8 @@ fn era_banner(
             _ => String::new(),
         };
         s.push_str(&format!(
-            "<text x=\"{x:.0}\" y=\"{y:.0}\" text-anchor=\"{anchor}\" font-family=\"Helvetica,sans-serif\" font-size=\"{size:.0}\" font-weight=\"bold\" fill=\"{ink}\"{halo_attr} opacity=\"{}\">{label}{track}</text>\n",
+            "<text x=\"{x:.0}\" y=\"{y:.0}\" text-anchor=\"{anchor}\" font-family=\"{}\" font-size=\"{size:.0}\" font-weight=\"bold\" fill=\"{ink}\"{halo_attr} opacity=\"{}\">{label}{track}</text>\n",
+            th.font,
             if is_pre && era_frac.is_some() { 0 } else { 1 }
         ));
     }
@@ -522,22 +593,25 @@ fn main() {
     let mut seconds = DEFAULT_SECONDS;
     let mut open_after = false;
     let mut pace_calendar = false;
+    let mut map_mode = false;
     let mut args = std::env::args().skip(1);
     while let Some(a) = args.next() {
         match a.as_str() {
             "--open" => open_after = true,
+            "--map" => map_mode = true,
             "--pace" => {
                 pace_calendar = matches!(args.next().as_deref(), Some("calendar"));
             }
             s => match s.parse::<f64>() {
                 Ok(v) if v > 0.0 => seconds = v,
                 _ => {
-                    eprintln!("usage: kg_movie [seconds] [--pace solves|calendar] [--open]");
+                    eprintln!("usage: kg_movie [seconds] [--pace solves|calendar] [--map] [--open]");
                     std::process::exit(2);
                 }
             },
         }
     }
+    let th = if map_mode { &MAP } else { &DARK };
     let fade_s = END_FADE_S.min(seconds * FADE_FRACTION);
     let label_life = seconds * LABEL_LIFE_FRACTION;
     let ticks_s = seconds - fade_s;
@@ -700,9 +774,9 @@ fn main() {
         replays.iter().map(|r| r.entries.first().map(|e| e.0)).collect();
     let fill_at = |ni: usize, t: usize| -> String {
         if first_rep[ni].is_none_or(|d| d > days[t]) {
-            UNTOUCHED.to_string()
+            th.untouched.to_string()
         } else {
-            degree_color(degree_tl[ni][t])
+            (th.ramp)(degree_tl[ni][t])
         }
     };
 
@@ -793,6 +867,28 @@ fn main() {
     order.sort_by_key(|&gi| std::cmp::Reverse((block_first[&find(&mut block, gi)], own[gi])));
     let groups: Vec<(&str, Vec<usize>)> = order.into_iter().map(|gi| groups[gi].clone()).collect();
     let today_i = n_ticks - 1;
+    let svg = if map_mode {
+        map::render(&map::Input {
+            groups: &groups,
+            ids: nodes.iter().map(|n| n.id.as_str()).collect(),
+            edges: nodes
+                .iter()
+                .enumerate()
+                .flat_map(|(ni, n)| {
+                    let node_index = &node_index;
+                    n.prereqs
+                        .iter()
+                        .filter_map(move |p| node_index.get(p.as_str()).map(|&pi| (pi, ni)))
+                })
+                .collect(),
+            fills: (0..nodes.len()).map(|ni| fill_at(ni, today_i)).collect(),
+            legend: std::iter::once(("new".to_string(), th.untouched.to_string()))
+                .chain(DEGREE_LEGEND.iter().map(|d| (format!("{d:.2}"), (th.ramp)(*d))))
+                .collect(),
+            ink: th.ink,
+            stroke: th.stroke,
+        })
+    } else {
     let mut dot = String::new();
     dot.push_str("digraph kg {\n");
     dot.push_str(" graph [rankdir=LR, bgcolor=\"#0d1117\", fontname=\"Helvetica\", compound=true, ranksep=\"0.6\", nodesep=\"0.25\"];\n");
@@ -885,7 +981,8 @@ fn main() {
         .unwrap();
     let out = child.wait_with_output().unwrap();
     assert!(out.status.success(), "dot failed");
-    let svg = String::from_utf8(out.stdout).unwrap();
+    String::from_utf8(out.stdout).unwrap()
+    };
 
     // ---- pass 1: geometry from the svg itself ----------------------------
     // Obstacles cover everything graphviz drew: node boxes (legend included),
@@ -920,6 +1017,16 @@ fn main() {
                     let bb = points_bbox(&floats(&block[i + 4..j]));
                     boxes.insert(title, bb);
                     obstacles.push((bb, 5.0));
+                }
+                // on the map the name of a town is beside it, not in its box
+                if let (true, Some(i)) = (map_mode, block.find("<text")) {
+                    let te = block[i..].find('>').unwrap() + i;
+                    let tag = &block[i..te];
+                    let cj = block[te..].find("</text>").unwrap() + te;
+                    let chars = block[te + 1..cj].chars().count() as f64;
+                    let x: f64 = attr(tag, "x").and_then(|v| v.parse().ok()).unwrap_or(0.0);
+                    let y: f64 = attr(tag, "y").and_then(|v| v.parse().ok()).unwrap_or(0.0);
+                    obstacles.push(((x, y - 9.0, x + chars * 5.0, y + 3.0), 5.0));
                 }
             }
             "cluster" => {
@@ -1051,11 +1158,15 @@ fn main() {
     );
     out_svg.push_str(&head);
     // full-canvas background: the graph's own bg polygon doesn't cover the header
-    writeln!(
-        out_svg,
-        "<rect x=\"0\" y=\"0\" width=\"{width:.0}\" height=\"{new_h:.0}\" fill=\"{BG}\"/>"
-    )
-    .unwrap();
+    if map_mode {
+        out_svg.push_str(&map::backdrop(th.bg, width, new_h));
+    } else {
+        writeln!(
+            out_svg,
+            "<rect x=\"0\" y=\"0\" width=\"{width:.0}\" height=\"{new_h:.0}\" fill=\"{BG}\"/>"
+        )
+        .unwrap();
+    }
 
     let g_tag_end = svg[header_end..].find('>').unwrap() + header_end + 1;
     let g_open = svg[header_end..g_tag_end].replace(
@@ -1091,7 +1202,7 @@ fn main() {
                 let strokes: Vec<String> = (0..n_ticks)
                     .map(|t| {
                         let hot = t > 0 && status_tl[ni][t] != status_tl[ni][t - 1];
-                        (if hot { INK } else { STROKE_DEF }).to_string()
+                        (if hot { th.hot } else { th.stroke }).to_string()
                     })
                     .collect();
                 let stroke_track = discrete_track(&strokes, &tick_frac, "stroke", dur);
@@ -1124,7 +1235,8 @@ fn main() {
     // fade animation on an inner group — 1000+ labels, every byte repeats.
     writeln!(
         out_svg,
-        "<g font-family=\"Menlo,monospace\" font-size=\"{LABEL_PT:.0}\" fill=\"{GOLD}\">"
+        "<g font-family=\"Menlo,monospace\" font-size=\"{LABEL_PT:.0}\" fill=\"{}\"{}>",
+        th.flash, th.flash_attrs
     )
     .unwrap();
     let mut li = 0;
@@ -1355,7 +1467,8 @@ fn main() {
     // title line — outside the graph transform, in plain canvas coordinates
     writeln!(
         out_svg,
-        "<g text-anchor=\"end\" font-family=\"Helvetica,sans-serif\" font-size=\"20\" fill=\"{INK}\">"
+        "<g text-anchor=\"end\" font-family=\"{}\" font-size=\"20\" fill=\"{}\">",
+        th.font, th.ink
     )
     .unwrap();
     for i in 0..n_ticks {
@@ -1401,7 +1514,8 @@ fn main() {
         .iter()
         .position(|d| d.to_string().as_str() >= ERA_SWITCH);
     let era_frac = switch.map(|i| tick_frac[i]);
-    out_svg.push_str(&era_banner(
+    out_svg.push_str(&era_banner_in(
+        th,
         20.0,
         48.0,
         36.0,
@@ -1421,13 +1535,14 @@ fn main() {
     let cal_x = |i: usize| i as f64 / (n_ticks - 1).max(1) as f64 * width;
     let split_x = switch.map_or(width, cal_x);
     if split_x > 0.0 {
-        writeln!(out_svg, "<rect x=\"0\" y=\"0\" width=\"{split_x:.1}\" height=\"{ERA_STRIP_H}\" fill=\"{ERA_PRE_INK}\" opacity=\"0.55\"/>").unwrap();
+        writeln!(out_svg, "<rect x=\"0\" y=\"0\" width=\"{split_x:.1}\" height=\"{ERA_STRIP_H}\" fill=\"{}\" opacity=\"0.55\"/>", th.era_pre).unwrap();
     }
     if switch.is_some() && split_x < width {
         writeln!(
             out_svg,
-            "<rect x=\"{split_x:.1}\" y=\"0\" width=\"{:.1}\" height=\"{ERA_STRIP_H}\" fill=\"{ERA_GRAPH_INK}\" opacity=\"0.9\"/>",
-            width - split_x
+            "<rect x=\"{split_x:.1}\" y=\"0\" width=\"{:.1}\" height=\"{ERA_STRIP_H}\" fill=\"{}\" opacity=\"0.9\"/>",
+            width - split_x,
+            th.era_graph
         )
         .unwrap();
     }
@@ -1439,8 +1554,9 @@ fn main() {
     push_key(&mut head_t, 1.0);
     writeln!(
         out_svg,
-        "<rect x=\"-2\" y=\"0\" width=\"4\" height=\"{:.0}\" fill=\"{INK}\">{}</rect>",
+        "<rect x=\"-2\" y=\"0\" width=\"4\" height=\"{:.0}\" fill=\"{}\">{}</rect>",
         ERA_STRIP_H + 8.0,
+        th.ink,
         animate("x", "linear", &head_x, &head_t, dur)
     )
     .unwrap();
@@ -1453,7 +1569,8 @@ fn main() {
     let fade_from = ticks_s / dur;
     writeln!(
         out_svg,
-        "<rect x=\"0\" y=\"0\" width=\"{width:.0}\" height=\"{new_h:.0}\" fill=\"{BG}\" opacity=\"0\" pointer-events=\"none\">{}</rect>",
+        "<rect x=\"0\" y=\"0\" width=\"{width:.0}\" height=\"{new_h:.0}\" fill=\"{}\" opacity=\"0\" pointer-events=\"none\">{}</rect>",
+        th.bg,
         animate(
             "opacity",
             "linear",
@@ -1465,7 +1582,7 @@ fn main() {
     .unwrap();
     out_svg.push_str("</svg>\n");
 
-    let out_path = graph.join("kg_movie.svg");
+    let out_path = graph.join(if map_mode { "kg_map.svg" } else { "kg_movie.svg" });
     std::fs::write(&out_path, &out_svg).unwrap();
     println!(
         "wrote {} - {} ticks, {} solve labels, {} shots, {:.1}s loop ({:.1}s dissolve), {:.0}KB",
@@ -1479,6 +1596,11 @@ fn main() {
     );
     if open_after {
         let _ = Command::new("open").arg(&out_path).status();
+    }
+
+    // the map is a second drawing of the movie: the charts belong to make movie
+    if map_mode {
+        return;
     }
 
     // ---- P(pass) history chart: graph/kg_pass.svg ------------------------
