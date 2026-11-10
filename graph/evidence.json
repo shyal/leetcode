@@ -44535,6 +44535,18 @@
       "note": "Notes say the candidate forgot PARTITION BY and used RANK instead of DENSE_RANK; the final query uses dense_rank() over (partition by departmentId order by salary desc) filtered in an outer query over a CTE.",
       "summary": "The query builds a CTE that computes dense_rank() over (partition by departmentId order by salary desc), then filters rnk <= 3 in the outer select. This exercises the window-rank move (dense_rank per partition, filtered outside the windowing query) and the subquery/CTE move. The notes record a hint about forgetting PARTITION BY and using RANK instead of DENSE_RANK.",
       "seconds": 619
+    },
+    "solved/d_Stack_Both_Sides_2026_11_10T23_51_46_257589_00_00Z.mu": {
+      "date": "2026-11-11",
+      "problem": "drill",
+      "drill": "d51",
+      "moves": {
+        "sql-set-union": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "UNION ALL stacks requester_id and accepter_id, keeping repeats; output has twice the rows.",
+      "summary": "The query selects requester_id as id and UNION ALLs accepter_id as id from the same table, so each row contributes two output rows and duplicates survive. This exercises the sql-set-union move in its UNION ALL (no dedupe) form, meeting the contract of exactly twice as many rows with repeats. Both example assertions passed.",
+      "seconds": 123
     }
   }
 }
