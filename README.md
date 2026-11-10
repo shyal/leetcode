@@ -52,25 +52,25 @@ Every Elo here is first sight only.
 
 <!-- PROBLEM_RATING_CHART -->
 
-![Rating of the problems attempted](https://shyal.s3.amazonaws.com/problem_rating_20261110173159.svg)
+![Rating of the problems attempted](https://shyal.s3.amazonaws.com/problem_rating_20261110180642.svg)
 
 <!-- /PROBLEM_RATING_CHART -->
 
 <!-- PROBLEM_RATING_MONTH_CHART -->
 
-![Rating of the problems attempted in the last 30 days](https://shyal.s3.amazonaws.com/problem_rating_month_20261110173159.svg)
+![Rating of the problems attempted in the last 30 days](https://shyal.s3.amazonaws.com/problem_rating_month_20261110180642.svg)
 
 <!-- /PROBLEM_RATING_MONTH_CHART -->
 
 <!-- HOURS_CHART -->
 
-![Elo against hours of recorded solving, with the Carnegie Mellon rate](https://shyal.s3.amazonaws.com/hours_20261106110921.svg)
+![Elo against hours of recorded solving, with the Carnegie Mellon rate](https://shyal.s3.amazonaws.com/hours_20261110180642.svg)
 
 <!-- /HOURS_CHART -->
 
 <!-- ONSITE_CHART -->
 
-![Elo history and its projection to the onsite line, on dates](https://shyal.s3.amazonaws.com/onsite_20261110173159.svg)
+![Elo history and its projection to the onsite line, on dates](https://shyal.s3.amazonaws.com/onsite_20261110180642.svg)
 
 <!-- /ONSITE_CHART -->
 
@@ -82,7 +82,7 @@ Every Elo here is first sight only.
 
 <!-- BACKLOG_CHART -->
 
-![Backlog and forecast: review cards, solves by kind, STALE and FRAGILE nodes](https://shyal.s3.amazonaws.com/backlog_20261110173159.svg)
+![Backlog and forecast: review cards, solves by kind, STALE and FRAGILE nodes](https://shyal.s3.amazonaws.com/backlog_20261110180642.svg)
 
 <!-- /BACKLOG_CHART -->
 
@@ -92,13 +92,13 @@ Solves, drills and commits, read from the git history of this repository.
 
 <!-- RATES_CHART -->
 
-![Solves and drills per day](https://shyal.s3.amazonaws.com/rates_20260901225646.svg)
+![Solves and drills per day](https://shyal.s3.amazonaws.com/rates_20261110180642.svg)
 
 <!-- /RATES_CHART -->
 
 <!-- COMMITS_CHART -->
 
-![Tooling commits versus solves](https://shyal.s3.amazonaws.com/commits_20260901225646.svg)
+![Tooling commits versus solves](https://shyal.s3.amazonaws.com/commits_20261110180642.svg)
 
 <!-- /COMMITS_CHART -->
 
