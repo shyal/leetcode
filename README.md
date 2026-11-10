@@ -98,7 +98,7 @@ Solves, drills and commits, read from the git history of this repository.
 
 <!-- COMMITS_CHART -->
 
-![Tooling commits versus solves](https://shyal.s3.amazonaws.com/commits_20261110184327.svg)
+![Tooling commits versus solves](https://shyal.s3.amazonaws.com/commits_20261110221338.svg)
 
 <!-- /COMMITS_CHART -->
 
@@ -119,11 +119,11 @@ The model has one curve for all groups of techniques. The next chart shows, for 
 ![Residuals per group over time: observed minus predicted recall, in standard deviations](https://shyal.s3.amazonaws.com/residuals_20261110184327.svg)
 <!-- /RESIDUALS_CHART -->
 
-The next chart shows where each technique node is on its curve today. Each line is the curve of one node: the memory component (1 + Δ/s)^(-β) against the days since the last clean rep. A node with a larger stability s has a flatter curve. A node is solid while its memory is at or above the target retention, and stale below it. A node whose last rep was a fail is fragile and is not on a curve.
+The next chart replays the full history. Each dot is one technique node on its curve: the memory component (1 + Δ/s)^(-β) against the days since the last clean rep. A dot moves to the right while the gap increases. A clean rep puts the dot back at the left, on a flatter curve, because the stability s is larger. A node is solid (green) while its memory is at or above the target retention, and stale (gold) below it. A node whose last rep was a fail is fragile: it is not on a curve, and its dot is hidden until the next clean rep. The replay stops on the state of today. The faint lines are the curves of today.
 
 <!-- POSITIONS_CHART -->
 
-![Nodes on their forgetting curves today: memory against days since the last clean rep](https://shyal.s3.amazonaws.com/positions_20261110205104.svg)
+![Nodes on their forgetting curves, replayed over the full history: memory against days since the last clean rep](https://shyal.s3.amazonaws.com/positions_20261110221338.svg)
 <!-- /POSITIONS_CHART -->
 
 ## Earlier charts

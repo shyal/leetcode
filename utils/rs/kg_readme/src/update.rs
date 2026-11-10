@@ -158,7 +158,7 @@ const CHARTS: [(&str, &str, &str, &str, bool); 18] = [
         "graph/positions.svg",
         "positions",
         "POSITIONS_CHART",
-        "Nodes on their forgetting curves today: memory against days since the last clean rep",
+        "Nodes on their forgetting curves, replayed over the full history: memory against days since the last clean rep",
         false,
     ),
 ];

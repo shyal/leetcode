@@ -124,8 +124,44 @@ pub fn node_position(
     today: NaiveDate,
 ) -> Option<(Status, f64, f64, f64)> {
     ctx.curve.as_ref()?;
-    let entries: Vec<(NaiveDate, &str, &str, &str)> = ev
-        .node_entries(node)
+    let (st, _, memory, stability) = curve_of(ctx, node, entries_of(ev, node), today);
+    if st.0 != SOLID && st.0 != STALE {
+        return None;
+    }
+    let gap = (today - st.1?).num_days().max(0) as f64;
+    Some((st.0, gap, stability, memory))
+}
+
+/// The history of a node on its forgetting curve: one item for each day
+/// with a rep, oldest first. The item is the day and the state after the
+/// reps of that day: Some((the last clean day, the stability in days))
+/// while the node is on a curve, None while it is not (no clean rep, or
+/// a fail after the last clean rep). Empty without a fitted curve.
+pub fn node_track(
+    ctx: &Ctx,
+    node: &str,
+    ev: &Evidence,
+) -> Vec<(NaiveDate, Option<(NaiveDate, f64)>)> {
+    if ctx.curve.is_none() {
+        return Vec::new();
+    }
+    let mut entries = entries_of(ev, node);
+    entries.sort();
+    let mut days: Vec<NaiveDate> = entries.iter().map(|e| e.0).collect();
+    days.dedup();
+    days.into_iter()
+        .map(|day| {
+            let upto: Vec<_> = entries.iter().filter(|e| e.0 <= day).copied().collect();
+            let (st, _, _, stability) = curve_of(ctx, node, upto, day);
+            let on = (st.0 == SOLID || st.0 == STALE).then(|| (st.1.unwrap(), stability));
+            (day, on)
+        })
+        .collect()
+}
+
+/// One node's (date, verdict, assist, fname) entries.
+fn entries_of<'a>(ev: &'a Evidence, node: &str) -> Vec<(NaiveDate, &'a str, &'a str, &'a str)> {
+    ev.node_entries(node)
         .iter()
         .map(|e| {
             (
@@ -135,13 +171,7 @@ pub fn node_position(
                 ev.fname(e.idx),
             )
         })
-        .collect();
-    let (st, _, memory, stability) = curve_of(ctx, node, entries, today);
-    if st.0 != SOLID && st.0 != STALE {
-        return None;
-    }
-    let gap = (today - st.1?).num_days().max(0) as f64;
-    Some((st.0, gap, stability, memory))
+        .collect()
 }
 
 /// The curve over one node's (date, verdict, assist, fname) entries.
