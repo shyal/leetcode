@@ -44547,6 +44547,18 @@
       "note": "UNION ALL stacks requester_id and accepter_id, keeping repeats; output has twice the rows.",
       "summary": "The query selects requester_id as id and UNION ALLs accepter_id as id from the same table, so each row contributes two output rows and duplicates survive. This exercises the sql-set-union move in its UNION ALL (no dedupe) form, meeting the contract of exactly twice as many rows with repeats. Both example assertions passed.",
       "seconds": 123
+    },
+    "solved/d_Nth_From_End_2026_11_10T23_53_23_341248_00_00Z.mu": {
+      "date": "2026-11-11",
+      "problem": "drill",
+      "drill": "d113",
+      "moves": {
+        "ll-offset-arithmetic": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "One pass with fast/slow n apart, O(1) space, no length count or second walk; contract met.",
+      "summary": "The code advances `fast` and `slow` together, with `fast` starting n steps ahead via the `n -= 1` counter, so when `fast` reaches the end `slow` sits on the nth-from-end node and returns `slow.val`. This is a single pass with two pointers n apart and constant extra space, meeting the drill contract. All assertions passed, including the 30000-node cases.",
+      "seconds": 79
     }
   }
 }
