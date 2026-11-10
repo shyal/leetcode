@@ -506,7 +506,8 @@ drawing-doc:
 # The curve calibration is live since the same day (kg_readme calibration,
 # from kg_curve --calibration-json), and so are the residuals per group
 # (kg_readme residuals, from kg_residuals --series-json) and the positions
-# of the nodes on their curves (kg_readme positions, the current state).
+# of the nodes on their curves (kg_readme positions, a replay of the
+# history on the clock of kg_movie).
 readme: harness-doc drawing-doc contest-field $(MOCK_BIN) $(MOVIE_BIN) $(RS_BIN)/estimate $(RS_BIN)/kg_predict $(RS_BIN)/kg_curve $(RS_BIN)/kg_residuals $(RS_BIN)/kg_simulate $(RS_BIN)/kg_readme
 	@$(MOVIE_BIN) & p=$$!; $(MOVIE_BIN) --map & q=$$!; $(RS_BIN)/kg_readme; s=$$?; wait $$p && wait $$q && [ $$s -eq 0 ]
 	@$(RS_BIN)/estimate
