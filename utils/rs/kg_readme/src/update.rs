@@ -46,10 +46,10 @@ const CHARTS: [(&str, &str, &str, &str, bool); 13] = [
         true,
     ),
     (
-        "graph/kg_movie.svg",
-        "kg_movie",
+        "graph/kg_map.svg",
+        "kg_map",
         "KG_MOVIE",
-        "Technique graph growing solve by solve",
+        "Technique graph as a map, growing solve by solve",
         false,
     ),
     (
