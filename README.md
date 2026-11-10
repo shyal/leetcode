@@ -98,7 +98,7 @@ Solves, drills and commits, read from the git history of this repository.
 
 <!-- COMMITS_CHART -->
 
-![Tooling commits versus solves](https://shyal.s3.amazonaws.com/commits_20261110180642.svg)
+![Tooling commits versus solves](https://shyal.s3.amazonaws.com/commits_20261110182820.svg)
 
 <!-- /COMMITS_CHART -->
 
@@ -107,6 +107,8 @@ Solves, drills and commits, read from the git history of this repository.
 The model is power-law forgetting with a slip rate: P(recall) = (1 - slip) * (1 + Δ/s)^(-β). The stability s increases with each clean rep and decreases with each fail. The chart compares the predictions of the model with the recall results. The recall trials are in groups by the gap since the last rep of the node. A point outside its band shows a gap where the model is wrong.
 
 <!-- CURVE_CALIBRATION_CHART -->
+
+![Forgetting curve calibration: predicted against observed recall, by gap](https://shyal.s3.amazonaws.com/curve_calibration_20261110182820.svg)
 
 <!-- /CURVE_CALIBRATION_CHART -->
 
