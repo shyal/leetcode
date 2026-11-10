@@ -4,7 +4,7 @@ This is a mix of leetcode problems, as well as several language drills. The cont
 
 <!-- GAUGES -->
 
-![Progress: algorithms first sight, algorithms current reach, python, typescript, rust, sql, systems design](https://shyal.s3.amazonaws.com/gauges_20261109125139.svg)
+![Progress: algorithms first sight, algorithms current reach, python, typescript, rust, sql, systems design](https://shyal.s3.amazonaws.com/gauges_20261110132448.svg)
 
 <!-- /GAUGES -->
 
@@ -14,7 +14,7 @@ Each problem is a set of techniques. Each technique is a node, and an edge conne
 
 <!-- KG_MOVIE -->
 
-![Technique graph growing solve by solve](https://shyal.s3.amazonaws.com/kg_movie_20261109125139.svg)
+![Technique graph growing solve by solve](https://shyal.s3.amazonaws.com/kg_movie_20261110161159.svg)
 
 <!-- /KG_MOVIE -->
 
@@ -24,19 +24,19 @@ A Monte Carlo of cold mocks, drawn from the graph state on each date.
 
 <!-- PASS_PROB_CHART -->
 
-![P(pass a mock) over time](https://shyal.s3.amazonaws.com/pass_probability_20261109125139.svg)
+![P(pass a mock) over time](https://shyal.s3.amazonaws.com/pass_probability_20261110125349.svg)
 
 <!-- /PASS_PROB_CHART -->
 
 <!-- MOCK_SWARM_CHART -->
 
-![Individual simulated mocks over time](https://shyal.s3.amazonaws.com/mock_swarm_20261109125139.svg)
+![Individual simulated mocks over time](https://shyal.s3.amazonaws.com/mock_swarm_20261110125349.svg)
 
 <!-- /MOCK_SWARM_CHART -->
 
 <!-- MOCK_BLAME_CHART -->
 
-![Share of simulated problems failed, by group](https://shyal.s3.amazonaws.com/mock_blame_20261109125139.svg)
+![Share of simulated problems failed, by group](https://shyal.s3.amazonaws.com/mock_blame_20261110125349.svg)
 
 <!-- /MOCK_BLAME_CHART -->
 
@@ -52,13 +52,13 @@ Every Elo here is first sight only.
 
 <!-- PROBLEM_RATING_CHART -->
 
-![Rating of the problems attempted](https://shyal.s3.amazonaws.com/problem_rating_20261109125139.svg)
+![Rating of the problems attempted](https://shyal.s3.amazonaws.com/problem_rating_20261110132448.svg)
 
 <!-- /PROBLEM_RATING_CHART -->
 
 <!-- PROBLEM_RATING_MONTH_CHART -->
 
-![Rating of the problems attempted in the last 30 days](https://shyal.s3.amazonaws.com/problem_rating_month_20261109125139.svg)
+![Rating of the problems attempted in the last 30 days](https://shyal.s3.amazonaws.com/problem_rating_month_20261110132448.svg)
 
 <!-- /PROBLEM_RATING_MONTH_CHART -->
 
@@ -70,19 +70,19 @@ Every Elo here is first sight only.
 
 <!-- ONSITE_CHART -->
 
-![Elo history and its projection to the onsite line, on dates](https://shyal.s3.amazonaws.com/onsite_20261109125139.svg)
+![Elo history and its projection to the onsite line, on dates](https://shyal.s3.amazonaws.com/onsite_20261110122403.svg)
 
 <!-- /ONSITE_CHART -->
 
 <!-- PROGRESS_CHART -->
 
-![Actual minus model on the last 30 first sights](https://shyal.s3.amazonaws.com/progress_20261106110921.svg)
+![Actual minus model on the last 30 first sights](https://shyal.s3.amazonaws.com/progress_20261110132448.svg)
 
 <!-- /PROGRESS_CHART -->
 
 <!-- BACKLOG_CHART -->
 
-![Backlog and forecast: review cards, solves by kind, STALE and FRAGILE nodes](https://shyal.s3.amazonaws.com/backlog_20261109125139.svg)
+![Backlog and forecast: review cards, solves by kind, STALE and FRAGILE nodes](https://shyal.s3.amazonaws.com/backlog_20261110122403.svg)
 
 <!-- /BACKLOG_CHART -->
 

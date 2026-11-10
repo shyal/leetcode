@@ -7,8 +7,9 @@
 // Ported from (and replacing) the retired Python utils/kg_movie, which
 // rendered per-day PNG frames and encoded an mp4. This builds ONE pinned
 // graphviz layout and replays the same history as pure SMIL animation:
-// status fills stepping through daily date ticks, nodes materializing on
-// their `added` dates, a bright border on every status change, and each
+// status fills stepping through daily date ticks, every node there from the
+// first frame (the `added` dates are ignored, so no group shows empty), a
+// bright border on every status change, and each
 // solve flashing its problem number in gold next to every move its walk
 // exercised, replayed in true within-day order. Pure SMIL (no CSS/JS), so
 // it plays inside GitHub's camo/<img> pipeline and loops indefinitely.
@@ -52,9 +53,10 @@ const BG: &str = "#0d1117";
 const GOLD: &str = "#ffd75f";
 const INK: &str = "#c9d1d9";
 const STROKE_DEF: &str = "#30363d";
+const UNTOUCHED: &str = "#1f6feb"; // a node with no rep yet
 const LABEL_PT: f64 = 13.0; // the mp4's 19px at 144dpi, in 96dpi svg units
 const LABEL_GAP: f64 = 4.0; // px between a node box and its label
-const MAX_PROBS: usize = 3; // live labels per node; the oldest gets evicted
+const MAX_PROBS: usize = 10; // live labels per node; the oldest gets evicted
 
 const SOLID_WINDOW_DAYS: i64 = 42; // flat fallback when curve.json is absent
 
@@ -87,7 +89,6 @@ struct NodeDef {
     id: String,
     group: String,
     prereqs: Vec<String>,
-    added: String, // "" = always there
 }
 
 struct Curve {
@@ -227,16 +228,21 @@ fn filename_ts(fname: &str) -> String {
 }
 
 // date -> [(problem, moves)] in true within-day solve order, first solve of a
-// same-day re-solve only. Drills and misc entries carry no leetcode number.
+// same-day re-solve only. A problem shows its leetcode number, a drill its
+// drill id ("d13"); a record with neither shows nothing.
 fn solves_by_day(
     evidence: &serde_json::Map<String, Value>,
 ) -> HashMap<String, Vec<(String, Vec<String>)>> {
     let mut by_day: HashMap<String, Vec<(String, String, Vec<String>)>> = HashMap::new();
     for (fname, rec) in evidence {
         let p = rec.get("problem").and_then(Value::as_str).unwrap_or("");
-        if !p.chars().next().is_some_and(|c| c.is_ascii_digit()) {
+        let p = if p.chars().next().is_some_and(|c| c.is_ascii_digit()) {
+            p
+        } else if let Some(d) = rec.get("drill").and_then(Value::as_str) {
+            d
+        } else {
             continue;
-        }
+        };
         let date = rec["date"].as_str().unwrap().to_string();
         let moves: Vec<String> = rec
             .get("moves")
@@ -331,7 +337,7 @@ fn candidate_spots(node_box: Rect, w: f64, h: f64) -> Vec<(f64, f64)> {
     for &y in &[cy - h / 2.0, y0, y1 - h] {
         spots.push((x0 - g - w, y));
     }
-    for ring in [13.0, 27.0] {
+    for ring in [13.0, 27.0, 41.0, 55.0] {
         spots.push((cx - w / 2.0, y0 - g - h - ring));
         spots.push((cx - w / 2.0, y1 + g + ring));
         spots.push((x1 + g + ring, cy - h / 2.0));
@@ -340,9 +346,18 @@ fn candidate_spots(node_box: Rect, w: f64, h: f64) -> Vec<(f64, f64)> {
     spots
 }
 
-// Pick a spot touching nothing; least-weighted-overlap fallback. `taken` are
-// rectangles of labels still fading: a dying label keeps its ground.
-fn place_label(node_box: Rect, w: f64, h: f64, obstacles: &[(Rect, f64)], taken: &[Rect]) -> Rect {
+// Pick a spot touching nothing; least-weighted-overlap fallback against the
+// graph. `taken` are rectangles of labels still fading: a spot that touches
+// one is refused, so two live labels never overlap. When every spot touches
+// a live label, the least-bad spot against the graph comes back with false,
+// and the caller ends the labels in the way.
+fn place_label(
+    node_box: Rect,
+    w: f64,
+    h: f64,
+    obstacles: &[(Rect, f64)],
+    taken: &[Rect],
+) -> (Rect, bool) {
     let vicinity = (
         node_box.0 - 180.0,
         node_box.1 - 180.0,
@@ -358,30 +373,39 @@ fn place_label(node_box: Rect, w: f64, h: f64, obstacles: &[(Rect, f64)], taken:
         .copied()
         .filter(|r| overlaps(*r, vicinity))
         .collect();
-    let mut best = None;
-    let mut best_bad = f64::MAX;
+    let bad_of = |rect: Rect| -> f64 {
+        near.iter()
+            .filter(|(r, _)| overlaps(rect, *r))
+            .map(|(r, wt)| {
+                (r.2.min(rect.2) - r.0.max(rect.0)) * (r.3.min(rect.3) - r.1.max(rect.1)) * wt
+            })
+            .sum()
+    };
+    let mut best_free: Option<(Rect, f64)> = None;
+    let mut best_any: Option<(Rect, f64)> = None;
     for (lx, ly) in candidate_spots(node_box, w, h) {
         let rect = (lx, ly, lx + w, ly + h);
-        let mut bad = 0.0;
-        for (r, wt) in near
-            .iter()
-            .map(|x| **x)
-            .chain(near_taken.iter().map(|r| (*r, 5.0)))
-        {
-            if overlaps(rect, r) {
-                bad +=
-                    (r.2.min(rect.2) - r.0.max(rect.0)) * (r.3.min(rect.3) - r.1.max(rect.1)) * wt;
-            }
+        let bad = bad_of(rect);
+        let free = !near_taken.iter().any(|r| overlaps(pad(rect), *r));
+        if free && bad == 0.0 {
+            return (rect, true);
         }
-        if bad == 0.0 {
-            return rect;
+        if free && best_free.is_none_or(|(_, b)| bad < b) {
+            best_free = Some((rect, bad));
         }
-        if bad < best_bad {
-            best = Some(rect);
-            best_bad = bad;
+        if best_any.is_none_or(|(_, b)| bad < b) {
+            best_any = Some((rect, bad));
         }
     }
-    best.unwrap()
+    match best_free {
+        Some((r, _)) => (r, true),
+        None => (best_any.unwrap().0, false),
+    }
+}
+
+// A label's rectangle with a margin, so two labels never touch.
+fn pad(r: Rect) -> Rect {
+    (r.0 - 3.0, r.1 - 1.0, r.2 + 3.0, r.3 + 1.0)
 }
 
 fn label_alpha(age_s: f64, life_s: f64) -> f64 {
@@ -574,11 +598,6 @@ fn main() {
                         .collect()
                 })
                 .unwrap_or_default(),
-            added: n
-                .get("added")
-                .and_then(Value::as_str)
-                .unwrap_or("")
-                .to_string(),
         })
         .collect();
     let node_index: HashMap<&str, usize> = nodes
@@ -676,16 +695,16 @@ fn main() {
             })
             .collect()
     };
-    let fill_at = |ni: usize, t: usize| -> String { degree_color(degree_tl[ni][t]) };
-    // nodes appear when they were actually introduced; no field = always there
-    let first_vis: Vec<usize> = nodes
-        .iter()
-        .map(|n| {
-            days.iter()
-                .position(|d| n.added.as_str() <= d.to_string().as_str())
-                .unwrap_or(0)
-        })
-        .collect();
+    // a node is blue until the day of its first rep, then on the degree ramp
+    let first_rep: Vec<Option<NaiveDate>> =
+        replays.iter().map(|r| r.entries.first().map(|e| e.0)).collect();
+    let fill_at = |ni: usize, t: usize| -> String {
+        if first_rep[ni].is_none_or(|d| d > days[t]) {
+            UNTOUCHED.to_string()
+        } else {
+            degree_color(degree_tl[ni][t])
+        }
+    };
 
     // ---- pacing: screen time per tick, in units of "one solve" -----------
     let by_day = solves_by_day(evidence);
@@ -725,6 +744,54 @@ fn main() {
             None => groups.push((&n.group, vec![i])),
         }
     }
+    // A group with an early first label goes at the top, and a group with
+    // no labels goes at the bottom. dot puts the group that is last in the
+    // source at the top, so the source starts with the latest group. Groups
+    // joined by edges are one block that dot puts in one place: the block
+    // sorts by its earliest group.
+    let mut first_label: HashMap<&str, &str> = HashMap::new();
+    for (day, solves) in &by_day {
+        for (_, moves) in solves {
+            for m in moves {
+                if let Some(&ni) = node_index.get(m.as_str()) {
+                    let e = first_label.entry(nodes[ni].group.as_str()).or_insert(day);
+                    if day.as_str() < *e {
+                        *e = day;
+                    }
+                }
+            }
+        }
+    }
+    let group_of = |ni: usize| groups.iter().position(|(g, _)| *g == nodes[ni].group).unwrap();
+    let mut block: Vec<usize> = (0..groups.len()).collect();
+    fn find(b: &mut [usize], x: usize) -> usize {
+        if b[x] != x {
+            b[x] = find(b, b[x]);
+        }
+        b[x]
+    }
+    for (ni, n) in nodes.iter().enumerate() {
+        for p in &n.prereqs {
+            if let Some(&pi) = node_index.get(p.as_str()) {
+                let (a, b) = (find(&mut block, group_of(ni)), find(&mut block, group_of(pi)));
+                block[a] = b;
+            }
+        }
+    }
+    let own: Vec<&str> = groups
+        .iter()
+        .map(|(g, _)| first_label.get(g).copied().unwrap_or("9999"))
+        .collect();
+    let mut block_first: HashMap<usize, &str> = HashMap::new();
+    for gi in 0..groups.len() {
+        let e = block_first.entry(find(&mut block, gi)).or_insert(own[gi]);
+        if own[gi] < *e {
+            *e = own[gi];
+        }
+    }
+    let mut order: Vec<usize> = (0..groups.len()).collect();
+    order.sort_by_key(|&gi| std::cmp::Reverse((block_first[&find(&mut block, gi)], own[gi])));
+    let groups: Vec<(&str, Vec<usize>)> = order.into_iter().map(|gi| groups[gi].clone()).collect();
     let today_i = n_ticks - 1;
     let mut dot = String::new();
     dot.push_str("digraph kg {\n");
@@ -747,14 +814,39 @@ fn main() {
         }
         dot.push_str(" }\n");
     }
-    for n in &nodes {
+    let mut linked = vec![false; nodes.len()];
+    for (ni, n) in nodes.iter().enumerate() {
         for p in &n.prereqs {
-            if node_index.contains_key(p.as_str()) {
+            if let Some(&pi) = node_index.get(p.as_str()) {
                 writeln!(dot, " \"{p}\" -> \"{}\";", n.id).unwrap();
+                linked[ni] = true;
+                linked[pi] = true;
             }
         }
     }
+    // rankdir=LR puts nodes with no edges in one rank, so a group of them
+    // is one tall column. Invisible edges put them in a grid that is about
+    // as tall as it is wide: a node box is about three times wider than tall.
+    let grid = |dot: &mut String, ids: &[String]| {
+        let cols = ((ids.len() as f64 / 3.0).sqrt().ceil() as usize).max(1);
+        for (i, id) in ids.iter().enumerate() {
+            if i % cols > 0 {
+                writeln!(dot, " \"{}\" -> \"{id}\" [style=invis];", ids[i - 1]).unwrap();
+            }
+        }
+    };
+    for (_, members) in &groups {
+        let free: Vec<String> = members
+            .iter()
+            .filter(|&&ni| !linked[ni])
+            .map(|&ni| nodes[ni].id.clone())
+            .collect();
+        if free.len() > 3 {
+            grid(&mut dot, &free);
+        }
+    }
     dot.push_str(" subgraph cluster_legend {\n  label=\"degree of ownership\"; fontcolor=\"#8b949e\"; color=\"#30363d\"; style=rounded;\n");
+    writeln!(dot, "  legend_new [label=\"new\", fillcolor=\"{UNTOUCHED}\"];").unwrap();
     for d in DEGREE_LEGEND {
         writeln!(
             dot,
@@ -765,7 +857,18 @@ fn main() {
         )
         .unwrap();
     }
-    dot.push_str(" }\n}\n");
+    dot.push_str(" }\n");
+    let legend_ids: Vec<String> = std::iter::once("legend_new".to_string())
+        .chain(
+            DEGREE_LEGEND
+                .iter()
+                .map(|d| format!("legend_{}", (d * 100.0) as usize)),
+        )
+        .collect();
+    for w in legend_ids.windows(2) {
+        writeln!(dot, " {} -> {} [style=invis];", w[0], w[1]).unwrap();
+    }
+    dot.push_str("}\n");
 
     let child = Command::new("dot")
         .arg("-Tsvg")
@@ -870,13 +973,13 @@ fn main() {
         text: String,
         rect: Rect,
         born: f64,
+        dies: f64, // born + label_life, or earlier when a newer label cuts it
     }
     let mut active: Vec<usize> = vec![]; // indices into labels still fading
     let mut labels: Vec<Label> = vec![];
     let line_h = LABEL_PT + 4.0;
     for (i, day) in days.iter().enumerate() {
         let t0 = tick_t[i];
-        active.retain(|&li| label_alpha(t0 - labels[li].born, label_life) > 0.0);
         let Some(day_solves) = by_day.get(&day.to_string()) else {
             continue;
         };
@@ -886,18 +989,13 @@ fn main() {
                 let Some(&node_box) = boxes.get(node_id) else {
                     continue;
                 };
-                // a solve older than the node's `added` date must not light
-                // up a box that has not materialized yet
-                if node_index
-                    .get(node_id.as_str())
-                    .is_some_and(|&ni| i < first_vis[ni])
-                {
-                    continue;
-                }
+                // a spot is free once its label has faded fully, with a
+                // margin for the fade-in ramp and the rounded keyTimes
+                active.retain(|&li| labels[li].dies + 0.001 * seconds > born);
                 let alive_here: Vec<usize> = active
                     .iter()
                     .copied()
-                    .filter(|&li| &labels[li].node == node_id)
+                    .filter(|&li| &labels[li].node == node_id && labels[li].dies > born)
                     .collect();
                 if alive_here.len() >= MAX_PROBS {
                     // evict the oldest on a hot node
@@ -905,16 +1003,27 @@ fn main() {
                         .iter()
                         .min_by(|&&a, &&b| labels[a].born.total_cmp(&labels[b].born))
                         .unwrap();
+                    labels[oldest].dies = labels[oldest].dies.min(born);
                     active.retain(|&li| li != oldest);
                 }
                 let w = prob.chars().count() as f64 * LABEL_PT * 0.61;
                 let taken: Vec<Rect> = active.iter().map(|&li| labels[li].rect).collect();
-                let rect = place_label(node_box, w, line_h, &obstacles, &taken);
+                let (rect, free) = place_label(node_box, w, line_h, &obstacles, &taken);
+                if !free {
+                    // no spot is clear of live labels: end the ones in the way
+                    for &li in &active {
+                        if overlaps(pad(rect), labels[li].rect) {
+                            labels[li].dies = labels[li].dies.min(born);
+                        }
+                    }
+                    active.retain(|&li| labels[li].dies + 0.001 * seconds > born);
+                }
                 labels.push(Label {
                     node: node_id.clone(),
                     text: prob.clone(),
                     rect,
                     born,
+                    dies: born + label_life,
                 });
                 active.push(labels.len() - 1);
             }
@@ -976,29 +1085,12 @@ fn main() {
         match class {
             "node" if node_index.contains_key(title.as_str()) => {
                 let ni = node_index[title.as_str()];
-                let mut tracks = String::new();
-                // materialize on the `added` date
-                if first_vis[ni] > 0 {
-                    let mut times = vec![0.0];
-                    push_key(&mut times, tick_frac[first_vis[ni]]);
-                    tracks.push_str(&animate(
-                        "opacity",
-                        "discrete",
-                        &["0".into(), "1".into()],
-                        &times,
-                        dur,
-                    ));
-                }
                 let fills: Vec<String> = (0..n_ticks).map(|t| fill_at(ni, t)).collect();
                 let fill_track = discrete_track(&fills, &tick_frac, "fill", dur);
-                // bright border on the ticks where the status changed or the
-                // node was just introduced
+                // bright border on the ticks where the status changed
                 let strokes: Vec<String> = (0..n_ticks)
                     .map(|t| {
-                        let vis = t >= first_vis[ni];
-                        let hot = t > 0
-                            && vis
-                            && (status_tl[ni][t] != status_tl[ni][t - 1] || first_vis[ni] == t);
+                        let hot = t > 0 && status_tl[ni][t] != status_tl[ni][t - 1];
                         (if hot { INK } else { STROKE_DEF }).to_string()
                     })
                     .collect();
@@ -1018,31 +1110,7 @@ fn main() {
                         inner.replace_range(j..j + 2, &kids);
                     }
                 }
-                out_svg.push_str(&tracks);
                 out_svg.push_str(&inner);
-            }
-            "edge" => {
-                // an edge exists once both its endpoints do
-                let vis = title
-                    .split_once("->")
-                    .map(|(a, b)| {
-                        let fa = node_index.get(a.trim()).map_or(0, |&i| first_vis[i]);
-                        let fb = node_index.get(b.trim()).map_or(0, |&i| first_vis[i]);
-                        fa.max(fb)
-                    })
-                    .unwrap_or(0);
-                if vis > 0 {
-                    let mut times = vec![0.0];
-                    push_key(&mut times, tick_frac[vis]);
-                    out_svg.push_str(&animate(
-                        "opacity",
-                        "discrete",
-                        &["0".into(), "1".into()],
-                        &times,
-                        dur,
-                    ));
-                }
-                out_svg.push_str(block);
             }
             _ => out_svg.push_str(block),
         }
@@ -1063,11 +1131,25 @@ fn main() {
     while li < labels.len() {
         let l = &labels[li];
         let mut lj = li + 1;
-        while lj < labels.len() && labels[lj].born == l.born && labels[lj].text == l.text {
+        while lj < labels.len()
+            && labels[lj].born == l.born
+            && labels[lj].text == l.text
+            && labels[lj].dies == l.dies
+        {
             lj += 1;
         }
         let lb = l.born / dur;
         let lf = label_life / dur;
+        let ld = l.dies / dur;
+        // the label ends at its death, natural or cut, and is at 0 a moment
+        // before it, so a label born at that time on the same spot fades in
+        // on clear ground
+        let end = ld.min(lb + lf);
+        // a label cut at its birth is never seen
+        if end < lb + 0.001 {
+            li = lj;
+            continue;
+        }
         let mut times = vec![];
         let mut values = vec![];
         if lb > 0.0004 {
@@ -1078,17 +1160,30 @@ fn main() {
         }
         push_key(&mut times, lb.max(0.0));
         values.push("1".to_string());
-        for (u, a) in [(0.25, 0.669), (0.5, 0.379), (0.75, 0.144), (1.0, 0.0)] {
+        for (u, a) in [(0.25, 0.669), (0.5, 0.379), (0.75, 0.144)] {
             let t = lb + u * lf;
-            if t >= 1.0 {
+            if t >= 1.0 || t >= end - 0.0005 {
                 break;
             }
             push_key(&mut times, t);
             values.push(format!("{a}"));
         }
+        if end < 1.0 {
+            push_key(&mut times, end - 0.0005);
+            values.push(format!("{:.3}", label_alpha((end - 0.0005 - lb) * dur, label_life)));
+            push_key(&mut times, end - 0.0003);
+            values.push("0".to_string());
+        }
         // linear keyTimes must end exactly at 1
-        push_key(&mut times, 1.0);
-        values.push(format!("{:.3}", label_alpha((1.0 - lb) * dur, label_life)));
+        let end_alpha = if end < 1.0 {
+            0.0
+        } else {
+            label_alpha((1.0 - lb) * dur, label_life)
+        };
+        if times.last().is_some_and(|&t| t < 1.0) {
+            push_key(&mut times, 1.0);
+            values.push(format!("{end_alpha:.3}"));
+        }
         if times[0] != 0.0 {
             times.insert(0, 0.0);
             values.insert(0, "0".to_string());
@@ -1263,15 +1358,10 @@ fn main() {
         "<g text-anchor=\"end\" font-family=\"Helvetica,sans-serif\" font-size=\"20\" fill=\"{INK}\">"
     )
     .unwrap();
-    let mut hidden_counts = 0;
     for i in 0..n_ticks {
         let mut counts = [0usize; 4];
         for ni in 0..nodes.len() {
-            if i >= first_vis[ni] {
-                counts[status_tl[ni][i]] += 1;
-            } else {
-                hidden_counts += 1;
-            }
+            counts[status_tl[ni][i]] += 1;
         }
         let title_text = format!(
             "{}   ·   {} solid  {} stale  {} fragile  {} missing",
@@ -1304,7 +1394,6 @@ fn main() {
         .unwrap();
     }
     out_svg.push_str("</g>\n");
-    let _ = hidden_counts;
 
     // era label, top left: hand-scheduled until the graph tooling landed,
     // graph-scheduled after — one flip, pinned to the switch date's tick

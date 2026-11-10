@@ -362,6 +362,15 @@ times those seconds. Raises AssertionError that names the failure:
 the first answer that differs, or the seconds taken against the
 seconds allowed.
 
+### `int_ops(method: Callable[..., Any], x: int) -> int`
+
+The number of integer operations method(x) makes on x and on each
+int computed from x: arithmetic, bitwise, shifts, comparisons, truth
+tests and use as an index. Operations on ints that do not come from x
+(a constant table, a result counter) are not counted. An assert on
+this count holds a solution to a bound on its steps, the way a time
+limit does, for an input whose size is fixed (a 64-bit word).
+
 ### `triples(n: int, type: Maker = tuple) -> Iterator[Any]`
 
 Every (i, j, k) with 0 <= i < j < k < n, in lexicographic order.
