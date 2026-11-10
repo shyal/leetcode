@@ -44411,6 +44411,18 @@
       "note": "Contract met: palette is a Flag enum, membership tested with `c in palette` directly, no conversion to int/set/list; single O(n) pass.",
       "summary": "The code defines a Color Flag enum with auto() members and a Solution.present generator that walks names, looks each up via Color[n], and yields it when `c in palette`. The palette is combined with `|` and tested with `in` on the Flag value itself, so the bit-flags move is exercised as required. All assertions passed on the run.",
       "seconds": 102
+    },
+    "solved/d_Count_Missing_Integers_2026_11_10T00_02_53_890422_00_00Z.mu": {
+      "date": "2026-11-10",
+      "problem": "drill",
+      "drill": "d13",
+      "moves": {
+        "index-value-gap": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "O(1) closed form arr[-1] - len arr; no loop, contract met.",
+      "summary": "The solution computes the count of missing positive integers in one expression, arr[-1] - len arr, using the fact that a sorted strictly-increasing array of positive ints should hold 1..arr[-1] and the array itself supplies len arr of them. This is the O(1) index-value-gap closed form with no loop, meeting the drill contract. All assertions passed.",
+      "seconds": 80
     }
   }
 }
