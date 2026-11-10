@@ -254,16 +254,24 @@ pub fn rank_bands<G: Fn(f64) -> f64>(
 /// character apart. Python started `x` as the int ML and made it a float
 /// on the first advance, so the first entry prints "62" and the rest
 /// print as floats; a chart that started from float(ML) prints "62.0".
+/// An entry that would pass LEGEND_RIGHT starts a new row LEGEND_ROW below,
+/// so a chart with a long legend starts it one row higher.
 pub struct Legend {
     pub x: f64,
+    x0: f64,
     is_int: bool,
     pub y: i64,
 }
+
+/// The right edge of every chart's legend (W - MR of the 1200 wide charts).
+pub const LEGEND_RIGHT: f64 = 1176.0;
+pub const LEGEND_ROW: i64 = 15;
 
 impl Legend {
     pub fn new(x: i64, is_int: bool, y: i64) -> Legend {
         Legend {
             x: x as f64,
+            x0: x as f64,
             is_int,
             y,
         }
@@ -274,6 +282,15 @@ impl Legend {
             format!("{}", x as i64)
         } else {
             pyf(x)
+        }
+    }
+
+    /// Start a new row when this entry does not fit on the current one.
+    fn place(&mut self, label: &str) {
+        let end = self.x + 22.0 + 6.2 * label.chars().count() as f64;
+        if end > LEGEND_RIGHT && self.x > self.x0 {
+            self.x = self.x0;
+            self.y += LEGEND_ROW;
         }
     }
 
@@ -288,6 +305,7 @@ impl Legend {
     }
 
     pub fn line(&mut self, svg: &mut Vec<String>, color: &str, label: &str, dash: bool) {
+        self.place(label);
         let d = if dash {
             " stroke-dasharray=\"6 4\""
         } else {
@@ -304,6 +322,7 @@ impl Legend {
     }
 
     pub fn dot(&mut self, svg: &mut Vec<String>, color: &str, label: &str) {
+        self.place(label);
         svg.push(format!(
             "<circle cx=\"{}\" cy=\"{}\" r=\"3\" fill=\"{color}\"/>",
             self.fx(self.x + 8.0),
@@ -313,6 +332,7 @@ impl Legend {
     }
 
     pub fn swatch(&mut self, svg: &mut Vec<String>, color: &str, opacity: &str, label: &str) {
+        self.place(label);
         svg.push(format!(
             "<rect x=\"{}\" y=\"{}\" width=\"16\" height=\"8\" fill=\"{color}\" fill-opacity=\"{opacity}\"/>",
             self.fx(self.x),

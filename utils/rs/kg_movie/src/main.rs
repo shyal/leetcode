@@ -77,7 +77,8 @@ const MAP: Theme = Theme {
     bg: "#e6d3a7",
     ink: "#3b2714",
     flash: "#a3161a",
-    flash_attrs: " font-weight=\"bold\" stroke=\"#eedcb2\" stroke-width=\"3\" paint-order=\"stroke\"",
+    flash_attrs:
+        " font-weight=\"bold\" stroke=\"#eedcb2\" stroke-width=\"3\" paint-order=\"stroke\"",
     stroke: "#3b2714",
     hot: "#e0201b",
     untouched: "#f3e7c8",
@@ -89,9 +90,17 @@ const MAP: Theme = Theme {
 
 // Ownership on the map: vermilion, ochre, verdigris.
 fn map_ramp(degree: f64) -> String {
-    const STOPS: [[f64; 3]; 3] = [[181.0, 62.0, 40.0], [219.0, 166.0, 60.0], [58.0, 125.0, 84.0]];
+    const STOPS: [[f64; 3]; 3] = [
+        [181.0, 62.0, 40.0],
+        [219.0, 166.0, 60.0],
+        [58.0, 125.0, 84.0],
+    ];
     let t = degree.clamp(0.0, 1.0) * 2.0;
-    let (a, b, f) = if t < 1.0 { (STOPS[0], STOPS[1], t) } else { (STOPS[1], STOPS[2], t - 1.0) };
+    let (a, b, f) = if t < 1.0 {
+        (STOPS[0], STOPS[1], t)
+    } else {
+        (STOPS[1], STOPS[2], t - 1.0)
+    };
     let c = |i: usize| (a[i] + (b[i] - a[i]) * f).round() as u8;
     format!("#{:02x}{:02x}{:02x}", c(0), c(1), c(2))
 }
@@ -523,7 +532,17 @@ fn era_banner(
     halo: &str,
     dur: f64,
 ) -> String {
-    era_banner_in(&DARK, x, y, size, anchor, era_frac, switch_exists, halo, dur)
+    era_banner_in(
+        &DARK,
+        x,
+        y,
+        size,
+        anchor,
+        era_frac,
+        switch_exists,
+        halo,
+        dur,
+    )
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -605,7 +624,9 @@ fn main() {
             s => match s.parse::<f64>() {
                 Ok(v) if v > 0.0 => seconds = v,
                 _ => {
-                    eprintln!("usage: kg_movie [seconds] [--pace solves|calendar] [--map] [--open]");
+                    eprintln!(
+                        "usage: kg_movie [seconds] [--pace solves|calendar] [--map] [--open]"
+                    );
                     std::process::exit(2);
                 }
             },
@@ -770,8 +791,10 @@ fn main() {
             .collect()
     };
     // a node is blue until the day of its first rep, then on the degree ramp
-    let first_rep: Vec<Option<NaiveDate>> =
-        replays.iter().map(|r| r.entries.first().map(|e| e.0)).collect();
+    let first_rep: Vec<Option<NaiveDate>> = replays
+        .iter()
+        .map(|r| r.entries.first().map(|e| e.0))
+        .collect();
     let fill_at = |ni: usize, t: usize| -> String {
         if first_rep[ni].is_none_or(|d| d > days[t]) {
             th.untouched.to_string()
@@ -836,7 +859,12 @@ fn main() {
             }
         }
     }
-    let group_of = |ni: usize| groups.iter().position(|(g, _)| *g == nodes[ni].group).unwrap();
+    let group_of = |ni: usize| {
+        groups
+            .iter()
+            .position(|(g, _)| *g == nodes[ni].group)
+            .unwrap()
+    };
     let mut block: Vec<usize> = (0..groups.len()).collect();
     fn find(b: &mut [usize], x: usize) -> usize {
         if b[x] != x {
@@ -847,7 +875,10 @@ fn main() {
     for (ni, n) in nodes.iter().enumerate() {
         for p in &n.prereqs {
             if let Some(&pi) = node_index.get(p.as_str()) {
-                let (a, b) = (find(&mut block, group_of(ni)), find(&mut block, group_of(pi)));
+                let (a, b) = (
+                    find(&mut block, group_of(ni)),
+                    find(&mut block, group_of(pi)),
+                );
                 block[a] = b;
             }
         }
@@ -857,10 +888,10 @@ fn main() {
         .map(|(g, _)| first_label.get(g).copied().unwrap_or("9999"))
         .collect();
     let mut block_first: HashMap<usize, &str> = HashMap::new();
-    for gi in 0..groups.len() {
-        let e = block_first.entry(find(&mut block, gi)).or_insert(own[gi]);
-        if own[gi] < *e {
-            *e = own[gi];
+    for (gi, &label) in own.iter().enumerate() {
+        let e = block_first.entry(find(&mut block, gi)).or_insert(label);
+        if label < *e {
+            *e = label;
         }
     }
     let mut order: Vec<usize> = (0..groups.len()).collect();
@@ -883,105 +914,113 @@ fn main() {
                 .collect(),
             fills: (0..nodes.len()).map(|ni| fill_at(ni, today_i)).collect(),
             legend: std::iter::once(("new".to_string(), th.untouched.to_string()))
-                .chain(DEGREE_LEGEND.iter().map(|d| (format!("{d:.2}"), (th.ramp)(*d))))
+                .chain(
+                    DEGREE_LEGEND
+                        .iter()
+                        .map(|d| (format!("{d:.2}"), (th.ramp)(*d))),
+                )
                 .collect(),
             ink: th.ink,
             stroke: th.stroke,
         })
     } else {
-    let mut dot = String::new();
-    dot.push_str("digraph kg {\n");
-    dot.push_str(" graph [rankdir=LR, bgcolor=\"#0d1117\", fontname=\"Helvetica\", compound=true, ranksep=\"0.6\", nodesep=\"0.25\"];\n");
-    dot.push_str(" node [shape=box, style=\"rounded,filled\", fontname=\"Helvetica\", fontsize=11, fontcolor=white, color=\"#30363d\", margin=\"0.12,0.06\", penwidth=2];\n");
-    dot.push_str(" edge [color=\"#8b949e\", arrowsize=0.6];\n");
-    for (group, members) in &groups {
-        writeln!(dot, " subgraph \"cluster_{group}\" {{").unwrap();
-        writeln!(dot, "  label=\"{group}\"; fontcolor=\"#8b949e\"; color=\"#30363d\"; style=rounded; fontname=\"Helvetica\";").unwrap();
-        for &ni in members {
-            // static fill = today's status: the still that non-SMIL viewers see
+        let mut dot = String::new();
+        dot.push_str("digraph kg {\n");
+        dot.push_str(" graph [rankdir=LR, bgcolor=\"#0d1117\", fontname=\"Helvetica\", compound=true, ranksep=\"0.6\", nodesep=\"0.25\"];\n");
+        dot.push_str(" node [shape=box, style=\"rounded,filled\", fontname=\"Helvetica\", fontsize=11, fontcolor=white, color=\"#30363d\", margin=\"0.12,0.06\", penwidth=2];\n");
+        dot.push_str(" edge [color=\"#8b949e\", arrowsize=0.6];\n");
+        for (group, members) in &groups {
+            writeln!(dot, " subgraph \"cluster_{group}\" {{").unwrap();
+            writeln!(dot, "  label=\"{group}\"; fontcolor=\"#8b949e\"; color=\"#30363d\"; style=rounded; fontname=\"Helvetica\";").unwrap();
+            for &ni in members {
+                // static fill = today's status: the still that non-SMIL viewers see
+                writeln!(
+                    dot,
+                    "  \"{}\" [label=\"{}\", fillcolor=\"{}\"];",
+                    nodes[ni].id,
+                    nodes[ni].id.replacen('-', "-\\n", 1),
+                    fill_at(ni, today_i)
+                )
+                .unwrap();
+            }
+            dot.push_str(" }\n");
+        }
+        let mut linked = vec![false; nodes.len()];
+        for (ni, n) in nodes.iter().enumerate() {
+            for p in &n.prereqs {
+                if let Some(&pi) = node_index.get(p.as_str()) {
+                    writeln!(dot, " \"{p}\" -> \"{}\";", n.id).unwrap();
+                    linked[ni] = true;
+                    linked[pi] = true;
+                }
+            }
+        }
+        // rankdir=LR puts nodes with no edges in one rank, so a group of them
+        // is one tall column. Invisible edges put them in a grid that is about
+        // as tall as it is wide: a node box is about three times wider than tall.
+        let grid = |dot: &mut String, ids: &[String]| {
+            let cols = ((ids.len() as f64 / 3.0).sqrt().ceil() as usize).max(1);
+            for (i, id) in ids.iter().enumerate() {
+                if i % cols > 0 {
+                    writeln!(dot, " \"{}\" -> \"{id}\" [style=invis];", ids[i - 1]).unwrap();
+                }
+            }
+        };
+        for (_, members) in &groups {
+            let free: Vec<String> = members
+                .iter()
+                .filter(|&&ni| !linked[ni])
+                .map(|&ni| nodes[ni].id.clone())
+                .collect();
+            if free.len() > 3 {
+                grid(&mut dot, &free);
+            }
+        }
+        dot.push_str(" subgraph cluster_legend {\n  label=\"degree of ownership\"; fontcolor=\"#8b949e\"; color=\"#30363d\"; style=rounded;\n");
+        writeln!(
+            dot,
+            "  legend_new [label=\"new\", fillcolor=\"{UNTOUCHED}\"];"
+        )
+        .unwrap();
+        for d in DEGREE_LEGEND {
             writeln!(
                 dot,
-                "  \"{}\" [label=\"{}\", fillcolor=\"{}\"];",
-                nodes[ni].id,
-                nodes[ni].id.replacen('-', "-\\n", 1),
-                fill_at(ni, today_i)
+                "  legend_{} [label=\"{:.2}\", fillcolor=\"{}\"];",
+                (d * 100.0) as usize,
+                d,
+                degree_color(d)
             )
             .unwrap();
         }
         dot.push_str(" }\n");
-    }
-    let mut linked = vec![false; nodes.len()];
-    for (ni, n) in nodes.iter().enumerate() {
-        for p in &n.prereqs {
-            if let Some(&pi) = node_index.get(p.as_str()) {
-                writeln!(dot, " \"{p}\" -> \"{}\";", n.id).unwrap();
-                linked[ni] = true;
-                linked[pi] = true;
-            }
-        }
-    }
-    // rankdir=LR puts nodes with no edges in one rank, so a group of them
-    // is one tall column. Invisible edges put them in a grid that is about
-    // as tall as it is wide: a node box is about three times wider than tall.
-    let grid = |dot: &mut String, ids: &[String]| {
-        let cols = ((ids.len() as f64 / 3.0).sqrt().ceil() as usize).max(1);
-        for (i, id) in ids.iter().enumerate() {
-            if i % cols > 0 {
-                writeln!(dot, " \"{}\" -> \"{id}\" [style=invis];", ids[i - 1]).unwrap();
-            }
-        }
-    };
-    for (_, members) in &groups {
-        let free: Vec<String> = members
-            .iter()
-            .filter(|&&ni| !linked[ni])
-            .map(|&ni| nodes[ni].id.clone())
+        let legend_ids: Vec<String> = std::iter::once("legend_new".to_string())
+            .chain(
+                DEGREE_LEGEND
+                    .iter()
+                    .map(|d| format!("legend_{}", (d * 100.0) as usize)),
+            )
             .collect();
-        if free.len() > 3 {
-            grid(&mut dot, &free);
+        for w in legend_ids.windows(2) {
+            writeln!(dot, " {} -> {} [style=invis];", w[0], w[1]).unwrap();
         }
-    }
-    dot.push_str(" subgraph cluster_legend {\n  label=\"degree of ownership\"; fontcolor=\"#8b949e\"; color=\"#30363d\"; style=rounded;\n");
-    writeln!(dot, "  legend_new [label=\"new\", fillcolor=\"{UNTOUCHED}\"];").unwrap();
-    for d in DEGREE_LEGEND {
-        writeln!(
-            dot,
-            "  legend_{} [label=\"{:.2}\", fillcolor=\"{}\"];",
-            (d * 100.0) as usize,
-            d,
-            degree_color(d)
-        )
-        .unwrap();
-    }
-    dot.push_str(" }\n");
-    let legend_ids: Vec<String> = std::iter::once("legend_new".to_string())
-        .chain(
-            DEGREE_LEGEND
-                .iter()
-                .map(|d| format!("legend_{}", (d * 100.0) as usize)),
-        )
-        .collect();
-    for w in legend_ids.windows(2) {
-        writeln!(dot, " {} -> {} [style=invis];", w[0], w[1]).unwrap();
-    }
-    dot.push_str("}\n");
+        dot.push_str("}\n");
 
-    let child = Command::new("dot")
-        .arg("-Tsvg")
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .spawn()
-        .expect("graphviz `dot` not found");
-    use std::io::Write as _;
-    child
-        .stdin
-        .as_ref()
-        .unwrap()
-        .write_all(dot.as_bytes())
-        .unwrap();
-    let out = child.wait_with_output().unwrap();
-    assert!(out.status.success(), "dot failed");
-    String::from_utf8(out.stdout).unwrap()
+        let child = Command::new("dot")
+            .arg("-Tsvg")
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .spawn()
+            .expect("graphviz `dot` not found");
+        use std::io::Write as _;
+        child
+            .stdin
+            .as_ref()
+            .unwrap()
+            .write_all(dot.as_bytes())
+            .unwrap();
+        let out = child.wait_with_output().unwrap();
+        assert!(out.status.success(), "dot failed");
+        String::from_utf8(out.stdout).unwrap()
     };
 
     // ---- pass 1: geometry from the svg itself ----------------------------
@@ -1282,7 +1321,10 @@ fn main() {
         }
         if end < 1.0 {
             push_key(&mut times, end - 0.0005);
-            values.push(format!("{:.3}", label_alpha((end - 0.0005 - lb) * dur, label_life)));
+            values.push(format!(
+                "{:.3}",
+                label_alpha((end - 0.0005 - lb) * dur, label_life)
+            ));
             push_key(&mut times, end - 0.0003);
             values.push("0".to_string());
         }
@@ -1582,7 +1624,11 @@ fn main() {
     .unwrap();
     out_svg.push_str("</svg>\n");
 
-    let out_path = graph.join(if map_mode { "kg_map.svg" } else { "kg_movie.svg" });
+    let out_path = graph.join(if map_mode {
+        "kg_map.svg"
+    } else {
+        "kg_movie.svg"
+    });
     std::fs::write(&out_path, &out_svg).unwrap();
     println!(
         "wrote {} - {} ticks, {} solve labels, {} shots, {:.1}s loop ({:.1}s dissolve), {:.0}KB",

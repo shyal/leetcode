@@ -59,7 +59,7 @@ const OUTCOMES: [(&str, &str, &str, &str); 6] = [
 ];
 const ML: i64 = 62;
 const MR: i64 = 24;
-const MT: i64 = 60;
+const MT: i64 = 60 + LEGEND_ROW;
 const MB: i64 = 40;
 
 /// (date, rating, outcome): one evidenced attempt.
@@ -620,7 +620,8 @@ fn draw(ctx: &Ctx, ev: &Evidence, args: &[String], days: Option<i64>) {
         top,
         bottom,
     );
-    let mut legend = Legend::new(ML, true, MT - 18);
+    // two rows: with every outcome and the forecast the entries pass the edge
+    let mut legend = Legend::new(ML, true, MT - 18 - LEGEND_ROW);
     for (k, label, color, _) in OUTCOMES {
         if counts.get(k).copied().unwrap_or(0) > 0 {
             legend.dot(&mut svg, color, label);

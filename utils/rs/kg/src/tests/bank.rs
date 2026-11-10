@@ -1526,7 +1526,11 @@ fn a_node_serves_the_file_its_caps_allow() {
     let a = fx.bank_file("some-node", "a.py", "DRILL: InSet\nTRAINS: some-node\n");
     let b = fx.bank_file("some-node", "b.py", "DRILL: Plain\nTRAINS: some-node\n");
     fx.bank_file("other", "c.py", "DRILL: Met\nTRAINS: other\n");
-    fx.register(&[("d1", "InSet", &[]), ("d2", "Plain", &[]), ("d3", "Met", &[])]);
+    fx.register(&[
+        ("d1", "InSet", &[]),
+        ("d2", "Plain", &[]),
+        ("d3", "Met", &[]),
+    ]);
     fx.in_set(&["InSet", "Met"], "epi");
     let none = evidence(vec![]);
     assert_eq!(due(&fx, "some-node", &none), Some(a.clone()));

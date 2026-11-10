@@ -33,14 +33,16 @@ const SEA: &str = "#8fb0a8";
 const LAND: &str = "#eedcb2";
 const COAST: &str = "#4a3520";
 const ROAD: &str = "#6b4a2b";
-const WASH: [&str; 6] = ["#c9a66b", "#a9bd7c", "#d9a48f", "#93b8ad", "#e3cc6e", "#c39ab0"];
+const WASH: [&str; 6] = [
+    "#c9a66b", "#a9bd7c", "#d9a48f", "#93b8ad", "#e3cc6e", "#c39ab0",
+];
 pub const SERIF: &str = "Palatino,'Book Antiqua',Georgia,serif";
 
 pub struct Input<'a> {
     pub groups: &'a [(&'a str, Vec<usize>)],
     pub ids: Vec<&'a str>,
-    pub edges: Vec<(usize, usize)>, // prerequisite -> node
-    pub fills: Vec<String>,         // the fill of each town today
+    pub edges: Vec<(usize, usize)>,    // prerequisite -> node
+    pub fills: Vec<String>,            // the fill of each town today
     pub legend: Vec<(String, String)>, // label, fill
     pub ink: &'a str,
     pub stroke: &'a str,
@@ -128,7 +130,11 @@ fn contours(f: &[f64], nx: usize, ny: usize, level: f64) -> Vec<Vec<(f64, f64)>>
     let point = |k: Key| -> (f64, f64) {
         let (i, j, dir) = k;
         let a = val(i, j);
-        let b = if dir == 0 { val(i + 1, j) } else { val(i, j + 1) };
+        let b = if dir == 0 {
+            val(i + 1, j)
+        } else {
+            val(i, j + 1)
+        };
         let t = ((level - a) / (b - a)).clamp(0.0, 1.0);
         if dir == 0 {
             ((i as f64 + t) * GRID, j as f64 * GRID)
@@ -253,7 +259,10 @@ pub fn render(inp: &Input) -> String {
     // the capital of a country: the town with the most roads
     let mut capital = vec![false; n];
     for (_, members) in inp.groups {
-        if let Some(&c) = members.iter().max_by_key(|&&ni| (degree[ni], std::cmp::Reverse(ni))) {
+        if let Some(&c) = members
+            .iter()
+            .max_by_key(|&&ni| (degree[ni], std::cmp::Reverse(ni)))
+        {
             capital[c] = degree[c] > 0;
         }
     }
@@ -297,7 +306,11 @@ pub fn render(inp: &Input) -> String {
     let resolve = |blocks: &mut Vec<Block>| {
         for a in 0..ng {
             for b in a + 1..ng {
-                let gap = if links.contains_key(&(a, b)) { GAP_LINKED } else { GAP_FREE };
+                let gap = if links.contains_key(&(a, b)) {
+                    GAP_LINKED
+                } else {
+                    GAP_FREE
+                };
                 let (dx, dy) = (blocks[b].x - blocks[a].x, blocks[b].y - blocks[a].y);
                 let ox = (blocks[a].w + blocks[b].w) / 2.0 + gap - dx.abs();
                 let oy = (blocks[a].h + blocks[b].h) / 2.0 + gap - dy.abs();
@@ -368,7 +381,8 @@ pub fn render(inp: &Input) -> String {
         let (tx, ty) = warp(b.x, b.y - b.h / 2.0 + 20.0);
         title.push((tx, ty, name.len() as f64 * 15.0));
     }
-    let rect = |t: (f64, f64), ni: usize| (t.0 - 12.0, t.1 - 13.0, t.0 + 17.0 + name_w(ni), t.1 + 13.0);
+    let rect =
+        |t: (f64, f64), ni: usize| (t.0 - 12.0, t.1 - 13.0, t.0 + 17.0 + name_w(ni), t.1 + 13.0);
     for _ in 0..60 {
         for a in 0..n {
             let ra = rect(town[a], a);
@@ -384,11 +398,19 @@ pub fn render(inp: &Input) -> String {
                 let oy = ra.3.min(rb.3) - ra.1.max(rb.1);
                 if ox > 0.0 && oy > 0.0 {
                     if oy <= ox {
-                        let s = if town[a].1 <= town[b].1 { oy / 2.0 } else { -oy / 2.0 };
+                        let s = if town[a].1 <= town[b].1 {
+                            oy / 2.0
+                        } else {
+                            -oy / 2.0
+                        };
                         town[a].1 -= s;
                         town[b].1 += s;
                     } else {
-                        let s = if town[a].0 <= town[b].0 { ox / 2.0 } else { -ox / 2.0 };
+                        let s = if town[a].0 <= town[b].0 {
+                            ox / 2.0
+                        } else {
+                            -ox / 2.0
+                        };
                         town[a].0 -= s;
                         town[b].0 += s;
                     }
@@ -399,8 +421,8 @@ pub fn render(inp: &Input) -> String {
     // canvas: everything that makes land, plus the reach of the land
     let reach = LAND_R + NOISE_AMP / 2.0 + MARGIN;
     let (mut min_x, mut min_y, mut max_x, mut max_y) = (f64::MAX, f64::MAX, f64::MIN, f64::MIN);
-    for ni in 0..n {
-        let r = rect(town[ni], ni);
+    for (ni, t) in town.iter().enumerate().take(n) {
+        let r = rect(*t, ni);
         min_x = min_x.min(r.0);
         min_y = min_y.min(r.1);
         max_x = max_x.max(r.2);
@@ -425,7 +447,12 @@ pub fn render(inp: &Input) -> String {
     // what makes land: a town with its name, a country name (x0, x1, y, group)
     let mut anchors: Vec<(f64, f64, f64, usize)> = vec![];
     for ni in 0..n {
-        anchors.push((town[ni].0 - 6.0, town[ni].0 + 13.0 + name_w(ni), town[ni].1, group_of[ni]));
+        anchors.push((
+            town[ni].0 - 6.0,
+            town[ni].0 + 13.0 + name_w(ni),
+            town[ni].1,
+            group_of[ni],
+        ));
     }
     for (gi, &(tx, ty, tw)) in title.iter().enumerate() {
         anchors.push((tx - tw / 2.0, tx + tw / 2.0, ty - 5.0, gi));
@@ -474,7 +501,10 @@ pub fn render(inp: &Input) -> String {
             let (dx, dy) = (b.0 - a.0, b.1 - a.1);
             let len = (dx * dx + dy * dy).sqrt().max(1.0);
             let (ux, uy) = (dx / len, dy / len);
-            let (a, b) = ((a.0 + ux * 10.0, a.1 + uy * 10.0), (b.0 - ux * 13.0, b.1 - uy * 13.0));
+            let (a, b) = (
+                (a.0 + ux * 10.0, a.1 + uy * 10.0),
+                (b.0 - ux * 13.0, b.1 - uy * 13.0),
+            );
             let bend = (hash(k as i64, 5, 23) - 0.5) * 0.36 * len;
             let ctrl = ((a.0 + b.0) / 2.0 - uy * bend, (a.1 + b.1) / 2.0 + ux * bend);
             (0..=12)
@@ -517,7 +547,11 @@ pub fn render(inp: &Input) -> String {
     // ---- draw --------------------------------------------------------------
     let (ink, stroke) = (inp.ink, inp.stroke);
     let mut s = String::with_capacity(768 * 1024);
-    writeln!(s, "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>").unwrap();
+    writeln!(
+        s,
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>"
+    )
+    .unwrap();
     writeln!(
         s,
         "<svg width=\"{width:.0}pt\" height=\"{height:.0}pt\" viewBox=\"0.00 0.00 {width:.2} {height:.2}\" xmlns=\"http://www.w3.org/2000/svg\">"
@@ -570,7 +604,15 @@ pub fn render(inp: &Input) -> String {
         for k in 0..16 {
             let a = k as f64 * std::f64::consts::PI / 16.0;
             let (dx, dy) = (a.cos() * 6000.0, a.sin() * 6000.0);
-            write!(rh, "M{:.0},{:.0}L{:.0},{:.0}", rx - dx, ry - dy, rx + dx, ry + dy).unwrap();
+            write!(
+                rh,
+                "M{:.0},{:.0}L{:.0},{:.0}",
+                rx - dx,
+                ry - dy,
+                rx + dx,
+                ry + dy
+            )
+            .unwrap();
         }
     }
     writeln!(
@@ -612,7 +654,15 @@ pub fn render(inp: &Input) -> String {
                 nyn = -nyn;
             }
             let len = 4.0 + 9.0 * hash(i as i64, li as i64, 51);
-            write!(hatch, "M{:.0},{:.0}l{:.1},{:.1}", p.0, p.1, nxn * len, nyn * len).unwrap();
+            write!(
+                hatch,
+                "M{:.0},{:.0}l{:.1},{:.1}",
+                p.0,
+                p.1,
+                nxn * len,
+                nyn * len
+            )
+            .unwrap();
         }
     }
     writeln!(
@@ -627,7 +677,11 @@ pub fn render(inp: &Input) -> String {
     )
     .unwrap();
     let coast = path_d(&coast_loops);
-    writeln!(s, "<path fill=\"{LAND}\" fill-rule=\"evenodd\" d=\"{coast}\"/>").unwrap();
+    writeln!(
+        s,
+        "<path fill=\"{LAND}\" fill-rule=\"evenodd\" d=\"{coast}\"/>"
+    )
+    .unwrap();
     // a country: a wash of colour, darker along the inside of its border
     for g in 0..ng {
         let wash = WASH[g % WASH.len()];
@@ -657,7 +711,10 @@ pub fn render(inp: &Input) -> String {
             let y = (j as f64 + hash(i, j, 62)) * step;
             if sample(&land, nx, ny, x, y) < 13.0
                 || anchors.iter().any(|a| seg_dist(x, y, a) < 30.0)
-                || roads.iter().flatten().any(|r| (r.0 - x).hypot(r.1 - y) < 13.0)
+                || roads
+                    .iter()
+                    .flatten()
+                    .any(|r| (r.0 - x).hypot(r.1 - y) < 13.0)
             {
                 continue;
             }
@@ -723,7 +780,12 @@ pub fn render(inp: &Input) -> String {
     )
     .unwrap();
     // title on a ribbon
-    let (rl, rr, rt, rh) = (width / 2.0 - 270.0, width / 2.0 + 270.0, height - 96.0, 70.0);
+    let (rl, rr, rt, rh) = (
+        width / 2.0 - 270.0,
+        width / 2.0 + 270.0,
+        height - 96.0,
+        70.0,
+    );
     writeln!(
         s,
         "<path fill=\"{LAND}\" stroke=\"{ink}\" stroke-width=\"1.5\" stroke-linejoin=\"round\" d=\"M{rl:.0},{rt:.0}H{rr:.0}l-18,{:.0}l18,{:.0}H{rl:.0}l18,{:.0}Z\"/>\
@@ -816,7 +878,14 @@ pub fn render(inp: &Input) -> String {
         let pts = &roads[k];
         let mut d = String::new();
         for (i, q) in pts.iter().enumerate() {
-            write!(d, "{}{:.1},{:.1}", if i == 0 { "M" } else { " L" }, q.0 - ox, q.1 - oy).unwrap();
+            write!(
+                d,
+                "{}{:.1},{:.1}",
+                if i == 0 { "M" } else { " L" },
+                q.0 - ox,
+                q.1 - oy
+            )
+            .unwrap();
         }
         let (last, prev) = (pts[pts.len() - 1], pts[pts.len() - 2]);
         let (hx, hy) = (last.0 - prev.0, last.1 - prev.1);

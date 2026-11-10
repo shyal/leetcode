@@ -12,9 +12,10 @@
 //   kg_readme <chart> [--forecast | --no-forecast]
 //
 // <chart> is one of gauges, contest, elo, streak, rank, rate, problem-rating,
-// backlog, problem-rating-month, hours, onsite, progress. The README shows
-// the gauges, the contest badge and the Elo charts (live again 2026-10-27;
-// the badges stay drawable by name and feed make elo and make prog). The
+// backlog, problem-rating-month, hours, onsite, progress, rates, commits.
+// The README shows the gauges, the contest badge, the Elo charts (live
+// again 2026-10-27; the badges stay drawable by name and feed make elo and
+// make prog) and the two volume charts (rates, commits; 2026-11-10). The
 // forecast flags reach problem-rating and backlog, which share the cached
 // runs.
 //
@@ -37,13 +38,14 @@ mod rank_fetch;
 mod rate;
 mod streak;
 mod update;
+mod volume;
 
 use kg::ctx::Ctx;
 use kg::data::{load_envrc, repo_root};
 use kg::evidence::Evidence;
 
 /// What `make readme` draws: the charts README.md shows.
-const CHARTS: [&str; 9] = [
+const CHARTS: [&str; 11] = [
     "gauges",
     "contest",
     "rate",
@@ -53,10 +55,12 @@ const CHARTS: [&str; 9] = [
     "hours",
     "onsite",
     "progress",
+    "rates",
+    "commits",
 ];
 
 /// Every chart, for `kg_readme <chart>` and the usage line.
-const ALL: [&str; 12] = [
+const ALL: [&str; 14] = [
     "gauges",
     "contest",
     "elo",
@@ -69,6 +73,8 @@ const ALL: [&str; 12] = [
     "hours",
     "onsite",
     "progress",
+    "rates",
+    "commits",
 ];
 
 fn main() {
@@ -101,6 +107,8 @@ fn main() {
             "hours" => hours::render(&ctx, &ev),
             "onsite" => onsite::render(&ctx, &ev),
             "progress" => progress::render(&ctx, &ev),
+            "rates" => volume::render_rates(&ctx),
+            "commits" => volume::render_commits(&ctx),
             "update" => update::run(&ctx, &ev),
             "rank-table" => rank_fetch::run(&ctx),
             "now" => dash::run(&ctx, &ev, args.iter().any(|a| a == "--once")),
