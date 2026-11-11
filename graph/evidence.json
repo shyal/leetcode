@@ -44687,6 +44687,18 @@
       "summary": "The code builds a parent dict with a path-compressing find, unions the two sides of every '==' equation, then checks each '!=' equation for a shared root and returns false on a conflict. It exercises union-find with path compression. The notes say 'learning', indicating the solution was given and copied.",
       "seconds": 2505,
       "learning": true
+    },
+    "solved/p105_Construct_Binary_Tree_from_Preorder_and_Inorder_Traversal_2026_11_11T02_16_44_583563_00_00Z.mu": {
+      "date": "2026-11-11",
+      "problem": "105",
+      "moves": {
+        "tree-build-from-traversals": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Uses inorder.index(root) and list slicing per node, giving O(n^2) worst case rather than the O(n) hashmap-index variant.",
+      "summary": "buildTree takes preorder[0] as the root, finds its position in inorder with inorder.index, splits both arrays into left and right slices, and recurses to attach the subtrees. This is the tree-build-from-traversals move, exercised cleanly and accepted by LeetCode (107 ms). The slicing and index lookup per node make it quadratic on skewed trees; no notes were provided.",
+      "seconds": 593,
+      "learning": true
     }
   }
 }
