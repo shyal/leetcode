@@ -117,13 +117,22 @@ fn wake(ctx: &Ctx, pv: &PView, ev: &Evidence, problem: Option<String>) {
     if cur != "master" {
         die(&format!("wake from master (you are on {cur})"));
     }
-    let title = pv
-        .map
-        .get(&pnum)
+    let title = known(ctx, pv, &pnum)
         .map(|p| p.title.clone())
         .unwrap_or_else(|| "?".to_string());
+    // checkout first, rename after: a checkout that fails must leave the
+    // park as it was (2026-11-11: the rename came first, an uncommitted
+    // graph/problems.json stopped the checkout, and the next make wake
+    // found no parked branch). -m carries an uncommitted change of master
+    // onto the branch, merged, where a plain checkout refuses.
+    let out = git.run(&["checkout", "-m", &branch]);
+    if !out.status.success() {
+        die(&format!(
+            "could not check out {branch}:\n{}",
+            String::from_utf8_lossy(&out.stderr).trim()
+        ));
+    }
     git.checked(&["branch", "-M", &branch, &pnum]);
-    git.checked(&["checkout", &pnum]);
     // the woke marker is a MERGE from master: checking out an old park would
     // otherwise time-travel the whole tree (Makefile, utils, graph data) back
     // to the day it was cut. -X ours keeps the parked current.py; everything
@@ -155,21 +164,27 @@ fn wake(ctx: &Ctx, pv: &PView, ev: &Evidence, problem: Option<String>) {
     );
 }
 
+/// The problem's entry: evidenced, or drafted (never solved, so only in
+/// the whole table). The picker serves both, so both can be parked.
+fn known<'a>(ctx: &'a Ctx, pv: &'a PView, pnum: &str) -> Option<&'a kg::data::Problem> {
+    pv.map.get(pnum).or_else(|| ctx.all_problems().get(pnum))
+}
+
 fn park(ctx: &Ctx, pv: &PView, ev: &Evidence, problem: Option<String>) {
     let git = Git { root: &ctx.root };
     let branch = git.current_branch();
     let pnum = match problem {
         Some(p) => p,
-        None if pv.map.contains_key(&branch) => branch.clone(),
+        None if known(ctx, pv, &branch).is_some() => branch.clone(),
         None => die(&format!(
             "can't tell which problem to sleep (branch '{branch}'); pass one: make sleep 108"
         )),
     };
-    if !pv.map.contains_key(&pnum) {
+    let Some(entry) = known(ctx, pv, &pnum).cloned() else {
         die(&format!(
             "can't tell which problem to sleep (branch '{branch}'); pass one: make sleep 108"
         ));
-    }
+    };
     let recs = sleep_records(ctx, pv, ev);
     let slept_branch = format!("{pnum}-slept");
     if git.branch_exists(&slept_branch) && recs.iter().any(|r| r.pnum == pnum) {
@@ -189,7 +204,7 @@ fn park(ctx: &Ctx, pv: &PView, ev: &Evidence, problem: Option<String>) {
         ));
     }
 
-    let title = pv.map[&pnum].title.clone();
+    let title = entry.title.clone();
     let msg = format!("sleeping: {pnum}. {title}");
     if branch == pnum {
         let fought = active_seconds(&ctx.root, &pnum, now()).0;
@@ -223,7 +238,17 @@ fn park(ctx: &Ctx, pv: &PView, ev: &Evidence, problem: Option<String>) {
     }
 
     let statuses = all_statuses(ctx, ev, ctx.today());
-    let mut rusty: Vec<String> = input_tree(&pv.map[&pnum].moves, &ctx.nodes)
+    // a drafted problem has no moves of its own: its first drafted walk
+    let moves = if entry.moves.is_empty() {
+        entry
+            .walks
+            .first()
+            .map(|w| w.moves.clone())
+            .unwrap_or_default()
+    } else {
+        entry.moves.clone()
+    };
+    let mut rusty: Vec<String> = input_tree(&moves, &ctx.nodes)
         .into_iter()
         .filter(|n| statuses.get(n).is_some_and(|s| s.0 != SOLID))
         .collect();

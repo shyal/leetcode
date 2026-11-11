@@ -44782,6 +44782,20 @@
       "summary": "The code builds a Counter over the digits, then walks '9876543210' appending d*(count//2) to a left half (skipping '0' while the half is empty), picks the largest digit with an odd count as the middle, and mirrors the left half with res[::-1]. It exercises counter-build, counts-as-data (reading counts to decide halves and the odd middle), and string-build-transform for the mirroring. The notes state the approach was given as learning.",
       "seconds": 1312,
       "learning": true
+    },
+    "solved/p1647_Minimum_Deletions_to_Make_Character_Frequencies_Unique_FAILED_2026_11_11T11_25_18_938651_00_00Z.mu": {
+      "date": "2026-11-11",
+      "problem": "1647",
+      "moves": {
+        "counter-build": "clean",
+        "counts-as-data": "struggled",
+        "heap-simulation": "struggled"
+      },
+      "judge": "deepseek-chat",
+      "note": "AssertionError: minDeletions('aecbaed') returned 3, expected 4; the counts-of-counts carry logic in the while loop mis-accounts the collision cascade.",
+      "summary": "The mu code builds a Counter of the character counts, then a max-heap of (count-of-count, frequency) pairs and tries to resolve collisions by decrementing a frequency and carrying the surplus into the next lower bucket. The carry bookkeeping in the while loop is wrong: on 'aecbaed' it returns 3 instead of 4, and the run exits non-zero on that assertion. The notes describe the counts-of-counts carry idea but the implementation of the cascade does not match it.",
+      "seconds": 3481,
+      "learning": true
     }
   }
 }

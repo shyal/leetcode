@@ -277,7 +277,12 @@ fn manila_date_of(ts: i64) -> NaiveDate {
 pub fn sleep_records(ctx: &Ctx, pv: &PView, ev: &Evidence) -> Vec<SleepRec> {
     let mut recs = Vec::new();
     for (pnum, branch) in slept_branches(ctx) {
-        let Some(p) = pv.get(&pnum) else { continue };
+        // a problem never solved is a drafted entry, in the table and not
+        // in the evidenced view (2026-11-11: the deep dive serves drafts,
+        // and a parked one was not listed, so it was served again)
+        let Some(p) = pv.get(&pnum).or_else(|| ctx.all_problems().get(&pnum)) else {
+            continue;
+        };
         let events = branch_events(ctx, &branch);
         let marks: Vec<i64> = events
             .iter()
