@@ -44763,6 +44763,25 @@
       "summary": "The mu code walks every 10-character window with `for i in 10..len(s)` and slices `s[i-10:i]`, incrementing a count in the dict `seq`; it then filters keys whose count exceeds 1 and dedupes with `set`. This exercises the fixed-size window, counter-build, and counts-as-data moves, plus set-membership for the final dedupe. The notes are empty and LeetCode reports Accepted.",
       "seconds": 266,
       "learning": true
+    },
+    "solved/p2384_Largest_Palindromic_Number_2026_11_11T09_29_16_341917_00_00Z.mu": {
+      "date": "2026-11-11",
+      "problem": "2384",
+      "moves": {
+        "counter-build": "clean",
+        "counts-as-data": "clean",
+        "string-build-transform": "clean"
+      },
+      "assist": {
+        "counter-build": "learning",
+        "counts-as-data": "learning",
+        "string-build-transform": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "notes give the full approach as learning; code builds left half from digit counts, picks largest odd-count digit as middle, mirrors.",
+      "summary": "The code builds a Counter over the digits, then walks '9876543210' appending d*(count//2) to a left half (skipping '0' while the half is empty), picks the largest digit with an odd count as the middle, and mirrors the left half with res[::-1]. It exercises counter-build, counts-as-data (reading counts to decide halves and the odd middle), and string-build-transform for the mirroring. The notes state the approach was given as learning.",
+      "seconds": 1312,
+      "learning": true
     }
   }
 }
