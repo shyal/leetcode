@@ -881,6 +881,59 @@ fn build_scored_games(ctx: &Ctx, ev: &Evidence) -> (Vec<Game>, HashSet<String>) 
     (out, secs.into_keys().collect())
 }
 
+/// The learning solves (kg::learning), oldest first. No rating reads
+/// them: `scored_games` leaves them out. `make stats` lists them as
+/// rows with no score, so a day in learning mode still shows what was
+/// solved, and which of it was a first sight. `first` is measured as
+/// for a scored game.
+pub fn learning_games(ctx: &Ctx, ev: &Evidence) -> Vec<Game> {
+    let problems = ctx.evidenced();
+    let mut order: Vec<usize> = (0..ev.len()).collect();
+    order.sort_by(|&a, &b| {
+        (ev.rec(a).date.as_str(), ev.fname(a)).cmp(&(ev.rec(b).date.as_str(), ev.fname(b)))
+    });
+    let first_day = first_dates(ev);
+    let account = account_first_dates(&ctx.root);
+    let mut studied: HashSet<String> = HashSet::new();
+    let mut out = Vec::new();
+    for i in order {
+        let rec = ev.rec(i);
+        let fname = ev.fname(i);
+        let pnum = rec.problem.clone().unwrap_or_default();
+        let diff = ctx.problem_difficulty(&pnum, &problems);
+        if !is_numeric_id(&pnum) || !is_tier(&diff) {
+            continue;
+        }
+        if crate::clock::is_studied(fname) {
+            studied.insert(pnum);
+            continue;
+        }
+        if !rec.learning {
+            continue;
+        }
+        let first = first_day.get(&pnum) == Some(&rec.date)
+            && !studied.contains(&pnum)
+            && account.get(&pnum).is_none_or(|d| *d >= rec.date);
+        studied.insert(pnum.clone());
+        out.push(Game {
+            date: rec.date.clone(),
+            problem: pnum,
+            difficulty: diff,
+            score: 0.0,
+            moves: rec.moves.keys().cloned().collect(),
+            fname: fname.to_string(),
+            first,
+            failed: fname.contains("FAILED") || rejected_by_leetcode(&ctx.root, fname),
+            seconds: rec.seconds,
+            fit: None,
+            over: false,
+            assist: rec.assist_any().to_string(),
+            chain: false,
+        });
+    }
+    out
+}
+
 /// kg_lib.elo_games: every scored game with the Elo he carried INTO it and
 /// the rating of the problem (a missing rating takes its difficulty's
 /// median), oldest first: (game, rating, elo_before).

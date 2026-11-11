@@ -32,6 +32,31 @@ fn a_learning_solve_is_no_game_and_the_next_rep_is_a_repeat() {
     assert!(!games[0].first);
 }
 
+/// `make stats` lists the learning solves. A learning solve on a problem
+/// with an earlier record is a repeat, on a new problem a first sight.
+#[test]
+fn a_learning_solve_is_listed_as_a_first_sight_or_a_repeat() {
+    let mut fx = Fx::picker();
+    fx.nodes(&["q1"])
+        .problem("1", problem(&["q1"]))
+        .problem("2", problem(&["q1"]));
+    let ctx = fx.ctx();
+    *ctx.solve_times.borrow_mut() = Some(vec![]);
+    let timed = |mut r: (String, Rec), learning: bool| {
+        r.1.seconds = Some(600);
+        r.1.learning = learning;
+        r
+    };
+    let ev = evidence(vec![
+        timed(solve("1", &[("q1", "clean")], 40), false),
+        timed(solve("1", &[("q1", "clean")], 0), true),
+        timed(solve("2", &[("q1", "clean")], 0), true),
+    ]);
+    let games = crate::model::learning_games(&ctx, &ev);
+    let first: Vec<(&str, bool)> = games.iter().map(|g| (g.problem.as_str(), g.first)).collect();
+    assert_eq!(first, vec![("1", false), ("2", true)]);
+}
+
 /// 1366 comes after 2215 and 49. Neither solved: 2215 holds it. 2215
 /// solved clean, however long ago: 49. Both clean: nothing holds it. A
 /// struggled solve clears nothing.

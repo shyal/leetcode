@@ -17,17 +17,23 @@
 // whose moves were all practiced before, on drills or other problems,
 // against first sights that needed a move not practiced yet.
 //
+// A learning solve (kg::learning) is no game. It is a row with "-" for
+// its score, and no total reads it: one line under the table counts the
+// learning solves, their first sights, and those solved with no help.
+//
 // Written 2026-09-16, the night these questions took four git-log queries
 // to answer by hand. The seconds come from the record itself
 // (`seconds`, filed by kg_solved via the placeholder); records older than
 // the field are timed from their commit.
+
+use std::collections::HashSet;
 
 use chrono::Duration;
 use kg::console::Console;
 use kg::ctx::Ctx;
 use kg::data::{load_envrc, repo_root};
 use kg::evidence::Evidence;
-use kg::model::{elo_games, scored_games, solve_ratings, Band, Game, Ground, Summary, Transfer};
+use kg::model::{elo_games, learning_games, scored_games, solve_ratings, Band, Game, Ground, Summary, Transfer};
 use kg::table::{print_table, BoxKind, Table};
 
 fn window_days(args: &[String]) -> Option<i64> {
@@ -88,13 +94,22 @@ fn main() {
     let ev = Evidence::new(recs);
     let ratings = kg::data::read_json(&ctx.graph_dir().join("ratings.json")).unwrap_or_default();
     let since = window_days(&args).map(|d| ctx.today() - Duration::days(d - 1));
+    let in_window = |g: &Game| since.is_none_or(|s| kg::data::parse_date(&g.date) >= s);
     let games: Vec<Game> = scored_games(&ctx, &ev)
         .into_iter()
-        .filter(|g| since.is_none_or(|s| kg::data::parse_date(&g.date) >= s))
+        .filter(in_window)
         .collect();
+    // the learning solves: rows with no score, read by no total below
+    let learning: Vec<Game> = learning_games(&ctx, &ev)
+        .into_iter()
+        .filter(in_window)
+        .collect();
+    let unscored: HashSet<&str> = learning.iter().map(|g| g.fname.as_str()).collect();
+    let mut rows: Vec<&Game> = games.iter().chain(&learning).collect();
+    rows.sort_by(|a, b| (&a.date, &a.fname).cmp(&(&b.date, &b.fname)));
     let console = Console::full_width();
-    if games.is_empty() {
-        console.print("[dim]no scored games in the window.[/dim]");
+    if rows.is_empty() {
+        console.print("[dim]no solves in the window.[/dim]");
         return;
     }
 
@@ -116,7 +131,7 @@ fn main() {
             ..Default::default()
         },
     );
-    for g in &games {
+    for g in rows {
         let name = ctx
             .meta_title(&g.problem)
             .map(|t| format!("{}. {t}", g.problem))
@@ -133,10 +148,30 @@ fn main() {
             if g.first { "first" } else { "repeat" }.to_string(),
             result_cell(g),
             mmss(g.seconds),
-            score_cell(g.score),
+            if unscored.contains(g.fname.as_str()) {
+                "-".to_string()
+            } else {
+                score_cell(g.score)
+            },
         ]);
     }
     print_table(&console, &table);
+    if !learning.is_empty() {
+        let firsts = learning.iter().filter(|g| g.first).count();
+        let cold = learning
+            .iter()
+            .filter(|g| g.first && !g.failed && g.assist == "none")
+            .count();
+        console.print(&format!(
+            "learning solves (no score): [bold green]{}[/bold green], first sights \
+             [bold green]{firsts}[/bold green], of them solved with no help \
+             [bold green]{cold}[/bold green]",
+            learning.len()
+        ));
+    }
+    if games.is_empty() {
+        return;
+    }
 
     for (before, ratio, after) in Summary::of(&games).rows() {
         console.print(&format!("{before}[bold green]{ratio}[/bold green]{after}"));
