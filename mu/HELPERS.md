@@ -64,6 +64,7 @@ to_int(bits, base=2)                  # the int with these bits; any base works
 num_digits(num)                       # the count of digits of num; 0 has one digit; also base=
 even(n)                               # n % 2 == 0
 odd(n)                                # n % 2 == 1
+commonprefix([a, b])                  # os.path.commonprefix: the longest common prefix of the strings
 ```
 
 Items pushed onto `q` while `levels(q)` runs are yielded at the next level.

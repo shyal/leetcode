@@ -419,6 +419,9 @@ builtins.ceil = ceil
 builtins.pairwise = pairwise
 builtins.zip_longest = zip_longest
 builtins.reduce = reduce
+# os is not preloaded on LeetCode: the leet profile (mu/leetmu.py) pastes
+# this alias into a mu solve that calls it, with its import
+builtins.commonprefix = os.path.commonprefix
 builtins.takewhile = takewhile
 builtins.prod = prod
 builtins.product = product

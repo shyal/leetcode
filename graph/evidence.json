@@ -44718,6 +44718,23 @@
       ],
       "seconds": 828,
       "learning": true
+    },
+    "solved/p3598_Longest_Common_Prefix_Between_Adjacent_Strings_After_Removals_2026_11_11T03_20_56_862702_00_00Z.mu": {
+      "date": "2026-11-11",
+      "problem": "3598",
+      "moves": {
+        "prefix-suffix-two-pass": "clean",
+        "string-build-transform": "clean"
+      },
+      "assist": {
+        "prefix-suffix-two-pass": "learning",
+        "string-build-transform": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "notes say 'learning'; solution uses prefix/suffix max scans over adjacent LCPs plus a bridge LCP for the skip case",
+      "summary": "The code computes the LCP of each adjacent pair with commonprefix, then builds left and right running-max arrays over those values via scan, and for each index takes the max of left[i], right[i+1], and a bridge LCP between words[i-1] and words[i+1]. This exercises the prefix-suffix two-pass and string comparison moves; it does not enumerate substrings or use memoized recursion. The notes mark the work as learning.",
+      "seconds": 2754,
+      "learning": true
     }
   }
 }

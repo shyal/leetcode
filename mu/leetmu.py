@@ -9,6 +9,7 @@ import builtins
 import inspect
 import os
 import re
+import sys
 from pathlib import Path
 
 import mulang
@@ -36,6 +37,11 @@ LIBRARY = {
 
 for module, names in LIBRARY.items():
     mulang.library(module, *names)
+
+# os is not preloaded on LeetCode. A solve that calls commonprefix gets this
+# line pasted, and `import os` at the top of the file.
+commonprefix = os.path.commonprefix
+mulang.library(sys.modules[__name__], "commonprefix")
 
 
 def ours(obj):
