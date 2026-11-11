@@ -24,7 +24,7 @@ use crate::evidence::Evidence;
 use crate::model::{
     account_first_dates, display_difficulty, first_sight_elo_now, first_sight_open, solve_ratings,
 };
-use crate::pick::upcoming;
+use crate::pick::upcoming_days;
 use crate::table::{BoxKind, Table};
 
 pub const QUEUE_LEN: usize = 10;
@@ -41,7 +41,8 @@ pub const GATE_SYSTEM_PROMPT: &str = "You maintain the prerequisite edges of one
 /// rating earns (model::display_difficulty), rating (None when the problem has no contest
 /// rating), and whether serving it would be a first sight (no record of
 /// the problem in the evidence and no earlier acceptance on the leetcode
-/// account, model::first_sight_open).
+/// account, model::first_sight_open). `day` is the day the picker would
+/// serve it, counted from today (0 is today).
 pub struct QueueRow {
     pub pnum: String,
     pub title: String,
@@ -49,6 +50,16 @@ pub struct QueueRow {
     pub difficulty: String,
     pub rating: Option<f64>,
     pub first_sight: bool,
+    pub day: i64,
+}
+
+/// The When column: the day a row is served, in words.
+pub fn when(day: i64) -> String {
+    match day {
+        0 => "today".to_string(),
+        1 => "tomorrow".to_string(),
+        d => format!("in {d} days"),
+    }
 }
 
 /// The next `len` problems the picker would serve.
@@ -62,9 +73,9 @@ pub fn queue_rows(
     let ratings = solve_ratings(ctx);
     let account = account_first_dates(&ctx.root);
     let today = ctx.today().to_string();
-    upcoming(ctx, pv, ev, len, asleep, DAYS)
+    upcoming_days(ctx, pv, ev, len, asleep, DAYS)
         .into_iter()
-        .map(|pnum| QueueRow {
+        .map(|(pnum, day)| QueueRow {
             title: pv
                 .get(&pnum)
                 .or_else(|| ctx.all_problems().get(&pnum))
@@ -74,6 +85,7 @@ pub fn queue_rows(
             difficulty: display_difficulty(ctx, &pnum, pv),
             rating: ratings.get(&pnum).copied(),
             first_sight: first_sight_open(ev, &account, &pnum, &today),
+            day,
             pnum,
         })
         .collect()
@@ -110,7 +122,11 @@ pub fn queue_table(
     asleep: &[String],
     len: usize,
 ) -> Option<Table> {
-    let rows = queue_rows(ctx, pv, ev, asleep, len);
+    rows_table(ctx, ev, queue_rows(ctx, pv, ev, asleep, len))
+}
+
+/// queue_table for rows that are already made.
+pub fn rows_table(ctx: &Ctx, ev: &Evidence, rows: Vec<QueueRow>) -> Option<Table> {
     if rows.is_empty() {
         return None;
     }
@@ -118,6 +134,7 @@ pub fn queue_table(
     let mut table = Table::plain(
         &[
             "Problem",
+            "When",
             "LeetCode",
             "Real",
             "Rating",
@@ -149,6 +166,11 @@ pub fn queue_table(
         };
         table.add_row(&[
             format!("{}. {}", row.pnum, row.title),
+            if row.day == 0 {
+                when(row.day)
+            } else {
+                format!("[dim]{}[/dim]", when(row.day))
+            },
             label(&row.leetcode),
             label(&row.difficulty),
             r,

@@ -153,6 +153,8 @@ def test_kg_queue_table_and_context():
     assert p.returncode == 0, p.stderr
     assert p.stdout.startswith("queue (elo ")
     assert "Rating" in p.stdout.splitlines()[2]
+    # each row says the day it is served
+    assert "When" in p.stdout.splitlines()[2]
     # --size N: N problem rows (a long title wraps onto extra lines)
     p = run("kg_queue", "--size", "3", env=wide)
     assert p.returncode == 0, p.stderr

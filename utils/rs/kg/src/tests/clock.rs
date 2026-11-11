@@ -1904,6 +1904,15 @@ fn the_serve_calls_a_first_sight_what_the_elo_will_score_as_one() {
     for r in &rows {
         assert_eq!(r.first_sight, open(&r.pnum), "queue row {}", r.pnum);
     }
+    // a problem is one row, and the rows are in the order of their days
+    // (2026-11-11: 3021 was in the queue two times, with no day on a row)
+    let pnums: std::collections::HashSet<&str> = rows.iter().map(|r| r.pnum.as_str()).collect();
+    assert_eq!(pnums.len(), rows.len(), "one row for each problem");
+    assert!(rows.windows(2).all(|w| w[0].day <= w[1].day));
+    assert!(rows.iter().all(|r| r.day >= 0));
+    assert_eq!(crate::queue::when(0), "today");
+    assert_eq!(crate::queue::when(1), "tomorrow");
+    assert_eq!(crate::queue::when(5), "in 5 days");
 }
 
 /// The contest's share of easies (2026-10-11): of any EASY_WINDOW games

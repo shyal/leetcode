@@ -44,7 +44,7 @@ use kg::pick::{
     above_band, blocked_frontier, first_sights_outside_band, park_full_lines, parked_summits, pick,
     review_ahead, review_line, review_queue, starved, unmapped_summits, withheld, Choice, PickArgs,
 };
-use kg::queue::{difficulty_colour, queue_table, QUEUE_LEN};
+use kg::queue::{difficulty_colour, QUEUE_LEN};
 use kg::recog;
 use kg::render::{animate, display, faces, prespawn_dot, render_in_background, Dot, PreDot};
 use kg::status::{
@@ -596,9 +596,16 @@ fn build_footer(
     statuses: &Statuses,
     asleep: &[String],
     today: NaiveDate,
-) -> Vec<FooterItem> {
+) -> (Vec<FooterItem>, Option<String>) {
     let mut items = Vec::new();
-    if let Some(t) = queue_table(ctx, pv, ev, asleep, QUEUE_LEN) {
+    let rows = kg::queue::queue_rows(ctx, pv, ev, asleep, QUEUE_LEN);
+    // the first problem of the queue when it is not for today: what
+    // nothing_to_serve says in place of "nothing"
+    let later = rows
+        .first()
+        .filter(|r| r.day > 0)
+        .map(|r| format!("{}. {} comes {}", r.pnum, r.title, kg::queue::when(r.day)));
+    if let Some(t) = kg::queue::rows_table(ctx, ev, rows) {
         items.push(FooterItem::Table(t));
     }
     if !asleep.is_empty() {
@@ -612,7 +619,7 @@ fn build_footer(
     if let Some(l) = judge_line(ctx, ev) {
         items.push(FooterItem::Line(l));
     }
-    items
+    (items, later)
 }
 
 /// kg_next.gate_table + kg_lib.gates without copying the table: every
@@ -729,6 +736,7 @@ struct Run<'a> {
     immature: HashSet<String>,
     today: NaiveDate,
     footer: Vec<FooterItem>,
+    later: Option<String>,
     starved_memo: RefCell<Option<Vec<(String, i64)>>>,
     pre_dot: RefCell<Option<PreDot>>,
 }
@@ -1074,7 +1082,7 @@ fn main() {
     let asleep = sleep_state(&ctx, &pv.borrow(), &ev);
     trace("sleep state");
     let woken: Vec<String> = vec![];
-    let footer = build_footer(&ctx, &pv.borrow(), &ev, &statuses, &asleep, today);
+    let (footer, later) = build_footer(&ctx, &pv.borrow(), &ev, &statuses, &asleep, today);
     trace("footer");
     let run = Run {
         console: &console,
@@ -1086,6 +1094,7 @@ fn main() {
         immature,
         today,
         footer,
+        later,
         starved_memo: RefCell::new(None),
         pre_dot: RefCell::new(pre),
     };
@@ -1160,6 +1169,7 @@ fn ask_gates(
         difficulty: String::new(),
         rating: Some(rating),
         first_sight: true,
+        day: 0,
     };
     let solved = kg::learning::solved_clean(ev);
     let context =
@@ -1728,7 +1738,12 @@ fn nothing_to_serve(run: &Run, asleep: &[String], exclude: &HashSet<String>, sho
         let waiting: Vec<_> = blocked.iter().filter(|b| !b.3).collect();
         let parked = parked_summits(ctx, &pv, ev, statuses, asleep, today);
         let unmapped = unmapped_summits(ctx, &pv, ev, statuses);
-        if !dry.is_empty() {
+        if let Some(later) = &run.later {
+            // the queue has a problem on a later day, so the graph is not
+            // empty (2026-11-11: "the graph needs new problems mapped"
+            // above a queue of ten)
+            console.print(&format!("\nNothing to serve today. {later}."));
+        } else if !dry.is_empty() {
             console.print("\nNothing to serve \u{2014} the graph needs new problems mapped.");
         } else if !waiting.is_empty() || !parked.is_empty() {
             console.print("\nNothing due today.");

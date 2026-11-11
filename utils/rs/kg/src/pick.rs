@@ -2494,10 +2494,28 @@ pub fn upcoming(
     asleep: &[String],
     days: i64,
 ) -> Vec<String> {
+    upcoming_days(ctx, pv, ev, count, asleep, days)
+        .into_iter()
+        .map(|(pnum, _)| pnum)
+        .collect()
+}
+
+/// upcoming, each problem with the day the replay serves it, counted from
+/// today (0 is today). A problem is listed once, on its first day: the
+/// replay can serve its next review inside the window (2026-11-11: 3021
+/// on day 5 and again on day 26), and that is the same problem.
+pub fn upcoming_days(
+    ctx: &Ctx,
+    pv: &PView,
+    ev: &Evidence,
+    count: usize,
+    asleep: &[String],
+    days: i64,
+) -> Vec<(String, i64)> {
     let mut ev = ev.clone();
     let pv = RefCell::new(pv.clone());
     let mut exclude: HashSet<String> = HashSet::new();
-    let mut out: Vec<String> = Vec::new();
+    let mut out: Vec<(String, i64)> = Vec::new();
     let real = ctx.today();
     let start = real;
     let mut seq = 0usize;
@@ -2523,11 +2541,11 @@ pub fn upcoming(
             if exclude.contains(&pnum) {
                 break; // the pick ignored exclude: the day is spent
             }
-            if !is_drill {
+            if !is_drill && !out.iter().any(|(p, _)| *p == pnum) {
                 if std::env::var("KG_TRACE").is_ok() {
-                    eprintln!("queue {pnum}: {reason}");
+                    eprintln!("queue day {day_no} {pnum}: {reason}");
                 }
-                out.push(pnum.clone());
+                out.push((pnum.clone(), day_no));
             }
             exclude.insert(pnum);
         }
