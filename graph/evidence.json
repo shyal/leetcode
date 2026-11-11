@@ -44637,6 +44637,18 @@
       "note": "Contract met: O(1), no loop/bin/format/str; compares (x>>i)&1 vs (x>>j)&1 and flips both with one XOR of the mask (1<<i)|(1<<j).",
       "summary": "swap_bits tests whether the two target bits differ using (x >> i & 1) != (x >> j & 1), and only then XORs x with the mask (1 << i) | (1 << j) to flip both at once. This is constant time with no loop or string conversion, satisfying the drill contract. All assertions passed, including the i == j and 64-bit edge cases.",
       "seconds": 109
+    },
+    "solved/d_Lowest_Set_Bit_2026_11_11T00_35_08_635760_00_00Z.mu": {
+      "date": "2026-11-11",
+      "problem": "drill",
+      "drill": "d538",
+      "moves": {
+        "bit-iterate": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Contract met: single expression x & ~(x - 1), no loop, no bin()/str, and the avoids() assertion confirms it.",
+      "summary": "The mu code defines lowestSetBit(x) as the single expression x & ~(x - 1), isolating the lowest set bit in O(1). It is exercised by assertions over 25, 52, 8, 1, 3, 14, 80, 2**29 and 10**9, all passing, and an avoids() check confirms bin, str and format are unused. No notes were provided.",
+      "seconds": 67
     }
   }
 }
