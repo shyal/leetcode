@@ -44649,6 +44649,18 @@
       "note": "Contract met: single expression x & ~(x - 1), no loop, no bin()/str, and the avoids() assertion confirms it.",
       "summary": "The mu code defines lowestSetBit(x) as the single expression x & ~(x - 1), isolating the lowest set bit in O(1). It is exercised by assertions over 25, 52, 8, 1, 3, 14, 80, 2**29 and 10**9, all passing, and an avoids() check confirms bin, str and format are unused. No notes were provided.",
       "seconds": 67
+    },
+    "solved/d_K-Messed_Array_Sort_2026_11_11T00_41_09_698653_00_00Z.mu": {
+      "date": "2026-11-11",
+      "problem": "drill",
+      "drill": "d344",
+      "moves": {
+        "heap-top-k": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Min-heap of size k+1: push each element, pop the minimum once the heap exceeds k, drain at the end; O(n log k) time, O(k) space, no sorting.",
+      "summary": "The mu code keeps a heap h, pushes each element of arr, and once len(h) > k pops the heap minimum into res; the remaining heap is drained into res at the end. This is the bounded min-heap that yields the sorted order for a k-messed array in O(n log k) time and O(k) space, with no sorted() or insertion sort. All assertions passed, including the 10^5-element cases.",
+      "seconds": 226
     }
   }
 }
