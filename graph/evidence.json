@@ -44587,6 +44587,17 @@
       "note": "Contract met: single O(n) pass over edges marking child[a]/child[b] by letter comparison, then child.index(false); no per-node root trial.",
       "summary": "The code builds a boolean `child` table of size n and walks the edge list once, marking a node as a child when its letter is greater than its neighbor's letter. It then returns the first index still false, which is the root. This is a single O(n) pass with no loop trying each node as root, so the contract is satisfied and all assertions pass.",
       "seconds": 157
+    },
+    "solved/d_Odd_Sum_Pairs_2026_11_11T00_03_20_668413_00_00Z.mu": {
+      "date": "2026-11-11",
+      "problem": "drill",
+      "drill": "d311",
+      "moves": {
+        "pair-count-formula": "clean"
+      },
+      "judge": "deepseek-chat",
+      "summary": "The mu solution counts even and odd elements in each array with fold expressions, then multiplies the cross-parity counts (even_a*odd_b + odd_a*even_b) to get the number of pairs with odd sum. This is O(len(a)+len(b)) with no loop over pairs and no per-pair sum, meeting the contract. All assertions passed, including the 100000-element cases.",
+      "seconds": 143
     }
   }
 }
