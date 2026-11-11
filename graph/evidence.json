@@ -44661,6 +44661,18 @@
       "note": "Min-heap of size k+1: push each element, pop the minimum once the heap exceeds k, drain at the end; O(n log k) time, O(k) space, no sorting.",
       "summary": "The mu code keeps a heap h, pushes each element of arr, and once len(h) > k pops the heap minimum into res; the remaining heap is drained into res at the end. This is the bounded min-heap that yields the sorted order for a k-messed array in O(n log k) time and O(k) space, with no sorted() or insertion sort. All assertions passed, including the 10^5-element cases.",
       "seconds": 226
+    },
+    "solved/d_One_More_Cat_2026_11_11T00_42_33_695347_00_00Z.mu": {
+      "date": "2026-11-11",
+      "problem": "drill",
+      "drill": "d122",
+      "moves": {
+        "marginal-gain": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Contract met: gain computes (a+1)/(t+1) - a/t in O(1) with no loop, counting the new cat in both numerator and denominator.",
+      "summary": "The mu code defines Solution.gain(a, t) returning ((a + 1) / (t + 1)) - (a / t), the change in ratio from adding one cat to both the cats and the total animals. It is a single O(1) expression with no loop, and the assertions confirm the values including the large 99999/100000 case. This exercises the marginal-gain move directly.",
+      "seconds": 63
     }
   }
 }
