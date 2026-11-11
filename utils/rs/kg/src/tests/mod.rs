@@ -18,6 +18,7 @@
 
 mod bank;
 mod clock;
+mod deep;
 mod frontier;
 mod learning;
 mod reach;

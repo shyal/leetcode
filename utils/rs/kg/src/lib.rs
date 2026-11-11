@@ -16,6 +16,7 @@ pub mod contests;
 pub mod crowd;
 pub mod ctx;
 pub mod data;
+pub mod deep;
 pub mod discuss;
 pub mod drills;
 pub mod evidence;

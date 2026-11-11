@@ -7,6 +7,12 @@
 // (Ported from the Python kg_next, deleted 2026-09-14 once the tests
 // moved here.)
 //
+// THE DEEP DIVE (KG_DEEP=N in .envrc, deep.rs, 2026-11-11) runs before
+// every rule below: one technique a day, the weakest on first sights; its
+// drill, its due repeats, then N problems never met that use it, easy to
+// hard. After them the rules below run with every never-met problem held.
+// Unset, the default, the rules below are the whole picker.
+//
 // Picking rules (same preference order the /next coach uses):
 //   AGING (2026-09-22): a due move that has been due AGING_DAYS days in a
 //      row with nothing aimed at it (waiting, the same count make next
@@ -433,7 +439,7 @@ pub struct Choice {
 }
 
 impl Choice {
-    fn new(target: &str, status: Status, pnum: &str, reason: String) -> Choice {
+    pub(crate) fn new(target: &str, status: Status, pnum: &str, reason: String) -> Choice {
         Choice {
             target: target.to_string(),
             status,
@@ -1532,6 +1538,20 @@ pub fn pick(
     statuses: &Statuses,
     args: &PickArgs,
 ) -> Option<Choice> {
+    // the deep dive (KG_DEEP, deep.rs): the day's technique first, then
+    // everything else that is due with no first sight among it
+    match crate::deep::pick(ctx, pv, ev, statuses, args) {
+        crate::deep::Deep::Serve(c) => return Some(c),
+        crate::deep::Deep::Spent => {
+            let held = crate::deep::never_met(ctx, ev);
+            let rest = PickArgs {
+                exclude: args.exclude.union(&held).cloned().collect(),
+                ..args.clone()
+            };
+            return pick_pass(ctx, pv, ev, statuses, &rest);
+        }
+        crate::deep::Deep::Off => {}
+    }
     // rule 2d: after a review, a first sight if any rule can serve one
     if after_a_review(ev, ctx.today()) && !crate::drills::no_reviews() {
         let solved_ever: HashSet<String> = ev.recs.iter().map(|(_, r)| r.problem_str()).collect();
