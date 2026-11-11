@@ -44625,6 +44625,18 @@
       "note": "Contract met: parameter and return type in the signature, single expression body `n * n` with no semicolon and no return keyword.",
       "summary": "The file defines `fn square(n: i32) -> i32` whose body is the bare expression `n * n`, then a `main` that prints `square(3)` and asserts several values including a negative and a large input. The run exited 0 with output 9. The signature carries both the parameter type and the return type, and the body is one expression without a semicolon, so the drill's contract is satisfied.",
       "seconds": 60
+    },
+    "solved/d_EPI_42_Swap_bits_2026_11_11T00_33_24_949718_00_00Z.mu": {
+      "date": "2026-11-11",
+      "problem": "drill",
+      "drill": "d368",
+      "moves": {
+        "bit-iterate": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Contract met: O(1), no loop/bin/format/str; compares (x>>i)&1 vs (x>>j)&1 and flips both with one XOR of the mask (1<<i)|(1<<j).",
+      "summary": "swap_bits tests whether the two target bits differ using (x >> i & 1) != (x >> j & 1), and only then XORs x with the mask (1 << i) | (1 << j) to flip both at once. This is constant time with no loop or string conversion, satisfying the drill contract. All assertions passed, including the i == j and 64-bit edge cases.",
+      "seconds": 109
     }
   }
 }
