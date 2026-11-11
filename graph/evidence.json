@@ -44575,6 +44575,18 @@
         "O(1) space single-pass DP"
       ],
       "seconds": 220
+    },
+    "solved/d_Root_By_Earlier_Letter_2026_11_11T00_00_38_173946_00_00Z.mu": {
+      "date": "2026-11-11",
+      "problem": "drill",
+      "drill": "d315",
+      "moves": {
+        "graph-adjacency-build": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Contract met: single O(n) pass over edges marking child[a]/child[b] by letter comparison, then child.index(false); no per-node root trial.",
+      "summary": "The code builds a boolean `child` table of size n and walks the edge list once, marking a node as a child when its letter is greater than its neighbor's letter. It then returns the first index still false, which is the root. This is a single O(n) pass with no loop trying each node as root, so the contract is satisfied and all assertions pass.",
+      "seconds": 157
     }
   }
 }
