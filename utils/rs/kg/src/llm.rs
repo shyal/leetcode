@@ -306,6 +306,9 @@ pub fn text(prompt: &str, system_prompt: &str, model: Option<&str>) -> Result<St
         if m.starts_with("gpt-") || m.starts_with("o3") || m.starts_with("o4") {
             return openai_text(prompt, system_prompt, m);
         }
+        if m.starts_with("deepseek") {
+            return deepseek_text(prompt, system_prompt, m);
+        }
     }
     let mut args: Vec<&str> = vec!["-p", prompt];
     if let Some(m) = model {
@@ -340,15 +343,37 @@ fn openai_text(prompt: &str, system_prompt: &str, model: &str) -> Result<String,
     if model.starts_with("gpt-4") {
         body["temperature"] = serde_json::json!(0.2);
     }
+    chat_text("https://api.openai.com/v1/chat/completions", &key, &body)
+}
+
+/// DeepSeek's chat completions endpoint, answer as raw text (kg_draft).
+fn deepseek_text(prompt: &str, system_prompt: &str, model: &str) -> Result<String, LlmError> {
+    let key = std::env::var("DEEPSEEK_API_KEY")
+        .ok()
+        .filter(|k| !k.is_empty())
+        .ok_or_else(|| LlmError::Spawn("DEEPSEEK_API_KEY is not set".into()))?;
+    let body = serde_json::json!({
+        "model": judge_name(model),
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt},
+        ],
+        "temperature": 0,
+    });
+    chat_text("https://api.deepseek.com/chat/completions", &key, &body)
+}
+
+/// One OpenAI-compatible chat completion, the answer's text trimmed.
+fn chat_text(url: &str, key: &str, body: &Value) -> Result<String, LlmError> {
     let agent: ureq::Agent = ureq::Agent::config_builder()
         .timeout_global(Some(std::time::Duration::from_secs(600)))
         .build()
         .into();
     let mut resp = agent
-        .post("https://api.openai.com/v1/chat/completions")
+        .post(url)
         .header("Authorization", &format!("Bearer {key}"))
         .header("Content-Type", "application/json")
-        .send_json(&body)
+        .send_json(body)
         .map_err(|e| LlmError::Exit(1, e.to_string().chars().take(500).collect()))?;
     let envelope: Value = resp
         .body_mut()

@@ -23,7 +23,13 @@ use kg::pyjson;
 use regex::Regex;
 use serde_json::{json, Map, Value};
 
-const PROMPT_VERSION: i64 = 3;
+const PROMPT_VERSION: i64 = 4;
+
+/// Groups that are not techniques of a LeetCode algorithm solution: the
+/// language groups and the system design and backend groups. Their moves
+/// are left out of the list the model picks from (2026-11-11: with them in,
+/// the model gave py-zip and py-enumerate to algorithm problems).
+const OTHER_GROUPS: [&str; 5] = ["python", "ts", "rust", "design", "backend"];
 
 const SYSTEM_PROMPT: &str =
     "You label LeetCode solutions with the techniques they use, chosen from \
@@ -102,6 +108,7 @@ fn load_nodes(p: &Paths) -> Vec<Node> {
         .as_array()
         .map(|a| {
             a.iter()
+                .filter(|n| !OTHER_GROUPS.contains(&n["group"].as_str().unwrap_or("")))
                 .map(|n| Node {
                     id: n["id"].as_str().unwrap_or("").to_string(),
                     desc: n["desc"].as_str().unwrap_or("").to_string(),
@@ -324,7 +331,7 @@ impl Drafter {
 }
 
 /// graph/problems.json: "walks" is a LIST per problem, each walk stamped
-/// with tier and source. Alt walks accumulate; nothing here is evidence, so
+/// with tier and source. Alt walks of one prompt version accumulate; nothing here is evidence, so
 /// a problem the operator has never solved keeps its "draft": true until
 /// kg_extract maps it from a real solve.
 fn save_predicted(
@@ -358,6 +365,19 @@ fn save_predicted(
             walk.insert("missing".into(), json!(entry.missing));
         }
         let arr = walks.as_array_mut().unwrap();
+        // a new label replaces the walks an older prompt version wrote: they
+        // were picked from an older move list (2026-11-11). An empty reply
+        // replaces nothing.
+        if !entry.moves.is_empty() {
+            arr.retain(|w| {
+                w.get("tier").and_then(Value::as_str) != Some("predicted")
+                    || w.get("source").and_then(Value::as_str) != Some("cache-solution")
+                    || w.get("prompt_version").and_then(Value::as_i64) == Some(PROMPT_VERSION)
+            });
+        }
+        if entry.moves.is_empty() {
+            continue;
+        }
         if !arr.iter().any(|w| w.get("moves") == Some(&walk["moves"])) {
             arr.push(Value::Object(walk));
         }
