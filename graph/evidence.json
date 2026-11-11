@@ -44735,6 +44735,19 @@
       "summary": "The code computes the LCP of each adjacent pair with commonprefix, then builds left and right running-max arrays over those values via scan, and for each index takes the max of left[i], right[i+1], and a bridge LCP between words[i-1] and words[i+1]. This exercises the prefix-suffix two-pass and string comparison moves; it does not enumerate substrings or use memoized recursion. The notes mark the work as learning.",
       "seconds": 2754,
       "learning": true
+    },
+    "solved/p1367_Linked_List_in_Binary_Tree_FAILED_2026_11_11T04_09_07_460977_00_00Z.mu": {
+      "date": "2026-11-11",
+      "problem": "1367",
+      "moves": {
+        "tree-dfs-recursive": "clean",
+        "tree-carry-down": "struggled"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Time Limit Exceeded (43/68 cases) \u2014 the recursive walk restarts the list match at every node without memoizing (node, list-node) states, so the same subtree/list pairs are re-explored exponentially; the canonical move it lacks is memoized state (memoize-recursion).",
+      "summary": "The mu code walks the tree with a recursive closure that, at each node, either continues a partial list match or restarts from head, setting self.found when the list tail is reached. It exercises tree-dfs-recursive and a carry-down style match, but never memoizes the (tree node, list node) pairs, so overlapping subproblems are recomputed. LeetCode rejected it with Time Limit Exceeded at 43/68 cases, and the notes say the candidate walked away after 38m 45s with no working solution.",
+      "seconds": 2325,
+      "learning": true
     }
   }
 }
