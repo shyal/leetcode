@@ -42,6 +42,22 @@ fn a_problem_waits_for_a_drill_never_done() {
     assert_eq!(held(&fx, "713", &no_evidence()), Some("d1".into()));
 }
 
+/// 2026-11-11: a set file never met does not hold the problems of its
+/// node. The node's own file still does, and so does an "after" edge that
+/// names the set file.
+#[test]
+fn a_set_file_never_met_does_not_hold_the_problems_of_its_node() {
+    let mut fx = Fx::new();
+    fx.bank("sw", "Book Problem", "d0.py", "d1", &[]);
+    fx.in_set(&["Book Problem"], "epi");
+    fx.problem("713", problem(&["sw"]));
+    assert_eq!(held(&fx, "713", &no_evidence()), None);
+    fx.problem("714", problem(&["sw"]).after(&["d1"]));
+    assert_eq!(held(&fx, "714", &no_evidence()), Some("d1".into()));
+    fx.bank("sw", "Own Drill", "d9.py", "d2", &[]);
+    assert_eq!(held(&fx, "713", &no_evidence()), Some("d2".into()));
+}
+
 #[test]
 fn a_warm_drill_releases_the_problem() {
     let mut fx = Fx::new();

@@ -406,9 +406,22 @@ pub fn cold_drill(
     }
 }
 
-/// kg_lib.node_drill_hold: the id of the node's cold drill, or None.
+/// kg_lib.node_drill_hold: the id of the node's cold drill, or None. A
+/// file of a set (drills.json "set": pramp, epi) is never the hold. A set
+/// has its own caps and its own clock, and its files come one a day
+/// (KG_SET_NEW_CAP): the EPI bank of 2026-11-10 put a file never met on
+/// 60 nodes, every problem that walks one of them was held behind it, and
+/// make next served nothing (2026-11-11, 150 first sights in the band).
 pub fn node_drill_hold(ctx: &Ctx, node: &str, ev: &Evidence, today: NaiveDate) -> Option<String> {
-    let path = cold_drill(ctx, node, ev, today, false)?;
+    // cold_drill fills the cache this reads
+    cold_drill(ctx, node, ev, today, false)?;
+    let (ready, cold) = ev
+        .cold_cache()
+        .cold
+        .get(&(node.to_string(), today))
+        .cloned()?;
+    let own = |files: &[PathBuf]| files.iter().find(|p| drill_set(ctx, p).is_none()).cloned();
+    let path = own(&ready).or_else(|| own(&cold))?;
     ctx.drill_id(&path)
 }
 
