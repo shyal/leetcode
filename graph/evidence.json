@@ -44748,6 +44748,21 @@
       "summary": "The mu code walks the tree with a recursive closure that, at each node, either continues a partial list match or restarts from head, setting self.found when the list tail is reached. It exercises tree-dfs-recursive and a carry-down style match, but never memoizes the (tree node, list node) pairs, so overlapping subproblems are recomputed. LeetCode rejected it with Time Limit Exceeded at 43/68 cases, and the notes say the candidate walked away after 38m 45s with no working solution.",
       "seconds": 2325,
       "learning": true
+    },
+    "solved/p187_Repeated_DNA_Sequences_2026_11_11T09_04_39_335750_00_00Z.mu": {
+      "date": "2026-11-11",
+      "problem": "187",
+      "moves": {
+        "sliding-window-fixed": "clean",
+        "counter-build": "clean",
+        "counts-as-data": "clean",
+        "set-membership": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Accepted (1057 ms, 33 MB)",
+      "summary": "The mu code walks every 10-character window with `for i in 10..len(s)` and slices `s[i-10:i]`, incrementing a count in the dict `seq`; it then filters keys whose count exceeds 1 and dedupes with `set`. This exercises the fixed-size window, counter-build, and counts-as-data moves, plus set-membership for the final dedupe. The notes are empty and LeetCode reports Accepted.",
+      "seconds": 266,
+      "learning": true
     }
   }
 }
