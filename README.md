@@ -4,7 +4,7 @@ This is a mix of leetcode problems, as well as several language drills. The cont
 
 <!-- GAUGES -->
 
-![Progress: algorithms first sight, algorithms current reach, python, typescript, rust, sql, systems design](https://shyal.s3.amazonaws.com/gauges_20261110173159.svg)
+![Progress: algorithms first sight, algorithms current reach, python, typescript, rust, sql, systems design](https://shyal.s3.amazonaws.com/gauges_20261111121125.svg)
 
 <!-- /GAUGES -->
 
@@ -14,7 +14,7 @@ Each problem is a set of techniques. Each technique is a node, and an edge conne
 
 <!-- KG_MOVIE -->
 
-![Technique graph as a map, growing solve by solve](https://shyal.s3.amazonaws.com/kg_map_20261110173159.svg)
+![Technique graph as a map, growing solve by solve](https://shyal.s3.amazonaws.com/kg_map_20261111121125.svg)
 
 <!-- /KG_MOVIE -->
 
@@ -24,19 +24,19 @@ A Monte Carlo of cold mocks, drawn from the graph state on each date.
 
 <!-- PASS_PROB_CHART -->
 
-![P(pass a mock) over time](https://shyal.s3.amazonaws.com/pass_probability_20261110173159.svg)
+![P(pass a mock) over time](https://shyal.s3.amazonaws.com/pass_probability_20261111121125.svg)
 
 <!-- /PASS_PROB_CHART -->
 
 <!-- MOCK_SWARM_CHART -->
 
-![Individual simulated mocks over time](https://shyal.s3.amazonaws.com/mock_swarm_20261110173159.svg)
+![Individual simulated mocks over time](https://shyal.s3.amazonaws.com/mock_swarm_20261111121125.svg)
 
 <!-- /MOCK_SWARM_CHART -->
 
 <!-- MOCK_BLAME_CHART -->
 
-![Share of simulated problems failed, by group](https://shyal.s3.amazonaws.com/mock_blame_20261110173159.svg)
+![Share of simulated problems failed, by group](https://shyal.s3.amazonaws.com/mock_blame_20261111121125.svg)
 
 <!-- /MOCK_BLAME_CHART -->
 
@@ -52,25 +52,25 @@ Every Elo here is first sight only.
 
 <!-- PROBLEM_RATING_CHART -->
 
-![Rating of the problems attempted](https://shyal.s3.amazonaws.com/problem_rating_20261110180642.svg)
+![Rating of the problems attempted](https://shyal.s3.amazonaws.com/problem_rating_20261111121125.svg)
 
 <!-- /PROBLEM_RATING_CHART -->
 
 <!-- PROBLEM_RATING_MONTH_CHART -->
 
-![Rating of the problems attempted in the last 30 days](https://shyal.s3.amazonaws.com/problem_rating_month_20261110180642.svg)
+![Rating of the problems attempted in the last 30 days](https://shyal.s3.amazonaws.com/problem_rating_month_20261111121125.svg)
 
 <!-- /PROBLEM_RATING_MONTH_CHART -->
 
 <!-- HOURS_CHART -->
 
-![Elo against hours of recorded solving, with the Carnegie Mellon rate](https://shyal.s3.amazonaws.com/hours_20261110180642.svg)
+![Elo against hours of recorded solving, with the Carnegie Mellon rate](https://shyal.s3.amazonaws.com/hours_20261111121125.svg)
 
 <!-- /HOURS_CHART -->
 
 <!-- ONSITE_CHART -->
 
-![Elo history and its projection to the onsite line, on dates](https://shyal.s3.amazonaws.com/onsite_20261110180642.svg)
+![Elo history and its projection to the onsite line, on dates](https://shyal.s3.amazonaws.com/onsite_20261111121125.svg)
 
 <!-- /ONSITE_CHART -->
 
@@ -82,7 +82,7 @@ Every Elo here is first sight only.
 
 <!-- BACKLOG_CHART -->
 
-![Backlog and forecast: review cards, solves by kind, STALE and FRAGILE nodes](https://shyal.s3.amazonaws.com/backlog_20261110180642.svg)
+![Backlog and forecast: review cards, solves by kind, STALE and FRAGILE nodes](https://shyal.s3.amazonaws.com/backlog_20261111121125.svg)
 
 <!-- /BACKLOG_CHART -->
 
@@ -92,13 +92,13 @@ Solves, drills and commits, read from the git history of this repository.
 
 <!-- RATES_CHART -->
 
-![Solves and drills per day](https://shyal.s3.amazonaws.com/rates_20261110180642.svg)
+![Solves and drills per day](https://shyal.s3.amazonaws.com/rates_20261111121125.svg)
 
 <!-- /RATES_CHART -->
 
 <!-- COMMITS_CHART -->
 
-![Tooling commits versus solves](https://shyal.s3.amazonaws.com/commits_20261110221338.svg)
+![Tooling commits versus solves](https://shyal.s3.amazonaws.com/commits_20261111121125.svg)
 
 <!-- /COMMITS_CHART -->
 
@@ -108,7 +108,7 @@ The model is power-law forgetting with a slip rate: P(recall) = (1 - slip) * (1 
 
 <!-- CURVE_CALIBRATION_CHART -->
 
-![Forgetting curve calibration: predicted against observed recall, by gap](https://shyal.s3.amazonaws.com/curve_calibration_20261110182820.svg)
+![Forgetting curve calibration: predicted against observed recall, by gap](https://shyal.s3.amazonaws.com/curve_calibration_20261111121125.svg)
 
 <!-- /CURVE_CALIBRATION_CHART -->
 
@@ -116,14 +116,14 @@ The model has one curve for all groups of techniques. The next chart shows, for 
 
 <!-- RESIDUALS_CHART -->
 
-![Residuals per group over time: observed minus predicted recall, in standard deviations](https://shyal.s3.amazonaws.com/residuals_20261110184327.svg)
+![Residuals per group over time: observed minus predicted recall, in standard deviations](https://shyal.s3.amazonaws.com/residuals_20261111121125.svg)
 <!-- /RESIDUALS_CHART -->
 
 The next chart replays the full history. Each dot is one technique node on its curve: the memory component (1 + Δ/s)^(-β) against the days since the last clean rep. A dot moves to the right while the gap increases. A clean rep puts the dot back at the left, on a flatter curve, because the stability s is larger. A node is solid (green) while its memory is at or above the target retention, and stale (gold) below it. A node whose last rep was a fail is fragile: it is not on a curve, and its dot is hidden until the next clean rep. The replay stops on the state of today. The faint lines are the curves of today.
 
 <!-- POSITIONS_CHART -->
 
-![Nodes on their forgetting curves, replayed over the full history: memory against days since the last clean rep](https://shyal.s3.amazonaws.com/positions_20261110221338.svg)
+![Nodes on their forgetting curves, replayed over the full history: memory against days since the last clean rep](https://shyal.s3.amazonaws.com/positions_20261111121125.svg)
 <!-- /POSITIONS_CHART -->
 
 ## Earlier charts
