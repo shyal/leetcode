@@ -44598,6 +44598,21 @@
       "judge": "deepseek-chat",
       "summary": "The mu solution counts even and odd elements in each array with fold expressions, then multiplies the cross-parity counts (even_a*odd_b + odd_a*even_b) to get the number of pairs with odd sum. This is O(len(a)+len(b)) with no loop over pairs and no per-pair sum, meeting the contract. All assertions passed, including the 100000-element cases.",
       "seconds": 143
+    },
+    "solved/d_Prefix_Distinct_Counts_2026_11_11T00_05_19_847233_00_00Z.mu": {
+      "date": "2026-11-11",
+      "problem": "drill",
+      "drill": "d313",
+      "moves": {
+        "prefix-sums": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Contract met: one pass with scan(set.union, ...) accumulating a running set, no per-index prefix rebuild.",
+      "summary": "The code builds a set per character, then folds them left-to-right with scan(set.union, ...), producing the running distinct set at each prefix, and takes len of each. This is a single accumulating pass, satisfying the contract. All assertions pass.",
+      "unmapped": [
+        "running set union via scan"
+      ],
+      "seconds": 103
     }
   }
 }
