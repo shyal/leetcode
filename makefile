@@ -28,8 +28,9 @@ learning: $(RS_BIN)/learning
 # its language are never picked by hand), and last the Claude Code pane
 # follows the branch (kg_chat --switch: detached, a no-op when the pane
 # is already on this branch)
-prepare: $(RS_BIN)/prepare $(RS_BIN)/drill $(RS_BIN)/kg_chat $(RS_BIN)/kg_open
+prepare: $(RS_BIN)/prepare $(RS_BIN)/drill $(RS_BIN)/kg_chat $(RS_BIN)/kg_open $(RS_BIN)/kg_stage
 	@if [ "$(firstword $(MAKECMDGOALS))" != next ] && [ "$(firstword $(MAKECMDGOALS))" != dependents ] && [ "$(firstword $(MAKECMDGOALS))" != combos ]; then $(RS_BIN)/prepare $(filter-out $@,$(MAKECMDGOALS)) || exit 1; fi; .venv/bin/python3 mu/session.py stub
+	@$(RS_BIN)/kg_stage --serve
 	@$(RS_BIN)/kg_open
 	@$(RS_BIN)/kg_chat --switch
 
@@ -232,15 +233,21 @@ drop:
 # with the verdict written into the file. `make solved FORCE=1` files the
 # solve whatever leetcode said. (A variable, not a word: `force` is the
 # constrained-solve target above, and make rejects `--force` itself.)
-solved: $(RS_BIN)/kg_solved $(RS_BIN)/kg_force $(RS_BIN)/kg_extract $(RS_BIN)/lc_submit $(RS_BIN)/kg_chat
-	@f="$$(.venv/bin/python3 mu/session.py build)" || exit 1; \
+# A leetcode problem is solved in three stages (kg::stage): the approach,
+# the pseudocode, the code. kg_stage is the gate of the first two: it
+# judges the stage, writes the result in current.mu's notes, and make
+# solved stops there without an error. At stage 3, and for a drill or a
+# spot rep, it does nothing and the solve is filed. STAGES=0 is the switch.
+solved: $(RS_BIN)/kg_solved $(RS_BIN)/kg_force $(RS_BIN)/kg_extract $(RS_BIN)/lc_submit $(RS_BIN)/kg_chat $(RS_BIN)/kg_stage
+	@$(RS_BIN)/kg_stage || exit 0; \
+	f="$$(.venv/bin/python3 mu/session.py build)" || exit 1; \
 	$(RS_BIN)/kg_force --check && \
-	$(RS_BIN)/lc_submit --auto $(if $(FORCE),--force) --file "$$f"
-	@.venv/bin/python3 mu/session.py file
-	@$(RS_BIN)/kg_solved
-	@$(RS_BIN)/kg_extract --stub
-	@$(RS_BIN)/kg_solved --commit
-	@$(RS_BIN)/kg_chat --switch
+	$(RS_BIN)/lc_submit --auto $(if $(FORCE),--force) --file "$$f" || exit 1; \
+	.venv/bin/python3 mu/session.py file || exit 1; \
+	$(RS_BIN)/kg_solved || exit 1; \
+	$(RS_BIN)/kg_extract --stub || exit 1; \
+	$(RS_BIN)/kg_solved --commit || exit 1; \
+	$(RS_BIN)/kg_chat --switch
 
 # submit the solve's last `class Solution` to leetcode and write the verdict
 # into its notes (LEETCODE: Accepted / Time Limit Exceeded ...) for the judge.

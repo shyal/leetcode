@@ -37,6 +37,7 @@ pub mod pysrc;
 pub mod queue;
 pub mod recog;
 pub mod render;
+pub mod stage;
 pub mod status;
 pub mod table;
 pub mod tables;
