@@ -44810,6 +44810,22 @@
       "summary": "The mu code loops over every start index i, builds a running counter c as j advances, and checks whether all counts in c.values() are equal via len(set(...)) == 1, keeping the longest such window. It exercises substring enumeration by end, incremental counter building, and treating the counts as the data to test. LeetCode accepted it at 3229 ms; the notes record no hints or failures.",
       "seconds": 1332,
       "learning": true
+    },
+    "solved/p3016_Minimum_Number_of_Pushes_to_Type_Word_II_FAILED_2026_11_12T01_53_23_848742_00_00Z.mu": {
+      "date": "2026-11-12",
+      "problem": "3016",
+      "moves": {
+        "counter-build": "clean",
+        "counts-as-data": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "The notes say FAILED: walked away after 33m 31s; no working solution, though the run exited 0. The code groups letters by frequency into cost_dict and assigns push counts by popping from each frequency bucket, instead of sorting counts descending and taking the top 8 per push level.",
+      "summary": "The mu builds a Counter of the word, buckets letters by frequency into a dict of sets, then assigns each letter a push count by popping from the highest-frequency bucket in groups of 8, and sums cost over the word. It exercises counter-build and counts-as-data, but sidesteps the canonical sort-counts-descending greedy by using a frequency-bucket dict. The notes record the attempt as failed after 33 minutes with no working solution.",
+      "unmapped": [
+        "bucket letters by frequency into a set-dict, then assign push counts by popping"
+      ],
+      "seconds": 2011,
+      "learning": true
     }
   }
 }
