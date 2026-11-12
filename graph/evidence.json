@@ -44796,6 +44796,20 @@
       "summary": "The mu code builds a Counter of the character counts, then a max-heap of (count-of-count, frequency) pairs and tries to resolve collisions by decrementing a frequency and carrying the surplus into the next lower bucket. The carry bookkeeping in the while loop is wrong: on 'aecbaed' it returns 3 instead of 4, and the run exits non-zero on that assertion. The notes describe the counts-of-counts carry idea but the implementation of the cascade does not match it.",
       "seconds": 3481,
       "learning": true
+    },
+    "solved/p3713_Longest_Balanced_Substring_I_2026_11_12T01_17_21_290814_00_00Z.mu": {
+      "date": "2026-11-12",
+      "problem": "3713",
+      "moves": {
+        "substring-enumeration": "clean",
+        "counter-build": "clean",
+        "counts-as-data": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LeetCode Accepted at 3229 ms; the O(n^2) enumeration with a running counter per start is the brute force the constraints allow.",
+      "summary": "The mu code loops over every start index i, builds a running counter c as j advances, and checks whether all counts in c.values() are equal via len(set(...)) == 1, keeping the longest such window. It exercises substring enumeration by end, incremental counter building, and treating the counts as the data to test. LeetCode accepted it at 3229 ms; the notes record no hints or failures.",
+      "seconds": 1332,
+      "learning": true
     }
   }
 }
