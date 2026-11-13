@@ -178,3 +178,47 @@ fn a_named_group_goes_past_the_mode() {
     let c = fx.run(&evidence(recs), &st, args().group("graphs"));
     assert!(c.is_none_or(|c| !c.reason.starts_with("deep dive")));
 }
+
+/// Three drills are due on the clock: a language drill, the drill of
+/// the day's technique and the drill of the other algorithm technique.
+/// The language drill is first, the technique's drill second, and the
+/// other technique's drill is not served, before the dive or after it.
+#[test]
+fn only_the_language_drills_and_the_drills_of_the_technique_are_served() {
+    let (mut fx, mut recs, st) = fixture();
+    fx.nodes(&["query"]).group(&["query"], "sql");
+    let st: Statuses = st
+        .into_iter()
+        .chain(statuses(&[("query", SOLID, Some(1))]))
+        .collect();
+    test_env("KG_DEEP", "1");
+    test_env("NO_REVIEWS", "1");
+    test_env("DRILL_SCHEDULER", "anki");
+    fx.stubs().clock = vec![
+        (PathBuf::from("drills/strong/s.py"), "strong".into()),
+        (PathBuf::from("drills/weak/w.py"), "weak".into()),
+        (PathBuf::from("drills/query/q.sql"), "query".into()),
+    ];
+    let c = fx.run(&evidence(recs.clone()), &st, args());
+    assert_eq!(pnum(&c), "drill:query");
+    let c = fx.run(&evidence(recs.clone()), &st, args().exclude(&["drill:query"]));
+    assert_eq!(pnum(&c), "drill:weak");
+    let done = args().exclude(&["drill:query", "drill:weak"]);
+    let c = fx.run(&evidence(recs.clone()), &st, done.clone());
+    assert!(reason(&c).starts_with("deep dive"));
+    // the new problem of the day is done: still no drill of `strong`
+    recs.push(solve("11", &[("weak", "clean")], 0));
+    let c = fx.run(&evidence(recs), &st, done);
+    assert!(c.is_none_or(|c| c.pnum != "drill:strong"));
+}
+
+/// A named group goes past the mode: the clock serves every due drill.
+#[test]
+fn a_named_group_serves_the_drill_of_another_technique() {
+    let (mut fx, recs, st) = fixture();
+    test_env("KG_DEEP", "1");
+    test_env("DRILL_SCHEDULER", "anki");
+    fx.stubs().clock = vec![(PathBuf::from("drills/strong/s.py"), "strong".into())];
+    let c = fx.run(&evidence(recs), &st, args().group("graphs"));
+    assert_eq!(pnum(&c), "drill:strong");
+}

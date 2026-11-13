@@ -11,13 +11,21 @@
 //
 // KG_DEEP=N (.envrc) switches the mode on, N the new problems of the day's
 // technique; unset or 0 is off and the picker is what it was. With it on,
-// a day is four blocks:
-//   1. the drill of the day's technique, once, due on its clock or not;
-//   2. the due repeats that use the technique, easy to hard;
-//   3. N problems he has never met that use the technique, easy to hard;
-//   4. everything else that is due (the drill clock, the repeats of other
-//      techniques): the ordinary picker, with every never-met problem
-//      held, so that a first sight comes only from block 3.
+// a day is (2026-11-13; before that the technique's one drill came first
+// and never did, and three days had 8 problems and no drill):
+//   1. the language drills due on the clock (sql, ts, python, rust,
+//      design), within their caps: syntax memory, and the clock is the
+//      tool for it;
+//   2. the drills of the day's technique that are due on the clock;
+//   3. the due repeats that use the technique, easy to hard;
+//   4. N problems he has never met that use the technique, easy to hard;
+//   5. the due repeats of the other techniques: the ordinary picker, with
+//      every never-met problem held, so that a first sight comes only
+//      from step 4.
+// The drills of the other algorithm techniques are not served that day,
+// due or not: depth comes before the memory curves (his thesis,
+// 2026-11-13), and a technique's drills come back on its own day. Steps 1
+// and 2 are in pick::pick, the rest in pick() here.
 // A named group, cram, early, assisted and a woken problem are his own
 // call and go past the mode, as they go past the caps.
 //
@@ -36,7 +44,7 @@
 // walks of kg_draft: for a fail the record holds what his code did, the
 // walk what the solution needed).
 //
-// The problems of block 3 are the never-met problems whose walk names the
+// The problems of step 4 are the never-met problems whose walk names the
 // technique. A technique with none takes the never-met problems of its
 // group. They are served by rating: the first of the day at or below the
 // median rating of his alone first sights on the technique
@@ -326,50 +334,38 @@ fn above(cands: &[(String, f64)], anchor: f64) -> Option<&(String, f64)> {
         .or_else(|| cands.last())
 }
 
-/// What the mode answers for one pick.
-pub enum Deep {
-    /// the mode is off, or has nothing to say: the ordinary picker
-    Off,
-    /// blocks 1 to 3
-    Serve(Choice),
-    /// blocks 1 to 3 are done: the ordinary picker, no first sight
-    Spent,
+/// The technique of the day, where its new problems come from, and the
+/// ratings they are served by.
+pub struct Day {
+    pub weak: Weak,
+    pub scope: Scope,
+    ratings: HashMap<String, f64>,
 }
 
-pub fn pick(
-    ctx: &Ctx,
-    pv: &RefCell<PView>,
-    ev: &Evidence,
-    statuses: &Statuses,
-    args: &PickArgs,
-) -> Deep {
-    let n = budget();
-    if n == 0
-        || args.group.is_some()
-        || args.cram
-        || args.early
-        || args.assisted
-        || !args.woken.is_empty()
-    {
-        return Deep::Off;
+/// Whether the mode has a say in this pick: KG_DEEP is set and the pick is
+/// not one of his own calls.
+pub fn on(args: &PickArgs) -> bool {
+    budget() > 0
+        && args.group.is_none()
+        && !args.cram
+        && !args.early
+        && !args.assisted
+        && args.woken.is_empty()
+}
+
+/// The day of the mode; None when the mode is off or no technique has a
+/// problem left, and the ordinary picker runs.
+pub fn day(ctx: &Ctx, ev: &Evidence, args: &PickArgs) -> Option<Day> {
+    if !on(args) {
+        return None;
     }
     let today = ctx.today();
     let ratings = solve_ratings(ctx);
-    let Some((weak, scope)) = technique(ctx, ev, today, &ratings) else {
-        return Deep::Off;
-    };
-    let node = weak.node.as_str();
-    let name = ctx
-        .nodes
-        .get(node)
-        .map(|x| x.name.clone())
-        .filter(|x| !x.is_empty())
-        .unwrap_or_else(|| node.to_string());
-    let status = st(statuses, node).0;
+    let (weak, scope) = technique(ctx, ev, today, &ratings)?;
     if std::env::var("KG_TRACE").is_ok() {
         eprintln!(
-            "deep dive: {node} ({} of {} first sights alone, bound {:.2}), problems from {scope:?}",
-            weak.alone, weak.met, weak.bound
+            "deep dive: {} ({} of {} first sights alone, bound {:.2}), problems from {scope:?}",
+            weak.node, weak.alone, weak.met, weak.bound
         );
     }
     if std::env::var("KG_TRACE").as_deref() == Ok("deep") {
@@ -380,33 +376,51 @@ pub fn pick(
             );
         }
     }
-    let t = today.format("%Y-%m-%d").to_string();
-    let today_recs = ev.date_recs(&t);
+    Some(Day {
+        weak,
+        scope,
+        ratings,
+    })
+}
 
-    // block 1: the technique's drill, once
-    let drill_id = format!("drill:{node}");
-    let drilled = today_recs
-        .iter()
-        .any(|&i| ev.is_drill(i) && ev.rec(i).moves.contains_key(node));
-    if !drilled
-        && !args.exclude.contains(&drill_id)
-        && crate::drills::due_drill(ctx, node, ev, today, true, false).is_some()
-    {
-        return Deep::Serve(Choice::new(
-            node,
-            status,
-            &drill_id,
-            format!("deep dive on {name}: its drill first"),
-        ));
-    }
+/// The drill id of every algorithm technique: what the mode holds, the
+/// day's technique apart.
+pub fn algorithm_drills(ctx: &Ctx) -> HashSet<String> {
+    ctx.nodes
+        .keys()
+        .filter(|n| in_group(ctx, n, ALGORITHMS))
+        .map(|n| format!("drill:{n}"))
+        .collect()
+}
 
+/// The technique's due repeats, then its new problems; None when both are
+/// done for the day.
+pub fn pick(
+    ctx: &Ctx,
+    pv: &RefCell<PView>,
+    ev: &Evidence,
+    statuses: &Statuses,
+    args: &PickArgs,
+    day: &Day,
+) -> Option<Choice> {
+    let n = budget();
+    let today = ctx.today();
+    let (weak, scope, ratings) = (&day.weak, &day.scope, &day.ratings);
+    let node = weak.node.as_str();
+    let name = ctx
+        .nodes
+        .get(node)
+        .map(|x| x.name.clone())
+        .filter(|x| !x.is_empty())
+        .unwrap_or_else(|| node.to_string());
+    let status = st(statuses, node).0;
     // the day's problems are spent: the bank is what is left
     if crate::drills::problems_left(ev, today).is_some_and(|l| l <= 0) {
-        return Deep::Spent;
+        return None;
     }
     let skip = |p: &str| args.asleep.iter().any(|a| a == p) || args.exclude.contains(p);
 
-    // block 2: the due repeats that use the technique, easy to hard
+    // the due repeats that use the technique, easy to hard
     if !crate::drills::no_reviews() {
         let p = pv.borrow();
         let mut due: Vec<String> = review_queue(ctx, ev, &p, today)
@@ -426,7 +440,7 @@ pub fn pick(
                 .then_with(|| pnum_key(a).cmp(&pnum_key(b)))
         });
         if let Some(num) = due.first() {
-            return Deep::Serve(Choice::new(
+            return Some(Choice::new(
                 node,
                 status,
                 num,
@@ -435,7 +449,7 @@ pub fn pick(
         }
     }
 
-    // block 3: N problems never met, easy to hard
+    // N problems never met, easy to hard
     let sights = first_sights(ev);
     let met_today: Vec<&Sight> = sights
         .iter()
@@ -446,9 +460,9 @@ pub fn pick(
         })
         .collect();
     if met_today.len() as i64 >= n {
-        return Deep::Spent;
+        return None;
     }
-    let cands: Vec<(String, f64)> = cluster(ctx, ev, &scope, None, &ratings)
+    let cands: Vec<(String, f64)> = cluster(ctx, ev, scope, None, ratings)
         .into_iter()
         .filter(|(num, _)| !skip(num))
         .filter(|(num, _)| held_behind(ctx, num, &ctx.predicted_view, ev, today).is_none())
@@ -462,13 +476,13 @@ pub fn pick(
                 (_, None) => cands.first(),
             }
         }
-        None => match start_level(ctx, &sights, node, today, &ratings) {
+        None => match start_level(ctx, &sights, node, today, ratings) {
             Some(level) => at_or_below(&cands, level),
             None => cands.first(),
         },
     };
     let Some((num, _)) = next else {
-        return Deep::Spent;
+        return None;
     };
     if pv.borrow().get(num).is_none() {
         let p = entry(ctx, num).expect("a cluster problem is in the table");
@@ -494,7 +508,7 @@ pub fn pick(
             },
         );
     }
-    Deep::Serve(Choice::new(
+    Some(Choice::new(
         node,
         status,
         num,
@@ -505,7 +519,7 @@ pub fn pick(
     ))
 }
 
-/// Every problem with no record: what block 4 holds.
+/// Every problem with no record: what the rules after the dive hold.
 pub fn never_met(ctx: &Ctx, ev: &Evidence) -> HashSet<String> {
     ctx.all_problems()
         .keys()

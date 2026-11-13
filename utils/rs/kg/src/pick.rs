@@ -8,10 +8,12 @@
 // moved here.)
 //
 // THE DEEP DIVE (KG_DEEP=N in .envrc, deep.rs, 2026-11-11) runs before
-// every rule below: one technique a day, the weakest on first sights; its
-// drill, its due repeats, then N problems never met that use it, easy to
-// hard. After them the rules below run with every never-met problem held.
-// Unset, the default, the rules below are the whole picker.
+// every rule below: one technique a day, the weakest on first sights. The
+// day (2026-11-13) is the language drills due on the clock, the due drills
+// of the technique, its due repeats, then N problems never met that use
+// it, easy to hard. After them the rules below run with every never-met
+// problem and every algorithm drill held. Unset, the default, the rules
+// below are the whole picker.
 //
 // Picking rules (same preference order the /next coach uses):
 //   AGING (2026-09-22): a due move that has been due AGING_DAYS days in a
@@ -1538,19 +1540,38 @@ pub fn pick(
     statuses: &Statuses,
     args: &PickArgs,
 ) -> Option<Choice> {
-    // the deep dive (KG_DEEP, deep.rs): the day's technique first, then
-    // everything else that is due with no first sight among it
-    match crate::deep::pick(ctx, pv, ev, statuses, args) {
-        crate::deep::Deep::Serve(c) => return Some(c),
-        crate::deep::Deep::Spent => {
-            let held = crate::deep::never_met(ctx, ev);
-            let rest = PickArgs {
-                exclude: args.exclude.union(&held).cloned().collect(),
-                ..args.clone()
-            };
-            return pick_pass(ctx, pv, ev, statuses, &rest);
+    // the deep dive (KG_DEEP, deep.rs). Depth comes before the memory
+    // curves (2026-11-13): the only algorithm drills of the day are the due
+    // ones of the day's technique. The language drills are syntax memory
+    // and go on by their clock, first.
+    if let Some(day) = crate::deep::day(ctx, ev, args) {
+        let capped = crate::drills::capped_groups(ctx, ev, ctx.today(), &group_caps());
+        let node = day.weak.node.clone();
+        let held = crate::deep::algorithm_drills(ctx);
+        let with = |extra: &HashSet<String>| PickArgs {
+            exclude: args.exclude.union(extra).cloned().collect(),
+            ..args.clone()
+        };
+        // the language drills due on the clock
+        if let Some(c) = clock(ctx, ev, statuses, &with(&held), &capped) {
+            return Some(c);
         }
-        crate::deep::Deep::Off => {}
+        // the due drills of the day's technique
+        let mut others = held.clone();
+        others.remove(&format!("drill:{node}"));
+        if let Some(c) = clock(ctx, ev, statuses, &with(&others), &capped) {
+            return Some(c);
+        }
+        return match crate::deep::pick(ctx, pv, ev, statuses, args, &day) {
+            Some(c) => Some(c),
+            // the technique's repeats and new problems are done: the rules
+            // below, with no first sight and no algorithm drill
+            None => {
+                let mut rest = crate::deep::never_met(ctx, ev);
+                rest.extend(held);
+                pick_pass(ctx, pv, ev, statuses, &with(&rest))
+            }
+        };
     }
     // rule 2d: after a review, a first sight if any rule can serve one
     if after_a_review(ev, ctx.today()) && !crate::drills::no_reviews() {
@@ -1568,6 +1589,46 @@ pub fn pick(
         }
     }
     pick_pass(ctx, pv, ev, statuses, args)
+}
+
+/// The clock: the first bank file due on its own clock that the day's
+/// caps allow (DRILL_SCHEDULER=anki; none under the node clock).
+fn clock(
+    ctx: &Ctx,
+    ev: &Evidence,
+    statuses: &Statuses,
+    args: &PickArgs,
+    capped: &HashSet<String>,
+) -> Option<Choice> {
+    if !anki() {
+        return None;
+    }
+    let today = ctx.today();
+    let scope: Vec<String> = ctx
+        .nodes
+        .keys()
+        .filter(|n| args.group.is_none() || ctx.group_of(n) == args.group.as_deref())
+        .cloned()
+        .collect();
+    for (path, node) in anki_frontier(ctx, ev, today, None, Some(&scope), args.assisted) {
+        let drill_id = format!("drill:{node}");
+        if args.exclude.contains(&drill_id) || !statuses.contains_key(&node) {
+            continue;
+        }
+        if ctx.group_of(&node).is_some_and(|g| capped.contains(g)) {
+            continue;
+        }
+        if drill_capped(ctx, &path, ev, today) {
+            continue;
+        }
+        return Some(Choice::new(
+            &node,
+            statuses[&node].0,
+            &drill_id,
+            drill_clock_reason(ctx, Some(&path), ev, today),
+        ));
+    }
+    None
 }
 
 fn pick_pass(
@@ -1672,31 +1733,8 @@ fn pick_pass(
     // the clock: a file due on its own clock outranks the aging rule below
     // (2026-10-13: a FRAGILE move starved seven days took the first slot
     // through a promoted draft and five due drills never came)
-    if anki() {
-        let scope: Vec<String> = ctx
-            .nodes
-            .keys()
-            .filter(|n| args.group.is_none() || ctx.group_of(n) == args.group.as_deref())
-            .cloned()
-            .collect();
-        for (path, node) in anki_frontier(ctx, ev, today, None, Some(&scope), args.assisted) {
-            let drill_id = format!("drill:{node}");
-            if args.exclude.contains(&drill_id) || !statuses.contains_key(&node) {
-                continue;
-            }
-            if ctx.group_of(&node).is_some_and(|g| capped.contains(g)) {
-                continue;
-            }
-            if drill_capped(ctx, &path, ev, today) {
-                continue;
-            }
-            return Some(Choice::new(
-                &node,
-                statuses[&node].0,
-                &drill_id,
-                drill_clock_reason(ctx, Some(&path), ev, today),
-            ));
-        }
+    if let Some(c) = clock(ctx, ev, statuses, args, &capped) {
+        return Some(c);
     }
 
     ptrace("clock", t);
