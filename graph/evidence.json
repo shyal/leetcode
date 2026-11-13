@@ -44859,6 +44859,20 @@
       "summary": "The mu code builds a frequency counter with counter(nums), then iterates the sorted keys and, whenever cnt[k+1] exists, takes max of res and cnt[k]+cnt[k+1]. This exercises counter-build and counts-as-data (frequencies read as the dataset), plus sorting the keys to sweep adjacent values. The notes show a three-stage approach/pseudocode/code walkthrough and LeetCode reports Accepted.",
       "seconds": 1018,
       "learning": true
+    },
+    "solved/p1781_Sum_of_Beauty_of_All_Substrings_2026_11_13T04_09_14_796569_00_00Z.mu": {
+      "date": "2026-11-13",
+      "problem": "1781",
+      "moves": {
+        "substring-enumeration": "clean",
+        "counter-build": "clean",
+        "counts-as-data": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Accepted (1552 ms); O(n^2) substring enumeration with per-substring Counter, not the O(n) per-start incremental max/min tracking.",
+      "summary": "The mu code enumerates every substring with two nested loops (outer start i, inner end j), incrementally building a Counter cnt of the current substring's characters. At each step it computes max(cnt.values()) - min(cnt.values()) and adds it to res. This exercises substring enumeration, counter building, and treating the counts as the data. LeetCode accepted it at 1552 ms; the notes describe the brute-force approach directly.",
+      "seconds": 613,
+      "learning": true
     }
   }
 }

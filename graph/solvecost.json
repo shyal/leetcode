@@ -1,27 +1,27 @@
 {
   "_comment": "Solve-time model fitted by utils/kg/kg_solvecost. ln minutes = a + g_reps*ln(1+reps) + g_conn*(conn-conn_mean) + g_len*ln(walk) + g_assist*assist + kind + node eff. A refresh of node n after r clean reps costs exp(a + g_reps*ln(1+r) + g_conn*(conn_n-conn_mean) + kind_n + eff_n) minutes, clamped to [min_cost, max_cost]. Delete this file to fall back to the flat 10-minute refresh.",
   "fit": {
-    "n": 2086,
-    "r2": 0.4557,
+    "n": 2087,
+    "r2": 0.4558,
     "date": "2026-11-13"
   },
   "params": {
-    "a": 1.4618,
+    "a": 1.4617,
     "g_reps": -0.0603,
     "g_conn": 0.0084,
     "g_len": 0.3819,
     "g_assist": 0.4755,
-    "kind_Medium": 0.7067,
+    "kind_Medium": 0.7066,
     "kind_Hard": 1.1922,
-    "kind_drill": -0.4993,
+    "kind_drill": -0.4994,
     "kind_Easy": 0.0,
-    "conn_mean": 3.0772,
+    "conn_mean": 3.0787,
     "min_cost": 1.0,
     "max_cost": 40.0
   },
   "nodes": {
     "set-membership": {
-      "eff": -0.0665,
+      "eff": -0.0664,
       "conn": 5.907,
       "kind": "drill",
       "n": 104
@@ -33,10 +33,10 @@
       "n": 23
     },
     "counter-build": {
-      "eff": -0.0021,
-      "conn": 6.285,
+      "eff": -0.0022,
+      "conn": 6.304,
       "kind": "drill",
-      "n": 135
+      "n": 136
     },
     "counter-multiset-ops": {
       "eff": -0.3898,
@@ -45,13 +45,13 @@
       "n": 9
     },
     "counts-as-data": {
-      "eff": -0.0889,
-      "conn": 5.129,
+      "eff": -0.0874,
+      "conn": 5.17,
       "kind": "Easy",
-      "n": 39
+      "n": 40
     },
     "dict-arbitrary-value": {
-      "eff": 0.2153,
+      "eff": 0.2154,
       "conn": 5.492,
       "kind": "drill",
       "n": 87
@@ -63,13 +63,13 @@
       "n": 4
     },
     "streaming-ask-then-record": {
-      "eff": 0.0324,
+      "eff": 0.0325,
       "conn": 5.883,
       "kind": "drill",
       "n": 96
     },
     "derived-key-lookup": {
-      "eff": -0.1926,
+      "eff": -0.1925,
       "conn": 4.392,
       "kind": "drill",
       "n": 51
@@ -81,7 +81,7 @@
       "n": 16
     },
     "streaming-accumulate-pairs": {
-      "eff": -0.103,
+      "eff": -0.1029,
       "conn": 3.0,
       "kind": "drill",
       "n": 28
@@ -99,25 +99,25 @@
       "n": 189
     },
     "seen-state-cycle-detect": {
-      "eff": 0.4161,
+      "eff": 0.4162,
       "conn": 3.0,
       "kind": "drill",
       "n": 17
     },
     "prefix-sums": {
-      "eff": -0.1095,
+      "eff": -0.1094,
       "conn": 4.087,
       "kind": "drill",
       "n": 36
     },
     "prefix-sum-hashmap": {
-      "eff": -0.4648,
+      "eff": -0.4647,
       "conn": 2.807,
       "kind": "drill",
       "n": 24
     },
     "sort-then-adjacent": {
-      "eff": -0.3284,
+      "eff": -0.3283,
       "conn": 4.087,
       "kind": "drill",
       "n": 26
@@ -171,7 +171,7 @@
       "n": 20
     },
     "sliding-window-budget": {
-      "eff": 0.28,
+      "eff": 0.2799,
       "conn": 1.0,
       "kind": "drill",
       "n": 20
@@ -189,7 +189,7 @@
       "n": 9
     },
     "monotonic-queue": {
-      "eff": 0.0077,
+      "eff": 0.0076,
       "conn": 0.0,
       "kind": "drill",
       "n": 10
@@ -207,13 +207,13 @@
       "n": 50
     },
     "ll-pointer-reversal": {
-      "eff": -0.0113,
+      "eff": -0.0112,
       "conn": 3.17,
       "kind": "drill",
       "n": 28
     },
     "ll-offset-arithmetic": {
-      "eff": 0.1703,
+      "eff": 0.1704,
       "conn": 2.322,
       "kind": "drill",
       "n": 15
@@ -225,7 +225,7 @@
       "n": 35
     },
     "binary-search-boundary": {
-      "eff": -0.143,
+      "eff": -0.1429,
       "conn": 3.907,
       "kind": "drill",
       "n": 81
@@ -237,13 +237,13 @@
       "n": 53
     },
     "tree-dfs-recursive": {
-      "eff": 0.1122,
+      "eff": 0.1123,
       "conn": 5.728,
       "kind": "drill",
       "n": 72
     },
     "tree-combine-returns": {
-      "eff": 0.4572,
+      "eff": 0.4573,
       "conn": 4.644,
       "kind": "drill",
       "n": 35
@@ -255,7 +255,7 @@
       "n": 20
     },
     "tree-global-across-subtrees": {
-      "eff": 0.6079,
+      "eff": 0.608,
       "conn": 2.585,
       "kind": "drill",
       "n": 18
@@ -279,7 +279,7 @@
       "n": 5
     },
     "graph-adjacency-build": {
-      "eff": 0.3274,
+      "eff": 0.3275,
       "conn": 4.524,
       "kind": "drill",
       "n": 71
@@ -291,7 +291,7 @@
       "n": 65
     },
     "graph-dfs-visited": {
-      "eff": 0.4887,
+      "eff": 0.4888,
       "conn": 3.459,
       "kind": "drill",
       "n": 17
@@ -303,7 +303,7 @@
       "n": 57
     },
     "dijkstra": {
-      "eff": 0.4944,
+      "eff": 0.4945,
       "conn": 3.0,
       "kind": "drill",
       "n": 8
@@ -315,7 +315,7 @@
       "n": 91
     },
     "topological-order": {
-      "eff": -0.0754,
+      "eff": -0.0753,
       "conn": 2.0,
       "kind": "drill",
       "n": 27
@@ -345,19 +345,19 @@
       "n": 22
     },
     "memoize-recursion": {
-      "eff": 0.0441,
+      "eff": 0.0442,
       "conn": 4.17,
       "kind": "drill",
       "n": 53
     },
     "dp-state-formulate": {
-      "eff": -0.2828,
+      "eff": -0.2827,
       "conn": 4.322,
       "kind": "drill",
       "n": 56
     },
     "dp-1d-rolling": {
-      "eff": 0.0785,
+      "eff": 0.0786,
       "conn": 4.322,
       "kind": "drill",
       "n": 66
@@ -375,19 +375,19 @@
       "n": 37
     },
     "heap-top-k": {
-      "eff": 0.0588,
+      "eff": 0.0589,
       "conn": 2.807,
       "kind": "drill",
       "n": 16
     },
     "heap-simulation": {
-      "eff": 0.1572,
+      "eff": 0.1573,
       "conn": 4.322,
       "kind": "drill",
       "n": 27
     },
     "greedy-sort-take": {
-      "eff": 0.3738,
+      "eff": 0.3739,
       "conn": 3.17,
       "kind": "drill",
       "n": 15
@@ -399,7 +399,7 @@
       "n": 2
     },
     "xor-cancellation": {
-      "eff": -0.1733,
+      "eff": -0.1732,
       "conn": 3.585,
       "kind": "drill",
       "n": 26
@@ -411,13 +411,13 @@
       "n": 21
     },
     "bit-flags": {
-      "eff": -0.497,
+      "eff": -0.4971,
       "conn": 0.0,
       "kind": "drill",
       "n": 20
     },
     "divmod-decompose": {
-      "eff": 0.046,
+      "eff": 0.0461,
       "conn": 5.285,
       "kind": "drill",
       "n": 67
@@ -447,7 +447,7 @@
       "n": 34
     },
     "string-build-transform": {
-      "eff": -0.2211,
+      "eff": -0.221,
       "conn": 6.022,
       "kind": "drill",
       "n": 72
@@ -459,13 +459,13 @@
       "n": 1
     },
     "heap-lazy-eviction": {
-      "eff": 0.5316,
+      "eff": 0.5317,
       "conn": 3.0,
       "kind": "drill",
       "n": 10
     },
     "multi-source-bfs": {
-      "eff": 0.3499,
+      "eff": 0.35,
       "conn": 3.0,
       "kind": "drill",
       "n": 12
@@ -477,7 +477,7 @@
       "n": 10
     },
     "stack-nested-eval": {
-      "eff": 0.1444,
+      "eff": 0.1445,
       "conn": 2.585,
       "kind": "drill",
       "n": 54
@@ -501,7 +501,7 @@
       "n": 17
     },
     "generate-and-test-neighbors": {
-      "eff": -0.0409,
+      "eff": -0.0408,
       "conn": 3.459,
       "kind": "drill",
       "n": 18
@@ -513,13 +513,13 @@
       "n": 12
     },
     "sql-filter-select": {
-      "eff": 0.217,
+      "eff": 0.2169,
       "conn": 0.0,
       "kind": "drill",
       "n": 16
     },
     "sql-null-semantics": {
-      "eff": -0.0207,
+      "eff": -0.0208,
       "conn": 0.0,
       "kind": "drill",
       "n": 5
@@ -531,7 +531,7 @@
       "n": 4
     },
     "sql-join-left-keep": {
-      "eff": 0.4999,
+      "eff": 0.4998,
       "conn": 0.0,
       "kind": "drill",
       "n": 20
@@ -549,7 +549,7 @@
       "n": 9
     },
     "sql-conditional-aggregate": {
-      "eff": 0.3012,
+      "eff": 0.3011,
       "conn": 0.0,
       "kind": "drill",
       "n": 19
@@ -561,13 +561,13 @@
       "n": 8
     },
     "sql-self-join": {
-      "eff": 0.6287,
+      "eff": 0.6286,
       "conn": 0.0,
       "kind": "drill",
       "n": 14
     },
     "sql-subquery": {
-      "eff": 0.1897,
+      "eff": 0.1896,
       "conn": 0.0,
       "kind": "drill",
       "n": 22
@@ -579,7 +579,7 @@
       "n": 7
     },
     "sql-set-union": {
-      "eff": -0.1092,
+      "eff": -0.1093,
       "conn": 0.0,
       "kind": "drill",
       "n": 7
@@ -615,7 +615,7 @@
       "n": 9
     },
     "sql-window-offset": {
-      "eff": -0.2252,
+      "eff": -0.2253,
       "conn": 0.0,
       "kind": "drill",
       "n": 13
@@ -628,9 +628,9 @@
     },
     "substring-enumeration": {
       "eff": -0.0454,
-      "conn": 4.0,
+      "conn": 4.087,
       "kind": "drill",
-      "n": 65
+      "n": 66
     },
     "graph-inverted-index": {
       "eff": -0.12,
@@ -645,13 +645,13 @@
       "n": 16
     },
     "marginal-gain": {
-      "eff": -0.3514,
+      "eff": -0.3513,
       "conn": 1.585,
       "kind": "drill",
       "n": 9
     },
     "ts-typed-function": {
-      "eff": -0.2579,
+      "eff": -0.258,
       "conn": 0.0,
       "kind": "drill",
       "n": 12
@@ -681,7 +681,7 @@
       "n": 6
     },
     "ts-string-build": {
-      "eff": -0.5127,
+      "eff": -0.5128,
       "conn": 0.0,
       "kind": "drill",
       "n": 8
@@ -723,13 +723,13 @@
       "n": 4
     },
     "rust-if-expression": {
-      "eff": -0.7517,
+      "eff": -0.7518,
       "conn": 0.0,
       "kind": "drill",
       "n": 5
     },
     "rust-else-if": {
-      "eff": -0.0185,
+      "eff": -0.0186,
       "conn": 0.0,
       "kind": "Easy",
       "n": 4
@@ -825,7 +825,7 @@
       "n": 494
     },
     "py-sets": {
-      "eff": -0.0142,
+      "eff": -0.0141,
       "conn": 1.0,
       "kind": "Easy",
       "n": 123
@@ -915,13 +915,13 @@
       "n": 21
     },
     "py-inheritance": {
-      "eff": -0.6183,
+      "eff": -0.6184,
       "conn": 0.0,
       "kind": "Easy",
       "n": 14
     },
     "py-dunder-methods": {
-      "eff": -0.2433,
+      "eff": -0.2434,
       "conn": 0.0,
       "kind": "Easy",
       "n": 2
