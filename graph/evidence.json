@@ -44899,6 +44899,18 @@
       "judge": "deepseek-chat",
       "summary": "The query selects product_name, year and price from Sales joined to Product with an inner join on product_id. This exercises the inner-join move, and the run passed both examples, dropping Samsung (no sales) and the sale with product_id 999 (no product). No notes indicate any help.",
       "seconds": 169
+    },
+    "solved/d_Month_Over_Month_Change_2026_11_13T09_43_49_111593_00_00Z.mu": {
+      "date": "2026-11-13",
+      "problem": "drill",
+      "drill": "d58",
+      "moves": {
+        "sql-window-offset": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Contract met: single pass over Revenue, LAG gives NULL for the first row.",
+      "summary": "The query selects month, amount, and amount minus lag(amount) over (order by month) as change from Revenue in one pass. LAG supplies the previous month's amount, so the first row's change is NULL and equal amounts yield 0. The run passed both examples, exercising the window-offset move.",
+      "seconds": 197
     }
   }
 }
