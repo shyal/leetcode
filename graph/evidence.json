@@ -44873,6 +44873,21 @@
       "summary": "The mu code enumerates every substring with two nested loops (outer start i, inner end j), incrementally building a Counter cnt of the current substring's characters. At each step it computes max(cnt.values()) - min(cnt.values()) and adds it to res. This exercises substring enumeration, counter building, and treating the counts as the data. LeetCode accepted it at 1552 ms; the notes describe the brute-force approach directly.",
       "seconds": 613,
       "learning": true
+    },
+    "solved/p3960_Frequency_Balance_Subarray_2026_11_13T05_04_16_448470_00_00Z.mu": {
+      "date": "2026-11-13",
+      "problem": "3960",
+      "moves": {
+        "counter-build": "clean",
+        "counts-as-data": "clean",
+        "substring-enumeration": "clean",
+        "sliding-window-variable": "struggled"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEETCODE: Time Limit Exceeded (910/922 cases) - the O(n^2) enumeration of every (i, j) subarray with a rebuilt Counter stands in for the missing sliding-window-variable move that grows/shrinks a window while maintaining the frequency-balance invariant.",
+      "summary": "The code fixes a start index i, extends j while incrementing cnt[nums[j]], and tests whether the set of Counter values contains an f with 2f (or f/2) present, keeping the longest good length and breaking early once more than two distinct counts appear. It exercises counter-build, counts-as-data (reading Counter.values() as the dataset), and substring-enumeration over all (start, end) pairs. The submission was rejected with Time Limit Exceeded at 910/922 cases; the notes themselves say 'this gives a TLE'. The canonical variable sliding window that would maintain the balance invariant is absent.",
+      "seconds": 2604,
+      "learning": true
     }
   }
 }
