@@ -18,6 +18,8 @@
 //   # HINT: ...                             a hint that was asked for
 //   # GIVEN: ...                            the answer of a stage, asked for
 //   # ASSIST: hint | walkthrough            the heaviest help so far
+//   # STAGE 2: miss (slow)                  a miss of a plan that is correct
+//                                           and too slow for the constraints
 //   # STAGE 1: pass
 //
 // The current stage is the highest prompt in the notes. A file with no
@@ -32,6 +34,94 @@ pub fn enabled() -> bool {
 }
 
 pub const LAST: u8 = 3;
+
+/// The work a Python solve can do inside LeetCode's time limit: the
+/// product of the sizes of the nested loops of a plan, at the largest
+/// input the constraints allow, with no division by a constant. A plan
+/// above this is slow. Under it: 3713 at 2.6e7 (accepted), a counter made
+/// again for each substring of 1781 at 1.25e8. Above it: two loops over
+/// 2 * 10^4 items at 4e8, 3960 at 1e9 (a TLE, 2026-11-13).
+pub const OPS_LIMIT: f64 = 2e8;
+
+/// A count that the model wrote as text: "26000000", "1,000,000", "1e9",
+/// "10^9", or a product of those ("500 * 500 * 26"). Not a count: 0.
+fn count(text: &str) -> f64 {
+    let one = |t: &str| -> Option<f64> {
+        let t = t.trim().replace([',', '_', ' '], "");
+        match t.split_once('^') {
+            Some((b, e)) => Some(b.parse::<f64>().ok()?.powf(e.parse().ok()?)),
+            None => t.parse().ok(),
+        }
+    };
+    text.split(['*', 'x', '×'])
+        .map(one)
+        .try_fold(1.0, |acc, f| f.map(|f| acc * f))
+        .unwrap_or(0.0)
+}
+
+/// What the judge of a stage decided. The model says whether the plan is
+/// correct and counts its work; the tool decides `slow` from the count.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Verdict {
+    pub correct: bool,
+    pub operations: f64,
+    pub loops: String,
+    pub why: String,
+}
+
+impl Verdict {
+    /// From the judge's JSON: {"nest": [{"loop", "size"}], "correct",
+    /// "why"}. The operations are the product of the sizes. A size can be
+    /// a number or a string that holds one (count). No nest: the key
+    /// "operations", or 0, and the plan is not slow.
+    pub fn read(v: &serde_json::Value) -> Verdict {
+        let text = |k: &str| match v.get(k) {
+            Some(serde_json::Value::String(s)) => s.clone(),
+            Some(serde_json::Value::Null) | None => String::new(),
+            Some(other) => other.to_string(),
+        };
+        let size = |x: &serde_json::Value| match x {
+            serde_json::Value::Number(n) => n.as_f64().unwrap_or(0.0),
+            serde_json::Value::String(s) => count(s),
+            _ => 0.0,
+        };
+        // the nest of loops: the tool multiplies the sizes
+        let nest: Vec<(String, f64)> = v
+            .get("nest")
+            .and_then(serde_json::Value::as_array)
+            .map(|a| {
+                a.iter()
+                    .map(|e| (e.get("loop").and_then(serde_json::Value::as_str).unwrap_or("").to_string(), e.get("size").map(size).unwrap_or(0.0)))
+                    .filter(|(_, n)| *n > 0.0)
+                    .collect()
+            })
+            .unwrap_or_default();
+        let operations = if nest.is_empty() {
+            v.get("operations").map(size).unwrap_or(0.0)
+        } else {
+            nest.iter().map(|(_, n)| n).product()
+        };
+        let loops = if nest.is_empty() {
+            text("loops")
+        } else {
+            nest.iter().map(|(l, n)| format!("{l}: {n}")).collect::<Vec<_>>().join(", ")
+        };
+        let correct = match v.get("correct") {
+            Some(serde_json::Value::Bool(b)) => *b,
+            Some(serde_json::Value::String(s)) => s.trim().eq_ignore_ascii_case("true"),
+            _ => false,
+        };
+        Verdict { correct, operations, loops, why: text("why") }
+    }
+
+    pub fn slow(&self) -> bool {
+        self.operations > OPS_LIMIT
+    }
+
+    pub fn valid(&self) -> bool {
+        self.correct && !self.slow()
+    }
+}
 
 /// The prompt line of a stage, without the comment mark.
 pub fn prompt(stage: u8) -> String {
@@ -225,6 +315,15 @@ pub fn miss(stage: u8) -> Vec<String> {
     }]
 }
 
+/// The miss of a plan that is correct and too slow.
+pub fn miss_slow(stage: u8) -> Vec<String> {
+    vec![if stage == 1 {
+        "STAGE 1: miss (recognition failure, slow)".to_string()
+    } else {
+        format!("STAGE {stage}: miss (slow)")
+    }]
+}
+
 pub fn hint(text: &str) -> Vec<String> {
     vec![
         format!("HINT: {}", text.trim().replace('\n', " ")),
@@ -344,5 +443,50 @@ mod tests {
         test_env("STAGES", "0");
         assert!(!enabled());
         reset_test_env();
+    }
+
+    #[test]
+    fn the_tool_decides_slow_from_the_count() {
+        let v = |j: serde_json::Value| Verdict::read(&j);
+        // correct and inside the limit: a pass
+        let ok = v(serde_json::json!({"loops": "i: 1000, j: 1000", "operations": 1000000, "correct": true, "why": "x"}));
+        assert!(ok.valid() && !ok.slow());
+        // correct and above the limit: a miss, slow
+        let slow = v(serde_json::json!({"operations": 1e9, "correct": true}));
+        assert!(!slow.valid() && slow.slow());
+        // the limit itself is not slow
+        assert!(v(serde_json::json!({"operations": OPS_LIMIT, "correct": true})).valid());
+        assert!(!v(serde_json::json!({"operations": OPS_LIMIT + 1.0, "correct": true})).valid());
+        // wrong and fast: a miss that is not slow
+        let wrong = v(serde_json::json!({"operations": 10, "correct": false}));
+        assert!(!wrong.valid() && !wrong.slow());
+        // a count written as a string, a huge count
+        assert!(v(serde_json::json!({"operations": "1,000,000,000", "correct": true})).slow());
+        assert!(v(serde_json::json!({"operations": "3.5e13", "correct": "true"})).slow());
+        assert!(v(serde_json::json!({"operations": 1e30, "correct": true})).slow());
+        assert!(v(serde_json::json!({"operations": "1000 * 1000 * 1000", "correct": true})).slow());
+        assert!(v(serde_json::json!({"operations": "500 * 500 * 26", "correct": true})).valid());
+        assert!(v(serde_json::json!({"operations": "10^9", "correct": true})).slow());
+        assert_eq!(count("26000000"), 26000000.0);
+        assert_eq!(count("about a million"), 0.0);
+        // the tool multiplies the nest
+        let nest = v(serde_json::json!({"nest": [{"loop": "start", "size": 1000}, {"loop": "end", "size": 1000}, {"loop": "values of the counter", "size": "1000"}], "correct": true}));
+        assert_eq!(nest.operations, 1e9);
+        assert!(nest.slow() && !nest.valid());
+        assert_eq!(nest.loops, "start: 1000, end: 1000, values of the counter: 1000");
+        let nest = v(serde_json::json!({"nest": [{"loop": "start", "size": 500}, {"loop": "end", "size": 500}, {"loop": "counts", "size": 26}], "correct": true}));
+        assert_eq!(nest.operations, 6500000.0);
+        assert!(nest.valid());
+        assert!(v(serde_json::json!({"nest": [], "correct": true})).valid());
+        // no count, no verdict: not slow, not valid
+        assert!(v(serde_json::json!({"correct": true})).valid());
+        assert!(!v(serde_json::json!({"operations": 5})).valid());
+        // the notes of a slow miss
+        assert!(notes_say_missed(&miss_slow(1).join("\n")));
+        assert!(!notes_say_missed(&miss_slow(2).join("\n")));
+        assert_eq!(notes_assist_level(&miss_slow(2).join("\n")), "none");
+        let s = with_notes(&staged(), &miss_slow(1));
+        assert_eq!(stage(&s), 1);
+        assert_eq!(approach(&s), "");
     }
 }
