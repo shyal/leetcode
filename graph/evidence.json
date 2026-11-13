@@ -44956,6 +44956,19 @@
       "summary": "The mu code builds D as a dict of user id to a set of minutes, adding each log's minute, then fills res = table(k) by incrementing res[len(v)-1] for each set size. It exercises dict-arbitrary-value (sets of minutes keyed by user) and counting-sort-buckets (indexing the answer array by set size). The notes show a first STAGE 1 attempt that missed the direction of the mapping, then a corrected pass; LeetCode reports Accepted.",
       "seconds": 992,
       "learning": true
+    },
+    "solved/p153_Find_Minimum_in_Rotated_Sorted_Array_2026_11_13T14_26_58_867228_00_00Z.mu": {
+      "date": "2026-11-13",
+      "problem": "153",
+      "moves": {
+        "rotated-array-pivot": "clean",
+        "binary-search-boundary": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "STAGE 2 pseudocode marked miss once, then passed; LEETCODE: Accepted (0 ms, 19.4 MB).",
+      "summary": "The mu code binary-searches with lo/hi and mid, comparing nums[mid] against nums[-1] to decide whether the minimum lies to the right (lo = mid + 1) or at or left of mid (hi = mid - 1), then returns nums[lo]. This exercises the rotated-array pivot comparison and a boundary-style halving that converges on the first index where the predicate flips. The notes record a STAGE 2 pseudocode miss followed by a pass, and LeetCode accepted the submission at 0 ms.",
+      "seconds": 363,
+      "learning": true
     }
   }
 }
