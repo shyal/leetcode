@@ -44911,6 +44911,19 @@
       "note": "Contract met: single pass over Revenue, LAG gives NULL for the first row.",
       "summary": "The query selects month, amount, and amount minus lag(amount) over (order by month) as change from Revenue in one pass. LAG supplies the previous month's amount, so the first row's change is NULL and equal amounts yield 0. The run passed both examples, exercising the window-offset move.",
       "seconds": 197
+    },
+    "solved/p210_Course_Schedule_II_2026_11_13T13_38_26_400108_00_00Z.mu": {
+      "date": "2026-11-13",
+      "problem": "210",
+      "moves": {
+        "graph-adjacency-build": "clean",
+        "topological-order": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Uses harness helpers adjacency() and indegrees() to build the graph and in-degrees; Kahn's queue loop is the candidate's.",
+      "summary": "The mu code builds the adjacency list and in-degree array via the harness helpers adjacency and indegrees, seeds a deque with zero-in-degree courses, then runs Kahn's algorithm: popleft, append to res, decrement neighbors' in-degrees and enqueue those reaching zero. It returns res only when its length equals numCourses, otherwise []. The notes show a staged approach/pseudocode/code process and LeetCode Accepted (7 ms).",
+      "seconds": 636,
+      "learning": true
     }
   }
 }
