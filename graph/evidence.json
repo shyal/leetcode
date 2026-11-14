@@ -45317,6 +45317,27 @@
       "summary": "The code goes through the digits from '9' down to '0' and gets each count with num.count(c). It adds c * (cnt // 2) to res, but skips zeros while res is still empty so the result has no leading zero. Each digit with an odd count goes into the set oddn. It returns res + max(oddn, default='') + res[::-1], or '0' when that string is empty. The notes say 'learning', so the solution was given and copied.",
       "seconds": 1057,
       "learning": true
+    },
+    "solved/p3598_Longest_Common_Prefix_Between_Adjacent_Strings_After_Removals_2026_11_14T12_24_01_770316_00_00Z.mu": {
+      "date": "2026-11-14",
+      "problem": "3598",
+      "moves": {
+        "prefix-suffix-two-pass": "clean",
+        "running-extreme": "clean",
+        "py-list-comprehension": "clean",
+        "py-zip": "clean"
+      },
+      "assist": {
+        "prefix-suffix-two-pass": "learning",
+        "running-extreme": "learning",
+        "py-list-comprehension": "learning",
+        "py-zip": "learning"
+      },
+      "judge": "opus",
+      "note": "The notes say 'learning': the solution was given and copied. The common-prefix length comes from the commonprefix helper, not from a character-by-character compare.",
+      "summary": "The code builds cpl, the common-prefix length of each adjacent pair, with a comprehension over zip(words, words[1:]) and commonprefix. Then it makes left as a forward prefix max of cpl and right as a reverse suffix max of cpl. For each index i it takes the max of left[i], right[i+1] and bridge, which is the common-prefix length of words[i-1] and words[i+1] after word i is removed. The notes say 'learning', so the solution was given and copied.",
+      "seconds": 536,
+      "learning": true
     }
   }
 }
