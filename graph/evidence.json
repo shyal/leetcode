@@ -45185,6 +45185,22 @@
       "summary": "The code uses scan(+, arr) to make the prefix sums and counts the odd prefixes in oddc. evenc is len arr - oddc + 1, where the + 1 counts the empty prefix 0. A subarray has an odd sum exactly when its two prefixes have different parity, so the answer is oddc * evenc modulo 10**9 + 7. The notes hold only the stage template and the LeetCode verdict Accepted, and they record no help.",
       "seconds": 281,
       "learning": true
+    },
+    "solved/p554_Brick_Wall_2026_11_14T04_08_35_924638_00_00Z.mu": {
+      "date": "2026-11-14",
+      "problem": "554",
+      "moves": {
+        "counter-build": "clean",
+        "counts-as-data": "clean",
+        "prefix-sums": "clean",
+        "running-sum": "clean",
+        "py-slicing": "clean"
+      },
+      "judge": "opus",
+      "note": "LEETCODE: Accepted (13 ms, 23 MB). The STAGE 1 plain-English approach is still blank in the notes.",
+      "summary": "leastBricks walks each row with the running sum `for +prefix in row[:-1]`. This gives every inner edge position. Each position is counted in the counter `cnt`. The last brick is left out by the slice, so the wall's right edge is not counted. The answer is `len wall` minus the largest count from `cnt.most_common(1)`, and it is `len wall` when `cnt` is empty. LeetCode accepted the code, and the notes record no hints and no look-ups.",
+      "seconds": 226,
+      "learning": true
     }
   }
 }
