@@ -45252,6 +45252,23 @@
       "summary": "The code puts a 0 in front of a prefix scan of travel and stores it in self.p. get_range(i, j) then gives the travel time from house i-1 to house j as p[j] - p[i-1]. For each of the types in 'PMG', the code goes through garbage and keeps last, the index of the last house that had that type. At each house that has the type, it adds G.count(T) and get_range(last+1, i) to res, so each truck pays travel only up to the last house it must visit. The notes give the approach in plain English, and LeetCode accepted the code; the notes do not mention any help.",
       "seconds": 1647,
       "learning": true
+    },
+    "solved/p3709_Design_Exam_Scores_Tracker_2026_11_14T09_55_46_007498_00_00Z.mu": {
+      "date": "2026-11-14",
+      "problem": "3709",
+      "moves": {
+        "prefix-sums": "clean",
+        "binary-search-boundary": "clean"
+      },
+      "assist": {
+        "prefix-sums": "learning",
+        "binary-search-boundary": "learning"
+      },
+      "judge": "opus",
+      "note": "Notes open with 'learning..' and say the LeetCode hints were read, then a hint gave bisect_right for hi. The help is read as hint level on both moves.",
+      "summary": "record appends time to self.times and appends the running total to self.prefix. totalScore uses bisect_left on startTime and bisect_right on endTime to find the index range. It then subtracts self.prefix[lo - 1] from self.prefix[hi - 1], and uses 0 when an index is 0. The notes say the LeetCode hints were read first, and a second hint said to use bisect_right for the upper bound.",
+      "seconds": 2194,
+      "learning": true
     }
   }
 }
