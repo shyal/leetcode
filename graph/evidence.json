@@ -45019,6 +45019,20 @@
       "note": "Contract met: let mut total with a for loop over 0..=n adding to it, total as last expression; range starts at 0 rather than 1 but the sum is identical.",
       "summary": "The code declares `let mut total: u64 = 0` and accumulates with a `for i in 0..=n` loop, returning `total` as the final expression. This exercises the mutable-binding-plus-loop running total the drill targets. The run exited 0 with all assertions passing, including the 1,000,000 case.",
       "seconds": 172
+    },
+    "solved/d_Mixed_Sum_2026_11_14T00_55_59_445670_00_00Z.ts": {
+      "date": "2026-11-14",
+      "problem": "drill",
+      "drill": "d167",
+      "moves": {
+        "ts-union-narrowing": "clean",
+        "ts-typed-function": "clean",
+        "ts-index-loop": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Contract met: parameter typed (number | string)[], each element narrowed with typeof, no any/as, single O(n) pass.",
+      "summary": "mixedSum takes a (number | string)[] and loops once with for..of, narrowing each element via typeof v == \"string\" to Number(v) or adding it directly. It exercises the typed function signature, the union narrowing, and a single-pass loop. The run exited 0 with all assertions passing.",
+      "seconds": 97
     }
   }
 }
