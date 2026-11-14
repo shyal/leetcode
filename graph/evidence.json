@@ -45045,6 +45045,21 @@
       "note": "O(1) extra space, no reversed/slicing/yield/copy; __iter__ returns self, __next__ raises StopIteration at the end.",
       "summary": "The Reverse class stores the sequence and an index starting at the last position; __iter__ returns self and __next__ returns s[i] while decrementing i, raising StopIteration once i reaches -1. The Solution.reverse wrapper just constructs a Reverse. This exercises the iterator protocol directly with constant extra space, and all assertions passed.",
       "seconds": 132
+    },
+    "solved/d_Odd_Sum_Subarrays_2026_11_14T01_03_42_230257_00_00Z.mu": {
+      "date": "2026-11-14",
+      "problem": "drill",
+      "drill": "d537",
+      "moves": {
+        "prefix-sums": "clean"
+      },
+      "assist": {
+        "prefix-sums": "learning"
+      },
+      "judge": "deepseek-chat",
+      "note": "Contract met: single scan of running prefix sums, O(n) time, O(1) space; answer = oddc * evenc with the empty prefix counted in evenc.",
+      "summary": "The mu code scans the running prefix sums with `scan(+, nums)`, counts how many are odd in `oddc`, derives `evenc = len nums - oddc + 1` (the +1 being the empty prefix), and returns their product. This is the parity-of-prefix-sums counting move in one pass with constant extra space, meeting the drill contract. The notes say 'learning', so the prefix-sum parity approach was given rather than recalled.",
+      "seconds": 303
     }
   }
 }
