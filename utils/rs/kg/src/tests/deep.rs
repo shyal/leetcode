@@ -123,6 +123,52 @@ fn a_pass_goes_up_and_a_fail_does_not() {
     assert_eq!(pnum(&c), "13");
 }
 
+/// 2026-11-14: with FIRST_SIGHT_WITHIN_BAND set, a new problem rated more
+/// than the band below his first-sight elo is not served: the first one
+/// is the easiest at or above the floor, and a fail does not go below
+/// it. When every candidate is below the floor, the hardest is served.
+#[test]
+fn a_new_problem_is_not_below_the_band() {
+    use crate::model::first_sight_elo_now;
+    let (mut fx, mut recs, st) = fixture();
+    test_env("KG_DEEP", "3");
+    test_env("NO_REVIEWS", "1");
+    test_env("FIRST_SIGHT_WITHIN_BAND", "50");
+    ratings_tsv(
+        &fx,
+        &[
+            ("1", 1500.0),
+            ("2", 1500.0),
+            ("3", 1500.0),
+            ("4", 1500.0),
+            ("13", 1500.0),
+        ],
+    );
+    let elo = first_sight_elo_now(&fx.ctx(), &evidence(recs.clone()));
+    let rate = |fx: &mut Fx, r10: f64, r11: f64, r13: f64| {
+        fx.stubs().solve_ratings = Some(fmap(&[
+            ("1", 1500.0),
+            ("2", 1500.0),
+            ("3", 1500.0),
+            ("4", 1500.0),
+            ("10", r10),
+            ("11", r11),
+            ("12", 1200.0),
+            ("13", r13),
+        ]));
+    };
+    rate(&mut fx, elo + 30.0, elo - 300.0, elo - 40.0);
+    let c = fx.run(&evidence(recs.clone()), &st, args());
+    assert_eq!(pnum(&c), "13");
+    rate(&mut fx, elo - 60.0, elo - 300.0, elo - 200.0);
+    let c = fx.run(&evidence(recs.clone()), &st, args());
+    assert_eq!(pnum(&c), "10");
+    rate(&mut fx, elo + 30.0, elo - 300.0, elo - 40.0);
+    recs.push(failed("13", &[("weak", "struggled")], 0));
+    let c = fx.run(&evidence(recs), &st, args());
+    assert_eq!(pnum(&c), "10");
+}
+
 /// The day's new problems are spent: no problem never met is served by
 /// any rule, the other technique's included.
 #[test]

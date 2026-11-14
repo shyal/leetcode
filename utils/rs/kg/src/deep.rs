@@ -52,8 +52,11 @@
 // group. They are served by rating: the first of the day at or below the
 // median rating of his alone first sights on the technique
 // (DEEP_START_QUANTILE), after a pass the next one above it, after a
-// fail the nearest at or below it. His own rating is not read: the band
-// is a filter for a random first sight, and here the order does its work.
+// fail the nearest at or below it. With FIRST_SIGHT_WITHIN_BAND set, a
+// problem rated more than the band below his first-sight elo is not a
+// candidate (2026-11-14: a day of 1301 to 1474 at elo 1609); when every
+// candidate is below that floor, the hardest one is served. The band has
+// no ceiling here: the order does that work.
 
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
@@ -337,6 +340,25 @@ fn above(cands: &[(String, f64)], anchor: f64) -> Option<&(String, f64)> {
         .or_else(|| cands.last())
 }
 
+/// The lowest rating a new problem of the day can have: his first-sight
+/// elo less FIRST_SIGHT_WITHIN_BAND. None when the band is unset.
+fn floor(ctx: &Ctx, ev: &Evidence) -> Option<f64> {
+    crate::drills::first_sight_band().map(|b| crate::model::first_sight_elo_now(ctx, ev) - b)
+}
+
+/// The candidates rated at or above `floor`. When there is none, the
+/// hardest candidate alone, so the day still has a problem.
+fn above_floor(cands: Vec<(String, f64)>, floor: Option<f64>) -> Vec<(String, f64)> {
+    let Some(floor) = floor else { return cands };
+    let hardest = cands.last().cloned();
+    let kept: Vec<(String, f64)> = cands.into_iter().filter(|(_, r)| *r >= floor).collect();
+    if kept.is_empty() {
+        hardest.into_iter().collect()
+    } else {
+        kept
+    }
+}
+
 /// The technique of the day, where its new problems come from, and the
 /// ratings they are served by.
 pub struct Day {
@@ -472,6 +494,7 @@ pub fn pick(
             held_behind_past(ctx, num, &ctx.predicted_view, ev, today, Some(node)).is_none()
         })
         .collect();
+    let cands = above_floor(cands, floor(ctx, ev));
     let next = match met_today.last() {
         Some(last) => {
             let anchor = ratings.get(&last.pnum).copied();
