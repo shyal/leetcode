@@ -45107,10 +45107,31 @@
         "running-extreme": "clean",
         "running-sum": "clean"
       },
-      "pending": "2026-11-14T02:31:04+00:00",
       "assist": {
         "running-extreme": "learning",
         "running-sum": "learning"
+      },
+      "judge": "opus",
+      "note": "Stage 1 approach was a descending monotonic stack, marked 'miss (recognition failure)' and 'learning'; the final code uses a running max compared with the index.",
+      "summary": "maxChunksToSorted scans arr with the index i and keeps high as the largest value seen so far. When high == i, the prefix up to i holds exactly the values 0..i, so a chunk can end there, and count adds 1. The code uses running-extreme for high and running-sum for count. The notes say the stage 1 plan was a descending monotonic stack that adds 1 on each pop, that this was a recognition failure, and that the solution was given (learning).",
+      "verdicts": {
+        "opus": {
+          "date": "2026-11-14",
+          "problem": "769",
+          "moves": {
+            "running-extreme": "clean",
+            "running-sum": "clean"
+          },
+          "assist": {
+            "running-extreme": "learning",
+            "running-sum": "learning"
+          },
+          "judge": "opus",
+          "note": "The notes record a STAGE 1 recognition failure and 'learning'. The approach in the notes was a descending monotonic stack that counts pops. The code does not use that approach.",
+          "summary": "maxChunksToSorted scans arr with index i. It keeps a running maximum in high and adds 1 to count each time high == i, because a chunk can end at i only when the prefix holds exactly the values 0..i. This uses a running maximum (high) and a running total (count += high == i). The notes say STAGE 1 was a recognition failure. The first plan was a descending monotonic stack that counts pops. The note 'learning' says the solution was given.",
+          "seconds": 1601,
+          "learning": true
+        }
       },
       "seconds": 1601,
       "learning": true
@@ -45131,6 +45152,25 @@
         "greedy per-unit cheapest option comparison"
       ],
       "seconds": 1121,
+      "learning": true
+    },
+    "solved/p143_Reorder_List_2026_11_14T03_13_14_981477_00_00Z.mu": {
+      "date": "2026-11-14",
+      "problem": "143",
+      "moves": {
+        "fast-slow-pointers": "clean",
+        "ll-dummy-splice": "clean",
+        "py-tuple-unpacking": "clean"
+      },
+      "assist": {
+        "fast-slow-pointers": "learning",
+        "ll-dummy-splice": "learning",
+        "py-tuple-unpacking": "learning"
+      },
+      "judge": "opus",
+      "note": "The second half is reversed by the harness helper linked_list_reverse_k, not by pointer flips the candidate wrote. The merge relinks the nodes without a dummy node. Only the even-length test [1,2,3,4] is active.",
+      "summary": "reorderList finds the middle with fast and slow pointers (the loop runs while fast.next.next exists), cuts the list at slow.next, and reverses the second half with the harness helper linked_list_reverse_k. It then merges the two halves in place with one tuple assignment per step: a.next, b.next, a, b = b, a.next, a.next, b.next. The notes say 'learning' and 'forgot my own solution', followed by the plan: find the middle, cut, reverse b and splice.",
+      "seconds": 578,
       "learning": true
     }
   }
