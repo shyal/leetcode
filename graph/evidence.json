@@ -45172,6 +45172,19 @@
       "summary": "reorderList finds the middle with fast and slow pointers (the loop runs while fast.next.next exists), cuts the list at slow.next, and reverses the second half with the harness helper linked_list_reverse_k. It then merges the two halves in place with one tuple assignment per step: a.next, b.next, a, b = b, a.next, a.next, b.next. The notes say 'learning' and 'forgot my own solution', followed by the plan: find the middle, cut, reverse b and splice.",
       "seconds": 578,
       "learning": true
+    },
+    "solved/p1524_Number_of_Sub-arrays_With_Odd_Sum_2026_11_14T03_57_48_599190_00_00Z.mu": {
+      "date": "2026-11-14",
+      "problem": "1524",
+      "moves": {
+        "prefix-sums": "clean",
+        "pair-count-formula": "clean"
+      },
+      "judge": "opus",
+      "note": "LEETCODE: Accepted (72 ms, 24.5 MB). The code counts the odd and even prefixes in one batch and multiplies them. It does not add to a pairs total at each step.",
+      "summary": "The code uses scan(+, arr) to make the prefix sums and counts the odd prefixes in oddc. evenc is len arr - oddc + 1, where the + 1 counts the empty prefix 0. A subarray has an odd sum exactly when its two prefixes have different parity, so the answer is oddc * evenc modulo 10**9 + 7. The notes hold only the stage template and the LeetCode verdict Accepted, and they record no help.",
+      "seconds": 281,
+      "learning": true
     }
   }
 }
