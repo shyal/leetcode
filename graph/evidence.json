@@ -45060,6 +45060,19 @@
       "note": "Contract met: single scan of running prefix sums, O(n) time, O(1) space; answer = oddc * evenc with the empty prefix counted in evenc.",
       "summary": "The mu code scans the running prefix sums with `scan(+, nums)`, counts how many are odd in `oddc`, derives `evenc = len nums - oddc + 1` (the +1 being the empty prefix), and returns their product. This is the parity-of-prefix-sums counting move in one pass with constant extra space, meeting the drill contract. The notes say 'learning', so the prefix-sum parity approach was given rather than recalled.",
       "seconds": 303
+    },
+    "solved/p4079_Prime_Subset_Selection_I_2026_11_14T01_16_16_108073_00_00Z.mu": {
+      "date": "2026-11-14",
+      "problem": "4079",
+      "moves": {
+        "prime-sieve": "clean",
+        "running-sum": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LeetCode Accepted (4398 ms); greedy prefix of primes by running sum, no backtracking needed.",
+      "summary": "The code calls the harness `primes(n)` sieve, then walks the primes in order accumulating `total` and appending each prime to `res` until the running sum would exceed `s`. It exercises the sieve and a running-sum greedy scan; the canonical backtracking moves (choose-undo, start-index) are sidestepped because the greedy prefix is optimal. LeetCode reports Accepted at 4398 ms.",
+      "seconds": 727,
+      "learning": true
     }
   }
 }
