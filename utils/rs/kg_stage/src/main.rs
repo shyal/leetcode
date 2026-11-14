@@ -21,9 +21,9 @@
 //   kg_stage --judge FILE   print the verdict on FILE, write nothing
 //                      (check.sh: the cases that test the judge)
 //
-// The judge lists the nested loops of the plan with their sizes at the
-// largest input; the tool multiplies them and decides "slow" from the
-// product (stage::OPS_LIMIT).
+// The judge gives the time complexity of the plan and the value of each
+// factor at the largest input; the tool multiplies the values and decides
+// "slow" from the product (stage::OPS_LIMIT).
 //
 // The judge's model is JUDGE_MODEL (kg::llm), with the reasoning model
 // in the place of deepseek's chat model (model()). The cached solution of the
@@ -108,12 +108,15 @@ fn ask(prompt: &str, system: &str) -> Result<Value, String> {
     claude_json(prompt, system, &model(), 2).map_err(|e| e.to_string())
 }
 
-/// How the judge lists the loops of a plan. The tool, not the model,
-/// multiplies the sizes and decides whether the plan is slow
-/// (stage::OPS_LIMIT): the model lists loops well and multiplies badly.
-const COUNT: &str = "Work through the plan first (\"work\"), then list its loops (\"nest\"), then judge it:\n- \"nest\": the deepest nest of loops in the plan, from the outside to the inside, one entry for each loop: what the loop goes through, and its largest size at the largest input that the constraints allow, as an integer in digits. The tool multiplies the sizes. Use the plan as the candidate wrote it: do not replace a slow step with the fast step that you know, and do not add a step that the plan does not have.\n- A step that reads a whole collection is a loop of the size of that collection, and it is one more entry of the nest when it is inside a loop: a sum, a max, a min, a sort, a count, a copy, a slice, a join, a reversal, a set or a list made from a collection, a search in a list or in a string, a comparison of two strings or two lists, a pass through the keys or the values of a map, a search (bfs, dfs) that starts again with nothing visited.\n- A step that reads or changes one item is not a loop and is not an entry: one key of a map or a set (a lookup, an add, a delete, a +1), one index of a list, a push or a pop, the length of a collection.\n- The size of a collection is its size in the worst input, not in a typical input. A map of counts has one key for each different value that is present (no key has the count 0). That is as many keys as the input has items, or the number of different values that the constraints allow when that is smaller (26 for lowercase letters, 10 for digits).\n- A test of the size of a collection is one operation. A step behind such a test reads only the size that the test allows: in \"the map has exactly two keys and the larger key is twice the smaller\", the test reads a length, and the max and the min read two keys, so the whole line is not a loop and not an entry.\n- A pointer that only moves forward during the whole run is not a nested loop, and a collection where each item goes in one time and comes out one time is not a nested loop: the left end of a sliding window, a stack, a queue, a heap, the visited cells of one search over the whole input. They are not entries of the nest.\n- A recursion or a dp is one entry: the number of different calls or states. The work in one call is one more entry when it is a loop. A recursion with no memo is one entry of the size of all the calls it makes at the largest input (a call that makes two calls, to depth 45, is 2^45 = 35184372088832 calls).\n- An entry is in the nest only when it runs again from its start for each step of the loop outside it. Two sorts one after the other, or a first pass and a second pass, are different nests. A search that keeps its visited cells for the whole run (a flood fill from each cell that is not visited yet) visits each cell one time in the whole run: it is not inside the scan of the cells.\n- Do not divide a size by a constant: the inner of two nested loops over n items has the size n, not n / 2. A sort of n items is one entry of size n * log2(n).\n- Loops that are one after the other are not in the same nest: give the nest with the largest product.\n- When you are not sure that a step is a loop, it is not an entry.\n- Do not decide if the plan is fast enough. The tool decides that.";
+/// How the judge states the work of a plan: its time complexity, and the
+/// value of each factor of the largest term at the largest input. The
+/// tool, not the model, multiplies the values and decides whether the plan
+/// is slow (stage::OPS_LIMIT). Until 2026-11-14 the model listed the loops
+/// of the plan under eleven rules; it opened "generate primes" (4079) into
+/// two loops of 1000 and 10^6, and gave three verdicts in three runs.
+const COUNT: &str = "Work through the plan first (\"work\"), then give its time complexity, then judge it:\n- \"complexity\": the time complexity of the plan in big-O form, in the variables of the constraints, as you state it in an interview. Use the plan as the candidate wrote it: do not replace a slow step with the fast step that you know, and do not add a step that the plan does not have. A step that the plan names and does not describe (a sort, a prime sieve, a binary search, a bfs) has the complexity of its standard algorithm.\n- \"nest\": the factors of the largest term of that complexity, one entry for each factor: the factor, and its value at the largest input that the constraints allow, as an integer in digits. For O(n log n) with n up to 10^5: n is 100000 and log n is 17. For O(2^n) with n up to 45: 2^n is 35184372088832. The tool multiplies the values.\n- Do not decide if the plan is fast enough. The tool decides that.";
 
-const SHAPE: &str = "Output STRICT JSON only, the keys in this order: {\"work\": \"<go through the plan step by step: for each step say if it reads one item or a whole collection, and if it is inside another loop or after it; then say if the plan gives the right answers>\", \"nest\": [{\"loop\": \"<what it goes through>\", \"size\": <integer>}, ...], \"correct\": true|false, \"why\": \"<one sentence>\"}";
+const SHAPE: &str = "Output STRICT JSON only, the keys in this order: {\"work\": \"<go through the plan step by step: say what each step costs and how the steps combine; then say if the plan gives the right answers>\", \"complexity\": \"<big-O>\", \"nest\": [{\"loop\": \"<the factor>\", \"size\": <integer>}, ...], \"correct\": true|false, \"why\": \"<one sentence>\"}";
 
 fn judge(st: u8, ctx: &str, approach: &str, answer: &str) -> Result<stage::Verdict, String> {
     let system = if st == 1 {
