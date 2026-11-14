@@ -45282,6 +45282,20 @@
       "summary": "swapPairs returns head when the list has fewer than two nodes. If not, it calls m the first node and c the second node. It sets m.next to the result of swapPairs(c.next) and sets c.next to m in one tuple assignment, then returns c as the new head. The recursion goes down the list two nodes at a time, and each call reverses the next pointer of one pair. The notes have no approach text, and they do not mention any help.",
       "seconds": 185,
       "learning": true
+    },
+    "solved/p2844_Minimum_Operations_to_Make_a_Special_Number_2026_11_14T10_56_49_888158_00_00Z.mu": {
+      "date": "2026-11-14",
+      "problem": "2844",
+      "moves": {},
+      "judge": "opus",
+      "note": "LEETCODE: Accepted (4 ms, 19 MB). Divisibility by 25 comes from the fixed ending list ['50', '00', '25', '75'], not from % or from a derived lookup key.",
+      "summary": "minimumOperations tries each ending in ['50', '00', '25', '75']. For each ending, from_end scans num from the right with `for <i, c in num`: it finds the last digit of the ending, then the first digit at a lower index. count_deletions counts the digits after ind[0] plus the digits between ind[1] and ind[0], and returns inf when it finds no pair. When no ending matches, a special case returns n - 1 if num has exactly one '0', and otherwise n. The notes contain only the stage template and the LeetCode Accepted verdict, with no record of help.",
+      "unmapped": [
+        "enumerate the four valid two-digit endings",
+        "rightmost subsequence match scanned from end"
+      ],
+      "seconds": 1817,
+      "learning": true
     }
   }
 }
