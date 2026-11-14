@@ -45296,6 +45296,27 @@
       ],
       "seconds": 1817,
       "learning": true
+    },
+    "solved/p2384_Largest_Palindromic_Number_2026_11_14T11_17_53_384221_00_00Z.mu": {
+      "date": "2026-11-14",
+      "problem": "2384",
+      "moves": {
+        "counts-as-data": "clean",
+        "string-build-transform": "clean",
+        "counting-sort-buckets": "clean",
+        "py-slicing": "clean"
+      },
+      "assist": {
+        "counts-as-data": "learning",
+        "string-build-transform": "learning",
+        "counting-sort-buckets": "learning",
+        "py-slicing": "learning"
+      },
+      "judge": "opus",
+      "note": "Notes say 'learning': the solution was given and copied. No Counter is built; each digit's count comes from num.count(c) in a loop over '9876543210'.",
+      "summary": "The code goes through the digits from '9' down to '0' and gets each count with num.count(c). It adds c * (cnt // 2) to res, but skips zeros while res is still empty so the result has no leading zero. Each digit with an odd count goes into the set oddn. It returns res + max(oddn, default='') + res[::-1], or '0' when that string is empty. The notes say 'learning', so the solution was given and copied.",
+      "seconds": 1057,
+      "learning": true
     }
   }
 }
