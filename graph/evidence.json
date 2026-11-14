@@ -45239,6 +45239,19 @@
       "summary": "answerQueries sorts nums ascending, so the smallest elements are taken first. Then, for each q in queries, it walks nums with the running prefix `+p` and sets best = i + 1 while p <= q. The prefix sums are not stored, and there is no binary search over them: each query does a full linear scan of nums. The notes give the approach as sort plus prefix sums, and LeetCode accepted the code.",
       "seconds": 787,
       "learning": true
+    },
+    "solved/p2391_Minimum_Amount_of_Time_to_Collect_Garbage_2026_11_14T06_00_53_554470_00_00Z.mu": {
+      "date": "2026-11-14",
+      "problem": "2391",
+      "moves": {
+        "prefix-sums": "clean",
+        "running-sum": "clean"
+      },
+      "judge": "opus",
+      "note": "LEETCODE: Accepted (178 ms, 37.2 MB)",
+      "summary": "The code puts a 0 in front of a prefix scan of travel and stores it in self.p. get_range(i, j) then gives the travel time from house i-1 to house j as p[j] - p[i-1]. For each of the types in 'PMG', the code goes through garbage and keeps last, the index of the last house that had that type. At each house that has the type, it adds G.count(T) and get_range(last+1, i) to res, so each truck pays travel only up to the last house it must visit. The notes give the approach in plain English, and LeetCode accepted the code; the notes do not mention any help.",
+      "seconds": 1647,
+      "learning": true
     }
   }
 }
