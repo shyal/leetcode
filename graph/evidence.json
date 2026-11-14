@@ -45226,6 +45226,19 @@
       "summary": "The code builds the prefix sums self.p with scan(+, nums). get_range(i, j) returns self.p[j] minus self.p[i - 1], and uses 0 when i is 0. For each index i that has k elements on both sides, the code divides the sum of the range i - k to i + k by 2k + 1 with floor, and for all other indices it appends -1. The code never moves a fixed window of size 2k + 1 by adding the new element and removing the old one, because the prefix-sum difference replaces that step. The notes contain only the empty STAGE 1 template and the LeetCode verdict, Accepted.",
       "seconds": 1110,
       "learning": true
+    },
+    "solved/p2389_Longest_Subsequence_With_Limited_Sum_2026_11_14T05_09_07_005201_00_00Z.mu": {
+      "date": "2026-11-14",
+      "problem": "2389",
+      "moves": {
+        "greedy-sort-take": "clean",
+        "running-sum": "clean"
+      },
+      "judge": "opus",
+      "note": "LEETCODE: Accepted (768 ms, 19.3 MB). The notes say to precompute prefix sums, but the code computes the prefix again for each query with `+p`, so the run is O(n*m). The loop does not break when p > q.",
+      "summary": "answerQueries sorts nums ascending, so the smallest elements are taken first. Then, for each q in queries, it walks nums with the running prefix `+p` and sets best = i + 1 while p <= q. The prefix sums are not stored, and there is no binary search over them: each query does a full linear scan of nums. The notes give the approach as sort plus prefix sums, and LeetCode accepted the code.",
+      "seconds": 787,
+      "learning": true
     }
   }
 }
