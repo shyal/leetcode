@@ -45214,6 +45214,18 @@
       "summary": "The code builds the prefix array self.p with scan(+, nums). It then goes through every (i, j) pair with two nested loops, i from the start and j from i to the end. It keeps only the pairs where the length j - i + 1 is between l and r, and gets each sum from rangeSum as self.p[j] - self.p[i - 1]. best holds the smallest sum above 0, and the function returns -1 when best is still inf. The notes show the LeetCode verdict only and do not mention any help.",
       "seconds": 1245,
       "learning": true
+    },
+    "solved/p2090_K_Radius_Subarray_Averages_2026_11_14T04_52_49_764167_00_00Z.mu": {
+      "date": "2026-11-14",
+      "problem": "2090",
+      "moves": {
+        "prefix-sums": "clean"
+      },
+      "judge": "opus",
+      "note": "LEETCODE: Accepted (173 ms, 37.9 MB). The STAGE 1 approach line is still empty.",
+      "summary": "The code builds the prefix sums self.p with scan(+, nums). get_range(i, j) returns self.p[j] minus self.p[i - 1], and uses 0 when i is 0. For each index i that has k elements on both sides, the code divides the sum of the range i - k to i + k by 2k + 1 with floor, and for all other indices it appends -1. The code never moves a fixed window of size 2k + 1 by adding the new element and removing the old one, because the prefix-sum difference replaces that step. The notes contain only the empty STAGE 1 template and the LeetCode verdict, Accepted.",
+      "seconds": 1110,
+      "learning": true
     }
   }
 }
