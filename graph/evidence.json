@@ -45201,6 +45201,19 @@
       "summary": "leastBricks walks each row with the running sum `for +prefix in row[:-1]`. This gives every inner edge position. Each position is counted in the counter `cnt`. The last brick is left out by the slice, so the wall's right edge is not counted. The answer is `len wall` minus the largest count from `cnt.most_common(1)`, and it is `len wall` when `cnt` is empty. LeetCode accepted the code, and the notes record no hints and no look-ups.",
       "seconds": 226,
       "learning": true
+    },
+    "solved/p3364_Minimum_Positive_Sum_Subarray_2026_11_14T04_30_12_106340_00_00Z.mu": {
+      "date": "2026-11-14",
+      "problem": "3364",
+      "moves": {
+        "prefix-sums": "clean",
+        "substring-enumeration": "clean"
+      },
+      "judge": "opus",
+      "note": "LEETCODE: Accepted (46 ms, 19.2 MB). The STAGE 1 approach line in the notes is still empty.",
+      "summary": "The code builds the prefix array self.p with scan(+, nums). It then goes through every (i, j) pair with two nested loops, i from the start and j from i to the end. It keeps only the pairs where the length j - i + 1 is between l and r, and gets each sum from rangeSum as self.p[j] - self.p[i - 1]. best holds the smallest sum above 0, and the function returns -1 when best is still inf. The notes show the LeetCode verdict only and do not mention any help.",
+      "seconds": 1245,
+      "learning": true
     }
   }
 }
