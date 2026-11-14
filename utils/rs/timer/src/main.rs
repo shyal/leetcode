@@ -91,13 +91,15 @@ fn clock(secs: f64) -> String {
     format!("{}m {:02}s", s / 60, s % 60)
 }
 
-/// The solve branch, or None when idle (master, or no parseable stub).
+/// The solve branch, or None when idle (master, or nothing served). A
+/// served file counts before the first keystroke: the clock runs while
+/// the operator reads and thinks.
 fn active_branch(root: &std::path::Path) -> Option<String> {
     let b = git(root, &["rev-parse", "--abbrev-ref", "HEAD"]);
     if matches!(b.as_str(), "" | "master" | "HEAD") {
         return None;
     }
-    kg::lang::busy(root).map(|_| b)
+    kg::lang::served(root).map(|_| b)
 }
 
 /// The elapsed clock as large figlet digits. Font from $TIMER_FONT (default
