@@ -78,15 +78,41 @@ pub fn held_behind(
     ev: &Evidence,
     today: NaiveDate,
 ) -> Option<String> {
+    held_behind_past(ctx, pnum, problems, ev, today, None)
+}
+
+/// held_behind for the deep dive (deep.rs): a drill of `dive`, the
+/// technique of the day, holds nothing. The dive serves that drill before
+/// the problems, and a rep of it does not always make it warm: on
+/// 2026-11-14 the day was prefix sums, d537 was cold after its rep, every
+/// problem of the technique was held behind it, and the day gave only the
+/// due repeats of the other techniques.
+pub fn held_behind_past(
+    ctx: &Ctx,
+    pnum: &str,
+    problems: &PView,
+    ev: &Evidence,
+    today: NaiveDate,
+    dive: Option<&str>,
+) -> Option<String> {
     let entry = problems.get(pnum).or_else(|| ctx.ro.get(pnum));
     let entry = entry?;
+    let of_dive = |g: &String| {
+        dive.is_some_and(|n| {
+            ctx.vertex_kind(g, &problems.map) == Some("drill")
+                && ctx.drill_path(g).is_some_and(|p| {
+                    ctx.bank_files(n).contains(&p) || ctx.drill_trains(&p).iter().any(|t| t == n)
+                })
+        })
+    };
+    let after: Vec<String> = entry.after.iter().filter(|g| !of_dive(g)).cloned().collect();
     let learning = crate::learning::enabled();
     if learning {
-        if let Some(g) = crate::learning::unmet_gate(ctx, &entry.after, problems, ev) {
+        if let Some(g) = crate::learning::unmet_gate(ctx, &after, problems, ev) {
             return Some(g);
         }
     }
-    for pred in entry.after.iter().filter(|_| !learning) {
+    for pred in after.iter().filter(|_| !learning) {
         let pred_entry = problems.get(pred).or_else(|| ctx.ro.get(pred));
         let unservable = match pred_entry {
             Some(p) => ctx.unservable(pred, p),
@@ -107,7 +133,7 @@ pub fn held_behind(
     }
     let mut seen = HashSet::new();
     for node in walk_nodes(entry) {
-        if !seen.insert(node.clone()) {
+        if !seen.insert(node.clone()) || dive == Some(node.as_str()) {
             continue;
         }
         if let Some(held) = node_drill_hold(ctx, &node, ev, today) {

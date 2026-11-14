@@ -581,6 +581,18 @@ pub fn review_queue(
     pv: &PView,
     today: NaiveDate,
 ) -> Vec<(String, NaiveDate, i64)> {
+    review_queue_past(ctx, ev, pv, today, None)
+}
+
+/// review_queue for the deep dive: a drill of `dive`, the technique of the
+/// day, holds no repeat (bank::held_behind_past).
+pub fn review_queue_past(
+    ctx: &Ctx,
+    ev: &Evidence,
+    pv: &PView,
+    today: NaiveDate,
+    dive: Option<&str>,
+) -> Vec<(String, NaiveDate, i64)> {
     let trace = std::env::var("KG_TRACE").is_ok();
     let above = above_band(ctx, ev, pv, today);
     let due: Vec<_> = due_problems(ev, today, Some(pv))
@@ -599,7 +611,7 @@ pub fn review_queue(
             }
             !drop
         })
-        .filter(|(p, _, _)| match held_behind(ctx, p, pv, ev, today) {
+        .filter(|(p, _, _)| match crate::bank::held_behind_past(ctx, p, pv, ev, today, dive) {
             Some(h) => {
                 if trace {
                     eprintln!("review {p}: held behind {h}");

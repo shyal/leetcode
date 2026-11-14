@@ -22,6 +22,9 @@
 //   5. the due repeats of the other techniques: the ordinary picker, with
 //      every never-met problem held, so that a first sight comes only
 //      from step 4.
+// A drill of the day's technique holds none of its problems (2026-11-14,
+// bank::held_behind_past): step 2 serves it first, and while it was cold
+// it held every problem of steps 3 and 4.
 // The drills of the other algorithm techniques are not served that day,
 // due or not: depth comes before the memory curves (his thesis,
 // 2026-11-13), and a technique's drills come back on its own day. Steps 1
@@ -57,14 +60,14 @@ use std::collections::{HashMap, HashSet};
 
 use chrono::{Duration, NaiveDate};
 
-use crate::bank::held_behind;
+use crate::bank::held_behind_past;
 use crate::clock::{attempt_label, is_studied};
 use crate::ctx::{Ctx, PView};
 use crate::data::{env_str, filed_at, is_numeric_id, parse_date, pnum_key, Problem};
 use crate::drills::{in_group, ALGORITHMS};
 use crate::evidence::Evidence;
 use crate::model::solve_ratings;
-use crate::pick::{review_queue, Choice, PickArgs};
+use crate::pick::{review_queue_past, Choice, PickArgs};
 use crate::status::{st, Statuses};
 
 /// How wide the confidence interval of a technique's alone share is, in
@@ -423,7 +426,7 @@ pub fn pick(
     // the due repeats that use the technique, easy to hard
     if !crate::drills::no_reviews() {
         let p = pv.borrow();
-        let mut due: Vec<String> = review_queue(ctx, ev, &p, today)
+        let mut due: Vec<String> = review_queue_past(ctx, ev, &p, today, Some(node))
             .into_iter()
             .map(|(num, _, _)| num)
             .filter(|num| !skip(num))
@@ -465,7 +468,9 @@ pub fn pick(
     let cands: Vec<(String, f64)> = cluster(ctx, ev, scope, None, ratings)
         .into_iter()
         .filter(|(num, _)| !skip(num))
-        .filter(|(num, _)| held_behind(ctx, num, &ctx.predicted_view, ev, today).is_none())
+        .filter(|(num, _)| {
+            held_behind_past(ctx, num, &ctx.predicted_view, ev, today, Some(node)).is_none()
+        })
         .collect();
     let next = match met_today.last() {
         Some(last) => {

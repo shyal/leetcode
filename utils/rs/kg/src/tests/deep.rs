@@ -222,3 +222,25 @@ fn a_named_group_serves_the_drill_of_another_technique() {
     let c = fx.run(&evidence(recs), &st, args().group("graphs"));
     assert_eq!(pnum(&c), "drill:strong");
 }
+
+/// The drill of the day's technique is cold: its rep of today was not
+/// clean. It holds none of the technique's problems: the due repeat and
+/// the new problem are served (2026-11-14: prefix sums, d537, and a day of
+/// the due repeats of the other techniques only).
+#[test]
+fn the_drill_of_the_technique_holds_none_of_its_problems() {
+    let (mut fx, mut recs, st) = fixture();
+    fx.bank("weak", "Weak Drill", "w.py", "d1", &[]);
+    recs.push(drill_rep_v("Weak Drill", "weak", 0, "struggled", Assist::None));
+    test_env("KG_DEEP", "2");
+    let ctx = fx.ctx();
+    let ev = evidence(recs.clone());
+    let held = crate::bank::held_behind(&ctx, "10", &ctx.predicted_view, &ev, today());
+    assert_eq!(held, Some("d1".into()));
+    let c = fx.run(&ev, &st, args());
+    assert_eq!(target(&c), "weak");
+    assert!(reason(&c).contains("a due repeat"));
+    test_env("NO_REVIEWS", "1");
+    let c = fx.run(&evidence(recs), &st, args());
+    assert!(reason(&c).contains("new problem 1 of 2"));
+}
