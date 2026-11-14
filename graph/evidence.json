@@ -45090,14 +45090,47 @@
     "solved/p275_H-Index_II_2026_11_14T01_58_01_745724_00_00Z.mu": {
       "date": "2026-11-14",
       "problem": "275",
-      "moves": {
-        "binary-search-boundary": "clean"
-      },
-      "pending": "2026-11-14T01:58:01+00:00",
-      "assist": {
-        "binary-search-boundary": "learning"
-      },
+      "moves": {},
+      "judge": "opus",
+      "note": "O(n) left-to-right scan for the first i with citations[i] >= n - i; no halving, so the logarithmic bound of the statement is not met",
+      "summary": "hIndex walks citations from the left and returns num_papers = n - i at the first index where citations_count >= num_papers, else 0. This finds the same boundary that binary search would find, but it uses a linear scan, so binary-search-boundary was avoided. The notes say only \"learning\", which marks the solution as given and copied.",
+      "unmapped": [
+        "linear scan for first predicate flip"
+      ],
       "seconds": 725,
+      "learning": true
+    },
+    "solved/p769_Max_Chunks_To_Make_Sorted_2026_11_14T02_31_03_818479_00_00Z.mu": {
+      "date": "2026-11-14",
+      "problem": "769",
+      "moves": {
+        "running-extreme": "clean",
+        "running-sum": "clean"
+      },
+      "pending": "2026-11-14T02:31:04+00:00",
+      "assist": {
+        "running-extreme": "learning",
+        "running-sum": "learning"
+      },
+      "seconds": 1601,
+      "learning": true
+    },
+    "solved/p3789_Minimum_Cost_to_Acquire_Required_Items_2026_11_14T02_54_48_201033_00_00Z.mu": {
+      "date": "2026-11-14",
+      "problem": "3789",
+      "moves": {
+        "marginal-gain": "clean"
+      },
+      "assist": {
+        "marginal-gain": "learning"
+      },
+      "judge": "opus",
+      "note": "Notes say 'Learning' and do not name a move, so the level goes on every move.",
+      "summary": "minimumCost first compares cost1 + cost2 with costBoth. If buying the two items one by one costs the same or less, it returns cost1 * need1 + cost2 * need2. If not, it buys cnt_3 = min(need1, need2) combined items at costBoth. It then buys each remaining unit at min(cost1, costBoth) or min(cost2, costBoth). There is no DP state or recurrence: the solution is a per-unit cost comparison with a greedy count, and the notes say 'Learning'.",
+      "unmapped": [
+        "greedy per-unit cheapest option comparison"
+      ],
+      "seconds": 1121,
       "learning": true
     }
   }
