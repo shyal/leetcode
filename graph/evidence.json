@@ -45033,6 +45033,18 @@
       "note": "Contract met: parameter typed (number | string)[], each element narrowed with typeof, no any/as, single O(n) pass.",
       "summary": "mixedSum takes a (number | string)[] and loops once with for..of, narrowing each element via typeof v == \"string\" to Number(v) or adding it directly. It exercises the typed function signature, the union narrowing, and a single-pass loop. The run exited 0 with all assertions passing.",
       "seconds": 97
+    },
+    "solved/d_Reverse_Iterator_2026_11_14T00_58_29_966524_00_00Z.py": {
+      "date": "2026-11-14",
+      "problem": "drill",
+      "drill": "d200",
+      "moves": {
+        "py-iterator-protocol": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "O(1) extra space, no reversed/slicing/yield/copy; __iter__ returns self, __next__ raises StopIteration at the end.",
+      "summary": "The Reverse class stores the sequence and an index starting at the last position; __iter__ returns self and __next__ returns s[i] while decrementing i, raising StopIteration once i reaches -1. The Solution.reverse wrapper just constructs a Reverse. This exercises the iterator protocol directly with constant extra space, and all assertions passed.",
+      "seconds": 132
     }
   }
 }
