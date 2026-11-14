@@ -44981,6 +44981,18 @@
       "note": "Query uses SUM(weight) OVER (ORDER BY turn) for the running total; both examples pass.",
       "summary": "The query selects turn and computes a running total with sum(weight) over (order by turn) from the Queue table. This exercises the window-running move directly, and the drill's assertions on both examples pass. The notes contain only the problem statement with no mention of help or recognition difficulty.",
       "seconds": 138
+    },
+    "solved/d_Revenue_Per_Product_2026_11_14T00_46_45_803782_00_00Z.mu": {
+      "date": "2026-11-14",
+      "problem": "drill",
+      "drill": "d89",
+      "moves": {
+        "sql-group-aggregate": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "One query, one aggregate: sum(price * units) per product_id, product formed per row before summing.",
+      "summary": "The query groups Sales by product_id and sums price * units as revenue, forming the product per row before the aggregate. This meets the contract of one query and one aggregate, and both example assertions pass. No notes indicate any help or recognition trouble.",
+      "seconds": 69
     }
   }
 }
