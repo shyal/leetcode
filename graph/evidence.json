@@ -45007,6 +45007,18 @@
       "note": "LEFT JOIN keeps Bob and Cal; SUM(CASE WHEN status='paid'...) yields 0 for them; grouped by c.id.",
       "summary": "The query left-joins Customers to Orders on c.id = o.customer_id, so customers with no orders (Cal) and with only open orders (Bob) survive with NULL order rows. It groups by c.id and computes paid_orders with SUM(CASE WHEN o.status = 'paid' THEN 1 ELSE 0 END), giving 0 for those rows. This exercises left-join-keep, group-aggregate, and conditional-aggregate; the status test sits inside the CASE, not the WHERE clause. Both example assertions passed.",
       "seconds": 161
+    },
+    "solved/d_Sum_To_N_2026_11_14T00_53_19_166708_00_00Z.rs": {
+      "date": "2026-11-14",
+      "problem": "drill",
+      "drill": "d188",
+      "moves": {
+        "rust-let-mut": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "Contract met: let mut total with a for loop over 0..=n adding to it, total as last expression; range starts at 0 rather than 1 but the sum is identical.",
+      "summary": "The code declares `let mut total: u64 = 0` and accumulates with a `for i in 0..=n` loop, returning `total` as the final expression. This exercises the mutable-binding-plus-loop running total the drill targets. The run exited 0 with all assertions passing, including the 1,000,000 case.",
+      "seconds": 172
     }
   }
 }
