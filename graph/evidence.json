@@ -44993,6 +44993,20 @@
       "note": "One query, one aggregate: sum(price * units) per product_id, product formed per row before summing.",
       "summary": "The query groups Sales by product_id and sums price * units as revenue, forming the product per row before the aggregate. This meets the contract of one query and one aggregate, and both example assertions pass. No notes indicate any help or recognition trouble.",
       "seconds": 69
+    },
+    "solved/d_Paid_Orders_Per_Customer_2026_11_14T00_50_09_826093_00_00Z.mu": {
+      "date": "2026-11-14",
+      "problem": "drill",
+      "drill": "d44",
+      "moves": {
+        "sql-join-left-keep": "clean",
+        "sql-group-aggregate": "clean",
+        "sql-conditional-aggregate": "clean"
+      },
+      "judge": "deepseek-chat",
+      "note": "LEFT JOIN keeps Bob and Cal; SUM(CASE WHEN status='paid'...) yields 0 for them; grouped by c.id.",
+      "summary": "The query left-joins Customers to Orders on c.id = o.customer_id, so customers with no orders (Cal) and with only open orders (Bob) survive with NULL order rows. It groups by c.id and computes paid_orders with SUM(CASE WHEN o.status = 'paid' THEN 1 ELSE 0 END), giving 0 for those rows. This exercises left-join-keep, group-aggregate, and conditional-aggregate; the status test sits inside the CASE, not the WHERE clause. Both example assertions passed.",
+      "seconds": 161
     }
   }
 }
