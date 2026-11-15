@@ -45437,6 +45437,23 @@
       "summary": "longestSubsequence makes one pass over arr with D = {:int}, a dict from a value to the length of the longest valid subsequence that ends at that value. For each v, it reads D[v - difference] (the earlier value that comes before v in the sequence), then writes D[v] = max(D[v], D[v - difference] + 1), and returns max(D.values()), or 0 when D is empty. The read happens before the write, so with difference 0 the count still goes up by one for each repeat. The notes trace [1, 2, 3, 4, 5] with difference 2 and say which lookups had a hit; they mention no help.",
       "seconds": 530,
       "learning": true
+    },
+    "solved/p926_Flip_String_to_Monotone_Increasing_2026_11_15T02_34_03_448743_00_00Z.mu": {
+      "date": "2026-11-15",
+      "problem": "926",
+      "moves": {
+        "running-sum": "clean",
+        "dp-1d-rolling": "clean"
+      },
+      "assist": {
+        "running-sum": "learning",
+        "dp-1d-rolling": "learning"
+      },
+      "judge": "opus",
+      "note": "The notes say 'learning' with no move named, so that level is on every move. The plain-English approach that STAGE 1 asks for was not written.",
+      "summary": "The code makes one pass over s. A '1' adds 1 to the running count ones. A '0' sets flips = min(flips + 1, ones): flip this zero, or flip every one seen so far to zero. flips is a rolling one-variable DP, and the code returns it at the end. The notes say 'learning', so the solution was given and then copied.",
+      "seconds": 494,
+      "learning": true
     }
   }
 }
