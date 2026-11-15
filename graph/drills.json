@@ -4742,6 +4742,15 @@
         "bit-iterate"
       ],
       "judge": "One expression on x isolates the lowest set bit: x & ~(x - 1), or the equivalent x & -x."
+    },
+    "d539": {
+      "title": "Maximum Sum With No Adjacent Same Colour",
+      "file": "dp-state-formulate/d539_maximum_sum_with_no_adjacent_same_colour.py",
+      "after": [],
+      "trains": [
+        "dp-state-formulate"
+      ],
+      "judge": "One recurrence on the index i over the full array, with no split into groups of equal colour. At index i there are two options: skip to i + 1, or take nums[i] and continue at i + 2 when colors[i] == colors[i + 1], else at i + 1. The failed 3840 attempt ran a new recurrence for each group and the i + 2 step went across a house of a different colour."
     }
   }
 }
