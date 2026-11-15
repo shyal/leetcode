@@ -45454,6 +45454,23 @@
       "summary": "The code makes one pass over s. A '1' adds 1 to the running count ones. A '0' sets flips = min(flips + 1, ones): flip this zero, or flip every one seen so far to zero. flips is a rolling one-variable DP, and the code returns it at the end. The notes say 'learning', so the solution was given and then copied.",
       "seconds": 494,
       "learning": true
+    },
+    "solved/p322_Coin_Change_2026_11_15T05_40_08_576745_00_00Z.mu": {
+      "date": "2026-11-15",
+      "problem": "322",
+      "moves": {
+        "dp-state-formulate": "struggled",
+        "dp-1d-rolling": "clean"
+      },
+      "assist": {
+        "dp-state-formulate": "hint",
+        "dp-1d-rolling": "hint"
+      },
+      "judge": "opus",
+      "note": "LEETCODE: Accepted (472 ms, 19.1 MB). The hint was on the base case dp[0] = 0, which belongs to the state formulation. The variable cand = [] is never used.",
+      "summary": "The code fills dp, a 1D table of size amount + 1 that starts at inf, from a = 1 to amount. At each a it takes dp[a] = min(dp[a], dp[a - c] + 1) over every coin c <= a. It returns -1 when dp[amount] > amount, because no reachable amount can need more than amount coins. The notes say the candidate got a hint because the base case dp[0] = 0 was missing, and LeetCode accepted the final code.",
+      "seconds": 768,
+      "learning": true
     }
   }
 }
