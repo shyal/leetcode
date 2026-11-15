@@ -45350,6 +45350,24 @@
       "judge": "opus",
       "summary": "The query returns id - row_number() over (order by id) as grp. It reads Seats once with one SELECT and uses no self-join and no correlated subquery. The window function numbers the rows by id and not by physical order, so the contract is met. Both examples passed, and the notes do not mention help.",
       "seconds": 92
+    },
+    "solved/d_Reports_Per_Manager_2026_11_15T00_55_10_123452_00_00Z.mu": {
+      "date": "2026-11-15",
+      "problem": "drill",
+      "drill": "d50",
+      "moves": {
+        "sql-self-join": "clean",
+        "sql-group-aggregate": "clean",
+        "sql-join-inner": "clean"
+      },
+      "assist": {
+        "sql-group-aggregate": "learning",
+        "sql-self-join": "learning"
+      },
+      "judge": "opus",
+      "note": "Contract met: one query over Employees, and the GROUP BY gives one row per manager. The candidate's note says 'learning: unfamiliar with: group by e.employee_id, e.name'.",
+      "summary": "The query joins Employees as e to Employees as r on e.employee_id = r.reports_to. This keeps only employees who have at least one report. It then groups by e.employee_id, e.name, so each manager gets one row with count(r.employee_id) and round(avg(r.age), 0). The notes say that grouping by e.employee_id, e.name was a learning point.",
+      "seconds": 688
     }
   }
 }
