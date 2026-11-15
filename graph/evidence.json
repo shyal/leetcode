@@ -45422,6 +45422,21 @@
       "note": "The run passed, but the code does not meet the contract. The contract asks for no recursion, O(1) extra space and two running counts read right to left. The code uses a memo recursion on i, so it uses recursion and keeps O(n) cached states.",
       "summary": "decodeVariations defines a memo over index i. When i >= n it returns 1. When S[i] == '0' it returns 0. In other cases it returns mu(i + 1), plus mu(i + 2) when S[i:i+2] is between '10' and '26'. This is the top-down form of the recurrence. The drill asked for the bottom-up form with two rolling counts and no recursion. The notes say 'Learning'.",
       "seconds": 1316
+    },
+    "solved/p1218_Longest_Arithmetic_Subsequence_of_Given_Difference_2026_11_15T02_04_08_715527_00_00Z.mu": {
+      "date": "2026-11-15",
+      "problem": "1218",
+      "moves": {
+        "dp-1d-rolling": "clean",
+        "dict-arbitrary-value": "clean",
+        "streaming-ask-then-record": "clean",
+        "derived-key-lookup": "clean"
+      },
+      "judge": "opus",
+      "note": "LEETCODE: Accepted (82 ms, 31.4 MB). The DP table is the dict D, keyed by value instead of by index.",
+      "summary": "longestSubsequence makes one pass over arr with D = {:int}, a dict from a value to the length of the longest valid subsequence that ends at that value. For each v, it reads D[v - difference] (the earlier value that comes before v in the sequence), then writes D[v] = max(D[v], D[v - difference] + 1), and returns max(D.values()), or 0 when D is empty. The read happens before the write, so with difference 0 the count still goes up by one for each repeat. The notes trace [1, 2, 3, 4, 5] with difference 2 and say which lookups had a hit; they mention no help.",
+      "seconds": 530,
+      "learning": true
     }
   }
 }
