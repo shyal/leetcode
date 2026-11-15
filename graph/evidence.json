@@ -45405,6 +45405,23 @@
       "note": "Contract not met: memo best(s, i) keeps 2n cached states plus a recursion stack of depth n. That is O(n) extra space, not O(1). The answer is also a second pass, max for >i in nums: best(1, i), not a single pass. Time is O(n).",
       "summary": "The code defines memo best(s, i), the largest alternating sum of a subarray that starts at index i with sign s. The recurrence is nums[i] * s + max(0, best(-s, i + 1)), and the base case i == n is -inf. The answer is the max of best(1, i) over all start indices i. The state and the recurrence are correct, but they are held in a cache and a recursion stack, not in two rolling variables in one forward pass, so the O(1)-space, single-pass part of the contract is not met. The notes are empty.",
       "seconds": 126
+    },
+    "solved/d_Decode_Variations_2026_11_15T01_35_18_278431_00_00Z.mu": {
+      "date": "2026-11-15",
+      "problem": "drill",
+      "drill": "d334",
+      "moves": {
+        "dp-1d-rolling": "struggled",
+        "memoize-recursion": "clean"
+      },
+      "assist": {
+        "dp-1d-rolling": "learning",
+        "memoize-recursion": "learning"
+      },
+      "judge": "opus",
+      "note": "The run passed, but the code does not meet the contract. The contract asks for no recursion, O(1) extra space and two running counts read right to left. The code uses a memo recursion on i, so it uses recursion and keeps O(n) cached states.",
+      "summary": "decodeVariations defines a memo over index i. When i >= n it returns 1. When S[i] == '0' it returns 0. In other cases it returns mu(i + 1), plus mu(i + 2) when S[i:i+2] is between '10' and '26'. This is the top-down form of the recurrence. The drill asked for the bottom-up form with two rolling counts and no recursion. The notes say 'Learning'.",
+      "seconds": 1316
     }
   }
 }
