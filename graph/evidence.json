@@ -45471,6 +45471,18 @@
       "summary": "The code fills dp, a 1D table of size amount + 1 that starts at inf, from a = 1 to amount. At each a it takes dp[a] = min(dp[a], dp[a - c] + 1) over every coin c <= a. It returns -1 when dp[amount] > amount, because no reachable amount can need more than amount coins. The notes say the candidate got a hint because the base case dp[0] = 0 was missing, and LeetCode accepted the final code.",
       "seconds": 768,
       "learning": true
+    },
+    "solved/p3693_Climbing_Stairs_II_2026_11_15T05_54_00_889191_00_00Z.mu": {
+      "date": "2026-11-15",
+      "problem": "3693",
+      "moves": {
+        "dijkstra": "clean"
+      },
+      "judge": "opus",
+      "note": "LEETCODE: Accepted (6888 ms, 38.4 MB). The code uses Dijkstra on the stair line. The usual solution is a 1D DP over the previous three steps.",
+      "summary": "climbStairs puts a 0 in front of costs, then runs Dijkstra from step 0. The heap q holds [cost, step] pairs, and seen skips steps that are already settled. Each pop pushes step + 1, step + 2 and step + 3 with the cost costs[next] + (next - step) ** 2, and the function returns the cost when step n is popped. The notes give 'Dijkstra' as the Stage 1 approach, and LeetCode accepted the code at 6888 ms. The 1D DP over dp[i - 1], dp[i - 2] and dp[i - 3] does not occur in the code.",
+      "seconds": 788,
+      "learning": true
     }
   }
 }

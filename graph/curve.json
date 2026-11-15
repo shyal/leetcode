@@ -2,13 +2,13 @@
   "_comment": "Personal forgetting curve fitted by utils/kg/kg_curve. P(recall) = (1-slip)*(1 + gap/s)^(-beta), s = exp(a + b*log1p(cleans) - c*struggles - d*assist + e*(conn - conn_mean)); cleans counts distinct clean days, same-day reps are one rep. conn is the node's log2 carrier count, frozen below at fit time; consumers that ignore e are assuming average connectivity. \"solve\" is the cold-solve model fitted by fit_solve: logit P(solve cold, unaided, inside the clock) = the listed coefficients over (rating - 1500)/400, the walk's summed log recall, and its count of never-met moves; features not listed did not earn their place on held-out games. node_status() calls a node SOLID while the memory component (1 + gap/s)^(-beta) >= target_retention; delete this file to fall back to the flat 42-day window.",
   "model": "power-law-slip",
   "params": {
-    "a": 3.9171,
-    "b": 0.1194,
-    "c": 0.1613,
-    "d": 0.0757,
-    "e": -0.1682,
-    "conn_mean": 2.8179,
-    "beta": 0.1198,
+    "a": 3.9182,
+    "b": 0.1196,
+    "c": 0.1589,
+    "d": 0.0762,
+    "e": -0.1676,
+    "conn_mean": 2.8183,
+    "beta": 0.1195,
     "slip": 0.0513
   },
   "conn": {
@@ -30,7 +30,7 @@
     "deque-recent-window": 2.807,
     "derived-key-lookup": 4.392,
     "dict-arbitrary-value": 5.524,
-    "dijkstra": 3.0,
+    "dijkstra": 3.17,
     "divmod-decompose": 5.285,
     "dp-1d-rolling": 4.322,
     "dp-2d-grid": 3.585,
@@ -113,13 +113,13 @@
   },
   "target_retention": 0.9,
   "mass": {
-    "beta": -0.1928,
+    "beta": -0.1915,
     "se": 0.0828,
-    "n": 665,
+    "n": 666,
     "by_difficulty": {
-      "Easy": 3.7367,
-      "Medium": 1.0884,
-      "Hard": -0.0373
+      "Easy": 3.7354,
+      "Medium": 1.0931,
+      "Hard": -0.0385
     }
   },
   "solve": {
@@ -149,11 +149,11 @@
     ]
   },
   "fit": {
-    "trials": 2174,
+    "trials": 2175,
     "loglik": -0.2541,
     "baseline_loglik": -0.2593,
     "since": "2026-06-01",
     "half_life": 0,
-    "effective_trials": 2174.0
+    "effective_trials": 2175.0
   }
 }
