@@ -45483,6 +45483,22 @@
       "summary": "climbStairs puts a 0 in front of costs, then runs Dijkstra from step 0. The heap q holds [cost, step] pairs, and seen skips steps that are already settled. Each pop pushes step + 1, step + 2 and step + 3 with the cost costs[next] + (next - step) ** 2, and the function returns the cost when step n is popped. The notes give 'Dijkstra' as the Stage 1 approach, and LeetCode accepted the code at 6888 ms. The 1D DP over dp[i - 1], dp[i - 2] and dp[i - 3] does not occur in the code.",
       "seconds": 788,
       "learning": true
+    },
+    "solved/p3840_House_Robber_V_FAILED_2026_11_15T08_00_11_303554_00_00Z.mu": {
+      "date": "2026-11-15",
+      "problem": "3840",
+      "moves": {
+        "memoize-recursion": "clean",
+        "dp-state-formulate": "struggled"
+      },
+      "judge": "opus",
+      "note": "FAILED: walked away after 36m 46s. The only call that runs, rob([3,1,2,4],[2,3,2,2]), sums 7 + 1 + 4 = 12. The commented assert expects 8. The `i >= n` and `colors[i] != g` base cases do not stop the recurrence at the end of its run. nums[i] + mu(i + 2, g) goes from house 0 across house 1 (colour 3) into house 2 (colour 2), so the run that starts at house 0 also takes house 3. The `for >i` loop calls the memo again at house 2, so house 3 is counted twice. All other asserts are commented out.",
+      "summary": "rob walks nums with `last` and calls a new memo at the first house of each run of one colour. The memo is the house robber recurrence max(nums[i] + mu(i + 2, g), mu(i + 1, g)), and each run's result goes into res. The base cases check only `colors[i] != g`, not the end of the run that started the call. Because of this, the i + 2 step goes over a house of a different colour into a later run of the same colour, and that later run is counted again. The notes give a stage 1 approach (per-group DP, from a greedy counterexample 10 9 7 9) and say the attempt was left after 36m 46s with no working solution.",
+      "unmapped": [
+        "split array into runs of equal colour"
+      ],
+      "seconds": 2206,
+      "learning": true
     }
   }
 }
