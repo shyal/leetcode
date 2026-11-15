@@ -45368,6 +45368,17 @@
       "note": "Contract met: one query over Employees, and the GROUP BY gives one row per manager. The candidate's note says 'learning: unfamiliar with: group by e.employee_id, e.name'.",
       "summary": "The query joins Employees as e to Employees as r on e.employee_id = r.reports_to. This keeps only employees who have at least one report. It then groups by e.employee_id, e.name, so each manager gets one row with count(r.employee_id) and round(avg(r.age), 0). The notes say that grouping by e.employee_id, e.name was a learning point.",
       "seconds": 688
+    },
+    "solved/d_Dense_Rank_Scores_2026_11_15T00_58_15_172213_00_00Z.mu": {
+      "date": "2026-11-15",
+      "problem": "drill",
+      "drill": "d60",
+      "moves": {
+        "sql-window-rank": "clean"
+      },
+      "judge": "opus",
+      "summary": "The query in query() selects score and dense_rank() over (order by score desc) as rank from Scores. DENSE_RANK gives equal scores the same rank and gives the next score the next integer. This meets the REQUIRED line and uses neither of the FORBIDDEN functions. Both examples pass: 4.0 twice at 1, then 2, 3 twice, 4, and the all-equal table at 1. The notes record no help.",
+      "seconds": 142
     }
   }
 }
