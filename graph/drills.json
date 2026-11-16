@@ -4751,6 +4751,60 @@
         "dp-state-formulate"
       ],
       "judge": "One recurrence on the index i over the full array, with no split into groups of equal colour. At index i there are two options: skip to i + 1, or take nums[i] and continue at i + 2 when colors[i] == colors[i + 1], else at i + 1. The failed 3840 attempt ran a new recurrence for each group and the i + 2 step went across a house of a different colour."
+    },
+    "d540": {
+      "title": "Longest Subsequence of Consecutive Integers",
+      "file": "dp-1d-rolling/d540_longest_subsequence_of_consecutive_integers.py",
+      "after": [],
+      "trains": [
+        "dp-1d-rolling"
+      ],
+      "judge": "A dict from a value x to the length of the longest such subsequence that ends at x, filled in one pass: the entry of x is the entry of x - 1 plus 1. A scan of all earlier indices for each index is O(n^2): the fail. The failed 1218 attempt had no table keyed by value."
+    },
+    "d541": {
+      "title": "Maximum Sum With No Two Adjacent Indices",
+      "file": "dp-1d-rolling/d541_maximum_sum_with_no_two_adjacent_indices.py",
+      "after": [],
+      "trains": [
+        "dp-1d-rolling"
+      ],
+      "judge": "One recurrence on the index: the best sum over the first i + 1 elements is the larger of the best sum over the first i elements (skip nums[i]) and nums[i] plus the best sum over the first i - 1 elements (take nums[i]). The sum of the even indices against the sum of the odd indices returns 3 on [2, 1, 1, 2], the answer is 4."
+    },
+    "d542": {
+      "title": "Maximum Profit With Transaction Fee",
+      "file": "dp-1d-rolling/d542_maximum_profit_with_transaction_fee.py",
+      "after": [],
+      "trains": [
+        "dp-1d-rolling"
+      ],
+      "judge": "Two running values per day: the best profit with no share (cash) and the best profit with a share (hold). cash is the larger of cash and hold + price - fee; hold is the larger of hold and cash - price. One buy at each local minimum and one sell at each local maximum pays the fee too many times: on [1, 3, 2, 8, 4, 9] with fee 2 it returns 7, the answer is 8."
+    },
+    "d543": {
+      "title": "Subset Sum",
+      "file": "dp-1d-rolling/d543_subset_sum.py",
+      "after": [],
+      "trains": [
+        "dp-1d-rolling"
+      ],
+      "judge": "A set of the sums that a subset of the elements read so far can make, starting at {0}: each element x adds s + x for every sum s in the set, with sums above target dropped. A boolean table over 0 to target with the sum index going down is also accepted. A sum index going up uses x more than once: [3, 3] with target 9 returns true, the answer is false. Enumerating the subsets is exponential."
+    },
+    "d544": {
+      "title": "Longest Palindromic Subsequence",
+      "file": "dp-state-formulate/d544_longest_palindromic_subsequence.py",
+      "after": [],
+      "trains": [
+        "dp-state-formulate"
+      ],
+      "judge": "The state is the substring s[i..j], each pair (i, j) computed once: equal end characters give 2 plus the answer for s[i + 1..j - 1], else the larger of the answers for s[i + 1..j] and s[i..j - 1]. A single index gives 1 and an empty substring gives 0. Enumerating the subsequences is exponential: the fail."
+    },
+    "d545": {
+      "title": "Maximum Sum With No Parent And Child",
+      "file": "tree-combine-returns/d545_maximum_sum_with_no_parent_and_child.py",
+      "after": [],
+      "trains": [
+        "tree-combine-returns"
+      ],
+      "judge": "One post-order pass returns a pair for each node: the best sum of its subtree when the node is not chosen and the best sum when it is chosen. Not chosen is the sum over the two children of the larger value of the child's pair; chosen is node.val plus the not-chosen values of the two children. The answer is the larger value of the root's pair. A single return value per node, with calls on the children and on the grandchildren, visits a subtree many times: the fail. The sum of alternate levels returns 6 on the chain 4, 1, 2, 3 from the root down, the answer is 7."
     }
   }
 }
