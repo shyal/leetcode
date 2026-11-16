@@ -45559,6 +45559,18 @@
       ],
       "seconds": 2594,
       "learning": true
+    },
+    "solved/d_Earliest_Indices_Of_A_Subsequence_2026_11_16T04_14_50_036282_00_00Z.mu": {
+      "date": "2026-11-16",
+      "problem": "drill",
+      "drill": "d546",
+      "moves": {
+        "prefix-suffix-two-pass": "clean"
+      },
+      "judge": "opus",
+      "note": "Contract met: j starts at -1, each c of sub sets j = s.index(c, j + 1), j is appended to res, and there is no while loop, so the run is O(len(sub) + len(s)).",
+      "summary": "earliest_indices starts j at -1. For each character c of sub, it sets j to s.index(c, j + 1) and appends j to res. Each search starts after the index of the previous character, so 'cbc' on 'cbcdbc' gives [0, 1, 2], and the 10^5-length asserts pass in linear time. The notes are empty.",
+      "seconds": 343
     }
   }
 }
