@@ -45643,6 +45643,18 @@
       "note": "Contract met: InsufficientFunds(Exception) is defined above Solution, __init__ stores needed and calls super().__init__ with a message, and withdraw raises it with the shortfall amount - balance. It never uses ValueError and never returns a negative number or None.",
       "summary": "withdraw checks amount > balance. When that is true, it raises InsufficientFunds(amount - balance). When it is false, it returns balance - amount. The InsufficientFunds class stores needed on the instance and gives super().__init__ the f-string message f\"Needed: {self.needed}\". The notes do not mention any help.",
       "seconds": 97
+    },
+    "solved/d_Earliest_Indices_Of_A_Subsequence_2026_11_16T21_47_04_157660_00_00Z.mu": {
+      "date": "2026-11-17",
+      "problem": "drill",
+      "drill": "d546",
+      "moves": {
+        "prefix-suffix-two-pass": "clean"
+      },
+      "judge": "opus",
+      "note": "The solve calls the pydsa helper subsequence_indices(s, sub). The body of that helper is the contract loop: j = -1, then j = s.index(c, j + 1) for each c of sub, with no while loop. The run passed, and the 10**5 asserts show the O(len(sub) + len(s)) bound.",
+      "summary": "earliest_indices returns subsequence_indices(s, sub) from pydsa and does no other work. The helper does the left-to-right pass: each search starts one index after the previous match, so 'cbc' in 'cbcdbc' gives [0, 1, 2]. All asserts passed, including the 10**5-length inputs. The notes are empty.",
+      "seconds": 47
     }
   }
 }
