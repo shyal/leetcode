@@ -45523,6 +45523,18 @@
       "note": "Drill contract met: encode is json.dumps(obj, sort_keys=True) and decode is json.loads(text), with no str(), repr(), eval() or hand-built text.",
       "summary": "encode returns json.dumps(obj, sort_keys=True), so the keys of a dict come out in sorted order and None and True become null and true. decode returns json.loads(text), and the last assert shows that a nested dict with None, False and an inner dict comes back unchanged after encode and then decode. The notes do not mention any help.",
       "seconds": 84
+    },
+    "solved/d_Array_of_Array_Products_2026_11_16T03_24_33_412982_00_00Z.mu": {
+      "date": "2026-11-16",
+      "problem": "drill",
+      "drill": "d326",
+      "moves": {
+        "prefix-suffix-two-pass": "clean"
+      },
+      "judge": "opus",
+      "note": "Both directions run in one loop: res[i] takes the product before i, and res[~i] takes the product after the mirror index ~i. The REQUIRED part is met: O(n) time, no division, no inner loop per index.",
+      "summary": "array_of_array_products sets res to all 1s with table(len(arr), fill=1). It then makes one loop with the index >i. In that loop, res[i] is multiplied by left, the product of arr before i, and res[~i] is multiplied by right, the product of arr after ~i. After that, left and right take in arr[i] and arr[~i]. The left-to-right pass and the right-to-left pass are joined into one loop, and an input of length 0 or 1 returns []. The notes show the prefix and suffix product rows for [1, 2, 3, 4], worked out before the code.",
+      "seconds": 578
     }
   }
 }
