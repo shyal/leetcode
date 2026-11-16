@@ -83,16 +83,59 @@ fn the_mode_is_off_without_kg_deep() {
     assert!(c.is_none_or(|c| !c.reason.starts_with("deep dive")));
 }
 
-/// Block 2: a due repeat that uses the technique comes before the new
-/// problems.
+/// The turns: a new problem first, then a due repeat that uses the
+/// technique, then a new problem.
 #[test]
-fn a_due_repeat_of_the_technique_comes_before_its_new_problems() {
-    let (fx, recs, st) = fixture();
+fn a_new_problem_and_a_repeat_of_the_technique_take_turns() {
+    let (fx, mut recs, st) = fixture();
     test_env("KG_DEEP", "2");
-    let c = fx.run(&evidence(recs), &st, args());
+    let c = fx.run(&evidence(recs.clone()), &st, args());
+    assert_eq!(t3(&c), tup("weak", SOLID, "11"));
+    assert!(reason(&c).contains("new problem 1 of 2"));
+    recs.push(solve("11", &[("weak", "clean")], 0));
+    let c = fx.run(&evidence(recs.clone()), &st, args());
     assert_eq!(target(&c), "weak");
-    assert!(["1", "2"].contains(&pnum(&c).as_str()));
+    assert_eq!(pnum(&c), "1");
     assert!(reason(&c).contains("a due repeat"));
+    recs.push(solve("1", &[("weak", "clean")], 0));
+    let c = fx.run(&evidence(recs), &st, args());
+    assert!(reason(&c).contains("new problem 2 of 2"));
+}
+
+/// 2026-11-16, a day is one topic: with the new problems done, the
+/// repeats of the technique are served, the ones that are not due
+/// included, and no problem of the other technique, due or not.
+#[test]
+fn a_day_serves_no_problem_of_another_technique() {
+    let (fx, mut recs, st) = fixture();
+    test_env("KG_DEEP", "1");
+    recs.push(solve("11", &[("weak", "clean")], 0));
+    let c = fx.run(&evidence(recs.clone()), &st, args());
+    assert_eq!(pnum(&c), "1");
+    recs.push(solve("1", &[("weak", "clean")], 0));
+    let c = fx.run(&evidence(recs.clone()), &st, args());
+    assert_eq!(pnum(&c), "2");
+    recs.push(solve("2", &[("weak", "clean")], 0));
+    // every problem of `weak` has a record of today: 3, 4 and 12 are left
+    let c = fx.run(&evidence(recs), &st, args());
+    assert!(c.is_none_or(|c| !["3", "4", "12"].contains(&c.pnum.as_str())));
+}
+
+/// A repeat of the technique that is not due is served when no due one
+/// is left, the one he did longest ago first.
+#[test]
+fn a_repeat_that_is_not_due_is_served_the_oldest_first() {
+    let (fx, mut recs, st) = fixture();
+    test_env("KG_DEEP", "1");
+    recs.push(solve("2", &[("weak", "clean")], 2));
+    recs.push(solve("1", &[("weak", "clean")], 1));
+    recs.push(solve("11", &[("weak", "clean")], 0));
+    let ev = evidence(recs);
+    let due = crate::clock::due_problems(&ev, today(), None);
+    assert!(due.iter().all(|(p, _, _)| p != "1" && p != "2"));
+    let c = fx.run(&ev, &st, args());
+    assert_eq!(pnum(&c), "2");
+    assert!(reason(&c).contains("not due"));
 }
 
 /// Block 3: with no first sight solved alone on the technique, the first
@@ -285,8 +328,8 @@ fn the_drill_of_the_technique_holds_none_of_its_problems() {
     assert_eq!(held, Some("d1".into()));
     let c = fx.run(&ev, &st, args());
     assert_eq!(target(&c), "weak");
-    assert!(reason(&c).contains("a due repeat"));
-    test_env("NO_REVIEWS", "1");
-    let c = fx.run(&evidence(recs), &st, args());
     assert!(reason(&c).contains("new problem 1 of 2"));
+    recs.push(solve("11", &[("weak", "clean")], 0));
+    let c = fx.run(&evidence(recs), &st, args());
+    assert!(reason(&c).contains("a due repeat"));
 }

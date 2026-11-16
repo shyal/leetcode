@@ -1576,10 +1576,12 @@ pub fn pick(
         }
         return match crate::deep::pick(ctx, pv, ev, statuses, args, &day) {
             Some(c) => Some(c),
-            // the technique's repeats and new problems are done: the rules
-            // below, with no first sight and no algorithm drill
+            // the technique's problems are done: a day is one topic
+            // (2026-11-16), so the rules below serve no problem, met or
+            // not, and no algorithm drill
             None => {
                 let mut rest = crate::deep::never_met(ctx, ev);
+                rest.extend(ev.solved_problems());
                 rest.extend(held);
                 pick_pass(ctx, pv, ev, statuses, &with(&rest))
             }

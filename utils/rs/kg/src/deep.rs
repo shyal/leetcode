@@ -17,18 +17,22 @@
 //      design), within their caps: syntax memory, and the clock is the
 //      tool for it;
 //   2. the drills of the day's technique that are due on the clock;
-//   3. the due repeats that use the technique, easy to hard;
-//   4. N problems he has never met that use the technique, easy to hard;
-//   5. the due repeats of the other techniques: the ordinary picker, with
-//      every never-met problem held, so that a first sight comes only
-//      from step 4.
+//   3. the problems of the technique, in turns: a problem he has never
+//      met, then a repeat, until N never-met problems are done; then
+//      repeats only. The never-met problems go easy to hard. The repeats
+//      are the due ones, easy to hard, then the ones that are not due,
+//      the one he did longest ago first.
+// A day is one topic (his word, 2026-11-16): no problem of another
+// technique is served, due or not. Before that date the due repeats of
+// every other technique came after step 3, and on 2026-11-16 the queue
+// was three problems of the technique and then seven of other topics.
 // A drill of the day's technique holds none of its problems (2026-11-14,
 // bank::held_behind_past): step 2 serves it first, and while it was cold
 // it held every problem of steps 3 and 4.
 // The drills of the other algorithm techniques are not served that day,
 // due or not: depth comes before the memory curves (his thesis,
 // 2026-11-13), and a technique's drills come back on its own day. Steps 1
-// and 2 are in pick::pick, the rest in pick() here.
+// and 2 are in pick::pick, step 3 in pick() here.
 // A named group, cram, early, assisted and a woken problem are his own
 // call and go past the mode, as they go past the caps.
 //
@@ -47,7 +51,7 @@
 // walks of kg_draft: for a fail the record holds what his code did, the
 // walk what the solution needed).
 //
-// The problems of step 4 are the never-met problems whose walk names the
+// The new problems of step 3 are the never-met problems whose walk names the
 // technique. A technique with none takes the never-met problems of its
 // group. They are served by rating: the first of the day at or below the
 // median rating of his alone first sights on the technique
@@ -418,8 +422,91 @@ pub fn algorithm_drills(ctx: &Ctx) -> HashSet<String> {
         .collect()
 }
 
-/// The technique's due repeats, then its new problems; None when both are
-/// done for the day.
+/// The repeats of the day's technique that can be served now: the due
+/// ones, easy to hard, then the ones that are not due, the one he did
+/// longest ago first. A problem with a record of today is not in it.
+fn repeats(
+    ctx: &Ctx,
+    pv: &PView,
+    ev: &Evidence,
+    args: &PickArgs,
+    day: &Day,
+) -> Vec<(String, bool)> {
+    let today = ctx.today();
+    let node = day.weak.node.as_str();
+    let scope = Scope::Node(node.to_string());
+    let skip = |p: &str| args.asleep.iter().any(|a| a == p) || args.exclude.contains(p);
+    let uses = |num: &str| pv.get(num).is_some_and(|q| scope.covers(ctx, q));
+    let mut due: Vec<String> = review_queue_past(ctx, ev, pv, today, Some(node))
+        .into_iter()
+        .map(|(num, _, _)| num)
+        .filter(|num| !skip(num) && uses(num))
+        .collect();
+    due.sort_by(|a, b| {
+        let ra = day.ratings.get(a).copied().unwrap_or(f64::INFINITY);
+        let rb = day.ratings.get(b).copied().unwrap_or(f64::INFINITY);
+        ra.partial_cmp(&rb)
+            .unwrap()
+            .then_with(|| pnum_key(a).cmp(&pnum_key(b)))
+    });
+    // the repeats that are not due: the band of the due ones holds them too
+    let band = crate::drills::reviews_band().map(|b| {
+        let elo = crate::model::first_sight_elo_now(ctx, ev);
+        let floor = if crate::learning::enabled() {
+            elo - b
+        } else {
+            f64::NEG_INFINITY
+        };
+        (floor, elo + b)
+    });
+    let in_band = |num: &str| match (band, day.ratings.get(num)) {
+        (Some((lo, hi)), Some(r)) => *r >= lo && *r <= hi,
+        _ => true,
+    };
+    let mut early: Vec<(NaiveDate, String)> = ev
+        .by_problem
+        .keys()
+        .filter(|num| is_numeric_id(num) && !due.contains(num) && !skip(num) && uses(num))
+        .filter(|num| !ctx.unservable(num, pv.get(num).unwrap()) && in_band(num))
+        .filter_map(|num| {
+            let recs = ev.problem_recs(num);
+            if recs.iter().all(|(_, f, _)| is_studied(f)) {
+                return None;
+            }
+            let last = recs.iter().map(|(d, _, _)| parse_date(d)).max()?;
+            (last < today).then(|| (last, num.clone()))
+        })
+        .filter(|(_, num)| held_behind_past(ctx, num, pv, ev, today, Some(node)).is_none())
+        .collect();
+    early.sort_by(|a, b| a.0.cmp(&b.0).then_with(|| pnum_key(&a.1).cmp(&pnum_key(&b.1))));
+    due.into_iter()
+        .map(|num| (num, true))
+        .chain(early.into_iter().map(|(_, num)| (num, false)))
+        .collect()
+}
+
+/// The repeats of the technique done today: the problems with a record of
+/// today and a record before it.
+fn repeats_today(ctx: &Ctx, ev: &Evidence, scope: &Scope, today: NaiveDate) -> i64 {
+    let d = today.format("%Y-%m-%d").to_string();
+    let done: HashSet<String> = ev
+        .date_recs(&d)
+        .iter()
+        .filter(|&&i| !ev.is_drill(i) && !is_studied(ev.fname(i)))
+        .map(|&i| ev.rec(i).problem_str())
+        .filter(|p| {
+            ev.problem_recs(p)
+                .iter()
+                .any(|(date, f, _)| parse_date(date) < today && !is_studied(f))
+        })
+        .filter(|p| entry(ctx, p).is_some_and(|q| scope.covers(ctx, q)))
+        .collect();
+    done.len() as i64
+}
+
+/// The technique's problems, in turns: a new problem, then a repeat, until
+/// the day's new problems are done, then repeats only. None when the
+/// technique has neither left.
 pub fn pick(
     ctx: &Ctx,
     pv: &RefCell<PView>,
@@ -445,34 +532,23 @@ pub fn pick(
     }
     let skip = |p: &str| args.asleep.iter().any(|a| a == p) || args.exclude.contains(p);
 
-    // the due repeats that use the technique, easy to hard
-    if !crate::drills::no_reviews() {
-        let p = pv.borrow();
-        let mut due: Vec<String> = review_queue_past(ctx, ev, &p, today, Some(node))
-            .into_iter()
-            .map(|(num, _, _)| num)
-            .filter(|num| !skip(num))
-            .filter(|num| {
-                p.get(num)
-                    .is_some_and(|q| q.moves.iter().any(|m| m == node))
-            })
-            .collect();
-        due.sort_by(|a, b| {
-            let ra = ratings.get(a).copied().unwrap_or(f64::INFINITY);
-            let rb = ratings.get(b).copied().unwrap_or(f64::INFINITY);
-            ra.partial_cmp(&rb)
-                .unwrap()
-                .then_with(|| pnum_key(a).cmp(&pnum_key(b)))
-        });
-        if let Some(num) = due.first() {
-            return Some(Choice::new(
-                node,
-                status,
-                num,
-                format!("deep dive on {name}: a due repeat that uses it"),
-            ));
+    let repeat = || -> Option<Choice> {
+        if crate::drills::no_reviews() {
+            return None;
         }
-    }
+        let (num, due) = repeats(ctx, &pv.borrow(), ev, args, day).into_iter().next()?;
+        let what = if due {
+            "a due repeat that uses it"
+        } else {
+            "a repeat that uses it, not due, the oldest first"
+        };
+        Some(Choice::new(
+            node,
+            status,
+            &num,
+            format!("deep dive on {name}: {what}"),
+        ))
+    };
 
     // N problems never met, easy to hard
     let sights = first_sights(ev);
@@ -484,7 +560,16 @@ pub fn pick(
                 || entry(ctx, &s.pnum).is_some_and(|p| scope.covers(ctx, p))
         })
         .collect();
-    if met_today.len() as i64 >= n {
+    let met = met_today.len() as i64;
+    let done = repeats_today(ctx, ev, &Scope::Node(node.to_string()), today);
+    // the turn: a new problem when as many repeats as new problems are done
+    let new_first = met < n && met <= done;
+    if !new_first {
+        if let Some(c) = repeat() {
+            return Some(c);
+        }
+    }
+    if met >= n {
         return None;
     }
     let cands: Vec<(String, f64)> = cluster(ctx, ev, scope, None, ratings)
@@ -510,7 +595,7 @@ pub fn pick(
         },
     };
     let Some((num, _)) = next else {
-        return None;
+        return repeat();
     };
     if pv.borrow().get(num).is_none() {
         let p = entry(ctx, num).expect("a cluster problem is in the table");
@@ -547,7 +632,7 @@ pub fn pick(
     ))
 }
 
-/// Every problem with no record: what the rules after the dive hold.
+/// Every problem with no record.
 pub fn never_met(ctx: &Ctx, ev: &Evidence) -> HashSet<String> {
     ctx.all_problems()
         .keys()
