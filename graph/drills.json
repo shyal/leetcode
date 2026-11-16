@@ -4814,6 +4814,15 @@
         "prefix-suffix-two-pass"
       ],
       "judge": "A position j starts at -1. For each character c of sub, j becomes s.index(c, j + 1) (or s.find), and j is appended to the result. The search for each character starts after the index of the character before, so the total work is O(len(sub) + len(s)). A search from index 0 for each character returns [0, 1, 0] on sub = \"cbc\", s = \"cbcdbc\": the fail."
+    },
+    "d547": {
+      "title": "Non-Increasing Run Lengths",
+      "file": "prefix-suffix-two-pass/d547_non_increasing_run_lengths.py",
+      "after": [],
+      "trains": [
+        "prefix-suffix-two-pass"
+      ],
+      "judge": "res starts as 1 for every index. For each index i from 1, if nums[i - 1] >= nums[i] then res[i] is res[i - 1] + 1, otherwise res[i] is 1. Equal neighbours extend the run. The value at i is built from the value at i - 1, never from a rescan of the earlier elements. A running minimum of the run lengths returns [1, 1, 1, 1, 1] on [5, 3, 3, 4, 2] instead of [1, 2, 3, 1, 2]: the fail."
     }
   }
 }
