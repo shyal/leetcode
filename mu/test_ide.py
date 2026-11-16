@@ -156,7 +156,8 @@ def test_hover_and_definition_of_a_harness_helper():
     [d] = ide.definition(req("definition", 12, 8, text))
     import pydsa.linked
 
-    assert d["path"] == pydsa.linked.__file__
+    # a helper the library holds opens at its .mu, not at the Python written from it
+    assert d["path"] == str(pydsa.linked.__mu__)
     assert "def linked_list_reverse_k(" in open(d["path"]).read().split("\n")[d["line"]]
 
 
@@ -212,3 +213,37 @@ def test_serve_round_trip():
         "id": 1,
         "result": {"contents": "```mu\nq: MonotonicQueue\n```"},
     }
+
+
+def pydsa_functions():
+    import importlib
+    import inspect
+    from pathlib import Path
+
+    import pydsa
+
+    for path in sorted(Path(pydsa.__file__).parent.glob("[!_]*.mu")):
+        module = importlib.import_module(f"pydsa.{path.stem}")
+        for name, obj in vars(module).items():
+            if (
+                not name.startswith("_")
+                and inspect.isfunction(obj)
+                and obj.__module__ == module.__name__
+            ):
+                yield name
+
+
+def test_every_public_pydsa_function_has_hints_with_no_import():
+    """A function written in any pydsa module is called by name in a solve and
+    has signature help there, whether the profile registers it or
+    sitecustomize preloads it. A new helper adds nothing to this repo to
+    pass; a helper the tools cannot see fails here."""
+    names = list(pydsa_functions())
+    assert len(names) > 30
+    missing = []
+    for name in names:
+        text = f"def f(nums: [int]) -> int\n  {name}("
+        got = ide.signature(req("signature", 1, len(f"  {name}("), text))
+        if not got or not got["label"].startswith(f"{name}("):
+            missing.append(name)
+    assert not missing, f"no signature help for {missing}"
