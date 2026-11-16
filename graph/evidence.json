@@ -45584,6 +45584,17 @@
       "summary": "goodIndices makes two passes over nums. The forward pass counts the non-increasing streak that ends at each index. The backward pass counts the non-decreasing streak that starts at each index, and right is then reversed. Each count resets to 1 correctly, but the code appends min_count, the running minimum of the counts, and not count itself. So left and right become all 1s, as the debug print shows. The final loop asks whether k is in the slices left[:i] and right[i+1:], when it should compare left[i-1] and right[i+1] with k. The result for Example 1 was [], not [3, 4, 5], and the notes say the attempt was abandoned after 45m 43s.",
       "seconds": 2743,
       "learning": true
+    },
+    "solved/d_Non-Increasing_Run_Lengths_2026_11_16T13_54_09_700316_00_00Z.mu": {
+      "date": "2026-11-16",
+      "problem": "drill",
+      "drill": "d547",
+      "moves": {
+        "prefix-suffix-two-pass": "clean"
+      },
+      "judge": "opus",
+      "summary": "run_lengths fills down with 1 for every index using table(len(nums), fill=1). It then walks i from 1 to the end, and when nums[i-1] >= nums[i] it sets down[i] to down[i-1] + 1. Each value comes from the value at i - 1, in one pass with no nested loop, so the contract holds. The notes are empty.",
+      "seconds": 236
     }
   }
 }
