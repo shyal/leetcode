@@ -45667,6 +45667,18 @@
       "note": "The body is one call to the pydsa helper run_lengths(nums, extends=(a, b) -> a >= b). That helper does one scan, scan((r, p) -> r + 1 if extends(*p) else 1, zip(xs, xs[1:]), initial=1), so it meets the contract: O(n) time, no nested loop, and res[i] is built from res[i - 1].",
       "summary": "run_lengths passes the predicate (a, b) -> a >= b to the pydsa helper run_lengths. That helper scans the pairs of neighbours once. It sets each value to the previous value + 1 when the pair extends the run, and to 1 when it does not, so equal neighbours extend the run. All nine asserts passed, and the 10 ** 5 equal-element case shows the time is linear. The notes are empty.",
       "seconds": 44
+    },
+    "solved/p2100_Find_Good_Days_to_Rob_the_Bank_2026_11_16T22_17_45_340302_00_00Z.mu": {
+      "date": "2026-11-17",
+      "problem": "2100",
+      "moves": {
+        "prefix-suffix-two-pass": "clean"
+      },
+      "judge": "opus",
+      "note": "LEETCODE: Accepted (597 ms, 38.8 MB). The run lengths come from the run_lengths helper with an extends predicate. The approach line under STAGE 1 is empty.",
+      "summary": "The code calls run_lengths twice. The left call uses extends=(a, b) -> (a >= b) and gives the length of the non-increasing run that ends at each index. The right call uses from_right=true and (a, b) -> (a <= b) and gives the length of the non-decreasing run that starts at each index. The loop goes over i in time..<len security - time and keeps i when left[i] and right[i] are both at least time + 1. LeetCode gave the verdict Accepted. The notes have no text under the STAGE 1 line.",
+      "seconds": 1693,
+      "learning": true
     }
   }
 }

@@ -2,13 +2,13 @@
   "_comment": "Personal forgetting curve fitted by utils/kg/kg_curve. P(recall) = (1-slip)*(1 + gap/s)^(-beta), s = exp(a + b*log1p(cleans) - c*struggles - d*assist + e*(conn - conn_mean)); cleans counts distinct clean days, same-day reps are one rep. conn is the node's log2 carrier count, frozen below at fit time; consumers that ignore e are assuming average connectivity. \"solve\" is the cold-solve model fitted by fit_solve: logit P(solve cold, unaided, inside the clock) = the listed coefficients over (rating - 1500)/400, the walk's summed log recall, and its count of never-met moves; features not listed did not earn their place on held-out games. node_status() calls a node SOLID while the memory component (1 + gap/s)^(-beta) >= target_retention; delete this file to fall back to the flat 42-day window.",
   "model": "power-law-slip",
   "params": {
-    "a": 3.9225,
-    "b": 0.1243,
-    "c": 0.1563,
-    "d": 0.0763,
-    "e": -0.1761,
-    "conn_mean": 2.8328,
-    "beta": 0.1195,
+    "a": 3.9223,
+    "b": 0.1242,
+    "c": 0.156,
+    "d": 0.076,
+    "e": -0.1791,
+    "conn_mean": 2.8338,
+    "beta": 0.1196,
     "slip": 0.0511
   },
   "conn": {
@@ -64,7 +64,7 @@
     "order-book-levels": 1.0,
     "order-book-match": 1.0,
     "pair-count-formula": 2.0,
-    "prefix-suffix-two-pass": 2.585,
+    "prefix-suffix-two-pass": 2.807,
     "prefix-sum-hashmap": 2.807,
     "prefix-sums": 4.392,
     "prime-sieve": 1.0,
@@ -113,13 +113,13 @@
   },
   "target_retention": 0.9,
   "mass": {
-    "beta": -0.1961,
+    "beta": -0.1969,
     "se": 0.0822,
-    "n": 669,
+    "n": 670,
     "by_difficulty": {
-      "Easy": 3.7418,
-      "Medium": 1.0674,
-      "Hard": -0.0316
+      "Easy": 3.7428,
+      "Medium": 1.0746,
+      "Hard": -0.0307
     }
   },
   "solve": {
