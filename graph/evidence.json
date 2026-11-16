@@ -45535,6 +45535,30 @@
       "note": "Both directions run in one loop: res[i] takes the product before i, and res[~i] takes the product after the mirror index ~i. The REQUIRED part is met: O(n) time, no division, no inner loop per index.",
       "summary": "array_of_array_products sets res to all 1s with table(len(arr), fill=1). It then makes one loop with the index >i. In that loop, res[i] is multiplied by left, the product of arr before i, and res[~i] is multiplied by right, the product of arr after ~i. After that, left and right take in arr[i] and arr[~i]. The left-to-right pass and the right-to-left pass are joined into one loop, and an input of length 0 or 1 returns []. The notes show the prefix and suffix product rows for [1, 2, 3, 4], worked out before the code.",
       "seconds": 578
+    },
+    "solved/p4026_Maximum_Gap_Between_Stations_2026_11_16T04_08_40_425881_00_00Z.mu": {
+      "date": "2026-11-16",
+      "problem": "4026",
+      "moves": {
+        "prefix-suffix-two-pass": "clean",
+        "py-zip": "clean",
+        "py-slicing": "clean",
+        "py-list-comprehension": "clean"
+      },
+      "assist": {
+        "prefix-suffix-two-pass": "learning",
+        "py-zip": "learning",
+        "py-slicing": "learning",
+        "py-list-comprehension": "learning"
+      },
+      "judge": "opus",
+      "note": "The notes say 'Learning' but do not say which part was given, so the level is on every move. Only the print of the 'aa'/'aaaa' case ran. All the asserts are commented out.",
+      "summary": "The code finds the earliest position of each character of skill in station with station.index(c, j + 1), going left to right, and stores them in early. It finds the latest positions with station.rindex(c, 0, j), going right to left, and stores them in late. The answer is max(b - a) over zip(early, late[1:]): this combines the earliest match of character i with the latest match of character i + 1. The notes have an approach for STAGE 1 that counts letters, then the word 'Learning', which says the solution was given.",
+      "unmapped": [
+        "greedy earliest and latest subsequence match"
+      ],
+      "seconds": 2594,
+      "learning": true
     }
   }
 }

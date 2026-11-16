@@ -4805,6 +4805,15 @@
         "tree-combine-returns"
       ],
       "judge": "One post-order pass returns a pair for each node: the best sum of its subtree when the node is not chosen and the best sum when it is chosen. Not chosen is the sum over the two children of the larger value of the child's pair; chosen is node.val plus the not-chosen values of the two children. The answer is the larger value of the root's pair. A single return value per node, with calls on the children and on the grandchildren, visits a subtree many times: the fail. The sum of alternate levels returns 6 on the chain 4, 1, 2, 3 from the root down, the answer is 7."
+    },
+    "d546": {
+      "title": "Earliest Indices Of A Subsequence",
+      "file": "prefix-suffix-two-pass/d546_earliest_indices_of_a_subsequence.py",
+      "after": [],
+      "trains": [
+        "prefix-suffix-two-pass"
+      ],
+      "judge": "A position j starts at -1. For each character c of sub, j becomes s.index(c, j + 1) (or s.find), and j is appended to the result. The search for each character starts after the index of the character before, so the total work is O(len(sub) + len(s)). A search from index 0 for each character returns [0, 1, 0] on sub = \"cbc\", s = \"cbcdbc\": the fail."
     }
   }
 }
