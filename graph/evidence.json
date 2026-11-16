@@ -45595,6 +45595,27 @@
       "judge": "opus",
       "summary": "run_lengths fills down with 1 for every index using table(len(nums), fill=1). It then walks i from 1 to the end, and when nums[i-1] >= nums[i] it sets down[i] to down[i-1] + 1. Each value comes from the value at i - 1, in one pass with no nested loop, so the contract holds. The notes are empty.",
       "seconds": 236
+    },
+    "solved/p3598_Longest_Common_Prefix_Between_Adjacent_Strings_After_Removals_2026_11_16T14_46_23_846070_00_00Z.mu": {
+      "date": "2026-11-16",
+      "problem": "3598",
+      "moves": {
+        "prefix-suffix-two-pass": "clean",
+        "running-extreme": "clean",
+        "py-zip": "clean",
+        "py-list-comprehension": "clean"
+      },
+      "assist": {
+        "prefix-suffix-two-pass": "learning",
+        "running-extreme": "learning",
+        "py-zip": "learning",
+        "py-list-comprehension": "learning"
+      },
+      "judge": "opus",
+      "note": "The note 'Learning' means the candidate was given the solution and copied it. The harness helper commonprefix computes each LCP length, so no string is split or rebuilt.",
+      "summary": "The code computes cp, the common prefix length of each adjacent pair, with commonprefix over zip(words, words[1:]). It then builds left and right with scan(max, ...): a prefix maximum and a suffix maximum over cp. For each index i it takes the maximum of left[i], right[i+1] and bridge. bridge is the common prefix length of words[i-1] and words[i+1], the new pair that forms when words[i] is removed. The notes say 'Learning', so the solution was given and copied.",
+      "seconds": 610,
+      "learning": true
     }
   }
 }
