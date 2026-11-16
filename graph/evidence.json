@@ -45571,6 +45571,19 @@
       "note": "Contract met: j starts at -1, each c of sub sets j = s.index(c, j + 1), j is appended to res, and there is no while loop, so the run is O(len(sub) + len(s)).",
       "summary": "earliest_indices starts j at -1. For each character c of sub, it sets j to s.index(c, j + 1) and appends j to res. Each search starts after the index of the previous character, so 'cbc' on 'cbcdbc' gives [0, 1, 2], and the 10^5-length asserts pass in linear time. The notes are empty.",
       "seconds": 343
+    },
+    "solved/p2420_Find_All_Good_Indices_FAILED_2026_11_16T05_21_19_753373_00_00Z.mu": {
+      "date": "2026-11-16",
+      "problem": "2420",
+      "moves": {
+        "prefix-suffix-two-pass": "struggled",
+        "running-sum": "clean"
+      },
+      "judge": "opus",
+      "note": "FAILED: walked away after 45m 43s with no working solution. The file ran and exited 0 only because every assert is commented out. The printed output was [] when [3, 4, 5] was expected. The defect is in how the two passes are stored and read: min_count turns every entry of left and right into 1, and 'k in left[:i]' tests membership in a slice where it should test left[i-1] >= k and right[i+1] >= k.",
+      "summary": "goodIndices makes two passes over nums. The forward pass counts the non-increasing streak that ends at each index. The backward pass counts the non-decreasing streak that starts at each index, and right is then reversed. Each count resets to 1 correctly, but the code appends min_count, the running minimum of the counts, and not count itself. So left and right become all 1s, as the debug print shows. The final loop asks whether k is in the slices left[:i] and right[i+1:], when it should compare left[i-1] and right[i+1] with k. The result for Example 1 was [], not [3, 4, 5], and the notes say the attempt was abandoned after 45m 43s.",
+      "seconds": 2743,
+      "learning": true
     }
   }
 }
