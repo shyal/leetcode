@@ -45679,6 +45679,25 @@
       "summary": "The code calls run_lengths twice. The left call uses extends=(a, b) -> (a >= b) and gives the length of the non-increasing run that ends at each index. The right call uses from_right=true and (a, b) -> (a <= b) and gives the length of the non-decreasing run that starts at each index. The loop goes over i in time..<len security - time and keeps i when left[i] and right[i] are both at least time + 1. LeetCode gave the verdict Accepted. The notes have no text under the STAGE 1 line.",
       "seconds": 1693,
       "learning": true
+    },
+    "solved/p3598_Longest_Common_Prefix_Between_Adjacent_Strings_After_Removals_2026_11_16T22_27_46_284474_00_00Z.mu": {
+      "date": "2026-11-17",
+      "problem": "3598",
+      "moves": {
+        "prefix-suffix-two-pass": "clean",
+        "running-extreme": "clean",
+        "py-zip": "clean"
+      },
+      "assist": {
+        "prefix-suffix-two-pass": "learning",
+        "running-extreme": "learning",
+        "py-zip": "learning"
+      },
+      "judge": "opus",
+      "note": "Notes say 'learning': the solution was given and copied. The LCP of each pair comes from the commonprefix helper, so no string was taken apart by the candidate.",
+      "summary": "The code builds cp, the common prefix length of each adjacent pair, with zip(words, words[1:]) and commonprefix. It then builds left as a prefix running max of cp and right as a suffix running max of cp, both with scan(max, ...). For each index i, the answer is the max of left[i], right[i+1], and bridge, which is the LCP of words[i-1] and words[i+1]. The notes say 'learning', so the solution was given and copied.",
+      "seconds": 351,
+      "learning": true
     }
   }
 }
