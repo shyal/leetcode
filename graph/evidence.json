@@ -45629,6 +45629,20 @@
       "note": "Contract met: PARTITION BY team restarts the rank at 1 in each team, and DENSE_RANK gives shared ranks with no holes (Bo and Di both 1, Ava 2).",
       "summary": "The query selects name and team from Players and computes rank with dense_rank() over (partition by team order by points desc). The partition by team makes team B start again at 1, so Ed gets 1. dense_rank gives tied players the same rank and the next player the next number, so Ava gets 2 after Bo and Di. The notes record no hints or look-ups.",
       "seconds": 180
+    },
+    "solved/d_Withdraw_2026_11_16T21_45_42_829819_00_00Z.py": {
+      "date": "2026-11-17",
+      "problem": "drill",
+      "drill": "d197",
+      "moves": {
+        "py-custom-exception": "clean",
+        "py-raise": "clean",
+        "py-fstring": "clean"
+      },
+      "judge": "opus",
+      "note": "Contract met: InsufficientFunds(Exception) is defined above Solution, __init__ stores needed and calls super().__init__ with a message, and withdraw raises it with the shortfall amount - balance. It never uses ValueError and never returns a negative number or None.",
+      "summary": "withdraw checks amount > balance. When that is true, it raises InsufficientFunds(amount - balance). When it is false, it returns balance - amount. The InsufficientFunds class stores needed on the instance and gives super().__init__ the f-string message f\"Needed: {self.needed}\". The notes do not mention any help.",
+      "seconds": 97
     }
   }
 }
