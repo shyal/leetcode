@@ -45762,6 +45762,21 @@
       "note": "The code that ran meets the contract: one pass over counter(nums).values() with count += left * c, and no index-pair enumeration. The first attempt in the notes did not meet it: it counted equal pairs with D and then returned n * (n - 1) // 2 - res, which is the banned subtraction from the total pair count. The notes then say 'learning'.",
       "summary": "unequalPairs builds counter(nums) and walks its values once. For each group size c it adds left * c to count, then adds c to left, so each pair across two groups is counted once. The notes show a first attempt that counted equal pairs with the dict D and subtracted them from n * (n - 1) // 2. The notes then say 'learning', so the solution that ran was given.",
       "seconds": 1002
+    },
+    "solved/d_Pairs_With_An_Odd_Number_2026_11_17T22_23_36_529554_00_00Z.mu": {
+      "date": "2026-11-18",
+      "problem": "drill",
+      "drill": "d549",
+      "moves": {
+        "pair-count-formula": "clean"
+      },
+      "assist": {
+        "pair-count-formula": "hint"
+      },
+      "judge": "opus",
+      "note": "Contract met: one O(n) fold counts the evens, and comb(len nums, 2) - comb(even_n, 2) takes the all-even pairs away from all pairs, with no nested loop. The notes say 'hinted' but do not say on which part.",
+      "summary": "odd_pairs counts the even numbers with the fold `count for nums: _ is even` into even_n. It then returns comb(len nums, 2) - comb(even_n, 2): the count of all pairs minus the count of the pairs that have no odd number. It does not count the odd-odd and odd-even pairs directly. The notes say the candidate got a hint.",
+      "seconds": 1505
     }
   }
 }

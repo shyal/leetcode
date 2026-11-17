@@ -39,7 +39,7 @@ from collections import Counter, OrderedDict, defaultdict, deque
 from collections.abc import Callable as Callable
 from functools import *
 from itertools import *
-from math import ceil, floor, gcd, inf, isclose, log, log2, log10, prod, sqrt
+from math import ceil, comb, floor, gcd, inf, isclose, log, log2, log10, prod, sqrt
 from random import (
     choice,
     choices,
@@ -496,6 +496,7 @@ builtins.cache = cache
 builtins.gcd = gcd
 builtins.inf = inf
 builtins.isclose = isclose
+builtins.comb = comb
 builtins.dropwhile = dropwhile
 
 # random, as leetcode preloads it: the module by name plus the common functions bare

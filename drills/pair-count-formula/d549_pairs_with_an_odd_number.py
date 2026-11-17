@@ -2,7 +2,7 @@
 Pairs With An Odd Number
 
 Given an integer array nums, return the number of index pairs (i, j) with
-i < j such that nums[i] or nums[j] is odd.
+i < j such that at least one of nums[i] and nums[j] is odd.
 
 Example 1:
 
