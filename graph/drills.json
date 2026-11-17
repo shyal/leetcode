@@ -4823,6 +4823,24 @@
         "prefix-suffix-two-pass"
       ],
       "judge": "res starts as 1 for every index. For each index i from 1, if nums[i - 1] >= nums[i] then res[i] is res[i - 1] + 1, otherwise res[i] is 1. Equal neighbours extend the run. The value at i is built from the value at i - 1, never from a rescan of the earlier elements. A running minimum of the run lengths returns [1, 1, 1, 1, 1] on [5, 3, 3, 4, 2] instead of [1, 2, 3, 1, 2]: the fail."
+    },
+    "d548": {
+      "title": "Digit Columns",
+      "file": "index-conversion/d548_digit_columns.py",
+      "after": [],
+      "trains": [
+        "index-conversion"
+      ],
+      "judge": "rows is the list of to_digits(x) for x in nums, one row of digits per number. cols is zip(*rows): the tuples of the j-th digits, one per column, in the order of nums. The digits come from to_digits, not from str(), and the rows are never indexed in a nested loop. Taking the digits of one number at a time and returning them as rows returns [(1, 0, 4), (2, 7, 5), (3, 1, 6), (4, 8, 9)] on [104, 275, 316, 489] instead of [(1, 2, 3, 4), (0, 7, 1, 8), (4, 5, 6, 9)]: the rows, not the columns."
+    },
+    "d549": {
+      "title": "Pairs With An Odd Number",
+      "file": "pair-count-formula/d549_pairs_with_an_odd_number.py",
+      "after": [],
+      "trains": [
+        "pair-count-formula"
+      ],
+      "judge": "The answer is the count of all pairs, n * (n - 1) // 2, minus the count of the pairs that have no odd number, evens * (evens - 1) // 2. The pairs with no odd number are counted, then taken away from all pairs. Adding the pairs of two odds to the pairs of one odd and one even is the direct count, and it is not the drill."
     }
   }
 }

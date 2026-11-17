@@ -45698,6 +45698,25 @@
       "summary": "The code builds cp, the common prefix length of each adjacent pair, with zip(words, words[1:]) and commonprefix. It then builds left as a prefix running max of cp and right as a suffix running max of cp, both with scan(max, ...). For each index i, the answer is the max of left[i], right[i+1], and bridge, which is the LCP of words[i-1] and words[i+1]. The notes say 'learning', so the solution was given and copied.",
       "seconds": 351,
       "learning": true
+    },
+    "solved/p3153_Sum_of_Digit_Differences_of_All_Pairs_2026_11_17T00_38_48_118027_00_00Z.mu": {
+      "date": "2026-11-17",
+      "problem": "3153",
+      "moves": {
+        "counter-build": "clean",
+        "pair-count-formula": "clean",
+        "py-zip": "clean"
+      },
+      "assist": {
+        "counter-build": "learning",
+        "pair-count-formula": "learning",
+        "py-zip": "learning"
+      },
+      "judge": "opus",
+      "note": "The notes say only 'learning' and do not name a move, so the level goes on every move. The variable cols is built and then not used.",
+      "summary": "The code changes each number into a list of digits with to_digits and uses zip(*rows) to turn those lists into digit columns. For each column it counts the digits with counter(col). It then adds c * (n - c) for each count, which is the number of pairs that have different digits in that position. Each pair is counted twice, so the code returns pairs // 2. The notes say 'learning', which means the solution was given and copied.",
+      "seconds": 1335,
+      "learning": true
     }
   }
 }
