@@ -45745,6 +45745,23 @@
       "note": "Contract met: greet raises ValueError(\"empty name\") and has no return of None, no error string and no print in the function (the print is in the test code). The blank test uses set(name) and name[0] == \" \", so it catches only names made of spaces and not tabs or newlines; name.strip() == \"\" is the direct test.",
       "summary": "Solution.greet raises ValueError(\"empty name\") when name is empty or made only of spaces, and in all other cases returns f\"Hi, {name.strip()}\". To find a name made only of spaces, it checks that len(set(name)) == 1 and name[0] == \" \". The caught helper in the test code gets the exception for the \"\" and \"   \" cases, so the caller receives an exception and not a return value. The notes do not say that the candidate got help.",
       "seconds": 415
+    },
+    "solved/d_Unequal_Pairs_2026_11_17T21_57_15_103056_00_00Z.mu": {
+      "date": "2026-11-18",
+      "problem": "drill",
+      "drill": "d143",
+      "moves": {
+        "pair-count-formula": "clean",
+        "counter-build": "clean"
+      },
+      "assist": {
+        "pair-count-formula": "learning",
+        "counter-build": "learning"
+      },
+      "judge": "opus",
+      "note": "The code that ran meets the contract: one pass over counter(nums).values() with count += left * c, and no index-pair enumeration. The first attempt in the notes did not meet it: it counted equal pairs with D and then returned n * (n - 1) // 2 - res, which is the banned subtraction from the total pair count. The notes then say 'learning'.",
+      "summary": "unequalPairs builds counter(nums) and walks its values once. For each group size c it adds left * c to count, then adds c to left, so each pair across two groups is counted once. The notes show a first attempt that counted equal pairs with the dict D and subtracted them from n * (n - 1) // 2. The notes then say 'learning', so the solution that ran was given.",
+      "seconds": 1002
     }
   }
 }
