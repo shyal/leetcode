@@ -1,7 +1,10 @@
 """
 Given the table `Players(name varchar, team varchar, points int)`, return
-the `name` and `team` of every player whose points equal the highest points
-in their team, including all ties. No ordering required.
+the `name` and `team` of every row whose `points` equal the largest
+`points` value among the rows of its team. When two or more rows of a
+team have that value, return all of them. In Example 1 the largest
+`points` value of team A is 50, so the output has Bo and Di for team A.
+No ordering required.
 
 Table: Players
 

@@ -45717,6 +45717,19 @@
       "summary": "The code changes each number into a list of digits with to_digits and uses zip(*rows) to turn those lists into digit columns. For each column it counts the digits with counter(col). It then adds c * (n - c) for each count, which is the number of pairs that have different digits in that position. Each pair is counted twice, so the code returns pairs // 2. The notes say 'learning', which means the solution was given and copied.",
       "seconds": 1335,
       "learning": true
+    },
+    "solved/d_Top_Player_Per_Team_2026_11_17T21_30_34_225970_00_00Z.mu": {
+      "date": "2026-11-18",
+      "problem": "drill",
+      "drill": "d366",
+      "moves": {
+        "sql-window-rank": "clean",
+        "sql-subquery": "clean"
+      },
+      "judge": "opus",
+      "note": "Contract met: the window query is named in a WITH clause (Ranked), and the outer query filters on rnk == 1. There is no GROUP BY and no subquery in a WHERE.",
+      "summary": "The CTE Ranked computes dense_rank() over (partition by team order by points desc) as rnk for each row of Players. The outer query reads name and team from Ranked where rnk == 1, so tied top scorers such as Bo and Di both come back. This uses a window rank inside a named WITH query and filters on its alias in a second query. The notes record no hints and no look-ups.",
+      "seconds": 551
     }
   }
 }
