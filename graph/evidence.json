@@ -45730,6 +45730,21 @@
       "note": "Contract met: the window query is named in a WITH clause (Ranked), and the outer query filters on rnk == 1. There is no GROUP BY and no subquery in a WHERE.",
       "summary": "The CTE Ranked computes dense_rank() over (partition by team order by points desc) as rnk for each row of Players. The outer query reads name and team from Ranked where rnk == 1, so tied top scorers such as Bo and Di both come back. This uses a window rank inside a named WITH query and filters on its alias in a second query. The notes record no hints and no look-ups.",
       "seconds": 551
+    },
+    "solved/d_Greet_Or_Refuse_2026_11_17T21_40_09_163936_00_00Z.py": {
+      "date": "2026-11-18",
+      "problem": "drill",
+      "drill": "d196",
+      "moves": {
+        "py-raise": "clean",
+        "py-fstring": "clean",
+        "py-str-methods": "clean",
+        "py-sets": "clean"
+      },
+      "judge": "opus",
+      "note": "Contract met: greet raises ValueError(\"empty name\") and has no return of None, no error string and no print in the function (the print is in the test code). The blank test uses set(name) and name[0] == \" \", so it catches only names made of spaces and not tabs or newlines; name.strip() == \"\" is the direct test.",
+      "summary": "Solution.greet raises ValueError(\"empty name\") when name is empty or made only of spaces, and in all other cases returns f\"Hi, {name.strip()}\". To find a name made only of spaces, it checks that len(set(name)) == 1 and name[0] == \" \". The caught helper in the test code gets the exception for the \"\" and \"   \" cases, so the caller receives an exception and not a return value. The notes do not say that the candidate got help.",
+      "seconds": 415
     }
   }
 }
