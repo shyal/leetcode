@@ -45777,6 +45777,23 @@
       "note": "Contract met: one O(n) fold counts the evens, and comb(len nums, 2) - comb(even_n, 2) takes the all-even pairs away from all pairs, with no nested loop. The notes say 'hinted' but do not say on which part.",
       "summary": "odd_pairs counts the even numbers with the fold `count for nums: _ is even` into even_n. It then returns comb(len nums, 2) - comb(even_n, 2): the count of all pairs minus the count of the pairs that have no odd number. It does not count the odd-odd and odd-even pairs directly. The notes say the candidate got a hint.",
       "seconds": 1505
+    },
+    "solved/d_Knapsack_2026_11_18T05_13_08_124866_00_00Z.mu": {
+      "date": "2026-11-18",
+      "problem": "drill",
+      "drill": "d323",
+      "moves": {
+        "memoize-recursion": "clean",
+        "dp-state-formulate": "clean"
+      },
+      "assist": {
+        "memoize-recursion": "learning",
+        "dp-state-formulate": "learning"
+      },
+      "judge": "opus",
+      "note": "The contract is met: the state is memo best(i, cap), each pair is computed once, the guard weights[i] > cap skips an item with no take branch, and the time is O(len(weights) * capacity). The earlier helper(i, weight, value) attempt enumerated every subset, but the second class Solution replaced it and is the one the asserts ran. The file has the line 'learning', so assist is learning.",
+      "summary": "The file has two versions of knapsack. The first, helper(i, weight, value), is a backtracking search that loops j from i, recurses on j + 1, and updates self.res, so it visits every subset that fits. The final version is memo best(i, cap) with three guards: i == len(weights) returns 0, weights[i] > cap skips to best(i + 1, cap), and otherwise it returns the max of skipping item i and taking values[i] + best(i + 1, cap - weights[i]). The file is marked 'learning', so the memoized version was given and copied.",
+      "seconds": 1811
     }
   }
 }
