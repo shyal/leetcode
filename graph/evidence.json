@@ -45794,6 +45794,19 @@
       "note": "The contract is met: the state is memo best(i, cap), each pair is computed once, the guard weights[i] > cap skips an item with no take branch, and the time is O(len(weights) * capacity). The earlier helper(i, weight, value) attempt enumerated every subset, but the second class Solution replaced it and is the one the asserts ran. The file has the line 'learning', so assist is learning.",
       "summary": "The file has two versions of knapsack. The first, helper(i, weight, value), is a backtracking search that loops j from i, recurses on j + 1, and updates self.res, so it visits every subset that fits. The final version is memo best(i, cap) with three guards: i == len(weights) returns 0, weights[i] > cap skips to best(i + 1, cap), and otherwise it returns the max of skipping item i and taking values[i] + best(i + 1, cap - weights[i]). The file is marked 'learning', so the memoized version was given and copied.",
       "seconds": 1811
+    },
+    "solved/d_Top_Two_Distinct_Scores_2026_11_18T23_02_22_204759_00_00Z.mu": {
+      "date": "2026-11-19",
+      "problem": "drill",
+      "drill": "d150",
+      "moves": {
+        "sql-subquery": "clean",
+        "sql-window-rank": "clean"
+      },
+      "judge": "opus",
+      "note": "Contract met: one query, dense_rank() computed in WITH Ranked and filtered by rnk <= 2 in the outer query. Asserts are commented out, so only sol.show ran. The output carries an extra rnk column, and with no ORDER BY id the rows come out as 3, 5, 4, which does not match the Example 1 Output.",
+      "summary": "The query computes dense_rank() over (order by score desc) as rnk in a WITH clause named Ranked, then selects id, score, rnk from Ranked where rnk <= 2. This puts the window function in a CTE and filters it in the query that reads from that CTE, without a scalar subquery for the cutoff score. Both run assertions are commented out, and the shown result has an extra rnk column and rows in the order 3, 5, 4. The file has no notes about help or difficulty.",
+      "seconds": 376
     }
   }
 }
