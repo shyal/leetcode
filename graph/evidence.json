@@ -45821,6 +45821,19 @@
       "note": "Contract met: greet raises ValueError(\"empty name\") and has no return of None, no error string and no print. The blank-name test is `len(set(name)) == 1 and name[0] == \" \"` instead of `not name.strip()`, so a name made only of tabs or newlines is greeted instead of refused.",
       "summary": "greet raises ValueError(\"empty name\") when name is empty or made only of spaces, and otherwise returns f\"Hi, {name.strip()}\". It finds a name of only spaces by testing that set(name) holds one character and that name[0] is a space. The caller gets the exception from the caught helper, and greet returns no value in that case. The notes do not report any help.",
       "seconds": 105
+    },
+    "solved/d_Hours_To_Seconds_2026_11_18T23_27_22_785874_00_00Z.rs": {
+      "date": "2026-11-19",
+      "problem": "drill",
+      "drill": "d190",
+      "moves": {
+        "rust-const": "clean",
+        "rust-fn-signature": "clean"
+      },
+      "judge": "opus",
+      "note": "Contract met: the module-level const SECONDS_PER_HOUR: u32 has its type written and a SCREAMING_SNAKE_CASE name. hours_to_seconds has no let and no literal 3600.",
+      "summary": "The file declares const SECONDS_PER_HOUR: u32 = 3600 at module level. hours_to_seconds(hours: u32) -> u32 returns hours * SECONDS_PER_HOUR as its last expression, with no semicolon and no let. main prints 10800 and asserts the values for 0, 1 and 3 hours and the value of the constant. The file has no candidate notes.",
+      "seconds": 78
     }
   }
 }
