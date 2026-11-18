@@ -45849,6 +45849,18 @@
       "note": "The run passed, but the code does not meet the contract. It returns comb(len(nums), 2) - same, which is a subtraction from the total pair count, and the contract bans that. It also counts equal pairs by streaming through nums, not by a single pass of arithmetic on the group sizes.",
       "summary": "unequalPairs walks through nums once. At each n it adds D[n] (how many times n was seen before) to same, and then it increments D[n]. This gives the count of equal-value pairs, each counted at its second member. The function then subtracts same from comb(len(nums), 2) to get the unequal pairs. There are no notes about hints, look-ups or failed attempts.",
       "seconds": 175
+    },
+    "solved/d_Pairs_With_An_Odd_Number_2026_11_18T23_37_19_277471_00_00Z.mu": {
+      "date": "2026-11-19",
+      "problem": "drill",
+      "drill": "d549",
+      "moves": {
+        "pair-count-formula": "clean"
+      },
+      "judge": "opus",
+      "note": "Contract met: one count fold over nums, then comb(len nums, 2) - comb(evenc, 2). This is O(n) with no nested loop, and it takes the pairs with no odd number away from all pairs.",
+      "summary": "The code counts the even numbers with the fold `count for nums: _ is even` into `evenc`. It counts all pairs with `comb(len nums, 2)` and the pairs with no odd number with `even_pairs = comb(evenc, 2)`, then returns all pairs minus `even_pairs`. comb(k, 2) gives the same value as k * (k - 1) // 2, so this is the required subtraction, not the direct count of odd-odd plus odd-even pairs. The notes are empty.",
+      "seconds": 231
     }
   }
 }
