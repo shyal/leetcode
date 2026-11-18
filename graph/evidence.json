@@ -45834,6 +45834,21 @@
       "note": "Contract met: the module-level const SECONDS_PER_HOUR: u32 has its type written and a SCREAMING_SNAKE_CASE name. hours_to_seconds has no let and no literal 3600.",
       "summary": "The file declares const SECONDS_PER_HOUR: u32 = 3600 at module level. hours_to_seconds(hours: u32) -> u32 returns hours * SECONDS_PER_HOUR as its last expression, with no semicolon and no let. main prints 10800 and asserts the values for 0, 1 and 3 hours and the value of the constant. The file has no candidate notes.",
       "seconds": 78
+    },
+    "solved/d_Unequal_Pairs_2026_11_18T23_32_40_989163_00_00Z.mu": {
+      "date": "2026-11-19",
+      "problem": "drill",
+      "drill": "d143",
+      "moves": {
+        "pair-count-formula": "struggled",
+        "streaming-accumulate-pairs": "clean",
+        "streaming-ask-then-record": "clean",
+        "counter-build": "clean"
+      },
+      "judge": "opus",
+      "note": "The run passed, but the code does not meet the contract. It returns comb(len(nums), 2) - same, which is a subtraction from the total pair count, and the contract bans that. It also counts equal pairs by streaming through nums, not by a single pass of arithmetic on the group sizes.",
+      "summary": "unequalPairs walks through nums once. At each n it adds D[n] (how many times n was seen before) to same, and then it increments D[n]. This gives the count of equal-value pairs, each counted at its second member. The function then subtracts same from comb(len(nums), 2) to get the unequal pairs. There are no notes about hints, look-ups or failed attempts.",
+      "seconds": 175
     }
   }
 }
