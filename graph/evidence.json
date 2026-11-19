@@ -45884,6 +45884,18 @@
       "summary": "For each nums1[i], the code walks nums2 once. At each nums2[j] it uses divmod(nums1[i] ** 2, nums2[j]) to get the needed partner comp, and if the remainder is zero it adds D2[comp] to res. Then it records nums2[j] in the count dict D2. A second loop does the same with the two arrays swapped. The notes show a cubic brute force written first, and they say the final solve was heavily hinted.",
       "seconds": 3356,
       "learning": true
+    },
+    "solved/p3021_Alice_and_Bob_Playing_Flower_Game_2026_11_19T05_21_53_767902_00_00Z.mu": {
+      "date": "2026-11-19",
+      "problem": "3021",
+      "moves": {
+        "pair-count-formula": "clean"
+      },
+      "judge": "opus",
+      "note": "LEETCODE: Accepted (120 ms, 19.4 MB). The odd and even counts come from O(n + m) count folds over 1..n and 1..m, not from the closed forms (n + 1) // 2 and n // 2.",
+      "summary": "The code counts the odd and even values in 1..n and in 1..m with four count folds (oddn, evenn, oddm, evenm). It returns oddn * evenm + evenn * oddm, which is the number of pairs across two groups whose sum is odd. The notes give the approach: Alice wins when the total is odd, and odd + even = odd. The code does not compute a new value minus an old value at any point, so the marginal-gain move did not occur in this solution.",
+      "seconds": 489,
+      "learning": true
     }
   }
 }
