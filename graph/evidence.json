@@ -45921,6 +45921,21 @@
       "note": "Contract met: datetime.date.fromisoformat parses both strings, and .days is read from their difference. The code does no calendar arithmetic by hand and no string slicing.",
       "summary": "days_between parses start and end with datetime.date.fromisoformat, subtracts the two dates to get a timedelta, and returns its .days. The code uses py-datetime as the drill requires. A negative result comes out with no extra code when end is before start. The run printed 14368 for the example. The asserts are commented out.",
       "seconds": 64
+    },
+    "solved/d_Unequal_Pairs_2026_11_19T23_25_23_627127_00_00Z.mu": {
+      "date": "2026-11-20",
+      "problem": "drill",
+      "drill": "d143",
+      "moves": {
+        "pair-count-formula": "struggled",
+        "streaming-accumulate-pairs": "clean",
+        "streaming-ask-then-record": "clean",
+        "counter-build": "clean"
+      },
+      "judge": "opus",
+      "note": "The run passed, but the code does not meet the contract. It returns comb(len nums, 2) - eq, which subtracts from the total pair count (banned). It also counts the equal pairs in a stream over nums, not in one pass over the group sizes.",
+      "summary": "unequalPairs walks nums once. At each n it adds D[n] (the number of earlier copies of n) to eq, then increments D[n], so eq ends as the number of equal-value index pairs. The answer is comb(len nums, 2) - eq, the total pair count minus the equal pairs. The contract asks for one pass over the group sizes with no subtraction from the total, for example a running sum of earlier group sizes multiplied by each new group size. The code uses the complement instead.",
+      "seconds": 69
     }
   }
 }
