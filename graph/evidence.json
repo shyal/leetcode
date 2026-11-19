@@ -45896,6 +45896,19 @@
       "summary": "The code counts the odd and even values in 1..n and in 1..m with four count folds (oddn, evenn, oddm, evenm). It returns oddn * evenm + evenn * oddm, which is the number of pairs across two groups whose sum is odd. The notes give the approach: Alice wins when the total is odd, and odd + even = odd. The code does not compute a new value minus an old value at any point, so the marginal-gain move did not occur in this solution.",
       "seconds": 489,
       "learning": true
+    },
+    "solved/d_Total_Users_Per_Contest_2026_11_19T23_22_03_218266_00_00Z.mu": {
+      "date": "2026-11-20",
+      "problem": "drill",
+      "drill": "d55",
+      "moves": {
+        "sql-subquery": "clean",
+        "sql-group-aggregate": "clean"
+      },
+      "judge": "opus",
+      "note": "The contract is met: one query, GROUP BY r.contest_id gives one row per contest, and the scalar subquery (select count(*) from Users) reads the user count at run time. Users is not joined into the grouped query and the count is not hard-coded.",
+      "summary": "The query groups Register by r.contest_id to get one row per contest. It sets total_users with the scalar subquery (select count(*) from Users), so the count comes from the Users table and not from the registrations. Both example assertions passed. The notes do not say that the candidate got help.",
+      "seconds": 250
     }
   }
 }
