@@ -45909,6 +45909,18 @@
       "note": "The contract is met: one query, GROUP BY r.contest_id gives one row per contest, and the scalar subquery (select count(*) from Users) reads the user count at run time. Users is not joined into the grouped query and the count is not hard-coded.",
       "summary": "The query groups Register by r.contest_id to get one row per contest. It sets total_users with the scalar subquery (select count(*) from Users), so the count comes from the Users table and not from the registrations. Both example assertions passed. The notes do not say that the candidate got help.",
       "seconds": 250
+    },
+    "solved/d_Days_Between_2026_11_19T23_23_56_073359_00_00Z.py": {
+      "date": "2026-11-20",
+      "problem": "drill",
+      "drill": "d202",
+      "moves": {
+        "py-datetime": "clean"
+      },
+      "judge": "opus",
+      "note": "Contract met: datetime.date.fromisoformat parses both strings, and .days is read from their difference. The code does no calendar arithmetic by hand and no string slicing.",
+      "summary": "days_between parses start and end with datetime.date.fromisoformat, subtracts the two dates to get a timedelta, and returns its .days. The code uses py-datetime as the drill requires. A negative result comes out with no extra code when end is before start. The run printed 14368 for the example. The asserts are commented out.",
+      "seconds": 64
     }
   }
 }
