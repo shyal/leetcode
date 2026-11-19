@@ -4841,6 +4841,33 @@
         "pair-count-formula"
       ],
       "judge": "The answer is the count of all pairs, n * (n - 1) // 2, minus the count of the pairs that have no odd number, evens * (evens - 1) // 2. The pairs with no odd number are counted, then taken away from all pairs. Adding the pairs of two odds to the pairs of one odd and one even is the direct count, and it is not the drill."
+    },
+    "d552": {
+      "title": "Sums Of K Parts",
+      "file": "stars-and-bars/d552_sums_of_k_parts.py",
+      "after": [],
+      "trains": [
+        "stars-and-bars"
+      ],
+      "judge": "The stars and bars formula in one expression: comb(n + k - 1, k - 1), or the equal comb(n + k - 1, n). A recursion or a DP on (index, remaining sum) is not the drill."
+    },
+    "d553": {
+      "title": "Sums With A Lower Bound",
+      "file": "stars-and-bars/d553_sums_with_a_lower_bound.py",
+      "after": ["d552"],
+      "trains": [
+        "stars-and-bars"
+      ],
+      "judge": "The first integer is given m, and the remaining n - m is counted with the formula of d552: comb(n - m + k - 1, k - 1), and 0 when n < m. A loop over the values of the first integer is not the drill."
+    },
+    "d554": {
+      "title": "Multiples Of A Or B",
+      "file": "inclusion-exclusion/d554_multiples_of_a_or_b.py",
+      "after": [],
+      "trains": [
+        "inclusion-exclusion"
+      ],
+      "judge": "The multiples of a plus the multiples of b, minus the multiples of both: n // a + n // b - n // lcm(a, b), where lcm(a, b) is a * b // gcd(a, b). Division by a * b in place of the lcm fails Example 2."
     }
   }
 }
