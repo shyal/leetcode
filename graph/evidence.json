@@ -45861,6 +45861,29 @@
       "note": "Contract met: one count fold over nums, then comb(len nums, 2) - comb(evenc, 2). This is O(n) with no nested loop, and it takes the pairs with no odd number away from all pairs.",
       "summary": "The code counts the even numbers with the fold `count for nums: _ is even` into `evenc`. It counts all pairs with `comb(len nums, 2)` and the pairs with no odd number with `even_pairs = comb(evenc, 2)`, then returns all pairs minus `even_pairs`. comb(k, 2) gives the same value as k * (k - 1) // 2, so this is the required subtraction, not the direct count of odd-odd plus odd-even pairs. The notes are empty.",
       "seconds": 231
+    },
+    "solved/p1577_Number_of_Ways_Where_Square_of_Number_Is_Equal_to_Product_of_Two_Numbers_2026_11_19T00_35_14_490469_00_00Z.mu": {
+      "date": "2026-11-19",
+      "problem": "1577",
+      "moves": {
+        "streaming-ask-then-record": "clean",
+        "derived-key-lookup": "clean",
+        "solve-pair-condition": "clean",
+        "streaming-accumulate-pairs": "clean",
+        "counter-build": "clean"
+      },
+      "assist": {
+        "streaming-ask-then-record": "hint",
+        "derived-key-lookup": "hint",
+        "solve-pair-condition": "hint",
+        "streaming-accumulate-pairs": "hint",
+        "counter-build": "hint"
+      },
+      "judge": "opus",
+      "note": "LEETCODE: Accepted (818 ms, 19 MB). The notes say 'solved, but heavily hinted' and do not say where the hints were, so the hint level is on every move.",
+      "summary": "For each nums1[i], the code walks nums2 once. At each nums2[j] it uses divmod(nums1[i] ** 2, nums2[j]) to get the needed partner comp, and if the remainder is zero it adds D2[comp] to res. Then it records nums2[j] in the count dict D2. A second loop does the same with the two arrays swapped. The notes show a cubic brute force written first, and they say the final solve was heavily hinted.",
+      "seconds": 3356,
+      "learning": true
     }
   }
 }
