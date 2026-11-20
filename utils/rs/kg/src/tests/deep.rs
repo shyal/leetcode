@@ -127,8 +127,8 @@ fn a_day_serves_no_problem_of_another_technique() {
 fn a_repeat_that_is_not_due_is_served_the_oldest_first() {
     let (fx, mut recs, st) = fixture();
     test_env("KG_DEEP", "1");
-    recs.push(solve("2", &[("weak", "clean")], 2));
-    recs.push(solve("1", &[("weak", "clean")], 1));
+    recs.push(solve("2", &[("weak", "clean")], 4));
+    recs.push(solve("1", &[("weak", "clean")], 3));
     recs.push(solve("11", &[("weak", "clean")], 0));
     let ev = evidence(recs);
     let due = crate::clock::due_problems(&ev, today(), None);
@@ -136,6 +136,25 @@ fn a_repeat_that_is_not_due_is_served_the_oldest_first() {
     let c = fx.run(&ev, &st, args());
     assert_eq!(pnum(&c), "2");
     assert!(reason(&c).contains("not due"));
+}
+
+/// 2026-11-20: a repeat that is not due is not served in the
+/// PROBLEM_GRADUATING_DAYS days after its last record. 3021 was solved
+/// clean on 2026-11-19 and came back on 2026-11-20.
+#[test]
+fn a_repeat_that_is_not_due_is_not_served_too_soon() {
+    let (fx, mut recs, st) = fixture();
+    test_env("KG_DEEP", "1");
+    let gap = crate::clock::PROBLEM_GRADUATING_DAYS;
+    recs.push(solve("2", &[("weak", "clean")], gap));
+    recs.push(solve("1", &[("weak", "clean")], gap - 1));
+    recs.push(solve("11", &[("weak", "clean")], 0));
+    let ev = evidence(recs.clone());
+    let c = fx.run(&ev, &st, args());
+    assert_eq!(pnum(&c), "2");
+    recs.push(solve("2", &[("weak", "clean")], 0));
+    let c = fx.run(&evidence(recs), &st, args());
+    assert!(c.is_none_or(|c| c.pnum != "1"));
 }
 
 /// Block 3: with no first sight solved alone on the technique, the first
@@ -290,7 +309,11 @@ fn only_the_language_drills_and_the_drills_of_the_technique_are_served() {
     ];
     let c = fx.run(&evidence(recs.clone()), &st, args());
     assert_eq!(pnum(&c), "drill:query");
-    let c = fx.run(&evidence(recs.clone()), &st, args().exclude(&["drill:query"]));
+    let c = fx.run(
+        &evidence(recs.clone()),
+        &st,
+        args().exclude(&["drill:query"]),
+    );
     assert_eq!(pnum(&c), "drill:weak");
     let done = args().exclude(&["drill:query", "drill:weak"]);
     let c = fx.run(&evidence(recs.clone()), &st, done.clone());
@@ -320,7 +343,13 @@ fn a_named_group_serves_the_drill_of_another_technique() {
 fn the_drill_of_the_technique_holds_none_of_its_problems() {
     let (mut fx, mut recs, st) = fixture();
     fx.bank("weak", "Weak Drill", "w.py", "d1", &[]);
-    recs.push(drill_rep_v("Weak Drill", "weak", 0, "struggled", Assist::None));
+    recs.push(drill_rep_v(
+        "Weak Drill",
+        "weak",
+        0,
+        "struggled",
+        Assist::None,
+    ));
     test_env("KG_DEEP", "2");
     let ctx = fx.ctx();
     let ev = evidence(recs.clone());
@@ -332,4 +361,22 @@ fn the_drill_of_the_technique_holds_none_of_its_problems() {
     recs.push(solve("11", &[("weak", "clean")], 0));
     let c = fx.run(&evidence(recs), &st, args());
     assert!(reason(&c).contains("a due repeat"));
+}
+
+/// 2026-11-20: a drill never done of another algorithm technique is
+/// served (d552, d553 and d554 were made that day and never came). The
+/// same drill with a rep on file is held, due or not.
+#[test]
+fn a_drill_never_done_of_another_technique_is_served() {
+    let (mut fx, mut recs, st) = fixture();
+    let path = fx.bank("strong", "Strong Drill", "s.py", "d2", &[]);
+    fx.stubs().clock = vec![(path, "strong".into())];
+    test_env("KG_DEEP", "1");
+    test_env("NO_REVIEWS", "1");
+    test_env("DRILL_SCHEDULER", "anki");
+    let c = fx.run(&evidence(recs.clone()), &st, args());
+    assert_eq!(pnum(&c), "drill:strong");
+    recs.push(drill_rep("Strong Drill", "strong", 30));
+    let c = fx.run(&evidence(recs), &st, args());
+    assert!(reason(&c).starts_with("deep dive"));
 }

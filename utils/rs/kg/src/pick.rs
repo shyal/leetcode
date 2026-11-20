@@ -251,7 +251,7 @@
 
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use chrono::{Duration, NaiveDate};
 
@@ -1554,7 +1554,7 @@ pub fn pick(
 ) -> Option<Choice> {
     // the deep dive (KG_DEEP, deep.rs). Depth comes before the memory
     // curves (2026-11-13): the only algorithm drills of the day are the due
-    // ones of the day's technique. The language drills are syntax memory
+    // ones of the day's technique and the ones never done (2026-11-20). The language drills are syntax memory
     // and go on by their clock, first.
     if let Some(day) = crate::deep::day(ctx, ev, args) {
         let capped = crate::drills::capped_groups(ctx, ev, ctx.today(), &group_caps());
@@ -1572,6 +1572,19 @@ pub fn pick(
         let mut others = held.clone();
         others.remove(&format!("drill:{node}"));
         if let Some(c) = clock(ctx, ev, statuses, &with(&others), &capped) {
+            return Some(c);
+        }
+        // the drills never done of the other techniques (2026-11-20): a
+        // technique gets a day only after a first sight needed it, so the
+        // drills of a new technique were never served (d552, d553, d554).
+        // A set file is not one of them: a set has its own order and cap.
+        let fresh = |path: &Path, n: &str| {
+            held.contains(&format!("drill:{n}"))
+                && ctx.drill_id(path).is_some()
+                && crate::drills::drill_set(ctx, path).is_none()
+                && anki_due(ctx, path, ev).is_none()
+        };
+        if let Some(c) = clock_where(ctx, ev, statuses, args, &capped, &fresh) {
             return Some(c);
         }
         return match crate::deep::pick(ctx, pv, ev, statuses, args, &day) {
@@ -1614,6 +1627,18 @@ fn clock(
     args: &PickArgs,
     capped: &HashSet<String>,
 ) -> Option<Choice> {
+    clock_where(ctx, ev, statuses, args, capped, &|_, _| true)
+}
+
+/// clock, over the frontier files that `only` (path, node) lets through.
+fn clock_where(
+    ctx: &Ctx,
+    ev: &Evidence,
+    statuses: &Statuses,
+    args: &PickArgs,
+    capped: &HashSet<String>,
+    only: &dyn Fn(&Path, &str) -> bool,
+) -> Option<Choice> {
     if !anki() {
         return None;
     }
@@ -1627,6 +1652,9 @@ fn clock(
     for (path, node) in anki_frontier(ctx, ev, today, None, Some(&scope), args.assisted) {
         let drill_id = format!("drill:{node}");
         if args.exclude.contains(&drill_id) || !statuses.contains_key(&node) {
+            continue;
+        }
+        if !only(&path, &node) {
             continue;
         }
         if ctx.group_of(&node).is_some_and(|g| capped.contains(g)) {

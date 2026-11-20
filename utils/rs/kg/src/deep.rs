@@ -17,11 +17,17 @@
 //      design), within their caps: syntax memory, and the clock is the
 //      tool for it;
 //   2. the drills of the day's technique that are due on the clock;
+//   2b. the drills never done of the other algorithm techniques, a set
+//      file apart (2026-11-20, pick::pick): a technique gets a day only
+//      after a first sight needed it, so the drills of a new technique
+//      were never served. MAX_NEW_DRILLS is the limit;
 //   3. the problems of the technique, in turns: a problem he has never
 //      met, then a repeat, until N never-met problems are done; then
 //      repeats only. The never-met problems go easy to hard. The repeats
 //      are the due ones, easy to hard, then the ones that are not due,
-//      the one he did longest ago first.
+//      the one he did longest ago first. A repeat that is not due is
+//      served only clock::PROBLEM_GRADUATING_DAYS days or more after its
+//      last record (2026-11-20; before that it came back the next day).
 // A day is one topic (his word, 2026-11-16): no problem of another
 // technique is served, due or not. Before that date the due repeats of
 // every other technique came after step 3, and on 2026-11-16 the queue
@@ -29,8 +35,8 @@
 // A drill of the day's technique holds none of its problems (2026-11-14,
 // bank::held_behind_past): step 2 serves it first, and while it was cold
 // it held every problem of steps 3 and 4.
-// The drills of the other algorithm techniques are not served that day,
-// due or not: depth comes before the memory curves (his thesis,
+// The drills of the other algorithm techniques that he has done are not
+// served that day, due or not: depth comes before the memory curves (his thesis,
 // 2026-11-13), and a technique's drills come back on its own day. Steps 1
 // and 2 are in pick::pick, step 3 in pick() here.
 // A named group, cram, early, assisted and a woken problem are his own
@@ -68,7 +74,7 @@ use std::collections::{HashMap, HashSet};
 use chrono::{Duration, NaiveDate};
 
 use crate::bank::held_behind_past;
-use crate::clock::{attempt_label, is_studied};
+use crate::clock::{attempt_label, is_studied, PROBLEM_GRADUATING_DAYS};
 use crate::ctx::{Ctx, PView};
 use crate::data::{env_str, filed_at, is_numeric_id, parse_date, pnum_key, Problem};
 use crate::drills::{in_group, ALGORITHMS};
@@ -424,7 +430,8 @@ pub fn algorithm_drills(ctx: &Ctx) -> HashSet<String> {
 
 /// The repeats of the day's technique that can be served now: the due
 /// ones, easy to hard, then the ones that are not due, the one he did
-/// longest ago first. A problem with a record of today is not in it.
+/// longest ago first. A problem that is not due and has a record in the
+/// last PROBLEM_GRADUATING_DAYS days is not in it.
 fn repeats(
     ctx: &Ctx,
     pv: &PView,
@@ -474,11 +481,16 @@ fn repeats(
                 return None;
             }
             let last = recs.iter().map(|(d, _, _)| parse_date(d)).max()?;
-            (last < today).then(|| (last, num.clone()))
+            // a repeat that is not due waits the days the clock gives a
+            // fail (2026-11-20: 3021 came back the day after a clean solve)
+            (last + Duration::days(PROBLEM_GRADUATING_DAYS) <= today).then(|| (last, num.clone()))
         })
         .filter(|(_, num)| held_behind_past(ctx, num, pv, ev, today, Some(node)).is_none())
         .collect();
-    early.sort_by(|a, b| a.0.cmp(&b.0).then_with(|| pnum_key(&a.1).cmp(&pnum_key(&b.1))));
+    early.sort_by(|a, b| {
+        a.0.cmp(&b.0)
+            .then_with(|| pnum_key(&a.1).cmp(&pnum_key(&b.1)))
+    });
     due.into_iter()
         .map(|num| (num, true))
         .chain(early.into_iter().map(|(_, num)| (num, false)))
@@ -536,7 +548,9 @@ pub fn pick(
         if crate::drills::no_reviews() {
             return None;
         }
-        let (num, due) = repeats(ctx, &pv.borrow(), ev, args, day).into_iter().next()?;
+        let (num, due) = repeats(ctx, &pv.borrow(), ev, args, day)
+            .into_iter()
+            .next()?;
         let what = if due {
             "a due repeat that uses it"
         } else {
