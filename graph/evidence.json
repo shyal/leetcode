@@ -45985,6 +45985,23 @@
       "summary": "The helper num(arr1, arr2) takes each iv in arr1 and builds a new count dict D = {:int}. It walks arr2, and at each j it adds D[iv * iv / j] to res before it does D[j] += 1. It solves iv*iv = p*j for the partner p and counts each pair at its second member. numTriplets returns num(nums1, nums2) + num(nums2, nums1). The notes say STAGE 1 was a recognition failure and slow. That earlier draft, kept in the file, compared iv*iv with arr2[j] * arr2[k] for every index pair from pairs(len(arr2)). LeetCode accepted the final code.",
       "seconds": 623,
       "learning": true
+    },
+    "solved/p2685_Count_the_Number_of_Complete_Components_2026_11_20T01_21_41_407727_00_00Z.mu": {
+      "date": "2026-11-20",
+      "problem": "2685",
+      "moves": {
+        "graph-adjacency-build": "clean",
+        "py-generator-expression": "clean",
+        "py-dict-comprehension": "clean"
+      },
+      "judge": "opus",
+      "note": "LEETCODE: Accepted (65 ms, 20 MB). The harness helper components() finds the connected components, so the code has no traversal of its own.",
+      "summary": "The code builds an undirected adjacency list G with adjacency(edges, n, directed=false). Then it gets each connected component from the harness helper components(0..<n, u -> G[u]). A component counts as complete when every node c in comps has len(g[c]) == len(comps) - 1, which the code checks with all(...) over a generator expression, and num_connected adds 1 for each complete component. The STAGE 1 approach section in the notes is empty, and the notes record no hints.",
+      "unmapped": [
+        "complete component: every degree equals size minus one"
+      ],
+      "seconds": 855,
+      "learning": true
     }
   }
 }
