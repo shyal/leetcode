@@ -45969,6 +45969,22 @@
       "note": "Contract met: one while loop with left and right indices, O(n) time, O(1) extra space, no loop over pairs, no bisect. The notes say 'learning'.",
       "summary": "pairsAtMost puts left at index 0 and right at len(nums) - 1. When nums[left] + nums[right] <= x, it adds right - left to count and moves left up. If not, it moves right down. The loop stops when left meets right. The notes say 'learning', so the solution was given and copied.",
       "seconds": 652
+    },
+    "solved/p1577_Number_of_Ways_Where_Square_of_Number_Is_Equal_to_Product_of_Two_Numbers_2026_11_20T01_06_52_555388_00_00Z.mu": {
+      "date": "2026-11-20",
+      "problem": "1577",
+      "moves": {
+        "streaming-ask-then-record": "clean",
+        "derived-key-lookup": "clean",
+        "solve-pair-condition": "clean",
+        "streaming-accumulate-pairs": "clean",
+        "counter-build": "clean"
+      },
+      "judge": "opus",
+      "note": "LEETCODE: Accepted (821 ms, 19 MB). The notes record STAGE 1 as 'miss (recognition failure, slow)': the first draft checked every index pair with pairs(len(arr2)).",
+      "summary": "The helper num(arr1, arr2) takes each iv in arr1 and builds a new count dict D = {:int}. It walks arr2, and at each j it adds D[iv * iv / j] to res before it does D[j] += 1. It solves iv*iv = p*j for the partner p and counts each pair at its second member. numTriplets returns num(nums1, nums2) + num(nums2, nums1). The notes say STAGE 1 was a recognition failure and slow. That earlier draft, kept in the file, compared iv*iv with arr2[j] * arr2[k] for every index pair from pairs(len(arr2)). LeetCode accepted the final code.",
+      "seconds": 623,
+      "learning": true
     }
   }
 }
