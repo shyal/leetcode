@@ -46034,6 +46034,18 @@
       "note": "The contract is met: the code divides n by lcm = a * b // gcd(a, b), runs in O(log(a + b)) and has no loop from 1 to n. The notes say 'learning'.",
       "summary": "multiples computes c = a * b // gcd(a, b), which is the lcm of a and b, and returns n // c, the count of multiples of c from 1 to n. This is gcd-reduction with no loop over the integers. The notes say 'learning', so the solution was given and copied.",
       "seconds": 653
+    },
+    "solved/d_Least_Common_Multiple_2026_11_20T02_16_44_723738_00_00Z.mu": {
+      "date": "2026-11-20",
+      "problem": "drill",
+      "drill": "d557",
+      "moves": {
+        "gcd-reduction": "clean"
+      },
+      "judge": "opus",
+      "note": "Contract met: one gcd call, so the time is O(log(a + b)). The code does not use lcm() and has no loop over the multiples of a.",
+      "summary": "Solution.lcm returns a * b // gcd(a, b) in one expression. It uses the gcd from the harness to divide out the common factors, so lcm(4, 6) gives 12 and not 24. All the asserts passed, including the 10 ** 12 inputs. The notes are empty.",
+      "seconds": 33
     }
   }
 }
