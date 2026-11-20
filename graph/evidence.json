@@ -45936,6 +45936,24 @@
       "note": "The run passed, but the code does not meet the contract. It returns comb(len nums, 2) - eq, which subtracts from the total pair count (banned). It also counts the equal pairs in a stream over nums, not in one pass over the group sizes.",
       "summary": "unequalPairs walks nums once. At each n it adds D[n] (the number of earlier copies of n) to eq, then increments D[n], so eq ends as the number of equal-value index pairs. The answer is comb(len nums, 2) - eq, the total pair count minus the equal pairs. The contract asks for one pass over the group sizes with no subtraction from the total, for example a running sum of earlier group sizes multiplied by each new group size. The code uses the complement instead.",
       "seconds": 69
+    },
+    "solved/p2563_Count_the_Number_of_Fair_Pairs_2026_11_20T00_14_25_849897_00_00Z.mu": {
+      "date": "2026-11-20",
+      "problem": "2563",
+      "moves": {
+        "two-pointers-converging": "clean"
+      },
+      "assist": {
+        "two-pointers-converging": "learning"
+      },
+      "judge": "opus",
+      "note": "The notes give 'Hint 1: it's ok to sort' and 'learning'. The candidate built a drill for the pairs_at_most helper before this solve.",
+      "summary": "The code sorts nums. pairs_at_most(x) moves left and right toward each other: when nums[left] + nums[right] <= x, it adds right - left to count, because every index from left + 1 to right pairs with left, and then moves left up; otherwise it moves right down. The answer is pairs_at_most(upper) - pairs_at_most(lower - 1). The notes say the candidate used the hint that sorting is allowed, built a drill for the pairs-at-most step, and filed the solve as learning.",
+      "unmapped": [
+        "count in range as atMost(upper) minus atMost(lower-1)"
+      ],
+      "seconds": 1786,
+      "learning": true
     }
   }
 }
