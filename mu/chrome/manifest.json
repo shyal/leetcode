@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "mu",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Write the solution in mu on LeetCode and aced.io: the Python it compiles to is what runs. LeetCode pages show problem ratings.",
   "permissions": ["sidePanel", "scripting", "storage", "tabs", "offscreen"],
   "host_permissions": ["https://leetcode.com/*", "https://www.aced.io/*"],
@@ -13,9 +13,9 @@
   },
   "content_scripts": [
     { "matches": ["https://leetcode.com/*"], "js": ["ratings.js"], "run_at": "document_idle" },
-    { "matches": ["https://leetcode.com/problems/*", "https://leetcode.com/contest/*/problems/*", "https://www.aced.io/practice/*", "https://www.aced.io/questions/*"], "js": ["mu_bridge.js"], "run_at": "document_start" },
+    { "matches": ["https://leetcode.com/problems/*", "https://leetcode.com/contest/*/problems/*", "https://www.aced.io/*"], "js": ["mu_bridge.js"], "run_at": "document_start" },
     { "matches": ["https://leetcode.com/problems/*", "https://leetcode.com/contest/*/problems/*"], "js": ["mu_common.js", "mu_page.js"], "run_at": "document_start", "world": "MAIN" },
-    { "matches": ["https://www.aced.io/practice/*", "https://www.aced.io/questions/*"], "js": ["mu_common.js", "mu_aced.js"], "run_at": "document_start", "world": "MAIN" }
+    { "matches": ["https://www.aced.io/*"], "js": ["mu_common.js", "mu_aced.js"], "run_at": "document_start", "world": "MAIN" }
   ],
   "web_accessible_resources": [
     { "resources": ["ratings.json"], "matches": ["https://leetcode.com/*"] }

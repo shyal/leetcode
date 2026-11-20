@@ -280,7 +280,7 @@ def test_a_serve_mu_cannot_hold_empties_a_stale_stub(tmp_path):
     stale = stub(open(drill_for(reference("d115_"))).read())
     (tmp_path / "current.mu").write_text(stale)
     (tmp_path / ".mu_stub").write_text(stale)
-    given = PROBLEM.replace("target: int)", "target: int = 0)")
+    given = PROBLEM.replace("target: int)", "target: int, *rest)")
     (tmp_path / "current.py").write_text(given)
     assert "solve it in current.py" in session(tmp_path, "stub").stdout
     assert (tmp_path / "current.mu").read_text() == ""
@@ -651,8 +651,8 @@ def test_a_design_problem_and_a_given_class_are_written_as_classes(tmp_path):
 
 
 def test_a_problem_mu_cannot_hold_is_left_to_current_py(tmp_path):
-    # a method with a default argument: mu has no form for it
-    given = PROBLEM.replace("target: int)", "target: int = 0)")
+    # a method with *args: the stub has no form for it
+    given = PROBLEM.replace("target: int)", "target: int, *rest)")
     (tmp_path / "current.py").write_text(given)
     out = session(tmp_path, "stub")
     assert out.returncode == 0 and "solve it in current.py" in out.stdout

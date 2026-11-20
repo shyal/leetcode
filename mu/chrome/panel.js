@@ -8,8 +8,8 @@
 
 const $ = (id) => document.getElementById(id);
 const PROBLEM = /^https:\/\/leetcode\.com(?:\/contest\/[^/]+)?\/problems\/([^/?#]+)/;
-const ACED = /^https:\/\/www\.aced\.io\/(practice|questions)\/([^/?#]+)/;
-// the storage key's tail: the LeetCode slug, or aced:practice/<session id>, aced:questions/<number>
+const ACED = /^https:\/\/www\.aced\.io\/(practice|questions)\/((?:prepare\/)?[^/?#]+)/;
+// the storage key's tail: the LeetCode slug, or aced:practice/<session id>, aced:practice/prepare/<question>, aced:questions/<number>
 const pageKey = (url) => PROBLEM.exec(url)?.[1] || (ACED.test(url) ? `aced:${ACED.exec(url)[1]}/${ACED.exec(url)[2]}` : null);
 let slug = null;
 let tabId = null;

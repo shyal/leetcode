@@ -134,3 +134,57 @@ def test_origin_header_is_unmapped_and_python_lines_point_at_their_mu(submit):
     assert mu_line_of("return [res[v]") == 12
     # the pasted helper's own lines are nobody's mu line
     assert mu_line_of("def table(") is None
+
+
+# --- starter -----------------------------------------------------------------
+
+# aced.io's Balanced Tree: a def whose body is only a comment, and defaults
+ACED_STARTER = """class Node:
+    def __init__(self, value, left=None, right=None):
+        self.value = value
+        self.left = left
+        self.right = right
+
+def is_balanced(node):
+    # your code goes here
+    
+# debug your code below
+root = Node(1)
+root.left = Node(2)
+print(is_balanced(root)) """
+
+
+def test_starter_takes_a_comment_only_def_and_default_values(submit):
+    mu = submit.starter(ACED_STARTER)
+    assert "def __init__(value, left=none, right=none)" in mu
+    assert "def is_balanced(node)" in mu
+    py = submit.plain(mu)
+    assert "def __init__(self, value, left=None, right=None):" in py
+    compile(py, "starter", "exec")
+
+
+def test_starter_keeps_else_and_elif_blocks(submit):
+    py = """class Tree:
+    def find(self, key: int) -> int:
+        node = self.root
+        while node is not None:
+            if key == node.key:
+                return 1
+            elif key < node.key:
+                node = node.left
+            else:
+                node = node.right
+        else:
+            key = 0
+        return 0
+
+if Tree:
+    print("a")
+else:
+    print("b")
+"""
+    mu = submit.starter(py)
+    assert "      elif key < node.key\n        node = node.left\n      else\n        node = node.right\n" in mu
+    assert "    else\n      key = 0\n" in mu
+    assert "else\n  print('b')" in mu
+    compile(submit.plain(mu), "starter", "exec")

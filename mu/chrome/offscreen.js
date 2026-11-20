@@ -4,7 +4,7 @@
 
 const CALLS = {
   submission: "submit.submission", origin: "submit.origin", plain: "submit.plain",
-  transpile: "mulang.transpile", starter: "submit.starter",
+  shared: "submit.shared", transpile: "mulang.transpile", starter: "submit.starter",
 };
 
 const ready = (async () => {

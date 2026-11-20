@@ -14,9 +14,13 @@ plain(src): what goes in aced.io's editor, the Python alone, with the
 imports LeetCode preloads (utils/harness/sitecustomize.py mirrors them)
 for the names the Python uses: aced runs plain Python.
 
+shared(src): that Python with the mu line behind each of its lines, for
+the split view on aced.io.
+
 starter(py): the mu to start from, LeetCode's Python3 starter code
-through mu/session.py stub. The starter leaves each def's body empty,
-which does not parse, so every empty def first gets a `pass`."""
+through mu/session.py stub. The starter leaves each def's body empty
+(aced.io's holds only a comment), which does not parse, so every such
+def first gets a `pass`."""
 
 import ast
 import json
@@ -93,6 +97,16 @@ def plain(src):
     return "\n".join(lines) + "\n\n" + py if lines else py
 
 
+def shared(src):
+    """What mu_aced.js shows beside the mu: `plain`'s Python and, as in
+    `origin`, the mu line behind each of its lines, as JSON {"py", "origin"}."""
+    py, lines = transpile(src, mapped=True)
+    head = preloads(py)
+    if head:
+        py, lines = "\n".join(head) + "\n\n" + py, [None] * (len(head) + 1) + lines
+    return json.dumps({"py": py, "origin": lines})
+
+
 def indent(line):
     return len(line) - len(line.lstrip())
 
@@ -103,7 +117,7 @@ def starter(py):
     for k, line in enumerate(lines):
         out.append(line)
         m = DEF.match(line)
-        rest = [ln for ln in lines[k + 1 :] if ln.strip()]
+        rest = [ln for ln in lines[k + 1 :] if ln.strip() and not ln.lstrip().startswith("#")]
         if m and (not rest or indent(rest[0]) <= indent(line)):
             out.append(m.group(1) + "    pass")
     return stub("\n".join(out) + "\n") or ""

@@ -170,18 +170,24 @@ def mu_lines(stmts, ind):
             out += [f"{pad}def {s.targets[0].id}({args})"]
             out += [f"{pad}  {mu_expr(s.value.body)}", ""]
         elif isinstance(s, ast.FunctionDef):
-            args = ", ".join(a.arg for a in plain_params(s))
-            out.append(f"{pad}def {s.name}({args})")
+            out.append(f"{pad}def {s.name}({mu_params(s, typed=False)})")
             out += mu_lines(s.body, ind + 1) or [f"{pad}  pass"]
             out.append("")
         elif isinstance(s, ast.For):
             names, it = loop_head(s.target, s.iter)
             out.append(f"{pad}for {names} in {mu_expr(it)}")
             out += mu_lines(s.body, ind + 1) or [f"{pad}  pass"]
+            out += else_lines(s.orelse, ind)
         elif isinstance(s, (ast.If, ast.While)):
             word = "if" if isinstance(s, ast.If) else "while"
-            out.append(f"{pad}{word} {mu_expr(s.test)}")
-            out += mu_lines(s.body, ind + 1) or [f"{pad}  pass"]
+            while True:
+                out.append(f"{pad}{word} {mu_expr(s.test)}")
+                out += mu_lines(s.body, ind + 1) or [f"{pad}  pass"]
+                # an else that holds one if alone is an elif
+                if word == "while" or len(s.orelse) != 1 or not isinstance(s.orelse[0], ast.If):
+                    break
+                s, word = s.orelse[0], "elif"
+            out += else_lines(s.orelse, ind)
         elif isinstance(s, ast.Return):
             out.append(
                 pad + ("return" if s.value is None else f"return {bare(s.value)}")
@@ -194,6 +200,13 @@ def mu_lines(stmts, ind):
     return out
 
 
+def else_lines(stmts, ind):
+    """The else block of an if, a for or a while, as mu lines."""
+    if not stmts:
+        return []
+    return ["  " * ind + "else"] + (mu_lines(stmts, ind + 1) or ["  " * (ind + 1) + "pass"])
+
+
 def body_comments(fn, py_lines):
     """The whole-line comments inside a def, as mu body lines. The syntax
     tree drops them, and a drill's mnemonic is one of them."""
@@ -202,10 +215,10 @@ def body_comments(fn, py_lines):
 
 
 def plain_params(fn):
-    """The parameters of a def mu can write: positional, no default, no
-    *args or **kwargs, no decorator. A method's self is dropped: mu adds it."""
+    """The parameters of a def mu can write: positional, no *args or
+    **kwargs, no decorator. A method's self is dropped: mu adds it."""
     a = fn.args
-    if a.defaults or a.kwonlyargs or a.vararg or a.kwarg or a.posonlyargs:
+    if a.kwonlyargs or a.vararg or a.kwarg or a.posonlyargs:
         raise MuError(f"{fn.name} has a parameter mu cannot write")
     if fn.decorator_list:
         raise MuError(f"{fn.name} has a decorator")
@@ -213,12 +226,24 @@ def plain_params(fn):
     return args[1:] if args and args[0].arg == "self" else args
 
 
-def mu_def(fn, comments=()):
-    """A Python def as a mu def."""
+def mu_params(fn, typed=True):
+    """The parameter list of a def in mu: `x`, `x: int`, `x=none`,
+    `x: int = 0`. A default belongs to one of the last parameters."""
+    args = fn.args.args
+    default = dict(zip((a.arg for a in args[len(args) - len(fn.args.defaults) :]), fn.args.defaults))
     params = []
     for a in plain_params(fn):
-        t = mu_type(a.annotation)
-        params.append(a.arg if t is None else f"{a.arg}: {t}")
+        t = mu_type(a.annotation) if typed else None
+        p = a.arg if t is None else f"{a.arg}: {t}"
+        if a.arg in default:
+            p += ("=" if t is None else " = ") + mu_expr(default[a.arg])
+        params.append(p)
+    return ", ".join(params)
+
+
+def mu_def(fn, comments=()):
+    """A Python def as a mu def."""
+    params = [mu_params(fn)]
     ret = mu_type(fn.returns)
     word = "async def" if isinstance(fn, ast.AsyncFunctionDef) else "def"
     head = f"{word} {fn.name}({', '.join(params)})" + (f" -> {ret}" if ret else "")
@@ -965,11 +990,47 @@ def run_file(target, color=False):
     return run([compiled(target.read_text(), str(target))], target, color)
 
 
+RUN_USAGE = """usage: mu [FILE.mu] [--color | --no-color]
+       mu --py FILE.mu
+       mu --mu FILE.py
+
+  mu              open the REPL
+  mu FILE.mu      run the file; an error shows its line in the mu file
+  --py FILE.mu    print the file as Python
+  --mu FILE.py    print the file as mu
+  --color         colour the traceback (the default on a terminal)
+  --no-color      no colour
+  -h, --help      show this text"""
+
+
+def cmd_convert(root, mode, name):
+    """`mu --py FILE.mu` prints the Python the file transpiles to; `mu
+    --mu FILE.py` prints the Python file as mu (the form `stub` gives a
+    serve: the docstring as comments, the classes and defs, the script).
+    `-` is stdin."""
+    try:
+        src = sys.stdin.read() if name == "-" else (root / name).read_text()
+        if mode == "--py":
+            out = transpile(src)
+        else:
+            out = stub(src) or fmt(mu_script(src) + "\n")
+    except (MuError, SyntaxError, OSError) as err:
+        print(f"{name}: {err}", file=sys.stderr)
+        return 1
+    sys.stdout.write(out)
+    return 0
+
+
 def cmd_run(root, *args):
     """`make`: run current.mu in place when it holds the serve, else
     current.py (a serve mu could not hold). No file is written. `run
     FILE.mu` runs any mu file on its own. The traceback is coloured on a
     terminal, or with --color; --no-color turns it off."""
+    if args[:1] in (("--py",), ("--mu",)):
+        if len(args) != 2:
+            print(RUN_USAGE, file=sys.stderr)
+            return 1
+        return cmd_convert(root, *args)
     color = sys.stderr.isatty()
     files = []
     for a in args:
@@ -977,10 +1038,17 @@ def cmd_run(root, *args):
             color = True
         elif a == "--no-color":
             color = False
+        elif a in ("-h", "--help"):
+            print(RUN_USAGE)
+            return 0
+        elif a.startswith("-"):
+            print(f"mu: unknown option {a}\n{RUN_USAGE}", file=sys.stderr)
+            return 1
         else:
             files.append(a)
     if len(files) > 1:
-        sys.exit(__doc__)
+        print(RUN_USAGE, file=sys.stderr)
+        return 1
     mu = root / (files[0] if files else MU)
     if not files and not nonempty(mu):
         return run_file(root / CURRENT, color)
