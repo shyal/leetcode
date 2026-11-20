@@ -46076,6 +46076,18 @@
       "note": "The contract is met: the code subtracts m from n, uses comb(n + k - 1, k - 1) and returns 0 when n < m. It has no loop over the values of the first integer and no recursion. The notes say 'learning', so the solution was given and copied.",
       "summary": "sumsFrom subtracts the lower bound m from n with n -= m. It then returns comb(n + k - 1, k - 1) when n >= 0, and 0 when n < 0. This is the stars-and-bars count with the lower bound removed by a subtraction. The notes say 'learning', so the candidate copied the solution that was given.",
       "seconds": 705
+    },
+    "solved/d_Top_Down_Index_2026_11_20T03_29_39_736308_00_00Z.mu": {
+      "date": "2026-11-20",
+      "problem": "drill",
+      "drill": "d133",
+      "moves": {
+        "index-conversion": "struggled"
+      },
+      "judge": "opus",
+      "note": "The run passed, but the contract is not met: the stub's loop `for (r, c) in cells(grid)` was replaced by `for i in 0..<n*n`. The code converts a flat index to a cell with i // n and i % n. It does not compute the number of cell (r, c) as r * n + c.",
+      "summary": "numbered makes an n x n table and loops over the flat indices i from 0 to n*n - 1. It writes i into grid[i // n][i % n]. This is index-to-cell conversion with divmod. The drill asks for the other direction: keep the loop over the cells and get each number from r, c and n. The notes are empty.",
+      "seconds": 221
     }
   }
 }
