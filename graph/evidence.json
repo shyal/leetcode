@@ -46204,6 +46204,19 @@
       "note": "Contract met: rows come from to_digits(n) with no str(), zip(*rows) builds the columns, and no nested loop indexes the rows.",
       "summary": "digit_columns makes one row of digits per number with the list comprehension [to_digits(n) for n in nums]. It then transposes the rows with zip(*...), and [*...] turns the result into a list. Each tuple in the result holds the j-th digit of every number, in the order of nums. The notes are empty.",
       "seconds": 124
+    },
+    "solved/d_Classes_With_At_Least_Five_Students_2026_11_21T21_17_03_485019_00_00Z.mu": {
+      "date": "2026-11-22",
+      "problem": "drill",
+      "drill": "d41",
+      "moves": {
+        "sql-having-filter-groups": "clean",
+        "sql-group-aggregate": "clean"
+      },
+      "judge": "opus",
+      "note": "Contract met: the count condition is in SQL, as HAVING count(student) >= 5 after GROUP BY class. There is no WHERE on the count and no count in Python.",
+      "summary": "The query groups Courses by class and keeps only the groups where HAVING count(student) >= 5 is true. It then selects class. Both examples pass: Math in Example 1, and Art in Example 2, which has exactly 5 students. The notes do not record help.",
+      "seconds": 98
     }
   }
 }
