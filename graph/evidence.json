@@ -46153,6 +46153,18 @@
       "note": "Contract met: the stub's cells loop is unchanged, each cell gets its number by O(1) arithmetic, no counter is carried between cells, and the parity test is on n - r - 1, not on r.",
       "summary": "numbered fills table(n, n) inside the stub's cells loop. It sets each grid[r][c] to (n - r - 1) * n plus an offset in the row. The offset is n - c - 1 when the row counted from the bottom, n - r - 1, is odd, and c when it is even. The run passed for n = 2 to 6 and for the corner checks on n = 20. There are no notes.",
       "seconds": 405
+    },
+    "solved/d_Ring_Distance_2026_11_21T00_37_13_973494_00_00Z.mu": {
+      "date": "2026-11-21",
+      "problem": "drill",
+      "drill": "d322",
+      "moves": {
+        "index-conversion": "clean"
+      },
+      "judge": "opus",
+      "note": "Contract met: O(1), arithmetic only, no loop over k. The code returns min(c, m - c), not abs(a - b) alone.",
+      "summary": "dist computes c = abs(a - b), the distance in one direction around the ring, and returns min(c, m - c), which compares it with the distance in the other direction. This is the mirrored/circular index case of index-conversion, done with arithmetic only and no loop. The notes are empty.",
+      "seconds": 62
     }
   }
 }
