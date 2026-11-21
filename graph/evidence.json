@@ -46189,6 +46189,21 @@
       "note": "The run passed, but the code does not meet the contract. It rotates the matrix with [*reversed([*zip(*inputMatrix)])], which the contract bans. It has no four shrinking bounds (top, bottom, left, right) and no checks that the bounds still cross. Each rotation copies the remaining matrix again, so the time is not O(rows * cols).",
       "summary": "spiral_copy takes the top row with inputMatrix.pop(0) and adds it to res. Then it rotates the rest of the matrix counterclockwise with reversed(zip(*inputMatrix)), so that the next edge becomes the top row. The loop stops when the matrix is empty. The code does not use four bounds over the original matrix, and the notes are empty.",
       "seconds": 632
+    },
+    "solved/d_Digit_Columns_2026_11_21T00_52_06_850621_00_00Z.mu": {
+      "date": "2026-11-21",
+      "problem": "drill",
+      "drill": "d548",
+      "moves": {
+        "index-conversion": "clean",
+        "py-zip": "clean",
+        "py-list-comprehension": "clean",
+        "py-star-args": "clean"
+      },
+      "judge": "opus",
+      "note": "Contract met: rows come from to_digits(n) with no str(), zip(*rows) builds the columns, and no nested loop indexes the rows.",
+      "summary": "digit_columns makes one row of digits per number with the list comprehension [to_digits(n) for n in nums]. It then transposes the rows with zip(*...), and [*...] turns the result into a list. Each tuple in the result holds the j-th digit of every number, in the order of nums. The notes are empty.",
+      "seconds": 124
     }
   }
 }
