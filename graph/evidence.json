@@ -46177,6 +46177,18 @@
       "note": "Contract met: the stub's cells(grid) loop is unchanged, each cell is set by r * n + c in O(1), and no counter is carried from one cell to the next.",
       "summary": "numbered builds an n by n grid with table(n, n) and loops over it with for r, c in cells(grid). It sets each cell to r * n + c, which is the row-major index conversion from a cell to its flat number. All assertions pass for n from 2 to 6 and for the corner cells and edge cells of the 20 by 20 grid. The notes are empty.",
       "seconds": 63
+    },
+    "solved/d_Matrix_Spiral_Copy_2026_11_21T00_49_40_111776_00_00Z.mu": {
+      "date": "2026-11-21",
+      "problem": "drill",
+      "drill": "d346",
+      "moves": {
+        "index-conversion": "struggled"
+      },
+      "judge": "opus",
+      "note": "The run passed, but the code does not meet the contract. It rotates the matrix with [*reversed([*zip(*inputMatrix)])], which the contract bans. It has no four shrinking bounds (top, bottom, left, right) and no checks that the bounds still cross. Each rotation copies the remaining matrix again, so the time is not O(rows * cols).",
+      "summary": "spiral_copy takes the top row with inputMatrix.pop(0) and adds it to res. Then it rotates the rest of the matrix counterclockwise with reversed(zip(*inputMatrix)), so that the next edge becomes the top row. The loop stops when the matrix is empty. The code does not use four bounds over the original matrix, and the notes are empty.",
+      "seconds": 632
     }
   }
 }
