@@ -46223,10 +46223,26 @@
       "problem": "drill",
       "drill": "d196",
       "moves": {
-        "py-raise": "clean"
+        "py-raise": "clean",
+        "py-fstring": "clean",
+        "py-str-methods": "clean"
       },
-      "pending": "2026-11-21T21:18:59+00:00",
+      "judge": "opus",
+      "note": "The contract is met: the function raises ValueError(\"empty name\") and does not return None, return an error string or print. The blank-name test uses len(set(name)) == 1 and name[0] == \" \" in place of not name.strip(), so a name of only tabs or newlines is not refused. No test checks that case.",
+      "summary": "greet raises ValueError(\"empty name\") when name is empty or holds only spaces. In all other cases it returns f\"Hi, {name.strip()}\". The spaces-only test checks that set(name) has one member and that the first character is a space. The notes record no help.",
       "seconds": 94
+    },
+    "solved/d_Earliest_Indices_Of_A_Subsequence_2026_11_21T21_21_21_079456_00_00Z.mu": {
+      "date": "2026-11-22",
+      "problem": "drill",
+      "drill": "d546",
+      "moves": {
+        "prefix-suffix-two-pass": "clean"
+      },
+      "judge": "opus",
+      "note": "The contract is met. There is no while loop, i starts at -1, and each character of sub uses s.find(c, i + 1), so each search starts after the index found before it and the total work is O(len(sub) + len(s)).",
+      "summary": "earliest_indices sets i to -1. For each character c of sub, it sets i to s.find(c, i + 1) and appends i to res. Each search starts after the index of the character before it, so 'cbc' in 'cbcdbc' gives [0, 1, 2] and not [0, 1, 0]. All the asserts pass, including the inputs of length 10^5, and the notes do not say that there was help.",
+      "seconds": 129
     }
   }
 }
