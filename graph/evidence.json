@@ -46165,6 +46165,18 @@
       "note": "Contract met: O(1), arithmetic only, no loop over k. The code returns min(c, m - c), not abs(a - b) alone.",
       "summary": "dist computes c = abs(a - b), the distance in one direction around the ring, and returns min(c, m - c), which compares it with the distance in the other direction. This is the mirrored/circular index case of index-conversion, done with arithmetic only and no loop. The notes are empty.",
       "seconds": 62
+    },
+    "solved/d_Top_Down_Index_2026_11_21T00_38_42_713636_00_00Z.mu": {
+      "date": "2026-11-21",
+      "problem": "drill",
+      "drill": "d133",
+      "moves": {
+        "index-conversion": "clean"
+      },
+      "judge": "opus",
+      "note": "Contract met: the stub's cells(grid) loop is unchanged, each cell is set by r * n + c in O(1), and no counter is carried from one cell to the next.",
+      "summary": "numbered builds an n by n grid with table(n, n) and loops over it with for r, c in cells(grid). It sets each cell to r * n + c, which is the row-major index conversion from a cell to its flat number. All assertions pass for n from 2 to 6 and for the corner cells and edge cells of the 20 by 20 grid. The notes are empty.",
+      "seconds": 63
     }
   }
 }
