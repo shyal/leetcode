@@ -35,17 +35,21 @@ def reference(prefix):
 
 
 def signatures(src):
-    """The (name, parameters) of every def, methods included, and the base
-    class of the first class."""
-    p = Parser(src)
+    """The (name, parameters) of every def of the solve, methods included,
+    and the base class of Solution. A class or def above `class Solution`
+    is given (a Star class, a zero_one_random def), so it is not part of
+    the solve; and a constructor without parameters is the solver's own
+    choice, a reference may have one the stub does not."""
+    prog = [d for d in Parser(src).program() if d[0] in ("class", "def")]
+    at = next((k for k, d in enumerate(prog) if tuple(d[:2]) == ("class", "Solution")), 0)
     sigs, base = [], None
-    for d in p.program():
+    for d in prog[at:]:
         if d[0] == "class":
             base = d[2] if d[1] == "Solution" else base
             sigs += [(b[1], [n for n, _ in b[2]]) for b in d[3] if b[0] == "def"]
-        elif d[0] == "def":
+        else:
             sigs.append((d[1], [n for n, _ in d[2]]))
-    return sigs, base
+    return [g for g in sigs if g != ("__init__", [])], base
 
 
 def solved(stub_text, reference_text, note=""):
@@ -67,6 +71,15 @@ def solved(stub_text, reference_text, note=""):
     p.program()
     script = lines[p.script_line - 1 :] if p.script_line else []
     script = [re.sub(rf"^# ({SETUP}.*)$", r"\1", ln) for ln in script]
+    # a commented helper (`# check = lambda a, b: ...` in the drill) is a
+    # commented def in mu: its head and the lines of its body are turned on
+    for k, ln in enumerate(script):
+        if ln.startswith("# def "):
+            script[k] = ln[2:]
+            for j in range(k + 1, len(script)):
+                if not script[j].startswith("#   "):
+                    break
+                script[j] = script[j][2:]
     body = reference_text.split("\n")
     while body and body[0].startswith("#"):
         body.pop(0)  # the # REFERENCE line
@@ -139,6 +152,23 @@ def test_the_stub_translates_the_asserts():
         ).read()
     )
     assert "    def band(a, b)\n      (min(a, b) + 1, max(a, b) + limit)\n" in s
+
+
+def test_the_stub_writes_lambdas_of_many_arguments_star_args_and_identity():
+    src = PROBLEM + """
+# chain = reduce(lambda t, k: t + k, range(3), 0)
+# grid = lambda *rows: [list(r) for r in rows]
+# same = lambda got, want: all(g is w for g, w in zip(got, want))
+# assert same(grid("ab"), grid("ab")) is False
+"""
+    s = stub(src)
+    assert "# chain = reduce((t, k) -> t + k, 0..<3, 0)" in s
+    assert "# def grid(*rows)\n#   [list(r) for r in rows]" in s
+    # `g is w` would be the test `g.isw()`: the brackets make it identity
+    assert "#   all((g is (w) for g, w in zip(got, want)))" in s
+    assert "# assert same(grid('ab'), grid('ab')) is false" in s
+    py = transpile(solved(s, "class Solution\n  def twoSum(nums, target)\n    []"))
+    assert "isw" not in py and "def grid(*rows):" in py and "def same(got, want):" in py
 
 
 def test_the_stub_keeps_the_imports_under_the_mu_line():
@@ -280,7 +310,7 @@ def test_a_serve_mu_cannot_hold_empties_a_stale_stub(tmp_path):
     stale = stub(open(drill_for(reference("d115_"))).read())
     (tmp_path / "current.mu").write_text(stale)
     (tmp_path / ".mu_stub").write_text(stale)
-    given = PROBLEM.replace("target: int)", "target: int, *rest)")
+    given = PROBLEM.replace("target: int)", "target: int, **rest)")
     (tmp_path / "current.py").write_text(given)
     assert "solve it in current.py" in session(tmp_path, "stub").stdout
     assert (tmp_path / "current.mu").read_text() == ""
@@ -651,8 +681,8 @@ def test_a_design_problem_and_a_given_class_are_written_as_classes(tmp_path):
 
 
 def test_a_problem_mu_cannot_hold_is_left_to_current_py(tmp_path):
-    # a method with *args: the stub has no form for it
-    given = PROBLEM.replace("target: int)", "target: int, *rest)")
+    # a method with **kwargs: the stub has no form for it
+    given = PROBLEM.replace("target: int)", "target: int, **rest)")
     (tmp_path / "current.py").write_text(given)
     out = session(tmp_path, "stub")
     assert out.returncode == 0 and "solve it in current.py" in out.stdout

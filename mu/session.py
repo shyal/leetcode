@@ -91,7 +91,8 @@ def loop_head(target, it):
 
 class ToMu(ast.NodeTransformer):
     """Python expressions in mu spelling: range(a, b) is a..<b, True is
-    true, lambda x: e is x -> e, and comprehension targets as mu loops."""
+    true, lambda x: e is x -> e, lambda a, b: e is (a, b) -> e, `x is y`
+    is `x is (y)`, and comprehension targets as mu loops."""
 
     def visit_Call(self, node):
         self.generic_visit(node)
@@ -113,10 +114,22 @@ class ToMu(ast.NodeTransformer):
         return node
 
     def visit_Lambda(self, node):
-        args = [a.arg for a in node.args.args]
-        if len(args) != 1:
-            raise MuError(f"no mu form for a lambda of {len(args)} arguments")
-        return ast.Name(id=f"{args[0]} -> {mu_expr(node.body)}")
+        a = node.args
+        args = [x.arg for x in a.args]
+        if not args or a.defaults or a.vararg or a.kwonlyargs or a.kwarg or a.posonlyargs:
+            raise MuError(f"no mu form for the lambda `{ast.unparse(node)}`")
+        head = args[0] if len(args) == 1 else f"({', '.join(args)})"
+        return ast.Name(id=f"{head} -> {mu_expr(node.body)}")
+
+    def visit_Compare(self, node):
+        """In mu `x is name` is a test (`c is digit`, `x is even`); the
+        brackets in `x is (name)` make it Python's identity test."""
+        named = [isinstance(c, ast.Name) for c in node.comparators]
+        self.generic_visit(node)
+        for k, op in enumerate(node.ops):
+            if isinstance(op, (ast.Is, ast.IsNot)) and named[k]:
+                node.comparators[k] = ast.Name(id=f"({node.comparators[k].id})")
+        return node
 
     def visit_comprehension(self, node):
         self.generic_visit(node)
@@ -166,11 +179,11 @@ def mu_lines(stmts, ind):
             continue
         if isinstance(s, ast.Assign) and isinstance(s.value, ast.Lambda):
             # a helper handed over as `band = lambda a, b: ...` becomes a def
-            args = ", ".join(a.arg for a in s.value.args.args)
-            out += [f"{pad}def {s.targets[0].id}({args})"]
+            name = s.targets[0].id
+            out += [f"{pad}def {name}({mu_params(s.value.args, name, typed=False)})"]
             out += [f"{pad}  {mu_expr(s.value.body)}", ""]
         elif isinstance(s, ast.FunctionDef):
-            out.append(f"{pad}def {s.name}({mu_params(s, typed=False)})")
+            out.append(f"{pad}def {s.name}({mu_params(s.args, s.name, s.decorator_list, typed=False)})")
             out += mu_lines(s.body, ind + 1) or [f"{pad}  pass"]
             out.append("")
         elif isinstance(s, ast.For):
@@ -214,36 +227,36 @@ def body_comments(fn, py_lines):
     return ["  " + ln.strip() for ln in span if ln.strip().startswith("#")]
 
 
-def plain_params(fn):
-    """The parameters of a def mu can write: positional, no *args or
-    **kwargs, no decorator. A method's self is dropped: mu adds it."""
-    a = fn.args
-    if a.kwonlyargs or a.vararg or a.kwarg or a.posonlyargs:
-        raise MuError(f"{fn.name} has a parameter mu cannot write")
-    if fn.decorator_list:
-        raise MuError(f"{fn.name} has a decorator")
+def plain_params(a, name, decorators=()):
+    """The positional parameters of a def or a lambda the stub can write:
+    no keyword-only or positional-only parameter, no **kwargs, no
+    decorator. A method's self is dropped: mu adds it."""
+    if a.kwonlyargs or a.kwarg or a.posonlyargs:
+        raise MuError(f"{name} has a parameter mu cannot write")
+    if decorators:
+        raise MuError(f"{name} has a decorator")
     args = a.args
     return args[1:] if args and args[0].arg == "self" else args
 
 
-def mu_params(fn, typed=True):
-    """The parameter list of a def in mu: `x`, `x: int`, `x=none`,
-    `x: int = 0`. A default belongs to one of the last parameters."""
-    args = fn.args.args
-    default = dict(zip((a.arg for a in args[len(args) - len(fn.args.defaults) :]), fn.args.defaults))
+def mu_params(a, name, decorators=(), typed=True):
+    """The parameter list of a def or a lambda in mu: `x`, `x: int`,
+    `x=none`, `x: int = 0`, `*xs`. A default belongs to one of the last
+    parameters."""
+    default = dict(zip((x.arg for x in a.args[len(a.args) - len(a.defaults) :]), a.defaults))
     params = []
-    for a in plain_params(fn):
-        t = mu_type(a.annotation) if typed else None
-        p = a.arg if t is None else f"{a.arg}: {t}"
-        if a.arg in default:
-            p += ("=" if t is None else " = ") + mu_expr(default[a.arg])
+    for x in plain_params(a, name, decorators) + ([a.vararg] if a.vararg else []):
+        t = mu_type(x.annotation) if typed else None
+        p = ("*" if x is a.vararg else "") + (x.arg if t is None else f"{x.arg}: {t}")
+        if x.arg in default and x is not a.vararg:
+            p += ("=" if t is None else " = ") + mu_expr(default[x.arg])
         params.append(p)
     return ", ".join(params)
 
 
 def mu_def(fn, comments=()):
     """A Python def as a mu def."""
-    params = [mu_params(fn)]
+    params = [mu_params(fn.args, fn.name, fn.decorator_list)]
     ret = mu_type(fn.returns)
     word = "async def" if isinstance(fn, ast.AsyncFunctionDef) else "def"
     head = f"{word} {fn.name}({', '.join(params)})" + (f" -> {ret}" if ret else "")
