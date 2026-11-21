@@ -46141,6 +46141,18 @@
       "note": "The work is done by the pydsa helper run_lengths(nums, extends = (a, b) -> a >= b). That helper builds res[i] from res[i - 1] in one O(n) left-to-right pass, so the contract is met. The candidate's own part is the predicate a >= b, which lets equal neighbours extend the run.",
       "summary": "Solution.run_lengths calls the pydsa helper run_lengths with the predicate extends = (a, b) -> a >= b. The helper makes one left-to-right pass: res[i] is res[i - 1] + 1 when nums[i - 1] >= nums[i], and 1 otherwise. The 10 ** 5 equal-values assert passed, which shows the linear bound. The notes are empty.",
       "seconds": 43
+    },
+    "solved/d_Bottom_Up_Index_Alternating_2026_11_21T00_35_09_901459_00_00Z.mu": {
+      "date": "2026-11-21",
+      "problem": "drill",
+      "drill": "d136",
+      "moves": {
+        "index-conversion": "clean"
+      },
+      "judge": "opus",
+      "note": "Contract met: the stub's cells loop is unchanged, each cell gets its number by O(1) arithmetic, no counter is carried between cells, and the parity test is on n - r - 1, not on r.",
+      "summary": "numbered fills table(n, n) inside the stub's cells loop. It sets each grid[r][c] to (n - r - 1) * n plus an offset in the row. The offset is n - c - 1 when the row counted from the bottom, n - r - 1, is odd, and c when it is even. The run passed for n = 2 to 6 and for the corner checks on n = 20. There are no notes.",
+      "seconds": 405
     }
   }
 }
