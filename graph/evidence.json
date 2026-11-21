@@ -46088,6 +46088,19 @@
       "note": "The run passed, but the contract is not met: the stub's loop `for (r, c) in cells(grid)` was replaced by `for i in 0..<n*n`. The code converts a flat index to a cell with i // n and i % n. It does not compute the number of cell (r, c) as r * n + c.",
       "summary": "numbered makes an n x n table and loops over the flat indices i from 0 to n*n - 1. It writes i into grid[i // n][i % n]. This is index-to-cell conversion with divmod. The drill asks for the other direction: keep the loop over the cells and get each number from r, c and n. The notes are empty.",
       "seconds": 221
+    },
+    "solved/d_Keep_Smallest_Id_Per_Email_2026_11_21T00_02_50_703414_00_00Z.mu": {
+      "date": "2026-11-21",
+      "problem": "drill",
+      "drill": "d35",
+      "moves": {
+        "sql-dedupe-keep-one": "clean",
+        "sql-group-aggregate": "clean"
+      },
+      "judge": "opus",
+      "note": "The contract is met: one query, one row per email, with MIN(id). The result column is named min(id) because the query has no AS id alias. The asserts compare only the tuples, so the run passed.",
+      "summary": "The query groups Person by email and selects MIN(id) with each email, so each email gets one row that carries its smallest id. It does not put a bare id next to the grouped email and does not use DISTINCT email. This exercises keep-one deduplication with GROUP BY and MIN. The notes record no help and no problems.",
+      "seconds": 80
     }
   }
 }
