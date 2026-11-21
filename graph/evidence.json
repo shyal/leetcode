@@ -46101,6 +46101,19 @@
       "note": "The contract is met: one query, one row per email, with MIN(id). The result column is named min(id) because the query has no AS id alias. The asserts compare only the tuples, so the run passed.",
       "summary": "The query groups Person by email and selects MIN(id) with each email, so each email gets one row that carries its smallest id. It does not put a bare id next to the grouped email and does not use DISTINCT email. This exercises keep-one deduplication with GROUP BY and MIN. The notes record no help and no problems.",
       "seconds": 80
+    },
+    "solved/d_Lines_Of_A_File_2026_11_21T00_22_55_682585_00_00Z.py": {
+      "date": "2026-11-21",
+      "problem": "drill",
+      "drill": "d198",
+      "moves": {
+        "py-with": "struggled",
+        "py-str-methods": "clean"
+      },
+      "judge": "opus",
+      "note": "Run passed, but the contract is not met: f.readlines() reads the whole file into a list. The contract requires iteration of the file object line by line ('for line in f'). The with statement itself is correct, and there is no f.close().",
+      "summary": "lines opens path in a with statement and appends line.strip() for each line to res, then returns res. The loop goes over f.readlines(), which loads all of the file into memory before the loop starts. It does not iterate the file object f directly. The notes give no information about hints or look-ups.",
+      "seconds": 70
     }
   }
 }
