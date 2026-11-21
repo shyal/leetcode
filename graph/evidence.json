@@ -46243,6 +46243,20 @@
       "note": "The contract is met. There is no while loop, i starts at -1, and each character of sub uses s.find(c, i + 1), so each search starts after the index found before it and the total work is O(len(sub) + len(s)).",
       "summary": "earliest_indices sets i to -1. For each character c of sub, it sets i to s.find(c, i + 1) and appends i to res. Each search starts after the index of the character before it, so 'cbc' in 'cbcdbc' gives [0, 1, 2] and not [0, 1, 0]. All the asserts pass, including the inputs of length 10^5, and the notes do not say that there was help.",
       "seconds": 129
+    },
+    "solved/d_Balanced_Tree_2026_11_21T21_29_32_660352_00_00Z.mu": {
+      "date": "2026-11-22",
+      "problem": "drill",
+      "drill": "d329",
+      "moves": {
+        "tree-combine-returns": "clean",
+        "tree-global-across-subtrees": "clean",
+        "tree-dfs-recursive": "clean"
+      },
+      "judge": "opus",
+      "note": "Contract met: one O(n) post-order pass returns each subtree's height upward, and no height is computed twice. A self.is_bal flag replaces the -1 sentinel. Side effect: n.val = h overwrites each node's value with its height, which the draw_tree output shows.",
+      "summary": "is_balanced runs one recursive lambda (mu) over the tree. At each node it gets lh and rh from the child calls (a missing child counts as 0, and a present child adds 1). If abs(lh - rh) > 1 it sets self.is_bal to false, and it returns max(lh, rh) as the node's height. The imbalance goes out through the self.is_bal flag, not a -1 return, so the pass does not stop early, but it is still O(n). The code also writes each height into n.val. The notes are empty.",
+      "seconds": 469
     }
   }
 }
