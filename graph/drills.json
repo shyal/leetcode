@@ -4768,7 +4768,7 @@
       "trains": [
         "dp-1d-rolling"
       ],
-      "judge": "Two running values per day: the best profit with no share (cash) and the best profit with a share (hold). cash is the larger of cash and hold + price - fee; hold is the larger of hold and cash - price. One buy at each local minimum and one sell at each local maximum pays the fee too many times: on [1, 3, 2, 8, 4, 9] with fee 2 it returns 7, the answer is 8."
+      "judge": "One memoized recursion on the day i. It returns a pair for the days i to n - 1: the best profit that starts with no share (c) and the best profit that starts with a share (h). At i == n the pair is 0, 0. With c, h from day i + 1, the pair at day i is the larger of c and h - prices[i], and the larger of h and c + prices[i] - fee. The answer is the first item of the pair at day 0. The same recurrence as two running values in a loop is also correct. One buy at each local minimum and one sell at each local maximum pays the fee too many times: on [1, 3, 2, 8, 4, 9] with fee 2 it returns 7, the answer is 8."
     },
     "d543": {
       "title": "Subset Sum",

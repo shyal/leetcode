@@ -43,7 +43,7 @@ from rich.tree import Tree
 
 sys.path.insert(0, str(Path(__file__).parent))
 from mulang import MuError, Parser, transpile  # noqa: E402
-from session import CURRENT, MU, belongs, spliced, written  # noqa: E402
+from session import MU  # noqa: E402
 
 RUN = ".mu_current.py"  # the traced code, written so inspect can read it
 LIMIT = 1500  # frames; a longer run is cut with a note
@@ -799,25 +799,19 @@ def source(root, target=None):
     if not mu.exists() or not mu.read_text().strip():
         raise MuError(f"{mu.name} is empty")
     text = mu.read_text()
-    if target in (None, MU) and belongs(root) and written(root):
-        code, lines = spliced((root / CURRENT).read_text(), text, mapped=True)
-    else:
-        code, lines = build(text)
+    code, lines = build(text)
     return code, lines, text
 
 
-def build(mu_src, py_src=None):
-    """(code, {python line: mu line}) for a mu text; with py_src, the
-    Python drill whose head (docstring, imports, helper classes) it keeps."""
-    if py_src is not None:
-        return spliced(py_src, mu_src, mapped=True)
+def build(mu_src):
+    """(code, {python line: mu line}) for a mu text."""
     code, origin = transpile(mu_src, mapped=True)
     return code, {k + 1: o for k, o in enumerate(origin) if o is not None}
 
 
-def frames_of(mu_src, path, py_src=None):
+def frames_of(mu_src, path):
     """The frames of a mu file's text, for tests."""
-    code, lines = build(mu_src, py_src)
+    code, lines = build(mu_src)
     return trace(code, lines, mu_src, path)
 
 

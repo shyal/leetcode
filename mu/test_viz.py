@@ -93,7 +93,7 @@ def test_every_reference_draws(reference, tmp_path):
         pytest.skip("mu cannot write this drill")
     try:
         src = solved(text_, open(reference).read())
-        frames = viz.frames_of(src, tmp_path / "drill.py", py_src)
+        frames = viz.frames_of(src, tmp_path / "drill.py")
     except MuError as err:
         pytest.skip(f"mu cannot build this one: {err}")
     assert frames, "the demo line never called the Solution"
