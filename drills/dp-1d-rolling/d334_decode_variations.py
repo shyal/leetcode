@@ -28,8 +28,7 @@ Constraints:
     1 <= len(S) <= 100
     S holds digits only.
 
-    REQUIRED: O(n) time, O(1) extra space. NO recursion, NO list of
-    the messages.
+    REQUIRED: O(n) time, O(1) extra space. NO list of the messages.
 """
 
 
