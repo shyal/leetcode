@@ -46288,6 +46288,19 @@
       "note": "The run passed, but the contract is not met. The memo cache of f(s, i) holds 2n states, which is O(n) extra space, not O(1). The answer comes from a max over a memoized recursion, not from a single pass with rolling variables.",
       "summary": "The code defines a memoized recurrence f(s, i). It gives the best alternating sum of a subarray that starts at i with sign s: s * nums[i] plus max(0, f(-s, i+1)), and -inf at i == n. The fold `max for >i in nums: f(1, i)` walks i from the end. This fills the cache from the back and keeps the recursion depth small, and the maximum over all start indices is the answer. The state and the recurrence are correct and all assertions pass, including the 10^5 inputs. The cache is O(n) space, and the drill requires O(1) extra space in one rolling pass.",
       "seconds": 383
+    },
+    "solved/d_Longest_Increasing_Subsequence_Ending_At_Each_Index_2026_11_22T01_38_52_354194_00_00Z.mu": {
+      "date": "2026-11-22",
+      "problem": "drill",
+      "drill": "d176",
+      "moves": {
+        "dp-1d-rolling": "clean",
+        "dp-state-formulate": "clean"
+      },
+      "judge": "opus",
+      "note": "Contract met: O(n^2) over index pairs (j, i) with j < i, with no sorting and no binary search.",
+      "summary": "longestEndingAt sets up dp = table(len(nums), fill=1). Each index on its own is the base case of length 1. The code walks the index pairs (j, i) from pairs(len nums, back=true). When nums[j] < nums[i], it sets dp[i] to max(dp[j] + 1, dp[i]), and the code returns dp. The state is \"length of the longest strictly increasing subsequence that ends at i\", and the 1D table is filled forward from that base case. The notes are empty.",
+      "seconds": 216
     }
   }
 }
