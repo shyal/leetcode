@@ -65,6 +65,7 @@ num_digits(num)                       # the count of digits of num; 0 has one di
 even(n)                               # n % 2 == 0
 odd(n)                                # n % 2 == 1
 commonprefix([a, b])                  # os.path.commonprefix: the longest common prefix of the strings
+MOD                                   # 10**9 + 7, the modulus of "return it modulo 10^9 + 7"
 ```
 
 Items pushed onto `q` while `levels(q)` runs are yielded at the next level.

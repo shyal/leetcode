@@ -46453,6 +46453,23 @@
       "note": "The contract is met: sums starts at {0}, and each x adds s + x for every s in the old set, keeping only sums at or below target. That is O(n * target), and each element is used once. All asserts are commented out. The run checked only the printed True for [1, 5, 11, 5], 11.",
       "summary": "subsetSum keeps a set sums of the reachable subset totals, starting at {0}. For each x, it unions in {s + x for s in sums if s + x <= target}. The comprehension reads the set as it was before x, so x is counted at most once. The function returns target in sums. The notes say 'learning', so the solution was given and copied.",
       "seconds": 1219
+    },
+    "solved/p1155_Number_of_Dice_Rolls_With_Target_Sum_2026_11_22T21_26_13_999824_00_00Z.mu": {
+      "date": "2026-11-23",
+      "problem": "1155",
+      "moves": {
+        "memoize-recursion": "clean",
+        "dp-state-formulate": "clean"
+      },
+      "assist": {
+        "memoize-recursion": "learning",
+        "dp-state-formulate": "learning"
+      },
+      "judge": "opus",
+      "note": "Notes say 'Learning': the solution was given and copied. The brute-force backtracking in the notes did not run.",
+      "summary": "The memo function ways(d, t) counts the ways to reach the sum t with d dice. It has two base cases: d == 0 gives t == 0, and t < 0 gives 0. Otherwise it adds ways(d - 1, t - face) for each face in 1..k, modulo MOD, and the answer is ways(n, target). The notes also hold a brute force that did not run: it pushes and pops on path over arr = [*1..k] * n and counts the tuples in set(res). After it, the notes say 'Learning', so the memo solution was given.",
+      "seconds": 2638,
+      "learning": true
     }
   }
 }

@@ -67,6 +67,11 @@ for path in sorted(Path(pydsa.__file__).parent.glob("[!_]*.mu")):
 commonprefix = os.path.commonprefix
 mulang.library(sys.modules[__name__], "commonprefix")
 
+# the modulus of the problems that say "return it modulo 10^9 + 7". A solve
+# that uses MOD gets this line pasted.
+MOD = 10**9 + 7
+mulang.library(sys.modules[__name__], "MOD")
+
 
 def ours(obj):
     """True if obj is defined in pydsa or utils/harness, or in sitecustomize."""
