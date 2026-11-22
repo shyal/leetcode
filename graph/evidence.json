@@ -46331,6 +46331,21 @@
       "note": "The run passed, but the contract is not met. The contract asks for O(1) extra space with two running counts read right to left. The code uses a memo over i, which keeps O(n) cache entries and an O(n) recursion stack, so there are no rolling counts. The note 'learning' puts that level on every move.",
       "summary": "decodeVariations uses a memo on the index i. The guard i >= len(S) gives 1 and a '0' digit at S[i] gives 0. The body adds mu(i + 1), and it also adds mu(i + 2) when 10 <= int(S[i:i+2]) <= 26. The recurrence is correct, but it runs as cached recursion and not as two counts rolled from right to left in O(1) space. The notes say 'learning', so the candidate was given the solution and copied it.",
       "seconds": 2234
+    },
+    "solved/d_Longest_Subsequence_of_Consecutive_Integers_2026_11_22T03_16_54_205012_00_00Z.mu": {
+      "date": "2026-11-22",
+      "problem": "drill",
+      "drill": "d540",
+      "moves": {
+        "dp-1d-rolling": "clean",
+        "dict-arbitrary-value": "clean",
+        "derived-key-lookup": "clean",
+        "streaming-ask-then-record": "clean"
+      },
+      "judge": "opus",
+      "note": "Contract met: D = {:int} is keyed by value and filled in one O(n) pass, with no scan of earlier indices. The max with D[v] is not needed because D[v-1] never decreases, but it does no harm.",
+      "summary": "longestSubsequence makes the dict D = {:int}, which maps a value to the length of the longest consecutive subsequence that ends at that value. For each v in arr, it reads D[v-1], adds 1, writes the result to D[v], and then returns max(D.values()). This is one pass in O(n) time, and the tests with 100000 elements passed. The notes are empty.",
+      "seconds": 531
     }
   }
 }
