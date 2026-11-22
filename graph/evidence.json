@@ -46386,6 +46386,20 @@
       "note": "The run passed, but the contract is not met. r.readlines() reads the whole file into a list, so the code loops over that list and not over the file object one line at a time. The open() is inside a with and there is no f.close(), so those two parts are met.",
       "summary": "lines opens path in a with block as r, loops over r.readlines(), and appends line.strip() to lines. The with block closes the file, so there is no open() outside a with and no close() call. readlines() reads all the lines into memory at once, but the contract asks the code to iterate the file object itself, as in for line in r. The candidate wrote no notes.",
       "seconds": 85
+    },
+    "solved/d_Maximum_Alternating_Subarray_Sum_2026_11_22T19_34_40_665791_00_00Z.mu": {
+      "date": "2026-11-23",
+      "problem": "drill",
+      "drill": "d319",
+      "moves": {
+        "dp-1d-rolling": "struggled",
+        "memoize-recursion": "clean",
+        "dp-state-formulate": "clean"
+      },
+      "judge": "opus",
+      "note": "The run passed, but the contract is not met. It asks for O(1) extra space in a single pass. The memoized best(s, i) keeps O(n) cache entries and has a recursion depth of O(n), and the code fills no rolling variables.",
+      "summary": "The code defines a memoized recurrence best(s, i), which is the largest alternating sum of a subarray that starts at index i with the sign s. The value is s * nums[i] plus max(0, best(-s, i + 1)): the subarray ends at i, or it continues with the opposite sign. The answer is the max of best(1, i) over every start i. The state and recurrence are correct and all asserts passed, including the 10^5-length inputs. The memo cache and the recursion stack take O(n) space, so the O(1)-space rolling form was not written. The notes are empty.",
+      "seconds": 183
     }
   }
 }
