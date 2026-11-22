@@ -46400,6 +46400,21 @@
       "note": "The run passed, but the contract is not met. It asks for O(1) extra space in a single pass. The memoized best(s, i) keeps O(n) cache entries and has a recursion depth of O(n), and the code fills no rolling variables.",
       "summary": "The code defines a memoized recurrence best(s, i), which is the largest alternating sum of a subarray that starts at index i with the sign s. The value is s * nums[i] plus max(0, best(-s, i + 1)): the subarray ends at i, or it continues with the opposite sign. The answer is the max of best(1, i) over every start i. The state and recurrence are correct and all asserts passed, including the 10^5-length inputs. The memo cache and the recursion stack take O(n) space, so the O(1)-space rolling form was not written. The notes are empty.",
       "seconds": 183
+    },
+    "solved/d_Longest_Subsequence_of_Consecutive_Integers_2026_11_22T19_39_45_579813_00_00Z.mu": {
+      "date": "2026-11-23",
+      "problem": "drill",
+      "drill": "d540",
+      "moves": {
+        "dp-1d-rolling": "clean",
+        "derived-key-lookup": "clean",
+        "streaming-ask-then-record": "clean",
+        "dict-arbitrary-value": "clean"
+      },
+      "judge": "opus",
+      "note": "Contract met: one O(n) pass that fills a table keyed by value, where the entry of v is the entry of v - 1 plus 1. The max with D[v] is not needed, because D[v-1] + 1 is never less than the old D[v]. It does not change the result.",
+      "summary": "longestSubsequence makes a default-int dict D and walks arr one time. At each v it reads D[v-1], which is the longest chain of consecutive integers that ends at v - 1, and then writes D[v] as that value plus 1. The answer is max(D.values()). This exercises a 1D DP table keyed by value, a lookup on the derived key v - 1, and the order 'read the past, then record v' in one scan. The notes are empty.",
+      "seconds": 237
     }
   }
 }
