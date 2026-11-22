@@ -29,8 +29,8 @@ Constraints:
     1 <= len(nums) <= 10^5
     -10^5 <= nums[i] <= 10^5
 
-    REQUIRED: O(n) time, O(1) extra space, a single pass. NO enumeration
-    of subarrays. The empty subarray is not allowed.
+    REQUIRED: O(n) time. NO enumeration of subarrays. The empty subarray
+    is not allowed.
 """
 
 

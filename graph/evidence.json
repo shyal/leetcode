@@ -46415,6 +46415,20 @@
       "note": "Contract met: one O(n) pass that fills a table keyed by value, where the entry of v is the entry of v - 1 plus 1. The max with D[v] is not needed, because D[v-1] + 1 is never less than the old D[v]. It does not change the result.",
       "summary": "longestSubsequence makes a default-int dict D and walks arr one time. At each v it reads D[v-1], which is the longest chain of consecutive integers that ends at v - 1, and then writes D[v] as that value plus 1. The answer is max(D.values()). This exercises a 1D DP table keyed by value, a lookup on the derived key v - 1, and the order 'read the past, then record v' in one scan. The notes are empty.",
       "seconds": 237
+    },
+    "solved/d_Maximum_Sum_With_No_Two_Adjacent_Indices_2026_11_22T19_42_48_264696_00_00Z.mu": {
+      "date": "2026-11-23",
+      "problem": "drill",
+      "drill": "d541",
+      "moves": {
+        "dp-1d-rolling": "clean",
+        "memoize-recursion": "clean",
+        "dp-state-formulate": "clean"
+      },
+      "judge": "opus",
+      "note": "Contract met: O(n) time with one recurrence on the index. The state is a pair (best sum without nums[i], best sum with nums[i]) from a memo recursion that goes backward from i = 0, not a forward fill with two rolling variables. It returns 4 on [2, 1, 1, 2] and passes the 100000-element tests.",
+      "summary": "maxSum uses a memo recursion on i. For each i it returns a pair: max(s, t) is the best sum that skips nums[i], and nums[i] + s is the best sum that takes nums[i]. Here (s, t) = mu(i + 1). The guard i >= len nums gives the base case 0, 0, and the answer is the larger value of the pair at mu(0). The notes are empty.",
+      "seconds": 88
     }
   }
 }
