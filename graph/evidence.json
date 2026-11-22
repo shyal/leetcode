@@ -46470,6 +46470,21 @@
       "summary": "The memo function ways(d, t) counts the ways to reach the sum t with d dice. It has two base cases: d == 0 gives t == 0, and t < 0 gives 0. Otherwise it adds ways(d - 1, t - face) for each face in 1..k, modulo MOD, and the answer is ways(n, target). The notes also hold a brute force that did not run: it pushes and pops on path over arr = [*1..k] * n and counts the tuples in set(res). After it, the notes say 'Learning', so the memo solution was given.",
       "seconds": 2638,
       "learning": true
+    },
+    "solved/p72_Edit_Distance_2026_11_22T21_40_07_201770_00_00Z.mu": {
+      "date": "2026-11-23",
+      "problem": "72",
+      "moves": {
+        "memoize-recursion": "clean",
+        "dp-state-formulate": "clean",
+        "two-sequence-align": "clean",
+        "py-slicing": "clean"
+      },
+      "judge": "opus",
+      "note": "The state is the two remaining prefixes as strings (A, B), cut with A[:-1] rather than indices. Every assertion passed, up to 500-character inputs.",
+      "summary": "The code is one memo block keyed on the two prefixes (A, B). One guard handles an empty prefix and returns len(A) or len(B). A second guard covers A[-1] == B[-1] and recurses on both prefixes cut by one character. Otherwise the value is 1 + min of three recursive calls on (A[:-1], B), (A, B[:-1]) and (A[:-1], B[:-1]), which stand for delete, insert and replace. The notes hold only the stage prompt, with no record of help.",
+      "seconds": 588,
+      "learning": true
     }
   }
 }
