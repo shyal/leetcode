@@ -89,7 +89,7 @@ const evaluate = (expression, timeoutMs = 5000) =>
 // A freshly opened tab has no cookies until the page has loaded, and
 // Cloudflare may first serve a challenge page (/?__cf_chl_rt_tk=...) that
 // redirects a moment later; a fetch started during that redirect is aborted.
-const settled = `document.readyState === "complete"
+const settled = `document.readyState !== "loading"
   && !location.href.includes("__cf_chl")
   && document.cookie.includes("csrftoken=")`;
 let ready = false;

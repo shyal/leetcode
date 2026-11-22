@@ -2,12 +2,12 @@
   "_comment": "Personal forgetting curve fitted by utils/kg/kg_curve. P(recall) = (1-slip)*(1 + gap/s)^(-beta), s = exp(a + b*log1p(cleans) - c*struggles - d*assist + e*(conn - conn_mean)); cleans counts distinct clean days, same-day reps are one rep. conn is the node's log2 carrier count, frozen below at fit time; consumers that ignore e are assuming average connectivity. \"solve\" is the cold-solve model fitted by fit_solve: logit P(solve cold, unaided, inside the clock) = the listed coefficients over (rating - 1500)/400, the walk's summed log recall, and its count of never-met moves; features not listed did not earn their place on held-out games. node_status() calls a node SOLID while the memory component (1 + gap/s)^(-beta) >= target_retention; delete this file to fall back to the flat 42-day window.",
   "model": "power-law-slip",
   "params": {
-    "a": 3.9193,
-    "b": 0.1003,
-    "c": 0.2942,
-    "d": 0.0136,
-    "e": -0.246,
-    "conn_mean": 2.8493,
+    "a": 3.9194,
+    "b": 0.1,
+    "c": 0.2943,
+    "d": 0.0135,
+    "e": -0.2448,
+    "conn_mean": 2.8503,
     "beta": 0.1287,
     "slip": 0.0521
   },
@@ -33,8 +33,8 @@
     "dijkstra": 3.17,
     "divmod-decompose": 5.285,
     "dp-1d-rolling": 4.322,
-    "dp-2d-grid": 3.585,
-    "dp-state-formulate": 4.459,
+    "dp-2d-grid": 3.7,
+    "dp-state-formulate": 4.524,
     "event-sweep": 1.585,
     "fast-slow-pointers": 2.322,
     "floyd-cycle": 2.0,
@@ -115,13 +115,13 @@
   },
   "target_retention": 0.9,
   "mass": {
-    "beta": -0.2142,
-    "se": 0.0817,
-    "n": 675,
+    "beta": -0.2188,
+    "se": 0.0815,
+    "n": 676,
     "by_difficulty": {
-      "Easy": 3.7704,
-      "Medium": 1.0651,
-      "Hard": -0.0125
+      "Easy": 3.7759,
+      "Medium": 1.0618,
+      "Hard": -0.0077
     }
   },
   "solve": {

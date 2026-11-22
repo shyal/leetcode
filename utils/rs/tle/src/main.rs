@@ -223,6 +223,11 @@ fn append_if_present(path: &Path, line: &str, comment: bool) -> bool {
     let Ok(text) = std::fs::read_to_string(path) else {
         return false;
     };
+    // an empty current file is not served (a mu serve empties current.py);
+    // a line in it would make it the file `make solved` files.
+    if text.trim().is_empty() {
+        return false;
+    }
     let new = with_assert(&text, line, comment);
     if new != text {
         std::fs::write(path, new).expect("write current file");

@@ -46485,6 +46485,26 @@
       "summary": "The code is one memo block keyed on the two prefixes (A, B). One guard handles an empty prefix and returns len(A) or len(B). A second guard covers A[-1] == B[-1] and recurses on both prefixes cut by one character. Otherwise the value is 1 + min of three recursive calls on (A[:-1], B), (A, B[:-1]) and (A[:-1], B[:-1]), which stand for delete, insert and replace. The notes hold only the stage prompt, with no record of help.",
       "seconds": 588,
       "learning": true
+    },
+    "solved/p3742_Maximum_Path_Score_in_a_Grid_2026_11_22T22_55_05_093750_00_00Z.mu": {
+      "date": "2026-11-23",
+      "problem": "3742",
+      "moves": {
+        "dp-2d-grid": "struggled",
+        "dp-state-formulate": "struggled"
+      },
+      "assist": {
+        "dp-2d-grid": "learning",
+        "dp-state-formulate": "learning"
+      },
+      "judge": "opus",
+      "note": "Notes say the first attempt, a max-heap search over (score, cost, r, c) states, got a TLE. The notes then say 'learning' above the DP that ran and passed, including the tle(sol.maxPathScore, 3742) check.",
+      "summary": "The first attempt pushed (score, cost, r, c) states onto a max heap and used a seen set. The notes say this got a TLE. The final code fills a padded 3D table dp[r][c][cost]: each cell takes max(a, b) + v over dp[r-1][c] and dp[r][c-1] for each cost. When v is non-zero, the cost list moves one place with [-inf] + s[:-1]. k is capped at len grid + len grid[0], and the answer is max(-1, max(dp[-1][-1])). The notes mark this DP as 'learning', so it was given, not derived.",
+      "unmapped": [
+        "cost dimension shift per cell"
+      ],
+      "seconds": 3472,
+      "learning": true
     }
   }
 }
