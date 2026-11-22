@@ -46274,6 +46274,20 @@
       "note": "Contract met: one post-order pass returns the pair (not chosen, chosen) for each node, and the code does not call on the grandchildren. The notes say 'learning', so the solution was given and copied.",
       "summary": "maxSum uses an anonymous recursive function that returns 0, 0 for an empty node. For other nodes it unpacks (ls, lt) and (rs, rt) from the calls on n.left and n.right. It returns max(ls, lt) + max(rs, rt) as the not-chosen value and n.val + ls + rs as the chosen value, and the answer is max of the root's pair. The notes say 'learning', which means the solution was given and then copied.",
       "seconds": 2343
+    },
+    "solved/d_Maximum_Alternating_Subarray_Sum_2026_11_22T01_34_46_633554_00_00Z.mu": {
+      "date": "2026-11-22",
+      "problem": "drill",
+      "drill": "d319",
+      "moves": {
+        "dp-1d-rolling": "struggled",
+        "memoize-recursion": "clean",
+        "dp-state-formulate": "clean"
+      },
+      "judge": "opus",
+      "note": "The run passed, but the contract is not met. The memo cache of f(s, i) holds 2n states, which is O(n) extra space, not O(1). The answer comes from a max over a memoized recursion, not from a single pass with rolling variables.",
+      "summary": "The code defines a memoized recurrence f(s, i). It gives the best alternating sum of a subarray that starts at i with sign s: s * nums[i] plus max(0, f(-s, i+1)), and -inf at i == n. The fold `max for >i in nums: f(1, i)` walks i from the end. This fills the cache from the back and keeps the recursion depth small, and the maximum over all start indices is the answer. The state and the recurrence are correct and all assertions pass, including the 10^5 inputs. The cache is O(n) space, and the drill requires O(1) extra space in one rolling pass.",
+      "seconds": 383
     }
   }
 }
