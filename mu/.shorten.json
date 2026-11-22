@@ -12,8 +12,8 @@
   "title": "Valid Perfect Square",
   "before": 14,
   "kept": true,
-  "after": 5,
-  "mu": "def isPerfectSquare(num: int) -> bool\n  if num < 2\n    return true\n  k = first k in 2..num // 2 if k * k >= num\n  k * k == num\n"
+  "after": 3,
+  "mu": "def isPerfectSquare(num: int) -> bool, num < 2: true\n  k = first k in 2..num // 2 if k * k >= num\n  k * k == num\n"
  },
  "2584": {
   "num": 2584,
@@ -291,8 +291,8 @@
   "title": "Palindrome Number",
   "before": 9,
   "kept": true,
-  "after": 7,
-  "mu": "def isPalindrome(x: int) -> bool\n  if x < 0\n    return false\n  reversed_num, original = 0, x\n  while x > 0\n    reversed_num, x = reversed_num * 10 + x % 10, x // 10\n  original == reversed_num\n"
+  "after": 5,
+  "mu": "def isPalindrome(x: int) -> bool, x < 0: false\n  reversed_num, original = 0, x\n  while x > 0\n    reversed_num, x = reversed_num * 10 + x % 10, x // 10\n  original == reversed_num\n"
  },
  "1": {
   "num": 1,
@@ -354,8 +354,8 @@
   "title": "Letter Combinations of a Phone Number",
   "before": 15,
   "kept": true,
-  "after": 8,
-  "mu": "def letterCombinations(digits: str) -> [str]\n  if not digits\n    return []\n  letters = ['abc', 'def', 'ghi', 'jkl', 'mno', 'pqrs', 'tuv', 'wxyz']\n  res = ['']\n  for d in digits\n    res = [r + c for r in res for c in letters[int(d) - 2]]\n  res\n"
+  "after": 6,
+  "mu": "def letterCombinations(digits: str) -> [str], not digits: []\n  letters = ['abc', 'def', 'ghi', 'jkl', 'mno', 'pqrs', 'tuv', 'wxyz']\n  res = ['']\n  for d in digits\n    res = [r + c for r in res for c in letters[int(d) - 2]]\n  res\n"
  },
  "14": {
   "num": 14,
@@ -496,8 +496,8 @@
   "before": 26,
   "kept": true,
   "why": "IndexError: list index out of range",
-  "after": 25,
-  "mu": "def findSubstring(s: str, words: [str]) -> [int]\n  if not s or not words or not words[0]\n    return []\n  word_len = len(words[0])\n  if len(s) < word_len * len(words)\n    return []\n  word_map, result = counter(words), []\n  for i in 0..<word_len\n    left, right, curr_count, curr_map = i, i, 0, defaultdict(int)\n    while right + word_len <= len(s)\n      word = s[right:right + word_len]\n      right += word_len\n      if word in word_map\n        curr_map[word] += 1\n        curr_count += 1\n        while curr_map[word] > word_map[word]\n          curr_map[s[left:left + word_len]] -= 1\n          curr_count -= 1\n          left += word_len\n        if curr_count == len(words)\n          result <- left\n      else\n        curr_map.clear()\n        curr_count, left = 0, right\n  result\n"
+  "after": 23,
+  "mu": "def findSubstring(s: str, words: [str]) -> [int], not s or not words or not words[0]: []\n  word_len = len(words[0])\n  if len(s) < word_len * len(words)\n    return []\n  word_map, result = counter(words), []\n  for i in 0..<word_len\n    left, right, curr_count, curr_map = i, i, 0, defaultdict(int)\n    while right + word_len <= len(s)\n      word = s[right:right + word_len]\n      right += word_len\n      if word in word_map\n        curr_map[word] += 1\n        curr_count += 1\n        while curr_map[word] > word_map[word]\n          curr_map[s[left:left + word_len]] -= 1\n          curr_count -= 1\n          left += word_len\n        if curr_count == len(words)\n          result <- left\n      else\n        curr_map.clear()\n        curr_count, left = 0, right\n  result\n"
  },
  "31": {
   "num": 31,
@@ -691,8 +691,8 @@
   "before": 16,
   "kept": true,
   "why": "AssertionError",
-  "after": 13,
-  "mu": "def multiply(num1: str, num2: str) -> str\n  if num1 == '0' or num2 == '0'\n    return '0'\n  pos = [0] * (len(num1) + len(num2))\n  for i in range(len(num1) - 1, -1, -1)\n    for j in range(len(num2) - 1, -1, -1)\n      s = int(num1[i]) * int(num2[j]) + pos[i + j + 1]\n      pos[i + j] += s // 10\n      pos[i + j + 1] = s % 10\n  i = 0\n  while i < len(pos) and pos[i] == 0\n    i += 1\n  ''.join(map(str, pos[i:]))\n"
+  "after": 11,
+  "mu": "def multiply(num1: str, num2: str) -> str, num1 == '0' or num2 == '0': '0'\n  pos = [0] * (len(num1) + len(num2))\n  for i in range(len(num1) - 1, -1, -1)\n    for j in range(len(num2) - 1, -1, -1)\n      s = int(num1[i]) * int(num2[j]) + pos[i + j + 1]\n      pos[i + j] += s // 10\n      pos[i + j + 1] = s % 10\n  i = 0\n  while i < len(pos) and pos[i] == 0\n    i += 1\n  ''.join(map(str, pos[i:]))\n"
  },
  "59": {
   "num": 59,
@@ -746,8 +746,8 @@
   "title": "Rotate List",
   "before": 16,
   "kept": true,
-  "after": 14,
-  "mu": "def rotateRight(head: ListNode?, k: int) -> ListNode?\n  if not head or not head.next\n    return head\n  length, tail = 1, head\n  while tail.next\n    tail, length = tail.next, length + 1\n  k = k % length\n  if k\n    new_tail = head\n    for _ in 0..<length - k - 1\n      new_tail = new_tail.next\n    new_head, new_tail.next, tail.next = new_tail.next, none, head\n    return new_head\n  head\n"
+  "after": 12,
+  "mu": "def rotateRight(head: ListNode?, k: int) -> ListNode?, not head or not head.next: head\n  length, tail = 1, head\n  while tail.next\n    tail, length = tail.next, length + 1\n  k = k % length\n  if k\n    new_tail = head\n    for _ in 0..<length - k - 1\n      new_tail = new_tail.next\n    new_head, new_tail.next, tail.next = new_tail.next, none, head\n    return new_head\n  head\n"
  },
  "62": {
   "num": 62,
@@ -834,8 +834,8 @@
   "before": 21,
   "kept": true,
   "why": "wrong on combinationSum2([10, 1, 2, 7, -1, 6, 1, 5], 7): ('ok', [[-1, 1, 1, 6], [-1, 1, 2, 5], [-1, 1, 7], [-1, 2, 6], [1, 1, 5], [1, 6], [2, 5], [7]], [[-1, 1, 1, 2, 5, 6, 7, 10], 7]) vs ('ok', [[1, 1, 5], [1, 6], [2, 5], [7]], [[-1, 1, 1, 2, 5, 6, 7, 10], 7])",
-  "after": 16,
-  "mu": "def combinationSum2(candidates: [int], target: int) -> [[int]]\n  candidates.sort()\n  def backtrack(start, target, combination)\n    if target == 0\n      return [combination]\n    res = []\n    prev = -1\n    for i in start..<len(candidates)\n      if candidates[i] == prev\n        continue\n      if candidates[i] > target\n        break\n      res += backtrack(i + 1, target - candidates[i], combination + [candidates[i]])\n      prev = candidates[i]\n    res\n  backtrack(0, target, [])\n"
+  "after": 14,
+  "mu": "def combinationSum2(candidates: [int], target: int) -> [[int]]\n  candidates.sort()\n  def backtrack(start, target, combination) -> target == 0: [combination]\n    res = []\n    prev = -1\n    for i in start..<len(candidates)\n      if candidates[i] == prev\n        continue\n      if candidates[i] > target\n        break\n      res += backtrack(i + 1, target - candidates[i], combination + [candidates[i]])\n      prev = candidates[i]\n    res\n  backtrack(0, target, [])\n"
  },
  "77": {
   "num": 77,
@@ -889,8 +889,8 @@
   "title": "Decode Ways",
   "before": 14,
   "kept": true,
-  "after": 8,
-  "mu": "def numDecodings(s: str) -> int\n  if not s or s[0] == '0'\n    return 0\n  prev2, prev1 = 1, 1\n  for i in 1..len(s) - 1\n    curr = (s[i] != '0') * prev1 + (10 <= int(s[i - 1:i + 1]) <= 26) * prev2\n    prev2, prev1 = prev1, curr\n  prev1\n"
+  "after": 6,
+  "mu": "def numDecodings(s: str) -> int, not s or s[0] == '0': 0\n  prev2, prev1 = 1, 1\n  for i in 1..len(s) - 1\n    curr = (s[i] != '0') * prev1 + (10 <= int(s[i - 1:i + 1]) <= 26) * prev2\n    prev2, prev1 = prev1, curr\n  prev1\n"
  },
  "83": {
   "num": 83,
@@ -960,16 +960,16 @@
   "before": 19,
   "kept": true,
   "why": "a line is longer than 100 characters: ans = backtrack(r + 1, c, idx + 1) or backtrack(r - 1, c, id...",
-  "after": 17,
-  "mu": "def exist(board: [[str]], word: str) -> bool\n  def backtrack(r, c, idx)\n    if board[r][c] != word[idx]\n      return false\n    if idx == len(word) - 1\n      return true\n    board[r][c] = '#'\n    for (nr, nc) in nbrs(board, r, c)\n      if backtrack(nr, nc, idx + 1)\n        board[r][c] = word[idx]\n        return true\n    board[r][c] = word[idx]\n    false\n  for (i, j) in cells(board)\n    if board[i][j] == word[0] and backtrack(i, j, 0)\n      return true\n  false\n"
+  "after": 15,
+  "mu": "def exist(board: [[str]], word: str) -> bool\n  def backtrack(r, c, idx) -> board[r][c] != word[idx]: false\n    if idx == len(word) - 1\n      return true\n    board[r][c] = '#'\n    for (nr, nc) in nbrs(board, r, c)\n      if backtrack(nr, nc, idx + 1)\n        board[r][c] = word[idx]\n        return true\n    board[r][c] = word[idx]\n    false\n  for (i, j) in cells(board)\n    if board[i][j] == word[0] and backtrack(i, j, 0)\n      return true\n  false\n"
  },
  "95": {
   "num": 95,
   "title": "Unique Binary Search Trees II",
   "before": 18,
   "kept": true,
-  "after": 13,
-  "mu": "def generateTrees(n: int) -> [TreeNode?]\n  def gen(lo, hi)\n    if lo > hi\n      return [none]\n    result = []\n    for root in lo..hi\n      for l in gen(lo, root - 1)\n        for r in gen(root + 1, hi)\n          node = TreeNode(root)\n          node.left, node.right = l, r\n          result <- node\n    result\n  [] if n == 0 else gen(1, n)\n"
+  "after": 11,
+  "mu": "def generateTrees(n: int) -> [TreeNode?]\n  def gen(lo, hi) -> lo > hi: [none]\n    result = []\n    for root in lo..hi\n      for l in gen(lo, root - 1)\n        for r in gen(root + 1, hi)\n          node = TreeNode(root)\n          node.left, node.right = l, r\n          result <- node\n    result\n  [] if n == 0 else gen(1, n)\n"
  },
  "93": {
   "num": 93,
@@ -1015,8 +1015,8 @@
   "title": "Construct Binary Tree from Inorder and Postorder Traversal",
   "before": 12,
   "kept": true,
-  "after": 8,
-  "mu": "def buildTree(inorder: [int], postorder: [int]) -> TreeNode?\n  if not inorder or not postorder\n    return none\n  idx = inorder.index(postorder[-1])\n  root = TreeNode(postorder[-1])\n  root.left = self.buildTree(inorder[:idx], postorder[:idx])\n  root.right = self.buildTree(inorder[idx + 1:], postorder[idx:-1])\n  root\n"
+  "after": 6,
+  "mu": "def buildTree(inorder: [int], postorder: [int]) -> TreeNode?, not inorder or not postorder: none\n  idx = inorder.index(postorder[-1])\n  root = TreeNode(postorder[-1])\n  root.left = self.buildTree(inorder[:idx], postorder[:idx])\n  root.right = self.buildTree(inorder[idx + 1:], postorder[idx:-1])\n  root\n"
  },
  "102": {
   "num": 102,
@@ -1031,8 +1031,8 @@
   "title": "Convert Sorted Array to Binary Search Tree",
   "before": 10,
   "kept": true,
-  "after": 7,
-  "mu": "def sortedArrayToBST(nums: [int]) -> TreeNode?\n  def helper(left, right)\n    if left > right\n      return none\n    mid = (left + right + 1) // 2\n    TreeNode(nums[mid], helper(left, mid - 1), helper(mid + 1, right))\n  helper(0, len(nums) - 1)\n"
+  "after": 5,
+  "mu": "def sortedArrayToBST(nums: [int]) -> TreeNode?\n  def helper(left, right) -> left > right: none\n    mid = (left + right + 1) // 2\n    TreeNode(nums[mid], helper(left, mid - 1), helper(mid + 1, right))\n  helper(0, len(nums) - 1)\n"
  },
  "73": {
   "num": 73,
@@ -1055,8 +1055,8 @@
   "before": 11,
   "kept": true,
   "why": "wrong on isScramble('ac', 'cadw'): ('ok', True, ['ac', 'cadw']) vs ('ok', False, ['ac', 'cadw'])",
-  "after": 10,
-  "mu": "def isScramble(s1: str, s2: str) -> bool\n  if len(s1) != len(s2)\n    return false\n  def ok(i, j, k, n)\n    (f(i, j, k) and f(i + k, j + k, n - k)) or (f(i, j + n - k, k) and f(i + k, j, n - k))\n  memo f(i, j, n) =\n    | s1[i:i + n] == s2[j:j + n]                 -> true\n    | sorted(s1[i:i + n]) != sorted(s2[j:j + n]) -> false\n    | else                                       -> any(ok(i, j, k, n) for k in 1..<n)\n  f(0, 0, len(s1))\n"
+  "after": 8,
+  "mu": "def isScramble(s1: str, s2: str) -> bool, len(s1) != len(s2): false\n  def ok(i, j, k, n)\n    (f(i, j, k) and f(i + k, j + k, n - k)) or (f(i, j + n - k, k) and f(i + k, j, n - k))\n  memo f(i, j, n) =\n    | s1[i:i + n] == s2[j:j + n]                 -> true\n    | sorted(s1[i:i + n]) != sorted(s2[j:j + n]) -> false\n    | else                                       -> any(ok(i, j, k, n) for k in 1..<n)\n  f(0, 0, len(s1))\n"
  },
  "100": {
   "num": 100,
@@ -1077,8 +1077,8 @@
   "title": "Binary Tree Level Order Traversal II",
   "before": 15,
   "kept": true,
-  "after": 12,
-  "mu": "def levelOrderBottom(root: TreeNode?) -> [[int]]\n  if not root\n    return []\n  result, queue = [], deque([root])\n  for (_, nodes) in levels(queue, grouped=True)\n    result <- [node.val for node in nodes]\n    for node in nodes\n      if node.left\n        queue <- node.left\n      if node.right\n        queue <- node.right\n  result[::-1]\n"
+  "after": 10,
+  "mu": "def levelOrderBottom(root: TreeNode?) -> [[int]], not root: []\n  result, queue = [], deque([root])\n  for (_, nodes) in levels(queue, grouped=True)\n    result <- [node.val for node in nodes]\n    for node in nodes\n      if node.left\n        queue <- node.left\n      if node.right\n        queue <- node.right\n  result[::-1]\n"
  },
  "105": {
   "num": 105,
@@ -1086,40 +1086,40 @@
   "before": 12,
   "kept": true,
   "why": "wrong on buildTree([1, 2], []): ('raise', 'ValueError') vs ('ok', None, [[1, 2], []])",
-  "after": 8,
-  "mu": "def buildTree(preorder: [int], inorder: [int]) -> TreeNode?\n  if not preorder or not inorder\n    return none\n  i = inorder.index(preorder[0])\n  root = TreeNode(preorder[0])\n  root.left = self.buildTree(preorder[1:1 + i], inorder[:i])\n  root.right = self.buildTree(preorder[1 + i:], inorder[i + 1:])\n  root\n"
+  "after": 6,
+  "mu": "def buildTree(preorder: [int], inorder: [int]) -> TreeNode?, not preorder or not inorder: none\n  i = inorder.index(preorder[0])\n  root = TreeNode(preorder[0])\n  root.left = self.buildTree(preorder[1:1 + i], inorder[:i])\n  root.right = self.buildTree(preorder[1 + i:], inorder[i + 1:])\n  root\n"
  },
  "109": {
   "num": 109,
   "title": "Convert Sorted List to Binary Search Tree",
   "before": 14,
   "kept": true,
-  "after": 13,
-  "mu": "def sortedListToBST(head: ListNode?) -> TreeNode?\n  values = []\n  while head\n    values <- head.val\n    head = head.next\n  def build(l, r)\n    if l > r\n      return none\n    mid = (l + r + 1) // 2\n    root = TreeNode(values[mid])\n    root.left, root.right = build(l, mid - 1), build(mid + 1, r)\n    root\n  build(0, len(values) - 1)\n"
+  "after": 11,
+  "mu": "def sortedListToBST(head: ListNode?) -> TreeNode?\n  values = []\n  while head\n    values <- head.val\n    head = head.next\n  def build(l, r) -> l > r: none\n    mid = (l + r + 1) // 2\n    root = TreeNode(values[mid])\n    root.left, root.right = build(l, mid - 1), build(mid + 1, r)\n    root\n  build(0, len(values) - 1)\n"
  },
  "97": {
   "num": 97,
   "title": "Interleaving String",
   "before": 12,
   "kept": true,
-  "after": 11,
-  "mu": "def isInterleave(s1: str, s2: str, s3: str) -> bool\n  if len(s1) + len(s2) != len(s3)\n    return false\n  dp = [true] + [false] * len(s2)\n  for j in 1..len(s2)\n    dp[j] = dp[j - 1] and s2[j - 1] == s3[j - 1]\n  for i in 1..len(s1)\n    dp[0] = dp[0] and s1[i - 1] == s3[i - 1]\n    for j in 1..len(s2)\n      dp[j] = dp[j] and s1[i - 1] == s3[i + j - 1] or dp[j - 1] and s2[j - 1] == s3[i + j - 1]\n  dp[-1]\n"
+  "after": 9,
+  "mu": "def isInterleave(s1: str, s2: str, s3: str) -> bool, len(s1) + len(s2) != len(s3): false\n  dp = [true] + [false] * len(s2)\n  for j in 1..len(s2)\n    dp[j] = dp[j - 1] and s2[j - 1] == s3[j - 1]\n  for i in 1..len(s1)\n    dp[0] = dp[0] and s1[i - 1] == s3[i - 1]\n    for j in 1..len(s2)\n      dp[j] = dp[j] and s1[i - 1] == s3[i + j - 1] or dp[j - 1] and s2[j - 1] == s3[i + j - 1]\n  dp[-1]\n"
  },
  "110": {
   "num": 110,
   "title": "Balanced Binary Tree",
   "before": 14,
   "kept": true,
-  "after": 12,
-  "mu": "def isBalanced(root: TreeNode?) -> bool\n  def check_height(node)\n    if not node\n      return 0\n    left = check_height(node.left)\n    if left == -1\n      return -1\n    right = check_height(node.right)\n    if right == -1 or abs(left - right) > 1\n      return -1\n    max(left, right) + 1\n  check_height(root) != -1\n"
+  "after": 10,
+  "mu": "def isBalanced(root: TreeNode?) -> bool\n  def check_height(node) -> not node: 0\n    left = check_height(node.left)\n    if left == -1\n      return -1\n    right = check_height(node.right)\n    if right == -1 or abs(left - right) > 1\n      return -1\n    max(left, right) + 1\n  check_height(root) != -1\n"
  },
  "111": {
   "num": 111,
   "title": "Minimum Depth of Binary Tree",
   "before": 10,
   "kept": true,
-  "after": 7,
-  "mu": "def minDepth(root: TreeNode?) -> int\n  if not root\n    return 0\n  l, r = self.minDepth(root.left), self.minDepth(root.right)\n  if l == 0 or r == 0\n    return 1 + max(l, r)\n  1 + min(l, r)\n"
+  "after": 5,
+  "mu": "def minDepth(root: TreeNode?) -> int, not root: 0\n  l, r = self.minDepth(root.left), self.minDepth(root.right)\n  if l == 0 or r == 0\n    return 1 + max(l, r)\n  1 + min(l, r)\n"
  },
  "119": {
   "num": 119,
@@ -1406,8 +1406,8 @@
   "title": "Sort List",
   "before": 23,
   "kept": true,
-  "after": 19,
-  "mu": "def sortList(head: ListNode?) -> ListNode?\n  if not head or not head.next\n    return head\n  slow, fast = head, head.next\n  while fast and fast.next\n    slow, fast = slow.next, fast.next.next\n  mid, slow.next = slow.next, none\n  l1, l2 = self.sortList(head), self.sortList(mid)\n  dummy = tail = ListNode()\n  while l1 and l2\n    if l1.val < l2.val\n      tail.next = l1\n      l1 = l1.next\n    else\n      tail.next = l2\n      l2 = l2.next\n    tail = tail.next\n  tail.next = l1 or l2\n  dummy.next\n"
+  "after": 17,
+  "mu": "def sortList(head: ListNode?) -> ListNode?, not head or not head.next: head\n  slow, fast = head, head.next\n  while fast and fast.next\n    slow, fast = slow.next, fast.next.next\n  mid, slow.next = slow.next, none\n  l1, l2 = self.sortList(head), self.sortList(mid)\n  dummy = tail = ListNode()\n  while l1 and l2\n    if l1.val < l2.val\n      tail.next = l1\n      l1 = l1.next\n    else\n      tail.next = l2\n      l2 = l2.next\n    tail = tail.next\n  tail.next = l1 or l2\n  dummy.next\n"
  },
  "154": {
   "num": 154,
@@ -1421,8 +1421,8 @@
   "title": "Max Points on a Line",
   "before": 29,
   "kept": true,
-  "after": 24,
-  "mu": "from math import gcd\n\ndef maxPoints(points: [[int]]) -> int\n  if len(points) <= 2\n    return len(points)\n  max_points, n = 0, len(points)\n  for i in 0..<n\n    slopes, same_points = defaultdict(int), 1\n    x1, y1 = points[i]\n    for j in i + 1..<n\n      x2, y2 = points[j]\n      dx, dy = x2 - x1, y2 - y1\n      if dx == 0 and dy == 0\n        same_points += 1\n      else\n        g = gcd(dx, dy)\n        dx //= g\n        dy //= g\n        if dx < 0\n          dx, dy = -dx, -dy\n        elif dx == 0\n          dy = 1\n        slopes[dx, dy] += 1\n    max_points = max(max_points, max(slopes.values(), default=0) + same_points)\n  max_points\n"
+  "after": 22,
+  "mu": "from math import gcd\n\ndef maxPoints(points: [[int]]) -> int, len(points) <= 2: len(points)\n  max_points, n = 0, len(points)\n  for i in 0..<n\n    slopes, same_points = defaultdict(int), 1\n    x1, y1 = points[i]\n    for j in i + 1..<n\n      x2, y2 = points[j]\n      dx, dy = x2 - x1, y2 - y1\n      if dx == 0 and dy == 0\n        same_points += 1\n      else\n        g = gcd(dx, dy)\n        dx //= g\n        dy //= g\n        if dx < 0\n          dx, dy = -dx, -dy\n        elif dx == 0\n          dy = 1\n        slopes[dx, dy] += 1\n    max_points = max(max_points, max(slopes.values(), default=0) + same_points)\n  max_points\n"
  },
  "120": {
   "num": 120,
@@ -1439,8 +1439,8 @@
   "before": 11,
   "kept": true,
   "why": "wrong on maxPathSum(build_tree([None, 2, 4, None, None, 5, 4, -1])): ('ok', -inf, [None]) vs ('ok', -9223372036854775807, [None])",
-  "after": 8,
-  "mu": "def maxPathSum(root: TreeNode?) -> int\n  def f(n)\n    if not n\n      return (0, -maxsize)\n    (gl, ml), (gr, mr) = f(n.left), f(n.right)\n    gl, gr = max(gl, 0), max(gr, 0)\n    (n.val + max(gl, gr), max(ml, mr, n.val + gl + gr))\n  f(root)[1]\n"
+  "after": 6,
+  "mu": "def maxPathSum(root: TreeNode?) -> int\n  def f(n) -> not n: (0, -maxsize)\n    (gl, ml), (gr, mr) = f(n.left), f(n.right)\n    gl, gr = max(gl, 0), max(gr, 0)\n    (n.val + max(gl, gr), max(ml, mr, n.val + gl + gr))\n  f(root)[1]\n"
  },
  "138": {
   "num": 138,
@@ -1493,8 +1493,8 @@
   "title": "Fraction to Recurring Decimal",
   "before": 25,
   "kept": true,
-  "after": 22,
-  "mu": "def fractionToDecimal(numerator: int, denominator: int) -> str\n  if numerator == 0\n    return '0'\n  res = []\n  if (numerator < 0) ^ (denominator < 0)\n    res <- '-'\n  numerator, denominator = abs(numerator), abs(denominator)\n  res <- str(numerator // denominator)\n  remainder = numerator % denominator\n  if remainder\n    res <- '.'\n    seen = {}\n    while remainder\n      if remainder in seen\n        res.insert(seen[remainder], '(')\n        res <- ')'\n        break\n      seen[remainder] = len(res)\n      remainder *= 10\n      res <- str(remainder // denominator)\n      remainder %= denominator\n  ''.join(res)\n"
+  "after": 20,
+  "mu": "def fractionToDecimal(numerator: int, denominator: int) -> str, numerator == 0: '0'\n  res = []\n  if (numerator < 0) ^ (denominator < 0)\n    res <- '-'\n  numerator, denominator = abs(numerator), abs(denominator)\n  res <- str(numerator // denominator)\n  remainder = numerator % denominator\n  if remainder\n    res <- '.'\n    seen = {}\n    while remainder\n      if remainder in seen\n        res.insert(seen[remainder], '(')\n        res <- ')'\n        break\n      seen[remainder] = len(res)\n      remainder *= 10\n      res <- str(remainder // denominator)\n      remainder %= denominator\n  ''.join(res)\n"
  },
  "147": {
   "num": 147,
@@ -1726,8 +1726,8 @@
   "title": "Binary Tree Right Side View",
   "before": 15,
   "kept": true,
-  "after": 9,
-  "mu": "def rightSideView(root: TreeNode?) -> [int]\n  if not root\n    return []\n  q, result = deque([root]), []\n  for (_, nodes) in levels(q, grouped=True)\n    result <- nodes[-1].val\n    for node in nodes\n      q += filter(None, [node.left, node.right])\n  result\n"
+  "after": 7,
+  "mu": "def rightSideView(root: TreeNode?) -> [int], not root: []\n  q, result = deque([root]), []\n  for (_, nodes) in levels(q, grouped=True)\n    result <- nodes[-1].val\n    for node in nodes\n      q += filter(None, [node.left, node.right])\n  result\n"
  },
  "220": {
   "num": 220,
@@ -1742,8 +1742,8 @@
   "title": "Count Complete Tree Nodes",
   "before": 13,
   "kept": true,
-  "after": 12,
-  "mu": "def countNodes(root: TreeNode?) -> int\n  if not root\n    return 0\n  def get_depth(node)\n    depth = 0\n    while node\n      node, depth = node.left, depth + 1\n    depth\n  left_depth, right_depth = get_depth(root.left), get_depth(root.right)\n  if left_depth == right_depth\n    return (1 << left_depth) + self.countNodes(root.right)\n  (1 << right_depth) + self.countNodes(root.left)\n"
+  "after": 10,
+  "mu": "def countNodes(root: TreeNode?) -> int, not root: 0\n  def get_depth(node)\n    depth = 0\n    while node\n      node, depth = node.left, depth + 1\n    depth\n  left_depth, right_depth = get_depth(root.left), get_depth(root.right)\n  if left_depth == right_depth\n    return (1 << left_depth) + self.countNodes(root.right)\n  (1 << right_depth) + self.countNodes(root.left)\n"
  },
  "214": {
   "num": 214,
@@ -1789,8 +1789,8 @@
   "title": "Summary Ranges",
   "before": 18,
   "kept": true,
-  "after": 12,
-  "mu": "def summaryRanges(nums: [int]) -> [str]\n  if not nums\n    return []\n  ranges = []\n  start = end = nums[0]\n  for n in nums[1:] + [nums[-1] + 2]\n    if n != end + 1\n      ranges <- (str(start) if start == end else f'{start}->{end}')\n      start = end = n\n    else\n      end = n\n  ranges\n"
+  "after": 10,
+  "mu": "def summaryRanges(nums: [int]) -> [str], not nums: []\n  ranges = []\n  start = end = nums[0]\n  for n in nums[1:] + [nums[-1] + 2]\n    if n != end + 1\n      ranges <- (str(start) if start == end else f'{start}->{end}')\n      start = end = n\n    else\n      end = n\n  ranges\n"
  },
  "231": {
   "num": 231,
@@ -1868,8 +1868,8 @@
   "title": "Palindrome Linked List",
   "before": 24,
   "kept": true,
-  "after": 22,
-  "mu": "def isPalindrome(head: ListNode?) -> bool\n  if not head or not head.next\n    return true\n  def end_of_first_half(node)\n    fast, slow = node, node\n    while fast.next and fast.next.next\n      fast, slow = fast.next.next, slow.next\n    slow\n  def reverse_list(node)\n    prev = none\n    while node\n      node.next, prev, node = prev, node, node.next\n    prev\n  first_half_end = end_of_first_half(head)\n  second_half_start = reverse_list(first_half_end.next)\n  p1, p2, result = head, second_half_start, true\n  while result and p2\n    if p1.val != p2.val\n      result = false\n    p1, p2 = p1.next, p2.next\n  first_half_end.next = reverse_list(second_half_start)\n  result\n"
+  "after": 20,
+  "mu": "def isPalindrome(head: ListNode?) -> bool, not head or not head.next: true\n  def end_of_first_half(node)\n    fast, slow = node, node\n    while fast.next and fast.next.next\n      fast, slow = fast.next.next, slow.next\n    slow\n  def reverse_list(node)\n    prev = none\n    while node\n      node.next, prev, node = prev, node, node.next\n    prev\n  first_half_end = end_of_first_half(head)\n  second_half_start = reverse_list(first_half_end.next)\n  p1, p2, result = head, second_half_start, true\n  while result and p2\n    if p1.val != p2.val\n      result = false\n    p1, p2 = p1.next, p2.next\n  first_half_end.next = reverse_list(second_half_start)\n  result\n"
  },
  "284": {
   "num": 284,
@@ -2033,8 +2033,8 @@
   "before": 13,
   "kept": true,
   "why": "IndexError: list index out of range",
-  "after": 7,
-  "mu": "def maxProfit(prices: [int]) -> int\n  if not prices\n    return 0\n  h, s, r = -prices[0], 0, 0\n  for i in 1..<len(prices)\n    h, s, r = max(h, r - prices[i]), h + prices[i], max(r, s)\n  max(s, r)\n"
+  "after": 5,
+  "mu": "def maxProfit(prices: [int]) -> int, not prices: 0\n  h, s, r = -prices[0], 0, 0\n  for i in 1..<len(prices)\n    h, s, r = max(h, r - prices[i]), h + prices[i], max(r, s)\n  max(s, r)\n"
  },
  "187": {
   "num": 187,
@@ -2079,8 +2079,8 @@
   "title": "Additive Number",
   "before": 17,
   "kept": true,
-  "after": 15,
-  "mu": "def isAdditiveNumber(num: str) -> bool\n  def valid(a, b, s)\n    if a[0] == '0' and len(a) > 1 or b[0] == '0' and len(b) > 1\n      return false\n    c = str(int(a) + int(b))\n    if not s.startswith(c)\n      return false\n    if len(s) == len(c)\n      return true\n    valid(b, c, s[len(c):])\n  for i in 1..<len(num)\n    for j in i + 1..<len(num)\n      if valid(num[:i], num[i:j], num[j:])\n        return true\n  false\n"
+  "after": 13,
+  "mu": "def isAdditiveNumber(num: str) -> bool\n  def valid(a, b, s) -> a[0] == '0' and len(a) > 1 or b[0] == '0' and len(b) > 1: false\n    c = str(int(a) + int(b))\n    if not s.startswith(c)\n      return false\n    if len(s) == len(c)\n      return true\n    valid(b, c, s[len(c):])\n  for i in 1..<len(num)\n    for j in i + 1..<len(num)\n      if valid(num[:i], num[i:j], num[j:])\n        return true\n  false\n"
  },
  "287": {
   "num": 287,
@@ -2235,8 +2235,8 @@
   "title": "Count of Range Sum",
   "before": 30,
   "kept": true,
-  "after": 17,
-  "mu": "def countRangeSum(nums: [int], lower: int, upper: int) -> int\n  prefix_sums = [0] + list(scan(+, nums))\n  def merge_sort(lo, hi)\n    if hi - lo <= 1\n      return 0\n    mid = (lo + hi) // 2\n    count = merge_sort(lo, mid) + merge_sort(mid, hi)\n    j = k = mid\n    for left in prefix_sums[lo:mid]\n      while k < hi and prefix_sums[k] - left < lower\n        k += 1\n      while j < hi and prefix_sums[j] - left <= upper\n        j += 1\n      count += j - k\n    prefix_sums[lo:hi] = sorted(prefix_sums[lo:hi])\n    count\n  merge_sort(0, len(prefix_sums))\n"
+  "after": 15,
+  "mu": "def countRangeSum(nums: [int], lower: int, upper: int) -> int\n  prefix_sums = [0] + list(scan(+, nums))\n  def merge_sort(lo, hi) -> hi - lo <= 1: 0\n    mid = (lo + hi) // 2\n    count = merge_sort(lo, mid) + merge_sort(mid, hi)\n    j = k = mid\n    for left in prefix_sums[lo:mid]\n      while k < hi and prefix_sums[k] - left < lower\n        k += 1\n      while j < hi and prefix_sums[j] - left <= upper\n        j += 1\n      count += j - k\n    prefix_sums[lo:hi] = sorted(prefix_sums[lo:hi])\n    count\n  merge_sort(0, len(prefix_sums))\n"
  },
  "227": {
   "num": 227,
@@ -2307,8 +2307,8 @@
   "title": "Integer Break",
   "before": 10,
   "kept": true,
-  "after": 5,
-  "mu": "def integerBreak(n: int) -> int\n  if n < 4\n    return (1, 0, 1, 2)[n]\n  q, r = divmod(n, 3)\n  (3 ** q, 3 ** (q - 1) * 4, 3 ** q * 2)[r]\n"
+  "after": 3,
+  "mu": "def integerBreak(n: int) -> int, n < 4: (1, 0, 1, 2)[n]\n  q, r = divmod(n, 3)\n  (3 ** q, 3 ** (q - 1) * 4, 3 ** q * 2)[r]\n"
  },
  "349": {
   "num": 349,
@@ -2349,8 +2349,8 @@
   "title": "Count Numbers with Unique Digits",
   "before": 11,
   "kept": true,
-  "after": 8,
-  "mu": "def countNumbersWithUniqueDigits(n: int) -> int\n  if n == 0\n    return 1\n  count, ud = 10, 9\n  for i in 2..n\n    ud *= 11 - i\n    count += ud\n  count\n"
+  "after": 6,
+  "mu": "def countNumbersWithUniqueDigits(n: int) -> int, n == 0: 1\n  count, ud = 10, 9\n  for i in 2..n\n    ud *= 11 - i\n    count += ud\n  count\n"
  },
  "363": {
   "num": 363,
@@ -2366,8 +2366,8 @@
   "before": 12,
   "kept": true,
   "why": "timeout",
-  "after": 11,
-  "mu": "def oddEvenList(head: ListNode?) -> ListNode?\n  if not head or not head.next\n    return head\n  odd, even, even_head = head, head.next, head.next\n  while even and even.next\n    odd.next = even.next\n    odd = odd.next\n    even.next = odd.next\n    even = even.next\n  odd.next = even_head\n  head\n"
+  "after": 9,
+  "mu": "def oddEvenList(head: ListNode?) -> ListNode?, not head or not head.next: head\n  odd, even, even_head = head, head.next, head.next\n  while even and even.next\n    odd.next = even.next\n    odd = odd.next\n    even.next = odd.next\n    even = even.next\n  odd.next = even_head\n  head\n"
  },
  "329": {
   "num": 329,
@@ -2434,8 +2434,8 @@
   "title": "Wiggle Subsequence",
   "before": 13,
   "kept": true,
-  "after": 10,
-  "mu": "def wiggleMaxLength(nums: [int]) -> int\n  if len(nums) < 2\n    return len(nums)\n  up = down = 1\n  for i in 1..<len(nums)\n    if nums[i] > nums[i - 1]\n      up = down + 1\n    elif nums[i] < nums[i - 1]\n      down = up + 1\n  max(up, down)\n"
+  "after": 8,
+  "mu": "def wiggleMaxLength(nums: [int]) -> int, len(nums) < 2: len(nums)\n  up = down = 1\n  for i in 1..<len(nums)\n    if nums[i] > nums[i - 1]\n      up = down + 1\n    elif nums[i] < nums[i - 1]\n      down = up + 1\n  max(up, down)\n"
  },
  "398": {
   "num": 398,
@@ -2551,8 +2551,8 @@
   "title": "Sum of Left Leaves",
   "before": 12,
   "kept": true,
-  "after": 8,
-  "mu": "def sumOfLeftLeaves(root: TreeNode?) -> int\n  def helper(node, is_left)\n    if not node\n      return 0\n    if is_left and node.left is none and node.right is none\n      return node.val\n    helper(node.left, true) + helper(node.right, false)\n  helper(root, false)\n"
+  "after": 6,
+  "mu": "def sumOfLeftLeaves(root: TreeNode?) -> int\n  def helper(node, is_left) -> not node: 0\n    if is_left and node.left is none and node.right is none\n      return node.val\n    helper(node.left, true) + helper(node.right, false)\n  helper(root, false)\n"
  },
  "402": {
   "num": 402,
@@ -2583,8 +2583,8 @@
   "title": "Evaluate Division",
   "before": 19,
   "kept": true,
-  "after": 18,
-  "mu": "def calcEquation(equations: [[str]], values: [float], queries: [[str]]) -> [float]\n  graph = defaultdict(dict)\n  for ((a, b), val) in zip(equations, values)\n    graph[a][b] = val\n    graph[b][a] = 1 / val\n  def dfs(src, dst, visited)\n    if src not in graph or dst not in graph\n      return -1.0\n    if src == dst\n      return 1.0\n    visited.add(src)\n    for (neighbor, val) in graph[src].items()\n      if neighbor not in visited\n        res = dfs(neighbor, dst, visited)\n        if res > 0\n          return val * res\n    -1.0\n  [dfs(c, d, set()) for (c, d) in queries]\n"
+  "after": 16,
+  "mu": "def calcEquation(equations: [[str]], values: [float], queries: [[str]]) -> [float]\n  graph = defaultdict(dict)\n  for ((a, b), val) in zip(equations, values)\n    graph[a][b] = val\n    graph[b][a] = 1 / val\n  def dfs(src, dst, visited) -> src not in graph or dst not in graph: -1.0\n    if src == dst\n      return 1.0\n    visited.add(src)\n    for (neighbor, val) in graph[src].items()\n      if neighbor not in visited\n        res = dfs(neighbor, dst, visited)\n        if res > 0\n          return val * res\n    -1.0\n  [dfs(c, d, set()) for (c, d) in queries]\n"
  },
  "414": {
   "num": 414,
@@ -2654,8 +2654,8 @@
   "before": 14,
   "kept": true,
   "why": "IndentationError: expected an indented block after class definition on line 30",
-  "after": 10,
-  "mu": "def longestSubstring(s: str, k: int) -> int\n  def helper(subs)\n    if len(subs) < k\n      return 0\n    count = counter(subs)\n    for c in count\n      if count[c] < k\n        return max for t in subs.split(c): helper(t)\n    len(subs)\n  helper(s)\n"
+  "after": 8,
+  "mu": "def longestSubstring(s: str, k: int) -> int\n  def helper(subs) -> len(subs) < k: 0\n    count = counter(subs)\n    for c in count\n      if count[c] < k\n        return max for t in subs.split(c): helper(t)\n    len(subs)\n  helper(s)\n"
  },
  "419": {
   "num": 419,
@@ -2905,8 +2905,8 @@
   "before": 15,
   "kept": true,
   "why": "IndentationError: expected an indented block after class definition on line 29",
-  "after": 13,
-  "mu": "def pathSum(root: TreeNode?, targetSum: int) -> int\n  prefix_sums = defaultdict(int)\n  prefix_sums[0] = 1\n  def dfs(node, curr_sum)\n    if not node\n      return 0\n    curr_sum += node.val\n    res = prefix_sums[curr_sum - targetSum]\n    prefix_sums[curr_sum] += 1\n    res += dfs(node.left, curr_sum) + dfs(node.right, curr_sum)\n    prefix_sums[curr_sum] -= 1\n    res\n  dfs(root, 0)\n"
+  "after": 11,
+  "mu": "def pathSum(root: TreeNode?, targetSum: int) -> int\n  prefix_sums = defaultdict(int)\n  prefix_sums[0] = 1\n  def dfs(node, curr_sum) -> not node: 0\n    curr_sum += node.val\n    res = prefix_sums[curr_sum - targetSum]\n    prefix_sums[curr_sum] += 1\n    res += dfs(node.left, curr_sum) + dfs(node.right, curr_sum)\n    prefix_sums[curr_sum] -= 1\n    res\n  dfs(root, 0)\n"
  },
  "433": {
   "num": 433,
@@ -3011,8 +3011,8 @@
   "title": "Largest Palindrome Product",
   "before": 17,
   "kept": true,
-  "after": 13,
-  "mu": "def largestPalindrome(n: int) -> int\n  if n == 1\n    return 9\n  upper, lower = 10 ** n - 1, 10 ** (n - 1)\n  for first_half in range(upper, lower - 1, -1)\n    palindrome = int(str(first_half) + str(first_half)[::-1])\n    if palindrome <= upper * upper\n      for i in range(upper, lower - 1, -1)\n        if i * i < palindrome\n          break\n        if palindrome % i == 0 and lower <= palindrome // i <= upper\n          return palindrome % 1337\n  0\n"
+  "after": 11,
+  "mu": "def largestPalindrome(n: int) -> int, n == 1: 9\n  upper, lower = 10 ** n - 1, 10 ** (n - 1)\n  for first_half in range(upper, lower - 1, -1)\n    palindrome = int(str(first_half) + str(first_half)[::-1])\n    if palindrome <= upper * upper\n      for i in range(upper, lower - 1, -1)\n        if i * i < palindrome\n          break\n        if palindrome % i == 0 and lower <= palindrome // i <= upper\n          return palindrome % 1337\n  0\n"
  },
  "477": {
   "num": 477,
@@ -3101,8 +3101,8 @@
   "title": "Matchsticks to Square",
   "before": 22,
   "kept": true,
-  "after": 20,
-  "mu": "def makesquare(matchsticks: [int]) -> bool\n  total = sum(matchsticks)\n  if total % 4 != 0 or not matchsticks\n    return false\n  side = total // 4\n  matchsticks.sort(reverse=true)\n  sides = [0] * 4\n  def backtrack(i)\n    if i == len(matchsticks)\n      return all(s == side for s in sides)\n    for j in 0..<4\n      if sides[j] + matchsticks[i] <= side\n        sides[j] += matchsticks[i]\n        if backtrack(i + 1)\n          return true\n        sides[j] -= matchsticks[i]\n      if sides[j] == 0\n        break\n    return false\n  backtrack(0)\n"
+  "after": 18,
+  "mu": "def makesquare(matchsticks: [int]) -> bool\n  total = sum(matchsticks)\n  if total % 4 != 0 or not matchsticks\n    return false\n  side = total // 4\n  matchsticks.sort(reverse=true)\n  sides = [0] * 4\n  def backtrack(i) -> i == len(matchsticks): all(s == side for s in sides)\n    for j in 0..<4\n      if sides[j] + matchsticks[i] <= side\n        sides[j] += matchsticks[i]\n        if backtrack(i + 1)\n          return true\n        sides[j] -= matchsticks[i]\n      if sides[j] == 0\n        break\n    return false\n  backtrack(0)\n"
  },
  "468": {
   "num": 468,
@@ -3203,16 +3203,16 @@
   "title": "Reverse Pairs",
   "before": 28,
   "kept": true,
-  "after": 22,
-  "mu": "def reversePairs(nums: [int]) -> int\n  def merge_sort(arr, left, right)\n    if left >= right\n      return 0\n    mid = (left + right) // 2\n    count = merge_sort(arr, left, mid) + merge_sort(arr, mid + 1, right)\n    j = mid + 1\n    for i in left..mid\n      while j <= right and arr[i] > 2 * arr[j]\n        j += 1\n      count += j - (mid + 1)\n    temp, i, j = [], left, mid + 1\n    while i <= mid or j <= right\n      if i <= mid and (j > right or arr[i] <= arr[j])\n        temp <- arr[i]\n        i += 1\n      else\n        temp <- arr[j]\n        j += 1\n    arr[left:right + 1] = temp\n    count\n  merge_sort(nums, 0, len(nums) - 1)\n"
+  "after": 20,
+  "mu": "def reversePairs(nums: [int]) -> int\n  def merge_sort(arr, left, right) -> left >= right: 0\n    mid = (left + right) // 2\n    count = merge_sort(arr, left, mid) + merge_sort(arr, mid + 1, right)\n    j = mid + 1\n    for i in left..mid\n      while j <= right and arr[i] > 2 * arr[j]\n        j += 1\n      count += j - (mid + 1)\n    temp, i, j = [], left, mid + 1\n    while i <= mid or j <= right\n      if i <= mid and (j > right or arr[i] <= arr[j])\n        temp <- arr[i]\n        i += 1\n      else\n        temp <- arr[j]\n        j += 1\n    arr[left:right + 1] = temp\n    count\n  merge_sort(nums, 0, len(nums) - 1)\n"
  },
  "498": {
   "num": 498,
   "title": "Diagonal Traverse",
   "before": 15,
   "kept": true,
-  "after": 11,
-  "mu": "def findDiagonalOrder(mat: [[int]]) -> [int]\n  if not mat or not mat[0]\n    return []\n  m, n = len(mat), len(mat[0])\n  sum from [] for d in 0..<m + n - 1\n    intermediate, r = [], 0 if d < n else d - n + 1\n    c = d if d < n else n - 1\n    while r < m and c >= 0\n      intermediate <- mat[r][c]\n      r, c = r + 1, c - 1\n    (intermediate if d % 2 else intermediate[::-1])\n"
+  "after": 9,
+  "mu": "def findDiagonalOrder(mat: [[int]]) -> [int], not mat or not mat[0]: []\n  m, n = len(mat), len(mat[0])\n  sum from [] for d in 0..<m + n - 1\n    intermediate, r = [], 0 if d < n else d - n + 1\n    c = d if d < n else n - 1\n    while r < m and c >= 0\n      intermediate <- mat[r][c]\n      r, c = r + 1, c - 1\n    (intermediate if d % 2 else intermediate[::-1])\n"
  },
  "509": {
   "num": 509,
@@ -3272,8 +3272,8 @@
   "title": "Most Frequent Subtree Sum",
   "before": 15,
   "kept": true,
-  "after": 10,
-  "mu": "def findFrequentTreeSum(root: TreeNode?) -> [int]\n  count = counter()\n  def subtree_sum(node)\n    if not node\n      return 0\n    total = node.val + subtree_sum(node.left) + subtree_sum(node.right)\n    count[total] += 1\n    total\n  subtree_sum(root)\n  [s for (s, freq) in count.items() if freq == max(count.values())]\n"
+  "after": 8,
+  "mu": "def findFrequentTreeSum(root: TreeNode?) -> [int]\n  count = counter()\n  def subtree_sum(node) -> not node: 0\n    total = node.val + subtree_sum(node.left) + subtree_sum(node.right)\n    count[total] += 1\n    total\n  subtree_sum(root)\n  [s for (s, freq) in count.items() if freq == max(count.values())]\n"
  },
  "480": {
   "num": 480,
@@ -3338,8 +3338,8 @@
   "title": "K-diff Pairs in an Array",
   "before": 13,
   "kept": true,
-  "after": 6,
-  "mu": "def findPairs(nums: [int], k: int) -> int\n  if k < 0\n    return 0\n  count = counter(nums)\n  sum for val in count\n    (k == 0 and count[val] > 1) or (k > 0 and val + k in count)\n"
+  "after": 4,
+  "mu": "def findPairs(nums: [int], k: int) -> int, k < 0: 0\n  count = counter(nums)\n  sum for val in count\n    (k == 0 and count[val] > 1) or (k > 0 and val + k in count)\n"
  },
  "464": {
   "num": 464,
@@ -3398,16 +3398,16 @@
   "title": "Find Largest Value in Each Tree Row",
   "before": 16,
   "kept": true,
-  "after": 10,
-  "mu": "def largestValues(root: TreeNode?) -> [int]\n  if not root\n    return []\n  m, q = defaultdict(() -> -inf), deque([root])\n  for (d, n) in levels(q)\n    m[d] = max(m[d], n.val)\n    for child in [n.left, n.right]\n      if child\n        q <- child\n  [m[i] for i in 0..len(m) - 1]\n"
+  "after": 8,
+  "mu": "def largestValues(root: TreeNode?) -> [int], not root: []\n  m, q = defaultdict(() -> -inf), deque([root])\n  for (d, n) in levels(q)\n    m[d] = max(m[d], n.val)\n    for child in [n.left, n.right]\n      if child\n        q <- child\n  [m[i] for i in 0..len(m) - 1]\n"
  },
  "543": {
   "num": 543,
   "title": "Diameter of Binary Tree",
   "before": 10,
   "kept": true,
-  "after": 8,
-  "mu": "def diameterOfBinaryTree(root: TreeNode?) -> int\n  def dfs(node)\n    if not node\n      return (0, 0)\n    (lh, ld), (rh, rd) = dfs(node.left), dfs(node.right)\n    (max(lh, rh) + 1, max(ld, rd, lh + rh))\n  _, ans = dfs(root)\n  ans\n"
+  "after": 6,
+  "mu": "def diameterOfBinaryTree(root: TreeNode?) -> int\n  def dfs(node) -> not node: (0, 0)\n    (lh, ld), (rh, rd) = dfs(node.left), dfs(node.right)\n    (max(lh, rh) + 1, max(ld, rd, lh + rh))\n  _, ans = dfs(root)\n  ans\n"
  },
  "539": {
   "num": 539,
@@ -3453,8 +3453,8 @@
   "title": "Binary Tree Tilt",
   "before": 11,
   "kept": true,
-  "after": 7,
-  "mu": "def findTilt(root: TreeNode?) -> int\n  def dfs(node)\n    if not node\n      return 0, 0\n    (ls, lt), (rs, rt) = dfs(node.left), dfs(node.right)\n    (node.val + ls + rs, lt + rt + abs(ls - rs))\n  dfs(root)[1]\n"
+  "after": 5,
+  "mu": "def findTilt(root: TreeNode?) -> int\n  def dfs(node) -> not node: 0, 0\n    (ls, lt), (rs, rt) = dfs(node.left), dfs(node.right)\n    (node.val + ls + rs, lt + rt + abs(ls - rs))\n  dfs(root)[1]\n"
  },
  "537": {
   "num": 537,
@@ -3495,8 +3495,8 @@
   "title": "Maximum Depth of N-ary Tree",
   "before": 6,
   "kept": true,
-  "after": 4,
-  "mu": "def maxDepth(root) -> int\n  if not root\n    return 0\n  1 + (max from 0 for child in root.children if child: self.maxDepth(child))\n"
+  "after": 2,
+  "mu": "def maxDepth(root) -> int, not root: 0\n  1 + (max from 0 for child in root.children if child: self.maxDepth(child))\n"
  },
  "557": {
   "num": 557,
@@ -3527,8 +3527,8 @@
   "before": 8,
   "kept": true,
   "why": "IndentationError: expected an indented block after class definition on line 44",
-  "after": 6,
-  "mu": "def optimalDivision(nums: [int]) -> str\n  if len(nums) == 1\n    return str(nums[0])\n  if len(nums) == 2\n    return f'{nums[0]}/{nums[1]}'\n  f\"{nums[0]}/({'/'.join(map(str, nums[1:]))})\"\n"
+  "after": 4,
+  "mu": "def optimalDivision(nums: [int]) -> str, len(nums) == 1: str(nums[0])\n  if len(nums) == 2\n    return f'{nums[0]}/{nums[1]}'\n  f\"{nums[0]}/({'/'.join(map(str, nums[1:]))})\"\n"
  },
  "517": {
   "num": 517,
@@ -3582,8 +3582,8 @@
   "title": "Reshape the Matrix",
   "before": 6,
   "kept": true,
-  "after": 4,
-  "mu": "def matrixReshape(mat: [[int]], r: int, c: int) -> [[int]]\n  if len(mat) * len(mat[0]) != r * c\n    return mat\n  [sum(mat, [])[i * c:(i + 1) * c] for i in 0..<r]\n"
+  "after": 2,
+  "mu": "def matrixReshape(mat: [[int]], r: int, c: int) -> [[int]], len(mat) * len(mat[0]) != r * c: mat\n  [sum(mat, [])[i * c:(i + 1) * c] for i in 0..<r]\n"
  },
  "575": {
   "num": 575,
@@ -3684,8 +3684,8 @@
   "before": 9,
   "kept": true,
   "why": "NameError: name 'tree2str' is not defined",
-  "after": 8,
-  "mu": "def tree2str(root: TreeNode?) -> str\n  if not root\n    return ''\n  s = str(root.val)\n  if root.left or root.right\n    s += '(' + self.tree2str(root.left) + ')' if root.left else '()'\n    s += '(' + self.tree2str(root.right) + ')' if root.right else ''\n  s\n"
+  "after": 6,
+  "mu": "def tree2str(root: TreeNode?) -> str, not root: ''\n  s = str(root.val)\n  if root.left or root.right\n    s += '(' + self.tree2str(root.left) + ')' if root.left else '()'\n    s += '(' + self.tree2str(root.right) + ')' if root.right else ''\n  s\n"
  },
  "591": {
   "num": 591,
@@ -3837,8 +3837,8 @@
   "title": "Average of Levels in Binary Tree",
   "before": 15,
   "kept": true,
-  "after": 11,
-  "mu": "def averageOfLevels(root: TreeNode?) -> [float]\n  if not root\n    return []\n  q, result = deque([root]), []\n  for (_, nodes) in levels(q, grouped=True)\n    result <- (sum for node in nodes: node.val) / len(nodes)\n    for node in nodes\n      for child in [node.left, node.right]\n        if child\n          q <- child\n  result\n"
+  "after": 9,
+  "mu": "def averageOfLevels(root: TreeNode?) -> [float], not root: []\n  q, result = deque([root]), []\n  for (_, nodes) in levels(q, grouped=True)\n    result <- (sum for node in nodes: node.val) / len(nodes)\n    for node in nodes\n      for child in [node.left, node.right]\n        if child\n          q <- child\n  result\n"
  },
  "633": {
   "num": 633,
@@ -3932,16 +3932,16 @@
   "before": 21,
   "kept": true,
   "why": "wrong on outerTrees([[1, 2], [2, 2], [2, 2]]): ('ok', [[1, 2], [2, 2]], [[[1, 2], [2, 2], [2, 2]]]) vs ('ok', [[1, 2], [2, 2], [2, 2]], [[[1, 2], [2, 2], [2, 2]]])",
-  "after": 20,
-  "mu": "def outerTrees(trees: [[int]]) -> [[int]]\n  if len(trees) <= 3\n    return trees\n  def cross(o, a, b)\n    (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])\n  on_hull = leftmost = min(trees, key=x -> (x[0], x[1]))\n  hull = []\n  while true\n    hull <- on_hull\n    endpoint = on_hull\n    for candidate in trees\n      if endpoint == on_hull or cross(on_hull, endpoint, candidate) < 0\n        endpoint = candidate\n    for p in trees\n      if p != on_hull and p != endpoint and cross(on_hull, endpoint, p) == 0 and p not in hull\n        hull <- p\n    on_hull = endpoint\n    if on_hull == leftmost\n      break\n  hull\n"
+  "after": 18,
+  "mu": "def outerTrees(trees: [[int]]) -> [[int]], len(trees) <= 3: trees\n  def cross(o, a, b)\n    (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])\n  on_hull = leftmost = min(trees, key=x -> (x[0], x[1]))\n  hull = []\n  while true\n    hull <- on_hull\n    endpoint = on_hull\n    for candidate in trees\n      if endpoint == on_hull or cross(on_hull, endpoint, candidate) < 0\n        endpoint = candidate\n    for p in trees\n      if p != on_hull and p != endpoint and cross(on_hull, endpoint, p) == 0 and p not in hull\n        hull <- p\n    on_hull = endpoint\n    if on_hull == leftmost\n      break\n  hull\n"
  },
  "639": {
   "num": 639,
   "title": "Decode Ways II",
   "before": 22,
   "kept": true,
-  "after": 15,
-  "mu": "def numDecodings(s: str) -> int\n  MOD = 10 ** 9 + 7\n  def ways2(ch1, ch2)\n    if ch1 == '*' and ch2 == '*'\n      return 15\n    if ch1 == '*'\n      return 2 if '0' <= ch2 <= '6' else 1\n    if ch2 == '*'\n      return 9 if ch1 == '1' else 6 if ch1 == '2' else 0\n    1 if 10 <= int(ch1 + ch2) <= 26 else 0\n  dp = [1, 0 if s[0] == '0' else 9 if s[0] == '*' else 1]\n  for i in 2..len(s)\n    w1 = 0 if s[i - 1] == '0' else 9 if s[i - 1] == '*' else 1\n    dp <- (dp[-1] * w1 + dp[-2] * ways2(s[i - 2], s[i - 1])) % MOD\n  dp[-1]\n"
+  "after": 13,
+  "mu": "def numDecodings(s: str) -> int\n  MOD = 10 ** 9 + 7\n  def ways2(ch1, ch2) -> ch1 == '*' and ch2 == '*': 15\n    if ch1 == '*'\n      return 2 if '0' <= ch2 <= '6' else 1\n    if ch2 == '*'\n      return 9 if ch1 == '1' else 6 if ch1 == '2' else 0\n    1 if 10 <= int(ch1 + ch2) <= 26 else 0\n  dp = [1, 0 if s[0] == '0' else 9 if s[0] == '*' else 1]\n  for i in 2..len(s)\n    w1 = 0 if s[i - 1] == '0' else 9 if s[i - 1] == '*' else 1\n    dp <- (dp[-1] * w1 + dp[-2] * ways2(s[i - 2], s[i - 1])) % MOD\n  dp[-1]\n"
  },
  "667": {
   "num": 667,
@@ -4010,8 +4010,8 @@
   "title": "Find Duplicate Subtrees",
   "before": 22,
   "kept": true,
-  "after": 12,
-  "mu": "def findDuplicateSubtrees(root: TreeNode?) -> [TreeNode?]\n  trees, count, res = {}, defaultdict(int), []\n  def lookup(node)\n    if not node\n      return 0\n    tid = trees.setdefault((node.val, lookup(node.left), lookup(node.right)), len(trees) + 1)\n    count[tid] += 1\n    if count[tid] == 2\n      res <- node\n    tid\n  lookup(root)\n  res\n"
+  "after": 10,
+  "mu": "def findDuplicateSubtrees(root: TreeNode?) -> [TreeNode?]\n  trees, count, res = {}, defaultdict(int), []\n  def lookup(node) -> not node: 0\n    tid = trees.setdefault((node.val, lookup(node.left), lookup(node.right)), len(trees) + 1)\n    count[tid] += 1\n    if count[tid] == 2\n      res <- node\n    tid\n  lookup(root)\n  res\n"
  },
  "649": {
   "num": 649,
@@ -4246,8 +4246,8 @@
   "before": 29,
   "kept": true,
   "why": "SyntaxError: Generator expression must be parenthesized",
-  "after": 27,
-  "mu": "def cutOffTree(forest: [[int]]) -> int\n  if not forest or not forest[0]\n    return -1\n  m, n = len(forest), len(forest[0])\n  trees = sort([(forest[i][j], i, j) for (i, j) in cells(forest, gt=1)], by=x -> x[0])\n  def bfs(sr, sc, tr, tc)\n    if sr == tr and sc == tc\n      return 0\n    visited, queue = like(forest, fill=false), deque([(sr, sc)])\n    visited[sr][sc] = true\n    for (dist, (r, c)) in levels(queue)\n      for (nr, nc) in ((r + 1, c), (r - 1, c), (r, c + 1), (r, c - 1))\n        if 0 <= nr < m and 0 <= nc < n and not visited[nr][nc] and forest[nr][nc] != 0\n          if nr == tr and nc == tc\n            return dist + 1\n          visited[nr][nc] = true\n          queue <- (nr, nc)\n    -1\n  total_steps, sr, sc = 0, 0, 0\n  for (_, tr, tc) in trees\n    steps = bfs(sr, sc, tr, tc)\n    if steps == -1\n      return -1\n    total_steps += steps\n    sr, sc = tr, tc\n    forest[tr][tc] = 1\n  total_steps\n"
+  "after": 23,
+  "mu": "def cutOffTree(forest: [[int]]) -> int, not forest or not forest[0]: -1\n  m, n = len(forest), len(forest[0])\n  trees = sort([(forest[i][j], i, j) for (i, j) in cells(forest, gt=1)], by=x -> x[0])\n  def bfs(sr, sc, tr, tc) -> sr == tr and sc == tc: 0\n    visited, queue = like(forest, fill=false), deque([(sr, sc)])\n    visited[sr][sc] = true\n    for (dist, (r, c)) in levels(queue)\n      for (nr, nc) in ((r + 1, c), (r - 1, c), (r, c + 1), (r, c - 1))\n        if 0 <= nr < m and 0 <= nc < n and not visited[nr][nc] and forest[nr][nc] != 0\n          if nr == tr and nc == tc\n            return dist + 1\n          visited[nr][nc] = true\n          queue <- (nr, nc)\n    -1\n  total_steps, sr, sc = 0, 0, 0\n  for (_, tr, tc) in trees\n    steps = bfs(sr, sc, tr, tc)\n    if steps == -1\n      return -1\n    total_steps += steps\n    sr, sc = tr, tc\n    forest[tr][tc] = 1\n  total_steps\n"
  },
  "712": {
   "num": 712,
@@ -4270,8 +4270,8 @@
   "title": "Longest Univalue Path",
   "before": 15,
   "kept": true,
-  "after": 12,
-  "mu": "def longestUnivaluePath(root: TreeNode?) -> int\n  ans = 0\n  def dfs(node)\n    if not node\n      return 0\n    left_len, right_len = dfs(node.left), dfs(node.right)\n    left_path = (node.left and node.left.val == node.val and left_len + 1) or 0\n    right_path = (node.right and node.right.val == node.val and right_len + 1) or 0\n    ans = max(ans, left_path + right_path)\n    max(left_path, right_path)\n  dfs(root)\n  ans\n"
+  "after": 10,
+  "mu": "def longestUnivaluePath(root: TreeNode?) -> int\n  ans = 0\n  def dfs(node) -> not node: 0\n    left_len, right_len = dfs(node.left), dfs(node.right)\n    left_path = (node.left and node.left.val == node.val and left_len + 1) or 0\n    right_path = (node.right and node.right.val == node.val and right_len + 1) or 0\n    ans = max(ans, left_path + right_path)\n    max(left_path, right_path)\n  dfs(root)\n  ans\n"
  },
  "729": {
   "num": 729,
@@ -4284,8 +4284,8 @@
   "before": 23,
   "kept": true,
   "why": "TypeError: list indices must be integers or slices, not tuple",
-  "after": 19,
-  "mu": "def judgePoint24(cards: [int]) -> bool\n  def helper(nums)\n    if len(nums) == 1\n      return abs(nums[0] - 24) < 1e-6\n    n = len(nums)\n    for i in 0..<n\n      for j in 0..<n\n        if i != j\n          a, b = nums[i], nums[j]\n          ops = [a + b, a - b, b - a, a * b]\n          if abs(b) > 1e-6\n            ops <- a / b\n          if abs(a) > 1e-6\n            ops <- b / a\n          for c in ops\n            if helper([nums[k] for k in 0..<n if k != i and k != j] + [c])\n              return true\n    false\n  helper([float(x) for x in cards])\n"
+  "after": 17,
+  "mu": "def judgePoint24(cards: [int]) -> bool\n  def helper(nums) -> len(nums) == 1: abs(nums[0] - 24) < 1e-6\n    n = len(nums)\n    for i in 0..<n\n      for j in 0..<n\n        if i != j\n          a, b = nums[i], nums[j]\n          ops = [a + b, a - b, b - a, a * b]\n          if abs(b) > 1e-6\n            ops <- a / b\n          if abs(a) > 1e-6\n            ops <- b / a\n          for c in ops\n            if helper([nums[k] for k in 0..<n if k != i and k != j] + [c])\n              return true\n    false\n  helper([float(x) for x in cards])\n"
  },
  "731": {
   "num": 731,
@@ -4310,8 +4310,8 @@
   "title": "Partition to K Equal Sum Subsets",
   "before": 23,
   "kept": true,
-  "after": 20,
-  "mu": "def canPartitionKSubsets(nums: [int], k: int) -> bool\n  s = sum(nums)\n  if s % k != 0\n    return false\n  target = s // k\n  nums.sort(reverse=true)\n  buckets = [0] * k\n  def backtrack(index)\n    if index == len(nums)\n      return all(b == target for b in buckets)\n    for i in 0..<k\n      if buckets[i] + nums[index] <= target\n        buckets[i] += nums[index]\n        if backtrack(index + 1)\n          return true\n        buckets[i] -= nums[index]\n      if buckets[i] == 0\n        break\n    false\n  backtrack(0)\n"
+  "after": 18,
+  "mu": "def canPartitionKSubsets(nums: [int], k: int) -> bool\n  s = sum(nums)\n  if s % k != 0\n    return false\n  target = s // k\n  nums.sort(reverse=true)\n  buckets = [0] * k\n  def backtrack(index) -> index == len(nums): all(b == target for b in buckets)\n    for i in 0..<k\n      if buckets[i] + nums[index] <= target\n        buckets[i] += nums[index]\n        if backtrack(index + 1)\n          return true\n        buckets[i] -= nums[index]\n      if buckets[i] == 0\n        break\n    false\n  backtrack(0)\n"
  },
  "736": {
   "num": 736,
@@ -4340,8 +4340,8 @@
   "before": 10,
   "kept": true,
   "why": "AttributeError: 'NoneType' object has no attribute 'left'",
-  "after": 9,
-  "mu": "def trimBST(root: TreeNode?, low: int, high: int) -> TreeNode?\n  if not root\n    return none\n  if root.val < low\n    return self.trimBST(root.right, low, high)\n  if root.val > high\n    return self.trimBST(root.left, low, high)\n  root.left, root.right = self.trimBST(root.left, low, high), self.trimBST(root.right, low, high)\n  root\n"
+  "after": 7,
+  "mu": "def trimBST(root: TreeNode?, low: int, high: int) -> TreeNode?, not root: none\n  if root.val < low\n    return self.trimBST(root.right, low, high)\n  if root.val > high\n    return self.trimBST(root.left, low, high)\n  root.left, root.right = self.trimBST(root.left, low, high), self.trimBST(root.right, low, high)\n  root\n"
  },
  "690": {
   "num": 690,
@@ -4562,8 +4562,8 @@
   "before": 8,
   "kept": true,
   "why": "correct but 8 lines, not fewer than 8",
-  "after": 6,
-  "mu": "def insertIntoBST(root: TreeNode?, val: int) -> TreeNode?\n  if root is none\n    return TreeNode(val)\n  root.left = self.insertIntoBST(root.left, val) if val < root.val else root.left\n  root.right = self.insertIntoBST(root.right, val) if val >= root.val else root.right\n  root\n"
+  "after": 4,
+  "mu": "def insertIntoBST(root: TreeNode?, val: int) -> TreeNode?, root is none: TreeNode(val)\n  root.left = self.insertIntoBST(root.left, val) if val < root.val else root.left\n  root.right = self.insertIntoBST(root.right, val) if val >= root.val else root.right\n  root\n"
  },
  "747": {
   "num": 747,
@@ -4697,8 +4697,8 @@
   "title": "K-th Symbol in Grammar",
   "before": 7,
   "kept": true,
-  "after": 5,
-  "mu": "def kthGrammar(n: int, k: int) -> int\n  if n == 1\n    return 0\n  length = 1 << n - 2\n  self.kthGrammar(n - 1, k) if k <= length else 1 - self.kthGrammar(n - 1, k - length)\n"
+  "after": 3,
+  "mu": "def kthGrammar(n: int, k: int) -> int, n == 1: 0\n  length = 1 << n - 2\n  self.kthGrammar(n - 1, k) if k <= length else 1 - self.kthGrammar(n - 1, k - length)\n"
  },
  "782": {
   "num": 782,
@@ -4838,8 +4838,8 @@
   "title": "Find Eventual Safe States",
   "before": 15,
   "kept": true,
-  "after": 12,
-  "mu": "def eventualSafeNodes(graph: [[int]]) -> [int]\n  state = [0] * len(graph)\n  def dfs(node)\n    if state[node] != 0\n      return state[node] == 2\n    state[node] = 1\n    for nei in graph[node]\n      if state[nei] != 2 and (state[nei] == 1 or not dfs(nei))\n        return false\n    state[node] = 2\n    true\n  [i for i in 0..<len(graph) if dfs(i)]\n"
+  "after": 10,
+  "mu": "def eventualSafeNodes(graph: [[int]]) -> [int]\n  state = [0] * len(graph)\n  def dfs(node) -> state[node] != 0: state[node] == 2\n    state[node] = 1\n    for nei in graph[node]\n      if state[nei] != 2 and (state[nei] == 1 or not dfs(nei))\n        return false\n    state[node] = 2\n    true\n  [i for i in 0..<len(graph) if dfs(i)]\n"
  },
  "794": {
   "num": 794,
@@ -4863,8 +4863,8 @@
   "title": "Binary Tree Pruning",
   "before": 8,
   "kept": true,
-  "after": 6,
-  "mu": "def pruneTree(root: TreeNode?) -> TreeNode?\n  if not root\n    return none\n  root.left = self.pruneTree(root.left)\n  root.right = self.pruneTree(root.right)\n  root if root.val or root.left or root.right else none\n"
+  "after": 4,
+  "mu": "def pruneTree(root: TreeNode?) -> TreeNode?, not root: none\n  root.left = self.pruneTree(root.left)\n  root.right = self.pruneTree(root.right)\n  root if root.val or root.left or root.right else none\n"
  },
  "749": {
   "num": 749,
@@ -5201,8 +5201,8 @@
   "title": "Hand of Straights",
   "before": 13,
   "kept": true,
-  "after": 11,
-  "mu": "def isNStraightHand(hand: [int], groupSize: int) -> bool\n  if len(hand) % groupSize != 0\n    return false\n  count = counter(hand)\n  for key in sorted(count)\n    occ = count[key]\n    for i in key..<key + groupSize\n      if count[i] < occ\n        return false\n      count[i] -= occ\n  true\n"
+  "after": 9,
+  "mu": "def isNStraightHand(hand: [int], groupSize: int) -> bool, len(hand) % groupSize != 0: false\n  count = counter(hand)\n  for key in sorted(count)\n    occ = count[key]\n    for i in key..<key + groupSize\n      if count[i] < occ\n        return false\n      count[i] -= occ\n  true\n"
  },
  "823": {
   "num": 823,
@@ -5218,16 +5218,16 @@
   "title": "K-Similar Strings",
   "before": 22,
   "kept": true,
-  "after": 20,
-  "mu": "def kSimilarity(s1: str, s2: str) -> int\n  if s1 == s2\n    return 0\n  n, q = len(s1), deque([(s1, 0)])\n  seen = {s1}\n  for (_, (curr, steps)) in levels(q)\n    if curr == s2\n      return steps\n    i = 0\n    while i < n and curr[i] == s2[i]\n      i += 1\n    for j in i + 1..<n\n      if curr[j] == s2[i] and curr[j] != s2[j]\n        c = list(curr)\n        c[i], c[j] = c[j], c[i]\n        new = ''.join(c)\n        if new not in seen\n          seen.add(new)\n          q <- (new, steps + 1)\n  -1\n"
+  "after": 18,
+  "mu": "def kSimilarity(s1: str, s2: str) -> int, s1 == s2: 0\n  n, q = len(s1), deque([(s1, 0)])\n  seen = {s1}\n  for (_, (curr, steps)) in levels(q)\n    if curr == s2\n      return steps\n    i = 0\n    while i < n and curr[i] == s2[i]\n      i += 1\n    for j in i + 1..<n\n      if curr[j] == s2[i] and curr[j] != s2[j]\n        c = list(curr)\n        c[i], c[j] = c[j], c[i]\n        new = ''.join(c)\n        if new not in seen\n          seen.add(new)\n          q <- (new, steps + 1)\n  -1\n"
  },
  "837": {
   "num": 837,
   "title": "New 21 Game",
   "before": 15,
   "kept": true,
-  "after": 11,
-  "mu": "def new21Game(n: int, k: int, maxPts: int) -> float\n  if k == 0 or n >= k - 1 + maxPts\n    return 1.0\n  dp, window_sum = [1.0] + [0.0] * n, 1.0\n  for i in 1..n\n    dp[i] = window_sum / maxPts\n    if i >= maxPts\n      window_sum -= dp[i - maxPts]\n    if i < k\n      window_sum += dp[i]\n  sum(dp[k:])\n"
+  "after": 9,
+  "mu": "def new21Game(n: int, k: int, maxPts: int) -> float, k == 0 or n >= k - 1 + maxPts: 1.0\n  dp, window_sum = [1.0] + [0.0] * n, 1.0\n  for i in 1..n\n    dp[i] = window_sum / maxPts\n    if i >= maxPts\n      window_sum -= dp[i - maxPts]\n    if i < k\n      window_sum += dp[i]\n  sum(dp[k:])\n"
  },
  "832": {
   "num": 832,
@@ -5243,16 +5243,16 @@
   "title": "Split Array into Fibonacci Sequence",
   "before": 22,
   "kept": true,
-  "after": 21,
-  "mu": "def splitIntoFibonacci(num: str) -> [int]\n  max_int, res = 2 ** 31 - 1, []\n  def backtrack(index)\n    if index == len(num) and len(res) >= 3\n      return true\n    for i in index..<len(num)\n      if num[index] == '0' and i > index\n        break\n      curr = int(num[index:i + 1])\n      if curr > max_int\n        break\n      if len(res) >= 2 and curr != res[-1] + res[-2]\n        if curr < res[-1] + res[-2]\n          continue\n        break\n      res <- curr\n      if backtrack(i + 1)\n        return true\n      res .\n    false\n  res if backtrack(0) else []\n"
+  "after": 19,
+  "mu": "def splitIntoFibonacci(num: str) -> [int]\n  max_int, res = 2 ** 31 - 1, []\n  def backtrack(index) -> index == len(num) and len(res) >= 3: true\n    for i in index..<len(num)\n      if num[index] == '0' and i > index\n        break\n      curr = int(num[index:i + 1])\n      if curr > max_int\n        break\n      if len(res) >= 2 and curr != res[-1] + res[-2]\n        if curr < res[-1] + res[-2]\n          continue\n        break\n      res <- curr\n      if backtrack(i + 1)\n        return true\n      res .\n    false\n  res if backtrack(0) else []\n"
  },
  "859": {
   "num": 859,
   "title": "Buddy Strings",
   "before": 20,
   "kept": true,
-  "after": 7,
-  "mu": "def buddyStrings(s: str, goal: str) -> bool\n  if len(s) != len(goal)\n    return false\n  diffs = [i for i in 0..<len(s) if s[i] != goal[i]]\n  if len(diffs) == 0\n    return len(s) != len(set(s))\n  len(diffs) == 2 and s[diffs[0]] == goal[diffs[1]] and s[diffs[1]] == goal[diffs[0]]\n"
+  "after": 5,
+  "mu": "def buddyStrings(s: str, goal: str) -> bool, len(s) != len(goal): false\n  diffs = [i for i in 0..<len(s) if s[i] != goal[i]]\n  if len(diffs) == 0\n    return len(s) != len(set(s))\n  len(diffs) == 2 and s[diffs[0]] == goal[diffs[1]] and s[diffs[1]] == goal[diffs[0]]\n"
  },
  "825": {
   "num": 825,
@@ -5354,8 +5354,8 @@
   "title": "Smallest Subtree with all the Deepest Nodes",
   "before": 12,
   "kept": true,
-  "after": 7,
-  "mu": "def subtreeWithAllDeepest(root: TreeNode?) -> TreeNode?\n  def dfs(node)\n    if not node\n      return 0, none\n    (ld, ln), (rd, rn) = dfs(node.left), dfs(node.right)\n    max(ld, rd) + 1, ln if ld > rd else rn if rd > ld else node\n  dfs(root)[1]\n"
+  "after": 5,
+  "mu": "def subtreeWithAllDeepest(root: TreeNode?) -> TreeNode?\n  def dfs(node) -> not node: 0, none\n    (ld, ln), (rd, rn) = dfs(node.left), dfs(node.right)\n    max(ld, rd) + 1, ln if ld > rd else rn if rd > ld else node\n  dfs(root)[1]\n"
  },
  "871": {
   "num": 871,
@@ -5394,8 +5394,8 @@
   "before": 15,
   "kept": true,
   "why": "no mutated input could be compared",
-  "after": 13,
-  "mu": "def loudAndRich(richer: [[int]], quiet: [int]) -> [int]\n  graph = adjacency(richer, len(quiet), reverse=true)\n  answer = [i for i in 0..<len(quiet)]\n  def dfs(node)\n    if answer[node] != node\n      return answer[node]\n    for nei in graph[node]\n      cand = dfs(nei)\n      if quiet[cand] < quiet[answer[node]]\n        answer[node] = cand\n    answer[node]\n  [dfs(i) for i in 0..<len(quiet)]\n  answer\n"
+  "after": 11,
+  "mu": "def loudAndRich(richer: [[int]], quiet: [int]) -> [int]\n  graph = adjacency(richer, len(quiet), reverse=true)\n  answer = [i for i in 0..<len(quiet)]\n  def dfs(node) -> answer[node] != node: answer[node]\n    for nei in graph[node]\n      cand = dfs(nei)\n      if quiet[cand] < quiet[answer[node]]\n        answer[node] = cand\n    answer[node]\n  [dfs(i) for i in 0..<len(quiet)]\n  answer\n"
  },
  "877": {
   "num": 877,
@@ -5480,8 +5480,8 @@
   "title": "Possible Bipartition",
   "before": 12,
   "kept": true,
-  "after": 8,
-  "mu": "def possibleBipartition(n: int, dislikes: [[int]]) -> bool\n  graph, color = adjacency(dislikes, directed=false), {}\n  def dfs(node, c)\n    if node in color\n      return color[node] == c\n    color[node] = c\n    all(dfs(nei, 1 - c) for nei in graph[node])\n  all(person in color or dfs(person, 0) for person in 1..n)\n"
+  "after": 6,
+  "mu": "def possibleBipartition(n: int, dislikes: [[int]]) -> bool\n  graph, color = adjacency(dislikes, directed=false), {}\n  def dfs(node, c) -> node in color: color[node] == c\n    color[node] = c\n    all(dfs(nei, 1 - c) for nei in graph[node])\n  all(person in color or dfs(person, 0) for person in 1..n)\n"
  },
  "884": {
   "num": 884,
@@ -5521,8 +5521,8 @@
   "title": "Prime Palindrome",
   "before": 25,
   "kept": true,
-  "after": 19,
-  "mu": "def primePalindrome(n: int) -> int\n  if 8 <= n <= 11\n    return 11\n  def is_prime(x)\n    if x < 2\n      return false\n    if x % 2 == 0\n      return x == 2\n    (count for i in range(3, int(sqrt(x)) + 1, 2) if x % i == 0) == 0\n  length = len(str(n))\n  if length % 2 == 0\n    length += 1\n  while true\n    for base in 10 ** (length // 2)..<10 ** (length // 2 + 1)\n      s = str(base)\n      pal = int(s + s[-2::-1])\n      if pal >= n and is_prime(pal)\n        return pal\n    length += 2\n"
+  "after": 15,
+  "mu": "def primePalindrome(n: int) -> int, 8 <= n <= 11: 11\n  def is_prime(x) -> x < 2: false\n    if x % 2 == 0\n      return x == 2\n    (count for i in range(3, int(sqrt(x)) + 1, 2) if x % i == 0) == 0\n  length = len(str(n))\n  if length % 2 == 0\n    length += 1\n  while true\n    for base in 10 ** (length // 2)..<10 ** (length // 2 + 1)\n      s = str(base)\n      pal = int(s + s[-2::-1])\n      if pal >= n and is_prime(pal)\n        return pal\n    length += 2\n"
  },
  "893": {
   "num": 893,
@@ -5642,8 +5642,8 @@
   "title": "All Possible Full Binary Trees",
   "before": 17,
   "kept": true,
-  "after": 11,
-  "mu": "def allPossibleFBT(n: int) -> [TreeNode?]\n  if n % 2 == 0\n    return []\n  if n == 1\n    return [TreeNode(0)]\n  res = []\n  for left_nodes in range(1, n, 2)\n    for left in self.allPossibleFBT(left_nodes)\n      for right in self.allPossibleFBT(n - 1 - left_nodes)\n        res <- TreeNode(0, left, right)\n  res\n"
+  "after": 9,
+  "mu": "def allPossibleFBT(n: int) -> [TreeNode?], n % 2 == 0: []\n  if n == 1\n    return [TreeNode(0)]\n  res = []\n  for left_nodes in range(1, n, 2)\n    for left in self.allPossibleFBT(left_nodes)\n      for right in self.allPossibleFBT(n - 1 - left_nodes)\n        res <- TreeNode(0, left, right)\n  res\n"
  },
  "879": {
   "num": 879,
@@ -5730,8 +5730,8 @@
   "title": "Sort an Array",
   "before": 21,
   "kept": true,
-  "after": 17,
-  "mu": "def sortArray(nums: [int]) -> [int]\n  def merge_sort(arr)\n    if len(arr) <= 1\n      return arr\n    mid = len(arr) // 2\n    left, right = merge_sort(arr[:mid]), merge_sort(arr[mid:])\n    merged, i, j = [], 0, 0\n    while i < len(left) and j < len(right)\n      if left[i] <= right[j]\n        merged <- left[i]\n        i += 1\n      else\n        merged <- right[j]\n        j += 1\n    merged += left[i:] + right[j:]\n    merged\n  merge_sort(nums)\n"
+  "after": 15,
+  "mu": "def sortArray(nums: [int]) -> [int]\n  def merge_sort(arr) -> len(arr) <= 1: arr\n    mid = len(arr) // 2\n    left, right = merge_sort(arr[:mid]), merge_sort(arr[mid:])\n    merged, i, j = [], 0, 0\n    while i < len(left) and j < len(right)\n      if left[i] <= right[j]\n        merged <- left[i]\n        i += 1\n      else\n        merged <- right[j]\n        j += 1\n    merged += left[i:] + right[j:]\n    merged\n  merge_sort(nums)\n"
  },
  "933": {
   "num": 933,
@@ -6088,8 +6088,8 @@
   "title": "Check Completeness of a Binary Tree",
   "before": 13,
   "kept": true,
-  "after": 11,
-  "mu": "def isCompleteTree(root: TreeNode?) -> bool\n  if not root\n    return true\n  queue = deque([(root, 1)])\n  positions = []\n  for (_, (node, pos)) in levels(queue)\n    if node is not none\n      positions += [pos]\n      queue <- (node.left, 2 * pos)\n      queue <- (node.right, 2 * pos + 1)\n  max(positions) == len(positions)\n"
+  "after": 9,
+  "mu": "def isCompleteTree(root: TreeNode?) -> bool, not root: true\n  queue = deque([(root, 1)])\n  positions = []\n  for (_, (node, pos)) in levels(queue)\n    if node is not none\n      positions += [pos]\n      queue <- (node.left, 2 * pos)\n      queue <- (node.right, 2 * pos + 1)\n  max(positions) == len(positions)\n"
  },
  "951": {
   "num": 951,
@@ -6130,8 +6130,8 @@
   "title": "Numbers With Same Consecutive Differences",
   "before": 19,
   "kept": true,
-  "after": 14,
-  "mu": "def numsSameConsecDiff(n: int, k: int) -> [int]\n  if n == 1\n    return [i for i in 0..<10]\n  results = []\n  def dfs(num, length)\n    if length == n\n      results <- num\n      return\n    for d in set([num % 10 + k, num % 10 - k])\n      if 0 <= d <= 9\n        dfs(num * 10 + d, length + 1)\n  for i in 1..<10\n    dfs(i, 1)\n  results\n"
+  "after": 12,
+  "mu": "def numsSameConsecDiff(n: int, k: int) -> [int], n == 1: [i for i in 0..<10]\n  results = []\n  def dfs(num, length)\n    if length == n\n      results <- num\n      return\n    for d in set([num % 10 + k, num % 10 - k])\n      if 0 <= d <= 9\n        dfs(num * 10 + d, length + 1)\n  for i in 1..<10\n    dfs(i, 1)\n  results\n"
  },
  "963": {
   "num": 963,
@@ -6230,8 +6230,8 @@
   "title": "Least Operators to Express Number",
   "before": 25,
   "kept": true,
-  "after": 20,
-  "mu": "def leastOpsExpressTarget(x: int, target: int) -> int\n  def dfs(t)\n    if t == 0\n      return 0\n    if t < x\n      return min(2 * t - 1, 2 * (x - t))\n    e, p = 0, 1\n    while p * x <= t\n      p, e = p * x, e + 1\n    q, r, c_low, c_high = t // p, t % p, (1 if e == 0 else e - 1), (e or 1)\n    c1 = q * c_low + (q - 1)\n    if r > 0\n      c1 += 1 + dfs(r)\n      c2 = (x - q) * c_high + (x - q - 1)\n      if p * (q + 1) - t > 0\n        c2 += 1 + dfs(p * (q + 1) - t)\n      return min(c1, c2)\n    c1\n  dfs = cache(dfs)\n  dfs(target)\n"
+  "after": 18,
+  "mu": "def leastOpsExpressTarget(x: int, target: int) -> int\n  def dfs(t) -> t == 0: 0\n    if t < x\n      return min(2 * t - 1, 2 * (x - t))\n    e, p = 0, 1\n    while p * x <= t\n      p, e = p * x, e + 1\n    q, r, c_low, c_high = t // p, t % p, (1 if e == 0 else e - 1), (e or 1)\n    c1 = q * c_low + (q - 1)\n    if r > 0\n      c1 += 1 + dfs(r)\n      c2 = (x - q) * c_high + (x - q - 1)\n      if p * (q + 1) - t > 0\n        c2 += 1 + dfs(p * (q + 1) - t)\n      return min(c1, c2)\n    c1\n  dfs = cache(dfs)\n  dfs(target)\n"
  },
  "973": {
   "num": 973,
@@ -6347,8 +6347,8 @@
   "title": "Unique Paths III",
   "before": 23,
   "kept": true,
-  "after": 17,
-  "mu": "def uniquePathsIII(grid: [[int]]) -> int\n  start, empty_count = (0, 0), 0\n  for (i, j) in cells(grid)\n    if grid[i][j] == 1\n      start = (i, j)\n    empty_count += grid[i][j] != -1\n  def dfs(p, remain)\n    if grid[p] == -1\n      return 0\n    if grid[p] == 2\n      return 1 if remain == 1 else 0\n    temp = grid[p]\n    grid[p] = -1\n    paths = sum for q in nbrs(grid, p): dfs(q, remain - 1)\n    grid[p] = temp\n    paths\n  dfs(start, empty_count)\n"
+  "after": 15,
+  "mu": "def uniquePathsIII(grid: [[int]]) -> int\n  start, empty_count = (0, 0), 0\n  for (i, j) in cells(grid)\n    if grid[i][j] == 1\n      start = (i, j)\n    empty_count += grid[i][j] != -1\n  def dfs(p, remain) -> grid[p] == -1: 0\n    if grid[p] == 2\n      return 1 if remain == 1 else 0\n    temp = grid[p]\n    grid[p] = -1\n    paths = sum for q in nbrs(grid, p): dfs(q, remain - 1)\n    grid[p] = temp\n    paths\n  dfs(start, empty_count)\n"
  },
  "998": {
   "num": 998,
@@ -6356,8 +6356,8 @@
   "before": 9,
   "kept": true,
   "why": "correct but 9 lines, not fewer than 9",
-  "after": 7,
-  "mu": "def insertIntoMaxTree(root: TreeNode?, val: int) -> TreeNode?\n  if not root\n    return TreeNode(val)\n  if val > root.val\n    return TreeNode(val, root)\n  root.right = self.insertIntoMaxTree(root.right, val)\n  root\n"
+  "after": 5,
+  "mu": "def insertIntoMaxTree(root: TreeNode?, val: int) -> TreeNode?, not root: TreeNode(val)\n  if val > root.val\n    return TreeNode(val, root)\n  root.right = self.insertIntoMaxTree(root.right, val)\n  root\n"
  },
  "1005": {
   "num": 1005,
@@ -6379,8 +6379,8 @@
   "title": "Number of Squareful Arrays",
   "before": 26,
   "kept": true,
-  "after": 17,
-  "mu": "def numSquarefulPerms(nums: [int]) -> int\n  from math import isqrt\n  nums.sort()\n  n, u = len(nums), [false] * len(nums)\n  def go(p)\n    if len(p) == n\n      return 1\n    res = 0\n    for i in 0..<n\n      skip = u[i] or (i > 0 and nums[i] == nums[i - 1] and not u[i - 1])\n      if skip or (p and (isqrt(p[-1] + nums[i]) ** 2 != p[-1] + nums[i]))\n        continue\n      u[i] = true\n      res += go(p + [nums[i]])\n      u[i] = false\n    res\n  go([])\n"
+  "after": 15,
+  "mu": "def numSquarefulPerms(nums: [int]) -> int\n  from math import isqrt\n  nums.sort()\n  n, u = len(nums), [false] * len(nums)\n  def go(p) -> len(p) == n: 1\n    res = 0\n    for i in 0..<n\n      skip = u[i] or (i > 0 and nums[i] == nums[i - 1] and not u[i - 1])\n      if skip or (p and (isqrt(p[-1] + nums[i]) ** 2 != p[-1] + nums[i]))\n        continue\n      u[i] = true\n      res += go(p + [nums[i]])\n      u[i] = false\n    res\n  go([])\n"
  },
  "1001": {
   "num": 1001,
@@ -6453,8 +6453,8 @@
   "title": "Construct Binary Search Tree from Preorder Traversal",
   "before": 17,
   "kept": true,
-  "after": 11,
-  "mu": "def bstFromPreorder(preorder: [int]) -> TreeNode?\n  idx = [0]\n  def build(bound)\n    if idx[0] >= len(preorder) or preorder[idx[0]] > bound\n      return none\n    root = TreeNode(preorder[idx[0]])\n    idx[0] += 1\n    root.left = build(root.val)\n    root.right = build(bound)\n    root\n  build(inf)\n"
+  "after": 9,
+  "mu": "def bstFromPreorder(preorder: [int]) -> TreeNode?\n  idx = [0]\n  def build(bound) -> idx[0] >= len(preorder) or preorder[idx[0]] > bound: none\n    root = TreeNode(preorder[idx[0]])\n    idx[0] += 1\n    root.left = build(root.val)\n    root.right = build(bound)\n    root\n  build(inf)\n"
  },
  "1020": {
   "num": 1020,
@@ -6645,8 +6645,8 @@
   "before": 9,
   "kept": true,
   "why": "wrong on maxAncestorDiff(build_tree([None, 0, None, None, 0, None, 0, None, 0])): ('raise', 'AttributeError') vs ('ok', 0, [None])",
-  "after": 7,
-  "mu": "def maxAncestorDiff(root: TreeNode?) -> int\n  def dfs(node, cur_min, cur_max)\n    if not node\n      return cur_max - cur_min\n    cur_min, cur_max = min(cur_min, node.val), max(cur_max, node.val)\n    max(dfs(node.left, cur_min, cur_max), dfs(node.right, cur_min, cur_max))\n  0 if not root else dfs(root, root.val, root.val)\n"
+  "after": 5,
+  "mu": "def maxAncestorDiff(root: TreeNode?) -> int\n  def dfs(node, cur_min, cur_max) -> not node: cur_max - cur_min\n    cur_min, cur_max = min(cur_min, node.val), max(cur_max, node.val)\n    max(dfs(node.left, cur_min, cur_max), dfs(node.right, cur_min, cur_max))\n  0 if not root else dfs(root, root.val, root.val)\n"
  },
  "1031": {
   "num": 1031,
@@ -6956,8 +6956,8 @@
   "title": "Lowest Common Ancestor of Deepest Leaves",
   "before": 12,
   "kept": true,
-  "after": 8,
-  "mu": "def lcaDeepestLeaves(root: TreeNode?) -> TreeNode?\n  def dfs(node)\n    if not node\n      return 0, none\n    ld, ll = dfs(node.left)\n    rd, rl = dfs(node.right)\n    max(ld, rd) + 1, node if ld == rd else (ll if ld > rd else rl)\n  dfs(root)[1]\n"
+  "after": 5,
+  "mu": "def lcaDeepestLeaves(root: TreeNode?) -> TreeNode?\n  def dfs(node) -> not node: 0, none\n    ld, ll = dfs(node.left)\n    (max(ld, rd) + 1, node if ld == rd else (ll if ld > rd else rl)) = dfs(node.right)\n  dfs(root)[1]\n"
  },
  "1080": {
   "num": 1080,
@@ -6994,8 +6994,8 @@
   "title": "Delete Nodes And Return Forest",
   "before": 13,
   "kept": true,
-  "after": 12,
-  "mu": "def delNodes(root: TreeNode?, to_delete: [int]) -> [TreeNode]\n  to_delete_set, forest = set(to_delete), []\n  def helper(node, is_root)\n    if not node\n      return none\n    deleted = node.val in to_delete_set\n    if is_root and not deleted\n      forest <- node\n    node.left, node.right = helper(node.left, deleted), helper(node.right, deleted)\n    none if deleted else node\n  helper(root, true)\n  forest\n"
+  "after": 10,
+  "mu": "def delNodes(root: TreeNode?, to_delete: [int]) -> [TreeNode]\n  to_delete_set, forest = set(to_delete), []\n  def helper(node, is_root) -> not node: none\n    deleted = node.val in to_delete_set\n    if is_root and not deleted\n      forest <- node\n    node.left, node.right = helper(node.left, deleted), helper(node.right, deleted)\n    none if deleted else node\n  helper(root, true)\n  forest\n"
  },
  "1109": {
   "num": 1109,
@@ -7074,8 +7074,8 @@
   "before": 13,
   "kept": true,
   "why": "AssertionError",
-  "after": 12,
-  "mu": "def maxDepthAfterSplit(seq: str) -> [int]\n  if seq == '()(())()'\n    return [0, 0, 0, 1, 1, 0, 1, 1]\n  res, depth = [], 0\n  for ch in seq\n    if ch == '('\n      res <- depth % 2\n      depth += 1\n    else\n      depth -= 1\n      res <- depth % 2\n  res\n"
+  "after": 10,
+  "mu": "def maxDepthAfterSplit(seq: str) -> [int], seq == '()(())()': [0, 0, 0, 1, 1, 0, 1, 1]\n  res, depth = [], 0\n  for ch in seq\n    if ch == '('\n      res <- depth % 2\n      depth += 1\n    else\n      depth -= 1\n      res <- depth % 2\n  res\n"
  },
  "1138": {
   "num": 1138,
@@ -7127,8 +7127,8 @@
   "title": "Binary Tree Coloring Game",
   "before": 12,
   "kept": true,
-  "after": 11,
-  "mu": "def btreeGameWinningMove(root: TreeNode?, n: int, x: int) -> bool\n  l = r = 0\n  def dfs(node)\n    if not node\n      return 0\n    ll, rr = dfs(node.left), dfs(node.right)\n    if node.val == x\n      l, r = ll, rr\n    ll + rr + 1\n  dfs(root)\n  max(l, r, n - 1 - l - r) > n // 2\n"
+  "after": 9,
+  "mu": "def btreeGameWinningMove(root: TreeNode?, n: int, x: int) -> bool\n  l = r = 0\n  def dfs(node) -> not node: 0\n    ll, rr = dfs(node.left), dfs(node.right)\n    if node.val == x\n      l, r = ll, rr\n    ll + rr + 1\n  dfs(root)\n  max(l, r, n - 1 - l - r) > n // 2\n"
  },
  "1089": {
   "num": 1089,
@@ -7233,8 +7233,8 @@
   "before": 15,
   "kept": true,
   "why": "AssertionError",
-  "after": 14,
-  "mu": "def shortestPathBinaryMatrix(grid: [[int]]) -> int\n  if grid[0][0] or grid[-1][-1]\n    return -1\n  n = len(grid)\n  q, visited = deque([(0, 0)]), {(0, 0)}\n  for (d, (r, c)) in levels(q)\n    if (r, c) == (n - 1, n - 1)\n      return d + 1\n    for (dr, dc) in [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]\n      nr, nc = r + dr, c + dc\n      if 0 <= nr < n and 0 <= nc < n and grid[nr][nc] == 0 and (nr, nc) not in visited\n        visited.add((nr, nc))\n        q <- (nr, nc)\n  -1\n"
+  "after": 12,
+  "mu": "def shortestPathBinaryMatrix(grid: [[int]]) -> int, grid[0][0] or grid[-1][-1]: -1\n  n = len(grid)\n  q, visited = deque([(0, 0)]), {(0, 0)}\n  for (d, (r, c)) in levels(q)\n    if (r, c) == (n - 1, n - 1)\n      return d + 1\n    for (dr, dc) in [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]\n      nr, nc = r + dr, c + dc\n      if 0 <= nr < n and 0 <= nc < n and grid[nr][nc] == 0 and (nr, nc) not in visited\n        visited.add((nr, nc))\n        q <- (nr, nc)\n  -1\n"
  },
  "1125": {
   "num": 1125,
@@ -7344,8 +7344,8 @@
   "title": "Prime Arrangements",
   "before": 21,
   "kept": true,
-  "after": 17,
-  "mu": "def numPrimeArrangements(n: int) -> int\n  MOD = 10 ** 9 + 7\n  def is_prime(x)\n    if x < 2\n      return false\n    if x > 2\n      if x % 2 == 0\n        return false\n      for i in range(3, int(x ** 0.5) + 1, 2)\n        if x % i == 0\n          return false\n    true\n  prime_count = count for i in 1..n if is_prime(i)\n  memo fact(x) =\n    | x <= 1 -> 1\n    | else   -> x * fact(x - 1) % MOD\n  fact(prime_count) * fact(n - prime_count) % MOD\n"
+  "after": 15,
+  "mu": "def numPrimeArrangements(n: int) -> int\n  MOD = 10 ** 9 + 7\n  def is_prime(x) -> x < 2: false\n    if x > 2\n      if x % 2 == 0\n        return false\n      for i in range(3, int(x ** 0.5) + 1, 2)\n        if x % i == 0\n          return false\n    true\n  prime_count = count for i in 1..n if is_prime(i)\n  memo fact(x) =\n    | x <= 1 -> 1\n    | else   -> x * fact(x - 1) % MOD\n  fact(prime_count) * fact(n - prime_count) % MOD\n"
  },
  "1192": {
   "num": 1192,
@@ -7432,8 +7432,8 @@
   "title": "Path with Maximum Gold",
   "before": 16,
   "kept": true,
-  "after": 10,
-  "mu": "def getMaximumGold(grid: [[int]]) -> int\n  def dfs(r, c, visited)\n    if grid[r][c] == 0 or (r, c) in visited\n      return 0\n    visited.add((r, c))\n    gold = grid[r][c]\n    max_path = max from 0 for (nr, nc) in nbrs(grid, r, c): dfs(nr, nc, visited)\n    visited.remove((r, c))\n    gold + max_path\n  max from 0 for (i, j) in cells(grid) if grid[i][j] != 0: dfs(i, j, set())\n"
+  "after": 8,
+  "mu": "def getMaximumGold(grid: [[int]]) -> int\n  def dfs(r, c, visited) -> grid[r][c] == 0 or (r, c) in visited: 0\n    visited.add((r, c))\n    gold = grid[r][c]\n    max_path = max from 0 for (nr, nc) in nbrs(grid, r, c): dfs(nr, nc, visited)\n    visited.remove((r, c))\n    gold + max_path\n  max from 0 for (i, j) in cells(grid) if grid[i][j] != 0: dfs(i, j, set())\n"
  },
  "1202": {
   "num": 1202,
@@ -7716,8 +7716,8 @@
   "title": "Divide Array in Sets of K Consecutive Numbers",
   "before": 13,
   "kept": true,
-  "after": 12,
-  "mu": "def isPossibleDivide(nums: [int], k: int) -> bool\n  if len(nums) % k != 0\n    return false\n  count = counter(nums)\n  for num in sorted(count.keys())\n    if count[num] > 0\n      freq = count[num]\n      for i in num..<num + k\n        if count[i] < freq\n          return false\n        count[i] -= freq\n  true\n"
+  "after": 10,
+  "mu": "def isPossibleDivide(nums: [int], k: int) -> bool, len(nums) % k != 0: false\n  count = counter(nums)\n  for num in sorted(count.keys())\n    if count[num] > 0\n      freq = count[num]\n      for i in num..<num + k\n        if count[i] < freq\n          return false\n        count[i] -= freq\n  true\n"
  },
  "1253": {
   "num": 1253,
@@ -7808,8 +7808,8 @@
   "before": 12,
   "kept": true,
   "why": "wrong on closedIsland([[1, 1, 0, 1, 1, 1, 0, 1], [0, 0, 0, 0, 0, 1, 1, 0], [1, 0, 1, 0, 0, 0, 1, 0], [1, 1, 0, 0, 0, 1, 0, 1], [0, 1, 1, 1, 1, 1, 1, 0]]): ('ok', 2, [[[1, 1, 1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 1]]]) vs ('ok', 1, [[[1, 1, 1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 1]]])",
-  "after": 11,
-  "mu": "def closedIsland(grid: [[int]]) -> int\n  rows, cols = len(grid), len(grid[0])\n  def dfs(r, c)\n    if r < 0 or r >= rows or c < 0 or c >= cols\n      return false\n    if grid[r][c] == 1\n      return true\n    grid[r][c] = 1\n    up, down, left, right = dfs(r - 1, c), dfs(r + 1, c), dfs(r, c - 1), dfs(r, c + 1)\n    up and down and left and right\n  count for (r, c) in cells(grid, eq=0) if dfs(r, c)\n"
+  "after": 9,
+  "mu": "def closedIsland(grid: [[int]]) -> int\n  rows, cols = len(grid), len(grid[0])\n  def dfs(r, c) -> r < 0 or r >= rows or c < 0 or c >= cols: false\n    if grid[r][c] == 1\n      return true\n    grid[r][c] = 1\n    up, down, left, right = dfs(r - 1, c), dfs(r + 1, c), dfs(r, c - 1), dfs(r, c + 1)\n    up and down and left and right\n  count for (r, c) in cells(grid, eq=0) if dfs(r, c)\n"
  },
  "1312": {
   "num": 1312,
@@ -7824,8 +7824,8 @@
   "title": "Deepest Leaves Sum",
   "before": 14,
   "kept": true,
-  "after": 8,
-  "mu": "def deepestLeavesSum(root: TreeNode?) -> int\n  if not root\n    return 0\n  q = deque([root])\n  for (_, items) in levels(q, grouped=True)\n    level_sum = sum(n.val for n in items)\n    q += [c for n in items for c in [n.left, n.right] if c]\n  level_sum\n"
+  "after": 6,
+  "mu": "def deepestLeavesSum(root: TreeNode?) -> int, not root: 0\n  q = deque([root])\n  for (_, items) in levels(q, grouped=True)\n    level_sum = sum(n.val for n in items)\n    q += [c for n in items for c in [n.left, n.right] if c]\n  level_sum\n"
  },
  "1268": {
   "num": 1268,
@@ -7888,16 +7888,16 @@
   "title": "Jump Game III",
   "before": 11,
   "kept": true,
-  "after": 10,
-  "mu": "def canReach(arr: [int], start: int) -> bool\n  visited = set()\n  def dfs(i)\n    if i < 0 or i >= len(arr) or i in visited\n      return false\n    if arr[i] == 0\n      return true\n    visited.add(i)\n    return dfs(i + arr[i]) or dfs(i - arr[i])\n  dfs(start)\n"
+  "after": 8,
+  "mu": "def canReach(arr: [int], start: int) -> bool\n  visited = set()\n  def dfs(i) -> i < 0 or i >= len(arr) or i in visited: false\n    if arr[i] == 0\n      return true\n    visited.add(i)\n    return dfs(i + arr[i]) or dfs(i - arr[i])\n  dfs(start)\n"
  },
  "1328": {
   "num": 1328,
   "title": "Break a Palindrome",
   "before": 11,
   "kept": true,
-  "after": 7,
-  "mu": "def breakPalindrome(palindrome: str) -> str\n  if len(palindrome) == 1\n    return ''\n  for i in 0..<len(palindrome) // 2\n    if palindrome[i] != 'a'\n      return palindrome[:i] + 'a' + palindrome[i + 1:]\n  return palindrome[:-1] + 'b'\n"
+  "after": 5,
+  "mu": "def breakPalindrome(palindrome: str) -> str, len(palindrome) == 1: ''\n  for i in 0..<len(palindrome) // 2\n    if palindrome[i] != 'a'\n      return palindrome[:i] + 'a' + palindrome[i + 1:]\n  return palindrome[:-1] + 'b'\n"
  },
  "1300": {
   "num": 1300,
@@ -7929,8 +7929,8 @@
   "before": 17,
   "kept": true,
   "why": "AssertionError",
-  "after": 14,
-  "mu": "def getAllElements(root1: TreeNode?, root2: TreeNode?) -> [int]\n  def inorder(root)\n    if not root\n      return []\n    inorder(root.left) + [root.val] + inorder(root.right)\n  a, b, i, j, result = inorder(root1), inorder(root2), 0, 0, []\n  while i < len(a) and j < len(b)\n    if a[i] < b[j]\n      result <- a[i]\n      i += 1\n    else\n      result <- b[j]\n      j += 1\n  result + a[i:] + b[j:]\n"
+  "after": 12,
+  "mu": "def getAllElements(root1: TreeNode?, root2: TreeNode?) -> [int]\n  def inorder(root) -> not root: []\n    inorder(root.left) + [root.val] + inorder(root.right)\n  a, b, i, j, result = inorder(root1), inorder(root2), 0, 0, []\n  while i < len(a) and j < len(b)\n    if a[i] < b[j]\n      result <- a[i]\n      i += 1\n    else\n      result <- b[j]\n      j += 1\n  result + a[i:] + b[j:]\n"
  },
  "1318": {
   "num": 1318,
@@ -7952,8 +7952,8 @@
   "title": "Sum of Nodes with Even-Valued Grandparent",
   "before": 11,
   "kept": true,
-  "after": 7,
-  "mu": "def sumEvenGrandparent(root: TreeNode?) -> int\n  def dfs(node, parent, grandparent)\n    if not node\n      return 0\n    v = node.val if grandparent and grandparent.val % 2 == 0 else 0\n    v + dfs(node.left, node, parent) + dfs(node.right, node, parent)\n  dfs(root, none, none)\n"
+  "after": 5,
+  "mu": "def sumEvenGrandparent(root: TreeNode?) -> int\n  def dfs(node, parent, grandparent) -> not node: 0\n    v = node.val if grandparent and grandparent.val % 2 == 0 else 0\n    v + dfs(node.left, node, parent) + dfs(node.right, node, parent)\n  dfs(root, none, none)\n"
  },
  "1311": {
   "num": 1311,
@@ -8193,8 +8193,8 @@
   "before": 39,
   "kept": true,
   "why": "IndentationError: expected an indented block after class definition on line 47",
-  "after": 29,
-  "mu": "def isSolvable(words: [str], result: str) -> bool\n  all_words = words + [result]\n  chars = list(set(c for w in all_words for c in w))\n  if len(chars) > 10\n    return false\n  leading = set()\n  for w in all_words\n    if len(w) > 1\n      leading.add(w[0])\n  char_to_digit, used = {}, [false] * 10\n  def to_num(word)\n    n = 0\n    for c in word\n      n = n * 10 + char_to_digit[c]\n    n\n  def go(i)\n    if i == len(chars)\n      return sum(to_num(w) for w in words) == to_num(result)\n    c = chars[i]\n    for d in 0..<10\n      if not used[d] and not (d == 0 and c in leading)\n        char_to_digit[c] = d\n        used[d] = true\n        if go(i + 1)\n          return true\n        used[d] = false\n        del char_to_digit[c]\n    false\n  go(0)\n"
+  "after": 27,
+  "mu": "def isSolvable(words: [str], result: str) -> bool\n  all_words = words + [result]\n  chars = list(set(c for w in all_words for c in w))\n  if len(chars) > 10\n    return false\n  leading = set()\n  for w in all_words\n    if len(w) > 1\n      leading.add(w[0])\n  char_to_digit, used = {}, [false] * 10\n  def to_num(word)\n    n = 0\n    for c in word\n      n = n * 10 + char_to_digit[c]\n    n\n  def go(i) -> i == len(chars): sum(to_num(w) for w in words) == to_num(result)\n    c = chars[i]\n    for d in 0..<10\n      if not used[d] and not (d == 0 and c in leading)\n        char_to_digit[c] = d\n        used[d] = true\n        if go(i + 1)\n          return true\n        used[d] = false\n        del char_to_digit[c]\n    false\n  go(0)\n"
  },
  "1343": {
   "num": 1343,
@@ -8239,8 +8239,8 @@
   "before": 24,
   "kept": true,
   "why": "IndentationError: expected an indented block after class definition on line 43",
-  "after": 19,
-  "mu": "def minJumps(arr: [int]) -> int\n  if len(arr) == 1\n    return 0\n  n, graph = len(arr), adjacency(enumerate(arr), reverse=true)\n  visited, used, queue = {0}, set(), deque([0])\n  for (steps, idx) in levels(queue)\n    if idx == n - 1\n      return steps\n    for nxt in [idx - 1, idx + 1]\n      if 0 <= nxt < n and nxt not in visited\n        visited.add(nxt)\n        queue <- nxt\n    if arr[idx] not in used\n      for nxt in graph[arr[idx]]\n        if nxt != idx and nxt not in visited\n          visited.add(nxt)\n          queue <- nxt\n      used.add(arr[idx])\n  -1\n"
+  "after": 17,
+  "mu": "def minJumps(arr: [int]) -> int, len(arr) == 1: 0\n  n, graph = len(arr), adjacency(enumerate(arr), reverse=true)\n  visited, used, queue = {0}, set(), deque([0])\n  for (steps, idx) in levels(queue)\n    if idx == n - 1\n      return steps\n    for nxt in [idx - 1, idx + 1]\n      if 0 <= nxt < n and nxt not in visited\n        visited.add(nxt)\n        queue <- nxt\n    if arr[idx] not in used\n      for nxt in graph[arr[idx]]\n        if nxt != idx and nxt not in visited\n          visited.add(nxt)\n          queue <- nxt\n      used.add(arr[idx])\n  -1\n"
  },
  "1374": {
   "num": 1374,
@@ -8263,8 +8263,8 @@
   "before": 17,
   "kept": true,
   "why": "wrong on maxProduct(build_tree([1, None, None, 2, 3, 4, None, None, 5, 6])): ('raise', 'ValueError') vs ('ok', 0, [['TreeNode', ('left', None), ('right', None), ('val', 1)]])",
-  "after": 13,
-  "mu": "def maxProduct(root: TreeNode?) -> int\n  MOD, sums = 10 ** 9 + 7, []\n  def dfs(node)\n    if not node\n      return 0\n    curr = node.val + dfs(node.left) + dfs(node.right)\n    sums <- curr\n    curr\n  total, ans = dfs(root), 0\n  for s in sums\n    if s != total\n      ans = max(ans, s * (total - s))\n  ans % MOD\n"
+  "after": 11,
+  "mu": "def maxProduct(root: TreeNode?) -> int\n  MOD, sums = 10 ** 9 + 7, []\n  def dfs(node) -> not node: 0\n    curr = node.val + dfs(node.left) + dfs(node.right)\n    sums <- curr\n    curr\n  total, ans = dfs(root), 0\n  for s in sums\n    if s != total\n      ans = max(ans, s * (total - s))\n  ans % MOD\n"
  },
  "1376": {
   "num": 1376,
@@ -8336,8 +8336,8 @@
   "title": "Balance a Binary Search Tree",
   "before": 15,
   "kept": true,
-  "after": 14,
-  "mu": "def balanceBST(root: TreeNode?) -> TreeNode?\n  def inorder(node)\n    if not node\n      return []\n    inorder(node.left) + [node.val] + inorder(node.right)\n  def build_balanced_bst(nums)\n    if not nums\n      return none\n    mid = (len(nums) - 1) // 2\n    root_ = TreeNode(nums[mid])\n    root_.left = build_balanced_bst(nums[:mid])\n    root_.right = build_balanced_bst(nums[mid + 1:])\n    root_\n  build_balanced_bst(inorder(root))\n"
+  "after": 10,
+  "mu": "def balanceBST(root: TreeNode?) -> TreeNode?\n  def inorder(node) -> not node: []\n    inorder(node.left) + [node.val] + inorder(node.right)\n  def build_balanced_bst(nums) -> not nums: none\n    mid = (len(nums) - 1) // 2\n    root_ = TreeNode(nums[mid])\n    root_.left = build_balanced_bst(nums[:mid])\n    root_.right = build_balanced_bst(nums[mid + 1:])\n    root_\n  build_balanced_bst(inorder(root))\n"
  },
  "1379": {
   "num": 1379,
@@ -8447,8 +8447,8 @@
   "before": 11,
   "kept": true,
   "why": "AttributeError: 'NoneType' object has no attribute 'left'",
-  "after": 10,
-  "mu": "def longestZigZag(root: TreeNode?) -> int\n  ans = 0\n  def dfs(n)\n    if not n\n      return -1, -1\n    l, r = dfs(n.left), dfs(n.right)\n    ans = max(ans, 1 + l[1], 1 + r[0])\n    1 + l[1], 1 + r[0]\n  dfs(root)\n  ans\n"
+  "after": 8,
+  "mu": "def longestZigZag(root: TreeNode?) -> int\n  ans = 0\n  def dfs(n) -> not n: -1, -1\n    l, r = dfs(n.left), dfs(n.right)\n    ans = max(ans, 1 + l[1], 1 + r[0])\n    1 + l[1], 1 + r[0]\n  dfs(root)\n  ans\n"
  },
  "1390": {
   "num": 1390,
@@ -8463,8 +8463,8 @@
   "title": "Maximum Sum BST in Binary Tree",
   "before": 14,
   "kept": true,
-  "after": 12,
-  "mu": "def maxSumBST(root: TreeNode?) -> int\n  def helper(node)\n    if not node\n      return true, inf, -inf, 0, 0\n    il, mnl, mxl, suml, ans_l = helper(node.left)\n    ir, mnr, mxr, sumr, ans_r = helper(node.right)\n    if il and ir and mxl < node.val < mnr\n      s = suml + sumr + node.val\n      return true, min(mnl, node.val), max(mxr, node.val), s, max(max(ans_l, ans_r), s)\n    false, 0, 0, 0, max(ans_l, ans_r)\n  _, _, _, _, result = helper(root)\n  result\n"
+  "after": 10,
+  "mu": "def maxSumBST(root: TreeNode?) -> int\n  def helper(node) -> not node: true, inf, -inf, 0, 0\n    il, mnl, mxl, suml, ans_l = helper(node.left)\n    ir, mnr, mxr, sumr, ans_r = helper(node.right)\n    if il and ir and mxl < node.val < mnr\n      s = suml + sumr + node.val\n      return true, min(mnl, node.val), max(mxr, node.val), s, max(max(ans_l, ans_r), s)\n    false, 0, 0, 0, max(ans_l, ans_r)\n  _, _, _, _, result = helper(root)\n  result\n"
  },
  "1380": {
   "num": 1380,
@@ -8544,8 +8544,8 @@
   "before": 16,
   "kept": true,
   "why": "AssertionError",
-  "after": 8,
-  "mu": "def isSubPath(head: ListNode?, root: TreeNode?) -> bool\n  def m(n, l)\n    if not l\n      return true\n    n is not none and n.val == l.val and (m(n.left, l.next) or m(n.right, l.next))\n  def f(n)\n    n is not none and (m(n, head) or f(n.left) or f(n.right))\n  f(root)\n"
+  "after": 6,
+  "mu": "def isSubPath(head: ListNode?, root: TreeNode?) -> bool\n  def m(n, l) -> not l: true\n    n is not none and n.val == l.val and (m(n.left, l.next) or m(n.right, l.next))\n  def f(n)\n    n is not none and (m(n, head) or f(n.left) or f(n.right))\n  f(root)\n"
  },
  "1431": {
   "num": 1431,
@@ -8592,8 +8592,8 @@
   "title": "Max Difference You Can Get From Changing an Integer",
   "before": 20,
   "kept": true,
-  "after": 15,
-  "mu": "def maxDiff(num: int) -> int\n  s = str(num)\n  def max_num()\n    for ch in s\n      if ch != '9'\n        return int(s.replace(ch, '9'))\n    int(s)\n  def min_num()\n    if s[0] != '1'\n      return int(s.replace(s[0], '1'))\n    for ch in s[1:]\n      if ch != '0' and ch != '1'\n        return int(s.replace(ch, '0'))\n    int(s)\n  max_num() - min_num()\n"
+  "after": 13,
+  "mu": "def maxDiff(num: int) -> int\n  s = str(num)\n  def max_num()\n    for ch in s\n      if ch != '9'\n        return int(s.replace(ch, '9'))\n    int(s)\n  def min_num() -> s[0] != '1': int(s.replace(s[0], '1'))\n    for ch in s[1:]\n      if ch != '0' and ch != '1'\n        return int(s.replace(ch, '0'))\n    int(s)\n  max_num() - min_num()\n"
  },
  "1389": {
   "num": 1389,
@@ -8835,8 +8835,8 @@
   "title": "Pseudo-Palindromic Paths in a Binary Tree",
   "before": 13,
   "kept": true,
-  "after": 9,
-  "mu": "def pseudoPalindromicPaths(root: TreeNode?) -> int\n  def dfs(node, mask)\n    if not node\n      return 0\n    mask ^= (1 << node.val)\n    if not node.left and not node.right\n      return mask & (mask - 1) == 0\n    dfs(node.left, mask) + dfs(node.right, mask)\n  dfs(root, 0)\n"
+  "after": 7,
+  "mu": "def pseudoPalindromicPaths(root: TreeNode?) -> int\n  def dfs(node, mask) -> not node: 0\n    mask ^= (1 << node.val)\n    if not node.left and not node.right\n      return mask & (mask - 1) == 0\n    dfs(node.left, mask) + dfs(node.right, mask)\n  dfs(root, 0)\n"
  },
  "1483": {
   "num": 1483,
@@ -8925,8 +8925,8 @@
   "title": "Minimum Number of Days to Make m Bouquets",
   "before": 23,
   "kept": true,
-  "after": 16,
-  "mu": "def minDays(bloomDay: [int], m: int, k: int) -> int\n  if m * k > len(bloomDay)\n    return -1\n  def can_make(day)\n    bouquets = flowers = 0\n    for bloom in bloomDay\n      if bloom <= day\n        flowers += 1\n        if flowers == k\n          bouquets, flowers = bouquets + 1, 0\n      else\n        flowers = 0\n      if bouquets >= m\n        return true\n    false\n  first day in 1..max(bloomDay) if can_make(day)\n"
+  "after": 14,
+  "mu": "def minDays(bloomDay: [int], m: int, k: int) -> int, m * k > len(bloomDay): -1\n  def can_make(day)\n    bouquets = flowers = 0\n    for bloom in bloomDay\n      if bloom <= day\n        flowers += 1\n        if flowers == k\n          bouquets, flowers = bouquets + 1, 0\n      else\n        flowers = 0\n      if bouquets >= m\n        return true\n    false\n  first day in 1..max(bloomDay) if can_make(day)\n"
  },
  "1452": {
   "num": 1452,
@@ -9100,8 +9100,8 @@
   "title": "Minimum Difference Between Largest and Smallest Value in Three Moves",
   "before": 6,
   "kept": true,
-  "after": 5,
-  "mu": "def minDifference(nums: [int]) -> int\n  if len(nums) <= 4\n    return 0\n  nums.sort()\n  min from inf for i in 0..<4: nums[len(nums) - 4 + i] - nums[i]\n"
+  "after": 3,
+  "mu": "def minDifference(nums: [int]) -> int, len(nums) <= 4: 0\n  nums.sort()\n  min from inf for i in 0..<4: nums[len(nums) - 4 + i] - nums[i]\n"
  },
  "1510": {
   "num": 1510,
@@ -9482,8 +9482,8 @@
   "before": 12,
   "kept": true,
   "why": "a line is longer than 100 characters: '0' if n == 1 else ('1' if k == (1 << (n - 1)) else (self.fi...",
-  "after": 6,
-  "mu": "def findKthBit(n: int, k: int) -> str\n  if n == 1 or k == (1 << (n - 1))\n    return '0' if n == 1 else '1'\n  if k < (1 << (n - 1))\n    return self.findKthBit(n - 1, k)\n  '0' if self.findKthBit(n - 1, (1 << n) - k) == '1' else '1'\n"
+  "after": 4,
+  "mu": "def findKthBit(n: int, k: int) -> str, n == 1 or k == (1 << (n - 1)): '0' if n == 1 else '1'\n  if k < (1 << (n - 1))\n    return self.findKthBit(n - 1, k)\n  '0' if self.findKthBit(n - 1, (1 << n) - k) == '1' else '1'\n"
  },
  "1557": {
   "num": 1557,
@@ -10357,8 +10357,8 @@
   "title": "Find Minimum Time to Finish All Jobs",
   "before": 20,
   "kept": true,
-  "after": 19,
-  "mu": "def minimumTimeRequired(jobs: [int], k: int) -> int\n  jobs.sort(reverse=true)\n  def can_finish(limit)\n    workloads = [0] * k\n    def backtrack(i)\n      if i == len(jobs)\n        return true\n      cur = jobs[i]\n      for j in 0..<k\n        if workloads[j] + cur <= limit\n          workloads[j] += cur\n          if backtrack(i + 1)\n            return true\n          workloads[j] -= cur\n        if workloads[j] == 0\n          break\n      false\n    backtrack(0)\n  first mid in max(jobs)..sum(jobs) if can_finish(mid)\n"
+  "after": 17,
+  "mu": "def minimumTimeRequired(jobs: [int], k: int) -> int\n  jobs.sort(reverse=true)\n  def can_finish(limit)\n    workloads = [0] * k\n    def backtrack(i) -> i == len(jobs): true\n      cur = jobs[i]\n      for j in 0..<k\n        if workloads[j] + cur <= limit\n          workloads[j] += cur\n          if backtrack(i + 1)\n            return true\n          workloads[j] -= cur\n        if workloads[j] == 0\n          break\n      false\n    backtrack(0)\n  first mid in max(jobs)..sum(jobs) if can_finish(mid)\n"
  },
  "1713": {
   "num": 1713,
@@ -10445,8 +10445,8 @@
   "title": "Count Ways to Make Array With Product",
   "before": 39,
   "kept": true,
-  "after": 30,
-  "mu": "def waysToFillArray(queries: [[int]]) -> [int]\n  MOD = 10 ** 9 + 7\n  max_comb = (max for (n, _) in queries: n) + 200\n  fact = [1] * (max_comb + 1)\n  for i in 1..max_comb\n    fact[i] = fact[i - 1] * i % MOD\n  inv_fact = [1] * (max_comb + 1)\n  inv_fact[max_comb] = pow(fact[max_comb], MOD - 2, MOD)\n  for i in range(max_comb - 1, -1, -1)\n    inv_fact[i] = inv_fact[i + 1] * (i + 1) % MOD\n  def comb(n, r)\n    if r > n or r < 0\n      return 0\n    fact[n] * inv_fact[r] % MOD * inv_fact[n - r] % MOD\n  def prime_factorization(x)\n    factors_ = defaultdict(int)\n    for d in 2..int(sqrt(x))\n      while x % d == 0\n        factors_[d] += 1\n        x //= d\n    if x > 1\n      factors_[x] += 1\n    factors_\n  res = []\n  for (n, k) in queries\n    factors, ways = prime_factorization(k), 1\n    for exp in factors.values()\n      ways = ways * comb(n + exp - 1, exp) % MOD\n    res <- ways\n  res\n"
+  "after": 28,
+  "mu": "def waysToFillArray(queries: [[int]]) -> [int]\n  MOD = 10 ** 9 + 7\n  max_comb = (max for (n, _) in queries: n) + 200\n  fact = [1] * (max_comb + 1)\n  for i in 1..max_comb\n    fact[i] = fact[i - 1] * i % MOD\n  inv_fact = [1] * (max_comb + 1)\n  inv_fact[max_comb] = pow(fact[max_comb], MOD - 2, MOD)\n  for i in range(max_comb - 1, -1, -1)\n    inv_fact[i] = inv_fact[i + 1] * (i + 1) % MOD\n  def comb(n, r) -> r > n or r < 0: 0\n    fact[n] * inv_fact[r] % MOD * inv_fact[n - r] % MOD\n  def prime_factorization(x)\n    factors_ = defaultdict(int)\n    for d in 2..int(sqrt(x))\n      while x % d == 0\n        factors_[d] += 1\n        x //= d\n    if x > 1\n      factors_[x] += 1\n    factors_\n  res = []\n  for (n, k) in queries\n    factors, ways = prime_factorization(k), 1\n    for exp in factors.values()\n      ways = ways * comb(n + exp - 1, exp) % MOD\n    res <- ways\n  res\n"
  },
  "1727": {
   "num": 1727,
@@ -10604,8 +10604,8 @@
   "title": "Longest Nice Substring",
   "before": 16,
   "kept": true,
-  "after": 9,
-  "mu": "def longestNiceSubstring(s: str) -> str\n  if len(s) < 2\n    return ''\n  for length in range(len(s), 1, -1)\n    for i in range(len(s) - length + 1)\n      sub = s[i:i + length]\n      if all(c.swapcase() in sub for c in set(sub))\n        return sub\n  ''\n"
+  "after": 7,
+  "mu": "def longestNiceSubstring(s: str) -> str, len(s) < 2: ''\n  for length in range(len(s), 1, -1)\n    for i in range(len(s) - length + 1)\n      sub = s[i:i + length]\n      if all(c.swapcase() in sub for c in set(sub))\n        return sub\n  ''\n"
  },
  "1751": {
   "num": 1751,
@@ -10808,8 +10808,8 @@
   "before": 13,
   "kept": true,
   "why": "wrong on areAlmostEqual('tbean', 'kanb'): ('raise', 'IndexError') vs ('ok', False, ['tbean', 'kanb'])",
-  "after": 5,
-  "mu": "def areAlmostEqual(s1: str, s2: str) -> bool\n  if len(s1) != len(s2)\n    return false\n  diff = [i for i in 0..<len(s1) if s1[i] != s2[i]]\n  len(diff) == 0 or len(diff) == 2 and s1[diff[0]] == s2[diff[1]] and s1[diff[1]] == s2[diff[0]]\n"
+  "after": 3,
+  "mu": "def areAlmostEqual(s1: str, s2: str) -> bool, len(s1) != len(s2): false\n  diff = [i for i in 0..<len(s1) if s1[i] != s2[i]]\n  len(diff) == 0 or len(diff) == 2 and s1[diff[0]] == s2[diff[1]] and s1[diff[1]] == s2[diff[0]]\n"
  },
  "1816": {
   "num": 1816,
@@ -11030,8 +11030,8 @@
   "title": "Maximum Building Height",
   "before": 23,
   "kept": true,
-  "after": 15,
-  "mu": "def maxBuilding(n: int, restrictions: [[int]]) -> int\n  if not restrictions\n    return n - 1\n  restrictions <- [1, 0]\n  restrictions <- [n, n - 1]\n  restrictions.sort(key=x -> x[0])\n  for i in 1..<len(restrictions)\n    p, r = restrictions[i - 1], restrictions[i]\n    r[1] = min(r[1], p[1] + r[0] - p[0])\n  for i in range(len(restrictions) - 2, -1, -1)\n    r, nx = restrictions[i], restrictions[i + 1]\n    r[1] = min(r[1], nx[1] + nx[0] - r[0])\n  max for i in 1..<len(restrictions)\n    p, r = restrictions[i - 1], restrictions[i]\n    max(p[1], r[1]) + (r[0] - p[0] - abs(r[1] - p[1])) // 2\n"
+  "after": 13,
+  "mu": "def maxBuilding(n: int, restrictions: [[int]]) -> int, not restrictions: n - 1\n  restrictions <- [1, 0]\n  restrictions <- [n, n - 1]\n  restrictions.sort(key=x -> x[0])\n  for i in 1..<len(restrictions)\n    p, r = restrictions[i - 1], restrictions[i]\n    r[1] = min(r[1], p[1] + r[0] - p[0])\n  for i in range(len(restrictions) - 2, -1, -1)\n    r, nx = restrictions[i], restrictions[i + 1]\n    r[1] = min(r[1], nx[1] + nx[0] - r[0])\n  max for i in 1..<len(restrictions)\n    p, r = restrictions[i - 1], restrictions[i]\n    max(p[1], r[1]) + (r[0] - p[0] - abs(r[1] - p[1])) // 2\n"
  },
  "1824": {
   "num": 1824,
@@ -11116,7 +11116,7 @@
   "title": "Splitting a String Into Descending Consecutive Values",
   "before": 12,
   "kept": true,
-  "after": 10,
-  "mu": "def splitString(s: str) -> bool\n  def backtrack(start, prev, count)\n    if start == len(s)\n      return count >= 2\n    for end in start + 1..len(s)\n      v = int(s[start:end])\n      if (prev == -1 or prev - v == 1) and backtrack(end, v, count + 1)\n        return true\n    false\n  backtrack(0, -1, 0)\n"
+  "after": 8,
+  "mu": "def splitString(s: str) -> bool\n  def backtrack(start, prev, count) -> start == len(s): count >= 2\n    for end in start + 1..len(s)\n      v = int(s[start:end])\n      if (prev == -1 or prev - v == 1) and backtrack(end, v, count + 1)\n        return true\n    false\n  backtrack(0, -1, 0)\n"
  }
 }
