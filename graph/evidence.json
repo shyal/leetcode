@@ -46373,6 +46373,19 @@
       "note": "Contract met: the CTE Ranked holds the dense_rank query, and the outer query filters on the alias with rank <= 1, which is the same as rank = 1 for dense_rank. The query has no GROUP BY and no subquery in a WHERE clause.",
       "summary": "The WITH clause names Ranked. Ranked computes dense_rank() over (partition by team order by points desc) as rank for each row of Players. The outer select reads name and team from Ranked where rank <= 1, so every player tied at the top points of a team is returned. The notes say nothing about hints or look-ups.",
       "seconds": 193
+    },
+    "solved/d_Lines_Of_A_File_2026_11_22T19_30_40_935830_00_00Z.py": {
+      "date": "2026-11-23",
+      "problem": "drill",
+      "drill": "d198",
+      "moves": {
+        "py-with": "struggled",
+        "py-str-methods": "clean"
+      },
+      "judge": "opus",
+      "note": "The run passed, but the contract is not met. r.readlines() reads the whole file into a list, so the code loops over that list and not over the file object one line at a time. The open() is inside a with and there is no f.close(), so those two parts are met.",
+      "summary": "lines opens path in a with block as r, loops over r.readlines(), and appends line.strip() to lines. The with block closes the file, so there is no open() outside a with and no close() call. readlines() reads all the lines into memory at once, but the contract asks the code to iterate the file object itself, as in for line in r. The candidate wrote no notes.",
+      "seconds": 85
     }
   }
 }
