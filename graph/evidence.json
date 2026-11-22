@@ -46360,6 +46360,19 @@
       "note": "The contract is met: the code uses one O(n) recurrence on the index. It runs over suffixes instead of prefixes, as a memo that returns a pair (best with nums[i] not taken, best with nums[i] taken) and does not use a rolling table. [2, 1, 1, 2] gives 4, and the run of 100000 elements passed.",
       "summary": "maxSum calls a memoized function on the index i. Its base case is i >= len nums: (0, 0). For each other i it gets (s, t) from mu(i + 1) and returns (max(s, t), nums[i] + s): the first value skips nums[i], the second takes nums[i] and adds the best sum that does not use index i + 1. The answer is the max of the pair at index 0. There are no notes, so the notes do not show a hint, a look-up or a failed attempt.",
       "seconds": 318
+    },
+    "solved/d_Top_Player_Per_Team_2026_11_22T19_24_05_298135_00_00Z.mu": {
+      "date": "2026-11-23",
+      "problem": "drill",
+      "drill": "d366",
+      "moves": {
+        "sql-window-rank": "clean",
+        "sql-subquery": "clean"
+      },
+      "judge": "opus",
+      "note": "Contract met: the CTE Ranked holds the dense_rank query, and the outer query filters on the alias with rank <= 1, which is the same as rank = 1 for dense_rank. The query has no GROUP BY and no subquery in a WHERE clause.",
+      "summary": "The WITH clause names Ranked. Ranked computes dense_rank() over (partition by team order by points desc) as rank for each row of Players. The outer select reads name and team from Ranked where rank <= 1, so every player tied at the top points of a team is returned. The notes say nothing about hints or look-ups.",
+      "seconds": 193
     }
   }
 }
