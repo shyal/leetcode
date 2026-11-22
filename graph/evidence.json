@@ -46301,6 +46301,19 @@
       "note": "Contract met: O(n^2) over index pairs (j, i) with j < i, with no sorting and no binary search.",
       "summary": "longestEndingAt sets up dp = table(len(nums), fill=1). Each index on its own is the base case of length 1. The code walks the index pairs (j, i) from pairs(len nums, back=true). When nums[j] < nums[i], it sets dp[i] to max(dp[j] + 1, dp[i]), and the code returns dp. The state is \"length of the longest strictly increasing subsequence that ends at i\", and the 1D table is filled forward from that base case. The notes are empty.",
       "seconds": 216
+    },
+    "solved/d_Flips_To_Monotone_Increasing_2026_11_22T01_40_11_463502_00_00Z.mu": {
+      "date": "2026-11-22",
+      "problem": "drill",
+      "drill": "d317",
+      "moves": {
+        "dp-1d-rolling": "clean",
+        "running-sum": "clean"
+      },
+      "judge": "opus",
+      "note": "The contract is met: one pass, O(n) time, O(1) extra space (flips, ones), and the min is taken at every '0', so '001001' returns 1.",
+      "summary": "minFlips makes one pass over s and keeps two values. ones counts the '1' characters seen so far. At each '0', flips becomes min(flips + 1, ones): either flip this '0' to '1', or flip every earlier '1' to '0'. The candidate's notes are empty.",
+      "seconds": 54
     }
   }
 }
