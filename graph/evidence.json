@@ -46346,6 +46346,20 @@
       "note": "Contract met: D = {:int} is keyed by value and filled in one O(n) pass, with no scan of earlier indices. The max with D[v] is not needed because D[v-1] never decreases, but it does no harm.",
       "summary": "longestSubsequence makes the dict D = {:int}, which maps a value to the length of the longest consecutive subsequence that ends at that value. For each v in arr, it reads D[v-1], adds 1, writes the result to D[v], and then returns max(D.values()). This is one pass in O(n) time, and the tests with 100000 elements passed. The notes are empty.",
       "seconds": 531
+    },
+    "solved/d_Maximum_Sum_With_No_Two_Adjacent_Indices_2026_11_22T03_23_22_329054_00_00Z.mu": {
+      "date": "2026-11-22",
+      "problem": "drill",
+      "drill": "d541",
+      "moves": {
+        "dp-1d-rolling": "clean",
+        "memoize-recursion": "clean",
+        "dp-state-formulate": "clean"
+      },
+      "judge": "opus",
+      "note": "The contract is met: the code uses one O(n) recurrence on the index. It runs over suffixes instead of prefixes, as a memo that returns a pair (best with nums[i] not taken, best with nums[i] taken) and does not use a rolling table. [2, 1, 1, 2] gives 4, and the run of 100000 elements passed.",
+      "summary": "maxSum calls a memoized function on the index i. Its base case is i >= len nums: (0, 0). For each other i it gets (s, t) from mu(i + 1) and returns (max(s, t), nums[i] + s): the first value skips nums[i], the second takes nums[i] and adds the best sum that does not use index i + 1. The answer is the max of the pair at index 0. There are no notes, so the notes do not show a hint, a look-up or a failed attempt.",
+      "seconds": 318
     }
   }
 }
