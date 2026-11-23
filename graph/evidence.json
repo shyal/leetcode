@@ -46534,6 +46534,19 @@
       "judge": "opus",
       "summary": "The query method selects name and team from Ranked with the condition where rank = 1. It uses no window function and no subquery, so the contract is met, and both example assertions passed. It exercised sql-filter-select. The notes hold only the statement and say nothing about hints or look-ups.",
       "seconds": 72
+    },
+    "solved/d_Lines_Of_A_File_2026_11_23T22_43_33_531661_00_00Z.py": {
+      "date": "2026-11-24",
+      "problem": "drill",
+      "drill": "d198",
+      "moves": {
+        "py-with": "struggled",
+        "py-str-methods": "clean"
+      },
+      "judge": "opus",
+      "note": "Run passed and open() is inside a with, but the contract is unmet: f.readlines() reads the whole file into a list instead of iterating the file object f line by line.",
+      "summary": "lines opens the path with `with open(path) as f`, loops over `f.readlines()`, and appends `line.strip()` for each line to the list `lines`, which it returns. The with statement closes the file and there is no f.close(), but `f.readlines()` loads the whole file before the loop, so the file object is not iterated line by line as the contract requires. All assertions passed, and the file has no notes about hints or look-ups.",
+      "seconds": 62
     }
   }
 }
