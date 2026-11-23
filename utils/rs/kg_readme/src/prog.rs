@@ -210,6 +210,9 @@ mod tests {
             p: Progress {
                 recent: 40,
                 lost: 10,
+                learning: 0,
+                learning_first: 0,
+                learning_cold: 0,
                 proven: (0..10).map(|i| (d, 1300.0 + i as f64 * 19.0)).collect(),
                 now: Some(1471.0),
                 then: Some(1290.0),
@@ -277,5 +280,14 @@ mod tests {
         assert_eq!(verdict(&s.p), (Color::Yellow, "grinding"));
         s.p.recent = 2;
         assert_eq!(verdict(&s.p).1, "not training");
+        // a month of learning solves is training, with no game in it
+        s.p.recent = 0;
+        s.p.learning = 12;
+        s.p.learning_first = 7;
+        s.p.learning_cold = 3;
+        assert_eq!(verdict(&s.p).1, "learning");
+        let text = progress_text(&s.p, s.today);
+        assert_eq!(text[0], "You're training in learning mode.");
+        assert!(text[1].starts_with("12 problems in the last 30 days, seven of them first sights, and three"));
     }
 }

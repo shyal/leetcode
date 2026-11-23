@@ -1590,6 +1590,14 @@ pub struct Progress {
     pub recent: usize,
     /// of those, lost: a fail, a copy or a walkthrough
     pub lost: usize,
+    /// learning solves in the window (kg::learning): no game, so not in
+    /// `recent`, but training all the same (2026-11-23: "You're not
+    /// training" on a month of learning solves)
+    pub learning: usize,
+    /// of those, first sights
+    pub learning_first: usize,
+    /// of the first sights, solved with no help and not failed
+    pub learning_cold: usize,
     /// (date, proven rating) one per first sight from the PROVEN_WINDOW-th on
     pub proven: Vec<(NaiveDate, f64)>,
     /// the proven rating now, once PROVEN_WINDOW first sights exist
@@ -1636,11 +1644,14 @@ impl Progress {
     }
 
     /// The one-word verdict of `make progress`, lower case: progressing,
-    /// slipping, stalled, grinding, rebuilding, gaining; "not training"
-    /// under five games in the window.
+    /// slipping, stalled, grinding, rebuilding, gaining; "learning" under
+    /// five games with the learning solves making five or more; "not
+    /// training" under five of both.
     pub fn verdict(&self) -> &'static str {
         let g = &self.ground;
-        if self.recent < 5 {
+        if self.recent < 5 && self.recent + self.learning >= 5 {
+            "learning"
+        } else if self.recent < 5 {
             "not training"
         } else if self.delta() >= self.level_bar() {
             "progressing"
@@ -1695,9 +1706,22 @@ pub fn progress_numbers(ctx: &Ctx, ev: &Evidence, today: NaiveDate) -> Progress 
         .map(|(g, _, _)| g)
         .filter(|g| crate::data::parse_date(&g.date) >= since)
         .collect();
+    let learned: Vec<Game> = learning_games(ctx, ev)
+        .into_iter()
+        .filter(|g| {
+            let d = crate::data::parse_date(&g.date);
+            d >= since && d <= today
+        })
+        .collect();
     let mut out = Progress {
         recent: recent.len(),
         lost: recent.iter().filter(|g| lost_game(g)).count(),
+        learning: learned.len(),
+        learning_first: learned.iter().filter(|g| g.first).count(),
+        learning_cold: learned
+            .iter()
+            .filter(|g| g.first && !g.failed && g.assist == "none")
+            .count(),
         ..Progress::default()
     };
     // the level: the proven rating (proven_series) now against 90 days
@@ -1823,8 +1847,18 @@ pub fn progress_text(p: &Progress, today: NaiveDate) -> Vec<String> {
         _ => String::new(),
     };
     let delta = p.delta();
-    let moved = matches!(p.verdict(), "progressing" | "slipping");
+    let moved = matches!(p.verdict(), "progressing" | "slipping" | "learning");
     match p.verdict() {
+        "learning" => {
+            out.push("You're training in learning mode.".to_string());
+            out.push(format!(
+                "{} problems in the last {} days, {} of them first sights, and {} of the first sights solved with no help. Learning mode scores no solve, so the proven rating does not move.",
+                number(p.learning + p.recent).to_uppercase_first(),
+                PROGRESS_WINDOW_DAYS,
+                number(p.learning_first),
+                number(p.learning_cold),
+            ));
+        }
         "progressing" => {
             out.push("You're progressing.".to_string());
             out.push(format!(
