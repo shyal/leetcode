@@ -715,7 +715,10 @@ the reveal after the judge.
    prereq that is SOLID only through assisted reps is not rusty, so rules 1-3 never
    target it; `make next` serves its drill anyway (the ownership rep, rule 0c in
    kg_next) - a hold nothing can open is a deadlock, not a standard (18 nodes sat
-   behind two such prereqs on 2026-08-29). The empty serve tells "nothing due"
+   behind two such prereqs on 2026-08-29). Under the file clock a drill holds a
+   problem only while the clock can serve that drill, and the deep dive serves what
+   holds its next problem, up the chain (`pick::open`), in place of a harder problem
+   (2026-11-24). The empty serve tells "nothing due"
    (carriers cooling, prereqs unowned, a ready summit asleep - `make next --why`
    names each wait) apart from "the bank is dry" (no problem can ever carry the
    move - map one).

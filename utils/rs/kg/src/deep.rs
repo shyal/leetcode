@@ -64,23 +64,26 @@
 // (DEEP_START_QUANTILE), after a pass the next one above it, after a
 // fail the nearest at or below it. With FIRST_SIGHT_WITHIN_BAND set, a
 // problem rated more than the band below his first-sight elo is not a
-// candidate (2026-11-14: a day of 1301 to 1474 at elo 1609); when every
-// candidate is below that floor, the hardest one is served. The band has
-// no ceiling here: the order does that work.
+// candidate (2026-11-14: a day of 1301 to 1474 at elo 1609). Nor is one
+// rated more than the band above it (2026-11-24: 1806 at elo 1609); when
+// no candidate is in the band, the one nearest to his elo is served.
+//
+// A problem of the day that something holds is not passed over: what holds
+// it is served first (pick::open), a drill of another technique included
+// (2026-11-24). One whose holder cannot be served today is passed over.
 
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 
 use chrono::{Duration, NaiveDate};
 
-use crate::bank::held_behind_past;
 use crate::clock::{attempt_label, is_studied, PROBLEM_GRADUATING_DAYS};
 use crate::ctx::{Ctx, PView};
 use crate::data::{env_str, filed_at, is_numeric_id, parse_date, pnum_key, Problem};
-use crate::drills::{in_group, ALGORITHMS};
+use crate::drills::{first_sight_range, in_group, ALGORITHMS};
 use crate::evidence::Evidence;
 use crate::model::solve_ratings;
-use crate::pick::{review_queue_past, Choice, PickArgs};
+use crate::pick::{clock_servable, open, reviews_due, Choice, Open, PickArgs};
 use crate::status::{st, Statuses};
 
 /// How wide the confidence interval of a technique's alone share is, in
@@ -350,20 +353,22 @@ fn above(cands: &[(String, f64)], anchor: f64) -> Option<&(String, f64)> {
         .or_else(|| cands.last())
 }
 
-/// The lowest rating a new problem of the day can have: his first-sight
-/// elo less FIRST_SIGHT_WITHIN_BAND. None when the band is unset.
-fn floor(ctx: &Ctx, ev: &Evidence) -> Option<f64> {
-    crate::drills::first_sight_band().map(|b| crate::model::first_sight_elo_now(ctx, ev) - b)
-}
-
-/// The candidates rated at or above `floor`. When there is none, the
-/// hardest candidate alone, so the day still has a problem.
-fn above_floor(cands: Vec<(String, f64)>, floor: Option<f64>) -> Vec<(String, f64)> {
-    let Some(floor) = floor else { return cands };
-    let hardest = cands.last().cloned();
-    let kept: Vec<(String, f64)> = cands.into_iter().filter(|(_, r)| *r >= floor).collect();
+/// The candidates rated in `range` (drills::first_sight_range). When there
+/// is none, the candidate nearest to the middle of it, his elo, so the day
+/// still has a problem.
+fn in_range(cands: Vec<(String, f64)>, range: Option<(f64, f64)>) -> Vec<(String, f64)> {
+    let Some((lo, hi)) = range else { return cands };
+    let elo = (lo + hi) / 2.0;
+    let nearest = cands
+        .iter()
+        .min_by(|a, b| (a.1 - elo).abs().total_cmp(&(b.1 - elo).abs()))
+        .cloned();
+    let kept: Vec<(String, f64)> = cands
+        .into_iter()
+        .filter(|(_, r)| (lo..=hi).contains(r))
+        .collect();
     if kept.is_empty() {
-        hardest.into_iter().collect()
+        nearest.into_iter().collect()
     } else {
         kept
     }
@@ -428,7 +433,7 @@ pub fn algorithm_drills(ctx: &Ctx) -> HashSet<String> {
         .collect()
 }
 
-/// The repeats of the day's technique that can be served now: the due
+/// The repeats of the day's technique, held or not (pick::open): the due
 /// ones, easy to hard, then the ones that are not due, the one he did
 /// longest ago first. A problem that is not due and has a record in the
 /// last PROBLEM_GRADUATING_DAYS days is not in it.
@@ -444,7 +449,7 @@ fn repeats(
     let scope = Scope::Node(node.to_string());
     let skip = |p: &str| args.asleep.iter().any(|a| a == p) || args.exclude.contains(p);
     let uses = |num: &str| pv.get(num).is_some_and(|q| scope.covers(ctx, q));
-    let mut due: Vec<String> = review_queue_past(ctx, ev, pv, today, Some(node))
+    let mut due: Vec<String> = reviews_due(ctx, ev, pv, today, true)
         .into_iter()
         .map(|(num, _, _)| num)
         .filter(|num| !skip(num) && uses(num))
@@ -485,7 +490,6 @@ fn repeats(
             // fail (2026-11-20: 3021 came back the day after a clean solve)
             (last + Duration::days(PROBLEM_GRADUATING_DAYS) <= today).then(|| (last, num.clone()))
         })
-        .filter(|(_, num)| held_behind_past(ctx, num, pv, ev, today, Some(node)).is_none())
         .collect();
     early.sort_by(|a, b| {
         a.0.cmp(&b.0)
@@ -544,25 +548,37 @@ pub fn pick(
     }
     let skip = |p: &str| args.asleep.iter().any(|a| a == p) || args.exclude.contains(p);
 
-    let repeat = || -> Option<Choice> {
-        if crate::drills::no_reviews() {
-            return None;
-        }
-        let (num, due) = repeats(ctx, &pv.borrow(), ev, args, day)
-            .into_iter()
-            .next()?;
-        let what = if due {
-            "a due repeat that uses it"
-        } else {
-            "a repeat that uses it, not due, the oldest first"
+    let drills = clock_servable(ctx, ev, statuses, args);
+
+    let repeat =
+        || -> Option<Choice> {
+            if crate::drills::no_reviews() {
+                return None;
+            }
+            let view = pv.borrow();
+            let (num, due) = repeats(ctx, &view, ev, args, day).into_iter().find_map(
+                |(num, due)| match open(ctx, &view, ev, statuses, args, &drills, node, &num) {
+                    Open::Itself => Some((Ok(num), due)),
+                    Open::First(c) => Some((Err(c), due)),
+                    Open::Shut => None,
+                },
+            )?;
+            let num = match num {
+                Ok(num) => num,
+                Err(first) => return Some(first),
+            };
+            let what = if due {
+                "a due repeat that uses it"
+            } else {
+                "a repeat that uses it, not due, the oldest first"
+            };
+            Some(Choice::new(
+                node,
+                status,
+                &num,
+                format!("deep dive on {name}: {what}"),
+            ))
         };
-        Some(Choice::new(
-            node,
-            status,
-            &num,
-            format!("deep dive on {name}: {what}"),
-        ))
-    };
 
     // N problems never met, easy to hard
     let sights = first_sights(ev);
@@ -586,14 +602,16 @@ pub fn pick(
     if met >= n {
         return None;
     }
+    let way = |num: &str| {
+        let view = &ctx.predicted_view;
+        open(ctx, view, ev, statuses, args, &drills, node, num)
+    };
     let cands: Vec<(String, f64)> = cluster(ctx, ev, scope, None, ratings)
         .into_iter()
         .filter(|(num, _)| !skip(num))
-        .filter(|(num, _)| {
-            held_behind_past(ctx, num, &ctx.predicted_view, ev, today, Some(node)).is_none()
-        })
+        .filter(|(num, _)| !matches!(way(num), Open::Shut))
         .collect();
-    let cands = above_floor(cands, floor(ctx, ev));
+    let cands = in_range(cands, first_sight_range(ctx, ev));
     let next = match met_today.last() {
         Some(last) => {
             let anchor = ratings.get(&last.pnum).copied();
@@ -611,6 +629,9 @@ pub fn pick(
     let Some((num, _)) = next else {
         return repeat();
     };
+    if let Open::First(c) = way(num) {
+        return Some(c);
+    }
     if pv.borrow().get(num).is_none() {
         let p = entry(ctx, num).expect("a cluster problem is in the table");
         let moves = p

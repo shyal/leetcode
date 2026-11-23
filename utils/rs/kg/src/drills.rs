@@ -412,6 +412,12 @@ pub fn cold_drill(
 /// (KG_SET_NEW_CAP): the EPI bank of 2026-11-10 put a file never met on
 /// 60 nodes, every problem that walks one of them was held behind it, and
 /// make next served nothing (2026-11-11, 150 first sights in the band).
+///
+/// Under the file clock a drill holds a problem only while the clock can
+/// serve the drill (on_clock). The two disagreed until 2026-11-24: d146 was
+/// last done 55 days before, so it was cold, and DRILLS_WITHIN_BAND had it
+/// off the clock, so no day served it. It held every problem that walks
+/// its node, and the easiest new problem left was 197 above his elo.
 pub fn node_drill_hold(ctx: &Ctx, node: &str, ev: &Evidence, today: NaiveDate) -> Option<String> {
     // cold_drill fills the cache this reads
     cold_drill(ctx, node, ev, today, false)?;
@@ -420,9 +426,24 @@ pub fn node_drill_hold(ctx: &Ctx, node: &str, ev: &Evidence, today: NaiveDate) -
         .cold
         .get(&(node.to_string(), today))
         .cloned()?;
-    let own = |files: &[PathBuf]| files.iter().find(|p| drill_set(ctx, p).is_none()).cloned();
+    let own = |files: &[PathBuf]| {
+        files
+            .iter()
+            .find(|p| drill_set(ctx, p).is_none() && (!anki() || on_clock(ctx, p, ev, today)))
+            .cloned()
+    };
     let path = own(&ready).or_else(|| own(&cold))?;
     ctx.drill_id(&path)
+}
+
+/// The clock can serve the file today: it is due or never done, not done
+/// today, and the drill band does not hold it. The file test of
+/// anki_frontier.
+fn on_clock(ctx: &Ctx, path: &Path, ev: &Evidence, day: NaiveDate) -> bool {
+    anki_table(ctx, ev, day, false)
+        .get(path)
+        .is_some_and(Option::is_some)
+        && !drills_outside_band(ctx, ev).contains(path)
 }
 
 /// kg_lib.drill_gated: a MISSING/FRAGILE/deep-stale node with a bank trains
@@ -1266,6 +1287,16 @@ pub fn first_sight_band() -> Option<f64> {
     env_int("FIRST_SIGHT_WITHIN_BAND")
         .filter(|b| *b > 0)
         .map(|b| b as f64)
+}
+
+/// The ratings a new problem can have: his first-sight elo and
+/// FIRST_SIGHT_WITHIN_BAND on each side of it. None when the band is unset.
+/// The one band of every rule that serves a new problem, the deep dive's
+/// included (2026-11-24: the deep dive read the lower side only).
+pub fn first_sight_range(ctx: &Ctx, ev: &Evidence) -> Option<(f64, f64)> {
+    let band = first_sight_band()?;
+    let elo = crate::model::first_sight_elo_now(ctx, ev);
+    Some((elo - band, elo + band))
 }
 
 /// DRILLS_WITHIN_BAND: a bank file whose every rated target problem is

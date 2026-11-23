@@ -380,3 +380,123 @@ fn a_drill_never_done_of_another_technique_is_served() {
     let c = fx.run(&evidence(recs), &st, args());
     assert!(reason(&c).starts_with("deep dive"));
 }
+
+/// `weak` and `strong` on one draft that only the drill of `strong` can
+/// hold, under the file clock.
+fn held_fixture(days_ago: i64) -> (Fx, Vec<(String, Rec)>, Statuses, PathBuf) {
+    let (mut fx, mut recs, st) = fixture();
+    let path = fx.bank("strong", "Strong Drill", "s.py", "d2", &[]);
+    fx.draft("11", drafted(&["weak", "strong"]), "Medium");
+    recs.push(drill_rep("Strong Drill", "strong", days_ago));
+    test_env("KG_DEEP", "1");
+    test_env("NO_REVIEWS", "1");
+    test_env("DRILL_SCHEDULER", "anki");
+    (fx, recs, st, path)
+}
+
+/// 2026-11-24: the easiest problem of the day waits on a due drill of
+/// another technique. The drill is served, and no harder problem in its
+/// place; the rep opens the problem.
+#[test]
+fn a_drill_that_holds_the_next_problem_is_served_first() {
+    let (mut fx, mut recs, st, path) = held_fixture(50);
+    fx.stubs().clock = vec![(path, "strong".into())];
+    let c = fx.run(&evidence(recs.clone()), &st, args());
+    assert_eq!(pnum(&c), "drill:strong");
+    assert!(reason(&c).starts_with("11 waits on d2"));
+    recs.push(drill_rep("Strong Drill", "strong", 0));
+    fx.stubs().clock = vec![];
+    let c = fx.run(&evidence(recs), &st, args());
+    assert_eq!(pnum(&c), "11");
+}
+
+/// 2026-11-24, d146: a cold drill the drill band has off the clock holds
+/// nothing, because no day can serve it.
+#[test]
+fn a_drill_off_the_clock_holds_no_problem() {
+    let (mut fx, recs, st, _) = held_fixture(50);
+    let held = |fx: &Fx| {
+        let ctx = fx.ctx();
+        let ev = evidence(recs.clone());
+        crate::bank::held_behind(&ctx, "11", &ctx.predicted_view, &ev, today())
+    };
+    assert_eq!(held(&fx), Some("d2".into()));
+    let rated = [("1", 1500.0), ("2", 1500.0), ("3", 1500.0), ("4", 1500.0)];
+    ratings_tsv(&fx, &rated);
+    // d2's one target is far above the drill band
+    fx.problem("99", problem(&["strong"]).after(&["d2"]));
+    test_env("DRILLS_WITHIN_BAND", "50");
+    fx.stubs().solve_ratings = Some(fmap(&[
+        ("1", 1500.0),
+        ("10", 1500.0),
+        ("11", 1300.0),
+        ("13", 1400.0),
+        ("99", 4000.0),
+    ]));
+    assert_eq!(held(&fx), None);
+    let c = fx.run(&evidence(recs.clone()), &st, args());
+    assert_eq!(pnum(&c), "11");
+}
+
+/// A drill holds a problem only on a day the clock can serve the drill:
+/// cold, and not due yet, it holds nothing.
+#[test]
+fn every_drill_that_holds_a_problem_is_on_the_clock() {
+    use crate::drills::{anki_frontier, node_drill_hold};
+    let (mut fx, mut recs, _, _) = held_fixture(50);
+    fx.bank("weak", "Weak Drill", "w.py", "d1", &[]);
+    fx.bank("weak", "Never Done", "n.py", "d3", &["d1"]);
+    for d in [400, 399, 396, 388, 368, 318, 200, 43] {
+        recs.push(drill_rep("Weak Drill", "weak", d));
+    }
+    let ctx = fx.ctx();
+    let ev = evidence(recs);
+    let clock: Vec<String> = anki_frontier(&ctx, &ev, today(), None, None, false)
+        .iter()
+        .filter_map(|(p, _)| ctx.drill_id(p))
+        .collect();
+    assert!(!clock.contains(&"d1".to_string()), "d1 is not due");
+    for node in ["weak", "strong"] {
+        let held = node_drill_hold(&ctx, node, &ev, today()).expect("a drill is due");
+        assert!(clock.contains(&held), "{held} holds {node} off the clock");
+    }
+}
+
+/// The problem that holds a new problem is served first.
+#[test]
+fn a_problem_that_holds_the_next_problem_is_served_first() {
+    let (mut fx, recs, st) = fixture();
+    fx.problem("20", problem(&["strong"]));
+    fx.draft("11", drafted(&["weak"]).after(&["20"]), "Medium");
+    test_env("KG_DEEP", "1");
+    test_env("NO_REVIEWS", "1");
+    let c = fx.run(&evidence(recs), &st, args());
+    assert_eq!(pnum(&c), "20");
+    assert!(reason(&c).contains("11 waits on 20"));
+}
+
+/// 2026-11-24: the band has a ceiling on a deep dive day. 3335 came at
+/// 197 above his elo. With no candidate in the band, the nearest to his
+/// elo is served.
+#[test]
+fn a_new_problem_is_not_above_the_band() {
+    use crate::model::first_sight_elo_now;
+    let (mut fx, recs, st) = fixture();
+    test_env("KG_DEEP", "3");
+    test_env("NO_REVIEWS", "1");
+    test_env("FIRST_SIGHT_WITHIN_BAND", "50");
+    ratings_tsv(
+        &fx,
+        &[("1", 1500.0), ("2", 1500.0), ("3", 1500.0), ("4", 1500.0)],
+    );
+    let elo = first_sight_elo_now(&fx.ctx(), &evidence(recs.clone()));
+    let rate = |fx: &mut Fx, r10: f64, r11: f64, r13: f64| {
+        fx.stubs().solve_ratings = Some(fmap(&[("10", r10), ("11", r11), ("13", r13)]));
+    };
+    rate(&mut fx, elo + 197.0, elo + 40.0, elo + 300.0);
+    let c = fx.run(&evidence(recs.clone()), &st, args());
+    assert_eq!(pnum(&c), "11");
+    rate(&mut fx, elo + 197.0, elo + 70.0, elo - 300.0);
+    let c = fx.run(&evidence(recs), &st, args());
+    assert_eq!(pnum(&c), "11");
+}

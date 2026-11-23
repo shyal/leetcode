@@ -558,14 +558,13 @@ pub fn above_band(ctx: &Ctx, ev: &Evidence, pv: &PView, today: NaiveDate) -> Vec
 /// served once his elo comes within the band of its rating. A problem
 /// nothing rates is never held.
 pub fn first_sights_outside_band(ctx: &Ctx, ev: &Evidence) -> HashSet<String> {
-    let Some(band) = crate::drills::first_sight_band() else {
+    let Some((lo, hi)) = crate::drills::first_sight_range(ctx, ev) else {
         return HashSet::new();
     };
-    let elo = crate::model::first_sight_elo_now(ctx, ev);
     let seen = ev.solved_problems();
     solve_ratings(ctx)
         .into_iter()
-        .filter(|(p, r)| (*r - elo).abs() > band && !seen.contains(p))
+        .filter(|(p, r)| (*r < lo || *r > hi) && !seen.contains(p))
         .map(|(p, _)| p)
         .collect()
 }
@@ -581,17 +580,17 @@ pub fn review_queue(
     pv: &PView,
     today: NaiveDate,
 ) -> Vec<(String, NaiveDate, i64)> {
-    review_queue_past(ctx, ev, pv, today, None)
+    reviews_due(ctx, ev, pv, today, false)
 }
 
-/// review_queue for the deep dive: a drill of `dive`, the technique of the
-/// day, holds no repeat (bank::held_behind_past).
-pub fn review_queue_past(
+/// review_queue, with the held reviews in it when `held` is true: the deep
+/// dive serves what holds a review in its place (open).
+pub fn reviews_due(
     ctx: &Ctx,
     ev: &Evidence,
     pv: &PView,
     today: NaiveDate,
-    dive: Option<&str>,
+    held: bool,
 ) -> Vec<(String, NaiveDate, i64)> {
     let trace = std::env::var("KG_TRACE").is_ok();
     let above = above_band(ctx, ev, pv, today);
@@ -611,14 +610,19 @@ pub fn review_queue_past(
             }
             !drop
         })
-        .filter(|(p, _, _)| match crate::bank::held_behind_past(ctx, p, pv, ev, today, dive) {
-            Some(h) => {
-                if trace {
-                    eprintln!("review {p}: held behind {h}");
-                }
-                false
+        .filter(|(p, _, _)| {
+            if held {
+                return true;
             }
-            None => true,
+            match held_behind(ctx, p, pv, ev, today) {
+                Some(h) => {
+                    if trace {
+                        eprintln!("review {p}: held behind {h}");
+                    }
+                    false
+                }
+                None => true,
+            }
         })
         .collect();
     let primary = |p: &str| pv.get(p).and_then(|q| q.moves.first().cloned());
@@ -1639,8 +1643,51 @@ fn clock_where(
     capped: &HashSet<String>,
     only: &dyn Fn(&Path, &str) -> bool,
 ) -> Option<Choice> {
+    let mut first = None;
+    clock_each(ctx, ev, statuses, args, capped, only, &mut |_, c| {
+        first = Some(c);
+        false
+    });
+    first
+}
+
+/// Every drill the clock can serve now, by file.
+pub(crate) fn clock_servable(
+    ctx: &Ctx,
+    ev: &Evidence,
+    statuses: &Statuses,
+    args: &PickArgs,
+) -> HashMap<PathBuf, Choice> {
+    let capped = crate::drills::capped_groups(ctx, ev, ctx.today(), &group_caps());
+    let mut out = HashMap::new();
+    clock_each(
+        ctx,
+        ev,
+        statuses,
+        args,
+        &capped,
+        &|_, _| true,
+        &mut |p, c| {
+            out.insert(p, c);
+            true
+        },
+    );
+    out
+}
+
+/// The drills the clock can serve now, in its order, until `visit` says
+/// false.
+fn clock_each(
+    ctx: &Ctx,
+    ev: &Evidence,
+    statuses: &Statuses,
+    args: &PickArgs,
+    capped: &HashSet<String>,
+    only: &dyn Fn(&Path, &str) -> bool,
+    visit: &mut dyn FnMut(PathBuf, Choice) -> bool,
+) {
     if !anki() {
-        return None;
+        return;
     }
     let today = ctx.today();
     let scope: Vec<String> = ctx
@@ -1663,14 +1710,102 @@ fn clock_where(
         if drill_capped(ctx, &path, ev, today) {
             continue;
         }
-        return Some(Choice::new(
-            &node,
-            statuses[&node].0,
-            &drill_id,
-            drill_clock_reason(ctx, Some(&path), ev, today),
-        ));
+        let reason = drill_clock_reason(ctx, Some(&path), ev, today);
+        let choice = Choice::new(&node, statuses[&node].0, &drill_id, reason);
+        if !visit(path, choice) {
+            return;
+        }
     }
-    None
+}
+
+/// What the picker serves for a problem it wants.
+pub(crate) enum Open {
+    /// nothing holds the problem
+    Itself,
+    /// the drill or the problem that holds it, at the top of the chain
+    First(Choice),
+    /// what holds it cannot be served today
+    Shut,
+}
+
+/// The problem `num`, or what holds it, followed up the chain: the drill
+/// that holds it when the clock can serve it (`drills`, clock_servable),
+/// the problem that holds it when nothing holds that one. `dive` is the
+/// technique of the day (bank::held_behind_past).
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn open(
+    ctx: &Ctx,
+    pv: &PView,
+    ev: &Evidence,
+    statuses: &Statuses,
+    args: &PickArgs,
+    drills: &HashMap<PathBuf, Choice>,
+    dive: &str,
+    num: &str,
+) -> Open {
+    let today = ctx.today();
+    let day = today.format("%Y-%m-%d").to_string();
+    let mut id = num.to_string();
+    let mut seen: HashSet<String> = HashSet::from([id.clone()]);
+    while let Some(h) = crate::bank::held_behind_past(ctx, &id, pv, ev, today, Some(dive)) {
+        if !seen.insert(h.clone()) {
+            return Open::Shut;
+        }
+        if ctx.vertex_kind(&h, &pv.map) == Some("drill") {
+            return match ctx.drill_path(&h).and_then(|p| drills.get(&p)) {
+                Some(c) => Open::First(Choice {
+                    reason: format!("{num} waits on {h} - {}", c.reason),
+                    ..c.clone()
+                }),
+                None => {
+                    if std::env::var("KG_TRACE").is_ok() {
+                        eprintln!("{num}: waits on {h}, which the clock cannot serve now");
+                    }
+                    Open::Shut
+                }
+            };
+        }
+        let Some(p) = pv.get(&h).or_else(|| ctx.ro.get(&h)) else {
+            return Open::Shut;
+        };
+        let met = !last_solved(ev, &h).is_empty();
+        let rating = solve_ratings(ctx).get(&h).copied();
+        let above = match (met, crate::drills::reviews_band()) {
+            (true, Some(b)) => Some(crate::model::first_sight_elo_now(ctx, ev) + b),
+            (true, None) => None,
+            (false, _) => crate::drills::first_sight_range(ctx, ev).map(|(_, hi)| hi),
+        };
+        if ctx.unservable(&h, p)
+            || args.asleep.contains(&h)
+            || args.exclude.contains(&h)
+            || (met && crate::drills::no_reviews())
+            || ev.problem_recs(&h).iter().any(|(d, _, _)| *d == day)
+            || rating.zip(above).is_some_and(|(r, a)| r > a)
+        {
+            return Open::Shut;
+        }
+        id = h;
+    }
+    if id == num {
+        return Open::Itself;
+    }
+    let moves: Vec<String> = pv
+        .get(&id)
+        .or_else(|| ctx.ro.get(&id))
+        .map(crate::bank::walk_nodes)
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|m| statuses.contains_key(m))
+        .collect();
+    let Some(target) = moves
+        .iter()
+        .find(|m| !is_solid(statuses, m))
+        .or(moves.first())
+    else {
+        return Open::Shut;
+    };
+    let reason = format!("{num} waits on {id} - {id} first");
+    Open::First(Choice::new(target, statuses[target].0, &id, reason))
 }
 
 fn pick_pass(
@@ -2647,7 +2782,11 @@ pub fn upcoming_days(
                 }
                 out.push((pnum.clone(), day_no));
             }
-            exclude.insert(pnum);
+            // a node can have more than one file due: it leaves the day when
+            // none is left (2026-11-24, d542 and d543)
+            if !is_drill || due_drill(ctx, &choice.target, &ev, day, false, false).is_none() {
+                exclude.insert(pnum);
+            }
         }
         if out.len() >= count {
             break;
