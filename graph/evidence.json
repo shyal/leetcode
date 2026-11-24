@@ -46576,6 +46576,21 @@
       "judge": "opus",
       "summary": "The code is one memoized recursion on the day i that returns a pair: the best profit that starts with no share and the best profit that starts with a share. The guard returns 0, 0 at i == n. The body takes c, h from mu(i + 1) and returns max(c, h - prices[i]) and max(h, c + prices[i] - fee), and the answer is item [0] of the pair at day 0. It exercised the 1D DP recurrence and memoized recursion, and all the assertions passed. The notes say \"learning\".",
       "seconds": 2121
+    },
+    "solved/d_Subset_Sum_2026_11_24T00_32_54_901114_00_00Z.mu": {
+      "date": "2026-11-24",
+      "problem": "drill",
+      "drill": "d543",
+      "moves": {
+        "dp-1d-rolling": "clean"
+      },
+      "assist": {
+        "dp-1d-rolling": "learning"
+      },
+      "judge": "opus",
+      "note": "Contract met: rolling set of reachable sums from {0}, with sums above target dropped; notes say learning.",
+      "summary": "subsetSum starts the set sums at {0}. For each x in nums it adds s + x for every s in sums when s + x <= target, then returns target in sums. The new sums are built as a separate set before the |= update, so each element is used at most once, and the time is O(nums.length * target). This exercised dp-1d-rolling, and the notes say learning.",
+      "seconds": 361
     }
   }
 }
