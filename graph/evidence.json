@@ -46604,6 +46604,19 @@
       "summary": "numDecodings uses a memo block with the state i, the index in s from which the rest of the string is decoded. The guards return 1 when i == n and 0 when s[i] is zero; the last line adds mu(i + 1) to mu(i + 2) when int(s[i:i+2]) is from 10 to 26. The code exercised a memoized recursion with a stated recurrence and base cases. The notes contain no text on the approach and no claim of help, and leetcode returned Accepted.",
       "seconds": 211,
       "learning": true
+    },
+    "solved/p322_Coin_Change_2026_11_24T01_17_12_931604_00_00Z.mu": {
+      "date": "2026-11-24",
+      "problem": "322",
+      "moves": {
+        "dp-state-formulate": "clean",
+        "dp-1d-rolling": "clean"
+      },
+      "judge": "opus",
+      "note": "LEETCODE: Accepted (460 ms, 19.3 MB); the plain-English approach section under the STAGE 1 prompt is empty",
+      "summary": "coinChange makes a table dp of amount + 1 entries filled with inf, sets dp[0] = 0, and for each amount a tries every coin c <= a with dp[a] = min(dp[a-c] + 1, dp[a]). It returns dp[-1], or -1 if that entry is still inf. This exercises the DP state with its recurrence and base case, and the forward fill of a 1D table. The notes contain the stage 1 prompt with no approach under it, no mention of help, and the LeetCode verdict Accepted (460 ms, 19.3 MB).",
+      "seconds": 485,
+      "learning": true
     }
   }
 }
