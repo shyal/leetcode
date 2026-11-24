@@ -46591,6 +46591,19 @@
       "note": "Contract met: rolling set of reachable sums from {0}, with sums above target dropped; notes say learning.",
       "summary": "subsetSum starts the set sums at {0}. For each x in nums it adds s + x for every s in sums when s + x <= target, then returns target in sums. The new sums are built as a separate set before the |= update, so each element is used at most once, and the time is O(nums.length * target). This exercised dp-1d-rolling, and the notes say learning.",
       "seconds": 361
+    },
+    "solved/p91_Decode_Ways_2026_11_24T00_42_58_169985_00_00Z.mu": {
+      "date": "2026-11-24",
+      "problem": "91",
+      "moves": {
+        "memoize-recursion": "clean",
+        "dp-state-formulate": "clean"
+      },
+      "judge": "opus",
+      "note": "LEETCODE: Accepted (47 ms, 20.2 MB); the STAGE 1 approach section is empty.",
+      "summary": "numDecodings uses a memo block with the state i, the index in s from which the rest of the string is decoded. The guards return 1 when i == n and 0 when s[i] is zero; the last line adds mu(i + 1) to mu(i + 2) when int(s[i:i+2]) is from 10 to 26. The code exercised a memoized recursion with a stated recurrence and base cases. The notes contain no text on the approach and no claim of help, and leetcode returned Accepted.",
+      "seconds": 211,
+      "learning": true
     }
   }
 }
