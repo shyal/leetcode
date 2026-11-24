@@ -46560,6 +46560,22 @@
       "note": "Run passed but contract not met: the body uses the return keyword in an if with no else, so the if/else is not the function's value.",
       "summary": "bigger(a: i32, b: i32) -> i32 returns the larger of its two arguments. It uses an if a > b block with an early return a, followed by the tail expression b. The program exited 0 and all four assertions passed. The contract requires no return keyword and a single if/else as the function's value; the code has a return and no else branch. The file has no notes from the candidate.",
       "seconds": 46
+    },
+    "solved/d_Maximum_Profit_With_Transaction_Fee_2026_11_24T00_23_41_700400_00_00Z.mu": {
+      "date": "2026-11-24",
+      "problem": "drill",
+      "drill": "d542",
+      "moves": {
+        "dp-1d-rolling": "clean",
+        "memoize-recursion": "clean"
+      },
+      "assist": {
+        "dp-1d-rolling": "learning",
+        "memoize-recursion": "learning"
+      },
+      "judge": "opus",
+      "summary": "The code is one memoized recursion on the day i that returns a pair: the best profit that starts with no share and the best profit that starts with a share. The guard returns 0, 0 at i == n. The body takes c, h from mu(i + 1) and returns max(c, h - prices[i]) and max(h, c + prices[i] - fee), and the answer is item [0] of the pair at day 0. It exercised the 1D DP recurrence and memoized recursion, and all the assertions passed. The notes say \"learning\".",
+      "seconds": 2121
     }
   }
 }
