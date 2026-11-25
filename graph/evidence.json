@@ -46553,7 +46553,7 @@
       "problem": "drill",
       "drill": "d191",
       "moves": {
-        "rust-if-expression": "struggled",
+        "rust-if-expression": "clean",
         "rust-fn-signature": "clean"
       },
       "judge": "opus",
@@ -46629,6 +46629,17 @@
       "judge": "opus",
       "summary": "The query builds a CTE named Ranked that computes dense_rank() over (partition by departmentId order by salary desc) as rnk for each row of Employee. The outer select reads departmentId, name and salary from Ranked and filters with rnk <= 3, so tied salaries such as Joe and Randy are both returned. This exercised the window rank per department and the CTE filtered in an outer query. The run exited 0 with both example assertions passed, and the notes mention no help.",
       "seconds": 402
+    },
+    "solved/d_Bigger_2026_11_25T00_27_58_713908_00_00Z.rs": {
+      "date": "2026-11-25",
+      "problem": "drill",
+      "drill": "d191",
+      "moves": {
+        "rust-if-expression": "clean"
+      },
+      "judge": "opus",
+      "summary": "The function `bigger` takes two `i32` values and its body is the single expression `if a > b { a } else { b }`, which is the function's value. It uses no `return` keyword, no extra variable and no function call, so the contract is met. The run printed 10 and all four assertions passed, including the equal pair (42, 42) and the negative pair (-5, -9). The file has no notes.",
+      "seconds": 174
     }
   }
 }
