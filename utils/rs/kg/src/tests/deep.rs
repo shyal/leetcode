@@ -381,6 +381,53 @@ fn a_drill_never_done_of_another_technique_is_served() {
     assert!(reason(&c).starts_with("deep dive"));
 }
 
+/// 2026-11-26: the due drills of the day's technique's prerequisites and
+/// of the techniques built directly on it are served before the problems
+/// (309 came before three of them). One link is the limit: the drill of a
+/// technique two links away is held.
+#[test]
+fn the_due_drills_next_to_the_technique_are_served_before_the_problems() {
+    let (mut fx, mut recs, st) = fixture();
+    fx.nodes(&["base", "built", "far"])
+        .group(&["base", "built", "far"], "graphs")
+        .prereqs("weak", &["base"])
+        .prereqs("built", &["weak"])
+        .prereqs("far", &["built"]);
+    let near = [
+        ("base", "d1"),
+        ("built", "d2"),
+        ("far", "d3"),
+        ("strong", "d4"),
+    ];
+    let st: Statuses = st
+        .into_iter()
+        .chain(statuses(&[
+            ("base", SOLID, Some(1)),
+            ("built", SOLID, Some(1)),
+            ("far", SOLID, Some(1)),
+        ]))
+        .collect();
+    let mut clock = vec![];
+    for (node, id) in near {
+        let title = format!("Drill {node}");
+        let path = fx.bank(node, &title, &format!("{node}.py"), id, &[]);
+        recs.push(drill_rep(&title, node, 30));
+        clock.push((path, node.to_string()));
+    }
+    fx.stubs().clock = clock;
+    test_env("KG_DEEP", "1");
+    test_env("NO_REVIEWS", "1");
+    test_env("DRILL_SCHEDULER", "anki");
+    let ev = evidence(recs);
+    let c = fx.run(&ev, &st, args());
+    assert_eq!(pnum(&c), "drill:base");
+    let c = fx.run(&ev, &st, args().exclude(&["drill:base"]));
+    assert_eq!(pnum(&c), "drill:built");
+    let done = args().exclude(&["drill:base", "drill:built"]);
+    let c = fx.run(&ev, &st, done);
+    assert!(reason(&c).starts_with("deep dive"));
+}
+
 /// `weak` and `strong` on one draft that only the drill of `strong` can
 /// hold, under the file clock.
 fn held_fixture(days_ago: i64) -> (Fx, Vec<(String, Rec)>, Statuses, PathBuf) {

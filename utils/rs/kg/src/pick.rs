@@ -10,7 +10,8 @@
 // THE DEEP DIVE (KG_DEEP=N in .envrc, deep.rs, 2026-11-11) runs before
 // every rule below: one technique a day, the weakest on first sights. The
 // day (2026-11-13) is the language drills due on the clock, the due drills
-// of the technique, its due repeats, then N problems never met that use
+// of the technique and of the techniques next to it (deep::linked,
+// 2026-11-26), its due repeats, then N problems never met that use
 // it, easy to hard. After them the rules below run with every never-met
 // problem and every algorithm drill held. Unset, the default, the rules
 // below are the whole picker.
@@ -1558,8 +1559,9 @@ pub fn pick(
 ) -> Option<Choice> {
     // the deep dive (KG_DEEP, deep.rs). Depth comes before the memory
     // curves (2026-11-13): the only algorithm drills of the day are the due
-    // ones of the day's technique and the ones never done (2026-11-20). The language drills are syntax memory
-    // and go on by their clock, first.
+    // ones of the day's technique and of the techniques next to it
+    // (2026-11-26), and the ones never done (2026-11-20). The language
+    // drills are syntax memory and go on by their clock, first.
     if let Some(day) = crate::deep::day(ctx, ev, args) {
         let capped = crate::drills::capped_groups(ctx, ev, ctx.today(), &group_caps());
         let node = day.weak.node.clone();
@@ -1572,10 +1574,15 @@ pub fn pick(
         if let Some(c) = clock(ctx, ev, statuses, &with(&held), &capped) {
             return Some(c);
         }
-        // the due drills of the day's technique
-        let mut others = held.clone();
-        others.remove(&format!("drill:{node}"));
-        if let Some(c) = clock(ctx, ev, statuses, &with(&others), &capped) {
+        // the drills of the day's technique, and the due drills of its
+        // prerequisites and of the techniques built on it (2026-11-26: 309
+        // came before three due drills next to the technique, which has no
+        // drill of its own)
+        let linked = crate::deep::linked(ctx, &node);
+        let near = |path: &Path, n: &str| {
+            n == node.as_str() || (linked.contains(n) && anki_due(ctx, path, ev).is_some())
+        };
+        if let Some(c) = clock_where(ctx, ev, statuses, args, &capped, &near) {
             return Some(c);
         }
         // the drills never done of the other techniques (2026-11-20): a

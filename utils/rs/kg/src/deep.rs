@@ -16,7 +16,10 @@
 //   1. the language drills due on the clock (sql, ts, python, rust,
 //      design), within their caps: syntax memory, and the clock is the
 //      tool for it;
-//   2. the drills of the day's technique that are due on the clock;
+//   2. the drills of the day's technique that are due on the clock, and
+//      those of its direct prerequisites and of the techniques built
+//      directly on it (linked, 2026-11-26: "Formulate DP state" has no
+//      drill of its own, and 309 came before three due DP drills);
 //   2b. the drills never done of the other algorithm techniques, a set
 //      file apart (2026-11-20, pick::pick): a technique gets a day only
 //      after a first sight needed it, so the drills of a new technique
@@ -35,7 +38,7 @@
 // A drill of the day's technique holds none of its problems (2026-11-14,
 // bank::held_behind_past): step 2 serves it first, and while it was cold
 // it held every problem of steps 3 and 4.
-// The drills of the other algorithm techniques that he has done are not
+// The drills of every other algorithm technique that he has done are not
 // served that day, due or not: depth comes before the memory curves (his thesis,
 // 2026-11-13), and a technique's drills come back on its own day. Steps 1
 // and 2 are in pick::pick, step 3 in pick() here.
@@ -423,8 +426,23 @@ pub fn day(ctx: &Ctx, ev: &Evidence, args: &PickArgs) -> Option<Day> {
     })
 }
 
+/// The algorithm techniques next to `node`: its direct prerequisites and
+/// the techniques that name it as one.
+pub fn linked(ctx: &Ctx, node: &str) -> HashSet<String> {
+    let built_on_it = ctx
+        .nodes
+        .keys()
+        .filter(|n| ctx.prereqs(n).iter().any(|p| p == node));
+    ctx.prereqs(node)
+        .iter()
+        .chain(built_on_it)
+        .filter(|n| in_group(ctx, n, ALGORITHMS))
+        .cloned()
+        .collect()
+}
+
 /// The drill id of every algorithm technique: what the mode holds, the
-/// day's technique apart.
+/// day's technique and the ones next to it (linked) apart.
 pub fn algorithm_drills(ctx: &Ctx) -> HashSet<String> {
     ctx.nodes
         .keys()
