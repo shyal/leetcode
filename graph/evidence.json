@@ -46766,6 +46766,21 @@
       "judge": "opus",
       "summary": "square_of_larger binds larger: i32 to the value of if a > b { a } else { b }, with a semicolon after the closing brace, and the last expression larger * larger is the return value. It exercised an if as the right side of a let, with both branches i32, and a typed function signature with a tail expression. The code contains no match, mut, return keyword or method call, and all five assertions in main passed. The file has no notes.",
       "seconds": 64
+    },
+    "solved/d_Words_Starting_With_2026_11_25T22_29_50_765427_00_00Z.py": {
+      "date": "2026-11-26",
+      "problem": "drill",
+      "drill": "d201",
+      "moves": {
+        "py-regex": "clean"
+      },
+      "assist": {
+        "py-regex": "learning"
+      },
+      "judge": "opus",
+      "note": "Contract met: one re.findall with a raw f-string pattern, \\b anchor and [a-z]*.",
+      "summary": "words_starting_with returns re.findall(rf\"\\b{c}[a-z]*\", s), where the raw f-string puts c after a word boundary and [a-z]* takes the rest of the word. There is no split, startswith or loop over words. The file exercised py-regex and ran with all assertions passing. The notes say \"Learning\".",
+      "seconds": 181
     }
   }
 }
