@@ -46655,6 +46655,20 @@
       "note": "Contract met in lines(): with-opened file, iterated line by line; the bare open() calls are in the test setup only",
       "summary": "lines opens path in a with statement and returns a list comprehension over the file object f. Each line goes through line.rstrip(\"\\n\"), which removes the newline and leaves blank lines as empty strings. The code exercised the with statement, file iteration, a list comprehension and a string method. The run passed all four assertions, and the file has no notes.",
       "seconds": 108
+    },
+    "solved/d_Decode_Variations_2026_11_25T00_35_24_125214_00_00Z.mu": {
+      "date": "2026-11-25",
+      "problem": "drill",
+      "drill": "d334",
+      "moves": {
+        "dp-1d-rolling": "struggled",
+        "memoize-recursion": "clean",
+        "dp-state-formulate": "clean"
+      },
+      "judge": "opus",
+      "note": "The run passed, but the contract is not met: the memoized recursion over i uses O(n) extra space (memo table and call stack) in place of two running counts read right to left in O(1) space.",
+      "summary": "decodeVariations counts the decodings of the suffix that starts at index i with an anonymous memo recursion. The guards return 1 at i == n and 0 when S[i] is '0'; otherwise it adds mu(i + 1) to mu(i + 2) when int(S[i:i+2]) is from 10 to 26. The code exercised a memoized recursion and a stated recurrence with base cases, and all assertions passed. It did not use the two running counts that the contract requires, and the notes are empty.",
+      "seconds": 165
     }
   }
 }
