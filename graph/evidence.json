@@ -46724,6 +46724,25 @@
       "summary": "The code sorts `words` by length in descending order, then calls the memoized function `best(word, depth)` on each word and takes the maximum. `best` deletes each character in turn to form `var`, checks `var in words`, and recurses with `depth + 1`. This exercises the derived-key lookup, the one-letter-variant generation and the memoized recursion, while the forward DP table and the two-sequence comparison are not used. The notes record two stage 1 misses (recognition failure, slow) and then a pass, and they mention no hints or look-ups; LeetCode accepted the code in 1752 ms.",
       "seconds": 1409,
       "learning": true
+    },
+    "solved/p198_House_Robber_2026_11_25T04_20_41_914504_00_00Z.mu": {
+      "date": "2026-11-25",
+      "problem": "198",
+      "moves": {
+        "dp-state-formulate": "clean",
+        "running-extreme": "clean",
+        "memoize-recursion": "clean"
+      },
+      "assist": {
+        "dp-state-formulate": "learning",
+        "running-extreme": "learning",
+        "memoize-recursion": "learning"
+      },
+      "judge": "opus",
+      "note": "Notes say learning; the pair recurrence is a memo recursion from index 0, so no forward table or rolling variables are filled.",
+      "summary": "The code solves the problem with an anonymous memo recursion on the index i: the base case i == n returns the pair 0, 0, and each other call unpacks s and t from mu(i + 1). It returns max(s, t) for house i not robbed and nums[i] + s for house i robbed, and rob returns the max of the pair for index 0. It exercises the DP state with its recurrence and base case, the best value carried by max(s, t), and memoized recursion; it has no forward 1D loop with rolling variables. The notes say learning, and the file ran with all assertions passed.",
+      "seconds": 671,
+      "learning": true
     }
   }
 }
