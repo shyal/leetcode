@@ -46804,6 +46804,21 @@
       "judge": "opus",
       "summary": "longestPath defines max_dist(n) inside the method and puts @cache on it. max_dist returns 0 when G[n] is empty. If not, it returns 1 + max(max_dist(v) for v in G[n]). The cache computes each node's longest path one time, so the code meets the O(n + m) contract. The 200-node test, where each node points to the next two nodes, passed. The notes hold only the statement and record no help.",
       "seconds": 150
+    },
+    "solved/d_Knapsack_2026_11_25T23_18_45_244134_00_00Z.mu": {
+      "date": "2026-11-26",
+      "problem": "drill",
+      "drill": "d323",
+      "moves": {
+        "memoize-recursion": "clean"
+      },
+      "assist": {
+        "memoize-recursion": "learning"
+      },
+      "judge": "opus",
+      "note": "Contract met: memo best(i, cap) computes each pair (next item index, remaining capacity) one time, so time is O(len(weights) * capacity). The guard weights[i] > cap goes to best(i + 1, cap) with no take branch. There is no sort by value per weight and no subset enumeration. The notes say 'learning'.",
+      "summary": "The code defines memo best(i, cap) as cached recursion on the next item index and the remaining capacity. The base case i == len(weights) gives 0. When weights[i] > cap, the guard skips the item. In all other cases the value is the max of the skip branch best(i + 1, cap) and the take branch values[i] + best(i + 1, cap - weights[i]). The notes say 'learning', so the solution was given and then copied.",
+      "seconds": 931
     }
   }
 }
