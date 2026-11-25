@@ -46793,6 +46793,17 @@
       "note": "Contract met: one table(len(a), len(b)) filled once by cells(dp, start=1), O(len(a) * len(b)) time, no itertools, no subsequence enumeration.",
       "summary": "`lcs` puts a space in front of `a` and `b`, so row 0 and column 0 of `dp` are the empty-prefix base cases with the value 0. `cells(dp, start=1)` goes through each prefix pair (i, j) one time. When `a[i] == b[j]`, the cell is `dp[i-1][j-1] + 1`. If not, it is the max of `dp[i-1][j]` and `dp[i][j-1]`, which drops one character from one string. The answer is `dp[-1][-1]`, and the notes are empty.",
       "seconds": 304
+    },
+    "solved/d_Longest_Path_From_Zero_2026_11_25T23_01_24_234693_00_00Z.mu": {
+      "date": "2026-11-26",
+      "problem": "drill",
+      "drill": "d174",
+      "moves": {
+        "memoize-recursion": "clean"
+      },
+      "judge": "opus",
+      "summary": "longestPath defines max_dist(n) inside the method and puts @cache on it. max_dist returns 0 when G[n] is empty. If not, it returns 1 + max(max_dist(v) for v in G[n]). The cache computes each node's longest path one time, so the code meets the O(n + m) contract. The 200-node test, where each node points to the next two nodes, passed. The notes hold only the statement and record no help.",
+      "seconds": 150
     }
   }
 }
