@@ -46781,6 +46781,18 @@
       "note": "Contract met: one re.findall with a raw f-string pattern, \\b anchor and [a-z]*.",
       "summary": "words_starting_with returns re.findall(rf\"\\b{c}[a-z]*\", s), where the raw f-string puts c after a word boundary and [a-z]* takes the rest of the word. There is no split, startswith or loop over words. The file exercised py-regex and ran with all assertions passing. The notes say \"Learning\".",
       "seconds": 181
+    },
+    "solved/d_Longest_Common_Subsequence_2026_11_25T22_58_01_232461_00_00Z.mu": {
+      "date": "2026-11-26",
+      "problem": "drill",
+      "drill": "d94",
+      "moves": {
+        "two-sequence-align": "clean"
+      },
+      "judge": "opus",
+      "note": "Contract met: one table(len(a), len(b)) filled once by cells(dp, start=1), O(len(a) * len(b)) time, no itertools, no subsequence enumeration.",
+      "summary": "`lcs` puts a space in front of `a` and `b`, so row 0 and column 0 of `dp` are the empty-prefix base cases with the value 0. `cells(dp, start=1)` goes through each prefix pair (i, j) one time. When `a[i] == b[j]`, the cell is `dp[i-1][j-1] + 1`. If not, it is the max of `dp[i-1][j]` and `dp[i][j-1]`, which drops one character from one string. The answer is `dp[-1][-1]`, and the notes are empty.",
+      "seconds": 304
     }
   }
 }
