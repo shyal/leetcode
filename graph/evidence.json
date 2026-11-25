@@ -46669,6 +46669,19 @@
       "note": "The run passed, but the contract is not met: the memoized recursion over i uses O(n) extra space (memo table and call stack) in place of two running counts read right to left in O(1) space.",
       "summary": "decodeVariations counts the decodings of the suffix that starts at index i with an anonymous memo recursion. The guards return 1 at i == n and 0 when S[i] is '0'; otherwise it adds mu(i + 1) to mu(i + 2) when int(S[i:i+2]) is from 10 to 26. The code exercised a memoized recursion and a stated recurrence with base cases, and all assertions passed. It did not use the two running counts that the contract requires, and the notes are empty.",
       "seconds": 165
+    },
+    "solved/d_Maximum_Profit_With_Transaction_Fee_2026_11_25T00_41_19_164686_00_00Z.mu": {
+      "date": "2026-11-25",
+      "problem": "drill",
+      "drill": "d542",
+      "moves": {
+        "dp-1d-rolling": "clean",
+        "memoize-recursion": "clean",
+        "dp-state-formulate": "clean"
+      },
+      "judge": "opus",
+      "summary": "maxProfit uses one memoized recursion on the day i that returns a pair: the best profit from day i when no share is held and the best profit when a share is held. The guard returns 0, 0 at i == n. The body takes h and s from mu(i + 1), and returns max(h, s - prices[i]) and max(s, h + prices[i] - fee); the answer is item [0] of the pair at day 0. The run exited 0 and all the assertions passed, including the inputs with 50000 prices. The notes are empty.",
+      "seconds": 274
     }
   }
 }
