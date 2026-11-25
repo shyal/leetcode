@@ -46709,6 +46709,21 @@
       "summary": "longestSubsequence scans arr once with a default-int map DP, where DP[v] is the length of the longest valid subsequence that ends in value v. For each v it reads DP[v - difference], then writes max(DP[v - difference] + 1, DP[v]) to DP[v], and it returns the maximum of DP.values() with a default of 0. The code exercised the 1D DP, the map of values to lengths, the query before the record, and the derived key v - difference. The notes hold a small worked trace of value to length and no mention of help; LeetCode returned Accepted.",
       "seconds": 315,
       "learning": true
+    },
+    "solved/p1048_Longest_String_Chain_2026_11_25T01_34_03_165293_00_00Z.mu": {
+      "date": "2026-11-25",
+      "problem": "1048",
+      "moves": {
+        "sort-by-custom-key": "clean",
+        "derived-key-lookup": "clean",
+        "memoize-recursion": "clean",
+        "generate-and-test-neighbors": "clean"
+      },
+      "judge": "opus",
+      "note": "LEETCODE: Accepted (1752 ms, 31.3 MB); `wordss` is built but never read, so `var in words` scans the list; the length sort runs, but the memo recursion does not depend on it; the notes log two stage 1 recognition misses without naming a move.",
+      "summary": "The code sorts `words` by length in descending order, then calls the memoized function `best(word, depth)` on each word and takes the maximum. `best` deletes each character in turn to form `var`, checks `var in words`, and recurses with `depth + 1`. This exercises the derived-key lookup, the one-letter-variant generation and the memoized recursion, while the forward DP table and the two-sequence comparison are not used. The notes record two stage 1 misses (recognition failure, slow) and then a pass, and they mention no hints or look-ups; LeetCode accepted the code in 1752 ms.",
+      "seconds": 1409,
+      "learning": true
     }
   }
 }
