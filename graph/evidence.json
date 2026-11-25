@@ -46682,6 +46682,18 @@
       "judge": "opus",
       "summary": "maxProfit uses one memoized recursion on the day i that returns a pair: the best profit from day i when no share is held and the best profit when a share is held. The guard returns 0, 0 at i == n. The body takes h and s from mu(i + 1), and returns max(h, s - prices[i]) and max(s, h + prices[i] - fee); the answer is item [0] of the pair at day 0. The run exited 0 and all the assertions passed, including the inputs with 50000 prices. The notes are empty.",
       "seconds": 274
+    },
+    "solved/d_Subset_Sum_2026_11_25T00_47_33_220122_00_00Z.mu": {
+      "date": "2026-11-25",
+      "problem": "drill",
+      "drill": "d543",
+      "moves": {
+        "dp-1d-rolling": "clean",
+        "set-membership": "clean"
+      },
+      "judge": "opus",
+      "summary": "subsetSum starts the set sums at {0}. For each x in nums it adds x + s for every s in sums, and the filter x + s <= target drops sums above target. The comprehension builds a new set before |= merges it, so each element is used at most once, and the function returns target in sums. This exercised the forward rolling DP over reachable sums and a set membership test, in O(nums.length * target) time. The run passed every assertion and the notes are empty.",
+      "seconds": 334
     }
   }
 }
