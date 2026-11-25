@@ -46617,6 +46617,18 @@
       "summary": "coinChange makes a table dp of amount + 1 entries filled with inf, sets dp[0] = 0, and for each amount a tries every coin c <= a with dp[a] = min(dp[a-c] + 1, dp[a]). It returns dp[-1], or -1 if that entry is still inf. This exercises the DP state with its recurrence and base case, and the forward fill of a 1D table. The notes contain the stage 1 prompt with no approach under it, no mention of help, and the LeetCode verdict Accepted (460 ms, 19.3 MB).",
       "seconds": 485,
       "learning": true
+    },
+    "solved/d_Department_Top_Three_Salaries_2026_11_25T00_24_20_195383_00_00Z.mu": {
+      "date": "2026-11-25",
+      "problem": "drill",
+      "drill": "d61",
+      "moves": {
+        "sql-window-rank": "clean",
+        "sql-subquery": "clean"
+      },
+      "judge": "opus",
+      "summary": "The query builds a CTE named Ranked that computes dense_rank() over (partition by departmentId order by salary desc) as rnk for each row of Employee. The outer select reads departmentId, name and salary from Ranked and filters with rnk <= 3, so tied salaries such as Joe and Randy are both returned. This exercised the window rank per department and the CTE filtered in an outer query. The run exited 0 with both example assertions passed, and the notes mention no help.",
+      "seconds": 402
     }
   }
 }
