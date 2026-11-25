@@ -184,7 +184,10 @@ else:
     print("b")
 """
     mu = submit.starter(py)
-    assert "      elif key < node.key\n        node = node.left\n      else\n        node = node.right\n" in mu
+    assert (
+        "      elif key < node.key\n        node = node.left\n      else\n        node = node.right\n"
+        in mu
+    )
     assert "    else\n      key = 0\n" in mu
     assert "else\n  print('b')" in mu
     compile(submit.plain(mu), "starter", "exec")

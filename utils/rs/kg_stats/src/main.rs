@@ -33,7 +33,9 @@ use kg::console::Console;
 use kg::ctx::Ctx;
 use kg::data::{load_envrc, repo_root};
 use kg::evidence::Evidence;
-use kg::model::{elo_games, learning_games, scored_games, solve_ratings, Band, Game, Ground, Summary, Transfer};
+use kg::model::{
+    elo_games, learning_games, scored_games, solve_ratings, Band, Game, Ground, Summary, Transfer,
+};
 use kg::table::{print_table, BoxKind, Table};
 
 fn window_days(args: &[String]) -> Option<i64> {

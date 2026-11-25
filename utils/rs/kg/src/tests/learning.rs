@@ -53,7 +53,10 @@ fn a_learning_solve_is_listed_as_a_first_sight_or_a_repeat() {
         timed(solve("2", &[("q1", "clean")], 0), true),
     ]);
     let games = crate::model::learning_games(&ctx, &ev);
-    let first: Vec<(&str, bool)> = games.iter().map(|g| (g.problem.as_str(), g.first)).collect();
+    let first: Vec<(&str, bool)> = games
+        .iter()
+        .map(|g| (g.problem.as_str(), g.first))
+        .collect();
     assert_eq!(first, vec![("1", false), ("2", true)]);
 }
 

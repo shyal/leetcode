@@ -288,6 +288,7 @@ mod tests {
         assert_eq!(verdict(&s.p).1, "learning");
         let text = progress_text(&s.p, s.today);
         assert_eq!(text[0], "You're training in learning mode.");
-        assert!(text[1].starts_with("12 problems in the last 30 days, seven of them first sights, and three"));
+        assert!(text[1]
+            .starts_with("12 problems in the last 30 days, seven of them first sights, and three"));
     }
 }

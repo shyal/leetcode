@@ -57,7 +57,9 @@ fn serve(root: &Path) {
         return;
     };
     // a fresh serve only: the file is the stub as served
-    if text.trim().is_empty() || std::fs::read_to_string(root.join(MU_STUB)).ok().as_ref() != Some(&text) {
+    if text.trim().is_empty()
+        || std::fs::read_to_string(root.join(MU_STUB)).ok().as_ref() != Some(&text)
+    {
         return;
     }
     if problem(root, &text).is_none() {
@@ -129,17 +131,31 @@ fn judge(st: u8, ctx: &str, approach: &str, answer: &str) -> Result<stage::Verdi
     } else {
         format!(
             "{ctx}\nCANDIDATE'S APPROACH (stage 1):\n{}\n\nCANDIDATE'S PSEUDOCODE:\n{answer}",
-            if approach.is_empty() { "(none)" } else { approach }
+            if approach.is_empty() {
+                "(none)"
+            } else {
+                approach
+            }
         )
     };
     let v = stage::Verdict::read(&ask(&prompt, &system)?);
     if std::env::var("KG_STAGE_WHY").is_ok() {
-        eprintln!("loops: {}\noperations: {}\nwhy: {}", v.loops, v.operations, v.why);
+        eprintln!(
+            "loops: {}\noperations: {}\nwhy: {}",
+            v.loops, v.operations, v.why
+        );
     }
     Ok(v)
 }
 
-fn hint(st: u8, slow: bool, ctx: &str, approach: &str, answer: &str, before: &[String]) -> Result<String, String> {
+fn hint(
+    st: u8,
+    slow: bool,
+    ctx: &str,
+    approach: &str,
+    answer: &str,
+    before: &[String],
+) -> Result<String, String> {
     let about = if slow {
         "was judged correct but too slow for the constraints, and they asked for a hint.\n\nRules:\n- The hint is ONE question about the largest input that the constraints allow: it names the step of the plan that is done again and again, and asks how many times the plan does it on that input. The candidate works out the number.\n"
     } else {
@@ -149,7 +165,14 @@ fn hint(st: u8, slow: bool, ctx: &str, approach: &str, answer: &str, before: &[S
         "A candidate works on a LeetCode problem in stages. Their {} {about}- The hint never states a fact, a formula, a count, the correct step or what is wrong. It does not name an algorithm or a data structure. It gives no code and it is never about syntax.\n- Do not repeat a hint that was given before: ask about a different input.\n- {RULES}\n\nOutput STRICT JSON only: {{\"hint\": \"<the hint>\"}}",
         if st == 1 { "approach" } else { "pseudocode" }
     );
-    let mut prompt = format!("{ctx}\nCANDIDATE'S APPROACH:\n{}", if approach.is_empty() { "(none)" } else { approach });
+    let mut prompt = format!(
+        "{ctx}\nCANDIDATE'S APPROACH:\n{}",
+        if approach.is_empty() {
+            "(none)"
+        } else {
+            approach
+        }
+    );
     if st == 2 {
         prompt.push_str(&format!("\n\nCANDIDATE'S PSEUDOCODE:\n{answer}"));
     }
@@ -157,7 +180,12 @@ fn hint(st: u8, slow: bool, ctx: &str, approach: &str, answer: &str, before: &[S
         prompt.push_str(&format!("\n\nHINTS GIVEN BEFORE:\n{}", before.join("\n")));
     }
     let result = ask(&prompt, &system)?;
-    let text = result.get("hint").map(value_str).unwrap_or_default().trim().to_string();
+    let text = result
+        .get("hint")
+        .map(value_str)
+        .unwrap_or_default()
+        .trim()
+        .to_string();
     if text.is_empty() {
         return Err("the model gave no hint".into());
     }
@@ -170,9 +198,21 @@ fn answer_of(st: u8, ctx: &str, approach: &str) -> Result<String, String> {
     } else {
         format!("A candidate works on a LeetCode problem in stages and asked for the pseudocode.\n\nRules:\n- Give the pseudocode of the accepted solution: plain English, one step on each line, structured by two-space indentation, each line small enough to replace with one to three lines of code. No code syntax.\n- Follow the candidate's approach when it is correct.\n- {RULES}\n\nOutput STRICT JSON only: {{\"text\": \"<the lines, separated by \\n>\"}}")
     };
-    let prompt = format!("{ctx}\nCANDIDATE'S APPROACH:\n{}", if approach.is_empty() { "(none)" } else { approach });
+    let prompt = format!(
+        "{ctx}\nCANDIDATE'S APPROACH:\n{}",
+        if approach.is_empty() {
+            "(none)"
+        } else {
+            approach
+        }
+    );
     let result = ask(&prompt, &system)?;
-    let text = result.get("text").map(value_str).unwrap_or_default().trim_end().to_string();
+    let text = result
+        .get("text")
+        .map(value_str)
+        .unwrap_or_default()
+        .trim_end()
+        .to_string();
     if text.trim().is_empty() {
         return Err("the model gave no answer".into());
     }
@@ -219,7 +259,9 @@ fn save(root: &Path, text: &str, lines: &[String]) -> String {
 
 fn or_stop<T>(console: &Console, r: Result<T, String>) -> T {
     r.unwrap_or_else(|e| {
-        console.print("[red]The stage was not judged: the model call failed.[/red] Run make solved again.");
+        console.print(
+            "[red]The stage was not judged: the model call failed.[/red] Run make solved again.",
+        );
         eprintln!("{e}");
         exit(1)
     })
@@ -237,7 +279,11 @@ fn gate(console: &Console, root: &Path) {
         return;
     };
     let approach = stage::approach(&text);
-    let answer = if st == 1 { approach.clone() } else { stage::pseudocode(&text) };
+    let answer = if st == 1 {
+        approach.clone()
+    } else {
+        stage::pseudocode(&text)
+    };
     if answer.trim().is_empty() {
         console.print(&if st == 1 {
             "[yellow]Stage 1 of 3:[/yellow] write the approach in the notes of current.mu, under the STAGE 1 line. Then run make solved.".to_string()
@@ -264,17 +310,31 @@ fn gate(console: &Console, root: &Path) {
     // a correct plan that is slow says so: the candidate cannot see that
     // from a bare miss, and the word gives no step of the solution
     let slow = verdict.correct && verdict.slow();
-    let text = save(root, &text, &if slow { stage::miss_slow(st) } else { stage::miss(st) });
+    let text = save(
+        root,
+        &text,
+        &if slow {
+            stage::miss_slow(st)
+        } else {
+            stage::miss(st)
+        },
+    );
     console.print(&format!(
         "[red]Stage {st} of 3: miss{}.[/red]",
         if slow { " (slow)" } else { "" }
     ));
     match choice(st) {
         2 => {
-            let h = or_stop(console, hint(st, slow, &ctx, &approach, &answer, &stage::hints(&text)));
+            let h = or_stop(
+                console,
+                hint(st, slow, &ctx, &approach, &answer, &stage::hints(&text)),
+            );
             save(root, &text, &stage::hint(&h));
             println!("\nHint: {h}\n");
-            println!("Change the {} in current.mu. Then run make solved.", name(st));
+            println!(
+                "Change the {} in current.mu. Then run make solved.",
+                name(st)
+            );
         }
         3 => {
             let a = or_stop(console, answer_of(st, &ctx, &approach));
@@ -291,9 +351,15 @@ fn gate(console: &Console, root: &Path) {
             );
         }
         4 => {
-            let _ = Command::new("make").arg("failed").current_dir(root).status();
+            let _ = Command::new("make")
+                .arg("failed")
+                .current_dir(root)
+                .status();
         }
-        _ => println!("Change the {} in current.mu. Then run make solved.", name(st)),
+        _ => println!(
+            "Change the {} in current.mu. Then run make solved.",
+            name(st)
+        ),
     }
     exit(1);
 }
@@ -311,9 +377,15 @@ fn judge_file(root: &Path, file: &str) {
         eprintln!("{file}: not at stage 1 or 2");
         exit(2);
     }
-    let num = subject(&header(&text, &MU).unwrap_or_default()).map(|(id, _)| id).unwrap_or_default();
+    let num = subject(&header(&text, &MU).unwrap_or_default())
+        .map(|(id, _)| id)
+        .unwrap_or_default();
     let approach = stage::approach(&text);
-    let answer = if st == 1 { approach.clone() } else { stage::pseudocode(&text) };
+    let answer = if st == 1 {
+        approach.clone()
+    } else {
+        stage::pseudocode(&text)
+    };
     let ctx = context(&stage::statement(&text), &reference(root, &num));
     match judge(st, &ctx, &approach, &answer) {
         Ok(v) => println!(

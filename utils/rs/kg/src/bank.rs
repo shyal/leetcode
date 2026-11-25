@@ -105,7 +105,12 @@ pub fn held_behind_past(
                 })
         })
     };
-    let after: Vec<String> = entry.after.iter().filter(|g| !of_dive(g)).cloned().collect();
+    let after: Vec<String> = entry
+        .after
+        .iter()
+        .filter(|g| !of_dive(g))
+        .cloned()
+        .collect();
     let learning = crate::learning::enabled();
     if learning {
         if let Some(g) = crate::learning::unmet_gate(ctx, &after, problems, ev) {

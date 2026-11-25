@@ -91,7 +91,15 @@ impl Verdict {
             .and_then(serde_json::Value::as_array)
             .map(|a| {
                 a.iter()
-                    .map(|e| (e.get("loop").and_then(serde_json::Value::as_str).unwrap_or("").to_string(), e.get("size").map(size).unwrap_or(0.0)))
+                    .map(|e| {
+                        (
+                            e.get("loop")
+                                .and_then(serde_json::Value::as_str)
+                                .unwrap_or("")
+                                .to_string(),
+                            e.get("size").map(size).unwrap_or(0.0),
+                        )
+                    })
                     .filter(|(_, n)| *n > 0.0)
                     .collect()
             })
@@ -104,14 +112,22 @@ impl Verdict {
         let loops = if nest.is_empty() {
             text("loops")
         } else {
-            nest.iter().map(|(l, n)| format!("{l}: {n}")).collect::<Vec<_>>().join(", ")
+            nest.iter()
+                .map(|(l, n)| format!("{l}: {n}"))
+                .collect::<Vec<_>>()
+                .join(", ")
         };
         let correct = match v.get("correct") {
             Some(serde_json::Value::Bool(b)) => *b,
             Some(serde_json::Value::String(s)) => s.trim().eq_ignore_ascii_case("true"),
             _ => false,
         };
-        Verdict { correct, operations, loops, why: text("why") }
+        Verdict {
+            correct,
+            operations,
+            loops,
+            why: text("why"),
+        }
     }
 
     pub fn slow(&self) -> bool {
@@ -140,7 +156,12 @@ fn block(text: &str) -> (usize, Vec<String>) {
     let mut n = 0;
     for line in text.split('\n') {
         if let Some(rest) = line.strip_prefix('#') {
-            out.push(rest.strip_prefix(' ').unwrap_or(rest).trim_end().to_string());
+            out.push(
+                rest.strip_prefix(' ')
+                    .unwrap_or(rest)
+                    .trim_end()
+                    .to_string(),
+            );
         } else if line.trim().is_empty() && out.is_empty() {
         } else {
             break;
@@ -449,7 +470,9 @@ mod tests {
     fn the_tool_decides_slow_from_the_count() {
         let v = |j: serde_json::Value| Verdict::read(&j);
         // correct and inside the limit: a pass
-        let ok = v(serde_json::json!({"loops": "i: 1000, j: 1000", "operations": 1000000, "correct": true, "why": "x"}));
+        let ok = v(
+            serde_json::json!({"loops": "i: 1000, j: 1000", "operations": 1000000, "correct": true, "why": "x"}),
+        );
         assert!(ok.valid() && !ok.slow());
         // correct and above the limit: a miss, slow
         let slow = v(serde_json::json!({"operations": 1e9, "correct": true}));
@@ -470,11 +493,18 @@ mod tests {
         assert_eq!(count("26000000"), 26000000.0);
         assert_eq!(count("about a million"), 0.0);
         // the tool multiplies the nest
-        let nest = v(serde_json::json!({"nest": [{"loop": "start", "size": 1000}, {"loop": "end", "size": 1000}, {"loop": "values of the counter", "size": "1000"}], "correct": true}));
+        let nest = v(
+            serde_json::json!({"nest": [{"loop": "start", "size": 1000}, {"loop": "end", "size": 1000}, {"loop": "values of the counter", "size": "1000"}], "correct": true}),
+        );
         assert_eq!(nest.operations, 1e9);
         assert!(nest.slow() && !nest.valid());
-        assert_eq!(nest.loops, "start: 1000, end: 1000, values of the counter: 1000");
-        let nest = v(serde_json::json!({"nest": [{"loop": "start", "size": 500}, {"loop": "end", "size": 500}, {"loop": "counts", "size": 26}], "correct": true}));
+        assert_eq!(
+            nest.loops,
+            "start: 1000, end: 1000, values of the counter: 1000"
+        );
+        let nest = v(
+            serde_json::json!({"nest": [{"loop": "start", "size": 500}, {"loop": "end", "size": 500}, {"loop": "counts", "size": 26}], "correct": true}),
+        );
         assert_eq!(nest.operations, 6500000.0);
         assert!(nest.valid());
         assert!(v(serde_json::json!({"nest": [], "correct": true})).valid());
