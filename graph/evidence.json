@@ -46694,6 +46694,21 @@
       "judge": "opus",
       "summary": "subsetSum starts the set sums at {0}. For each x in nums it adds x + s for every s in sums, and the filter x + s <= target drops sums above target. The comprehension builds a new set before |= merges it, so each element is used at most once, and the function returns target in sums. This exercised the forward rolling DP over reachable sums and a set membership test, in O(nums.length * target) time. The run passed every assertion and the notes are empty.",
       "seconds": 334
+    },
+    "solved/p1218_Longest_Arithmetic_Subsequence_of_Given_Difference_2026_11_25T01_10_02_761766_00_00Z.mu": {
+      "date": "2026-11-25",
+      "problem": "1218",
+      "moves": {
+        "dp-1d-rolling": "clean",
+        "dict-arbitrary-value": "clean",
+        "streaming-ask-then-record": "clean",
+        "derived-key-lookup": "clean"
+      },
+      "judge": "opus",
+      "note": "LEETCODE: Accepted (75 ms, 31.5 MB)",
+      "summary": "longestSubsequence scans arr once with a default-int map DP, where DP[v] is the length of the longest valid subsequence that ends in value v. For each v it reads DP[v - difference], then writes max(DP[v - difference] + 1, DP[v]) to DP[v], and it returns the maximum of DP.values() with a default of 0. The code exercised the 1D DP, the map of values to lengths, the query before the record, and the derived key v - difference. The notes hold a small worked trace of value to length and no mention of help; LeetCode returned Accepted.",
+      "seconds": 315,
+      "learning": true
     }
   }
 }
